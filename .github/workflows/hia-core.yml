@@ -13,7 +13,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger slot_operations cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact service_read service_slot service_inspection service_lease store_file_capture service_discovery service_verification; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger slot_operations cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact service_read service_slot service_inspection service_lease store_file_capture service_discovery service_verification service_bootstrap; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -21,7 +21,9 @@ jobs:
       - run: python -B tools/generate_hia_selfhost_contract.py --check
       - run: python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
       - run: git diff --exit-code
+        id: source_prerequisites
       - name: Core source and independent reference controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         env:
           HEPTA_HIA_SERVICE_ARTIFACT_LOCAL_RELEASE_EVIDENCE: ${{ runner.temp }}/hia-service-artifact-local-release
           HEPTA_HIA_SERVICE_READ_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-read-source
@@ -190,6 +192,7 @@ jobs:
           raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
           PY
       - name: Strict public publication ELF compatibility
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         run: |
           python -B - <<'PYTEST'
           import unittest
@@ -202,6 +205,7 @@ jobs:
           raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
           PYTEST
       - name: Prepared independent VM metadata Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         run: |
           set -euo pipefail
@@ -225,6 +229,7 @@ jobs:
           path: ${{ runner.temp }}/hia-prepared-vm-source.log
           if-no-files-found: error
       - name: Arithmetic derived-operation Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         run: |
           set -euo pipefail
@@ -250,6 +255,7 @@ jobs:
           raise SystemExit(0 if run_suite(suite) else 1)
           PYARITHMETIC
       - name: Complete original independent VM semantics
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         run: |
           set -euo pipefail
@@ -298,7 +304,42 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-arithmetic-vm-source.log
             ${{ runner.temp }}/hia-generic-vm-source.log
+      - name: Build explicit Slot mechanical extension for source diagnostics
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/build_hia_slot_mechanical.py --in-place \
+            --output "$RUNNER_TEMP/hia-slot-mechanical-source-build" \
+            2>&1 | tee "$RUNNER_TEMP/hia-slot-mechanical-source-build.log"
+      - name: Preserve Slot mechanical source compile receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-slot-mechanical-source-build-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-slot-mechanical-source-build/
+            ${{ runner.temp }}/hia-slot-mechanical-source-build.log
+      - name: Explicit Slot legacy and v5 route Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_slot_mechanical_routes.SlotMechanicalDualRouteSourceTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-slot-mechanical-routes-source.log"
+      - name: Preserve Slot dual route Source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-slot-mechanical-routes-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: ${{ runner.temp }}/hia-slot-mechanical-routes-source.log
       - name: Complete Slot operations independent Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
           HEPTA_HIA_SLOT_OPERATIONS_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-slot-operations-source
@@ -344,6 +385,7 @@ jobs:
           include-hidden-files: true
           path: ${{ runner.temp }}/hia-service-read-source/
       - name: Complete service rollback and adoption independent Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
           HEPTA_HIA_SERVICE_SLOT_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-slot-source
@@ -351,6 +393,7 @@ jobs:
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_service_slot_native.ServiceSlotSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-slot-source.log"
       - name: Complete inspect and candidate independent Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
           HEPTA_HIA_SERVICE_INSPECTION_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-inspection-source
@@ -358,6 +401,7 @@ jobs:
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_service_inspection_native.ServiceInspectionSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-inspection-source.log"
       - name: Complete inspection public receiver lifetime Source supplement
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
           HEPTA_HIA_SERVICE_INSPECTION_PUBLIC_LIFETIME_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-inspection-public-lifetime-source
@@ -365,6 +409,7 @@ jobs:
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_service_inspection_public_lifetime.ServiceInspectionPublicLifetimeSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-inspection-public-lifetime-source.log"
       - name: Complete four-method lease independent Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         run: |
           set -euo pipefail
@@ -383,12 +428,35 @@ jobs:
             ${{ runner.temp }}/hia-service-lease-source/
             ${{ runner.temp }}/hia-service-lease-source.log
       - name: Complete stable-read and capture independent Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
           HEPTA_HIA_STORE_FILE_CAPTURE_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-store-file-capture-source
         run: |
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_store_file_capture_native.StoreFileCaptureSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-store-file-capture-source.log"
+      - name: Complete explicit admission I/O Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_NATIVE_ADMISSION_IO_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-native-admission-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_native_admission_io.NativeAdmissionIOSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-native-admission-source.log"
+          for evidence in "$RUNNER_TEMP/hia-native-admission-source"/source-*; do
+            python -B tools/read_hia_native_admission_io.py --repository "$GITHUB_WORKSPACE" --evidence "$evidence" --phase source --output "$evidence/source-readback.json"
+          done
+      - name: Preserve complete admission I/O Source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-native-admission-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-native-admission-source/
+            ${{ runner.temp }}/hia-native-admission-source.log
       - name: Preserve complete new service owner Source observations
         if: always()
         uses: actions/upload-artifact@v4
@@ -407,6 +475,7 @@ jobs:
             ${{ runner.temp }}/hia-store-file-capture-source/
             ${{ runner.temp }}/hia-store-file-capture-source.log
       - name: Complete discovery Source control and immutable original observations
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
           HEPTA_HIA_SERVICE_DISCOVERY_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-discovery-source
@@ -424,6 +493,7 @@ jobs:
             ${{ runner.temp }}/hia-service-discovery-source/
             ${{ runner.temp }}/hia-service-discovery-source.log
       - name: Complete verification Source control and immutable original observations
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
           HEPTA_HIA_SERVICE_VERIFICATION_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-verification-source
@@ -454,6 +524,73 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           path: ${{ runner.temp }}/hia-service-verification-imports.log
+      - name: Complete bootstrap static Source contracts
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-bootstrap-source.log"
+      - name: Preserve complete bootstrap static Source log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-bootstrap-source-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-service-bootstrap-source.log
+      - name: Complete bootstrap original-first runtime Source six methods
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B tools/qualify_hia_service_bootstrap.py --suite source \
+            --output "$RUNNER_TEMP/hia-service-bootstrap-runtime-source"
+      - name: Read complete bootstrap Source original-first evidence
+        if: always()
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - "$RUNNER_TEMP/hia-service-bootstrap-runtime-source" <<'PY'
+          import hashlib, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          report = root / "report.json"
+          raw = report.read_bytes()
+          command = [sys.executable, "-I", "-B", "tools/read_hia_service_bootstrap.py",
+                     "--evidence", str(root), "--report-bytes", str(len(raw)),
+                     "--report-sha256", hashlib.sha256(raw).hexdigest(),
+                     "--output", str(root / "independent-readback.json")]
+          subprocess.run(command, check=True)
+          if report.read_bytes() != raw:
+              raise ValueError("bootstrap producer report changed during independent readback")
+          PY
+      - name: Preserve complete bootstrap runtime Source raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-bootstrap-runtime-source-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-service-bootstrap-runtime-source/
+# Source job, append after its existing prerequisite stage. Keep all old steps.
+      - name: Complete worker UNKNOWN Source original and factual controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_WORKER_UNKNOWN_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-worker-unknown-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_worker_unknown.WorkerUnknownSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-worker-unknown-source.log"
+      - name: Preserve worker UNKNOWN Source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-unknown-source-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/hia-worker-unknown-source
+            ${{ runner.temp }}/hia-worker-unknown-source.log
+
   native:
     runs-on: ubuntu-latest
     steps:
@@ -482,7 +619,8 @@ jobs:
           cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
           sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
-      - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - id: worker_unknown_cold_authority
+        run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - name: Native linked observer and independent loader lifecycle controls
         env:
           HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
@@ -881,6 +1019,28 @@ jobs:
         run: |
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_store_file_capture_native.StoreFileCaptureNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-store-file-capture-native.log"
+      - name: Complete explicit admission I/O Native and installed controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_STORE_FILE_CAPTURE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_ADMISSION_IO_EVIDENCE: ${{ runner.temp }}/hia-native-admission-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_native_admission_io.NativeAdmissionIONativeTests 2>&1 | tee "$RUNNER_TEMP/hia-native-admission-native.log"
+          for evidence in "$RUNNER_TEMP/hia-native-admission-native"/native-*; do
+            python -B tools/read_hia_native_admission_io.py --repository "$GITHUB_WORKSPACE" --evidence "$evidence" --phase native --output "$evidence/native-readback.json"
+          done
+      - name: Preserve complete admission I/O Native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-native-admission-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-native-admission-native/
+            ${{ runner.temp }}/hia-native-admission-native.log
       - name: Complete owned-fd v2 actual descriptor and lost-close-return controls
         timeout-minutes: 30
         env:
@@ -941,6 +1101,15 @@ jobs:
         run: |
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_service_verification_native.ServiceVerificationNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-service-verification-native.log"
+      - name: Independent nested verification FINALIZE before SQL control
+        if: always()
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_VERIFICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_VERIFICATION_FINALIZE_EVIDENCE: ${{ runner.temp }}/hia-service-verification-child-finalize
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_verification_finalization_native.ServiceVerificationChildFinalizeNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-service-verification-child-finalize.log"
       - name: Complete original verification ordinary 112 caller methods
         timeout-minutes: 30
         run: |
@@ -957,6 +1126,144 @@ jobs:
             --scope journal --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --evidence "$RUNNER_TEMP/hia-service-verification-journal" \
             2>&1 | tee "$RUNNER_TEMP/hia-service-verification-journal.log"
+      - name: Complete bootstrap Native eight and real resource four methods
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_BOOTSTRAP_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        run: |
+          set -euo pipefail
+          python -I -B tools/qualify_hia_service_bootstrap.py --suite native \
+            --output "$RUNNER_TEMP/hia-service-bootstrap-runtime-native"
+      - name: Read complete bootstrap Native and actual resources
+        if: always()
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - "$RUNNER_TEMP/hia-service-bootstrap-runtime-native" <<'PY'
+          import hashlib, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          report = root / "report.json"
+          raw = report.read_bytes()
+          command = [sys.executable, "-I", "-B", "tools/read_hia_service_bootstrap.py",
+                     "--evidence", str(root), "--report-bytes", str(len(raw)),
+                     "--report-sha256", hashlib.sha256(raw).hexdigest(),
+                     "--output", str(root / "independent-readback.json"), "--require-cold"]
+          subprocess.run(command, check=True)
+          if report.read_bytes() != raw:
+              raise ValueError("bootstrap producer report changed during independent readback")
+          PY
+      - name: Complete actual Budget B retirement Native four methods
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_BOOTSTRAP_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        run: |
+          set -euo pipefail
+          python -I -B tools/qualify_hia_budget_resource_retirement.py --suite native \
+            --output "$RUNNER_TEMP/hia-budget-resource-retirement"
+      - name: Read complete Budget B actual resource and installed evidence
+        if: always()
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - "$RUNNER_TEMP/hia-budget-resource-retirement" <<'PY'
+          import hashlib, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          report = root / "report.json"
+          raw = report.read_bytes()
+          command = [sys.executable, "-I", "-B", "tools/read_hia_budget_resource_retirement.py",
+                     "--evidence", str(root), "--report-bytes", str(len(raw)),
+                     "--report-sha256", hashlib.sha256(raw).hexdigest(),
+                     "--output", str(root / "independent-readback.json")]
+          subprocess.run(command, check=True)
+          if report.read_bytes() != raw:
+              raise ValueError("Budget producer report changed during readback")
+          PY
+      - name: Preserve complete Budget B resource raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: budget-resource-retirement-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-budget-resource-retirement/
+      - name: Complete original bootstrap ordinary 112 caller methods
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_bootstrap_callers_owned.py \
+            --scope ordinary --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-bootstrap-ordinary" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-bootstrap-ordinary.log"
+      - name: Read full bootstrap ordinary original caller evidence
+        if: always()
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - "$RUNNER_TEMP/hia-service-bootstrap-ordinary" <<'PY'
+          import hashlib, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          report = root / "report.json"
+          raw = report.read_bytes()
+          command = [sys.executable, "-I", "-B", "tools/read_hia_service_bootstrap.py",
+                     "--evidence", str(root), "--report-bytes", str(len(raw)),
+                     "--report-sha256", hashlib.sha256(raw).hexdigest(),
+                     "--output", str(root / "independent-readback.json"), "--require-cold", "--callers"]
+          subprocess.run(command, check=True)
+          if report.read_bytes() != raw:
+              raise ValueError("bootstrap producer report changed during independent readback")
+          PY
+      - name: Complete original bootstrap journal 21 caller methods
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_bootstrap_callers_owned.py \
+            --scope journal --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-bootstrap-journal" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-bootstrap-journal.log"
+      - name: Read full bootstrap journal original caller evidence
+        if: always()
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - "$RUNNER_TEMP/hia-service-bootstrap-journal" <<'PY'
+          import hashlib, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          report = root / "report.json"
+          raw = report.read_bytes()
+          command = [sys.executable, "-I", "-B", "tools/read_hia_service_bootstrap.py",
+                     "--evidence", str(root), "--report-bytes", str(len(raw)),
+                     "--report-sha256", hashlib.sha256(raw).hexdigest(),
+                     "--output", str(root / "independent-readback.json"), "--require-cold", "--callers"]
+          subprocess.run(command, check=True)
+          if report.read_bytes() != raw:
+              raise ValueError("bootstrap producer report changed during independent readback")
+          PY
+      - name: Complete original bootstrap context 15 caller methods
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_bootstrap_callers_owned.py \
+            --scope context --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-bootstrap-context" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-bootstrap-context.log"
+      - name: Read full bootstrap context original caller evidence
+        if: always()
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - "$RUNNER_TEMP/hia-service-bootstrap-context" <<'PY'
+          import hashlib, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          report = root / "report.json"
+          raw = report.read_bytes()
+          command = [sys.executable, "-I", "-B", "tools/read_hia_service_bootstrap.py",
+                     "--evidence", str(root), "--report-bytes", str(len(raw)),
+                     "--report-sha256", hashlib.sha256(raw).hexdigest(),
+                     "--output", str(root / "independent-readback.json"), "--require-cold", "--callers"]
+          subprocess.run(command, check=True)
+          if report.read_bytes() != raw:
+              raise ValueError("bootstrap producer report changed during independent readback")
+          PY
       - name: Shared native delivery causal custody and actual installed worker controls
         run: >-
           python -B tools/qualify_hia_native_delivery.py --group focused
@@ -1435,6 +1742,23 @@ jobs:
         env:
           HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget
+      - name: Build explicit Slot mechanical extension for native diagnostics
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/build_hia_slot_mechanical.py --in-place \
+            --output "$RUNNER_TEMP/hia-slot-mechanical-native-build" \
+            2>&1 | tee "$RUNNER_TEMP/hia-slot-mechanical-native-build.log"
+      - name: Preserve Slot mechanical native compile receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-slot-mechanical-native-build-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-slot-mechanical-native-build/
+            ${{ runner.temp }}/hia-slot-mechanical-native-build.log
       - name: Complete Slot operations native control and installed worker
         timeout-minutes: 30
         env:
@@ -1607,6 +1931,50 @@ jobs:
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --output "$RUNNER_TEMP/hia-json-wire-callers.json"
           --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers"
+      - name: Explicit Slot legacy and v5 captured route Native controls
+        if: always()
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SLOT_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE: ${{ runner.temp }}/hia-slot-mechanical-routes-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_slot_mechanical_routes.SlotMechanicalDualRouteNativeTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-slot-mechanical-routes-native.log"
+      - name: Preserve Slot dual route Native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-slot-mechanical-routes-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-slot-mechanical-routes-native/
+            ${{ runner.temp }}/hia-slot-mechanical-routes-native.log
+      - name: Explicit v5 Slot mechanical original-first and installed qualification
+        if: always()
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SLOT_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE: ${{ runner.temp }}/hia-slot-mechanical-v5
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-slot-mechanical-v5.log"
+      - name: Preserve explicit v5 Slot mechanical original-first and installed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-slot-mechanical-v5-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-slot-mechanical-v5/
+            ${{ runner.temp }}/hia-slot-mechanical-v5.log
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -1653,10 +2021,19 @@ jobs:
             ${{ runner.temp }}/hia-service-discovery-context.log
             ${{ runner.temp }}/hia-service-verification-native/
             ${{ runner.temp }}/hia-service-verification-native.log
+            ${{ runner.temp }}/hia-service-verification-child-finalize/
+            ${{ runner.temp }}/hia-service-verification-child-finalize.log
             ${{ runner.temp }}/hia-service-verification-ordinary/
             ${{ runner.temp }}/hia-service-verification-ordinary.log
             ${{ runner.temp }}/hia-service-verification-journal/
             ${{ runner.temp }}/hia-service-verification-journal.log
+            ${{ runner.temp }}/hia-service-bootstrap-ordinary/
+            ${{ runner.temp }}/hia-service-bootstrap-ordinary.log
+            ${{ runner.temp }}/hia-service-bootstrap-journal/
+            ${{ runner.temp }}/hia-service-bootstrap-journal.log
+            ${{ runner.temp }}/hia-service-bootstrap-context/
+            ${{ runner.temp }}/hia-service-bootstrap-context.log
+            ${{ runner.temp }}/hia-service-bootstrap-runtime-native/
             ${{ runner.temp }}/hia-full-cost/
             ${{ runner.temp }}/hia-full-cost-callers/
             ${{ runner.temp }}/hia-patch-impact/
@@ -1802,6 +2179,10 @@ jobs:
           transaction_patterns = ('**/*.json', '**/*.jsonl', '**/*.log', '**/*.stdout', '**/*.stderr', '**/*.txt')
           service_read_patterns = ('**/*.json', '**/*.jsonl', '**/*.log', '**/*.stdout', '**/*.stderr', '**/*.txt')
           ordered_groups = (
+              ('hia-native-admission-source', service_read_patterns),
+              ('hia-native-admission-source.log', None),
+              ('hia-native-admission-native', service_read_patterns),
+              ('hia-native-admission-native.log', None),
               ('byte-wrapper-callers', common_patterns),
               ('byte-wrapper-composed-callers', common_patterns),
               ('byte-wrapper-fixture', common_patterns),
@@ -1942,10 +2323,19 @@ jobs:
               ('hia-service-discovery-context.log', None),
               ('hia-service-verification-native', service_read_patterns),
               ('hia-service-verification-native.log', None),
+              ('hia-service-verification-child-finalize', service_read_patterns),
+              ('hia-service-verification-child-finalize.log', None),
               ('hia-service-verification-ordinary', service_read_patterns),
               ('hia-service-verification-ordinary.log', None),
               ('hia-service-verification-journal', service_read_patterns),
               ('hia-service-verification-journal.log', None),
+              ('hia-service-bootstrap-ordinary', service_read_patterns),
+              ('hia-service-bootstrap-ordinary.log', None),
+              ('hia-service-bootstrap-journal', service_read_patterns),
+              ('hia-service-bootstrap-journal.log', None),
+              ('hia-service-bootstrap-context', service_read_patterns),
+              ('hia-service-bootstrap-context.log', None),
+              ('hia-service-bootstrap-runtime-native', service_read_patterns),
           )
           temporary = os.environ["RUNNER_TEMP"]
           paths = [temporary + "/" + name for name in exact_files]
@@ -2000,3 +2390,24 @@ jobs:
             ${{ runner.temp }}/hia-store-file-capture-owned-fd-v2/**/*.stderr
             ${{ runner.temp }}/hia-store-file-capture-owned-fd-v2/**/*.txt
             ${{ runner.temp }}/hia-store-file-capture-owned-fd-v2.log
+
+# Native job, append after actual same-current-cold preparation.
+      - name: Complete worker UNKNOWN original v1 and explicit v2 installed gates
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_WORKER_UNKNOWN_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_UNKNOWN_EVIDENCE: ${{ runner.temp }}/hia-worker-unknown-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_worker_unknown.WorkerUnknownNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-worker-unknown-native.log"
+      - name: Preserve worker UNKNOWN complete installed evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-unknown-native-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/hia-worker-unknown-native
+            ${{ runner.temp }}/hia-worker-unknown-native.log

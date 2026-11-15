@@ -15,6 +15,10 @@ import uuid
 
 from .hia_agent_contract import VERSION, installation_manifest
 from .hia_agent_store import AgentRejected, canonical_digest, decode_data, keys, wire
+from .hia_native_delivery import (
+    RequestDeliveryObservation, guard_request_output, note_request_failure,
+    release_healthy_request_failures,
+)
 
 
 def main(argv=None):
@@ -30,14 +34,58 @@ def main(argv=None):
     parser.add_argument("--expected-native-helpers-sha256")
     args = parser.parse_args(argv)
     from .hia_native_helpers import native_helpers_scope
+    observation = None
     try:
-        with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256):
-            return _run(parser, args)
+        observation = RequestDeliveryObservation()
+        with observation:
+            with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256):
+                result = _run(parser, args)
+        if observation.origin is not None:
+            return _unknown_request_exit(observation, None)
+        return result
     except (ValueError, OSError, TypeError, OverflowError, RecursionError) as exc:
-        # No authenticated envelope, or terminal rendering could not complete.
-        # A partial report cannot become a correlated success.
+        if observation is not None and observation.origin is not None:
+            return _unknown_request_exit(observation, exc)
+        # Keep the original ordinary uncorrelated/terminal-rendering boundary.
         sys.stderr.write(str(exc)[:4096] + "\n")
         return 2
+    except BaseException as error:
+        if observation is not None and observation.origin is not None:
+            return _unknown_request_exit(observation, error)
+        raise
+
+
+
+def _unknown_request_exit(observation, terminal_error):
+    """Diagnose real request loss without a normal report or cleanup retry."""
+    import traceback
+    # Primary and cleanup are independent actual objects. Rendering them does
+    # not change their cause, context, traceback, or any retained custody.
+    try:
+        sys.stderr.write("HIA_WORKER_DELIVERY_UNKNOWN\n")
+        primary = observation.primary_error
+        cleanup = observation.cleanup_error
+        if primary is not None:
+            sys.stderr.write("REQUEST_PRIMARY_EXCEPTION\n")
+            traceback.print_exception(primary, file=sys.stderr)
+        if cleanup is not None:
+            sys.stderr.write("REQUEST_CLEANUP_EXCEPTION\n")
+            traceback.print_exception(cleanup, file=sys.stderr)
+        if (terminal_error is not None and terminal_error is not primary
+                and terminal_error is not cleanup):
+            sys.stderr.write("REQUEST_TERMINAL_EXCEPTION\n")
+            traceback.print_exception(terminal_error, file=sys.stderr)
+        if primary is None and cleanup is None and terminal_error is None:
+            sys.stderr.write("REQUEST_RETAINED_LOSS\n")
+            traceback.print_exception(observation.origin.error, file=sys.stderr)
+    except BaseException:
+        # The unknown fact already exists. A broken diagnostic stream cannot
+        # turn it into success, cause another close, or retry the request.
+        try:
+            sys.stderr.write("HIA_WORKER_DELIVERY_UNKNOWN diagnostic unavailable\n")
+        except BaseException:
+            pass
+    return 2
 
 
 def _run(parser, args):
@@ -56,7 +104,7 @@ def _reference_run(parser, args):
     if args.installation_manifest:
         if args.request_json_stdin:
             parser.error("manifest read and request execution are distinct modes")
-        sys.stdout.buffer.write(wire(identities) + b"\n")
+        sys.stdout.buffer.write(guard_request_output(wire(identities) + b"\n"))
         return 0
     if not args.state_root or not args.request_json_stdin:
         parser.error("request execution requires --state-root and --request-json-stdin")
@@ -96,13 +144,23 @@ def _reference_run(parser, args):
         try:
             service_entered = True
             response = service.call(request["tool"], request["arguments"])
+        except BaseException as error:
+            note_request_failure(error)
+            raise
         finally:
-            service.close()
+            try:
+                service.close()
+            except BaseException as error:
+                note_request_failure(error, cleanup=True)
+                raise
+            finally:
+                release_healthy_request_failures()
         after = installation_manifest()
         if after != identities:
             identities = after
             raise AgentRejected("E_HIA_IMPLEMENTATION_STALE", "installed source changed during operation; observe original job", retry_action="observe_original")
     except (ValueError, OSError, TypeError, OverflowError, RecursionError) as exc:
+        guard_request_output(None)
         if type(request) is not dict or not all(key in request for key in ("tool", "request_sha256", "profile_sha256", "catalog_sha256")):
             # A malformed or pin-mismatched envelope cannot invent a valid
             # correlation report. No service/store/effect was entered.
@@ -121,7 +179,7 @@ def _reference_run(parser, args):
         "worker_sha256": identities["worker_sha256"], "complete": True, "response": response}
     if "native_helpers_sha256" in identities:
         report["native_helpers_sha256"] = identities["native_helpers_sha256"]
-    sys.stdout.buffer.write(wire(report) + b"\n")
+    sys.stdout.buffer.write(guard_request_output(wire(report) + b"\n"))
     return 0
 
 

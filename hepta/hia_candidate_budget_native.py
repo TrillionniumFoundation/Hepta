@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ctypes
 from .hia_native_delivery import DeliveryRecord, NativeCall
+from .hia_budget_resource_custody import budget_resource_scope_v1
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -148,30 +149,32 @@ class AttemptState:
 class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
     """Reuse original-WAL connection custody; never call execution-budget SQL."""
     def __init__(self, store, admission):
-        image, source = admission
-        if type(source) is not bytes or SOURCE.read_bytes() != source:
-            _reject(5, 'candidate attempt source changed after admission')
-        # Candidate selection can be enabled independently of native wall-cost
-        # budgets. Capture the already open official WAL before creating the
-        # private effect connection, without enabling or altering that policy.
-        store.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
-        sidecars = {suffix: self._file_identity(Path(str(store.database) + suffix))
-                    for suffix in ('-wal', '-shm')}
-        super().__init__(store, image, sidecars=sidecars)
-        self.source_bytes = source
+        with budget_resource_scope_v1(self):
+            image, source = admission
+            if type(source) is not bytes or SOURCE.read_bytes() != source:
+                _reject(5, 'candidate attempt source changed after admission')
+            # Candidate selection can be enabled independently of native wall-cost
+            # budgets. Capture the already open official WAL before creating the
+            # private effect connection, without enabling or altering that policy.
+            store.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+            sidecars = {suffix: self._file_identity(Path(str(store.database) + suffix))
+                        for suffix in ('-wal', '-shm')}
+            super().__init__(store, image, sidecars=sidecars)
+            self.source_bytes = source
 
     def consume(self, context, maximum):
-        delivery = DeliveryRecord(self)
-        try:
-            with delivery.foreign(observation=False):
-                result = self._consume_observed(context, maximum, delivery)
-                delivery.check()
-                return result
-        except BaseException as error:
-            delivery.failed(error)
-            raise
-        finally:
-            delivery.retire()
+        with budget_resource_scope_v1(self):
+            delivery = DeliveryRecord(self)
+            try:
+                with delivery.foreign(observation=False):
+                    result = self._consume_observed(context, maximum, delivery)
+                    delivery.check()
+                    return result
+            except BaseException as error:
+                delivery.failed(error)
+                raise
+            finally:
+                delivery.retire()
 
     def _consume_observed(self, context, maximum, delivery):
         self.check()

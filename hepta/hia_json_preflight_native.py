@@ -58,9 +58,8 @@ def _source_resource_path(name):
     The installed path remains package-owned even if an individual resource
     is missing; there is no source-tree fallback for selected native images.
     """
-    root = Path(__file__).resolve().parent.parent
-    resource_root = root if (root / "pyproject.toml").is_file() else root / "hepta" / "_data"
-    return resource_root / name
+    from .hia_native_admission_io import source_resource_path
+    return source_resource_path(__file__, name)
 
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hepta')

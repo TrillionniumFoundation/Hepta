@@ -339,7 +339,7 @@ def resources(image,args):
             actual=store.AgentStore(args.output/label);sql=[];actual.db.set_trace_callback(sql.append)
             entries=[];fault=ValueError('completed Store publication before missing parent ACK')
             owner,world=resource_owner(image,actual)
-            wanted=lambda q,a:q[1]==native.FINALIZE if port is None else q[1]==native.SUCCEEDED and q[3]==native.PORT[port]
+            wanted=lambda q,a:q[1]==native.FINALIZE and q[5]==native.VERIFY if port is None else q[1]==native.SUCCEEDED and q[3]==native.PORT[port]
             with attributes(image,{'_entry':entry_observer(image,entries,target=wanted,fault=fault)}):
                 _,error=caught(owner.finish)
             assert type(error) is native.ServiceVerificationUnknown and owner._delivery.loss is not None

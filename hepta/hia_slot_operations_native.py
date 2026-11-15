@@ -304,7 +304,7 @@ class SlotOperationsReceipt:
 
 class SlotOperationsFrame:
     """Private ABI state; the data dictionary has the original local slots."""
-    def __init__(self, image, mode, initial, *, namespace=None):
+    def __init__(self, image, mode, initial, *, namespace=None, mechanical=False):
         if type(image) is not NativeSlotOperations:
             raise TypeError('Slot operations require the admitted controller image')
         if type(mode) is not int or mode not in LOCAL_SLOTS:
@@ -314,7 +314,12 @@ class SlotOperationsFrame:
             namespace = vars(hia_slot_ledger_native)
         self.image, self.mode = image, mode
         self.namespace = _Globals(namespace)
-        self.data = dict.fromkeys(_local_storage_order(mode))
+        if type(mechanical) is not bool:
+            raise TypeError('Slot mechanical option must be an exact bool')
+        # Public C continuations own the real business fast locals.
+        self.data = {} if mechanical else dict.fromkeys(_local_storage_order(mode))
+        self._mechanical_session = None
+        self._mechanical_rejections = _REQUEST_REJECTIONS
         # Normal completion drops this owner's storage reference. A real
         # handled provider traceback may still own an effect's original d.
         self._retired_data = {}
@@ -452,6 +457,29 @@ class SlotOperationsFrame:
             raise
         finally:
             self._delivery.retire()
+
+    def _mechanical_abandon_foreign(self, activation, error):
+        """Reset only an entered private activation whose outcome is not ACKed.
+
+        This is not ForeignCall.__exit__: a safe preparation failure must not
+        manufacture record.observed(). Actual child/SQL loss remains sticky.
+        """
+        from .hia_native_delivery import _ACTIVE, _PENDING_RESOURCE_CAPTURE
+        if activation is not self._pending_foreign:
+            raise SlotOperationsUnknown('Slot cleanup has no exact foreign activation')
+        try:
+            activation.failed(error)
+        finally:
+            activation.active = False
+            try:
+                try:
+                    if activation.capture_token is not None:
+                        _PENDING_RESOURCE_CAPTURE.reset(activation.capture_token)
+                finally:
+                    _ACTIVE.reset(activation.token)
+            except BaseException as reset_error:
+                self._delivery.publish(reset_error)
+                raise
 
     def _effect_once(self):
         if self.receipt.phase != ISSUED:

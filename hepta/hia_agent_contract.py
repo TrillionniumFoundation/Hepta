@@ -102,6 +102,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/service_lease.hepta',
     'examples/hia_bootstrap/store_file_capture.hepta',
     'examples/hia_bootstrap/service_discovery.hepta',
+    'examples/hia_bootstrap/service_bootstrap.hepta',
 )
 
 

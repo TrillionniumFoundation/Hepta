@@ -14,6 +14,14 @@ from tools.qualify_hia_selfhost import compile_stage
 SOURCE_NAME = 'examples/hia_bootstrap/store_file_capture.hepta'
 ORIGINAL_DIRECTORY = 'tests/fixtures/hia_store_file_capture_original_65630/'
 INPUTS = (
+    'hepta/hia_native_admission_io.py',
+    'tests/test_hia_native_admission_io.py',
+    'tests/hia_native_admission_io_controls.py',
+    'tools/read_hia_native_admission_io.py',
+    'tests/fixtures/hia_native_admission_io/regular_bytes.py.txt',
+    'tests/fixtures/hia_native_admission_io/source_resource_path.py.txt',
+    'tests/fixtures/hia_native_admission_io/source-identity.json',
+    'docs/HIA_NATIVE_ADMISSION_IO.md',
     SOURCE_NAME, 'tools/generate_hia_store_file_capture.py', 'tools/build_hia_store_file_capture.py',
     'hepta/hia_store_file_capture_native.py', 'hepta/hia_store_file_capture_protocol.py',
     'hepta/hia_agent_store.py', 'hepta/hia_agent_service.py', 'hepta/hia_agent_runner.py',

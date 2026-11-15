@@ -77,6 +77,9 @@ INPUTS = (
     "tests/fixtures/hia_service_verification_original_r12/cases.json",
     "tests/fixtures/hia_service_verification_original_r12/source-identity.json",
     "tests/fixtures/hia_service_verification_original_r12/caller-scopes.json",
+    "tests/hia_service_verification_child_finalize.py",
+    "tools/read_hia_service_verification_child_finalize.py",
+    "tests/test_hia_service_verification_finalization_native.py",
 )
 
 

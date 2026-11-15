@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import copy
 import ctypes
-from .hia_native_delivery import DeliveryRecord, NativeCall
+from .hia_native_delivery import DeliveryRecord, NativeCall, check_resource_retirement
+from .hia_budget_resource_custody import budget_resource_scope_v1
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -216,36 +217,37 @@ class BudgetState:
 class NativeExecutionBudgetStore:
     """Fixed SQLite effects on a dedicated connection to the original WAL."""
     def __init__(self, store, image, *, sidecars=None):
-        self.store, self.image = store, image
-        self.official = store.db
-        self.path = Path(store.database)
-        self.identity = store.database_identity
-        self.creator = os.getpid()
-        self.lock = threading.RLock()
-        self.connection_identity = struct.unpack('<2Q', os.urandom(16))
-        self._db = None
-        self.closed = False
-        self.poisoned = None
-        self.sidecars = dict(store.database_sidecars if sidecars is None else sidecars)
-        self.check()
-        main = [row for row in self.official.execute('PRAGMA database_list') if row['name'] == 'main']
-        if len(main) != 1 or main[0]['file'] != str(self.path):
-            _reject(2, 'execution budget path does not identify the official main database')
-        # mode=rw is deliberate: a missing/replaced official database can never
-        # silently become a newly created independent budget namespace.
-        connection = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True,
-                                     isolation_level=None, timeout=10, check_same_thread=False)
-        try:
-            connection.row_factory = sqlite3.Row
-            if connection.execute('PRAGMA journal_mode').fetchone()[0].lower() != 'wal':
-                _reject(2, 'execution budget requires the original WAL journal')
-            connection.execute('PRAGMA synchronous=FULL')
-            connection.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+        with budget_resource_scope_v1(self):
+            self.store, self.image = store, image
+            self.official = store.db
+            self.path = Path(store.database)
+            self.identity = store.database_identity
+            self.creator = os.getpid()
+            self.lock = threading.RLock()
+            self.connection_identity = struct.unpack('<2Q', os.urandom(16))
+            self._db = None
+            self.closed = False
+            self.poisoned = None
+            self.sidecars = dict(store.database_sidecars if sidecars is None else sidecars)
             self.check()
-        except BaseException:
-            connection.close()
-            raise
-        self._db = connection
+            main = [row for row in self.official.execute('PRAGMA database_list') if row['name'] == 'main']
+            if len(main) != 1 or main[0]['file'] != str(self.path):
+                _reject(2, 'execution budget path does not identify the official main database')
+            # mode=rw is deliberate: a missing/replaced official database can never
+            # silently become a newly created independent budget namespace.
+            connection = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True,
+                                         isolation_level=None, timeout=10, check_same_thread=False)
+            try:
+                connection.row_factory = sqlite3.Row
+                if connection.execute('PRAGMA journal_mode').fetchone()[0].lower() != 'wal':
+                    _reject(2, 'execution budget requires the original WAL journal')
+                connection.execute('PRAGMA synchronous=FULL')
+                connection.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+                self.check()
+            except BaseException:
+                connection.close()
+                raise
+            self._db = connection
 
     @property
     def db(self):
@@ -275,6 +277,7 @@ class NativeExecutionBudgetStore:
 
     def check(self):
         self._check_main()
+        check_resource_retirement(self)
         if self.closed or self.poisoned is not None:
             _reject(2, 'execution budget connection is closed or fenced')
         for suffix, identity in self.sidecars.items():
@@ -400,26 +403,31 @@ class NativeExecutionBudgetStore:
                 raise
 
     def create(self, context):
-        state = self._state(0, context)
-        self._drive(state)
+        with budget_resource_scope_v1(self):
+            state = self._state(0, context)
+            self._drive(state)
 
     def claim(self, context, owner, maximum, started):
-        state = self._state(1, context, owner, maximum, started)
-        self._drive(state)
-        return NativeBudgetClaim(self, state)
+        with budget_resource_scope_v1(self):
+            state = self._state(1, context, owner, maximum, started)
+            self._drive(state)
+            return NativeBudgetClaim(self, state)
 
     def observe(self, context):
-        state = self._state(2, context)
-        self._drive(state)
-        return state.observation()
+        with budget_resource_scope_v1(self):
+            state = self._state(2, context)
+            self._drive(state)
+            return state.observation()
 
     def close(self):
         if os.getpid() != self.creator:
             _reject(2, 'execution budget connection belongs to its creator process')
         with self.lock:
-            if not self.closed:
-                self.closed = True
-                self.db.close()
+            with budget_resource_scope_v1(self):
+                check_resource_retirement(self)
+                if not self.closed:
+                    self.closed = True
+                    self.db.close()
 
 
 class NativeBudgetClaim:
@@ -433,10 +441,11 @@ class NativeBudgetClaim:
     def run(self, runner, *args, now, total_ms, **kwargs):
         delivery = DeliveryRecord((self.store, self.state))
         try:
-            with delivery.foreign(observation=False):
-                result = self._run_observed(delivery, runner, *args, now=now, total_ms=total_ms, **kwargs)
-                delivery.check()
-                return result
+            with budget_resource_scope_v1(delivery.owner[0], record=delivery):
+                with delivery.foreign(observation=False):
+                    result = self._run_observed(delivery, runner, *args, now=now, total_ms=total_ms, **kwargs)
+                    delivery.check()
+                    return result
         except BaseException as error:
             delivery.failed(error)
             raise
@@ -467,10 +476,11 @@ class NativeBudgetClaim:
     def complete(self):
         delivery = DeliveryRecord((self.store, self.state))
         try:
-            with delivery.foreign(observation=False):
-                result = self._complete_observed()
-                delivery.check()
-                return result
+            with budget_resource_scope_v1(delivery.owner[0], record=delivery):
+                with delivery.foreign(observation=False):
+                    result = self._complete_observed()
+                    delivery.check()
+                    return result
         except BaseException as error:
             delivery.failed(error)
             raise

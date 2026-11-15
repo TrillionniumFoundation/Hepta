@@ -2205,3 +2205,260 @@ _selected_service_verification_9.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_
 _selected_service_verification_9.__doc__ = _SERVICE_VERIFICATION_REFERENCE_9.__doc__
 HIAAgentService._required_claims_reference = _SERVICE_VERIFICATION_REFERENCE_9
 HIAAgentService._required_claims = _selected_service_verification_9
+
+
+# Complete bootstrap/lifecycle/profile HIA owner. Retained definitions above
+# remain byte-exact and are the sole unselected route.
+import builtins as _service_bootstrap_builtins
+import importlib as _service_bootstrap_importlib
+import os as _service_bootstrap_os
+_SERVICE_BOOTSTRAP_ITER = _service_bootstrap_builtins.iter
+_SERVICE_BOOTSTRAP_BASE_EXCEPTION = _service_bootstrap_builtins.BaseException
+_SERVICE_BOOTSTRAP_LOADER = _service_bootstrap_importlib.import_module
+_SERVICE_BOOTSTRAP_REFERENCES = {
+    1: HIAAgentService.__init__, 2: HIAAgentService.close,
+    3: HIAAgentService._profiles, 4: HIAAgentService._profile,
+    5: HIAAgentService._program,
+}
+_SERVICE_BOOTSTRAP_GLOBAL_BUILTINS = HIAAgentService.__init__.__builtins__
+_SERVICE_BOOTSTRAP_LOCAL_LAYOUTS = {
+    mode: method.__code__.co_varnames for mode, method in _SERVICE_BOOTSTRAP_REFERENCES.items()
+}
+def _service_bootstrap_literal_init_import_candidate(self, state_root, artifact_roots):
+    from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
+    return (selected_candidate_budget, NativeCandidateBudgetStore)
+
+def _service_bootstrap_literal_init_import_slot(self, state_root, artifact_roots, selected_candidate_budget, NativeCandidateBudgetStore):
+    from .hia_slot_ledger_native import selected_slot_ledger, NativeSlotLedgerStore
+    return (selected_slot_ledger, NativeSlotLedgerStore)
+
+def _service_bootstrap_literal_init_catalog(self):
+    self.catalog, self.catalog_sha256 = catalog()
+
+def _service_bootstrap_literal_init_tools_iter(self):
+    return _SERVICE_BOOTSTRAP_ITER(self.catalog['tools'])
+
+def _service_bootstrap_literal_init_tools_put(result, t):
+    result[t['name']] = t
+
+def _service_bootstrap_literal_init_identities(self):
+    self.identities = installation_manifest()
+
+def _service_bootstrap_literal_init_store(self, state_root):
+    self.store = AgentStore(state_root)
+
+def _service_bootstrap_literal_init_budget_construct(self, NativeCandidateBudgetStore, candidate_budget_image):
+    self._candidate_budget = NativeCandidateBudgetStore(self.store, candidate_budget_image)
+
+def _service_bootstrap_literal_init_ledger_construct(self, NativeSlotLedgerStore, slot_ledger_image):
+    self._slot_ledger = NativeSlotLedgerStore(self.store, slot_ledger_image)
+
+def _service_bootstrap_literal_init_roots(self, artifact_roots, _make, _mode):
+    self.artifact_roots = tuple(_make(_mode, _SERVICE_BOOTSTRAP_ITER(artifact_roots)))
+
+def _service_bootstrap_literal_init_roots_invalid(self, _make, _mode):
+    return 1 if any(_make(_mode, _SERVICE_BOOTSTRAP_ITER(self.artifact_roots))) else 0
+
+def _service_bootstrap_literal_init_reject_roots():
+    reject('E_HIA_PROFILE', 'configured artifact roots must be directories')
+
+def _service_bootstrap_literal_init_profiles(self):
+    self._profiles()
+
+def _service_bootstrap_literal_init_cleanup_budget_bound(self):
+    return [self._candidate_budget.close]
+
+def _service_bootstrap_literal_init_cleanup_list(self, cleanups):
+    return _SERVICE_BOOTSTRAP_ITER([*cleanups, self.store.close])
+
+def _service_bootstrap_literal_init_cleanup_note(error, failure):
+    error.add_note('service construction cleanup failed: ' + type(failure).__name__)
+
+def _service_bootstrap_literal_close_budget_call(self):
+    self._candidate_budget.close()
+
+def _service_bootstrap_literal_close_store(self):
+    self.store.close()
+
+def _service_bootstrap_literal_profiles_import_program(self):
+    from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
+    return (TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS)
+
+def _service_bootstrap_literal_profiles_import_schema(self, TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS):
+    from .hia_schema import schema_registry
+    return schema_registry
+
+def _service_bootstrap_literal_profiles_import_safe(self, TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS, schema_registry):
+    from .hia_safe_core import ARTIFACT_PROFILE, LIMITS
+    return (ARTIFACT_PROFILE, LIMITS)
+
+def _service_bootstrap_literal_profiles_common(self):
+    return {'implementation': self.identities, 'catalog_sha256': self.catalog_sha256}
+
+def _service_bootstrap_literal_profiles_bodies_expression(self, common, TARGET, PROFILE, CORE_SCHEMAS, SUPPORTED_OPCODES, IMPORTS, ARTIFACT_PROFILE, LIMITS):
+    """One suspension replaces only the inlined path-root list comprehension."""
+    try:
+        _outcome = (1, {'compiler': {**common, 'schema': 'hepta.hia.agent.compiler-profile.v1', 'backend': 'hia-direct', 'implicit_profitability_optimizer': False, 'llvm_codegen': False, 'external_assembler': False}, 'target': {'schema': 'hepta.hia.agent.target-profile.v1', 'triple': TARGET, 'isa': 'x86-64', 'abi': 'SysV AMD64 LP64 scalar entries; opt-in synchronous borrowed-byte snapshots', 'operating_system': 'Linux', 'max_memory_bytes': str(4 * 1024 ** 3), 'min_memory_bytes': str(64 * 1024 ** 2), 'features': ['baseline-x86-64']}, 'backend': {**common, 'schema': 'hepta.hia.agent.backend-profile.v1', 'profile': PROFILE, 'target': TARGET, 'core_schemas': sorted(CORE_SCHEMAS), 'opcodes': sorted(SUPPORTED_OPCODES), 'runtime_imports': sorted(IMPORTS), 'external_abi': 'v1 integer/bool scalar inputs and at most one scalar/unit result; v2 explicit readbuf/mutbuf snapshots and one u32 result', 'borrowed_byte_snapshots': {'workload_schema': 'hepta.hia.agent.workload.v2', 'profile': 'hepta.hia.agent.borrowed-byte-snapshots.v1', 'max_buffer_bytes': 1048576, 'max_workload_buffer_bytes': 33554432, 'pointer_authority': 'child-owned distinct synchronous allocations; caller supplies bytes only', 'observation': 'all external bytes on return and confirmed abort; fresh initial bytes on every repetition', 'reference_limits': {'max_steps': 10000000, 'max_heap_bytes': 16777216, 'max_call_depth': 256}, 'independent_native_refinement': 'unsupported'}, 'max_stack_frame_bytes': 65536, 'max_exports': 128, 'object_emission_external_tool': False, 'shared_linker': 'GNU ld only', 'native_resource_limits': 'disposable child wall/CPU/address-space limits; no VM tick guarantee', 'universal_backend_refinement_proved': False, 'self_hosted': False}, 'artifact': {'schema': 'hepta.hia.agent.artifact-profile.v1', 'inline_utf8_characters': 65536, 'max_path_bytes': 8 * 1024 ** 2, 'path_root_count': len(self.artifact_roots), 'path_roots_sha256': digest((yield self.artifact_roots)), 'symlink_capture': False, 'path_authority': 'administrator configured roots only'}, 'validation': {**common, 'schema': 'hepta.hia.agent.validation-profile.v1', 'core_admission': 'existing whole-program verifier', 'behavior_equivalence': ['exact Core identity', 'exhaustive pure acyclic scalar domain with at most 12 input bits', 'optional existing pinned-Z3 structural scalar/effect profile'], 'canonical_core_to_machine_refinement': 'unsupported', 'independent_native_refinement': {'method': SAFE_CORE_METHOD, 'profile': SAFE_CORE_SERVICE_PROFILE, 'artifact_profile': ARTIFACT_PROFILE, 'output_kind': 'shared', 'entry_abi': 'one unsigned scalar acyclic function; no borrowed or foreign entries', 'foreign_buffer_exports': [], 'limits': dict(LIMITS), 'inputs': 'the exact retained build object, final ELF and canonical Core; no reemission', 'proof_scope': SAFE_CORE_DOMAIN}, 'machine_plan_refinement': 'separately checked layout, scratch-register, scalar register-lifetime and exact encoding choices relative to assumed-correct canonical lowering', 'encoding_check': 'rederive entire object and linked image; validate retained identities and ABI', 'sample_tests_are_proofs': False, 'proof_result_schema': PROOF_SCHEMA, 'proved_meaning': PROVED_MEANING, 'unscoped_legacy_receipts_accepted': False}, 'lowering': {**common, 'schema': 'hepta.hia.agent.lowering-profile.v1', 'rules': 'fixed stack slots; fixed scratch registers; source block order; explicit control transfers', 'selection_authority': 'semantic implementation only', 'profitability_passes': []}, 'plan': {**common, 'schema': 'hepta.hia.agent.plan-profile.v1', 'plan_schema': PLAN_SCHEMA, 'choices': 'v1 block permutation; v2 block/function permutation, r10/r11 bijection, exact immediate encodings and bounded function alignment; v3 checked scalar assignments to rbx/r12-r15 and explicit register-only CMOV selection', 'preserved': ['original Core', 'checked scalar value locations', 'logical operation and effect order within each block', 'entry and CFG edges', 'public ABI'], 'unchecked_bytes': False, 'automatic_layout_search': False}})
+    except _SERVICE_BOOTSTRAP_BASE_EXCEPTION as _error:
+        return (0, _error)
+    return _outcome
+
+def _service_bootstrap_literal_profiles_root_string(root):
+    return str(root)
+
+def _service_bootstrap_literal_profiles_dicts(self):
+    self.profiles, self.profile_artifacts = ({}, {})
+
+def _service_bootstrap_literal_profiles_profile(self, name, body):
+    return self.store.profile('hia-' + name + '-v1', body)
+
+def _service_bootstrap_literal_profiles_assign(self, name, ref, artifact):
+    self.profiles[name], self.profile_artifacts[name] = (ref, artifact)
+
+def _service_bootstrap_literal_profiles_resources(self, schema_registry):
+    self.resources = {'schema_registry': self.store.json(schema_registry(), 'discovery'), 'workload_schema': self.store.json(WORKLOAD_SCHEMA, 'discovery'), 'objective_schema': self.store.json(OBJECTIVE_SCHEMA, 'discovery'), 'cost_policy_schema': self.store.json(COST_POLICY_SCHEMA, 'discovery'), 'plan_schema': self.store.json(PLAN_SCHEMA, 'discovery'), 'proof_contract': self.store.json(proof_contract_description(), 'discovery')}
+
+def _service_bootstrap_literal_profiles_docs_iter():
+    return _SERVICE_BOOTSTRAP_ITER((('assembly_grammar', 'HIA_AGENT_ASSEMBLY.md'), ('core_language', 'HIA_PROGRAM.md'), ('machine_plan_guide', 'HIA_AGENT_MACHINE_PLANS.md'), ('proof_contract_guide', 'HIA_AGENT_PROOF_RESULTS.md'), ('machine_validation_guide', 'HIA_SAFE_CORE_MACHINE_VALIDATION.md'), ('buffer_lifecycle_guide', 'HIA_AGENT_BUFFER_LIFECYCLE.md'), ('macro_policy_guide', 'HIA_AGENT_MACRO_POLICY.md'), ('byte_bootstrap_guide', 'HIA_DIRECT_BYTE_BOOTSTRAP.md'), ('self_hosting_core_guide', 'HIA_SELF_HOSTING_CORE.md'), ('self_hosting_core_support', 'HIA_SELFHOST_CORE_SUPPORT.json')))
+
+def _service_bootstrap_literal_profiles_doc_store(self, name, filename):
+    self.resources[name] = self.store.put(_agent_resource_path('docs/' + filename).read_bytes(), 'discovery')
+
+def _service_bootstrap_literal_profiles_import_macro(self, TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS, schema_registry, ARTIFACT_PROFILE, LIMITS, common, bodies, name, body, ref, artifact, filename):
+    from .hia_agent_macro_discovery import macro_policy_guidance
+    return macro_policy_guidance
+
+def _service_bootstrap_literal_profiles_macro(self, macro_policy_guidance):
+    self.resources['macro_policy'] = self.store.json(macro_policy_guidance(self.identities), 'discovery')
+
+def _service_bootstrap_literal_profiles_examples(self):
+    self.resources['examples'] = self.store.json(self._examples(), 'discovery')
+
+def _service_bootstrap_literal_profiles_diagnostics(self):
+    self.resources['diagnostics'] = self.store.json({'schema': 'hepta.hia.agent.diagnostics.v1', 'phases': ['admission', 'context', 'verification', 'codegen', 'execution', 'adoption'], 'codes': {'E_HIA_SCHEMA': 'repair the named input field', 'E_HIA_CONTEXT_STALE': 'rediscover installed source and create a new context', 'E_HIA_REQUEST_CONFLICT': 'same key belongs to different arguments', 'E_HIA_REQUEST_UNKNOWN': 'observe the original runtime job; never relaunch', 'E_HIA_ARTIFACT_IDENTITY': 'use the complete issued reference', 'E_HIA_MACHINE_PLAN': 'read plan_schema and supply only checked Core-bound machine choices', 'E_HIA_CLAIM_REQUIRED': 'requested acceptance proof has no exact qualifying retained receipt', 'E_HIA_PROOF_SCOPE': 'rerun verification with a fresh request key; proof scope or retained checker conclusion is missing or differs', 'E_HIA_GENERATION_STALE': 'inspect current slot through the authorized consumer; use a fresh conditional request'}}, 'discovery')
+
+def _service_bootstrap_literal_profiles_manifest(self):
+    self.manifest = self.store.json({'schema': 'hepta.hia.agent.manifest.v1', 'status': 'implemented_bounded_profiles', 'catalog_sha256': self.catalog_sha256, 'installation': self.identities, 'profiles': self.profiles, 'profile_manifests': self.profile_artifacts, 'resources': self.resources, 'cold_start': ['read assembly_grammar/core_language and an exact opcode catalog', 'retain workload, objective and cost-policy JSON as artifacts', 'freeze context using discovered profiles', 'import or patch an explicit Core candidate', 'verify requested claims for the exact subject', 'emit using canonical lowering or a checked explicit machine plan', 'verify actual encoding and, when admitted, independent native refinement', 'evaluate baseline and candidate on the entire frozen workload', 'adopt only with qualifying receipts and expected generation/epoch'], 'execution_authority': 'administrator-installed runtime provider, never supplied context', 'cold_start_learning_or_net_benefit_proved': False, 'consumer_api': 'HIAAgentService.acquire_slot/invoke_lease/release_slot', 'initial_slot': 'expected 0/0 retains the evaluation baseline at generation 0; candidate starts generation 1', 'unknown_external_costs': 'null and incomplete, never inferred as zero'}, 'discovery')
+
+def _service_bootstrap_literal_profile_result(self, ref, name):
+    return self.store.check_profile(ref, self.profiles[name])
+
+def _service_bootstrap_literal_program_get(self, ref):
+    return self.store.get(ref)
+
+def _service_bootstrap_literal_program_verify(data):
+    return verify_program(decode_json(data))
+
+def _service_bootstrap_literal_generator_root_value(root):
+    return Path(root).absolute().resolve(strict=True)
+
+def _service_bootstrap_literal_generator_dir_value(root):
+    return not root.is_dir()
+
+_SERVICE_BOOTSTRAP_IMPORT_PORTS = {
+    'init_import_candidate': _service_bootstrap_literal_init_import_candidate,
+    'init_import_slot': _service_bootstrap_literal_init_import_slot,
+    'init_catalog': _service_bootstrap_literal_init_catalog,
+    'init_tools_iter': _service_bootstrap_literal_init_tools_iter,
+    'init_tools_put': _service_bootstrap_literal_init_tools_put,
+    'init_identities': _service_bootstrap_literal_init_identities,
+    'init_store': _service_bootstrap_literal_init_store,
+    'init_budget_construct': _service_bootstrap_literal_init_budget_construct,
+    'init_ledger_construct': _service_bootstrap_literal_init_ledger_construct,
+    'init_roots': _service_bootstrap_literal_init_roots,
+    'init_roots_invalid': _service_bootstrap_literal_init_roots_invalid,
+    'init_reject_roots': _service_bootstrap_literal_init_reject_roots,
+    'init_profiles': _service_bootstrap_literal_init_profiles,
+    'init_cleanup_budget_bound': _service_bootstrap_literal_init_cleanup_budget_bound,
+    'init_cleanup_list': _service_bootstrap_literal_init_cleanup_list,
+    'init_cleanup_note': _service_bootstrap_literal_init_cleanup_note,
+    'close_budget_call': _service_bootstrap_literal_close_budget_call,
+    'close_store': _service_bootstrap_literal_close_store,
+    'profiles_import_program': _service_bootstrap_literal_profiles_import_program,
+    'profiles_import_schema': _service_bootstrap_literal_profiles_import_schema,
+    'profiles_import_safe': _service_bootstrap_literal_profiles_import_safe,
+    'profiles_common': _service_bootstrap_literal_profiles_common,
+    'profiles_bodies_expression': _service_bootstrap_literal_profiles_bodies_expression,
+    'profiles_root_string': _service_bootstrap_literal_profiles_root_string,
+    'profiles_dicts': _service_bootstrap_literal_profiles_dicts,
+    'profiles_profile': _service_bootstrap_literal_profiles_profile,
+    'profiles_assign': _service_bootstrap_literal_profiles_assign,
+    'profiles_resources': _service_bootstrap_literal_profiles_resources,
+    'profiles_docs_iter': _service_bootstrap_literal_profiles_docs_iter,
+    'profiles_doc_store': _service_bootstrap_literal_profiles_doc_store,
+    'profiles_import_macro': _service_bootstrap_literal_profiles_import_macro,
+    'profiles_macro': _service_bootstrap_literal_profiles_macro,
+    'profiles_examples': _service_bootstrap_literal_profiles_examples,
+    'profiles_diagnostics': _service_bootstrap_literal_profiles_diagnostics,
+    'profiles_manifest': _service_bootstrap_literal_profiles_manifest,
+    'profile_result': _service_bootstrap_literal_profile_result,
+    'program_get': _service_bootstrap_literal_program_get,
+    'program_verify': _service_bootstrap_literal_program_verify,
+    'generator_root_value': _service_bootstrap_literal_generator_root_value,
+    'generator_dir_value': _service_bootstrap_literal_generator_dir_value,
+}
+
+def _service_bootstrap_dispatch___init__(self, state_root, *, artifact_roots=()):
+    selected = _service_bootstrap_os.environ.get('HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST')
+    if selected is None:
+        arguments = {'callee': _SERVICE_BOOTSTRAP_REFERENCES[1], 'self': self, 'state_root': state_root, 'artifact_roots': artifact_roots}
+        del self, state_root, artifact_roots
+        return arguments.pop('callee')(arguments.pop('self'), arguments.pop('state_root'), artifact_roots=arguments.pop('artifact_roots'))
+    adapter = _SERVICE_BOOTSTRAP_LOADER('hepta.hia_service_bootstrap_native')
+    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 1, {'self': self, 'state_root': state_root, 'artifact_roots': artifact_roots})
+    del self, state_root, artifact_roots
+    return frame.finish()
+
+HIAAgentService.__init__ = _service_bootstrap_dispatch___init__
+
+def _service_bootstrap_dispatch_close(self):
+    selected = _service_bootstrap_os.environ.get('HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST')
+    if selected is None:
+        arguments = {'callee': _SERVICE_BOOTSTRAP_REFERENCES[2], 'self': self}
+        del self
+        return arguments.pop('callee')(arguments.pop('self'))
+    adapter = _SERVICE_BOOTSTRAP_LOADER('hepta.hia_service_bootstrap_native')
+    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 2, {'self': self})
+    del self
+    return frame.finish()
+
+HIAAgentService.close = _service_bootstrap_dispatch_close
+
+def _service_bootstrap_dispatch__profiles(self):
+    selected = _service_bootstrap_os.environ.get('HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST')
+    if selected is None:
+        arguments = {'callee': _SERVICE_BOOTSTRAP_REFERENCES[3], 'self': self}
+        del self
+        return arguments.pop('callee')(arguments.pop('self'))
+    adapter = _SERVICE_BOOTSTRAP_LOADER('hepta.hia_service_bootstrap_native')
+    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 3, {'self': self})
+    del self
+    return frame.finish()
+
+HIAAgentService._profiles = _service_bootstrap_dispatch__profiles
+
+def _service_bootstrap_dispatch__profile(self, ref, name):
+    selected = _service_bootstrap_os.environ.get('HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST')
+    if selected is None:
+        arguments = {'callee': _SERVICE_BOOTSTRAP_REFERENCES[4], 'self': self, 'ref': ref, 'name': name}
+        del self, ref, name
+        return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'), arguments.pop('name'))
+    adapter = _SERVICE_BOOTSTRAP_LOADER('hepta.hia_service_bootstrap_native')
+    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 4, {'self': self, 'ref': ref, 'name': name})
+    del self, ref, name
+    return frame.finish()
+
+HIAAgentService._profile = _service_bootstrap_dispatch__profile
+
+def _service_bootstrap_dispatch__program(self, ref):
+    selected = _service_bootstrap_os.environ.get('HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST')
+    if selected is None:
+        arguments = {'callee': _SERVICE_BOOTSTRAP_REFERENCES[5], 'self': self, 'ref': ref}
+        del self, ref
+        return arguments.pop('callee')(arguments.pop('self'), arguments.pop('ref'))
+    adapter = _SERVICE_BOOTSTRAP_LOADER('hepta.hia_service_bootstrap_native')
+    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 5, {'self': self, 'ref': ref})
+    del self, ref
+    return frame.finish()
+
+HIAAgentService._program = _service_bootstrap_dispatch__program

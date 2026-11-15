@@ -77,6 +77,7 @@ HELPERS = {
     'HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST': ('hia_store_file_capture_native', 'NativeStoreFileCapture'),
     "HEPTA_HIA_SERVICE_DISCOVERY_MANIFEST": ("hia_service_discovery_native", "NativeServiceDiscovery"),
     "HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST": ("hia_service_verification_native", "NativeServiceVerification"),
+    'HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST': ('hia_service_bootstrap_native', 'NativeServiceBootstrap'),
 }
 # The ordinary CLI and Agent use different methods on the same patch image.
 # Admit only these named views of its captured bytes, never arbitrary subclasses
@@ -90,6 +91,9 @@ _ACTIVE = None
 _SCOPE_LOCK = threading.Lock()
 _SCOPE_OWNER = None
 _SCHEDULER_BUILD = None
+_MECHANICAL_BUILD = None
+_MECHANICAL_SCOPE = None
+_MECHANICAL_SELECTED = False
 
 
 def _digest(value):
@@ -288,7 +292,7 @@ class NativeHelpersBinding:
 
 @contextmanager
 def native_helpers_scope(path=None, expected_sha256=None):
-    global _ACTIVE, _SCOPE_OWNER
+    global _ACTIVE, _SCOPE_OWNER, _MECHANICAL_SCOPE, _MECHANICAL_SELECTED
     # The worker handles one request in one process. Hold the scope even when
     # no bundle is selected, so another request cannot change its routing.
     if not _SCOPE_LOCK.acquire(blocking=False):
@@ -299,7 +303,8 @@ def native_helpers_scope(path=None, expected_sha256=None):
     try:
         if (path is None) != (expected_sha256 is None):
             raise ValueError("native helper manifest and expected SHA256 must be supplied together")
-        if _ACTIVE is not None or _selectors():
+        if (_ACTIVE is not None or _MECHANICAL_SCOPE is not None
+                or _MECHANICAL_SELECTED or _selectors()):
             raise ValueError("worker native helper selection must come only from its explicit pinned bundle")
         package_pin = None
         if path is None:
@@ -317,7 +322,12 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v4':
+        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v5':
+            _MECHANICAL_SELECTED = True
+            from .hia_mechanical_worker_bundle import NativeMechanicalWorkerBinding
+            binding = NativeMechanicalWorkerBinding(captured, expected_sha256)
+            _MECHANICAL_SCOPE = binding
+        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v4':
             from .hia_artifact_delivery_worker import NativeArtifactWorkerBinding
             binding = NativeArtifactWorkerBinding(captured, expected_sha256)
         elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':
@@ -346,6 +356,8 @@ def native_helpers_scope(path=None, expected_sha256=None):
             else:
                 os.environ[key] = previous[key]
         _ACTIVE = None
+        _MECHANICAL_SCOPE = None
+        _MECHANICAL_SELECTED = False
         _SCOPE_OWNER = None
         _SCOPE_LOCK.release()
 
@@ -360,14 +372,20 @@ def native_helpers_identity():
     return {"native_helpers_sha256": _ACTIVE.sha256}
 
 
-def pinned_image(manifest_path, source, schema, factory):
+def pinned_image(manifest_path, source, schema, factory, *, _admission_resolver=None):
     _check_scope_owner()
     if _ACTIVE is None:
         if _SCOPE_OWNER is not None:
             raise ValueError("native helper executable is outside the pinned worker bundle")
         return None
     _ACTIVE.check_owner()
-    key = (str(Path(manifest_path).resolve(strict=True)), str(source.resolve(strict=True)), schema, factory)
+    if _admission_resolver is None:
+        key = (str(Path(manifest_path).resolve(strict=True)), str(source.resolve(strict=True)), schema, factory)
+    else:
+        # Explicit executable admission capability, selected by the owner.
+        # Guard order and the exact pinned image key are unchanged.
+        key = (str(_admission_resolver(manifest_path, strict=True)),
+               str(_admission_resolver(source, strict=True)), schema, factory)
     try:
         return _ACTIVE.images[key]
     except KeyError as exc:
@@ -387,3 +405,45 @@ def pinned_bundle(manifest_path, schema, factory):
         return getattr(_ACTIVE, 'bundles', {})[key]
     except KeyError as exc:
         raise ValueError("native helper bundle is outside the pinned worker bundle") from exc
+
+def _canonical_bridge(value):
+    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+                      allow_nan=False).encode("ascii")
+
+
+def pinned_mechanical_bridge(name, abi):
+    """Only an explicit live v5 capsule may authorize a linker load."""
+    _check_scope_owner()
+    if _SCOPE_OWNER is None:
+        raise ValueError("mechanical executable requires an explicit v5 worker capsule")
+    binding = _ACTIVE if _ACTIVE is not None else _MECHANICAL_BUILD
+    lookup = getattr(binding, "mechanical_bridge", None)
+    if lookup is None:
+        raise ValueError("mechanical executable is outside the pinned worker bundle")
+    return lookup(name, abi)
+
+def selected_mechanical_bridge(name, abi):
+    """Observe an explicit version without moving old argument-binding checks.
+
+    Non-v5 returns None before any owner admission. The unchanged old bridge
+    still checks its owner after its real signature has bound. Once v5 was
+    explicitly selected, missing/overlapping/stale authority is a refusal.
+    """
+    if type(_MECHANICAL_SELECTED) is not bool:
+        raise ValueError("mechanical route selection is not an exact flag")
+    if not _MECHANICAL_SELECTED:
+        if _MECHANICAL_SCOPE is not None or _MECHANICAL_BUILD is not None:
+            raise ValueError("mechanical authority exists outside its explicit selection")
+        return None
+    _check_scope_owner()
+    binding = _MECHANICAL_SCOPE
+    constructing = _MECHANICAL_BUILD
+    if constructing is not None:
+        if binding is not None or _ACTIVE is not None:
+            raise ValueError("mechanical constructor overlaps another authority")
+        binding = constructing
+    elif binding is not None and _ACTIVE is not binding:
+        raise ValueError("mechanical scope lost its original authority")
+    if binding is None or _SCOPE_OWNER is None:
+        raise ValueError("selected mechanical route has no live original authority")
+    return binding.mechanical_bridge(name, abi)

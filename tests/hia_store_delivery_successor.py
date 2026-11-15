@@ -11,20 +11,28 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
-FIXTURE_SHA256 = '6de2c7f07ffc678f82916d607243e06bfb1630a1d6d9ff7cbde9b29ebb1f230d'
+FIXTURE_SHA256 = 'c271bc9a58e4565ba53a005441d5425f0a4bdc627513c415ab6b390b2af1dddc'
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
-SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
+ORIGINAL_SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
                 'hepta/hia_store_lifecycle_selection.py')
+WORKER_PATH = 'hepta/hia_agent_worker.py'
+SOURCE_PATHS = ORIGINAL_SOURCE_PATHS + (WORKER_PATH,)
 SHARED_PATHS = ('hepta/hia_native_delivery.py', 'hepta/hia_store_lifecycle_native.py',
                 'hepta/hia_agent_service.py', 'hepta/hia_emission_native.py',
-                'hepta/hia_agent_journal_native.py')
+                'hepta/hia_agent_journal_native.py',
+                'hepta/hia_candidate_budget_native.py', 'hepta/hia_execution_budget_native.py')
 ADAPTER_PATH = 'hepta/hia_store_artifact_profile_native.py'
 # Actual c019 Git bytes independently pin this whole file. The original JSON
 # pins its 21 definitions, rather than the complete adapter source.
 ADAPTER_ORIGINAL = {'bytes': 32417,
     'sha256': 'fccf236d69462b833b7c8e466bcde716738c13be7095aa675c9427022839b7fc'}
-PATHS = SOURCE_PATHS + SHARED_PATHS + (ADAPTER_PATH,)
+# This companion was not in c019's 89 originals or its 22 shared sources.
+# Its independent original is the exact frozen R17b source, not a c019 claim.
+COMPANION_ORIGINALS = {'hepta/hia_worker_report_native.py': {
+    'bytes': 20176, 'sha256': 'c8539747922892195722f72f9b763eb1d9503b4fe80318eee33ee88a812ed597'}}
+# Preserve the original eleven-bit order; append the worker and report bits.
+PATHS = ORIGINAL_SOURCE_PATHS + SHARED_PATHS + (ADAPTER_PATH, WORKER_PATH) + tuple(COMPANION_ORIGINALS)
 
 
 def _bytes(value):
@@ -117,6 +125,7 @@ def admit_composition(original_value):
     originals = {path: inventory['unchanged_files'][path] for path in SOURCE_PATHS}
     originals.update({path: inventory['shared_dependency_review'][path] for path in SHARED_PATHS})
     originals[ADAPTER_PATH] = ADAPTER_ORIGINAL
+    originals.update(COMPANION_ORIGINALS)
     captured = {path: (ROOT / path).read_bytes() for path in PATHS}
     if all(len(captured[path]) == originals[path]['bytes']
            and sha256(captured[path]).hexdigest() == originals[path]['sha256'] for path in PATHS):
@@ -128,27 +137,29 @@ def admit_composition(original_value):
             raise ValueError('original Store composition changed during admission')
         return {'source_adjustments': {}, 'shared_adjustments': {},
                 'shared_dependency_review': dict(inventory['shared_dependency_review']),
-                'adapter_source_adjustments': {}, 'adapter_definition_adjustments': {},
+                'adapter_source_adjustments': {}, 'companion_source_adjustments': {},
+                'adapter_definition_adjustments': {},
                 'adapter_definition_review': definitions}
     frozen = FIXTURE.read_bytes()
     if sha256(frozen).hexdigest() != FIXTURE_SHA256:
         raise ValueError('reviewed Store successor provenance fixture changed')
     value = json.loads(frozen)
-    if (value.get('schema') != 'hepta.hia.store-delivery-successor.v1'
+    if (value.get('schema') != 'hepta.hia.store-delivery-successor.v2'
             or value.get('state') != 'FROZEN_COMPOSED_SOURCE'
             or value.get('original_commit') != 'c0195643083e1d4c68679237edfa77143dc7b1c6'
             or type(value.get('files')) is not dict or set(value['files']) != set(PATHS)
             or any(type(value.get(name)) is not int or value[name] != expected
                    for name, expected in (
-                       ('composition_source_count', 9), ('source_adjustment_count', 3),
-                       ('shared_adjustment_count', 5), ('adapter_source_adjustment_count', 1),
-                       ('unchanged_original_file_count', 86),
-                       ('unchanged_shared_dependency_count', 17),
+                       ('composition_source_count', 13), ('source_adjustment_count', 4),
+                       ('shared_adjustment_count', 7), ('adapter_source_adjustment_count', 1),
+                       ('companion_source_adjustment_count', 1),
+                       ('unchanged_original_file_count', 85),
+                       ('unchanged_shared_dependency_count', 15),
                        ('original_definition_count', 21)))):
         raise ValueError('Store successor provenance remains draft or changes scope')
     # A successor belongs to one complete reviewed composition. A partially
     # reverted mixture cannot borrow admission from another changed file.
-    # There is no process-global cache: every admission binds all nine complete files.
+    # There is no process-global cache: every admission binds all thirteen complete files.
     restored = {path: reverse_exact(captured[path], value['files'][path], originals[path])
                 for path in PATHS}
     definitions, definition_adjustments = _review_adapter(inventory, restored[ADAPTER_PATH],
@@ -161,7 +172,7 @@ def admit_composition(original_value):
         'current_sha256': value['files'][path]['new_sha256'],
         'current_bytes': value['files'][path]['new_bytes'],
         'reversible_patch_fixture_sha256': FIXTURE_SHA256,
-        'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL and context protocol successor',
+        'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL, context protocol, Bootstrap, Budget resource and worker unknown-terminal successor',
         'composition_sha256': composition} for path in PATHS}
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:
@@ -173,5 +184,6 @@ def admit_composition(original_value):
             'shared_adjustments': {path: adjustments[path] for path in SHARED_PATHS},
             'shared_dependency_review': shared,
             'adapter_source_adjustments': {ADAPTER_PATH: adjustments[ADAPTER_PATH]},
+            'companion_source_adjustments': {path: adjustments[path] for path in COMPANION_ORIGINALS},
             'adapter_definition_adjustments': definition_adjustments,
             'adapter_definition_review': definitions}

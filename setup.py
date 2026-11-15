@@ -8,6 +8,13 @@ import ast
 import shutil
 from setuptools import setup
 from setuptools.command.build_py import build_py
+# Load the exact local build helper even under python -I / isolated wheels.
+from importlib.util import spec_from_file_location, module_from_spec
+_mechanical_spec = spec_from_file_location(
+    '_hepta_slot_mechanical_build', Path(__file__).resolve().parent / 'hepta/native/slot_mechanical_build.py')
+_mechanical_build = module_from_spec(_mechanical_spec)
+_mechanical_spec.loader.exec_module(_mechanical_build)
+MechanicalBuildExt, extensions = _mechanical_build.MechanicalBuildExt, _mechanical_build.extensions
 
 ROOT=Path(__file__).resolve().parent
 
@@ -44,4 +51,6 @@ class AgentResourceBuild(build_py):
     def get_outputs(self,include_bytecode=True):
         return super().get_outputs(include_bytecode)+getattr(self,'_agent_outputs',[])
 
-setup(cmdclass={'build_py':AgentResourceBuild})
+setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt},
+      ext_modules=extensions(),
+      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py']})

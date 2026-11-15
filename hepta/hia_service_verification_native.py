@@ -439,7 +439,30 @@ class ServiceVerificationFrame:
             self.data[name] = _UNBOUND
 
     def _release_loop_stack_before_exit(self):
-        self.stack.pop('path_iterator', None)
+        if (self.mode != REFINEMENT or self.receipt is None
+                or self.receipt.phase != CLAIMED
+                or self.receipt.port != PORT['refinement_cm_error_prepare']):
+            raise ServiceVerificationUnknown('loop stack release was not issued')
+        handled_state, set_handled = _HANDLED_EXCEPTION, self._set_handled
+        caller = self._caller_handled
+        pending = handled_state()
+        caller_pointer = None if caller is None else id(caller)
+        pending_pointer = None if pending is None else id(pending)
+        try:
+            # The original for-stack is unwound before the with handler makes
+            # the raised exception active. Retire only this issued iterator at
+            # the caller's handled state; __exit__ and ACK remain outside here.
+            set_handled(caller_pointer)
+            if handled_state() is not caller:
+                raise ServiceVerificationUnknown('caller handled-state installation failed')
+            self.stack.pop('path_iterator', None)
+        finally:
+            try:
+                set_handled(pending_pointer)
+                if handled_state() is not pending:
+                    raise ServiceVerificationUnknown('pending handled-state restoration failed')
+            finally:
+                caller = pending = None
 
     def _release_normal_stack(self):
         while self.stack:

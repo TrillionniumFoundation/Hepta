@@ -28,6 +28,98 @@ _RESOURCE_LIFETIMES = {}
 _RESOURCE_OBSERVATIONS = {}
 _RESOURCE_SERIAL = 0
 
+# A terminal observation is deliberately not a DeliveryRecord/ForeignCall.
+# It grants no effect, resource, replay, close, or terminal authority. In
+# particular its sticky fact cannot prevent the worker's original finally
+# from attempting close. Only the existing real loss/retirement cutpoints
+# below notify this current-request observer.
+_REQUEST_DELIVERY = ContextVar('hia_native_delivery_request_terminal', default=None)
+
+
+class RequestDeliveryObservation:
+    """Read-only facts for one synchronous request terminal boundary.
+
+    A copied or inherited Context does not revive an ended observation, nor
+    transfer its PID/thread. Fresh requests do not inherit a previous loss.
+    No registry is scanned when entering or reading this observation.
+    """
+    __slots__ = ('pid', 'thread', 'previous', 'active', 'entered', 'origin',
+                 'primary_error', 'cleanup_error')
+
+    def __init__(self):
+        self.pid, self.thread = os.getpid(), threading.get_ident()
+        self.previous = None
+        self.active = self.entered = False
+        self.origin = self.primary_error = self.cleanup_error = None
+
+    def __enter__(self):
+        if self.entered or self.pid != os.getpid() or self.thread != threading.get_ident():
+            raise RuntimeError('request delivery observation cannot be reused or transferred')
+        self.entered = True
+        self.previous = _REQUEST_DELIVERY.get()
+        _REQUEST_DELIVERY.set(self)
+        self.active = True
+        return self
+
+    def __exit__(self, kind, error, traceback):
+        self.active = False
+        # Do not reset a ContextVar token created in another Context. A copied
+        # Context may retain this inactive node; it cannot receive new facts.
+        if _REQUEST_DELIVERY.get() is self:
+            _REQUEST_DELIVERY.set(self.previous)
+        if self.origin is None:
+            self.primary_error = self.cleanup_error = None
+        return False
+
+
+def _current_request_observation():
+    observation = _REQUEST_DELIVERY.get()
+    if (type(observation) is RequestDeliveryObservation and observation.active
+            and observation.pid == os.getpid()
+            and observation.thread == threading.get_ident()):
+        return observation
+    return None
+
+
+def _observe_request_loss(origin):
+    # Called only after real delivery loss exists, or at an exact resource's
+    # actual refusal. Retaining that origin adds no healthy resource lifetime.
+    observation = _REQUEST_DELIVERY.get()
+    pid, thread = os.getpid(), threading.get_ident()
+    while type(observation) is RequestDeliveryObservation:
+        if (observation.active and observation.pid == pid
+                and observation.thread == thread and observation.origin is None):
+            observation.origin = origin
+        observation = observation.previous
+
+
+def note_request_failure(error, *, cleanup=False):
+    """Retain the actual request/close exception, without classifying it."""
+    observation = _current_request_observation()
+    if observation is not None:
+        if cleanup:
+            if observation.cleanup_error is None:
+                observation.cleanup_error = error
+        elif observation.primary_error is None:
+            observation.primary_error = error
+
+
+def release_healthy_request_failures():
+    observation = _current_request_observation()
+    if observation is not None and observation.origin is None:
+        observation.primary_error = observation.cleanup_error = None
+
+
+def guard_request_output(value):
+    """Check actual request facts after argument evaluation, before stdio."""
+    observation = _current_request_observation()
+    if observation is not None and observation.origin is not None:
+        raise NativeDeliveryUnknown(
+            'request has unconfirmed native delivery; no complete worker report'
+        ) from observation.origin.error
+    return value
+
+
 
 class _ResourceLifetime:
     __slots__ = ('pid', 'serial')
@@ -123,6 +215,7 @@ retain their separate policy and precedence.
     """
     loss = _resource_loss(resource)
     if loss is not None:
+        _observe_request_loss(loss)
         if sys.exception() is not None:
             # Keep the active handler/finally exception in the diagnostic chain.
             # Explicitly chaining the earlier raw loss would hide that context.
@@ -301,6 +394,7 @@ legal cross-Context/thread resume without changing any native record's creator.
             return False
         if self.loss is None:
             self.error, self.loss = error, self
+        _observe_request_loss(self.loss)
         # Only the current real activation chain is notified. No native
         # ancestry is inferred from where the suspended body originally ran.
         pid, thread = os.getpid(), threading.get_ident()
@@ -756,6 +850,7 @@ records are removed; unknown records have explicit process-lifetime custody.
                 break
             scope = scope.previous
         if self.loss is not None:
+            _observe_request_loss(self.loss)
             raise unknown('causal native delivery is unconfirmed; no terminal or replay') from self.loss.error
 
     def enter_native(self):
@@ -808,6 +903,7 @@ causal loss, if present, remains sticky.
             self.error = error
             self.loss = self
         origin = self.loss
+        _observe_request_loss(origin)
         scope = _ACTIVE.get()
         while type(scope) is ForeignCall:
             if _live(scope, self.pid, self.thread):

@@ -2,9 +2,10 @@
 
 Non-data descriptors preserve ordinary instance/subclass overrides. Unselected
 lookup returns the exact original descriptor binding; it adds no forwarding
-frame to the original method. Selected instance AND class access bind a real
-function with the original argument signature, backed by a declared controller.
-Its code is visibly the new bridge template (no __wrapped__ or old-code disguise).
+frame to the original method. Selected v1/direct instance and class access retain the original HIA Python
+bridge. Only an explicitly authorized live v5 capsule creates a captured C
+callable. Both branches expose the original argument signature. The C route
+never falls back after a stale authority, identity change or provider failure.
 """
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ import os
 from pathlib import Path
 import threading
 import types
+from . import hia_native_helpers as _mechanical_authority
 
 SELECTOR = 'HEPTA_HIA_SLOT_OPERATIONS_MANIFEST'
 _OWNER = ContextVar('hia_slot_operations_owner', default=None)
@@ -148,6 +150,37 @@ def _selected_owner():
     return _LazyManifestOwner(os.environ[SELECTOR])
 
 
+
+class _MechanicalOwner:
+    """One captured C route; same digest in a later scope is not authority."""
+    __slots__ = ("binding", "bridge", "pid", "thread")
+
+    def __init__(self, binding, bridge):
+        self.binding, self.bridge = binding, bridge
+        self.pid, self.thread = os.getpid(), threading.get_ident()
+        self._check_bridge()
+
+    def _check_bridge(self):
+        if self.pid != os.getpid() or self.thread != threading.get_ident():
+            raise ValueError("mechanical callable belongs to its creating process and thread")
+        current = _mechanical_authority.selected_mechanical_bridge(
+            "slot-mechanical", "hepta.slot.mechanical.cpython-gil-linux.v1")
+        if current is not self.bridge:
+            raise ValueError("mechanical callable belongs to its original v5 authority")
+        return current
+
+    def admit_runtime(self):
+        self._check_bridge()
+        from .hia_slot_mechanical import admit_runtime
+        admit_runtime()
+        self._check_bridge()
+
+    def check(self):
+        self._check_bridge()
+        image = self.binding.check()
+        self._check_bridge()
+        return image
+
 class _SlotControlMethod:
     """Intentionally non-data: Python's original override priority remains."""
     __slots__ = ('mode', 'name', 'references', 'is_static', 'qualname', 'module')
@@ -164,6 +197,18 @@ class _SlotControlMethod:
         if binding is None:
             return self.references[self.name].__get__(instance, owner)
         from .hia_slot_operations_native import SlotOperationsFrame
+        bridge = _mechanical_authority.selected_mechanical_bridge(
+            "slot-mechanical", "hepta.slot.mechanical.cpython-gil-linux.v1")
+        if bridge is not None:
+            from .hia_slot_operations_native import SlotOperationsUnknown
+            from .hia_slot_mechanical import bind, CONTINUATIONS
+            captured = _MechanicalOwner(binding, bridge)
+            function = bind(CONTINUATIONS[self.mode], captured, SlotOperationsFrame,
+                            SlotOperationsUnknown, self.mode, self.name,
+                            self.qualname, self.module, admission=captured.admit_runtime)
+            if self.is_static or instance is None:
+                return function
+            return function.__get__(instance, owner)
         template = _TEMPLATES[self.mode]
         # No closure, dynamic class, extra hidden argument, or cached user
         # receiver. The actual original signature binds before bridge code;

@@ -24,7 +24,7 @@ from .hia_emission_native import (
 )
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
 from .hia_native_delivery import DeliveryRecord
-from .hia_store_lifecycle_native import _regular_bytes
+from .hia_native_admission_io import regular_bytes as _regular_bytes, resolve_path as _admission_resolve
 from .hia_store_file_capture_protocol import (
     SELECTOR, SCHEMA, SOURCE_NAME, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC,
     REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES, INITIALIZE, CLAIM, SUCCEEDED,
@@ -178,8 +178,9 @@ def installed_store_file_capture(manifest_path):
     if not manifest_path:
         raise ValueError('native store file capture selector must not be empty')
     from .hia_native_helpers import pinned_image
-    selected = pinned_image(manifest_path, SOURCE, SCHEMA, NativeStoreFileCapture)
-    path = Path(manifest_path).resolve(strict=True)
+    selected = pinned_image(manifest_path, SOURCE, SCHEMA, NativeStoreFileCapture,
+                            _admission_resolver=_admission_resolve)
+    path = _admission_resolve(manifest_path, strict=True)
     raw = _regular_bytes(path, 16384)
     value = json.loads(raw, object_pairs_hook=_unique_manifest_pairs)
     if (type(value) is not dict or set(value) != {
