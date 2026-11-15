@@ -1,0 +1,57 @@
+{
+  "basis": "explicit administrator identity expectations also guard manifest query before output",
+  "original_expected_changed": false,
+  "original_inputs_changed": false,
+  "original_manifest": {
+    "bytes": 1733,
+    "sha256": "5ae994e97ee7542921047ee763eeab7c180dad7d222b1f8648b96fe6fedce392"
+  },
+  "qualified_runtime": false,
+  "records": {
+    "hepta/hia_agent_worker.py": {
+      "after": {
+        "bytes": 11444,
+        "sha256": "6352879dc0e58515a6af9b2a586a5efa27f4018fb19d49a379ab72425eebf45a"
+      },
+      "before": {
+        "bytes": 11106,
+        "sha256": "cd212ebae66a33a9f090f5eb14c65fed84c7761ed8c2bfea6525c30a764c8f77"
+      },
+      "reverse_segments": [
+        {
+          "after_start": 4627,
+          "after_text": "\")\n        for field in (\"worker\", \"backend\", \"catalog\"):\n            expected = getattr(args, \"expected_\" + field + \"_sha256\")\n            if expected is not None and expected != identities[field + \"_sha256\"]:\n                raise AgentRejected(\"E_HIA_WORKER_PIN\", \"administrator source pin differs before execution\", retry_action=\"stop",
+          "before_text": ""
+        }
+      ]
+    },
+    "tools/generate_hia_worker_report.py": {
+      "after": {
+        "bytes": 32209,
+        "sha256": "04e7d22390b952c140ae42863d11ccb099096400e951a438032eee90b2e4ab4b"
+      },
+      "before": {
+        "bytes": 32066,
+        "sha256": "25c1d6cd7d6f38cdf4985b9fe009d692f54d869b17f213aad2f588325ea8570c"
+      },
+      "reverse_segments": [
+        {
+          "after_start": 7696,
+          "after_text": "                return ask(w, 22, L_MODE_ERROR, 0, 0, 0, 3)\n            put(w, PHASE, 3)\n",
+          "before_text": "                return ask(w, 22, L_MODE_ERROR, 0, 0, 0, 90)\n            put(w, PHASE, 90)\n"
+        },
+        {
+          "after_start": 8105,
+          "after_text": "        if get(w, MANIFEST_MODE) == 0:\n            put(w, CATCH, 1)\n",
+          "before_text": "        put(w, CATCH, 1)\n"
+        },
+        {
+          "after_start": 8230,
+          "after_text": "            if get(w, MANIFEST_MODE) != 0:\n                put(w, PHASE, 90)\n                return 0\n",
+          "before_text": ""
+        }
+      ]
+    }
+  },
+  "schema": "hepta.hia.worker-installation-manifest-source-successor.v1"
+}

@@ -44,6 +44,54 @@ def write(path, value):
     return pin(raw)
 
 
+def _manifest_query_source_successor(original_raw, take):
+    """Admit one exact successor while preserving the historical oracle."""
+    if pin(original_raw) != {'bytes': 1733, 'sha256': '5ae994e97ee7542921047ee763eeab7c180dad7d222b1f8648b96fe6fedce392'}:
+        raise ValueError('historical worker input authority changed')
+    original = json.loads(original_raw)
+    path = ROOT / 'tests/fixtures/worker_installation_manifest_successor_v1.json'
+    raw = take(path)
+    if pin(raw) != {'bytes': 2312, 'sha256': '135886bcf2b2639365d280e416559164da07c9653c05ad4ff48bbfe0ccdc37c0'}:
+        raise ValueError('worker manifest-query successor authority changed')
+    proof = json.loads(raw)
+    names = ('hepta/hia_agent_worker.py', 'tools/generate_hia_worker_report.py')
+    if (proof['schema'] != 'hepta.hia.worker-installation-manifest-source-successor.v1'
+            or proof['original_manifest'] != pin(original_raw)
+            or set(proof['records']) != set(names)):
+        raise ValueError('worker manifest-query successor scope differs')
+    result = {}
+    for name in names:
+        record = proof['records'][name]
+        before = (original['candidate_runtime'][name] if name == names[0]
+                  else original['HIA_policy_generator_unchanged'])
+        if record['before'] != before:
+            raise ValueError('worker successor predecessor differs: ' + name)
+        current = take(ROOT / name)
+        if pin(current) != record['after']:
+            raise ValueError('worker successor current source differs: ' + name)
+        restored = current.decode('utf-8')
+        previous = len(restored) + 1
+        for edit in reversed(record['reverse_segments']):
+            at, after, old = edit['after_start'], edit['after_text'], edit['before_text']
+            if (type(at) is not int or type(after) is not str or type(old) is not str
+                    or at < 0 or at + len(after) > len(restored)
+                    or at >= previous or restored[at:at + len(after)] != after):
+                raise ValueError('worker successor exact inverse differs: ' + name)
+            restored = restored[:at] + old + restored[at + len(after):]
+            previous = at
+        if pin(restored.encode('utf-8')) != before:
+            raise ValueError('worker successor did not recover the complete predecessor: ' + name)
+        result[name] = pin(current)
+    for name, expected in original['candidate_runtime'].items():
+        if name == names[0]:
+            continue
+        current = take(ROOT / name)
+        if pin(current) != expected:
+            raise ValueError('unchanged worker runtime differs: ' + name)
+        result[name] = pin(current)
+    return result
+
+
 def capture_inputs():
     raw = (FIXTURE / 'manifest.json').read_bytes()
     frozen = json.loads(raw)
@@ -54,17 +102,12 @@ def capture_inputs():
         if pin(source) != expected:
             raise ValueError('original worker input drift: ' + name)
         captured[str(path)] = source
-    for name, expected in frozen['candidate_runtime'].items():
-        path = ROOT / name
-        source = path.read_bytes()
-        if pin(source) != expected:
-            raise ValueError('current worker runtime differs: ' + name)
-        captured[str(path)] = source
-    generator = ROOT / 'tools/generate_hia_worker_report.py'
-    generator_raw = generator.read_bytes()
-    if pin(generator_raw) != frozen['HIA_policy_generator_unchanged']:
-        raise ValueError('original HIA worker policy generator changed')
-    captured[str(generator)] = generator_raw
+    def take(path):
+        key = str(path)
+        if key not in captured:
+            captured[key] = Path(path).read_bytes()
+        return captured[key]
+    _manifest_query_source_successor(raw, take)
     case_raw = CASES.read_bytes()
     if pin(case_raw) != frozen['cases']:
         raise ValueError('worker control cases differ')

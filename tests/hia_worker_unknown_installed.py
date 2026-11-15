@@ -12,6 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 if __package__ in (None,''):sys.path.insert(0,str(ROOT))
 from tests.hia_service_verification_controls import run_process,clean_environment,write
 from tests.hia_service_verification_oracle import canonical
+from tests.hia_worker_installed_journal import JournalSnapshots
 
 WORKER=r'''import importlib.abc,json,sys,ctypes,struct
 from pathlib import Path
@@ -144,7 +145,7 @@ def run(manifest,store_manifest,report_manifest,request_manifest,output):
     import sqlite3
     original_helper=ROOT/'tests/hia_service_verification_installed.py'
     original_helper_raw=original_helper.read_bytes()
-    if sha256(original_helper_raw).hexdigest()!='b882d10dabf2a99a9590cdb3189bf5eb5be46f1bfe9b4b9c7f444093fc3e9fd4':
+    if sha256(original_helper_raw).hexdigest()!='0f95cc59fe2a66bcc2fbcfa8dc253266e763bbc8ca7c873d5bdf956fd04bdda6':
         raise ValueError('original installed workload changed')
     extra_inputs={str(Path(p).resolve(strict=True)):Path(p).read_bytes() for p in (report_manifest,request_manifest)}
     output=Path(output);output.mkdir(mode=0o700)
@@ -214,11 +215,10 @@ def run(manifest,store_manifest,report_manifest,request_manifest,output):
         normal_arguments=arguments('normal');lost_arguments=arguments('lost')
         database=case.service.store.db.execute('PRAGMA database_list').fetchone()[2]
         case.service.close()
+        journal=JournalSnapshots(output,database,
+            ('normal','completed-replay','lost-receipt','unknown-replay','lost-swallowed','lost-replaced',),api.digest,commands)
         def state(request):
-            with sqlite3.connect(database) as db:
-                return {'request':db.execute('SELECT state FROM requests WHERE key=?',(request['request_key'],)).fetchone(),
-                        'artifacts':db.execute('SELECT COUNT(*) FROM artifacts').fetchone()[0],
-                        'costs':db.execute('SELECT COUNT(*) FROM costs').fetchone()[0]}
+            return journal.capture(request)
         def worker(label,arguments,*,behavior='normal',expected=0):
             request={'schema':'hia-agent-worker-request-v1','tool':'hia_verify','arguments':arguments,
                      'profile_sha256':'a'*64,'catalog_sha256':case.service.catalog_sha256}
@@ -299,6 +299,7 @@ def run(manifest,store_manifest,report_manifest,request_manifest,output):
         'wheel_files_checked_against_installed':files,'wheel_RECORD_sha256':sha256(wheel_record).hexdigest(),
         'installed_RECORD_sha256':sha256((installed/record_name).read_bytes()).hexdigest(),
         'identity':identity,'bundle_sha256':bundle_pin,'commands':commands,'observations':observations,
+        'database_capture':journal.finish(),
         'runtime_authoring_imports_forbidden':True,'every_request_has_all_three_expected_identity_flags':True,
         'whole_native_stack_qualified':False,
         'original_workload_sha256':sha256(original_helper_raw).hexdigest(),

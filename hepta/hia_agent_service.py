@@ -2239,7 +2239,12 @@ def _service_bootstrap_literal_init_tools_iter(self):
     return _SERVICE_BOOTSTRAP_ITER(self.catalog['tools'])
 
 def _service_bootstrap_literal_init_tools_put(result, t):
-    result[t['name']] = t
+    try:
+        result[t['name']] = t
+    finally:
+        # These are borrowed operands of the inline comprehension. A failed
+        # lookup must not keep its temporary result in this capsule traceback.
+        del result, t
 
 def _service_bootstrap_literal_init_identities(self):
     self.identities = installation_manifest()

@@ -61,6 +61,16 @@ continuations are outside the native ABI trust boundary.
 
 ## Protocol and preserved order
 
+An installation query without expected worker/backend/catalog identities still
+returns the observed installation. When any of those three administrator
+expectations is supplied, both the hosted and selected HIA paths check it before
+writing the manifest. A mismatch raises the existing E_HIA_WORKER_PIN refusal;
+the ordinary main returns 2 with no manifest or request report. No request body
+is read and no service is constructed. The invalid combination of manifest
+query and request execution retains its earlier mode error. This is an explicit
+source successor: historical controls and failure records are retained, and
+newly generated policy images require fresh source-bound build receipts.
+
 The policy entry uses `HIAWKR02`, a 112-byte initialization packet and sequenced
 continuation replies. Replies have eight unsigned 64-bit header slots, followed
 only by the requested codepoint/magnitude chunk or stored dictionary hash. The

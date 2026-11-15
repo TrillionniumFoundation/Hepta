@@ -7,6 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]
 if __package__ in (None,''):sys.path.insert(0,str(ROOT))
 from tests.hia_service_verification_controls import run_process,clean_environment,write
 from tests.hia_service_verification_oracle import canonical
+from tests.hia_worker_installed_journal import JournalSnapshots
 
 WORKER=r'''import importlib.abc,json,sys,ctypes,struct
 from pathlib import Path
@@ -121,11 +122,10 @@ def run(manifest,store_manifest,output):
         normal_arguments=arguments('normal');lost_arguments=arguments('lost')
         database=case.service.store.db.execute('PRAGMA database_list').fetchone()[2]
         case.service.close()
+        journal=JournalSnapshots(output,database,
+            ('normal','completed-replay','lost-receipt','unknown-replay',),api.digest,commands)
         def state(request):
-            with sqlite3.connect(database) as db:
-                return {'request':db.execute('SELECT state FROM requests WHERE key=?',(request['request_key'],)).fetchone(),
-                        'artifacts':db.execute('SELECT COUNT(*) FROM artifacts').fetchone()[0],
-                        'costs':db.execute('SELECT COUNT(*) FROM costs').fetchone()[0]}
+            return journal.capture(request)
         def worker(label,arguments,*,behavior='normal',expected=0):
             request={'schema':'hia-agent-worker-request-v1','tool':'hia_verify','arguments':arguments,
                      'profile_sha256':'a'*64,'catalog_sha256':case.service.catalog_sha256}
@@ -174,6 +174,7 @@ def run(manifest,store_manifest,output):
         'wheel_files_checked_against_installed':files,'wheel_RECORD_sha256':sha256(wheel_record).hexdigest(),
         'installed_RECORD_sha256':sha256((installed/record_name).read_bytes()).hexdigest(),
         'identity':identity,'bundle_sha256':bundle_pin,'commands':commands,'observations':observations,
+        'database_capture':journal.finish(),
         'runtime_authoring_imports_forbidden':True,'every_request_has_all_three_expected_identity_flags':True,
         'whole_native_stack_qualified':False}
     write(output/'installed.json',report);return report

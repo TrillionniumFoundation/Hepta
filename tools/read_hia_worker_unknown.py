@@ -72,6 +72,54 @@ class Capture:
         return {**self.streams, **{path: pin(raw) for path, raw in self.raw.items()}}
 
 
+def _manifest_query_source_successor(original_raw, take):
+    """Admit one exact successor while preserving the historical oracle."""
+    if pin(original_raw) != {'bytes': 1733, 'sha256': '5ae994e97ee7542921047ee763eeab7c180dad7d222b1f8648b96fe6fedce392'}:
+        raise ValueError('historical worker input authority changed')
+    original = json.loads(original_raw)
+    path = ROOT / 'tests/fixtures/worker_installation_manifest_successor_v1.json'
+    raw = take(path)
+    if pin(raw) != {'bytes': 2312, 'sha256': '135886bcf2b2639365d280e416559164da07c9653c05ad4ff48bbfe0ccdc37c0'}:
+        raise ValueError('worker manifest-query successor authority changed')
+    proof = json.loads(raw)
+    names = ('hepta/hia_agent_worker.py', 'tools/generate_hia_worker_report.py')
+    if (proof['schema'] != 'hepta.hia.worker-installation-manifest-source-successor.v1'
+            or proof['original_manifest'] != pin(original_raw)
+            or set(proof['records']) != set(names)):
+        raise ValueError('worker manifest-query successor scope differs')
+    result = {}
+    for name in names:
+        record = proof['records'][name]
+        before = (original['candidate_runtime'][name] if name == names[0]
+                  else original['HIA_policy_generator_unchanged'])
+        if record['before'] != before:
+            raise ValueError('worker successor predecessor differs: ' + name)
+        current = take(ROOT / name)
+        if pin(current) != record['after']:
+            raise ValueError('worker successor current source differs: ' + name)
+        restored = current.decode('utf-8')
+        previous = len(restored) + 1
+        for edit in reversed(record['reverse_segments']):
+            at, after, old = edit['after_start'], edit['after_text'], edit['before_text']
+            if (type(at) is not int or type(after) is not str or type(old) is not str
+                    or at < 0 or at + len(after) > len(restored)
+                    or at >= previous or restored[at:at + len(after)] != after):
+                raise ValueError('worker successor exact inverse differs: ' + name)
+            restored = restored[:at] + old + restored[at + len(after):]
+            previous = at
+        if pin(restored.encode('utf-8')) != before:
+            raise ValueError('worker successor did not recover the complete predecessor: ' + name)
+        result[name] = pin(current)
+    for name, expected in original['candidate_runtime'].items():
+        if name == names[0]:
+            continue
+        current = take(ROOT / name)
+        if pin(current) != expected:
+            raise ValueError('unchanged worker runtime differs: ' + name)
+        result[name] = pin(current)
+    return result
+
+
 def fixture(capture):
     raw = capture.take(FIXTURE)
     if sha256(raw).hexdigest() != FIXTURE_SHA256:
@@ -82,13 +130,11 @@ def fixture(capture):
         path = FIXTURE.parent / name
         capture.take(path, identity)
         expected[str(path)] = identity
-    for name, identity in value['candidate_runtime'].items():
-        path = ROOT / name
-        capture.take(path, identity)
-        expected[str(path)] = identity
-    generator = ROOT / 'tools/generate_hia_worker_report.py'
-    capture.take(generator, value['HIA_policy_generator_unchanged'])
-    expected[str(generator)] = value['HIA_policy_generator_unchanged']
+    runtime = _manifest_query_source_successor(raw, capture.take)
+    successor = ROOT / 'tests/fixtures/worker_installation_manifest_successor_v1.json'
+    expected[str(successor)] = pin(capture.take(successor))
+    for name, identity in runtime.items():
+        expected[str(ROOT / name)] = identity
     cases = capture.parse(CASES, value['cases'])
     expected[str(CASES)] = value['cases']
     return value, cases, expected
@@ -251,6 +297,152 @@ def _tag(stderr, prefix):
     return json.loads(rows[0])
 
 
+
+def _read_installed_journal(capture, output, report, profile):
+    """Reopen actual copied SQLite bytes; do not trust the producer's state."""
+    import sqlite3
+    import tempfile
+    descriptor = report['database_capture']
+    if (descriptor.get('schema') != 'hepta.hia.installed-journal-capture.v1'
+            or descriptor.get('path') != 'journal-snapshots/index.json'):
+        raise ValueError('installed journal capture descriptor differs')
+    directory = output / 'journal-snapshots'
+    if directory.is_symlink():
+        raise ValueError('journal snapshot directory cannot be a symbolic link')
+    index = capture.parse(directory/'index.json',
+                          {key: descriptor[key] for key in ('bytes','sha256')})
+    labels = ['normal','completed-replay','lost-receipt','unknown-replay']
+    if profile == 'v2':
+        labels += ['lost-swallowed','lost-replaced']
+    if (index.get('schema') != descriptor['schema']
+            or index.get('status') != 'CAPTURE_COMPLETE'
+            or index.get('planned') != labels
+            or [row.get('id') for row in index.get('records',[])] != labels
+            or index.get('original_database_modified') is not False
+            or index.get('old_raw_key_lookup_replaced') is not True
+            or index.get('qualified_whole_native') is not False):
+        raise ValueError('installed journal capture inventory is incomplete')
+    observed = report['observations']
+    states = dict(zip(labels[:4], [observed[key] for key in
+        ('normal_state','replay_state','lost_state','unknown_state')]))
+    if profile == 'v2':
+        extra = observed['additional_actual_losses']
+        if [row['mode'] for row in extra] != labels[4:]:
+            raise ValueError('installed additional journal inventory differs')
+        states.update((row['mode'],row['state']) for row in extra)
+    command_labels = ['wheel','install','identity','normal','completed-replay',
+                      'lost-receipt','unknown-replay']
+    if profile == 'v2':
+        command_labels += ['lost-swallowed','lost-replaced']
+    command_labels += ['source-drift']
+    if len(report['commands']) != len(command_labels):
+        raise ValueError('installed journal command inventory differs')
+    commands = dict(zip(command_labels, report['commands']))
+    def wire(value):
+        return json.dumps(value,ensure_ascii=False,sort_keys=True,
+                          separators=(',', ':'),allow_nan=False).encode('utf-8')
+    journal_arguments = {}
+    def read_captured_database(raw, key, raw_key):
+        # SQLite consumes an exact copy of the bytes Capture already admitted.
+        # A private immutable file also supports unmodified WAL-mode headers.
+        with tempfile.TemporaryDirectory(prefix='hia-journal-readback-') as owned:
+            private = Path(owned)/'snapshot.sqlite3'
+            with private.open('xb') as stream:
+                stream.write(raw)
+            private.chmod(0o400)
+            if private.read_bytes() != raw:
+                raise ValueError('private journal snapshot differs before SQL')
+            connection = sqlite3.connect(private.absolute().as_uri()+'?mode=ro&immutable=1',uri=True)
+            try:
+                connection.row_factory = sqlite3.Row
+                row = connection.execute('SELECT * FROM requests WHERE key=?',(key,)).fetchone()
+                actual = None if row is None else dict(row)
+                raw_row = connection.execute('SELECT * FROM requests WHERE key=?',(raw_key,)).fetchone()
+                raw_actual = None if raw_row is None else dict(raw_row)
+                schema = [list(item) for item in connection.execute(
+                    'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')]
+                state = {'request':None if row is None else [row['state']],
+                         'artifacts':connection.execute('SELECT COUNT(*) FROM artifacts').fetchone()[0],
+                         'costs':connection.execute('SELECT COUNT(*) FROM costs').fetchone()[0]}
+            finally:
+                connection.close()
+            if private.read_bytes() != raw or sorted(p.name for p in Path(owned).iterdir()) != ['snapshot.sqlite3']:
+                raise ValueError('private journal snapshot changed during SQL')
+            return actual, raw_actual, schema, state
+    for ordinal, entry in enumerate(index['records']):
+        label = labels[ordinal]
+        name = str(ordinal).zfill(2)+'-'+label
+        if entry['record'] != name+'.json':
+            raise ValueError('installed journal record path/order differs')
+        record = capture.parse(directory/entry['record'],
+                               {key:entry[key] for key in ('bytes','sha256')})
+        if (record.get('schema') != 'hepta.hia.installed-journal-observation.v1'
+                or record.get('ordinal') != ordinal or record.get('id') != label
+                or record.get('source_database') != index.get('source_database')
+                or record.get('tool') != 'hia_verify'
+                or record.get('namespace') != 'sha256(canonical({"tool":tool,"key":request_key}))'
+                or record.get('original_database_modified') is not False):
+            raise ValueError('installed journal observation identity differs')
+        start, end = (record.get(key) for key in
+                      ('started_monotonic_ns','completed_monotonic_ns'))
+        if type(start) is not int or type(end) is not int or not 0 < start <= end:
+            raise ValueError('installed journal observation clock differs')
+        arguments = record['arguments']
+        if (type(arguments) is not dict
+                or type(arguments.get('request_key')) is not str
+                or record['raw_request_key'] != arguments['request_key']
+                or record['arguments_bytes'] != pin(wire(arguments))):
+            raise ValueError('installed journal argument custody differs')
+        key = sha256(wire({'tool':'hia_verify','key':arguments['request_key']})).hexdigest()
+        request_digest = sha256(wire({'tool':'hia_verify','arguments':arguments})).hexdigest()
+        if record['storage_key'] != key or record['request_digest'] != request_digest:
+            raise ValueError('installed journal key namespace differs')
+        journal_arguments[label] = arguments
+        if profile == 'v2':
+            request = capture.parse(output/(label+'.stdin.bin'),report['request_inputs'][label])
+            if request.get('tool') != 'hia_verify' or request.get('arguments') != arguments:
+                raise ValueError('journal differs from actual worker request arguments')
+        if ordinal < 4:
+            response = observed['normal' if ordinal == 0 else 'replay' if ordinal == 1 else 'unknown']['response']
+            if response.get('request_id') != 'r-'+request_digest:
+                raise ValueError('journal differs from actual worker request digest')
+        terminal = record['worker_receipt']
+        if terminal['path'] != label+'.result.json':
+            raise ValueError('journal is bound to another worker terminal')
+        actual_terminal = capture.parse(output/terminal['path'],
+                                      {key:terminal[key] for key in ('bytes','sha256')})
+        if actual_terminal != commands[label]:
+            raise ValueError('journal worker terminal changed')
+        snapshot = record['snapshot']
+        if snapshot['path'] != name+'.sqlite3':
+            raise ValueError('installed journal snapshot path/order differs')
+        path = directory/snapshot['path']
+        if path.is_symlink() or not stat.S_ISREG(path.stat().st_mode):
+            raise ValueError('installed journal snapshot is not a regular file')
+        database_raw = capture.take(path,{key:snapshot[key] for key in ('bytes','sha256')})
+        actual, raw_actual, schema, state = read_captured_database(database_raw,key,arguments['request_key'])
+        expected_state = 'completed' if ordinal < 2 else 'running'
+        if (actual is None or actual.get('key') != key
+                or actual.get('digest') != request_digest or actual.get('tool') != 'hia_verify'
+                or actual.get('state') != expected_state
+                or actual != record['namespaced_row'] or raw_actual != record['raw_key_row']
+                or raw_actual is not None or schema != record['database_schema']
+                or state != record['state'] or state != states[label]):
+            raise ValueError('actual SQLite journal state differs')
+        if ordinal < 2:
+            response = observed['normal' if ordinal == 0 else 'replay']['response']
+            if json.loads(actual['response']) != response:
+                raise ValueError('actual completed journal response differs')
+        elif actual['response'] is not None:
+            raise ValueError('unconfirmed installed request acquired a terminal response')
+    if (journal_arguments['normal'] != journal_arguments['completed-replay']
+            or journal_arguments['lost-receipt'] != journal_arguments['unknown-replay']):
+        raise ValueError('installed journal replay arguments differ')
+    return {'schema':'hepta.hia.installed-journal-readback.v1',
+            'labels':labels,'snapshot_count':len(labels),
+            'actual_namespaced_rows_checked':True,'raw_key_rows_absent':True,
+            'actual_worker_request_bound':True,'SQL_consumed_captured_raw':True}
+
 def read_installed(output, expected_receipt, profile):
     output = Path(output)
     capture = Capture()
@@ -274,7 +466,7 @@ def read_installed(output, expected_receipt, profile):
         labels += ['lost-swallowed', 'lost-replaced']
         if (report['explicit_worker_profile'] != 'v2'
                 or report['hosted_worker_policy_poisoned'] is not True
-                or report['original_workload_sha256'] != 'b882d10dabf2a99a9590cdb3189bf5eb5be46f1bfe9b4b9c7f444093fc3e9fd4'):
+                or report['original_workload_sha256'] != '0f95cc59fe2a66bcc2fbcfa8dc253266e763bbc8ca7c873d5bdf956fd04bdda6'):
             raise ValueError('explicit v2 original workload scope differs')
     labels += ['source-drift']
     if len(report['commands']) != len(labels):
@@ -399,11 +591,12 @@ def read_installed(output, expected_receipt, profile):
         for path, digest in report['additional_manifests'].items():
             if sha256(capture.take(path)).hexdigest() != digest:
                 raise ValueError('explicit native companion manifest changed')
+    journal = _read_installed_journal(capture, output, report, profile)
     wheel = _wheel(capture, report)
     capture.stable()
     return {'schema':'hepta.hia.worker-unknown-installed-readback.v1','status':'PASS',
             'profile':profile,'commands':labels,'producer_report':{'path':str(output/'installed.json'),**pin(raw)},
-            'wheel':wheel,'files':capture.ledger(),'whole_native_stack_qualified':False}
+            'wheel':wheel,'journal':journal,'files':capture.ledger(),'whole_native_stack_qualified':False}
 
 
 def main():

@@ -1402,6 +1402,15 @@ SOURCE_FILES = (
     'tests/fixtures/worker_unknown_original_r17b/hia_native_delivery.py.txt',
     'tests/fixtures/worker_unknown_original_r17b/hia_worker_report_native.py.txt',
     'tests/fixtures/worker_unknown_original_r17b/generate_hia_worker_report.py.txt',
+    'tests/test_hia_service_bootstrap_fixed_words.py',
+    'tests/test_hia_worker_installation_manifest_pins.py',
+    'tests/fixtures/worker_installation_manifest_successor_v1.json',
+    'tests/hia_worker_installed_journal.py',
+    'tests/test_hia_worker_installed_journal.py',
+    'tests/fixtures/worker_installed_journal_original_r18/hia_service_verification_installed.py.txt',
+    'tests/fixtures/worker_installed_journal_original_r18/hia_worker_unknown_installed.py.txt',
+    'tests/fixtures/worker_installed_journal_original_r18/manifest.json',
+    'docs/HIA_WORKER_INSTALLED_JOURNAL.md',
 )
 
 

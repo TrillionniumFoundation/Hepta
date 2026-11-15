@@ -524,6 +524,25 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           path: ${{ runner.temp }}/hia-service-verification-imports.log
+      - name: Bootstrap fixed-word original and complete packet Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_BOOTSTRAP_FIXED_WORD_EVIDENCE: ${{ runner.temp }}/hia-service-bootstrap-fixed-words
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_bootstrap_fixed_words.ServiceBootstrapFixedWordSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-bootstrap-fixed-words.log"
+      - name: Preserve Bootstrap fixed-word complete packet evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-bootstrap-fixed-words-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-service-bootstrap-fixed-words/
+            ${{ runner.temp }}/hia-service-bootstrap-fixed-words.log
       - name: Complete bootstrap static Source contracts
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
@@ -590,6 +609,34 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-worker-unknown-source
             ${{ runner.temp }}/hia-worker-unknown-source.log
+
+      - name: Complete installation manifest identity expectation Source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_worker_installation_manifest_pins.WorkerInstallationManifestSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-worker-manifest-pins-source.log"
+      - name: Preserve installation manifest identity Source controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-manifest-pins-source-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-worker-manifest-pins-source.log
+
+      - name: Complete installed worker journal snapshot controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_worker_installed_journal.InstalledJournalSnapshotTests 2>&1 | tee "$RUNNER_TEMP/hia-worker-installed-journal-source.log"
+      - name: Preserve installed worker journal snapshot controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-installed-journal-source-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-worker-installed-journal-source.log
 
   native:
     runs-on: ubuntu-latest
@@ -2411,3 +2458,23 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-worker-unknown-native
             ${{ runner.temp }}/hia-worker-unknown-native.log
+
+      - name: Complete native installation manifest identity expectation controls
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_WORKER_REPORT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_MANIFEST_PINS_EVIDENCE: ${{ runner.temp }}/hia-worker-manifest-pins-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_worker_installation_manifest_pins.WorkerInstallationManifestNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-worker-manifest-pins-native.log"
+      - name: Preserve complete installation manifest identity native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-manifest-pins-native-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/hia-worker-manifest-pins-native
+            ${{ runner.temp }}/hia-worker-manifest-pins-native.log

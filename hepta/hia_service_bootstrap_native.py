@@ -231,11 +231,18 @@ def _bootstrap_generator(image, mode, iterator, namespace, global_builtins, impo
         import_ports=import_ports, local_layouts=local_layouts)
     del iterator
     while frame.advance_generator():
+        # A thrown exception can retain this real generator frame. Its original
+        # local storage must remain there until Python releases that frame.
+        original_locals = frame.data
         try:
             yield frame.__dict__.pop('result')
         except _BaseException:
             frame.throw_generator()
             raise
+        else:
+            # Normal resume still releases in the existing HIA segment before
+            # its final ACK; this alias belongs only to the suspended yield.
+            del original_locals
 
 class ServiceBootstrapFrame:
     def __init__(self, image, mode, initial, *, namespace=None, global_builtins=None,
@@ -562,9 +569,14 @@ class ServiceBootstrapFrame:
         try:
             self._owned_segment()
         finally:
-            self._delivery.retire()
-            self._delivery = None
-            self._entered = False
+            try:
+                self._delivery.retire()
+                self._delivery = None
+                self._entered = False
+            finally:
+                # The pending throw is owned by Python's exception state. This
+                # completed segment must not keep an extra path back to its TB.
+                self._caller_handled = None
 
     def _new_genexpr(self, mode, iterator):
         return _bootstrap_generator(self.image, mode, iterator, self.namespace,
@@ -596,6 +608,10 @@ class ServiceBootstrapFrame:
         if name == 'init_abort_failure':
             d['failure'] = _UNBOUND
         elif name in ('init_abort_error', 'init_clear_error'):
+            if name == 'init_abort_error':
+                # The loop stack unwinds while the body handler is still
+                # active, before that handler's named exception is cleared.
+                s.pop('cleanup_iterator', None)
             d['error'] = _UNBOUND
         elif name == 'init_clear_failure':
             d['failure'] = _UNBOUND

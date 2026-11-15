@@ -80,6 +80,12 @@ INPUTS = (
     "tests/hia_service_verification_child_finalize.py",
     "tools/read_hia_service_verification_child_finalize.py",
     "tests/test_hia_service_verification_finalization_native.py",
+    'tests/hia_worker_installed_journal.py',
+    'tests/test_hia_worker_installed_journal.py',
+    'tests/fixtures/worker_installed_journal_original_r18/hia_service_verification_installed.py.txt',
+    'tests/fixtures/worker_installed_journal_original_r18/hia_worker_unknown_installed.py.txt',
+    'tests/fixtures/worker_installed_journal_original_r18/manifest.json',
+    'docs/HIA_WORKER_INSTALLED_JOURNAL.md',
 )
 
 

@@ -104,6 +104,10 @@ def _reference_run(parser, args):
     if args.installation_manifest:
         if args.request_json_stdin:
             parser.error("manifest read and request execution are distinct modes")
+        for field in ("worker", "backend", "catalog"):
+            expected = getattr(args, "expected_" + field + "_sha256")
+            if expected is not None and expected != identities[field + "_sha256"]:
+                raise AgentRejected("E_HIA_WORKER_PIN", "administrator source pin differs before execution", retry_action="stop")
         sys.stdout.buffer.write(guard_request_output(wire(identities) + b"\n"))
         return 0
     if not args.state_root or not args.request_json_stdin:

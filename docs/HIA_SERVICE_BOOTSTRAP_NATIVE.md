@@ -1,18 +1,53 @@
-# Service bootstrap, lifecycle and profile owner — static candidate
+# Service bootstrap, lifecycle and profile owner
 
-This package is an unexecuted candidate for all five original methods:
-HIAAgentService.__init__, close, _profiles, _profile and _program. Its exact
-base is the staged R12 tree fb016dbeb5c666dd43627f9a25bc58fda5f56c92. The
-original service source has 124988 bytes and SHA256
-f6231510db28254e06f0af0da78ef4d4598cf761f4dfad66a51ae07011a537b5.
+## Current source and acceptance boundary
 
+The reviewed local R18 baseline is index
+`dd6af1dd4bf39dd646ddccf9bfbcd8cb46d9dd50`. It contains the selected control
+candidate for HIAAgentService.__init__, close, _profiles, _profile and _program,
+the generated `examples/hia_bootstrap/service_bootstrap.hepta`, executable
+qualification source, and the separate Budget B resource-retirement successor.
+Bootstrap is the fiftieth helper in the combined registry. This documentation
+revision is a successor to that baseline, not a claim to retain its tree hash.
+
+Source composition and generated files do not prove the full finite, resource,
+installed, caller or matching-source cold gates. Current execution results
+must be taken from their exact source-bound reports. The default hosted paths
+and real Python/SQLite providers remain; no whole-product or removal claim is
+made here. See [the current state index](CURRENT.md).
+
+## Latest completed checkpoint and source successor
+
+Published R18 completed all twelve Native/resource methods: ten passed and
+two errored. The full 15,830-case Native domain completed with 210 differing
+cases (198 temporary tool results, eight suspended generators and four
+cleanup-note cases). The independent VM retained its original 1,800-second
+timeout after 759 complete cases and 34 observed differences. Context15
+completed without skips or retained calls. These exact old failures and
+results remain attached to R18.
+
+The current successor corrects the observed lifecycle aliases and cleanup
+boundary, expands three fixed eight-byte HIA access helpers, and fixes
+explicitly pinned Worker identity queries. The original five public methods,
+two generator modes, 98 ports, complete input order, real provider operations,
+exception/TB/GC/destruction observations and limits remain. Original Source6,
+Native12, ordinary112, Journal21, Context15, Budget B4 and matching-source cold
+qualification must all complete on the new source. See
+[current acceptance](CURRENT.md) and
+[installed journal evidence](HIA_WORKER_INSTALLED_JOURNAL.md).
+
+## Original authoring provenance
+
+The immutable core package was authored against staged R12 tree
+`fb016dbeb5c666dd43627f9a25bc58fda5f56c92`. Its original Service source has
+124,988 bytes and SHA256
+`f6231510db28254e06f0af0da78ef4d4598cf761f4dfad66a51ae07011a537b5`.
 No product, original oracle, generator, VM, Native, SQL or test was executed
-while authoring this package. There is no generated service_bootstrap.hepta,
-build receipt, executable image, finite positive observation or qualified
-runtime result. The original three Source tests are explicitly static contracts. A separate
-qualification successor adds executable observation, resource and installed
-qualification source, which also has no runtime result yet.
-
+while authoring that package. At that authoring boundary it had no generated
+HIA file, build receipt, executable image or runtime observation. The original
+three Source tests were static contracts. Those historical limitations do not
+describe the later R18 generated-source composition and are not rewritten as
+positive runtime results.
 ## Authored control boundary
 
 Five public modes and two private generator modes share a 128-byte request,
@@ -99,28 +134,26 @@ Actual child loss is checked before every effect, native entry and final ACK.
 
 NativeCandidateBudgetStore.__init__ performs an official Store SELECT and
 then NativeExecutionBudgetStore creates its own SQLite connection.
-NativeExecutionBudgetStore.close currently checks PID and lock/closed state,
-sets closed and invokes self.db.close(); db simply returns _db. It does not
-consult the shared resource-retirement registry.
+In the immutable core predecessor, NativeExecutionBudgetStore.close checked
+PID and lock/closed state, set closed and invoked self.db.close(); db returned
+_db without consulting the shared resource-retirement registry.
 
 The bootstrap holder can observe the actual AgentStore ResourceScope. That
 does not establish custody of the independent budget connection after a
 later bootstrap ACK loss. The provider's existing poisoned/sidecar policy is
-preserved. A separate opt-in resource registration/retirement ABI proposal is
-included, not silently integrated or claimed as already closed. Production
-resource qualification is blocked until root either admits that exact provider
-boundary or produces actual evidence establishing the intended existing
-responsibility. Other control and expression qualification can proceed.
+preserved. Its separate opt-in registration/retirement proposal did not by
+itself establish that provider boundary. The later versioned Budget B source
+below supplies an explicit guard in R18; actual resource qualification still
+has to establish the intended responsibility through the unchanged real gate.
 
 ## Source custody, callers and integration
 
-source/ is an external layer, not an applied tree. public-selection.patch
-contains only the service tail. registration.patch carries exact additions
-against R12 and is intended for a root merge with other append-only owners;
-never overwrite a newer whole service, registry, workflow or source contract.
-The projected helper count is 48+1=49 only for this isolated layer. Root must
-derive the actual combined count when the separate proof owner is included.
-
+The original external core and qualification layers supplied a service tail
+and exact registration increments against R12; their complete original packages
+remain unchanged. R18 combines those increments with Proof, owned-fd v2 and
+the other current owners. Its combined registry has fifty helpers, with the
+old forty-nine entries preserved before Bootstrap. Never apply a predecessor
+whole-file registry, workflow, contract or Service snapshot over a newer tree.
 The complete existing ordinary112, journal21 and context15 scope fixture is
 copied byte-for-byte with its old full module lists, ordered IDs, source pins
 and 1800-second limits. The new caller runner retains explicitly unselected
@@ -137,12 +170,12 @@ The builder requires exactly one matching current cold report or explicit
 DEV compiler and rechecks exact source/receipt/output bytes. The qualification successor now provides complete executable source for
 independent originals, full VM/Native/public observations, actual A/B resource
 controls, installed wheel/RECORD and worker identity, owned full caller commands
-and independent pure-data readers. It is still an unexecuted candidate.
+and independent pure-data readers. Source presence alone does not qualify the candidate.
 The original static tests and the new source files do not constitute a positive
 finite or resource observation. See QUALIFICATION-PLAN.json and the successor
 QUALIFICATION-SOURCE-MAP.json for the precise scopes.
 
-## Implemented qualification source; all runtime status pending
+## Implemented qualification source and separate runtime gates
 
 The immutable 232 input objects, their IDs and the five exact original bodies
 remain unchanged. A standalone standard-library oracle compiles those five
@@ -176,11 +209,12 @@ The resource cases execute actual AgentStore operations and actual SQLite
 connections. They inject loss only after a real native entry returns, and
 preserve the actual frame/Store responsibility. They do not write loss flags,
 register a guessed test resource, mock parent.check or bypass public close.
-The independent NativeCandidateBudgetStore connection B is a required blocking
-control. Its current missing retirement guard is expected to produce a real
-failure, not an expected-failure or skip. Subsequent production repair must
-pass this unchanged gate. The installed gate deliberately leaves B unselected
-and cannot be cited as its qualification.
+The independent NativeCandidateBudgetStore connection B remains a required
+control. The predecessor's missing retirement guard produced a real failure,
+not an expected-failure or skip. The versioned Budget B successor below adds
+the provider guard while retaining this unchanged gate. The original Bootstrap
+installed gate deliberately leaves B unselected and cannot qualify B; its own
+separate installed and resource gates remain required.
 
 The installed gate builds the actual wheel, checks every wheel/installed
 RECORD member, accepts only the four observed pip metadata additions, and
@@ -198,18 +232,17 @@ same cold compiler/source, and selected-retained-body prohibition. Explicit
 old unselected paths remain visible. These are separate scopes, not replacements
 for TX61, ledger15, budget25, resource24, original130 or whole retained suites.
 
-The qualification layer does not replace the current service, helper registry
-or administrator bundle. Its SOURCE_FILES/workflow additions are exact proposals
-against the already frozen Bootstrap core layer. Root must merge them onto the
-actual newer tree, preserving proof and owned-fd-v2 additions, then generate the
-HIA source and official metadata. No newer product commit, source count or
-combined helper count is asserted by this package.
-
+The qualification layer originally supplied exact proposals against the frozen
+Bootstrap core. R18 has composed those additions without replacing the earlier
+Service tails, helpers, administrator contracts or original test methods.
+Future integrations still require exact predecessor pins and a new complete
+source freeze; they cannot reuse an older package's standalone registration.
 ## Versioned Budget B provider and retirement successor
 
 The preceding missing-boundary description records the immutable Bootstrap
 core/qualification predecessor. The separate Budget B successor now provides
-static source for the provider boundary; it has not executed any qualification.
+the provider-boundary source now composed in R18. The immutable authoring
+package performed no qualification; current gate outcomes remain separate.
 The original independent-budget-B-retirement test remains unchanged and must
 pass with this layer. Its old failing result is not relabelled.
 
@@ -234,7 +267,7 @@ close therefore still closes the real dedicated SQLite connection. A previously
 closed B with a subsequently lost parent ACK remains physically closed, while
 another attempted public close refuses the retained outcome without replay.
 
-The proposed new complete Native4 suite executes twenty-two actual SQLite and
+The separate complete Native4 suite is designed to execute twenty-two actual SQLite and
 Native controls in separate owned children, plus one installed subgate containing
 three fresh Budget consumers. It uses seven images built in the same attempt
 and with the same current cold compiler, or explicitly marked DEV evidence.
@@ -271,11 +304,14 @@ shared_dependency_review. Integration must add their exact complete reverse
 deltas to the same final source composition; changing a hash alone or exempting
 the paths would not establish provenance. This layer supplies the original bytes
 and reversible delta separately, preserves the c019 fixture and all twenty-one
-original definition checks, and does not fabricate a final eleven-source fixture
-before root combines the latest shared-delivery and Bootstrap sources.
+original definition checks, and did not fabricate an eleven-source fixture before the original combination.
+R18 uses its separately frozen thirteen-source successor, including exact Worker
+and report origins; that later admission does not change the original fixture
+or the twenty-one definition checks.
 
 The new runtime helper adds no selectable native component or administrator
-bundle entry. It therefore changes no HELPERS count. The Bootstrap core's own
-single helper still needs the root's final current-tree registry merge; proof
-and all earlier helpers must remain intact. This package performs no generation,
-official metadata update, product import, test, Native, VM or SQLite execution.
+bundle entry. It therefore changes no HELPERS count. The Bootstrap core's single
+helper is included as entry fifty in R18, preserving Proof and every earlier
+helper. Authoring the predecessor source package performed no generation,
+official metadata update, product import, test, Native, VM or SQLite execution;
+those are distinct later integration and qualification actions.
