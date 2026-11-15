@@ -6,6 +6,7 @@ and a support declaration, not a successful execution or correctness receipt.
 from __future__ import annotations
 
 from hashlib import sha256
+import ast
 import json
 from pathlib import Path
 from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
@@ -1119,6 +1120,31 @@ def file_digests(root=ROOT):
     return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}
 
 
+
+def _native_worker_helper_count(root):
+    path = Path(root) / 'hepta/hia_native_helpers.py'
+    declarations = [
+        node for node in ast.parse(path.read_bytes(), filename=str(path)).body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == 'HELPERS'
+                for target in node.targets)
+    ]
+    if (len(declarations) != 1 or len(declarations[0].targets) != 1
+            or not isinstance(declarations[0].value, ast.Dict)):
+        raise ValueError('native helper registry must have one literal HELPERS declaration')
+    table = declarations[0].value
+    helpers = ast.literal_eval(table)
+    if (type(helpers) is not dict or len(helpers) != len(table.keys)
+            or any(type(selector) is not str
+                   or not selector.startswith('HEPTA_HIA_')
+                   or not selector.endswith('_MANIFEST')
+                   or type(contract) is not tuple or len(contract) != 2
+                   or any(type(name) is not str or not name.isidentifier()
+                          for name in contract)
+                   for selector, contract in helpers.items())):
+        raise ValueError('native helper registry has duplicate or invalid literal contracts')
+    return len(helpers)
+
 def support_contract(root=ROOT):
     return {
         'fixed_budget_and_journal_word_access': {
@@ -1938,7 +1964,7 @@ def support_contract(root=ROOT):
         'native_worker_helper_bundle': {
             'implementation': 'hepta/hia_native_helpers.py',
             'schema': 'hepta.hia.native-helpers.v1',
-            'supported_single_image_selectors': 41,
+            'supported_single_image_selectors': _native_worker_helper_count(root),
             'native_mapping_schema': 'hepta.hia.native-mapping-native.v1',
             'publication_measurement_schema': 'hepta.hia.publication-measurement-native.v1',
             'scalar_profile_schema': 'hepta.hia.scalar-profile-native.v1',
