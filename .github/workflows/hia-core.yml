@@ -9,7 +9,7 @@ jobs:
         with:
           python-version: '3.14'
       - name: Install the frozen caller inventory dependency
-        run: python -m pip install jsonschema==4.26.0
+        run: python -m pip install jsonschema==4.26.0 setuptools==78.1.1
       - name: Regenerate actual HIA sources
         run: |
           set -eu
@@ -1790,6 +1790,7 @@ jobs:
           HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget
       - name: Build explicit Slot mechanical extension for native diagnostics
+        if: always()
         timeout-minutes: 30
         run: |
           set -euo pipefail

@@ -77,7 +77,7 @@ Original parser controls retain supported CPython-version differences,
 negative tokens, Unicode decimal rules, all fifteen actions and exact output
 file bytes/modes. No original assertion or deadline has been removed.
 
-The [current state index](CURRENT.md#source-bound-qualification) records actual
+The [current state index](CURRENT.md#latest-completed-source-bound-observations) records actual
 source identities and terminal results. Matching-source cold, original CLI
 methods, real installed callers and full retained regression are distinct
 gates. A prior source or development image does not qualify the current tree.

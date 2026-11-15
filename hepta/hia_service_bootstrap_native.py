@@ -460,7 +460,7 @@ class ServiceBootstrapFrame:
             raise
         raise ServiceBootstrapUnknown('bootstrap exceptional continuation differs')
 
-    def _drive(self):
+    def _drive(self, *, generator_throw=False):
         original_locals = self.data
         while True:
             try:
@@ -473,6 +473,14 @@ class ServiceBootstrapFrame:
             else:
                 if self.receipt.port in RELEASE_PORTS or self.receipt.port == YIELD_PORT:
                     return observed
+                if generator_throw and self.receipt.port == PORT['generator_propagate']:
+                    # The real generator already owns this pending throw. Only
+                    # a successful propagate-port ACK may relay it without
+                    # adding these mechanical frames to its user traceback.
+                    self.call(SUCCEEDED, observed)
+                    if self.receipt.phase != READY_PROPAGATE:
+                        raise ServiceBootstrapUnknown('bootstrap throw relay has no propagate directive')
+                    return observed
                 self.call(SUCCEEDED, observed)
             if self.receipt.phase == LEAVE_HANDLER:
                 self.call(LEAVE_EXCEPTION)
@@ -481,20 +489,33 @@ class ServiceBootstrapFrame:
             if self.receipt.phase != ISSUED:
                 raise ServiceBootstrapUnknown('bootstrap has no issued continuation')
 
-    def _owned_segment(self):
+    def _owned_segment(self, *, generator_throw=False):
         self._check()
+        if generator_throw and (
+                self.mode not in (GENERATOR_ROOTS, GENERATOR_DIRECTORIES)
+                or self.receipt.phase != ISSUED
+                or self.receipt.port != PORT['generator_error_unwind']
+                or self.receipt.failed != 1
+                or self._caller_handled is None
+                or _HANDLED() is not self._caller_handled):
+            raise ServiceBootstrapUnknown('bootstrap throw relay has no actual pending generator throw')
         whole = self._delivery.foreign(capture_resources=True, weak_registered_resources=True)
         self._whole = whole
         with self._delivery.foreign(observation=False):
             try:
                 with whole:
-                    observed = self._drive()
-                    if (self.receipt.phase != CLAIMED
-                            or (self.receipt.port not in RELEASE_PORTS and self.receipt.port != YIELD_PORT)):
-                        raise ServiceBootstrapUnknown('bootstrap drive did not stop at its exact release/yield')
-                    self.call(SUCCEEDED, observed)
-                    if self.receipt.phase not in (READY_RETURN, READY_YIELD):
-                        raise ServiceBootstrapUnknown('bootstrap has no normal completion directive')
+                    observed = self._drive(generator_throw=generator_throw)
+                    if generator_throw:
+                        if (self.receipt.phase != READY_PROPAGATE
+                                or _HANDLED() is not self._caller_handled):
+                            raise ServiceBootstrapUnknown('bootstrap throw relay changed its pending outcome')
+                    else:
+                        if (self.receipt.phase != CLAIMED
+                                or (self.receipt.port not in RELEASE_PORTS and self.receipt.port != YIELD_PORT)):
+                            raise ServiceBootstrapUnknown('bootstrap drive did not stop at its exact release/yield')
+                        self.call(SUCCEEDED, observed)
+                        if self.receipt.phase not in (READY_RETURN, READY_YIELD):
+                            raise ServiceBootstrapUnknown('bootstrap has no normal completion directive')
             except _BaseException as error:
                 if not self._foreign_started and self._delivery.loss is None and not self._delivery.native_pending:
                     self._delivery.foreign_refused()
@@ -567,7 +588,7 @@ class ServiceBootstrapFrame:
         self._new_generator_segment(THROW_GENERATOR)
         self._entered = True
         try:
-            self._owned_segment()
+            self._owned_segment(generator_throw=True)
         finally:
             try:
                 self._delivery.retire()

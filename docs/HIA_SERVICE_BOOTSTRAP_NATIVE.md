@@ -2,39 +2,56 @@
 
 ## Current source and acceptance boundary
 
-The reviewed local R18 baseline is index
-`dd6af1dd4bf39dd646ddccf9bfbcd8cb46d9dd50`. It contains the selected control
-candidate for HIAAgentService.__init__, close, _profiles, _profile and _program,
-the generated `examples/hia_bootstrap/service_bootstrap.hepta`, executable
-qualification source, and the separate Budget B resource-retirement successor.
+The latest completed R19 source has index tree
+`adbc8955407947ecfe8aec4eef18caee3d837dd8`, published as
+[`e132b25509ad4d7ad51b5a6da56a23809982569b`](https://github.com/TrillionniumFoundation/Hepta/commit/e132b25509ad4d7ad51b5a6da56a23809982569b).
+It contains the selected control candidate for HIAAgentService.__init__, close,
+_profiles, _profile and _program, the generated
+`examples/hia_bootstrap/service_bootstrap.hepta`, executable qualification
+source, and the separate Budget B resource-retirement successor.
 Bootstrap is the fiftieth helper in the combined registry. This documentation
-revision is a successor to that baseline, not a claim to retain its tree hash.
+revision describes a source successor and does not retain R19's qualification.
 
-Source composition and generated files do not prove the full finite, resource,
-installed, caller or matching-source cold gates. Current execution results
-must be taken from their exact source-bound reports. The default hosted paths
-and real Python/SQLite providers remain; no whole-product or removal claim is
-made here. See [the current state index](CURRENT.md).
+Generated source and source composition do not establish complete finite,
+resource, installed, caller or matching-source cold qualification. The
+ordinary hosted path and actual Python/SQLite providers remain. Whole-native,
+activation and old-stack removal remain false. See [current acceptance](CURRENT.md).
 
 ## Latest completed checkpoint and source successor
 
-Published R18 completed all twelve Native/resource methods: ten passed and
-two errored. The full 15,830-case Native domain completed with 210 differing
-cases (198 temporary tool results, eight suspended generators and four
-cleanup-note cases). The independent VM retained its original 1,800-second
-timeout after 759 complete cases and 34 observed differences. Context15
-completed without skips or retained calls. These exact old failures and
-results remain attached to R18.
+R19 completed all twelve Native/resource methods: eleven passed and one
+errored. The full 15,830-case Native domain completed with 1,358,722 native
+entries and one differing case, `generator_protocol.throw-instance.outer1`.
+The original 150 events are an exact prefix of the candidate's 152 events;
+two destructor events occur after the observer seal. The source is stable
+and the report remains HOLD. The installed-wheel method now passes.
 
-The current successor corrects the observed lifecycle aliases and cleanup
-boundary, expands three fixed eight-byte HIA access helpers, and fixes
-explicitly pinned Worker identity queries. The original five public methods,
-two generator modes, 98 ports, complete input order, real provider operations,
-exception/TB/GC/destruction observations and limits remain. Original Source6,
-Native12, ordinary112, Journal21, Context15, Budget B4 and matching-source cold
-qualification must all complete on the new source. See
-[current acceptance](CURRENT.md) and
-[installed journal evidence](HIA_WORKER_INSTALLED_JOURNAL.md).
+R19 Context15, ordinary112 and Journal21 all completed with independent
+readback. Budget B4 completed all four methods, 22 resource controls and
+11 installed commands; a separate explicitly development-scoped reader
+validated the complete untouched evidence. The earlier reader invocation
+without that declaration correctly refused DEV evidence as cold and remains
+preserved. The current-source cold attempt still reached its original
+180-second deadline. No development result supplies cold qualification.
+
+The current successor changes only the adapter's original external-throw
+completion. A guarded generator segment may complete the existing
+`generator_propagate` SUCCEEDED acknowledgement and READY_PROPAGATE directive
+without rethrowing the same exception through extra relay frames. It still
+leaves the actual whole scope, performs the original FINALIZE and retires the
+delivery before the real generator's existing bare raise propagates the
+exception. New provider, acknowledgement, cleanup and finalization errors
+retain their original exception paths. Suspended original locals and
+caller-handled cleanup remain unchanged.
+
+This mechanism is a candidate repair; its effect on the last case is not
+established by static review. All five public modes, two generator modes,
+98 ports, complete ordered input domain, actual provider operations,
+exception/TB/GC/destruction observations and original budgets remain.
+Complete Source6, Native12, ordinary112, Journal21, Context15, Budget B4 and
+matching-source cold gates remain required on the newly composed source.
+The earlier R18 210-case differences and Source6 timeout are retained as
+historical failed observations, with no qualification transferred.
 
 ## Original authoring provenance
 
