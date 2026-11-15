@@ -36,17 +36,35 @@ generated `i128` helper could not enter the independent HIA source profile.
 Negative relative indexes, one-past cursors, `INT64_MIN` and unsigned overflow
 must still obey the mathematical `0 <= offset + index < length` rule.
 
-The prospective protocol is
-`experiments/hia_legacy_queue/PROTOCOL_20261028.json`. Run
-`retired harness qualify-hia-legacy-queue --output NEW_DIRECTORY` with the pinned native
-toolchain. The runner captures all inputs and ASTs, builds actual C/C++/Rust
-LTO/PGO arms, runs scalar ABI and resource differentials (including each of the
-three allocation failures), migrates a fifth-unit API addition, then records
-all registered file-application samples. All arms use the same small C launch
-supervisor so the recorded child peak RSS is not the Python driver's inherited
-high-water mark. RSS remains a host observation, not a proven process bound.
+The original prospective protocol is preserved at its
+[fixed Git revision](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/experiments/hia_legacy_queue/PROTOCOL_20261028.json).
+The retired runner captured inputs and ASTs, built C/C++/Rust LTO/PGO arms,
+ran scalar ABI and resource differentials (including the allocation failures),
+migrated a fifth-unit API addition, and recorded the registered file-application
+samples. All arms used the same small C launch supervisor, so the recorded
+child peak RSS was not the Python driver's inherited high-water mark. RSS
+remains a host observation, not a proven process bound.
 
 Preparation mode executes build, ABI, resource and maintenance checks but does
 not claim measured performance. A completed functional run also does not imply
 a speed advantage, low total engineering labor, general C/C++ conversion,
 complete soundness or execution on the user's unobserved dot machine.
+
+## Historical records
+
+The first trial's
+[negative performance result](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/experiments/hia_legacy_queue/results_20261028/README.md)
+remains negative. The separately registered
+[IR PGO follow-up](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/experiments/hia_legacy_queue/irpgo_results_20261029/README.md)
+also reported both `performance_advantage_gate=false` and
+`performance_and_rss_gate=false`; it does not replace the earlier failure.
+
+The 19 loose protocol, report, counter and index files have been retired from
+the current tree. Their exact published paths, modes, Git blobs, sizes and
+SHA-256 digests are recorded in the
+[retirement ledger](../../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json).
+Before this cleanup, their indices already referred to 81 absent files;
+the two `SUMMARY.json` files and Rust-shadow `RESULT.json` were also absent.
+This cleanup preserves those missing-evidence findings and does not recover
+the separately archived raw records or requalify the experiments. The C,
+C++ and Rust example sources in this directory remain unchanged.

@@ -1662,3 +1662,20 @@ def _service_artifact_dispatch(self, args):
 
 
 HIAAgentService._hia_artifact = _service_artifact_dispatch
+
+
+# Preserve the complete original discovery handler and its bound builtins.
+# Its selected continuation is separate from CLI discovery JSON ownership.
+_NATIVE_SERVICE_DESCRIBE_REFERENCE = HIAAgentService._hia_describe
+_SERVICE_DESCRIBE_GLOBAL_BUILTINS = _NATIVE_SERVICE_DESCRIBE_REFERENCE.__builtins__
+
+
+def _service_describe_dispatch(self, args):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_DESCRIBE_MANIFEST')
+    if selected is not None:
+        from .hia_service_describe_native import installed_service_describe, ServiceDescribeFrame
+        return ServiceDescribeFrame(installed_service_describe(selected), self, args).finish()
+    return _NATIVE_SERVICE_DESCRIBE_REFERENCE(self, args)
+
+
+HIAAgentService._hia_describe = _service_describe_dispatch

@@ -13,10 +13,10 @@ hosted service, storage, proof, process and runtime owners have live consumers.
 
 | Current source inventory | Count |
 | --- | ---: |
-| Physical HIA sources ending in `.hepta` | 198 |
+| Physical HIA sources ending in `.hepta` | 199 |
 | Physical legacy `.hia`, `.HIA`, `.hiaasm`, `.hia.json`, including case variants | 0 |
-| Production Python modules directly under `hepta/` | 220 |
-| Registered native helper selectors | 41 |
+| Production Python modules directly under `hepta/` | 222 |
+| Registered native helper selectors | 42 |
 
 The complete [indexed-source inventory](HIA_NATIVE_REWRITE_INVENTORY.json)
 records every retained indexed file, Python module, static import edge, native
@@ -37,58 +37,37 @@ Assembly keeps `hia-asm.v1`; structured Core keeps its schema; paired structured
 projections use `.core.hepta`. The `hia` command, `hepta.hia.*` schemas, Git
 objects and historical receipt bytes retain their original identities.
 
-## Latest implemented changes
+## Current implementation change
 
-The complete original `HIAAgentService._hia_artifact` control graph now has an
-explicitly selected HIA owner. The image chooses source-kind branches,
-expected-digest short circuits, rejection and publication order, result
-construction and normal/error continuations. Original opaque provider
-expressions preserve method binding, temporary receiver lifetimes and dynamic
-global lookup. Selection never calls the retained handler. The original
-method and unselected fallback remain available until the full product cutover.
-See [the complete service artifact contract](HIA_SERVICE_ARTIFACT_NATIVE.md).
+The complete `HIAAgentService._hia_describe` control graph now has an
+independent, explicitly selected HIA owner in `service_describe.hepta`.
+The image owns effect order, cursor and backend-profile branches, continuation
+after a returning rejection provider, acknowledgements and termination. The
+adapter never invokes the retained handler on the selected route.
 
-The service-artifact adapter also preserves the running interpreter's local
-release order. Fixed private probes observe frame and builtin-dict destruction;
-the six original handler locals occupy preordered builtin storage. This keeps
-normal release and the caller's eventual traceback release consistent without
-creating a per-invocation finalizer or clearing an exceptional frame early.
-The need was observed on actual CPython 3.14.10 and independently traced to
-[`_PyFrame_ClearLocals` in 3.14](https://github.com/python/cpython/blob/v3.14.10/Python/frame.c)
-and its [3.13 implementation](https://github.com/python/cpython/blob/v3.13.5/Python/frame.c).
-The original 146 finite inputs, original test methods and all budgets remain
-unchanged; the new local-lifetime controls supplement them.
+The complete original six-section resource dictionary is still eagerly
+constructed as one foreign expression before section lookup. Catalog loading,
+object protocols and Store/SQLite remain hosted. The original method's exact
+1,992 bytes remain the independent reference and unselected route. The
+[component contract](HIA_SERVICE_DESCRIBE_NATIVE.md) defines all thirteen ports,
+the ABI, custody rules, local lifetime and matching-source build requirements.
 
-Pending resource observations are reserved before the actual foreign effect.
-Only a real downstream native handoff or an explicitly completed resource
-scope supplies the corresponding occurrence and resource. A complete matching
-parent acknowledgement retires its own healthy observations before the next
-provider. Actual unconfirmed resources remain held and cannot be closed or
-silently replayed. This does not infer a resource from a service getter, an
-exception class, a matching-looking path or a native process exit code.
-
-The shared context-manager boundary now follows the running interpreter's
-actual type-name and missing-special diagnostics. Direct type descriptors
-avoid metaclass/string hooks; async suggestions inspect descriptor presence
-without binding user descriptors. Five fixed private probe types remain
-strongly held by the module, and the diagnostic caches retain no user type or
-instance. Creating a temporary surrogate type per user error was rejected
-because it changed observable cyclic garbage. The actual descriptor binding
-and the caller's active exception chain remain separate from error formatting.
-
-The preceding resource-retirement exception-context repair and the initial/
-after-fork reentrant custody locks remain. Production artifact descriptor
-admission remains strict; the old standalone mock supplies a valid static,
-nonexecuting private-entry descriptor without changing any original test method.
+The independent test fixture fixes 291 original cases before candidate output.
+Qualification requires full original/VM and original/Native observations,
+all 170 provider/ABI/resource fault controls, actual installed-wheel use of all
+six sections, and the separate complete original 112-caller scope. Initial
+failed attempts remain preserved. Neither a finite component comparison nor
+adding an authored HIA source establishes whole-product replacement.
 
 ## Implemented HIA ownership
 
-The current components below execute HIA policy within their declared profiles.
-Their linked contracts retain detailed original fixtures, caller scope and
-source-bound evidence. The host dependencies remain explicit.
+The components below have authored HIA control within their declared profiles.
+Their linked contracts identify original fixtures, caller scopes and source-bound
+evidence. Their foreign providers and current-source qualification remain explicit.
 
 | Area | HIA-owned behavior | Retained host boundary |
 | --- | --- | --- |
+| [Service discovery](HIA_SERVICE_DESCRIBE_NATIVE.md) | Complete original handler control: catalog import ordering, cursor/profile branches, language/profile calls, eager resource selection, result and local release | Module loading, catalog implementation, complete eager resource expression, opaque Python objects and Store/SQLite profile effects |
 | [Compile and emission](HIA_EMISSION_NATIVE.md) | Both complete original methods: branch/loop control, dynamic compile calls, context-manager cleanup and suppression, generator iteration and publication order | Core emitter/compiler/linker, filesystem, Store/SQLite/clock/hash providers and opaque Python object protocols |
 | [Store artifact and profile](HIA_STORE_ARTIFACT_PROFILE_NATIVE.md) | All eight original put/json/reference/get/get-json/URI/profile/check-profile methods: original guard and dynamic global reads, short circuits, ordered reference iteration, argument evaluation, publication and cleanup control | Original filesystem, SQLite, hash, JSON and native-artifact providers, opaque object protocols and actual SQLite/generator effects; selected transaction control has its separate owner below |
 | [Native artifact and build receipt](HIA_NATIVE_BUILD_ADMISSION.md) | All four original signature/native/build-input/build-receipt methods, including ordered loops, composite checks, short circuits and nested admission | Opaque Python object protocols, original Core/context/ABI providers, Store/SQLite and SHA-256 |
@@ -115,92 +94,53 @@ source-bound evidence. The host dependencies remain explicit.
 
 ## Exact composed source provenance
 
-Eight previously pinned production paths have a single complete successor:
+Eight production paths retain a single exact successor composition:
 `artifact_publication_native.py`, `hia_agent_store.py`,
 `hia_store_lifecycle_selection.py`, `hia_native_delivery.py`,
 `hia_store_lifecycle_native.py`, `hia_agent_service.py`,
-`hia_emission_native.py`, and `hia_store_artifact_profile_native.py` under
-`hepta/`. Each full byte patch reconstructs its independently pinned original
-Git blob. Admission accepts only the complete old composition or the complete
-new composition, rereads the files and rejects mixed or changed bytes.
+`hia_emission_native.py` and `hia_store_artifact_profile_native.py` under
+`hepta/`. Each complete byte patch reconstructs an independently pinned
+original Git blob. Admission permits only the complete old or complete new
+composition, rereads the files and rejects mixtures or changed bytes.
 
-The original c019 inventory JSON remains unchanged. Its 21 adapter definition
-checks keep 20 exact original definitions and one explicitly pinned, reviewed
-`_context_special` successor. The other old source/shared checks remain active;
-there is no broad AST normalization or partial fallback. The existing
-helper-count literal adjustment is explicit and narrowly scoped.
+The immutable c019 inventory retains its 21 complete definition checks:
+20 exact original definitions and one explicitly pinned `_context_special`
+successor. The new service-discovery dispatch is an explicit appended hunk in
+the service source's reconstruction. No original method, fixture identity,
+source check or caller scope is broadly normalized.
 
-Independent static review and all 256 old/new combinations were completed for
-the frozen integration: exactly the all-old and all-new combinations were
-accepted, while the 254 mixtures, eight single-file byte mutations and two
-actual reread races were rejected. These checks establish exact provenance,
-not whole-program behavior or current-source cold qualification.
+The independent provenance gate covers all 256 old/new compositions, eight
+single-byte mutations and two actual reread races. Only the all-old and all-new
+compositions may accept. These are source-admission controls; they do not
+establish behavioral, cold-bootstrap or release qualification.
 
-## Observed validation and remaining acceptance
+## Validation and retained failures
 
-The records below identify their exact source and runtime. They were observed
-before this documentation/inventory freeze. They do not
-qualify later changed source bytes; current-tree CI, compiler admission and
-installed readback remain independently required.
+Execution evidence belongs to its exact source bytes and runtime. Current-tree
+CI, matching-source compiler admission, installed readback, complete original
+caller scopes and full retained regression remain distinct requirements.
 
-| Exact source and scope | Observed result |
+| Published reference | Retained result and limit |
 | --- | --- |
-| Published e7c1729345d5d06757b38a6ae1ce54ae9790fd85, complete Source CI | Push [43648362345](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43648362345) passed 698 tests in 947.650 seconds; PR [43648548723](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43648548723) passed 698 in 760.416 seconds. Actual CPython 3.14.10. |
-| Same e7 push and PR Native transaction modules | Both complete eleven-test modules failed one method with H0/H1 subtest failures. Each history completed all 521 originals. Independent full-table comparison identifies only two diagnostic-string leaves, for missing enter and exit; the remaining observations, histories and source identities agree. Push took 16.556 seconds and PR 12.483. Later Native steps were skipped. These runs remain HOLD. |
-| Exact R3 four-file context repair, complete nine-method Source module | PASS on CPython 3.12.14, 3.13.5 and actual 3.14.10, in 2.410, 2.330 and 2.755 seconds respectively. The independent [3.14 run 43653988056](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43653988056), harness a2c6647d421dced8d7dc0c306b8a5ab010ed9d41, has complete raw logs and exact four-file readback. This is Source-only qualification. |
-| Local service-artifact composition a01e2473bc7972eb4d4780f557d427bbae99d3d3 | Complete Source 3, Native 8 and all nine original caller modules / 112 methods passed on its exact source. This earlier DEV composition does not qualify the later context repair. |
-| Local combined tree 8ffb7cb5fea162bcfb7f65bd417d48778258bc0e at 593e2358d43567d44fa6afa35836c53c0fe23ad0 | Complete context 9, original D4 Source 3, original transaction 11, Store profile 11, emission 11, service artifact Source 3 and Native 8: all 56 passed on CPython 3.13.5. The complete original 112 callers then passed in 138.5493 seconds (139.0689 outer seconds), with 469 actual service-artifact frames and zero retained-body calls. All 1,253 admitted source identities match before/after; no owned process groups remain. This is explicit DEV qualification before the documentation freeze. |
-| Unpublished 10b5347e287cd617ebc7bfdde0a5f7f439b421de, tree cbb1db307e8053d6c147e38400ebef28ed6cc0c6, actual CPython 3.14.10 | All 56 component methods started and stopped; 55 passed. The full 146-case service-artifact comparison found exactly 26 event-order leaves in 13 exception cases: the original released the issued reference before data, while the adapter released data first. Values, errors and all other observations matched. The complete Native8 module therefore remained HOLD, and the original 112 caller gate did not start. The invocation exited naturally with status 1, no signals and no remaining owned groups. This failure is retained and is the direct reason for the local-storage repair above; earlier 3.13 success does not qualify the repair. |
-| Exact local-release adapter `6e4a57398080eebb614711954baa79465a5d0b3e35c997aba98fdc63fd141495`, before metadata/commit freeze | Complete original Source 3 plus additive local-release Source 3 passed **6/6 in each runtime**: 3.12.14 in 43.928008 unittest seconds (44.241036 outer); 3.13.5 in 43.557761 unittest seconds (43.791527 outer); 3.14.10 in 56.367979 unittest seconds (56.931763 outer). Each fresh child formed all 146 original observations before candidate imports and then completed all 146 independent-VM observations; complete raw bytes matched, with 1,850 VM entries (146 initialize, 852 claim, 758 successful and 94 exceptional acknowledgements). Independent readback checked all 2,407 worktree source identities, all method events, all raw rows and the absence of owned process groups. This is Source/VM qualification, not Native, matching-cold or whole-product qualification. |
-| Current-source cold and complete retained acceptance | Separate gates remain required. The e7-bound full harness [43650082174](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43650082174) and bb3120-bound parent [43644981418](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43644981418) were still running at this observation. Neither can qualify the new source composition. |
+| [3424f6d](https://github.com/TrillionniumFoundation/Hepta/commit/3424f6d116a087373b161b9970cad07c65a9e4c4), [integration PR #897](https://github.com/TrillionniumFoundation/Hepta/pull/897) | Parent of this candidate. Its complete 59-component and original 112-caller DEV runs passed on actual CPython 3.13.5 and 3.14.10. They do not qualify this later source or current-source cold. |
+| Same parent's [push Core run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43662800655) and [PR Core run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43662810818) | Source passed. Native failed at the complete transaction-journal, execution-budget and SlotLedger caller gate. The journal UNKNOWN/cleanup behavior and the selected-route scope in the SlotLedger original remain open. |
+| Parent's [full audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43665223497) | Independently retained full-run evidence targets exactly 3424f6d. Its terminal result must be read from that run; it cannot qualify later source bytes. |
+| Earlier [e7 full audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43650082174) | All 5,080 tests ran and six subcases failed. Its complete failure evidence and source-bound cold report remain part of the record. |
+| Earlier [bb3120 full audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43644981418) | The 5,075-test invocation reached its original 5,400-second limit without a complete result. It is not a passing suite. |
 
-The completed 593 DEV readback includes both transaction histories of
-521 originals each; Store 463 ordinary, 41 dynamic-limit and 160 cold plus
-160 warm literal observations; emission 954 observations; service artifact
-146 observations, 134 complete VM/native buffer records and 24 resource
-controls; and two real installed wheels, each with 390 file/RECORD identities.
-The development compiler remains explicitly identified as B3
-`bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0`.
-No unchanged expected field was normalized, no original method was filtered,
-and no partial result was combined into a passing run.
+The immutable [3424 current-state record](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/docs/CURRENT.md)
+and PR #897 retain complete earlier runtime comparisons, exact source identities,
+raw-evidence references and unsuccessful attempts. The current index does not
+duplicate those process narratives. Historical successes do not erase the
+recorded Python 3.12 Store diagnostics, original full-suite failures or
+indeterminate operations.
 
-Earlier failures remain part of the record. The first context diagnostic
-round failed C-created heap-type naming; the next eight-test round exposed
-additional GC objects in a separate 16-process diagnostic (original zero,
-candidate 13 on first use and seven after its name probe). R3 retains all eight
-prior method ASTs and adds 32 fresh-process lifetime/GC comparisons. The first
-service-artifact fixture round also remains HOLD; only two new fixtures were
-corrected after proving the real Store budget back-reference cycle through the
-original route. The production cycle and all original finite inputs remained.
-
-The initial additive local-release Source round is also retained: all three
-runtimes completed six methods, with five successes and one GC-observation
-failure. The preceding independent-VM fixture left its image, program and
-closure cycle for the next method to collect. An isolated fixture diagnostic
-identified all six objects without executing any VM instruction or original
-handler. The final third control runs all 146 originals and VM candidates in
-one fresh child, saving the original bytes before any candidate import. It
-does not collect or normalize garbage itself. Every invocation has a distinct
-evidence directory, complete original/actual rows and supervision records;
-the first two new methods and all original tests remain unchanged. Its new
-child budget is 180 seconds plus three seconds cleanup; no original budget
-has changed.
-
-The recorded complete Python 3.12 Store runs retain three warm
-`AttributeError.name`/`obj` differences. Python 3.13 success does not erase that
-open compatibility gap. The earlier full D5 fsync-negative failure remains; a later
-independent ptrace refusal is not invented as its missing historical stderr.
-The interrupted 61-method transaction invocation remains INDETERMINATE, with
-no captured terminal result or established cause. Complete earlier records
-remain at the [published e7 index](https://github.com/TrillionniumFoundation/Hepta/blob/e7c1729345d5d06757b38a6ae1ce54ae9790fd85/docs/CURRENT.md)
-and [draft integration PR](https://github.com/TrillionniumFoundation/Hepta/pull/897).
-
-Original cold **180 seconds plus three seconds cleanup**, full retained
-**5,400 seconds**, context **three seconds**, wire **five seconds**, artifact
-**64 MiB**, and all original caller/subprocess budgets remain unchanged.
-The complete 112, separate 61, artifact 132, Store 130, delivery 152 and all
-existing integration gates retain their distinct scopes. Finite observations
-are not all-input, all-history or all-Python-version equivalence.
+Original limits remain: cold **180 seconds plus three seconds cleanup**, full
+retained **5,400 seconds**, context **three seconds**, wire **five seconds**,
+artifact **64 MiB**, and every original caller/subprocess budget. The complete
+112, separate 61, artifact 132, Store 130, delivery 152 and separate 128 scopes
+retain their original modules. Overlap is not added together as coverage, and
+no partial run substitutes for a complete scope.
 
 ## Public entry-point audit
 
@@ -218,7 +158,7 @@ HIA policy ownership is recorded separately above.
 
 | Worker tool | Remaining service ownership |
 | --- | --- |
-| `hia_describe` | Profile/resource/page discovery; CLI discovery JSON does not automatically replace this API |
+| `hia_describe` | Selected HIA branch/sequence/termination control; module loading, catalog construction, eager resource table, opaque objects and persistent profile effects remain hosted |
 | `hia_artifact` | Complete selected HIA handler above; path capture, hash/Store/SQLite effects and opaque object protocols remain hosted |
 | `hia_read` | Cursor paging, UTF-8/base64 limits and durable cursor records |
 | `hia_context` | Hosted schema/profile/buffer providers, clock/object protocols and persistence effects; selected freeze/lookup/deadline control now has the HIA owner above |
@@ -269,31 +209,31 @@ identities. They are retained until replacement and cutover are established.
 
 ## Repository cleanup
 
-The active tree keeps current source, contracts, consumed fixtures and recovery
-ledgers. Numbered source units may be parts of one multi-image program; names
-alone do not make them obsolete versions. Independent original fixtures, the
-three consumed NDU archives, acquisition locks and original failure records
-remain necessary acceptance evidence.
+The candidate retires **19 historical queue-experiment files / 47,321 bytes**
+from `experiments/hia_legacy_queue/`. Active source, test, package and source
+contracts do not consume those files. The
+[remaining queue example index](../examples/hia_legacy_queue/README.md) points
+to the exact published 3424 protocols and negative results.
 
-The recorded historical cleanup retired 424 members: **423 paths deleted and
-one README replaced**, containing **19,714,542 original bytes**. Separately, the
-cumulative process-document ledger records **32 retired members and 200,246
-original bytes**. These are the ledgers' respective scopes, not a new deletion
-count for this update. This index now consolidates the current state and links
-the complete prior narrative at its exact published Git revision.
+The existing [development-version ledger](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json)
+records every retired path, Git mode/blob, original size and SHA-256, plus the
+published recovery revision. Older ledger rounds remain unchanged. Recovery
+restores the nineteen actual files; payloads already absent at the recovery
+revision are not reconstructed from their historical index entries.
 
-Every retired member retains its Git blob, mode, size, SHA-256 and a published
-recovery revision in the existing ledgers:
+The active tree retains current source, contracts, consumed fixtures and
+recovery ledgers. Numbered source units can belong to one multi-image program;
+their names alone do not identify obsolete versions. Independent original
+fixtures, the three consumed NDU archives, acquisition locks and original
+failure evidence remain required by current acceptance.
 
-- [Development versions](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json).
-- [Process documents](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json).
-- [Historical bundles](../review-evidence/hia-native-cleanup-20261111/retired-historical-bundles.json).
-- [Rewrite observations](../review-evidence/hia-native-cleanup-20261111/retired-rewrite-observations.json).
+Other historical recovery indexes are retained in the
+[process-document ledger](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json),
+[historical-bundle ledger](../review-evidence/hia-native-cleanup-20261111/retired-historical-bundles.json)
+and [rewrite-observation ledger](../review-evidence/hia-native-cleanup-20261111/retired-rewrite-observations.json).
+The original v4 qualification and process supervisor remain intact.
 
-The live original v4 qualification and process supervisor remain unchanged.
-Active hosted implementations and consumed tests are retained until their full
-replacement and cutover are qualified. Separate PRs
-[#888](https://github.com/TrillionniumFoundation/Hepta/pull/888),
+Separate PRs [#888](https://github.com/TrillionniumFoundation/Hepta/pull/888),
 [#889](https://github.com/TrillionniumFoundation/Hepta/pull/889) and
-[#893](https://github.com/TrillionniumFoundation/Hepta/pull/893) retain their own
-source identities and are not imported wholesale into this tree.
+[#893](https://github.com/TrillionniumFoundation/Hepta/pull/893) retain independent
+source identities. They are not imported wholesale into this candidate.

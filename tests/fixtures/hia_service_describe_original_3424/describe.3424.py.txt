@@ -1,0 +1,26 @@
+    def _hia_describe(self, args):
+        from .hia_opcodes import opcode_catalog
+        if "cursor" in args:
+            reject("E_HIA_CURSOR", "discovery has no further page for this bounded manifest")
+        if "backend_profile" in args and args["backend_profile"] != self.profiles["backend"]["id"]:
+            reject("E_HIA_PROFILE", "requested backend profile is unavailable")
+        language_schema = args.get("language_schema", "hepta.hia.program.v8")
+        language = opcode_catalog(language_schema)
+        profile, language_ref = self.store.profile(language_schema, language)
+        section = args["section"]
+        resources = {
+            "manifest": [self.manifest],
+            "language": [self.resources["schema_registry"], self.resources["assembly_grammar"], self.resources["core_language"], language_ref],
+            "backend": [self.profile_artifacts["backend"], self.profile_artifacts["lowering"], self.profile_artifacts["target"],
+                        self.resources["byte_bootstrap_guide"], self.resources["self_hosting_core_guide"],
+                        self.resources["self_hosting_core_support"], self.profile_artifacts["validation"],
+                        self.resources["machine_validation_guide"], self.resources["proof_contract_guide"],
+                        self.resources["buffer_lifecycle_guide"]],
+            "examples": [self.resources["examples"]], "diagnostics": [self.resources["diagnostics"]],
+            "plans": [self.profile_artifacts["plan"], self.resources["plan_schema"],
+                      self.resources["machine_plan_guide"], self.resources["macro_policy"],
+                      self.resources["macro_policy_guide"]],
+        }[section]
+        return {"catalog_sha256": self.catalog_sha256, "manifest": self.manifest,
+            "language_catalogs": [profile], "backend_profiles": [self.profiles["backend"]],
+            "artifact_profiles": [self.profiles["artifact"]], "resources": resources, "next_cursor": None}
