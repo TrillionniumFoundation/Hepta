@@ -59,6 +59,24 @@ six sections, and the separate complete original 112-caller scope. Initial
 failed attempts remain preserved. Neither a finite component comparison nor
 adding an authored HIA source establishes whole-product replacement.
 
+The successor also repairs the journal/transaction composition exposed by the
+complete 61-method caller gate. An ACK provider failure before native entry now
+keeps its SQL observation pending until the entered transaction completes its
+original rollback and lock exit. Real native handoff loss remains immediately
+fenced. The complete original caller scope binds its admitted image explicitly
+to the unchanged raw context generator, including when an original caller
+clears its environment. The [journal](HIA_AGENT_JOURNAL_NATIVE.md) and
+[transaction](HIA_STORE_TRANSACTION_NATIVE.md) contracts distinguish this scope
+from environment selection and document the additional failure controls.
+
+A separate [artifact observer correction](HIA_SERVICE_ARTIFACT_NATIVE.md)
+retains two private fixture-loader classes. Both the parent and published
+describe candidate reproduced the same 14-versus-0 collection difference on
+CPython 3.14.4. Only those unrelated startup class graphs are retained; the
+immutable original cases, source hashes and actual GC comparisons remain.
+These corrections require their own source-bound acceptance. The historical
+failures below are preserved.
+
 ## Implemented HIA ownership
 
 The components below have authored HIA control within their declared profiles.
@@ -94,11 +112,12 @@ evidence. Their foreign providers and current-source qualification remain explic
 
 ## Exact composed source provenance
 
-Eight production paths retain a single exact successor composition:
+Nine production paths retain a single exact successor composition:
 `artifact_publication_native.py`, `hia_agent_store.py`,
 `hia_store_lifecycle_selection.py`, `hia_native_delivery.py`,
 `hia_store_lifecycle_native.py`, `hia_agent_service.py`,
-`hia_emission_native.py` and `hia_store_artifact_profile_native.py` under
+`hia_emission_native.py`, `hia_agent_journal_native.py` and
+`hia_store_artifact_profile_native.py` under
 `hepta/`. Each complete byte patch reconstructs an independently pinned
 original Git blob. Admission permits only the complete old or complete new
 composition, rereads the files and rejects mixtures or changed bytes.
@@ -109,10 +128,16 @@ successor. The new service-discovery dispatch is an explicit appended hunk in
 the service source's reconstruction. No original method, fixture identity,
 source check or caller scope is broadly normalized.
 
-The independent provenance gate covers all 256 old/new compositions, eight
+The independent provenance gate requires all 512 old/new compositions, nine
 single-byte mutations and two actual reread races. Only the all-old and all-new
 compositions may accept. These are source-admission controls; they do not
 establish behavioral, cold-bootstrap or release qualification.
+
+The journal successor preserves the immutable shared-dependency identity and
+adds its exact reversible source patch to the same composition. The other
+eight source records and the original test methods remain unchanged. This
+closes the missing source-review boundary exposed by the first followup run;
+the changed composition requires a new complete execution.
 
 ## Validation and retained failures
 
@@ -124,6 +149,8 @@ caller scopes and full retained regression remain distinct requirements.
 | --- | --- |
 | [3424f6d](https://github.com/TrillionniumFoundation/Hepta/commit/3424f6d116a087373b161b9970cad07c65a9e4c4), [integration PR #897](https://github.com/TrillionniumFoundation/Hepta/pull/897) | Parent of this candidate. Its complete 59-component and original 112-caller DEV runs passed on actual CPython 3.13.5 and 3.14.10. They do not qualify this later source or current-source cold. |
 | Same parent's [push Core run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43662800655) and [PR Core run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43662810818) | Source passed. Native failed at the complete transaction-journal, execution-budget and SlotLedger caller gate. The journal UNKNOWN/cleanup behavior and the selected-route scope in the SlotLedger original remain open. |
+| Published describe candidate [bce3480](https://github.com/TrillionniumFoundation/Hepta/commit/bce34801ec9afff3b60b84c3e932204f596e3c76), [PR #901](https://github.com/TrillionniumFoundation/Hepta/pull/901), [Core run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43670627205) | Actual CPython 3.14.10 completed all 717 Source tests successfully. Current-source cold, the complete describe module including all 170 fault controls, and all 112 describe callers passed. Native then failed step 43: all 61 transaction-journal, execution-budget and SlotLedger callers ran; journal had two failures and fourteen errors, all 25 budget callers passed, and SlotLedger had one failure. On actual CPython 3.14.4 all 717 Source tests ran with the single pre-existing artifact GC-count failure; dependent local stages stopped. Neither runtime result substitutes for the other. |
+| First unpublished followup tree `b991eba6cf9d4443a8b33193fc94fa51906945c1` | On actual CPython 3.14.4 all 718 Source tests ran in 534.686 seconds. The original 146-case artifact comparison and new exact fixture-admission control passed. One unchanged Source method rejected the journal adapter's missing successor source identity. Cold and Native stages did not start. Natural exit, no timeout or signals, and unchanged complete 2,400-file source/index snapshots were retained. This failed composition does not qualify the later nine-source repair. |
 | Parent's [full audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43665223497) | Independently retained full-run evidence targets exactly 3424f6d. Its terminal result must be read from that run; it cannot qualify later source bytes. |
 | Earlier [e7 full audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43650082174) | All 5,080 tests ran and six subcases failed. Its complete failure evidence and source-bound cold report remain part of the record. |
 | Earlier [bb3120 full audit](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43644981418) | The 5,075-test invocation reached its original 5,400-second limit without a complete result. It is not a passing suite. |
@@ -209,16 +236,23 @@ identities. They are retained until replacement and cutover are established.
 
 ## Repository cleanup
 
-The candidate retires **19 historical queue-experiment files / 47,321 bytes**
-from `experiments/hia_legacy_queue/`. Active source, test, package and source
+This work retires **22 historical experiment files / 69,011 bytes**. The
+**19 queue-experiment files / 47,321 bytes** come from
+`experiments/hia_legacy_queue/`. Active source, test, package and source
 contracts do not consume those files. The
 [remaining queue example index](../examples/hia_legacy_queue/README.md) points
 to the exact published 3424 protocols and negative results.
 
+The other **three files / 21,690 bytes** are obsolete CRC protocols under
+`experiments/hia_crc_context/`. Their four remaining documentation references
+now link to exact 3424 bytes. The v1 timeout, v2 zero-input defect and negative
+economics, and the later v3 design remain recoverable in that immutable history.
+No active source, test, package or workflow consumes these three files.
+
 The existing [development-version ledger](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json)
 records every retired path, Git mode/blob, original size and SHA-256, plus the
 published recovery revision. Older ledger rounds remain unchanged. Recovery
-restores the nineteen actual files; payloads already absent at the recovery
+restores the twenty-two actual files; payloads already absent at the recovery
 revision are not reconstructed from their historical index entries.
 
 The active tree retains current source, contracts, consumed fixtures and

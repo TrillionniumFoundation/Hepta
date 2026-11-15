@@ -454,6 +454,59 @@ class ServiceArtifactLocalReleaseSourceTests(unittest.TestCase):
             self.assertEqual(parent_sources,
                 {name: sha256((root / name).read_bytes()).hexdigest() for name in parent_sources})
 
+    def test_04_exact_original_and_fixture_retention_successor_admission(self):
+        from tests.hia_service_artifact_observer import _admit_original_input
+
+        root = Path(__file__).resolve().parents[1]
+        name = 'tests/hia_service_artifact_oracle.py'
+        freeze_raw = (oracle.ROOT / 'freeze.json').read_bytes()
+        self.assertEqual(sha256(freeze_raw).hexdigest(),
+            'f3c7fe6bfc0bb7befdb5d5c394eddee67d42ac16abbfb9e752021a2cc562ee9b')
+        item = json.loads(freeze_raw)['inputs'][name]
+        successor = (root / name).read_bytes()
+        changes = (
+            (b"    return vars(ns['Original'])[name].__code__\n",
+             b"    original_class = ns['Original']\n"
+             b"    return vars(original_class)[name].__code__, original_class\n"),
+            (b"ARTIFACT_CODE = frozen_code(ORIGINAL, ORIGINAL_SHA, '_hia_artifact')\n",
+             b"# Retain exactly the two loader-only class graphs for the observer's lifetime.\n"
+             b"# Their collection is not garbage produced by any observed finite case.\n"
+             b"ARTIFACT_CODE, _ARTIFACT_FIXTURE_CLASS = frozen_code(ORIGINAL, ORIGINAL_SHA, '_hia_artifact')\n"),
+            (b"PROFILE_CODE = frozen_code(PROFILE, PROFILE_SHA, '_profile')\n",
+             b"PROFILE_CODE, _PROFILE_FIXTURE_CLASS = frozen_code(PROFILE, PROFILE_SHA, '_profile')\n"),
+        )
+        original = successor
+        for before, after in changes:
+            self.assertEqual(original.count(after), 1)
+            original = original.replace(after, before, 1)
+        self.assertEqual({'bytes': len(original), 'sha256': sha256(original).hexdigest()}, item)
+        self.assertIsNone(_admit_original_input(name, original, item))
+        self.assertIsNone(_admit_original_input(name, successor, item))
+
+        refused = {
+            'altered-original': bytes([original[0] ^ 1]) + original[1:],
+            'altered-successor': bytes([successor[0] ^ 1]) + successor[1:],
+            'extra-comment': successor + b'# extra observer comment\n',
+            'extra-newline': successor + b'\n',
+            'equivalent-code': successor.replace(b'    ns = {}\n', b'    ns = dict()\n', 1),
+        }
+        for mask in range(1, (1 << len(changes)) - 1):
+            partial = original
+            for bit, (before, after) in enumerate(changes):
+                if mask & (1 << bit):
+                    self.assertEqual(partial.count(before), 1)
+                    partial = partial.replace(before, after, 1)
+            refused['partial-hunks-' + str(mask)] = partial
+        for label, raw in refused.items():
+            with self.subTest(label=label):
+                with self.assertRaises(AssertionError):
+                    _admit_original_input(name, raw, item)
+        with self.assertRaises(AssertionError):
+            _admit_original_input(name + '.other', successor, item)
+        with self.assertRaises(AssertionError):
+            _admit_original_input(name, successor,
+                {'bytes': len(successor), 'sha256': sha256(successor).hexdigest()})
+
 
 if __name__ == '__main__':
     unittest.main()

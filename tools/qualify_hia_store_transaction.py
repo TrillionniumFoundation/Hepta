@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import ctypes
 from hashlib import sha256
 import json
@@ -67,6 +67,25 @@ def source_pins():
                                 for name in sorted(paths)}}
 
 
+@contextmanager
+def selected_transaction_owner(image, manifest, forbidden):
+    """Bind one admitted image for this explicit complete-module scope."""
+    from hepta import hia_agent_store as api
+    from hepta import hia_store_transaction_native as native
+
+    def selected_transaction(store):
+        # The original caller may deliberately empty its environment. This
+        # explicit image argument still uses the identical raw generator.
+        return native.store_transaction_context(image, store)
+
+    with ExitStack() as scope:
+        scope.enter_context(patch.dict(os.environ, {native.SELECTOR: str(manifest)}))
+        scope.enter_context(patch.object(api, '_STORE_TRANSACTION_REFERENCE', forbidden))
+        scope.enter_context(patch.object(api.AgentStore, '_transaction_reference', forbidden))
+        scope.enter_context(patch.object(api.AgentStore, 'transaction', selected_transaction))
+        yield selected_transaction
+
+
 def execute_module(selector, manifest, report_path):
     from tools.run_hia_unittest_gate import load_declared_suite
     from hepta import hia_agent_store as api
@@ -99,6 +118,7 @@ def execute_module(selector, manifest, report_path):
             outcomes.append([test.id(), 'skip']);super().addSkip(test, reason)
 
     initializer, entry = native.StoreTransactionFrame.__init__, image._entry
+    public_transaction = api.AgentStore.transaction
     def counted_frame(frame, selected, *arguments, **keywords):
         if selected is not image:
             raise AssertionError('original caller selected another transaction image')
@@ -117,19 +137,18 @@ def execute_module(selector, manifest, report_path):
     forbidden.__wrapped__ = forbidden
     begin = time.monotonic()
     with ExitStack() as scope:
-        scope.enter_context(patch.dict(os.environ, {native.SELECTOR: str(manifest)}))
-        scope.enter_context(patch.object(api, '_STORE_TRANSACTION_REFERENCE', forbidden))
-        scope.enter_context(patch.object(api.AgentStore, '_transaction_reference', forbidden))
+        scope.enter_context(selected_transaction_owner(image, manifest, forbidden))
         scope.enter_context(patch.object(native.StoreTransactionFrame, '__init__', counted_frame))
         scope.enter_context(patch.object(image, '_entry', counted_entry))
         result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2, resultclass=Result).run(suite)
     after = source_pins()
+    binding_restored = api.AgentStore.transaction is public_transaction
     anomalies = {name: [row[0].id() for row in getattr(result, name)]
                  for name in ('errors', 'failures', 'skipped', 'expectedFailures')}
     anomalies['unexpectedSuccesses'] = [test.id() for test in result.unexpectedSuccesses]
     passed = (planned == started == stopped and result.testsRun == len(expected)
               and result.wasSuccessful() and not any(anomalies.values())
-              and before == after and not references)
+              and before == after and not references and binding_restored)
     record = {'schema': 'hepta.hia.transaction-separate-module.v1',
         'status': 'PASS' if passed else 'HOLD', 'selector': selector,
         'planned': planned, 'started': started, 'stopped': stopped, 'outcomes': outcomes,
@@ -140,6 +159,10 @@ def execute_module(selector, manifest, report_path):
         'reference_calls': references, 'native_image_sha256': image.image_sha256,
         'source_before': before, 'source_after': after, 'source_unchanged': before == after,
         'original_methods_or_fixtures_or_deadlines_changed': False,
+        'transaction_owner_input': 'explicit admitted image argument in this complete-module scope',
+        'public_transaction_binding': 'scoped wrapper of the identical raw context generator',
+        'environment_selection_qualified_by_this_scope': False,
+        'binding_restored_outside_scope': binding_restored,
         'parent_process_poison_is_not_inherited_by_subprocesses': True,
         'every_original_test_claimed_to_enter_transaction': False}
     Path(report_path).write_bytes(encoded(record) + b'\n')

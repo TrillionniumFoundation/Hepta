@@ -5,8 +5,8 @@
 
 `build_bank(..., reuse_oracle=True)` explicitly opts one finite native bank into
 reusing trusted deterministic oracle results. The default remains `False`.
-The original `protocol_v1.json`, its 120-second limit and incomplete studies
-remain unchanged. No native result, qualification, proof or consumed plan is
+The original [protocol_v1.json](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/experiments/hia_crc_context/protocol_v1.json), its 120-second limit and incomplete studies
+remain unchanged in the published Git record. No native result, qualification, proof or consumed plan is
 cached.
 
 Every candidate is still freshly proved all-input equivalent to the bank's
@@ -47,7 +47,7 @@ an uncertain descriptor or restart an uncertain child.
 
 ## Separate frozen-before-run experiment
 
-`experiments/hia_crc_context/protocol_v2.json` and
+[protocol_v2.json](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/experiments/hia_crc_context/protocol_v2.json) and
 `retired harness qualify-hia-crc-context-reuse` define a new 60-observation matrix:
 two fixed synthetic input phases, two repeats, three polynomial workloads and
 five original policies. A trace contains sixteen 256-byte requests. Every arm
@@ -85,7 +85,7 @@ observations, 240 actual contexts, two reference misses, all negative finite-job
 economic gates and complete costs remain preserved. They do not establish
 diverse-input performance or independent training/validation evidence.
 
-The separate `protocol_v3.json` was designed **after** that observation. It uses
+The separate [protocol_v3.json](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/experiments/hia_crc_context/protocol_v3.json) was designed **after** that observation. It uses
 SHAKE256 over an explicit domain, phase and frozen seed, then checks the two
 phase payloads and all 32 request chunks are distinct and nonzero before timing.
 The arms, trace size, repeats, budgets, cost accounting and stopping rule stay

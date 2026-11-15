@@ -48,11 +48,14 @@ def frozen_code(path, expected, name):
     text = 'class Original:\n'+raw.decode()
     ns = {}
     exec(compile(text, str(path), 'exec', dont_inherit=True), ns)
-    return vars(ns['Original'])[name].__code__
+    original_class = ns['Original']
+    return vars(original_class)[name].__code__, original_class
 
 
-ARTIFACT_CODE = frozen_code(ORIGINAL, ORIGINAL_SHA, '_hia_artifact')
-PROFILE_CODE = frozen_code(PROFILE, PROFILE_SHA, '_profile')
+# Retain exactly the two loader-only class graphs for the observer's lifetime.
+# Their collection is not garbage produced by any observed finite case.
+ARTIFACT_CODE, _ARTIFACT_FIXTURE_CLASS = frozen_code(ORIGINAL, ORIGINAL_SHA, '_hia_artifact')
+PROFILE_CODE, _PROFILE_FIXTURE_CLASS = frozen_code(PROFILE, PROFILE_SHA, '_profile')
 
 
 class Namespace(dict):

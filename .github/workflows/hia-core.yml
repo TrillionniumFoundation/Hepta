@@ -432,6 +432,12 @@ jobs:
           python -B tools/qualify_hia_store_transaction.py
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --evidence "$RUNNER_TEMP/hia-store-transaction-separate-callers"
+      - name: Native journal acknowledgement rollback and loss boundaries
+        timeout-minutes: 12
+        run: >-
+          python -B -m tests.hia_store_transaction_ack_controls
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --output "$RUNNER_TEMP/hia-store-transaction-ack-controls"
       - name: Native complete service artifact control and parent resource delivery
         timeout-minutes: 30
         env:
@@ -1087,6 +1093,7 @@ jobs:
             ${{ runner.temp }}/hia-store-transaction/
             ${{ runner.temp }}/hia-store-transaction-callers/
             ${{ runner.temp }}/hia-store-transaction-separate-callers/
+            ${{ runner.temp }}/hia-store-transaction-ack-controls/
             ${{ runner.temp }}/hia-native-delivery-focused/
             ${{ runner.temp }}/hia-native-delivery-components/
             ${{ runner.temp }}/hia-native-delivery-callers/
@@ -1290,6 +1297,7 @@ jobs:
               ('hia-service-describe', transaction_patterns),
               ('hia-service-describe-source', transaction_patterns),
               ('hia-service-describe-callers', transaction_patterns),
+              ('hia-store-transaction-ack-controls', transaction_patterns + ('**/*.raw',)),
           )
           temporary = os.environ["RUNNER_TEMP"]
           paths = [temporary + "/" + name for name in exact_files]

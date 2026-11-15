@@ -63,6 +63,21 @@ runtime. Five cases differ in ten `AttributeError.name` / `obj` leaves across
 runtimes; no normalization is permitted. Temporary receiver, callable, result
 and explicit exception-GC traces remain part of the full comparison.
 
+The oracle's loader retains its two private `Original` classes for the lifetime
+of the observer. Previously it kept only their method code objects, leaving
+two unrelated class cycles for a later collection. The exact parent and
+successor both reproduced a 14-versus-0 count on CPython 3.14.4; a separate
+object diagnostic identified all fourteen objects as those two loader graphs.
+The correction retains only these fixed fixture classes. It adds no collection
+call, changes no GC setting and retains no object created by an observed case.
+
+The original freeze, method bytes, 146 cases and historical runtime outputs
+remain immutable. Successor source admission pins the complete corrected
+oracle bytes and reconstructs the exact old oracle before checking its original
+size and hash. Altered or partial successor bytes refuse. Every observed GC
+count, exception attribute, finalizer trace and original/VM/Native difference
+remains part of the actual comparison; none is normalized.
+
 The packaged observer freezes same-runtime original observations before image
 mapping. That finite frame comparison alone does not qualify public selection,
 actual Store resources or the installed worker. The separate ordinary caller

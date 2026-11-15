@@ -62,10 +62,26 @@ replayable even when the first caller observed a rejection.
 
 A newly introduced native protocol or buffer-custody failure is a separate
 fail-stop boundary. The bridge does not call the failed image again and does
-not write a terminal response or cost. If this happens during an atomic effect
-transaction, SQLite rolls the effect back; an already committed running
-reservation remains unknown. Missing cost evidence is not a measured zero
-cost and does not establish complete accounting.
+not write a terminal response or cost. An already committed running reservation
+remains unknown. Missing cost evidence is not a measured zero cost and does
+not establish complete accounting.
+
+An ACK provider can fail after SQL returns but before any native handoff. In
+that exact case, the journal retains the pending SQL observation while the
+already-entered transaction performs its original ROLLBACK and lock exit. It
+publishes the same ACK error after that cleanup interval. This prevents a
+premature parent-loss marker from blocking the transaction's actual HIA error
+continuation. An exit method that suppresses the error still cannot authorize
+another business call or terminal write: the journal checks the retained loss
+before continuing. A replacement ROLLBACK error retains its ordinary exception
+context. Neither SQL nor the ACK is replayed.
+
+This deferral requires an active SQL interval, an ACK operation, an outstanding
+foreign observation, and no actual native-pending or causal loss. A real native
+handoff with an unconfirmed receipt remains immediately fenced. It does not
+gain permission to resume an image, issue rollback through a new native
+advance, clear custody or close an unknown Store. Native transaction selection
+therefore does not imply that every uncertain effect can be rolled back.
 
 The same fail-stop applies to non-domain exceptions throughout the call,
 including KeyboardInterrupt, SystemExit and MemoryError between a successful

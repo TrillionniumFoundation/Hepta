@@ -220,6 +220,21 @@ match real TestLoader discovery. The original 130-method Store/artifact group
 remains a distinct gate. No original administrator bundle gains this helper
 implicitly. A passing subset never replaces another group's failure.
 
+The 61-method gate binds the already admitted transaction image as an explicit
+argument to the same raw public context generator for its complete module
+scope. One original SlotLedger caller deliberately clears its entire
+environment; that behavior remains unchanged. Both retained transaction bodies
+are still poisoned, every constructed frame must use the exact admitted image,
+and the original public binding must be restored when the scope ends. This
+gate qualifies explicit owner composition, not environment-selector behavior.
+The component's separate public-selection controls retain that responsibility.
+
+Additional ACK boundary controls exercise the journal with the selected HIA
+transaction owner, including original error identity and context, actual SQL
+rollback, replacement rollback failures, suppressing locks and real native
+handoff loss. Their finite scope and evidence remain separate from all 61
+original methods and their original allowance.
+
 All previous failures remain separate evidence; no deadline, fixture, skip or
 source check is relaxed. Development uses an explicit compiler and supplies
 no matching-current-source cold evidence. SQLite, foreign providers, CPython

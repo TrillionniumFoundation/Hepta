@@ -72,6 +72,7 @@ SOURCE_FILES = (
     'tests/hia_store_transaction_oracle.py',
     'tests/hia_store_transaction_scenarios.py',
     'tests/hia_store_transaction_history.py',
+    'tests/hia_store_transaction_ack_controls.py',
     'tests/fixtures/hia_store_transaction_separate_5bf.json',
     'tests/fixtures/hia_store_transaction_original_c019/transaction.c019.py.txt',
     'tests/fixtures/hia_store_transaction_original_c019/source-identity.json',

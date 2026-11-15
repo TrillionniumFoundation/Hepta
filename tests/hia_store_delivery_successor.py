@@ -11,13 +11,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
-FIXTURE_SHA256 = 'e468f13b683d979d5af4c3a58dff687a2affab22197c74f82dd2451e16c8819a'
+FIXTURE_SHA256 = '88249899502ba1667feee5ad5c4b2db76492ecda8f4e15b6009f96a34fff81e9'
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
 SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
                 'hepta/hia_store_lifecycle_selection.py')
 SHARED_PATHS = ('hepta/hia_native_delivery.py', 'hepta/hia_store_lifecycle_native.py',
-                'hepta/hia_agent_service.py', 'hepta/hia_emission_native.py')
+                'hepta/hia_agent_service.py', 'hepta/hia_emission_native.py',
+                'hepta/hia_agent_journal_native.py')
 ADAPTER_PATH = 'hepta/hia_store_artifact_profile_native.py'
 # Actual c019 Git bytes independently pin this whole file. The original JSON
 # pins its 21 definitions, rather than the complete adapter source.
@@ -140,7 +141,7 @@ def admit_composition(original_value):
         raise ValueError('Store successor provenance remains draft or changes scope')
     # A successor belongs to one complete reviewed composition. A partially
     # reverted mixture cannot borrow admission from another changed file.
-    # There is no process-global cache: every admission binds all eight complete files.
+    # There is no process-global cache: every admission binds all nine complete files.
     restored = {path: reverse_exact(captured[path], value['files'][path], originals[path])
                 for path in PATHS}
     definitions, definition_adjustments = _review_adapter(inventory, restored[ADAPTER_PATH],
@@ -153,7 +154,7 @@ def admit_composition(original_value):
         'current_sha256': value['files'][path]['new_sha256'],
         'current_bytes': value['files'][path]['new_bytes'],
         'reversible_patch_fixture_sha256': FIXTURE_SHA256,
-        'scope': 'exact reviewed D5, transaction, service artifact and context protocol successor',
+        'scope': 'exact reviewed D5, transaction, service artifact, context protocol and journal SQL ACK successor',
         'composition_sha256': composition} for path in PATHS}
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:

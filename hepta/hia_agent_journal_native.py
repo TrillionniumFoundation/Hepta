@@ -388,10 +388,22 @@ def _call_with_native_journal(service, tool, arguments, manifest):
     request_id = 'unadmitted-' + hosted.uuid.uuid4().hex
     context_id, response = None, None
     native_failed = False
+    sql_cleanup_active = False
+    pending_sql_ack_failure = None
     delivery = current_record()
     domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, hosted.sqlite3.Error)
+    def finish_sql_interval():
+        nonlocal sql_cleanup_active, pending_sql_ack_failure
+        sql_cleanup_active = False
+        if pending_sql_ack_failure is not None:
+            # Preserve the exact observation and error until the transaction
+            # has completed its original rollback/lock-exit continuation.
+            # Publication remains sticky; this does not acknowledge or retire it.
+            delivery.failed(pending_sql_ack_failure)
+            pending_sql_ack_failure = None
+
     def native_step(operation, *arguments, acknowledgement=False):
-        nonlocal native_failed
+        nonlocal native_failed, pending_sql_ack_failure
         activation = previous = None
         try:
             if acknowledgement:
@@ -405,7 +417,16 @@ def _call_with_native_journal(service, tool, arguments, manifest):
                 raise NativeDeliveryUnknown('native journal SQL acknowledgement was not confirmed')
             return result
         except BaseException as exc:
-            delivery.failed(exc)
+            if (sql_cleanup_active and acknowledgement and delivery.loss is None
+                    and not delivery.native_pending and delivery.observation_pending):
+                # SQL returned, but this replaceable ACK provider has not
+                # delivered a complete acknowledgement. Keep that debt pending
+                # while this exact transaction performs its original cleanup.
+                # A real child native loss is already published and never takes
+                # this route; no causal/resource guard is weakened.
+                pending_sql_ack_failure = exc
+            else:
+                delivery.failed(exc)
             # A newly introduced native protocol failure must not finalize a
             # completed response after its enclosing SQL transaction rolls back.
             # Do not invoke the failed image again or issue any terminal writes.
@@ -439,29 +460,36 @@ def _call_with_native_journal(service, tool, arguments, manifest):
             native_step(session.aliased)
             tool = session.tool
         if step.action == LOOKUP:
-            with service.store.transaction():
-                previous = service.store.db.execute(
-                    'SELECT * FROM requests WHERE key=?', (session.key,)).fetchone()
-                row = native_step(session.lookup, previous)
-                if row.action == REFUSE:
-                    session.raise_refusal()
-                if row.action == RESERVE:
-                    delivery.observed()
-                    try:
-                        service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
-                            (session.key, session.request_digest, tool, 'running', None, str(hosted.time.time_ns())))
-                    except BaseException:
-                        # An ordinary SQL-provider failure stays its original foreign
-                        # outcome. A real child native loss is sticky and is not cleared.
-                        delivery.foreign_refused()
-                        raise
-                    # SQL succeeded; acknowledgement precedes COMMIT, as before.
-                    native_step(session.reserved, acknowledgement=2)
-                elif row.action == CACHE:
-                    replay, cached = native_step(session.cached, previous['response'])
-                    if replay.action == VERIFY_REPLAY:
-                        service._replay_verification(cached, arguments)
-                    return cached
+            try:
+                with service.store.transaction():
+                    sql_cleanup_active = True
+                    previous = service.store.db.execute(
+                        'SELECT * FROM requests WHERE key=?', (session.key,)).fetchone()
+                    row = native_step(session.lookup, previous)
+                    if row.action == REFUSE:
+                        session.raise_refusal()
+                    if row.action == RESERVE:
+                        delivery.observed()
+                        try:
+                            service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
+                                (session.key, session.request_digest, tool, 'running', None, str(hosted.time.time_ns())))
+                        except BaseException:
+                            # An ordinary SQL-provider failure stays its original foreign
+                            # outcome. A real child native loss is sticky and is not cleared.
+                            delivery.foreign_refused()
+                            raise
+                        # SQL succeeded; acknowledgement precedes COMMIT, as before.
+                        native_step(session.reserved, acknowledgement=2)
+                    elif row.action == CACHE:
+                        replay, cached = native_step(session.cached, previous['response'])
+                        if replay.action == VERIFY_REPLAY:
+                            service._replay_verification(cached, arguments)
+                        return cached
+            finally:
+                finish_sql_interval()
+            # A suppressing lock cannot turn an unacknowledged SQL outcome
+            # into permission for a later policy call or terminal write.
+            delivery.check()
         hosted.validate(arguments, service.tools[tool]['inputSchema'])
         if tool != 'hia_describe' and arguments['catalog_sha256'] != service.catalog_sha256:
             hosted.reject('E_HIA_CATALOG_STALE', 'tool catalog digest differs from installed catalog')
@@ -477,25 +505,30 @@ def _call_with_native_journal(service, tool, arguments, manifest):
         mode = native_step(session.effect)
         if mode.action == ATOMIC:
             try:
-                with service.store.transaction():
-                    result = getattr(service, '_' + tool)(arguments)
-                    _delivery_check()
-                    response = {'contract_version': hosted.VERSION, 'request_id': request_id,
-                                'status': 'completed', 'result': result}
-                    hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
-                    instruction = native_step(session.inline, response)
-                    if instruction.action == JOURNAL:
-                        delivery.observed()
-                        try:
-                            service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                                     _delivery_guard((instruction.response.decode('utf-8'), session.key)))
-                        except BaseException:
-                            # An ordinary SQL-provider failure stays its original foreign
-                            # outcome. A real child native loss is sticky and is not cleared.
-                            delivery.foreign_refused()
-                            raise
-                        # UPDATE succeeded; acknowledgement still precedes COMMIT.
-                        native_step(session.committed_inline, acknowledgement=7)
+                try:
+                    with service.store.transaction():
+                        sql_cleanup_active = True
+                        result = getattr(service, '_' + tool)(arguments)
+                        _delivery_check()
+                        response = {'contract_version': hosted.VERSION, 'request_id': request_id,
+                                    'status': 'completed', 'result': result}
+                        hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
+                        instruction = native_step(session.inline, response)
+                        if instruction.action == JOURNAL:
+                            delivery.observed()
+                            try:
+                                service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
+                                                         _delivery_guard((instruction.response.decode('utf-8'), session.key)))
+                            except BaseException:
+                                # An ordinary SQL-provider failure stays its original foreign
+                                # outcome. A real child native loss is sticky and is not cleared.
+                                delivery.foreign_refused()
+                                raise
+                            # UPDATE succeeded; acknowledgement still precedes COMMIT.
+                            native_step(session.committed_inline, acknowledgement=7)
+                finally:
+                    finish_sql_interval()
+                delivery.check()
             except BaseException as exc:
                 # Also cover an asynchronous exception after SQL UPDATE returns
                 # but before Python enters the ACK helper's own try boundary.

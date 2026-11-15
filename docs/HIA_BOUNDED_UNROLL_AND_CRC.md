@@ -63,7 +63,7 @@ finite source differential; they do not prove arbitrary C translation.
 
 ## Preregistered context comparison
 
-The fixed [protocol](../experiments/hia_crc_context/protocol_v1.json) was published
+The fixed [protocol](https://github.com/TrillionniumFoundation/Hepta/blob/3424f6d116a087373b161b9970cad07c65a9e4c4/experiments/hia_crc_context/protocol_v1.json) was published
 before performance measurement in commit
 `2b2486744e0a7094e99c3d9a9d397381cc714c25`, with SHA-256
 `75f5f0bef5b5c49020b14b83c7c1f9257f989c5f2f0b3a365f5b7ba858329948`.
