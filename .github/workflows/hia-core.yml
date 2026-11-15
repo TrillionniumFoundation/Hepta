@@ -13,7 +13,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact service_describe; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -24,6 +24,7 @@ jobs:
       - name: Core source and independent reference controls
         env:
           HEPTA_HIA_SERVICE_ARTIFACT_LOCAL_RELEASE_EVIDENCE: ${{ runner.temp }}/hia-service-artifact-local-release
+          HEPTA_HIA_SERVICE_DESCRIBE_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-describe-source
         run: |
           python -B - <<'PY'
           import unittest
@@ -176,6 +177,7 @@ jobs:
               'tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
               'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
               'tests.test_hia_service_artifact_native.ServiceArtifactSourceTests',
+              'tests.test_hia_service_describe_native.ServiceDescribeSourceTests',
               'tests.test_hia_service_artifact_local_release',
               'tests.test_hia_context_protocol',
           )
@@ -193,6 +195,13 @@ jobs:
         with:
           name: hia-service-artifact-local-release-source-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/hia-service-artifact-local-release/
+          if-no-files-found: warn
+      - name: Retain complete service discovery Source observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-service-describe-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-service-describe-source/
           if-no-files-found: warn
   native:
     runs-on: ubuntu-latest
@@ -223,6 +232,17 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Native service discovery control and independent original observations
+        env:
+          HEPTA_HIA_SERVICE_DESCRIBE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_DESCRIBE_EVIDENCE: ${{ runner.temp }}/hia-service-describe
+          HEPTA_HIA_SERVICE_DESCRIBE_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-describe-source
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_service_describe_native
+      - name: Complete original service discovery callers
+        run: >-
+          python -B tools/qualify_hia_service_describe_callers.py
+          --cold-report "${{ runner.temp }}/hia-cold.json"
+          --evidence "${{ runner.temp }}/hia-service-describe-callers"
       - name: Native linked observer and independent loader lifecycle controls
         env:
           HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
@@ -1142,6 +1162,9 @@ jobs:
             ${{ runner.temp }}/hia-service-artifact-callers/
             ${{ runner.temp }}/hia-service-artifact.log
             ${{ runner.temp }}/hia-service-artifact-callers.log
+            ${{ runner.temp }}/hia-service-describe/
+            ${{ runner.temp }}/hia-service-describe-source/
+            ${{ runner.temp }}/hia-service-describe-callers/
       - name: Prepare exact owned raw diagnostic paths
         id: hia_raw_diagnostic_paths
         if: always()
@@ -1264,6 +1287,9 @@ jobs:
               ('hia-service-artifact', artifact_delivery_patterns),
               ('hia-service-artifact-source', artifact_delivery_patterns),
               ('hia-service-artifact-callers', artifact_delivery_patterns),
+              ('hia-service-describe', transaction_patterns),
+              ('hia-service-describe-source', transaction_patterns),
+              ('hia-service-describe-callers', transaction_patterns),
           )
           temporary = os.environ["RUNNER_TEMP"]
           paths = [temporary + "/" + name for name in exact_files]
