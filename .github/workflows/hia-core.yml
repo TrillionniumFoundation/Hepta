@@ -137,6 +137,7 @@ jobs:
               'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
               'tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
               'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
+              'tests.test_hia_selfhost_immediates.ImmediateSourceTests',
           )
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           expected = suite.countTestCases()
@@ -720,6 +721,11 @@ jobs:
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --output "$RUNNER_TEMP/hia-json-wire-callers.json"
           --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers"
+      - name: Scalar immediates and original word-helper native controls
+        run: >-
+          python -B tools/run_hia_unittest_gate.py
+          tests.test_hia_selfhost_immediates
+          tests.test_hia_selfhost_word_io.WordIONativeTests
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4

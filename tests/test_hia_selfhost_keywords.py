@@ -24,7 +24,7 @@ def scanner_helpers(*entries):
 
     for entry in entries:
         visit(names[entry])
-    source = render_assembly({'schema': 'hepta.hia.program.v8',
+    source = render_assembly({'schema': 'hepta.hia.program.v9',
         'module': 'live_scanner_reference',
         'functions': [fn for fn in doc['functions'] if fn['name'] in needed]})
     return source, names
