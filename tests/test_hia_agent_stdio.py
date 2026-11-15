@@ -22,7 +22,7 @@ from tools.build_hia_agent_stdio import DISPATCH, PACKER, build
 EXPECTED_CAPABILITY = {
     'schema':'hepta.hia.agent-stdio.v1','implementation':'hia-native',
     'operations':['capabilities','verify','compile','render-assembly','assemble','check-assembly'],'build_profile':0,
-    'input':'primitive-v8-Core-JSON','input_bytes_max':8388608,
+    'input':'primitive-v8-v9-Core-JSON','input_bytes_max':8388608,
     'assembly_input':'hia-asm.v1','assembly_input_bytes_max':1048576,
     'compiler_bytes_max':1048576,'program_nodes_max':1048576,'json_depth_max':128,
     'target':'linux-x86_64','runtime_python_required':False,
