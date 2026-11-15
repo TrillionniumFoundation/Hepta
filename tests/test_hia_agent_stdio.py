@@ -440,11 +440,11 @@ class AgentStdioNativeTests(unittest.TestCase):
             else:self.assertEqual(b2.read_bytes(),self.compiler.read_bytes())
 
     def test_raw_assembly_produces_original_and_modified_executable_selfhost_chains(self):
-        from tools.qualify_hia_selfhost import mutate_compiler
+        from tools.qualify_hia_selfhost import mutate_compiler, with_selfhost_module
         original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         fixed_points=[]
         for index,raw in enumerate((original,mutate_compiler(original))):
-            source=raw.replace(b'v8 selfhost\n',b'v8 selfhost_exec\n',1)
+            source=with_selfhost_module(raw,b'selfhost_exec')
             first=self.invoke(['assemble'],source,profile='exec')
             self.assertEqual((first.returncode,first.stderr),(0,b''))
             images=[first.stdout]
