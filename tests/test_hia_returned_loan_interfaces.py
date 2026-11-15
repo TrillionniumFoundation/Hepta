@@ -9,7 +9,7 @@ from hepta.hia_patch_impact import analyze_patch_impact
 from hepta.hia_program import verify_program
 from hepta.hia_program_runtime import execute_program
 from hepta.hia_program_tools import HIAEditRejected, apply_program_patch, inspect_program
-from hepta.hia_routes import route_inventory
+from hepta.hia_routes import admit_route, route_inventory
 from hepta.hia_translation_validation import validate_translation
 from tests.test_hia_program import b, c, f, i, m, ret
 
@@ -254,10 +254,16 @@ class ReturnedLoanInterfaceTests(unittest.TestCase):
     def test_routes_show_current_admission_and_distinct_proof_boundary(self):
         inventory = route_inventory()
         self.assertEqual([row["route"] for row in inventory["inputs"]], ["standalone-hia", "agent-assembly"])
-        self.assertIn("v1-v8", inventory["inputs"][0]["input"])
+        self.assertIn("v1-v9", inventory["inputs"][0]["input"])
         self.assertEqual(inventory["versions"]["admitted_primitive_schemas"],
-                         ["hepta.hia.program.v" + str(v) for v in range(1, 9)])
-        self.assertEqual(inventory["versions"]["latest_core_schema"], "hepta.hia.program.v8")
+                         ["hepta.hia.program.v" + str(v) for v in range(1, 10)])
+        self.assertEqual(inventory["versions"]["latest_core_schema"], "hepta.hia.program.v9")
+        # Admitting v9 does not extend either existing v1-v7 proof boundary.
+        current = scalar(9)
+        self.assertEqual(admit_route("standalone-hia", current).as_dict()["schema"], "hepta.hia.program.v9")
+        self.assertEqual(execute_program(current, "scalar", [])["result"], 7)
+        self.assertEqual(verify_optimization(current, current)["status"], "unknown")
+        self.assertEqual(validate_translation(current, current, function="scalar")["status"], "unknown")
         self.assertEqual(len(inventory["optimization_profiles"]), 2)
         self.assertTrue(all("v1-v7" in entry["scope"] and entry["v8_qualified"] is False
                             for entry in inventory["optimization_profiles"]))

@@ -455,12 +455,12 @@ class _Function:
             if op in WORD_LOADS:
                 c.load("rax", "rax")
                 if WORD_LOADS[op] == "big":
-                    c.emit(b"\x48\x0f\xc8")  # bswap rax
+                    c.emit(bytes((0x48, 0x0f, 0xc8)))  # bswap rax
                 self.store(out[0])
             else:
                 self.load(args[2], "rcx")
                 if WORD_STORES[op] == "big":
-                    c.emit(b"\x48\x0f\xc9")  # bswap rcx
+                    c.emit(bytes((0x48, 0x0f, 0xc9)))  # bswap rcx
                 c.store("rax", 0, "rcx")
         elif op in {"buffer.load", "buffer.store"}:
             self.load(args[0], "rdx", 1); self.load(args[1], "rcx")

@@ -58,6 +58,23 @@ def returned_aliases(types):
             'functions': [callee, caller]}
 
 
+def borrowed_word(op, permission="mutbuf", suspended=False):
+    from tests.test_hia_program import f, b, i, ret
+    operations = [i("const", [], [("at", "usize")], value=0),
+                  i("const", [], [("word", "u64")], value=(1 << 64) - 1)]
+    if suspended:
+        operations.append(i("borrow.read", ["view"], [("child", "readbuf")]))
+    if op.startswith("buffer.load"):
+        operations.append(i(op, ["view", "at"], [("value", "u64")]))
+    else:
+        operations.append(i(op, ["view", "at", "word"]))
+    if suspended:
+        operations.append(i("loan.end", ["child"]))
+    return {"schema": "hepta.hia.program.v9", "module": "word_policy",
+            "functions": [f("f", [("view", permission)], [], ["read", "write", "trap"],
+                [b("entry", [("view", permission)], operations, ret())])]}
+
+
 def interpreted(raw):
     from tests import test_hia_function_shape_native as observer
     with patch.object(observer, 'SOURCE', SOURCE), patch.object(observer, 'scratch_sizes', scratch_sizes):
@@ -81,6 +98,14 @@ class CoreAdmissionSourceTests(unittest.TestCase):
             {'op': 'const', 'args': [], 'out': [{'name': 'b', 'type': 'bool'}],
              'attrs': {'value': 1}}]
         self.assertEqual(interpreted(wire(bad)), 0xfffffff9)
+
+    def test_v9_word_admission_uses_schema_effect_and_loan_guards(self):
+        self.assertEqual(interpreted(wire(borrowed_word("buffer.load.u64.be", "readbuf"))), 0)
+        self.assertEqual(interpreted(wire(borrowed_word("buffer.store.u64.le"))), 0)
+        self.assertEqual(interpreted(wire(borrowed_word("buffer.store.u64.le", suspended=True))), 0xfffffff8)
+        old = borrowed_word("buffer.load.u64.le")
+        old["schema"] = "hepta.hia.program.v8"
+        self.assertEqual(interpreted(wire(old)), 0xfffffff0)
 
     def test_independent_vm_rejects_conflicting_results_of_one_call(self):
         # Earlier returned loans must be live while admitting each next result.
@@ -167,6 +192,29 @@ class CoreAdmissionNativeTests(unittest.TestCase):
             else:
                 fn['effects'] = rng.choice(([], ['alloc'], ['read'], ['trap'], ['bogus']))
             self.compare(value)
+
+    def test_v9_word_policy_preserves_all_old_versions_and_complete_body_guards(self):
+        for mode in ("load", "store"):
+            for order in ("le", "be"):
+                op = "buffer." + mode + ".u64." + order
+                value = borrowed_word(op)
+                self.compare(value)
+                self.assertEqual(self.native.status(wire(value)), 0)
+                for version in range(1, 9):
+                    old = copy.deepcopy(value); old["schema"] = "hepta.hia.program.v" + str(version)
+                    self.compare(old)
+                    self.assertEqual(self.native.status(wire(old)), 0xfffffff0)
+                self.compare(borrowed_word(op, "readbuf"))
+                suspended = borrowed_word(op, suspended=True)
+                self.compare(suspended)
+                self.assertEqual(self.native.status(wire(suspended)), 0xfffffff8)
+                bad = copy.deepcopy(value); bad["functions"][0]["effects"] = []
+                self.compare(bad)
+                self.assertEqual(self.native.status(wire(bad)), 0xfffffff7)
+                bad = copy.deepcopy(value)
+                bad["functions"][0]["blocks"][0]["ops"][0]["out"][0]["type"] = "u8"
+                self.compare(bad)
+                self.assertEqual(self.native.status(wire(bad)), 0xfffffff9)
 
     def test_returned_alias_conflicts_are_checked_within_each_call(self):
         for types in (('mutbuf', 'mutbuf'), ('mutbuf', 'readbuf'),
@@ -289,3 +337,4 @@ class CoreAdmissionNativeTests(unittest.TestCase):
         with patch.object(bridge, 'SOURCE', changed):
             with self.assertRaisesRegex(ValueError, 'source identity'):
                 bridge.installed_core_admission(self.manifest)
+

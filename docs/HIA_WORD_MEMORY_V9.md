@@ -41,11 +41,30 @@ word occupies workspace bytes `[1016592, 1016600)`, after the existing export
 table. Source, output, workspace, function, block and instruction limits are
 unchanged. The new source must satisfy the existing 8,192-instruction limit.
 
-The independently selected native Core JSON, instruction/shape/admission and
-authoring-policy profiles retain their declared older input scopes. They are
-not qualified as v9 frontends by this change. The Rust scalar-only entry point
-also retains its older scope; v9 resource programs use the owned entry point.
-The v8 opcode catalog remains a v8 catalog, and the v9 catalog is separate.
+The selected native instruction policy, primitive program shape and complete
+Core admission now carry v9 schema and opcode rules. Their tests retain explicit
+rejection of each new instruction in every older schema, as well as the existing
+type, effect, readonly-loan and suspended-loan checks. Core workspace JSON can
+materialize the v9 schema. The separately selected HIA Function lowering includes
+the four word operations in its source-bound bundle; the original v8 Function
+fixture and all retained method bodies remain independent comparison inputs.
+These components require their matching-source native and installed-resource
+gates in addition to source regeneration.
+
+The retained runtime-interface inventory now lists primitive schemas v1 through
+v9. Future-schema refusal fixtures use v10 and still require rejection; the
+same test methods also exercise v9 scalar execution and existing loan-budget
+limits. Admission does not extend the independent v1-v7 optimization proof
+profiles. The trusted C owner driver and host-region fixture explicitly select
+`clang` when the identified compiler is an LLVM multicall executable. They
+continue to execute and rehash that same canonical file before and after the
+build; compiler selection does not use a second ambient PATH lookup.
+
+Other independently selected JSON/CLI profiles retain their declared input
+scopes; this addition does not qualify every frontend as v9. The Rust scalar-only
+entry point also retains its older scope; v9 resource programs use the owned
+entry point. The v8 opcode catalog remains a v8 catalog, and the v9 catalog is
+separate.
 
 The Python seed's checked foreign-buffer wrapper has its existing bounded loan
 capacity. B3's generated static borrowed ABI instead carries full 64-bit

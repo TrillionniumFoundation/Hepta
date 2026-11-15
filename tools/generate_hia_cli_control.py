@@ -30,7 +30,7 @@ TOKENS = (
     ("--query", 13), ("--response", 14),
     ("--selfhost-manifest", 17), ("--selfhost-manifest-sha256", 18),
 )
-SCHEMAS = tuple("hepta.hia.program.v" + str(n) for n in range(1, 9))
+SCHEMAS = tuple("hepta.hia.program.v" + str(n) for n in range(1, 10))
 DEFAULTS = {2: SCHEMAS[-1], 4: "native", 5: "object",
             6: "x86_64-unknown-linux-gnu"}
 LITERALS = tuple(dict.fromkeys(
