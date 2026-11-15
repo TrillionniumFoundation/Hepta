@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 SOURCE_FILES = (
+    'tests/test_hia_executable_publication_abi.py',
     'examples/hia_bootstrap/service_read.hepta',
     'tools/generate_hia_service_read.py',
     'tools/build_hia_service_read.py',

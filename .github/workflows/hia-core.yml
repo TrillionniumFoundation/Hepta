@@ -189,6 +189,18 @@ jobs:
                        result.expectedFailures or result.unexpectedSuccesses)
           raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
           PY
+      - name: Strict public publication ELF compatibility
+        run: |
+          python -B - <<'PYTEST'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_executable_publication_abi')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected == 4
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYTEST
       - name: Retain complete service artifact local release Source observations
         if: always()
         uses: actions/upload-artifact@v4
