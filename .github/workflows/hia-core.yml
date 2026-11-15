@@ -464,6 +464,8 @@ jobs:
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_instruction_policy_native
         env:
           HEPTA_HIA_INSTRUCTION_POLICY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native streaming SHA-256 original five-method owner
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_sha256_stream_native.Sha256StreamNativeTests
       - name: Native exact-byte artifact publication and real kernel races
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_artifact_publication_native tests.test_hia_artifact_publication_route tests.test_hia_agent_artifact_store_native
         env:
