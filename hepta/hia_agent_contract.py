@@ -89,6 +89,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/evaluation.hepta',
     'examples/hia_bootstrap/native_build_admission.hepta',
     'examples/hia_bootstrap/emission.hepta',
+    'examples/hia_bootstrap/service_read.hepta',
     'examples/hia_bootstrap/store_artifact_profile.hepta',
     'examples/hia_bootstrap/store_transaction.hepta',
     'examples/hia_bootstrap/patch_impact.hepta',

@@ -1,0 +1,22 @@
+    def call(self, tool, arguments):
+        selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
+        if selected == '':
+            raise ValueError('Agent journal selector must not be empty')
+        delivery = DeliveryRecord(self)
+        try:
+            with delivery.foreign(observation=False):
+                if selected:
+                    from .hia_agent_journal_native import call_with_native_journal
+                    result = call_with_native_journal(self, tool, arguments, selected)
+                else:
+                    result = self._reference_call(tool, arguments)
+                delivery.check()
+                return result
+        except BaseException as error:
+            delivery.failed(error)
+            domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
+            if isinstance(error, domain_errors):
+                delivery.propagate(error, NativeDeliveryUnknown, domain_errors)
+            raise
+        finally:
+            delivery.retire()

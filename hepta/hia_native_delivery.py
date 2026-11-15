@@ -41,6 +41,56 @@ def _resource_token(resource):
     return selected[1] if selected is not None and selected[0]() is resource else None
 
 
+def _registered_resource_identity(resource):
+    """Borrow an existing generation; never register or inspect user fields."""
+    key = id(resource)
+    with _custody_lock():
+        selected = _RESOURCE_LIFETIMES.get(key)
+        if selected is not None and selected[0]() is resource:
+            return selected[0], selected[1], key
+    return None
+
+
+def _registered_resource_loss(registration):
+    """Read already-recorded loss for an exact borrowed generation.
+
+    No healthy target is freshly acquired. A weakref is dereferenced only
+    after a lossy record already strongly retains an object with the same
+    numeric identity; the exact weakref/token and object identity must all
+    agree. Weak pending observations compare only their reserved identities.
+    """
+    if registration is None:
+        return None
+    reference, token, key = registration
+    with _custody_lock():
+        selected = _RESOURCE_LIFETIMES.get(key)
+        if (selected is None or selected[0] is not reference
+                or selected[1] is not token):
+            return None
+        for record in _CUSTODY.values():
+            if record.loss is not None:
+                for resource, unused_token in record.resources:
+                    if id(resource) == key and reference() is resource:
+                        return record.loss
+        for observation in _RESOURCE_OBSERVATIONS.values():
+            origin = observation.loss
+            if origin is None:
+                holder = observation.owner
+                if (type(holder) is not _PendingForeignResources or holder.record.loss is None
+                        or not holder.pending_observation(observation)):
+                    continue
+                origin = holder.record.loss
+            resource = observation.resource
+            strong_match = (resource is not None and id(resource) == key
+                            and reference() is resource)
+            weak_match = (type(observation) is _WeakResourceObservation
+                          and observation.reference is reference
+                          and observation.token is token)
+            if strong_match or weak_match:
+                return origin
+    return None
+
+
 def _resource_loss(resource):
     # Unknown records retain the actual object, preventing object-id reuse.
     # Reinitializing the SAME object cannot launder an earlier actual loss.
@@ -49,7 +99,9 @@ def _resource_loss(resource):
             if record.loss is not None and any(item[0] is resource for item in record.resources):
                 return record.loss
         for observation in _RESOURCE_OBSERVATIONS.values():
-            if observation.resource is resource:
+            if (observation.resource is resource
+                    or (type(observation) is _WeakResourceObservation
+                        and observation.matches(resource))):
                 if observation.loss is not None:
                     return observation.loss
                 holder = observation.owner
@@ -269,6 +321,56 @@ legal cross-Context/thread resume without changing any native record's creator.
         self.owner = self.resource = self.token = None
 
 
+class _WeakResourceObservation(ResourceObservation):
+    """Pre-reserved registered identity with no healthy strong resource ref.
+
+    This constructor deliberately does not call ResourceObservation.__init__.
+    The existing strong observation remains unchanged for every old caller.
+    A weak observation is globally visible before effects, so interruption
+    during loss promotion cannot hide its already-occurred parent's loss.
+    """
+    __slots__ = ('reference', 'key', 'registration')
+
+    def __init__(self, owner, registration):
+        reference, token, key = registration
+        self.owner, self.resource, self.token = owner, None, token
+        self.reference, self.key = reference, key
+        self.registration = registration
+        self.reserved_pid, self.reserved_thread = os.getpid(), threading.get_ident()
+        self.pending = self.retired = False
+        self.loss = self.error = None
+        with _custody_lock():
+            _RESOURCE_OBSERVATIONS[id(self)] = self
+
+    def matches(self, resource):
+        if self.retired or self.reference is None:
+            return False
+        selected = _RESOURCE_LIFETIMES.get(self.key)
+        return (selected is not None and selected[0] is self.reference
+                and selected[1] is self.token and self.reference() is resource)
+
+    def failed(self, error):
+        if not ResourceObservation.failed(self, error):
+            return False
+        # This slot and registry entry predate the provider. The promotion
+        # creates no list/dict/tuple/observation or replacement lifetime.
+        # All queries are of internal identity records, not user attributes.
+        with _custody_lock():
+            selected = _RESOURCE_LIFETIMES.get(self.key)
+            if (selected is not None and selected[0] is self.reference
+                    and selected[1] is self.token):
+                resource = self.reference()
+                if resource is not None:
+                    self.resource = resource
+        return True
+
+    def retire(self):
+        # Healthy ACK cleanup never dereferences the borrowed resource.
+        ResourceObservation.retire(self)
+        if self.retired:
+            self.reference = self.key = self.registration = None
+
+
 def reserve_resource_observation(owner, resource):
     return ResourceObservation(owner, resource)
 
@@ -280,13 +382,13 @@ class _PendingUseFact:
     def __init__(self, kind, pid, thread):
         self.kind, self.pid, self.thread = kind, pid, thread
         self.occurred = False
-        self.qualified = True if kind == 'native' else None
+        self.qualified = True if kind in ('native', 'borrow') else None
         self.capture = None
 
     def pending_for(self, activation_id):
         if not self.occurred or self.qualified is False:
             return False
-        if self.kind == 'native':
+        if self.kind in ('native', 'borrow'):
             return True
         if self.qualified is None:
             # Return occurred but its identity observation failed. Preserve
@@ -323,10 +425,13 @@ registry and retains them. No service getter, equality, hash or object layout
 is consulted, and no second resource registry or fixed quota is introduced.
     """
     __slots__ = ('record', 'activation_id', 'entries', 'closed', 'completed',
-                 'retirement_iterator', 'retiring_entry', 'ack_ready')
+                 'retirement_iterator', 'retiring_entry', 'ack_ready',
+                 'weak_registered', 'has_borrowed_resources')
 
-    def __init__(self, record, activation_id):
+    def __init__(self, record, activation_id, *, weak_registered=False):
         self.record, self.activation_id = record, activation_id
+        self.weak_registered = weak_registered
+        self.has_borrowed_resources = False
         self.entries = []
         self.closed = self.completed = False
         self.ack_ready = False
@@ -337,6 +442,20 @@ is consulted, and no second resource registry or fixed quota is introduced.
         self.retiring_entry = None
 
     def reserve(self, resource, fact):
+        if self.weak_registered:
+            registration = _registered_resource_identity(resource)
+            if registration is None:
+                # This opt-in policy has no guessed association for an opaque
+                # unregistered/non-weakrefable resource. Causal loss still
+                # propagates through the actual DeliveryRecord chain.
+                return None
+            origin = _resource_loss(resource)
+            if origin is not None:
+                if self.record.loss is None:
+                    self.record.loss = origin
+                    self.record.publish(origin.error)
+                self.record.check()
+            return self.reserve_borrow(registration, fact)
         for entry in self.entries:
             if entry is not None and entry.observation.resource is resource:
                 if not any(previous is fact for previous in entry.facts):
@@ -368,6 +487,33 @@ is consulted, and no second resource registry or fixed quota is introduced.
                 observation.retire()
             raise
 
+    def reserve_borrow(self, registration, fact):
+        """A direct-call weak fact, independent of this holder's old policy."""
+        reference, token, key = registration
+        for entry in self.entries:
+            if (entry is not None and type(entry.observation) is _WeakResourceObservation
+                    and entry.observation.reference is reference
+                    and entry.observation.token is token):
+                if not any(previous is fact for previous in entry.facts):
+                    entry.facts.append(fact)
+                return entry
+        self.record.check()
+        slot = len(self.entries)
+        self.entries.append(None)
+        observation = None
+        try:
+            observation = _WeakResourceObservation(self, registration)
+            entry = _PendingResource(observation)
+            entry.facts.append(fact)
+            self.entries[slot] = entry
+            self.has_borrowed_resources = True
+            return entry
+        except BaseException:
+            self.entries[slot] = None
+            if observation is not None:
+                observation.retire()
+            raise
+
     def returned(self, activation):
         if (self.closed or self.completed or id(activation) != self.activation_id
                 or activation.record is not self.record
@@ -386,10 +532,26 @@ is consulted, and no second resource registry or fixed quota is introduced.
         self.closed = True
 
     def pending_observation(self, observation):
+        if self.completed:
+            # This activation already has its complete ACK. A later
+            # actual loss during cleanup cannot re-arm its old facts.
+            return False
         for entry in self.entries:
             if entry is not None and entry.observation is observation:
                 return entry.pending_for(self.activation_id)
         return False
+
+    def check_borrowed_resources(self):
+        """Recheck explicit weak facts against real cross-context loss."""
+        for entry in self.entries:
+            if (entry is not None and type(entry.observation) is _WeakResourceObservation
+                    and entry.pending_for(self.activation_id)):
+                origin = _registered_resource_loss(entry.observation.registration)
+                if origin is not None:
+                    if self.record.loss is None:
+                        self.record.loss = origin
+                        self.record.publish(origin.error)
+                    self.record.check()
 
     def prepare_acknowledgement(self, activation):
         record = self.record
@@ -397,6 +559,8 @@ is consulted, and no second resource registry or fixed quota is introduced.
                 or activation.record is not record or activation.active
                 or not record.current()):
             raise NativeDeliveryUnknown('pending foreign resources have no matching ACK activation')
+        if self.has_borrowed_resources:
+            self.check_borrowed_resources()
         record.check()
         self.ack_ready = True
 
@@ -467,9 +631,21 @@ def _prepare_pending_resources(resources, *, fact, native_record=None):
                 and scope.pending_resources is not None):
             holder = scope.pending_resources
             for resource, _ in resources:
-                links.append((scope, holder, holder.reserve(resource, fact)))
+                entry = holder.reserve(resource, fact)
+                if entry is not None:
+                    links.append((scope, holder, entry))
         scope = scope.previous
     return links
+
+
+def _prepare_borrowed_resources(activation, registration, fact):
+    """Reserve separate weak slots in this exact live capture ancestry."""
+    scope = activation
+    pid, thread = os.getpid(), threading.get_ident()
+    while type(scope) is ForeignCall:
+        if _live(scope, pid, thread) and scope.pending_resources is not None:
+            scope.pending_resources.reserve_borrow(registration, fact)
+        scope = scope.previous
 
 
 def _after_fork_child():
@@ -668,16 +844,22 @@ unchanged. Each transport keeps its separate original native-entry classifier.
         self.owner = self.parent = None
         self.resources.clear()
 
-    def foreign(self, *, observation=True, capture_resources=False):
-        return ForeignCall(self, observation=observation, capture_resources=capture_resources)
+    def foreign(self, *, observation=True, capture_resources=False, weak_registered_resources=False):
+        return ForeignCall(self, observation=observation, capture_resources=capture_resources,
+                           weak_registered_resources=weak_registered_resources)
 
 
 class ForeignCall:
     """One activation; a completed token is never reused for a later effect."""
     __slots__ = ('record', 'observation', 'active', 'token', 'entered', 'previous',
-                 'pending_resources', 'capture_token')
+                 'pending_resources', 'capture_token', '_borrow_prepared',
+                 '_borrow_armed', '_borrow_fact', '_borrow_registration')
 
-    def __init__(self, record, *, observation=True, capture_resources=False):
+    def __init__(self, record, *, observation=True, capture_resources=False,
+                 weak_registered_resources=False):
+        if (type(weak_registered_resources) is not bool
+                or (weak_registered_resources and not capture_resources)):
+            raise ValueError('weak registered capture requires an explicit capture activation')
         if type(capture_resources) is not bool or (capture_resources and not observation):
             raise ValueError('pending resource capture requires an observed foreign activation')
         self.record, self.observation = record, observation
@@ -685,8 +867,12 @@ class ForeignCall:
         self.token = None
         self.entered = False
         self.previous = None
-        self.pending_resources = _PendingForeignResources(record, id(self)) if capture_resources else None
+        self.pending_resources = (_PendingForeignResources(record, id(self),
+            weak_registered=weak_registered_resources) if capture_resources else None)
         self.capture_token = None
+        self._borrow_prepared = self._borrow_armed = False
+        self._borrow_fact = None
+        self._borrow_registration = None
 
     def __enter__(self):
         self.record.check()
@@ -740,6 +926,64 @@ class ForeignCall:
                 self.record.publish(reset_error)
                 raise
         return False
+
+    def borrow_registered_resource(self, resource):
+        """Return the original receiver, with only an exact weak identity tap.
+
+        Used at one literal SQL receiver point. Instrumentation callables are
+        bound before entering that expression. No getter is duplicated and no
+        strong user object is stored in the fact, holder, links or closure.
+        """
+        if (self.pending_resources is None or not self.active
+                or _active_scope() is not self or self._borrow_prepared):
+            raise NativeDeliveryUnknown('resource borrow has no unique current activation')
+        self.record.check()
+        registration = _registered_resource_identity(resource)
+        if registration is not None:
+            origin = _resource_loss(resource)
+            if origin is not None:
+                if self.record.loss is None:
+                    self.record.loss = origin
+                    self.record.publish(origin.error)
+                self.record.check()
+            fact = _PendingUseFact('borrow', self.record.pid, self.record.thread)
+            _prepare_borrowed_resources(self, registration, fact)
+            self._borrow_fact = fact
+            self._borrow_registration = registration
+        self._borrow_prepared = True
+        # All weak slots and links are reserved. Allocation/GC during that
+        # preparation can have run an actual child, or another Context can
+        # have published a loss for this exact registered generation. Check
+        # both before returning the receiver to the original .db lookup.
+        self.record.check()
+        origin = _registered_resource_loss(self._borrow_registration)
+        if origin is not None and self.record.loss is None:
+            self.record.loss = origin
+            self.record.publish(origin.error)
+        # The identity query itself can allocate/run GC. A child loss need
+        # not concern this borrowed resource to invalidate the live chain.
+        self.record.check()
+        return resource
+
+    def resource_call_arguments(self, value):
+        """Original tuple unchanged; mark only this prepared call attempt."""
+        if (not self.active or _active_scope() is not self
+                or not self._borrow_prepared or self._borrow_armed):
+            raise NativeDeliveryUnknown('resource call has no unique prepared activation')
+        self.record.check()
+        origin = _registered_resource_loss(self._borrow_registration)
+        if origin is not None and self.record.loss is None:
+            self.record.loss = origin
+            self.record.publish(origin.error)
+        # This is the final preparation boundary before the original SQL
+        # call. Reject a real child loss even if the resource query returned
+        # None while its own allocation/GC ran that child.
+        self.record.check()
+        self._borrow_armed = True
+        fact = self._borrow_fact
+        if fact is not None:
+            fact.occurred = True
+        return value
 
     def acknowledged(self):
         """Adapter-only, after validating this activation's complete ACK."""

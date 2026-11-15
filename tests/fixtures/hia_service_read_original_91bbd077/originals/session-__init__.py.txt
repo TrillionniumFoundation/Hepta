@@ -1,0 +1,9 @@
+    def __init__(self, client, *, prefix="qualification"):
+        self.client = client
+        self.prefix = prefix
+        self.sequence = 0
+        self.discovery = client.result("hia_describe", {"section": "manifest"})
+        self.catalog_sha256 = self.discovery["catalog_sha256"]
+        self.manifest = self.read_json(self.discovery["manifest"])
+        self.profiles = self.manifest["profiles"]
+        self.context = None

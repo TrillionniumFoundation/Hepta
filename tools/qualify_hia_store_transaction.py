@@ -115,9 +115,13 @@ def execute_module(selector, manifest, report_path):
         references.append(active[0])
         raise AssertionError('original caller entered retained transaction')
     forbidden.__wrapped__ = forbidden
+    owner_binding = None
     begin = time.monotonic()
     with ExitStack() as scope:
         scope.enter_context(patch.dict(os.environ, {native.SELECTOR: str(manifest)}))
+        if selector == 'tests.test_hia_slot_ledger_native':
+            owner_binding = scope.enter_context(
+                native.transaction_owner_scope(str(manifest), image))
         scope.enter_context(patch.object(api, '_STORE_TRANSACTION_REFERENCE', forbidden))
         scope.enter_context(patch.object(api.AgentStore, '_transaction_reference', forbidden))
         scope.enter_context(patch.object(native.StoreTransactionFrame, '__init__', counted_frame))
@@ -138,6 +142,12 @@ def execute_module(selector, manifest, report_path):
         'testsRun': result.testsRun, 'anomalies': anomalies, 'elapsed_seconds': time.monotonic() - begin,
         'actual_transaction_frames': dict(frames), 'actual_native_events': dict(events),
         'reference_calls': references, 'native_image_sha256': image.image_sha256,
+        'selection_channel': ('environment-plus-explicit-current-image-owner-scope'
+                              if owner_binding is not None else 'original-environment-selection'),
+        'owner_scope_manifest_sha256': (None if owner_binding is None
+                                       else owner_binding.manifest_sha256),
+        'original_environment_selection_retained': True,
+        'original_clear_environments_intercepted': False,
         'source_before': before, 'source_after': after, 'source_unchanged': before == after,
         'original_methods_or_fixtures_or_deadlines_changed': False,
         'parent_process_poison_is_not_inherited_by_subprocesses': True,

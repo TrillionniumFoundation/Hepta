@@ -604,6 +604,8 @@ AgentStore._transaction_reference = _STORE_TRANSACTION_REFERENCE
 _STORE_TRANSACTION_GLOBAL_BUILTINS = _STORE_TRANSACTION_REFERENCE.__wrapped__.__builtins__
 _STORE_TRANSACTION_BASE_EXCEPTION = BaseException
 _STORE_TRANSACTION_SELECT = object()
+from contextvars import ContextVar as _StoreTransactionContextVar
+_STORE_TRANSACTION_OWNER = _StoreTransactionContextVar('hepta.hia.store-transaction-owner', default=None)
 
 
 @contextmanager
@@ -611,6 +613,10 @@ def _store_transaction_context(self, image=_STORE_TRANSACTION_SELECT, *, namespa
     # A single actual generator performs native suspension/resumption. In
     # particular no outer forwarding handler keeps a suppressed body exception
     # active while HIA completes its remaining continuation.
+    if image is _STORE_TRANSACTION_SELECT:
+        bound = _STORE_TRANSACTION_OWNER.get()
+        if bound is not None:
+            image = bound.select()
     if image is _STORE_TRANSACTION_SELECT:
         selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_TRANSACTION_MANIFEST')
         if selected is None:

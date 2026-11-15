@@ -11,9 +11,11 @@ from functools import lru_cache
 from hashlib import sha256
 import json
 import mmap
+import os
 from pathlib import Path
 import platform
 import struct
+import threading
 
 from . import hia_native_helpers
 
@@ -72,6 +74,53 @@ def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:
     return slots * 8, 128 + (depth + 1) * 32
 
 
+# One process-owned foreign ABI binding serves every immutable image.
+# Creating and discarding CDLL per mapping leaves private function/type cycles
+# for an unrelated caller's later GC. This owner retains no image or user data.
+_MAPPING_ABI = None
+_MAPPING_ABI_LOCK = threading.RLock()
+_MAPPING_ABI_BUILDING = False
+_MAPPING_ABI_EPOCH = object()
+
+
+def _reset_mapping_abi_lock():
+    global _MAPPING_ABI_LOCK, _MAPPING_ABI_BUILDING, _MAPPING_ABI_EPOCH
+    _MAPPING_ABI_LOCK = threading.RLock()
+    _MAPPING_ABI_BUILDING = False
+    _MAPPING_ABI_EPOCH = object()
+
+
+if hasattr(os, 'register_at_fork'):
+    os.register_at_fork(after_in_child=_reset_mapping_abi_lock)
+
+
+def _mapping_mprotect():
+    global _MAPPING_ABI, _MAPPING_ABI_BUILDING
+    while True:
+        with _MAPPING_ABI_LOCK:
+            if _MAPPING_ABI is not None:
+                return _MAPPING_ABI[1]
+            if _MAPPING_ABI_BUILDING:
+                raise RuntimeError('native mapping ABI initialization is already active')
+            epoch = _MAPPING_ABI_EPOCH
+            _MAPPING_ABI_BUILDING = True
+            try:
+                library = ctypes.CDLL(None, use_errno=True)
+                protect = library.mprotect
+                protect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+                protect.restype = ctypes.c_int
+                # A fork callback may complete a child binding while this
+                # earlier initializer is suspended. Only its original epoch
+                # can publish or clear the corresponding in-progress flag.
+                if epoch is _MAPPING_ABI_EPOCH:
+                    _MAPPING_ABI = (library, protect)
+                    return protect
+            finally:
+                if epoch is _MAPPING_ABI_EPOCH:
+                    _MAPPING_ABI_BUILDING = False
+        # A child resumes through its new lock and already published binding.
+
+
 class NativeHiaJsonImage:
     """Pinned immutable code, private per-call scratch; concurrent calls allowed."""
     def __init__(self, image: bytes, expected_sha256: str):
@@ -85,10 +134,7 @@ class NativeHiaJsonImage:
         mapped = mmap.mmap(-1, len(image), prot=mmap.PROT_READ | mmap.PROT_WRITE)
         mapped.write(image)
         address = ctypes.addressof(ctypes.c_char.from_buffer(mapped))
-        libc = ctypes.CDLL(None, use_errno=True)
-        libc.mprotect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
-        libc.mprotect.restype = ctypes.c_int
-        if libc.mprotect(address, len(image), mmap.PROT_READ | mmap.PROT_EXEC):
+        if _mapping_mprotect()(address, len(image), mmap.PROT_READ | mmap.PROT_EXEC):
             code = ctypes.get_errno()
             mapped.close()
             raise OSError(code, 'mprotect native HIA JSON preflight')

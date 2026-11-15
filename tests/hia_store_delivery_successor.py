@@ -11,13 +11,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
-FIXTURE_SHA256 = 'c189a8b7940815abdc72742cd938e157e197abbbeab3225ccba7f8305c3ee3f3'
+FIXTURE_SHA256 = 'fb517c02fc292ca0cf4eaa2d3eb76236a7b0605312fabe4232159159cb75623c'
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
 SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
                 'hepta/hia_store_lifecycle_selection.py')
 SHARED_PATHS = ('hepta/hia_native_delivery.py', 'hepta/hia_store_lifecycle_native.py',
-                'hepta/hia_agent_service.py', 'hepta/hia_emission_native.py')
+                'hepta/hia_agent_service.py', 'hepta/hia_emission_native.py',
+                'hepta/hia_agent_journal_native.py')
 ADAPTER_PATH = 'hepta/hia_store_artifact_profile_native.py'
 # Actual c019 Git bytes independently pin this whole file. The original JSON
 # pins its 21 definitions, rather than the complete adapter source.
@@ -136,11 +137,18 @@ def admit_composition(original_value):
     if (value.get('schema') != 'hepta.hia.store-delivery-successor.v1'
             or value.get('state') != 'FROZEN_COMPOSED_SOURCE'
             or value.get('original_commit') != 'c0195643083e1d4c68679237edfa77143dc7b1c6'
-            or type(value.get('files')) is not dict or set(value['files']) != set(PATHS)):
+            or type(value.get('files')) is not dict or set(value['files']) != set(PATHS)
+            or any(type(value.get(name)) is not int or value[name] != expected
+                   for name, expected in (
+                       ('composition_source_count', 9), ('source_adjustment_count', 3),
+                       ('shared_adjustment_count', 5), ('adapter_source_adjustment_count', 1),
+                       ('unchanged_original_file_count', 86),
+                       ('unchanged_shared_dependency_count', 17),
+                       ('original_definition_count', 21)))):
         raise ValueError('Store successor provenance remains draft or changes scope')
     # A successor belongs to one complete reviewed composition. A partially
     # reverted mixture cannot borrow admission from another changed file.
-    # There is no process-global cache: every admission binds all eight complete files.
+    # There is no process-global cache: every admission binds all nine complete files.
     restored = {path: reverse_exact(captured[path], value['files'][path], originals[path])
                 for path in PATHS}
     definitions, definition_adjustments = _review_adapter(inventory, restored[ADAPTER_PATH],
@@ -153,7 +161,7 @@ def admit_composition(original_value):
         'current_sha256': value['files'][path]['new_sha256'],
         'current_bytes': value['files'][path]['new_bytes'],
         'reversible_patch_fixture_sha256': FIXTURE_SHA256,
-        'scope': 'exact reviewed D5, transaction, service artifact and context protocol successor',
+        'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL and context protocol successor',
         'composition_sha256': composition} for path in PATHS}
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:

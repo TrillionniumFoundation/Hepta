@@ -13,10 +13,10 @@ hosted service, storage, proof, process and runtime owners have live consumers.
 
 | Current source inventory | Count |
 | --- | ---: |
-| Physical HIA sources ending in `.hepta` | 198 |
+| Physical HIA sources ending in `.hepta` | 199 |
 | Physical legacy `.hia`, `.HIA`, `.hiaasm`, `.hia.json`, including case variants | 0 |
-| Production Python modules directly under `hepta/` | 220 |
-| Registered native helper selectors | 41 |
+| Production Python modules directly under `hepta/` | 222 |
+| Registered native helper selectors | 42 |
 
 The complete [indexed-source inventory](HIA_NATIVE_REWRITE_INVENTORY.json)
 records every retained indexed file, Python module, static import edge, native
@@ -36,6 +36,84 @@ The [suffix contract](HIA_SOURCE_SUFFIX.md) and
 Assembly keeps `hia-asm.v1`; structured Core keeps its schema; paired structured
 projections use `.core.hepta`. The `hia` command, `hepta.hia.*` schemas, Git
 objects and historical receipt bytes retain their original identities.
+
+## Service read candidate under qualification
+
+The complete retained `_hia_read` body now has a generated HIA control graph
+in `service_read.hepta`, with 32 foreign ports. Cursor decisions, decoding and
+budget loops, exception transitions and result construction are represented
+in that source. Its adapter retains the original twelve local slots in the
+running interpreter's release order. The ordinary selected bridge, original
+6,372 finite inputs and separate 86-case SQL scope are present.
+
+The current composition also handles locals retained by an earlier handled
+exception. Normal retirement detaches its ordered storage without clearing
+the storage still owned by the original traceback; a completed result is
+removed from the adapter's own references before returning. Installed
+source-drift controls capture the actual installed worker's original identity
+manifest, then pass its worker, backend and catalog pins to all existing
+worker invocations. The native-helper bundle separately pins its executable
+images. The original configuration-rejection exit status, eight worker cases,
+handlers, inputs, assertions and inner limits remain.
+
+A complete Python 3.14 development run of the preceding composed tree passed
+Source3 and matched every original observation in the 6,372-input read domain.
+Its complete Native8 still reported two failed methods: the installed test had
+omitted the existing worker source-pin arguments, and all 86 separate SQL
+expression observations differed only at garbage-collection count fields.
+The complete SQL scope retained 172 original and 86 candidate processes; no
+result, exception metadata, SQL event or observed user-object lifetime differed.
+The raw failures and independent verification remain evidence of that tree.
+
+The current successor removes the SQL candidate harness's unused mock import
+while retaining its exact poison guards and entry observations. It also gives
+the fixed mprotect ABI a process-owned library/procedure binding, initialized
+once under a lock with a child-fork lock and initialization epoch reset.
+This binding owns no image or user object. These changes avoid private initialization cycles without adding
+collection before a case or normalizing any observation. The frozen original
+observer, complete 86-case inputs and original child/batch limits are unchanged.
+
+This composed candidate is under complete Source, Native, ordinary-caller
+and same-source cold qualification. Generating the source or passing a
+metadata check does not establish native equivalence. The published parent
+`3424f6d` retains an open complete transaction-journal/SlotLedger caller
+failure. Historical Source3 success and Native8's 6 passes / 2 failures on
+the preceding read tree do not qualify these changed bytes. The legacy live
+owners remain required.
+See [the read contract](HIA_SERVICE_READ_NATIVE.md) and
+[complete read validation scopes](HIA_SERVICE_READ_VALIDATION.md).
+
+
+## Transaction and journal candidates under qualification
+
+An explicit transaction-owner scope admits the complete pinned manifest,
+source and image before selection. Selection occurs at the generator's
+first advance, with process and thread ownership checks for a new
+transaction. An already started transaction retains its captured image and
+can complete after the selecting scope exits. Nested scope, lazy selection,
+manifest/source/image drift, stale copied contexts, thread/fork refusal,
+legitimate resumed execution and an actual installed helper binding have
+six complete new Native controls. This scope is used for the complete
+original SlotLedger caller module, including its intentionally cleared
+environment. The original retained-body poison and original method remain.
+
+Journal pre-entry acknowledgement exceptions can require the original SQL
+transaction cleanup before loss is published. The candidate keeps that
+exception pending only while the real transaction cleanup runs. A real
+native acknowledgement loss remains immediate; suppression or cleanup
+failure cannot turn an unconfirmed SQL acknowledgement into success or
+permit the next business phase. Four complete new Native methods cover
+14 declared controls, 16 initial faulted requests and two original replay
+checks, with actual journal/TX images and SQLite.
+
+These changes remain candidates. The original complete journal 21,
+execution-budget 25 and SlotLedger 15 methods form their unchanged TX61
+gate; the new six and four methods supplement that gate. The product
+workflow gives both new complete modules their own same-cold inputs and
+owned evidence directories. Whole-suite environment wiring, matching
+current-source cold, all separate retained caller scopes and installed
+entry-point closure remain required. See
+[the transaction contract](HIA_STORE_TRANSACTION_NATIVE.md).
 
 ## Latest implemented changes
 
@@ -115,26 +193,34 @@ source-bound evidence. The host dependencies remain explicit.
 
 ## Exact composed source provenance
 
-Eight previously pinned production paths have a single complete successor:
+Nine explicitly pinned production paths have one complete successor:
 `artifact_publication_native.py`, `hia_agent_store.py`,
 `hia_store_lifecycle_selection.py`, `hia_native_delivery.py`,
 `hia_store_lifecycle_native.py`, `hia_agent_service.py`,
-`hia_emission_native.py`, and `hia_store_artifact_profile_native.py` under
-`hepta/`. Each full byte patch reconstructs its independently pinned original
-Git blob. Admission accepts only the complete old composition or the complete
-new composition, rereads the files and rejects mixed or changed bytes.
+`hia_emission_native.py`, `hia_agent_journal_native.py`, and
+`hia_store_artifact_profile_native.py` under `hepta/`. The declaration
+accounts for three ordinary source changes, five shared changes and one
+complete adapter change. Seventeen of the original 22 shared dependencies
+remain unchanged. Each exact full-file splice reconstructs the independently
+pinned original bytes; admission accepts a complete original or complete
+successor composition and rejects mixtures or changed rereads.
 
 The original c019 inventory JSON remains unchanged. Its 21 adapter definition
-checks keep 20 exact original definitions and one explicitly pinned, reviewed
-`_context_special` successor. The other old source/shared checks remain active;
-there is no broad AST normalization or partial fallback. The existing
-helper-count literal adjustment is explicit and narrowly scoped.
+checks keep 20 exact original definitions and one explicitly pinned
+`_context_special` successor. The other original source checks remain active.
+The existing helper-count adjustment is still 42; the new transaction owner
+and journal controls reuse existing native helpers.
 
-Independent static review and all 256 old/new combinations were completed for
-the frozen integration: exactly the all-old and all-new combinations were
-accepted, while the 254 mixtures, eight single-file byte mutations and two
-actual reread races were rejected. These checks establish exact provenance,
-not whole-program behavior or current-source cold qualification.
+Before the metadata freeze, all 574 declared pure-reader controls completed
+on the actual nine-source composition: the 512 source masks accepted only
+the complete original and complete successor, and all remaining identity,
+mutation, reread, inverse-patch, definition and strict-count controls rejected.
+There were two accepted and 572 rejected controls, with every input byte
+unchanged. These are metadata checks and establish no Native execution or
+whole-product qualification. The independent record binds the complete
+ordered case list and actual source hashes. A preceding reader's runtime
+dependent AST-display failure remains separately retained; the final reader
+uses fixed typed fields and exact function source bytes.
 
 ## Observed validation and remaining acceptance
 
@@ -152,7 +238,7 @@ installed readback remain independently required.
 | Local combined tree 8ffb7cb5fea162bcfb7f65bd417d48778258bc0e at 593e2358d43567d44fa6afa35836c53c0fe23ad0 | Complete context 9, original D4 Source 3, original transaction 11, Store profile 11, emission 11, service artifact Source 3 and Native 8: all 56 passed on CPython 3.13.5. The complete original 112 callers then passed in 138.5493 seconds (139.0689 outer seconds), with 469 actual service-artifact frames and zero retained-body calls. All 1,253 admitted source identities match before/after; no owned process groups remain. This is explicit DEV qualification before the documentation freeze. |
 | Unpublished 10b5347e287cd617ebc7bfdde0a5f7f439b421de, tree cbb1db307e8053d6c147e38400ebef28ed6cc0c6, actual CPython 3.14.10 | All 56 component methods started and stopped; 55 passed. The full 146-case service-artifact comparison found exactly 26 event-order leaves in 13 exception cases: the original released the issued reference before data, while the adapter released data first. Values, errors and all other observations matched. The complete Native8 module therefore remained HOLD, and the original 112 caller gate did not start. The invocation exited naturally with status 1, no signals and no remaining owned groups. This failure is retained and is the direct reason for the local-storage repair above; earlier 3.13 success does not qualify the repair. |
 | Exact local-release adapter `6e4a57398080eebb614711954baa79465a5d0b3e35c997aba98fdc63fd141495`, before metadata/commit freeze | Complete original Source 3 plus additive local-release Source 3 passed **6/6 in each runtime**: 3.12.14 in 43.928008 unittest seconds (44.241036 outer); 3.13.5 in 43.557761 unittest seconds (43.791527 outer); 3.14.10 in 56.367979 unittest seconds (56.931763 outer). Each fresh child formed all 146 original observations before candidate imports and then completed all 146 independent-VM observations; complete raw bytes matched, with 1,850 VM entries (146 initialize, 852 claim, 758 successful and 94 exceptional acknowledgements). Independent readback checked all 2,407 worktree source identities, all method events, all raw rows and the absence of owned process groups. This is Source/VM qualification, not Native, matching-cold or whole-product qualification. |
-| Current-source cold and complete retained acceptance | Separate gates remain required. The e7-bound full harness [43650082174](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43650082174) and bb3120-bound parent [43644981418](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43644981418) were still running at this observation. Neither can qualify the new source composition. |
+| Current-source cold and complete retained acceptance | Separate gates remain required. The e7-bound full harness [43650082174](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43650082174) completed all 5,080 methods with six failed subcases; the bb3120-bound parent [43644981418](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43644981418) reached its original 5,400-second full-suite limit and has no complete suite result. The 3424-bound [full audit 43665223497](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43665223497) was still running at the latest readback before this documentation freeze. None qualifies this changed source composition. |
 
 The completed 593 DEV readback includes both transaction histories of
 521 originals each; Store 463 ordinary, 41 dynamic-limit and 160 cold plus
@@ -220,7 +306,7 @@ HIA policy ownership is recorded separately above.
 | --- | --- |
 | `hia_describe` | Profile/resource/page discovery; CLI discovery JSON does not automatically replace this API |
 | `hia_artifact` | Complete selected HIA handler above; path capture, hash/Store/SQLite effects and opaque object protocols remain hosted |
-| `hia_read` | Cursor paging, UTF-8/base64 limits and durable cursor records |
+| `hia_read` | Complete selected HIA control candidate above; original filesystem/SQLite/codec providers, opaque object protocols and source-bound qualification remain |
 | `hia_context` | Hosted schema/profile/buffer providers, clock/object protocols and persistence effects; selected freeze/lookup/deadline control now has the HIA owner above |
 | `hia_inspect` | View/selector/query/lowering coordination |
 | `hia_candidate` | Import/patch routing, retention and complete diagnostics |

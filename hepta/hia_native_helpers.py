@@ -28,6 +28,7 @@ MAX_SOURCE_BYTES = 8 << 20
 # Only single-image contracts with the existing six-argument byte ABI.
 # Multi-image and external executable contracts need a separate custody closure.
 HELPERS = {
+    "HEPTA_HIA_SERVICE_READ_MANIFEST": ("hia_service_read_native", "NativeServiceRead"),
     "HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST": ("hia_service_artifact_native", "NativeServiceArtifact"),
     "HEPTA_HIA_STORE_TRANSACTION_MANIFEST": ("hia_store_transaction_native", "NativeStoreTransaction"),
     "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST": ("hia_store_artifact_profile_native", "NativeStoreArtifactProfile"),

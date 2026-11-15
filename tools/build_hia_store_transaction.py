@@ -28,6 +28,7 @@ INPUTS = (
     'hepta/hia_emission_native.py', 'hepta/hia_json_preflight_native.py',
     'tools/generate_hia_service_context.py', 'tools/generate_hia_selfhost.py',
     'tests/test_hia_store_transaction_native.py',
+    'tests/test_hia_store_transaction_owner_native.py',
     'tests/hia_store_transaction_oracle.py', 'tests/hia_store_transaction_scenarios.py',
     'tests/hia_store_transaction_history.py',
     'tests/fixtures/hia_emission_original_73f1634/original-freeze.json',

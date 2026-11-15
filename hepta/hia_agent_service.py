@@ -1662,3 +1662,21 @@ def _service_artifact_dispatch(self, args):
 
 
 HIAAgentService._hia_artifact = _service_artifact_dispatch
+
+# Keep the complete original read body and its bound builtins. The public
+# caller still performs its original dynamic method lookup; an explicit user
+# replacement remains an ordinary foreign callable.
+_SERVICE_READ_REFERENCE = HIAAgentService._hia_read
+_SERVICE_READ_GLOBAL_BUILTINS = _SERVICE_READ_REFERENCE.__builtins__
+HIAAgentService._hia_read_reference = _SERVICE_READ_REFERENCE
+
+
+def _selected_hia_read(self, arguments):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_READ_MANIFEST')
+    if selector is None:
+        return _SERVICE_READ_REFERENCE(self, arguments)
+    from .hia_service_read_native import ServiceReadFrame, installed_service_read
+    return ServiceReadFrame(installed_service_read(selector), self, arguments).finish()
+
+
+HIAAgentService._hia_read = _selected_hia_read

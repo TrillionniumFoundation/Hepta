@@ -224,3 +224,57 @@ All previous failures remain separate evidence; no deadline, fixture, skip or
 source check is relaxed. Development uses an explicit compiler and supplies
 no matching-current-source cold evidence. SQLite, foreign providers, CPython
 generator behavior and the surrounding hosted stack remain present.
+
+
+## Explicit transaction-owner routing controls (reconstructed successor)
+
+A complete caller may deliberately clear the environment while retaining an
+explicitly selected transaction image. The public lazy dispatcher now consults
+a live transaction-owner binding at its first generator advance. The binding
+retains the exact current image and manifest and still performs the original
+manifest, HIA source, executable and worker-bundle admission. It neither grants
+an undeclared worker helper nor expands an administrator bundle. Empty or
+conflicting environment selections remain errors.
+
+The binding is confined to its active ContextVar value, process and thread.
+A copied context cannot revive an exited binding. This selection lifetime is
+separate from the transaction's actual advance custody: an already-started,
+healthy suspended transaction keeps its original legal resume domain after the
+routing scope exits. SQLite and particular lock objects retain their own
+existing thread restrictions.
+
+The complete 61-caller qualifier preserves its original environment selection
+for all three modules, including real Budget thread/subprocess callers. It
+adds the explicit current-image scope only around the entire Slot15 module.
+Original clear=True operations are not intercepted, the two retained aliases
+remain poisoned, and the original 61 IDs, ordering, 1800-second outer deadline,
+all inner limits and worker bundles remain unchanged. The ordinary112 and
+artifact130 gates remain distinct; neither is replaced by these controls.
+
+The new reconstructed module
+tests.test_hia_store_transaction_owner_native contains six Native methods and
+no Source methods. It requires exactly one nonempty
+HEPTA_HIA_STORE_TRANSACTION_COLD_REPORT or
+HEPTA_HIA_STORE_TRANSACTION_DEVELOPMENT_COMPILER. Its dedicated optional output
+is HEPTA_HIA_STORE_TRANSACTION_OWNER_EVIDENCE. It builds once using the existing
+strict builder and records complete source/compiler/manifest/image custody.
+
+The six methods cover actual SQLite commit and rollback under clear
+environment and poisoned references; nested and lazy selection; exact drift
+refusal before effects; stale context/thread/fork guards; an already-started
+custom-provider transaction resumed after scope exit on another thread; and
+the real native_helpers_scope's undeclared/declared-image exclusivity. The last
+case is a real pinned worker scope with actual SQLite, not a worker CLI process;
+the preexisting installed-worker test remains a separate required gate.
+Thread/fork observation uses an explicit five-second test budget. No production
+timeout, count cap, retry or fallback is added.
+
+This source is a reconstructed replacement after loss of the unpublished
+f5fc/74b1 scratch artifact. It is not those historical bytes and carries no
+qualification from that artifact. A direct complete-module invocation is
+python -B -m unittest -v tests.test_hia_store_transaction_owner_native with the
+chosen cold/development environment. Final composition still requires the
+ordinary original11, originalSlot15, full61, ordinary112 and separate130 scopes,
+precise successor provenance, normal source registration and current-source
+cold qualification. No complete native-stack claim follows from these six
+methods.

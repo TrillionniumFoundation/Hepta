@@ -8,6 +8,7 @@ native custody; a confirmed suspension is not tied to its creator thread.
 from __future__ import annotations
 
 from builtins import BaseException as _BaseException
+from contextlib import contextmanager
 import ctypes
 from dataclasses import dataclass
 from functools import lru_cache
@@ -74,7 +75,7 @@ def _mapped_transaction(raw, digest, source_digest):
     return image
 
 
-def installed_store_transaction(manifest_path):
+def installed_store_transaction(manifest_path, *, _bound_image=None):
     if not manifest_path:
         raise ValueError('native Store transaction selector must not be empty')
     from .hia_native_helpers import pinned_image
@@ -100,6 +101,10 @@ def installed_store_transaction(manifest_path):
         raise ValueError('native Store transaction source identity mismatch')
     if sha256(image).hexdigest() != value['image_sha256']:
         raise ValueError('native Store transaction image identity mismatch')
+    if _bound_image is not None:
+        if selected is not None and selected is not _bound_image:
+            raise ValueError('native transaction owner differs from pinned worker image')
+        selected = _bound_image
     if selected is None:
         selected = _mapped_transaction(image, value['image_sha256'], value['source_sha256'])
     elif type(selected) is not NativeStoreTransaction or selected.image_sha256 != value['image_sha256']:
@@ -108,6 +113,79 @@ def installed_store_transaction(manifest_path):
             or _regular_bytes(image_path, 1 << 20) != image):
         raise ValueError('native Store transaction selection changed during admission')
     return selected
+
+
+class _TransactionOwnerBinding:
+    """An explicit image selection for this live process/thread/context.
+
+    This is a routing scope, not a new worker capability. Every selection still
+    passes the original manifest/source/image admission and worker bundle
+    checks. It does not keep any Store or alter an already-started transaction.
+    """
+
+    def __init__(self, manifest_path, image):
+        from .hia_agent_store import _STORE_TRANSACTION_OWNER
+        from .hia_native_helpers import native_helpers_identity
+        self.variable = _STORE_TRANSACTION_OWNER
+        self.pid = os.getpid()
+        self.thread = threading.get_ident()
+        self.active = False
+        self.path = Path(manifest_path).resolve(strict=True)
+        self.raw = _regular_bytes(self.path, 16384)
+        self.worker_identity = native_helpers_identity()
+        self.image = image
+        selected = installed_store_transaction(str(self.path), _bound_image=image)
+        if selected is not image:
+            raise ValueError('native transaction owner requires its exact current image')
+        if (_regular_bytes(self.path, 16384) != self.raw
+                or native_helpers_identity() != self.worker_identity):
+            raise ValueError('native transaction owner changed during reservation')
+        self.manifest_sha256 = sha256(self.raw).hexdigest()
+
+    def _check_active(self):
+        if (not self.active or self.variable.get() is not self
+                or os.getpid() != self.pid or threading.get_ident() != self.thread):
+            raise ValueError('native transaction owner belongs to its live process, thread and context')
+
+    def select(self):
+        self._check_active()
+        from .hia_native_helpers import native_helpers_identity
+        selected_path = os.environ.get(SELECTOR)
+        if selected_path is not None:
+            if not selected_path:
+                raise ValueError('native Store transaction selector must not be empty')
+            if Path(selected_path).resolve(strict=True) != self.path:
+                raise ValueError('native transaction selector differs from its explicit owner')
+        if native_helpers_identity() != self.worker_identity:
+            raise ValueError('native transaction worker authority differs from its explicit owner')
+        if _regular_bytes(self.path, 16384) != self.raw:
+            raise ValueError('native transaction owner manifest changed')
+        selected = installed_store_transaction(str(self.path), _bound_image=self.image)
+        if (selected is not self.image or _regular_bytes(self.path, 16384) != self.raw
+                or native_helpers_identity() != self.worker_identity):
+            raise ValueError('native transaction owner changed during selection')
+        self._check_active()
+        return selected
+
+
+@contextmanager
+def transaction_owner_scope(manifest_path, image):
+    """Select an already-admitted exact image without altering caller env.
+
+    Absence of a selector inside this explicit scope is permitted. An empty or
+    conflicting selector is refused. Outside the scope the original lazy
+    environment selection is unchanged. A copied context cannot reactivate a
+    completed scope or authorize a different process/thread.
+    """
+    binding = _TransactionOwnerBinding(manifest_path, image)
+    token = binding.variable.set(binding)
+    binding.active = True
+    try:
+        binding.select()
+        yield binding
+    finally:
+        binding.active = False
+        binding.variable.reset(token)
 
 
 def _checksum(words):
