@@ -143,7 +143,7 @@ EXTRA_COLD_COMPONENTS = (
     "DEFAULT_RELEASE", "SERVICE_CONTEXT", "COST_LEDGER", "EVALUATION", "NATIVE_TRANSPORT",
     "NATIVE_BUILD_ADMISSION", "NATIVE_BUILD_DISPATCH", "EMISSION", "STORE_ARTIFACT_PROFILE",
     "NATIVE_DELIVERY", "STORE_NATIVE_DELIVERY",
-    "STORE_TRANSACTION", "ARTIFACT_DELIVERY",
+    "STORE_TRANSACTION", "ARTIFACT_DELIVERY", "SERVICE_ARTIFACT",
 )
 
 DEFAULT_RELEASE_SOURCE_CLASS = "tests.test_hia_default_native_release.DefaultReleaseSourceTests"
@@ -172,21 +172,50 @@ STORE_TRANSACTION_SOURCE_CLASS = "tests.test_hia_store_transaction_native.StoreT
 STORE_TRANSACTION_NATIVE_CLASS = "tests.test_hia_store_transaction_native.StoreTransactionNativeTests"
 ARTIFACT_DELIVERY_SOURCE_CLASS = "tests.test_hia_artifact_delivery.ArtifactDeliverySourceTests"
 ARTIFACT_DELIVERY_NATIVE_CLASS = "tests.test_hia_artifact_delivery.ArtifactDeliveryNativeTests"
+SERVICE_ARTIFACT_SOURCE_CLASS = "tests.test_hia_service_artifact_native.ServiceArtifactSourceTests"
+SERVICE_ARTIFACT_NATIVE_CLASS = "tests.test_hia_service_artifact_native.ServiceArtifactNativeTests"
+CONTEXT_PROTOCOL_SOURCE_MODULE = "tests.test_hia_context_protocol"
+CONTEXT_PROTOCOL_SOURCE_CLASS = "tests.test_hia_context_protocol.ContextProtocolSourceTests"
+SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_MODULE = 'tests.test_hia_service_artifact_local_release'
+SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_CLASS = 'tests.test_hia_service_artifact_local_release.ServiceArtifactLocalReleaseSourceTests'
+SOURCE_ONLY_EVIDENCE = {
+    "service-artifact-local-release": "HEPTA_HIA_SERVICE_ARTIFACT_LOCAL_RELEASE_EVIDENCE",
+}
+SERVICE_ARTIFACT_LOCAL_RELEASE_OBSERVER = 'tests/hia_service_artifact_local_release_observer.py'
+# Derived from all actual first-tuple source classes, inheritance and runTest fallback.
+SERVICE_ARTIFACT_LOCAL_RELEASE_EXPECTED_SOURCE_COUNT = 713
+SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_METHODS = ('test_01_success_all_six_original_locals_and_active_exception',
+ 'test_02_len_str_failure_traceback_retention_and_final_release',
+ 'test_03_complete_original_146_same_runtime_before_independent_VM')
+# Exact repaired Source inputs; the published target is bound below.
+SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_PINS = {'hepta/hia_service_artifact_native.py': {'bytes': 18549,
+                                          'sha256': '6e4a57398080eebb614711954baa79465a5d0b3e35c997aba98fdc63fd141495'},
+ 'tests/test_hia_service_artifact_local_release.py': {'bytes': 20987,
+                                                      'sha256': '000dd43442ecd5d1a619464c00ce1646a5a86e5c0a3a1086f3acd7f166fcd873'},
+ 'tests/hia_service_artifact_local_release_observer.py': {'bytes': 10876,
+                                                          'sha256': '5382320d5617f0e536559068cad47c9859f52bf98121e8427ecffdb1c4ecc1d8'}}
 # Filled only after the actual composed source and GitHub commit/tree are frozen.
 # A draft fixture or an unbound target cannot enter a formal same-cold reader.
-FINAL_DELIVERY_FREEZE = {'five_source_sha256': {'hepta/artifact_publication_native.py': '3ede824779490e60d6cbaa17ce30ee3fcec166175fb8dc7f6b016743b2a94532',
-                        'hepta/hia_agent_store.py': 'daeeca1b6a0e0e901a4958c115efeee877ba95fea3617b5226575f04482f2486',
-                        'hepta/hia_native_delivery.py': 'd8d636a89fc691b8c5711ae0279b1f83e9149c3e15607bff7698b489ffd4f576',
-                        'hepta/hia_store_lifecycle_native.py': '9ce14c14745cf50ae8ea1b32f7ea60d4ff4c3e95c66eb320f0f457d1dcc06df7',
-                        'hepta/hia_store_lifecycle_selection.py': '6f56b91061c0be019ea5dceb86613d307793a4bf691228101776a46885887c7b'},
- 'product_commit': 'e7c1729345d5d06757b38a6ae1ce54ae9790fd85',
- 'product_tree': 'fc74cd284dfa85a32dfb988baddb0bfb1ddcd61f',
- 'successor_fixture_sha256': 'e98fdea293d50b3f42b8f28661c1cdb0c01c915357e6269b801f47913a9382a7',
- 'successor_helper_sha256': 'f822a3fe818b6be18aec4a290687d8f38d431122e1896c36e90cf6620f380de9'}
+FINAL_DELIVERY_FREEZE = {'composed_source_sha256': {'hepta/artifact_publication_native.py': '3ede824779490e60d6cbaa17ce30ee3fcec166175fb8dc7f6b016743b2a94532',
+                            'hepta/hia_agent_service.py': '55f90052c62a73a48395059ae72ad1ae592315595e7c490d19421d934d5d9737',
+                            'hepta/hia_agent_store.py': 'daeeca1b6a0e0e901a4958c115efeee877ba95fea3617b5226575f04482f2486',
+                            'hepta/hia_emission_native.py': '0ecd13ed64633fea6e97bdb7bb1d505d543a8cc62df2a0c979862798cb367a22',
+                            'hepta/hia_native_delivery.py': '939eff3e5144ccd0dec5f25d5084f03c4ec338b812ccaefa85380d5464f4eb95',
+                            'hepta/hia_store_artifact_profile_native.py': '21bd1b7695e62c3521128e99ffb244c273557c1567e375fd44de65568aa2880f',
+                            'hepta/hia_store_lifecycle_native.py': '9ce14c14745cf50ae8ea1b32f7ea60d4ff4c3e95c66eb320f0f457d1dcc06df7',
+                            'hepta/hia_store_lifecycle_selection.py': '6f56b91061c0be019ea5dceb86613d307793a4bf691228101776a46885887c7b'},
+ 'product_commit': '3424f6d116a087373b161b9970cad07c65a9e4c4',
+ 'product_tree': '9fa3bc3d2699a18f0a78bd646a4d7b7af9fed84a',
+ 'successor_fixture_sha256': 'c189a8b7940815abdc72742cd938e157e197abbbeab3225ccba7f8305c3ee3f3',
+ 'successor_helper_sha256': 'c07c52bdb3faf6da50a78e1abb887a9fbfa21e9ca7728ae2234f3a9b94b2e90c'}
 FINAL_STORE_SOURCE_PATHS = ("hepta/artifact_publication_native.py", "hepta/hia_agent_store.py",
                            "hepta/hia_store_lifecycle_selection.py")
-FINAL_STORE_SHARED_PATHS = ("hepta/hia_native_delivery.py", "hepta/hia_store_lifecycle_native.py")
-FINAL_STORE_PATHS = FINAL_STORE_SOURCE_PATHS + FINAL_STORE_SHARED_PATHS
+FINAL_STORE_SHARED_PATHS = ("hepta/hia_native_delivery.py", "hepta/hia_store_lifecycle_native.py",
+                            "hepta/hia_agent_service.py", "hepta/hia_emission_native.py")
+FINAL_STORE_ADAPTER_PATH = "hepta/hia_store_artifact_profile_native.py"
+FINAL_STORE_ADAPTER_ORIGINAL = {'bytes': 32417,
+    'sha256': 'fccf236d69462b833b7c8e466bcde716738c13be7095aa675c9427022839b7fc'}
+FINAL_STORE_PATHS = FINAL_STORE_SOURCE_PATHS + FINAL_STORE_SHARED_PATHS + (FINAL_STORE_ADAPTER_PATH,)
 FINAL_STORE_ORIGINAL = "tests/fixtures/store_native_delivery_original_c019.json"
 FINAL_STORE_ORIGINAL_SHA256 = "5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54"
 FINAL_STORE_SUCCESSOR = "tests/fixtures/store_delivery_successor_provenance.json"
@@ -231,6 +260,7 @@ FULL_DISCOVERY_EVIDENCE = {
     "store-native-delivery": (STORE_NATIVE_DELIVERY_NATIVE_CLASS, "HEPTA_HIA_STORE_NATIVE_DELIVERY_EVIDENCE"),
     "store-transaction": (STORE_TRANSACTION_NATIVE_CLASS, "HEPTA_HIA_STORE_TRANSACTION_EVIDENCE"),
     "artifact-delivery": (ARTIFACT_DELIVERY_NATIVE_CLASS, "HEPTA_HIA_ARTIFACT_DELIVERY_EVIDENCE"),
+    "service-artifact": (SERVICE_ARTIFACT_NATIVE_CLASS, "HEPTA_HIA_SERVICE_ARTIFACT_EVIDENCE"),
 }
 # The selected CLI callers use a separate fixture under the same evidence root.
 # They remain their own complete class in the original full discovery.
@@ -270,6 +300,8 @@ ADDITIONAL_DISCARDED_SELECTORS = (
     "HEPTA_HIA_STORE_TRANSACTION_MANIFEST", "HEPTA_HIA_STORE_TRANSACTION_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_ARTIFACT_DELIVERY_DEVELOPMENT_COMPILER",
     "HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST", "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST",
+    "HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST", "HEPTA_HIA_SERVICE_ARTIFACT_DEVELOPMENT_COMPILER",
+    "HEPTA_HIA_SERVICE_ARTIFACT_SOURCE_EVIDENCE",
 )
 
 
@@ -304,6 +336,10 @@ def component_workflow_coverage(root):
         raise ValueError("D4 Store delivery source class must remain in the first extracted source tuple")
     if STORE_TRANSACTION_SOURCE_CLASS not in named[0] or ARTIFACT_DELIVERY_SOURCE_CLASS not in named[0]:
         raise ValueError("transaction and artifact delivery require their complete source classes in the first tuple")
+    if SERVICE_ARTIFACT_SOURCE_CLASS not in named[0] or CONTEXT_PROTOCOL_SOURCE_MODULE not in named[0]:
+        raise ValueError("service artifact Source3 and complete context protocol module must remain in the first tuple")
+    if SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_MODULE not in named[0]:
+        raise ValueError("the complete three-method service artifact local-release Source module must remain in the first tuple")
     groups = [node for node in ast.walk(ast.parse((root / RUNNER).read_bytes()))
               if isinstance(node, ast.Assign) and len(node.targets) == 1
               and getattr(node.targets[0], "id", None) == "groups"]
@@ -335,6 +371,9 @@ def component_workflow_coverage(root):
             "store_native_delivery_source_class_in_first_source_tuple": True,
             "store_transaction_source_class_in_first_source_tuple": True,
             "artifact_delivery_source_class_in_first_source_tuple": True,
+            "service_artifact_source_class_in_first_source_tuple": True,
+            "context_protocol_complete_module_in_first_source_tuple": True,
+            "service_artifact_local_release_complete_module_in_first_source_tuple": True,
             "coverage_scope": "SOURCE_AND_NATIVE_GROUPS_BEFORE_FIRST_FULL_DISCOVERY",
             "post_full_delivery_original_152_supplement_added": True,
             "retained_native_classes_first_execute_in_full_discovery": True,
@@ -384,14 +423,18 @@ def retained_environment(root, environment, cold_path):
                       for name in (*names, *EXTRA_COLD_COMPONENTS)}
     evidence_variables = {variable: str(cold_path.parent / "full-discovery-components" / name)
                           for name, (_, variable) in FULL_DISCOVERY_EVIDENCE.items()}
+    source_evidence_variables = {variable: str(cold_path.parent / "full-discovery-components" / name)
+                                 for name, variable in SOURCE_ONLY_EVIDENCE.items()}
     result.update(cold_variables)
     result.update(evidence_variables)
+    result.update(source_evidence_variables)
     result.update(PYTHONDONTWRITEBYTECODE="1", PYTHONUNBUFFERED="1", PYTHON_COLORS="0", NO_COLOR="1")
     return result, {
         "original_cold_components": list(names), "additional_cold_components": list(EXTRA_COLD_COMPONENTS),
         "cold_variables": cold_variables, "original_discarded_selector_lists": removed,
         "additional_discarded_selectors": discarded_additional,
         "full_discovery_evidence_variables": evidence_variables,
+        "source_only_evidence_variables": source_evidence_variables,
         "component_workflow_coverage": component_workflow_coverage(root),
         "same_run_future_cold_report": str(cold_path), "development_image_substitution": False,
     }
@@ -551,6 +594,8 @@ def require_observed_component_methods(discovery, identity):
     classes.append(STORE_ARTIFACT_PROFILE_SOURCE_CLASS)
     classes.extend((NATIVE_DELIVERY_SOURCE_CLASS, STORE_NATIVE_DELIVERY_SOURCE_CLASS,
                     STORE_TRANSACTION_SOURCE_CLASS, ARTIFACT_DELIVERY_SOURCE_CLASS))
+    classes.extend((SERVICE_ARTIFACT_SOURCE_CLASS, CONTEXT_PROTOCOL_SOURCE_CLASS,
+                    SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_CLASS))
     checked = {}
     for name in classes:
         planned = [item for item in discovery["planned_test_ids"] if item.startswith(name + ".")]
@@ -585,6 +630,13 @@ def require_observed_component_methods(discovery, identity):
         if ((name in (STORE_TRANSACTION_SOURCE_CLASS, ARTIFACT_DELIVERY_SOURCE_CLASS) and len(planned) != 3)
                 or (name in (STORE_TRANSACTION_NATIVE_CLASS, ARTIFACT_DELIVERY_NATIVE_CLASS) and len(planned) != 8)):
             raise ValueError("transaction and artifact delivery each require exactly three source and eight native methods")
+        if ((name == SERVICE_ARTIFACT_SOURCE_CLASS and len(planned) != 3)
+                or (name == SERVICE_ARTIFACT_NATIVE_CLASS and len(planned) != 8)
+                or (name == CONTEXT_PROTOCOL_SOURCE_CLASS and len(planned) != 9)):
+            raise ValueError("service artifact requires Source3/Native8 and context protocol all nine source methods")
+        if (name == SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_CLASS
+                and planned != [name + "." + method for method in SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_METHODS]):
+            raise ValueError("service artifact local release requires its exact complete three Source methods")
         if (not planned or [row["id"] for row in observed] != planned
                 or (name == DEFAULT_RELEASE_NATIVE_CLASS and len(planned) != 12)
                 or not all(row.get("completion_observed") is True
@@ -5609,16 +5661,16 @@ def final_delivery_target_binding(root, pins):
     """A formal invocation cannot invent the still-pending composed release."""
     fixed = FINAL_DELIVERY_FREEZE
     fields = {'product_commit', 'product_tree', 'successor_fixture_sha256',
-              'successor_helper_sha256', 'five_source_sha256'}
+              'successor_helper_sha256', 'composed_source_sha256'}
     if (type(fixed) is not dict or set(fixed) != fields
             or any(type(fixed.get(k)) is not str or re.fullmatch('[0-9a-f]{40}', fixed[k]) is None
                    for k in ('product_commit', 'product_tree'))
             or any(type(fixed.get(k)) is not str or re.fullmatch('[0-9a-f]{64}', fixed[k]) is None
                    for k in ('successor_fixture_sha256', 'successor_helper_sha256'))
-            or type(fixed.get('five_source_sha256')) is not dict
-            or set(fixed['five_source_sha256']) != set(FINAL_STORE_PATHS)
+            or type(fixed.get('composed_source_sha256')) is not dict
+            or set(fixed['composed_source_sha256']) != set(FINAL_STORE_PATHS)
             or any(type(v) is not str or re.fullmatch('[0-9a-f]{64}', v) is None
-                   for v in fixed['five_source_sha256'].values())):
+                   for v in fixed['composed_source_sha256'].values())):
         raise ValueError('final delivery composition and published target are pending; formal admission refused')
     root = Path(root)
     if (git(root, 'rev-parse', 'HEAD') != fixed['product_commit']
@@ -5626,14 +5678,14 @@ def final_delivery_target_binding(root, pins):
         raise ValueError('final delivery source differs from the frozen published commit/tree')
     for name, digest in ((FINAL_STORE_SUCCESSOR, fixed['successor_fixture_sha256']),
                          (FINAL_STORE_SUCCESSOR_HELPER, fixed['successor_helper_sha256']),
-                         *fixed['five_source_sha256'].items()):
+                         *fixed['composed_source_sha256'].items()):
         if hashlib.sha256(release_bytes(root / name, pins)).hexdigest() != digest:
             raise ValueError('final delivery composed input differs: ' + name)
     value = release_json(root / FINAL_STORE_SUCCESSOR, pins)
     if (value.get('state') != 'FROZEN_COMPOSED_SOURCE'
             or value.get('schema') != 'hepta.hia.store-delivery-successor.v1'
             or set(value.get('files', {})) != set(FINAL_STORE_PATHS)
-            or {n: row.get('new_sha256') for n, row in value['files'].items()} != fixed['five_source_sha256']):
+            or {n: row.get('new_sha256') for n, row in value['files'].items()} != fixed['composed_source_sha256']):
         raise ValueError('final delivery provenance remains draft or changes the composition')
     return dict(fixed)
 
@@ -5704,10 +5756,15 @@ def final_store_composition(root, original, pins):
         raise ValueError('final Store original complete source sets differ')
     originals = {n: original['unchanged_files'][n] for n in FINAL_STORE_SOURCE_PATHS}
     originals.update({n: original['shared_dependency_review'][n] for n in FINAL_STORE_SHARED_PATHS})
+    originals[FINAL_STORE_ADAPTER_PATH] = FINAL_STORE_ADAPTER_ORIGINAL
     captured = {n: release_bytes(root / n, pins) for n in FINAL_STORE_PATHS}
     unchanged = all(len(captured[n]) == originals[n]['bytes']
                     and hashlib.sha256(captured[n]).hexdigest() == originals[n]['sha256'] for n in FINAL_STORE_PATHS)
     adjustments, extra = {}, {}
+    expected_definitions = dict(original['unchanged_adapter_definitions'])
+    definition_adjustments = {}
+    if unchanged and final_store_definition_pins(captured[FINAL_STORE_ADAPTER_PATH]) != expected_definitions:
+        raise ValueError('independently pinned complete original adapter differs from all21 original definitions')
     if not unchanged:
         fixed = FINAL_DELIVERY_FREEZE
         if type(fixed) is not dict:
@@ -5722,8 +5779,22 @@ def final_store_composition(root, original, pins):
                 or value.get('state') != 'FROZEN_COMPOSED_SOURCE'
                 or value.get('original_commit') != 'c0195643083e1d4c68679237edfa77143dc7b1c6'
                 or type(value.get('files')) is not dict or set(value['files']) != set(FINAL_STORE_PATHS)
-                or {n: row.get('new_sha256') for n, row in value['files'].items()} != fixed.get('five_source_sha256')):
+                or {n: row.get('new_sha256') for n, row in value['files'].items()} != fixed.get('composed_source_sha256')):
             raise ValueError('final Store successor is not the one complete reviewed composition')
+        restored_adapter = final_reverse_store_patch(captured[FINAL_STORE_ADAPTER_PATH],
+            value['files'][FINAL_STORE_ADAPTER_PATH], FINAL_STORE_ADAPTER_ORIGINAL)
+        if final_store_definition_pins(restored_adapter) != expected_definitions:
+            raise ValueError('reviewed adapter inverse does not restore all21 original definitions')
+        successors = value.get('adapter_definition_successors')
+        if type(successors) is not dict or set(successors) != {'_context_special'}:
+            raise ValueError('adapter definition successor is outside the one reviewed context diagnostic')
+        record = successors['_context_special']
+        if (type(record) is not dict or set(record) != {'old', 'new'}
+                or record['old'] != expected_definitions['_context_special']
+                or type(record['new']) is not dict or set(record['new']) != {'bytes', 'sha256'}):
+            raise ValueError('adapter definition successor does not bind the frozen original')
+        expected_definitions['_context_special'] = record['new']
+        definition_adjustments = successors
         for name in FINAL_STORE_PATHS:
             final_reverse_store_patch(captured[name], value['files'][name], originals[name])
             adjustments[name] = {'path': name, 'original_sha256': originals[name]['sha256'],
@@ -5737,17 +5808,21 @@ def final_store_composition(root, original, pins):
         raw = release_bytes(root / name, pins)
         if {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()} != expected:
             raise ValueError('final Store shared dependency outside reviewed combination changed: ' + name)
-    definitions = final_store_definition_pins(release_bytes(root / 'hepta/hia_store_artifact_profile_native.py', pins))
-    if definitions != original['unchanged_adapter_definitions']:
-        raise ValueError('one of the complete 21 original Store definitions changed')
+    definitions = final_store_definition_pins(release_bytes(root / FINAL_STORE_ADAPTER_PATH, pins))
+    if definitions != expected_definitions:
+        raise ValueError('Store definitions differ from20 originals plus the one exact reviewed context successor')
     if any(release_bytes(root / n, pins) != raw for n, raw in {FINAL_STORE_ORIGINAL: original_raw, **captured, **extra}.items()):
         raise ValueError('final Store source/fixture changed during complete composition admission')
     return {'source_adjustments': {n: adjustments[n] for n in FINAL_STORE_SOURCE_PATHS if n in adjustments},
         'shared_adjustments': {n: adjustments[n] for n in FINAL_STORE_SHARED_PATHS if n in adjustments},
         'shared_dependency_review': shared,
-        'identity': {'scope': 'ORIGINAL_C019' if unchanged else 'FROZEN_FIVE_FILE_COMPOSED_SUCCESSOR',
-            'all_five_current_sha256': {n: hashlib.sha256(raw).hexdigest() for n, raw in captured.items()},
-            'all_21_original_definitions_unchanged': True, 'all_22_shared_members_checked': True,
+        'adapter_source_adjustments': {n: adjustments[n] for n in (FINAL_STORE_ADAPTER_PATH,) if n in adjustments},
+        'adapter_definition_adjustments': definition_adjustments,
+        'adapter_definition_review': expected_definitions,
+        'identity': {'scope': 'ORIGINAL_C019' if unchanged else 'FROZEN_EIGHT_FILE_COMPOSED_SUCCESSOR',
+            'all_eight_current_sha256': {n: hashlib.sha256(raw).hexdigest() for n, raw in captured.items()},
+            'all_21_definition_checks_retained': True, 'original_definition_count_preserved': 21 if unchanged else 20,
+            'exact_context_definition_successor_count': 0 if unchanged else 1, 'all_22_shared_members_checked': True,
             'source_fixture_reread': True}}
 
 
@@ -7375,6 +7450,793 @@ def artifact_delivery_pair_schedule(folder, value, workers, commands, pins):
         'all_mutations_follow_complete_pair_join':True,'original_child_timeout_seconds':60}
 # END FINAL DELIVERY INDEPENDENT READBACK
 
+SERVICE_ARTIFACT_ORIGINAL_PINS = {'tests/fixtures/hia_service_artifact_original_5bf/artifact.5bf.py.txt': {'bytes': 749,
+                                                                          'sha256': 'a1a85bb10bc4a56f1d145372dca122005586108a50f7a07fa13678d9432503d8'},
+ 'tests/fixtures/hia_service_artifact_original_5bf/cases.json': {'bytes': 71706,
+                                                                 'sha256': 'd17983d65ae0714970562b651ae08f7c734263035b92bf733506564e1edb6882'},
+ 'tests/fixtures/hia_service_artifact_original_5bf/freeze.json': {'bytes': 6728,
+                                                                  'sha256': 'f3c7fe6bfc0bb7befdb5d5c394eddee67d42ac16abbfb9e752021a2cc562ee9b'},
+ 'tests/fixtures/hia_service_artifact_original_5bf/profile.5bf.py.txt': {'bytes': 101,
+                                                                         'sha256': '0adeac9e1bf6164386db92d0a24fef3a8e083b39e027fe3063926ba1e14aeb3c'},
+ 'tests/fixtures/hia_service_artifact_original_5bf/source-identity.json': {'bytes': 20975,
+                                                                           'sha256': 'b1acb3cb9467952fab0b4a88485d4a1c2a916bdfc7e6a53a67d5a0ef348b644e'},
+ 'tests/hia_service_artifact_oracle.py': {'bytes': 16362,
+                                          'sha256': '421041c54f1695c35ac8cb7245ca59aca5ed0de32ea5d1016542bd912b7ac629'}}
+SERVICE_ARTIFACT_RESOURCE_GROUPS = {'test_actual_confirmed_child_parent_ACK_loss_and_actual_resource_identity': ('parent-ACK-lost-after-confirmed-child',
+                                                                              'nested-parent-ACK-lost',
+                                                                              'only-actual-other-Store-is-retained',
+                                                                              'child-loss-swallowed',
+                                                                              'child-loss-replaced',
+                                                                              'child-loss-with-suppression'),
+ 'test_actual_pending_cutpoints_gc_reentry_and_ACK_retirement': ('confirmed-ACK-retirement-MemoryError',
+                                                                 'scope-return-identity-failure-confirmed',
+                                                                 'scope-return-identity-failure-lost',
+                                                                 'actual-reentrant-child-loss-blocks-prepared-entry',
+                                                                 'actual-reentrant-child-loss-blocks-resource-scope-body',
+                                                                 'actual-reentrant-child-loss-blocks-foreign-body'),
+ 'test_actual_safe_preentry_confirmed_foreign_failure_and_healthy_release': ('associate-only-does-not-arm',
+                                                                             'safe-child-preentry-does-not-arm',
+                                                                             'healthy-ACK-releases-before-result',
+                                                                             'ordinary-provider-error-confirmed-after-child',
+                                                                             'parent-preentry-MemoryError',
+                                                                             'parent-preentry-RuntimeError',
+                                                                             'parent-preentry-KeyboardInterrupt',
+                                                                             'parent-preentry-SystemExit'),
+ 'test_actual_stale_Context_thread_fork_and_inherited_unknown_resource': ('stale-Context-is-not-parent',
+                                                                          'copied-thread-is-not-parent',
+                                                                          'fork-is-not-parent',
+                                                                          'unknown-resource-survives-fork')}
+
+
+def service_artifact_build_readback(directory, root, compiler, sources, pins, *, cold_path=None, development=False):
+    if type(development) is not bool or development == (cold_path is not None):
+        raise ValueError('service artifact readback requires explicit DEV or matching current cold')
+    directory = Path(directory)
+    observed = final_compile_transport(directory, 'service_artifact',
+        'examples/hia_bootstrap/service_artifact.hepta', root, compiler, sources, pins)
+    manifest, build = release_json(directory / 'manifest.json', pins), release_json(directory / 'build.json', pins)
+    expected = {'schema': 'hepta.hia.service-artifact.v1', 'source_sha256': observed['source_sha256'],
+        'image_path': 'service_artifact.image.bin', 'image_sha256': observed['image_sha256'],
+        'compiler_sha256': observed['compiler_sha256']}
+    inputs = final_source_inputs(root, sources, 'tools/build_hia_service_artifact.py', 'INPUTS', pins)
+    if (manifest != expected or build.get('schema') != 'hepta.hia.service-artifact-build.v1'
+            or build.get('manifest') != manifest or build.get('component_inputs') != inputs
+            or build.get('native_compile_receipt') != observed['receipt']
+            or build.get('scope') != ('DEVELOPMENT_COMPONENT' if development else 'MATCHING_SOURCE_COLD_COMPONENT')
+            or build.get('source_manifest') != (None if development else sources)
+            or build.get('cold_report_sha256') != (None if development else hashlib.sha256(release_bytes(cold_path, pins)).hexdigest())
+            or build.get('authored_owner') != 'complete HIAAgentService._hia_artifact control'
+            or build.get('resource_custody_policy') != 'actual child handoff or completed resource scope; matching parent foreign ACK'
+            or any(build.get(k) is not True for k in ('unselected_retained_original_still_present', 'opaque_object_and_provider_protocols_hosted'))
+            or any(build.get(k) is not False for k in ('selected_public_route_invokes_retained_handler',
+                'path_capture_filesystem_and_sqlite_native', 'resource_qualification_established_by_build',
+                'complete_input_equivalence_established_by_build', 'new_replay_retry_or_production_deadline',
+                'all_python_versions_tested', 'whole_native_stack_qualified'))):
+        raise ValueError('service artifact actual source/manifest/build/current-cold custody differs')
+    return manifest
+
+
+def service_artifact_original_inputs(root, sources, pins):
+    directory = 'tests/fixtures/hia_service_artifact_original_5bf/'
+    fixed = SERVICE_ARTIFACT_ORIGINAL_PINS
+    for name, expected in fixed.items():
+        raw = release_bytes(Path(root) / name, pins)
+        if {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()} != expected or sources.get(name) != expected['sha256']:
+            raise ValueError('service artifact independently frozen original input differs: ' + name)
+    freeze = release_json(Path(root) / directory / 'freeze.json', pins)
+    document = release_json(Path(root) / directory / 'cases.json', pins)
+    cases = document.get('cases')
+    if (document.get('base_commit') != '5bf69586b890706290c5fbfe93065ec0d3af40b1'
+            or freeze.get('schema') != 'hia.service-artifact-product-oracle-freeze.v1'
+            or freeze.get('case_count') != 146 or freeze.get('candidate_execution_completed') is not False
+            or freeze.get('product_original_execution_completed') is not False
+            or freeze.get('original_source_sha256') != fixed[directory + 'artifact.5bf.py.txt']['sha256']
+            or type(cases) is not list or len(cases) != 146
+            or [row.get('id') for row in cases] != freeze.get('ordered_ids')
+            or len(set(freeze['ordered_ids'])) != 146
+            or freeze.get('inputs') != {n: v for n, v in fixed.items() if n != directory + 'freeze.json'}):
+        raise ValueError('service artifact complete immutable 146-case input inventory differs')
+    return freeze, cases
+
+
+def service_artifact_observation_bytes(value):
+    """Escape original surrogate values while retaining strict numeric checks."""
+    return json.dumps(value, ensure_ascii=True, sort_keys=True,
+                      separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+
+def service_artifact_local_release_invocation(directory, root, sources, runtime, stage, executable, qualification, expected_sources, names, pins):
+    """Read one actual fresh Source child, without executing its observer."""
+    directory, root = Path(directory), Path(root)
+    finite = directory / 'finite'
+    declaration = release_json(directory / 'parent-command.json', pins)
+    result = release_json(directory / 'parent-result.json', pins)
+    report = release_json(finite / 'report.json', pins)
+    stdout = release_bytes(directory / 'stdout.log', pins)
+    stderr = release_bytes(directory / 'stderr.log', pins)
+    helper = root / SERVICE_ARTIFACT_LOCAL_RELEASE_OBSERVER
+    command = [executable, '-I', '-B', str(helper), '--output', str(finite)]
+    test_id = SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_CLASS + '.' + SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_METHODS[-1]
+    parent_pins = {name: SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_PINS[name]['sha256'] for name in (
+        'tests/test_hia_service_artifact_local_release.py', SERVICE_ARTIFACT_LOCAL_RELEASE_OBSERVER)}
+    marker = str(qualification / (stage + '-source-build'))
+    if (declaration.get('schema') != 'hepta.hia.local-release-child-command.v1'
+            or declaration.get('test_id') != test_id
+            or declaration.get('command') != command or declaration.get('cwd') != str(root)
+            or declaration.get('parent_cwd') != str(root)
+            or declaration.get('parent_argv') != ['-c']
+            or declaration.get('parent_executable') != executable or declaration.get('parent_runtime') != runtime
+            or declaration.get('enclosing_source_build_observations') != marker
+            or declaration.get('parent_source_pins') != parent_pins
+            or type(declaration.get('deadline_seconds')) is not int or declaration['deadline_seconds'] != 180
+            or type(declaration.get('cleanup_deadline_seconds')) is not int or declaration['cleanup_deadline_seconds'] != 3
+            or declaration.get('start_new_session') is not False
+            or declaration.get('child_inherits_parent_process_group') is not True
+            or declaration.get('provider_descendants_forbidden') is not True
+            or any(type(declaration.get(k)) is not int or declaration[k] <= 0
+                   for k in ('parent_pid', 'parent_pgid', 'started_time_ns'))):
+        raise ValueError('local-release Source parent command, actual stage or180+3second custody differs')
+    cleared = declaration.get('cleared_environment_names')
+    if (type(cleared) is not list or any(type(v) is not str or not v.startswith(('HEPTA_HIA_', 'PYTHON')) for v in cleared)
+            or cleared != sorted(set(cleared))
+            or not {'HEPTA_HIA_SERVICE_ARTIFACT_LOCAL_RELEASE_EVIDENCE', 'HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS'} <= set(cleared)
+            or declaration.get('runtime_library_path') is not None and type(declaration['runtime_library_path']) is not str):
+        raise ValueError('local-release child inherited an unreviewed selector/environment declaration')
+    if (result.get('schema') != 'hepta.hia.local-release-child-result.v1'
+            or any(result.get(k) != declaration[k] for k in ('parent_pid', 'parent_pgid', 'started_time_ns'))
+            or type(result.get('pid')) is not int or result['pid'] <= 0 or result['pid'] == declaration['parent_pid']
+            or type(result.get('returncode')) is not int or result['returncode'] != 0
+            or result.get('child_reaped') is not True or result.get('timed_out') is not False
+            or result.get('signals') != [] or result.get('exception') is not None or result.get('cleanup_exception') is not None
+            or type(result.get('finished_time_ns')) is not int or result['finished_time_ns'] < declaration['started_time_ns']
+            or type(result.get('elapsed_seconds')) not in (int, float) or not 0 <= result['elapsed_seconds'] < float('inf')
+            or result.get('stdout_sha256') != hashlib.sha256(stdout).hexdigest()
+            or result.get('stderr_sha256') != hashlib.sha256(stderr).hexdigest()):
+        raise ValueError('local-release Source child did not complete naturally with retained raw streams')
+    original_raw = release_bytes(finite / 'originals-146.json', pins)
+    actual_raw = release_bytes(finite / 'actuals-146.json', pins)
+    complete_raw = release_bytes(finite / 'complete-observations.json', pins)
+    difference_raw = release_bytes(finite / 'differences.json', pins)
+    expected, actual = json.loads(original_raw), json.loads(actual_raw)
+    complete, differences = json.loads(complete_raw), json.loads(difference_raw)
+    original_pin = {'bytes': len(original_raw), 'sha256': hashlib.sha256(original_raw).hexdigest()}
+    known = delivery_literal_values(root / 'tests/hia_service_artifact_observer.py', ('KNOWN_ORIGINALS',), pins)['KNOWN_ORIGINALS']
+    anchor = known.get(runtime.split()[0])
+    if (report.get('schema') != 'hepta.hia.service-artifact-local-release-observer.v1'
+            or report.get('status') != 'PASS'
+            or report.get('scope') != '146 finite fake-provider originals then independent VM in one fresh child'
+            or report.get('runtime') != runtime or report.get('runtime_version') != runtime.split()[0]
+            or report.get('executable') != executable or report.get('argv') != command[3:]
+            or report.get('cwd') != str(root)
+            or any(type(report.get(k)) is not int for k in ('pid', 'ppid', 'pgid'))
+            or (report.get('pid'), report.get('ppid'), report.get('pgid'))
+                != (result['pid'], declaration['parent_pid'], declaration['parent_pgid'])
+            or report.get('case_order') != names
+            or any(type(report.get(k)) is not int or report[k] != 146
+                   for k in ('original_count', 'actual_count', 'actual_vm_frames'))
+            or type(expected) is not list or len(expected) != 146
+            or type(actual) is not list or len(actual) != 146 or original_raw != actual_raw
+            or any(report.get(k) != original_pin for k in ('originals_before', 'originals_after', 'actuals'))
+            or report.get('complete_observations') != {'bytes': len(complete_raw), 'sha256': hashlib.sha256(complete_raw).hexdigest()}
+            or report.get('differences') != {'bytes': len(difference_raw), 'sha256': hashlib.sha256(difference_raw).hexdigest()}
+            or differences != [] or type(complete) is not list or len(complete) != 146
+            or [row.get('case') for row in complete] != names
+            or any(set(row) != {'case', 'expected', 'actual', 'equal'} or row['equal'] is not True for row in complete)
+            or service_artifact_observation_bytes([row['expected'] for row in complete]) != service_artifact_observation_bytes(expected)
+            or service_artifact_observation_bytes([row['actual'] for row in complete]) != service_artifact_observation_bytes(actual)
+            or report.get('known_same_runtime_original_sha256') != anchor
+            or anchor is not None and anchor != original_pin['sha256']
+            or type(report.get('actual_native_entries')) is not int or report['actual_native_entries'] != 0
+            or report.get('exception') is not None
+            or any(report.get(k) != [] for k in ('product_modules_before_originals', 'original_late_events',
+                'all_late_events', 'remaining_delivery_custody', 'reference_calls', 'mapping_calls', 'audit_refusals'))
+            or any(report.get(k) is not True for k in ('expected_file_unchanged_after_candidate',
+                'expected_written_before_candidate_imports', 'source_unchanged'))
+            or any(report.get(k) is not False for k in ('native_mapping_permitted', 'test01_or_test02_executed_in_child',
+                'new_gc_collection_or_observer_normalization', 'source_contract_metadata_required',
+                'cold_or_native_qualification', 'public_or_resource_qualification', 'whole_native_stack_qualified'))
+            or report.get('source_scope') != 'explicit actual byte pins; outer gate binds full tree'):
+        raise ValueError('local-release Source complete same-runtime original146/VM146 observations differ')
+    events = report.get('actual_vm_entry_events')
+    entries = report.get('actual_vm_entries')
+    if (type(events) is not dict or not {'0', '1', '2'} <= set(events) <= {'0', '1', '2', '3'}
+            or any(type(v) is not int or v < 0 for v in events.values())
+            or events.get('0') != 146 or events.get('1', 0) <= 0 or events.get('2', 0) <= 0
+            or events['1'] != events['2'] + events.get('3', 0)
+            or type(entries) is not int or entries <= 0 or entries != sum(events.values())):
+        raise ValueError('local-release Source did not observe the complete independent VM invocation accounting')
+    if (release_json(finite / 'source-before.json', pins) != expected_sources
+            or release_json(finite / 'source-after.json', pins) != expected_sources
+            or report.get('source_before') != expected_sources or report.get('source_after') != expected_sources):
+        raise ValueError('local-release Source byte provenance changed or differs from the current cold source')
+    ordering = release_json(finite / 'ordering.json', pins)
+    phases = ['original', 'originals-written', 'candidate-imports', 'candidate-vm', 'candidate-finished', 'readback']
+    if (type(ordering) is not list or len(ordering) != 6 or [row.get('name') for row in ordering] != phases
+            or any(type(row.get('time_ns')) is not int or not declaration['started_time_ns'] <= row['time_ns'] <= result['finished_time_ns'] for row in ordering)
+            or [row['time_ns'] for row in ordering] != sorted(row['time_ns'] for row in ordering)
+            or ordering[0].get('product_modules') != []
+            or type(ordering[1].get('count')) is not int or ordering[1]['count'] != 146
+            or any(ordering[i].get('original_file') != original_pin for i in (1, 3, 5))
+            or ordering[4].get('actual_count') != 146 or ordering[4].get('actual_vm_frames') != 146
+            or ordering[5].get('unchanged') is not True):
+        raise ValueError('local-release original file was not recorded before candidate import and VM phases')
+    try:
+        printed = json.loads(stdout)
+    except (UnicodeError, ValueError) as error:
+        raise ValueError('local-release child stdout is not its complete original JSON result') from error
+    if printed != {key: report[key] for key in ('status', 'original_count', 'actual_count',
+            'actual_vm_frames', 'actual_vm_entries', 'actual_vm_entry_events')}:
+        raise ValueError('local-release raw child stdout differs from the complete retained inner report')
+    return {'passed': True, 'stage': stage, 'invocation_directory': str(directory),
+        'parent_pid': declaration['parent_pid'], 'child_pid': result['pid'], 'parent_pgid': declaration['parent_pgid'],
+        'runtime': runtime, 'source_method': test_id, 'original_cases': 146, 'actual_vm_frames': 146,
+        'actual_vm_entries': entries, 'actual_vm_entry_events': events, 'actual_native_entries': 0,
+        'originals_sha256': original_pin['sha256'], 'same_runtime_anchor': anchor,
+        'source_pins': expected_sources, 'raw_stdout_sha256': result['stdout_sha256'],
+        'raw_stderr_sha256': result['stderr_sha256'], 'parent_elapsed_seconds': result['elapsed_seconds'],
+        'new_source_child_wait_seconds': 180, 'new_source_child_cleanup_seconds': 3,
+        'natural_child_exit_and_reap_observed': True, 'originals_written_before_candidate_imports': True,
+        'cross_runtime_or_prior_method_gc_normalization': False, 'cold_or_native_qualification': False}
+
+
+def service_artifact_local_release_source_readback(directory, root, sources, runtime, pins):
+    """Read the original Source and full-stage children; never rerun either."""
+    directory, root = Path(directory), Path(root)
+    qualification = directory.parent.parent
+    inputs = final_source_inputs(root, sources, 'tools/build_hia_service_artifact.py', 'INPUTS', pins)
+    fixed = SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_PINS
+    observed = {}
+    for name, expected in fixed.items():
+        raw = release_bytes(root / name, pins)
+        actual = {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+        if actual != expected or sources.get(name) != expected['sha256'] or inputs.get(name) != expected['sha256']:
+            raise ValueError('service artifact repaired local-release Source custody differs: ' + name)
+        observed[name] = actual
+    freeze, cases = service_artifact_original_inputs(root, sources, pins)
+    declared = delivery_literal_values(root / SERVICE_ARTIFACT_LOCAL_RELEASE_OBSERVER, ('SOURCE_PATHS',), pins)['SOURCE_PATHS']
+    if type(declared) is not tuple or any(type(n) is not str for n in declared) or len(declared) != len(set(declared)):
+        raise ValueError('local-release observer source inventory shape differs')
+    expected_sources = {}
+    for name in sorted(set(declared) | set(freeze['inputs'])):
+        if Path(name).is_absolute() or '..' in Path(name).parts:
+            raise ValueError('local-release observer input escapes its source root')
+        raw = release_bytes(root / name, pins)
+        expected_sources[name] = {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+        if sources.get(name) != expected_sources[name]['sha256']:
+            raise ValueError('local-release observer input is not in this matching-current cold source: ' + name)
+    if directory.is_symlink() or not directory.is_dir():
+        raise ValueError('local-release Source evidence root is absent or not owned')
+    children = sorted(directory.iterdir())
+    if len(children) != 2 or any(p.is_symlink() or not p.is_dir() or not p.name.startswith('invocation-') for p in children):
+        raise ValueError('local-release requires exactly the two original-stage fresh Source children')
+    selected = {}
+    for child in children:
+        declaration = release_json(child / 'parent-command.json', pins)
+        marker = declaration.get('enclosing_source_build_observations')
+        matches = [stage for stage in ('source-tests', 'full-retained-regression')
+                   if marker == str(qualification / (stage + '-source-build'))]
+        if len(matches) != 1 or matches[0] in selected:
+            raise ValueError('local-release fresh child has absent, foreign or duplicate original-stage custody')
+        selected[matches[0]] = child
+    steps = release_json(qualification / 'steps.json', pins)
+    if type(steps) is not list or len(steps) != 35:
+        raise ValueError('local-release readback requires the unchanged complete35-stage driver')
+    driver = ast.parse(release_bytes(root / RUNNER, pins))
+    suites = [n for n in driver.body if isinstance(n, ast.FunctionDef) and n.name == 'suite']
+    bodies = [] if len(suites) != 1 else [n.value for n in suites[0].body if isinstance(n, ast.Assign)
+        and len(n.targets) == 1 and getattr(n.targets[0], 'id', None) == 'source']
+    if len(bodies) != 1 or not isinstance(bodies[0], ast.Constant) or type(bodies[0].value) is not str:
+        raise ValueError('cannot identify the unchanged original suite supervisor source')
+    workflow = release_bytes(root / '.github/workflows/hia-core.yml', pins).decode()
+    groups = re.findall(r"          names = \((.*?)\n          \)", workflow, re.S)
+    if len(groups) != 2:
+        raise ValueError('cannot identify the original two workflow selection tuples')
+    source_names = re.findall(r"'(tests\.[^']+)'", groups[0])
+    if source_names.count(SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_MODULE) != 1:
+        raise ValueError('local-release Source module must occur exactly once in the original Source tuple')
+    discovery = release_json(qualification.parent / 'discovery.json', pins)
+    required_counts = {'source-tests': SERVICE_ARTIFACT_LOCAL_RELEASE_EXPECTED_SOURCE_COUNT,
+                       'full-retained-regression': discovery.get('planned_test_count')}
+    readbacks = {}
+    for stage in ('source-tests', 'full-retained-regression'):
+        rows = [row for row in steps if row.get('name') == stage]
+        if len(rows) != 1:
+            raise ValueError('local-release original stage is missing or ambiguous')
+        row = rows[0]
+        owner = release_json(qualification / (stage + '.owner.json'), pins)
+        result_path = qualification / (stage + '.json')
+        result_raw = release_bytes(result_path, pins)
+        suite_result = json.loads(result_raw)
+        declaration = release_json(selected[stage] / 'parent-command.json', pins)
+        executable = declaration.get('parent_executable')
+        discover = stage == 'full-retained-regression'
+        code = 'DISCOVER=' + repr(discover) + '\nNAMES=' + repr([] if discover else source_names) + '\nRESULT=' + repr(str(result_path)) + '\n' + bodies[0].value
+        command = [executable, '-B', '-c', code]
+        count = required_counts[stage]
+        if (type(executable) is not str or not executable or type(count) is not int or count <= 0
+                or row.get('command') != command or row.get('owner') != owner
+                or row.get('passed') is not True or row.get('timeout') is not False
+                or type(row.get('returncode')) is not int or row['returncode'] != 0
+                or owner.get('schema') != 'hepta.hia.external-workflow-process.v1'
+                or owner.get('status') != 'WORKFLOW_STEP_COMPLETED' or owner.get('command') != command
+                or owner.get('cwd') != str(root) or owner.get('returncode') != 0 or owner.get('timed_out') is not False
+                or owner.get('workflow_seconds') != (5400 if discover else 1800)
+                or owner.get('selfhost_qualification_gate_modified') is not False
+                or owner.get('cleanup') != {'scope': 'started POSIX process group only', 'complete': True,
+                    'full_process_tree_claimed': False, 'signalled': [], 'errors': []}
+                or suite_result.get('expected_tests') != count or suite_result.get('tests_run') != count
+                or suite_result.get('successful') is not True
+                or any(suite_result.get(k) != [] for k in ('errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes'))
+                or row.get('suite_result') != {'completed': True, 'passed': True, 'discovery': discover,
+                    'result': {'path': str(result_path), 'sha256': hashlib.sha256(result_raw).hexdigest()},
+                    'tests_run': count, 'expected_tests': count}):
+            raise ValueError('local-release Source evidence is not owned by the successful complete original stage')
+        logs = {}
+        for kind in ('stdout', 'stderr'):
+            path = qualification / (stage + '.' + kind + '.log')
+            digest = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+            logs[str(path)] = digest
+            if row.get(kind) != {'path': str(path), 'sha256': digest}:
+                raise ValueError('local-release original-stage raw log identity differs')
+        if owner.get('logs') != logs:
+            raise ValueError('local-release original-stage owner does not bind the actual raw logs')
+        readbacks[stage] = service_artifact_local_release_invocation(selected[stage], root, sources,
+            runtime, stage, executable, qualification, expected_sources, freeze['ordered_ids'], pins)
+    return {'passed': True, 'scope': 'TWO_ORIGINAL_STAGES_FRESH_SAME_RUNTIME_SOURCE_VM_READBACK',
+        'inputs': observed, 'complete_source_module': SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_MODULE,
+        'source_stage_expected_and_observed_methods': SERVICE_ARTIFACT_LOCAL_RELEASE_EXPECTED_SOURCE_COUNT,
+        'required_full_discovery_test_ids': [SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_CLASS + '.' + name
+                                           for name in SERVICE_ARTIFACT_LOCAL_RELEASE_SOURCE_METHODS],
+        'invocations': readbacks, 'full_original_stages_and_limits_unchanged': True,
+        'fresh146_original_actual_complete_and_raw_records_retained': True,
+        'six_local_method01_02_per_case_records_serialized': False,
+        'method01_02_authority': 'complete original Source/full method outcomes; no invented per-case records',
+        'native_same_runtime_original146_reader_retained_unchanged': True,
+        'source_result_claimed_native_or_cold_qualification': False,
+        'test_bodies_executed_by_readback': False}
+
+
+
+
+def service_artifact_event_counts(events, *, complete=False, frames=None):
+    if (type(events) is not dict or not set(events) <= {'0', '1', '2', '3'}
+            or any(type(v) is not int or v <= 0 for v in events.values())
+            or (frames is not None and (type(frames) is not int or events.get('0', 0) != frames))
+            or (complete and events.get('1', 0) != events.get('2', 0) + events.get('3', 0))):
+        raise ValueError('service artifact actual entry/frame/ACK accounting differs')
+    return dict(events)
+
+
+def service_artifact_finite_observations(directory, root, sources, manifest_path, manifest, runtime, pins):
+    freeze, cases = service_artifact_original_inputs(root, sources, pins)
+    at = Path(directory) / 'test_complete_frozen_146_against_actual_image_in_fresh_process'
+    child = at / 'finite'
+    original_raw = release_bytes(child / 'originals-146.json', pins)
+    actual_raw = release_bytes(child / 'actuals-146.json', pins)
+    report = release_json(child / 'report.json', pins)
+    rows = release_json(child / 'complete-observations.json', pins)
+    expected, actual = json.loads(original_raw), json.loads(actual_raw)
+    names = freeze['ordered_ids']
+    inputs = final_source_inputs(root, sources, 'tools/build_hia_service_artifact.py', 'INPUTS', pins)
+    known = delivery_literal_values(Path(root) / 'tests/hia_service_artifact_observer.py', ('KNOWN_ORIGINALS',), pins)['KNOWN_ORIGINALS']
+    version = runtime.split()[0]
+    anchor = known.get(version)
+    if (report.get('schema') != 'hepta.hia.service-artifact-finite-observer.v1'
+            or report.get('status') != 'PASS' or report.get('runtime') != runtime
+            or report.get('scope') != '146 finite original vs actual-image frame with explicit fake namespace'
+            or any(type(report.get(k)) is not int or report[k] != 146 for k in ('original_count', 'actual_count', 'actual_frames'))
+            or report.get('case_order') != names or type(expected) is not list or len(expected) != 146
+            or original_raw != actual_raw or report.get('originals_sha256') != hashlib.sha256(original_raw).hexdigest()
+            or report.get('actuals_sha256') != hashlib.sha256(actual_raw).hexdigest()
+            or report.get('known_same_runtime_original_sha256') != anchor
+            or (anchor is not None and anchor != report['originals_sha256'])
+            or any(report.get(k) != [] for k in ('differences', 'reference_calls', 'original_late_events', 'all_late_events', 'remaining_delivery_custody'))
+            or report.get('exception') is not None
+            or report.get('source_before') != sources or report.get('source_after') != sources
+            or report.get('component_input_pins') != inputs
+            or report.get('manifest') != str(manifest_path)
+            or report.get('manifest_sha256') != hashlib.sha256(release_bytes(manifest_path, pins)).hexdigest()
+            or report.get('native_image_sha256') != manifest['image_sha256']
+            or any(report.get(k) is not True for k in ('known_original_equal', 'expected_written_before_native_mapping',
+                'expected_file_unchanged_after_candidate', 'retained_reference_poisoned', 'source_image_and_manifest_unchanged'))
+            or any(report.get(k) is not False for k in ('public_selection_qualified_by_this_observer',
+                'resource_retirement_qualified_by_this_observer', 'all_input_equivalence_proved', 'whole_native_stack_qualified'))
+            or type(rows) is not list or len(rows) != 146 or [r.get('case') for r in rows] != names
+            or any(r.get('equal') is not True for r in rows)
+            or service_artifact_observation_bytes([r.get('expected') for r in rows]) != service_artifact_observation_bytes(expected)
+            or service_artifact_observation_bytes([r.get('actual') for r in rows]) != service_artifact_observation_bytes(actual)):
+        raise ValueError('service artifact whole146 original/runtime/actual-image observation differs')
+    counts = service_artifact_event_counts(report.get('actual_native_entry_events'), complete=True, frames=146)
+    command = release_json(at / 'finite-command.json', pins)
+    if (type(command.get('timeout_seconds')) is not int or command['timeout_seconds'] != 60
+            or command.get('command') != [report.get('executable'), '-B', '-I',
+            str(Path(root) / 'tests/hia_service_artifact_observer.py'), '--manifest', str(manifest_path), '--output', str(child)]):
+        raise ValueError('service artifact finite original child command or60second budget differs')
+    for name in ('finite.stdout', 'finite.stderr'):
+        release_bytes(at / name, pins)
+    return {'passed': True, 'original_cases': 146, 'actual_frames': 146, 'actual_native_entry_events': counts,
+        'runtime': runtime, 'originals_sha256': report['originals_sha256'], 'known_runtime_anchor': anchor,
+        'current_runtime_original_before_mapping': True, 'no_cross_runtime_normalization': True,
+        'public_or_resource_qualification_inferred_from_fake_namespace': False}
+
+
+def service_artifact_resource_semantics(mode, report):
+    observation, events = report.get('observations', {}), report.get('events')
+    if type(observation) is not dict or type(events) is not list:
+        raise ValueError('service artifact resource observation shape differs')
+    result = observation.get('result', {})
+    counts = report['actual_native_entry_events'];parent, store = counts['parent'], counts['store']
+    def require(condition, message):
+        if not condition:
+            raise ValueError('service artifact ' + mode + ': ' + message)
+    def close(value):
+        return type(value) is dict and value.get('guard_rejected') is True and value.get('original_close_calls') == 0
+    late = ('parent-ACK-lost-after-confirmed-child', 'nested-parent-ACK-lost',
+            'only-actual-other-Store-is-retained', 'unknown-resource-survives-fork')
+    if mode in late:
+        require(result.get('class') == 'ServiceArtifactUnknown' and result.get('status') == 'raised'
+            and observation.get('actual_artifact_rows') == 1 and close(observation.get('actual_close'))
+            and observation.get('unrelated_retirement_allowed') is True
+            and type(observation.get('retained_actual_observations')) is int and observation['retained_actual_observations'] > 0
+            and observation.get('confirmed_child_frames_remaining') == 0 and store.get('0', 0) > 0
+            and report['retained_resource_observations'] > 0 and 'actual-parent-put-ACK-returned-then-lost' in events,
+            'confirmed actual child resource did not survive lost parent ACK')
+        if mode == 'unknown-resource-survives-fork':
+            require(observation.get('fork') == {'exact_inherited_resource_still_rejected': True,
+                'fresh_record_has_no_inherited_native_ancestry': True}, 'fork resource and ancestry observations differ')
+    elif mode in ('child-loss-swallowed', 'child-loss-replaced', 'child-loss-with-suppression'):
+        require(result.get('class') == 'ServiceArtifactUnknown' and close(observation.get('actual_close'))
+            and observation.get('actual_artifact_rows') == 0 and store.get('0') == 1
+            and parent.get('2') == 4 and parent.get('3', 0) == 0
+            and 'actual-Store-INIT-returned-then-lost' in events, 'actual child loss was accepted or replayed')
+    elif mode == 'associate-only-does-not-arm':
+        require(result.get('class') == 'ServiceArtifactUnknown' and store == {}
+            and observation.get('unused_resource_retirement_allowed') is True
+            and report['retained_resource_observations'] == 0, 'association alone armed resource custody')
+    elif mode == 'safe-child-preentry-does-not-arm':
+        require(result.get('status') == 'returned' and store == {}
+            and observation.get('original_Store_preentry_classifier_preserved') is True
+            and observation.get('unused_resource_retirement_allowed') is True
+            and report['retained_resource_observations'] == 0 and report.get('unknown_custody') == [], 'safe pre-entry child became unknown')
+    elif mode in ('healthy-ACK-releases-before-result', 'confirmed-ACK-retirement-MemoryError'):
+        windows = observation.get('test_only_collection_windows')
+        require(observation.get('healthy_resource_weakref_released') is True
+            and observation.get('registered_observations_after_return') == 0
+            and observation.get('original_budget_back_reference_preserved') is True
+            and observation.get('synchronous_Store_destruction_claimed') is False
+            and report['retained_resource_observations'] == 0 and report.get('unknown_custody') == []
+            and type(windows) is list and len(windows) == 1
+            and windows[0].get('before', {}).get('registered_observations') == 0
+            and windows[0].get('after') == {'resource_alive': False, 'destructor_calls': [True], 'registered_observations': 0},
+            'confirmed ACK left registered resource custody or claimed synchronous cycle destruction')
+        if mode.startswith('healthy'):
+            require(result.get('status') == 'returned' and observation.get('mechanical_retirement_resumed') is False
+                and 'actual-Store.delete' in events and 'result.len' in events
+                and events.index('actual-Store.delete') < events.index('result.len'), 'healthy release did not precede result length')
+        else:
+            require(result.get('class') == 'MemoryError' and result.get('controlled_identity') == ['healthy-ACK-retirement']
+                and observation.get('mechanical_retirement_resumed') is True and 'result.len' not in events,
+                'confirmed cleanup error changed identity or stranded resource')
+    elif mode.startswith('scope-return-identity-failure-'):
+        lost = mode.endswith('-lost')
+        require(observation.get('actual_artifact_rows') == 1 and store == {}
+            and observation.get('active_scope_cleared_after_identity_failure') is True
+            and observation.get('Store_provider_mode') == 'original public resource-scoped provider; no Store native selection'
+            and ((lost and result.get('class') == 'ServiceArtifactUnknown' and close(observation.get('actual_close')))
+                 or (not lost and result.get('class') == 'MemoryError' and result.get('controlled_identity') == ['scope-identity']
+                     and report['retained_resource_observations'] == 0)), 'actual resource-scope return/ACK cutpoint differs')
+    elif mode.startswith('actual-reentrant-child-loss-blocks-'):
+        require(result.get('class') == 'NativeDeliveryUnknown' and store == {'0': 1}
+            and observation.get('prepared_native_entry_not_executed') is True
+            and observation.get('actual_GC_finalizer_calls') == 1
+            and observation.get('actual_GC_expected_child_exceptions') == 1
+            and observation.get('GC_callback_errors') == [] and observation.get('guarded_resource_scope_body_calls') == []
+            and observation.get('intervening_actual_native_entries') == 1 and close(observation.get('intervening_close'))
+            and events.count('GC-finalizer-actual-child-loss-caught') == 1, 'actual finalizer loss did not block the next guarded boundary')
+        if mode.endswith('-foreign-body'):
+            require(parent == {'0': 1, '1': 1} and 'profile' not in events, 'foreign body ran after actual reentrant loss')
+    elif mode == 'ordinary-provider-error-confirmed-after-child':
+        require(result.get('class') == 'MemoryError' and result.get('controlled_identity') == ['ordinary-provider']
+            and observation.get('confirmed_ordinary_refusal_is_not_native_loss') is True
+            and parent.get('3') == 1 and store.get('0', 0) > 0
+            and report['retained_resource_observations'] == 0 and report.get('unknown_custody') == [], 'confirmed ordinary error became native loss')
+    elif mode.startswith('parent-preentry-'):
+        require(result.get('class') == mode.removeprefix('parent-preentry-')
+            and result.get('controlled_identity') == ['parent-preentry'] and counts == {'parent': {}, 'store': {}}
+            and events == [] and observation.get('no_native_entry_or_foreign_effect') is True
+            and report.get('unknown_custody') == [] and report['retained_resource_observations'] == 0, 'safe parent initialization introduced loss or effects')
+    elif mode in ('stale-Context-is-not-parent', 'copied-thread-is-not-parent', 'fork-is-not-parent'):
+        facts = observation.get('independent_actual_native_facts')
+        require(result.get('status') == 'returned' and observation.get('no_stale_or_transferred_parent') is True
+            and type(facts) is list and all(x == {'parent_is_none': True, 'creator_is_current': True} for x in facts)
+            and report.get('unknown_custody') == [] and report['retained_resource_observations'] == 0, 'inactive or foreign activation became an ancestor')
+        if mode == 'fork-is-not-parent':
+            fork = observation.get('fork', {})
+            require(facts == [] and fork.get('remaining_resources') == 0
+                and fork.get('facts') == [{'parent_is_none': True, 'creator_is_current': True}]
+                and fork.get('actual_native_entry_events', {}).get('0') == 1, 'fork did not independently execute its actual image')
+        else:
+            require(facts == [{'parent_is_none': True, 'creator_is_current': True}], 'independent Context/thread control lacks one actual frame')
+    else:
+        raise ValueError('unknown service artifact resource control')
+
+
+def service_artifact_resource_observations(directory, root, manifests, pins):
+    groups = SERVICE_ARTIFACT_RESOURCE_GROUPS
+    fixed_cases = delivery_literal_values(Path(root) / 'tests/hia_service_artifact_faults.py', ('CASE_IDS',), pins)['CASE_IDS']
+    wanted = [mode for group in groups.values() for mode in group]
+    if len(wanted) != 24 or len(set(wanted)) != 24 or set(wanted) != set(fixed_cases):
+        raise ValueError('service artifact complete24 resource control inventory differs')
+    manifest_pins = {str(p): hashlib.sha256(release_bytes(p, pins)).hexdigest() for p in manifests}
+    image_pins = {str(p): release_json(p, pins)['image_sha256'] for p in manifests}
+    reports = []
+    for method, modes in groups.items():
+        at = Path(directory) / method
+        rows = release_json(at / 'resource-observations.json', pins)
+        if type(rows) is not list or [x.get('case') for x in rows] != list(modes):
+            raise ValueError('service artifact resource group does not preserve every declared input/order')
+        for mode, row in zip(modes, rows):
+            raw = release_bytes(at / mode / 'report.json', pins);report = json.loads(raw)
+            counts = report.get('actual_native_entry_events', {})
+            original_scope = mode in ('scope-return-identity-failure-confirmed', 'scope-return-identity-failure-lost',
+                                      'actual-reentrant-child-loss-blocks-resource-scope-body')
+            if (hashlib.sha256(raw).hexdigest() != row.get('report_sha256')
+                    or evaluation_json_bytes(row.get('report')) != evaluation_json_bytes(report)
+                    or report.get('status') != 'PASS' or report.get('mode') != mode
+                    or report.get('manifest_sha256') != manifest_pins or report.get('images_sha256') != image_pins
+                    or report.get('native_records_loss_fields_manually_written') is not False
+                    or report.get('whole_native_stack_qualified') is not False
+                    or report.get('parent_original_poisoned') is not True
+                    or report.get('Store_original_poisoned') is not (not original_scope)
+                    or report.get('unknown_records_retained_until_process_exit') is not True
+                    or type(report.get('retained_resource_observations')) is not int or report['retained_resource_observations'] < 0
+                    or type(report.get('parent_frames_started')) is not int or report['parent_frames_started'] < 0
+                    or type(report.get('unknown_custody')) is not list
+                    or type(counts) is not dict or set(counts) != {'parent', 'store'}):
+                raise ValueError('service artifact actual resource report/source binding differs: ' + mode)
+            service_artifact_event_counts(counts['parent'], frames=report.get('parent_frames_started'))
+            service_artifact_event_counts(counts['store'])
+            command = release_json(at / (mode + '-command.json'), pins)
+            argv = command.get('command')
+            if (command.get('timeout_seconds') != 60 or type(argv) is not list or len(argv) != 9
+                    or argv[1:] != ['-B', '-I', str(Path(root) / 'tests/hia_service_artifact_faults.py'),
+                        str(root), *map(str, manifests), mode, str(at / mode)]):
+                raise ValueError('service artifact resource child command or budget differs: ' + mode)
+            stdout = release_bytes(at / (mode + '.stdout'), pins);release_bytes(at / (mode + '.stderr'), pins)
+            if evaluation_json_bytes(json.loads(stdout)) != evaluation_json_bytes(report):
+                raise ValueError('service artifact resource raw child stdout differs: ' + mode)
+            service_artifact_resource_semantics(mode, report)
+            reports.append({'case': mode, 'report_sha256': hashlib.sha256(raw).hexdigest(),
+                'actual_native_entry_events': counts, 'retained_resource_observations': report['retained_resource_observations']})
+    return {'passed': True, 'actual_complete_cases': 24, 'reports': reports,
+        'all_child_command_budgets_seconds': 60, 'unknown_custody_retained_until_actual_child_exit': True,
+        'raw_child_exit_not_separately_serialized_owned_by_complete_original_method': True,
+        'whole_native_delivery_claimed': False}
+
+
+def service_artifact_public_and_packets(directory, manifests, pins):
+    at = Path(directory) / 'test_actual_public_routes_pinned_bundle_restoration_and_source_drift'
+    report = release_json(at / 'public-and-bundle.json', pins)
+    final_helper_bundle(at / 'bundle.json', [('HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST', manifests[0]),
+                                           ('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST', manifests[1])], pins)
+    counts = report.get('actual_image_entries', {})
+    if (type(counts) is not dict or set(counts) != {'handler', 'Store'}
+            or any(type(v) is not int or v <= 0 for v in counts.values())
+            or report.get('dynamic_profile_calls') != [['profile', 'opaque', 'artifact']] * 3
+            or report.get('environment_restored') is not True or report.get('bad_source_unpinned_public_route_effects') != []
+            or report.get('compiler_drift_checked_at_actual_bundle_identity') is not True
+            or report.get('scope_exit_inferred_as_terminal_attestation') is not False):
+        raise ValueError('service artifact actual pinned public route/negative control differs')
+    packets = release_json(Path(directory) / 'test_native_complete_packets_buffers_and_protocol_rejections/complete-packets-and-buffers.json', pins)
+    if (type(packets) is not list or len(packets) != 134 or len({p.get('case') for p in packets}) != 134
+            or any(type(p.get('case')) is not str or p.get('complete_buffers_equal_to_independent_VM') is not True
+                or type(p.get('code')) is not int or not 0 <= p['code'] < 2 ** 32
+                or any(type(p.get(k)) is not str or re.fullmatch('[0-9a-f]*', p[k]) is None or len(p[k]) % 2 for k in ('request', 'output', 'state')) for p in packets)):
+        raise ValueError('service artifact complete134 Native/VM packet observations differ')
+    return {'public_route_actual_entries': counts, 'complete_VM_packet_comparisons': 134,
+        'raw_request_output_state_hex_retained': True, 'independent_VM_not_reexecuted_by_readback': True}
+
+
+def service_artifact_installation(directory, root, manifests, sources, pins):
+    at = Path(directory) / 'test_actual_installed_worker_and_durable_parent_ACK_loss'
+    observation = release_json(at / 'installation.json', pins)
+    if (Path(observation.get('installed', '')).resolve(strict=True) != (at / 'installed').resolve(strict=True)
+            or Path(observation.get('wheel', '')).resolve(strict=True).parent != (at / 'wheels').resolve(strict=True)
+            or observation.get('scope') != 'actual installed original worker; handler and Store selected; durable running intent after parent ACK loss'
+            or observation.get('whole_native_stack_qualified') is not False):
+        raise ValueError('service artifact installed scope/location differs')
+    wheel = Path(observation['wheel'])
+    files, dist, installation = final_wheel_installation(wheel, observation['installed'], root, sources, pins,
+        record_sha=observation.get('installed_RECORD_sha256'))
+    if (observation.get('wheel_sha256') != hashlib.sha256(release_bytes(wheel, pins)).hexdigest()
+            or observation.get('wheel_files_checked_against_installed') != {
+                n: hashlib.sha256(raw).hexdigest() for n, raw in files.items() if n != dist + '/RECORD'}
+            or files.get('hepta/_data/examples/hia_bootstrap/service_artifact.hepta')
+                != release_bytes(Path(root) / 'examples/hia_bootstrap/service_artifact.hepta', pins)):
+        raise ValueError('service artifact complete wheel/current source differs')
+    identity = final_installed_worker_identity(files, root, pins)
+    bundle_sha = final_helper_bundle(at / 'bundle.json', [('HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST', manifests[0]),
+        ('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST', manifests[1])], pins)
+    rows = observation.get('observations', {})
+    if observation.get('bundle_sha256') != bundle_sha or set(rows) != {'success', 'replay', 'lost_put_ack', 'unknown_replay'}:
+        raise ValueError('service artifact actual installed bundle or four worker branches differ')
+    reports, counts, logs = {}, {}, {}
+    for name, label in (('success', 'first'), ('replay', 'replay'), ('lost_put_ack', 'lost-put-ACK'), ('unknown_replay', 'unknown-replay')):
+        stdout, stderr = release_bytes(at / (label + '.stdout'), pins), release_bytes(at / (label + '.stderr'), pins)
+        logs[name] = (stdout, stderr)
+        values = [json.loads(line[len(b'SERVICE_ARTIFACT_COUNTS='):]) for line in stderr.splitlines() if line.startswith(b'SERVICE_ARTIFACT_COUNTS=')]
+        if len(values) != 1 or evaluation_json_bytes(values[0]) != evaluation_json_bytes(rows[name].get('counts')):
+            raise ValueError('service artifact actual worker entry stream differs')
+        counts[name] = values[0]
+        for kind in ('startup', 'request', 'store_startup', 'store_request'):
+            service_artifact_event_counts(values[0].get(kind), complete=True)
+        if name != 'lost_put_ack':
+            report = json.loads(stdout);reports[name] = report
+            if (evaluation_json_bytes(report) != evaluation_json_bytes(rows[name].get('report'))
+                    or report.get('schema') != 'hia-agent-worker-report-v1' or report.get('tool') != 'hia_artifact'
+                    or report.get('complete') is not True or report.get('native_helpers_sha256') != bundle_sha
+                    or report.get('worker_sha256') != identity['worker_sha256'] or report.get('catalog_sha256') != identity['catalog_sha256']
+                    or values[0].get('unknown_records') != 0 or values[0].get('store_unknown_frames') != 0
+                    or values[0].get('retained_resource_observations') != 0 or values[0].get('close_calls') != 1):
+                raise ValueError('service artifact actual installed worker identity or healthy custody differs')
+        command = release_json(at / (label + '-command.json'), pins)
+        if command.get('timeout_seconds') != 60:
+            raise ValueError('service artifact original worker60second deadline differs')
+    first, replay, lost, unknown = (rows[k] for k in ('success', 'replay', 'lost_put_ack', 'unknown_replay'))
+    before, after = first.get('before', {}), first.get('after', {})
+    response = reports['success'].get('response', {})
+    payload = 'native service artifact installed worker — 雪'.encode()
+    if (response.get('status') != 'completed' or reports['replay'].get('response') != response
+            or before.get('request') is not None or after.get('request', {}).get('state') != 'completed'
+            or json.loads(after['request'].get('response', 'null')) != response
+            or type(before.get('artifacts')) is not int or after.get('artifacts') != before['artifacts'] + 1
+            or response.get('result', {}).get('artifact', {}).get('sha256') != hashlib.sha256(payload).hexdigest()
+            or response.get('result', {}).get('byte_length') != str(len(payload))
+            or not counts['success']['request'] or not counts['success']['store_request']
+            or counts['replay']['request'] != {} or replay.get('state_unchanged') is not True
+            or replay.get('cached_replay_does_not_enter_artifact_handler') is not True):
+        raise ValueError('service artifact installed publication or original cached replay differs')
+    old, retained, resumed = lost.get('before', {}), lost.get('after', {}), unknown.get('after', {})
+    rejected = reports['unknown_replay'].get('response', {})
+    if (type(lost.get('worker_exit')) is not int or lost['worker_exit'] != 1 or logs['lost_put_ack'][0] != b''
+            or b'actual handler PUT acknowledgement lost after confirmed Store' not in logs['lost_put_ack'][1]
+            or counts['lost_put_ack'].get('close_calls') != 0 or counts['lost_put_ack'].get('store_unknown_frames') != 0
+            or type(counts['lost_put_ack'].get('unknown_records')) is not int or counts['lost_put_ack']['unknown_records'] <= 0
+            or type(counts['lost_put_ack'].get('retained_resource_observations')) is not int or counts['lost_put_ack']['retained_resource_observations'] <= 0
+            or not counts['lost_put_ack']['store_request'] or lost.get('close_refused_before_original_close') is not True
+            or retained.get('request', {}).get('state') != 'running' or retained['request'].get('response') is not None
+            or type(old.get('artifacts')) is not int or retained.get('artifacts') != old['artifacts'] + 1
+            or retained.get('costs') != old.get('costs') or resumed.get('request') != retained['request']
+            or resumed.get('artifacts') != retained['artifacts'] or type(retained.get('costs')) is not int
+            or resumed.get('costs') != retained['costs'] + 1 or counts['unknown_replay']['request'] != {}
+            or rejected.get('status') != 'rejected' or rejected.get('error', {}).get('code') != 'E_HIA_REQUEST_UNKNOWN'
+            or unknown.get('original_running_request_not_replayed') is not True):
+        raise ValueError('service artifact lost parent ACK did not retain completed Store and running intent')
+    for label in ('wheel', 'install'):
+        release_bytes(at / (label + '.stdout'), pins);release_bytes(at / (label + '.stderr'), pins)
+        if release_json(at / (label + '-command.json'), pins).get('timeout_seconds') != 60:
+            raise ValueError('service artifact installation deadline differs')
+    return {'installed': installation, 'bundle_sha256': bundle_sha, 'actual_worker_counts': counts,
+        'confirmed_child_then_parent_ACK_loss_observed': True, 'unknown_replay_original_cost_delta': 1,
+        'cached_replay_handler_entries': 0, 'close_count_scope': 'retained public close-dispatch body; not SQLite syscall probe',
+        'raw_worker_stdin_and_removed_temporary_database_not_claimed_retained': True,
+        'unserialized_success_exit_codes_owned_by_complete_full_test': True}
+
+
+def require_service_artifact_component(directory, root, cold_path, compiler, sources, pins):
+    final_delivery_target_binding(root, pins)
+    final_same_cold(cold_path, compiler, sources, pins)
+    directory = Path(directory)
+    manifest_path, store_path = directory / 'built/manifest.json', directory / 'store-built/manifest.json'
+    manifest = service_artifact_build_readback(manifest_path.parent, root, compiler, sources, pins, cold_path=cold_path)
+    require_cold_component(store_path, 'examples/hia_bootstrap/store_artifact_profile.hepta',
+        hashlib.sha256(release_bytes(cold_path, pins)).hexdigest(), hashlib.sha256(release_bytes(compiler, pins)).hexdigest(), sources, pins)
+    store_inputs = final_source_inputs(root, sources, 'tools/build_hia_store_artifact_profile.py', 'INPUTS', pins)
+    store_build = release_json(store_path.with_name('build.json'), pins)
+    if store_build.get('component_inputs') != store_inputs:
+        raise ValueError('service artifact actual Store child build omitted current inputs')
+    store_transport = final_compile_transport(store_path.parent, 'store_artifact_profile',
+        'examples/hia_bootstrap/store_artifact_profile.hepta', root, compiler, sources, pins)
+    if store_build.get('native_compile_receipt') != store_transport['receipt']:
+        raise ValueError('service artifact actual Store child compiler receipt differs')
+    custody = release_json(directory / 'component-custody.json', pins)
+    if (custody.get('schema') != 'hepta.hia.service-artifact-component-custody.v1'
+            or custody.get('source_before') != sources or custody.get('source_after') != sources
+            or custody.get('source_and_compiler_unchanged') is not True
+            or custody.get('manifest') != str(manifest_path) or custody.get('store_manifest') != str(store_path)
+            or custody.get('scope') != 'MATCHING_SOURCE_COLD_COMPONENT'
+            or custody.get('compiler_sha256') != manifest['compiler_sha256'] or custody.get('matching_cold_report') != str(cold_path)
+            or custody.get('original_finite_cases') != 146 or custody.get('test_results_owned_by_outer_runner') is not True
+            or custody.get('capture_path_filesystem_sqlite_and_object_protocols_still_hosted') is not True
+            or any(custody.get(k) is not False for k in ('all_input_equivalence_proved', 'all_python_versions_tested', 'whole_native_stack_qualified'))
+            or type(custody.get('runtime')) is not str):
+        raise ValueError('service artifact first-full same-cold component custody differs')
+    local_release = service_artifact_local_release_source_readback(
+        directory.parent / 'service-artifact-local-release', root, sources, custody['runtime'], pins)
+    finite = service_artifact_finite_observations(directory, root, sources, manifest_path, manifest, custody['runtime'], pins)
+    manifests = (manifest_path, store_path)
+    resources = service_artifact_resource_observations(directory, root, manifests, pins)
+    public = service_artifact_public_and_packets(directory, manifests, pins)
+    installed = service_artifact_installation(directory, root, manifests, sources, pins)
+    return {'passed': True, 'scope': 'MATCHING_SOURCE_COLD_COMPONENT', 'manifest': str(manifest_path),
+        'store_manifest': str(store_path), 'finite_originals': finite, 'resource_controls': resources,
+        'public_and_packets': public, 'installed': installed, 'source_class_complete_methods': 3,
+        'local_release_source_provenance': local_release,
+        'test_bodies_rerun_by_readback': False, 'whole_native_stack_qualified': False}
+
+
+def service_artifact_caller_counts(report, planned):
+    frames = report.get('actual_service_artifact_frames')
+    if type(frames) is not int or frames <= 0:
+        raise ValueError('service artifact ordinary gate executed no actual new owner')
+    events = service_artifact_event_counts(report.get('actual_native_event_counts'), complete=True, frames=frames)
+    if not {'0', '1', '2'} <= set(events):
+        raise ValueError('service artifact ordinary caller gate lacks actual claim/ACK entries')
+    frame_rows, event_rows = report.get('frames_by_original_test'), report.get('native_event_counts_by_original_test')
+    if (type(frame_rows) is not dict or not set(frame_rows) <= set(planned)
+            or any(type(v) is not int or v <= 0 for v in frame_rows.values()) or sum(frame_rows.values()) != frames
+            or type(event_rows) is not dict or set(frame_rows) != set(event_rows)):
+        raise ValueError('service artifact caller counts lack exact original identities')
+    totals = {}
+    for name, row in event_rows.items():
+        service_artifact_event_counts(row, complete=True, frames=frame_rows[name])
+        for key, value in row.items():
+            totals[key] = totals.get(key, 0) + value
+    if totals != events:
+        raise ValueError('service artifact total counts differ from real per-method counts')
+    return frames, events
+
+
+def require_service_artifact_callers(directory, root, cold_path, compiler, sources, discovery, pins):
+    final_delivery_target_binding(root, pins)
+    final_same_cold(cold_path, compiler, sources, pins)
+    directory = Path(directory);manifest_path = directory / 'qualified/manifest.json'
+    manifest = service_artifact_build_readback(manifest_path.parent, root, compiler, sources, pins, cold_path=cold_path)
+    original, original_files, adjustments, descriptions, planned = emission_original_inventory(root, sources, discovery, pins)
+    inputs = final_source_inputs(root, sources, 'tools/build_hia_service_artifact.py', 'INPUTS', pins)
+    names = (set(sources) - {'docs/HIA_SELFHOST_CORE_SUPPORT.json'}) | set(inputs) | set(original_files) | {
+        'tests/fixtures/hia_emission_original_73f1634/original-freeze.json',
+        'tools/qualify_hia_service_artifact_callers.py', 'tools/qualify_hia_emission_callers.py'}
+    expected_sources = {n: hashlib.sha256(release_bytes(Path(root) / n, pins)).hexdigest() for n in names}
+    report = release_json(directory / 'report.json', pins)
+    bundle = {}
+    for path in sorted(manifest_path.parent.rglob('*')):
+        if path.is_symlink():
+            raise ValueError('service artifact caller build contains a symlink')
+        if path.is_file():
+            bundle[str(path)] = hashlib.sha256(release_bytes(path, pins)).hexdigest()
+    if (report.get('schema') != 'hepta.hia.service-artifact-nine-ordinary-callers.v1'
+            or report.get('status') != 'PASS' or report.get('scope') != 'MATCHING_SOURCE_COLD_NINE_ORDINARY_SERVICE_ARTIFACT_CALLER_MODULES'
+            or report.get('original_baseline_commit') != original['base_commit'] or report.get('original_modules') != original['ordinary_modules']
+            or not (report.get('planned') == report.get('started') == report.get('stopped') == planned)
+            or type(report.get('actual_tests')) is not int or report['actual_tests'] != 112
+            or any(report.get(k) != [] for k in ('errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes', 'reference_calls'))
+            or report.get('retained_service_artifact_forbidden') is not True
+            or report.get('reference_poison_scope') != 'test process; subprocesses inherit selector, not Python patches'
+            or report.get('all_nine_ordinary_modules_unfiltered') is not True or report.get('original_test_budgets_changed') is not False
+            or report.get('source_and_bundle_unchanged') is not True or report.get('source_pins') != expected_sources
+            or report.get('bundle_pins') != bundle or report.get('native_image_sha256') != manifest['image_sha256']
+            or report.get('original_registry_count_assertion_adjustments') != adjustments
+            or report.get('separate_original_administrator_scope_gates') != original['separate_scope_modules']
+            or any(report.get(k) is not False for k in ('other_owner_or_artifact_provider_gates_replaced_by_112',
+                'path_capture_provider_native', 'resource_qualification_inferred_from_caller_success',
+                'whole_project_dynamic_caller_closure_claimed', 'whole_native_delivery_qualified'))
+            or any(n in sources and sources[n] != digest for n, digest in expected_sources.items())):
+        raise ValueError('service artifact complete112 caller identity/source/result differs')
+    frames, events = service_artifact_caller_counts(report, planned)
+    observed = audit_verbose_stderr(release_bytes(directory / 'tests.log', pins),
+        {'planned_test_ids': planned, 'test_descriptions': descriptions})
+    if observed['equivalent'] is not True:
+        raise ValueError('service artifact raw verbose log lacks all112 successful original methods in order')
+    return {'passed': True, 'actual_tests': 112, 'actual_service_artifact_frames': frames,
+        'actual_native_event_counts': events, 'complete_original_inventory_count': 240,
+        'separate_original_administrator_scope_methods': 128, 'original_verbose_identity': observed,
+        'source_pin_count': len(expected_sources), 'bundle_pin_count': len(bundle),
+        'scope': report['scope'], 'reference_poison_scope': report['reference_poison_scope'],
+        'test_bodies_rerun_by_readback': False, 'whole_native_delivery_qualified': False}
+
+
+
 def supplemental(args):
     """Run additional caller gates and original bounded CLI qualification."""
     require_native_runner()
@@ -7396,6 +8258,7 @@ def supplemental(args):
     store_artifact_profile = None
     native_delivery = store_native_delivery = None
     store_transaction = artifact_delivery = None
+    service_artifact = None
     final_binding = None
     sha_image_bound = False
     try:
@@ -7432,7 +8295,8 @@ def supplemental(args):
         environment["PATH"] = "/usr/lib/llvm-20/bin:" + environment.get("PATH", "")
         original_binding = read_pinned_json(full / "cold-environment-binding.json", pins)
         if (binding["cold_variables"] != original_binding["cold_variables"]
-                or binding["full_discovery_evidence_variables"] != original_binding["full_discovery_evidence_variables"]):
+                or binding["full_discovery_evidence_variables"] != original_binding["full_discovery_evidence_variables"]
+                or binding["source_only_evidence_variables"] != original_binding.get("source_only_evidence_variables")):
             raise ValueError("supplemental consumers do not use the original same-run cold binding")
         retained = cold_path.parent / "full-discovery-components"
         cold_sha = sha(cold_path)
@@ -7497,6 +8361,9 @@ def supplemental(args):
             cold_path, compiler, sources, pins)
         added_components["store-transaction"] = store_transaction["manifest"]
         added_components["artifact-delivery"] = artifact_delivery["manifests"]
+        service_artifact = require_service_artifact_component(retained / "service-artifact", root,
+            cold_path, compiler, sources, pins)
+        added_components["service-artifact"] = service_artifact["manifest"]
         discovery_root = retained / "cli-discovery-json"
         for name in ("CliDiscoveryJsonNativeTests", "CliDiscoverySelectionFixture"):
             fixture_path = discovery_root / name / "cold-fixture/FIXTURE.json"
@@ -7587,9 +8454,13 @@ def supplemental(args):
             ("artifact-delivery-callers", ["tools/qualify_hia_artifact_delivery_callers.py",
                 "--cold-report", str(cold_path), "--evidence", str(output / "artifact-delivery-callers")], {}),
         )
+        service_artifact_jobs = (
+            ("service-artifact-callers", ["tools/qualify_hia_service_artifact_callers.py",
+                "--cold-report", str(cold_path), "--evidence", str(output / "service-artifact-callers")], {}),
+        )
         for name, arguments, selection in (*jobs, *service_context_jobs, *cost_ledger_jobs, *evaluation_jobs,
                                            *native_build_admission_jobs, *emission_jobs, *store_artifact_profile_jobs,
-                                           *native_delivery_jobs, *final_delivery_jobs):
+                                           *native_delivery_jobs, *final_delivery_jobs, *service_artifact_jobs):
             command = [sys.executable, "-B", *arguments]
             record = {"name": name, "command": command, "passed": False}
             try:
@@ -7602,6 +8473,12 @@ def supplemental(args):
                     and owner.get("cleanup", {}).get("complete") is True)
                 if name in FINAL_DELIVERY_CALLER_JOBS:
                     observed = require_final_delivery_caller(name, output / name, root, cold_path,
+                        compiler, sources, discovery, pins)
+                    record["observed_complete_caller_readback"] = observed
+                    record["actual_tests"] = observed["actual_tests"]
+                    record["passed"] = bool(record["passed"] and observed["passed"])
+                elif name == "service-artifact-callers":
+                    observed = require_service_artifact_callers(output / name, root, cold_path,
                         compiler, sources, discovery, pins)
                     record["observed_complete_caller_readback"] = observed
                     record["actual_tests"] = observed["actual_tests"]
@@ -7844,8 +8721,9 @@ def supplemental(args):
                   and store_native_delivery is not None and store_native_delivery["passed"]
                   and store_transaction is not None and store_transaction["passed"]
                   and artifact_delivery is not None and artifact_delivery["passed"]
+                  and service_artifact is not None and service_artifact["passed"]
                   and final_binding is not None
-                  and len(commands) == 21 and all(row["passed"] for row in commands))
+                  and len(commands) == 22 and all(row["passed"] for row in commands))
     write_json(output / "supplemental-result.json", {
         "schema": "hepta.hia.same-cold-supplemental-callers.v1", "target": target,
         "scope": "MISSING_CALLER_GATES_AND_PRODUCTION_SHA_BINDING_AFTER_UNCHANGED_ORIGINAL_FULL",
@@ -7866,11 +8744,14 @@ def supplemental(args):
         "store_native_delivery_full_discovery_artifact_readback": store_native_delivery,
         "store_transaction_full_discovery_artifact_readback": store_transaction,
         "artifact_delivery_full_discovery_artifact_readback": artifact_delivery,
+        "service_artifact_full_discovery_artifact_readback": service_artifact,
         "final_delivery_target_and_composition_binding": final_binding,
         "original_18_supplemental_jobs_modified": False,
         "store_transaction_complete_112_job_19_added": True,
         "store_transaction_complete_61_job_20_added": True,
         "artifact_delivery_complete_132_job_21_added": True,
+        "original_21_supplemental_jobs_modified": False,
+        "service_artifact_complete_112_job_22_added": True,
         "production_sha_image_matches_actual_executed_differential_image": sha_image_bound,
         "commands": commands, "captured_inputs": pins, "original_35_stages_modified": False,
         "original_component_test_suites_rerun": True,
