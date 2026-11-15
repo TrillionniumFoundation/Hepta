@@ -1,0 +1,23 @@
+def _claimed_artifact_wire(value):
+    # Same mechanical JSON bridge and limits as AgentStore.wire. The native
+    # callback is wrapped solely to distinguish its failures from malformed
+    # caller values; the bounded encoder otherwise wraps both as edit errors.
+    from .hia_agent_store import MAX_INPUT_BYTES
+    from .hia_program_tools import bounded_json_wire, HIAEditRejected
+    selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST')
+    renderer = None
+    if selected:
+        from .hia_agent_binary64_format_native import installed_agent_binary64_format
+        image = installed_agent_binary64_format(selected)
+        def renderer(number):
+            try:
+                return image.render(number).decode('ascii')
+            except Exception as error:
+                raise _SelectedRendererFailure(error) from error
+    try:
+        return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False,
+                                 sort_keys=True, float_renderer=renderer), True
+    except _SelectedRendererFailure as failure:
+        raise failure.error.with_traceback(failure.original_traceback) from None
+    except HIAEditRejected:
+        return b'', False

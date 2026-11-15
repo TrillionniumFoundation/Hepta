@@ -679,3 +679,37 @@ def _store_transaction_dispatch(self):
 _store_transaction_dispatch.__name__ = 'transaction'
 _store_transaction_dispatch.__qualname__ = 'AgentStore.transaction'
 AgentStore.transaction = _store_transaction_dispatch
+
+
+# Original file capture bodies remain explicit unselected compatibility routes.
+# Selected calls execute complete HIA control and never call these aliases.
+_STABLE_READ_REFERENCE = stable_read
+_CAPTURE_PATH_REFERENCE = capture_path
+_STABLE_READ_GLOBAL_BUILTINS = _STABLE_READ_REFERENCE.__builtins__
+_CAPTURE_PATH_GLOBAL_BUILTINS = _CAPTURE_PATH_REFERENCE.__builtins__
+
+def stable_read(path, limit, *, dir_fd=None):
+    selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST')
+    arguments = {'path': path, 'limit': limit, 'dir_fd': dir_fd}
+    del path, limit, dir_fd
+    if selected is None:
+        return _STABLE_READ_REFERENCE(arguments.pop('path'), arguments.pop('limit'),
+                                      dir_fd=arguments.pop('dir_fd'))
+    from .hia_store_file_capture_native import (
+        installed_store_file_capture, StoreFileCaptureFrame, STABLE_READ)
+    frame = StoreFileCaptureFrame(installed_store_file_capture(selected), STABLE_READ, arguments)
+    arguments.clear()
+    return frame.finish()
+
+def capture_path(path, roots, limit):
+    selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST')
+    arguments = {'path': path, 'roots': roots, 'limit': limit}
+    del path, roots, limit
+    if selected is None:
+        return _CAPTURE_PATH_REFERENCE(arguments.pop('path'), arguments.pop('roots'),
+                                       arguments.pop('limit'))
+    from .hia_store_file_capture_native import (
+        installed_store_file_capture, StoreFileCaptureFrame, CAPTURE_PATH)
+    frame = StoreFileCaptureFrame(installed_store_file_capture(selected), CAPTURE_PATH, arguments)
+    arguments.clear()
+    return frame.finish()

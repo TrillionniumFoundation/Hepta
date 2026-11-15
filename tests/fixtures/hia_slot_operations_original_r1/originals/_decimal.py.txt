@@ -1,0 +1,7 @@
+def _decimal(value):
+    if type(value) is str:
+        try:
+            return value.encode('ascii')
+        except UnicodeError:
+            pass
+    return b''

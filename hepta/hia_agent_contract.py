@@ -38,6 +38,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/cli_format.hepta',
     'examples/hia_bootstrap/candidate_budget.hepta',
     'examples/hia_bootstrap/slot_ledger.hepta',
+    'examples/hia_bootstrap/slot_operations.hepta',
     'examples/hia_bootstrap/nominal_json.hepta',
     'examples/hia_bootstrap/agent_journal.hepta',
     'examples/hia_bootstrap/execution_budget.hepta',
@@ -95,6 +96,11 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/patch_impact.hepta',
     'examples/hia_bootstrap/static_budget.hepta',
     'examples/hia_bootstrap/cli_discovery_json.hepta',
+    'examples/hia_bootstrap/service_slot.hepta',
+    'examples/hia_bootstrap/service_inspection.hepta',
+    'examples/hia_bootstrap/service_lease.hepta',
+    'examples/hia_bootstrap/store_file_capture.hepta',
+    'examples/hia_bootstrap/service_discovery.hepta',
 )
 
 

@@ -13,7 +13,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact service_read; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger slot_operations cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact service_read service_slot service_inspection service_lease store_file_capture service_discovery; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -201,6 +201,132 @@ jobs:
                        result.expectedFailures or result.unexpectedSuccesses)
           raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
           PYTEST
+      - name: Prepared independent VM metadata Source controls
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B - <<'PYPREPARED' 2>&1 | tee "$RUNNER_TEMP/hia-prepared-vm-source.log"
+          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          expected = (
+              'tests.test_hia_program_runtime_prepared.PreparedRuntimeSourceTests.test_changed_bytes_bindings_selectors_and_custom_providers_use_original',
+              'tests.test_hia_program_runtime_prepared.PreparedRuntimeSourceTests.test_default_execution_reports_and_stopped_storage_match',
+              'tests.test_hia_program_runtime_prepared.PreparedRuntimeSourceTests.test_readonly_snapshot_and_fresh_entry_state',
+          )
+          suite, planned = load_declared_suite(('tests.test_hia_program_runtime_prepared',))
+          if planned != expected or suite.countTestCases() != len(expected):
+              raise SystemExit('complete prepared VM gate identities differ')
+          raise SystemExit(0 if run_suite(suite) else 1)
+          PYPREPARED
+      - name: Preserve prepared independent VM Source observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-prepared-vm-source-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-prepared-vm-source.log
+          if-no-files-found: error
+      - name: Arithmetic derived-operation Source controls
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - <<'PYARITHMETIC' 2>&1 | tee "$RUNNER_TEMP/hia-arithmetic-vm-source.log"
+          import os, sys
+          sys.path.insert(0, os.getcwd())
+          for key in tuple(os.environ):
+              if key.startswith(('HEPTA_HIA_', 'PYTHON')):
+                  os.environ.pop(key)
+          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          expected = (
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_all_six_arithmetic_members_and_actual_derived_operation',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_changed_metadata_and_machine_bindings_preserve_real_fallback',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_49_semantics_reports_and_stopped_storage',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_complete_dynamic_bytes_decoder_selector_fallback',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_readonly_snapshot_and_fresh_entry_state',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_private_opcode_instruction_and_metadata_keep_original_path',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_source_code_custody_and_explicit_host_failure_boundary',
+          )
+          suite, planned = load_declared_suite(('tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests',))
+          if planned != expected or suite.countTestCases() != len(expected):
+              raise SystemExit('complete independent VM gate identities differ')
+          raise SystemExit(0 if run_suite(suite) else 1)
+          PYARITHMETIC
+      - name: Complete original independent VM semantics
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -I -B - <<'PYGENERIC' 2>&1 | tee "$RUNNER_TEMP/hia-generic-vm-source.log"
+          import os, sys
+          sys.path.insert(0, os.getcwd())
+          for key in tuple(os.environ):
+              if key.startswith(('HEPTA_HIA_', 'PYTHON')):
+                  os.environ.pop(key)
+          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          expected = (
+              'tests.test_hia_program.CanonicalInputAndCFGTests.test_canonical_input_and_duplicate_keys',
+              'tests.test_hia_program.CanonicalInputAndCFGTests.test_immutable_snapshot_and_rechecked_public_constructor',
+              'tests.test_hia_program.CanonicalInputAndCFGTests.test_malformed_values_reject_with_controlled_errors',
+              'tests.test_hia_program.CanonicalInputAndCFGTests.test_ssa_cfg_effect_and_unknown_claim_rejections',
+              'tests.test_hia_program.CanonicalInputAndCFGTests.test_wrong_json_container_at_each_schema_position_is_rejected',
+              'tests.test_hia_program.ResourceExecutionTests.test_allocation_failure_empty_owner_multireturn_and_error_cleanup',
+              'tests.test_hia_program.ResourceExecutionTests.test_borrowed_call_reborrow_and_resume_parent',
+              'tests.test_hia_program.ResourceExecutionTests.test_local_stored_view_and_owner_cross_blocks_together',
+              'tests.test_hia_program.ResourceExecutionTests.test_loop_carries_owner_and_mutable_loan_identity',
+              'tests.test_hia_program.ResourceExecutionTests.test_write_read_move_drop_and_bounds',
+              'tests.test_hia_program.ScalarExecutionTests.test_checked_and_wrapping_at_every_integer_width',
+              'tests.test_hia_program.ScalarExecutionTests.test_closed_block_loop_and_calls',
+              'tests.test_hia_program.ScalarExecutionTests.test_exact_arguments_and_no_host_fabricated_capabilities',
+              'tests.test_hia_program.ScalarExecutionTests.test_signed_division_remainder_and_shift_semantics',
+              'tests.test_hia_program.ScalarExecutionTests.test_step_heap_and_call_budgets_are_not_semantic_traps',
+              'tests.test_hia_program.StaticRejectionTests.test_callee_cannot_end_or_return_external_loan',
+              'tests.test_hia_program.StaticRejectionTests.test_consumed_owners_borrows_and_silent_loss',
+              'tests.test_hia_program.StaticRejectionTests.test_duplicate_edge_owner_and_missing_parent_reject',
+              'tests.test_hia_program.StaticRejectionTests.test_exclusive_call_arguments_must_not_alias',
+              'tests.test_hia_program.StaticRejectionTests.test_join_cannot_change_loan_root_despite_matching_types',
+              'tests.test_hia_program.StaticRejectionTests.test_suspended_parent_cannot_be_accessed_or_ended_first',
+          )
+          suite, planned = load_declared_suite(('tests.test_hia_program',))
+          if planned != expected or suite.countTestCases() != len(expected):
+              raise SystemExit('complete independent VM gate identities differ')
+          raise SystemExit(0 if run_suite(suite) else 1)
+          PYGENERIC
+      - name: Preserve arithmetic and original VM Source observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-arithmetic-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-arithmetic-vm-source.log
+            ${{ runner.temp }}/hia-generic-vm-source.log
+      - name: Complete Slot operations independent Source controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SLOT_OPERATIONS_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-slot-operations-source
+        run: |
+          set -euo pipefail
+          python -B - <<'PYSLOT' 2>&1 | tee "$RUNNER_TEMP/hia-slot-operations-source.log"
+          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          expected = (
+              'tests.test_hia_slot_operations_native.SlotOperationsSourceTests.test_00_original_methods_actual_public_bindings_and_generated_profile',
+              'tests.test_hia_slot_operations_native.SlotOperationsSourceTests.test_01_complete_original248_and_derived7574_via_independent_VM',
+              'tests.test_hia_slot_operations_native.SlotOperationsSourceTests.test_02_complete_unselected_public_and_handled_traceback_originals',
+          )
+          suite, planned = load_declared_suite(('tests.test_hia_slot_operations_native.SlotOperationsSourceTests',))
+          if planned != expected or suite.countTestCases() != len(expected):
+              raise SystemExit('complete Slot gate identities differ')
+          raise SystemExit(0 if run_suite(suite) else 1)
+          PYSLOT
+      - name: Preserve complete Slot operations Source observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-slot-operations-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-slot-operations-source/
+            ${{ runner.temp }}/hia-slot-operations-source.log
       - name: Retain complete service artifact local release Source observations
         if: always()
         uses: actions/upload-artifact@v4
@@ -217,6 +343,86 @@ jobs:
           retention-days: 7
           include-hidden-files: true
           path: ${{ runner.temp }}/hia-service-read-source/
+      - name: Complete service rollback and adoption independent Source controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_SLOT_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-slot-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_slot_native.ServiceSlotSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-slot-source.log"
+      - name: Complete inspect and candidate independent Source controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_INSPECTION_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-inspection-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_inspection_native.ServiceInspectionSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-inspection-source.log"
+      - name: Complete inspection public receiver lifetime Source supplement
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_INSPECTION_PUBLIC_LIFETIME_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-inspection-public-lifetime-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_inspection_public_lifetime.ServiceInspectionPublicLifetimeSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-inspection-public-lifetime-source.log"
+      - name: Complete four-method lease independent Source controls
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_lease.py --selection source \
+            --evidence "$RUNNER_TEMP/hia-service-lease-source" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-lease-source.log"
+      - name: Preserve complete lease Source observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-service-lease-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-service-lease-source/
+            ${{ runner.temp }}/hia-service-lease-source.log
+      - name: Complete stable-read and capture independent Source controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_STORE_FILE_CAPTURE_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-store-file-capture-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_store_file_capture_native.StoreFileCaptureSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-store-file-capture-source.log"
+      - name: Preserve complete new service owner Source observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-service-business-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-service-slot-source/
+            ${{ runner.temp }}/hia-service-slot-source.log
+            ${{ runner.temp }}/hia-service-inspection-source/
+            ${{ runner.temp }}/hia-service-inspection-source.log
+            ${{ runner.temp }}/hia-service-inspection-public-lifetime-source/
+            ${{ runner.temp }}/hia-service-inspection-public-lifetime-source.log
+            ${{ runner.temp }}/hia-store-file-capture-source/
+            ${{ runner.temp }}/hia-store-file-capture-source.log
+      - name: Complete discovery Source control and immutable original observations
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_DISCOVERY_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-service-discovery-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_discovery_native.ServiceDiscoverySourceTests 2>&1 | tee "$RUNNER_TEMP/hia-service-discovery-source.log"
+      - name: Preserve complete discovery Source observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-discovery-source-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/hia-service-discovery-source/
+            ${{ runner.temp }}/hia-service-discovery-source.log
   native:
     runs-on: ubuntu-latest
     steps:
@@ -494,6 +700,200 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --evidence "$RUNNER_TEMP/hia-service-read-callers" \
             2>&1 | tee "$RUNNER_TEMP/hia-service-read-callers.log"
+      - name: Complete service rollback and adoption Native controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_SLOT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_SLOT_EVIDENCE: ${{ runner.temp }}/hia-service-slot-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_slot_native.ServiceSlotNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-service-slot-native.log"
+      - name: Bind current cold companions for complete service Slot caller scopes
+        run: |
+          python -B - <<'PYBUSINESS'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          from tools.build_hia_json_preflight import current_sources
+          parent = Path(os.environ['RUNNER_TEMP'])
+          records = sorted((parent / 'hia-service-slot-native').glob('invocation-*/companion-authority.json'))
+          if len(records) != 1:
+              raise SystemExit('one actual complete ServiceSlot component authority is required')
+          path = records[0]
+          raw = path.read_bytes()
+          authority = json.loads(raw)
+          if (authority['scope'] != 'MATCHING_SOURCE_COLD_COMPONENT'
+                  or authority['sources'] != current_sources()
+                  or set(authority['manifests']) != {'service', 'operations', 'store', 'transaction', 'ledger'}):
+              raise SystemExit('ServiceSlot companion authority is not the current cold composition')
+          captured = {}
+          for name, value in authority['manifests'].items():
+              data = Path(value).read_bytes()
+              if sha256(data).hexdigest() != authority['manifest_sha256'][name]:
+                  raise SystemExit('ServiceSlot companion manifest changed: ' + name)
+              captured[value] = data
+          cold_path = parent / 'hia-cold.json'
+          cold_raw = cold_path.read_bytes()
+          outer = json.loads(cold_raw)
+          nested_path = Path(outer['nested_report'])
+          nested_raw = nested_path.read_bytes()
+          nested = json.loads(nested_raw)
+          compiler_path = Path(nested['generations'][-1]['produced_image'])
+          compiler_raw = compiler_path.read_bytes()
+          if (sha256(compiler_raw).hexdigest() != authority['compiler_sha256']
+                  or compiler_path.resolve() != Path(authority['compiler']).resolve()):
+              raise SystemExit('ServiceSlot companion compiler differs from current cold')
+          selected = {
+              'HEPTA_HIA_SLOT_OPERATIONS_MANIFEST': authority['manifests']['operations'],
+              'HEPTA_HIA_SLOT_LEDGER_MANIFEST': authority['manifests']['ledger'],
+              'HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST': authority['manifests']['store'],
+              'HEPTA_HIA_STORE_TRANSACTION_MANIFEST': authority['manifests']['transaction'],
+          }
+          outputs = {
+              'hia-service-slot-companions.json': selected,
+              'hia-service-slot-original-fixture-environment.json': {},
+          }
+          for name, value in outputs.items():
+              with (parent / name).open('x') as stream:
+                  stream.write(json.dumps(value, sort_keys=True, indent=2) + '\n')
+          if (path.read_bytes() != raw or cold_path.read_bytes() != cold_raw
+                  or nested_path.read_bytes() != nested_raw or compiler_path.read_bytes() != compiler_raw
+                  or any(Path(name).read_bytes() != value for name, value in captured.items())
+                  or authority['sources'] != current_sources()):
+              raise SystemExit('ServiceSlot caller input custody changed')
+          report = {
+              'schema': 'hepta.hia.service-slot-CI-companion-binding.v1',
+              'authority_path': str(path), 'authority_sha256': sha256(raw).hexdigest(),
+              'cold_path': str(cold_path), 'cold_sha256': sha256(cold_raw).hexdigest(),
+              'compiler_sha256': sha256(compiler_raw).hexdigest(),
+              'manifests': authority['manifests'], 'manifest_sha256': authority['manifest_sha256'],
+              'ordinary112_companion_selectors': selected,
+              'separate128_companion_selectors': {},
+              'separate128_keeps_original_administrator_and_absence_fixtures': True,
+              'scope_counts_are_not_combined': True,
+          }
+          with (parent / 'hia-service-slot-companion-binding.json').open('x') as stream:
+              stream.write(json.dumps(report, sort_keys=True, indent=2) + '\n')
+          PYBUSINESS
+      - name: Complete original service Slot ordinary 112 callers
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_slot_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --scope ordinary112 \
+            --companion-environment "$RUNNER_TEMP/hia-service-slot-companions.json" \
+            --evidence "$RUNNER_TEMP/hia-service-slot-ordinary112" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-slot-ordinary112.log"
+      - name: Complete original separate 128 administrator and absence callers
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_slot_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --scope separate128 \
+            --companion-environment "$RUNNER_TEMP/hia-service-slot-original-fixture-environment.json" \
+            --evidence "$RUNNER_TEMP/hia-service-slot-separate128" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-slot-separate128.log"
+      - name: Complete inspect and candidate Native controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_INSPECTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_INSPECTION_EVIDENCE: ${{ runner.temp }}/hia-service-inspection-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_inspection_native.ServiceInspectionNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-service-inspection-native.log"
+      - name: Complete inspection public receiver lifetime Native supplement
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_INSPECTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_INSPECTION_PUBLIC_LIFETIME_EVIDENCE: ${{ runner.temp }}/hia-service-inspection-public-lifetime
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_inspection_public_lifetime.ServiceInspectionPublicLifetimeNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-service-inspection-public-lifetime.log"
+      - name: Complete original inspection ordinary callers
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_inspection_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-inspection-callers" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-inspection-callers.log"
+      - name: Complete four-method lease Native8 and Resource4
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_lease.py --selection component \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-lease-native" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-lease-native.log"
+      - name: Complete original lease ordinary 112 callers
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_lease_callers.py --scope ordinary \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-lease-ordinary112" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-lease-ordinary112.log"
+      - name: Complete original lease direct five modules
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_lease_callers.py --scope direct \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-lease-direct76" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-lease-direct76.log"
+      - name: Complete stable-read and capture Native controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_STORE_FILE_CAPTURE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STORE_FILE_CAPTURE_EVIDENCE: ${{ runner.temp }}/hia-store-file-capture-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_store_file_capture_native.StoreFileCaptureNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-store-file-capture-native.log"
+      - name: Complete original file-capture ordinary 112 callers
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_store_file_capture_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-store-file-capture-callers" \
+            2>&1 | tee "$RUNNER_TEMP/hia-store-file-capture-callers.log"
+          python -B tools/read_hia_store_file_capture_callers.py --repository . \
+            --evidence "$RUNNER_TEMP/hia-store-file-capture-callers" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --producer-log "$RUNNER_TEMP/hia-store-file-capture-callers.log"
+      - name: Complete discovery Native controls and installed worker
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SERVICE_DISCOVERY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_DISCOVERY_EVIDENCE: ${{ runner.temp }}/hia-service-discovery-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_service_discovery_native.ServiceDiscoveryNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-service-discovery-native.log"
+      - name: Complete original discovery ordinary 112 caller methods
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_discovery_callers.py \
+            --scope ordinary --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-discovery-ordinary" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-discovery-ordinary.log"
+      - name: Complete original discovery journal 21 caller methods
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_discovery_callers.py \
+            --scope journal --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-discovery-journal" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-discovery-journal.log"
+      - name: Complete original discovery context 15 caller methods
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_service_discovery_callers.py \
+            --scope context --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-service-discovery-context" \
+            2>&1 | tee "$RUNNER_TEMP/hia-service-discovery-context.log"
       - name: Shared native delivery causal custody and actual installed worker controls
         run: >-
           python -B tools/qualify_hia_native_delivery.py --group focused
@@ -972,6 +1372,56 @@ jobs:
         env:
           HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget
+      - name: Complete Slot operations native control and installed worker
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SLOT_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE: ${{ runner.temp }}/hia-slot-operations-native
+        run: |
+          set -euo pipefail
+          python -B - <<'PYSLOT' 2>&1 | tee "$RUNNER_TEMP/hia-slot-operations-native.log"
+          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          expected = (
+              'tests.test_hia_slot_operations_native.SlotOperationsNativeTests.test_00_complete_native_original248_and_derived7574_with_retained_poison',
+              'tests.test_hia_slot_operations_native.SlotOperationsNativeTests.test_01_actual_instance_class_overrides_namespace_and_signature',
+              'tests.test_hia_slot_operations_native.SlotOperationsNativeTests.test_02_normal_completion_after_retained_provider_traceback',
+              'tests.test_hia_slot_operations_native.SlotOperationsNativeTests.test_03_actual_transport_four_dimensions_and_exception_identity',
+              'tests.test_hia_slot_operations_native.SlotOperationsNativeTests.test_04_explicit_scope_lazy_binding_stale_thread_pid_and_source_drift',
+              'tests.test_hia_slot_operations_native.SlotOperationsNativeTests.test_05_actual_installed_worker_new_helper_and_unconfirmed_SQL',
+          )
+          suite, planned = load_declared_suite(('tests.test_hia_slot_operations_native.SlotOperationsNativeTests',))
+          if planned != expected or suite.countTestCases() != len(expected):
+              raise SystemExit('complete Slot gate identities differ')
+          raise SystemExit(0 if run_suite(suite) else 1)
+          PYSLOT
+      - name: Complete Slot operation-series resource delivery controls
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SLOT_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE: ${{ runner.temp }}/hia-slot-operations-resource
+        run: |
+          set -euo pipefail
+          python -B - <<'PYSLOT' 2>&1 | tee "$RUNNER_TEMP/hia-slot-operations-resource.log"
+          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          expected = (
+              'tests.test_hia_slot_operation_series_native.SlotOperationsResourceNativeTests.test_SQL_prefix_remains_pending_until_the_final_operation_receipt',
+              'tests.test_hia_slot_operation_series_native.SlotOperationsResourceNativeTests.test_last_SQL_argument_checks_a_new_independent_context_loss',
+              'tests.test_hia_slot_operation_series_native.SlotOperationsResourceNativeTests.test_same_Frame_reentry_cannot_clean_up_its_still_active_parent',
+              'tests.test_hia_slot_operation_series_native.SlotOperationsResourceNativeTests.test_same_generation_prior_loss_is_rejected_before_first_SQL',
+          )
+          suite, planned = load_declared_suite(('tests.test_hia_slot_operation_series_native.SlotOperationsResourceNativeTests',))
+          if planned != expected or suite.countTestCases() != len(expected):
+              raise SystemExit('complete Slot gate identities differ')
+          raise SystemExit(0 if run_suite(suite) else 1)
+          PYSLOT
+      - name: Complete original Slot15 callers through selected operations owner
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_slot_operations_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-slot-operations-callers" \
+            2>&1 | tee "$RUNNER_TEMP/hia-slot-operations-callers.log"
       - name: Native slot versions leases and original Agent transactions
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_slot_ledger_native tests.test_hia_slot_ledger_native_integration
         env:
@@ -1103,6 +1553,39 @@ jobs:
           retention-days: 7
           include-hidden-files: true
           path: |
+            ${{ runner.temp }}/hia-service-slot-native/
+            ${{ runner.temp }}/hia-service-slot-native.log
+            ${{ runner.temp }}/hia-service-slot-companions.json
+            ${{ runner.temp }}/hia-service-slot-original-fixture-environment.json
+            ${{ runner.temp }}/hia-service-slot-companion-binding.json
+            ${{ runner.temp }}/hia-service-slot-ordinary112/
+            ${{ runner.temp }}/hia-service-slot-ordinary112.log
+            ${{ runner.temp }}/hia-service-slot-separate128/
+            ${{ runner.temp }}/hia-service-slot-separate128.log
+            ${{ runner.temp }}/hia-service-inspection-native/
+            ${{ runner.temp }}/hia-service-inspection-native.log
+            ${{ runner.temp }}/hia-service-inspection-public-lifetime/
+            ${{ runner.temp }}/hia-service-inspection-public-lifetime.log
+            ${{ runner.temp }}/hia-service-inspection-callers/
+            ${{ runner.temp }}/hia-service-inspection-callers.log
+            ${{ runner.temp }}/hia-service-lease-native/
+            ${{ runner.temp }}/hia-service-lease-native.log
+            ${{ runner.temp }}/hia-service-lease-ordinary112/
+            ${{ runner.temp }}/hia-service-lease-ordinary112.log
+            ${{ runner.temp }}/hia-service-lease-direct76/
+            ${{ runner.temp }}/hia-service-lease-direct76.log
+            ${{ runner.temp }}/hia-store-file-capture-native/
+            ${{ runner.temp }}/hia-store-file-capture-native.log
+            ${{ runner.temp }}/hia-store-file-capture-callers/
+            ${{ runner.temp }}/hia-store-file-capture-callers.log
+            ${{ runner.temp }}/hia-service-discovery-native/
+            ${{ runner.temp }}/hia-service-discovery-native.log
+            ${{ runner.temp }}/hia-service-discovery-ordinary/
+            ${{ runner.temp }}/hia-service-discovery-ordinary.log
+            ${{ runner.temp }}/hia-service-discovery-journal/
+            ${{ runner.temp }}/hia-service-discovery-journal.log
+            ${{ runner.temp }}/hia-service-discovery-context/
+            ${{ runner.temp }}/hia-service-discovery-context.log
             ${{ runner.temp }}/hia-full-cost/
             ${{ runner.temp }}/hia-full-cost-callers/
             ${{ runner.temp }}/hia-patch-impact/
@@ -1213,6 +1696,12 @@ jobs:
             ${{ runner.temp }}/hia-store-transaction-owner.log
             ${{ runner.temp }}/hia-transaction-journal-controls/
             ${{ runner.temp }}/hia-transaction-journal-controls.log
+            ${{ runner.temp }}/hia-slot-operations-native/
+            ${{ runner.temp }}/hia-slot-operations-native.log
+            ${{ runner.temp }}/hia-slot-operations-resource/
+            ${{ runner.temp }}/hia-slot-operations-resource.log
+            ${{ runner.temp }}/hia-slot-operations-callers/
+            ${{ runner.temp }}/hia-slot-operations-callers.log
       - name: Prepare exact owned raw diagnostic paths
         id: hia_raw_diagnostic_paths
         if: always()
@@ -1345,6 +1834,41 @@ jobs:
               ('hia-store-transaction-owner', transaction_patterns),
               ('hia-transaction-journal-controls.log', None),
               ('hia-transaction-journal-controls', transaction_patterns),
+              ('hia-slot-operations-native.log', None),
+              ('hia-slot-operations-native', transaction_patterns),
+              ('hia-slot-operations-resource.log', None),
+              ('hia-slot-operations-resource', transaction_patterns),
+              ('hia-slot-operations-callers.log', None),
+              ('hia-slot-operations-callers', transaction_patterns),
+              ('hia-service-slot-native', service_read_patterns),
+              ('hia-service-slot-native.log', None),
+              ('hia-service-slot-companions.json', None),
+              ('hia-service-slot-original-fixture-environment.json', None),
+              ('hia-service-slot-companion-binding.json', None),
+              ('hia-service-slot-ordinary112', service_read_patterns),
+              ('hia-service-slot-ordinary112.log', None),
+              ('hia-service-slot-separate128', service_read_patterns),
+              ('hia-service-slot-separate128.log', None),
+              ('hia-service-inspection-native', service_read_patterns),
+              ('hia-service-inspection-native.log', None),
+              ('hia-service-inspection-public-lifetime', service_read_patterns),
+              ('hia-service-inspection-public-lifetime.log', None),
+              ('hia-service-inspection-callers', service_read_patterns),
+              ('hia-service-inspection-callers.log', None),
+              ('hia-service-lease-native', service_read_patterns),
+              ('hia-service-lease-native.log', None),
+              ('hia-service-lease-ordinary112', service_read_patterns),
+              ('hia-service-lease-ordinary112.log', None),
+              ('hia-service-lease-direct76', service_read_patterns),
+              ('hia-service-lease-direct76.log', None),
+              ('hia-service-discovery-native', service_read_patterns),
+              ('hia-service-discovery-native.log', None),
+              ('hia-service-discovery-ordinary', service_read_patterns),
+              ('hia-service-discovery-ordinary.log', None),
+              ('hia-service-discovery-journal', service_read_patterns),
+              ('hia-service-discovery-journal.log', None),
+              ('hia-service-discovery-context', service_read_patterns),
+              ('hia-service-discovery-context.log', None),
           )
           temporary = os.environ["RUNNER_TEMP"]
           paths = [temporary + "/" + name for name in exact_files]
@@ -1369,3 +1893,26 @@ jobs:
           retention-days: 7
           include-hidden-files: true
           path: ${{ steps.hia_raw_diagnostic_paths.outputs.paths }}
+      - name: Preserve complete file-capture raw text evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-store-file-capture-raw-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-store-file-capture-native/**/*.json
+            ${{ runner.temp }}/hia-store-file-capture-native/**/*.jsonl
+            ${{ runner.temp }}/hia-store-file-capture-native/**/*.log
+            ${{ runner.temp }}/hia-store-file-capture-native/**/*.stdout
+            ${{ runner.temp }}/hia-store-file-capture-native/**/*.stderr
+            ${{ runner.temp }}/hia-store-file-capture-native/**/*.txt
+            ${{ runner.temp }}/hia-store-file-capture-native.log
+            ${{ runner.temp }}/hia-store-file-capture-callers/**/*.json
+            ${{ runner.temp }}/hia-store-file-capture-callers/**/*.jsonl
+            ${{ runner.temp }}/hia-store-file-capture-callers/**/*.log
+            ${{ runner.temp }}/hia-store-file-capture-callers/**/*.stdout
+            ${{ runner.temp }}/hia-store-file-capture-callers/**/*.stderr
+            ${{ runner.temp }}/hia-store-file-capture-callers/**/*.txt
+            ${{ runner.temp }}/hia-store-file-capture-callers.log

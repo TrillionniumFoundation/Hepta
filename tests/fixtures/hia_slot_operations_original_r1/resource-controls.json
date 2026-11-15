@@ -1,0 +1,136 @@
+{
+  "schema": "hepta.slot-sql.resource-ack-control-plan.reconstructed-r1",
+  "count": 14,
+  "controls": [
+    {
+      "id": "N01",
+      "title": "adopt prefix, later INIT loss",
+      "setup": "Actual absent-slot adopt: op12 confirmed; observe original INSERT slots and INSERT baseline; run saved actual op7 entry then lose ACK.",
+      "assertions": "Exact current Store/DB and both completed SQL facts retained; no op8/9/suffix; later same Store close and repeat attempt refuse; other Store remains usable.",
+      "evidence": "Original SQL and actual entry counters; before/after rows; custody origin; weak generation; no handwritten loss.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N02",
+      "title": "same prefix, complete ordinary rejection",
+      "setup": "Same real prefix, actual valid op7 range refusal fully validated, then unchanged _raise.",
+      "assertions": "Original AgentRejected/message and original caller rollback policy; no native-loss record; direct no-transaction effects are not secretly rolled back by the new owner.",
+      "evidence": "Compare original direct and original transaction caller, actual nonzero receipt, zero loss.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N03",
+      "title": "intermediate decision ACK cannot clear SQL series",
+      "setup": "Complete prefix and several actual op8 calls, then actual op9 entry loses result.",
+      "assertions": "Earlier SQL custody remains through all intermediate ACKs; exact DB fenced after real loss; previously confirmed op8 is not replayed.",
+      "evidence": "All op ordinals, private state full bytes, SQL effects and source/image identities.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N04",
+      "title": "suffix SQL after last decision",
+      "setup": "Actual op9 confirmed, candidate-version INSERT then slot UPDATE completes, lose controller ACK after saved actual entry.",
+      "assertions": "Complete SQL suffix remains unknown; no success result or terminal journal claim; actual affected Store remains retained until explicit process end.",
+      "evidence": "Real rows, exact parent controller receipt loss and durable running request, repeated call rejects.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N05",
+      "title": "nested release to lease ownership",
+      "setup": "Actual public release invokes dynamically bound lease, nested lease receipt confirms; outer UPDATE runs, then outer controller loses ACK.",
+      "assertions": "Nested completion does not retire outer SQL obligation; only actual outer-associated Store refuses retirement; original dynamic lease override still honored.",
+      "evidence": "Both frame/activation identities, SQL SELECT and UPDATE exact order, no private bypass.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N06",
+      "title": "resource identity separation",
+      "setup": "Two registered Store lifetimes, including same pathname with distinct objects/connections; lose one series after actual SQL.",
+      "assertions": "Only real same-generation associations fence; no path/id-only inference, no whole image poison, unrelated Store can execute.",
+      "evidence": "Weakref identity/generation facts and actual calls; no arbitrary count limit.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N07",
+      "title": "original connection check and error order",
+      "setup": "Change exact getter result after original db capture, or raise AttributeError on later self.store.db; run original complete source pair.",
+      "assertions": "Original identity rejection or lookup exception before new execute; no extra getter, SQL or invented loss; all name/obj/context preserved.",
+      "evidence": "Per-getter original traces, zero affected execute calls; same runtime prior history declared.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N08",
+      "title": "safe reservation versus observed attempt",
+      "setup": "Inject allocation failure before any SQL/handoff, then separately after original SQL return before controller ACK construction.",
+      "assertions": "Safe refusal preserves original MemoryError with no effect/loss; completed observed outcome is retained and not replayable even when packet allocation fails.",
+      "evidence": "Actual final-argument cutpoint, original object identity, full registry and source pins.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N09",
+      "title": "temporary and detached receiver lifetime",
+      "setup": "Original side first: temporary Store, detached execute callable/cursor/fetch callable and actual callback resources; healthy and lost-ACK paths.",
+      "assertions": "Healthy owner cannot retain ordinary fake/unregistered receivers beyond original release; a dead Store is never resurrected. Loss guard only for actual live registered generation.",
+      "evidence": "Canonical weakrefs/deletion/active-exception traces; explicit GC phase only where original fixture declares.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N10",
+      "title": "preparation GC reentry and swallowed loss",
+      "setup": "During actual pre-effect reservation, a finalizer performs another selected child entry that genuinely loses ACK and catches/replaces visible exception.",
+      "assertions": "Final post-reservation check prevents the new SQL/native entry; classification, caught_expected and no escaped unraisable explicitly asserted.",
+      "evidence": "Actual child entry saved-then-fault, independent callback_error list, forbidden-provider call counter remains zero.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N11",
+      "title": "swallowed/replaced native failure",
+      "setup": "Within a real native or snapshot callback, an actual selected child loses delivery; callback returns or raises another ordinary error.",
+      "assertions": "Actual active parent remains sticky; no later SQL or successful controller ACK. Ordinary same-named errors with no loss remain ordinary.",
+      "evidence": "Original callback invocation identity, actual ancestry PID/thread, exact top-level error chain.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N12",
+      "title": "Context, thread, fork, stale activation",
+      "setup": "Healthy paused ownership/callback scopes, copied Context, foreign thread and fork; inherited unknown resource versus healthy fresh resource.",
+      "assertions": "No synthetic ancestry from a stale/copy scope; original creator checks preserved. Resource loss on exact lifetime remains visible without arbitrary new input limits.",
+      "evidence": "Own children supervised/reaped; process identity; real calls before/after; no broad thread ban.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N13",
+      "title": "complete ACK followed by foreign cleanup error",
+      "setup": "Saved actual full controller receipt confirms, then resource retirement/finalizer raises MemoryError.",
+      "assertions": "No retrospective native loss; original foreign error identity preserved; remaining confirmed observations mechanically recover without provider replay; no permanent healthy strong hold.",
+      "evidence": "Registry and weakrefs at ACK, before next port, after explicit consumer/GC; terminal confirmation actual.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    },
+    {
+      "id": "N14",
+      "title": "installed worker and paired pinned source",
+      "setup": "One real installed release bundle with exact controller+decision images and registered current sources; original ordinary and admin caller scopes remain unchanged.",
+      "assertions": "Whole selected 15-method control owner executes with all retained methods poisoned; exact source/image/child-manifest drift refuses; empty/absent/lazy routes preserved outside declared release.",
+      "evidence": "Installed RECORD/worker child environment, actual image entry counts, complete original 15/13/61/112/128/130 gates independently retained.",
+      "status": "UNIMPLEMENTED_RESOURCE_CONTROL_PLAN_NO_EXECUTION",
+      "no_synthetic_native_loss": true
+    }
+  ],
+  "all_old_tests_and_budgets_unchanged": true,
+  "real_SQL_Native_VM_executed": 0,
+  "not_equivalent_to_original_fake_provider_cases": true,
+  "unknown_ownership_claimed": false
+}

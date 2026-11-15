@@ -1680,3 +1680,258 @@ def _selected_hia_read(self, arguments):
 
 
 HIAAgentService._hia_read = _selected_hia_read
+
+
+# Retain both complete original methods and their actual bound builtin tables.
+# Public method lookup remains dynamic at the original caller. A later
+# instance/class override still takes precedence over these dispatchers.
+_NATIVE_SERVICE_SLOT_ROLLBACK_REFERENCE = HIAAgentService._hia_rollback
+_NATIVE_SERVICE_SLOT_ADOPT_REFERENCE = HIAAgentService._hia_adopt
+_SERVICE_SLOT_ROLLBACK_GLOBAL_BUILTINS = _NATIVE_SERVICE_SLOT_ROLLBACK_REFERENCE.__builtins__
+_SERVICE_SLOT_ADOPT_GLOBAL_BUILTINS = _NATIVE_SERVICE_SLOT_ADOPT_REFERENCE.__builtins__
+
+
+def _service_slot_rollback_dispatch(self, args):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_SLOT_MANIFEST')
+    if selected is not None:
+        from .hia_service_slot_native import installed_service_slot, ServiceSlotFrame
+        from .hia_service_slot_protocol import ROLLBACK
+        frame = ServiceSlotFrame(installed_service_slot(selected), ROLLBACK, self, args)
+        del self, args
+        return frame.finish()
+    call = {'callee': _NATIVE_SERVICE_SLOT_ROLLBACK_REFERENCE, 'self': self, 'args': args}
+    del self, args
+    return call.pop('callee')(call.pop('self'), call.pop('args'))
+
+
+def _service_slot_adopt_dispatch(self, args):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_SLOT_MANIFEST')
+    if selected is not None:
+        from .hia_service_slot_native import installed_service_slot, ServiceSlotFrame
+        from .hia_service_slot_protocol import ADOPT
+        frame = ServiceSlotFrame(installed_service_slot(selected), ADOPT, self, args)
+        del self, args
+        return frame.finish()
+    call = {'callee': _NATIVE_SERVICE_SLOT_ADOPT_REFERENCE, 'self': self, 'args': args}
+    del self, args
+    return call.pop('callee')(call.pop('self'), call.pop('args'))
+
+
+HIAAgentService._hia_rollback = _service_slot_rollback_dispatch
+HIAAgentService._hia_adopt = _service_slot_adopt_dispatch
+
+
+# Complete inspect/candidate method-level control. The original methods above
+# remain byte-exact, callable references for the explicit unselected route and
+# independent original-body qualification; selected dispatch never invokes them.
+_SERVICE_INSPECTION_INSPECT_REFERENCE = HIAAgentService._hia_inspect
+_SERVICE_INSPECTION_CANDIDATE_REFERENCE = HIAAgentService._hia_candidate
+_SERVICE_INSPECTION_GLOBAL_BUILTINS = {
+    1: _SERVICE_INSPECTION_INSPECT_REFERENCE.__builtins__,
+    2: _SERVICE_INSPECTION_CANDIDATE_REFERENCE.__builtins__,
+}
+_SERVICE_INSPECTION_LOCAL_NAMES = {
+    1: (_SERVICE_INSPECTION_INSPECT_REFERENCE.__code__.co_varnames
+        + _SERVICE_INSPECTION_INSPECT_REFERENCE.__code__.co_cellvars),
+    2: (_SERVICE_INSPECTION_CANDIDATE_REFERENCE.__code__.co_varnames
+        + _SERVICE_INSPECTION_CANDIDATE_REFERENCE.__code__.co_cellvars),
+}
+HIAAgentService._hia_inspect_reference = _SERVICE_INSPECTION_INSPECT_REFERENCE
+HIAAgentService._hia_candidate_reference = _SERVICE_INSPECTION_CANDIDATE_REFERENCE
+
+
+def _selected_hia_inspect(self, args):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_INSPECTION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_INSPECTION_INSPECT_REFERENCE, 'self': self, 'args': args}
+        del self, args
+        return call.pop('callee')(call.pop('self'), call.pop('args'))
+    from .hia_service_inspection_native import ServiceInspectionFrame, installed_service_inspection
+    frame = ServiceInspectionFrame(installed_service_inspection(selector), 1, self, args)
+    del self, args
+    return frame.finish()
+
+
+def _selected_hia_candidate(self, args):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_INSPECTION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_INSPECTION_CANDIDATE_REFERENCE, 'self': self, 'args': args}
+        del self, args
+        return call.pop('callee')(call.pop('self'), call.pop('args'))
+    from .hia_service_inspection_native import ServiceInspectionFrame, installed_service_inspection
+    frame = ServiceInspectionFrame(installed_service_inspection(selector), 2, self, args)
+    del self, args
+    return frame.finish()
+
+
+HIAAgentService._hia_inspect = _selected_hia_inspect
+HIAAgentService._hia_candidate = _selected_hia_candidate
+
+
+# Four complete service lease methods. The class bodies above remain retained
+# original references; selected control never invokes them. Public identity and
+# the actual binding below are admitted separately from old body AST checks.
+_SERVICE_LEASE_ACQUIRE_REFERENCE = HIAAgentService.acquire_slot
+_SERVICE_LEASE_LEASE_REFERENCE = HIAAgentService._lease
+_SERVICE_LEASE_INVOKE_REFERENCE = HIAAgentService.invoke_lease
+_SERVICE_LEASE_RELEASE_REFERENCE = HIAAgentService.release_slot
+_SERVICE_LEASE_GLOBAL_BUILTINS = {
+    1: _SERVICE_LEASE_ACQUIRE_REFERENCE.__builtins__,
+    2: _SERVICE_LEASE_LEASE_REFERENCE.__builtins__,
+    3: _SERVICE_LEASE_INVOKE_REFERENCE.__builtins__,
+    4: _SERVICE_LEASE_RELEASE_REFERENCE.__builtins__,
+}
+
+
+def _service_lease_import_runner():
+    from .hia_agent_runner import run_native_batch
+    return run_native_batch
+
+
+def _service_lease_import_validator():
+    from .hia_agent_buffers import validate_arguments
+    return validate_arguments
+
+
+# Capture these original import primitives with the same module globals and
+# bound builtin mapping as the original methods, before later monkeypatches.
+_SERVICE_LEASE_IMPORT_RUNNER = _service_lease_import_runner
+_SERVICE_LEASE_IMPORT_VALIDATOR = _service_lease_import_validator
+
+
+def _service_lease_acquire_dispatch(self, target_slot):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_LEASE_MANIFEST')
+    if selected is None:
+        call = {'callee': _SERVICE_LEASE_ACQUIRE_REFERENCE, 'self': self, 'target_slot': target_slot}
+        del self, target_slot
+        return call.pop('callee')(call.pop('self'), call.pop('target_slot'))
+    from .hia_service_lease_native import ServiceLeaseFrame, installed_service_lease
+    frame = ServiceLeaseFrame(installed_service_lease(selected), 1, self, (target_slot,))
+    del self, target_slot
+    return frame.finish()
+
+
+def _service_lease_lease_dispatch(self, lease):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_LEASE_MANIFEST')
+    if selected is None:
+        call = {'callee': _SERVICE_LEASE_LEASE_REFERENCE, 'self': self, 'lease': lease}
+        del self, lease
+        return call.pop('callee')(call.pop('self'), call.pop('lease'))
+    from .hia_service_lease_native import ServiceLeaseFrame, installed_service_lease
+    frame = ServiceLeaseFrame(installed_service_lease(selected), 2, self, (lease,))
+    del self, lease
+    return frame.finish()
+
+
+def _service_lease_invoke_dispatch(self, lease, function, arguments):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_LEASE_MANIFEST')
+    if selected is None:
+        call = {'callee': _SERVICE_LEASE_INVOKE_REFERENCE, 'self': self, 'lease': lease, 'function': function, 'arguments': arguments}
+        del self, lease, function, arguments
+        return call.pop('callee')(call.pop('self'), call.pop('lease'), call.pop('function'), call.pop('arguments'))
+    from .hia_service_lease_native import ServiceLeaseFrame, installed_service_lease
+    frame = ServiceLeaseFrame(installed_service_lease(selected), 3, self, (lease, function, arguments))
+    del self, lease, function, arguments
+    return frame.finish()
+
+
+def _service_lease_release_dispatch(self, lease):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_LEASE_MANIFEST')
+    if selected is None:
+        call = {'callee': _SERVICE_LEASE_RELEASE_REFERENCE, 'self': self, 'lease': lease}
+        del self, lease
+        return call.pop('callee')(call.pop('self'), call.pop('lease'))
+    from .hia_service_lease_native import ServiceLeaseFrame, installed_service_lease
+    frame = ServiceLeaseFrame(installed_service_lease(selected), 4, self, (lease,))
+    del self, lease
+    return frame.finish()
+
+_service_lease_acquire_dispatch.__name__ = _SERVICE_LEASE_ACQUIRE_REFERENCE.__name__
+_service_lease_acquire_dispatch.__qualname__ = _SERVICE_LEASE_ACQUIRE_REFERENCE.__qualname__
+_service_lease_acquire_dispatch.__doc__ = _SERVICE_LEASE_ACQUIRE_REFERENCE.__doc__
+HIAAgentService.acquire_slot = _service_lease_acquire_dispatch
+
+_service_lease_lease_dispatch.__name__ = _SERVICE_LEASE_LEASE_REFERENCE.__name__
+_service_lease_lease_dispatch.__qualname__ = _SERVICE_LEASE_LEASE_REFERENCE.__qualname__
+_service_lease_lease_dispatch.__doc__ = _SERVICE_LEASE_LEASE_REFERENCE.__doc__
+HIAAgentService._lease = _service_lease_lease_dispatch
+
+_service_lease_invoke_dispatch.__name__ = _SERVICE_LEASE_INVOKE_REFERENCE.__name__
+_service_lease_invoke_dispatch.__qualname__ = _SERVICE_LEASE_INVOKE_REFERENCE.__qualname__
+_service_lease_invoke_dispatch.__doc__ = _SERVICE_LEASE_INVOKE_REFERENCE.__doc__
+HIAAgentService.invoke_lease = _service_lease_invoke_dispatch
+
+_service_lease_release_dispatch.__name__ = _SERVICE_LEASE_RELEASE_REFERENCE.__name__
+_service_lease_release_dispatch.__qualname__ = _SERVICE_LEASE_RELEASE_REFERENCE.__qualname__
+_service_lease_release_dispatch.__doc__ = _SERVICE_LEASE_RELEASE_REFERENCE.__doc__
+HIAAgentService.release_slot = _service_lease_release_dispatch
+
+
+# Complete discovery control. Both retained original bodies above remain
+# byte-exact and callable only through the explicit unselected route.
+_SERVICE_DISCOVERY_DESCRIBE_REFERENCE = HIAAgentService._hia_describe
+_SERVICE_DISCOVERY_EXAMPLES_REFERENCE = HIAAgentService._examples
+_SERVICE_DISCOVERY_GLOBAL_BUILTINS = {
+    1: _SERVICE_DISCOVERY_DESCRIBE_REFERENCE.__builtins__,
+    2: _SERVICE_DISCOVERY_EXAMPLES_REFERENCE.__builtins__,
+}
+_SERVICE_DISCOVERY_LOCAL_NAMES = {
+    1: (_SERVICE_DISCOVERY_DESCRIBE_REFERENCE.__code__.co_varnames
+        + _SERVICE_DISCOVERY_DESCRIBE_REFERENCE.__code__.co_cellvars),
+    2: (_SERVICE_DISCOVERY_EXAMPLES_REFERENCE.__code__.co_varnames
+        + _SERVICE_DISCOVERY_EXAMPLES_REFERENCE.__code__.co_cellvars),
+}
+# Host loading is private lazy plumbing. Each business import below still
+# executes real interpreter opcodes in the original namespace and builtins.
+_SERVICE_DISCOVERY_NAMESPACE = _SERVICE_DISCOVERY_DESCRIBE_REFERENCE.__globals__
+_SERVICE_DISCOVERY_HOST_IMPORT = _SERVICE_DISCOVERY_DESCRIBE_REFERENCE.__builtins__['__import__']
+
+
+def _service_discovery_import_describe(self, args):
+    from .hia_opcodes import opcode_catalog
+    return opcode_catalog
+
+
+def _service_discovery_import_examples():
+    from .hia_agent_assembly import assemble_program, render_assembly
+    return assemble_program, render_assembly
+
+
+_SERVICE_DISCOVERY_IMPORTS = {
+    1: _service_discovery_import_describe,
+    2: _service_discovery_import_examples,
+}
+HIAAgentService._hia_describe_reference = _SERVICE_DISCOVERY_DESCRIBE_REFERENCE
+HIAAgentService._examples_reference = staticmethod(_SERVICE_DISCOVERY_EXAMPLES_REFERENCE)
+
+
+def _selected_hia_describe(self, args):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_DISCOVERY_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_DISCOVERY_DESCRIBE_REFERENCE, 'self': self, 'args': args}
+        del self, args
+        return call.pop('callee')(call.pop('self'), call.pop('args'))
+    native = _SERVICE_DISCOVERY_HOST_IMPORT(
+        'hepta.hia_service_discovery_native', None, None,
+        ('ServiceDiscoveryFrame', 'installed_service_discovery'), 0)
+    frame = native.ServiceDiscoveryFrame(native.installed_service_discovery(selector), 1, self, args)
+    del self, args
+    return frame.finish()
+
+
+def _selected_discovery_examples():
+    selector = os.environ.get('HEPTA_HIA_SERVICE_DISCOVERY_MANIFEST')
+    if selector is None:
+        return _SERVICE_DISCOVERY_EXAMPLES_REFERENCE()
+    native = _SERVICE_DISCOVERY_HOST_IMPORT(
+        'hepta.hia_service_discovery_native', None, None,
+        ('ServiceDiscoveryFrame', 'installed_service_discovery'), 0)
+    return native.ServiceDiscoveryFrame(native.installed_service_discovery(selector), 2).finish()
+
+
+_selected_hia_describe.__name__ = _SERVICE_DISCOVERY_DESCRIBE_REFERENCE.__name__
+_selected_hia_describe.__qualname__ = _SERVICE_DISCOVERY_DESCRIBE_REFERENCE.__qualname__
+_selected_discovery_examples.__name__ = _SERVICE_DISCOVERY_EXAMPLES_REFERENCE.__name__
+_selected_discovery_examples.__qualname__ = _SERVICE_DISCOVERY_EXAMPLES_REFERENCE.__qualname__
+HIAAgentService._hia_describe = _selected_hia_describe
+HIAAgentService._examples = staticmethod(_selected_discovery_examples)

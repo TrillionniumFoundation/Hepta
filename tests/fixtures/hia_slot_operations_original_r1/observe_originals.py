@@ -1,0 +1,958 @@
+#!/usr/bin/env python3
+"""Reconstructed original-only Slot multi-SQL observer, never a native qualifier.
+
+Only exact frozen source nodes are executed. Every SQLite/native/entropy/JSON
+provider is an explicitly declared fake. Product modules are not imported.
+The finite input list contains no expected observations.
+"""
+from __future__ import annotations
+import argparse
+import ast
+import builtins
+import gc
+import hashlib
+import json
+import os
+from pathlib import Path
+import struct
+import sys
+import time
+import traceback
+import types
+import weakref
+
+ACTIVE = None
+ORIGINAL = None
+ORIGINAL_METHODS = {}
+FROZEN_NAMES = (
+    "_custody", "request_packet", "_text", "_untext", "_decimal",
+    "_raise", "_SelectedRendererFailure", "_claimed_artifact_wire",
+    "NativeSlotLedgerStore",
+)
+SQL = {
+    "snapshot.sql1": "SELECT * FROM slots WHERE name=?",
+    "snapshot.sql2": "SELECT artifact FROM versions WHERE slot=? AND generation=?",
+    "snapshot.sql3": "SELECT COUNT(*) FROM leases WHERE slot=? AND active=1",
+    "adopt.sql1": "INSERT INTO slots VALUES (?,?,?,?,?)",
+    "adopt.sql2": "INSERT INTO versions VALUES (?,?,?)",
+    "adopt.sql3": "SELECT * FROM slots WHERE name=?",
+    "adopt.sql4": "SELECT generation FROM versions WHERE slot=?",
+    "adopt.sql5": "INSERT INTO versions VALUES (?,?,?)",
+    "adopt.sql6": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?",
+    "rollback.sql1": "SELECT artifact FROM versions WHERE slot=? AND generation=?",
+    "rollback.sql2": "SELECT * FROM slots WHERE name=?",
+    "rollback.sql3": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?",
+    "acquire.sql1": "INSERT INTO leases VALUES (?,?,?,?,1)",
+    "lease.sql1": "SELECT * FROM leases WHERE id=?",
+    "release.sql1": "UPDATE leases SET active=0 WHERE id=?",
+}
+A = {"id": "artifact-A", "sha256": "a" * 64, "uri": "hepta:artifact-A"}
+C = {"id": "artifact-C", "sha256": "b" * 64, "uri": "hepta:artifact-C"}
+JSON_KW = dict(ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def canonical(value):
+    return json.dumps(value, **JSON_KW).encode("ascii")
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def copy_json(value):
+    return json.loads(canonical(value))
+
+
+def write_json(path, value):
+    path.write_bytes(canonical(value) + b"\n")
+
+
+def materialize(value):
+    if type(value) is dict and set(value) == {"$unicode"}:
+        return "".join(chr(n) for n in value["$unicode"])
+    if type(value) is dict:
+        return {k: materialize(v) for k, v in value.items()}
+    if type(value) is list:
+        return [materialize(v) for v in value]
+    return value
+
+
+class OracleFixtureError(RuntimeError):
+    """Observer/provider configuration failure, never an original result."""
+
+
+class Probe:
+    def _start(self, world, kind):
+        object.__setattr__(self, "_world", world)
+        object.__setattr__(self, "_tag", world.register(self, kind))
+
+    def __del__(self):
+        # The observer retains primitive events and weak references only.
+        world = object.__getattribute__(self, "_world")
+        world.event(object.__getattribute__(self, "_tag") + ".delete", inject=False)
+
+
+class TrackedMap(dict):
+    def __init__(self, world, label, values):
+        dict.__init__(self, values)
+        self._world = world
+        self._label = label
+        self._tag = world.register(self, "map:" + label)
+
+    def __getitem__(self, key):
+        self._world.event("map." + self._label + ".getitem." + str(key))
+        return dict.__getitem__(self, key)
+
+    def get(self, key, default=None):
+        self._world.event("map." + self._label + ".get." + str(key))
+        return dict.get(self, key, default)
+
+    def __iter__(self):
+        self._world.event("map." + self._label + ".iter")
+        return dict.__iter__(self)
+
+    def __len__(self):
+        self._world.event("map." + self._label + ".len")
+        return dict.__len__(self)
+
+    def __del__(self):
+        self._world.event(self._tag + ".delete", inject=False)
+
+
+class Buffer(Probe):
+    def __init__(self, world, size):
+        self._start(world, "buffer")
+        self.size = size
+
+
+class Program(Probe):
+    def __init__(self, world):
+        self._start(world, "program")
+
+
+class UUIDValue(Probe):
+    def __init__(self, world):
+        self._start(world, "uuid")
+
+    @property
+    def hex(self):
+        self._world.event("uuid.lookup.hex")
+        return "0123456789abcdef0123456789abcdef"
+
+
+class HashValue(Probe):
+    def __init__(self, world, data):
+        self._start(world, "hash")
+        self._digest = hashlib.sha256(data).hexdigest()
+
+    def hexdigest(self):
+        self._world.event("hash.hexdigest.call")
+        return self._digest
+
+
+class Receipt(Probe):
+    def __init__(self, world, status, action, values, fields):
+        self._start(world, "receipt")
+        self.status, self.action = status, action
+        self.values, self.fields = tuple(values), tuple(fields)
+        self.raw = b"FAKE-RECEIPT-ORIGINAL-CONTROL-ONLY"
+
+
+class Renderer(Probe):
+    def __init__(self, world):
+        self._start(world, "renderer")
+
+    def render(self, value):
+        self._world.event("provider.renderer.render", value=value)
+        name = self._world.settings.get("renderer_raises")
+        if name:
+            error = getattr(builtins, name)("declared renderer failure")
+            self._world.name_error(error, "renderer-error")
+            raise error
+        return b"1.5"
+
+
+class DetachedExecute(Probe):
+    def __init__(self, world, db_tag):
+        self._start(world, "execute-callable")
+        self._db_tag = db_tag   # primitive; deliberately no DB reference
+
+    def __call__(self, statement, parameters):
+        return self._world.execute(statement, parameters, self._db_tag)
+
+
+class DetachedFetch(Probe):
+    def __init__(self, world, site, row_spec):
+        self._start(world, "fetch-callable")
+        self._site, self._row_spec = site, row_spec  # plain JSON, no Cursor
+
+    def __call__(self):
+        self._world.event("cursor.fetchone.call", site=self._site)
+        return self._world.make_row(self._row_spec)
+
+
+class DB(Probe):
+    def __init__(self, world, role):
+        self._start(world, "db:" + role)
+
+    def __getattribute__(self, name):
+        if name == "execute":
+            world = object.__getattribute__(self, "_world")
+            world.event("db.lookup.execute")
+            if world.settings.get("detached_execute"):
+                return DetachedExecute(world, object.__getattribute__(self, "_tag"))
+        return object.__getattribute__(self, name)
+
+    def execute(self, statement, parameters=()):
+        return self._world.execute(statement, parameters, self._tag)
+
+
+class Store(Probe):
+    def __init__(self, world, db):
+        self._start(world, "store")
+        self._db = db
+
+    @property
+    def db(self):
+        self._world.event("store.lookup.db")
+        return self._db
+
+
+class Cursor(Probe):
+    def __init__(self, world, site, row_spec, rows=None):
+        self._start(world, "cursor")
+        self._site, self._row_spec = site, row_spec
+        self._rows = [] if rows is None else rows
+        self._at = 0
+
+    def __getattribute__(self, name):
+        if name == "fetchone":
+            world = object.__getattribute__(self, "_world")
+            world.event("cursor.lookup.fetchone")
+            if world.settings.get("detached_fetch"):
+                return DetachedFetch(world, object.__getattribute__(self, "_site"),
+                                     object.__getattribute__(self, "_row_spec"))
+        return object.__getattribute__(self, name)
+
+    def fetchone(self):
+        self._world.event("cursor.fetchone.call", site=self._site)
+        return self._world.make_row(self._row_spec)
+
+    def __iter__(self):
+        self._world.event("cursor.iter", site=self._site)
+        return self
+
+    def __next__(self):
+        self._world.event("cursor.next", site=self._site, index=self._at)
+        if self._at == len(self._rows):
+            raise StopIteration
+        row = self._rows[self._at]
+        self._at += 1
+        return self._world.make_row(row)
+
+
+class Image(Probe):
+    def __init__(self, world):
+        self._start(world, "image")
+
+    def __getattribute__(self, name):
+        if name == "transition":
+            object.__getattribute__(self, "_world").event("image.lookup.transition")
+        return object.__getattribute__(self, name)
+
+    def transition(self, packet, state=None):
+        world = self._world
+        world.event("image.transition.call", packet=packet, state=state)
+        if type(packet) is not bytes or len(packet) < 128:
+            raise OracleFixtureError("invalid frozen request_packet result")
+        header = struct.unpack("<16Q", packet[:128])
+        count, at = header[2], 128
+        sizes = struct.unpack_from("<" + str(count) + "Q", packet, at)
+        at += 8 * count
+        fields = []
+        for size in sizes:
+            fields.append(packet[at:at + size])
+            at += size
+        if at != len(packet):
+            raise OracleFixtureError("unclaimed frozen request bytes")
+        world.requests.append({
+            "opcode": header[1], "header": list(header), "fields_hex": [v.hex() for v in fields],
+            "packet_sha256": sha(packet), "packet_hex": packet.hex(), "state": world.value(state),
+        })
+        return world.receipt(header[1])
+
+
+class Override(Probe):
+    def __init__(self, world, name):
+        self._start(world, "override-callable:" + name)
+        self._name = name
+
+    def __call__(self, *args, **kwargs):
+        world = self._world
+        world.event("override.call." + self._name, args=args, kwargs=kwargs)
+        if self._name == "_execute":
+            return world.execute(args[1], args[2] if len(args) > 2 else (), "override-db")
+        if self._name == "_call":
+            return world.receipt(args[0])
+        if self._name == "_begin":
+            return Buffer(world, 128), (1, 2, 3, 4)
+        if self._name == "validate_u64":
+            return 7
+        if self._name == "lease":
+            return {"id": "lease-A", "slot": "slot-A", "generation": "7", "artifact": copy_json(A)}
+        raise OracleFixtureError("unknown dynamic override")
+
+
+class Subject(Probe):
+    def __init__(self, world):
+        self._start(world, "subject")
+        object.__setattr__(self, "_values", {})
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            object.__setattr__(self, name, value)
+            return
+        world = object.__getattribute__(self, "_world")
+        world.event("driver.assign." + name, value=value, inject=False)
+        object.__getattribute__(self, "_values")[name] = value
+
+    def __getattribute__(self, name):
+        if name.startswith("_") and name not in ORIGINAL_METHODS:
+            return object.__getattribute__(self, name)
+        world = object.__getattribute__(self, "_world")
+        if name in ("store", "image") or name in ORIGINAL_METHODS:
+            world.event("driver.lookup." + name)
+            if name == "store" and world.settings.get("temporary_store"):
+                return world.new_store()
+            values = object.__getattribute__(self, "_values")
+            if name in values:
+                return values[name]
+            override = world.settings.get("override")
+            if override == name or world.case["template"] == "release-override" and name == "lease":
+                return Override(world, name)
+            descriptor = ORIGINAL_METHODS.get(name)
+            if descriptor is not None:
+                return descriptor.__get__(self, Subject)
+        return object.__getattribute__(self, name)
+
+
+class FakeEnviron:
+    def get(self, key, default=None):
+        if key == "HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST" and ACTIVE.settings.get("selected_renderer"):
+            return "DECLARED_FAKE_RENDERER_NO_IMAGE"
+        return default
+
+
+class FakeOS:
+    environ = FakeEnviron()
+
+    @staticmethod
+    def urandom(size):
+        ACTIVE.event("provider.urandom", size=size)
+        if size != 32:
+            raise OracleFixtureError("unexpected entropy extent")
+        return struct.pack("<4Q", 1, 2, 3, 4)
+
+
+class FakeCTypes:
+    @staticmethod
+    def create_string_buffer(size):
+        ACTIVE.event("provider.buffer", size=size)
+        return Buffer(ACTIVE, size)
+
+
+class FakeUUID:
+    @staticmethod
+    def uuid4():
+        ACTIVE.event("provider.uuid4")
+        return UUIDValue(ACTIVE)
+
+
+class HIAEditRejected(ValueError):
+    pass
+
+
+def fake_wire(value):
+    ACTIVE.event("provider.wire", value=value)
+    return canonical(ACTIVE.plain(value))
+
+
+def fake_decode_data(value):
+    ACTIVE.event("provider.decode_data", value=value)
+    return json.loads(value)
+
+
+def fake_digest(value):
+    ACTIVE.event("provider.digest", value=value)
+    return sha(canonical(ACTIVE.plain(value)))
+
+
+def fake_sha256(value):
+    ACTIVE.event("provider.sha256", value=value)
+    return HashValue(ACTIVE, value)
+
+
+def fake_bounded_wire(value, limit, **kwargs):
+    ACTIVE.event("provider.claimed_wire", value=value, limit=limit, kwargs=kwargs)
+    if ACTIVE.settings.get("claimed_invalid"):
+        raise HIAEditRejected("declared invalid JSON input")
+    renderer = kwargs.get("float_renderer")
+    if renderer is not None:
+        renderer(1.5)
+    return canonical(ACTIVE.plain(value))
+
+
+def fake_installed_format(path):
+    ACTIVE.event("provider.installed_renderer", path=path)
+    return Renderer(ACTIVE)
+
+
+class World:
+    def __init__(self, case):
+        self.case = case
+        self.settings = materialize(case["settings"])
+        self.events, self.effects, self.requests = [], [], []
+        self.tags, self.refs, self.serials, self.error_names = {}, {}, {}, {}
+        self.counts, self.receipt_counts = {}, {}
+        self.sql_at, self.fault_hits = 0, 0
+        self.db_ref, self.subject_ref = None, None
+        self.unraisable = []
+        self.phase = "construction"
+        self.sql_script = self.make_sql_script()
+
+    def register(self, value, kind):
+        n = self.serials.get(kind, 0) + 1
+        self.serials[kind] = n
+        tag = kind + "#" + str(n)
+        self.tags[id(value)] = tag
+        self.refs[tag] = weakref.ref(value)
+        return tag
+
+    def name_error(self, error, preferred=None):
+        name = self.error_names.get(id(error))
+        if name is None:
+            name = preferred or "error#" + str(len(self.error_names) + 1)
+            self.error_names[id(error)] = name
+        return name
+
+    def active(self):
+        error = sys.exception()
+        return None if error is None else self.name_error(error)
+
+    def plain(self, value):
+        if isinstance(value, dict):
+            return {k: self.plain(v) for k, v in dict.items(value)}
+        if type(value) in (list, tuple):
+            return [self.plain(v) for v in value]
+        return value
+
+    def value(self, value):
+        if value is None or type(value) in (bool, int, str, float):
+            return value
+        if type(value) is bytes:
+            return {"bytes_hex": value.hex()}
+        if isinstance(value, dict):
+            return {"type": type(value).__qualname__, "items": [
+                [self.value(k), self.value(v)] for k, v in dict.items(value)]}
+        if type(value) in (list, tuple):
+            return {"type": type(value).__name__, "items": [self.value(v) for v in value]}
+        return {"object": self.tags.get(id(value)), "type": type(value).__module__ + "." + type(value).__qualname__}
+
+    def event(self, name, *, inject=True, **values):
+        occurrence = self.counts.get(name, 0) + 1
+        self.counts[name] = occurrence
+        self.events.append({"event": name, "occurrence": occurrence, "phase": self.phase,
+                            "active_exception": self.active(),
+                            "values": {k: self.value(v) for k, v in values.items()}})
+        fault = self.case["fault"]
+        if inject and fault is not None and name == fault["event"] and occurrence == fault["occurrence"]:
+            self.fault_hits += 1
+            error = getattr(builtins, fault["type"])("declared fault:" + name)
+            self.name_error(error, "injected")
+            raise error
+
+    def error(self, error, seen=None):
+        if seen is None:
+            seen = set()
+        label = self.name_error(error)
+        if id(error) in seen:
+            return {"same_exception": label}
+        seen.add(id(error))
+        result = {
+            "identity": label,
+            "type": type(error).__module__ + "." + type(error).__qualname__,
+            "args": self.value(error.args),
+            "message": str(error),
+            "name": self.value(getattr(error, "name", None)),
+            "obj": self.value(getattr(error, "obj", None)),
+            "suppress_context": error.__suppress_context__,
+            "cause": None if error.__cause__ is None else self.error(error.__cause__, seen),
+            "context": None if error.__context__ is None else self.error(error.__context__, seen),
+        }
+        for key in ("code", "phase", "retry_action", "details_artifact", "pending_slot_snapshot"):
+            if hasattr(error, key):
+                result[key] = self.value(getattr(error, key))
+        return result
+
+    def alive(self):
+        return [label for label, ref in self.refs.items() if ref() is not None]
+
+    def new_db(self, role="main"):
+        current = self.db_ref() if self.db_ref is not None else None
+        if role == "main" and current is not None:
+            return current
+        value = DB(self, role)
+        if role == "main":
+            self.db_ref = weakref.ref(value)
+        return value
+
+    def new_store(self):
+        return Store(self, self.new_db())
+
+    def map(self, label, values):
+        return TrackedMap(self, label, values)
+
+    def snapshot_value(self):
+        active = self.case["template"] not in ("adopt-absent", "snapshot-absent")
+        active = self.settings.get("active_artifact", active)
+        return self.map("snapshot", {
+            "target_slot": "slot-A", "current": self.map("current", {"generation": "7", "epoch": "3"}),
+            "active_artifact": copy_json(A) if active else None, "context": "ctx-A",
+            "in_flight_leases": 0, "snapshot_is_adoption_authority": False,
+        })
+
+    def snapshot_reader(self, slot):
+        self.event("provider.snapshot_reader", slot=slot)
+        if self.settings.get("nested_snapshot"):
+            subject = self.subject_ref()
+            if subject is None:
+                raise OracleFixtureError("subject disappeared during callback")
+            return subject.snapshot(slot)
+        return self.snapshot_value()
+
+    def native(self, artifact):
+        self.event("provider.native", artifact=artifact)
+        return b"data", self.map("metadata", {"signatures": {}}), Program(self)
+
+    def make_sql_script(self):
+        template = self.case["template"]
+        if template == "execute-direct":
+            return ["snapshot.sql1"]
+        if template == "snapshot-absent":
+            return ["snapshot.sql1"]
+        if template == "snapshot-present":
+            return ["snapshot.sql1", "snapshot.sql2", "snapshot.sql3"]
+        if template in ("conditional", "acquire") and self.settings.get("nested_snapshot"):
+            prefix = ["snapshot.sql1", "snapshot.sql2", "snapshot.sql3"]
+            return prefix + (["acquire.sql1"] if template == "acquire" else [])
+        if template == "adopt-absent":
+            return ["adopt.sql1", "adopt.sql2", "adopt.sql4", "adopt.sql5", "adopt.sql6"]
+        if template == "adopt-active":
+            return ["adopt.sql3", "adopt.sql4", "adopt.sql5", "adopt.sql6"]
+        if template in ("rollback-present", "rollback-missing"):
+            return ["rollback.sql1", "rollback.sql2", "rollback.sql3"]
+        if template == "acquire":
+            return ["acquire.sql1"]
+        if template in ("lease-check", "lease-release"):
+            return ["lease.sql1"]
+        if template == "release":
+            return ["lease.sql1", "release.sql1"]
+        if template == "release-override":
+            return ["release.sql1"]
+        return []
+
+    def make_row(self, spec):
+        if spec is None:
+            return None
+        if type(spec) is list:
+            return tuple(spec)
+        label, values = spec
+        return self.map(label, copy_json(values))
+
+    def execute(self, statement, parameters, db_tag):
+        if self.sql_at >= len(self.sql_script):
+            raise OracleFixtureError("unexpected extra fake SQL statement")
+        site = self.sql_script[self.sql_at]
+        if statement != SQL[site]:
+            raise OracleFixtureError("fake SQL order/literal differs at " + site)
+        self.sql_at += 1
+        self.event("sql." + site + ".before", statement=statement, parameters=parameters, db_tag=db_tag)
+        self.effects.append({"site": site, "statement": statement, "parameters": self.value(parameters),
+                             "db_tag": db_tag, "kind": "FAKE_PROVIDER_ATTEMPT_NO_SQL"})
+        self.event("sql." + site + ".after", statement=statement, parameters=parameters, db_tag=db_tag)
+        spec, rows = None, None
+        if site in ("snapshot.sql1", "adopt.sql3", "rollback.sql2"):
+            if not (self.case["template"] == "snapshot-absent"):
+                spec = ("slot-row", {"name": "slot-A", "generation": "7", "epoch": "3",
+                                    "context_id": "ctx-A", "abi_sha256": "a" * 64})
+        elif site == "snapshot.sql2":
+            if not self.settings.get("version_missing"):
+                spec = ("version-row", {"artifact": canonical(A).decode("ascii")})
+        elif site == "snapshot.sql3":
+            spec = [self.settings.get("count", 0)]
+        elif site == "adopt.sql4":
+            rows = [("generation-row", {"generation": value})
+                    for value in self.settings.get("history", ["0", "7", "3"])]
+        elif site == "rollback.sql1":
+            if self.case["template"] != "rollback-missing":
+                spec = ("version-row", {"artifact": canonical(A).decode("ascii")})
+        elif site == "lease.sql1":
+            if not self.settings.get("lease_missing"):
+                spec = ("lease-row", {
+                    "id": "lease-A", "slot": "slot-A", "generation": "7",
+                    "active": self.settings.get("lease_active", 1),
+                    "artifact": self.settings.get("stored_artifact", canonical(A).decode("ascii")),
+                })
+        return Cursor(self, site, spec, rows)
+
+    def lease_fields(self):
+        fields = [b"Slease-A", b"Sslot-A", b"S7", canonical(A)]
+        if self.settings.get("lease_bad_text"):
+            fields[0] = b"X"
+        return tuple(fields[:self.settings.get("lease_field_count", 4)])
+
+    def receipt(self, opcode):
+        n = self.receipt_counts.get(opcode, 0)
+        self.receipt_counts[opcode] = n + 1
+        status, action, values, fields = 0, 0, (0, 0), ()
+        if opcode == 1:
+            values = (9, 0)
+        elif opcode == 2 and self.case["template"] != "snapshot-absent":
+            action, values = 1, (0, 0)
+            fields = (b"S7", b"S3", b"Sctx-A", canonical(A))
+        elif opcode == 9:
+            fields = (b"2" if self.case["template"].startswith("rollback") else b"8", b"4")
+            values = (int(fields[0]), 4)
+        elif opcode == 10 and self.case["template"] == "rollback-missing":
+            status = 10
+        elif opcode == 12:
+            action = 1 if self.case["template"] == "adopt-absent" else 2
+        elif opcode in (13, 14, 15, 16):
+            action = {13: 1, 14: 2, 15: 3, 16: 1}[opcode]
+            fields = self.lease_fields()
+        elif opcode not in range(1, 20):
+            raise OracleFixtureError("unexpected fake receipt opcode")
+        scripts = self.settings.get("receipts", {}).get(str(opcode), [])
+        supplied = scripts[n] if n < len(scripts) else {}
+        status = supplied.get("status", status)
+        action = supplied.get("action", action)
+        values = supplied.get("values", values)
+        # Malformed receipts are not smuggled through: original image transport
+        # is outside this fake-provider oracle, and all supplied fields are explicit.
+        if status:
+            action, fields = 0, ()
+        if "fields_hex" in supplied:
+            fields = tuple(bytes.fromhex(v) for v in supplied["fields_hex"])
+        self.event("provider.receipt", opcode=opcode, ordinal=n + 1, status=status,
+                   action=action, values=values, fields=fields, inject=False)
+        return Receipt(self, status, action, values, fields)
+
+    def arguments(self, subject):
+        template = self.case["template"]
+        slot = self.settings.get("slot", "slot-A")
+        if template == "init":
+            return (self.new_store(), Image(self)), {}
+        if template == "execute-direct":
+            return (self.new_db("other") if self.settings.get("connection") == "other" else self.new_db(),
+                    SQL["snapshot.sql1"], (slot,)), {}
+        if template == "call-direct":
+            return (1, (b"9",)), {"labels": tuple(self.settings.get("labels", ["generation"]))}
+        if template.startswith("snapshot-"):
+            return (slot,), {}
+        if template == "validate-u64":
+            return ("9", "generation"), {}
+        if template == "conditional":
+            expected = {"generation": "7", "epoch": "3"}
+            if self.settings.get("expected_extra"):
+                expected["unexpected"] = 1
+            args = self.map("args", {"expected_current": self.map("expected", expected), "target_slot": slot})
+            return (args, self.snapshot_reader), {}
+        if template.startswith("begin-"):
+            return (("3", "2") if template == "begin-rollback" else ("3",)), {}
+        if template == "evaluation":
+            evaluation = self.map("evaluation", {
+                "report_complete": True, "planned_workload_complete": True,
+                "termination_confirmed": True, "outcome": self.settings.get("outcome", "improved"),
+            })
+            objective = self.map("objective", {"allow_unchanged": self.settings.get("allow_unchanged", False)})
+            return (evaluation, objective), {}
+        if template == "net-benefit":
+            return (self.map("objective", {"require_net_benefit": self.settings.get("require_net_benefit", False)}),), {}
+        if template.startswith(("adopt-", "rollback-")):
+            args = self.map("args", {
+                "target_slot": slot, "context": self.map("context", {"id": "ctx-A"}),
+                "candidate_artifact": copy_json(C), "retained_generation": "2",
+            })
+            snapshot = self.snapshot_value()
+            if template.startswith("adopt-"):
+                evaluation = self.map("evaluation", {"baseline_artifact": copy_json(A)})
+                return (args, snapshot, evaluation, "a" * 64, self.native), {}
+            return (args, snapshot, self.native), {}
+        if template == "lease-value":
+            return (self.lease_fields(),), {}
+        if template == "acquire":
+            return (slot, self.snapshot_reader, self.native), {}
+        if template in ("lease-check", "lease-release", "release", "release-override"):
+            # The original keys() explicitly requires an exact dict.
+            lease = {"id": "lease-A", "slot": slot, "generation": "7", "artifact": copy_json(A)}
+            if self.settings.get("selected_renderer"):
+                lease["artifact"] = {"ratio": 1.5}
+            missing = self.settings.get("lease_missing_key")
+            if missing:
+                del lease[missing]
+            kwargs = {}
+            if template in ("lease-check", "lease-release"):
+                kwargs["release"] = template == "lease-release"
+                if self.settings.get("connection") in ("same", "other"):
+                    kwargs["connection"] = self.new_db(
+                        "other" if self.settings["connection"] == "other" else "main")
+            return (lease,), kwargs
+        raise OracleFixtureError("unknown finite template")
+
+    def observe(self):
+        global ACTIVE
+        ACTIVE = self
+        subject = Subject(self)
+        self.subject_ref = weakref.ref(subject)
+        if self.case["template"] != "init":
+            ORIGINAL.__init__(subject, self.new_store(), Image(self))
+            if self.settings.get("temporary_store"):
+                del object.__getattribute__(subject, "_values")["store"]
+        args, kwargs = self.arguments(subject)
+        retained = []
+        raw_traceback = None
+        self.phase = "invoke"
+        result = None
+        try:
+            if self.case["template"] == "init":
+                result = ORIGINAL.__init__(subject, *args, **kwargs)
+            else:
+                result = getattr(subject, self.case["method"])(*args, **kwargs)
+        except OracleFixtureError:
+            raise
+        except BaseException as error:
+            outcome = {"kind": "raised", "error": self.error(error)}
+            raw_traceback = "".join(traceback.format_exception(error))
+            if self.settings.get("retain_traceback"):
+                retained.append(error)
+        else:
+            outcome = {"kind": "returned", "value": self.value(result),
+                       "return_aliases": [label for label, ref in self.refs.items() if ref() is result]}
+        self.phase = "consumer-release"
+        self.event("observer.consumer_release.begin", inject=False)
+        result = args = kwargs = subject = None
+        self.event("observer.consumer_release.end", inject=False)
+        consumer_snapshot = copy_json({"events": self.events, "alive": self.alive(), "outcome": outcome})
+        self.phase = "retained-traceback-release"
+        self.event("observer.retained_traceback_release.begin", count=len(retained), inject=False)
+        retained.clear()
+        self.event("observer.retained_traceback_release.end", inject=False)
+        if self.settings.get("collect"):
+            self.phase = "explicit-gc"
+            self.event("observer.gc.begin", inject=False)
+            collected = gc.collect()
+            self.event("observer.gc.end", collected=collected, inject=False)
+        self.phase = "case-sealed"
+        self.sealed_event_count = len(self.events)
+        expected_hits = 0 if self.case["fault"] is None else 1
+        if self.fault_hits != expected_hits:
+            raise OracleFixtureError("declared fault was not reached exactly once")
+        record = copy_json({
+            "id": self.case["id"], "template": self.case["template"], "method": self.case["method"],
+            "outer_exception": self.case["outer_exception"], "outcome": outcome,
+            "events": self.events, "consumer_snapshot": consumer_snapshot, "alive_at_seal": self.alive(),
+            "fake_sql_effects": self.effects, "sql_prefix_length": self.sql_at,
+            "complete_request_packets": self.requests, "fault_hits": self.fault_hits,
+            "unraisable": self.unraisable,
+        })
+        if self.unraisable:
+            raise OracleFixtureError("unraisable callback error")
+        return record, raw_traceback
+
+
+def selected_nodes(text, names):
+    tree = ast.parse(text)
+    result = []
+    for name in names:
+        matches = [node for node in tree.body if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name == name]
+        if len(matches) != 1:
+            raise OracleFixtureError("missing/duplicate frozen node " + name)
+        result.append(matches[0])
+    return ast.Module(body=result, type_ignores=[])
+
+
+def load_originals(root):
+    """No production import: compile the exact admitted nodes, then bind fakes."""
+    global ORIGINAL, ORIGINAL_METHODS
+    package = types.ModuleType("hepta")
+    package.__path__ = []
+    sys.modules["hepta"] = package
+    store = types.ModuleType("hepta.hia_agent_store")
+    store.__package__ = "hepta"
+    store_text = (root / "originals/hepta/hia_agent_store.py").read_text()
+    exec(compile(selected_nodes(store_text, ("AgentRejected", "reject", "keys")),
+                 "frozen-original/hepta/hia_agent_store.py", "exec", dont_inherit=True), store.__dict__)
+    store.wire, store.decode_data, store.digest = fake_wire, fake_decode_data, fake_digest
+    store.MAX_INPUT_BYTES = 8 * 1024 * 1024
+    sys.modules[store.__name__] = store
+    program = types.ModuleType("hepta.hia_program_tools")
+    program.bounded_json_wire, program.HIAEditRejected = fake_bounded_wire, HIAEditRejected
+    sys.modules[program.__name__] = program
+    formatter = types.ModuleType("hepta.hia_agent_binary64_format_native")
+    formatter.installed_agent_binary64_format = fake_installed_format
+    sys.modules[formatter.__name__] = formatter
+    namespace = {
+        "__name__": "hepta.hia_slot_ledger_original_oracle", "__package__": "hepta",
+        "ctypes": FakeCTypes, "os": FakeOS, "uuid": FakeUUID,
+        "struct": struct, "sha256": fake_sha256, "STATE_BYTES": 128,
+        "MAX_U64": (1 << 64) - 1, "REQUEST_MAGIC": int.from_bytes(b"HIASLRQ1", "little"),
+    }
+    text = (root / "originals/hepta/hia_slot_ledger_native.py").read_text()
+    exec(compile(selected_nodes(text, FROZEN_NAMES),
+                 "frozen-original/hepta/hia_slot_ledger_native.py", "exec", dont_inherit=True), namespace)
+    ORIGINAL = namespace["NativeSlotLedgerStore"]
+    ORIGINAL_METHODS = {name: value for name, value in vars(ORIGINAL).items()
+                        if isinstance(value, (types.FunctionType, staticmethod))}
+    return store.AgentRejected
+
+
+def source_snapshot(root, expected_freeze_sha256):
+    freeze_raw = (root / "source-freeze.json").read_bytes()
+    if sha(freeze_raw) != expected_freeze_sha256:
+        raise OracleFixtureError("source-freeze identity differs from the supervising external pin")
+    freeze = json.loads(freeze_raw)
+    result = {}
+    for relative, expected in freeze["files"].items():
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            raise OracleFixtureError("source is not a regular file: " + relative)
+        data = path.read_bytes()
+        actual = {"bytes": len(data), "sha256": sha(data)}
+        if actual != expected:
+            raise OracleFixtureError("frozen source changed: " + relative)
+        result[relative] = actual
+    return result
+
+
+def install_audit(root, output):
+    """Reject actual native/database/process providers; record only observer I/O."""
+    blocked = {"subprocess.Popen", "os.system", "os.fork", "os.forkpty",
+               "os.posix_spawn", "sqlite3.connect", "ctypes.dlopen"}
+    writes = []
+    root, output = root.resolve(), output.resolve()
+    def audit(event, args):
+        if event in blocked or event.startswith("os.exec"):
+            raise OracleFixtureError("forbidden actual provider: " + event)
+        if event == "import" and args and str(args[0]).startswith("hepta"):
+            if args[0] not in sys.modules:
+                raise OracleFixtureError("forbidden production import: " + str(args[0]))
+        if event == "open" and args and isinstance(args[0], (str, bytes)):
+            path = Path(os.fsdecode(args[0])).resolve()
+            mode = args[1] if len(args) > 1 else None
+            flags = args[2] if len(args) > 2 else 0
+            writing = (isinstance(mode, str) and any(v in mode for v in "wax+")) or (
+                isinstance(flags, int) and bool(flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC)))
+            if writing:
+                if not path.is_relative_to(output):
+                    raise OracleFixtureError("write outside evidence: " + str(path))
+                writes.append(str(path.relative_to(output)))
+    sys.addaudithook(audit)
+    return writes
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--oracle-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--freeze-sha256", required=True)
+    options = parser.parse_args()
+    root, output = options.oracle_root.resolve(), options.output.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    before = source_snapshot(root, options.freeze_sha256)
+    write_json(output / "source-before.json", before)
+    manifest = json.loads((root / "cases.json").read_bytes())
+    cases = manifest["cases"]
+    if len(cases) != manifest["finite_case_count"] or len({v["id"] for v in cases}) != len(cases):
+        raise OracleFixtureError("invalid frozen finite identities")
+    write_json(output / "planned.json", {"ordered_ids": [v["id"] for v in cases], "count": len(cases)})
+    runtime = {"version": sys.version, "implementation": sys.implementation.name,
+               "executable": sys.executable, "pid": os.getpid(), "ppid": os.getppid(),
+               "pgid": os.getpgrp(), "argv": sys.argv, "mode": "ORIGINAL_ONLY_FAKE_PROVIDERS"}
+    write_json(output / "runtime.json", runtime)
+    writes = install_audit(root, output)
+    load_originals(root)
+    worlds = []
+    started, stopped, failures = [], [], []
+    digest = hashlib.sha256()
+    original_unraisable = sys.unraisablehook
+    def unraisable(value):
+        if ACTIVE is not None:
+            ACTIVE.unraisable.append({
+                "error": ACTIVE.error(value.exc_value),
+                "object": ACTIVE.value(value.object),
+                "message": value.err_msg,
+            })
+    sys.unraisablehook = unraisable
+    try:
+        with (output / "observations.jsonl").open("wb") as stream, (
+                output / "raw-exceptions.jsonl").open("wb") as errors, (
+                output / "progress.jsonl").open("wb") as progress:
+            for case in cases:
+                started.append(case["id"])
+                progress.write(canonical({"id": case["id"], "event": "started"}) + b"\n")
+                progress.flush()
+                world = World(case)
+                worlds.append(world)  # World contains weakrefs, never a subject/DB/Store hold.
+                try:
+                    if case["outer_exception"]:
+                        try:
+                            raise KeyError("declared outer exception")
+                        except KeyError as outer:
+                            world.name_error(outer, "outer")
+                            record, raw = world.observe()
+                    else:
+                        record, raw = world.observe()
+                except OracleFixtureError as error:
+                    failures.append({"id": case["id"], "type": type(error).__qualname__, "message": str(error)})
+                    traceback.print_exc()
+                    break
+                payload = canonical(record) + b"\n"
+                stream.write(payload)
+                stream.flush()
+                digest.update(payload)
+                errors.write(canonical({"id": case["id"], "traceback": raw}) + b"\n")
+                errors.flush()
+                stopped.append(case["id"])
+                progress.write(canonical({"id": case["id"], "event": "stopped"}) + b"\n")
+                progress.flush()
+        # This explicit whole-run diagnostic is after every immutable case record.
+        # It never edits or re-normalizes a case and is not handler qualification.
+        sealed_lengths = [getattr(w, "sealed_event_count", len(w.events)) for w in worlds]
+        for world in worlds:
+            world.phase = "post-seal-gc-diagnostic"
+        collected = gc.collect()
+        late = [{"id": w.case["id"], "events": w.events[n:], "alive": w.alive(),
+                 "unraisable": w.unraisable} for w, n in zip(worlds, sealed_lengths)]
+        write_json(output / "post-seal-gc.json", {"collected": collected, "cases": late,
+                   "not_part_of_handler_result": True, "no_prior_record_rewritten": True})
+    finally:
+        sys.unraisablehook = original_unraisable
+    after = source_snapshot(root, options.freeze_sha256)
+    write_json(output / "source-after.json", after)
+    success = (not failures and started == stopped == [v["id"] for v in cases]
+               and before == after and not any(w.unraisable for w in worlds))
+    report = {
+        "schema": "hepta.slot-sql.original-only-observer.reconstructed-r1",
+        "status": "RECORDED" if success else "HOLD", "runtime": runtime,
+        "planned": len(cases), "started": started, "stopped": stopped, "failures": failures,
+        "source_stable": before == after, "observations_sha256": digest.hexdigest(),
+        "actual_SQL": 0, "actual_native": 0, "VM": 0, "product_imports": 0,
+        "declared_provider_effects_are_fake": True, "audit_output_writes": writes,
+        "gc_and_traceback_scope": "explicit per-case inputs plus separately retained post-seal diagnostic",
+    }
+    write_json(output / "report.json", report)
+    return 0 if success else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

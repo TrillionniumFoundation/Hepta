@@ -1,0 +1,10 @@
+def _text(value):
+    # A type tag preserves comparison against non-string local API inputs.
+    # Strings are not put through the bounded JSON bridge: the original local
+    # slot observation/acquire API imposes no new string or history-row cap.
+    if type(value) is str:
+        try:
+            return b'S' + value.encode('utf-8')
+        except UnicodeError:
+            return b'X'
+    return b'X'

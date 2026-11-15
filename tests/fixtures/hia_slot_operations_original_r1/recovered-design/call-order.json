@@ -1,0 +1,929 @@
+{
+  "method_count": 15,
+  "methods": {
+    "__init__": {
+      "calls_in_lexical_source_order_not_runtime_order": [],
+      "signature": "self, store, image"
+    },
+    "_begin": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 20,
+          "expression": "ctypes.create_string_buffer(STATE_BYTES)",
+          "line": 315
+        },
+        {
+          "column": 16,
+          "expression": "struct.unpack('<4Q', os.urandom(32))",
+          "line": 316
+        },
+        {
+          "column": 37,
+          "expression": "os.urandom(32)",
+          "line": 316
+        },
+        {
+          "column": 18,
+          "expression": "_decimal(epoch)",
+          "line": 317
+        },
+        {
+          "column": 60,
+          "expression": "_decimal(epoch)",
+          "line": 317
+        },
+        {
+          "column": 77,
+          "expression": "_decimal(target)",
+          "line": 317
+        },
+        {
+          "column": 8,
+          "expression": "self._call(7, fields, flags=1 if target is None else 2, token=token,\n            state=workspace, labels=('epoch',) if target is None else ('epoch', 'retained_generation'))",
+          "line": 318
+        }
+      ],
+      "signature": "self, epoch, target=None"
+    },
+    "_call": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 18,
+          "expression": "self.image.transition(request_packet(opcode, fields, **values), state)",
+          "line": 266
+        },
+        {
+          "column": 40,
+          "expression": "request_packet(opcode, fields, **values)",
+          "line": 266
+        },
+        {
+          "column": 15,
+          "expression": "_raise(receipt, labels)",
+          "line": 267
+        }
+      ],
+      "signature": "self, opcode, fields=(), *, labels=(), state=None, **values"
+    },
+    "_execute": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 12,
+          "expression": "_custody('slot operation lost its original SQLite connection')",
+          "line": 262
+        },
+        {
+          "column": 15,
+          "expression": "connection.execute(statement, parameters)",
+          "line": 263
+        }
+      ],
+      "signature": "self, connection, statement, parameters=()"
+    },
+    "_lease_value": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 22,
+          "expression": "_untext(identity)",
+          "line": 398
+        },
+        {
+          "column": 49,
+          "expression": "_untext(slot)",
+          "line": 398
+        },
+        {
+          "column": 78,
+          "expression": "_untext(generation)",
+          "line": 398
+        },
+        {
+          "column": 28,
+          "expression": "decode_data(artifact)",
+          "line": 399
+        }
+      ],
+      "signature": "fields"
+    },
+    "acquire": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 19,
+          "expression": "snapshot_reader(target_slot)",
+          "line": 404
+        },
+        {
+          "column": 8,
+          "expression": "self._call(6, flags=int(snapshot['active_artifact'] is not None))",
+          "line": 405
+        },
+        {
+          "column": 28,
+          "expression": "int(snapshot['active_artifact'] is not None)",
+          "line": 405
+        },
+        {
+          "column": 8,
+          "expression": "native(snapshot['active_artifact'])",
+          "line": 406
+        },
+        {
+          "column": 18,
+          "expression": "_text('lease-' + uuid.uuid4().hex)",
+          "line": 407
+        },
+        {
+          "column": 35,
+          "expression": "uuid.uuid4()",
+          "line": 407
+        },
+        {
+          "column": 54,
+          "expression": "_text(target_slot)",
+          "line": 407
+        },
+        {
+          "column": 18,
+          "expression": "_text(snapshot['current']['generation'])",
+          "line": 408
+        },
+        {
+          "column": 60,
+          "expression": "wire(snapshot['active_artifact'])",
+          "line": 408
+        },
+        {
+          "column": 17,
+          "expression": "self._call(15, fields, flags=1)",
+          "line": 409
+        },
+        {
+          "column": 16,
+          "expression": "self._lease_value(result.fields)",
+          "line": 410
+        },
+        {
+          "column": 8,
+          "expression": "self._execute(db, 'INSERT INTO leases VALUES (?,?,?,?,1)',\n            (lease['id'], lease['slot'], lease['generation'], result.fields[3].decode()))",
+          "line": 411
+        },
+        {
+          "column": 62,
+          "expression": "result.fields[3].decode()",
+          "line": 412
+        }
+      ],
+      "signature": "self, target_slot, snapshot_reader, native"
+    },
+    "admit_evaluation": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 12,
+          "expression": "self._call(17, (wire(evaluation[name]),))",
+          "line": 328
+        },
+        {
+          "column": 28,
+          "expression": "wire(evaluation[name])",
+          "line": 328
+        },
+        {
+          "column": 18,
+          "expression": "self.image.transition(request_packet(18, (wire(outcome), wire(allow_unchanged))))",
+          "line": 331
+        },
+        {
+          "column": 40,
+          "expression": "request_packet(18, (wire(outcome), wire(allow_unchanged)))",
+          "line": 331
+        },
+        {
+          "column": 60,
+          "expression": "wire(outcome)",
+          "line": 331
+        },
+        {
+          "column": 75,
+          "expression": "wire(allow_unchanged)",
+          "line": 331
+        },
+        {
+          "column": 12,
+          "expression": "_custody('native unhashable outcome refusal did not raise a Python error')",
+          "line": 337
+        },
+        {
+          "column": 8,
+          "expression": "_raise(receipt)",
+          "line": 338
+        }
+      ],
+      "signature": "self, evaluation, objective"
+    },
+    "admit_net_benefit": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 8,
+          "expression": "self._call(19, (wire(objective.get('require_net_benefit', False)),))",
+          "line": 342
+        },
+        {
+          "column": 24,
+          "expression": "wire(objective.get('require_net_benefit', False))",
+          "line": 342
+        },
+        {
+          "column": 29,
+          "expression": "objective.get('require_net_benefit', False)",
+          "line": 342
+        }
+      ],
+      "signature": "self, objective"
+    },
+    "adopt": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 15,
+          "expression": "self._call(12, flags=int(active))",
+          "line": 348
+        },
+        {
+          "column": 36,
+          "expression": "int(active)",
+          "line": 348
+        },
+        {
+          "column": 12,
+          "expression": "self._execute(db, 'INSERT INTO slots VALUES (?,?,?,?,?)',\n                (args['target_slot'], args['context']['id'], '0', '0', abi))",
+          "line": 350
+        },
+        {
+          "column": 12,
+          "expression": "self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',\n                (args['target_slot'], '0', wire(evaluation['baseline_artifact']).decode()))",
+          "line": 352
+        },
+        {
+          "column": 43,
+          "expression": "wire(evaluation['baseline_artifact']).decode()",
+          "line": 353
+        },
+        {
+          "column": 43,
+          "expression": "wire(evaluation['baseline_artifact'])",
+          "line": 353
+        },
+        {
+          "column": 22,
+          "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n                (args['target_slot'],)).fetchone()",
+          "line": 355
+        },
+        {
+          "column": 22,
+          "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n                (args['target_slot'],))",
+          "line": 355
+        },
+        {
+          "column": 12,
+          "expression": "self._call(4, (_text(current['abi_sha256']), _text(abi)))",
+          "line": 357
+        },
+        {
+          "column": 27,
+          "expression": "_text(current['abi_sha256'])",
+          "line": 357
+        },
+        {
+          "column": 57,
+          "expression": "_text(abi)",
+          "line": 357
+        },
+        {
+          "column": 40,
+          "expression": "native(snapshot['active_artifact'])",
+          "line": 358
+        },
+        {
+          "column": 12,
+          "expression": "self._call(5, (_text(sha256(data).hexdigest()), _text(evaluation['baseline_artifact']['sha256'])))",
+          "line": 359
+        },
+        {
+          "column": 27,
+          "expression": "_text(sha256(data).hexdigest())",
+          "line": 359
+        },
+        {
+          "column": 33,
+          "expression": "sha256(data).hexdigest()",
+          "line": 359
+        },
+        {
+          "column": 33,
+          "expression": "sha256(data)",
+          "line": 359
+        },
+        {
+          "column": 60,
+          "expression": "_text(evaluation['baseline_artifact']['sha256'])",
+          "line": 359
+        },
+        {
+          "column": 27,
+          "expression": "self._begin(snapshot['current']['epoch'])",
+          "line": 360
+        },
+        {
+          "column": 17,
+          "expression": "self._execute(db, 'SELECT generation FROM versions WHERE slot=?', (args['target_slot'],))",
+          "line": 363
+        },
+        {
+          "column": 12,
+          "expression": "self._call(8, (_decimal(row['generation']),), token=token, state=workspace,\n                labels=('generation',))",
+          "line": 365
+        },
+        {
+          "column": 27,
+          "expression": "_decimal(row['generation'])",
+          "line": 365
+        },
+        {
+          "column": 16,
+          "expression": "self._call(9, token=token, state=workspace)",
+          "line": 367
+        },
+        {
+          "column": 33,
+          "expression": "final.fields[0].decode('ascii')",
+          "line": 368
+        },
+        {
+          "column": 75,
+          "expression": "final.fields[1].decode('ascii')",
+          "line": 368
+        },
+        {
+          "column": 8,
+          "expression": "self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',\n            (args['target_slot'], current['generation'], wire(args['candidate_artifact']).decode()))",
+          "line": 369
+        },
+        {
+          "column": 57,
+          "expression": "wire(args['candidate_artifact']).decode()",
+          "line": 370
+        },
+        {
+          "column": 57,
+          "expression": "wire(args['candidate_artifact'])",
+          "line": 370
+        },
+        {
+          "column": 8,
+          "expression": "self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',\n            (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))",
+          "line": 371
+        }
+      ],
+      "signature": "self, args, snapshot, evaluation, abi, native"
+    },
+    "conditional": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 8,
+          "expression": "self.validate_u64(expected['generation'], 'generation')",
+          "line": 300
+        },
+        {
+          "column": 8,
+          "expression": "self.validate_u64(expected['epoch'], 'epoch')",
+          "line": 301
+        },
+        {
+          "column": 19,
+          "expression": "snapshot_reader(args['target_slot'])",
+          "line": 302
+        },
+        {
+          "column": 18,
+          "expression": "_text(snapshot['current']['generation'])",
+          "line": 303
+        },
+        {
+          "column": 60,
+          "expression": "_text(snapshot['current']['epoch'])",
+          "line": 303
+        },
+        {
+          "column": 18,
+          "expression": "_text(expected['generation'])",
+          "line": 304
+        },
+        {
+          "column": 49,
+          "expression": "_text(expected['epoch'])",
+          "line": 304
+        },
+        {
+          "column": 16,
+          "expression": "isinstance(expected, dict)",
+          "line": 305
+        },
+        {
+          "column": 47,
+          "expression": "set(expected)",
+          "line": 305
+        },
+        {
+          "column": 12,
+          "expression": "self._call(3, fields, flags=int(exact))",
+          "line": 307
+        },
+        {
+          "column": 40,
+          "expression": "int(exact)",
+          "line": 307
+        }
+      ],
+      "signature": "self, args, snapshot_reader"
+    },
+    "lease": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 8,
+          "expression": "keys(lease, ('id', 'slot', 'generation', 'artifact'), label='generation lease')",
+          "line": 417
+        },
+        {
+          "column": 14,
+          "expression": "self._execute(db, 'SELECT * FROM leases WHERE id=?', (lease['id'],)).fetchone()",
+          "line": 419
+        },
+        {
+          "column": 14,
+          "expression": "self._execute(db, 'SELECT * FROM leases WHERE id=?', (lease['id'],))",
+          "line": 419
+        },
+        {
+          "column": 13,
+          "expression": "_text(row['id'])",
+          "line": 423
+        },
+        {
+          "column": 31,
+          "expression": "_text(row['slot'])",
+          "line": 423
+        },
+        {
+          "column": 51,
+          "expression": "_text(row['generation'])",
+          "line": 423
+        },
+        {
+          "column": 25,
+          "expression": "str(row['active']).encode('ascii')",
+          "line": 424
+        },
+        {
+          "column": 25,
+          "expression": "str(row['active'])",
+          "line": 424
+        },
+        {
+          "column": 41,
+          "expression": "type(row['active'])",
+          "line": 425
+        },
+        {
+          "column": 18,
+          "expression": "self._call(16, (*raw_fields, _text(lease['slot']), _text(lease['generation']), active),\n            flags=int(row is not None))",
+          "line": 426
+        },
+        {
+          "column": 47,
+          "expression": "_text(lease['slot'])",
+          "line": 426
+        },
+        {
+          "column": 69,
+          "expression": "_text(lease['generation'])",
+          "line": 426
+        },
+        {
+          "column": 18,
+          "expression": "int(row is not None)",
+          "line": 427
+        },
+        {
+          "column": 19,
+          "expression": "wire(decode_data(row['artifact']))",
+          "line": 432
+        },
+        {
+          "column": 24,
+          "expression": "decode_data(row['artifact'])",
+          "line": 432
+        },
+        {
+          "column": 34,
+          "expression": "_claimed_artifact_wire(lease['artifact'])",
+          "line": 433
+        },
+        {
+          "column": 17,
+          "expression": "self._call(14 if release else 13,\n            (identity, slot, generation, artifact, _text(lease['slot']),\n             _text(lease['generation']), claimed_artifact), flags=1, a=1, b=int(valid))",
+          "line": 434
+        },
+        {
+          "column": 51,
+          "expression": "_text(lease['slot'])",
+          "line": 435
+        },
+        {
+          "column": 13,
+          "expression": "_text(lease['generation'])",
+          "line": 436
+        },
+        {
+          "column": 76,
+          "expression": "int(valid)",
+          "line": 436
+        },
+        {
+          "column": 15,
+          "expression": "self._lease_value(result.fields)",
+          "line": 437
+        }
+      ],
+      "signature": "self, lease, *, release=False, connection=None"
+    },
+    "release": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 17,
+          "expression": "self.lease(lease, release=True, connection=db)",
+          "line": 441
+        },
+        {
+          "column": 8,
+          "expression": "self._execute(db, 'UPDATE leases SET active=0 WHERE id=?', (frozen['id'],))",
+          "line": 442
+        }
+      ],
+      "signature": "self, lease"
+    },
+    "rollback": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 8,
+          "expression": "self._call(6, flags=int(snapshot['active_artifact'] is not None), a=1)",
+          "line": 378
+        },
+        {
+          "column": 28,
+          "expression": "int(snapshot['active_artifact'] is not None)",
+          "line": 378
+        },
+        {
+          "column": 14,
+          "expression": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n            (args['target_slot'], args['retained_generation'])).fetchone()",
+          "line": 379
+        },
+        {
+          "column": 14,
+          "expression": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n            (args['target_slot'], args['retained_generation']))",
+          "line": 379
+        },
+        {
+          "column": 8,
+          "expression": "self._call(10, flags=int(row is not None))",
+          "line": 381
+        },
+        {
+          "column": 29,
+          "expression": "int(row is not None)",
+          "line": 381
+        },
+        {
+          "column": 19,
+          "expression": "decode_data(row['artifact'])",
+          "line": 382
+        },
+        {
+          "column": 36,
+          "expression": "native(artifact)",
+          "line": 383
+        },
+        {
+          "column": 22,
+          "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n            (args['target_slot'],)).fetchone()",
+          "line": 384
+        },
+        {
+          "column": 22,
+          "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n            (args['target_slot'],))",
+          "line": 384
+        },
+        {
+          "column": 8,
+          "expression": "self._call(11, (_text(digest(metadata['signatures'])), _text(current_row['abi_sha256'])))",
+          "line": 386
+        },
+        {
+          "column": 24,
+          "expression": "_text(digest(metadata['signatures']))",
+          "line": 386
+        },
+        {
+          "column": 30,
+          "expression": "digest(metadata['signatures'])",
+          "line": 386
+        },
+        {
+          "column": 63,
+          "expression": "_text(current_row['abi_sha256'])",
+          "line": 386
+        },
+        {
+          "column": 27,
+          "expression": "self._begin(snapshot['current']['epoch'], args['retained_generation'])",
+          "line": 387
+        },
+        {
+          "column": 16,
+          "expression": "self._call(9, token=token, state=workspace)",
+          "line": 388
+        },
+        {
+          "column": 33,
+          "expression": "final.fields[0].decode('ascii')",
+          "line": 389
+        },
+        {
+          "column": 75,
+          "expression": "final.fields[1].decode('ascii')",
+          "line": 389
+        },
+        {
+          "column": 8,
+          "expression": "self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',\n            (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))",
+          "line": 390
+        }
+      ],
+      "signature": "self, args, snapshot, native"
+    },
+    "snapshot": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 14,
+          "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?', (slot,)).fetchone()",
+          "line": 272
+        },
+        {
+          "column": 14,
+          "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?', (slot,))",
+          "line": 272
+        },
+        {
+          "column": 22,
+          "expression": "self._call(2)",
+          "line": 274
+        },
+        {
+          "column": 22,
+          "expression": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n                (slot, row['generation'])).fetchone()",
+          "line": 276
+        },
+        {
+          "column": 22,
+          "expression": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n                (slot, row['generation']))",
+          "line": 276
+        },
+        {
+          "column": 20,
+          "expression": "self._execute(db, 'SELECT COUNT(*) FROM leases WHERE slot=? AND active=1',\n                (slot,)).fetchone()",
+          "line": 278
+        },
+        {
+          "column": 20,
+          "expression": "self._execute(db, 'SELECT COUNT(*) FROM leases WHERE slot=? AND active=1',\n                (slot,))",
+          "line": 278
+        },
+        {
+          "column": 23,
+          "expression": "decode_data(version['artifact'])",
+          "line": 280
+        },
+        {
+          "column": 22,
+          "expression": "self._call(2, (_text(row['generation']), _text(row['epoch']),\n                _text(row['context_id']), wire(artifact)), flags=1, a=count)",
+          "line": 281
+        },
+        {
+          "column": 37,
+          "expression": "_text(row['generation'])",
+          "line": 281
+        },
+        {
+          "column": 63,
+          "expression": "_text(row['epoch'])",
+          "line": 281
+        },
+        {
+          "column": 16,
+          "expression": "_text(row['context_id'])",
+          "line": 282
+        },
+        {
+          "column": 42,
+          "expression": "wire(artifact)",
+          "line": 282
+        },
+        {
+          "column": 63,
+          "expression": "_untext(generation)",
+          "line": 288
+        },
+        {
+          "column": 93,
+          "expression": "_untext(epoch)",
+          "line": 288
+        },
+        {
+          "column": 31,
+          "expression": "decode_data(artifact)",
+          "line": 289
+        },
+        {
+          "column": 65,
+          "expression": "_untext(context)",
+          "line": 289
+        }
+      ],
+      "signature": "self, slot"
+    },
+    "validate_u64": {
+      "calls_in_lexical_source_order_not_runtime_order": [
+        {
+          "column": 15,
+          "expression": "{'generation': 1, 'epoch': 2, 'retained_generation': 3}.get(label, 1)",
+          "line": 293
+        },
+        {
+          "column": 15,
+          "expression": "self._call(1, (_decimal(value),), flags=flag, labels=(label,))",
+          "line": 294
+        },
+        {
+          "column": 30,
+          "expression": "_decimal(value)",
+          "line": 294
+        }
+      ],
+      "signature": "self, value, label"
+    }
+  },
+  "observations_executed": 0,
+  "schema": "hepta.audit.slot-sql-static-calls.v1",
+  "source": {
+    "bytes": 23319,
+    "sha256": "9595b61a527521ed4b8577cb8b2f681655715b09bd6fd053f98e893de9b27922"
+  },
+  "static_SQL_literal_count": 15,
+  "static_SQL_literal_sites": [
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?', (slot,))",
+      "id": "snapshot.sql1",
+      "line": 272,
+      "method": "snapshot",
+      "parameters_expression": "(slot,)",
+      "statement": "SELECT * FROM slots WHERE name=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n                (slot, row['generation']))",
+      "id": "snapshot.sql2",
+      "line": 276,
+      "method": "snapshot",
+      "parameters_expression": "(slot, row['generation'])",
+      "statement": "SELECT artifact FROM versions WHERE slot=? AND generation=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT COUNT(*) FROM leases WHERE slot=? AND active=1',\n                (slot,))",
+      "id": "snapshot.sql3",
+      "line": 278,
+      "method": "snapshot",
+      "parameters_expression": "(slot,)",
+      "statement": "SELECT COUNT(*) FROM leases WHERE slot=? AND active=1"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'INSERT INTO slots VALUES (?,?,?,?,?)',\n                (args['target_slot'], args['context']['id'], '0', '0', abi))",
+      "id": "adopt.sql1",
+      "line": 350,
+      "method": "adopt",
+      "parameters_expression": "(args['target_slot'], args['context']['id'], '0', '0', abi)",
+      "statement": "INSERT INTO slots VALUES (?,?,?,?,?)"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',\n                (args['target_slot'], '0', wire(evaluation['baseline_artifact']).decode()))",
+      "id": "adopt.sql2",
+      "line": 352,
+      "method": "adopt",
+      "parameters_expression": "(args['target_slot'], '0', wire(evaluation['baseline_artifact']).decode())",
+      "statement": "INSERT INTO versions VALUES (?,?,?)"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n                (args['target_slot'],))",
+      "id": "adopt.sql3",
+      "line": 355,
+      "method": "adopt",
+      "parameters_expression": "(args['target_slot'],)",
+      "statement": "SELECT * FROM slots WHERE name=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT generation FROM versions WHERE slot=?', (args['target_slot'],))",
+      "id": "adopt.sql4",
+      "line": 363,
+      "method": "adopt",
+      "parameters_expression": "(args['target_slot'],)",
+      "statement": "SELECT generation FROM versions WHERE slot=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',\n            (args['target_slot'], current['generation'], wire(args['candidate_artifact']).decode()))",
+      "id": "adopt.sql5",
+      "line": 369,
+      "method": "adopt",
+      "parameters_expression": "(args['target_slot'], current['generation'], wire(args['candidate_artifact']).decode())",
+      "statement": "INSERT INTO versions VALUES (?,?,?)"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',\n            (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))",
+      "id": "adopt.sql6",
+      "line": 371,
+      "method": "adopt",
+      "parameters_expression": "(current['generation'], current['epoch'], args['context']['id'], args['target_slot'])",
+      "statement": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n            (args['target_slot'], args['retained_generation']))",
+      "id": "rollback.sql1",
+      "line": 379,
+      "method": "rollback",
+      "parameters_expression": "(args['target_slot'], args['retained_generation'])",
+      "statement": "SELECT artifact FROM versions WHERE slot=? AND generation=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n            (args['target_slot'],))",
+      "id": "rollback.sql2",
+      "line": 384,
+      "method": "rollback",
+      "parameters_expression": "(args['target_slot'],)",
+      "statement": "SELECT * FROM slots WHERE name=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',\n            (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))",
+      "id": "rollback.sql3",
+      "line": 390,
+      "method": "rollback",
+      "parameters_expression": "(current['generation'], current['epoch'], args['context']['id'], args['target_slot'])",
+      "statement": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'INSERT INTO leases VALUES (?,?,?,?,1)',\n            (lease['id'], lease['slot'], lease['generation'], result.fields[3].decode()))",
+      "id": "acquire.sql1",
+      "line": 411,
+      "method": "acquire",
+      "parameters_expression": "(lease['id'], lease['slot'], lease['generation'], result.fields[3].decode())",
+      "statement": "INSERT INTO leases VALUES (?,?,?,?,1)"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'SELECT * FROM leases WHERE id=?', (lease['id'],))",
+      "id": "lease.sql1",
+      "line": 419,
+      "method": "lease",
+      "parameters_expression": "(lease['id'],)",
+      "statement": "SELECT * FROM leases WHERE id=?"
+    },
+    {
+      "connection_expression": "db",
+      "expression": "self._execute(db, 'UPDATE leases SET active=0 WHERE id=?', (frozen['id'],))",
+      "id": "release.sql1",
+      "line": 442,
+      "method": "release",
+      "parameters_expression": "(frozen['id'],)",
+      "statement": "UPDATE leases SET active=0 WHERE id=?"
+    }
+  ],
+  "warning": "AST source order is not an executed trace; DESIGN.md spells out branches and repetition."
+}

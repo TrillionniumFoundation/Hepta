@@ -1,0 +1,7 @@
+def _untext(value):
+    if not value.startswith(b'S'):
+        _custody('native slot row returned a non-text SQLite field')
+    try:
+        return value[1:].decode('utf-8')
+    except UnicodeError:
+        _custody('native slot row returned invalid UTF-8')

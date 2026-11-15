@@ -69,7 +69,13 @@ HELPERS = {
     "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": ("hia_execution_budget_native", "NativeExecutionBudgetImage"),
     "HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST": ("hia_candidate_budget_native", "NativeCandidateBudgetImage"),
     "HEPTA_HIA_SLOT_LEDGER_MANIFEST": ("hia_slot_ledger_native", "NativeSlotLedger"),
+    "HEPTA_HIA_SLOT_OPERATIONS_MANIFEST": ("hia_slot_operations_native", "NativeSlotOperations"),
     "HEPTA_HIA_RETIREMENT_STATE_MANIFEST": ("hia_retirement_state_native", "NativeRetirementImage"),
+    'HEPTA_HIA_SERVICE_SLOT_MANIFEST': ('hia_service_slot_native', 'NativeServiceSlot'),
+    'HEPTA_HIA_SERVICE_INSPECTION_MANIFEST': ('hia_service_inspection_native', 'NativeServiceInspection'),
+    "HEPTA_HIA_SERVICE_LEASE_MANIFEST": ("hia_service_lease_native", "NativeServiceLease"),
+    'HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST': ('hia_store_file_capture_native', 'NativeStoreFileCapture'),
+    "HEPTA_HIA_SERVICE_DISCOVERY_MANIFEST": ("hia_service_discovery_native", "NativeServiceDiscovery"),
 }
 # The ordinary CLI and Agent use different methods on the same patch image.
 # Admit only these named views of its captured bytes, never arbitrary subclasses
