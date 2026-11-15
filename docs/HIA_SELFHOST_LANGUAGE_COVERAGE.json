@@ -2421,6 +2421,56 @@
   },
   "features": [
     {
+      "alignment": "unaligned byte-buffer offsets accepted",
+      "area": "fixed_width_byte_memory",
+      "bounds": "offset <= length and 8 <= length - offset before pointer arithmetic or any byte access",
+      "compiler_source_uses_word_ops": false,
+      "effects": {
+        "load": [
+          "read",
+          "trap"
+        ],
+        "store": [
+          "write",
+          "trap"
+        ]
+      },
+      "existing_evidence": [
+        "tools.qualify_hia_word_memory.qualify_raw",
+        "tools.qualify_hia_word_memory.qualify_refusals",
+        "tests.test_hia_word_memory"
+      ],
+      "failed_store": "bounds trap before any store byte is written",
+      "hia_functions": {
+        "word_memory": "f125"
+      },
+      "input_schema": "hepta.hia.program.v9",
+      "loans": "existing readable / exclusive writable loan guards; no alias or escape relaxation",
+      "native_json_frontends_expanded": false,
+      "new_witnesses": [
+        "word-*"
+      ],
+      "offset_type": "usize (unsigned 64-bit Core scalar)",
+      "old_schema": "v8 and earlier reject all four operations",
+      "operations": [
+        "buffer.load.u64.le",
+        "buffer.load.u64.be",
+        "buffer.store.u64.le",
+        "buffer.store.u64.be"
+      ],
+      "optional_selected_core_policies_expanded": true,
+      "selected_core_v9_components": [
+        "instruction_policy",
+        "program_shape",
+        "core_admission",
+        "core_lowering"
+      ],
+      "status": "bounded_subset",
+      "value_type": "u64",
+      "width_bytes": 8,
+      "workspace_json_v9_schema_materialization": true
+    },
+    {
       "area": "scalar_types",
       "existing_evidence": [],
       "hia_functions": {
@@ -2469,7 +2519,8 @@
         "loan_incoming": "f59",
         "loan_operation": "f54",
         "loan_transfer": "f61",
-        "operation": "f7"
+        "operation": "f7",
+        "word_memory": "f125"
       },
       "items": [
         "borrowed readbuf/mutbuf parameters",
@@ -2496,7 +2547,8 @@
         "existing-readonly-*",
         "swap-*",
         "bulk-*",
-        "loan-*"
+        "loan-*",
+        "word-*"
       ],
       "status": "bounded_subset"
     },
@@ -2868,7 +2920,7 @@
       "status": "not_implemented"
     }
   ],
-  "general_core_opcode_count": 50,
+  "general_core_opcode_count": 54,
   "general_core_opcodes_outside_profile": [],
   "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer and chain operations require selfhost_elf; opcode-name coverage does not imply all Core types or result shapes",
   "input_opcodes": [
@@ -2887,9 +2939,13 @@
     "buffer.fill_range",
     "buffer.len",
     "buffer.load",
+    "buffer.load.u64.be",
+    "buffer.load.u64.le",
     "buffer.move_within",
     "buffer.new",
     "buffer.store",
+    "buffer.store.u64.be",
+    "buffer.store.u64.le",
     "buffer.swap",
     "buffer.try_new",
     "call",
@@ -2940,8 +2996,12 @@
       "buffer.fill_range",
       "buffer.len",
       "buffer.load",
+      "buffer.load.u64.be",
+      "buffer.load.u64.le",
       "buffer.move_within",
       "buffer.store",
+      "buffer.store.u64.be",
+      "buffer.store.u64.le",
       "buffer.swap",
       "call",
       "compare.eq",
@@ -2982,9 +3042,123 @@
       "buffer.fill_range",
       "buffer.len",
       "buffer.load",
+      "buffer.load.u64.be",
+      "buffer.load.u64.le",
       "buffer.move_within",
       "buffer.new",
       "buffer.store",
+      "buffer.store.u64.be",
+      "buffer.store.u64.le",
+      "buffer.swap",
+      "buffer.try_new",
+      "call",
+      "chain.empty",
+      "chain.head_mut",
+      "chain.head_read",
+      "chain.is_empty",
+      "chain.pop",
+      "chain.try_push",
+      "compare.eq",
+      "compare.ge",
+      "compare.gt",
+      "compare.le",
+      "compare.lt",
+      "compare.ne",
+      "const",
+      "int.add.checked",
+      "int.add.wrap",
+      "int.cast",
+      "int.div.checked",
+      "int.mul.checked",
+      "int.mul.wrap",
+      "int.neg.checked",
+      "int.rem.checked",
+      "int.shl.checked",
+      "int.shr.checked",
+      "int.sub.checked",
+      "int.sub.wrap",
+      "loan.end",
+      "owner.drop",
+      "owner.move",
+      "select"
+    ]
+  },
+  "input_opcodes_by_schema": {
+    "hepta.hia.program.v8": [
+      "bit.and",
+      "bit.not",
+      "bit.or",
+      "bit.xor",
+      "bool.and",
+      "bool.not",
+      "bool.or",
+      "borrow.mut",
+      "borrow.read",
+      "buffer.copy",
+      "buffer.copy_range",
+      "buffer.fill",
+      "buffer.fill_range",
+      "buffer.len",
+      "buffer.load",
+      "buffer.move_within",
+      "buffer.new",
+      "buffer.store",
+      "buffer.swap",
+      "buffer.try_new",
+      "call",
+      "chain.empty",
+      "chain.head_mut",
+      "chain.head_read",
+      "chain.is_empty",
+      "chain.pop",
+      "chain.try_push",
+      "compare.eq",
+      "compare.ge",
+      "compare.gt",
+      "compare.le",
+      "compare.lt",
+      "compare.ne",
+      "const",
+      "int.add.checked",
+      "int.add.wrap",
+      "int.cast",
+      "int.div.checked",
+      "int.mul.checked",
+      "int.mul.wrap",
+      "int.neg.checked",
+      "int.rem.checked",
+      "int.shl.checked",
+      "int.shr.checked",
+      "int.sub.checked",
+      "int.sub.wrap",
+      "loan.end",
+      "owner.drop",
+      "owner.move",
+      "select"
+    ],
+    "hepta.hia.program.v9": [
+      "bit.and",
+      "bit.not",
+      "bit.or",
+      "bit.xor",
+      "bool.and",
+      "bool.not",
+      "bool.or",
+      "borrow.mut",
+      "borrow.read",
+      "buffer.copy",
+      "buffer.copy_range",
+      "buffer.fill",
+      "buffer.fill_range",
+      "buffer.len",
+      "buffer.load",
+      "buffer.load.u64.be",
+      "buffer.load.u64.le",
+      "buffer.move_within",
+      "buffer.new",
+      "buffer.store",
+      "buffer.store.u64.be",
+      "buffer.store.u64.le",
       "buffer.swap",
       "buffer.try_new",
       "call",
@@ -3181,6 +3355,10 @@
         464,
         472
       ],
+      "input_schema_workspace_bytes": [
+        1016592,
+        1016600
+      ],
       "instruction_results": 3,
       "instructions": 8192,
       "internal_frame_overhead_bytes": 576,
@@ -3270,8 +3448,116 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec",
+  "profile": "selfhost-core-linux-x86_64-v93-word-memory64",
   "rejected_inputs": [
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.le-v8",
+      "source_sha256": "a65f6b293795d2eaf793c3ea4a55bcf7830fd05055a4b53f34f37de5659c1ce9"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.le-offset-type",
+      "source_sha256": "6d9c34cfa84b95c1bf248409403202710080702ab06257445d6aa046b8eb9349"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.le-missing-trap",
+      "source_sha256": "ef98ed5a67b32f39f3ff5a9974e157be644dbba74e3a38d4652354f0e1f5486c"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.le-attributes",
+      "source_sha256": "1f28a3644b5140e96e03b8577b51dbdd6ea682967e8b0bdf738387830eea4fca"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.be-v8",
+      "source_sha256": "d5a457b5c8586a94d772b965ccb68a22aee4e71e3371bda06e127a6750ec1fbf"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.be-offset-type",
+      "source_sha256": "6c5620a7a6c3ba7c7ab12c813d2c2f31777967e504c78525eabf341f3331b66e"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.be-missing-trap",
+      "source_sha256": "0b3608f08d975e06377682d295d0d8a9cd1c05d6a8efeeef805a3e0c46fd3634"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.load.u64.be-attributes",
+      "source_sha256": "f9dc0a6cff69b83d1552a4546aedc9b0fb261487647026f3730c120c41cb073b"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.le-v8",
+      "source_sha256": "955a1ec98687a83373be837810a5a9ebf92b8d2cfc5bea3bbf18614b5b44584f"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.le-offset-type",
+      "source_sha256": "7d8ed6190be6f18d54fa461d45ff28bbe2764bdf935b9e023a3413414d3a7625"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.le-missing-trap",
+      "source_sha256": "f6fe7c807af03978647e72103da6290413c5d4fea3f432d99bcdffe9b5b20bd0"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.le-attributes",
+      "source_sha256": "27373ba917f06a6d60d3ee75cfa97c2fee7be7d7185c0612c8ac4def9c39775d"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.le-readonly",
+      "source_sha256": "9b6d114b4920c08d44a2bce08d0faa6017d8d857bbf57ba14a7659ff9f343d53"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.be-v8",
+      "source_sha256": "96ff8ecdc63a4f99ba5e672709165971e757003e1dd63f7b57b3f9e2fe6d5b85"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.be-offset-type",
+      "source_sha256": "2ba197e0a7413182efe99d4a17563d2788761bba4bc0cf0145b78b1e4a666b9a"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.be-missing-trap",
+      "source_sha256": "3a77b8cd2e864081d3a5f753c5aaaa856c444a8a6ef42ae77a1a991a39e2ac73"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.be-attributes",
+      "source_sha256": "2ed608c02c8f2af0bf2dab61defcddc3e04c6727cfaf6e96a9ddf1fe252ff664"
+    },
+    {
+      "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "word-buffer.store.u64.be-readonly",
+      "source_sha256": "39a9e5e46459e0e69cfa0c9dfcffbd4f93f246ef3c11c4b85db22b3bc2affdeb"
+    },
     {
       "boundary": "grammar, types, SSA, control and resource admission",
       "general_core_expected": "rejected",
@@ -5202,20 +5488,25 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "3c31aebb1114987142c14742cd10ee3efb6967fb25b74c7d1fdb5620947466a0"
+      "sha256": "277eb9883aeb2bac2cc9032268320538f711ff3c8fb7dc2ec1bb8038bfe42fab"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hepta",
-      "sha256": "388b182e42675f11435867dd99520e9452a4ff48e23c0766a3952b662acc7627"
+      "sha256": "3c02cbd29bf932ee81d809a5915bcfdec4fc474d252820fbe7b80ebadcac2760"
     },
-    "semantic_support_sha256": "a2942ae99fdf2dbe3c9c85845feaa47e185d556eed282114de07aebf45ee1e0f",
+    "semantic_support_sha256": "2c3a4b01f1cd90b15f57bb78737b57bb85f272b4c7a9b6fb98063911e541c236",
     "support_projection_omits": [
       "source_identity"
     ]
   },
   "syntax": {
     "contract": {
+      "accepted_input_core": [
+        "hepta.hia.program.v8",
+        "hepta.hia.program.v9"
+      ],
       "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; declared entry at any source position; Core __hia_ prefix rejected",
+      "compiler_source_core": "hepta.hia.program.v8",
       "core": "hepta.hia.program.v8",
       "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
       "executable_module": "selfhost_exec",
@@ -5290,5 +5581,40 @@
       "noncontiguous-function",
       "unsupported-arbitrary-function-name"
     ]
+  },
+  "word_memory_scope": {
+    "additional_backend_qualification": "tools/qualify_hia_word_memory.py",
+    "all_input_correctness_proved": false,
+    "bounds_traps": 32,
+    "byte_orders": [
+      "little",
+      "big"
+    ],
+    "coverage_in_this_run": "all four opcodes execute under both B3 and M3 with independent byte/VM oracles",
+    "destination_kind": "mutbuf",
+    "failed_store": "no bytes from the failed instruction are written; prior writes remain visible",
+    "guard": "unsigned offset <= length and 8 <= length - offset before any access",
+    "native_frontend_profiles_upgraded": false,
+    "opcodes": [
+      "buffer.load.u64.le",
+      "buffer.load.u64.be",
+      "buffer.store.u64.le",
+      "buffer.store.u64.be"
+    ],
+    "positive_witnesses": 100,
+    "refusal_witnesses": 18,
+    "selected_native_core_v9_components": [
+      "instruction_policy",
+      "program_shape",
+      "core_admission",
+      "core_lowering"
+    ],
+    "since_schema": "hepta.hia.program.v9",
+    "source_kinds": [
+      "readbuf",
+      "mutbuf"
+    ],
+    "unaligned": true,
+    "width_bytes": 8
   }
 }
