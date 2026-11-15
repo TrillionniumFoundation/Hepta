@@ -1,3 +1,68 @@
+# HIA 原生重写实际执行检查点 — v152
+
+冻结时间：2026-11-15 02:53:33 UTC。父检查点：`0318838e4ee4fce0fce3fcca07f965e67e61e16c`。
+
+**整套 HIA 原生化仍未闭合，旧生产实现删除数为 0。** 本轮新增并实际生成了 HIA CLI 组合选择器、Store 提交头与十表目录根代码，同时完成多组当前源码的独立核验。执行环境随后失联；两个已经启动的验证尚未取得终态。不能将它们算作通过、失败或已停止。
+
+## 当前开发和验证状态
+
+| 范围 | 实际进展与保留的限制 | 证据 |
+|---|---|---|
+| 当前 op8 Core | 独立读回通过：5 owners、65 方法、6 次构建，35,939 次实际 Native 调用、215,634 个完整缓冲区；涵盖真实 wheel 构建安装。203,467 次完整新鲜读取。先前 reader R1/R2 失败保留 | [独立结果](v152-current-results/core-r3-terminal-RESULT.json) |
+| 当前 op8 Patch | 独立读回通过：20 owners、58 方法、8 次构建、19,502 Native、12 VM；144 个调用日志无孤立项。395,728 次读取、48,893 个物理缓冲区。此批当前源码原件不在旧 Patch archive 中 | [独立结果](v152-current-results/patch-terminal-r1-RESULT.json) |
+| Inspect | 完整证据读回覆盖原 Source18、Native17、VM12，共 47 个原方法 ID；13,586 次 Native 调用与 81,516 个 Native 缓冲区核对通过。原 R2 父控制器因五字段缓冲区行格式失败，R5 父进程退出 -9、原因未知；二者原失败保留，合并证据不冒充一次原始成功运行。R6 未执行 | [完整读回](v152-native-development/inspect-complete-terminal-result.json)、[R2 原结果](v152-inspect-results/inspect-native-vm-r2-RESULT.json)、[R5 原退出](v152-current-results/inspect-vm4-r5-OUTER-FAIL.json) |
+| R11 HIA 谓词边界 | 1,806 对输入、3,612 次实际 VM、6,000 个完整缓冲区跨度通过；独立读回通过 | [独立结果](v152-current-results/r11-predicate-independent-r1-RESULT.json) |
+| R11 原八组 | 已实际执行至 163 次 Native、六个 VM；五个 VM 通过，cross-target-loans 仍在原上限后的第 10,000,001 步失败，后四组未启动。独立 reader 验证的是这次真实失败，燃料闭合仍未成立 | [原结果](v152-current-results/r11-original-eight-RESULT.json)、[独立核验](v152-native-development/r11-original-eight-terminal-result.json) |
+| R12 HIA 顺序读取优化 | 109 函数、1,458 块、6,308 操作；实际生成/check/compile/pack 与独立 prefix 读回通过。HIA 397,548 B、image 545,202 B、ELF 1,040,384 B，原 1 MiB 容量内余 8,192 B。2,268 对顺序/短缓冲区/别名/深度/缓存边界验证已启动，**终态 UNKNOWN** | [源码作者](v152-r12-eqbytes-author/MOUNT-RECIPE.json)、[生成结果](v152-current-results/r12-prefix-RESULT.json)、[prefix 独立结果](v152-native-development/r12-prefix-terminal-result.json)、[中断记录](v152-checkpoint/ENVIRONMENT-INTERRUPTION.json) |
+| 普通 CLI 组合选择 | 新增 HIA 选择器，显式组合六个报告镜像、Inspect、Patch 与选择器；保留真实签发记录和 op35 导入见证。两次完整生成与原 check、24 项当前 host 绑定及独立读回通过。18 owners、85 方法、9 次构建的资格验证已完成输入准备并启动，**终态 UNKNOWN**。默认入口未切换，Python 端口/签发器仍存在 | [HIA 代码](v152-native-development/cli_owner_selection.hepta)、[生成独立读回](v152-native-development/ordinary-generation-terminal-result.json)、[完整作者包](v152-ordinary-qualification-author/MOUNT-RECIPE.json) |
+| Store HIA 提交头与目录根 | 两个组件共六个原生成/check owner 通过，独立读回通过。提交头 HIA 100,795 B；十表目录根 HIA 64,912 B。Native/VM 的 248 个 case ID、1,139 对调用是**已作者的预期数量，产品尚未启动**。真实 FD/fsync/rename、非空行图、多表事务、并发与重启恢复及 SQLite 替换均未闭合 | [提交头](v152-native-development/store_commit_head_v1.hepta)、[目录根](v152-native-development/store_catalog_root_v1.hepta)、[生成独立结果](v152-native-development/store-generation-terminal-result.json)、[验证作者包](v152-store-codecs-controls-author/MOUNT-RECIPE.json) |
+| Namespace / 编译器 / cold / 安装 | 原 Namespace 35 项中的 32 PASS、3 FAIL 保留；两个燃料失败和原 5 秒限制超时未消除。历史冻结 u32 的 5,052 项 / 38 阶段成功不等于当前源码 cold 通过。普通编译器、匹配当前源码的完整冷启动与原生安装门槛仍待完成 | [完整状态及历史](STATE.json) |
+| 默认生产链 | 当前代码路由仍依赖 Python CLI、Worker、Service、SQLite Store；runtime 默认仍是 22 个 Rust 工具。HIA 策略 owner 和局部原生调用不能代替这些完整职责。没有合并、默认切换或部署 | [路由审计](v152-default-production-audit/REPORT.md)、[源码身份](v152-default-production-audit/SOURCE-PINS.json)、[默认引用](v152-checkpoint/PRECOMMIT-MAIN-GET.json) |
+
+本轮仍使用 Python 生成器和宿主胶水代码。新增 HIA 文件及局部 Native 结果不能证明源码生成、编译、运行、安装和开发工具链已全部改由 HIA 自身承担；这些也是整套重写的未闭合项。
+
+## 环境中断与原会话恢复
+
+执行器报告 `exec-server transport disconnected; failed to resume exec-server session: recovery timed out after 45s`。目前只取得如下最后观察：
+
+| 已启动任务 | 会话 | 最后实际观察 | 当前结论 |
+|---|---:|---|---|
+| R12 ordered-read boundary R2 | 54384 | 已运行；最后一次轮询输出为空，未取得退出码 | 终态未知 |
+| Ordinary CLI owner-bundle qualification R2 | 67922 | 已运行；初次启动返回会话，输出为空 | 终态未知 |
+
+普通 CLI 的准备进程 34202 已实际 exit 0、ECHILD、进程组消失，耗时 12.485 秒；这只证明准备完成。随后启动的产品 67922 不继承准备 PASS。已保存其冻结描述符身份，但完整 BINDING / BOUND-PLAN 原始字节尚未远端封存。
+
+R12 R1 的输出路径未达到原空间门槛，因此没有启动。R2 明确改用已审查的 `/home/agent` 输出父目录，原 3 GiB 门槛、512 MiB 证据估算、所有测试输入与预算保持；21 项纯描述符控制不替代实际目录准入。普通 CLI R2 同样只显式改变输出路径与绑定，110 个控制函数/类全文保持。没有自动换目录重试，也没有删除证据腾空间。
+
+恢复时应先读取两个原会话及其完整原始输出，检查中断中的 reader 文件实际落盘情况，再决定后续动作。不得直接重跑产品、补造缺失 RESULT、从传输故障推断 OOM 或测试失败，或把已不存在的目录按旧身份重建。详见[中断与恢复顺序](v152-checkpoint/ENVIRONMENT-INTERRUPTION.json)。后续只读重连两条原会话时，执行器均返回“没有可用执行环境”；[原始重连回执](v152-checkpoint/ORIGINAL-SESSION-RECONNECT.json)已保存。
+
+## 已保存内容及范围
+
+- R11 原八组完整原件已远端保存：2,221 个逻辑文件、1,122,135,347 B，压缩 archive 13,437,001 B、1,296 个成员。作者独立从真实 Git GET 全量解码核对字节、模式、七项 stat 与路径集合；Root 另外逐一全文 GET 全部 59 个 payload。该包包含 Root seal 与小型 terminal 报告，不包含独立 reader 其他大型输出。[完整原件 recipe](v152-r11-actual-complete-custody/MOUNT-RECIPE.json)
+- 普通 CLI 的 R1/R2 验证和 generation reader 完整作者包覆盖 82 文件、1,904,030 B；Store R1/R2 完整作者包覆盖 30 文件、438,241 B。Root 已逐一全文 GET 这两包所有 payload。[Root 读回记录](v152-checkpoint/NEW-AUTHOR-ROOT-FULL-GET.json)
+- 环境断连后救回并实际 POST / 全文 GET 的 Root 原始缓存为 **105 文件、1,296,640 B**。原始 UTF-8 文本和 19 位纳秒数字字面量保持。这是明确子集，**不是当前 Root 目录的完整封存**；未以推算的 stat 代替原现场。[恢复清单](v152-root-cached/RECOVERY-MANIFEST.json)
+- R12 优化源码作者包已保存；R12 ordered-boundary 与 prefix reader 的全部作者源码未能从断连缓存恢复。其缓存回执已单独保存，不能据此宣称原作者包完整远端保管。[R12 中断恢复包](v152-r12-environment-recovery/MOUNT-RECIPE.json)
+- 旧 Patch R4 本地完整封存成功，archive 249,783,577 B；R1 的 -9 与 R3 达到原 256 MiB archive 限制的失败保留。R4 仅更改压缩级别与显式路径，32 个 helper 全文保持。远端大 archive 运输只完成作者，尚未实际运输，且此包不包含当前 Core/Patch 原件。[R4 报告](v152-current-results/patch-custody-r4-REPORT.json)、[运输作者](v152-patch-custody-transport-author/MOUNT-RECIPE.json)
+- 当前 Core / Patch / Inspect 及新生成链的大体积原始输出远端封存仍有缺口。发布 RESULT 不代表全部原始日志、帧、账本和输入已远端保存。所有已观察的原失败继续保留。
+
+另一次独立 Git 事实审查确认上述 R11 / R12 核心数字，并逐个完整读回 Root 恢复子集的 105 文件；不改变失败或 UNKNOWN 状态。[独立事实审查](v152-independent-audits/R11-R12-FACT-CHECK.json)
+
+Store 的六份原控制源码在断连后完成独立静态审查：完整重建 head 118 IDs / 1,009 pairs、catalog 130 IDs / 130 pairs，并核对逐 pair 15 份完整 payload 和失败停止逻辑。审查范围内未发现确定性接线阻断，但实际运行、时间/空间准入与真实持久性未获资格。[Store 静态审查](v152-store-controls-static-review/REPORT.json)
+
+普通 CLI 的源码窄审也已完成，未在所读 producer 边界发现确定性接线阻断。新增 121,747 B 终态 reader 草稿保留 57 个原函数/类全文，显式适配真实 child/error、三键构建封套、五键缓冲区、完整有序日志与有限 VM8。它仍为 **未绑定、未冻结、未执行** 的草稿，未做 Python AST 检查，入口恒拒绝，实际 ordinary outer 适配等待恢复原件；没有补造终态或 fresh stats。[审查与草稿包](v152-ordinary-terminal-draft/MOUNT-RECIPE.json)
+
+## 继续闭合的工作
+
+先恢复原执行环境并收取 54384、67922，再完成独立读回。随后执行尚未启动的 Store Native/VM 控制，落实真实文件效应、非空表行、多表原子事务及崩溃/并发恢复；继续降低真实 HIA 编译器路径成本，完成 Namespace、Inspect/R6、普通编译器、当前源码 cold 和原生安装门槛。最后完成默认 CLI / Worker / Service / runtime 的完整 HIA 职责替换及兼容验证，届时才具备清理旧生产实现的依据。
+
+全部原测试 ID、方法、断言、预算、完整新鲜读取与失败历史保持。当前 `whole_native=false`、`production_legacy_retired=false`；本轮生产旧实现删除 0，原始证据删除 0。
+
+默认 Hepta main 为 `f33d8da316de8fdf27b504371f1a5310997ff548`，runtime 默认 `hepta-runtime-base` 为 `ba574f2a6a1b74e85191c58d7bec011720736bb9`。PR #889 保持 draft，原 PR head 为 `4b19af89a766593f7d5f1cc2db256e81aba7afcb`；本进展检查点不冒充已合并的 PR head。详见[完整状态](STATE.json)、[本轮更新](v152-checkpoint/V152-UPDATE.json)、[组件清单](v152-checkpoint/COMPONENTS.json)。
+
+---
+
+## 完整保留的 v151 历史记录
+
 # HIA 原生重写实际执行检查点 — v151
 
 冻结时间：2026-11-14 23:51:30 UTC。父检查点：`f3cf855ca83f7fa3223cbdfb42be1511b15d4c4c`。

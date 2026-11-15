@@ -1,0 +1,31 @@
+S=Path('/home/agent/hia-cli-owner-bundle-qualification-r2-20261115-dda7')
+R=Path('/home/agent/hia-cli-owner-bundle-qualification-author-r2-20261115-dda7')
+O=Path('/home/agent/hia-cli-owner-bundle-preparation-outer-r2-20261115-dda7')
+raw,brow=read(S/'BINDING-RESULT.json');binding=json.loads(raw)
+assert binding['status']=='BOUND_NOT_EXECUTED' and binding['products_executed']==0 and binding['source_copy_performed'] is False and binding['bound_source_files']==3225
+praw=fixed(binding['plan']);p=json.loads(praw);template_raw=fixed(binding['author_plan']);template=json.loads(template_raw)
+assert p['template']==binding['author_plan'] and p['state']=='BOUND_AWAITING_ROOT_AUTHORIZATION'
+assert set(p)==set(template)|{'template'} and all(p[k]==v for k,v in template.items() if k not in ('state','scope_ancestors','source_ancestors'))
+assert pin(template_raw)['git_blob']=='211ade66edae37ce129af6cedead491359c86839'
+assert binding['full_before']==binding['full_after'] and binding['source_before']==binding['source_after']
+assert binding['source_tree']==p['source_tree']=='6c506654638513dbe10623da9458d3904a208cc8'
+assert binding['source_map']==p['source_map'] and binding['source_state']==p['source_state']
+lraw,lrow=read(S/'PRODUCT-LAUNCH.json');l=json.loads(lraw)
+assert l['state']=='BOUND_NOT_EXECUTED_ROOT_SOLE_LAUNCHER'
+assert fixed(l['plan'])==praw and fixed(l['binding'])==raw and l['binding']==brow
+assert l['command']==[p['runtime']['launch_executable'],'-I','-B',p['controls']['run_qualification.py']['path'],'--plan',l['plan']['path'],'--plan-sha256',l['plan']['pin']['sha256'],'--binding',l['binding']['path'],'--binding-sha256',l['binding']['pin']['sha256']]
+assert l['exact_clean_env_argv']==['/usr/bin/env','-i']+[k+'='+l['environment'][k] for k in sorted(l['environment'])]+l['command']
+assert l['owner_count']==18 and l['test_method_invocations']==85 and l['actual_compile_calls_required']==9
+assert l['qualification_seconds_each']==180 and l['cleanup_seconds_each']==3 and l['outer_watchdog_seconds']==1800 and l['outer_cleanup_seconds']==3 and not l['automatic_retry']
+assert l['products_executed']==0 and not l['current_cold'] and not l['whole_native']
+for row in p['controls'].values():fixed(row)
+outer_raw,outer_row=read(O/'RESULT.json');outer=json.loads(outer_raw)
+assert outer['status']=='PASS_ORDINARY_SELECTOR_R2_DATA_PREPARATION_PROCESS_ONLY' and outer['returncode']==0 and outer['ECHILD'] and outer['process_group_absent'] and not outer['timeout'] and outer['adopted']==[]
+assert pin(read(O/'stdout.bin')[0])==outer['stdout'] and pin(read(O/'stderr.bin')[0])==outer['stderr']
+assert not os.path.lexists(p['attempt']) and not os.path.lexists('/home/agent/hia-cli-owner-bundle-qualification-outer-r2-20261115-dda7')
+for row in p['scope_ancestors']+p['source_ancestors']:
+ st=Path(row['path']).lstat();assert stat.S_ISDIR(st.st_mode) and {'path':row['path'],'dev':st.st_dev,'ino':st.st_ino,'mode':st.st_mode,'uid':st.st_uid,'gid':st.st_gid}==row
+fs=os.statvfs(S);assert fs.f_bavail*fs.f_frsize>=p['storage_floor']==1073741824
+out={'status':'PASS_ROOT_OBSERVATION_ACTUAL_ORDINARY_R2_BINDING_ONLY','binding':brow,'bound_plan':binding['plan'],'product_launch':lrow,'outer':outer_row,'actual_preparation_elapsed_ns':outer['elapsed_ns'],'complete_before_after_equal':True,'source_files':3225,'source_tree':p['source_tree'],'products':0,'source_copies':0,'planned_owners':18,'planned_methods':85,'planned_compilations':9,'free_bytes':fs.f_bavail*fs.f_frsize,'full_reads':READS}
+with (ROOT/'ORDINARY-QUALIFICATION-R2-PREPARATION-OBSERVATION.json').open('xb')as f:f.write(enc(out))
+print(json.dumps({k:v for k,v in out.items() if k!='full_reads'},sort_keys=True))

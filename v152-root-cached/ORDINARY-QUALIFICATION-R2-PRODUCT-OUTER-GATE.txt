@@ -1,0 +1,36 @@
+def main():
+    review_raw,_=read(BASE/'ORDINARY-QUALIFICATION-R2-ROOT-REVIEW.json')
+    assert pin(review_raw)==REVIEW_PIN
+    review=json.loads(review_raw)
+    assert review['status']=='PASS_ROOT_STATIC_ORDINARY_QUALIFICATION_R2_PATH_PROJECTION_ONLY' and review['whole_control_functions_classes_unchanged']==110
+    observed_raw,_=read(BASE/'ORDINARY-QUALIFICATION-R2-PREPARATION-OBSERVATION.json')
+    assert pin(observed_raw)==OBSERVATION_PIN
+    observed=json.loads(observed_raw)
+    assert observed['status']=='PASS_ROOT_OBSERVATION_ACTUAL_ORDINARY_R2_BINDING_ONLY' and observed['products']==observed['source_copies']==0
+    def checked(d):
+        b,s=read(Path(d['path']))
+        assert pin(b)=={k:d['pin'][k] for k in ('bytes','sha256','git_blob')}
+        assert s==[d['stat'][k] for k in ('st_dev','st_ino','st_mode','st_nlink','st_size','st_mtime_ns','st_ctime_ns')]
+        return b
+    lr=checked(observed['product_launch']);launch=json.loads(lr)
+    pr=checked(observed['bound_plan']);plan=json.loads(pr);br=checked(observed['binding']);binding=json.loads(br)
+    assert launch['plan']==observed['bound_plan'] and launch['binding']==observed['binding']
+    assert binding['status']=='BOUND_NOT_EXECUTED' and binding['products_executed']==0 and not binding['source_copy_performed']
+    assert plan['state']=='BOUND_AWAITING_ROOT_AUTHORIZATION' and plan['source_files']==3225 and plan['source_tree']=='6c506654638513dbe10623da9458d3904a208cc8'
+    assert binding['full_before']==binding['full_after'] and binding['source_before']==binding['source_after']
+    assert launch['owner_count']==18 and launch['test_method_invocations']==85 and launch['actual_compile_calls_required']==9
+    assert launch['outer_watchdog_seconds']==1800 and launch['outer_cleanup_seconds']==3 and not launch['automatic_retry']
+    assert launch['qualification_seconds_each']==180 and launch['cleanup_seconds_each']==3 and launch['products_executed']==0
+    assert launch['command']==[plan['runtime']['launch_executable'],'-I','-B',plan['controls']['run_qualification.py']['path'],'--plan',observed['bound_plan']['path'],'--plan-sha256',observed['bound_plan']['pin']['sha256'],'--binding',observed['binding']['path'],'--binding-sha256',observed['binding']['pin']['sha256']]
+    assert launch['exact_clean_env_argv']==['/usr/bin/env','-i']+[k+'='+launch['environment'][k] for k in sorted(launch['environment'])]+launch['command']
+    for d in plan['controls'].values():checked(d)
+    for d in plan['expected_runtime'].values():checked(d)
+    for d in plan['scope_ancestors']+plan['source_ancestors']:
+        s=Path(d['path']).lstat()
+        assert stat.S_ISDIR(s.st_mode) and {'path':d['path'],'dev':s.st_dev,'ino':s.st_ino,'mode':s.st_mode,'uid':s.st_uid,'gid':s.st_gid}==d
+    assert not os.path.lexists(plan['attempt']) and not os.path.lexists(OUT)
+    fs=os.statvfs(Path(plan['scope']))
+    assert fs.f_bavail*fs.f_frsize>=plan['storage_floor']==1073741824 and not fs.f_flag&os.ST_NOEXEC
+    launch['argv']=launch['exact_clean_env_argv']
+    OUT.mkdir(mode=0o700)
+    dump('INTENT.json',{'status':'ROOT_AUTHORIZED_ORDINARY_R2_QUALIFICATION_ONCE','review':pin(review_raw),'actual_preparation_observation':pin(observed_raw),'actual_product_launch':observed['product_launch'],'actual_bound_plan':observed['bound_plan'],'actual_binding':observed['binding'],'argv':launch['argv'],'cwd':launch['cwd'],'owners':18,'methods':85,'builds':9,'outer_seconds':1800,'owner_seconds':180,'cleanup_seconds':3,'source_copy_files':0,'maximum_attempts':1,'whole_native':False})

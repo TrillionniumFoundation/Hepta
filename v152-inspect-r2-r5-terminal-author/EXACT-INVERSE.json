@@ -1,0 +1,120 @@
+{
+  "bookkeeping_body_whole_bytes_equal": true,
+  "input_payload_cache": false,
+  "original_metadata_capture_bytes": 16777216,
+  "original_shard_capture_bytes": 4194304,
+  "predecessor_functions": [
+    {
+      "after_pin": {
+        "bytes": 1335,
+        "git_blob": "1e5520b7debdc675336e91dec58a7b29cfa44a54",
+        "mode": "100644",
+        "sha256": "5a76328e9705bd2019d4f87485a8c1f8a13ca87c3812b0bc8d91299786d998c2"
+      },
+      "all_original_require_predicates_preserved": true,
+      "before_pin": {
+        "bytes": 1216,
+        "git_blob": "78f34b6b8138cefd56783d110f76317e54f014be",
+        "mode": "100644",
+        "sha256": "ad2edf01356714ac2110f377b792d32c5aa8fa96af38664bab98778baefdbf42"
+      },
+      "edits": [
+        {
+          "after": "wanted=bounded_mapping_stream(value['state']);require(bounded_metadata(directory)==wanted",
+          "before": "wanted=read_mapping_stream(value['state']);require(metadata(directory)==wanted"
+        },
+        {
+          "after": "    rows=LEDGER.sequence('read_predecessor:'+descriptor['path'])\n",
+          "before": "    rows=[]\n"
+        },
+        {
+          "after": "bounded_json_pin(rows)",
+          "before": "stream_json_pin(rows)"
+        },
+        {
+          "after": "and sequence_equal((r['path'] for r in rows),(str(directory/name) for name,info in wanted.sorted_items()\n                if stat.S_ISREG(info['st_mode'])))",
+          "before": "and [r['path'] for r in rows]==[str(directory/name) for name,info in sorted(wanted.items())\n                if stat.S_ISREG(info['st_mode'])]"
+        },
+        {
+          "after": "        stream_checked(row)\n        LEDGER.record_read(row)\n",
+          "before": "        stream_checked(row)\n"
+        },
+        {
+          "after": "require(bounded_metadata(directory)==wanted,'predecessor changed after complete full read')",
+          "before": "require(metadata(directory)==wanted,'predecessor changed after complete full read')"
+        }
+      ],
+      "function": "read_predecessor",
+      "origin": "/workspace/hia-cli-as-dict-inspect-qualification-author-r5-dda7/controls/inspect_qualification_support.py",
+      "whole_function_inverse_equal": true
+    },
+    {
+      "after_pin": {
+        "bytes": 1339,
+        "git_blob": "20a41cb16185eb7652a428c830932da41d8982f2",
+        "mode": "100644",
+        "sha256": "5e760ccd2e24c4c9959f3928b46769808309cd232af32f09fb9f29d42662710b"
+      },
+      "all_original_require_predicates_preserved": true,
+      "before_pin": {
+        "bytes": 1218,
+        "git_blob": "b054cc0db373d02a5d50662afbd7494438023544",
+        "mode": "100644",
+        "sha256": "bd3c3fd1ac5657b04fa5f50654ca4cca403f49ac1315cc69284e20385e461312"
+      },
+      "edits": [
+        {
+          "after": "wanted=bounded_mapping_stream(value['state']);require(bounded_metadata(directory)==wanted",
+          "before": "wanted=read_mapping_stream(value['state']);require(metadata(directory)==wanted"
+        },
+        {
+          "after": "    rows=LEDGER.sequence('read_complete_tree:'+descriptor['path'])\n",
+          "before": "    rows=[]\n"
+        },
+        {
+          "after": "bounded_json_pin(rows)",
+          "before": "stream_json_pin(rows)"
+        },
+        {
+          "after": "and sequence_equal((r['path'] for r in rows),(str(directory/name) for name,info in wanted.sorted_items()\n                if stat.S_ISREG(info['st_mode'])))",
+          "before": "and [r['path'] for r in rows]==[str(directory/name) for name,info in sorted(wanted.items())\n                if stat.S_ISREG(info['st_mode'])]"
+        },
+        {
+          "after": "        stream_checked(row)\n        LEDGER.record_read(row)\n",
+          "before": "        stream_checked(row)\n"
+        },
+        {
+          "after": "require(bounded_metadata(directory)==wanted,'predecessor changed after complete full read')",
+          "before": "require(metadata(directory)==wanted,'predecessor changed after complete full read')"
+        }
+      ],
+      "function": "read_complete_tree",
+      "origin": "/workspace/hia-cli-as-dict-inspect-qualification-author-r5-dda7/controls/prefix_transport.py",
+      "whole_function_inverse_equal": true
+    }
+  ],
+  "retained_functions": [
+    {
+      "function": "read_prefix_proof",
+      "identity": {
+        "bytes": 1199,
+        "git_blob": "3b906067325364d6266b62665d1a51b63a66653b",
+        "mode": "100644",
+        "sha256": "a91a98bc1278b2eb3008b99db66a3ee3dc9c409bf055cd2e69b38cf00d3c3f29"
+      },
+      "origin": "/workspace/hia-cli-as-dict-inspect-qualification-author-r5-dda7/controls/completion_common.py",
+      "whole_function_bytes_equal": true
+    },
+    {
+      "function": "admit_source_predecessor",
+      "identity": {
+        "bytes": 1752,
+        "git_blob": "b2a9468026f8cd278815a082f1e8605b8f164ffa",
+        "mode": "100644",
+        "sha256": "54fa23fd8a32ba483551bb414cb10b727d03f08ead734418dfdeb642a8e8fb5f"
+      },
+      "origin": "/workspace/hia-cli-as-dict-inspect-qualification-author-r5-dda7/controls/inspect_qualification_support.py",
+      "whole_function_bytes_equal": true
+    }
+  ]
+}

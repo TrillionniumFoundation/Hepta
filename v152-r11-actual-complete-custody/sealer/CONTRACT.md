@@ -1,0 +1,3 @@
+# R11 actual custody author
+
+This mechanical successor retains the original R10 safe whole-byte reads, regular/no-symlink/single-link admission, seven-stat checks, full CAS restoration against every logical alias, CRC/footer completion, and final exact input pathsets. Only the explicit current scope, fixed actual metadata closure and independently observed file/byte denominators change. All four actual groups, 163 Native cases, six VM cases including the 10M+1 failed partial, and the four unstarted groups are preserved. It executes no product and cannot grant qualification. Root alone launches this sealer; its actual manifest must exist before the terminal reader is frozen.

@@ -1,0 +1,223 @@
+def catalog_root(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 128 or length(o) < 1152 or length(w) != 2048:
+        return 4294967293
+    if input_word(s, 0) != @REQUEST_MAGIC@:
+        return 4294967293
+    operation = input_word(s, 8)
+    generation = input_word(s, 16)
+    mask = input_word(s, 24)
+    selected = input_word(s, 48)
+    if operation > 3 or input_zero(s, 56, 72) == 0:
+        return 4294967293
+    if input_zero(s, 32, 16) == 1:
+        return 4294967293
+    if operation == 0:
+        if length(s) != 704 or mask != 0 or selected != 0:
+            return 4294967293
+    if operation == 1:
+        if length(s) != 1104 or mask == 0 or mask > 1023 or selected != 0:
+            return 4294967293
+        if generation == 18446744073709551615:
+            return 4294967291
+    if operation == 2:
+        if length(s) != 128 or generation != 0 or mask != 0 or selected != 0:
+            return 4294967293
+    if operation == 3:
+        if length(s) != 128 or generation != 0 or mask != 0 or selected == 0 or selected > 10:
+            return 4294967293
+    clear_work(w, 0, 2048)
+    if operation == 3:
+        empty_page(s, w, selected)
+        if h_sha256(w, o, 576, 64) != 32:
+            return 4294967292
+        copy_work(w, 576, o, 0, 64)
+        copy_output(o, 1088, 64, 32)
+        return 96
+    if operation == 2:
+        put_word(w, 0, @CATALOG_MAGIC@)
+        put_word(w, 8, 1)
+        copy_input(s, 32, w, 16, 16)
+        put_word(w, 32, 0)
+        put_word(w, 40, 10)
+        table = 1
+        while table <= 10:
+            record = 64 + (table - 1) * 48
+            put_word(w, record, table)
+            put_word(w, record + 8, 0)
+            empty_page(s, w, table)
+            if h_sha256(w, o, 576, 64) != 32:
+                return 4294967292
+            copy_hash(o, w, record + 16)
+            table = table + 1
+        return finish_catalog(w, o)
+    copy_input(s, 128, w, 0, 576)
+    if valid_catalog(s, o, w, generation) == 0:
+        return 4294967292
+    if operation == 0:
+        copy_work(w, 0, o, 0, 576)
+        return 576
+    table = 1
+    flag = 1
+    while table <= 10:
+        record = 64 + (table - 1) * 48
+        update = 704 + (table - 1) * 40
+        if (mask & flag) != 0:
+            count = input_word(s, update)
+            if input_zero(s, update + 8, 32) == 1:
+                return 4294967291
+            if word(w, record + 8) == count and same_input_work(s, update + 8, w, record + 16, 32) == 1:
+                return 4294967291
+            if count == 0:
+                empty_page(s, w, table)
+                if h_sha256(w, o, 576, 64) != 32:
+                    return 4294967292
+                if same_input_output(s, update + 8, o, 1088, 32) == 0:
+                    return 4294967291
+            put_word(w, record + 8, count)
+            copy_input(s, update + 8, w, record + 16, 32)
+        else:
+            if input_zero(s, update, 40) == 0:
+                return 4294967291
+        table = table + 1
+        flag = flag << 1
+    put_word(w, 32, generation + 1)
+    return finish_catalog(w, o)
+
+def valid_catalog(s:readbuf, o:mutbuf, w:mutbuf, generation:u64) -> u64:
+    if word(w, 0) != @CATALOG_MAGIC@ or word(w, 8) != 1:
+        return 0
+    if word(w, 32) != generation or word(w, 40) != 10:
+        return 0
+    if work_zero(w, 48, 16) == 0 or same_input_work(s, 32, w, 16, 16) == 0:
+        return 0
+    if h_sha256(w, o, 0, 544) != 32:
+        return 0
+    if same_work_output(w, 544, o, 1088, 32) == 0:
+        return 0
+    table = 1
+    while table <= 10:
+        record = 64 + (table - 1) * 48
+        if word(w, record) != table or work_zero(w, record + 16, 32) == 1:
+            return 0
+        if word(w, record + 8) == 0:
+            empty_page(s, w, table)
+            if h_sha256(w, o, 576, 64) != 32:
+                return 0
+            if same_work_output(w, record + 16, o, 1088, 32) == 0:
+                return 0
+        table = table + 1
+    return 1
+
+def empty_page(s:readbuf, w:mutbuf, table:u64) -> u64:
+    clear_work(w, 576, 64)
+    put_word(w, 576, @EMPTY_MAGIC@)
+    put_word(w, 584, 1)
+    put_word(w, 592, table)
+    put_word(w, 600, 0)
+    copy_input(s, 32, w, 608, 16)
+    return 64
+
+def finish_catalog(w:mutbuf, o:mutbuf) -> u32:
+    if h_sha256(w, o, 0, 544) != 32:
+        return 4294967292
+    copy_hash(o, w, 544)
+    copy_work(w, 0, o, 0, 576)
+    return 576
+
+def input_word(s:readbuf, at:u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | (byte(s, at + index) << (index * 8))
+        index = index + 1
+    return value
+
+def word(w:mutbuf, at:u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | (byte(w, at + index) << (index * 8))
+        index = index + 1
+    return value
+
+def put_word(w:mutbuf, at:u64, value:u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, at + index, (value >> (index * 8)) & 255)
+        index = index + 1
+    return 8
+
+def input_zero(s:readbuf, at:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        if byte(s, at + index) != 0:
+            return 0
+        index = index + 1
+    return 1
+
+def work_zero(w:mutbuf, at:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        if byte(w, at + index) != 0:
+            return 0
+        index = index + 1
+    return 1
+
+def clear_work(w:mutbuf, at:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        store(w, at + index, 0)
+        index = index + 1
+    return count
+
+def copy_input(s:readbuf, at:u64, w:mutbuf, target:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        store(w, target + index, byte(s, at + index))
+        index = index + 1
+    return count
+
+def copy_work(w:mutbuf, at:u64, o:mutbuf, target:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        store(o, target + index, byte(w, at + index))
+        index = index + 1
+    return count
+
+def copy_hash(o:mutbuf, w:mutbuf, target:u64) -> u64:
+    index = 0
+    while index < 32:
+        store(w, target + index, byte(o, 1088 + index))
+        index = index + 1
+    return 32
+
+def copy_output(o:mutbuf, at:u64, target:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        store(o, target + index, byte(o, at + index))
+        index = index + 1
+    return count
+
+def same_input_work(s:readbuf, at:u64, w:mutbuf, target:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        if byte(s, at + index) != byte(w, target + index):
+            return 0
+        index = index + 1
+    return 1
+
+def same_input_output(s:readbuf, at:u64, o:mutbuf, target:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        if byte(s, at + index) != byte(o, target + index):
+            return 0
+        index = index + 1
+    return 1
+
+def same_work_output(w:mutbuf, at:u64, o:mutbuf, target:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        if byte(w, at + index) != byte(o, target + index):
+            return 0
+        index = index + 1
+    return 1
