@@ -148,6 +148,8 @@ jobs:
           PY
   native:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/rust-target
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
