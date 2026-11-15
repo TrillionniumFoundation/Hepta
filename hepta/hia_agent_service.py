@@ -1935,3 +1935,273 @@ _selected_discovery_examples.__name__ = _SERVICE_DISCOVERY_EXAMPLES_REFERENCE.__
 _selected_discovery_examples.__qualname__ = _SERVICE_DISCOVERY_EXAMPLES_REFERENCE.__qualname__
 HIAAgentService._hia_describe = _selected_hia_describe
 HIAAgentService._examples = staticmethod(_selected_discovery_examples)
+
+
+# Complete verification control. Retained original bodies remain source oracles
+# and are reached only when this explicit selector is absent.
+_SERVICE_VERIFICATION_REFERENCE_1 = HIAAgentService._behavior_equivalence
+_SERVICE_VERIFICATION_REFERENCE_2 = HIAAgentService._subject
+_SERVICE_VERIFICATION_REFERENCE_3 = HIAAgentService._hia_verify
+_SERVICE_VERIFICATION_REFERENCE_4 = HIAAgentService._verification
+_SERVICE_VERIFICATION_REFERENCE_5 = HIAAgentService._replay_verification
+_SERVICE_VERIFICATION_REFERENCE_6 = HIAAgentService._native_refinement_binding
+_SERVICE_VERIFICATION_REFERENCE_7 = HIAAgentService._independent_native_refinement
+_SERVICE_VERIFICATION_REFERENCE_8 = HIAAgentService._check_native_refinement_evidence
+_SERVICE_VERIFICATION_REFERENCE_9 = HIAAgentService._required_claims
+_SERVICE_VERIFICATION_REFERENCES = {
+    1: _SERVICE_VERIFICATION_REFERENCE_1,
+    2: _SERVICE_VERIFICATION_REFERENCE_2,
+    3: _SERVICE_VERIFICATION_REFERENCE_3,
+    4: _SERVICE_VERIFICATION_REFERENCE_4,
+    5: _SERVICE_VERIFICATION_REFERENCE_5,
+    6: _SERVICE_VERIFICATION_REFERENCE_6,
+    7: _SERVICE_VERIFICATION_REFERENCE_7,
+    8: _SERVICE_VERIFICATION_REFERENCE_8,
+    9: _SERVICE_VERIFICATION_REFERENCE_9,
+}
+_SERVICE_VERIFICATION_GLOBAL_BUILTINS = {
+    mode: reference.__builtins__ for mode, reference in _SERVICE_VERIFICATION_REFERENCES.items()}
+_SERVICE_VERIFICATION_LOCAL_NAMES = {
+    mode: reference.__code__.co_varnames + reference.__code__.co_cellvars
+    for mode, reference in _SERVICE_VERIFICATION_REFERENCES.items()}
+_SERVICE_VERIFICATION_CELL_NAMES = {
+    mode: frozenset(reference.__code__.co_cellvars)
+    for mode, reference in _SERVICE_VERIFICATION_REFERENCES.items()}
+_SERVICE_VERIFICATION_NAMESPACE = _SERVICE_VERIFICATION_REFERENCE_1.__globals__
+_SERVICE_VERIFICATION_HOST_IMPORT = _SERVICE_VERIFICATION_REFERENCE_1.__builtins__['__import__']
+
+
+def _service_verification_import_behavior_optimization(self, original, revised, timeout_ms):
+    from .hia_optimization import PURE, DEFAULT_POLICY, verify_optimization
+    return PURE, DEFAULT_POLICY, verify_optimization
+
+
+def _service_verification_import_behavior_widths(self, original, revised, timeout_ms):
+    from .hia_program import WIDTHS, integer_range
+    return WIDTHS, integer_range
+
+
+def _service_verification_import_subject_layout(self, args, program):
+    from .hia_program_native import validate_block_layout_plan
+    return validate_block_layout_plan
+
+
+def _service_verification_import_verify_emitter(self, args):
+    from .hia_program_native import emit_program_machine
+    return emit_program_machine
+
+
+def _service_verification_import_verify_checks(self, args):
+    from .hia_machine_plan import preservation_checks
+    return preservation_checks
+
+
+def _service_verification_import_refinement_safe(self, args, program, context):
+    from .hia_safe_core import (ARTIFACT_PROFILE, ARTIFACT_OBLIGATIONS, SafeCoreRejected,
+        _profile, _checker_source_identity, validate_safe_core_artifact)
+    return ARTIFACT_PROFILE, ARTIFACT_OBLIGATIONS, SafeCoreRejected, _profile, _checker_source_identity, validate_safe_core_artifact
+
+
+def _service_verification_import_check_elf(self, evidence, subject, context, program):
+    from .hia_safe_core_elf import bind_final_artifact
+    return bind_final_artifact
+
+
+_SERVICE_VERIFICATION_IMPORTS = {
+    'behavior_optimization': _service_verification_import_behavior_optimization,
+    'behavior_widths': _service_verification_import_behavior_widths,
+    'subject_layout': _service_verification_import_subject_layout,
+    'verify_emitter': _service_verification_import_verify_emitter,
+    'verify_checks': _service_verification_import_verify_checks,
+    'refinement_safe': _service_verification_import_refinement_safe,
+    'check_elf': _service_verification_import_check_elf,
+}
+
+
+def _selected_service_verification_1(self, original, revised, timeout_ms):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_1, 'self': self, 'original': original, 'revised': revised, 'timeout_ms': timeout_ms}
+        del self, original, revised, timeout_ms
+        return call.pop('callee')(call.pop('self'), call.pop('original'), call.pop('revised'), call.pop('timeout_ms'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 1,
+        {'self': self, 'original': original, 'revised': revised, 'timeout_ms': timeout_ms})
+    del self, original, revised, timeout_ms
+    return frame.finish()
+
+_selected_service_verification_1.__name__ = _SERVICE_VERIFICATION_REFERENCE_1.__name__
+_selected_service_verification_1.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_1.__qualname__
+_selected_service_verification_1.__doc__ = _SERVICE_VERIFICATION_REFERENCE_1.__doc__
+HIAAgentService._behavior_equivalence_reference = _SERVICE_VERIFICATION_REFERENCE_1
+HIAAgentService._behavior_equivalence = _selected_service_verification_1
+
+
+def _selected_service_verification_2(self, args, program):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_2, 'self': self, 'args': args, 'program': program}
+        del self, args, program
+        return call.pop('callee')(call.pop('self'), call.pop('args'), call.pop('program'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 2,
+        {'self': self, 'args': args, 'program': program})
+    del self, args, program
+    return frame.finish()
+
+_selected_service_verification_2.__name__ = _SERVICE_VERIFICATION_REFERENCE_2.__name__
+_selected_service_verification_2.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_2.__qualname__
+_selected_service_verification_2.__doc__ = _SERVICE_VERIFICATION_REFERENCE_2.__doc__
+HIAAgentService._subject_reference = _SERVICE_VERIFICATION_REFERENCE_2
+HIAAgentService._subject = _selected_service_verification_2
+
+
+def _selected_service_verification_3(self, args):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_3, 'self': self, 'args': args}
+        del self, args
+        return call.pop('callee')(call.pop('self'), call.pop('args'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 3,
+        {'self': self, 'args': args})
+    del self, args
+    return frame.finish()
+
+_selected_service_verification_3.__name__ = _SERVICE_VERIFICATION_REFERENCE_3.__name__
+_selected_service_verification_3.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_3.__qualname__
+_selected_service_verification_3.__doc__ = _SERVICE_VERIFICATION_REFERENCE_3.__doc__
+HIAAgentService._hia_verify_reference = _SERVICE_VERIFICATION_REFERENCE_3
+HIAAgentService._hia_verify = _selected_service_verification_3
+
+
+def _selected_service_verification_4(self, ref, context, candidate=None):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_4, 'self': self, 'ref': ref, 'context': context, 'candidate': candidate}
+        del self, ref, context, candidate
+        return call.pop('callee')(call.pop('self'), call.pop('ref'), call.pop('context'), call.pop('candidate'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 4,
+        {'self': self, 'ref': ref, 'context': context, 'candidate': candidate})
+    del self, ref, context, candidate
+    return frame.finish()
+
+_selected_service_verification_4.__name__ = _SERVICE_VERIFICATION_REFERENCE_4.__name__
+_selected_service_verification_4.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_4.__qualname__
+_selected_service_verification_4.__doc__ = _SERVICE_VERIFICATION_REFERENCE_4.__doc__
+HIAAgentService._verification_reference = _SERVICE_VERIFICATION_REFERENCE_4
+HIAAgentService._verification = _selected_service_verification_4
+
+
+def _selected_service_verification_5(self, response, arguments):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_5, 'self': self, 'response': response, 'arguments': arguments}
+        del self, response, arguments
+        return call.pop('callee')(call.pop('self'), call.pop('response'), call.pop('arguments'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 5,
+        {'self': self, 'response': response, 'arguments': arguments})
+    del self, response, arguments
+    return frame.finish()
+
+_selected_service_verification_5.__name__ = _SERVICE_VERIFICATION_REFERENCE_5.__name__
+_selected_service_verification_5.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_5.__qualname__
+_selected_service_verification_5.__doc__ = _SERVICE_VERIFICATION_REFERENCE_5.__doc__
+HIAAgentService._replay_verification_reference = _SERVICE_VERIFICATION_REFERENCE_5
+HIAAgentService._replay_verification = _selected_service_verification_5
+
+
+def _selected_service_verification_6(subject, built, program, object_bytes, final_bytes):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_6, 'subject': subject, 'built': built, 'program': program, 'object_bytes': object_bytes, 'final_bytes': final_bytes}
+        del subject, built, program, object_bytes, final_bytes
+        return call.pop('callee')(call.pop('subject'), call.pop('built'), call.pop('program'), call.pop('object_bytes'), call.pop('final_bytes'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 6,
+        {'subject': subject, 'built': built, 'program': program, 'object_bytes': object_bytes, 'final_bytes': final_bytes})
+    del subject, built, program, object_bytes, final_bytes
+    return frame.finish()
+
+_selected_service_verification_6.__name__ = _SERVICE_VERIFICATION_REFERENCE_6.__name__
+_selected_service_verification_6.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_6.__qualname__
+_selected_service_verification_6.__doc__ = _SERVICE_VERIFICATION_REFERENCE_6.__doc__
+HIAAgentService._native_refinement_binding_reference = staticmethod(_SERVICE_VERIFICATION_REFERENCE_6)
+HIAAgentService._native_refinement_binding = staticmethod(_selected_service_verification_6)
+
+
+def _selected_service_verification_7(self, args, program, context):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_7, 'self': self, 'args': args, 'program': program, 'context': context}
+        del self, args, program, context
+        return call.pop('callee')(call.pop('self'), call.pop('args'), call.pop('program'), call.pop('context'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 7,
+        {'self': self, 'args': args, 'program': program, 'context': context})
+    del self, args, program, context
+    return frame.finish()
+
+_selected_service_verification_7.__name__ = _SERVICE_VERIFICATION_REFERENCE_7.__name__
+_selected_service_verification_7.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_7.__qualname__
+_selected_service_verification_7.__doc__ = _SERVICE_VERIFICATION_REFERENCE_7.__doc__
+HIAAgentService._independent_native_refinement_reference = _SERVICE_VERIFICATION_REFERENCE_7
+HIAAgentService._independent_native_refinement = _selected_service_verification_7
+
+
+def _selected_service_verification_8(self, evidence, subject, context, program):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_8, 'self': self, 'evidence': evidence, 'subject': subject, 'context': context, 'program': program}
+        del self, evidence, subject, context, program
+        return call.pop('callee')(call.pop('self'), call.pop('evidence'), call.pop('subject'), call.pop('context'), call.pop('program'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 8,
+        {'self': self, 'evidence': evidence, 'subject': subject, 'context': context, 'program': program})
+    del self, evidence, subject, context, program
+    return frame.finish()
+
+_selected_service_verification_8.__name__ = _SERVICE_VERIFICATION_REFERENCE_8.__name__
+_selected_service_verification_8.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_8.__qualname__
+_selected_service_verification_8.__doc__ = _SERVICE_VERIFICATION_REFERENCE_8.__doc__
+HIAAgentService._check_native_refinement_evidence_reference = _SERVICE_VERIFICATION_REFERENCE_8
+HIAAgentService._check_native_refinement_evidence = _selected_service_verification_8
+
+
+def _selected_service_verification_9(self, context, candidate_artifact, refs, baseline_core_sha=None):
+    selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
+    if selector is None:
+        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_9, 'self': self, 'context': context, 'candidate_artifact': candidate_artifact, 'refs': refs, 'baseline_core_sha': baseline_core_sha}
+        del self, context, candidate_artifact, refs, baseline_core_sha
+        return call.pop('callee')(call.pop('self'), call.pop('context'), call.pop('candidate_artifact'), call.pop('refs'), call.pop('baseline_core_sha'))
+    native = _SERVICE_VERIFICATION_HOST_IMPORT(
+        'hepta.hia_service_verification_native', None, None,
+        ('ServiceVerificationFrame', 'installed_service_verification'), 0)
+    frame = native.ServiceVerificationFrame(native.installed_service_verification(selector), 9,
+        {'self': self, 'context': context, 'candidate_artifact': candidate_artifact, 'refs': refs, 'baseline_core_sha': baseline_core_sha})
+    del self, context, candidate_artifact, refs, baseline_core_sha
+    return frame.finish()
+
+_selected_service_verification_9.__name__ = _SERVICE_VERIFICATION_REFERENCE_9.__name__
+_selected_service_verification_9.__qualname__ = _SERVICE_VERIFICATION_REFERENCE_9.__qualname__
+_selected_service_verification_9.__doc__ = _SERVICE_VERIFICATION_REFERENCE_9.__doc__
+HIAAgentService._required_claims_reference = _SERVICE_VERIFICATION_REFERENCE_9
+HIAAgentService._required_claims = _selected_service_verification_9

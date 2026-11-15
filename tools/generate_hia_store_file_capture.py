@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in (None, ''):
     sys.path.insert(0, str(ROOT))
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_store_file_capture_protocol import PORT, PORTS, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC, SOURCE_NAME
+from hepta.hia_store_file_capture_protocol import PORT, PORTS, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC, SOURCE_NAME, STATE_VERSION, FD_NONE, FD_OWNED, FD_CLOSE_CLAIMED
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
 from tools.generate_hia_service_context import ContextBuilder
 
@@ -32,7 +32,7 @@ FLOW = [
   {
     "name": "stable_fdopen",
     "normal": "stable_cm_prepare",
-    "failure": "stable_match_oserror",
+    "failure": "stable_close_error",
     "max": 0
   },
   {
@@ -149,7 +149,7 @@ FLOW = [
   },
   {
     "name": "stable_exit_normal",
-    "normal": "stable_release_locals",
+    "normal": "stable_close_normal",
     "failure": "stable_cancel_return",
     "max": 0
   },
@@ -170,26 +170,26 @@ FLOW = [
   },
   {
     "name": "stable_suppressed_result",
-    "normal": "stable_release_locals",
-    "failure": "throw",
+    "normal": "stable_close_normal",
+    "failure": "stable_close_error",
     "max": 0
   },
   {
     "name": "stable_cancel_return",
-    "normal": "stable_match_oserror",
-    "failure": "throw",
+    "normal": "stable-cancel-finish",
+    "failure": "stable-cancel-finish",
     "max": 0
   },
   {
     "name": "stable_cm_unwind",
-    "normal": "stable_match_oserror",
-    "failure": "throw",
+    "normal": "stable_close_error",
+    "failure": "stable_close_error",
     "max": 0
   },
   {
     "name": "stable_enter_unwind",
-    "normal": "stable_match_oserror",
-    "failure": "throw",
+    "normal": "stable_close_error",
+    "failure": "stable_close_error",
     "max": 0
   },
   {
@@ -500,6 +500,18 @@ FLOW = [
     "normal": "return",
     "failure": "throw",
     "max": 0
+  },
+  {
+    "name": "stable_close_normal",
+    "normal": "stable_release_locals",
+    "failure": "stable_cancel_return",
+    "max": 0
+  },
+  {
+    "name": "stable_close_error",
+    "normal": "stable_match_oserror",
+    "failure": "stable_match_oserror",
+    "max": 0
   }
 ]
 
@@ -523,16 +535,30 @@ def store_file_capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if event == 1:
         if phase != 1 or observed != 0:
             return refuse(o, w)
+        if get(w, 3) == @stable_close_normal@ or get(w, 3) == @stable_close_error@:
+            if get(w, 9) != @FD_OWNED@:
+                return refuse(o, w)
+            set(w, 9, @FD_CLOSE_CLAIMED@)
         set(w, 5, 2)
         seal(w)
         return answer(o, w, 0)
     if event == 2:
         if phase != 2:
             return refuse(o, w)
+        if get(w, 3) == @stable_open@:
+            if get(w, 9) != @FD_NONE@:
+                return refuse(o, w)
+            set(w, 9, @FD_OWNED@)
+        if get(w, 3) == @stable_close_normal@ or get(w, 3) == @stable_close_error@:
+            if get(w, 9) != @FD_CLOSE_CLAIMED@:
+                return refuse(o, w)
         return succeeded(o, w, observed)
     if event == 3:
         if phase != 2 or observed != 0:
             return refuse(o, w)
+        if get(w, 3) == @stable_close_normal@ or get(w, 3) == @stable_close_error@:
+            if get(w, 9) != @FD_CLOSE_CLAIMED@:
+                return refuse(o, w)
         set(w, 12, 1)
         return raised(o, w)
     if event == 4:
@@ -564,7 +590,7 @@ def initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967293
         i = i + 1
     set(w, 0, @STATE_MAGIC@)
-    set(w, 1, 1)
+    set(w, 1, @STATE_VERSION@)
     set(w, 2, mode)
     if mode == 1:
         set(w, 3, @stable_flags@)
@@ -578,13 +604,17 @@ def initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return answer(o, w, 0)
 
 def valid_state(w:mutbuf) -> u64:
-    if get(w, 0) != @STATE_MAGIC@ or get(w, 1) != 1:
+    if get(w, 0) != @STATE_MAGIC@ or get(w, 1) != @STATE_VERSION@:
         return 0
     if get(w, 2) != 1 and get(w, 2) != 2:
         return 0
     if get(w, 4) == 0 or get(w, 5) < 1 or get(w, 5) > 8 or get(w, 12) > 1:
         return 0
-    if get(w, 9) != 0 or get(w, 11) != 0 or get(w, 13) != 0 or get(w, 14) != 0 or get(w, 15) != 0:
+    if get(w, 9) > @FD_CLOSE_CLAIMED@:
+        return 0
+    if get(w, 2) == 2 and get(w, 9) != @FD_NONE@:
+        return 0
+    if get(w, 11) != 0 or get(w, 13) != 0 or get(w, 14) != 0 or get(w, 15) != 0:
         return 0
     if get(w, 10) != checksum(w):
         return 0
@@ -593,10 +623,12 @@ def valid_state(w:mutbuf) -> u64:
     if phase == 1 or phase == 2:
         if port == 0 or port > @MAX_PORT@ or get(w, 8) != 0:
             return 0
-        if get(w, 2) == 1 and port > @stable_release_locals@:
-            return 0
-        if get(w, 2) == 2 and port <= @stable_release_locals@:
-            return 0
+        if get(w, 2) == 1:
+            if port > @stable_release_locals@ and port != @stable_close_normal@ and port != @stable_close_error@:
+                return 0
+        else:
+            if port <= @stable_release_locals@ or port >= @stable_close_normal@:
+                return 0
     elif port != 0:
         return 0
     if phase == 7:
@@ -668,25 +700,37 @@ def seal(w:mutbuf) -> u64:
 
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
-    i = 0
-    while i < 8:
-        value = value | (byte(s, index + i) << (i * 8))
-        i = i + 1
+    value = value | (byte(s, index + 0) << 0)
+    value = value | (byte(s, index + 1) << 8)
+    value = value | (byte(s, index + 2) << 16)
+    value = value | (byte(s, index + 3) << 24)
+    value = value | (byte(s, index + 4) << 32)
+    value = value | (byte(s, index + 5) << 40)
+    value = value | (byte(s, index + 6) << 48)
+    value = value | (byte(s, index + 7) << 56)
     return value
 
 def get(w:mutbuf, index:u64) -> u64:
     value = 0
-    i = 0
-    while i < 8:
-        value = value | (byte(w, index * 8 + i) << (i * 8))
-        i = i + 1
+    value = value | (byte(w, index * 8 + 0) << 0)
+    value = value | (byte(w, index * 8 + 1) << 8)
+    value = value | (byte(w, index * 8 + 2) << 16)
+    value = value | (byte(w, index * 8 + 3) << 24)
+    value = value | (byte(w, index * 8 + 4) << 32)
+    value = value | (byte(w, index * 8 + 5) << 40)
+    value = value | (byte(w, index * 8 + 6) << 48)
+    value = value | (byte(w, index * 8 + 7) << 56)
     return value
 
 def set(w:mutbuf, index:u64, value:u64) -> u64:
-    i = 0
-    while i < 8:
-        store(w, index * 8 + i, value >> (i * 8))
-        i = i + 1
+    store(w, index * 8 + 0, value >> 0)
+    store(w, index * 8 + 1, value >> 8)
+    store(w, index * 8 + 2, value >> 16)
+    store(w, index * 8 + 3, value >> 24)
+    store(w, index * 8 + 4, value >> 32)
+    store(w, index * 8 + 5, value >> 40)
+    store(w, index * 8 + 6, value >> 48)
+    store(w, index * 8 + 7, value >> 56)
     return value
 '''
 
@@ -697,6 +741,10 @@ def route(target):
         return ['if get(w, 12) != 1:', '    return refuse(o, w)', 'return advance(o, w, 0, 6)']
     if target.startswith('resume:'):
         return ['return leave_exception(o, w, @' + target.split(':', 1)[1] + '@)']
+    if target == 'stable-cancel-finish':
+        return ['if get(w, 9) == @FD_OWNED@:', '    return advance(o, w, @stable_close_error@, 1)',
+                'if get(w, 9) == @FD_CLOSE_CLAIMED@:', '    return advance(o, w, @stable_match_oserror@, 1)',
+                'return refuse(o, w)']
     if target == 'capture-finish':
         return ['if get(w, 12) == 1:', '    return advance(o, w, 0, 6)',
                 'return advance(o, w, @capture_release_locals@, 1)']
@@ -735,7 +783,9 @@ def transition_source():
 
 def source_program():
     values = {**PORT, 'REQUEST_MAGIC': REQUEST_MAGIC, 'RESULT_MAGIC': RESULT_MAGIC,
-              'STATE_MAGIC': STATE_MAGIC, 'MAX_PORT': len(PORTS)}
+              'STATE_MAGIC': STATE_MAGIC, 'MAX_PORT': len(PORTS),
+              'STATE_VERSION': STATE_VERSION, 'FD_NONE': FD_NONE, 'FD_OWNED': FD_OWNED,
+              'FD_CLOSE_CLAIMED': FD_CLOSE_CLAIMED}
     text = PROTOCOL + '\n' + transition_source() + '\n' + COMMON
     return re.sub(r'@([A-Za-z_][A-Za-z_0-9]*)@', lambda m: str(values[m[1]]), text)
 

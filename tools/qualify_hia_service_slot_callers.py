@@ -27,6 +27,41 @@ FIXTURE_NAME = 'tests/fixtures/hia_emission_original_73f1634/original-freeze.jso
 FIXTURE_SHA256 = 'dec08c099ea1d262f1a3d32dc34801c816484bda6724fac60f5a8a1d5d8c4048'
 
 
+# These variables configure the original test classes' own builds. They are not
+# product selectors: the closed administrator/absence fixtures below retain
+# control of every *_MANIFEST selector they exercise.
+_ORIGINAL_FIXTURE_BUILD_KEYS = (
+    ('HEPTA_HIA_SLOT_LEDGER_COLD_REPORT', 'HEPTA_HIA_SLOT_LEDGER_DEVELOPMENT_COMPILER'),
+    ('HEPTA_HIA_COST_LEDGER_COLD_REPORT', 'HEPTA_HIA_COST_LEDGER_DEVELOPMENT_COMPILER'),
+    ('HEPTA_HIA_EVALUATION_COLD_REPORT', 'HEPTA_HIA_EVALUATION_DEVELOPMENT_COMPILER'),
+    ('HEPTA_HIA_NATIVE_TRANSPORT_COLD_REPORT', 'HEPTA_HIA_NATIVE_TRANSPORT_DEVELOPMENT_COMPILER'),
+    ('HEPTA_HIA_EXECUTION_OBSERVATION_COLD_REPORT', 'HEPTA_HIA_EXECUTION_OBSERVATION_DEVELOPMENT_MANIFEST'),
+)
+
+
+def original_fixture_build_context(scope, cold_report, companion, inherited):
+    """Bind all original separate128 fixture builds to the selected cold report.
+
+    Development callers still supply their own explicit compiler/image context
+    through --companion-environment; a service Slot image alone does not
+    authorize another component or identify its compiler executable.
+    """
+    if scope != 'separate128' or cold_report is None:
+        return {}
+    selected = cold_report.resolve(strict=True)
+    context = {}
+    for cold_key, development_key in _ORIGINAL_FIXTURE_BUILD_KEYS:
+        for environment in (inherited, companion):
+            if development_key in environment:
+                raise ValueError('development fixture cannot override matching cold: ' + development_key)
+            if cold_key in environment:
+                value = environment[cold_key]
+                if not value or Path(value).resolve(strict=True) != selected:
+                    raise ValueError('original fixture uses a different or empty cold report: ' + cold_key)
+        context[cold_key] = str(selected)
+    return context
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     choice = parser.add_mutually_exclusive_group(required=True)
@@ -122,6 +157,7 @@ def main():
         raise AssertionError('ordinary caller entered the retained Python service Slot body')
 
     begin = time.monotonic()
+    fixture_build_environment = {}
     with ExitStack() as stack:
         if args.companion_environment is not None:
             mapping = json.loads(args.companion_environment.read_bytes())
@@ -134,7 +170,10 @@ def main():
                         raise ValueError('development environment cannot qualify cold callers')
                     if key.endswith('_COLD_REPORT') and Path(value).resolve() != args.cold_report.resolve():
                         raise ValueError('original companion uses a different cold report')
+            fixture_build_environment = original_fixture_build_context(
+                args.scope, args.cold_report, mapping, os.environ)
             stack.enter_context(patch.dict(os.environ, mapping))
+            stack.enter_context(patch.dict(os.environ, fixture_build_environment))
         if args.scope == 'ordinary112':
             stack.enter_context(patch.dict(os.environ, {native.SELECTOR: str(manifest)}))
             stack.enter_context(patch.object(api, '_NATIVE_SERVICE_SLOT_ROLLBACK_REFERENCE', forbidden))
@@ -175,6 +214,8 @@ def main():
         'reference_poison_scope': 'test process; subprocesses inherit selector, not Python patches',
         'all_declared_original_modules_unfiltered': True,
         'separate128_preserves_own_selection_fixtures': args.scope == 'separate128',
+        'original_fixture_build_environment': fixture_build_environment,
+        'fixture_build_context_adds_product_manifest_selectors': False,
         'old_fixture_image_cold_custody_not_inferred_from_new_owner_build': True, 'original_test_budgets_changed': False,
         'source_and_bundle_unchanged': stable, 'source_pins': before, 'bundle_pins': bundle,
         'original_registry_count_assertion_adjustments': count_adjustments,

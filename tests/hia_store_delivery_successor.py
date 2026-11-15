@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
-FIXTURE_SHA256 = '11ec7e77e8a7aad00059ebe1d4a3b6ffddf5137fa132a72569a9cb8387036476'
+FIXTURE_SHA256 = '6de2c7f07ffc678f82916d607243e06bfb1630a1d6d9ff7cbde9b29ebb1f230d'
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
 SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',

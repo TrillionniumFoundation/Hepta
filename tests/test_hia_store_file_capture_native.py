@@ -14,9 +14,9 @@ from hepta import hia_agent_store as api
 from hepta import hia_store_file_capture_native as native
 from hepta.hia_agent_assembly import render_assembly
 from tests import hia_store_file_capture_controls as controls
-from tests import hia_store_file_capture_oracle as oracle
+from tests import hia_store_file_capture_owned_fd_v2_oracle as oracle
 from tools import generate_hia_store_file_capture as generator
-from tools import qualify_hia_store_file_capture_originals as qualification
+from tools import qualify_hia_store_file_capture_owned_fd_v2 as qualification
 ROOT=Path(__file__).resolve().parents[1]
 COLD='HEPTA_HIA_STORE_FILE_CAPTURE_COLD_REPORT'
 DEVELOPMENT='HEPTA_HIA_STORE_FILE_CAPTURE_DEVELOPMENT_COMPILER'
@@ -41,14 +41,14 @@ class StoreFileCaptureSourceTests(unittest.TestCase):
             original=b''.join(lines[definitions[0].lineno-1:definitions[0].end_lineno])
             self.assertEqual(sha256(original).hexdigest(),oracle.PINNED[name])
         self.assertEqual(native.SOURCE.read_bytes(),render_assembly(generator.document()).encode())
-        self.assertEqual(len(native.PORTS),71)
+        self.assertEqual(len(native.PORTS),73)
         self.assertIsNot(api.stable_read,api._STABLE_READ_REFERENCE)
         self.assertIsNot(api.capture_path,api._CAPTURE_PATH_REFERENCE)
         from hepta.hia_native_helpers import HELPERS
         self.assertEqual(HELPERS[native.SELECTOR],('hia_store_file_capture_native','NativeStoreFileCapture'))
         flow=generator.FLOW
         self.assertEqual([x['name'] for x in flow],list(native.PORTS))
-        self.assertEqual(len({x['name'] for x in flow}),71)
+        self.assertEqual(len({x['name'] for x in flow}),73)
 
     def test_complete_original_first_frozen_domain_against_independent_VM(self):
         root,temporary=directory(SOURCE_EVIDENCE)

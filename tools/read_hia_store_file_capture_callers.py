@@ -208,8 +208,8 @@ def component_build(repository, evidence, captures, current, compiler, cold_sha)
     directory = absolute(evidence / 'qualified')
     manifest = captures.json(directory / 'manifest.json')
     build = captures.json(directory / 'build.json')
-    require(manifest['schema'] == 'hepta.hia.store-file-capture.v1'
-            and build['schema'] == 'hepta.hia.store-file-capture-build.v1'
+    require(manifest['schema'] == 'hepta.hia.store-file-capture.v2'
+            and build['schema'] == 'hepta.hia.store-file-capture-build.v2'
             and build['scope'] == 'MATCHING_SOURCE_COLD_COMPONENT'
             and build['cold_report_sha256'] == cold_sha
             and canonical(build['source_manifest']) == canonical(current)

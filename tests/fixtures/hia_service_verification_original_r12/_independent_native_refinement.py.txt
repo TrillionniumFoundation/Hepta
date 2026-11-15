@@ -1,0 +1,59 @@
+    def _independent_native_refinement(self, args, program, context):
+        from .hia_safe_core import (ARTIFACT_PROFILE, ARTIFACT_OBLIGATIONS, SafeCoreRejected,
+            _profile, _checker_source_identity, validate_safe_core_artifact)
+        subject = args["subject"]
+        built, final_bytes, object_bytes, retained = self._build_inputs(
+            subject["build_receipt"], args["context"], subject["native_artifact"])
+        if retained.sha256 != program.sha256:
+            reject("E_HIA_RECEIPT_BINDING", "retained machine subject differs from the requested Core", "verification")
+        identity = _checker_source_identity()
+        evidence = {"method": SAFE_CORE_METHOD, "profile": ARTIFACT_PROFILE,
+            "service_profile": SAFE_CORE_SERVICE_PROFILE,
+            "artifact_binding": self._native_refinement_binding(subject, built, program, object_bytes, final_bytes),
+            "source_identity": identity, "checker_sha256": digest(identity), "solver": None,
+            "validation": None, "queries": [], "deadline_met": False}
+
+        def finish(status, reason=None):
+            evidence["outcome"] = status
+            if reason is not None:
+                evidence["reason"] = reason
+            return status, SAFE_CORE_DOMAIN, evidence
+
+        if built["output_kind"] != "shared" or built["native_build"].get("foreign_buffer_exports") != []:
+            return finish("unsupported", "Agent machine validation admits final shared ELF with scalar entries only")
+        try:
+            _profile(program, foreign_buffer_exports=())
+        except SafeCoreRejected as exc:
+            return finish("unsupported", str(exc))
+        remaining = min(60000, self._remaining_ms(context))
+        if remaining < 100:
+            return finish("unknown", "less than the minimum 100 ms remains in the frozen verification budget")
+        status, reason = "unknown", None
+        with tempfile.TemporaryDirectory(prefix="machine-proof-", dir=self.store.root) as directory:
+            query_directory = Path(directory) / "queries"
+            try:
+                evidence["validation"] = validate_safe_core_artifact(program, object_bytes, final_bytes,
+                    timeout_ms=remaining, query_directory=query_directory)
+                status = "proved"
+            except SafeCoreRejected as exc:
+                evidence["validation"] = exc.validation
+                counterexample = exc.counterexample
+                violation_names = {name for name, expected in ARTIFACT_OBLIGATIONS if expected == "unsat"}
+                if (type(counterexample) is dict and counterexample.get("obligation") in violation_names
+                        and type(exc.validation) is dict and exc.validation.get("status") == "refuted"):
+                    status = "refuted"
+                    evidence["counterexample"] = counterexample
+                reason = str(exc)
+            except ValueError as exc:
+                status, reason = "unsupported", str(exc)
+            validation = evidence["validation"]
+            if validation is not None:
+                evidence["solver"] = validation["solver"]
+            for path in sorted(query_directory.glob("*.smt2")):
+                data = path.read_bytes()
+                evidence["queries"].append({"name": path.name, "sha256": sha256(data).hexdigest(),
+                    "artifact": self.store.put(data, "machine-validation-query")})
+        evidence["deadline_met"] = self._remaining_ms(context) > 0
+        if not evidence["deadline_met"]:
+            status, reason = "unknown", "the frozen context deadline expired before proof publication"
+        return finish(status, reason)

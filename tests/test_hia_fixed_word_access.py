@@ -50,6 +50,32 @@ class FixedWordAccessTests(unittest.TestCase):
         # return values and buffers, including wrap and partial-write traps.
         self.assertEqual(helper_comparisons('execution-budget'), 270)
 
+    def test_capture_controller_uses_independently_checked_fixed_word_semantics(self):
+        from tools.generate_hia_store_file_capture import source_program as capture_source
+        from tools.generate_hia_execution_budget import source_program as budget_source
+        self.assertEqual(sha256(FIXTURE.read_bytes()).hexdigest(),
+                         '6d8cedbd84295b8011b7a2453be68057797a45d3a20d57b1bbc2427c1cc1557a')
+        capture = {node.name: node for node in ast.parse(capture_source()).body}
+        budget = {node.name: node for node in ast.parse(budget_source()).body}
+        for name in ('read_word', 'get', 'set'):
+            self.assertEqual(ast.dump(capture[name]), ast.dump(budget[name]))
+        # All independent loop-based cases retain their full return values,
+        # buffers, wrapped indices, and partial-write traps.
+        self.assertEqual(helper_comparisons('execution-budget'), 270)
+
+    def test_verification_controller_uses_independently_checked_fixed_word_semantics(self):
+        from tools.generate_hia_service_verification import source_program as verification_source
+        from tools.generate_hia_execution_budget import source_program as budget_source
+        self.assertEqual(sha256(FIXTURE.read_bytes()).hexdigest(),
+                         '6d8cedbd84295b8011b7a2453be68057797a45d3a20d57b1bbc2427c1cc1557a')
+        verification = {node.name: node for node in ast.parse(verification_source()).body}
+        budget = {node.name: node for node in ast.parse(budget_source()).body}
+        for name in ('read_word', 'get', 'set'):
+            self.assertEqual(ast.dump(verification[name]), ast.dump(budget[name]))
+        # All independent loop-based cases retain their full return values,
+        # buffers, wrapped indices, and partial-write traps.
+        self.assertEqual(helper_comparisons('execution-budget'), 270)
+
     def test_optimized_controller_refuses_before_output_or_compilation(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'must-not-exist'

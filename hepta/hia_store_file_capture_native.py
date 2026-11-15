@@ -30,7 +30,8 @@ from .hia_store_file_capture_protocol import (
     REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES, INITIALIZE, CLAIM, SUCCEEDED,
     RAISED, FINALIZE, RESUME, ISSUED, CLAIMED, READY_RETURN, READY_PROPAGATE,
     RETURNED, PROPAGATE, LEAVE_EXCEPTION, PORT, PORTS, LAST_STABLE_PORT,
-    STABLE_READ, CAPTURE_PATH,
+    STABLE_READ, CAPTURE_PATH, STATE_VERSION, FD_NONE, FD_OWNED, FD_CLOSE_CLAIMED,
+    STABLE_PORTS, CAPTURE_PORTS, STABLE_CLOSE_PORTS,
 )
 SOURCE = _source_resource_path(SOURCE_NAME)
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
@@ -233,7 +234,10 @@ def _literal_stable_open(lookup, path, flags, dir_fd):
     return lookup('os').open(path, flags, dir_fd=dir_fd)
 
 def _literal_stable_fdopen(lookup, fd):
-    return lookup('os').fdopen(fd, "rb")
+    return lookup('os').fdopen(fd, "rb", closefd=False)
+
+def _literal_stable_close(lookup, fd):
+    lookup('os').close(fd)
 
 def _literal_stable_before(lookup, stream):
     return lookup('os').fstat(stream.fileno())
@@ -342,6 +346,7 @@ class StoreFileCaptureReceipt:
     mode: int
     failed: int
     resume_port: int
+    fd_state: int
 
 class StoreFileCaptureFrame:
     def __init__(self, image, mode, initial, *, namespace=None):
@@ -406,6 +411,7 @@ class StoreFileCaptureFrame:
             previous = self.receipt
             port, sequence = (0, 0) if previous is None else (previous.port, previous.sequence)
             old_failed = 0 if previous is None else previous.failed
+            fd_state = FD_NONE if previous is None else previous.fd_state
             raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation,
                               self.mode, *self.identity, 0, 0)
             source = ctypes.create_string_buffer(raw + b'\xc9' * 16, REQUEST_BYTES + 16)
@@ -429,14 +435,22 @@ class StoreFileCaptureFrame:
                 RESUME: (ISSUED,), FINALIZE: (RETURNED, PROPAGATE),
             }[event]
             failed = (1 if event == RAISED else 0 if event == RESUME else old_failed)
+            if event == SUCCEEDED and port == PORT['stable_open']:
+                if self.mode != STABLE_READ or fd_state != FD_NONE:
+                    raise StoreFileCaptureUnknown('owned-fd open acknowledgement has no empty responsibility')
+                fd_state = FD_OWNED
+            if event == CLAIM and port in STABLE_CLOSE_PORTS:
+                if self.mode != STABLE_READ or fd_state != FD_OWNED:
+                    raise StoreFileCaptureUnknown('owned-fd close cannot be claimed twice')
+                fd_state = FD_CLOSE_CLAIMED
             active = words[4] in (ISSUED, CLAIMED)
             if (words[0] != RESULT_MAGIC or words[1] != 0
                     or words[2:7] != (state[3], state[4], state[5], state[2], state[12])
                     or words[7] != state[8]
-                    or state[:3] != (STATE_MAGIC, 1, self.mode)
+                    or state[:3] != (STATE_MAGIC, STATE_VERSION, self.mode)
                     or words[8:10] != self.identity or state[6:8] != self.identity
                     or words[10:12] != (0, 0)
-                    or state[9] != 0 or state[11] != 0 or state[13:16] != (0, 0, 0)
+                    or state[9] != fd_state or state[11] != 0 or state[13:16] != (0, 0, 0)
                     or state[10] != _checksum(state)
                     or words[3] != expected_sequence or words[4] not in expected_phases
                     or words[6] != failed
@@ -444,8 +458,9 @@ class StoreFileCaptureFrame:
                     or (words[4] in (READY_PROPAGATE, PROPAGATE, LEAVE_EXCEPTION) and failed != 1)
                     or (not active and words[2] != 0)
                     or (active and not 1 <= words[2] <= len(PORTS))
-                    or (active and ((self.mode == STABLE_READ and words[2] > LAST_STABLE_PORT)
-                        or (self.mode == CAPTURE_PATH and words[2] <= LAST_STABLE_PORT)))
+                    or (active and ((self.mode == STABLE_READ and words[2] not in STABLE_PORTS)
+                        or (self.mode == CAPTURE_PATH and words[2] not in CAPTURE_PORTS)))
+                    or (self.mode == CAPTURE_PATH and state[9] != FD_NONE)
                     or (words[4] != LEAVE_EXCEPTION and words[7] != 0)
                     or (words[4] == LEAVE_EXCEPTION and words[7] != PORT[
                         'stable_suppressed_result' if self.mode == STABLE_READ else 'capture_roots_next'])
@@ -455,7 +470,7 @@ class StoreFileCaptureFrame:
                     or (event == FINALIZE and (previous.phase not in (READY_RETURN, READY_PROPAGATE)
                         or words[4] != (RETURNED if previous.phase == READY_RETURN else PROPAGATE)))):
                 raise StoreFileCaptureUnknown('native file capture receipt differs from issued state')
-            receipt = StoreFileCaptureReceipt(words[2], words[3], words[4], words[5], words[6], words[7])
+            receipt = StoreFileCaptureReceipt(words[2], words[3], words[4], words[5], words[6], words[7], state[9])
             pending = None
             if event in (SUCCEEDED, RAISED):
                 pending = self._pending_foreign
@@ -622,7 +637,7 @@ class StoreFileCaptureFrame:
 
 
     def _release_context_stack_at_caller(self, name):
-        if (name not in ('stable_cm_unwind', 'stable_enter_unwind', 'capture_cancel_return',
+        if (name not in ('stable_cm_unwind', 'stable_enter_unwind', 'stable_cancel_return', 'capture_cancel_return',
                          'capture_search_unwind')
                 or self.receipt is None or self.receipt.phase != CLAIMED
                 or self.receipt.port != PORT[name]):
@@ -654,7 +669,7 @@ class StoreFileCaptureFrame:
                 # its except matcher, in the invocation caller's handled state.
                 s.pop('roots_iterator', None)
             else:
-                # A pending return exists only after capture_read succeeded.
+                # A pending return exists after stable_result or capture_read succeeded.
                 # Its original finally ran in the invocation caller's handled
                 # state; a new cleanup exception must not own this decref.
                 self.result = None
@@ -731,7 +746,11 @@ class StoreFileCaptureFrame:
             self.stack.pop('exit', None)
             self.result = None
         elif name == 'stable_cancel_return':
-            self.result = None
+            return self._release_context_stack_at_caller(name)
+        elif name in ('stable_close_normal', 'stable_close_error'):
+            if self.receipt.fd_state != FD_CLOSE_CLAIMED:
+                raise StoreFileCaptureUnknown('owned-fd close has no current HIA claim')
+            _literal_stable_close(self._global, d['fd'])
         elif name in ('stable_cm_unwind', 'stable_enter_unwind'):
             return self._release_context_stack_at_caller(name)
         elif name in ('stable_match_oserror', 'capture_match_oserror'):

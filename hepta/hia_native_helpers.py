@@ -76,6 +76,7 @@ HELPERS = {
     "HEPTA_HIA_SERVICE_LEASE_MANIFEST": ("hia_service_lease_native", "NativeServiceLease"),
     'HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST': ('hia_store_file_capture_native', 'NativeStoreFileCapture'),
     "HEPTA_HIA_SERVICE_DISCOVERY_MANIFEST": ("hia_service_discovery_native", "NativeServiceDiscovery"),
+    "HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST": ("hia_service_verification_native", "NativeServiceVerification"),
 }
 # The ordinary CLI and Agent use different methods on the same patch image.
 # Admit only these named views of its captured bytes, never arbitrary subclasses

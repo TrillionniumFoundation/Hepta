@@ -1,0 +1,16 @@
+    def _replay_verification(self, response, arguments):
+        """Observe an original result only if its complete scope remains valid."""
+        try:
+            validate(response, self.tools["hia_verify"]["outputSchema"], "replayed verification")
+        except AgentRejected as exc:
+            reject("E_HIA_PROOF_SCOPE", "cached proof lacks current scope; rerun verification with a fresh request key: " + str(exc), "verification")
+        if installation_manifest() != self.identities:
+            reject("E_HIA_IMPLEMENTATION_STALE", "installed implementation changed during verification replay")
+        result = response["result"]
+        retained = self._verification(result["verification_receipt"], arguments["context"], arguments["candidate"])
+        if (result["candidate"] != retained["candidate"] or result["subject"] != retained["subject"]
+                or result["checks"] != retained["checks"] or retained["subject"] != arguments["subject"]
+                or retained["base_program"] != arguments["base_program"]
+                or retained["validation_profile"] != arguments["validation_profile"]
+                or [check["claim"] for check in retained["checks"]] != arguments["claims"]):
+            reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")

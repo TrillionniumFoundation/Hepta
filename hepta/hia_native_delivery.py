@@ -524,7 +524,11 @@ is consulted, and no second resource registry or fixed quota is introduced.
                 continue
             if entry.pending_for(self.activation_id):
                 entry.pending = True
-                entry.observation.observed()
+                # A retained, already lost observation stays pending. Repeating
+                # its marker during unwind must not replace the original loss.
+                if (entry.observation.retired or not entry.observation.pending
+                        or entry.observation.loss is None):
+                    entry.observation.observed()
             else:
                 # A safe failure before the prepared child handoff has no
                 # pending resource outcome, even if its exception is caught.

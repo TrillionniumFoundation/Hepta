@@ -4,15 +4,18 @@ Foreign ports observe one original expression or one interpreter protocol step.
 Every branch, root/component/cleanup loop, handler and terminal is HIA-owned.
 """
 SELECTOR = 'HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST'
-SCHEMA = 'hepta.hia.store-file-capture.v1'
+SCHEMA = 'hepta.hia.store-file-capture.v2'
 SOURCE_NAME = 'examples/hia_bootstrap/store_file_capture.hepta'
-REQUEST_MAGIC = 0x3143515041434948
-RESULT_MAGIC = 0x3152435041434948
-STATE_MAGIC = 0x3153435041434948
+REQUEST_MAGIC = 0x3243515041434948
+RESULT_MAGIC = 0x3252435041434948
+STATE_MAGIC = 0x3253435041434948
 REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES = 80, 96, 128
 INITIALIZE, CLAIM, SUCCEEDED, RAISED, FINALIZE, RESUME = range(6)
 ISSUED, CLAIMED, READY_RETURN, RETURNED, PROPAGATE, READY_PROPAGATE, LEAVE_EXCEPTION, REFUSED = range(1, 9)
 STABLE_READ, CAPTURE_PATH = 1, 2
+STATE_VERSION = 2
+# Word 9 is HIA acquisition/issuance state, never proof of actual close.
+FD_NONE, FD_OWNED, FD_CLOSE_CLAIMED = range(3)
 PORTS = (
     "stable_flags",
     "stable_open",
@@ -85,6 +88,11 @@ PORTS = (
     "capture_cleanup_unwind",
     "capture_cancel_return",
     "capture_release_locals",
+    "stable_close_normal",
+    "stable_close_error",
 )
 PORT = {name: index + 1 for index, name in enumerate(PORTS)}
-LAST_STABLE_PORT = PORT['stable_release_locals']
+LAST_STABLE_PORT = PORT['stable_release_locals']  # original contiguous stable boundary
+STABLE_CLOSE_PORTS = (PORT['stable_close_normal'], PORT['stable_close_error'])
+STABLE_PORTS = tuple(range(1, LAST_STABLE_PORT + 1)) + STABLE_CLOSE_PORTS
+CAPTURE_PORTS = tuple(range(LAST_STABLE_PORT + 1, PORT['capture_release_locals'] + 1))

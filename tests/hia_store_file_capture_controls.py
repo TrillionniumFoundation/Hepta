@@ -21,8 +21,8 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 if __package__ in (None, ''):
     sys.path.insert(0, str(ROOT))
-from tests.hia_store_file_capture_oracle import canonical
-from tools.qualify_hia_store_file_capture_originals import stop_owned
+from tests.hia_store_file_capture_owned_fd_v2_oracle import canonical
+from tools.qualify_hia_store_file_capture_owned_fd_v2 import stop_owned
 
 def write(path, value):
     raw = canonical(value) + b'\n'
@@ -257,7 +257,7 @@ def real_os_races(manifest, output):
 
 class TwinEntry:
     def __init__(self, actual, program, stream):
-        from tests.hia_store_file_capture_observer import VMEntry
+        from tests.hia_store_file_capture_owned_fd_v2_observer import VMEntry
         self.actual, self.vm, self.stream, self.calls = actual, VMEntry(program), stream, 0
     def __call__(self, source, size, output, capacity, state, extent):
         raw = ctypes.string_at(source, size)
@@ -280,8 +280,8 @@ class TwinEntry:
 def packet_cases(manifest, output):
     from hepta import hia_store_file_capture_native as native
     from hepta.hia_agent_assembly import assemble_program
-    from tests import hia_store_file_capture_oracle as oracle
-    from tests.hia_store_file_capture_observer import _FORWARD_CODE
+    from tests import hia_store_file_capture_owned_fd_v2_oracle as oracle
+    from tests.hia_store_file_capture_owned_fd_v2_observer import _FORWARD_CODE
     image = native.installed_store_file_capture(manifest)
     original_entry = image._entry
     inputs_raw = (ROOT / 'tests/fixtures/hia_store_file_capture_inputs_v1.json').read_bytes()
@@ -302,7 +302,7 @@ def packet_cases(manifest, output):
                 oracle.observe(case, factory=factory)
         finally:
             image._entry = original_entry
-    report = {'schema': 'hepta.hia.store-file-capture-full-packets.v1',
+    report = {'schema': 'hepta.hia.store-file-capture-full-packets.v2',
               'inputs_sha256': sha256(inputs_raw).hexdigest(), 'count': len(cases),
               'ordered_ids': [case['id'] for case in cases], 'entries': twin.calls,
               'complete_VM_and_native_raw_copies_saved': True,

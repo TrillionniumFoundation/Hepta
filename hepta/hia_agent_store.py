@@ -182,16 +182,19 @@ def stable_read(path, limit, *, dir_fd=None):
     flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
     try:
         fd = os.open(path, flags, dir_fd=dir_fd)
-        with os.fdopen(fd, "rb") as stream:
-            before = os.fstat(stream.fileno())
-            if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
-                reject("E_HIA_ARTIFACT_FILE", "artifact is not a bounded ordinary file")
-            data = stream.read(limit + 1)
-            after = os.fstat(stream.fileno())
-            identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
-            if len(data) != before.st_size or identity(before) != identity(after):
-                reject("E_HIA_ARTIFACT_CHANGED", "artifact changed while it was read")
-            return data
+        try:
+            with os.fdopen(fd, "rb", closefd=False) as stream:
+                before = os.fstat(stream.fileno())
+                if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
+                    reject("E_HIA_ARTIFACT_FILE", "artifact is not a bounded ordinary file")
+                data = stream.read(limit + 1)
+                after = os.fstat(stream.fileno())
+                identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+                if len(data) != before.st_size or identity(before) != identity(after):
+                    reject("E_HIA_ARTIFACT_CHANGED", "artifact changed while it was read")
+                return data
+        finally:
+            os.close(fd)
     except OSError as exc:
         raise AgentRejected("E_HIA_ARTIFACT_FILE", "cannot read authorized ordinary artifact") from exc
 

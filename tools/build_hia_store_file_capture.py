@@ -33,6 +33,18 @@ INPUTS = (
         'AgentRejected.py.txt', 'reject.py.txt', 'source-identity.json', 'local-slots.json',
         'caller-modules.json')),
     'tools/read_hia_store_file_capture_callers.py',
+    'tests/hia_store_file_capture_owned_fd_v2_oracle.py',
+    'tests/hia_store_file_capture_owned_fd_v2_observer.py',
+    'tools/qualify_hia_store_file_capture_owned_fd_v2.py',
+    'tests/hia_store_file_capture_owned_fd_v2_controls.py',
+    'tests/test_hia_store_file_capture_owned_fd_v2.py',
+    'tests/fixtures/hia_store_file_capture_owned_fd_v2/legacy-complete-inputs.json',
+    'tests/fixtures/hia_store_file_capture_owned_fd_v2/AgentRejected.py.txt',
+    'tests/fixtures/hia_store_file_capture_owned_fd_v2/reject.py.txt',
+    'tests/fixtures/hia_store_file_capture_owned_fd_v2/stable_read.py.txt',
+    'tests/fixtures/hia_store_file_capture_owned_fd_v2/capture_path.py.txt',
+    'tests/fixtures/hia_store_file_capture_owned_fd_v2/source-identity.json',
+    'tests/fixtures/hia_store_file_capture_owned_fd_v2/local-slots.json',
 )
 
 def build(output, compiler, cold_report=None, *, development=False):
@@ -57,13 +69,13 @@ def build(output, compiler, cold_report=None, *, development=False):
             or (sources is not None and (Path(cold_report).read_bytes() != cold_bytes
                                         or current_sources() != sources))):
         raise ValueError('store file capture construction inputs or output changed')
-    manifest = {'schema': 'hepta.hia.store-file-capture.v1',
+    manifest = {'schema': 'hepta.hia.store-file-capture.v2',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image_bytes).hexdigest(),
                 'compiler_sha256': sha256(compiler_bytes).hexdigest()}
     (output / 'manifest.json').write_text(json.dumps(manifest, sort_keys=True, indent=2) + '\n')
     report = {
-        'schema': 'hepta.hia.store-file-capture-build.v1',
+        'schema': 'hepta.hia.store-file-capture-build.v2',
         'scope': 'DEVELOPMENT_COMPONENT' if development else 'MATCHING_SOURCE_COLD_COMPONENT',
         'component_inputs': {name: sha256(raw).hexdigest() for name, raw in captured.items()},
         'source_manifest': sources, 'manifest': manifest, 'native_compile_receipt': receipt,
@@ -80,6 +92,11 @@ def build(output, compiler, cold_report=None, *, development=False):
         'per_port_ACK_retires_whole_method_observation': False,
         'same_frame_reentry_refused_before_cleanup_region': True,
         'normal_local_storage_transferred_without_clearing_held_tracebacks': True,
+        'semantic_reference': 'owned-fd-v2',
+        'stable_stream_borrows_descriptor_closefd_false': True,
+        'descriptor_close_issued_by_HIA_ports': [72, 73],
+        'close_claim_means_effect_completed': False,
+        'v1_fdopen_close_side_effects_claimed_equivalent': False,
         'descriptor_IO_equivalence_established_by_build': False,
         'complete_input_equivalence_established_by_build': False,
         'current_caller_controls_not_replaced_by_build': True,
