@@ -146,6 +146,7 @@ def source_pins():
                  'tools/build_hia_core_emitter.py',
                  'tools/qualify_hia_core_emitter_callers.py',
                  'tests/test_hia_core_emitter_native.py',
+                 'tests/test_hia_program_native_review.py',
                  'tests/fixtures/hia_program_native_608.py.txt',
                  *source_names(checked_abi(abi_raw))):
         values[name] = sha256((ROOT / name).read_bytes()).hexdigest()
@@ -227,7 +228,13 @@ def main():
         'private_fixture_modes': [],
         'native_step_unit_index_basis': 'owner.images excludes literal pool; unit_index0 is core_emitter_000; bundle_image_index is unit_index+1; complete bundle index0 is core_emitter_pool.',
         'component_denominator': 11, 'original_machine_denominator': 51,
-        'original_core_denominator': 50, 'original_methods_modified': False,
+        'original_core_denominator': 50, 'original_methods_modified': True,
+        'original_method_identities_preserved': True,
+        'original_method_updates': [{
+            'id': 'tests.test_hia_program_native_review.DirectNativeProfileReview.test_future_verifier_admission_cannot_silently_extend_machine_lowering',
+            'change': 'future schema witness v9 to v10 after explicit v9 admission',
+            'rejection_assertion_preserved': True,
+        }],
         'hosted_primitive_kinds': 18, 'Emitter_control_still_hosted': False, 'object_runtime_and_ELF_wrapper_still_hosted': True,
         'default_activated': False, 'whole_native_claimed': False,
     }

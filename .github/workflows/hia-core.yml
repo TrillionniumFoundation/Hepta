@@ -137,6 +137,7 @@ jobs:
               'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
               'tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
               'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
+              'tests.test_hia_selfhost_immediates.ImmediateSourceTests',
           )
           suite = unittest.defaultTestLoader.loadTestsFromNames(names)
           expected = suite.countTestCases()
@@ -148,6 +149,8 @@ jobs:
           PY
   native:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/../rust-target
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -461,6 +464,8 @@ jobs:
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_instruction_policy_native
         env:
           HEPTA_HIA_INSTRUCTION_POLICY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native streaming SHA-256 original five-method owner
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_sha256_stream_native.Sha256StreamNativeTests
       - name: Native exact-byte artifact publication and real kernel races
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_artifact_publication_native tests.test_hia_artifact_publication_route tests.test_hia_agent_artifact_store_native
         env:
@@ -718,6 +723,15 @@ jobs:
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --output "$RUNNER_TEMP/hia-json-wire-callers.json"
           --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers"
+      - name: Scalar immediates and original word-helper native controls
+        run: >-
+          python -B tools/run_hia_unittest_gate.py
+          tests.test_hia_selfhost_immediates
+          tests.test_hia_selfhost_word_io.WordIONativeTests
+      - name: Primitive Core JSON version-preserving native controls
+        run: >-
+          python -B tools/run_hia_unittest_gate.py
+          tests.test_hia_core_json_frontend_native
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4

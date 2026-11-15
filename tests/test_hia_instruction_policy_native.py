@@ -1,4 +1,4 @@
-"""Independent native decisions and the complete 50-instruction host oracle."""
+"""Independent native decisions and the complete 54-instruction host oracle."""
 import copy
 from hashlib import sha256
 import json
@@ -42,16 +42,44 @@ class InstructionPolicySourceTests(unittest.TestCase):
     def test_generated_source_and_independent_VM_before_native(self):
         from tools.generate_hia_instruction_policy import document
         from hepta.hia_agent_assembly import render_assembly
-        self.assertEqual(render_assembly(document()),SOURCE.read_text())
+        generated=document()
+        self.assertEqual(render_assembly(generated),SOURCE.read_text())
+        functions=generated['functions']
+        self.assertLessEqual(len(functions),128)
+        blocks=[block for function in functions for block in function['blocks']]
+        self.assertLessEqual(len(blocks),1536)
+        self.assertLessEqual(sum(len(block['ops'])+1 for block in blocks),8192)
+        for function in functions:
+            self.assertLessEqual(len(function['blocks']),256)
+            definitions={value['name'] for value in function['params']}
+            self.assertLessEqual(len(function['params']),16)
+            for block in function['blocks']:
+                self.assertLessEqual(len(block['params']),16)
+                definitions.update(value['name'] for value in block['params'])
+                definitions.update(value['name'] for op in block['ops'] for value in op['out'])
+            self.assertLessEqual(len(definitions),2048)
         self.assertEqual(interpreted(packet('int.add.checked','hepta.hia.program.v1',['u64','u64'],['u64'],{})),8)
         self.assertEqual(interpreted(packet('const','hepta.hia.program.v8',[],['u8'],{'value':256})),0xfffffff9)
         self.assertEqual(interpreted(packet('borrow.mut','hepta.hia.program.v8',['readbuf'],['mutbuf'],{})),0xfffffff8)
         self.assertEqual(interpreted(packet('chain.empty','hepta.hia.program.v6',[],['chain'],{})),0xfffffff0)
 
+    def test_v9_word_types_effects_and_old_schema_refusals_before_native(self):
+        for mode in ("load", "store"):
+            for order in ("le", "be"):
+                op = "buffer." + mode + ".u64." + order
+                args = ["readbuf", "usize"] if mode == "load" else ["mutbuf", "usize", "u64"]
+                out = ["u64"] if mode == "load" else []
+                expected = 10 if mode == "load" else 12
+                self.assertEqual(interpreted(packet(op, "hepta.hia.program.v9", args, out, {})), expected)
+                for version in range(1, 9):
+                    self.assertEqual(interpreted(packet(op, "hepta.hia.program.v" + str(version), args, out, {})), 0xfffffff0)
+                wrong = list(args); wrong[1] = "u32"
+                self.assertEqual(interpreted(packet(op, "hepta.hia.program.v9", wrong, out, {})), 0xfffffff9)
+
     def test_full_catalog_schema_and_groups_not_compiler_opcode_subset(self):
         from tools.generate_hia_instruction_policy import GROUPS,TYPES,source_program
         from hepta.hia_opcodes import TYPES as ACTUAL_TYPES
-        self.assertEqual(len(OPCODES),50);self.assertEqual(set(TYPES),ACTUAL_TYPES)
+        self.assertEqual(len(OPCODES),54);self.assertEqual(set(TYPES),ACTUAL_TYPES)
         self.assertEqual(set(GROUPS),set(_GROUPS));self.assertIn('return local_check',source_program())
 
 
@@ -79,7 +107,7 @@ class InstructionPolicyNativeTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):cls.temp.cleanup()
 
-    def compare(self,name,args,out,attrs,version=8):
+    def compare(self,name,args,out,attrs,version=9):
         schema='hepta.hia.program.v'+str(version)
         try:expected=check_instruction(opcode_spec(name,schema),args,out,attrs)
         except OpcodeRejected as exc:expected=exc.code
@@ -90,7 +118,7 @@ class InstructionPolicyNativeTests(unittest.TestCase):
     def test_every_opcode_every_version_all_arity_and_type_mutations(self):
         for spec in OPCODES.values():
             args,out,attrs=example(spec)
-            for version in range(1,10):self.compare(spec.name,args,out,attrs,version)
+            for version in range(1,11):self.compare(spec.name,args,out,attrs,version)
             for group in ('args','out'):
                 for replacement in ([],['u32']*8):
                     self.compare(spec.name,replacement if group=='args' else args,replacement if group=='out' else out,attrs)
@@ -118,7 +146,7 @@ class InstructionPolicyNativeTests(unittest.TestCase):
             self.compare(spec.name,args+['unknown'],out,{'bad':0})
         for mode in ('checked','wrap','other',None,False,1,1.0,[],{}):self.compare('int.cast',['i64'],['u8'],{'mode':mode})
         for name in ('unknown','',None,42):self.compare(name,[],[],{'bad':0})
-        for version in (0,9):self.compare('const',[],['u32'],{'extra':None},version)
+        for version in (0,10):self.compare('const',[],['u32'],{'extra':None},version)
 
     def test_full_call_transport_not_compiler_16_argument_or_128_export_subset(self):
         self.compare('call',['u64']*16384,['u64']*1024,{'function':'callee'})
@@ -173,3 +201,4 @@ class InstructionPolicyNativeTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+

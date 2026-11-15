@@ -25,6 +25,7 @@ _ALLOCATOR_OPS = frozenset({"buffer.new", "buffer.try_new", "owner.drop"})
 # payload allocation. Recursive chain destruction, however, can perform an
 # input-dependent number of ticks/frees inside one owner.drop.
 _V8_SCHEMA = "hepta.hia.program.v8"
+_V9_SCHEMA = "hepta.hia.program.v9"
 _V7_SCHEMA = "hepta.hia.program.v7"
 _V8_BYTE_TYPES = frozenset({
     "i8", "i16", "i32", "i64", "isize", "u8", "u16", "u32", "u64", "usize",
@@ -47,9 +48,14 @@ _V8_CHAIN_OPS = frozenset({
     "chain.empty", "chain.try_push", "chain.pop", "chain.is_empty",
     "chain.head_read", "chain.head_mut",
 })
+_V9_WORD_OPS = frozenset({
+    "buffer.load.u64.le", "buffer.load.u64.be",
+    "buffer.store.u64.le", "buffer.store.u64.be",
+})
 
 
-def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
+def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool,
+                            word_memory: bool = False) -> None:
     """Check the entire already-verified module against one reviewed domain.
 
     This never replaces Core's alias, origin, CFG or effect validation. The
@@ -60,6 +66,8 @@ def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -
         _reject("E_HIA_BUDGET_PROFILE", f"resource profile requires {schema}")
     types = _V8_BYTE_TYPES | ({"chain"} if allow_chain else set())
     operations = _V8_BYTE_OPS | (_V8_CHAIN_OPS if allow_chain else set())
+    if word_memory:
+        operations |= _V9_WORD_OPS
     for fn in document["functions"]:
         declared = [p["type"] for p in fn["params"]] + fn["returns"]
         for block in fn["blocks"]:
@@ -78,6 +86,13 @@ def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -
 
 def _audit_v8_resource_profile(document: dict, *, allow_chain: bool) -> None:
     _audit_resource_profile(document, schema=_V8_SCHEMA, allow_chain=allow_chain)
+
+
+def _audit_v9_resource_profile(document: dict, *, allow_chain: bool) -> None:
+    # A word access is one existing VM instruction/tick. Its fixed eight-byte
+    # copy allocates no HIA payload, creates no view, and adds no call frame.
+    _audit_resource_profile(document, schema=_V9_SCHEMA, allow_chain=allow_chain,
+                            word_memory=True)
 
 
 def _audit_v7_byte_resource_profile(document: dict) -> None:
@@ -186,12 +201,15 @@ def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
     checked = verify_program(program)
     document = checked.as_dict()
     # Keep exact admitted ISA identities; a future version must be audited.
-    returned_loans = document["schema"] == _V8_SCHEMA
-    if returned_loans:
+    word_memory = document["schema"] == _V9_SCHEMA
+    returned_loans = document["schema"] in {_V8_SCHEMA, _V9_SCHEMA}
+    if word_memory:
+        _audit_v9_resource_profile(document, allow_chain=True)
+    elif returned_loans:
         _audit_v8_resource_profile(document, allow_chain=True)
     elif document["schema"] not in (set(_ALLOWED_CORE_SCHEMAS) | {"hepta.hia.program.v7"}):
         _reject("E_HIA_BUDGET_PROFILE",
-                "synchronous VM frame budget requires an audited primitive v1..v8 Core")
+                "synchronous VM frame budget requires an audited primitive v1..v9 Core")
     functions = document["functions"]
     named = {fn["name"]: fn for fn in functions}
     edges = {
@@ -237,6 +255,10 @@ def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
         report["profile"] = "parameter-loan-synchronous-frames-v8"
         report["claims"]["canonical_return_origins_reverified"] = True
         report["claims"]["returned_view_creation_adds_synchronous_frames"] = False
+    if word_memory:
+        report["schema"] = "hepta.hia.vm-call-depth-budget.v3"
+        report["profile"] = "word-memory-parameter-loan-synchronous-frames-v9"
+        report["claims"]["fixed_width_memory_adds_synchronous_frames"] = False
     raw = json.dumps(report, sort_keys=True, separators=(",", ":"),
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()
@@ -262,9 +284,12 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
     _limit(max_live_heap_bytes, "max_live_heap_bytes")
     checked = verify_program(program)
     document = checked.as_dict()
-    returned_loans = document["schema"] == _V8_SCHEMA
+    word_memory = document["schema"] == _V9_SCHEMA
+    returned_loans = document["schema"] in {_V8_SCHEMA, _V9_SCHEMA}
     byte_v7 = document["schema"] == _V7_SCHEMA
-    if returned_loans:
+    if word_memory:
+        _audit_v9_resource_profile(document, allow_chain=False)
+    elif returned_loans:
         _audit_v8_resource_profile(document, allow_chain=False)
     elif byte_v7:
         _audit_v7_byte_resource_profile(document)
@@ -332,6 +357,10 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
         result["claims"]["zero_length_owner_operations_counted"] = True
         result["claims"]["recursive_chain_costs_bounded"] = False
         result["claims"]["runtime_view_storage_or_native_stack_bounded"] = False
+    if word_memory:
+        result["schema"] = "hepta.hia.static-budget.v4"
+        result["profile"] = "acyclic-byte-owner-fixed-width-memory-v9"
+        result["claims"]["fixed_width_memory_allocates_payload"] = False
     if max_live_heap_bytes is not None:
         result["limits"]["max_live_heap_bytes"] = max_live_heap_bytes
         result["claims"]["requested_live_payload_bytes_upper_bounded"] = True
@@ -378,9 +407,9 @@ def qualify_bounded_resources(program, *, limits: dict) -> dict:
     checked = verify_program(program)
     document = checked.as_dict()
     if (checked.structured_bytes is not None
-            or document["schema"] not in _ALLOWED_CORE_SCHEMAS | {_V8_SCHEMA}):
+            or document["schema"] not in _ALLOWED_CORE_SCHEMAS | {_V8_SCHEMA, _V9_SCHEMA}):
         _reject("E_HIA_BUDGET_PROFILE",
-                "bounded resources require explicit primitive v1..v6 or reviewed byte-only v8 Core")
+                "bounded resources require explicit primitive v1..v6 or reviewed byte-only v8/v9 Core")
     exports = document.get("exports")
     if type(exports) is not list or not 1 <= len(exports) <= 128:
         _reject("E_HIA_BUDGET_PROFILE", "bounded resources require 1..128 explicit scalar exports")
@@ -392,7 +421,7 @@ def qualify_bounded_resources(program, *, limits: dict) -> dict:
         max_call_depth=policy["max_call_depth"])
     event_rows = {row["function"]: row for row in events["functions"]}
     heaps = []
-    if document["schema"] == _V8_SCHEMA:
+    if document["schema"] in {_V8_SCHEMA, _V9_SCHEMA}:
         for name in exports:
             heaps.append(qualify_entry_live_heap_budget(checked, name,
                 max_live_heap_bytes=policy["max_live_heap_bytes"]))

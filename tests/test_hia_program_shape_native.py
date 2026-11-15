@@ -35,7 +35,8 @@ class ProgramShapeSourceTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly
         self.assertEqual(render_assembly(document()),SOURCE.read_text())
         self.assertEqual(interpreted(VALID),0)
-        self.assertEqual(interpreted(VALID.replace(b'program.v1',b'program.v9')),0xfffffff4)
+        self.assertEqual(interpreted(VALID.replace(b'program.v1',b'program.v9')),0)
+        self.assertEqual(interpreted(VALID.replace(b'program.v1',b'program.v10')),0xfffffff4)
         self.assertEqual(interpreted(VALID[:-1]+b',"exports":["missing"]}'),0xfffffff3)
 
     def test_complete_closed_catalog_and_version_feature_correspondence(self):
@@ -43,11 +44,12 @@ class ProgramShapeSourceTests(unittest.TestCase):
         from hepta.hia_opcodes import SCALARS
         from tools.generate_hia_function_shape import TYPES
         self.assertEqual(SCALARS,set(TYPES[:12]))
-        self.assertEqual(PRIMITIVE_SCHEMAS,{'hepta.hia.program.v'+str(v) for v in range(1,9)})
-        for version in range(1,9):
+        self.assertEqual(PRIMITIVE_SCHEMAS,{'hepta.hia.program.v'+str(v) for v in range(1,10)})
+        for version in range(1,10):
             schema='hepta.hia.program.v'+str(version)
             self.assertEqual(supports_feature(schema,'recursive_chain'),version>=7)
             self.assertEqual(supports_feature(schema,'parameter_loan_returns'),version>=8)
+            self.assertEqual(supports_feature(schema,'fixed_width_byte_memory'),version>=9)
 
 
 class ProgramShapeNativeTests(unittest.TestCase):
@@ -96,7 +98,7 @@ class ProgramShapeNativeTests(unittest.TestCase):
 
     def test_all_versions_module_names_and_whole_declaration_faults(self):
         p=json.loads(VALID)
-        for version in range(1,10):
+        for version in range(1,11):
             p['schema']='hepta.hia.program.v'+str(version);self.compare(p)
         for name in ('','_','module','x'*128,'x'*129,'malloc','__hia_private','雪'):
             p=json.loads(VALID);p['module']=name;self.compare(p)
@@ -149,7 +151,7 @@ class ProgramShapeNativeTests(unittest.TestCase):
 
     def test_all_versions_loan_origins_permissions_and_chain_declarations(self):
         from tools.generate_hia_function_shape import TYPES
-        for version in range(1,9):
+        for version in range(1,10):
             for typ in TYPES:
                 p=json.loads(VALID);p['schema']='hepta.hia.program.v'+str(version)
                 fn=p['functions'][0];fn['params']=[{'name':'r','type':typ}];fn['returns']=[typ]
@@ -226,3 +228,4 @@ class ProgramShapeNativeTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+

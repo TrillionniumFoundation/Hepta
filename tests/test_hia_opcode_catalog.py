@@ -13,7 +13,7 @@ from hepta.hia_incremental import IncrementalVerifier
 from hepta.hia_opcodes import OPCODES, OpcodeRejected, opcode_catalog, opcode_spec, render_opcode_reference
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_runtime import execute_program
-from hepta.hia_schema import SCHEMA_V8, schema_registry
+from hepta.hia_schema import SCHEMA_V8, SCHEMA_V9, schema_registry
 from tests.test_hia_program import arithmetic, b, c, f, i, m, resource_program, ret
 from tests.test_hia_returned_loans import loan_program, multiple_shared
 
@@ -28,6 +28,8 @@ class OpcodeCatalogTests(unittest.TestCase):
                     "buffer.fill", "buffer.copy", "buffer.move_within", "buffer.swap",
                     "buffer.copy_range", "buffer.fill_range", "chain.empty", "chain.try_push",
                     "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"}
+        expected |= {"buffer.load.u64.le", "buffer.load.u64.be",
+                     "buffer.store.u64.le", "buffer.store.u64.be"}
         expected |= {f"int.{op}.{mode}" for op in ("add", "sub", "mul") for mode in ("wrap", "checked")}
         expected |= {f"int.{op}.checked" for op in ("div", "rem", "shl", "shr")}
         expected |= {"compare." + op for op in ("eq", "ne", "lt", "le", "gt", "ge")}
@@ -36,7 +38,7 @@ class OpcodeCatalogTests(unittest.TestCase):
         catalog = opcode_catalog()
         self.assertEqual({row["name"] for row in catalog["instructions"]}, expected)
         self.assertEqual({row["name"] for row in catalog["terminators"]}, {"ret", "jump", "branch", "trap"})
-        for version in range(1, 9):
+        for version in range(1, 10):
             rows = opcode_catalog(f"hepta.hia.program.v{version}")["instructions"]
             self.assertEqual({row["name"] for row in rows}, {name for name in expected if OPCODES[name].since <= version})
         for guessed in ("int.lt", "int.gt", "cmp.lt", "int.cmp.lt", "alloc", "load"):
@@ -53,7 +55,7 @@ class OpcodeCatalogTests(unittest.TestCase):
                 opcode_catalog(unknown)
 
     def test_versioned_type_groups_never_offer_types_rejected_by_that_version(self):
-        for version in range(1, 9):
+        for version in range(1, 10):
             catalog = opcode_catalog(f"hepta.hia.program.v{version}")
             visible = set(catalog["types"])
             for group, members in catalog["type_groups"].items():
@@ -71,9 +73,11 @@ class OpcodeCatalogTests(unittest.TestCase):
 
     def test_generated_docs_and_cli_are_the_actual_catalog(self):
         self.assertEqual((ROOT / "docs/HIA_OPCODE_REFERENCE.md").read_text(), render_opcode_reference())
-        self.assertEqual(json.loads((ROOT / "docs/hia-opcode-catalog.v8.json").read_text()),
+        self.assertEqual(json.loads((ROOT / "docs/hia-opcode-catalog.v9.json").read_text()),
                          json.loads(json.dumps(opcode_catalog())))
-        run = subprocess.run([sys.executable, "-B", "-m", "tools.hia_core_reference", "catalog", "--schema", SCHEMA_V8],
+        self.assertEqual(json.loads((ROOT / "docs/hia-opcode-catalog.v8.json").read_text()),
+                         json.loads(json.dumps(opcode_catalog(SCHEMA_V8))))
+        run = subprocess.run([sys.executable, "-B", "-m", "tools.hia_core_reference", "catalog", "--schema", SCHEMA_V9],
                              cwd=ROOT, text=True, capture_output=True, timeout=20)
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertEqual(json.loads(run.stdout), json.loads(json.dumps(opcode_catalog())))

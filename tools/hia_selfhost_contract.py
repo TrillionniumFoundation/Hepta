@@ -13,8 +13,49 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
+PROFILE = 'selfhost-core-linux-x86_64-v93-word-memory64'
 SOURCE_FILES = (
+    'rust/hia-core-shadow/Cargo.lock',
+    'rust/hia-core-shadow/Cargo.toml',
+    'rust/hia-core-shadow/src/byte_dag.rs',
+    'rust/hia-core-shadow/src/finite_heap.rs',
+    'rust/hia-core-shadow/src/finite_heap/scalars.rs',
+    'rust/hia-core-shadow/src/lib.rs',
+    'rust/hia-core-shadow/src/main.rs',
+    'rust/hia-core-shadow/src/ownership.rs',
+    'rust/hia-core-shadow/src/scalar_vm.rs',
+    'rust/hia-core-shadow/src/scalar_vm/byte_memory.rs',
+    'rust/hia-core-shadow/src/scalar_vm/byte_memory/abort_cleanup.rs',
+    'rust/hia-core-shadow/src/scalar_vm/byte_memory_tests.rs',
+    'rust/hia-core-shadow/src/static_budget.rs',
+    'rust/hia-core-shadow/tests/bound_execution.rs',
+    'rust/hia-core-shadow/tests/bound_execution_v2.rs',
+    'rust/hia-core-shadow/tests/bound_execution_v3.rs',
+    'rust/hia-core-shadow/tests/bound_execution_v4.rs',
+    'rust/hia-core-shadow/tests/byte_dag.rs',
+    'rust/hia-core-shadow/tests/calls.rs',
+    'rust/hia-core-shadow/tests/chain.rs',
+    'rust/hia-core-shadow/tests/finite_heap.rs',
+    'rust/hia-core-shadow/tests/json_budget.rs',
+    'rust/hia-core-shadow/tests/json_integer_tokens.rs',
+    'rust/hia-core-shadow/tests/owned.rs',
+    'rust/hia-core-shadow/tests/owned_vm.rs',
+    'rust/hia-core-shadow/tests/returned_chains.rs',
+    'rust/hia-core-shadow/tests/returned_loans.rs',
+    'rust/hia-core-shadow/tests/returned_record_fields.rs',
+    'rust/hia-core-shadow/tests/scalar_vm.rs',
+    'rust/hia-core-shadow/tests/shadow.rs',
+    'rust/hia-core-shadow/tests/static_budget.rs',
+    'tools/hia_selfhost_word_coverage.py',
+    'docs/HIA_WORD_MEMORY_V9.md',
+    'docs/hia-opcode-catalog.v9.json',
+    'tools/hia_selfhost_word_memory.py',
+    'tools/hia_word_memory_cases.py',
+    'tools/hia_word_memory_allocator.py',
+    'tools/qualify_hia_word_memory.py',
+    'tests/test_hia_word_memory.py',
+    'rust/hia-core-shadow/src/scalar_vm/word_memory_tests.rs',
+    'rust/hia-core-shadow/tests/word_memory.rs',
     'tests/test_hia_selfhost_call_graph_efficiency.py',
     'docs/HIA_WORKER_SCHEDULING_CUSTODY.md',
     'tools/build_hia_worker_scheduling_bundle.py',
@@ -143,6 +184,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/core_lowering_028.hepta',
     'examples/hia_bootstrap/core_lowering_029.hepta',
     'examples/hia_bootstrap/core_lowering_030.hepta',
+    'examples/hia_bootstrap/core_lowering_031.hepta',
     'examples/hia_bootstrap/core_lowering_pool.hepta',
     'tests/fixtures/hia_program_native_608.py.txt',
     'tests/test_hia_core_lowering_native.py',
@@ -432,6 +474,7 @@ SOURCE_FILES = (
     'tests/test_hia_core_json_cli.py',
     'examples/hia_bootstrap/core_json_cli_packer.hepta',
     'tests/test_hia_selfhost_word_io.py',
+    'tests/test_hia_selfhost_immediates.py',
     'tests/test_hia_selfhost_emitter_words.py',
     'tools/generate_hia_sha256_stream.py',
     'tests/test_hia_sha256_stream_native.py',
@@ -605,6 +648,7 @@ SOURCE_FILES = (
     'tools/build_hia_agent_identity.py',
     'tools/generate_hia_agent_identity.py',
     'tests/test_hia_returned_loan_interfaces.py',
+    'tests/test_hia_returned_loan_budgets.py',
     'tests/test_hia_program_llvm.py',
     'tests/test_hia_composite_bulk_native.py',
     'tools/generate_hia_core_module_graph.py',
@@ -758,8 +802,15 @@ def file_digests(root=ROOT):
     root = Path(root)
     # Include the complete Python seed package, not a hand-maintained subset
     # that can omit a transitively imported checker or native ABI dependency.
+    # The v9 shadow/resource implementation is separately executed by Cargo;
+    # retain its complete Rust source and dependency locks, not just new tests.
+    shadow = root / "rust/hia-core-shadow"
     paths = sorted(set(SOURCE_FILES) | {
         p.relative_to(root).as_posix() for p in (root / "hepta").rglob("*.py")
+    } | {
+        p.relative_to(root).as_posix() for p in shadow.rglob("*.rs")
+    } | {
+        (shadow / name).relative_to(root).as_posix() for name in ("Cargo.toml", "Cargo.lock")
     })
     return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}
 
@@ -1493,6 +1544,7 @@ def support_contract(root=ROOT):
             "direct_assembly_input_bytes": 1048576,
             "direct_assembly_preserves_explicit_output_profile": True,
             "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hepta",
+            "accepted_json_core_schemas": ["hepta.hia.program.v8", "hepta.hia.program.v9"],
             "output_profile_selection": "explicit build-time flat/elf/exec; never inferred from payload",
             "native_runtime_python_required": False,
             "host_build_and_custody_driver": True,
@@ -1502,6 +1554,8 @@ def support_contract(root=ROOT):
         "target": {"triple": "x86_64-unknown-linux-gnu", "system": "Linux",
                    "isa": "x86-64", "endianness": "little", "pointer_bits": 64},
         "syntax": {"header": "hia-asm.v1", "core": "hepta.hia.program.v8",
+                   "compiler_source_core": "hepta.hia.program.v9",
+                   "accepted_input_core": ["hepta.hia.program.v8", "hepta.hia.program.v9"],
                    "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels without explicit exports select flat output",
                    "object_module": "selfhost_elf", "executable_module": "selfhost_exec",
                    "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
@@ -1565,6 +1619,7 @@ def support_contract(root=ROOT):
             "function_name_bytes": 128,
             "explicit_exports": 128,
             "export_workspace_bytes": [1010448, 1016592],
+            "input_schema_workspace_bytes": [1016592, 1016600],
             "export_record_stride": 48,
             "export_signature": "0..16 non-unit scalar parameters; zero or one scalar/unit result",
             "function_name_record_offsets": {"source_offset": 240, "bytes": 248, "filter_hash": 256},
@@ -1593,6 +1648,24 @@ def support_contract(root=ROOT):
             "capacity_growth_changes_source_output_workspace_bytes": False,
         },
         "support": [
+            {"area": "fixed_width_byte_memory", "status": "bounded_subset",
+             "input_schema": "hepta.hia.program.v9",
+             "operations": ["buffer.load.u64.le", "buffer.load.u64.be",
+                            "buffer.store.u64.le", "buffer.store.u64.be"],
+             "width_bytes": 8,
+             "offset_type": "usize (unsigned 64-bit Core scalar)",
+             "value_type": "u64",
+             "bounds": "offset <= length and 8 <= length - offset before pointer arithmetic or any byte access",
+             "alignment": "unaligned byte-buffer offsets accepted",
+             "failed_store": "bounds trap before any store byte is written",
+             "effects": {"load": ["read", "trap"], "store": ["write", "trap"]},
+             "loans": "existing readable / exclusive writable loan guards; no alias or escape relaxation",
+             "old_schema": "v8 and earlier reject all four operations",
+             "compiler_source_uses_word_ops": True,
+             "native_json_frontends_expanded": True,
+             "optional_selected_core_policies_expanded": True,
+             "selected_core_v9_components": ["instruction_policy", "program_shape", "core_admission", "core_lowering"],
+             "workspace_json_v9_schema_materialization": True},
             {"area": "scalar_types", "status": "supported",
              "items": ["u64", "usize", "u32", "u8", "u16", "bool", "i8", "i16", "i32", "i64", "isize", "unit"]},
             {"area": "resources", "status": "bounded_subset",

@@ -38,7 +38,7 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         from hepta.hia_core_lowering_selection import ABI_SOURCE, checked_abi, source_names
         backend_abi=checked_abi((ROOT/ABI_SOURCE).read_bytes())
         self.assertEqual(BACKEND_BUILD_FILES,(ABI_SOURCE,*source_names(backend_abi)))
-        self.assertEqual(len(source_names(backend_abi)),32)
+        self.assertEqual(len(source_names(backend_abi)),33)
         self.assertTrue(set(BACKEND_BUILD_FILES).isdisjoint(
             (*NATIVE_SOURCE_FILES,*SOURCE_BUILD_FILES,*COMPILER_BUILD_FILES,*PUBLICATION_BUILD_FILES)))
         self.assertLessEqual(set(BACKEND_BUILD_FILES),set(RESOURCES))

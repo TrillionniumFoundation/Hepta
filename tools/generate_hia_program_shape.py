@@ -125,7 +125,7 @@ def source_program():
     body=[*root.body,header,*nodes[1:]]
     text=ast.unparse(ast.fix_missing_locations(ast.Module(body=body,type_ignores=[])))+'\n'
     text+='def schema_version(w:mutbuf, node:u64) -> u64:\n'
-    for version in range(1,9):
+    for version in range(1,10):
         text+='    if text_is(w, node, '+', '.join(map(str,packed('hepta.hia.program.v'+str(version))))+') != 0:\n        return '+str(version)+'\n'
     return text+'    return 0\n'
 
@@ -145,3 +145,4 @@ def document():
 if __name__=='__main__':
     path=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/program_shape.hepta'
     path.write_text(render_assembly(document()));print(path.name,path.stat().st_size)
+
