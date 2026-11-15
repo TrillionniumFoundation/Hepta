@@ -138,6 +138,114 @@ particular a static or class method used as __get__ retains its binding behavior
     return bound_getter(instance, owner)
 
 
+_TYPE_QUALNAME = type.__dict__['__qualname__']
+_TYPE_MODULE = type.__dict__['__module__']
+_TYPE_FLAGS = type.__dict__['__flags__']
+
+
+def _context_probe_inert(*arguments):
+    return None
+
+
+_CONTEXT_NAME_PROBE = type('_HiaContextNameProbe', (), {
+    '__module__': '_hia_protocol_probe',
+    '__qualname__': '_HiaContextQualifiedProbe',
+})
+
+
+def _make_context_diagnostic_probe(missing, asynchronous):
+    attributes = {
+        '__module__': '__main__',
+        '__qualname__': '_HiaContextSurrogate',
+        '__exit__' if missing == '__enter__' else '__enter__': _context_probe_inert,
+    }
+    if asynchronous:
+        attributes.update(__aenter__=_context_probe_inert, __aexit__=_context_probe_inert)
+    return type('_HiaContextSurrogate', (), attributes)
+
+
+# Keep the four inert types alive for the module lifetime. Creating a new heap
+# type while formatting a user's error would leave additional observable cyclic
+# garbage, even when the final diagnostic text was identical.
+_CONTEXT_DIAGNOSTIC_PROBES = {
+    (missing, asynchronous): _make_context_diagnostic_probe(missing, asynchronous)
+    for missing in ('__enter__', '__exit__')
+    for asynchronous in (False, True)
+}
+
+
+@lru_cache(maxsize=1)
+def _runtime_context_qualified_name():
+    """Observe this interpreter's diagnostic naming on one inert private type."""
+    message = None
+    try:
+        with _CONTEXT_NAME_PROBE():
+            pass
+    except TypeError as error:
+        message = error.args[0]
+    if "'_hia_protocol_probe._HiaContextQualifiedProbe'" in message:
+        return True
+    if "'_HiaContextNameProbe'" in message:
+        return False
+    raise RuntimeError('unsupported context protocol diagnostic naming')
+
+
+@lru_cache(maxsize=4)
+def _runtime_context_missing_suffix(name, asynchronous):
+    """Observe only the runtime's missing-method and async-suggestion suffix."""
+    probe = _CONTEXT_DIAGNOSTIC_PROBES[name, asynchronous]
+    message = None
+    try:
+        with probe():
+            pass
+    except TypeError as error:
+        message = error.args[0]
+    marker = "'_HiaContextSurrogate'"
+    if type(message) is not str or not message.startswith(marker):
+        raise RuntimeError('unsupported context diagnostic prefix')
+    return message[len(marker):]
+
+
+def _context_missing_message(manager, name):
+    """Render a missing-special diagnostic without invoking user protocols.
+
+    Type descriptors supply metadata directly. The original manager and its
+    descriptors are never rebound by this formatting primitive. Fixed private
+    probes supply this runtime's missing-method and async-suggestion text; the
+    actual type supplies its name under the interpreter's naming convention.
+    """
+    kind = type(manager)
+    if _runtime_context_qualified_name():
+        heap_type = bool(_TYPE_FLAGS.__get__(kind, type(kind)) & (1 << 9))
+        if heap_type:
+            qualname = str.__str__(_TYPE_QUALNAME.__get__(kind, type(kind)))
+            module = _TYPE_MODULE.__get__(kind, type(kind))
+            module = str.__str__(module) if issubclass(type(module), str) else None
+            fullname = qualname if module is None or module in ('builtins', '__main__') else module + '.' + qualname
+        else:
+            fullname = type.__repr__(kind)[8:-2]
+    else:
+        # The base object formatter rejects a nonempty spec before any object
+        # protocol. Its runtime %.200s diagnostic preserves the actual tp_name,
+        # including module prefixes on C-created heap types such as deque.
+        try:
+            object.__format__(manager, '_hia_context_type_name')
+        except TypeError as error:
+            rendered = error.args[0]
+        prefix, suffix = 'unsupported format string passed to ', '.__format__'
+        if type(rendered) is not str or not rendered.startswith(prefix) or not rendered.endswith(suffix):
+            raise RuntimeError('unsupported base object formatter diagnostic')
+        fullname = rendered[len(prefix):-len(suffix)]
+    asynchronous = True
+    for asynchronous_name in ('__aenter__', '__aexit__'):
+        descriptor = _class_special(kind, asynchronous_name)
+        if (descriptor is _MISSING_SPECIAL
+                or _class_special(type(descriptor), '__get__') is _MISSING_SPECIAL):
+            asynchronous = False
+            break
+    return "'" + fullname + "'" + _runtime_context_missing_suffix(name, asynchronous)
+
+
 def _context_special(manager, name):
     """The ordinary descriptor boundary used by Python's with protocol.
 
@@ -148,9 +256,7 @@ This is object interoperation, not an emission/cleanup policy decision.
     kind = type(manager)
     descriptor = _class_special(kind, name)
     if descriptor is _MISSING_SPECIAL:
-        suffix = ' (missed __exit__ method)' if name == '__exit__' else ''
-        raise TypeError("'" + _TYPE_NAME.__get__(kind, type(kind))
-                        + "' object does not support the context manager protocol" + suffix)
+        raise TypeError(_context_missing_message(manager, name))
     return _bind_special_descriptor(descriptor, manager, kind)
 
 

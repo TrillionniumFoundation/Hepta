@@ -19,6 +19,7 @@ class NativeDeliveryUnknown(RuntimeError):
 
 
 _ACTIVE = ContextVar('hia_native_delivery_foreign_call', default=None)
+_PENDING_RESOURCE_CAPTURE = ContextVar('hia_native_delivery_pending_resources', default=None)
 _CUSTODY = {}
 _CUSTODY_LOCK = threading.RLock()
 _CUSTODY_PID = os.getpid()
@@ -48,8 +49,16 @@ def _resource_loss(resource):
             if record.loss is not None and any(item[0] is resource for item in record.resources):
                 return record.loss
         for observation in _RESOURCE_OBSERVATIONS.values():
-            if observation.loss is not None and observation.resource is resource:
-                return observation.loss
+            if observation.resource is resource:
+                if observation.loss is not None:
+                    return observation.loss
+                holder = observation.owner
+                if (type(holder) is _PendingForeignResources and holder.record.loss is not None
+                        and holder.pending_observation(observation)):
+                    # A pre-reserved occurrence survives interrupted per-slot
+                    # bookkeeping. This uses a real parent loss and explicit
+                    # resource fact, not an exception class or owner layout.
+                    return holder.record.loss
     return None
 
 
@@ -125,7 +134,8 @@ A Python generator may resume in a different Context/thread. deactivate()
 does not reset another Context's token or change this activation's creator.
 Inactive leftovers carry no resources and never form active ancestry.
     """
-    __slots__ = ('resources', 'pid', 'thread', 'previous', 'active', 'entered', 'unknown')
+    __slots__ = ('resources', 'pid', 'thread', 'previous', 'active', 'entered', 'unknown',
+                 '_pending_parents', '_return_fact')
 
     def __init__(self, resource, unknown):
         self.resources = [(resource, _resource_token(resource))]
@@ -133,6 +143,8 @@ Inactive leftovers carry no resources and never form active ancestry.
         self.previous = None
         self.active = self.entered = False
         self.unknown = unknown
+        self._pending_parents = ()
+        self._return_fact = None
 
     def __enter__(self):
         if self.entered:
@@ -141,12 +153,28 @@ Inactive leftovers carry no resources and never form active ancestry.
             raise self.unknown('a resource scope must be activated in its creator context')
         for resource, _ in self.resources:
             check_resource_retirement(resource, unknown=self.unknown)
+        # Only an explicitly opted-in real foreign activation reserves these
+        # references. The scope alone is not evidence of a native handoff or
+        # completed provider outcome; its return below supplies that fact.
+        if _PENDING_RESOURCE_CAPTURE.get() is not None:
+            fact = _PendingUseFact('resource', self.pid, self.thread)
+            self._pending_parents = _prepare_pending_resources(self.resources, fact=fact)
+            if self._pending_parents:
+                self._return_fact = fact
         previous = _RESOURCE_ACTIVE.get()
         while type(previous) is ResourceScope and not previous.active:
             previous = previous.previous
         self.previous = previous
         _RESOURCE_ACTIVE.set(self)
         self.entered = self.active = True
+        if self._pending_parents:
+            try:
+                current = current_record()
+                if current is not None:
+                    current.check(self.unknown)
+            except BaseException:
+                self.deactivate()
+                raise
         return self
 
     def deactivate(self):
@@ -159,9 +187,22 @@ Inactive leftovers carry no resources and never form active ancestry.
         # Releasing user objects outside the custody lock avoids running their
         # foreign finalizers while the representation lock is held.
         self.resources.clear()
+        self._pending_parents = ()
+        self._return_fact = None
 
     def __exit__(self, kind, error, traceback):
-        self.deactivate()
+        fact = self._return_fact
+        if fact is not None:
+            # This pre-reserved flag precedes every identity query, iterator
+            # allocation, finalizer and deactivation after the provider body.
+            # Failure below cannot turn an actual return back into pre-entry.
+            fact.occurred = True
+        try:
+            if fact is not None:
+                fact.capture = _PENDING_RESOURCE_CAPTURE.get()
+                fact.qualified = (self.pid == os.getpid() and self.thread == threading.get_ident())
+        finally:
+            self.deactivate()
         return False
 
 
@@ -230,6 +271,205 @@ legal cross-Context/thread resume without changing any native record's creator.
 
 def reserve_resource_observation(owner, resource):
     return ResourceObservation(owner, resource)
+
+
+class _PendingUseFact:
+    """Pre-reserved occurrence fact, separate from native causal ancestry."""
+    __slots__ = ('kind', 'pid', 'thread', 'occurred', 'qualified', 'capture')
+
+    def __init__(self, kind, pid, thread):
+        self.kind, self.pid, self.thread = kind, pid, thread
+        self.occurred = False
+        self.qualified = True if kind == 'native' else None
+        self.capture = None
+
+    def pending_for(self, activation_id):
+        if not self.occurred or self.qualified is False:
+            return False
+        if self.kind == 'native':
+            return True
+        if self.qualified is None:
+            # Return occurred but its identity observation failed. Preserve
+            # this explicit resource outcome; do not invent a child native
+            # record, cross-thread ancestor or effect from an exception type.
+            return True
+        scope = self.capture
+        while type(scope) is ForeignCall:
+            if id(scope) == activation_id:
+                return True
+            scope = scope.previous
+        return False
+
+
+class _PendingResource:
+    __slots__ = ('observation', 'facts', 'pending')
+
+    def __init__(self, observation):
+        self.observation = observation
+        self.facts = []
+        self.pending = False
+
+    def pending_for(self, activation_id):
+        return any(fact.pending_for(activation_id) for fact in self.facts)
+
+
+class _PendingForeignResources:
+    """Resources of one opted-in parent's not-yet-ACKed foreign outcome.
+
+Reserve before the child's actual handoff/provider body. Association by itself
+does not arm a pending observation. Healthy references exist only through the
+matching parent ACK; an actual loss uses the existing resource-observation
+registry and retains them. No service getter, equality, hash or object layout
+is consulted, and no second resource registry or fixed quota is introduced.
+    """
+    __slots__ = ('record', 'activation_id', 'entries', 'closed', 'completed',
+                 'retirement_iterator', 'retiring_entry', 'ack_ready')
+
+    def __init__(self, record, activation_id):
+        self.record, self.activation_id = record, activation_id
+        self.entries = []
+        self.closed = self.completed = False
+        self.ack_ready = False
+        # The actual list iterator is reserved before the provider can run.
+        # It sees later appends but allocates no new classification generator
+        # when an already-confirmed ACK retires its resources.
+        self.retirement_iterator = iter(self.entries)
+        self.retiring_entry = None
+
+    def reserve(self, resource, fact):
+        for entry in self.entries:
+            if entry is not None and entry.observation.resource is resource:
+                if not any(previous is fact for previous in entry.facts):
+                    entry.facts.append(fact)
+                return entry
+        record = self.record
+        origin = _resource_loss(resource)
+        if origin is not None:
+            if record.loss is None:
+                record.loss = origin
+                record.publish(origin.error)
+            record.check()
+        # Reserve list capacity before global observation registration. An
+        # allocation failure cannot leave an unowned registered observation.
+        slot = len(self.entries)
+        self.entries.append(None)
+        observation = None
+        try:
+            observation = reserve_resource_observation(self, resource)
+            entry = _PendingResource(observation)
+            entry.facts.append(fact)
+            # Allocation/weakref callbacks can re-enter an actual ancestor.
+            # Its independently appended entries must not change this slot.
+            self.entries[slot] = entry
+            return entry
+        except BaseException:
+            self.entries[slot] = None
+            if observation is not None:
+                observation.retire()
+            raise
+
+    def returned(self, activation):
+        if (self.closed or self.completed or id(activation) != self.activation_id
+                or activation.record is not self.record
+                or not self.record.current() or not activation.active):
+            raise NativeDeliveryUnknown('pending foreign resources already completed')
+        for entry in self.entries:
+            if entry is None:
+                continue
+            if entry.pending_for(self.activation_id):
+                entry.pending = True
+                entry.observation.observed()
+            else:
+                # A safe failure before the prepared child handoff has no
+                # pending resource outcome, even if its exception is caught.
+                entry.observation.retire()
+        self.closed = True
+
+    def pending_observation(self, observation):
+        for entry in self.entries:
+            if entry is not None and entry.observation is observation:
+                return entry.pending_for(self.activation_id)
+        return False
+
+    def prepare_acknowledgement(self, activation):
+        record = self.record
+        if (not self.closed or self.completed or id(activation) != self.activation_id
+                or activation.record is not record or activation.active
+                or not record.current()):
+            raise NativeDeliveryUnknown('pending foreign resources have no matching ACK activation')
+        record.check()
+        self.ack_ready = True
+
+    def acknowledged(self):
+        if (not self.ack_ready or self.completed or self.record.native_pending
+                or self.record.observation_pending):
+            raise NativeDeliveryUnknown('pending foreign resources have no confirmed ACK')
+        # This is the adapter's exact, already-validated ACK cutpoint. A later
+        # ordinary retirement/finalizer error must not retroactively convert
+        # that acknowledged foreign result into delivery loss.
+        self.completed = True
+        self.retire_acknowledged()
+
+    def retire_acknowledged(self):
+        """Resume only confirmed custody cleanup; never a provider or ACK.
+
+The selected entry remains explicit if its retirement raises. Classification
+was completed before the ACK, and retry does not inspect fact/identity again.
+No native operation, resource close or application effect is repeated.
+        """
+        if not self.completed:
+            return
+        while True:
+            entry = self.retiring_entry
+            if entry is None:
+                try:
+                    entry = next(self.retirement_iterator)
+                except StopIteration:
+                    self.entries.clear()
+                    return
+                if entry is None:
+                    continue
+                self.retiring_entry = entry
+            # The full ACK already confirms this activation. A later ordinary
+            # bookkeeping error must leave a resumable confirmed retirement,
+            # not re-arm an observation or overwrite sticky actual loss.
+            entry.observation.pending = False
+            entry.observation.retire()
+            self.retiring_entry = None
+
+    def failed(self, error):
+        if self.completed:
+            self.retire_acknowledged()
+            return
+        if not self.record.current():
+            return
+        for entry in self.entries:
+            if entry is None:
+                continue
+            if entry.pending_for(self.activation_id):
+                entry.pending = True
+                if not entry.observation.retired and not entry.observation.pending:
+                    entry.observation.observed()
+                entry.observation.failed(error)
+            else:
+                entry.observation.retire()
+
+
+def _prepare_pending_resources(resources, *, fact, native_record=None):
+    """Reserve links only to actual live opted-in ancestors, before effects."""
+    scope = _PENDING_RESOURCE_CAPTURE.get()
+    if not resources or scope is None:
+        return ()
+    links = []
+    pid, thread = os.getpid(), threading.get_ident()
+    while type(scope) is ForeignCall:
+        if (_live(scope, pid, thread) and scope.record is not native_record
+                and scope.pending_resources is not None):
+            holder = scope.pending_resources
+            for resource, _ in resources:
+                links.append((scope, holder, holder.reserve(resource, fact)))
+        scope = scope.previous
+    return links
 
 
 def _after_fork_child():
@@ -342,9 +582,24 @@ records are removed; unknown records have explicit process-lifetime custody.
         self.check()
         if self.retired or self.terminal:
             raise NativeDeliveryUnknown('native delivery invocation already completed')
+        # An opted-in parent can learn only resources explicitly associated
+        # with this actual child. Reserve before setting the handoff flag; a
+        # preparation failure is safe and does not arm a resource observation.
+        fact = None
+        if self.resources and _PENDING_RESOURCE_CAPTURE.get() is not None:
+            fact = _PendingUseFact('native', self.pid, self.thread)
+            _prepare_pending_resources(self.resources, fact=fact, native_record=self)
+            # Allocation/GC during reservation can run a real child and
+            # publish loss in this actual active chain. Recheck after all
+            # preparation, before the handoff flag and before _entry.
+            self.check()
         # Set only immediately before the actual native call, after safe input
         # validation. An interrupted handoff cannot be proved not to execute.
         self.native_pending = True
+        if fact is not None:
+            # No identity call or iteration can fail after the handoff flag
+            # but before the linked resource occurrence is recorded.
+            fact.occurred = True
 
     def confirmed(self, *, terminal=False):
         """Called only after every required receipt/state/guard is verified."""
@@ -413,20 +668,25 @@ unchanged. Each transport keeps its separate original native-entry classifier.
         self.owner = self.parent = None
         self.resources.clear()
 
-    def foreign(self, *, observation=True):
-        return ForeignCall(self, observation=observation)
+    def foreign(self, *, observation=True, capture_resources=False):
+        return ForeignCall(self, observation=observation, capture_resources=capture_resources)
 
 
 class ForeignCall:
     """One activation; a completed token is never reused for a later effect."""
-    __slots__ = ('record', 'observation', 'active', 'token', 'entered', 'previous')
+    __slots__ = ('record', 'observation', 'active', 'token', 'entered', 'previous',
+                 'pending_resources', 'capture_token')
 
-    def __init__(self, record, *, observation=True):
+    def __init__(self, record, *, observation=True, capture_resources=False):
+        if type(capture_resources) is not bool or (capture_resources and not observation):
+            raise ValueError('pending resource capture requires an observed foreign activation')
         self.record, self.observation = record, observation
         self.active = False
         self.token = None
         self.entered = False
         self.previous = None
+        self.pending_resources = _PendingForeignResources(record, id(self)) if capture_resources else None
+        self.capture_token = None
 
     def __enter__(self):
         self.record.check()
@@ -438,6 +698,18 @@ class ForeignCall:
         self.previous = _ACTIVE.get()
         self.token = _ACTIVE.set(self)
         self.active = True
+        if self.pending_resources is not None:
+            try:
+                self.capture_token = _PENDING_RESOURCE_CAPTURE.set(self)
+                self.record.check()
+            except BaseException:
+                self.active = False
+                try:
+                    if self.capture_token is not None:
+                        _PENDING_RESOURCE_CAPTURE.reset(self.capture_token)
+                finally:
+                    _ACTIVE.reset(self.token)
+                raise
         return self
 
     def __exit__(self, kind, error, traceback):
@@ -445,13 +717,50 @@ class ForeignCall:
             # This precedes exception storage/packet allocation in the driver.
             # An ordinary provider exception remains confirmable via event 3.
             self.record.observed()
-        self.active = False
         try:
-            _ACTIVE.reset(self.token)
-        except BaseException as reset_error:
-            self.record.publish(reset_error)
+            if self.pending_resources is not None:
+                self.pending_resources.returned(self)
+        except BaseException as bookkeeping_error:
+            # The foreign outcome has already been observed. Losing the
+            # pre-reserved custody handoff is transport loss, not an ordinary
+            # provider exception that the adapter may ACK as event 3.
+            self.record.failed(bookkeeping_error)
+            if self.pending_resources is not None:
+                self.pending_resources.failed(bookkeeping_error)
             raise
+        finally:
+            self.active = False
+            try:
+                try:
+                    if self.capture_token is not None:
+                        _PENDING_RESOURCE_CAPTURE.reset(self.capture_token)
+                finally:
+                    _ACTIVE.reset(self.token)
+            except BaseException as reset_error:
+                self.record.publish(reset_error)
+                raise
         return False
+
+    def acknowledged(self):
+        """Adapter-only, after validating this activation's complete ACK."""
+        if self.pending_resources is None:
+            raise NativeDeliveryUnknown('foreign activation did not reserve pending resources')
+        self.pending_resources.acknowledged()
+
+    def prepare_acknowledgement(self):
+        """Validate the exact activation before recording native confirmation."""
+        if self.pending_resources is None:
+            raise NativeDeliveryUnknown('foreign activation did not reserve pending resources')
+        self.pending_resources.prepare_acknowledgement(self)
+
+    def failed(self, error):
+        if self.pending_resources is not None:
+            self.pending_resources.failed(error)
+
+    def recover_acknowledged_resources(self):
+        """Mechanical recovery after a confirmed ACK's cleanup exception."""
+        if self.pending_resources is not None:
+            self.pending_resources.retire_acknowledged()
 
 
 class NativeCall:

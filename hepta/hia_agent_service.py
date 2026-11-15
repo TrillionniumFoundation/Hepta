@@ -1645,3 +1645,20 @@ _NATIVE_BUILD_GLOBAL_BUILTINS = _signatures.__builtins__
 # Preserve the original functions' bound builtins dictionary even if a caller
 # later replaces the module's __builtins__ binding or an explicit provider.
 _EMISSION_GLOBAL_BUILTINS = HIAAgentService._compile.__builtins__
+
+
+# The original class method remains byte-for-byte retained. Its old AST checks
+# pin that reference body; the public binding below is checked separately.
+_NATIVE_SERVICE_ARTIFACT_REFERENCE = HIAAgentService._hia_artifact
+_SERVICE_ARTIFACT_GLOBAL_BUILTINS = _NATIVE_SERVICE_ARTIFACT_REFERENCE.__builtins__
+
+
+def _service_artifact_dispatch(self, args):
+    selected = os.environ.get('HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST')
+    if selected is not None:
+        from .hia_service_artifact_native import installed_service_artifact, ServiceArtifactFrame
+        return ServiceArtifactFrame(installed_service_artifact(selected), self, args).finish()
+    return _NATIVE_SERVICE_ARTIFACT_REFERENCE(self, args)
+
+
+HIAAgentService._hia_artifact = _service_artifact_dispatch

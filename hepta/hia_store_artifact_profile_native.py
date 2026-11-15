@@ -20,6 +20,7 @@ import sys
 import threading
 import types
 
+from .hia_emission_native import _context_missing_message
 from .hia_store_artifact_profile_protocol import MODES, ARGUMENT_MODES, PORT, PORTS
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
 from .hia_store_lifecycle_native import _regular_bytes
@@ -153,9 +154,7 @@ def _context_special(manager, name):
     kind = type(manager)
     descriptor = _class_special(kind, name)
     if descriptor is _MISSING_SPECIAL:
-        suffix = ' (missed __exit__ method)' if name == '__exit__' else ''
-        raise TypeError("'" + _TYPE_NAME.__get__(kind, type(kind))
-                        + "' object does not support the context manager protocol" + suffix)
+        raise TypeError(_context_missing_message(manager, name))
     return _bind_special_descriptor(descriptor, manager, kind)
 
 

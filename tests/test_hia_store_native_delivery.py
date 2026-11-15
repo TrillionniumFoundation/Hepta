@@ -85,6 +85,10 @@ def admit_originals():
     value['successor_source_adjustments'] = successors
     value['shared_source_adjustments'] = composition['shared_adjustments']
     value['shared_dependency_review'] = composition['shared_dependency_review']
+    value['adapter_source_adjustments'] = composition['adapter_source_adjustments']
+    value['adapter_definition_adjustments'] = composition['adapter_definition_adjustments']
+    value['original_unchanged_adapter_definitions'] = dict(value['unchanged_adapter_definitions'])
+    value['unchanged_adapter_definitions'] = composition['adapter_definition_review']
     return value
 
 

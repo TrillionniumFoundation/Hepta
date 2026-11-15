@@ -18,7 +18,7 @@ METHOD_NAMES = ('put', 'json', '_ref', 'get', 'get_json', 'resolve_uri', 'profil
 INPUTS = (SOURCE_NAME, 'tools/generate_hia_store_artifact_profile.py',
           'tools/build_hia_store_artifact_profile.py',
           'hepta/hia_store_artifact_profile_native.py', 'hepta/hia_store_artifact_profile_protocol.py',
-          'hepta/hia_native_delivery.py',
+          'hepta/hia_native_delivery.py', 'hepta/hia_emission_native.py',
           'hepta/hia_agent_store.py', 'hepta/hia_native_helpers.py',
           'hepta/hia_program_tools.py', 'hepta/hia_json_preflight.py',
           'hepta/hia_json_preflight_native.py', 'hepta/hia_store_lifecycle_native.py',

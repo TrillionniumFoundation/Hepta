@@ -1,22 +1,29 @@
-"""Exact, reversible provenance for five explicitly reviewed Store successors.
+"""Exact, reversible provenance for reviewed Store, service and protocol successors.
 
 The original c019 inventory is never rewritten. A draft is never an admission;
 final composition needs a fixed fixture hash, all old/new hashes and the exact
 byte splice patch. Every other original file still uses its old byte check.
 """
+import ast
 from hashlib import sha256
 import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
-FIXTURE_SHA256 = 'e98fdea293d50b3f42b8f28661c1cdb0c01c915357e6269b801f47913a9382a7'
+FIXTURE_SHA256 = 'c189a8b7940815abdc72742cd938e157e197abbbeab3225ccba7f8305c3ee3f3'
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
 SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
                 'hepta/hia_store_lifecycle_selection.py')
-SHARED_PATHS = ('hepta/hia_native_delivery.py', 'hepta/hia_store_lifecycle_native.py')
-PATHS = SOURCE_PATHS + SHARED_PATHS
+SHARED_PATHS = ('hepta/hia_native_delivery.py', 'hepta/hia_store_lifecycle_native.py',
+                'hepta/hia_agent_service.py', 'hepta/hia_emission_native.py')
+ADAPTER_PATH = 'hepta/hia_store_artifact_profile_native.py'
+# Actual c019 Git bytes independently pin this whole file. The original JSON
+# pins its 21 definitions, rather than the complete adapter source.
+ADAPTER_ORIGINAL = {'bytes': 32417,
+    'sha256': 'fccf236d69462b833b7c8e466bcde716738c13be7095aa675c9427022839b7fc'}
+PATHS = SOURCE_PATHS + SHARED_PATHS + (ADAPTER_PATH,)
 
 
 def _bytes(value):
@@ -63,6 +70,42 @@ def reverse_exact(raw, record, original):
     return restored
 
 
+def _adapter_definitions(raw):
+    module, lines = ast.parse(raw), raw.splitlines(keepends=True)
+    def pin(node):
+        first = min([node.lineno] + [item.lineno for item in node.decorator_list]) - 1
+        body = b''.join(lines[first:node.end_lineno])
+        return {'bytes': len(body), 'sha256': sha256(body).hexdigest()}
+    result = {node.name: pin(node) for node in module.body
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    frame = next(node for node in module.body
+                 if isinstance(node, ast.ClassDef) and node.name == 'StoreArtifactProfileFrame')
+    for node in frame.body:
+        if isinstance(node, ast.FunctionDef) and node.name in (
+                '_global', 'argument', 'effect', '_release', '_confirmed_foreign_failure'):
+            result['StoreArtifactProfileFrame.' + node.name] = pin(node)
+    return result
+
+
+def _review_adapter(original, restored, current, records):
+    expected = dict(original['unchanged_adapter_definitions'])
+    if len(expected) != 21 or _adapter_definitions(restored) != expected:
+        raise ValueError('restored complete adapter differs from original definition inventory')
+    if type(records) is not dict or set(records) != {'_context_special'}:
+        raise ValueError('adapter definition successor changes its exact reviewed scope')
+    item = records['_context_special']
+    if (type(item) is not dict or set(item) != {'old', 'new'}
+            or item['old'] != expected['_context_special']
+            or type(item['new']) is not dict or set(item['new']) != {'bytes', 'sha256'}):
+        raise ValueError('adapter definition successor original identity differs')
+    expected['_context_special'] = item['new']
+    if _adapter_definitions(current) != expected:
+        raise ValueError('adapter changes a definition beyond the exact protocol successor')
+    # Expected values come from the immutable original and fixed-hash fixture.
+    # Actual source is compared only; it is never normalized or used as expected.
+    return expected, {'_context_special': item}
+
+
 def admit_composition(original_value):
     original_bytes = ORIGINAL.read_bytes()
     if sha256(original_bytes).hexdigest() != ORIGINAL_SHA256:
@@ -72,14 +115,20 @@ def admit_composition(original_value):
         raise ValueError('successor caller original inventory differs')
     originals = {path: inventory['unchanged_files'][path] for path in SOURCE_PATHS}
     originals.update({path: inventory['shared_dependency_review'][path] for path in SHARED_PATHS})
+    originals[ADAPTER_PATH] = ADAPTER_ORIGINAL
     captured = {path: (ROOT / path).read_bytes() for path in PATHS}
     if all(len(captured[path]) == originals[path]['bytes']
            and sha256(captured[path]).hexdigest() == originals[path]['sha256'] for path in PATHS):
+        definitions = dict(inventory['unchanged_adapter_definitions'])
+        if _adapter_definitions(captured[ADAPTER_PATH]) != definitions:
+            raise ValueError('original complete adapter differs from its definition inventory')
         if (ORIGINAL.read_bytes() != original_bytes
                 or any((ROOT / path).read_bytes() != captured[path] for path in PATHS)):
             raise ValueError('original Store composition changed during admission')
         return {'source_adjustments': {}, 'shared_adjustments': {},
-                'shared_dependency_review': dict(inventory['shared_dependency_review'])}
+                'shared_dependency_review': dict(inventory['shared_dependency_review']),
+                'adapter_source_adjustments': {}, 'adapter_definition_adjustments': {},
+                'adapter_definition_review': definitions}
     frozen = FIXTURE.read_bytes()
     if sha256(frozen).hexdigest() != FIXTURE_SHA256:
         raise ValueError('reviewed Store successor provenance fixture changed')
@@ -91,9 +140,11 @@ def admit_composition(original_value):
         raise ValueError('Store successor provenance remains draft or changes scope')
     # A successor belongs to one complete reviewed composition. A partially
     # reverted mixture cannot borrow admission from another changed file.
-    # There is no process-global cache: every admission binds all five bytes.
+    # There is no process-global cache: every admission binds all eight complete files.
     restored = {path: reverse_exact(captured[path], value['files'][path], originals[path])
                 for path in PATHS}
+    definitions, definition_adjustments = _review_adapter(inventory, restored[ADAPTER_PATH],
+        captured[ADAPTER_PATH], value.get('adapter_definition_successors'))
     if (FIXTURE.read_bytes() != frozen or ORIGINAL.read_bytes() != original_bytes
             or any((ROOT / path).read_bytes() != captured[path] for path in PATHS)):
         raise ValueError('successor composition changed during admission')
@@ -102,7 +153,7 @@ def admit_composition(original_value):
         'current_sha256': value['files'][path]['new_sha256'],
         'current_bytes': value['files'][path]['new_bytes'],
         'reversible_patch_fixture_sha256': FIXTURE_SHA256,
-        'scope': 'exact reviewed D5 and transaction source successor',
+        'scope': 'exact reviewed D5, transaction, service artifact and context protocol successor',
         'composition_sha256': composition} for path in PATHS}
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:
@@ -112,4 +163,7 @@ def admit_composition(original_value):
                         'sha256': value['files'][path]['new_sha256']}
     return {'source_adjustments': {path: adjustments[path] for path in SOURCE_PATHS},
             'shared_adjustments': {path: adjustments[path] for path in SHARED_PATHS},
-            'shared_dependency_review': shared}
+            'shared_dependency_review': shared,
+            'adapter_source_adjustments': {ADAPTER_PATH: adjustments[ADAPTER_PATH]},
+            'adapter_definition_adjustments': definition_adjustments,
+            'adapter_definition_review': definitions}
