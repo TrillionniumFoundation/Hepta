@@ -1,4 +1,4 @@
-hia-asm.v1 hepta.hia.program.v8 sha256_stream
+hia-asm.v1 hepta.hia.program.v9 sha256_stream
 fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
   v3:usize = buffer.len(v0)
@@ -717,26 +717,9 @@ block b0(v0:u64,v1:u64)
 end
 fn f3(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)
-  v2:u64 = const() {"value":0}
-  jump b1(v0,v1,v2,v2)
-block b1(v3:mutbuf,v4:u64,v5:u64,v6:u64)
-  v7:u64 = const() {"value":8}
-  v8:bool = compare.lt(v6,v7)
-  branch v8 b2(v3,v4,v5,v6) b3(v3,v5)
-block b2(v9:mutbuf,v10:u64,v11:u64,v12:u64)
-  v17:u64 = int.add.wrap(v10,v12)
-  v18:usize = int.cast(v17) {"mode":"wrap"}
-  v19:u8 = buffer.load(v9,v18)
-  v20:u64 = int.cast(v19) {"mode":"wrap"}
-  v21:u64 = const() {"value":8}
-  v22:u64 = int.mul.wrap(v12,v21)
-  v23:u64 = int.shl.checked(v20,v22)
-  v24:u64 = bit.or(v11,v23)
-  v25:u64 = const() {"value":1}
-  v26:u64 = int.add.wrap(v12,v25)
-  jump b1(v9,v10,v24,v26)
-block b3(v13:mutbuf,v15:u64)
-  ret(v15)
+  v2:usize = int.cast(v1) {"mode":"wrap"}
+  v3:u64 = buffer.load.u64.le(v0,v2)
+  ret(v3)
 end
 fn f4(v0:mutbuf,v1:u64,v2:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64,v2:u64)

@@ -35,11 +35,19 @@ for each word operation as one VM operation with no allocation. Values loaded
 from memory remain unknown scalar facts in static allocation analysis; reading
 a word does not provide authority for a derived allocation bound.
 
-The selfhost compiler accepts v8 and v9 assembly. Its own source remains v8 so
-that the previously pinned v8 compiler can build the new compiler. The schema
-word occupies workspace bytes `[1016592, 1016600)`, after the existing export
-table. Source, output, workspace, function, block and instruction limits are
+The selfhost compiler accepts v8 and v9 assembly. Its current source declares
+v9 and uses word loads, so building it requires a compiler with v9 word-memory
+support. The schema word occupies workspace bytes `[1016592, 1016600)`, after
+the existing export table. Source, output, workspace, function, block and instruction limits are
 unchanged. The new source must satisfy the existing 8,192-instruction limit.
+
+The SHA-256 streaming source also declares v9. Its internal state reader uses
+the checked little-endian word load for the existing eight-byte slots. The
+1184-byte state layout, byte writes, SHA rounds, padding, digest bytes and
+stream protocol are unchanged. Build this source with a v9-capable compiler
+and rebuild its source-bound image and manifests; the existing identity check
+continues to reject a manifest carrying the previous source digest. The
+one-shot SHA source retains its v8 declaration.
 
 The selected native instruction policy, primitive program shape and complete
 Core admission now carry v9 schema and opcode rules. Their tests retain explicit
@@ -89,8 +97,8 @@ offsets above 4 GiB without allocating four gigabytes of physical memory.
 The witness does not implement the new instructions or alter their guards.
 
 The bootstrap and prior compiler qualification remain separate gates:
-`B1 == B2 == B3`, cross-bootstrap with the original v8 compiler, the existing
-modified-source fixed-point test, and all prior compiler qualification
+`B1 == B2 == B3`, cross-bootstrap with the pinned predecessor compiler, the
+existing modified-source fixed-point test, and all prior compiler qualification
 families. LLVM AArch64/RISC-V object generation is compile qualification only;
 it does not establish execution on those architectures. A support declaration
 or source digest is not a substitute for any of these execution receipts.

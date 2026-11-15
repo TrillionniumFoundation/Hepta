@@ -101,7 +101,16 @@ def compress(w:mutbuf) -> u64:
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    # State words keep their original eight-byte little-endian layout. The
+    # v9 load checks the complete word once instead of rebuilding it bytewise;
+    # the entry guard still requires all 1184 state bytes before any access.
+    helpers = HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')]
+    helpers += '''
+def get(w:mutbuf, index:u64) -> u64:
+    return word_load(w, index)
+'''
+    helpers += HELPERS[HELPERS.index('\ndef put'):]
+    return source + helpers
 
 
 def document():
@@ -116,7 +125,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'sha256_stream', 'functions': functions})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9', 'module': 'sha256_stream', 'functions': functions})
 
 
 def main():
