@@ -13,17 +13,20 @@ A result on an earlier tree does not qualify this source successor.
 
 ## Audited inventory and dependencies
 
-The complete R19 audit bound all 2,787 indexed files to tree
-`adbc8955407947ecfe8aec4eef18caee3d837dd8`, published as
-[`e132b25509ad4d7ad51b5a6da56a23809982569b`](https://github.com/TrillionniumFoundation/Hepta/commit/e132b25509ad4d7ad51b5a6da56a23809982569b).
+The current source tree contains 2,789 indexed files. The complete predecessor
+R20 audit bound its 2,787 files to tree
+`daeaeab048c2953b6d60c2892fb946f94c955186`, published as
+[`8c2c212d974e2b0d510164e6012e609997b76c4b`](https://github.com/TrillionniumFoundation/Hepta/commit/8c2c212d974e2b0d510164e6012e609997b76c4b).
+This successor adds one exact-source admission helper and its provenance fixture;
+production modules and existing HIA source bytes remain the same inventory.
 There are 207 HIA source files: 182 assembly and 25 structured files.
 No physical `.hia`, `.hiaasm` or `.hia.json` source files remain.
 Assembly still uses the `hia-asm.v1` header; paired structured projections use
 `.core.hepta`. Command names and protocol schemas retain their existing identities.
 See [source naming](HIA_SOURCE_SUFFIX.md).
 
-There are 1,492 Python files in the indexed tree, of which 249 are recursive
-production modules under `hepta/`. The source contract registers 1,386 paths,
+There are 1,493 Python files in the indexed tree, of which 249 are recursive
+production modules under `hepta/`. The source contract registers 1,388 paths,
 and the native helper registry contains 50 entries. Module, helper and HIA-file
 counts measure inventory, not replacement completeness.
 
@@ -49,69 +52,86 @@ identities and declared boundaries.
 
 ## Latest completed source-bound observations
 
-The following results belong to the exact R19 tree above. Its full source
-freeze is 464,161 bytes with SHA256
-`21598dcdbca6b3c2308fc2ba57d21c11dd8aabb20bb8eb8f2822672280f68aa7`.
-Current successor edits require fresh qualification.
+The following product results belong to the exact R20 predecessor above. Its
+full source freeze is 464,161 bytes with SHA256
+`848a64ee2c1907e7faf99c779fb1c6e0c979c6e34673b2c4d273518fb2161b46`.
+The current successor requires its own complete qualification.
 
-| Complete R19 scope | Actual outcome |
+| Complete R20 scope | Actual outcome |
 | --- | --- |
-| Core, source contract and metadata | PASS; 28 composition commands completed naturally; three identical final metadata rounds |
+| Core structure, source contract and metadata | PASS; all 26 composition commands completed naturally; three identical final metadata rounds |
 | Source58 | All 58 ordered methods PASS, no skips; three independent Worker source readers agree |
-| Installed Worker Native2 | Both original methods PASS, including the full v1 eight-command and v2 ten-command paths; both independent readers agree |
+| WorkerReport Native22 plus manifest Native2 | All 24 ordered methods PASS, no errors or skips; the fixture namespace collision is resolved |
 | Mechanical runtime boundary | Fresh eleven-source compilation PASS_BUILD_ONLY; this is not GC or whole-native qualification |
-| Bootstrap Native12 | All twelve methods completed: eleven PASS, one ERROR; the complete 15,830-case comparison has one different case |
-| Budget B4 | All four methods, 22 resource controls and 11 installed commands PASS; complete explicit-development readback PASS |
-| Context15 | All fifteen methods PASS; 14 frames, 512 entries, no retained calls; independent readback PASS |
-| Ordinary callers112 | All 112 ordered methods PASS; independent readback PASS; source stable and all observed groups gone |
-| Journal callers21 | All 21 ordered methods PASS; independent readback PASS; source stable and all observed groups gone |
-| WorkerReport Native22 plus manifest Native2 | All 24 methods completed: 20 PASS, two failures, two errors; fixture input collision identified below |
-| Thirteen-source provenance10928 | All 10,928 ordered controls PASS: six admissions and 10,922 refusals; independent readback PASS |
+| Bootstrap Native12 | All twelve methods completed: eleven PASS, one ERROR; the complete 15,830-case comparison retains one different case |
+| Bootstrap Source6 | HOLD at the unchanged 1,800-second deadline plus three-second cleanup; four methods completed PASS, fifth full VM comparison incomplete, sixth not started |
 | Current-source cold | HOLD at the original inner 180-second deadline; B1/B2/B3 are byte-identical, but full qualification did not finish |
-| Complete cold DATA readback | Evidence integrity PASS, qualification HOLD; all 17 references, the full 38-phase inventory, eight sealed archives and all retained raw files consumed |
+| Complete cold DATA readback | Evidence integrity PASS, qualification HOLD; all 17 references and the full 38-phase inventory read, all retained files and explicitly sealed archive members consumed; incomplete phases remain incomplete |
 
-Budget's first independent reader correctly rejected development evidence when
-invoked without an explicit development flag. That failed command and its outer
-HOLD remain intact. A separate complete reader invocation with
-`--allow-development` validated the same untouched producer evidence. Neither
-result supplies matching-source cold qualification.
+Bootstrap's complete Native result contains 1,358,722 entries and the remaining
+difference `generator_protocol.throw-instance.outer1`. Its original 150-event
+prefix matches exactly, followed by two additional post-seal destructor events.
+The R20 relay removes additional adapter traceback frames, but does not resolve
+this lifetime difference. No unraisable exceptions were recorded.
 
-Bootstrap's one remaining R19 difference is
-`generator_protocol.throw-instance.outer1`. The full native report records
-15,830 ordered cases and 1,358,722 entries, with no unraisable exceptions and
-stable source identities. The differing event list has the same original
-150-event prefix and two additional post-seal destructor events. The report
-remains HOLD. The original full Source6/VM domain and its 1,800-second budget
-remain required; the prior R18 timeout and incomplete VM evidence remain
-preserved and do not qualify this tree.
+The timed-out Source6 candidate started 1,051 cases and completed 1,050 of the
+required 15,830, with 46,374 VM entries and the same one completed differing
+case. Its candidate has no natural terminal receipt; no full-domain PASS is
+inferred. The supervisor's recorded candidate cleanup completed, and a fresh
+independent process scan found all seven recorded groups gone. The original
+failure record and raw partial rows remain unchanged.
 
-The earlier Verification/Slot GC and four-real-function closure boundaries also
+Earlier R19 Budget B4, Context15, Ordinary112, Journal21, installed Worker2 and
+13-source provenance10928 results remain bound to R19; they are not current-tree
+qualification. Remote R20 Native CI also recorded real route-report, v5 SQL
+argument and private-resource failures. A CI cold-step success alone does not
+replace complete source-and-raw-evidence admission of that distinct attempt.
+
+The earlier Verification/Slot GC and four-real-function closure boundaries
 remain unresolved. Mechanical C transport currently depends on CPython;
 build success does not replace the Python object, exception or GC runtime.
 
 ## Current source successor
 
-The runtime and test-fixture successor makes two narrow changes. The generator-throw adapter completes
-the existing HIA propagation directive without relaying the same external
-exception through additional adapter traceback frames; the real generator
-still performs its original bare raise. New provider, acknowledgement and
-cleanup exceptions retain their exception paths, and the complete original
-port/event and finalization obligations remain.
+Three reviewed corrections address the actual R20 failures.
 
-The WorkerReport fixture's development input changes from
-`HEPTA_HIA_WORKER_REPORT_DEVELOPMENT_MANIFEST` to
-`HEPTA_HIA_WORKER_REPORT_DEVELOPMENT_BUNDLE`. Its old name matched the
-production selector namespace even though it was test input. The production
-bundle guard is unchanged. Original setup, teardown and all Source2/Native22
-method bodies and assertions remain byte-exact; the added two native tests
-continue to read the same declared fixture constant dynamically. CI's cold
-report input is unchanged.
+The worker-transport control now observes the existing UNKNOWN terminal return
+and its real error identity, causal origin, retained custody, fencing, missing
+ACK, empty stdout and actual diagnostic. Its ordinary foreign-error branch and
+the full original methods remain unchanged. The new exact admission helper
+accepts only the complete old source pair or the complete reviewed successor
+pair, verifies full inverse source bytes, and rereads every consumed source.
+Mixed pairs, unknown bytes, boolean aliases and terminal drift refuse. The two
+original inventory fixtures and the complete production-composition domain
+remain immutable.
 
-The Source workflow also installs the declared setuptools build dependency before mechanical-extension compilation. Remote CI's first Native failure remains an old transport control expecting an escaping exception at a worker boundary that now reports UNKNOWN termination; that control and its observed failure require separate review. A successful CI cold step and a local timed-out cold attempt remain distinct observations until their complete source and raw evidence are admitted.
+The [17-route report codec](HIA_SLOT_MECHANICAL_DUAL_ROUTE.md) preserves bytes,
+tuple/list/dict types, dictionary order and exact scalar types after the real
+route and its original assertions complete. Its independent reader checks the
+typed values against the original raw report pins. The actual empty-byte
+witness remains `b''`. The complete original `run_case` body, all 17 route IDs,
+60-second child limits and five-second cleanup/thread/fork controls remain.
 
-These are source changes awaiting their own complete gates. They do not
-activate the ordinary entry, remove providers, alter original case IDs or
-budgets, clear user tracebacks, add GC, or transfer a prior PASS.
+The [v5 mechanical boundary](HIA_SLOT_MECHANICAL_V5.md) passes an existing tuple
+as one object with `PyObject_CallMethod(..., "(O)", arg)`; it no longer expands
+that tuple as the entire argument list. The original SQL identity guard and all
+seven single-object call sites remain. Its admission fixture copies both real
+HIA source resources into the private installed-layout package, verifies them
+again, and leaves all 25 original controls and expected refusals unchanged.
+
+The new pure-data checks have actually completed: exact admission30 (four
+acceptances, 26 refusals) and trace codec41 (14 acceptances, 27 refusals), with
+independent complete raw readback and unchanged input bytes. Their combined
+readback SHA256 is
+`783edaf5e320210bbf5aa803bc7d54c6ed45e7ca8b5d67b29911e70dcdb4e3ad`.
+These checks do not replace any complete Source, Native, installed, finite,
+resource or caller gate. Every affected executable and receipt must be rebuilt
+against the current source, and current-tree product qualification is pending.
+
+No ordinary entry is activated, no live provider is removed, and no original
+case ID, observation field or budget is relaxed. Tracebacks and GC observations
+remain part of the required equivalence.
+
 
 ## Implemented HIA ownership
 
@@ -241,7 +261,7 @@ from public entry points through semantic and effect owners.
 
 This index consolidates current state and removes repeated chronological
 narratives. Its complete previous text remains at
-[the exact R19 revision](https://github.com/TrillionniumFoundation/Hepta/blob/e132b25509ad4d7ad51b5a6da56a23809982569b/docs/CURRENT.md).
+[the exact R20 revision](https://github.com/TrillionniumFoundation/Hepta/blob/8c2c212d974e2b0d510164e6012e609997b76c4b/docs/CURRENT.md).
 Failed observations and their original source identities are retained.
 
 Earlier cleanup ledgers record their own deletions: 34 process documents with

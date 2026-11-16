@@ -4,6 +4,7 @@ import argparse
 from contextlib import contextmanager
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 import select
@@ -364,6 +365,40 @@ def run_case(name, controller, base, base_sha, bundle, bundle_sha, directory):
         "argv": list(sys.argv), "status": "PASS"})
     return detail
 
+def _trace_value(value):
+    """Lossless data-only subset of the frozen Slot World.value wire format."""
+    if value is None or type(value) in (bool, int, str):
+        return value
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise TypeError("route trace float is not finite")
+        return value
+    if type(value) is bytes:
+        return {"bytes_hex": value.hex()}
+    if type(value) is dict:
+        return {"type": "dict", "items": [
+            [_trace_value(key), _trace_value(item)] for key, item in value.items()]}
+    if type(value) in (list, tuple):
+        return {"type": type(value).__name__,
+                "items": [_trace_value(item) for item in value]}
+    raise TypeError("unsupported actual route trace value")
+
+
+def _recorded_trace(trace):
+    """Encode only the report copy; actual provider comparisons stay raw."""
+    if type(trace) is not list:
+        raise TypeError("actual route trace is not a list")
+    result = []
+    for row in trace:
+        if (type(row) is not dict or set(row) != {"args", "kwargs"}
+                or type(row["args"]) is not list or type(row["kwargs"]) is not dict
+                or any(type(key) is not str for key in row["kwargs"])):
+            raise TypeError("actual route trace row differs")
+        result.append({"args": _trace_value(row["args"]),
+                       "kwargs": _trace_value(row["kwargs"])})
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("controller", "base-v1", "bridge-bundle", "product-freeze", "output"):
@@ -378,11 +413,16 @@ def main():
     require(sha256(before[str(args.base_v1)]).hexdigest() == args.base_sha256
             and sha256(before[str(args.bridge_bundle)]).hexdigest() == args.expected_bridge_sha256,
             "external administrator input changed")
-    report = {"schema": "hepta.slot.mechanical.route-control.v1", "case": args.case,
+    report = {"schema": "hepta.slot.mechanical.route-control.v2", "case": args.case,
               "status": "HOLD", "source_before": sources}
     try:
         report["detail"] = run_case(args.case, args.controller, args.base_v1,
             args.base_sha256, args.bridge_bundle, args.expected_bridge_sha256, args.output)
+        report["detail"] = {
+            **report["detail"],
+            "reference_trace": _recorded_trace(report["detail"]["reference_trace"]),
+            "provider_trace": _recorded_trace(report["detail"]["provider_trace"]),
+        }
         require(admit_product(ROOT, args.product_freeze, args.product_freeze_sha256) == sources,
                 "product sources changed")
         require(all(regular_bytes(p) == raw for p, raw in before.items()), "route input changed")

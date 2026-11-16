@@ -533,6 +533,8 @@ def _child_store_owner(root, manifests):
 
 def _child_store_worker(root, manifests):
     from hepta.hia_agent_worker import main as worker
+    from hepta import hia_agent_worker as worker_api
+    from contextlib import redirect_stderr
     from hepta.hia_native_helpers import ABI, SCHEMA, TARGET, native_helpers_scope
     from tests.test_hia_service_context_native import context_arguments
     manifest = Path(manifests['store'])
@@ -555,6 +557,13 @@ def _child_store_worker(root, manifests):
         injected = OSError('original foreign provider failed') if kind.startswith('foreign') else ValueError('native lifecycle ACK lost')
         initialize = store_native.NativeStoreLifecycleImage.__init__
         real_connect = sqlite3.connect
+        terminal = worker_api._unknown_request_exit
+        terminals, native_events, close_events = [], [], []
+
+        def observe_terminal(observation, terminal_error):
+            # Observe the real terminal arguments; preserve its actual return.
+            terminals.append((observation, terminal_error))
+            return terminal(observation, terminal_error)
 
         def image_init(self, *arguments, **keywords):
             initialize(self, *arguments, **keywords)
@@ -563,6 +572,7 @@ def _child_store_worker(root, manifests):
             def lost(source, size, output, capacity, buffer, extent):
                 words = struct.unpack('<10Q', ctypes.string_at(source, size))
                 result = entry(source, size, output, capacity, buffer, extent)
+                native_events.append([words[1], words[3]])
                 target = 23 if kind.endswith('construct') else 71
                 if kind.startswith('transport') and (words[1], words[3]) == (2, target):
                     raise injected
@@ -572,7 +582,9 @@ def _child_store_worker(root, manifests):
 
         class Connection(sqlite3.Connection):
             def close(self):
+                close_events.append('entered')
                 super().close()
+                close_events.append('closed')
                 if kind == 'foreign_close':
                     raise injected
 
@@ -584,10 +596,14 @@ def _child_store_worker(root, manifests):
         stdin = io.TextIOWrapper(io.BytesIO(encoded(request)), encoding='utf-8')
         output = io.BytesIO()
         stdout = io.TextIOWrapper(output, encoding='utf-8')
+        diagnostic_output = io.BytesIO()
+        stderr = io.TextIOWrapper(diagnostic_output, encoding='utf-8')
         error = None
         with patch.object(store_native.NativeStoreLifecycleImage, '__init__', image_init), \
                 patch.object(store_api.sqlite3, 'connect', connect), \
-                patch.object(sys, 'stdin', stdin), redirect_stdout(stdout):
+                patch.object(sys, 'stdin', stdin), redirect_stdout(stdout), \
+                redirect_stderr(stderr), \
+                patch.object(worker_api, '_unknown_request_exit', observe_terminal):
             try:
                 code = worker(['--state-root', str(state), '--request-json-stdin',
                                '--native-helpers-manifest', str(bundle),
@@ -597,6 +613,10 @@ def _child_store_worker(root, manifests):
                 code = None
             stdout.flush()
             raw = output.getvalue()
+            stderr.flush()
+            diagnostic = diagnostic_output.getvalue()
+        (root / (kind + '.stdout.log')).write_bytes(raw)
+        (root / (kind + '.stderr.log')).write_bytes(diagnostic)
         with real_connect(state / 'state.sqlite3') as observer:
             observer.row_factory = sqlite3.Row
             rows = [dict(row) for row in observer.execute('SELECT * FROM requests')]
@@ -606,18 +626,69 @@ def _child_store_worker(root, manifests):
         else:
             assert len(rows) == 1 and rows[0]['state'] == 'completed' and rows[0]['response'] is not None
             assert contexts == 1
+        terminal_facts = []
+        for observation, terminal_error in terminals:
+            origin = observation.origin
+            frame = None if origin is None else origin.owner
+            terminal_facts.append({
+                'request_inactive': not observation.active,
+                'origin_present': origin is not None,
+                'origin_error_is_injected': origin is not None and origin.error is injected,
+                'origin_loss_is_self': origin is not None and origin.loss is origin,
+                'origin_retired': None if origin is None else origin.retired,
+                'owner_retained': frame is not None and store_native._FRAME_CUSTODY.get(id(frame)) is frame,
+                'frame_fenced': frame is not None and frame.fenced,
+                'frame_unconfirmed': frame is not None and frame.unconfirmed,
+                'frame_delivery_is_origin': frame is not None and frame._delivery is origin,
+                'terminal_type': type(terminal_error).__name__,
+                'terminal_cause_is_injected': terminal_error is not None and terminal_error.__cause__ is injected,
+                'cleanup_is_terminal': observation.cleanup_error is terminal_error,
+                'primary_absent': observation.primary_error is None,
+            })
+        actual = {'schema': 'hepta.hia.native-transport-worker-terminal.v2',
+            'kind': kind, 'worker_exit_code': code,
+            'escaped_exception_type': None if error is None else type(error).__name__,
+            'request_rows': rows, 'context_count': contexts,
+            'native_events': native_events, 'close_events': close_events,
+            'terminal_facts': terminal_facts,
+            'stdout_bytes': len(raw), 'stdout_sha256': sha256(raw).hexdigest(),
+            'stderr_bytes': len(diagnostic), 'stderr_sha256': sha256(diagnostic).hexdigest()}
+        (root / (kind + '.actual.json')).write_text(json.dumps(actual, indent=2, sort_keys=True) + '\n')
         if kind.startswith('transport'):
-            check_transport(error, injected, store_native.StoreLifecycleUnknown)
-            assert raw == b'' and code is None
+            # Version 2 main returns its factual UNKNOWN terminal; the actual
+            # Store exception/cause and retained invocation remain observable.
+            assert error is None and code == 2
+            assert len(terminals) == 1
+            observation, terminal_error = terminals[0]
+            check_transport(terminal_error, injected, store_native.StoreLifecycleUnknown)
+            origin = observation.origin
+            assert origin is not None and origin.error is injected and origin.loss is origin
+            frame = origin.owner
+            assert store_native._FRAME_CUSTODY.get(id(frame)) is frame
+            assert frame._delivery is origin and frame.fenced and frame.unconfirmed
+            assert not origin.retired and not observation.active
+            assert observation.primary_error is None
+            assert (observation.cleanup_error is terminal_error) == kind.endswith('close')
+            target = 23 if kind.endswith('construct') else 71
+            assert native_events.count([2, target]) == 1
+            assert native_events[-1] == [2, target]
+            assert close_events == (['entered', 'closed'] if kind.endswith('close') else [])
+            assert raw == b''
+            assert diagnostic.startswith(b'HIA_WORKER_DELIVERY_UNKNOWN\n')
+            assert b'ValueError: native lifecycle ACK lost' in diagnostic
+            assert b'StoreLifecycleUnknown: lifecycle transport is unconfirmed' in diagnostic
+            assert b'diagnostic unavailable' not in diagnostic
             report = None
         else:
             assert error is None and code == 0
+            assert terminals == [] and diagnostic == b''
             report = json.loads(raw)
             expected = 'E_HIA_WORKER' if kind.endswith('construct') else 'E_HIA_REQUEST_UNKNOWN'
             assert report['response']['error']['code'] == expected
         records.append({'kind': kind, 'request_rows': rows, 'context_count': contexts,
-                        'worker_report': report, 'transport_terminal_report_absent': kind.startswith('transport')})
-    return {'cases': records}
+                         'worker_report': report, 'transport_terminal_report_absent': kind.startswith('transport'),
+                         'worker_terminal_observation': actual})
+    return {'cases': records, 'worker_terminal_schema': 'hepta.hia.native-transport-worker-terminal.v2'}
 
 
 def run_child(kind, directory, manifests):

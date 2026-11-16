@@ -1,7 +1,11 @@
 # Explicit Slot v1 / v5 routing successor
 
-Status: STATIC ONLY. No product, original oracle, test, compiler, generator, VM,
-Native, SQL or GC execution occurred while preparing this layer.
+Status: IMPLEMENTED, QUALIFICATION HOLD. R20 remote Source3 completed, while
+all seventeen Native route children failed when strict JSON serialization met
+their real bytes-valued trace. The current report-only successor preserves
+those values with an explicit typed encoding and an independent decoder.
+All 41 supplemental codec data controls and their complete independent reader
+have passed. This does not qualify the original seventeen actual routes.
 
 ## Version and callable boundaries
 
@@ -73,28 +77,43 @@ bytes. The live C export list also includes the counter getter. Source-based
 installation identity remains the existing source/wheel contract; actual .so
 bytes and ABI remain in the separately expected administrator v5 digest.
 
-No helper key is added: the original 49 keys and order stay exact. New tests,
-reader, fixtures and this document are appended to the existing Slot INPUTS and
-SOURCE_FILES. Existing metadata, CURRENT, provenance and old tests are untouched.
-All previous 41-layer additions, including Capture admission and Import controls,
-remain as the exact base of the registration hunks.
+No helper key is added: the current 50 keys and their order remain exact.
+The route control and reader already belong to Slot INPUTS and SOURCE_FILES.
+The lossless report successor changes only those two existing sources; exact
+source metadata and any affected executable receipts must be regenerated.
 
 ## Open qualification and ownership limits
 
-The C bridge is still an unexecuted candidate for CPython 3.11--3.14, GIL-enabled
-Linux x86_64. Its public Vectorcall arguments are borrowed; the C outer frame
+The C bridge has actual compile and execution evidence on the selected
+CPython profile, while complete qualification remains open. Its declared
+CPython 3.11--3.14, GIL-enabled Linux x86_64 range requires separate validation. Its public Vectorcall arguments are borrowed; the C outer frame
 cannot steal references belonging to the caller. New C/session/continuation
 ownership and handled-exception/f_back/GC behavior require the complete old
 domains on the actual runtime. Fewer Python frames or successful compilation
 would not prove GC equivalence. No global native closure or performance result
 is claimed.
 
-Worker unknown terminal rc2 remains a separate future production/provenance
-task. This layer does not change the worker's existing terminal contract.
+Worker UNKNOWN terminal rc2 is an existing production contract. Its distinct
+reviewed transport-control successor observes that actual terminal and complete
+custody facts; this report codec does not change the worker.
 
-The new, unpublished admission25 control named v1-has-no-bridge retains the
-same input and subsequent explicit mechanical.extension() call. Its one error
-message expectation changes from the removed v1-construction refusal to the
-existing strict loader refusal. It still requires ValueError, zero linker
-loads, all 25 IDs and the original 60-second child budget. The old expectation,
-new expectation and exact reason are recorded separately in this layer.
+## Lossless report boundary
+
+The original complete `run_case` definition is byte-identical. Encoding happens
+only after its actual provider calls, route checks and raw trace comparison.
+Bytes use canonical lowercase hexadecimal; list, tuple and ordered dictionary
+pairs have distinct tags, so a literal tag-shaped dictionary is not confused
+with bytes. Exact bool/int/float types, finite floating values and negative zero
+remain distinct. Unsupported values refuse.
+
+The independent decoder rejects malformed tags, invalid or noncanonical hex,
+duplicate decoded keys, bool/int key aliases, unhashable keys and malformed
+trace structure. It consumes the original pinned child report bytes and rereads
+all consumed inputs at the end. Child report and reader schemas are v2; the
+aggregate supervisor remains v1. No original witness is rewritten: the integer
+17 path really produces `b''` under the retained provider.
+
+The full Native1 must still execute all 17 real routes with all existing
+assertions and budgets; codec41 is only supplemental data evidence. The v5
+admission controls retain their complete original expected refusals and remain
+a separate qualification obligation.

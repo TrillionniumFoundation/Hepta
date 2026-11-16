@@ -127,7 +127,7 @@ static PyObject *call0(PyObject *value, const char *name) {
     return PyObject_CallMethod(value, name, NULL);
 }
 static PyObject *call1(PyObject *value, const char *name, PyObject *arg) {
-    return PyObject_CallMethod(value, name, "O", arg);
+    return PyObject_CallMethod(value, name, "(O)", arg);
 }
 static int discard(PyObject *value) {
     if (value == NULL) return -1;

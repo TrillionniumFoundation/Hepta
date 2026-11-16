@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+import math
 from pathlib import Path
 import sys
 ROOT = Path(__file__).resolve().parents[1]
@@ -12,6 +13,56 @@ from tools.read_hia_slot_mechanical_installed import (
     Captures, capture_capsule, owned, need, same, digest)
 from tools.read_hia_slot_mechanical_observations import mechanical_counters
 from tests.hia_slot_operations_qualification_support import unique_pairs, write_json
+
+def _read_trace_value(value):
+    """Validate and invert every tagged value without importing the producer."""
+    if value is None or type(value) in (bool, int, str):
+        return value
+    if type(value) is float:
+        need(math.isfinite(value), "route trace float is not finite")
+        return value
+    need(type(value) is dict, "route trace value is not tagged data")
+    if set(value) == {"bytes_hex"}:
+        encoded = value["bytes_hex"]
+        need(type(encoded) is str, "route trace bytes are not exact text")
+        try:
+            raw = bytes.fromhex(encoded)
+        except ValueError as error:
+            raise ValueError("route trace bytes are not hexadecimal") from error
+        need(raw.hex() == encoded, "route trace bytes are not canonical")
+        return raw
+    need(set(value) == {"type", "items"} and type(value["type"]) is str
+         and value["type"] in ("dict", "list", "tuple")
+         and type(value["items"]) is list, "route trace container differs")
+    if value["type"] in ("list", "tuple"):
+        items = [_read_trace_value(item) for item in value["items"]]
+        return tuple(items) if value["type"] == "tuple" else items
+    result = {}
+    for pair in value["items"]:
+        need(type(pair) is list and len(pair) == 2, "route trace dictionary pair differs")
+        key, item = (_read_trace_value(part) for part in pair)
+        try:
+            need(key not in result, "route trace dictionary has duplicate keys")
+            result[key] = item
+        except TypeError as error:
+            raise ValueError("route trace dictionary key is not hashable") from error
+    return result
+
+
+def _read_trace(trace):
+    """Keep the original outer row list and validate both complete payloads."""
+    need(type(trace) is list, "route trace rows are not a list")
+    result = []
+    for row in trace:
+        need(type(row) is dict and set(row) == {"args", "kwargs"},
+             "route trace row fields differ")
+        args, kwargs = _read_trace_value(row["args"]), _read_trace_value(row["kwargs"])
+        need(type(args) is list and type(kwargs) is dict
+             and all(type(key) is str for key in kwargs),
+             "route trace argument container types differ")
+        result.append({"args": args, "kwargs": kwargs})
+    return result
+
 
 def readback(evidence, product_root, freeze, freeze_sha256):
     evidence, product_root, freeze = map(Path, (evidence, product_root, freeze))
@@ -72,11 +123,13 @@ def readback(evidence, product_root, freeze, freeze_sha256):
         pin = row["report"]
         need(pin["path"] == str(child / "observation/report.json"), "child report path differs")
         value = captured.json(pin["path"], {k: pin[k] for k in ("bytes", "sha256")})
-        need(value["schema"] == "hepta.slot.mechanical.route-control.v1"
+        need(value["schema"] == "hepta.slot.mechanical.route-control.v2"
              and value["status"] == "PASS" and value["case"] == name, "actual route did not pass")
         same(value["source_before"], source["files"])
         same(value["source_after"], source["files"])
         detail = value["detail"]
+        _read_trace(detail["reference_trace"])
+        _read_trace(detail["provider_trace"])
         same(detail["argv"], command["argv"][3:])
         for field, expected in (("pid",command["pid"]),("pgid",command["pid"]),("ppid",command["parent_pid"])):
             need(type(detail[field]) is int and detail[field] == expected, "route PID ownership differs")
@@ -121,7 +174,7 @@ def readback(evidence, product_root, freeze, freeze_sha256):
             need(sum(fork["counters"]["initialized"]) == 0, "child inherited parent authority")
         read.append({"case": name, "report": pin, "pid": command["pid"], "owned_reaped": True})
     captured.stable()
-    return {"schema": "hepta.slot.mechanical.routes-readback.v1", "status": "PASS",
+    return {"schema": "hepta.slot.mechanical.routes-readback.v2", "status": "PASS",
             "complete_cases": cases, "observations": read, "actual_inputs": captured.pins(),
             "original_domains_replaced": False, "whole_native_stack_qualified": False}
 

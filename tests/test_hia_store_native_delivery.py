@@ -57,10 +57,19 @@ def admit_originals():
     value = original_inventory()
     from tests.hia_store_delivery_successor import admit_composition
     composition = admit_composition(value)
+    from tests.hia_native_transport_worker_successor import admit_terminal_sources
+    terminal = admit_terminal_sources(value, original_kind='store')
     adjustments = []
     successors = []
     for name, expected in value['unchanged_files'].items():
         raw = (ROOT / name).read_bytes()
+        if name in terminal['source_adjustments']:
+            reviewed = terminal['source_adjustments'][name]
+            if (len(raw) != reviewed['current_bytes']
+                    or sha256(raw).hexdigest() != reviewed['current_sha256']):
+                raise AssertionError('reviewed transport terminal control changed: ' + name)
+            successors.append(reviewed)
+            continue
         if name in composition['source_adjustments']:
             reviewed = composition['source_adjustments'][name]
             if len(raw) != reviewed['current_bytes'] or sha256(raw).hexdigest() != reviewed['current_sha256']:
@@ -84,7 +93,9 @@ def admit_originals():
     value['registry_count_adjustments'] = adjustments
     value['successor_source_adjustments'] = successors
     value['shared_source_adjustments'] = composition['shared_adjustments']
-    value['shared_dependency_review'] = composition['shared_dependency_review']
+    value['shared_dependency_review'] = dict(composition['shared_dependency_review'])
+    value['shared_dependency_review'].update(terminal['shared_dependency_review'])
+    value['transport_terminal_successor'] = terminal
     value['adapter_source_adjustments'] = composition['adapter_source_adjustments']
     value['adapter_definition_adjustments'] = composition['adapter_definition_adjustments']
     value['original_unchanged_adapter_definitions'] = dict(value['unchanged_adapter_definitions'])

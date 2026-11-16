@@ -1,10 +1,19 @@
 # Explicit v5 Slot mechanical executable custody
 
-Status: STATIC CANDIDATE; uncompiled and unexecuted. The frozen R2 mechanical
-diagnostic and every historical HOLD remain unchanged. This proposal is an
-addition to actual R15a, tree 3ef2647bdc5df5b267f68f3d8a2bc624cf595e5d. It does
-not prove original finite equivalence, GC counts, a cold build, or whole-stack
-native closure.
+Status: IMPLEMENTED, QUALIFICATION HOLD. R20 compiled the real eleven-source
+mechanical extension and exercised all four original v5 methods in remote CI.
+Those methods failed at the SQL tuple boundary or private-package resources;
+no complete finite, GC, installed or whole-native PASS is implied.
+
+The current C successor changes only the single-object call format from
+`"O"` to `"(O)"`. An existing argument tuple is passed intact to
+`SqlAttempt.arguments`; the original identity check is retained. All seven
+`call1` sites still pass one original object. The private admission fixture now
+copies exact `slot_ledger.hepta` and `slot_operations.hepta` source bytes into
+its installed-layout `_data` directory and rereads both source and destination.
+The original 25 IDs, error expectations, fault injection and budgets remain.
+Current executable bytes and receipts require a fresh build and all four
+complete v5 methods must run again.
 
 ## Authority and the exact executable
 
@@ -14,8 +23,7 @@ It contains one explicitly pinned closed v1 helper bundle and exactly one
 slot-mechanical record. The v5 record pins the canonical installed package
 directory, complete paths and bytes/SHA256 of the compile receipt, executable
 and eleven declared sources, and the runtime/ABI profile. The v1 helper
-factories remain statically registered. The actual R15a 49-entry registry and
-its final Service Verification helper are retained.
+factories remain statically registered. The current 50-entry registry and its existing helper order are retained.
 
 The operator supplies the complete expected capsule digest. Neither production
 constructor nor loader derives its expected digest from a candidate file.
@@ -56,16 +64,15 @@ the existing C session checks remain separate.
 
 The exported actual built-in function objects, module ownership, ABI, mode/port
 counts, binary bytes and seals are verified on later entry. A cached module
-does not cache away complete source/receipt/administrator reads. The extension
-uses only the frozen mechanical C boundary from R2; no new business control
-graph is introduced here.
+does not cache away complete source/receipt/administrator reads. The extension uses the current explicitly pinned mechanical C boundary;
+the existing HIA business control graph remains unchanged.
 
 ## Build and installed identity
 
 The setup hook loads its exact local hepta/native/slot_mechanical_build.py.
 That path is inside the original wheel staging's copied hepta tree and is
 explicit package data. The hook never imports product policy or a runtime tools
-module. The prior R2 tools-only hook remains frozen as a known staging gap.
+module. The superseded tools-only staging failure remains in the historical evidence.
 
 All eleven sources, actual compiler argv/executable bytes and output .so bytes
 are recorded by a forced actual build. The supported selected ABI is explicit:
@@ -128,6 +135,8 @@ garbage, GC suppression, local-value normalization or hidden complete legacy bod
 callback. The existing HIA 15-mode/136-port graph and all original protocol
 checks own business decisions.
 
-The C source is not yet compiled. No new original, candidate, test, SQL, Native,
-VM, GC, generator or qualification was executed while authoring this package.
-Any actual source, installed staging, public ABI or timeout failure remains HOLD.
+The predecessor C source has actual source and installed compilation evidence.
+Its complete v5 qualification still failed. The current single-object-call and
+private-resource corrections do not inherit qualification from that build.
+Any subsequent source, installed staging, public ABI, lifetime or timeout
+failure remains HOLD until the complete original gate succeeds.

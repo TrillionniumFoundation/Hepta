@@ -1411,6 +1411,8 @@ SOURCE_FILES = (
     'tests/fixtures/worker_installed_journal_original_r18/hia_worker_unknown_installed.py.txt',
     'tests/fixtures/worker_installed_journal_original_r18/manifest.json',
     'docs/HIA_WORKER_INSTALLED_JOURNAL.md',
+    'tests/hia_native_transport_worker_successor.py',
+    'tests/fixtures/native_transport_worker_terminal_v2_provenance.json',
 )
 
 

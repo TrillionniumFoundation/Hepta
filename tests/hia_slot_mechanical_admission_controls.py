@@ -47,6 +47,20 @@ def main():
     package = output / "package/hepta"
     package.parent.mkdir()
     shutil.copytree(original_package, package, ignore=shutil.ignore_patterns("__pycache__"))
+    # This private copy has installed-package layout, not the checkout's
+    # sibling examples directory. Preserve the two original v1 source resources;
+    # NativeHelpersBinding still checks each against its actual manifest hash.
+    for relative in ("examples/hia_bootstrap/slot_ledger.hepta",
+                     "examples/hia_bootstrap/slot_operations.hepta"):
+        source = root / relative
+        raw = regular_bytes(source)
+        destination = package / "_data" / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists():
+            assert regular_bytes(destination) == raw
+        else:
+            destination.write_bytes(raw)
+        assert regular_bytes(source) == raw and regular_bytes(destination) == raw
     base_raw = regular_bytes(args.base_v1)
     assert sha256(base_raw).hexdigest() == args.base_sha256
     receipt = package / "_slot_mechanical_build.json"

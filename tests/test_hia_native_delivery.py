@@ -52,9 +52,17 @@ def admit_originals():
     value = json.loads(raw)
     if value['base_commit'] != '9c461664adc27e576d33fba6618b3764672eea9d':
         raise AssertionError('native-delivery original source identity differs')
+    from tests.hia_native_transport_worker_successor import admit_terminal_sources
+    terminal = admit_terminal_sources(value, original_kind='native')
     adjustments = []
     for name, record in value['unchanged_files'].items():
         raw = (ROOT / name).read_bytes()
+        if name in terminal['source_adjustments']:
+            reviewed = terminal['source_adjustments'][name]
+            if (len(raw) != reviewed['current_bytes']
+                    or sha256(raw).hexdigest() != reviewed['current_sha256']):
+                raise AssertionError('reviewed transport terminal control changed: ' + name)
+            continue
         if len(raw) != record['bytes'] or sha256(raw).hexdigest() != record['sha256']:
             from hepta.hia_native_helpers import HELPERS
             old_line = b'        self.assertEqual(len(HELPERS), 38)\n'
@@ -70,6 +78,7 @@ def admit_originals():
                 'sole_permitted_change': 'one exact registry-count assertion decimal literal',
                 'all_other_source_bytes_unchanged': True})
     value['registry_count_adjustments'] = adjustments
+    value['transport_terminal_successor'] = terminal
     return value
 
 
