@@ -569,7 +569,35 @@ class NativeLifecycleTests(AgentToolCase):
             budget={"max_native_wall_ms": 1})
         started = time.monotonic()
         evaluation = self.session.evaluate(baseline, build, receipts=receipts)
-        self.assertLess(time.monotonic() - started, 5)
+        try:
+            self.assertLess(time.monotonic() - started, 5)
+        except AssertionError:
+            try:
+                elapsed_ns = "unavailable"
+                records = self.client.records
+                record = records[-1] if type(records) is list and records else None
+                if type(record) is dict and record.get("tool") == "hia_evaluate":
+                    value = record.get("elapsed_ns")
+                    if (type(value) is str and 1 <= len(value) <= 20
+                            and value.isascii() and value.isdecimal()):
+                        elapsed_ns = value
+                values = evaluation if type(evaluation) is dict else {}
+                outcome = values.get("outcome")
+                if (type(outcome) is not str or len(outcome) > 15 or outcome not in (
+                        "budget_exceeded", "incorrect", "inconclusive",
+                        "improved", "regressed", "unchanged")):
+                    outcome = "unavailable"
+                flags = []
+                for name in ("report_complete", "termination_confirmed",
+                             "planned_workload_complete"):
+                    value = values.get(name)
+                    flags.append(f"{name}=" + (
+                        "true" if value is True else "false" if value is False else "unavailable"))
+                print("[hia-native-timeout] tool_elapsed_ns=" + elapsed_ns
+                      + " outcome=" + outcome + " " + " ".join(flags), file=sys.stderr)
+            except Exception:
+                pass
+            raise
         self.assertEqual(evaluation["outcome"], "budget_exceeded")
         self.assertTrue(evaluation["report_complete"])
         self.assertTrue(evaluation["termination_confirmed"])
