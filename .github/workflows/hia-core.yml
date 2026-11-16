@@ -1378,3 +1378,15 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-selected-native-v1/selected-native.tar.gz
             ${{ runner.temp }}/hia-selected-native-v1/transfer.json
+      - name: Preserve original native timeout evaluation artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-native-timeout-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/measurements.json
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/cost-ledger.json
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/evaluation-receipt.json
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/manifest.json
