@@ -381,7 +381,12 @@ def main():
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
         print(json.dumps({'status': report['status'], 'report': str(args.output),
-                          'tests_run': result.testsRun, 'scope': scope, 'all_eleven_tools': all_tools}), flush=True)
+                          'tests_run': result.testsRun, 'scope': scope, 'all_eleven_tools': all_tools,
+                          'failure_artifact_retention': [
+                              {'test_id': entry['test_id'], 'status': entry['status'],
+                               'manifest': entry.get('manifest'), 'errors': entry['errors']}
+                              for entry in failure_artifact_retention
+                          ]}), flush=True)
         return 0 if passed else 1
 
 
