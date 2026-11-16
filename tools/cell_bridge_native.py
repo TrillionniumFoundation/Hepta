@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import asdict, dataclass
+import fcntl
 from hashlib import sha256
 import importlib
 import json
@@ -17,7 +18,9 @@ import stat
 import struct
 import subprocess
 import sys
+import threading
 import time
+import types
 
 COMPILER_COMMIT = "f33d8da316de8fdf27b504371f1a5310997ff548"
 SOURCE_PATH = "examples/hia_cell_bridge/continuation.hepta"
@@ -29,6 +32,31 @@ RESPONSE_MAGIC = b"HCLRES01"
 STATE_MAGIC = b"HCLSTA01"
 ACTIONS = {1: "INVOKE_CELL", 2: "COMPLETE", 3: "FAILED", 4: "CANCELLED", 5: "UNKNOWN", 6: "CANCEL_REQUEST"}
 OUTCOMES = {"success": 1, "succeeded": 1, "failed": 2, "cancelled": 3, "unknown": 4}
+MAX_IMAGE_BYTES = 64 * 1024 * 1024
+MAX_RETAINED_IMAGES = 16
+MAX_RETAINED_IMAGE_BYTES = 64 * 1024 * 1024
+# Linux UAPI values are stable even when Python was built without these names.
+F_ADD_SEALS = getattr(fcntl, "F_ADD_SEALS", 1033)
+F_GET_SEALS = getattr(fcntl, "F_GET_SEALS", 1034)
+REQUIRED_IMAGE_SEALS = 0x0008 | 0x0004 | 0x0002 | 0x0001
+
+# The worker may import this file under a fresh module name. Keep one process
+# registry across those imports, not one cache per wrapper/module instance.
+# A retained fd name must never be reused while its dlopen image stays loaded.
+_REGISTRY_KEY = "_hepta_cell_sealed_image_registry_v1"
+_proposed_registry = types.ModuleType(_REGISTRY_KEY)
+_proposed_registry.schema = "hepta.cell.sealed-image-registry.v1"
+_proposed_registry.lock = threading.RLock()
+_proposed_registry.entries = {}
+_proposed_registry.total_bytes = 0
+_proposed_registry.max_images = MAX_RETAINED_IMAGES
+_proposed_registry.max_bytes = MAX_RETAINED_IMAGE_BYTES
+_IMAGE_REGISTRY = sys.modules.setdefault(_REGISTRY_KEY, _proposed_registry)
+if (getattr(_IMAGE_REGISTRY, "schema", None) != _proposed_registry.schema
+        or getattr(_IMAGE_REGISTRY, "max_images", None) != MAX_RETAINED_IMAGES
+        or getattr(_IMAGE_REGISTRY, "max_bytes", None) != MAX_RETAINED_IMAGE_BYTES):
+    raise RuntimeError("incompatible process-native image registry")
+del _proposed_registry
 
 
 class BridgeRejected(ValueError):
@@ -39,6 +67,109 @@ class BridgeRejected(ValueError):
 
 class BridgeIntegrityError(RuntimeError):
     pass
+
+
+class BridgeCapacityError(BridgeIntegrityError):
+    pass
+
+
+def _verified_image_bytes(path, expected):
+    """Capture exactly the admitted file bytes; a later path write is harmless."""
+    descriptor = os.open(Path(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK)
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= MAX_IMAGE_BYTES:
+            raise BridgeIntegrityError("invalid native image extent")
+        data = bytearray()
+        while len(data) < before.st_size:
+            chunk = os.pread(descriptor, min(1024 * 1024, before.st_size - len(data)), len(data))
+            if not chunk:
+                raise BridgeIntegrityError("native image became shorter during capture")
+            data.extend(chunk)
+        after = os.fstat(descriptor)
+        identity = lambda item: (item.st_dev, item.st_ino, item.st_size, item.st_mtime_ns, item.st_ctime_ns)
+        if identity(before) != identity(after):
+            raise BridgeIntegrityError("native image changed during capture")
+        if sha256(data).hexdigest() != expected:
+            raise BridgeIntegrityError("native image digest mismatch")
+        return data
+    finally:
+        os.close(descriptor)
+
+
+def _check_retained_image(record, expected):
+    descriptor = record["fd"]
+    observed = os.fstat(descriptor)
+    if (record["sha256"] != expected
+            or (observed.st_dev, observed.st_ino, observed.st_size) != record["identity"]
+            or fcntl.fcntl(descriptor, F_GET_SEALS) & REQUIRED_IMAGE_SEALS != REQUIRED_IMAGE_SEALS):
+        raise BridgeIntegrityError("retained sealed image identity changed")
+    if record["entry"] is None:
+        raise BridgeIntegrityError("retained native image lacks the required entry")
+    return record
+
+
+def _retained_image(path, expected):
+    """Admit one sealed Linux memfd and retain it for the entire process.
+
+    Admission, hashing, copying and loading are serialized: quotas cannot race,
+    and at most one bounded source buffer is captured by this registry at once.
+    Cached bytes never bypass validation of a caller's supplied source file.
+    """
+    with _IMAGE_REGISTRY.lock:
+        data = _verified_image_bytes(path, expected)
+        existing = _IMAGE_REGISTRY.entries.get(expected)
+        if existing is not None:
+            return _check_retained_image(existing, expected)
+        if (len(_IMAGE_REGISTRY.entries) >= MAX_RETAINED_IMAGES
+                or _IMAGE_REGISTRY.total_bytes + len(data) > MAX_RETAINED_IMAGE_BYTES):
+            raise BridgeCapacityError("bounded process-native image registry is full")
+        descriptor = os.memfd_create("hepta-cell-" + expected[:24], os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        library = None
+        try:
+            offset = 0
+            while offset < len(data):
+                written = os.write(descriptor, memoryview(data)[offset:])
+                if written <= 0:
+                    raise BridgeIntegrityError("sealed image staging did not progress")
+                offset += written
+            fcntl.fcntl(descriptor, F_ADD_SEALS, REQUIRED_IMAGE_SEALS)
+            observed = os.fstat(descriptor)
+            if (observed.st_size != len(data)
+                    or fcntl.fcntl(descriptor, F_GET_SEALS) & REQUIRED_IMAGE_SEALS != REQUIRED_IMAGE_SEALS):
+                raise BridgeIntegrityError("native image could not be completely sealed")
+            retained_hash = sha256()
+            offset = 0
+            while offset < len(data):
+                chunk = os.pread(descriptor, min(1024 * 1024, len(data) - offset), offset)
+                if not chunk:
+                    raise BridgeIntegrityError("sealed image readback is incomplete")
+                retained_hash.update(chunk)
+                offset += len(chunk)
+            if retained_hash.hexdigest() != expected:
+                raise BridgeIntegrityError("sealed image readback digest differs")
+            owner = os.readlink("/proc/self")
+            if not owner.isdecimal():
+                raise BridgeIntegrityError("cannot bind sealed image descriptor")
+            library = ctypes.CDLL(f"/proc/{owner}/fd/{descriptor}")
+            # A successful dlopen is retained even if symbol admission fails.
+            # Its name must not be recycled while that image may remain loaded.
+            record = {"sha256": expected, "fd": descriptor, "library": library,
+                      "entry": None, "identity": (observed.st_dev, observed.st_ino, observed.st_size)}
+            _IMAGE_REGISTRY.entries[expected] = record
+            _IMAGE_REGISTRY.total_bytes += len(data)
+            descriptor = None  # registry now owns this fd, including failures
+            try:
+                entry = library.cell_bridge_step
+                entry.argtypes = [ctypes.c_void_p, ctypes.c_uint64] * 3
+                entry.restype = ctypes.c_uint64
+                record["entry"] = entry
+            except (AttributeError, TypeError) as error:
+                raise BridgeIntegrityError("native image lacks the required entry") from error
+            return _check_retained_image(record, expected)
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
 
 
 def _digest(value: str) -> bytes:
@@ -182,39 +313,21 @@ class NativeCellBridge:
 
     def __init__(self, hepta_root: Path, image_path: Path, expected_image_sha256: str,
                  *, expected_source_sha256: str | None = None):
+        self._instance_lock = threading.RLock()
+        self._fd = self._library = self._entry = None
         self.hepta_root = Path(hepta_root).resolve(strict=True)
         self.source_sha256 = sha256((self.hepta_root / SOURCE_PATH).read_bytes()).hexdigest()
         if expected_source_sha256 is not None and self.source_sha256 != expected_source_sha256:
             raise BridgeIntegrityError("HIA source digest mismatch")
         _digest(expected_image_sha256)
         self.image_sha256 = expected_image_sha256
-        self._fd = os.open(Path(image_path), os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
-        try:
-            before = os.fstat(self._fd)
-            if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= 64 * 1024 * 1024:
-                raise BridgeIntegrityError("invalid native image extent")
-            data = os.pread(self._fd, before.st_size, 0)
-            if sha256(data).hexdigest() != expected_image_sha256:
-                raise BridgeIntegrityError("native image digest mismatch")
-            owner = os.readlink("/proc/self")
-            if not owner.isdecimal():
-                raise BridgeIntegrityError("cannot bind native image descriptor")
-            self._library = ctypes.CDLL(f"/proc/{owner}/fd/{self._fd}")
-            after = os.fstat(self._fd)
-            if (before.st_size, before.st_mtime_ns, before.st_ctime_ns) != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
-                raise BridgeIntegrityError("native image changed while loading")
-            self._entry = self._library.cell_bridge_step
-            self._entry.argtypes = [ctypes.c_void_p, ctypes.c_uint64] * 3
-            self._entry.restype = ctypes.c_uint64
-        except BaseException:
-            os.close(self._fd)
-            self._fd = None
-            raise
+        image = _retained_image(image_path, expected_image_sha256)
+        self._fd, self._library, self._entry = image["fd"], image["library"], image["entry"]
 
     def close(self):
-        if self._fd is not None:
-            os.close(self._fd)
-            self._fd = None
+        """Revoke this instance after any admitted call; retain process custody."""
+        with self._instance_lock:
+            self._fd = self._library = self._entry = None
 
     def __enter__(self):
         return self
@@ -242,6 +355,10 @@ class NativeCellBridge:
         return self.step(encode_request(4, binding), state, binding=binding)
 
     def step(self, request: bytes, state: bytes, *, binding: BridgeBinding) -> NativeStep:
+        with self._instance_lock:
+            return self._step(request, state, binding=binding)
+
+    def _step(self, request: bytes, state: bytes, *, binding: BridgeBinding) -> NativeStep:
         if self._fd is None:
             raise ValueError("native image is closed")
         if type(request) is not bytes or not HEADER <= len(request) <= MAX_EXTENT:

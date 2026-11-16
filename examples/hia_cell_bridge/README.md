@@ -131,11 +131,32 @@ and binding. `NativeStep` includes exact response/state/payload bytes, the
 native return and native-call wall nanoseconds. The build record retains
 compiler/source/Core/object/text/image/linker identities and build wall time.
 
-The loader opens the image without following a final symlink, checks its full
-digest, loads the held descriptor and checks file identity afterward. The host
-must keep published images immutable: before/after checks cannot prove that an
-independent writer did not transiently modify the same inode. Compiler, linker,
-loader, libc and host hardware remain explicit dependencies.
+The Linux loader captures a regular image file without following a final
+symlink, verifies the complete captured bytes, then copies them into a new
+`memfd`. It installs write, grow, shrink and further-seal protections, reads the
+sealed bytes back and verifies their digest before loading. A later rewrite,
+replacement or removal of the supplied source file cannot change the loaded
+image. Every new constructor checks the supplied file again, including a cache
+hit; a changed source file is refused when its expected digest no longer matches.
+
+One thread-safe, process-wide registry retains each successfully loaded image's
+sealed descriptor and library for the entire process, keyed by its SHA256.
+It also survives independent imports of this wrapper. This prevents a closed
+descriptor number from being reused as a `dlopen` name for different bytes.
+`close()` revokes the current instance after its admitted call completes; other
+instances and later instances of the same image keep working. It does not
+unload an image or release registry capacity.
+
+The registry admits at most **16 distinct loaded images and 64 MiB of retained
+image bytes**, with an individual-file bound of 64 MiB. New unique images beyond
+either limit raise `BridgeCapacityError`; already admitted images remain usable.
+A successfully loaded image missing the required entry stays retained and
+consumes capacity, so its loader name cannot be recycled. Malformed images that
+fail to load and nonregular files are refused without retaining descriptors.
+These are image-custody bounds, not a bound on all native process memory.
+Compiler, linker, loader, libc, Linux sealing support and host hardware remain
+explicit dependencies. Callers still supply the trusted expected image digest;
+the loader does not establish that trust on their behalf.
 
 ## Component controls
 
@@ -149,5 +170,11 @@ original unittest transcript. Controls execute the actual .so at payload sizes
 0, 1, 257 and 65,536; each of the 128 request identity bytes; pending/terminal
 replay; unknown and cancellation races; malformed headers/state; original ABI
 alias guards; and a fresh process resuming the original state. Their scope is
-this continuation component. Real Cell execution, durable runtime recovery,
+this continuation component. Loader controls additionally compile three native
+ABI probes and exercise distinct return values across close/reopen and
+simultaneous handles, 64 parallel constructions, immutable image seals, source
+file changes, independent module imports, count/byte bounds, missing entries,
+invalid ELF and nonblocking FIFO rejection. Their source, images, compiler
+receipts and child-process transcripts are retained under `build/loader-fixtures`.
+Real Cell execution, durable runtime recovery,
 trained-weight benefit and whole-system cost require separate joint tests.

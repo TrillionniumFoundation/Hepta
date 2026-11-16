@@ -1,9 +1,13 @@
 """Actual native continuation controls; no Cell/model qualification transfer."""
 from __future__ import annotations
 import base64
+from concurrent.futures import ThreadPoolExecutor
 import ctypes
 from dataclasses import replace
+import errno
+import fcntl
 from hashlib import sha256
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -11,7 +15,9 @@ import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+from tools import cell_bridge_native as native
 from tools.cell_bridge_native import (
     BridgeIntegrityError, BridgeRejected, HEADER, MAX_EXTENT,
     NativeCellBridge, build_native_bridge, encode_request,
@@ -29,6 +35,29 @@ class HiaCellBridgeNativeTests(unittest.TestCase):
         cls.build = build_native_bridge(ROOT, out)
         cls.bridge = NativeCellBridge(ROOT, cls.build["image_path"], cls.build["image_sha256"],
                                      expected_source_sha256=cls.build["source_sha256"])
+        cls.fixtures = {}
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program_native import build_program_machine
+        fixture_dir = out / "loader-fixtures"
+        fixture_dir.mkdir()
+        # Distinct native returns detect stale dlopen images. These ABI probes
+        # do not replace the actual continuation or its original controls.
+        for label, symbol, code in (("first", "cell_bridge_step", 17),
+                                    ("second", "cell_bridge_step", 23),
+                                    ("missing-entry", "other_bridge_step", 29)):
+            source = (f"hia-asm.v1 hepta.hia.program.v8 loader_probe_{code}\n"
+                      f"fn {symbol}(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)\n"
+                      "block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n"
+                      f'  v3:u32 = const() {{"value":{code}}}\n'
+                      "  ret(v3)\nend\n").encode()
+            (fixture_dir / (label + ".hepta")).write_bytes(source)
+            image = fixture_dir / (label + ".so")
+            receipt = build_program_machine(assemble_program(source).as_dict(), image, kind="shared",
+                                            foreign_buffer_exports=((symbol, MAX_EXTENT),))
+            record = {"source_sha256": D(source), "image": str(image), "code": code,
+                      "sha256": D(image.read_bytes()), "receipt": receipt}
+            (fixture_dir / (label + ".json")).write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+            cls.fixtures[label] = record
 
     @classmethod
     def tearDownClass(cls):
@@ -60,6 +89,275 @@ class HiaCellBridgeNativeTests(unittest.TestCase):
             self.assertEqual(after, state, "refusal changed continuation")
             self.assertEqual(output, initial_output, "refusal published response")
         return code, output, after
+
+    def probe(self, bridge, code):
+        with self.assertRaises(BridgeRejected) as rejection:
+            bridge.begin(bytes(HEADER), candidate_sha256=D(b"candidate"), cell_sha256=D(b"cell"),
+                         request_sha256=D(b"request"), input_bytes=b"input", sequence=1)
+        self.assertEqual(rejection.exception.native_return, code)
+
+    def load_probe(self, label):
+        fixture = self.fixtures[label]
+        return NativeCellBridge(ROOT, fixture["image"], fixture["sha256"])
+
+    def child_control(self, label, program):
+        document = {"root": str(ROOT), "fixtures": self.fixtures, "scratch": self.temporary.name}
+        result = subprocess.run([sys.executable, "-c", program], input=json.dumps(document), text=True,
+                                cwd=ROOT, capture_output=True, timeout=30)
+        record = {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
+        path = Path(self.build["image_path"]).parent / "loader-fixtures" / (label + "-control.json")
+        path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def test_loader_actual_multi_image_close_reopen_and_simultaneous_handles(self):
+        first = self.load_probe("first")
+        same = self.load_probe("first")
+        first_fd, first_handle = first._fd, first._library._handle
+        self.assertEqual(same._fd, first_fd)
+        self.assertEqual(same._library._handle, first_handle)
+        self.probe(first, 17)
+        first.close()
+        first.close()
+        with self.assertRaisesRegex(ValueError, "closed"):
+            self.probe(first, 17)
+        self.probe(same, 17)
+        with self.load_probe("second") as second:
+            self.assertNotEqual(second._fd, first_fd)
+            self.assertNotEqual(second._library._handle, first_handle)
+            self.probe(second, 23)
+            self.probe(same, 17)
+        same.close()
+        with self.load_probe("first") as reopened:
+            self.assertEqual(reopened._fd, first_fd)
+            self.probe(reopened, 17)
+        with self.load_probe("second") as reopened:
+            self.probe(reopened, 23)
+
+    def test_loader_concurrent_loads_share_one_retained_image_per_digest(self):
+        def work(index):
+            label = "first" if index % 2 == 0 else "second"
+            with self.load_probe(label) as bridge:
+                self.probe(bridge, self.fixtures[label]["code"])
+                return label, bridge._fd
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            observed = list(executor.map(work, range(64)))
+        descriptors = {label: {fd for item, fd in observed if item == label} for label in ("first", "second")}
+        self.assertEqual(len(descriptors["first"]), 1)
+        self.assertEqual(len(descriptors["second"]), 1)
+        self.assertFalse(descriptors["first"] & descriptors["second"])
+        for label in descriptors:
+            self.assertEqual(native._IMAGE_REGISTRY.entries[self.fixtures[label]["sha256"]]["fd"],
+                             next(iter(descriptors[label])))
+
+    def test_loader_close_waits_for_admitted_native_call_then_revokes_instance(self):
+        bridge = self.load_probe("first")
+        actual_entry = bridge._entry
+        entered, release, closing, closed = (threading.Event() for _ in range(4))
+
+        def gated_entry(*args):
+            entered.set()
+            if not release.wait(5):
+                raise AssertionError("native call was not released")
+            return actual_entry(*args)
+
+        def close():
+            closing.set()
+            bridge.close()
+            closed.set()
+
+        bridge._entry = gated_entry
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            call = executor.submit(self.probe, bridge, 17)
+            try:
+                self.assertTrue(entered.wait(5))
+                revoke = executor.submit(close)
+                self.assertTrue(closing.wait(5))
+                self.assertFalse(closed.wait(0.05))
+            finally:
+                release.set()
+            call.result(timeout=5)
+            revoke.result(timeout=5)
+        self.assertTrue(closed.is_set())
+        with self.assertRaisesRegex(ValueError, "closed"):
+            self.probe(bridge, 17)
+        with self.load_probe("first") as other:
+            self.probe(other, 17)
+
+    def test_loader_seals_bytes_and_rechecks_changed_source_even_on_cache_hit(self):
+        original = self.fixtures["first"]
+        changed = self.fixtures["second"]
+        path = Path(self.temporary.name) / "mutable-image.so"
+        path.write_bytes(Path(original["image"]).read_bytes())
+        with NativeCellBridge(ROOT, path, original["sha256"]) as first:
+            self.assertEqual(fcntl.fcntl(first._fd, native.F_GET_SEALS) & native.REQUIRED_IMAGE_SEALS,
+                             native.REQUIRED_IMAGE_SEALS)
+            for mutate in (lambda: os.pwrite(first._fd, b"x", 0),
+                           lambda: os.ftruncate(first._fd, 0),
+                           lambda: os.ftruncate(first._fd, os.fstat(first._fd).st_size + 1)):
+                with self.subTest(mutation=mutate.__code__.co_firstlineno):
+                    with self.assertRaises(OSError) as denied:
+                        mutate()
+                    self.assertEqual(denied.exception.errno, errno.EPERM)
+            path.write_bytes(Path(changed["image"]).read_bytes())
+            self.probe(first, 17)
+            with self.assertRaisesRegex(BridgeIntegrityError, "digest mismatch"):
+                NativeCellBridge(ROOT, path, original["sha256"])
+            with NativeCellBridge(ROOT, path, changed["sha256"]) as second:
+                self.probe(second, 23)
+                path.unlink()
+                self.probe(first, 17)
+                self.probe(second, 23)
+                with self.assertRaises(FileNotFoundError):
+                    NativeCellBridge(ROOT, path, changed["sha256"])
+
+    def test_loader_rechecks_pinned_hia_source(self):
+        fake_root = Path(self.temporary.name) / "source-pin"
+        source = fake_root / native.SOURCE_PATH
+        source.parent.mkdir(parents=True)
+        source.write_bytes((ROOT / native.SOURCE_PATH).read_bytes())
+        with NativeCellBridge(fake_root, self.build["image_path"], self.build["image_sha256"],
+                              expected_source_sha256=self.build["source_sha256"]):
+            pass
+        source.write_bytes(source.read_bytes() + b"\n")
+        with self.assertRaisesRegex(BridgeIntegrityError, "HIA source digest mismatch"):
+            NativeCellBridge(fake_root, self.build["image_path"], self.build["image_sha256"],
+                             expected_source_sha256=self.build["source_sha256"])
+
+    def test_loader_registry_survives_independent_wrapper_imports(self):
+        name = "hepta_test_independent_transport"
+        spec = importlib.util.spec_from_file_location(name, ROOT / "tools/cell_bridge_native.py")
+        alias = importlib.util.module_from_spec(spec)
+        sys.modules[name] = alias
+        try:
+            spec.loader.exec_module(alias)
+            self.assertIs(alias._IMAGE_REGISTRY, native._IMAGE_REGISTRY)
+            fixture = self.fixtures["first"]
+            with self.load_probe("first") as first, alias.NativeCellBridge(ROOT, fixture["image"], fixture["sha256"]) as other:
+                self.assertEqual(first._fd, other._fd)
+                with self.assertRaises(alias.BridgeRejected) as rejection:
+                    other.begin(bytes(HEADER), candidate_sha256=D(b"candidate"), cell_sha256=D(b"cell"),
+                                request_sha256=D(b"request"), input_bytes=b"input", sequence=1)
+                self.assertEqual(rejection.exception.native_return, 17)
+        finally:
+            del sys.modules[name]
+
+    def test_loader_retained_image_count_is_bounded_and_duplicates_still_work(self):
+        observed = self.child_control("count-bound", '''import json,os,sys
+from hashlib import sha256
+from pathlib import Path
+from tools import cell_bridge_native as n
+d=json.load(sys.stdin)
+source=Path(d["fixtures"]["first"]["image"]).read_bytes()
+images=[]
+for index in range(n.MAX_RETAINED_IMAGES+1):
+ path=Path(d["scratch"])/("quota-"+str(index)+".so")
+ data=source+bytes([index])
+ path.write_bytes(data)
+ images.append((path,sha256(data).hexdigest()))
+for path,digest in images[:-1]:
+ bridge=n.NativeCellBridge(d["root"],path,digest)
+ assert int(bridge._entry(None,0,None,0,None,0))==17
+ bridge.close()
+assert len(n._IMAGE_REGISTRY.entries)==n.MAX_RETAINED_IMAGES
+before=len(os.listdir("/proc/self/fd"))
+try:
+ n.NativeCellBridge(d["root"],*images[-1])
+ raise AssertionError("count quota was bypassed")
+except n.BridgeCapacityError:
+ pass
+assert len(os.listdir("/proc/self/fd"))==before
+with n.NativeCellBridge(d["root"],*images[0]) as bridge:
+ assert int(bridge._entry(None,0,None,0,None,0))==17
+print(json.dumps({"retained_images":len(n._IMAGE_REGISTRY.entries),"retained_bytes":n._IMAGE_REGISTRY.total_bytes,
+                  "count_limit":n.MAX_RETAINED_IMAGES,"duplicate_at_capacity":True,"rejection_fd_leak":False}))
+''')
+        self.assertEqual(observed["retained_images"], native.MAX_RETAINED_IMAGES)
+        self.assertTrue(observed["duplicate_at_capacity"])
+
+    def test_loader_retained_byte_and_individual_image_bounds(self):
+        observed = self.child_control("byte-bound", '''import json,os,sys
+from hashlib import sha256
+from pathlib import Path
+from tools import cell_bridge_native as n
+d=json.load(sys.stdin)
+f=d["fixtures"]["first"]
+n.NativeCellBridge(d["root"],f["image"],f["sha256"]).close()
+path=Path(d["scratch"])/"quota-oversize.so"
+path.write_bytes(Path(f["image"]).read_bytes())
+with path.open("r+b") as stream:
+ stream.truncate(n.MAX_IMAGE_BYTES)
+h=sha256()
+with path.open("rb") as stream:
+ while chunk:=stream.read(1024*1024):
+  h.update(chunk)
+before=(len(os.listdir("/proc/self/fd")),len(n._IMAGE_REGISTRY.entries),n._IMAGE_REGISTRY.total_bytes)
+try:
+ n.NativeCellBridge(d["root"],path,h.hexdigest())
+ raise AssertionError("byte quota was bypassed")
+except n.BridgeCapacityError:
+ pass
+with path.open("r+b") as stream:
+ stream.truncate(n.MAX_IMAGE_BYTES+1)
+try:
+ n.NativeCellBridge(d["root"],path,h.hexdigest())
+ raise AssertionError("individual extent bound was bypassed")
+except n.BridgeIntegrityError as error:
+ assert "extent" in str(error)
+assert before==(len(os.listdir("/proc/self/fd")),len(n._IMAGE_REGISTRY.entries),n._IMAGE_REGISTRY.total_bytes)
+print(json.dumps({"aggregate_bound_refused":True,"individual_bound_refused":True,"byte_limit":n.MAX_RETAINED_IMAGE_BYTES,
+                  "retained_images":len(n._IMAGE_REGISTRY.entries),"retained_bytes":n._IMAGE_REGISTRY.total_bytes,
+                  "rejection_fd_leak":False}))
+''')
+        self.assertTrue(observed["aggregate_bound_refused"])
+        self.assertTrue(observed["individual_bound_refused"])
+
+    def test_loader_load_failure_and_missing_entry_keep_bounded_custody(self):
+        observed = self.child_control("failed-admission", '''import json,os,sys
+from hashlib import sha256
+from pathlib import Path
+from tools import cell_bridge_native as n
+d=json.load(sys.stdin)
+path=Path(d["scratch"])/"invalid-image.so"
+data=b"not an ELF image"
+path.write_bytes(data)
+before=len(os.listdir("/proc/self/fd"))
+for _ in range(3):
+ try:
+  n.NativeCellBridge(d["root"],path,sha256(data).hexdigest())
+  raise AssertionError("invalid ELF accepted")
+ except OSError:
+  pass
+assert len(os.listdir("/proc/self/fd"))==before and not n._IMAGE_REGISTRY.entries
+fifo=Path(d["scratch"])/"image-fifo"
+os.mkfifo(fifo)
+try:
+ n.NativeCellBridge(d["root"],fifo,sha256(data).hexdigest())
+ raise AssertionError("FIFO accepted")
+except n.BridgeIntegrityError:
+ pass
+assert len(os.listdir("/proc/self/fd"))==before and not n._IMAGE_REGISTRY.entries
+f=d["fixtures"]["missing-entry"]
+for _ in range(3):
+ try:
+  n.NativeCellBridge(d["root"],f["image"],f["sha256"])
+  raise AssertionError("missing entry accepted")
+ except n.BridgeIntegrityError:
+  pass
+assert len(n._IMAGE_REGISTRY.entries)==1
+record=n._IMAGE_REGISTRY.entries[f["sha256"]]
+assert record["entry"] is None
+assert len(os.listdir("/proc/self/fd"))==before+1
+valid=d["fixtures"]["first"]
+with n.NativeCellBridge(d["root"],valid["image"],valid["sha256"]) as bridge:
+ assert bridge._fd!=record["fd"]
+ assert int(bridge._entry(None,0,None,0,None,0))==17
+print(json.dumps({"invalid_elf_fd_leak":False,"fifo_refused_without_blocking":True,
+                  "quarantined_images":1,"quarantined_fd_retained":True,
+                  "next_image_native_return":17,"retained_images":len(n._IMAGE_REGISTRY.entries)}))
+''')
+        self.assertEqual(observed["quarantined_images"], 1)
+        self.assertEqual(observed["next_image_native_return"], 17)
 
     def test_generated_source_is_exact_and_original_compiler_is_pinned(self):
         from hepta.hia_agent_assembly import render_assembly
