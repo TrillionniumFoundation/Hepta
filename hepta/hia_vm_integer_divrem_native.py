@@ -72,10 +72,10 @@ def _input_path(name):
     return source_resource_path(__file__, name)
 
 
-def _scope(path, source):
+def _scope(path, source, protocol=wire):
     # Existing scope guards run before executable mapping. There is currently
     # no registered worker-helper entry for this standalone explicit component.
-    pinned = hia_native_helpers.pinned_image(path, source, wire.SCHEMA,
+    pinned = hia_native_helpers.pinned_image(path, source, protocol.SCHEMA,
         NativeDivRemImage, _admission_resolver=resolve_path)
     if pinned is not None:
         raise ValueError("div/rem worker bundle registration is not implemented")
@@ -97,17 +97,25 @@ class NativeDivRemImage(NativeHiaJsonImage):
 
 class NativeDivRemBinding:
     """One explicit process/thread-owned source authority; calls are fresh."""
-    def __init__(self, manifest_path, expected_manifest_sha256):
+    def __init__(self, manifest_path, expected_manifest_sha256, *, _integer_arithmetic=False,
+                 _integer_scalar=False):
         if not _digest(expected_manifest_sha256):
             raise ValueError("div/rem requires an explicit full manifest SHA256")
+        if type(_integer_arithmetic) is not bool:
+            raise ValueError("integer arithmetic profile selection must be exact")
+        if type(_integer_scalar) is not bool or _integer_scalar and _integer_arithmetic:
+            raise ValueError("integer scalar profile selection must be exact and exclusive")
+        protocol = (wire.IntegerScalarProtocol if _integer_scalar else
+                    wire.IntegerArithmeticProtocol if _integer_arithmetic else wire)
+        self._protocol = self._protocol_identity = protocol
         self.pid, self.thread = os.getpid(), threading.get_ident()
         self.path = resolve_path(manifest_path, strict=True)
-        self.source = _input_path(wire.SOURCE_NAME)
+        self.source = _input_path(protocol.SOURCE_NAME)
         self.expected_manifest_sha256 = expected_manifest_sha256
         self._busy = False
         self._loss = None
         self.native_returns = self.acknowledgements = 0
-        _scope(self.path, self.source)
+        _scope(self.path, self.source, protocol)
         raw = regular_bytes(self.path, 65536)
         if sha256(raw).hexdigest() != expected_manifest_sha256:
             raise ValueError("div/rem manifest differs from explicit authority")
@@ -115,27 +123,27 @@ class NativeDivRemBinding:
         if (type(record) is not dict or set(record) != {
                 "schema", "source_sha256", "image_path", "image_sha256",
                 "compiler_sha256", "component_inputs", "scope"}
-                or record["schema"] != wire.SCHEMA
-                or record["image_path"] != wire.IMAGE_NAME
+                or record["schema"] != protocol.SCHEMA
+                or record["image_path"] != protocol.IMAGE_NAME
                 or record["scope"] not in (
                     "DEVELOPMENT_COMPONENT", "MATCHING_SOURCE_COLD_COMPONENT")
                 or any(not _digest(record[key]) for key in
                     ("source_sha256", "image_sha256", "compiler_sha256"))
                 or type(record["component_inputs"]) is not dict
-                or set(record["component_inputs"]) != set(wire.COMPONENT_INPUTS)
+                or set(record["component_inputs"]) != set(protocol.COMPONENT_INPUTS)
                 or any(not _digest(value) for value in record["component_inputs"].values())):
             raise ValueError("div/rem manifest has a different closed schema")
         paths, inputs = [], {}
-        for name in wire.COMPONENT_INPUTS:
+        for name in protocol.COMPONENT_INPUTS:
             path = _input_path(name)
             value = regular_bytes(path, _LIMIT)
             if sha256(value).hexdigest() != record["component_inputs"][name]:
                 raise ValueError("div/rem current component source differs: " + name)
             paths.append((path, value))
             inputs[name] = value
-        if sha256(inputs[wire.SOURCE_NAME]).hexdigest() != record["source_sha256"]:
+        if sha256(inputs[protocol.SOURCE_NAME]).hexdigest() != record["source_sha256"]:
             raise ValueError("div/rem HIA source differs")
-        image_path = resolve_path(self.path.parent / wire.IMAGE_NAME, strict=True)
+        image_path = resolve_path(self.path.parent / protocol.IMAGE_NAME, strict=True)
         image_raw = regular_bytes(image_path, _LIMIT)
         if sha256(image_raw).hexdigest() != record["image_sha256"]:
             raise ValueError("div/rem executable differs")
@@ -153,11 +161,15 @@ class NativeDivRemBinding:
     def _context(self):
         if self.pid != os.getpid() or self.thread != threading.get_ident():
             raise NativeDivRemUnknown("div/rem binding cannot transfer process or thread")
+        if (self._protocol is not self._protocol_identity
+                or self._protocol is not wire and self._protocol is not wire.IntegerArithmeticProtocol
+                and self._protocol is not wire.IntegerScalarProtocol):
+            raise NativeDivRemUnknown("native integer protocol authority changed")
         if self._loss is not None:
             raise NativeDivRemUnknown("this div/rem binding has unconfirmed delivery") from self._loss.error
         check_resource_retirement(self, unknown=NativeDivRemUnknown)
         check_current()
-        _scope(self.path, self.source)
+        _scope(self.path, self.source, self._protocol)
 
     def _stable(self):
         for path, raw in self._captured:
@@ -178,17 +190,18 @@ class NativeDivRemBinding:
         self._busy = True
         try:
             self._stable()
-            raw = wire.request(operation, typ, lhs, rhs, _nonce())
-            source = ctypes.create_string_buffer(raw + _GUARD, wire.REQUEST_BYTES + len(_GUARD))
-            output = ctypes.create_string_buffer(b"\xa5" * wire.REPLY_BYTES + _GUARD,
-                                                 wire.REPLY_BYTES + len(_GUARD))
+            protocol = self._protocol
+            raw = protocol.request(operation, typ, lhs, rhs, _nonce())
+            source = ctypes.create_string_buffer(raw + _GUARD, protocol.REQUEST_BYTES + len(_GUARD))
+            output = ctypes.create_string_buffer(b"\xa5" * protocol.REPLY_BYTES + _GUARD,
+                                                 protocol.REPLY_BYTES + len(_GUARD))
             workspace = ctypes.create_string_buffer(_GUARD, len(_GUARD))
-            if (ctypes.sizeof(source) != wire.REQUEST_BYTES + len(_GUARD)
-                    or ctypes.sizeof(output) != wire.REPLY_BYTES + len(_GUARD)
+            if (ctypes.sizeof(source) != protocol.REQUEST_BYTES + len(_GUARD)
+                    or ctypes.sizeof(output) != protocol.REPLY_BYTES + len(_GUARD)
                     or ctypes.sizeof(workspace) != len(_GUARD)):
                 raise ValueError("div/rem private buffer capacities differ")
             entry = self.image._entry
-            call_arguments = (source, wire.REQUEST_BYTES, output, wire.REPLY_BYTES, workspace, 0)
+            call_arguments = (source, protocol.REQUEST_BYTES, output, protocol.REPLY_BYTES, workspace, 0)
             next_returns = self.native_returns + 1
             next_acknowledgements = self.acknowledgements + 1
             with NativeCall((self, vm_owner, raw, source, output, workspace)) as record:
@@ -201,10 +214,10 @@ class NativeDivRemBinding:
                     written = entry(*call_arguments)
                     self.native_returns = next_returns
                     if (source.raw != raw + _GUARD
-                            or output.raw[wire.REPLY_BYTES:] != _GUARD
+                            or output.raw[protocol.REPLY_BYTES:] != _GUARD
                             or workspace.raw != _GUARD):
                         raise ValueError("div/rem native call changed a guarded extent")
-                    decoded = wire.reply(raw, output.raw[:wire.REPLY_BYTES], written)
+                    decoded = protocol.reply(raw, output.raw[:protocol.REPLY_BYTES], written)
                     # Complete result construction and all final custody/source
                     # checks precede terminal confirmation, even for trap status.
                     self._stable()

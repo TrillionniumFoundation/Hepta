@@ -56,6 +56,55 @@ SDIST_SUPPORT_FILES=(
     'tests/fixtures/vm_integer_divrem_inputs_v1.json',
     'tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt',
     'docs/HIA_VM_INTEGER_DIVREM.md',
+    'examples/hia_bootstrap/vm_integer_arithmetic.hepta',
+    'tools/build_hia_vm_integer_arithmetic.py',
+    'tools/qualify_hia_vm_integer_arithmetic.py',
+    'tools/read_hia_vm_integer_arithmetic.py',
+    'tests/hia_vm_integer_arithmetic_cases.py',
+    'tests/hia_vm_integer_arithmetic_controls.py',
+    'tests/test_hia_vm_integer_arithmetic_native.py',
+    'tests/fixtures/vm_integer_arithmetic_inputs_v1.json',
+    'docs/HIA_VM_INTEGER_ARITHMETIC.md',
+    'examples/hia_bootstrap/vm_integer_scalar.hepta',
+    'tools/build_hia_vm_integer_scalar.py',
+    'tools/qualify_hia_vm_integer_scalar.py',
+    'tools/read_hia_vm_integer_scalar.py',
+    'tests/hia_vm_integer_scalar_cases.py',
+    'tests/hia_vm_integer_scalar_controls.py',
+    'tests/test_hia_vm_integer_scalar_native.py',
+    'tests/fixtures/vm_integer_scalar_inputs_v1.json',
+    'docs/HIA_VM_INTEGER_SCALAR.md',
+    'tests/fixtures/caller_qualifier_successor_provenance_v1.json',
+    'tests/fixtures/native_delivery_original_9c46166.json',
+    'tests/fixtures/store_native_delivery_original_c019.json',
+    'tests/hia_caller_terminal_admission.py',
+    'tests/fixtures/hia_native_build_admission_callers_aac7550.json',
+    'tests/fixtures/hia_emission_original_73f1634/original-freeze.json',
+    'tests/fixtures/hia_store_artifact_profile_callers_73f1634.json',
+    'tests/fixtures/native_transport_worker_terminal_v2_provenance.json',
+    'tests/fixtures/evaluation_worker_terminal_v2_provenance.json',
+    'tests/test_hia_native_delivery.py',
+    'tests/test_hia_native_transport_failures.py',
+    'tests/test_hia_evaluation_native.py',
+    'tools/qualify_hia_native_build_admission_callers.py',
+    'tools/qualify_hia_emission_callers.py',
+    'tools/qualify_hia_store_artifact_profile_callers.py',
+    'tests/hia_native_transport_worker_successor.py',
+    'tests/test_hia_caller_qualifier_successor.py',
+    'tests/test_hia_evaluation_worker_successor.py',
+    'tests/test_hia_store_native_delivery.py',
+    'tests/__init__.py',
+    'examples/hia_bootstrap/exec_release_policy.hepta',
+    'examples/hia_bootstrap/exec_release_packer.hepta',
+    'tools/generate_hia_exec_release.py',
+    'tools/hia_exec_release_syscalls.S',
+    'tools/build_hia_exec_release.py',
+    'tools/hia_exec_release_child.py',
+    'tools/qualify_hia_exec_release.py',
+    'tools/read_hia_exec_release.py',
+    'tests/hia_exec_release_controls.py',
+    'tests/test_hia_exec_release.py',
+    'docs/HIA_EXEC_RELEASE_NATIVE.md',
 )
 WHEEL_PACKAGE_FILES=(
     'hepta/native/slot_mechanical.c',
@@ -83,6 +132,8 @@ EXECUTABLE_CAPTURE_RESOURCES=(
 )
 # Independent explicit div/rem data; no Agent helper/default selection.
 VM_INTEGER_DIVREM_RESOURCES = ('examples/hia_bootstrap/vm_integer_divrem.hepta',)
+VM_INTEGER_ARITHMETIC_RESOURCES = ('examples/hia_bootstrap/vm_integer_arithmetic.hepta',)
+VM_INTEGER_SCALAR_RESOURCES = ('examples/hia_bootstrap/vm_integer_scalar.hepta',)
 BUNDLED_SOURCE_BINDINGS={
     'cli_control':('hepta.hia_cli_native','control'),
     'cli_format':('hepta.hia_cli_native','format'),
@@ -703,8 +754,8 @@ assert not blocked.intersection(sys.modules)
         with zipfile.ZipFile(self.wheel) as z:
             bundled={name.removeprefix('hepta/_data/') for name in z.namelist()
                      if name.startswith('hepta/_data/') and not name.endswith('/')}
-            self.assertEqual(bundled,set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES))
-            for name in (*RESOURCES,*EXECUTABLE_CAPTURE_RESOURCES,*VM_INTEGER_DIVREM_RESOURCES):
+            self.assertEqual(bundled,set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES))
+            for name in (*RESOURCES,*EXECUTABLE_CAPTURE_RESOURCES,*VM_INTEGER_DIVREM_RESOURCES,*VM_INTEGER_ARITHMETIC_RESOURCES,*VM_INTEGER_SCALAR_RESOURCES):
                 self.assertEqual(z.read('hepta/_data/'+name),(ROOT/name).read_bytes())
                 self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
             for name in SDIST_SUPPORT_FILES:

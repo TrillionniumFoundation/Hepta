@@ -1294,11 +1294,19 @@ def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
     pos = get(w, 56)
     if phase == 1 or (pos <= length(o) and remaining <= length(o) - pos):
         if phase == 2:
-            i = 0
-            while i < remaining:
-                store(o, pos + i, x & 255)
-                x = x >> 8
-                i = i + 1
+            # Output bytes retain their order without scanner-private helpers.
+            # The existing emitter dependency closure remains unchanged.
+            if remaining == 4:
+                store(o, pos, x & 255)
+                store(o, pos + 1, (x >> 8) & 255)
+                store(o, pos + 2, (x >> 16) & 255)
+                store(o, pos + 3, (x >> 24) & 255)
+            else:
+                i = 0
+                while i < remaining:
+                    store(o, pos + i, x & 255)
+                    x = x >> 8
+                    i = i + 1
         put(w, 56, pos + remaining)
         return 0
     # Real short-capacity calls retain the exact per-byte prefix writes and

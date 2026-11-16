@@ -604,26 +604,67 @@ def initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return answer(o, w, 0)
 
 def valid_state(w:mutbuf) -> u64:
-    if get(w, 0) != @STATE_MAGIC@ or get(w, 1) != @STATE_VERSION@:
+    magic = get(w, 0)
+    if magic != @STATE_MAGIC@:
         return 0
-    if get(w, 2) != 1 and get(w, 2) != 2:
+    version = get(w, 1)
+    if version != @STATE_VERSION@:
         return 0
-    if get(w, 4) == 0 or get(w, 5) < 1 or get(w, 5) > 8 or get(w, 12) > 1:
+    mode = get(w, 2)
+    if mode != 1 and mode != 2:
         return 0
-    if get(w, 9) > @FD_CLOSE_CLAIMED@:
+    sequence = get(w, 4)
+    if sequence == 0:
         return 0
-    if get(w, 2) == 2 and get(w, 9) != @FD_NONE@:
+    phase = get(w, 5)
+    if phase < 1 or phase > 8:
         return 0
-    if get(w, 11) != 0 or get(w, 13) != 0 or get(w, 14) != 0 or get(w, 15) != 0:
+    failed = get(w, 12)
+    if failed > 1:
         return 0
-    if get(w, 10) != checksum(w):
+    fd_state = get(w, 9)
+    if fd_state > @FD_CLOSE_CLAIMED@:
+        return 0
+    if mode == 2 and fd_state != @FD_NONE@:
+        return 0
+    reserved11 = get(w, 11)
+    if reserved11 != 0:
+        return 0
+    reserved13 = get(w, 13)
+    if reserved13 != 0:
+        return 0
+    reserved14 = get(w, 14)
+    if reserved14 != 0:
+        return 0
+    reserved15 = get(w, 15)
+    if reserved15 != 0:
+        return 0
+    expected = get(w, 10)
+    # Reuse only full-width words already read in this pure validation call.
+    # The other words retain their first read in the original checksum order.
+    value = 1469598103934665603
+    value = ((value << 7) | (value >> 57)) ^ magic
+    value = ((value << 7) | (value >> 57)) ^ version
+    value = ((value << 7) | (value >> 57)) ^ mode
+    value = ((value << 7) | (value >> 57)) ^ get(w, 3)
+    value = ((value << 7) | (value >> 57)) ^ sequence
+    value = ((value << 7) | (value >> 57)) ^ phase
+    value = ((value << 7) | (value >> 57)) ^ get(w, 6)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 7)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 8)
+    value = ((value << 7) | (value >> 57)) ^ fd_state
+    value = ((value << 7) | (value >> 57)) ^ reserved11
+    value = ((value << 7) | (value >> 57)) ^ failed
+    value = ((value << 7) | (value >> 57)) ^ reserved13
+    value = ((value << 7) | (value >> 57)) ^ reserved14
+    value = ((value << 7) | (value >> 57)) ^ reserved15
+    if expected != value:
         return 0
     port = get(w, 3)
-    phase = get(w, 5)
     if phase == 1 or phase == 2:
         if port == 0 or port > @MAX_PORT@ or get(w, 8) != 0:
             return 0
-        if get(w, 2) == 1:
+        if mode == 1:
             if port > @stable_release_locals@ and port != @stable_close_normal@ and port != @stable_close_error@:
                 return 0
         else:
@@ -632,18 +673,18 @@ def valid_state(w:mutbuf) -> u64:
     elif port != 0:
         return 0
     if phase == 7:
-        if get(w, 12) != 1:
+        if failed != 1:
             return 0
-        if get(w, 2) == 1:
+        if mode == 1:
             if get(w, 8) != @stable_suppressed_result@:
                 return 0
         elif get(w, 8) != @capture_roots_next@:
             return 0
     elif get(w, 8) != 0:
         return 0
-    if (phase == 3 or phase == 4) and get(w, 12) != 0:
+    if (phase == 3 or phase == 4) and failed != 0:
         return 0
-    if (phase == 5 or phase == 6) and get(w, 12) != 1:
+    if (phase == 5 or phase == 6) and failed != 1:
         return 0
     return 1
 
@@ -686,11 +727,21 @@ def answer(o:mutbuf, w:mutbuf, status:u64) -> u32:
 
 def checksum(w:mutbuf) -> u64:
     value = 1469598103934665603
-    i = 0
-    while i < 16:
-        if i != 10:
-            value = ((value << 7) | (value >> 57)) ^ get(w, i)
-        i = i + 1
+    value = ((value << 7) | (value >> 57)) ^ get(w, 0)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 1)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 2)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 3)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 4)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 5)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 6)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 7)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 8)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 9)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 11)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 12)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 13)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 14)
+    value = ((value << 7) | (value >> 57)) ^ get(w, 15)
     return value
 
 def seal(w:mutbuf) -> u64:

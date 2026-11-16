@@ -49,6 +49,8 @@ class NativeAdmissionIOSourceTests(unittest.TestCase):
         from tests.hia_native_admission_io_controls import sources
         cls.root = evidence_directory(SOURCE_EVIDENCE, 'source')
         cls.before = sources()
+        cls.regular_observer_status = 'NOT_RUN'
+        cls.regular_observer_scope = None
 
     @classmethod
     def tearDownClass(cls):
@@ -56,25 +58,42 @@ class NativeAdmissionIOSourceTests(unittest.TestCase):
         after = sources()
         write(cls.root / 'source-custody.json', {'source_before': cls.before,
               'source_after': after, 'unchanged': cls.before == after,
-              'runtime': sys.version, 'all_original_gates_still_required': True})
+              'runtime': sys.version, 'all_original_gates_still_required': True,
+              'regular_observer_status': cls.regular_observer_status,
+              'regular_observer_scope': cls.regular_observer_scope,
+              'whole_admission_qualification': 'HOLD', 'all_input_equivalence': False,
+              'legacy_v1_failure_reclassified': False})
         if cls.before != after:
             raise AssertionError('source changed during admission Source controls')
 
-    def run_control(self, action):
+    def run_control(self, action, *, regular_observer='legacy-v1'):
         from tests.hia_store_file_capture_controls import run_process, clean_environment
-        from tools.read_hia_native_admission_io import child
+        from tools.read_hia_native_admission_io import child, matched_child, MATCHED_STATUS
         script = ROOT / 'tests/hia_native_admission_io_controls.py'
-        run_process(self.root, action,
-            [script, '--action', action, '--output', self.root / action],
-            env=clean_environment(), timeout=60)
-        report = child(self.root, action, repository=ROOT)
-        self.assertEqual(report['status'], 'PASS')
+        arguments = [script, '--action', action, '--output', self.root / action]
+        if regular_observer in ('matched-v2', 'matched-v3'):
+            self.assertEqual(action, 'regular')
+            arguments += ['--regular-observer', regular_observer]
+        else:
+            self.assertEqual(regular_observer, 'legacy-v1')
+        run_process(self.root, action, arguments, env=clean_environment(), timeout=60)
+        if regular_observer in ('matched-v2', 'matched-v3'):
+            report = matched_child(self.root, repository=ROOT, observer=regular_observer)
+            self.assertEqual(report['status'], MATCHED_STATUS)
+            self.assertEqual(report['whole_admission_qualification'], 'HOLD')
+            self.assertIs(report['all_input_equivalence'], False)
+            self.assertIs(report['legacy_v1_failure_reclassified'], False)
+            type(self).regular_observer_status = report['status']
+            type(self).regular_observer_scope = report['observations']
+        else:
+            report = child(self.root, action, repository=ROOT)
+            self.assertEqual(report['status'], 'PASS')
 
     def test_01_complete_runtime_path_and_source_anchor_originals(self):
         self.run_control('paths')
 
     def test_02_original_regular_reader_and_descriptor_integrity(self):
-        self.run_control('regular')
+        self.run_control('regular', regular_observer='matched-v3')
 
     def test_03_complete_real_descriptor_IO_failure_table(self):
         self.run_control('io-failures')

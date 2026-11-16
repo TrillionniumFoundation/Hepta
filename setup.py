@@ -20,6 +20,8 @@ ROOT=Path(__file__).resolve().parent
 
 # Explicit independent VM arithmetic resource; no helper registry/default switch.
 VM_INTEGER_DIVREM_RESOURCES = ('examples/hia_bootstrap/vm_integer_divrem.hepta',)
+VM_INTEGER_ARITHMETIC_RESOURCES = ('examples/hia_bootstrap/vm_integer_arithmetic.hepta',)
+VM_INTEGER_SCALAR_RESOURCES = ('examples/hia_bootstrap/vm_integer_scalar.hepta',)
 
 def agent_resources():
     tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
@@ -60,7 +62,7 @@ class AgentResourceBuild(build_py):
         super().run()
         self._agent_outputs=[]
         names = agent_resources()
-        for name in names + executable_capture_resources(names) + VM_INTEGER_DIVREM_RESOURCES:
+        for name in names + executable_capture_resources(names) + VM_INTEGER_DIVREM_RESOURCES + VM_INTEGER_ARITHMETIC_RESOURCES + VM_INTEGER_SCALAR_RESOURCES:
             source=ROOT/name
             if not source.is_file():raise ValueError('missing Agent package resource: '+name)
             target=Path(self.build_lib)/'hepta/_data'/name

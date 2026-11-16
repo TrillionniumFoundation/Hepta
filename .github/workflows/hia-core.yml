@@ -13,7 +13,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger slot_operations cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact service_read service_slot service_inspection service_lease store_file_capture service_discovery service_verification service_bootstrap executable_capture; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger slot_operations cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation service_artifact service_read service_slot service_inspection service_lease store_file_capture service_discovery service_verification service_bootstrap executable_capture exec_release; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -104,6 +104,26 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-caller-terminal-readback-source/
             ${{ runner.temp }}/hia-caller-terminal-readback-source.log
+      - name: Exact qualifier successor Source two methods
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_CALLER_QUALIFIER_SOURCE_EVIDENCE: ${{ runner.temp }}/hia-caller-qualifier-source
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_caller_qualifier_successor.CallerQualifierSuccessorSourceTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-caller-qualifier-source.log"
+      - name: Preserve complete qualifier successor source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-caller-qualifier-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-caller-qualifier-source/
+            ${{ runner.temp }}/hia-caller-qualifier-source.log
       - name: Complete HIA integer divrem Source three methods
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
@@ -120,6 +140,38 @@ jobs:
           include-hidden-files: true
           retention-days: 7
           path: ${{ runner.temp }}/hia-vm-integer-divrem-source.log
+      - name: Complete HIA integer arithmetic Source three methods
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_vm_integer_arithmetic_native.VmIntegerArithmeticSourceTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-vm-integer-arithmetic-source.log"
+      - name: Preserve complete HIA integer arithmetic Source log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-vm-integer-arithmetic-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: ${{ runner.temp }}/hia-vm-integer-arithmetic-source.log
+      - name: Complete HIA integer scalar Source three methods
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_vm_integer_scalar_native.VmIntegerScalarSourceTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-vm-integer-scalar-source.log"
+      - name: Preserve complete HIA integer scalar Source log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-vm-integer-scalar-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: ${{ runner.temp }}/hia-vm-integer-scalar-source.log
       - name: Core source and independent reference controls
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         env:
@@ -562,7 +614,7 @@ jobs:
         run: |
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_store_file_capture_native.StoreFileCaptureSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-store-file-capture-source.log"
-      - name: Complete explicit admission I/O Source controls
+      - name: Complete admission Source controls with matched-v3 fixed-preparation observer; whole admission HOLD
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         env:
@@ -571,7 +623,7 @@ jobs:
           set -euo pipefail
           python -B tools/run_hia_unittest_gate.py tests.test_hia_native_admission_io.NativeAdmissionIOSourceTests 2>&1 | tee "$RUNNER_TEMP/hia-native-admission-source.log"
           for evidence in "$RUNNER_TEMP/hia-native-admission-source"/source-*; do
-            python -B tools/read_hia_native_admission_io.py --repository "$GITHUB_WORKSPACE" --evidence "$evidence" --phase source --output "$evidence/source-readback.json"
+            python -B tools/read_hia_native_admission_io.py --repository "$GITHUB_WORKSPACE" --evidence "$evidence" --phase source --regular-observer matched-v3 --output "$evidence/source-readback-matched-v3.json"
           done
       - name: Preserve complete admission I/O Source evidence
         if: always()
@@ -765,6 +817,22 @@ jobs:
           if-no-files-found: error
           path: ${{ runner.temp }}/hia-worker-installed-journal-source.log
 
+      - name: Complete native executable release Source three methods
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_exec_release.ExecReleaseSourceTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-exec-release-source.log"
+      - name: Preserve complete native executable release Source log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-exec-release-source-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: ${{ runner.temp }}/hia-exec-release-source.log
   native:
     runs-on: ubuntu-latest
     steps:
@@ -879,6 +947,174 @@ jobs:
             ${{ runner.temp }}/hia-vm-integer-divrem-native.log
             ${{ runner.temp }}/hia-vm-integer-divrem-READBACK.json
             ${{ runner.temp }}/hia-vm-integer-divrem-readback.log
+      - name: Build matching-source HIA integer arithmetic
+        id: vm_integer_arithmetic_build
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B - <<'PYARITHMETIC'
+          from hashlib import sha256
+          import json, os
+          from pathlib import Path
+          from tools.build_hia_vm_integer_arithmetic import build
+          cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
+          cold_raw = cold.read_bytes()
+          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
+          nested_raw = nested_path.read_bytes()
+          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          compiler_raw = compiler.read_bytes()
+          manifest_path = build(
+              Path(os.environ['RUNNER_TEMP']) / 'hia-vm-integer-arithmetic',
+              compiler, cold, development=False)
+          manifest_raw = manifest_path.read_bytes()
+          manifest = json.loads(manifest_raw)
+          build_path = manifest_path.parent / 'build.json'
+          build_raw = build_path.read_bytes()
+          build_report = json.loads(build_raw)
+          assert manifest['scope'] == 'MATCHING_SOURCE_COLD_COMPONENT'
+          assert manifest['compiler_sha256'] == sha256(compiler_raw).hexdigest()
+          assert build_report['cold_report_sha256'] == sha256(cold_raw).hexdigest()
+          assert build_report['manifest'] == manifest
+          assert build_report['manifest_sha256'] == sha256(manifest_raw).hexdigest()
+          assert cold.read_bytes() == cold_raw and nested_path.read_bytes() == nested_raw
+          assert compiler.read_bytes() == compiler_raw
+          digest = sha256(manifest_raw).hexdigest()
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
+              stream.write('manifest_sha256=' + digest + '\n')
+          (manifest_path.parent / 'operator-pins.json').write_text(json.dumps({
+              'manifest': {'bytes': len(manifest_raw), 'sha256': digest},
+              'cold': {'bytes': len(cold_raw), 'sha256': sha256(cold_raw).hexdigest()},
+              'nested': {'bytes': len(nested_raw), 'sha256': sha256(nested_raw).hexdigest()},
+              'compiler': {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()},
+              'build_report': {'bytes': len(build_raw), 'sha256': sha256(build_raw).hexdigest()},
+              'development': False}, indent=2, sort_keys=True) + '\n')
+          PYARITHMETIC
+      - name: Complete explicit HIA integer arithmetic Native eight methods
+        id: vm_integer_arithmetic_native
+        if: ${{ !cancelled() && steps.vm_integer_arithmetic_build.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_VM_INTEGER_ARITHMETIC_MANIFEST: ${{ runner.temp }}/hia-vm-integer-arithmetic/manifest.json
+          HEPTA_HIA_VM_INTEGER_ARITHMETIC_SHA256: ${{ steps.vm_integer_arithmetic_build.outputs.manifest_sha256 }}
+          HEPTA_HIA_VM_INTEGER_ARITHMETIC_EVIDENCE: ${{ runner.temp }}/hia-vm-integer-arithmetic-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_vm_integer_arithmetic_native.VmIntegerArithmeticNativeTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-vm-integer-arithmetic-native.log"
+      - name: Read complete HIA integer arithmetic original and native evidence
+        if: ${{ !cancelled() && steps.vm_integer_arithmetic_native.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_VM_INTEGER_ARITHMETIC_SHA256: ${{ steps.vm_integer_arithmetic_build.outputs.manifest_sha256 }}
+        run: |
+          set -euo pipefail
+          producer_sha256=$(python -B -c 'from hashlib import sha256; from pathlib import Path; import os; print(sha256((Path(os.environ["RUNNER_TEMP"])/"hia-vm-integer-arithmetic-native/finite/report.json").read_bytes()).hexdigest())')
+          python -B tools/read_hia_vm_integer_arithmetic.py \
+            --evidence "$RUNNER_TEMP/hia-vm-integer-arithmetic-native/finite" \
+            --manifest "$RUNNER_TEMP/hia-vm-integer-arithmetic/manifest.json" \
+            --manifest-sha256 "$HEPTA_HIA_VM_INTEGER_ARITHMETIC_SHA256" \
+            --producer-report-sha256 "$producer_sha256" \
+            --output "$RUNNER_TEMP/hia-vm-integer-arithmetic-READBACK.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-vm-integer-arithmetic-readback.log"
+      - name: Preserve complete HIA integer arithmetic construction and native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-vm-integer-arithmetic-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-vm-integer-arithmetic/
+            ${{ runner.temp }}/hia-vm-integer-arithmetic-native/
+            ${{ runner.temp }}/hia-vm-integer-arithmetic-native.log
+            ${{ runner.temp }}/hia-vm-integer-arithmetic-READBACK.json
+            ${{ runner.temp }}/hia-vm-integer-arithmetic-readback.log
+      - name: Build matching-source HIA integer scalar
+        id: vm_integer_scalar_build
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B - <<'PYSCALAR'
+          from hashlib import sha256
+          import json, os
+          from pathlib import Path
+          from tools.build_hia_vm_integer_scalar import build
+          cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
+          cold_raw = cold.read_bytes()
+          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
+          nested_raw = nested_path.read_bytes()
+          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          compiler_raw = compiler.read_bytes()
+          manifest_path = build(
+              Path(os.environ['RUNNER_TEMP']) / 'hia-vm-integer-scalar',
+              compiler, cold, development=False)
+          manifest_raw = manifest_path.read_bytes()
+          manifest = json.loads(manifest_raw)
+          build_path = manifest_path.parent / 'build.json'
+          build_raw = build_path.read_bytes()
+          build_report = json.loads(build_raw)
+          assert manifest['scope'] == 'MATCHING_SOURCE_COLD_COMPONENT'
+          assert manifest['compiler_sha256'] == sha256(compiler_raw).hexdigest()
+          assert build_report['cold_report_sha256'] == sha256(cold_raw).hexdigest()
+          assert build_report['manifest'] == manifest
+          assert build_report['manifest_sha256'] == sha256(manifest_raw).hexdigest()
+          assert cold.read_bytes() == cold_raw and nested_path.read_bytes() == nested_raw
+          assert compiler.read_bytes() == compiler_raw
+          digest = sha256(manifest_raw).hexdigest()
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
+              stream.write('manifest_sha256=' + digest + '\n')
+          (manifest_path.parent / 'operator-pins.json').write_text(json.dumps({
+              'manifest': {'bytes': len(manifest_raw), 'sha256': digest},
+              'cold': {'bytes': len(cold_raw), 'sha256': sha256(cold_raw).hexdigest()},
+              'nested': {'bytes': len(nested_raw), 'sha256': sha256(nested_raw).hexdigest()},
+              'compiler': {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()},
+              'build_report': {'bytes': len(build_raw), 'sha256': sha256(build_raw).hexdigest()},
+              'development': False}, indent=2, sort_keys=True) + '\n')
+          PYSCALAR
+      - name: Complete explicit HIA integer scalar Native eight methods
+        id: vm_integer_scalar_native
+        if: ${{ !cancelled() && steps.vm_integer_scalar_build.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_VM_INTEGER_SCALAR_MANIFEST: ${{ runner.temp }}/hia-vm-integer-scalar/manifest.json
+          HEPTA_HIA_VM_INTEGER_SCALAR_SHA256: ${{ steps.vm_integer_scalar_build.outputs.manifest_sha256 }}
+          HEPTA_HIA_VM_INTEGER_SCALAR_EVIDENCE: ${{ runner.temp }}/hia-vm-integer-scalar-native
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_vm_integer_scalar_native.VmIntegerScalarNativeTests \
+            2>&1 | tee "$RUNNER_TEMP/hia-vm-integer-scalar-native.log"
+      - name: Read complete HIA integer scalar original and native evidence
+        if: ${{ !cancelled() && steps.vm_integer_scalar_native.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_VM_INTEGER_SCALAR_SHA256: ${{ steps.vm_integer_scalar_build.outputs.manifest_sha256 }}
+        run: |
+          set -euo pipefail
+          producer_sha256=$(python -B -c 'from hashlib import sha256; from pathlib import Path; import os; print(sha256((Path(os.environ["RUNNER_TEMP"])/"hia-vm-integer-scalar-native/finite/report.json").read_bytes()).hexdigest())')
+          python -B tools/read_hia_vm_integer_scalar.py \
+            --evidence "$RUNNER_TEMP/hia-vm-integer-scalar-native/finite" \
+            --manifest "$RUNNER_TEMP/hia-vm-integer-scalar/manifest.json" \
+            --manifest-sha256 "$HEPTA_HIA_VM_INTEGER_SCALAR_SHA256" \
+            --producer-report-sha256 "$producer_sha256" \
+            --output "$RUNNER_TEMP/hia-vm-integer-scalar-READBACK.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-vm-integer-scalar-readback.log"
+      - name: Preserve complete HIA integer scalar construction and native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-vm-integer-scalar-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-vm-integer-scalar/
+            ${{ runner.temp }}/hia-vm-integer-scalar-native/
+            ${{ runner.temp }}/hia-vm-integer-scalar-native.log
+            ${{ runner.temp }}/hia-vm-integer-scalar-READBACK.json
+            ${{ runner.temp }}/hia-vm-integer-scalar-readback.log
       - name: Build matching-source HIA executable capture
         id: executable_capture_build
         if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
@@ -2791,3 +3027,82 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-worker-manifest-pins-native
             ${{ runner.temp }}/hia-worker-manifest-pins-native.log
+
+      - name: Complete current-cold source to installed executable Native five methods
+        id: exec_release_native
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B - <<'PYEXECRELEASE' 2>&1 | tee "$RUNNER_TEMP/hia-exec-release-native.log"
+          from hashlib import sha256
+          import json, os, sys
+          from pathlib import Path
+          from tools.build_hia_json_preflight import admit_cold_build
+          cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
+          cold_raw = cold.read_bytes()
+          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
+          nested_raw = nested_path.read_bytes()
+          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          compiler_raw = compiler.read_bytes()
+          admitted = admit_cold_build(compiler_raw, cold_raw)
+          if cold.read_bytes() != cold_raw or nested_path.read_bytes() != nested_raw or compiler.read_bytes() != compiler_raw:
+              raise ValueError('current-cold compiler authority changed')
+          env = {k: v for k, v in os.environ.items()
+                 if not k.startswith('HEPTA_HIA_') and not k.startswith('PYTHON')}
+          env.update(HEPTA_HIA_EXEC_RELEASE_COMPILER=str(compiler),
+                     HEPTA_HIA_EXEC_RELEASE_COLD_REPORT=str(cold.resolve()),
+                     HEPTA_HIA_EXEC_RELEASE_EVIDENCE=str(Path(os.environ['RUNNER_TEMP']) / 'hia-exec-release-native'))
+          # No new candidate is compiled here: the complete qualifier freezes
+          # its two fresh originals before any new candidate build/invocation.
+          os.execve(sys.executable, [sys.executable, '-B', 'tools/run_hia_unittest_gate.py',
+                    'tests.test_hia_exec_release.ExecReleaseNativeTests'], env)
+          PYEXECRELEASE
+      - name: Independently reread all executable release raw evidence
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' && steps.exec_release_native.outcome != 'skipped' }}
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          python -B - <<'PYEXECREAD' 2>&1 | tee "$RUNNER_TEMP/hia-exec-release-independent.log"
+          from hashlib import sha256
+          import os, sys
+          from pathlib import Path
+          from tools.hia_selfhost_process_owner import run_owned
+          root = Path.cwd().resolve()
+          evidence = Path(os.environ['RUNNER_TEMP']) / 'hia-exec-release-native'
+          report = evidence / 'report.json'
+          raw = report.read_bytes()
+          reader = root / 'tools/read_hia_exec_release.py'
+          reader_raw = reader.read_bytes()
+          out = Path(os.environ['RUNNER_TEMP']) / 'hia-exec-release-independent'
+          env = {'PATH': '/usr/bin:/bin', 'HOME': str(evidence),
+                 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8'}
+          if os.environ.get('LD_LIBRARY_PATH'):
+              env['LD_LIBRARY_PATH'] = os.environ['LD_LIBRARY_PATH']
+          result = run_owned([sys.executable, '-I', '-S', '-B', str(reader),
+              '--repo', str(root), '--report', str(report),
+              '--report-sha256', sha256(raw).hexdigest(), '--report-bytes', str(len(raw)),
+              '--output', str(out)], cwd=str(evidence), env=env,
+              stdout_path=evidence / 'ci-reader.stdout.raw',
+              stderr_path=evidence / 'ci-reader.stderr.raw',
+              receipt_path=evidence / 'ci-reader.owner.json',
+              qualification_seconds=120, cleanup_seconds=3)
+          if report.read_bytes() != raw or reader.read_bytes() != reader_raw:
+              raise ValueError('producer or reader changed during independent readback')
+          if not result['cleanup']['complete'] or not result['cleanup']['observed_echild']:
+              raise ValueError('independent reader owner did not close its actual group')
+          raise SystemExit(0 if result['returncode'] == 0 else 1)
+          PYEXECREAD
+      - name: Preserve complete executable release native and independent evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-exec-release-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-exec-release-native/
+            ${{ runner.temp }}/hia-exec-release-native.log
+            ${{ runner.temp }}/hia-exec-release-independent/
+            ${{ runner.temp }}/hia-exec-release-independent.log

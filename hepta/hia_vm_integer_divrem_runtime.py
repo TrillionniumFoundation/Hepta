@@ -19,6 +19,7 @@ from types import CodeType, FunctionType
 import weakref
 
 from . import hia_program_runtime as original
+from . import hia_vm_integer_divrem_protocol as wire
 from .hia_native_admission_io import regular_bytes, source_resource_path
 from .hia_native_delivery import check_current
 from .hia_vm_integer_divrem_native import NativeDivRemBinding, NativeDivRemUnknown, _input_path
@@ -35,6 +36,47 @@ if _native_status != 0:
     raise HIAProgramRejected("native div/rem status invariant", "E_HIA_RUNTIME_INVARIANT")
 result = [_native_value]
 """
+
+
+_ARITHMETIC_TEST = 'op in {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}'
+_ARITHMETIC_BODY = """a, b = args
+_native_status, _native_value = _hia_evaluate(self, op, typ, a, b)
+if _native_status == 3:
+    raise HIAProgramTrap("overflow", f"result is outside {typ}")
+if _native_status != 0:
+    raise HIAProgramRejected("native arithmetic status invariant", "E_HIA_RUNTIME_INVARIANT")
+result = [_native_value]
+"""
+
+
+_SCALAR_REPLACEMENTS = (
+    ('op in {"int.shl.checked", "int.shr.checked"}', """a, b = args
+_native_status, _native_value = _hia_evaluate(self, op, typ, a, b)
+if _native_status == 4:
+    raise HIAProgramTrap("overflow", "shift count is outside the word width")
+if _native_status != 0:
+    raise HIAProgramRejected("native scalar shift status invariant", "E_HIA_RUNTIME_INVARIANT")
+result = [_native_value]
+"""),
+    ('op == "int.neg.checked"', """_native_status, _native_value = _hia_evaluate(self, op, typ, args[0], 0)
+if _native_status == 3:
+    raise HIAProgramTrap("overflow", f"result is outside {typ}")
+if _native_status != 0:
+    raise HIAProgramRejected("native scalar negation status invariant", "E_HIA_RUNTIME_INVARIANT")
+result = [_native_value]
+"""),
+    ('op in {"bit.and", "bit.or", "bit.xor"}', """a, b = args
+_native_status, _native_value = _hia_evaluate(self, op, typ, a, b)
+if _native_status != 0:
+    raise HIAProgramRejected("native scalar binary-bit status invariant", "E_HIA_RUNTIME_INVARIANT")
+result = [_native_value]
+"""),
+    ('op == "bit.not"', """_native_status, _native_value = _hia_evaluate(self, op, typ, args[0], 0)
+if _native_status != 0:
+    raise HIAProgramRejected("native scalar complement status invariant", "E_HIA_RUNTIME_INVARIANT")
+result = [_native_value]
+"""),
+)
 
 
 def _same_constant(a, b):
@@ -107,8 +149,12 @@ def _cell(value):
     return (lambda: value).__closure__[0]
 
 
-def _derive(raw, factory):
+def _derive(raw, factory, *, integer_arithmetic=False, integer_scalar=False):
     """Compile definitions only; no original module/class body is executed."""
+    if type(integer_arithmetic) is not bool:
+        raise ValueError("derived integer arithmetic profile must be explicit")
+    if type(integer_scalar) is not bool or integer_scalar and not integer_arithmetic:
+        raise ValueError("derived scalar profile requires the complete integer arithmetic profile")
     tree = ast.parse(raw)
     machine = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "_Machine")
     operations = [n for n in machine.body if isinstance(n, ast.FunctionDef) and n.name == "operation"]
@@ -132,6 +178,51 @@ def _derive(raw, factory):
     if ast.dump(operation, include_attributes=False) != ast.dump(operations[0], include_attributes=False):
         raise ValueError("non-div/rem operation changed")
     selected.body = changed_body
+    if integer_arithmetic:
+        arithmetic_test = ast.dump(ast.parse(_ARITHMETIC_TEST, mode="eval").body,
+                                   include_attributes=False)
+        arithmetic_matches = [n for n in ast.walk(operation) if isinstance(n, ast.If)
+                              and ast.dump(n.test, include_attributes=False) == arithmetic_test]
+        if len(arithmetic_matches) != 1:
+            raise ValueError("original six-operation arithmetic branch differs")
+        arithmetic = arithmetic_matches[0]
+        old_arithmetic = arithmetic.body
+        arithmetic.body = ast.parse(_ARITHMETIC_BODY).body
+        for statement in arithmetic.body:
+            ast.increment_lineno(statement, old_arithmetic[0].lineno - 1)
+        changed_arithmetic = arithmetic.body
+        # Invert both selected bodies, not just the last one. All unrelated
+        # operations, original result validation and ticks stay original.
+        arithmetic.body, selected.body = old_arithmetic, old_body
+        if ast.dump(operation, include_attributes=False) != ast.dump(operations[0], include_attributes=False):
+            raise ValueError("nonselected interpreter operation changed")
+        arithmetic.body, selected.body = changed_arithmetic, changed_body
+    if integer_scalar:
+        scalar_bodies = []
+        for source_test, source_body in _SCALAR_REPLACEMENTS:
+            exact_test = ast.dump(ast.parse(source_test, mode="eval").body,
+                                  include_attributes=False)
+            scalar_matches = [n for n in ast.walk(operation) if isinstance(n, ast.If)
+                              and ast.dump(n.test, include_attributes=False) == exact_test]
+            if len(scalar_matches) != 1:
+                raise ValueError("original scalar branch differs: " + source_test)
+            branch = scalar_matches[0]
+            old_scalar = branch.body
+            changed_scalar = ast.parse(source_body).body
+            for statement in changed_scalar:
+                ast.increment_lineno(statement, old_scalar[0].lineno - 1)
+            branch.body = changed_scalar
+            scalar_bodies.append((branch, old_scalar, changed_scalar))
+        # Invert all six selected original bodies together. Ticks, argument
+        # fetches, every other opcode and final scalar validation remain exact.
+        selected.body, arithmetic.body = old_body, old_arithmetic
+        for branch, old_scalar, changed_scalar in scalar_bodies:
+            branch.body = old_scalar
+        if ast.dump(operation, include_attributes=False) != ast.dump(operations[0], include_attributes=False):
+            raise ValueError("nonselected interpreter operation changed in scalar profile")
+        selected.body, arithmetic.body = changed_body, changed_arithmetic
+        for branch, old_scalar, changed_scalar in scalar_bodies:
+            branch.body = changed_scalar
     # Preserve the original method lookup/argument expression, and guard its
     # exact target immediately before every operation. Guarding invoke only
     # at entry would allow a later class replacement to bypass the div/rem
@@ -211,6 +302,7 @@ class _Factory:
         binding.check()
         self.binding = binding
         self._binding_identity = binding
+        self._protocol_identity = binding._protocol
         self.source_path = _input_path("hepta/hia_program_runtime.py")
         raw = regular_bytes(self.source_path, 1 << 20)
         if sha256(raw).hexdigest() != RUNTIME_SHA256:
@@ -248,7 +340,10 @@ class _Factory:
                     "exec", dont_inherit=True, optimize=sys.flags.optimize)
             if not _same_code(fn.__code__, _find_code(dependency_code[path], fn.__qualname__)):
                 raise ValueError("live interpreter dependency code differs: " + name)
-        self.operation, self.invoke, self.execute = _derive(raw, self)
+        self.operation, self.invoke, self.execute = _derive(raw, self,
+            integer_arithmetic=(binding._protocol is wire.IntegerArithmeticProtocol
+                                or binding._protocol is wire.IntegerScalarProtocol),
+            integer_scalar=binding._protocol is wire.IntegerScalarProtocol)
         self.derived_stamps = tuple(_stamp(fn) for fn in (self.operation, self.invoke, self.execute))
         self.machine_type = type("_NativeDivRemMachine", (self.base_type,),
                                  {"__slots__": (), "operation": self.operation,
@@ -262,6 +357,7 @@ class _Factory:
     def check(self):
         self.binding._context()
         if (self.binding is not self._binding_identity
+                or self.binding._protocol is not self._protocol_identity
                 or original._Machine is not self.base_type
                 or any(fn is not stamp[0] for fn, stamp in zip(
                     (self.operation, self.invoke, self.execute), self.derived_stamps))
@@ -327,3 +423,36 @@ class NativeDivRemExecutor:
         return target(program, function, arguments, max_steps=max_steps,
                       max_heap_bytes=max_heap_bytes, allocation_fail_at=allocation_fail_at,
                       max_call_depth=max_call_depth, bounded_resource_limits=bounded_resource_limits)
+
+
+class NativeIntegerArithmeticExecutor(NativeDivRemExecutor):
+    """Explicit eight-op slice: the original two plus checked/wrap add/sub/mul.
+
+    No default runtime or worker-helper selector is changed. The independent
+    arithmetic manifest and complete source closure are required.
+    """
+    def __init__(self, manifest_path, expected_manifest_sha256):
+        self.binding = NativeDivRemBinding(manifest_path, expected_manifest_sha256,
+                                           _integer_arithmetic=True)
+        self._factory = _Factory(self.binding)
+        self._factory_identity = self._factory
+        self._binding_identity = self.binding
+        self._target = self._factory.execute
+        self._stamp = _stamp(self._target)
+
+
+class NativeIntegerScalarExecutor(NativeDivRemExecutor):
+    """Explicit fifteen-op integer slice; no default interpreter cutover.
+
+    The original two-operation and eight-operation executor classes above
+    retain their closed profile selection. This profile alone adds checked
+    shifts/negation and and/or/xor/not; comparisons/casts/select stay hosted.
+    """
+    def __init__(self, manifest_path, expected_manifest_sha256):
+        self.binding = NativeDivRemBinding(manifest_path, expected_manifest_sha256,
+                                           _integer_scalar=True)
+        self._factory = _Factory(self.binding)
+        self._factory_identity = self._factory
+        self._binding_identity = self.binding
+        self._target = self._factory.execute
+        self._stamp = _stamp(self._target)

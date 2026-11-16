@@ -609,12 +609,384 @@ def installed_controls(manifest, output):
             'wheel_contains_actual_capsule': True, 'report': 'installed/installed.json'}
 
 
+
+# Explicit successor observer. The legacy regular_controls function above is
+# intentionally intact: its same-process old8 -> candidate8 mode remains v1.
+REGULAR_MATCHED = 'PASS_MATCHED_FINITE_OBSERVER'
+REGULAR_CASES = (('small', 4096), ('large', 100000), ('small', 2), ('empty', 4096),
+                 ('directory', 4096), ('link', 4096), ('fifo', 4096), ('missing', 4096))
+REGULAR_LANES = ('original-a', 'original-b', 'candidate')
+REGULAR_STAT_FIELDS = ('st_dev', 'st_ino', 'st_mode', 'st_nlink', 'st_uid', 'st_gid',
+                       'st_rdev', 'st_size', 'st_atime_ns', 'st_mtime_ns', 'st_ctime_ns')
+
+
+def _matched_call(callback):
+    try:
+        return {'status': 'returned', 'value': callback()}
+    except BaseException as error:
+        return {'status': 'raised', 'error': error_record(error)}
+
+
+def _matched_stat(value):
+    return {name: getattr(value, name) for name in REGULAR_STAT_FIELDS}
+
+
+def _matched_fd(descriptor):
+    import fcntl
+    return {'fd': descriptor,
+            'readlink': _matched_call(lambda: posix.readlink('/proc/self/fd/' + str(descriptor))),
+            'fstat': _matched_call(lambda: _matched_stat(posix.fstat(descriptor))),
+            'getfd': _matched_call(lambda: fcntl.fcntl(descriptor, fcntl.F_GETFD)),
+            'getfl': _matched_call(lambda: fcntl.fcntl(descriptor, fcntl.F_GETFL)),
+            'position': _matched_call(lambda: posix.lseek(descriptor, 0, os.SEEK_CUR))}
+
+
+def _matched_fds():
+    # listdir's own temporary descriptor has closed before probing. Keep that
+    # enumerated-but-absent row, with its actual errors; this is not an atomic
+    # snapshot and no descriptor is closed, duplicated, or renumbered here.
+    import fcntl
+    names = sorted(posix.listdir('/proc/self/fd'), key=int)
+    require(all(name.isdecimal() and str(int(name)) == name for name in names),
+            'noncanonical /proc descriptor name')
+    return {'enumerated': names, 'rows': [_matched_fd(int(name)) for name in names],
+            'atomic_snapshot_claimed': False, 'fd_cleanup_performed': False}
+
+
+def _matched_inputs(base):
+    rows = {}
+    for name in ('small', 'large', 'empty', 'directory', 'link', 'fifo', 'missing'):
+        path = base / name
+        row = {'path': str(path)}
+        if name in ('small', 'large', 'empty'):
+            raw = path.read_bytes()
+            row['content'] = {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+        if name == 'link':
+            row['target'] = posix.readlink(path)
+        row['lstat'] = _matched_call(lambda p=path: _matched_stat(posix.lstat(p)))
+        rows[name] = row
+    return rows
+
+
+def _matched_initial(base):
+    import resource
+    limits = {name: list(resource.getrlimit(getattr(resource, name))) for name in (
+        'RLIMIT_NOFILE', 'RLIMIT_NPROC', 'RLIMIT_CPU', 'RLIMIT_AS',
+        'RLIMIT_DATA', 'RLIMIT_STACK', 'RLIMIT_CORE')}
+    tasks = sorted(int(name) for name in posix.listdir('/proc/self/task'))
+    inputs = _matched_inputs(base)
+    common = {'runtime': {'executable': sys.executable, 'version': sys.version,
+                         'implementation': sys.implementation.name, 'flags': str(sys.flags)},
+              'cwd': posix.getcwd(), 'uid': posix.getuid(), 'euid': posix.geteuid(),
+              'gid': posix.getgid(), 'egid': posix.getegid(), 'groups': posix.getgroups(),
+              'environment_sha256': sha256(canonical(dict(os.environ))).hexdigest(),
+              'limits': limits, 'inputs': inputs, 'fds': _matched_fds()}
+    return {'common': common, 'task_ids': tasks,
+            'full_process_or_heap_equivalence_claimed': False}
+
+
+def _matched_lane(args):
+    import time
+    version = _regular_version(args.regular_observer)
+    args.output.mkdir(mode=0o700)
+    started = time.monotonic_ns()
+    before = sources()
+    write(args.output / 'source-before.json', before)
+    plan_raw = args.regular_plan.read_bytes()
+    plan = json.loads(plan_raw)
+    require(plan['schema'] == 'hepta.hia.native-admission-regular-plan.v' + version
+            and plan['source_before'] == before and plan['input_root'] == str(args.regular_base)
+            and plan['lanes'] == list(REGULAR_LANES)
+            and plan['cases'] == [{'index': i, 'id': name, 'limit': limit}
+                                 for i, (name, limit) in enumerate(REGULAR_CASES)],
+            'matched lane plan/source binding differs')
+    report = {'schema': 'hepta.hia.native-admission-regular-lane.v' + version,
+              'status': 'HOLD', 'lane': args.regular_lane,
+              'pid': posix.getpid(), 'ppid': posix.getppid(), 'pgid': posix.getpgrp(),
+              'argv': list(sys.argv), 'cwd': posix.getcwd(), 'started_monotonic_ns': started,
+              'source_before': before, 'plan_sha256': sha256(plan_raw).hexdigest(),
+              'provider_replaced': False, 'fd_cleanup_performed': False,
+              'whole_admission_qualification': 'HOLD', 'all_input_equivalence': False}
+    failure = None
+    try:
+        reference = originals()['_regular_bytes']
+        if args.regular_lane == 'candidate':
+            from hepta import hia_native_admission_io as io
+            provider = io.regular_bytes
+        else:
+            provider = reference
+        report['initial'] = _matched_initial(args.regular_base)
+        # Exactly the original eight uninterrupted outcome calls. In particular,
+        # there is no per-case probe, output write, manual close, or extra call.
+        rows = [{'id': name, 'outcome': outcome(lambda n=name, bound=limit:
+                 provider(args.regular_base / n, bound))} for name, limit in REGULAR_CASES]
+        report['final_fds'] = _matched_fds()
+        directory = rows[4]['outcome']
+        filename = directory.get('error', {}).get('filename', {})
+        require(directory.get('status') == 'raised'
+                and filename.get('type') == 'int' and type(filename.get('value')) is int,
+                'directory observation has no actual integer filename')
+        report['directory_filename'] = filename['value']
+        report['directory_fd_after_all_eight'] = _matched_fd(filename['value'])
+        report['inputs_after'] = _matched_inputs(args.regular_base)
+        report['ordered_cases'] = plan['cases']
+        write(args.output / 'observations.json', rows)
+        report['observation_pin'] = {'bytes': len(canonical(rows)),
+                                     'sha256': sha256(canonical(rows)).hexdigest()}
+        report['status'] = 'LANE_RECORDED'
+    except BaseException as error:
+        report['error'] = error_record(error);failure = error
+    finally:
+        report['source_after'] = sources()
+        report['source_unchanged'] = report['source_after'] == before
+        report['plan_unchanged'] = args.regular_plan.read_bytes() == plan_raw
+        report['ended_monotonic_ns'] = time.monotonic_ns()
+        if not report['source_unchanged'] or not report['plan_unchanged']:
+            report['status'] = 'HOLD'
+        write(args.output / 'report.json', report)
+    if failure is not None:
+        raise failure
+    require(report['status'] == 'LANE_RECORDED', 'matched lane custody changed')
+    return 0
+
+
+def _regular_version(observer):
+    require(type(observer) is str and observer in ('matched-v2', 'matched-v3'),
+            'unknown matched regular observer version')
+    return '3' if observer == 'matched-v3' else '2'
+
+
+def _matched_prepare_inputs(base, output, before):
+    """Record one fixed setup history before any lane; never retry a provider."""
+    import time
+    record = {
+        'schema': 'hepta.hia.native-admission-regular-input-preparation.v3',
+        'status': 'HOLD', 'input_root': str(base),
+        'owner_pid': posix.getpid(), 'owner_pgid': posix.getpgrp(),
+        'source_before': before,
+        'requested_delay_ns': 1000000000, 'delay_calls': 0, 'snapshot_calls': 0,
+        'provider_calls': 0, 'fd_cleanup_performed': False,
+        'timestamp_override_performed': False, 'retry_performed': False,
+        'candidate_derived_expectation': False,
+        'whole_admission_qualification': 'HOLD', 'all_input_equivalence': False,
+        'started_monotonic_ns': time.monotonic_ns(),
+        'started_time_ns': time.time_ns(), 'error': None,
+    }
+    failure = None
+    try:
+        record['before_snapshot_started_monotonic_ns'] = time.monotonic_ns()
+        record['snapshot_calls'] = 1
+        record['before_inputs'] = _matched_inputs(base)
+        record['before_snapshot_ended_monotonic_ns'] = time.monotonic_ns()
+        record['delay_started_time_ns'] = time.time_ns()
+        record['delay_started_monotonic_ns'] = time.monotonic_ns()
+        record['delay_calls'] = 1
+        # One declared second is inside the existing enclosing 60-second owner.
+        # This is not a stability polling loop and does not change any timestamp.
+        time.sleep(1)
+        record['delay_ended_monotonic_ns'] = time.monotonic_ns()
+        record['delay_ended_time_ns'] = time.time_ns()
+        record['after_snapshot_started_monotonic_ns'] = time.monotonic_ns()
+        record['snapshot_calls'] = 2
+        record['after_inputs'] = _matched_inputs(base)
+        record['after_snapshot_ended_monotonic_ns'] = time.monotonic_ns()
+        record['status'] = 'PREPARED_FIXED_HISTORY'
+    except BaseException as error:
+        record['error'] = error_record(error)
+        failure = error
+    finally:
+        record['ended_time_ns'] = time.time_ns()
+        record['ended_monotonic_ns'] = time.monotonic_ns()
+        write(output / 'input-preparation.json', record)
+    if failure is not None:
+        raise failure
+    return record
+
+
+def _matched_regular(output, before, *, observer='matched-v2'):
+    import subprocess
+    import time
+    version = _regular_version(observer)
+    with tempfile.TemporaryDirectory(prefix='hia-admission-regular-') as temporary:
+        base = Path(temporary)
+        (base / 'small').write_bytes(b'bounded\0bytes\n')
+        (base / 'large').write_bytes(bytes(range(256)) * 300)
+        (base / 'empty').write_bytes(b'')
+        (base / 'directory').mkdir()
+        (base / 'link').symlink_to('small')
+        posix.mkfifo(base / 'fifo')
+        environment = dict(os.environ)
+        preparation = None
+        if observer == 'matched-v3':
+            preparation = _matched_prepare_inputs(base, output, before)
+        plan = {'schema': 'hepta.hia.native-admission-regular-plan.v' + version,
+                'lanes': list(REGULAR_LANES), 'source_before': before,
+                'cases': [{'index': i, 'id': name, 'limit': limit}
+                          for i, (name, limit) in enumerate(REGULAR_CASES)],
+                'input_root': str(base),
+                'input_before': (_matched_inputs(base) if observer == 'matched-v2'
+                                 else preparation['after_inputs']),
+                'owner_pid': posix.getpid(), 'owner_pgid': posix.getpgrp(),
+                'environment_sha256': sha256(canonical(environment)).hexdigest(),
+                'owner_budget_seconds': 60, 'owner_cleanup_seconds': 3,
+                'additional_lane_budget': None,
+                'launch': {'close_fds': True, 'start_new_session': False,
+                           'stdin': 'INHERIT', 'stdout': 'INHERIT', 'stderr': 'INHERIT'},
+                'whole_admission_qualification': 'HOLD', 'all_input_equivalence': False}
+        if observer == 'matched-v3':
+            preparation_path = output / 'input-preparation.json'
+            preparation_raw = preparation_path.read_bytes()
+            require(preparation_raw == canonical(preparation),
+                    'fixed preparation raw bytes differ from the actual record')
+            plan['input_preparation'] = {'path': str(preparation_path),
+                'bytes': len(preparation_raw), 'sha256': sha256(preparation_raw).hexdigest()}
+            from tools.read_hia_native_admission_io import matched_input_preparation
+            matched_input_preparation(plan, preparation)
+        plan_path = output / 'matched-plan.json'
+        write(plan_path, plan)
+        receipts = []
+        for lane in REGULAR_LANES:
+            command = [sys.executable, '-I', '-B', str(Path(__file__).absolute()),
+                       '--action', 'regular', '--output', str(output / lane),
+                       '--regular-observer', observer, '--regular-lane', lane,
+                       '--regular-base', str(base), '--regular-plan', str(plan_path)]
+            receipt = {'schema': 'hepta.hia.native-admission-regular-lane-owner.v' + version,
+                       'lane': lane, 'command': command, 'cwd': str(ROOT),
+                       'owner_pid': posix.getpid(), 'owner_pgid': posix.getpgrp(),
+                       'environment_sha256': plan['environment_sha256'],
+                       'launch': plan['launch'], 'additional_lane_budget': None,
+                       'started_monotonic_ns': time.monotonic_ns()}
+            process = subprocess.Popen(command, cwd=ROOT, env=environment,
+                                       close_fds=True, start_new_session=False,
+                                       stdin=None, stdout=None, stderr=None)
+            receipt['pid'] = process.pid
+            # The original run_process 60-second owner bounds this wait and all
+            # three descendants together. No new session or per-lane deadline.
+            write(output / (lane + '.start.json'), receipt)
+            receipt['returncode'] = process.wait()
+            receipt['leader_reaped'] = process.returncode is not None
+            receipt['ended_monotonic_ns'] = time.monotonic_ns()
+            write(output / (lane + '.result.json'), receipt)
+            receipts.append(receipt)
+        write(output / 'input-after.json', _matched_inputs(base))
+        require(all(type(row['returncode']) is int and row['returncode'] == 0
+                    and row['leader_reaped'] is True for row in receipts),
+                'a complete matched lane did not finish naturally')
+        lane_reports = [json.loads((output / lane / 'report.json').read_bytes())
+                        for lane in REGULAR_LANES]
+        # Reader code is data-only. It independently checks the full actual
+        # preconditions before a comparison is eligible; it never imports a
+        # product provider or derives an expected observation from candidate.
+        from tools.read_hia_native_admission_io import matched_preconditions
+        matched_preconditions(plan, lane_reports, json.loads((output / 'input-after.json').read_bytes()),
+                              observer=observer, preparation=preparation)
+        observations = [json.loads((output / lane / 'observations.json').read_bytes())
+                        for lane in REGULAR_LANES]
+        expected, repeat, actual = observations
+        write(output / 'expected.json', expected)
+        write(output / 'repeat-original.json', repeat)
+        write(output / 'actual.json', actual)
+        differences = [{'index': i, 'original_a': a, 'original_b': b, 'candidate': c}
+                       for i, (a, b, c) in enumerate(zip(expected, repeat, actual))
+                       if a != b or a != c]
+        write(output / 'differences.json', differences)
+        require(all(len(rows) == 8 for rows in observations) and not differences
+                and canonical(expected) == canonical(repeat) == canonical(actual),
+                'complete matched admission original comparison differs')
+        final_a, final_b, final_c = [row['final_fds'] for row in lane_reports]
+        require(final_a == final_b, 'repeat-original final FD state differs')
+        lifecycle = {'schema': 'hepta.hia.native-admission-regular-fd-lifecycle.v' + version,
+                     'status': ('FD_STATES_EQUAL_IN_OBSERVED_DOMAIN' if final_a == final_c
+                                else 'FD_SEMANTICS_DIFFERENT'),
+                     'original_repeat_equal': True, 'candidate_end_state_equal': final_a == final_c,
+                     'cutpoint': 'AFTER_ALL_EIGHT_BEFORE_TERMINAL_REPORT_FILES',
+                     'close_call_or_count_claimed': False, 'fd_cleanup_performed': False,
+                     'directory_probes': [row['directory_fd_after_all_eight'] for row in lane_reports],
+                     'whole_admission_qualification': 'HOLD', 'all_input_equivalence': False}
+        write(output / 'fd-lifecycle.json', lifecycle)
+        from hepta import hia_native_admission_io as io
+        flags = [];inheritable = []
+        captured = io._CAPABILITIES
+        def observe_open(*args, **kwargs):
+            descriptor = captured[io._OPEN](*args, **kwargs)
+            flags.append(descriptor)
+            inheritable.append(posix.get_inheritable(descriptor))
+            return descriptor
+        changed = list(captured);changed[io._OPEN] = observe_open
+        capsule = io._AdmissionIO(tuple(changed))
+        require(capsule.regular_bytes(base / 'small', 4096) == (base / 'small').read_bytes(),
+                'explicit admission reader returned different bytes')
+        require(len(flags) == 1 and not descriptor_open(flags[0]) and inheritable == [False],
+                'healthy admission descriptor escaped or lacked CLOEXEC')
+        write(output / 'healthy-descriptor.json', {
+            'opened': flags, 'inheritable': inheritable, 'one_descriptor_closed': True})
+        return {'count': 8, 'lanes': list(REGULAR_LANES), 'actual_outcome_calls': 24,
+                'differences': 0, 'one_descriptor_closed': True,
+                'fd_lifecycle_status': lifecycle['status'],
+                'qualification_scope': 'MATCHED_INITIAL_FD_FINITE_VALUE_ERROR_OBSERVER_ONLY',
+                'whole_admission_qualification': 'HOLD', 'all_input_equivalence': False,
+                'legacy_v1_failure_reclassified': False}
+
+
+def _matched_main(args):
+    import time
+    version = _regular_version(args.regular_observer)
+    require(args.action == 'regular' and args.manifest is None,
+            'matched observer is only the explicit Source regular successor')
+    if args.regular_lane is not None:
+        require(args.regular_base is not None and args.regular_plan is not None,
+                'matched lane lacks actual input root/plan')
+        return _matched_lane(args)
+    require(args.regular_base is None and args.regular_plan is None,
+            'top-level matched observer acquired lane-only arguments')
+    args.output.mkdir(mode=0o700)
+    before = sources();write(args.output / 'source-before.json', before)
+    report = {'schema': 'hepta.hia.native-admission-regular-matched-control.v' + version,
+              'status': 'HOLD', 'action': 'regular', 'observer': args.regular_observer,
+              'pid': posix.getpid(), 'ppid': posix.getppid(), 'pgid': posix.getpgrp(),
+              'runtime': {'executable': sys.executable, 'version': sys.version,
+                          'implementation': sys.implementation.name},
+              'started_monotonic_ns': time.monotonic_ns(), 'source_before': before,
+              'qualified_whole_native_stack': False, 'native_Capture_inputs_replaced': False,
+              'whole_admission_qualification': 'HOLD', 'all_input_equivalence': False,
+              'legacy_v1_failure_reclassified': False}
+    failure = None
+    try:
+        report['observations'] = _matched_regular(args.output, before, observer=args.regular_observer)
+        report['status'] = REGULAR_MATCHED
+    except BaseException as error:
+        report['error'] = error_record(error);failure = error
+    finally:
+        report['source_after'] = sources()
+        report['source_unchanged'] = report['source_after'] == before
+        if not report['source_unchanged']:
+            report['status'] = 'HOLD'
+        report['ended_monotonic_ns'] = time.monotonic_ns()
+        report['files'] = {str(path.relative_to(args.output)): {
+            'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+            for path in sorted(args.output.rglob('*')) if path.is_file()
+            for raw in [path.read_bytes()]}
+        write(args.output / 'report.json', report)
+    if failure is not None:
+        raise failure
+    require(report['source_unchanged'], 'actual matched observer source changed')
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--action', required=True, choices=ACTIONS)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--manifest', type=Path)
+    parser.add_argument('--regular-observer', choices=('matched-v2', 'matched-v3'))
+    parser.add_argument('--regular-lane', choices=REGULAR_LANES)
+    parser.add_argument('--regular-base', type=Path)
+    parser.add_argument('--regular-plan', type=Path)
     args = parser.parse_args()
+    if args.regular_observer in ('matched-v2', 'matched-v3'):
+        return _matched_main(args)
+    require(args.regular_lane is None and args.regular_base is None and args.regular_plan is None,
+            'legacy observer does not accept matched-only lane arguments')
     args.output.mkdir(mode=0o700)
     before = sources();write(args.output / 'source-before.json', before)
     report = {'schema': 'hepta.hia.native-admission-io-control.v1', 'action': args.action,
