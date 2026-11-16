@@ -12,7 +12,7 @@ and separate 3.12 / 3.13+ resolver paths. No user path policy is added.
 """
 from __future__ import annotations
 
-from errno import EBADF, ELOOP, ENOENT, ENOTDIR
+from errno import EBADF, EISDIR, ELOOP, ENOENT, ENOTDIR
 from pathlib import Path
 import stat
 import sys
@@ -252,7 +252,11 @@ class _AdmissionIO:
         descriptor = self._ops[_OPEN](path, _OPEN_FLAGS)
         try:
             before = self._ops[_FSTAT](descriptor)
-            if not _IS_REG(before.st_mode) or not 0 < before.st_size <= limit:
+            mode = before.st_mode
+            if _IS_DIR(mode):
+                # fdopen rejects directories before the original bounded-file check.
+                raise IsADirectoryError(EISDIR, self._ops[_STRERROR](EISDIR), descriptor)
+            if not _IS_REG(mode) or not 0 < before.st_size <= limit:
                 raise ValueError('store-lifecycle input must be a bounded ordinary file')
             remaining = limit + 1
             parts = []

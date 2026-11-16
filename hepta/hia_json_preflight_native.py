@@ -6,7 +6,6 @@ all-input refinement proof; independent qualification remains mandatory.
 The compiled HIA program only checks syntax/budgets: it builds no JSON values.
 """
 from __future__ import annotations
-import ctypes
 from functools import lru_cache
 from hashlib import sha256
 import json
@@ -65,6 +64,25 @@ def _source_resource_path(name):
 SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hepta')
 
 
+def _ensure_ctypes():
+    """Bind the real FFI module only when native operations are requested."""
+    global ctypes
+    if 'ctypes' not in globals():
+        import ctypes as selected
+        if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+            raise RuntimeError('native ctypes import is still active')
+        # A failed or recursively incomplete import never becomes our binding.
+        # Existing explicit module-global replacements retain their old role.
+        ctypes = selected
+    return ctypes
+
+
+def __getattr__(name):
+    if name == 'ctypes':
+        return _ensure_ctypes()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:
     bound = min(maximum, size // 4 + 1)
     slots = 2
@@ -95,6 +113,7 @@ if hasattr(os, 'register_at_fork'):
 
 def _mapping_mprotect():
     global _MAPPING_ABI, _MAPPING_ABI_BUILDING
+    _ensure_ctypes()
     while True:
         with _MAPPING_ABI_LOCK:
             if _MAPPING_ABI is not None:
@@ -123,6 +142,7 @@ def _mapping_mprotect():
 class NativeHiaJsonImage:
     """Pinned immutable code, private per-call scratch; concurrent calls allowed."""
     def __init__(self, image: bytes, expected_sha256: str):
+        _ensure_ctypes()
         if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
                 or ctypes.sizeof(ctypes.c_void_p) != 8):
             raise ValueError('native HIA JSON image requires Linux x86-64 LP64')
@@ -150,6 +170,7 @@ class NativeJsonPreflight(NativeHiaJsonImage):
                 or type(max_nodes) is not int or not 1 <= max_nodes <= MAX_NODES
                 or type(max_depth) is not int or not 0 <= max_depth <= MAX_DEPTH):
             raise ValueError('outside native HIA JSON preflight profile')
+        _ensure_ctypes()
         key_bytes, stack_bytes = scratch_sizes(len(wire), max_nodes, max_depth)
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
         keys = ctypes.create_string_buffer(key_bytes)

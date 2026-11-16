@@ -153,6 +153,10 @@ def verify_rows(root, rows, aliases):
             "scope": "retained original bytes only; not a new experiment or safety proof"}
 
 
+class _GitCommandFailed(ValueError):
+    """An owned Git command ended unsuccessfully within its admitted bounds."""
+
+
 def _git_output(root, args, limit, input_bytes=None):
     """Read bounded output from an owned, local Git process without filters.
 
@@ -190,7 +194,7 @@ def _git_output(root, args, limit, input_bytes=None):
             if expired.is_set():
                 raise ValueError("Git evidence command exceeded its deadline")
             if returncode != 0:
-                raise ValueError("Git evidence command failed; revision or object is unavailable")
+                raise _GitCommandFailed("Git evidence command failed; revision or object is unavailable")
             return raw
         finally:
             timer.cancel()
@@ -257,19 +261,26 @@ def verify_git_rows(root, rows, revision):
     admitted = []
     if candidates:
         request = "".join(oid + "\n" for _, _, oid in candidates).encode("ascii")
-        info = _git_output(root, ["cat-file", "--batch-check"], len(candidates) * 128, request)
-        lines = info.splitlines()
-        if len(lines) != len(candidates):
-            raise ValueError("Incomplete historical Git object metadata")
-        for (name, row, oid), line in zip(candidates, lines):
-            parts = line.decode("ascii").split()
-            if (len(parts) != 3 or parts[0] != oid or parts[1] != "blob"
-                    or not parts[2].isdigit()):
+        try:
+            info = _git_output(root, ["cat-file", "--batch-check"], len(candidates) * 128, request)
+        except _GitCommandFailed:
+            # No metadata was admitted. Preserve the complete denominator and
+            # refuse every requested blob without attempting a payload read.
+            for name, _, _ in candidates:
                 failures.append({"path": name, "reason": "Historical Git blob metadata is unavailable"})
-            elif int(parts[2]) != row["bytes"]:
-                failures.append({"path": name, "reason": "Original size mismatch in selected Git commit"})
-            else:
-                admitted.append((name, row, oid))
+        else:
+            lines = info.splitlines()
+            if len(lines) != len(candidates):
+                raise ValueError("Incomplete historical Git object metadata")
+            for (name, row, oid), line in zip(candidates, lines):
+                parts = line.decode("ascii").split()
+                if (len(parts) != 3 or parts[0] != oid or parts[1] != "blob"
+                        or not parts[2].isdigit()):
+                    failures.append({"path": name, "reason": "Historical Git blob metadata is unavailable"})
+                elif int(parts[2]) != row["bytes"]:
+                    failures.append({"path": name, "reason": "Original size mismatch in selected Git commit"})
+                else:
+                    admitted.append((name, row, oid))
 
     if admitted:
         request = "".join(oid + "\n" for _, _, oid in admitted).encode("ascii")

@@ -18,6 +18,9 @@ MechanicalBuildExt, extensions = _mechanical_build.MechanicalBuildExt, _mechanic
 
 ROOT=Path(__file__).resolve().parent
 
+# Explicit independent VM arithmetic resource; no helper registry/default switch.
+VM_INTEGER_DIVREM_RESOURCES = ('examples/hia_bootstrap/vm_integer_divrem.hepta',)
+
 def agent_resources():
     tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
     values={}
@@ -36,11 +39,28 @@ def agent_resources():
         raise ValueError('invalid or duplicate Agent resource paths')
     return names
 
+def executable_capture_resources(existing):
+    """Explicit data for an independently selected component; no product import."""
+    path = ROOT / 'hepta/hia_executable_capture.py'
+    tree = ast.parse(path.read_text())
+    declarations = [node for node in tree.body if isinstance(node, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == 'PACKAGE_RESOURCES'
+                            for target in node.targets)]
+    if len(declarations) != 1:
+        raise ValueError('one executable-capture package resource tuple is required')
+    names = ast.literal_eval(declarations[0].value)
+    if (type(names) is not tuple or any(type(name) is not str or not name
+            or Path(name).is_absolute() or '..' in Path(name).parts for name in names)
+            or len(names) != len(set(names)) or set(names) & set(existing)):
+        raise ValueError('invalid or duplicate executable-capture package resources')
+    return names
+
 class AgentResourceBuild(build_py):
     def run(self):
         super().run()
         self._agent_outputs=[]
-        for name in agent_resources():
+        names = agent_resources()
+        for name in names + executable_capture_resources(names) + VM_INTEGER_DIVREM_RESOURCES:
             source=ROOT/name
             if not source.is_file():raise ValueError('missing Agent package resource: '+name)
             target=Path(self.build_lib)/'hepta/_data'/name

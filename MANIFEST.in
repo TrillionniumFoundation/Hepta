@@ -204,3 +204,36 @@ include tools/qualify_hia_slot_mechanical_public.py
 include tools/read_hia_slot_mechanical_admission.py
 include tools/read_hia_slot_mechanical_installed.py
 include tools/read_hia_slot_mechanical_observations.py
+
+# Separately selected HIA executable-capture source and primitive resources.
+include examples/hia_bootstrap/executable_capture.hepta
+include tools/hia_executable_capture_syscalls.S
+include tools/generate_hia_executable_capture.py
+include tools/build_hia_executable_capture.py
+include tools/qualify_hia_selfhost.py
+include tools/build_hia_source_build.py
+include tools/build_hia_json_preflight.py
+include tools/qualify_hia_store_file_capture_originals.py
+include tools/generate_hia_selfhost.py
+include tests/fixtures/executable_capture_r19_original.py.txt
+include tests/hia_executable_capture_originals.py
+include tests/fixtures/executable_capture_cases.json
+include tests/test_hia_executable_capture.py
+include docs/HIA_EXECUTABLE_CAPTURE.md
+
+# Additional executable-capture receipt-v2 controls.
+include tests/hia_executable_capture_receipt_controls.py
+include tests/test_hia_executable_capture_receipt.py
+include tests/fixtures/executable_capture_receipt_controls_v2.json
+
+# Explicit HIA VM div/rem slice; no default VM/helper registry selection.
+include examples/hia_bootstrap/vm_integer_divrem.hepta
+include tools/build_hia_vm_integer_divrem.py
+include tools/qualify_hia_vm_integer_divrem.py
+include tools/read_hia_vm_integer_divrem.py
+include tests/hia_vm_integer_divrem_cases.py
+include tests/hia_vm_integer_divrem_controls.py
+include tests/test_hia_vm_integer_divrem_native.py
+include tests/fixtures/vm_integer_divrem_inputs_v1.json
+include tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt
+include docs/HIA_VM_INTEGER_DIVREM.md

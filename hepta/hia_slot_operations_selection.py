@@ -183,7 +183,8 @@ class _MechanicalOwner:
 
 class _SlotControlMethod:
     """Intentionally non-data: Python's original override priority remains."""
-    __slots__ = ('mode', 'name', 'references', 'is_static', 'qualname', 'module')
+    __slots__ = ('mode', 'name', 'references', 'is_static', 'qualname', 'module',
+                 '_mechanical_definition')
 
     def __init__(self, mode, name, references):
         original = references[name]
@@ -191,6 +192,17 @@ class _SlotControlMethod:
         self.mode, self.name, self.references = mode, name, references
         self.is_static = type(original) is staticmethod
         self.qualname, self.module = function.__qualname__, function.__module__
+        # This descriptor owns its implementation as a normal class definition
+        # owns a function. Only pure continuation code is imported here: no C
+        # loader, primitive installation, captured authority or user receiver.
+        from .hia_slot_continuations import CONTINUATIONS
+        template = CONTINUATIONS[mode]
+        definition = types.FunctionType(template.__code__, function.__globals__,
+                                        name, template.__defaults__)
+        definition.__kwdefaults__ = template.__kwdefaults__
+        definition.__qualname__, definition.__module__ = self.qualname, self.module
+        definition.__doc__ = "HIA-selected real-signature mechanical continuation."
+        self._mechanical_definition = definition
 
     def __get__(self, instance, owner=None):
         binding = _selected_owner()
@@ -205,7 +217,8 @@ class _SlotControlMethod:
             captured = _MechanicalOwner(binding, bridge)
             function = bind(CONTINUATIONS[self.mode], captured, SlotOperationsFrame,
                             SlotOperationsUnknown, self.mode, self.name,
-                            self.qualname, self.module, admission=captured.admit_runtime)
+                            self.qualname, self.module, admission=captured.admit_runtime,
+                            definition=self._mechanical_definition)
             if self.is_static or instance is None:
                 return function
             return function.__get__(instance, owner)

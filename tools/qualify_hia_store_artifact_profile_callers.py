@@ -54,8 +54,8 @@ def original_inventory():
     return original, modules, planned
 
 
-def admit_original_sources(root, original):
-    """Preserve all selected and separate original files, except helper count."""
+def admit_original_sources(root, original, *, terminal_evidence=None):
+    """Preserve original source pins with exact reviewed terminal-test admission."""
     from hepta.hia_native_helpers import HELPERS
     count = len(HELPERS)
     if count < 37:
@@ -63,13 +63,21 @@ def admit_original_sources(root, original):
     baseline_line = b'        self.assertEqual(len(HELPERS), 37)\n'
     current_line = ('        self.assertEqual(len(HELPERS), ' + str(count) + ')\n').encode()
     names = {*original['prior_ordinary_9_modules'], *original['prior_separate_8_modules'], ARTIFACT_MODULE}
+    records = {original['modules'][module]['source']: original['modules'][module]['sha256']
+               for module in sorted(names)}
+    from tests.hia_caller_terminal_admission import capture_caller_terminal_admission
+    if terminal_evidence is not None and type(terminal_evidence) is not list:
+        raise ValueError('terminal admission evidence must be an explicit list')
+    terminal = capture_caller_terminal_admission(root, records, authority=FIXTURE_NAME)
     adjustments = []
     for module in sorted(names):
         record = original['modules'][module]
         name, digest = record['source'], record['sha256']
-        raw = (root / name).read_bytes()
+        raw = terminal.raw(name)
         actual = sha256(raw).hexdigest()
         if actual == digest:
+            continue
+        if terminal.permits(name, digest, raw):
             continue
         if (name != 'tests/test_hia_worker_native_helpers.py' or raw.count(current_line) != 1
                 or sha256(raw.replace(current_line, baseline_line, 1)).hexdigest() != digest):
@@ -78,6 +86,9 @@ def admit_original_sources(root, original):
             'original_helper_count': 37, 'current_helper_count': count,
             'sole_permitted_change': 'one exact registry-count assertion decimal literal',
             'all_other_source_bytes_unchanged': True})
+    proof = terminal.finish()
+    if terminal_evidence is not None:
+        terminal_evidence.append(proof)
     return adjustments
 
 
@@ -95,7 +106,8 @@ def main():
     from hepta.hia_store_artifact_profile_native import (StoreArtifactProfileFrame, SELECTOR,
         REQUEST_MAGIC, OUTPUT_BYTES, installed_store_artifact_profile)
     original, modules, expected = original_inventory()
-    count_adjustments = admit_original_sources(ROOT, original)
+    terminal_evidence = []
+    count_adjustments = admit_original_sources(ROOT, original, terminal_evidence=terminal_evidence)
     suite, planned = load_declared_suite(modules)
     planned = list(planned)
     if planned != expected:
@@ -223,6 +235,7 @@ def main():
         'new_production_wall_cap': False, 'original_18_fixture_setup_replaced': False,
         'source_and_bundle_unchanged': stable, 'source_pins': before, 'bundle_pins': bundle,
         'original_registry_count_assertion_adjustments': count_adjustments,
+        'original_terminal_test_source_admission': terminal_evidence,
         'separate_original_administrator_scope_gates': original['prior_separate_8_modules'],
         'separate_original_administrator_scope_ordered_ids': original['prior_separate_128_ordered_ids'],
         'whole_project_dynamic_caller_closure_claimed': False, 'whole_native_delivery_qualified': False}

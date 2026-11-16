@@ -1,8 +1,9 @@
-"""Exact two-source provenance for the versioned worker transport observer.
+"""Exact transport pair and optional reviewed evaluation-terminal provenance.
 
-This does not alter the thirteen production-source composition. Both original
-inventories remain immutable; only the named observer and its D0--D3 admission
-function have a separately reviewed, reversible successor.
+The existing two-source authority and all its prior combinations remain fixed.
+A separate authority admits one evaluation test-method successor only beside
+the complete reviewed pair. Neither original inventory nor the thirteen-source
+production composition is altered.
 """
 from hashlib import sha256
 import json
@@ -14,6 +15,12 @@ FIXTURE_SHA256 = '15f48d98210006523a800be1a743a7f6ce8e427838fc24d157d9bf317d6809
 TRANSPORT = 'tests/test_hia_native_transport_failures.py'
 DELIVERY = 'tests/test_hia_native_delivery.py'
 PATHS = (TRANSPORT, DELIVERY)
+EVALUATION = 'tests/test_hia_evaluation_native.py'
+EVALUATION_DEFINITION = 'EvaluationNativeTests.test_actual_installed_worker_replay_process_loss_and_source_pinning'
+EVALUATION_FIXTURE = 'tests/fixtures/evaluation_worker_terminal_v2_provenance.json'
+EVALUATION_FIXTURE_SHA256 = '49aadebc293d7051b281db3e5a589f00d86098a13a313b9c7b50f76373a2b2c9'
+EVALUATION_OLD = {'bytes': 43338, 'sha256': '22433d0de525210953c8ab23559b1cc7b3bd3575cfaa80fe2618415f03623ede'}
+EVALUATION_NEW = {'bytes': 49105, 'sha256': '673b1e330b48df5915a4a544188397e33055ac023986cb136e8b067e4574b9d3'}
 ORIGINALS = {
     'native': ('tests/fixtures/native_delivery_original_9c46166.json', {
         'bytes': 71708, 'sha256': 'a1f82e1c955ece21319cc49a0e3834658a2eeb0be7636d6f13690e1d6b83dea7'}),
@@ -68,6 +75,49 @@ def reverse_one(raw, record, original):
     return restored
 
 
+def reverse_evaluation(raw, record):
+    """Restore the full fixed original through seven exact, disjoint splices."""
+    if (type(raw) is not bytes or type(record) is not dict
+            or set(record) != {'old', 'new', 'definition', 'splices'}
+            or _canonical(record['old']) != _canonical(EVALUATION_OLD)
+            or _canonical(record['new']) != _canonical(EVALUATION_NEW)
+            or record['definition'] != EVALUATION_DEFINITION
+            or _pin(raw) != EVALUATION_NEW
+            or type(record['splices']) is not list or len(record['splices']) != 7):
+        raise ValueError('evaluation successor whole-source identity differs')
+    entries = []
+    old_end = new_end = displacement = 0
+    for item in record['splices']:
+        if (type(item) is not dict
+                or set(item) != {'old_offset', 'new_offset', 'old_hex', 'new_hex'}
+                or type(item['old_offset']) is not int or item['old_offset'] < old_end
+                or type(item['new_offset']) is not int or item['new_offset'] < new_end):
+            raise ValueError('evaluation successor splice positions differ')
+        at, target = item['old_offset'], item['new_offset']
+        before, after = _hex(item['old_hex']), _hex(item['new_hex'])
+        if (not before or not after or before == after
+                or at + displacement != target
+                or target + len(after) > len(raw)
+                or raw[target:target + len(after)] != after):
+            raise ValueError('evaluation successor exact splice differs')
+        entries.append((at, target, before, after))
+        old_end, new_end = at + len(before), target + len(after)
+        displacement += len(after) - len(before)
+    restored = raw
+    for at, target, before, after in reversed(entries):
+        restored = restored[:target] + before + restored[target + len(after):]
+    if _pin(restored) != EVALUATION_OLD:
+        raise ValueError('evaluation successor does not restore the complete original')
+    replay = restored
+    for at, target, before, after in reversed(entries):
+        if replay[at:at + len(before)] != before:
+            raise ValueError('evaluation successor original splice differs')
+        replay = replay[:at] + after + replay[at + len(before):]
+    if replay != raw:
+        raise ValueError('evaluation successor forward replay differs')
+    return restored
+
+
 def admit_terminal_sources(original_value, *, original_kind):
     if type(original_kind) is not str or original_kind not in ORIGINALS:
         raise ValueError('transport successor original authority differs')
@@ -104,12 +154,47 @@ def admit_terminal_sources(original_value, *, original_kind):
             raise ValueError('transport successor changes its exact reviewed scope')
         for name in PATHS:
             reverse_one(captured[name], value['files'][name], OLD[name])
+    evaluation_raw = (ROOT / EVALUATION).read_bytes()
+    if any(_canonical(parsed[kind]['unchanged_files'][EVALUATION])
+           != _canonical(EVALUATION_OLD) for kind in ORIGINALS):
+        raise ValueError('evaluation successor independent original pins differ')
+    evaluation_frozen = None
+    evaluation_value = None
+    if _pin(evaluation_raw) != EVALUATION_OLD:
+        if unchanged:
+            raise ValueError('evaluation successor requires the complete reviewed terminal pair')
+        evaluation_frozen = (ROOT / EVALUATION_FIXTURE).read_bytes()
+        if sha256(evaluation_frozen).hexdigest() != EVALUATION_FIXTURE_SHA256:
+            raise ValueError('evaluation successor fixed provenance changed')
+        evaluation_value = json.loads(evaluation_frozen)
+        if (type(evaluation_value) is not dict
+                or set(evaluation_value) != {'schema', 'state', 'test_source_count',
+                    'production_composition_source_count', 'path', 'original_inventories',
+                    'pair_fixture', 'required_pair', 'record'}
+                or evaluation_value['schema'] != 'hepta.hia.evaluation-terminal-test-source.v2'
+                or evaluation_value['state'] != 'FROZEN_EXACT_EVALUATION_TEST_SUCCESSOR'
+                or type(evaluation_value['test_source_count']) is not int
+                or evaluation_value['test_source_count'] != 3
+                or type(evaluation_value['production_composition_source_count']) is not int
+                or evaluation_value['production_composition_source_count'] != 13
+                or evaluation_value['path'] != EVALUATION
+                or _canonical(evaluation_value['original_inventories']) != _canonical({
+                    kind: {'path': item[0], **item[1]} for kind, item in ORIGINALS.items()})
+                or _canonical(evaluation_value['pair_fixture']) != _canonical({
+                    'path': FIXTURE, 'bytes': len(frozen), 'sha256': FIXTURE_SHA256})
+                or _canonical(evaluation_value['required_pair']) != _canonical({
+                    name: value['files'][name]['new'] for name in PATHS})):
+            raise ValueError('evaluation successor changes its exact reviewed scope')
+        reverse_evaluation(evaluation_raw, evaluation_value['record'])
     # Never refresh a prior pin from a later read. This closes the exact raw
-    # consumption and terminal reread for both files and both old authorities.
+    # consumption and terminal reread for every source and both old authorities.
     if (any((ROOT / item[0]).read_bytes() != authorities[kind]
             for kind, item in ORIGINALS.items())
             or any((ROOT / name).read_bytes() != captured[name] for name in PATHS)
-            or (frozen is not None and (ROOT / FIXTURE).read_bytes() != frozen)):
+            or (frozen is not None and (ROOT / FIXTURE).read_bytes() != frozen)
+            or (ROOT / EVALUATION).read_bytes() != evaluation_raw
+            or (evaluation_frozen is not None
+                and (ROOT / EVALUATION_FIXTURE).read_bytes() != evaluation_frozen)):
         raise ValueError('transport successor bytes changed during admission')
     if unchanged:
         return {'schema': 'hepta.hia.native-transport-terminal-admission.v2',
@@ -128,7 +213,7 @@ def admit_terminal_sources(original_value, *, original_kind):
     } for name in PATHS}
     shared = ({DELIVERY: dict(value['files'][DELIVERY]['new'])}
               if original_kind == 'store' else {})
-    return {'schema': 'hepta.hia.native-transport-terminal-admission.v2',
+    result = {'schema': 'hepta.hia.native-transport-terminal-admission.v2',
             'state': 'EXACT_TERMINAL_V2_PAIR',
             'source_adjustments': {TRANSPORT: adjustments[TRANSPORT]},
             'shared_dependency_review': shared,
@@ -138,3 +223,21 @@ def admit_terminal_sources(original_value, *, original_kind):
             'c019_unchanged_originals_after_both_reviews': 84,
             'c019_unchanged_shared_after_both_reviews': 14,
             'original_inventories_unchanged': True}
+    if evaluation_value is not None:
+        result['state'] = 'EXACT_TERMINAL_V2_PAIR_WITH_EVALUATION_V2'
+        result['source_adjustments'][EVALUATION] = {
+            'path': EVALUATION,
+            'original_bytes': EVALUATION_OLD['bytes'],
+            'original_sha256': EVALUATION_OLD['sha256'],
+            'current_bytes': EVALUATION_NEW['bytes'],
+            'current_sha256': EVALUATION_NEW['sha256'],
+            'reversible_patch_fixture_sha256': EVALUATION_FIXTURE_SHA256,
+            'scope': 'one exact versioned installed evaluation UNKNOWN terminal observation',
+            'definition': EVALUATION_DEFINITION,
+            'all_original_test_method_ids_and_scopes_preserved': True,
+            'all_other_nine_test_methods_unchanged': True,
+            'original_method_count': 10,
+        }
+        result['separate_test_successor_count'] = 3
+        result['c019_unchanged_originals_after_both_reviews'] = 83
+    return result

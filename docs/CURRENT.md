@@ -2,279 +2,350 @@
 
 HIA is the language; its canonical source suffix is lowercase `.hepta`.
 **Source naming migration is complete. Whole-product native replacement remains incomplete.**
-`whole_native_delivery_qualified=false`, `old_stack_can_be_removed=false`,
-and `production_activated=false`. The ordinary executable still enters
-`hepta.cli:hia_main`; the default release pin is `None`.
+The ordinary executable still enters `hepta.cli:hia_main`, and the default
+release pin is `None`. The current values remain
+`whole_native_delivery_qualified=false`, `old_stack_can_be_removed=false`
+and `production_activated=false`.
 
-This index describes the current implementation and the latest completed
-source-bound observations. Detailed chronological development accounts remain
-in Git history and the [active draft PR](https://github.com/TrillionniumFoundation/Hepta/pull/897).
-A result on an earlier tree does not qualify this source successor.
+This index describes the active implementation, the actual evidence and the
+remaining acceptance boundaries. Earlier complete versions remain in Git
+history and [draft PR #897](https://github.com/TrillionniumFoundation/Hepta/pull/897).
+An earlier result does not qualify a changed source snapshot.
 
-## Audited inventory and dependencies
+## Inventory and entry points
 
-The current source tree contains 2,789 indexed files. The complete predecessor
-R20 audit bound its 2,787 files to tree
-`daeaeab048c2953b6d60c2892fb946f94c955186`, published as
-[`8c2c212d974e2b0d510164e6012e609997b76c4b`](https://github.com/TrillionniumFoundation/Hepta/commit/8c2c212d974e2b0d510164e6012e609997b76c4b).
-This successor adds one exact-source admission helper and its provenance fixture;
-production modules and existing HIA source bytes remain the same inventory.
-There are 207 HIA source files: 182 assembly and 25 structured files.
-No physical `.hia`, `.hiaasm` or `.hia.json` source files remain.
-Assembly still uses the `hia-asm.v1` header; paired structured projections use
-`.core.hepta`. Command names and protocol schemas retain their existing identities.
-See [source naming](HIA_SOURCE_SUFFIX.md).
+The generated inventory records the exact current HIA source count and format
+split. The completed R22 predecessor contained 208 sources, and the new explicit
+VM div/rem controller adds one assembly source. Physical `.hia`, `.hiaasm` and
+`.hia.json` sources have been migrated.
+Assembly retains its `hia-asm.v1` identity; paired structured projections use
+`.core.hepta`. Commands and protocol schemas retain their original identities.
+The [source naming contract](HIA_SOURCE_SUFFIX.md) covers their consumers.
 
-There are 1,493 Python files in the indexed tree, of which 249 are recursive
-production modules under `hepta/`. The source contract registers 1,388 paths,
-and the native helper registry contains 50 entries. Module, helper and HIA-file
-counts measure inventory, not replacement completeness.
+The completed R22 predecessor retained **250 production Python modules**.
+The explicit div/rem slice adds three host transport/integration modules; these
+are remaining dependencies and are counted in the generated inventory.
+The capture adapter is also an explicit remaining host boundary.
+The **50 native helper entries** retain their exact original order; capture is
+a separately selected component, not an implicit worker-capsule extension.
+These counts measure inventory, not replacement completeness.
 
-| Remaining production module role | Modules |
-| --- | ---: |
-| CLI, worker and execution entry | 13 |
-| Compiler, lowering and code generation | 35 |
-| Frontend, Core admission and editing | 28 |
-| VM, finite execution and proof runtime | 29 |
-| Service, Store, scheduling and optimization | 65 |
-| Protocols, schemas, wire and codecs | 43 |
-| OS, SQL, loading and runtime providers | 36 |
-| **Total** | **249** |
-
-The classification covers the actual production directory set exactly.
-The static audit records 904 package import edges plus 50 explicit helper
-registry edges. This is a static dependency inventory; it does not establish
-dynamic caller closure. The machine-readable
-[rewrite inventory](HIA_NATIVE_REWRITE_INVENTORY.json),
+The generated [rewrite inventory](HIA_NATIVE_REWRITE_INVENTORY.json),
 [selfhost contract](HIA_SELFHOST_CORE_SUPPORT.json), and
-[language coverage](HIA_SELFHOST_LANGUAGE_COVERAGE.json) retain per-source
-identities and declared boundaries.
+[language coverage](HIA_SELFHOST_LANGUAGE_COVERAGE.json) contain the complete
+indexed counts, module classifications, source identities and declared limits.
 
-## Latest completed source-bound observations
-
-The following product results belong to the exact R20 predecessor above. Its
-full source freeze is 464,161 bytes with SHA256
-`848a64ee2c1907e7faf99c779fb1c6e0c979c6e34673b2c4d273518fb2161b46`.
-The current successor requires its own complete qualification.
-
-| Complete R20 scope | Actual outcome |
+| Public surface | Current ownership and remaining dependency |
 | --- | --- |
-| Core structure, source contract and metadata | PASS; all 26 composition commands completed naturally; three identical final metadata rounds |
-| Source58 | All 58 ordered methods PASS, no skips; three independent Worker source readers agree |
-| WorkerReport Native22 plus manifest Native2 | All 24 ordered methods PASS, no errors or skips; the fixture namespace collision is resolved |
-| Mechanical runtime boundary | Fresh eleven-source compilation PASS_BUILD_ONLY; this is not GC or whole-native qualification |
-| Bootstrap Native12 | All twelve methods completed: eleven PASS, one ERROR; the complete 15,830-case comparison retains one different case |
-| Bootstrap Source6 | HOLD at the unchanged 1,800-second deadline plus three-second cleanup; four methods completed PASS, fifth full VM comparison incomplete, sixth not started |
-| Current-source cold | HOLD at the original inner 180-second deadline; B1/B2/B3 are byte-identical, but full qualification did not finish |
-| Complete cold DATA readback | Evidence integrity PASS, qualification HOLD; all 17 references and the full 38-phase inventory read, all retained files and explicitly sealed archive members consumed; incomplete phases remain incomplete |
+| Ordinary CLI | [All 15 actions](HIA_CLI_NATIVE.md#all-15-ordinary-actions) still enter the Python CLI; selected control has 42 declared foreign effects |
+| Worker | `hia_agent_worker` constructs `HIAAgentService` and dispatches eleven public tools; `hia_resource_read` is an alias |
+| Standalone native stdio | [Six bounded commands](HIA_AGENT_STDIO_NATIVE.md), a distinct protocol and scope |
+| Build and emit | The bounded native selfhost build exists; ordinary build and `hia_emit` still retain the Python emitter |
+| Evaluate | Selected evaluation control exists; original reference VM/native runner, object/time and Store providers remain |
+| Durable state | Store/SQLite/WAL, multi-table transactions, replay and UNKNOWN custody still require their real foreign providers |
+| Final adoption | Clean installation, default startup, durable-state migration, worker handoff and confirmed retirement remain incomplete |
 
-Bootstrap's complete Native result contains 1,358,722 entries and the remaining
-difference `generator_protocol.throw-instance.outer1`. Its original 150-event
-prefix matches exactly, followed by two additional post-seal destructor events.
-The R20 relay removes additional adapter traceback frames, but does not resolve
-this lifetime difference. No unraisable exceptions were recorded.
+## Completed source-bound evidence
 
-The timed-out Source6 candidate started 1,051 cases and completed 1,050 of the
-required 15,830, with 46,374 VM entries and the same one completed differing
-case. Its candidate has no natural terminal receipt; no full-domain PASS is
-inferred. The supervisor's recorded candidate cleanup completed, and a fresh
-independent process scan found all seven recorded groups gone. The original
-failure record and raw partial rows remain unchanged.
+The latest completed broad attempt recorded here is R22, exact index tree
+`e6090c22b778a63aed4f6576c82908ba87a0ecd7`. It had 2,813 indexed
+files, 208 HIA sources, 250 production Python modules, SOURCE_FILES 1,411
+and the original 50 ordered helper entries. Its complete source freeze is
+468,492 bytes, SHA256
+`fd6ef8780d42f8d488207363c25ef3937fe4eb67d8b251394eab031b8b28e888`.
+**These results qualify only their original scopes on that tree. They do not
+qualify the subsequent source changes described below.**
 
-Earlier R19 Budget B4, Context15, Ordinary112, Journal21, installed Worker2 and
-13-source provenance10928 results remain bound to R19; they are not current-tree
-qualification. Remote R20 Native CI also recorded real route-report, v5 SQL
-argument and private-resource failures. A CI cold-step success alone does not
-replace complete source-and-raw-evidence admission of that distinct attempt.
-
-The earlier Verification/Slot GC and four-real-function closure boundaries
-remain unresolved. Mechanical C transport currently depends on CPython;
-build success does not replace the Python object, exception or GC runtime.
-
-## Current source successor
-
-Three reviewed corrections address the actual R20 failures.
-
-The worker-transport control now observes the existing UNKNOWN terminal return
-and its real error identity, causal origin, retained custody, fencing, missing
-ACK, empty stdout and actual diagnostic. Its ordinary foreign-error branch and
-the full original methods remain unchanged. The new exact admission helper
-accepts only the complete old source pair or the complete reviewed successor
-pair, verifies full inverse source bytes, and rereads every consumed source.
-Mixed pairs, unknown bytes, boolean aliases and terminal drift refuse. The two
-original inventory fixtures and the complete production-composition domain
-remain immutable.
-
-The [17-route report codec](HIA_SLOT_MECHANICAL_DUAL_ROUTE.md) preserves bytes,
-tuple/list/dict types, dictionary order and exact scalar types after the real
-route and its original assertions complete. Its independent reader checks the
-typed values against the original raw report pins. The actual empty-byte
-witness remains `b''`. The complete original `run_case` body, all 17 route IDs,
-60-second child limits and five-second cleanup/thread/fork controls remain.
-
-The [v5 mechanical boundary](HIA_SLOT_MECHANICAL_V5.md) passes an existing tuple
-as one object with `PyObject_CallMethod(..., "(O)", arg)`; it no longer expands
-that tuple as the entire argument list. The original SQL identity guard and all
-seven single-object call sites remain. Its admission fixture copies both real
-HIA source resources into the private installed-layout package, verifies them
-again, and leaves all 25 original controls and expected refusals unchanged.
-
-The new pure-data checks have actually completed: exact admission30 (four
-acceptances, 26 refusals) and trace codec41 (14 acceptances, 27 refusals), with
-independent complete raw readback and unchanged input bytes. Their combined
-readback SHA256 is
-`783edaf5e320210bbf5aa803bc7d54c6ed45e7ca8b5d67b29911e70dcdb4e3ad`.
-These checks do not replace any complete Source, Native, installed, finite,
-resource or caller gate. Every affected executable and receipt must be rebuilt
-against the current source, and current-tree product qualification is pending.
-
-No ordinary entry is activated, no live provider is removed, and no original
-case ID, observation field or budget is relaxed. Tracebacks and GC observations
-remain part of the required equivalence.
-
-
-## Implemented HIA ownership
-
-The current components below execute HIA policy within their declared profiles.
-Their linked contracts retain detailed original fixtures, caller scope and
-source-bound evidence. The host dependencies remain explicit.
-
-| Area | HIA-owned behavior | Retained host boundary |
-| --- | --- | --- |
-| [Compile and emission](HIA_EMISSION_NATIVE.md) | Both complete original methods: branch/loop control, dynamic compile calls, context-manager cleanup and suppression, generator iteration and publication order | Core emitter/compiler/linker, filesystem, Store/SQLite/clock/hash providers and opaque Python object protocols |
-| [Store artifact and profile](HIA_STORE_ARTIFACT_PROFILE_NATIVE.md) | All eight original put/json/reference/get/get-json/URI/profile/check-profile methods: original guard and dynamic global reads, short circuits, ordered reference iteration, argument evaluation, publication and cleanup control | Original filesystem, SQLite, hash, JSON and native-artifact providers, opaque object protocols and actual SQLite/generator effects; selected transaction control has its separate owner below |
-| [Native artifact and build receipt](HIA_NATIVE_BUILD_ADMISSION.md) | All four original signature/native/build-input/build-receipt methods, including ordered loops, composite checks, short circuits and nested admission | Opaque Python object protocols, original Core/context/ABI providers, Store/SQLite and SHA-256 |
-| [Evaluation](HIA_EVALUATION_NATIVE.md) | Complete original evaluation branches, case/arm iteration, correctness and completeness flags, six-outcome precedence, budget/effect order and exact integer deadlines | Original reference VM and native runner, Store/SQLite/clock providers, object protocols, integer-to-binary64 division and threshold comparison |
-| [Cost ledger](HIA_COST_LEDGER_NATIVE.md) | Original query/decode/policy ordering, 10,001-row truncation, context/unscoped selection, exact signed sums and output construction order | SQLite query/fetch, JSON decoding, row/object allocation and the original integer/string conversions |
-| [Service context](HIA_SERVICE_CONTEXT_NATIVE.md) | Context freeze/lookup, workload and budget loops, complete effect ordering, exact signed deadline arithmetic and remaining-time floor | Schema/profile/buffer providers, object/time protocols, artifact/SQLite effects and the original candidate-consumption provider |
-| [Static resources](HIA_STATIC_BUDGET_NATIVE.md) | Stable graph order, exact allocator/tick arithmetic, synchronous call depth, v7/v8 resource profile and ordered numerical policy decisions | Sole Core verification, primitive/policy shape validation, fact projection, independent heap analysis and final report hashing |
-| [Service artifact](HIA_SERVICE_ARTIFACT_NATIVE.md) | Complete original handler: profile/source branching, capture and digest checks, rejection, Store publication and ordered result construction | Original path capture, filesystem/hash/SQLite providers, opaque Python object protocols and delivery/resource custody |
-| [Store transaction](HIA_STORE_TRANSACTION_NATIVE.md) | Original lock/BEGIN, yielded body, COMMIT/ROLLBACK, exception matching, suppression and release control | CPython generator suspension/resumption, opaque protocols, SQLite effects and host delivery custody |
-| [Artifact delivery](HIA_ARTIFACT_DELIVERY.md) | Six native artifact operations with a separate private entry, nonce-bound terminal acknowledgement and original effect/cleanup order | Python process/descriptor transport, fresh source admission, filesystem effects and uncertain-delivery fencing |
-| [Store lifecycle](HIA_STORE_LIFECYCLE_NATIVE.md) | Complete constructor and close control, effect ordering, short-circuit/loop branches, original cleanup and exception propagation | Path/OS/SQLite effects, execution-budget provider, Python object protocols and exception delivery |
-| [Full cost](HIA_FULL_COST_NATIVE.md) | Eleven one-time cost fields and execution/controller/failure sums, RSS/p99 peaks, ordered baseline/dp/fixed selection, exact signed floor-ppm savings and six ordered refusals | Immutable JSON observation, field validation, identities and final report construction |
-| [Patch impact](HIA_PATCH_IMPACT_NATIVE.md) | Direct function/interface changes, old and new call graphs, duplicate elimination and transitive caller closure, including cycles and self calls | Fresh Core/patch verification, receipt checks, canonical fact projection and final report digest |
-| [CLI discovery JSON](HIA_CLI_DISCOVERY_JSON.md) | Complete capabilities/catalog JSON, pretty/canonical encoding, schema selection, metadata ordering and catalog SHA-256 | Original CLI entry, explicit selector loading, I/O and other action effects |
-| [Primitive Core diagnostics](HIA_CORE_ADMISSION_NATIVE.md) | Full semantic error text and dynamic names, complete return-type lists and corrected edge closure before predecessor comparison | Strict input snapshot/JSON decoding, composite normalization, trailer/UTF-8 transport and the original exception type |
-| [Mapping admission](../review-evidence/hia-native-cleanup-20261111/native-mapping-integration.json) | Raw mapping grammar, interval ordering, permissions, file extent, unique-match admission and first refusal | Kernel snapshot, Python function objects, descriptor/seal readback and dynamic loader |
-| [Publication measurement](../review-evidence/hia-native-cleanup-20261111/publication-measurement-integration.json) | Paired medians/deviations, ordered refusal and exact cost projections, including large intermediate integers | Clock observations, locks/cancellation/CAS, proof/build/load effects and resource custody |
-| [Scalar profile](../review-evidence/hia-native-cleanup-20261111/scalar-profile-integration.json) | v1-v7 profile restrictions, explicit/implicit exports, whole-CFG acyclicity and ordered ABI | Fresh Core verification, unchanged per-export Z3 proofs and native compilation |
-| [Generation retention](hia-generation-retention-native.md) | Registered-generation exact reference count, one-close lease cells, retired state and unique retirement-task claim | Selection/epoch/CAS, locks, preparation failures before registration, invocation and foreign cleanup |
-| [Bounded byte memory](HIA_BOUNDED_MEMORY_NATIVE.md) | Original fill/move admission and refusals, actual in-place fill and overlapping move | Exact Python object facts, buffer export lifetime, allocator and GIL custody |
-| [SHA stream](HIA_SHA256_STREAM_NATIVE.md) | Original full-width state transitions with fixed eight-byte word accesses expanded | Original bounded adapter and foreign object lifetime |
-| [Execution budget](HIA_EXECUTION_BUDGET_NATIVE.md) and [journal](HIA_AGENT_JOURNAL_NATIVE.md) | Original budget transitions and complete per-request catalog hashing, with fixed word accesses expanded | Actual clock observations, SQLite transactions, durable journal and request dispatch |
-
-
-## Public entry-point audit
-
-The complete [15-action CLI matrix](HIA_CLI_NATIVE.md#all-15-ordinary-actions)
-identifies each remaining action owner. `pyproject.toml` still installs
-`hepta.cli:hia_main`; selected CLI control executes 42 foreign effect operations
-through the Python bridge. Its declared CPython profiles do not cover the entire
-portable package's Python >=3.11 declaration. The six standalone
-[stdio commands](HIA_AGENT_STDIO_NATIVE.md) have a separate protocol and bounded
-primitive profile; they cannot substitute for all ordinary CLI actions.
-
-The worker starts through `hia_agent_worker`, constructs `HIAAgentService`, and
-dispatches these eleven public tools. The table states the hosted boundary that remains for each tool; selected
-HIA policy ownership is recorded separately above.
-
-| Worker tool | Remaining service ownership |
+| Complete R22 gate | Actual result |
 | --- | --- |
-| `hia_describe` | Complete explicitly selected Service Discovery graph; original schema/resource/import/object providers remain; no default activation is implied |
-| `hia_artifact` | Complete selected HIA handler; Capture has a separate selected graph, while actual filesystem/hash/Store/SQLite effects and opaque object protocols retain their declared providers |
-| `hia_read` | Complete selected [Service Read control](HIA_SERVICE_READ_NATIVE.md); original filesystem/SQLite/codec providers, opaque object protocols and source-bound qualification remain |
-| `hia_context` | Hosted schema/profile/buffer providers, clock/object protocols and persistence effects; selected freeze/lookup/deadline control now has the HIA owner above |
-| `hia_inspect` | Complete explicitly selected Inspection graph; original program/query/lowering/Store providers and object/exception lifetime compatibility remain |
-| `hia_candidate` | Complete explicitly selected Candidate graph; original import/edit/verification/Store providers and lifetime compatibility remain |
-| `hia_verify` | Complete explicitly selected [nine-method Service Verification controller](HIA_SERVICE_VERIFICATION_NATIVE.md); Core/ABI/solver/Store/object providers and complete source-bound qualification remain |
-| `hia_emit` | Selected HIA compile/emission control above; original Core emitter/compiler/linker, filesystem, Store/SQLite/clock/hash and opaque object providers remain |
-| `hia_evaluate` | Original reference VM/native runner, clock/object protocols, integer-to-binary64 division and threshold comparison, plus SQLite/artifact effects; selected complete evaluation control and ledger policy now have the HIA owners above |
-| `hia_adopt` | Complete explicitly selected Service Slot graph; verification claims, original ledger/transaction providers and the multi-SQL layer under separate qualification remain |
-| `hia_rollback` | Complete explicitly selected Service Slot graph; original retained-image/ledger/transaction providers and multi-SQL delivery custody remain |
+| Original Core: 151 selectors, 718 methods | 713 OK, five ERROR; every original method completed |
+| Source14 | All 14 PASS |
+| Source58 and its three original independent readers | All 58 PASS; reader domains 40, 15 and 13 complete |
+| Source10 successors | All ten PASS |
+| Mechanical extension build | PASS_BUILD_ONLY |
+| Dual-route Native1 | All 17 actual route controls PASS |
+| Original v5 Native4 | Original 1,800-second timeout; zero complete method terminals |
+| Delivery Native23 | All 23 PASS, including the actual installed Store/worker paths |
+| Evaluation10 | Nine PASS, one FAIL; all ten original methods completed |
+| Capture build | PASS_BUILD_ONLY; original compiler profile limits unchanged |
+| Capture Native5 | All five PASS, including the complete 218 structured observations and installed package |
+| Capture Receipt Native4 | All four PASS; all 72 controls and three valid extents covered |
+| Definition Native1 | All 23 controls started and stopped; 20 completed and three dependency HOLDs; the gate failed |
+| Current-source cold | Original 180-second timeout; incomplete qualification |
 
-`hia_resource_read` remains a supported alias, not a twelfth catalog tool.
-`AgentStore` now has a selected HIA owner for complete transaction control,
-including begin/commit/rollback sequencing. Actual SQLite effects, generator
-and object protocols remain hosted. Its eight artifact/profile methods likewise
-retain their unselected original bodies and explicit foreign providers. Complete selected Capture and the four Service Lease graphs are now controllers under separate qualification; actual filesystem, runner and SQLite effects remain declared providers. The service cost ledger has its
-own selected HIA policy and retained foreign primitives, separate from full-cost
-comparison. The native child runner still starts
-through Python. These live dependencies prevent deleting the hosted stack.
+Core's five errors consist of one retained-Git missing-blob metadata error
+classification and four exact caller-source admission refusals. The two earlier
+inventory errors did not recur. The caller successors below address the exact
+changed test sources; they do not exempt production files from admission.
 
+### Cold readback and development compiler
 
-## Remaining product acceptance
+The independent complete cold DATA reader reports evidence integrity PASS and
+no reader errors, while qualification remains HOLD: eight of 38 phases completed
+and 30 remain incomplete. All 17 actual references, their raw outputs and eight
+sealed archives were consumed. Its report is 47,114 bytes, SHA256
+`04bb4f677a24d12b221ac5e5676abf794ce249acce4390716579b1f056263332`.
+The complete consumption ledger is 16,119,460 bytes, SHA256
+`d77c37d4437043a15721772032901ef52ae9413a8a0829c0af647de3f7f17e5b`.
 
-Original complete domains, IDs/order, poison, GC, traceback and exception fields remain required. The original cold deadline is 180 seconds plus three seconds cleanup; full retained regression retains 5,400 seconds and component gates retain 1,800 seconds. No normalized field or selected subset replaces a complete gate.
+Actual B1, B2 and B3 agree at 673,413 bytes, SHA256
+`bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0`.
+Their native returns and input receipts support explicitly marked development
+component construction. They do not establish the complete matching-source
+cold result. Scalar-casts had actually started when the original deadline
+expired; its missing terminal is not filled in from another run.
 
-The [Service Read contract](HIA_SERVICE_READ_NATIVE.md) retains the complete 6,372-case finite domain and separate 86-case SQL domain; the detailed historical observations remain in Git history.
+### Slot lifetime and reflection
 
-| Area | Existing owner that still requires complete replacement and real caller qualification |
+A complete independent DATA readback consumed all six retained lanes, the full
+source freeze, ordered progress, handler observations and raw exceptions.
+The two complete originals match in both the 248-case and 7,574-case domains.
+The native base completed 248 cases: 246 exact handler matches and two
+differences. The derived native lane started 3,541 and stopped 3,540 cases:
+3,393 matches, 147 differences and 4,034 cases not completed.
+
+Every retained handler difference was fully read and lies in
+`alive_at_seal` or `events`; object lifetime and destructor timing remain
+observable. The base has 176 raw traceback differences and 434 post-seal
+difference entries. The recorded derived prefix has 3,379 raw traceback
+differences. No GC, traceback, exception, object identity or locals are
+normalized. Missing derived terminal, controller and final source receipts
+remain missing. All nine observed process groups were independently confirmed
+absent after the original timeout and cleanup.
+
+The DATA report is 2,183,774 bytes, SHA256
+`838d8ec644d31286dd5d914ca007138c2a3dfb590a57729864589b226454a9f5`.
+Its evidence integrity is PASS, its qualification status is HOLD and its
+actual exit is 1. Recording a prefix does not qualify the complete Native4
+class; public84/handled12, complete admission and the installed method were
+not reached.
+
+The 23 definition controls all have actual starts and stops. DEF-15, DEF-16
+and DEF-20 refuse the actual HOLD Native4 dependency. DEF-14 records an actual
+public reflection counterexample: selected function type and repeated lookup
+identity, globals, closure, annotations and class lookup do not match.
+`public_reflection_closed=false`. A control that successfully records this
+counterexample is not a proof of public transparency.
+
+### Evaluation budget diagnosis
+
+The uninstrumented complete Evaluation10 attempt remains nine PASS and one
+FAIL. Its installed-worker method passes; the six-owner public evaluation
+method fails a completion assertion. An additional full ten-method diagnostic
+also has nine PASS and one FAIL, with the original input, order, assertions,
+3,000ms total budget and 1,000ms native budget unchanged.
+
+Only after the public evaluation returned, a diagnostic wrapper captured the
+actual result and three Store artifacts before the original assertion. It
+adds wrapper frames and post-return reads and cannot qualify the original
+suite. Actual `report_complete` and `termination_confirmed` are true;
+`planned_workload_complete` is false with `outcome=budget_exceeded`.
+The baseline reference completed in 364,416,454ns. The candidate reference
+was terminated with return -9 after 63,276,028ns. Neither native run started.
+The prior context-tool cost was 1,986,050,801ns and the evaluation ledger
+recorded 580,463,006ns through report construction.
+
+The captured result is 23,244 bytes, SHA256
+`512133f262978ce7834130ac0274600b35417f8c5f128615d3fb2ae877c850de`.
+This locates the observed failure in the budget path; it does not justify
+raising a limit or declaring an unexplained intermittent failure harmless.
+
+### Historical boundaries remain
+
+R21's actual remote Core, inspection and native-job failures remain attached
+to their original source. Earlier Bootstrap Native12 completed with eleven
+PASS and one ERROR, retaining the case-209 destructor difference over its full
+15,830-case domain. Bootstrap Source6 timed out with four methods complete and
+its fifth incomplete. Discovery and verification retain actual GC differences,
+including differences on their unselected routes.
+
+Capture's earlier complete structured 218-row comparison did not consume raw
+tracebacks. A later full DATA comparison found 198 candidate raw traceback
+records different. It preserves those differences and cannot retroactively
+supply missing pre-candidate raw authority. R22's structured and native
+component passes do not prove arbitrary traceback, locals or lifetime
+equivalence.
+
+The full attempts, original failures and complete readback references are
+retained outside the product tree and summarized in
+[draft PR #897](https://github.com/TrillionniumFoundation/Hepta/pull/897).
+The original domains and deadlines are still mandatory.
+
+## Current changes
+
+### Executable capture
+
+The [new capture controller](HIA_EXECUTABLE_CAPTURE.md) owns its declared branch,
+loop, retry, audit/signal dispatch, seal/readback and cleanup decisions.
+Seven fixed raw Linux syscall operations supply the kernel effects.
+Before confirmation, the adapter binds the action to the exact current request,
+accepted workspace, sequence, kind, descriptor transition and error handle.
+A known-error terminal must carry the actual handled exception.
+
+Before any buffer write, admission checks the actual ctypes allocations,
+header/payload/canary extents, seven action operands, PREAD's extra byte and
+destination capacity. Missing or inconsistent receipts retain UNKNOWN custody
+and refuse replay. The explicit CPython 3.14.10 GIL/Linux x86-64/LP64 profile
+does not widen package or platform claims. Ordinary `_sealed_executable`
+still retains its existing route.
+
+### Slot fixed words and definition ownership
+
+Only the three fixed eight-byte Slot word helpers change. The original
+parameter-forwarding loop entry remains, followed by one iteration containing
+all eight ordered byte operations. The complete supplemental observations
+preserve first argument errors, partial stores, wrapping and loan refusals.
+This reduces loop control; it does not claim equivalence for arbitrary smaller
+tick limits or a measured whole-gate time improvement.
+
+Each class descriptor owns one internal mechanical function definition, using
+the real original global namespace and declared defaults. Each selected lookup
+still creates a fresh captured owner and C method. Every invocation retains
+admission and session checks. Complete source/receipt/executable/export reads
+are not cached away. Independent review verified all six exact splices and full
+inverse restoration of the original source pair.
+
+The public C method still differs from a Python function and does not supply
+the original repeated-lookup `__func__` identity. Reflection, mutation,
+fork/scope behavior and full GC/traceback/lifetime observations remain open
+until their complete gates pass. The actual two base and 147 recorded derived handler differences are not
+closed by changing internal definition ownership alone. See the
+[v5 executable custody contract](HIA_SLOT_MECHANICAL_V5.md).
+
+### Installed terminal and inventory contracts
+
+Store and Evaluation controls have explicit versioned UNKNOWN successors:
+strict exit 2, empty stdout, actual diagnostic and causal error identities,
+one close attempt, retained loss/custody, and original replay/poison/source drift.
+Original method IDs, requests and budgets remain. Added observation frames are
+not proof of GC or traceback neutrality. Releasing an observer's own duplicate
+arguments does not remove original frames or original locals.
+
+Resource-inventory successors retain exact sets and exact installed bytes.
+Mechanical wheel package data and separately selected capture data are distinct
+from sdist-only support files. The release contract includes non-Python
+`hepta/` resources such as the mechanical C source while separately accounting
+for automatically collected Python modules. Wildcards and subset checks do not
+replace complete source admission.
+
+### Explicit integer div/rem execution
+
+The new `vm_integer_divrem.hepta` owns checked division and remainder decisions
+for i8/u8/i16/u16/i32/u32/i64/u64/isize/usize. It checks division by zero before
+signed-minimum divided by minus one, and computes signed truncation and remainder
+in HIA. The host protocol encodes exact typed operands and decodes complete
+receipts; it has no Python quotient/remainder fallback.
+
+The 64-byte request and 96-byte reply bind a nonzero invocation nonce, operation,
+width, signedness, both operands, status, value, checksum and completion marker.
+The actual loader admits an explicitly supplied manifest digest, all 13 component
+inputs and the image. Complete source, manifest and image bytes are re-read
+before and after native delivery. Private buffer canaries, original delivery
+custody and terminal acknowledgement remain required.
+
+`NativeDivRemExecutor` is an explicit experimental entry. It derives only the
+division/remainder branch from the byte-pinned original interpreter and checks
+live code, closures, builtins and construction ownership. The original
+`hia_program_runtime.py`, Prepared, Arithmetic and default `execute_program`
+remain unchanged. Other opcodes, resource transitions, validation and report
+construction remain hosted. Compilation, the 2,500-case original-first
+comparison, independent readback and complete installed controls must bind
+the actual final source. Extra construction/validation frames and host
+allocation/GC observations do not establish all-input VM equivalence.
+
+### Source admission and first-use dependencies
+
+The retained-Git successor distinguishes an actual nonzero Git command from
+malformed metadata, size limits, deadlines and payload errors. Only the former
+becomes a missing-object metadata refusal; the complete original denominator
+is preserved and no implicit fetch is introduced.
+
+Five caller qualifiers and the independent file-capture caller reader admit
+only the exact declared Transport, Delivery and Evaluation test successors.
+They replay fixed forward/inverse byte changes, retain full source sets,
+original helpers and final rereads, and add explicit refusal/drift controls.
+Production-source exceptions, wildcard hashes and acceptance of arbitrary
+exit 1-or-2 are not introduced.
+
+The admission I/O correction restores the observed directory
+`IsADirectoryError` before the unchanged regular-file check and keeps the
+original single close. Two FFI boundary files defer real ctypes initialization,
+fixed ABI classes and the five actual emission protocol objects until they
+are needed. Emission/lifecycle and the original fixed 13-source guard remain
+unchanged. No failed import, admission result or user object is cached as a
+successful binding. First-use imports, reflection, exceptions, allocation and
+concurrent/fork behavior remain visible qualification obligations; no prewarming
+is added to the original controls.
+
+## HIA ownership and retained providers
+
+The linked contracts retain complete original domains and source-bound evidence.
+
+| HIA-owned control | Retained boundary |
 | --- | --- |
-| Ordinary CLI and build | `cli.hia_main`, remaining semantic action effects, `verify_program`, default emitter/build routing and complete diagnostics |
-| Reference runtime | Complete VM, allocator, object transport, general backend behavior and default machine/plan implementation |
-| Eleven-tool worker | `hia_agent_worker`, `HIAAgentService.call`, catalog/dispatch and backend admission |
-| Durable state | `AgentStore` SQLite/WAL, atomic multi-table transactions, replay and unknown outcomes |
-| Proof authority | The new nine-method controller requires its complete finite, lazy, resource, installed and caller qualifications; fresh Core verification and original Z3/Lean obligations remain separate |
-| Native process ownership | Runner setup, environment/limits, snapshots, termination and complete report checking |
-| Resident resources | Selection/CAS, actual invocation, libraries, sealed descriptors and confirmed cleanup of outstanding generations |
-| Final cutover | Clean install/default startup, old context/request migration, worker restart/handoff, running-image readback and confirmed retirement |
+| [Compile/emission](HIA_EMISSION_NATIVE.md), [artifact/build admission](HIA_NATIVE_BUILD_ADMISSION.md) | Core verifier/compiler/linker, object protocols, filesystem, Store/SQLite/clock/hash effects |
+| [Store artifact/profile](HIA_STORE_ARTIFACT_PROFILE_NATIVE.md), [lifecycle](HIA_STORE_LIFECYCLE_NATIVE.md), [transaction](HIA_STORE_TRANSACTION_NATIVE.md) | Filesystem/SQLite/JSON and hash providers, Python generator/exception/object semantics |
+| [Evaluation](HIA_EVALUATION_NATIVE.md), [cost ledger](HIA_COST_LEDGER_NATIVE.md), [context](HIA_SERVICE_CONTEXT_NATIVE.md) | Reference/native execution, clocks, schemas, opaque object protocols and durable state |
+| [Static resources](HIA_STATIC_BUDGET_NATIVE.md), [patch impact](HIA_PATCH_IMPACT_NATIVE.md) | Fresh Core/patch verification, independent heap analysis, proof authority and canonical reports |
+| [Service artifact](HIA_SERVICE_ARTIFACT_NATIVE.md), [Read](HIA_SERVICE_READ_NATIVE.md), [Inspection](HIA_SERVICE_INSPECTION_OWNER.md), [Lease](HIA_SERVICE_LEASE_OWNER.md) | Actual filesystem, capture, runner, Store/SQLite, imports and object providers |
+| [Discovery](HIA_SERVICE_DISCOVERY_NATIVE.md), [Verification](HIA_SERVICE_VERIFICATION_NATIVE.md), [Bootstrap](HIA_SERVICE_BOOTSTRAP_NATIVE.md) | Original schema/import/Core/solver/object providers and full lifetime qualification |
+| [CLI discovery](HIA_CLI_DISCOVERY_JSON.md), [Core diagnostics](HIA_CORE_ADMISSION_NATIVE.md) | Ordinary entry/I/O, selected loader, strict Core admission and original exception types |
+| [Artifact delivery](HIA_ARTIFACT_DELIVERY.md), [retention](hia-generation-retention-native.md) | Process/descriptor transport, actual selection/CAS/invocation, confirmed retirement and foreign cleanup |
+| [Byte memory](HIA_BOUNDED_MEMORY_NATIVE.md), [SHA stream](HIA_SHA256_STREAM_NATIVE.md) | Buffer export/allocator/GIL and foreign-object lifetime |
+| [Full cost](HIA_FULL_COST_NATIVE.md), [execution budget](HIA_EXECUTION_BUDGET_NATIVE.md), [journal](HIA_AGENT_JOURNAL_NATIVE.md) | Actual clocks, observations, locks, cancellation, SQLite and request dispatch |
 
-The nine-method verification controller and the selected Service
-constructor/close/profile/program, admission-I/O and mechanical-call-boundary
-candidates remain subject to their complete qualification gates. Their presence is not complete native replacement or qualification;
-original routes and actual foreign providers remain.
-Complete caller, finite, resource, installation and matching-source cold gates
-remain necessary; native proof leaves alone do not own these workflows.
+A selected controller does not own its listed providers. Existing native proof
+leaves, images and bounded components do not constitute the complete path from
+ordinary public entry through semantic owners and physical effects.
 
-The selfhost contract explicitly retains general Core checking, arbitrary
-external symbols/relocations, a general linker and additional target gaps.
-`whole_HIA_language_self_hosted=false` remains accurate. Its original fixed
-points require B1=B2=B3; M1!=M2, M2=M3, M3!=B3; and reservation 64→80.
-A bounded fixed point is not complete language or installed worker closure.
+## Remaining acceptance
 
-The package default remains `RELEASE_PIN=None`. The default-native candidate
-admits only FULL_COST, and neither 50 registry entries nor an old administrator
-bundle is silently expanded into a complete native worker.
+Complete original domains, IDs/order, poison, GC, traceback and exception
+observations remain required. The original cold deadline is 180 seconds plus
+three seconds cleanup; retained regression retains 5,400 seconds; complete
+component gates retain 1,800 seconds. Passing prefixes are not full gates.
 
-The [selfhost object build](HIA_PROGRAM_SELFHOST_BUILD.md) consumes pinned
-native frontend/compiler bytes without a Python-emitter fallback. It remains
-a declared bounded Linux x86-64 profile. Default build and `hia_emit` retain
-the Python emitter; `hia_evaluate` retains the Python reference VM. The
-[native stdio entry](HIA_AGENT_STDIO_NATIVE.md) implements six commands, while
-the ordinary CLI has fifteen actions and the service eleven tools.
+The selfhost contract still retains general Core checking, arbitrary external
+symbols/relocations, general linker and additional target gaps.
+`whole_HIA_language_self_hosted=false` remains accurate. Its fixed-point
+conditions remain B1=B2=B3; M1!=M2, M2=M3, M3!=B3; and reservation 64→80.
+A bounded compiler fixed point does not establish the whole language or worker.
 
-Source generation, matching-source cold qualification, installed native caller
-tests, full retained regression and actual worker adoption are separate gates.
-Production Python modules still have live consumers and participate in install
-identity. Deleting them now would remove working behavior and break durable
-identities. They are retained until replacement and cutover are established.
+The [bounded selfhost object build](HIA_PROGRAM_SELFHOST_BUILD.md) consumes
+pinned native compiler bytes without a Python-emitter fallback within its
+declared Linux x86-64 profile. The default-native candidate admits only FULL_COST.
+Neither the registry count nor a historical administrator bundle is widened
+into a complete native worker.
 
+Final acceptance requires one actual current source snapshot to pass generation,
+matching-source cold, complete retained regression, original finite/resource/
+caller scopes, clean installed use, default startup, durable-state migration,
+real worker handoff and confirmed retirement. Missing/failed scopes remain HOLD.
 
 ## Repository cleanup
 
-The current tree retains active implementations, contracts, consumed original
-fixtures and recovery ledgers. Numbered HIA units can belong to one composed
-program. Native images and raw syscall, publication, descriptor and retirement
-primitives already exist; the remaining work is the complete non-Python path
-from public entry points through semantic and effect owners.
+This single current index replaces repeated status narratives; previous full
+text remains in Git history. Active implementations, consumed original fixtures,
+contracts and recovery ledgers remain. Numbered HIA units may compose one
+program and are not deleted solely for their names. Temporary build products
+and isolated development attempts stay outside the tracked product tree.
 
-This index consolidates current state and removes repeated chronological
-narratives. Its complete previous text remains at
-[the exact R20 revision](https://github.com/TrillionniumFoundation/Hepta/blob/8c2c212d974e2b0d510164e6012e609997b76c4b/docs/CURRENT.md).
-Failed observations and their original source identities are retained.
-
-Earlier cleanup ledgers record their own deletions: 34 process documents with
-206,342 original bytes, and a separate development scope of 1,045 files,
-60 directories and 91,641,221 original bytes. These are historical totals,
-not new deletions in this successor:
+Earlier ledgers recorded 34 process documents (206,342 bytes) and, separately,
+1,045 development files, 60 directories and 91,641,221 bytes. These are historical
+totals, not new deletion claims:
 
 - [Development versions](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json).
 - [Process documents](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json).
 - [Historical bundles](../review-evidence/hia-native-cleanup-20261111/retired-historical-bundles.json).
 - [Rewrite observations](../review-evidence/hia-native-cleanup-20261111/retired-rewrite-observations.json).
 
-The 249 production Python modules, consumed original fixtures and live
-qualification/process supervisors still have consumers. Their removal awaits
-complete replacement, clean installation, default startup, durable-state
-migration, real worker handoff and confirmed retirement.
+Production Python modules and active supervisors still have consumers. Their
+removal awaits verified replacement and actual adoption.
+
+One additional dated macro-campaign report is retired by the current source
+cleanup after its only generated inventory reference is regenerated. Its exact
+2,727 bytes (SHA256
+`51bf9733474de26913ff32725adaf9f7ed66f4f8888f9dbb03d7a5fa9cf633df`)
+remain available in the
+[R21 Git history](https://github.com/TrillionniumFoundation/Hepta/blob/2f816a710e617aed43c09265eb8fadd4a4f5037d/docs/HIA_AGENT_MACRO_CAMPAIGN_RESULTS_20261107.md).
+This narrative retirement does not remove a runtime owner or original oracle.

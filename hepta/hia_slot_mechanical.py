@@ -352,7 +352,7 @@ def _private_globals():
     }
 
 
-def _function(template, namespace, name, qualname, module):
+def _function(template, namespace, name, qualname, module, *, definition=None):
     # Use the actual original module dictionary: later dynamic provider/global
     # rebinding remains visible. No copied namespace, closure or user receiver.
     if type(namespace) is not dict:
@@ -361,6 +361,21 @@ def _function(template, namespace, name, qualname, module):
         if key in namespace and namespace[key] is not value:
             raise ValueError("Slot mechanical primitive binding changed")
         namespace[key] = value
+    if definition is not None:
+        # Reuse only definition state. The complete loader/authority/export and
+        # private-global checks above run on every lookup, including after fork.
+        if (type(definition) is not types.FunctionType
+                or definition.__globals__ is not namespace
+                or definition.__code__ is not template.__code__
+                or definition.__closure__ is not None
+                or definition.__defaults__ is not template.__defaults__
+                or definition.__kwdefaults__ is not template.__kwdefaults__
+                or definition.__name__ != name
+                or definition.__qualname__ != qualname
+                or definition.__module__ != module
+                or definition.__doc__ != "HIA-selected real-signature mechanical continuation."):
+            raise ValueError("Slot mechanical definition identity changed")
+        return definition
     function = types.FunctionType(template.__code__, namespace, name, template.__defaults__)
     function.__kwdefaults__ = template.__kwdefaults__
     function.__qualname__, function.__module__ = qualname, module
@@ -368,9 +383,11 @@ def _function(template, namespace, name, qualname, module):
     return function
 
 
-def bind(template, binding, frame_type, unknown, mode, name, qualname, module, *, admission):
+def bind(template, binding, frame_type, unknown, mode, name, qualname, module, *, admission,
+         definition=None):
     from . import hia_slot_ledger_native
-    function = _function(template, vars(hia_slot_ledger_native), name, qualname, module)
+    function = _function(template, vars(hia_slot_ledger_native), name, qualname, module,
+                         definition=definition)
     return extension().bind(function, binding, frame_type, unknown, admission, mode)
 
 

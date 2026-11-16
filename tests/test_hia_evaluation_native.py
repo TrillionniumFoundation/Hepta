@@ -413,21 +413,85 @@ from hepta import hia_evaluation_native as native
 from hepta import hia_agent_runner
 from hepta.hia_agent_service import HIAAgentService
 from hepta.hia_agent_worker import main
+from hepta import hia_agent_worker as worker_api
+from hepta import hia_native_delivery as delivery
 assert native.SOURCE.resolve().is_relative_to(Path(installed).resolve()/'hepta'/'_data')
 counts={'frames':0,'continuations':0,'integers':0,'native_results':[]}
+injected_id=None;primary_id=None;cleanup_id=None
+close_attempts=0;close_returns=0;terminal_calls=0;terminal_facts=None
+primary_notes=0;cleanup_notes=0
+original_note_failure=worker_api.note_request_failure
+def note_failure(error,*,cleanup=False):
+    global primary_id,cleanup_id,primary_notes,cleanup_notes
+    try:
+        result=original_note_failure(error,cleanup=cleanup)
+        if cleanup:
+            cleanup_id=id(error);cleanup_notes+=1
+        else:
+            primary_id=id(error);primary_notes+=1
+        return result
+    finally:
+        del error
+worker_api.note_request_failure=note_failure
+original_close=HIAAgentService.close
+def public_close(self,*arguments,**keywords):
+    global close_attempts,close_returns
+    close_attempts+=1
+    try:
+        value=original_close(self,*arguments,**keywords)
+    finally:
+        del self,arguments,keywords
+    close_returns+=1
+    return value
+HIAAgentService.close=public_close
+original_terminal=worker_api._unknown_request_exit
+def observe_terminal(observation,terminal_error):
+    global terminal_calls,terminal_facts
+    terminal_calls+=1
+    origin=observation.origin
+    primary=observation.primary_error
+    facts={'schema':'hepta.hia.evaluation-installed-worker-terminal.v2',
+        'request_observer_inactive':not observation.active,
+        'origin_present':origin is not None,
+        'origin_custodied':origin is not None and delivery._CUSTODY.get(id(origin)) is origin,
+        'origin_loss_is_self':origin is not None and origin.loss is origin,
+        'origin_error_is_actual_injected':origin is not None and id(origin.error)==injected_id,
+        'origin_native_pending':None if origin is None else origin.native_pending,
+        'origin_retired':None if origin is None else origin.retired,
+        'evaluation_frame_retained':origin is not None and any(
+            frame._delivery is origin and frame.fenced and frame.unconfirmed
+            for frame in native._FRAME_CUSTODY.values()),
+        'primary_present':primary is not None,
+        'primary_is_actual_worker_call_failure':primary is not None and id(primary)==primary_id,
+        'primary_is_evaluation_unknown':type(primary) is native.EvaluationUnknown,
+        'primary_cause_is_actual_origin_error':origin is not None and primary is not None and primary.__cause__ is origin.error,
+        'cleanup_absent':observation.cleanup_error is None and cleanup_id is None,
+        'terminal_is_primary':terminal_error is primary,
+        'close_attempts':close_attempts,'close_returns':close_returns,
+        'terminal_calls':terminal_calls,'primary_notes':primary_notes,'cleanup_notes':cleanup_notes}
+    terminal_facts=facts
+    result=original_terminal(observation,terminal_error)
+    facts['returned_status']=result
+    return result
+worker_api._unknown_request_exit=observe_terminal
 def forbidden(*a,**k):raise AssertionError('installed retained evaluation entered')
 HIAAgentService._hia_evaluate_reference=forbidden
 initialize=native.NativeEvaluation.__init__
 def image_init(self,*a,**k):
     initialize(self,*a,**k);entry=self._entry
     def counted(source,size,output,capacity,state,extent):
+        global injected_id
         magic=struct.unpack('<Q',ctypes.string_at(source,8))[0]
         result=entry(source,size,output,capacity,state,extent)
         if magic==native.REQUEST_MAGIC:
             assert result==native.OUTPUT_BYTES;counts['continuations']+=1
             event,_,port=struct.unpack_from('<3Q',ctypes.string_at(source,size),8)
             if mode=='lost_ack_valueerror' and event==2 and port==native.PORT['normal_run']:
-                raise ValueError('controlled lost native acknowledgement')
+                try:
+                    raise ValueError('controlled lost native acknowledgement')
+                except ValueError as error:
+                    injected_id=id(error)
+                    raise
         elif magic==native.MATH_MAGIC:
             assert result==32;counts['integers']+=1
         else:raise AssertionError('unexpected installed evaluation request')
@@ -457,6 +521,8 @@ elif mode not in ('normal','lost_ack_valueerror'):raise AssertionError('unknown 
 try:
     status=main(sys.argv[1:])
 finally:
+    if terminal_facts is not None:
+        print('EVALUATION_WORKER_TERMINAL_V2='+json.dumps(terminal_facts,sort_keys=True),file=sys.stderr)
     print('EVALUATION_NATIVE_COUNTS='+json.dumps(counts,sort_keys=True),file=sys.stderr)
 raise SystemExit(status)
 '''
@@ -519,7 +585,38 @@ raise SystemExit(status)
 
         case, envelope = prepare()
         try:
-            lost = worker('lost-ack-valueerror', case, envelope, 'lost_ack_valueerror', 1)
+            # Version 2: actual request delivery loss returns the worker UNKNOWN terminal.
+            lost = worker('lost-ack-valueerror', case, envelope, 'lost_ack_valueerror', 2)
+            self.assertEqual(lost.stdout, b'')
+            self.assertTrue(lost.stderr.startswith(b'HIA_WORKER_DELIVERY_UNKNOWN\n'))
+            self.assertEqual(lost.stderr.count(b'REQUEST_PRIMARY_EXCEPTION\n'), 1)
+            self.assertIn(b'ValueError: controlled lost native acknowledgement', lost.stderr)
+            self.assertIn(b'EvaluationUnknown: evaluation continuation observation failed', lost.stderr)
+            self.assertNotIn(b'diagnostic unavailable', lost.stderr)
+            terminal_prefix = b'EVALUATION_WORKER_TERMINAL_V2='
+            terminal_rows = [line[len(terminal_prefix):] for line in lost.stderr.splitlines()
+                             if line.startswith(terminal_prefix)]
+            self.assertEqual(len(terminal_rows), 1, lost.stderr.decode(errors='replace'))
+            terminal_facts = json.loads(terminal_rows[0])
+            (self.case / 'lost-ack-worker-terminal-v2.json').write_bytes(encoded({
+                'worker_exit_code': lost.returncode, 'terminal_facts': terminal_facts,
+                'stdout': {'bytes': len(lost.stdout), 'sha256': sha256(lost.stdout).hexdigest()},
+                'stderr': {'bytes': len(lost.stderr), 'sha256': sha256(lost.stderr).hexdigest()},
+            }) + b'\n')
+            self.assertEqual(terminal_facts['schema'], 'hepta.hia.evaluation-installed-worker-terminal.v2')
+            for name in ('request_observer_inactive', 'origin_present', 'origin_custodied',
+                         'origin_loss_is_self', 'origin_error_is_actual_injected', 'origin_native_pending',
+                         'evaluation_frame_retained', 'primary_present', 'primary_is_actual_worker_call_failure',
+                         'primary_is_evaluation_unknown', 'primary_cause_is_actual_origin_error',
+                         'cleanup_absent', 'terminal_is_primary'):
+                self.assertIs(terminal_facts[name], True, name)
+            self.assertIs(terminal_facts['origin_retired'], False)
+            self.assertEqual(terminal_facts['close_attempts'], 1)
+            self.assertEqual(terminal_facts['close_returns'], 1)
+            self.assertEqual(terminal_facts['terminal_calls'], 1)
+            self.assertEqual(terminal_facts['returned_status'], 2)
+            self.assertEqual(terminal_facts['primary_notes'], 1)
+            self.assertEqual(terminal_facts['cleanup_notes'], 0)
             lost_counts = counts(lost)
             self.assertEqual(lost_counts['frames'], 1)
             self.assertEqual(len(lost_counts['native_results']), 1)
@@ -542,6 +639,7 @@ raise SystemExit(status)
                 'SELECT * FROM execution_budgets WHERE context_id=?', (context_id,)).fetchone())
             self.assertEqual(after, retained)
             observations['native_ack_exception'] = {'actual_native_counts': lost_counts,
+                'worker_exit_code': lost.returncode, 'worker_terminal_v2': terminal_facts,
                 'retained_budget': retained, 'replay': replay_report, 'replay_counts': replay_counts}
         finally:
             case.tearDown()

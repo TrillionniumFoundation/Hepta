@@ -1,19 +1,19 @@
 # Explicit v5 Slot mechanical executable custody
 
-Status: IMPLEMENTED, QUALIFICATION HOLD. R20 compiled the real eleven-source
-mechanical extension and exercised all four original v5 methods in remote CI.
-Those methods failed at the SQL tuple boundary or private-package resources;
-no complete finite, GC, installed or whole-native PASS is implied.
+Status: IMPLEMENTED, QUALIFICATION HOLD. The exact R21 predecessor compiled
+the real eleven-source extension. Its full Native4 gate reached the unchanged
+1,800-second deadline during the first method; no method completed. The base
+candidate completed all 248 cases with five differing lifetime observations.
+The derived candidate started 3,497 cases and stopped 3,496 of the required
+7,574. Public84/handled12, admission25 and installed qualification did not start.
+The complete observations and original timeout are retained.
 
-The current C successor changes only the single-object call format from
-`"O"` to `"(O)"`. An existing argument tuple is passed intact to
-`SqlAttempt.arguments`; the original identity check is retained. All seven
-`call1` sites still pass one original object. The private admission fixture now
-copies exact `slot_ledger.hepta` and `slot_operations.hepta` source bytes into
-its installed-layout `_data` directory and rereads both source and destination.
-The original 25 IDs, error expectations, fault injection and budgets remain.
-Current executable bytes and receipts require a fresh build and all four
-complete v5 methods must run again.
+R21's single-object call format is "(O)": an existing tuple is passed intact
+to SqlAttempt.arguments, and the original identity check remains. Its private
+admission fixture carries both exact Slot HIA resources. Those corrections are
+preserved here. This successor separately changes the three fixed-word helpers
+and internal function-definition ownership. Actual full v5, public, handled,
+admission and installed results must be obtained again on the current sources.
 
 ## Authority and the exact executable
 
@@ -40,15 +40,15 @@ Only the exact exclusive constructor receives a temporary pre-ACTIVE bridge
 capability; its finally removes it. Current scope/PID/thread and selector
 checks remain in force after publication.
 
-Ordinary import does not preload an extension. A selected mechanical call
-without live v5 authority fails. Existing v1 through v4 schemas are not widened,
-upgraded, flattened or used as a failed-v5 fallback. A v1 that selects this new
-Slot mechanical path is refused before mapping or business effects. Consequently
-the original Native6 v1 installed method remains a real unsatisfied obligation;
-the new v5 tests cannot turn that old result into PASS. No old Python transport
-compatibility route is implemented in this package. Arbitrary caller-written
-dlopen/importlib code outside the declared production entry is not a claimed
-process-wide security sandbox.
+Ordinary import does not preload an extension. The explicit v5 mechanical
+route requires live v5 authority and refuses failed admission without falling
+back to the Python bridge. Existing v1 through v4 schemas are not widened,
+upgraded or flattened. Selected non-v5 Slot control retains its original
+Python HIA bridge, including the descriptor's existing FunctionType/template
+route. The complete original Native6 scope, including its installed method,
+remains a separate qualification obligation; the new v5 tests cannot replace
+its result. Arbitrary caller-written dlopen/importlib code outside the declared
+production entry is not a claimed process-wide security sandbox.
 
 ## Sealed descriptor ownership
 
@@ -64,8 +64,42 @@ the existing C session checks remain separate.
 
 The exported actual built-in function objects, module ownership, ABI, mode/port
 counts, binary bytes and seals are verified on later entry. A cached module
-does not cache away complete source/receipt/administrator reads. The extension uses the current explicitly pinned mechanical C boundary;
-the existing HIA business control graph remains unchanged.
+does not cache away complete source/receipt/administrator reads. The extension uses the current explicitly pinned mechanical C boundary.
+The HIA 15-mode/136-port control and action order remain; only the three
+fixed-word helper implementations have a declared exact source successor.
+
+## Internal function-definition ownership
+
+Each _SlotControlMethod descriptor owns one internal mechanical FunctionType,
+constructed from the pure continuation code, real original module namespace,
+declared defaults and declaration metadata. This definition has no captured
+receiver, selected scope, C session, result or exception. It is ordinary class
+definition state, not a global history of looked-up callables.
+
+Each selected lookup still creates a fresh _MechanicalOwner and a fresh C
+method. The owner retains its actual binding, bridge, process and thread.
+Each invocation still creates its own session/frame. The existing private-global
+checks, complete loader/source/executable/export admission and authority checks
+run before definition reuse; binding performs its existing extension admission
+again. Neither full-bundle check is removed or cached away.
+
+Reuse also checks exact function type, code/globals/defaults identities, absence
+of a closure and declaration metadata. Modified definitions refuse; the code
+does not silently rebuild or overwrite changed private primitives. Unselected
+lookup, v1 routing and independent raw prepare_frame keep their original paths.
+
+The two source files form an exact all-old or all-new pair. Mixed or unknown
+pairs refuse. Independent static review proved all six splices forward and
+back to the complete original bytes. The supplemental definition controls are
+additional obligations; controls that depend on the original Native4 require
+its actual complete, current-source, naturally successful supervisor and raw
+evidence. An absent or timed-out original gate remains HOLD.
+
+This implementation changes internal definition lifetime only. Public __func__
+is still a fresh C method rather than the original stable Python function.
+Public identity/reflection, arbitrary private mutation, import allocation,
+GC timing and all original lifetime/traceback observations remain OPEN.
+Source review cannot prove the earlier five differing observations repaired.
 
 ## Build and installed identity
 
@@ -135,8 +169,8 @@ garbage, GC suppression, local-value normalization or hidden complete legacy bod
 callback. The existing HIA 15-mode/136-port graph and all original protocol
 checks own business decisions.
 
-The predecessor C source has actual source and installed compilation evidence.
-Its complete v5 qualification still failed. The current single-object-call and
-private-resource corrections do not inherit qualification from that build.
+The predecessor C source has actual compilation evidence and an incomplete
+full v5 qualification. The fixed-word and definition-lifetime successors do not
+inherit qualification from any earlier source or installed build.
 Any subsequent source, installed staging, public ABI, lifetime or timeout
 failure remains HOLD until the complete original gate succeeds.

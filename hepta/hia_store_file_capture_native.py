@@ -7,7 +7,6 @@ substituted implementation of os.open/fdopen or a claim of full native I/O.
 """
 from __future__ import annotations
 import builtins
-import ctypes
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -17,11 +16,8 @@ from pathlib import Path
 import sqlite3
 import struct
 import sys
+import threading
 import types
-from .hia_emission_native import (
-    _global_value, _class_special, _MISSING_SPECIAL,
-    _context_missing_message, _bind_special_descriptor,
-)
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
 from .hia_native_delivery import DeliveryRecord
 from .hia_native_admission_io import regular_bytes as _regular_bytes, resolve_path as _admission_resolve
@@ -35,9 +31,6 @@ from .hia_store_file_capture_protocol import (
 )
 SOURCE = _source_resource_path(SOURCE_NAME)
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
-_REQUEST_BUFFER_TYPE = ctypes.c_char * (REQUEST_BYTES + 16)
-_OUTPUT_BUFFER_TYPE = ctypes.c_char * (OUTPUT_BYTES + 16)
-_STATE_BUFFER_TYPE = ctypes.c_char * (STATE_BYTES + 16)
 _ITER, _NEXT = iter, next
 _TYPE_MRO = vars(type)['__mro__']
 _BASE_EXCEPTION = BaseException
@@ -45,9 +38,110 @@ _TYPE, _TUPLE = type, tuple
 
 _HANDLED_EXCEPTION = sys.exception
 
+# The original ABI classes and emission objects are initialized by a real
+# capture request. Only their original module-global aliases retain them;
+# there is no additional protocol-object, user-object or admission-result cache.
+_CAPTURE_BINDINGS_READY = False
+_CAPTURE_BINDINGS_LOCK = threading.RLock()
+_CAPTURE_BINDINGS_BUILDING = False
+_CAPTURE_BINDINGS_EPOCH = object()
+_CAPTURE_BINDINGS_PID = os.getpid()
+_CAPTURE_BUFFER_NAMES = (
+    '_REQUEST_BUFFER_TYPE', '_OUTPUT_BUFFER_TYPE', '_STATE_BUFFER_TYPE',
+)
+_CAPTURE_CONTEXT_NAMES = (
+    '_global_value', '_class_special', '_MISSING_SPECIAL',
+    '_context_missing_message', '_bind_special_descriptor',
+)
+
+
+def _ensure_ctypes():
+    """Bind the real FFI module only when native operations are requested."""
+    global ctypes
+    if 'ctypes' not in globals():
+        import ctypes as selected
+        if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+            raise RuntimeError('native ctypes import is still active')
+        # A failed or recursively incomplete import never becomes our binding.
+        # Existing explicit module-global replacements retain their old role.
+        ctypes = selected
+    return ctypes
+
+
+def _reset_capture_bindings_lock():
+    global _CAPTURE_BINDINGS_LOCK, _CAPTURE_BINDINGS_BUILDING
+    global _CAPTURE_BINDINGS_EPOCH, _CAPTURE_BINDINGS_PID
+    # Completed original aliases and fixed array types may be inherited.
+    # An unfinished initializer must not inherit a vanished parent's lock.
+    _CAPTURE_BINDINGS_LOCK = threading.RLock()
+    _CAPTURE_BINDINGS_BUILDING = False
+    _CAPTURE_BINDINGS_EPOCH = object()
+    _CAPTURE_BINDINGS_PID = os.getpid()
+
+
+if hasattr(os, 'register_at_fork'):
+    os.register_at_fork(after_in_child=_reset_capture_bindings_lock)
+
+
+def _capture_native_bindings():
+    global _CAPTURE_BINDINGS_READY, _CAPTURE_BINDINGS_BUILDING
+    if _CAPTURE_BINDINGS_READY:
+        return
+    # Ordinary module imports complete before taking our type-publication lock;
+    # otherwise an import lock and this representation lock could invert.
+    _ensure_ctypes()
+    from . import hia_emission_native as protocol
+    if getattr(getattr(protocol, '__spec__', None), '_initializing', False):
+        raise RuntimeError('capture context protocol import is still active')
+    context = (
+        protocol._global_value, protocol._class_special,
+        protocol._MISSING_SPECIAL, protocol._context_missing_message,
+        protocol._bind_special_descriptor,
+    )
+    while True:
+        if os.getpid() != _CAPTURE_BINDINGS_PID:
+            raise RuntimeError('file capture ABI lock was not established in this process')
+        with _CAPTURE_BINDINGS_LOCK:
+            if _CAPTURE_BINDINGS_READY:
+                return
+            if _CAPTURE_BINDINGS_BUILDING:
+                raise RuntimeError('file capture ABI initialization is already active')
+            epoch = _CAPTURE_BINDINGS_EPOCH
+            _CAPTURE_BINDINGS_BUILDING = True
+            try:
+                arrays = (
+                    ctypes.c_char * (REQUEST_BYTES + 16),
+                    ctypes.c_char * (OUTPUT_BYTES + 16),
+                    ctypes.c_char * (STATE_BYTES + 16),
+                )
+                if epoch is _CAPTURE_BINDINGS_EPOCH:
+                    # Preserve an explicit assignment made after the inert
+                    # module import. Thereafter all original global lookups
+                    # continue to observe the real module's current bindings.
+                    for name, value in zip(_CAPTURE_BUFFER_NAMES + _CAPTURE_CONTEXT_NAMES,
+                                           arrays + context):
+                        globals().setdefault(name, value)
+                    # Commit only after every compatibility name is available.
+                    _CAPTURE_BINDINGS_READY = True
+                    return
+            finally:
+                if epoch is _CAPTURE_BINDINGS_EPOCH:
+                    _CAPTURE_BINDINGS_BUILDING = False
+        # A child resumes against its own lock and any completed child owner.
+
+
+def __getattr__(name):
+    if name == 'ctypes' or name in _CAPTURE_BUFFER_NAMES or name in _CAPTURE_CONTEXT_NAMES:
+        _capture_native_bindings()
+        if name in globals():
+            return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 @lru_cache(maxsize=1)
 def _capture_handled_state_setter():
     """Bind the public handled-state bridge for issued context-stack decrefs."""
+    _capture_native_bindings()
     if sys.implementation.name != 'cpython':
         raise RuntimeError('file capture context cleanup requires CPython handled-state ABI')
     setter = ctypes.pythonapi['PyErr_SetHandledException']
@@ -57,6 +151,7 @@ def _capture_handled_state_setter():
 
 
 def _capture_context_special(manager, name):
+    _capture_native_bindings()
     kind = type(manager)
     descriptor = _class_special(kind, name)
     if descriptor is _MISSING_SPECIAL:
@@ -177,6 +272,7 @@ def _mapped_store_file_capture(raw, digest, source_digest):
 def installed_store_file_capture(manifest_path):
     if not manifest_path:
         raise ValueError('native store file capture selector must not be empty')
+    _capture_native_bindings()
     from .hia_native_helpers import pinned_image
     selected = pinned_image(manifest_path, SOURCE, SCHEMA, NativeStoreFileCapture,
                             _admission_resolver=_admission_resolve)
@@ -358,6 +454,7 @@ class StoreFileCaptureFrame:
         expected = {'path', 'limit', 'dir_fd'} if mode == STABLE_READ else {'path', 'roots', 'limit'}
         if type(initial) is not dict or set(initial) != expected:
             raise TypeError('file capture initial slots differ')
+        _capture_native_bindings()
         from . import hia_agent_store
         if namespace is None:
             namespace = vars(hia_agent_store)

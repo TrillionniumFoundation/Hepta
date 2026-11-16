@@ -27,19 +27,25 @@ FIXTURE_NAME = 'tests/fixtures/hia_native_build_admission_callers_aac7550.json'
 FIXTURE_SHA256 = '262c3df1e051fe52797c91dd053f2d79c0704fe5b20a85f799d6d40c1c4bb2a9'
 
 
-def admit_original_sources(root, records):
-    """Allow only the registry's exact added-owner count in one old assertion."""
+def admit_original_sources(root, records, *, terminal_evidence=None):
+    """Preserve original source pins with exact reviewed terminal-test admission."""
     from hepta.hia_native_helpers import HELPERS
     count = len(HELPERS)
     if count < 36:
         raise ValueError('the original native helper registry lost an owner')
     original_line = b'        self.assertEqual(len(HELPERS), 36)\n'
     current_line = ('        self.assertEqual(len(HELPERS), ' + str(count) + ')\n').encode()
+    from tests.hia_caller_terminal_admission import capture_caller_terminal_admission
+    if terminal_evidence is not None and type(terminal_evidence) is not list:
+        raise ValueError('terminal admission evidence must be an explicit list')
+    terminal = capture_caller_terminal_admission(root, records, authority=FIXTURE_NAME)
     adjustments = []
     for name, digest in records.items():
-        raw = (root / name).read_bytes()
+        raw = terminal.raw(name)
         actual = sha256(raw).hexdigest()
         if actual == digest:
+            continue
+        if terminal.permits(name, digest, raw):
             continue
         if (name != 'tests/test_hia_worker_native_helpers.py'
                 or raw.count(current_line) != 1
@@ -49,6 +55,9 @@ def admit_original_sources(root, records):
             'original_helper_count': 36, 'current_helper_count': count,
             'sole_permitted_change': 'one exact registry-count assertion decimal literal',
             'all_other_source_bytes_unchanged': True})
+    proof = terminal.finish()
+    if terminal_evidence is not None:
+        terminal_evidence.append(proof)
     return adjustments
 
 
@@ -68,7 +77,8 @@ def main():
     original = json.loads(raw)
     modules = original['ordinary_modules']
     original_files = {record['path']: record['sha256'] for record in original['modules'].values()}
-    count_adjustments = admit_original_sources(ROOT, original_files)
+    terminal_evidence = []
+    count_adjustments = admit_original_sources(ROOT, original_files, terminal_evidence=terminal_evidence)
     if (len(modules) != 9 or original['ordinary_count'] != 112
             or len(original['ordinary_ordered_ids']) != 112
             or len(original['modules']) != 17 or original['all_original_tests'] != 240):
@@ -179,6 +189,7 @@ def main():
         'all_nine_ordinary_modules_unfiltered': True, 'original_test_budgets_changed': False,
         'source_and_bundle_unchanged': stable, 'source_pins': before, 'bundle_pins': bundle,
         'original_registry_count_assertion_adjustments': count_adjustments,
+        'original_terminal_test_source_admission': terminal_evidence,
         'separate_original_administrator_scope_gates': original['separate_scope_modules'],
         'whole_project_dynamic_caller_closure_claimed': False,
         'whole_native_delivery_qualified': False,

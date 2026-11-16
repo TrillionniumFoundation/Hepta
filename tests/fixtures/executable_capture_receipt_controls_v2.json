@@ -1,0 +1,491 @@
+{
+  "schema": "hepta.executable-capture.receipt-controls.v2",
+  "status": "FROZEN_INPUTS_NOT_EXECUTED",
+  "relation_authority": {
+    "path": "continuation-0412/R19-executable-capture-r1-independent-relations.json",
+    "bytes": 47422,
+    "sha256": "7335949a752cacc20ce514fdb3bd45d19bbdfe49d4968dc200d53502639311c7"
+  },
+  "ordered_controls": [
+    {
+      "id": "capture.receipt.v2.policy.stale-active.after-memfd",
+      "kind": "policy_receipt",
+      "meaning": "A prior active receipt must not acknowledge the next policy request after an actual descriptor creation."
+    },
+    {
+      "id": "capture.receipt.v2.policy.stale-active.after-write",
+      "kind": "policy_receipt",
+      "meaning": "A prior active receipt must not authorize a repeated write after an actual completed write."
+    },
+    {
+      "id": "capture.receipt.v2.policy.stale-active.after-audit",
+      "kind": "policy_receipt",
+      "meaning": "A prior active receipt must not authorize a repeated audit or another old action."
+    },
+    {
+      "id": "capture.receipt.v2.policy.stale-active.after-close",
+      "kind": "policy_receipt",
+      "meaning": "A prior active receipt must not authorize a second close after the one confirmed close attempt."
+    },
+    {
+      "id": "capture.receipt.v2.policy.active.sequence-not-advanced",
+      "kind": "policy_receipt",
+      "meaning": "Every continued active reply is bound to this request by sequence + 1."
+    },
+    {
+      "id": "capture.receipt.v2.policy.active.sequence-skips",
+      "kind": "policy_receipt",
+      "meaning": "A different future sequence is not the response to this request."
+    },
+    {
+      "id": "capture.receipt.v2.policy.terminal.sequence-changed",
+      "kind": "policy_receipt",
+      "meaning": "Terminal output keeps the current request sequence; it does not use a new or earlier value."
+    },
+    {
+      "id": "capture.receipt.v2.policy.initial.kind-not-active",
+      "kind": "policy_receipt",
+      "meaning": "Initial output is the unique active MEMFD handshake."
+    },
+    {
+      "id": "capture.receipt.v2.policy.initial.action-not-memfd",
+      "kind": "policy_receipt",
+      "meaning": "Initial output cannot dispatch a non-MEMFD action."
+    },
+    {
+      "id": "capture.receipt.v2.policy.initial.sequence-not-one",
+      "kind": "policy_receipt",
+      "meaning": "Initial output sequence is exactly one."
+    },
+    {
+      "id": "capture.receipt.v2.policy.kind.reply-active-state-terminal",
+      "kind": "policy_receipt",
+      "meaning": "Reply kind, embedded state kind, and workspace kind must agree."
+    },
+    {
+      "id": "capture.receipt.v2.policy.kind.reply-terminal-state-active",
+      "kind": "policy_receipt",
+      "meaning": "A terminal-looking reply with an active workspace must not transfer an fd or acknowledge an error."
+    },
+    {
+      "id": "capture.receipt.v2.policy.kind.reply-success-state-error",
+      "kind": "policy_receipt",
+      "meaning": "Success and error terminals cannot be interchanged."
+    },
+    {
+      "id": "capture.receipt.v2.policy.event-two.error-handle-not-bound",
+      "kind": "policy_receipt",
+      "meaning": "The new error continuation must retain the exact request error handle and corresponding actual exception."
+    },
+    {
+      "id": "capture.receipt.v2.policy.continuation.nonce-mismatch",
+      "kind": "policy_receipt",
+      "meaning": "The reply and workspace must both identify this frame."
+    },
+    {
+      "id": "capture.receipt.v2.policy.workspace.input-length-mismatch",
+      "kind": "policy_receipt",
+      "meaning": "Workspace input length must remain equal to the actual immutable bytes length."
+    },
+    {
+      "id": "capture.receipt.v2.policy.workspace.offset-out-of-range",
+      "kind": "policy_receipt",
+      "meaning": "Workspace progress must remain inside the actual input length."
+    },
+    {
+      "id": "capture.receipt.v2.policy.receipt.checksum-invalid",
+      "kind": "policy_receipt",
+      "meaning": "A receipt checksum failure remains an unconfirmed native outcome."
+    },
+    {
+      "id": "capture.receipt.v2.policy.workspace.checksum-invalid",
+      "kind": "policy_receipt",
+      "meaning": "A workspace checksum failure remains an unconfirmed native outcome."
+    },
+    {
+      "id": "capture.receipt.v2.policy.request.changed-during-entry",
+      "kind": "policy_receipt",
+      "meaning": "The entire request including executable bytes must remain unchanged."
+    },
+    {
+      "id": "capture.receipt.v2.policy.output.canary-changed",
+      "kind": "policy_receipt",
+      "meaning": "No acknowledgement after a changed policy output canary."
+    },
+    {
+      "id": "capture.receipt.v2.policy.workspace.canary-changed",
+      "kind": "policy_receipt",
+      "meaning": "No acknowledgement after a changed policy workspace canary."
+    },
+    {
+      "id": "capture.receipt.v2.policy.return.incomplete-status",
+      "kind": "policy_receipt",
+      "meaning": "A status other than the complete policy receipt size cannot acknowledge delivery."
+    },
+    {
+      "id": "capture.receipt.v2.policy.terminal.error-identity-not-current",
+      "kind": "policy_receipt",
+      "meaning": "The selected error handle must identify the active actual exception, including close override."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.action-domain",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "Only the seven raw actions are admitted to raw dispatch."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.memfd.fd",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "MEMFD uses the unique no-descriptor sentinel."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.memfd.offset",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "MEMFD offset is zero."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.memfd.count",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "MEMFD count and payload are empty."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.memfd.flags",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "MEMFD flags are the fixed ABI value."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.nonmemfd.fd",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "Every other raw action has a nonnegative signed-int descriptor."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.write.offset",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "WRITE offset equals the validated workspace offset and lies within immutable input."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.write.count",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "WRITE count equals remaining bytes and fits both the request allocation and input slice."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.write.argument",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "WRITE has no additional raw argument."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.write.payload-length",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "Actual immutable payload length equals the admitted WRITE count."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.chmod.mode",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "CHMOD mode is the fixed executable mode."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.chmod.offset",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "chmod requires the fixed zero offset before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.chmod.count",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "chmod requires zero count and no raw payload before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.add-seals.offset",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "add-seals requires the fixed zero offset before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.add-seals.count",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "add-seals requires zero count and no raw payload before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.get-seals.offset",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "get-seals requires the fixed zero offset before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.get-seals.count",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "get-seals requires zero count and no raw payload before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.close.offset",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "close requires the fixed zero offset before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.close.count",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "close requires zero count and no raw payload before any raw buffer write."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.add-seals.argument",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "ADD_SEALS mask is the fixed complete mask."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.get-seals.argument",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "GET_SEALS has the fixed zero raw argument."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.pread.count-zero",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "PREAD capacity includes the one diagnostic extra byte and cannot be zero."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.pread.count-over-capacity",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "PREAD count cannot place a canary or kernel write beyond the real allocation."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.pread.count-not-input-plus-one",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "PREAD count is bound to validated immutable input length plus one."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.pread.offset",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "PREAD uses the fixed zero file offset."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.pread.argument",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "PREAD has no additional raw argument."
+    },
+    {
+      "id": "capture.receipt.v2.raw-operand.close.argument",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "CLOSE has no additional raw argument."
+    },
+    {
+      "id": "capture.receipt.v2.raw-capacity.request",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "The complete request and canary must fit actual ctypes storage before writing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-capacity.output",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "The 96-byte result and canary must fit actual ctypes storage before writing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-capacity.workspace",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "The raw state header, PREAD capacity, and canary must fit actual ctypes storage before writing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-capacity.policy-readback",
+      "kind": "mechanical_prewrite_guard",
+      "meaning": "A confirmed PREAD copy must fit the policy readback region and leave its canary intact."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.memfd.withheld",
+      "kind": "actual_raw_completion_then_withheld_receipt",
+      "action": "memfd",
+      "meaning": "Complete this one actual owned native operation, then withhold its host delivery; retain the exact invocation and do not dispatch another action."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.memfd.inconsistent",
+      "kind": "actual_raw_completion_then_inconsistent_receipt",
+      "action": "memfd",
+      "meaning": "Complete this one actual owned native operation, then expose an inconsistent result/state identity; no confirmation, replay, cleanup substitution, or loss clearing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.write.withheld",
+      "kind": "actual_raw_completion_then_withheld_receipt",
+      "action": "write",
+      "meaning": "Complete this one actual owned native operation, then withhold its host delivery; retain the exact invocation and do not dispatch another action."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.write.inconsistent",
+      "kind": "actual_raw_completion_then_inconsistent_receipt",
+      "action": "write",
+      "meaning": "Complete this one actual owned native operation, then expose an inconsistent result/state identity; no confirmation, replay, cleanup substitution, or loss clearing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.chmod.withheld",
+      "kind": "actual_raw_completion_then_withheld_receipt",
+      "action": "chmod",
+      "meaning": "Complete this one actual owned native operation, then withhold its host delivery; retain the exact invocation and do not dispatch another action."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.chmod.inconsistent",
+      "kind": "actual_raw_completion_then_inconsistent_receipt",
+      "action": "chmod",
+      "meaning": "Complete this one actual owned native operation, then expose an inconsistent result/state identity; no confirmation, replay, cleanup substitution, or loss clearing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.add-seals.withheld",
+      "kind": "actual_raw_completion_then_withheld_receipt",
+      "action": "add-seals",
+      "meaning": "Complete this one actual owned native operation, then withhold its host delivery; retain the exact invocation and do not dispatch another action."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.add-seals.inconsistent",
+      "kind": "actual_raw_completion_then_inconsistent_receipt",
+      "action": "add-seals",
+      "meaning": "Complete this one actual owned native operation, then expose an inconsistent result/state identity; no confirmation, replay, cleanup substitution, or loss clearing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.get-seals.withheld",
+      "kind": "actual_raw_completion_then_withheld_receipt",
+      "action": "get-seals",
+      "meaning": "Complete this one actual owned native operation, then withhold its host delivery; retain the exact invocation and do not dispatch another action."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.get-seals.inconsistent",
+      "kind": "actual_raw_completion_then_inconsistent_receipt",
+      "action": "get-seals",
+      "meaning": "Complete this one actual owned native operation, then expose an inconsistent result/state identity; no confirmation, replay, cleanup substitution, or loss clearing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.pread.withheld",
+      "kind": "actual_raw_completion_then_withheld_receipt",
+      "action": "pread",
+      "meaning": "Complete this one actual owned native operation, then withhold its host delivery; retain the exact invocation and do not dispatch another action."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.pread.inconsistent",
+      "kind": "actual_raw_completion_then_inconsistent_receipt",
+      "action": "pread",
+      "meaning": "Complete this one actual owned native operation, then expose an inconsistent result/state identity; no confirmation, replay, cleanup substitution, or loss clearing."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.close.withheld",
+      "kind": "actual_raw_completion_then_withheld_receipt",
+      "action": "close",
+      "meaning": "Complete this one actual owned native operation, then withhold its host delivery; retain the exact invocation and do not dispatch another action."
+    },
+    {
+      "id": "capture.receipt.v2.raw-loss.close.inconsistent",
+      "kind": "actual_raw_completion_then_inconsistent_receipt",
+      "action": "close",
+      "meaning": "Complete this one actual owned native operation, then expose an inconsistent result/state identity; no confirmation, replay, cleanup substitution, or loss clearing."
+    },
+    {
+      "id": "capture.receipt.v2.raw.negative-result.complete",
+      "kind": "complete_negative_receipt",
+      "meaning": "A complete actual Linux negative result is retained exactly and reaches the ordinary HIA errno/error/close continuation; errno alone does not establish delivery loss."
+    },
+    {
+      "id": "capture.receipt.v2.callback.audit.child-loss-swallowed",
+      "kind": "actual_causal_resource_loss",
+      "meaning": "A real child loss during an audit remains sticky even when the callback returns normally; no later whole terminal ACK."
+    },
+    {
+      "id": "capture.receipt.v2.callback.signal.child-loss-replaced",
+      "kind": "actual_causal_resource_loss",
+      "meaning": "A real child loss during a signal callback survives a replacement ordinary exception; no manufactured ordinary capture terminal."
+    }
+  ],
+  "ordered_ids": [
+    "capture.receipt.v2.policy.stale-active.after-memfd",
+    "capture.receipt.v2.policy.stale-active.after-write",
+    "capture.receipt.v2.policy.stale-active.after-audit",
+    "capture.receipt.v2.policy.stale-active.after-close",
+    "capture.receipt.v2.policy.active.sequence-not-advanced",
+    "capture.receipt.v2.policy.active.sequence-skips",
+    "capture.receipt.v2.policy.terminal.sequence-changed",
+    "capture.receipt.v2.policy.initial.kind-not-active",
+    "capture.receipt.v2.policy.initial.action-not-memfd",
+    "capture.receipt.v2.policy.initial.sequence-not-one",
+    "capture.receipt.v2.policy.kind.reply-active-state-terminal",
+    "capture.receipt.v2.policy.kind.reply-terminal-state-active",
+    "capture.receipt.v2.policy.kind.reply-success-state-error",
+    "capture.receipt.v2.policy.event-two.error-handle-not-bound",
+    "capture.receipt.v2.policy.continuation.nonce-mismatch",
+    "capture.receipt.v2.policy.workspace.input-length-mismatch",
+    "capture.receipt.v2.policy.workspace.offset-out-of-range",
+    "capture.receipt.v2.policy.receipt.checksum-invalid",
+    "capture.receipt.v2.policy.workspace.checksum-invalid",
+    "capture.receipt.v2.policy.request.changed-during-entry",
+    "capture.receipt.v2.policy.output.canary-changed",
+    "capture.receipt.v2.policy.workspace.canary-changed",
+    "capture.receipt.v2.policy.return.incomplete-status",
+    "capture.receipt.v2.policy.terminal.error-identity-not-current",
+    "capture.receipt.v2.raw-operand.action-domain",
+    "capture.receipt.v2.raw-operand.memfd.fd",
+    "capture.receipt.v2.raw-operand.memfd.offset",
+    "capture.receipt.v2.raw-operand.memfd.count",
+    "capture.receipt.v2.raw-operand.memfd.flags",
+    "capture.receipt.v2.raw-operand.nonmemfd.fd",
+    "capture.receipt.v2.raw-operand.write.offset",
+    "capture.receipt.v2.raw-operand.write.count",
+    "capture.receipt.v2.raw-operand.write.argument",
+    "capture.receipt.v2.raw-operand.write.payload-length",
+    "capture.receipt.v2.raw-operand.chmod.mode",
+    "capture.receipt.v2.raw-operand.chmod.offset",
+    "capture.receipt.v2.raw-operand.chmod.count",
+    "capture.receipt.v2.raw-operand.add-seals.offset",
+    "capture.receipt.v2.raw-operand.add-seals.count",
+    "capture.receipt.v2.raw-operand.get-seals.offset",
+    "capture.receipt.v2.raw-operand.get-seals.count",
+    "capture.receipt.v2.raw-operand.close.offset",
+    "capture.receipt.v2.raw-operand.close.count",
+    "capture.receipt.v2.raw-operand.add-seals.argument",
+    "capture.receipt.v2.raw-operand.get-seals.argument",
+    "capture.receipt.v2.raw-operand.pread.count-zero",
+    "capture.receipt.v2.raw-operand.pread.count-over-capacity",
+    "capture.receipt.v2.raw-operand.pread.count-not-input-plus-one",
+    "capture.receipt.v2.raw-operand.pread.offset",
+    "capture.receipt.v2.raw-operand.pread.argument",
+    "capture.receipt.v2.raw-operand.close.argument",
+    "capture.receipt.v2.raw-capacity.request",
+    "capture.receipt.v2.raw-capacity.output",
+    "capture.receipt.v2.raw-capacity.workspace",
+    "capture.receipt.v2.raw-capacity.policy-readback",
+    "capture.receipt.v2.raw-loss.memfd.withheld",
+    "capture.receipt.v2.raw-loss.memfd.inconsistent",
+    "capture.receipt.v2.raw-loss.write.withheld",
+    "capture.receipt.v2.raw-loss.write.inconsistent",
+    "capture.receipt.v2.raw-loss.chmod.withheld",
+    "capture.receipt.v2.raw-loss.chmod.inconsistent",
+    "capture.receipt.v2.raw-loss.add-seals.withheld",
+    "capture.receipt.v2.raw-loss.add-seals.inconsistent",
+    "capture.receipt.v2.raw-loss.get-seals.withheld",
+    "capture.receipt.v2.raw-loss.get-seals.inconsistent",
+    "capture.receipt.v2.raw-loss.pread.withheld",
+    "capture.receipt.v2.raw-loss.pread.inconsistent",
+    "capture.receipt.v2.raw-loss.close.withheld",
+    "capture.receipt.v2.raw-loss.close.inconsistent",
+    "capture.receipt.v2.raw.negative-result.complete",
+    "capture.receipt.v2.callback.audit.child-loss-swallowed",
+    "capture.receipt.v2.callback.signal.child-loss-replaced"
+  ],
+  "count": 72,
+  "original_218_sha256": "62ea86055f73c3aa2102ed52304a3b4032f4216ed4c6cc3a73ed1887e52939cf",
+  "original_218_replaced": false,
+  "lanes": {
+    "policy": {
+      "count": 24,
+      "source": "real unchanged VM policy + declared fake kernel",
+      "native": "actual admitted HIA policy + actual native kernel; receipt mutation after actual policy return"
+    },
+    "prewrite": {
+      "count": 31,
+      "source": "synthetic mechanical action projections with real fresh DeliveryRecord and bounded owned ctypes buffers; first-write trap, no native entry",
+      "native": "same mechanical guards on an actually admitted owner; no native entry for invalid inputs"
+    },
+    "actual_raw_loss": {
+      "count": 14,
+      "native_only": true,
+      "delivery": "actual owned syscall completion before withheld or inconsistent receipt; process exit owns remaining descriptors"
+    },
+    "actual_negative": {
+      "count": 1,
+      "native_only": true,
+      "delivery": "test closes its captured fd before actual GET_SEALS; actual kernel EBADF and ordinary HIA error/close continuation"
+    },
+    "actual_child_loss": {
+      "count": 2,
+      "native_only": true,
+      "delivery": "native parent HIA with explicit fake parent kernel/audit/signal fixture; nested child executes actual native MEMFD before receipt loss"
+    }
+  },
+  "original_methods_inputs_and_budgets_unchanged": true,
+  "whole_native_delivery_qualified": false
+}

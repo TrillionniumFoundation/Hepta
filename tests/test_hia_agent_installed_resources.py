@@ -6,9 +6,83 @@ from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURC
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
-# Source-distribution test inputs are not installed Agent resources and must
-# never expand the worker's production source identity or _data payload.
-SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',)
+# Additional explicit sdist inputs stay separate from Agent RESOURCES.
+# The two declared native package files also belong in the actual wheel;
+# all other support paths remain absent from its package root.
+SDIST_SUPPORT_FILES=(
+    'tests/fixtures/hia_compiler_rename_reference.json.gz',
+    'docs/HIA_SLOT_MECHANICAL_BOUNDARY.md',
+    'docs/HIA_SLOT_MECHANICAL_V5.md',
+    'hepta/native/slot_mechanical.c',
+    'hepta/native/slot_mechanical_build.py',
+    'tests/hia_slot_mechanical_admission_controls.py',
+    'tests/hia_slot_mechanical_capsule_observer.py',
+    'tests/hia_slot_mechanical_installed_probe.py',
+    'tests/hia_slot_mechanical_worker_probe.py',
+    'tests/test_hia_slot_mechanical_native.py',
+    'tools/build_hia_slot_mechanical.py',
+    'tools/build_hia_slot_mechanical_bundle.py',
+    'tools/qualify_hia_slot_mechanical_admission.py',
+    'tools/qualify_hia_slot_mechanical_installed.py',
+    'tools/qualify_hia_slot_mechanical_observations.py',
+    'tools/qualify_hia_slot_mechanical_public.py',
+    'tools/read_hia_slot_mechanical_admission.py',
+    'tools/read_hia_slot_mechanical_installed.py',
+    'tools/read_hia_slot_mechanical_observations.py',
+    'examples/hia_bootstrap/executable_capture.hepta',
+    'tools/hia_executable_capture_syscalls.S',
+    'tools/generate_hia_executable_capture.py',
+    'tools/build_hia_executable_capture.py',
+    'tools/qualify_hia_selfhost.py',
+    'tools/build_hia_source_build.py',
+    'tools/build_hia_json_preflight.py',
+    'tools/qualify_hia_store_file_capture_originals.py',
+    'tools/generate_hia_selfhost.py',
+    'tests/fixtures/executable_capture_r19_original.py.txt',
+    'tests/hia_executable_capture_originals.py',
+    'tests/fixtures/executable_capture_cases.json',
+    'tests/test_hia_executable_capture.py',
+    'docs/HIA_EXECUTABLE_CAPTURE.md',
+    'tests/hia_executable_capture_receipt_controls.py',
+    'tests/test_hia_executable_capture_receipt.py',
+    'tests/fixtures/executable_capture_receipt_controls_v2.json',
+    'examples/hia_bootstrap/vm_integer_divrem.hepta',
+    'tools/build_hia_vm_integer_divrem.py',
+    'tools/qualify_hia_vm_integer_divrem.py',
+    'tools/read_hia_vm_integer_divrem.py',
+    'tests/hia_vm_integer_divrem_cases.py',
+    'tests/hia_vm_integer_divrem_controls.py',
+    'tests/test_hia_vm_integer_divrem_native.py',
+    'tests/fixtures/vm_integer_divrem_inputs_v1.json',
+    'tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt',
+    'docs/HIA_VM_INTEGER_DIVREM.md',
+)
+WHEEL_PACKAGE_FILES=(
+    'hepta/native/slot_mechanical.c',
+    'hepta/native/slot_mechanical_build.py',
+)
+# Independently selected executable-capture data; not Agent identity inputs.
+EXECUTABLE_CAPTURE_RESOURCES=(
+    'examples/hia_bootstrap/executable_capture.hepta',
+    'tools/hia_executable_capture_syscalls.S',
+    'tools/generate_hia_executable_capture.py',
+    'tools/build_hia_executable_capture.py',
+    'tools/qualify_hia_selfhost.py',
+    'tools/build_hia_source_build.py',
+    'tools/build_hia_json_preflight.py',
+    'tools/qualify_hia_store_file_capture_originals.py',
+    'tools/generate_hia_selfhost.py',
+    'tests/fixtures/executable_capture_r19_original.py.txt',
+    'tests/hia_executable_capture_originals.py',
+    'tests/fixtures/executable_capture_cases.json',
+    'tests/test_hia_executable_capture.py',
+    'tests/hia_executable_capture_receipt_controls.py',
+    'tests/test_hia_executable_capture_receipt.py',
+    'tests/fixtures/executable_capture_receipt_controls_v2.json',
+    'docs/HIA_EXECUTABLE_CAPTURE.md',
+)
+# Independent explicit div/rem data; no Agent helper/default selection.
+VM_INTEGER_DIVREM_RESOURCES = ('examples/hia_bootstrap/vm_integer_divrem.hepta',)
 BUNDLED_SOURCE_BINDINGS={
     'cli_control':('hepta.hia_cli_native','control'),
     'cli_format':('hepta.hia_cli_native','format'),
@@ -51,6 +125,15 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         namespace={'ast':ast,'Path':Path,'ROOT':ROOT}
         exec(compile(ast.Module(body=functions,type_ignores=[]),'setup.py','exec'),namespace)
         self.assertEqual(namespace['agent_resources'](),RESOURCES)
+        capture_functions=[n for n in source.body if isinstance(n,ast.FunctionDef) and n.name=='executable_capture_resources']
+        self.assertEqual(len(capture_functions),1)
+        exec(compile(ast.Module(body=capture_functions,type_ignores=[]),'setup.py','exec'),namespace)
+        self.assertEqual(namespace['executable_capture_resources'](RESOURCES),EXECUTABLE_CAPTURE_RESOURCES)
+        vm_resources=[node.value for node in source.body if isinstance(node,ast.Assign)
+                      and any(isinstance(target,ast.Name) and target.id=='VM_INTEGER_DIVREM_RESOURCES'
+                              for target in node.targets)]
+        self.assertEqual(len(vm_resources),1)
+        self.assertEqual(ast.literal_eval(vm_resources[0]),VM_INTEGER_DIVREM_RESOURCES)
 
     def test_sdist_manifest_explicitly_preserves_every_agent_resource(self):
         declared=[line.removeprefix('include ') for line in (ROOT/'MANIFEST.in').read_text().splitlines() if line.startswith('include ')]
@@ -620,13 +703,17 @@ assert not blocked.intersection(sys.modules)
         with zipfile.ZipFile(self.wheel) as z:
             bundled={name.removeprefix('hepta/_data/') for name in z.namelist()
                      if name.startswith('hepta/_data/') and not name.endswith('/')}
-            self.assertEqual(bundled,set(RESOURCES))
-            for name in RESOURCES:
+            self.assertEqual(bundled,set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES))
+            for name in (*RESOURCES,*EXECUTABLE_CAPTURE_RESOURCES,*VM_INTEGER_DIVREM_RESOURCES):
                 self.assertEqual(z.read('hepta/_data/'+name),(ROOT/name).read_bytes())
                 self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
             for name in SDIST_SUPPORT_FILES:
-                self.assertNotIn(name,z.namelist())
-                self.assertFalse((self.installed/name).exists())
+                if name in WHEEL_PACKAGE_FILES:
+                    self.assertEqual(z.read(name),(ROOT/name).read_bytes())
+                    self.assertEqual((self.installed/name).read_bytes(),(ROOT/name).read_bytes())
+                else:
+                    self.assertNotIn(name,z.namelist())
+                    self.assertFalse((self.installed/name).exists())
         self.assertEqual(self.identity,installation_manifest())
 
     def test_real_installed_native_worker_without_checkout_or_reference_predicates(self):

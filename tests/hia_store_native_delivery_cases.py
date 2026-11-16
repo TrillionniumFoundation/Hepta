@@ -596,13 +596,18 @@ from hepta import hia_service_context_native as context
 from hepta import hia_agent_journal_native as journal
 from hepta import hia_agent_store as store
 from hepta import hia_agent_service as api
+from hepta import hia_agent_worker as worker_api
 from hepta.hia_agent_worker import main
-for module in (delivery,native,context,journal):
+for module in (delivery,native,context,journal,worker_api):
     assert Path(module.__file__).resolve().is_relative_to(Path(installed).resolve()/'hepta')
 counts={'startup':{'store':0,'context':0,'journal':0},
         'request':{'store':0,'context':0,'journal':0},
-        'publication_inserts':0,'lost_returns':0,'swallowed':0}
+        'publication_inserts':0,'lost_returns':0,'swallowed':0,
+        'close_attempts':0,'close_returns':0,'unknown_terminal_calls':0,
+        'worker_terminal':None}
 active=False;armed=False;reported=False
+actual_loss_error_id=None;actual_primary_id=None;actual_cleanup_id=None
+actual_peer_error_id=None;actual_replacement_error_id=None
 def forbidden(*args,**kwargs):raise AssertionError('installed D4 worker entered retained owner')
 for name in ('_put_reference','_json_reference','_ref_reference','_get_reference','_get_json_reference',
              '_resolve_uri_reference','_profile_reference','_check_profile_reference'):
@@ -614,12 +619,68 @@ api.HIAAgentService._context_reference=forbidden
 api._NATIVE_SERVICE_CONTEXT_LOOKUP_REFERENCE=forbidden
 original_call=api.HIAAgentService.call
 def request_call(self,*arguments,**keywords):
-    global active
+    global active,actual_primary_id
     assert not active
     active=True
     try:return original_call(self,*arguments,**keywords)
+    except BaseException as error:
+        actual_primary_id=id(error)
+        raise
     finally:active=False
 api.HIAAgentService.call=request_call
+original_close=api.HIAAgentService.close
+def observe_close(self,*arguments,**keywords):
+    global actual_cleanup_id
+    value=None
+    try:
+        counts['close_attempts']+=1
+        try:
+            value=original_close(self,*arguments,**keywords)
+        except BaseException as error:
+            actual_cleanup_id=id(error)
+            raise
+        counts['close_returns']+=1
+        return value
+    finally:
+        del self,arguments,keywords,value
+api.HIAAgentService.close=observe_close
+original_terminal=worker_api._unknown_request_exit
+def observe_terminal(observation,terminal_error):
+    # Observe the actual worker arguments without altering exceptions or custody.
+    counts['unknown_terminal_calls']+=1
+    origin=observation.origin
+    primary=observation.primary_error
+    cleanup=observation.cleanup_error
+    facts={'schema':'hepta.hia.store-installed-worker-terminal.v2',
+        'request_observer_inactive':not observation.active,
+        'origin_present':origin is not None,
+        'origin_error_is_injected':origin is not None and id(origin.error)==actual_loss_error_id,
+        'origin_loss_is_self':origin is not None and origin.loss is origin,
+        'origin_custodied':origin is not None and delivery._CUSTODY.get(id(origin)) is origin,
+        'origin_retired':None if origin is None else origin.retired,
+        'origin_native_pending':None if origin is None else origin.native_pending,
+        'Store_frame_links_origin':origin is not None and any(
+            frame.unconfirmed and frame._delivery.loss is origin
+            for frame in native._FRAME_CUSTODY.values()),
+        'primary_present':primary is not None,
+        'primary_is_actual_call_error':primary is not None and id(primary)==actual_primary_id,
+        'primary_type':None if primary is None else type(primary).__name__,
+        'primary_cause_is_injected':primary is not None and primary.__cause__ is not None and id(primary.__cause__)==actual_loss_error_id,
+        'peer_error_seen':actual_peer_error_id is not None,
+        'replacement_error_seen':actual_replacement_error_id is not None,
+        'primary_cause_is_replacement':primary is not None and type(primary.__cause__) is OSError and id(primary.__cause__)==actual_replacement_error_id,
+        'replacement_context_is_peer_error':primary is not None and type(primary.__cause__) is OSError and type(primary.__cause__.__context__) is context.ServiceContextUnknown and id(primary.__cause__.__context__)==actual_peer_error_id,
+        'peer_cause_is_injected':primary is not None and type(primary.__cause__) is OSError and type(primary.__cause__.__context__) is context.ServiceContextUnknown and primary.__cause__.__context__.__cause__ is not None and id(primary.__cause__.__context__.__cause__)==actual_loss_error_id,
+        'cleanup_present':cleanup is not None,
+        'cleanup_is_actual_close_error':cleanup is not None and id(cleanup)==actual_cleanup_id,
+        'cleanup_type':None if cleanup is None else type(cleanup).__name__,
+        'cleanup_context_is_primary':cleanup is not None and cleanup.__context__ is primary,
+        'terminal_is_cleanup':terminal_error is cleanup}
+    counts['worker_terminal']=facts
+    result=original_terminal(observation,terminal_error)
+    facts['returned_status']=result
+    return result
+worker_api._unknown_request_exit=observe_terminal
 def emit_counts():
     global reported
     assert not reported
@@ -630,6 +691,7 @@ def emit_counts():
     counts['Store_unknown_frames']=sum(frame.unconfirmed for frame in native._FRAME_CUSTODY.values())
     counts['shared_module_sha256']=sha256(Path(delivery.__file__).read_bytes()).hexdigest()
     counts['Store_adapter_sha256']=sha256(Path(native.__file__).read_bytes()).hexdigest()
+    counts['worker_module_sha256']=sha256(Path(worker_api.__file__).read_bytes()).hexdigest()
     os.write(2,('D4_COUNTS='+json.dumps(counts,sort_keys=True)+'\n').encode())
 for kind,label in ((native.NativeStoreArtifactProfile,'store'),
                    (context.NativeServiceContextImage,'context'),(journal.NativeAgentJournal,'journal')):
@@ -637,19 +699,24 @@ for kind,label in ((native.NativeStoreArtifactProfile,'store'),
     def image_init(self,*arguments,_initializer=initializer,_label=label,**keywords):
         _initializer(self,*arguments,**keywords);entry=self._entry
         def observed(source,size,output,capacity,state,extent):
+            global actual_loss_error_id
             result=entry(source,size,output,capacity,state,extent)
             counts['request' if active else 'startup'][_label]+=1
             if _label=='context' and armed and mode!='normal':
                 counts['lost_returns']+=1
                 if mode=='exit':
                     emit_counts();os._exit(73)
-                raise ValueError('actual installed peer result lost after Store publication')
+                try:
+                    raise ValueError('actual installed peer result lost after Store publication')
+                except ValueError as error:
+                    actual_loss_error_id=id(error)
+                    raise
             return result
         self._entry=observed
     kind.__init__=image_init
 original_effect=native.StoreArtifactProfileFrame.effect
 def store_effect(self,port):
-    global armed
+    global armed,actual_peer_error_id,actual_replacement_error_id
     value=original_effect(self,port)
     if active and port==native.PORT['put_insert']:
         counts['publication_inserts']+=1
@@ -657,10 +724,16 @@ def store_effect(self,port):
         armed=True
         try:
             try:assert peer.arithmetic(1,11,7)==18
-            except context.ServiceContextUnknown:
+            except context.ServiceContextUnknown as peer_error:
+                actual_peer_error_id=id(peer_error)
                 assert mode in ('swallow','replace')
                 counts['swallowed']+=1
-                if mode=='replace':raise OSError('installed foreign provider replaced actual peer loss')
+                if mode=='replace':
+                    try:
+                        raise OSError('installed foreign provider replaced actual peer loss')
+                    except OSError as replacement_error:
+                        actual_replacement_error_id=id(replacement_error)
+                        raise
         finally:armed=False
     return value
 native.StoreArtifactProfileFrame.effect=store_effect
@@ -690,6 +763,14 @@ def _installed_cases(root, manifests, modes, *, source_drift):
             env=environment, input=body, capture_output=True, timeout=60)
         (root / (label + '.stdout')).write_bytes(result.stdout)
         (root / (label + '.stderr')).write_bytes(result.stderr)
+        (root / (label + '.result.json')).write_bytes(encoded({
+            'argv': [sys.executable, '-B', *map(str, arguments)],
+            'cwd': str(root), 'timeout_seconds': 60,
+            'returncode': result.returncode, 'expected_returncode': expected,
+            'stdin': None if body is None else {'bytes': len(body), 'sha256': sha256(body).hexdigest()},
+            'stdout': {'bytes': len(result.stdout), 'sha256': sha256(result.stdout).hexdigest()},
+            'stderr': {'bytes': len(result.stderr), 'sha256': sha256(result.stderr).hexdigest()},
+        }) + b'\n')
         if expected is not None:
             assert result.returncode == expected, result.stdout + result.stderr
         return result
@@ -704,7 +785,7 @@ def _installed_cases(root, manifests, modes, *, source_drift):
         record_name, = [name for name in archive.namelist() if name.endswith('.dist-info/RECORD')]
         records = list(csv.reader(io.StringIO(archive.read(record_name).decode())))
         for name in ('hepta/hia_native_delivery.py', 'hepta/hia_store_artifact_profile_native.py',
-                     'hepta/hia_store_artifact_profile_protocol.py'):
+                     'hepta/hia_store_artifact_profile_protocol.py', 'hepta/hia_agent_worker.py'):
             assert archive.namelist().count(name) == 1
             raw = archive.read(name)
             row, = [row for row in records if row[0] == name]
@@ -728,6 +809,7 @@ def _installed_cases(root, manifests, modes, *, source_drift):
         value = json.loads(rows[0])
         assert value['shared_module_sha256'] == installed_pins['hepta/hia_native_delivery.py']['sha256']
         assert value['Store_adapter_sha256'] == installed_pins['hepta/hia_store_artifact_profile_native.py']['sha256']
+        assert value['worker_module_sha256'] == installed_pins['hepta/hia_agent_worker.py']['sha256']
         return value
     observations = []
     for mode in modes:
@@ -749,7 +831,7 @@ def _installed_cases(root, manifests, modes, *, source_drift):
                      '--artifact-root', case.files_root, '--request-json-stdin',
                      '--native-helpers-manifest', bundle, '--expected-native-helpers-sha256', bundle_sha]
             result = run('worker-' + mode, flags, encoded(request),
-                         expected=0 if mode == 'normal' else 73 if mode == 'exit' else 1)
+                         expected=0 if mode == 'normal' else 73 if mode == 'exit' else 2)
             actual = counts(result)
             retained = store_snapshot(case.state_root, key)
             assert actual['startup']['store'] > 0
@@ -769,6 +851,9 @@ def _installed_cases(root, manifests, modes, *, source_drift):
                 assert retained['request']['state'] == 'completed'
                 assert len(retained['costs']) == len(before['costs']) + 1
                 assert actual['lost_returns'] == actual['shared_lost_records'] == 0
+                assert actual['close_attempts'] == actual['close_returns'] == 1
+                assert actual['unknown_terminal_calls'] == 0 and actual['worker_terminal'] is None
+                assert b'HIA_WORKER_DELIVERY_UNKNOWN' not in result.stderr
             else:
                 report = None
                 assert result.stdout == b'' and actual['lost_returns'] == 1
@@ -776,9 +861,43 @@ def _installed_cases(root, manifests, modes, *, source_drift):
                 assert retained['costs'] == before['costs']
                 if mode == 'exit':
                     assert actual['shared_pending_native_records'] >= 1 and actual['swallowed'] == 0
+                    assert actual['close_attempts'] == actual['close_returns'] == 0
+                    assert actual['unknown_terminal_calls'] == 0 and actual['worker_terminal'] is None
                 else:
                     assert actual['swallowed'] == 1 and actual['shared_lost_records'] >= 3
                     assert actual['Store_unknown_frames'] >= 1
+                    assert actual['close_attempts'] == 1 and actual['close_returns'] == 0
+                    assert actual['unknown_terminal_calls'] == 1
+                    terminal = actual['worker_terminal']
+                    assert terminal['schema'] == 'hepta.hia.store-installed-worker-terminal.v2'
+                    assert all(terminal[name] is True for name in (
+                        'request_observer_inactive', 'origin_present', 'origin_error_is_injected',
+                        'origin_loss_is_self', 'origin_custodied', 'origin_native_pending',
+                        'Store_frame_links_origin', 'primary_present', 'primary_is_actual_call_error',
+                        'cleanup_present', 'cleanup_is_actual_close_error',
+                        'cleanup_context_is_primary', 'terminal_is_cleanup'))
+                    assert terminal['origin_retired'] is False and terminal['returned_status'] == 2
+                    assert terminal['primary_type'] == 'StoreArtifactProfileUnknown'
+                    assert terminal['peer_error_seen'] is True
+                    if mode == 'swallow':
+                        assert terminal['primary_cause_is_injected'] is True
+                        assert terminal['replacement_error_seen'] is False
+                        assert terminal['primary_cause_is_replacement'] is False
+                        assert terminal['replacement_context_is_peer_error'] is False
+                        assert terminal['peer_cause_is_injected'] is False
+                    else:
+                        assert mode == 'replace'
+                        assert terminal['primary_cause_is_injected'] is False
+                        assert all(terminal[name] is True for name in (
+                            'replacement_error_seen', 'primary_cause_is_replacement',
+                            'replacement_context_is_peer_error', 'peer_cause_is_injected'))
+                    assert terminal['cleanup_type'] == 'NativeDeliveryUnknown'
+                    assert result.stderr.startswith(b'HIA_WORKER_DELIVERY_UNKNOWN\n')
+                    assert result.stderr.count(b'REQUEST_PRIMARY_EXCEPTION\n') == 1
+                    assert result.stderr.count(b'REQUEST_CLEANUP_EXCEPTION\n') == 1
+                    assert b'actual installed peer result lost after Store publication' in result.stderr
+                    assert b'REQUEST_TERMINAL_EXCEPTION\n' not in result.stderr
+                    assert b'diagnostic unavailable' not in result.stderr
             replay_flags = list(flags)
             replay_flags[4] = 'normal'
             replay = run('replay-' + mode, replay_flags, encoded(request))
@@ -788,6 +907,9 @@ def _installed_cases(root, manifests, modes, *, source_drift):
             assert replay_counts['startup']['store'] > 0
             assert replay_counts['request']['store'] == replay_counts['request']['context'] == 0
             assert replay_counts['publication_inserts'] == replay_counts['lost_returns'] == 0
+            assert replay_counts['unknown_terminal_calls'] == 0 and replay_counts['worker_terminal'] is None
+            assert replay_counts['close_attempts'] == replay_counts['close_returns'] == 1
+            assert b'HIA_WORKER_DELIVERY_UNKNOWN' not in replay.stderr
             assert after['request'] == retained['request'] and after['artifacts'] == retained['artifacts']
             assert after['profiles'] == retained['profiles']
             if mode == 'normal':
@@ -801,7 +923,9 @@ def _installed_cases(root, manifests, modes, *, source_drift):
                 'replay_report': replay_report, 'after_replay': after,
                 'durable_payload_sha256': sha256(payload).hexdigest(),
                 'native_artifact_provider_not_selected_or_qualified': True,
-                'independent_worker_finally_close_preserved_not_resource_fenced': True}
+                'worker_terminal_contract': 'hepta.hia.store-installed-worker-terminal.v2',
+                'independent_worker_finally_close_attempt_observed': mode != 'exit',
+                'actual_close_refused_by_retained_resource_loss': mode in ('swallow', 'replace')}
             if source_drift:
                 path = installed / 'hepta/_data/examples/hia_bootstrap/store_artifact_profile.hepta'
                 original = path.read_bytes()
