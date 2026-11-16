@@ -665,34 +665,43 @@ def escaped(o:mutbuf, w:mutbuf, point:u64) -> u64:
     elif point == 34 or point == 92:
         emit(o, w, 92)
         emit(o, w, point)
-    elif get(w, ASCII) != 0 and point >= 127:
-        if point <= 65535:
-            emit(o, w, 92)
-            emit(o, w, 117)
-            hex4(o, w, point)
-        else:
-            emit(o, w, 92)
-            emit(o, w, 117)
-            hex4(o, w, 55296 + ((point - 65536) >> 10))
-            emit(o, w, 92)
-            emit(o, w, 117)
-            hex4(o, w, 56320 + ((point - 65536) & 1023))
     else:
-        if point >= 55296 and point <= 57343:
-            return 112
-        if point < 128:
-            emit(o, w, point)
+        if length(w) >= 56:
+            ascii_flag = word_load(w, 48)
         else:
-            if point < 2048:
-                emit(o, w, 192 | (point >> 6))
+            ascii_flag = get(w, ASCII)
+        if ascii_flag != 0:
+            escape_non_ascii = point >= 127
+        else:
+            escape_non_ascii = False
+        if escape_non_ascii:
+            if point <= 65535:
+                emit(o, w, 92)
+                emit(o, w, 117)
+                hex4(o, w, point)
             else:
-                if point < 65536:
-                    emit(o, w, 224 | (point >> 12))
+                emit(o, w, 92)
+                emit(o, w, 117)
+                hex4(o, w, 55296 + ((point - 65536) >> 10))
+                emit(o, w, 92)
+                emit(o, w, 117)
+                hex4(o, w, 56320 + ((point - 65536) & 1023))
+        else:
+            if point >= 55296 and point <= 57343:
+                return 112
+            if point < 128:
+                emit(o, w, point)
+            else:
+                if point < 2048:
+                    emit(o, w, 192 | (point >> 6))
                 else:
-                    emit(o, w, 240 | (point >> 18))
-                    emit(o, w, 128 | ((point >> 12) & 63))
-                emit(o, w, 128 | ((point >> 6) & 63))
-            emit(o, w, 128 | (point & 63))
+                    if point < 65536:
+                        emit(o, w, 224 | (point >> 12))
+                    else:
+                        emit(o, w, 240 | (point >> 18))
+                        emit(o, w, 128 | ((point >> 12) & 63))
+                    emit(o, w, 128 | ((point >> 6) & 63))
+                emit(o, w, 128 | (point & 63))
     return 0
 
 def hex4(o:mutbuf, w:mutbuf, value:u64) -> u64:
