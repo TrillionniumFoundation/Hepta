@@ -628,6 +628,12 @@ def literal(w:mutbuf, at:u64, kind:u64) -> u64:
     return 0
 
 def emit(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    if length(w) >= 120:
+        count = word_load(w, 112)
+        if count < word_load(w, 32):
+            store(o, count, value)
+        put(w, OUT, count + 1)
+        return 0
     count = get(w, OUT)
     if count < get(w, MAX):
         store(o, count, value)
