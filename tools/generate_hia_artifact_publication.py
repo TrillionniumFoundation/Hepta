@@ -449,7 +449,86 @@ def document(source=POLICY_SOURCE, module='artifact_publication_policy'):
         fns.append({'name':names[n.name],'params':[b.param(p) for p in b.params],
                     'returns':[b.returns], 'effects':['read','write','trap'],
                     'entry':'b0','blocks':b.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':fns})
+    result = compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':fns})
+    if module == 'exec_release_policy':
+        return _compact_exec_release_external_loans(result)
+    return result
+
+
+def _compact_exec_release_external_loans(document):
+    """Drop only unused external-loan edge slots in this authoring profile.
+
+    Every operation, condition, return, call, function ABI and block remains.
+    No owner, local borrow, loan end or borrowed return is admitted here.
+    This is not a compiler optimization for user-supplied programs. The
+    original Core verifier checks both complete graphs. Python allocation,
+    reflection and asynchronous observation are not equivalence claims.
+    """
+    from copy import deepcopy
+    from hepta.hia_program import verify_program
+    from hepta.hia_opcodes import SCALARS, opcode_spec
+
+    verify_program(document)
+    if document['module'] != 'exec_release_policy':
+        raise ValueError('external-loan compaction requires the explicit exec-release authoring profile')
+    result = deepcopy(document)
+    borrowed = {'readbuf', 'mutbuf'}
+    admitted = SCALARS | borrowed
+
+    def edges(block):
+        term = block['term']
+        return ([term] if term['op'] == 'jump' else
+                [term['then'], term['else']] if term['op'] == 'branch' else [])
+
+    for function in result['functions']:
+        if (any(param['type'] not in admitted for param in function['params'])
+                or any(typ not in SCALARS for typ in function['returns'])
+                or any(origin is not None for origin in function.get('return_loans', ()))):
+            raise ValueError('exec-release compaction permits only external input loans and scalar returns')
+        blocks = {block['id']: block for block in function['blocks']}
+        for block in function['blocks']:
+            if any(param['type'] not in admitted for param in block['params']):
+                raise ValueError('exec-release compaction cannot discard owners or local loans')
+            for operation in block['ops']:
+                if (any(value['type'] not in SCALARS for value in operation['out'])
+                        or opcode_spec(operation['op'], result['schema']).resource_transition
+                        not in {'none', 'call'}):
+                    raise ValueError('exec-release compaction cannot create, end or return a local resource')
+
+        # An operation operand is always a root, even if its output is unused.
+        # Nonloan and entry parameters are preserved without exception.
+        live = set()
+        for block in function['blocks']:
+            used = {arg for operation in block['ops'] for arg in operation['args']}
+            term = block['term']
+            used.update(term['values'] if term['op'] == 'ret' else
+                        [term['cond']] if term['op'] == 'branch' else [])
+            for param in block['params']:
+                if (block['id'] == function['entry'] or param['type'] not in borrowed
+                        or param['name'] in used):
+                    live.add((block['id'], param['name']))
+        # Propagate all successor requirements to a fixed point, including
+        # backedges. Arguments are mapped by original position, simultaneously.
+        while True:
+            previous = set(live)
+            for block in function['blocks']:
+                params = {param['name'] for param in block['params']}
+                for edge in edges(block):
+                    for actual, formal in zip(edge['args'], blocks[edge['target']]['params'], strict=True):
+                        if (edge['target'], formal['name']) in live and actual in params:
+                            live.add((block['id'], actual))
+            if live == previous:
+                break
+        keep = {block['id']: [index for index, param in enumerate(block['params'])
+                              if (block['id'], param['name']) in live]
+                for block in function['blocks']}
+        for block in function['blocks']:
+            for edge in edges(block):
+                edge['args'] = [edge['args'][index] for index in keep[edge['target']]]
+            block['params'] = [block['params'][index] for index in keep[block['id']]]
+
+    verify_program(result)
+    return result
 
 
 MAGIC=int.from_bytes(b'HIAPUB01','little')

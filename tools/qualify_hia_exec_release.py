@@ -441,7 +441,7 @@ def qualify(directory, compiler, cold_report, *, development=False, expected_com
             'all_input_equivalence_proved': False, 'ordinary_cli_default_changed': False,
             'public_vm_replaced': False, 'whole_native_delivery_qualified': False,
             'cold_or_gc_or_existing_resource_holds_resolved': False}
-        ledger = [{'path': str(path), **pin(raw)} for path, raw in sorted(run.captured.items())]
+        ledger = [{'path': str(path), **pin(raw)} for path, raw in sorted(run.captured.items(), key=lambda item: str(item[0]))]
         ledger_raw = wire(ledger)
         put(run.directory / 'consumed-files.json', ledger_raw)
         report['consumed_files'] = {'path': str(run.directory / 'consumed-files.json'), **pin(ledger_raw)}
