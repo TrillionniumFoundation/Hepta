@@ -792,3 +792,601 @@ jobs:
             ${{ runner.temp }}/native-no-child-continuation-callers/
             ${{ runner.temp }}/worker-report-fixture/
             ${{ runner.temp }}/worker-scheduling-fixture/
+      - name: Export complete selected cold and wire evidence
+        if: success()
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          python -I -S -B - <<'PY_SELECTED_EVIDENCE'
+          """Copy complete selected evidence without executing any captured payload.
+
+          The original complete native artifact remains a separate custody requirement.
+          """
+          import gzip
+          import hashlib
+          import io
+          import json
+          import os
+          from pathlib import Path, PurePosixPath
+          import stat
+          import subprocess
+          import tarfile
+          import time
+          import zipfile
+
+          MIB = 1024 * 1024
+          MAX_RAW = 512 * MIB
+          MAX_PACKED = 32 * MIB
+          MAX_CATALOG = 2 * MIB
+          MAX_TRANSFER = 64 * 1024
+          MAX_SOURCE_FILE = 16 * MIB
+          MAX_PHASE_ZIP = 576 * MIB
+          MAX_PHASE_ZIP_READ_PER_PASS = 2 * 1024 * MIB
+          MAX_PHASE_MANIFEST = 32 * MIB
+          DEADLINE = time.monotonic() + 240
+          CONTRACT = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+          WORKFLOW = '.github/workflows/hia-core.yml'
+          COLD = 'hia-cold.cold'
+          EVIDENCE = COLD + '/qualification.evidence'
+          FAMILIES = ('capacity', 'cfg', 'elf', 'chain', 'owned', 'bulk', 'loan',
+                      'resource', 'tail', 'select', 'effects', 'multi', 'keyword',
+                      'signed', 'scalar-casts', 'explicit-traps', 'cli', 'names', 'exports')
+          LABELS = ('original', 'modified')
+          REFERENCES = {
+              'exports': 'independent-exports-reference.json',
+              'names': 'independent-names-reference.json',
+              'cli': 'independent-cli-reference.json',
+              'explicit-traps': 'independent-explicit-traps-reference.json',
+              'resource': 'independent-resource-reference.json',
+              'bulk': 'independent-bulk-reference.json',
+              'loan': 'independent-loan-reference.json',
+              'cfg': 'independent-cfg-worklist-reference.json',
+              'capacity': 'independent-capacity-reference.json',
+              'tail': 'independent-tail-reference.json',
+              'select': 'independent-select-reference.json',
+              'effects': 'independent-effect-reference.json',
+              'multi': 'independent-multi-result-reference.json',
+              'keyword': 'independent-keyword-reference.json',
+              'signed': 'independent-signed-reference.json',
+              'scalar-casts': 'independent-scalar-cast-reference.json',
+              'core': 'independent-core-reference.json',
+          }
+          DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+          FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+
+
+          def require(condition, message):
+              if not condition:
+                  raise ValueError(message)
+
+
+          def clock():
+              require(time.monotonic() < DEADLINE, 'data-export deadline reached')
+
+
+          def sha(raw):
+              return hashlib.sha256(raw).hexdigest()
+
+
+          def encoded(value):
+              return (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
+
+
+          def relative(name):
+              path = PurePosixPath(name)
+              require(not path.is_absolute() and path.as_posix() == name
+                      and bool(path.parts) and all(p not in ('', '.', '..') for p in path.parts),
+                      'non-canonical relative path')
+              return path.parts
+
+
+          def version(info):
+              return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
+                      info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
+          def directory(path):
+              require(path.is_absolute() and '..' not in path.parts, 'absolute directory required')
+              descriptor = os.open('/', DIR_FLAGS)
+              try:
+                  for part in path.parts[1:]:
+                      child = os.open(part, DIR_FLAGS, dir_fd=descriptor)
+                      os.close(descriptor)
+                      descriptor = child
+                  return descriptor
+              except BaseException:
+                  os.close(descriptor)
+                  raise
+
+
+          def open_file(root, name):
+              parts = relative(name)
+              parent = os.dup(root)
+              try:
+                  for part in parts[:-1]:
+                      child = os.open(part, DIR_FLAGS, dir_fd=parent)
+                      os.close(parent)
+                      parent = child
+                  return os.open(parts[-1], FILE_FLAGS, dir_fd=parent)
+              finally:
+                  os.close(parent)
+
+
+          def read_file(root, name, maximum):
+              clock()
+              descriptor = open_file(root, name)
+              try:
+                  before = os.fstat(descriptor)
+                  require(stat.S_ISREG(before.st_mode) and before.st_uid == os.getuid()
+                          and before.st_nlink == 1 and 0 <= before.st_size <= maximum,
+                          'not a bounded owned regular file: ' + name)
+                  with os.fdopen(os.dup(descriptor), 'rb') as stream:
+                      raw = stream.read(maximum + 1)
+                  require(len(raw) == before.st_size and version(os.fstat(descriptor)) == version(before),
+                          'file changed during capture: ' + name)
+                  check = open_file(root, name)
+                  try:
+                      require(version(os.fstat(check)) == version(before), 'file path changed: ' + name)
+                  finally:
+                      os.close(check)
+                  clock()
+                  return raw, {'bytes': len(raw), 'sha256': sha(raw),
+                               'mode': stat.S_IMODE(before.st_mode), 'version': list(version(before))}
+              finally:
+                  os.close(descriptor)
+
+
+          def git(*arguments):
+              # Fixed, local metadata commands only; no network, hooks, package or payload execution.
+              clock()
+              environment = {'PATH': os.environ['PATH'], 'LANG': 'C.UTF-8', 'LC_ALL': 'C.UTF-8',
+                             'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': '/dev/null',
+                             'GIT_OPTIONAL_LOCKS': '0'}
+              result = subprocess.run(['git', '--no-optional-locks', '-C', str(workspace), *arguments],
+                                      env=environment, stdin=subprocess.DEVNULL, capture_output=True,
+                                      timeout=max(0.001, min(30, DEADLINE - time.monotonic())), check=False)
+              require(result.returncode == 0 and len(result.stdout) <= 2 * MIB and len(result.stderr) <= 65536,
+                      'local Git metadata command failed or exceeded its output bound')
+              clock()
+              return result.stdout
+
+
+          def checkout():
+              head = git('rev-parse', '--verify', 'HEAD').decode().strip()
+              tree = git('rev-parse', '--verify', 'HEAD^{tree}').decode().strip()
+              # A shallow checkout may hide parents from revision traversal. The held
+              # commit object still records its complete tree and parent header fields.
+              commit_raw = git('cat-file', '-p', 'HEAD')
+              object_id = hashlib.sha1(b'commit ' + str(len(commit_raw)).encode() + b'\0' + commit_raw).hexdigest()
+              require(object_id == head, 'Git head changed during observation')
+              headers, separator, _ = commit_raw.partition(b'\n\n')
+              require(bool(separator), 'Git commit has no header terminator')
+              tree_headers = [line[5:] for line in headers.splitlines() if line.startswith(b'tree ')]
+              parent_headers = [line[7:] for line in headers.splitlines() if line.startswith(b'parent ')]
+              require(tree_headers == [tree.encode('ascii')]
+                      and all(len(parent) == 40 and all(c in b'0123456789abcdef' for c in parent)
+                              for parent in parent_headers), 'Git commit header identity differs')
+              parents = [parent.decode('ascii') for parent in parent_headers]
+              records = []
+              for raw in git('ls-tree', '-r', '-z', '--full-tree', 'HEAD').split(b'\0'):
+                  if not raw:
+                      continue
+                  header, name = raw.split(b'\t', 1)
+                  mode, kind, blob = header.decode().split()
+                  name = name.decode('utf-8')
+                  relative(name)
+                  require(kind == 'blob' and mode in ('100644', '100755'), 'unexpected tracked source kind')
+                  records.append((name, mode, blob))
+              require(len(records) == 2593 and len({r[0] for r in records}) == 2593,
+                      'this draft requires the unchanged 2593-path source set')
+              return {'head': head, 'tree': tree, 'parents': parents,
+                      'parents_source': 'raw-commit-object-header', 'commit_object_sha256': sha(commit_raw)}, records
+
+
+          def source_snapshot(records):
+              result = {}
+              for name, mode, blob in records:
+                  raw, row = read_file(workspace_fd, name, MAX_SOURCE_FILE)
+                  object_id = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+                  require(object_id == blob and bool(row['mode'] & 0o111) == (mode == '100755'),
+                          'tracked source differs from checkout: ' + name)
+                  result[name] = {**row, 'git_mode': mode, 'git_blob': blob}
+              return result
+
+
+          def cold_source_snapshot(expected):
+              result = {}
+              for name, digest in sorted(expected.items()):
+                  raw, row = read_file(temp_fd, COLD + '/source/' + name, MAX_SOURCE_FILE)
+                  require(row['sha256'] == digest and row['mode'] == 0o400,
+                          'cold source bytes or original read-only mode differ: ' + name)
+                  result[name] = row
+              return result
+
+
+          def selection():
+              result = {}
+              def add(name, maximum):
+                  relative(name)
+                  require(name not in result, 'duplicate export path')
+                  result[name] = maximum
+              def compile_files(folder, label):
+                  for suffix, maximum in (('.receipt.json', 4 * MIB), ('.request.json', MIB),
+                                          ('.input.bin', MAX_SOURCE_FILE), ('.output.bin', MIB),
+                                          ('.image.bin', MIB), ('.stdout.log', 4 * MIB),
+                                          ('.stderr.log', 4 * MIB)):
+                      add(folder + '/' + label + suffix, maximum)
+              add('hia-cold.json', MIB)
+              for name in ('request.json', 'process-owner.json', 'process-owner.json.request.json'):
+                  add(COLD + '/' + name, MIB)
+              for name in ('stdout.log', 'stderr.log'):
+                  add(COLD + '/' + name, 4 * MIB)
+              add(COLD + '/qualification.json', 128 * MIB)
+              add(EVIDENCE + '/phase-index.json', MIB)
+              add(EVIDENCE + '/B0.receipt.json', 4 * MIB)
+              add(EVIDENCE + '/B0.so', 16 * MIB)
+              add(EVIDENCE + '/modified-selfhost.hepta', MAX_SOURCE_FILE)
+              for label in ('B1', 'B2', 'B3', 'M1', 'M2', 'M3'):
+                  compile_files(EVIDENCE, label)
+              for family in FAMILIES:
+                  for label in LABELS:
+                      stem = EVIDENCE + '/phase-' + family + '-' + label
+                      for suffix, maximum in (('.request.json', MIB), ('.json', 16 * MIB),
+                                              ('.process.json', MIB), ('.stdout.log', 4 * MIB),
+                                              ('.stderr.log', 4 * MIB)):
+                          add(stem + suffix, maximum)
+                      add(EVIDENCE + '/phase-runs/' + family + '-' + label + '/ARCHIVED.json', 65536)
+              add('hia-json-wire-callers.json', 16 * MIB)
+              for name in ('manifest.json', 'build.json'):
+                  add('hia-json-wire-callers/wire/' + name, 4 * MIB)
+              compile_files('hia-json-wire-callers/wire', 'json-wire')
+              for name in ('manifest.json', 'build.json'):
+                  add('worker-report-fixture/qualified/' + name, 4 * MIB)
+              for folder, label in (('qualified/policy', 'worker-report'), ('qualified/wire', 'json-wire'),
+                                    ('custody-request', 'worker-request')):
+                  add('worker-report-fixture/' + folder + '/manifest.json', MIB)
+                  compile_files('worker-report-fixture/' + folder, label)
+              add('worker-report-fixture/custody-request/build.json', 4 * MIB)
+              for name in ('helpers-v1.json', 'worker-v2.json'):
+                  add('worker-report-fixture/' + name, MIB)
+              for name in ('process-owner.json.stdout.log', 'process-owner.json.stderr.log'):
+                  add(COLD + '/' + name, 4 * MIB)
+              add(EVIDENCE + '/native-observer.elf', MIB)
+              add(EVIDENCE + '/native-observer-build.json', 4 * MIB)
+              add(EVIDENCE + '/independent-native-observer-reference.json', 128 * MIB)
+              compile_files(EVIDENCE, 'native-observer-packer')
+              for suffix, maximum in (('.receipt.json', 4 * MIB), ('.request.json', MIB),
+                                      ('.input.bin', MAX_SOURCE_FILE), ('.output.bin', MIB),
+                                      ('.stdout.log', 4 * MIB), ('.stderr.log', 4 * MIB)):
+                  add(EVIDENCE + '/native-observer-emit' + suffix, maximum)
+              for label in LABELS:
+                  compile_files(EVIDENCE, label + '-bytesum')
+              for family, filename in REFERENCES.items():
+                  add(EVIDENCE + '/' + filename, 128 * MIB)
+                  add(EVIDENCE + '/reference-' + family + '.worker.json', 128 * MIB)
+                  for suffix in ('.stdout.log', '.stderr.log'):
+                      add(EVIDENCE + '/reference-' + family + suffix, 4 * MIB)
+              for name in ('selfhost.hepta', 'bytesum.hepta'):
+                  add(COLD + '/source/examples/hia_bootstrap/' + name, MAX_SOURCE_FILE)
+              require(len(result) == 422, 'fixed regular-file selection changed')
+              return result
+
+
+          def unique_object(pairs):
+              result = {}
+              for key, value in pairs:
+                  require(key not in result, 'duplicate archive-manifest JSON key')
+                  result[key] = value
+              return result
+
+
+          def phase_manifest(family, label):
+              """Read one complete fixed metadata member, never extract or run payloads."""
+              global phase_zip_read_bytes
+              require(family in FAMILIES and label in LABELS, 'unexpected phase selection')
+              stage = EVIDENCE + '/phase-runs/' + family + '-' + label
+              archive_name = stage + '.zip'
+              receipt_raw, _ = read_file(temp_fd, stage + '/ARCHIVED.json', 65536)
+              receipt = json.loads(receipt_raw, object_pairs_hook=unique_object)
+              require(receipt['schema'] == 'hepta.hia.archived-stage.v1'
+                      and receipt['archive'] == str(temporary / archive_name)
+                      and receipt['raw_paths_available'] is False
+                      and receipt['every_original_byte_verified_before_retirement'] is True,
+                      'phase archive receipt does not identify the fixed archive')
+              descriptor = open_file(temp_fd, archive_name)
+              try:
+                  before = os.fstat(descriptor)
+                  require(stat.S_ISREG(before.st_mode) and before.st_uid == os.getuid()
+                          and before.st_nlink == 1 and 0 <= before.st_size <= MAX_PHASE_ZIP,
+                          'phase archive is not an owned bounded regular file')
+                  phase_zip_read_bytes += before.st_size
+                  require(phase_zip_read_bytes <= MAX_PHASE_ZIP_READ_PER_PASS,
+                          'phase archives exceed the proposed 2 GiB hash-read budget')
+                  digest = hashlib.sha256()
+                  offset = 0
+                  while offset < before.st_size:
+                      clock()
+                      chunk = os.pread(descriptor, min(MIB, before.st_size - offset), offset)
+                      require(bool(chunk), 'phase archive ended during hashing')
+                      digest.update(chunk)
+                      offset += len(chunk)
+                  archive_sha = digest.hexdigest()
+                  require(archive_sha == receipt['archive_sha256']
+                          and before.st_size == receipt['packed_bytes'], 'phase archive bytes differ')
+                  with os.fdopen(os.dup(descriptor), 'rb') as source:
+                      with zipfile.ZipFile(source) as archive:
+                          infos = archive.infolist()
+                          names = [info.filename for info in infos]
+                          require(len(names) == len(set(names)) and len(names) <= 100001,
+                                  'phase archive central inventory is ambiguous or too large')
+                          info = archive.getinfo('HIA_ARCHIVE_MANIFEST.json')
+                          require(not info.is_dir() and not info.flag_bits & 1
+                                  and stat.S_IFMT(info.external_attr >> 16) in (0, stat.S_IFREG)
+                                  and info.file_size <= MAX_PHASE_MANIFEST,
+                                  'phase manifest is not bounded plain metadata')
+                          raw = archive.read(info)  # zipfile checks this complete member's CRC.
+                          require(len(raw) == info.file_size, 'short phase manifest')
+                          manifest = json.loads(raw, object_pairs_hook=unique_object)
+                          files = manifest['files']
+                          require(manifest['schema'] == 'hepta.hia.lossless-evidence-archive.v1'
+                                  and manifest['source_directory'] == str(temporary / stage)
+                                  and type(files) is dict and len(files) <= 100000
+                                  and set(names) == set(files) | {'HIA_ARCHIVE_MANIFEST.json'},
+                                  'phase manifest does not cover the complete central inventory')
+                          require(raw == json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
+                                  and sha(raw) == receipt['manifest_sha256'], 'phase manifest identity differs')
+                          total = 0
+                          for name, row in files.items():
+                              clock()
+                              relative(name)
+                              member = archive.getinfo(name)
+                              require(not member.is_dir() and not member.flag_bits & 1
+                                      and stat.S_IFMT(member.external_attr >> 16) in (0, stat.S_IFREG)
+                                      and type(row['bytes']) is int and 0 <= row['bytes'] <= 16 * MIB
+                                      and member.file_size == row['bytes']
+                                      and (member.external_attr >> 16) & 0o777 == row['mode']
+                                      and type(row['sha256']) is str and len(row['sha256']) == 64
+                                      and all(c in '0123456789abcdef' for c in row['sha256']),
+                                      'phase member identity disagrees with its complete manifest')
+                              total += row['bytes']
+                          require(total <= 512 * MIB and total == manifest['unpacked_bytes']
+                                  and total == receipt['unpacked_bytes'] and len(files) == receipt['files'],
+                                  'phase archive complete member totals differ')
+                          captured_crc = info.CRC
+                          captured_mode = (info.external_attr >> 16) & 0o777
+                  require(version(os.fstat(descriptor)) == version(before), 'phase archive changed during capture')
+                  check = open_file(temp_fd, archive_name)
+                  try:
+                      require(version(os.fstat(check)) == version(before), 'phase archive path changed')
+                  finally:
+                      os.close(check)
+                  return stage + '/HIA_ARCHIVE_MANIFEST.json', raw, {
+                      'bytes': len(raw), 'sha256': sha(raw), 'mode': captured_mode,
+                      'archive': archive_name, 'archive_bytes': before.st_size,
+                      'archive_sha256': archive_sha, 'archive_version': list(version(before)),
+                      'zip_member': 'HIA_ARCHIVE_MANIFEST.json', 'zip_member_crc32': captured_crc,
+                      'original_payload_members': len(files), 'original_unpacked_bytes': total,
+                      'whole_archive_bytes_delivered': False, 'all_payload_member_CRCs_rechecked': False,
+                  }
+              finally:
+                  os.close(descriptor)
+
+
+          class PackedLimit:
+              def __init__(self, stream):
+                  self.stream = stream
+              def write(self, raw):
+                  clock()
+                  require(self.stream.tell() + len(raw) <= MAX_PACKED, 'compressed export exceeds 32 MiB')
+                  written = self.stream.write(raw)
+                  require(written == len(raw), 'short compressed write')
+                  return written
+              def flush(self):
+                  self.stream.flush()
+
+
+          workspace = Path(os.environ['GITHUB_WORKSPACE'])
+          temporary = Path(os.environ['RUNNER_TEMP'])
+          workspace_fd, temp_fd = directory(workspace), directory(temporary)
+          roots = {'workspace': list(version(os.fstat(workspace_fd))),
+                   'temporary_identity': list(version(os.fstat(temp_fd))[:4])}
+          output = temporary / 'hia-selected-native-v1'
+          require(os.fstat(temp_fd).st_uid == os.getuid(), 'runner temporary root is not owned')
+          # No mutation of a previous export or of any source/evidence file.
+          os.mkdir('hia-selected-native-v1', mode=0o700, dir_fd=temp_fd)
+          output_fd = directory(output)
+          payloads = {}
+          payload_total = 0
+          try:
+              context, tree_records = checkout()
+              before_source = source_snapshot(tree_records)
+              contract_raw, contract_row = read_file(workspace_fd, CONTRACT, MIB)
+              workflow_raw, workflow_row = read_file(workspace_fd, WORKFLOW, MIB)
+              contract = json.loads(contract_raw)
+              pins = contract['source_identity']['files']
+              require(type(pins) is dict and len(pins) == 959 and CONTRACT not in pins,
+                      'unexpected support-contract source set')
+              expected = {**pins, CONTRACT: sha(contract_raw)}
+              require(all(before_source[name]['sha256'] == digest for name, digest in expected.items()),
+                      'current source and current contract disagree')
+              cold_raw, cold_row = read_file(temp_fd, 'hia-cold.json', MIB)
+              cold = json.loads(cold_raw)
+              require(cold['source_manifest'] == expected
+                      and cold['nested_report'] == str(temporary / COLD / 'qualification.json'),
+                      'cold report does not bind the current source or the fixed nested path')
+              before_cold = cold_source_snapshot(expected)
+              selected = selection()
+              partial = output / 'selected-native.tar.gz.partial'
+              with partial.open('xb') as stream:
+                  with gzip.GzipFile(filename='', mode='wb', fileobj=PackedLimit(stream), mtime=0,
+                                     compresslevel=6) as compressor:
+                      with tarfile.open(fileobj=compressor, mode='w|', format=tarfile.PAX_FORMAT) as archive:
+                          def add_bytes(name, raw, row, origin):
+                              global payload_total
+                              relative(name)
+                              require(name not in payloads, 'duplicate archive member')
+                              payload_total += len(raw)
+                              require(payload_total <= MAX_RAW, 'uncompressed selected bytes exceed 512 MiB')
+                              info = tarfile.TarInfo(name)
+                              info.size, info.mode, info.mtime = len(raw), row['mode'], 0
+                              archive.addfile(info, io.BytesIO(raw))
+                              payloads[name] = {**row, 'origin': origin}
+                          for name, maximum in sorted(selected.items()):
+                              raw, row = read_file(temp_fd, name, maximum)
+                              add_bytes('evidence/' + name, raw, row, 'runner-temp/exact-allowlist')
+                          phase_zip_read_bytes = 0
+                          for family in FAMILIES:
+                              for label in LABELS:
+                                  name, raw, row = phase_manifest(family, label)
+                                  add_bytes('evidence/' + name, raw, row, 'fixed-phase-ZIP/complete-manifest')
+                          for name, raw, row in ((CONTRACT, contract_raw, contract_row),
+                                                 (WORKFLOW, workflow_raw, workflow_row)):
+                              add_bytes('source/' + name, raw, row, 'current-checkout')
+                          source_map = encoded({'schema': 'hepta.hia.selected-source-identities.v1',
+                                                'checkout': context, 'tracked_files': before_source,
+                                                'cold_source_files': before_cold,
+                                                'complete_source_payloads_included': False,
+                                                'source_retrieval_required': 'exact checkout commit from Git'})
+                          require(len(source_map) <= MAX_CATALOG, 'source identity map exceeds 2 MiB')
+                          add_bytes('source/identities.json', source_map,
+                                    {'bytes': len(source_map), 'sha256': sha(source_map), 'mode': 0o600},
+                                    'exporter-derived-identities-not-source-payload')
+                          catalog = encoded({'schema': 'hepta.hia.selected-evidence-export.v1',
+                                             'checkout': context,
+                                             'github': {key: os.environ.get(key) for key in
+                                                        ('GITHUB_REPOSITORY', 'GITHUB_SHA', 'GITHUB_REF',
+                                                         'GITHUB_EVENT_NAME', 'GITHUB_RUN_ID',
+                                                         'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB')},
+                                             'files': payloads, 'uncompressed_payload_bytes': payload_total,
+                                             'files_and_uncompressed_payload_bytes_exclude_this_catalog': True,
+                                             'profile': contract['profile'],
+                                             'qualification_authority': False, 'production_authority': False,
+                                             'whole_original_artifact_custody': False,
+                                             'raw_phase_archive_payloads_included': False,
+                                             'complete_phase_archive_manifests_included': True,
+                                             'phase_common_inputs_and_producer_metadata_included': True,
+                                             'phase_archive_bytes_rehashed_but_not_delivered': True,
+                                             'other_native_fixture_payloads_included': False,
+                                             'original_gate_conclusions_recomputed': False,
+                                             'selected_jsons_are_complete_original_bytes': True,
+                                             'omitted': ['38 cold phase ZIP payloads',
+                                                         'other cold generated fixtures and reference payloads',
+                                                         'all other original native artifact families',
+                                                         'complete Git source tree (selected source inputs only)',
+                                                         'job logs and GitHub API receipts'],
+                                             'transfer_limits': {'raw': MAX_RAW, 'packed': MAX_PACKED,
+                                                                 'catalog': MAX_CATALOG,
+                                                                 'transfer': MAX_TRANSFER,
+                                                                 'phase_manifest': MAX_PHASE_MANIFEST,
+                                                                 'phase_ZIP_bytes_read_per_pass': MAX_PHASE_ZIP_READ_PER_PASS}})
+                          require(len(catalog) <= MAX_CATALOG, 'selection catalog exceeds 2 MiB')
+                          add_bytes('selection-manifest.json', catalog,
+                                    {'bytes': len(catalog), 'sha256': sha(catalog), 'mode': 0o600},
+                                    'exporter-derived-index-not-qualification')
+                  stream.flush()
+                  os.fsync(stream.fileno())
+              # Independently re-read every complete member, with no extraction or execution.
+              seen = []
+              with tarfile.open(partial, mode='r|gz') as archive:
+                  for member in archive:
+                      clock()
+                      require(member.name in payloads and member.name not in seen and member.isfile(),
+                              'unexpected or duplicate replay member')
+                      row = payloads[member.name]
+                      require(member.size == row['bytes'] and member.mode == row['mode'],
+                              'replay metadata differs')
+                      with archive.extractfile(member) as captured:
+                          digest = hashlib.sha256()
+                          count = 0
+                          while chunk := captured.read(MIB):
+                              clock()
+                              digest.update(chunk)
+                              count += len(chunk)
+                              require(count <= row['bytes'], 'replay member exceeds its bound')
+                      require(count == row['bytes'] and digest.hexdigest() == row['sha256'],
+                              'replay member content differs')
+                      seen.append(member.name)
+              require(set(seen) == set(payloads), 'replay omitted a complete member')
+              # A changed source or input never becomes a successful selected delivery.
+              require(checkout() == (context, tree_records), 'checkout identity changed during export')
+              require(source_snapshot(tree_records) == before_source, 'tracked source changed during export')
+              require(cold_source_snapshot(expected) == before_cold, 'cold source copy changed during export')
+              for name, maximum in sorted(selected.items()):
+                  _, row = read_file(temp_fd, name, maximum)
+                  require({**row, 'origin': 'runner-temp/exact-allowlist'} == payloads['evidence/' + name],
+                          'selected original changed during export: ' + name)
+              phase_zip_read_bytes = 0
+              for family in FAMILIES:
+                  for label in LABELS:
+                      name, _, row = phase_manifest(family, label)
+                      require({**row, 'origin': 'fixed-phase-ZIP/complete-manifest'} == payloads['evidence/' + name],
+                              'phase manifest or source archive changed during export')
+              for path, expected_root, whole in ((workspace, roots['workspace'], True),
+                                                 (temporary, roots['temporary_identity'], False)):
+                  reopened = directory(path)
+                  try:
+                      observed = list(version(os.fstat(reopened)))
+                      require((observed if whole else observed[:4]) == expected_root,
+                              'input root identity changed during export')
+                  finally:
+                      os.close(reopened)
+              packed_raw, packed_row = read_file(output_fd, partial.name, MAX_PACKED)
+              # The new output directory is exclusively created above. Linking refuses an
+              # existing destination, unlike replacement; only this new partial is retired.
+              os.link(partial.name, 'selected-native.tar.gz', src_dir_fd=output_fd,
+                      dst_dir_fd=output_fd, follow_symlinks=False)
+              os.unlink(partial.name, dir_fd=output_fd)
+              final_raw, final_row = read_file(output_fd, 'selected-native.tar.gz', MAX_PACKED)
+              require(final_raw == packed_raw and final_row['sha256'] == packed_row['sha256'],
+                      'published selected bytes differ')
+              transfer = encoded({'schema': 'hepta.hia.selected-evidence-transfer.v1',
+                                  'status': 'SELECTED_BYTES_EXPORTED', 'checkout': context,
+                                  'archive': 'selected-native.tar.gz', 'bytes': final_row['bytes'],
+                                  'sha256': final_row['sha256'], 'members': len(payloads),
+                                  'catalog_sha256': sha(catalog), 'raw_bytes': payload_total,
+                                  'all_selected_inputs_unchanged': True,
+                                  'source_payload_retrieval_still_required': True,
+                                  'whole_original_artifact_custody': False,
+                                  'qualification_authority': False, 'production_authority': False,
+                                  'actual_small_artifact_size_digest_and_CI_verdict_still_required': True})
+              require(len(transfer) <= MAX_TRANSFER, 'transfer receipt exceeds 64 KiB')
+              descriptor = os.open('transfer.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                   0o600, dir_fd=output_fd)
+              with os.fdopen(descriptor, 'wb') as stream:
+                  stream.write(transfer)
+                  stream.flush()
+                  os.fsync(stream.fileno())
+              require(read_file(output_fd, 'transfer.json', MAX_TRANSFER)[0] == transfer,
+                      'transfer receipt readback differs')
+              os.fsync(output_fd)
+              clock()
+              print(json.dumps({'status': 'SELECTED_BYTES_EXPORTED', 'members': len(payloads),
+                                'packed_bytes': final_row['bytes'], 'whole_original_artifact_custody': False}))
+          finally:
+              os.close(output_fd)
+              os.close(temp_fd)
+              os.close(workspace_fd)
+          PY_SELECTED_EVIDENCE
+      - name: Preserve selected current-checkout native evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-selected-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          path: |
+            ${{ runner.temp }}/hia-selected-native-v1/selected-native.tar.gz
+            ${{ runner.temp }}/hia-selected-native-v1/transfer.json
+      - name: Preserve original native timeout evaluation artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-native-timeout-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/measurements.json
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/cost-ledger.json
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/evaluation-receipt.json
+            ${{ runner.temp }}/hia-json-wire-callers/native-timeout-evaluation/manifest.json
