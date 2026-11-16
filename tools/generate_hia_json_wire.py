@@ -508,8 +508,8 @@ def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
             if mode == 0 or mode == 1:
                 if point >= 55296 and point <= 57343:
                     return 115
-                put(w, T_WIDTH, get(w, T_WIDTH) + width(point, get(w, ASCII)))
-                if get(w, T_WIDTH) > get(w, MAX):
+                put(w, T_WIDTH, get(w, T_WIDTH) + width(point, word_load(w, ASCII)))
+                if word_load(w, T_WIDTH) > word_load(w, MAX):
                     return 108
             if mode == 3:
                 result = escaped(o, w, point)
