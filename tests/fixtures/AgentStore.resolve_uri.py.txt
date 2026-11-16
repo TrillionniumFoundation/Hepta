@@ -1,0 +1,7 @@
+    def resolve_uri(self, uri):
+        row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
+        if row is None:
+            reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")
+        ref = self._ref(row)
+        self.get(ref)
+        return ref

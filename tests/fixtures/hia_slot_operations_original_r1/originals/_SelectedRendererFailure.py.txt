@@ -1,0 +1,6 @@
+class _SelectedRendererFailure(RuntimeError):
+    """Preserve a selected native tool failure across the JSON input gate."""
+    def __init__(self, error):
+        super().__init__('selected native JSON renderer failed')
+        self.error = error
+        self.original_traceback = error.__traceback__

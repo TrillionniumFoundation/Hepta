@@ -4,13 +4,37 @@
  */
 .intel_syntax noprefix
 .text
-.global _start, policy_hole, sha_hole
+.global _start, _delivery_start, policy_hole, sha_hole
 .equ PATHS,524320
 .equ WORK,1576960
 .equ FILEBUF,1581056
 .equ SHAWORK,1646592
 .equ SHAIN,1650688
 .equ MAPSIZE,1720320
+/* Private delivery metadata, outside all original policy/SHA scratch ranges.
+ * No argv/env/stdin value selects the private entry. The public ELF e_entry
+ * always targets _start; the source-bound note names _delivery_start. */
+.equ DELIVERY_CONTROL,3000
+.equ DELIVERY_FACTS,3008
+.equ DELIVERY_PHASE,3016
+.equ DELIVERY_STATUS,3024
+.equ DELIVERY_STDOUT,3032
+.equ DELIVERY_NONCE,3040
+.equ DELIVERY_FAILURE,3056
+.equ DELIVERY_CLEANUP,3064
+.macro delivery_phase value
+ mov QWORD PTR [rbp+WORK+DELIVERY_PHASE],\value
+.endm
+.macro delivery_fact value
+ or QWORD PTR [rbp+WORK+DELIVERY_FACTS],\value
+.endm
+.macro delivery_failure
+ cmp QWORD PTR [rbp+WORK+DELIVERY_FAILURE],0
+ jne .Lfailure_recorded\@
+ mov r11,[rbp+WORK+DELIVERY_PHASE]
+ mov [rbp+WORK+DELIVERY_FAILURE],r11
+.Lfailure_recorded\@:
+.endm
 .macro gate phase
  mov QWORD PTR [rbp+WORK],\phase
  xor edi,edi
@@ -25,10 +49,54 @@
  cmp rax,-4
  je \name
 .endm
+.macro retry_mutation name
+ mov [rbp+WORK+96],rax
+\name:
+ mov rax,[rbp+WORK+96]
+ syscall
+ cmp rax,-4
+ jne .Lmutation_returned\@
+ delivery_fact 8192
+ jmp \name
+.Lmutation_returned\@:
+.endm
 _start:
+ xor r11d,r11d
+ jmp entry_common
+entry_common:
  mov r15,rsp
+ /* A fixed private control workspace also covers failures before mmap. It
+  * adds no artifact quota or wall limit and preserves original alignment. */
+ sub rsp,8192
+ mov r10,r11
+ xor eax,eax
+ mov rdi,rsp
+ mov ecx,1024
+ rep stosq
+ mov [rsp+DELIVERY_CONTROL],r10
+ lea rbp,[rsp-WORK]
  cmp QWORD PTR [r15],4
  jne usage
+ cmp QWORD PTR [rbp+WORK+DELIVERY_CONTROL],1
+ jne original_initial_mmap
+ /* The separate private entry reads its complete fixed nonce prefix before
+  * any original payload. Public _start never reads or interprets a prefix. */
+ xor ebx,ebx
+delivery_prefix_next:
+ xor eax,eax
+ xor edi,edi
+ lea rsi,[rbp+WORK+DELIVERY_NONCE+rbx]
+ mov edx,16
+ sub rdx,rbx
+ retry delivery_prefix_read
+ test rax,rax
+ js io_exit
+ jz input_exit
+ add rbx,rax
+ cmp rbx,16
+ jne delivery_prefix_next
+ delivery_fact 16384
+original_initial_mmap:
  xor edi,edi
  mov esi,MAPSIZE
  mov edx,3
@@ -40,6 +108,15 @@ _start:
  cmp rax,-4095
  jae io_exit
  mov rbp,rax
+ mov r11,[rsp+DELIVERY_CONTROL]
+ mov [rbp+WORK+DELIVERY_CONTROL],r11
+ mov r11,[rsp+DELIVERY_FACTS]
+ mov [rbp+WORK+DELIVERY_FACTS],r11
+ mov r11,[rsp+DELIVERY_NONCE]
+ mov [rbp+WORK+DELIVERY_NONCE],r11
+ mov r11,[rsp+DELIVERY_NONCE+8]
+ mov [rbp+WORK+DELIVERY_NONCE+8],r11
+ delivery_phase 1
  /* Report EPIPE as an I/O exit, without changing parent/process-global policy. */
  mov QWORD PTR [rbp+WORK+2000],1
  mov edi,13
@@ -93,6 +170,7 @@ policy_initial_hole: .long 0
  je withdraw
  cmp eax,5
  je store_get
+ delivery_phase 2
  /* Grow exact expected stdin with OS resource availability, not a profile cap. */
  xor edi,edi
  mov esi,65536
@@ -148,6 +226,7 @@ stdin_done:
  jz input_exit
  mov [rbp+WORK+16],r13
  mov QWORD PTR [rbp+WORK+32],0
+ delivery_phase 3
  lea rdi,[rbp+PATHS]
  call read_exact
  test eax,eax
@@ -155,25 +234,30 @@ stdin_done:
  cmp QWORD PTR [rbp+WORK+8],2
  je verify_destination
  /* link is intrinsically no-replace, including dangling symlinks. */
+ delivery_phase 4
  lea rdi,[rbp+PATHS]
  lea rsi,[rbp+PATHS+262160]
  mov eax,86
- retry link_retry
+ retry_mutation link_retry
  test rax,rax
  js link_error
+ delivery_fact 16
  mov QWORD PTR [rbp+WORK+48],1
+ delivery_phase 13
  mov QWORD PTR [rbp+WORK+32],1
  lea rdi,[rbp+PATHS]
  call read_exact
  test eax,eax
  jnz fail
 verify_destination:
+ delivery_phase 3
  mov QWORD PTR [rbp+WORK+32],2
  lea rdi,[rbp+PATHS+262160]
  call read_exact
  test eax,eax
  jnz fail
 hash_begin:
+ delivery_phase 5
  /* Streaming hash is HIA, independent from byte-authoritative admission. */
  mov BYTE PTR [rbp+SHAIN],0
  mov esi,1
@@ -217,6 +301,7 @@ hash_finish:
  lea rsi,[rbp+FILEBUF]
  jmp stdout_write
 sha_error:
+ delivery_fact 2048
  mov eax,16
  jmp fail
 link_error:
@@ -241,6 +326,7 @@ store_get:
  call store_root
  test eax,eax
  jnz policy_exit
+ delivery_phase 3
  mov QWORD PTR [rbp+WORK+112],1
  mov QWORD PTR [rbp+WORK+32],0
  lea rdi,[rbp+WORK+2256]
@@ -282,20 +368,25 @@ store_random:
  mov edx,0xa00c1
  mov r10d,256
  mov eax,257
- retry store_create
+ delivery_phase 7
+ retry_mutation store_create
  test rax,rax
  js store_io
  mov r14,rax
  mov QWORD PTR [rbp+WORK+1008],1
+ delivery_fact 1
  /* Capture our own inode before any later cleanup is permitted. */
  mov rdi,r14
  lea rsi,[rbp+WORK+128]
  mov eax,5
+ delivery_phase 8
  retry store_created_stat
  test rax,rax
  js store_io
+ delivery_fact 2
  xor ebx,ebx
 store_write:
+ delivery_phase 9
  cmp rbx,r13
  je store_file_sync
  mov rdi,r14
@@ -309,6 +400,7 @@ store_write:
  add rbx,rax
  jmp store_write
 store_file_sync:
+ delivery_phase 10
  mov rdi,r14
  mov eax,74
  retry store_fsync_file
@@ -327,6 +419,7 @@ store_file_sync:
  test rax,rax
  js store_io
  gate 17
+ delivery_phase 11
  mov QWORD PTR [rbp+WORK+32],2
  lea rdi,[rbp+WORK+2336]
  call store_read_exact
@@ -339,12 +432,15 @@ store_file_sync:
  lea r10,[rbp+WORK+2256]
  xor r8d,r8d
  mov eax,265
- retry store_link
+ delivery_phase 12
+ retry_mutation store_link
  cmp rax,-17
  je store_existing
  test rax,rax
  js store_io
+ delivery_fact 16
  mov QWORD PTR [rbp+WORK+1016],1
+ delivery_phase 13
  mov QWORD PTR [rbp+WORK+32],1
  lea rdi,[rbp+WORK+2336]
  call store_read_exact
@@ -366,11 +462,14 @@ store_existing:
  test eax,eax
  jnz store_fail
 store_directory_sync:
+ delivery_phase 14
  mov rdi,r15
  mov eax,74
  retry store_fsync_directory
  test rax,rax
  jns store_durable
+ delivery_fact 256
+ delivery_failure
  /* Like AgentStore.put, directory-fsync failure leaves a possible immutable
   * content file but never emits an issuance/success receipt. No replay. */
  mov QWORD PTR [rbp+WORK+1016],0
@@ -398,6 +497,7 @@ store_get_hashed:
  jmp stdout_write
 store_root:
  push rbx
+ delivery_phase 6
  lea rdi,[rbp+PATHS]
  mov esi,0xb0000
  xor edx,edx
@@ -425,6 +525,7 @@ store_root_io:
 store_io:
  mov eax,15
 store_fail:
+ delivery_failure
  mov [rbp+WORK+1024],rax
  cmp r14,-1
  je store_fail_link
@@ -435,22 +536,38 @@ store_fail:
 store_fail_link:
  cmp QWORD PTR [rbp+WORK+1016],1
  jne store_fail_temp
+ mov QWORD PTR [rbp+WORK+DELIVERY_CLEANUP],16
+ delivery_phase 16
  mov rdi,r15
  lea rsi,[rbp+WORK+2256]
  lea rdx,[rbp+WORK+272]
  mov r10d,256
  mov eax,262
  syscall
+ cmp rax,-2
+ je store_link_absent
  test rax,rax
- js store_fail_temp
+ js store_link_unknown
  gate 6
  test eax,eax
- jnz store_fail_temp
+ jnz store_link_competitor
  mov rdi,r15
  lea rsi,[rbp+WORK+2256]
  xor edx,edx
  mov eax,263
  syscall
+ test rax,rax
+ jz store_link_absent
+ cmp rax,-2
+ je store_link_absent
+store_link_unknown:
+ delivery_fact 128
+ jmp store_fail_temp
+store_link_competitor:
+ delivery_fact 64
+ jmp store_fail_temp
+store_link_absent:
+ delivery_fact 32
 store_fail_temp:
  call store_cleanup_temp
  mov rax,[rbp+WORK+1024]
@@ -459,6 +576,8 @@ store_cleanup_temp:
  push rbx
  cmp QWORD PTR [rbp+WORK+1008],1
  jne store_clean_ok
+ mov QWORD PTR [rbp+WORK+DELIVERY_CLEANUP],15
+ delivery_phase 15
  mov rdi,r15
  lea rsi,[rbp+WORK+2336]
  lea rdx,[rbp+WORK+272]
@@ -466,12 +585,12 @@ store_cleanup_temp:
  mov eax,262
  retry cleanup_temp_stat
  cmp rax,-2
- je store_clean_ok
+ je store_clean_absent
  test rax,rax
  js store_clean_io
  gate 6
  test eax,eax
- jnz store_clean_ok
+ jnz store_clean_competitor
  mov rdi,r15
  lea rsi,[rbp+WORK+2336]
  xor edx,edx
@@ -480,15 +599,27 @@ store_cleanup_temp:
  test rax,rax
  js store_clean_io
  mov QWORD PTR [rbp+WORK+1008],0
+store_clean_absent:
+ delivery_fact 4
+ jmp store_clean_ok
+store_clean_competitor:
+ test QWORD PTR [rbp+WORK+DELIVERY_FACTS],2
+ jz store_clean_unidentified
+ delivery_fact 4096
+ jmp store_clean_ok
+store_clean_unidentified:
+ delivery_fact 8
 store_clean_ok:
  xor eax,eax
  pop rbx
  ret
 store_clean_io:
+ delivery_fact 8
  mov eax,15
  pop rbx
  ret
 policy_exit:
+ delivery_failure
  mov rdi,rax
  jmp exit
 store_read_exact:
@@ -695,6 +826,12 @@ read_return:
 policy_call:
  lea rdx,[rbp+FILEBUF]
  mov ecx,65536
+ jmp policy_invoke
+delivery_policy_call:
+ /* Actual early-failure output extent is one stack page, not 64 KiB. */
+ lea rdx,[rbp+FILEBUF]
+ mov ecx,4096
+policy_invoke:
  lea r8,[rbp+WORK]
  mov r9d,4096
  sub rsp,8
@@ -708,31 +845,60 @@ sha_call:
  mov ecx,65536
  lea r8,[rbp+SHAWORK]
  mov r9d,4096
+ jmp sha_invoke
+delivery_sha_call:
+ /* The same HIA SHA entry seals control metadata, never hosted payload SHA.
+  * Its buffers fit the original 8-KiB early-failure stack workspace as well
+  * as the normal mmap. The original stdout buffer is no longer needed. */
+ lea rdi,[rbp+WORK+3344]
+ lea rdx,[rbp+WORK+3472]
+ mov ecx,32
+ lea r8,[rbp+FILEBUF]
+ mov r9d,4096
+sha_invoke:
  sub rsp,8
  .byte 0xe8
 sha_hole: .long 0
  add rsp,8
  ret
 fail:
+ delivery_failure
  mov [rbp+WORK+80],rax
  cmp QWORD PTR [rbp+WORK+48],1
  jne fail_exit
+ mov QWORD PTR [rbp+WORK+DELIVERY_CLEANUP],17
+ delivery_phase 17
  lea rdi,[rbp+PATHS+262160]
  lea rsi,[rbp+WORK+272]
  mov eax,6
  syscall
+ cmp rax,-2
+ je fail_link_absent
  test rax,rax
- js fail_exit
+ js fail_link_unknown
  gate 6
  test eax,eax
- jnz fail_exit
+ jnz fail_link_competitor
  lea rdi,[rbp+PATHS+262160]
  mov eax,87
  syscall
+ test rax,rax
+ jz fail_link_absent
+ cmp rax,-2
+ je fail_link_absent
+fail_link_unknown:
+ delivery_fact 128
+ jmp fail_exit
+fail_link_competitor:
+ delivery_fact 64
+ jmp fail_exit
+fail_link_absent:
+ delivery_fact 32
 fail_exit:
  mov rdi,[rbp+WORK+80]
  jmp exit
 withdraw:
+ delivery_phase 18
  mov QWORD PTR [rbp+WORK+48],0
  lea rdi,[rbp+PATHS]
  lea rsi,[rbp+WORK+128]
@@ -760,6 +926,8 @@ withdrawn:
  mov edx,eax
  lea rsi,[rbp+FILEBUF]
 stdout_write:
+ delivery_phase 19
+ delivery_fact 512
  test rdx,rdx
  jz success
  mov eax,1
@@ -767,6 +935,7 @@ stdout_write:
  retry stdout_retry
  test rax,rax
  jle io_exit
+ add [rbp+WORK+DELIVERY_STDOUT],rax
  add rsi,rax
  sub rdx,rax
  jmp stdout_write
@@ -781,13 +950,74 @@ strlen_next:
  mov rax,-1
 strlen_return:
  ret
-success: xor edi,edi
+success:
+ delivery_fact 1024
+ xor edi,edi
  jmp exit
 input_exit: mov edi,16
  jmp exit
 io_exit: mov edi,15
  jmp exit
 usage: mov edi,64
-exit: mov eax,60
+exit:
+ mov [rbp+WORK+DELIVERY_STATUS],rdi
+ test rdi,rdi
+ jz delivery_terminal
+ delivery_failure
+delivery_terminal:
+ cmp QWORD PTR [rbp+WORK+DELIVERY_CONTROL],1
+ jne original_exit
+ mov QWORD PTR [rbp+WORK],21
+ xor edi,edi
+ xor esi,esi
+ call delivery_policy_call
+ cmp eax,128
+ jne original_exit
+ lea rsi,[rbp+FILEBUF]
+ lea rdi,[rbp+WORK+3200]
+ mov ecx,128
+ rep movsb
+ mov BYTE PTR [rbp+WORK+3344],0
+ mov esi,1
+ call delivery_sha_call
+ test eax,eax
+ jnz original_exit
+ lea rsi,[rbp+WORK+3200]
+ lea rdi,[rbp+WORK+3345]
+ mov ecx,104
+ rep movsb
+ mov BYTE PTR [rbp+WORK+3344],1
+ mov esi,105
+ call delivery_sha_call
+ test eax,eax
+ jnz original_exit
+ mov BYTE PTR [rbp+WORK+3344],2
+ mov esi,1
+ call delivery_sha_call
+ cmp eax,32
+ jne original_exit
+ mov rax,[rbp+WORK+3472]
+ mov [rbp+WORK+3304],rax
+ mov rax,[rbp+WORK+3480]
+ mov [rbp+WORK+3312],rax
+ lea rsi,[rbp+WORK+3200]
+ mov edx,128
+delivery_ack_write:
+ mov eax,1
+ mov edi,2
+ syscall
+ cmp rax,-4
+ je delivery_ack_write
+ test rax,rax
+ jle original_exit
+ add rsi,rax
+ sub rdx,rax
+ jnz delivery_ack_write
+original_exit:
+ mov rdi,[rbp+WORK+DELIVERY_STATUS]
+ mov eax,60
  syscall
  ud2
+_delivery_start:
+ mov r11d,1
+ jmp entry_common

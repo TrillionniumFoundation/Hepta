@@ -1,0 +1,95 @@
+hepta/hia_agent_macro_discovery.py:46:            "adopt": "hia_adopt", "rollback": "hia_rollback",
+hepta/hia_agent_journal_native.py:38:         'hia_adopt', 'hia_rollback', 'hia_resource_read')
+hepta/hia_agent_journal_native.py:514:            if tool not in {'hia_inspect', 'hia_rollback'}:
+hepta/hia_agent_service.py:343:                if tool not in {"hia_inspect", "hia_rollback"}:
+hepta/hia_agent_service.py:348:            if tool in {"hia_adopt", "hia_rollback"}:
+hepta/hia_agent_service.py:1440:    def _hia_adopt(self, args):
+hepta/hia_agent_service.py:1512:    def _hia_rollback(self, args):
+tests/test_hia_emission_native.py:897:                adoption = case.client.call('hia_adopt', adoption_arguments)
+tests/test_hia_emission_native.py:902:                adoption_replay = case.client.call('hia_adopt', adoption_arguments)
+tests/hia_native_delivery_cases.py:400:                        patch.object(service, '_hia_adopt', effect), \
+tests/hia_native_delivery_cases.py:403:                    error = raised(lambda: service.call('hia_adopt', arguments))
+tests/hia_native_delivery_cases.py:414:                retained = request_row(service, 'hia_adopt', arguments)
+tests/test_hia_agent_native_machine_validation.py:169:        adopted = self.client.result("hia_adopt", self.session.arguments(
+tests/test_hia_agent_native_lease_snapshot.py:19:        self.client.result("hia_adopt", self.session.arguments(target_slot="lease-snapshot",
+tests/hia_transaction_journal_controls.py:234:        self.stack.enter_context(patch.object(self.service, '_hia_adopt', business))
+tests/hia_transaction_journal_controls.py:327:        return self.service.call('hia_adopt', self.arguments)
+tests/test_hia_agent_native_tools.py:536:        self.reject("hia_adopt", self.session.arguments(target_slot="wrong-answer",
+tests/test_hia_agent_native_tools.py:544:        adopted = self.client.result("hia_adopt", self.session.arguments(target_slot="leased",
+tests/test_hia_agent_native_tools.py:549:        rolled_back = self.client.result("hia_rollback", self.session.arguments(target_slot="leased",
+tests/test_hia_agent_native_tools.py:579:        self.reject("hia_adopt", self.session.arguments(target_slot="timed-out",
+tests/test_hia_agent_native_tools.py:685:        adopted = self.client.result("hia_adopt", self.session.arguments(target_slot="continued",
+tests/test_hia_agent_native_tools.py:700:        revised = self.client.result("hia_adopt", args)
+tests/test_hia_agent_native_tools.py:703:        stale = self.reject("hia_adopt", stale_args)
+tests/test_hia_agent_native_tools.py:713:            self.reject("hia_rollback", self.session.arguments(target_slot="does-not-exist",
+tests/test_hia_agent_buffer_lifecycle.py:56:        return self.client.result("hia_adopt", self.session.arguments(target_slot="byte-lifecycle",
+tests/test_hia_agent_buffer_lifecycle.py:84:        rolled = self.client.result("hia_rollback", self.session.arguments(target_slot="byte-lifecycle",
+tests/test_hia_agent_buffer_lifecycle.py:112:        self.client.result("hia_rollback", self.session.arguments(target_slot="byte-lifecycle",
+tests/test_hia_agent_buffer_lifecycle.py:138:        rejection = self.reject("hia_adopt", self.session.arguments(target_slot="byte-lifecycle",
+tests/test_hia_agent_journal_native.py:189:        for tool in ('hia_artifact', 'hia_verify', 'hia_adopt'):
+tests/test_hia_agent_journal_native.py:201:            self.assertEqual(session.effect().action, ATOMIC if tool == 'hia_adopt' else CONTINUE)
+tests/test_hia_agent_journal_native.py:203:            if tool == 'hia_adopt':
+tests/test_hia_agent_journal_native.py:211:            self.assertEqual(final.flags, 1 if tool == 'hia_adopt' else 3)
+tests/test_hia_agent_journal_native.py:350:                    stack.enter_context(patch.object(service, '_hia_adopt', side_effect=effect))
+tests/test_hia_agent_journal_native.py:355:                        first = service.call('hia_adopt', args)
+tests/test_hia_agent_journal_native.py:356:                        second = service.call('hia_adopt', args)
+tests/test_hia_agent_journal_native.py:358:                        first = service._reference_call('hia_adopt', args)
+tests/test_hia_agent_journal_native.py:359:                        second = service._reference_call('hia_adopt', args)
+tests/test_hia_agent_journal_native.py:393:                            patch.object(service, '_hia_adopt', side_effect=effect), \
+tests/test_hia_agent_journal_native.py:396:                            service.call('hia_adopt', args)
+tests/test_hia_agent_journal_native.py:405:                        with patch.object(service, '_hia_adopt', side_effect=AssertionError('unknown effect retried')):
+tests/test_hia_agent_journal_native.py:406:                            retry = service.call('hia_adopt', args)
+tools/qualify_hia_agent_buffer_lifecycle.py:247:        adopted = client.result("hia_adopt", adoption_arguments)
+tools/qualify_hia_agent_buffer_lifecycle.py:248:        replay = client.result("hia_adopt", adoption_arguments)
+tools/qualify_hia_agent_buffer_lifecycle.py:252:        rollback = client.result("hia_rollback", session.arguments(target_slot=slot,
+tests/test_hia_slot_ledger_native_integration.py:364:        response = service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:371:        response = service.call("hia_rollback", arguments)
+tests/test_hia_slot_ledger_native_integration.py:449:                        response = service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:480:                        self.assertEqual(restarted.call("hia_adopt", arguments), response)
+tests/test_hia_slot_ledger_native_integration.py:509:        refused = service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:520:        refused = service.call("hia_rollback", arguments)
+tests/test_hia_slot_ledger_native_integration.py:545:        self.assertEqual(service.call("hia_rollback", arguments), same)
+tests/test_hia_slot_ledger_native_integration.py:752:                            first = service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:756:                    row = self.request_row(service, "hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:769:                        replay = service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:779:                        replay = service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:811:                                    service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:815:                            row = self.request_row(service, "hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:823:                                replay = service.call("hia_adopt", arguments)
+tests/test_hia_slot_ledger_native_integration.py:879:    original_adopt = service._hia_adopt
+tests/test_hia_slot_ledger_native_integration.py:885:    service._hia_adopt = stopped
+tests/test_hia_slot_ledger_native_integration.py:905:    response = service.call("hia_adopt", request)
+tests/test_hia_slot_ledger_native_integration.py:1074:                    replay = restarted.call("hia_adopt", request)
+tests/test_hia_slot_ledger_native_integration.py:1076:                    row = self.request_row(restarted, "hia_adopt", request)
+tests/test_hia_slot_ledger_native_integration.py:1179:            self.assertEqual(service.call("hia_adopt", arguments), adopted)
+tests/test_hia_slot_ledger_native_integration.py:1199:            envelope = {"schema": "hia-agent-worker-request-v1", "tool": "hia_adopt",
+tests/test_hia_slot_ledger_native_integration.py:1220:HIAAgentService._hia_adopt = forbidden
+tests/test_hia_slot_ledger_native_integration.py:1355:    adopted = service.call("hia_adopt", payload["adopt_arguments"])
+tests/test_hia_slot_ledger_native_integration.py:1363:    rolled = service.call("hia_rollback", rollback_arguments)
+tests/test_hia_slot_ledger_native_integration.py:1382:    assert service.call("hia_adopt", payload["adopt_arguments"]) == adopted
+tests/test_hia_slot_ledger_native_integration.py:1383:    assert service.call("hia_rollback", rollback_arguments) == rolled
+tests/test_hia_first_use.py:88:            client.result("hia_adopt", session.arguments(target_slot="first_use_fixture",
+tests/test_hia_native_build_admission_native.py:748:                adoption = case.client.call('hia_adopt', adoption_arguments)
+tests/test_hia_native_build_admission_native.py:753:                adoption_replay = case.client.call('hia_adopt', adoption_arguments)
+tests/test_hia_macro_multistep.py:251:                if tool == 'hia_adopt':
+tests/test_hia_macro_multistep.py:315:                self.assertEqual(used,['hia_adopt','hia_rollback'])
+tools/generate_hia_agent_journal.py:29:         'hia_evaluate', 'hia_adopt', 'hia_rollback', 'hia_resource_read')
+tools/qualify_hia_agent_original_select_delta.py:210:        require(slots == leases == 0 and not any(row["tool"] == "hia_adopt" for row in client.records),
+tools/qualify_hia_first_use.py:233:                    if params["name"] in {"hia_adopt", "hia_rollback"}:
+tools/qualify_hia_first_use.py:270:                if (intent["request"] or {}).get("method") == "tools/call" and (intent["request"] or {}).get("params", {}).get("name") == "hia_adopt"
+tools/generate_hia_agent_native_contract.py:99:                                  'destructiveHint': name in {'hia_adopt', 'hia_rollback'},
+tools/generate_hia_agent_native_contract.py:103:                                                           'hia_adopt', 'hia_rollback'}}})
+tools/generate_hia_agent_native_contract.py:313:tool('hia_adopt',
+tools/generate_hia_agent_native_contract.py:326:tool('hia_rollback',
+tools/generate_hia_agent_native_contract.py:408:    'hia_adopt': {**cmn, 'request_key': 'fixture:request', 'target_slot': 'fixture:slot',
+tools/generate_hia_agent_native_contract.py:412:    'hia_rollback': {**cmn, 'request_key': 'fixture:request', 'target_slot': 'fixture:slot',
+tools/generate_hia_agent_native_contract.py:444:bad = copy.deepcopy(samples['hia_adopt'])
+tools/generate_hia_agent_native_contract.py:446:validate_case('hia_adopt', 'inputSchema', bad, False, 'adopt.require_epoch')
+tools/qualify_hia_macro_campaign.py:416:                adoption = journal.run("adoption", "adopt checked artifact", lambda: session.client.result("hia_adopt", session.arguments(
+tools/qualify_hia_macro_campaign.py:424:            journal.run("rollback", "restore retained incumbent", lambda: session.client.result("hia_rollback", session.arguments(
+tools/qualify_hia_macro_multistep.py:400:                session.client.result('hia_adopt', session.arguments(target_slot='macro-v2',
+tools/qualify_hia_macro_multistep.py:407:                session.client.result('hia_rollback', session.arguments(target_slot='macro-v2',
+tools/qualify_hia_macro_multistep.py:872:                    for event,tool in ((adopts[0],'hia_adopt'),(rollbacks[0],'hia_rollback')):
+tools/hia_agent_native_qualification.py:314:    adoption = session.client.result("hia_adopt", session.arguments(target_slot=target_slot,
+tools/hia_agent_native_qualification.py:318:    stale = session.client.call("hia_adopt", session.arguments(target_slot=target_slot,
+tools/hia_agent_native_qualification.py:323:    rollback = session.client.result("hia_rollback", session.arguments(target_slot=target_slot,

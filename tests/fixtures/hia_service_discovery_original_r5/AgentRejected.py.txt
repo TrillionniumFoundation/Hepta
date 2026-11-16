@@ -1,0 +1,5 @@
+class AgentRejected(ValueError):
+    def __init__(self, code, message, phase="admission", *, retry_action="correct_input", details_artifact=None):
+        super().__init__(message)
+        self.code, self.phase, self.retry_action = code, phase, retry_action
+        self.details_artifact = details_artifact

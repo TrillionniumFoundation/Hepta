@@ -1,0 +1,79 @@
+    def _hia_verify(self, args):
+        context = self._context(args["context"])
+        self._profile(args["validation_profile"], "validation")
+        program = self._program(args["candidate"])
+        original = None if args["base_program"] is None else self._program(args["base_program"])
+        plan = self._subject(args, program)
+        binding = {"context": args["context"], "candidate": args["candidate"],
+            "candidate_core_sha256": program.sha256, "base_program": args["base_program"],
+            "base_core_sha256": None if original is None else original.sha256,
+            "subject": args["subject"]}
+        scoped_subject = proof_subject(binding, context["target_profile"])
+        checks = []
+        for claim in args["claims"]:
+            if claim == "core_admission":
+                status, domain, evidence = "proved", "Exact canonical Core accepted by the installed whole-program checker; no behavioral or native claim", {
+                    "checker": "hepta.hia_program.verify_program", "core_sha256": program.sha256,
+                    "input_sha256": program.input_sha256, "canonical_bytes": str(len(program.canonical_bytes))}
+            elif claim == "behavior_equivalence":
+                if original is None:
+                    reject("E_HIA_SUBJECT", "behavior equivalence requires a base program", "verification")
+                status, domain, evidence = self._behavior_equivalence(original, program, self._remaining_ms(context))
+            elif claim == "lowering_refinement":
+                if args["subject"]["kind"] == "native_artifact":
+                    status, domain, evidence = self._independent_native_refinement(args, program, context)
+                elif plan is None:
+                    status, domain, evidence = "unsupported", "Whole Core-to-x86 refinement of canonical lowering is not proved by this profile", {
+                        "reason": "native qualification and deterministic reemission are not a universal semantic refinement proof"}
+                else:
+                    from .hia_program_native import emit_program_machine
+                    exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
+                    image = emit_program_machine(program, machine_plan=plan, foreign_buffer_exports=exports)
+                    canonical = emit_program_machine(program, foreign_buffer_exports=exports)
+                    from .hia_machine_plan import preservation_checks
+                    choice_checks = preservation_checks(plan, program)
+                    status, domain = "proved", "Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness"
+                    evidence = {"method": "checked_explicit_machine_choices", "choice_checks": choice_checks, "core_sha256": program.sha256,
+                        "plan": plan, "canonical_object_sha256": canonical.sha256,
+                        "planned_object_sha256": image.sha256,
+                        "same_slots": not any(plan.get("value_registers", {}).values()),
+                        "same_frame_sizes": dict(canonical.function_frames) == dict(image.function_frames),
+                        "canonical_frame_bytes": dict(canonical.function_frames),
+                        "planned_frame_bytes": dict(image.function_frames),
+                        "implicit_optimizer_used": False}
+            elif claim == "encoding_check":
+                subject = args["subject"]
+                built = self._build_receipt(subject["build_receipt"], args["context"], subject["native_artifact"])
+                actual, _ = self.store.get(subject["native_artifact"], kind="native")
+                exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
+                reemitted, rebuilt = self._compile(program, built["output_kind"], built["machine_plan"], self._remaining_ms(context),
+                    **({"foreign_buffer_exports": exports} if exports else {}))
+                bytes_equal = actual == reemitted
+                object_equal = rebuilt["object_sha256"] == built["native_build"]["object_sha256"]
+                matches = bytes_equal and object_equal
+                status = "proved" if matches else "refuted"
+                domain = "Exact actual artifact equals reverified Core/plan reemission and linkage by the same installed implementation, with checked closed symbol/ABI inventory; no independent semantic refinement claim"
+                evidence = {"method": "complete_native_rederivation", "actual_sha256": sha256(actual).hexdigest(),
+                    "rederived_sha256": sha256(reemitted).hexdigest(), "bytes_equal": bytes_equal,
+                    "object_identity_equal": object_equal,
+                    "native_build": rebuilt, "no_llvm_or_external_assembler": True}
+            else:
+                reject("E_HIA_CLAIM", "unimplemented verification claim", "verification")
+            scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
+                profile=args["validation_profile"], installation=self.identities, evidence=evidence)
+            if evidence.get("method") == SAFE_CORE_METHOD and status == "proved" and self._remaining_ms(context) <= 0:
+                status = "unknown"
+                evidence.update(outcome=status, deadline_met=False,
+                                reason="the frozen context deadline expired before proof publication")
+                scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
+                    profile=args["validation_profile"], installation=self.identities, evidence=evidence)
+            checks.append({**scoped,
+                "assumptions_artifact": self.store.json(assumptions_document(scoped), "verification-assumptions"),
+                "evidence_artifact": self.store.json({**evidence, "proof_binding": scoped}, "verification-evidence")})
+        receipt = self.store.json({"schema": "hepta.hia.agent.verification.v1", "context": args["context"],
+            "candidate": args["candidate"], "candidate_core_sha256": program.sha256,
+            "base_program": args["base_program"], "base_core_sha256": None if original is None else original.sha256,
+            "validation_profile": args["validation_profile"], "subject": args["subject"],
+            "checks": checks, "installation": self.identities}, "verification-receipt")
+        return {"candidate": args["candidate"], "subject": args["subject"],
+                "verification_receipt": receipt, "checks": checks, "adopted": False}

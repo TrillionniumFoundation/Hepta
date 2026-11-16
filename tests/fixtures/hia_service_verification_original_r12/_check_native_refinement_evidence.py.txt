@@ -1,0 +1,28 @@
+    def _check_native_refinement_evidence(self, evidence, subject, context, program):
+        if subject.get("kind") != "native_artifact":
+            reject("E_HIA_PROOF_SCOPE", "independent machine evidence requires its exact native subject", "verification")
+        built, final_bytes, object_bytes, retained = self._build_inputs(
+            subject["build_receipt"], context, subject["native_artifact"])
+        expected = self._native_refinement_binding(subject, built, retained, object_bytes, final_bytes)
+        if program.sha256 != retained.sha256 or evidence.get("artifact_binding") != expected:
+            reject("E_HIA_PROOF_SCOPE", "machine evidence differs from retained Core/object/final build bytes", "verification")
+        validation = evidence.get("validation")
+        if type(validation) is dict:
+            from .hia_safe_core_elf import bind_final_artifact
+            binding = bind_final_artifact(object_bytes, final_bytes, retained.as_dict()["functions"][0]["name"])
+            if validation.get("image_binding") != binding["binding"]:
+                reject("E_HIA_PROOF_SCOPE", "machine proof's ELF binding differs from the actual retained bytes", "verification")
+        queries = evidence.get("queries")
+        if type(queries) is not list:
+            reject("E_HIA_PROOF_SCOPE", "machine proof lacks retained query identities", "verification")
+        reports = [] if validation is None else validation.get("obligations", [])
+        if validation is not None and len(queries) != len(reports):
+            reject("E_HIA_PROOF_SCOPE", "machine proof query inventory differs", "verification")
+        for index, query in enumerate(queries):
+            if type(query) is not dict or set(query) != {"name", "sha256", "artifact"}:
+                reject("E_HIA_PROOF_SCOPE", "machine proof query reference is invalid", "verification")
+            data, _ = self.store.get(query["artifact"], kind="machine-validation-query")
+            if (sha256(data).hexdigest() != query["sha256"]
+                    or validation is not None and (query["sha256"] != reports[index].get("query_sha256")
+                        or query["name"] != reports[index].get("query_file"))):
+                reject("E_HIA_PROOF_SCOPE", "machine proof query bytes differ", "verification")

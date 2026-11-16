@@ -1,0 +1,8 @@
+    @staticmethod
+    def _native_refinement_binding(subject, built, program, object_bytes, final_bytes):
+        return {"candidate_core_sha256": program.sha256, "input_sha256": program.input_sha256,
+            "native_artifact": subject["native_artifact"], "build_receipt": subject["build_receipt"],
+            "object_artifact": built["object_artifact"], "object_sha256": sha256(object_bytes).hexdigest(),
+            "final_image_sha256": sha256(final_bytes).hexdigest(), "output_kind": built["output_kind"],
+            "entry_symbols": [fn["name"] for fn in program.as_dict()["functions"]],
+            "foreign_buffer_exports": built["native_build"].get("foreign_buffer_exports")}

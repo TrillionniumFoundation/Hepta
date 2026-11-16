@@ -1,0 +1,8 @@
+    def get(self, ref, *, kind=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 4,
+                                              self, (ref, kind)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['get'](self, ref, kind=kind)

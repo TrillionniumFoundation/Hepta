@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import copy
 import ctypes
+from .hia_native_delivery import DeliveryRecord, NativeCall, check_resource_retirement
+from .hia_budget_resource_custody import budget_resource_scope_v1
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -115,62 +117,81 @@ class BudgetState:
         if self.fenced is not None:
             _reject(7, 'execution budget claim is fenced; no implicit replay or refund is permitted')
 
-    def call(self, event, *, values=(), payload=b'', now=0, token=None):
-        self.check()
-        with self.lock:
+    def call(self, event, *, values=(), payload=b'', now=0, token=None, _ack=None):
+        with NativeCall(self) as delivery:
             self.check()
-            try:
-                current = 0 if self.receipt is None else self.receipt.token.sequence
-                selected = token or BudgetToken(self.identity, self.connection, current)
-                numbers = [REQUEST_MAGIC, event, selected.sequence, now, *values]
-                if len(numbers) > 12 or any(type(v) is not int or not 0 <= v < 1 << 64 for v in numbers):
-                    _reject(1)
-                numbers.extend([0] * (12 - len(numbers)))
-                raw = struct.pack('<16Q', *numbers, *selected.owner, *selected.connection) + payload
-                source = ctypes.create_string_buffer(raw, len(raw))
-                output = ctypes.create_string_buffer(OUTPUT_BYTES)
-                returned = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
+            with self.lock:
                 self.check()
-                if not 128 <= returned <= OUTPUT_BYTES:
-                    _reject(2, 'native execution budget rejected its bounded ABI')
-                header = struct.unpack('<16Q', output.raw[:128])
-                magic, status, action, claimed, remaining, phase, sequence, kind, *tail = header
-                lengths, held, found, reserved = tail[:5], tail[5], tail[6], tail[7]
-                if (magic != RESULT_MAGIC or status > 8 or action > 7 or phase > 9 or kind > 2
-                        or claimed != sequence or remaining > 86400000 or held > 1 or found > 1 or reserved
-                        or lengths[0] > 192 or lengths[2] > 64
-                        or any(lengths[i] > MAX_DECIMAL for i in (1, 3, 4))
-                        or returned != 128 + sum(lengths) or status != 0 and action != 0):
-                    _reject(2, 'invalid native execution budget transition receipt')
-                words = struct.unpack('<32Q', self.buffer.raw[:256])
-                if phase == 0:
-                    _reject(status or 2)
-                if (words[4] != sequence or words[2] != kind or words[3] != phase or words[18] != action
-                        or (words[5], words[6]) != self.identity or (words[22], words[23]) != self.connection
-                        or tuple(lengths) != (words[7], words[9], words[8], words[11], words[10])
-                        or (held, found) != (words[20], words[21])):
-                    _reject(2, 'native execution budget receipt does not bind its retained state')
-                at, fields = 128, []
-                for size in lengths:
-                    fields.append(output.raw[at:at + size]); at += size
-                receipt = BudgetReceipt(status, action, BudgetToken(self.identity, self.connection, claimed),
-                    remaining, phase, kind, *fields, bool(held), bool(found))
-                self.receipt = receipt
-                if status:
-                    _reject(status)
-                return receipt
-            except BaseException as error:
-                self.fence(error)
-                raise
+                try:
+                    current = 0 if self.receipt is None else self.receipt.token.sequence
+                    selected = token or BudgetToken(self.identity, self.connection, current)
+                    numbers = [REQUEST_MAGIC, event, selected.sequence, now, *values]
+                    if len(numbers) > 12 or any(type(v) is not int or not 0 <= v < 1 << 64 for v in numbers):
+                        if _ack is not None:
+                            _ack.foreign_refused()
+                        _reject(1)
+                    numbers.extend([0] * (12 - len(numbers)))
+                    raw = struct.pack('<16Q', *numbers, *selected.owner, *selected.connection) + payload
+                    source = ctypes.create_string_buffer(raw, len(raw))
+                    output = ctypes.create_string_buffer(OUTPUT_BYTES)
+                    delivery.enter_native()
+                    returned = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
+                    self.check()
+                    if not 128 <= returned <= OUTPUT_BYTES:
+                        _reject(2, 'native execution budget rejected its bounded ABI')
+                    header = struct.unpack('<16Q', output.raw[:128])
+                    magic, status, action, claimed, remaining, phase, sequence, kind, *tail = header
+                    lengths, held, found, reserved = tail[:5], tail[5], tail[6], tail[7]
+                    if (magic != RESULT_MAGIC or status > 8 or action > 7 or phase > 9 or kind > 2
+                            or claimed != sequence or remaining > 86400000 or held > 1 or found > 1 or reserved
+                            or lengths[0] > 192 or lengths[2] > 64
+                            or any(lengths[i] > MAX_DECIMAL for i in (1, 3, 4))
+                            or returned != 128 + sum(lengths) or status != 0 and action != 0):
+                        _reject(2, 'invalid native execution budget transition receipt')
+                    words = struct.unpack('<32Q', self.buffer.raw[:256])
+                    if phase == 0:
+                        if event == 0 and self.receipt is None and status:
+                            # The original fresh-state refusal has a complete
+                            # validated header and cannot have issued an effect.
+                            delivery.confirmed(terminal=True)
+                            if _ack is not None:
+                                _ack.foreign_refused()
+                        _reject(status or 2)
+                    if (words[4] != sequence or words[2] != kind or words[3] != phase or words[18] != action
+                            or (words[5], words[6]) != self.identity or (words[22], words[23]) != self.connection
+                            or tuple(lengths) != (words[7], words[9], words[8], words[11], words[10])
+                            or (held, found) != (words[20], words[21])):
+                        _reject(2, 'native execution budget receipt does not bind its retained state')
+                    at, fields = 128, []
+                    for size in lengths:
+                        fields.append(output.raw[at:at + size]); at += size
+                    receipt = BudgetReceipt(status, action, BudgetToken(self.identity, self.connection, claimed),
+                        remaining, phase, kind, *fields, bool(held), bool(found))
+                    self.receipt = receipt
+                    delivery.confirmed(terminal=True)
+                    if _ack is not None:
+                        _ack.confirmed()
+                    if status:
+                        _reject(status)
+                    return receipt
+                except BaseException as error:
+                    delivery.failed(error)
+                    self.fence(error)
+                    raise
 
-    def row(self, row):
+    def row(self, row, *, _ack=None):
         if row is None:
-            return self.call(2, values=(0, 0, 0, 0, 0))
-        context = self._text(row['context_id'], 192)
-        used = self._text(row['used_native_ns'], MAX_DECIMAL)
-        owner = b'' if row['owner'] is None else self._text(row['owner'], 64)
+            return self.call(2, values=(0, 0, 0, 0, 0), _ack=_ack)
+        try:
+            context = self._text(row['context_id'], 192)
+            used = self._text(row['used_native_ns'], MAX_DECIMAL)
+            owner = b'' if row['owner'] is None else self._text(row['owner'], 64)
+        except BaseException:
+            if _ack is not None:
+                _ack.foreign_refused()
+            raise
         return self.call(2, values=(1, int(row['owner'] is not None), len(context), len(used), len(owner)),
-                         payload=context + used + owner)
+                         payload=context + used + owner, _ack=_ack)
 
     def observation(self):
         row = self.receipt
@@ -196,36 +217,37 @@ class BudgetState:
 class NativeExecutionBudgetStore:
     """Fixed SQLite effects on a dedicated connection to the original WAL."""
     def __init__(self, store, image, *, sidecars=None):
-        self.store, self.image = store, image
-        self.official = store.db
-        self.path = Path(store.database)
-        self.identity = store.database_identity
-        self.creator = os.getpid()
-        self.lock = threading.RLock()
-        self.connection_identity = struct.unpack('<2Q', os.urandom(16))
-        self._db = None
-        self.closed = False
-        self.poisoned = None
-        self.sidecars = dict(store.database_sidecars if sidecars is None else sidecars)
-        self.check()
-        main = [row for row in self.official.execute('PRAGMA database_list') if row['name'] == 'main']
-        if len(main) != 1 or main[0]['file'] != str(self.path):
-            _reject(2, 'execution budget path does not identify the official main database')
-        # mode=rw is deliberate: a missing/replaced official database can never
-        # silently become a newly created independent budget namespace.
-        connection = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True,
-                                     isolation_level=None, timeout=10, check_same_thread=False)
-        try:
-            connection.row_factory = sqlite3.Row
-            if connection.execute('PRAGMA journal_mode').fetchone()[0].lower() != 'wal':
-                _reject(2, 'execution budget requires the original WAL journal')
-            connection.execute('PRAGMA synchronous=FULL')
-            connection.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+        with budget_resource_scope_v1(self):
+            self.store, self.image = store, image
+            self.official = store.db
+            self.path = Path(store.database)
+            self.identity = store.database_identity
+            self.creator = os.getpid()
+            self.lock = threading.RLock()
+            self.connection_identity = struct.unpack('<2Q', os.urandom(16))
+            self._db = None
+            self.closed = False
+            self.poisoned = None
+            self.sidecars = dict(store.database_sidecars if sidecars is None else sidecars)
             self.check()
-        except BaseException:
-            connection.close()
-            raise
-        self._db = connection
+            main = [row for row in self.official.execute('PRAGMA database_list') if row['name'] == 'main']
+            if len(main) != 1 or main[0]['file'] != str(self.path):
+                _reject(2, 'execution budget path does not identify the official main database')
+            # mode=rw is deliberate: a missing/replaced official database can never
+            # silently become a newly created independent budget namespace.
+            connection = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True,
+                                         isolation_level=None, timeout=10, check_same_thread=False)
+            try:
+                connection.row_factory = sqlite3.Row
+                if connection.execute('PRAGMA journal_mode').fetchone()[0].lower() != 'wal':
+                    _reject(2, 'execution budget requires the original WAL journal')
+                connection.execute('PRAGMA synchronous=FULL')
+                connection.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+                self.check()
+            except BaseException:
+                connection.close()
+                raise
+            self._db = connection
 
     @property
     def db(self):
@@ -255,6 +277,7 @@ class NativeExecutionBudgetStore:
 
     def check(self):
         self._check_main()
+        check_resource_retirement(self)
         if self.closed or self.poisoned is not None:
             _reject(2, 'execution budget connection is closed or fenced')
         for suffix, identity in self.sidecars.items():
@@ -266,6 +289,19 @@ class NativeExecutionBudgetStore:
         return BudgetState(self.image, self.connection_identity, kind, context, owner, maximum, started)
 
     def _drive(self, state):
+        delivery = DeliveryRecord((self, state))
+        try:
+            with delivery.foreign(observation=False):
+                result = self._drive_observed(state, delivery)
+                delivery.check()
+                return result
+        except BaseException as error:
+            delivery.failed(error)
+            raise
+        finally:
+            delivery.retire()
+
+    def _drive_observed(self, state, delivery):
         state.check()
         with self.lock:
             owned_transaction = False
@@ -283,38 +319,68 @@ class NativeExecutionBudgetStore:
                         # exclusively held until COMMIT/ROLLBACK. The flag is
                         # foreign transaction custody, never an execution right.
                         owned_transaction = True
-                        self._execute('BEGIN IMMEDIATE')
-                        receipt = state.call(1, values=(1,))
+                        delivery.observed()
+                        try:
+                            self._execute('BEGIN IMMEDIATE')
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.call(1, values=(1,), _ack=delivery)
                     elif action == 2:
-                        row = self._execute('SELECT context_id,used_native_ns,owner FROM main.execution_budgets WHERE context_id=?',
-                                              (context,)).fetchone()
-                        receipt = state.row(row)
+                        delivery.observed()
+                        try:
+                            row = self._execute('SELECT context_id,used_native_ns,owner FROM main.execution_budgets WHERE context_id=?',
+                                                  (context,)).fetchone()
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.row(row, _ack=delivery)
                     elif action == 3:
                         if not owned_transaction:
                             _reject(2)
-                        changed = self._execute('INSERT INTO main.execution_budgets(context_id,used_native_ns,owner) VALUES (?,?,NULL)',
-                            (context, receipt.used.decode('ascii'))).rowcount
-                        receipt = state.call(3, values=(changed,))
+                        delivery.observed()
+                        try:
+                            changed = self._execute('INSERT INTO main.execution_budgets(context_id,used_native_ns,owner) VALUES (?,?,NULL)',
+                                (context, receipt.used.decode('ascii'))).rowcount
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.call(3, values=(changed,), _ack=delivery)
                     elif action == 4:
                         if not owned_transaction:
                             _reject(2)
-                        changed = self._execute('UPDATE main.execution_budgets SET owner=? WHERE context_id=? AND used_native_ns=? AND owner IS NULL',
-                            (receipt.owner.decode('ascii'), context, receipt.used.decode('ascii'))).rowcount
-                        receipt = state.call(3, values=(changed,))
+                        delivery.observed()
+                        try:
+                            changed = self._execute('UPDATE main.execution_budgets SET owner=? WHERE context_id=? AND used_native_ns=? AND owner IS NULL',
+                                (receipt.owner.decode('ascii'), context, receipt.used.decode('ascii'))).rowcount
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.call(3, values=(changed,), _ack=delivery)
                     elif action == 5:
                         if not owned_transaction:
                             _reject(2)
-                        changed = self._execute('UPDATE main.execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND used_native_ns=? AND owner=?',
-                            (receipt.updated.decode('ascii'), context, receipt.used.decode('ascii'),
-                             receipt.owner.decode('ascii'))).rowcount
-                        receipt = state.call(3, values=(changed,))
+                        delivery.observed()
+                        try:
+                            changed = self._execute('UPDATE main.execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND used_native_ns=? AND owner=?',
+                                (receipt.updated.decode('ascii'), context, receipt.used.decode('ascii'),
+                                 receipt.owner.decode('ascii'))).rowcount
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.call(3, values=(changed,), _ack=delivery)
                     elif action == 6:
                         if not owned_transaction:
                             _reject(2)
                         self.check()
-                        self._execute('COMMIT')
+                        delivery.observed()
+                        try:
+                            self._execute('COMMIT')
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
                         self.check()
-                        receipt = state.call(4, values=(int(not self.db.in_transaction),))
+                        receipt = state.call(4, values=(int(not self.db.in_transaction),), _ack=delivery)
                         owned_transaction = False
                     else:
                         _reject(2, 'native execution request reached the SQL effect transport')
@@ -337,26 +403,31 @@ class NativeExecutionBudgetStore:
                 raise
 
     def create(self, context):
-        state = self._state(0, context)
-        self._drive(state)
+        with budget_resource_scope_v1(self):
+            state = self._state(0, context)
+            self._drive(state)
 
     def claim(self, context, owner, maximum, started):
-        state = self._state(1, context, owner, maximum, started)
-        self._drive(state)
-        return NativeBudgetClaim(self, state)
+        with budget_resource_scope_v1(self):
+            state = self._state(1, context, owner, maximum, started)
+            self._drive(state)
+            return NativeBudgetClaim(self, state)
 
     def observe(self, context):
-        state = self._state(2, context)
-        self._drive(state)
-        return state.observation()
+        with budget_resource_scope_v1(self):
+            state = self._state(2, context)
+            self._drive(state)
+            return state.observation()
 
     def close(self):
         if os.getpid() != self.creator:
             _reject(2, 'execution budget connection belongs to its creator process')
         with self.lock:
-            if not self.closed:
-                self.closed = True
-                self.db.close()
+            with budget_resource_scope_v1(self):
+                check_resource_retirement(self)
+                if not self.closed:
+                    self.closed = True
+                    self.db.close()
 
 
 class NativeBudgetClaim:
@@ -368,6 +439,20 @@ class NativeBudgetClaim:
         return self.state.receipt.native.decode('ascii')
 
     def run(self, runner, *args, now, total_ms, **kwargs):
+        delivery = DeliveryRecord((self.store, self.state))
+        try:
+            with budget_resource_scope_v1(delivery.owner[0], record=delivery):
+                with delivery.foreign(observation=False):
+                    result = self._run_observed(delivery, runner, *args, now=now, total_ms=total_ms, **kwargs)
+                    delivery.check()
+                    return result
+        except BaseException as error:
+            delivery.failed(error)
+            raise
+        finally:
+            delivery.retire()
+
+    def _run_observed(self, delivery, runner, *args, now, total_ms, **kwargs):
         self.state.check()
         with self.state.lock:
             try:
@@ -379,14 +464,30 @@ class NativeBudgetClaim:
                 # These are exact observations from the fixed foreign runner,
                 # not user authorization. HIA validates their semantic content.
                 cost = self.state._text(outcome['wall_ns'], MAX_DECIMAL)
+                delivery.owner = (self.store, self.state, outcome)
+                delivery.observed()
                 self.state.call(6, token=receipt.token,
-                    values=(int(outcome.get('termination_confirmed') is True), len(cost)), payload=cost)
+                    values=(int(outcome.get('termination_confirmed') is True), len(cost)), payload=cost, _ack=delivery)
                 return outcome
             except BaseException as error:
                 self.state.fence(error)
                 raise
 
     def complete(self):
+        delivery = DeliveryRecord((self.store, self.state))
+        try:
+            with budget_resource_scope_v1(delivery.owner[0], record=delivery):
+                with delivery.foreign(observation=False):
+                    result = self._complete_observed()
+                    delivery.check()
+                    return result
+        except BaseException as error:
+            delivery.failed(error)
+            raise
+        finally:
+            delivery.retire()
+
+    def _complete_observed(self):
         self.state.check()
         with self.state.lock:
             try:

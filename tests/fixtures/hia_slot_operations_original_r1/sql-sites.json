@@ -1,0 +1,167 @@
+[
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT * FROM slots WHERE name=?'), Tuple(elts=[Name(id='slot', ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT * FROM slots WHERE name=?', (slot,))",
+    "connection_source": "db",
+    "end_line": 272,
+    "id": "snapshot.sql1",
+    "line": 272,
+    "method": "snapshot",
+    "parameters_source": "(slot,)",
+    "statement": "SELECT * FROM slots WHERE name=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT artifact FROM versions WHERE slot=? AND generation=?'), Tuple(elts=[Name(id='slot', ctx=Load()), Subscript(value=Name(id='row', ctx=Load()), slice=Constant(value='generation'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n                (slot, row['generation']))",
+    "connection_source": "db",
+    "end_line": 277,
+    "id": "snapshot.sql2",
+    "line": 276,
+    "method": "snapshot",
+    "parameters_source": "(slot, row['generation'])",
+    "statement": "SELECT artifact FROM versions WHERE slot=? AND generation=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT COUNT(*) FROM leases WHERE slot=? AND active=1'), Tuple(elts=[Name(id='slot', ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT COUNT(*) FROM leases WHERE slot=? AND active=1',\n                (slot,))",
+    "connection_source": "db",
+    "end_line": 279,
+    "id": "snapshot.sql3",
+    "line": 278,
+    "method": "snapshot",
+    "parameters_source": "(slot,)",
+    "statement": "SELECT COUNT(*) FROM leases WHERE slot=? AND active=1"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='INSERT INTO slots VALUES (?,?,?,?,?)'), Tuple(elts=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load()), Subscript(value=Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='context'), ctx=Load()), slice=Constant(value='id'), ctx=Load()), Constant(value='0'), Constant(value='0'), Name(id='abi', ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'INSERT INTO slots VALUES (?,?,?,?,?)',\n                (args['target_slot'], args['context']['id'], '0', '0', abi))",
+    "connection_source": "db",
+    "end_line": 351,
+    "id": "adopt.sql1",
+    "line": 350,
+    "method": "adopt",
+    "parameters_source": "(args['target_slot'], args['context']['id'], '0', '0', abi)",
+    "statement": "INSERT INTO slots VALUES (?,?,?,?,?)"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='INSERT INTO versions VALUES (?,?,?)'), Tuple(elts=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load()), Constant(value='0'), Call(func=Attribute(value=Call(func=Name(id='wire', ctx=Load()), args=[Subscript(value=Name(id='evaluation', ctx=Load()), slice=Constant(value='baseline_artifact'), ctx=Load())], keywords=[]), attr='decode', ctx=Load()), args=[], keywords=[])], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',\n                (args['target_slot'], '0', wire(evaluation['baseline_artifact']).decode()))",
+    "connection_source": "db",
+    "end_line": 353,
+    "id": "adopt.sql2",
+    "line": 352,
+    "method": "adopt",
+    "parameters_source": "(args['target_slot'], '0', wire(evaluation['baseline_artifact']).decode())",
+    "statement": "INSERT INTO versions VALUES (?,?,?)"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT * FROM slots WHERE name=?'), Tuple(elts=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n                (args['target_slot'],))",
+    "connection_source": "db",
+    "end_line": 356,
+    "id": "adopt.sql3",
+    "line": 355,
+    "method": "adopt",
+    "parameters_source": "(args['target_slot'],)",
+    "statement": "SELECT * FROM slots WHERE name=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT generation FROM versions WHERE slot=?'), Tuple(elts=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT generation FROM versions WHERE slot=?', (args['target_slot'],))",
+    "connection_source": "db",
+    "end_line": 363,
+    "id": "adopt.sql4",
+    "line": 363,
+    "method": "adopt",
+    "parameters_source": "(args['target_slot'],)",
+    "statement": "SELECT generation FROM versions WHERE slot=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='INSERT INTO versions VALUES (?,?,?)'), Tuple(elts=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load()), Subscript(value=Name(id='current', ctx=Load()), slice=Constant(value='generation'), ctx=Load()), Call(func=Attribute(value=Call(func=Name(id='wire', ctx=Load()), args=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='candidate_artifact'), ctx=Load())], keywords=[]), attr='decode', ctx=Load()), args=[], keywords=[])], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',\n            (args['target_slot'], current['generation'], wire(args['candidate_artifact']).decode()))",
+    "connection_source": "db",
+    "end_line": 370,
+    "id": "adopt.sql5",
+    "line": 369,
+    "method": "adopt",
+    "parameters_source": "(args['target_slot'], current['generation'], wire(args['candidate_artifact']).decode())",
+    "statement": "INSERT INTO versions VALUES (?,?,?)"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?'), Tuple(elts=[Subscript(value=Name(id='current', ctx=Load()), slice=Constant(value='generation'), ctx=Load()), Subscript(value=Name(id='current', ctx=Load()), slice=Constant(value='epoch'), ctx=Load()), Subscript(value=Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='context'), ctx=Load()), slice=Constant(value='id'), ctx=Load()), Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',\n            (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))",
+    "connection_source": "db",
+    "end_line": 372,
+    "id": "adopt.sql6",
+    "line": 371,
+    "method": "adopt",
+    "parameters_source": "(current['generation'], current['epoch'], args['context']['id'], args['target_slot'])",
+    "statement": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT artifact FROM versions WHERE slot=? AND generation=?'), Tuple(elts=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load()), Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='retained_generation'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',\n            (args['target_slot'], args['retained_generation']))",
+    "connection_source": "db",
+    "end_line": 380,
+    "id": "rollback.sql1",
+    "line": 379,
+    "method": "rollback",
+    "parameters_source": "(args['target_slot'], args['retained_generation'])",
+    "statement": "SELECT artifact FROM versions WHERE slot=? AND generation=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT * FROM slots WHERE name=?'), Tuple(elts=[Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT * FROM slots WHERE name=?',\n            (args['target_slot'],))",
+    "connection_source": "db",
+    "end_line": 385,
+    "id": "rollback.sql2",
+    "line": 384,
+    "method": "rollback",
+    "parameters_source": "(args['target_slot'],)",
+    "statement": "SELECT * FROM slots WHERE name=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?'), Tuple(elts=[Subscript(value=Name(id='current', ctx=Load()), slice=Constant(value='generation'), ctx=Load()), Subscript(value=Name(id='current', ctx=Load()), slice=Constant(value='epoch'), ctx=Load()), Subscript(value=Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='context'), ctx=Load()), slice=Constant(value='id'), ctx=Load()), Subscript(value=Name(id='args', ctx=Load()), slice=Constant(value='target_slot'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',\n            (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))",
+    "connection_source": "db",
+    "end_line": 391,
+    "id": "rollback.sql3",
+    "line": 390,
+    "method": "rollback",
+    "parameters_source": "(current['generation'], current['epoch'], args['context']['id'], args['target_slot'])",
+    "statement": "UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='INSERT INTO leases VALUES (?,?,?,?,1)'), Tuple(elts=[Subscript(value=Name(id='lease', ctx=Load()), slice=Constant(value='id'), ctx=Load()), Subscript(value=Name(id='lease', ctx=Load()), slice=Constant(value='slot'), ctx=Load()), Subscript(value=Name(id='lease', ctx=Load()), slice=Constant(value='generation'), ctx=Load()), Call(func=Attribute(value=Subscript(value=Attribute(value=Name(id='result', ctx=Load()), attr='fields', ctx=Load()), slice=Constant(value=3), ctx=Load()), attr='decode', ctx=Load()), args=[], keywords=[])], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'INSERT INTO leases VALUES (?,?,?,?,1)',\n            (lease['id'], lease['slot'], lease['generation'], result.fields[3].decode()))",
+    "connection_source": "db",
+    "end_line": 412,
+    "id": "acquire.sql1",
+    "line": 411,
+    "method": "acquire",
+    "parameters_source": "(lease['id'], lease['slot'], lease['generation'], result.fields[3].decode())",
+    "statement": "INSERT INTO leases VALUES (?,?,?,?,1)"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='SELECT * FROM leases WHERE id=?'), Tuple(elts=[Subscript(value=Name(id='lease', ctx=Load()), slice=Constant(value='id'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'SELECT * FROM leases WHERE id=?', (lease['id'],))",
+    "connection_source": "db",
+    "end_line": 419,
+    "id": "lease.sql1",
+    "line": 419,
+    "method": "lease",
+    "parameters_source": "(lease['id'],)",
+    "statement": "SELECT * FROM leases WHERE id=?"
+  },
+  {
+    "call_ast": "Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='_execute', ctx=Load()), args=[Name(id='db', ctx=Load()), Constant(value='UPDATE leases SET active=0 WHERE id=?'), Tuple(elts=[Subscript(value=Name(id='frozen', ctx=Load()), slice=Constant(value='id'), ctx=Load())], ctx=Load())], keywords=[])",
+    "call_source": "self._execute(db, 'UPDATE leases SET active=0 WHERE id=?', (frozen['id'],))",
+    "connection_source": "db",
+    "end_line": 442,
+    "id": "release.sql1",
+    "line": 442,
+    "method": "release",
+    "parameters_source": "(frozen['id'],)",
+    "statement": "UPDATE leases SET active=0 WHERE id=?"
+  }
+]

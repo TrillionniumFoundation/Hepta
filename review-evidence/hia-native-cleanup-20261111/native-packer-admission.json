@@ -1,0 +1,966 @@
+{
+  "baseline_builder_sha256": {
+    "tools/build_hia_agent_slice.py": "da28f0bce5a32c77559e340f2ff0228f72d04033731a84b3b4f36b1b6ac1ff10",
+    "tools/build_hia_agent_snapshot_json.py": "621b5aaa8c505885392c129c1b33894ef09162566288aaefd00405ec8217bdb1",
+    "tools/build_hia_agent_stdio.py": "814b27537ed871c18b46233d4e41cf1a7e91a2ef6deccff00cef6db8e5aa86a5",
+    "tools/build_hia_artifact_publication.py": "21df56a57e5c5937c86c4c12d2a68fc93dafe52958c68b9c63cb69f93a3da583",
+    "tools/build_hia_core_admission_cli.py": "6bbb53b41750ce2833b82238195fe69006011d971c4c5a8cf185982202fddbd3",
+    "tools/build_hia_core_json_cli.py": "f24e5b1dadcccb7f81ff437f1a794a859eecf1bd7ce1bcf3a326bf173d625bdc",
+    "tools/build_hia_core_workspace_facts.py": "15c6fcb715a73d634fff36ac7dea81d0db4405e0d4e8ac61e29a5e410584ab75",
+    "tools/build_hia_core_workspace_json_cli.py": "d0d9eca36d349cb4850eced8f68b1d12aa687c31cb966bae60b93d81ecdfb608",
+    "tools/build_hia_elf_linker.py": "e071ae449227c5520fb91c4a2708d1f860e02bcdcbc5248c732e4f7e45d8448b",
+    "tools/build_hia_release_install.py": "43784ff13fba218875c6695559aabdefc4a8eea7affd929b84c22fe114699a24",
+    "tools/build_hia_release_selection.py": "b3fa0fca2e3ef85a8cc9d08ecaf90adbae5eeb415d4fd5e540e6be3547801245",
+    "tools/build_hia_source_build.py": "99b8fcd418a200993e670cc36ef4ca4ca2099ab3dde0a1eaa0b61b4b630a0b93"
+  },
+  "baseline_commit": "f33d8da316de8fdf27b504371f1a5310997ff548",
+  "baseline_tree": "378bc0dc613befc7006f1514bd2229357ae0d07c",
+  "corrected_builder_sha256": {
+    "tools/build_hia_agent_slice.py": "645166210a9e70cad108b55403d04aeeaff3aaa2ea9b6b842979adb13922f303",
+    "tools/build_hia_agent_snapshot_json.py": "43ec146167ebd69a8d1d07a6694b663d0a86ec7d1ef687bc8dd1bdb2f96fa26d",
+    "tools/build_hia_agent_stdio.py": "deaaea98323cc799d7c404ca36ea47c3dc8d261d15135248a391284d4084e716",
+    "tools/build_hia_artifact_publication.py": "ab3d77c549ad914dcbebef3754fa09f6cd674154f5ce4422c6100b564c27e628",
+    "tools/build_hia_core_admission_cli.py": "25ad660fbba61993852a31727c0dd511e5c31b6ee2ea581a47925bd4a51ff1e3",
+    "tools/build_hia_core_json_cli.py": "cc4eef21f01f1c2ace9fd4c561740df6ecbe24967209d5ccab045abf65e0a1cb",
+    "tools/build_hia_core_workspace_facts.py": "8790aebb2c60c820f8eba3b5711414a26b8d1f121559c0340eb0246bb95ab242",
+    "tools/build_hia_core_workspace_json_cli.py": "4baf9036bf3882c81732c595b5b7703aa1478d2018f8f8aae91c4e2effebf685",
+    "tools/build_hia_elf_linker.py": "e75df296b45c67671e38c83efbb8e15871fbcfed6c90b4f8b437bc134daabfdc",
+    "tools/build_hia_release_install.py": "f8593edc660bd6f43e1dc0749677fd2354ef3fc6de1bafff651f8e29a209c17b",
+    "tools/build_hia_release_selection.py": "2ba57af3eb5cfc42f73b19c07192b238d372ab3d5b5d212d430bae3eb4b8cb42",
+    "tools/build_hia_source_build.py": "a4ee186712c88b5ebba39d5f2269be4dbb27d658a22437c7163abf33ded84c2a"
+  },
+  "excluded_independent_transports": [
+    "in-process ctypes packers",
+    "native_continuation dedicated 64 MiB output path"
+  ],
+  "finding": "A returned native child can supply a canonical ELF and correct low-u32 length while the high-u32 ABI status is nonzero. All three baseline builders published that ELF; corrected builders refuse it before final executable/build.json publication. The same payload and input with zero ABI status still publish.",
+  "fixed_scope": [
+    "tools/build_hia_agent_slice.py",
+    "tools/build_hia_agent_snapshot_json.py",
+    "tools/build_hia_agent_stdio.py",
+    "tools/build_hia_artifact_publication.py",
+    "tools/build_hia_core_admission_cli.py",
+    "tools/build_hia_core_json_cli.py",
+    "tools/build_hia_core_workspace_facts.py",
+    "tools/build_hia_core_workspace_json_cli.py",
+    "tools/build_hia_elf_linker.py",
+    "tools/build_hia_release_install.py",
+    "tools/build_hia_release_selection.py",
+    "tools/build_hia_source_build.py"
+  ],
+  "observations": [
+    {
+      "builder": "tools/build_hia_release_install.py",
+      "identical_input_bytes_across_all_controls": true,
+      "runs": {
+        "corrected_refusal": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": false,
+          "final_executable_exists": false,
+          "input": {
+            "bytes": 96,
+            "hex": "484941494e533031240000000000000024000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d6167652066697874757265",
+            "sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-corrected/packer.isolated.bin",
+            "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-corrected/release-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-corrected/release-pack.input.bin",
+            "source_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "release_install",
+            "error": "ValueError('native pack return or output bytes differ')",
+            "executable_exists": false,
+            "manifest_exists": false,
+            "published": false,
+            "receipt": {
+              "abi_status": 1,
+              "artifact_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "case": "release-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "input_bytes": 96,
+              "input_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 23920,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 4294967481,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 164159154,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        },
+        "original_failure": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": true,
+          "final_executable_exists": true,
+          "input": {
+            "bytes": 96,
+            "hex": "484941494e533031240000000000000024000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d6167652066697874757265",
+            "sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-original/packer.isolated.bin",
+            "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-original/release-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-original/release-pack.input.bin",
+            "source_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "release_install",
+            "payload_equal": true,
+            "publication_bug": true,
+            "published": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-original/hia-release",
+            "receipt": {
+              "abi_status": 1,
+              "artifact_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "case": "release-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "input_bytes": 96,
+              "input_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 22191,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 4294967481,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 100330255,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        },
+        "zero_status_control": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": true,
+          "final_executable_exists": true,
+          "input": {
+            "bytes": 96,
+            "hex": "484941494e533031240000000000000024000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d6167652066697874757265",
+            "sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-positive/packer.isolated.bin",
+            "image_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-positive/release-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-positive/release-pack.input.bin",
+            "source_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "release_install",
+            "payload_equal": true,
+            "publication_bug": false,
+            "published": "/workspace/scratch/37204f9845e5/release-pack-review/release_install-positive/hia-release",
+            "receipt": {
+              "abi_status": 0,
+              "artifact_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+              "case": "release-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+              "input_bytes": 96,
+              "input_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 89502,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 185,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "8a7608b1ff5cc3dff603185630c315f0eeeccf22313ee85da76f0efbcb3005d1",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 131774086,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        }
+      },
+      "target": "hia-release"
+    },
+    {
+      "builder": "tools/build_hia_release_selection.py",
+      "identical_input_bytes_across_all_controls": true,
+      "runs": {
+        "corrected_refusal": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": false,
+          "final_executable_exists": false,
+          "input": {
+            "bytes": 140,
+            "hex": "48494153504b30312400000000000000240000000000000024000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d6167652066697874757265",
+            "sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-corrected/packer.isolated.bin",
+            "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-corrected/selection-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-corrected/selection-pack.input.bin",
+            "source_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "release_selection",
+            "error": "ValueError('native pack return or output bytes differ')",
+            "executable_exists": false,
+            "manifest_exists": false,
+            "published": false,
+            "receipt": {
+              "abi_status": 1,
+              "artifact_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "case": "selection-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "input_bytes": 140,
+              "input_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 22027,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 4294967481,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 112330123,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        },
+        "original_failure": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": true,
+          "final_executable_exists": true,
+          "input": {
+            "bytes": 140,
+            "hex": "48494153504b30312400000000000000240000000000000024000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d6167652066697874757265",
+            "sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-original/packer.isolated.bin",
+            "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-original/selection-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-original/selection-pack.input.bin",
+            "source_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "release_selection",
+            "payload_equal": true,
+            "publication_bug": true,
+            "published": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-original/hia-select",
+            "receipt": {
+              "abi_status": 1,
+              "artifact_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "case": "selection-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "input_bytes": 140,
+              "input_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 19894,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 4294967481,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 73820512,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        },
+        "zero_status_control": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": true,
+          "final_executable_exists": true,
+          "input": {
+            "bytes": 140,
+            "hex": "48494153504b30312400000000000000240000000000000024000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c6174656420696d6167652066697874757265",
+            "sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-positive/packer.isolated.bin",
+            "image_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-positive/selection-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-positive/selection-pack.input.bin",
+            "source_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "release_selection",
+            "payload_equal": true,
+            "publication_bug": false,
+            "published": "/workspace/scratch/37204f9845e5/release-pack-review/release_selection-positive/hia-select",
+            "receipt": {
+              "abi_status": 0,
+              "artifact_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+              "case": "selection-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+              "input_bytes": 140,
+              "input_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 20431,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 185,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "1868a81a79d9e9d0734851517480d146492696d843f6b4a8dffc00d9051578cc",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 99800713,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        }
+      },
+      "target": "hia-select"
+    },
+    {
+      "builder": "tools/build_hia_agent_stdio.py",
+      "identical_input_bytes_across_all_controls": true,
+      "runs": {
+        "corrected_refusal": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": false,
+          "final_executable_exists": false,
+          "input": {
+            "bytes": 151,
+            "hex": "48494141474e543124000000000000002700000000000000240000000000000000000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c617465642066726f6e74656e6420666978747572656e6f742065786563757465643a2069736f6c617465642073657475702066697874757265",
+            "sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-corrected/agent-packer.isolated.bin",
+            "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-corrected/agent-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-corrected/agent-pack.input.bin",
+            "source_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "agent_stdio",
+            "error": "ValueError('native pack return or output bytes differ')",
+            "executable_exists": false,
+            "manifest_exists": false,
+            "published": false,
+            "receipt": {
+              "abi_status": 1,
+              "artifact_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "case": "agent-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "input_bytes": 151,
+              "input_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 22586,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 4294967481,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 106065543,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        },
+        "original_failure": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": true,
+          "final_executable_exists": true,
+          "input": {
+            "bytes": 151,
+            "hex": "48494141474e543124000000000000002700000000000000240000000000000000000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c617465642066726f6e74656e6420666978747572656e6f742065786563757465643a2069736f6c617465642073657475702066697874757265",
+            "sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-original/agent-packer.isolated.bin",
+            "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-original/agent-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-original/agent-pack.input.bin",
+            "source_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "agent_stdio",
+            "payload_equal": true,
+            "publication_bug": true,
+            "published": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-original/hia-native",
+            "receipt": {
+              "abi_status": 1,
+              "artifact_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "case": "agent-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d",
+              "input_bytes": 151,
+              "input_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 21196,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 4294967481,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 93744024,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        },
+        "zero_status_control": {
+          "captured_output": {
+            "bytes": 1048576,
+            "prefix_bytes": 185,
+            "prefix_sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753",
+            "remaining_byte_value": 165,
+            "remaining_bytes": 1048391,
+            "sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841"
+          },
+          "final_build_report_exists": true,
+          "final_executable_exists": true,
+          "input": {
+            "bytes": 151,
+            "hex": "48494141474e543124000000000000002700000000000000240000000000000000000000000000006e6f742065786563757465643a2069736f6c6174656420696d61676520666978747572656e6f742065786563757465643a2069736f6c617465642066726f6e74656e6420666978747572656e6f742065786563757465643a2069736f6c617465642073657475702066697874757265",
+            "sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee"
+          },
+          "native_image": {
+            "bytes": 213,
+            "sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890"
+          },
+          "native_request": {
+            "capacity": 1048576,
+            "format": "flat-x86-64",
+            "image": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-positive/agent-packer.isolated.bin",
+            "image_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+            "output": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-positive/agent-pack.output.bin",
+            "source": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-positive/agent-pack.input.bin",
+            "source_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+            "workspace_fill": 0,
+            "workspace_size": 1048576
+          },
+          "original_observation_record": {
+            "actual_native_invoke": true,
+            "builder": "agent_stdio",
+            "payload_equal": true,
+            "publication_bug": false,
+            "published": "/workspace/scratch/37204f9845e5/release-pack-review/agent_stdio-positive/hia-native",
+            "receipt": {
+              "abi_status": 0,
+              "artifact_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+              "case": "agent-pack",
+              "core_u32": 185,
+              "forbidden_compiler_modules_loaded": [],
+              "format": "flat-x86-64",
+              "image_sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890",
+              "input_bytes": 151,
+              "input_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+              "limits": {
+                "address_bytes": 268435456,
+                "core_dumpable": false,
+                "cpu_seconds": 10,
+                "output_capacity": 1048576,
+                "stack_bytes": 8388608,
+                "workspace_bytes": 1048576
+              },
+              "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+              "native_elapsed_ns": 19171,
+              "output_sha256": "e06137500f54cd4dda3f31b45dca05dca670176b01bc0e1852ea1d3a14804841",
+              "output_unchanged": false,
+              "result_u64": 185,
+              "return_encoding": "zero-extended-u32",
+              "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+              "source_sha256": "39d8ed876434053a85ff755aedddfd7e29d77f19219affc64f949ad39a9951ee",
+              "source_unchanged": true,
+              "status": "returned",
+              "wall_elapsed_ns": 54784506,
+              "workspace_header": {
+                "0": 0,
+                "1024": 0,
+                "104": 0,
+                "112": 0,
+                "16": 0,
+                "224": 0,
+                "24": 0,
+                "248": 0,
+                "40": 0,
+                "48": 0,
+                "56": 0,
+                "64": 0,
+                "72": 0,
+                "8": 0,
+                "80": 0,
+                "88": 0,
+                "96": 0
+              }
+            }
+          }
+        }
+      },
+      "target": "hia-native"
+    }
+  ],
+  "original_capture_sha256": {
+    "CORRECTED_REFUSAL.json": "641c1e7d4ae5ea2fc44536e3058146dcbb01227ec3c4026628f9978064926d28",
+    "ORIGINAL_FAILURE.json": "45a0603610e750ddee67e0d492f377e5e6698fcea365e615f820aecc76063c3f",
+    "POSITIVE_CONTROL.json": "6fded545961057b8ea1446e39f55f74da7ccb9004929e74fdeb68bd681624afd"
+  },
+  "qualification": {
+    "HIA_compiler_or_generated_packer_correctness_established": false,
+    "matching_cold_qualification": false,
+    "native_invoke_or_inspect_executable_stubbed": false,
+    "nonexecuting_build_setup_fixture": true,
+    "real_invoke_child_and_real_ELF_inspection": true,
+    "stubbed_setup": [
+      "admit_cold_build",
+      "current_sources",
+      "compile_stage",
+      "build_frontend (Agent stdio only)"
+    ],
+    "whole_native_delivery_qualified": false
+  },
+  "reproduction": {
+    "baseline_steps": [
+      "Create a separate detached Git worktree at baseline_commit.",
+      "Copy only the corrected tests/test_hia_release_install.py into that worktree; keep every tools/ and hepta/ file at the baseline commit.",
+      "Run regression_command in that worktree with Python and Linux x86-64.",
+      "Expect exactly three subtest failures: ValueError not raised for abi_status=1. Each baseline builder publishes the canonical ELF. The three zero-status controls continue to pass."
+    ],
+    "baseline_verified": {
+      "commit": "f33d8da316de8fdf27b504371f1a5310997ff548",
+      "copied_only_file": "tests/test_hia_release_install.py",
+      "error_count": 0,
+      "failure": "ValueError not raised for nonzero ABI status",
+      "failure_count": 3,
+      "log": "test_actual_failed_return_refuses_publication_and_zero_status_control_publishes (tests.test_hia_release_install.NativePackerAdmissionRegressionTests.test_actual_failed_return_refuses_publication_and_zero_status_control_publishes)\nReal invoke/ELF inspection; only compiler/cold setup is a fixture. ... \n  test_actual_failed_return_refuses_publication_and_zero_status_control_publishes (tests.test_hia_release_install.NativePackerAdmissionRegressionTests.test_actual_failed_return_refuses_publication_and_zero_status_control_publishes) (builder='release_install', abi_status=1)\nReal invoke/ELF inspection; only compiler/cold setup is a fixture. ... FAIL\n  test_actual_failed_return_refuses_publication_and_zero_status_control_publishes (tests.test_hia_release_install.NativePackerAdmissionRegressionTests.test_actual_failed_return_refuses_publication_and_zero_status_control_publishes) (builder='release_selection', abi_status=1)\nReal invoke/ELF inspection; only compiler/cold setup is a fixture. ... FAIL\n  test_actual_failed_return_refuses_publication_and_zero_status_control_publishes (tests.test_hia_release_install.NativePackerAdmissionRegressionTests.test_actual_failed_return_refuses_publication_and_zero_status_control_publishes) (builder='agent_stdio', abi_status=1)\nReal invoke/ELF inspection; only compiler/cold setup is a fixture. ... FAIL\n\n======================================================================\nFAIL: test_actual_failed_return_refuses_publication_and_zero_status_control_publishes (tests.test_hia_release_install.NativePackerAdmissionRegressionTests.test_actual_failed_return_refuses_publication_and_zero_status_control_publishes) (builder='release_install', abi_status=1)\nReal invoke/ELF inspection; only compiler/cold setup is a fixture.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-packer-baseline-witness/tests/test_hia_release_install.py\", line 274, in test_actual_failed_return_refuses_publication_and_zero_status_control_publishes\n    with self.assertRaises(ValueError):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ValueError not raised\n\n======================================================================\nFAIL: test_actual_failed_return_refuses_publication_and_zero_status_control_publishes (tests.test_hia_release_install.NativePackerAdmissionRegressionTests.test_actual_failed_return_refuses_publication_and_zero_status_control_publishes) (builder='release_selection', abi_status=1)\nReal invoke/ELF inspection; only compiler/cold setup is a fixture.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-packer-baseline-witness/tests/test_hia_release_install.py\", line 274, in test_actual_failed_return_refuses_publication_and_zero_status_control_publishes\n    with self.assertRaises(ValueError):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ValueError not raised\n\n======================================================================\nFAIL: test_actual_failed_return_refuses_publication_and_zero_status_control_publishes (tests.test_hia_release_install.NativePackerAdmissionRegressionTests.test_actual_failed_return_refuses_publication_and_zero_status_control_publishes) (builder='agent_stdio', abi_status=1)\nReal invoke/ELF inspection; only compiler/cold setup is a fixture.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/37204f9845e5/Hepta-packer-baseline-witness/tests/test_hia_release_install.py\", line 274, in test_actual_failed_return_refuses_publication_and_zero_status_control_publishes\n    with self.assertRaises(ValueError):\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ValueError not raised\n\n----------------------------------------------------------------------\nRan 1 test in 0.781s\n\nFAILED (failures=3)\n",
+      "log_sha256": "23f0ed70edfca71d9bb1a06e3026c792a42574b2ae9269e143741288e63efacb",
+      "returncode": 1
+    },
+    "receipt_replay": "For each observation, reconstruct the native image from witness.native_images hex and source from its input.hex, then call tools.qualify_hia_selfhost.invoke in a new directory. Compare all deterministic identities, result_u64, core_u32, abi_status, source_unchanged and output_sha256. Timing values and temporary paths naturally differ.",
+    "regression_command": "python -B -m unittest tests.test_hia_release_install.NativePackerAdmissionRegressionTests -v",
+    "regression_expected": "One test, six real native invokes: three nonzero-status refusals and three zero-status payload publications. Only the build setup is isolated.",
+    "source_binding_matrix_command": "python -B -m unittest tests.test_hia_standalone_builder_source_binding -v",
+    "source_binding_matrix_scope": "12 out-of-process invoke packer builders; all compiler/packer stages are explicitly nonexecuting fixtures. This is admission/publication control, never native qualification."
+  },
+  "schema": "hepta.hia.native-packer-admission-regression.v1",
+  "scope": "TEST_ONLY_NATIVE_PACKER_ADMISSION_CONTROL_NO_COLD_QUALIFICATION",
+  "validation": {
+    "matching_cold_or_whole_stack_test_claimed": false,
+    "optimized_python_source_binding": {
+      "command": "python -B -O -m unittest tests.test_hia_standalone_builder_source_binding -v",
+      "log_sha256": "85fcba44fc325954c0b7b2b2387689151e3ff361fb1f53d7ce3c002a4378ff5d",
+      "seconds": 2.62,
+      "status": "OK",
+      "tests": 15
+    },
+    "targeted_regressions": {
+      "log_sha256": "3e9140c4fc2291e02c62c462e7b1a4287f29f658e0e10f3fc63d8c1064c33016",
+      "modules": [
+        "tests.test_hia_standalone_builder_source_binding",
+        "tests.test_hia_native_builder_source_binding",
+        "tests.test_hia_source_build_entrypoint",
+        "tests.test_hia_compile_stage_custody",
+        "tests.test_hia_release_install.NativePackerAdmissionRegressionTests",
+        "tests.test_hia_source_build.SourceBuilderSourceTests.test_strict_receipt_identity_and_integer_size_fields",
+        "tests.test_hia_source_build.SourceBuilderSourceTests.test_cold_admission_precedes_output_and_never_falls_back_to_development"
+      ],
+      "seconds": 10.292,
+      "status": "OK",
+      "tests": 31
+    }
+  },
+  "witness": {
+    "native_images": {
+      "failed_return": {
+        "bytes": 213,
+        "hex": "4889d7488d3512000000b9b9000000f3a448b8b900000001000000c37f454c4602010100000000000000000002003e0001000000b00040000000000040000000000000000000000000000000000000004000380002000000000000000100000005000000000000000000000000004000000000000000400000000000b900000000000000b900000000000000001000000000000051e5746406000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000b83c00000031ff0f05",
+        "sha256": "e939141f393085511dffc1effad36f1bab96a514c636b7b02b62eb0e4cb3606d"
+      },
+      "zero_status": {
+        "bytes": 213,
+        "hex": "4889d7488d3512000000b9b9000000f3a448b8b900000000000000c37f454c4602010100000000000000000002003e0001000000b00040000000000040000000000000000000000000000000000000004000380002000000000000000100000005000000000000000000000000004000000000000000400000000000b900000000000000b900000000000000001000000000000051e5746406000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000b83c00000031ff0f05",
+        "sha256": "f8d49d3ff94b2ee7e3c1d8507d89f247b3fbd9abfe28ebb09eff60c7fa490890"
+      }
+    },
+    "nonexecuting_setup_bytes": {
+      "cold_text": "isolated build setup; not cold qualification\n",
+      "compiler": "not executed: isolated setup fixture",
+      "component_image": "not executed: isolated image fixture",
+      "frontend_image": "not executed: isolated frontend fixture"
+    },
+    "payload": {
+      "bytes": 185,
+      "hex": "7f454c4602010100000000000000000002003e0001000000b00040000000000040000000000000000000000000000000000000004000380002000000000000000100000005000000000000000000000000004000000000000000400000000000b900000000000000b900000000000000001000000000000051e5746406000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000b83c00000031ff0f05",
+      "sha256": "388fbf1a26e7cae9c9439b4b9b4f137a187bf1ab38c3ac88cd99711cd1e6e753"
+    },
+    "source": "tests/test_hia_release_install.py::packer_admission_witness",
+    "source_file_sha256": "72b387a48cb22929ff157f42d159d7c38c8b42d4029f3f76c756b3bc79f87e6e",
+    "target": "Linux x86-64 byte ABI"
+  }
+}

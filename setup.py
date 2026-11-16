@@ -8,8 +8,20 @@ import ast
 import shutil
 from setuptools import setup
 from setuptools.command.build_py import build_py
+# Load the exact local build helper even under python -I / isolated wheels.
+from importlib.util import spec_from_file_location, module_from_spec
+_mechanical_spec = spec_from_file_location(
+    '_hepta_slot_mechanical_build', Path(__file__).resolve().parent / 'hepta/native/slot_mechanical_build.py')
+_mechanical_build = module_from_spec(_mechanical_spec)
+_mechanical_spec.loader.exec_module(_mechanical_build)
+MechanicalBuildExt, extensions = _mechanical_build.MechanicalBuildExt, _mechanical_build.extensions
 
 ROOT=Path(__file__).resolve().parent
+
+# Explicit independent VM arithmetic resource; no helper registry/default switch.
+VM_INTEGER_DIVREM_RESOURCES = ('examples/hia_bootstrap/vm_integer_divrem.hepta',)
+VM_INTEGER_ARITHMETIC_RESOURCES = ('examples/hia_bootstrap/vm_integer_arithmetic.hepta',)
+VM_INTEGER_SCALAR_RESOURCES = ('examples/hia_bootstrap/vm_integer_scalar.hepta',)
 
 def agent_resources():
     tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
@@ -29,11 +41,28 @@ def agent_resources():
         raise ValueError('invalid or duplicate Agent resource paths')
     return names
 
+def executable_capture_resources(existing):
+    """Explicit data for an independently selected component; no product import."""
+    path = ROOT / 'hepta/hia_executable_capture.py'
+    tree = ast.parse(path.read_text())
+    declarations = [node for node in tree.body if isinstance(node, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == 'PACKAGE_RESOURCES'
+                            for target in node.targets)]
+    if len(declarations) != 1:
+        raise ValueError('one executable-capture package resource tuple is required')
+    names = ast.literal_eval(declarations[0].value)
+    if (type(names) is not tuple or any(type(name) is not str or not name
+            or Path(name).is_absolute() or '..' in Path(name).parts for name in names)
+            or len(names) != len(set(names)) or set(names) & set(existing)):
+        raise ValueError('invalid or duplicate executable-capture package resources')
+    return names
+
 class AgentResourceBuild(build_py):
     def run(self):
         super().run()
         self._agent_outputs=[]
-        for name in agent_resources():
+        names = agent_resources()
+        for name in names + executable_capture_resources(names) + VM_INTEGER_DIVREM_RESOURCES + VM_INTEGER_ARITHMETIC_RESOURCES + VM_INTEGER_SCALAR_RESOURCES:
             source=ROOT/name
             if not source.is_file():raise ValueError('missing Agent package resource: '+name)
             target=Path(self.build_lib)/'hepta/_data'/name
@@ -44,4 +73,6 @@ class AgentResourceBuild(build_py):
     def get_outputs(self,include_bytecode=True):
         return super().get_outputs(include_bytecode)+getattr(self,'_agent_outputs',[])
 
-setup(cmdclass={'build_py':AgentResourceBuild})
+setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt},
+      ext_modules=extensions(),
+      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py']})

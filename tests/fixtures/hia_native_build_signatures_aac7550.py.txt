@@ -1,0 +1,18 @@
+def _signatures(program, foreign_buffer_exports=()):
+    from .hia_program_native import WIDTHS
+    from .hia_native_byte_abi import normalize_exports
+    from .hia_agent_buffers import PROFILE as BUFFER_PROFILE
+    document = program.as_dict()
+    signatures = {fn["name"]: {"params": [p["type"] for p in fn["params"]],
+                         "returns": fn["returns"]}
+            for fn in document["functions"] if fn["name"] in program.scalar_entrypoints
+            and all(p["type"] in set(WIDTHS) | {"bool"} for p in fn["params"])
+            and len(fn["returns"]) <= 1
+            and all(typ in set(WIDTHS) | {"bool", "unit"} for typ in fn["returns"])}
+    exports = dict(normalize_exports(foreign_buffer_exports, program))
+    for fn in document["functions"]:
+        if fn["name"] in exports:
+            signatures[fn["name"]] = {"params": [p["type"] for p in fn["params"]],
+                "returns": fn["returns"], "abi": BUFFER_PROFILE,
+                "max_buffer_bytes": exports[fn["name"]]}
+    return signatures

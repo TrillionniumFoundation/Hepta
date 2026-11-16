@@ -57,6 +57,8 @@ def publish_verified(stage: str | Path, destination: str | Path, expected: bytes
     if type(expected) is not bytes or not expected or stage.absolute() == destination.absolute():
         raise PublicationRejected("E_PUBLISH_INPUT: distinct file and nonempty exact bytes required")
     selected = os.environ.get("HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST")
+    if selected == '':
+        raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: publication selector must not be empty')
     if selected:
         from .artifact_publication_native import invoke_native
         return invoke_native(selected, "publish", stage, destination, expected)
@@ -99,6 +101,8 @@ def verify_published(stage: str | Path, destination: str | Path, expected: bytes
     if type(expected) is not bytes or not expected or stage.absolute() == destination.absolute():
         raise PublicationRejected("E_PUBLISH_INPUT: exact nonempty bytes and distinct paths required")
     selected = os.environ.get("HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST")
+    if selected == '':
+        raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: publication selector must not be empty')
     if selected:
         from .artifact_publication_native import invoke_native
         return invoke_native(selected, "verify", stage, destination, expected)
@@ -115,6 +119,8 @@ def withdraw_own_link(stage: str | Path, destination: str | Path) -> bool:
     does not destroy another linked copy or a competitor's separate inode.
     """
     selected = os.environ.get("HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST")
+    if selected == '':
+        raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: publication selector must not be empty')
     if selected:
         from .artifact_publication_native import invoke_native
         return invoke_native(selected, "withdraw", Path(stage), Path(destination))

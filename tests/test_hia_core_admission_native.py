@@ -88,6 +88,34 @@ class CoreAdmissionSourceTests(unittest.TestCase):
                          0xfffffff8)
         self.assertEqual(interpreted(wire(returned_aliases(('readbuf', 'readbuf')))), 0)
 
+    def test_independent_vm_complete_diagnostic_bytes_with_unchanged_budgets(self):
+        import struct
+        from tests.hia_core_diagnostic_cases import vm_buffers, closure_before_join
+        from hepta.hia_core_diagnostic_protocol import diagnostic_scratch_bytes, TABLE_CAPACITY
+        from tools.generate_hia_core_admission import document
+        from tools.hia_selfhost_limits import MAX_FUNCTIONS, MAX_BLOCKS, MAX_INSTRUCTIONS
+        generated = document()
+        self.assertLessEqual(len(generated['functions']), MAX_FUNCTIONS)
+        self.assertLessEqual(sum(len(fn['blocks']) for fn in generated['functions']), MAX_BLOCKS)
+        self.assertLessEqual(sum(len(block['ops']) for fn in generated['functions']
+                                 for block in fn['blocks']), MAX_INSTRUCTIONS)
+        self.assertLessEqual(scratch_sizes(8388608)[0], 64 << 20)
+        bad = copy.deepcopy(VALID)
+        bad['functions'][0]['blocks'][0]['term']['values'] = ['independent_missing']
+        witnesses = [(bad, 0xfffffff5, b'f/entry: undefined/nonlocal value independent_missing'),
+                     (closure_before_join(), 0xfffffff8,
+                      b'loan must travel with its owner/parent capability')]
+        for value, expected_status, expected in witnesses:
+            raw = wire(value)
+            status, (source, state, arena), steps = vm_buffers(raw)
+            self.assertEqual(source, raw)
+            self.assertEqual(status, expected_status)
+            self.assertLessEqual(steps, 3000000)
+            table = len(state) - diagnostic_scratch_bytes(len(raw))
+            output = table + TABLE_CAPACITY
+            self.assertEqual(state[output:output + len(expected)], expected)
+            self.assertEqual(struct.unpack_from('<Q', state, len(state) - 48)[0], len(expected))
+
 
 class CoreAdmissionNativeTests(unittest.TestCase):
     @classmethod
@@ -126,13 +154,190 @@ class CoreAdmissionNativeTests(unittest.TestCase):
     def compare(self, value):
         from hepta.hia_program import verify_program, HIAProgramRejected
         expected = None
+        expected_message = None
         try:
             verify_program(value)
         except HIAProgramRejected as error:
             expected = error.code
+            expected_message = str(error)
         result = self.native.status(wire(value))
         self.assertNotEqual(result, 0xfffffffd)
         self.assertEqual(ERROR_CODES.get(result) if result else None, expected, value)
+        if expected_message is None:
+            self.native.admit(wire(value))
+        else:
+            with self.assertRaises(HIAProgramRejected) as caught:
+                self.native.admit(wire(value))
+            self.assertEqual(str(caught.exception), expected_message, value)
+
+    def test_complete_diagnostic_declarations_catalog_and_first_refusal_order(self):
+        from tests.hia_core_diagnostic_cases import (
+            structured_mutations, opcode_documents, closure_before_join,
+        )
+        from tests.test_hia_program import resource_program
+        from tests.test_hia_returned_loans import loan_program
+        for document in (VALID, resource_program(), loan_program()):
+            for label, value in structured_mutations(document):
+                with self.subTest(label=label):
+                    self.compare(value)
+        for label, value in opcode_documents():
+            with self.subTest(label=label):
+                self.compare(value)
+        from hepta.hia_program import HIAProgramRejected
+        with self.assertRaises(HIAProgramRejected) as caught:
+            self.native.admit(wire(closure_before_join()))
+        self.assertEqual(str(caught.exception),
+                         'E_HIA_LOAN: loan must travel with its owner/parent capability')
+        self.compare(closure_before_join())
+
+    def test_complete_diagnostic_long_names_unicode_and_large_return_interfaces(self):
+        from tests.hia_core_diagnostic_cases import long_return_interface
+        value = copy.deepcopy(VALID)
+        fn = value['functions'][0]
+        fn['name'] = 'f' * 128
+        fn['entry'] = fn['blocks'][0]['id'] = 'b' * 128
+        fn['blocks'][0]['term']['values'] = ['v' * 128]
+        self.compare(value)
+        for opcode in ('', '🧪 unknown\x00 operation\n', 'x' * 200000):
+            value = copy.deepcopy(VALID)
+            value['functions'][0]['blocks'][0]['ops'] = [
+                {'op': opcode, 'args': [], 'out': [], 'attrs': {}}]
+            self.compare(value)
+        value = copy.deepcopy(VALID)
+        instruction = {'op': '', 'args': [], 'out': [], 'attrs': {}}
+        value['functions'][0]['blocks'][0]['ops'] = [instruction]
+        instruction['op'] = 'x' * (8388608 - len(wire(value)))
+        self.assertEqual(len(wire(value)), 8388608)
+        self.compare(value)
+        # Python-style commas/spaces make this message longer than its source
+        # fragment; the original node/byte/function profiles stay unchanged.
+        self.compare(long_return_interface(16384))
+
+    def test_diagnostic_bytes_are_native_and_foreign_checkers_are_forbidden(self):
+        from contextlib import ExitStack
+        from hepta.hia_program import HIAProgramRejected
+        value = copy.deepcopy(VALID)
+        value['functions'][0]['blocks'][0]['term']['values'] = ['native_name']
+        raw = wire(value)
+        forbidden = ('hepta.hia_program._reference_primitive_structure',
+                     'hepta.hia_program._reference_function_shape',
+                     'hepta.hia_program._verify_function',
+                     'hepta.hia_program.check_instruction',
+                     'hepta.hia_program.rename_capabilities', 'json.loads')
+        with ExitStack() as stack:
+            for target in forbidden:
+                stack.enter_context(patch(target, side_effect=AssertionError(target)))
+            with patch.object(self.native, '_entry', wraps=self.native._entry) as entry:
+                with self.assertRaises(HIAProgramRejected) as caught:
+                    self.native.admit(raw)
+                self.assertEqual(entry.call_count, 1)
+        self.assertEqual(str(caught.exception),
+                         'E_HIA_SSA: f/entry: undefined/nonlocal value native_name')
+
+    def test_diagnostic_transport_thread_reentry_exception_and_missing_invocation(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        from hepta.hia_program import HIAProgramRejected
+        from hepta.hia_core_admission_native import _DIAGNOSTIC_SINK
+        raws = []
+        for name in ('first_missing', 'second_missing'):
+            value = copy.deepcopy(VALID)
+            value['functions'][0]['blocks'][0]['term']['values'] = [name]
+            raws.append(wire(value))
+
+        def observed(raw):
+            try:
+                self.native.admit(raw)
+            except HIAProgramRejected as error:
+                return str(error)
+            self.fail('expected missing-name refusal')
+
+        expected = ['E_HIA_SSA: f/entry: undefined/nonlocal value ' + name
+                    for name in ('first_missing', 'second_missing')]
+        barrier = Barrier(2)
+        original = self.native._invoke
+
+        def overlap(raw):
+            result = original(raw)
+            barrier.wait(timeout=10)
+            return result
+
+        with patch.object(self.native, '_invoke', side_effect=overlap):
+            with ThreadPoolExecutor(max_workers=2) as workers:
+                self.assertEqual(list(workers.map(observed, raws)), expected)
+        status = self.native.status
+        nested = []
+
+        def reenter(raw):
+            if raw == raws[0]:
+                nested.append(observed(raws[1]))
+            return status(raw)
+
+        with patch.object(self.native, 'status', side_effect=reenter):
+            self.assertEqual(observed(raws[0]), expected[0])
+        self.assertEqual(nested, [expected[1]])
+        self.assertIsNone(_DIAGNOSTIC_SINK.get())
+        with patch.object(self.native, 'status', side_effect=RuntimeError('injected failure')):
+            with self.assertRaisesRegex(RuntimeError, 'injected failure'):
+                self.native.admit(raws[0])
+        self.assertIsNone(_DIAGNOSTIC_SINK.get())
+        with patch.object(self.native, 'status', return_value=0xfffffff5):
+            with self.assertRaisesRegex(RuntimeError, 'missing native whole Core diagnostic invocation'):
+                self.native.admit(raws[1])
+        # Even an actual native observation for a different input cannot be
+        # borrowed into this exception merely because its u32 code matches.
+        with patch.object(self.native, 'status', side_effect=lambda raw: status(raws[1])):
+            with self.assertRaisesRegex(RuntimeError, 'missing native whole Core diagnostic invocation'):
+                self.native.admit(raws[0])
+        self.assertEqual(observed(raws[1]), expected[1])
+        self.assertIsNone(_DIAGNOSTIC_SINK.get())
+
+    def test_diagnostic_trailer_and_utf8_are_validated_before_exception_transport(self):
+        import ctypes
+        from hepta.hia_core_diagnostic_protocol import TRAILER_BYTES
+        value = copy.deepcopy(VALID)
+        value['functions'][0]['blocks'][0]['term']['values'] = ['missing']
+        raw = wire(value)
+        entry = self.native._entry
+        for offset in range(0, TRAILER_BYTES, 8):
+            def corrupt(source, size, state, state_size, arena, arena_size):
+                result = entry(source, size, state, state_size, arena, arena_size)
+                at = ctypes.addressof(state) + state_size - TRAILER_BYTES + offset
+                ctypes.memmove(at, (2**64 - 1).to_bytes(8, 'little'), 8)
+                return result
+            with self.subTest(offset=offset), patch.object(self.native, '_entry', side_effect=corrupt):
+                with self.assertRaisesRegex(RuntimeError, 'diagnostic trailer'):
+                    self.native.admit(raw)
+
+        def invalid_utf8(source, size, state, state_size, arena, arena_size):
+            result = entry(source, size, state, state_size, arena, arena_size)
+            trailer = ctypes.addressof(state) + state_size - TRAILER_BYTES
+            output = int.from_bytes(ctypes.string_at(trailer + 8, 8), 'little')
+            ctypes.memmove(ctypes.addressof(state) + output, b'\xff', 1)
+            return result
+        with patch.object(self.native, '_entry', side_effect=invalid_utf8):
+            with self.assertRaisesRegex(RuntimeError, 'diagnostic UTF-8'):
+                self.native.admit(raw)
+
+    def test_diagnostic_entire_native_buffers_match_independent_vm(self):
+        import ctypes
+        from tests.hia_core_diagnostic_cases import vm_buffers, closure_before_join
+        witnesses = [VALID, borrowed_owner(), closure_before_join()]
+        for name in ('missing', 'other_missing'):
+            value = copy.deepcopy(VALID)
+            value['functions'][0]['blocks'][0]['term']['values'] = [name]
+            witnesses.append(value)
+        for value in witnesses:
+            raw = wire(value)
+            expected, buffers, steps = vm_buffers(raw)
+            source = ctypes.create_string_buffer(raw, len(raw))
+            state_size, arena_size = scratch_sizes(len(raw))
+            state = ctypes.create_string_buffer(state_size)
+            arena = ctypes.create_string_buffer(arena_size)
+            actual = self.native._entry(source, len(raw), state, state_size, arena, arena_size)
+            self.assertEqual(actual, expected)
+            self.assertEqual((source.raw, state.raw, arena.raw), buffers)
+            self.assertLessEqual(steps, 3000000)
 
     def test_raw_native_has_no_foreign_declaration_body_or_json_decoder(self):
         self.assertEqual(self.receipt['forbidden_compiler_modules_loaded'], [])

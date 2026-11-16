@@ -1,0 +1,9 @@
+def request_packet(opcode, fields=(), *, flags=0, a=0, b=0, token=(0, 0, 0, 0)):
+    fields = tuple(fields)
+    numbers = (REQUEST_MAGIC, opcode, len(fields), flags, a, b, 0, 0, *token, 0, 0, 0, 0)
+    if (len(numbers) != 16 or len(fields) > 7
+            or any(type(v) is not int or not 0 <= v <= MAX_U64 for v in numbers)
+            or any(type(v) is not bytes for v in fields)):
+        _custody('invalid foreign slot protocol frame')
+    return struct.pack('<16Q', *numbers) + struct.pack('<' + str(len(fields)) + 'Q',
+        *(len(v) for v in fields)) + b''.join(fields)

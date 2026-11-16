@@ -27,6 +27,8 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/service_verification.hepta',
+    'examples/hia_bootstrap/service_artifact.hepta',
     'examples/hia_bootstrap/machine_plan.hepta',
     'examples/hia_bootstrap/machine_encoding.hepta',
     'examples/hia_bootstrap/machine_state.hepta',
@@ -37,6 +39,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/cli_format.hepta',
     'examples/hia_bootstrap/candidate_budget.hepta',
     'examples/hia_bootstrap/slot_ledger.hepta',
+    'examples/hia_bootstrap/slot_operations.hepta',
     'examples/hia_bootstrap/nominal_json.hepta',
     'examples/hia_bootstrap/agent_journal.hepta',
     'examples/hia_bootstrap/execution_budget.hepta',
@@ -76,6 +79,30 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_outer_owner.hepta',
     'examples/hia_bootstrap/composite_outer_render.hepta',
     'examples/hia_bootstrap/retirement_state.hepta',
+    'examples/hia_bootstrap/native_mapping.hepta',
+    'examples/hia_bootstrap/publication_measurement.hepta',
+    'examples/hia_bootstrap/scalar_profile.hepta',
+    'examples/hia_bootstrap/generation_retention.hepta',
+    'examples/hia_bootstrap/bounded_memory.hepta',
+    'examples/hia_bootstrap/full_cost.hepta',
+    'examples/hia_bootstrap/store_lifecycle.hepta',
+    'examples/hia_bootstrap/service_context.hepta',
+    'examples/hia_bootstrap/cost_ledger.hepta',
+    'examples/hia_bootstrap/evaluation.hepta',
+    'examples/hia_bootstrap/native_build_admission.hepta',
+    'examples/hia_bootstrap/emission.hepta',
+    'examples/hia_bootstrap/service_read.hepta',
+    'examples/hia_bootstrap/store_artifact_profile.hepta',
+    'examples/hia_bootstrap/store_transaction.hepta',
+    'examples/hia_bootstrap/patch_impact.hepta',
+    'examples/hia_bootstrap/static_budget.hepta',
+    'examples/hia_bootstrap/cli_discovery_json.hepta',
+    'examples/hia_bootstrap/service_slot.hepta',
+    'examples/hia_bootstrap/service_inspection.hepta',
+    'examples/hia_bootstrap/service_lease.hepta',
+    'examples/hia_bootstrap/store_file_capture.hepta',
+    'examples/hia_bootstrap/service_discovery.hepta',
+    'examples/hia_bootstrap/service_bootstrap.hepta',
 )
 
 

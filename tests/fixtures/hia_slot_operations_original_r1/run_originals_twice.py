@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""Run the complete reconstructed ORIGINAL-ONLY oracle twice per interpreter.
+
+This is a future ROOT-run diagnostic supervisor. It never builds an image,
+imports a product module, runs SQL, or substitutes a candidate implementation.
+Each child has 180 seconds plus 5 seconds of owned process-group cleanup.
+These are new diagnostic budgets; no existing test deadline is changed.
+"""
+from __future__ import annotations
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+
+TIMEOUT_SECONDS = 180
+CLEANUP_SECONDS = 5
+JSON_KW = dict(ensure_ascii=True, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def canonical(value):
+    return json.dumps(value, **JSON_KW).encode("ascii")
+
+
+def sha(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+def write_json(path, value):
+    path.write_bytes(canonical(value) + b"\n")
+
+
+def freeze(root, expected_sha256):
+    raw = (root / "source-freeze.json").read_bytes()
+    if sha(raw) != expected_sha256:
+        raise ValueError("source-freeze differs from the separately verified handoff pin")
+    value = json.loads(raw)
+    result = {}
+    for relative, expected in value["files"].items():
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("not a regular source: " + relative)
+        raw = path.read_bytes()
+        actual = {"bytes": len(raw), "sha256": sha(raw)}
+        if actual != expected:
+            raise ValueError("frozen source differs: " + relative)
+        result[relative] = actual
+    return result
+
+
+def group_members(group):
+    found = []
+    for directory in Path("/proc").iterdir():
+        if not directory.name.isdecimal():
+            continue
+        try:
+            raw = (directory / "stat").read_text()
+            parts = raw[raw.rfind(")") + 2:].split()
+            pid = int(directory.name)
+            # after comm: state, ppid, pgrp, session, ...
+            if int(parts[2]) == group and int(parts[3]) == group:
+                found.append({"pid": pid, "pgid": int(parts[2]), "sid": int(parts[3]),
+                              "state": parts[0], "start_ticks": int(parts[19])})
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+    return sorted(found, key=lambda row: row["pid"])
+
+
+def stop_owned(process):
+    start = time.monotonic()
+    signals = []
+    members_before = group_members(process.pid)
+    if members_before:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+            signals.append("SIGTERM")
+        except ProcessLookupError:
+            pass
+    remaining = max(0.001, CLEANUP_SECONDS / 2 - (time.monotonic() - start))
+    try:
+        process.wait(timeout=remaining)
+    except subprocess.TimeoutExpired:
+        pass
+    members_middle = group_members(process.pid)
+    if members_middle:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+            signals.append("SIGKILL")
+        except ProcessLookupError:
+            pass
+    remaining = max(0.001, CLEANUP_SECONDS - (time.monotonic() - start))
+    try:
+        process.wait(timeout=remaining)
+    except subprocess.TimeoutExpired:
+        return {"signals": signals, "before": members_before, "middle": members_middle,
+                "after": group_members(process.pid), "reaped": False,
+                "cleanup_elapsed_seconds": time.monotonic() - start}
+    return {"signals": signals, "before": members_before, "middle": members_middle,
+            "after": group_members(process.pid), "reaped": True,
+            "cleanup_elapsed_seconds": time.monotonic() - start}
+
+
+def read_child(output, planned, pins, command_result):
+    report_path = output / "report.json"
+    required = ("observations.jsonl", "raw-exceptions.jsonl", "post-seal-gc.json",
+                "source-before.json", "source-after.json", "planned.json", "runtime.json",
+                "progress.jsonl", "report.json")
+    if not all((output / name).is_file() for name in required):
+        return {"accepted": False, "reason": "missing child raw/report",
+                "files_present": [name for name in required if (output / name).is_file()]}
+    report = json.loads(report_path.read_bytes())
+    rows = [json.loads(line) for line in (output / "observations.jsonl").read_bytes().splitlines()]
+    progress = [json.loads(line) for line in (output / "progress.jsonl").read_bytes().splitlines()]
+    stopped = [row["id"] for row in progress if row["event"] == "stopped"]
+    started = [row["id"] for row in progress if row["event"] == "started"]
+    raw = (output / "observations.jsonl").read_bytes()
+    before = json.loads((output / "source-before.json").read_bytes())
+    after = json.loads((output / "source-after.json").read_bytes())
+    good = (
+        report["status"] == "RECORDED" and not report["failures"]
+        and type(report["planned"]) is int and report["planned"] == len(planned)
+        and [row["id"] for row in rows] == planned
+        and started == stopped == planned == report["started"] == report["stopped"]
+        and before == after == pins and report["source_stable"] is True
+        and report["observations_sha256"] == sha(raw)
+        and report["runtime"]["pid"] == report["runtime"]["pgid"] == command_result["pid"]
+        and report["runtime"]["ppid"] == os.getpid()
+        and command_result["exit_code"] == 0 and command_result["timed_out"] is False
+        and command_result["owned_cleanup"]["after"] == []
+        and command_result["owned_cleanup"]["reaped"] is True
+        and command_result["owned_cleanup"]["signals"] == []
+        and all(type(report[name]) is int and report[name] == 0
+                for name in ("actual_SQL", "actual_native", "VM", "product_imports"))
+    )
+    return {"accepted": good, "records": len(rows), "complete_ids": [r["id"] for r in rows],
+            "raw": {name: {"bytes": len((output / name).read_bytes()),
+                           "sha256": sha((output / name).read_bytes())}
+                    for name in required}, "runtime": report["runtime"]}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--oracle-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--freeze-sha256", required=True,
+                        help="externally verified source-freeze SHA256 from the handoff")
+    parser.add_argument("--runtime", action="append", required=True,
+                        help="LABEL=absolute/python; each interpreter runs the full manifest twice")
+    parser.add_argument("--ld-library-path", default=None,
+                        help="explicit host runtime value; never infer or replace a toolchain")
+    options = parser.parse_args()
+    root, output = options.oracle_root.resolve(), options.output.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    pins = freeze(root, options.freeze_sha256)
+    manifest = json.loads((root / "cases.json").read_bytes())
+    planned = [row["id"] for row in manifest["cases"]]
+    write_json(output / "source-before.json", pins)
+    runtimes = []
+    labels = set()
+    for argument in options.runtime:
+        label, separator, path = argument.partition("=")
+        if not separator or not label or label in labels or not Path(path).is_absolute():
+            raise ValueError("each runtime must have a unique label and absolute executable")
+        labels.add(label)
+        runtimes.append((label, str(Path(path))))
+    environment = {key: value for key, value in os.environ.items()
+                   if not key.startswith(("HEPTA_HIA", "PYTHON"))}
+    if options.ld_library_path is not None:
+        environment["LD_LIBRARY_PATH"] = options.ld_library_path
+    write_json(output / "plan.json", {
+        "schema": "hepta.slot-sql.originals-twice.plan.reconstructed-r1",
+        "status": "RUNNING_DIAGNOSTIC_NOT_QUALIFICATION",
+        "source_pins": pins, "runtime_arguments": options.runtime,
+        "ordered_case_ids": planned, "cases_per_child": len(planned),
+        "repetitions": 2, "timeout_seconds": TIMEOUT_SECONDS,
+        "cleanup_seconds": CLEANUP_SECONDS,
+        "environment_policy": "remove every HEPTA_HIA* and PYTHON* variable",
+        "LD_LIBRARY_PATH": environment.get("LD_LIBRARY_PATH"),
+        "original_tests_or_deadlines_changed": False,
+    })
+    all_results = []
+    for label, executable in runtimes:
+        results = []
+        for repetition in (1, 2):
+            invocation = output / (label + "-original-" + str(repetition))
+            invocation.mkdir()
+            child_output = invocation / "observation"
+            command = [executable, "-I", "-B", str(root / "observe_originals.py"),
+                       "--oracle-root", str(root), "--output", str(child_output),
+                       "--freeze-sha256", options.freeze_sha256]
+            spec = {"argv": command, "cwd": str(root),
+                    "timeout_seconds": TIMEOUT_SECONDS, "cleanup_seconds": CLEANUP_SECONDS,
+                    "source_before": freeze(root, options.freeze_sha256), "new_session": True}
+            write_json(invocation / "command.json", spec)
+            with (invocation / "stdout.log").open("wb") as stdout, (invocation / "stderr.log").open("wb") as stderr:
+                start = time.monotonic()
+                process = subprocess.Popen(command, cwd=root, env=environment,
+                                           stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                                           start_new_session=True)
+                timed_out = False
+                try:
+                    process.wait(timeout=TIMEOUT_SECONDS)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                elapsed = time.monotonic() - start
+                if timed_out or group_members(process.pid):
+                    cleanup = stop_owned(process)
+                else:
+                    cleanup = {"signals": [], "before": [], "middle": [], "after": [],
+                               "reaped": process.returncode is not None, "cleanup_elapsed_seconds": 0.0}
+            result = {"argv": command, "pid": process.pid, "pgid": process.pid,
+                      "exit_code": process.returncode, "timed_out": timed_out,
+                      "elapsed_seconds": elapsed, "owned_cleanup": cleanup,
+                      "source_after": freeze(root, options.freeze_sha256)}
+            write_json(invocation / "command-result.json", result)
+            accepted = read_child(child_output, planned, pins, result)
+            write_json(invocation / "readback.json", accepted)
+            results.append({"invocation": str(invocation), "accepted": accepted,
+                            "result": result, "child_output": str(child_output)})
+        comparisons = []
+        for name in ("observations.jsonl", "raw-exceptions.jsonl", "post-seal-gc.json"):
+            first, second = (Path(item["child_output"]) / name for item in results)
+            present = first.is_file() and second.is_file()
+            left, right = (first.read_bytes(), second.read_bytes()) if present else (b"", b"")
+            comparisons.append({"path": name, "present": present, "equal_bytes": present and left == right,
+                                "first_sha256": sha(left) if present else None,
+                                "second_sha256": sha(right) if present else None})
+        all_results.append({"label": label, "runtime_executable": executable, "runs": results,
+                            "same_runtime_comparisons": comparisons,
+                            "accepted": all(v["accepted"]["accepted"] for v in results)
+                            and all(v["equal_bytes"] for v in comparisons)})
+    after = freeze(root, options.freeze_sha256)
+    good = pins == after and all(value["accepted"] for value in all_results)
+    write_json(output / "source-after.json", after)
+    report = {
+        "schema": "hepta.slot-sql.originals-twice.reconstructed-r1",
+        "status": "ORIGINALS_RECORDED_STABLE" if good else "HOLD",
+        "case_count_per_run": len(planned), "runtime_groups": all_results, "source_stable": pins == after,
+        "cross_runtime_observations_not_normalized": True,
+        "candidate_runs": 0, "Native_VM_SQL_runs": 0, "qualification": False,
+        "old_lost_270_not_recreated_or_claimed": True,
+    }
+    write_json(output / "report.json", report)
+    return 0 if good else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

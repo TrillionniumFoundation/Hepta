@@ -11,6 +11,7 @@ from hashlib import sha256
 import json
 import math
 import os
+import os as _store_artifact_selection_os
 from pathlib import Path
 import sqlite3
 import stat
@@ -20,6 +21,8 @@ import re
 
 from .hia_program_tools import bounded_json_wire
 from .hia_json_preflight import preflight_hia_json
+from .hia_native_delivery import (resource_scope as _store_resource_scope,
+                                 check_resource_retirement as _store_retirement_check)
 
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
@@ -153,6 +156,8 @@ def _reference_digest(value):
 
 def _native_agent_identity():
     selected = os.environ.get("HEPTA_HIA_AGENT_IDENTITY_MANIFEST")
+    if selected == '':
+        raise ValueError('Agent identity selector must not be empty')
     if not selected:
         return None
     from .hia_agent_identity_native import installed_agent_identity
@@ -177,16 +182,19 @@ def stable_read(path, limit, *, dir_fd=None):
     flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
     try:
         fd = os.open(path, flags, dir_fd=dir_fd)
-        with os.fdopen(fd, "rb") as stream:
-            before = os.fstat(stream.fileno())
-            if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
-                reject("E_HIA_ARTIFACT_FILE", "artifact is not a bounded ordinary file")
-            data = stream.read(limit + 1)
-            after = os.fstat(stream.fileno())
-            identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
-            if len(data) != before.st_size or identity(before) != identity(after):
-                reject("E_HIA_ARTIFACT_CHANGED", "artifact changed while it was read")
-            return data
+        try:
+            with os.fdopen(fd, "rb", closefd=False) as stream:
+                before = os.fstat(stream.fileno())
+                if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
+                    reject("E_HIA_ARTIFACT_FILE", "artifact is not a bounded ordinary file")
+                data = stream.read(limit + 1)
+                after = os.fstat(stream.fileno())
+                identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+                if len(data) != before.st_size or identity(before) != identity(after):
+                    reject("E_HIA_ARTIFACT_CHANGED", "artifact changed while it was read")
+                return data
+        finally:
+            os.close(fd)
     except OSError as exc:
         raise AgentRejected("E_HIA_ARTIFACT_FILE", "cannot read authorized ordinary artifact") from exc
 
@@ -264,6 +272,20 @@ def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=
 
 class AgentStore:
     def __init__(self, root):
+        from .hia_store_lifecycle_selection import capture_store_lifecycle, bind_store_lifecycle
+        owner = capture_store_lifecycle()
+        bind_store_lifecycle(self, owner)
+        if owner is None:
+            arguments = {'callee': _NATIVE_STORE_INITIALIZE_REFERENCE, 'self': self, 'root': root,
+                         'scope': _store_resource_scope(self)}
+            del self, root, owner
+            with arguments.pop('scope'):
+                return arguments.pop('callee')(arguments.pop('self'), arguments.pop('root'))
+        frame = owner.prepare(1, self, root)
+        del self, root
+        return owner.finish(frame)
+
+    def _initialize_reference(self, root):
         from .hia_execution_budget import admitted_execution_budget, execution_budget_store
         budget_admission = admitted_execution_budget()
         supplied = Path(root).absolute()
@@ -287,17 +309,18 @@ class AgentStore:
             if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
                 reject("E_HIA_STORE", "journal must be an owned private ordinary file")
         self.db = sqlite3.connect(database, isolation_level=None, timeout=10, check_same_thread=False)
-        os.chmod(database, 0o600)
-        self.database = database
-        database_info = database.lstat()
-        if not stat.S_ISREG(database_info.st_mode):
-            reject('E_HIA_STORE', 'journal must remain an ordinary file after opening')
-        self.database_identity = (database_info.st_dev, database_info.st_ino)
-        self.db.row_factory = sqlite3.Row
-        self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.execute("PRAGMA synchronous=FULL")
-        self.lock = threading.RLock()
-        self.db.executescript("""
+        try:
+            os.chmod(database, 0o600)
+            self.database = database
+            database_info = database.lstat()
+            if not stat.S_ISREG(database_info.st_mode):
+                reject('E_HIA_STORE', 'journal must remain an ordinary file after opening')
+            self.database_identity = (database_info.st_dev, database_info.st_ino)
+            self.db.row_factory = sqlite3.Row
+            self.db.execute("PRAGMA journal_mode=WAL")
+            self.db.execute("PRAGMA synchronous=FULL")
+            self.lock = threading.RLock()
+            self.db.executescript("""
             CREATE TABLE IF NOT EXISTS artifacts (
                 id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,
                 kind TEXT NOT NULL, metadata TEXT NOT NULL, content_key TEXT UNIQUE NOT NULL
@@ -339,9 +362,8 @@ class AgentStore:
                 context_id TEXT PRIMARY KEY, used_native_ns TEXT NOT NULL,
                 owner TEXT
             );
-        """)
-        self.database_sidecars = None
-        try:
+            """)
+            self.database_sidecars = None
             if budget_admission is not None:
                 # Bind the official WAL namespace before the budget adapter opens
                 # its dedicated connection to this same durable journal.
@@ -375,10 +397,31 @@ class AgentStore:
                 self.db.execute("COMMIT")
 
     def close(self):
+        from .hia_store_lifecycle_selection import store_lifecycle_owner
+        owner = store_lifecycle_owner(self)
+        if owner is None:
+            _store_retirement_check(self)
+            arguments = {'callee': _NATIVE_STORE_CLOSE_REFERENCE, 'self': self}
+            del self, owner
+            return arguments.pop('callee')(arguments.pop('self'))
+        frame = owner.prepare(2, self)
+        del self
+        return owner.finish(frame)
+
+    def _close_reference(self):
         self.execution_budgets.close()
         self.db.close()
 
     def put(self, data, kind, metadata=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 1,
+                                              self, (data, kind, metadata)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['put'](self, data, kind, metadata)
+
+    def _put_reference(self, data, kind, metadata=None):
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
             reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
         metadata = {} if metadata is None else metadata
@@ -425,13 +468,40 @@ class AgentStore:
         return self._ref(row)
 
     def json(self, value, kind, metadata=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 2,
+                                              self, (value, kind, metadata)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['json'](self, value, kind, metadata)
+
+    def _json_reference(self, value, kind, metadata=None):
         return self.put(wire(value), kind, metadata)
 
     @staticmethod
     def _ref(row):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 3,
+                                              None, (row,)).finish()
+        return _STORE_ARTIFACT_PROFILE_REFERENCES['_ref'](row)
+
+    @staticmethod
+    def _ref_reference(row):
         return {name: row[name] for name in ("id", "sha256", "uri")}
 
     def get(self, ref, *, kind=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 4,
+                                              self, (ref, kind)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['get'](self, ref, kind=kind)
+
+    def _get_reference(self, ref, *, kind=None):
         keys(ref, ("id", "sha256", "uri"), label="artifact reference")
         row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
         if row is None or self._ref(row) != ref:
@@ -446,10 +516,28 @@ class AgentStore:
         return data, decode_data(row["metadata"])
 
     def get_json(self, ref, *, kind=None):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 5,
+                                              self, (ref, kind)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['get_json'](self, ref, kind=kind)
+
+    def _get_json_reference(self, ref, *, kind=None):
         data, metadata = self.get(ref, kind=kind)
         return decode_data(data), metadata
 
     def resolve_uri(self, uri):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 6,
+                                              self, (uri,)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['resolve_uri'](self, uri)
+
+    def _resolve_uri_reference(self, uri):
         row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
         if row is None:
             reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")
@@ -458,6 +546,15 @@ class AgentStore:
         return ref
 
     def profile(self, identifier, value):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 7,
+                                              self, (identifier, value)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['profile'](self, identifier, value)
+
+    def _profile_reference(self, identifier, value):
         ref = self.json(value, "profile")
         profile = {"id": identifier, "sha256": ref["sha256"]}
         self.db.execute("INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
@@ -465,6 +562,15 @@ class AgentStore:
         return profile, ref
 
     def check_profile(self, ref, expected):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 8,
+                                              self, (ref, expected)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['check_profile'](self, ref, expected)
+
+    def _check_profile_reference(self, ref, expected):
         if ref != expected:
             reject("E_HIA_PROFILE_STALE", "profile is unavailable or differs from the installed implementation")
         row = self.db.execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
@@ -472,3 +578,141 @@ class AgentStore:
         if row is None:
             reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
         return self.get_json(decode_data(row["artifact"]), kind="profile")[0]
+
+
+# Freeze the original no-selector lifecycle without dynamic Store attribute hooks.
+_NATIVE_STORE_INITIALIZE_REFERENCE = AgentStore._initialize_reference
+_NATIVE_STORE_CLOSE_REFERENCE = AgentStore._close_reference
+
+# Only the explicit unselected compatibility route invokes these original
+# bodies. Selected canonical calls and user overrides use the real public
+# method expressions; no mutable hook is treated as a forbidden default.
+_STORE_ARTIFACT_PROFILE_REFERENCES = {
+    'put': AgentStore._put_reference,
+    'json': AgentStore._json_reference,
+    '_ref': AgentStore._ref_reference,
+    'get': AgentStore._get_reference,
+    'get_json': AgentStore._get_json_reference,
+    'resolve_uri': AgentStore._resolve_uri_reference,
+    'profile': AgentStore._profile_reference,
+    'check_profile': AgentStore._check_profile_reference,
+}
+_STORE_ARTIFACT_PROFILE_BUILTINS = AgentStore.put.__builtins__
+
+
+# The historical class-AST check fixes this retained original, not the public
+# binding below. Selected transactions never call the retained generator.
+_STORE_TRANSACTION_REFERENCE = AgentStore.transaction
+AgentStore._transaction_reference = _STORE_TRANSACTION_REFERENCE
+_STORE_TRANSACTION_GLOBAL_BUILTINS = _STORE_TRANSACTION_REFERENCE.__wrapped__.__builtins__
+_STORE_TRANSACTION_BASE_EXCEPTION = BaseException
+_STORE_TRANSACTION_SELECT = object()
+from contextvars import ContextVar as _StoreTransactionContextVar
+_STORE_TRANSACTION_OWNER = _StoreTransactionContextVar('hepta.hia.store-transaction-owner', default=None)
+
+
+@contextmanager
+def _store_transaction_context(self, image=_STORE_TRANSACTION_SELECT, *, namespace=None):
+    # A single actual generator performs native suspension/resumption. In
+    # particular no outer forwarding handler keeps a suppressed body exception
+    # active while HIA completes its remaining continuation.
+    if image is _STORE_TRANSACTION_SELECT:
+        bound = _STORE_TRANSACTION_OWNER.get()
+        if bound is not None:
+            image = bound.select()
+    if image is _STORE_TRANSACTION_SELECT:
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_TRANSACTION_MANIFEST')
+        if selected is None:
+            generator = _STORE_TRANSACTION_REFERENCE.__wrapped__(self)
+            try:
+                value = next(generator)
+            except StopIteration as stopped:
+                return stopped.value
+            while True:
+                forwarded_error = None
+                try:
+                    sent = yield value
+                except _STORE_TRANSACTION_BASE_EXCEPTION as error:
+                    forwarded_error = error
+                # Forward outside our handler. The original generator must
+                # inherit the caller's actual outer exception, rather than a
+                # new forwarding handler that outlives its own suppression.
+                if forwarded_error is not None:
+                    # yield-from turns GeneratorExit into close(), losing the
+                    # actual thrown object and the original suppression result.
+                    try:
+                        value = generator.throw(forwarded_error)
+                    except StopIteration as stopped:
+                        return stopped.value
+                else:
+                    try:
+                        value = generator.send(sent)
+                    except StopIteration as stopped:
+                        return stopped.value
+        from .hia_store_transaction_native import installed_store_transaction
+        image = installed_store_transaction(selected)
+    from .hia_store_transaction_native import StoreTransactionFrame, BODY_WAIT, BODY_RAISED, BODY_RETURNED
+    frame = StoreTransactionFrame(image, self, namespace=namespace)
+    try:
+        if frame.start() != BODY_WAIT:
+            return
+        frame.suspend()
+        try:
+            yield
+        except _STORE_TRANSACTION_BASE_EXCEPTION:
+            frame.resume(BODY_RAISED)
+            frame._exception_continuation()
+            frame.exception = None
+        else:
+            frame.resume(BODY_RETURNED)
+        frame.drive()
+    except _STORE_TRANSACTION_BASE_EXCEPTION as error:
+        frame.failed(error)
+        raise
+    finally:
+        frame.finish_advance()
+
+
+def _store_transaction_dispatch(self):
+    # Context-manager creation remains inert; even selection is deferred to
+    # the first actual generator advance.
+    return _store_transaction_context(self)
+
+
+_store_transaction_dispatch.__name__ = 'transaction'
+_store_transaction_dispatch.__qualname__ = 'AgentStore.transaction'
+AgentStore.transaction = _store_transaction_dispatch
+
+
+# Original file capture bodies remain explicit unselected compatibility routes.
+# Selected calls execute complete HIA control and never call these aliases.
+_STABLE_READ_REFERENCE = stable_read
+_CAPTURE_PATH_REFERENCE = capture_path
+_STABLE_READ_GLOBAL_BUILTINS = _STABLE_READ_REFERENCE.__builtins__
+_CAPTURE_PATH_GLOBAL_BUILTINS = _CAPTURE_PATH_REFERENCE.__builtins__
+
+def stable_read(path, limit, *, dir_fd=None):
+    selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST')
+    arguments = {'path': path, 'limit': limit, 'dir_fd': dir_fd}
+    del path, limit, dir_fd
+    if selected is None:
+        return _STABLE_READ_REFERENCE(arguments.pop('path'), arguments.pop('limit'),
+                                      dir_fd=arguments.pop('dir_fd'))
+    from .hia_store_file_capture_native import (
+        installed_store_file_capture, StoreFileCaptureFrame, STABLE_READ)
+    frame = StoreFileCaptureFrame(installed_store_file_capture(selected), STABLE_READ, arguments)
+    arguments.clear()
+    return frame.finish()
+
+def capture_path(path, roots, limit):
+    selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST')
+    arguments = {'path': path, 'roots': roots, 'limit': limit}
+    del path, roots, limit
+    if selected is None:
+        return _CAPTURE_PATH_REFERENCE(arguments.pop('path'), arguments.pop('roots'),
+                                       arguments.pop('limit'))
+    from .hia_store_file_capture_native import (
+        installed_store_file_capture, StoreFileCaptureFrame, CAPTURE_PATH)
+    frame = StoreFileCaptureFrame(installed_store_file_capture(selected), CAPTURE_PATH, arguments)
+    arguments.clear()
+    return frame.finish()

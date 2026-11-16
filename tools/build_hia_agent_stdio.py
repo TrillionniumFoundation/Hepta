@@ -19,6 +19,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_frontend)
+from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_agent_stdio import MAGIC, LIMIT
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -54,12 +55,9 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     if len(frame)>LIMIT:
         raise ValueError('Agent images exceed unchanged packer frame limit')
     result, packed = invoke(output,'agent-pack',packer,frame)
-    count = result.get('core_u32')
-    if result.get('status')!='returned' or type(count) is not int or not 0<count<=LIMIT:
-        raise ValueError('native HIA Agent packer rejected frame')
-    raw = packed[:count]
+    raw = _check_pack_output(result, packed, artifact=packer_bytes, source=frame, capacity=LIMIT)
     inspection = inspect_executable(raw)
-    if (len(raw)!=count or compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=cold_bytes
+    if (compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=cold_bytes
             or any(path.read_bytes()!=data for path,data in sources.items())
             or dispatch.read_bytes()!=dispatch_bytes or frontend.read_bytes()!=frontend_bytes
             or packer.read_bytes()!=packer_bytes or frontend_manifest.read_bytes()!=frontend_manifest_bytes

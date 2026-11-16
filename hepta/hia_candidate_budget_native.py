@@ -8,6 +8,8 @@ ordinary or explicitly selected native request journal.
 from __future__ import annotations
 
 import ctypes
+from .hia_native_delivery import DeliveryRecord, NativeCall
+from .hia_budget_resource_custody import budget_resource_scope_v1
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -81,76 +83,105 @@ class AttemptState:
         raw = context.encode('utf-8')
         self.call(0, a=maximum, payload=raw)
 
-    def call(self, event, *, a=0, b=0, c=0, payload=b'', sequence=None):
-        if self.fenced or os.getpid() != self.creator:
-            _reject(5, 'candidate attempt session cannot be resumed or inherited')
-        try:
-            serial = 0 if self.receipt is None else self.receipt.sequence
-            if sequence is not None:
-                serial = sequence
-            numbers = (REQUEST_MAGIC, event, serial, a, b, c, *self.identity, *self.connection, len(payload), 0)
-            if (type(payload) is not bytes or len(payload) > 192
-                    or any(type(v) is not int or not 0 <= v < 1 << 64 for v in numbers)):
-                _reject(1)
-            raw = struct.pack('<12Q', *numbers) + payload
-            source = ctypes.create_string_buffer(raw, len(raw))
-            output = ctypes.create_string_buffer(OUTPUT_BYTES)
-            size = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
-            if not 80 <= size <= OUTPUT_BYTES or source.raw != raw:
-                _reject(5)
-            magic, status, action, sequence, phase, maximum, original, updated, extent, reserved = struct.unpack('<10Q', output.raw[:80])
-            words = struct.unpack('<16Q', self.buffer.raw[:128])
-            if (magic != RESULT_MAGIC or status > 4 or action > 4 or not 1 <= sequence <= 7
-                    or not 1 <= phase <= 7 or not 1 <= maximum <= 4096 or reserved
-                    or not 1 <= extent <= 192 or size != 80 + extent
-                    or (phase, sequence, maximum, original, updated, extent, action)
-                    != (words[2], words[3], words[8], words[9], words[10], words[11], words[12])
-                    or tuple(words[4:6]) != self.identity or tuple(words[6:8]) != self.connection
-                    or output.raw[80:size] != self.buffer.raw[128:128 + extent]
-                    or status and (action != 0 or phase != 7)):
-                _reject(5, 'candidate attempt receipt does not bind its native state')
-            receipt = AttemptReceipt(status, action, sequence, phase, maximum, original, updated, output.raw[80:size])
-            self.receipt = receipt
-            if status:
-                _reject(status)
-            return receipt
-        except BaseException:
-            self.fenced = True
-            raise
+    def call(self, event, *, a=0, b=0, c=0, payload=b'', sequence=None, _ack=None):
+        with NativeCall(self) as delivery:
+            if self.fenced or os.getpid() != self.creator:
+                _reject(5, 'candidate attempt session cannot be resumed or inherited')
+            try:
+                serial = 0 if self.receipt is None else self.receipt.sequence
+                if sequence is not None:
+                    serial = sequence
+                numbers = (REQUEST_MAGIC, event, serial, a, b, c, *self.identity, *self.connection, len(payload), 0)
+                if (type(payload) is not bytes or len(payload) > 192
+                        or any(type(v) is not int or not 0 <= v < 1 << 64 for v in numbers)):
+                    if _ack is not None:
+                        _ack.foreign_refused()
+                    _reject(1)
+                raw = struct.pack('<12Q', *numbers) + payload
+                source = ctypes.create_string_buffer(raw, len(raw))
+                output = ctypes.create_string_buffer(OUTPUT_BYTES)
+                delivery.enter_native()
+                size = self.image._entry(source, len(raw), output, OUTPUT_BYTES, self.buffer, STATE_BYTES)
+                if not 80 <= size <= OUTPUT_BYTES or source.raw != raw:
+                    _reject(5)
+                magic, status, action, sequence, phase, maximum, original, updated, extent, reserved = struct.unpack('<10Q', output.raw[:80])
+                words = struct.unpack('<16Q', self.buffer.raw[:128])
+                if (magic != RESULT_MAGIC or status > 4 or action > 4 or not 1 <= sequence <= 7
+                        or not 1 <= phase <= 7 or not 1 <= maximum <= 4096 or reserved
+                        or not 1 <= extent <= 192 or size != 80 + extent
+                        or (phase, sequence, maximum, original, updated, extent, action)
+                        != (words[2], words[3], words[8], words[9], words[10], words[11], words[12])
+                        or tuple(words[4:6]) != self.identity or tuple(words[6:8]) != self.connection
+                        or output.raw[80:size] != self.buffer.raw[128:128 + extent]
+                        or status and (action != 0 or phase != 7)):
+                    _reject(5, 'candidate attempt receipt does not bind its native state')
+                receipt = AttemptReceipt(status, action, sequence, phase, maximum, original, updated, output.raw[80:size])
+                self.receipt = receipt
+                delivery.confirmed(terminal=True)
+                if _ack is not None:
+                    _ack.confirmed()
+                if status:
+                    _reject(status)
+                return receipt
+            except BaseException as error:
+                delivery.failed(error)
+                self.fenced = True
+                raise
 
-    def row(self, value):
+    def row(self, value, *, _ack=None):
         if value is None:
-            return self.call(2)
-        context, attempts = value['id'], value['attempts']
-        if type(context) is not str:
-            _reject(1)
-        # SQLite's signed INTEGER wire representation is transported without
-        # performing the native nonnegative/maximum/increment policy here.
-        kind = 0 if type(attempts) is int and -(1 << 63) <= attempts < (1 << 63) else 1
-        raw = attempts & ((1 << 64) - 1) if kind == 0 else 0
-        return self.call(2, a=1, b=kind, c=raw, payload=context.encode('utf-8'))
+            return self.call(2, _ack=_ack)
+        try:
+            context, attempts = value['id'], value['attempts']
+            if type(context) is not str:
+                _reject(1)
+            # SQLite's signed INTEGER wire representation is transported without
+            # performing the native nonnegative/maximum/increment policy here.
+            kind = 0 if type(attempts) is int and -(1 << 63) <= attempts < (1 << 63) else 1
+            raw = attempts & ((1 << 64) - 1) if kind == 0 else 0
+        except BaseException:
+            if _ack is not None:
+                _ack.foreign_refused()
+            raise
+        return self.call(2, a=1, b=kind, c=raw, payload=context.encode('utf-8'), _ack=_ack)
 
 
 class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
     """Reuse original-WAL connection custody; never call execution-budget SQL."""
     def __init__(self, store, admission):
-        image, source = admission
-        if type(source) is not bytes or SOURCE.read_bytes() != source:
-            _reject(5, 'candidate attempt source changed after admission')
-        # Candidate selection can be enabled independently of native wall-cost
-        # budgets. Capture the already open official WAL before creating the
-        # private effect connection, without enabling or altering that policy.
-        store.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
-        sidecars = {suffix: self._file_identity(Path(str(store.database) + suffix))
-                    for suffix in ('-wal', '-shm')}
-        super().__init__(store, image, sidecars=sidecars)
-        self.source_bytes = source
+        with budget_resource_scope_v1(self):
+            image, source = admission
+            if type(source) is not bytes or SOURCE.read_bytes() != source:
+                _reject(5, 'candidate attempt source changed after admission')
+            # Candidate selection can be enabled independently of native wall-cost
+            # budgets. Capture the already open official WAL before creating the
+            # private effect connection, without enabling or altering that policy.
+            store.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+            sidecars = {suffix: self._file_identity(Path(str(store.database) + suffix))
+                        for suffix in ('-wal', '-shm')}
+            super().__init__(store, image, sidecars=sidecars)
+            self.source_bytes = source
 
     def consume(self, context, maximum):
+        with budget_resource_scope_v1(self):
+            delivery = DeliveryRecord(self)
+            try:
+                with delivery.foreign(observation=False):
+                    result = self._consume_observed(context, maximum, delivery)
+                    delivery.check()
+                    return result
+            except BaseException as error:
+                delivery.failed(error)
+                raise
+            finally:
+                delivery.retire()
+
+    def _consume_observed(self, context, maximum, delivery):
         self.check()
         if SOURCE.read_bytes() != self.source_bytes:
             _reject(5, 'candidate attempt source changed after selection')
         state = AttemptState(self.image, self.connection_identity, context, maximum)
+        delivery.owner = (self, state)
         with self.lock:
             owned = False
             committed = False
@@ -165,26 +196,46 @@ class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
                     context = receipt.context.decode('utf-8')
                     if receipt.action == 1:
                         owned = True
-                        self._execute('BEGIN IMMEDIATE')
-                        receipt = state.call(1, a=1)
+                        delivery.observed()
+                        try:
+                            self._execute('BEGIN IMMEDIATE')
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.call(1, a=1, _ack=delivery)
                     elif receipt.action == 2:
-                        row = self._execute('SELECT id,attempts FROM main.contexts WHERE id=?', (context,)).fetchone()
-                        receipt = state.row(row)
+                        delivery.observed()
+                        try:
+                            row = self._execute('SELECT id,attempts FROM main.contexts WHERE id=?', (context,)).fetchone()
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.row(row, _ack=delivery)
                     elif receipt.action == 3:
                         if not owned:
                             _reject(5)
-                        changed = self._execute('UPDATE main.contexts SET attempts=? WHERE id=? AND attempts=?',
-                                                (receipt.updated, context, receipt.original)).rowcount
-                        receipt = state.call(3, a=changed)
+                        delivery.observed()
+                        try:
+                            changed = self._execute('UPDATE main.contexts SET attempts=? WHERE id=? AND attempts=?',
+                                                    (receipt.updated, context, receipt.original)).rowcount
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
+                        receipt = state.call(3, a=changed, _ack=delivery)
                     elif receipt.action == 4:
                         if not owned:
                             _reject(5)
                         self.check()
                         commit_attempted = True
-                        self._execute('COMMIT')
+                        delivery.observed()
+                        try:
+                            self._execute('COMMIT')
+                        except BaseException:
+                            delivery.foreign_refused()
+                            raise
                         committed = True
                         self.check()
-                        receipt = state.call(4, a=int(not self.db.in_transaction))
+                        receipt = state.call(4, a=int(not self.db.in_transaction), _ack=delivery)
                         owned = False
                     else:
                         _reject(5)

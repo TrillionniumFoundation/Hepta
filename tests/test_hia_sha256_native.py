@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 import ctypes
 import json
+import os
 from hashlib import sha256
 from pathlib import Path
 import random
@@ -149,7 +150,8 @@ class Sha256HiaNativeTests(unittest.TestCase):
         self.assertIs(installed_hasher(str(self.manifest)),original)
         with patch.dict('os.environ',{'HEPTA_HIA_SHA256_MANIFEST':'/missing/manifest'}):
             with self.assertRaises(FileNotFoundError):payload_sha256(b'abc')
-        with patch.dict('os.environ',{'HEPTA_HIA_SHA256_MANIFEST':''}):
+        with patch.dict(os.environ):
+            os.environ.pop('HEPTA_HIA_SHA256_MANIFEST', None)
             self.assertEqual(payload_sha256(memoryview(b'abc')).hex(),VECTORS[1][1])
         with self.assertRaises(ValueError):original.digest(bytearray(b'abc'))
         with self.assertRaises(ValueError):NativeSha256(b'code','0'*64)

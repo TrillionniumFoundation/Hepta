@@ -434,25 +434,37 @@ def seal(w:mutbuf) -> u64:
 
 def get(w:mutbuf, index:u64) -> u64:
     value = 0
-    i = 0
-    while i < 8:
-        value = value | (byte(w, index * 8 + i) << (i * 8))
-        i = i + 1
+    value = value | (byte(w, index * 8 + 0) << 0)
+    value = value | (byte(w, index * 8 + 1) << 8)
+    value = value | (byte(w, index * 8 + 2) << 16)
+    value = value | (byte(w, index * 8 + 3) << 24)
+    value = value | (byte(w, index * 8 + 4) << 32)
+    value = value | (byte(w, index * 8 + 5) << 40)
+    value = value | (byte(w, index * 8 + 6) << 48)
+    value = value | (byte(w, index * 8 + 7) << 56)
     return value
 
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
-    i = 0
-    while i < 8:
-        value = value | (byte(s, index + i) << (i * 8))
-        i = i + 1
+    value = value | (byte(s, index + 0) << 0)
+    value = value | (byte(s, index + 1) << 8)
+    value = value | (byte(s, index + 2) << 16)
+    value = value | (byte(s, index + 3) << 24)
+    value = value | (byte(s, index + 4) << 32)
+    value = value | (byte(s, index + 5) << 40)
+    value = value | (byte(s, index + 6) << 48)
+    value = value | (byte(s, index + 7) << 56)
     return value
 
 def set(w:mutbuf, index:u64, value:u64) -> u64:
-    i = 0
-    while i < 8:
-        store(w, index * 8 + i, value >> (i * 8))
-        i = i + 1
+    store(w, index * 8 + 0, value >> 0)
+    store(w, index * 8 + 1, value >> 8)
+    store(w, index * 8 + 2, value >> 16)
+    store(w, index * 8 + 3, value >> 24)
+    store(w, index * 8 + 4, value >> 32)
+    store(w, index * 8 + 5, value >> 40)
+    store(w, index * 8 + 6, value >> 48)
+    store(w, index * 8 + 7, value >> 56)
     return value
 '''
 

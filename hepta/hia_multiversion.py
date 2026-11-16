@@ -108,7 +108,7 @@ def _measurement_snapshot(value):
     return frozen
 
 
-def _assess_measurement(measurement, *, prepare_ns):
+def _reference_assess_measurement(measurement, *, prepare_ns):
     """Fixed conservative policy, not timing attestation or Core admission."""
     baseline = [row["baseline_ns"] for row in measurement["samples"]]
     candidate = [row["candidate_ns"] for row in measurement["samples"]]
@@ -157,6 +157,16 @@ def _assess_measurement(measurement, *, prepare_ns):
             "claims": {"measurements_independently_attested": False, "projection_is_workload_assumption": True,
                        "statistical_confidence_proved": False, "sample_trimming_or_adaptive_repeats": False,
                        "core_authority_granted": False, "general_performance_improvement_proved": False}}
+
+
+def _assess_measurement(measurement, *, prepare_ns):
+    # Default callers keep the existing import and filesystem behavior. An
+    # explicitly selected image owns this whole policy; refusal never falls
+    # back to the hosted reference.
+    if 'HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST' in os.environ:
+        from .hia_publication_measurement_native import selected_publication_measurement
+        return selected_publication_measurement(measurement, prepare_ns=prepare_ns)
+    return _reference_assess_measurement(measurement, prepare_ns=prepare_ns)
 
 
 class PublicationCancellation:
@@ -228,10 +238,7 @@ class GenerationInfo:
                 "loaded_mapping": json.loads(self.loaded_mapping) if self.loaded_mapping else None}
 
 
-def _admit(document, *, prove_total=False, timeout_ms=2000):
-    """Reverify exact bytes, then close the extra total/native-callable profile."""
-    program = verify_program(document)
-    data = program.as_dict()
+def _reference_scalar_profile(program, data, *, prove_total=False):
     if program.structured_bytes is not None or data["schema"] not in QUALIFIED_CORE_SCHEMAS:
         _reject("native lifecycle requires the qualified primitive v1-v7 proof profile")
     functions = data["functions"]
@@ -290,6 +297,18 @@ def _admit(document, *, prove_total=False, timeout_ms=2000):
             _reject("cyclic control flow is outside the total scalar profile")
         abi.append(ScalarABI(function["name"], parameters, function["returns"][0]))
     abi = tuple(sorted(abi, key=lambda a: a.function))
+    return abi
+
+
+def _admit(document, *, prove_total=False, timeout_ms=2000):
+    """Reverify exact bytes, then close the extra total/native-callable profile."""
+    program = verify_program(document)
+    data = program.as_dict()
+    if "HEPTA_HIA_SCALAR_PROFILE_MANIFEST" in os.environ:
+        from .hia_scalar_profile_native import selected_scalar_profile
+        abi = selected_scalar_profile(program, data, prove_total=prove_total)
+    else:
+        abi = _reference_scalar_profile(program, data, prove_total=prove_total)
     totality = []
     if prove_total:
         from . import hia_scalar_totality as total
@@ -401,7 +420,7 @@ def _probe_vectors(signature):
     return tuple(sorted(cases))
 
 
-@dataclass
+@dataclass(init=False)
 class _Generation:
     info: GenerationInfo
     fd: int
@@ -410,9 +429,50 @@ class _Generation:
     artifact: Path
     inode: tuple[int, int]
     identity_pin: PathIdentityPin
-    leases: int = 0
-    retired: bool = False
+    _reference_leases: int = 0
+    _reference_retired: bool = False
     totality: tuple[bytes, ...] = ()
+    _retention: object = None
+
+    def __init__(self, info, fd, library, functions, artifact, inode, identity_pin,
+                 leases=0, retired=False, totality=(), *, retention=None):
+        self.info, self.fd, self.library, self.functions = info, fd, library, functions
+        self.artifact, self.inode, self.identity_pin = artifact, inode, identity_pin
+        self._reference_leases, self._reference_retired = leases, retired
+        self.totality, self._retention = totality, retention
+        if retention is not None:
+            retention.bind(self)
+
+    @property
+    def leases(self):
+        if self._retention is None:
+            return self._reference_leases
+        return self._retention.observe()['references']
+
+    @leases.setter
+    def leases(self, value):
+        if self._retention is not None:
+            raise AttributeError('native generation references are owned by retained HIA state')
+        self._reference_leases = value
+
+    @property
+    def retired(self):
+        if self._retention is None:
+            return self._reference_retired
+        return self._retention.observe()['retired']
+
+    @retired.setter
+    def retired(self, value):
+        if self._retention is None:
+            self._reference_retired = value
+        elif value is not True:
+            raise ValueError('native generation retirement cannot be reversed')
+        else:
+            try:
+                self._retention.retire()
+            except BaseException as error:
+                self._retention.fence(error)
+                raise
 
 
 class GenerationLease:
@@ -420,8 +480,30 @@ class GenerationLease:
     def __init__(self, runtime, generation, selection_epoch):
         self._runtime, self._generation = runtime, generation
         self._lock = threading.RLock()
-        self._closed = False
+        self._reference_closed = False
+        self._native_cell = None
         self.selection_epoch = selection_epoch
+        if generation._retention is not None:
+            # Finish all Python wrapper allocation before ACQUIRE can change
+            # the retained native count. Runtime.lease activates this cell.
+            self._native_cell = generation._retention.new_cell(self)
+
+    @property
+    def _closed(self):
+        if self._native_cell is None:
+            return self._reference_closed
+        return self._native_cell.closed
+
+    @_closed.setter
+    def _closed(self, value):
+        if self._native_cell is not None:
+            raise AttributeError('native lease closure is owned by its retained HIA cell')
+        self._reference_closed = value
+
+    def _is_open(self):
+        if self._native_cell is None:
+            return not self._closed
+        return self._native_cell.require_open()
 
     @property
     def info(self):
@@ -429,7 +511,7 @@ class GenerationLease:
 
     def call(self, function, arguments):
         with self._lock:
-            if self._closed:
+            if not self._is_open():
                 _reject("generation lease is closed")
             signatures = {a.function: a for a in self.info.abi}
             if type(function) is not str or function not in signatures:
@@ -445,13 +527,15 @@ class GenerationLease:
 
     def close(self):
         with self._lock:
-            if not self._closed:
+            if self._native_cell is not None:
+                self._runtime._release(self._generation, self._native_cell)
+            elif not self._closed:
                 self._closed = True
                 self._runtime._release(self._generation)
 
     def __enter__(self):
         with self._lock:
-            if self._closed:
+            if not self._is_open():
                 _reject("generation lease is closed")
         return self
 
@@ -497,6 +581,10 @@ class ScalarMultiversionRuntime:
         self._cleanup_attempts = 0
         self._directory_cleanup = {"status": "not_attempted"}
         self._next, self._epoch, self._current, self._closed = 1, 0, None, False
+        self._native_retention_image = None
+        if 'HEPTA_HIA_GENERATION_RETENTION_MANIFEST' in os.environ:
+            from .hia_generation_retention_native import selected_generation_retention
+            self._native_retention_image = selected_generation_retention()
         retirement_image = require_new_retirement_custody()
         if retirement_image is None:
             self._directory = Path(tempfile.mkdtemp(prefix="hia-multiversion-", dir=directory))
@@ -529,6 +617,8 @@ class ScalarMultiversionRuntime:
             raise
 
     def _prepare(self, program, generation, proofs, *, baseline=False, totality=()):
+        retention = (None if self._native_retention_image is None
+                     else self._native_retention_image.owner(self))
         output = self._directory / f"generation-{generation}.so"
         fd, library, functions, inode = None, None, {}, None
         identity_pin = PathIdentityPin(output)
@@ -585,7 +675,8 @@ class ScalarMultiversionRuntime:
                                   sha256(data).hexdigest(), len(data), self._abi, proofs, calls, baseline,
                                   self._profile, len(totality),
                                   json.dumps(loaded_mapping, sort_keys=True, separators=(",", ":")).encode())
-            return _Generation(info, fd, library, functions, output, inode, identity_pin, totality=totality)
+            return _Generation(info, fd, library, functions, output, inode, identity_pin,
+                               totality=totality, retention=retention)
         except BaseException:
             self._dispose(generation, library, functions, fd, output, inode,
                           identity_pin, cause="preparation_failed")
@@ -776,6 +867,14 @@ class ScalarMultiversionRuntime:
             if self._closed:
                 _reject("runtime is closed")
             state = self._states[self._current]
+            if state._retention is not None:
+                lease = GenerationLease(self, state, self._epoch)
+                try:
+                    state._retention.acquire(lease._native_cell)
+                    return lease
+                except BaseException as error:
+                    state._retention.acquire_failed(error, lease._native_cell)
+                    raise
             state.leases += 1
             return GenerationLease(self, state, self._epoch)
 
@@ -797,19 +896,38 @@ class ScalarMultiversionRuntime:
                 self._collect(previous)
             return self._states[0].info
 
-    def _release(self, state):
+    def _release(self, state, cell=None):
         with self._lock:
-            state.leases -= 1
-            self._collect(state)
+            if state._retention is None:
+                state.leases -= 1
+                self._collect(state)
+            else:
+                try:
+                    state._retention.close(cell)
+                except BaseException as error:
+                    state._retention.fence(error)
+                    raise
+                # An already closed lease can finish an interrupted handoff,
+                # but never recreate an owner after the actual row detached.
+                if self._states.get(state.info.generation) is state:
+                    self._collect(state)
 
     def _collect(self, state):
-        if state.retired and state.leases == 0:
+        ready = (state.retired and state.leases == 0 if state._retention is None
+                 else state._retention.retirement_ready())
+        if ready:
             # Transfer ownership before attempting release. If release or its
             # return is interrupted, no live-table entry may later manufacture
             # a second close owner for an already released/reused descriptor.
             task = self._retirement_task(state.info.generation, state.library, state.functions,
                                         state.fd, state.artifact, state.inode, state.identity_pin,
                                         cause="retired_generation")
+            if state._retention is not None:
+                try:
+                    state._retention.claim_registered_task(task)
+                except BaseException as error:
+                    state._retention.fence(error)
+                    raise
             state.library = None
             self._states.pop(state.info.generation, None)
             self._attempt_cleanup(task)
@@ -824,8 +942,16 @@ class ScalarMultiversionRuntime:
     def _retirement_task(self, generation, library, functions, fd, artifact, inode, identity_pin, *, cause):
         with self._lock:
             task = self._cleanup_pending.get(generation)
+            state = self._states.get(generation)
+            retention = None if state is None else state._retention
             if task is None:
-                task = NativeRetirement(generation, cause, artifact, inode, library, functions, fd, identity_pin)
+                # Before/after insertion interruptions retain this same
+                # original resource owner in the native generation custodian.
+                task = None if retention is None else retention._task
+                if task is None:
+                    task = NativeRetirement(generation, cause, artifact, inode, library, functions, fd, identity_pin)
+                if retention is not None:
+                    retention.retain_task(task)
                 # Retain the record before attempting native release, so even
                 # an interrupted attempt cannot acquire a second close owner.
                 self._cleanup_pending[generation] = task
@@ -843,14 +969,25 @@ class ScalarMultiversionRuntime:
         # Complete that transfer here too, including retry_cleanup's path,
         # before an attempt can release or forget the unique native owner.
         state = self._states.get(task.generation)
+        retention = getattr(task, '_generation_retention', None)
         if state is not None:
-            if (not state.retired or state.leases != 0
+            ready = (state.retired and state.leases == 0 if state._retention is None
+                     else state._retention.retirement_ready())
+            if (not ready or retention is not state._retention
                     or task.fd != state.fd or task.artifact != state.artifact
                     or task.inode != state.inode or task.identity_pin is not state.identity_pin
                     or task.functions is not state.functions):
                 _reject("retirement owner does not bind a detached, unleased generation")
+            if retention is not None:
+                try:
+                    retention.claim_registered_task(task)
+                except BaseException as error:
+                    retention.fence(error)
+                    raise
             state.library = None
             self._states.pop(task.generation)
+        if retention is not None:
+            retention.require_claimed_task(task)
         result = task.attempt()
         self._cleanup_attempts += 1
         self._cleanup_events.append(result)

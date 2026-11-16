@@ -1,0 +1,4 @@
+def keys(value, required, optional=(), label="object"):
+    if (type(value) is not dict or not set(required) <= set(value)
+            or set(value) - set(required) - set(optional)):
+        reject("E_HIA_FIELDS", label + " has missing or unknown fields")

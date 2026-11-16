@@ -72,10 +72,7 @@ def allocate(w:mutbuf, size:u64) -> u64:
         put(w, S + 96, 1)
         return ARENA
     put(w, S + 8, cursor + rounded)
-    i = 0
-    while i < rounded:
-        put(w, cursor + i, 0)
-        i = i + 8
+    fill_range(w, cursor, rounded, 0)
     return cursor
 
 def ir_node(w:mutbuf, kind:u64, a:u64, b:u64, c:u64) -> u64:

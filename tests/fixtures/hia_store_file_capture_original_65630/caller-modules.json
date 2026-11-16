@@ -1,0 +1,270 @@
+{
+  "schema": "hepta.hia.store-file-capture-static-callers.v1",
+  "status": "STATIC_INVENTORY_NOT_RUNTIME_DISCOVERY",
+  "source_index_tree": "65630a839d2dda471b7b03605ee21606de818421",
+  "direct_call_sites": [
+    {
+      "callscan": "hepta/hia_agent_store.py",
+      "hits": [
+        {
+          "line": 232,
+          "call": "stable_read(relative[-1], limit, dir_fd=fd)"
+        },
+        {
+          "line": 510,
+          "call": "stable_read(self.artifacts / row[\"sha256\"], MAX_ARTIFACT_BYTES)"
+        },
+        {
+          "line": 451,
+          "call": "stable_read(destination, MAX_ARTIFACT_BYTES)"
+        }
+      ]
+    },
+    {
+      "callscan": "hepta/hia_agent_service.py",
+      "hits": [
+        {
+          "line": 478,
+          "call": "capture_path(source[\"path\"], self.artifact_roots, int(source[\"max_bytes\"]))"
+        }
+      ]
+    },
+    {
+      "callscan": "hepta/hia_service_artifact_native.py",
+      "hits": [
+        {
+          "line": 163,
+          "call": "lookup('capture_path')(source['path'], service.artifact_roots, lookup('int')(source['max_bytes']))"
+        }
+      ]
+    },
+    {
+      "callscan": "hepta/hia_store_artifact_profile_native.py",
+      "hits": [
+        {
+          "line": 578,
+          "call": "_literal_fallback_read(self._global('stable_read'),\n                lambda: self.argument('fallback_path'), lambda: self._global('MAX_ARTIFACT_BYTES'))"
+        },
+        {
+          "line": 640,
+          "call": "self._global('stable_read')(d['destination'], self._global('MAX_ARTIFACT_BYTES'))"
+        }
+      ]
+    },
+    {
+      "callscan": "hepta/hia_agent_runner.py",
+      "hits": [
+        {
+          "line": 201,
+          "call": "stable_read(artifact, 64 * 1024 * 1024)"
+        },
+        {
+          "line": 135,
+          "call": "stable_read(record[\"path\"], max(1, size))"
+        }
+      ]
+    }
+  ],
+  "whole_related_modules": [
+    {
+      "module": "test_hia_agent_artifact_store_native",
+      "bytes": 20310,
+      "sha256": "be55df8b173a6ca1af4072426ef5dedf739867d9251ac0f1462e266718defe9d",
+      "methods": [
+        "AgentArtifactStorePolicyTests.test_commands_root_and_only_exact_lower_hex_file_names",
+        "AgentArtifactStorePolicyTests.test_owned_non_writable_directory_guard_and_full_store_quota",
+        "AgentArtifactStorePolicyTests.test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA",
+        "AgentArtifactStoreKernelTests.test_actual_empty_binary_and_multichunk_put_get_dedup_private_file",
+        "AgentArtifactStoreKernelTests.test_corrupt_existing_file_and_different_digest_refuse_without_replacing",
+        "AgentArtifactStoreKernelTests.test_symlink_FIFO_root_permissions_and_path_traversal_refuse",
+        "AgentArtifactStoreKernelTests.test_real_file_and_directory_fsync_and_post_fsync_receipt_boundary",
+        "AgentArtifactStoreKernelTests.test_actual_file_fsync_failure_no_content_or_success_receipt",
+        "AgentArtifactStoreKernelTests.test_actual_directory_fsync_failure_leaves_no_success_and_preserves_possible_content",
+        "AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher",
+        "AgentArtifactStoreKernelTests.test_real_post_link_corruption_withdraws_only_own_content_inode",
+        "AgentArtifactStoreKernelTests.test_real_post_link_competitor_inode_is_never_deleted",
+        "AgentArtifactStoreRouteTests.test_real_store_bytes_metadata_dedup_restart_and_namespace_authority",
+        "AgentArtifactStoreRouteTests.test_ref_and_kind_checks_precede_native_file_access_and_corruption_refuses",
+        "AgentArtifactStoreRouteTests.test_missing_selected_code_never_falls_back_or_issues_reference",
+        "AgentArtifactStoreRouteTests.test_one_put_uses_one_immutable_code_admission_but_next_call_revalidates",
+        "AgentArtifactStoreRouteTests.test_selection_cannot_change_between_hash_and_file_publication",
+        "AgentArtifactStoreRouteTests.test_actual_native_fsync_failures_cannot_issue_DB_refs_or_replay_effects"
+      ],
+      "count": 18
+    },
+    {
+      "module": "test_hia_agent_native_tools",
+      "bytes": 45385,
+      "sha256": "c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a",
+      "methods": [
+        "ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+        "ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+        "ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+        "ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+        "ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+        "ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+        "ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+        "ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+        "CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+        "CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+        "CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+        "CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+        "CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+        "CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+        "CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+        "CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+        "CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+        "MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+        "MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+        "MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+        "NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+        "NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+        "NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+        "NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+        "NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+        "NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+        "NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+        "NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+        "AgentStoreInitializationTests.test_malformed_database_closes_connection_and_preserves_input",
+        "AgentStoreInitializationTests.test_normal_store_retains_wal_durability_and_artifact_across_reopen",
+        "AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected"
+      ],
+      "count": 32
+    },
+    {
+      "module": "test_hia_native_artifact_open",
+      "bytes": 3115,
+      "sha256": "7cc0c24863ddff1acaecd4d28daa260537849a438bc59bf3dea5de00f6918b25",
+      "methods": [
+        "HIANativeArtifactOpenTests.test_ordinary_bounded_native_bytes_accepted",
+        "HIANativeArtifactOpenTests.test_regular_file_swapped_to_fifo_before_open_is_nonblocking",
+        "HIANativeArtifactOpenTests.test_same_inode_modified_between_lstat_and_open_rejected"
+      ],
+      "count": 3
+    },
+    {
+      "module": "test_hia_store_artifact_profile_native",
+      "bytes": 55824,
+      "sha256": "8957b0b33f23f1160bc16f10b46f98d3025cef891be66dd9a0fa40117b843a87",
+      "methods": [
+        "StoreArtifactProfileSourceTests.test_eight_originals_transaction_fixture_inventory_and_exact_generated_source",
+        "StoreArtifactProfileSourceTests.test_independent_VM_before_mapping_matches_frozen_full_effects",
+        "StoreArtifactProfileSourceTests.test_unselected_routes_are_lazy_and_unqualified_builder_refuses",
+        "StoreArtifactProfileNativeTests.test_complete_463_original_effects_first_errors_and_cleanup_order",
+        "StoreArtifactProfileNativeTests.test_frozen_160_literal_calls_cold_and_warm_profiles",
+        "StoreArtifactProfileNativeTests.test_actual_native_full_buffers_match_independent_VM",
+        "StoreArtifactProfileNativeTests.test_eight_public_routes_poisoned_reference_and_selector_pinning",
+        "StoreArtifactProfileNativeTests.test_lost_ACK_foreign_errors_and_active_same_owner_ancestors",
+        "StoreArtifactProfileNativeTests.test_thread_finished_replay_bad_packets_and_unclaimed_ACK_refuse",
+        "StoreArtifactProfileNativeTests.test_real_store_eight_methods_original_SQL_files_and_reference_authority",
+        "StoreArtifactProfileNativeTests.test_actual_installed_worker_publication_URI_unknown_replay_and_source_drift"
+      ],
+      "count": 11
+    },
+    {
+      "module": "test_hia_service_artifact_native",
+      "bytes": 43544,
+      "sha256": "f96df0eba2f71c3b282ad49b1ab28f49d4a51b3d89aec7c38e5a7b9996b536f3",
+      "methods": [
+        "ServiceArtifactSourceTests.test_original_body_public_binding_and_generated_profile",
+        "ServiceArtifactSourceTests.test_independent_VM_complete_branches_and_detached_receiver",
+        "ServiceArtifactSourceTests.test_complete_fresh_originals_and_unselected_public_route",
+        "ServiceArtifactNativeTests.test_complete_frozen_146_against_actual_image_in_fresh_process",
+        "ServiceArtifactNativeTests.test_actual_confirmed_child_parent_ACK_loss_and_actual_resource_identity",
+        "ServiceArtifactNativeTests.test_actual_safe_preentry_confirmed_foreign_failure_and_healthy_release",
+        "ServiceArtifactNativeTests.test_actual_pending_cutpoints_gc_reentry_and_ACK_retirement",
+        "ServiceArtifactNativeTests.test_actual_stale_Context_thread_fork_and_inherited_unknown_resource",
+        "ServiceArtifactNativeTests.test_native_complete_packets_buffers_and_protocol_rejections",
+        "ServiceArtifactNativeTests.test_actual_public_routes_pinned_bundle_restoration_and_source_drift",
+        "ServiceArtifactNativeTests.test_actual_installed_worker_and_durable_parent_ACK_loss"
+      ],
+      "count": 11
+    },
+    {
+      "module": "test_hia_service_artifact_local_release",
+      "bytes": 20987,
+      "sha256": "000dd43442ecd5d1a619464c00ce1646a5a86e5c0a3a1086f3acd7f166fcd873",
+      "methods": [
+        "ServiceArtifactLocalReleaseSourceTests.test_01_success_all_six_original_locals_and_active_exception",
+        "ServiceArtifactLocalReleaseSourceTests.test_02_len_str_failure_traceback_retention_and_final_release",
+        "ServiceArtifactLocalReleaseSourceTests.test_03_complete_original_146_same_runtime_before_independent_VM"
+      ],
+      "count": 3
+    },
+    {
+      "module": "test_hia_agent_installed_resources",
+      "bytes": 44132,
+      "sha256": "07b8516513d6d9aa9e3a292053e366986879988307b418489a7f7a887b0be595",
+      "methods": [
+        "AgentInstalledResourceSourceTests.test_source_builder_roles_remain_closed_and_compiler_data_remains_packaged",
+        "AgentInstalledResourceSourceTests.test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths",
+        "AgentInstalledResourceSourceTests.test_sdist_manifest_explicitly_preserves_every_agent_resource",
+        "AgentInstalledResourceSourceTests.test_every_actual_worker_asset_is_in_source_release_and_shared_identity",
+        "AgentInstalledResourceSourceTests.test_complete_source_binding_map_matches_each_actual_runtime_bridge",
+        "AgentInstalledResourceTests.test_installed_source_builder_uses_exact_wheel_inputs_for_native_build_and_pack",
+        "AgentInstalledResourceTests.test_installed_source_builder_refuses_missing_or_changed_package_inputs",
+        "AgentInstalledResourceTests.test_installed_nominal_packet_has_no_host_payload_parser_or_missing_source_fallback",
+        "AgentInstalledResourceTests.test_actual_installed_native_publication_and_store_without_tools_or_host_payload_fallback",
+        "AgentInstalledResourceTests.test_installed_publication_missing_build_assets_refuse_before_filesystem_effects",
+        "AgentInstalledResourceTests.test_installed_publication_rejects_tampered_package_contract_code_and_inventory",
+        "AgentInstalledResourceTests.test_installed_binary64_printing_has_no_host_printer_or_checkout_fallback",
+        "AgentInstalledResourceTests.test_all_native_Source_bindings_are_actual_installed_package_bytes",
+        "AgentInstalledResourceTests.test_actual_installed_native_Core_policies_preserve_body_guards_and_missing_source_refusal",
+        "AgentInstalledResourceTests.test_actual_installed_whole_native_Core_preserves_body_guards_and_missing_source_refusal",
+        "AgentInstalledResourceTests.test_installed_binary64_source_has_no_decimal_converter_or_checkout_fallback",
+        "AgentInstalledResourceTests.test_installed_data_decoder_has_no_payload_parser_or_source_fallback",
+        "AgentInstalledResourceTests.test_wheel_resources_are_exact_and_worker_identity_matches_source",
+        "AgentInstalledResourceTests.test_real_installed_native_worker_without_checkout_or_reference_predicates",
+        "AgentInstalledResourceTests.test_real_installed_edit_query_without_reference_graph_algorithms",
+        "AgentInstalledResourceTests.test_missing_slice_source_refuses_before_state_without_checkout_fallback",
+        "AgentInstalledResourceTests.test_missing_native_source_fails_before_service_no_source_fallback",
+        "AgentInstalledResourceTests.test_tampered_native_source_fails_before_service",
+        "AgentInstalledResourceTests.test_tampered_discovery_doc_invalidates_worker_pin_before_state",
+        "AgentInstalledResourceTests.test_missing_entire_installed_resource_root_has_no_cwd_fallback"
+      ],
+      "count": 25
+    },
+    {
+      "module": "test_hia_artifact_publication_route",
+      "bytes": 14759,
+      "sha256": "55b8c074a57a58e66ea561a89f930f0302f877182f9597f67d7db40b1425d765",
+      "methods": [
+        "PublicationRouteSourceTests.test_real_short_writes_preserve_exact_sealed_bytes_without_python_fcntl_names",
+        "PublicationRouteSourceTests.test_real_zero_progress_after_short_write_refuses_before_publication",
+        "PublicationRouteSourceTests.test_real_changed_extent_or_bytes_refuse_even_with_complete_kernel_seals",
+        "PublicationRouteSourceTests.test_real_kernel_seal_failure_is_typed_custody_without_publication",
+        "PublicationRouteSourceTests.test_incomplete_real_kernel_seals_refuse_before_publication",
+        "PublicationRouteSourceTests.test_absent_memfd_api_is_typed_custody_without_publication",
+        "PublicationRouteSourceTests.test_actual_kernel_requires_all_executable_seals",
+        "PublicationRouteSourceTests.test_actual_descriptor_without_seal_support_refuses",
+        "PublicationRouteSourceTests.test_explicit_selection_routes_all_operations_and_never_falls_back",
+        "PublicationRouteSourceTests.test_missing_or_malformed_selected_manifest_fails_before_effects",
+        "PublicationRouteNativeTests.test_real_selected_API_uses_sealed_code_and_native_filesystem_only"
+      ],
+      "count": 11
+    }
+  ],
+  "absent_requested_module_names": [
+    {
+      "module": "test_hia_agent_runner",
+      "exists": false
+    }
+  ],
+  "preserved_ordinary_inventory": {
+    "fixture": "tests/fixtures/hia_emission_original_73f1634/original-freeze.json",
+    "sha256": "dec08c099ea1d262f1a3d32dc34801c816484bda6724fac60f5a8a1d5d8c4048",
+    "ordinary_modules": 9,
+    "ordinary_methods": 112,
+    "all_inventory_modules": 17,
+    "all_inventory_methods": 240,
+    "separate_methods": 128
+  },
+  "scope": {
+    "module_counts_from_static_class_method_AST": true,
+    "unittest_discovery_executed": false,
+    "original_methods_or_assertions_modified": false,
+    "existing_112_240_61_130_are_not_replaced": true
+  },
+  "dynamic_unknown_callers_claimed_complete": false
+}

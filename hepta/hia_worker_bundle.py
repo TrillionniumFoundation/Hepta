@@ -1,7 +1,7 @@
 """Operator-pinned v2 custody for the HIA worker policy and wire companion.
 
 This is still a hosted custody bridge. It does not make SQLite, the runtime
-process owner or the complete service native. Version 1's 24 single-image
+process owner or the complete service native. Version 1's registered single-image
 contracts and their guards remain unchanged.
 """
 from __future__ import annotations

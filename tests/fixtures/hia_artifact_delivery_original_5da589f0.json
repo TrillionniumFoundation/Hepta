@@ -1,0 +1,242 @@
+{
+  "base_commit": "5da589f0bf6444c2c0acd95e2ba778c7e4ae1cfd",
+  "base_tree": "c612c8795f59d1726ef404b5e9d678c69869ad87",
+  "declared_original_test_count": 63,
+  "declared_original_test_ids": [
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_actual_clang_llvm_object_is_published_and_executed_by_gcc",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_content_modification_after_link_refuses_and_unpublishes_our_inode",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_dangling_symlink_is_not_a_new_destination",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_empty_payload_rejected",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_existing_destination_not_replaced",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_fifo_does_not_block_a_verified_reader",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_mismatched_staged_bytes_reject_before_link",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_path_substitution_preserves_other_writers_file",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_competitor_swap_survives_own_link_cleanup",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_exact_inode_replay",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_inplace_corruption_is_rejected_and_withdrawn",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_wrong_size_and_symlink_fail_closed",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_regular_stage_fifo_swap_is_rejected_before_blocking",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_same_input_and_output_rejected",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_symlinked_staging_file_rejected",
+    "tests.test_artifact_publication.ArtifactPublicationTests.test_valid_file_exact_digest_and_inode",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_copied_empty_PATH_link_verify_withdraw_and_kernel_object",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_post_link_actual_open_IO_failure_withdraws_own_link",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_post_link_competitor_replacement_is_never_withdrawn",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_post_link_in_place_corruption_withdraws_only_own_link",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_real_syscall_EINTR_retry_and_no_child_or_dynamic_runtime",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_receipt_write_failure_keeps_verified_link_without_success_claim",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_refuses_missing_extra_changed_bytes_same_path_and_existing_entries",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_regular_to_FIFO_race_is_nonblocking_and_refused",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_streaming_exceeds_fixed_chunk_and_old_one_shot_limit",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_symlink_fifo_and_independent_equal_byte_inode_are_not_identity",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_authoring_source_is_exact_and_resource_checked",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_builder_rejects_old_source_cold_before_creating_output",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_bytes_are_authoritative_and_extra_or_missing_bytes_refused",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_identity_uses_inode_mode_size_mtime_ctime_not_uid_or_atime",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_native_packer_independent_VM_and_exact_generator",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_paths_match_absolute_lexical_reference_without_resolving_dotdot",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_receipt_formats_real_digest_and_full_u64_decimal",
+    "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_unknown_phase_and_unowned_withdrawal_refused",
+    "tests.test_hia_artifact_publication_route.PublicationRouteNativeTests.test_real_selected_API_uses_sealed_code_and_native_filesystem_only",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_absent_memfd_api_is_typed_custody_without_publication",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_actual_descriptor_without_seal_support_refuses",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_actual_kernel_requires_all_executable_seals",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_explicit_selection_routes_all_operations_and_never_falls_back",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_incomplete_real_kernel_seals_refuse_before_publication",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_missing_or_malformed_selected_manifest_fails_before_effects",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_changed_extent_or_bytes_refuse_even_with_complete_kernel_seals",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_kernel_seal_failure_is_typed_custody_without_publication",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_short_writes_preserve_exact_sealed_bytes_without_python_fcntl_names",
+    "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_zero_progress_after_short_write_refuses_before_publication",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_directory_fsync_failure_leaves_no_success_and_preserves_possible_content",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_empty_binary_and_multichunk_put_get_dedup_private_file",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_file_fsync_failure_no_content_or_success_receipt",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_corrupt_existing_file_and_different_digest_refuse_without_replacing",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_file_and_directory_fsync_and_post_fsync_receipt_boundary",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_competitor_inode_is_never_deleted",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_corruption_withdraws_only_own_content_inode",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_symlink_FIFO_root_permissions_and_path_traversal_refuse",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_commands_root_and_only_exact_lower_hex_file_names",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_owned_non_writable_directory_guard_and_full_store_quota",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_actual_native_fsync_failures_cannot_issue_DB_refs_or_replay_effects",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_missing_selected_code_never_falls_back_or_issues_reference",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_one_put_uses_one_immutable_code_admission_but_next_call_revalidates",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_real_store_bytes_metadata_dedup_restart_and_namespace_authority",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_ref_and_kind_checks_precede_native_file_access_and_corruption_refuses",
+    "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_selection_cannot_change_between_hash_and_file_publication"
+  ],
+  "direct_caller_modules": [
+    "tests/test_artifact_publication.py",
+    "tests/test_hia_artifact_publication_native.py",
+    "tests/test_hia_artifact_publication_route.py",
+    "tests/test_hia_agent_artifact_store_native.py"
+  ],
+  "discovery_executed": false,
+  "original_methods_unchanged": true,
+  "original_tests_limits_assertions_unchanged": true,
+  "public_cli_argc": 4,
+  "public_cli_new_control_markers": false,
+  "public_cli_operations": [
+    "publish",
+    "verify",
+    "withdraw",
+    "store-put",
+    "store-get",
+    "store-hash"
+  ],
+  "schema": "hepta.hia.artifact-delivery-original.v1",
+  "source_files": {
+    "hepta/artifact_publication.py": {
+      "bytes": 6749,
+      "git_blob": "3464a0ff4cb02794045d04e12cac6ba8534fff7a",
+      "sha256": "8ea8207f42ff0958bc04df990ad84b4dcd1b1c566a1c8ab83b1fe3f47396a1ae"
+    },
+    "hepta/artifact_publication_native.py": {
+      "bytes": 12279,
+      "git_blob": "27440078567742dc4fe07156d6d53906101bd8b9",
+      "sha256": "68f7f0641f1a5ab9f1152823d8e42faffd0d64436a3470016d311e31fc81b5d6"
+    },
+    "hepta/hia_agent_store.py": {
+      "bytes": 28413,
+      "git_blob": "13e81c71d4c9863020fb014bafc52252a5eaba38",
+      "sha256": "22384b5bb32ce9837d608170432568a9e339de8a97afc6ff30f92f9f7d088297"
+    },
+    "hepta/hia_agent_worker.py": {
+      "bytes": 8496,
+      "git_blob": "493aa2576df7d097ea2470d21b414b9b3bb94e47",
+      "sha256": "4e6a64b551e34805106fa1d4b888a48f9a2a138d2f82d4091b4412bf65862066"
+    },
+    "hepta/hia_native_delivery.py": {
+      "bytes": 9589,
+      "git_blob": "dddb2c494de6815713eb08a730ddc27403fda08e",
+      "sha256": "b991aaf5c60549e3d5738021a89ba5212960f644ace0f5cda22f08a50e867894"
+    },
+    "hepta/hia_store_artifact_profile_native.py": {
+      "bytes": 33716,
+      "git_blob": "38b54c599cbb931e57a911e3ec82a6e84477ce6c",
+      "sha256": "0f5ba63e2ed18bb7f1765984616073ce09eb0b6fd68bfa45bb7793ac362d3335"
+    },
+    "hepta/hia_store_lifecycle_native.py": {
+      "bytes": 22389,
+      "git_blob": "4674a1d48839e54a2168256a7d698a0ef70a77ad",
+      "sha256": "d342ef84d27009b7bfe2489bf40bd0522287b729b5f100b8e97bdfc097124040"
+    },
+    "hepta/hia_store_lifecycle_selection.py": {
+      "bytes": 1623,
+      "git_blob": "b98c759b81663e62129e1e8ae0f8b54c78cc33f8",
+      "sha256": "caa2a6b5a4be197c031fdbe0f6b49b9bf1c8e2de5f2e0c5a60d867835035186f"
+    },
+    "tests/test_artifact_publication.py": {
+      "bytes": 9254,
+      "declared_test_count": 16,
+      "declared_test_ids": [
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_actual_clang_llvm_object_is_published_and_executed_by_gcc",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_content_modification_after_link_refuses_and_unpublishes_our_inode",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_dangling_symlink_is_not_a_new_destination",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_empty_payload_rejected",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_existing_destination_not_replaced",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_fifo_does_not_block_a_verified_reader",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_mismatched_staged_bytes_reject_before_link",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_path_substitution_preserves_other_writers_file",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_competitor_swap_survives_own_link_cleanup",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_exact_inode_replay",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_inplace_corruption_is_rejected_and_withdrawn",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_post_publication_wrong_size_and_symlink_fail_closed",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_regular_stage_fifo_swap_is_rejected_before_blocking",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_same_input_and_output_rejected",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_symlinked_staging_file_rejected",
+        "tests.test_artifact_publication.ArtifactPublicationTests.test_valid_file_exact_digest_and_inode"
+      ],
+      "git_blob": "86113f1d5274029a832f70a7f0508a2e6c11f6f4",
+      "sha256": "79c787f56afc52c06846dd48f151a90aa4c496c38c5c22752158061f9bc4e24f"
+    },
+    "tests/test_hia_agent_artifact_store_native.py": {
+      "bytes": 20310,
+      "declared_test_count": 18,
+      "declared_test_ids": [
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_directory_fsync_failure_leaves_no_success_and_preserves_possible_content",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_empty_binary_and_multichunk_put_get_dedup_private_file",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_actual_file_fsync_failure_no_content_or_success_receipt",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_corrupt_existing_file_and_different_digest_refuse_without_replacing",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_file_and_directory_fsync_and_post_fsync_receipt_boundary",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_competitor_inode_is_never_deleted",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_real_post_link_corruption_withdraws_only_own_content_inode",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_symlink_FIFO_root_permissions_and_path_traversal_refuse",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_commands_root_and_only_exact_lower_hex_file_names",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_owned_non_writable_directory_guard_and_full_store_quota",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests.test_temporary_name_UUID4_bits_and_content_SHA_are_formed_in_HIA",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_actual_native_fsync_failures_cannot_issue_DB_refs_or_replay_effects",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_missing_selected_code_never_falls_back_or_issues_reference",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_one_put_uses_one_immutable_code_admission_but_next_call_revalidates",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_real_store_bytes_metadata_dedup_restart_and_namespace_authority",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_ref_and_kind_checks_precede_native_file_access_and_corruption_refuses",
+        "tests.test_hia_agent_artifact_store_native.AgentArtifactStoreRouteTests.test_selection_cannot_change_between_hash_and_file_publication"
+      ],
+      "git_blob": "b631865cf4f384ef6ece6f0bcd321da8ba87b099",
+      "sha256": "be55df8b173a6ca1af4072426ef5dedf739867d9251ac0f1462e266718defe9d"
+    },
+    "tests/test_hia_artifact_publication_native.py": {
+      "bytes": 19670,
+      "declared_test_count": 18,
+      "declared_test_ids": [
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_copied_empty_PATH_link_verify_withdraw_and_kernel_object",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_post_link_actual_open_IO_failure_withdraws_own_link",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_post_link_competitor_replacement_is_never_withdrawn",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_post_link_in_place_corruption_withdraws_only_own_link",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_real_syscall_EINTR_retry_and_no_child_or_dynamic_runtime",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_receipt_write_failure_keeps_verified_link_without_success_claim",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_refuses_missing_extra_changed_bytes_same_path_and_existing_entries",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_regular_to_FIFO_race_is_nonblocking_and_refused",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_streaming_exceeds_fixed_chunk_and_old_one_shot_limit",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationKernelTests.test_symlink_fifo_and_independent_equal_byte_inode_are_not_identity",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_authoring_source_is_exact_and_resource_checked",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_builder_rejects_old_source_cold_before_creating_output",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_bytes_are_authoritative_and_extra_or_missing_bytes_refused",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_identity_uses_inode_mode_size_mtime_ctime_not_uid_or_atime",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_native_packer_independent_VM_and_exact_generator",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_paths_match_absolute_lexical_reference_without_resolving_dotdot",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_receipt_formats_real_digest_and_full_u64_decimal",
+        "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests.test_unknown_phase_and_unowned_withdrawal_refused"
+      ],
+      "git_blob": "adca8538a4b574e38e6fe8480b031fdc41e7964b",
+      "sha256": "0e0b139387f69152c54b7d5f4f4533a87bfcd539552badb613c1bef60dc3ed2a"
+    },
+    "tests/test_hia_artifact_publication_route.py": {
+      "bytes": 14759,
+      "declared_test_count": 11,
+      "declared_test_ids": [
+        "tests.test_hia_artifact_publication_route.PublicationRouteNativeTests.test_real_selected_API_uses_sealed_code_and_native_filesystem_only",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_absent_memfd_api_is_typed_custody_without_publication",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_actual_descriptor_without_seal_support_refuses",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_actual_kernel_requires_all_executable_seals",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_explicit_selection_routes_all_operations_and_never_falls_back",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_incomplete_real_kernel_seals_refuse_before_publication",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_missing_or_malformed_selected_manifest_fails_before_effects",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_changed_extent_or_bytes_refuse_even_with_complete_kernel_seals",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_kernel_seal_failure_is_typed_custody_without_publication",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_short_writes_preserve_exact_sealed_bytes_without_python_fcntl_names",
+        "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_real_zero_progress_after_short_write_refuses_before_publication"
+      ],
+      "git_blob": "c27b51eaa03655866ad9df8b21de9d4ee765a189",
+      "sha256": "55b8c074a57a58e66ea561a89f930f0302f877182f9597f67d7db40b1425d765"
+    },
+    "tools/build_hia_artifact_publication.py": {
+      "bytes": 4433,
+      "git_blob": "b9625ba274f0ce61f9559c8ffd5a6a3a2da2712d",
+      "sha256": "ab3d77c549ad914dcbebef3754fa09f6cd674154f5ce4422c6100b564c27e628"
+    },
+    "tools/generate_hia_artifact_publication.py": {
+      "bytes": 14842,
+      "git_blob": "720425385dd2ee12e0e60c3b5e1d66bfe35cc210",
+      "sha256": "80f66021e7b3fdb97360bab5d2624561822937d3952a4d36972a17ffdffcf56b"
+    },
+    "tools/hia_artifact_publication_syscalls.S": {
+      "bytes": 13554,
+      "git_blob": "7687690813fbed626d1c9b61dfc6304ae52df6e4",
+      "sha256": "0042cf07a91f7a61ca2dd440ec838e0aaafc9d986d584acaa2c0c7dfbb80ddbf"
+    }
+  }
+}

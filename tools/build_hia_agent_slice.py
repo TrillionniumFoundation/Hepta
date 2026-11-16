@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:sys.path.insert(0,str(ROOT))
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_candidate)
+from tools.build_hia_source_build import _check_pack_output
 
 
 def build(output: Path, compiler: Path, cold_report: Path):
@@ -35,12 +36,9 @@ def build(output: Path, compiler: Path, cold_report: Path):
     packer_raw = packer.read_bytes()
     if sha256(packer_raw).hexdigest() != packer_metadata['image_sha256']:
         raise ValueError('native HIA Agent slice packer image changed')
-    record, raw = invoke(output,'native-filter-pack',packer,
-                         struct.pack('<2Q',MAGIC,len(image_raw))+image_raw)
-    size = record.get('core_u32')
-    if record.get('status') != 'returned' or type(size) is not int or not 0 < size <= min(len(raw),1 << 20):
-        raise ValueError('native HIA filter packer refused Agent slice image')
-    executable = raw[:size]
+    frame = struct.pack('<2Q',MAGIC,len(image_raw))+image_raw
+    record, raw = invoke(output,'native-filter-pack',packer,frame)
+    executable = _check_pack_output(record, raw, artifact=packer_raw, source=frame)
     inspection = inspect_executable(executable)
     if (any(p.read_bytes() != value for p, value in pins.items())
             or current_sources() != admitted_sources

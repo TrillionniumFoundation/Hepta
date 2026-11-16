@@ -28,6 +28,24 @@ MAX_SOURCE_BYTES = 8 << 20
 # Only single-image contracts with the existing six-argument byte ABI.
 # Multi-image and external executable contracts need a separate custody closure.
 HELPERS = {
+    "HEPTA_HIA_SERVICE_READ_MANIFEST": ("hia_service_read_native", "NativeServiceRead"),
+    "HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST": ("hia_service_artifact_native", "NativeServiceArtifact"),
+    "HEPTA_HIA_STORE_TRANSACTION_MANIFEST": ("hia_store_transaction_native", "NativeStoreTransaction"),
+    "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST": ("hia_store_artifact_profile_native", "NativeStoreArtifactProfile"),
+    "HEPTA_HIA_EMISSION_MANIFEST": ("hia_emission_native", "NativeEmission"),
+    "HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST": ("hia_native_build_admission_native", "NativeBuildAdmission"),
+    "HEPTA_HIA_EVALUATION_MANIFEST": ("hia_evaluation_native", "NativeEvaluation"),
+    "HEPTA_HIA_COST_LEDGER_MANIFEST": ("hia_cost_ledger_native", "NativeCostLedger"),
+    "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "NativeStaticBudget"),
+    "HEPTA_HIA_FULL_COST_MANIFEST": ("hia_full_cost_native", "NativeFullCost"),
+    "HEPTA_HIA_STORE_LIFECYCLE_MANIFEST": ("hia_store_lifecycle_native", "NativeStoreLifecycleImage"),
+    "HEPTA_HIA_SERVICE_CONTEXT_MANIFEST": ("hia_service_context_native", "NativeServiceContextImage"),
+    "HEPTA_HIA_PATCH_IMPACT_MANIFEST": ("hia_patch_impact_native", "NativePatchImpact"),
+    "HEPTA_HIA_GENERATION_RETENTION_MANIFEST": ("hia_generation_retention_native", "NativeGenerationImage"),
+    "HEPTA_HIA_SCALAR_PROFILE_MANIFEST": ("hia_scalar_profile_native", "NativeScalarProfile"),
+    "HEPTA_HIA_BOUNDED_MEMORY_MANIFEST": ("hia_bounded_memory_native", "NativeBoundedMemory"),
+    "HEPTA_HIA_NATIVE_MAPPING_MANIFEST": ("native_mapping_native", "NativeMappingImage"),
+    "HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST": ("hia_publication_measurement_native", "NativePublicationMeasurement"),
     "HEPTA_HIA_WORKER_REQUEST_MANIFEST": ("hia_worker_request_native", "NativeWorkerRequest"),
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
     "HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST": ("hia_agent_snapshot_native", "NativeAgentSnapshot"),
@@ -51,7 +69,15 @@ HELPERS = {
     "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": ("hia_execution_budget_native", "NativeExecutionBudgetImage"),
     "HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST": ("hia_candidate_budget_native", "NativeCandidateBudgetImage"),
     "HEPTA_HIA_SLOT_LEDGER_MANIFEST": ("hia_slot_ledger_native", "NativeSlotLedger"),
+    "HEPTA_HIA_SLOT_OPERATIONS_MANIFEST": ("hia_slot_operations_native", "NativeSlotOperations"),
     "HEPTA_HIA_RETIREMENT_STATE_MANIFEST": ("hia_retirement_state_native", "NativeRetirementImage"),
+    'HEPTA_HIA_SERVICE_SLOT_MANIFEST': ('hia_service_slot_native', 'NativeServiceSlot'),
+    'HEPTA_HIA_SERVICE_INSPECTION_MANIFEST': ('hia_service_inspection_native', 'NativeServiceInspection'),
+    "HEPTA_HIA_SERVICE_LEASE_MANIFEST": ("hia_service_lease_native", "NativeServiceLease"),
+    'HEPTA_HIA_STORE_FILE_CAPTURE_MANIFEST': ('hia_store_file_capture_native', 'NativeStoreFileCapture'),
+    "HEPTA_HIA_SERVICE_DISCOVERY_MANIFEST": ("hia_service_discovery_native", "NativeServiceDiscovery"),
+    "HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST": ("hia_service_verification_native", "NativeServiceVerification"),
+    'HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST': ('hia_service_bootstrap_native', 'NativeServiceBootstrap'),
 }
 # The ordinary CLI and Agent use different methods on the same patch image.
 # Admit only these named views of its captured bytes, never arbitrary subclasses
@@ -65,6 +91,9 @@ _ACTIVE = None
 _SCOPE_LOCK = threading.Lock()
 _SCOPE_OWNER = None
 _SCHEDULER_BUILD = None
+_MECHANICAL_BUILD = None
+_MECHANICAL_SCOPE = None
+_MECHANICAL_SELECTED = False
 
 
 def _digest(value):
@@ -263,7 +292,7 @@ class NativeHelpersBinding:
 
 @contextmanager
 def native_helpers_scope(path=None, expected_sha256=None):
-    global _ACTIVE, _SCOPE_OWNER
+    global _ACTIVE, _SCOPE_OWNER, _MECHANICAL_SCOPE, _MECHANICAL_SELECTED
     # The worker handles one request in one process. Hold the scope even when
     # no bundle is selected, so another request cannot change its routing.
     if not _SCOPE_LOCK.acquire(blocking=False):
@@ -274,8 +303,16 @@ def native_helpers_scope(path=None, expected_sha256=None):
     try:
         if (path is None) != (expected_sha256 is None):
             raise ValueError("native helper manifest and expected SHA256 must be supplied together")
-        if _ACTIVE is not None or _selectors():
+        if (_ACTIVE is not None or _MECHANICAL_SCOPE is not None
+                or _MECHANICAL_SELECTED or _selectors()):
             raise ValueError("worker native helper selection must come only from its explicit pinned bundle")
+        package_pin = None
+        if path is None:
+            from .hia_default_native import capture_default_bundle
+            packaged = capture_default_bundle()
+            if packaged is not None:
+                path, expected_sha256, package_pin = packaged
+                path = str(path)
         if path is None:
             yield None
             return
@@ -285,7 +322,15 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':
+        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v5':
+            _MECHANICAL_SELECTED = True
+            from .hia_mechanical_worker_bundle import NativeMechanicalWorkerBinding
+            binding = NativeMechanicalWorkerBinding(captured, expected_sha256)
+            _MECHANICAL_SCOPE = binding
+        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v4':
+            from .hia_artifact_delivery_worker import NativeArtifactWorkerBinding
+            binding = NativeArtifactWorkerBinding(captured, expected_sha256)
+        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':
             from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
             binding = NativeWorkerSchedulingBinding(captured, expected_sha256)
         elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v2':
@@ -293,6 +338,9 @@ def native_helpers_scope(path=None, expected_sha256=None):
             binding = NativeWorkerBundleBinding(captured, expected_sha256)
         else:
             binding = NativeHelpersBinding(path, expected_sha256)
+        if package_pin is not None:
+            binding.snapshots.extend(package_pin)
+            binding.check_files()
         _ACTIVE = binding
         os.environ.update(binding.selections)
         binding.check()
@@ -308,6 +356,8 @@ def native_helpers_scope(path=None, expected_sha256=None):
             else:
                 os.environ[key] = previous[key]
         _ACTIVE = None
+        _MECHANICAL_SCOPE = None
+        _MECHANICAL_SELECTED = False
         _SCOPE_OWNER = None
         _SCOPE_LOCK.release()
 
@@ -322,14 +372,20 @@ def native_helpers_identity():
     return {"native_helpers_sha256": _ACTIVE.sha256}
 
 
-def pinned_image(manifest_path, source, schema, factory):
+def pinned_image(manifest_path, source, schema, factory, *, _admission_resolver=None):
     _check_scope_owner()
     if _ACTIVE is None:
         if _SCOPE_OWNER is not None:
             raise ValueError("native helper executable is outside the pinned worker bundle")
         return None
     _ACTIVE.check_owner()
-    key = (str(Path(manifest_path).resolve(strict=True)), str(source.resolve(strict=True)), schema, factory)
+    if _admission_resolver is None:
+        key = (str(Path(manifest_path).resolve(strict=True)), str(source.resolve(strict=True)), schema, factory)
+    else:
+        # Explicit executable admission capability, selected by the owner.
+        # Guard order and the exact pinned image key are unchanged.
+        key = (str(_admission_resolver(manifest_path, strict=True)),
+               str(_admission_resolver(source, strict=True)), schema, factory)
     try:
         return _ACTIVE.images[key]
     except KeyError as exc:
@@ -349,3 +405,45 @@ def pinned_bundle(manifest_path, schema, factory):
         return getattr(_ACTIVE, 'bundles', {})[key]
     except KeyError as exc:
         raise ValueError("native helper bundle is outside the pinned worker bundle") from exc
+
+def _canonical_bridge(value):
+    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+                      allow_nan=False).encode("ascii")
+
+
+def pinned_mechanical_bridge(name, abi):
+    """Only an explicit live v5 capsule may authorize a linker load."""
+    _check_scope_owner()
+    if _SCOPE_OWNER is None:
+        raise ValueError("mechanical executable requires an explicit v5 worker capsule")
+    binding = _ACTIVE if _ACTIVE is not None else _MECHANICAL_BUILD
+    lookup = getattr(binding, "mechanical_bridge", None)
+    if lookup is None:
+        raise ValueError("mechanical executable is outside the pinned worker bundle")
+    return lookup(name, abi)
+
+def selected_mechanical_bridge(name, abi):
+    """Observe an explicit version without moving old argument-binding checks.
+
+    Non-v5 returns None before any owner admission. The unchanged old bridge
+    still checks its owner after its real signature has bound. Once v5 was
+    explicitly selected, missing/overlapping/stale authority is a refusal.
+    """
+    if type(_MECHANICAL_SELECTED) is not bool:
+        raise ValueError("mechanical route selection is not an exact flag")
+    if not _MECHANICAL_SELECTED:
+        if _MECHANICAL_SCOPE is not None or _MECHANICAL_BUILD is not None:
+            raise ValueError("mechanical authority exists outside its explicit selection")
+        return None
+    _check_scope_owner()
+    binding = _MECHANICAL_SCOPE
+    constructing = _MECHANICAL_BUILD
+    if constructing is not None:
+        if binding is not None or _ACTIVE is not None:
+            raise ValueError("mechanical constructor overlaps another authority")
+        binding = constructing
+    elif binding is not None and _ACTIVE is not binding:
+        raise ValueError("mechanical scope lost its original authority")
+    if binding is None or _SCOPE_OWNER is None:
+        raise ValueError("selected mechanical route has no live original authority")
+    return binding.mechanical_bridge(name, abi)

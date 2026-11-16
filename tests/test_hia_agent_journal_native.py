@@ -579,8 +579,9 @@ class JournalNativeTests(unittest.TestCase):
                     service.store.db = ObservedDB(service.store.db, change)
                     with ExitStack() as stack:
                         stack.enter_context(patch.object(module, 'SOURCE', source))
-                        stack.enter_context(patch.dict(os.environ,
-                            {selector: '' if fault == 'new-selector' else str(manifest)}))
+                        stack.enter_context(patch.dict(os.environ, {selector: str(manifest)}))
+                        if fault == 'new-selector':
+                            os.environ.pop(selector, None)
                         stack.enter_context(patch('hepta.hia_agent_service.time.monotonic_ns', side_effect=[1, 9]))
                         stack.enter_context(patch.object(service, '_hia_artifact',
                             side_effect=AssertionError('selected cached refusal reexecuted effect')))

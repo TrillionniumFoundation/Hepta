@@ -14,6 +14,24 @@ MAX_TOTAL = (1 << 61) - 1
 MAGIC = 0x3153484132353648
 
 
+def stream_helpers():
+    """Keep full-width state words and their original byte access order.
+
+    Each SHA block repeatedly reads and writes these fixed eight-byte words.
+    Expanding the eight accesses removes the per-byte HIA loop without changing
+    the persistent layout, arithmetic width, partial-write order or bounds
+    behavior. The round algebra and all input/phase checks stay unchanged.
+    """
+    source = HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')]
+    source += '\ndef get(w:mutbuf, index:u64) -> u64:\n    value = 0\n'
+    for i in range(8):
+        source += f'    value = value | (byte(w, index + {i}) << {i * 8})\n'
+    source += '    return value\n\ndef put(w:mutbuf, index:u64, value:u64) -> u64:\n'
+    for i in range(8):
+        source += f'    store(w, index + {i}, (value >> {i * 8}) & 255)\n'
+    return source + '    return 0\n'
+
+
 def source_program():
     source = '''def stream(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 1 or length(s) > 8388609 or length(o) < 32 or length(w) < 1184:
@@ -101,7 +119,7 @@ def compress(w:mutbuf) -> u64:
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    return source + stream_helpers()
 
 
 def document():

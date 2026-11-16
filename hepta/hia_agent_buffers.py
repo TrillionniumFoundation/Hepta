@@ -63,6 +63,8 @@ def _buffer_bytes_reference(value):
 
 def buffer_size(value):
     manifest = os.environ.get('HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST')
+    if manifest == '':
+        raise ValueError('Agent snapshot selector must not be empty')
     if manifest:
         from .hia_agent_snapshot_native import installed_snapshot
         return installed_snapshot(manifest).evaluate(value)
@@ -71,6 +73,8 @@ def buffer_size(value):
 
 def buffer_bytes(value):
     manifest = os.environ.get('HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST')
+    if manifest == '':
+        raise ValueError('Agent snapshot selector must not be empty')
     if manifest:
         from .hia_agent_snapshot_native import installed_snapshot
         return installed_snapshot(manifest).evaluate(value, materialize=True)

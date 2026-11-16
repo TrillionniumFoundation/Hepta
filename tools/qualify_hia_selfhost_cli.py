@@ -44,11 +44,30 @@ def output_capacity_source():
     return source.encode()
 
 
+def _inspect_public_artifact_executable(raw):
+    # The artifact application has one explicit, versioned public ABI. Its
+    # complete original capability validator checks all three segment records,
+    # note/name/padding, descriptor fields, both entries and actual byte extent.
+    # This is not general ELF acceptance, and a private-entry image is refused.
+    from hepta.hia_artifact_delivery_protocol import control_descriptor, ACK_BYTES, NONCE_BYTES
+    descriptor = control_descriptor(raw)
+    return {"elf_type": "ET_EXEC", "machine": "EM_X86_64",
+        "entry": descriptor.public_entry,
+        "program_headers": ["PT_LOAD_RX", "PT_GNU_STACK_RW", "PT_NOTE_HIADELIV"],
+        "interpreter": None, "dynamic_loader": False, "libc": False,
+        "bytes": len(raw), "sha256": sha256(raw).hexdigest(),
+        "private_delivery_entry": descriptor.private_entry,
+        "private_delivery_ack_bytes": ACK_BYTES,
+        "private_delivery_prefix_bytes": NONCE_BYTES}
+
+
 def inspect_executable(raw):
     if len(raw) <= 176 or raw[:16] != b"\x7fELF\x02\x01\x01" + bytes(9):
         raise ValueError("not a canonical ELF64 executable")
     header = struct.unpack_from("<HHIQQQIHHHHHH", raw, 16)
     if header != (2, 62, 1, 0x4000b0, 64, 0, 0, 64, 56, 2, 0, 0, 0):
+        if header[9] == 3:
+            return _inspect_public_artifact_executable(raw)
         raise ValueError("unexpected executable entry/header")
     load = struct.unpack_from("<IIQQQQQQ", raw, 64)
     stack = struct.unpack_from("<IIQQQQQQ", raw, 120)

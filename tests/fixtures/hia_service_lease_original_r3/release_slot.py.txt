@@ -1,0 +1,5 @@
+    def release_slot(self, lease):
+        with self.store.transaction():
+            if self._slot_ledger is not None:
+                return self._slot_ledger.release(lease)
+            return self._reference_slot_release(lease)

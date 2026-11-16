@@ -22,6 +22,7 @@ include examples/hia_bootstrap/agent_journal.hepta
 include examples/hia_bootstrap/execution_budget.hepta
 include examples/hia_bootstrap/candidate_budget.hepta
 include examples/hia_bootstrap/slot_ledger.hepta
+include examples/hia_bootstrap/slot_operations.hepta
 include examples/hia_bootstrap/agent_slice.hepta
 include examples/hia_bootstrap/agent_data_json.hepta
 include examples/hia_bootstrap/agent_binary64.hepta
@@ -56,6 +57,25 @@ include examples/hia_bootstrap/composite_constructor_render.hepta
 include examples/hia_bootstrap/composite_outer_owner.hepta
 include examples/hia_bootstrap/composite_outer_render.hepta
 include examples/hia_bootstrap/retirement_state.hepta
+include examples/hia_bootstrap/native_mapping.hepta
+include examples/hia_bootstrap/publication_measurement.hepta
+include examples/hia_bootstrap/scalar_profile.hepta
+include examples/hia_bootstrap/generation_retention.hepta
+include examples/hia_bootstrap/bounded_memory.hepta
+include examples/hia_bootstrap/full_cost.hepta
+include examples/hia_bootstrap/store_lifecycle.hepta
+include examples/hia_bootstrap/service_context.hepta
+include examples/hia_bootstrap/cost_ledger.hepta
+include examples/hia_bootstrap/evaluation.hepta
+include examples/hia_bootstrap/native_build_admission.hepta
+include examples/hia_bootstrap/emission.hepta
+include examples/hia_bootstrap/service_read.hepta
+include examples/hia_bootstrap/store_artifact_profile.hepta
+include examples/hia_bootstrap/store_transaction.hepta
+include examples/hia_bootstrap/service_artifact.hepta
+include examples/hia_bootstrap/patch_impact.hepta
+include examples/hia_bootstrap/static_budget.hepta
+include examples/hia_bootstrap/cli_discovery_json.hepta
 include examples/hia_bootstrap/artifact_publication_policy.hepta
 include examples/hia_bootstrap/artifact_publication_packer.hepta
 include tools/hia_artifact_publication_syscalls.S
@@ -158,3 +178,117 @@ include docs/HIA_NATIVE_CONTINUATION_ABI.json
 include examples/hia_bootstrap/continuation_policy.hepta
 include examples/hia_bootstrap/continuation_packer.hepta
 include examples/hia_bootstrap/continuation_inprocess_packer.hepta
+include examples/hia_bootstrap/service_slot.hepta
+include examples/hia_bootstrap/service_inspection.hepta
+include examples/hia_bootstrap/service_lease.hepta
+include examples/hia_bootstrap/store_file_capture.hepta
+include examples/hia_bootstrap/service_discovery.hepta
+include examples/hia_bootstrap/service_verification.hepta
+include examples/hia_bootstrap/service_bootstrap.hepta
+
+include docs/HIA_SLOT_MECHANICAL_BOUNDARY.md
+include docs/HIA_SLOT_MECHANICAL_V5.md
+include hepta/native/slot_mechanical.c
+include hepta/native/slot_mechanical_build.py
+include tests/hia_slot_mechanical_admission_controls.py
+include tests/hia_slot_mechanical_capsule_observer.py
+include tests/hia_slot_mechanical_installed_probe.py
+include tests/hia_slot_mechanical_worker_probe.py
+include tests/test_hia_slot_mechanical_native.py
+include tools/build_hia_slot_mechanical.py
+include tools/build_hia_slot_mechanical_bundle.py
+include tools/qualify_hia_slot_mechanical_admission.py
+include tools/qualify_hia_slot_mechanical_installed.py
+include tools/qualify_hia_slot_mechanical_observations.py
+include tools/qualify_hia_slot_mechanical_public.py
+include tools/read_hia_slot_mechanical_admission.py
+include tools/read_hia_slot_mechanical_installed.py
+include tools/read_hia_slot_mechanical_observations.py
+
+# Separately selected HIA executable-capture source and primitive resources.
+include examples/hia_bootstrap/executable_capture.hepta
+include tools/hia_executable_capture_syscalls.S
+include tools/generate_hia_executable_capture.py
+include tools/build_hia_executable_capture.py
+include tools/qualify_hia_selfhost.py
+include tools/build_hia_source_build.py
+include tools/build_hia_json_preflight.py
+include tools/qualify_hia_store_file_capture_originals.py
+include tools/generate_hia_selfhost.py
+include tests/fixtures/executable_capture_r19_original.py.txt
+include tests/hia_executable_capture_originals.py
+include tests/fixtures/executable_capture_cases.json
+include tests/test_hia_executable_capture.py
+include docs/HIA_EXECUTABLE_CAPTURE.md
+
+# Additional executable-capture receipt-v2 controls.
+include tests/hia_executable_capture_receipt_controls.py
+include tests/test_hia_executable_capture_receipt.py
+include tests/fixtures/executable_capture_receipt_controls_v2.json
+
+# Explicit HIA VM div/rem slice; no default VM/helper registry selection.
+include examples/hia_bootstrap/vm_integer_divrem.hepta
+include tools/build_hia_vm_integer_divrem.py
+include tools/qualify_hia_vm_integer_divrem.py
+include tools/read_hia_vm_integer_divrem.py
+include tests/hia_vm_integer_divrem_cases.py
+include tests/hia_vm_integer_divrem_controls.py
+include tests/test_hia_vm_integer_divrem_native.py
+include tests/fixtures/vm_integer_divrem_inputs_v1.json
+include tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt
+include docs/HIA_VM_INTEGER_DIVREM.md
+
+# Independent eight-operation HIA arithmetic component; old div/rem remains.
+include examples/hia_bootstrap/vm_integer_arithmetic.hepta
+include tools/build_hia_vm_integer_arithmetic.py
+include tools/qualify_hia_vm_integer_arithmetic.py
+include tools/read_hia_vm_integer_arithmetic.py
+include tests/hia_vm_integer_arithmetic_cases.py
+include tests/hia_vm_integer_arithmetic_controls.py
+include tests/test_hia_vm_integer_arithmetic_native.py
+include tests/fixtures/vm_integer_arithmetic_inputs_v1.json
+include docs/HIA_VM_INTEGER_ARITHMETIC.md
+
+# Exact caller-qualifier source controls and their fixed data closure (sdist only).
+include tests/fixtures/caller_qualifier_successor_provenance_v1.json
+include tests/fixtures/native_delivery_original_9c46166.json
+include tests/fixtures/store_native_delivery_original_c019.json
+include tests/hia_caller_terminal_admission.py
+include tests/fixtures/hia_native_build_admission_callers_aac7550.json
+include tests/fixtures/hia_emission_original_73f1634/original-freeze.json
+include tests/fixtures/hia_store_artifact_profile_callers_73f1634.json
+include tests/fixtures/native_transport_worker_terminal_v2_provenance.json
+include tests/fixtures/evaluation_worker_terminal_v2_provenance.json
+include tests/test_hia_native_delivery.py
+include tests/test_hia_native_transport_failures.py
+include tests/test_hia_evaluation_native.py
+include tools/qualify_hia_native_build_admission_callers.py
+include tools/qualify_hia_emission_callers.py
+include tools/qualify_hia_store_artifact_profile_callers.py
+include tests/hia_native_transport_worker_successor.py
+include tests/test_hia_caller_qualifier_successor.py
+include tests/test_hia_evaluation_worker_successor.py
+include tests/test_hia_store_native_delivery.py
+include tests/__init__.py
+
+# Explicit native executable release sources; no Agent wheel/default selection.
+include examples/hia_bootstrap/exec_release_policy.hepta
+include examples/hia_bootstrap/exec_release_packer.hepta
+include tools/generate_hia_exec_release.py
+include tools/hia_exec_release_syscalls.S
+include tools/build_hia_exec_release.py
+include tools/hia_exec_release_child.py
+include tools/qualify_hia_exec_release.py
+include tools/read_hia_exec_release.py
+include tests/hia_exec_release_controls.py
+include tests/test_hia_exec_release.py
+include docs/HIA_EXEC_RELEASE_NATIVE.md
+include examples/hia_bootstrap/vm_integer_scalar.hepta
+include tools/build_hia_vm_integer_scalar.py
+include tools/qualify_hia_vm_integer_scalar.py
+include tools/read_hia_vm_integer_scalar.py
+include tests/hia_vm_integer_scalar_cases.py
+include tests/hia_vm_integer_scalar_controls.py
+include tests/test_hia_vm_integer_scalar_native.py
+include tests/fixtures/vm_integer_scalar_inputs_v1.json
+include docs/HIA_VM_INTEGER_SCALAR.md

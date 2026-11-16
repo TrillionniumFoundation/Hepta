@@ -1,0 +1,552 @@
+{
+  "schema": "hepta.slot-sql.complete-owner-port-plan.reconstructed-r1",
+  "status": "STATIC_PROPOSAL_NO_HIA_SOURCE_GENERATED",
+  "all_15_modes": [
+    {
+      "mode": 1,
+      "name": "__init__",
+      "steps": [
+        "P40 assign store then image",
+        "P42 original terminal release",
+        "return None"
+      ],
+      "branches": []
+    },
+    {
+      "mode": 2,
+      "name": "_execute",
+      "steps": [
+        "P02 fresh self.store.db",
+        "P03 compare against captured connection",
+        "if false P09 original custody rejection",
+        "if true P46 original complete connection.execute call",
+        "return actual cursor/result without coercion"
+      ],
+      "branches": [
+        "connection identity"
+      ]
+    },
+    {
+      "mode": 3,
+      "name": "_call",
+      "steps": [
+        "P06 original image lookup + request_packet + transition",
+        "P08 _raise existing diagnostic provider",
+        "return receipt"
+      ],
+      "branches": [],
+      "external_diagnostic_owner": "_raise retained as explicit provider"
+    },
+    {
+      "mode": 4,
+      "name": "snapshot",
+      "steps": [
+        "P43 capture decode_data,wire",
+        "P02 capture db",
+        "SQL snapshot.sql1 with chained fetchone",
+        "if row is None -> P21 call(2)",
+        "else SQL snapshot.sql2 with original row generation lookup; SQL snapshot.sql3 chained fetchone()[0]; P14 decode artifact; P21 call(2, tagged fields, flags=1,a=count)",
+        "read receipt.action; if zero construct original absent dict",
+        "else unpack four receipt fields; P12 first three; P14 artifact; construct original present dict"
+      ],
+      "branches": [
+        "row is None",
+        "receipt.action == 0"
+      ]
+    },
+    {
+      "mode": 5,
+      "name": "validate_u64",
+      "steps": [
+        "P44 label flag lookup",
+        "P11 _decimal(value) inside P20/P21 original argument point",
+        "P21 call(1,...labels=(label,))",
+        "return receipt.values[0]"
+      ],
+      "branches": []
+    },
+    {
+      "mode": 6,
+      "name": "conditional",
+      "steps": [
+        "P43 capture AgentRejected",
+        "P04 expected_current",
+        "P20 validate original generation then epoch",
+        "P18 snapshot callback",
+        "P04/P10 read snapshot fields then expected fields in original order",
+        "P32; if true P33 then P34 exact keyset; HIA short-circuit",
+        "P21 call(3,fields,flags=int(exact)) inside active exception continuation",
+        "AgentRejected match only: compare error.code; stale -> assign pending_slot_snapshot; bare rethrow",
+        "return original snapshot object alias"
+      ],
+      "branches": [
+        "isinstance short circuit",
+        "keyset comparison",
+        "actual AgentRejected catch and code"
+      ]
+    },
+    {
+      "mode": 7,
+      "name": "_begin",
+      "steps": [
+        "P25 allocate 128-byte workspace",
+        "P26 one entropy request",
+        "target is None selects one/two P11 fields and flags/labels",
+        "P21 call(7,...actual token,state)",
+        "return same workspace/token"
+      ],
+      "branches": [
+        "target is None"
+      ]
+    },
+    {
+      "mode": 8,
+      "name": "admit_evaluation",
+      "steps": [
+        "P43 capture wire",
+        "HIA loop over original three fixed names; P04 read one field then P13 wire then P21 call(17); no next-field read on error",
+        "P04 outcome then allow_unchanged",
+        "P07 direct actual image transition18",
+        "if receipt.status in {16,17}: original truth chooses diagnostic set; P38 membership, then P09 if no TypeError",
+        "P08 _raise receipt",
+        "return None"
+      ],
+      "branches": [
+        "three-name loop",
+        "status membership",
+        "allow_unchanged truth diagnostic only"
+      ]
+    },
+    {
+      "mode": 9,
+      "name": "admit_net_benefit",
+      "steps": [
+        "P43 capture wire",
+        "P05 objective.get('require_net_benefit',False)",
+        "P13 wire then P21 call19",
+        "return None"
+      ],
+      "branches": []
+    },
+    {
+      "mode": 10,
+      "name": "adopt",
+      "steps": [
+        "P43 capture wire",
+        "P02 capture db",
+        "P04 active_artifact is not None -> P21 call12",
+        "if plan.action ==1: SQL adopt.sql1 then SQL adopt.sql2",
+        "else SQL adopt.sql3 chained fetchone -> P21 call4 -> P19 native -> P16 hash -> P21 call5",
+        "P22 _begin(snapshot.current.epoch)",
+        "SQL adopt.sql4 returns cursor; preserve cursor local",
+        "P28 iter; HIA loop P29 next -> row bind -> P11 generation -> P21 call8, no count cap",
+        "P21 call9; P30 ASCII generation then epoch; construct current dict",
+        "SQL adopt.sql5 then SQL adopt.sql6",
+        "return current"
+      ],
+      "branches": [
+        "active source fact",
+        "plan.action branch",
+        "unbounded original cursor loop"
+      ]
+    },
+    {
+      "mode": 11,
+      "name": "rollback",
+      "steps": [
+        "P43 capture decode_data,digest",
+        "P02 capture db",
+        "P21 call6 flags active,a=1",
+        "SQL rollback.sql1 chained fetchone",
+        "P21 call10 flags row not None",
+        "P14 decode row artifact",
+        "P19 native -> original data/metadata/program unpack",
+        "SQL rollback.sql2 chained fetchone",
+        "P17 digest metadata then read current ABI -> P21 call11",
+        "P22 _begin(epoch,retained_generation)",
+        "P21 call9; decode two fields/construct current",
+        "SQL rollback.sql3",
+        "return current,artifact"
+      ],
+      "branches": [
+        "active and row facts passed to existing decision owner"
+      ]
+    },
+    {
+      "mode": 12,
+      "name": "_lease_value",
+      "steps": [
+        "P43 capture decode_data",
+        "unpack original four fields",
+        "P12 identity,slot,generation; P14 artifact in dict value order",
+        "return dict"
+      ],
+      "branches": []
+    },
+    {
+      "mode": 13,
+      "name": "acquire",
+      "steps": [
+        "P43 capture wire",
+        "P02 capture db",
+        "P18 snapshot_reader(target_slot)",
+        "P21 call6 flags active",
+        "P19 native(active) and discard original tuple result",
+        "P27 UUID then slot/gen encoding then P13 wire artifact",
+        "P21 call15 flags1",
+        "P24 _lease_value(result.fields)",
+        "SQL acquire.sql1 with original field indexing/result.fields[3].decode",
+        "return lease"
+      ],
+      "branches": [
+        "none on host; existing HIA call6 decision"
+      ]
+    },
+    {
+      "mode": 14,
+      "name": "lease",
+      "steps": [
+        "P43 capture decode_data,keys,wire",
+        "P31 exact original keys validation first",
+        "connection is None chooses P02 or existing connection",
+        "SQL lease.sql1 chained fetchone",
+        "row None selects four empty fields, else original id/slot/generation reads",
+        "row non-None then P36 type check; if true P37 second active read, else b'X'",
+        "P21 call16 original claimed fields",
+        "unpack checked fields",
+        "only now read stored artifact -> P14 then P13",
+        "P15 claimed artifact and exact valid flag",
+        "release selects opcode14/13 -> P21 with all original arguments",
+        "P24 _lease_value(result.fields)",
+        "return value"
+      ],
+      "branches": [
+        "connection is None",
+        "row is None",
+        "active type short circuit",
+        "release truth"
+      ]
+    },
+    {
+      "mode": 15,
+      "name": "release",
+      "steps": [
+        "P02 capture db",
+        "P23 dynamic self.lease(...)",
+        "SQL release.sql1",
+        "construct released/generation/artifact_retained result",
+        "return dict"
+      ],
+      "branches": []
+    }
+  ],
+  "primitive_kinds": [
+    {
+      "id": "P01",
+      "name": "get.store",
+      "expression": "self.store",
+      "boundary": "One original attribute observation; do not add a prior or repeated getter."
+    },
+    {
+      "id": "P02",
+      "name": "get.store_db",
+      "expression": "self.store.db",
+      "boundary": "Use where the original has this exact chain; preserve temporary Store lifetime."
+    },
+    {
+      "id": "P03",
+      "name": "identity",
+      "expression": "left is right",
+      "boundary": "Opaque object identity only; HIA selects the consequence."
+    },
+    {
+      "id": "P04",
+      "name": "map.item",
+      "expression": "mapping[key]",
+      "boundary": "One original indexing operation; no default or coercion."
+    },
+    {
+      "id": "P05",
+      "name": "map.get",
+      "expression": "mapping.get(key, default)",
+      "boundary": "Original dynamic LOAD_METHOD call, including method lookup and argument order."
+    },
+    {
+      "id": "P06",
+      "name": "native.call.default",
+      "expression": "self.image.transition(request_packet(opcode, fields, **values), state)",
+      "boundary": "The exact expression from _call; image remains the existing decision provider."
+    },
+    {
+      "id": "P07",
+      "name": "native.call.outcome",
+      "expression": "self.image.transition(request_packet(18, (wire(outcome), wire(allow_unchanged))))",
+      "boundary": "The original direct call bypasses _call; preserve that separate dynamic route."
+    },
+    {
+      "id": "P08",
+      "name": "receipt.diagnostic",
+      "expression": "_raise(receipt, labels)",
+      "boundary": "Existing diagnostic/status-to-AgentRejected provider; it is explicitly outside the new 15-method owner, never calls an old Store method."
+    },
+    {
+      "id": "P09",
+      "name": "custody.diagnostic",
+      "expression": "_custody(message)",
+      "boundary": "Original AgentRejected construction and traceback path; not an inferred native-loss signal."
+    },
+    {
+      "id": "P10",
+      "name": "text.encode",
+      "expression": "_text(value)",
+      "boundary": "Exact existing string tag/UTF-8 helper; no added limit."
+    },
+    {
+      "id": "P11",
+      "name": "decimal.encode",
+      "expression": "_decimal(value)",
+      "boundary": "Exact existing decimal observation; no host integer range admission."
+    },
+    {
+      "id": "P12",
+      "name": "text.decode",
+      "expression": "_untext(value)",
+      "boundary": "Exact existing diagnostic behavior."
+    },
+    {
+      "id": "P13",
+      "name": "json.wire",
+      "expression": "wire(value)",
+      "boundary": "Original dynamic imported callable captured at the original import point."
+    },
+    {
+      "id": "P14",
+      "name": "json.decode",
+      "expression": "decode_data(value)",
+      "boundary": "Original provider; no host replacement JSON policy introduced."
+    },
+    {
+      "id": "P15",
+      "name": "json.claimed",
+      "expression": "_claimed_artifact_wire(value)",
+      "boundary": "Retain selected renderer provenance and original with_traceback/exception precedence."
+    },
+    {
+      "id": "P16",
+      "name": "hash.sha256",
+      "expression": "sha256(data).hexdigest()",
+      "boundary": "Original complete call chain and transient hash receiver lifetime."
+    },
+    {
+      "id": "P17",
+      "name": "hash.digest",
+      "expression": "digest(metadata['signatures'])",
+      "boundary": "Exact argument indexing and callable evaluation order."
+    },
+    {
+      "id": "P18",
+      "name": "callback.snapshot",
+      "expression": "snapshot_reader(args['target_slot']) or snapshot_reader(target_slot)",
+      "boundary": "Two literal variants; preserve captured callback and original argument lookup."
+    },
+    {
+      "id": "P19",
+      "name": "callback.native",
+      "expression": "native(artifact)",
+      "boundary": "Original tuple unpack/discard handled by subsequent HIA-directed bind/release primitives."
+    },
+    {
+      "id": "P20",
+      "name": "dynamic.validate",
+      "expression": "self.validate_u64(value, label)",
+      "boundary": "Real dynamic public method call. Default resolves to this HIA owner; overrides are honored."
+    },
+    {
+      "id": "P21",
+      "name": "dynamic.call",
+      "expression": "self._call(opcode, fields, **values)",
+      "boundary": "Do not bypass captured method semantics with a private default shortcut."
+    },
+    {
+      "id": "P22",
+      "name": "dynamic.begin",
+      "expression": "self._begin(epoch[, target])",
+      "boundary": "Real dynamic route; no hidden call of the retained Python method."
+    },
+    {
+      "id": "P23",
+      "name": "dynamic.lease",
+      "expression": "self.lease(lease, release=True, connection=db)",
+      "boundary": "Nested release→lease remains a separately observable actual invocation."
+    },
+    {
+      "id": "P24",
+      "name": "dynamic.lease_value",
+      "expression": "self._lease_value(result.fields)",
+      "boundary": "Preserve staticmethod/instance override semantics and descriptor lookup."
+    },
+    {
+      "id": "P25",
+      "name": "buffer.allocate",
+      "expression": "ctypes.create_string_buffer(STATE_BYTES)",
+      "boundary": "Original fixed 128-byte decision workspace. New controller workspace is separate."
+    },
+    {
+      "id": "P26",
+      "name": "token.entropy",
+      "expression": "struct.unpack('<4Q', os.urandom(32))",
+      "boundary": "One actual entropy request after buffer allocation, original lookup order."
+    },
+    {
+      "id": "P27",
+      "name": "uuid.identity",
+      "expression": "'lease-' + uuid.uuid4().hex",
+      "boundary": "Original temporary UUID lifetime and hex lookup."
+    },
+    {
+      "id": "P28",
+      "name": "iterator.obtain",
+      "expression": "iter(cursor)",
+      "boundary": "One original for-loop iterator acquisition; no row materialization."
+    },
+    {
+      "id": "P29",
+      "name": "iterator.next",
+      "expression": "next(iterator)",
+      "boundary": "HIA handles only the actual StopIteration loop termination; other exceptions preserve identity."
+    },
+    {
+      "id": "P30",
+      "name": "bytes.decode",
+      "expression": "field.decode('ascii') or field.decode()",
+      "boundary": "Explicit literal variants; never move decode before its original point."
+    },
+    {
+      "id": "P31",
+      "name": "shape.keys",
+      "expression": "keys(lease, ('id','slot','generation','artifact'), label='generation lease')",
+      "boundary": "Original exact-dict provider invoked before DB selection."
+    },
+    {
+      "id": "P32",
+      "name": "object.isinstance_dict",
+      "expression": "isinstance(expected, dict)",
+      "boundary": "Raw interpreter fact; HIA owns the short-circuit."
+    },
+    {
+      "id": "P33",
+      "name": "object.set",
+      "expression": "set(expected)",
+      "boundary": "Original iterator/hash effects, only if preceding isinstance accepts."
+    },
+    {
+      "id": "P34",
+      "name": "object.equal",
+      "expression": "left == right",
+      "boundary": "Raw comparison result followed by original truth context; do not assume a user result is bool."
+    },
+    {
+      "id": "P35",
+      "name": "object.truth",
+      "expression": "bool(raw_comparison)",
+      "boundary": "Only at the original branch/short-circuit point."
+    },
+    {
+      "id": "P36",
+      "name": "object.type_is_int",
+      "expression": "type(row['active']) is int",
+      "boundary": "First active-field read; HIA decides whether to perform the second read."
+    },
+    {
+      "id": "P37",
+      "name": "active.encode",
+      "expression": "b'I' + str(row['active']).encode('ascii')",
+      "boundary": "Second original active-field read, only on the true branch."
+    },
+    {
+      "id": "P38",
+      "name": "diagnostic.membership",
+      "expression": "outcome not in ({'improved','unchanged'} if allow_unchanged else {'improved'})",
+      "boundary": "HIA owns choosing the set via original truth protocol; membership primitive only preserves original TypeError after refusal, never admits outcome."
+    },
+    {
+      "id": "P39",
+      "name": "literal.construct",
+      "expression": "fixed tuple/dict/field unpack using already-bound opaque handles",
+      "boundary": "Mechanical construction in original insertion/evaluation order; no business choice."
+    },
+    {
+      "id": "P40",
+      "name": "literal.assign",
+      "expression": "self.store, self.image = store, image",
+      "boundary": "Original constructor target order and actual setattr effects."
+    },
+    {
+      "id": "P41",
+      "name": "exception.bind_and_reraise",
+      "expression": "AgentRejected match; error.pending_slot_snapshot = snapshot; bare raise",
+      "boundary": "Run within the original active except continuation only when HIA selects it; do not reconstruct traceback or inspect exception class to infer delivery."
+    },
+    {
+      "id": "P42",
+      "name": "locals.release",
+      "expression": "release only HIA-selected original local/stack ownership",
+      "boundary": "Follow measured per-runtime reference release; normal/exception paths differ. No host finally blanket-clear policy."
+    },
+    {
+      "id": "P43",
+      "name": "imports.capture",
+      "expression": "from .hia_agent_store import ...",
+      "boundary": "At each original method's import point; local provider captures remain stable for that invocation."
+    },
+    {
+      "id": "P44",
+      "name": "labels.flag",
+      "expression": "{'generation':1,'epoch':2,'retained_generation':3}.get(label,1)",
+      "boundary": "Preserve original hash/equality/default behavior; do not force an exact label type."
+    },
+    {
+      "id": "P45",
+      "name": "numeric.builtin_int",
+      "expression": "int(original_bool)",
+      "boundary": "Preserve original builtin lookup at argument sites; arbitrary user integers remain handles."
+    },
+    {
+      "id": "P46",
+      "name": "sql.execute.literal",
+      "expression": "connection.execute(statement, parameters)",
+      "boundary": "The _execute method's complete original call after HIA's identity decision; pre-reserve bookkeeping before original lookup, final argument guard only after original parameter evaluation."
+    }
+  ],
+  "sql_ports": "sql-sites.json,15 exact literal sites; fetchone/chained indexing remains within each original literal provider expression",
+  "callbacks_to_retained_15_methods_in_selected_mode": 0,
+  "existing_diagnostic_encoding_provider_ownership_explicit": [
+    "request_packet",
+    "_text",
+    "_untext",
+    "_decimal",
+    "_raise",
+    "_custody",
+    "_claimed_artifact_wire",
+    "AgentStore wire/decode_data/digest",
+    "native callback",
+    "snapshot_reader"
+  ],
+  "ABI": {
+    "status": "PROPOSED_NOT_GENERATED_OR_ADMITTED",
+    "request_bytes": 128,
+    "response_bytes": 96,
+    "workspace_bytes": 192,
+    "magic": "distinct HIA Slot SQL control version, no reuse of HIASLRQ1 ignored fields",
+    "payload_domain": "opaque Python handles; no new input/string/history limit",
+    "state": "mode,phase,original bound-local flags,iterator state,exception continuation,resource-series generation",
+    "events": [
+      "INITIALIZE",
+      "FOREIGN_RETURN",
+      "FOREIGN_RAISE",
+      "TERMINAL",
+      "PROPAGATE"
+    ],
+    "ack": "mode/token/phase/port/complete reserved fields and exact source/image custody before confirmation"
+  }
+}

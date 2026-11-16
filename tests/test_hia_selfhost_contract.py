@@ -32,8 +32,11 @@ class SelfhostContractTests(unittest.TestCase):
         declared = validate_contract()["source_identity"]["files"]
         # The public freeze reads its own explicit inventory. A newly declared
         # selfhost helper must be present there before a release can be locked.
+        automatic_python_sources = {
+            path.relative_to(ROOT).as_posix() for path in (ROOT / "hepta").rglob("*.py")
+        }
         self.assertEqual(set(BOOTSTRAP_FILES) - {CONTRACT_PATH},
-                         {name for name in declared if not name.startswith("hepta/")})
+                         set(declared) - automatic_python_sources)
 
     def test_contract_binds_support_and_complete_seed_source_closure(self):
         contract = validate_contract()

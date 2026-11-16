@@ -1,0 +1,82 @@
+    def _reference_call(self, tool, arguments):
+        started = time.monotonic_ns()
+        request_id = "unadmitted-" + uuid.uuid4().hex
+        key, reserved, context_id, response = None, False, None, None
+        try:
+            # Snapshot before inspecting any mutable producer dictionaries.
+            arguments = decode_data(wire(arguments))
+            request_digest = digest({"tool": tool, "arguments": arguments})
+            request_id = "r-" + request_digest
+            if tool == "hia_resource_read":
+                keys(arguments, ("uri",), ("max_bytes",), "resource read")
+                arguments = {"catalog_sha256": self.catalog_sha256,
+                    "artifact": self.store.resolve_uri(arguments["uri"]),
+                    "max_bytes": arguments.get("max_bytes", 65536)}
+                tool = "hia_read"
+            if tool not in self.tools:
+                reject("E_HIA_TOOL", "unknown HIA tool")
+            # A syntactically valid key is claimed even when later validation
+            # rejects the request. Changed retry arguments cannot reuse it.
+            candidate_key = arguments.get("request_key") if type(arguments) is dict else None
+            if type(candidate_key) is str and 1 <= len(candidate_key) <= 192:
+                key = digest({"tool": tool, "key": candidate_key})
+                with self.store.transaction():
+                    previous = self.store.db.execute("SELECT * FROM requests WHERE key=?", (key,)).fetchone()
+                    if previous is not None:
+                        if previous["digest"] != request_digest:
+                            reject("E_HIA_REQUEST_CONFLICT", "request key is already bound to different arguments")
+                        if previous["state"] == "completed":
+                            cached = decode_data(previous["response"])
+                            if tool == "hia_verify" and cached.get("status") == "completed":
+                                self._replay_verification(cached, arguments)
+                            return cached
+                        reject("E_HIA_REQUEST_UNKNOWN", "original request has durable intent but no confirmed terminal result",
+                               retry_action="observe_original")
+                    self.store.db.execute("INSERT INTO requests VALUES (?,?,?,?,?,?)",
+                        (key, request_digest, tool, "running", None, str(time.time_ns())))
+                    reserved = True
+            validate(arguments, self.tools[tool]["inputSchema"])
+            if tool != "hia_describe" and arguments["catalog_sha256"] != self.catalog_sha256:
+                reject("E_HIA_CATALOG_STALE", "tool catalog digest differs from installed catalog")
+            if installation_manifest() != self.identities:
+                reject("E_HIA_IMPLEMENTATION_STALE", "installed implementation changed during this service session")
+            if "context" in arguments:
+                context = self._context(arguments["context"])
+                _delivery_check()
+                context_id = arguments["context"]["id"]
+                if tool not in {"hia_inspect", "hia_rollback"}:
+                    self._budget(context, candidate=tool == "hia_candidate")
+                    _delivery_check()
+            # Slot effect and exact response journal commit together. A crash
+            # cannot leave a changed slot with a replayable uncommitted result.
+            if tool in {"hia_adopt", "hia_rollback"}:
+                with self.store.transaction():
+                    result = getattr(self, "_" + tool)(arguments)
+                    _delivery_check()
+                    response = {"contract_version": VERSION, "request_id": request_id,
+                                "status": "completed", "result": result}
+                    validate(response, self.tools[tool]["outputSchema"], "result")
+                    if reserved:
+                        self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
+                                              _delivery_guard((wire(response).decode(), key)))
+                        reserved = False
+            else:
+                result = getattr(self, "_" + tool)(arguments)
+                _delivery_check()
+                response = {"contract_version": VERSION, "request_id": request_id,
+                            "status": "completed", "result": result}
+                validate(response, self.tools[tool]["outputSchema"], "result")
+        except (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error) as exc:
+            _delivery_check()
+            response = self._error(request_id, exc)
+        finally:
+            if response is not None and not _delivery_lost():
+                # Preserve every attempted request, including malformed, slower,
+                # timed-out and rejected candidates; exact replay costs no effect.
+                self.store.db.execute("INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)",
+                    _delivery_guard((context_id, str(tool), request_id, str(time.monotonic_ns() - started), response["status"],
+                     wire({"error": response.get("error"), "replayed": False}).decode())))
+                if reserved:
+                    self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
+                                          _delivery_guard((wire(response).decode(), key)))
+        return response

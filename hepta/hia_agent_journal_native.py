@@ -7,12 +7,16 @@ foreign Python object custody remain hosted. This is not a native AgentStore.
 from __future__ import annotations
 
 import ctypes
+from .hia_native_delivery import (DeliveryRecord, NativeCall, NativeDeliveryUnknown,
+    current_record, check_current as _delivery_check,
+    delivery_lost as _delivery_lost, guarded as _delivery_guard)
 from dataclasses import dataclass
 from json import JSONDecodeError
 import math
 import os
 import struct
 import sys
+import threading
 
 from .hia_agent_data_json_native import materialize_data
 from .hia_agent_store import AgentRejected, _agent_resource_path, wire
@@ -65,11 +69,36 @@ class Instruction:
     arena: bytes = b''
 
 
+class _JournalAcknowledgement:
+    """One live request's SQL observation awaiting this session's empty ACK.
+
+The session's fully validated receipt discharges this obligation. Returning
+from a replaceable Python method is not an acknowledgement, and a later
+foreign exception cannot undo an already confirmed native delivery.
+    """
+    __slots__ = ('session', 'stage', 'record', 'pid', 'thread', 'active', 'complete')
+
+    def __init__(self, session, stage, record):
+        self.session, self.stage, self.record = session, stage, record
+        self.pid, self.thread = os.getpid(), threading.get_ident()
+        self.active, self.complete = True, False
+
+    def confirm(self, session, stage):
+        if (self.active and self.session is session and self.stage == stage
+                and session._ack_delivery is self
+                and self.pid == os.getpid() and self.thread == threading.get_ident()
+                and self.record.current() and not self.record.retired
+                and not self.record.terminal):
+            self.record.confirmed()
+            self.complete = True
+
+
 class JournalSession:
     """Opaque state passed only between calls of one selected immutable image."""
     def __init__(self, image):
         self.image = image
         self._state = bytes(STATE_BYTES)
+        self._ack_delivery = None
 
     def _word(self, offset):
         return struct.unpack_from('<Q', self._state, offset)[0]
@@ -92,108 +121,123 @@ class JournalSession:
         return TOOLS[value - 1] if 1 <= value <= len(TOOLS) else None
 
     def _run(self, stage, raw=b'', foreign_types=b'', *, data_profile=False):
-        if type(raw) is not bytes or stage != 10 and len(raw) > MAX_BYTES:
-            raise ValueError('journal JSON must be bytes within 8 MiB')
-        output_size, scratch_size = buffer_sizes(0 if stage == 10 else len(raw))
-        if type(foreign_types) is not bytes or len(foreign_types) > 262144 or stage != 0 and foreign_types:
-            raise RuntimeError('invalid journal foreign-type observation')
-        scratch_size += len(foreign_types)
-        canary = bytes(range(64))
-        source = ctypes.create_string_buffer(raw + canary)
-        output = ctypes.create_string_buffer(output_size + len(canary))
-        scratch = ctypes.create_string_buffer(scratch_size + len(canary))
-        ctypes.memmove(ctypes.addressof(output) + output_size, canary, len(canary))
-        ctypes.memmove(ctypes.addressof(scratch) + scratch_size, canary, len(canary))
-        ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES,
-                       self._state, STATE_BYTES)
-        ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES - len(foreign_types),
-                       foreign_types, len(foreign_types))
-        struct.pack_into('<Q', scratch, scratch_size - PRIVATE_BYTES + 336, len(foreign_types))
-        struct.pack_into('<Q', scratch, scratch_size - PRIVATE_BYTES + 344,
-                         data_profile)
-        struct.pack_into('<2Q', scratch, 0, stage, sys.get_int_max_str_digits())
-        code = self.image._entry(source, len(raw), output, output_size, scratch, scratch_size)
-        if (ctypes.string_at(source, len(raw) + len(canary)) != raw + canary
-                or ctypes.string_at(ctypes.addressof(output) + output_size, len(canary)) != canary
-                or ctypes.string_at(ctypes.addressof(scratch) + scratch_size, len(canary)) != canary):
-            raise RuntimeError('native journal violated buffer custody')
-        if code == 0xffffffe8:
-            reason = struct.unpack_from('<Q', output, HEADER_OFFSET)[0]
-            if stage != 3 or reason not in SYNTAX_REASONS:
-                raise RuntimeError('invalid native cached JSON syntax diagnostic')
-            raise ValueError('HIA JSON preflight: ' + SYNTAX_REASONS[reason])
-        if code == 0xffffffe7:
-            start, end, reason = struct.unpack_from('<3Q', output, HEADER_OFFSET)
-            reasons = {1: 'invalid start byte', 2: 'invalid continuation byte', 3: 'unexpected end of data'}
-            if stage != 10 or not 0 <= start < end <= len(raw) or reason not in reasons:
-                raise RuntimeError('invalid native UTF-8 codec diagnostic')
-            raise UnicodeDecodeError('utf-8', raw, start, end, reasons[reason])
-        if code == 0xffffffe4:
-            reason, position, line, column = struct.unpack_from('<4Q', output, HEADER_OFFSET)
-            reasons = {9: 'Expecting value', 10: 'Expecting value', 12: 'Extra data',
-                       14: "Expecting ',' delimiter", 18: "Expecting ',' delimiter",
-                       16: 'Expecting property name enclosed in double quotes',
-                       17: "Expecting ':' delimiter"}
-            if stage != 3 or data_profile or reason not in reasons or position > len(raw):
-                raise RuntimeError('invalid native original JSON syntax diagnostic')
-            # HIA owns grammar, the original character position and line/column.
-            # This is only construction of the prior foreign exception object.
-            error = JSONDecodeError(reasons[reason], raw.decode('utf-8'), position)
-            if (error.lineno, error.colno) != (line, column):
-                raise RuntimeError('native original JSON position disagrees with foreign text')
-            raise error
-        if code in (0xffffffe6, 0xffffffe5):
-            if stage != 3:
-                raise RuntimeError('invalid native cached JSON structural diagnostic')
-            if code == 0xffffffe6:
-                raise OverflowError('HIA JSON exceeds node/depth budget before decoding')
-            raise ValueError('HIA JSON preflight: duplicate decoded object key')
-        if code in (0xffffffff, 0xfffffffc, 0xfffffffe, 0xfffffff0, 0xffffffea):
-            if stage == 3 and data_profile:
-                # The existing explicit arena selector has a distinct public
-                # diagnostic ABI. HIA still makes the parse/budget decision.
-                if code == 0xfffffffe:
-                    raise ValueError('HIA JSON preflight: node/depth budget exceeded')
-                if code in (0xffffffff, 0xfffffffc):
-                    raise ValueError('HIA JSON decoder: ' + {
-                        0xffffffff: 'invalid JSON syntax or Unicode',
-                        0xfffffffc: 'duplicate decoded object key'}[code])
-            reasons = {0xffffffff: 'invalid JSON syntax or Unicode',
-                       0xfffffffc: 'duplicate decoded object key',
-                       0xfffffffe: 'JSON node/depth budget exceeded',
-                       0xfffffff0: 'nonfinite number or integer conversion limit',
-                       0xffffffea: 'E_HIA_EDIT: JSON encoding exceeds byte budget'}
-            raise ValueError(reasons[code])
-        if code == 0xfffffffd:
-            raise RuntimeError('native journal rejected its protocol phase or scratch profile')
-        state = ctypes.string_at(ctypes.addressof(output) + HEADER_OFFSET, STATE_BYTES)
-        word = lambda offset: struct.unpack_from('<Q', state, offset)[0]
-        actions = {0: {CONTINUE, LOOKUP, ALIAS, REFUSE}, 1: {RESERVE, CACHE, REFUSE},
-                   2: {CONTINUE}, 3: {REPLAY, VERIFY_REPLAY, REFUSE}, 4: {CONTINUE},
-                   5: {CONTINUE, ATOMIC}, 6: {NONE, JOURNAL}, 7: {NONE},
-                   8: {NONE, FINAL}, 9: {BOUND, REFUSE}, 10: {13}}
-        if (word(0) != MAGIC or code not in actions[stage] or word(48) != code
-                or word(8) not in {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
-                or word(16) > 12 or word(24) > 1 or word(32) > 1 or word(40) > 1
-                or word(264) > 2 or word(272) > MAX_BYTES or word(280) > MAX_BYTES
-                or word(288) > 3):
-            raise RuntimeError('invalid native journal instruction')
-        if self.request_id is not None and state[64:258] != self._state[64:258]:
-            raise RuntimeError('native journal changed admitted request identity')
-        if (code == FINAL and (word(288) not in {1, 3} or not word(272) or not word(280) or not word(264))
-                or code == JOURNAL and (word(288) != 2 or not word(272) or word(280) or word(264) != 1)
-                or code not in {FINAL, JOURNAL} and (word(288) or word(272) or word(280) or word(264))):
-            raise RuntimeError('invalid native journal write instruction')
-        arena = b''
-        if stage == 3:
-            extent = struct.unpack_from('<Q', scratch, 32)[0]
-            if not 64 <= extent <= scratch_size - PRIVATE_BYTES:
-                raise RuntimeError('invalid native journal arena extent')
-            arena = ctypes.string_at(scratch, extent)
-        self._state = state
-        return Instruction(code, word(288), ctypes.string_at(output, word(272)),
-                           ctypes.string_at(ctypes.addressof(output) + MAX_BYTES, word(280)),
-                           {0: None, 1: 'completed', 2: 'rejected'}[word(264)], arena)
+        with NativeCall(self) as delivery:
+            acknowledgement = self._ack_delivery
+            if type(raw) is not bytes or stage != 10 and len(raw) > MAX_BYTES:
+                raise ValueError('journal JSON must be bytes within 8 MiB')
+            output_size, scratch_size = buffer_sizes(0 if stage == 10 else len(raw))
+            if type(foreign_types) is not bytes or len(foreign_types) > 262144 or stage != 0 and foreign_types:
+                raise RuntimeError('invalid journal foreign-type observation')
+            scratch_size += len(foreign_types)
+            canary = bytes(range(64))
+            source = ctypes.create_string_buffer(raw + canary)
+            output = ctypes.create_string_buffer(output_size + len(canary))
+            scratch = ctypes.create_string_buffer(scratch_size + len(canary))
+            ctypes.memmove(ctypes.addressof(output) + output_size, canary, len(canary))
+            ctypes.memmove(ctypes.addressof(scratch) + scratch_size, canary, len(canary))
+            ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES,
+                           self._state, STATE_BYTES)
+            ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES - len(foreign_types),
+                           foreign_types, len(foreign_types))
+            struct.pack_into('<Q', scratch, scratch_size - PRIVATE_BYTES + 336, len(foreign_types))
+            struct.pack_into('<Q', scratch, scratch_size - PRIVATE_BYTES + 344,
+                             data_profile)
+            struct.pack_into('<2Q', scratch, 0, stage, sys.get_int_max_str_digits())
+            delivery.enter_native()
+            code = self.image._entry(source, len(raw), output, output_size, scratch, scratch_size)
+            if (ctypes.string_at(source, len(raw) + len(canary)) != raw + canary
+                    or ctypes.string_at(ctypes.addressof(output) + output_size, len(canary)) != canary
+                    or ctypes.string_at(ctypes.addressof(scratch) + scratch_size, len(canary)) != canary):
+                raise RuntimeError('native journal violated buffer custody')
+            if code == 0xffffffe8:
+                reason = struct.unpack_from('<Q', output, HEADER_OFFSET)[0]
+                if stage != 3 or reason not in SYNTAX_REASONS:
+                    raise RuntimeError('invalid native cached JSON syntax diagnostic')
+                delivery.confirmed(terminal=True)
+                raise ValueError('HIA JSON preflight: ' + SYNTAX_REASONS[reason])
+            if code == 0xffffffe7:
+                start, end, reason = struct.unpack_from('<3Q', output, HEADER_OFFSET)
+                reasons = {1: 'invalid start byte', 2: 'invalid continuation byte', 3: 'unexpected end of data'}
+                if stage != 10 or not 0 <= start < end <= len(raw) or reason not in reasons:
+                    raise RuntimeError('invalid native UTF-8 codec diagnostic')
+                delivery.confirmed(terminal=True)
+                raise UnicodeDecodeError('utf-8', raw, start, end, reasons[reason])
+            if code == 0xffffffe4:
+                reason, position, line, column = struct.unpack_from('<4Q', output, HEADER_OFFSET)
+                reasons = {9: 'Expecting value', 10: 'Expecting value', 12: 'Extra data',
+                           14: "Expecting ',' delimiter", 18: "Expecting ',' delimiter",
+                           16: 'Expecting property name enclosed in double quotes',
+                           17: "Expecting ':' delimiter"}
+                if stage != 3 or data_profile or reason not in reasons or position > len(raw):
+                    raise RuntimeError('invalid native original JSON syntax diagnostic')
+                # HIA owns grammar, the original character position and line/column.
+                # This is only construction of the prior foreign exception object.
+                error = JSONDecodeError(reasons[reason], raw.decode('utf-8'), position)
+                if (error.lineno, error.colno) != (line, column):
+                    raise RuntimeError('native original JSON position disagrees with foreign text')
+                delivery.confirmed(terminal=True)
+                raise error
+            if code in (0xffffffe6, 0xffffffe5):
+                if stage != 3:
+                    raise RuntimeError('invalid native cached JSON structural diagnostic')
+                if code == 0xffffffe6:
+                    delivery.confirmed(terminal=True)
+                    raise OverflowError('HIA JSON exceeds node/depth budget before decoding')
+                delivery.confirmed(terminal=True)
+                raise ValueError('HIA JSON preflight: duplicate decoded object key')
+            if code in (0xffffffff, 0xfffffffc, 0xfffffffe, 0xfffffff0, 0xffffffea):
+                if stage == 3 and data_profile:
+                    # The existing explicit arena selector has a distinct public
+                    # diagnostic ABI. HIA still makes the parse/budget decision.
+                    if code == 0xfffffffe:
+                        delivery.confirmed(terminal=True)
+                        raise ValueError('HIA JSON preflight: node/depth budget exceeded')
+                    if code in (0xffffffff, 0xfffffffc):
+                        delivery.confirmed(terminal=True)
+                        raise ValueError('HIA JSON decoder: ' + {
+                            0xffffffff: 'invalid JSON syntax or Unicode',
+                            0xfffffffc: 'duplicate decoded object key'}[code])
+                reasons = {0xffffffff: 'invalid JSON syntax or Unicode',
+                           0xfffffffc: 'duplicate decoded object key',
+                           0xfffffffe: 'JSON node/depth budget exceeded',
+                           0xfffffff0: 'nonfinite number or integer conversion limit',
+                           0xffffffea: 'E_HIA_EDIT: JSON encoding exceeds byte budget'}
+                delivery.confirmed(terminal=True)
+                raise ValueError(reasons[code])
+            if code == 0xfffffffd:
+                raise RuntimeError('native journal rejected its protocol phase or scratch profile')
+            state = ctypes.string_at(ctypes.addressof(output) + HEADER_OFFSET, STATE_BYTES)
+            word = lambda offset: struct.unpack_from('<Q', state, offset)[0]
+            actions = {0: {CONTINUE, LOOKUP, ALIAS, REFUSE}, 1: {RESERVE, CACHE, REFUSE},
+                       2: {CONTINUE}, 3: {REPLAY, VERIFY_REPLAY, REFUSE}, 4: {CONTINUE},
+                       5: {CONTINUE, ATOMIC}, 6: {NONE, JOURNAL}, 7: {NONE},
+                       8: {NONE, FINAL}, 9: {BOUND, REFUSE}, 10: {13}}
+            if (word(0) != MAGIC or code not in actions[stage] or word(48) != code
+                    or word(8) not in {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
+                    or word(16) > 12 or word(24) > 1 or word(32) > 1 or word(40) > 1
+                    or word(264) > 2 or word(272) > MAX_BYTES or word(280) > MAX_BYTES
+                    or word(288) > 3):
+                raise RuntimeError('invalid native journal instruction')
+            if self.request_id is not None and state[64:258] != self._state[64:258]:
+                raise RuntimeError('native journal changed admitted request identity')
+            if (code == FINAL and (word(288) not in {1, 3} or not word(272) or not word(280) or not word(264))
+                    or code == JOURNAL and (word(288) != 2 or not word(272) or word(280) or word(264) != 1)
+                    or code not in {FINAL, JOURNAL} and (word(288) or word(272) or word(280) or word(264))):
+                raise RuntimeError('invalid native journal write instruction')
+            arena = b''
+            if stage == 3:
+                extent = struct.unpack_from('<Q', scratch, 32)[0]
+                if not 64 <= extent <= scratch_size - PRIVATE_BYTES:
+                    raise RuntimeError('invalid native journal arena extent')
+                arena = ctypes.string_at(scratch, extent)
+            self._state = state
+            instruction = Instruction(code, word(288), ctypes.string_at(output, word(272)),
+                               ctypes.string_at(ctypes.addressof(output) + MAX_BYTES, word(280)),
+                               {0: None, 1: 'completed', 2: 'rejected'}[word(264)], arena)
+            delivery.confirmed(terminal=True)
+            if type(acknowledgement) is _JournalAcknowledgement:
+                acknowledgement.confirm(self, stage)
+            return instruction
 
     def prepare(self, raw, foreign_types=b''):
         return self._run(0, raw, foreign_types)
@@ -215,6 +259,11 @@ class JournalSession:
             raise AgentRejected('E_HIA_JSON', 'JSON data must be UTF-8 bytes or text')
         selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_MANIFEST')
         selected_data = os.environ.get('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST')
+        selected_preflight = None
+        if not selected_data:
+            selected_preflight = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
+            if selected_preflight == '':
+                raise ValueError('JSON preflight selector must not be empty')
         payload = raw if type(raw) is bytes else raw.encode('utf-8')
         if type(raw) is bytes and not selected_data:
             # Python's previous byte codec precedes its JSON byte budget. HIA
@@ -226,7 +275,6 @@ class JournalSession:
             from .hia_agent_data_json_native import installed_agent_data_json
             installed_agent_data_json(selected_data)
         else:
-            selected_preflight = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
             if selected_preflight:
                 from .hia_json_preflight_native import installed_preflight
                 installed_preflight(selected_preflight)
@@ -315,6 +363,24 @@ def installed_agent_journal(manifest):
 
 
 def call_with_native_journal(service, tool, arguments, manifest):
+    from . import hia_agent_service as hosted
+    delivery = DeliveryRecord(service)
+    try:
+        with delivery.foreign(observation=False):
+            result = _call_with_native_journal(service, tool, arguments, manifest)
+            delivery.check()
+            return result
+    except BaseException as error:
+        delivery.failed(error)
+        domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, hosted.sqlite3.Error)
+        if isinstance(error, domain_errors):
+            delivery.propagate(error, NativeDeliveryUnknown, domain_errors)
+        raise
+    finally:
+        delivery.retire()
+
+
+def _call_with_native_journal(service, tool, arguments, manifest):
     """Execute HIA instructions; hosted methods and SQL retain their own owners."""
     from . import hia_agent_service as hosted
 
@@ -322,21 +388,72 @@ def call_with_native_journal(service, tool, arguments, manifest):
     request_id = 'unadmitted-' + hosted.uuid.uuid4().hex
     context_id, response = None, None
     native_failed = False
+    delivery = current_record()
     domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, hosted.sqlite3.Error)
-    def native_step(operation, *arguments, acknowledgement=False):
+    sql_cleanup_active = False
+    deferred_ack_failure = None
+
+    def finish_sql_cleanup():
+        nonlocal sql_cleanup_active, deferred_ack_failure
+        sql_cleanup_active = False
+        if deferred_ack_failure is not None:
+            # The original transaction has now finished its exception path.
+            # Keep the unconfirmed SQL observation and publish its original
+            # error; successful ROLLBACK is not a journal acknowledgement.
+            delivery.failed(deferred_ack_failure)
+            deferred_ack_failure = None
+
+    def check_sql_cleanup():
         nonlocal native_failed
+        # A custom transaction may suppress an ACK/lookup exception. Its
+        # normal return cannot turn a still-pending SQL observation into a
+        # successful request or authorize another effect.
+        if delivery.observation_pending:
+            native_failed = True
+            if delivery.loss is None:
+                delivery.failed(NativeDeliveryUnknown(
+                    'native journal SQL observation left transaction without acknowledgement'))
+        delivery.check()
+
+    def native_step(operation, *arguments, acknowledgement=False):
+        nonlocal native_failed, deferred_ack_failure
+        activation = previous = None
         try:
-            return operation(*arguments)
+            if acknowledgement:
+                delivery.observed()
+                previous = session._ack_delivery
+                activation = _JournalAcknowledgement(session, acknowledgement, delivery)
+                session._ack_delivery = activation
+            result = operation(*arguments)
+            delivery.check()
+            if activation is not None and not activation.complete:
+                raise NativeDeliveryUnknown('native journal SQL acknowledgement was not confirmed')
+            return result
         except BaseException as exc:
+            if (sql_cleanup_active and acknowledgement
+                    and delivery.observation_pending and delivery.loss is None
+                    and not delivery.native_pending):
+                # No child/native loss has been published. Leave the SQL
+                # obligation pending while the original transaction performs
+                # its exception cleanup, including selected native ROLLBACK.
+                # Real native-entry loss remains immediate and never takes
+                # this path; all parent/resource guards stay in force.
+                deferred_ack_failure = exc
+            else:
+                delivery.failed(exc)
             # A newly introduced native protocol failure must not finalize a
             # completed response after its enclosing SQL transaction rolls back.
             # Do not invoke the failed image again or issue any terminal writes.
             # Payload refusal remains an ordinary domain rejection. Empty ACK
             # phases have no payload rejection domain; any failure is terminal
             # for this invocation, including asynchronous/process exceptions.
-            if acknowledgement or not isinstance(exc, domain_errors):
+            if _delivery_lost() or acknowledgement or not isinstance(exc, domain_errors):
                 native_failed = True
             raise
+        finally:
+            if activation is not None:
+                activation.active = False
+                session._ack_delivery = previous
     try:
         session = installed_agent_journal(manifest).session()
     except (ValueError, OSError) as exc:
@@ -357,22 +474,34 @@ def call_with_native_journal(service, tool, arguments, manifest):
             native_step(session.aliased)
             tool = session.tool
         if step.action == LOOKUP:
-            with service.store.transaction():
-                previous = service.store.db.execute(
-                    'SELECT * FROM requests WHERE key=?', (session.key,)).fetchone()
-                row = native_step(session.lookup, previous)
-                if row.action == REFUSE:
-                    session.raise_refusal()
-                if row.action == RESERVE:
-                    service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
-                        (session.key, session.request_digest, tool, 'running', None, str(hosted.time.time_ns())))
-                    # SQL succeeded; acknowledgement precedes COMMIT, as before.
-                    native_step(session.reserved, acknowledgement=True)
-                elif row.action == CACHE:
-                    replay, cached = native_step(session.cached, previous['response'])
-                    if replay.action == VERIFY_REPLAY:
-                        service._replay_verification(cached, arguments)
-                    return cached
+            sql_cleanup_active = True
+            try:
+                with service.store.transaction():
+                    previous = service.store.db.execute(
+                        'SELECT * FROM requests WHERE key=?', (session.key,)).fetchone()
+                    row = native_step(session.lookup, previous)
+                    if row.action == REFUSE:
+                        session.raise_refusal()
+                    if row.action == RESERVE:
+                        delivery.observed()
+                        try:
+                            service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
+                                (session.key, session.request_digest, tool, 'running', None, str(hosted.time.time_ns())))
+                        except BaseException:
+                            # An ordinary SQL-provider failure stays its original foreign
+                            # outcome. A real child native loss is sticky and is not cleared.
+                            delivery.foreign_refused()
+                            raise
+                        # SQL succeeded; acknowledgement precedes COMMIT, as before.
+                        native_step(session.reserved, acknowledgement=2)
+                    elif row.action == CACHE:
+                        replay, cached = native_step(session.cached, previous['response'])
+                        if replay.action == VERIFY_REPLAY:
+                            service._replay_verification(cached, arguments)
+                        return cached
+            finally:
+                finish_sql_cleanup()
+            check_sql_cleanup()
         hosted.validate(arguments, service.tools[tool]['inputSchema'])
         if tool != 'hia_describe' and arguments['catalog_sha256'] != service.catalog_sha256:
             hosted.reject('E_HIA_CATALOG_STALE', 'tool catalog digest differs from installed catalog')
@@ -380,23 +509,38 @@ def call_with_native_journal(service, tool, arguments, manifest):
             hosted.reject('E_HIA_IMPLEMENTATION_STALE', 'installed implementation changed during this service session')
         if 'context' in arguments:
             context = service._context(arguments['context'])
+            _delivery_check()
             context_id = arguments['context']['id']
             if tool not in {'hia_inspect', 'hia_rollback'}:
                 service._budget(context, candidate=tool == 'hia_candidate')
+                _delivery_check()
         mode = native_step(session.effect)
         if mode.action == ATOMIC:
             try:
-                with service.store.transaction():
-                    result = getattr(service, '_' + tool)(arguments)
-                    response = {'contract_version': hosted.VERSION, 'request_id': request_id,
-                                'status': 'completed', 'result': result}
-                    hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
-                    instruction = native_step(session.inline, response)
-                    if instruction.action == JOURNAL:
-                        service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                                 (instruction.response.decode('utf-8'), session.key))
-                        # UPDATE succeeded; acknowledgement still precedes COMMIT.
-                        native_step(session.committed_inline, acknowledgement=True)
+                sql_cleanup_active = True
+                try:
+                    with service.store.transaction():
+                        result = getattr(service, '_' + tool)(arguments)
+                        _delivery_check()
+                        response = {'contract_version': hosted.VERSION, 'request_id': request_id,
+                                    'status': 'completed', 'result': result}
+                        hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
+                        instruction = native_step(session.inline, response)
+                        if instruction.action == JOURNAL:
+                            delivery.observed()
+                            try:
+                                service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
+                                                         _delivery_guard((instruction.response.decode('utf-8'), session.key)))
+                            except BaseException:
+                                # An ordinary SQL-provider failure stays its original foreign
+                                # outcome. A real child native loss is sticky and is not cleared.
+                                delivery.foreign_refused()
+                                raise
+                            # UPDATE succeeded; acknowledgement still precedes COMMIT.
+                            native_step(session.committed_inline, acknowledgement=7)
+                finally:
+                    finish_sql_cleanup()
+                check_sql_cleanup()
             except BaseException as exc:
                 # Also cover an asynchronous exception after SQL UPDATE returns
                 # but before Python enters the ACK helper's own try boundary.
@@ -405,30 +549,34 @@ def call_with_native_journal(service, tool, arguments, manifest):
                 raise
         else:
             result = getattr(service, '_' + tool)(arguments)
+            _delivery_check()
             response = {'contract_version': hosted.VERSION, 'request_id': request_id,
                         'status': 'completed', 'result': result}
             hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
     except (ValueError, TypeError, OSError, OverflowError, RecursionError, hosted.sqlite3.Error) as exc:
         try:
+            delivery.failed(exc)
+            _delivery_check()
             response = service._error(request_id, exc)
         except BaseException:
             native_failed = True
             raise
-    except BaseException:
+    except BaseException as exc:
         # Include the whole SQL/hosted interval, not only calls into the image:
         # a signal or allocation failure can arrive after a successful INSERT
         # or UPDATE and before the following ACK helper is entered.
+        delivery.failed(exc)
         native_failed = True
         raise
     finally:
-        if not native_failed:
+        if not native_failed and not _delivery_lost():
             instruction = session.finish(response)
             if instruction.flags & COST_WRITE:
                 service.store.db.execute(
                     'INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
-                    (context_id, str(tool), request_id, str(hosted.time.monotonic_ns() - started),
-                     instruction.status, instruction.cost_details.decode('utf-8')))
+                    _delivery_guard((context_id, str(tool), request_id, str(hosted.time.monotonic_ns() - started),
+                     instruction.status, instruction.cost_details.decode('utf-8'))))
             if instruction.flags & JOURNAL_WRITE:
                 service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                        (instruction.response.decode('utf-8'), session.key))
+                                        _delivery_guard((instruction.response.decode('utf-8'), session.key)))
     return response

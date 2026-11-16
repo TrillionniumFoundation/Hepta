@@ -366,10 +366,15 @@ class CliSession:
         value, register, field = self.value, self.register, self.field
         zero = (0, 0, 0)
         if operation == 1:
-            result = self.cli.agent_capabilities()
+            from .hia_cli_discovery_selection import selected_json
+            selected = selected_json(1)
+            result = self.cli.agent_capabilities() if selected is None else selected
         elif operation == 2:
             from .hia_opcodes import opcode_catalog
-            result = opcode_catalog(field(a, b))
+            from .hia_cli_discovery_selection import selected_json
+            schema = field(a, b)
+            selected = selected_json(2, schema)
+            result = opcode_catalog(schema) if selected is None else selected
         elif operation == 3:
             result = self.common["read_bounded"](field(a, b), limit=c)
         elif operation == 4:

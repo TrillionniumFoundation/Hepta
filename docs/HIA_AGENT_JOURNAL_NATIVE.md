@@ -213,6 +213,9 @@ multiwriter arbitration, crash recovery/compaction and deployment promotion.
 SQLite still provides the durable transaction boundary. No old implementation
 or stored data is removed by this change.
 
-For the executor-loss and reconstructed-source provenance, see
-**HIA_AGENT_JOURNAL_RECOVERY_WIP_20261111.md**. Historical lost-image
-observations must never be transferred to the reconstructed bytes.
+The superseded executor-loss checkpoint is preserved at its
+[exact published revision](https://github.com/TrillionniumFoundation/Hepta/blob/ad352eeb77d804c14d7407713e23d37e7f037cf1/docs/HIA_AGENT_JOURNAL_RECOVERY_WIP_20261111.md),
+with size, Git blob and SHA-256 in the
+[process-document recovery ledger](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json).
+Historical lost-image observations must never be transferred to reconstructed
+bytes or used as current matching-source qualification.

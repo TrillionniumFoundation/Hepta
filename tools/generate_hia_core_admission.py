@@ -177,7 +177,10 @@ def output_id(w:mutbuf, o:mutbuf, ins:u64, index:u64) -> u64:
 def argument(w:mutbuf, o:mutbuf, ins:u64, index:u64) -> u64:
     return definition(w, o, item(w, field(w, ins, K_args), index))
 
-def local_types(s:readbuf, w:mutbuf, o:mutbuf, ins:u64, a:u64, r:u64, policy:u64) -> u64:
+def local_types(s:readbuf, w:mutbuf, o:mutbuf, ins:u64, a:u64, r:u64, policy:u64, info:u64) -> u64:
+    if get(o, 24) < (policy >> 56):
+        put(o, 0, OPCODE)
+        return 0
     attrs = field(w, ins, K_attrs)
     attr = (r >> 40) & 255
     if count(w, attrs) != choose(attr == 0, 0, 1):
@@ -228,7 +231,7 @@ def local_types(s:readbuf, w:mutbuf, o:mutbuf, ins:u64, a:u64, r:u64, policy:u64
         if mode == 1:
             effects = effects | 8
     put(o, 72, get(o, 72) | effects)
-    guards(w, o, ins, policy >> 16)
+    guards(w, o, ins, (policy >> 16) & 4294967295)
     if get(o, 0) != 0:
         return 0
     transition(w, o, ins, policy & 255, (policy >> 8) & 1)
@@ -680,14 +683,16 @@ def transfer(w:mutbuf, o:mutbuf, edge:u64, queue:u64, last:u64) -> u64:
 
 
 def source_program():
-    declarations=ast.parse(declaration_source()).body
+    from tools.hia_core_diagnostic_authorship import DiagnosticAuthor
+    diagnostics = DiagnosticAuthor()
+    declarations=ast.parse(declaration_source(diagnostics=diagnostics)).body
     # Retain the complete declarations policy; only its already-admitted SSA
     # symbol value becomes the original parameter node for body-state lookup.
     defs=next(n for n in declarations if n.name=='definitions')
     call=next(n for n in ast.walk(defs) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='symbol')
     assert isinstance(call.args[-1],ast.Constant) and call.args[-1].value==0
     call.args[-1]=ast.Name(id='item',ctx=ast.Load())
-    text=BODY
+    text=diagnostics.body_source(BODY)
     text+='\ndef instruction(s:readbuf, w:mutbuf, o:mutbuf, ins:u64) -> u64:\n    op = field(w, ins, K_op)\n'
     for spec in OPCODES.values():
         a=rules(spec.operands)|((1<<48) if spec.name in {'borrow.read','borrow.mut'} else 0)
@@ -703,11 +708,10 @@ def source_program():
             code={'free':1,'end_local_loan':2,'read':3,'write':4,'distinct':5}[fields[0]]|int(fields[1])<<4
             if len(fields)==3:code|=int(fields[2])<<6
             guards.append(code)
-        policy=TRANSITIONS.index(spec.resource_transition)|(int(spec.name in {'borrow.mut','chain.head_mut'})<<8)|sum(code<<(16+i*8) for i,code in enumerate(guards))
+        policy=TRANSITIONS.index(spec.resource_transition)|(int(spec.name in {'borrow.mut','chain.head_mut'})<<8)|sum(code<<(16+i*8) for i,code in enumerate(guards))|(spec.since<<56)
         text+='    if text_is(w, op, '+', '.join(map(str,packed(spec.name)))+') != 0:\n'
-        text+='        if get(o, 24) < '+str(spec.since)+':\n            put(o, 0, OPCODE)\n            return 0\n'
-        text+='        return local_types(s, w, o, ins, '+str(a)+', '+str(r)+', '+str(policy)+')\n'
-    text+='    put(o, 0, OPCODE)\n    return 0\n'
+        text+='        return local_types(s, w, o, ins, '+str(a)+', '+str(r)+', '+str(policy)+', '+str(diagnostics.opcode_info(spec))+')\n'
+    text+='    '+diagnostics.unknown_opcode()+'\n    return 0\n'
     text+='\ndef attribute_name(w:mutbuf, node:u64) -> u64:\n'
     for i,name in enumerate(('value','mode','function')):
         text+='    if same(w, get(w, 64 + node * 56 + 40), get(w, 64 + node * 56 + 48), '+', '.join(map(str,packed(name)))+') != 0:\n        return '+str(i+1)+'\n'
@@ -715,6 +719,7 @@ def source_program():
     for i,name in enumerate(('checked','wrap')):
         text+='    if text_is(w, node, '+', '.join(map(str,packed(name)))+') != 0:\n        return '+str(i+1)+'\n'
     text+='    return 0\n'
+    text += diagnostics.helpers()
     # Reuse exact scalar group and decimal-bound authorship, not its transport.
     from tools.generate_hia_instruction_policy import source_program as local_source
     extra=[]

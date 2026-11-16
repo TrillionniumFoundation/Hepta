@@ -4,7 +4,7 @@ The ordinary one-request worker can select existing HIA native kernels through
 one administrator-supplied bundle. The worker remains Python, and the ordinary
 eleven-tool service, SQLite transport, business methods and recovery owners
 remain present. This integration does not replace the ordinary fifteen CLI
-actions or convert the separate five-command native stdio protocol into them.
+actions or convert the separate six-command native stdio protocol into them.
 
 Pass both arguments to `python -m hepta.hia_agent_worker`:
 
@@ -16,7 +16,11 @@ Pass both arguments to `python -m hepta.hia_agent_worker`:
 The same flags apply to `--installation-manifest` and request execution. A
 selected installation and terminal worker report include the optional
 `native_helpers_sha256` identity. An unselected installation retains its three
-existing identities. Native selection is not enabled by default.
+existing identities. Source checkouts and ordinary portable wheels retain this
+unselected default. The explicit [default-owner candidate wheel](HIA_DEFAULT_NATIVE_RELEASE.md)
+automatically binds its fixed package bundle when administrator flags are absent.
+An administrator bundle still defines the complete executable set; it cannot be
+supplemented by package defaults. The worker and durable service remain hosted.
 
 ## Bundle format and executable custody
 
@@ -38,11 +42,15 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-four
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its thirty-three
 current single-image contracts include the original nineteen helper adapters
 and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
 **candidate-budget-native.v1**, **retirement-state-native.v1** and
-**slot-ledger-native.v1** owners.
+**slot-ledger-native.v1**, **native-mapping-native.v1** and
+**publication-measurement-native.v1**, **scalar-profile-native.v1** and
+**generation-retention-native.v1**, **bounded-memory-native.v1**,
+**full-cost-native.v1**, **patch-impact-native.v1**, **static-budget-native.v1**
+and **store-lifecycle-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
@@ -50,6 +58,80 @@ refuse. Multi-image owners require their own explicit custody integration.
 Retirement also maps its fixed 45-byte open syscall primitive from the installed
 Python source closure; that primitive transports the selected HIA policy's
 effect and is not another selectable policy image.
+
+`HEPTA_HIA_FULL_COST_MANIFEST` selects complete arm sums, observation peaks,
+control selection, exact wide signed ratios and ordered economic decisions.
+`HEPTA_HIA_PATCH_IMPACT_MANIFEST` selects function/interface comparisons and
+complete old/new call-graph reachability. Their original JSON/Core/patch and
+receipt admission remains in the public callers. One administrator bundle
+can bind both owners; the integration test forbids their reference algorithms
+and the ordinary image loader while invoking their real public APIs. It also
+checks source/child-manifest drift, terminal refusal and complete scope
+restoration. See [full cost](HIA_FULL_COST_NATIVE.md) and
+[patch impact](HIA_PATCH_IMPACT_NATIVE.md).
+
+`HEPTA_HIA_STATIC_BUDGET_MANIFEST` selects stable graph order, exact resource
+arithmetic, synchronous depth, profile admission and numerical policy decisions.
+The Core verifier and independent heap analysis retain their existing owners.
+`HEPTA_HIA_STORE_LIFECYCLE_MANIFEST` selects the complete constructor/close control
+flow, including original cleanup and exception ordering. The choice binds to
+the Store instance; Path, SQLite, clock/budget and Python object effects remain
+foreign operations. Their tests include actual installed wheel calls, pinned
+scope restoration and refusal after source or manifest drift. See
+[static resources](HIA_STATIC_BUDGET_NATIVE.md) and
+[Store lifecycle](HIA_STORE_LIFECYCLE_NATIVE.md).
+
+`HEPTA_HIA_NATIVE_MAPPING_MANIFEST` selects the HIA mapping parser and admission
+decisions used by `verify_loaded_symbols`. The actual descriptor, seals, ctypes
+entry addresses, bounded kernel maps snapshot and final descriptor readback
+remain hosted. This helper uses the existing anonymous executable loader,
+which does not invoke the mapping admission it supplies. The default path
+retains the original Python mapping policy; a selected helper never falls back.
+
+`HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST` selects the complete finite
+measurement admission used before preparation and under the publication commit
+lock. HIA computes paired medians and deviations, ordered refusal reasons and
+exact cost projections, including intermediate products above 64 bits. The
+input is the original frozen measurement envelope plus an exact integer
+preparation time, transported without narrowing. Envelope capture, actual
+monotonic observations, cancellation and locks, Core proofs, compilation,
+loading and resource ownership remain hosted. The selected measurement owner
+can only refuse publication and never substitutes for those requirements.
+The ordinary default remains the original policy; an explicitly selected
+helper has no fallback. The installed resource and pinned worker scope use the
+same source-bound image contract, with the existing process/thread owner and
+terminal identity checks.
+
+`HEPTA_HIA_BOUNDED_MEMORY_MANIFEST` selects the HIA owner of ordinary VM
+byte fills and overlapping moves. The exact-bytearray extent, exact integer
+kind/sign/width/low bits and buffer address are observed by the Python bridge;
+HIA performs the complete original admission order and in-place operation.
+There is no additional input-size ceiling. The bridge holds the GIL and a
+buffer export for the complete call. The original reference bodies are retained
+as independent controls and are forbidden in the selected caller gate.
+
+`HEPTA_HIA_SCALAR_PROFILE_MANIFEST` selects the scalar admission policy after
+fresh Core verification and before the original fresh per-export Z3 proofs.
+HIA owns the qualified version, export/signature/effect/operation limits,
+whole-CFG acyclicity and ABI ordering. It transports no proof authority and
+cannot bypass those independent proofs, compilation or publication effects.
+
+`HEPTA_HIA_GENERATION_RETENTION_MANIFEST` selects the retained per-generation
+reference count, retired state, one-close lease cells and retirement-task
+handoff. HIA changes the count and cell together, with a growable exact
+magnitude and no new fixed-width reference ceiling. The existing runtime
+keeps its locks, current generation and epoch, cancellation and resource
+effects. Preparation failures before registration retain their original
+cleanup owner. Uncertain native transitions keep strong quarantined custody;
+a verified no-write capacity refusal permits ordinary allocation recovery.
+See the [generation retention contract](hia-generation-retention-native.md).
+
+Selection and construction of a new runtime obey the pinned loader's original
+process/thread admission and source readback. An existing runtime retains its
+admitted image and original concurrent lease lifecycle, protected by its
+creator-process check and locks. Changing an ambient selector does not rebind
+that retained owner. This lifetime does not authorize another request to load
+an unlisted image or bypass the worker's terminal identity check.
 
 The bundle binds every child manifest; each child binds its schema, packaged
 source, image and compiler digest. Only owned, bounded, ordinary files with

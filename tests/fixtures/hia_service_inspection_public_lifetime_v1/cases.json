@@ -1,0 +1,172 @@
+{
+  "cases": [
+    {
+      "id": "inspect-summary-temporary.outer0",
+      "mode": 1,
+      "outer": false,
+      "view": "summary"
+    },
+    {
+      "id": "inspect-summary-temporary.outer1",
+      "mode": 1,
+      "outer": true,
+      "view": "summary"
+    },
+    {
+      "id": "inspect-lowering-temporary-fresh-store.outer0",
+      "mode": 1,
+      "outer": false,
+      "store_policy": "fresh",
+      "view": "lowering"
+    },
+    {
+      "id": "inspect-lowering-temporary-fresh-store.outer1",
+      "mode": 1,
+      "outer": true,
+      "store_policy": "fresh",
+      "view": "lowering"
+    },
+    {
+      "fault": {
+        "at": "before",
+        "kind": "AttributeError",
+        "occurrence": 1,
+        "operation": "service.1._program.lookup"
+      },
+      "id": "inspect-lookup-attribute-error.outer0",
+      "mode": 1,
+      "outer": false,
+      "view": "summary"
+    },
+    {
+      "fault": {
+        "at": "before",
+        "kind": "AttributeError",
+        "occurrence": 1,
+        "operation": "service.1._program.lookup"
+      },
+      "id": "inspect-lookup-attribute-error.outer1",
+      "mode": 1,
+      "outer": true,
+      "view": "summary"
+    },
+    {
+      "fault": {
+        "at": "after",
+        "kind": "MemoryError",
+        "occurrence": 1,
+        "operation": "service._program"
+      },
+      "id": "inspect-program-memory-error.outer0",
+      "mode": 1,
+      "outer": false,
+      "view": "summary"
+    },
+    {
+      "fault": {
+        "at": "after",
+        "kind": "MemoryError",
+        "occurrence": 1,
+        "operation": "service._program"
+      },
+      "id": "inspect-program-memory-error.outer1",
+      "mode": 1,
+      "outer": true,
+      "view": "summary"
+    },
+    {
+      "format": "hia-asm.v1",
+      "id": "candidate-import-temporary.outer0",
+      "kind": "import",
+      "mode": 2,
+      "outer": false
+    },
+    {
+      "format": "hia-asm.v1",
+      "id": "candidate-import-temporary.outer1",
+      "kind": "import",
+      "mode": 2,
+      "outer": true
+    },
+    {
+      "format": "hia-asm.v1",
+      "id": "candidate-import-temporary-fresh-store.outer0",
+      "kind": "import",
+      "mode": 2,
+      "outer": false,
+      "store_policy": "fresh"
+    },
+    {
+      "format": "hia-asm.v1",
+      "id": "candidate-import-temporary-fresh-store.outer1",
+      "kind": "import",
+      "mode": 2,
+      "outer": true,
+      "store_policy": "fresh"
+    },
+    {
+      "fault": {
+        "at": "before",
+        "kind": "AttributeError",
+        "occurrence": 1,
+        "operation": "service.1.store.lookup"
+      },
+      "format": "hia-asm.v1",
+      "id": "candidate-lookup-attribute-error.outer0",
+      "kind": "import",
+      "mode": 2,
+      "outer": false
+    },
+    {
+      "fault": {
+        "at": "before",
+        "kind": "AttributeError",
+        "occurrence": 1,
+        "operation": "service.1.store.lookup"
+      },
+      "format": "hia-asm.v1",
+      "id": "candidate-lookup-attribute-error.outer1",
+      "kind": "import",
+      "mode": 2,
+      "outer": true
+    },
+    {
+      "fault": {
+        "at": "after",
+        "kind": "MemoryError",
+        "occurrence": 1,
+        "operation": "assemble_program"
+      },
+      "format": "hia-asm.v1",
+      "id": "candidate-assemble-memory-error.outer0",
+      "kind": "import",
+      "mode": 2,
+      "outer": false
+    },
+    {
+      "fault": {
+        "at": "after",
+        "kind": "MemoryError",
+        "occurrence": 1,
+        "operation": "assemble_program"
+      },
+      "format": "hia-asm.v1",
+      "id": "candidate-assemble-memory-error.outer1",
+      "kind": "import",
+      "mode": 2,
+      "outer": true
+    }
+  ],
+  "expected_results": null,
+  "inherited_116_and_9_basis_unchanged": true,
+  "no_candidate_policy_used_for_expected": true,
+  "no_extra_gc_heat_reset_or_scope_filter": true,
+  "no_traceback_or_error_field_normalization": true,
+  "original_methods": {
+    "candidate": "d50fa77b3dbad0c8cca486b0936ca5b65be3f606fff371b29f35d38154993b42",
+    "inspect": "0b94fc6cf910593c8993fc06de4fcfe6b6318f7b974028b4cfdc70033ec6b267"
+  },
+  "receiver_policy": "Fixture service/arguments are moved into a prebuilt transfer dictionary and popped as actual call arguments; only observer weak references remain.",
+  "schema": "hepta.hia.service-inspection-public-lifetime-inputs.v1",
+  "status": "STATIC_ORIGINAL_INPUTS_NO_OBSERVATIONS"
+}
