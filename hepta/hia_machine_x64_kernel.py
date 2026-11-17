@@ -7,7 +7,7 @@ host user process or expose them in HIA Core without authority/effect checking.
 """
 from __future__ import annotations
 
-from .hia_machine_x64 import Code, _s32
+from .hia_machine_x64 import Code, MachineEncodingError, _s32
 
 
 class KernelCode(Code):
@@ -78,6 +78,70 @@ class KernelCode(Code):
     def lock_xadd(self, base, disp, addend):
         """Atomic XADD m64,r64. The register receives the old memory word."""
         self._locked_memory(0xc1, base, disp, addend)
+
+    def _mov_control(self, opcode, gpr, control_number):
+        """Admit only reviewed control registers, then encode a whole MOV.
+
+        This remains a byte encoder only: CPL0, CR0/CR4 reserved bits, PCID,
+        paging modes and side effects must be proved by the future verifier.
+        """
+        reg = self._reg(gpr)
+        if type(control_number) is not int or control_number not in (0, 2, 3, 4):
+            raise MachineEncodingError("unreviewed x86 control register")
+        if opcode not in (0x20, 0x22) or (opcode == 0x22 and control_number == 2):
+            raise MachineEncodingError("unreviewed control register direction")
+        modrm = 0xc0 | (control_number << 3) | (reg & 7)
+        self.emit((b"\x41" if reg >= 8 else b"") +
+                  bytes((0x0f, opcode, modrm)))
+
+    def read_cr0(self, dst):
+        """MOV r64, CR0. Requires CPL0 and a qualified CPU state."""
+        self._mov_control(0x20, dst, 0)
+
+    def write_cr0(self, src):
+        """MOV CR0, r64. No mode-transition authority is provided here."""
+        self._mov_control(0x22, src, 0)
+
+    def read_cr2(self, dst):
+        """MOV r64, CR2. Read-only fault-address sampling stage."""
+        self._mov_control(0x20, dst, 2)
+
+    def read_cr4(self, dst):
+        """MOV r64, CR4. Requires CPL0."""
+        self._mov_control(0x20, dst, 4)
+
+    def write_cr4(self, src):
+        """MOV CR4, r64. Feature-dependency verification is NOT implemented."""
+        self._mov_control(0x22, src, 4)
+
+    def _port_transfer(self, direction, width, port):
+        """Encode only x86 IN/OUT AL/AX/EAX, imm8 or implicit DX port.
+
+        These instructions require IOPL or CPL0 and explicit device ownership.
+        The compiler must not infer a port from an arbitrary GPR/address.
+        """
+        if type(direction) is not str or direction not in ("in", "out"):
+            raise MachineEncodingError("unreviewed I/O direction")
+        if type(width) is not int or width not in (8, 16, 32):
+            raise MachineEncodingError("I/O width must be exactly 8, 16 or 32")
+        is_dx = type(port) is str and port == "dx"
+        is_imm = type(port) is int and 0 <= port <= 255
+        if not (is_dx or is_imm):
+            raise MachineEncodingError("I/O port must be DX or exact imm8")
+        op = (0xec if is_dx else 0xe4) if direction == "in" else (
+            0xee if is_dx else 0xe6)
+        if width != 8:
+            op += 1
+        self.emit((b"\x66" if width == 16 else b"") +
+                  bytes((op,)) + (bytes((port,)) if is_imm else b""))
+
+    def in_port(self, width, port="dx"):
+        """IN from a DX-selected or literal imm8 port into AL/AX/EAX."""
+        self._port_transfer("in", width, port)
+
+    def out_port(self, width, port="dx"):
+        """OUT from AL/AX/EAX to a DX-selected or literal imm8 port."""
+        self._port_transfer("out", width, port)
 
     def mfence(self):
         """x86 MFENCE; not a portable cross-platform memory-order contract."""

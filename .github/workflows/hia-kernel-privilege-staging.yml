@@ -10,6 +10,7 @@ on:
       - tests/test_hia_x86_kernel_privilege_staging.py
       - tests/test_hia_x86_kernel_interrupt_staging.py
       - tests/test_hia_x86_kernel_atomic_staging.py
+      - tests/test_hia_x86_kernel_control_io_staging.py
       - .github/workflows/hia-kernel-privilege-staging.yml
   pull_request:
     paths:
@@ -20,6 +21,7 @@ on:
       - tests/test_hia_x86_kernel_privilege_staging.py
       - tests/test_hia_x86_kernel_interrupt_staging.py
       - tests/test_hia_x86_kernel_atomic_staging.py
+      - tests/test_hia_x86_kernel_control_io_staging.py
       - .github/workflows/hia-kernel-privilege-staging.yml
 
 permissions:
@@ -34,5 +36,5 @@ jobs:
         run: command -v objdump && objdump --version
       - name: Verify complete cold-replay source closure, including the new kernel helper
         run: python3 -B -c 'from tools.hia_selfhost_contract import validate_contract; validate_contract()'
-      - name: Check isolated kernel privilege/atomic encodings and userspace CAS/XADD oracle
-        run: python3 -B -m unittest tests.test_hia_x86_kernel_privilege_staging tests.test_hia_x86_kernel_interrupt_staging tests.test_hia_x86_kernel_atomic_staging -v
+      - name: Check kernel CRx, port I/O, interrupts, atomics and native CAS/XADD
+        run: python3 -B -m unittest tests.test_hia_x86_kernel_privilege_staging tests.test_hia_x86_kernel_interrupt_staging tests.test_hia_x86_kernel_atomic_staging tests.test_hia_x86_kernel_control_io_staging -v

@@ -109,3 +109,24 @@ cross-CPU memory ordering and IPI/TLB shootdown. User-space execution
 does not replace QEMU kernel-mode hardware acceptance.
 
 Run python -B -m unittest tests.test_hia_x86_kernel_atomic_staging -v
+
+## Explicit CR0/CR2/CR4 and port-I/O byte staging
+
+The isolated Python machine encoder now also offers read/write CR0 and CR4,
+read-only CR2, and IN/OUT in 8-, 16- and 32-bit widths. Ports are either
+a literal imm8 (0..255) or DX (low 16 bits, selected by the caller); AL/AX/EAX
+is implicit. Unknown widths, ports, and registers cannot append partial
+instruction bytes. CR2 writes and all unreviewed CR registers are intentionally
+excluded. The fixed encoder remains independent of the ordinary HIA Code class.
+
+The independent oracle checks 18 literal encodings with GNU objdump, all
+16 GPRs for each permitted CR instruction, the allowed I/O width/port matrix,
+and malicious operands against an already nonempty code buffer. These byte
+tests do NOT execute any port I/O, write CR0/CR4, or run a kernel in QEMU.
+No HIA Core v8 opcode, authority/effect verifier, selfhost_elf emitter,
+CPU-feature/mode proof, interrupt-safe sequencing, I/O permission bitmap or
+device-resource lifecycle has been implemented by this staged addition.
+
+Run:
+
+    python3 -B -m unittest tests.test_hia_x86_kernel_control_io_staging -v
