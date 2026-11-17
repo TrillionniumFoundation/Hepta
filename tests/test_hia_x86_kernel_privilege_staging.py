@@ -13,6 +13,7 @@ import tempfile
 import unittest
 
 from hepta.hia_machine_x64 import Code, MachineEncodingError
+from hepta.hia_opcodes import OpcodeRejected, opcode_spec
 
 
 class KernelEncodingTests(unittest.TestCase):
@@ -30,6 +31,14 @@ class KernelEncodingTests(unittest.TestCase):
         ("invalidate_r13", "invlpg", ("r13", 4096),
          "410f01bd00100000", r"\binvlpg\s+0x1000\(%r13\)"),
     )
+
+    def test_unprivileged_core_v8_still_refuses_kernel_instructions(self):
+        # Adding a machine encoder helper must not silently extend ordinary
+        # HIA opcode admission. A later kernel profile needs typed effects.
+        for op in ("x86.read_cr3", "x86.write_cr3", "x86.invlpg"):
+            with self.subTest(opcode=op):
+                with self.assertRaises(OpcodeRejected):
+                    opcode_spec(op, "hepta.hia.program.v8")
 
     def test_independent_exact_instruction_vectors(self):
         for name, method, args, expected, _ in self.CASES:
