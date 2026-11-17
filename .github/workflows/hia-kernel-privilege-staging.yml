@@ -1,0 +1,26 @@
+name: HIA kernel privilege encoder staging
+
+on:
+  push:
+    paths:
+      - hepta/hia_machine_x64.py
+      - tests/test_hia_x86_kernel_privilege_staging.py
+      - .github/workflows/hia-kernel-privilege-staging.yml
+  pull_request:
+    paths:
+      - hepta/hia_machine_x64.py
+      - tests/test_hia_x86_kernel_privilege_staging.py
+      - .github/workflows/hia-kernel-privilege-staging.yml
+
+permissions:
+  contents: read
+
+jobs:
+  x86-privilege-encoding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm independent disassembler available
+        run: command -v objdump && objdump --version
+      - name: Check non-executable CR3 and INVLPG encoder vectors
+        run: python3 -B -m unittest tests.test_hia_x86_kernel_privilege_staging -v
