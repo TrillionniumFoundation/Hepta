@@ -41,10 +41,12 @@ misordered or stale mappings. QEMU pass does not establish SMP shootdown
 correctness. IRETQ, LIDT, LTR, interrupt entry, MMIO, atomics and all
 other Linux acceptance requirements remain open.
 
-CI readback: the original source-bound `hepta/hia_machine_x64.py` and
-`docs/HIA_SELFHOST_CORE_SUPPORT.json` retain their exact upstream main blobs.
-The isolated helper is `hepta/hia_machine_x64_kernel.py`, not a mutation to
-original ordinary Code; existing source-retention and native-caller gates
+CI readback: original `hepta/hia_machine_x64.py` retains its exact upstream
+main Git blob. The pinned support-contract *source closure* is extended by the
+new `hepta/hia_machine_x64_kernel.py` SHA-256 entry; the strict equality check
+against generated `support_contract(root)` remains enforced on every build.
+The isolated helper is not a mutation to ordinary Code, and existing
+source-retention and native-caller gates
 must pass on this candidate. An earlier candidate that modified the original
 Code class failed all three frozen AST-retention gates; this revision repairs
 the root cause rather than weakening those tests.
