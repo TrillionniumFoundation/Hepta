@@ -54,3 +54,39 @@ class KernelCode(Code):
     def iretq(self):
         """IRETQ (REX.W + CF). Stack-frame/canonicality checks are not modeled."""
         self.emit(b"\x48\xcf")
+
+    def _locked_memory(self, opcode, base, disp, source):
+        """Emit LOCK + REX.W + 0F opcode m64,r64 after complete admission.
+
+        Caller must prove owned, coherent, properly aligned memory. This
+        direct encoder does not establish a concurrency or MMIO proof.
+        """
+        src = self._reg(source)
+        address = self._reg(base)
+        displacement = _s32(disp)
+        if opcode not in (0xb1, 0xc1):
+            raise MachineEncodingError("unreviewed locked memory operation")
+        rex = 0x48 | ((src >> 3) << 2) | (address >> 3)
+        modrm = 0x80 | ((src & 7) << 3) | (address & 7)
+        sib = b"\x24" if (address & 7) == 4 else b""
+        self.emit(b"\xf0" + bytes((rex, 0x0f, opcode, modrm)) + sib + displacement)
+
+    def lock_cmpxchg(self, base, disp, desired):
+        """Atomic CMPXCHG m64,r64. RAX holds expected, and old on failure."""
+        self._locked_memory(0xb1, base, disp, desired)
+
+    def lock_xadd(self, base, disp, addend):
+        """Atomic XADD m64,r64. The register receives the old memory word."""
+        self._locked_memory(0xc1, base, disp, addend)
+
+    def mfence(self):
+        """x86 MFENCE; not a portable cross-platform memory-order contract."""
+        self.emit(b"\x0f\xae\xf0")
+
+    def lfence(self):
+        """x86 LFENCE; not a complete speculative-execution security proof."""
+        self.emit(b"\x0f\xae\xe8")
+
+    def sfence(self):
+        """x86 SFENCE, including earlier non-temporal streaming stores."""
+        self.emit(b"\x0f\xae\xf8")

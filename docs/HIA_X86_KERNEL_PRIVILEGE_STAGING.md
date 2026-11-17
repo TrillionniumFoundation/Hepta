@@ -81,3 +81,31 @@ Run both isolated test modules with:
 
 The full cold replay has a fixed 180-second deadline and may fail independently
 of the byte-level staging suite; never count a timed-out core job as green.
+
+## Direct encoder atomics/fences slice (additional isolated staging)
+
+The separate KernelCode helper now encodes LOCK CMPXCHG m64,r64,
+LOCK XADD m64,r64, MFENCE, LFENCE and SFENCE. LOCK forms use
+REX.W/REX.R/REX.B, mandatory ModRM and RSP/R12 SIB with disp32,
+covering all integer-register combinations. Invalid operands reject
+without partial emission. CMPXCHG uses RAX for the expected value,
+sets ZF and returns old memory in RAX on mismatch. XADD returns the old
+memory word in its source GPR.
+
+Independent tests check literal machine bytes, GNU objdump decoding,
+4096 register/method combinations and malformed-input refusal. On
+Linux x86-64 they execute only the *nonprivileged* LOCK instructions
+in user space, using a W^X RW-to-RX text transition: one stale-expected
+CAS negative control and four concurrent threads recording 1000
+atomic XADD increments. The host never executes CRx, INVLPG, LIDT,
+LTR, or IRETQ.
+
+This remains Python encoder staging, NOT the locked HIA selfhost_elf
+compiler, a HIA-source opcode, an effect-verifier extension, verified
+SMP linearizability, or MMIO/device ordering. Full kernel integration
+requires owned/valid memory lifetime, access/alias/alignment proofs,
+cacheability, CPU locality, interrupt and preemption control,
+cross-CPU memory ordering and IPI/TLB shootdown. User-space execution
+does not replace QEMU kernel-mode hardware acceptance.
+
+Run python -B -m unittest tests.test_hia_x86_kernel_atomic_staging -v
