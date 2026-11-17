@@ -93,7 +93,7 @@ sets ZF and returns old memory in RAX on mismatch. XADD returns the old
 memory word in its source GPR.
 
 Independent tests check literal machine bytes, GNU objdump decoding,
-4096 register/method combinations and malformed-input refusal. On
+512 register/method combinations and malformed-input refusal. On
 Linux x86-64 they execute only the *nonprivileged* LOCK instructions
 in user space, using a W^X RW-to-RX text transition: one stale-expected
 CAS negative control and four concurrent threads recording 1000
