@@ -32,3 +32,25 @@ class KernelCode(Code):
         self.emit((b"\x41" if reg >= 8 else b"") +
                   b"\x0f\x01" + bytes([0xb8 | (reg & 7)]) +
                   (b"\x24" if reg & 7 == 4 else b"") + displacement)
+
+    def lidt(self, base, disp=0):
+        """LIDT m80: memory operand must refer to a valid 10-byte IDTR image.
+
+        Only the instruction is encoded here. Validity, provenance, CPL0
+        authority and interrupt-safe sequencing need HIA verifier semantics.
+        """
+        reg = self._reg(base)
+        displacement = _s32(disp)
+        self.emit((b"\x41" if reg >= 8 else b"") +
+                  b"\x0f\x01" + bytes([0x98 | (reg & 7)]) +
+                  (b"\x24" if reg & 7 == 4 else b"") + displacement)
+
+    def ltr(self, selector):
+        """LTR r16 from the low 16 bits of a GPR; CPU validates selector/TSS."""
+        reg = self._reg(selector)
+        self.emit((b"\x41" if reg >= 8 else b"") +
+                  b"\x0f\x00" + bytes([0xd8 | (reg & 7)]))
+
+    def iretq(self):
+        """IRETQ (REX.W + CF). Stack-frame/canonicality checks are not modeled."""
+        self.emit(b"\x48\xcf")

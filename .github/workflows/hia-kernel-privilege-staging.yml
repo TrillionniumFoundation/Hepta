@@ -6,12 +6,14 @@ on:
       - hepta/hia_machine_x64.py
       - hepta/hia_machine_x64_kernel.py
       - tests/test_hia_x86_kernel_privilege_staging.py
+      - tests/test_hia_x86_kernel_interrupt_staging.py
       - .github/workflows/hia-kernel-privilege-staging.yml
   pull_request:
     paths:
       - hepta/hia_machine_x64.py
       - hepta/hia_machine_x64_kernel.py
       - tests/test_hia_x86_kernel_privilege_staging.py
+      - tests/test_hia_x86_kernel_interrupt_staging.py
       - .github/workflows/hia-kernel-privilege-staging.yml
 
 permissions:
@@ -26,5 +28,5 @@ jobs:
         run: command -v objdump && objdump --version
       - name: Verify complete cold-replay source closure, including the new kernel helper
         run: python3 -B -c 'from tools.hia_selfhost_contract import validate_contract; validate_contract()'
-      - name: Check isolated kernel-only CR3/INVLPG vectors and unchanged ordinary Code
-        run: python3 -B -m unittest tests.test_hia_x86_kernel_privilege_staging -v
+      - name: Check isolated kernel-only CR3, INVLPG, LIDT, LTR and IRETQ encodings
+        run: python3 -B -m unittest tests.test_hia_x86_kernel_privilege_staging tests.test_hia_x86_kernel_interrupt_staging -v

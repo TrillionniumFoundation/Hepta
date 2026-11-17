@@ -38,7 +38,7 @@ The next hardware oracle is a QEMU-only CPL0 fixture: check CR3 readback
 against the CPU, demonstrate a controlled CR3 change and matching TLB
 behavior with an independent fault witness, and reject unauthorized,
 misordered or stale mappings. QEMU pass does not establish SMP shootdown
-correctness. IRETQ, LIDT, LTR, interrupt entry, MMIO, atomics and all
+correctness. HIA source-level IRETQ, LIDT, LTR and interrupt entry, MMIO, atomics and all
 other Linux acceptance requirements remain open.
 
 CI readback: original `hepta/hia_machine_x64.py` retains its exact upstream
@@ -56,3 +56,28 @@ The test runner is:
     python -B -m unittest tests.test_hia_x86_kernel_privilege_staging -v
 
 No privileged instructions are executed by this runner.
+
+## Extended encoding-only interrupt/bootstrap slice (staged)
+
+The isolated KernelCode helper now additionally emits LIDT m80 (0F 01 /3),
+LTR r/m16 (0F 00 /3), and IRETQ (48 CF), with all 16 integer-register
+address or selector forms where applicable. LIDT uses a signed disp32 and an
+explicit SIB for RSP/R12. Invalid operands and displacements reject before
+emitting bytes, including on an existing nonempty code buffer. Independent
+GNU objdump checks and hard-coded expected bytes are in
+tests/test_hia_x86_kernel_interrupt_staging.py. The LTR selector consumes the
+low 16 bits even where GNU objdump prints the containing GPR as %eax/%r15d.
+
+These are instruction encodings only. In particular, LIDT has no proof that
+its operand points to an owned ten-byte IDTR; LTR has no TSS lifetime or busy-bit
+proof; IRETQ has no stack-frame construction, canonicality, segment, or
+interrupt-effect proof. All require CPL0 integration and HIA native self-hosted
+compiler, source-language, and effect-verifier support before boot.S can be
+replaced. No instruction is run in host userspace.
+
+Run both isolated test modules with:
+
+    python -B -m unittest tests.test_hia_x86_kernel_privilege_staging tests.test_hia_x86_kernel_interrupt_staging -v
+
+The full cold replay has a fixed 180-second deadline and may fail independently
+of the byte-level staging suite; never count a timed-out core job as green.
