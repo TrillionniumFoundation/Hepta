@@ -345,31 +345,6 @@ class Code:
         r = self._reg(reg)
         self.emit((b"\x41" if r >= 8 else b"") + bytes([0x58 + (r & 7)]))
 
-    # Staged kernel ISA encodings only. HIA Core does not admit these
-    # instructions as ordinary opcodes. Until a typed privilege/effect profile
-    # and a self-hosted compiler route exist, caller code must not expose them
-    # through user-mode HIA assembly or execute them in host tests.
-    def read_cr3(self, dst):
-        """Encode MOV r64, CR3; the CPU requires CPL0 to execute it."""
-        reg = self._reg(dst)
-        self.emit((b"\x41" if reg >= 8 else b"") +
-                  b"\x0f\x20" + bytes([0xd8 | (reg & 7)]))
-
-    def write_cr3(self, src):
-        """Encode MOV CR3, r64; actual address-space effects are not modeled."""
-        reg = self._reg(src)
-        self.emit((b"\x41" if reg >= 8 else b"") +
-                  b"\x0f\x22" + bytes([0xd8 | (reg & 7)]))
-
-    def invlpg(self, base, disp=0):
-        """Encode INVLPG m8 using a 64-bit base and checked signed disp32."""
-        reg = self._reg(base)
-        displacement = _s32(disp)
-        # ModRM mod=10, /7; RSP/R12 need SIB even with disp32.
-        self.emit((b"\x41" if reg >= 8 else b"") +
-                  b"\x0f\x01" + bytes([0xb8 | (reg & 7)]) +
-                  (b"\x24" if reg & 7 == 4 else b"") + displacement)
-
     def ret(self): self.emit(b"\xc3")
     def leave(self): self.emit(b"\xc9")
     def ud2(self): self.emit(b"\x0f\x0b")

@@ -1,7 +1,8 @@
 # Kernel privilege instruction encoding: isolated staging slice
 
-This branch introduces three genuine x86-64 instruction-encoding methods on
-the existing direct machine-code backend's Code object:
+This branch introduces three genuine x86-64 instruction-encoding methods in a separate
+`KernelCode(Code)` subclass, leaving the original HIA `Code` class completely
+unchanged (including its frozen native source AST and independent fixtures):
 
 - read_cr3(dst) encodes MOV r64, CR3 (0F 20 /3)
 - write_cr3(src) encodes MOV CR3, r64 (0F 22 /3)
@@ -39,6 +40,14 @@ behavior with an independent fault witness, and reject unauthorized,
 misordered or stale mappings. QEMU pass does not establish SMP shootdown
 correctness. IRETQ, LIDT, LTR, interrupt entry, MMIO, atomics and all
 other Linux acceptance requirements remain open.
+
+CI readback: the original source-bound `hepta/hia_machine_x64.py` and
+`docs/HIA_SELFHOST_CORE_SUPPORT.json` retain their exact upstream main blobs.
+The isolated helper is `hepta/hia_machine_x64_kernel.py`, not a mutation to
+original ordinary Code; existing source-retention and native-caller gates
+must pass on this candidate. An earlier candidate that modified the original
+Code class failed all three frozen AST-retention gates; this revision repairs
+the root cause rather than weakening those tests.
 
 The test runner is:
 

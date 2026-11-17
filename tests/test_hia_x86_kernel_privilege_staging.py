@@ -1,6 +1,6 @@
 """Byte-level x86-64 kernel instruction checks; never execute privileged code.
 
-This is a staging test of the direct encoder only. It is not HIA Core
+This is a staging test of the separate KernelCode subclass only. It is not HIA Core
 verifier support, not the native self-hosted compiler, and not a QEMU test.
 """
 from __future__ import annotations
@@ -13,6 +13,7 @@ import tempfile
 import unittest
 
 from hepta.hia_machine_x64 import Code, MachineEncodingError
+from hepta.hia_machine_x64_kernel import KernelCode
 from hepta.hia_opcodes import OpcodeRejected, opcode_spec
 
 
@@ -32,6 +33,14 @@ class KernelEncodingTests(unittest.TestCase):
          "410f01bd00100000", r"\binvlpg\s+0x1000\(%r13\)"),
     )
 
+    def test_ordinary_code_class_remains_unmodified(self):
+        # Retained native Code source AST and its independently frozen behavior
+        # must not change merely because a *separate* kernel subclass exists.
+        for method in ("read_cr3", "write_cr3", "invlpg"):
+            self.assertFalse(hasattr(Code, method))
+            self.assertTrue(hasattr(KernelCode, method))
+        self.assertEqual(Code().finalize(), (b"", []))
+
     def test_unprivileged_core_v8_still_refuses_kernel_instructions(self):
         # Adding a machine encoder helper must not silently extend ordinary
         # HIA opcode admission. A later kernel profile needs typed effects.
@@ -43,7 +52,7 @@ class KernelEncodingTests(unittest.TestCase):
     def test_independent_exact_instruction_vectors(self):
         for name, method, args, expected, _ in self.CASES:
             with self.subTest(name=name):
-                code = Code()
+                code = KernelCode()
                 getattr(code, method)(*args)
                 image, relocations = code.finalize()
                 self.assertEqual(image, bytes.fromhex(expected))
@@ -56,7 +65,7 @@ class KernelEncodingTests(unittest.TestCase):
         for reg in regs:
             for method in ("read_cr3", "write_cr3", "invlpg"):
                 with self.subTest(register=reg, method=method):
-                    code = Code()
+                    code = KernelCode()
                     getattr(code, method)(reg)
                     image, relocations = code.finalize()
                     self.assertGreaterEqual(len(image), 3)
@@ -66,13 +75,13 @@ class KernelEncodingTests(unittest.TestCase):
         for method in ("read_cr3", "write_cr3", "invlpg"):
             for bad in ("eax", "cr3", "rip", "[rax]", 0, None, True):
                 with self.subTest(method=method, invalid=repr(bad)):
-                    code = Code()
+                    code = KernelCode()
                     with self.assertRaises(MachineEncodingError):
                         getattr(code, method)(bad)
                     self.assertEqual(code.finalize(), (b"", []))
         for bad in (True, None, 1.0, 1 << 31, -(1 << 31) - 1):
             with self.subTest(displacement=repr(bad)):
-                code = Code()
+                code = KernelCode()
                 with self.assertRaises(MachineEncodingError):
                     code.invlpg("rax", bad)
                 self.assertEqual(code.finalize(), (b"", []))
@@ -82,7 +91,7 @@ class KernelEncodingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hia-kernel-encoding-") as tmp:
             for name, method, args, expected, opcode in self.CASES:
                 with self.subTest(name=name):
-                    code = Code()
+                    code = KernelCode()
                     getattr(code, method)(*args)
                     binary = Path(tmp) / (name + ".bin")
                     binary.write_bytes(code.finalize()[0])
