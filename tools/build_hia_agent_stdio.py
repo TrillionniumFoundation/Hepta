@@ -19,7 +19,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_frontend)
-from tools.generate_hia_agent_stdio import MAGIC, LIMIT
+from tools.generate_hia_agent_stdio import MAGIC, LIMIT, catalog_table
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -49,8 +49,10 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     if sha256(frontend_bytes).hexdigest() != metadata['image_sha256']:
         raise ValueError('Agent frontend bytes changed')
     profile = ('flat','elf','exec').index(output_profile)
-    frame = struct.pack('<5Q',MAGIC,len(dispatch_bytes),len(frontend_bytes),len(compiler_bytes),profile)
-    frame += dispatch_bytes+frontend_bytes+compiler_bytes
+    catalog = catalog_table()
+    frame = struct.pack('<6Q', MAGIC, len(dispatch_bytes), len(frontend_bytes),
+                        len(compiler_bytes), profile, len(catalog))
+    frame += dispatch_bytes+frontend_bytes+compiler_bytes+catalog
     if len(frame)>LIMIT:
         raise ValueError('Agent images exceed unchanged packer frame limit')
     result, packed = invoke(output,'agent-pack',packer,frame)
@@ -59,7 +61,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         raise ValueError('native HIA Agent packer rejected frame')
     raw = packed[:count]
     inspection = inspect_executable(raw)
-    if (len(raw)!=count or compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=cold_bytes
+    if (len(raw)!=count or not raw.endswith(catalog)
+            or compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=cold_bytes
             or any(path.read_bytes()!=data for path,data in sources.items())
             or dispatch.read_bytes()!=dispatch_bytes or frontend.read_bytes()!=frontend_bytes
             or packer.read_bytes()!=packer_bytes or frontend_manifest.read_bytes()!=frontend_manifest_bytes
@@ -75,6 +78,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         'dispatch_sha256':sha256(dispatch_bytes).hexdigest(),
         'frontend_sha256':sha256(frontend_bytes).hexdigest(),
         'packer_sha256':sha256(packer_bytes).hexdigest(),
+        'catalog_table_sha256':sha256(catalog).hexdigest(),
         'source_sha256':{path.relative_to(ROOT).as_posix():sha256(raw).hexdigest()
                          for path,raw in sources.items()},
         'cold_report_sha256':sha256(cold_bytes).hexdigest(),

@@ -1,7 +1,7 @@
 # HIA-native Agent stdio entry
 
 This explicitly built Linux x86-64 entry implements `capabilities`, `verify`,
-`compile`, `render-assembly`, `assemble` and `check-assembly` without Python, a host JSON parser,
+`compile`, `render-assembly`, `assemble`, `check-assembly` and `catalog` without Python, a host JSON parser,
 Rust, LLVM, libc, a dynamic
 loader or a second executable at runtime. It is the first native replacement
 component of the Agent-only product, **not** its complete editing/persistence,
@@ -19,16 +19,23 @@ python -B -m tools.build_hia_agent_stdio \
 /new/private/agent/hia-native render-assembly < program.core.json > program.hepta
 /new/private/agent/hia-native assemble < program.hepta > program.image.bin
 /new/private/agent/hia-native check-assembly < program.hepta
+/new/private/agent/hia-native catalog --schema hepta.hia.program.v8
 ```
 
 The build/custody driver is still Python. Actual HIA code compiles the command
 dispatcher and ELF packer with the admitted native compiler; the packer writes
-ELF headers, patches three-image relative calls and copies the exact HIA images.
+ELF headers, patches three-image relative calls and copies the exact HIA images
+and an immutable opcode catalog table.
 The platform adapter is literal-ISA-authored syscall/ABI glue emitted by that
 HIA packer. It neither parses a payload nor substitutes a foreign compiler.
 
 The command string is selected by a HIA function, with exact length/byte
 matching. `capabilities` returns versioned JSON without reading stdin.
+`catalog` also leaves stdin unread. It returns the same JSON bytes as the
+hosted catalog for each declared primitive profile (v1–v8), defaulting to the
+latest profile. The table is generated at build time from the shared opcode
+declarations; at runtime HIA validates the schema arguments, bounds the selected
+table entries and emits the reply without reading external files.
 `verify` accepts the complete existing native JSON-Core profile and invokes the
 real semantic/resource compiler; only after acceptance does HIA emit the JSON
 verification response. Compilation occurs in private memory but no generated
@@ -74,8 +81,10 @@ has the same 88 MiB plus 8192 bytes transport budget as the JSON CLI; code is RX
 The private command mode occupies bytes beyond the input's oversize-read guard,
 outside all frontend/compiler output and workspace regions.
 
-Exactly one argument is required. The adapter scans at most 32 command bytes;
-the HIA dispatcher accepts only the six exact declared words. Exit codes:
+A command is required. The adapter scans at most 32 command bytes; the HIA
+dispatcher accepts only the seven exact declared words. Only `catalog` accepts
+additional arguments, with bounded tokens for the optional `--schema` setting.
+Exit codes:
 
 | Exit | Category |
 | --- | --- |

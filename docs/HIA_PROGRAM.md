@@ -61,8 +61,9 @@ bind exact source, compiler and image identities. A trusted native image is not
 a sandbox. OS descriptor, memory mapping, allocator, kernel and hardware
 conditions remain external requirements.
 
-The native `hia-native` stdio application currently implements `capabilities`,
-`verify` and `compile`. Build-time `flat`, `elf` and `exec` profile selection is
+The native `hia-native` stdio application implements `capabilities`, `verify`,
+`compile`, `render-assembly`, `assemble`, `check-assembly` and `catalog`.
+Build-time `flat`, `elf` and `exec` profile selection is
 explicit. Native runtime needs neither Python nor an external compiler for those
 commands. Its input/node/depth/output and process limits remain enforced. It is
 not the complete hosted Agent service or a general module/build system.

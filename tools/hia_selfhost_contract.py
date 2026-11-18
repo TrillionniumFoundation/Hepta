@@ -1576,7 +1576,7 @@ def support_contract(root=ROOT):
         "agent_stdio_application": {
             "sources": ["examples/hia_bootstrap/agent_stdio_dispatch.hepta",
                         "examples/hia_bootstrap/agent_stdio_packer.hepta"],
-            "commands": ["capabilities", "verify", "compile", "render-assembly", "assemble"],
+            "commands": ["capabilities", "verify", "compile", "render-assembly", "assemble", "check-assembly", "catalog"],
             "assembly_rendering_requires_native_semantic_compiler_acceptance": True,
             "direct_assembly_input_bytes": 1048576,
             "direct_assembly_preserves_explicit_output_profile": True,

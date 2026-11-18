@@ -21,7 +21,7 @@ from tools.build_hia_agent_stdio import DISPATCH, PACKER, build
 
 EXPECTED_CAPABILITY = {
     'schema':'hepta.hia.agent-stdio.v1','implementation':'hia-native',
-    'operations':['capabilities','verify','compile','render-assembly','assemble','check-assembly'],'build_profile':0,
+    'operations':['capabilities','verify','compile','render-assembly','assemble','check-assembly','catalog'],'build_profile':0,
     'input':'primitive-v8-Core-JSON','input_bytes_max':8388608,
     'assembly_input':'hia-asm.v1','assembly_input_bytes_max':1048576,
     'compiler_bytes_max':1048576,'program_nodes_max':1048576,'json_depth_max':128,
@@ -121,22 +121,26 @@ def dispatcher_reference():
         assert result==0xfffffffd and raw==b'\xa5'
 
 
-def packed_reference(dispatch=b'\xc3',frontend=b'\xc3',compiler=b'\xc3',profile=0):
+def packed_reference(dispatch=b'\xc3',frontend=b'\xc3',compiler=b'\xc3',profile=0,catalog=b'table'):
     prefix,holes=template()
-    raw=bytearray(prefix+dispatch+frontend+compiler)
+    raw=bytearray(prefix+dispatch+frontend+compiler+catalog)
     struct.pack_into('<QQ',raw,96,len(raw),len(raw))
-    for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_dispatch_assembly','profile_frontend'):
+    for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_dispatch_assembly',
+                 'profile_dispatch_catalog_argument','profile_dispatch_catalog_finish','profile_frontend'):
         struct.pack_into('<I',raw,holes[name],profile)
     for name,position in [('dispatch_initial',len(prefix)),('dispatch_verified',len(prefix)),
-                          ('dispatch_assembly',len(prefix)),
+                          ('dispatch_assembly',len(prefix)),('dispatch_catalog_argument',len(prefix)),
+                          ('dispatch_catalog_finish',len(prefix)),
                           ('frontend',len(prefix)+len(dispatch)),
-                          ('compiler',len(prefix)+len(dispatch)+len(frontend))]:
+                          ('compiler',len(prefix)+len(dispatch)+len(frontend)),
+                          ('catalog_data',len(raw)-len(catalog))]:
         struct.pack_into('<i',raw,holes[name],position-holes[name]-4)
+    struct.pack_into('<I',raw,holes['catalog_size'],len(catalog))
     return bytes(raw)
 
 
 def packer_reference():
-    frame=struct.pack('<5Q',MAGIC,1,1,1,2)+b'\xc3'*3
+    frame=struct.pack('<6Q',MAGIC,1,1,1,2,5)+b'\xc3'*3+b'table'
     expected=packed_reference(profile=2)
     assert expected[:16]==b'\x7fELF\x02\x01\x01'+bytes(9)
     assert struct.unpack_from('<HHIQQ',expected,16)==(2,62,1,0x4000b0,64)
@@ -147,7 +151,8 @@ def packer_reference():
         result,raw=vm_window(PACKER,frame,capacity=len(expected)+1,start=start,count=count)
         assert result==len(expected) and raw==(expected+b'\xa5')[start:start+count],(start,result)
     for source,capacity,status in [(frame[:-1],4,0xffffffff),(frame,4,0xfffffffe),
-                                   (struct.pack('<5Q',MAGIC,1,1,1,3)+b'\xc3'*3,4,0xffffffff)]:
+                                   (struct.pack('<6Q',MAGIC,1,1,1,3,5)+frame[48:],4,0xffffffff),
+                                   (struct.pack('<6Q',MAGIC,1,1,1,2,0)+frame[48:51],4,0xffffffff)]:
         result,raw=vm_window(PACKER,source,capacity=capacity,count=capacity)
         assert result==status and raw==b'\xa5'*capacity
 
@@ -160,6 +165,18 @@ class AgentStdioSourceTests(unittest.TestCase):
 
     def test_all_packer_bytes_in_core_vm_before_native_seed(self):
         packer_reference()
+
+    def test_catalog_short_output_and_invalid_table_do_not_publish(self):
+        workspace=struct.pack('<10Q',4,0,0,0,0,0,0,0,1,1)
+        header=struct.pack('<4I',108,0,1,3)+bytes(84)
+        for table,capacity,status in (
+            (header+struct.pack('<2I',0,3)+b'abc',4,3),
+            (header+struct.pack('<2I',0,3)+b'abc',2,0xfffffffe),
+            (header+struct.pack('<2I',1,3)+b'abc',4,0xffffffff),
+        ):
+            result,raw=vm_window(DISPATCH,table,workspace=workspace,capacity=capacity,count=capacity)
+            self.assertEqual(result,status)
+            self.assertEqual(raw,b'abc\xa5' if result==3 else b'\xa5'*capacity)
 
     def test_unqualified_builder_and_unsupported_profiles_refuse(self):
         with tempfile.TemporaryDirectory(prefix='hia-agent-refusal-') as tmp:
@@ -213,6 +230,30 @@ class AgentStdioNativeTests(unittest.TestCase):
             p=self.invoke(args)
             self.assertEqual((p.returncode,p.stdout),(64,b''))
             self.assertEqual(json.loads(p.stderr)['category'],'usage')
+
+    def test_catalog_matches_all_hosted_versions_under_empty_path(self):
+        from hepta.hia_opcodes import opcode_catalog
+
+        def expected(version):
+            schema=f'hepta.hia.program.v{version}'
+            return (json.dumps(opcode_catalog(schema),ensure_ascii=False,indent=2,sort_keys=True)+'\n').encode()
+
+        for version in range(1,9):
+            with self.subTest(version=version):
+                p=self.invoke(['catalog','--schema',f'hepta.hia.program.v{version}'],b'ignored')
+                self.assertEqual((p.returncode,p.stdout,p.stderr),(0,expected(version),b''))
+        for profile in ('elf','exec'):
+            p=self.invoke(['catalog'],profile=profile)
+            self.assertEqual((p.returncode,p.stdout,p.stderr),(0,expected(8),b''))
+        p=self.invoke(['catalog','--s=hepta.hia.program.v2','--schem','hepta.hia.program.v5'])
+        self.assertEqual((p.returncode,p.stdout,p.stderr),(0,expected(5),b''))
+        for extra in (['--schema'],['--schema='],['schema'],['--schema-extra'],
+                      ['--schema','hepta.hia.program.v9'],['--schema','hepta.hia.program.v80'],
+                      ['--schema=hepta.hia.program.v0','--schema=hepta.hia.program.v8'],['x'*64]):
+            with self.subTest(extra=extra):
+                p=self.invoke(['catalog',*extra])
+                self.assertEqual((p.returncode,p.stdout),(64,b''))
+                self.assertEqual(json.loads(p.stderr)['category'],'usage')
 
     def test_verify_then_compile_actual_hia_program_and_copy(self):
         wire=json.dumps(self.sample,separators=(',',':')).encode()

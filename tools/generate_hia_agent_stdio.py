@@ -12,12 +12,14 @@ from pathlib import Path
 import struct
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_opcodes import opcode_catalog
+from hepta.hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 from tools.generate_hia_core_json_cli import (
     LIMIT, WIRE_LIMIT, OUTPUT_OFFSET, OUTPUT_BYTES, ARENA_OFFSET, ARENA_BYTES, MAPPING_BYTES,
 )
 
-MAGIC = int.from_bytes(b'HIAAGNT1', 'little')
+MAGIC = int.from_bytes(b'HIAAGNT2', 'little')
 MODE_OFFSET = WIRE_LIMIT + 16
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def capabilities_bytes():
     return (json.dumps({
         'schema': 'hepta.hia.agent-stdio.v1', 'implementation': 'hia-native',
-        'operations': ['capabilities', 'verify', 'compile', 'render-assembly', 'assemble', 'check-assembly'], 'build_profile': 0,
+        'operations': ['capabilities', 'verify', 'compile', 'render-assembly', 'assemble', 'check-assembly', 'catalog'], 'build_profile': 0,
         'input': 'primitive-v8-Core-JSON', 'input_bytes_max': WIRE_LIMIT,
         'assembly_input': 'hia-asm.v1', 'assembly_input_bytes_max': LIMIT,
         'compiler_bytes_max': LIMIT, 'program_nodes_max': 1048576, 'json_depth_max': 128,
@@ -49,6 +51,97 @@ def writes(payload):
     return text
 
 
+def catalog_pieces(document):
+    """Split the existing pretty wire at fields and complete instruction rows."""
+    split = ('  "instructions": [\n', '    {\n', '  ],\n')
+    current = ''
+    for line in document.splitlines(keepends=True):
+        if current and (line in split or line.startswith('  "')):
+            yield current.encode('utf-8')
+            current = ''
+        current += line
+    if current:
+        yield current.encode('utf-8')
+
+
+def catalog_table():
+    """Pack eight wire recipes followed by deduplicated immutable JSON pieces."""
+    recipes = []
+    pieces = {}
+    data = bytearray()
+    for schema in PRIMITIVE_PROFILES:
+        document = json.dumps(opcode_catalog(schema), ensure_ascii=False, indent=2, sort_keys=True) + '\n'
+        recipe = []
+        for piece in catalog_pieces(document):
+            if piece not in pieces:
+                pieces[piece] = len(data)
+                data.extend(piece)
+            recipe.append((pieces[piece], len(piece)))
+        recipes.append(recipe)
+    header = bytearray(struct.pack('<I', 12 * len(recipes) + 8 * sum(map(len, recipes)) + 4))
+    entries = bytearray()
+    for recipe in recipes:
+        header.extend(struct.pack('<III', len(entries), len(recipe), sum(size for _, size in recipe)))
+        for offset, size in recipe:
+            entries.extend(struct.pack('<II', offset, size))
+    return bytes(header + entries + data)
+
+
+def catalog_source():
+    schemas = tuple(PRIMITIVE_PROFILES)
+    # The currently declared catalog ids are consecutive ASCII versions.
+    prefix = b'hepta.hia.program.v'
+    assert tuple(schema.encode('ascii') for schema in schemas) == tuple(
+        prefix + bytes((49 + index,)) for index in range(len(schemas)))
+    assert 0 < len(schemas) <= 9
+    header_size = 4 + 12 * len(schemas)
+    output = [f'''def catalog(s:readbuf, o:mutbuf, version:u64) -> u32:
+    total = length(s)
+    if version == 0 or version > {len(schemas)} or total < {header_size}:
+        return 4294967295
+    base = catalog_u32(s, 0)
+    if base < {header_size} or base > total:
+        return 4294967295
+    row = 4 + (version - 1) * 12
+    recipe = {header_size} + catalog_u32(s, row)
+    count = catalog_u32(s, row + 4)
+    size = catalog_u32(s, row + 8)
+    if recipe > base or count == 0 or count * 8 > base - recipe or size == 0:
+        return 4294967295
+    if size > length(o):
+        return 4294967294
+    out = 0
+    i = 0
+    while i < count:
+        at = recipe + i * 8
+        start = base + catalog_u32(s, at)
+        n = catalog_u32(s, at + 4)
+        if start > total or n > total - start or n > size - out:
+            return 4294967295
+        j = 0
+        while j < n:
+            store(o, out + j, byte(s, start + j))
+            j = j + 1
+        out = out + n
+        i = i + 1
+    if out != size:
+        return 4294967295
+    return size
+
+def catalog_u32(s:readbuf, at:u64) -> u64:
+    return byte(s, at) | (byte(s, at + 1) << 8) | (byte(s, at + 2) << 16) | (byte(s, at + 3) << 24)
+''']
+    output.append('\ndef schema_version(s:readbuf, at:u64) -> u64:\n')
+    output.append(f'    if length(s) < at or length(s) - at != {len(prefix) + 1}:\n'
+                  '        return 0\n')
+    for index, byte in enumerate(prefix):
+        output.append(f'    if byte(s, at + {index}) != {byte}:\n        return 0\n')
+    output.append(f'    digit = byte(s, at + {len(prefix)})\n'
+                  f'    if digit < 49 or digit > {48 + len(schemas)}:\n        return 0\n'
+                  '    return digit - 48\n')
+    return ''.join(output)
+
+
 def dispatcher_source():
     cap = capabilities_bytes()
     profile_at = cap.index(b'"build_profile":0') + len(b'"build_profile":')
@@ -57,12 +150,32 @@ def dispatcher_source():
         return 4294967293
     phase = read_word(w, 0)
     profile = read_word(w, 40)
-    if phase > 2 or profile > 2:
+    if profile > 2:
         return 4294967293
+    if phase > 2:
+        if length(w) < 80:
+            return 4294967293
+        if read_word(w, 72) != 1:
+            return 4294967293
+        if phase == 3:
+            return catalog_argument(s, w)
+        if phase == 4 and read_word(w, 56) == 0:
+            return catalog(s, o, read_word(w, 64))
+        return 4294967295
     if phase == 2:
         return emitted_profile(s, profile)
     if length(s) > 32:
         return 4294967293
+    if phase == 0:
+        if matches(s, 7, CATALOG_NAME) == 1:
+            if length(w) < 80:
+                return 4294967293
+            put_word(w, 56, 0)
+            put_word(w, 64, CATALOG_DEFAULT)
+            put_word(w, 72, 1)
+            return 6
+        if length(w) >= 56 and read_word(w, 48) != 0:
+            return 4294967295
     if matches(s, 6, 133476589827702) == 1:
         if phase == 0:
             return 1
@@ -94,6 +207,8 @@ def capabilities(o:mutbuf, profile:u64) -> u32:
     source = source.replace('7308332187135341409', str(int.from_bytes(b'assemble', 'little')))
     source = source.replace('7809644627822477667', str(int.from_bytes(b'capabili', 'little')))
     source = source.replace('8314318707009022051', str(int.from_bytes(b'check-as', 'little')))
+    source = source.replace('CATALOG_NAME', str(int.from_bytes(b'catalog', 'little')))
+    source = source.replace('CATALOG_DEFAULT', str(tuple(PRIMITIVE_PROFILES).index(LATEST_CORE_SCHEMA) + 1))
     source += f'    if length(o) < {len(cap)}:\n        return 4294967294\n'
     source += writes(cap)
     source += f'    store(o, {profile_at}, profile + 48)\n    return {len(cap)}\n'
@@ -146,7 +261,39 @@ def put_word(o:mutbuf, at:u64, value:u64) -> u64:
         i = i + 1
     return 0
 '''
-    return source
+    source += '''
+def catalog_argument(s:readbuf, w:mutbuf) -> u32:
+    if read_word(w, 56) == 1:
+        version = schema_version(s, 0)
+        if version == 0:
+            return 4294967295
+        put_word(w, 56, 0)
+        put_word(w, 64, version)
+        return 1
+    size = length(s)
+    if size < 3:
+        return 4294967295
+    spelling = SCHEMA_OPTION
+    at = 0
+    while at < size and at < 8 and byte(s, at) != 61:
+        if byte(s, at) != (spelling & 255):
+            return 4294967295
+        spelling = spelling >> 8
+        at = at + 1
+    if at < 3:
+        return 4294967295
+    if at == size:
+        put_word(w, 56, 1)
+        return 1
+    if byte(s, at) != 61:
+        return 4294967295
+    selected = schema_version(s, at + 1)
+    if selected == 0:
+        return 4294967295
+    put_word(w, 64, selected)
+    return 1
+'''.replace('SCHEMA_OPTION', str(int.from_bytes(b'--schema', 'little')))
+    return source + '\n' + catalog_source()
 
 
 def template():
@@ -158,32 +305,36 @@ def template():
     def branch(op, target):
         emit(op); branches.append((len(code), target)); word(0)
     def hole(name): holes[name] = len(code); word(0)
-    def dispatch(name, *, reply=False):
+    def dispatch(name, *, phase=None):
+        emit('49 8d 94 24'); word(OUTPUT_OFFSET)
+        emit('b9'); word(OUTPUT_BYTES)
+        emit('4d 8d 84 24'); word(ARENA_OFFSET)
+        emit('41 b9'); word(ARENA_BYTES)
+        if phase is not None:
+            emit('49 c7 00'); word(phase)
+        emit('49 c7 40 28'); hole('profile_'+name)
+        emit('e8'); hole(name)
+    def command_dispatch(name, *, reply=False):
         emit('48 8b 7c 24 10')                 # argv[1], original process stack
         if reply:
             emit('be'); word(6)                # exact already admitted verification command
             emit('41 83 bc 24'); word(MODE_OFFSET); emit('05')
             emit('b8'); word(14)
             emit('48 0f 44 f0')                 # check-assembly has fourteen bytes
-        emit('49 8d 94 24'); word(OUTPUT_OFFSET)
-        emit('b9'); word(OUTPUT_BYTES)
-        emit('4d 8d 84 24'); word(ARENA_OFFSET)
-        emit('41 b9'); word(ARENA_BYTES)
-        if reply:
-            emit('49 c7 00 01 00 00 00')       # private post-verification phase
-        emit('49 c7 40 28'); hole('profile_'+name)  # clear all64profile bits
-        emit('e8'); hole(name)
-    emit('48 83 3c 24 02'); branch('0f 85', 'usage')
+        dispatch(name, phase=1 if reply else None)
+    emit('48 83 3c 24 02'); branch('0f 82', 'usage')
     emit('31 ff be'); word(MAPPING_BYTES)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff'
          ' 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff')
     branch('0f 83', 'io')
-    emit('49 89 c4 48 8b 7c 24 10 31 f6')     # map, argv[1], bounded length
+    emit('49 89 c4 48 8b 04 24 48 83 e8 02 49 89 84 24') # work[48] = argc - 2
+    word(ARENA_OFFSET + 48)
+    emit('48 8b 7c 24 10 31 f6')              # argv[1], bounded length
     label('argument')
     emit('48 83 fe 20'); branch('0f 83', 'usage')
     emit('80 3c 37 00'); branch('0f 84', 'dispatch')
     emit('48 ff c6'); branch('e9', 'argument')
-    label('dispatch'); dispatch('dispatch_initial')
+    label('dispatch'); command_dispatch('dispatch_initial')
     emit('83 f8 ff'); branch('0f 84', 'usage')
     emit('83 f8 fe'); branch('0f 84', 'space')
     emit('83 f8 01'); branch('0f 84', 'mode')
@@ -191,9 +342,31 @@ def template():
     emit('83 f8 03'); branch('0f 84', 'mode')
     emit('83 f8 04'); branch('0f 84', 'mode')
     emit('83 f8 05'); branch('0f 84', 'mode')
+    emit('83 f8 06'); branch('0f 84', 'catalog_arguments')
+    label('check_output')
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
     emit('85 c0'); branch('0f 84', 'io')
     branch('e9', 'reply_output')
+    label('catalog_arguments')
+    emit('bb'); word(2)                       # argv index, not command policy
+    label('catalog_next')
+    emit('48 3b 1c 24'); branch('0f 83', 'catalog_finish')
+    emit('48 8b 7c dc 08 31 f6')              # argv[index], bounded length
+    label('catalog_length')
+    emit('48 83 fe 40'); branch('0f 83', 'usage')
+    emit('80 3c 37 00'); branch('0f 84', 'catalog_dispatch')
+    emit('48 ff c6'); branch('e9', 'catalog_length')
+    label('catalog_dispatch')
+    dispatch('dispatch_catalog_argument', phase=3)
+    emit('83 f8 01'); branch('0f 85', 'usage')
+    emit('48 ff c3'); branch('e9', 'catalog_next')
+    label('catalog_finish')
+    emit('48 8d 3d'); hole('catalog_data')      # RIP-relative immutable table
+    emit('be'); hole('catalog_size')
+    dispatch('dispatch_catalog_finish', phase=4)
+    emit('83 f8 ff'); branch('0f 84', 'usage')
+    emit('83 f8 fe'); branch('0f 84', 'space')
+    branch('e9', 'check_output')
     label('mode')
     emit('41 89 84 24'); word(MODE_OFFSET)      # outside input/compiler output
     emit('bb'); word(WIRE_LIMIT)               # JSON wire ceiling
@@ -261,7 +434,7 @@ def template():
     emit('83 f8 01'); branch('0f 85', 'invalid')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('05'); branch('0f 84', 'verified')
     emit('4d 89 e7'); branch('e9', 'write')
-    label('verified'); dispatch('dispatch_verified', reply=True)
+    label('verified'); command_dispatch('dispatch_verified', reply=True)
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
     emit('83 f8 02'); branch('0f 86', 'io')
     label('reply_output')
@@ -307,7 +480,7 @@ def template():
 def packer_source():
     prefix, holes = template()
     source = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 40 or length(s) > 1048576:
+    if length(s) < 48 or length(s) > 1048576:
         return 4294967295
     if read_word(s, 0) != {MAGIC}:
         return 4294967295
@@ -315,24 +488,29 @@ def packer_source():
     frontend = read_word(s, 16)
     compiler = read_word(s, 24)
     profile = read_word(s, 32)
+    catalog = read_word(s, 40)
     if dispatch == 0 or frontend == 0 or compiler == 0 or dispatch > 1048576 or frontend > 1048576 or compiler > 1048576 or profile > 2:
         return 4294967295
-    if length(s) != 40 + dispatch + frontend + compiler:
+    if catalog == 0 or catalog > 1048576 or length(s) != 48 + dispatch + frontend + compiler + catalog:
         return 4294967295
-    size = {len(prefix)} + dispatch + frontend + compiler
+    size = {len(prefix)} + dispatch + frontend + compiler + catalog
     if size > 1048576 or length(o) < size:
         return 4294967294
 '''
     source += writes(prefix)
     source += '    put_word(o, 96, size)\n    put_word(o, 104, size)\n'
-    for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_dispatch_assembly','profile_frontend'):
-        source += f'    put_four(o, {holes[name]}, profile)\n'
-    for name, offset in [('dispatch_initial','0'),('dispatch_verified','0'),('dispatch_assembly','0'),
-                         ('frontend','dispatch'),('compiler','dispatch + frontend')]:
-        source += f'    put_four(o, {holes[name]}, {len(prefix)-holes[name]-4} + {offset})\n'
-    source += f'''    i = 40
+    for name, position in holes.items():
+        if name.startswith('profile_'):
+            source += f'    put_four(o, {position}, profile)\n'
+        elif name == 'catalog_size':
+            source += f'    put_four(o, {position}, catalog)\n'
+        else:
+            offset = {'frontend': 'dispatch', 'compiler': 'dispatch + frontend',
+                      'catalog_data': 'dispatch + frontend + compiler'}.get(name, '0')
+            source += f'    put_four(o, {position}, {len(prefix)-position-4} + {offset})\n'
+    source += f'''    i = 48
     while i < length(s):
-        store(o, {len(prefix)} + i - 40, byte(s, i))
+        store(o, {len(prefix)} + i - 48, byte(s, i))
         i = i + 1
     return size
 '''
