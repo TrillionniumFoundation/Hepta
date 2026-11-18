@@ -130,6 +130,7 @@ basename_next:
  mov [rbp+CTX+rcx+256],al
  mov [rbp+CTX+rcx+512],al
  mov [rbp+CTX+rcx+768],al
+ mov [rbp+CTX+rcx+1024],al
  inc ecx
  jmp basename_next
 basename_end:
@@ -146,6 +147,8 @@ basename_end:
 basename_valid:
  mov DWORD PTR [rbp+CTX+rcx+512],0x6c61772d
  mov DWORD PTR [rbp+CTX+rcx+768],0x6d68732d
+ mov rax,0x6c616e72756f6a2d       /* -journal */
+ mov [rbp+CTX+rcx+1024],rax
  /* Fresh mmap bytes provide all string terminators and zero private state. */
 
 client_next:

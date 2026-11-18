@@ -91,9 +91,11 @@ pager_os_once:
  cmp ecx,128
  jb .Lreserved
  mov rbx,[r12+40]
+ mov r15,[r12+32]
+ cmp r15,12
+ je .Lnamed_stat
  cmp rbx,2
  ja .Lbad
- mov r15,[r12+32]
  cmp r15,1
  je .Lopen
  cmp r15,2
@@ -136,7 +138,17 @@ pager_os_once:
 .endm
 
 .Lopen:
- zero_args
+ cmp QWORD PTR [r12+56],0
+ jne .Lbad
+ cmp QWORD PTR [r12+64],0
+ jne .Lbad
+ cmp QWORD PTR [r12+48],0
+ je .Lopen_guard
+ cmp QWORD PTR [r12+48],1
+ jne .Lbad
+ test rbx,rbx
+ jne .Lbad
+.Lopen_guard:
  bt QWORD PTR [r14+80],rbx
  jc .Lbad
  cmp QWORD PTR [r14+rbx*8+32],-1
@@ -175,6 +187,11 @@ pager_os_once:
  lea rsi,[r14+rax+256]
  mov rdi,[r14+24]
  mov edx,0xa0000
+ cmp QWORD PTR [r12+48],1
+ jne .Lopen_ordinary
+ or edx,0x802                /* O_RDWR | O_NONBLOCK, with no creation or write. */
+ jmp .Lopen_flags
+.Lopen_ordinary:
  cmp rbx,2
  jne .Lopen_flags
  or edx,2
@@ -187,6 +204,37 @@ pager_os_once:
  mov [r14+rbx*8+32],rax
  bts QWORD PTR [r14+80],rbx
  bts QWORD PTR [r14+192],rbx
+ cmp QWORD PTR [r12+48],1
+ jne .Lreturn_raw
+ mov QWORD PTR [r14+200],1
+ jmp .Lreturn_raw
+
+/* Report the name's ordinary metadata or raw errno without following it.
+ * Only the fixed four names of a checkpointed source can be observed. */
+.Lnamed_stat:
+ zero_args
+ cmp rbx,3
+ ja .Lbad
+ cmp QWORD PTR [r14+200],1
+ jne .Lbad
+ test QWORD PTR [r14+168],1
+ jz .Lbad
+ call .Lprepare
+ lea rdi,[r13+128]
+ xor eax,eax
+ mov ecx,18
+ rep stosq
+ mov rax,rbx
+ shl rax,8
+ lea rsi,[r14+rax+256]
+ mov rdi,[r14+24]
+ lea rdx,[r13+128]
+ mov r10d,0x100              /* AT_SYMLINK_NOFOLLOW */
+ mov eax,262                 /* newfstatat */
+ syscall
+ test rax,rax
+ jnz .Lreturn_raw
+ mov QWORD PTR [r13+48],144
  jmp .Lreturn_raw
 
 .Lstat:
@@ -281,6 +329,18 @@ pager_os_once:
  jnc .Lbad
  jmp .Llock_ready
 .Ldb_lock_guard:
+ cmp QWORD PTR [r14+200],1
+ jne .Ldb_shared_guard
+ /* Whole SQLite PENDING/RESERVED/SHARED range is one exclusive capability. */
+ cmp QWORD PTR [r12+48],0
+ je .Lbad
+ cmp QWORD PTR [r12+56],1073741824
+ jne .Lbad
+ cmp QWORD PTR [r12+64],512
+ jne .Lbad
+ xor eax,eax
+ jmp .Ldb_mode_guard
+.Ldb_shared_guard:
  cmp QWORD PTR [r12+48],1
  je .Lbad
  xor eax,eax

@@ -299,6 +299,18 @@ not an activation mechanism: a caller must still hold the source boundary
 through migration and prevent the old service from accepting writes after
 cutover.
 
+With byte 72 set to `2`, BEGIN reads a clean, checkpointed WAL-mode main
+database with **no** `-wal`, `-shm` or `-journal` sidecar. The Pager opens
+the ordinary database read/write only to obtain SQLite's exclusive database
+byte-range lock; it does not write any database bytes. It checks the held and
+named file identity under that lock, requires every sidecar to be absent
+(including symlinks), and validates page size/count against the actual file and
+its version-valid page-count header. It rechecks the identity, extent,
+timestamps and all three sidecars at END before releasing the lock. Requests
+remain limited to the same retained-page ABI. This mode never starts WAL or
+recovery, creates a sidecar, or falls back to another source/mode. The caller
+must select the migration profile matching the source.
+
 ## Committing a proposal to a staged HIA Store
 
 The source-bound Agent batch commit executable stages a transaction from an

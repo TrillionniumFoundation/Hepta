@@ -92,7 +92,7 @@ class NativePagerArgv(unittest.TestCase):
                                  (131, 2, (1 << 64) - 11, 14))
                 self.audit(busy.stderr)
 
-                rejected = self.run_pager(args, self.event(1, profile, begin_mode=2))
+                rejected = self.run_pager(args, self.event(1, profile, begin_mode=3))
                 self.assertEqual((rejected.returncode, rejected.stdout), (65, b''))
                 self.assertEqual(self.audit(rejected.stderr, effects_expected=False)[20], 0)
                 with ThreadPoolExecutor(max_workers=1) as pool, subprocess.Popen(
@@ -127,6 +127,77 @@ class NativePagerArgv(unittest.TestCase):
                         if pager.poll() is None:
                             pager.kill()
                             pager.wait(timeout=3)
+
+    def test_checkpointed_snapshot_has_no_sidecar_and_holds_source_lock(self):
+        if self.executable is None:
+            self.skipTest('run with the cold-built native SQLite Pager')
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            parent = Path(temporary)
+            database = parent / 'source.sqlite3'
+            args = [self.executable, parent, database.name]
+            profile = 35302 if sqlite3.sqlite_version_info[:2] == (3, 53) else 34600
+            begin = self.event(1, profile, begin_mode=2)
+            end = self.event(4)
+            with closing(sqlite3.connect(database)) as writer:
+                self.assertEqual(writer.execute('PRAGMA journal_mode=WAL').fetchone(), ('wal',))
+                writer.execute('CREATE TABLE witness(value TEXT)')
+                writer.execute('INSERT INTO witness VALUES (?)', ('checkpointed source',))
+                writer.commit()
+                page_size, = writer.execute('PRAGMA page_size').fetchone()
+                page_count, = writer.execute('PRAGMA page_count').fetchone()
+            original = database.read_bytes()
+            self.assertEqual(set(parent.iterdir()), {database})
+
+            for suffix in ('-wal', '-shm', '-journal'):
+                sidecar = database.with_name(database.name + suffix)
+                sidecar.symlink_to(parent / 'missing')
+                refused = self.run_pager(args, begin)
+                self.assertEqual(refused.returncode, 1)
+                self.assertEqual(EVENT.unpack_from(refused.stdout)[3:5], (131, 4))
+                self.audit(refused.stderr)
+                self.assertTrue(sidecar.is_symlink())
+                sidecar.unlink()
+
+            result = self.run_pager(args, begin + self.event(3, page_count) + end)
+            self.assertEqual(result.returncode, 0)
+            ready = EVENT.unpack_from(result.stdout)
+            self.assertEqual(ready[3:5], (128, 0))
+            self.assertEqual(ready[8:13], (128, page_size, page_count, 0, 0))
+            self.assertEqual(result.stdout[2304:2304 + page_size], original[-page_size:])
+            self.assertEqual(EVENT.unpack_from(result.stdout, 2304 + page_size)[3], 130)
+            self.audit(result.stderr)
+            self.assertEqual(set(parent.iterdir()), {database})
+
+            with ThreadPoolExecutor(max_workers=1) as pool, subprocess.Popen(
+                args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                env={'PATH': ''},
+            ) as pager:
+                audit = pool.submit(pager.stderr.read)
+                try:
+                    pager.stdin.write(begin)
+                    pager.stdin.flush()
+                    self.assertEqual(self.take_reply(pager)[3], 128)
+                    with closing(sqlite3.connect(database, timeout=0, isolation_level=None)) as writer:
+                        with self.assertRaises(sqlite3.OperationalError) as blocked:
+                            writer.execute('BEGIN IMMEDIATE')
+                        self.assertEqual(blocked.exception.sqlite_errorcode, sqlite3.SQLITE_BUSY)
+                        self.assertEqual(set(parent.iterdir()), {database})
+                        self.assertEqual(database.read_bytes(), original)
+                        pager.stdin.write(end)
+                        pager.stdin.flush()
+                        self.assertEqual(self.take_reply(pager)[3], 130)
+                        self.assertEqual(pager.wait(timeout=3), 0)
+                        self.audit(audit.result(timeout=3))
+                        writer.execute('BEGIN IMMEDIATE')
+                        writer.execute('INSERT INTO witness VALUES (?)', ('after unlock',))
+                        writer.execute('COMMIT')
+                finally:
+                    if pager.poll() is None:
+                        pager.kill()
+                        pager.wait(timeout=3)
+            with closing(sqlite3.connect(database)) as reader:
+                self.assertEqual(reader.execute('SELECT value FROM witness ORDER BY rowid').fetchall(),
+                                 [('checkpointed source',), ('after unlock',)])
 
     @staticmethod
     def take_reply(pager):
