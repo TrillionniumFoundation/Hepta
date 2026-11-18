@@ -76,11 +76,11 @@ def build_executables(output, compiler, cold_report, units, adapters, drivers):
         'executable_manifest': manifest,
         'runtime_python_or_libc': False,
         'agent_store_replaced': False,
-    }
+    }, admitted
 
 
 def build(output, compiler, cold_report):
-    report = build_executables(output, compiler, cold_report, UNITS, (START, INPUT), ())
+    report, _ = build_executables(output, compiler, cold_report, UNITS, (START, INPUT), ())
     report.update(schema='hepta.hia.sqlite-component-process-build.v1',
                   status='NATIVE_SQLITE_COMPONENT_PROCESSES_BUILT')
     write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())

@@ -78,7 +78,6 @@ SQLITE_SNAPSHOT_SDIST_FILES = (
     'tools/generate_hia_sqlite_agent_catalog.py',
 )
 ARTIFACT_CAPTURE_SDIST_FILES = (
-    'examples/hia_bootstrap/agent_artifact_capture.hepta',
     'tools/build_hia_agent_artifact_capture.py',
     'tools/generate_hia_agent_artifact_capture.py',
     'tools/hia_agent_artifact_capture_read.S',
@@ -87,6 +86,7 @@ ARTIFACT_CAPTURE_SDIST_FILES = (
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,
     *ARTIFACT_CAPTURE_SDIST_FILES,
+    'examples/hia_bootstrap/agent_artifact_capture.hepta',
     'tests/test_hia_agent_artifact_capture_runtime.py',
     'tests/test_hia_sqlite_snapshot_native.py',
     'tests/test_hia_selfhost_call_graph_efficiency.py',

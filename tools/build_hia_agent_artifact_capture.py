@@ -16,9 +16,9 @@ UNIT = 'agent-artifact-capture'
 
 
 def build(output, compiler, cold_report):
-    report = build_executables(output, compiler, cold_report, (UNIT,), ADAPTERS, (DRIVER,))
+    report, sources = build_executables(output, compiler, cold_report, (UNIT,), ADAPTERS, (DRIVER,))
     report.update(schema='hepta.hia.agent-artifact-capture-build.v1',
-                  status='NATIVE_AGENT_ARTIFACT_CAPTURE_BUILT')
+                  status='NATIVE_AGENT_ARTIFACT_CAPTURE_BUILT', source_manifest=sources)
     write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
     return output / ('hia-' + UNIT)
 

@@ -242,7 +242,8 @@ jobs:
           installed="$package/installed/$digest"
           test "$(stat -c '%a' "$installed")" = 500
           python -B -m tests.test_hia_agent_artifact_capture_runtime \
-            --executable "$installed/hia-agent-artifact-capture" --test-root "$package"
+            --executable "$installed/hia-agent-artifact-capture" --test-root "$package" \
+            --manifest "$RUNNER_TEMP/agent-artifact-capture/build.json"
           python -B -m tests.test_hia_agent_store_runtime \
             --executable "$installed/hia-agent-store" --module-root "$installed" \
             --initializer "$installed/hia-agent-store-init" --test-root "$package"

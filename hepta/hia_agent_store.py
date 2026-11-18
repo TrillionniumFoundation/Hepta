@@ -192,6 +192,14 @@ def stable_read(path, limit, *, dir_fd=None):
 
 
 def capture_path(path, roots, limit):
+    selected = os.environ.get('HEPTA_HIA_AGENT_ARTIFACT_CAPTURE_MANIFEST')
+    if selected is not None:
+        from .hia_agent_artifact_capture_native import capture
+        return capture(selected, path, roots, limit)
+    return _reference_capture_path(path, roots, limit)
+
+
+def _reference_capture_path(path, roots, limit):
     """Resolve below an administrator root using no-follow directory handles.
 
     No user-supplied host, shell, expansion, traversal or root is accepted. Each

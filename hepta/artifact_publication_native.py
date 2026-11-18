@@ -67,7 +67,7 @@ def _reject(code,message):
     raise PublicationRejected(code+': '+message)
 
 
-def _admitted_code(manifest):
+def _binding_sources():
     # Build-source admission remains unchanged in a checkout. An installed
     # package binds its actual owned bytes/assets plus the exact build contract,
     # without importing or falling back to an external source tree.
@@ -78,6 +78,11 @@ def _admitted_code(manifest):
         sources=current_sources()
     else:
         PROFILE,sources=_installed_source_custody(root)
+    return PROFILE,sources
+
+
+def _admitted_code(manifest):
+    PROFILE,sources=_binding_sources()
     SOURCES=NATIVE_PUBLICATION_SOURCES;OPERATIONS=list(NATIVE_PUBLICATION_OPERATIONS)
     from .hia_json_preflight_native import _source_resource_path
     path=Path(manifest);raw=path.read_bytes();record=json.loads(raw)
@@ -122,13 +127,23 @@ def admit_artifact_store(manifest):
 
 
 def _execute_native(manifest,operation,stage,destination,expected,_admission=None):
-    from .artifact_publication import PublicationRejected
     if _admission is None:code=_validated_code(manifest)
     else:
         if (type(_admission) is not _StoreAdmission or _admission[0]!=os.fspath(manifest)
                 or operation not in ('store-hash','store-put','store-get')):
             _reject('E_PUBLISH_NATIVE_CUSTODY','call-local artifact code admission differs')
         code=_admission[1]
+    result=_run_sealed_native(code, (operation, os.fspath(stage), os.fspath(destination)), expected)
+    codes={10:'E_PUBLISH_IDENTITY',11:'E_PUBLISH_BYTES',12:'E_PUBLISH_RACE',
+           14:'E_PUBLISH_LINK',15:'E_PUBLISH_IO',16:'E_PUBLISH_INPUT',17:'E_PUBLISH_LIMIT',64:'E_PUBLISH_INPUT'}
+    if result.returncode or result.stderr:
+        _reject(codes.get(result.returncode,'E_PUBLISH_IO'),
+                'native '+operation+' refused or I/O failed; no automatic replay')
+    return result.stdout
+
+
+def _run_sealed_native(code, argv, input_bytes):
+    from .artifact_publication import PublicationRejected
     fd=None
     try:
         try:
@@ -148,8 +163,8 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
             raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: sealed executable snapshot unavailable') from exc
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
-        result=subprocess.run(['/proc/self/fd/'+str(fd),operation,os.fspath(stage),os.fspath(destination)],
-            input=expected,capture_output=True,
+        return subprocess.run(['/proc/self/fd/'+str(fd), *argv],
+            input=input_bytes,capture_output=True,
             pass_fds=(fd,),env={'PATH':''})
     except OSError as exc:
         raise PublicationRejected('E_PUBLISH_IO: native execution unavailable; no automatic replay') from exc
@@ -157,12 +172,6 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
         if fd is not None:
             try:os.close(fd)
             except OSError:pass  # Linux close(EINTR) does not authorize retry/reuse.
-    codes={10:'E_PUBLISH_IDENTITY',11:'E_PUBLISH_BYTES',12:'E_PUBLISH_RACE',
-           14:'E_PUBLISH_LINK',15:'E_PUBLISH_IO',16:'E_PUBLISH_INPUT',17:'E_PUBLISH_LIMIT',64:'E_PUBLISH_INPUT'}
-    if result.returncode or result.stderr:
-        _reject(codes.get(result.returncode,'E_PUBLISH_IO'),
-                'native '+operation+' refused or I/O failed; no automatic replay')
-    return result.stdout
 
 
 def invoke_native(manifest,operation,stage,destination,expected=b''):
