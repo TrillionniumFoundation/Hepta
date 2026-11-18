@@ -226,7 +226,10 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/packager"
           python -B -m tools.build_hia_core_admission_cli --suite --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-suite"
+          python -B -m tools.build_hia_agent_stdio --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-stdio"
           install -m 0500 "$RUNNER_TEMP/core-suite/hia-core" \
+            "$RUNNER_TEMP/agent-stdio/hia-native" \
             "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
@@ -246,6 +249,16 @@ jobs:
           done
           installed="$package/installed/$digest"
           test "$(stat -c '%a' "$installed")" = 500
+          env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/selfhost.hepta \
+            > "$package/installed-compiler.image.bin"
+          cmp "$compiler" "$package/installed-compiler.image.bin"
+          env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/core_inspect_json.hepta \
+            > "$package/installed-core-inspector.image.bin"
+          cmp "$RUNNER_TEMP/core-suite/core-inspect-json.image.bin" "$package/installed-core-inspector.image.bin"
+          env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/sqlite_migration_plan.hepta \
+            > "$package/installed-migration-plan.image.bin"
+          cmp "$RUNNER_TEMP/sqlite-components/sqlite-migration-plan/sqlite-migration-plan.image.bin" \
+            "$package/installed-migration-plan.image.bin"
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
           for action in normalize inspect verify-report; do
