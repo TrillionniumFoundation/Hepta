@@ -72,7 +72,9 @@ def fields(**values):
 
 
 def observe(wire, workspace, *, output_bytes=b'', output_size=8192, offsets=(),
-            workspace_offsets=(), policy=POLICY):
+            workspace_offsets=(), policy=None):
+    if policy is None:
+        policy = POLICY
     b = Body(0)
     owners, views = [], []
     for data, size in ((wire, max(1, len(wire))), (output_bytes, output_size), (workspace, 65536)):
