@@ -212,14 +212,15 @@ class HIAAgentService:
         for name, body in bodies.items():
             ref, artifact = self.store.profile_bytes("hia-" + name + "-v1", body)
             self.profiles[name], self.profile_artifacts[name] = ref, artifact
-        self.resources = {
-            "schema_registry": self.store.put(registry_bytes, "discovery"),
-            "workload_schema": self.store.json(WORKLOAD_SCHEMA, "discovery"),
-            "objective_schema": self.store.json(OBJECTIVE_SCHEMA, "discovery"),
-            "cost_policy_schema": self.store.json(COST_POLICY_SCHEMA, "discovery"),
-            "plan_schema": self.store.json(PLAN_SCHEMA, "discovery"),
-            "proof_contract": self.store.json(proof_contract_description(), "discovery"),
-        }
+        self.resources = {"schema_registry": self.store.put(registry_bytes, "discovery")}
+        if selected:
+            resource_bodies = discovery.resources()
+            macro_policy = discovery.macro_policy(self.identities)
+        else:
+            from .hia_agent_macro_discovery import macro_policy_guidance
+            resource_bodies = {name: wire(body) for name, body in self._reference_resource_documents().items()}
+            macro_policy = wire(macro_policy_guidance(self.identities))
+        self.resources.update((name, self.store.put(body, "discovery")) for name, body in resource_bodies.items())
         for name, filename in (("assembly_grammar", "HIA_AGENT_ASSEMBLY.md"),
                                ("core_language", "HIA_PROGRAM.md"),
                                ("machine_plan_guide", "HIA_AGENT_MACHINE_PLANS.md"),
@@ -231,17 +232,7 @@ class HIAAgentService:
                                ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md"),
                                ("self_hosting_core_support", "HIA_SELFHOST_CORE_SUPPORT.json")):
             self.resources[name] = self.store.put(_agent_resource_path("docs/" + filename).read_bytes(), "discovery")
-        from .hia_agent_macro_discovery import macro_policy_guidance
-        self.resources["macro_policy"] = self.store.json(macro_policy_guidance(self.identities), "discovery")
-        self.resources["examples"] = self.store.json(self._examples(), "discovery")
-        self.resources["diagnostics"] = self.store.json({"schema": "hepta.hia.agent.diagnostics.v1",
-            "phases": ["admission", "context", "verification", "codegen", "execution", "adoption"],
-            "codes": {"E_HIA_SCHEMA": "repair the named input field", "E_HIA_CONTEXT_STALE": "rediscover installed source and create a new context",
-                "E_HIA_REQUEST_CONFLICT": "same key belongs to different arguments", "E_HIA_REQUEST_UNKNOWN": "observe the original runtime job; never relaunch",
-                "E_HIA_ARTIFACT_IDENTITY": "use the complete issued reference", "E_HIA_MACHINE_PLAN": "read plan_schema and supply only checked Core-bound machine choices",
-                "E_HIA_CLAIM_REQUIRED": "requested acceptance proof has no exact qualifying retained receipt",
-                "E_HIA_PROOF_SCOPE": "rerun verification with a fresh request key; proof scope or retained checker conclusion is missing or differs",
-                "E_HIA_GENERATION_STALE": "inspect current slot through the authorized consumer; use a fresh conditional request"}}, "discovery")
+        self.resources["macro_policy"] = self.store.put(macro_policy, "discovery")
         if selected:
             body = discovery.manifest(self.identities, self.catalog_sha256, self.profiles,
                                       self.profile_artifacts, self.resources)
@@ -249,6 +240,21 @@ class HIAAgentService:
             body = wire(_manifest_document(self.identities, self.catalog_sha256, self.profiles,
                                            self.profile_artifacts, self.resources))
         self.manifest = self.store.put(body, "discovery")
+
+    @staticmethod
+    def _reference_resource_documents():
+        diagnostics = {"schema": "hepta.hia.agent.diagnostics.v1",
+            "phases": ["admission", "context", "verification", "codegen", "execution", "adoption"],
+            "codes": {"E_HIA_SCHEMA": "repair the named input field", "E_HIA_CONTEXT_STALE": "rediscover installed source and create a new context",
+                "E_HIA_REQUEST_CONFLICT": "same key belongs to different arguments", "E_HIA_REQUEST_UNKNOWN": "observe the original runtime job; never relaunch",
+                "E_HIA_ARTIFACT_IDENTITY": "use the complete issued reference", "E_HIA_MACHINE_PLAN": "read plan_schema and supply only checked Core-bound machine choices",
+                "E_HIA_CLAIM_REQUIRED": "requested acceptance proof has no exact qualifying retained receipt",
+                "E_HIA_PROOF_SCOPE": "rerun verification with a fresh request key; proof scope or retained checker conclusion is missing or differs",
+                "E_HIA_GENERATION_STALE": "inspect current slot through the authorized consumer; use a fresh conditional request"}}
+        return {"workload_schema": WORKLOAD_SCHEMA, "objective_schema": OBJECTIVE_SCHEMA,
+                "cost_policy_schema": COST_POLICY_SCHEMA, "plan_schema": PLAN_SCHEMA,
+                "proof_contract": proof_contract_description(),
+                "examples": HIAAgentService._examples(), "diagnostics": diagnostics}
 
     @staticmethod
     def _examples():

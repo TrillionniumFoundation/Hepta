@@ -231,12 +231,12 @@ class AgentDiscoveryNativeTests(unittest.TestCase):
                 path.mkdir()
 
             def startup_documents(service):
-                refs = (service.manifest, *service.profile_artifacts.values())
+                refs = (service.manifest, *service.profile_artifacts.values(), *service.resources.values())
                 return {ref['id']: service.store.get(ref)[0] for ref in refs}
 
             original = HIAAgentService(state, artifact_roots=roots)
             try:
-                expected_refs = (original.manifest, original.profiles, original.profile_artifacts)
+                expected_refs = (original.manifest, original.profiles, original.profile_artifacts, original.resources)
                 expected_documents = startup_documents(original)
             finally:
                 original.close()
@@ -245,11 +245,16 @@ class AgentDiscoveryNativeTests(unittest.TestCase):
                   patch('hepta.hia_schema.schema_registry', side_effect=AssertionError('hosted registry used')),
                   patch('hepta.hia_opcodes.opcode_catalog', side_effect=AssertionError('hosted opcodes used')),
                   patch('hepta.hia_agent_service._profile_documents', side_effect=AssertionError('hosted profiles used')),
-                  patch('hepta.hia_agent_service._manifest_document', side_effect=AssertionError('hosted manifest used'))):
+                  patch('hepta.hia_agent_service._manifest_document', side_effect=AssertionError('hosted manifest used')),
+                  patch.object(HIAAgentService, '_reference_resource_documents',
+                               side_effect=AssertionError('hosted discovery resources used')),
+                  patch('hepta.hia_agent_macro_discovery.macro_policy_guidance',
+                        side_effect=AssertionError('hosted macro guidance used'))):
                 for _ in range(2):
                     service = HIAAgentService(state, artifact_roots=roots)
                     try:
-                        self.assertEqual((service.manifest, service.profiles, service.profile_artifacts), expected_refs)
+                        self.assertEqual((service.manifest, service.profiles, service.profile_artifacts,
+                                          service.resources), expected_refs)
                         self.assertEqual(startup_documents(service), expected_documents)
                         reply = service.call('hia_describe', {'section': 'language'})
                         self.assertEqual(reply['status'], 'completed', reply)

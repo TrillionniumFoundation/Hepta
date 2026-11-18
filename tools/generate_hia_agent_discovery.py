@@ -3,8 +3,11 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_agent_discovery_native import PROFILE_NAMES
-from hepta.hia_agent_service import _manifest_document, _profile_documents
+from hepta.hia_agent_discovery_native import (
+    DISCOVERY_RESOURCE_NAMES, MACRO_PROFILE_ROLE, PROFILE_NAMES, WORKSPACE_BYTES,
+)
+from hepta.hia_agent_macro_discovery import macro_policy_guidance
+from hepta.hia_agent_service import HIAAgentService, _manifest_document, _profile_documents
 from hepta.hia_agent_store import wire
 from hepta.hia_opcodes import opcode_catalog
 from hepta.hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES, schema_registry
@@ -17,6 +20,7 @@ HEADER_BYTES = 32
 MAGIC = int.from_bytes(b'HIADIS01', 'little')
 REGISTRY_MAGIC = int.from_bytes(b'HIADISRG', 'little')
 PROFILE_MAGIC = int.from_bytes(b'HIADISPF', 'little')
+RESOURCE_MAGIC = int.from_bytes(b'HIADISRS', 'little')
 
 # Stable resource-role IDs in the discovery ABI; the Store binds them to issued refs.
 ROUTES = {
@@ -37,6 +41,13 @@ def discover(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return render_recipe(o, w, REGISTRY_RECIPE, 0)
     if tag == PROFILE_MAGIC:
         return render_profile(s, o, w)
+    if tag == RESOURCE_MAGIC:
+        if length(s) != 16:
+            return 4294967293
+        role = read_word(s, 8)
+        if role == 0 or role > RESOURCE_COUNT:
+            return 4294967293
+        return render_recipe(o, w, REGISTRY_RECIPE + PROFILE_COUNT + role, 0)
     if length(s) < 48 or tag != FRAME_MAGIC:
         return 4294967293
     flags = read_word(s, 8)
@@ -272,10 +283,11 @@ def profile_templates():
     sentinel = {field: bytes((0, marker)) for marker, field in enumerate(fields, 1)}
     expected = {'compiler': (1, 2), 'target': (), 'backend': (1, 2), 'artifact': (3, 4),
                 'validation': (1, 2), 'lowering': (1, 2), 'plan': (1, 2),
-                'manifest': (1, 2, 5, 6, 7)}
+                'manifest': (1, 2, 5, 6, 7), 'macro_policy': (1, 1)}
     documents = _profile_documents(identity, catalog, root_count, roots)
     assert tuple(documents) == PROFILE_NAMES
     documents['manifest'] = _manifest_document(identity, catalog, profiles, artifacts, resources)
+    documents['macro_policy'] = macro_policy_guidance(identity)
     pattern = re.compile(b'|'.join(re.escape(key) for key in sentinel))
     for name, document in documents.items():
         raw = wire(document)
@@ -287,17 +299,23 @@ def profile_templates():
 def source_program():
     catalogs = [opcode_catalog(schema) for schema in PRIMITIVE_PROFILES]
     documents = [*catalogs, schema_registry()]
-    profile_count = len(PROFILE_NAMES) + 1
-    recipe_count = len(documents) + profile_count
-    recipes = [*(canonical_parts(value) for value in documents), *profile_templates()]
+    resource_documents = HIAAgentService._reference_resource_documents()
+    assert tuple(resource_documents) == DISCOVERY_RESOURCE_NAMES
+    profile_count = MACRO_PROFILE_ROLE
+    resource_count = len(resource_documents)
+    recipe_count = len(documents) + profile_count + resource_count
+    recipes = [*(canonical_parts(value) for value in documents), *profile_templates(),
+               *(canonical_parts(value) for value in resource_documents.values())]
     table = pack_catalog_recipes(recipes)
     seed = pack_seed(table)
     total = len(table) + len(seed)
-    assert total <= 65536
+    if total > WORKSPACE_BYTES:
+        raise ValueError('Agent discovery recipes exceed the private workspace')
     source = (ENTRY.replace('FRAME_MAGIC', str(MAGIC)).replace('TABLE_SIZE', str(total))
               .replace('PACK_START', str(len(table))).replace('PACK_END', str(total))
               .replace('REGISTRY_MAGIC', str(REGISTRY_MAGIC)).replace('REGISTRY_RECIPE', str(len(documents)))
               .replace('PROFILE_MAGIC', str(PROFILE_MAGIC)).replace('PROFILE_COUNT', str(profile_count))
+              .replace('RESOURCE_MAGIC', str(RESOURCE_MAGIC)).replace('RESOURCE_COUNT', str(resource_count))
               .replace('PROFILE_HEADER', str(4 + 12 * recipe_count))
               .replace('DEFAULT_VERSION', str(tuple(PRIMITIVE_PROFILES).index(LATEST_CORE_SCHEMA) + 1)))
     catalog = (catalog_source(recipes=recipe_count)

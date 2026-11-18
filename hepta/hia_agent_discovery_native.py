@@ -15,7 +15,12 @@ REQUEST = struct.Struct('<8s5Q')
 RESPONSE = struct.Struct('<4Q')
 VERSIONS = tuple(PRIMITIVE_PROFILES)
 PROFILE_NAMES = ('compiler', 'target', 'backend', 'artifact', 'validation', 'lowering', 'plan')
+MACRO_PROFILE_ROLE = len(PROFILE_NAMES) + 2
+DISCOVERY_RESOURCE_NAMES = ('workload_schema', 'objective_schema', 'cost_policy_schema', 'plan_schema',
+                            'proof_contract', 'examples', 'diagnostics')
 PROFILE_REQUEST = struct.Struct('<8s8Q')
+RESOURCE_REQUEST = struct.Struct('<8sQ')
+WORKSPACE_BYTES = 72 * 1024
 
 # Indexed by the native discovery ABI. None denotes the catalog just persisted.
 RESOURCE_ROLES = (
@@ -88,6 +93,18 @@ class NativeAgentDiscovery(NativeHiaJsonImage):
                   wire(profiles), wire(profile_artifacts), wire(resources))
         return self._profile(len(PROFILE_NAMES) + 1, fields)
 
+    def macro_policy(self, identities):
+        return self._profile(MACRO_PROFILE_ROLE, (wire(identities),) + (b'',) * 6)
+
+    def resources(self):
+        bodies = {}
+        for role, name in enumerate(DISCOVERY_RESOURCE_NAMES, 1):
+            header, body = self._render(RESOURCE_REQUEST.pack(b'HIADISRS', role))
+            if header[:3] != (len(VERSIONS) + 1 + MACRO_PROFILE_ROLE + role, 0, 0):
+                raise ValueError('invalid native HIA Agent discovery resource header')
+            bodies[name] = body
+        return bodies
+
     def _profile(self, role, fields):
         frame = PROFILE_REQUEST.pack(b'HIADISPF', role, *map(len, fields))
         header, body = self._render(frame + b''.join(fields))
@@ -98,7 +115,7 @@ class NativeAgentDiscovery(NativeHiaJsonImage):
     def _render(self, raw):
         source = ctypes.create_string_buffer(raw)
         output = ctypes.create_string_buffer(RESPONSE.size + 65536)
-        workspace = ctypes.create_string_buffer(65536)
+        workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
         width = self._entry(source, len(raw), output, len(output), workspace, len(workspace))
         if width in REFUSALS:
             reject(*REFUSALS[width])
