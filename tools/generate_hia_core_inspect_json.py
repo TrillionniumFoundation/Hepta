@@ -3,7 +3,7 @@ import ast
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_schema import PRIMITIVE_PROFILES
+from hepta.hia_schema import COMPOSITE_PROFILES, PRIMITIVE_PROFILES
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_core_json_frontend import KEYS, FRONTEND, packed
 from tools.generate_hia_json_canonical import core_pretty_source
@@ -16,14 +16,33 @@ POLICY = r'''
 def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < 128 or length(w) < 9280:
         return 4294967293
-    verification = get(w, length(w) - 8) == REPORT_MODE
+    mode = get(w, length(w) - 8)
+    if mode == NOMINAL_HASH:
+        return hash_canonical_input(s, o, w)
+    original = nominal_profile(w)
+    if original > 4:
+        return 4294967293
+    verification = mode == REPORT_MODE
     put(o, 48, 262144)
     put(o, 56, 64)
     decoded_size = widen(decode_json(s, w, o))
     if decoded_size >= 4294967292:
         return decoded_size
+    if mode == SCHEMA_MODE:
+        return composite_schema(w)
+    if mode == NORMALIZED_MODE:
+        if decoded_size + 9280 > length(w):
+            return 4294967293
+        put(w, 56, 0)
+        fragment(s, o, w, 0, 0, 1)
+        append_byte(o, w, 10)
+        size = get(w, 56)
+        if size > length(o):
+            return 4294967294
+        return size
     # Hash the exact canonical Core, not the original whitespace or key order.
-    if decoded_size + 9280 > length(w):
+    reserved = choose(original == 0, 9280, NOMINAL_TAIL)
+    if decoded_size + reserved > length(w):
         return 4294967293
     put(w, 56, 0)
     fragment(s, o, w, 0, 0, 0)
@@ -51,7 +70,7 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         fn = next_node(w, fn)
         comma(o, w, fn)
     lit(o, w, '\n  ],\n  "input_sha256": ')
-    quoted_hash(o, w)
+    quoted_input_hash(o, w)
     lit(o, w, ',\n  "module": ')
     fragment(s, o, w, field(w, 0, K_module), 1, 1)
     lit(o, w, ',\n  "normalization": {')
@@ -132,12 +151,19 @@ def render_normalization(s:readbuf, o:mutbuf, w:mutbuf, schema:u64, functions:u6
     fragment(s, o, w, schema, 2, 1)
     lit(o, w, ',\n    "core_sha256": ')
     quoted_hash(o, w)
+    original = nominal_profile(w)
     lit(o, w, ',\n    "input_profile": ')
-    profile(o, w, version)
+    if original == 0:
+        profile(o, w, version)
+    else:
+        declared_profile(o, w, original)
     lit(o, w, ',\n    "input_schema": ')
-    fragment(s, o, w, schema, 2, 1)
+    if original == 0:
+        fragment(s, o, w, schema, 2, 1)
+    else:
+        declared_schema(o, w, original)
     lit(o, w, ',\n    "input_sha256": ')
-    quoted_hash(o, w)
+    quoted_input_hash(o, w)
     lit(o, w, ',\n    "primitive_core_rechecked": true,\n    "public_scalar_entrypoints": [')
     base = length(w) - 9280
     size = export_names(w, functions, base)
@@ -150,7 +176,11 @@ def render_normalization(s:readbuf, o:mutbuf, w:mutbuf, schema:u64, functions:u6
             lit(o, w, ',')
     if size != 0:
         lit(o, w, '\n    ')
-    lit(o, w, '],\n    "source_ast_required": false,\n    "structured_elaboration_rechecked": false')
+    lit(o, w, '],\n    "source_ast_required": false,\n    "structured_elaboration_rechecked": ')
+    if original == 0:
+        lit(o, w, 'false')
+    else:
+        lit(o, w, 'true')
     return 0
 
 def export_names(w:mutbuf, functions:u64, base:u64) -> u64:
@@ -262,6 +292,47 @@ def quoted_hash(o:mutbuf, w:mutbuf) -> u64:
         i = i + 1
     append_byte(o, w, 34)
     return 0
+
+def nominal_profile(w:mutbuf) -> u64:
+    if length(w) < NOMINAL_TAIL:
+        return 0
+    control = length(w) - NOMINAL_TAIL
+    if get(w, control) != NOMINAL_CONTEXT:
+        return 0
+    version = get(w, control + 8)
+    if version == 0:
+        return 5
+    return version
+
+def hash_canonical_input(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) == 0 or length(s) > length(o) or length(s) > 8388608:
+        return 4294967293
+    i = 0
+    while i < length(s):
+        store(o, i, byte(s, i))
+        i = i + 1
+    digest(o, w, length(s))
+    i = 0
+    while i < 8:
+        put(o, i * 8, hash_get(w, 1024 + i * 8))
+        i = i + 1
+    return 64
+
+def quoted_input_hash(o:mutbuf, w:mutbuf) -> u64:
+    if nominal_profile(w) == 0:
+        return quoted_hash(o, w)
+    base = length(w) - NOMINAL_TAIL + 16
+    append_byte(o, w, 34)
+    i = 0
+    while i < 32:
+        word = get(w, base + (i >> 2) * 8)
+        value = (word >> ((3 - (i & 3)) * 8)) & 255
+        append_byte(o, w, hex_digit(value >> 4))
+        append_byte(o, w, hex_digit(value & 15))
+        i = i + 1
+    append_byte(o, w, 34)
+    return 0
+
 '''
 
 
@@ -270,15 +341,15 @@ def report_source():
         "backend_refinement_proved": "false",
         "background_tasks_supported": "false",
         "concurrency_supported": "false",
-        "cooperative_task_protocol_checked": "false",
+        "cooperative_task_protocol_checked": "nominal_profile(w) != 0",
         "escaping_loans_supported": "false",
         "foreign_code_supported": "false",
         "linear_resources_and_loan_provenance_checked": "true",
-        "local_stored_loan_identity_checked": "false",
-        "nominal_products_and_enums_checked": "false",
+        "local_stored_loan_identity_checked": "nominal_profile(w) != 0",
+        "nominal_products_and_enums_checked": "nominal_profile(w) != 0",
         "parameter_bound_loan_returns_supported": "version == 56",
         "preemptive_or_async_cancellation_supported": "false",
-        "record_field_borrow_provenance_checked": "false",
+        "record_field_borrow_provenance_checked": "nominal_profile(w) != 0",
         "recursive_buffer_chains_supported": "version >= 55",
         "recursive_heap_adts_supported": "false",
         "typed_closed_ssa_checked": "true",
@@ -305,7 +376,7 @@ def report_source():
     lines.append(r"""    lit(o, w, '\n  },\n  "functions_checked": ')
     number(o, w, count(w, functions))
     lit(o, w, ',\n  "input_sha256": ')
-    quoted_hash(o, w)
+    quoted_input_hash(o, w)
     lit(o, w, ',\n  "native_executed": false,\n  "normalization": {')
     render_normalization(s, o, w, schema, functions, version)
     lit(o, w, '\n  },\n  "ok": true,\n  "profile": ')
@@ -377,7 +448,14 @@ def source_program():
     start = get(w, 64 + node * 56 + 40)
     size = get(w, 64 + node * 56 + 48)
 '''
-    constants = {'NONE': (1 << 64) - 1, 'REPORT_MODE': CORE_REPORT_MODE}
+    constants = {
+        'NONE': (1 << 64) - 1, 'REPORT_MODE': CORE_REPORT_MODE,
+        'SCHEMA_MODE': int.from_bytes(b'HIAOSC01', 'little'),
+        'NORMALIZED_MODE': int.from_bytes(b'HIAONJ01', 'little'),
+        'NOMINAL_HASH': int.from_bytes(b'HIAONH01', 'little'),
+        'NOMINAL_CONTEXT': int.from_bytes(b'HIAONC01', 'little'),
+        'NOMINAL_TAIL': 9472,
+    }
     for i, name in enumerate(KEYS):
         constants['K_' + name] = 1 << i
         key_fn += '    if same(w, start, size, ' + ', '.join(map(str, packed(name))) + ') == 1:\n'
@@ -386,6 +464,24 @@ def source_program():
     profile = 'def profile(o:mutbuf, w:mutbuf, version:u64) -> u64:\n'
     for index, value in enumerate(PRIMITIVE_PROFILES.values(), ord('1')):
         profile += f'    if version == {index}:\n        lit(o, w, {chr(34) + value + chr(34)!r})\n'
+    profile += '    return 0\n'
+    for name, values in (('declared_profile', COMPOSITE_PROFILES.values()),
+                         ('declared_schema', COMPOSITE_PROFILES.keys())):
+        profile += f'def {name}(o:mutbuf, w:mutbuf, version:u64) -> u64:\n'
+        for version, value in enumerate(values, 1):
+            profile += f'    if version == {version}:\n        lit(o, w, {chr(34) + value + chr(34)!r})\n'
+        profile += '    return 0\n'
+    profile += '''def composite_schema(w:mutbuf) -> u32:
+    schema = field(w, 0, K_schema)
+    if schema == NONE or kind(w, schema) != 4:
+        return 0
+    record = 64 + schema * 56
+    start = get(w, record + 24)
+    size = get(w, record + 32)
+'''
+    for version, schema in enumerate(COMPOSITE_PROFILES, 1):
+        profile += '    if same(w, start, size, ' + ', '.join(map(str, packed(schema))) + ') == 1:\n'
+        profile += f'        return {version}\n'
     profile += '    return 0\n'
 
     class Expand(ast.NodeTransformer):

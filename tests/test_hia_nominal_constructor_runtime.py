@@ -20,6 +20,7 @@ from hepta.hia_instruction_policy_native import transport
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from hepta.hia_program import HIAProgramRejected, verify_core
 from hepta.hia_program_composite import _Elaborator
+from hepta.hia_program_tools import inspect_program
 from tests.test_hia_partial_record import roundtrip_program
 from tests.test_hia_composite_returned_loans import pair_program, task_program as loan_task
 from tests.test_hia_program_composite import enum_owner_program, i, stored_loan_program, task_program
@@ -87,7 +88,7 @@ def cases():
     yield 'late-owner-refusal', wrong_effect, False, (14, 0)
 
 
-def check(executable, oracle):
+def check(executable, oracle, ordinary=None):
     def run(raw, *, digits=4300, legacy=False, count=None, flags=0, trailer=b'', handoff=False):
         length = len(raw) if count is None else count
         magic = b'HIACBX01' if handoff else b'HIACSX01'
@@ -168,7 +169,7 @@ def check(executable, oracle):
     assert run(b'{}', flags=1) == (64, b'')
     assert run(b'{}', trailer=b' ') == (64, b'')
     assert run(b'{}', handoff=True, flags=0) == (64, b'')
-    assert run(b'{}', handoff=True, flags=7) == (64, b'')
+    assert run(b'{}', handoff=True, flags=10) == (64, b'')
     bad_param = task_program()
     bad_param['functions'][0]['blocks'][0]['params'][0]['type'] = 'Missing'
     bad_raw = json.dumps(bad_param, separators=(',', ':')).encode()
@@ -180,6 +181,8 @@ def check(executable, oracle):
           f'{admitted} automatic first-function parameter requests and two refusal stages')
     check_bodies(run)
     check_modules(run)
+    if ordinary is not None:
+        check_ordinary(ordinary, run)
 
 
 def check_bodies(run):
@@ -304,6 +307,9 @@ def check_modules(run):
         assert run(raw, legacy=legacy, flags=6, handoff=True) == (
             0, FRAME.pack(b'HIAVCF01', 0, 0, profile, len(original), len(core), 0, 0)
                + original + core), name
+        if not legacy:
+            for role, (_, formatted) in enumerate(reports(old), 7):
+                assert run(raw, flags=role, handoff=True) == (0, formatted), (name, role)
 
     # A later function may reject after prior functions are already retained;
     # the outer status contains its delegate, not a partial Core program.
@@ -353,9 +359,53 @@ def check_modules(run):
           'and four failure prefixes without partial Core')
 
 
+def reports(program):
+    values = (
+        ('verify', {**program.report(), 'status': 'standalone_core_checked',
+                    'native_executed': False}),
+        ('inspect', inspect_program(program)),
+        ('normalize', program.as_dict()),
+    )
+    for action, value in values:
+        yield action, (json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + '\n').encode()
+
+
+def check_ordinary(executable, run):
+    root = Path(__file__).resolve().parents[1]
+    sources = subprocess.check_output(
+        ['git', 'ls-files', '-z', '--', '*.hepta'], cwd=root).split(b'\0')
+    count = nominal = 0
+    for encoded in filter(None, sources):
+        path = root / encoded.decode()
+        raw = path.read_bytes()
+        if not raw.lstrip().startswith(b'{'):
+            continue
+        program = verify_core(raw)
+        count += 1
+        nominal += program.structured_bytes is not None
+        for action, expected in reports(program):
+            result = subprocess.run([executable, action, path], capture_output=True,
+                                    env={'PATH': ''}, timeout=20, check=False)
+            assert (result.returncode, result.stdout, result.stderr) == (
+                0, expected, b''), (path.relative_to(root), action, result.returncode)
+    assert count >= 25 and nominal >= 5, (count, nominal)
+
+    # Roles 7–9 must not accidentally expose successfully lowered but
+    # semantically unverified payloads.
+    broken = enum_owner_program()
+    broken['functions'][0]['effects'] = ['trap']
+    raw = json.dumps(broken, separators=(',', ':')).encode()
+    for role in (7, 8, 9):
+        assert run(raw, flags=role, handoff=True) == (
+            65, FRAME.pack(b'HIAVCF01', 3, 0xfffffff7, 1, 0, 0, 0, 0))
+    print(f'{count * 3} byte-exact ordinary reports on {count} structured sources '
+          f'({nominal} nominal), and three no-payload post-lowering refusals')
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('executable', type=Path)
     parser.add_argument('--oracle-images', type=Path, required=True)
+    parser.add_argument('--ordinary', type=Path)
     args = parser.parse_args()
-    check(args.executable, args.oracle_images)
+    check(args.executable, args.oracle_images, args.ordinary)

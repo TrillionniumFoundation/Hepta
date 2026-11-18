@@ -376,11 +376,9 @@ regular callback API still materializes its original objects and diagnostics.
 Exit 0 completes initialization and emits the final state. Exit 65 reports a
 semantic refusal and its completed state prefix, or the existing fixed codec
 refusal with no constructor state. Exit 64 means bad outer framing; 74 means
-an OS or internal transport failure. The plain constructor mode does not perform function lowering. The private
-command does not yet assemble a complete outer module, verify primitive Core,
-or replace public `hia verify`. It uses the raw codec envelope;
-public Core depth/diagnostic ordering remains independently qualified before
-any future switch.
+an OS or internal transport failure. This plain constructor mode uses the raw
+codec envelope and stops before function lowering. The later modes explicitly
+enter the rest of the pipeline.
 
 A client can request the exact constructor-to-next-stage packet instead of
 the terminal token stream. With the same raw framing, use `HIACBX01` and
@@ -467,5 +465,20 @@ words. Original canonical UTF-8 bytes precede canonical Core bytes. On a
 post-ingress refusal no payload is present: nonzero stage identifies original
 canonical admission, Core encoding, primitive Core admission, or Core
 canonicalization (1–4) and retains that stage's status. Existing codec,
-constructor and outer error frames are unchanged. This is an installed
-verification component, not a change to the default public commands.
+constructor and outer error frames are unchanged.
+
+Roles 7, 8 and 9 apply the same independent admission, then produce the
+ordinary verification report, inspection report and normalized Core
+respectively. Successful output is pretty JSON followed by a newline and
+has no frame prefix. Refusals retain the existing role 6 framing, without
+any report or partial Core. The reports distinguish the original structured
+snapshot from the verified Core and do not claim native execution or
+whole-language soundness.
+
+The cold-built, sealed native `hia` routes `verify`, `inspect` and
+stdout-only `normalize` through this component. It checks the component's
+size, digest and custody before handing over a source descriptor. The
+component decodes the original schema and selects native nominal lowering
+or the existing independent primitive verifier. The separate file-publishing
+form `normalize -o`, other build/edit commands and the host CLI/API are
+unchanged by this route.

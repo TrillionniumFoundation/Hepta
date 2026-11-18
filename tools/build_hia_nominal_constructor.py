@@ -30,6 +30,7 @@ COMPONENTS = {
     'outer-render': 'examples/hia_bootstrap/composite_outer_render.hepta',
     'public-core': 'examples/hia_bootstrap/core_admission.hepta',
     'public-canonical': 'examples/hia_bootstrap/json_canonical.hepta',
+    'public-presentation': 'examples/hia_bootstrap/core_inspect_json.hepta',
     'linker': 'examples/hia_bootstrap/elf_static_linker.hepta',
 }
 
@@ -56,7 +57,7 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
                 'advanced': 'function_advanced', 'function-render': 'function_render',
                 'helpers': 'function_helper', 'outer-owner': 'outer_owner',
                 'outer-render': 'outer_render', 'public-core': 'public_core',
-                'public-canonical': 'public_canonical'}
+                'public-canonical': 'public_canonical', 'public-presentation': 'public_presentation'}
     for role, label in embedded.items():
         stem = 'constructor-' + role
         objects.append(embed(output, label, stem, images[role]))

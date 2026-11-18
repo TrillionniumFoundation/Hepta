@@ -66,6 +66,13 @@
 .equ PUBLIC_CORE_ARENA, 32<<20
 .equ PUBLIC_CORE_STATE, 64<<20
 .equ VERIFIED_FINAL, 0x3130464356414948
+.equ PRESENTATION_BYTES, 96<<20
+.equ PRESENTATION_CONTEXT, 0x3130434e4f414948
+.equ PRESENTATION_TAIL, 9472
+.equ PRESENTATION_HASH, 0x3130484e4f414948
+.equ PRESENTATION_NORMALIZED, 0x31304a4e4f414948
+.equ PRESENTATION_VERIFY, 0x3154505243414948
+.equ PRESENTATION_SCHEMA, 0x313043534f414948
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
 .macro region bytes, slot
@@ -78,6 +85,7 @@ _start:
  cmp QWORD PTR [rsp+8],1
  jne malformed
  xor ebp,ebp
+ mov rbx,[rsp+16]
  lea rsi,[rip+sigpipe]
  mov edi,13
  xor edx,edx
@@ -86,6 +94,18 @@ _start:
  syscall
  test rax,rax
  jne io_failure
+ lea rsi,[rip+stdio_verify]
+ call argument_equal
+ test eax,eax
+ jnz stdin_verify
+ lea rsi,[rip+stdio_inspect]
+ call argument_equal
+ test eax,eax
+ jnz stdin_inspect
+ lea rsi,[rip+stdio_normalize]
+ call argument_equal
+ test eax,eax
+ jnz stdin_normalize
  lea rsi,[rip+request]
  mov edx,64
  call read_exact
@@ -98,7 +118,7 @@ _start:
  mov rax,[rip+request+32]
  test rax,rax
  je malformed
- cmp rax,6
+ cmp rax,9
  ja malformed
  mov [rip+handoff_role],rax
  jmp reserved_header
@@ -137,6 +157,7 @@ confirm_eof:
  js io_failure
  jne malformed
 
+input_ready:
  region PACKET_CAPACITY, json
  region PACKET_CAPACITY, codec_work
  mov r8,[rip+codec_work]
@@ -170,26 +191,10 @@ confirm_eof:
  jne io_failure
 
  cmp QWORD PTR [rip+handoff_role],6
+ jb initialize_constructor
+ cmp QWORD PTR [rip+stdio_mode],0
  jne initialize_constructor
- region PUBLIC_CANONICAL, original_canonical
- region PUBLIC_CORE_ARENA, public_core_arena
- mov rdi,r12
- mov rsi,r15
- mov rdx,[rip+original_canonical]
- mov ecx,PUBLIC_CANONICAL
- mov r8,[rip+public_core_arena]
- mov r9d,PUBLIC_CORE_ARENA
- mov QWORD PTR [r8+48],262144
- mov QWORD PTR [r8+56],64
- call public_canonical_start
- mov edi,1
- cmp eax,0xfffffffc
- jae verified_refusal
- test eax,eax
- je io_failure
- cmp eax,RAW_LIMIT
- ja verified_budget
- mov [rip+original_extent],rax
+ call canonical_original
 initialize_constructor:
  region CONSTRUCTOR_ARENA, constructor_work
  region TYPES_ARENA, type_work
@@ -629,6 +634,8 @@ delegated:
  test rax,rax
  je io_failure
 complete:
+ cmp QWORD PTR [rip+stdio_mode],0
+ jne stdio_rejected
  lea rsi,[rip+complete_header]
  mov [rsi+8],r15
  mov [rsi+16],rax
@@ -1061,7 +1068,7 @@ finish_outer:
  cmp [rsi+32],rax
  jne io_failure
  cmp QWORD PTR [rip+handoff_role],6
- je verify_assembled_core
+ jae verify_assembled_core
  call write_outer_status
  mov rsi,[rip+type_output]
  mov rdx,r15
@@ -1070,6 +1077,8 @@ finish_outer:
  xor edi,edi
  jmp exit
 outer_refusal:
+ cmp QWORD PTR [rip+stdio_mode],0
+ jne stdio_rejected
  cmp QWORD PTR [r12+8],1
  jne io_failure
  mov r15,rax
@@ -1083,6 +1092,106 @@ outer_refusal:
 outer_failed:
  mov edi,65
  jmp exit
+
+stdin_verify:
+ mov edi,7
+ jmp stdin_begin
+stdin_inspect:
+ mov edi,8
+ jmp stdin_begin
+stdin_normalize:
+ mov edi,9
+stdin_begin:
+ mov [rip+handoff_role],rdi
+ mov QWORD PTR [rip+request+8],4300
+ mov QWORD PTR [rip+stdio_mode],1
+ mov esi,RAW_LIMIT+1
+ call map_private
+ mov r12,rax
+ xor r15d,r15d
+read_stdin:
+ xor edi,edi
+ lea rsi,[r12+r15]
+ mov edx,RAW_LIMIT+1
+ sub rdx,r15
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je read_stdin
+ test rax,rax
+ js io_failure
+ jz classify_stdin
+ add r15,rax
+ cmp r15,RAW_LIMIT
+ ja stdio_limit
+ jmp read_stdin
+classify_stdin:
+ mov [rip+request+24],r15
+ call canonical_original
+ region PRESENTATION_BYTES, presentation_output
+ mov rdi,[rip+public_core_arena]
+ mov esi,PUBLIC_CORE_ARENA
+ call discard
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,[rip+presentation_output]
+ mov ecx,PRESENTATION_BYTES
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov rax,PRESENTATION_SCHEMA
+ mov [r8+PUBLIC_CORE_ARENA-8],rax
+ call public_presentation_start
+ mov edi,1
+ cmp eax,0xfffffffc
+ jae verified_refusal
+ cmp eax,4
+ ja io_failure
+ test eax,eax
+ jne input_ready
+
+verify_primitive_stdin:
+ mov rdi,[rip+public_core_arena]
+ mov esi,PUBLIC_CORE_ARENA
+ call discard
+ region PUBLIC_CORE_STATE, public_core_state
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,[rip+public_core_state]
+ mov ecx,PUBLIC_CORE_STATE
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ call public_core_start
+ mov edi,3
+ test eax,eax
+ jne verified_refusal
+ mov r15,[rip+original_extent]
+ mov rax,[rip+original_canonical]
+ mov [rip+type_output],rax
+ jmp present_public
+
+canonical_original:
+ sub rsp,8
+ region PUBLIC_CANONICAL, original_canonical
+ region PUBLIC_CORE_ARENA, public_core_arena
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,[rip+original_canonical]
+ mov ecx,PUBLIC_CANONICAL
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov QWORD PTR [r8+48],262144
+ mov QWORD PTR [r8+56],64
+ call public_canonical_start
+ mov edi,1
+ cmp eax,0xfffffffc
+ jae verified_refusal
+ test eax,eax
+ je io_failure
+ cmp eax,RAW_LIMIT
+ ja verified_budget
+ mov [rip+original_extent],rax
+ add rsp,8
+ ret
 
 verify_assembled_core:
  /* Typed output never confers authority. Convert it to a bounded raw Core
@@ -1143,6 +1252,8 @@ verify_assembled_core:
  cmp eax,RAW_LIMIT
  ja verified_budget
  mov r15d,eax
+ cmp QWORD PTR [rip+handoff_role],6
+ ja present_public
  lea rdi,[rip+verified_header]
  call clear_header
  mov rax,[rip+input_profile]
@@ -1162,9 +1273,76 @@ verify_assembled_core:
  xor edi,edi
  jmp exit
 
+present_public:
+ mov [rip+verified_core_extent],r15
+ mov rdi,[rip+public_core_arena]
+ mov esi,PUBLIC_CORE_ARENA
+ call discard
+ cmp QWORD PTR [rip+presentation_output],0
+ jne select_presentation
+ region PRESENTATION_BYTES, presentation_output
+select_presentation:
+ cmp QWORD PTR [rip+handoff_role],9
+ je present_normalized
+ cmp QWORD PTR [rip+input_profile],0
+ je select_report
+ mov rdi,[rip+original_canonical]
+ mov rsi,[rip+original_extent]
+ mov rdx,[rip+presentation_output]
+ mov ecx,PRESENTATION_BYTES
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov rax,PRESENTATION_HASH
+ mov [r8+PUBLIC_CORE_ARENA-8],rax
+ call public_presentation_start
+ cmp eax,64
+ jne io_failure
+ mov r8,[rip+public_core_arena]
+ lea rdi,[r8+PUBLIC_CORE_ARENA-PRESENTATION_TAIL]
+ mov rax,PRESENTATION_CONTEXT
+ mov [rdi],rax
+ mov rax,[rip+input_profile]
+ mov [rdi+8],rax
+ add rdi,16
+ mov rsi,[rip+presentation_output]
+ mov ecx,8
+ rep movsq
+select_report:
+ xor eax,eax
+ cmp QWORD PTR [rip+handoff_role],7
+ jne present_core
+ mov rax,PRESENTATION_VERIFY
+ jmp present_core
+present_normalized:
+ mov rax,PRESENTATION_NORMALIZED
+present_core:
+ mov rdi,[rip+type_output]
+ mov rsi,[rip+verified_core_extent]
+ mov rdx,[rip+presentation_output]
+ mov ecx,PRESENTATION_BYTES
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov [r8+PUBLIC_CORE_ARENA-8],rax
+ call public_presentation_start
+ mov edi,5
+ cmp eax,0xfffffffc
+ jae verified_refusal
+ test eax,eax
+ je io_failure
+ cmp eax,PRESENTATION_BYTES
+ ja io_failure
+ mov edx,eax
+ mov rsi,[rip+presentation_output]
+ mov edi,1
+ call write_exact
+ xor edi,edi
+ jmp exit
+
 verified_budget:
  mov eax,0xfffffffb
 verified_refusal:
+ cmp QWORD PTR [rip+stdio_mode],0
+ jne stdio_refusal
  mov r15d,eax
  mov r14d,edi
  lea rdi,[rip+verified_header]
@@ -1377,6 +1555,8 @@ write_exact:
 too_large:
  mov eax,0xfffffffb
 codec_refusal:
+ cmp QWORD PTR [rip+stdio_mode],0
+ jne stdio_refusal
  mov eax,eax
  lea rsi,[rip+codec_error]
  mov [rsi+8],rax
@@ -1391,7 +1571,43 @@ malformed:
  mov edi,64
  jmp exit
 io_failure:
+ cmp QWORD PTR [rip+stdio_mode],0
+ jne stdio_io
  mov edi,74
+ jmp exit
+stdio_refusal:
+ cmp eax,0xfffffffe
+ je stdio_limit
+ /* Raw byte limit is handled while reading. In post-elaboration stages
+    0xfffffffb is the bounded-output failure except Core FORMAT. */
+ cmp edi,3
+ je stdio_rejected
+ cmp eax,0xfffffffb
+ je stdio_limit
+stdio_rejected:
+ mov edi,2
+ jmp exit
+stdio_limit:
+ mov edi,3
+ jmp exit
+stdio_io:
+ mov edi,4
+ jmp exit
+argument_equal:
+ mov rdi,rbx
+check_arg_byte:
+ mov al,[rdi]
+ cmp al,[rsi]
+ jne different_argument
+ inc rdi
+ inc rsi
+ test al,al
+ jne check_arg_byte
+ mov eax,1
+ ret
+different_argument:
+ xor eax,eax
+ ret
 exit:
  mov eax,60
  syscall
@@ -1401,6 +1617,9 @@ exit:
 .balign 8
 sigpipe: .quad 1,0,0,0
 helper_stream_name: .asciz "hia-function-helpers"
+stdio_verify: .asciz "hia-verify-core-json"
+stdio_inspect: .asciz "hia-inspect-core-json"
+stdio_normalize: .asciz "hia-normalize-core"
 .balign 16
 owner: .incbin "owner.image.bin"
 .balign 16
@@ -1445,5 +1664,8 @@ compact_core_extent: .skip 8
 public_core_arena: .skip 8
 public_core_state: .skip 8
 verified_header: .skip 64
+verified_core_extent: .skip 8
+presentation_output: .skip 8
+stdio_mode: .skip 8
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

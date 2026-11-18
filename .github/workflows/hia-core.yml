@@ -525,7 +525,7 @@ jobs:
             --component-root "$installed" --test-root "$package" --migration-publisher
           python -B -m tests.test_hia_nominal_packet_runtime "$installed/hia-nominal-packet"
           python -B -m tests.test_hia_nominal_constructor_runtime "$installed/hia-nominal-constructor" \
-            --oracle-images "$RUNNER_TEMP/nominal-constructor"
+            --oracle-images "$RUNNER_TEMP/nominal-constructor" --ordinary "$installed/hia"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - name: Native artifact read-page and ordinary Agent callers
