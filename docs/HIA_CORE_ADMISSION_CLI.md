@@ -58,6 +58,19 @@ on stdin. It emits sorted, two-space-indented JSON and uses the original input
 limit and exit categories. This version does not normalize composite input or
 change the default hosted CLI.
 
+## One executable for all three operations
+
+```sh
+python -B -m tools.build_hia_core_admission_cli --suite \
+  --compiler "$compiler" --cold-report "$cold_report" --output /private/new-core-suite
+/private/new-core-suite/hia-core inspect < primitive-core.json
+```
+
+Use exactly one command argument: `verify`, `normalize`, or `inspect`. The
+combined executable carries one admission kernel and both formatters. It uses
+the same stdin, stdout and exit codes as the individual commands. It does not
+call the other executables or load an interpreter.
+
 ## Full profile and remaining work
 
 The unchanged maximum is 8 MiB input, 262,144 JSON nodes, depth 64, 1,024

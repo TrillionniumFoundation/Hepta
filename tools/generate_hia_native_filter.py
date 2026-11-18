@@ -19,7 +19,7 @@ WORKSPACE_BYTES=16<<20
 MAPPING_BYTES=WORKSPACE_OFFSET+WORKSPACE_BYTES
 
 
-def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, formatter=False):
+def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, formatter=False, suite=False):
     workspace_offset=OUTPUT_OFFSET+output_bytes
     mapping_bytes=workspace_offset+workspace_bytes
     code=bytearray();labels={};branches=[]
@@ -27,27 +27,52 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
     def word(value):code.extend(struct.pack('<I',value))
     def label(name):labels[name]=len(code)
     def branch(op,name):emit(op);branches.append((len(code),name));word(0)
-    def call_image():
-        emit('4c 89 e7 4c 89 ee 49 8d 94 24');word(OUTPUT_OFFSET)
+    def call_image(*, argument=False):
+        if argument:
+            emit('48 8b 7c 24 10 48 89 de')  # argv[1] and its observed extent
+        else:
+            emit('4c 89 e7 4c 89 ee')
+        emit('49 8d 94 24');word(OUTPUT_OFFSET)
         emit('b9');word(output_bytes)
         emit('4d 8d 84 24');word(workspace_offset)
         emit('41 b9');word(workspace_bytes)
         emit('e8');offset=len(code);word(0)
         return offset
-    emit('48 83 3c 24 01');branch('0f 85','usage')
+    emit('48 83 3c 24');emit('02' if suite else '01');branch('0f 85','usage')
     emit('31 ff be');word(mapping_bytes)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff');branch('0f 83','io')
-    emit('49 89 c4 45 31 ed');label('read')
+    calls = []
+    emit('49 89 c4 45 31 ed')
+    if suite:
+        emit('48 8b 7c 24 10 31 db')
+        label('argument')
+        emit('83 fb 10');branch('0f 83','usage')
+        emit('80 3c 1f 00');branch('0f 84','dispatch')
+        emit('48 ff c3');branch('e9','argument')
+        label('dispatch')
+        calls.append(call_image(argument=True))
+        emit('83 f8 01');branch('0f 82','usage')
+        emit('83 f8 03');branch('0f 87','usage')
+        emit('89 c3')  # Admitted mode remains in the callee-saved register.
+    label('read')
     emit('31 c0 31 ff 4b 8d 34 2c ba');word(WIRE_BYTES+1)
     emit('4c 29 ea 0f 05 48 83 f8 fc');branch('0f 84','read')
     emit('48 85 c0');branch('0f 88','io');branch('0f 84','invoke')
     emit('49 01 c5 49 81 fd');word(WIRE_BYTES);branch('0f 87','space');branch('e9','read')
     label('invoke')
-    calls = [call_image()]
-    if formatter:
+    calls.append(call_image())
+    if formatter or suite:
         emit('83 f8 fe');branch('0f 84','space')
         emit('85 c0');branch('0f 85','invalid')
+        if suite:
+            emit('83 fb 01');branch('0f 84','check_output')
+            emit('83 fb 02');branch('0f 85','inspect')
         calls.append(call_image())
+        if suite:
+            branch('e9','check_output')
+            label('inspect')
+            calls.append(call_image())
+    label('check_output')
     emit('83 f8 fe');branch('0f 84','space')
     emit('3d');word(output_bytes);branch('0f 87','invalid')
     emit('41 89 c6 4d 8d bc 24');word(OUTPUT_OFFSET)

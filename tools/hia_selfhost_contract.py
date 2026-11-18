@@ -93,6 +93,9 @@ CORE_NORMALIZE_SDIST_FILES = (
     'examples/hia_bootstrap/core_inspect_json.hepta',
     'examples/hia_bootstrap/core_inspect_cli_packer.hepta',
     'tools/generate_hia_core_inspect_json.py',
+    'tools/generate_hia_core_suite.py',
+    'examples/hia_bootstrap/core_suite_dispatch.hepta',
+    'examples/hia_bootstrap/core_suite_packer.hepta',
 )
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,
@@ -1373,6 +1376,12 @@ def support_contract(root=ROOT):
                 "output": "primitive Core inspection and canonical identity as UTF-8 JSON",
                 "output_scratch_bytes": 100663296,
                 "semantic_admission_precedes_formatting": True,
+            },
+            "suite": {
+                "command": "hia-core {verify,normalize,inspect} < primitive-core.json",
+                "sources": ["examples/hia_bootstrap/core_suite_dispatch.hepta",
+                            "examples/hia_bootstrap/core_suite_packer.hepta"],
+                "shared_admission_kernel": True, "runtime_loader_or_child": False,
             },
             "runtime_host_payload_parser_or_interpreter": False,
             "host_build_driver": True,

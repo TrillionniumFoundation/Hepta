@@ -98,6 +98,29 @@ class CoreAdmissionCliSourceTests(unittest.TestCase):
         self.assertEqual(vm_run(formatter, raw, 16384, 65536), (len(expected), expected))
 
 
+    def test_combined_commands_and_all_image_extents_in_independent_VM(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_core_suite import SUITE_MAGIC, dispatcher_source, document, packer_source
+
+        dispatcher, packer = (SOURCE.with_name(f'core_suite_{part}.hepta')
+                              for part in ('dispatch', 'packer'))
+        self.assertEqual(dispatcher.read_text(),
+                         render_assembly(document(dispatcher_source(), 'core_suite_dispatch')))
+        self.assertEqual(packer.read_text(),
+                         render_assembly(document(packer_source(), 'core_suite_packer')))
+        for command, mode in ((b'verify', 1), (b'normalize', 2), (b'inspect', 3),
+                              (b'inspectx', 0), (b'in', 0), (b'', 0)):
+            self.assertEqual(vm_run(dispatcher, command, 32, 32)[0], mode)
+        images = tuple(bytes((i,)) * i for i in range(3, 7))
+        request = struct.pack('<5Q', SUITE_MAGIC, *map(len, images)) + b''.join(images)
+        size, output = vm_run(packer, request, 4096, 1)
+        self.assertEqual(len(output), size)
+        self.assertTrue(output.endswith(b''.join(images)))
+        for packet in (request[1:], request[:-1], request+b' ', request[:16]+bytes(8)+request[24:]):
+            self.assertEqual(vm_run(packer, packet, 4096, 1)[0], 0xffffffff)
+        self.assertEqual(vm_run(packer, request, 64, 1)[0], 0xfffffffe)
+
+
 class CoreAdmissionCliNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -354,3 +377,55 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
         for invalid in (b'', b'{"schema":0,"\\u0073chema":1}', wire(borrowed_owner())):
             self.run_cli(invalid, 2, copied)
         self.run_cli(wire(VALID).ljust((8 << 20) + 1, b' '), 3, copied)
+
+
+    def test_combined_executable_uses_one_admission_kernel_for_all_modes(self):
+        from hepta.hia_program_tools import inspect_program
+        from tools.generate_hia_core_suite import SUITE_MAGIC
+        from tools.qualify_hia_selfhost import compile_stage, invoke
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+
+        folder = self.folder/'suite'
+        if self.cold:
+            target = build(folder, self.compiler, self.cold, suite=True)
+        else:
+            folder.mkdir()
+            images = {}
+            for name in ('core_suite_dispatch', 'core_suite_packer', 'core_pretty_json', 'core_inspect_json'):
+                images[name], _ = compile_stage(folder, name, self.compiler,
+                                                SOURCE.with_name(name+'.hepta').read_bytes())
+            parts = (images['core_suite_dispatch'], self.admission,
+                     images['core_pretty_json'], images['core_inspect_json'])
+            binaries = [p.read_bytes() for p in parts]
+            frame = struct.pack('<5Q', SUITE_MAGIC, *map(len, binaries)) + b''.join(binaries)
+            report, output = invoke(folder, 'suite-pack', images['core_suite_packer'], frame)
+            size = report['core_u32']
+            self.assertTrue(0 < size <= 1 << 20)
+            target = folder/'hia-core'
+            target.write_bytes(output[:size])
+            target.chmod(0o700)
+        elf = target.read_bytes()
+        self.assertEqual(elf.count(self.admission.read_bytes()), 1)
+        self.assertFalse(inspect_executable(elf)['dynamic_loader'])
+        copied = self.folder/'copied-suite'
+        shutil.copyfile(target, copied)
+        copied.chmod(0o500)
+
+        def run(arguments, raw, code, expected=b''):
+            result = subprocess.run([copied,*arguments], input=raw, capture_output=True,
+                                    env={'PATH': '', 'HOME': '/nonexistent','LC_ALL':'C'},
+                                    timeout=20, preexec_fn=self.limits)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (code, expected, b''))
+
+        def pretty(value):
+            return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2)+'\n').encode()
+
+        padded = wire(VALID).ljust(8 << 20, b' ')
+        for action, expected in (('verify', b''), ('normalize', pretty(VALID)),
+                                 ('inspect', pretty(inspect_program(VALID)))):
+            with self.subTest(action=action):
+                run([action], padded, 0, expected)
+                run([action], padded+b' ', 3)
+                run([action], wire(borrowed_owner()), 2)
+        for argv in ([], [''], ['i'], ['Inspect'], ['inspect', 'unexpected'], ['i'*16]):
+            run(argv, b'', 64)

@@ -18,6 +18,7 @@ if __package__ in {None, ''}:
 from tools.build_hia_core_admission import build as build_kernel
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.generate_hia_core_admission_cli import INSPECT_MAGIC, MAGIC, NORMALIZE_MAGIC
+from tools.generate_hia_core_suite import SUITE_MAGIC
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -26,22 +27,25 @@ SOURCE = ROOT / 'examples/hia_bootstrap/core_admission.hepta'
 PACKER = ROOT / 'examples/hia_bootstrap/core_admission_cli_packer.hepta'
 
 
-def build(output, compiler, cold_report, *, normalize=False, inspect=False):
-    if normalize and inspect:
+MODES = {
+    'verify': (MAGIC, PACKER.name, ()),
+    'normalize': (NORMALIZE_MAGIC, 'core_normalize_cli_packer.hepta', ('core_pretty_json.hepta',)),
+    'inspect': (INSPECT_MAGIC, 'core_inspect_cli_packer.hepta', ('core_inspect_json.hepta',)),
+    'suite': (SUITE_MAGIC, 'core_suite_packer.hepta',
+              ('core_suite_dispatch.hepta', 'core_pretty_json.hepta', 'core_inspect_json.hepta')),
+}
+
+
+def build(output, compiler, cold_report, *, normalize=False, inspect=False, suite=False):
+    selected = [name for name, enabled in (('normalize', normalize), ('inspect', inspect), ('suite', suite))
+                if enabled]
+    if len(selected) > 1:
         raise ValueError('select only one Core CLI output mode')
-    action = 'inspect' if inspect else 'normalize' if normalize else 'verify'
-    packer_source = PACKER
-    formatter_source = None
-    magic = MAGIC
-    if action == 'normalize':
-        packer_source = PACKER.with_name('core_normalize_cli_packer.hepta')
-        formatter_source = SOURCE.with_name('core_pretty_json.hepta')
-        magic = NORMALIZE_MAGIC
-    elif action == 'inspect':
-        packer_source = PACKER.with_name('core_inspect_cli_packer.hepta')
-        formatter_source = SOURCE.with_name('core_inspect_json.hepta')
-        magic = INSPECT_MAGIC
-    sources = (SOURCE, packer_source) if formatter_source is None else (SOURCE, packer_source, formatter_source)
+    action = selected[0] if selected else 'verify'
+    magic, packer_name, component_names = MODES[action]
+    packer_source = PACKER.with_name(packer_name)
+    component_sources = tuple(SOURCE.with_name(name) for name in component_names)
+    sources = (SOURCE, packer_source, *component_sources)
     pins = {p: p.read_bytes() for p in (compiler, cold_report, *sources)}
     report = json.loads(pins[cold_report])
     contract = validate_contract()
@@ -63,19 +67,24 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False):
     application = image.read_bytes()
     if sha256(application).hexdigest() != metadata['image_sha256']:
         raise ValueError('Core CLI admission image differs from its build manifest')
-    formatter_inputs = {}
-    formatter_receipt = None
-    if formatter_source is not None:
-        formatter, formatter_receipt = compile_stage(output, formatter_source.stem.replace('_', '-'),
-                                                      compiler, pins[formatter_source])
-        formatter_raw = formatter.read_bytes()
-        if sha256(formatter_raw).hexdigest() != formatter_receipt['produced_sha256']:
-            raise ValueError('Core CLI formatter image differs from its compile receipt')
-        formatter_inputs[formatter] = formatter_raw
-        frame = struct.pack('<3Q', magic, len(application), len(formatter_raw))
-        frame += application + formatter_raw
+    component_inputs = {}
+    component_receipts = {}
+    for source in component_sources:
+        label = source.stem.replace('_', '-')
+        path, receipt = compile_stage(output, label, compiler, pins[source])
+        raw = path.read_bytes()
+        if sha256(raw).hexdigest() != receipt['produced_sha256']:
+            raise ValueError('Core CLI component image differs from its compile receipt')
+        component_inputs[path] = raw
+        component_receipts[label] = receipt
+    components = list(component_inputs.values())
+    if suite:
+        # The dispatcher precedes the kernel; both output actions share it.
+        components.insert(1, application)
     else:
-        frame = struct.pack('<QQ', MAGIC, len(application)) + application
+        components.insert(0, application)
+    frame = struct.pack('<' + 'Q' * (1 + len(components)), magic, *map(len, components))
+    frame += b''.join(components)
     packer_label = packer_source.stem.replace('_', '-')
     packer, compiled = compile_stage(output, packer_label, compiler, pins[packer_source])
     packer_raw = packer.read_bytes()
@@ -85,12 +94,12 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False):
         raise ValueError('complete Core native CLI packer refused image')
     executable = arena[:size]
     inspection = inspect_executable(executable)
-    if (any(p.read_bytes() != raw for p, raw in {**pins, **formatter_inputs}.items())
+    if (any(p.read_bytes() != raw for p, raw in {**pins, **component_inputs}.items())
             or image.read_bytes() != application
             or packer.read_bytes() != packer_raw or manifest.read_bytes() != manifest_raw
             or current_sources() != admitted_sources):
         raise ValueError('complete Core CLI build inputs changed')
-    target = output / f'hia-{action}-core'
+    target = output / ('hia-core' if suite else f'hia-{action}-core')
     target.write_bytes(executable)
     target.chmod(0o700)
     receipt = {
@@ -107,7 +116,11 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False):
         'host_build_driver': True, 'whole_CLI_replaced': False,
         'default_changed': False, 'whole_native_delivery_qualified': False,
     }
-    if formatter_receipt is not None:
+    if suite:
+        receipt.update(status='NATIVE_CORE_SUITE_CLI_BUILT', commands=['verify', 'normalize', 'inspect'],
+                       native_component_compile_receipts=component_receipts)
+    elif component_receipts:
+        formatter_receipt, = component_receipts.values()
         description = ('primitive Core inspection and canonical identity as UTF-8 JSON' if inspect
                        else 'admitted primitive Core as sorted indented UTF-8 JSON')
         receipt.update(status=f'NATIVE_CORE_{action.upper()}_CLI_BUILT',
@@ -126,5 +139,6 @@ if __name__ == '__main__':
     mode = p.add_mutually_exclusive_group()
     mode.add_argument('--normalize', action='store_true', help='build hia-normalize-core instead of hia-verify-core')
     mode.add_argument('--inspect', action='store_true', help='build hia-inspect-core instead of hia-verify-core')
+    mode.add_argument('--suite', action='store_true', help='build hia-core with all three commands')
     a = p.parse_args()
-    print(build(a.output.resolve(), a.compiler.resolve(), a.cold_report.resolve(), normalize=a.normalize, inspect=a.inspect))
+    print(build(a.output.resolve(), a.compiler.resolve(), a.cold_report.resolve(), normalize=a.normalize, inspect=a.inspect, suite=a.suite))
