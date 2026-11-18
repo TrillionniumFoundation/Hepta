@@ -15,7 +15,7 @@ from tools.build_hia_sqlite_pager import build as build_pager
 SOURCES = Path(__file__).resolve().parents[1] / 'examples' / 'hia_bootstrap'
 
 
-def run_vm(program, request, output_size, scratch_size):
+def run_vm(program, request, output_size, scratch_size, *, scratch_out=None):
     owners = [_Owner(-1, bytearray(request)),
               _Owner(-2, bytearray(b'\xa7' * output_size)),
               _Owner(-3, bytearray(b'\xca' * scratch_size))]
@@ -25,6 +25,8 @@ def run_vm(program, request, output_size, scratch_size):
                                              _View(owners[2], True)])
     if owners[0].data != request or vm.peak_bytes != 0:
         raise AssertionError('snapshot VM mutated the input or allocated a buffer')
+    if scratch_out is not None:
+        scratch_out[:] = owners[2].data
     return status, bytes(owners[1].data)
 
 
@@ -87,6 +89,45 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             with self.subTest(status=status):
                 self.assertEqual(self.lookup_row(**kwargs),
                                  (status, b'\xa7' * kwargs.get('output_size', 4096)))
+
+    def test_retained_wire_requests_only_path_and_overflow_pages(self):
+        page_size = 512
+        pages = [self.snapshot[i:i + page_size]
+                 for i in range(0, len(self.snapshot), page_size)]
+        first = pages[0][:18] + b'\x02\x02' + pages[0][20:]
+        header = struct.pack('<I4sq', self.root, b'HSP1', self.key) + first
+        resident = {}
+
+        def request(entries, *, scratch_size=72):
+            wire = header + struct.pack('<2Q', len(pages), len(entries))
+            wire += b''.join(struct.pack('<Q', pgno) + data for pgno, data in entries)
+            scratch = bytearray()
+            status, output = run_vm(self.lookup, wire, 4096, scratch_size,
+                                    scratch_out=scratch)
+            return status, output, scratch
+
+        unchanged = b'\xa7' * 4096
+        self.assertEqual(request([], scratch_size=71)[:2], (3, unchanged))
+        self.assertEqual(request([(1, first)])[:2], (1, unchanged))
+        self.assertEqual(request([(3, pages[2]), (2, pages[1])])[:2], (1, unchanged))
+        self.assertEqual(request([(2, pages[1][:-1])])[:2], (1, unchanged))
+        self.assertEqual(request([(len(pages) + 1, pages[-1])])[:2], (1, unchanged))
+
+        for _ in range(len(pages)):
+            status, output, scratch = request(sorted(resident.items()))
+            if status == 0:
+                self.assertEqual((status, output), self.lookup_row())
+                break
+            self.assertEqual((status, output), (6, unchanged))
+            page, = struct.unpack_from('<Q', scratch, 64)
+            self.assertGreaterEqual(page, 2)
+            self.assertLessEqual(page, len(pages))
+            self.assertNotIn(page, resident)
+            resident[page] = pages[page - 1]
+        else:
+            self.fail('lookup did not finish after receiving the requested pages')
+        self.assertGreater(len(resident), 2)
+        self.assertLess(len(resident), len(pages) - 1)
 
     def test_sqlite_builds_require_matching_cold_compiler(self):
         with tempfile.TemporaryDirectory() as folder:

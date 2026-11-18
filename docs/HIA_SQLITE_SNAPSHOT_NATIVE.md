@@ -50,6 +50,32 @@ the output untouched; the scratch buffer is private and may change. B-tree
 checks cover the visited table path and selected record, not the integrity of
 an entire database or index.
 
+### Rowid lookup over retained pages
+
+The rowid image also accepts bounded, demand-supplied pages from one active
+WAL read transaction. Instead of the complete database, pass the following:
+
+1. A 4-byte root page, the literal four bytes `HSP1`, and the signed 8-byte
+   rowid.
+2. The complete page 1 as returned by the Pager, without changing its WAL
+   journal-format bytes.
+3. Two 8-byte values: the logical snapshot page count reported by the Pager
+   and the number of additional resident pages.
+4. Each resident page's 8-byte page number followed by its complete bytes.
+   Page numbers must be strictly increasing, exclude page 1, and be within the
+   logical snapshot. There must be no trailing bytes.
+
+Reserve at least 72 scratch bytes for this form. Status `6` means another page
+is needed. The required page number is the little-endian 8-byte value at
+scratch offset 64. There is no output on that status. Obtain the page from the
+same active Pager, add it to the resident set in sorted order, and retry. A
+success uses the same `HIAROW01` output as the offline form. The lookup
+rechecks the path from the root on each retry; it never follows a different
+transaction, reads a page itself, or requests a page outside the admitted
+geometry. The caller owns transaction identity and must discard these bytes at
+END; the image cannot establish that separately supplied pages come from the
+same transaction.
+
 ## Committed WAL view
 
 The WAL component takes an 8-byte size of the base database, the corresponding
