@@ -373,7 +373,7 @@ def call_with_native_journal(service, tool, arguments, manifest):
                     if replay.action == VERIFY_REPLAY:
                         service._replay_verification(cached, arguments)
                     return cached
-        hosted.validate(arguments, service.tools[tool]['inputSchema'])
+        service._validate_tool_arguments(tool, arguments)
         if tool != 'hia_describe' and arguments['catalog_sha256'] != service.catalog_sha256:
             hosted.reject('E_HIA_CATALOG_STALE', 'tool catalog digest differs from installed catalog')
         if hosted.installation_manifest() != service.identities:

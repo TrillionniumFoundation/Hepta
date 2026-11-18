@@ -126,6 +126,22 @@ Only the process owner can attest the supplied source pins and service result.
 The renderer supplies no tool execution, service entry, journal access, or
 process authority. It is not selected by the current public Runtime worker.
 
+## Agent input schema selection
+
+Build the `agent-schema` candidate with `tools.build_hia_json_preflight` and
+select its manifest as `HEPTA_HIA_AGENT_SCHEMA_MANIFEST` or as that slot in
+an operator-pinned helper bundle. It applies all eleven input schemas from
+the existing catalog to both ordinary and selected-journal tools. The HIA
+image binds the exact catalog SHA-256 and evaluates its type, field, range,
+string, array, union and conditional rules. A selected missing or mismatched
+image is not retried on the reference path.
+
+An admitted input does not run the hosted argument validator. Only a HIA
+refusal may invoke that validator to recover the existing field diagnostic;
+an unexpected hosted acceptance cannot authorize the input. Argument
+materialization, tool logic, output-schema checks and public activation are
+unchanged.
+
 ## Reproduction and evidence
 
 `tools/generate_hia_worker_request.py` reproducibly authors the checked-in HIA.

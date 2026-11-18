@@ -86,6 +86,7 @@ class HIAAgentService:
         slot_ledger_image = selected_slot_ledger()
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
+        self._tool_roles = {name: index for index, name in enumerate(self.tools, 1)}
         self.identities = installation_manifest()
         self.store = AgentStore(state_root, native_store=native_store)
         self._candidate_budget = None
@@ -301,7 +302,7 @@ class HIAAgentService:
                     self.store.db.execute("INSERT INTO requests VALUES (?,?,?,?,?,?)",
                         (key, request_digest, tool, "running", None, str(time.time_ns())))
                     reserved = True
-            validate(arguments, self.tools[tool]["inputSchema"])
+            self._validate_tool_arguments(tool, arguments)
             if tool != "hia_describe" and arguments["catalog_sha256"] != self.catalog_sha256:
                 reject("E_HIA_CATALOG_STALE", "tool catalog digest differs from installed catalog")
             if installation_manifest() != self.identities:
@@ -341,6 +342,20 @@ class HIAAgentService:
                     self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
                                           (wire(response).decode(), key))
         return response
+
+    def _validate_tool_arguments(self, tool, arguments):
+        schema = self.tools[tool]['inputSchema']
+        selected = os.environ.get('HEPTA_HIA_AGENT_SCHEMA_MANIFEST')
+        if not selected:
+            validate(arguments, schema)
+            return
+        from .hia_agent_schema_native import installed_agent_schema
+        if not installed_agent_schema(selected).accepts(
+                arguments, self._tool_roles[tool], self.catalog_sha256):
+            # The HIA decision is final. The reference walks a refused value
+            # only to preserve the established human-readable field diagnostic.
+            validate(arguments, schema)
+            raise ValueError('native Agent input schema disagrees with the catalog')
 
     def _profile(self, ref, name):
         return self.store.check_profile(ref, self.profiles[name])

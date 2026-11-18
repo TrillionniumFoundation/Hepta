@@ -22,7 +22,7 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size < 32:
             return 4294967295
         reference = uint(s, 24)
-        # The public artifact-ref schema serializes to at most 494 bytes.
+        # The limit covers the full public ASCII reference format and LF escapes.
         if reference == 0 or reference > 512 or reference > size - 32:
             return 4294967295
         if length(w) < 4128 + reference:
