@@ -597,7 +597,8 @@ class HIAAgentService:
         selector = args.get("selector", {})
         if "cursor" in args:
             reject("E_HIA_CURSOR", "inspection returns an immutable artifact; paginate it through hia_read")
-        view, query = args["view"], None
+        view, query, view_bytes = args["view"], None, None
+        selected = os.environ.get('HEPTA_HIA_AGENT_INSPECTION_MANIFEST')
         if view == "summary":
             result = inspect_program(program)
         elif view == "lowering":
@@ -616,6 +617,9 @@ class HIAAgentService:
                                     output=selector["output"], fields=["op", "args", "attrs"])
             result = prepared
             query = self.store.json(prepared, "edit-query")
+        elif selected:
+            from .hia_agent_inspection_native import installed_agent_inspection
+            view_bytes = installed_agent_inspection(selected).view(program.canonical_bytes, view, selector)
         else:
             if "function" not in selector:
                 reject("E_HIA_SELECTOR", "function view requires an exact function")
@@ -628,7 +632,9 @@ class HIAAgentService:
                 if selector.get("block") not in blocks:
                     reject("E_HIA_SELECTOR", "block is not in this function")
                 result = blocks[selector["block"]]
-        return {"program": args["program"], "view_artifact": self.store.json(result, "inspection"),
+        artifact = (self.store.put(view_bytes, "inspection") if view_bytes is not None
+                    else self.store.json(result, "inspection"))
+        return {"program": args["program"], "view_artifact": artifact,
                 "query_artifact": query, "next_cursor": None}
 
     def _hia_candidate(self, args):

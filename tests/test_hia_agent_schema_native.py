@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from hepta.hia_agent_contract import VERSION, catalog, validate
 from hepta import hia_agent_discovery_native as discovery
+from hepta import hia_agent_inspection_native as inspection
 from hepta.hia_agent_schema_native import SELECTOR, SOURCE, installed_agent_schema
 from hepta import hia_agent_response_schema_native as responses
 from hepta import hia_agent_verify_response_schema_native as proofs
@@ -30,6 +31,67 @@ class AgentSchemaSourceTests(unittest.TestCase):
         from tools.generate_hia_agent_discovery import document, source_program
         self.assertEqual(discovery.SOURCE.read_text(),
                          render_assembly(document(source_program(), 'agent_discovery')))
+
+
+    def test_generated_inspection_matches_current_core_renderer(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_agent_inspection import document, source_program
+        self.assertEqual(inspection.SOURCE.read_text(),
+                         render_assembly(document(source_program(), 'agent_inspection')))
+
+
+class AgentInspectionNativeTests(unittest.TestCase):
+    manifest = None
+    test_root = None
+
+    def setUp(self):
+        if self.manifest is None:
+            self.skipTest('provide the matching native Agent inspection image')
+
+    def test_ordinary_function_and_block_artifact_bytes_without_host_projection(self):
+        from hepta.hia_agent_store import wire
+        from hepta.hia_program import VerifiedProgram, verify_program
+        from tools.hia_agent_native_qualification import (
+            Session, ToolClient, add_program, branch_program, exhaustive_u8_workload,
+        )
+        with tempfile.TemporaryDirectory(dir=self.test_root) as root:
+            service = HIAAgentService(Path(root) / 'state')
+            try:
+                session = Session(ToolClient(service.call, validate=False))
+                session.freeze(exhaustive_u8_workload())
+                for source in (add_program(), branch_program()):
+                    verified = verify_program(source)
+                    issued = service.store.put(verified.canonical_bytes, 'core')
+                    fn = source['functions'][0]
+                    shared = session.arguments(mutable=False, program=issued)
+                    cases = [
+                        (dict(shared, view='function', selector={'function': fn['name']}), fn),
+                        (dict(shared, view='function', selector={'function': fn['name'] + ' '}),
+                         'function is not in this program'),
+                        (dict(shared, view='block', selector={'block': 'entry'}),
+                         'function view requires an exact function'),
+                        (dict(shared, view='block', selector={'function': fn['name'], 'block': '否' * 128}),
+                         'block is not in this function'),
+                        (dict(shared, view='block', selector={'function': fn['name']}),
+                         'block is not in this function'),
+                    ]
+                    cases.extend((dict(shared, view='block', selector={'function': fn['name'], 'block': b['id']}), b)
+                                 for b in fn['blocks'])
+                    expected = [service.call('hia_inspect', args) for args, _ in cases]
+                    with (patch.dict('os.environ', {inspection.SELECTOR: str(self.manifest)}),
+                          patch.object(VerifiedProgram, 'as_dict',
+                                       side_effect=AssertionError('hosted projection entered'))):
+                        for (args, body), reference in zip(cases, expected):
+                            with self.subTest(args=args):
+                                result = service.call('hia_inspect', args)
+                                self.assertEqual(result, reference)
+                                if type(body) is str:
+                                    self.assertEqual(result['error']['message'], body)
+                                else:
+                                    raw, _ = service.store.get(result['result']['view_artifact'], kind='inspection')
+                                    self.assertEqual(raw, wire(body))
+            finally:
+                service.close()
 
 
 class AgentDiscoveryNativeTests(unittest.TestCase):
@@ -233,6 +295,7 @@ def main():
     parser.add_argument('--response-manifest', type=Path)
     parser.add_argument('--proof-manifest', type=Path)
     parser.add_argument('--discovery-manifest', type=Path)
+    parser.add_argument('--inspection-manifest', type=Path)
     args = parser.parse_args()
     AgentSchemaNativeTests.manifest = args.manifest.resolve()
     AgentSchemaNativeTests.test_root = args.test_root.resolve()
@@ -242,10 +305,13 @@ def main():
     AgentResponseSchemaNativeTests.test_root = AgentSchemaNativeTests.test_root
     AgentDiscoveryNativeTests.manifest = args.discovery_manifest
     AgentDiscoveryNativeTests.test_root = AgentSchemaNativeTests.test_root
+    AgentInspectionNativeTests.manifest = args.inspection_manifest
+    AgentInspectionNativeTests.test_root = AgentSchemaNativeTests.test_root
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite(loader.loadTestsFromTestCase(cls)
                               for cls in (AgentSchemaSourceTests, AgentSchemaNativeTests,
-                                          AgentResponseSchemaNativeTests, AgentDiscoveryNativeTests))
+                                          AgentResponseSchemaNativeTests, AgentDiscoveryNativeTests,
+                                          AgentInspectionNativeTests))
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 
 
