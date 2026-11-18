@@ -6,44 +6,49 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
 
-MAGIC = int.from_bytes(b'HIACED01', 'little')
+MAGIC = int.from_bytes(b'HIACED02', 'little')
 SOURCE = r'''
 def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 56 or uint(s, 0, 8) != PACK_MAGIC:
+    if length(s) < 64 or uint(s, 0, 8) != PACK_MAGIC:
         return 16
     stub = uint(s, 8, 8)
     calls = uint(s, 16, 8)
-    if stub < 5 or stub > 3920 or calls == 0 or calls > 32:
+    parts = uint(s, 24, 8)
+    if stub < 5 or stub > 3920 or calls == 0 or calls > 32 or parts == 0 or parts > 4:
         return 16
-    stub_at = 56 + 16 * calls
+    stub_at = 64 + 16 * calls
     image_at = stub_at + stub
     if image_at > length(s):
         return 16
     end = image_at
     index = 0
-    while index < 4:
-        size = uint(s, 24 + 8 * index, 8)
+    while index < parts:
+        size = uint(s, 32 + 8 * index, 8)
         if size == 0 or size > 1048576:
             return 16
         end = end + size
         index = index + 1
     if end != length(s):
         return 16
-    size = position(s, 176 + stub, 4)
+    size = position(s, 176 + stub, parts)
     if size > length(o):
         return 3
     last = 0
     i = 0
     while i < calls:
-        row = 56 + 16 * i
+        row = 64 + 16 * i
         hole = uint(s, row, 8)
         image = uint(s, row + 8, 8)
-        if hole <= last or hole > stub - 4 or image >= 4:
+        if hole <= last or hole > stub - 4 or image >= parts:
             return 16
         if uint(s, stub_at + hole, 4) != 0:
             return 16
+        # The retained mechanical adapters use a direct call or RIP-relative LEA.
         if byte(s, stub_at + hole - 1) != 232:
-            if hole < 3 or hole - 3 < last or uint(s, stub_at + hole - 3, 3) != 363848:
+            if hole < 3 or hole - 3 < last:
+                return 16
+            rip_lea = uint(s, stub_at + hole - 3, 3)
+            if (rip_lea & 0xc7fffb) != 0x058d48:
                 return 16
         last = hole + 4
         i = i + 1
@@ -52,19 +57,19 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     source = image_at
     target = 176 + stub
     index = 0
-    while index < 4:
+    while index < parts:
         aligned = align(target)
         while target < aligned:
             store(o, target, 0)
             target = target + 1
-        part = uint(s, 24 + 8 * index, 8)
+        part = uint(s, 32 + 8 * index, 8)
         copy_bytes(s, o, source, target, part)
         source = source + part
         target = target + part
         index = index + 1
     i = 0
     while i < calls:
-        row = 56 + 16 * i
+        row = 64 + 16 * i
         hole = 176 + uint(s, row, 8)
         image = uint(s, row + 8, 8)
         write(o, hole, align(position(s, 176 + stub, image)) - hole - 4, 4)
@@ -74,7 +79,7 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def position(s:readbuf, start:u64, index:u64) -> u64:
     i = 0
     while i < index:
-        start = align(start) + uint(s, 24 + 8 * i, 8)
+        start = align(start) + uint(s, 32 + 8 * i, 8)
         i = i + 1
     return start
 

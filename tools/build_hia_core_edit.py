@@ -17,12 +17,78 @@ from tools.qualify_hia_selfhost_cli import inspect_executable
 ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = 'examples/hia_bootstrap/'
 EDIT = BOOTSTRAP + 'core_edit/'
+CLI = BOOTSTRAP + 'core_cli/'
 PACKER = EDIT + 'packer.hepta'
 CAPACITY = 4 * (1 << 20) + 4096
 
-# Each entry lists the four flat images in placement order, then the adapter
+# Each entry lists the flat payloads in placement order, then the adapter
 # relocation sites belonging to each. Several stages use the same image entry.
 PROGRAMS = {
+    'dispatch': ('hia', (
+        (CLI + 'dispatch.hepta', ('dispatch_call',)),
+    )),
+    'normalize_core': ('hia-normalize-core', (
+        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
+        (CLI + 'normalize_pretty.hepta', ('pretty_call',)),
+    )),
+    'verify_core_json': ('hia-verify-core-json', (
+        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
+        (CLI + 'verify.hepta', ('report_call',)),
+        (CLI + 'verify_pretty.hepta', ('pretty_call',)),
+    )),
+    'inspect_core_json': ('hia-inspect-core-json', (
+        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
+        (CLI + 'inspect.hepta', ('report_call',)),
+        (EDIT + 'publication_pretty.hepta', ('pretty_call',)),
+    )),
+    'patch_core_json': ('hia-patch-core-json', (
+        (EDIT + 'impact_patch.hepta', ('extract_call', 'result_call')),
+        (EDIT + 'admission_word_io.hepta', ('base_admission_call', 'candidate_admission_call')),
+        (CLI + 'patch.hepta', ('compose_call',)),
+        (EDIT + 'publication_pretty.hepta', ('pretty_call',)),
+    )),
+    'catalog': ('hia-catalog', (
+        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
+        (CLI + 'catalog.hepta', ('catalog_call',)),
+        (CLI + 'verify_pretty.hepta', ('pretty_call',)),
+        (CLI + 'catalog_registry.json', ('data_lea',)),
+    )),
+    'import_assembly': ('hia-import-assembly', (
+        (CLI + 'assembly_syntax.hepta', ('syntax_call',)),
+        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
+        (CLI + 'assembly_pretty.hepta', ('pretty_call',)),
+    )),
+    'render_assembly': ('hia-render-assembly', (
+        (BOOTSTRAP + 'core_admission.hepta', ('original_core', 'roundtrip_core')),
+        (BOOTSTRAP + 'json_canonical.hepta', ('original_canonical', 'roundtrip_canonical')),
+        (CLI + 'assembly_render.hepta', ('render', 'finish')),
+        (CLI + 'assembly_syntax.hepta', ('syntax',)),
+    )),
+    'check_assembly_accepted': ('hia-check-assembly-accepted', (
+        (CLI + 'assembly_syntax.hepta', ('syntax_call',)),
+        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
+        (CLI + 'assembly_accepted.hepta', ('diagnostic_call',)),
+    )),
+    'capabilities': ('hia-capabilities', (
+        (CLI + 'capabilities.hepta', ('capabilities_call',)),
+    )),
+    'emit_object': ('hia-emit-object', (
+        (EDIT + 'admission_word_io.hepta', ('core',)),
+        (EDIT + 'publication_frontend.hepta', ('frame', 'exports', 'expectations')),
+        (CLI + 'build_codegen.hepta', ('codegen',)),
+        (CLI + 'build_backend.hepta', ('byte_address',)),
+    )),
+    'build_object': ('hia-build-object', (
+        (EDIT + 'admission_word_io.hepta', ('core',)),
+        (EDIT + 'publication_frontend.hepta', ('path', 'source_admit', 'frame', 'exports', 'expectations', 'facts', 'canonical', 'hash_direct')),
+        (CLI + 'build_codegen.hepta', ('codegen', 'report')),
+        (CLI + 'build_backend.hepta', ('byte_address',)),
+    )),
     'publish_program': ('hia-publish-program', (
         (EDIT + 'admission_word_io.hepta', ('core_address',)),
         (EDIT + 'publication_frontend.hepta', ('front_address',)),
@@ -113,7 +179,9 @@ def digest(raw):
 
 
 def pack(packer, stub, holes, images):
-    frame = struct.pack('<7Q', MAGIC, len(stub), len(holes), *map(len, images))
+    lengths = list(map(len, images))
+    frame = struct.pack('<8Q', MAGIC, len(stub), len(holes), len(lengths),
+                        *lengths, *([0] * (4 - len(lengths))))
     frame += b''.join(struct.pack('<2Q', offset, index) for offset, index in holes)
     frame += stub + b''.join(images)
     source = ctypes.create_string_buffer(frame)
@@ -147,6 +215,8 @@ def build(output, compiler, cold_report):
     output.mkdir(mode=0o700)
     images, receipts = {}, {}
     for path, raw in sources.items():
+        if path.endswith('.json'):
+            images[path] = raw
         if not path.endswith('.hepta'):
             continue
         image, receipt = compile_stage(output, Path(path).stem, compiler, raw)

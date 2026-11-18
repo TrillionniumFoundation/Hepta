@@ -2,6 +2,7 @@
 
 import argparse
 from contextlib import redirect_stdout
+from hashlib import sha256
 from io import StringIO
 import json
 from pathlib import Path
@@ -9,13 +10,25 @@ import stat
 import subprocess
 import tempfile
 
-from hepta.cli import _reference_hia_main
+from hepta.cli import HIA_AGENT_ACTIONS, _reference_hia_main
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_edit_batch import prepare_batch
 from hepta.hia_edit_query import prepare_edit
+from hepta.hia_program_native import build_program_machine
 from tests.test_hia_core_edit_runtime import wire
 from tests.test_hia_edit_batch import selected
 from tests.test_hia_program_tools import add_two_patch, scalar_program
+
+
+def reference_cli(arguments):
+    report = StringIO()
+    with redirect_stdout(report):
+        try:
+            status = _reference_hia_main(arguments)
+        except SystemExit as error:
+            status = error.code
+    assert status == 0, (arguments[0], report.getvalue())
+    return report.getvalue().encode()
 
 
 def check_release(release, directory):
@@ -59,34 +72,70 @@ def check_release(release, directory):
         ('batch', 'edit-batch-apply', source, ('--query', batch_query_file, '--response', batch_response_file),
          wire([program, {'query': wire(batch_query).decode(), 'response': wire(batch_response).decode()}]), ()),
     )
+    arguments_by_action = {action: [input_path, *arguments]
+                           for _, action, input_path, arguments, _, _ in cases}
+    arguments_by_action.update(
+        capabilities=[], catalog=[], verify=[source], inspect=[source],
+        impact=[source, '--request', request_file], build=[source],
+    )
+    arguments_by_action['check-assembly'] = [assembly_source]
+    assert set(arguments_by_action) == set(HIA_AGENT_ACTIONS)
+    build_target = directory / 'native-build' / 'target.o'
+    build_target.parent.mkdir()
+    checked_actions = 0
+    for action, arguments in arguments_by_action.items():
+        if action == 'build':
+            original = directory / 'reference-build' / 'target.o'
+            original.parent.mkdir()
+            receipt = build_program_machine(program, original, kind='object')
+            receipt['output'] = str(build_target)
+            receipt['implementation_sha256'] = sha256((release / 'hia-build-object').read_bytes()).hexdigest()
+            expected = wire(receipt, pretty=True)
+            arguments += ['--output', str(build_target)]
+        else:
+            expected = reference_cli([action, *arguments])
+        normal = subprocess.run([release / 'hia', action, *arguments], input=b'ignored stdin',
+                                capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert (normal.returncode, normal.stdout, normal.stderr) == (0, expected, b''), (
+            action, normal.returncode, normal.stdout, normal.stderr)
+        if action == 'build':
+            assert build_target.read_bytes() == original.read_bytes()
+        checked_actions += 1
+    for flag in ('--help', '--version'):
+        result = subprocess.run([release / 'hia', flag], input=b'', capture_output=True,
+                                env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (0, reference_cli([flag]), b''), flag
+        checked_actions += 1
+
     for name, action, input_path, arguments, raw, native_options in cases:
         reference = directory / 'reference' / name / 'target'
         target = directory / 'native' / name / 'target'
-        report = StringIO()
-        with redirect_stdout(report):
-            status = _reference_hia_main([action, input_path, *arguments, '--output', str(reference)])
-        assert status == 0, (action, report.getvalue())
-        expected = json.loads(report.getvalue())
+        command_args = [action, input_path, *arguments, '--output']
+        expected = json.loads(reference_cli([*command_args, str(reference)]))
         published = expected if 'output' in expected else expected['publication']
         published['output'] = str(target)
-        command = [release / ('hia-publish-' + name), *native_options, target]
-        result = subprocess.run(command, input=raw, capture_output=True, env={'PATH': ''},
-                                timeout=20, check=False)
-        assert (result.returncode, result.stdout, result.stderr) == (0, wire(expected, pretty=True), b''), (
-            action, result.returncode, result.stdout, result.stderr)
+        command = [release / 'hia', *command_args, target]
+        for executable, payload in ((command, b'ignored stdin'), (
+                [release / ('hia-publish-' + name), *native_options, directory / 'raw' / name], raw)):
+            published['output'] = str(executable[-1])
+            result = subprocess.run(executable, input=payload, capture_output=True, env={'PATH': ''},
+                                    timeout=20, check=False)
+            assert (result.returncode, result.stdout, result.stderr) == (0, wire(expected, pretty=True), b''), (
+                action, result.returncode, result.stdout, result.stderr)
+            assert Path(executable[-1]).read_bytes() == reference.read_bytes(), action
         assert target.read_bytes() == reference.read_bytes(), action
         actual_stat, reference_stat = target.lstat(), reference.lstat()
         assert (actual_stat.st_mode, actual_stat.st_uid, actual_stat.st_nlink) == (
             reference_stat.st_mode, reference_stat.st_uid, 1), action
         assert stat.S_ISREG(actual_stat.st_mode) and list(target.parent.iterdir()) == [target], action
 
-        replay = subprocess.run(command, input=raw, capture_output=True, env={'PATH': ''},
+        replay = subprocess.run(command, input=b'ignored stdin', capture_output=True, env={'PATH': ''},
                                 timeout=20, check=False)
         assert replay.returncode > 0 and not replay.stdout and not replay.stderr, (action, replay)
         assert actual_stat.st_ino == target.stat().st_ino and target.read_bytes() == reference.read_bytes()
         assert list(target.parent.iterdir()) == [target], action
     assert {name: (directory / name).read_bytes() for name in inputs} == inputs
-    return len(cases) * 2
+    return len(cases) * 3 + checked_actions
 
 
 if __name__ == '__main__':
@@ -94,4 +143,4 @@ if __name__ == '__main__':
     parser.add_argument('release', type=Path)
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='hia-core-publication-runtime-') as root:
-        print(f'{check_release(args.release.resolve(), Path(root))} native file publication checks passed')
+        print(f'{check_release(args.release.resolve(), Path(root))} native ordinary CLI and file publication checks passed')
