@@ -520,7 +520,7 @@ class AgentStdioNativeTests(unittest.TestCase):
 
         chain = (b'hia-asm.v1 hepta.hia.program.v7 chain_entry\n'
                  b'exports(entry)\nfn entry() -> (u64) effects(alloc) entry(b0)\n'
-                 b'block b0()\n  c:chain = chain.empty()\n  owner.drop(c)\n'
+                 b'block b0()\n  c:chain = chain.empty()\n  _ = owner.drop(c)\n'
                  b'  n:u64 = const() {"value":37}\n  ret(n)\nend\n')
         valid = assemble_program(chain)
         self.assertEqual(invoke('check-assembly',chain).returncode,0)
