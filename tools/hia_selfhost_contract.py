@@ -16,6 +16,7 @@ CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 SOURCE_FILES = (
     'docs/HIA_SQLITE_SNAPSHOT_NATIVE.md',
+    'examples/hia_bootstrap/sqlite_wal_snapshot.hepta',
     'examples/hia_bootstrap/sqlite_rowid_lookup.hepta',
     'examples/hia_bootstrap/sqlite_record_layout.hepta',
     'tests/test_hia_sqlite_snapshot_native.py',

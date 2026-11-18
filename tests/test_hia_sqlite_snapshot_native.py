@@ -4,6 +4,7 @@ import sqlite3
 import struct
 import tempfile
 import unittest
+from contextlib import closing
 
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program_runtime import _Machine, _Owner, _View
@@ -31,6 +32,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
     def setUpClass(cls):
         cls.lookup = assemble_program((SOURCES / 'sqlite_rowid_lookup.hepta').read_bytes())
         cls.record = assemble_program((SOURCES / 'sqlite_record_layout.hepta').read_bytes())
+        cls.wal = assemble_program((SOURCES / 'sqlite_wal_snapshot.hepta').read_bytes())
         cls.key = -(1 << 63)
         cls.blob = bytes(range(256)) * 7
         with tempfile.TemporaryDirectory() as folder:
@@ -93,8 +95,46 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             output = directory / 'output'
             compiler.write_bytes(b'not a qualified compiler')
             cold.write_text('{}')
-            for candidate in ('sqlite-rowid-lookup', 'sqlite-record-layout'):
+            for candidate in ('sqlite-wal-snapshot', 'sqlite-rowid-lookup', 'sqlite-record-layout'):
                 with self.subTest(candidate=candidate):
                     with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                         build(output, compiler, cold, candidate=candidate)
                     self.assertFalse(output.exists())
+
+    def test_wal_overlay_recovers_committed_row_and_ignores_torn_final_frame(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'wal.sqlite'
+            with closing(sqlite3.connect(path, isolation_level=None)) as db:
+                db.executescript('PRAGMA page_size=512; CREATE TABLE sample(value);')
+                self.assertEqual(db.execute('PRAGMA journal_mode=WAL').fetchone(), ('wal',))
+                db.execute('PRAGMA wal_autocheckpoint=0')
+                db.execute('INSERT INTO sample(rowid,value) VALUES(?,?)', (self.key, b'first'))
+                first_wal = path.with_name('wal.sqlite-wal').read_bytes()
+                db.execute('UPDATE sample SET value=? WHERE rowid=?', (self.blob, self.key))
+                updated_wal = path.with_name('wal.sqlite-wal').read_bytes()
+                base = path.read_bytes()
+                root, = db.execute(
+                    "SELECT rootpage FROM sqlite_schema WHERE name='sample'").fetchone()
+                live, = db.execute('SELECT value FROM sample WHERE rowid=?', (self.key,)).fetchone()
+        self.assertTrue(updated_wal.startswith(first_wal))
+        for source, expected, reason in ((updated_wal, live, 0), (updated_wal[:-1], b'first', 1)):
+            with self.subTest(reason=reason):
+                status, result = run_vm(self.wal, struct.pack('<Q', len(base)) + base + source,
+                                        8192, 128)
+                self.assertEqual(status, 0)
+                tag, page, size, validated, committed, tail = struct.unpack_from('<8s5Q', result)
+                self.assertEqual((tag, page, tail), (b'HIASNAP1', 512, reason))
+                self.assertLessEqual(committed, validated)
+                self.assertGreater(committed, 0)
+                self.assertEqual(result[48 + size:], b'\xa7' * (len(result) - 48 - size))
+                request = struct.pack('<Qq', root, self.key) + result[48:48 + size]
+                status, row = run_vm(self.lookup, request, 4096, 64)
+                self.assertEqual(status, 0)
+                size, = struct.unpack_from('<Q', row, 8)
+                payload = row[32:32 + size]
+                status, layout = run_vm(self.record, payload, 64, 16)
+                self.assertEqual(status, 0)
+                serial, offset, length, scalar = struct.unpack_from('<4Q', layout, 32)
+                self.assertEqual(serial, 12 + 2 * len(expected))
+                self.assertEqual(payload[offset:offset + length], expected)
+                self.assertEqual(scalar, 0)

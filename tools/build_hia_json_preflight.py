@@ -98,6 +98,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'native-filter': ('native_filter_packer', 'native-filter'),
                   'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
                   'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json'),
+                  'sqlite-wal-snapshot': ('sqlite_wal_snapshot', 'sqlite-wal-snapshot'),
                   'sqlite-rowid-lookup': ('sqlite_rowid_lookup', 'sqlite-rowid-lookup'),
                   'sqlite-record-layout': ('sqlite_record_layout', 'sqlite-record-layout')}
     if candidate not in candidates:
@@ -146,8 +147,9 @@ def main():
     parser.add_argument('--compiler', type=Path, required=True)
     parser.add_argument('--cold-report', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--candidate', choices=('preflight', 'sqlite-rowid-lookup', 'sqlite-record-layout'),
-                        default='preflight')
+    parser.add_argument('--candidate', default='preflight',
+                        choices=('preflight', 'sqlite-wal-snapshot',
+                                 'sqlite-rowid-lookup', 'sqlite-record-layout'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

@@ -1,17 +1,20 @@
 # Native SQLite snapshot components
 
-These HIA components locate a row in an immutable SQLite table B-tree and
-describe its physical SQLite record. Neither component opens a file, starts a
-transaction, or uses SQLite, libc, or Python at runtime. The caller must provide
-a stable, consistent, rollback-format snapshot. Do not pass a live database
-file, a database requiring journal recovery, or an unmerged WAL database.
-Neither component replaces the Agent Store.
+These HIA components reconstruct a committed view from an offline database and
+WAL pair, locate a row in an immutable SQLite table B-tree, and describe its
+physical record. No component opens a file, starts a transaction, or uses
+SQLite, libc, or Python at runtime. Snapshot consistency and database/WAL
+pairing remain the caller's responsibility. Do not pass a live database or WAL,
+an inconsistent copy, or a rollback database requiring hot-journal recovery.
+The components do not replace the Agent Store.
 
 ## Build
 
 Use the flat compiler from a matching source-only cold replay of this checkout:
 
 ```sh
+python -B -m tools.build_hia_json_preflight --candidate sqlite-wal-snapshot \
+  --compiler "$compiler" --cold-report "$cold_report" --output "$wal_output"
 python -B -m tools.build_hia_json_preflight --candidate sqlite-rowid-lookup \
   --compiler "$compiler" --cold-report "$cold_report" --output "$rowid_output"
 python -B -m tools.build_hia_json_preflight --candidate sqlite-record-layout \
@@ -23,7 +26,7 @@ and independent VM are not runtime dependencies of the images.
 
 ## Flat-image ABI
 
-Both inputs use the existing `(readbuf, mutbuf, mutbuf) -> u32` HIA entry ABI.
+All three use the existing `(readbuf, mutbuf, mutbuf) -> u32` HIA entry ABI.
 The input, output, and scratch buffers must not overlap. Offsets within the
 component wire formats are bytes; integer fields are little endian.
 
@@ -46,3 +49,28 @@ row and `5` for an unsupported database format or B-tree kind. Errors leave
 the output untouched; the scratch buffer is private and may change. B-tree
 checks cover the visited table path and selected record, not the integrity of
 an entire database or index.
+
+## Committed WAL view
+
+The WAL component takes an 8-byte size of the base database, the corresponding
+nonempty main database in WAL format, and then the complete captured WAL. An
+empty WAL denotes the already checkpointed base. The component checks the WAL
+header and rolling frame checksums in either checksum byte order, and selects
+through the last valid commit. Frames after that commit do not affect the view.
+It applies the last committed version of each page and respects the committed
+database size. The fixed scratch header is 64 bytes, followed by one byte for
+each page in the committed view beyond the physical base.
+
+On success, the output begins with the eight-byte tag `HIASNAP1` and five
+unsigned 64-bit fields: page size, view byte length, count of validated frames,
+one-based index of the last committed frame (zero for none), and the reason the
+valid prefix ended. Reason codes are `0` complete, `1` incomplete final frame,
+`2` salt mismatch, `3` invalid page number, and `4` frame checksum mismatch.
+Inspect that reason before deciding how to handle a damaged capture. The view
+starts at byte 48; only its first-page journal format bytes are normalized to
+rollback format for in-memory consumers such as rowid lookup. Neither source
+file is written or claimed safe to restore without further integrity checks.
+
+Return codes `0` through `3` have the meanings above. The WAL component also
+returns `4` for an invalid nonempty WAL header and `5` for an unsupported WAL
+version. Errors leave the output untouched.
