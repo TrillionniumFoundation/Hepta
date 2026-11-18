@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_agent_buffers import buffer_observation
 from hepta.hia_agent_runner import _REPORT_TOO_LARGE, _write_child_report, run_native_batch, run_reference_batch
 from hepta.hia_agent_service import _signatures
@@ -22,6 +22,21 @@ from tests.test_hia_agent_buffer_lifecycle import byte_program, trap_program
 from tests.test_hia_program_native import minimal_document, scalar_document
 from tools.generate_hia_direct_load_plan import PACKER_PATH, ROOT, SOURCE_PATH, cli_document, document
 from tools.qualify_hia_program import qualification_program
+
+
+
+INCREMENT_ASSEMBLY = '''hia-asm.v1 hepta.hia.program.v8 increment_fixture
+fn increment(buffer:mutbuf) -> (u32) effects(read,write,trap) entry(entry)
+block entry(buffer:mutbuf)
+  index:usize = const() {"value":0}
+  original:u8 = buffer.load(buffer,index)
+  one:u8 = const() {"value":1}
+  new:u8 = int.add.wrap(original,one)
+  _ = buffer.store(buffer,index,new)
+  result:u32 = int.cast(new) {"mode":"wrap"}
+  ret(result)
+end
+'''
 
 
 class DirectCallSourceTests(unittest.TestCase):
@@ -56,7 +71,8 @@ class DirectCallRuntimeTests(unittest.TestCase):
         scalar['functions'].append(next(fn for fn in scalar_document()['functions'] if fn['name'] == 'nine_arguments'))
         cls.documents = {'simple': (minimal_document(), ()), 'scalar': (scalar, ()),
                          'bytes': (byte_program(), (('copy_bytes', 4096), ('mixed', 4096))),
-                         'trap': (trap_program(), (('write_then_trap', 4096),))}
+                         'trap': (trap_program(), (('write_then_trap', 4096),)),
+                         'increment': (assemble_program(INCREMENT_ASSEMBLY), (('increment', 4096),))}
         cls.inputs = {}
         for label, (doc, exports) in cls.documents.items():
             program = verify_program(doc)
@@ -65,16 +81,19 @@ class DirectCallRuntimeTests(unittest.TestCase):
                 build_program_machine(program, path, foreign_buffer_exports=exports)
             cls.inputs[label] = (path.read_bytes(), _signatures(program, exports))
 
-    def run_case(self, label, name, arguments, *, expected=None, raw=None):
+    def run_case(self, label, name, arguments, *, expected=None, raw=None,
+                 protocol=1, warmup=0, repetitions=1):
         image, signatures = self.inputs[label]
         case = {'function': name, 'arguments': arguments}
         if expected is not None:
             case['expected'] = expected
         with (patch('hepta.hia_native_helpers.pinned_direct_call_executable',
                     return_value=(self.raw, self.sha)),
+              patch('hepta.hia_native_helpers.pinned_direct_call_protocol', return_value=protocol),
               patch('ctypes.CDLL', side_effect=AssertionError('end-to-end direct route entered host loader'))):
             result = run_native_batch(image if raw is None else raw, signatures, [case],
-                                      timeout_ms=3000, memory_bytes=64 << 20, capture_buffers=True)
+                                      timeout_ms=3000, memory_bytes=64 << 20, capture_buffers=True,
+                                      warmup=warmup, repetitions=repetitions)
         self.assertEqual(result['direct_call_executable_sha256'], self.sha)
         self.assertTrue(result['termination_confirmed'])
         return result
@@ -109,6 +128,20 @@ class DirectCallRuntimeTests(unittest.TestCase):
         self.assertEqual(result['returncode'], -signal.SIGABRT)
         self.assertEqual(result['status'], 'trapped')
         self.assertEqual(result['captured_buffers'][0]['data'].hex(), '5b0203')
+
+    def test_native_repetitions_reset_snapshot_and_account_for_only_measured_calls(self):
+        expected = {'status': 'returned', 'values': [2],
+                    'buffers': [buffer_observation(0, 'mutbuf', b'\x02')]}
+        result = self.run_case('increment', 'increment', [{'bytes_hex': '01'}], expected=expected,
+                               protocol=2, warmup=4, repetitions=10)
+        self.assertEqual(result['status'], 'returned', result)
+        self.assertEqual(result['report']['measured_calls'], 10)
+        self.assertFalse(result['report']['observations'][0]['mismatch'])
+        self.assertEqual(result['captured_buffers'][0]['data'], b'\x02')
+        result = self.run_case('simple', 'answer', [3], protocol=2, warmup=100, repetitions=10000)
+        self.assertEqual(result['status'], 'returned', result)
+        self.assertEqual(result['report']['measured_calls'], 10000)
+        self.assertEqual(result['report']['observations'][0]['values'], [10])
 
     @unittest.skipUnless(os.environ.get('HIA_TEST_REPORT_WIRE'), 'cold-built HIA report wire is required')
     def test_selected_report_wire_fits_actual_minimum_agent_budget(self):

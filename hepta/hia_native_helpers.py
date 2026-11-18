@@ -347,6 +347,11 @@ def pinned_direct_call_executable():
     return getattr(_ACTIVE, 'native_direct_call_executable', None)
 
 
+def pinned_direct_call_protocol():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_direct_call_protocol', 1)
+
+
 def native_helpers_identity():
     _check_scope_owner()
     if _ACTIVE is None:

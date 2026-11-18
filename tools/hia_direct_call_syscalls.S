@@ -1,4 +1,4 @@
-/* One synchronous call to an immutable direct HIA image. HIA chooses the
+/* Synchronous calls to one immutable direct HIA image. HIA chooses the
  * entry and closed GOT slots; this adapter owns Linux mappings and SysV
  * register/stack transfer. No loader hooks, libc or interpreter run. */
 .intel_syntax noprefix
@@ -10,7 +10,8 @@
 .equ PLAN, 69648
 .equ INFO, 69736
 .equ OUTPUT, 69888
-.equ START, 69912
+.equ START, 70424
+.equ LOAN_TAIL, 70440
 .equ LIMIT, 69928
 .equ CODE, 69944
 .equ WORDS, 69952
@@ -18,9 +19,22 @@
 .equ ENTRY, 69968
 .equ MEMORY, 69976
 .equ ABI_REGISTERS, 69984
-.equ FRAME_BYTES, 70032
+.equ VERSION, 70032
+.equ HEADER_BYTES, 70040
+.equ LOAN_STRIDE, 70048
+.equ STOP, 70056
+.equ ITERATION, 70064
+.equ STRICT, 70072
+.equ RETURN_MASK, 70080
+.equ FIRST_VALUE, 70088
+.equ COMPARISON, 70096
+.equ LOAN_STATE, 70104
+.equ LOAN_RECORD, 40   /* mapped, initial, first, extent, readonly */
+.equ FRAME_BYTES, 70448
 .equ MAGIC, 0x3130585244414948     /* HIADRX01 */
 .equ RESULT, 0x3130525244414948    /* HIADRR01 */
+.equ REPEAT_MAGIC, 0x3230585244414948
+.equ REPEAT_RESULT, 0x3230525244414948
 
 _start:
     cmp QWORD PTR [rsp],1
@@ -65,7 +79,43 @@ validate:
     jb invalid
     movabs rax,MAGIC
     cmp [rbp+INPUT],rax
+    je single
+    movabs rax,REPEAT_MAGIC
+    cmp [rbp+INPUT],rax
     jne invalid
+    cmp rbx,104
+    jb invalid
+    mov rax,[rbp+INPUT+72]
+    cmp rax,100
+    ja invalid
+    mov rcx,[rbp+INPUT+80]
+    test rcx,rcx
+    jz invalid
+    cmp rcx,10000
+    ja invalid
+    add rax,rcx
+    mov [rbp+STOP],rax
+    mov QWORD PTR [rbp+HEADER_BYTES],104
+    mov QWORD PTR [rbp+LOAN_STRIDE],32
+    mov QWORD PTR [rbp+VERSION],2
+    mov rax,[rbp+INPUT+88]
+    cmp rax,1
+    ja invalid
+    mov [rbp+STRICT],rax
+    mov rax,[rbp+INPUT+96]
+    mov [rbp+RETURN_MASK],rax
+    jmp check_parent
+single:
+    mov QWORD PTR [rbp+HEADER_BYTES],72
+    mov QWORD PTR [rbp+LOAN_STRIDE],24
+    mov QWORD PTR [rbp+VERSION],1
+    mov QWORD PTR [rbp+STOP],1
+    mov QWORD PTR [rbp+STRICT],0
+    mov QWORD PTR [rbp+RETURN_MASK],-1
+check_parent:
+    mov QWORD PTR [rbp+ITERATION],0
+    mov QWORD PTR [rbp+COMPARISON],0
+    mov QWORD PTR [rbp+OUTPUT+16],0
     mov eax,110
     syscall
     cmp rax,[rbp+INPUT+8]
@@ -132,16 +182,19 @@ validate:
     jz invalid
     cmp r15,512
     ja invalid
-    lea rax,[r13*8+72]
-    lea rcx,[r14+r14*2]
-    lea rdx,[rax+rcx*8]
+    mov rcx,[rbp+HEADER_BYTES]
+    lea rax,[rcx+r13*8]
+    mov rdx,r14
+    imul rdx,[rbp+LOAN_STRIDE]
+    add rdx,rax
     lea rsi,[rdx+r15]
     cmp rsi,rbx
     jne invalid
     lea r8,[rbp+INPUT+rdx]
     lea rcx,[rbp+INPUT+rax]
     mov [rbp+LOANS],rcx
-    lea rax,[rbp+INPUT+72]
+    mov rax,[rbp+HEADER_BYTES]
+    lea rax,[rbp+INPUT+rax]
     mov [rbp+WORDS],rax
 
     mov rdi,r12
@@ -220,6 +273,8 @@ next_import:
     xor ebx,ebx
     mov r15,[rbp+LOANS]
     mov r12,[rbp+WORDS]
+    lea rdx,[rbp+LOAN_STATE]
+    mov [rbp+LOAN_TAIL],rdx
 loan_loop:
     test r14,r14
     jz dispatch
@@ -253,7 +308,45 @@ loan_loop:
     xor r9d,r9d
     call map_bytes
     mov [r12+rbx*8-16],rax
-    add r15,24
+    cmp QWORD PTR [rbp+VERSION],2
+    jne next_loan
+    mov rdx,[rbp+LOAN_TAIL]
+    mov [rdx],rax
+    mov rax,[r15+16]
+    mov [rdx+24],rax
+    mov rax,[r15+24]
+    cmp rax,1
+    ja invalid
+    mov [rdx+32],rax
+    /* Preserve caller-owned bytes for every reset, and a separate first
+     * observation when the workload declared an exact expected result. */
+    mov rsi,[r15+16]
+    test rsi,rsi
+    jz loan_empty
+    cmp QWORD PTR [rbp+STRICT],1
+    jne loan_backing
+    cmp QWORD PTR [rdx+32],1
+    je loan_backing
+    shl rsi,1
+loan_backing:
+    xor edi,edi
+    mov edx,3
+    mov r10d,0x22
+    mov r8,-1
+    xor r9d,r9d
+    call map_bytes
+    mov rdx,[rbp+LOAN_TAIL]
+    mov [rdx+8],rax
+    mov rdi,rax
+    mov rsi,[rdx]
+    mov rcx,[rdx+24]
+    lea rax,[rdi+rcx]
+    mov [rdx+16],rax
+    rep movsb
+loan_empty:
+    add QWORD PTR [rbp+LOAN_TAIL],LOAN_RECORD
+next_loan:
+    add r15,[rbp+LOAN_STRIDE]
     dec r14
     jmp loan_loop
 
@@ -281,6 +374,25 @@ dispatch:
     mov rcx,rax
     rep movsq
 
+invoke:
+    cmp QWORD PTR [rbp+VERSION],2
+    jne start_timer
+    lea rdx,[rbp+LOAN_STATE]
+    mov r14,[rbp+INPUT+56]
+reset_loop:
+    test r14,r14
+    jz start_timer
+    mov rcx,[rdx+24]
+    test rcx,rcx
+    jz reset_next
+    mov rdi,[rdx]
+    mov rsi,[rdx+8]
+    rep movsb
+reset_next:
+    add rdx,LOAN_RECORD
+    dec r14
+    jmp reset_loop
+start_timer:
     lea rsi,[rbp+START]
     call clock_read
     mov rdi,[rbp+ABI_REGISTERS]
@@ -298,11 +410,72 @@ dispatch:
     imul rax,1000000000
     add rax,[rbp+LIMIT+8]
     sub rax,[rbp+START+8]
+    cmp QWORD PTR [rbp+VERSION],2
+    je observed
     mov [rbp+OUTPUT+16],rax
     movabs rax,RESULT
+    mov r14d,24
+    jmp send_result
+observed:
+    mov rcx,[rbp+ITERATION]
+    cmp rcx,[rbp+INPUT+72]
+    jb compare
+    add [rbp+OUTPUT+16],rax
+compare:
+    cmp QWORD PTR [rbp+STRICT],1
+    jne compare_buffers
+    mov rax,[rbp+OUTPUT+8]
+    and rax,[rbp+RETURN_MASK]
+    test rcx,rcx
+    jne compare_value
+    mov [rbp+FIRST_VALUE],rax
+    jmp compare_buffers
+compare_value:
+    cmp [rbp+FIRST_VALUE],rax
+    je compare_buffers
+    mov QWORD PTR [rbp+COMPARISON],1
+compare_buffers:
+    lea rdx,[rbp+LOAN_STATE]
+    mov r14,[rbp+INPUT+56]
+buffer_loop:
+    test r14,r14
+    jz advance
+    mov rcx,[rdx+24]
+    test rcx,rcx
+    jz buffer_next
+    mov rsi,[rdx]
+    cmp QWORD PTR [rdx+32],1
+    jne compare_mutable
+    mov rdi,[rdx+8]
+    jmp check_content
+compare_mutable:
+    cmp QWORD PTR [rbp+STRICT],1
+    jne buffer_next
+    mov rdi,[rdx+16]
+    cmp QWORD PTR [rbp+ITERATION],0
+    jne check_content
+    rep movsb
+    jmp buffer_next
+check_content:
+    repe cmpsb
+    je buffer_next
+    mov QWORD PTR [rbp+COMPARISON],1
+buffer_next:
+    add rdx,LOAN_RECORD
+    dec r14
+    jmp buffer_loop
+advance:
+    inc QWORD PTR [rbp+ITERATION]
+    mov rax,[rbp+ITERATION]
+    cmp rax,[rbp+STOP]
+    jb invoke
+    mov rax,[rbp+COMPARISON]
+    mov [rbp+OUTPUT+24],rax
+    movabs rax,REPEAT_RESULT
+    mov r14d,32
+send_result:
     mov [rbp+OUTPUT],rax
     lea rsi,[rbp+OUTPUT]
-    mov r14d,24
 write_result:
     mov eax,1
     mov edi,1
