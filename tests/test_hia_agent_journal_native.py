@@ -228,6 +228,38 @@ class JournalNativeTests(unittest.TestCase):
                 self.assertEqual(decision.action, VERIFY_REPLAY if tool == 'hia_verify' and status == 'completed' else REPLAY)
                 self.assertEqual(other.finish(None).flags, 0)
 
+    def test_native_post_schema_tool_admission_preserves_order_and_context_effects(self):
+        from hepta.hia_agent_store import AgentRejected
+
+        installed = {'worker_sha256': 'a' * 64, 'catalog_sha256': 'b' * 64}
+        stale = {**installed, 'worker_sha256': 'c' * 64}
+        for tool in TOOLS:
+            with self.subTest(tool=tool):
+                session = self.image.session()
+                with self.assertRaises(RuntimeError):
+                    session.admit_catalog('b' * 64, 'b' * 64)
+                prepared = session.prepare(independent_wire({'tool': tool, 'arguments': {}}))
+                if prepared.action == ALIAS:
+                    session.aliased()
+                else:
+                    self.assertEqual(prepared.action, CONTINUE)
+                if tool == 'hia_describe':
+                    session.admit_catalog(None, 'b' * 64)
+                else:
+                    with self.assertRaises(AgentRejected) as raised:
+                        session.admit_catalog('c' * 64, 'b' * 64)
+                    self.assertEqual(raised.exception.code, 'E_HIA_CATALOG_STALE')
+                    session.admit_catalog('b' * 64, 'b' * 64)
+                with self.assertRaises(AgentRejected) as raised:
+                    session.plan_context(stale, installed, True)
+                self.assertEqual(raised.exception.code, 'E_HIA_IMPLEMENTATION_STALE')
+                self.assertEqual(session.plan_context(installed, installed, False), 0)
+                expected = {'hia_inspect': 1, 'hia_rollback': 1, 'hia_candidate': 3}.get(tool, 2)
+                self.assertEqual(session.plan_context(dict(reversed(installed.items())), installed, True),
+                                 expected)
+                self.assertEqual(session.effect().action,
+                                 ATOMIC if tool in {'hia_adopt', 'hia_rollback'} else CONTINUE)
+
     def test_exact_reference_errors_rows_and_arbitrary_precision_clock_TEXT(self):
         services = [HIAAgentService(self.case / name) for name in ('reference', 'native')]
         self.addCleanup(lambda: [service.close() for service in services])

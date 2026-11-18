@@ -29,6 +29,7 @@ PRIVATE_BYTES = 32768
 MAGIC = int.from_bytes(b'HIAJRN02', 'little')
 NONE, CONTINUE, LOOKUP, RESERVE, CACHE, REPLAY, VERIFY_REPLAY, ALIAS, ATOMIC, JOURNAL, FINAL, REFUSE, BOUND = range(13)
 COST_WRITE, JOURNAL_WRITE = 1, 2
+CONTEXT_NONE, CONTEXT_READ, CONTEXT_BUDGET, CONTEXT_CANDIDATE = range(4)
 TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context', 'hia_inspect',
          'hia_candidate', 'hia_verify', 'hia_emit', 'hia_evaluate',
          'hia_adopt', 'hia_rollback', 'hia_resource_read')
@@ -171,7 +172,8 @@ class JournalSession:
         actions = {0: {CONTINUE, LOOKUP, ALIAS, REFUSE}, 1: {RESERVE, CACHE, REFUSE},
                    2: {CONTINUE}, 3: {REPLAY, VERIFY_REPLAY, REFUSE}, 4: {CONTINUE},
                    5: {CONTINUE, ATOMIC}, 6: {NONE, JOURNAL}, 7: {NONE},
-                   8: {NONE, FINAL}, 9: {BOUND, REFUSE}, 10: {13}}
+                   8: {NONE, FINAL}, 9: {BOUND, REFUSE}, 10: {13},
+                   11: {CONTINUE, REFUSE}, 12: {CONTINUE, REFUSE}}
         if (word(0) != MAGIC or code not in actions[stage] or word(48) != code
                 or word(8) not in {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
                 or word(16) > 12 or word(24) > 1 or word(32) > 1 or word(40) > 1
@@ -184,6 +186,9 @@ class JournalSession:
                 or code == JOURNAL and (word(288) != 2 or not word(272) or word(280) or word(264) != 1)
                 or code not in {FINAL, JOURNAL} and (word(288) or word(272) or word(280) or word(264))):
             raise RuntimeError('invalid native journal write instruction')
+        if stage == 12 and (word(320) > CONTEXT_CANDIDATE
+                            or code == REFUSE and word(320) != CONTEXT_NONE):
+            raise RuntimeError('invalid native journal context instruction')
         arena = b''
         if stage == 3:
             extent = struct.unpack_from('<Q', scratch, 32)[0]
@@ -261,6 +266,19 @@ class JournalSession:
     def aliased(self):
         return self._run(4)
 
+    def _admit(self, stage, actual, expected, has_context=False):
+        actual, expected = wire(actual), wire(expected)
+        packet = struct.pack('<3Q', len(actual), len(expected), has_context) + actual + expected
+        if self._run(stage, packet).action == REFUSE:
+            self.raise_refusal()
+
+    def admit_catalog(self, supplied, installed):
+        self._admit(11, supplied, installed)
+
+    def plan_context(self, installed, pinned, has_context):
+        self._admit(12, installed, pinned, has_context)
+        return self._word(320)
+
     def effect(self):
         return self._run(5)
 
@@ -283,6 +301,8 @@ class JournalSession:
             7: ('E_HIA_JOURNAL_NATIVE', 'native journal catalog identity mismatch'),
             8: ('E_HIA_REJECTED', "unhashable type: 'list'"),
             9: ('E_HIA_REJECTED', "unhashable type: 'dict'"),
+            10: ('E_HIA_CATALOG_STALE', 'tool catalog digest differs from installed catalog'),
+            11: ('E_HIA_IMPLEMENTATION_STALE', 'installed implementation changed during this service session'),
         }
         code = self._word(56)
         if code not in errors:
@@ -374,15 +394,14 @@ def call_with_native_journal(service, tool, arguments, manifest):
                         service._replay_verification(cached, arguments)
                     return cached
         service._validate_tool_arguments(tool, arguments)
-        if tool != 'hia_describe' and arguments['catalog_sha256'] != service.catalog_sha256:
-            hosted.reject('E_HIA_CATALOG_STALE', 'tool catalog digest differs from installed catalog')
-        if hosted.installation_manifest() != service.identities:
-            hosted.reject('E_HIA_IMPLEMENTATION_STALE', 'installed implementation changed during this service session')
-        if 'context' in arguments:
+        native_step(session.admit_catalog, arguments.get('catalog_sha256'), service.catalog_sha256)
+        context_plan = native_step(session.plan_context, hosted.installation_manifest(),
+                                   service.identities, 'context' in arguments)
+        if context_plan != CONTEXT_NONE:
             context = service._context(arguments['context'])
             context_id = arguments['context']['id']
-            if tool not in {'hia_inspect', 'hia_rollback'}:
-                service._budget(context, candidate=tool == 'hia_candidate')
+            if context_plan in {CONTEXT_BUDGET, CONTEXT_CANDIDATE}:
+                service._budget(context, candidate=context_plan == CONTEXT_CANDIDATE)
         mode = native_step(session.effect)
         if mode.action == ATOMIC:
             try:

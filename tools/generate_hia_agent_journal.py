@@ -55,7 +55,7 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967293
     if get(w, p) == 0:
         put(w, p, MAGIC_VALUE)
-    if get(w, p) != MAGIC_VALUE or stage > 9:
+    if get(w, p) != MAGIC_VALUE or stage > 12:
         return 4294967293
     put(w, p + 48, 0)
     put(w, p + 56, 0)
@@ -95,7 +95,7 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 index = index + 1
         parsed = True
     else:
-        if stage != 9 and length(s) != 0:
+        if stage < 9 and length(s) != 0:
             return 4294967293
     answer = dispatch(s, o, w, stage)
     if parsed:
@@ -304,7 +304,51 @@ def dispatch(s:readbuf, o:mutbuf, w:mutbuf, stage:u64) -> u64:
         if phase != 0:
             return 4294967293
         return bind_catalog(s, o, w)
+    if stage == 11 or stage == 12:
+        if phase != 3 and phase != 4:
+            return 4294967293
+        return admit_tool(s, w, stage)
     return 4294967293
+
+def admit_tool(s:readbuf, w:mutbuf, stage:u64) -> u64:
+    if length(s) < 24:
+        return 4294967293
+    actual = input_word(s, 0)
+    expected = input_word(s, 8)
+    context = input_word(s, 16)
+    remaining = length(s) - 24
+    if actual > remaining or expected != remaining - actual or context > 1:
+        return 4294967293
+    p = length(w) - 32768
+    tool = get(w, p + 16)
+    if stage == 11 and tool == 1:
+        return instruction(w, 1)
+    stale = 10
+    if stage == 12:
+        stale = 11
+    if actual != expected:
+        return refuse(w, stale)
+    index = 0
+    while index < actual:
+        if byte(s, 24 + index) != byte(s, 24 + actual + index):
+            return refuse(w, stale)
+        index = index + 1
+    if stage == 12 and context == 1:
+        plan = 2
+        if tool == 5 or tool == 11:
+            plan = 1
+        if tool == 6:
+            plan = 3
+        put(w, p + 320, plan)
+    return instruction(w, 1)
+
+def input_word(s:readbuf, start:u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | (byte(s, start + index) << (index * 8))
+        index = index + 1
+    return value
 
 def instruction(w:mutbuf, action:u64) -> u64:
     put(w, length(w) - 32768 + 48, action)
