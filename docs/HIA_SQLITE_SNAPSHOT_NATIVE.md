@@ -30,6 +30,33 @@ For private Agent migration, use the same command with
 `sqlite-agent-cost-sequence`, `sqlite-agent-artifact-catalog`,
 or `sqlite-agent-catalog`.
 
+### Standalone retained-migration components
+
+```sh
+python -B -m tools.build_hia_sqlite_components --compiler "$compiler" \
+  --cold-report "$cold_report" --output "$component_output"
+```
+
+The output contains seven standalone Linux x86-64 programs (`hia-sqlite-*`),
+each linked with one unchanged HIA image. They run without a runtime FFI,
+interpreter, dynamic loader or subprocess. Start a separate process for each
+component and each independent scratch lifetime. A request consists of
+`HIASCC01`, three unsigned 64-bit little-endian lengths (input, output,
+scratch), and exactly the input bytes. The response is `HIASCR01`, the
+zero-extended HIA return code, the two output and scratch lengths, then those
+two complete byte regions. Both buffers start zeroed; only scratch retains
+its bytes, and its length cannot change during a session. In particular, send
+all three catalog phases to the same component process. Drain the response to
+each request before sending another. An empty frame boundary on stdin closes
+the process normally; partial or out-of-profile frames exit 64 without
+executing that frame. A transport I/O failure exits 74, separately from HIA
+decision codes. This transport accepts up to 256 MiB input and 64 MiB each
+output and scratch; the individual HIA image still applies its own limits.
+
+These programs expose the component ABI only. The caller must still hold the
+same Pager snapshot across components, stage all references and bytes, and
+handle migration and activation as a whole.
+
 ## Flat-image ABI
 
 The flat images use the existing `(readbuf, mutbuf, mutbuf) -> u32` HIA entry ABI.

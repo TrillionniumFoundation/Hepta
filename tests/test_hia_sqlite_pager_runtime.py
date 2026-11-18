@@ -12,6 +12,7 @@ import unittest
 
 
 EVENT = struct.Struct('<8s15Q')
+COMPONENT_FRAME = struct.Struct('<8s3Q')
 NONCE = 983207517
 
 
@@ -81,14 +82,97 @@ class NativePagerArgv(unittest.TestCase):
         self.assertEqual([kinds[kind] for kind in (11, 12, 13, 14)], [kinds[10]] * 4)
 
 
+class NativeSQLiteComponents(unittest.TestCase):
+    root = None
+    test_root = None
+
+    @staticmethod
+    def request(data, output, scratch):
+        return COMPONENT_FRAME.pack(b'HIASCC01', len(data), output, scratch) + data
+
+    def component(self, name, data, expected=0):
+        result = subprocess.run([self.root / ('hia-sqlite-' + name)], input=data, capture_output=True,
+                                env={'PATH': ''}, timeout=15, check=False)
+        self.assertEqual((result.returncode, result.stderr), (expected, b''))
+        replies, offset = [], 0
+        while offset < len(result.stdout):
+            magic, code, count, scratch = COMPONENT_FRAME.unpack_from(result.stdout, offset)
+            self.assertEqual(magic, b'HIASCR01')
+            offset += COMPONENT_FRAME.size
+            self.assertLessEqual(offset + count + scratch, len(result.stdout))
+            replies.append((code, result.stdout[offset:offset + count]))
+            offset += count + scratch
+        self.assertEqual(offset, len(result.stdout))
+        return replies
+
+    def test_catalog_continues_in_one_installed_process(self):
+        if self.root is None:
+            self.skipTest('run with the cold-built native SQLite components')
+        from hepta.hia_agent_store import AgentStore
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            store = AgentStore(Path(temporary) / 'agent')
+            try:
+                rows = store.db.execute(
+                    'SELECT rowid, type, name, rootpage FROM sqlite_schema ORDER BY rowid').fetchall()
+                pages, = store.db.execute('PRAGMA page_count').fetchone()
+            finally:
+                store.close()
+            snapshot = bytearray(store.database.read_bytes())
+        snapshot[18:20] = b'\1\1'  # Offline image ABI expects a rollback-format header.
+        lookup_wire = b''.join(self.request(struct.pack('<Qq', 1, row[0]) + snapshot, 1024, 64)
+                               for row in rows)
+        records = []
+        for code, output in self.component('rowid-lookup', lookup_wire):
+            self.assertEqual(code, 0)
+            magic, size, encoding, _ = COMPONENT_FRAME.unpack_from(output)
+            self.assertEqual((magic, encoding), (b'HIAROW01', 1))
+            records.append(output[32:32 + size])
+        self.assertEqual(len(records), len(rows))
+        descriptors = self.component('record-layout',
+                                     b''.join(self.request(raw, 192, 16) for raw in records))
+        self.assertEqual(len(descriptors), len(rows))
+        frames = [self.request(struct.pack('<8s3Q', b'HIASCAT1', 1, pages, 1), 112, 1024)]
+        for row, raw, (code, descriptor) in zip(rows, records, descriptors):
+            self.assertEqual(code, 0)
+            catalog_record = struct.pack('<8s3Q', b'HIASCAT1', 2, row[0], len(descriptor))
+            frames.append(self.request(catalog_record + descriptor + raw, 112, 1024))
+        finish = self.request(struct.pack('<8sQ', b'HIASCAT1', 3), 112, 1024)
+        replies = self.component('agent-catalog', b''.join(frames) + finish + finish)
+        self.assertEqual(replies[:len(frames)], [(0, bytes(112))] * len(frames))
+        roots = {row[2]: row[3] for row in rows if row[1] == 'table'}
+        order = ('artifacts', 'profiles', 'contexts', 'requests', 'costs', 'cursors',
+                 'slots', 'versions', 'leases', 'execution_budgets', 'sqlite_sequence')
+        expected = struct.pack('<8s13Q', b'HIASCOK1', 1, 11, *(roots[name] for name in order))
+        self.assertEqual(replies[len(frames):], [(0, expected), (1, bytes(112))])
+        self.assertEqual(self.component('agent-catalog', finish), [(1, bytes(112))])
+
+    def test_partial_frame_and_changed_workspace_cannot_invoke(self):
+        if self.root is None:
+            self.skipTest('run with the cold-built native SQLite components')
+        first = self.request(b'\x02\x09', 64, 16)
+        normal = self.component('record-layout', first)
+        self.assertEqual(normal[0][0], 0)
+        self.assertEqual(normal[0][1][:8], b'HIASREC1')
+        for refused in (first[:-1], first[:7], self.request(b'', 67108865, 16),
+                        self.request(b'', 64, 17)):
+            self.assertEqual(self.component('record-layout', first + refused, expected=64), normal)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--executable', type=Path, required=True)
+    parser.add_argument('--component-root', type=Path)
     parser.add_argument('--test-root', type=Path, required=True)
     arguments = parser.parse_args()
     NativePagerArgv.executable = arguments.executable.resolve()
     NativePagerArgv.test_root = arguments.test_root.resolve()
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(NativePagerArgv)
+    suites = [unittest.defaultTestLoader.loadTestsFromTestCase(NativePagerArgv)]
+    if arguments.component_root is not None:
+        NativeSQLiteComponents.root = arguments.component_root.resolve()
+        NativeSQLiteComponents.test_root = arguments.test_root.resolve()
+        suites.append(unittest.defaultTestLoader.loadTestsFromTestCase(NativeSQLiteComponents))
+    suite = unittest.TestSuite(suites)
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 
 

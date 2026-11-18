@@ -188,8 +188,11 @@ jobs:
           done
           python -B -m tools.build_hia_sqlite_pager --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/sqlite-pager"
+          python -B -m tools.build_hia_sqlite_components --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/sqlite-components"
           python -B -m tests.test_hia_sqlite_pager_runtime \
-            --executable "$RUNNER_TEMP/sqlite-pager/hia-sqlite-pager" --test-root "$RUNNER_TEMP"
+            --executable "$RUNNER_TEMP/sqlite-pager/hia-sqlite-pager" \
+            --component-root "$RUNNER_TEMP/sqlite-components" --test-root "$RUNNER_TEMP"
           python -B -m tools.build_hia_agent_batch_commit --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-batch-commit"
           python -B -m tools.build_hia_agent_batch_commit --kind sealed --compiler "$compiler" \
@@ -198,12 +201,14 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-store-init"
           python -B -m tools.build_hia_agent_store --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-store"
+          python -B -m tools.build_hia_artifact_publication --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-store-artifact"
           python -B -m tests.test_hia_agent_store_runtime \
             --executable "$RUNNER_TEMP/agent-store/hia-agent-store" \
             --module-root "$RUNNER_TEMP/agent-store/module-root" \
             --initializer "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             --test-root "$RUNNER_TEMP"
-      - name: Package, install and run the native Agent Store
+      - name: Package, install and run the native Agent Store and migration components
         run: |
           set -euo pipefail
           compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
@@ -215,7 +220,12 @@ jobs:
           python -B -m tools.build_hia_release_install --kind directory --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/packager"
           install -m 0500 "$RUNNER_TEMP/agent-store/hia-agent-store" \
-            "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" "$package/stage"
+            "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
+            "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
+            "$RUNNER_TEMP/agent-sealed-commit/hia-agent-sealed-commit" \
+            "$RUNNER_TEMP/agent-store-artifact/hia-artifact" \
+            "$RUNNER_TEMP/sqlite-pager/hia-sqlite-pager" \
+            "$RUNNER_TEMP"/sqlite-components/hia-sqlite-* "$package/stage"
           install -m 0400 "$RUNNER_TEMP"/agent-store/module-root/module-*.bin "$package/stage"
           env -i PATH= "$package/packager/hia-directory-package-build" "$package/stage" \
             > "$package/store.hiapack" 2> "$package/store.sha256"
@@ -230,6 +240,9 @@ jobs:
           python -B -m tests.test_hia_agent_store_runtime \
             --executable "$installed/hia-agent-store" --module-root "$installed" \
             --initializer "$installed/hia-agent-store-init" --test-root "$package"
+          python -B -m tests.test_hia_sqlite_pager_runtime \
+            --executable "$installed/hia-sqlite-pager" \
+            --component-root "$installed" --test-root "$package"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
