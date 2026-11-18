@@ -200,6 +200,15 @@ failures must remain attached to the actual source and execution identity.
 
 ## Qualification
 
+The standard Core/Store package includes `hia-select`, `hia-release` and
+`hia-directory-package-build`. The release job uses the installed packager
+to reproduce the original package and its digest byte for byte, then uses the
+installed installer to publish that package into a separate empty root. It
+verifies and selects the reinstalled release with the executables from that
+release, and runs the compiler, Core, Store and SQLite controls from the same
+digest-addressed directory. The selection is confined to the test root; it
+neither chooses a live worker nor dispatches its processes.
+
 `ReleaseSelectionSourceTests` executes an independent Core VM before any native
 seed for argument conversion, canonical sequence bounds, exact state bytes,
 checksum comparison, CAS, rollback, exhaustion, receipts and all ELF packer

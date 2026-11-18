@@ -213,7 +213,7 @@ jobs:
             --batch "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
             --cost-sequence "$RUNNER_TEMP/sqlite-components/hia-sqlite-agent-cost-sequence" \
             --test-root "$RUNNER_TEMP"
-      - name: Package, install and run the native Agent Store and migration components
+      - name: Package, select and run the native Core, Agent Store and migration components
         run: |
           set -euo pipefail
           compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
@@ -224,11 +224,16 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/installer"
           python -B -m tools.build_hia_release_install --kind directory --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/packager"
+          python -B -m tools.build_hia_release_selection --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/selector"
           python -B -m tools.build_hia_core_admission_cli --suite --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-suite"
           python -B -m tools.build_hia_agent_stdio --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-stdio"
-          install -m 0500 "$RUNNER_TEMP/core-suite/hia-core" \
+          install -m 0500 "$package/installer/hia-release" \
+            "$package/packager/hia-directory-package-build" \
+            "$package/selector/hia-select" \
+            "$RUNNER_TEMP/core-suite/hia-core" \
             "$RUNNER_TEMP/agent-stdio/hia-native" \
             "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
@@ -243,12 +248,24 @@ jobs:
             > "$package/store.hiapack" 2> "$package/store.sha256"
           read -r digest < "$package/store.sha256"
           [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
-          for operation in install verify; do
-            env -i PATH= "$package/installer/hia-release" "$operation" "$package/installed" "$digest" \
-              < "$package/store.hiapack" > "$package/$operation.json"
-          done
+          env -i PATH= "$package/installer/hia-release" install "$package/installed" "$digest" \
+            < "$package/store.hiapack" > "$package/install.json"
           installed="$package/installed/$digest"
           test "$(stat -c '%a' "$installed")" = 500
+          env -i PATH= "$installed/hia-directory-package-build" "$installed" \
+            > "$package/repacked.hiapack" 2> "$package/repacked.sha256"
+          cmp "$package/store.hiapack" "$package/repacked.hiapack"
+          cmp "$package/store.sha256" "$package/repacked.sha256"
+          mkdir -m 0700 "$package/reinstalled"
+          env -i PATH= "$installed/hia-release" install "$package/reinstalled" "$digest" \
+            < "$package/repacked.hiapack" > "$package/reinstall.json"
+          installed="$package/reinstalled/$digest"
+          env -i PATH= "$installed/hia-release" verify "$package/reinstalled" "$digest" \
+            < "$package/repacked.hiapack" > "$package/verify.json"
+          env -i PATH= "$installed/hia-select" activate "$package/reinstalled" 0 - "$digest" \
+            < "$package/repacked.hiapack" > "$package/activate.json"
+          env -i PATH= "$installed/hia-select" verify "$package/reinstalled" 1 "$digest" \
+            < "$package/repacked.hiapack" > "$package/selected.json"
           env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/selfhost.hepta \
             > "$package/installed-compiler.image.bin"
           cmp "$compiler" "$package/installed-compiler.image.bin"
