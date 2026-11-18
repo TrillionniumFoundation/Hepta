@@ -120,7 +120,7 @@ class NominalJSONSourceTests(unittest.TestCase):
         from tools.generate_hia_nominal_json import document
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
         program = assemble_program(SOURCE.read_bytes()).as_dict()
-        self.assertEqual(len(program['functions']), 22)
+        self.assertEqual(len(program['functions']), 31)
         for function in program['functions']:
             self.assertLessEqual(len(function['params']), 16)
             for block in function['blocks']:
