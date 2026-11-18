@@ -20,6 +20,7 @@ from tools.bind_hia_worker_store import bind_worker_store
 from tools.build_hia_json_preflight import build as build_helper
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
+from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_slot_ledger import build as build_slot_ledger
 from tools.build_hia_worker_report import bind_worker_bundle, build as build_report
 from tools.build_hia_worker_scheduling_bundle import bind_scheduling_bundle
@@ -110,8 +111,13 @@ def build(output, compiler, cold_report, package, package_sha256):
             source = build_scheduler(scratch / kind, compiler, cold_report, kind=kind, in_process=True)
             schedulers[kind] = _copy_scheduler(source, output / kind)
         scheduled, _ = bind_scheduling_bundle(output / 'schedulers.json', wrapped, schedulers, portable=True)
+        reference = _copy_runtime_file(
+            build_reference_executable(scratch / 'reference-cli', compiler, cold_report),
+            output / 'reference' / 'hia-reference-wire')
+        reference.chmod(0o500)
         profile = output / 'worker.json'
-        pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True)
+        pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True,
+                                reference_executable=reference)
     profile.chmod(0o400)
     with authority.native_helpers_scope(str(profile), pin) as binding:
         binding.check()

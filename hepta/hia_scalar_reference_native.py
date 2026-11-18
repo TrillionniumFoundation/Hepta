@@ -5,8 +5,10 @@ from __future__ import annotations
 from contextlib import contextmanager
 from contextvars import ContextVar
 import ctypes
+from hashlib import sha256
 import os
 import struct
+import subprocess
 
 from .hia_json_preflight_native import (
     MAX_IMAGE_BYTES, NativeHiaJsonImage, _installed_json_image, _source_resource_path,
@@ -45,21 +47,45 @@ BYTE_OPERATIONS = {
 ALLOCATION_DECISIONS = ('empty', 'object-model', 'heap-budget', 'injected', 'allocate')
 
 
+_STANDALONE = ContextVar('hia-standalone-reference', default=None)
+
+
+@contextmanager
+def sealed_reference_bytes(image):
+    import fcntl
+
+    fd = os.memfd_create('hia-reference-evaluator', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+    try:
+        with os.fdopen(os.dup(fd), 'wb') as stream:
+            stream.write(image)
+        fcntl.fcntl(fd, fcntl.F_ADD_SEALS, _seals(fcntl))
+        yield fd
+    finally:
+        os.close(fd)
+
+
+class _StandaloneReference:
+    def __init__(self, fd, digest):
+        self.fd = fd
+        self.digest = digest
+        self.calls = 0
+
+    def run(self, wire):
+        child = subprocess.run(['/proc/self/fd/' + str(self.fd)], input=wire,
+                               capture_output=True, env={'PATH': ''}, pass_fds=(self.fd,))
+        if child.returncode or child.stderr:
+            raise RuntimeError('standalone HIA reference did not return a complete machine reply')
+        self.calls += 1
+        return child.stdout
+
+
 class NativeScalarReference(NativeHiaJsonImage):
-    @contextmanager
     def sealed_descriptor(self):
         """Pass the selected bytes themselves, never a child-reopened pathname."""
-        import fcntl
+        return sealed_reference_bytes(self._mapping[:])
 
-        fd = os.memfd_create('hia-reference-evaluator', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
-        try:
-            image = self._mapping[:]
-            with os.fdopen(os.dup(fd), 'wb') as stream:
-                stream.write(image)
-            fcntl.fcntl(fd, fcntl.F_ADD_SEALS, _seals(fcntl))
-            yield fd
-        finally:
-            os.close(fd)
+    def matches_standalone(self, image):
+        return image.startswith(b'\x7fELF') and image.endswith(self._mapping[:])
 
     def operation(self, opcode, typ, arguments):
         from .hia_program import WIDTHS
@@ -202,12 +228,11 @@ class NativeScalarReference(NativeHiaJsonImage):
         return result - (1 << 64) if typ.startswith('i') and result >> 63 else result
 
     def program(self, canonical, function, arguments, max_steps, max_call_depth, *, machine=None):
-        from .hia_program import scalar_value_valid
         from .hia_opcodes import RESOURCES
-        from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, _ReferenceResources
+        from .hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
         from .hia_scalar_reference_wire import (
             MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
-            TRAPS, TYPES, program_wire,
+            program_wire,
         )
 
         compiled = program_wire(canonical, function, allow_resources=machine is not None)
@@ -229,6 +254,19 @@ class NativeScalarReference(NativeHiaJsonImage):
             encoded = (int(arg or 0) & WORD_MASK for arg in arguments)
         words = struct.pack(f'<{len(arguments)}Q', *encoded)
         wire = header + body[64:] + words
+        standalone = _STANDALONE.get()
+        if standalone is not None and resources is None:
+            result = standalone.run(wire)
+            if len(result) < 32:
+                raise RuntimeError('truncated standalone HIA reference machine reply')
+            identity, status, steps, typ = struct.unpack_from('<4Q', result)
+            if identity != PROGRAM_RESULT or steps > max_steps + 1:
+                raise RuntimeError('invalid standalone HIA reference progress')
+            if status == 12 and len(result) == 32 and steps <= max_steps and typ == 0:
+                return steps, None, HIAProgramBudgetExceeded(
+                    'host_memory', 'cannot extend reference call workspace')
+            return self._program_result(result, len(result), status, steps, typ, returns)
+
         source = ctypes.create_string_buffer(wire)
         output = ctypes.create_string_buffer(32 + 8*(bounce if resource_sites else len(returns)))
         stride = (registers + bounce + 1) * 8
@@ -268,6 +306,13 @@ class NativeScalarReference(NativeHiaJsonImage):
             struct.pack_into(f'<{len(returned)}Q', output, 32, *returned)
             struct.pack_into('<Q', workspace, 0, machine.steps)
             previous = machine.steps
+        return self._program_result(output, size, status, steps, typ, returns)
+
+    def _program_result(self, output, size, status, steps, typ, returns):
+        from .hia_program import scalar_value_valid
+        from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap
+        from .hia_scalar_reference_wire import TRAPS, TYPES
+
         if not 0 <= status <= 11 or size != (32 if status else 32 + 8*len(returns)):
             raise RuntimeError('invalid HIA scalar Core reference terminal')
         if status == 0:
@@ -302,16 +347,13 @@ def _seals(fcntl):
 
 
 @contextmanager
-def child_scalar_reference(record):
-    if record is None:
-        yield None
-        return
+def _sealed_reference_record(record):
+    import fcntl
+
     if (type(record) is not dict or set(record) != {'fd', 'sha256'}
             or type(record['fd']) is not int or record['fd'] < 3):
         raise ValueError('invalid reference evaluator descriptor')
     fd = record['fd']
-    import fcntl
-
     try:
         size = os.fstat(fd).st_size
         required = _seals(fcntl)
@@ -319,13 +361,38 @@ def child_scalar_reference(record):
                 or fcntl.fcntl(fd, fcntl.F_GET_SEALS) & required != required):
             raise ValueError('reference evaluator descriptor is not sealed')
         image = os.pread(fd, size, 0)
-        if len(image) != size:
-            raise ValueError('incomplete reference evaluator descriptor')
-        selected = NativeScalarReference(image, record['sha256'])
+        if len(image) != size or sha256(image).hexdigest() != record['sha256']:
+            raise ValueError('reference evaluator descriptor identity differs')
+        yield fd, image
     finally:
         os.close(fd)
+
+
+@contextmanager
+def child_scalar_reference(record):
+    if record is None:
+        yield None
+        return
+    with _sealed_reference_record(record) as (_, image):
+        selected = NativeScalarReference(image, record['sha256'])
     token = _ACTIVE.set(selected)
     try:
         yield selected
     finally:
         _ACTIVE.reset(token)
+
+
+@contextmanager
+def child_standalone_reference(record, reference):
+    if record is None:
+        yield None
+        return
+    with _sealed_reference_record(record) as (fd, image):
+        if reference is None or not reference.matches_standalone(image):
+            raise ValueError('standalone reference does not contain the selected HIA image')
+        standalone = _StandaloneReference(fd, record['sha256'])
+        token = _STANDALONE.set(standalone)
+        try:
+            yield standalone
+        finally:
+            _STANDALONE.reset(token)

@@ -7,6 +7,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 import struct
+from tempfile import TemporaryDirectory
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scalar_functions
 from tools.generate_hia_elf_linker import MAGIC as LINK_WIRE_MAGIC, SOURCE as LINK_SOURCE
@@ -188,16 +189,36 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
         label(name);emit('bf');word(status);branch('e9','exit')
     label('exit');emit('b8 3c 00 00 00 0f 05 0f 0b')
     for at,name in branches:struct.pack_into('<i',code,at,labels[name]-at-4)
-    head=(b'\x7fELF\x02\x01\x01'+bytes(9)+struct.pack('<HHIQQQIHHHHHH',2,62,1,0x4000b0,64,0,0,64,56,2,0,0,0)
+    prefix = elf_header()
+    return prefix+code,tuple(len(prefix)+offset for offset in calls)
+
+
+def elf_header():
+    return (b'\x7fELF\x02\x01\x01'+bytes(9)+struct.pack('<HHIQQQIHHHHHH',2,62,1,0x4000b0,64,0,0,64,56,2,0,0,0)
         +struct.pack('<IIQQQQQQ',1,5,0,0x400000,0x400000,0,0,4096)
         +struct.pack('<IIQQQQQQ',0x6474e551,6,0,0,0,0,0,16))
-    assert len(head)==176
-    return head+code,tuple(176+offset for offset in calls)
+
+
+REFERENCE_CLI_MAGIC = int.from_bytes(b'HIASPK01', 'little')
+REFERENCE_CLI_ADAPTER = 'tools/hia_scalar_reference_syscalls.S'
+REFERENCE_CLI_PACKER = 'examples/hia_bootstrap/scalar_reference_cli_packer.hepta'
+
+
+def reference_cli_document():
+    from tools.build_hia_agent_batch_commit import adapter_layout
+
+    root = Path(__file__).resolve().parents[1]
+    with TemporaryDirectory(prefix='hia-reference-cli-adapter-') as temporary:
+        stub, holes, _ = adapter_layout(Path(temporary), REFERENCE_CLI_ADAPTER,
+            (root/REFERENCE_CLI_ADAPTER).read_bytes(), {'reference': 'reference_call_hole'})
+    header = elf_header()
+    return document(magic=REFERENCE_CLI_MAGIC, module='scalar_reference_cli_packer',
+                    image_template=(header + stub, (len(header) + holes['reference'],)))
 
 
 def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
-                   magic=MAGIC, formatter=False, object_files=False, worker_request=False):
-    prefix,calls=template(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
+                   magic=MAGIC, formatter=False, object_files=False, worker_request=False, image_template=None):
+    prefix,calls=image_template or template(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
                           formatter=formatter,object_files=object_files,worker_request=worker_request)
     header = 24 if formatter else 16
     minimum = header + len(calls)
@@ -239,7 +260,7 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
 
 
 def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC,
-             module='native_filter_packer', formatter=False, object_files=False, worker_request=False):
+             module='native_filter_packer', formatter=False, object_files=False, worker_request=False, image_template=None):
     nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
                                    magic=magic,formatter=formatter,object_files=object_files,
                                    worker_request=worker_request)).body
@@ -257,6 +278,7 @@ def main():
     root=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap'
     for name, source in (
         ('native_filter_packer', document()),
+        ('scalar_reference_cli_packer', reference_cli_document()),
         ('elf_linker_filter_packer', document(magic=LINK_FILTER_MAGIC,
                                              module='elf_linker_filter_packer', object_files=True)),
         ('worker_request_filter_packer', document(magic=WORKER_FILTER_MAGIC,

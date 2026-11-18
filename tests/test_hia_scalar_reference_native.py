@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 import random
+import struct
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -45,6 +47,8 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         image_bytes = image.read_bytes()
         digest = sha256(image_bytes).hexdigest()
         cls.native = NativeScalarReference(image_bytes, digest)
+        cls.compiler = compiler
+        cls.image = image
         cls.manifest = root/'manifest.json'
         cls.manifest.write_text(json.dumps({'schema': SCHEMA,
             'source_sha256': sha256(SOURCE.read_bytes()).hexdigest(), 'image_path': image.name,
@@ -227,6 +231,75 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
             self.assertEqual(observe(cases), expected)
+
+    def test_standalone_reference_preserves_scalar_wire_and_grows_call_space(self):
+        from hepta.hia_program import verify_program
+        from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT, program_wire
+        from tests.test_hia_program import b, f, i, m, ret
+        from tools.generate_hia_native_filter import (
+            REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, reference_cli_document,
+        )
+        from tools.qualify_hia_selfhost import compile_stage
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+
+        source = SOURCE.parents[2] / REFERENCE_CLI_PACKER
+        self.assertEqual(source.read_text(), render_assembly(reference_cli_document()))
+        directory = self.compiler.parent / 'scalar-standalone'
+        directory.mkdir()
+        packer, _ = compile_stage(directory, 'packer', self.compiler, source.read_bytes())
+        image = self.image.read_bytes()
+        executable, _ = compile_stage(directory, 'executor', packer,
+            struct.pack('<2Q', REFERENCE_CLI_MAGIC, len(image)) + image, output_extension='.elf')
+        inspected = inspect_executable(executable.read_bytes())
+        self.assertEqual(inspected['elf_type'], 'ET_EXEC')
+        executable.chmod(0o500)
+
+        argument = [('x', 'i32')]
+        identity = m(f('identity', argument, ['i32'], [], [b('entry', argument, [], ret('x'))]))
+        recursive = m(f('again', argument, ['i32'], [], [b('entry', argument, [
+            i('call', ['x'], [('y', 'i32')], function='again')], ret('y'))]))
+
+        def frame(program, name, *, depth=256, steps=2000, override_registers=None):
+            raw = verify_program(program).canonical_bytes
+            body, registers, bounce, returns, sites = program_wire(raw, name)
+            self.assertFalse(sites)
+            header = struct.pack('<8Q', PROGRAM_MAGIC, steps, depth,
+                                 override_registers or registers, bounce, len(body), 1, len(returns))
+            return header + body[64:] + struct.pack('<q', -132)
+
+        def run(value, *arguments):
+            return subprocess.run([executable, *arguments], input=value, capture_output=True,
+                                  env={'PATH': ''}, timeout=10)
+
+        returned = run(frame(identity, 'identity'))
+        self.assertEqual((returned.returncode, returned.stderr), (0, b''))
+        self.assertEqual(struct.unpack('<4Qq', returned.stdout), (PROGRAM_RESULT, 0, 2, 0, -132))
+        # Ten simultaneous frames exceed the initial workspace even though the
+        # input program and all referenced register numbers remain small.
+        limited = run(frame(recursive, 'again', depth=10, override_registers=150_000))
+        self.assertEqual((limited.returncode, limited.stderr), (0, b''))
+        self.assertEqual(struct.unpack('<4Q', limited.stdout)[:3], (PROGRAM_RESULT, 6, 20))
+        steps = run(frame(recursive, 'again', depth=10, steps=9, override_registers=150_000))
+        self.assertEqual((steps.returncode, steps.stderr), (0, b''))
+        self.assertEqual(struct.unpack('<4Q', steps.stdout)[:3], (PROGRAM_RESULT, 5, 10))
+        from hepta.hia_agent_runner import run_reference_batch
+        checked = verify_program(identity)
+        cases = [{'function': 'identity', 'arguments': [value]} for value in (-132, 0, 319)]
+        budget = {'timeout_ms': 15000, 'memory_bytes': 128 << 20}
+        expected = run_reference_batch(checked, cases, **budget)
+        binary = executable.read_bytes()
+        pin = sha256(binary).hexdigest()
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch('hepta.hia_native_helpers.pinned_reference_executable', return_value=(binary, pin))):
+            selected = run_reference_batch(checked, cases, **budget)
+        self.assertEqual(selected['status'], 'returned', selected)
+        self.assertEqual(selected['report']['observations'], expected['report']['observations'])
+        self.assertEqual(selected['report']['reference_executable_sha256'], pin)
+        self.assertEqual(selected['report']['reference_standalone_calls'], len(cases))
+        for raw, options, code in ((b'bad', (), 2), (b'X' * (72), (), 2),
+                                  (b'', ('not-an-option',), 64), (bytes((32 << 20) + 1), (), 3)):
+            response = run(raw, *options)
+            self.assertEqual((response.returncode, response.stdout, response.stderr), (code, b'', b''))
 
     def test_byte_ranges_and_traps_use_existing_owned_buffers_without_host_writes(self):
         from tests.test_hia_program_native_review import _bounds_program, _empty_memory_program

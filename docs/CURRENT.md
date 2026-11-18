@@ -22,8 +22,8 @@ complete retained regression, and running-worker adoption are separate gates.
   SQLite connections and hosted artifact reads prohibited.
 - Native reference execution now controls scalar and resource CFG dispatch
   within the bounded packet profile, including nested returned loans and
-  external byte snapshots. Resource object custody and allocation effects are
-  still hosted. Finite scalar proof uses HIA enumeration and comparison;
+  external byte snapshots. HIA decides allocation and maintains owner/loan/chain
+  lifetime metadata; the resource runtime still uses host-backed buffers. Finite scalar proof uses HIA enumeration and comparison;
   wider compositional and machine validation still uses existing checkers.
 - The ordinary defaults and the running MCP process owner have not switched.
   Do not remove the retained CLI/API, Agent/runtime implementations, migration
@@ -34,7 +34,10 @@ with the qualified compiler, its matching cold report, and the Store package
 and exact package SHA-256. The command emits the worker manifest and its pin
 for the existing `--native-helpers-manifest` and
 `--expected-native-helpers-sha256` options. The manifest is valid after moving
-the whole release tree, not after moving individual files. This does not
+the whole release tree, not after moving individual files. The selected
+worker runs scalar reference packets in the pinned standalone x86-64 HIA
+executable; cases with capabilities continue through the resource bridge.
+This does not
 install a Python package, migrate an active store or switch production.
 
 ## Historical checkpoint: v75 bounded JSON wire and ordinary callers

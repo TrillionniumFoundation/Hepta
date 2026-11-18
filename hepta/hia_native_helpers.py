@@ -308,7 +308,8 @@ def native_helpers_scope(path=None, expected_sha256=None):
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
         if type(record) is dict and record.get('schema') in (
-                'hepta.hia.native-helpers.v4', 'hepta.hia.native-helpers.v5', 'hepta.hia.native-helpers.v6'):
+                'hepta.hia.native-helpers.v4', 'hepta.hia.native-helpers.v5',
+                'hepta.hia.native-helpers.v6', 'hepta.hia.native-helpers.v7'):
             from .hia_worker_store_profile import NativeWorkerStoreBinding
             binding = NativeWorkerStoreBinding(captured, expected_sha256, record)
         else:
@@ -330,6 +331,11 @@ def native_helpers_scope(path=None, expected_sha256=None):
         _ACTIVE = None
         _SCOPE_OWNER = None
         _SCOPE_LOCK.release()
+
+
+def pinned_reference_executable():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_reference_executable', None)
 
 
 def native_helpers_identity():
