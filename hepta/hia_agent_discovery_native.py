@@ -4,7 +4,7 @@ from __future__ import annotations
 import ctypes
 import struct
 
-from .hia_agent_store import _agent_resource_path, reject
+from .hia_agent_store import _agent_resource_path, canonical_digest, reject, wire
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 from .hia_schema import PRIMITIVE_PROFILES
 
@@ -14,6 +14,8 @@ SELECTOR = 'HEPTA_HIA_AGENT_DISCOVERY_MANIFEST'
 REQUEST = struct.Struct('<8s5Q')
 RESPONSE = struct.Struct('<4Q')
 VERSIONS = tuple(PRIMITIVE_PROFILES)
+PROFILE_NAMES = ('compiler', 'target', 'backend', 'artifact', 'validation', 'lowering', 'plan')
+PROFILE_REQUEST = struct.Struct('<8s8Q')
 
 # Indexed by the native discovery ABI. None denotes the catalog just persisted.
 RESOURCE_ROLES = (
@@ -70,6 +72,27 @@ class NativeAgentDiscovery(NativeHiaJsonImage):
         header, body = self._render(b'HIADISRG')
         if header[:3] != (len(VERSIONS) + 1, 0, 0):
             raise ValueError('invalid native HIA Agent schema registry header')
+        return body
+
+    def profile_bodies(self, identities, catalog_sha256, root_count, roots_sha256):
+        if not canonical_digest(catalog_sha256) or not canonical_digest(roots_sha256):
+            raise ValueError('invalid installed HIA Agent profile digest')
+        fields = (wire(identities), catalog_sha256.encode('ascii'), wire(root_count),
+                  roots_sha256.encode('ascii'), b'', b'', b'')
+        return {name: self._profile(role, fields) for role, name in enumerate(PROFILE_NAMES, 1)}
+
+    def manifest(self, identities, catalog_sha256, profiles, profile_artifacts, resources):
+        if not canonical_digest(catalog_sha256):
+            raise ValueError('invalid installed HIA Agent catalog digest')
+        fields = (wire(identities), catalog_sha256.encode('ascii'), b'', b'',
+                  wire(profiles), wire(profile_artifacts), wire(resources))
+        return self._profile(len(PROFILE_NAMES) + 1, fields)
+
+    def _profile(self, role, fields):
+        frame = PROFILE_REQUEST.pack(b'HIADISPF', role, *map(len, fields))
+        header, body = self._render(frame + b''.join(fields))
+        if header[:3] != (len(VERSIONS) + 1 + role, 0, 0):
+            raise ValueError('invalid native HIA Agent installation profile header')
         return body
 
     def _render(self, raw):

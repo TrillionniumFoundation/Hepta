@@ -125,27 +125,44 @@ class AgentDiscoveryNativeTests(unittest.TestCase):
         if self.manifest is None:
             self.skipTest('provide the matching native Agent discovery image')
 
-    def test_profiles_initialize_and_reopen_without_hosted_registry_or_opcodes(self):
+    def test_profiles_initialize_and_reopen_without_hosted_discovery_documents(self):
         from hepta.hia_agent_store import wire
         from hepta.hia_schema import schema_registry
-        expected = wire(schema_registry())
+
+        expected_registry = wire(schema_registry())
         with tempfile.TemporaryDirectory(dir=self.test_root) as root:
             state = Path(root) / 'state'
+            roots = (Path(root) / 'input', Path(root) / '制品')
+            for path in roots:
+                path.mkdir()
+
+            def startup_documents(service):
+                refs = (service.manifest, *service.profile_artifacts.values())
+                return {ref['id']: service.store.get(ref)[0] for ref in refs}
+
+            original = HIAAgentService(state, artifact_roots=roots)
+            try:
+                expected_refs = (original.manifest, original.profiles, original.profile_artifacts)
+                expected_documents = startup_documents(original)
+            finally:
+                original.close()
+
             with (patch.dict('os.environ', {discovery.SELECTOR: str(self.manifest)}),
                   patch('hepta.hia_schema.schema_registry', side_effect=AssertionError('hosted registry used')),
-                  patch('hepta.hia_opcodes.opcode_catalog', side_effect=AssertionError('hosted opcodes used'))):
-                original = None
+                  patch('hepta.hia_opcodes.opcode_catalog', side_effect=AssertionError('hosted opcodes used')),
+                  patch('hepta.hia_agent_service._profile_documents', side_effect=AssertionError('hosted profiles used')),
+                  patch('hepta.hia_agent_service._manifest_document', side_effect=AssertionError('hosted manifest used'))):
                 for _ in range(2):
-                    service = HIAAgentService(state)
+                    service = HIAAgentService(state, artifact_roots=roots)
                     try:
+                        self.assertEqual((service.manifest, service.profiles, service.profile_artifacts), expected_refs)
+                        self.assertEqual(startup_documents(service), expected_documents)
                         reply = service.call('hia_describe', {'section': 'language'})
                         self.assertEqual(reply['status'], 'completed', reply)
                         ref = reply['result']['resources'][0]
-                        if original is not None:
-                            self.assertEqual(ref, original)
-                        original = ref
+                        self.assertEqual(ref, service.resources['schema_registry'])
                         raw, _ = service.store.get(ref, kind='discovery')
-                        self.assertEqual(raw, expected)
+                        self.assertEqual(raw, expected_registry)
                     finally:
                         service.close()
 

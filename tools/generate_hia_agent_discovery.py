@@ -1,7 +1,10 @@
 """Author the HIA discovery router and its eight canonical opcode catalog recipes."""
 from pathlib import Path
+import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_discovery_native import PROFILE_NAMES
+from hepta.hia_agent_service import _manifest_document, _profile_documents
 from hepta.hia_agent_store import wire
 from hepta.hia_opcodes import opcode_catalog
 from hepta.hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES, schema_registry
@@ -13,6 +16,7 @@ SOURCE = ROOT / 'examples/hia_bootstrap/agent_discovery.hepta'
 HEADER_BYTES = 32
 MAGIC = int.from_bytes(b'HIADIS01', 'little')
 REGISTRY_MAGIC = int.from_bytes(b'HIADISRG', 'little')
+PROFILE_MAGIC = int.from_bytes(b'HIADISPF', 'little')
 
 # Stable resource-role IDs in the discovery ABI; the Store binds them to issued refs.
 ROUTES = {
@@ -31,6 +35,8 @@ def discover(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     tag = read_word(s, 0)
     if length(s) == 8 and tag == REGISTRY_MAGIC:
         return render_recipe(o, w, REGISTRY_RECIPE, 0)
+    if tag == PROFILE_MAGIC:
+        return render_profile(s, o, w)
     if length(s) < 48 or tag != FRAME_MAGIC:
         return 4294967293
     flags = read_word(s, 8)
@@ -70,6 +76,69 @@ def render_recipe(o:mutbuf, w:mutbuf, version:u64, route:u64) -> u64:
     put_word(o, 16, route >> 4)
     put_word(o, 24, size)
     return size + 32
+
+def render_profile(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(s) < 72:
+        return 4294967293
+    role = read_word(s, 8)
+    if role == 0 or role > PROFILE_COUNT:
+        return 4294967293
+    offset = 16
+    extent = 72
+    while offset < 72:
+        count = read_word(s, offset)
+        if count > length(s) - extent:
+            return 4294967293
+        extent = extent + count
+        offset = offset + 8
+    if extent != length(s):
+        return 4294967293
+    seed(w)
+    if unpack_table(w) == 0:
+        return 4294967293
+    version = REGISTRY_RECIPE + role
+    recipe = PROFILE_HEADER + catalog_u32(w, 4 + (version - 1) * 12)
+    start = catalog_u32(w, 0) + catalog_u32(w, recipe)
+    end = start + catalog_u32(w, recipe + 4)
+    if end > PACK_START:
+        return 4294967293
+    out = 32
+    while start < end:
+        unit = byte(w, start)
+        start = start + 1
+        if unit != 0:
+            if out >= length(o):
+                return 4294967294
+            store(o, out, unit)
+            out = out + 1
+        else:
+            if start == end:
+                return 4294967293
+            marker = byte(w, start)
+            start = start + 1
+            if marker < 1 or marker > 7:
+                return 4294967293
+            offset = 16
+            at = 72
+            while marker > 1:
+                at = at + read_word(s, offset)
+                offset = offset + 8
+                marker = marker - 1
+            count = read_word(s, offset)
+            if count == 0:
+                return 4294967293
+            if count > length(o) - out:
+                return 4294967294
+            i = 0
+            while i < count:
+                store(o, out + i, byte(s, at + i))
+                i = i + 1
+            out = out + count
+    put_word(o, 0, version)
+    put_word(o, 8, 0)
+    put_word(o, 16, 0)
+    put_word(o, 24, out - 32)
+    return out
 
 def unpack_table(w:mutbuf) -> u64:
     source = PACK_START
@@ -189,18 +258,49 @@ def seed_source(table, *, offset):
     return 'def seed(o:mutbuf) -> u64:\n' + ''.join(f'    {name}(o)\n' for name in names) + '    return 0\n\n' + '\n'.join(chunks)
 
 
+def profile_templates():
+    """Encode literal canonical JSON plus variable-width installation fields."""
+    identity = {'__hia_profile_identity__': True}
+    catalog = 'c' * 64
+    root_count = (1 << 64) - 1
+    roots = 'd' * 64
+    profiles = {'__hia_profile_refs__': True}
+    artifacts = {'__hia_profile_manifests__': True}
+    resources = {'__hia_resource_refs__': True}
+    fields = (wire(identity), catalog.encode('ascii'), wire(root_count), roots.encode('ascii'),
+              wire(profiles), wire(artifacts), wire(resources))
+    sentinel = {field: bytes((0, marker)) for marker, field in enumerate(fields, 1)}
+    expected = {'compiler': (1, 2), 'target': (), 'backend': (1, 2), 'artifact': (3, 4),
+                'validation': (1, 2), 'lowering': (1, 2), 'plan': (1, 2),
+                'manifest': (1, 2, 5, 6, 7)}
+    documents = _profile_documents(identity, catalog, root_count, roots)
+    assert tuple(documents) == PROFILE_NAMES
+    documents['manifest'] = _manifest_document(identity, catalog, profiles, artifacts, resources)
+    pattern = re.compile(b'|'.join(re.escape(key) for key in sentinel))
+    for name, document in documents.items():
+        raw = wire(document)
+        matches = tuple(sorted(sentinel[key][1] for key in pattern.findall(raw)))
+        assert matches == expected[name]
+        yield (pattern.sub(lambda match: sentinel[match[0]], raw),)
+
+
 def source_program():
     catalogs = [opcode_catalog(schema) for schema in PRIMITIVE_PROFILES]
     documents = [*catalogs, schema_registry()]
-    table = pack_catalog_recipes(canonical_parts(value) for value in documents)
+    profile_count = len(PROFILE_NAMES) + 1
+    recipe_count = len(documents) + profile_count
+    recipes = [*(canonical_parts(value) for value in documents), *profile_templates()]
+    table = pack_catalog_recipes(recipes)
     seed = pack_seed(table)
     total = len(table) + len(seed)
     assert total <= 65536
     source = (ENTRY.replace('FRAME_MAGIC', str(MAGIC)).replace('TABLE_SIZE', str(total))
               .replace('PACK_START', str(len(table))).replace('PACK_END', str(total))
               .replace('REGISTRY_MAGIC', str(REGISTRY_MAGIC)).replace('REGISTRY_RECIPE', str(len(documents)))
+              .replace('PROFILE_MAGIC', str(PROFILE_MAGIC)).replace('PROFILE_COUNT', str(profile_count))
+              .replace('PROFILE_HEADER', str(4 + 12 * recipe_count))
               .replace('DEFAULT_VERSION', str(tuple(PRIMITIVE_PROFILES).index(LATEST_CORE_SCHEMA) + 1)))
-    catalog = (catalog_source(recipes=len(documents))
+    catalog = (catalog_source(recipes=recipe_count)
         .replace('def catalog(s:readbuf, o:mutbuf, version:u64) -> u32:',
                  'def catalog(s:mutbuf, o:mutbuf, version:u64) -> u64:')
         .replace('def catalog_u32(s:readbuf', 'def catalog_u32(s:mutbuf')

@@ -105,7 +105,7 @@ def catalog_source(*, recipes=None):
         prefix + bytes((49 + index,)) for index in range(len(schemas)))
     assert 0 < len(schemas) <= 9
     recipes = len(schemas) if recipes is None else recipes
-    if not len(schemas) <= recipes <= 9:
+    if not len(schemas) <= recipes:
         raise ValueError('unsupported native catalog recipe table')
     header_size = 4 + 12 * recipes
     output = [f'''def catalog(s:readbuf, o:mutbuf, version:u64) -> u32:
