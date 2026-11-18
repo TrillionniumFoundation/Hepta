@@ -118,6 +118,11 @@ NATIVE_LINKER_SDIST_FILES = (
     'tools/generate_hia_shared_linker.py',
 )
 SCALAR_REFERENCE_SDIST_FILES = (
+    'examples/hia_bootstrap/owned_reference.hepta',
+    'examples/hia_bootstrap/owned_reference_cli_packer.hepta',
+    'tools/build_hia_owned_reference_cli.py',
+    'tools/generate_hia_owned_reference.py',
+    'tools/hia_owned_reference_syscalls.S',
     'examples/hia_bootstrap/scalar_reference_cli_packer.hepta',
     'tools/build_hia_scalar_reference_cli.py',
     'tools/hia_scalar_reference_syscalls.S',

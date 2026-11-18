@@ -120,6 +120,7 @@ class _Machine:
         self.loans_started = self.loans_ended = 0
         self.owners = {}
         self.chains = {}
+        self.native_owner_count = None
         self.native_chain_count = None
         self.native_resources = None
         self.chains_created = self.chains_consumed = 0
@@ -134,7 +135,8 @@ class _Machine:
         result = {"allocations": self.allocations, "frees": self.frees,
                 "allocation_attempts": self.allocation_attempts,
                 "owners_created": self.owner_count, "owners_dropped": self.drops,
-                "live_owners": len(self.owners), "live_bytes": self.live_bytes,
+                "live_owners": self.native_owner_count if self.native_owner_count is not None else len(self.owners),
+                "live_bytes": self.live_bytes,
                 "peak_bytes": self.peak_bytes,
                 "loans_started": self.loans_started, "loans_ended": self.loans_ended,
                 "live_local_loans": self.loans_started - self.loans_ended}
@@ -198,7 +200,7 @@ class _Machine:
 
     def live_owners(self):
         if self.native_resources is None:
-            return len(self.owners)
+            return len(self.owners) if self.native_owner_count is None else self.native_owner_count
         return self.native_resources.owner_counters()["live_owners"]
 
     def allocate(self, size, optional):

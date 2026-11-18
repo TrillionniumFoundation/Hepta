@@ -64,10 +64,15 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         reject("E_HIA_BUFFER_CAPTURE", "buffer capture requires one owned synchronous invocation")
     artifact_hash = sha256(artifact_bytes).hexdigest()
     started = time.monotonic_ns()
-    from .hia_native_helpers import pinned_reference_executable
+    from .hia_native_helpers import pinned_owned_reference_executable, pinned_reference_executable
     from .hia_scalar_reference_native import sealed_reference_bytes, selected_scalar_reference
     reference_evaluator = selected_scalar_reference() if _mode == "reference" else None
-    reference_executable = pinned_reference_executable() if reference_evaluator is not None else None
+    executables = []
+    if reference_evaluator is not None:
+        executables = (
+            ('reference_executable', 'reference_standalone_calls', pinned_reference_executable()),
+            ('owned_reference_executable', 'owned_reference_standalone_calls', pinned_owned_reference_executable()),
+        )
     with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
           ExitStack() as custody):
         artifact = Path(directory) / "program.so"
@@ -98,10 +103,12 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             fd = custody.enter_context(reference_evaluator.sealed_descriptor())
             request["scalar_reference"] = {"fd": fd, "sha256": reference_evaluator.image_sha256}
             process_options["pass_fds"] = (fd,)
-        if reference_executable is not None:
-            executable_bytes, digest = reference_executable
+        for name, _, executable in executables:
+            if executable is None:
+                continue
+            executable_bytes, digest = executable
             fd = custody.enter_context(sealed_reference_bytes(executable_bytes))
-            request["reference_executable"] = {"fd": fd, "sha256": digest}
+            request[name] = {"fd": fd, "sha256": digest}
             process_options["pass_fds"] += (fd,)
         payload = wire(request)
         parent_pid = os.getpid()
@@ -187,9 +194,11 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             if (reference_evaluator is not None and
                     report.get("reference_evaluator_sha256") != reference_evaluator.image_sha256):
                 raise ValueError("reference evaluator identity differs")
-            if reference_executable is not None:
-                calls = report.get("reference_standalone_calls")
-                if (report.get("reference_executable_sha256") != reference_executable[1]
+            for name, calls_key, executable in executables:
+                if executable is None:
+                    continue
+                calls = report.get(calls_key)
+                if (report.get(name + '_sha256') != executable[1]
                         or type(calls) is not int or not 0 <= calls <= len(cases)):
                     raise ValueError("standalone reference report identity differs")
         except (ValueError, UnicodeError):
@@ -229,11 +238,14 @@ def main():
         from .hia_agent_service import _vm_observation
         from .hia_program import verify_program
         from .hia_program_tools import decode_json
-        from .hia_scalar_reference_native import child_scalar_reference, child_standalone_reference
+        from .hia_scalar_reference_native import (
+            child_owned_reference, child_scalar_reference, child_standalone_reference,
+        )
         program = verify_program(decode_json(data))
         observations = []
         with (child_scalar_reference(request.get("scalar_reference")) as scalar_reference,
-              child_standalone_reference(request.get("reference_executable"), scalar_reference) as standalone):
+              child_standalone_reference(request.get("reference_executable"), scalar_reference) as standalone,
+              child_owned_reference(request.get("owned_reference_executable")) as owned):
             for case in request["cases"]:
                 observation = _vm_observation(program, case,
                     foreign_buffer_exports=tuple(map(tuple, request["foreign_buffer_exports"])))
@@ -252,6 +264,9 @@ def main():
         if standalone is not None:
             result["reference_executable_sha256"] = standalone.digest
             result["reference_standalone_calls"] = standalone.calls
+        if owned is not None:
+            result["owned_reference_executable_sha256"] = owned.digest
+            result["owned_reference_standalone_calls"] = owned.calls
         sys.stdout.buffer.write(wire(result) + b"\n")
         return 0
     if request.get("mode") != "native":

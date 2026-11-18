@@ -51,6 +51,7 @@ ALLOCATION_DECISIONS = ('empty', 'object-model', 'heap-budget', 'injected', 'all
 
 
 _STANDALONE = ContextVar('hia-standalone-reference', default=None)
+_OWNED = ContextVar('hia-standalone-owned-reference', default=None)
 
 
 @contextmanager
@@ -68,14 +69,18 @@ def sealed_reference_bytes(image):
 
 
 class _StandaloneReference:
-    def __init__(self, fd, digest):
+    def __init__(self, fd, digest, *, allow_space=False):
         self.fd = fd
         self.digest = digest
         self.calls = 0
+        self.allow_space = allow_space
 
     def run(self, wire):
         child = subprocess.run(['/proc/self/fd/' + str(self.fd)], input=wire,
                                capture_output=True, env={'PATH': ''}, pass_fds=(self.fd,))
+        if self.allow_space and child.returncode == 3 and not child.stdout and not child.stderr:
+            self.calls += 1
+            return None
         if child.returncode or child.stderr:
             raise RuntimeError('standalone HIA reference did not return a complete machine reply')
         self.calls += 1
@@ -279,6 +284,19 @@ class NativeScalarReference(NativeHiaJsonImage):
             return None
         kinds = ([param['type'] for param in machine.functions[function]['params']]
                  if machine is not None else ())
+        owned = _OWNED.get()
+        if (resource_sites and machine is not None and owned is not None
+                and not any(kind in RESOURCES for kind in (*kinds, *returns))
+                and len(body) + 8 * len(arguments) + 16 <= MAX_PACKET_BYTES):
+            header = struct.pack('<8Q', RESOURCE_PROGRAM_MAGIC, max_steps, max_call_depth,
+                                 registers, bounce, len(body), len(arguments), len(returns))
+            failure = machine.allocation_fail_at or 0
+            if failure > max_steps:
+                failure = 0
+            suffix = struct.pack(f'<{len(arguments) + 2}Q',
+                                 *(int(arg or 0) & WORD_MASK for arg in arguments),
+                                 machine.max_heap_bytes, failure)
+            return self._owned_result(owned.run(header + body[64:] + suffix), machine, returns)
         resources = (_ReferenceResources(machine)
                      if resource_sites or any(kind in RESOURCES for kind in kinds) else None)
         magic = RESOURCE_PROGRAM_MAGIC if resource_sites else PROGRAM_MAGIC
@@ -345,6 +363,47 @@ class NativeScalarReference(NativeHiaJsonImage):
             struct.pack_into('<Q', workspace, 0, machine.steps)
             previous = machine.steps
         return self._program_result(output, size, status, steps, typ, returns)
+
+    def _owned_result(self, output, machine, returns):
+        from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap
+        from .hia_scalar_reference_wire import PROGRAM_RESULT, RESOURCE_NAMES
+
+        if output is None:
+            return 0, None, HIAProgramBudgetExceeded('host_memory', 'cannot allocate private HIA resource workspace')
+        size = len(output) - 112
+        if size < 32:
+            raise RuntimeError('truncated standalone HIA owned reference result')
+        identity, status, steps, detail = struct.unpack_from('<4Q', output)
+        if identity != PROGRAM_RESULT or steps > machine.max_steps + 1:
+            raise RuntimeError('invalid standalone HIA owned reference progress')
+        if status <= 11:
+            outcome = self._program_result(output, size, status, steps, detail, returns)
+        elif 15 <= status <= 19 and size == 32 and 1 <= detail <= len(RESOURCE_NAMES):
+            operation = RESOURCE_NAMES[detail - 1]
+            if status in (15, 17) and operation == 'buffer.new':
+                message = ('allocation exceeds the 64-bit object-size model' if status == 15
+                           else 'allocator returned failure')
+                error = HIAProgramTrap('allocation', message)
+            elif status == 16 and operation in ('buffer.new', 'buffer.try_new', 'chain.try_push'):
+                error = HIAProgramBudgetExceeded('heap', 'finite live-byte limit reached')
+            elif status == 18 and operation.startswith('buffer.'):
+                name = {'fill_range': 'fill', 'move_within': 'move'}.get(operation[7:], operation[7:])
+                if name not in BYTE_OPERATIONS:
+                    raise RuntimeError('invalid standalone HIA owned reference bounds operation')
+                error = HIAProgramTrap('bounds', BYTE_OPERATIONS[name][1])
+            elif status == 19 and operation in ('chain.head_read', 'chain.head_mut'):
+                error = HIAProgramTrap('bounds', 'head borrow of an empty chain')
+            else:
+                raise RuntimeError('invalid standalone HIA owned reference error')
+            outcome = steps, None, error
+        else:
+            raise RuntimeError('invalid standalone HIA owned reference status')
+        (machine.allocation_attempts, machine.allocations, machine.frees, machine.owner_count, machine.drops,
+         machine.live_bytes, machine.peak_bytes, machine.loans_started, machine.loans_ended,
+         machine.chains_created, machine.chains_consumed, machine.chain_nodes_created,
+         machine.chain_nodes_dropped, machine.native_chain_count) = struct.unpack_from('<14Q', output, size)
+        machine.native_owner_count = machine.owner_count - machine.drops
+        return outcome
 
     def _program_result(self, output, size, status, steps, typ, returns):
         from .hia_program import scalar_value_valid
@@ -434,3 +493,19 @@ def child_standalone_reference(record, reference):
             yield standalone
         finally:
             _STANDALONE.reset(token)
+
+
+@contextmanager
+def child_owned_reference(record):
+    if record is None:
+        yield None
+        return
+    with _sealed_reference_record(record) as (fd, image):
+        if not image.startswith(b'\x7fELF'):
+            raise ValueError('invalid standalone HIA owned reference image')
+        standalone = _StandaloneReference(fd, record['sha256'], allow_space=True)
+        token = _OWNED.set(standalone)
+        try:
+            yield standalone
+        finally:
+            _OWNED.reset(token)

@@ -217,10 +217,13 @@ def reference_cli_document():
 
 
 def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
-                   magic=MAGIC, formatter=False, object_files=False, worker_request=False, image_template=None):
+                   magic=MAGIC, formatter=False, object_files=False, worker_request=False,
+                   image_template=None, private_entry=False):
     prefix,calls=image_template or template(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
                           formatter=formatter,object_files=object_files,worker_request=worker_request)
-    header = 24 if formatter else 16
+    if private_entry and (formatter or len(calls) != 2):
+        raise ValueError('private entry packing needs a single image with two calls')
+    header = 24 if formatter or private_entry else 16
     minimum = header + len(calls)
     text=f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < {minimum} or length(s) > 1048576:
@@ -232,6 +235,11 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
     if formatter:
         text += '''    format_image = uint(s, 16, 8)
     if image == 0 or image >= length(s) - 24 or format_image != length(s) - 24 - image:
+        return 4294967295
+'''
+    elif private_entry:
+        text += '''    entry = uint(s, 16, 8)
+    if image != length(s) - 24 or entry == 0 or entry >= image:
         return 4294967295
 '''
     else:
@@ -251,6 +259,8 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
 '''
     if formatter:
         text+=f'    write(o, {calls[1]}, {len(prefix)-calls[1]-4} + image, 4)\n'
+    elif private_entry:
+        text+=f'    write(o, {calls[1]}, {len(prefix)-calls[1]-4} + entry, 4)\n'
     text+=f'''    copy_bytes(s, o, {header}, {len(prefix)}, {payload})
     return size
 '''
@@ -260,10 +270,12 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
 
 
 def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC,
-             module='native_filter_packer', formatter=False, object_files=False, worker_request=False, image_template=None):
+             module='native_filter_packer', formatter=False, object_files=False, worker_request=False,
+             image_template=None, private_entry=False):
     nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
                                    magic=magic,formatter=formatter,object_files=object_files,
-                                   worker_request=worker_request, image_template=image_template)).body
+                                   worker_request=worker_request, image_template=image_template,
+                                   private_entry=private_entry)).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     fns=[]

@@ -132,9 +132,9 @@ def build_seed(directory, source=None):
 
 def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
-           output_initial=None, observe_trap_writes=False):
+           output_initial=None, observe_trap_writes=False, compiler_function_offsets=()):
     """Copy private inputs and run one pinned artifact under fixed limits."""
-    if NATIVE_OBSERVER is not None and image_format == 'flat-x86-64':
+    if NATIVE_OBSERVER is not None and image_format == 'flat-x86-64' and not compiler_function_offsets:
         from tools.hia_selfhost_native_observer import invoke as observe_native
         return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
             workspace_size=workspace_size,workspace_fill=workspace_fill,
@@ -155,6 +155,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
         request["output_initial_hex"] = output_initial.hex()
     if observe_trap_writes:
         request["observe_trap_writes"] = True
+    if compiler_function_offsets:
+        if (image_format != "flat-x86-64" or
+                any(type(offset) is not int or offset % 8 or not 0 <= offset <= workspace_size - 8
+                    for offset in compiler_function_offsets)):
+            raise ValueError("invalid compiler function workspace offsets")
+        request["compiler_function_offsets"] = tuple(compiler_function_offsets)
     request_path.write_text(json.dumps(request, sort_keys=True) + "\n")
     started = time.monotonic_ns()
     try:
@@ -191,10 +197,10 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
 
 
 def compile_stage(directory, label, image, source, *, image_format="flat-x86-64", workspace_fill=0,
-                  output_extension=".image.bin"):
+                  output_extension=".image.bin", compiler_function_offsets=()):
     compiler_bytes = Path(image).read_bytes()
     result, output = invoke(directory, label, image, source, image_format=image_format,
-                            workspace_fill=workspace_fill)
+                            workspace_fill=workspace_fill, compiler_function_offsets=compiler_function_offsets)
     # These are publication conditions, including under Python -O.  In
     # particular, bool/float zero is not a successful native integer status,
     # and a missing/truthy custody observation is not an unchanged-source

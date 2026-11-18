@@ -21,6 +21,7 @@ from tools.build_hia_json_preflight import build as build_helper
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
+from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
 from tools.build_hia_slot_ledger import build as build_slot_ledger
 from tools.build_hia_worker_report import bind_worker_bundle, build as build_report
 from tools.build_hia_worker_scheduling_bundle import bind_scheduling_bundle
@@ -115,9 +116,13 @@ def build(output, compiler, cold_report, package, package_sha256):
             build_reference_executable(scratch / 'reference-cli', compiler, cold_report),
             output / 'reference' / 'hia-reference-wire')
         reference.chmod(0o500)
+        owned_reference = _copy_runtime_file(
+            build_owned_reference_executable(scratch / 'owned-reference-cli', compiler, cold_report),
+            output / 'reference' / 'hia-owned-reference-wire')
+        owned_reference.chmod(0o500)
         profile = output / 'worker.json'
         pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True,
-                                reference_executable=reference)
+                                reference_executable=reference, owned_reference_executable=owned_reference)
     profile.chmod(0o400)
     with authority.native_helpers_scope(str(profile), pin) as binding:
         binding.check()

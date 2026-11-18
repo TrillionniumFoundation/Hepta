@@ -10,7 +10,9 @@ SCHEMA = 'hepta.hia.native-helpers.v4'
 EDIT_QUERY_SCHEMA = 'hepta.hia.native-helpers.v5'
 IMPORT_SCHEMA = 'hepta.hia.native-helpers.v6'
 REFERENCE_SCHEMA = 'hepta.hia.native-helpers.v7'
-SCHEMAS = (SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, REFERENCE_SCHEMA)
+OWNED_REFERENCE_SCHEMA = 'hepta.hia.native-helpers.v8'
+REFERENCE_SCHEMAS = (REFERENCE_SCHEMA, OWNED_REFERENCE_SCHEMA)
+SCHEMAS = (SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, *REFERENCE_SCHEMAS)
 PIN_FIELDS = ('store_sha256', 'artifact_sha256', 'capture_sha256')
 
 
@@ -21,7 +23,7 @@ def profile_images(schema):
     if schema != SCHEMA:
         from .hia_agent_edit_query_native import EXECUTABLE
         result['edit_query_sha256'] = EXECUTABLE
-    if schema in (IMPORT_SCHEMA, REFERENCE_SCHEMA):
+    if schema in (IMPORT_SCHEMA, *REFERENCE_SCHEMAS):
         from .hia_agent_candidate_native import IMPORT_EXECUTABLES
         result.update(IMPORT_EXECUTABLES)
     return result
@@ -31,7 +33,9 @@ class NativeWorkerStoreBinding:
     def __init__(self, snapshot, expected_sha256, record):
         schema = record.get('schema')
         images = profile_images(schema)
-        reference_fields = {'reference_path', 'reference_sha256'} if schema == REFERENCE_SCHEMA else set()
+        reference_fields = {'reference_path', 'reference_sha256'} if schema in REFERENCE_SCHEMAS else set()
+        if schema == OWNED_REFERENCE_SCHEMA:
+            reference_fields.update({'owned_reference_path', 'owned_reference_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
                 or record['target'] != authority.TARGET
@@ -65,7 +69,7 @@ class NativeWorkerStoreBinding:
         self.images = self.base_binding.images
         self.bundles = getattr(self.base_binding, 'bundles', {})
         self.native_candidate_import = None
-        if schema in (IMPORT_SCHEMA, REFERENCE_SCHEMA):
+        if schema in (IMPORT_SCHEMA, *REFERENCE_SCHEMAS):
             from .hia_agent_candidate_native import NativeAgentCandidateImport
             from .hia_agent_inspection_native import SELECTOR
             if SELECTOR not in self.selections:
@@ -73,7 +77,7 @@ class NativeWorkerStoreBinding:
             self.native_candidate_import = NativeAgentCandidateImport(
                 captures['assembly_import_sha256'], captures['json_admission_sha256'], self.selections[SELECTOR])
         self.native_reference_executable = None
-        if schema == REFERENCE_SCHEMA:
+        if schema in REFERENCE_SCHEMAS:
             from .hia_scalar_reference_native import MAX_IMAGE_BYTES, SELECTOR, NativeScalarReference
             if SELECTOR not in self.selections or not authority._digest(record['reference_sha256']):
                 raise ValueError('standalone reference requires its pinned scalar image and executable')
@@ -87,6 +91,15 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone reference omits its exact pinned HIA image')
             self.snapshots.append((reference, MAX_IMAGE_BYTES))
             self.native_reference_executable = (reference.raw, record['reference_sha256'])
+        self.native_owned_reference_executable = None
+        if schema == OWNED_REFERENCE_SCHEMA:
+            pin = record['owned_reference_sha256']
+            selected = authority._path(record['owned_reference_path'], snapshot.path.parent)
+            owned = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, pin)
+            if not owned.raw.startswith(b'\x7fELF') or owned.raw == self.native_reference_executable[0]:
+                raise ValueError('standalone owned reference requires its separate pinned executable')
+            self.snapshots.append((owned, MAX_IMAGE_BYTES))
+            self.native_owned_reference_executable = (owned.raw, pin)
         self._check_release()
 
     def check_owner(self):

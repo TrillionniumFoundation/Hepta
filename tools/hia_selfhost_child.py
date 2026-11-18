@@ -105,6 +105,11 @@ def main():
     fields = {str(i): int.from_bytes(workspace_bytes[i:i + 8], "little")
               for i in (0, 8, 16, 24, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 224, 248, 1024)
               if workspace_size >= i + 8}
+    function_offsets = request.get("compiler_function_offsets", ())
+    assert all(type(offset) is int and offset % 8 == 0 and 0 <= offset <= workspace_size - 8
+               for offset in function_offsets)
+    for offset in function_offsets:
+        fields[str(offset)] = int.from_bytes(workspace_bytes[offset:offset + 8], "little")
     print(json.dumps({
         "status": "returned", "result_u64": returned,
         "abi_status": returned >> 32,

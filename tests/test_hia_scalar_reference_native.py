@@ -327,6 +327,70 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             response = run(raw, *options)
             self.assertEqual((response.returncode, response.stdout, response.stderr), (code, b'', b''))
 
+    def test_standalone_owned_reference_preserves_grown_state_chains_and_returned_loans(self):
+        from hepta.hia_agent_runner import run_reference_batch
+        from hepta.hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
+        from hepta.hia_scalar_reference_native import child_owned_reference, sealed_reference_bytes
+        from tests.test_hia_program import b, c, f, i, m, resource_program, ret
+        from tests.test_hia_returned_chain_loans import chain_program
+        from tests.test_hia_returned_loans import loan_program
+        from tools.build_hia_owned_reference_cli import assemble
+        from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH, cli_document, document
+
+        root = SOURCE.parents[2]
+        sources = {path: (root / path).read_bytes() for path in (ADAPTER_PATH, PACKER_PATH, SOURCE_PATH)}
+        self.assertEqual(sources[SOURCE_PATH], render_assembly(document()).encode())
+        self.assertEqual(sources[PACKER_PATH], render_assembly(cli_document()).encode())
+        directory = self.compiler.parent / 'owned-standalone'
+        directory.mkdir()
+        binary, report = assemble(directory, self.compiler, sources)
+        self.assertEqual(report['executable']['elf_type'], 'ET_EXEC')
+        digest = sha256(binary).hexdigest()
+        operations = [c('size', 'usize', 100_000), i('buffer.new', ['size'], [('owner', 'buffer')])]
+        loans = [f'loan{n}' for n in range(80)]
+        operations.extend(i('borrow.read', ['owner'], [(name, 'readbuf')]) for name in loans)
+        operations.extend(i('loan.end', [name]) for name in reversed(loans))
+        operations.append(i('owner.drop', ['owner']))
+        wide = m(f('wide', [], [], ['alloc', 'trap'], [b('entry', [], operations, ret())]))
+        chain, loans = chain_program('mut', 'child'), loan_program('read', 'recursive')
+        inputs = [(wide, 'wide', [], {}), (wide, 'wide', [], {'max_steps': 154}),
+                  (chain, chain['exports'][0], [73], {}), (chain, chain['exports'][0], [73], {'max_steps': 31}),
+                  (loans, loans['exports'][0], [20, 211], {}),
+                  (resource_program(), 'owned', [10, 255], {'allocation_fail_at': 1}),
+                  (resource_program(), 'owned', [10, 255], {'max_heap_bytes': 7}),
+                  (resource_program(), 'owned', [0, 255], {})]
+
+        def observations():
+            rows = []
+            for program, entry, arguments, limits in inputs:
+                try:
+                    rows.append(execute_program(program, entry, arguments, **limits))
+                except (HIAProgramBudgetExceeded, HIAProgramTrap) as error:
+                    rows.append(error.report)
+            return rows
+
+        expected = observations()
+        self.assertEqual(expected[0]['resources']['loans_ended'], 80)
+        self.assertEqual(expected[0]['resources']['peak_bytes'], 100_000)
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              sealed_reference_bytes(binary) as fd,
+              child_owned_reference({'fd': os.dup(fd), 'sha256': digest}) as selected,
+              patch.object(_ReferenceResources, '__init__', side_effect=AssertionError('host resource adapter'))):
+            self.assertEqual(observations(), expected)
+            self.assertEqual(selected.calls, len(inputs))
+
+        cases = [{'function': 'owned', 'arguments': [length, 171]} for length in (1, 100_000, 0)]
+        program = verify_program(resource_program())
+        limits = {'timeout_ms': 15000, 'memory_bytes': 64 << 20}
+        baseline = run_reference_batch(program, cases, **limits)
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch('hepta.hia_native_helpers.pinned_owned_reference_executable', return_value=(binary, digest))):
+            actual = run_reference_batch(program, cases, **limits)
+        self.assertEqual(actual['status'], 'returned', actual)
+        self.assertEqual(actual['report']['observations'], baseline['report']['observations'])
+        self.assertEqual(actual['report']['owned_reference_executable_sha256'], digest)
+        self.assertEqual(actual['report']['owned_reference_standalone_calls'], len(cases))
+
     def test_symbolic_recipes_preserve_solver_operations_and_actual_checker_routes(self):
         import z3
 

@@ -180,7 +180,7 @@ def stable_read(path, limit, *, dir_fd=None):
             before = os.fstat(stream.fileno())
             if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
                 reject("E_HIA_ARTIFACT_FILE", "artifact is not a bounded ordinary file")
-            data = stream.read(limit + 1)
+            data = stream.read(before.st_size + 1)
             after = os.fstat(stream.fileno())
             identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
             if len(data) != before.st_size or identity(before) != identity(after):

@@ -310,7 +310,7 @@ def native_helpers_scope(path=None, expected_sha256=None):
         record = _decode(captured.raw)
         if type(record) is dict and record.get('schema') in (
                 'hepta.hia.native-helpers.v4', 'hepta.hia.native-helpers.v5',
-                'hepta.hia.native-helpers.v6', 'hepta.hia.native-helpers.v7'):
+                'hepta.hia.native-helpers.v6', 'hepta.hia.native-helpers.v7', 'hepta.hia.native-helpers.v8'):
             from .hia_worker_store_profile import NativeWorkerStoreBinding
             binding = NativeWorkerStoreBinding(captured, expected_sha256, record)
         else:
@@ -337,6 +337,11 @@ def native_helpers_scope(path=None, expected_sha256=None):
 def pinned_reference_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_reference_executable', None)
+
+
+def pinned_owned_reference_executable():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_owned_reference_executable', None)
 
 
 def native_helpers_identity():

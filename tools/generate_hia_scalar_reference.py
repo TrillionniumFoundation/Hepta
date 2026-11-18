@@ -663,13 +663,18 @@ def owner_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(o, 16, amount)
         put(o, 24, get(w, slot + 24))
         if operation == 4:
-            if amount != 0:
-                unlink_storage(w, slot)
-                put(w, 40, get(w, 40) + 1)
-                put(w, 64, live - amount)
-            arena_release(w, slot, @OWNER_RECORD_BYTES@)
-            put(w, 56, get(w, 56) + 1)
+            drop_storage(w, slot)
     return 80
+
+def drop_storage(w:mutbuf, slot:u64) -> u64:
+    amount = get(w, slot + 16)
+    if amount != 0:
+        unlink_storage(w, slot)
+        put(w, 40, get(w, 40) + 1)
+        put(w, 64, get(w, 64) - amount)
+    arena_release(w, slot, @OWNER_RECORD_BYTES@)
+    put(w, 56, get(w, 56) + 1)
+    return 0
 
 def claim_owner(w:mutbuf, amount:u64) -> u64:
     token = arena_claim(w, @OWNER_RECORD_BYTES@)
@@ -692,8 +697,9 @@ def claim_owner(w:mutbuf, amount:u64) -> u64:
 def attach_storage(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
     if length(s) != 24 or length(w) < @OWNER_RECORD_BYTES@:
         return 4294967295
-    amount = uint(s, 8, 8)
-    maximum = uint(s, 16, 8)
+    return allocate_storage(backing, w, uint(s, 8, 8), uint(s, 16, 8))
+
+def allocate_storage(backing:mutbuf, w:mutbuf, amount:u64, maximum:u64) -> u32:
     capacity = length(backing)
     live = get(w, 64)
     end = get(w, 96)
@@ -738,19 +744,16 @@ def owner_span(w:mutbuf, ident:u64, capacity:u64) -> u64:
 def storage_bytes(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
     if length(s) != 64 or length(w) < @OWNER_RECORD_BYTES@:
         return 4294967295
-    operation = uint(s, 8, 8)
+    return access_storage(backing, w, uint(s, 8, 8), uint(s, 16, 8), uint(s, 24, 8), uint(s, 32, 8), uint(s, 40, 8), uint(s, 48, 8), uint(s, 56, 8))
+
+def access_storage(backing:mutbuf, w:mutbuf, operation:u64, ident:u64, source:u64, offset:u64, other:u64, count:u64, value:u64) -> u32:
     if operation < 1 or operation > 6:
         return 4294967295
-    ident = uint(s, 16, 8)
     slot = owner_span(w, ident, length(backing))
     if slot == 0:
         return 4294967295
     start = get(w, slot + 24)
     size = get(w, slot + 16)
-    offset = uint(s, 32, 8)
-    other = uint(s, 40, 8)
-    count = uint(s, 48, 8)
-    value = uint(s, 56, 8)
     if operation == 1 or operation == 2:
         if offset >= size:
             return 4294967293
@@ -777,7 +780,6 @@ def storage_bytes(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
                 store(backing, start + offset + i, value)
                 i = i + 1
         elif operation == 4:
-            source = uint(s, 24, 8)
             if source == ident:
                 return 4294967295
             source_slot = owner_span(w, source, length(backing))
@@ -972,22 +974,36 @@ def loan_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             arena_release(w, slot, 24)
             put(w, slot + 16, 0)
     elif operation == 4:
-        origin = loan_slot(w, second)
-        if slot == 0 or origin == 0 or loan_root(w, second) != root:
+        restored = restore_loan(w, first, second, permission, root, slot)
+        if restored == 0:
             status = 4
-        elif permission == 1 and get(w, origin + 16) != 1:
+        elif restored == 1:
             status = 2
-        elif first == second:
-            result = loan_allocate(w, first, permission)
-            if result == 0:
-                status = 3
-        elif get(w, slot + 8) != second:
-            status = 4
+        elif restored == 2:
+            result = 0
+            status = 3
+        else:
+            result = restored
     put(o, 0, @RESULT@)
     put(o, 8, status)
     put(o, 16, result)
     put(o, 24, root)
     return 32
+
+def restore_loan(w:mutbuf, first:u64, second:u64, permission:u64, root:u64, slot:u64) -> u64:
+    origin = loan_slot(w, second)
+    if slot == 0 or origin == 0 or loan_root(w, second) != root:
+        return 0
+    if permission == 1 and get(w, origin + 16) != 1:
+        return 1
+    if first == second:
+        restored = loan_allocate(w, first, permission)
+        if restored == 0:
+            return 2
+        return restored
+    if get(w, slot + 8) != second:
+        return 0
+    return first
 
 def chain_slot(w:mutbuf, token:u64, kind:u64) -> u64:
     slot = arena_slot(w, token, 40)
@@ -995,83 +1011,84 @@ def chain_slot(w:mutbuf, token:u64, kind:u64) -> u64:
         return 0
     return slot
 
-def chain_reply(o:mutbuf, w:mutbuf, status:u64, first:u64, payload:u64, storage:u64, present:u64) -> u32:
-    put(o, 0, @RESULT@)
-    put(o, 8, status)
-    put(o, 16, first)
-    put(o, 24, payload)
-    put(o, 32, storage)
-    put(o, 40, present)
-    put(o, 48, get(w, 24))
+def chain_reply(o:mutbuf, w:mutbuf, at:u64, status:u64, first:u64, payload:u64, storage:u64, present:u64) -> u32:
+    put(o, at + 0, @RESULT@)
+    put(o, at + 8, status)
+    put(o, at + 16, first)
+    put(o, at + 24, payload)
+    put(o, at + 32, storage)
+    put(o, at + 40, present)
+    put(o, at + 48, get(w, 24))
     return 56
 
 def chain_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) != 48 or length(w) < 40 or length(o) < 56:
         return 4294967295
-    op = uint(s, 8, 8)
+    return apply_chain_operation(o, w, 0, uint(s, 8, 8), uint(s, 16, 8),
+                                 uint(s, 24, 8), uint(s, 32, 8), uint(s, 40, 8))
+
+def apply_chain_operation(o:mutbuf, w:mutbuf, at:u64, op:u64, subject:u64, item:u64, space:u64, admitted:u64) -> u32:
+    if length(w) < 40 or within(length(o), at, 56) == 0:
+        return 4294967295
     if op < 1 or op > 6 or get(w, 0) >= 549755813885:
         return 4294967295
-    subject = uint(s, 16, 8)
     if op == 1:
         token = arena_claim(w, 40)
         if token == 0:
-            return chain_reply(o, w, 3, 0, 0, 0, 0)
+            return chain_reply(o, w, at, 3, 0, 0, 0, 0)
         slot = arena_slot(w, token, 40)
         put(w, slot + 8, 1)
         put(w, slot + 16, 0)
         put(w, 24, get(w, 24) + 1)
-        return chain_reply(o, w, 0, token, 0, 0, 0)
+        return chain_reply(o, w, at, 0, token, 0, 0, 0)
     if op == 6:
         node = chain_slot(w, subject, 2)
         if node == 0:
-            return chain_reply(o, w, 1, 0, 0, 0, 0)
+            return chain_reply(o, w, at, 1, 0, 0, 0, 0)
         tail = get(w, node + 16)
         payload = get(w, node + 24)
         storage = get(w, node + 32)
         arena_release(w, node, 40)
-        return chain_reply(o, w, 0, tail, payload, storage, 1)
+        return chain_reply(o, w, at, 0, tail, payload, storage, 1)
     slot = chain_slot(w, subject, 1)
     if slot == 0:
-        return chain_reply(o, w, 1, 0, 0, 0, 0)
+        return chain_reply(o, w, at, 1, 0, 0, 0, 0)
     head = get(w, slot + 16)
     node = chain_slot(w, head, 2)
     if head != 0 and node == 0:
-        return chain_reply(o, w, 1, 0, 0, 0, 0)
+        return chain_reply(o, w, at, 1, 0, 0, 0, 0)
     if op == 2:
         if head == 0:
-            return chain_reply(o, w, 0, head, 0, 0, 0)
-        return chain_reply(o, w, 0, head, get(w, node + 24), 0, 1)
+            return chain_reply(o, w, at, 0, head, 0, 0, 0)
+        return chain_reply(o, w, at, 0, head, get(w, node + 24), 0, 1)
     if op == 3:
-        admitted = uint(s, 40, 8)
         if admitted > 1:
             return 4294967295
         if admitted == 1:
-            payload = uint(s, 24, 8)
-            storage = uint(s, 32, 8)
-            if payload == 0 or storage == 0 or payload == storage:
-                return chain_reply(o, w, 1, 0, 0, 0, 0)
+            if item == 0 or space == 0 or item == space:
+                return chain_reply(o, w, at, 1, 0, 0, 0, 0)
             new_head = arena_claim(w, 40)
             if new_head == 0:
-                return chain_reply(o, w, 3, 0, 0, 0, 0)
+                return chain_reply(o, w, at, 3, 0, 0, 0, 0)
             new_node = arena_slot(w, new_head, 40)
             put(w, new_node + 8, 2)
             put(w, new_node + 16, head)
-            put(w, new_node + 24, payload)
-            put(w, new_node + 32, storage)
+            put(w, new_node + 24, item)
+            put(w, new_node + 32, space)
             put(w, slot + 16, new_head)
-        return chain_reply(o, w, 0, arena_renew(w, slot, 40), 0, 0, admitted)
+        return chain_reply(o, w, at, 0, arena_renew(w, slot, 40), 0, 0, admitted)
     if op == 4:
         token = arena_renew(w, slot, 40)
         if head == 0:
-            return chain_reply(o, w, 0, token, 0, 0, 0)
+            return chain_reply(o, w, at, 0, token, 0, 0, 0)
         put(w, slot + 16, get(w, node + 16))
         payload = get(w, node + 24)
         storage = get(w, node + 32)
         arena_release(w, node, 40)
-        return chain_reply(o, w, 0, token, payload, storage, 1)
+        return chain_reply(o, w, at, 0, token, payload, storage, 1)
     arena_release(w, slot, 40)
     put(w, 24, get(w, 24) - 1)
-    return chain_reply(o, w, 0, head, 0, 0, 0)
+    return chain_reply(o, w, at, 0, head, 0, 0, 0)
 '''
 
 class ReferenceBuilder(LinkerBuilder):
@@ -1092,7 +1109,7 @@ def resource_signatures():
                      for value, codes in terms.items())
 
 
-def document():
+def document(*, prefix='', module='scalar_reference'):
     constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
                  'LOAN_MAGIC': LOAN_MAGIC,
@@ -1104,7 +1121,7 @@ def document():
                  'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,
                  'MAX_PACKET_BYTES': MAX_PACKET_BYTES, 'RESOURCE_KINDS': len(RESOURCE_KINDS),
                  'RETURN_LOANS_CODE': RETURN_LOANS_CODE, **OPCODES}
-    source = SOURCE.replace('@RESOURCE_SIGNATURES@', resource_signatures())
+    source = (prefix + SOURCE).replace('@RESOURCE_SIGNATURES@', resource_signatures())
     for name, number in constants.items():
         source = source.replace(f'@{name}@', str(number))
     support = STATIC_SOURCE.split('\ndef within(', 1)[1]
@@ -1119,7 +1136,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'scalar_reference',
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
                                   'functions': functions})
 
 

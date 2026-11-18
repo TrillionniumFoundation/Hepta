@@ -8,13 +8,13 @@ from pathlib import Path
 from hepta import hia_native_helpers as authority
 from hepta.hia_agent_store_native import capture_release_image, release_identity
 from hepta.hia_worker_store_profile import (
-    EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, REFERENCE_SCHEMA, SCHEMA, profile_images,
+    EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, OWNED_REFERENCE_SCHEMA, REFERENCE_SCHEMA, SCHEMA, profile_images,
 )
 from tools.build_hia_worker_report import custody_path
 
 
 def bind_worker_store(output, base_bundle, release, *, edit_query=False, candidate_import=False,
-                      portable=False, reference_executable=None):
+                      portable=False, reference_executable=None, owned_reference_executable=None):
     base = authority._read(authority._path(str(Path(base_bundle).absolute())), authority.MAX_BUNDLE_BYTES)
     record = authority._decode(base.raw)
     if type(record) is not dict or record.get('schema') not in (
@@ -25,18 +25,21 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
     pins = {}
     schema = IMPORT_SCHEMA if candidate_import else EDIT_QUERY_SCHEMA if edit_query else SCHEMA
     reference_fields = {}
-    if reference_executable is not None:
+    if owned_reference_executable is not None and reference_executable is None:
+        raise ValueError('standalone owned reference requires the standalone scalar reference')
+    for name, executable, profile in (('reference', reference_executable, REFERENCE_SCHEMA),
+                                      ('owned_reference', owned_reference_executable, OWNED_REFERENCE_SCHEMA)):
+        if executable is None:
+            continue
         if not candidate_import:
             raise ValueError('standalone reference requires the full native Store profile')
         from hepta.hia_scalar_reference_native import MAX_IMAGE_BYTES
-        path = authority._path(str(Path(reference_executable).absolute()))
+        path = authority._path(str(Path(executable).absolute()))
         digest = sha256(authority._read(path, MAX_IMAGE_BYTES).raw).hexdigest()
         captured = capture_release_image(path.parent, path.name, MAX_IMAGE_BYTES, digest)
-        reference_fields = {
-            'reference_path': custody_path(output, captured.path, portable=portable),
-            'reference_sha256': digest,
-        }
-        schema = REFERENCE_SCHEMA
+        reference_fields[name + '_path'] = custody_path(output, captured.path, portable=portable)
+        reference_fields[name + '_sha256'] = digest
+        schema = profile
     for field, (name, limit) in profile_images(schema).items():
         digest = sha256(authority._read(release / name, limit).raw).hexdigest()
         capture_release_image(release, name, limit, digest)
@@ -65,12 +68,14 @@ def main():
     parser.add_argument('--candidate-import', action='store_true',
                         help='select native Agent candidate admission and dependency query')
     parser.add_argument('--reference-executable', type=Path)
+    parser.add_argument('--owned-reference-executable', type=Path)
     parser.add_argument('--portable', action='store_true',
                         help='require relative base/installation paths within the output directory')
     args = parser.parse_args()
     pin = bind_worker_store(args.output, args.base_bundle, args.release,
                             edit_query=args.edit_query, candidate_import=args.candidate_import,
-                            portable=args.portable, reference_executable=args.reference_executable)
+                            portable=args.portable, reference_executable=args.reference_executable,
+                            owned_reference_executable=args.owned_reference_executable)
     print(json.dumps({'manifest': str(args.output.absolute()), 'sha256': pin}))
 
 
