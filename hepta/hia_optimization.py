@@ -18,7 +18,7 @@ import tempfile
 import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
-
+from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_symbolic
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
 QUALIFIED_CORE_SCHEMAS = frozenset("hepta.hia.program.v" + str(version) for version in range(1, 8))
@@ -54,6 +54,10 @@ def checker_identity():
                  "hia_program_composite.py", "hia_json_preflight.py",
                  "hia_program_runtime.py", "hia_bounded_memory.py"):
         digest.update(name.encode() + b"\0" + Path(__file__).with_name(name).read_bytes() + b"\0")
+    native = selected_scalar_symbolic()
+    if native is not None:
+        digest.update(Path(__file__).with_name("hia_scalar_symbolic_native.py").read_bytes())
+        digest.update(bytes.fromhex(native.image_sha256))
     return digest.hexdigest()
 
 
@@ -163,6 +167,7 @@ class _Encoder:
         self.context = context if context is not None else (
             next(iter(inputs.values()))[0].ctx if inputs else z3.main_ctx())
         self.trap = z3.IntVal(0, ctx=self.context)
+        self.native_symbolic = selected_scalar_symbolic()
 
     def fail(self, condition, code):
         self.trap = self.z3.If(self.trap == 0, self.z3.If(condition, code, 0), self.trap)
@@ -177,6 +182,19 @@ class _Encoder:
         values = [pair[0] for pair in args]
         out = ins["out"][0]
         typ = out["type"]
+        if self.native_symbolic is not None:
+            source = args[0][1] if args else typ
+            try:
+                value, traps = self.native_symbolic.operation(z, self.context, op, attrs, typ, source, values)
+            except SymbolicRecipeRejected as error:
+                raise OptimizationRejected(str(error)) from error
+            for code, condition in traps:
+                self.fail(condition, 1 if code == 'overflow' else 2)
+        else:
+            value = self._reference_operation(z, op, attrs, typ, args, values)
+        self.env[out["name"]] = (value, typ)
+
+    def _reference_operation(self, z, op, attrs, typ, args, values):
         a = values[0] if values else None
         b = values[1] if len(values) > 1 else None
         if op == "const":
@@ -234,7 +252,7 @@ class _Encoder:
                 value = {"lt": z.ULT, "le": z.ULE, "gt": z.UGT, "ge": z.UGE}[kind](a, b)
         else:
             raise OptimizationRejected("E_HIA_OPT_UNSUPPORTED: scalar instruction " + op)
-        self.env[out["name"]] = (value, typ)
+        return value
 
 
 def _fresh(z3, name, typ, context=None):

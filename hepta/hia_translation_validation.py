@@ -23,16 +23,16 @@ from .hia_program import (
     HIAProgramRejected, SCALARS, TRAP_CODES, WIDTHS, integer_range, verify_program,
 )
 
+from .hia_scalar_symbolic_native import (
+    MAX_BLOCKS, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS, SymbolicRecipeRejected,
+    selected_scalar_symbolic,
+)
 from .hia_scalar_proof_contract import (begin_scalar_proof, finish_scalar_proof,
                                         same_scalar_proof_scope)
 
 SCHEMA = "hepta.hia.translation-validation.v1"
 QUALIFIED_CORE_SCHEMAS = frozenset("hepta.hia.program.v" + str(version) for version in range(1, 8))
 PROFILE = "hia.scalar-acyclic-bitvector-traps.v1"
-MAX_BLOCKS = 128
-MAX_OPERATIONS = 2048
-MAX_PARAMETERS = 32
-MAX_RETURNS = 16
 MAX_TIMEOUT_MS = 60_000
 _TRAP_TAGS = {code: index + 1 for index, code in enumerate(sorted(TRAP_CODES))}
 _OPS = frozenset({
@@ -84,7 +84,7 @@ def _receipt(function, timeout_ms):
             "Only the selected public scalar function is compared; other exports are not proved equivalent.",
             "Acyclic CFGs and the listed scalar operations only; calls, loops and resources return unknown.",
             "Exact return values and the first specified trap code are observable; runtime/host budgets are not.",
-            "The Python encoder, canonical verifier and Z3 solver are trusted; encoder refinement is not machine-proved.",
+            "The selected encoder, canonical verifier and Z3 solver are trusted; encoder refinement is not machine-proved.",
             "No LLVM/native equivalence, resource quota, timing, energy or global-optimality proof is implied.",
             "Receipts must be rebound to exact bytes and the proof recomputed at the point of use.",
         ],
@@ -95,27 +95,61 @@ def _signature(fn):
     return ([p["type"] for p in fn["params"]], fn["returns"])
 
 
+def _successors(block):
+    term = block["term"]
+    if term["op"] == "jump":
+        return [term["target"]]
+    if term["op"] == "branch":
+        return [term["then"]["target"], term["else"]["target"]]
+    return []
+
+
+def _declared_types(fn, blocks):
+    yield from (p["type"] for p in fn["params"])
+    yield from fn["returns"]
+    for block in blocks.values():
+        yield from (p["type"] for p in block["params"])
+        yield from (output["type"] for op in block["ops"] for output in op["out"])
+
+
 def _profile(fn):
     blocks = {block["id"]: block for block in fn["blocks"]}
+    native = selected_scalar_symbolic()
+    if native is None:
+        return _reference_profile(fn, blocks)
+    names = sorted(blocks)
+    operations = sum(len(b["ops"]) for b in blocks.values())
+    parameters, returns = len(fn["params"]), len(fn["returns"])
+    flags = 0
+    if (len(blocks) <= MAX_BLOCKS and operations <= MAX_OPERATIONS
+            and parameters <= MAX_PARAMETERS and returns <= MAX_RETURNS):
+        flags = (bool(set(fn["effects"]) - {"trap"})
+                 | (any(typ not in SCALARS for typ in _declared_types(fn, blocks)) << 1)
+                 | (any(op["op"] not in _OPS for b in blocks.values() for op in b["ops"]) << 2))
+    try:
+        order, refusal = native.function_order(
+            names, (_successors(blocks[name]) for name in names), operations, parameters, returns, flags)
+    except SymbolicRecipeRejected as error:
+        raise _OutsideProfile("native_symbolic_profile_unavailable") from error
+    if refusal is not None:
+        raise _OutsideProfile(refusal)
+    return blocks, list(order)
+
+
+def _reference_profile(fn, blocks):
     if len(blocks) > MAX_BLOCKS or sum(len(b["ops"]) for b in blocks.values()) > MAX_OPERATIONS:
         raise _OutsideProfile("symbolic_program_budget_exceeded")
     if len(fn["params"]) > MAX_PARAMETERS or len(fn["returns"]) > MAX_RETURNS:
         raise _OutsideProfile("symbolic_signature_budget_exceeded")
     if set(fn["effects"]) - {"trap"}:
         raise _OutsideProfile("resource_effects_outside_scalar_profile")
-    declared = [p["type"] for p in fn["params"]] + fn["returns"]
-    declared += [p["type"] for b in blocks.values() for p in b["params"]]
-    declared += [p["type"] for b in blocks.values() for op in b["ops"] for p in op["out"]]
-    if any(typ not in SCALARS for typ in declared):
+    if any(typ not in SCALARS for typ in _declared_types(fn, blocks)):
         raise _OutsideProfile("resource_types_outside_scalar_profile")
     if any(op["op"] not in _OPS for b in blocks.values() for op in b["ops"]):
         raise _OutsideProfile("operation_outside_scalar_profile")
     successors, degree = {}, {ident: 0 for ident in blocks}
     for ident, block in blocks.items():
-        term = block["term"]
-        edges = ([term] if term["op"] == "jump" else
-                 [term["then"], term["else"]] if term["op"] == "branch" else [])
-        successors[ident] = [edge["target"] for edge in edges]
+        successors[ident] = _successors(block)
         for target in successors[ident]:
             degree[target] += 1
     pending = deque(sorted(ident for ident in blocks if degree[ident] == 0))
@@ -139,6 +173,7 @@ class _Encoder:
         # Z3 AST/context ownership is explicit so parallel compiler workers
         # cannot accidentally mix symbolic inputs or solver state.
         self.context = z3.Context()
+        self.native_symbolic = selected_scalar_symbolic()
 
     def any(self, expressions):
         expressions = list(expressions)
@@ -176,6 +211,15 @@ class _Encoder:
         args = [env[n] for n in op["args"]]
         typ = op["out"][0]["type"]
         source = types[op["args"][0]] if args else typ
+        if self.native_symbolic is not None:
+            try:
+                return self.native_symbolic.operation(z, self.context, name, attrs, typ, source, args,
+                                                      translation=True)
+            except SymbolicRecipeRejected as error:
+                raise z.Z3Exception(str(error)) from error
+        return self._reference_operation(z, name, attrs, typ, source, args)
+
+    def _reference_operation(self, z, name, attrs, typ, source, args):
         traps = []
         if name == "const":
             value = self.literal(attrs["value"], typ)

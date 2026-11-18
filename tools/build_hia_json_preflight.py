@@ -106,6 +106,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'elf-linker': ('elf_static_linker', 'elf-linker'),
                   'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
                   'scalar-reference': ('scalar_reference', 'scalar-reference'),
+                  'scalar-symbolic': ('scalar_symbolic', 'scalar-symbolic'),
                   'elf-linker-filter': ('elf_linker_filter_packer', 'elf-linker-filter'),
                   'native-filter': ('native_filter_packer', 'native-filter'),
                   'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),

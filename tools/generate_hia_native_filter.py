@@ -263,7 +263,7 @@ def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magi
              module='native_filter_packer', formatter=False, object_files=False, worker_request=False, image_template=None):
     nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
                                    magic=magic,formatter=formatter,object_files=object_files,
-                                   worker_request=worker_request)).body
+                                   worker_request=worker_request, image_template=image_template)).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     fns=[]

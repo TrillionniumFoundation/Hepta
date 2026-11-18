@@ -28,6 +28,14 @@ class ScalarReferenceSourceTests(unittest.TestCase):
         self.assertEqual(source, render_assembly(document()))
         assemble_program(source)
 
+    def test_symbolic_recipe_hia_source_reproduces(self):
+        from hepta.hia_scalar_symbolic_native import SOURCE as SYMBOLIC_SOURCE
+        from tools.generate_hia_scalar_symbolic import document
+
+        source = SYMBOLIC_SOURCE.read_text()
+        self.assertEqual(source, render_assembly(document()))
+        assemble_program(source)
+
 
 class ScalarReferenceNativeTests(unittest.TestCase):
     @classmethod
@@ -237,8 +245,9 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT, program_wire
         from tests.test_hia_program import b, f, i, m, ret
         from tools.generate_hia_native_filter import (
-            REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, reference_cli_document,
+            REFERENCE_CLI_ADAPTER, REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, elf_header, reference_cli_document,
         )
+        from tools.build_hia_agent_batch_commit import adapter_layout
         from tools.qualify_hia_selfhost import compile_stage
         from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -252,6 +261,14 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             struct.pack('<2Q', REFERENCE_CLI_MAGIC, len(image)) + image, output_extension='.elf')
         inspected = inspect_executable(executable.read_bytes())
         self.assertEqual(inspected['elf_type'], 'ET_EXEC')
+        adapter = SOURCE.parents[2] / REFERENCE_CLI_ADAPTER
+        stub, holes, _ = adapter_layout(directory, REFERENCE_CLI_ADAPTER, adapter.read_bytes(),
+                                        {'reference': 'reference_call_hole'})
+        hole = holes['reference'] + len(elf_header())
+        packed = executable.read_bytes()
+        self.assertEqual(packed[len(elf_header()):hole], stub[:holes['reference']])
+        self.assertEqual(packed[hole+4:len(elf_header()) + len(stub)], stub[holes['reference']+4:])
+        self.assertEqual(packed[len(elf_header()) + len(stub):], image)
         executable.chmod(0o500)
 
         argument = [('x', 'i32')]
@@ -274,14 +291,23 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         returned = run(frame(identity, 'identity'))
         self.assertEqual((returned.returncode, returned.stderr), (0, b''))
         self.assertEqual(struct.unpack('<4Qq', returned.stdout), (PROGRAM_RESULT, 0, 2, 0, -132))
-        # Ten simultaneous frames exceed the initial workspace even though the
+        # Twenty-five simultaneous frames exceed the initial workspace even though the
         # input program and all referenced register numbers remain small.
-        limited = run(frame(recursive, 'again', depth=10, override_registers=150_000))
+        limited = run(frame(recursive, 'again', depth=25, override_registers=150_000))
         self.assertEqual((limited.returncode, limited.stderr), (0, b''))
-        self.assertEqual(struct.unpack('<4Q', limited.stdout)[:3], (PROGRAM_RESULT, 6, 20))
+        self.assertEqual(struct.unpack('<4Q', limited.stdout)[:3], (PROGRAM_RESULT, 6, 50))
         steps = run(frame(recursive, 'again', depth=10, steps=9, override_registers=150_000))
         self.assertEqual((steps.returncode, steps.stderr), (0, b''))
         self.assertEqual(struct.unpack('<4Q', steps.stdout)[:3], (PROGRAM_RESULT, 5, 10))
+        low_memory = subprocess.run(['/usr/bin/prlimit', '--as=50331648:50331648', '--', executable],
+                                    input=frame(recursive, 'again', depth=25, override_registers=150_000),
+                                    capture_output=True, env={'PATH': ''}, timeout=10)
+        self.assertEqual((low_memory.returncode, low_memory.stderr), (0, b''))
+        result_magic, status, ticks, detail = struct.unpack('<4Q', low_memory.stdout)
+        self.assertEqual((result_magic, status, detail), (PROGRAM_RESULT, 12, 0))
+        self.assertGreater(ticks, 4)
+        self.assertLess(ticks, 50)
+
         from hepta.hia_agent_runner import run_reference_batch
         checked = verify_program(identity)
         cases = [{'function': 'identity', 'arguments': [value]} for value in (-132, 0, 319)]
@@ -300,6 +326,114 @@ class ScalarReferenceNativeTests(unittest.TestCase):
                                   (b'', ('not-an-option',), 64), (bytes((32 << 20) + 1), (), 3)):
             response = run(raw, *options)
             self.assertEqual((response.returncode, response.stdout, response.stderr), (code, b'', b''))
+
+    def test_symbolic_recipes_preserve_solver_operations_and_actual_checker_routes(self):
+        import z3
+
+        from hepta.hia_optimization import _Encoder as OptimizationEncoder, verify_optimization
+        from hepta.hia_scalar_symbolic_native import (
+            MAX_BLOCKS, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS,
+            NativeScalarSymbolic, PROFILE_REFUSALS, SCHEMA, SELECTOR, SOURCE,
+        )
+        from hepta import hia_translation_validation
+        from hepta.hia_translation_validation import _Encoder as TranslationEncoder, validate_translation
+        from tests.test_hia_translation_validation import arithmetic
+        from tools.qualify_hia_selfhost import compile_stage
+
+        image, _ = compile_stage(self.compiler.parent, 'symbolic', self.compiler, SOURCE.read_bytes())
+        raw = image.read_bytes()
+        native = NativeScalarSymbolic(raw, sha256(raw).hexdigest())
+        manifest = image.with_name('symbolic-manifest.json')
+        manifest.write_text(json.dumps({'schema': SCHEMA, 'source_sha256': sha256(SOURCE.read_bytes()).hexdigest(),
+            'image_path': image.name, 'image_sha256': native.image_sha256,
+            'compiler_sha256': sha256(self.compiler.read_bytes()).hexdigest()}))
+
+        graph_names = ['a', 'b', 'c', 'd']
+        self.assertEqual(native.function_order(graph_names, [('d', 'd'), ('c',), (), ()],
+            MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS, 0), (('a', 'b', 'd', 'c'), None))
+        self.assertEqual(native.function_order(graph_names, [('b',), ('a',), (), ()],
+            0, 0, 0, 0), ((), PROFILE_REFUSALS[-1]))
+        for expected, facts in enumerate(((MAX_OPERATIONS + 1, MAX_PARAMETERS + 1, 0, 7),
+                (0, MAX_PARAMETERS + 1, 0, 7), (0, 0, 0, 7), (0, 0, 0, 6), (0, 0, 0, 4))):
+            self.assertEqual(native.function_order(graph_names, [()] * 4, *facts),
+                             ((), PROFILE_REFUSALS[expected]))
+        self.assertEqual(native.function_order([str(i) for i in range(MAX_BLOCKS + 1)], (),
+            0, 0, 0, 0), ((), PROFILE_REFUSALS[0]))
+
+        shapes = []
+        for kind in WIDTHS:
+            for opcode in OPCODES:
+                if opcode.startswith(('bool.', 'cast.')) or opcode == 'select':
+                    continue
+                arity = 1 if opcode.endswith('.not') or opcode == 'int.neg.checked' else 2
+                result = 'bool' if opcode.startswith('compare.') else kind
+                shapes.append((opcode, {}, [kind] * arity, result))
+            for result in WIDTHS:
+                for mode in ('wrap', 'checked'):
+                    shapes.append(('int.cast', {'mode': mode}, [kind], result))
+            lo, hi = integer_range(kind)
+            for literal in (lo, hi, 0):
+                shapes.append(('const', {'value': literal}, [], kind))
+        for opcode in ('bool.and', 'bool.or', 'compare.eq', 'compare.ne', 'bool.not'):
+            shapes.append((opcode, {}, ['bool'] * (1 if opcode == 'bool.not' else 2), 'bool'))
+        for kind in ('bool', 'unit', *WIDTHS):
+            shapes.append(('select', {}, ['bool', kind, kind], kind))
+        shapes.extend(('const', {'value': value}, [], kind)
+                      for kind, value in (('unit', None), ('bool', True), ('bool', False)))
+        context = z3.Context()
+
+        def equivalent(first, second):
+            if first is None or second is None:
+                self.assertIs(first, second)
+                return
+            if not z3.eq(first, second):
+                proof = z3.Solver(ctx=first.ctx)
+                proof.set(timeout=3000)
+                proof.add(first != second)
+                self.assertEqual(proof.check(), z3.unsat)
+
+        trans = TranslationEncoder(z3)
+        for opcode, attrs, inputs, output in shapes:
+            with self.subTest(opcode=opcode, inputs=inputs, output=output, attrs=attrs):
+                names = ['a', 'b', 'c'][:len(inputs)]
+                op = {'op': opcode, 'attrs': attrs, 'args': names,
+                      'out': [{'name': 'v', 'type': output}]}
+                original = OptimizationEncoder(z3,
+                    {name: (z3.Bool(name, context) if kind == 'bool' else
+                            z3.BitVec(name, WIDTHS.get(kind, 8), context), kind)
+                     for name, kind in zip(names, inputs)}, context)
+                selected = OptimizationEncoder(z3, original.env, context)
+                selected.native_symbolic = native
+                original.operation(op)
+                selected.operation(op)
+                equivalent(original.env['v'][0], selected.env['v'][0])
+                equivalent(original.trap, selected.trap)
+                symbolic = {name: trans.input(index, kind)
+                            for index, (name, kind) in enumerate(zip(names, inputs))}
+                types = dict(zip(names, inputs))
+                reference, expected = trans.operation(op, symbolic, types)
+                trans.native_symbolic = native
+                try:
+                    actual, traps = trans.operation(op, symbolic, types)
+                finally:
+                    trans.native_symbolic = None
+                equivalent(reference, actual)
+                self.assertEqual([code for code, _ in traps], [code for code, _ in expected])
+                for (_, first), (_, second) in zip(expected, traps):
+                    equivalent(first, second)
+
+        original = arithmetic('int.add.wrap')
+        changed = arithmetic('int.sub.wrap')
+        with (patch.dict(os.environ, {SELECTOR: str(manifest)}),
+              patch.object(OptimizationEncoder, '_reference_operation', side_effect=AssertionError('host symbolic opcode')),
+              patch.object(TranslationEncoder, '_reference_operation', side_effect=AssertionError('host symbolic opcode')),
+              patch.object(hia_translation_validation, '_reference_profile', side_effect=AssertionError('host CFG profile'))):
+            optimized = verify_optimization(original, original)
+            self.assertEqual(optimized['status'], 'verified', optimized)
+            self.assertEqual(verify_optimization(original, changed)['status'], 'rejected')
+            translated = validate_translation(original, original)
+            self.assertEqual(translated['status'], 'proved', translated)
+            self.assertEqual(validate_translation(original, changed)['status'], 'disproved')
 
     def test_byte_ranges_and_traps_use_existing_owned_buffers_without_host_writes(self):
         from tests.test_hia_program_native_review import _bounds_program, _empty_memory_program

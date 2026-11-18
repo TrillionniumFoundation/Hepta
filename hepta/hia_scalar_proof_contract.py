@@ -68,7 +68,15 @@ def _source_identity(name):
     names = set(_DEPENDENCIES) | {_MODULES[name] + ".py"}
     if name == "validate_scalar_call_totality":
         names.add("hia_scalar_call_validation.py")
-    return {n: sha256(Path(__file__).with_name(n).read_bytes()).hexdigest() for n in sorted(names)}
+    from .hia_scalar_symbolic_native import selected_scalar_symbolic
+
+    native = selected_scalar_symbolic()
+    if native is not None:
+        names.add("hia_scalar_symbolic_native.py")
+    hashes = {n: sha256(Path(__file__).with_name(n).read_bytes()).hexdigest() for n in sorted(names)}
+    if native is not None:
+        hashes["scalar_symbolic.image.bin"] = native.image_sha256
+    return hashes
 
 
 def begin_scalar_proof(name):

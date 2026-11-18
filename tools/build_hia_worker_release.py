@@ -32,7 +32,7 @@ INSTALLED_HELPERS = (
 )
 ADDITIONAL_HELPERS = (
     'worker-request', 'agent-journal', 'execution-budget', 'candidate-budget',
-    'agent-read-page', 'slot-ledger', 'execution-ledger',
+    'agent-read-page', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
 )
 
 

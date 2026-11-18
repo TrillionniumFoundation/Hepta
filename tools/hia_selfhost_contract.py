@@ -122,6 +122,7 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tools/build_hia_scalar_reference_cli.py',
     'tools/hia_scalar_reference_syscalls.S',
     'tools/generate_hia_scalar_reference.py',
+    'tools/generate_hia_scalar_symbolic.py',
     'tests/test_hia_scalar_reference_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
@@ -823,6 +824,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/agent_identity.hepta',
     'examples/hia_bootstrap/elf_shared_linker.hepta',
     'examples/hia_bootstrap/scalar_reference.hepta',
+    'examples/hia_bootstrap/scalar_symbolic.hepta',
     'setup.py',
     'tests/test_hia_agent_identity_native.py',
     'tests/test_hia_agent_installed_resources.py',
