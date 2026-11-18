@@ -16,6 +16,7 @@ from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
 from .hia_execution_ledger_native import SELECTOR as LEDGER_SELECTOR, installed_execution_ledger
 from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation
+from .hia_scalar_reference_native import OPCODES as NATIVE_SCALAR_OPCODES, selected_scalar_reference
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -100,6 +101,7 @@ class _Machine:
         self.program = program
         document = program.as_dict()
         self.functions = {f["name"]: f for f in document["functions"]}
+        self.scalar_reference = selected_scalar_reference()
         self.recursive_chain = supports_feature(document["schema"], "recursive_chain")
         self.max_steps, self.max_heap_bytes = max_steps, max_heap_bytes
         self.allocation_fail_at, self.max_call_depth = allocation_fail_at, max_call_depth
@@ -219,7 +221,11 @@ class _Machine:
         outputs = ins["out"]
         typ = outputs[0]["type"] if outputs else None
         result = []
-        if op == "const":
+        scalar_op = "cast." + attrs["mode"] if op == "int.cast" else op
+        if (self.scalar_reference is not None and scalar_op in NATIVE_SCALAR_OPCODES
+                and (typ in WIDTHS or typ == "bool")):
+            result = [self.scalar_reference.operation(scalar_op, typ, args)]
+        elif op == "const":
             result = [attrs["value"]]
         elif op in {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}:
             a, b = args

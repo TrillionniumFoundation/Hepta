@@ -117,6 +117,10 @@ NATIVE_LINKER_SDIST_FILES = (
     'examples/hia_bootstrap/elf_linker_filter_packer.hepta',
     'tools/generate_hia_shared_linker.py',
 )
+SCALAR_REFERENCE_SDIST_FILES = (
+    'tools/generate_hia_scalar_reference.py',
+    'tests/test_hia_scalar_reference_native.py',
+)
 WORKER_REQUEST_SDIST_FILES = (
     'examples/hia_bootstrap/worker_request_filter_packer.hepta',
     'tools/build_hia_worker_request_cli.py',
@@ -207,6 +211,7 @@ SOURCE_FILES = (
     *ARTIFACT_CAPTURE_SDIST_FILES,
     *CORE_NORMALIZE_SDIST_FILES,
     *NATIVE_LINKER_SDIST_FILES,
+    *SCALAR_REFERENCE_SDIST_FILES,
     *WORKER_REQUEST_SDIST_FILES,
     *CORE_EDIT_SDIST_FILES,
     *EXECUTION_LEDGER_SDIST_FILES,
@@ -812,6 +817,8 @@ SOURCE_FILES = (
     'docs/HIA_PROGRAM_SELFHOST_BUILD.md',
     'tests/test_hia_program_selfhost.py',
     'examples/hia_bootstrap/agent_identity.hepta',
+    'examples/hia_bootstrap/elf_shared_linker.hepta',
+    'examples/hia_bootstrap/scalar_reference.hepta',
     'setup.py',
     'tests/test_hia_agent_identity_native.py',
     'tests/test_hia_agent_installed_resources.py',

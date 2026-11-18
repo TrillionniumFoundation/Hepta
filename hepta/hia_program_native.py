@@ -93,7 +93,7 @@ def _implementation_hash():
         "hia_json_wire_native.py", "hia_instruction_policy_native.py",
         "hia_json_preflight_native.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
-        "clang_capture.py", "elf_shared_abi.py", "hia_shared_linker_native.py", "object_symbols.py",
+        "clang_capture.py", "elf_shared_abi.py", "hia_elf_shared_linker_native.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
     ):
         digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
@@ -912,7 +912,7 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
     native_linker = None
     flags = []
     if kind == "shared":
-        from .hia_shared_linker_native import selected_shared_linker
+        from .hia_elf_shared_linker_native import selected_shared_linker
         native_linker = selected_shared_linker()
     if native_linker is not None:
         toolchain = {"path": None, "sha256": native_linker.image_sha256, "version": "hia-elf-shared-linker.v1",

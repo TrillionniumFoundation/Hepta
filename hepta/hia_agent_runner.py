@@ -6,6 +6,7 @@ group, and Linux parent-death SIGKILL. No native program runs in the worker.
 """
 from __future__ import annotations
 
+from contextlib import ExitStack
 import ctypes
 from hashlib import sha256
 import json
@@ -63,7 +64,10 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         reject("E_HIA_BUFFER_CAPTURE", "buffer capture requires one owned synchronous invocation")
     artifact_hash = sha256(artifact_bytes).hexdigest()
     started = time.monotonic_ns()
-    with tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory:
+    from .hia_scalar_reference_native import selected_scalar_reference
+    reference_evaluator = selected_scalar_reference() if _mode == "reference" else None
+    with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
+          ExitStack() as custody):
         artifact = Path(directory) / "program.so"
         with artifact.open("xb") as stream:
             stream.write(artifact_bytes)
@@ -87,12 +91,17 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                    "warmup": warmup, "repetitions": repetitions, "mode": _mode,
                    "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
                    "snapshot_files": snapshot_files}
+        process_options = {}
+        if reference_evaluator is not None:
+            fd = custody.enter_context(reference_evaluator.sealed_descriptor())
+            request["scalar_reference"] = {"fd": fd, "sha256": reference_evaluator.image_sha256}
+            process_options["pass_fds"] = (fd,)
         payload = wire(request)
         parent_pid = os.getpid()
         proc = subprocess.Popen([sys.executable, "-B", "-E", "-s", "-m", "hepta.hia_agent_runner",
             str(parent_pid), str(memory_bytes), str(max(1, math.ceil(timeout_ms / 1000)))],
             cwd=Path(__file__).resolve().parent.parent, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, **process_options)
         timed_out = False
         try:
             stdout, stderr = proc.communicate(payload, timeout=timeout_ms / 1000)
@@ -168,6 +177,9 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                 for row, snapshot in zip(rows, snapshots):
                     if snapshot["buffers"] and row.get("buffers") != snapshot["buffers"]:
                         raise ValueError("native external byte report differs from owned post-exit snapshot")
+            if (reference_evaluator is not None and
+                    report.get("reference_evaluator_sha256") != reference_evaluator.image_sha256):
+                raise ValueError("reference evaluator identity differs")
         except (ValueError, UnicodeError):
             status, report = "invalid_report", None
         else:
@@ -205,14 +217,16 @@ def main():
         from .hia_agent_service import _vm_observation
         from .hia_program import verify_program
         from .hia_program_tools import decode_json
+        from .hia_scalar_reference_native import child_scalar_reference
         program = verify_program(decode_json(data))
         observations = []
-        for case in request["cases"]:
-            observation = _vm_observation(program, case,
-                foreign_buffer_exports=tuple(map(tuple, request["foreign_buffer_exports"])))
-            observations.append(observation)
-            if observation["status"] == "budget_exceeded":
-                break
+        with child_scalar_reference(request.get("scalar_reference")) as scalar_reference:
+            for case in request["cases"]:
+                observation = _vm_observation(program, case,
+                    foreign_buffer_exports=tuple(map(tuple, request["foreign_buffer_exports"])))
+                observations.append(observation)
+                if observation["status"] == "budget_exceeded":
+                    break
         result = {"schema": "hepta.hia.agent.reference-observation.v1",
             "artifact_sha256": request["artifact_sha256"],
             "complete": len(observations) == len(request["cases"]) and
@@ -220,6 +234,8 @@ def main():
             "planned_cases": len(request["cases"]), "completed_cases": len(observations),
             "warmup": request["warmup"], "repetitions": request["repetitions"],
             "observations": observations, "native_code_executed": False}
+        if scalar_reference is not None:
+            result["reference_evaluator_sha256"] = scalar_reference.image_sha256
         sys.stdout.buffer.write(wire(result) + b"\n")
         return 0
     if request.get("mode") != "native":

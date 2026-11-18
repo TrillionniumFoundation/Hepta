@@ -105,6 +105,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'core-frontend': ('core_json_frontend', 'core-json-frontend'),
                   'elf-linker': ('elf_static_linker', 'elf-linker'),
                   'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
+                  'scalar-reference': ('scalar_reference', 'scalar-reference'),
                   'elf-linker-filter': ('elf_linker_filter_packer', 'elf-linker-filter'),
                   'native-filter': ('native_filter_packer', 'native-filter'),
                   'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
@@ -168,7 +169,8 @@ def main():
                                  'agent-verify-response-schema', 'execution-ledger', 'sqlite-wal-snapshot',
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
-                                 'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker'))
+                                 'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
+                                 'scalar-reference'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

@@ -69,7 +69,7 @@ class ElfLinkerSourceTests(unittest.TestCase):
 class SharedElfLinkerNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from hepta.hia_shared_linker_native import SCHEMA, SOURCE, NativeSharedLinker
+        from hepta.hia_elf_shared_linker_native import SCHEMA, SOURCE, NativeSharedLinker
         import json
 
         cls.temp = tempfile.TemporaryDirectory(prefix='hia-elf-shared-linker-tests-')
@@ -95,7 +95,7 @@ class SharedElfLinkerNativeTests(unittest.TestCase):
     def test_normal_build_uses_hia_not_host_linker_and_executes_libc_backed_core(self):
         from hepta.hia_program import verify_program
         from hepta.hia_program_native import build_program_machine
-        from hepta.hia_shared_linker_native import SELECTOR
+        from hepta.hia_elf_shared_linker_native import SELECTOR
         from tests.test_hia_program import resource_program
         from tests.test_hia_program_native_review import _empty_memory_program
         from tests.test_hia_program_tools import scalar_program

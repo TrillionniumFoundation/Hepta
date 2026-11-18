@@ -45,6 +45,7 @@ jobs:
               'tests.test_hia_core_workspace_json_cli.CoreWorkspaceJsonCliSourceTests',
               'tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests',
               'tests.test_hia_agent_identity_native.AgentIdentitySourceTests',
+              'tests.test_hia_scalar_reference_native.ScalarReferenceSourceTests',
               'tests.test_hia_agent_slice_native.AgentSliceSourceTests',
               'tests.test_hia_agent_read_page_native.AgentReadPageSourceTests',
               'tests.test_hia_agent_schema_native.AgentSchemaSourceTests',
@@ -265,7 +266,7 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-packet"
           python -B -m tools.build_hia_nominal_constructor --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-constructor"
-          agent_helpers=(agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection agent-identity)
+          agent_helpers=(agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection agent-identity elf-shared-linker scalar-reference)
           for profile in "${agent_helpers[@]}"; do
             python -B -m tools.build_hia_json_preflight --candidate "$profile" \
               --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
@@ -551,7 +552,7 @@ jobs:
           python -B -m tests.test_hia_agent_read_page_native \
             --manifest "$RUNNER_TEMP/agent-read-page/manifest.json" --test-root "$RUNNER_TEMP" \
             --native-release "$installed"
-          for profile in agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection agent-identity; do
+          for profile in agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection agent-identity elf-shared-linker scalar-reference; do
             cmp "$RUNNER_TEMP/$profile/$profile.image.bin" "$installed/$profile.image.bin"
             cmp "$RUNNER_TEMP/$profile/manifest.json" "$installed/$profile-manifest.json"
           done
@@ -575,6 +576,7 @@ jobs:
               'tests.test_hia_program_selfhost.SelfhostBuildNativeTests',
               'tests.test_hia_elf_linker',
               'tests.test_hia_agent_identity_native',
+              'tests.test_hia_scalar_reference_native',
               'tests.test_hia_agent_slice_native',
               'tests.test_hia_agent_installed_resources',
               'tests.test_hia_native_child_limits',
