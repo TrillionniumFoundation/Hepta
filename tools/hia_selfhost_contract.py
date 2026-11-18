@@ -687,7 +687,6 @@ SOURCE_FILES = (
     'docs/HIA_AGENT_SLICE_NATIVE.md',
     'examples/hia_bootstrap/agent_slice.hepta',
     'examples/hia_bootstrap/agent_read_page.hepta',
-    'hepta/hia_agent_read_page_native.py',
     'tools/generate_hia_agent_read_page.py',
     'tests/test_hia_agent_read_page_native.py',
     'tests/test_hia_agent_slice_native.py',
