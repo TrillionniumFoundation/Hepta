@@ -1,4 +1,4 @@
-"""Cold-build the native primitive Core query and edit executables."""
+"""Cold-build the native primitive Core query, impact and edit executables."""
 
 import argparse
 import ctypes
@@ -23,6 +23,12 @@ CAPACITY = 4 * (1 << 20) + 4096
 # Each entry lists the four flat images in placement order, then the adapter
 # call sites belonging to each. Several stages use the same image entry.
 PROGRAMS = {
+    'impact': ('hia-impact-core-json', (
+        (EDIT + 'impact_patch.hepta', ('extract', 'result')),
+        (EDIT + 'admission_word_io.hepta', ('base_admission', 'candidate_admission')),
+        (EDIT + 'impact.hepta', ('compose', 'impact')),
+        (EDIT + 'impact_json_io.hepta', ('canonical', 'pretty')),
+    )),
     'query': ('hia-prepare-edit-query', (
         (BOOTSTRAP + 'core_patch.hepta', ('extract',)),
         (BOOTSTRAP + 'core_admission.hepta', ('core',)),

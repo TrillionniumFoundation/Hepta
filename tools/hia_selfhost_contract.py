@@ -113,6 +113,7 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_batch_apply.S',
     'tools/hia_core_edit_batch_query.S',
     'tools/hia_core_edit_query.S',
+    'tools/hia_core_edit_impact.S',
     'examples/hia_bootstrap/core_edit/admission_word_io.hepta',
     'examples/hia_bootstrap/core_edit/apply.hepta',
     'examples/hia_bootstrap/core_edit/batch_apply.hepta',
@@ -121,6 +122,9 @@ CORE_EDIT_SDIST_FILES = (
     'examples/hia_bootstrap/core_edit/packer.hepta',
     'examples/hia_bootstrap/core_edit/patch_word_io.hepta',
     'examples/hia_bootstrap/core_edit/query.hepta',
+    'examples/hia_bootstrap/core_edit/impact.hepta',
+    'examples/hia_bootstrap/core_edit/impact_json_io.hepta',
+    'examples/hia_bootstrap/core_edit/impact_patch.hepta',
 )
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,

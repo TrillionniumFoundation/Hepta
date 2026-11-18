@@ -1,4 +1,4 @@
-"""Compare the four installed native edit commands with the ordinary APIs."""
+"""Compare installed native Core edit and impact commands with the ordinary APIs."""
 
 import argparse
 from copy import deepcopy
@@ -10,7 +10,11 @@ from hepta.hia_edit_batch import apply_batch, prepare_batch
 from hepta.hia_edit_query import apply_edit, prepare_edit
 from tests.test_hia_edit_batch import loans, selected, swaps
 from tests.test_hia_edit_query import fixture
-from tests.test_hia_program_tools import scalar_program
+from hepta.hia_patch_impact import analyze_patch_impact
+from tests.test_hia_patch_impact import (
+    append_wrapper, isolated_program, move_program, patch_initial_byte, patch_packet,
+)
+from tests.test_hia_program_tools import add_two_patch, scalar_program
 
 
 def wire(value, *, pretty=False):
@@ -69,6 +73,29 @@ def check_release(release):
     for command in ('hia-prepare-edit-query', 'hia-prepare-edit-batch', 'hia-apply-edit', 'hia-apply-edit-batch'):
         case(command, b'[{},{}]invalid', status=2)
         case(command, b'', args=('unexpected',), status=64)
+    for version in range(1, 9):
+        source = scalar_program()
+        source['schema'] = 'hepta.hia.program.v' + str(version)
+        request = add_two_patch(source)
+        _, receipt, impact = analyze_patch_impact(source, request)
+        case('hia-impact-core-json', [source, request], {
+            'schema': 'hepta.hia.impact-query.v1', 'ok': True, 'status': 'verified_unpublished',
+            'patch': receipt, 'impact': impact,
+        }, args=('v1',))
+    source = move_program()
+    append_wrapper(source, 'wrapper', 'move_bytes')
+    append_wrapper(source, 'top', 'wrapper')
+    isolated_program(source)
+    request = patch_packet(source, patch_initial_byte(source))
+    _, receipt, impact = analyze_patch_impact(source, request)
+    case('hia-impact-core-json', [source, request], {
+        'schema': 'hepta.hia.impact-query.v1', 'ok': True, 'status': 'verified_unpublished',
+        'patch': receipt, 'impact': impact,
+    }, args=('v2',))
+    stale = {**request, 'expected_sha256': '0' * 64}
+    case('hia-impact-core-json', [source, stale], status=2, args=('v2',))
+    case('hia-impact-core-json', wire([source, request]) + b'junk', status=2, args=('v2',))
+    case('hia-impact-core-json', [source, request], status=64, args=('v3',))
     return passed
 
 
@@ -76,4 +103,4 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('release', type=Path)
     args = parser.parse_args()
-    print(f'{check_release(args.release)} installed native Core edit comparisons passed')
+    print(f'{check_release(args.release)} installed native Core edit and impact comparisons passed')
