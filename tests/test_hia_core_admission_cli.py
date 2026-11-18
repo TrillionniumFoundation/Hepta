@@ -437,5 +437,26 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
             digest_report = {**verify_program(raw).report(), 'native_executed': False,
                              'status': 'standalone_core_checked'}
             run(['verify-report'], raw, 0, pretty(digest_report))
-        for argv in ([], [''], ['i'], ['Inspect'], ['inspect', 'unexpected'], ['i'*16]):
+        ordinary = self.folder/'primitive démo.hepta'
+        ordinary.write_bytes(padded)
+        run(['verify', ordinary], b'malformed ignored stdin', 0)
+        run(['normalize', ordinary], b'', 0, pretty(VALID))
+        run(['inspect', ordinary], b'', 0, pretty(inspect_program(VALID)))
+        run(['verify-report', ordinary], b'', 0, pretty(supported))
+        with ordinary.open('ab') as stream:
+            stream.write(b' ')
+        run(['verify', ordinary], b'', 3)
+        ordinary.write_bytes(wire(borrowed_owner()))
+        run(['inspect', ordinary], wire(VALID), 2)
+        symlink = self.folder/'symlink-input.hepta'
+        symlink.symlink_to(ordinary)
+        fifo = self.folder/'fifo-input.hepta'
+        os.mkfifo(fifo)
+        for path in (symlink, fifo, self.folder, self.folder/'missing.hepta'):
+            run(['verify', path], wire(VALID), 4)
+        ordinary.write_bytes(wire(VALID))
+        result = subprocess.run([copied, 'verify', ordinary], capture_output=True,
+                                preexec_fn=lambda: os.close(0), env={'PATH': ''}, timeout=10)
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (0, b'', b''))
+        for argv in ([], [''], ['i'], ['Inspect'], ['inspect', 'extra', 'arguments'], ['i'*16]):
             run(argv, b'', 64)

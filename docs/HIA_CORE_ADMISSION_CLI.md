@@ -63,14 +63,18 @@ change the default hosted CLI.
 ```sh
 python -B -m tools.build_hia_core_admission_cli --suite \
   --compiler "$compiler" --cold-report "$cold_report" --output /private/new-core-suite
-/private/new-core-suite/hia-core inspect < primitive-core.json
+/private/new-core-suite/hia-core inspect primitive-core.hepta
 ```
 
-Use exactly one command argument: `verify`, `normalize`, `inspect`, or
-`verify-report`. The
-combined executable carries one admission kernel and both formatters. It uses
-the same stdin, stdout and exit codes as the individual commands. It does not
-call the other executables or load an interpreter. `verify-report` emits the
+Use one command argument: `verify`, `normalize`, `inspect`, or
+`verify-report`, followed by an optional input path. With no path it reads
+stdin as before. Path mode reads only an ordinary file, refuses a final
+symbolic link, directory or FIFO, and enforces the same 8 MiB bound both on
+the opened file and during reads. Filesystem failures return 4 and an
+oversized input returns 3.
+
+The combined executable carries one admission kernel and both formatters.
+It does not call the other executables or load an interpreter. `verify-report` emits the
 original hosted verification report for admitted primitive Core, including
 function and block counts, canonical identity, source and backend claims. The
 quiet `verify` mode remains unchanged; refused programs do not emit a report.

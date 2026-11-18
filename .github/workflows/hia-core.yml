@@ -283,7 +283,7 @@ jobs:
             if [[ "$action" == verify-report ]]; then reference_action=verify; fi
             python -B -c 'from hepta.cli import hia_main; raise SystemExit(hia_main())' \
               "$reference_action" "$core_fixture" > "$package/core-$action-expected.json"
-            env -i PATH= "$installed/hia-core" "$action" < "$core_fixture" > "$package/core-$action.json"
+            env -i PATH= "$installed/hia-core" "$action" "$core_fixture" > "$package/core-$action.json"
             cmp "$package/core-$action-expected.json" "$package/core-$action.json"
           done
           python -B -m tests.test_hia_agent_artifact_capture_runtime \

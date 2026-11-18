@@ -39,7 +39,12 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
         emit('41 b9');word(workspace_bytes)
         emit('e8');offset=len(code);word(0)
         return offset
-    emit('48 83 3c 24');emit('02' if suite else '01');branch('0f 85','usage')
+    emit('48 83 3c 24');emit('02' if suite else '01')
+    if suite:
+        branch('0f 84','map')
+        emit('48 83 3c 24 03')
+    branch('0f 85','usage')
+    label('map')
     emit('31 ff be');word(mapping_bytes)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff');branch('0f 83','io')
     calls = []
@@ -55,12 +60,32 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
         emit('83 f8 01');branch('0f 82','usage')
         emit('83 f8 04');branch('0f 87','usage')
         emit('89 c3')  # Admitted mode remains in the callee-saved register.
+        emit('45 31 ff 48 83 3c 24 02');branch('0f 84','read')
+        label('open_input')
+        # openat(AT_FDCWD, argv[2], O_RDONLY|O_NOFOLLOW|O_NONBLOCK|O_CLOEXEC)
+        emit('b8 01 01 00 00 bf 9c ff ff ff 48 8b 74 24 18 ba 00 08 0a 00 45 31 d2 0f 05')
+        emit('48 83 f8 fc');branch('0f 84','open_input')
+        emit('48 85 c0');branch('0f 88','io')
+        emit('41 89 c7')  # r15d = opened descriptor (possibly zero).
+        label('stat_input')
+        # fstat(fd, input mapping); only st_mode and st_size are needed.
+        emit('b8 05 00 00 00 44 89 ff 4c 89 e6 0f 05')
+        emit('48 83 f8 fc');branch('0f 84','stat_input')
+        emit('48 85 c0');branch('0f 88','io')
+        emit('41 8b 44 24 18 25 00 f0 00 00 3d 00 80 00 00');branch('0f 85','io')
+        emit('49 81 7c 24 30');word(WIRE_BYTES);branch('0f 87','space')
     label('read')
-    emit('31 c0 31 ff 4b 8d 34 2c ba');word(WIRE_BYTES+1)
+    emit('31 c0')
+    emit('44 89 ff' if suite else '31 ff')
+    emit('4b 8d 34 2c ba');word(WIRE_BYTES+1)
     emit('4c 29 ea 0f 05 48 83 f8 fc');branch('0f 84','read')
     emit('48 85 c0');branch('0f 88','io');branch('0f 84','invoke')
     emit('49 01 c5 49 81 fd');word(WIRE_BYTES);branch('0f 87','space');branch('e9','read')
     label('invoke')
+    if suite:
+        emit('48 83 3c 24 02');branch('0f 84','admit')
+        emit('b8 03 00 00 00 44 89 ff 0f 05 48 85 c0');branch('0f 88','io')
+        label('admit')
     calls.append(call_image())
     if formatter or suite:
         emit('83 f8 fe');branch('0f 84','space')

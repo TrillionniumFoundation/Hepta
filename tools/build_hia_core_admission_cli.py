@@ -1,6 +1,6 @@
 """Build the standalone Core checker, normalizer or inspector using matching-source cold B3.
 
-This is a Unix stdin admission command, not a replacement for all existing
+These are Unix admission commands, not a replacement for all existing
 Agent, composite, execute or persistence CLI commands. No runtime Python needed.
 """
 import argparse
@@ -118,6 +118,7 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False, suit
     }
     if suite:
         receipt.update(status='NATIVE_CORE_SUITE_CLI_BUILT', commands=['verify', 'normalize', 'inspect', 'verify-report'],
+                       input='raw primitive Core JSON on stdin or from an ordinary file',
                        native_component_compile_receipts=component_receipts)
     elif component_receipts:
         formatter_receipt, = component_receipts.values()

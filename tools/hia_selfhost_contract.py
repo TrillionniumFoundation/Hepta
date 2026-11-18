@@ -1378,7 +1378,7 @@ def support_contract(root=ROOT):
                 "semantic_admission_precedes_formatting": True,
             },
             "suite": {
-                "command": "hia-core {verify,normalize,inspect,verify-report} < primitive-core.json",
+                "command": "hia-core {verify,normalize,inspect,verify-report} [primitive-core.hepta]",
                 "sources": ["examples/hia_bootstrap/core_suite_dispatch.hepta",
                             "examples/hia_bootstrap/core_suite_packer.hepta"],
                 "shared_admission_kernel": True, "runtime_loader_or_child": False,
