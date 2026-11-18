@@ -37,7 +37,7 @@ python -B -m tools.build_hia_sqlite_components --compiler "$compiler" \
   --cold-report "$cold_report" --output "$component_output"
 ```
 
-The output contains nine standalone Linux x86-64 programs (`hia-sqlite-*`),
+The output contains nine standalone component programs (`hia-sqlite-*`),
 each linked with one unchanged HIA image. They run without a runtime FFI,
 interpreter, dynamic loader or subprocess. Start a separate process for each
 component and each independent scratch lifetime. A request consists of
@@ -56,6 +56,32 @@ output and scratch; the individual HIA image still applies its own limits.
 These programs expose the component ABI only. The caller must still hold the
 same Pager snapshot across components, stage all references and bytes, and
 handle migration and activation as a whole.
+
+### Projecting a complete retained snapshot
+
+`hia-sqlite-migration-projection` links the catalog, walker, row lookup,
+record layout, row importer and migration plan into one HIA application.
+It performs the complete catalog and row projection without a host
+interpreter, SQLite connection, child process or separate planning client.
+
+Send an eight-byte little-endian input length, then that many bytes and EOF.
+The input body is the tag `HIASMIG1`, the nonzero target transaction number,
+logical page count, logical page size, the Pager's 24-byte identity, then
+all retained pages in numeric order, including the unchanged page 1.
+The logical page image may occupy up to 256 MiB. The output uses at most
+64 MiB and starts with `HIASPRO1`, the length of the business batch, the
+length of the optional sequence frame, and the maximum visible cost rowid.
+It then contains the exact `HIASQB01` batch and, if present, the single
+table-11 migration-plan frame retaining the raw SQLite sequence record.
+An empty business batch has only its 32-byte header.
+
+Exit 64 indicates invalid framing or initial geometry; 65 indicates a
+schema, page or row refusal; 66 indicates insufficient projection capacity;
+74 indicates I/O failure. No successful output is issued before all
+projection checks finish. This operation does **not** open the source, hold
+its lock, authenticate independently supplied pages, validate artifact
+files or durably publish the target. The caller must supply pages from one
+retained snapshot and retain its lock until the target commit has finished.
 
 ### Coordinating Agent migration
 

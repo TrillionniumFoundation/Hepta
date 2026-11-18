@@ -276,6 +276,73 @@ class NativeSQLiteComponents(unittest.TestCase):
         self.assertEqual(offset, len(result.stdout))
         return replies
 
+    def test_complete_migration_projection_owns_catalog_rows_and_sequence(self):
+        if self.root is None:
+            self.skipTest('run with the cold-built native SQLite components')
+        from hepta.hia_agent_store import AgentStore
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            store = AgentStore(Path(temporary) / 'agent')
+            details = 'overflow witness ' * 3800
+            fields = (5, None, 'hia_artifact', 'kept', '81', 'completed', details)
+            try:
+                store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                empty = store.database.read_bytes()
+                store.db.execute('INSERT INTO costs VALUES (?, ?, ?, ?, ?, ?, ?)', fields)
+                store.db.execute('INSERT INTO costs VALUES (?, ?, ?, ?, ?, ?, ?)',
+                                 (128, None, 'hia_artifact', 'deleted', '1', 'completed', '{}'))
+                store.db.execute('DELETE FROM costs WHERE sequence = 128')
+                sequence, = store.db.execute("SELECT seq FROM sqlite_sequence WHERE name = 'costs'").fetchone()
+                self.assertEqual(sequence, 128)
+                store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                full = store.database.read_bytes()
+                store.db.execute('CREATE TABLE extra_table (unexpected TEXT)')
+                store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                extra_schema = store.database.read_bytes()
+            finally:
+                store.close()
+
+        def project(raw, *, trailing=b'', expected_status=0):
+            page_size = int.from_bytes(raw[16:18], 'big')
+            if page_size == 1:
+                page_size = 65536
+            header = struct.pack('<8s3Q24s', b'HIASMIG1', 9, len(raw) // page_size,
+                                 page_size, bytes(range(1, 25)))
+            result = subprocess.run([self.root / 'hia-sqlite-migration-projection'],
+                                    input=struct.pack('<Q', len(header) + len(raw)) + header + raw + trailing,
+                                    capture_output=True, env={'PATH': ''}, timeout=15, check=False)
+            self.assertEqual((result.returncode, result.stderr), (expected_status, b''))
+            if expected_status:
+                self.assertEqual(result.stdout, b'')
+            return result.stdout
+
+        reply = project(empty)
+        self.assertEqual(struct.unpack('<8s3Q8s3Q', reply), (b'HIASPRO1', 32, 0, 0, b'HIASQB01', 1, 9, 0))
+        reply = project(full)
+        magic, batch, sequence, maximum = struct.unpack_from('<8s3Q', reply)
+        self.assertEqual((magic, maximum, len(reply)), (b'HIASPRO1', 5, 32 + batch + sequence))
+        self.assertEqual(struct.unpack_from('<8s3Q', reply, 32), (b'HIASQB01', 1, 9, 1))
+        table, rowid, size = struct.unpack_from('<QqQ', reply, 64)
+        self.assertEqual((table, rowid, size), (5, fields[0], batch - 56))
+        row = reply[88:88 + size]
+        self.assertEqual(struct.unpack_from('<8s3Q', row), (b'HIAROW01', 1, 5, len(fields)))
+        for index, value in enumerate(fields):
+            kind, offset, count = struct.unpack_from('<3Q', row, 32 + index * 24)
+            expected_kind, serialized = (
+                (0, b'') if value is None else
+                (1, struct.pack('<q', value)) if isinstance(value, int) else
+                (3, value.encode())
+            )
+            self.assertEqual((kind, offset + count <= len(row), row[offset:offset + count]),
+                             (expected_kind, True, serialized))
+        at = 32 + batch
+        table, rowid, size, tag, count, encoding, _ = struct.unpack_from('<QqQ8s3Q', reply, at)
+        self.assertEqual((table, rowid, size, tag, count, encoding),
+                         (11, 1, sequence - 24, b'HIAROW01', 10, 1))
+        self.assertEqual(reply[at + 56:], bytes.fromhex('031702636f7374730080'))
+        project(extra_schema, expected_status=65)
+        project(full, trailing=b'x', expected_status=64)
+
     def test_catalog_continues_in_one_installed_process(self):
         if self.root is None:
             self.skipTest('run with the cold-built native SQLite components')

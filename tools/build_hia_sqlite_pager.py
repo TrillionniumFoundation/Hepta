@@ -82,8 +82,8 @@ def verify_executable(elf, pager):
         raise ValueError('unexpected Pager ELF load segment or stack permissions')
 
 
-def link(directory, linker, pager, objects):
-    packet = struct.pack('<8s3Q', b'HIAPGLK2', len(objects), 6, 0) + b'_start'
+def link(directory, linker, pager, objects, *, wire_magic=b'HIAPGLK2'):
+    packet = struct.pack('<8s3Q', wire_magic, len(objects), 6, 0) + b'_start'
     packet += b''.join(struct.pack('<Q', len(obj)) + obj for obj in objects)
     write_new(directory / 'link.input.bin', packet)
     input_bytes = bytearray(CANARY + packet + CANARY)
