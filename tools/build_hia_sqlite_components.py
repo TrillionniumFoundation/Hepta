@@ -19,26 +19,27 @@ UNITS = (
 START = 'tools/hia_sqlite_component_start.S'
 INPUT = 'tools/hia_sqlite_component_input.S'
 WRAPPER = 'tools/hia_sqlite_pager_image.S'
+COMPONENT_DRIVER = 'tools/build_hia_sqlite_components.py'
 
 
-def build(output, compiler, cold_report):
+def build_executables(output, compiler, cold_report, units, adapters, drivers):
     compiler_bytes = compiler.read_bytes()
     cold_bytes = cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
     units = {name: 'examples/hia_bootstrap/' + name.replace('-', '_') + '.hepta'
-             for name in UNITS}
+             for name in units}
     sources = {name: (ROOT / name).read_bytes()
-               for name in (LINKER, START, INPUT, WRAPPER, DRIVER,
-                            'tools/build_hia_sqlite_components.py', *units.values())}
+               for name in (LINKER, WRAPPER, DRIVER, COMPONENT_DRIVER,
+                            *drivers, *adapters, *units.values())}
     source_hashes = {name: digest(data) for name, data in sources.items()}
     if any(admitted.get(name) != value for name, value in source_hashes.items()):
-        raise ValueError('SQLite process source differs from admitted cold source')
+        raise ValueError('native component source differs from admitted cold source')
     output.mkdir(mode=0o700)
     linker_path, linker_receipt = compile_stage(output, 'linker', compiler, sources[LINKER])
     linker = linker_path.read_bytes()
     if digest(linker) != linker_receipt['produced_sha256']:
-        raise ValueError('SQLite process linker identity changed')
-    adapters = tuple(assemble(output, name, sources[name]) for name in (START, INPUT))
+        raise ValueError('native component linker identity changed')
+    adapters = tuple(assemble(output, name, sources[name]) for name in adapters)
 
     products = {}
     for name, source in units.items():
@@ -47,19 +48,19 @@ def build(output, compiler, cold_report):
         path, receipt = compile_stage(directory, name, compiler, sources[source])
         image = path.read_bytes()
         if digest(image) != receipt['produced_sha256']:
-            raise ValueError('SQLite component image identity changed')
+            raise ValueError('native component image identity changed')
         included = directory / 'pager_read_owner.image.bin'
         write_new(included, image)
         component = assemble(directory, WRAPPER, sources[WRAPPER])
         binary, _ = link(directory, linker, image, (*adapters, component))
         if path.read_bytes() != image or included.read_bytes() != image:
-            raise ValueError('SQLite component changed during executable link')
+            raise ValueError('native component changed during executable link')
         products[name] = binary
 
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes or linker_path.read_bytes() != linker
             or any((ROOT / name).read_bytes() != data for name, data in sources.items())):
-        raise ValueError('SQLite component build inputs changed before publication')
+        raise ValueError('native component build inputs changed before publication')
 
     manifest = {}
     for name, binary in products.items():
@@ -68,9 +69,7 @@ def build(output, compiler, cold_report):
             stream.write(binary)
             os.fchmod(stream.fileno(), 0o500)
         manifest[name] = {'name': executable.name, 'sha256': digest(binary), 'bytes': len(binary)}
-    report = {
-        'schema': 'hepta.hia.sqlite-component-process-build.v1',
-        'status': 'NATIVE_SQLITE_COMPONENT_PROCESSES_BUILT',
+    return {
         'source_sha256': source_hashes,
         'compiler_sha256': digest(compiler_bytes),
         'cold_report_sha256': digest(cold_bytes),
@@ -78,6 +77,12 @@ def build(output, compiler, cold_report):
         'runtime_python_or_libc': False,
         'agent_store_replaced': False,
     }
+
+
+def build(output, compiler, cold_report):
+    report = build_executables(output, compiler, cold_report, UNITS, (START, INPUT), ())
+    report.update(schema='hepta.hia.sqlite-component-process-build.v1',
+                  status='NATIVE_SQLITE_COMPONENT_PROCESSES_BUILT')
     write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
     return output
 
