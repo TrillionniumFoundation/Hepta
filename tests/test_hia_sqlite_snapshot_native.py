@@ -1,5 +1,6 @@
 """Exercise the checked-in HIA snapshot and record sources with real SQLite bytes."""
 from contextlib import closing
+from hashlib import sha256
 from pathlib import Path
 import sqlite3
 import struct
@@ -37,6 +38,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         cls.record = assemble_program((SOURCES / 'sqlite_record_layout.hepta').read_bytes())
         cls.row_import = assemble_program((SOURCES / 'sqlite_agent_row_import.hepta').read_bytes())
         cls.import_batch = assemble_program((SOURCES / 'sqlite_agent_import_batch.hepta').read_bytes())
+        cls.cost_sequence = assemble_program((SOURCES / 'sqlite_agent_cost_sequence.hepta').read_bytes())
         cls.wal = assemble_program((SOURCES / 'sqlite_wal_snapshot.hepta').read_bytes())
         cls.key = -(1 << 63)
         cls.blob = bytes(range(256)) * 7
@@ -180,7 +182,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             cold.write_text('{}')
             for candidate in ('sqlite-wal-snapshot', 'sqlite-rowid-lookup',
                               'sqlite-record-layout', 'sqlite-agent-row-import',
-                              'sqlite-agent-import-batch'):
+                              'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence'):
                 with self.subTest(candidate=candidate):
                     with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                         build(output, compiler, cold, candidate=candidate)
@@ -247,6 +249,34 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         for request in malformed:
             self.assertEqual(run_vm(self.import_batch, request, len(expected), 0),
                              (1, b'\xa7' * len(expected)))
+
+    def test_cost_sequence_seeds_and_removes_same_row_in_one_commit(self):
+        high_water = 128
+        header = struct.pack('<8s3Q', b'HIASQH01', 1, 7, 78)
+        record = bytes((3, 23, 2)) + b'costs' + high_water.to_bytes(2, 'big')
+        status, output = run_vm(self.cost_sequence, header + record, 657, 4096)
+        self.assertEqual(status, 0)
+        key = struct.pack('<8s2Qq', b'HIARID01', 1, 5, high_water)
+        row = struct.pack('<8s3Q', b'HIAROW01', 1, 5, 7)
+        row += struct.pack('<6Q', 1, 200, 8, 0, 208, 0)
+        row += struct.pack('<3Q', 3, 208, 0) * 5 + struct.pack('<q', high_water)
+
+        def wal(kind, table=0, key=b'', value=b'', count=0):
+            prefix = struct.pack('<8s7Q', b'HIAWAL01', 96 + len(key) + len(value),
+                                 7, kind, table, len(key), len(value), count)
+            prefix += key + value
+            return prefix + sha256(prefix).digest()
+
+        expected = wal(1) + wal(2, 5, key, row) + wal(3, 5, key) + wal(4, count=2)
+        self.assertEqual(output, expected + b'\xa7')
+        already = struct.pack('<8s3Q', b'HIASQH01', 1, 7, high_water) + record
+        malformed = header + bytes((3, 23, 2)) + b'costs' + b'\xff\xff'
+        cases = ((already, 656, 4096, 4), (malformed, 656, 4096, 1),
+                 (header + record[:-1], 656, 4096, 1),
+                 (header + record, 655, 4096, 2), (header + record, 656, 4095, 3))
+        for request, extent, workspace, code in cases:
+            self.assertEqual(run_vm(self.cost_sequence, request, extent, workspace),
+                             (code, b'\xa7' * extent))
 
     def test_wal_overlay_recovers_committed_row_and_ignores_torn_final_frame(self):
         with tempfile.TemporaryDirectory() as folder:

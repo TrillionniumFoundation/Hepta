@@ -139,6 +139,27 @@ output unchanged on malformed input (status `1`) or insufficient capacity
 full typed-row and cost alias validation. A proposal is not a commit, and
 this interface does not preserve a deleted cost high-water by itself.
 
+### Preserving a deleted cost sequence during staged migration
+
+`sqlite-agent-cost-sequence` accepts `HIASQH01`, version 1, a nonzero
+transaction ID, the highest nonnegative live cost rowid (zero if absent),
+and the original UTF-8 SQLite record bytes for the `costs` row of
+`sqlite_sequence`. The first four fields each occupy eight bytes. The
+sequence must be a nonnegative SQLite integer. Both the live-row maximum
+and the sequence record must come from the same retained snapshot; this
+component does not obtain or authenticate that snapshot.
+
+An ahead-of-live sequence is represented by one 656-byte `HIAWAL01`
+transaction: BEGIN, canonical cost PUT, DELETE of the same key, and COMMIT.
+There is no surviving row, but committed cost history retains the sequence
+even if it is the signed maximum. The transaction has four native SHA-256
+seals. This is staging for a new private migration namespace, not an
+authorization to update an existing or publicly opened Store. The native
+writer must still admit, append, and publish against the selected anchor.
+No writes occur in the caller's output on status `1` (malformed),
+`2` (output too small), `3` (scratch smaller than 4096), or `4` (the
+sequence is not ahead; no transaction is needed). Success is status `0`.
+
 ## Committed WAL view
 
 The WAL component takes an 8-byte size of the base database, the corresponding
