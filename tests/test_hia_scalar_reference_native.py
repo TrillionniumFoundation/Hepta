@@ -363,9 +363,56 @@ class ScalarReferenceNativeTests(unittest.TestCase):
 
         expected = observe()
         self.assertEqual({row['status'] for row in expected}, {'returned', 'budget_exceeded'})
+        legacy_operation = _Machine.operation
+
+        def operation(machine, ins, env, depth):
+            name = ins['op']
+            if name.startswith(('borrow.', 'chain.head_', 'loan.')) or (
+                    name.startswith('buffer.') and name not in {'buffer.new', 'buffer.try_new'}):
+                raise AssertionError(f'host loan operation: {name}')
+            return legacy_operation(machine, ins, env, depth)
+
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter')),
+              patch.object(_Machine, 'return_view', side_effect=AssertionError('host return-loan owner')),
+              patch.object(_Machine, 'operation', operation)):
+            self.assertEqual(observe(), expected)
+
+    def test_native_loan_arena_refuses_expired_generation_and_permission_escalation(self):
+        table = bytearray(24 * 3)
+        status, parent, root = self.native.loan_operation(table, 2, 2, mutable=True)
+        self.assertEqual((status, root), (0, 2))
+        status, first, root = self.native.loan_operation(table, 2, parent)
+        self.assertEqual((status, root), (0, 2))
+        frozen = table[:]
+        self.assertEqual(self.native.loan_operation(table, 2, parent)[0], 3)
+        self.assertEqual(self.native.loan_operation(table, 1, first, mutable=True)[0], 2)
+        self.assertEqual(self.native.loan_operation(table, 4, parent, first)[0], 4)
+        self.assertEqual(table, frozen)
+        self.assertEqual(self.native.loan_operation(table, 3, first)[0], 0)
+        status, second, root = self.native.loan_operation(table, 2, parent)
+        self.assertEqual((status, root), (0, 2))
+        self.assertEqual(first & ((1<<25)-1), second & ((1<<25)-1))
+        self.assertNotEqual(first, second)
+        frozen = table[:]
+        self.assertEqual(self.native.loan_operation(table, 1, first)[0], 1)
+        self.assertEqual(table, frozen)
+        self.assertEqual(self.native.loan_operation(table, 4, second, parent), (0, second, 2))
+
+    def test_live_read_loans_grow_the_table_and_balance_without_host_borrows(self):
+        from tests.test_hia_program import b, c, f, i, m, ret
+
+        code = [c('size', 'usize', 1), i('buffer.new', ['size'], [('owner', 'buffer')])]
+        names = [f'loan{n}' for n in range(40)]
+        code += [i('borrow.read', ['owner'], [(name, 'readbuf')]) for name in names]
+        code += [i('loan.end', [name]) for name in reversed(names)]
+        code += [i('owner.drop', ['owner'])]
+        doc = m(f('many', [], [], ['alloc', 'trap'], [b('entry', [], code, ret())]))
+        expected = execute_program(doc, 'many', [])
+        self.assertEqual(expected['resources']['loans_ended'], 40)
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
-            self.assertEqual(observe(), expected)
+            self.assertEqual(execute_program(doc, 'many', []), expected)
 
     def test_external_snapshots_use_native_cfg_on_return_and_abort(self):
         from hepta.hia_agent_buffers import reference_observation

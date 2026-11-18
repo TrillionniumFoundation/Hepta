@@ -5,7 +5,7 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import (
-    ALLOCATION_MAGIC, BYTE_MAGIC, DOMAIN_MAGIC, MAGIC, OBSERVATION_MAGIC, OPCODES, RESULT,
+    ALLOCATION_MAGIC, BYTE_MAGIC, DOMAIN_MAGIC, LOAN_MAGIC, MAGIC, OBSERVATION_MAGIC, OPCODES, RESULT,
 )
 from hepta.hia_scalar_reference_wire import (
     MAX_FRAME_WORDS, MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
@@ -28,6 +28,8 @@ def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return finite_arguments(s, o)
     if uint(s, 0, 8) == @OBSERVATION_MAGIC@:
         return same_observation(s)
+    if uint(s, 0, 8) == @LOAN_MAGIC@:
+        return loan_operation(s, o, w)
     if length(s) != 56:
         return 4294967295
     if length(o) < 24:
@@ -626,6 +628,96 @@ def same_observation(s:readbuf) -> u32:
             return 0
         i = i + 1
     return 1
+
+def loan_slot(w:mutbuf, token:u64) -> u64:
+    index = (token >> 1) & 16777215
+    if (token & 1) == 0 or index == 0 or index > get(w, 8):
+        return 0
+    slot = 24 * index
+    if within(length(w), slot, 24) == 0:
+        return 0
+    if get(w, slot) != token:
+        return 0
+    return slot
+
+def loan_root(w:mutbuf, token:u64) -> u64:
+    remaining = get(w, 8)
+    while (token & 1) != 0:
+        slot = loan_slot(w, token)
+        if slot == 0 or remaining == 0:
+            return 0
+        token = get(w, slot + 8)
+        remaining = remaining - 1
+    return token
+
+def loan_allocate(w:mutbuf, parent:u64, permission:u64) -> u64:
+    next_generation = get(w, 0) + 1
+    if next_generation == 0 or next_generation > 549755813887:
+        return 0
+    free = get(w, 16)
+    index = free
+    if index == 0:
+        index = get(w, 8) + 1
+    if index == 0 or index > 16777215 or within(length(w), index * 24, 24) == 0:
+        return 0
+    slot = index * 24
+    if free == 0:
+        put(w, 8, index)
+    else:
+        put(w, 16, get(w, slot + 8))
+    token = (next_generation << 25) | (index << 1) | 1
+    put(w, 0, next_generation)
+    put(w, slot, token)
+    put(w, slot + 8, parent)
+    put(w, slot + 16, permission)
+    return token
+
+def loan_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 40 or length(w) < 24 or length(o) < 32:
+        return 4294967295
+    operation = uint(s, 8, 8)
+    first = uint(s, 16, 8)
+    second = uint(s, 24, 8)
+    permission = uint(s, 32, 8)
+    if operation < 1 or operation > 4 or permission > 1:
+        return 4294967295
+    root = loan_root(w, first)
+    result = first
+    status = 0
+    slot = loan_slot(w, first)
+    if root == 0:
+        status = 1
+    elif permission == 1 and slot != 0 and get(w, slot + 16) != 1:
+        status = 2
+    elif operation == 2:
+        result = loan_allocate(w, first, permission)
+        if result == 0:
+            status = 3
+    elif operation == 3:
+        if slot == 0:
+            status = 1
+        else:
+            put(w, slot, 0)
+            put(w, slot + 8, get(w, 16))
+            put(w, slot + 16, 0)
+            put(w, 16, slot // 24)
+    elif operation == 4:
+        origin = loan_slot(w, second)
+        if slot == 0 or origin == 0 or loan_root(w, second) != root:
+            status = 4
+        elif permission == 1 and get(w, origin + 16) != 1:
+            status = 2
+        elif first == second:
+            result = loan_allocate(w, first, permission)
+            if result == 0:
+                status = 3
+        elif get(w, slot + 8) != second:
+            status = 4
+    put(o, 0, @RESULT@)
+    put(o, 8, status)
+    put(o, 16, result)
+    put(o, 24, root)
+    return 32
 '''
 
 class ReferenceBuilder(LinkerBuilder):
@@ -638,6 +730,7 @@ class ReferenceBuilder(LinkerBuilder):
 def document():
     constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
+                 'LOAN_MAGIC': LOAN_MAGIC,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,

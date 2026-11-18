@@ -600,13 +600,14 @@ class _Machine:
 
 
 class _ReferenceResources:
-    """Map native register words to the existing checked resource primitives."""
+    """Keep physical backing for the reference VM's HIA loan table."""
 
     def __init__(self, machine):
         self.machine = machine
-        self.views = {}
-        self.view_ids = {}
-        self.last_view = 0
+        self.native = machine.scalar_reference
+        self.loans = bytearray(24 * 17)
+        self.external_owners = {}
+        self.external_loans = set()
 
     def decode(self, kind, word):
         from .hia_scalar_reference_native import NativeScalarReference
@@ -616,8 +617,7 @@ class _ReferenceResources:
             if scalar_value_valid(value, kind):
                 return value
             raise HIAProgramRejected("invalid native runtime operand", "E_HIA_RUNTIME_INVARIANT")
-        active = (self.machine.owners if kind == "buffer" else
-                  self.machine.chains if kind == "chain" else self.views)
+        active = self.machine.owners if kind == "buffer" else self.machine.chains
         if word not in active:
             raise HIAProgramRejected("unknown native resource handle", "E_HIA_RUNTIME_INVARIANT")
         return active[word]
@@ -629,25 +629,112 @@ class _ReferenceResources:
             return int(value or 0) & WORD_MASK
         if kind in OWNERS:
             return value.ident
-        if value not in self.view_ids:
-            self.last_view += 1
-            self.view_ids[value] = self.last_view
-            self.views[self.last_view] = value
-        return self.view_ids[value]
+        # The only physical input views here are externally owned roots.
+        if not isinstance(value, _View) or not isinstance(value.parent, _Owner) or value.parent.ident >= 0:
+            raise HIAProgramRejected("invalid external runtime view", "E_HIA_RUNTIME_INVARIANT")
+        self.external_owners[value.parent.ident] = value.parent
+        token, _ = self.loan(2, self.owner_token(value.parent.ident), mutable=kind == "mutbuf")
+        self.external_loans.add(token)
+        return token
+
+    @staticmethod
+    def owner_token(ident):
+        return (ident << 1) & ((1 << 64) - 1)
+
+    def owner(self, root):
+        ident = (root >> 1) - ((1 << 63) if root >> 63 else 0)
+        backing = self.external_owners if ident < 0 else self.machine.owners
+        owner = backing.get(ident)
+        if owner is None or not owner.active:
+            raise HIAProgramRejected("expired runtime owner", "E_HIA_RUNTIME_INVARIANT")
+        return owner
+
+    def loan(self, operation, first, second=0, *, mutable=False):
+        while True:
+            status, token, root = self.native.loan_operation(self.loans, operation, first, second, mutable)
+            if status == 0:
+                return token, self.owner(root)
+            if status != 3:
+                messages = {1: "expired/cyclic runtime view", 2: "returned view permission invariant",
+                            4: "returned view origin invariant"}
+                raise HIAProgramRejected(messages[status], "E_HIA_RUNTIME_INVARIANT")
+            if len(self.loans) >= 24 * (1 << 24):
+                raise HIAProgramBudgetExceeded("host_memory", "native loan table capacity exhausted")
+            try:
+                self.loans.extend(bytes(min(len(self.loans), 24 * (1 << 24) - len(self.loans))))
+            except MemoryError as error:
+                raise HIAProgramBudgetExceeded("host_memory", "cannot extend native loan table") from error
+
+    def _byte_operation(self, op, kinds, words):
+        read_only = op in {"len", "load"}
+        token = self.owner_token(words[0]) if kinds[0] == "buffer" else words[0]
+        _, owner = self.loan(1, token, mutable=not read_only)
+        data = owner.data
+        if op == "len":
+            return [len(data)]
+        if op == "load":
+            return [self.native.byte_operation("load", data, offset=words[1])]
+        if op in {"copy", "copy_range"}:
+            _, source = self.loan(1, words[1])
+            if owner is source:
+                message = ("copy alias escaped static owner verification" if op == "copy" else
+                           "range copy violates checked distinct-owner loans")
+                raise HIAProgramRejected(message, "E_HIA_RUNTIME_INVARIANT")
+            offsets = {} if op == "copy" else {"offset": words[2], "source_offset": words[3]}
+            self.native.byte_operation(op, data, source=source.data, count=words[-1], **offsets)
+            return []
+        options = {
+            "store": ("store", ("offset", "value"), None),
+            "fill": ("fill", ("value",), "bulk fill exceeds host memory"),
+            "fill_range": ("fill", ("offset", "count", "value"), "range fill exceeds host memory"),
+            "move_within": ("move", ("offset", "source_offset", "count"), "in-place copy exceeds host memory"),
+            "swap": ("swap", ("offset", "source_offset"), None),
+        }
+        name, keys, memory_error = options[op]
+        transfer = dict(zip(keys, words[1:]))
+        if op == "fill":
+            transfer["count"] = len(data)
+        try:
+            self.native.byte_operation(name, data, **transfer)
+        except MemoryError as error:
+            if memory_error is None:
+                raise
+            raise HIAProgramBudgetExceeded("host_memory", memory_error) from error
+        return []
 
     def operation(self, instruction, types, words):
-        values = [self.decode(kind, word) for kind, word in zip(types, words)]
         op = instruction["op"]
         if op == "return_loans":
             result_types = instruction["returns"]
+            values = list(words[:len(result_types)])
             for result, original in instruction["original"].items():
-                values[result] = self.machine.return_view(values[result], values[original],
-                                                          result_types[result])
-            return [self.encode(kind, value) for kind, value in zip(result_types, values)]
+                token, _ = self.loan(4, words[result], words[original],
+                                     mutable=result_types[result] == "mutbuf")
+                self.machine.loans_started += token != words[result]
+                values[result] = token
+            return values
+        if op in {"borrow.read", "borrow.mut", "chain.head_read", "chain.head_mut"}:
+            if types[0] == "chain":
+                head = self.machine.chain_head(self.decode("chain", words[0]))
+                if head is None:
+                    raise HIAProgramTrap("bounds", "head borrow of an empty chain")
+                parent = self.owner_token(head.payload.ident)
+            else:
+                parent = self.owner_token(words[0]) if types[0] == "buffer" else words[0]
+            token, _ = self.loan(2, parent, mutable=instruction["out"][0]["type"] == "mutbuf")
+            self.machine.loans_started += 1
+            return [token]
+        if op == "loan.end":
+            if words[0] in self.external_loans:
+                raise HIAProgramRejected("end of external loan", "E_HIA_RUNTIME_INVARIANT")
+            self.loan(3, words[0])
+            self.machine.loans_ended += 1
+            return []
+        if op.startswith("buffer.") and op not in {"buffer.new", "buffer.try_new"}:
+            return self._byte_operation(op.removeprefix("buffer."), types, words)
+        values = [self.decode(kind, word) for kind, word in zip(types, words)]
         env = dict(zip(instruction["args"], values))
         self.machine.operation(instruction, env, 0)
-        if op == "loan.end":
-            del self.view_ids[self.views.pop(words[0])]
         return [self.encode(output["type"], env[output["name"]]) for output in instruction["out"]]
 
 
