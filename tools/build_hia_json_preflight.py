@@ -90,6 +90,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'function-shape': ('function_shape', 'function-shape'),
                   'capability-renaming': ('capability_renaming', 'capability-renaming'),
                   'agent-slice': ('agent_slice', 'agent-slice'),
+                  'agent-discovery': ('agent_discovery', 'agent-discovery'),
                   'agent-read-page': ('agent_read_page', 'agent-read-page'),
                   'agent-schema': ('agent_schema', 'agent-schema'),
                   'agent-response-schema': ('agent_response_schema', 'agent-response-schema'),
@@ -160,7 +161,7 @@ def main():
     parser.add_argument('--cold-report', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--candidate', default='preflight',
-                        choices=('preflight', 'agent-read-page', 'agent-schema', 'agent-response-schema',
+                        choices=('preflight', 'agent-discovery', 'agent-read-page', 'agent-schema', 'agent-response-schema',
                                  'agent-verify-response-schema', 'execution-ledger', 'sqlite-wal-snapshot',
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',

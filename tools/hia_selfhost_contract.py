@@ -833,6 +833,8 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/agent_read_page.hepta',
     'tools/generate_hia_agent_read_page.py',
     'tests/test_hia_agent_read_page_native.py',
+    'examples/hia_bootstrap/agent_discovery.hepta',
+    'tools/generate_hia_agent_discovery.py',
     'examples/hia_bootstrap/agent_schema.hepta',
     'tools/generate_hia_agent_schema.py',
     'tests/test_hia_agent_schema_native.py',
@@ -1140,6 +1142,14 @@ def support_contract(root=ROOT):
             'reference_authentication_and_cursor_storage': 'original Store interface',
             'default_service_changed': False,
         },
+        'agent_discovery': {
+            'source': 'examples/hia_bootstrap/agent_discovery.hepta',
+            'selection': 'explicit HEPTA_HIA_AGENT_DISCOVERY_MANIFEST; no fallback',
+            'native_owners': ['discovery refusal precedence', 'six resource routes',
+                              'eight canonical primitive opcode catalogs'],
+            'profile_creation_and_resource_authority': 'original Store interface',
+            'default_service_changed': False,
+        },
         'agent_input_schema': {
             'source': 'examples/hia_bootstrap/agent_schema.hepta',
             'catalog': 'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
@@ -1165,7 +1175,7 @@ def support_contract(root=ROOT):
         'native_worker_helper_bundle': {
             'implementation': 'hepta/hia_native_helpers.py',
             'schema': 'hepta.hia.native-helpers.v1',
-            'supported_single_image_selectors': 29,
+            'supported_single_image_selectors': 30,
             'current_journal_schema': 'hepta.hia.agent-journal-native.v2',
             'execution_budget_schema': 'hepta.hia.execution-budget-native.v1',
             'candidate_budget_schema': 'hepta.hia.candidate-budget-native.v1',

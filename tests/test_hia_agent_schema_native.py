@@ -1,4 +1,4 @@
-"""Check source-generated Agent schemas against the existing service behavior."""
+"""Check native Agent schemas and discovery against the existing service behavior."""
 from __future__ import annotations
 
 import argparse
@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from hepta.hia_agent_contract import VERSION, catalog, validate
+from hepta import hia_agent_discovery_native as discovery
 from hepta.hia_agent_schema_native import SELECTOR, SOURCE, installed_agent_schema
 from hepta import hia_agent_response_schema_native as responses
 from hepta import hia_agent_verify_response_schema_native as proofs
@@ -22,6 +23,56 @@ class AgentSchemaSourceTests(unittest.TestCase):
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
         self.assertEqual(responses.SOURCE.read_text(), render_assembly(document(profile='response')))
         self.assertEqual(proofs.SOURCE.read_text(), render_assembly(document(profile='verify')))
+
+
+    def test_generated_discovery_matches_current_opcodes(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_agent_discovery import document, source_program
+        self.assertEqual(discovery.SOURCE.read_text(),
+                         render_assembly(document(source_program(), 'agent_discovery')))
+
+
+class AgentDiscoveryNativeTests(unittest.TestCase):
+    manifest = None
+    test_root = None
+
+    def setUp(self):
+        if self.manifest is None:
+            self.skipTest('provide the matching native Agent discovery image')
+
+    def test_exact_issued_resources_and_canonical_catalog_for_all_versions(self):
+        from hepta.hia_agent_store import wire
+        from hepta.hia_opcodes import opcode_catalog
+        sections = ('manifest', 'language', 'backend', 'examples', 'diagnostics', 'plans')
+        with tempfile.TemporaryDirectory(dir=self.test_root) as root:
+            service = HIAAgentService(Path(root) / 'state')
+            try:
+                backend = service.profiles['backend']['id']
+                cases = [{'section': section, 'language_schema': version,
+                          'backend_profile': backend, 'max_bytes': 512}
+                         for version in discovery.VERSIONS for section in sections]
+                cases.extend({'section': section} for section in sections)
+                cases += [
+                    {'section': 'language', 'language_schema': '否' * 128},
+                    {'section': 'language', 'backend_profile': '不存在', 'language_schema': 'bad'},
+                    {'section': 'language', 'backend_profile': 'bad',
+                     'language_schema': 'bad', 'cursor': 'cursor'},
+                ]
+                reference = [service.call('hia_describe', case) for case in cases]
+                catalogs = {version: wire(opcode_catalog(version)) for version in discovery.VERSIONS}
+                with (patch.dict('os.environ', {discovery.SELECTOR: str(self.manifest)}),
+                      patch.object(service, '_reference_describe', side_effect=AssertionError('host routing used')),
+                      patch('hepta.hia_opcodes.opcode_catalog', side_effect=AssertionError('host catalog used'))):
+                    for args, expected in zip(cases, reference):
+                        with self.subTest(args=args):
+                            result = service.call('hia_describe', args)
+                            self.assertEqual(result, expected)
+                            if args['section'] == 'language' and result['status'] == 'completed':
+                                body = result['result']
+                                raw, _ = service.store.get(body['resources'][-1], kind='profile')
+                                self.assertEqual(raw, catalogs[body['language_catalogs'][0]['id']])
+            finally:
+                service.close()
 
 
 class AgentSchemaNativeTests(unittest.TestCase):
@@ -181,6 +232,7 @@ def main():
     parser.add_argument('--test-root', type=Path, required=True)
     parser.add_argument('--response-manifest', type=Path)
     parser.add_argument('--proof-manifest', type=Path)
+    parser.add_argument('--discovery-manifest', type=Path)
     args = parser.parse_args()
     AgentSchemaNativeTests.manifest = args.manifest.resolve()
     AgentSchemaNativeTests.test_root = args.test_root.resolve()
@@ -188,10 +240,12 @@ def main():
     AgentResponseSchemaNativeTests.response_manifest = args.response_manifest
     AgentResponseSchemaNativeTests.proof_manifest = args.proof_manifest
     AgentResponseSchemaNativeTests.test_root = AgentSchemaNativeTests.test_root
+    AgentDiscoveryNativeTests.manifest = args.discovery_manifest
+    AgentDiscoveryNativeTests.test_root = AgentSchemaNativeTests.test_root
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite(loader.loadTestsFromTestCase(cls)
                               for cls in (AgentSchemaSourceTests, AgentSchemaNativeTests,
-                                          AgentResponseSchemaNativeTests))
+                                          AgentResponseSchemaNativeTests, AgentDiscoveryNativeTests))
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 
 

@@ -41,10 +41,11 @@ def capabilities_bytes():
 VERIFIED = b'{"schema":"hepta.hia.agent-stdio.v1","status":"verified","machine_code_published":false}\n'
 
 
-def writes(payload):
+def writes(payload, *, offset=0):
     text = ''
-    for at in range(0, len(payload), 8):
-        chunk = payload[at:at+8]
+    for i in range(0, len(payload), 8):
+        at = offset + i
+        chunk = payload[i:i + 8]
         if len(chunk) == 8:
             text += f'    put_word(o, {at}, {int.from_bytes(chunk, "little")})\n'
         else:
@@ -67,14 +68,21 @@ def catalog_pieces(document):
 
 
 def catalog_table():
-    """Pack eight wire recipes followed by deduplicated immutable JSON pieces."""
+    """Pack the versioned pretty-printed stdio catalog recipes."""
+    return pack_catalog_recipes(
+        catalog_pieces(json.dumps(opcode_catalog(schema), ensure_ascii=False, indent=2, sort_keys=True) + '\n')
+        for schema in PRIMITIVE_PROFILES
+    )
+
+
+def pack_catalog_recipes(documents):
+    """Pack versioned wire recipes followed by deduplicated immutable JSON pieces."""
     recipes = []
     pieces = {}
     data = bytearray()
-    for schema in PRIMITIVE_PROFILES:
-        document = json.dumps(opcode_catalog(schema), ensure_ascii=False, indent=2, sort_keys=True) + '\n'
+    for document in documents:
         recipe = []
-        for piece in catalog_pieces(document):
+        for piece in document:
             if piece not in pieces:
                 pieces[piece] = len(data)
                 data.extend(piece)

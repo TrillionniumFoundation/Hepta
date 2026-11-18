@@ -516,7 +516,10 @@ class AgentStore:
         return ref
 
     def profile(self, identifier, value):
-        ref = self.json(value, "profile")
+        return self.profile_bytes(identifier, wire(value))
+
+    def profile_bytes(self, identifier, canonical):
+        ref = self.put(canonical, "profile")
         profile = {"id": identifier, "sha256": ref["sha256"]}
         self.db.execute("INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
                         (identifier, ref["sha256"], wire(ref).decode()))

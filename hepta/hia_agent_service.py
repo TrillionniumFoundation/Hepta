@@ -419,6 +419,28 @@ class HIAAgentService:
         return max(0, (deadline - time.time_ns()) // 1_000_000)
 
     def _hia_describe(self, args):
+        selected = os.environ.get('HEPTA_HIA_AGENT_DISCOVERY_MANIFEST')
+        if selected:
+            from .hia_agent_discovery_native import RESOURCE_ROLES, installed_agent_discovery
+            language_schema, language, roles = installed_agent_discovery(selected).plan(
+                args, self.profiles['backend']['id'])
+            profile, language_ref = self.store.profile_bytes(language_schema, language)
+            resources = []
+            for role in roles:
+                owner, name = RESOURCE_ROLES[role]
+                if owner is None:
+                    resources.append(language_ref)
+                elif name is None:
+                    resources.append(getattr(self, owner))
+                else:
+                    resources.append(getattr(self, owner)[name])
+        else:
+            profile, resources = self._reference_describe(args)
+        return {"catalog_sha256": self.catalog_sha256, "manifest": self.manifest,
+            "language_catalogs": [profile], "backend_profiles": [self.profiles["backend"]],
+            "artifact_profiles": [self.profiles["artifact"]], "resources": resources, "next_cursor": None}
+
+    def _reference_describe(self, args):
         from .hia_opcodes import opcode_catalog
         if "cursor" in args:
             reject("E_HIA_CURSOR", "discovery has no further page for this bounded manifest")
@@ -441,9 +463,7 @@ class HIAAgentService:
                       self.resources["machine_plan_guide"], self.resources["macro_policy"],
                       self.resources["macro_policy_guide"]],
         }[section]
-        return {"catalog_sha256": self.catalog_sha256, "manifest": self.manifest,
-            "language_catalogs": [profile], "backend_profiles": [self.profiles["backend"]],
-            "artifact_profiles": [self.profiles["artifact"]], "resources": resources, "next_cursor": None}
+        return profile, resources
 
     def _hia_artifact(self, args):
         self._profile(args["artifact_profile"], "artifact")
