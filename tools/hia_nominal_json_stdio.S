@@ -1,6 +1,7 @@
 /* Fixed stdio transport for the checked-in HIA nominal JSON codec.
- * stdin: HIANJQ01 codec request (64), little-endian input length (8), JSON.
- * stdout: exact 64-byte codec header and packet, or a fixed refusal frame.
+ * stdin: 64-byte codec request, little-endian byte length, payload.
+ * HIANJQ01 reads raw JSON; HIAJTQ01 reads the exact-kind nominal packet.
+ * stdout: exact 64-byte HIA header and result, or a fixed refusal frame.
  */
 .intel_syntax noprefix
 .text
@@ -10,6 +11,9 @@
 .equ CAPACITY,32<<20
 .equ BAD_BYTES,0xfffffffb
 .equ REPLY_MAGIC,0x3130504a4e414948
+.equ RENDER_REQUEST,0x313051544a414948
+.equ RENDER_REPLY,0x313050544a414948
+.equ RENDER_LIMIT,(8<<20)+128
 .equ ERROR_MAGIC,0x3130454a4e414948
 
 _start:
@@ -28,7 +32,14 @@ _start:
  mov edx,72
  call read_exact
  mov r15,[rip+input_header+64]
+ mov rax,RENDER_REQUEST
+ cmp [rip+input_header],rax
+ je render_limit
  cmp r15,RAW_LIMIT
+ jmp check_limit
+render_limit:
+ cmp r15,CAPACITY
+check_limit:
  ja bytes_refusal
  mov esi,1
  test r15,r15
@@ -79,11 +90,14 @@ eof:
  mov eax,eax
  cmp eax,0xfffffff9
  jae codec_refusal
- cmp eax,16
- jb io_error
- cmp eax,CAPACITY
- ja io_error
  mov r12,rax
+ mov rax,RENDER_REQUEST
+ cmp [rip+input_header],rax
+ je check_render_reply
+ cmp r12,16
+ jb io_error
+ cmp r12,CAPACITY
+ ja io_error
  mov rax,REPLY_MAGIC
  cmp [r14],rax
  jne io_error
@@ -102,6 +116,22 @@ eof:
  mov rax,[rip+input_header+24]
  cmp [r14+32],rax
  jne io_error
+ jmp reply
+check_render_reply:
+ test r12,r12
+ jz io_error
+ cmp r12,RENDER_LIMIT
+ ja io_error
+ mov rax,RENDER_REPLY
+ cmp [r14],rax
+ jne io_error
+ cmp [r14+8],r12
+ jne io_error
+ cmp [r14+16],r15
+ jne io_error
+ cmp QWORD PTR [r14+56],1
+ jne io_error
+reply:
  mov edi,1
  mov rsi,r14
  mov edx,64

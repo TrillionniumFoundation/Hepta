@@ -19,7 +19,9 @@ SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',
                      *EXECUTION_LEDGER_SDIST_FILES,
                      *NATIVE_LINKER_SDIST_FILES,
                      *WORKER_REQUEST_SDIST_FILES,
-                     *SQLITE_SNAPSHOT_SDIST_FILES)
+                     *SQLITE_SNAPSHOT_SDIST_FILES,
+                     'tools/build_hia_nominal_json.py',
+                     'tools/hia_nominal_json_stdio.S')
 BUNDLED_SOURCE_BINDINGS={
     'cli_control':('hepta.hia_cli_native','control'),
     'cli_format':('hepta.hia_cli_native','format'),

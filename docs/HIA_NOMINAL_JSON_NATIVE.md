@@ -301,3 +301,34 @@ routes remain. Any later public replacement must retain the byte/UTF-8/Core64/
 integer-policy error order and original diagnostics, plus downstream primitive
 Core verification. Fixed native image dispatch does not by itself replace the
 host payload adapters listed above.
+
+## Compact JSON rendering for type-command transport
+
+The same executable also accepts `HIAJTQ01` followed by seven zero
+little-endian u64 words, a u64 packet byte length, one nominal typed
+packet, and EOF. The packet can be the result of the forward codec or a
+derived type command. Rendering preserves object-member order, decimal
+integer spelling and Unicode; quotes, backslashes and ASCII controls
+are escaped as by the existing compact UTF-8 type-command writer.
+It does not sort keys or normalize values.
+
+A successful response is `HIAJTP01` followed by output length, input
+length, the number of traversed packet nodes (including object keys),
+three reserved zero words, version one, and the compact JSON bytes.
+HIA validates container lengths and arities, key type, leaf framing,
+canonical decimal and strict UTF-8, with no output on refusal. Like a
+streaming JSON writer, it does not enforce unique object keys on an
+externally constructed packet; forward admission and the type reader
+remain responsible for semantic member validation.
+
+Packets are limited to 32 MiB, 1,048,576 nodes and 130 nested container
+frames; the JSON output is bounded by the existing type command limit,
+8 MiB + 128 bytes. The extra frames allow a raw depth-128 document with
+the existing constructor wrapper to round trip. These are codec
+limits, not permissions to send more deeply nested commands to the
+actual type resolver. Invalid packet representation uses
+`0xffffffff`, traversal or output limits `0xfffffffe`, input byte
+limit `0xfffffffb`, and invalid request/work buffers `0xfffffffd`,
+in the existing `HIANJE01` envelope. Refusal returns no partial JSON.
+The codec does not yet translate the constructor continuation tokens
+or dispatch the five resolver commands.
