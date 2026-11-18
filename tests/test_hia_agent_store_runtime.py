@@ -148,7 +148,7 @@ class NativeStoreArgv(unittest.TestCase):
 
             with (store / 'wal.lock').open('rb') as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                self.refused_batch(args, data)
+                self.run_native(args, data, expected=75)
             self.assertEqual(self.state(parent), initial)
 
             receipt = self.run_native(args, data)
