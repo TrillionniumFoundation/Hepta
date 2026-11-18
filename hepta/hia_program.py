@@ -17,6 +17,8 @@ returns (including error-as-value returns), not promised after an abort.
 from __future__ import annotations
 
 from collections import deque
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from hashlib import sha256
 import json
@@ -923,16 +925,48 @@ def _verify_function(schema, fn, blocks, interfaces):
         _reject("not all blocks were checked", "E_HIA_CFG")
 
 
+_VERIFIED_ADMISSION = ContextVar('hia_verified_program_admission', default=None)
+
+
+@contextmanager
+def native_verified_program_scope(admission):
+    """Use one source-bound admission owner during an ordinary Agent call."""
+    token = _VERIFIED_ADMISSION.set(admission)
+    try:
+        yield
+    finally:
+        _VERIFIED_ADMISSION.reset(token)
+
+
 def verify_program(program) -> VerifiedProgram:
     """Check standalone operations and every CFG edge; no source/hash authority.
 
     Even a manually constructed VerifiedProgram is parsed and fully rechecked.
     Caller-owned dictionaries and decoded dictionaries never back execution.
     """
+    admission = _VERIFIED_ADMISSION.get()
+    if admission is not None and isinstance(program, VerifiedProgram):
+        original = program.structured_bytes
+        raw = program.canonical_bytes if original is None else original
+        if type(raw) is bytes and len(raw) <= MAX_BYTES:
+            checked = admission(raw)
+            if checked is None:
+                # Translate the existing public diagnostic, never accept a
+                # program refused by the selected whole-program authority.
+                _verify_program_reference(program)
+                _reject("native whole-program checker refused Core", "E_HIA_CORE")
+            if original is not None and (checked.structured_bytes != original
+                                        or checked.canonical_bytes != program.canonical_bytes):
+                _reject("structured input and executable core differ", "E_HIA_CORE")
+            return checked
+    return _verify_program_reference(program)
+
+
+def _verify_program_reference(program):
     if isinstance(program, VerifiedProgram) and program.structured_bytes is not None:
         if type(program.structured_bytes) is not bytes:
             _reject("structured input must be immutable canonical bytes", "E_HIA_FORMAT")
-        checked = verify_program(program.structured_bytes)
+        checked = _verify_program_reference(program.structured_bytes)
         if (checked.structured_bytes != program.structured_bytes
                 or checked.canonical_bytes != program.canonical_bytes):
             _reject("structured input and executable core differ", "E_HIA_CORE")
@@ -943,7 +977,7 @@ def verify_program(program) -> VerifiedProgram:
         from .hia_program_composite import elaborate_program
         # The entire input was bounded/strictly decoded above.  The whole
         # generated program is independently checked, with no receipt bypass.
-        core = verify_program(elaborate_program(data))
+        core = _verify_program_reference(elaborate_program(data))
         return VerifiedProgram(core.canonical_bytes, raw)
     if type(data) is dict and data.get("schema") == SCHEMA_V2 and "types" in data:
         _reject("historical nominal v2 requires import_legacy_composite_v2; "

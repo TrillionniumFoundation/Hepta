@@ -110,7 +110,8 @@ class AgentInspectionNativeTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly
         from hepta.hia_agent_candidate_native import NativeAgentCandidateImport, IMPORT_EXECUTABLES
         from hepta.hia_agent_store_native import capture_release_image
-        from hepta.hia_program import verify_program
+        from hepta import hia_program
+        from hepta.hia_program import HIAProgramRejected, VerifiedProgram, native_verified_program_scope, verify_program
         from tools.hia_agent_native_qualification import (
             Session, ToolClient, add_program, exhaustive_u8_workload,
         )
@@ -134,6 +135,10 @@ class AgentInspectionNativeTests(unittest.TestCase):
                 controls = []
                 nominal_ref = session.artifact(nominal)
                 nominal_program = verify_program(nominal)
+                primitive_ref = session.artifact(primitive)
+                lowering = session.arguments(mutable=False, program=primitive_ref, view='lowering')
+                expected_lowering = ordinary.call('hia_inspect', lowering)
+                self.assertEqual(expected_lowering['status'], 'completed', expected_lowering)
                 for raw, source_format in sources:
                     source = session.artifact(raw)
                     args = session.arguments(change={'kind': 'import', 'format': source_format, 'source': source})
@@ -150,6 +155,25 @@ class AgentInspectionNativeTests(unittest.TestCase):
                     explanation = selected.call('hia_inspect', session.arguments(
                         mutable=False, program=nominal_ref, view='summary'))
                     self.assertEqual(explanation['status'], 'completed', explanation)
+
+                reference = hia_program._verify_program_reference
+
+                def forbid_host_consumer_recheck(program):
+                    self.assertNotIsInstance(program, VerifiedProgram, 'hosted consumer Core recheck entered')
+                    return reference(program)
+
+                with patch.object(hia_program, '_verify_program_reference',
+                                  side_effect=forbid_host_consumer_recheck):
+                    self.assertEqual(selected.call('hia_inspect', lowering), expected_lowering)
+                    with (patch.object(importer, 'retained_program', wraps=importer.retained_program) as owner,
+                          native_verified_program_scope(importer.recheck_for_request())):
+                        self.assertEqual(verify_program(nominal_program), nominal_program)
+                        self.assertEqual(verify_program(nominal_program), nominal_program)
+                        forged = VerifiedProgram(verify_program(primitive).canonical_bytes,
+                                                 nominal_program.structured_bytes)
+                        with self.assertRaisesRegex(HIAProgramRejected, 'structured input and executable core differ'):
+                            verify_program(forged)
+                        owner.assert_called_once_with(nominal_program.structured_bytes)
                 for index, (args, expected) in enumerate(controls):
                     args = {**args, 'request_key': args['request_key'] + '/native'}
                     if index < 3:

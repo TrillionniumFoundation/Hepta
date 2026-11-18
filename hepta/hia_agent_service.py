@@ -296,11 +296,16 @@ class HIAAgentService:
                 "details_artifact": details}}
 
     def call(self, tool, arguments):
-        selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
-        if selected:
-            from .hia_agent_journal_native import call_with_native_journal
-            return call_with_native_journal(self, tool, arguments, selected)
-        return self._reference_call(tool, arguments)
+        from .hia_program import native_verified_program_scope
+
+        importer = self._native_candidate_import
+        recheck = None if importer is None else importer.recheck_for_request()
+        with native_verified_program_scope(recheck):
+            selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
+            if selected:
+                from .hia_agent_journal_native import call_with_native_journal
+                return call_with_native_journal(self, tool, arguments, selected)
+            return self._reference_call(tool, arguments)
 
     def _reference_call(self, tool, arguments):
         started = time.monotonic_ns()

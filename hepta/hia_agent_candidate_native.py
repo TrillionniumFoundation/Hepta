@@ -155,6 +155,26 @@ class NativeAgentCandidateImport:
         core, original, profile = admitted
         return VerifiedProgram(core, original if profile else None)
 
+    def recheck_for_request(self):
+        """Bound memoization to verified immutable bytes and one tool request."""
+        accepted = {}
+        remaining = 1 << 20
+
+        def recheck(raw):
+            nonlocal remaining
+            verified = accepted.get(raw)
+            if verified is not None:
+                return verified
+            verified = self.retained_program(raw)
+            if verified is not None:
+                extent = len(raw) + len(verified.canonical_bytes) + len(verified.structured_bytes or b'')
+                if extent <= remaining:
+                    accepted[raw] = verified
+                    remaining -= extent
+            return verified
+
+        return recheck
+
     def admit(self, data, source_format):
         from .hia_agent_inspection_native import installed_agent_inspection
         from .hia_program import MAX_BYTES
