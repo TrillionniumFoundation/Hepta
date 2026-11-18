@@ -257,7 +257,7 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/patch-result"
           python -B -m tools.build_hia_worker_request_cli --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/worker-request"
-          python -B -m tools.build_hia_core_edit --compiler "$compiler" \
+          python -B -m tools.build_hia_core_edit --release-only --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-edit"
           python -B -m tools.build_hia_core_json_cli --output-profile elf --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/public-selfhost"
@@ -315,6 +315,7 @@ jobs:
             < "$package/store.hiapack" > "$package/install.json"
           installed="$package/installed/$digest"
           test "$(stat -c '%a' "$installed")" = 500
+          test ! -e "$installed/hia-emit-object"
           env -i PATH= "$installed/hia-directory-package-build" "$installed" \
             > "$package/repacked.hiapack" 2> "$package/repacked.sha256"
           cmp "$package/store.hiapack" "$package/repacked.hiapack"

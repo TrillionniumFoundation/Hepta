@@ -210,12 +210,16 @@ def pack(packer, stub, holes, images):
     return binary, inspect_executable(binary)
 
 
-def build(output, compiler, cold_report):
+def build(output, compiler, cold_report, *, release_only=False):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
-    adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in PROGRAMS}
+    # The stdin-to-object development probe is not a public dispatcher role.
+    # Public object builds use the checked, atomic build_object publisher.
+    programs = {key: value for key, value in PROGRAMS.items()
+                if not release_only or key != 'emit_object'}
+    adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     source_files = {PACKER, *adapters.values(),
-                    *(path for _name, roles in PROGRAMS.values() for path, _calls in roles)}
+                    *(path for _name, roles in programs.values() for path, _calls in roles)}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
     if any(admitted.get(path) != digest(raw) for path, raw in sources.items()):
         raise ValueError('native Core edit source differs from admitted cold source')
@@ -231,7 +235,7 @@ def build(output, compiler, cold_report):
         receipts[path] = receipt
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
     products = {}
-    for kind, (name, roles) in PROGRAMS.items():
+    for kind, (name, roles) in programs.items():
         adapter = adapters[kind]
         folder = output / kind
         folder.mkdir(mode=0o700)
@@ -265,8 +269,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--release-only', action='store_true',
+                        help='omit the standalone development emission probe')
     args = parser.parse_args()
-    print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()))
+    print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
+                release_only=args.release_only))
 
 
 if __name__ == '__main__':
