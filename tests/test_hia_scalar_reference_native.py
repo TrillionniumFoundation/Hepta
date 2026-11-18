@@ -189,3 +189,77 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
             self.assertEqual(observe(cases), expected)
+
+    def test_byte_ranges_and_traps_use_existing_owned_buffers_without_host_writes(self):
+        from tests.test_hia_program_native_review import _bounds_program, _empty_memory_program
+
+        target = bytearray(range(9))
+        source = bytearray(range(30, 39))
+        self.native.byte_operation('copy_range', target, offset=1, source=source, source_offset=2, count=3)
+        self.native.byte_operation('fill', target, offset=5, count=2, value=3)
+        self.native.byte_operation('move', target, offset=2, source_offset=0, count=5)
+        self.native.byte_operation('move', target, offset=0, source_offset=2, count=4)
+        self.native.byte_operation('swap', target, offset=1, source_offset=3)
+        self.native.byte_operation('store', target, offset=7, value=255)
+        self.assertEqual(self.native.byte_operation('load', target, offset=7), 255)
+        self.assertEqual(target, bytearray((0, 34, 33, 32, 33, 34, 4, 255, 8)))
+        self.assertEqual(source, bytearray(range(30, 39)))
+        snapshot = target[:]
+        invalid = (('load', {'offset':len(target)}), ('store', {'offset':len(target)}),
+                   ('fill', {'offset':len(target), 'count':1}),
+                   ('copy_range', {'source':source, 'source_offset':len(source), 'count':1}),
+                   ('move', {'offset':1, 'source_offset':0, 'count':1<<63}),
+                   ('swap', {'offset':1, 'source_offset':len(target)}))
+        for kind, arguments in invalid:
+            with self.subTest(kind=kind), self.assertRaises(HIAProgramTrap):
+                self.native.byte_operation(kind, target, **arguments)
+            self.assertEqual(target, snapshot)
+        self.native.byte_operation('move', target, offset=len(target), source_offset=len(target), count=0)
+        self.native.byte_operation('copy_range', bytearray(), source=bytearray(), count=0)
+
+        empty = _empty_memory_program()
+        bounds = _bounds_program()
+        cases = [(empty, 'empty_memory', ()),
+                 *((bounds, name, ((1 << 64) - 1, 1))
+                   for name in ('bad_copy', 'bad_fill', 'bad_move', 'bad_swap'))]
+        def observe():
+            terminal = []
+            for doc, name, arguments in cases:
+                try:
+                    terminal.append(execute_program(doc, name, arguments))
+                except HIAProgramTrap as error:
+                    terminal.append(error.report)
+            return terminal
+
+        expected = observe()
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch('hepta.hia_program_runtime.fill_bytes', side_effect=AssertionError('host fill')),
+              patch('hepta.hia_program_runtime.move_bytes', side_effect=AssertionError('host move'))):
+            self.assertEqual(observe(), expected)
+
+    def test_allocator_preflight_keeps_empty_attempts_fault_injection_and_heap_status(self):
+        from hepta.hia_program_runtime import HIAProgramBudgetExceeded
+        from tests.test_hia_program import resource_program
+
+        self.assertEqual(self.native.allocation(0, 0, 0, 0, 1), ('empty', 0))
+        self.assertEqual(self.native.allocation(1 << 63, 8, 0, 0, 1), ('object-model', 0))
+        self.assertEqual(self.native.allocation(5, 8, 4, 2, 3), ('heap-budget', 2))
+        self.assertEqual(self.native.allocation(4, 8, 4, 2, 3), ('injected', 3))
+        self.assertEqual(self.native.allocation(4, 8, 4, 2, 1 << 200), ('allocate', 3))
+
+        cases = ((8, 8, 1), (8, 7, 1), (8, 8, None), (8, 8, 1 << 200), (1 << 63, 8, None))
+        def compare():
+            answers = []
+            for size, limit, fault in cases:
+                try:
+                    answers.append(execute_program(resource_program(), 'owned', [size, 45],
+                                                   max_heap_bytes=limit, allocation_fail_at=fault))
+                except (HIAProgramTrap, HIAProgramBudgetExceeded) as error:
+                    answers.append(error.report)
+            return answers
+
+        expected = compare()
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, '_reference_allocation_decision',
+                           side_effect=AssertionError('host allocation preflight'))):
+            self.assertEqual(compare(), expected)

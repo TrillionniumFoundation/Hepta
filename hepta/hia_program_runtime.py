@@ -182,17 +182,22 @@ class _Machine:
     def allocate(self, size, optional):
         # Zero-size owners are real capabilities but require no allocator call,
         # cannot fail, and do not consume the deterministic failure injection.
-        if size == 0:
+        if self.scalar_reference is not None:
+            decision, attempts = self.scalar_reference.allocation(
+                size, self.max_heap_bytes, self.live_bytes, self.allocation_attempts, self.allocation_fail_at)
+        else:
+            decision, attempts = self._reference_allocation_decision(size)
+        self.allocation_attempts = attempts
+        if decision == "empty":
             return self.new_owner(bytearray()), True
-        if size > (1 << 63) - 1:
+        if decision == "object-model":
             if optional:
                 return self.new_owner(bytearray()), False
             raise HIAProgramTrap("allocation", "allocation exceeds the 64-bit object-size model")
         # A host evaluator budget is not reported as a program malloc failure.
-        if size > self.max_heap_bytes - self.live_bytes:
+        if decision == "heap-budget":
             raise HIAProgramBudgetExceeded("heap", "finite live-byte limit reached")
-        self.allocation_attempts += 1
-        failed = self.allocation_fail_at == self.allocation_attempts
+        failed = decision == "injected"
         if not failed:
             try:
                 return self.new_owner(bytearray(size)), True
@@ -201,6 +206,17 @@ class _Machine:
         if failed and optional:
             return self.new_owner(bytearray()), False
         raise HIAProgramTrap("allocation", "allocator returned failure")
+
+    def _reference_allocation_decision(self, size):
+        attempts = self.allocation_attempts
+        if size == 0:
+            return "empty", attempts
+        if size > (1 << 63) - 1:
+            return "object-model", attempts
+        if size > self.max_heap_bytes - self.live_bytes:
+            return "heap-budget", attempts
+        attempts += 1
+        return ("injected" if self.allocation_fail_at == attempts else "allocate"), attempts
 
     def drop(self, owner):
         owner = _underlying(owner)
@@ -343,16 +359,22 @@ class _Machine:
             del env[names[0]]
         elif op == "buffer.load":
             owner, index = _underlying(args[0]), args[1]
-            if index >= len(owner.data):
-                raise HIAProgramTrap("bounds", "byte load outside the borrowed buffer")
-            result = [owner.data[index]]
+            if self.scalar_reference is not None:
+                result = [self.scalar_reference.byte_operation("load", owner.data, offset=index)]
+            else:
+                if index >= len(owner.data):
+                    raise HIAProgramTrap("bounds", "byte load outside the borrowed buffer")
+                result = [owner.data[index]]
         elif op == "buffer.store":
             owner, index, value = _underlying(args[0]), args[1], args[2]
             if not isinstance(args[0], _View) or not args[0].mutable:
                 raise HIAProgramRejected("write through non-mutable view", "E_HIA_RUNTIME_INVARIANT")
-            if index >= len(owner.data):
-                raise HIAProgramTrap("bounds", "byte store outside the borrowed buffer")
-            owner.data[index] = value
+            if self.scalar_reference is not None:
+                self.scalar_reference.byte_operation("store", owner.data, offset=index, value=value)
+            else:
+                if index >= len(owner.data):
+                    raise HIAProgramTrap("bounds", "byte store outside the borrowed buffer")
+                owner.data[index] = value
         elif op == "buffer.fill":
             owner, value = _underlying(args[0]), args[1]
             if not isinstance(args[0], _View) or not args[0].mutable:
@@ -360,7 +382,10 @@ class _Machine:
             # Bounded host scratch, not an O(owner_length) temporary.
             # The HIA Owner allocation and its declared effects are unchanged.
             try:
-                fill_bytes(owner.data, 0, len(owner.data), value)
+                if self.scalar_reference is not None:
+                    self.scalar_reference.byte_operation("fill", owner.data, count=len(owner.data), value=value)
+                else:
+                    fill_bytes(owner.data, 0, len(owner.data), value)
             except MemoryError as exc:
                 raise HIAProgramBudgetExceeded("host_memory", "bulk fill exceeds host memory") from exc
         elif op == "buffer.copy":
@@ -369,10 +394,13 @@ class _Machine:
                 raise HIAProgramRejected("copy requires checked mutable and shared loans", "E_HIA_RUNTIME_INVARIANT")
             if destination is source:
                 raise HIAProgramRejected("copy alias escaped static owner verification", "E_HIA_RUNTIME_INVARIANT")
-            if size > len(destination.data) or size > len(source.data):
-                raise HIAProgramTrap("bounds", "bulk copy exceeds an owner extent")
-            # Distinct live allocations are guaranteed by the verified roots.
-            memoryview(destination.data)[:size] = memoryview(source.data)[:size]
+            if self.scalar_reference is not None:
+                self.scalar_reference.byte_operation("copy", destination.data, source=source.data, count=size)
+            else:
+                if size > len(destination.data) or size > len(source.data):
+                    raise HIAProgramTrap("bounds", "bulk copy exceeds an owner extent")
+                # Distinct live allocations are guaranteed by the verified roots.
+                memoryview(destination.data)[:size] = memoryview(source.data)[:size]
         elif op == "buffer.move_within":
             # Exact memmove semantics, including overlapping byte ranges.
             # All offsets are already verified usize; prove each subrange
@@ -383,16 +411,20 @@ class _Machine:
                 raise HIAProgramRejected("in-place move needs a unique mutable loan",
                                          "E_HIA_RUNTIME_INVARIANT")
             extent = len(owner.data)
-            if (destination > extent or source > extent
-                    or size > extent - destination or size > extent - source):
-                raise HIAProgramTrap("bounds", "in-place byte range exceeds owned extent")
-            if size:
-                # Match memmove overlap semantics without O(size) host scratch.
-                try:
-                    move_bytes(owner.data, destination, source, size)
-                except MemoryError as exc:
-                    raise HIAProgramBudgetExceeded(
-                        "host_memory", "in-place copy exceeds host memory") from exc
+            try:
+                if self.scalar_reference is not None:
+                    self.scalar_reference.byte_operation("move", owner.data, offset=destination,
+                                                        source_offset=source, count=size)
+                else:
+                    if (destination > extent or source > extent
+                            or size > extent - destination or size > extent - source):
+                        raise HIAProgramTrap("bounds", "in-place byte range exceeds owned extent")
+                    # Match memmove overlap semantics without O(size) host scratch.
+                    if size:
+                        move_bytes(owner.data, destination, source, size)
+            except MemoryError as exc:
+                raise HIAProgramBudgetExceeded(
+                    "host_memory", "in-place copy exceeds host memory") from exc
         elif op == "buffer.fill_range":
             view, offset, size, value = args
             owner = _underlying(view)
@@ -400,14 +432,17 @@ class _Machine:
                 raise HIAProgramRejected("range fill requires unique mutable loan",
                                          "E_HIA_RUNTIME_INVARIANT")
             extent = len(owner.data)
-            if offset > extent or size > extent - offset:
-                raise HIAProgramTrap("bounds", "fill range exceeds owned extent")
-            if size:
-                try:
-                    fill_bytes(owner.data, offset, size, value)
-                except MemoryError as exc:
-                    raise HIAProgramBudgetExceeded(
-                        "host_memory", "range fill exceeds host memory") from exc
+            try:
+                if self.scalar_reference is not None:
+                    self.scalar_reference.byte_operation("fill", owner.data, offset=offset, count=size, value=value)
+                else:
+                    if offset > extent or size > extent - offset:
+                        raise HIAProgramTrap("bounds", "fill range exceeds owned extent")
+                    if size:
+                        fill_bytes(owner.data, offset, size, value)
+            except MemoryError as exc:
+                raise HIAProgramBudgetExceeded(
+                    "host_memory", "range fill exceeds host memory") from exc
         elif op == "buffer.copy_range":
             dest_view, src_view = args[:2]
             destination, source = _underlying(dest_view), _underlying(src_view)
@@ -417,23 +452,30 @@ class _Machine:
                 raise HIAProgramRejected("range copy violates checked distinct-owner loans",
                                          "E_HIA_RUNTIME_INVARIANT")
             dst_size, src_size = len(destination.data), len(source.data)
-            if (dst_offset > dst_size or src_offset > src_size
-                    or size > dst_size - dst_offset or size > src_size - src_offset):
-                raise HIAProgramTrap("bounds", "cross-owner range copy exceeds byte extent")
-            if size:
-                memoryview(destination.data)[dst_offset:dst_offset + size] = (
-                    memoryview(source.data)[src_offset:src_offset + size])
+            if self.scalar_reference is not None:
+                self.scalar_reference.byte_operation("copy_range", destination.data, offset=dst_offset,
+                                                    source=source.data, source_offset=src_offset, count=size)
+            else:
+                if (dst_offset > dst_size or src_offset > src_size
+                        or size > dst_size - dst_offset or size > src_size - src_offset):
+                    raise HIAProgramTrap("bounds", "cross-owner range copy exceeds byte extent")
+                if size:
+                    memoryview(destination.data)[dst_offset:dst_offset + size] = (
+                        memoryview(source.data)[src_offset:src_offset + size])
         elif op == "buffer.swap":
             owner = _underlying(args[0])
             left, right = args[1:]
             if not isinstance(args[0], _View) or not args[0].mutable:
                 raise HIAProgramRejected("swap needs one live mutable borrow",
                                          "E_HIA_RUNTIME_INVARIANT")
-            # Snapshot both source bytes before modifying either position.
-            if left >= len(owner.data) or right >= len(owner.data):
-                raise HIAProgramTrap("bounds", "swap byte offset outside owner extent")
-            a, b = owner.data[left], owner.data[right]
-            owner.data[left], owner.data[right] = b, a
+            if self.scalar_reference is not None:
+                self.scalar_reference.byte_operation("swap", owner.data, offset=left, source_offset=right)
+            else:
+                # Snapshot both source bytes before modifying either position.
+                if left >= len(owner.data) or right >= len(owner.data):
+                    raise HIAProgramTrap("bounds", "swap byte offset outside owner extent")
+                a, b = owner.data[left], owner.data[right]
+                owner.data[left], owner.data[right] = b, a
         elif op == "call":
             callee = self.functions[attrs["function"]]
             for name, param in zip(names, callee["params"]):

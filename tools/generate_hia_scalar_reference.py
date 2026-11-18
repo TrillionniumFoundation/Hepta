@@ -4,7 +4,7 @@ import ast
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_scalar_reference_native import MAGIC, OPCODES, RESULT
+from hepta.hia_scalar_reference_native import ALLOCATION_MAGIC, BYTE_MAGIC, MAGIC, OPCODES, RESULT
 from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT
 from tools.generate_hia_elf_linker import LinkerBuilder, SOURCE as STATIC_SOURCE
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
@@ -16,6 +16,10 @@ def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967295
     if uint(s, 0, 8) == @PROGRAM_MAGIC@:
         return reference_program(s, o, w)
+    if uint(s, 0, 8) == @BYTE_MAGIC@:
+        return byte_operation(s, o, w)
+    if uint(s, 0, 8) == @ALLOCATION_MAGIC@:
+        return allocation_decision(s, o)
     if length(s) != 56:
         return 4294967295
     if length(o) < 24:
@@ -362,6 +366,93 @@ def transfer(s:readbuf, w:mutbuf, edge:u64, frame:u64) -> u64:
         put(w, frame + i * 8, get(w, bounce + i * 8))
         i = i + 1
     return uint(s, edge, 8)
+
+def byte_operation(s:readbuf, target:mutbuf, source:mutbuf) -> u32:
+    if length(s) != 48:
+        return 4294967295
+    op = uint(s, 8, 8)
+    offset = uint(s, 16, 8)
+    other = uint(s, 24, 8)
+    count = uint(s, 32, 8)
+    value = uint(s, 40, 8)
+    if op == 1 or op == 2 or op == 6:
+        if offset >= length(target):
+            return 4294967293
+        if op == 1:
+            return 256 + byte(target, offset)
+        if op == 2:
+            if value > 255:
+                return 4294967295
+            store(target, offset, value)
+        else:
+            if other >= length(target):
+                return 4294967293
+            original = byte(target, offset)
+            store(target, offset, byte(target, other))
+            store(target, other, original)
+    elif op == 3 or op == 4 or op == 5:
+        if within(length(target), offset, count) == 0:
+            return 4294967293
+        if op == 3:
+            if value > 255:
+                return 4294967295
+            i = 0
+            while i < count:
+                store(target, offset + i, value)
+                i = i + 1
+        elif op == 4:
+            if within(length(source), other, count) == 0:
+                return 4294967293
+            i = 0
+            while i < count:
+                store(target, offset + i, byte(source, other + i))
+                i = i + 1
+        else:
+            if within(length(target), other, count) == 0:
+                return 4294967293
+            move_bytes(target, offset, other, count)
+    else:
+        return 4294967295
+    return 0
+
+def move_bytes(target:mutbuf, offset:u64, source:u64, count:u64) -> u64:
+    if offset <= source:
+        i = 0
+        while i < count:
+            store(target, offset + i, byte(target, source + i))
+            i = i + 1
+    else:
+        i = count
+        while i > 0:
+            i = i - 1
+            store(target, offset + i, byte(target, source + i))
+    return 0
+
+def allocation_decision(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 48:
+        return 4294967295
+    if length(o) < 24:
+        return 4294967294
+    amount = uint(s, 8, 8)
+    maximum = uint(s, 16, 8)
+    live = uint(s, 24, 8)
+    attempts = uint(s, 32, 8)
+    if maximum > 1073741824 or live > maximum or attempts >= 10000000:
+        return 4294967295
+    status = 0
+    if amount > 9223372036854775807:
+        status = 1
+    elif amount > maximum - live:
+        status = 2
+    elif amount != 0:
+        attempts = attempts + 1
+        status = 4
+        if attempts == uint(s, 40, 8):
+            status = 3
+    put(o, 0, @RESULT@)
+    put(o, 8, status)
+    put(o, 16, attempts)
+    return 24
 '''
 
 class ReferenceBuilder(LinkerBuilder):
@@ -372,7 +463,8 @@ class ReferenceBuilder(LinkerBuilder):
 
 
 def document():
-    constants = {'MAGIC': MAGIC, 'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
+    constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
+                 'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, **OPCODES}
     source = SOURCE
     for name, number in constants.items():

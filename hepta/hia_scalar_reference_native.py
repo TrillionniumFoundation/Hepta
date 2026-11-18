@@ -17,6 +17,8 @@ SCHEMA = 'hepta.hia.scalar-reference-native.v1'
 SELECTOR = 'HEPTA_HIA_SCALAR_REFERENCE_MANIFEST'
 MAGIC = int.from_bytes(b'HIASCP01', 'little')
 RESULT = int.from_bytes(b'HIASCR01', 'little')
+BYTE_MAGIC = int.from_bytes(b'HIASBM01', 'little')
+ALLOCATION_MAGIC = int.from_bytes(b'HIASAM01', 'little')
 WORD_MASK = (1 << 64) - 1
 _ACTIVE = ContextVar('hia_scalar_reference_child', default=None)
 OPCODES = {name: index for index, name in enumerate((
@@ -26,6 +28,16 @@ OPCODES = {name: index for index, name in enumerate((
     'compare.lt', 'compare.le', 'compare.gt', 'compare.ge', 'bool.and', 'bool.or', 'bool.not',
     'cast.wrap', 'cast.checked', 'select',
 ), 1)}
+BYTE_OPERATIONS = {
+    'load': (1, 'byte load outside the borrowed buffer'),
+    'store': (2, 'byte store outside the borrowed buffer'),
+    'fill': (3, 'fill range exceeds owned extent'),
+    'copy': (4, 'bulk copy exceeds an owner extent'),
+    'move': (5, 'in-place byte range exceeds owned extent'),
+    'swap': (6, 'swap byte offset outside owner extent'),
+    'copy_range': (4, 'cross-owner range copy exceeds byte extent'),
+}
+ALLOCATION_DECISIONS = ('empty', 'object-model', 'heap-budget', 'injected', 'allocate')
 
 
 class NativeScalarReference(NativeHiaJsonImage):
@@ -67,6 +79,42 @@ class NativeScalarReference(NativeHiaJsonImage):
         if error:
             raise self._arithmetic_error(error, typ)
         return self._value(typ, result)
+
+    def byte_operation(self, name, destination, *, offset=0, source=None,
+                       source_offset=0, count=0, value=0):
+        from .hia_program_runtime import HIAProgramTrap
+
+        opcode, message = BYTE_OPERATIONS[name]
+        request = struct.pack('<6Q', BYTE_MAGIC, opcode, offset, source_offset, count, value)
+        wire = ctypes.create_string_buffer(request)
+        # ctypes holds the two existing buffers fixed through the native call.
+        # Zero extents still use a non-null unused pointer.
+        out = ((ctypes.c_ubyte*len(destination)).from_buffer(destination)
+               if destination else ctypes.create_string_buffer(1))
+        other = ((ctypes.c_ubyte*len(source)).from_buffer(source)
+                 if source else ctypes.create_string_buffer(1))
+        status = self._entry(wire, len(request), out, len(destination), other, len(source or ()))
+        if status == 0xfffffffd:
+            raise HIAProgramTrap('bounds', message)
+        if name == 'load' and 256 <= status <= 511:
+            return status - 256
+        if name != 'load' and status == 0:
+            return None
+        raise RuntimeError('invalid HIA reference byte result')
+
+    def allocation(self, size, maximum, live, attempts, fail_at):
+        # An index above the wire width cannot match an admitted finite run.
+        failure = fail_at if fail_at is not None and fail_at <= WORD_MASK else 0
+        request = struct.pack('<6Q', ALLOCATION_MAGIC, size, maximum, live, attempts, failure)
+        source = ctypes.create_string_buffer(request)
+        output = ctypes.create_string_buffer(24)
+        unused = ctypes.create_string_buffer(1)
+        size = self._entry(source, len(request), output, len(output), unused, 0)
+        identity, decision, new_attempts = struct.unpack('<3Q', output.raw)
+        if (size != 24 or identity != RESULT or decision >= len(ALLOCATION_DECISIONS)
+                or new_attempts != attempts + (decision >= 3)):
+            raise RuntimeError('invalid HIA reference allocation decision')
+        return ALLOCATION_DECISIONS[decision], new_attempts
 
     @staticmethod
     def _arithmetic_error(error, typ):

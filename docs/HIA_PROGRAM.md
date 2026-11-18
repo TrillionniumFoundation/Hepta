@@ -66,8 +66,11 @@ The Linux x86-64 reference interpreter can select a source-bound
 pinned Agent helper bundle. The selected HIA image evaluates scalar arithmetic,
 branches, calls, returns and step/call limits for bounded scalar-only Core.
 Programs that use resource instructions still use the hosted reference
-controller, with selected HIA scalar operations where applicable. The
-independent interpreter does not run or trust the candidate machine code.
+controller. The selected image handles their scalar operations, checked byte
+loads, stores, copies, moves, fills and swaps, and allocation preflight
+including heap limits and injected failure attempts. Actual allocation and
+capability ownership remain with the controller. The independent interpreter does not
+run or trust the candidate machine code.
 
 The native `hia-native` stdio application implements `capabilities`, `verify`,
 `compile`, `render-assembly`, `assemble`, `check-assembly` and `catalog`.
