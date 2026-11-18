@@ -6,7 +6,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import (
     ALLOCATION_MAGIC, BYTE_MAGIC, CHAIN_MAGIC, DOMAIN_MAGIC, LOAN_MAGIC, MAGIC, OBSERVATION_MAGIC,
-    OPCODES, RESULT,
+    OPCODES, OWNER_MAGIC, RESULT,
 )
 from hepta.hia_scalar_reference_wire import (
     MAX_FRAME_WORDS, MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
@@ -33,6 +33,8 @@ def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return loan_operation(s, o, w)
     if uint(s, 0, 8) == @CHAIN_MAGIC@:
         return chain_operation(s, o, w)
+    if uint(s, 0, 8) == @OWNER_MAGIC@:
+        return owner_operation(s, o, w)
     if length(s) != 56:
         return 4294967295
     if length(o) < 24:
@@ -560,20 +562,81 @@ def allocation_decision(s:readbuf, o:mutbuf) -> u32:
     attempts = uint(s, 32, 8)
     if maximum > 1073741824 or live > maximum or attempts >= 10000000:
         return 4294967295
-    status = 0
-    if amount > 9223372036854775807:
-        status = 1
-    elif amount > maximum - live:
-        status = 2
-    elif amount != 0:
+    status = allocation_status(amount, maximum, live, attempts, uint(s, 40, 8))
+    if status >= 3:
         attempts = attempts + 1
-        status = 4
-        if attempts == uint(s, 40, 8):
-            status = 3
     put(o, 0, @RESULT@)
     put(o, 8, status)
     put(o, 16, attempts)
     return 24
+
+def allocation_status(amount:u64, maximum:u64, live:u64, attempts:u64, fail_at:u64) -> u64:
+    if amount > 9223372036854775807:
+        return 1
+    if amount > maximum - live:
+        return 2
+    if amount == 0:
+        return 0
+    if attempts + 1 == fail_at:
+        return 3
+    return 4
+
+def owner_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 40 or length(w) < 80 or length(o) < 80:
+        return 4294967295
+    operation = uint(s, 8, 8)
+    subject = uint(s, 16, 8)
+    maximum = uint(s, 24, 8)
+    live = get(w, 64)
+    if operation > 4 or maximum > 1073741824 or live > maximum:
+        return 4294967295
+    put(o, 0, @RESULT@)
+    put(o, 8, 0)
+    put(o, 16, 0)
+    if operation == 0:
+        # Header accounting fields correspond to output offsets 24..79.
+        i = 24
+        while i < 80:
+            put(o, i, get(w, i))
+            i = i + 8
+    elif operation == 1:
+        attempts = get(w, 24)
+        if attempts >= 10000000:
+            return 4294967295
+        decision = allocation_status(subject, maximum, live, attempts, uint(s, 32, 8))
+        if decision >= 3:
+            put(w, 24, attempts + 1)
+        put(o, 16, decision)
+    elif operation == 2:
+        if subject > maximum - live:
+            return 4294967295
+        token = arena_claim(w, 80)
+        if token == 0:
+            put(o, 8, 3)
+            return 80
+        slot = arena_slot(w, token, 80)
+        put(w, slot + 16, subject)
+        put(w, 48, get(w, 48) + 1)
+        if subject != 0:
+            put(w, 32, get(w, 32) + 1)
+            put(w, 64, live + subject)
+            if live + subject > get(w, 72):
+                put(w, 72, live + subject)
+        put(o, 16, token >> 1)
+    else:
+        slot = arena_slot(w, (subject << 1) | 1, 80)
+        if subject == 0 or subject >= 4611686018427387904 or slot == 0:
+            put(o, 8, 1)
+            return 80
+        amount = get(w, slot + 16)
+        put(o, 16, amount)
+        if operation == 4:
+            arena_release(w, slot, 80)
+            put(w, 56, get(w, 56) + 1)
+            if amount != 0:
+                put(w, 40, get(w, 40) + 1)
+                put(w, 64, live - amount)
+    return 80
 
 def finite_arguments(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 24:
@@ -838,7 +901,7 @@ def document():
     constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
                  'LOAN_MAGIC': LOAN_MAGIC,
-                 'CHAIN_MAGIC': CHAIN_MAGIC,
+                 'CHAIN_MAGIC': CHAIN_MAGIC, 'OWNER_MAGIC': OWNER_MAGIC,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,

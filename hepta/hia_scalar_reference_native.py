@@ -23,6 +23,7 @@ DOMAIN_MAGIC = int.from_bytes(b'HIASDM01', 'little')
 OBSERVATION_MAGIC = int.from_bytes(b'HIASOM01', 'little')
 LOAN_MAGIC = int.from_bytes(b'HIASLM01', 'little')
 CHAIN_MAGIC = int.from_bytes(b'HIASCM01', 'little')
+OWNER_MAGIC = int.from_bytes(b'HIASOW01', 'little')
 WORD_MASK = (1 << 64) - 1
 _ACTIVE = ContextVar('hia_scalar_reference_child', default=None)
 OPCODES = {name: index for index, name in enumerate((
@@ -163,6 +164,18 @@ class NativeScalarReference(NativeHiaJsonImage):
         if size != 56 or identity != RESULT or status not in (0, 1, 3) or present > 1:
             raise RuntimeError('invalid HIA native chain result')
         return status, first, payload, storage, bool(present), live
+
+    def owner_operation(self, workspace, operation, subject, maximum, fail_at=0):
+        failure = fail_at if fail_at is not None and fail_at <= WORD_MASK else 0
+        request = struct.pack('<5Q', OWNER_MAGIC, operation, subject, maximum, failure)
+        source = ctypes.create_string_buffer(request)
+        output = ctypes.create_string_buffer(80)
+        table = (ctypes.c_ubyte * len(workspace)).from_buffer(workspace)
+        size = self._entry(source, len(request), output, len(output), table, len(workspace))
+        identity, status, result, *counters = struct.unpack_from('<10Q', output)
+        if size != 80 or identity != RESULT or status not in (0, 1, 3):
+            raise RuntimeError('invalid HIA native owner result')
+        return status, result, counters
 
     @staticmethod
     def _arithmetic_error(error, typ):

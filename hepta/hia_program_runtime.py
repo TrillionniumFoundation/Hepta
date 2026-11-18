@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import os
+from weakref import proxy
 
 from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS,
                           integer_range, scalar_value_valid, verify_program)
@@ -111,6 +112,7 @@ class _Machine:
         self.owners = {}
         self.chains = {}
         self.native_chain_count = None
+        self.native_resources = None
         self.chains_created = self.chains_consumed = 0
         self.chain_nodes_created = self.chain_nodes_dropped = 0
 
@@ -127,6 +129,8 @@ class _Machine:
                 "peak_bytes": self.peak_bytes,
                 "loans_started": self.loans_started, "loans_ended": self.loans_ended,
                 "live_local_loans": self.loans_started - self.loans_ended}
+        if self.native_resources is not None:
+            result.update(self.native_resources.owner_counters())
         # Existing profiles retain the original report shape. New counters
         # describe the recursive data structure independently of byte owners.
         if self.recursive_chain:
@@ -604,13 +608,15 @@ class _Machine:
 
 
 class _ReferenceResources:
-    """Transport physical memory effects for HIA's loan and chain arenas."""
+    """Transport physical memory effects for HIA's resource arenas."""
 
     def __init__(self, machine):
-        self.machine = machine
+        self.machine = proxy(machine)
         self.native = machine.scalar_reference
         self.loans = bytearray(24 * 17)
         self.chains = bytearray(40 * 17)
+        self.owners = bytearray(80 * 17)
+        self.machine.native_resources = self
         self.machine.native_chain_count = 0
         self.external_owners = {}
         self.external_loans = set()
@@ -636,11 +642,59 @@ class _ReferenceResources:
 
     def owner(self, root):
         ident = (root >> 1) - ((1 << 63) if root >> 63 else 0)
+        extent = self._owner_operation(3, ident)[0] if ident > 0 else None
         backing = self.external_owners if ident < 0 else self.machine.owners
         owner = backing.get(ident)
-        if owner is None or not owner.active:
+        if owner is None or not owner.active or extent is not None and len(owner.data) != extent:
             raise HIAProgramRejected("expired runtime owner", "E_HIA_RUNTIME_INVARIANT")
         return owner
+
+    def _owner_operation(self, operation, subject=0):
+        while True:
+            status, value, counters = self.native.owner_operation(
+                self.owners, operation, subject, self.machine.max_heap_bytes, self.machine.allocation_fail_at)
+            if status == 0:
+                return value, counters
+            if status == 1:
+                raise HIAProgramRejected("expired runtime owner", "E_HIA_RUNTIME_INVARIANT")
+            self._grow_arena(self.owners, 80)
+
+    def owner_counters(self):
+        _, counters = self._owner_operation(0)
+        attempts, allocations, frees, created, dropped, live, peak = counters
+        return {"allocation_attempts": attempts, "allocations": allocations, "frees": frees,
+                "owners_created": created, "owners_dropped": dropped,
+                "live_owners": created - dropped, "live_bytes": live, "peak_bytes": peak}
+
+    def attach_owner(self, data):
+        ident, _ = self._owner_operation(2, len(data))
+        self.machine.owners[ident] = _Owner(ident, data)
+        return ident
+
+    def drop_owner(self, ident):
+        self._owner_operation(4, ident)
+        del self.machine.owners[ident]
+
+    def allocate_owner(self, size, optional):
+        decision, _ = self._owner_operation(1, size)
+        if decision == 0:
+            return self.attach_owner(bytearray()), True
+        if decision == 1:
+            if optional:
+                return self.attach_owner(bytearray()), False
+            raise HIAProgramTrap("allocation", "allocation exceeds the 64-bit object-size model")
+        if decision == 2:
+            raise HIAProgramBudgetExceeded("heap", "finite live-byte limit reached")
+        if decision == 4:
+            try:
+                data = bytearray(size)
+            except (MemoryError, OverflowError):
+                pass
+            else:
+                return self.attach_owner(data), True
+        if optional:
+            return self.attach_owner(bytearray()), False
+        raise HIAProgramTrap("allocation", "allocator returned failure")
 
     def loan(self, operation, first, second=0, *, mutable=False):
         while True:
@@ -680,8 +734,8 @@ class _ReferenceResources:
         while head:
             self.machine.tick()
             head, payload, storage, _ = self.chain(6, head)
-            self.machine.drop(self.owner(self.owner_token(payload)))
-            self.machine.drop(self.owner(self.owner_token(storage)))
+            self.drop_owner(payload)
+            self.drop_owner(storage)
             self.machine.chain_nodes_dropped += 1
 
     def _chain_operation(self, op, words):
@@ -696,13 +750,13 @@ class _ReferenceResources:
             original, payload = words
             self.chain(2, original)
             self.owner(self.owner_token(payload))
-            storage, allocated = self.machine.allocate(CHAIN_NODE_BYTES, True)
-            changed, _, _, pushed = self.chain(3, original, payload, storage.ident, allocated)
+            storage, allocated = self.allocate_owner(CHAIN_NODE_BYTES, True)
+            changed, _, _, pushed = self.chain(3, original, payload, storage, allocated)
             if pushed:
                 self.machine.chain_nodes_created += 1
-                remainder = self.machine.new_owner(bytearray()).ident
+                remainder = self.attach_owner(bytearray())
             else:
-                self.machine.drop(storage)
+                self.drop_owner(storage)
                 remainder = payload
             self.machine.chains_consumed += 1
             self.machine.chains_created += 1
@@ -711,10 +765,10 @@ class _ReferenceResources:
             changed, payload, storage, present = self.chain(4, words[0])
             self.machine.chains_consumed += 1
             if present:
-                self.machine.drop(self.owner(self.owner_token(storage)))
+                self.drop_owner(storage)
                 self.machine.chain_nodes_dropped += 1
             else:
-                payload = self.machine.new_owner(bytearray()).ident
+                payload = self.attach_owner(bytearray())
             self.machine.chains_created += 1
             return [changed, payload, int(present)]
         raise HIAProgramRejected("unhandled native chain opcode", "E_HIA_RUNTIME_INVARIANT")
@@ -790,8 +844,8 @@ class _ReferenceResources:
             return self._chain_operation(op, words)
         if op in {"buffer.new", "buffer.try_new"}:
             optional = op == "buffer.try_new"
-            owner, allocated = self.machine.allocate(words[0], optional)
-            return [owner.ident, int(allocated)] if optional else [owner.ident]
+            owner, allocated = self.allocate_owner(words[0], optional)
+            return [owner, int(allocated)] if optional else [owner]
         if op in {"owner.move", "owner.drop"}:
             subject, = words
             if types[0] == "chain":
@@ -800,9 +854,10 @@ class _ReferenceResources:
                 else:
                     self.chain(2, subject)
             else:
-                owner = self.owner(self.owner_token(subject))
                 if op == "owner.drop":
-                    self.machine.drop(owner)
+                    self.drop_owner(subject)
+                else:
+                    self._owner_operation(3, subject)
             return [subject] if op == "owner.move" else []
         raise HIAProgramRejected("unhandled native resource opcode", "E_HIA_RUNTIME_INVARIANT")
 

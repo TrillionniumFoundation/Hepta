@@ -298,9 +298,34 @@ class ScalarReferenceNativeTests(unittest.TestCase):
 
         expected = compare()
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
-              patch.object(_Machine, '_reference_allocation_decision',
-                           side_effect=AssertionError('host allocation preflight'))):
+              patch.object(_Machine, 'allocate', side_effect=AssertionError('host allocator policy')),
+              patch.object(_Machine, 'new_owner', side_effect=AssertionError('host owner issuance')),
+              patch.object(_Machine, 'drop', side_effect=AssertionError('host owner accounting'))):
             self.assertEqual(compare(), expected)
+
+    def test_native_owner_arena_reuses_slots_rejects_stale_ids_and_accounts_limits(self):
+        table = bytearray(80 * 2)
+
+        def ask(operation, subject=0, fail_at=0):
+            return self.native.owner_operation(table, operation, subject, 8, fail_at)
+
+        self.assertEqual(ask(1, 8, fail_at=1)[:2], (0, 3))
+        self.assertEqual(ask(1, 8)[:2], (0, 4))
+        status, handle, _ = ask(2, 8)
+        self.assertEqual(status, 0)
+        self.assertEqual(ask(3, handle)[:2], (0, 8))
+        self.assertEqual(ask(1, 1)[:2], (0, 2))
+        frozen = table[:]
+        self.assertEqual(ask(2, 0)[0], 3)
+        self.assertEqual(table, frozen)
+        self.assertEqual(ask(4, handle)[:2], (0, 8))
+        status, replacement, _ = ask(2)
+        self.assertEqual(status, 0)
+        self.assertNotEqual(handle, replacement)
+        self.assertEqual(ask(4, handle)[0], 1)
+        self.assertEqual(ask(0)[2], [2, 1, 1, 2, 1, 0, 8])
+        self.assertEqual(ask(4, replacement)[:2], (0, 0))
+        self.assertEqual(ask(0)[2], [2, 1, 1, 2, 2, 0, 8])
 
     def test_resource_cfg_resumes_exactly_at_calls_edges_and_partial_destruction(self):
         from hepta.hia_program_runtime import HIAProgramBudgetExceeded
@@ -340,8 +365,9 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter')),
               patch.object(_Machine, 'operation', side_effect=AssertionError('host resource interpreter')),
-              patch.object(_Machine, '_reference_allocation_decision',
-                           side_effect=AssertionError('host allocation preflight'))):
+              patch.object(_Machine, 'allocate', side_effect=AssertionError('host allocator policy')),
+              patch.object(_Machine, 'new_owner', side_effect=AssertionError('host owner issuance')),
+              patch.object(_Machine, 'drop', side_effect=AssertionError('host owner accounting'))):
             self.assertEqual(observe(), expected)
 
     def test_native_nested_return_loans_keep_original_parent_and_exact_deadline(self):
