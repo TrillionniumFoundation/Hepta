@@ -37,6 +37,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
     def setUpClass(cls):
         cls.lookup = assemble_program((SOURCES / 'sqlite_rowid_lookup.hepta').read_bytes())
         cls.walk = assemble_program((SOURCES / 'sqlite_table_walk.hepta').read_bytes())
+        cls.migration = assemble_program((SOURCES / 'sqlite_migration_plan.hepta').read_bytes())
         cls.record = assemble_program((SOURCES / 'sqlite_record_layout.hepta').read_bytes())
         cls.catalog = assemble_program((SOURCES / 'sqlite_agent_catalog.hepta').read_bytes())
         cls.row_import = assemble_program((SOURCES / 'sqlite_agent_row_import.hepta').read_bytes())
@@ -231,6 +232,96 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         code, final, _ = run(page(13, 4, [6, (1 << 63)-1]), state=read)
         self.assertEqual((code, struct.unpack_from('<8s3Q2q', final)),
                          (0, (b'HIASWA01', 4, 0, 2, 6, (1 << 63)-1)))
+
+    def test_migration_plan_waits_for_every_snapshot_row_before_emitting_batch_header(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_sqlite_migration_plan import document, source_program
+        self.assertEqual((SOURCES / 'sqlite_migration_plan.hepta').read_text(),
+                         render_assembly(document(source_program(), 'sqlite_migration_plan')))
+        state = bytearray(224)
+        snapshot = (17, 23, 99)
+
+        def packet(phase, *fields, payload=b'', identity=snapshot):
+            return struct.pack('<8s4Q', b'HIASMP01', phase, *identity) + struct.pack(
+                '<' + 'Q' * len(fields), *fields) + payload
+
+        def send(raw, *, capacity=512, expected=0):
+            before = state[:]
+            status, output = run_vm(self.migration, raw, capacity, len(state),
+                                    scratch_initial=state, scratch_out=state)
+            self.assertEqual(status, expected)
+            if status:
+                self.assertEqual(state, before)
+                self.assertEqual(output, b'\xa7' * capacity)
+            return output
+
+        def page(table, number, following=0, keys=(), **kwargs):
+            payload = struct.pack('<8s3Q', b'HIASWA01', number, following, len(keys))
+            payload += b''.join(struct.pack('<q', key) for key in keys)
+            return packet(2, table, payload=payload, **kwargs)
+
+        def action(response, how, table, number, key=0):
+            self.assertEqual(struct.unpack_from('<8s4Qq', response),
+                             (b'HIASMR01', how, table, table + 1, number, key))
+            if how != 4:
+                self.assertEqual(response[64:96], bytes(32))
+
+        roots = struct.pack('<8s13Q', b'HIASCOK1', 1, 11, *range(2, 13))
+        begin = packet(1, 20, 7, payload=roots)
+        send(packet(1, 20, 7, payload=roots[:-8] + roots[-16:-8]), expected=1)
+        action(send(begin), 1, 1, 2)
+        send(begin, expected=1)
+        send(page(2, 2), expected=1)
+        send(page(1, 2, identity=(18, 23, 99)), expected=1)
+        action(send(page(1, 2)), 1, 2, 3)
+        action(send(page(2, 3, 13)), 2, 2, 13)
+        send(page(2, 13, keys=(-3, 0, 7)), expected=3)
+        send(page(2, 13, keys=(-3, 0)), capacity=95, expected=2)
+        action(send(page(2, 13, keys=(-3, 0))), 3, 2, 13, -3)
+        send(page(2, 13), expected=1)
+
+        def projected(table, key, raw_record, columns):
+            status, layout = run_vm(self.record, raw_record, 32 + columns * 32, 16)
+            self.assertEqual(status, 0)
+            request = struct.pack('<8sQq2Q', b'HIASQI01', table, key, 1, len(layout))
+            status, result = run_vm(self.row_import, request + layout + raw_record, 512, 0)
+            self.assertEqual(status, 0)
+            offset, size = struct.unpack_from('<2Q', result, 40 + 24 * (columns - 1))
+            return result[:offset + size]
+
+        profile = projected(2, -3, bytes((4, 17, 1, 0, 0xC3, 0xA9, 0xFF)), 3)
+        send(packet(3, 2, 13, 0, payload=profile), expected=1)
+        send(packet(3, 2, 14, 2**64 - 3, payload=profile), expected=1)
+        one = packet(3, 2, 13, 2**64 - 3, payload=profile)
+        send(one, capacity=120 + len(profile) - 1, expected=2)
+        first = send(one)
+        action(first, 3, 2, 13, 0)
+        second = send(packet(3, 2, 13, 0, payload=profile))
+        action(second, 1, 3, 4)
+        action(send(page(3, 4)), 1, 4, 5)
+        action(send(page(4, 5)), 1, 5, 6)
+        action(send(page(5, 6, keys=(78,))), 3, 5, 6, 78)
+        costs = projected(5, 78, bytes((8, 0, 0, 15, 15, 15, 15, 15)) + b'abcde', 7)
+        third = send(packet(3, 5, 6, 78, payload=costs))
+        action(third, 1, 6, 7)
+        for table in range(6, 11):
+            action(send(page(table, table+1)), 1, table+1, table+2)
+        send(page(11, 12, keys=(1, 2)), expected=4)
+        action(send(page(11, 12, keys=(1,))), 3, 11, 12, 1)
+        seq = b'\x03\x17\x02costs\x00\x80'
+        raw = struct.pack('<8s3Q', b'HIAROW01', len(seq), 1, 12) + seq
+        terminal = packet(3, 11, 12, 1, payload=raw)
+        final = send(terminal)
+        action(final, 4, 11, 0)
+        self.assertEqual(struct.unpack_from('<2Q8s3Q', final, 48),
+                         (78, 1, b'HIASQB01', 1, 7, 3))
+        self.assertEqual(final[96:120+len(raw)], struct.pack('<3Q', 11, 1, len(raw)) + raw)
+        request = final[64:96] + first[96:120+len(profile)] + second[96:120+len(profile)]
+        request += third[96:120+len(costs)]
+        status, result = run_vm(self.import_batch, request, 1024, 0)
+        self.assertEqual(status, 0)
+        self.assertEqual(struct.unpack_from('<8s3Q', result), (b'HIATXB01', 1, 7, 3))
+        send(terminal, expected=1)
 
     def test_sqlite_builds_require_matching_cold_compiler(self):
         with tempfile.TemporaryDirectory() as folder:

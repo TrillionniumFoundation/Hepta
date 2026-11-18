@@ -71,6 +71,8 @@ SQLITE_SNAPSHOT_SDIST_FILES = (
     'examples/hia_bootstrap/sqlite_rowid_lookup.hepta',
     'examples/hia_bootstrap/sqlite_table_walk.hepta',
     'tools/generate_hia_sqlite_table_walk.py',
+    'examples/hia_bootstrap/sqlite_migration_plan.hepta',
+    'tools/generate_hia_sqlite_migration_plan.py',
     'examples/hia_bootstrap/sqlite_record_layout.hepta',
     'examples/hia_bootstrap/sqlite_agent_row_import.hepta',
     'examples/hia_bootstrap/sqlite_agent_import_batch.hepta',
