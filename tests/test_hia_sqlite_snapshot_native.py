@@ -129,6 +129,45 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         self.assertGreater(len(resident), 2)
         self.assertLess(len(resident), len(pages) - 1)
 
+    def test_retained_page_walk_includes_all_rows_and_rightmost_child(self):
+        size = 512
+        pages = [self.snapshot[at:at + size] for at in range(0, len(self.snapshot), size)]
+        first = pages[0][:18] + b'\x02\x02' + pages[0][20:]
+
+        def walk(page, *, output_size=4096, include_page=True, reserved=0):
+            source = struct.pack('<I4sQ', page, b'HSP2', reserved) + first
+            extra = include_page and page != 1
+            source += struct.pack('<2Q', len(pages), extra)
+            if extra:
+                source += struct.pack('<Q', page) + pages[page - 1]
+            return run_vm(self.lookup, source, output_size, 72)
+
+        self.assertEqual(walk(self.root, include_page=False), (6, b'\xa7' * 4096))
+        self.assertEqual(walk(self.root, reserved=1), (1, b'\xa7' * 4096))
+        self.assertEqual(walk(self.root, output_size=31), (2, b'\xa7' * 31))
+        status, schema = walk(1)
+        self.assertEqual(status, 0)
+        self.assertEqual(struct.unpack_from('<8s3Qq', schema), (b'HIABTW01', 13, 1, 1, 1))
+        todo = [self.root]
+        seen = set()
+        rowids = []
+        while todo:
+            page = todo.pop()
+            self.assertNotIn(page, seen)
+            seen.add(page)
+            status, output = walk(page)
+            self.assertEqual(status, 0)
+            tag, kind, count, identity = struct.unpack_from('<8s3Q', output)
+            self.assertEqual((tag, identity), (b'HIABTW01', page))
+            end = 32 + count * 8
+            self.assertEqual(output[end:], b'\xa7' * (len(output) - end))
+            if kind == 5:
+                todo.extend(reversed(struct.unpack_from(f'<{count}Q', output, 32)))
+            else:
+                self.assertEqual(kind, 13)
+                rowids.extend(struct.unpack_from(f'<{count}q', output, 32))
+        self.assertEqual(rowids, [self.key, *range(1, 65)])
+
     def test_sqlite_builds_require_matching_cold_compiler(self):
         with tempfile.TemporaryDirectory() as folder:
             directory = Path(folder)

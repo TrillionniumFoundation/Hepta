@@ -77,6 +77,23 @@ geometry. The caller owns transaction identity and must discard these bytes at
 END; the image cannot establish that separately supplied pages come from the
 same transaction.
 
+### Enumerating table pages and rowids
+
+Use the same retained-page wire with tag `HSP2`, the page number in place
+of the root, and eight zero bytes in place of the rowid. The output tag is
+`HIABTW01`, followed by the page kind, entry count, and page number (all
+8-byte unsigned words). For interior table pages (kind 5), the entries are
+8-byte child page numbers in table order, including the rightmost child.
+For leaf table pages (kind 13), they are 8-byte signed rowids in table order.
+An empty leaf returns count zero.
+
+The component validates the selected page's cell geometry and keys before
+writing the result. It does not enumerate or read overflow pages for this
+operation. Status `6` asks for the selected page if it is not resident.
+Traverse interior entries from a known root; keep a visited set to reject
+cycles and repeated pages. Page 1 is the root of SQLite's schema table.
+An index or a WITHOUT ROWID table is not a rowid table and is not supported.
+
 ## Committed WAL view
 
 The WAL component takes an 8-byte size of the base database, the corresponding
