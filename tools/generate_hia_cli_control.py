@@ -63,7 +63,8 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 199
     if length(s) < 8 or length(o) < 128:
         return control_refuse(w)
-ACTION_STEP
+    if read64(s, 0) == STEP_MAGIC:
+        return control_step(s, o, w)
     if get(w, C_MAGIC) == CONTROL_MAGIC:
         return control_refuse(w)
     if read64(s, 0) != ARGV_MAGIC or length(s) < 192:
@@ -129,7 +130,8 @@ ACTION_STEP
                 if get(w, FIELD_BASE + 17 * FIELD_STRIDE) > 1 or get(w, FIELD_BASE + 18 * FIELD_STRIDE) > 1:
                     put(w, 24, 0)
                     refusal(w, 9, 0, 0, 0, 0)
-ACTION_SEED
+        if get(w, 8) == 0:
+            control_seed(w, get(w, 16), field_truth(w, 3), backend)
     index = 0
     while index < 128:
         store(o, index, byte(w, index))
@@ -631,18 +633,19 @@ def _decimal():
 
 def source_program(*, argument_only=False):
     from tools.hia_cli_control_phases import SOURCE as PHASE_SOURCE, SYMBOLS as PHASE_SYMBOLS
+    source = SOURCE
+    phase_source = PHASE_SOURCE
     if argument_only:
-        source = SOURCE.replace("ACTION_STEP", "").replace("ACTION_SEED", "")
+        for continuation in (
+            "    if read64(s, 0) == STEP_MAGIC:\n        return control_step(s, o, w)\n",
+            "        if get(w, 8) == 0:\n"
+            "            control_seed(w, get(w, 16), field_truth(w, 3), backend)\n",
+        ):
+            if source.count(continuation) != 1:
+                raise ValueError("standalone CLI continuation no longer matches its source")
+            source = source.replace(continuation, "")
         phase_source = ast.unparse(next(node for node in ast.parse(PHASE_SOURCE).body
                                         if node.name == "control_refuse"))
-    else:
-        source = SOURCE.replace(
-            "ACTION_STEP", "    if read64(s, 0) == STEP_MAGIC:\n        return control_step(s, o, w)"
-        ).replace(
-            "ACTION_SEED", "        if get(w, 8) == 0:\n"
-            "            control_seed(w, get(w, 16), field_truth(w, 3), backend)"
-        )
-        phase_source = PHASE_SOURCE
     values = dict(SYMBOLS)
     values["SELFHOST_LITERAL"] = LITERAL_IDS["selfhost"]
     values.update(PHASE_SYMBOLS)

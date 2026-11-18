@@ -101,6 +101,11 @@ def entry_outcome(argv, manifest=None):
 
 
 class CliSourceTests(unittest.TestCase):
+    def test_assembly_driver_source_regenerates(self):
+        from tools.generate_hia_assembly_driver import SOURCE, document, render_assembly, source_program
+
+        self.assertEqual(SOURCE.read_text(), render_assembly(document(source_program(), "assembly_driver")))
+
     def test_complete_regeneration_and_unchanged_native_profile(self):
         from hepta.hia_agent_assembly import render_assembly
         from tools import generate_hia_cli_control, generate_hia_cli_format

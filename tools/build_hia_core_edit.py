@@ -24,6 +24,9 @@ CAPACITY = 4 * (1 << 20) + 4096
 ARGUMENT_PARSER = CLI + 'arguments.hepta'
 ARGUMENT_FORMATTER = BOOTSTRAP + 'cli_format.hepta'
 ARGUMENT_ARCHIVE = '<public-argument-images>'
+ASSEMBLY_PRESENTATION = '<assembly-presenters>'
+ASSEMBLY_PRESENTERS = tuple(CLI + name + '.hepta' for name in (
+    'assembly_diagnostic_report', 'assembly_pretty', 'assembly_driver'))
 
 # Each entry lists the flat payloads in placement order, then the adapter
 # relocation sites belonging to each. Several stages use the same image entry.
@@ -71,22 +74,16 @@ PROGRAMS = {
         (CLI + 'catalog_registry.json', ('data_lea',)),
     )),
     'import_assembly': ('hia-import-assembly', (
-        (CLI + 'assembly_syntax.hepta', ('syntax_call',)),
-        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (CLI + 'assembly_syntax_diagnostics.hepta', ('syntax_call',)),
+        (CLI + 'assembly_core_diagnostics.hepta', ('core_call',)),
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
-        (CLI + 'assembly_pretty.hepta', ('pretty_call',)),
+        (ASSEMBLY_PRESENTATION, ('presentation_images',)),
     )),
     'render_assembly': ('hia-render-assembly', (
         (BOOTSTRAP + 'core_admission.hepta', ('original_core', 'roundtrip_core')),
         (BOOTSTRAP + 'json_canonical.hepta', ('original_canonical', 'roundtrip_canonical')),
         (CLI + 'assembly_render.hepta', ('render', 'finish')),
         (CLI + 'assembly_syntax.hepta', ('syntax',)),
-    )),
-    'check_assembly_accepted': ('hia-check-assembly-accepted', (
-        (CLI + 'assembly_syntax_diagnostics.hepta', ('syntax_call',)),
-        (CLI + 'assembly_core_diagnostics.hepta', ('core_call',)),
-        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
-        (CLI + 'assembly_diagnostic_report.hepta', ('preflight_call', 'diagnostic_call')),
     )),
     'capabilities': ('hia-capabilities', (
         (CLI + 'capabilities.hepta', ('capabilities_call',)),
@@ -236,9 +233,9 @@ def build(output, compiler, cold_report, *, release_only=False):
     programs = {key: value for key, value in PROGRAMS.items()
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
-    source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *adapters.values(),
+    source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *ASSEMBLY_PRESENTERS, *adapters.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
-                      if path != ARGUMENT_ARCHIVE)}
+                      if path not in (ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
     if any(admitted.get(path) != digest(raw) for path, raw in sources.items()):
         raise ValueError('native Core edit source differs from admitted cold source')
@@ -253,6 +250,11 @@ def build(output, compiler, cold_report, *, release_only=False):
         images[path] = image.read_bytes()
         receipts[path] = receipt
     images[ARGUMENT_ARCHIVE] = argument_images(images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER])
+    diagnostic, pretty, driver = (images[path] for path in ASSEMBLY_PRESENTERS)
+    images[ASSEMBLY_PRESENTATION] = (
+        struct.pack('<3Q', 24, 24 + len(diagnostic), 24 + len(diagnostic) + len(pretty))
+        + diagnostic + pretty + driver
+    )
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
     products = {}
     for kind, (name, roles) in programs.items():

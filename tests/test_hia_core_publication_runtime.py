@@ -1,7 +1,7 @@
 """Compare the installed native Core CLI with ordinary hia."""
 
 import argparse
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from hashlib import sha256
 from io import StringIO
 import json
@@ -66,8 +66,19 @@ def check_assembly_rejections(release, directory):
                                 capture_output=True, env={'PATH': ''}, timeout=20, check=False)
         assert (result.returncode, result.stdout, result.stderr) == (1, expected, b''), (
             label, result.returncode, result.stdout, result.stderr)
+        arguments = ['import-assembly', str(path)]
+        reference_stdout = StringIO()
+        reference_stderr = StringIO()
+        with redirect_stdout(reference_stdout), redirect_stderr(reference_stderr):
+            reference_status = _reference_hia_main(arguments)
+        assert reference_status == 2, label
+        result = subprocess.run([release / 'hia', *arguments], input=b'ignored stdin',
+                                capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (
+            reference_status, reference_stdout.getvalue().encode(),
+            reference_stderr.getvalue().encode()), (label, result.returncode, result.stdout, result.stderr)
         assert path.read_bytes() == raw, label
-    return len(cases)
+    return len(cases) * 2
 
 
 def check_selected_selfhost(release, directory):
