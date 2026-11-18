@@ -1,0 +1,37 @@
+"""Pinned HIA-owned ELF64 shared linkage for the direct emitter."""
+
+from __future__ import annotations
+
+import ctypes
+import os
+
+from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/elf_shared_linker.hepta')
+SCHEMA = 'hepta.hia.elf-shared-linker-native.v1'
+SELECTOR = 'HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST'
+MAX_ELF_BYTES = 64 << 20
+WORKSPACE_BYTES = 1 << 20
+
+
+class NativeSharedLinker(NativeHiaJsonImage):
+    def link(self, object_bytes):
+        if type(object_bytes) is not bytes or not 0 < len(object_bytes) <= MAX_ELF_BYTES:
+            raise ValueError('HIA shared linkage requires a bounded immutable direct object')
+        # Only the text and original string table are copied. The replacement
+        # loader metadata and segment/section alignment add less than 64 KiB.
+        capacity = min(MAX_ELF_BYTES, len(object_bytes) + (64 << 10))
+        source = ctypes.create_string_buffer(object_bytes)
+        output = ctypes.create_string_buffer(capacity)
+        workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
+        size = self._entry(source, len(object_bytes), output, capacity, workspace, len(workspace))
+        if size == 0xffffffff:
+            raise ValueError('HIA shared linkage refused the direct object')
+        if not 64 <= size <= capacity:
+            raise ValueError('HIA shared linkage could not produce the bounded ELF')
+        return output.raw[:size]
+
+
+def selected_shared_linker():
+    path = os.environ.get(SELECTOR)
+    return None if not path else _installed_json_image(path, SOURCE, SCHEMA, NativeSharedLinker)

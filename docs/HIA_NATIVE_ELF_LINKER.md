@@ -42,10 +42,27 @@ publication; EINTR is retried and a later I/O failure preserves the actual prefi
   Other allocated notes/needed or unknown properties are refused, not dropped.
 - RX and RW load segments, nonexecuting RW stack, no interpreter/dynamic loader.
 
-TLS, COMMON/COMDAT, merging/string-section semantics, dynamic shared-object/PLT/
-GOT linking, other relocation types/targets, libc allocation and the full module/
+TLS, COMMON/COMDAT, merging/string-section semantics, other relocation
+types/targets, static libc allocation and the full module/
 package/build graph are still open. Unsupported objects are not relabeled valid.
 The linker preserves admitted machine code; it is not a machine-code verifier.
+
+## Shared linkage for direct HIA objects
+
+`elf_shared_linker.hepta` is a separate, pinned linker for the single ET_REL
+object produced by the direct emitter. It resolves internal PLT32 calls,
+constructs import stubs and eager GOT relocations for the seven supported libc
+functions, and writes ET_DYN with separate R/RX/RW segments, GNU_RELRO, a
+non-executable stack, and both loader hash tables. It does not execute a
+system linker. The system dynamic loader and libc still execute the emitted
+shared library. This is not a general-purpose multi-object shared linker.
+
+To build the source-bound helper, use `tools.build_hia_json_preflight` with
+`--candidate elf-shared-linker` and a completed matching cold compiler.
+Select its manifest with `HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST` for direct
+builds, or include it in the worker's pinned native-helper bundle. The build
+still checks the final shared ABI independently before publication. Without a
+selection, the existing external-linker route remains unchanged.
 
 ## Verification boundary
 

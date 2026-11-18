@@ -93,7 +93,7 @@ def _implementation_hash():
         "hia_json_wire_native.py", "hia_instruction_policy_native.py",
         "hia_json_preflight_native.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
-        "clang_capture.py", "elf_shared_abi.py", "object_symbols.py",
+        "clang_capture.py", "elf_shared_abi.py", "hia_shared_linker_native.py", "object_symbols.py",
         "object_structure.py", "native_tool_identity.py",
     ):
         digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
@@ -909,8 +909,15 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
     tool_digest = None
     toolchain = None
     linker_mode = None
+    native_linker = None
     flags = []
     if kind == "shared":
+        from .hia_shared_linker_native import selected_shared_linker
+        native_linker = selected_shared_linker()
+    if native_linker is not None:
+        toolchain = {"path": None, "sha256": native_linker.image_sha256, "version": "hia-elf-shared-linker.v1",
+                     "default_target": "elf_x86_64", "mode": "hia", "role": "link_generated_object_only"}
+    elif kind == "shared":
         found = shutil.which(linker)
         if found is None:
             _reject("GNU ld or a native C linker driver is required for shared linkage")
@@ -939,18 +946,24 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
         artifact = obj
         if kind == "shared":
             artifact = Path(directory) / "program.so"
-            # The reviewed Safe Core consumer checks both loader lookup tables.
-            # GNU ld's default hash style varies across distributions; freeze
-            # this part of the produced ELF contract and retain it in receipts.
-            flags = (["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack", "-z", "relro", "-z", "now", "--build-id=none", "--hash-style=both"]
-                     if linker_mode == "gnu-ld" else
-                     ["-shared", "-Wl,-z,defs", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--build-id=none", "-Wl,--hash-style=both"])
-            libraries = ["-lc"] if linker_mode == "gnu-ld" else []
-            result = _run_logged([str(tool), *flags, str(obj), *libraries, "-o", str(artifact)],
-                                 command_log=command_log, parent_death_guard=parent_death_guard,
-                                 timeout=remaining(60), stdout_limit=65536, stderr_limit=1048576)
-            if result.returncode:
-                _reject("linker rejected generated machine object: " + result.stderr[:3000])
+            if native_linker is not None:
+                remaining(60)
+                try:
+                    artifact.write_bytes(native_linker.link(image.object_bytes))
+                except ValueError as error:
+                    _reject(str(error))
+                remaining(60)
+            else:
+                # Freeze both loader lookup tables on the compatibility route.
+                flags = (["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack", "-z", "relro", "-z", "now", "--build-id=none", "--hash-style=both"]
+                         if linker_mode == "gnu-ld" else
+                         ["-shared", "-Wl,-z,defs", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--build-id=none", "-Wl,--hash-style=both"])
+                libraries = ["-lc"] if linker_mode == "gnu-ld" else []
+                result = _run_logged([str(tool), *flags, str(obj), *libraries, "-o", str(artifact)],
+                                     command_log=command_log, parent_death_guard=parent_death_guard,
+                                     timeout=remaining(60), stdout_limit=65536, stderr_limit=1048576)
+                if result.returncode:
+                    _reject("linker rejected generated machine object: " + result.stderr[:3000])
         data = _read_artifact(artifact)
         inventory = inspect_owned_shared_elf(data, image.exports) if kind == "shared" else _inspect_object(data, image.exports)
         def recheck():
@@ -977,7 +990,7 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
             "machine_plan_sha256": image.machine_plan_sha256,
             "foreign_buffer_exports": [list(pair) for pair in image.foreign_buffer_exports],
             "implicit_profitability_optimizer_used": False,
-            "parent_death_guarded_linker": bool(parent_death_guard) if kind == "shared" else False,
+            "parent_death_guarded_linker": bool(parent_death_guard and tool is not None),
             "external_abi": ("SysV AMD64 scalar C functions plus explicit synchronous borrowed-byte pointer/length entrypoints"
                              if image.foreign_buffer_exports else
                              "SysV AMD64 scalar C functions; resources and multiple results are internal"),
@@ -993,7 +1006,7 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
                 "llvm_ir_used": False, "llvm_codegen_used": False, "assembler_used": False,
                 "source_ast_required": False, "rust_reference_required": False,
                 "rust_codegen_used": False, "c_codegen_used": False, "fallback_used": False,
-                "external_linker_used": kind == "shared", "native_execution_qualified": False,
+                "external_linker_used": tool is not None, "native_execution_qualified": False,
                 "backend_refinement_proved": False, "whole_language_soundness_proved": False,
                 "self_hosted": False, "foreign_buffer_entrypoints_exposed": bool(image.foreign_buffer_exports)}}
 

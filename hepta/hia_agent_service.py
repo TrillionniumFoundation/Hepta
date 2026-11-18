@@ -102,7 +102,7 @@ def _profile_documents(identities, catalog_sha256, root_count, roots_sha256):
                 "reference_limits": {"max_steps": 10000000, "max_heap_bytes": 16777216, "max_call_depth": 256},
                 "independent_native_refinement": "unsupported"},
             "max_stack_frame_bytes": 65536, "max_exports": 128,
-            "object_emission_external_tool": False, "shared_linker": "GNU ld only",
+            "object_emission_external_tool": False, "shared_linker": "pinned HIA linker when selected; otherwise GNU ld",
             "native_resource_limits": "disposable child wall/CPU/address-space limits; no VM tick guarantee",
             "universal_backend_refinement_proved": False, "self_hosted": False},
         "artifact": {"schema": "hepta.hia.agent.artifact-profile.v1", "inline_utf8_characters": 65536,
@@ -1238,6 +1238,8 @@ class HIAAgentService:
         return objective
 
     def _cost_ledger(self, context, evaluation_wall_ns, native_wall_ns):
+        from .hia_agent_store import _native_agent_identity
+
         rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
                                      (context["ref"]["id"],)).fetchall()
         truncated = len(rows) > 10000

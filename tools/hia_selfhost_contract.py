@@ -115,6 +115,7 @@ CORE_NORMALIZE_SDIST_FILES = (
 )
 NATIVE_LINKER_SDIST_FILES = (
     'examples/hia_bootstrap/elf_linker_filter_packer.hepta',
+    'tools/generate_hia_shared_linker.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
     'examples/hia_bootstrap/worker_request_filter_packer.hepta',

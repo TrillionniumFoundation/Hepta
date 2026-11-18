@@ -8,6 +8,7 @@ import struct
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from hepta.hia_agent_assembly import assemble_program,render_assembly
 from hepta.hia_program import execute_program
 from hepta.hia_program_runtime import _Machine,_Owner,_View
@@ -48,6 +49,96 @@ class ElfLinkerSourceTests(unittest.TestCase):
             for f in doc['functions']:
                 self.assertLessEqual(len(f['blocks']),256)
                 for b in f['blocks']:self.assertLessEqual(len(b['params']),16)
+
+    def test_shared_linker_reproduces_and_interprets_a_minimal_owned_object(self):
+        from hepta.elf_shared_abi import inspect_owned_shared_elf
+        from hepta.hia_machine_elf import write_elf_object
+        from tools.generate_hia_shared_linker import document as shared_document
+
+        source = (ROOT/'examples/hia_bootstrap/elf_shared_linker.hepta').read_text()
+        self.assertEqual(source, render_assembly(shared_document()))
+        program = assemble_program(source)
+        obj = write_elf_object(b'\xb8\x17\0\0\0\xc3',
+            [{'name': 'entry', 'offset': 0, 'size': 6, 'global': True}], [])
+        count, data = reference(program, obj, capacity=16384, workspace=1<<20)
+        self.assertEqual(inspect_owned_shared_elf(data[:count], ('entry',))['unresolved_imports'], [])
+        self.assertEqual(reference(program, obj[:4], capacity=16, workspace=1<<20),
+                         (INVALID, b'\xa5'*16))
+
+
+class SharedElfLinkerNativeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from hepta.hia_shared_linker_native import SCHEMA, SOURCE, NativeSharedLinker
+        import json
+
+        cls.temp = tempfile.TemporaryDirectory(prefix='hia-elf-shared-linker-tests-')
+        cls.folder = Path(cls.temp.name)
+        seed, _ = build_seed(cls.folder)
+        compiler_source = (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
+        first, _ = compile_stage(cls.folder, 'B1', seed, compiler_source, image_format='seed-shared')
+        compiler, _ = compile_stage(cls.folder, 'B2', first, compiler_source)
+        assert first.read_bytes() == compiler.read_bytes()
+        image, _ = compile_stage(cls.folder, 'shared-linker', compiler, SOURCE.read_bytes())
+        raw = image.read_bytes()
+        cls.native = NativeSharedLinker(raw, sha256(raw).hexdigest())
+        cls.manifest = cls.folder/'linker.json'
+        cls.manifest.write_text(json.dumps({'schema': SCHEMA,
+            'image_path': image.name, 'image_sha256': sha256(raw).hexdigest(),
+            'source_sha256': sha256(SOURCE.read_bytes()).hexdigest(),
+            'compiler_sha256': sha256(compiler.read_bytes()).hexdigest()}))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def test_normal_build_uses_hia_not_host_linker_and_executes_libc_backed_core(self):
+        from hepta.hia_program import verify_program
+        from hepta.hia_program_native import build_program_machine
+        from hepta.hia_shared_linker_native import SELECTOR
+        from tests.test_hia_program import resource_program
+        from tests.test_hia_program_native_review import _empty_memory_program
+        from tests.test_hia_program_tools import scalar_program
+
+        cases = ((scalar_program(), 'increment', [8], (ctypes.c_uint64,), ctypes.c_uint64),
+                 (resource_program(), 'owned', [4, 29], (ctypes.c_size_t, ctypes.c_uint8), ctypes.c_uint8),
+                 (_empty_memory_program(), 'empty_memory', [], (), ctypes.c_uint64))
+        for index, (document, name, arguments, argtypes, restype) in enumerate(cases):
+            with self.subTest(name=name):
+                output = self.folder/f'executed-{index}.so'
+                commands = []
+                with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                      patch('hepta.hia_program_native._run_logged',
+                            side_effect=AssertionError('external linker executed'))):
+                    receipt = build_program_machine(document, output, linker='unavailable', command_log=commands)
+                self.assertEqual(receipt['toolchain']['mode'], 'hia')
+                self.assertFalse(receipt['claims']['external_linker_used'])
+                self.assertEqual(commands, [])
+                expected = execute_program(verify_program(document), name, arguments)
+                self.assertEqual(expected['status'], 'returned', expected)
+                library = ctypes.CDLL(str(output), mode=os.RTLD_LOCAL | os.RTLD_NOW)
+                function = getattr(library, name)
+                function.argtypes = argtypes
+                function.restype = restype
+                self.assertEqual(function(*arguments), expected['values'][0])
+
+    def test_refuses_invalid_relocations_without_writing_and_handles_exact_text_limit(self):
+        from hepta.elf_shared_abi import inspect_owned_shared_elf
+        from hepta.hia_machine_elf import write_elf_object
+
+        declarations = [{'name': 'entry', 'offset': 0, 'size': 1, 'global': True}]
+        wire = write_elf_object(b'\xc3' + b'\x90'*((16<<20)-1), declarations, [])
+        final = self.native.link(wire)
+        self.assertEqual(inspect_owned_shared_elf(final, ('entry',))['dynamic_exports'], ['entry'])
+        relocatable = write_elf_object(b'\xe8\0\0\0\0\xc3',
+            [{'name': 'entry', 'offset': 0, 'size': 6, 'global': True}],
+            [{'offset': 1, 'symbol': 'abort', 'type': 4, 'addend': -4}])
+        rela = sections(relocatable)[2][1][4]
+        bad_rela = bytearray(relocatable)
+        struct.pack_into('<I', bad_rela, rela + 8, 1)
+        for bad in (relocatable[:-1], bytes(bad_rela), relocatable.replace(b'abort\0', b'other\0')):
+            value, output = ElfLinkerNativeTests.invoke(self.native, bad, capacity=16384, workspace=1<<20)
+            self.assertEqual((value, output), (INVALID, b'\xa5'*16384))
 
 
 class ElfLinkerNativeTests(unittest.TestCase):
