@@ -2,12 +2,16 @@
 
 import argparse
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+import os
 from pathlib import Path
+import select
 import sqlite3
 import struct
 import subprocess
 import tempfile
+import time
 import unittest
 
 
@@ -60,14 +64,89 @@ class NativePagerArgv(unittest.TestCase):
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (status, b'', b''))
 
     @staticmethod
-    def event(operation, argument=0):
-        return EVENT.pack(b'HIAPGEV2', 2, NONCE, operation, 0, 0, 0, 0, argument, *([0] * 7))
+    def event(operation, argument=0, *, begin_mode=0):
+        return EVENT.pack(b'HIAPGEV2', 2, NONCE, operation, 0, 0, 0, 0,
+                          argument, begin_mode, *([0] * 6))
+
+    def test_write_quiescent_snapshot_excludes_writers_until_end(self):
+        if self.executable is None:
+            self.skipTest('run with the cold-built native SQLite Pager')
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            parent = Path(temporary)
+            database = parent / 'source.sqlite3'
+            wal = parent / 'source.sqlite3-wal'
+            database.touch(mode=0o600)
+            args = [self.executable, parent, database.name]
+            profile = 35302 if sqlite3.sqlite_version_info[:2] == (3, 53) else 34600
+            begin = self.event(1, profile, begin_mode=1)
+            with closing(sqlite3.connect(database, isolation_level=None, timeout=0)) as writer:
+                self.assertEqual(writer.execute('PRAGMA journal_mode=WAL').fetchone(), ('wal',))
+                writer.execute('CREATE TABLE witness(value TEXT)')
+                writer.execute('INSERT INTO witness VALUES (?)', ('retained source',))
+                original = database.read_bytes(), wal.read_bytes()
+                writer.execute('BEGIN IMMEDIATE')
+                busy = self.run_pager(args, begin)
+                writer.execute('ROLLBACK')
+                self.assertEqual(busy.returncode, 1)
+                self.assertEqual(EVENT.unpack_from(busy.stdout)[3:7],
+                                 (131, 2, (1 << 64) - 11, 14))
+                self.audit(busy.stderr)
+
+                rejected = self.run_pager(args, self.event(1, profile, begin_mode=2))
+                self.assertEqual((rejected.returncode, rejected.stdout), (65, b''))
+                self.assertEqual(self.audit(rejected.stderr, effects_expected=False)[20], 0)
+                with ThreadPoolExecutor(max_workers=1) as pool, subprocess.Popen(
+                    args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    env={'PATH': ''},
+                ) as pager:
+                    audit = pool.submit(pager.stderr.read)
+                    try:
+                        pager.stdin.write(begin)
+                        pager.stdin.flush()
+                        ready = self.take_reply(pager)
+                        self.assertEqual(ready[:4], (b'HIAPGOT2', 2, NONCE, 128))
+                        self.assertEqual(ready[8] & 32, 32)  # The successful SHM write lock.
+                        self.assertEqual(writer.execute('SELECT value FROM witness').fetchall(),
+                                         [('retained source',)])
+                        with self.assertRaises(sqlite3.OperationalError) as blocked:
+                            writer.execute('BEGIN IMMEDIATE')
+                        self.assertEqual(blocked.exception.sqlite_errorcode, sqlite3.SQLITE_BUSY)
+                        self.assertEqual((database.read_bytes(), wal.read_bytes()), original)
+                        pager.stdin.write(self.event(4))
+                        pager.stdin.flush()
+                        self.assertEqual(self.take_reply(pager)[3], 130)
+                        self.assertEqual(pager.wait(timeout=3), 0)
+                        journal = self.audit(audit.result(timeout=3))
+                        self.assertGreater(journal[20], 0)
+                        writer.execute('BEGIN IMMEDIATE')
+                        writer.execute('INSERT INTO witness VALUES (?)', ('after unlock',))
+                        writer.execute('COMMIT')
+                        self.assertEqual(writer.execute('SELECT value FROM witness ORDER BY rowid').fetchall(),
+                                         [('retained source',), ('after unlock',)])
+                    finally:
+                        if pager.poll() is None:
+                            pager.kill()
+                            pager.wait(timeout=3)
+
+    @staticmethod
+    def take_reply(pager):
+        deadline = time.monotonic() + 3
+        result = bytearray()
+        while len(result) < 1152:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([pager.stdout], [], [], remaining)[0]:
+                raise TimeoutError('native Pager reply did not arrive')
+            chunk = os.read(pager.stdout.fileno(), 1152 - len(result))
+            if not chunk:
+                raise EOFError('native Pager reply is incomplete')
+            result.extend(chunk)
+        return EVENT.unpack_from(result)
 
     @staticmethod
     def run_pager(args, data=b''):
         return subprocess.run(args, input=data, capture_output=True, env={'PATH': ''}, timeout=15, check=False)
 
-    def audit(self, stream):
+    def audit(self, stream, *, effects_expected=True):
         record = struct.Struct('<8s7Q')
         at, index = 0, 0
         kinds = Counter()
@@ -80,6 +159,9 @@ class NativePagerArgv(unittest.TestCase):
         self.assertEqual(at, len(stream))
         self.assertGreater(kinds[10], 0)
         self.assertEqual([kinds[kind] for kind in (11, 12, 13, 14)], [kinds[10]] * 4)
+        if effects_expected:
+            self.assertGreater(kinds[20], 0)
+        return kinds
 
 
 class NativeSQLiteComponents(unittest.TestCase):

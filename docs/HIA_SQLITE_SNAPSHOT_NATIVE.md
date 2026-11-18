@@ -288,6 +288,17 @@ that copy by nonce and pin, and 8 releases the copy without releasing the read
 transaction. END and cleanup invalidate the copy. Replies for event 7 carry
 the exact requested offset/count and a separate payload of that length.
 
+For migration, BEGIN may set its little-endian word at byte 72 to `1`.
+This asks the HIA owner to acquire SQLite's exclusive WAL writer lock
+before reading the first published WAL-index header, and hold it through
+the retained read. A busy writer causes a refusal rather than an
+unprotected snapshot. Ordinary BEGIN keeps this word zero and still
+permits concurrent writers. The lock is released by END or cleanup and
+does not modify the source database or WAL. This is a migration prerequisite,
+not an activation mechanism: a caller must still hold the source boundary
+through migration and prevent the old service from accepting writes after
+cutover.
+
 ## Committing a proposal to a staged HIA Store
 
 The source-bound Agent batch commit executable stages a transaction from an
