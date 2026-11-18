@@ -321,6 +321,11 @@ read-only artifact directory:
 This mode needs no descriptor setup by a host process. It checks private
 descriptor slots before opening paths, refuses symlink endpoints and
 admits the same module and namespace identities as descriptor mode.
+The module directory may be the private build stage (`0700`) or an
+immutable installed release (`0500`). The latter may contain the executable,
+initializer and the four authenticated module files in the same directory:
+pass that directory as the module root. Other permission bits are refused;
+the installer does not select the writable Store's state directory.
 The original no-argument descriptor mode still reads the initial namespace
 header from stdin. In direct mode, stdin starts with `HIATCM01` commands
 and stdout emits native acknowledgements and result frames. Use streamed

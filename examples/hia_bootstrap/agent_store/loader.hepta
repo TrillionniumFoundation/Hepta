@@ -1440,7 +1440,9 @@ block b0(v0:readbuf,v1:mutbuf)
   v7:u64 = int.shl.checked(v5,v6)
   v8:u64 = const() {"value":16832}
   v9:u64 = bit.or(v7,v8)
-  v10:bool = compare.ne(v3,v9)
+  v42:u64 = const() {"value":128}
+  v43:u64 = bit.or(v3,v42)
+  v10:bool = compare.ne(v43,v9)
   branch v10 b2(v0,v1,v10) b1(v0,v1)
 block b1(v11:readbuf,v12:mutbuf)
   v17:u64 = const() {"value":48}
