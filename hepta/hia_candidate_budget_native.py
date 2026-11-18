@@ -11,7 +11,6 @@ import ctypes
 from dataclasses import dataclass
 import os
 from pathlib import Path
-import sqlite3
 import struct
 
 from .hia_execution_budget_native import NativeExecutionBudgetStore
@@ -204,6 +203,6 @@ class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
                 # A commit that reached SQLite but lost its acknowledgment is
                 # never compensated. The original request journal prevents
                 # replay; its counter remains consumed if the commit happened.
-                if commit_attempted and isinstance(error, (ValueError, OSError, sqlite3.Error)):
+                if commit_attempted and isinstance(error, (ValueError, OSError, self.store.database_error)):
                     _reject(4)
                 raise

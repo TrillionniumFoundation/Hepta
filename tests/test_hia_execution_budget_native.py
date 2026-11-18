@@ -605,7 +605,7 @@ raise AssertionError('the selected crash boundary was never reached')
                     with patch.object(budget, '_execute', side_effect=AssertionError('identity drift reached SQL')):
                         with self.assertRaises((AgentRejected, OSError)):
                             budget.claim(CONTEXT.decode(), OWNER.decode(), 1000, 0)
-                    with patch('hepta.hia_execution_budget_native.sqlite3.connect',
+                    with patch('sqlite3.connect',
                                side_effect=AssertionError('mismatched official journal reached connect')):
                         with self.assertRaises((AgentRejected, OSError)):
                             NativeExecutionBudgetStore(store, self.image)

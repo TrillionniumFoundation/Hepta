@@ -9,6 +9,7 @@ from pathlib import Path
 import sqlite3
 import struct
 import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -236,25 +237,47 @@ class InstalledAgentStore(NativeStoreArgv):
             self.skipTest('run with the installed native Store release')
 
     def test_public_tools_with_no_sqlite_connection(self):
-        from tests.test_hia_agent_native_tools import NativeLifecycleTests
+        guard = """
+import importlib.abc
+import subprocess
+import sys
+from unittest.mock import patch
 
-        def construct(path, **kwargs):
-            from hepta.hia_agent_service import HIAAgentService
-            path.mkdir(mode=0o700)
-            self.run_native([self.initializer, path, 'store'])
-            return HIAAgentService(path, native_store=self.selection(), **kwargs)
+class NoSQLite(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] in {'sqlite3', '_sqlite3'}:
+            raise AssertionError('selected native Agent imported SQLite: ' + fullname)
 
-        with patch('tempfile.tempdir', str(self.test_root)), \
-                patch('sqlite3.connect', side_effect=AssertionError('SQLite engine was opened')), \
-                patch('hepta.hia_agent_store.stable_read', side_effect=AssertionError('hosted artifact read')), \
-                patch('tests.test_hia_agent_native_tools.HIAAgentService', construct):
-            case = NativeLifecycleTests('test_all_eleven_tools_and_full_u8_native_workload')
-            case.setUp()
-            try:
-                case.test_all_eleven_tools_and_full_u8_native_workload()
-                self.assertFalse((case.state_root / 'state.sqlite3').exists())
-            finally:
-                case.tearDown()
+assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
+sys.meta_path.insert(0, NoSQLite())
+source, temporary, initializer, *selection = sys.argv[1:]
+sys.path.insert(0, source)
+from hepta.hia_agent_service import HIAAgentService
+from tests.test_hia_agent_native_tools import NativeLifecycleTests
+
+def construct(path, **kwargs):
+    path.mkdir(mode=0o700)
+    subprocess.run([initializer, path, 'store'], input=b'', capture_output=True,
+                   check=True, timeout=3, env={'PATH': ''})
+    return HIAAgentService(path, native_store=selection, **kwargs)
+
+with patch('tempfile.tempdir', temporary), \\
+     patch('hepta.hia_agent_store.stable_read', side_effect=AssertionError('hosted artifact read')), \\
+     patch('tests.test_hia_agent_native_tools.HIAAgentService', construct):
+    case = NativeLifecycleTests('test_all_eleven_tools_and_full_u8_native_workload')
+    case.setUp()
+    try:
+        case.test_all_eleven_tools_and_full_u8_native_workload()
+        assert not (case.state_root / 'state.sqlite3').exists()
+    finally:
+        case.tearDown()
+assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
+"""
+        source = Path(__file__).resolve().parents[1]
+        result = subprocess.run([sys.executable, '-I', '-B', '-c', guard, source,
+                                 self.test_root, self.initializer, *self.selection()],
+                                input=b'', capture_output=True, timeout=90, check=False)
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (0, b'', b''))
 
     def test_public_worker_reopens_native_state_with_exact_replay(self):
         from hepta.hia_agent_contract import installation_manifest

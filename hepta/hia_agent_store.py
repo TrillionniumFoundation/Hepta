@@ -12,7 +12,6 @@ import json
 import math
 import os
 from pathlib import Path
-import sqlite3
 import stat
 import threading
 import uuid
@@ -299,7 +298,8 @@ class AgentStore:
         self._artifact_code = None
         self._capture_code = None
         if native_store is not None:
-            from .hia_agent_store_native import NativeStoreConnection
+            from .hia_agent_store_native import NativeStoreConnection, StoreRefusal
+            self.database_error = StoreRefusal
             self.db = NativeStoreConnection(self.root, *native_store, lock=self.lock)
             self._artifact_code = self.db.artifact_code
             self._capture_code = self.db.capture_code
@@ -315,6 +315,8 @@ class AgentStore:
             info = database.lstat()
             if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
                 reject("E_HIA_STORE", "journal must be an owned private ordinary file")
+        import sqlite3
+        self.database_error = sqlite3.Error
         self.db = sqlite3.connect(database, isolation_level=None, timeout=10, check_same_thread=False)
         os.chmod(database, 0o600)
         self.database = database

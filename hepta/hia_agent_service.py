@@ -15,7 +15,6 @@ import os
 from pathlib import Path
 import platform
 import signal
-import sqlite3
 import tempfile
 import time
 import uuid
@@ -329,7 +328,7 @@ class HIAAgentService:
                 response = {"contract_version": VERSION, "request_id": request_id,
                             "status": "completed", "result": result}
                 validate(response, self.tools[tool]["outputSchema"], "result")
-        except (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error) as exc:
+        except (ValueError, TypeError, OSError, OverflowError, RecursionError, self.store.database_error) as exc:
             response = self._error(request_id, exc)
         finally:
             if response is not None:

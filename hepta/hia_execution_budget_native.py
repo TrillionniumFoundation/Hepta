@@ -12,7 +12,6 @@ import ctypes
 from dataclasses import dataclass
 import os
 from pathlib import Path
-import sqlite3
 import stat
 import struct
 import threading
@@ -223,6 +222,7 @@ class NativeExecutionBudgetStore:
             _reject(2, 'execution budget path does not identify the official main database')
         # mode=rw is deliberate: a missing/replaced official database can never
         # silently become a newly created independent budget namespace.
+        import sqlite3
         connection = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True,
                                      isolation_level=None, timeout=10, check_same_thread=False)
         try:

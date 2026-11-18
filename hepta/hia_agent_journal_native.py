@@ -322,7 +322,7 @@ def call_with_native_journal(service, tool, arguments, manifest):
     request_id = 'unadmitted-' + hosted.uuid.uuid4().hex
     context_id, response = None, None
     native_failed = False
-    domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, hosted.sqlite3.Error)
+    domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, service.store.database_error)
     def native_step(operation, *arguments, acknowledgement=False):
         nonlocal native_failed
         try:
@@ -408,7 +408,7 @@ def call_with_native_journal(service, tool, arguments, manifest):
             response = {'contract_version': hosted.VERSION, 'request_id': request_id,
                         'status': 'completed', 'result': result}
             hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
-    except (ValueError, TypeError, OSError, OverflowError, RecursionError, hosted.sqlite3.Error) as exc:
+    except domain_errors as exc:
         try:
             response = service._error(request_id, exc)
         except BaseException:

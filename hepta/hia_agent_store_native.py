@@ -10,7 +10,6 @@ import fcntl
 import os
 from pathlib import Path
 import select
-import sqlite3
 import stat
 import struct
 import subprocess
@@ -97,6 +96,10 @@ class StoreProtocolError(OSError):
 
 class StoreCommitUnknown(StoreProtocolError):
     """A commit was sent but was not conclusively acknowledged."""
+
+
+class StoreRefusal(Exception):
+    """A typed statement or transaction was refused without losing transport custody."""
 
 
 class _Row(tuple):
@@ -382,7 +385,7 @@ class NativeStoreConnection:
 
     def _begin(self):
         if self.in_transaction:
-            raise sqlite3.OperationalError('cannot start a transaction within a transaction')
+            raise StoreRefusal('cannot start a transaction within a transaction')
         self.check_custody()
         if self.process is None:
             self._open()
@@ -397,7 +400,7 @@ class NativeStoreConnection:
 
     def _finish(self, commit):
         if not self.in_transaction:
-            raise sqlite3.OperationalError('no Agent Store transaction is active')
+            raise StoreRefusal('no Agent Store transaction is active')
         deadline = self._deadline()
         command = 2 if commit else 3
         try:
@@ -439,10 +442,10 @@ class NativeStoreConnection:
             return _Cursor()
         specification = _STATEMENTS.get(sql)
         if specification is None:
-            raise sqlite3.ProgrammingError('not an Agent Store statement')
+            raise StoreRefusal('not an Agent Store statement')
         command, plan, arity, table, mask = specification
         if len(values) != arity:
-            raise sqlite3.ProgrammingError('incorrect Agent Store bindings')
+            raise StoreRefusal('incorrect Agent Store bindings')
         payload = _parameters(values, plan, table if command == 1 else None)
         local = not self.in_transaction
         try:
@@ -453,7 +456,7 @@ class NativeStoreConnection:
             if command == 1:
                 status, _, _, skipped, _, _ = self._ack(self.request, 27, deadline)
                 if status in (5, 22):
-                    raise sqlite3.IntegrityError('native Agent Store constraint failed')
+                    raise StoreRefusal('native Agent Store constraint failed')
                 if status or skipped not in (0, 1):
                     raise StoreProtocolError('native Agent Store refused write')
                 result = _Cursor(rowcount=1 - skipped)
@@ -465,7 +468,7 @@ class NativeStoreConnection:
         except (OSError, UnicodeError):
             self._abort()
             raise
-        except sqlite3.Error:
+        except StoreRefusal:
             if local:
                 try:
                     self._finish(False)

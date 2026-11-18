@@ -456,7 +456,7 @@ the four Store modules against the Store executable. The installed capture
 application admits and reads permitted input paths. The installed artifact
 application hashes, publishes and verifies complete artifact byte streams.
 The worker transports the existing typed operations to the same Store
-process. It does not open SQLite, fall
+process. The selected worker does not import or open SQLite, fall
 back on refusal, or replay an unacknowledged commit. A native state root is
 not eligible for the legacy worker, and the worker refuses to select the
 native backend on a root containing a legacy journal or its sidecars.

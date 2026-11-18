@@ -97,6 +97,7 @@ SOURCE_FILES = (
     'tests/test_hia_agent_artifact_capture_runtime.py',
     'tests/test_hia_sqlite_snapshot_native.py',
     'tests/test_hia_sqlite_pager_runtime.py',
+    'tests/test_hia_agent_store_runtime.py',
     'tests/test_hia_selfhost_call_graph_efficiency.py',
     'docs/HIA_WORKER_SCHEDULING_CUSTODY.md',
     'tools/build_hia_worker_scheduling_bundle.py',
