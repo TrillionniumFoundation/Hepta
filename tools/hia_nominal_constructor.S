@@ -32,6 +32,10 @@
 .equ CONSTRUCTOR_FRAME, 0x3130525443414948
 .equ STREAM_MAGIC, 0x31304b5443414948
 .equ CODEC_ERROR, 0x3130454a4e414948
+.equ FUNCTION_FRAME, 0x3130444146414948
+.equ FUNCTION_REQUEST, 0x3130514146414948
+.equ FUNCTION_PACKET, 0x3130504146414948
+.equ FUNCTION_FINAL, 0x3130464146414948
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
 .macro region bytes, slot
@@ -64,7 +68,7 @@ _start:
  mov rax,[rip+request+32]
  test rax,rax
  je malformed
- cmp rax,2
+ cmp rax,3
  ja malformed
  mov [rip+handoff_role],rax
  jmp reserved_header
@@ -146,6 +150,8 @@ dispatch:
  cmp eax,64
  jne io_failure
  mov r12,[rip+frame]
+ cmp QWORD PTR [rip+function_mode],0
+ jne dispatch_function
  mov rax,CONSTRUCTOR_FRAME
  cmp [r12],rax
  jne io_failure
@@ -167,8 +173,33 @@ dispatch:
  jb io_failure
  cmp r14,5
  ja io_failure
- mov [rip+last_request],r13
+ jmp pack_request
 
+dispatch_function:
+ mov rax,FUNCTION_FRAME
+ cmp [r12],rax
+ jne io_failure
+ cmp QWORD PTR [r12+8],10
+ je finish_function
+ cmp QWORD PTR [r12+8],1
+ je finish_function
+ cmp QWORD PTR [r12+16],0
+ jne io_failure
+ cmp QWORD PTR [r12+8],0
+ je resume_function
+ cmp QWORD PTR [r12+8],2
+ jne io_failure
+ mov r13,[r12+48]
+ mov rax,[rip+last_request]
+ inc rax
+ cmp r13,rax
+ jne io_failure
+ mov r14d,2
+
+pack_request:
+ mov [rip+last_request],r13
+ cmp QWORD PTR [rip+function_mode],0
+ jne pack_function_request
  lea rdi,[rip+pack_command]
  mov rax,PACK_REQUEST
  mov [rdi],rax
@@ -180,6 +211,23 @@ dispatch:
  mov r8,[rip+constructor_work]
  mov r9d,CONSTRUCTOR_ARENA
  call owner
+ mov r10,PACK_REPLY
+ jmp validate_pack
+
+pack_function_request:
+ lea rdi,[rip+pack_command]
+ mov rax,FUNCTION_REQUEST
+ mov [rdi],rax
+ mov [rdi+8],r13
+ mov esi,16
+ mov rdx,[rip+type_output]
+ mov ecx,PACKET_CAPACITY+64
+ mov r8,[rip+function_work]
+ mov r9d,CONSTRUCTOR_ARENA
+ call function_admit_start
+ mov r10,FUNCTION_PACKET
+
+validate_pack:
  cmp eax,88
  jb io_failure
  cmp eax,PACKET_CAPACITY+64
@@ -187,8 +235,7 @@ dispatch:
  mov r15d,eax
  sub r15,64
  mov rdi,[rip+type_output]
- mov rax,PACK_REPLY
- cmp [rdi],rax
+ cmp [rdi],r10
  jne io_failure
  cmp [rdi+8],r13
  jne io_failure
@@ -277,6 +324,13 @@ resume:
  jne io_failure
  cmp QWORD PTR [r12+56],0
  jne io_failure
+ jmp resume_stage
+
+resume_function:
+ mov rax,[rip+last_request]
+ cmp [r12+48],rax
+ jne io_failure
+resume_stage:
  mov rdi,[rip+type_work]
  mov esi,TYPES_ARENA
  call owner_frame
@@ -373,6 +427,10 @@ handoff:
  mov rax,HANDOFF_REQUEST
  mov [rdi],rax
  mov r13,[rip+handoff_role]
+ cmp r13,3
+ jne handoff_command
+ mov r13d,1
+handoff_command:
  mov [rdi+8],r13
  mov esi,16
  mov rdx,[rip+type_output]
@@ -397,18 +455,75 @@ handoff:
  mov rax,[rip+last_request]
  cmp [rsi+32],rax
  jne io_failure
+ cmp QWORD PTR [rip+handoff_role],3
+ je initialize_function
  mov edi,1
  call write_exact
  xor edi,edi
+ jmp exit
+
+initialize_function:
+ /* The seed is disjoint in type_output. Only the retained resolver remains. */
+ mov rdi,[rip+constructor_work]
+ mov esi,CONSTRUCTOR_ARENA
+ mov edx,4
+ mov eax,28
+ syscall
+ test rax,rax
+ jne io_failure
+ mov rax,[rip+constructor_work]
+ mov [rip+function_work],rax
+ mov QWORD PTR [rip+function_mode],1
+ mov QWORD PTR [rip+last_request],0
+ mov QWORD PTR [rip+delegate_status],0
+ mov rdi,[rip+type_output]
+ mov rsi,[rdi+16]
+ add rdi,64
+ call owner_frame
+ jmp dispatch
+
+finish_function:
+ mov rax,[rip+last_request]
+ cmp [r12+48],rax
+ jne io_failure
+ mov r15,[r12+16]
+ mov rax,[rip+delegate_status]
+ cmp r15,999
+ je function_delegate
+ test rax,rax
+ jne io_failure
+ jmp function_complete
+function_delegate:
+ test rax,rax
+ je io_failure
+function_complete:
+ mov rsi,r12
+ mov [rsi+56],rax
+ mov rax,FUNCTION_FINAL
+ mov [rsi],rax
+ mov edi,1
+ mov edx,64
+ call write_exact
+ xor edi,edi
+ test r15,r15
+ je exit
+ mov edi,65
  jmp exit
 
 owner_frame:
  sub rsp,8
  mov rdx,[rip+frame]
  mov ecx,FRAME_CAPACITY
- mov r8,[rip+constructor_work]
  mov r9d,CONSTRUCTOR_ARENA
+ cmp QWORD PTR [rip+function_mode],0
+ jne function_frame
+ mov r8,[rip+constructor_work]
  call owner
+ add rsp,8
+ ret
+function_frame:
+ mov r8,[rip+function_work]
+ call function_admit_start
  add rsp,8
  ret
 
@@ -504,5 +619,7 @@ type_output: .skip 8
 last_request: .skip 8
 delegate_status: .skip 8
 handoff_role: .skip 8
+function_mode: .skip 8
+function_work: .skip 8
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

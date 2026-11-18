@@ -20,6 +20,7 @@ COMPONENTS = {
     'owner': 'examples/hia_bootstrap/composite_constructor_owner.hepta',
     'render': 'examples/hia_bootstrap/composite_constructor_render.hepta',
     'types': 'examples/hia_bootstrap/composite_types.hepta',
+    'admit': 'examples/hia_bootstrap/composite_function_admit.hepta',
     'linker': 'examples/hia_bootstrap/elf_static_linker.hepta',
 }
 
@@ -40,11 +41,13 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
                               source_bytes=inputs[filename], image_bytes=body)
         images[label], checks[path] = body, body
     transport = assemble(output, ADAPTER, inputs[ADAPTER])
-    types = embed(output, 'types_image', 'constructor-types', images['types'])
-    checks[output / 'constructor-types.embedded.elf'] = images['types']
-    binary, link_receipt = link(output, images['linker'], images['owner'], (transport, types),
-                                wire_magic=b'HIALNK01')
-    for label in ('nominal-json', 'render', 'types'):
+    objects = [transport]
+    for role, label in (('types', 'types_image'), ('admit', 'function_admit')):
+        stem = 'constructor-' + role
+        objects.append(embed(output, label, stem, images[role]))
+        checks[output / (stem + '.embedded.elf')] = images[role]
+    binary, link_receipt = link(output, images['linker'], images['owner'], objects, wire_magic=b'HIALNK01')
+    for label in ('nominal-json', 'render', 'types', 'admit'):
         verify_executable(binary, images[label])
     if (current_sources() != admitted or compiler.read_bytes() != compiler_body
             or cold.read_bytes() != cold_body

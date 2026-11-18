@@ -93,7 +93,7 @@ def check(executable, oracle):
         assert not result.stderr
         return result.returncode, result.stdout
 
-    requests, documents, kinds, seeds = 0, 0, set(), 0
+    requests, documents, kinds, seeds, admitted = 0, 0, set(), 0, 0
     for name, document, legacy, status in cases():
         commands, expected, old_code, old_message = reference(oracle, document, legacy)
         assert expected is not None, (name, old_message)
@@ -139,6 +139,17 @@ def check(executable, oracle):
                 b'HIACIP01', role, len(payload), expected[1], len(commands), 0, 0, 0)
             assert seed_data[64:] == payload
             seeds += 1
+        first_code, first_data = run(raw, legacy=legacy, flags=3, handoff=True)
+        if status[0]:
+            assert (first_code, first_data) == (code, data)
+        elif name == 'multi-chunk':
+            assert (first_code, first_data) == (65, FRAME.pack(b'HIAFAF01', 1, 1, 0, 0, 0, 0, 0))
+        else:
+            serial, slots, count = {'returned-loan-v4': (8, 18, 6),
+                                    'loan-and-task-v4': (9, 37, 19)}.get(name, (2, 38, 29))
+            first = FRAME.pack(b'HIAFAF01', 10, 0, 100, serial, slots, count, 0)
+            assert (first_code, first_data) == (0, first)
+            admitted += count
         requests += len(commands)
         kinds.update(commands)
         documents += 1
@@ -153,10 +164,16 @@ def check(executable, oracle):
     assert run(b'{}', flags=1) == (64, b'')
     assert run(b'{}', trailer=b' ') == (64, b'')
     assert run(b'{}', handoff=True, flags=0) == (64, b'')
-    assert run(b'{}', handoff=True, flags=3) == (64, b'')
+    assert run(b'{}', handoff=True, flags=4) == (64, b'')
+    bad_param = task_program()
+    bad_param['functions'][0]['blocks'][0]['params'][0]['type'] = 'Missing'
+    bad_raw = json.dumps(bad_param, separators=(',', ':')).encode()
+    assert run(bad_raw, flags=3, handoff=True) == (
+        65, FRAME.pack(b'HIAFAF01', 1, 999, 2, 0, 0, 1, 18))
     print(f'{documents} exact constructor completions and failure prefixes; '
           f'{requests} dependent requests across all five kinds; nine raw framing controls; '
-          f'{seeds} exact function or outer seed packets')
+          f'{seeds} exact function or outer seed packets; '
+          f'{admitted} automatic first-function parameter requests and two refusal stages')
 
 
 if __name__ == '__main__':

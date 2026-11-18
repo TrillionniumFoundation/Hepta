@@ -392,3 +392,19 @@ and (where appropriate) returned-loan origins. It does not round-trip
 through host dictionaries or materialize the terminal token stream. On
 construction failure, the original failure-prefix response is unchanged.
 This exposes the handoff artifact, not completion of those later stages.
+
+Role 3 in the `HIACBX01` envelope carries the first function through its
+admission pass. The executable hands role 1's raw packet to the native
+function owner with the same live resolver retained from construction.
+For every block or instruction parameter request, HIA emits the type
+command packet and reads the existing binary resolver reply directly.
+Construction failure still returns the original constructor prefix.
+Otherwise role 3 returns a single `HIAFAF01` frame: the original action,
+admission error, phase, generated-name counter, slot count, request
+count, and optional delegated type-error code. Action 10 / phase 100
+means admission can hand off to records/lowering; it does not claim any
+function body has been lowered. Action 1 is a semantic refusal.
+
+The private stage admits existing parameter requests through either
+`HIAFRS01` or the correlated two-party `HIACTP01` byte protocol. The
+existing host-facing API and its original output remain unchanged.

@@ -42,6 +42,13 @@ ERRORS = {
 CONSTANTS = {
     'ADMIT_MAGIC': int.from_bytes(b'HIAFAD01', 'little'),
     'RESPONSE_MAGIC': int.from_bytes(b'HIAFRS01', 'little'),
+    'TYPE_RESPONSE': int.from_bytes(b'HIACTP01', 'little'),
+    'PARAMETER_REQUEST': int.from_bytes(b'HIAFAQ01', 'little'),
+    'PARAMETER_PACKET': int.from_bytes(b'HIAFAP01', 'little'),
+    'COMMAND_OP': int.from_bytes(b'op', 'little'),
+    'COMMAND_PARAMETERS_FIRST': int.from_bytes(b'paramete', 'little'),
+    'COMMAND_PARAMETERS_LAST': int.from_bytes(b'rs', 'little'),
+    'COMMAND_PARAMS': int.from_bytes(b'params', 'little'),
     'NEXT_MAGIC': int.from_bytes(b'HIAFNX01', 'little'),
     'TYPE_MAGIC': int.from_bytes(b'HIATYS01', 'little'),
     'TYPE_BYTES': 128 << 20, 'TS': 96 << 20, 'TYPES': (96 << 20) + 65536,
@@ -56,6 +63,14 @@ def function_admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return ABI
     if length(o) < 64 or get(w, S + 96) != 0:
         return fatal(w)
+    if length(s) == 16 and word(s, 0) == PARAMETER_REQUEST:
+        return admit_parameter_packet(s, o, w)
+    if length(s) >= 64 and word(s, 0) == TYPE_RESPONSE:
+        if get(w, S + 48) != 1 or word(s, 16) != 2 or word(s, 40) != length(s) - 64:
+            return fatal(w)
+        if word(s, 48) != 0 or word(s, 56) != 0:
+            return fatal(w)
+        return admit_response(s, o, w, 64)
     if length(s) >= 16 and word(s, 0) == NEXT_MAGIC:
         if get(w, S) != STATE_MAGIC or get(w, S + 312) != 0:
             return fatal(w)
@@ -70,33 +85,7 @@ def function_admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         action = admit_run(s, w)
         return admit_frame(o, w, action)
     if length(s) >= 32 and word(s, 0) == RESPONSE_MAGIC:
-        if get(w, S) != STATE_MAGIC or get(w, S + 312) != 2:
-            return fatal(w)
-        if word(s, 8) != get(w, S + 88) or word(s, 16) > 1:
-            return fatal(w)
-        count = word(s, 24)
-        if count > 262144 or length(s) != 32 + count * 8:
-            return fatal(w)
-        if word(s, 16) == 1:
-            if count != 0:
-                return fatal(w)
-            put(w, S + 112, 999)
-            put(w, S + 312, 0)
-            return admit_frame(o, w, 1)
-        if count != g_count(w, get(w, S + 192)):
-            return fatal(w)
-        ids = allocate(w, count * 8)
-        i = 0
-        while i < count:
-            identifier = word(s, 32 + i * 8)
-            if identifier == 0 or identifier > 144:
-                return fatal(w)
-            put(w, ids + i * 8, identifier)
-            i = i + 1
-        put(w, S + 200, ids)
-        put(w, S + 208, count)
-        put(w, S + 312, 0)
-        return admit_frame(o, w, 0)
+        return admit_response(s, o, w, 32)
     if get(w, S) != 0 or length(s) > I_BYTES:
         return fatal(w)
     if validate_packet(s, w) == 0:
@@ -116,6 +105,93 @@ def function_admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if initialize(w) == 0:
         return fatal(w)
     return admit_frame(o, w, 0)
+
+
+def admit_response(s:readbuf, o:mutbuf, w:mutbuf, header:u64) -> u32:
+    if get(w, S) != STATE_MAGIC or get(w, S + 312) != 2:
+        return fatal(w)
+    shift = choose(header == 32, 0, 8)
+    error = word(s, 16 + shift)
+    count = word(s, 24 + shift)
+    if word(s, 8) != get(w, S + 88) or error > 1:
+        return fatal(w)
+    if count > 262144 or length(s) != header + count * 8:
+        return fatal(w)
+    if error == 1:
+        if count != 0:
+            return fatal(w)
+        put(w, S + 112, 999)
+        put(w, S + 312, 0)
+        return admit_frame(o, w, 1)
+    if count != g_count(w, get(w, S + 192)):
+        return fatal(w)
+    ids = allocate(w, count * 8)
+    i = 0
+    while i < count:
+        identifier = word(s, header + i * 8)
+        if identifier == 0 or identifier > 144:
+            return fatal(w)
+        put(w, ids + i * 8, identifier)
+        i = i + 1
+    put(w, S + 200, ids)
+    put(w, S + 208, count)
+    put(w, S + 312, 0)
+    return admit_frame(o, w, 0)
+
+def admit_parameter_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    request = word(s, 8)
+    if get(w, S) != STATE_MAGIC or get(w, S + 312) != 2 or get(w, S + 48) != 0:
+        return ABI
+    if request == 0 or request != get(w, S + 88):
+        return ABI
+    source = get(w, S + 192)
+    stop = get(w, S + 24) + get(w, S + 16)
+    if source < get(w, S + 24) or source > stop or stop - source < 16:
+        return ABI
+    end = g_end(w, source)
+    if end < source + 16 or end > stop:
+        return ABI
+    # A map and three counted string tokens precede the original parameters.
+    # Keep this writer independent of semantic lookups or positional edits.
+    start = 64 + 24 + 3 * 16 + 2 + 10 + 6
+    size = end - source
+    if length(o) < start or size > length(o) - start or size > (32 << 20) - start:
+        return ABI
+    extent = start + size
+    put(o, 64, 6)
+    put(o, 72, extent - 80)
+    put(o, 80, 2)
+    at = admit_parameter_text(o, 88, 2, COMMAND_OP, 0)
+    at = admit_parameter_text(o, at, 10, COMMAND_PARAMETERS_FIRST, COMMAND_PARAMETERS_LAST)
+    at = admit_parameter_text(o, at, 6, COMMAND_PARAMS, 0)
+    if at != start:
+        return ABI
+    index = 0
+    while index < size:
+        store(o, start + index, byte(w, source + index))
+        index = index + 1
+    put(o, 0, PARAMETER_PACKET)
+    put(o, 8, request)
+    put(o, 16, 2)
+    put(o, 24, extent - 64)
+    put(o, 32, 0)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    put(w, S + 48, 1)
+    return extent
+
+def admit_parameter_text(o:mutbuf, at:u64, size:u64, first:u64, second:u64) -> u64:
+    put(o, at, 4)
+    put(o, at + 8, size)
+    index = 0
+    while index < size:
+        if index < 8:
+            store(o, at + 16 + index, (first >> (index * 8)) & 255)
+        else:
+            store(o, at + 16 + index, (second >> ((index - 8) * 8)) & 255)
+        index = index + 1
+    return at + 16 + size
 
 def admit_frame(o:mutbuf, w:mutbuf, action:u64) -> u32:
     if get(w, S + 96) != 0:
