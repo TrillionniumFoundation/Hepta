@@ -5,7 +5,8 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import OPCODES
 from hepta.hia_scalar_symbolic_native import (
-    MAGIC, MAX_BLOCKS, MAX_NODES, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS,
+    CONTROL_KINDS, CONTROL_MAGIC, MAGIC, MAX_BLOCKS, MAX_EDGES, MAX_NODES,
+    MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS,
     OPERATIONS, ORDER_MAGIC, RESULT,
 )
 from tools.generate_hia_scalar_reference import ReferenceBuilder
@@ -17,6 +18,8 @@ SOURCE = '''
 def recipe(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 8 and uint(s, 0, 8) == @ORDER_MAGIC@:
         return acyclic_order(s, o, w)
+    if length(s) >= 8 and uint(s, 0, 8) == @CONTROL_MAGIC@:
+        return control(s, o)
     if length(s) != 64 or length(o) < 64 + 32 * @MAX_NODES@:
         return 4294967295
     if uint(s, 0, 8) != @MAGIC@:
@@ -134,6 +137,50 @@ def recipe(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         value = node(o, @n.select@, 0, 1, 2)
     put(o, 16, value)
     return 64 + 32 * get(o, 8)
+
+def control(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 24 or length(o) < 64 + 32 * @MAX_EDGES@:
+        return 4294967295
+    kind = uint(s, 8, 8)
+    edges = uint(s, 16, 8)
+    if kind < @c.join@ or kind > @c.observe@ or edges > @MAX_EDGES@:
+        return 4294967295
+    if kind >= @c.split@ and edges != 0:
+        return 4294967295
+    put(o, 0, @RESULT@)
+    put(o, 8, 0)
+    put(o, 24, 1)
+    if kind == @c.join@:
+        put(o, 56, edges)
+        if edges == 0:
+            first = control_node(o, @n.boolean@, 0, 0, 0)
+        else:
+            first = control_node(o, @n.or_inputs@, edges, 0, 0)
+    elif kind == @c.phi@:
+        put(o, 56, 2 * edges + 1)
+        first = 2 * edges
+        if edges == 1:
+            first = 1
+        else:
+            i = 0
+            while i < edges:
+                first = control_node(o, @n.select@, i, edges + i, first)
+                i = i + 1
+    elif kind == @c.split@:
+        put(o, 56, 2)
+        put(o, 24, 2)
+        first = control_node(o, @n.and@, 0, 1, 0)
+        inverse = control_node(o, @n.not@, 1, 0, 0)
+        second = control_node(o, @n.and@, 0, inverse, 0)
+        put(o, 32, second)
+    else:
+        put(o, 56, 3)
+        first = control_node(o, @n.select@, 0, 1, 2)
+    put(o, 16, first)
+    return 64 + 32 * get(o, 8)
+
+def control_node(o:mutbuf, kind:u64, a:u64, b:u64, c:u64) -> u64:
+    return node(o, kind, a, b, c) - 3 + get(o, 56)
 
 def acyclic_order(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 56 or length(o) < 24 + 8 * @MAX_BLOCKS@ or length(w) < 8 * @MAX_BLOCKS@:
@@ -266,7 +313,9 @@ def overflow(o:mutbuf, full:u64, width:u64, original:u64, signed:u64) -> u64:
 def document():
     constants = {'MAGIC': MAGIC, 'RESULT': RESULT, 'MAX_NODES': MAX_NODES, 'ORDER_MAGIC': ORDER_MAGIC,
                  'MAX_BLOCKS': MAX_BLOCKS, 'MAX_OPERATIONS': MAX_OPERATIONS,
-                 'MAX_PARAMETERS': MAX_PARAMETERS, 'MAX_RETURNS': MAX_RETURNS, **OPCODES,
+                 'MAX_PARAMETERS': MAX_PARAMETERS, 'MAX_RETURNS': MAX_RETURNS,
+                 'CONTROL_MAGIC': CONTROL_MAGIC, 'MAX_EDGES': MAX_EDGES, **OPCODES,
+                 **{'c.' + name: code for name, code in CONTROL_KINDS.items()},
                  **{'n.' + name: code for name, code in OPERATIONS.items()}}
     source = SOURCE
     for name, value in constants.items():

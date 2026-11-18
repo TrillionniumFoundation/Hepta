@@ -16,6 +16,7 @@ SELECTOR = 'HEPTA_HIA_SCALAR_SYMBOLIC_MANIFEST'
 MAGIC = int.from_bytes(b'HIASMT01', 'little')
 RESULT = int.from_bytes(b'HIASMR01', 'little')
 ORDER_MAGIC = int.from_bytes(b'HIASMO01', 'little')
+CONTROL_MAGIC = int.from_bytes(b'HIASMC01', 'little')
 MAX_BLOCKS, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS = 128, 2048, 32, 16
 PROFILE_REFUSALS = ('symbolic_program_budget_exceeded', 'symbolic_signature_budget_exceeded',
                     'resource_effects_outside_scalar_profile', 'resource_types_outside_scalar_profile',
@@ -23,10 +24,12 @@ PROFILE_REFUSALS = ('symbolic_program_budget_exceeded', 'symbolic_signature_budg
 HEADER = struct.Struct('<8Q')
 NODE = struct.Struct('<4Q')
 MAX_NODES = 24
+MAX_EDGES = 2 * MAX_BLOCKS
+CONTROL_KINDS = {name: index for index, name in enumerate(('join', 'phi', 'split', 'observe'), 1)}
 OPERATIONS = {name: index for index, name in enumerate((
     'literal', 'boolean', 'add', 'sub', 'mul', 'sdiv', 'srem', 'udiv', 'urem', 'shl', 'ashr', 'lshr',
     'neg', 'bvand', 'bvor', 'bvxor', 'bvnot', 'eq', 'ne', 'slt', 'sle', 'sgt', 'sge', 'ult', 'ule',
-    'ugt', 'uge', 'not', 'and', 'or', 'select', 'sext', 'zext', 'extract', 'bv2int',
+    'ugt', 'uge', 'not', 'and', 'or', 'select', 'sext', 'zext', 'extract', 'bv2int', 'or_inputs',
 ), 1)}
 NAMES = {value: name for name, value in OPERATIONS.items()}
 TRAPS = ('overflow', 'division_by_zero')
@@ -87,7 +90,33 @@ class NativeScalarSymbolic(NativeHiaJsonImage):
             return None, ()
         opcode = 'cast.' + attrs['mode'] if name == 'int.cast' else name
         graph, value, traps = self.recipe(opcode, result, source, attrs.get('value'), translation)
-        terms = list(operands) + [None] * (3 - len(operands))
+        terms = self._terms(z3, context, graph, list(operands) + [None] * (3 - len(operands)))
+        return terms[value], tuple((tag, terms[index]) for tag, index in traps)
+
+    @lru_cache(maxsize=256)
+    def _control_recipe(self, kind, edges):
+        wire = struct.pack('<3Q', CONTROL_MAGIC, CONTROL_KINDS[kind], edges)
+        request = ctypes.create_string_buffer(wire)
+        output = ctypes.create_string_buffer(HEADER.size + MAX_EDGES * NODE.size)
+        unused = ctypes.create_string_buffer(1)
+        size = self._entry(request, len(wire), output, len(output), unused, 0)
+        mark, count, first, results, second, _, _, inputs = HEADER.unpack_from(output)
+        expected_inputs = {'join': edges, 'phi': 2 * edges + 1, 'split': 2, 'observe': 3}
+        expected_results = 2 if kind == 'split' else 1
+        indexes = (first, second)[:results]
+        if (mark != RESULT or count > MAX_EDGES or size != HEADER.size + count * NODE.size
+                or results != expected_results or inputs != expected_inputs[kind]
+                or any(index >= inputs + count for index in indexes)):
+            raise SymbolicRecipeRejected('invalid HIA symbolic control reply')
+        return tuple(NODE.iter_unpack(output.raw[HEADER.size:size])), indexes
+
+    def control(self, z3, context, kind, operands, *, edges=0):
+        graph, results = self._control_recipe(kind, edges)
+        terms = self._terms(z3, context, graph, list(operands))
+        return tuple(terms[index] for index in results)
+
+    @staticmethod
+    def _terms(z3, context, graph, terms):
         operations = _solver_operations(z3)
         for code, a, b, c in graph:
             primitive = NAMES.get(code)
@@ -104,13 +133,17 @@ class NativeScalarSymbolic(NativeHiaJsonImage):
                     term = z3.Extract(b, c, terms[a])
                 elif primitive == 'bv2int':
                     term = z3.BV2Int(terms[a], is_signed=bool(b))
+                elif primitive == 'or_inputs':
+                    if not 0 < a <= len(terms):
+                        raise IndexError(a)
+                    term = z3.Or(*terms[:a])
                 else:
                     arity, operation = operations[primitive]
                     term = operation(*(terms[index] for index in (a, b, c)[:arity]))
             except (IndexError, KeyError, TypeError) as error:
                 raise SymbolicRecipeRejected('invalid HIA symbolic expression operand') from error
             terms.append(term)
-        return terms[value], tuple((tag, terms[index]) for tag, index in traps)
+        return terms
 
 
 @lru_cache(maxsize=1)

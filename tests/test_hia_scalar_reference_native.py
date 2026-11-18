@@ -332,8 +332,8 @@ class ScalarReferenceNativeTests(unittest.TestCase):
 
         from hepta.hia_optimization import _Encoder as OptimizationEncoder, verify_optimization
         from hepta.hia_scalar_symbolic_native import (
-            MAX_BLOCKS, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS,
-            NativeScalarSymbolic, PROFILE_REFUSALS, SCHEMA, SELECTOR, SOURCE,
+            MAX_BLOCKS, MAX_EDGES, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS,
+            NativeScalarSymbolic, PROFILE_REFUSALS, SCHEMA, SELECTOR, SOURCE, SymbolicRecipeRejected,
         )
         from hepta import hia_translation_validation
         from hepta.hia_translation_validation import _Encoder as TranslationEncoder, validate_translation
@@ -392,6 +392,28 @@ class ScalarReferenceNativeTests(unittest.TestCase):
                 proof.add(first != second)
                 self.assertEqual(proof.check(), z3.unsat)
 
+        for edge_count in (0, 1, 2, 11, MAX_EDGES):
+            guards = tuple(z3.Bool(f'edge_{n}', context) for n in range(edge_count))
+            values = tuple(z3.BitVecVal(n + 1, 16, context) for n in range(edge_count))
+            default = z3.BitVecVal(0, 16, context)
+            expected_join = z3.Or(*guards) if guards else z3.BoolVal(False, context)
+            self.assertTrue(z3.eq(native.control(z3, context, 'join', guards, edges=edge_count)[0],
+                                  expected_join))
+            expected_phi = values[0] if edge_count == 1 else default
+            if edge_count != 1:
+                for guard, value in zip(guards, values):
+                    expected_phi = z3.If(guard, value, expected_phi)
+            self.assertTrue(z3.eq(native.control(z3, context, 'phi',
+                (*guards, *values, default), edges=edge_count)[0], expected_phi))
+        with self.assertRaises(SymbolicRecipeRejected):
+            native.control(z3, context, 'join', (), edges=MAX_EDGES + 1)
+        reach, test = z3.Bools('reachable predicate', ctx=context)
+        hit, missed = native.control(z3, context, 'split', (reach, test))
+        self.assertTrue(z3.eq(hit, z3.And(reach, test)))
+        self.assertTrue(z3.eq(missed, z3.And(reach, z3.Not(test))))
+        final = native.control(z3, context, 'observe', (reach, 4, z3.IntVal(-1, context)))[0]
+        self.assertTrue(z3.eq(final, z3.If(reach, 4, z3.IntVal(-1, context))))
+
         trans = TranslationEncoder(z3)
         for opcode, attrs, inputs, output in shapes:
             with self.subTest(opcode=opcode, inputs=inputs, output=output, attrs=attrs):
@@ -427,6 +449,8 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         with (patch.dict(os.environ, {SELECTOR: str(manifest)}),
               patch.object(OptimizationEncoder, '_reference_operation', side_effect=AssertionError('host symbolic opcode')),
               patch.object(TranslationEncoder, '_reference_operation', side_effect=AssertionError('host symbolic opcode')),
+              patch.object(TranslationEncoder, '_reference_any', side_effect=AssertionError('host guard merge')),
+              patch.object(TranslationEncoder, 'choose', side_effect=AssertionError('host phi selection')),
               patch.object(hia_translation_validation, '_reference_profile', side_effect=AssertionError('host CFG profile'))):
             optimized = verify_optimization(original, original)
             self.assertEqual(optimized['status'], 'verified', optimized)
@@ -434,6 +458,11 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             translated = validate_translation(original, original)
             self.assertEqual(translated['status'], 'proved', translated)
             self.assertEqual(validate_translation(original, changed)['status'], 'disproved')
+            from tests.test_hia_translation_validation import ScalarTranslationProofTests
+            comparison = ScalarTranslationProofTests()
+            comparison.test_cfg_phi_and_select_have_identical_all_input_behavior()
+            comparison.test_branch_guard_masks_unexecuted_overflow()
+            comparison.test_first_trap_code_and_operation_order_are_observable()
 
     def test_byte_ranges_and_traps_use_existing_owned_buffers_without_host_writes(self):
         from tests.test_hia_program_native_review import _bounds_program, _empty_memory_program

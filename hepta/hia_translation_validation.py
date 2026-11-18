@@ -176,8 +176,13 @@ class _Encoder:
         self.native_symbolic = selected_scalar_symbolic()
 
     def any(self, expressions):
-        expressions = list(expressions)
-        return self.z.Or(*expressions) if expressions else self.z.BoolVal(False, self.context)
+        guards = tuple(expressions)
+        if self.native_symbolic is not None:
+            return self.control("join", guards, edges=len(guards))[0]
+        return self._reference_any(guards)
+
+    def _reference_any(self, guards):
+        return self.z.Or(*guards) if guards else self.z.BoolVal(False, self.context)
 
     def literal(self, value, typ):
         if typ == "unit":
@@ -291,6 +296,38 @@ class _Encoder:
             raise _OutsideProfile("unhandled_scalar_operation")
         return value, traps
 
+    def phi(self, arrivals, index, typ):
+        if typ == "unit":
+            return None
+        if self.native_symbolic is not None:
+            guards = tuple(guard for guard, _ in arrivals)
+            values = tuple(values[index] for _, values in arrivals)
+            return self.control("phi", (*guards, *values, self.zero(typ)), edges=len(guards))[0]
+        if len(arrivals) == 1:
+            # Off the sole incoming guard this value is never observed.
+            return arrivals[0][1][index]
+        value = self.zero(typ)
+        for guard, values in arrivals:
+            value = self.choose(guard, values[index], value, typ)
+        return value
+
+    def split(self, guard, condition):
+        if self.native_symbolic is None:
+            z = self.z
+            return z.And(guard, condition), z.And(guard, z.Not(condition))
+        return self.control("split", (guard, condition))
+
+    def observe(self, guard, value, previous):
+        if self.native_symbolic is None:
+            return self.z.If(guard, value, previous)
+        return self.control("observe", (guard, value, previous))[0]
+
+    def control(self, kind, operands, *, edges=0):
+        try:
+            return self.native_symbolic.control(self.z, self.context, kind, operands, edges=edges)
+        except SymbolicRecipeRejected as error:
+            raise self.z.Z3Exception(str(error)) from error
+
     def function(self, fn, inputs, blocks, order):
         z = self.z
         incoming = {ident: [] for ident in blocks}
@@ -299,28 +336,15 @@ class _Encoder:
         for ident in order:
             block = blocks[ident]
             arrivals = incoming[ident]
-            guard = self.any(g for g, _ in arrivals)
+            guard = self.any(guard for guard, _ in arrivals)
             types = {p["name"]: p["type"] for p in block["params"]}
-            env = {}
-            for index, param in enumerate(block["params"]):
-                value = self.zero(param["type"])
-                if len(arrivals) == 1:
-                    # On every execution of this block its only edge guard is
-                    # true, so its argument is the phi value. Off that guard,
-                    # values are unobservable: traps, outcomes and successor
-                    # edges below retain the complete reachability guard.
-                    # Scalar BV expressions themselves are total in Z3.
-                    value = arrivals[0][1][index]
-                else:
-                    # Preserve zero-arrival defaults and all guarded merges.
-                    for edge_guard, values in arrivals:
-                        value = self.choose(edge_guard, values[index], value, param["type"])
-                env[param["name"]] = value
+            env = {param["name"]: self.phi(arrivals, index, param["type"])
+                   for index, param in enumerate(block["params"])}
             for op in block["ops"]:
                 value, traps = self.operation(op, env, types)
                 for code, condition in traps:
-                    outcomes.append((z.And(guard, condition), _TRAP_TAGS[code], None))
-                    guard = z.And(guard, z.Not(condition))
+                    trapped, guard = self.split(guard, condition)
+                    outcomes.append((trapped, _TRAP_TAGS[code], None))
                 output = op["out"][0]
                 env[output["name"]], types[output["name"]] = value, output["type"]
             term = block["term"]
@@ -329,18 +353,19 @@ class _Encoder:
             elif term["op"] == "trap":
                 outcomes.append((guard, _TRAP_TAGS[term["code"]], None))
             else:
-                edges = [(guard, term)] if term["op"] == "jump" else [
-                    (z.And(guard, env[term["cond"]]), term["then"]),
-                    (z.And(guard, z.Not(env[term["cond"]])), term["else"]),
-                ]
+                if term["op"] == "jump":
+                    edges = ((guard, term),)
+                else:
+                    yes, no = self.split(guard, env[term["cond"]])
+                    edges = ((yes, term["then"]), (no, term["else"]))
                 for edge_guard, edge in edges:
                     incoming[edge["target"]].append((edge_guard, [env[n] for n in edge["args"]]))
         tag = z.IntVal(-1, self.context)  # Acyclic verified control flow ends in ret/trap.
         values = [self.zero(typ) for typ in fn["returns"]]
         for guard, code, returned in outcomes:
-            tag = z.If(guard, code, tag)
+            tag = self.observe(guard, code, tag)
             if returned is not None:
-                values = [self.choose(guard, val, old, typ)
+                values = [None if typ == "unit" else self.observe(guard, val, old)
                           for val, old, typ in zip(returned, values, fn["returns"])]
         return tag, values
 

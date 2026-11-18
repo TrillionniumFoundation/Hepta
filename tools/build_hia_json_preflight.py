@@ -171,7 +171,7 @@ def main():
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
-                                 'scalar-reference'))
+                                 'scalar-reference', 'scalar-symbolic'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)
