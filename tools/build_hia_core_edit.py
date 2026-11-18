@@ -6,6 +6,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import struct
+import zlib
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE, assemble_adapter
@@ -20,6 +21,9 @@ EDIT = BOOTSTRAP + 'core_edit/'
 CLI = BOOTSTRAP + 'core_cli/'
 PACKER = EDIT + 'packer.hepta'
 CAPACITY = 4 * (1 << 20) + 4096
+ARGUMENT_PARSER = CLI + 'arguments.hepta'
+ARGUMENT_FORMATTER = BOOTSTRAP + 'cli_format.hepta'
+ARGUMENT_ARCHIVE = '<public-argument-images>'
 
 # Each entry lists the flat payloads in placement order, then the adapter
 # relocation sites belonging to each. Several stages use the same image entry.
@@ -27,6 +31,9 @@ PROGRAMS = {
     'dispatch': ('hia', (
         (CLI + 'dispatch.hepta', ('dispatch_call',)),
         (CLI + 'selfhost_entry.hepta', ('selfhost_call',)),
+        (CLI + 'argument_payload.hepta', ('argument_unpack', 'argument_frame', 'argument_encode',
+                                         'argument_command')),
+        (ARGUMENT_ARCHIVE, ('argument_images',)),
     )),
     'selfhost_component': ('hia-selfhost-component', (
         (CLI + 'selfhost_controller.hepta', ('dispatch_call',)),
@@ -185,6 +192,17 @@ def digest(raw):
     return sha256(raw).hexdigest()
 
 
+def argument_images(control, formatter):
+    raw = control + formatter
+    if not control or not formatter or len(raw) > 1048576:
+        raise ValueError('native CLI argument images exceed the decoded extent')
+    compressor = zlib.compressobj(9, zlib.DEFLATED, -15, 6)
+    compressed = compressor.compress(raw) + compressor.flush()
+    if len(compressed) + 24 > 1048576 or zlib.decompress(compressed, -15) != raw:
+        raise ValueError('native CLI argument images failed packing')
+    return struct.pack('<3Q', len(compressed), len(raw), len(control)) + compressed
+
+
 def pack(packer, stub, holes, images):
     lengths = list(map(len, images))
     frame = struct.pack('<8Q', MAGIC, len(stub), len(holes), len(lengths),
@@ -218,8 +236,9 @@ def build(output, compiler, cold_report, *, release_only=False):
     programs = {key: value for key, value in PROGRAMS.items()
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
-    source_files = {PACKER, *adapters.values(),
-                    *(path for _name, roles in programs.values() for path, _calls in roles)}
+    source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *adapters.values(),
+                    *(path for _name, roles in programs.values() for path, _calls in roles
+                      if path != ARGUMENT_ARCHIVE)}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
     if any(admitted.get(path) != digest(raw) for path, raw in sources.items()):
         raise ValueError('native Core edit source differs from admitted cold source')
@@ -233,6 +252,7 @@ def build(output, compiler, cold_report, *, release_only=False):
         image, receipt = compile_stage(output, Path(path).stem, compiler, raw)
         images[path] = image.read_bytes()
         receipts[path] = receipt
+    images[ARGUMENT_ARCHIVE] = argument_images(images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER])
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
     products = {}
     for kind, (name, roles) in programs.items():

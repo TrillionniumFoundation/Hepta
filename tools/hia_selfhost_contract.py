@@ -146,6 +146,7 @@ EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
 CORE_EDIT_SDIST_FILES = (
     'tools/build_hia_core_edit.py',
     'tools/generate_hia_core_edit_packer.py',
+    'tools/generate_hia_cli_argument_transport.py',
     'tools/hia_core_edit_apply.S',
     'tools/hia_core_edit_batch_apply.S',
     'tools/hia_core_edit_batch_query.S',
@@ -196,6 +197,8 @@ CORE_EDIT_SDIST_FILES = (
     'examples/hia_bootstrap/core_cli/capabilities.hepta',
     'examples/hia_bootstrap/core_cli/catalog.hepta',
     'examples/hia_bootstrap/core_cli/catalog_registry.json',
+    'examples/hia_bootstrap/core_cli/argument_payload.hepta',
+    'examples/hia_bootstrap/core_cli/arguments.hepta',
     'examples/hia_bootstrap/core_cli/dispatch.hepta',
     'examples/hia_bootstrap/core_cli/inspect.hepta',
     'examples/hia_bootstrap/core_cli/normalize_pretty.hepta',

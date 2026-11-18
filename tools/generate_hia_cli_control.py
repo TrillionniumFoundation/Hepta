@@ -13,6 +13,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 SOURCE_PATH = "examples/hia_bootstrap/cli_control.hepta"
+ARGUMENT_SOURCE = "examples/hia_bootstrap/core_cli/arguments.hepta"
 ACTIONS = (
     "capabilities", "catalog", "import-assembly", "render-assembly",
     "check-assembly", "verify", "inspect", "normalize", "build", "patch",
@@ -62,8 +63,7 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 199
     if length(s) < 8 or length(o) < 128:
         return control_refuse(w)
-    if read64(s, 0) == STEP_MAGIC:
-        return control_step(s, o, w)
+ACTION_STEP
     if get(w, C_MAGIC) == CONTROL_MAGIC:
         return control_refuse(w)
     if read64(s, 0) != ARGV_MAGIC or length(s) < 192:
@@ -129,8 +129,7 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 if get(w, FIELD_BASE + 17 * FIELD_STRIDE) > 1 or get(w, FIELD_BASE + 18 * FIELD_STRIDE) > 1:
                     put(w, 24, 0)
                     refusal(w, 9, 0, 0, 0, 0)
-        if get(w, 8) == 0:
-            control_seed(w, get(w, 16), field_truth(w, 3), backend)
+ACTION_SEED
     index = 0
     while index < 128:
         store(o, index, byte(w, index))
@@ -630,20 +629,32 @@ def _decimal():
         pieces.append("\n".join(lines + ["    return 0", ""]))
     return "\n".join(pieces)
 
-def source_program():
+def source_program(*, argument_only=False):
     from tools.hia_cli_control_phases import SOURCE as PHASE_SOURCE, SYMBOLS as PHASE_SYMBOLS
+    if argument_only:
+        source = SOURCE.replace("ACTION_STEP", "").replace("ACTION_SEED", "")
+        phase_source = ast.unparse(next(node for node in ast.parse(PHASE_SOURCE).body
+                                        if node.name == "control_refuse"))
+    else:
+        source = SOURCE.replace(
+            "ACTION_STEP", "    if read64(s, 0) == STEP_MAGIC:\n        return control_step(s, o, w)"
+        ).replace(
+            "ACTION_SEED", "        if get(w, 8) == 0:\n"
+            "            control_seed(w, get(w, 16), field_truth(w, 3), backend)"
+        )
+        phase_source = PHASE_SOURCE
     values = dict(SYMBOLS)
     values["SELFHOST_LITERAL"] = LITERAL_IDS["selfhost"]
     values.update(PHASE_SYMBOLS)
     class Replace(ast.NodeTransformer):
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(values[node.id]), node) if node.id in values else node
-    tree = Replace().visit(ast.parse(SOURCE + "\n" + _tables() + "\n" + _constants() +
-                                    "\n" + _decimal() + "\n" + PHASE_SOURCE))
+    tree = Replace().visit(ast.parse(source + "\n" + _tables() + "\n" + _constants() +
+                                    "\n" + _decimal() + "\n" + phase_source))
     return ast.unparse(ast.fix_missing_locations(tree)) + "\n"
 
-def document():
-    nodes = ast.parse(source_program()).body
+def document(*, argument_only=False):
+    nodes = ast.parse(source_program(argument_only=argument_only)).body
     names = {node.name: "f" + str(index) for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id) for node in nodes}
     total = total_scalar_functions(nodes)
@@ -654,10 +665,13 @@ def document():
         functions.append({"name": names[node.name], "params": [builder.param(v) for v in builder.params],
                           "returns": [builder.returns], "effects": ["read", "write", "trap"],
                           "entry": "b0", "blocks": builder.blocks})
-    return compact_authoring_cfg({"schema": "hepta.hia.program.v8", "module": "cli_control",
+    module = "cli_arguments_only" if argument_only else "cli_control"
+    return compact_authoring_cfg({"schema": "hepta.hia.program.v8", "module": module,
                                   "functions": functions})
 
 if __name__ == "__main__":
-    target = Path(__file__).resolve().parents[1] / SOURCE_PATH
-    target.write_text(render_assembly(document()))
-    print(target.name, target.stat().st_size)
+    root = Path(__file__).resolve().parents[1]
+    for path, argument_only in ((SOURCE_PATH, False), (ARGUMENT_SOURCE, True)):
+        target = root / path
+        target.write_text(render_assembly(document(argument_only=argument_only)))
+        print(target.name, target.stat().st_size)

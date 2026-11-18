@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import struct
 import subprocess
+import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -414,6 +415,55 @@ def check_ordinary(executable, run):
     check_render_assembly(executable, programs, raw)
     check_core_ingress(executable)
     check_source_files(executable)
+    check_argument_cli(executable)
+
+
+def check_argument_cli(executable):
+    from tools.generate_hia_cli_control import ACTIONS
+
+    environment = {'PATH': '', 'LC_ALL': 'C.UTF-8', 'NO_COLOR': '1'}
+    reference = [sys.executable, '-c',
+                 'from hepta.cli import _reference_hia_main; raise SystemExit(_reference_hia_main())']
+    root = Path(__file__).resolve().parents[1]
+    reference_env = {**environment, 'PYTHONPATH': str(root)}
+
+    def observed(command, arguments, env, *, cwd=None):
+        run = subprocess.run([*command, *arguments], env=env, cwd=cwd, capture_output=True,
+                             stdin=subprocess.DEVNULL, timeout=20, check=False)
+        return run.returncode, run.stdout, run.stderr
+
+    # The standalone executable pins the 3.14.4 diagnostic profile; these
+    # ordinary help, usage and syntax cases are unchanged in 3.14.10.
+    checks = [((), 2), (('--version',), 0), (('--ver',), 0), (('--help',), 0),
+              (('--wrong',), 2), (('verify',), 2), (('verify', '--help=x'), 2),
+              (('verify', '--wrong'), 2), (('build', 'x', '--backend=selfhost'), 2),
+              (('build', 'x', '-o', 'y', '--selfhost-manifest=x'), 2),
+              (('edit-query', 'x', '--function'), 2)]
+    checks += [((action, '--he'), 0) for action in ACTIONS]
+    for arguments, code in checks:
+        old = observed(reference, arguments, reference_env)
+        new = observed([executable], arguments, environment)
+        assert old[0] == code and new == old, (arguments, old, new)
+    for overrides in ({'COLUMNS': '47'}, {'COLUMNS': '91', 'PYTHON_COLORS': '1'}):
+        for arguments in (('--help',), ('edit-query', '-h'), ('verify',)):
+            old = observed(reference, arguments, {**reference_env, **overrides})
+            new = observed([executable], arguments, {**environment, **overrides})
+            assert new == old, (arguments, overrides, old, new)
+
+    control = observed([executable], ('catalog', '--schema', 'hepta.hia.program.v7'), environment)
+    assert control[0] == 0 and control[1] and not control[2]
+    for argument in ('--sche=hepta.hia.program.v7', '--schema=hepta.hia.program.v7'):
+        assert observed([executable], ('catalog', argument), environment) == control
+    with TemporaryDirectory(prefix='hia-cli-canonical-argv-') as temporary:
+        target = Path(temporary)
+        source = target / '-源.hepta'
+        source.write_bytes((root / 'examples/hia_program/capability_borrow_access.hepta').read_bytes())
+        expected = observed([executable], ('verify', str(source)), environment)
+        assert expected[0] == 0 and expected[1] and not expected[2]
+        assert observed([executable], ('verify', '--', source.name), environment,
+                        cwd=target) == expected
+        assert observed([executable], ('verify', str(source), '--'), environment) == expected
+    print(f'{len(checks) + 6} exact argv presentations and four canonical option/path bindings')
 
 
 def check_core_ingress(executable):
