@@ -258,3 +258,11 @@ durable write; first reopen the Store and verify the selected anchor.
 This primitive is selected explicitly for private migration. The executable
 does not initialize a destination, select a source snapshot, move artifact
 bytes, switch the Agent's active Store, or replace the existing SQL path.
+
+Build the sealed-record entry with `--kind sealed` to apply a native
+cost-sequence transaction. It uses the same HIA writer as the batch entry,
+with the same stdin and descriptors 3 through 7 and 10. Fd 9 instead
+carries the HIA-generated `HIAWAL01` transaction in a `0400` memfd with
+all four seals; there is no proposal or fd 12. Reopen the staged Store and
+select its current anchor before switching from the batch entry to this
+entry. Both refuse to overwrite an existing anchor.

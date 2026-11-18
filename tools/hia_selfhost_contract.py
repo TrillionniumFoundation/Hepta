@@ -17,6 +17,8 @@ PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 SQLITE_SNAPSHOT_SDIST_FILES = (
     'tools/build_hia_agent_batch_commit.py',
     'tools/hia_agent_transaction_stager_syscalls.S',
+    'tools/hia_agent_transaction_writer_syscalls.S',
+    'examples/hia_bootstrap/agent_transaction_writer_packer.hepta',
     'examples/hia_bootstrap/agent_transaction_writer.hepta',
     'examples/hia_bootstrap/agent_transaction_stager.hepta',
     'examples/hia_bootstrap/agent_transaction_producer.hepta',
