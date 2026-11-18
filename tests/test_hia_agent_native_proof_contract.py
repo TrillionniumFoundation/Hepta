@@ -42,6 +42,11 @@ class ProofContractTests(AgentToolCase):
         self.assertEqual(check["profile"], self.session.profiles["validation"])
         self.assertEqual(check["validator"], check["profile"])
         self.assertEqual(check["checker"]["installation"], self.service.identities)
+        from hepta.hia_agent_store import digest
+        self.assertEqual(check["checker"]["native_selection_sha256"], digest({
+            "schema": "hepta.hia.agent.proof-native-selection.v1",
+            "native_helpers_sha256": self.service.identities.get("native_helpers_sha256"),
+        }))
         self.assertEqual(check["checker"]["python"]["version"], platform.python_version())
         self.assertTrue(check["assumptions"])
         self.assertTrue({"whole_language_soundness", "core_to_machine_refinement",

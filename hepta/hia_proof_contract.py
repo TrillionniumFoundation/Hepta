@@ -326,6 +326,13 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
         "checker": {
             "name": _CHECKERS[method], "method": method,
             "installation": deepcopy(installation),
+            # A selected bundle pins every nested manifest and executable.
+            # Bind its identity separately from the installed Python/backend
+            # bytes; the absence of an operator-selected bundle is explicit.
+            "native_selection_sha256": digest({
+                "schema": "hepta.hia.agent.proof-native-selection.v1",
+                "native_helpers_sha256": installation.get("native_helpers_sha256"),
+            }),
             "python": {"implementation": platform.python_implementation(), "version": platform.python_version()},
             "auxiliary_checker_sha256": evidence.get("checker_sha256") if method in {"compositional_scalar_effect", SAFE_CORE_METHOD} else None,
             "solver": solver_identity,
