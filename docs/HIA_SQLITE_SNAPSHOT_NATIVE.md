@@ -98,6 +98,24 @@ bounded to 128 MiB. No bytes are emitted before every required stage succeeds.
 The artifacts must still be verified and copied, and the resulting proposal
 and any extension must still be durably committed while the source is held.
 
+On Linux x86-64, pass that exact staged stream and EOF to
+`hia-sqlite-migration-publish SOURCE_ARTIFACTS STAGED_ARTIFACTS STAGED_STORE`.
+Prepare a fresh private Store and an owned staging artifact directory first.
+The publisher verifies that the artifact inventory matches the proposal,
+copies verified immutable bytes to the staging directory, then commits the
+proposal and optional sequence in order. The required artifact and commit
+executables are embedded from the same admitted cold build and run from
+sealed descriptors, not an executable lookup or interpreter. Its only
+success output is `HIASDUR1` followed by three little-endian words: artifact
+reference count, final anchor generation and receipt version (1).
+
+No failure automatically retries a commit. Some staged artifacts or an
+earlier anchor may have been durably written before a failure; inspect the
+private destination rather than activating it or reusing it as a fresh
+namespace. This command neither acquires the SQLite source lock nor
+activates the candidate. Keep the source Pager alive through the receipt
+and issue END explicitly. Source paths must not be used as staging paths.
+
 ### Coordinating Agent migration
 
 `hia-sqlite-migration-plan` takes the completed 112-byte `HIASCOK1` Agent

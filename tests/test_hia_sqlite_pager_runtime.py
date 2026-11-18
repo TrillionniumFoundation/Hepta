@@ -621,10 +621,76 @@ class NativeSQLiteComponents(unittest.TestCase):
                             child.wait(timeout=3)
 
 
+class NativeMigrationPublisher(unittest.TestCase):
+    root = None
+    test_root = None
+
+    def invoke(self, command, *args, data=b'', expected=0):
+        result = subprocess.run([self.root / command, *args], input=data, capture_output=True,
+                                env={'PATH': ''}, timeout=15, check=False)
+        self.assertEqual((result.returncode, result.stderr), (expected, b''))
+        if expected:
+            self.assertEqual(result.stdout, b'')
+        return result.stdout
+
+    def test_staged_publication_authenticates_artifacts_and_initial_anchor(self):
+        from hepta.hia_agent_store import AgentStore
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            parent = Path(temporary)
+            payload = b'native publisher artifact\n'
+            source = AgentStore(parent / 'old')
+            try:
+                artifact = source.put(payload, 'input')
+                source.db.execute("INSERT INTO costs VALUES (100,NULL,'hia_artifact','deleted','1','completed','{}')")
+                source.db.execute('DELETE FROM costs WHERE sequence = 100')
+                source.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                raw = source.database.read_bytes()
+            finally:
+                source.close()
+            size = int.from_bytes(raw[16:18], 'big')
+            header = struct.pack('<8s3Q24s', b'HIASMIG1', 1, len(raw) // size, size, bytes(range(1, 25)))
+            stage = self.invoke('hia-sqlite-migration-projection', '--stage',
+                                data=struct.pack('<Q', len(header) + len(raw)) + header + raw)
+            tag, batch, inventory, records = COMPONENT_FRAME.unpack_from(stage)
+            self.assertEqual((tag, inventory, records), (b'HIASTAG1', 88, 656))
+            self.assertEqual(stage[32 + batch + 24:32 + batch + inventory], artifact['sha256'].encode())
+            self.invoke('hia-agent-store-init', parent, 'store')
+            destination = parent / 'artifacts'
+            destination.mkdir(mode=0o700)
+            store = parent / 'store'
+            original = {p.name: p.read_bytes() for p in store.iterdir()}
+            publish = 'hia-sqlite-migration-publish'
+            args = (source.artifacts, destination, store)
+            mutant = bytearray(stage)
+            mutant[32 + batch + 24] = ord('0') if mutant[32 + batch + 24] != ord('0') else ord('1')
+            self.invoke(publish, *args, data=mutant, expected=65)
+            self.invoke(publish, *args, data=stage + b'x', expected=64)
+            recorded = source.artifacts / artifact['sha256']
+            parked = source.artifacts / 'temporarily-unavailable'
+            recorded.rename(parked)
+            try:
+                self.invoke(publish, *args, data=stage, expected=65)
+                self.assertEqual(list(destination.iterdir()), [])
+                self.assertEqual({p.name: p.read_bytes() for p in store.iterdir()}, original)
+            finally:
+                parked.rename(recorded)
+
+            receipt = self.invoke(publish, *args, data=stage)
+            self.assertEqual(COMPONENT_FRAME.unpack(receipt), (b'HIASDUR1', 1, 2, 1))
+            self.assertEqual(self.invoke('hia-artifact', 'store-get', destination, artifact['sha256']), payload)
+            self.assertTrue((store / 'anchor.0000000000000002').is_file())
+            committed = {p.name: p.read_bytes() for p in store.iterdir()}
+            self.invoke(publish, *args, data=stage, expected=65)
+            self.assertEqual({p.name: p.read_bytes() for p in store.iterdir()}, committed)
+            self.assertEqual(recorded.read_bytes(), payload)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--executable', type=Path, required=True)
     parser.add_argument('--component-root', type=Path)
+    parser.add_argument('--migration-publisher', action='store_true')
     parser.add_argument('--test-root', type=Path, required=True)
     arguments = parser.parse_args()
     NativePagerArgv.executable = arguments.executable.resolve()
@@ -634,6 +700,10 @@ def main():
         NativeSQLiteComponents.root = arguments.component_root.resolve()
         NativeSQLiteComponents.test_root = arguments.test_root.resolve()
         suites.append(unittest.defaultTestLoader.loadTestsFromTestCase(NativeSQLiteComponents))
+    if arguments.migration_publisher:
+        NativeMigrationPublisher.root = arguments.component_root.resolve()
+        NativeMigrationPublisher.test_root = arguments.test_root.resolve()
+        suites.append(unittest.defaultTestLoader.loadTestsFromTestCase(NativeMigrationPublisher))
     suite = unittest.TestSuite(suites)
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 
