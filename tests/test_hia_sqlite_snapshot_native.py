@@ -36,6 +36,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         cls.lookup = assemble_program((SOURCES / 'sqlite_rowid_lookup.hepta').read_bytes())
         cls.record = assemble_program((SOURCES / 'sqlite_record_layout.hepta').read_bytes())
         cls.row_import = assemble_program((SOURCES / 'sqlite_agent_row_import.hepta').read_bytes())
+        cls.import_batch = assemble_program((SOURCES / 'sqlite_agent_import_batch.hepta').read_bytes())
         cls.wal = assemble_program((SOURCES / 'sqlite_wal_snapshot.hepta').read_bytes())
         cls.key = -(1 << 63)
         cls.blob = bytes(range(256)) * 7
@@ -178,7 +179,8 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             compiler.write_bytes(b'not a qualified compiler')
             cold.write_text('{}')
             for candidate in ('sqlite-wal-snapshot', 'sqlite-rowid-lookup',
-                              'sqlite-record-layout', 'sqlite-agent-row-import'):
+                              'sqlite-record-layout', 'sqlite-agent-row-import',
+                              'sqlite-agent-import-batch'):
                 with self.subTest(candidate=candidate):
                     with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                         build(output, compiler, cold, candidate=candidate)
@@ -215,6 +217,36 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         self.assertEqual(struct.unpack_from('<8s3Q', output), (b'HIAROW01', 1, 5, 7))
         self.assertEqual(struct.unpack_from('<3Q', output, 32), (1, 200, 8))
         self.assertEqual(output[200:213], struct.pack('<q', key) + b'abcde')
+
+    def test_import_batch_packs_signed_rows_and_refuses_partial_proposals(self):
+        # Use a real typed import for the proposal, including its variable offset.
+        sqlite_row = bytes((4, 17, 1, 0, 0xC3, 0xA9, 0xFF))
+        status, layout = run_vm(self.record, sqlite_row, 128, 16)
+        self.assertEqual(status, 0)
+        request = struct.pack('<8sQq2Q', b'HIASQI01', 2, 1, 1, len(layout))
+        status, row = run_vm(self.row_import, request + layout + sqlite_row, 114, 0)
+        self.assertEqual(status, 0)
+
+        def frame(table, key, data):
+            return struct.pack('<QqQ', table, key, len(data)) + data
+
+        header = struct.pack('<8s3Q', b'HIASQB01', 1, 7, 2)
+        first = frame(2, -(1 << 63), row)
+        second = frame(2, -1, row)
+        source = header + first + second
+        expected = struct.pack('<8s3Q', b'HIATXB01', 1, 7, 2)
+        expected += struct.pack('<QqQQ', 2, -(1 << 63), 96, len(row))
+        expected += struct.pack('<QqQQ', 2, -1, 96 + len(row), len(row)) + row * 2
+        self.assertEqual(run_vm(self.import_batch, source, len(expected) + 1, 0),
+                         (0, expected + b'\xa7'))
+        self.assertEqual(run_vm(self.import_batch, source, len(expected) - 1, 0),
+                         (2, b'\xa7' * (len(expected) - 1)))
+
+        malformed = (source[:-1], source + b'\x00', header + first * 2,
+                     header + second + first, header + first + frame(3, 1, row))
+        for request in malformed:
+            self.assertEqual(run_vm(self.import_batch, request, len(expected), 0),
+                             (1, b'\xa7' * len(expected)))
 
     def test_wal_overlay_recovers_committed_row_and_ignores_torn_final_frame(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -120,6 +120,25 @@ This is only a row projection. It does not apply constraints, migrate
 Store the Agent uses. The receiving Store must still validate the row and
 apply its complete transaction protocol.
 
+### Packing projected rows for a private transaction
+
+`sqlite-agent-import-batch` packages already projected rows for the private
+Store transaction producer. Its input has the tag `HIASQB01`, version 1, a
+nonzero transaction ID and a nonzero row count. Each frame holds the table
+number, signed physical rowid, row byte count, and exact `HIAROW01` bytes.
+Header and frame integers occupy eight bytes each. Supply rows in ascending
+(table number, signed rowid) order, without duplicates.
+
+On status `0`, the output is a `HIATXB01` version 1 proposal: the transaction
+ID and row count are followed by a contiguous directory of (table, signed
+rowid, absolute offset, row byte count) and the row bytes. The extent is
+the input size plus eight bytes per row. The program checks frame bounds,
+matching row tags, versions and tables before writing anything. It leaves the
+output unchanged on malformed input (status `1`) or insufficient capacity
+(status `2`); no scratch is needed. The receiving producer still performs
+full typed-row and cost alias validation. A proposal is not a commit, and
+this interface does not preserve a deleted cost high-water by itself.
+
 ## Committed WAL view
 
 The WAL component takes an 8-byte size of the base database, the corresponding
