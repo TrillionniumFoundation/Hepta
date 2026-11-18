@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -10,6 +11,7 @@ import subprocess
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from hepta.hia_composite_functions_errors import ERRORS as FUNCTION_ERRORS
 from hepta.hia_composite_constructor_errors import ERRORS as CONSTRUCTOR_ERRORS
 from hepta.hia_composite_constructor_native import NativeConstructorInvocation
 from hepta.hia_composite_function_tokens import ObjectTokenDecoder, detached_packet_index
@@ -17,6 +19,8 @@ from hepta.hia_composite_types_native import ERRORS as TYPE_ERRORS, NativeCompos
 from hepta.hia_instruction_policy_native import transport
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from hepta.hia_program import HIAProgramRejected
+from hepta.hia_program_composite import _Elaborator
+from tests.test_hia_partial_record import roundtrip_program
 from tests.test_hia_composite_returned_loans import pair_program, task_program as loan_task
 from tests.test_hia_program_composite import task_program
 
@@ -164,7 +168,7 @@ def check(executable, oracle):
     assert run(b'{}', flags=1) == (64, b'')
     assert run(b'{}', trailer=b' ') == (64, b'')
     assert run(b'{}', handoff=True, flags=0) == (64, b'')
-    assert run(b'{}', handoff=True, flags=4) == (64, b'')
+    assert run(b'{}', handoff=True, flags=5) == (64, b'')
     bad_param = task_program()
     bad_param['functions'][0]['blocks'][0]['params'][0]['type'] = 'Missing'
     bad_raw = json.dumps(bad_param, separators=(',', ':')).encode()
@@ -174,6 +178,83 @@ def check(executable, oracle):
           f'{requests} dependent requests across all five kinds; nine raw framing controls; '
           f'{seeds} exact function or outer seed packets; '
           f'{admitted} automatic first-function parameter requests and two refusal stages')
+    check_bodies(run)
+
+
+def check_bodies(run):
+    def first(document, *, legacy=False):
+        raw = json.dumps(document, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode()
+        return run(raw, legacy=legacy, flags=4, handoff=True)
+
+    with_helpers = task_program()
+    with_helpers['functions'] = with_helpers['functions'][2:] + with_helpers['functions'][:2]
+    samples = [(name, doc, legacy) for name, doc, legacy, status in cases()
+               if not status[0] and name != 'multi-chunk']
+    samples += [('partial-record', roundtrip_program(), False),
+                ('five-task-helpers', with_helpers, False)]
+    requests, helper_count = 0, 0
+    for name, document, legacy in samples:
+        owner = _Elaborator(deepcopy(document), legacy=legacy)
+        expected = owner.function(owner.document['functions'][0])
+        code, result = first(document, legacy=legacy)
+        assert code == 0, (name, code)
+        magic, action, error, phase, serial, slots, request, delegate = FRAME.unpack_from(result)
+        assert (magic, action, error, phase, serial, slots, delegate) == (
+            b'HIAFBL01', 2, 0, 2000, owner.serial, owner.value_slots, 0)
+        payload, packet = transport(expected), FRAME.unpack_from(result, 64)
+        assert packet == (b'HIAFPP01', 0, request, len(payload), serial, slots, 0, 0)
+        assert result[128:128 + len(payload)] == payload, name
+        cursor, handles, helpers = 128 + len(payload), [], []
+        for helper in owner.helpers:
+            marker, status, final, name_id, size, sequence, r0, r1 = FRAME.unpack_from(result, cursor)
+            assert (marker, status, r0, r1) == (b'HIAFHR01', 0, 0, 0)
+            assert name_id <= final <= serial and 0 < sequence < request
+            start = cursor + 64
+            end = start + size
+            assert end <= len(result)
+            value = json.loads(result[start:end])
+            assert value == {'helper': helper}
+            assert helper['name'] == 'h2internal_' + str(name_id)
+            cursor = end
+            handles.append(sequence)
+            helpers.append(name_id)
+        assert cursor == len(result) and handles == sorted(set(handles)), name
+        assert helpers == sorted(set(helpers)), name
+        if name == 'five-task-helpers':
+            assert len(helpers) == 5
+        requests += request
+        helper_count += len(helpers)
+
+    # An error after helper lowering must not publish any generated helper.
+    broken = deepcopy(with_helpers)
+    for block in broken['functions'][0]['blocks']:
+        if any(ins['op'] == 'task.close' for ins in block['ops']):
+            block['ops'].append({'op': 'call', 'args': [], 'out': [],
+                                          'attrs': {'function': 'missing_function'}})
+            break
+    else:
+        raise AssertionError('missing task.close fixture')
+    owner = _Elaborator(deepcopy(broken))
+    try:
+        owner.function(owner.document['functions'][0])
+    except HIAProgramRejected as exc:
+        code, result = first(broken)
+        assert code == 65 and len(result) == 64
+        magic, action, error, phase, serial, slots, request, delegate = FRAME.unpack(result)
+        assert (magic, action, delegate) == (b'HIAFBL01', 1, 0)
+        assert request > 0 and phase < 2000
+        assert (serial, slots) == (owner.serial, owner.value_slots)
+        assert FUNCTION_ERRORS[error][0] == exc.code
+        assert FUNCTION_ERRORS[error][1] in str(exc)
+    else:
+        raise AssertionError('hosted function did not reject the missing callee')
+    assert owner.helpers, 'missing callee must be reached after real helper generation'
+
+    wrong = task_program()
+    wrong['functions'][0]['blocks'][0]['params'][0]['type'] = 'Missing'
+    assert first(wrong) == (65, FRAME.pack(b'HIAFBL01', 1, 999, 2, 0, 0, 1, 18))
+    print(f'{len(samples)} exact lowered Core function packets, {requests} automatic dependent requests, '
+          f'{helper_count} generated helper functions, and two refusal stages with no partial output')
 
 
 if __name__ == '__main__':

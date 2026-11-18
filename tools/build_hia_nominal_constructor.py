@@ -21,6 +21,11 @@ COMPONENTS = {
     'render': 'examples/hia_bootstrap/composite_constructor_render.hepta',
     'types': 'examples/hia_bootstrap/composite_types.hepta',
     'admit': 'examples/hia_bootstrap/composite_function_admit.hepta',
+    'records': 'examples/hia_bootstrap/composite_function_records.hepta',
+    'terms': 'examples/hia_bootstrap/composite_function_terms.hepta',
+    'advanced': 'examples/hia_bootstrap/composite_function_advanced.hepta',
+    'function-render': 'examples/hia_bootstrap/composite_function_render.hepta',
+    'helpers': 'examples/hia_bootstrap/task_helpers.hepta',
     'linker': 'examples/hia_bootstrap/elf_static_linker.hepta',
 }
 
@@ -42,12 +47,16 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
         images[label], checks[path] = body, body
     transport = assemble(output, ADAPTER, inputs[ADAPTER])
     objects = [transport]
-    for role, label in (('types', 'types_image'), ('admit', 'function_admit')):
+    embedded = {'types': 'types_image', 'admit': 'function_admit',
+                'records': 'function_records', 'terms': 'function_terms',
+                'advanced': 'function_advanced', 'function-render': 'function_render',
+                'helpers': 'function_helper'}
+    for role, label in embedded.items():
         stem = 'constructor-' + role
         objects.append(embed(output, label, stem, images[role]))
         checks[output / (stem + '.embedded.elf')] = images[role]
     binary, link_receipt = link(output, images['linker'], images['owner'], objects, wire_magic=b'HIALNK01')
-    for label in ('nominal-json', 'render', 'types', 'admit'):
+    for label in ('nominal-json', 'render', *embedded):
         verify_executable(binary, images[label])
     if (current_sources() != admitted or compiler.read_bytes() != compiler_body
             or cold.read_bytes() != cold_body

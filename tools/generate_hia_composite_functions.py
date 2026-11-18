@@ -27,6 +27,12 @@ CONSTANTS = {
     'I_BYTES': INPUT_BYTES, 'O_BYTES': OUTPUT_BYTES, 'SOURCE_BASE': SOURCE_BASE,
     'ARENA': ARENA_BASE, 'S': 4096, 'STACK': 8192,
     'N': (1 << 64) - 1, 'ABI': 0xfffffff1,
+    'PACK_REQUEST': int.from_bytes(b'HIAFPQ01', 'little'),
+    'COMMAND_REQUEST': int.from_bytes(b'HIAFCQ01', 'little'),
+    'HELPER_REQUEST': int.from_bytes(b'HIAFHQ01', 'little'),
+    'TYPE_ARENA_BYTES': 128 << 20,
+    'PACK_REPLY': int.from_bytes(b'HIAFPP01', 'little'),
+    'PACK_STACK': 16384, 'PACK_AT': 6400, 'PACK_LIMIT': 6408, 'PACK_BAD': 6416,
 }
 
 # State words: 0 magic, 8 arena cursor, 16 source size, 24 source root,
@@ -321,6 +327,410 @@ def function_render(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return get(w, S + 104)
 '''
 
+PACK_RENDER = r'''
+def function_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    request = word(s, 8)
+    action = word(s, 16)
+    if get(w, S + 32) == 0 or get(w, S + 48) != 0 or get(w, S + 64) != action:
+        return ABI
+    if get(w, S + 88) != request or action > 6:
+        return ABI
+    limit = length(o)
+    if limit >= ABI:
+        limit = ABI - 1
+    put(w, PACK_AT, 64)
+    put(w, PACK_LIMIT, limit)
+    put(w, PACK_BAD, 0)
+    if word(s, 0) == COMMAND_REQUEST:
+        packet_command(o, w, action, get(w, S + 32))
+    else:
+        packet_value(o, w, get(w, S + 32))
+    if get(w, PACK_BAD) != 0:
+        return ABI
+    return finish_packet(o, w, request, action)
+
+def finish_packet(o:mutbuf, w:mutbuf, request:u64, action:u64) -> u32:
+    extent = get(w, PACK_AT)
+    put(o, 0, PACK_REPLY)
+    put(o, 8, action)
+    put(o, 16, request)
+    put(o, 24, extent - 64)
+    put(o, 32, get(w, S + 72))
+    put(o, 40, get(w, S + 80))
+    put(o, 48, 0)
+    put(o, 56, 0)
+    put(w, S + 48, 1)
+    return extent
+
+def function_helper(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    control = TYPE_ARENA_BYTES - 64
+    request = word(s, control + 8)
+    command = get(w, S + 32)
+    if length(o) < 64 or command == 0 or get(w, S + 48) != 0 or get(w, S + 64) != 6:
+        return ABI
+    if get(w, S + 88) != request or word(s, control + 16) != 0:
+        return ABI
+    task = get(w, packet_ir_item(w, command, 1) + 8)
+    step = get(w, packet_ir_item(w, command, 2) + 8)
+    serial = get(w, packet_ir_item(w, command, 4) + 8)
+    if issued(s, task) == 0 or issued(s, step) == 0 or serial != get(w, S + 72):
+        return ABI
+    t = type_at(task)
+    e = type_at(step)
+    if word(s, t) != 3 or word(s, e) != 2 or word(s, e + 37032) != 2:
+        return ABI
+    limit = length(o)
+    if limit > 131136:
+        limit = 131136
+    put(w, PACK_AT, 64)
+    put(w, PACK_LIMIT, limit)
+    put(w, PACK_BAD, 0)
+    root = packet_container(o, w, 5, 11)
+    packet_integer(o, w, serial)
+    packet_value(o, w, packet_ir_item(w, command, 3))
+    packet_flat(s, o, w, task)
+    packet_flat(s, o, w, word(s, t + 37808))
+    packet_flat(s, o, w, word(s, t + 37816))
+    packet_flat(s, o, w, step)
+    variants = packet_container(o, w, 5, 2)
+    index = 0
+    while index < 2:
+        variant = e + 37040 + index * 24
+        if word(s, variant + 16) != 1 or word(s, variant + 8) >= 512:
+            return ABI
+        row = packet_container(o, w, 5, 2)
+        packet_type_text(s, o, w, word(s, variant))
+        fields = packet_container(o, w, 5, 1)
+        packet_flat(s, o, w, word(s, e + 4272 + word(s, variant + 8) * 16))
+        packet_finish(o, w, fields)
+        packet_finish(o, w, row)
+        index = index + 1
+    packet_finish(o, w, variants)
+    packet_type_text(s, o, w, word(s, t + 37824))
+    packet_type_text(s, o, w, word(s, t + 37832))
+    packet_value(o, w, packet_ir_item(w, command, 5))
+    packet_value(o, w, packet_ir_item(w, command, 6))
+    packet_finish(o, w, root)
+    if get(w, PACK_BAD) != 0 or get(w, S + 96) != 0:
+        return ABI
+    return finish_packet(o, w, request, 6)
+
+def packet_flat(s:readbuf, o:mutbuf, w:mutbuf, identifier:u64) -> u64:
+    if issued(s, identifier) == 0:
+        put(w, PACK_BAD, 1)
+        return 0
+    base = type_at(identifier)
+    count = word(s, base + 152)
+    if count > 512:
+        put(w, PACK_BAD, 1)
+        return 0
+    array = packet_container(o, w, 5, count)
+    index = 0
+    while index < count and get(w, PACK_BAD) == 0:
+        primitive = word(s, base + 160 + index * 8)
+        if primitive < 1 or primitive > 16:
+            put(w, PACK_BAD, 1)
+        else:
+            node = primitive_ir(w, primitive)
+            packet_leaf(o, w, node, 1)
+        index = index + 1
+    return packet_finish(o, w, array)
+
+def packet_type_text(s:readbuf, o:mutbuf, w:mutbuf, node:u64) -> u64:
+    if node < 8192 or node >= 100663296:
+        put(w, PACK_BAD, 1)
+        return 0
+    size = word(s, node + 32)
+    source = type_name_data(s, node)
+    if size == 0 or size > 128 or source > length(s) - size:
+        put(w, PACK_BAD, 1)
+        return 0
+    at = packet_reserve(w, 16 + size)
+    if at != N:
+        put(o, at, 4)
+        put(o, at + 8, size)
+        index = 0
+        while index < size:
+            store(o, at + 16 + index, byte(s, source + index))
+            index = index + 1
+    return 0
+
+def packet_command(o:mutbuf, w:mutbuf, action:u64, command:u64) -> u64:
+    if action < 2 or action > 5:
+        put(w, PACK_BAD, 1)
+        return 0
+    root = packet_container(o, w, 6, choose(action <= 3, 2, 3))
+    packet_label(o, w, L_op)
+    if action == 2:
+        packet_label(o, w, L_parameters)
+        packet_label(o, w, L_params)
+        packet_value(o, w, packet_ir_item(w, command, 1))
+    elif action == 3:
+        packet_label(o, w, L_resolve)
+        packet_label(o, w, L_ref)
+        packet_value(o, w, packet_ir_item(w, command, 1))
+    elif action == 4:
+        packet_label(o, w, L_partial)
+        packet_label(o, w, L_base)
+        packet_value(o, w, packet_ir_item(w, command, 1))
+        packet_label(o, w, L_initialized)
+        packet_value(o, w, packet_ir_item(w, command, 2))
+    else:
+        packet_label(o, w, L_task_protocol)
+        packet_label(o, w, L_task)
+        packet_value(o, w, packet_ir_item(w, command, 1))
+        packet_label(o, w, L_functions)
+        packet_signatures(o, w, get(w, S + 288))
+    return packet_finish(o, w, root)
+
+def packet_ir_item(w:mutbuf, node:u64, index:u64) -> u64:
+    item = get(w, node + 8)
+    while index != 0:
+        item = get(w, item)
+        index = index - 1
+    return get(w, item + 16)
+
+def packet_label(o:mutbuf, w:mutbuf, size:u64, first:u64, second:u64, unused:u64) -> u64:
+    at = packet_reserve(w, 16 + size)
+    if at == N:
+        return 0
+    put(o, at, 4)
+    put(o, at + 8, size)
+    index = 0
+    while index < size:
+        value = first
+        shift = index * 8
+        if index >= 8:
+            value = second
+            shift = (index - 8) * 8
+        store(o, at + 16 + index, (value >> shift) & 255)
+        index = index + 1
+    return 0
+
+def packet_signatures(o:mutbuf, w:mutbuf, registry:u64) -> u64:
+    if get(w, registry) != 5:
+        put(w, PACK_BAD, 1)
+        return 0
+    count = get(w, registry + 16)
+    if count > 1024:
+        put(w, PACK_BAD, 1)
+        return 0
+    array = packet_container(o, w, 5, count)
+    row = registry + 24
+    index = 0
+    while index < count and get(w, PACK_BAD) == 0:
+        if get(w, row) != 5 or get(w, row + 16) != 3:
+            put(w, PACK_BAD, 1)
+            return 0
+        tuple = packet_container(o, w, 5, 3)
+        name = row + 24
+        packet_source(o, w, name - SOURCE_BASE)
+        params = packet_source_end(w, name)
+        packet_formal_ids(o, w, params)
+        packet_source(o, w, packet_source_end(w, params) - SOURCE_BASE)
+        packet_finish(o, w, tuple)
+        row = packet_source_end(w, row)
+        index = index + 1
+    return packet_finish(o, w, array)
+
+def packet_formal_ids(o:mutbuf, w:mutbuf, params:u64) -> u64:
+    if get(w, params) != 5:
+        put(w, PACK_BAD, 1)
+        return 0
+    count = get(w, params + 16)
+    array = packet_container(o, w, 5, count)
+    row = params + 24
+    index = 0
+    while index < count and get(w, PACK_BAD) == 0:
+        if get(w, row) != 5 or get(w, row + 16) != 2:
+            put(w, PACK_BAD, 1)
+            return 0
+        packet_source(o, w, packet_source_end(w, row + 24) - SOURCE_BASE)
+        row = packet_source_end(w, row)
+        index = index + 1
+    return packet_finish(o, w, array)
+
+def packet_source_end(w:mutbuf, node:u64) -> u64:
+    return node + 16 + get(w, node + 8)
+
+def packet_reserve(w:mutbuf, width:u64) -> u64:
+    at = get(w, PACK_AT)
+    if width > get(w, PACK_LIMIT) - at:
+        put(w, PACK_BAD, 1)
+        return N
+    put(w, PACK_AT, at + width)
+    return at
+
+def packet_value(o:mutbuf, w:mutbuf, root:u64) -> u64:
+    depth = 1
+    packet_frame(w, 0, root)
+    while depth != 0 and get(w, PACK_BAD) == 0:
+        frame = PACK_STACK + (depth - 1) * 40
+        node = get(w, frame)
+        phase = get(w, frame + 8)
+        if node < ARENA or node + 32 > get(w, S + 8):
+            put(w, PACK_BAD, 1)
+            return 0
+        kind = get(w, node)
+        if phase == 0:
+            if kind < 5:
+                packet_leaf(o, w, node, kind)
+                depth = depth - 1
+            elif kind <= 6:
+                first = packet_container(o, w, kind, get(w, node + 24))
+                put(w, frame + 8, 1)
+                put(w, frame + 16, get(w, node + 8))
+                put(w, frame + 32, first)
+            else:
+                put(w, PACK_BAD, 1)
+        else:
+            item = get(w, frame + 16)
+            if item == 0:
+                packet_finish(o, w, get(w, frame + 32))
+                depth = depth - 1
+            elif depth == 128:
+                put(w, PACK_BAD, 1)
+            else:
+                child = packet_next(w, frame, kind, phase, item)
+                if child != N:
+                    packet_frame(w, depth, child)
+                    depth = depth + 1
+    return 0
+
+def packet_frame(w:mutbuf, depth:u64, node:u64) -> u64:
+    frame = PACK_STACK + depth * 40
+    put(w, frame, node)
+    put(w, frame + 8, 0)
+    put(w, frame + 16, 0)
+    put(w, frame + 24, 0)
+    put(w, frame + 32, 0)
+    return 0
+
+def packet_next(w:mutbuf, frame:u64, kind:u64, phase:u64, item:u64) -> u64:
+    if item < ARENA or item + 24 > get(w, S + 8):
+        put(w, PACK_BAD, 1)
+        return N
+    if kind == 6:
+        if phase == 1:
+            put(w, frame + 8, 2)
+            return get(w, item + 8)
+        put(w, frame + 8, 1)
+        put(w, frame + 16, get(w, item))
+        return get(w, item + 16)
+    if item + 32 > get(w, S + 8):
+        put(w, PACK_BAD, 1)
+        return N
+    index = get(w, frame + 24)
+    if index == get(w, item + 24):
+        put(w, frame + 16, get(w, item))
+        put(w, frame + 24, 0)
+        return N
+    child = get(w, item + 16)
+    segment_kind = get(w, item + 8)
+    if segment_kind == 1:
+        child = get(w, child + index * 8)
+    elif segment_kind != 0 or index != 0:
+        put(w, PACK_BAD, 1)
+        return N
+    put(w, frame + 24, index + 1)
+    return child
+
+def packet_container(o:mutbuf, w:mutbuf, kind:u64, count:u64) -> u64:
+    at = packet_reserve(w, 24)
+    if at != N:
+        put(o, at, kind)
+        put(o, at + 8, 0)
+        put(o, at + 16, count)
+    return at
+
+def packet_finish(o:mutbuf, w:mutbuf, at:u64) -> u64:
+    if at != N:
+        put(o, at + 8, get(w, PACK_AT) - at - 16)
+    return 0
+
+def packet_leaf(o:mutbuf, w:mutbuf, node:u64, kind:u64) -> u64:
+    value = get(w, node + 8)
+    if kind == 0:
+        return packet_source(o, w, value)
+    if kind == 1:
+        size = get(w, node + 16)
+        if size > 128 or value < ARENA or value + size > get(w, S + 8):
+            put(w, PACK_BAD, 1)
+            return 0
+        at = packet_reserve(w, 16 + size)
+        if at != N:
+            put(o, at, 4)
+            put(o, at + 8, size)
+            packet_copy(o, w, value, at + 16, size)
+        return 0
+    if kind == 2:
+        return packet_integer(o, w, value)
+    if kind == 3:
+        at = packet_reserve(w, 17)
+        if at != N:
+            put(o, at, 1)
+            put(o, at + 8, 1)
+            store(o, at + 16, value)
+        return 0
+    at = packet_reserve(w, 16)
+    if at != N:
+        put(o, at, 0)
+        put(o, at + 8, 0)
+    return 0
+
+def packet_source(o:mutbuf, w:mutbuf, offset:u64) -> u64:
+    total = get(w, S + 16)
+    if offset > total or total - offset < 16:
+        put(w, PACK_BAD, 1)
+        return 0
+    source = SOURCE_BASE + offset
+    size = get(w, source + 8)
+    if size > total - offset - 16:
+        put(w, PACK_BAD, 1)
+        return 0
+    at = packet_reserve(w, 16 + size)
+    if at != N:
+        packet_copy(o, w, source, at, 16 + size)
+    return 0
+
+def packet_copy(o:mutbuf, w:mutbuf, source:u64, at:u64, size:u64) -> u64:
+    index = 0
+    while index < size:
+        store(o, at + index, byte(w, source + index))
+        index = index + 1
+    return 0
+
+def packet_integer(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    width = 20
+    divisor = decimal_divisor(width)
+    while width > 1 and value < divisor:
+        width = width - 1
+        divisor = decimal_divisor(width)
+    at = packet_reserve(w, 16 + width)
+    if at == N:
+        return 0
+    put(o, at, 2)
+    put(o, at + 8, width)
+    position = at + 16
+    while width != 0:
+        digit = 0
+        while value >= divisor:
+            value = value - divisor
+            digit = digit + 1
+        store(o, position, 48 + digit)
+        position = position + 1
+        width = width - 1
+        divisor = decimal_divisor(width)
+    return 0
+'''
+
+
+def decimal_powers():
+    lines = ['def decimal_divisor(width:u64) -> u64:']
+    for digits in range(2, 21):
+        lines.extend([f'    if width == {digits}:', f'        return {10 ** (digits - 1)}'])
+    return '\n'.join(lines + ['    return 1', ''])
+
 # A separate development-only fixture exercises complete native graph creation,
 # vector expansion, multiple chunks and generated strings. It is never installed
 # or included in the production bundle. The production semantic owner will call
@@ -378,6 +788,9 @@ def _expanded(source):
         'L_task_prefix': packed('task.'),
     })
     literals.update({'L_' + value.replace('.', '_'): packed(value) for value in LITERALS})
+    literals.update({'L_' + value: packed(value) for value in (
+        'op', 'parameters', 'params', 'resolve', 'ref', 'partial', 'base',
+        'initialized', 'task_protocol', 'task', 'functions')})
 
     class Expand(ast.NodeTransformer):
         def visit_Name(self, node):
@@ -405,7 +818,19 @@ def source_program(kernel):
     validation = next(node for node in ast.parse(TRANSPORT_SOURCE.replace('    DISPATCH', '    pass')).body
                       if isinstance(node, ast.FunctionDef) and node.name == 'validate')
     validation.name = 'validate_packet'
-    bodies = {'render': RENDER, 'stream_fixture': STREAM_FIXTURE,
+    packet_render = RENDER.replace('    if length(o) < O_BYTES or get(w, S) != STATE_MAGIC:', '''
+    if length(s) == 24 and (word(s, 0) == PACK_REQUEST or word(s, 0) == COMMAND_REQUEST):
+        if length(o) < 64 or get(w, S) != STATE_MAGIC or get(w, S + 96) != 0:
+            return ABI
+        return function_packet(s, o, w)
+    if length(s) == TYPE_ARENA_BYTES and word(s, TYPE_ARENA_BYTES - 64) == HELPER_REQUEST:
+        if get(w, S) != STATE_MAGIC or get(w, S + 96) != 0:
+            return ABI
+        return function_helper(s, o, w)
+    if length(o) < O_BYTES or get(w, S) != STATE_MAGIC:''', 1)
+    bodies = {'render': packet_render + '\n' + PACK_RENDER + '\n' + decimal_powers()
+                  + '\n' + LOWER_COMMON + '\n' + ADMISSION + '\n' + suffix(packed),
+              'stream_fixture': STREAM_FIXTURE,
               'admit': ADMISSION + '\n' + suffix(packed) + '\n' + ast.unparse(validation),
               'records': CONTROLLER + '\n' + RECORDS + '\n' + LOWER_COMMON + '\n'
                   + ADMISSION + '\n' + suffix(packed) + '\n' + lower_suffix(packed),

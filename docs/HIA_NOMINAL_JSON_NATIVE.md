@@ -376,9 +376,9 @@ regular callback API still materializes its original objects and diagnostics.
 Exit 0 completes initialization and emits the final state. Exit 65 reports a
 semantic refusal and its completed state prefix, or the existing fixed codec
 refusal with no constructor state. Exit 64 means bad outer framing; 74 means
-an OS or internal transport failure. The explicit private command does not
-perform function lowering, outer-module assembly or primitive Core verification
-and does not replace public `hia verify`. It uses the raw codec envelope;
+an OS or internal transport failure. The plain constructor mode does not perform function lowering. The private
+command does not yet assemble a complete outer module, verify primitive Core,
+or replace public `hia verify`. It uses the raw codec envelope;
 public Core depth/diagnostic ordering remains independently qualified before
 any future switch.
 
@@ -408,3 +408,26 @@ function body has been lowered. Action 1 is a semantic refusal.
 The private stage admits existing parameter requests through either
 `HIAFRS01` or the correlated two-party `HIACTP01` byte protocol. The
 existing host-facing API and its original output remain unchanged.
+
+
+Role 4 carries the first function through its complete lowering pass. It uses
+the same live type session to admit parameters, resolve types, specialize
+partial records, and resolve task protocols. For a task helper, the HIA
+renderer projects the admitted descriptors into the original helper packet.
+The HIA helper returns the complete generated function, correlated to the
+request; the lowering image admits its result directly.
+
+A successful role 4 response is `HIAFBL01` (with the same fields as
+`HIAFAF01`), then `HIAFPP01` (action zero, request, payload length, final fresh
+and slot counters, and two reserved words), the typed Core function packet,
+and zero or more `HIAFHR01` helper frames. Each helper frame has error, final
+fresh counter, generated name ID, compact JSON length, request number, and
+two reserved words; its JSON is the original `{"helper":…}` envelope. The
+adapter retains successful helper frames on a private anonymous descriptor
+until the function completes. A refusal emits the status frame alone;
+delegated helper diagnostics use codes 65–67, separate from type diagnostics.
+An earlier constructor refusal retains its original framing.
+
+The typed function packet is a private artifact bounded by the supplied
+output buffer; it does not change the more general public streaming route.
+Role 4 does not advance to later functions or replace outer-module assembly.

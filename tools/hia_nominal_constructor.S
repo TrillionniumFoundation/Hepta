@@ -1,6 +1,6 @@
-/* Ordinary Linux transport for the HIA constructor and its type session.
- * A phase/action frame owns all continuation selection and semantic status;
- * this adapter only moves bounded spans between four static HIA images.
+/* Linux transport for HIA construction, type resolution and function lowering.
+ * HIA's continuation frames select the next image; this adapter only moves
+ * bounded spans and retains the successful helper stream until commit.
  */
 .intel_syntax noprefix
 .text
@@ -36,6 +36,16 @@
 .equ FUNCTION_REQUEST, 0x3130514146414948
 .equ FUNCTION_PACKET, 0x3130504146414948
 .equ FUNCTION_FINAL, 0x3130464146414948
+.equ BODY_FINAL, 0x31304c4246414948
+.equ BODY_COMMAND, 0x3130514346414948
+.equ BODY_PACKET, 0x3130505046414948
+.equ BODY_RESULT, 0x3130515046414948
+.equ HELPER_REQUEST, 0x3130514846414948
+.equ HELPER_CONTROL, 0x3130434846414948
+.equ HELPER_REPLY, 0x3130524846414948
+.equ HELPER_WORKSPACE, 2<<20
+.equ HELPER_OUTPUT, 4<<20
+.equ FUNCTION_STATE_ACTION, 4096+64
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
 .macro region bytes, slot
@@ -68,7 +78,7 @@ _start:
  mov rax,[rip+request+32]
  test rax,rax
  je malformed
- cmp rax,3
+ cmp rax,4
  ja malformed
  mov [rip+handoff_role],rax
  jmp reserved_header
@@ -179,10 +189,40 @@ dispatch_function:
  mov rax,FUNCTION_FRAME
  cmp [r12],rax
  jne io_failure
- cmp QWORD PTR [r12+8],10
+ mov rax,[r12+8]
+ cmp rax,1
  je finish_function
- cmp QWORD PTR [r12+8],1
+ cmp QWORD PTR [rip+handoff_role],3
+ jne dispatch_body
+ cmp rax,10
  je finish_function
+ jmp dispatch_function_request
+
+dispatch_body:
+ cmp rax,10
+ je next_records
+ cmp rax,21
+ je next_records
+ cmp rax,20
+ je next_terms
+ cmp rax,30
+ je next_advanced
+ cmp QWORD PTR [r12+24],2000
+ je finish_body
+ jmp dispatch_function_request
+next_records:
+ lea rax,[rip+function_records_start]
+ jmp next_kernel
+next_terms:
+ lea rax,[rip+function_terms_start]
+ jmp next_kernel
+next_advanced:
+ lea rax,[rip+function_advanced_start]
+next_kernel:
+ mov [rip+function_kernel],rax
+ jmp resume_function
+
+dispatch_function_request:
  cmp QWORD PTR [r12+16],0
  jne io_failure
  cmp QWORD PTR [r12+8],0
@@ -195,6 +235,18 @@ dispatch_function:
  cmp r13,rax
  jne io_failure
  mov r14d,2
+ mov rax,[rip+function_kernel]
+ lea rcx,[rip+function_admit_start]
+ cmp rax,rcx
+ je pack_request
+ mov rax,[rip+function_work]
+ mov r14,[rax+FUNCTION_STATE_ACTION]
+ cmp r14,2
+ jb io_failure
+ cmp r14,6
+ ja io_failure
+ cmp r14,6
+ je pack_helper_request
 
 pack_request:
  mov [rip+last_request],r13
@@ -215,6 +267,10 @@ pack_request:
  jmp validate_pack
 
 pack_function_request:
+ mov rax,[rip+function_kernel]
+ lea rcx,[rip+function_admit_start]
+ cmp rax,rcx
+ jne pack_body_request
  lea rdi,[rip+pack_command]
  mov rax,FUNCTION_REQUEST
  mov [rdi],rax
@@ -226,6 +282,21 @@ pack_function_request:
  mov r9d,CONSTRUCTOR_ARENA
  call function_admit_start
  mov r10,FUNCTION_PACKET
+ jmp validate_pack
+
+pack_body_request:
+ lea rdi,[rip+pack_command]
+ mov rax,BODY_COMMAND
+ mov [rdi],rax
+ mov [rdi+8],r13
+ mov [rdi+16],r14
+ mov esi,24
+ call body_packet
+ cmp QWORD PTR [rdi+8],r14
+ jne io_failure
+ cmp QWORD PTR [rdi+16],r13
+ jne io_failure
+ jmp encode_command
 
 validate_pack:
  cmp eax,88
@@ -244,6 +315,7 @@ validate_pack:
  cmp [rdi+24],r15
  jne io_failure
 
+encode_command:
  mov rdi,[rip+codec_work]
  call clear_header
  mov rax,RENDER_REQUEST
@@ -279,6 +351,12 @@ validate_pack:
  mov [rdi],rax
  mov [rdi+8],r13
  mov [rdi+16],r14
+ cmp QWORD PTR [rip+function_mode],0
+ je type_call
+ cmp r14,4
+ jne type_call
+ mov QWORD PTR [rdi+24],1
+type_call:
  mov rdi,[rip+json]
  mov rsi,r12
  mov rdx,[rip+type_output]
@@ -317,6 +395,94 @@ validate_pack:
  mov rsi,r15
  call owner_frame
  jmp dispatch
+
+pack_helper_request:
+ mov [rip+last_request],r13
+ mov rdi,[rip+type_work]
+ add rdi,TYPES_ARENA-64
+ call clear_header
+ mov rax,HELPER_REQUEST
+ mov [rdi],rax
+ mov [rdi+8],r13
+ mov rdi,[rip+type_work]
+ mov esi,TYPES_ARENA
+ call body_packet
+ cmp QWORD PTR [rdi+8],6
+ jne io_failure
+ cmp [rdi+16],r13
+ jne io_failure
+ cmp r15,128<<10
+ ja io_failure
+ mov rdi,[rip+helper_work]
+ add rdi,HELPER_WORKSPACE-64
+ call clear_header
+ mov rax,HELPER_CONTROL
+ mov [rdi],rax
+ mov [rdi+8],r13
+ mov rdi,[rip+type_output]
+ add rdi,64
+ mov rsi,r15
+ mov rdx,[rip+helper_output]
+ mov ecx,HELPER_OUTPUT
+ mov r8,[rip+helper_work]
+ mov r9d,HELPER_WORKSPACE
+ call function_helper_start
+ cmp eax,64
+ jb io_failure
+ cmp eax,HELPER_OUTPUT
+ ja io_failure
+ mov r15d,eax
+ mov rsi,[rip+helper_output]
+ mov rax,HELPER_REPLY
+ cmp [rsi],rax
+ jne io_failure
+ cmp [rsi+40],r13
+ jne io_failure
+ lea rax,[r15-64]
+ cmp [rsi+32],rax
+ jne io_failure
+ mov rax,[rsi+8]
+ cmp rax,3
+ ja io_failure
+ /* Helper errors occupy a disjoint code range in BODY_FINAL. */
+ test rax,rax
+ je retain_helper
+ add rax,64
+ mov [rip+delegate_status],rax
+ jmp deliver_helper
+retain_helper:
+ mov QWORD PTR [rip+delegate_status],0
+ mov edi,[rip+helper_fd]
+ mov rdx,r15
+ call write_exact
+deliver_helper:
+ mov rdi,[rip+helper_output]
+ mov rsi,r15
+ call owner_frame
+ jmp dispatch
+
+/* The sender controls the extent and cursor; each caller checks correlation. */
+body_packet:
+ sub rsp,8
+ mov rdx,[rip+type_output]
+ mov ecx,TYPES_OUTPUT
+ mov r8,[rip+function_work]
+ mov r9d,CONSTRUCTOR_ARENA
+ call function_render_start
+ add rsp,8
+ cmp eax,88
+ jb io_failure
+ cmp eax,TYPES_OUTPUT
+ ja io_failure
+ mov r15d,eax
+ sub r15,64
+ mov rdi,[rip+type_output]
+ mov rax,BODY_PACKET
+ cmp [rdi],rax
+ jne io_failure
+ cmp [rdi+24],r15
+ jne io_failure
+ ret
 
 resume:
  mov rax,[rip+last_request]
@@ -428,7 +594,7 @@ handoff:
  mov [rdi],rax
  mov r13,[rip+handoff_role]
  cmp r13,3
- jne handoff_command
+ jb handoff_command
  mov r13d,1
 handoff_command:
  mov [rdi+8],r13
@@ -456,7 +622,7 @@ handoff_command:
  cmp [rsi+32],rax
  jne io_failure
  cmp QWORD PTR [rip+handoff_role],3
- je initialize_function
+ jae initialize_function
  mov edi,1
  call write_exact
  xor edi,edi
@@ -473,6 +639,20 @@ initialize_function:
  jne io_failure
  mov rax,[rip+constructor_work]
  mov [rip+function_work],rax
+ lea rax,[rip+function_admit_start]
+ mov [rip+function_kernel],rax
+ cmp QWORD PTR [rip+handoff_role],4
+ jne function_begin
+ region HELPER_WORKSPACE, helper_work
+ region HELPER_OUTPUT, helper_output
+ lea rdi,[rip+helper_stream_name]
+ mov esi,1
+ mov eax,319
+ syscall
+ test eax,eax
+ js io_failure
+ mov [rip+helper_fd],eax
+function_begin:
  mov QWORD PTR [rip+function_mode],1
  mov QWORD PTR [rip+last_request],0
  mov QWORD PTR [rip+delegate_status],0
@@ -481,6 +661,67 @@ initialize_function:
  add rdi,64
  call owner_frame
  jmp dispatch
+
+finish_body:
+ cmp QWORD PTR [r12+8],2
+ jne io_failure
+ cmp QWORD PTR [r12+16],0
+ jne io_failure
+ mov r13,[rip+last_request]
+ cmp [r12+48],r13
+ jne io_failure
+ lea rdi,[rip+pack_command]
+ mov rax,BODY_RESULT
+ mov [rdi],rax
+ mov [rdi+8],r13
+ mov QWORD PTR [rdi+16],0
+ mov esi,24
+ call body_packet
+ cmp QWORD PTR [rdi+8],0
+ jne io_failure
+ cmp [rdi+16],r13
+ jne io_failure
+ mov rax,[r12+32]
+ cmp [rdi+32],rax
+ jne io_failure
+ mov rax,[r12+40]
+ cmp [rdi+40],rax
+ jne io_failure
+ mov rax,BODY_FINAL
+ mov [r12],rax
+ mov rsi,r12
+ mov edi,1
+ mov edx,64
+ call write_exact
+ mov rsi,[rip+type_output]
+ lea rdx,[r15+64]
+ mov edi,1
+ call write_exact
+ mov edi,[rip+helper_fd]
+ xor esi,esi
+ xor edx,edx
+ mov eax,8
+ syscall
+ test rax,rax
+ jne io_failure
+drain_helpers:
+ mov edi,[rip+helper_fd]
+ mov rsi,[rip+json]
+ mov edx,FRAME_CAPACITY
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je drain_helpers
+ test rax,rax
+ js io_failure
+ jz body_complete
+ mov rdx,rax
+ mov edi,1
+ call write_exact
+ jmp drain_helpers
+body_complete:
+ xor edi,edi
+ jmp exit
 
 finish_function:
  mov rax,[rip+last_request]
@@ -500,6 +741,10 @@ function_complete:
  mov rsi,r12
  mov [rsi+56],rax
  mov rax,FUNCTION_FINAL
+ cmp QWORD PTR [rip+handoff_role],4
+ jne write_function_status
+ mov rax,BODY_FINAL
+write_function_status:
  mov [rsi],rax
  mov edi,1
  mov edx,64
@@ -523,7 +768,7 @@ owner_frame:
  ret
 function_frame:
  mov r8,[rip+function_work]
- call function_admit_start
+ call [rip+function_kernel]
  add rsp,8
  ret
 
@@ -598,6 +843,7 @@ exit:
 
 .balign 8
 sigpipe: .quad 1,0,0,0
+helper_stream_name: .asciz "hia-function-helpers"
 .balign 16
 owner: .incbin "owner.image.bin"
 .balign 16
@@ -621,5 +867,9 @@ delegate_status: .skip 8
 handoff_role: .skip 8
 function_mode: .skip 8
 function_work: .skip 8
+function_kernel: .skip 8
+helper_work: .skip 8
+helper_output: .skip 8
+helper_fd: .skip 4
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

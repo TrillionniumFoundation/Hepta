@@ -6,6 +6,7 @@ native checks use the restored five-image owner and an ordinary source function.
 from copy import deepcopy
 import ctypes
 import json
+import mmap
 import os
 import struct
 import unittest
@@ -106,6 +107,49 @@ class NativeStreamTests(unittest.TestCase):
         finally:
             image._entry = entry
             session.close(); owner.types.close()
+
+
+    def test_actual_function_graph_renders_directly_to_exact_typed_packet(self):
+        from hepta import hia_program_composite as composite
+        from tests.test_hia_composite_returned_loans import pair_program
+        document = pair_program()
+        with patch.dict(os.environ, self.environment):
+            owner = composite._Elaborator(document)
+        session = owner._native_function_session
+        image = session.images['render']
+        original = image._entry
+        observations = []
+
+        def capture(source, size, output, capacity, workspace, workspace_size):
+            state = ctypes.string_at(ctypes.addressof(workspace) + 4096, 128)
+            words = struct.unpack('<16Q', state)
+            if words[8] == 0 and words[15] == 2000 and words[6] == 0:
+                request = ctypes.create_string_buffer(struct.pack('<8s2Q', b'HIAFPQ01', words[11], 0))
+                with mmap.mmap(-1, workspace_size) as copied, mmap.mmap(-1, 1 << 20) as result:
+                    wptr = ctypes.addressof(ctypes.c_char.from_buffer(copied))
+                    optr = ctypes.addressof(ctypes.c_char.from_buffer(result))
+                    ctypes.memmove(wptr, workspace, workspace_size)
+                    self.assertEqual(original(request, 24, optr, 64, wptr, workspace_size),
+                                     0xfffffff1)
+                    extent = original(request, 24, optr, len(result), wptr, workspace_size)
+                    self.assertTrue(64 < extent <= len(result))
+                    self.assertEqual(struct.unpack_from('<8s7Q', result),
+                                     (b'HIAFPP01', 0, words[11], extent - 64,
+                                      words[9], words[10], 0, 0))
+                    self.assertEqual(original(request, 24, optr, len(result), wptr, workspace_size),
+                                     0xfffffff1)
+                    observations.append(bytes(result[64:extent]))
+            return original(source, size, output, capacity, workspace, workspace_size)
+
+        image._entry = capture
+        try:
+            with patch.dict(os.environ, self.environment):
+                actual = owner.function(document['functions'][0])
+            self.assertEqual(observations, [transport(actual)])
+        finally:
+            image._entry = original
+            session.close()
+            owner.types.close()
 
     def test_actual_render_rejects_short_output_or_workspace(self):
         from hepta.hia_composite_functions_native import installed_composite_functions, WORKSPACE_BYTES

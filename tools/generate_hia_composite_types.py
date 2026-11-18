@@ -217,7 +217,10 @@ def ctor_control_ok(w:mutbuf) -> u64:
     service = get(w, CTOR_CONTROL + 16)
     if request == 0 or service < 1 or service > 5:
         return 0
-    offset = 24
+    variant = get(w, CTOR_CONTROL + 24)
+    if variant != 0 and (variant != 1 or service != 4):
+        return 0
+    offset = 32
     while offset < 64:
         if get(w, CTOR_CONTROL + offset) != 0:
             return 0
@@ -233,6 +236,8 @@ def ctor_matches(w:mutbuf, operation:u64) -> u64:
     if service == 3:
         return text_is(w, operation, L_resolve)
     if service == 4:
+        if get(w, CTOR_CONTROL + 24) == 1:
+            return text_is(w, operation, L_partial)
         return text_is(w, operation, L_origins)
     return text_is(w, operation, L_task_protocol)
 

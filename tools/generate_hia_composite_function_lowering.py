@@ -5,6 +5,7 @@ OPCODES = ('record.begin', 'record.take', 'record.insert', 'record.finish',
     'enum.make', 'enum.tag', 'task.create', 'task.state', 'task.start', 'task.poll',
     'task.cancel', 'task.join', 'task.close', 'call')
 CONSTANTS = {
+    'HELPER_RESPONSE_MAGIC': int.from_bytes(b'HIAFHR01', 'little'),
     'LOWER_RESPONSE_MAGIC': int.from_bytes(b'HIAFLR01', 'little'),
     'METADATA_REQUEST_MAGIC': int.from_bytes(b'HIAFMQ01', 'little'),
     'METADATA_MAGIC': int.from_bytes(b'HIAFMD01', 'little'),
@@ -800,16 +801,28 @@ def state_report(o:mutbuf, w:mutbuf) -> u32:
     return extent
 
 def lower_response(s:readbuf, w:mutbuf) -> u64:
-    if length(s) < 64 or word(s, 0) != LOWER_RESPONSE_MAGIC or word(s, 8) != get(w, S + 88):
+    if length(s) < 64:
+        return invalid(w)
+    if word(s, 0) == HELPER_RESPONSE_MAGIC:
+        return helper_image_response(s, w)
+    if word(s, 8) != get(w, S + 88):
+        return invalid(w)
+    binary = word(s, 0) == TYPE_RESPONSE
+    if binary == False and word(s, 0) != LOWER_RESPONSE_MAGIC:
         return invalid(w)
     kind = get(w, S + 312)
     error = word(s, 24)
     count = word(s, 32)
     if kind == 0 or word(s, 16) != kind or word(s, 56) != 0:
         return invalid(w)
-    if kind == 6:
+    if kind == 6 and binary == False:
         return helper_response(s, w)
-    if kind > 5 or kind < 2 or error > 1 or word(s, 40) != 0 or word(s, 48) != 0:
+    if kind > 5 or kind < 2 or error > 1 or word(s, 48) != 0:
+        return invalid(w)
+    if binary:
+        if get(w, S + 48) != 1 or word(s, 40) != length(s) - 64:
+            return invalid(w)
+    elif word(s, 40) != 0:
         return invalid(w)
     if count > 262144 or length(s) != 64 + count * 8:
         return invalid(w)
@@ -840,6 +853,26 @@ def lower_response(s:readbuf, w:mutbuf) -> u64:
     put(w, S + 312, 0)
     return 0
 
+def helper_image_response(s:readbuf, w:mutbuf) -> u64:
+    if get(w, S + 48) != 1 or get(w, S + 312) != 6 or word(s, 40) != get(w, S + 88):
+        return invalid(w)
+    if word(s, 32) != length(s) - 64 or word(s, 48) != 0 or word(s, 56) != 0:
+        return invalid(w)
+    start = get(w, S + 640)
+    error = word(s, 8)
+    final = word(s, 16)
+    name = word(s, 24)
+    if start > 8192 or error > 3 or final < start or final > 8192:
+        return invalid(w)
+    if start == 8192:
+        if name != 0 or error != 1:
+            return invalid(w)
+    elif name != start + 1 or final < name:
+        return invalid(w)
+    if error == 1 and final != 8192:
+        return invalid(w)
+    return finish_helper(w, error, final, name)
+
 def helper_response(s:readbuf, w:mutbuf) -> u64:
     error = word(s, 24)
     final = word(s, 40)
@@ -867,6 +900,9 @@ def helper_response(s:readbuf, w:mutbuf) -> u64:
             return invalid(w)
     if error == 1 and final != 8192:
         return invalid(w)
+    return finish_helper(w, error, final, name)
+
+def finish_helper(w:mutbuf, error:u64, final:u64, name:u64) -> u64:
     put(w, S + 72, final)
     put(w, S + 648, name)
     if name != 0:

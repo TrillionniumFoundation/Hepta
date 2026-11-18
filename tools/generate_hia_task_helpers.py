@@ -21,7 +21,9 @@ OUTPUT_BYTES = 4 << 20
 WORKSPACE_BYTES = 2 << 20
 PRIMITIVES = ('bool', 'unit', 'i8', 'i16', 'i32', 'i64', 'u8', 'u16',
               'u32', 'u64', 'isize', 'usize', 'buffer', 'readbuf', 'mutbuf', 'chain')
-CONSTANTS = {'MAGIC': MAGIC, 'INPUT_BYTES': INPUT_BYTES, 'O_BYTES': OUTPUT_BYTES,
+CONSTANTS = {'MAGIC': MAGIC,
+             'FUNCTION_CONTROL': int.from_bytes(b'HIAFHC01', 'little'),
+             'FUNCTION_REPLY': int.from_bytes(b'HIAFHR01', 'little'), 'INPUT_BYTES': INPUT_BYTES, 'O_BYTES': OUTPUT_BYTES,
              'W_BYTES': WORKSPACE_BYTES, 'S': 4096, 'T': 8192, 'U': 12288,
              'R': 16384, 'E': 20480, 'B': 24576, 'HEAP': 32768,
              'ABI': 0xfffffff1, 'N': (1 << 64) - 1}
@@ -67,7 +69,16 @@ def task_helpers(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 16, get(w, S))
     put(o, 24, get(w, S + 56))
     put(o, 32, get(w, S + 24) - 64)
+    control = W_BYTES - 64
     put(o, 40, 0)
+    if get(w, control) == FUNCTION_CONTROL:
+        request = get(w, control + 8)
+        if request == 0:
+            return ABI
+        put(o, 0, FUNCTION_REPLY)
+        put(o, 40, request)
+        put(w, control, 0)
+        put(w, control + 8, 0)
     put(o, 48, 0)
     put(o, 56, 0)
     return get(w, S + 24)
