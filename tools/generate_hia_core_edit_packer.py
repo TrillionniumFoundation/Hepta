@@ -1,4 +1,4 @@
-"""Render the HIA packer shared by the four static Core edit applications."""
+"""Render the HIA packer shared by the static Core applications."""
 
 from pathlib import Path
 
@@ -40,8 +40,11 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         image = uint(s, row + 8, 8)
         if hole <= last or hole > stub - 4 or image >= 4:
             return 16
-        if byte(s, stub_at + hole - 1) != 232 or uint(s, stub_at + hole, 4) != 0:
+        if uint(s, stub_at + hole, 4) != 0:
             return 16
+        if byte(s, stub_at + hole - 1) != 232:
+            if hole < 3 or hole - 3 < last or uint(s, stub_at + hole - 3, 3) != 363848:
+                return 16
         last = hole + 4
         i = i + 1
     header(o, size)

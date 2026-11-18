@@ -1,4 +1,4 @@
-"""Cold-build the native primitive Core query, impact and edit executables."""
+"""Cold-build the native primitive Core query, edit, impact and publication executables."""
 
 import argparse
 import ctypes
@@ -21,8 +21,56 @@ PACKER = EDIT + 'packer.hepta'
 CAPACITY = 4 * (1 << 20) + 4096
 
 # Each entry lists the four flat images in placement order, then the adapter
-# call sites belonging to each. Several stages use the same image entry.
+# relocation sites belonging to each. Several stages use the same image entry.
 PROGRAMS = {
+    'publish_program': ('hia-publish-program', (
+        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (EDIT + 'publication_frontend.hepta', ('front_address',)),
+        (EDIT + 'publication_program.hepta', ('owner_address',)),
+        (EDIT + 'publication_policy.hepta', ('publication_address',)),
+    )),
+    'publish_import': ('hia-publish-import', (
+        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (EDIT + 'publication_frontend.hepta', ('front_address',)),
+        (EDIT + 'publication_import.hepta', ('owner_address',)),
+        (EDIT + 'publication_policy.hepta', ('publication_address',)),
+    )),
+    'publish_assembly': ('hia-publish-assembly', (
+        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (EDIT + 'publication_frontend.hepta', ('front_address',)),
+        (EDIT + 'publication_render.hepta', ('owner_address',)),
+        (EDIT + 'publication_assembly.hepta', ('publication_address',)),
+    )),
+    'publish_patch': ('hia-publish-patch', (
+        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (EDIT + 'publication_patch_policy.hepta', ('front_address',)),
+        (EDIT + 'publication_patch.hepta', ('owner_address',)),
+        (EDIT + 'publication_pretty.hepta', ('publication_address',)),
+    )),
+    'publish_edit': ('hia-publish-edit', (
+        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (EDIT + 'patch_word_io.hepta', ('front_address',)),
+        (EDIT + 'publication_single_edit.hepta', ('owner_address',)),
+        (EDIT + 'publication_edit_policy.hepta', ('publication_address',)),
+    )),
+    'publish_query': ('hia-publish-query', (
+        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (EDIT + 'patch_word_io.hepta', ('front_address',)),
+        (EDIT + 'query.hepta', ('owner_address',)),
+        (EDIT + 'publication_json_view.hepta', ('publication_address',)),
+    )),
+    'publish_batch_query': ('hia-publish-batch-query', (
+        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (EDIT + 'patch_word_io.hepta', ('front_address',)),
+        (EDIT + 'batch_query.hepta', ('owner_address',)),
+        (EDIT + 'publication_json_view.hepta', ('publication_address',)),
+    )),
+    'publish_batch': ('hia-publish-batch', (
+        (EDIT + 'publication_batch_admission.hepta', ('core_address',)),
+        (EDIT + 'publication_batch_receipt.hepta', ('front_address',)),
+        (EDIT + 'batch_apply.hepta', ('owner_address',)),
+        (EDIT + 'publication_batch_policy.hepta', ('publication_address',)),
+    )),
     'impact': ('hia-impact-core-json', (
         (EDIT + 'impact_patch.hepta', ('extract', 'result')),
         (EDIT + 'admission_word_io.hepta', ('base_admission', 'candidate_admission')),

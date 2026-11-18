@@ -264,6 +264,7 @@ jobs:
             "$RUNNER_TEMP/worker-request/hia-worker-admit" \
             "$RUNNER_TEMP/core-edit"/hia-*-edit* \
             "$RUNNER_TEMP/core-edit/hia-impact-core-json" \
+            "$RUNNER_TEMP/core-edit"/hia-publish-* \
             "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
@@ -479,6 +480,7 @@ jobs:
           print('installed worker admission: exact digest input, full 8 MiB, invalid inputs suppressed')
           PYWR
           python -B -m tests.test_hia_core_edit_runtime "$installed"
+          python -B -m tests.test_hia_core_publication_runtime "$installed"
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
           for action in normalize inspect verify-report; do
