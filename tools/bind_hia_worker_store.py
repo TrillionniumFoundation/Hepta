@@ -8,7 +8,7 @@ from pathlib import Path
 from hepta import hia_native_helpers as authority
 from hepta.hia_agent_store_native import capture_release_image, release_identity
 from hepta.hia_worker_store_profile import (
-    DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA,
+    DIRECT_BATCH_SCHEMA, DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA,
     OWNED_REFERENCE_SCHEMA, REFERENCE_SCHEMA, SCHEMA, profile_images,
 )
 from tools.build_hia_worker_report import custody_path
@@ -29,9 +29,10 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
     reference_fields = {}
     if owned_reference_executable is not None and reference_executable is None:
         raise ValueError('standalone owned reference requires the standalone scalar reference')
-    if direct_call_protocol not in (1, 2) or direct_call_protocol == 2 and direct_call_executable is None:
+    direct_schemas = {1: DIRECT_CALL_SCHEMA, 2: DIRECT_REPEAT_SCHEMA, 3: DIRECT_BATCH_SCHEMA}
+    if direct_call_protocol not in direct_schemas or direct_call_protocol != 1 and direct_call_executable is None:
         raise ValueError('direct call protocol requires its executable')
-    direct_schema = DIRECT_REPEAT_SCHEMA if direct_call_protocol == 2 else DIRECT_CALL_SCHEMA
+    direct_schema = direct_schemas[direct_call_protocol]
     if direct_call_executable is not None and owned_reference_executable is None:
         raise ValueError('standalone direct calls require both reference executables')
     for name, executable, profile in (('reference', reference_executable, REFERENCE_SCHEMA),
@@ -78,7 +79,7 @@ def main():
     parser.add_argument('--reference-executable', type=Path)
     parser.add_argument('--owned-reference-executable', type=Path)
     parser.add_argument('--direct-call-executable', type=Path)
-    parser.add_argument('--direct-call-protocol', type=int, choices=(1, 2), default=1)
+    parser.add_argument('--direct-call-protocol', type=int, choices=(1, 2, 3), default=1)
     parser.add_argument('--portable', action='store_true',
                         help='require relative base/installation paths within the output directory')
     args = parser.parse_args()

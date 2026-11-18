@@ -143,6 +143,44 @@ class DirectCallRuntimeTests(unittest.TestCase):
         self.assertEqual(result['report']['measured_calls'], 10000)
         self.assertEqual(result['report']['observations'][0]['values'], [10])
 
+    def test_all_512_cases_are_observed_under_one_batch_budget(self):
+        image, signatures = self.inputs['simple']
+        cases = [{'function': 'answer', 'arguments': [i],
+                  'expected': {'status': 'returned', 'values': [i + 7]}} for i in range(512)]
+        with (patch('hepta.hia_native_helpers.pinned_direct_call_executable',
+                    return_value=(self.raw, self.sha)),
+              patch('hepta.hia_native_helpers.pinned_direct_call_protocol', return_value=3)):
+            result = run_native_batch(image, signatures, cases, warmup=1, repetitions=2,
+                                      timeout_ms=3000, memory_bytes=64 << 20)
+            expired = run_native_batch(image, signatures, cases, warmup=1, repetitions=2,
+                                       timeout_ms=20, memory_bytes=64 << 20)
+        self.assertEqual(result['status'], 'returned', result)
+        self.assertTrue(result['termination_confirmed'])
+        self.assertEqual(result['direct_call_executable_sha256'], self.sha)
+        report = result['report']
+        self.assertEqual(report['measured_calls'], 1024)
+        self.assertEqual(report['completed_cases'], 512)
+        self.assertFalse(any(row['mismatch'] for row in report['observations']))
+        self.assertEqual([row['values'] for row in report['observations']], [[i + 7] for i in range(512)])
+        self.assertEqual(expired['status'], 'budget_exceeded', expired)
+        self.assertTrue(expired['termination_confirmed'])
+        self.assertIsNone(expired['report'])
+
+    def test_failed_case_does_not_execute_any_later_case_but_keeps_partial_writes(self):
+        image, signatures = self.inputs['trap']
+        cases = [{'function': 'write_then_trap', 'arguments': [{'bytes_hex': data}]}
+                 for data in ('010203', '11aa55')]
+        with (patch('hepta.hia_native_helpers.pinned_direct_call_executable',
+                    return_value=(self.raw, self.sha)),
+              patch('hepta.hia_native_helpers.pinned_direct_call_protocol', return_value=3)):
+            result = run_native_batch(image, signatures, cases, timeout_ms=3000, memory_bytes=64 << 20)
+        self.assertEqual(result['status'], 'trapped', result)
+        self.assertTrue(result['termination_confirmed'])
+        self.assertIsNone(result['report'])
+        self.assertEqual(result['buffer_snapshots'],
+            [{'case': 0, 'buffers': [buffer_observation(0, 'mutbuf', bytes.fromhex('5b0203'))]},
+             {'case': 1, 'buffers': [buffer_observation(0, 'mutbuf', bytes.fromhex('11aa55'))]}])
+
     @unittest.skipUnless(os.environ.get('HIA_TEST_REPORT_WIRE'), 'cold-built HIA report wire is required')
     def test_selected_report_wire_fits_actual_minimum_agent_budget(self):
         cases = [{'function': 'answer', 'arguments': [i]} for i in range(512)]

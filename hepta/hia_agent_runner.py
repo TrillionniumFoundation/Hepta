@@ -120,14 +120,11 @@ def _write_child_report(report, stream):
     return 0
 
 
-def _direct_call_transport(signature, case, files, artifact_bytes, executable, custody,
+def _direct_call_transport(signature, case, files, artifact, artifact_size, runner, custody,
                            memory_bytes, cpu_seconds, protocol, warmup, repetitions):
     """Give the pinned HIA runner sealed code and only its per-call backing files."""
-    from .hia_scalar_reference_native import sealed_reference_bytes
     from .hia_opcodes import WIDTHS
 
-    artifact = custody.enter_context(sealed_reference_bytes(artifact_bytes))
-    runner = custody.enter_context(sealed_reference_bytes(executable))
     descriptors = [artifact, runner]
     records = {row['argument']: row for row in files}
     words, loans = [], []
@@ -141,14 +138,14 @@ def _direct_call_transport(signature, case, files, artifact_bytes, executable, c
         descriptors.append(fd)
         size = record['byte_length']
         loans.extend((len(words), fd, size))
-        if protocol == 2:
+        if protocol >= 2:
             loans.append(int(typ == 'readbuf'))
         words.extend((0, size))
     function = case['function'].encode('ascii')
-    magic = b'HIADRX02' if protocol == 2 else b'HIADRX01'
+    magic = b'HIADRX02' if protocol >= 2 else b'HIADRX01'
     payload = struct.pack('<8s8Q', magic, os.getpid(), memory_bytes, cpu_seconds,
-                          artifact, len(artifact_bytes), len(words), len(files), len(function))
-    if protocol == 2:
+                          artifact, artifact_size, len(words), len(files), len(function))
+    if protocol >= 2:
         returns = signature['returns']
         bits = (64 if signature.get('abi') == BUFFER_PROFILE else
                 WIDTHS.get(returns[0], 8 if returns == ['bool'] else 0) if returns else 0)
@@ -157,15 +154,70 @@ def _direct_call_transport(signature, case, files, artifact_bytes, executable, c
     return ['/proc/self/fd/' + str(runner)], payload, {'pass_fds': tuple(descriptors), 'env': {'PATH': ''}}
 
 
-def _direct_call_report(raw, signature, case, external, artifact_hash, executable_hash,
-                        protocol, warmup, repetitions):
+def _run_owned_process(command, payload, *, cwd, timeout, has_reference_child=False, **options):
+    proc = subprocess.Popen(command, cwd=cwd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, start_new_session=True, **options)
+    timed_out = False
+    try:
+        stdout, stderr = proc.communicate(payload, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        timed_out = True
+        stdout, stderr = _cancel_runner(proc, has_reference_child=has_reference_child)
+    except BaseException:
+        _cancel_runner(proc, has_reference_child=has_reference_child)
+        raise
+    # Never claim a complete outcome while an owned process group exists.
+    try:
+        os.killpg(proc.pid, 0)
+    except ProcessLookupError:
+        return proc.returncode, stdout, stderr, timed_out
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    reject("E_HIA_TERMINATION_UNKNOWN", "native process-group termination is not confirmed",
+           "execution", retry_action="observe_original")
+
+
+def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_files, cwd,
+                      memory_bytes, deadline, protocol, warmup, repetitions):
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    receipts, stdout, stderr = [], bytearray(), bytearray()
+    returncode, timed_out = None, False
+    with (sealed_reference_bytes(artifact_bytes) as artifact, sealed_reference_bytes(executable) as runner):
+        for case, files in zip(cases, snapshot_files, strict=True):
+            remaining = deadline - time.monotonic_ns()
+            if remaining <= 0:
+                timed_out = True
+                break
+            cpu_seconds = (remaining + 999_999_999) // 1_000_000_000
+            with ExitStack() as descriptors:
+                command, payload, options = _direct_call_transport(signatures[case['function']], case, files,
+                    artifact, len(artifact_bytes), runner, descriptors, memory_bytes, cpu_seconds,
+                    protocol, warmup, repetitions)
+                returncode, out, err, timed_out = _run_owned_process(command, payload, cwd=cwd,
+                    timeout=max(0, (deadline - time.monotonic_ns()) / 1_000_000_000), **options)
+            stdout.extend(out)
+            stderr.extend(err)
+            if timed_out or returncode != 0 or len(stdout) > _REPORT_LIMIT or len(stderr) > 65536:
+                break
+            expect = (32, b'HIADRR02') if protocol >= 2 else (24, b'HIADRR01')
+            if (len(out), out[:8]) != expect:
+                returncode = _REPORT_TOO_LARGE
+                break
+            receipts.append(out)
+    return returncode, stdout, stderr, timed_out, receipts
+
+
+def _direct_observation(raw, signature, case, external, protocol):
     from .hia_opcodes import WIDTHS
 
-    if len(raw) != (32 if protocol == 2 else 24):
+    if len(raw) != (32 if protocol >= 2 else 24):
         raise ValueError('direct HIA call returned an invalid receipt extent')
     magic, value, duration = struct.unpack_from('<8sQQ', raw)
-    variation = struct.unpack_from('<Q', raw, 24)[0] if protocol == 2 else 0
-    if magic != (b'HIADRR02' if protocol == 2 else b'HIADRR01') or variation > 1:
+    variation = struct.unpack_from('<Q', raw, 24)[0] if protocol >= 2 else 0
+    if magic != (b'HIADRR02' if protocol >= 2 else b'HIADRR01') or variation > 1:
         raise ValueError('direct HIA call returned an invalid receipt identity')
     returns = signature['returns']
     observations = [row for row, _initial_unchanged in external]
@@ -189,12 +241,23 @@ def _direct_call_report(raw, signature, case, external, artifact_hash, executabl
         observation = {'status': 'returned', 'values': [value]}
     changed_readonly = any(row['kind'] == 'readbuf' and not unchanged for row, unchanged in external)
     mismatch = bool(variation) or changed_readonly or 'expected' in case and case['expected'] != observation
+    return {**observation, 'mismatch': mismatch, 'elapsed_ns': str(duration)}
+
+
+def _direct_call_report(receipts, signatures, submissions, snapshots, initial_digests,
+                        artifact_hash, executable_hash, protocol, warmup, repetitions):
+    observations = []
+    for index, (raw, case, snapshot) in enumerate(zip(receipts, submissions, snapshots, strict=True)):
+        external = [(row, row['sha256'] == initial_digests.get((index, row['argument'])))
+                    for row in snapshot['buffers']]
+        observations.append(_direct_observation(raw, signatures[case['function']], case, external, protocol))
+    cases = len(submissions)
     return {'schema': 'hepta.hia.agent.native-observation.v1', 'artifact_sha256': artifact_hash,
-            'complete': True, 'planned_cases': 1, 'completed_cases': 1, 'warmup': warmup, 'repetitions': repetitions,
-            'measured_calls': repetitions, 'total_native_ns': str(duration),
-            'observations': [{**observation, 'mismatch': mismatch, 'elapsed_ns': str(duration)}],
-            'direct_call_executable_sha256': executable_hash,
-            'timing_scope': 'native SysV call measured inside the standalone HIA process; snapshot hashing outside call timing'}
+            'complete': True, 'planned_cases': cases, 'completed_cases': cases, 'warmup': warmup,
+            'repetitions': repetitions, 'measured_calls': repetitions * cases,
+            'total_native_ns': str(sum(int(row['elapsed_ns']) for row in observations)),
+            'observations': observations, 'direct_call_executable_sha256': executable_hash,
+            'timing_scope': 'native SysV calls measured inside standalone HIA processes; snapshot reset and hashing outside call timing'}
 
 
 def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions=1,
@@ -225,9 +288,10 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         )
     direct_protocol = pinned_direct_call_protocol() if _mode == 'native' else 1
     one_call = warmup == 0 and repetitions == 1
-    supported_repeat = direct_protocol == 2 and 0 <= warmup <= 100 and 1 <= repetitions <= 10000
-    direct_call = (pinned_direct_call_executable() if len(cases) == 1 and _mode == 'native'
-                   and (one_call or supported_repeat) else None)
+    supported_repeat = direct_protocol >= 2 and 0 <= warmup <= 100 and 1 <= repetitions <= 10000
+    supported_cases = len(cases) == 1 or direct_protocol == 3 and 1 <= len(cases) <= 512
+    direct_call = (pinned_direct_call_executable()
+                   if _mode == 'native' and supported_cases and (one_call or supported_repeat) else None)
     has_reference_child = any(executable is not None for _, _, executable in executables)
     with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
           ExitStack() as custody):
@@ -245,7 +309,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                         continue
                     data = buffer_bytes(value)
                     if direct_call is not None and typ == 'readbuf':
-                        initial_digests[argument] = sha256(data).hexdigest()
+                        initial_digests[index, argument] = sha256(data).hexdigest()
                     path = Path(directory) / ("buffer-" + str(index) + "-" + str(argument))
                     with path.open("xb") as stream:
                         stream.write(data if data else b"\0")
@@ -269,42 +333,19 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             fd = custody.enter_context(sealed_reference_bytes(executable_bytes))
             request[name] = {"fd": fd, "sha256": digest}
             process_options["pass_fds"] += (fd,)
-        cpu_seconds = max(1, math.ceil(timeout_ms / 1000))
+        runner_root = Path(__file__).resolve().parent.parent
         if direct_call is not None:
-            signature = signatures[cases[0]['function']]
-            command, payload, process_options = _direct_call_transport(signature, cases[0], snapshot_files[0],
-                artifact_bytes, direct_call[0], custody, memory_bytes, cpu_seconds, direct_protocol, warmup, repetitions)
+            deadline = started + math.ceil(timeout_ms * 1_000_000)
+            returncode, stdout, stderr, timed_out, direct_receipts = _run_direct_cases(
+                artifact_bytes, direct_call[0], signatures, cases, snapshot_files, runner_root,
+                memory_bytes, deadline, direct_protocol, warmup, repetitions)
         else:
             payload = wire(request)
+            cpu_seconds = max(1, math.ceil(timeout_ms / 1000))
             command = [sys.executable, "-B", "-E", "-s", "-m", "hepta.hia_agent_runner",
                        str(os.getpid()), str(memory_bytes), str(cpu_seconds)]
-        proc = subprocess.Popen(command,
-            cwd=Path(__file__).resolve().parent.parent, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, **process_options)
-        timed_out = False
-        try:
-            stdout, stderr = proc.communicate(payload, timeout=timeout_ms / 1000)
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            stdout, stderr = _cancel_runner(proc, has_reference_child=has_reference_child)
-        except BaseException:
-            _cancel_runner(proc, has_reference_child=has_reference_child)
-            raise
-        # A direct Core image has no fork/exec operation. Still require the
-        # owned process group to be absent before claiming terminal completion.
-        try:
-            os.killpg(proc.pid, 0)
-        except ProcessLookupError:
-            group_absent = True
-        else:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            group_absent = False
-        if not group_absent:
-            reject("E_HIA_TERMINATION_UNKNOWN", "native process-group termination is not confirmed",
-                   "execution", retry_action="observe_original")
+            returncode, stdout, stderr, timed_out = _run_owned_process(command, payload, cwd=runner_root,
+                timeout=timeout_ms / 1000, has_reference_child=has_reference_child, **process_options)
         # Read parent-created backing files only after terminal ownership is
         # confirmed. A trap must not hide writes that happened before it.
         snapshots, captured = [], []
@@ -322,21 +363,19 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                     captured.append({**observation, "data": data})
             snapshots.append({"case": index, "buffers": observed})
     report = None
-    if len(stdout) > _REPORT_LIMIT or len(stderr) > 65536 or proc.returncode == _REPORT_TOO_LARGE:
+    if len(stdout) > _REPORT_LIMIT or len(stderr) > 65536 or returncode == _REPORT_TOO_LARGE:
         status = "invalid_report"
-    elif timed_out or proc.returncode == -signal.SIGXCPU:
+    elif timed_out or returncode == -signal.SIGXCPU:
         status = "budget_exceeded"
-    elif proc.returncode == -signal.SIGABRT:
+    elif returncode == -signal.SIGABRT:
         status = "trapped"
-    elif proc.returncode != 0:
+    elif returncode != 0:
         status = "faulted"
     else:
         try:
             if direct_call is not None:
-                external = [(row, row['sha256'] == initial_digests.get(row['argument']))
-                            for row in snapshots[0]['buffers']]
-                report = _direct_call_report(stdout, signature, cases[0], external, artifact_hash, direct_call[1],
-                                             direct_protocol, warmup, repetitions)
+                report = _direct_call_report(direct_receipts, signatures, cases, snapshots, initial_digests,
+                                             artifact_hash, direct_call[1], direct_protocol, warmup, repetitions)
             else:
                 report = json.loads(stdout)
             if (type(report) is not dict or report.get("schema") != "hepta.hia.agent." + _mode + "-observation.v1"
@@ -368,8 +407,8 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             status, report = "invalid_report", None
         else:
             status = "returned"
-    result = {"status": status, "termination_confirmed": True, "started": True,
-            "wall_ns": str(time.monotonic_ns() - started), "returncode": proc.returncode,
+    result = {"status": status, "termination_confirmed": True, "started": returncode is not None,
+            "wall_ns": str(time.monotonic_ns() - started), "returncode": returncode,
             "stdout_sha256": sha256(stdout).hexdigest(), "stderr_sha256": sha256(stderr).hexdigest(),
             "report": report}
     if direct_call is not None:

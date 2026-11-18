@@ -13,7 +13,8 @@ REFERENCE_SCHEMA = 'hepta.hia.native-helpers.v7'
 OWNED_REFERENCE_SCHEMA = 'hepta.hia.native-helpers.v8'
 DIRECT_CALL_SCHEMA = 'hepta.hia.native-helpers.v9'
 DIRECT_REPEAT_SCHEMA = 'hepta.hia.native-helpers.v10'
-DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA)
+DIRECT_BATCH_SCHEMA = 'hepta.hia.native-helpers.v11'
+DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, DIRECT_BATCH_SCHEMA)
 OWNED_REFERENCE_SCHEMAS = (OWNED_REFERENCE_SCHEMA, *DIRECT_CALL_SCHEMAS)
 REFERENCE_SCHEMAS = (REFERENCE_SCHEMA, *OWNED_REFERENCE_SCHEMAS)
 SCHEMAS = (SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, *REFERENCE_SCHEMAS)
@@ -107,7 +108,9 @@ class NativeWorkerStoreBinding:
             self.snapshots.append((owned, MAX_IMAGE_BYTES))
             self.native_owned_reference_executable = (owned.raw, pin)
         self.native_direct_call_executable = None
-        self.native_direct_call_protocol = 2 if schema == DIRECT_REPEAT_SCHEMA else 1
+        self.native_direct_call_protocol = {
+            DIRECT_REPEAT_SCHEMA: 2, DIRECT_BATCH_SCHEMA: 3,
+        }.get(schema, 1)
         if schema in DIRECT_CALL_SCHEMAS:
             from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR
             if LINKER_SELECTOR not in self.selections:

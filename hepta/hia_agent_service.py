@@ -1435,7 +1435,9 @@ class HIAAgentService:
                 latency=latency, trapping=bool(trapping))
         measurement_scope = ("same host and immutable workload, baseline then candidate; call latency includes ctypes FFI "
                              "overhead; snapshot reset/hash outside call timing is included in subprocess wall cost")
-        if any(run['normal'] and run['normal'].get('direct_call_executable_sha256') for run in runs.values()):
+        native_outcomes = [result for run in runs.values() for result in (run["normal"], *run["traps"])
+                           if result is not None]
+        if native_outcomes and all(result.get("direct_call_executable_sha256") for result in native_outcomes):
             measurement_scope = ("same host and immutable workload, baseline then candidate; "
                                  "snapshot reset/hash outside call timing is included in subprocess wall cost")
             scopes = {run["normal"]["report"]["timing_scope"] for run in runs.values()
