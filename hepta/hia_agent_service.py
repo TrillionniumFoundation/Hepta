@@ -1238,33 +1238,43 @@ class HIAAgentService:
                 reject("E_HIA_PROOF_SCOPE", "machine proof query bytes differ", "verification")
 
     def _required_claims(self, context, candidate_artifact, refs, baseline_core_sha=None):
+        from .hia_agent_identity_native import CLAIM_BUILD_RECHECK
+        from .hia_agent_store import _native_agent_identity
+
         _data, native, _program = self._native(candidate_artifact, context["ref"])
         objective, _ = self.store.get_json(context["objective"])
         receipts = [self._verification(ref, context["ref"], native["candidate"]) for ref in refs]
+        policy = _native_agent_identity()
+        eligibility = self._reference_claim_eligibility if policy is None else policy.claim_eligibility
         for claim in objective["required_claims"]:
             qualified = False
             for receipt in receipts:
-                if not any(c["claim"] == claim and c["status"] == "proved" for c in receipt["checks"]):
-                    continue
-                subject = receipt["subject"]
-                if claim == "encoding_check":
-                    if subject["kind"] != "native_artifact" or subject["native_artifact"] != candidate_artifact:
-                        continue
-                    self._build_receipt(subject["build_receipt"], context["ref"], candidate_artifact)
-                elif claim == "behavior_equivalence":
-                    if receipt["base_core_sha256"] != baseline_core_sha:
-                        continue
-                elif claim == "lowering_refinement":
-                    if subject["kind"] == "native_artifact":
-                        if subject["native_artifact"] != candidate_artifact:
-                            continue
-                        self._build_receipt(subject["build_receipt"], context["ref"], candidate_artifact)
-                    elif native["machine_plan"] is None or subject["kind"] != "agent_machine_plan" or subject["plan"] != native["codegen"]["plan"]:
-                        continue
-                qualified = True
+                decision = eligibility(claim, receipt, candidate_artifact, native, baseline_core_sha)
+                if decision == CLAIM_BUILD_RECHECK:
+                    self._build_receipt(receipt["subject"]["build_receipt"], context["ref"], candidate_artifact)
+                if decision:
+                    qualified = True
             if not qualified:
                 reject("E_HIA_CLAIM_REQUIRED", "missing exact proved acceptance claim: " + claim, "verification")
         return objective
+
+    @staticmethod
+    def _reference_claim_eligibility(claim, receipt, candidate_artifact, native, baseline_core_sha):
+        from .hia_agent_identity_native import CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK
+
+        if not any(c["claim"] == claim and c["status"] == "proved" for c in receipt["checks"]):
+            return CLAIM_NOT_QUALIFIED
+        subject = receipt["subject"]
+        if claim == "behavior_equivalence":
+            return CLAIM_QUALIFIED if receipt["base_core_sha256"] == baseline_core_sha else CLAIM_NOT_QUALIFIED
+        if claim in ("encoding_check", "lowering_refinement"):
+            if subject["kind"] == "native_artifact":
+                return CLAIM_BUILD_RECHECK if subject["native_artifact"] == candidate_artifact else CLAIM_NOT_QUALIFIED
+            if (claim == "lowering_refinement" and native["machine_plan"] is not None
+                    and subject["kind"] == "agent_machine_plan" and subject["plan"] == native["codegen"]["plan"]):
+                return CLAIM_QUALIFIED
+            return CLAIM_NOT_QUALIFIED
+        return CLAIM_QUALIFIED
 
     def _cost_ledger(self, context, evaluation_wall_ns, native_wall_ns):
         from .hia_agent_store import _native_agent_identity

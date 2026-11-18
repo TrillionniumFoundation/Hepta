@@ -24,6 +24,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return record_authority(s, o)
     if kind == 9:
         return wall_window(s, o)
+    if kind == 10:
+        return claim_eligibility(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -256,6 +258,62 @@ def wall_window(s:readbuf, o:mutbuf) -> u32:
     put(o, 16, remaining)
     put(o, 24, high)
     return 32
+
+def claim_eligibility(s:readbuf, o:mutbuf) -> u32:
+    # Claim, subject kind, candidate plan flag, check count, checks,
+    # then exact pairs for base Core digest, native artifact, and plan.
+    if length(s) < 48:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    claim = read_word(s, 16)
+    kind = read_word(s, 24)
+    planned = read_word(s, 32)
+    count = read_word(s, 40)
+    if claim > 3 or kind > 2 or planned > 1 or count > 4 or count > length(s) - 48:
+        return 4294967293
+    proved = 0
+    index = 0
+    while index < count:
+        check = byte(s, 48 + index)
+        if check > 7:
+            return 4294967293
+        if check == claim + 4:
+            proved = 1
+        index = index + 1
+    offset = 48 + count
+    field = 0
+    matched = 0
+    while field < 3:
+        if length(s) - offset < 16:
+            return 4294967293
+        left = read_word(s, offset)
+        right = read_word(s, offset + 8)
+        offset = offset + 16
+        if left > length(s) - offset:
+            return 4294967293
+        right_at = offset + left
+        if right > length(s) - right_at:
+            return 4294967293
+        if equal_pair(s, offset, left, right_at, right) != 0:
+            matched = matched | (1 << field)
+        field = field + 1
+        offset = right_at + right
+    if offset != length(s):
+        return 4294967293
+    # 0 = cannot satisfy, 1 = qualifies, 2 = requires build custody recheck.
+    decision = 0
+    if proved != 0:
+        if claim == 0 or (claim == 1 and (matched & 1) != 0):
+            decision = 1
+        elif kind == 1 and claim >= 2 and (matched & 2) != 0:
+            decision = 2
+        elif claim == 2 and kind == 2 and planned != 0 and (matched & 4) != 0:
+            decision = 1
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, 1)
+    put(o, 16, decision)
+    return 24
 
 def rational_bits(numerator:u64, denominator:u64) -> u64:
     # A nonzero ratio of two u64 values is always normal in binary64.

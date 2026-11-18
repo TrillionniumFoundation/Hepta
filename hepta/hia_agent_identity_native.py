@@ -24,6 +24,9 @@ CONTEXT_REFUSALS = {
 EVALUATION_OUTCOMES = ('budget_exceeded', 'incorrect', 'inconclusive', 'improved', 'regressed', 'unchanged')
 WORD_MASK = (1 << 64) - 1
 DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION = range(3)
+_CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
+_SUBJECT_KINDS = {'native_artifact': 1, 'agent_machine_plan': 2}
+CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK = range(3)
 
 
 def _observation_fields(observation, *, reference):
@@ -38,8 +41,8 @@ def _observation_fields(observation, *, reference):
     return status.encode('ascii'), returned, buffers, trap, resources
 
 
-def _paired_packet(operation, mode, left, right):
-    packet = bytearray(struct.pack('<3Q', MAGIC, operation, mode))
+def _paired_packet(header, left, right):
+    packet = bytearray(header)
     for expected, observed in zip(left, right, strict=True):
         packet.extend(struct.pack('<2Q', len(expected), len(observed)))
         packet.extend(expected)
@@ -122,7 +125,7 @@ class NativeAgentIdentity(NativeHiaJsonImage):
 
     def observation_agreement(self, left, right, *, mode):
         reference = mode == REFERENCE_OBSERVATION
-        packet = _paired_packet(7, mode, _observation_fields(left, reference=reference),
+        packet = _paired_packet(struct.pack('<3Q', MAGIC, 7, mode), _observation_fields(left, reference=reference),
                                 _observation_fields(right, reference=reference))
         valid, agreement = self._request(packet)
         if valid != 1 or agreement not in (0, 1):
@@ -130,7 +133,8 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         return bool(agreement)
 
     def record_authority(self, expected, observed, *, required_kind=None, observed_kind=None):
-        packet = _paired_packet(8, int(observed is not None), _record_fields(expected, required_kind),
+        header = struct.pack('<3Q', MAGIC, 8, int(observed is not None))
+        packet = _paired_packet(header, _record_fields(expected, required_kind),
                                 (b'',) * 4 if observed is None else _record_fields(observed, observed_kind))
         valid, decision = self._request(packet)
         if valid != 1 or decision not in (0, 1, 2):
@@ -143,6 +147,21 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         if expired not in (0, 1) or high not in (0, 1) or (expired and (remaining or high)):
             raise RuntimeError('invalid HIA Agent deadline decision')
         return bool(expired), (high << 64) | remaining
+
+    def claim_eligibility(self, claim, receipt, candidate_artifact, native, baseline_core_sha):
+        subject = receipt['subject']
+        checks = bytes(_CLAIMS.index(check['claim']) + 4 * (check['status'] == 'proved')
+                       for check in receipt['checks'])
+        planned = native['machine_plan'] is not None
+        header = struct.pack('<6Q', MAGIC, 10, _CLAIMS.index(claim),
+                             _SUBJECT_KINDS.get(subject['kind'], 0), int(planned), len(checks))
+        expected = (baseline_core_sha, candidate_artifact, native['codegen'].get('plan') if planned else None)
+        observed = (receipt['base_core_sha256'], subject.get('native_artifact'), subject.get('plan'))
+        packet = _paired_packet(header + checks, map(wire, expected), map(wire, observed))
+        valid, decision = self._request(packet)
+        if valid != 1 or decision not in (CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK):
+            raise RuntimeError('invalid HIA Agent claim eligibility decision')
+        return decision
 
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(

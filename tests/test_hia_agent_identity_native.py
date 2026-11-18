@@ -5,7 +5,8 @@ import ctypes,json,os,random,struct,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 from hepta.hia_agent_identity_native import SOURCE,SCHEMA,MAGIC,RESULT_MAGIC,NativeAgentIdentity,installed_agent_identity,SELECTOR
-from hepta.hia_agent_identity_native import DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION
+from hepta.hia_agent_identity_native import (DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION,
+    CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK)
 from hepta.hia_agent_store import AgentRejected,uint64,canonical_digest
 ROOT=Path(__file__).resolve().parents[1]
 def packet(kind,value):return struct.pack('<2Q',MAGIC,kind)+value
@@ -14,6 +15,10 @@ def expected(valid,value=0):return struct.pack('<3Q',RESULT_MAGIC,valid,value)
 def comparison(mode, fields, operation=7):
     return packet(operation, struct.pack('<Q', mode) + b''.join(
         struct.pack('<2Q', len(left), len(right)) + left + right for left, right in fields))
+
+def proof_request(claim, kind, planned, checks, scope):
+    fields = b''.join(struct.pack('<2Q', len(left), len(right)) + left + right for left, right in scope)
+    return packet(10, struct.pack('<4Q', claim, kind, planned, len(checks)) + bytes(checks) + fields)
 
 def vm(wire,workspace,capacity=24):
  from tools.hia_selfhost_bulk import Body
@@ -78,6 +83,20 @@ class AgentIdentitySourceTests(unittest.TestCase):
             wire = packet(9, struct.pack('<3Q', 2_000_000, now, 8))
             self.assertEqual(vm(wire, 0, 32),
                              (32, struct.pack('<4Q', RESULT_MAGIC, expired, remaining, 0)))
+
+    def test_claim_eligibility_uses_the_requested_proved_scope_in_vm(self):
+        scope = [(b'base', b'another'), (b'artifact', b'artifact'), (b'plan', b'plan')]
+        for claim, kind, planned, checks, decision in (
+            (0, 0, 0, [4], CLAIM_QUALIFIED),
+            (1, 0, 0, [5], CLAIM_NOT_QUALIFIED),
+            (2, 1, 0, [6], CLAIM_BUILD_RECHECK),
+            (2, 2, 1, [6], CLAIM_QUALIFIED),
+            (2, 2, 0, [6], CLAIM_NOT_QUALIFIED),
+            (3, 2, 1, [7], CLAIM_NOT_QUALIFIED),
+            (3, 1, 1, [6, 3], CLAIM_NOT_QUALIFIED),
+        ):
+            request = proof_request(claim, kind, planned, checks, scope)
+            self.assertEqual(vm(request, 0), (24, expected(1, decision)))
 
     def test_builder_refuses_bad_cold_before_any_output_or_compilation(self):
         from copy import deepcopy
@@ -165,6 +184,64 @@ class AgentIdentityNativeTests(unittest.TestCase):
             self.assertEqual(self.raw(wire)[0],0xfffffffd)
         self.assertEqual(self.raw(packet(0,b'0'),23)[0],0xfffffffe)
         with self.assertRaises(ValueError):self.native.scalar('1',False)
+
+    def test_native_proof_eligibility_matches_reference_and_checks_transport(self):
+        from itertools import product
+        from hepta.hia_agent_service import HIAAgentService
+
+        claims = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
+        for claim, kind, planned, match, status in product(
+            claims, ('core_program', 'agent_machine_plan', 'native_artifact'),
+            (False, True), (False, True), ('proved', 'unknown', 'refuted'),
+        ):
+            candidate = {'id': 'candidate', 'sha256': 'digest'}
+            other = {'sha256': 'digest', 'id': 'other'}
+            plan = {'sha256': 'plan digest', 'id': 'plan'}
+            observed = dict(reversed(list(candidate.items()))) if match else other
+            subject = {'kind': kind}
+            if kind == 'native_artifact':
+                subject['native_artifact'] = observed
+            if kind == 'agent_machine_plan':
+                subject['plan'] = plan if match else other
+            receipt = {'subject': subject, 'base_core_sha256': 'base' if match else 'different',
+                       'checks': [{'claim': claim, 'status': status}]}
+            native = {'machine_plan': {} if planned else None, 'codegen': {'plan': plan}}
+            wanted = HIAAgentService._reference_claim_eligibility(claim, receipt, candidate, native, 'base')
+            self.assertEqual(self.native.claim_eligibility(claim, receipt, candidate, native, 'base'),
+                             wanted, (claim, kind, planned, match, status))
+        scope = [(b'x', b'x')] * 3
+        wire = proof_request(3, 1, 0, [7], scope)
+        for malformed in (wire[:-1], wire + b'x', proof_request(4, 1, 0, [7], scope),
+                          proof_request(3, 3, 0, [7], scope), proof_request(3, 1, 2, [7], scope),
+                          proof_request(3, 1, 0, [8], scope), proof_request(3, 1, 0, [7] * 5, scope)):
+            self.assertEqual(self.raw(malformed)[0], 0xfffffffd)
+        self.assertEqual(self.raw(wire, 23)[0], 0xfffffffe)
+
+    def test_required_claims_recheck_every_qualifying_build_in_order(self):
+        from unittest.mock import Mock, call
+        from hepta.hia_agent_service import HIAAgentService
+
+        service = Mock()
+        context = {'ref': 'context', 'objective': 'objective'}
+        artifact = {'id': 'selected'}
+        native = {'candidate': 'program', 'machine_plan': None}
+        objective = {'required_claims': ['encoding_check']}
+        service._native.return_value = (b'native', native, None)
+        service.store.get_json.return_value = (objective, None)
+        service._verification.side_effect = [
+            {'subject': {'kind': 'native_artifact', 'native_artifact': subject, 'build_receipt': build},
+             'base_core_sha256': None, 'checks': [{'claim': 'encoding_check', 'status': 'proved'}]}
+            for subject, build in ((artifact, 'build-1'), ({'id': 'another'}, 'skip'), (artifact, 'build-2'))
+        ]
+        service._reference_claim_eligibility.side_effect = AssertionError('host proof policy executed')
+        with patch('hepta.hia_agent_store._native_agent_identity', return_value=self.native):
+            actual = HIAAgentService._required_claims(service, context, artifact, ['r1', 'r2', 'r3'])
+        self.assertIs(actual, objective)
+        self.assertEqual(service._verification.call_args_list,
+                         [call('r1', 'context', 'program'), call('r2', 'context', 'program'),
+                          call('r3', 'context', 'program')])
+        self.assertEqual(service._build_receipt.call_args_list,
+                         [call('build-1', 'context', artifact), call('build-2', 'context', artifact)])
 
     def test_native_observation_agreement_matches_host_policy_and_rejects_bad_framing(self):
         from hepta.hia_agent_service import HIAAgentService
