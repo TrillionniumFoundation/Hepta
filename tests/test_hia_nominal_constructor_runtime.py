@@ -7,6 +7,7 @@ from copy import deepcopy
 from hashlib import sha256
 from io import StringIO
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -412,6 +413,7 @@ def check_ordinary(executable, run):
     check_publication(executable, programs, raw)
     check_render_assembly(executable, programs, raw)
     check_core_ingress(executable)
+    check_source_files(executable)
 
 
 def check_core_ingress(executable):
@@ -447,6 +449,36 @@ def check_core_ingress(executable):
                 assert status == 2 and not output.parent.exists(), (label, action)
             assert source.read_bytes() == raw
     print(f'{len(inputs) * 4} byte-exact ordinary JSON ingress refusals without publication')
+
+
+def check_source_files(executable):
+    from hepta.cli import _reference_hia_main
+
+    with TemporaryDirectory(prefix='hia-cli-source-files-') as temporary:
+        root = Path(temporary)
+        missing = root / 'missing.hepta'
+        symlink = root / 'link.hepta'
+        symlink.symlink_to(__file__)
+        fifo = root / 'pipe.hepta'
+        os.mkfifo(fifo)
+        oversized = root / 'large.hepta'
+        with oversized.open('wb') as stream:
+            stream.truncate((8 << 20) + 1)
+        output = root / 'not-created' / 'out.hepta'
+        for path in (missing, symlink, root, fifo, oversized):
+            for action in ('verify', 'inspect', 'normalize', 'render-assembly'):
+                args = [action, str(path)]
+                if action in ('normalize', 'render-assembly'):
+                    args += ['-o', str(output)]
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    status = _reference_hia_main(args)
+                result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                        timeout=20, check=False)
+                assert (result.returncode, result.stdout, result.stderr) == (
+                    status, stdout.getvalue().encode(), b''), (path, action, result)
+                assert status == 2 and not output.parent.exists(), (path, action)
+    print('20 byte-exact missing, nonregular, symlink and oversized source-file refusals')
 
 
 def check_render_assembly(executable, programs, rejected):
