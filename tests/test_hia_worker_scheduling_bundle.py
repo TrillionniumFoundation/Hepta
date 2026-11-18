@@ -30,6 +30,19 @@ def digest(path):
 
 
 class WorkerSchedulingSourceTests(unittest.TestCase):
+    def test_portable_custody_relative_path_cannot_reference_an_external_member(self):
+        from tools.build_hia_worker_report import custody_path
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            portable = root / 'capsule'
+            portable.mkdir()
+            manifest = portable / 'worker.json'
+            member = portable / 'policy' / 'manifest.json'
+            self.assertEqual(custody_path(manifest, member, portable=True), 'policy/manifest.json')
+            self.assertEqual(custody_path(manifest, member, portable=False), str(member))
+            with self.assertRaisesRegex(ValueError, 'under its manifest directory'):
+                custody_path(manifest, root / 'foreign.json', portable=True)
+
     def test_invalid_capsule_refuses_before_mapping_or_output_creation(self):
         from tools.build_hia_worker_scheduling_bundle import bind_scheduling_bundle
         with tempfile.TemporaryDirectory() as directory:

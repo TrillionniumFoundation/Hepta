@@ -64,15 +64,28 @@ def build_development(output, compiler):
     return _build(Path(output), Path(compiler))
 
 
-def bind_worker_bundle(output, helpers_bundle, report_bundle):
+def custody_path(output, member, *, portable):
+    if not portable:
+        return str(member)
+    # A portable pin can move as a tree. Do not relax the runtime prohibition
+    # on parent traversal or create a relative alias to an external file.
+    try:
+        return member.relative_to(Path(output).parent.resolve(strict=True)).as_posix()
+    except ValueError as error:
+        raise ValueError('portable worker member must be under its manifest directory') from error
+
+
+def bind_worker_bundle(output, helpers_bundle, report_bundle, *, portable=False):
     """Create an explicit v2 operator pin; never activate the resulting worker."""
     from hepta.hia_native_helpers import ABI, TARGET, MAX_BUNDLE_BYTES, _read, _path
     from hepta.hia_worker_bundle import NativeWorkerBundleBinding, SCHEMA
     helpers = _read(_path(str(Path(helpers_bundle).resolve(strict=True))), MAX_BUNDLE_BYTES)
     report = _read(_path(str(Path(report_bundle).resolve(strict=True))), 8192)
     value = {'schema': SCHEMA, 'target': TARGET, 'abi': ABI,
-             'helpers_bundle': str(helpers.path), 'helpers_bundle_sha256': sha256(helpers.raw).hexdigest(),
-             'report_bundle': str(report.path), 'report_bundle_sha256': sha256(report.raw).hexdigest()}
+             'helpers_bundle': custody_path(output, helpers.path, portable=portable),
+             'helpers_bundle_sha256': sha256(helpers.raw).hexdigest(),
+             'report_bundle': custody_path(output, report.path, portable=portable),
+             'report_bundle_sha256': sha256(report.raw).hexdigest()}
     target = Path(output)
     with target.open('xb') as stream:
         stream.write((json.dumps(value, sort_keys=True, indent=2) + '\n').encode())

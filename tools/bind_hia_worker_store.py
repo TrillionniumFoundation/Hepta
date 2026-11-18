@@ -8,9 +8,11 @@ from pathlib import Path
 from hepta import hia_native_helpers as authority
 from hepta.hia_agent_store_native import capture_release_image, release_identity
 from hepta.hia_worker_store_profile import EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, SCHEMA, profile_images
+from tools.build_hia_worker_report import custody_path
 
 
-def bind_worker_store(output, base_bundle, release, *, edit_query=False, candidate_import=False):
+def bind_worker_store(output, base_bundle, release, *, edit_query=False, candidate_import=False,
+                      portable=False):
     base = authority._read(authority._path(str(Path(base_bundle).absolute())), authority.MAX_BUNDLE_BYTES)
     record = authority._decode(base.raw)
     if type(record) is not dict or record.get('schema') not in (
@@ -27,8 +29,11 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
     if release_identity(release) != directory:
         raise ValueError('native Store release changed while binding')
     record = {'schema': schema, 'target': authority.TARGET, 'abi': authority.ABI,
-              'base_bundle': str(base.path), 'base_bundle_sha256': sha256(base.raw).hexdigest(),
-              'release_path': str(release), **pins}
+              'base_bundle': custody_path(output, base.path.resolve(strict=True) if portable else base.path,
+                                          portable=portable),
+              'base_bundle_sha256': sha256(base.raw).hexdigest(),
+              'release_path': custody_path(output, release.resolve(strict=True) if portable else release,
+                                           portable=portable), **pins}
     raw = (json.dumps(record, indent=2, sort_keys=True) + '\n').encode()
     with Path(output).open('xb') as stream:
         stream.write(raw)
@@ -44,9 +49,12 @@ def main():
                         help='select the sealed native Agent dependency query')
     parser.add_argument('--candidate-import', action='store_true',
                         help='select native Agent candidate admission and dependency query')
+    parser.add_argument('--portable', action='store_true',
+                        help='require relative base/installation paths within the output directory')
     args = parser.parse_args()
     pin = bind_worker_store(args.output, args.base_bundle, args.release,
-                            edit_query=args.edit_query, candidate_import=args.candidate_import)
+                            edit_query=args.edit_query, candidate_import=args.candidate_import,
+                            portable=args.portable)
     print(json.dumps({'manifest': str(args.output.absolute()), 'sha256': pin}))
 
 

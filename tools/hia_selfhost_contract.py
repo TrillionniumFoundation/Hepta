@@ -126,6 +126,7 @@ WORKER_REQUEST_SDIST_FILES = (
     'tools/build_hia_worker_request_cli.py',
     'tools/hia_worker_terminal.S',
     'tools/bind_hia_worker_store.py',
+    'tools/build_hia_worker_release.py',
 )
 EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
 CORE_EDIT_SDIST_FILES = (

@@ -1,16 +1,43 @@
 # HIA: current implementation and acceptance
 
 This is the current-state index for `TrillionniumFoundation/Hepta`. The language
-is HIA; every active language input uses lowercase `.hepta`. The single
-integration entry remains [draft PR #893](https://github.com/TrillionniumFoundation/Hepta/pull/893).
+is HIA; every active language input uses lowercase `.hepta`.
 
 **Whole-product native replacement is incomplete.**
 `whole_native_delivery_qualified=false`, `old_stack_can_be_removed=false`, and
-`production_activated=false`. The v75 source contract identifies the actual
+`production_activated=false`. The source contract identifies the actual
 inputs; it is not an execution receipt. Current-source cold, installed/native,
 complete retained regression, and running-worker adoption are separate gates.
 
-## Current continuation: v75 bounded JSON wire and ordinary callers
+## Current audit: 2026-11-18
+
+- GitHub `main` at `f33d8da316de8fdf27b504371f1a5310997ff548` already has
+  178 `.hepta` sources and no `.hia`, `.hiaasm` or `.hia.json` files.
+  The later native continuation is not deployed on `main`. Historical branch
+  names alone do not prove their changes are redundant or safe to delete.
+- The explicitly selected Linux x86-64 candidate cold-builds and installs
+  native compiler, Core, workspace, ELF, release and Store components. Real
+  SQLite/WAL migrations preserved the snapshot and historical cost sequence.
+  The pinned ordinary worker has exercised all eleven Agent tools with
+  SQLite connections and hosted artifact reads prohibited.
+- Native reference execution now controls scalar and resource CFG dispatch
+  within the bounded packet profile, including nested returned loans and
+  external byte snapshots. Resource object custody and allocation effects are
+  still hosted. Finite scalar proof uses HIA enumeration and comparison;
+  wider compositional and machine validation still uses existing checkers.
+- The ordinary defaults and the running MCP process owner have not switched.
+  Do not remove the retained CLI/API, Agent/runtime implementations, migration
+  inputs or independent oracles on the strength of selected-profile tests.
+
+To assemble the opt-in worker, run `python -m tools.build_hia_worker_release`
+with the qualified compiler, its matching cold report, and the Store package
+and exact package SHA-256. The command emits the worker manifest and its pin
+for the existing `--native-helpers-manifest` and
+`--expected-native-helpers-sha256` options. The manifest is valid after moving
+the whole release tree, not after moving individual files. This does not
+install a Python package, migrate an active store or switch production.
+
+## Historical checkpoint: v75 bounded JSON wire and ordinary callers
 
 This working continuation adds the pinned `04ba46a` JSON wire HIA owner without
 replacing the divergent branch's store. The current SQLite/WAL authority,
@@ -87,13 +114,13 @@ Current-source cold, all existing native groups and complete retained regression
 must still run after the source contract is frozen. Native worker/state/runtime
 replacement, default activation and old-owner retirement remain open.
 
-## Naming and repository audit
+## Historical naming and repository audit
 
 The audited integration base is `807bbc4ce64b80d34b3102c774daf35e454d04be`,
 Git tree `9bcfadf0b3cadd375cae34906795501920a4a917`. It contains 2,360 tracked
 files, 96 `.hepta` sources (71 assembly and 25 structured Core), and 163
 production Python modules. Its active tree has no `.HIA`, `.hia`, `.hiaasm`, or
-`.hia.json` files. The unchanged main snapshot `5831f52fada45e076f8f68f198a15c0585e6104f`
+`.hia.json` files. The older main snapshot `5831f52fada45e076f8f68f198a15c0585e6104f`
 has 60 `.hiaasm`, 12 `.hia`, 11 `.hia.json`, no `.HIA`, and no `.hepta`.
 Branch availability must not be reported as main adoption.
 
@@ -107,7 +134,7 @@ and [original migration map](HIA_SOURCE_SUFFIX_MIGRATION.json) preserve exact
 rename provenance. Old receipts and registered frozen protocols keep their
 original bytes and recorded names.
 
-## Current native implementation
+## Native implementation at the earlier audit checkpoint
 
 | Area | Actual capability | Remaining boundary |
 | --- | --- | --- |
