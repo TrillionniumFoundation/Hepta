@@ -1,6 +1,7 @@
 """Original Agent artifact paging and its explicitly admitted HIA replacement."""
 import argparse
 from base64 import b64encode
+from contextlib import ExitStack
 import ctypes
 from hashlib import sha256
 import json
@@ -165,10 +166,16 @@ class AgentReadPageNativeTests(unittest.TestCase):
             directory = Path(temporary)
             subprocess.run([release / 'hia-agent-store-init', directory, 'store'],
                            input=b'', capture_output=True, check=True, timeout=10, env={'PATH': ''})
-            with (patch.dict('os.environ', {SELECTOR: str(self.manifest)}),
+            with (ExitStack() as invocation,
+                  patch.dict('os.environ', {SELECTOR: str(self.manifest)}),
                   patch('sqlite3.connect', side_effect=AssertionError('hosted SQLite selected')),
                   patch('hepta.hia_agent_store.stable_read',
                         side_effect=AssertionError('hosted artifact bytes selected'))):
+                if self.executable is not None:
+                    invocation.enter_context(patch('hepta.hia_native_helpers.pinned_agent_read_page_executable',
+                                                   return_value=self.executable.read_bytes()))
+                    invocation.enter_context(patch.object(self.native, '_entry',
+                                                          side_effect=AssertionError('mapped pager selected')))
                 service = HIAAgentService(directory, native_store=store)
                 try:
                     first_page, second_page = b'a' * 512, b'b' * 512
