@@ -210,6 +210,7 @@ jobs:
             --executable "$RUNNER_TEMP/agent-store/hia-agent-store" \
             --module-root "$RUNNER_TEMP/agent-store/module-root" \
             --initializer "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
+            --batch "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
             --test-root "$RUNNER_TEMP"
       - name: Package, install and run the native Agent Store and migration components
         run: |
@@ -246,7 +247,8 @@ jobs:
             --manifest "$RUNNER_TEMP/agent-artifact-capture/build.json"
           python -B -m tests.test_hia_agent_store_runtime \
             --executable "$installed/hia-agent-store" --module-root "$installed" \
-            --initializer "$installed/hia-agent-store-init" --test-root "$package"
+            --initializer "$installed/hia-agent-store-init" \
+            --batch "$installed/hia-agent-batch-commit" --test-root "$package"
           python -B -m tests.test_hia_sqlite_pager_runtime \
             --executable "$installed/hia-sqlite-pager" \
             --component-root "$installed" --test-root "$package"

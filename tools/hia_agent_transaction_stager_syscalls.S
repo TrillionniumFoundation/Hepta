@@ -1,7 +1,7 @@
 /* Fixed Linux x86-64 descriptor transport. HIA admits every effect, FD,
  * byte extent, namespace, phase, receipt and outcome. No libc or loader.
- * Supplied capabilities: 3 WAL, 4 prior anchor, 5 directory, 6 lock, 7 UUID, 9 transaction, 10 new anchor stage.
- * The caller owns their provenance and its pre-append transaction lock.
+ * Without argv, the caller supplies the Store capabilities and proposal.
+ * Direct staging acquires the same capabilities in an initialized Store.
  */
 .intel_syntax noprefix
 .text
@@ -13,10 +13,18 @@
 .equ STAGERWORK,344064
 .equ MAPSIZE,352256
 .equ IO_MAGIC,0x314f494446414948
+.equ PROPOSAL_LIMIT,1000000032
+.equ OPEN_STORE_READ,0xa0800   /* CLOEXEC | NOFOLLOW | NONBLOCK */
+.equ OPEN_STORE_WRITE,0xa0802
 
 _start:
+ xor r15d,r15d
  cmp QWORD PTR [rsp],1
+ je allocate
+ cmp QWORD PTR [rsp],2
  jne early_bad
+ mov r15,[rsp+16]
+allocate:
  xor edi,edi
  mov esi,MAPSIZE
  mov edx,3
@@ -38,33 +46,13 @@ _start:
  syscall
  test rax,rax
  js io_exit
- xor r12d,r12d
-read_initial:
- xor edi,edi
- lea rsi,[rbp+r12]
+ test r15,r15
+ jnz direct_stage
+ mov rsi,rbp
  mov edx,128
- sub rdx,r12
- xor eax,eax
- syscall
- cmp rax,-4
- je read_initial
- test rax,rax
- js io_exit
- jz bad_exit
- add r12,rax
- cmp r12,128
- jb read_initial
-read_extra:
- xor edi,edi
- lea rsi,[rbp+128]
- mov edx,1
- xor eax,eax
- syscall
- cmp rax,-4
- je read_extra
- test rax,rax
- js io_exit
- jnz bad_exit
+ call read_stdin_exact
+ call require_stdin_eof
+prepare_anchor_policy:
  mov eax,107
  syscall
  mov [rbp+128],rax
@@ -606,3 +594,220 @@ staged_transaction_ready:
  jmp policy_loop
 
 private_transaction_memfd_name: .asciz "hia-native-owned-transaction"
+
+/* Direct input is a single length-prefixed proposal and EOF. Fd 8 reserves
+ * the gap so the stager can allocate fd 9 exactly as in descriptor mode. */
+direct_stage:
+ mov r12d,3
+direct_check_role:
+ mov edi,r12d
+ mov esi,1
+ mov eax,72
+ syscall
+ cmp rax,-4
+ je direct_check_role
+ cmp rax,-9
+ jne bad_exit
+ inc r12d
+ cmp r12d,12
+ jbe direct_check_role
+
+ mov rsi,r15
+ cmp BYTE PTR [rsi],0
+ je bad_exit
+ mov rax,rsi
+direct_path_end:
+ inc rax
+ cmp BYTE PTR [rax],0
+ jne direct_path_end
+ cmp BYTE PTR [rax-1],47
+ je bad_exit
+ mov edi,-100
+ mov edx,OPEN_STORE_READ | 0x10000    /* DIRECTORY */
+ xor r10d,r10d
+ mov r12d,5
+ call open_direct_role
+
+ lea rsi,[rip+wal_data_name]
+ mov edx,OPEN_STORE_WRITE
+ mov r12d,3
+ call open_direct_store_file
+ lea rsi,[rip+initial_anchor_name]
+ mov edx,OPEN_STORE_READ
+ mov r12d,4
+ call open_direct_store_file
+ lea rsi,[rip+wal_lock_name]
+ mov edx,OPEN_STORE_WRITE
+ mov r12d,6
+ call open_direct_store_file
+ lea rsi,[rip+namespace_name]
+ mov edx,OPEN_STORE_READ
+ mov r12d,7
+ call open_direct_store_file
+ mov edi,5
+ mov esi,8
+ mov edx,0x80000
+ mov eax,292
+ syscall
+ test rax,rax
+ js io_exit
+
+ mov rsi,rbp
+ mov edx,8
+ call read_stdin_exact
+ mov r14,[rbp]
+ cmp r14,32
+ jb bad_exit
+ cmp r14,PROPOSAL_LIMIT
+ ja bad_exit
+direct_create_proposal:
+ lea rdi,[rip+direct_proposal_name]
+ mov esi,3    /* CLOEXEC | ALLOW_SEALING */
+ mov eax,319
+ syscall
+ cmp rax,-4
+ je direct_create_proposal
+ test rax,rax
+ js io_exit
+ mov r12d,12
+ call position_direct_fd
+direct_read_chunk:
+ mov r13d,65536
+ cmp r14,r13
+ cmovb r13,r14
+ mov rsi,rbp
+ mov rdx,r13
+ call read_stdin_exact
+ xor ebx,ebx
+direct_write_chunk:
+ mov edi,12
+ lea rsi,[rbp+rbx]
+ mov rdx,r13
+ sub rdx,rbx
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je direct_write_chunk
+ test rax,rax
+ jle io_exit
+ add rbx,rax
+ cmp rbx,r13
+ jb direct_write_chunk
+ sub r14,r13
+ jnz direct_read_chunk
+ call require_stdin_eof
+direct_chmod_proposal:
+ mov edi,12
+ mov esi,256
+ mov eax,91
+ syscall
+ cmp rax,-4
+ je direct_chmod_proposal
+ test rax,rax
+ js io_exit
+direct_seal_proposal:
+ mov edi,12
+ mov esi,1033
+ mov edx,15
+ mov eax,72
+ syscall
+ cmp rax,-4
+ je direct_seal_proposal
+ test rax,rax
+ js io_exit
+
+ mov edi,5
+ lea rsi,[rip+current_directory_name]
+ mov edx,0x490002    /* TMPFILE | CLOEXEC | RDWR */
+ mov r10d,384
+ mov r12d,10
+ call open_direct_role
+ /* Read 129 to reject a long anchor, not merely accept a 128-byte prefix. */
+ xor ebx,ebx
+direct_read_anchor:
+ mov edi,4
+ lea rsi,[rbp+rbx]
+ mov edx,129
+ sub rdx,rbx
+ mov r10,rbx
+ mov eax,17
+ syscall
+ cmp rax,-4
+ je direct_read_anchor
+ test rax,rax
+ js io_exit
+ jz direct_anchor_eof
+ add rbx,rax
+ cmp rbx,129
+ jb direct_read_anchor
+ jmp bad_exit
+direct_anchor_eof:
+ cmp rbx,128
+ jne bad_exit
+ jmp prepare_anchor_policy
+
+open_direct_store_file:
+ mov edi,5
+ xor r10d,r10d
+open_direct_role:
+ mov eax,257
+ syscall
+ cmp rax,-4
+ je open_direct_role
+ test rax,rax
+ js io_exit
+position_direct_fd:
+ cmp eax,r12d
+ je direct_fd_ready
+ mov r8d,eax
+direct_dup_role:
+ mov edi,r8d
+ mov esi,r12d
+ mov edx,0x80000
+ mov eax,292
+ syscall
+ cmp rax,-4
+ je direct_dup_role
+ test rax,rax
+ js io_exit
+ mov edi,r8d
+ mov eax,3
+ syscall
+ test rax,rax
+ js io_exit
+direct_fd_ready:
+ ret
+
+read_stdin_exact:
+ xor edi,edi
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je read_stdin_exact
+ test rax,rax
+ js io_exit
+ jz bad_exit
+ add rsi,rax
+ sub rdx,rax
+ jnz read_stdin_exact
+ ret
+
+require_stdin_eof:
+ xor edi,edi
+ lea rsi,[rbp+OUTPUT]
+ mov edx,1
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je require_stdin_eof
+ test rax,rax
+ js io_exit
+ jnz bad_exit
+ ret
+
+wal_data_name: .asciz "wal.data"
+initial_anchor_name: .asciz "anchor.0000000000000000"
+wal_lock_name: .asciz "wal.lock"
+namespace_name: .asciz "namespace.bin"
+direct_proposal_name: .asciz "hia-native-batch-proposal"
+current_directory_name: .asciz "."

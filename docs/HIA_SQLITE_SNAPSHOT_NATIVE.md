@@ -327,8 +327,17 @@ python -B -m tools.build_hia_agent_batch_commit \
   --compiler "$compiler" --cold-report "$cold_report" --output "$writer_output"
 ```
 
-The executable takes no arguments. Supply the selected 128-byte `HIAWAK01`
-anchor on stdin (followed by EOF). The caller supplies the open WAL data
+To commit a first batch to a freshly initialized private Store, invoke
+`hia-agent-batch-commit STORE_DIRECTORY`. Supply one little-endian unsigned
+64-bit proposal length, the exact `HIATXB01` bytes, and EOF on stdin. The
+length must be between 32 and 1,000,000,032 bytes. The executable opens the
+initial anchor and the named Store files, seals the proposal in a private
+memfd, and creates the unnamed anchor stage itself. No extra descriptors are
+passed by the caller. A stale initial anchor or a busy writer lock is refused
+by the native writer; this argument form is not for appending later batches.
+
+The no-argument descriptor form remains available. Supply the selected
+128-byte `HIAWAK01` anchor on stdin (followed by EOF). The caller supplies the open WAL data
 file on fd 3, selected anchor file on fd 4, Store directory on fd 5,
 WAL lock on fd 6, namespace identity file on fd 7, and an unnamed new
 anchor file in the Store directory on fd 10. Fd 12 holds the read-only-mode
