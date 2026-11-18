@@ -22,6 +22,7 @@ CONTEXT_REFUSALS = {
     5: ('E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots'),
 }
 EVALUATION_OUTCOMES = ('budget_exceeded', 'incorrect', 'inconclusive', 'improved', 'regressed', 'unchanged')
+WORD_MASK = (1 << 64) - 1
 
 class NativeAgentIdentity(NativeHiaJsonImage):
     def scalar(self, value, kind):
@@ -39,15 +40,18 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         return number if valid else None
 
     def _request(self, wire):
+        return self._response(wire, 24, '<3Q')
+
+    def _response(self, wire, capacity, layout):
         source=ctypes.create_string_buffer(wire,len(wire))
-        output=ctypes.create_string_buffer(24)
+        output=ctypes.create_string_buffer(capacity)
         unused=ctypes.create_string_buffer(1)
-        status=self._entry(source,len(wire),output,24,unused,0)
-        if status!=24:raise RuntimeError('HIA Agent identity rejected owned packet')
-        magic,valid,number=struct.unpack('<3Q',output.raw)
+        status=self._entry(source,len(wire),output,capacity,unused,0)
+        if status!=capacity:raise RuntimeError('HIA Agent identity rejected owned packet')
+        magic, *result=struct.unpack(layout,output.raw)
         if magic != RESULT_MAGIC:
             raise RuntimeError('invalid HIA Agent identity result')
-        return valid, number
+        return result
 
     def _context(self, kind, fields, allowed):
         wire = struct.pack(f'<{2 + len(fields)}Q', MAGIC, kind, *fields)
@@ -81,6 +85,36 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('nonfinite HIA Agent evaluation ratio')
         ratio = struct.unpack('<d', struct.pack('<Q', bits))[0]
         return ratio, EVALUATION_OUTCOMES[decision - 1]
+
+    def _cost_word_totals(self, rows):
+        wire = struct.pack('<2Q', MAGIC, 6) + b''.join(
+            struct.pack('<2Q', scope, value) for scope, value in rows)
+        context_low, context_high, unscoped_low, unscoped_high = self._response(wire, 40, '<5Q')
+        if context_high + unscoped_high > len(rows):
+            raise RuntimeError('invalid HIA Agent cost totals')
+        return (context_high << 64) | context_low, (unscoped_high << 64) | unscoped_low
+
+    def observed_cost_totals(self, rows, context_id):
+        # Match the Store's historic integer text decoder. New elapsed times
+        # fit a word; imported historical integers keep their exact value.
+        values = [(int(row['context_id'] is None), int(row['wall_ns']))
+                  for row in rows if row['context_id'] in (context_id, None)]
+        if all(0 <= value <= WORD_MASK for _, value in values):
+            return self._cost_word_totals(values)
+        positive = self._cost_magnitude_totals([(scope, value) for scope, value in values if value > 0])
+        negative = self._cost_magnitude_totals([(scope, -value) for scope, value in values if value < 0])
+        return positive[0] - negative[0], positive[1] - negative[1]
+
+    def _cost_magnitude_totals(self, values):
+        context = unscoped = offset = 0
+        while values:
+            words = [(scope, value & WORD_MASK) for scope, value in values]
+            context_word, unscoped_word = self._cost_word_totals(words)
+            context += context_word << offset
+            unscoped += unscoped_word << offset
+            offset += 64
+            values = [(scope, value >> 64) for scope, value in values if value > WORD_MASK]
+        return context, unscoped
 
     def uint64(self,value):return self.scalar(value,0)
     def digest(self,value):return self.scalar(value,1)is not None

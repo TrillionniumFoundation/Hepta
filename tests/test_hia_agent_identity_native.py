@@ -98,8 +98,8 @@ class AgentIdentityNativeTests(unittest.TestCase):
         result=self.native._entry(source,len(wire),output,capacity,workspace,0)
         self.assertEqual(source.raw,wire or b'\x00');self.assertEqual(output.raw[capacity:],b'\xa5'*8)
         self.assertEqual(workspace.raw,b'\x5a'*8)
-        if result!=24:self.assertEqual(output.raw,b'\xa5'*(capacity+8))
-        return result,output.raw[:24]
+        if result>capacity:self.assertEqual(output.raw,b'\xa5'*(capacity+8))
+        return result,output.raw[:capacity]
 
     def test_native_matches_full_byte_interpreter_and_no_foreign_compiler(self):
         for wire,result in self.witnesses:self.assertEqual(self.raw(wire),(24,result))
@@ -232,6 +232,30 @@ class AgentIdentityNativeTests(unittest.TestCase):
             before = random_values.getrandbits(random_values.randrange(65))
             after = random_values.getrandbits(random_values.randrange(65))
             exact(before, after, random_values.random(), random_values.randrange(32))
+
+    def test_observed_costs_exact_by_scope_with_wide_carry_and_historical_values(self):
+        from hepta.hia_agent_service import HIAAgentService
+
+        maximal = (1 << 64) - 1
+        rows = [{'context_id': 'mine' if index % 3 else None, 'wall_ns': str(maximal)}
+                for index in range(10000)]
+        reference = HIAAgentService._reference_observed_cost_totals
+        self.assertEqual(self.native.observed_cost_totals(rows, 'mine'), reference(rows, 'mine'))
+        self.assertEqual(self.native.observed_cost_totals([], 'mine'), (0, 0))
+
+        historical = [
+            {'context_id': 'mine', 'wall_ns': str(2**260 + 7)},
+            {'context_id': 'mine', 'wall_ns': str(-2**260 + 13)},
+            {'context_id': 'mine', 'wall_ns': ' +١_٢ '},
+            {'context_id': None, 'wall_ns': str(-2**390 + 15)},
+            {'context_id': None, 'wall_ns': str(2**128 + maximal)},
+            {'context_id': 'other', 'wall_ns': 'unused input'},
+        ]
+        self.assertEqual(self.native.observed_cost_totals(historical, 'mine'), reference(historical, 'mine'))
+        self.assertEqual(self.raw(packet(6, b''), 40), (40, struct.pack('<5Q', RESULT_MAGIC, 0, 0, 0, 0)))
+        self.assertEqual(self.raw(packet(6, b''), 39)[0], 0xfffffffe)
+        for invalid in (b'1', struct.pack('<2Q', 2, 0), bytes(160016)):
+            self.assertEqual(self.raw(packet(6, invalid), 40)[0], 0xfffffffd)
 
     def test_manifest_selected_rejects_corruption_without_fallback(self):
         bad=self.folder/'bad.json';bad.write_text('{}')

@@ -1251,8 +1251,11 @@ class HIAAgentService:
         # convert a placeholder zero into an observed zero-cost model call.
         if not policy["external_costs_complete"]:
             external = {name: None for name in external}
-        attributed = sum(int(row["wall_ns"]) for row in rows if row["context_id"] == context["ref"]["id"])
-        unscoped = sum(int(row["wall_ns"]) for row in rows if row["context_id"] is None)
+        policy_image = _native_agent_identity()
+        if policy_image is not None:
+            attributed, unscoped = policy_image.observed_cost_totals(rows, context["ref"]["id"])
+        else:
+            attributed, unscoped = self._reference_observed_cost_totals(rows, context["ref"]["id"])
         return {"schema": "hepta.hia.agent.cost-ledger.v1", "context": context["ref"],
             "entries": entries, "entries_truncated": truncated,
             "context_tool_wall_ns_before_evaluation": str(attributed),
@@ -1265,6 +1268,11 @@ class HIAAgentService:
             "failed_attempts_retained": True, "full_search_cost_complete": False,
             "net_optimization_benefit_proved": False,
             "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"}
+
+    @staticmethod
+    def _reference_observed_cost_totals(rows, context_id):
+        return (sum(int(row["wall_ns"]) for row in rows if row["context_id"] == context_id),
+                sum(int(row["wall_ns"]) for row in rows if row["context_id"] is None))
 
     def _hia_evaluate(self, args):
         from .hia_agent_runner import run_native_batch, run_reference_batch

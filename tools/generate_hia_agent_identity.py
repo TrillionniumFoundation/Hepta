@@ -15,6 +15,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     kind = read_word(s, 8)
     if kind == 5:
         return measurement_policy(s, o)
+    if kind == 6:
+        return cost_totals(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -170,6 +172,41 @@ def rational_bits(numerator:u64, denominator:u64) -> u64:
         significand = significand >> 1
         exponent = exponent + 1
     return (exponent << 52) | (significand & 4503599627370495)
+
+def cost_totals(s:readbuf, o:mutbuf) -> u32:
+    # Each 16-byte row contains a scope and one unsigned word. Up to
+    # 10,000 words per scope require at most 78 bits.
+    if length(s) > 160016 or (length(s) & 15) != 0:
+        return 4294967293
+    if length(o) < 40:
+        return 4294967294
+    context_low = 0
+    context_high = 0
+    unscoped_low = 0
+    unscoped_high = 0
+    offset = 16
+    while offset < length(s):
+        scope = read_word(s, offset)
+        value = read_word(s, offset + 8)
+        if scope == 0:
+            updated = context_low + value
+            if updated < context_low:
+                context_high = context_high + 1
+            context_low = updated
+        elif scope == 1:
+            updated = unscoped_low + value
+            if updated < unscoped_low:
+                unscoped_high = unscoped_high + 1
+            unscoped_low = updated
+        else:
+            return 4294967293
+        offset = offset + 16
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, context_low)
+    put(o, 16, context_high)
+    put(o, 24, unscoped_low)
+    put(o, 32, unscoped_high)
+    return 40
 
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
