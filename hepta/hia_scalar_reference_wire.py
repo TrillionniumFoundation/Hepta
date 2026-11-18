@@ -1,13 +1,14 @@
 """Serialize admitted Core instructions and capability sites for the HIA reference VM."""
 
+from dataclasses import dataclass
 from functools import lru_cache
 import json
 import struct
 
-from .hia_opcodes import RESOURCES, SCALARS, WIDTHS
+from .hia_opcodes import RESOURCES, SCALARS, WIDTHS, opcode_spec
 
 PROGRAM_MAGIC = int.from_bytes(b'HIASPG01', 'little')
-RESOURCE_PROGRAM_MAGIC = int.from_bytes(b'HIARPG01', 'little')
+RESOURCE_PROGRAM_MAGIC = int.from_bytes(b'HIARPG02', 'little')
 PROGRAM_RESULT = int.from_bytes(b'HIASPR01', 'little')
 # The verified input is bounded independently by Core's 8 MiB / 262,144
 # nodes. The execution wire expands instructions and repeated lists.
@@ -19,6 +20,64 @@ TRAPS = ('user', 'overflow', 'division_by_zero', 'bounds', 'allocation')
 COMMAND = struct.Struct('<8Q')
 CONSTANT, CALL, RETURN, TRAP, JUMP, BRANCH = range(32, 38)
 RESOURCE, RESOURCE_RETURN = 38, 39
+
+RESOURCE_KINDS = (None, 'buffer', 'chain', 'readbuf', 'mutbuf')
+RESOURCE_SIGNATURES = {
+    'buffer.new': (None,), 'buffer.try_new': (None,),
+    'buffer.len': ('buffer', 'readbuf', 'mutbuf'),
+    'buffer.load': ('readbuf', 'mutbuf'),
+    'buffer.store': ('mutbuf',), 'buffer.fill': ('mutbuf',), 'buffer.fill_range': ('mutbuf',),
+    'buffer.copy': ('mutbuf',), 'buffer.copy_range': ('mutbuf',),
+    'buffer.move_within': ('mutbuf',), 'buffer.swap': ('mutbuf',),
+    'borrow.read': ('buffer', 'readbuf', 'mutbuf'), 'borrow.mut': ('buffer', 'mutbuf'),
+    'loan.end': ('readbuf', 'mutbuf'), 'owner.move': ('buffer', 'chain'), 'owner.drop': ('buffer', 'chain'),
+    'chain.empty': (None,), 'chain.is_empty': ('chain',), 'chain.try_push': ('chain',),
+    'chain.pop': ('chain',), 'chain.head_read': ('chain',), 'chain.head_mut': ('chain',),
+}
+RESOURCE_NAMES = tuple(RESOURCE_SIGNATURES)
+RESOURCE_CODES = {name: i for i, name in enumerate(RESOURCE_NAMES, 1)}
+RESOURCE_SITE = struct.Struct('<4Q')
+RETURN_LOANS_CODE = len(RESOURCE_CODES) + 1
+
+
+@dataclass(frozen=True, slots=True)
+class ResourceRequest:
+    operation: str
+    first_kind: str | None
+    inputs: int
+    outputs: int
+    return_loans: tuple[tuple[int, int, bool], ...] = ()
+
+
+def resource_request(wire, offset):
+    extent = struct.unpack_from('<Q', wire, 40)[0]
+    if not 72 <= offset <= extent - RESOURCE_SITE.size or offset % 8:
+        raise ValueError('invalid Core resource command position')
+    code, kind, inputs, outputs = RESOURCE_SITE.unpack_from(wire, offset)
+    if code == RETURN_LOANS_CODE:
+        start = offset + RESOURCE_SITE.size
+        if kind or not 0 < outputs <= inputs or inputs == outputs or outputs > (extent - start) // 8:
+            raise ValueError('invalid Core returned-loan command')
+        bindings = []
+        for index in range(outputs):
+            tag = struct.unpack_from('<Q', wire, start + 8 * index)[0]
+            if tag:
+                origin = (tag >> 1) - 1
+                if not outputs <= origin < inputs:
+                    raise ValueError('invalid Core returned-loan origin')
+                bindings.append((index, origin, bool(tag & 1)))
+        if not bindings:
+            raise ValueError('missing Core returned-loan origins')
+        return ResourceRequest('return_loans', None, inputs, outputs, tuple(bindings))
+    if not 1 <= code <= len(RESOURCE_CODES) or kind >= len(RESOURCE_KINDS):
+        raise ValueError('invalid Core resource command')
+    operation = RESOURCE_NAMES[code - 1]
+    first = RESOURCE_KINDS[kind]
+    signature = opcode_spec(operation)
+    if first not in RESOURCE_SIGNATURES[operation] or (inputs, outputs) != (
+            len(signature.operands), len(signature.results)):
+        raise ValueError('invalid Core resource command arity or operand kind')
+    return ResourceRequest(operation, first, inputs, outputs)
 
 
 @lru_cache(maxsize=8)
@@ -71,7 +130,7 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
         return at
 
     max_regs = max_arguments = 1
-    resource_sites = []
+    resource_sites = False
     loan_layouts = {}
     for name in order:
         fn = functions[name]
@@ -131,9 +190,14 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
                 else:
                     arguments = [index for index, _ in operands]
                     max_arguments = max(max_arguments, len(arguments), len(outputs))
-                    command = (RESOURCE, len(resource_sites), append_words(arguments), len(arguments),
+                    first = operands[0][1] if operands and operands[0][1] in RESOURCES else None
+                    if op not in RESOURCE_CODES or first not in RESOURCE_SIGNATURES[op]:
+                        return None  # Additional verified resource opcodes must acquire a wire grammar.
+                    site = append_words((RESOURCE_CODES[op], RESOURCE_KINDS.index(first),
+                                         len(arguments), len(outputs)))
+                    command = (RESOURCE, site, append_words(arguments), len(arguments),
                                append_words(outputs), len(outputs))
-                    resource_sites.append((ins, tuple(typ for _, typ in operands)))
+                    resource_sites = True
                 COMMAND.pack_into(output, at, *command, *([0]*(8-len(command))))
                 at += 64
             max_regs = max(max_regs, len(registers))
@@ -152,13 +216,14 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
                 if name in loan_layouts:
                     bindings, output_slots, _, _ = loan_layouts[name]
                     inputs = returns + [saved for _, saved, _ in bindings.values()]
-                    kinds = (*fn['returns'], *(kind for _, _, kind in bindings.values()))
                     lookup = {origin: len(returns) + i for i, origin in enumerate(bindings)}
-                    original = {i: lookup[origin] for i, origin in enumerate(fn['return_loans'])
-                                if origin is not None}
-                    resource_sites.append(({'op': 'return_loans', 'returns': fn['returns'],
-                                            'original': original}, kinds))
-                    COMMAND.pack_into(output, at, RESOURCE, len(resource_sites)-1,
+                    restorations = tuple(0 if origin is None else
+                                         ((lookup[origin] + 1) << 1) | (typ == 'mutbuf')
+                                         for typ, origin in zip(fn['returns'], fn['return_loans']))
+                    site = append_words((RETURN_LOANS_CODE, 0, len(inputs), len(output_slots),
+                                         *restorations))
+                    resource_sites = True
+                    COMMAND.pack_into(output, at, RESOURCE, site,
                                       append_words(inputs), len(inputs), append_words(output_slots),
                                       len(output_slots), 0, 0)
                     max_arguments = max(max_arguments, len(inputs))

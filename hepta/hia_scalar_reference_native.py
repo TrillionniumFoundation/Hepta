@@ -246,7 +246,7 @@ class NativeScalarReference(NativeHiaJsonImage):
         from .hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
         from .hia_scalar_reference_wire import (
             MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
-            program_wire,
+            program_wire, resource_request,
         )
 
         compiled = program_wire(canonical, function, allow_resources=machine is not None)
@@ -309,14 +309,16 @@ class NativeScalarReference(NativeHiaJsonImage):
                 continue
             if status != 13:
                 break
-            if resources is None or steps <= previous or steps > max_steps or typ >= len(resource_sites):
+            if resources is None or steps <= previous or steps > max_steps:
                 raise RuntimeError('invalid HIA Core reference resource request')
-            instruction, operand_types = resource_sites[typ]
-            if size != 32 + 8*len(operand_types):
+            request = resource_request(wire, typ)
+            if size != 32 + 8*request.inputs:
                 raise RuntimeError('invalid HIA Core reference resource arguments')
-            operands = struct.unpack_from(f'<{len(operand_types)}Q', output, 32)
+            operands = struct.unpack_from(f'<{request.inputs}Q', output, 32)
             machine.steps = steps
-            returned = resources.operation(instruction, operand_types, operands)
+            returned = resources.operation(request, operands)
+            if len(returned) != request.outputs:
+                raise RuntimeError('invalid HIA Core reference resource results')
             struct.pack_into(f'<{len(returned)}Q', output, 32, *returned)
             struct.pack_into('<Q', workspace, 0, machine.steps)
             previous = machine.steps

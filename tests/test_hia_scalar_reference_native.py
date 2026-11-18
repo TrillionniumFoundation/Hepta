@@ -13,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from hepta.hia_agent_assembly import assemble_program, render_assembly
-from hepta.hia_program import WIDTHS, integer_range
+from hepta.hia_program import WIDTHS, integer_range, verify_program
 from hepta.hia_program_runtime import HIAProgramTrap, _Machine, execute_program
 from hepta.hia_scalar_reference_native import (
     OPCODES, OWNER_RECORD_BYTES, SCHEMA, SELECTOR, SOURCE, NativeScalarReference,
@@ -538,6 +538,53 @@ class ScalarReferenceNativeTests(unittest.TestCase):
               patch.object(_Machine, 'new_owner', side_effect=AssertionError('host owner issuance')),
               patch.object(_Machine, 'drop', side_effect=AssertionError('host owner accounting'))):
             self.assertEqual(compare(), expected)
+
+    def test_resource_wire_rejects_malformed_command_before_releasing_operands(self):
+        import ctypes
+
+        from hepta.hia_scalar_reference_wire import (
+            PROGRAM_RESULT, RESOURCE, RESOURCE_CODES, RESOURCE_PROGRAM_MAGIC, program_wire, resource_request,
+        )
+        from tests.test_hia_program import resource_program
+
+        checked = verify_program(resource_program())
+        body, registers, bounce, returns, uses_resources = program_wire(
+            checked.canonical_bytes, 'owned', allow_resources=True)
+        self.assertTrue(uses_resources)
+        header = struct.pack('<8Q', RESOURCE_PROGRAM_MAGIC, 100, 9, registers, bounce,
+                             len(body), 2, len(returns))
+        wire = header + body[64:] + struct.pack('<2Q', 8, 27)
+
+        def observe(packet):
+            source = ctypes.create_string_buffer(packet)
+            output = ctypes.create_string_buffer(32 + 8 * bounce)
+            state = ctypes.create_string_buffer(64 + (registers + bounce + 1) * 8)
+            size = self.native._entry(source, len(packet), output, len(output), state, len(state))
+            return size, output.raw
+
+        size, out = observe(wire)
+        self.assertEqual(size, 40)
+        identity, status, steps, descriptor, operand = struct.unpack_from('<5Q', out)
+        self.assertEqual((identity, status, operand), (PROGRAM_RESULT, 13, 8))
+        request = resource_request(wire, descriptor)
+        self.assertIn(request.operation, ('buffer.new', 'buffer.try_new'))
+        self.assertEqual(request.inputs, 1)
+        self.assertIsNone(request.first_kind)
+        self.assertGreater(steps, 0)
+
+        start = struct.unpack_from('<Q', wire, 64)[0]
+        site = start
+        while struct.unpack_from('<Q', wire, site)[0] != RESOURCE:
+            site += 64
+        self.assertEqual(struct.unpack_from('<Q', wire, site + 8)[0], descriptor)
+        malformed = ((descriptor, len(RESOURCE_CODES) + 2), (descriptor + 8, 4),
+                     (descriptor + 16, 0), (descriptor + 24, request.outputs + 1),
+                     (site + 8, descriptor + 1), (site + 8, len(body) - 16))
+        for position, replacement in malformed:
+            altered = bytearray(wire)
+            struct.pack_into('<Q', altered, position, replacement)
+            size, output = observe(bytes(altered))
+            self.assertEqual((size, output), (0xffffffff, bytes(len(output))))
 
     def test_native_owner_arena_reuses_slots_rejects_stale_ids_and_accounts_limits(self):
         table = bytearray(OWNER_RECORD_BYTES * 2)

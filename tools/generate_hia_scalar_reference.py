@@ -8,8 +8,10 @@ from hepta.hia_scalar_reference_native import (
     ALLOCATION_MAGIC, BYTE_MAGIC, CHAIN_MAGIC, DOMAIN_MAGIC, LOAN_MAGIC, MAGIC, OBSERVATION_MAGIC,
     OPCODES, OWNER_MAGIC, OWNER_RECORD_BYTES, RESULT, STORAGE_MAGIC,
 )
+from hepta.hia_opcodes import opcode_spec
 from hepta.hia_scalar_reference_wire import (
-    MAX_FRAME_WORDS, MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
+    MAX_FRAME_WORDS, MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_CODES, RESOURCE_KINDS,
+    RESOURCE_PROGRAM_MAGIC, RESOURCE_SIGNATURES, RETURN_LOANS_CODE,
 )
 from tools.generate_hia_elf_linker import LinkerBuilder, SOURCE as STATIC_SOURCE
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
@@ -377,6 +379,10 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
 def resource_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     pc = get(w, 8)
     count = uint(s, pc + 24, 8)
+    outputs = uint(s, pc + 40, 8)
+    descriptor = uint(s, pc + 8, 8)
+    if valid_resource_command(s, descriptor, count, outputs) == 0:
+        return 4294967295
     registers = get(w, 32)
     stride = get(w, 24)
     if count > (stride - registers - 8) // 8:
@@ -388,12 +394,43 @@ def resource_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 0, @PROGRAM_RESULT@)
     put(o, 8, 13)
     put(o, 16, get(w, 0))
-    put(o, 24, uint(s, pc + 8, 8))
+    put(o, 24, descriptor)
     i = 0
     while i < count:
         put(o, 32 + i * 8, get(w, bounce + i * 8))
         i = i + 1
     return 32 + count * 8
+
+def valid_resource_command(s:readbuf, site:u64, inputs:u64, outputs:u64) -> u64:
+    extent = uint(s, 40, 8)
+    if site < 72 or site % 8 != 0 or within(extent, site, 32) == 0:
+        return 0
+    code = uint(s, site, 8)
+    kind = uint(s, site + 8, 8)
+    if kind >= @RESOURCE_KINDS@ or uint(s, site + 16, 8) != inputs or uint(s, site + 24, 8) != outputs:
+        return 0
+    if code != @RETURN_LOANS_CODE@:
+        signature = resource_signature(code)
+        if ((signature >> kind) & 1) != 0 and (signature >> 8 & 255) == inputs and signature >> 16 == outputs:
+            return 1
+        return 0
+    if kind != 0 or outputs == 0 or inputs <= outputs or outputs > (extent - site - 32) // 8:
+        return 0
+    restored = 0
+    i = 0
+    while i < outputs:
+        origin = uint(s, site + 32 + i * 8, 8)
+        if origin != 0:
+            ordinal = origin >> 1
+            if ordinal <= outputs or ordinal > inputs:
+                return 0
+            restored = 1
+        i = i + 1
+    return restored
+
+def resource_signature(code:u64) -> u64:
+@RESOURCE_SIGNATURES@
+    return 0
 
 def resume_resource(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     pc = get(w, 8)
@@ -977,6 +1014,17 @@ class ReferenceBuilder(LinkerBuilder):
         return super().expr(value)
 
 
+def resource_signatures():
+    terms = {}
+    for operation, number in RESOURCE_CODES.items():
+        spec = opcode_spec(operation)
+        kinds = sum(1 << RESOURCE_KINDS.index(kind) for kind in RESOURCE_SIGNATURES[operation])
+        signature = (len(spec.results) << 16) | (len(spec.operands) << 8) | kinds
+        terms.setdefault(signature, []).append(f'code == {number}')
+    return '\n'.join('    if ' + ' or '.join(codes) + f':\n        return {value}'
+                     for value, codes in terms.items())
+
+
 def document():
     constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
@@ -986,8 +1034,9 @@ def document():
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,
-                 'MAX_PACKET_BYTES': MAX_PACKET_BYTES, **OPCODES}
-    source = SOURCE
+                 'MAX_PACKET_BYTES': MAX_PACKET_BYTES, 'RESOURCE_KINDS': len(RESOURCE_KINDS),
+                 'RETURN_LOANS_CODE': RETURN_LOANS_CODE, **OPCODES}
+    source = SOURCE.replace('@RESOURCE_SIGNATURES@', resource_signatures())
     for name, number in constants.items():
         source = source.replace(f'@{name}@', str(number))
     support = STATIC_SOURCE.split('\ndef within(', 1)[1]

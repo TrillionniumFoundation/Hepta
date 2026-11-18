@@ -815,9 +815,9 @@ class _ReferenceResources:
             return [changed, payload, int(present)]
         raise HIAProgramRejected("unhandled native chain opcode", "E_HIA_RUNTIME_INVARIANT")
 
-    def _byte_operation(self, op, kinds, words):
+    def _byte_operation(self, op, first_kind, words):
         read_only = op in {"len", "load"}
-        token = self.owner_token(words[0]) if kinds[0] == "buffer" else words[0]
+        token = self.owner_token(words[0]) if first_kind == "buffer" else words[0]
         _, owner = self.loan(1, token, mutable=not read_only)
         data = self.byte_storage(owner)
         if op == "len":
@@ -852,26 +852,24 @@ class _ReferenceResources:
             raise HIAProgramBudgetExceeded("host_memory", memory_error) from error
         return []
 
-    def operation(self, instruction, types, words):
-        op = instruction["op"]
+    def operation(self, request, words):
+        op, first_kind = request.operation, request.first_kind
         if op == "return_loans":
-            result_types = instruction["returns"]
-            values = list(words[:len(result_types)])
-            for result, original in instruction["original"].items():
-                token, _ = self.loan(4, words[result], words[original],
-                                     mutable=result_types[result] == "mutbuf")
+            values = list(words[:request.outputs])
+            for result, original, mutable in request.return_loans:
+                token, _ = self.loan(4, words[result], words[original], mutable=mutable)
                 self.machine.loans_started += token != words[result]
                 values[result] = token
             return values
         if op in {"borrow.read", "borrow.mut", "chain.head_read", "chain.head_mut"}:
-            if types[0] == "chain":
+            if first_kind == "chain":
                 _, payload, _, present = self.chain(2, words[0])
                 if not present:
                     raise HIAProgramTrap("bounds", "head borrow of an empty chain")
                 parent = self.owner_token(payload)
             else:
-                parent = self.owner_token(words[0]) if types[0] == "buffer" else words[0]
-            token, _ = self.loan(2, parent, mutable=instruction["out"][0]["type"] == "mutbuf")
+                parent = self.owner_token(words[0]) if first_kind == "buffer" else words[0]
+            token, _ = self.loan(2, parent, mutable=op in {"borrow.mut", "chain.head_mut"})
             self.machine.loans_started += 1
             return [token]
         if op == "loan.end":
@@ -881,7 +879,7 @@ class _ReferenceResources:
             self.machine.loans_ended += 1
             return []
         if op.startswith("buffer.") and op not in {"buffer.new", "buffer.try_new"}:
-            return self._byte_operation(op.removeprefix("buffer."), types, words)
+            return self._byte_operation(op.removeprefix("buffer."), first_kind, words)
         if op.startswith("chain."):
             return self._chain_operation(op, words)
         if op in {"buffer.new", "buffer.try_new"}:
@@ -890,7 +888,7 @@ class _ReferenceResources:
             return [owner, int(allocated)] if optional else [owner]
         if op in {"owner.move", "owner.drop"}:
             subject, = words
-            if types[0] == "chain":
+            if first_kind == "chain":
                 if op == "owner.drop":
                     self.drop_chain(subject)
                 else:
