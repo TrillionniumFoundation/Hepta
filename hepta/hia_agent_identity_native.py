@@ -8,6 +8,7 @@ import ctypes
 import struct
 from .hia_agent_store import _agent_resource_path, reject, wire
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
+from .hia_opcodes import EFFECTS, OPCODES, WIDTHS
 
 SOURCE=_agent_resource_path('examples/hia_bootstrap/agent_identity.hepta')
 SCHEMA='hepta.hia.agent-identity-native.v1'
@@ -27,6 +28,8 @@ DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION = range(3)
 _CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
 _SUBJECT_KINDS = {'native_artifact': 1, 'agent_machine_plan': 2}
 CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK = range(3)
+PROOF_OPCODE_IDS = {name: index for index, name in enumerate(sorted(OPCODES), 1)}
+PROOF_EFFECT_IDS = {name: 1 << index for index, name in enumerate(sorted(EFFECTS))}
 
 
 def _observation_fields(observation, *, reference):
@@ -79,11 +82,11 @@ class NativeAgentIdentity(NativeHiaJsonImage):
     def _request(self, wire):
         return self._response(wire, 24, '<3Q')
 
-    def _response(self, wire, capacity, layout):
+    def _response(self, wire, capacity, layout, *, workspace=0):
         source=ctypes.create_string_buffer(wire,len(wire))
         output=ctypes.create_string_buffer(capacity)
-        unused=ctypes.create_string_buffer(1)
-        status=self._entry(source,len(wire),output,capacity,unused,0)
+        scratch=ctypes.create_string_buffer(max(1, workspace))
+        status=self._entry(source,len(wire),output,capacity,scratch,workspace)
         if status!=capacity:raise RuntimeError('HIA Agent identity rejected owned packet')
         magic, *result=struct.unpack(layout,output.raw)
         if magic != RESULT_MAGIC:
@@ -162,6 +165,41 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         if valid != 1 or decision not in (CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK):
             raise RuntimeError('invalid HIA Agent claim eligibility decision')
         return decision
+
+    def finite_function(self, function):
+        blocks = function['blocks']
+        count = sum(len(block['ops']) for block in blocks)
+        if len(blocks) > 128 or count > 4096:
+            packet = struct.pack('<6Q', MAGIC, 11, len(blocks), 0, count, 0)
+        else:
+            indexes = {block['id']: index for index, block in enumerate(blocks, 1)}
+            effects = 0
+            for effect in function['effects']:
+                effects |= PROOF_EFFECT_IDS.get(effect, 1 << 63)
+            packet = bytearray(struct.pack('<6Q', MAGIC, 11, len(blocks), indexes[function['entry']],
+                                           count, effects))
+            for block in blocks:
+                term = block['term']
+                if term['op'] == 'jump':
+                    packet.extend((indexes[term['target']], 0))
+                elif term['op'] == 'branch':
+                    packet.extend((indexes[term['then']['target']], indexes[term['else']['target']]))
+                else:
+                    packet.extend((0, 0))
+            packet.extend(PROOF_OPCODE_IDS.get(op['op'], 0) for block in blocks for op in block['ops'])
+        valid, eligible = self._response(bytes(packet), 24, '<3Q', workspace=384)
+        if valid != 1 or eligible not in (0, 1):
+            raise RuntimeError('invalid HIA finite-function decision')
+        return bool(eligible)
+
+    def finite_domain(self, parameters, consumed):
+        request = struct.pack('<4Q', MAGIC, 12, consumed, len(parameters))
+        if len(parameters) <= 12:
+            request += bytes(1 if name == 'bool' else WIDTHS.get(name, 255) for name in parameters)
+        valid, needed, total = self._response(request, 32, '<4Q')
+        if valid != 1 or needed > 4096 or total != consumed + needed or total > 4096:
+            raise RuntimeError('invalid HIA finite-domain decision')
+        return needed, total
 
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(

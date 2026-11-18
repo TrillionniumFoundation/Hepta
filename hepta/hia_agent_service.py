@@ -39,6 +39,34 @@ def _reference_wall_window(created_ns, now_ns, total_ms):
     return delta < 0, max(0, delta // 1_000_000)
 
 
+def _reference_finite_function(function):
+    from .hia_optimization import PURE
+
+    eligible = len(function["blocks"]) <= 128 and sum(len(b["ops"]) for b in function["blocks"]) <= 4096
+    if set(function["effects"]) - {"trap"} or any(
+            op["op"] not in PURE for b in function["blocks"] for op in b["ops"]):
+        eligible = False
+    blocks = {b["id"]: b for b in function["blocks"]}
+    visiting, done = set(), set()
+
+    def acyclic(name):
+        if name in visiting:
+            return False
+        if name in done:
+            return True
+        visiting.add(name)
+        term = blocks[name]["term"]
+        targets = ([term["target"]] if term["op"] == "jump" else
+                   [term["then"]["target"], term["else"]["target"]] if term["op"] == "branch" else [])
+        if not all(acyclic(target) for target in targets):
+            return False
+        visiting.remove(name)
+        done.add(name)
+        return True
+
+    return acyclic(function["entry"]) and eligible
+
+
 def _signatures(program, foreign_buffer_exports=()):
     from .hia_program_native import WIDTHS
     from .hia_native_byte_abi import normalize_exports
@@ -779,7 +807,8 @@ class HIAAgentService:
 
     def _behavior_equivalence(self, original, revised, timeout_ms):
         """A conservative proof decision, separate from workload testing."""
-        from .hia_optimization import PURE, DEFAULT_POLICY, verify_optimization
+        from .hia_agent_store import _native_agent_identity
+        from .hia_optimization import DEFAULT_POLICY, verify_optimization
         from .hia_program import WIDTHS, integer_range
         from .hia_scalar_reference_native import selected_scalar_reference
         if timeout_ms <= 0:
@@ -795,30 +824,11 @@ class HIAAgentService:
         # Only pure scalar functions without calls, allocation or ownership can
         # use finite value enumeration as complete semantic evidence. The
         # structural resource/effect checker is used for wider programs.
+        policy = _native_agent_identity()
+        eligible = _reference_finite_function if policy is None else policy.finite_function
         for document in (left, right):
             for fn in document["functions"]:
-                if len(fn["blocks"]) > 128 or sum(len(b["ops"]) for b in fn["blocks"]) > 4096:
-                    finite = False
-                if set(fn["effects"]) - {"trap"} or any(op["op"] not in PURE for b in fn["blocks"] for op in b["ops"]):
-                    finite = False
-                blocks = {b["id"]: b for b in fn["blocks"]}
-                visiting, done = set(), set()
-
-                def acyclic(name):
-                    if name in visiting:
-                        return False
-                    if name in done:
-                        return True
-                    visiting.add(name)
-                    term = blocks[name]["term"]
-                    targets = ([term["target"]] if term["op"] == "jump" else
-                               [term["then"]["target"], term["else"]["target"]] if term["op"] == "branch" else [])
-                    if not all(acyclic(target) for target in targets):
-                        return False
-                    visiting.remove(name)
-                    done.add(name)
-                    return True
-                if not acyclic(fn["entry"]):
+                if not eligible(fn):
                     finite = False
         interface = lambda d: {fn["name"]: {k: fn[k] for k in ("params", "returns", "effects")} for fn in d["functions"]}
         if interface(left) != interface(right):
@@ -826,12 +836,20 @@ class HIAAgentService:
         domains, total = {}, 0
         if finite:
             for name, signature in signatures.items():
-                bits = sum(1 if typ == "bool" else WIDTHS.get(typ, 1000000) for typ in signature["params"])
-                if bits > 12 or total + (1 << bits) > 4096:
-                    finite = False
-                    break
-                domains[name] = signature["params"], 1 << bits
-                total += 1 << bits
+                parameters = signature["params"]
+                if policy is not None:
+                    needed, total = policy.finite_domain(parameters, total)
+                    if not needed:
+                        finite = False
+                        break
+                else:
+                    bits = sum(1 if typ == "bool" else WIDTHS.get(typ, 1000000) for typ in parameters)
+                    if bits > 12 or total + (1 << bits) > 4096:
+                        finite = False
+                        break
+                    needed = 1 << bits
+                    total += needed
+                domains[name] = parameters, needed
         if finite:
             native = selected_scalar_reference()
             transcript = sha256()

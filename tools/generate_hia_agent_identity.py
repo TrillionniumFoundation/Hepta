@@ -3,6 +3,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_identity_native import PROOF_EFFECT_IDS, PROOF_OPCODE_IDS
+from hepta.hia_optimization import PURE
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
 MAGIC=int.from_bytes(b'HIAIDP01','little')
@@ -26,6 +28,10 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return wall_window(s, o)
     if kind == 10:
         return claim_eligibility(s, o)
+    if kind == 11:
+        return finite_function(s, o, w)
+    if kind == 12:
+        return finite_domain(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -227,6 +233,114 @@ def equal_pair(s:readbuf, left_at:u64, left:u64, right_at:u64, right:u64) -> u64
         index = index + 1
     return 1
 
+def finite_function(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    # Raw observed function shape: block count, entry index, operation
+    # count, effect mask, two successors per block, then opcode IDs.
+    if length(s) < 48:
+        return 4294967293
+    if length(o) < 24 or length(w) < 384:
+        return 4294967294
+    blocks = read_word(s, 16)
+    entry = read_word(s, 24)
+    operations = read_word(s, 32)
+    effects = read_word(s, 40)
+    if blocks > 128 or operations > 4096:
+        if length(s) != 48:
+            return 4294967293
+        return finite_function_reply(o, 0)
+    op_at = 48 + 2 * blocks
+    if length(s) != op_at + operations or entry == 0 or entry > blocks:
+        return 4294967293
+    index = 48
+    while index < op_at:
+        if byte(s, index) > blocks:
+            return 4294967293
+        index = index + 1
+    if (effects & @DISALLOWED_EFFECT_MASK@) != 0:
+        return finite_function_reply(o, 0)
+    index = op_at
+    while index < length(s):
+        opcode = byte(s, index)
+        if opcode > 63 or ((@PURE_OPCODE_MASK@ >> opcode) & 1) == 0:
+            return finite_function_reply(o, 0)
+        index = index + 1
+    return finite_function_reply(o, acyclic_from_entry(s, w, blocks, entry))
+
+def finite_function_reply(o:mutbuf, eligible:u64) -> u32:
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, 1)
+    put(o, 16, eligible)
+    return 24
+
+def acyclic_from_entry(s:readbuf, w:mutbuf, blocks:u64, entry:u64) -> u64:
+    # Mark only blocks reachable from the admitted entry, as in the
+    # reference verifier. An edge to an active stack node is a cycle.
+    index = 0
+    while index < blocks:
+        store(w, index, 0)
+        index = index + 1
+    store(w, entry - 1, 1)
+    store(w, 128, entry)
+    store(w, 256, 0)
+    depth = 1
+    while depth != 0:
+        level = depth - 1
+        block = byte(w, 128 + level)
+        edge = byte(w, 256 + level)
+        if edge == 2:
+            store(w, block - 1, 2)
+            depth = depth - 1
+        else:
+            store(w, 256 + level, edge + 1)
+            target = byte(s, 48 + 2 * (block - 1) + edge)
+            if target != 0:
+                state = byte(w, target - 1)
+                if state == 1:
+                    return 0
+                if state == 0:
+                    store(w, target - 1, 1)
+                    store(w, 128 + depth, target)
+                    store(w, 256 + depth, 0)
+                    depth = depth + 1
+    return 1
+
+def finite_domain(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 32:
+        return 4294967293
+    if length(o) < 32:
+        return 4294967294
+    consumed = read_word(s, 16)
+    parameters = read_word(s, 24)
+    if consumed > 4096:
+        return 4294967293
+    if parameters > 12:
+        if length(s) != 32:
+            return 4294967293
+        return domain_reply(o, 0, consumed)
+    if length(s) != 32 + parameters:
+        return 4294967293
+    bits = 0
+    index = 0
+    while index < parameters:
+        width = byte(s, 32 + index)
+        if width != 1 and width != 8 and width != 16 and width != 32 and width != 64 and width != 255:
+            return 4294967293
+        bits = bits + width
+        index = index + 1
+    if bits > 12:
+        return domain_reply(o, 0, consumed)
+    needed = 1 << bits
+    if needed > 4096 - consumed:
+        return domain_reply(o, 0, consumed)
+    return domain_reply(o, needed, consumed + needed)
+
+def domain_reply(o:mutbuf, needed:u64, total:u64) -> u32:
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, 1)
+    put(o, 16, needed)
+    put(o, 24, total)
+    return 32
+
 def wall_window(s:readbuf, o:mutbuf) -> u32:
     if length(s) != 40:
         return 4294967293
@@ -402,7 +516,11 @@ def put(w:mutbuf, index:u64, value:u64) -> u64:
 '''
 
 def source_program():
-    return SOURCE.replace('@MAGIC@',str(MAGIC)).replace('@RESULT_MAGIC@',str(RESULT_MAGIC))
+    pure = sum(1 << PROOF_OPCODE_IDS[opcode] for opcode in PURE)
+    disallowed = ((1 << 64) - 1) ^ PROOF_EFFECT_IDS['trap']
+    return (SOURCE.replace('@MAGIC@', str(MAGIC)).replace('@RESULT_MAGIC@', str(RESULT_MAGIC))
+            .replace('@PURE_OPCODE_MASK@', str(pure))
+            .replace('@DISALLOWED_EFFECT_MASK@', str(disallowed)))
 
 def document():
     nodes=ast.parse(source_program()).body;names={n.name:'f'+str(i) for i,n in enumerate(nodes)}

@@ -364,6 +364,47 @@ class AgentIdentityNativeTests(unittest.TestCase):
         self.assertEqual(self.raw(wire[:-1], 32)[0], 0xfffffffd)
         self.assertEqual(self.raw(wire, 31)[0], 0xfffffffe)
 
+    def test_native_finite_domain_matches_scalar_cfg_and_width_boundaries(self):
+        from hepta.hia_agent_service import _reference_finite_function
+        from hepta.hia_opcodes import OPCODES, WIDTHS
+
+        def function(successors, *, entry=0, effects=(), operations=('int.add.wrap',)):
+            blocks = []
+            for index, targets in enumerate(successors):
+                term = {'op': 'ret'}
+                if len(targets) == 1:
+                    term = {'op': 'jump', 'target': targets[0]}
+                elif len(targets) == 2:
+                    term = {'op': 'branch', 'then': {'target': targets[0]}, 'else': {'target': targets[1]}}
+                blocks.append({'id': index, 'term': term,
+                               'ops': [{'op': name} for name in operations] if index == 0 else []})
+            return {'entry': entry, 'blocks': blocks, 'effects': list(effects)}
+
+        rng = random.Random(0xF117E)
+        cases = [function([(1,), (), (2,)]), function([(1,), (), (2,)], entry=2)]
+        for count in (1, 2, 127, 128, 129):
+            route = [(i + 1,) for i in range(count - 1)]
+            cases.extend((function([*route, ()]), function([*route, (0,)])))
+        for opcode in OPCODES:
+            cases.append(function([()], operations=[opcode]))
+        for effects in (('trap',), ('read',), ('write',), ('alloc',)):
+            cases.append(function([()], effects=effects))
+        cases.extend(function([()], operations=['const'] * size) for size in (4096, 4097))
+        for _ in range(150):
+            size = rng.randint(1, 16)
+            cases.append(function([tuple(rng.randrange(size) for _ in range(rng.randrange(3)))
+                                   for _ in range(size)], entry=rng.randrange(size)))
+        for shape in cases:
+            self.assertEqual(self.native.finite_function(shape), _reference_finite_function(shape), shape)
+
+        samples = [([], 4095), ([], 4096), (['bool'] * 12, 0), (['bool'] * 12, 1),
+                   (['bool'] * 13, 0), (['i8', 'bool'], 4096 - 512),
+                   (['i8', 'bool'], 4096 - 511), (['unit'], 0), (['u64', 'bool'], 0)]
+        for parameters, used in samples:
+            bits = sum(1 if name == 'bool' else WIDTHS.get(name, 1_000_000) for name in parameters)
+            needed = 1 << bits if bits <= 12 and (1 << bits) <= 4096 - used else 0
+            self.assertEqual(self.native.finite_domain(parameters, used), (needed, used + needed))
+
     def test_real_context_admission_uses_hia_for_clock_window_and_binding(self):
         from hepta import hia_agent_service as hosted, hia_agent_store as store
         from tests.test_hia_agent_buffer_lifecycle import workload
