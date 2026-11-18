@@ -308,14 +308,32 @@ python -B -m tools.build_hia_agent_store \
   --compiler "$compiler" --cold-report "$cold_report" --output "$store_output"
 ```
 
-This is the explicit Linux x86-64 private Store transaction protocol,
-not the public Agent service. Its inherited directory capabilities select
-one staged namespace and the four built modules. The native engine owns
-overlay reads, typed updates, indexed lookups, and commit or rollback for
-the original Store operations. An optional read-only artifact capability
-allows already migrated content to be reopened and checked. The Agent's
-tool methods, public request routing and active Store selection are not
-replaced by this build.
+This is the Linux x86-64 native Store transaction protocol, not the public
+Agent service. Launch it directly with the staged Store's parent directory,
+one namespace basename, the build's module directory, and optionally the
+read-only artifact directory:
+
+```sh
+"$store_output/hia-agent-store" "$parent" "$basename" \
+  "$store_output/module-root" "$artifact_directory"
+```
+
+This mode needs no descriptor setup by a host process. It checks private
+descriptor slots before opening paths, refuses symlink endpoints and
+admits the same module and namespace identities as descriptor mode.
+The original no-argument descriptor mode still reads the initial namespace
+header from stdin. In direct mode, stdin starts with `HIATCM01` commands
+and stdout emits native acknowledgements and result frames. Use streamed
+bindings (kind 27, target operation in the offset word) followed immediately
+by that command's exact typed payload. No borrowed parameter fd is needed.
+Commit or rollback ends the current transaction; use NEXT before sending
+more operations. A lost commit receipt is not safe to replay.
+
+The native engine owns overlay reads, typed updates, indexed lookups, and
+commit or rollback for the original Store operations. An optional artifact
+capability allows already migrated content to be reopened and checked. This
+does not replace the Agent's tool methods, public routing or active Store
+selection.
 
 ## Initializing a fresh native Store
 

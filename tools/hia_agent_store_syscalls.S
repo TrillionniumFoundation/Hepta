@@ -11,18 +11,27 @@
 .equ COPYBUFFER,1441792
 .equ MAPSIZE,1572864
 .equ IO_MAGIC,0x314f494446414948
+.equ ARGV_NAMESPACE,224
 _start:
  cmp QWORD PTR [rsp],1
- jne early_bad
+ je startup_roles
+ mov rax,[rsp]
+ sub rax,4
+ cmp rax,1
+ ja early_bad
+startup_roles:
  /* Refuse occupied private roles before any possible dup3 replacement. */
  mov ebx,3
 startup_probe:
+ cmp QWORD PTR [rsp],1
+ jne startup_probe_fd
  cmp ebx,8
  je startup_next
  cmp ebx,11
  je startup_next
  cmp ebx,20
  je startup_next
+startup_probe_fd:
  mov edi,ebx
  mov esi,1
  mov eax,72
@@ -33,6 +42,11 @@ startup_next:
  inc ebx
  cmp ebx,35
  jb startup_probe
+ cmp QWORD PTR [rsp],1
+ je startup_map
+ cmp ebx,37
+ jb startup_probe
+startup_map:
  xor edi,edi
  mov esi,MAPSIZE
  mov edx,3
@@ -44,6 +58,33 @@ startup_next:
  cmp rax,-4095
  jae early_io
  mov rbp,rax
+ cmp QWORD PTR [rsp],1
+ je startup_signal
+ /* File mode opens only the operator's directory capabilities. The same
+  * HIA loader and Store owner admit their metadata and children. */
+ mov rax,[rsp+24]
+ mov [rbp+SCRATCH+ARGV_NAMESPACE],rax
+ mov rsi,[rsp+16]
+ mov ebx,11
+ call open_argument_directory
+ /* In descriptor mode the executable already occupies slot 8. Reserve it
+  * here too so native file creation cannot allocate that private slot. */
+ mov edi,11
+ mov esi,8
+ mov edx,0x80000
+ mov eax,292
+ syscall
+ test rax,rax
+ js io_exit
+ mov rsi,[rsp+32]
+ mov ebx,20
+ call open_argument_directory
+ cmp QWORD PTR [rsp],5
+ jne startup_signal
+ mov rsi,[rsp+40]
+ mov ebx,36
+ call open_argument_directory
+startup_signal:
  mov QWORD PTR [rbp+SCRATCH],1
  mov edi,13
  lea rsi,[rbp+SCRATCH]
@@ -71,6 +112,36 @@ manifest_address_hole: .long 0
  mov [rbp+552],rax
  mov r12d,560
  jmp policy_loop
+
+open_argument_directory:
+ mov edi,-100
+ mov edx,0xb0000                  /* O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC */
+ xor r10d,r10d
+ mov eax,257                      /* openat */
+ syscall
+ cmp rax,-4
+ je open_argument_directory
+ test rax,rax
+ js io_exit
+ cmp rax,3
+ jb protocol_exit
+ cmp eax,ebx
+ je argument_directory_ready
+ mov r15,rax
+ mov edi,eax
+ mov esi,ebx
+ mov edx,0x80000
+ mov eax,292                      /* dup3 */
+ syscall
+ test rax,rax
+ js io_exit
+ mov rdi,r15
+ mov eax,3                        /* close */
+ syscall
+ test rax,rax
+ js io_exit
+argument_directory_ready:
+ ret
 
 policy_loop:
  mov rdi,rbp
@@ -962,6 +1033,9 @@ stat_owned_path_retry:
 
 
 owner_boot_input:
+ mov rsi,[rbp+SCRATCH+ARGV_NAMESPACE]
+ test rsi,rsi
+ jnz boot_argument_name
  xor ebx,ebx
 boot_length_next:
  xor edi,edi
@@ -1000,6 +1074,22 @@ boot_path_next:
  add rbx,rax
  cmp rbx,[rbp+SCRATCH+752]
  jb boot_path_next
+ jmp boot_path_ready
+boot_argument_name:
+ xor ebx,ebx
+boot_argument_next:
+ mov al,[rsi+rbx]
+ test al,al
+ jz boot_argument_end
+ cmp ebx,256
+ jae protocol_exit
+ mov [rbp+rbx+40],al
+ inc ebx
+ jmp boot_argument_next
+boot_argument_end:
+ test ebx,ebx
+ jz protocol_exit
+boot_path_ready:
  mov rax,0x3130435854414948
  mov [rbp],rax
  mov QWORD PTR [rbp+8],2

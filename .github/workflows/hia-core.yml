@@ -196,6 +196,11 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-store-init"
           python -B -m tools.build_hia_agent_store --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-store"
+          python -B -m tests.test_hia_agent_store_runtime \
+            --executable "$RUNNER_TEMP/agent-store/hia-agent-store" \
+            --module-root "$RUNNER_TEMP/agent-store/module-root" \
+            --initializer "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
+            --test-root "$RUNNER_TEMP"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
