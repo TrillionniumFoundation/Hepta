@@ -336,6 +336,15 @@ memfd, and creates the unnamed anchor stage itself. No extra descriptors are
 passed by the caller. A stale initial anchor or a busy writer lock is refused
 by the native writer; this argument form is not for appending later batches.
 
+To append the native cost-sequence records after the initial batch, invoke
+`hia-agent-batch-commit STORE_DIRECTORY GENERATION`. Supply the selected
+anchor generation as exactly 16 lowercase hexadecimal digits (for example
+`0000000000000001`), and send the same length framing with the exact
+`HIAWAL01` records in place of a proposal. The limit for the records is
+1,000,000,000 bytes. The executable seals the record bytes and invokes the
+same native writer, which requires the named anchor to still be current.
+The caller must take the records from the same retained migration snapshot.
+
 The no-argument descriptor form remains available. Supply the selected
 128-byte `HIAWAK01` anchor on stdin (followed by EOF). The caller supplies the open WAL data
 file on fd 3, selected anchor file on fd 4, Store directory on fd 5,
@@ -350,8 +359,8 @@ This primitive is selected explicitly for private migration. The executable
 does not initialize a destination, select a source snapshot, move artifact
 bytes, switch the Agent's active Store, or replace the existing SQL path.
 
-Build the sealed-record entry with `--kind sealed` to apply a native
-cost-sequence transaction. It uses the same HIA writer as the batch entry,
+The no-argument sealed-record entry can also be built with `--kind sealed`.
+It uses the same HIA writer as the batch entry,
 with the same stdin and descriptors 3 through 7 and 10. Fd 9 instead
 carries the HIA-generated `HIAWAL01` transaction in a `0400` memfd with
 all four seals; there is no proposal or fd 12. Reopen the staged Store and

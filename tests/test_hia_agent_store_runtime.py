@@ -32,6 +32,7 @@ def text_bindings(magic, values, *, insert_table=None):
 class NativeStoreArgv(unittest.TestCase):
     test_root = None
     batch = None
+    cost_sequence = None
 
     def run_native(self, arguments, data=b'', expected=0):
         result = subprocess.run(arguments, input=data, capture_output=True, env={'PATH': ''},
@@ -162,6 +163,43 @@ class NativeStoreArgv(unittest.TestCase):
             query = command(1, 27, 12, lookup) + command(2, 3)
             reopened = self.run_native([self.executable, parent, 'store', self.module_root], query)
             self.assertEqual(self.replies(reopened, (27, 3)), ([values], 0))
+            if self.cost_sequence is not None:
+                self.check_cost_sequence(parent, args)
+
+    def check_cost_sequence(self, parent, batch_args):
+        high_water = 128
+        sequence = (struct.pack('<8s3Q', b'HIASQH01', 1, 2, 0)
+                    + bytes((3, 23, 2)) + b'costs' + high_water.to_bytes(2, 'big'))
+        frame = struct.pack('<8s3Q', b'HIASCC01', len(sequence), 656, 4096) + sequence
+        response = self.run_native([self.cost_sequence], frame)
+        self.assertEqual(struct.unpack_from('<8s3Q', response), (b'HIASCR01', 0, 656, 4096))
+        sealed = response[32:32 + 656]
+        self.assertEqual(sealed[:8], b'HIAWAL01')
+        data = struct.pack('<Q', len(sealed)) + sealed
+        store = parent / 'store'
+        before = self.state(parent)
+        for generation in ('000000000000000', '000000000000000A', '../wal.data'):
+            self.run_native([*batch_args, generation], data, expected=64)
+        self.assertEqual(self.state(parent), before)
+
+        args = [*batch_args, '0000000000000001']
+        receipt = self.run_native(args, data)
+        updated = self.state(parent)
+        self.assertEqual(receipt[-128:], updated['anchor.0000000000000002'])
+        self.assertEqual(updated['wal.data'], before['wal.data'] + sealed)
+        self.refused_batch(args, data)
+        self.assertEqual(self.state(parent), updated)
+
+        values = (None, 'hia_artifact', 'first-cost-after-migration', '1', 'completed', '{}')
+        insert = command(1, 27, 1, text_bindings(b'HIAINS01', values, insert_table=2))
+        native = self.run_native([self.executable, parent, 'store', self.module_root], insert + command(2, 2))
+        self.assertEqual(self.replies(native, (27, 2)), ([], 1))
+        new_transaction = (store / 'wal.data').read_bytes()[len(updated['wal.data']):]
+        _, begin_size = struct.unpack_from('<8sQ', new_transaction)
+        magic, _, _, kind, table, key_size = struct.unpack_from('<8s5Q', new_transaction, begin_size)
+        self.assertEqual((magic, kind, table, key_size), (b'HIAWAL01', 2, 5, 32))
+        self.assertEqual(struct.unpack_from('<8s2Qq', new_transaction, begin_size + 64),
+                         (b'HIARID01', 1, 5, high_water + 1))
 
     def refused_batch(self, args, data):
         result = subprocess.run(args, input=data, capture_output=True, env={'PATH': ''},
@@ -179,6 +217,7 @@ def main():
     for option in ('executable', 'module-root', 'initializer', 'test-root'):
         parser.add_argument('--' + option, type=Path, required=True)
     parser.add_argument('--batch', type=Path)
+    parser.add_argument('--cost-sequence', type=Path)
     for key, value in vars(parser.parse_args()).items():
         setattr(NativeStoreArgv, key, value.resolve() if value is not None else None)
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(NativeStoreArgv)

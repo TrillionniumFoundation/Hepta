@@ -14,15 +14,23 @@
 .equ MAPSIZE,352256
 .equ IO_MAGIC,0x314f494446414948
 .equ PROPOSAL_LIMIT,1000000032
+.equ SEALED_TRANSACTION_LIMIT,1000000000
+.equ DIRECT_ANCHOR_NAME,SCRATCH+720
+.equ DIRECT_SEALED,SCRATCH+768
 .equ OPEN_STORE_READ,0xa0800   /* CLOEXEC | NOFOLLOW | NONBLOCK */
 .equ OPEN_STORE_WRITE,0xa0802
 
 _start:
+ xor r14d,r14d
  xor r15d,r15d
  cmp QWORD PTR [rsp],1
  je allocate
  cmp QWORD PTR [rsp],2
+ je read_directory_arg
+ cmp QWORD PTR [rsp],3
  jne early_bad
+ mov r14,[rsp+24]
+read_directory_arg:
  mov r15,[rsp+16]
 allocate:
  xor edi,edi
@@ -59,6 +67,8 @@ prepare_anchor_policy:
  mov eax,39
  syscall
  mov [rbp+136],rax
+ cmp BYTE PTR [rbp+DIRECT_SEALED],0
+ jne direct_sealed_policy
  /* Cache original anchor and kernel UID/PID, never a client callback. */
  lea rsi,[rbp]
  lea rdi,[rbp+SCRATCH+512]
@@ -81,6 +91,10 @@ probe_unused_transaction_role:
  je probe_unused_transaction_role
  mov [rbp+32],rax
  mov r12d,40
+ jmp policy_loop
+
+direct_sealed_policy:
+ mov r12d,144
 
 policy_loop:
  mov rdi,rbp
@@ -595,9 +609,37 @@ staged_transaction_ready:
 
 private_transaction_memfd_name: .asciz "hia-native-owned-transaction"
 
-/* Direct input is a single length-prefixed proposal and EOF. Fd 8 reserves
- * the gap so the stager can allocate fd 9 exactly as in descriptor mode. */
+/* Direct input is one length-prefixed proposal or sealed-record sequence.
+ * Fd 8 reserves the gap so the stager can allocate fd 9 in proposal mode. */
 direct_stage:
+ lea rsi,[rip+initial_anchor_name]
+ test r14,r14
+ jz direct_check_capabilities
+ /* Accept a generation, not an arbitrary name in the destination. */
+ mov BYTE PTR [rbp+DIRECT_SEALED],1
+ mov rax,0x002e726f68636e61    /* "anchor.\0" */
+ mov [rbp+DIRECT_ANCHOR_NAME],rax
+ lea rsi,[rbp+DIRECT_ANCHOR_NAME]
+ xor r8d,r8d
+direct_generation_digit:
+ movzx eax,BYTE PTR [r14+r8]
+ cmp al,'0'
+ jb bad_exit
+ cmp al,'9'
+ jbe direct_store_digit
+ cmp al,'a'
+ jb bad_exit
+ cmp al,'f'
+ ja bad_exit
+direct_store_digit:
+ mov [rsi+r8+7],al
+ inc r8d
+ cmp r8d,16
+ jb direct_generation_digit
+ cmp BYTE PTR [r14+16],0
+ jne bad_exit
+direct_check_capabilities:
+ mov r14,rsi
  mov r12d,3
 direct_check_role:
  mov edi,r12d
@@ -632,7 +674,7 @@ direct_path_end:
  mov edx,OPEN_STORE_WRITE
  mov r12d,3
  call open_direct_store_file
- lea rsi,[rip+initial_anchor_name]
+ mov rsi,r14
  mov edx,OPEN_STORE_READ
  mov r12d,4
  call open_direct_store_file
@@ -656,9 +698,16 @@ direct_path_end:
  mov edx,8
  call read_stdin_exact
  mov r14,[rbp]
+ mov r12d,12
+ mov ecx,PROPOSAL_LIMIT
+ cmp BYTE PTR [rbp+DIRECT_SEALED],0
+ je direct_check_length
+ mov r12d,9
+ mov ecx,SEALED_TRANSACTION_LIMIT
+direct_check_length:
  cmp r14,32
  jb bad_exit
- cmp r14,PROPOSAL_LIMIT
+ cmp r14,rcx
  ja bad_exit
 direct_create_proposal:
  lea rdi,[rip+direct_proposal_name]
@@ -669,7 +718,6 @@ direct_create_proposal:
  je direct_create_proposal
  test rax,rax
  js io_exit
- mov r12d,12
  call position_direct_fd
 direct_read_chunk:
  mov r13d,65536
@@ -680,7 +728,7 @@ direct_read_chunk:
  call read_stdin_exact
  xor ebx,ebx
 direct_write_chunk:
- mov edi,12
+ mov edi,r12d
  lea rsi,[rbp+rbx]
  mov rdx,r13
  sub rdx,rbx
@@ -697,7 +745,7 @@ direct_write_chunk:
  jnz direct_read_chunk
  call require_stdin_eof
 direct_chmod_proposal:
- mov edi,12
+ mov edi,r12d
  mov esi,256
  mov eax,91
  syscall
@@ -706,7 +754,7 @@ direct_chmod_proposal:
  test rax,rax
  js io_exit
 direct_seal_proposal:
- mov edi,12
+ mov edi,r12d
  mov esi,1033
  mov edx,15
  mov eax,72
