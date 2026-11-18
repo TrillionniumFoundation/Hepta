@@ -224,7 +224,10 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/installer"
           python -B -m tools.build_hia_release_install --kind directory --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/packager"
-          install -m 0500 "$RUNNER_TEMP/agent-store/hia-agent-store" \
+          python -B -m tools.build_hia_core_admission_cli --suite --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-suite"
+          install -m 0500 "$RUNNER_TEMP/core-suite/hia-core" \
+            "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
             "$RUNNER_TEMP/agent-sealed-commit/hia-agent-sealed-commit" \
@@ -243,6 +246,14 @@ jobs:
           done
           installed="$package/installed/$digest"
           test "$(stat -c '%a' "$installed")" = 500
+          core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
+          env -i PATH= "$installed/hia-core" verify < "$core_fixture"
+          for action in normalize inspect; do
+            python -B -c 'from hepta.cli import hia_main; raise SystemExit(hia_main())' \
+              "$action" "$core_fixture" > "$package/core-$action-expected.json"
+            env -i PATH= "$installed/hia-core" "$action" < "$core_fixture" > "$package/core-$action.json"
+            cmp "$package/core-$action-expected.json" "$package/core-$action.json"
+          done
           python -B -m tests.test_hia_agent_artifact_capture_runtime \
             --executable "$installed/hia-agent-artifact-capture" --test-root "$package" \
             --manifest "$RUNNER_TEMP/agent-artifact-capture/build.json"
