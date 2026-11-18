@@ -351,3 +351,33 @@ custody words. The caller, not the type resolver, owns continuation
 sequencing. Invalid frames still fail before dispatch. Without the
 explicit private request magic, the existing JSON-descriptor ABI is
 unchanged.
+
+## Standalone nominal constructor
+
+`hia-nominal-constructor` binds the type owner, constructor owner and stream
+renderer, and bidirectional codec from the same cold-built source tree. It
+does not spawn a child process. The constructor can now issue each of its
+five existing dependent type commands as a typed packet without host object
+materialization. `HIACCQ01` plus the pending sequence and kind requests that
+packet; `HIACCP01` returns the same sequence, kind and packet length followed
+by four zero words and the packet. Emission is one-shot along with the
+existing token stream path. Wrong sequence, replay and insufficient output
+capacity cannot change the pending constructor stage.
+
+The standalone command takes no arguments. Stdin is a 64-byte header
+(`HIACSX01`, decimal digit limit, legacy bit, raw JSON byte length, four
+zero words), the exact bytes and EOF. Stdout starts with `HIACSF01`, the
+constructor and type error codes, final stage, interface profile, number of
+completed dependent requests, input length and version one. The remainder is
+the complete original `HIACTK01` token stream; source references denote offsets
+in the exact immutable constructor packet for the original JSON. The
+regular callback API still materializes its original objects and diagnostics.
+
+Exit 0 completes initialization and emits the final state. Exit 65 reports a
+semantic refusal and its completed state prefix, or the existing fixed codec
+refusal with no constructor state. Exit 64 means bad outer framing; 74 means
+an OS or internal transport failure. The explicit private command does not
+perform function lowering, outer-module assembly or primitive Core verification
+and does not replace public `hia verify`. It uses the raw codec envelope;
+public Core depth/diagnostic ordering remains independently qualified before
+any future switch.

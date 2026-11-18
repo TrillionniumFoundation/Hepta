@@ -1,0 +1,78 @@
+"""Build the native nominal constructor and type session from one cold source tree."""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+
+from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.build_hia_nominal_json import admit_compile_receipt
+from tools.build_hia_sqlite_migrate import embed
+from tools.build_hia_sqlite_pager import ROOT, assemble, digest, link, verify_executable, write_new
+from tools.qualify_hia_selfhost import compile_stage
+
+
+ADAPTER = 'tools/hia_nominal_constructor.S'
+DRIVER = 'tools/build_hia_nominal_constructor.py'
+COMPONENTS = {
+    'nominal-json': 'examples/hia_bootstrap/nominal_json.hepta',
+    'owner': 'examples/hia_bootstrap/composite_constructor_owner.hepta',
+    'render': 'examples/hia_bootstrap/composite_constructor_render.hepta',
+    'types': 'examples/hia_bootstrap/composite_types.hepta',
+    'linker': 'examples/hia_bootstrap/elf_static_linker.hepta',
+}
+
+
+def build(output: Path, compiler: Path, cold: Path) -> Path:
+    compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
+    admitted = admit_cold_build(compiler_body, cold_body)
+    inputs = {name: (ROOT / name).read_bytes() for name in (*COMPONENTS.values(), ADAPTER, DRIVER)}
+    if any(admitted.get(name) != digest(raw) for name, raw in inputs.items()):
+        raise ValueError('constructor source differs from admitted cold build')
+
+    output.mkdir(mode=0o700)
+    images, checks = {}, {}
+    for label, filename in COMPONENTS.items():
+        path, receipt = compile_stage(output, label, compiler, inputs[filename])
+        body = path.read_bytes()
+        admit_compile_receipt(receipt, compiler_bytes=compiler_body,
+                              source_bytes=inputs[filename], image_bytes=body)
+        images[label], checks[path] = body, body
+    transport = assemble(output, ADAPTER, inputs[ADAPTER])
+    types = embed(output, 'types_image', 'constructor-types', images['types'])
+    checks[output / 'constructor-types.embedded.elf'] = images['types']
+    binary, link_receipt = link(output, images['linker'], images['owner'], (transport, types),
+                                wire_magic=b'HIALNK01')
+    for label in ('nominal-json', 'render', 'types'):
+        verify_executable(binary, images[label])
+    if (current_sources() != admitted or compiler.read_bytes() != compiler_body
+            or cold.read_bytes() != cold_body
+            or any((ROOT / path).read_bytes() != raw for path, raw in inputs.items())
+            or any(path.read_bytes() != raw for path, raw in checks.items())):
+        raise ValueError('constructor inputs or images changed during build')
+
+    executable = output / 'hia-nominal-constructor'
+    with executable.open('xb') as stream:
+        stream.write(binary)
+        os.fchmod(stream.fileno(), 0o500)
+    report = {'schema': 'hepta.hia.nominal-constructor-build.v1',
+              'executable_sha256': digest(binary), 'executable_bytes': len(binary),
+              'compiler_sha256': digest(compiler_body), 'cold_report_sha256': digest(cold_body),
+              'source_sha256': {name: digest(raw) for name, raw in inputs.items()},
+              'image_sha256': {name: digest(raw) for name, raw in images.items()},
+              'link_receipt': link_receipt, 'whole_nominal_elaboration': False}
+    write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
+    return executable
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ('output', 'compiler', 'cold-report'):
+        parser.add_argument('--' + name, required=True, type=Path)
+    args = parser.parse_args()
+    print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()))
+
+
+if __name__ == '__main__':
+    main()

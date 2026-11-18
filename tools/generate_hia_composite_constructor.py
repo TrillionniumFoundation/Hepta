@@ -23,6 +23,12 @@ CONSTANTS = {**GENERIC,
     'STATE_MAGIC': int.from_bytes(b'HIACTS01', 'little'),
     'CTOR_MAGIC': int.from_bytes(b'HIACTR01', 'little'),
     'RESPONSE_MAGIC': int.from_bytes(b'HIACTP01', 'little'),
+    'COMMAND_REQUEST': int.from_bytes(b'HIACCQ01', 'little'),
+    'COMMAND_REPLY': int.from_bytes(b'HIACCP01', 'little'),
+    'COMMAND_CAPACITY': (32 << 20) + 64,
+    'COMMAND_CURSOR': 4096 + 384,
+    'COMMAND_LIMIT': 4096 + 392,
+    'COMMAND_FAILED': 4096 + 400,
     'TYPE_MAGIC': int.from_bytes(b'HIATYS01', 'little'),
     'TYPE_BYTES': 128 << 20, 'TS': 96 << 20, 'TYPES': (96 << 20) + 65536,
     **{'K_' + value: 1 << i for i, value in enumerate(KEYS)},
@@ -53,6 +59,8 @@ def constructor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return ABI
     if length(o) < 64 or get(w, S + 96) != 0:
         return fatal(w)
+    if length(s) == 24 and word(s, 0) == COMMAND_REQUEST:
+        return pack_command(s, o, w)
     if length(s) >= 64 and word(s, 0) == RESPONSE_MAGIC:
         if get(w, S) != STATE_MAGIC or get(w, S + 128) == 0 or get(w, S + 48) != 1:
             return fatal(w)
@@ -85,6 +93,241 @@ def constructor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, S + 144, g_at(w, SOURCE_BASE, 0))
     put(w, S + 152, byte(w, legacy + 16))
     return ctor_frame(o, w, begin_constructor(w))
+def pack_command(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    sequence = word(s, 8)
+    service = word(s, 16)
+    if get(w, S) != STATE_MAGIC or get(w, S + 48) != 0:
+        return ABI
+    if sequence == 0 or sequence != get(w, S + 88) or service != get(w, S + 128):
+        return ABI
+    if service < 1 or service > 5:
+        return ABI
+    limit = length(o)
+    if limit > COMMAND_CAPACITY:
+        limit = COMMAND_CAPACITY
+    put(w, COMMAND_CURSOR, 64)
+    put(w, COMMAND_LIMIT, limit)
+    put(w, COMMAND_FAILED, 0)
+    command = get(w, S + 32)
+    if service == 1:
+        pack_init(o, w, command)
+    elif service == 2:
+        pack_unary(o, w, command, service)
+    elif service == 3:
+        pack_unary(o, w, command, service)
+    elif service == 4:
+        pack_origins(o, w, command)
+    else:
+        pack_task(o, w, command)
+    if get(w, COMMAND_FAILED) != 0:
+        return ABI
+    extent = get(w, COMMAND_CURSOR)
+    put(o, 0, COMMAND_REPLY)
+    put(o, 8, sequence)
+    put(o, 16, service)
+    put(o, 24, extent - 64)
+    put(o, 32, 0)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    # A packed request completes the same one-shot emission as the existing
+    # token stream. Resolving an earlier or already emitted request is invalid.
+    put(w, S + 48, 1)
+    return extent
+
+def pack_reserve(w:mutbuf, length:u64) -> u64:
+    at = get(w, COMMAND_CURSOR)
+    if length > get(w, COMMAND_LIMIT) - at:
+        put(w, COMMAND_FAILED, 1)
+        return N
+    put(w, COMMAND_CURSOR, at + length)
+    return at
+
+def pack_open(o:mutbuf, w:mutbuf, kind:u64, count:u64) -> u64:
+    at = pack_reserve(w, 24)
+    if at != N:
+        put(o, at, kind)
+        put(o, at + 8, 0)
+        put(o, at + 16, count)
+    return at
+
+def pack_close(o:mutbuf, w:mutbuf, at:u64) -> u64:
+    if at != N:
+        put(o, at + 8, get(w, COMMAND_CURSOR) - at - 16)
+    return 0
+
+def pack_text(o:mutbuf, w:mutbuf, size:u64, a:u64, b:u64, c:u64) -> u64:
+    at = pack_reserve(w, size + 16)
+    if at == N:
+        return 0
+    put(o, at, 4)
+    put(o, at + 8, size)
+    index = 0
+    while index < size:
+        word = a
+        shift = index * 8
+        if index >= 16:
+            word = c
+            shift = (index - 16) * 8
+        elif index >= 8:
+            word = b
+            shift = (index - 8) * 8
+        store(o, at + 16 + index, (word >> shift) & 255)
+        index = index + 1
+    return 0
+
+def pack_original(o:mutbuf, w:mutbuf, address:u64) -> u64:
+    first = get(w, S + 24)
+    stop = first + get(w, S + 16)
+    if address < first or address > stop or stop - address < 16:
+        put(w, COMMAND_FAILED, 1)
+        return 0
+    last = g_end(w, address)
+    if last < address + 16 or last > stop:
+        put(w, COMMAND_FAILED, 1)
+        return 0
+    size = last - address
+    at = pack_reserve(w, size)
+    if at == N:
+        return 0
+    index = 0
+    while index < size:
+        store(o, at + index, byte(w, address + index))
+        index = index + 1
+    return 0
+
+def pack_reference(o:mutbuf, w:mutbuf, node:u64) -> u64:
+    return pack_original(o, w, SOURCE_BASE + get(w, node + 8))
+
+def pack_boolean(o:mutbuf, w:mutbuf, node:u64) -> u64:
+    at = pack_reserve(w, 17)
+    if at != N:
+        put(o, at, 1)
+        put(o, at + 8, 1)
+        store(o, at + 16, get(w, node + 8))
+    return 0
+
+def pack_identifier(o:mutbuf, w:mutbuf, node:u64) -> u64:
+    value = get(w, node + 8)
+    if value == 0 or value > 144:
+        put(w, COMMAND_FAILED, 1)
+        return 0
+    digits = 1
+    if value >= 10:
+        digits = 2
+    if value >= 100:
+        digits = 3
+    at = pack_reserve(w, 16 + digits)
+    if at == N:
+        return 0
+    put(o, at, 2)
+    put(o, at + 8, digits)
+    cursor = at + 16
+    if digits == 3:
+        store(o, cursor, 49)
+        cursor = cursor + 1
+        value = value - 100
+    if digits >= 2:
+        tens = 0
+        while value >= 10:
+            value = value - 10
+            tens = tens + 1
+        store(o, cursor, 48 + tens)
+        cursor = cursor + 1
+    store(o, cursor, 48 + value)
+    return 0
+
+def ir_item(w:mutbuf, list:u64, index:u64) -> u64:
+    # Constructor command/signature lists contain only appended item segments.
+    segment = get(w, list + 8)
+    while index != 0:
+        segment = get(w, segment)
+        index = index - 1
+    return get(w, segment + 16)
+
+def pack_init(o:mutbuf, w:mutbuf, command:u64) -> u64:
+    root = pack_open(o, w, 6, 4)
+    pack_text(o, w, T_op)
+    pack_text(o, w, T_init)
+    pack_text(o, w, T_definitions)
+    pack_reference(o, w, ir_item(w, command, 1))
+    pack_text(o, w, T_recursive_chain)
+    pack_boolean(o, w, ir_item(w, command, 2))
+    pack_text(o, w, T_partial_records)
+    pack_boolean(o, w, ir_item(w, command, 3))
+    return pack_close(o, w, root)
+
+def pack_unary(o:mutbuf, w:mutbuf, command:u64, service:u64) -> u64:
+    root = pack_open(o, w, 6, 2)
+    pack_text(o, w, T_op)
+    if service == 2:
+        pack_text(o, w, T_parameters)
+        pack_text(o, w, T_params)
+    else:
+        pack_text(o, w, T_resolve)
+        pack_text(o, w, T_ref)
+    pack_reference(o, w, ir_item(w, command, 1))
+    return pack_close(o, w, root)
+
+def pack_parameters(o:mutbuf, w:mutbuf, list:u64, include_names:bool) -> u64:
+    root = pack_open(o, w, 5, get(w, list + 24))
+    segment = get(w, list + 8)
+    while segment != 0:
+        item = get(w, segment + 16)
+        if include_names:
+            pair = pack_open(o, w, 5, 2)
+            pack_reference(o, w, ir_item(w, item, 0))
+            pack_identifier(o, w, ir_item(w, item, 1))
+            pack_close(o, w, pair)
+        else:
+            pack_identifier(o, w, ir_item(w, item, 1))
+        segment = get(w, segment)
+    return pack_close(o, w, root)
+
+def pack_returns(o:mutbuf, w:mutbuf, list:u64) -> u64:
+    root = pack_open(o, w, 5, get(w, list + 24))
+    segment = get(w, list + 8)
+    while segment != 0:
+        pack_identifier(o, w, get(w, segment + 16))
+        segment = get(w, segment)
+    return pack_close(o, w, root)
+
+def pack_origins(o:mutbuf, w:mutbuf, command:u64) -> u64:
+    function = SOURCE_BASE + get(w, ir_item(w, command, 1) + 8)
+    annotation = g_field(w, function, K_return_loans)
+    root = pack_open(o, w, 6, choose(annotation == N, 3, 4))
+    pack_text(o, w, T_op)
+    pack_text(o, w, T_origins)
+    pack_text(o, w, T_params)
+    pack_parameters(o, w, ir_item(w, command, 2), True)
+    pack_text(o, w, T_returns)
+    pack_returns(o, w, ir_item(w, command, 3))
+    if annotation != N:
+        pack_text(o, w, T_return_loans)
+        pack_original(o, w, annotation)
+    return pack_close(o, w, root)
+
+def pack_task(o:mutbuf, w:mutbuf, command:u64) -> u64:
+    root = pack_open(o, w, 6, 3)
+    pack_text(o, w, T_op)
+    pack_text(o, w, T_task_protocol)
+    pack_text(o, w, T_task)
+    pack_identifier(o, w, ir_item(w, command, 1))
+    pack_text(o, w, T_functions)
+    registry = ir_item(w, command, 2)
+    functions = pack_open(o, w, 5, get(w, registry + 24))
+    segment = get(w, registry + 8)
+    while segment != 0:
+        item = get(w, segment + 16)
+        row = pack_open(o, w, 5, 3)
+        pack_reference(o, w, ir_item(w, item, 0))
+        pack_parameters(o, w, ir_item(w, item, 1), False)
+        pack_returns(o, w, ir_item(w, item, 2))
+        pack_close(o, w, row)
+        segment = get(w, segment)
+    pack_close(o, w, functions)
+    return pack_close(o, w, root)
+
 
 def ctor_frame(o:mutbuf, w:mutbuf, action:u64) -> u32:
     if get(w, S + 96) != 0:
@@ -508,6 +751,10 @@ def source_program(kernel):
             node.args = args
             return node
 
+    literals.update({'T_' + text: packed(text) for text in (
+        'op', 'init', 'definitions', 'recursive_chain', 'partial_records',
+        'parameters', 'params', 'resolve', 'ref', 'origins', 'returns',
+        'return_loans', 'task_protocol', 'task', 'functions')})
     tree = ast.fix_missing_locations(Expand().visit(ast.parse(body + '\n' + COMMON)))
     names = {node.name: node for node in tree.body}
     reachable = {tree.body[0].name}

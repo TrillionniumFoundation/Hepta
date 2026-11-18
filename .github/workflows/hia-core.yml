@@ -262,6 +262,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/public-selfhost"
           python -B -m tools.build_hia_nominal_json --standalone --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-packet"
+          python -B -m tools.build_hia_nominal_constructor --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-constructor"
           source_roles=(selfhost.hepta source_build_policy.hepta source_build_packer.hepta)
           install -m 0500 "$package/installer/hia-release" \
             "$package/packager/hia-directory-package-build" \
@@ -284,6 +286,7 @@ jobs:
             "$RUNNER_TEMP/sqlite-publisher/hia-sqlite-migration-publish" \
             "$RUNNER_TEMP/sqlite-migrate/hia-sqlite-migrate" \
             "$RUNNER_TEMP/nominal-packet/hia-nominal-packet" \
+            "$RUNNER_TEMP/nominal-constructor/hia-nominal-constructor" \
             "$RUNNER_TEMP"/sqlite-components/hia-sqlite-* "$package/stage"
           install -m 0400 "$RUNNER_TEMP"/agent-store/module-root/module-*.bin "$package/stage"
           for role in "${source_roles[@]}"; do
@@ -521,6 +524,8 @@ jobs:
             --executable "$installed/hia-sqlite-pager" \
             --component-root "$installed" --test-root "$package" --migration-publisher
           python -B -m tests.test_hia_nominal_packet_runtime "$installed/hia-nominal-packet"
+          python -B -m tests.test_hia_nominal_constructor_runtime "$installed/hia-nominal-constructor" \
+            --oracle-images "$RUNNER_TEMP/nominal-constructor"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - name: Native artifact read-page and ordinary Agent callers
