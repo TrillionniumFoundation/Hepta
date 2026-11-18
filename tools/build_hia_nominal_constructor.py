@@ -10,14 +10,18 @@ from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_json import admit_compile_receipt
 from tools.build_hia_sqlite_migrate import embed
 from tools.build_hia_sqlite_pager import (
-    LINK_OUTPUT, ROOT, assemble, digest, link, verify_executable, write_new,
+    ROOT, assemble, digest, link, verify_executable, write_new,
 )
 from tools.qualify_hia_selfhost import compile_stage
 
 
 ADAPTER = 'tools/hia_nominal_constructor.S'
 PUBLICATION_ADAPTER = 'tools/hia_core_edit_publish_program.S'
+ASSEMBLY_ADAPTER = 'tools/hia_core_edit_publish_assembly.S'
 DRIVER = 'tools/build_hia_nominal_constructor.py'
+# The ordinary CLI keeps its selected image at 1 MiB and starts its
+# independent input/output scratch at 7.5 MiB.
+ORDINARY_CLI_IMAGE_CAPACITY = 13 << 19
 COMPONENTS = {
     'nominal-json': 'examples/hia_bootstrap/nominal_json.hepta',
     'owner': 'examples/hia_bootstrap/composite_constructor_owner.hepta',
@@ -37,6 +41,9 @@ COMPONENTS = {
     'publish-frontend': 'examples/hia_bootstrap/core_edit/publication_frontend.hepta',
     'publish-program': 'examples/hia_bootstrap/core_edit/publication_program.hepta',
     'publish-policy': 'examples/hia_bootstrap/core_edit/publication_policy.hepta',
+    'assembly-core': 'examples/hia_bootstrap/core_edit/admission_word_io.hepta',
+    'assembly-roundtrip': 'examples/hia_bootstrap/core_edit/publication_render.hepta',
+    'assembly-publication': 'examples/hia_bootstrap/core_edit/publication_assembly.hepta',
     'linker': 'examples/hia_bootstrap/elf_static_linker.hepta',
 }
 
@@ -45,7 +52,7 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
     compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
     admitted = admit_cold_build(compiler_body, cold_body)
     inputs = {name: (ROOT / name).read_bytes()
-              for name in (*COMPONENTS.values(), ADAPTER, PUBLICATION_ADAPTER, DRIVER)}
+              for name in (*COMPONENTS.values(), ADAPTER, PUBLICATION_ADAPTER, ASSEMBLY_ADAPTER, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in inputs.items()):
         raise ValueError('constructor source differs from admitted cold build')
 
@@ -60,7 +67,9 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
     transport = assemble(output, ADAPTER, inputs[ADAPTER])
     publisher = assemble(output, PUBLICATION_ADAPTER,
                          b'.set HIA_VERIFIED_PUBLISH,1\n' + inputs[PUBLICATION_ADAPTER])
-    objects = [transport, publisher]
+    assembly = assemble(output, ASSEMBLY_ADAPTER,
+                        b'.set HIA_CONSTRUCTOR_ASSEMBLY,1\n' + inputs[ASSEMBLY_ADAPTER])
+    objects = [transport, publisher, assembly]
     embedded = {'types': 'types_image', 'admit': 'function_admit',
                 'records': 'function_records', 'terms': 'function_terms',
                 'advanced': 'function_advanced', 'function-render': 'function_render',
@@ -68,13 +77,15 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
                 'outer-render': 'outer_render', 'public-core': 'public_core',
                 'public-canonical': 'public_canonical', 'public-presentation': 'public_presentation',
                 'publish-frontend': 'publish_frontend', 'publish-program': 'publish_program',
-                'publish-policy': 'publish_policy'}
+                'publish-policy': 'publish_policy', 'assembly-core': 'assembly_core',
+                'assembly-roundtrip': 'assembly_roundtrip',
+                'assembly-publication': 'assembly_publication'}
     for role, label in embedded.items():
         stem = 'constructor-' + role
         objects.append(embed(output, label, stem, images[role]))
         checks[output / (stem + '.embedded.elf')] = images[role]
     binary, link_receipt = link(output, images['linker'], images['owner'], objects,
-                                wire_magic=b'HIALNK01', executable_limit=LINK_OUTPUT)
+                                wire_magic=b'HIALNK01', executable_limit=ORDINARY_CLI_IMAGE_CAPACITY)
     for label in ('nominal-json', 'render', *embedded):
         verify_executable(binary, images[label])
     if (current_sources() != admitted or compiler.read_bytes() != compiler_body

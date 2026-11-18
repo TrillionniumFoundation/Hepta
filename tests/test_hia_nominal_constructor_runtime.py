@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import redirect_stdout
 from copy import deepcopy
 from hashlib import sha256
+from io import StringIO
 import json
 from pathlib import Path
 import struct
@@ -408,6 +410,52 @@ def check_ordinary(executable, run):
     print(f'{count * 3} byte-exact ordinary reports on {count} structured sources '
           f'({nominal} nominal), and three no-payload post-lowering refusals')
     check_publication(executable, programs, raw)
+    check_render_assembly(executable, programs, raw)
+
+
+def check_render_assembly(executable, programs, rejected):
+    from hepta.cli import _reference_hia_main
+
+    def reference(source, *options):
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            status = _reference_hia_main(['render-assembly', str(source), *map(str, options)])
+        return status, stdout.getvalue().encode('utf-8'), b''
+
+    def render(source, *options):
+        result = subprocess.run([executable, 'render-assembly', source, *options],
+                                env={'PATH': ''}, capture_output=True, timeout=20, check=False)
+        return result.returncode, result.stdout, result.stderr
+
+    profile_refusals = 0
+    rendered = 0
+    with TemporaryDirectory(prefix='hia-nominal-assembly-') as temporary:
+        root = Path(temporary)
+        for index, (source, _program) in enumerate(programs):
+            expected = reference(source)
+            assert render(source) == expected, source
+            output = root / 'native' / str(index) / 'rendered.hepta'
+            if expected[0] == 2:
+                assert b'E_HIA_ASSEMBLY_PROFILE:' in expected[1]
+                assert render(source, '-o', output) == expected
+                assert not output.parent.exists()
+                profile_refusals += 1
+            else:
+                reference_path = root / 'reference' / str(index) / 'rendered.hepta'
+                status, stdout, stderr = reference(source, '-o', reference_path)
+                report = json.loads(stdout)
+                report['output'] = str(output)
+                assert render(source, '-o', output) == (status, pretty(report), stderr), source
+                assert output.read_bytes() == reference_path.read_bytes() == expected[1]
+                rendered += 1
+        broken = root / 'unverified.hepta'
+        broken.write_bytes(rejected)
+        forbidden = root / 'forbidden' / 'must-not-exist.hepta'
+        refused = render(broken, '-o', forbidden)
+        assert refused == (2, b'', b'') and not forbidden.parent.exists()
+    assert profile_refusals >= 5 and rendered >= 5, (profile_refusals, rendered)
+    print(f'{profile_refusals} byte-exact profile refusals and {rendered} rendered/published '
+          'primitive assemblies; unverified nominal input has no profile report or publication')
 
 
 def check_publication(executable, programs, rejected):

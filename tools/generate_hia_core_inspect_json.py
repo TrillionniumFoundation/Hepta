@@ -31,8 +31,8 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if decoded_size >= 4294967292:
         return decoded_size
     if NOMINAL:
-        if mode == SCHEMA_MODE:
-            return composite_schema(w)
+        if mode == SCHEMA_MODE or mode == ASSEMBLY_SCHEMA_MODE:
+            return composite_schema(w, mode == ASSEMBLY_SCHEMA_MODE)
         if mode == NORMALIZED_MODE:
             if decoded_size + 9280 > length(w):
                 return 4294967293
@@ -454,6 +454,7 @@ def source_program(*, nominal=False, compact=False, entry=''):
     constants = {
         'NONE': (1 << 64) - 1, 'REPORT_MODE': CORE_REPORT_MODE,
         'SCHEMA_MODE': int.from_bytes(b'HIAOSC01', 'little'),
+        'ASSEMBLY_SCHEMA_MODE': int.from_bytes(b'HIAOSC02', 'little'),
         'NORMALIZED_MODE': int.from_bytes(b'HIAONJ01', 'little'),
         'NOMINAL_HASH': int.from_bytes(b'HIAONH01', 'little'),
         'NOMINAL_CONTEXT': int.from_bytes(b'HIAONC01', 'little'),
@@ -476,7 +477,7 @@ def source_program(*, nominal=False, compact=False, entry=''):
             for version, value in enumerate(values, 1):
                 profile += f'    if version == {version}:\n        lit(o, w, {chr(34) + value + chr(34)!r})\n'
             profile += '    return 0\n'
-        profile += '''def composite_schema(w:mutbuf) -> u32:
+        profile += '''def composite_schema(w:mutbuf, assembly:bool) -> u32:
     schema = field(w, 0, K_schema)
     if schema == NONE or kind(w, schema) != 4:
         return 0
@@ -487,6 +488,10 @@ def source_program(*, nominal=False, compact=False, entry=''):
         for version, schema in enumerate(COMPOSITE_PROFILES, 1):
             profile += '    if same(w, start, size, ' + ', '.join(map(str, packed(schema))) + ') == 1:\n'
             profile += f'        return {version}\n'
+        profile += '    if assembly:\n'
+        for schema in list(PRIMITIVE_PROFILES)[:5]:
+            profile += '        if same(w, start, size, ' + ', '.join(map(str, packed(schema))) + ') == 1:\n'
+            profile += '            return 5\n'
         profile += '    return 0\n'
 
     class Expand(ast.NodeTransformer):

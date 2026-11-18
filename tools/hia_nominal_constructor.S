@@ -73,6 +73,8 @@
 .equ PRESENTATION_NORMALIZED, 0x31304a4e4f414948
 .equ PRESENTATION_VERIFY, 0x3154505243414948
 .equ PRESENTATION_SCHEMA, 0x313043534f414948
+.equ PRESENTATION_ASSEMBLY_SCHEMA, 0x323043534f414948
+.equ RENDER_ASSEMBLY, 11
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
 .macro region bytes, slot
@@ -100,6 +102,10 @@ _start:
  call argument_equal
  test eax,eax
  jnz stdin_publish
+ lea rsi,[rip+stdio_render]
+ call argument_equal
+ test eax,eax
+ jnz stdin_render
  cmp QWORD PTR [rsp+8],1
  jne malformed
  lea rsi,[rip+stdio_verify]
@@ -1123,6 +1129,14 @@ stdin_publish:
  mov rax,[rsp+24]
  mov [rip+publication_path],rax
  mov edi,10
+ jmp stdin_begin
+stdin_render:
+ cmp QWORD PTR [rsp+8],2
+ jne render_from_stdin
+ mov rax,[rsp+24]
+ mov [rip+publication_path],rax
+render_from_stdin:
+ mov edi,RENDER_ASSEMBLY
 stdin_begin:
  mov [rip+handoff_role],rdi
  mov QWORD PTR [rip+request+8],4300
@@ -1161,11 +1175,21 @@ classify_stdin:
  mov r8,[rip+public_core_arena]
  mov r9d,PUBLIC_CORE_ARENA
  mov rax,PRESENTATION_SCHEMA
+ mov r10,PRESENTATION_ASSEMBLY_SCHEMA
+ cmp QWORD PTR [rip+handoff_role],RENDER_ASSEMBLY
+ cmove rax,r10
  mov [r8+PUBLIC_CORE_ARENA-8],rax
  call public_presentation_start
  mov edi,1
  cmp eax,0xfffffffc
  jae verified_refusal
+ cmp eax,5
+ jne classify_nominal
+ cmp QWORD PTR [rip+handoff_role],RENDER_ASSEMBLY
+ jne io_failure
+ mov QWORD PTR [rip+legacy_assembly_profile],1
+ jmp verify_primitive_stdin
+classify_nominal:
  cmp eax,4
  ja io_failure
  test eax,eax
@@ -1186,12 +1210,23 @@ verify_primitive_stdin:
  mov edi,3
  test eax,eax
  jne verified_refusal
+ cmp QWORD PTR [rip+handoff_role],RENDER_ASSEMBLY
+ je render_primitive_assembly
  mov r15,[rip+original_extent]
  mov rax,[rip+original_canonical]
  mov [rip+type_output],rax
  cmp QWORD PTR [rip+handoff_role],6
  je write_admitted_bytes
  jmp present_public
+
+render_primitive_assembly:
+ cmp QWORD PTR [rip+legacy_assembly_profile],0
+ jne assembly_profile_refused
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,[rip+publication_path]
+ sub rsp,8
+ jmp nominal_render_assembly
 
 canonical_original:
  sub rsp,8
@@ -1299,6 +1334,8 @@ write_admitted_bytes:
  jmp exit
 
 present_public:
+ cmp QWORD PTR [rip+handoff_role],RENDER_ASSEMBLY
+ je assembly_profile_refused
  mov [rip+verified_core_extent],r15
  mov rdi,[rip+public_core_arena]
  mov esi,PUBLIC_CORE_ARENA
@@ -1363,6 +1400,14 @@ present_core:
  mov edi,1
  call write_exact
  xor edi,edi
+ jmp exit
+
+assembly_profile_refused:
+ lea rsi,[rip+assembly_profile_report]
+ mov edx,assembly_profile_report_end-assembly_profile_report
+ mov edi,1
+ call write_exact
+ mov edi,2
  jmp exit
 
 publish_canonical:
@@ -1659,6 +1704,12 @@ stdio_inspect: .asciz "hia-inspect-core-json"
 stdio_normalize: .asciz "hia-normalize-core"
 stdio_agent_admit: .asciz "hia-admit-agent-json"
 stdio_publish: .asciz "hia-publish-program"
+stdio_render: .asciz "hia-render-assembly"
+assembly_profile_report:
+ .ascii "{\n  \"diagnostics\": [\n    {\n      \"code\": \"E_DRIVER\",\n"
+ .ascii "      \"message\": \"E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8 Core; use the existing adapter first\",\n"
+ .ascii "      \"phase\": \"driver\"\n    }\n  ],\n  \"ok\": false,\n  \"status\": \"error\"\n}\n"
+assembly_profile_report_end:
 .balign 16
 owner: .incbin "owner.image.bin"
 .balign 16
@@ -1697,6 +1748,7 @@ objects: .skip 8
 object_cursor: .skip 8
 outer_control: .skip 144
 input_profile: .skip 8
+legacy_assembly_profile: .skip 8
 original_canonical: .skip 8
 original_extent: .skip 8
 compact_core_extent: .skip 8

@@ -487,3 +487,12 @@ frame can supply allegedly verified bytes. The result distinguishes the
 original source SHA-256 from the verified Core SHA-256, and uses the same
 nofollow and no-overwrite publication policy. Other build/edit commands
 and the host CLI/API are not changed by this route.
+
+Ordinary `render-assembly` uses the same verified classification. Valid
+nominal documents and primitive v1–v5 produce the exact public unsupported
+profile diagnostic before any output-path effects. Nominal lowering alone
+cannot trigger that diagnostic: the resulting Core must pass independent
+admission. Primitive v6–v8 use the existing HIA renderer and round-trip
+check before writing assembly bytes or publishing a new file. The direct
+Core helpers remain available; the installed dispatcher does not invoke
+the former unstructured renderer for this command.

@@ -1,6 +1,5 @@
 .intel_syntax noprefix
 .text
-.global _start
 .equ RAW_N,8388608
 .equ SOURCE_N,41943040
 .equ CORE_N,67108864
@@ -21,6 +20,32 @@
 .equ CORE_AT,100683776
 .equ TOTAL_N,167792640
 .equ S,8192
+.ifdef HIA_CONSTRUCTOR_ASSEMBLY
+.global nominal_render_assembly
+/* This entry receives the same immutable source that the constructor checked.
+   The existing rendering and round-trip checks still own the output. */
+nominal_render_assembly:
+ mov r13,rdi
+ mov r14,rsi
+ mov r12,rdx
+ mov esi,16384
+ call allocate
+ mov rbp,rax
+ mov [rbp+864],r13
+ mov [rbp+872],r14
+ mov [rbp+880],r12
+ lea rax,[rip+assembly_core_start]
+ mov [rbp+328],rax
+ lea rax,[rip+publish_frontend_start]
+ mov [rbp+320],rax
+ lea rax,[rip+assembly_roundtrip_start]
+ mov [rbp+336],rax
+ lea rax,[rip+assembly_publication_start]
+ mov [rbp+344],rax
+ test r12,r12
+ jz allocate_source
+.else
+.global _start
 _start:
  cmp QWORD PTR [rsp],2
  jne usage
@@ -40,6 +65,7 @@ owner_address_hole: .long 0
  .byte 0x48,0x8d,0x05
 publication_address_hole: .long 0
  mov [rbp+344],rax
+.endif
  mov esi,270336
  call allocate
  mov [rbp],rax
@@ -113,11 +139,22 @@ cwd_ready:
  mov rdi,[rbp+32]
  mov esi,1048576
  call release
+allocate_source:
  mov r14,rbp
  mov esi,TOTAL_N
  call allocate
  mov r12,rax
  lea rbp,[r12+SCRATCH_AT]
+.ifdef HIA_CONSTRUCTOR_ASSEMBLY
+ mov rcx,[r14+872]
+ cmp rcx,INPUT_N
+ ja capacity
+ mov [rbp+S],rcx
+ mov rdi,r12
+ mov rsi,[r14+864]
+ cld
+ rep movsb
+.else
 read_input:
  xor edi,edi
  mov rax,[rbp+S]
@@ -137,6 +174,7 @@ read_input:
  cmp QWORD PTR [rbp+S],INPUT_N
  ja capacity
  jmp read_input
+.endif
 input_complete:
  mov rdi,r12
  mov esi,INPUT_EXTENT
@@ -312,6 +350,19 @@ finish:
  jnz io_failure
  test r13,r13
  jnz render_status
+.ifdef HIA_CONSTRUCTOR_ASSEMBLY
+ cmp QWORD PTR [r14+880],0
+ jne select_publication
+ lea rax,[r12+ASM_AT]
+ mov [r14+112],rax
+ mov rax,[rbp+192]
+ mov [r14+120],rax
+ mov rbp,r14
+ call write_report
+ xor edi,edi
+ jmp exit
+select_publication:
+.endif
  lea rax,[r12+C1_AT]
  mov [r14+64],rax
  mov rax,[rbp+160]
