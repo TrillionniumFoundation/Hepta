@@ -50,6 +50,26 @@ def _child_setup(parent_pid, memory_bytes, cpu_seconds):
     resource.setrlimit(resource.RLIMIT_FSIZE, (8 * 1024 * 1024, 8 * 1024 * 1024))
 
 
+def _cancel_runner(proc, *, has_reference_child):
+    if has_reference_child:
+        # Let the coordinator reap its observer before it exits. Killing both
+        # at once can orphan a zombie inside the owned process group.
+        proc.terminate()
+        try:
+            return proc.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    return proc.communicate(timeout=5)
+
+
+def _end_reference_runner(_signal, _frame):
+    raise SystemExit(124)
+
+
 def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions=1,
                      timeout_ms=30000, memory_bytes=256 * 1024 * 1024, _mode="native",
                      foreign_buffer_exports=(), capture_buffers=False):
@@ -73,6 +93,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             ('reference_executable', 'reference_standalone_calls', pinned_reference_executable()),
             ('owned_reference_executable', 'owned_reference_standalone_calls', pinned_owned_reference_executable()),
         )
+    has_reference_child = any(executable is not None for _, _, executable in executables)
     with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
           ExitStack() as custody):
         artifact = Path(directory) / "program.so"
@@ -121,17 +142,9 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             stdout, stderr = proc.communicate(payload, timeout=timeout_ms / 1000)
         except subprocess.TimeoutExpired:
             timed_out = True
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            stdout, stderr = proc.communicate(timeout=5)
+            stdout, stderr = _cancel_runner(proc, has_reference_child=has_reference_child)
         except BaseException:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            proc.communicate(timeout=5)
+            _cancel_runner(proc, has_reference_child=has_reference_child)
             raise
         # A direct Core image has no fork/exec operation. Still require the
         # owned process group to be absent before claiming terminal completion.
@@ -235,6 +248,8 @@ def main():
     if sha256(data).hexdigest() != request["artifact_sha256"]:
         return 3
     if request.get("mode") == "reference":
+        if "reference_executable" in request or "owned_reference_executable" in request:
+            signal.signal(signal.SIGTERM, _end_reference_runner)
         from .hia_agent_service import _vm_observation
         from .hia_program import verify_program
         from .hia_program_tools import decode_json

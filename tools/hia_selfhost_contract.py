@@ -118,7 +118,6 @@ NATIVE_LINKER_SDIST_FILES = (
     'tools/generate_hia_shared_linker.py',
 )
 SCALAR_REFERENCE_SDIST_FILES = (
-    'examples/hia_bootstrap/owned_reference.hepta',
     'examples/hia_bootstrap/owned_reference_cli_packer.hepta',
     'tools/build_hia_owned_reference_cli.py',
     'tools/generate_hia_owned_reference.py',
@@ -829,6 +828,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/agent_identity.hepta',
     'examples/hia_bootstrap/elf_shared_linker.hepta',
     'examples/hia_bootstrap/scalar_reference.hepta',
+    'examples/hia_bootstrap/owned_reference.hepta',
     'examples/hia_bootstrap/scalar_symbolic.hepta',
     'setup.py',
     'tests/test_hia_agent_identity_native.py',

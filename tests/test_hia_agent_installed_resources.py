@@ -27,6 +27,7 @@ SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',
                      'tools/build_hia_nominal_constructor.py',
                      'tools/hia_nominal_constructor.S')
 BUNDLED_SOURCE_BINDINGS={
+    'owned_reference':('hepta.hia_scalar_reference_native','owned'),
     'cli_control':('hepta.hia_cli_native','control'),
     'cli_format':('hepta.hia_cli_native','format'),
     'composite_function_admit':('hepta.hia_composite_functions_native','admit'),

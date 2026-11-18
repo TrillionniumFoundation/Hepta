@@ -7,6 +7,7 @@ from contextvars import ContextVar
 import ctypes
 from hashlib import sha256
 import os
+import signal
 import struct
 import subprocess
 
@@ -15,6 +16,7 @@ from .hia_json_preflight_native import (
 )
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/scalar_reference.hepta')
+SOURCES = {'owned': _source_resource_path('examples/hia_bootstrap/owned_reference.hepta')}
 SCHEMA = 'hepta.hia.scalar-reference-native.v1'
 SELECTOR = 'HEPTA_HIA_SCALAR_REFERENCE_MANIFEST'
 MAGIC = int.from_bytes(b'HIASCP01', 'little')
@@ -76,15 +78,28 @@ class _StandaloneReference:
         self.allow_space = allow_space
 
     def run(self, wire):
-        child = subprocess.run(['/proc/self/fd/' + str(self.fd)], input=wire,
-                               capture_output=True, env={'PATH': ''}, pass_fds=(self.fd,))
-        if self.allow_space and child.returncode == 3 and not child.stdout and not child.stderr:
+        # Install custody before accepting cancellation between fork and exec.
+        previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM})
+        try:
+            proc = subprocess.Popen(['/proc/self/fd/' + str(self.fd)], env={'PATH': ''}, pass_fds=(self.fd,),
+                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except BaseException:
+            signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+            raise
+        with proc:
+            try:
+                signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+                stdout, stderr = proc.communicate(wire)
+            except BaseException:
+                proc.kill()
+                raise
+        if self.allow_space and proc.returncode == 3 and not stdout and not stderr:
             self.calls += 1
             return None
-        if child.returncode or child.stderr:
+        if proc.returncode or stderr:
             raise RuntimeError('standalone HIA reference did not return a complete machine reply')
         self.calls += 1
-        return child.stdout
+        return stdout
 
 
 class NativeScalarReference(NativeHiaJsonImage):
@@ -269,7 +284,7 @@ class NativeScalarReference(NativeHiaJsonImage):
         return result - (1 << 64) if typ.startswith('i') and result >> 63 else result
 
     def program(self, canonical, function, arguments, max_steps, max_call_depth, *, machine=None):
-        from .hia_opcodes import RESOURCES
+        from .hia_opcodes import OWNERS, RESOURCES
         from .hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
         from .hia_scalar_reference_wire import (
             MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
@@ -285,18 +300,15 @@ class NativeScalarReference(NativeHiaJsonImage):
         kinds = ([param['type'] for param in machine.functions[function]['params']]
                  if machine is not None else ())
         owned = _OWNED.get()
-        if (resource_sites and machine is not None and owned is not None
-                and not any(kind in RESOURCES for kind in (*kinds, *returns))
-                and len(body) + 8 * len(arguments) + 16 <= MAX_PACKET_BYTES):
+        if (machine is not None and owned is not None
+                and (resource_sites or any(kind in RESOURCES for kind in kinds))
+                and not any(kind in OWNERS for kind in kinds)
+                and not any(kind in RESOURCES for kind in returns)):
             header = struct.pack('<8Q', RESOURCE_PROGRAM_MAGIC, max_steps, max_call_depth,
                                  registers, bounce, len(body), len(arguments), len(returns))
-            failure = machine.allocation_fail_at or 0
-            if failure > max_steps:
-                failure = 0
-            suffix = struct.pack(f'<{len(arguments) + 2}Q',
-                                 *(int(arg or 0) & WORD_MASK for arg in arguments),
-                                 machine.max_heap_bytes, failure)
-            return self._owned_result(owned.run(header + body[64:] + suffix), machine, returns)
+            suffix, external = self._owned_arguments(kinds, arguments, machine)
+            if len(body) + len(suffix) <= MAX_PACKET_BYTES:
+                return self._owned_result(owned.run(header + body[64:] + suffix), machine, returns, external)
         resources = (_ReferenceResources(machine)
                      if resource_sites or any(kind in RESOURCES for kind in kinds) else None)
         magic = RESOURCE_PROGRAM_MAGIC if resource_sites else PROGRAM_MAGIC
@@ -364,13 +376,41 @@ class NativeScalarReference(NativeHiaJsonImage):
             previous = machine.steps
         return self._program_result(output, size, status, steps, typ, returns)
 
-    def _owned_result(self, output, machine, returns):
+    @staticmethod
+    def _owned_arguments(kinds, arguments, machine):
+        from .hia_program_runtime import HIAProgramRejected, _Owner, _View
+
+        words, records, external = [], [], []
+        for index, (kind, value) in enumerate(zip(kinds, arguments)):
+            if kind not in ('readbuf', 'mutbuf'):
+                words.append(int(value or 0) & WORD_MASK)
+                continue
+            mutable = kind == 'mutbuf'
+            if (type(value) is not _View or type(value.parent) is not _Owner
+                    or value.parent.ident >= 0 or not value.parent.active
+                    or not value.active or value.mutable is not mutable):
+                raise HIAProgramRejected('invalid external runtime view', 'E_HIA_RUNTIME_INVARIANT')
+            words.append(0)
+            records.extend((index, int(mutable), len(value.parent.data)))
+            external.append((value.parent.data, mutable))
+        if len({id(data) for data, _ in external}) != len(external):
+            raise HIAProgramRejected('non-distinct external runtime views', 'E_HIA_RUNTIME_INVARIANT')
+        failure = machine.allocation_fail_at or 0
+        if failure > machine.max_steps:
+            failure = 0
+        head = struct.pack(f'<{len(words) + 2}Q', *words, machine.max_heap_bytes, failure)
+        if external:
+            head += struct.pack(f'<{len(records) + 1}Q', len(external), *records)
+            head = b''.join([head, *(data for data, _ in external)])
+        return head, external
+
+    def _owned_result(self, output, machine, returns, external):
         from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap
         from .hia_scalar_reference_wire import PROGRAM_RESULT, RESOURCE_NAMES
 
         if output is None:
             return 0, None, HIAProgramBudgetExceeded('host_memory', 'cannot allocate private HIA resource workspace')
-        size = len(output) - 112
+        size = len(output) - 112 - sum(len(data) for data, _ in external)
         if size < 32:
             raise RuntimeError('truncated standalone HIA owned reference result')
         identity, status, steps, detail = struct.unpack_from('<4Q', output)
@@ -403,6 +443,16 @@ class NativeScalarReference(NativeHiaJsonImage):
          machine.chains_created, machine.chains_consumed, machine.chain_nodes_created,
          machine.chain_nodes_dropped, machine.native_chain_count) = struct.unpack_from('<14Q', output, size)
         machine.native_owner_count = machine.owner_count - machine.drops
+        offset = size + 112
+        snapshot = memoryview(output)
+        for data, mutable in external:
+            extent = len(data)
+            result = snapshot[offset:offset + extent]
+            if mutable:
+                data[:] = result
+            elif data != result:
+                raise RuntimeError('standalone HIA changed a read-only external buffer')
+            offset += extent
         return outcome
 
     def _program_result(self, output, size, status, steps, typ, returns):

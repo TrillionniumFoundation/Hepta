@@ -193,6 +193,9 @@ def comparison(op:u64, a:u64, b:u64, negative_a:u64, negative_b:u64) -> u64:
     return 0
 
 def reference_program(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    return reference_program_with_args(s, o, w, 0)
+
+def reference_program_with_args(s:readbuf, o:mutbuf, w:mutbuf, preloaded:u64) -> u32:
     if length(s) < 72 or length(s) > @MAX_PACKET_BYTES@:
         return 4294967295
     if uint(s, 8, 8) == 0 or uint(s, 8, 8) > 10000000:
@@ -222,10 +225,11 @@ def reference_program(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 24, stride)
         put(w, 32, registers * 8)
         put(w, 40, 0)
-        i = 0
-        while i < arg_count:
-            put(w, 64 + i * 8, uint(s, arguments + i * 8, 8))
-            i = i + 1
+        if preloaded == 0:
+            i = 0
+            while i < arg_count:
+                put(w, 64 + i * 8, uint(s, arguments + i * 8, 8))
+                i = i + 1
     else:
         if get(w, 16) != depth or get(w, 24) != stride or get(w, 32) != registers * 8:
             return 4294967295
@@ -700,16 +704,19 @@ def attach_storage(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
     return allocate_storage(backing, w, uint(s, 8, 8), uint(s, 16, 8))
 
 def allocate_storage(backing:mutbuf, w:mutbuf, amount:u64, maximum:u64) -> u32:
+    return allocate_storage_after_prefix(backing, w, amount, maximum, 0)
+
+def allocate_storage_after_prefix(backing:mutbuf, w:mutbuf, amount:u64, maximum:u64, prefix:u64) -> u32:
     capacity = length(backing)
     live = get(w, 64)
     end = get(w, 96)
     if maximum > 1073741824 or live > maximum or amount == 0 or amount > maximum - live:
         return 4294967295
-    if capacity > maximum or end > capacity or live > end:
+    if prefix > capacity or capacity - prefix > maximum or end < prefix or end > capacity or live > end - prefix:
         return 4294967295
     required = live + amount
-    if required > capacity:
-        put(w, 104, required)
+    if required > capacity - prefix:
+        put(w, 104, prefix + required)
         return 2
     token = claim_owner(w, amount)
     if token == 0:
@@ -726,10 +733,7 @@ def allocate_storage(backing:mutbuf, w:mutbuf, amount:u64, maximum:u64) -> u32:
     put(w, slot + 40, tail)
     put(w, 88, slot)
     put(w, 96, end + amount)
-    i = 0
-    while i < amount:
-        store(backing, end + i, 0)
-        i = i + 1
+    fill_range(backing, end, amount, 0)
     put(w, 104, token >> 1)
     return 0
 
@@ -994,7 +998,7 @@ def restore_loan(w:mutbuf, first:u64, second:u64, permission:u64, root:u64, slot
     origin = loan_slot(w, second)
     if slot == 0 or origin == 0 or loan_root(w, second) != root:
         return 0
-    if permission == 1 and get(w, origin + 16) != 1:
+    if permission == 1 and (get(w, origin + 16) & 1) != 1:
         return 1
     if first == second:
         restored = loan_allocate(w, first, permission)
@@ -1095,6 +1099,13 @@ class ReferenceBuilder(LinkerBuilder):
     def expr(self, value):
         if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.Not):
             return self.op('bool.not', [self.expr(value.operand)], 'bool')
+        if isinstance(value, ast.Call) and value.func.id == 'copy_range':
+            dest, source, *extent = (self.expr(arg) for arg in value.args)
+            return self.op('buffer.copy_range', [dest, source, *(self.cast(word, 'usize') for word in extent)])
+        if isinstance(value, ast.Call) and value.func.id == 'borrow_read':
+            return self.op('borrow.read', [self.expr(value.args[0])], 'readbuf')
+        if isinstance(value, ast.Call) and value.func.id == 'loan_end':
+            return self.op('loan.end', [self.expr(value.args[0])])
         return super().expr(value)
 
 

@@ -329,9 +329,12 @@ class ScalarReferenceNativeTests(unittest.TestCase):
 
     def test_standalone_owned_reference_preserves_grown_state_chains_and_returned_loans(self):
         from hepta.hia_agent_runner import run_reference_batch
+        from hepta.hia_agent_buffers import reference_observation
         from hepta.hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
         from hepta.hia_scalar_reference_native import child_owned_reference, sealed_reference_bytes
-        from tests.test_hia_program import b, c, f, i, m, resource_program, ret
+        from hepta.hia_schema import SCHEMA_V8
+        from tests.test_hia_program import b, c, f, i, jump, m, resource_program, ret
+        from tests.test_hia_agent_buffer_lifecycle import trap_program
         from tests.test_hia_returned_chain_loans import chain_program
         from tests.test_hia_returned_loans import loan_program
         from tools.build_hia_owned_reference_cli import assemble
@@ -390,6 +393,42 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertEqual(actual['report']['observations'], baseline['report']['observations'])
         self.assertEqual(actual['report']['owned_reference_executable_sha256'], digest)
         self.assertEqual(actual['report']['owned_reference_standalone_calls'], len(cases))
+
+        params = [('src', 'readbuf'), ('out', 'mutbuf')]
+        bridge = m(f('bridge', params, ['u32'], ['alloc', 'read', 'write', 'trap'], [
+            b('entry', params, [c('n', 'usize', 3), c('ok', 'u32', 0),
+                i('buffer.new', ['n'], [('heap', 'buffer')]),
+                i('borrow.mut', ['heap'], [('writer', 'mutbuf')]),
+                i('buffer.copy', ['writer', 'src', 'n']), i('loan.end', ['writer']),
+                i('borrow.read', ['heap'], [('reader', 'readbuf')]),
+                i('buffer.copy', ['out', 'reader', 'n']), i('loan.end', ['reader']),
+                i('owner.drop', ['heap'])], ret('ok'))]))
+        bridge['schema'] = SCHEMA_V8
+        for source, name, arguments in ((bridge, 'bridge', [{'bytes_hex': '0123ff'}, {'bytes_hex': '60616263'}]),
+                                        (trap_program(), 'write_then_trap', [{'bytes_hex': '010203'}])):
+            case = {'function': name, 'arguments': arguments}
+            exports = ((name, 65536),)
+            baseline = reference_observation(source, case, exports, steps=10_000_000, heap=1 << 24)
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  sealed_reference_bytes(binary) as fd,
+                  child_owned_reference({'fd': os.dup(fd), 'sha256': digest}) as selected,
+                  patch.object(_ReferenceResources, '__init__', side_effect=AssertionError('host resource adapter'))):
+                actual = reference_observation(source, case, exports, steps=10_000_000, heap=1 << 24)
+            self.assertEqual(actual, baseline)
+            self.assertEqual(selected.calls, 1)
+
+        slow = trap_program()
+        blocks = slow['functions'][0]['blocks']
+        blocks[0]['term'] = jump('repeat')
+        blocks.append(b('repeat', [], [], jump('repeat')))
+        exports = (('write_then_trap', 65536),)
+        args = [{'function': 'write_then_trap', 'arguments': [{'bytes_hex': '00'}]}]
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch('hepta.hia_native_helpers.pinned_owned_reference_executable', return_value=(binary, digest))):
+            aborted = run_reference_batch(verify_program(slow), args, timeout_ms=600, memory_bytes=64 << 20,
+                                          foreign_buffer_exports=exports)
+        self.assertEqual(aborted['status'], 'budget_exceeded', aborted)
+        self.assertTrue(aborted['termination_confirmed'])
 
     def test_symbolic_recipes_preserve_solver_operations_and_actual_checker_routes(self):
         import z3

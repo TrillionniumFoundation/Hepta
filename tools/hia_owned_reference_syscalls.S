@@ -100,8 +100,8 @@ write_output:
     xor edi,edi
     jmp finish
 grow_state:
-    /* This program has no external capability. Discarding all private state
-     * and replaying the same immutable request is observationally exact. */
+    /* Caller bytes are private snapshots, not external capabilities. Replay
+     * restores the exact input snapshots and does not publish a partial run. */
     mov r14d,eax
     mov r15,[rsp+PLAN+r14*8]
     shl r14,4
