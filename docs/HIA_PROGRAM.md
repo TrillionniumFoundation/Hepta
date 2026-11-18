@@ -61,6 +61,14 @@ bind exact source, compiler and image identities. A trusted native image is not
 a sandbox. OS descriptor, memory mapping, allocator, kernel and hardware
 conditions remain external requirements.
 
+The Linux x86-64 reference interpreter can select a source-bound
+`scalar-reference` image using `HEPTA_HIA_SCALAR_REFERENCE_MANIFEST` or a
+pinned Agent helper bundle. The selected HIA image evaluates scalar arithmetic,
+branches, calls, returns and step/call limits for bounded scalar-only Core.
+Programs that use resource instructions still use the hosted reference
+controller, with selected HIA scalar operations where applicable. The
+independent interpreter does not run or trust the candidate machine code.
+
 The native `hia-native` stdio application implements `capabilities`, `verify`,
 `compile`, `render-assembly`, `assemble`, `check-assembly` and `catalog`.
 Build-time `flat`, `elf` and `exec` profile selection is

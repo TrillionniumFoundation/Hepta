@@ -153,3 +153,39 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertEqual(selected['status'], 'returned', selected)
         self.assertEqual(selected['report']['reference_evaluator_sha256'], self.native.image_sha256)
         self.assertEqual(selected['report']['observations'], unselected['report']['observations'])
+
+    def test_native_scalar_control_preserves_parallel_edges_returns_and_budgets(self):
+        from hepta.hia_program_runtime import HIAProgramBudgetExceeded
+        from tests.test_hia_program import b, f, i, m, ret
+        from tests.test_hia_program_native import scalar_document
+
+        arithmetic = scalar_document()
+        argument = [('x', 'i32')]
+        recursive = m(f('again', argument, ['i32'], [], [b('entry', argument, [
+            i('call', ['x'], [('y', 'i32')], function='again')], ret('y'))]))
+        returns = ['i32', 'bool']
+        results = m(f('pair', argument, returns, [], [b('entry', argument, [
+            i('compare.eq', ['x', 'x'], [('same', 'bool')])], ret('x', 'same'))]),
+            f('pairs', argument, returns, [], [b('entry', argument, [
+                i('call', ['x'], [('value', 'i32'), ('same', 'bool')], function='pair')],
+                ret('value', 'same'))]))
+        cases = [(arithmetic, 'edge_swap', [13, 27, count], {}) for count in range(15)]
+        cases += [(arithmetic, 'edge_swap', [13, 27, 14], {'max_steps': ticks})
+                  for ticks in (1, 2, 8, 30, 132)]
+        cases += [(arithmetic, 'explicit_trap', [], {}), (results, 'pairs', [-7], {})]
+        cases += [(recursive, 'again', [5], {'max_call_depth': depth})
+                  for depth in (1, 5, 127, 256)]
+
+        def observe(cases):
+            terminal = []
+            for program, entry, arguments, limits in cases:
+                try:
+                    terminal.append(execute_program(program, entry, arguments, **limits))
+                except (HIAProgramBudgetExceeded, HIAProgramTrap) as error:
+                    terminal.append(error.report)
+            return terminal
+
+        expected = observe(cases)
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
+            self.assertEqual(observe(cases), expected)

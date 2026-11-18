@@ -45,7 +45,6 @@ class NativeScalarReference(NativeHiaJsonImage):
             os.close(fd)
 
     def operation(self, opcode, typ, arguments):
-        from .hia_program_runtime import HIAProgramTrap
         from .hia_program import WIDTHS
 
         signed = typ.startswith('i')
@@ -65,19 +64,76 @@ class NativeScalarReference(NativeHiaJsonImage):
         identity, error, result = struct.unpack('<3Q', output.raw)
         if size != 24 or identity != RESULT or error > 4 or error and result:
             raise RuntimeError('invalid HIA scalar reference result')
-        if error == 1:
-            raise HIAProgramTrap('overflow', f'result is outside {typ}')
-        if error == 2:
-            raise HIAProgramTrap('division_by_zero', 'integer divisor is zero')
-        if error == 3:
-            raise HIAProgramTrap('overflow', 'signed minimum divided by minus one')
-        if error == 4:
-            raise HIAProgramTrap('overflow', 'shift count is outside the word width')
-        if boolean:
+        if error:
+            raise self._arithmetic_error(error, typ)
+        return self._value(typ, result)
+
+    @staticmethod
+    def _arithmetic_error(error, typ):
+        from .hia_program_runtime import HIAProgramTrap
+
+        code, message = (
+            ('overflow', f'result is outside {typ}'),
+            ('division_by_zero', 'integer divisor is zero'),
+            ('overflow', 'signed minimum divided by minus one'),
+            ('overflow', 'shift count is outside the word width'),
+        )[error - 1]
+        return HIAProgramTrap(code, message)
+
+    @staticmethod
+    def _value(typ, result):
+        if typ == 'unit':
+            if result:
+                raise RuntimeError('invalid HIA scalar reference unit')
+            return None
+        if typ == 'bool':
             if result > 1:
                 raise RuntimeError('invalid HIA scalar reference boolean')
             return bool(result)
-        return result - (1 << 64) if signed and result >> 63 else result
+        return result - (1 << 64) if typ.startswith('i') and result >> 63 else result
+
+    def program(self, canonical, function, arguments, max_steps, max_call_depth):
+        from .hia_program import scalar_value_valid
+        from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap
+        from .hia_scalar_reference_wire import (
+            MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, TRAPS, TYPES, program_wire,
+        )
+
+        compiled = program_wire(canonical, function)
+        if compiled is None:
+            return None
+        body, registers, bounce, returns = compiled
+        if len(body) + 8*len(arguments) > MAX_PACKET_BYTES:
+            return None
+        header = struct.pack('<8Q', PROGRAM_MAGIC, max_steps, max_call_depth,
+                             registers, bounce, len(body), len(arguments), len(returns))
+        words = struct.pack(f'<{len(arguments)}Q', *(int(arg or 0) & WORD_MASK for arg in arguments))
+        wire = header + body[64:] + words
+        source = ctypes.create_string_buffer(wire)
+        output = ctypes.create_string_buffer(32 + 8*len(returns))
+        workspace = ctypes.create_string_buffer(64 + (registers + bounce + 1)*8*max_call_depth)
+        size = self._entry(source, len(wire), output, len(output), workspace, len(workspace))
+        identity, status, steps, typ = struct.unpack_from('<4Q', output.raw)
+        if (identity != PROGRAM_RESULT or not 0 <= status <= 11 or steps > max_steps + 1
+                or size != (32 if status else len(output))):
+            raise RuntimeError('invalid HIA scalar Core reference terminal')
+        if status == 0:
+            values = struct.unpack_from(f'<{len(returns)}Q', output.raw, 32)
+            decoded = [self._value(kind, value) for kind, value in zip(returns, values)]
+            if any(not scalar_value_valid(value, kind) for kind, value in zip(returns, decoded)):
+                raise RuntimeError('invalid HIA scalar Core reference value')
+            return steps, decoded, None
+        if 1 <= status <= 4:
+            if typ >= len(TYPES):
+                raise RuntimeError('invalid HIA scalar Core reference trap type')
+            error = self._arithmetic_error(status, TYPES[typ])
+        elif status == 5:
+            error = HIAProgramBudgetExceeded('steps', 'finite step limit reached')
+        elif status == 6:
+            error = HIAProgramBudgetExceeded('calls', 'finite call-depth limit reached')
+        else:
+            error = HIAProgramTrap(TRAPS[status - 7], 'explicit core trap')
+        return steps, None, error
 
 
 def selected_scalar_reference():

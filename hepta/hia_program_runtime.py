@@ -596,7 +596,15 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
     if any(not scalar_value_valid(a, p["type"]) for p, a in zip(fn["params"], arguments)):
         raise HIAProgramRejected("entry arguments are not exactly typed machine values", "E_HIA_INPUT")
     try:
-        values = machine.invoke(fn, arguments)
+        result = (None if machine.scalar_reference is None else
+                  machine.scalar_reference.program(checked.canonical_bytes, function,
+                                                   arguments, max_steps, max_call_depth))
+        if result is None:
+            values = machine.invoke(fn, arguments)
+        else:
+            machine.steps, values, error = result
+            if error is not None:
+                raise error
     except HIAProgramTrap as exc:
         exc.report = report("trapped", error=exc)
         raise
