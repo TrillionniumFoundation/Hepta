@@ -4,6 +4,8 @@
  * PAGE bytes for129 or the HIA-admitted retained span for134.
  * fd3: inherited held directory. fd4: mandatory
  * lossless audit pipe, drained by the custodian. argv[1]: DB basename.
+ * Direct argv mode accepts a directory and the basename; stderr is the
+ * lossless audit pipe and the adapter adopts both fixed roles itself.
  *
  * HIA is the only source of file/lock/map/retry/page-source requests.
  * This file only frames IPC, owns allocations, calls two fixed entries,
@@ -30,7 +32,43 @@
 _start:
  mov r15,rsp
  cmp QWORD PTR [r15],2
+ je driver_map
+ cmp QWORD PTR [r15],3
  jne driver_usage
+ /* Never replace either caller-owned descriptor in direct argv mode. */
+ mov edi,3
+ mov esi,1                    /* F_GETFD */
+ mov eax,72
+ syscall
+ cmp rax,-9
+ jne driver_usage
+ mov edi,4
+ mov esi,1
+ mov eax,72
+ syscall
+ cmp rax,-9
+ jne driver_usage
+ mov edi,2
+ mov esi,4
+ mov edx,0x80000             /* O_CLOEXEC */
+ mov eax,292                 /* dup3 */
+ syscall
+ test rax,rax
+ js driver_io_exit
+driver_open_parent:
+ mov edi,-100
+ mov rsi,[r15+16]
+ mov edx,0xb0000             /* O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC */
+ xor r10d,r10d
+ mov eax,257                 /* openat */
+ syscall
+ cmp rax,-4
+ je driver_open_parent
+ test rax,rax
+ js driver_io_exit
+ cmp rax,3                   /* slots 0-2 are stdio; 3 was confirmed free */
+ jne driver_usage
+driver_map:
  xor edi,edi
  mov esi,MAPSIZE
  mov edx,3
@@ -76,6 +114,10 @@ _start:
  jne driver_usage
  /* One Linux NAME_MAX-compatible basename; derived suffix names are exact. */
  mov rsi,[r15+16]
+ cmp QWORD PTR [r15],2
+ je basename_start
+ mov rsi,[r15+24]
+basename_start:
  xor ecx,ecx
 basename_next:
  cmp ecx,252

@@ -245,9 +245,15 @@ python -B -m tools.build_hia_sqlite_pager \
 The hosted build uses the cold HIA compiler, a fixed three-file assembler
 adapter, and the HIA ELF linker. The resulting `hia-sqlite-pager` is a Linux
 x86-64 executable with no interpreter, libc, child program, or host SQL engine.
-It takes one database basename and an inherited directory capability on fd 3.
-Its cmd/reply transport uses stdin/stdout and requires a drained lossless
-audit pipe on fd 4. There is no pathname fallback.
+The command/reply transport uses stdin/stdout. In direct mode, start it
+with a source directory and database basename, and continuously drain
+stderr as a binary audit pipe. The adapter opens the selected directory
+without following a symlink at its endpoint. SQLite files and locks are
+still opened only through the HIA Pager policy.
+
+The original one-argument mode takes a database basename and an inherited
+directory capability on fd 3 with the lossless audit pipe on fd 4.
+Neither mode opens a different source after an error.
 
 The retained operation is a separate copy from the ordinary page output.
 Client event 6 reads and retains the selected page, 7 reads a checked span of
