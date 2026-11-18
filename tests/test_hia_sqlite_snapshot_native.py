@@ -36,6 +36,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lookup = assemble_program((SOURCES / 'sqlite_rowid_lookup.hepta').read_bytes())
+        cls.walk = assemble_program((SOURCES / 'sqlite_table_walk.hepta').read_bytes())
         cls.record = assemble_program((SOURCES / 'sqlite_record_layout.hepta').read_bytes())
         cls.catalog = assemble_program((SOURCES / 'sqlite_agent_catalog.hepta').read_bytes())
         cls.row_import = assemble_program((SOURCES / 'sqlite_agent_row_import.hepta').read_bytes())
@@ -155,25 +156,81 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         status, schema = walk(1)
         self.assertEqual(status, 0)
         self.assertEqual(struct.unpack_from('<8s3Qq', schema), (b'HIABTW01', 13, 1, 1, 1))
-        todo = [self.root]
-        seen = set()
+        snapshot_key = (11, 22, 33)
+        scratch = bytearray(4096)
+        start = struct.pack('<8s6Q', b'HIASTW01', 1, *snapshot_key, len(pages), self.root)
+        status, step = run_vm(self.walk, start, 4096, len(scratch),
+                              scratch_initial=scratch, scratch_out=scratch)
+        self.assertEqual((status, struct.unpack_from('<8s3Q', step)),
+                         (0, (b'HIASWA01', 0, self.root, 0)))
+        page = self.root
         rowids = []
-        while todo:
-            page = todo.pop()
-            self.assertNotIn(page, seen)
-            seen.add(page)
+        for _ in pages:
             status, output = walk(page)
             self.assertEqual(status, 0)
             tag, kind, count, identity = struct.unpack_from('<8s3Q', output)
             self.assertEqual((tag, identity), (b'HIABTW01', page))
             end = 32 + count * 8
             self.assertEqual(output[end:], b'\xa7' * (len(output) - end))
-            if kind == 5:
-                todo.extend(reversed(struct.unpack_from(f'<{count}Q', output, 32)))
-            else:
-                self.assertEqual(kind, 13)
-                rowids.extend(struct.unpack_from(f'<{count}q', output, 32))
+            packet = struct.pack('<8s4Q', b'HIASTW01', 2, *snapshot_key) + output[:end]
+            status, step = run_vm(self.walk, packet, 4096, len(scratch),
+                                  scratch_initial=scratch, scratch_out=scratch)
+            tag, completed, next_page, rows = struct.unpack_from('<8s3Q', step)
+            self.assertEqual((status, tag, completed, rows),
+                             (0, b'HIASWA01', page, count if kind == 13 else 0))
+            rowids.extend(struct.unpack_from(f'<{rows}q', step, 32))
+            if next_page == 0:
+                break
+            page = next_page
+        else:
+            self.fail('native walk did not finish inside the snapshot page count')
         self.assertEqual(rowids, [self.key, *range(1, 65)])
+        self.assertEqual(run_vm(self.walk, packet, 32, len(scratch), scratch_initial=scratch),
+                         (1, b'\xa7' * 32))
+
+    def test_table_walk_refuses_wrong_snapshot_cycles_and_unordered_leaves(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_sqlite_table_walk import document, source_program
+        self.assertEqual((SOURCES / 'sqlite_table_walk.hepta').read_text(),
+                         render_assembly(document(source_program(), 'sqlite_table_walk')))
+
+        def run(packet, cap=64, state=None, extent=128):
+            if state is None:
+                state = bytes(extent)
+            next_state = bytearray()
+            status, output = run_vm(self.walk, packet, cap, len(state), scratch_initial=state,
+                                    scratch_out=next_state)
+            if status:
+                self.assertEqual(output, b'\xa7' * cap)
+            return status, output, next_state
+
+        def page(kind, number, values, snapshot=1):
+            return (struct.pack('<8s4Q8s3Q', b'HIASTW01', 2, snapshot, 2, 3,
+                                b'HIABTW01', kind, len(values), number)
+                    + b''.join(struct.pack('<q', value) for value in values))
+
+        start = struct.pack('<8s6Q', b'HIASTW01', 1, 1, 2, 3, 8, 1)
+        self.assertEqual(run(start, extent=89)[0], 3)
+        self.assertEqual(run(start, cap=31)[0], 2)
+        code, _, state = run(start)
+        self.assertEqual(code, 0)
+        for packet in (page(5, 1, [2, 4], snapshot=99), page(13, 2, [-1])):
+            code, _, new = run(packet,state=state)
+            self.assertEqual((code, new), (1, state))
+        for children in ([1], [2, 2], [9], []):
+            code, _, poisoned = run(page(5, 1, children), state=state)
+            self.assertEqual(code, 4)
+            self.assertEqual(run(page(13, 1, [2]), state=poisoned)[0], 1)
+        code, _, state = run(page(5, 1, [2, 4]), state=state)
+        self.assertEqual(code, 0)
+        code, _, read = run(page(13, 2, [-(1 << 63), 0, 5]), state=state)
+        self.assertEqual(code, 0)
+        self.assertEqual(run(page(13, 4, [5]), state=read)[0], 4)
+        code, _, unchanged = run(page(13, 4, [6]), state=read, cap=39)
+        self.assertEqual((code, unchanged), (2, read))
+        code, final, _ = run(page(13, 4, [6, (1 << 63)-1]), state=read)
+        self.assertEqual((code, struct.unpack_from('<8s3Q2q', final)),
+                         (0, (b'HIASWA01', 4, 0, 2, 6, (1 << 63)-1)))
 
     def test_sqlite_builds_require_matching_cold_compiler(self):
         with tempfile.TemporaryDirectory() as folder:

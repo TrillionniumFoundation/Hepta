@@ -20,6 +20,20 @@ COMPONENT_FRAME = struct.Struct('<8s3Q')
 NONCE = 983207517
 
 
+def read_exact(stream, size):
+    deadline = time.monotonic() + 3
+    result = bytearray()
+    while len(result) < size:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not select.select([stream], [], [], remaining)[0]:
+            raise TimeoutError('native reply did not arrive')
+        chunk = os.read(stream.fileno(), size - len(result))
+        if not chunk:
+            raise EOFError('native reply is incomplete')
+        result.extend(chunk)
+    return bytes(result)
+
+
 class NativePagerArgv(unittest.TestCase):
     executable = None
     test_root = None
@@ -215,17 +229,7 @@ class NativePagerArgv(unittest.TestCase):
 
     @staticmethod
     def take_reply(pager):
-        deadline = time.monotonic() + 3
-        result = bytearray()
-        while len(result) < 1152:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0 or not select.select([pager.stdout], [], [], remaining)[0]:
-                raise TimeoutError('native Pager reply did not arrive')
-            chunk = os.read(pager.stdout.fileno(), 1152 - len(result))
-            if not chunk:
-                raise EOFError('native Pager reply is incomplete')
-            result.extend(chunk)
-        return EVENT.unpack_from(result)
+        return EVENT.unpack_from(read_exact(pager.stdout, 1152))
 
     @staticmethod
     def run_pager(args, data=b''):
@@ -324,6 +328,99 @@ class NativeSQLiteComponents(unittest.TestCase):
         for refused in (first[:-1], first[:7], self.request(b'', 67108865, 16),
                         self.request(b'', 64, 17)):
             self.assertEqual(self.component('record-layout', first + refused, expected=64), normal)
+
+    def test_table_walk_paces_real_retained_page_reads(self):
+        if self.root is None or NativePagerArgv.executable is None:
+            self.skipTest('run with the installed native Pager and retained table walk')
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            folder = Path(temporary)
+            database = folder/'source.sqlite3'
+            expected = [-(1 << 63), *range(-32, 64), (1 << 63)-1]
+            with closing(sqlite3.connect(database)) as db:
+                db.execute('PRAGMA page_size=512')
+                self.assertEqual(db.execute('PRAGMA journal_mode=WAL').fetchone(), ('wal',))
+                db.execute('CREATE TABLE witness(data BLOB)')
+                db.executemany('INSERT INTO witness(rowid,data) VALUES (?,?)',
+                               ((key, bytes(171)) for key in expected))
+                db.commit()
+                root, = db.execute("SELECT rootpage FROM sqlite_schema WHERE name='witness'").fetchone()
+                self.assertEqual([key for key, in db.execute('SELECT rowid FROM witness ORDER BY rowid')], expected)
+            original = database.read_bytes()
+            profile = 35302 if sqlite3.sqlite_version_info[:2] == (3, 53) else 34600
+            with ThreadPoolExecutor(max_workers=1) as pool, subprocess.Popen(
+                    [NativePagerArgv.executable, folder, database.name],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={'PATH': ''},
+            ) as pager, subprocess.Popen(
+                    [self.root/'hia-sqlite-table-walk'],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={'PATH': ''},
+            ) as walk:
+                audit = pool.submit(pager.stderr.read)
+                try:
+                    def pager_step(operation, argument=0, mode=0):
+                        pager.stdin.write(NativePagerArgv.event(operation, argument, begin_mode=mode))
+                        pager.stdin.flush()
+                        state = read_exact(pager.stdout,1152)
+                        return EVENT.unpack_from(state), state[128+288:128+312]
+
+                    ready, identity = pager_step(1,profile,2)
+                    self.assertEqual(ready[3],128)
+                    page_size, page_count = ready[9:11]
+                    self.assertEqual(page_size,512)
+                    self.assertNotEqual(identity,bytes(24))
+
+                    def read_page(number):
+                        header, snapshot = pager_step(3,number)
+                        self.assertEqual((header[3], snapshot), (129, identity))
+                        return read_exact(pager.stdout,page_size)
+
+                    def next_step(packet):
+                        output = 32 + page_size*4
+                        walk.stdin.write(self.request(packet,output,4096))
+                        walk.stdin.flush()
+                        reply = COMPONENT_FRAME.unpack(read_exact(walk.stdout,32))
+                        self.assertEqual(reply,(b'HIASCR01',0,output,4096))
+                        data = read_exact(walk.stdout,output)
+                        read_exact(walk.stdout,4096)
+                        tag, completed, following, count = COMPONENT_FRAME.unpack_from(data)
+                        self.assertEqual(tag,b'HIASWA01')
+                        return completed,following,struct.unpack_from(f'<{count}q',data,32)
+
+                    first = read_page(1)
+                    start = struct.pack('<8sQ24s2Q',b'HIASTW01',1,identity,page_count,root)
+                    self.assertEqual(next_step(start),(0,root,()))
+                    rowids = []
+                    following = root
+                    for ordinal in range(page_count):
+                        page = following
+                        data = read_page(page)  # Only HIA asks for the next table page.
+                        packet = struct.pack('<I4sQ',page,b'HSP2',0)+first
+                        packet += struct.pack('<3Q',page_count,1,page)+data
+                        [(status, entries)] = self.component('rowid-lookup', self.request(packet,32+page_size*4,72))
+                        self.assertEqual(status,0)
+                        _, _, count, selected = COMPONENT_FRAME.unpack_from(entries)
+                        self.assertEqual(selected,page)
+                        completed,following,rows = next_step(
+                            struct.pack('<8sQ24s',b'HIASTW01',2,identity)+entries[:32+count*8])
+                        self.assertEqual(completed,page)
+                        rowids.extend(rows)
+                        if following == 0:
+                            break
+                    else:
+                        self.fail('table walk did not terminate inside one retained snapshot')
+                    self.assertGreater(ordinal,1)
+                    self.assertEqual(rowids,expected)
+                    self.assertEqual(database.read_bytes(),original)
+                    self.assertEqual(pager_step(4)[0][3],130)
+                    self.assertEqual(pager.wait(timeout=3),0)
+                    NativePagerArgv().audit(audit.result(timeout=3))
+                    walk.stdin.close()
+                    self.assertEqual(walk.wait(timeout=3),0)
+                    self.assertEqual(walk.stderr.read(),b'')
+                finally:
+                    for child in (walk,pager):
+                        if child.poll() is None:
+                            child.kill()
+                            child.wait(timeout=3)
 
 
 def main():

@@ -37,7 +37,7 @@ python -B -m tools.build_hia_sqlite_components --compiler "$compiler" \
   --cold-report "$cold_report" --output "$component_output"
 ```
 
-The output contains seven standalone Linux x86-64 programs (`hia-sqlite-*`),
+The output contains eight standalone Linux x86-64 programs (`hia-sqlite-*`),
 each linked with one unchanged HIA image. They run without a runtime FFI,
 interpreter, dynamic loader or subprocess. Start a separate process for each
 component and each independent scratch lifetime. A request consists of
@@ -122,9 +122,31 @@ An empty leaf returns count zero.
 The component validates the selected page's cell geometry and keys before
 writing the result. It does not enumerate or read overflow pages for this
 operation. Status `6` asks for the selected page if it is not resident.
-Traverse interior entries from a known root; keep a visited set to reject
-cycles and repeated pages. Page 1 is the root of SQLite's schema table.
+Page 1 is the root of SQLite's schema table.
 An index or a WITHOUT ROWID table is not a rowid table and is not supported.
+
+The `sqlite-table-walk` component can own traversal instead of leaving page
+selection and row ordering to the caller. Use one process per table, passing
+the same 24-byte retained snapshot identity in every request. All requests
+start with `HIASTW01`, an eight-byte phase and the snapshot identity:
+
+- Phase 1 appends the logical page count and table root as 8-byte words.
+- Phase 2 appends the exact `HIABTW01` header and entries for the page that
+  the previous reply requested. Trailing zero transport capacity is not input.
+
+A successful reply is `HIASWA01`, the completed page (zero for phase 1),
+the next page (zero only at completion), a rowid count, and those signed
+rowids. HIA visits children in B-tree order, tracks visited pages, rejects
+out-of-range or duplicate children/cycles, and requires signed, strictly
+increasing rowids across leaves. Short output (2) or scratch (3) does not
+advance the walk. An invalid frame, wrong snapshot/page or ended walk returns
+1; impossible tree order or reuse returns 4 and invalidates the walk. No
+failure writes output. Scratch is private, including an 80-byte header,
+`floor(page_count / 8) + 1` bitmap bytes, and eight bytes per pending child.
+If the caller's scratch budget cannot hold the frontier the walk refuses
+instead of dropping pages. The Pager must remain the source of page bytes
+and lock custody; an identity attached by the transport is not proof of data
+provenance. Completing a table walk is not migration activation.
 
 ### Admitting an Agent schema before migrating its rows
 

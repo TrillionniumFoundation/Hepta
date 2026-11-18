@@ -12,7 +12,7 @@ from tools.qualify_hia_selfhost import compile_stage
 
 
 UNITS = (
-    'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
+    'sqlite-rowid-lookup', 'sqlite-table-walk', 'sqlite-record-layout', 'sqlite-agent-row-import',
     'sqlite-agent-catalog', 'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
     'sqlite-agent-artifact-catalog',
 )

@@ -69,6 +69,8 @@ SQLITE_SNAPSHOT_SDIST_FILES = (
     'examples/hia_bootstrap/sqlite_pager_elf_linker.hepta',
     'examples/hia_bootstrap/sqlite_wal_snapshot.hepta',
     'examples/hia_bootstrap/sqlite_rowid_lookup.hepta',
+    'examples/hia_bootstrap/sqlite_table_walk.hepta',
+    'tools/generate_hia_sqlite_table_walk.py',
     'examples/hia_bootstrap/sqlite_record_layout.hepta',
     'examples/hia_bootstrap/sqlite_agent_row_import.hepta',
     'examples/hia_bootstrap/sqlite_agent_import_batch.hepta',
@@ -83,12 +85,18 @@ ARTIFACT_CAPTURE_SDIST_FILES = (
     'tools/hia_agent_artifact_capture_read.S',
     'tools/hia_agent_artifact_capture_start.S',
 )
+CORE_NORMALIZE_SDIST_FILES = (
+    'examples/hia_bootstrap/core_normalize_cli_packer.hepta',
+    'examples/hia_bootstrap/core_pretty_json.hepta',
+)
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,
     *ARTIFACT_CAPTURE_SDIST_FILES,
+    *CORE_NORMALIZE_SDIST_FILES,
     'examples/hia_bootstrap/agent_artifact_capture.hepta',
     'tests/test_hia_agent_artifact_capture_runtime.py',
     'tests/test_hia_sqlite_snapshot_native.py',
+    'tests/test_hia_sqlite_pager_runtime.py',
     'tests/test_hia_selfhost_call_graph_efficiency.py',
     'docs/HIA_WORKER_SCHEDULING_CUSTODY.md',
     'tools/build_hia_worker_scheduling_bundle.py',
@@ -816,8 +824,6 @@ SOURCE_FILES = (
     'docs/HIA_ARTIFACT_PUBLICATION_NATIVE.md',
     'tools/generate_hia_core_admission_cli.py',
     'examples/hia_bootstrap/core_admission_cli_packer.hepta',
-    'examples/hia_bootstrap/core_normalize_cli_packer.hepta',
-    'examples/hia_bootstrap/core_pretty_json.hepta',
     'tools/build_hia_core_admission_cli.py',
     'tests/test_hia_core_admission_cli.py',
     'docs/HIA_CORE_ADMISSION_CLI.md',
