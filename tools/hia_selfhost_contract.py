@@ -15,6 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 SOURCE_FILES = (
+    'docs/HIA_SQLITE_SNAPSHOT_NATIVE.md',
+    'examples/hia_bootstrap/sqlite_rowid_lookup.hepta',
+    'examples/hia_bootstrap/sqlite_record_layout.hepta',
+    'tests/test_hia_sqlite_snapshot_native.py',
     'tests/test_hia_selfhost_call_graph_efficiency.py',
     'docs/HIA_WORKER_SCHEDULING_CUSTODY.md',
     'tools/build_hia_worker_scheduling_bundle.py',

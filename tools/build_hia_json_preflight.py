@@ -1,4 +1,4 @@
-"""Build the explicitly selected HIA JSON candidate with a qualified native image.
+"""Build an explicitly selected HIA component with a qualified native image.
 
 Consumes a flat compiler from a completed cold run of the current complete
 source contract; does not synthesize successors with Python or activate a
@@ -97,7 +97,9 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'elf-linker': ('elf_static_linker', 'elf-linker'),
                   'native-filter': ('native_filter_packer', 'native-filter'),
                   'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
-                  'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json')}
+                  'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json'),
+                  'sqlite-rowid-lookup': ('sqlite_rowid_lookup', 'sqlite-rowid-lookup'),
+                  'sqlite-record-layout': ('sqlite_record_layout', 'sqlite-record-layout')}
     if candidate not in candidates:
         raise ValueError('unknown HIA JSON candidate')
     source_name, protocol = candidates[candidate]
@@ -144,8 +146,11 @@ def main():
     parser.add_argument('--compiler', type=Path, required=True)
     parser.add_argument('--cold-report', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--candidate', choices=('preflight', 'sqlite-rowid-lookup', 'sqlite-record-layout'),
+                        default='preflight')
     args = parser.parse_args()
-    path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve())
+    path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
+                 candidate=args.candidate)
     print(json.dumps({'status': 'NATIVE_CANDIDATE_BUILT', 'manifest': str(path)}))
 
 
