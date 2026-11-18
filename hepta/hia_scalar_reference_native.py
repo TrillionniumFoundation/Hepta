@@ -26,6 +26,8 @@ OBSERVATION_MAGIC = int.from_bytes(b'HIASOM01', 'little')
 LOAN_MAGIC = int.from_bytes(b'HIASLM01', 'little')
 CHAIN_MAGIC = int.from_bytes(b'HIASCM01', 'little')
 OWNER_MAGIC = int.from_bytes(b'HIASOW01', 'little')
+STORAGE_MAGIC = int.from_bytes(b'HIASOS01', 'little')
+OWNER_RECORD_BYTES = 112
 WORD_MASK = (1 << 64) - 1
 _ACTIVE = ContextVar('hia_scalar_reference_child', default=None)
 OPCODES = {name: index for index, name in enumerate((
@@ -202,6 +204,18 @@ class NativeScalarReference(NativeHiaJsonImage):
         if size != 80 or identity != RESULT or status not in (0, 1, 3):
             raise RuntimeError('invalid HIA native owner result')
         return status, result, counters
+
+    def attach_storage(self, workspace, storage, amount, maximum):
+        request = struct.pack('<3Q', STORAGE_MAGIC, amount, maximum)
+        wire = ctypes.create_string_buffer(request)
+        capacity = 0 if storage is None else len(storage)
+        backing = ((ctypes.c_ubyte * capacity).from_buffer(storage)
+                   if capacity else ctypes.create_string_buffer(1))
+        table = (ctypes.c_ubyte * len(workspace)).from_buffer(workspace)
+        status = self._entry(wire, len(request), backing, capacity, table, len(workspace))
+        if status not in (0, 2, 3):
+            raise RuntimeError('invalid HIA native storage result')
+        return status, struct.unpack_from('<Q', workspace, OWNER_RECORD_BYTES - 8)[0]
 
     @staticmethod
     def _arithmetic_error(error, typ):

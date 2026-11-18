@@ -8,6 +8,7 @@ aborting native process performed normal-path destructor cleanup.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import mmap
 import os
 from weakref import proxy
 
@@ -17,7 +18,8 @@ from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
 from .hia_execution_ledger_native import SELECTOR as LEDGER_SELECTOR, installed_execution_ledger
 from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation
-from .hia_scalar_reference_native import OPCODES as NATIVE_SCALAR_OPCODES, selected_scalar_reference
+from .hia_scalar_reference_native import (OPCODES as NATIVE_SCALAR_OPCODES, OWNER_RECORD_BYTES,
+                                          selected_scalar_reference)
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -41,6 +43,13 @@ class _Owner:
     ident: int
     data: bytearray
     active: bool = True
+
+
+@dataclass(frozen=True)
+class _OwnerSpan:
+    ident: int
+    offset: int
+    length: int
 
 
 @dataclass(eq=False)
@@ -186,6 +195,11 @@ class _Machine:
         self.live_bytes += len(data)
         self.peak_bytes = max(self.peak_bytes, self.live_bytes)
         return owner
+
+    def live_owners(self):
+        if self.native_resources is None:
+            return len(self.owners)
+        return self.native_resources.owner_counters()["live_owners"]
 
     def allocate(self, size, optional):
         # Zero-size owners are real capabilities but require no allocator call,
@@ -615,7 +629,8 @@ class _ReferenceResources:
         self.native = machine.scalar_reference
         self.loans = bytearray(24 * 17)
         self.chains = bytearray(40 * 17)
-        self.owners = bytearray(80 * 17)
+        self.owners = bytearray(OWNER_RECORD_BYTES * 17)
+        self.storage = None
         self.machine.native_resources = self
         self.machine.native_chain_count = 0
         self.external_owners = {}
@@ -642,12 +657,24 @@ class _ReferenceResources:
 
     def owner(self, root):
         ident = (root >> 1) - ((1 << 63) if root >> 63 else 0)
-        extent = self._owner_operation(3, ident)[0] if ident > 0 else None
-        backing = self.external_owners if ident < 0 else self.machine.owners
-        owner = backing.get(ident)
-        if owner is None or not owner.active or extent is not None and len(owner.data) != extent:
-            raise HIAProgramRejected("expired runtime owner", "E_HIA_RUNTIME_INVARIANT")
-        return owner
+        if ident < 0:
+            owner = self.external_owners.get(ident)
+            if owner is None or not owner.active:
+                raise HIAProgramRejected("expired runtime owner", "E_HIA_RUNTIME_INVARIANT")
+            return owner
+        extent, state = self._owner_operation(3, ident)
+        offset = state[0]
+        capacity = 0 if self.storage is None else len(self.storage)
+        if offset > capacity or extent > capacity - offset:
+            raise HIAProgramRejected("runtime owner exceeds native storage", "E_HIA_RUNTIME_INVARIANT")
+        return _OwnerSpan(ident, offset, extent)
+
+    def byte_storage(self, owner):
+        if isinstance(owner, _OwnerSpan):
+            if not owner.length:
+                return b""
+            return memoryview(self.storage)[owner.offset:owner.offset + owner.length]
+        return owner.data
 
     def _owner_operation(self, operation, subject=0):
         while True:
@@ -657,7 +684,7 @@ class _ReferenceResources:
                 return value, counters
             if status == 1:
                 raise HIAProgramRejected("expired runtime owner", "E_HIA_RUNTIME_INVARIANT")
-            self._grow_arena(self.owners, 80)
+            self._grow_arena(self.owners, OWNER_RECORD_BYTES)
 
     def owner_counters(self):
         _, counters = self._owner_operation(0)
@@ -666,34 +693,49 @@ class _ReferenceResources:
                 "owners_created": created, "owners_dropped": dropped,
                 "live_owners": created - dropped, "live_bytes": live, "peak_bytes": peak}
 
-    def attach_owner(self, data):
-        ident, _ = self._owner_operation(2, len(data))
-        self.machine.owners[ident] = _Owner(ident, data)
-        return ident
+    def empty_owner(self):
+        return self._owner_operation(2)[0]
 
     def drop_owner(self, ident):
         self._owner_operation(4, ident)
-        del self.machine.owners[ident]
+
+    def attach_storage(self, size):
+        maximum = self.machine.max_heap_bytes
+        while True:
+            status, value = self.native.attach_storage(self.owners, self.storage, size, maximum)
+            if status == 0:
+                return value
+            if status == 3:
+                self._grow_arena(self.owners, OWNER_RECORD_BYTES)
+                continue
+            capacity = 0 if self.storage is None else len(self.storage)
+            if not capacity < value <= maximum:
+                raise HIAProgramRejected("invalid native storage extent", "E_HIA_RUNTIME_INVARIANT")
+            expanded = max(value, min(maximum, max(mmap.PAGESIZE, capacity * 2)))
+            try:
+                if self.storage is None:
+                    self.storage = mmap.mmap(-1, expanded)
+                else:
+                    self.storage.resize(expanded)
+            except (MemoryError, OSError, OverflowError):
+                return None
 
     def allocate_owner(self, size, optional):
         decision, _ = self._owner_operation(1, size)
         if decision == 0:
-            return self.attach_owner(bytearray()), True
+            return self.empty_owner(), True
         if decision == 1:
             if optional:
-                return self.attach_owner(bytearray()), False
+                return self.empty_owner(), False
             raise HIAProgramTrap("allocation", "allocation exceeds the 64-bit object-size model")
         if decision == 2:
             raise HIAProgramBudgetExceeded("heap", "finite live-byte limit reached")
         if decision == 4:
-            try:
-                data = bytearray(size)
-            except (MemoryError, OverflowError):
-                pass
-            else:
-                return self.attach_owner(data), True
+            owner = self.attach_storage(size)
+            if owner is not None:
+                return owner, True
         if optional:
-            return self.attach_owner(bytearray()), False
+            return self.empty_owner(), False
         raise HIAProgramTrap("allocation", "allocator returned failure")
 
     def loan(self, operation, first, second=0, *, mutable=False):
@@ -754,7 +796,7 @@ class _ReferenceResources:
             changed, _, _, pushed = self.chain(3, original, payload, storage, allocated)
             if pushed:
                 self.machine.chain_nodes_created += 1
-                remainder = self.attach_owner(bytearray())
+                remainder = self.empty_owner()
             else:
                 self.drop_owner(storage)
                 remainder = payload
@@ -768,7 +810,7 @@ class _ReferenceResources:
                 self.drop_owner(storage)
                 self.machine.chain_nodes_dropped += 1
             else:
-                payload = self.attach_owner(bytearray())
+                payload = self.empty_owner()
             self.machine.chains_created += 1
             return [changed, payload, int(present)]
         raise HIAProgramRejected("unhandled native chain opcode", "E_HIA_RUNTIME_INVARIANT")
@@ -777,19 +819,19 @@ class _ReferenceResources:
         read_only = op in {"len", "load"}
         token = self.owner_token(words[0]) if kinds[0] == "buffer" else words[0]
         _, owner = self.loan(1, token, mutable=not read_only)
-        data = owner.data
+        data = self.byte_storage(owner)
         if op == "len":
             return [len(data)]
         if op == "load":
             return [self.native.byte_operation("load", data, offset=words[1])]
         if op in {"copy", "copy_range"}:
             _, source = self.loan(1, words[1])
-            if owner is source:
+            if owner.ident == source.ident:
                 message = ("copy alias escaped static owner verification" if op == "copy" else
                            "range copy violates checked distinct-owner loans")
                 raise HIAProgramRejected(message, "E_HIA_RUNTIME_INVARIANT")
             offsets = {} if op == "copy" else {"offset": words[2], "source_offset": words[3]}
-            self.native.byte_operation(op, data, source=source.data, count=words[-1], **offsets)
+            self.native.byte_operation(op, data, source=self.byte_storage(source), count=words[-1], **offsets)
             return []
         options = {
             "store": ("store", ("offset", "value"), None),
@@ -926,6 +968,6 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
         limit = HIAProgramBudgetExceeded("calls", "host recursion limit reached")
         limit.report = report("budget_exceeded", error=limit)
         raise limit from exc
-    if machine.owners or machine.live_chains() or machine.loans_started != machine.loans_ended:
+    if machine.live_owners() or machine.live_chains() or machine.loans_started != machine.loans_ended:
         raise HIAProgramRejected("successful scalar entry leaked a verified resource", "E_HIA_RUNTIME_INVARIANT")
     return report("returned", values)

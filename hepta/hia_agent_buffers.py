@@ -170,7 +170,7 @@ def reference_observation(program, case, exports, *, steps, heap):
     except RecursionError:
         limit = HIAProgramBudgetExceeded("calls", "host recursion limit reached")
         return {**report("budget_exceeded", error=limit), "budget_code": limit.code}
-    if (machine.owners or machine.live_chains() or machine.loans_started != machine.loans_ended
+    if (machine.live_owners() or machine.live_chains() or machine.loans_started != machine.loans_ended
             or any(not root.active or not view.active for _, _, root, view in external)):
         raise HIAProgramRejected("successful borrowed entry leaked or consumed a resource",
                                  "E_HIA_RUNTIME_INVARIANT")

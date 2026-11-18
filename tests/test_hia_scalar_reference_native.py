@@ -16,7 +16,7 @@ from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import WIDTHS, integer_range
 from hepta.hia_program_runtime import HIAProgramTrap, _Machine, execute_program
 from hepta.hia_scalar_reference_native import (
-    OPCODES, SCHEMA, SELECTOR, SOURCE, NativeScalarReference,
+    OPCODES, OWNER_RECORD_BYTES, SCHEMA, SELECTOR, SOURCE, NativeScalarReference,
 )
 
 
@@ -540,15 +540,18 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             self.assertEqual(compare(), expected)
 
     def test_native_owner_arena_reuses_slots_rejects_stale_ids_and_accounts_limits(self):
-        table = bytearray(80 * 2)
+        table = bytearray(OWNER_RECORD_BYTES * 2)
 
         def ask(operation, subject=0, fail_at=0):
             return self.native.owner_operation(table, operation, subject, 8, fail_at)
 
         self.assertEqual(ask(1, 8, fail_at=1)[:2], (0, 3))
         self.assertEqual(ask(1, 8)[:2], (0, 4))
-        status, handle, _ = ask(2, 8)
+        self.assertEqual(self.native.attach_storage(table, None, 8, 8), (2, 8))
+        storage = bytearray(b'abcdefgh')
+        status, handle = self.native.attach_storage(table, storage, 8, 8)
         self.assertEqual(status, 0)
+        self.assertEqual(storage, bytes(8))
         self.assertEqual(ask(3, handle)[:2], (0, 8))
         self.assertEqual(ask(1, 1)[:2], (0, 2))
         frozen = table[:]
@@ -562,6 +565,66 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertEqual(ask(0)[2], [2, 1, 1, 2, 1, 0, 8])
         self.assertEqual(ask(4, replacement)[:2], (0, 0))
         self.assertEqual(ask(0)[2], [2, 1, 1, 2, 2, 0, 8])
+
+    def test_native_storage_compacts_live_spans_and_zeros_reclaimed_bytes(self):
+        import mmap
+
+        maximum = 19
+        table = bytearray(OWNER_RECORD_BYTES * 5)
+        with mmap.mmap(-1, maximum) as region:
+            def allocate(amount):
+                status, handle = self.native.attach_storage(table, region, amount, maximum)
+                self.assertEqual(status, 0)
+                return handle
+
+            def inspect(handle):
+                status, extent, (offset, *_) = self.native.owner_operation(table, 3, handle, maximum)
+                self.assertEqual(status, 0)
+                return offset, extent
+
+            first, kept, last = (allocate(amount) for amount in (4, 6, 4))
+            region[:14] = b'abcd012345WXYZ'
+            self.native.owner_operation(table, 4, first, maximum)
+            self.assertEqual(inspect(kept), (4, 6))
+            inserted = allocate(8)  # Required live extent 18, but the remaining tail is only five.
+            self.assertEqual(inspect(kept), (0, 6))
+            self.assertEqual(inspect(last), (6, 4))
+            self.assertEqual(inspect(inserted), (10, 8))
+            self.assertEqual(region[:18], b'012345WXYZ' + bytes(8))
+            self.assertNotEqual(first, inserted)
+            self.assertEqual(self.native.owner_operation(table, 3, first, maximum)[0], 1)
+
+            region[10:18] = b'released'
+            self.native.owner_operation(table, 4, inserted, maximum)
+            replacement = allocate(9)
+            self.assertEqual(inspect(replacement), (10, 9))
+            self.assertEqual(region[:19], b'012345WXYZ' + bytes(9))
+
+        from tests.test_hia_program import b, c, f, i, m, ret
+
+        ops = [c('four', 'usize', 4), c('six', 'usize', 6), c('eight', 'usize', 8),
+               c('zero', 'usize', 0), c('mark', 'u8', 253),
+               i('buffer.new', ['four'], [('first', 'buffer')]),
+               i('buffer.new', ['six'], [('keep', 'buffer')]),
+               i('buffer.new', ['four'], [('last', 'buffer')]),
+               i('borrow.mut', ['keep'], [('write', 'mutbuf')]),
+               i('buffer.store', ['write', 'zero', 'mark']), i('loan.end', ['write']),
+               i('owner.drop', ['first']),
+               i('buffer.new', ['eight'], [('insert', 'buffer')]),
+               i('borrow.read', ['keep'], [('read', 'readbuf')]),
+               i('buffer.load', ['read', 'zero'], [('kept', 'u8')]), i('loan.end', ['read']),
+               i('borrow.read', ['insert'], [('read_new', 'readbuf')]),
+               i('buffer.load', ['read_new', 'zero'], [('created', 'u8')]), i('loan.end', ['read_new']),
+               *(i('owner.drop', [name]) for name in ('keep', 'last', 'insert'))]
+        program = m(f('compact', [], ['u8', 'u8'], ['alloc', 'read', 'write', 'trap'],
+                      [b('entry', [], ops, ret('kept', 'created'))]))
+        baseline = execute_program(program, 'compact', (), max_heap_bytes=maximum)
+        self.assertEqual(baseline['values'], [253, 0])
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'new_owner', side_effect=AssertionError('host owner object')),
+              patch.object(_Machine, 'operation', side_effect=AssertionError('host instruction dispatch'))):
+            actual = execute_program(program, 'compact', (), max_heap_bytes=maximum)
+        self.assertEqual(actual, baseline)
 
     def test_resource_cfg_resumes_exactly_at_calls_edges_and_partial_destruction(self):
         from hepta.hia_program_runtime import HIAProgramBudgetExceeded

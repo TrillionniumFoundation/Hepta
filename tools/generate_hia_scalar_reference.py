@@ -6,7 +6,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import (
     ALLOCATION_MAGIC, BYTE_MAGIC, CHAIN_MAGIC, DOMAIN_MAGIC, LOAN_MAGIC, MAGIC, OBSERVATION_MAGIC,
-    OPCODES, OWNER_MAGIC, RESULT,
+    OPCODES, OWNER_MAGIC, OWNER_RECORD_BYTES, RESULT, STORAGE_MAGIC,
 )
 from hepta.hia_scalar_reference_wire import (
     MAX_FRAME_WORDS, MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
@@ -35,6 +35,8 @@ def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return chain_operation(s, o, w)
     if uint(s, 0, 8) == @OWNER_MAGIC@:
         return owner_operation(s, o, w)
+    if uint(s, 0, 8) == @STORAGE_MAGIC@:
+        return attach_storage(s, o, w)
     if length(s) != 56:
         return 4294967295
     if length(o) < 24:
@@ -582,7 +584,7 @@ def allocation_status(amount:u64, maximum:u64, live:u64, attempts:u64, fail_at:u
     return 4
 
 def owner_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) != 40 or length(w) < 80 or length(o) < 80:
+    if length(s) != 40 or length(w) < @OWNER_RECORD_BYTES@ or length(o) < 80:
         return 4294967295
     operation = uint(s, 8, 8)
     subject = uint(s, 16, 8)
@@ -594,7 +596,6 @@ def owner_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 8, 0)
     put(o, 16, 0)
     if operation == 0:
-        # Header accounting fields correspond to output offsets 24..79.
         i = 24
         while i < 80:
             put(o, i, get(w, i))
@@ -608,35 +609,114 @@ def owner_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             put(w, 24, attempts + 1)
         put(o, 16, decision)
     elif operation == 2:
-        if subject > maximum - live:
+        if subject != 0:
             return 4294967295
-        token = arena_claim(w, 80)
+        token = claim_owner(w, 0)
         if token == 0:
             put(o, 8, 3)
-            return 80
-        slot = arena_slot(w, token, 80)
-        put(w, slot + 16, subject)
-        put(w, 48, get(w, 48) + 1)
-        if subject != 0:
-            put(w, 32, get(w, 32) + 1)
-            put(w, 64, live + subject)
-            if live + subject > get(w, 72):
-                put(w, 72, live + subject)
         put(o, 16, token >> 1)
     else:
-        slot = arena_slot(w, (subject << 1) | 1, 80)
+        slot = arena_slot(w, (subject << 1) | 1, @OWNER_RECORD_BYTES@)
         if subject == 0 or subject >= 4611686018427387904 or slot == 0:
             put(o, 8, 1)
             return 80
         amount = get(w, slot + 16)
         put(o, 16, amount)
+        put(o, 24, get(w, slot + 24))
         if operation == 4:
-            arena_release(w, slot, 80)
-            put(w, 56, get(w, 56) + 1)
             if amount != 0:
+                unlink_storage(w, slot)
                 put(w, 40, get(w, 40) + 1)
                 put(w, 64, live - amount)
+            arena_release(w, slot, @OWNER_RECORD_BYTES@)
+            put(w, 56, get(w, 56) + 1)
     return 80
+
+def claim_owner(w:mutbuf, amount:u64) -> u64:
+    token = arena_claim(w, @OWNER_RECORD_BYTES@)
+    if token == 0:
+        return 0
+    slot = arena_slot(w, token, @OWNER_RECORD_BYTES@)
+    put(w, slot + 16, amount)
+    put(w, slot + 24, 0)
+    put(w, slot + 32, 0)
+    put(w, slot + 40, 0)
+    put(w, 48, get(w, 48) + 1)
+    if amount != 0:
+        live = get(w, 64) + amount
+        put(w, 32, get(w, 32) + 1)
+        put(w, 64, live)
+        if live > get(w, 72):
+            put(w, 72, live)
+    return token
+
+def attach_storage(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 24 or length(w) < @OWNER_RECORD_BYTES@:
+        return 4294967295
+    amount = uint(s, 8, 8)
+    maximum = uint(s, 16, 8)
+    capacity = length(backing)
+    live = get(w, 64)
+    end = get(w, 96)
+    if maximum > 1073741824 or live > maximum or amount == 0 or amount > maximum - live:
+        return 4294967295
+    if capacity > maximum or end > capacity or live > end:
+        return 4294967295
+    required = live + amount
+    if required > capacity:
+        put(w, 104, required)
+        return 2
+    token = claim_owner(w, amount)
+    if token == 0:
+        return 3
+    if amount > capacity - end:
+        end = compact_storage(backing, w)
+    slot = arena_slot(w, token, @OWNER_RECORD_BYTES@)
+    tail = get(w, 88)
+    if tail == 0:
+        put(w, 80, slot)
+    else:
+        put(w, tail + 32, slot)
+    put(w, slot + 24, end)
+    put(w, slot + 40, tail)
+    put(w, 88, slot)
+    put(w, 96, end + amount)
+    i = 0
+    while i < amount:
+        store(backing, end + i, 0)
+        i = i + 1
+    put(w, 104, token >> 1)
+    return 0
+
+def compact_storage(backing:mutbuf, w:mutbuf) -> u64:
+    slot = get(w, 80)
+    end = 0
+    while slot != 0:
+        at = get(w, slot + 24)
+        amount = get(w, slot + 16)
+        if at != end:
+            move_bytes(backing, end, at, amount)
+            put(w, slot + 24, end)
+        end = end + amount
+        slot = get(w, slot + 32)
+    return end
+
+def unlink_storage(w:mutbuf, slot:u64) -> u64:
+    next = get(w, slot + 32)
+    prev = get(w, slot + 40)
+    if prev == 0:
+        put(w, 80, next)
+    else:
+        put(w, prev + 32, next)
+    if next == 0:
+        end = 0
+        if prev != 0:
+            end = get(w, prev + 24) + get(w, prev + 16)
+        put(w, 88, prev)
+        put(w, 96, end)
+    else:
+        put(w, next + 40, prev)
+    return 0
 
 def finite_arguments(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 24:
@@ -902,6 +982,7 @@ def document():
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
                  'LOAN_MAGIC': LOAN_MAGIC,
                  'CHAIN_MAGIC': CHAIN_MAGIC, 'OWNER_MAGIC': OWNER_MAGIC,
+                 'STORAGE_MAGIC': STORAGE_MAGIC, 'OWNER_RECORD_BYTES': OWNER_RECORD_BYTES,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,
