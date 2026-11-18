@@ -52,6 +52,9 @@ output-profile check, then returns the verification JSON reply instead of any
 generated machine-code bytes. It neither bypasses resource checking nor executes
 the compiled program. The exact diagnostics of the ordinary hosted
 `hia check-assembly` action are outside this bounded native command contract.
+Both assembly and the JSON frontend preserve explicit primitive v6/v7/v8
+schemas. V6 cannot use chain types or operations, and only v8 can declare
+returned loans. The compiler does not relabel old programs as v8.
 These are command-specific output contracts, not JSON-lines RPC.
 
 Fixed-profile builds choose `flat`, `elf` (ET_REL objects) or `exec` (the

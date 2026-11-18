@@ -22,7 +22,7 @@ from tools.build_hia_agent_stdio import DISPATCH, PACKER, build
 EXPECTED_CAPABILITY = {
     'schema':'hepta.hia.agent-stdio.v1','implementation':'hia-native',
     'operations':['capabilities','verify','compile','render-assembly','assemble','check-assembly','catalog'],'build_profile':0,
-    'input':'primitive-v8-Core-JSON','input_bytes_max':8388608,
+    'input':'primitive-v6/v7/v8-Core-JSON','input_bytes_max':8388608,
     'assembly_input':'hia-asm.v1','assembly_input_bytes_max':1048576,
     'compiler_bytes_max':1048576,'program_nodes_max':1048576,'json_depth_max':128,
     'target':'linux-x86_64','runtime_python_required':False,
@@ -311,7 +311,7 @@ class AgentStdioNativeTests(unittest.TestCase):
         # apparently successful assembly view before mandatory native checking.
         for label in ('old','nominal','invalid-unused'):
             bad=copy.deepcopy(self.sample)
-            if label=='old':bad['schema']='hepta.hia.program.v7'
+            if label=='old':bad['schema']='hepta.hia.program.v5'
             elif label=='nominal':bad['types']=[]
             else:bad['functions'].append(f('unused',[],['u32'],[],[b('entry',[],[],ret('undefined'))]))
             result=self.invoke(['render-assembly'],json.dumps(bad).encode())
@@ -501,6 +501,40 @@ class AgentStdioNativeTests(unittest.TestCase):
         self.assertEqual((refused.returncode, refused.stdout), (2, b''))
         refused = self.invoke(['assemble', '--output-profile=flat'], sources['flat'])
         self.assertEqual((refused.returncode, refused.stdout), (64, b''))
+
+    def test_explicit_v6_v7_schemas_preserve_namespaces_and_feature_guards(self):
+        def invoke(action, raw):
+            return self.invoke([action, '--output-profile=elf'], raw, profile='portable')
+
+        scalar = (b'hia-asm.v1 hepta.hia.program.v6 signed_export\n'
+                  b'exports(entry)\nfn entry(a:i32,b:i32) -> (i32) effects(trap) entry(b0)\n'
+                  b'block b0(a:i32,b:i32)\n  n:i32 = int.rem.checked(a,b)\n  ret(n)\nend\n')
+        core = assemble_program(scalar)
+        assembled = invoke('assemble', scalar)
+        compiled = invoke('compile', core.canonical_bytes)
+        rendered = invoke('render-assembly', core.canonical_bytes)
+        self.assertEqual((assembled.returncode, compiled.returncode, rendered.returncode), (0,0,0))
+        self.assertEqual(compiled.stdout, assembled.stdout)
+        self.assertEqual(rendered.stdout, render_assembly(core).encode())
+        self.assertEqual(struct.unpack_from('<H', assembled.stdout, 16)[0], 1)
+
+        chain = (b'hia-asm.v1 hepta.hia.program.v7 chain_entry\n'
+                 b'exports(entry)\nfn entry() -> (u64) effects(alloc) entry(b0)\n'
+                 b'block b0()\n  c:chain = chain.empty()\n  owner.drop(c)\n'
+                 b'  n:u64 = const() {"value":37}\n  ret(n)\nend\n')
+        valid = assemble_program(chain)
+        self.assertEqual(invoke('check-assembly',chain).returncode,0)
+        self.assertEqual(invoke('verify',valid.canonical_bytes).returncode,0)
+        loan = chain.replace(b'entry(b0)\n',b'entry(b0) return_loans([null])\n',1)
+        self.assertEqual(invoke('check-assembly',loan.replace(b'program.v7',b'program.v8',1)).returncode,0)
+        for raw in (chain.replace(b'program.v7',b'program.v6',1),
+                    chain.replace(b'program.v7',b'program.v5',1), loan):
+            result=invoke('assemble',raw)
+            self.assertEqual((result.returncode,result.stdout),(2,b''))
+        for schema in ('hepta.hia.program.v6','hepta.hia.program.v5'):
+            prohibited={**valid.as_dict(),'schema':schema}
+            result=invoke('compile',json.dumps(prohibited).encode())
+            self.assertEqual((result.returncode,result.stdout),(2,b''))
 
     def test_original_modified_compiler_chains_are_genuine_and_separate(self):
         from tools.qualify_hia_selfhost import compile_stage,mutate_compiler

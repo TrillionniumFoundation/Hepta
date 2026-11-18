@@ -36,7 +36,7 @@ with unchanged output. No semantic bypass or proof is conferred by JSON admissio
 
 ## Profile and preserved boundaries
 
-- Primitive `hepta.hia.program.v8`, closed root/function/block/instruction/edge/
+- Explicit primitive `hepta.hia.program.v6`, `.v7` or `.v8`, closed root/function/block/instruction/edge/
   terminator/parameter objects, including optional `return_loans`.
 - Declaration and array order, parameter identities, exact ASCII identifiers and
   ordinary module names are preserved. JSON key order and escaped field spelling

@@ -10,6 +10,8 @@ def read_return_loans(s:readbuf, w:mutbuf) -> u64:
     formal = 0
     present = 0
     if get(w, 8) == @return_loans@:
+        if byte(w, 152) != 2:
+            return fail(w, 62)
         present = 1
         separated(w)
         next_token(s, w)

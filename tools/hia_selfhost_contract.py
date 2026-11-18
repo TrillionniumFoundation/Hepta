@@ -1621,6 +1621,7 @@ def support_contract(root=ROOT):
             "direct_assembly_input_bytes": 1048576,
             "direct_assembly_preserves_explicit_output_profile": True,
             "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hepta",
+            "compiler_source_schemas": ["hepta.hia.program.v6", "hepta.hia.program.v7", "hepta.hia.program.v8"],
             "output_profile_selection": "fixed build-time flat/elf/exec or an explicit invocation option in the portable build; never inferred from payload",
             "native_runtime_python_required": False,
             "host_build_and_custody_driver": True,
