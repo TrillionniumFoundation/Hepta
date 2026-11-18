@@ -46,6 +46,7 @@ jobs:
               'tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests',
               'tests.test_hia_agent_identity_native.AgentIdentitySourceTests',
               'tests.test_hia_scalar_reference_native.ScalarReferenceSourceTests',
+              'tests.test_hia_direct_call.DirectCallSourceTests',
               'tests.test_hia_agent_slice_native.AgentSliceSourceTests',
               'tests.test_hia_agent_read_page_native.AgentReadPageSourceTests',
               'tests.test_hia_agent_schema_native.AgentSchemaSourceTests',
@@ -563,6 +564,17 @@ jobs:
             --discovery-manifest "$installed/agent-discovery-manifest.json" \
             --inspection-manifest "$installed/agent-inspection-manifest.json" \
             --native-release "$installed"
+      - name: Cold-built standalone HIA direct call
+        run: |
+          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          test -n "$compiler"
+          python -B -m tools.build_hia_direct_call --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/direct-call"
+          native_store=$(find "$RUNNER_TEMP/agent-store-package/installed" -mindepth 1 -maxdepth 1 -type d -print -quit)
+          test -n "$native_store"
+          HIA_TEST_DIRECT_CALL="$RUNNER_TEMP/direct-call/hia-direct-call" \
+            HIA_TEST_DIRECT_LINKER="$native_store/elf-shared-linker-manifest.json" \
+            python -B -m unittest tests.test_hia_direct_call -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
         run: |

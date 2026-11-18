@@ -118,6 +118,12 @@ NATIVE_LINKER_SDIST_FILES = (
     'tools/generate_hia_shared_linker.py',
 )
 SCALAR_REFERENCE_SDIST_FILES = (
+    'examples/hia_bootstrap/direct_load_plan.hepta',
+    'examples/hia_bootstrap/direct_call_packer.hepta',
+    'tools/build_hia_direct_call.py',
+    'tools/generate_hia_direct_load_plan.py',
+    'tools/hia_direct_call_syscalls.S',
+    'tests/test_hia_direct_call.py',
     'examples/hia_bootstrap/owned_reference_cli_packer.hepta',
     'tools/build_hia_owned_reference_cli.py',
     'tools/generate_hia_owned_reference.py',
@@ -1232,6 +1238,19 @@ def support_contract(root=ROOT):
             'post_effect_attestation_failure': 'observe_original; never repeat the mutation blindly',
             'default_native_selection': False,
             'ordinary_worker_service_and_SQLite_replaced': False,
+        },
+        'native_direct_call': {
+            'source': 'examples/hia_bootstrap/direct_load_plan.hepta',
+            'packer': 'examples/hia_bootstrap/direct_call_packer.hepta',
+            'adapter': 'tools/hia_direct_call_syscalls.S',
+            'selection': 'pinned native helper v9 + pinned HIA shared linker',
+            'profile': 'one synchronous native call; zero warmup and one repetition',
+            'input': 'sealed exact HIA-linked ELF, frozen SysV argument words, owned snapshot backing files',
+            'loader': 'native HIA load plan, closed runtime primitives, RX code and read-only GOT',
+            'host_boundaries': ['process custody and deadline', 'case snapshot materialization',
+                                'report shaping and post-exit byte hashing', 'batched native calls'],
+            'default_changed': False,
+            'whole_native_delivery_qualified': False,
         },
         'native_candidate_attempt_budget': {
             'source': 'examples/hia_bootstrap/candidate_budget.hepta',

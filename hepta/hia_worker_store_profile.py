@@ -11,7 +11,9 @@ EDIT_QUERY_SCHEMA = 'hepta.hia.native-helpers.v5'
 IMPORT_SCHEMA = 'hepta.hia.native-helpers.v6'
 REFERENCE_SCHEMA = 'hepta.hia.native-helpers.v7'
 OWNED_REFERENCE_SCHEMA = 'hepta.hia.native-helpers.v8'
-REFERENCE_SCHEMAS = (REFERENCE_SCHEMA, OWNED_REFERENCE_SCHEMA)
+DIRECT_CALL_SCHEMA = 'hepta.hia.native-helpers.v9'
+OWNED_REFERENCE_SCHEMAS = (OWNED_REFERENCE_SCHEMA, DIRECT_CALL_SCHEMA)
+REFERENCE_SCHEMAS = (REFERENCE_SCHEMA, *OWNED_REFERENCE_SCHEMAS)
 SCHEMAS = (SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, *REFERENCE_SCHEMAS)
 PIN_FIELDS = ('store_sha256', 'artifact_sha256', 'capture_sha256')
 
@@ -34,8 +36,10 @@ class NativeWorkerStoreBinding:
         schema = record.get('schema')
         images = profile_images(schema)
         reference_fields = {'reference_path', 'reference_sha256'} if schema in REFERENCE_SCHEMAS else set()
-        if schema == OWNED_REFERENCE_SCHEMA:
+        if schema in OWNED_REFERENCE_SCHEMAS:
             reference_fields.update({'owned_reference_path', 'owned_reference_sha256'})
+        if schema == DIRECT_CALL_SCHEMA:
+            reference_fields.update({'direct_call_path', 'direct_call_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
                 or record['target'] != authority.TARGET
@@ -92,7 +96,7 @@ class NativeWorkerStoreBinding:
             self.snapshots.append((reference, MAX_IMAGE_BYTES))
             self.native_reference_executable = (reference.raw, record['reference_sha256'])
         self.native_owned_reference_executable = None
-        if schema == OWNED_REFERENCE_SCHEMA:
+        if schema in OWNED_REFERENCE_SCHEMAS:
             pin = record['owned_reference_sha256']
             selected = authority._path(record['owned_reference_path'], snapshot.path.parent)
             owned = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, pin)
@@ -100,6 +104,19 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone owned reference requires its separate pinned executable')
             self.snapshots.append((owned, MAX_IMAGE_BYTES))
             self.native_owned_reference_executable = (owned.raw, pin)
+        self.native_direct_call_executable = None
+        if schema == DIRECT_CALL_SCHEMA:
+            from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR
+            if LINKER_SELECTOR not in self.selections:
+                raise ValueError('standalone direct call requires the pinned HIA shared linker')
+            pin = record['direct_call_sha256']
+            selected = authority._path(record['direct_call_path'], snapshot.path.parent)
+            direct_call = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, pin)
+            if (not direct_call.raw.startswith(b'\x7fELF')
+                    or direct_call.raw in (self.native_reference_executable[0], self.native_owned_reference_executable[0])):
+                raise ValueError('standalone direct call requires its separate pinned executable')
+            self.snapshots.append((direct_call, MAX_IMAGE_BYTES))
+            self.native_direct_call_executable = (direct_call.raw, pin)
         self._check_release()
 
     def check_owner(self):

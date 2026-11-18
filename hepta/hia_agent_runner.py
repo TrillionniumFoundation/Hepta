@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import resource
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
@@ -70,6 +71,72 @@ def _end_reference_runner(_signal, _frame):
     raise SystemExit(124)
 
 
+def _direct_call_transport(signature, case, files, artifact_bytes, executable, custody,
+                           memory_bytes, cpu_seconds):
+    """Give the pinned HIA runner sealed code and only its per-call backing files."""
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    artifact = custody.enter_context(sealed_reference_bytes(artifact_bytes))
+    runner = custody.enter_context(sealed_reference_bytes(executable))
+    descriptors = [artifact, runner]
+    records = {row['argument']: row for row in files}
+    words, loans = [], []
+    for index, (typ, value) in enumerate(zip(signature['params'], case['arguments'])):
+        if typ not in LOANS:
+            words.append(int(value) % (1 << 64))
+            continue
+        record = records[index]
+        fd = os.open(record['path'], os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW)
+        custody.callback(os.close, fd)
+        descriptors.append(fd)
+        size = record['byte_length']
+        loans.extend((len(words), fd, size))
+        words.extend((0, size))
+    function = case['function'].encode('ascii')
+    payload = struct.pack('<8s8Q', b'HIADRX01', os.getpid(), memory_bytes, cpu_seconds,
+                          artifact, len(artifact_bytes), len(words), len(files), len(function))
+    payload += struct.pack(f'<{len(words) + len(loans)}Q', *words, *loans) + function
+    return ['/proc/self/fd/' + str(runner)], payload, {'pass_fds': tuple(descriptors), 'env': {'PATH': ''}}
+
+
+def _direct_call_report(raw, signature, case, external, artifact_hash, executable_hash):
+    from .hia_opcodes import WIDTHS
+
+    if len(raw) != 24:
+        raise ValueError('direct HIA call returned an invalid receipt extent')
+    magic, value, duration = struct.unpack('<8sQQ', raw)
+    if magic != b'HIADRR01':
+        raise ValueError('direct HIA call returned an invalid receipt identity')
+    returns = signature['returns']
+    observations = [row for row, _initial_unchanged in external]
+    if signature.get('abi') == BUFFER_PROFILE:
+        status, value = value >> 32, value & 0xffffffff
+        if status > 4:
+            raise ValueError('direct HIA call returned an invalid borrowed-byte ABI status')
+        observation = ({'status': 'abi_rejected', 'abi_status': status} if status else
+                       {'status': 'returned', 'values': [value]})
+        observation['buffers'] = observations
+    elif not returns or returns == ['unit']:
+        observation = {'status': 'returned', 'values': [None] if returns else []}
+    elif returns == ['bool']:
+        observation = {'status': 'returned', 'values': [bool(value & 255)]}
+    else:
+        typ = returns[0]
+        width = WIDTHS[typ]
+        value %= 1 << width
+        if typ.startswith('i') and value >= 1 << (width - 1):
+            value -= 1 << width
+        observation = {'status': 'returned', 'values': [value]}
+    changed_readonly = any(row['kind'] == 'readbuf' and not unchanged for row, unchanged in external)
+    mismatch = changed_readonly or 'expected' in case and case['expected'] != observation
+    return {'schema': 'hepta.hia.agent.native-observation.v1', 'artifact_sha256': artifact_hash,
+            'complete': True, 'planned_cases': 1, 'completed_cases': 1, 'warmup': 0, 'repetitions': 1,
+            'measured_calls': 1, 'total_native_ns': str(duration),
+            'observations': [{**observation, 'mismatch': mismatch, 'elapsed_ns': str(duration)}],
+            'direct_call_executable_sha256': executable_hash,
+            'timing_scope': 'native SysV call measured inside the standalone HIA process; snapshot hashing outside call timing'}
+
+
 def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions=1,
                      timeout_ms=30000, memory_bytes=256 * 1024 * 1024, _mode="native",
                      foreign_buffer_exports=(), capture_buffers=False):
@@ -84,7 +151,9 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         reject("E_HIA_BUFFER_CAPTURE", "buffer capture requires one owned synchronous invocation")
     artifact_hash = sha256(artifact_bytes).hexdigest()
     started = time.monotonic_ns()
-    from .hia_native_helpers import pinned_owned_reference_executable, pinned_reference_executable
+    from .hia_native_helpers import (
+        pinned_direct_call_executable, pinned_owned_reference_executable, pinned_reference_executable,
+    )
     from .hia_scalar_reference_native import sealed_reference_bytes, selected_scalar_reference
     reference_evaluator = selected_scalar_reference() if _mode == "reference" else None
     executables = []
@@ -93,14 +162,17 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             ('reference_executable', 'reference_standalone_calls', pinned_reference_executable()),
             ('owned_reference_executable', 'owned_reference_standalone_calls', pinned_owned_reference_executable()),
         )
+    direct_call = (pinned_direct_call_executable()
+                   if _mode == 'native' and len(cases) == 1 and warmup == 0 and repetitions == 1 else None)
     has_reference_child = any(executable is not None for _, _, executable in executables)
     with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
           ExitStack() as custody):
         artifact = Path(directory) / "program.so"
-        with artifact.open("xb") as stream:
-            stream.write(artifact_bytes)
-        artifact.chmod(0o400)
-        snapshot_files = []
+        if direct_call is None:
+            with artifact.open("xb") as stream:
+                stream.write(artifact_bytes)
+            artifact.chmod(0o400)
+        snapshot_files, initial_digests = [], {}
         for index, case in enumerate(cases):
             files = []
             if _mode == "native":
@@ -108,6 +180,8 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                     if typ not in LOANS:
                         continue
                     data = buffer_bytes(value)
+                    if direct_call is not None and typ == 'readbuf':
+                        initial_digests[argument] = sha256(data).hexdigest()
                     path = Path(directory) / ("buffer-" + str(index) + "-" + str(argument))
                     with path.open("xb") as stream:
                         stream.write(data if data else b"\0")
@@ -131,10 +205,16 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             fd = custody.enter_context(sealed_reference_bytes(executable_bytes))
             request[name] = {"fd": fd, "sha256": digest}
             process_options["pass_fds"] += (fd,)
-        payload = wire(request)
-        parent_pid = os.getpid()
-        proc = subprocess.Popen([sys.executable, "-B", "-E", "-s", "-m", "hepta.hia_agent_runner",
-            str(parent_pid), str(memory_bytes), str(max(1, math.ceil(timeout_ms / 1000)))],
+        cpu_seconds = max(1, math.ceil(timeout_ms / 1000))
+        if direct_call is not None:
+            signature = signatures[cases[0]['function']]
+            command, payload, process_options = _direct_call_transport(signature, cases[0], snapshot_files[0],
+                artifact_bytes, direct_call[0], custody, memory_bytes, cpu_seconds)
+        else:
+            payload = wire(request)
+            command = [sys.executable, "-B", "-E", "-s", "-m", "hepta.hia_agent_runner",
+                       str(os.getpid()), str(memory_bytes), str(cpu_seconds)]
+        proc = subprocess.Popen(command,
             cwd=Path(__file__).resolve().parent.parent, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, **process_options)
         timed_out = False
@@ -188,7 +268,12 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         status = "faulted"
     else:
         try:
-            report = json.loads(stdout)
+            if direct_call is not None:
+                external = [(row, row['sha256'] == initial_digests.get(row['argument']))
+                            for row in snapshots[0]['buffers']]
+                report = _direct_call_report(stdout, signature, cases[0], external, artifact_hash, direct_call[1])
+            else:
+                report = json.loads(stdout)
             if (type(report) is not dict or report.get("schema") != "hepta.hia.agent." + _mode + "-observation.v1"
                     or report.get("artifact_sha256") != artifact_hash
                     or report.get("planned_cases") != len(cases)
@@ -222,6 +307,8 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             "wall_ns": str(time.monotonic_ns() - started), "returncode": proc.returncode,
             "stdout_sha256": sha256(stdout).hexdigest(), "stderr_sha256": sha256(stderr).hexdigest(),
             "report": report}
+    if direct_call is not None:
+        result['direct_call_executable_sha256'] = direct_call[1]
     if any(snapshot["buffers"] for snapshot in snapshots):
         result["buffer_snapshots"] = snapshots
     if capture_buffers:

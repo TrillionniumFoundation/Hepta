@@ -1433,6 +1433,15 @@ class HIAAgentService:
             ratio, outcome = self._reference_evaluation_measurement(before, after, threshold,
                 budget_exceeded=budget_exceeded, correct=correct, complete=complete,
                 latency=latency, trapping=bool(trapping))
+        measurement_scope = ("same host and immutable workload, baseline then candidate; call latency includes ctypes FFI "
+                             "overhead; snapshot reset/hash outside call timing is included in subprocess wall cost")
+        if any(run['normal'] and run['normal'].get('direct_call_executable_sha256') for run in runs.values()):
+            measurement_scope = ("same host and immutable workload, baseline then candidate; "
+                                 "snapshot reset/hash outside call timing is included in subprocess wall cost")
+            scopes = {run["normal"]["report"]["timing_scope"] for run in runs.values()
+                      if run["normal"] and run["normal"]["report"] is not None}
+            if scopes:
+                measurement_scope += "; " + "; ".join(sorted(scopes))
         measurements = self.store.json({"schema": "hepta.hia.agent.measurements.v1", "context": args["context"],
             "workload": context["workload"], "objective": context["objective"],
             "baseline_artifact": args["baseline_artifact"], "candidate_artifact": args["candidate_artifact"],
@@ -1442,7 +1451,7 @@ class HIAAgentService:
             "reference_runs": references,
             "native_correctness_scope": "frozen workload return/trap behavior and all external snapshot bytes; VM first-trap/resource observations recorded separately",
             "universal_equivalence_or_native_refinement_proved": False,
-            "measurement_scope": "same host and immutable workload, baseline then candidate; call latency includes ctypes FFI overhead; snapshot reset/hash outside call timing is included in subprocess wall cost",
+            "measurement_scope": measurement_scope,
             "outcome": outcome, "planned_workload_complete": complete}, "measurements")
         costs = self._cost_ledger(context, time.monotonic_ns() - started, native_ns)
         ledger = self.store.json(costs, "cost-ledger")

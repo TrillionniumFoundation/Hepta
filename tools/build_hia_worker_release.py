@@ -17,6 +17,7 @@ from hepta import hia_native_helpers as authority
 from hepta.hia_json_preflight_native import _source_resource_path
 from hepta.hia_worker_scheduling_bundle import FAMILIES
 from tools.bind_hia_worker_store import bind_worker_store
+from tools.build_hia_direct_call import build as build_direct_call
 from tools.build_hia_json_preflight import build as build_helper
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
@@ -120,9 +121,14 @@ def build(output, compiler, cold_report, package, package_sha256):
             build_owned_reference_executable(scratch / 'owned-reference-cli', compiler, cold_report),
             output / 'reference' / 'hia-owned-reference-wire')
         owned_reference.chmod(0o500)
+        direct_call = _copy_runtime_file(
+            build_direct_call(scratch / 'direct-call', compiler, cold_report),
+            output / 'reference' / 'hia-direct-call')
+        direct_call.chmod(0o500)
         profile = output / 'worker.json'
         pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True,
-                                reference_executable=reference, owned_reference_executable=owned_reference)
+                                reference_executable=reference, owned_reference_executable=owned_reference,
+                                direct_call_executable=direct_call)
     profile.chmod(0o400)
     with authority.native_helpers_scope(str(profile), pin) as binding:
         binding.check()
