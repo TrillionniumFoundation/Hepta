@@ -343,6 +343,81 @@ class NativeSQLiteComponents(unittest.TestCase):
         project(extra_schema, expected_status=65)
         project(full, trailing=b'x', expected_status=64)
 
+    def test_native_migration_stream_keeps_the_source_locked(self):
+        if self.root is None or NativePagerArgv.executable is None:
+            self.skipTest('run with the installed native Pager and migration projector')
+        from hepta.hia_agent_store import AgentStore
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            store = AgentStore(Path(temporary) / 'agent')
+            database = store.database
+            store.db.execute("INSERT INTO costs VALUES (7,NULL,'hia_artifact','held','1','completed','{}')")
+            profile = 35302 if sqlite3.sqlite_version_info[:2] == (3, 53) else 34600
+            args = [NativePagerArgv.executable, database.parent, database.name]
+            event = NativePagerArgv.event
+            dump = event(9, 17)
+            begin = event(1, profile)
+            try:
+                for refused, expected_prefix in ((dump, 0), (begin + dump, 1152),
+                                                 (event(1, profile, begin_mode=1) + event(9), 1152)):
+                    result = NativePagerArgv.run_pager(args, refused)
+                    self.assertEqual((result.returncode, len(result.stdout)), (65, expected_prefix))
+                live = self.run_migration_stream(args, database, event(1, profile, begin_mode=1), dump)
+            finally:
+                store.close()
+            self.assertFalse(database.with_name(database.name + '-wal').exists())
+            checkpointed = self.run_migration_stream(args, database, event(1, profile, begin_mode=2), dump)
+            self.assertEqual(live, checkpointed)
+
+    def run_migration_stream(self, args, database, begin, dump):
+        with tempfile.TemporaryFile(dir=self.test_root) as audit, subprocess.Popen(
+            args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env={'PATH': ''},
+        ) as pager, ThreadPoolExecutor(max_workers=1) as pool:
+            def drain_audit():
+                # Keep the mandatory audit pipe flowing without buffering the complete trace in RAM.
+                while chunk := pager.stderr.read(1 << 20):
+                    audit.write(chunk)
+
+            pending = pool.submit(drain_audit)
+            try:
+                pager.stdin.write(begin)
+                pager.stdin.flush()
+                ready = read_exact(pager.stdout, 1152)
+                fields = EVENT.unpack_from(ready)
+                self.assertEqual(fields[3], 128)
+                size, count = fields[9:11]
+                with closing(sqlite3.connect(database, timeout=0, isolation_level=None)) as writer:
+                    pager.stdin.write(dump)
+                    pager.stdin.flush()
+                    header = read_exact(pager.stdout, 64)
+                    self.assertEqual(struct.unpack('<Q8s3Q24s', header),
+                                     (56 + size * count, b'HIASMIG1', 17, count, size, ready[416:440]))
+                    raw = read_exact(pager.stdout, size * count)
+                    if fields[8] & 128:
+                        self.assertEqual(raw, database.read_bytes())
+                    result = subprocess.run([self.root / 'hia-sqlite-migration-projection'],
+                                            input=header + raw, capture_output=True,
+                                            env={'PATH': ''}, timeout=15, check=False)
+                    self.assertEqual((result.returncode, result.stderr), (0, b''))
+                    self.assertEqual(struct.unpack_from('<8s3Q', result.stdout, 32),
+                                     (b'HIASQB01', 1, 17, 1))
+                    with self.assertRaises(sqlite3.OperationalError) as refused:
+                        writer.execute('BEGIN IMMEDIATE')
+                    self.assertEqual(refused.exception.sqlite_errorcode, sqlite3.SQLITE_BUSY)
+                    pager.stdin.write(NativePagerArgv.event(4))
+                    pager.stdin.flush()
+                    self.assertEqual(NativePagerArgv.take_reply(pager)[3], 130)
+                    self.assertEqual(pager.wait(timeout=3), 0)
+                    writer.execute('BEGIN IMMEDIATE')
+                    writer.execute('ROLLBACK')
+                pending.result(timeout=3)
+                self.assertGreater(audit.tell(), len(raw))
+                return result.stdout
+            finally:
+                if pager.poll() is None:
+                    pager.kill()
+                    pager.wait(timeout=3)
+
     def test_catalog_continues_in_one_installed_process(self):
         if self.root is None:
             self.skipTest('run with the cold-built native SQLite components')

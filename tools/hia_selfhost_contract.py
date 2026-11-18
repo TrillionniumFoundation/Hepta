@@ -66,6 +66,8 @@ SQLITE_SNAPSHOT_SDIST_FILES = (
     'tools/hia_sqlite_pager_image.S',
     'docs/HIA_SQLITE_SNAPSHOT_NATIVE.md',
     'examples/hia_bootstrap/sqlite_pager_retained.hepta',
+    'examples/hia_bootstrap/sqlite_pager_stream.hepta',
+    'tools/generate_hia_sqlite_pager_stream.py',
     'examples/hia_bootstrap/sqlite_pager_elf_linker.hepta',
     'examples/hia_bootstrap/sqlite_wal_snapshot.hepta',
     'examples/hia_bootstrap/sqlite_rowid_lookup.hepta',

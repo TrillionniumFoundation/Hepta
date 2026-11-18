@@ -21,6 +21,7 @@ from tools.qualify_hia_selfhost import compile_stage
 
 
 PAGER = 'examples/hia_bootstrap/sqlite_pager_retained.hepta'
+STREAM = 'examples/hia_bootstrap/sqlite_pager_stream.hepta'
 LINKER = 'examples/hia_bootstrap/sqlite_pager_elf_linker.hepta'
 ADAPTERS = ('tools/hia_sqlite_pager_start.S', 'tools/hia_sqlite_pager_os.S',
             'tools/hia_sqlite_pager_image.S')
@@ -112,23 +113,28 @@ def link(directory, linker, pager, objects, *, wire_magic=b'HIAPGLK2'):
 def build(output, compiler, cold_report):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
-    sources = {name: (ROOT / name).read_bytes() for name in (PAGER, LINKER, *ADAPTERS, DRIVER)}
+    sources = {name: (ROOT / name).read_bytes() for name in (PAGER, STREAM, LINKER, *ADAPTERS, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('Pager build source differs from admitted cold source')
     output.mkdir(mode=0o700)
     pager_path, pager_receipt = compile_stage(output, 'pager', compiler, sources[PAGER])
+    stream_path, stream_receipt = compile_stage(output, 'stream', compiler, sources[STREAM])
     linker_path, linker_receipt = compile_stage(output, 'linker', compiler, sources[LINKER])
-    pager, linker = pager_path.read_bytes(), linker_path.read_bytes()
-    if digest(pager) != pager_receipt['produced_sha256'] or digest(linker) != linker_receipt['produced_sha256']:
-        raise ValueError('compiled Pager or linker image drift')
+    pager, stream, linker = pager_path.read_bytes(), stream_path.read_bytes(), linker_path.read_bytes()
+    for image, receipt in ((pager, pager_receipt), (stream, stream_receipt), (linker, linker_receipt)):
+        if digest(image) != receipt['produced_sha256']:
+            raise ValueError('compiled Pager, migration stream or linker image drift')
     write_new(output / 'pager_read_owner.image.bin', pager)
+    write_new(output / 'pager_migration_stream.image.bin', stream)
     objects = [assemble(output, name, sources[name]) for name in ADAPTERS]
-    if (output / 'pager_read_owner.image.bin').read_bytes() != pager:
-        raise ValueError('Pager wrapper image changed during assembly')
+    for name, image in (('pager_read_owner', pager), ('pager_migration_stream', stream)):
+        if (output / (name + '.image.bin')).read_bytes() != image:
+            raise ValueError('Pager wrapper image changed during assembly')
     binary, link_receipt = link(output, linker, pager, objects)
+    verify_executable(binary, stream)
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes or pager_path.read_bytes() != pager
-            or linker_path.read_bytes() != linker
+            or linker_path.read_bytes() != linker or stream_path.read_bytes() != stream
             or any((output / Path(name).name).read_bytes() != sources[name] for name in ADAPTERS)):
         raise ValueError('Pager build inputs changed during assembly or linking')
     executable = output / 'hia-sqlite-pager'

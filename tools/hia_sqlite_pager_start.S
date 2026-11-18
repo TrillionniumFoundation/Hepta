@@ -1,7 +1,8 @@
 /* Fixed standalone native custodian for the retained Pager.
  *
  * fd0: 128-byte client command frames; fd1: result128 + diagnostic1024 +
- * PAGE bytes for129 or the HIA-admitted retained span for134.
+ * PAGE bytes for129, a HIA-admitted retained span for134, or the native
+ * length-prefixed snapshot commanded by event9 (between two replies).
  * fd3: inherited held directory. fd4: mandatory
  * lossless audit pipe, drained by the custodian. argv[1]: DB basename.
  * Direct argv mode accepts a directory and the basename; stderr is the
@@ -24,6 +25,7 @@
 .equ W,143360
 .equ CTX,290816
 .equ DR,294912
+.equ STREAM,295680
 .equ MAPSIZE,299008
 .equ EVENT_MAGIC,0x3256454750414948
 .equ CONTEXT_MAGIC,0x32585443534f4750
@@ -182,7 +184,10 @@ client_read:
  cmp rax,7
  je client_kind_ok
  cmp rax,8
- jne driver_protocol_exit
+ je client_kind_ok
+ cmp rax,9
+ je stream_control
+ jmp driver_protocol_exit
 client_kind_ok:
  cmp QWORD PTR [rbp+W],0
  jne kernel_loop
@@ -332,13 +337,41 @@ ready_result:
  cmp QWORD PTR [rbp+DR+16],0
  je publish_ready
  mov QWORD PTR [rbp+DR+16],0
+ cmp QWORD PTR [rbp+STREAM+64],0
+ jne stream_control
  jmp client_next
 publish_ready:
  call publish_result
  jmp client_next
 
+stream_control:
+ lea rdi,[rbp+W]
+ mov esi,147456
+ lea rdx,[rbp+EV]
+ mov ecx,128
+ lea r8,[rbp+STREAM]
+ mov r9d,72
+ call pager_stream_entry
+ test eax,eax
+ jz client_next
+ cmp eax,2
+ je stream_page
+ cmp eax,1
+ jne driver_protocol_exit
+ mov edi,1
+ lea rsi,[rbp+STREAM]
+ mov edx,64
+ call write_exact
+ jmp stream_control
+stream_page:
+ mov r12d,128
+ jmp kernel_loop
+
 page_result:
+ cmp QWORD PTR [rbp+STREAM+64],0
+ jne publish_page_bytes
  call publish_result
+publish_page_bytes:
  mov edi,1
  lea rsi,[rbp+W+4096]
  mov rdx,[rbp+W+128]
@@ -373,11 +406,17 @@ closed_result:
  xor edi,edi
  jmp driver_exit
 failed_result:
+ cmp QWORD PTR [rbp+STREAM+64],0
+ jne stream_failed
  call publish_result
+stream_failed:
  mov edi,1
  jmp driver_exit
 owned_failure_result:
+ cmp QWORD PTR [rbp+STREAM+64],0
+ jne stream_owned_failure
  call publish_result
+stream_owned_failure:
  /* HIA did not report resource release. Kernel process termination is a
   * separate observable custody event, never a rewritten CLOSED success. */
  mov edi,2
@@ -488,4 +527,10 @@ driver_exit:
  syscall
  ud2
 .size _start,.-_start
+
+.balign 16
+.type pager_stream_entry,@function
+pager_stream_entry:
+.incbin "pager_migration_stream.image.bin"
+.size pager_stream_entry,.-pager_stream_entry
 .section .note.GNU-stack,"",@progbits

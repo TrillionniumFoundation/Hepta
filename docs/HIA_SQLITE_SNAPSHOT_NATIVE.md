@@ -401,6 +401,23 @@ This mode never starts WAL or
 recovery, creates a sidecar, or falls back to another source/mode. The caller
 must select the migration profile matching the source.
 
+After a migration BEGIN (mode 1 or 2) reaches READY, command 9 exports a
+length-prefixed `HIASMIG1` frame for `hia-sqlite-migration-projection`.
+Place a nonzero migration transaction number at byte 64 of the command.
+Leave all other argument and reserved words zero and use the held nonce.
+No ordinary PAGE reply is interleaved with the snapshot: the HIA stream
+owner emits the length, transaction, geometry, snapshot identity, and the
+logical pages in ascending page order. The adapter still emits each
+underlying page operation and result to the required raw audit pipe.
+An ordinary unlocked BEGIN cannot export this stream. An invalid command,
+parked page, unsupported geometry, or I/O failure yields a nonzero status;
+discard a short stream. The frame is limited to 256 MiB of page bytes.
+
+Keep the Pager and its command input open while consuming the stream and
+committing the staged Store. Send END and check its CLOSED response after
+durable commit. Reading the complete stream does not release the source
+lock, copy any artifacts, or activate the new Store.
+
 ## Committing a proposal to a staged HIA Store
 
 The source-bound Agent batch commit executable stages a transaction from an
