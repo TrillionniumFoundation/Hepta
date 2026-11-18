@@ -13,7 +13,7 @@ import tempfile
 import unittest
 
 from tools.generate_hia_core_admission_cli import (
-    MAGIC, NORMALIZE_MAGIC, STATE_BYTES, ARENA_BYTES, NORMALIZE_OUTPUT_BYTES, document,
+    INSPECT_MAGIC, MAGIC, NORMALIZE_MAGIC, STATE_BYTES, ARENA_BYTES, NORMALIZE_OUTPUT_BYTES, document,
 )
 from tools.build_hia_core_admission_cli import SOURCE, PACKER, build
 from tests.test_hia_core_admission_native import VALID, borrowed_owner, interpreted, wire
@@ -76,6 +76,26 @@ class CoreAdmissionCliSourceTests(unittest.TestCase):
                         request + b'x', frame(first)):
             self.assertEqual(vm_run(packer, invalid, 4096, 1), (0xffffffff, b'\xa5' * 4096))
         self.assertEqual(vm_run(packer, request, 64, 1), (0xfffffffe, b'\xa5' * 64))
+
+
+    def test_inspection_formatter_and_packer_have_independent_HIA_sources(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from hepta.hia_program_tools import inspect_program
+        from tools.generate_hia_core_inspect_json import document as inspection_doc, source_program
+
+        formatter = SOURCE.with_name('core_inspect_json.hepta')
+        packer = SOURCE.with_name('core_inspect_cli_packer.hepta')
+        self.assertEqual(packer.read_text(), render_assembly(document(inspect=True)))
+        self.assertEqual(formatter.read_text(), render_assembly(
+            inspection_doc(source_program(), 'core_inspect_json')))
+        request = struct.pack('<3Q', INSPECT_MAGIC, 3, 3) + b'\x31\xc0\xc3' * 2
+        size, elf = vm_run(packer, request, 4096, 1)
+        self.assertEqual(size, len(elf))
+        self.assertTrue(elf.endswith(request[24:]))
+        expected = (json.dumps(inspect_program(VALID), sort_keys=True,
+                               ensure_ascii=False, indent=2) + '\n').encode()
+        raw = b' ' + wire(VALID).replace(b'"module"', b'"m\\u006fdule"') + b'\n'
+        self.assertEqual(vm_run(formatter, raw, 16384, 65536), (len(expected), expected))
 
 
 class CoreAdmissionCliNativeTests(unittest.TestCase):
@@ -231,26 +251,34 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
             build(output, self.compiler, wrong)
         self.assertFalse(output.exists())
 
+    def formatted_cli(self, action, formatter, magic):
+        from tools.qualify_hia_selfhost import compile_stage, invoke
+
+        folder = self.folder/action
+        if self.cold:
+            return build(folder, self.compiler, self.cold,
+                         normalize=action=='normalize', inspect=action=='inspect')
+        folder.mkdir()
+        images = []
+        for name in (formatter, f'core_{action}_cli_packer'):
+            image, _ = compile_stage(folder, name, self.compiler, SOURCE.with_name(name+'.hepta').read_bytes())
+            images.append(image)
+        admission, rendered = self.admission.read_bytes(), images[0].read_bytes()
+        request = struct.pack('<3Q', magic, len(admission), len(rendered)) + admission + rendered
+        receipt, arena = invoke(folder, action + '-pack', images[1], request)
+        size = receipt['core_u32']
+        self.assertTrue(0 < size <= 1 << 20)
+        target = folder / ('hia-' + action + '-core')
+        target.write_bytes(arena[:size])
+        target.chmod(0o700)
+        return target
+
     def test_native_normalize_matches_hosted_output_after_full_admission(self):
         from hepta.hia_program import verify_program
         from hepta.hia_schema import PRIMITIVE_PROFILES
-        from tools.qualify_hia_selfhost import compile_stage, invoke
         from tools.qualify_hia_selfhost_cli import inspect_executable
 
-        if self.cold:
-            target = build(self.folder/'normalize', self.compiler, self.cold, normalize=True)
-        else:
-            images = []
-            for name in ('core_pretty_json', 'core_normalize_cli_packer'):
-                image, _ = compile_stage(self.folder, name, self.compiler, SOURCE.with_name(name+'.hepta').read_bytes())
-                images.append(image)
-            receipt, arena = invoke(self.folder,'normalize-pack',images[1],
-                                    normalize_frame(self.admission.read_bytes(),images[0].read_bytes()))
-            size = receipt['core_u32']
-            self.assertTrue(0 < size <= 1 << 20)
-            target = self.folder/'hia-normalize-core'
-            target.write_bytes(arena[:size])
-            target.chmod(0o700)
+        target = self.formatted_cli('normalize', 'core_pretty_json', NORMALIZE_MAGIC)
         copied=self.folder/'copied-normalize'
         shutil.copyfile(target,copied);copied.chmod(0o500)
         self.assertFalse(inspect_executable(copied.read_bytes())['dynamic_loader'])
@@ -279,3 +307,50 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
         run(padded)
         run(padded+b' ',3)
         run(wire(VALID),64,('unexpected',))
+
+
+    def test_native_inspect_matches_hosted_methods_and_canonical_identity(self):
+        from hepta.hia_program_tools import inspect_program
+        from hepta.hia_schema import PRIMITIVE_PROFILES
+        from tests.test_hia_program import b, f, i, ret
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+
+        target = self.formatted_cli('inspect', 'core_inspect_json', INSPECT_MAGIC)
+        copied = self.folder/'copied-inspect'
+        shutil.copyfile(target, copied)
+        copied.chmod(0o500)
+        self.assertFalse(inspect_executable(copied.read_bytes())['dynamic_loader'])
+
+        def run(raw):
+            expected = (json.dumps(inspect_program(raw), ensure_ascii=False,
+                                   indent=2, sort_keys=True) + '\n').encode()
+            result = subprocess.run([copied], input=raw, capture_output=True,
+                                    env={'PATH': '', 'HOME': '/nonexistent', 'LC_ALL': 'C'},
+                                    timeout=20, preexec_fn=self.limits)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (0, expected, b''))
+
+        first = f('zulu', [('a', 'u64')], ['u64'], [], [
+            b('entry', [('a', 'u64')], [
+                i('const', [], [('zero', 'u64')], value=0),
+                i('int.add.wrap', ['a', 'zero'], [('sum', 'u64')])], ret('sum'))])
+        seconds = f('alpha', [('owner', 'readbuf')], [], ['read'], [
+            b('entry', [('owner', 'readbuf')], [], ret())])
+        public = f('bravo', [], [], [], [b('entry', [], [], ret())])
+        for schema in PRIMITIVE_PROFILES:
+            fixture = {**VALID, 'schema': schema, 'functions': [first, seconds, public]}
+            raw = json.dumps(fixture, ensure_ascii=False, indent=4).encode()
+            with self.subTest(schema=schema):
+                run(raw.replace(b'"module"',b'"m\\u006fdule"',1).replace(b'"value": 0',b'"value": -0',1))
+        fixture['exports'] = ['zulu', 'bravo']
+        run(wire(fixture))
+        loan = f('identity', [('source', 'readbuf')], ['readbuf'], [], [
+            b('entry', [('source', 'readbuf')], [], ret('source'))])
+        loan['return_loans'] = ['source']
+        run(wire({**VALID, 'functions': [loan]}))
+        maximal = {**VALID, 'functions': [{**VALID['functions'][0], 'name': f'f{i}'}
+                                         for i in range(1024, 0, -1)]}
+        run(wire(maximal))
+        run(wire(VALID).ljust(8 << 20, b' '))
+        for invalid in (b'', b'{"schema":0,"\\u0073chema":1}', wire(borrowed_owner())):
+            self.run_cli(invalid, 2, copied)
+        self.run_cli(wire(VALID).ljust((8 << 20) + 1, b' '), 3, copied)

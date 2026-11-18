@@ -10,6 +10,7 @@ from tools.generate_hia_native_filter import document as filter_document
 
 MAGIC = int.from_bytes(b'HIACV001', 'little')
 NORMALIZE_MAGIC = int.from_bytes(b'HIACN001', 'little')
+INSPECT_MAGIC = int.from_bytes(b'HIACI001', 'little')
 # Full Core maximum: 2^20 hash slots * 24, 4096 blocks * 40,
 # 262144 nodes * (112 capability-state + 8 live-index) and 128 header bytes.
 # No native compiler function/arity profile is substituted for Core admission.
@@ -19,9 +20,16 @@ ARENA_BYTES = 32 << 20
 # Two such lines per node plus colon space and final newline fit within 80 MiB
 # even when the original input occupies the full 8 MiB.
 NORMALIZE_OUTPUT_BYTES = 80 << 20
+# The inspect view adds at most one index per operation plus the additional
+# nesting of the report, and repeats at most 1024 exported identifiers.
+INSPECT_OUTPUT_BYTES = 96 << 20
 
 
-def document(*, normalize=False):
+def document(*, normalize=False, inspect=False):
+    if inspect:
+        return filter_document(output_bytes=INSPECT_OUTPUT_BYTES, workspace_bytes=ARENA_BYTES,
+                               magic=INSPECT_MAGIC, module='core_inspect_cli_packer',
+                               formatter=True)
     if normalize:
         return filter_document(output_bytes=NORMALIZE_OUTPUT_BYTES, workspace_bytes=ARENA_BYTES,
                                magic=NORMALIZE_MAGIC, module='core_normalize_cli_packer',
@@ -32,7 +40,9 @@ def document(*, normalize=False):
 
 if __name__ == '__main__':
     folder = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap'
-    for name, normalize in (('core_admission_cli_packer', False), ('core_normalize_cli_packer', True)):
+    for name, options in (('core_admission_cli_packer', {}),
+                          ('core_normalize_cli_packer', {'normalize': True}),
+                          ('core_inspect_cli_packer', {'inspect': True})):
         path = folder / f'{name}.hepta'
-        path.write_text(render_assembly(document(normalize=normalize)))
+        path.write_text(render_assembly(document(**options)))
         print(path.name, path.stat().st_size)

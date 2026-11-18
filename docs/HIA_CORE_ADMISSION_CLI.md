@@ -1,4 +1,4 @@
-# Standalone native primitive Core checker and normalizer
+# Standalone native primitive Core checker, normalizer and inspector
 
 The explicit `tools.build_hia_core_admission_cli` builder emits a standalone
 Linux x86-64 ELF executable named `hia-verify-core`. Feed one raw primitive
@@ -41,6 +41,22 @@ normalizer retains the same source limits and exit categories. Its 80 MiB
 output/scratch mapping allows for formatting expansion; refusals write no
 stdout. A descriptor error during output can leave a prefix on stdout and
 exits 4. Stdout is not atomic publication.
+
+## Inspect admitted primitive Core
+
+```sh
+python -B -m tools.build_hia_core_admission_cli --inspect \
+  --compiler "$compiler" --cold-report "$cold_report" --output /private/new-inspector
+/private/new-inspector/hia-inspect-core < primitive-core.json
+```
+
+The inspector runs the same complete semantic admission before producing the
+primitive `hia inspect` view: function interfaces, blocks, operation indices,
+the public scalar entrypoints, and v8 returned-loan declarations. HIA computes
+SHA-256 over the canonical input, not the whitespace or field ordering supplied
+on stdin. It emits sorted, two-space-indented JSON and uses the original input
+limit and exit categories. This version does not normalize composite input or
+change the default hosted CLI.
 
 ## Full profile and remaining work
 
