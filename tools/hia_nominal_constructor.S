@@ -74,6 +74,7 @@
 .equ PRESENTATION_VERIFY, 0x3154505243414948
 .equ PRESENTATION_SCHEMA, 0x313043534f414948
 .equ PRESENTATION_ASSEMBLY_SCHEMA, 0x323043534f414948
+.equ PRESENTATION_DRIVER_ERROR, 0x313052444f414948
 .equ RENDER_ASSEMBLY, 11
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
@@ -1403,8 +1404,33 @@ present_core:
  jmp exit
 
 assembly_profile_refused:
- lea rsi,[rip+assembly_profile_report]
- mov edx,assembly_profile_report_end-assembly_profile_report
+ xor eax,eax
+ jmp public_driver_refusal
+
+public_driver_refusal:
+ mov [rip+driver_status],eax
+ cmp QWORD PTR [rip+presentation_output],0
+ jne driver_work
+ region PRESENTATION_BYTES, presentation_output
+driver_work:
+ lea rdi,[rip+verified_header]
+ xor esi,esi
+ mov rdx,[rip+presentation_output]
+ mov ecx,PRESENTATION_BYTES
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov rax,[rip+driver_status]
+ mov [r8+PUBLIC_CORE_ARENA-16],rax
+ mov rax,PRESENTATION_DRIVER_ERROR
+ mov [r8+PUBLIC_CORE_ARENA-8],rax
+ and rsp,-16
+ call public_presentation_start
+ test eax,eax
+ je io_failure
+ cmp eax,PRESENTATION_BYTES
+ ja io_failure
+ mov edx,eax
+ mov rsi,[rip+presentation_output]
  mov edi,1
  call write_exact
  mov edi,2
@@ -1658,6 +1684,17 @@ io_failure:
  mov edi,74
  jmp exit
 stdio_refusal:
+ cmp QWORD PTR [rip+handoff_role],6
+ jbe private_stdio_refusal
+ cmp edi,1
+ jne private_stdio_refusal
+ cmp eax,0xffffffff
+ je public_driver_refusal
+ cmp eax,0xfffffffe
+ je public_driver_refusal
+ cmp eax,0xfffffffc
+ je public_driver_refusal
+private_stdio_refusal:
  cmp eax,0xfffffffe
  je stdio_limit
  /* Raw byte limit is handled while reading. In post-elaboration stages
@@ -1705,11 +1742,6 @@ stdio_normalize: .asciz "hia-normalize-core"
 stdio_agent_admit: .asciz "hia-admit-agent-json"
 stdio_publish: .asciz "hia-publish-program"
 stdio_render: .asciz "hia-render-assembly"
-assembly_profile_report:
- .ascii "{\n  \"diagnostics\": [\n    {\n      \"code\": \"E_DRIVER\",\n"
- .ascii "      \"message\": \"E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8 Core; use the existing adapter first\",\n"
- .ascii "      \"phase\": \"driver\"\n    }\n  ],\n  \"ok\": false,\n  \"status\": \"error\"\n}\n"
-assembly_profile_report_end:
 .balign 16
 owner: .incbin "owner.image.bin"
 .balign 16
@@ -1749,6 +1781,7 @@ object_cursor: .skip 8
 outer_control: .skip 144
 input_profile: .skip 8
 legacy_assembly_profile: .skip 8
+driver_status: .skip 8
 original_canonical: .skip 8
 original_extent: .skip 8
 compact_core_extent: .skip 8

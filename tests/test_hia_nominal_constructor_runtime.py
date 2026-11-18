@@ -411,6 +411,42 @@ def check_ordinary(executable, run):
           f'({nominal} nominal), and three no-payload post-lowering refusals')
     check_publication(executable, programs, raw)
     check_render_assembly(executable, programs, raw)
+    check_core_ingress(executable)
+
+
+def check_core_ingress(executable):
+    from hepta.cli import _reference_hia_main
+
+    inputs = {
+        'malformed': b'{broken',
+        'empty': b'',
+        'invalid-utf8': b'\xff',
+        'isolated-surrogate': br'{"name":"\uD800"}',
+        'duplicate-key': br'{"x":1,"\u0078":2}',
+        'fraction': b'{"x":1.0}',
+        'depth-budget': b'[' * 66 + b'0' + b']' * 66,
+        'node-budget': b'[' + b'0,' * 262144 + b'0]',
+    }
+    with TemporaryDirectory(prefix='hia-cli-core-ingress-') as temporary:
+        root = Path(temporary)
+        output = root / 'new' / 'blocked.hepta'
+        for label, raw in inputs.items():
+            source = root / (label + '.hepta')
+            source.write_bytes(raw)
+            for action in ('verify', 'inspect', 'normalize', 'render-assembly'):
+                args = [action, str(source)]
+                if action in ('normalize', 'render-assembly'):
+                    args += ['-o', str(output)]
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    status = _reference_hia_main(args)
+                result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                        timeout=20, check=False)
+                assert (result.returncode, result.stdout, result.stderr) == (
+                    status, stdout.getvalue().encode(), b''), (label, action, result)
+                assert status == 2 and not output.parent.exists(), (label, action)
+            assert source.read_bytes() == raw
+    print(f'{len(inputs) * 4} byte-exact ordinary JSON ingress refusals without publication')
 
 
 def check_render_assembly(executable, programs, rejected):
