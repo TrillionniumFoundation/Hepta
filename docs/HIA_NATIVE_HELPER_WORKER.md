@@ -18,6 +18,25 @@ selected installation and terminal worker report include the optional
 `native_helpers_sha256` identity. An unselected installation retains its three
 existing identities. Native selection is not enabled by default.
 
+## Select the installed HIA Store through the same worker flags
+
+A v4 profile wraps an existing v1, v2 or v3 helper bundle and pins the three
+Store executables from one installed, sealed HIA release:
+
+```sh
+python -B -m tools.bind_hia_worker_store --base-bundle /path/to/helpers.json \
+  --release /path/to/installed/release --output /path/to/worker-store.json
+```
+
+Use the output path and SHA-256 as the worker's existing helper manifest and
+pin, or as the runtime provider's `native_helpers_manifest` and
+`native_helpers_sha256` configuration. The v4 profile cannot be combined with
+standalone Store override flags. It does not initialize or migrate state: point
+the worker at a separately initialized native state directory, not a directory
+containing the legacy SQLite database. The installation and terminal reports
+bind the top-level v4 SHA-256. The public service and the process owner remain
+hosted; only the selected parts run in HIA.
+
 ## Bundle format and executable custody
 
 ```json

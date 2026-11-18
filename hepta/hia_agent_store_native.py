@@ -18,6 +18,12 @@ from threading import RLock
 
 from .hia_native_helpers import _read
 
+RELEASE_IMAGES = (
+    ('hia-agent-store', 16 << 20),
+    ('hia-artifact', 1 << 20),
+    ('hia-agent-artifact-capture', 1 << 20),
+)
+
 _COLUMNS = {
     'artifacts': ('id', 'sha256', 'uri', 'kind', 'metadata', 'content_key'),
     'contexts': ('id', 'sha256', 'artifact', 'created_ns', 'attempts'),
@@ -224,6 +230,23 @@ def _sealed_image(code):
         os.close(fd)
 
 
+def release_identity(release):
+    info = release.lstat()
+    if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid()
+            or stat.S_IMODE(info.st_mode) != 0o500 or release.resolve() != release):
+        raise StoreProtocolError('native Store release must be an owned sealed directory')
+    return info.st_dev, info.st_ino, info.st_ctime_ns
+
+
+def capture_release_image(release, name, limit, digest):
+    captured = _read(release / name, limit)
+    code = captured.raw
+    if (sha256(code).hexdigest() != digest or len(code) < 176
+            or code[:7] != b'\x7fELF\x02\x01\x01' or struct.unpack_from('<2H', code, 16) != (2, 62)):
+        raise StoreProtocolError(f'native Store executable identity differs: {name}')
+    return captured
+
+
 class NativeStoreConnection:
     """A serialized connection to an explicitly installed, already initialized Store."""
 
@@ -231,15 +254,14 @@ class NativeStoreConnection:
         self.lock = lock if lock is not None else RLock()
         self.root = Path(state_root)
         self.release = Path(release).absolute()
-        info = self.release.lstat()
-        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid()
-                or stat.S_IMODE(info.st_mode) != 0o500 or self.release.resolve() != self.release):
-            raise StoreProtocolError('native Store release must be an owned sealed directory')
+        release_identity(self.release)
         # The module loader independently authenticates every module against this
         # pinned executable. It never interprets a path from a public request.
-        self.code = self._image('hia-agent-store', digest, 16 << 20)
-        self.artifact_code = self._image('hia-artifact', artifact_digest, 1 << 20)
-        self.capture_code = self._image('hia-agent-artifact-capture', capture_digest, 1 << 20)
+        pins = (digest, artifact_digest, capture_digest)
+        self.code, self.artifact_code, self.capture_code = (
+            capture_release_image(self.release, name, limit, pin).raw
+            for (name, limit), pin in zip(RELEASE_IMAGES, pins, strict=True)
+        )
         self.creator = os.getpid()
         self.namespace = self._namespace_files()
         self.process = None
@@ -248,13 +270,6 @@ class NativeStoreConnection:
         self.generation = None
         self.failed = False
         self.closed = False
-
-    def _image(self, name, digest, limit):
-        code = _read(self.release / name, limit).raw
-        if (sha256(code).hexdigest() != digest or len(code) < 176
-                or code[:7] != b'\x7fELF\x02\x01\x01' or struct.unpack_from('<2H', code, 16) != (2, 62)):
-            raise StoreProtocolError(f'native Store executable identity differs: {name}')
-        return code
 
     def _namespace_files(self):
         namespace = self.root / 'store'

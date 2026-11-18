@@ -345,6 +345,94 @@ assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
                 self.assertEqual(self.state(path), committed)
                 self.assertFalse((path / 'state.sqlite3').exists())
 
+    def test_public_worker_accepts_store_via_existing_helper_profile(self):
+        from hepta.hia_agent_store import wire
+        from hepta.hia_native_helpers import ABI, SCHEMA, TARGET
+        from tools.bind_hia_worker_store import bind_worker_store
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            path = Path(temporary)
+            helper = self.worker_request_manifest
+            base = path / 'helpers.json'
+            base.write_bytes(wire({'schema': SCHEMA, 'target': TARGET, 'abi': ABI,
+                'helpers': [{'selector': 'HEPTA_HIA_WORKER_REQUEST_MANIFEST',
+                             'manifest_path': str(helper),
+                             'manifest_sha256': sha256(helper.read_bytes()).hexdigest()}]}))
+            profile = path / 'worker-store.json'
+            pin = bind_worker_store(profile, base, self.module_root)
+            worker = [sys.executable, '-B', '-E', '-s', '-m', 'hepta.hia_agent_worker']
+
+            def invoke(flags, *, manifest=profile, profile_pin=pin, data=b''):
+                return subprocess.run([*worker, *flags, '--native-helpers-manifest', str(manifest),
+                                       '--expected-native-helpers-sha256', profile_pin],
+                                      input=data, capture_output=True, timeout=15, check=False)
+
+            manifest = invoke(['--installation-manifest'])
+            self.assertEqual((manifest.returncode, manifest.stderr), (0, b''))
+            pins = json.loads(manifest.stdout)
+            self.assertEqual(pins['native_helpers_sha256'], pin)
+
+            state, files = path / 'state', path / 'input'
+            state.mkdir(mode=0o700)
+            files.mkdir(mode=0o700)
+            self.run_native([self.initializer, state, 'store'])
+            before = self.state(state)
+            source = files / 'artifact'
+            source.write_bytes(b'original captured content')
+            digest = sha256(source.read_bytes()).hexdigest()
+            flags = ['--state-root', str(state), '--request-json-stdin', '--artifact-root', str(files)]
+            for role in ('worker', 'backend', 'catalog'):
+                flags.extend(('--expected-' + role + '-sha256', pins[role + '_sha256']))
+
+            def request(tool, arguments):
+                body = {'schema': 'hia-agent-worker-request-v1', 'tool': tool, 'arguments': arguments,
+                        'profile_sha256': 'a' * 64, 'catalog_sha256': pins['catalog_sha256']}
+                return wire({**body, 'request_sha256': sha256(wire(body)).hexdigest()})
+
+            discover = request('hia_describe', {'section': 'manifest'})
+            malformed = path / 'bad-store.json'
+            for field in ('base_bundle_sha256', 'store_sha256', 'artifact_sha256', 'capture_sha256'):
+                record = {**json.loads(profile.read_bytes()), field: '0' * 64}
+                malformed.write_bytes(wire(record))
+                bad_pin = sha256(malformed.read_bytes()).hexdigest()
+                result = invoke(flags, manifest=malformed, profile_pin=bad_pin, data=discover)
+                self.assertEqual((result.returncode, result.stdout), (2, b''), result.stderr)
+                self.assertEqual(self.state(state), before)
+            result = invoke(flags, profile_pin='0' * 64, data=discover)
+            self.assertEqual((result.returncode, result.stdout), (2, b''))
+
+            release, store_pin, artifact_pin, capture_pin = self.selection()
+            override = ['--native-store-release', str(release), '--expected-native-store-sha256', store_pin,
+                        '--expected-native-artifact-sha256', artifact_pin,
+                        '--expected-native-capture-sha256', capture_pin]
+            result = invoke([*flags, *override], data=discover)
+            self.assertEqual((result.returncode, result.stdout), (2, b''))
+            self.assertIn(b'only once', result.stderr)
+            self.assertEqual(self.state(state), before)
+
+            result = invoke(flags, data=discover)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            reply = json.loads(result.stdout)
+            self.assertEqual(reply['native_helpers_sha256'], pin)
+            description = reply['response']
+            self.assertEqual(description['status'], 'completed')
+            upload = request('hia_artifact', {'catalog_sha256': pins['catalog_sha256'],
+                'request_key': 'profile-capture', 'artifact_profile': description['result']['artifact_profiles'][0],
+                'source': {'kind': 'path', 'path': str(source), 'expected_sha256': digest, 'max_bytes': 4096}})
+            result = invoke(flags, data=upload)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            reply = json.loads(result.stdout)
+            self.assertEqual(reply['response']['status'], 'completed', reply)
+            self.assertEqual(reply['response']['result']['artifact']['sha256'], digest)
+            self.assertEqual((state / 'artifacts' / digest).read_bytes(), source.read_bytes())
+            source.write_bytes(b'changed on disk')
+            committed = self.state(state)
+            self.assertNotEqual(committed, before)
+            replay = invoke(flags, data=upload)
+            self.assertEqual((replay.returncode, replay.stdout, replay.stderr), (0, result.stdout, b''))
+            self.assertEqual(self.state(state), committed)
+            self.assertFalse((state / 'state.sqlite3').exists())
+
     def test_connection_cannot_move_to_replacement_namespace(self):
         from hepta.hia_agent_store import AgentStore
         from hepta.hia_agent_store_native import StoreProtocolError
@@ -380,6 +468,7 @@ def main():
         parser.add_argument('--' + option, type=Path, required=True)
     parser.add_argument('--batch', type=Path)
     parser.add_argument('--cost-sequence', type=Path)
+    parser.add_argument('--worker-request-manifest', type=Path)
     for key, value in vars(parser.parse_args()).items():
         setattr(NativeStoreArgv, key, value.resolve() if value is not None else None)
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(NativeStoreArgv)
@@ -389,6 +478,8 @@ def main():
             'test_public_worker_reopens_native_state_with_exact_replay',
             'test_connection_cannot_move_to_replacement_namespace',
         ))
+        if NativeStoreArgv.worker_request_manifest is not None:
+            suite.addTest(InstalledAgentStore('test_public_worker_accepts_store_via_existing_helper_profile'))
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 
 

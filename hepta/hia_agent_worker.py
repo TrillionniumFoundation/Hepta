@@ -39,7 +39,10 @@ def main(argv=None):
         parser.error("native Store requires the installed release directory and the three executable SHA-256 pins")
     from .hia_native_helpers import native_helpers_scope
     try:
-        with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256):
+        with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256) as binding:
+            args.pinned_native_store = getattr(binding, 'native_store', None)
+            if args.pinned_native_store is not None and args.native_store_release is not None:
+                raise ValueError('native Store must be selected only once')
             return _run(parser, args)
     except (ValueError, OSError, TypeError, OverflowError, RecursionError) as exc:
         # No authenticated envelope, or terminal rendering could not complete.
@@ -132,6 +135,9 @@ def _reference_run(parser, args):
 
 def _open_service(args, state_root, artifact_roots):
     from .hia_agent_service import HIAAgentService
+    selected = getattr(args, 'pinned_native_store', None)
+    if selected is not None:
+        return HIAAgentService(state_root, artifact_roots=artifact_roots, native_store=selected)
     release = getattr(args, "native_store_release", None)
     if release is None:
         return HIAAgentService(state_root, artifact_roots=artifact_roots)

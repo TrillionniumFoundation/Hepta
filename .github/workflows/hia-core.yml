@@ -482,6 +482,7 @@ jobs:
             --executable "$installed/hia-agent-store" --module-root "$installed" \
             --initializer "$installed/hia-agent-store-init" \
             --batch "$installed/hia-agent-batch-commit" \
+            --worker-request-manifest "$RUNNER_TEMP/worker-request/worker-request/manifest.json" \
             --cost-sequence "$installed/hia-sqlite-agent-cost-sequence" --test-root "$package"
           python -B -m tests.test_hia_sqlite_pager_runtime \
             --executable "$installed/hia-sqlite-pager" \

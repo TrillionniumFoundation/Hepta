@@ -103,6 +103,7 @@ NATIVE_LINKER_SDIST_FILES = (
 WORKER_REQUEST_SDIST_FILES = (
     'examples/hia_bootstrap/worker_request_filter_packer.hepta',
     'tools/build_hia_worker_request_cli.py',
+    'tools/bind_hia_worker_store.py',
 )
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,

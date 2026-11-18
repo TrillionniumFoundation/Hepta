@@ -131,8 +131,9 @@ def check_native_scheduling_scope(owner=None, *, engine=None, constructing=False
     registered worker-report/wire companions use their existing v2 custody.
     """
     _check_scope_owner()
+    scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
     bound = getattr(owner, '_worker_scheduling_binding', None)
-    if bound is not None and (bound is not _ACTIVE or _SCOPE_OWNER is None):
+    if bound is not None and (bound is not scheduling or _SCOPE_OWNER is None):
         raise ValueError('native scheduling owner belongs to its original worker scope')
     if _SCOPE_OWNER is not None:
         if constructing and _SCHEDULER_BUILD is not None:
@@ -140,8 +141,8 @@ def check_native_scheduling_scope(owner=None, *, engine=None, constructing=False
             binding.check_owner()
             if owner is selected and owner is not None:
                 return
-        if not constructing and _ACTIVE is not None:
-            check = getattr(_ACTIVE, 'check_scheduling', None)
+        if not constructing and scheduling is not None:
+            check = getattr(scheduling, 'check_scheduling', None)
             if check is not None and owner is not None:
                 check(owner, engine=engine, host_scheduler=host_scheduler,
                       observing=observing)
@@ -150,11 +151,12 @@ def check_native_scheduling_scope(owner=None, *, engine=None, constructing=False
 
 
 def pinned_scheduling(manifest_path, kind, namespace):
-    """Only the v3 administrator capsule registers these five fixed owners."""
+    """Only the v3 scheduling binding registers these five fixed owners."""
     _check_scope_owner()
     if _SCOPE_OWNER is None:
         return None
-    lookup = getattr(_ACTIVE, 'scheduling_owner', None)
+    scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    lookup = getattr(scheduling, 'scheduling_owner', None)
     if lookup is None:
         raise ValueError('native scheduling bundle is outside the pinned worker bundle')
     return lookup(manifest_path, kind, namespace)
@@ -262,6 +264,17 @@ class NativeHelpersBinding:
         self.check_files()
 
 
+def _base_binding(captured, expected_sha256, record):
+    schema = record.get('schema') if type(record) is dict else None
+    if schema == 'hepta.hia.native-helpers.v3':
+        from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
+        return NativeWorkerSchedulingBinding(captured, expected_sha256)
+    if schema == 'hepta.hia.native-helpers.v2':
+        from .hia_worker_bundle import NativeWorkerBundleBinding
+        return NativeWorkerBundleBinding(captured, expected_sha256)
+    return NativeHelpersBinding(str(captured.path), expected_sha256)
+
+
 @contextmanager
 def native_helpers_scope(path=None, expected_sha256=None):
     global _ACTIVE, _SCOPE_OWNER
@@ -286,14 +299,11 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':
-            from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
-            binding = NativeWorkerSchedulingBinding(captured, expected_sha256)
-        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v2':
-            from .hia_worker_bundle import NativeWorkerBundleBinding
-            binding = NativeWorkerBundleBinding(captured, expected_sha256)
+        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v4':
+            from .hia_worker_store_profile import NativeWorkerStoreBinding
+            binding = NativeWorkerStoreBinding(captured, expected_sha256, record)
         else:
-            binding = NativeHelpersBinding(path, expected_sha256)
+            binding = _base_binding(captured, expected_sha256, record)
         _ACTIVE = binding
         os.environ.update(binding.selections)
         binding.check()
