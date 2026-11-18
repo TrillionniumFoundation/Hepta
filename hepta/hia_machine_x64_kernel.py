@@ -45,6 +45,18 @@ class KernelCode(Code):
                   b"\x0f\x01" + bytes([0x98 | (reg & 7)]) +
                   (b"\x24" if reg & 7 == 4 else b"") + displacement)
 
+    def lgdt(self, base, disp=0):
+        """LGDT m80: encode a memory operand for a ten-byte GDTR image.
+
+        No CPL0 authority, GDT lifetime, interrupt exclusion, canonical
+        base or CPU-mode transition is established by this byte encoder.
+        """
+        reg = self._reg(base)
+        displacement = _s32(disp)
+        self.emit((b"\x41" if reg >= 8 else b"") +
+                  b"\x0f\x01" + bytes([0x90 | (reg & 7)]) +
+                  (b"\x24" if reg & 7 == 4 else b"") + displacement)
+
     def ltr(self, selector):
         """LTR r16 from the low 16 bits of a GPR; CPU validates selector/TSS."""
         reg = self._reg(selector)
