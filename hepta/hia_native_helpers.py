@@ -37,6 +37,8 @@ HELPERS = {
     "HEPTA_HIA_AGENT_SLICE_MANIFEST": ("hia_agent_slice_native", "NativeAgentSlice"),
     "HEPTA_HIA_AGENT_READ_PAGE_MANIFEST": ("hia_agent_read_page_native", "NativeAgentReadPage"),
     "HEPTA_HIA_AGENT_SCHEMA_MANIFEST": ("hia_agent_schema_native", "NativeAgentSchema"),
+    "HEPTA_HIA_AGENT_RESPONSE_SCHEMA_MANIFEST": ("hia_agent_response_schema_native", "NativeAgentSchema"),
+    "HEPTA_HIA_AGENT_VERIFY_RESPONSE_SCHEMA_MANIFEST": ("hia_agent_verify_response_schema_native", "NativeAgentSchema"),
     "HEPTA_HIA_JSON_PREFLIGHT_MANIFEST": ("hia_json_preflight_native", "NativeJsonPreflight"),
     "HEPTA_HIA_JSON_DECODE_MANIFEST": ("hia_json_decode_native", "NativeJsonDecoder"),
     "HEPTA_HIA_JSON_CANONICAL_MANIFEST": ("hia_json_canonical_native", "NativeJsonCanonicalizer"),

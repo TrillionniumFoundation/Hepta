@@ -1,4 +1,4 @@
-"""Specialize checked-in Agent input schemas into ordinary HIA Core."""
+"""Specialize checked-in Agent input and response schemas into HIA Core."""
 from __future__ import annotations
 
 import ast
@@ -14,6 +14,8 @@ from tools.generate_hia_worker_request import data_source, decimal_program
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / 'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json'
 SOURCE = ROOT / 'examples/hia_bootstrap/agent_schema.hepta'
+RESPONSE_SOURCE = SOURCE.with_name('agent_response_schema.hepta')
+VERIFY_RESPONSE_SOURCE = SOURCE.with_name('agent_verify_response_schema.hepta')
 END = 18446744073709551615
 TYPES = {'string': 4, 'array': 5, 'object': 6, 'null': 0}
 PATTERNS = {
@@ -25,7 +27,7 @@ PATTERNS = {
 KEYWORDS = frozenset(('$schema', 'description', 'title', 'type', 'properties', 'required',
                       'additionalProperties', 'minLength', 'maxLength', 'minimum', 'maximum',
                       'minItems', 'maxItems', 'items', 'contains', 'uniqueItems', 'pattern',
-                      'const', 'enum', 'oneOf', 'anyOf', 'allOf', 'if', 'then', 'else'))
+                      'const', 'enum', 'oneOf', 'anyOf', 'allOf', 'if', 'then', 'else', 'not'))
 
 ENTRY = r'''
 def agent_schema(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -212,10 +214,15 @@ class Catalog:
             if type(low) is not int or type(high) is not int or not 0 <= low <= high <= 1 << 30:
                 raise ValueError('unsupported numeric bounds')
             reject(f'integer_between(s, w, node, {low}, {high}) == 0')
+        elif kind == 'boolean':
+            add('kind = get(w, node)')
+            reject('kind != 1 and kind != 2')
         elif kind is not None:
             reject(f'get(w, node) != {TYPES[kind]}')
 
-        if 'const' in schema or 'enum' in schema:
+        if type(schema.get('const')) is bool:
+            reject(f'get(w, node) != {2 if schema["const"] else 1}')
+        elif 'const' in schema or 'enum' in schema:
             if 'const' in schema and 'enum' in schema:
                 raise ValueError('overlapping catalog literals')
             values = [schema['const']] if 'const' in schema else schema['enum']
@@ -231,6 +238,8 @@ class Catalog:
                 reject('matches != 1' if keyword == 'oneOf' else 'matches == 0')
         for sub in schema.get('allOf', ()):
             reject(f'{call(sub)} == 0')
+        if 'not' in schema:
+            reject(f'{call(schema["not"])} != 0')
         if 'if' in schema:
             if 'then' in schema:
                 reject(f'{call(schema["if"])} != 0 and {call(schema["then"])} == 0')
@@ -241,7 +250,7 @@ class Catalog:
         req = schema.get('required', [])
         extra = schema.get('additionalProperties', True)
         if properties or req or extra is False:
-            if type(extra) is not bool or not set(req) <= properties.keys():
+            if type(extra) is not bool:
                 raise ValueError('unsupported Agent property rules')
             scope = 1
             if kind != 'object':
@@ -253,15 +262,19 @@ class Catalog:
             add('record = 64 + item * 56', scope + 1)
             add('member = property_key(w, get(w, record + 40), get(w, record + 48))', scope + 1)
             must = 0
-            for position, (key, child) in enumerate(properties.items()):
+            members = tuple(dict.fromkeys((*properties, *req)))
+            for position, key in enumerate(members):
                 code = self.symbol(self.keys, key)
                 add(('if' if position == 0 else 'elif') + f' member == {code}:', scope + 1)
-                reject(call(child, 'record') + ' == 0', scope + 2)
+                if key in properties:
+                    reject(call(properties[key], 'record') + ' == 0', scope + 2)
+                elif extra is False:
+                    add('return 0', scope + 2)
                 if key in req:
                     bit = 1 << position
                     add(f'seen = seen | {bit}', scope + 2)
                     must |= bit
-            if not properties and extra is False:
+            if not members and extra is False:
                 add('return 0', scope + 1)
             elif extra is False:
                 add('else:', scope + 1)
@@ -323,12 +336,17 @@ class Catalog:
         return '\n'.join(lines) + '\n'
 
 
-def source_program(raw):
+def source_program(raw, *, profile='input'):
     value = json.loads(raw)
     catalog = Catalog()
-    roles = [catalog.add(tool['inputSchema']) for tool in value['tools']]
+    field = 'inputSchema' if profile == 'input' else 'outputSchema'
+    roles = []
+    for role, tool in enumerate(value['tools'], 1):
+        if profile != 'input' and (tool['name'] == 'hia_verify') != (profile == 'verify'):
+            continue
+        roles.append((role, catalog.add(tool[field])))
     dispatch = ['def dispatch_schema(s:readbuf, w:mutbuf, role:u64) -> u64:']
-    for role, name in enumerate(roles, 1):
+    for role, name in roles:
         dispatch += [f'    if role == {role}:', f'        return 1 - {name}(s, w, 64)']
     dispatch.append('    return 4294967293')
     uri = b'hia://artifacts/'
@@ -336,15 +354,20 @@ def source_program(raw):
     helpers = helpers.replace('URI_TAIL', str(int.from_bytes(uri[8:], 'little')))
     if max(catalog.symbols.values()) >= 64:
         raise ValueError('catalog enum exceeds uniqueness bitmap')
+    rules = [rule for _, rule in catalog.rules.values()]
+    numeric = any('integer_between(' in rule for rule in rules)
+    if not numeric:
+        helpers = helpers[:helpers.index('\ndef integer_between(')]
     return '\n'.join((ENTRY, '\n'.join(dispatch),
         table('pinned_catalog', [(1, sha256(raw).hexdigest())]),
         table('property_key', [(code, key) for key, code in catalog.keys.items()]),
         table('value_symbol', [(code, value) for value, code in catalog.symbols.items()]),
-        helpers, *(rule for _, rule in catalog.rules.values()), data_source(), decimal_program()))
+        helpers, *rules, data_source(), decimal_program() if numeric else ''))
 
 
-def document(raw=None):
-    nodes = ast.parse(source_program(CATALOG.read_bytes() if raw is None else raw)).body
+def document(raw=None, *, profile='input'):
+    nodes = ast.parse(source_program(CATALOG.read_bytes() if raw is None else raw,
+                                     profile=profile)).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}
@@ -356,9 +379,13 @@ def document(raw=None):
         functions.append({'name': names[node.name], 'params': [builder.param(p) for p in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'agent_schema',
+    module = {'input': SOURCE.stem, 'response': RESPONSE_SOURCE.stem,
+              'verify': VERIFY_RESPONSE_SOURCE.stem}[profile]
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
                                   'functions': functions})
 
 
 if __name__ == '__main__':
     SOURCE.write_text(render_assembly(document()))
+    RESPONSE_SOURCE.write_text(render_assembly(document(profile='response')))
+    VERIFY_RESPONSE_SOURCE.write_text(render_assembly(document(profile='verify')))

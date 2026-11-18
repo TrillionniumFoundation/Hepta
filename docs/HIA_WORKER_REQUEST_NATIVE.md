@@ -126,7 +126,7 @@ Only the process owner can attest the supplied source pins and service result.
 The renderer supplies no tool execution, service entry, journal access, or
 process authority. It is not selected by the current public Runtime worker.
 
-## Agent input schema selection
+## Agent schema selection
 
 Build the `agent-schema` candidate with `tools.build_hia_json_preflight` and
 select its manifest as `HEPTA_HIA_AGENT_SCHEMA_MANIFEST` or as that slot in
@@ -136,11 +136,19 @@ image binds the exact catalog SHA-256 and evaluates its type, field, range,
 string, array, union and conditional rules. A selected missing or mismatched
 image is not retried on the reference path.
 
-An admitted input does not run the hosted argument validator. Only a HIA
+Build and select `agent-response-schema` and `agent-verify-response-schema`
+with `HEPTA_HIA_AGENT_RESPONSE_SCHEMA_MANIFEST` and
+`HEPTA_HIA_AGENT_VERIFY_RESPONSE_SCHEMA_MANIFEST` for the complete set of
+output schemas. The latter is separate to retain the current compiler's
+module limits while covering the full verification proof response. These
+replace the shape check on completed responses (before any atomic effect
+commits) and on cached verification before replay. Authentication of
+proofs, journal policy and tool decisions do not become schema decisions.
+
+An admitted value does not run the hosted schema validator. Only a HIA
 refusal may invoke that validator to recover the existing field diagnostic;
-an unexpected hosted acceptance cannot authorize the input. Argument
-materialization, tool logic, output-schema checks and public activation are
-unchanged.
+an unexpected hosted acceptance cannot authorize the value. Argument
+materialization, tool logic and public activation are unchanged.
 
 ## Reproduction and evidence
 

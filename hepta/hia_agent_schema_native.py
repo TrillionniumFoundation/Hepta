@@ -26,7 +26,7 @@ class NativeAgentSchema(NativeHiaJsonImage):
         struct.pack_into('<Q64s', arena, 0, role, catalog_digest.encode('ascii'))
         result = self._entry(source, len(raw), parser, len(parser), arena, len(arena))
         if result not in (0, 1):
-            raise ValueError('native Agent input schema could not authenticate or decode input')
+            raise ValueError('native Agent schema could not authenticate or decode input')
         return result == 0
 
 

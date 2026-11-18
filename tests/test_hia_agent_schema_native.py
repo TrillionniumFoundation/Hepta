@@ -7,8 +7,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.hia_agent_contract import catalog, validate
+from hepta.hia_agent_contract import VERSION, catalog, validate
 from hepta.hia_agent_schema_native import SELECTOR, SOURCE, installed_agent_schema
+from hepta import hia_agent_response_schema_native as responses
+from hepta import hia_agent_verify_response_schema_native as proofs
 from hepta.hia_agent_service import HIAAgentService
 from hepta.hia_agent_store import AgentRejected
 
@@ -18,6 +20,8 @@ class AgentSchemaSourceTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly
         from tools.generate_hia_agent_schema import document
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
+        self.assertEqual(responses.SOURCE.read_text(), render_assembly(document(profile='response')))
+        self.assertEqual(proofs.SOURCE.read_text(), render_assembly(document(profile='verify')))
 
 
 class AgentSchemaNativeTests(unittest.TestCase):
@@ -118,16 +122,76 @@ class AgentSchemaNativeTests(unittest.TestCase):
                 service.close()
 
 
+class AgentResponseSchemaNativeTests(unittest.TestCase):
+    manifest = None
+    response_manifest = None
+    proof_manifest = None
+    test_root = None
+
+    def setUp(self):
+        if self.response_manifest is None or self.proof_manifest is None:
+            self.skipTest('provide both matching native response schema images')
+
+    def test_response_shape_and_rejected_proof_shape_match_catalog(self):
+        response = responses.installed_agent_response_schema(str(self.response_manifest))
+        proof = proofs.installed_agent_verify_response_schema(str(self.proof_manifest))
+        doc, pin = catalog()
+        rejected = {'contract_version': VERSION, 'request_id': 'test',
+                    'status': 'rejected', 'error': {
+                        'code': 'E_HIA_PROOF_SCOPE', 'phase': 'verification',
+                        'message': 'A declared proof obligation is missing',
+                        'retry_action': 'correct_input', 'details_artifact': None}}
+        for role, tool in enumerate(doc['tools'], 1):
+            checker = proof if tool['name'] == 'hia_verify' else response
+            schema = tool['outputSchema']
+            self.assertTrue(checker.accepts(rejected, role, pin))
+            for value in ([], dict(rejected, status='completed'),
+                          dict(rejected, result={}), dict(rejected, extra=1),
+                          dict(rejected, error=dict(rejected['error'], phase=False))):
+                with self.assertRaises(AgentRejected):
+                    validate(value, schema, 'result')
+                self.assertFalse(checker.accepts(value, role, pin))
+
+    def test_selected_service_uses_native_schemas_for_completed_result(self):
+        paths = {SELECTOR: str(self.manifest), responses.SELECTOR: str(self.response_manifest),
+                 proofs.SELECTOR: str(self.proof_manifest)}
+        with tempfile.TemporaryDirectory(dir=self.test_root) as root:
+            service = HIAAgentService(Path(root) / 'state')
+            try:
+                arguments = {'section': 'manifest'}
+                original = service.call('hia_describe', arguments)
+                self.assertEqual(original['status'], 'completed', original)
+                with (patch.dict('os.environ', paths),
+                      patch('hepta.hia_agent_service.validate',
+                            side_effect=AssertionError('hosted schema validator selected'))):
+                    self.assertEqual(service.call('hia_describe', arguments), original)
+                bad = dict(original, result=dict(original['result'], resources=False))
+                with self.assertRaises(AgentRejected) as expected:
+                    service._validate_tool_response('hia_describe', bad)
+                with patch.dict('os.environ', paths), self.assertRaises(AgentRejected) as actual:
+                    service._validate_tool_response('hia_describe', bad)
+                self.assertEqual(str(actual.exception), str(expected.exception))
+            finally:
+                service.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--test-root', type=Path, required=True)
+    parser.add_argument('--response-manifest', type=Path)
+    parser.add_argument('--proof-manifest', type=Path)
     args = parser.parse_args()
     AgentSchemaNativeTests.manifest = args.manifest.resolve()
     AgentSchemaNativeTests.test_root = args.test_root.resolve()
+    AgentResponseSchemaNativeTests.manifest = AgentSchemaNativeTests.manifest
+    AgentResponseSchemaNativeTests.response_manifest = args.response_manifest
+    AgentResponseSchemaNativeTests.proof_manifest = args.proof_manifest
+    AgentResponseSchemaNativeTests.test_root = AgentSchemaNativeTests.test_root
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite(loader.loadTestsFromTestCase(cls)
-                              for cls in (AgentSchemaSourceTests, AgentSchemaNativeTests))
+                              for cls in (AgentSchemaSourceTests, AgentSchemaNativeTests,
+                                          AgentResponseSchemaNativeTests))
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 
 

@@ -319,7 +319,7 @@ class HIAAgentService:
                     result = getattr(self, "_" + tool)(arguments)
                     response = {"contract_version": VERSION, "request_id": request_id,
                                 "status": "completed", "result": result}
-                    validate(response, self.tools[tool]["outputSchema"], "result")
+                    self._validate_tool_response(tool, response)
                     if reserved:
                         self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
                                               (wire(response).decode(), key))
@@ -328,7 +328,7 @@ class HIAAgentService:
                 result = getattr(self, "_" + tool)(arguments)
                 response = {"contract_version": VERSION, "request_id": request_id,
                             "status": "completed", "result": result}
-                validate(response, self.tools[tool]["outputSchema"], "result")
+                self._validate_tool_response(tool, response)
         except (ValueError, TypeError, OSError, OverflowError, RecursionError, self.store.database_error) as exc:
             response = self._error(request_id, exc)
         finally:
@@ -356,6 +356,23 @@ class HIAAgentService:
             # only to preserve the established human-readable field diagnostic.
             validate(arguments, schema)
             raise ValueError('native Agent input schema disagrees with the catalog')
+
+    def _validate_tool_response(self, tool, response, label='result'):
+        schema = self.tools[tool]['outputSchema']
+        selector = ('HEPTA_HIA_AGENT_VERIFY_RESPONSE_SCHEMA_MANIFEST' if tool == 'hia_verify'
+                    else 'HEPTA_HIA_AGENT_RESPONSE_SCHEMA_MANIFEST')
+        selected = os.environ.get(selector)
+        if not selected:
+            validate(response, schema, label)
+            return
+        if tool == 'hia_verify':
+            from .hia_agent_verify_response_schema_native import (
+                installed_agent_verify_response_schema as load)
+        else:
+            from .hia_agent_response_schema_native import installed_agent_response_schema as load
+        if not load(selected).accepts(response, self._tool_roles[tool], self.catalog_sha256):
+            validate(response, schema, label)
+            raise ValueError('native Agent output schema disagrees with the catalog')
 
     def _profile(self, ref, name):
         return self.store.check_profile(ref, self.profiles[name])
@@ -854,7 +871,7 @@ class HIAAgentService:
     def _replay_verification(self, response, arguments):
         """Observe an original result only if its complete scope remains valid."""
         try:
-            validate(response, self.tools["hia_verify"]["outputSchema"], "replayed verification")
+            self._validate_tool_response('hia_verify', response, 'replayed verification')
         except AgentRejected as exc:
             reject("E_HIA_PROOF_SCOPE", "cached proof lacks current scope; rerun verification with a fresh request key: " + str(exc), "verification")
         if installation_manifest() != self.identities:

@@ -390,7 +390,7 @@ def call_with_native_journal(service, tool, arguments, manifest):
                     result = getattr(service, '_' + tool)(arguments)
                     response = {'contract_version': hosted.VERSION, 'request_id': request_id,
                                 'status': 'completed', 'result': result}
-                    hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
+                    service._validate_tool_response(tool, response)
                     instruction = native_step(session.inline, response)
                     if instruction.action == JOURNAL:
                         service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
@@ -407,7 +407,7 @@ def call_with_native_journal(service, tool, arguments, manifest):
             result = getattr(service, '_' + tool)(arguments)
             response = {'contract_version': hosted.VERSION, 'request_id': request_id,
                         'status': 'completed', 'result': result}
-            hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
+            service._validate_tool_response(tool, response)
     except domain_errors as exc:
         try:
             response = service._error(request_id, exc)

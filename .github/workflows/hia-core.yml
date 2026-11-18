@@ -545,8 +545,15 @@ jobs:
           python -B -m tools.build_hia_json_preflight --candidate agent-schema \
             --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --output "$RUNNER_TEMP/agent-schema"
+          for profile in agent-response-schema agent-verify-response-schema; do
+            python -B -m tools.build_hia_json_preflight --candidate "$profile" \
+              --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
+              --output "$RUNNER_TEMP/$profile"
+          done
           python -B -m tests.test_hia_agent_schema_native \
-            --manifest "$RUNNER_TEMP/agent-schema/manifest.json" --test-root "$RUNNER_TEMP"
+            --manifest "$RUNNER_TEMP/agent-schema/manifest.json" --test-root "$RUNNER_TEMP" \
+            --response-manifest "$RUNNER_TEMP/agent-response-schema/manifest.json" \
+            --proof-manifest "$RUNNER_TEMP/agent-verify-response-schema/manifest.json"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
         run: |
