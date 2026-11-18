@@ -27,7 +27,8 @@ and independent VM are not runtime dependencies of the images.
 
 For private Agent migration, use the same command with
 `sqlite-agent-row-import`, `sqlite-agent-import-batch`,
-`sqlite-agent-cost-sequence`, or `sqlite-agent-artifact-catalog`.
+`sqlite-agent-cost-sequence`, `sqlite-agent-artifact-catalog`,
+or `sqlite-agent-catalog`.
 
 ## Flat-image ABI
 
@@ -97,6 +98,29 @@ operation. Status `6` asks for the selected page if it is not resident.
 Traverse interior entries from a known root; keep a visited set to reject
 cycles and repeated pages. Page 1 is the root of SQLite's schema table.
 An index or a WITHOUT ROWID table is not a rowid table and is not supported.
+
+### Admitting an Agent schema before migrating its rows
+
+`sqlite-agent-catalog` discovers the typed roots for the exact original UTF-8
+Agent schema. Keep one zero-filled 1024-byte scratch buffer for all phases
+of one SQLite snapshot. Every request starts with the eight-byte tag
+`HIASCAT1` and an eight-byte phase. For phase 1, append the retained logical
+page count and the SQLite encoding code. For phase 2, append the positive
+physical rowid, the fixed descriptor size (192 bytes), the `HIASREC1`
+descriptor, and the raw record. Feed all rows of the retained page 1 table
+in increasing rowid order, including its original automatic indexes. Do
+not mix snapshots; the Pager owns that binding.
+
+Phase 3 is just the tag and phase. A complete catalog returns `HIASCOK1`,
+version 1, count 11, then the eleven root page numbers as eight-byte words:
+the ten Agent tables in the order below, followed by `sqlite_sequence`.
+Malformed frames return `1`, short output `2`, short scratch `3`, an
+incomplete or duplicate catalog `4`, and unsupported encoding or schema
+`5`. No error publishes roots, and phase 3 cannot be repeated after
+success. The program checks exact column declarations, keys, constraints,
+and automatic indexes, allowing whitespace and ASCII keyword spelling
+case variation in the SQL. It does not migrate custom schemas, additional
+DDL, other SQLite encodings, or open native Store state.
 
 ### Projecting a SQLite row to the private HIA Store format
 

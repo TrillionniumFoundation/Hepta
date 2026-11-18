@@ -104,6 +104,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'sqlite-agent-import-batch': ('sqlite_agent_import_batch', 'sqlite-agent-import-batch'),
                   'sqlite-agent-cost-sequence': ('sqlite_agent_cost_sequence', 'sqlite-agent-cost-sequence'),
                   'sqlite-agent-artifact-catalog': ('sqlite_agent_artifact_catalog', 'sqlite-agent-artifact-catalog'),
+                  'sqlite-agent-catalog': ('sqlite_agent_catalog', 'sqlite-agent-catalog'),
                   'sqlite-record-layout': ('sqlite_record_layout', 'sqlite-record-layout')}
     if candidate not in candidates:
         raise ValueError('unknown HIA JSON candidate')
@@ -155,7 +156,7 @@ def main():
                         choices=('preflight', 'sqlite-wal-snapshot',
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
-                                 'sqlite-agent-artifact-catalog'))
+                                 'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

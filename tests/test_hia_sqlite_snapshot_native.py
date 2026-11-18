@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 from hepta.hia_agent_assembly import assemble_program
+from hepta.hia_agent_store import AgentStore
 from hepta.hia_program_runtime import _Machine, _Owner, _View
 from tools.build_hia_json_preflight import build
 from tools.build_hia_sqlite_pager import build as build_pager
@@ -16,10 +17,10 @@ from tools.build_hia_sqlite_pager import build as build_pager
 SOURCES = Path(__file__).resolve().parents[1] / 'examples' / 'hia_bootstrap'
 
 
-def run_vm(program, request, output_size, scratch_size, *, scratch_out=None):
+def run_vm(program, request, output_size, scratch_size, *, scratch_out=None, scratch_initial=None):
     owners = [_Owner(-1, bytearray(request)),
               _Owner(-2, bytearray(b'\xa7' * output_size)),
-              _Owner(-3, bytearray(b'\xca' * scratch_size))]
+              _Owner(-3, bytearray(b'\xca' * scratch_size if scratch_initial is None else scratch_initial))]
     vm = _Machine(program, 4_000_000, 16 << 20, None, 128)
     status, = vm.invoke(vm.functions['f0'], [_View(owners[0], False),
                                              _View(owners[1], True),
@@ -36,6 +37,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
     def setUpClass(cls):
         cls.lookup = assemble_program((SOURCES / 'sqlite_rowid_lookup.hepta').read_bytes())
         cls.record = assemble_program((SOURCES / 'sqlite_record_layout.hepta').read_bytes())
+        cls.catalog = assemble_program((SOURCES / 'sqlite_agent_catalog.hepta').read_bytes())
         cls.row_import = assemble_program((SOURCES / 'sqlite_agent_row_import.hepta').read_bytes())
         cls.import_batch = assemble_program((SOURCES / 'sqlite_agent_import_batch.hepta').read_bytes())
         cls.cost_sequence = assemble_program((SOURCES / 'sqlite_agent_cost_sequence.hepta').read_bytes())
@@ -184,7 +186,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             for candidate in ('sqlite-wal-snapshot', 'sqlite-rowid-lookup',
                               'sqlite-record-layout', 'sqlite-agent-row-import',
                               'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
-                              'sqlite-agent-artifact-catalog'):
+                              'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog'):
                 with self.subTest(candidate=candidate):
                     with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                         build(output, compiler, cold, candidate=candidate)
@@ -192,6 +194,48 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                 build_pager(output, compiler, cold)
             self.assertFalse(output.exists())
+
+    def test_catalog_admits_the_original_schema_and_publishes_only_complete_roots(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store = AgentStore(Path(folder)/'store')
+            try:
+                page_count, = store.db.execute('PRAGMA page_count').fetchone()
+                rows = store.db.execute(
+                    'SELECT rowid,type,name,rootpage FROM sqlite_schema ORDER BY rowid').fetchall()
+            finally:
+                store.close()
+            snapshot = store.database.read_bytes()
+        snapshot = snapshot[:18] + b'\x01\x01' + snapshot[20:]
+        roots = {name: page for _, kind, name, page in rows if kind == 'table'}
+        ordered = ('artifacts', 'profiles', 'contexts', 'requests', 'costs',
+                   'cursors', 'slots', 'versions', 'leases', 'execution_budgets', 'sqlite_sequence')
+        state = bytearray(1024)
+
+        def step(phase, *fields, payload=b'', out=112):
+            frame = struct.pack('<8s' + 'Q' * (1 + len(fields)), b'HIASCAT1', phase, *fields) + payload
+            return run_vm(self.catalog, frame, out, len(state), scratch_out=state, scratch_initial=state)
+
+        no_output = b'\xa7' * 112
+        self.assertEqual(step(1, page_count, 2), (5, no_output))
+        self.assertEqual(step(1, page_count, 1), (0, no_output))
+        self.assertEqual(step(3), (4, no_output))
+        for rowid, kind, name, _ in rows:
+            status, output = run_vm(self.lookup, struct.pack('<Qq', 1, rowid) + snapshot, 1024, 64)
+            self.assertEqual(status, 0)
+            size, = struct.unpack_from('<Q', output, 8)
+            raw = output[32:32 + size]
+            status, descriptor = run_vm(self.record, raw, 192, 16)
+            self.assertEqual(status, 0)
+            if name == 'artifacts':
+                altered = raw.replace(b'sha256 TEXT', b'sha256 BLOB')
+                self.assertNotEqual(altered, raw)
+                self.assertEqual(step(2, rowid, 192, payload=descriptor + altered), (5, no_output))
+            self.assertEqual(step(2, rowid, 192, payload=descriptor + raw), (0, no_output))
+            self.assertEqual(step(2, rowid, 192, payload=descriptor + raw), (1, no_output))
+        self.assertEqual(step(3, out=111), (2, b'\xa7' * 111))
+        want = struct.pack('<8s13Q', b'HIASCOK1', 1, 11, *(roots[name] for name in ordered))
+        self.assertEqual(step(3), (0, want))
+        self.assertEqual(step(3), (1, no_output))
 
     def test_import_preserves_storage_classes_and_materializes_cost_rowid(self):
         def packet(table, rowid, payload, columns, encoding=1):
