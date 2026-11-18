@@ -49,6 +49,37 @@ class AgentInspectionNativeTests(unittest.TestCase):
         if self.manifest is None:
             self.skipTest('provide the matching native Agent inspection image')
 
+    def test_ordinary_lowering_reports_use_exact_native_text_digest_and_store_refs(self):
+        from tools.hia_agent_native_qualification import (
+            Session, ToolClient, add_program, branch_program, exhaustive_u8_workload,
+        )
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            service = HIAAgentService(Path(temporary) / 'state')
+            try:
+                session = Session(ToolClient(service.call, validate=False))
+                session.freeze(exhaustive_u8_workload())
+                store_json = service.store.json
+
+                def forbid_host_projection(value, kind):
+                    self.assertNotEqual(kind, 'inspection', 'hosted lowering serialization entered')
+                    return store_json(value, kind)
+
+                for source in (add_program(), branch_program()):
+                    args = session.arguments(mutable=False, program=session.artifact(source), view='lowering')
+                    reference = service.call('hia_inspect', args)
+                    self.assertEqual(reference['status'], 'completed', reference)
+                    with (patch.dict('os.environ', {inspection.SELECTOR: str(self.manifest)}),
+                          patch.object(service.store, 'json', side_effect=forbid_host_projection)):
+                        selected = service.call('hia_inspect', args)
+                    self.assertEqual(selected, reference)
+                    result = selected['result']['view_artifact']
+                    receipt, _ = service.store.get_json(result, kind='inspection')
+                    artifact, _ = service.store.get(receipt['object'], kind='lowering-object')
+                    self.assertTrue(artifact.startswith(b'\x7fELF'))
+            finally:
+                service.close()
+
     def test_ordinary_summary_retains_exact_nominal_origin_without_hosted_renderer(self):
         from tools.hia_agent_native_qualification import (
             Session, ToolClient, add_program, exhaustive_u8_workload,

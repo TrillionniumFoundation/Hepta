@@ -20,6 +20,7 @@ VIEW = b'HIAVIEW1'
 SCHEMA_PROBE = b'HIAOSC01'
 HASH_INPUT = b'HIAONH01'
 IMPORT_DIAGNOSTICS = b'HIAADG01'
+LOWERING_VIEW = b'HIAVLOW1'
 NOMINAL_CONTEXT = b'HIAONC01'
 NOMINAL_TAIL = 9472
 REFUSALS = {
@@ -85,6 +86,31 @@ class NativeAgentInspection(NativeHiaJsonImage):
         if not 0 < size <= 256 or len(result) != size:
             raise ValueError('invalid native Agent import diagnostics')
         return result
+
+    def lowering(self, image, profile_ref, object_ref):
+        from .hia_agent_store import wire
+        from .hia_program_native import MAX_TEXT_BYTES
+
+        text = image.text_bytes
+        frames = wire(dict(image.function_frames))
+        profile = wire(profile_ref)
+        reference = wire(object_ref)
+        if not (0 < len(text) <= MAX_TEXT_BYTES and len(frames) <= MAX_BYTES
+                and 2 <= len(profile) <= 1024 and 2 <= len(reference) <= 1024
+                and image.sha256 == object_ref['sha256']):
+            raise ValueError('invalid native Agent lowering input')
+        identities = (image.core_sha256 + image.sha256).encode('ascii')
+        if len(identities) != 128:
+            raise ValueError('invalid native Agent lowering digests')
+        packet = HEADER.pack(len(text), len(frames), len(profile)) + identities + text + frames + profile + reference
+        source = ctypes.create_string_buffer(packet)
+        output = ctypes.create_string_buffer(max(len(text), len(packet) - len(text) + 256))
+        workspace = ctypes.create_string_buffer(NOMINAL_TAIL)
+        workspace[-8:] = LOWERING_VIEW
+        size = self._entry(source, len(packet), output, len(output), workspace, len(workspace))
+        if not 0 < size <= min(len(output), MAX_BYTES):
+            raise ValueError('invalid native Agent lowering view')
+        return output.raw[:size]
 
     def _report(self, raw, *, mode=bytes(8), context=b''):
         if type(raw) is not bytes or not 0 < len(raw) <= MAX_BYTES:

@@ -647,11 +647,16 @@ class HIAAgentService:
             context = self._context(args["context"])
             image = emit_program_machine(program,
                 foreign_buffer_exports=tuple(map(tuple, context.get("foreign_buffer_exports", []))))
-            result = {"schema": "hepta.hia.agent.lowering-view.v1", "core_sha256": program.sha256,
-                "text_sha256": sha256(image.text_bytes).hexdigest(), "object_sha256": image.sha256,
-                "text_bytes": str(len(image.text_bytes)), "frames": dict(image.function_frames),
-                "lowering_profile": self.profiles["lowering"], "optimizer_used": False,
-                "object": self.store.put(image.object_bytes, "lowering-object")}
+            profile = self.profiles["lowering"]
+            object_ref = self.store.put(image.object_bytes, "lowering-object")
+            if selected:
+                from .hia_agent_inspection_native import installed_agent_inspection
+                view_bytes = installed_agent_inspection(selected).lowering(image, profile, object_ref)
+            else:
+                result = {"schema": "hepta.hia.agent.lowering-view.v1", "core_sha256": program.sha256,
+                    "text_sha256": sha256(image.text_bytes).hexdigest(), "object_sha256": image.sha256,
+                    "text_bytes": str(len(image.text_bytes)), "frames": dict(image.function_frames),
+                    "lowering_profile": profile, "optimizer_used": False, "object": object_ref}
         elif view == "dependencies":
             if not all(k in selector for k in ("function", "block", "output")):
                 reject("E_HIA_SELECTOR", "dependencies require function, block and output")
