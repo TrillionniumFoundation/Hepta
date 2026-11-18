@@ -1,13 +1,17 @@
 """Original Agent artifact paging and its explicitly admitted HIA replacement."""
 import argparse
+from base64 import b64encode
 import ctypes
+from hashlib import sha256
+import json
 from pathlib import Path
 import random
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.hia_agent_read_page_native import REQUEST, SOURCE, installed_agent_read_page
+from hepta.hia_agent_read_page_native import CURSOR_REQUEST, REQUEST, SOURCE, installed_agent_read_page
 from hepta.hia_agent_service import HIAAgentService
 
 
@@ -24,6 +28,7 @@ class AgentReadPageSourceTests(unittest.TestCase):
 class AgentReadPageNativeTests(unittest.TestCase):
     manifest = None
     test_root = None
+    native_release = None
 
     def setUp(self):
         if self.manifest is None:
@@ -64,6 +69,29 @@ class AgentReadPageNativeTests(unittest.TestCase):
             code = self.native._entry(source, len(wire), output, capacity, None, 0)
             self.assertEqual((code, output.raw, source.raw), (expected, before, wire))
 
+    def test_issued_cursor_matches_canonical_reference_and_exact_next_offset(self):
+        ref = {'uri': 'hia://artifacts/' + 'a' * 192, 'sha256': 'b' * 64, 'id': 'c' * 192}
+        data = b'a' * 2200 + b'\xff'
+        for start, limit in ((0, 1), (66, 34), (902, 231), (2099, 194), (len(data), 10)):
+            encoding, content, next_offset = HIAAgentService._reference_read_page(data, start, limit)
+            cursor = None
+            if next_offset is not None:
+                canonical = json.dumps({'artifact': ref, 'offset': next_offset},
+                                       sort_keys=True, separators=(',', ':')).encode()
+                cursor = 'page-' + sha256(canonical).hexdigest()
+            self.assertEqual(self.native.read_issued_page(data, start, limit, ref),
+                             (encoding, content, next_offset, cursor))
+        raw = CURSOR_REQUEST.pack(b'HIAARC01', 0, 1, 2) + b'{}' + b'abc'
+        source = ctypes.create_string_buffer(raw)
+        capacity = 108
+        before = b'\xa7' * capacity
+        output = ctypes.create_string_buffer(before, len(before))
+        scratch = ctypes.create_string_buffer(4130)
+        code = self.native._entry(source, len(raw), output, capacity, scratch, len(scratch))
+        self.assertEqual((code, output.raw), (0xfffffffe, before))
+        code = self.native._entry(source, len(raw), output, capacity, scratch, len(scratch) - 1)
+        self.assertEqual((code, output.raw), (0xffffffff, before))
+
     def test_tool_resource_alias_and_restart_reuse_exact_cursor(self):
         with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
             directory = Path(temporary) / 'state'
@@ -89,19 +117,65 @@ class AgentReadPageNativeTests(unittest.TestCase):
                     self.assertEqual(service.call('hia_read', {**query, 'cursor': cursor,
                                                                'max_bytes': 512}), later)
                     self.assertEqual(service.call('hia_resource_read', {'uri': artifact['uri']}), alias)
+                    with patch('hepta.hia_agent_service.digest',
+                               side_effect=AssertionError('hosted cursor digest selected')):
+                        self.assertEqual(service._hia_read(query), first['result'])
+                    second = service.store.put(b'another artifact', 'input')
+                    mismatched = service.call('hia_read', {**query, 'artifact': second, 'cursor': cursor})
+                    self.assertEqual(mismatched['error']['code'], 'E_HIA_CURSOR')
                 with patch.dict('os.environ', {SELECTOR: str(directory / 'missing.json')}):
                     self.assertEqual(service.call('hia_read', query)['status'], 'rejected')
             finally:
                 service.close()
+
+    def test_installed_store_reopens_native_cursor_without_sqlite(self):
+        release = self.native_release
+        if release is None:
+            self.skipTest('provide the installed native Store to exercise persistent cursors')
+        names = ('hia-agent-store', 'hia-artifact', 'hia-agent-artifact-capture')
+        store = (release, *(sha256((release / name).read_bytes()).hexdigest() for name in names))
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            directory = Path(temporary)
+            subprocess.run([release / 'hia-agent-store-init', directory, 'store'],
+                           input=b'', capture_output=True, check=True, timeout=10, env={'PATH': ''})
+            with (patch.dict('os.environ', {SELECTOR: str(self.manifest)}),
+                  patch('sqlite3.connect', side_effect=AssertionError('hosted SQLite selected')),
+                  patch('hepta.hia_agent_store.stable_read',
+                        side_effect=AssertionError('hosted artifact bytes selected'))):
+                service = HIAAgentService(directory, native_store=store)
+                try:
+                    first_page, second_page = b'a' * 512, b'b' * 512
+                    ref = service.store.put(first_page + second_page + b'\xff', 'input')
+                    args = {'artifact': ref, 'catalog_sha256': service.catalog_sha256, 'max_bytes': 512}
+                    first = service.call('hia_read', args)
+                    self.assertEqual(first['status'], 'completed', first)
+                    self.assertEqual(first['result']['content'], b64encode(first_page).decode())
+                    cursor = first['result']['next_cursor']
+                    self.assertIsNotNone(cursor)
+                finally:
+                    service.close()
+                service = HIAAgentService(directory, native_store=store)
+                try:
+                    second = service.call('hia_read', {**args, 'cursor': cursor})
+                    self.assertEqual(second['status'], 'completed', second)
+                    self.assertEqual(second['result']['content'], b64encode(second_page).decode())
+                    end = service.call('hia_read', {**args, 'cursor': second['result']['next_cursor']})
+                    self.assertEqual(end['status'], 'completed', end)
+                    self.assertEqual((end['result']['content'], end['result']['next_cursor']), ('/w==', None))
+                finally:
+                    service.close()
+            self.assertFalse(list(directory.glob('state.sqlite3*')))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--test-root', type=Path, required=True)
+    parser.add_argument('--native-release', type=Path)
     args = parser.parse_args()
     AgentReadPageNativeTests.manifest = args.manifest.resolve()
     AgentReadPageNativeTests.test_root = args.test_root.resolve()
+    AgentReadPageNativeTests.native_release = args.native_release.resolve() if args.native_release else None
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite(loader.loadTestsFromTestCase(tests)
                               for tests in (AgentReadPageSourceTests, AgentReadPageNativeTests))

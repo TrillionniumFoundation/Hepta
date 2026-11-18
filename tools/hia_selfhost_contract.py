@@ -1125,6 +1125,16 @@ def support_contract(root=ROOT):
             'service_journal_and_foreign_objects_are_hosted': True,
             'default_worker_changed': False,
         },
+        'agent_read_page': {
+            'source': 'examples/hia_bootstrap/agent_read_page.hepta',
+            'selection': 'explicit HEPTA_HIA_AGENT_READ_PAGE_MANIFEST; no fallback',
+            'legacy_wire': ['HIAARP01', 'HIAARO01'],
+            'issued_reference_wire': ['HIAARC01', 'HIAARO02'],
+            'native_owners': ['text/binary classification', 'bounded page encoding',
+                              'next byte offset', 'canonical SHA-256 cursor'],
+            'reference_authentication_and_cursor_storage': 'original Store interface',
+            'default_service_changed': False,
+        },
         'native_worker_helper_bundle': {
             'implementation': 'hepta/hia_native_helpers.py',
             'schema': 'hepta.hia.native-helpers.v1',

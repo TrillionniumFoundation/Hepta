@@ -7,19 +7,37 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_elf_linker import LinkerBuilder, SOURCE as LINKER_SOURCE
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
+from tools.generate_hia_worker_request import hash_program, replace_once
 
 
 SOURCE = r'''
 def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
-    if size < 24 or size > 67108888 or uint(s, 0) != INPUT_TAG:
+    if size < 24:
+        return 4294967295
+    mode = uint(s, 0)
+    begin = 24
+    reference = 0
+    if mode == CURSOR_INPUT_TAG:
+        if size < 32:
+            return 4294967295
+        reference = uint(s, 24)
+        # The public artifact-ref schema serializes to at most 494 bytes.
+        if reference == 0 or reference > 512 or reference > size - 32:
+            return 4294967295
+        if length(w) < 4128 + reference:
+            return 4294967295
+        begin = 32 + reference
+    elif mode != INPUT_TAG:
+        return 4294967295
+    total = size - begin
+    if total > 67108864:
         return 4294967295
     offset = uint(s, 8)
     limit = uint(s, 16)
     if limit == 0 or limit > 65536:
         return 4294967295
-    total = size - 24
-    start = 24 + offset
+    start = begin + offset
     wanted = 0
     if offset < total:
         wanted = total - offset
@@ -28,7 +46,7 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     else:
         start = size
     kind = 0
-    if is_utf8(s, size) == 0:
+    if is_utf8(s, begin, size) == 0:
         kind = 1
     if kind == 0:
         result = text_extent(s, start, wanted)
@@ -42,24 +60,69 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     else:
         count = wanted
         content = 4 * ((count + 2) // 3)
-    if length(o) < 40 + content:
-        return 4294967294
     next = 18446744073709551615
     if offset < total and count < total - offset:
         next = offset + count
-    put(o, 0, OUTPUT_TAG)
+    header = 40
+    output_tag = OUTPUT_TAG
+    if mode == CURSOR_INPUT_TAG:
+        output_tag = CURSOR_OUTPUT_TAG
+        if next != 18446744073709551615:
+            header = 109
+    if length(o) < header + content:
+        return 4294967294
+    if header == 109:
+        if cursor_digest(s, w, reference, next) == 0:
+            return 4294967295
+        emit_cursor(o, w)
+    put(o, 0, output_tag)
     put(o, 8, kind)
     put(o, 16, count)
     put(o, 24, next)
     put(o, 32, content)
     if kind == 0:
-        copy_bytes(s, o, start, 40, count)
+        copy_bytes(s, o, start, header, count)
     else:
-        encode_binary(s, o, start, count)
-    return 40 + content
+        encode_binary(s, o, start, count, header)
+    return header + content
 
-def is_utf8(s:readbuf, size:u64) -> u64:
-    at = 24
+def cursor_digest(s:readbuf, w:mutbuf, reference:u64, next:u64) -> u64:
+    put(w, 0, CURSOR_ARTIFACT_FIRST)
+    put(w, 8, CURSOR_ARTIFACT_LAST)
+    copy_bytes(s, w, 32, 12, reference)
+    end = 12 + reference
+    put(w, end, CURSOR_OFFSET_FIRST)
+    put(w, end + 8, CURSOR_OFFSET_LAST)
+    end = end + 10
+    remaining = next
+    divisor = 1
+    while remaining >= 10:
+        remaining = remaining // 10
+        divisor = divisor * 10
+    while divisor != 0:
+        store(w, end, 48 + next // divisor)
+        next = next % divisor
+        divisor = divisor // 10
+        end = end + 1
+    store(w, end, 125)
+    return choose(hash_sha256(w, end + 1) == 32, 1, 0)
+
+def emit_cursor(o:mutbuf, w:mutbuf) -> u64:
+    put(o, 40, CURSOR_PREFIX)
+    digest = length(w) - 4096 + 1088
+    i = 0
+    while i < 32:
+        value = byte(w, digest + i)
+        store(o, 45 + i * 2, hex_digit(value >> 4))
+        store(o, 46 + i * 2, hex_digit(value & 15))
+        i = i + 1
+    return 0
+
+def hex_digit(value:u64) -> u64:
+    return choose(value < 10, value + 48, value + 87)
+
+def is_utf8(s:readbuf, begin:u64, size:u64) -> u64:
+    at = begin
     while at < size:
         first = byte(s, at)
         at = at + 1
@@ -126,9 +189,9 @@ def text_extent(s:readbuf, start:u64, wanted:u64) -> u64:
         at = at + width
     return ((at - start) << 32) | cost
 
-def encode_binary(s:readbuf, o:mutbuf, start:u64, size:u64) -> u64:
+def encode_binary(s:readbuf, o:mutbuf, start:u64, size:u64, header:u64) -> u64:
     at = 0
-    out = 40
+    out = header
     while at < size:
         first = byte(s, start + at)
         second = 0
@@ -179,9 +242,24 @@ def put(o:mutbuf, index:u64, value:u64) -> u64:
 
 
 def document():
-    source = SOURCE.replace('INPUT_TAG', str(int.from_bytes(b'HIAARP01', 'little')))
-    source = source.replace('OUTPUT_TAG', str(int.from_bytes(b'HIAARO01', 'little')))
+    source = SOURCE
+    for symbol, raw in (
+        ('CURSOR_INPUT_TAG', b'HIAARC01'), ('CURSOR_OUTPUT_TAG', b'HIAARO02'),
+        ('INPUT_TAG', b'HIAARP01'), ('OUTPUT_TAG', b'HIAARO01'),
+        ('CURSOR_ARTIFACT_FIRST', b'{"artifa'), ('CURSOR_ARTIFACT_LAST', b'ct":'),
+        ('CURSOR_OFFSET_FIRST', b',"offset'), ('CURSOR_OFFSET_LAST', b'":'),
+        ('CURSOR_PREFIX', b'page-'),
+    ):
+        source = source.replace(symbol, str(int.from_bytes(raw, 'little')))
     source += LINKER_SOURCE[LINKER_SOURCE.index('\ndef copy_bytes('):]
+    # Hash the small prefix in the same workspace, below the private SHA arena.
+    digest = hash_program()
+    digest = replace_once(digest, 'hash_sha256(s: mutbuf, w: mutbuf, n: u64) -> u32:',
+                          'hash_sha256(w: mutbuf, n: u64) -> u64:')
+    digest = replace_once(digest, 'hash_padded_byte(s,', 'hash_padded_byte(w,')
+    digest = replace_once(digest, 'hash_padded_byte(s:', 'hash_padded_byte(w:')
+    digest = replace_once(digest, 'return byte(s, index)', 'return byte(w, index)')
+    source += digest
     nodes = ast.parse(source).body
     names = {node.name: 'f' + str(index) for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)

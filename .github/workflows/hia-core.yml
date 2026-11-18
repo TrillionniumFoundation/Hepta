@@ -537,8 +537,10 @@ jobs:
           python -B -m tools.build_hia_json_preflight --candidate agent-read-page \
             --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --output "$RUNNER_TEMP/agent-read-page"
+          installed=$(find "$RUNNER_TEMP/agent-store-package/installed" -mindepth 1 -maxdepth 1 -type d -print -quit)
           python -B -m tests.test_hia_agent_read_page_native \
-            --manifest "$RUNNER_TEMP/agent-read-page/manifest.json" --test-root "$RUNNER_TEMP"
+            --manifest "$RUNNER_TEMP/agent-read-page/manifest.json" --test-root "$RUNNER_TEMP" \
+            --native-release "$installed"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
         run: |

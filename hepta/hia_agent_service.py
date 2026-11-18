@@ -438,12 +438,13 @@ class HIAAgentService:
         selected = os.environ.get('HEPTA_HIA_AGENT_READ_PAGE_MANIFEST')
         if selected:
             from .hia_agent_read_page_native import installed_agent_read_page
-            encoding, content, next_offset = installed_agent_read_page(selected).read_page(data, offset, limit)
+            encoding, content, next_offset, next_cursor = installed_agent_read_page(
+                selected).read_issued_page(data, offset, limit, ref)
         else:
             encoding, content, next_offset = self._reference_read_page(data, offset, limit)
-        next_cursor = None
+            next_cursor = ("page-" + digest({"artifact": ref, "offset": next_offset})
+                           if next_offset is not None else None)
         if next_offset is not None:
-            next_cursor = "page-" + digest({"artifact": ref, "offset": next_offset})
             self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
                 (next_cursor, ref["id"], ref["sha256"], next_offset))
         return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}

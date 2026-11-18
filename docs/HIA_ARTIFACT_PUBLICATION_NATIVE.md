@@ -148,12 +148,22 @@ boundary, implements the existing double-JSON page budget and Base64
 encoding, and computes the next byte offset. Invalid or unavailable selected
 code does not fall back to hosted pagination.
 
-The input is `HIAARP01`, the unsigned byte offset and page-byte limit as
+The legacy input is `HIAARP01`, the unsigned byte offset and page-byte limit as
 little-endian u64s, followed by authenticated artifact bytes. The result is
 `HIAARO01`, the encoding (0 UTF-8, 1 Base64), source bytes consumed, next
 offset (u64 max at end), encoded length, and the encoded content. The HIA
 entry returns the complete result length, or u32 max / u32 max minus one
 for a malformed frame or insufficient output. Scratch is not needed.
 
-Artifact-reference/URI admission, file capture, cursor identity and the
-transaction/journal stay with the current Agent store. No default changed.
+The selected ordinary Agent passes `HIAARC01`: the same offset and page
+limit, a u64 length, then the canonical issued reference and artifact bytes.
+The reference has already been authenticated by the selected Store. HIA
+computes the same `page-` + SHA-256 of the canonical
+`{"artifact":<reference>,"offset":<next-byte>}` that earlier versions issued.
+The `HIAARO02` result inserts this 69-byte cursor before the content only
+when there is a next page. This preserves existing cursors across restarts
+and does not turn caller-supplied references into Store authority.
+
+Reference/URI authentication, cursor lookup and persistence, and the
+request journal still use the existing Agent Store interface. The selected
+native Store has been exercised through it; the default did not change.
