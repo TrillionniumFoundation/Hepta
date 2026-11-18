@@ -62,6 +62,10 @@
 .equ OBJECT_ROWS, 1744
 .equ OBJECT_DATA, 64+OBJECT_ROWS*16
 .equ OBJECT_CAPACITY, 64<<20
+.equ PUBLIC_CANONICAL, 16<<20
+.equ PUBLIC_CORE_ARENA, 32<<20
+.equ PUBLIC_CORE_STATE, 64<<20
+.equ VERIFIED_FINAL, 0x3130464356414948
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
 .macro region bytes, slot
@@ -94,7 +98,7 @@ _start:
  mov rax,[rip+request+32]
  test rax,rax
  je malformed
- cmp rax,5
+ cmp rax,6
  ja malformed
  mov [rip+handoff_role],rax
  jmp reserved_header
@@ -165,6 +169,28 @@ confirm_eof:
  cmp [r8+40],r15
  jne io_failure
 
+ cmp QWORD PTR [rip+handoff_role],6
+ jne initialize_constructor
+ region PUBLIC_CANONICAL, original_canonical
+ region PUBLIC_CORE_ARENA, public_core_arena
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,[rip+original_canonical]
+ mov ecx,PUBLIC_CANONICAL
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov QWORD PTR [r8+48],262144
+ mov QWORD PTR [r8+56],64
+ call public_canonical_start
+ mov edi,1
+ cmp eax,0xfffffffc
+ jae verified_refusal
+ test eax,eax
+ je io_failure
+ cmp eax,RAW_LIMIT
+ ja verified_budget
+ mov [rip+original_extent],rax
+initialize_constructor:
  region CONSTRUCTOR_ARENA, constructor_work
  region TYPES_ARENA, type_work
  region TYPES_OUTPUT, type_output
@@ -415,7 +441,7 @@ type_call:
 pack_helper_request:
  mov [rip+last_request],r13
  cmp QWORD PTR [rip+handoff_role],5
- jne helper_projection
+ jb helper_projection
  mov rdi,[rip+function_work]
  mov esi,CONSTRUCTOR_ARENA
  call outer_entry
@@ -478,7 +504,7 @@ helper_projection:
 retain_helper:
  mov QWORD PTR [rip+delegate_status],0
  cmp QWORD PTR [rip+handoff_role],5
- je retain_outer_helper
+ jae retain_outer_helper
  mov edi,[rip+helper_fd]
  mov rdx,r15
  call write_exact
@@ -490,7 +516,7 @@ deliver_helper:
 
 retain_outer_helper:
  cmp QWORD PTR [rip+handoff_role],5
- jne deliver_helper
+ jb deliver_helper
  /* The helper entry has already returned. Its retained workspace and actual
     result remain disjoint from both clients' output buffers. */
  mov [rip+helper_extent],r15
@@ -594,6 +620,8 @@ finished:
  ja io_failure
  test r15,r15
  jne complete
+ mov rcx,[r12+40]
+ mov [rip+input_profile],rcx
  cmp QWORD PTR [rip+handoff_role],0
  jne handoff
  jmp complete
@@ -668,7 +696,7 @@ handoff:
  mov [rdi],rax
  mov r13,[rip+handoff_role]
  cmp r13,5
- jne normalize_handoff
+ jb normalize_handoff
  cmp QWORD PTR [rip+outer_work],0
  jne normalize_handoff
  mov r13d,2
@@ -703,7 +731,7 @@ handoff_command:
  cmp [rsi+32],rax
  jne io_failure
  cmp QWORD PTR [rip+handoff_role],5
- jne handoff_delivery
+ jb handoff_delivery
  cmp r13,2
  je initialize_outer
 handoff_delivery:
@@ -746,7 +774,7 @@ initialize_function:
  region HELPER_WORKSPACE, helper_work
  region HELPER_OUTPUT, helper_output
  cmp QWORD PTR [rip+handoff_role],5
- je function_begin
+ jae function_begin
  lea rdi,[rip+helper_stream_name]
  mov esi,1
  mov eax,319
@@ -763,7 +791,7 @@ function_begin:
  add rdi,64
  call owner_frame
  cmp QWORD PTR [rip+handoff_role],5
- jne dispatch
+ jb dispatch
  cmp eax,64
  jne io_failure
  jmp next_outer
@@ -794,7 +822,7 @@ finish_body:
  cmp [rdi+40],rax
  jne io_failure
  cmp QWORD PTR [rip+handoff_role],5
- je bind_outer_function
+ jae bind_outer_function
  mov rax,BODY_FINAL
  mov [r12],rax
  mov rsi,r12
@@ -847,7 +875,7 @@ function_delegate:
  je io_failure
 function_complete:
  cmp QWORD PTR [rip+handoff_role],5
- je reject_outer_function
+ jae reject_outer_function
  mov rsi,r12
  mov [rsi+56],rax
  mov rax,FUNCTION_FINAL
@@ -1032,6 +1060,8 @@ finish_outer:
  mov rax,[r12+56]
  cmp [rsi+32],rax
  jne io_failure
+ cmp QWORD PTR [rip+handoff_role],6
+ je verify_assembled_core
  call write_outer_status
  mov rsi,[rip+type_output]
  mov rdx,r15
@@ -1053,6 +1083,115 @@ outer_refusal:
 outer_failed:
  mov edi,65
  jmp exit
+
+verify_assembled_core:
+ /* Typed output never confers authority. Convert it to a bounded raw Core
+    input, then invoke the independent primitive checker, not a receipt. */
+ mov rdi,[rip+codec_work]
+ call clear_header
+ mov rax,RENDER_REQUEST
+ mov [rdi],rax
+ mov r8,rdi
+ mov rdi,[rip+type_output]
+ add rdi,64
+ lea rsi,[r15-64]
+ mov rdx,[rip+json]
+ mov ecx,PACKET_CAPACITY
+ mov r9d,PACKET_CAPACITY
+ call codec
+ mov edi,2
+ cmp eax,0xfffffff9
+ jae verified_refusal
+ test eax,eax
+ je io_failure
+ cmp eax,RAW_LIMIT
+ ja verified_budget
+ mov [rip+compact_core_extent],rax
+
+ region PUBLIC_CORE_STATE, public_core_state
+ mov rdi,[rip+public_core_arena]
+ mov esi,PUBLIC_CORE_ARENA
+ call discard
+ mov rdi,[rip+json]
+ mov rsi,[rip+compact_core_extent]
+ mov rdx,[rip+public_core_state]
+ mov ecx,PUBLIC_CORE_STATE
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ call public_core_start
+ mov edi,3
+ test eax,eax
+ jne verified_refusal
+
+ mov rdi,[rip+public_core_arena]
+ mov esi,PUBLIC_CORE_ARENA
+ call discard
+ mov rdi,[rip+json]
+ mov rsi,[rip+compact_core_extent]
+ mov rdx,[rip+type_output]
+ mov ecx,PUBLIC_CANONICAL
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov QWORD PTR [r8+48],262144
+ mov QWORD PTR [r8+56],64
+ call public_canonical_start
+ mov edi,4
+ cmp eax,0xfffffffc
+ jae verified_refusal
+ test eax,eax
+ je io_failure
+ cmp eax,RAW_LIMIT
+ ja verified_budget
+ mov r15d,eax
+ lea rdi,[rip+verified_header]
+ call clear_header
+ mov rax,[rip+input_profile]
+ mov [rdi+24],rax
+ mov rax,[rip+original_extent]
+ mov [rdi+32],rax
+ mov [rdi+40],r15
+ call write_verified
+ mov rsi,[rip+original_canonical]
+ mov rdx,[rip+original_extent]
+ mov edi,1
+ call write_exact
+ mov rsi,[rip+type_output]
+ mov rdx,r15
+ mov edi,1
+ call write_exact
+ xor edi,edi
+ jmp exit
+
+verified_budget:
+ mov eax,0xfffffffb
+verified_refusal:
+ mov r15d,eax
+ mov r14d,edi
+ lea rdi,[rip+verified_header]
+ call clear_header
+ mov [rdi+8],r14
+ mov [rdi+16],r15
+ mov rax,[rip+input_profile]
+ mov [rdi+24],rax
+ call write_verified
+ mov edi,65
+ jmp exit
+
+write_verified:
+ lea rsi,[rip+verified_header]
+ mov rax,VERIFIED_FINAL
+ mov [rsi],rax
+ mov edi,1
+ mov edx,64
+ jmp write_exact
+
+discard:
+ mov edx,4
+ mov eax,28
+ syscall
+ test rax,rax
+ jne io_failure
+ ret
 
 write_outer_status:
  mov rax,OUTER_FINAL
@@ -1299,5 +1438,12 @@ helper_extent: .skip 8
 objects: .skip 8
 object_cursor: .skip 8
 outer_control: .skip 144
+input_profile: .skip 8
+original_canonical: .skip 8
+original_extent: .skip 8
+compact_core_extent: .skip 8
+public_core_arena: .skip 8
+public_core_state: .skip 8
+verified_header: .skip 64
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

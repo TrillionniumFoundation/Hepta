@@ -22,7 +22,7 @@ from hepta.hia_program import HIAProgramRejected, verify_core
 from hepta.hia_program_composite import _Elaborator
 from tests.test_hia_partial_record import roundtrip_program
 from tests.test_hia_composite_returned_loans import pair_program, task_program as loan_task
-from tests.test_hia_program_composite import task_program
+from tests.test_hia_program_composite import enum_owner_program, i, stored_loan_program, task_program
 
 
 FRAME = struct.Struct('<8s7Q')
@@ -168,7 +168,7 @@ def check(executable, oracle):
     assert run(b'{}', flags=1) == (64, b'')
     assert run(b'{}', trailer=b' ') == (64, b'')
     assert run(b'{}', handoff=True, flags=0) == (64, b'')
-    assert run(b'{}', handoff=True, flags=6) == (64, b'')
+    assert run(b'{}', handoff=True, flags=7) == (64, b'')
     bad_param = task_program()
     bad_param['functions'][0]['blocks'][0]['params'][0]['type'] = 'Missing'
     bad_raw = json.dumps(bad_param, separators=(',', ':')).encode()
@@ -277,6 +277,7 @@ def check_modules(run):
         for name, doc, legacy in checked]
     samples += [(path, (root / path).read_bytes(), False) for path in examples]
     ordinary_count, helper_count = 0, 0
+    profiles = set()
     for name, raw, legacy in samples:
         document = json.loads(raw)
         owner = _Elaborator(document, legacy=legacy)
@@ -284,7 +285,9 @@ def check_modules(run):
         payload = transport(expected)
         # The oracle still runs ordinary primitive verification; elaboration
         # alone neither grants execution authority nor mutates the source.
-        verify_core(expected)
+        checked = verify_core(expected)
+        old = verify_core(raw)
+        assert old.canonical_bytes == checked.canonical_bytes
         code, result = module(raw, legacy=legacy)
         count, helpers = len(document['functions']), len(owner.helpers)
         assert code == 0, (name, code)
@@ -294,6 +297,13 @@ def check_modules(run):
         assert result[128:] == payload, name
         ordinary_count += count
         helper_count += helpers
+        profile = int(document['schema'][-1])
+        profiles.add(profile)
+        original, core = old.structured_bytes, old.canonical_bytes
+        assert original is not None
+        assert run(raw, legacy=legacy, flags=6, handoff=True) == (
+            0, FRAME.pack(b'HIAVCF01', 0, 0, profile, len(original), len(core), 0, 0)
+               + original + core), name
 
     # A later function may reject after prior functions are already retained;
     # the outer status contains its delegate, not a partial Core program.
@@ -311,6 +321,33 @@ def check_modules(run):
         if status[0]:
             raw = json.dumps(document, separators=(',', ':')).encode()
             assert module(raw, legacy=legacy) == run(raw, legacy=legacy), name
+    assert profiles == {1, 2, 3, 4}
+    # These documents are successfully elaborated, but must not pass the
+    # independent primitive loan or effect checker.
+    effect = enum_owner_program()
+    effect['functions'][0]['effects'] = ['trap']
+    loan = stored_loan_program()
+    loan['functions'][0]['blocks'][1]['ops'].insert(
+        3, i('buffer.store', ['parent', 'zero', 'before']))
+    for document, error, diagnostic in ((effect, 0xfffffff7, 'E_HIA_EFFECT'),
+                                        (loan, 0xfffffff8, 'E_HIA_LOAN')):
+        raw = json.dumps(document, separators=(',', ':')).encode()
+        assert module(raw)[0] == 0
+        try:
+            verify_core(raw)
+        except HIAProgramRejected as exc:
+            assert exc.code == diagnostic
+        else:
+            raise AssertionError('the independent Core oracle accepted invalid generated Core')
+        assert run(raw, flags=6, handoff=True) == (
+            65, FRAME.pack(b'HIAVCF01', 3, error, 1, 0, 0, 0, 0))
+    too_deep = b'[' * 65 + b'0' + b']' * 65
+    assert run(too_deep, flags=6, handoff=True) == (
+        65, FRAME.pack(b'HIAVCF01', 1, 0xfffffffe, 0, 0, 0, 0, 0))
+    assert run(b'{"x":0,"x":1}', flags=6, handoff=True) == (
+        65, struct.pack('<8sQ', b'HIANJE01', 0xfffffffc))
+    print(f'{len(samples)} native independent Core rechecks with original and Core canonical bytes; '
+          'two genuine semantic and two ingress refusals')
     print(f'{len(samples)} exact complete nominal modules ({len(examples)} repository sources), '
           f'{ordinary_count} ordinary functions, {helper_count} helpers, '
           'and four failure prefixes without partial Core')

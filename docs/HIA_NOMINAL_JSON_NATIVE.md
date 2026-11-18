@@ -452,3 +452,20 @@ is written; a delegated function refusal also returns its `HIAFBL01`
 status. Earlier constructor refusals retain their framing. No partial
 module or helper stream is published. Primitive Core verification
 remains a separate required stage.
+
+
+Role 6 runs the complete native nominal path and then independently verifies
+the emitted primitive Core. The original source also passes the
+262,144-node / depth-64 ordinary canonicalizer, rather than relying on the
+general packet codec's depth-128 envelope. Both canonical snapshots must
+fit the existing 8 MiB budget. No canonical bytes are published before the
+primitive loan, effect, SSA and other checks accept the lowered document.
+
+On success `HIAVCF01` contains zero stage and status, original composite
+profile, canonical input length, canonical Core length and two reserved zero
+words. Original canonical UTF-8 bytes precede canonical Core bytes. On a
+post-ingress refusal no payload is present: nonzero stage identifies original
+canonical admission, Core encoding, primitive Core admission, or Core
+canonicalization (1–4) and retains that stage's status. Existing codec,
+constructor and outer error frames are unchanged. This is an installed
+verification component, not a change to the default public commands.
