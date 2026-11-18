@@ -305,7 +305,8 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v4':
+        if type(record) is dict and record.get('schema') in (
+                'hepta.hia.native-helpers.v4', 'hepta.hia.native-helpers.v5'):
             from .hia_worker_store_profile import NativeWorkerStoreBinding
             binding = NativeWorkerStoreBinding(captured, expected_sha256, record)
         else:

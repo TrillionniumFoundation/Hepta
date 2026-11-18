@@ -20,9 +20,15 @@
 .equ QUERY,16777216
 .equ IO,12288
 .equ S,8192
+.equ COMPACT_MODE,S+56
+.equ ORIGIN_DIGEST,S+64
+.equ ORIGIN_TAG,CTRL+1536
+.equ ORIGIN_BYTES,CTRL+1544
+.equ ORIGIN_MAGIC,3544423407359707464
 _start:
- cmp QWORD PTR [rsp],1
- jne usage
+ mov r15,rsp
+ cmp QWORD PTR [r15],3
+ ja usage
  xor edi,edi
  mov esi,TOTAL_N
  mov edx,3
@@ -35,6 +41,51 @@ _start:
  jae io_failure
  mov r12,rax
  lea rbp,[r12+SCR_AT]
+ cmp QWORD PTR [r15],1
+ je read_input
+ mov rsi,[r15+16]
+ lea rdi,[rip+compact_option]
+option_byte:
+ mov al,[rdi]
+ cmp al,[rsi]
+ jne usage
+ inc rdi
+ inc rsi
+ test al,al
+ jne option_byte
+ mov QWORD PTR [rbp+COMPACT_MODE],1
+ cmp QWORD PTR [r15],2
+ je read_input
+ mov rsi,[r15+24]
+ lea rdi,[rbp+ORIGIN_DIGEST]
+ mov ecx,32
+digest_byte:
+ call hex_digit
+ shl eax,4
+ mov r11d,eax
+ call hex_digit
+ or eax,r11d
+ stosb
+ dec ecx
+ jnz digest_byte
+ cmp BYTE PTR [rsi],0
+ jne usage
+ mov QWORD PTR [rbp+COMPACT_MODE],2
+ jmp read_input
+hex_digit:
+ movzx eax,BYTE PTR [rsi]
+ inc rsi
+ sub eax,48
+ cmp eax,9
+ jbe hex_ready
+ sub eax,49
+ cmp eax,5
+ ja usage
+ add eax,10
+hex_ready:
+ ret
+compact_option:
+ .asciz "--agent-compact"
 read_input:
  xor edi,edi
  mov rax,[rbp+S]
@@ -177,6 +228,15 @@ slice_hole: .long 0
  jnz io_failure
  movabs rax,3544422316236687688
  mov [r13+CTRL],rax
+ cmp QWORD PTR [rbp+COMPACT_MODE],2
+ jne render_query
+ movabs rax,ORIGIN_MAGIC
+ mov [r13+ORIGIN_TAG],rax
+ lea rdi,[r13+ORIGIN_BYTES]
+ lea rsi,[rbp+ORIGIN_DIGEST]
+ mov ecx,4
+ rep movsq
+render_query:
  mov rdi,r12
  mov esi,SOURCE_N
  mov rdx,r13
@@ -191,6 +251,8 @@ query_hole: .long 0
  cmp rax,1048576
  ja io_failure
  mov [rbp+96],rax
+ cmp QWORD PTR [rbp+COMPACT_MODE],0
+ jne compact_output
  movabs rax,3544421216725059912
  mov [rbp+120],rax
  mov rdi,r13
@@ -300,6 +362,21 @@ completed:
  jnz io_failure
  xor edi,edi
  jmp exit_process
+compact_output:
+ lea rsi,[r13+QUERY]
+ mov rdx,[rbp+96]
+compact_write:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je compact_write
+ test rax,rax
+ jle io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz compact_write
+ jmp completed
 query_status:
  mov r10d,0xfffffffa
  cmp rax,r10

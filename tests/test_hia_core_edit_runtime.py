@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 
+from hepta.hia_agent_store import wire as canonical_wire
 from hepta.hia_edit_batch import apply_batch, prepare_batch
 from hepta.hia_edit_query import apply_edit, prepare_edit
 from tests.test_hia_edit_batch import loans, selected, swaps
@@ -25,12 +26,12 @@ def wire(value, *, pretty=False):
 def check_release(release):
     passed = 0
 
-    def case(command, payload, expected=None, *, status=0, args=()):
+    def case(command, payload, expected=None, *, status=0, args=(), compact=False):
         nonlocal passed
         raw = payload if type(payload) is bytes else wire(payload)
         run = subprocess.run([release / command, *args], input=raw, capture_output=True,
                              env={'PATH': ''}, timeout=20, check=False)
-        output = b'' if status else wire(expected, pretty=True)
+        output = b'' if status else (canonical_wire(expected) if compact else wire(expected, pretty=True))
         if (run.returncode, run.stdout, run.stderr) != (status, output, b''):
             raise AssertionError((command, status, run.returncode, run.stdout[:200], run.stderr))
         passed += 1
@@ -40,7 +41,27 @@ def check_release(release):
         document = scalar_program()
         document['schema'] = 'hepta.hia.program.v' + str(version)
         site = selected('answer', 'attrs', 'increment')
-        case('hia-prepare-edit-query', [document, site], prepare_edit(document, **site))
+        expected = prepare_edit(document, **site)
+        case('hia-prepare-edit-query', [document, site], expected)
+        case('hia-prepare-edit-query', [document, site], expected,
+             args=('--agent-compact',), compact=True)
+
+    from hepta.hia_program import verify_program
+    from tests.test_hia_program_composite import stored_loan_program
+    nominal = verify_program(stored_loan_program())
+    core = nominal.as_dict()
+    fn = core['functions'][0]
+    block = next(value for value in fn['blocks'] if value['id'] == fn['entry'])
+    out = next(op['out'][0]['name'] for op in block['ops'] if op['out'])
+    site = {'function': fn['name'], 'block': block['id'], 'output': out,
+            'fields': ['op', 'args', 'attrs']}
+    expected = prepare_edit(nominal, **site)
+    assert expected['base_sha256'] != expected['input_sha256']
+    case('hia-prepare-edit-query', [core, site], expected,
+         args=('--agent-compact', nominal.input_sha256), compact=True)
+    for invalid in ('a' * 63, 'A' * 64, 'a' * 65):
+        case('hia-prepare-edit-query', [core, site], args=('--agent-compact', invalid), status=64)
+
 
     document = fixture()
     site = selected('y', 'op', 'calculate')

@@ -152,7 +152,7 @@ def _manifest_document(identities, catalog_sha256, profiles, profile_artifacts, 
 
 
 class HIAAgentService:
-    def __init__(self, state_root, *, artifact_roots=(), native_store=None):
+    def __init__(self, state_root, *, artifact_roots=(), native_store=None, native_edit_query=None):
         from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
         from .hia_slot_ledger_native import selected_slot_ledger, NativeSlotLedgerStore
         candidate_budget_image = selected_candidate_budget()
@@ -162,6 +162,7 @@ class HIAAgentService:
         self._tool_roles = {name: index for index, name in enumerate(self.tools, 1)}
         self.identities = installation_manifest()
         self.store = AgentStore(state_root, native_store=native_store)
+        self._native_edit_query = native_edit_query
         self._candidate_budget = None
         self._slot_ledger = None
         try:
@@ -646,10 +647,18 @@ class HIAAgentService:
         elif view == "dependencies":
             if not all(k in selector for k in ("function", "block", "output")):
                 reject("E_HIA_SELECTOR", "dependencies require function, block and output")
-            prepared = prepare_edit(program, function=selector["function"], block=selector["block"],
-                                    output=selector["output"], fields=["op", "args", "attrs"])
-            result = prepared
-            query = self.store.json(prepared, "edit-query")
+            # Optional selector members belonging to other views do not affect this query.
+            site = {name: selector[name] for name in ("function", "block", "output")}
+            if self._native_edit_query is not None:
+                view_bytes = self._native_edit_query.prepare(program, site)
+                if view_bytes is None:
+                    # Retain the public error detail, never accept a native refusal.
+                    prepare_edit(program, **site, fields=["op", "args", "attrs"])
+                    raise ValueError('native Agent dependency refusal disagrees with admitted Core')
+                query = self.store.put(view_bytes, "edit-query")
+            else:
+                result = prepare_edit(program, **site, fields=["op", "args", "attrs"])
+                query = self.store.json(result, "edit-query")
         else:
             if "function" not in selector:
                 reject("E_HIA_SELECTOR", "function view requires an exact function")

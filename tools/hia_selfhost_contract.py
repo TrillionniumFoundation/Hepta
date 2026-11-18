@@ -1150,7 +1150,13 @@ def support_contract(root=ROOT):
             'native_owners': ['canonical summary including the original structured identity',
                               'exact function and block selection', 'canonical inspection artifact bytes'],
             'whole_program_admission_and_store_issued_authority_retained': True,
-            'other_views_and_default_service_unchanged': True,
+            'native_dependency_query': {
+                'source': 'examples/hia_bootstrap/core_edit/query.hepta',
+                'selection': 'sealed hia-prepare-edit-query pinned in native helpers v5',
+                'retains_distinct_admitted_original_input_digest': True,
+                'hosted_rejection_diagnostic_only_after_native_refusal': True,
+            },
+            'lowering_view_and_default_service_unchanged': True,
         },
         'agent_discovery': {
             'source': 'examples/hia_bootstrap/agent_discovery.hepta',
