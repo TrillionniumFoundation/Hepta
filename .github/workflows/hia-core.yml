@@ -570,10 +570,13 @@ jobs:
           test -n "$compiler"
           python -B -m tools.build_hia_direct_call --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/direct-call"
+          python -B -m tools.build_hia_worker_report --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/direct-call-worker-report"
           native_store=$(find "$RUNNER_TEMP/agent-store-package/installed" -mindepth 1 -maxdepth 1 -type d -print -quit)
           test -n "$native_store"
           HIA_TEST_DIRECT_CALL="$RUNNER_TEMP/direct-call/hia-direct-call" \
             HIA_TEST_DIRECT_LINKER="$native_store/elf-shared-linker-manifest.json" \
+            HIA_TEST_REPORT_WIRE="$RUNNER_TEMP/direct-call-worker-report/wire/manifest.json" \
             python -B -m unittest tests.test_hia_direct_call -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls

@@ -31,13 +31,13 @@ class AgentRejected(ValueError):
         self.details_artifact = details_artifact
 
 
-def wire(value):
+def wire(value, *, maximum=MAX_INPUT_BYTES):
     selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST')
     renderer = None
     if selected:
         from .hia_json_wire_native import SelectedBinary64Renderer
         renderer = SelectedBinary64Renderer(selected)
-    return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False,
+    return bounded_json_wire(value, maximum, ensure_ascii=False,
                              sort_keys=True, float_renderer=renderer)
 
 

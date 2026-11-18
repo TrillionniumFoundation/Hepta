@@ -1,5 +1,6 @@
 """Exercise the actual no-libc HIA call runner under the ordinary Agent budget."""
 from hashlib import sha256
+from io import BytesIO
 import os
 from pathlib import Path
 import signal
@@ -11,8 +12,9 @@ from unittest.mock import patch
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_buffers import buffer_observation
-from hepta.hia_agent_runner import run_native_batch
+from hepta.hia_agent_runner import _REPORT_TOO_LARGE, _write_child_report, run_native_batch, run_reference_batch
 from hepta.hia_agent_service import _signatures
+from hepta.hia_agent_store import wire
 from hepta.hia_elf_shared_linker_native import SELECTOR
 from hepta.hia_program import execute_program, verify_program
 from hepta.hia_program_native import build_program_machine
@@ -26,6 +28,19 @@ class DirectCallSourceTests(unittest.TestCase):
     def test_exact_hia_plan_and_packer(self):
         for path, source in ((SOURCE_PATH, document), (PACKER_PATH, cli_document)):
             self.assertEqual((ROOT / path).read_text(), render_assembly(source()))
+
+    def test_report_keeps_the_exact_canonical_wire_and_aggregate_limit(self):
+        report = {'observations': [{'number': 2, 'text': 'λ'}, {'text': 'longer' * 3000}],
+                  'schema': 'controlled', 'complete': True}
+        expected = wire(report) + b'\n'
+        out = BytesIO()
+        with patch('hepta.hia_agent_runner._REPORT_LIMIT', len(expected)):
+            self.assertEqual(_write_child_report(report, out), 0)
+        self.assertEqual(out.getvalue(), expected)
+        out = BytesIO()
+        with patch('hepta.hia_agent_runner._REPORT_LIMIT', len(expected) - 1):
+            self.assertEqual(_write_child_report(report, out), _REPORT_TOO_LARGE)
+        self.assertTrue(expected.startswith(out.getvalue()))
 
 
 @unittest.skipUnless(os.environ.get('HIA_TEST_DIRECT_CALL'), 'cold-built direct runner is required')
@@ -94,6 +109,17 @@ class DirectCallRuntimeTests(unittest.TestCase):
         self.assertEqual(result['returncode'], -signal.SIGABRT)
         self.assertEqual(result['status'], 'trapped')
         self.assertEqual(result['captured_buffers'][0]['data'].hex(), '5b0203')
+
+    @unittest.skipUnless(os.environ.get('HIA_TEST_REPORT_WIRE'), 'cold-built HIA report wire is required')
+    def test_selected_report_wire_fits_actual_minimum_agent_budget(self):
+        cases = [{'function': 'answer', 'arguments': [i]} for i in range(512)]
+        with patch.dict(os.environ, {'HEPTA_HIA_JSON_WIRE_MANIFEST': os.environ['HIA_TEST_REPORT_WIRE']}):
+            result = run_reference_batch(verify_program(minimal_document()), cases,
+                                         timeout_ms=15000, memory_bytes=64 << 20)
+        self.assertEqual(result['status'], 'returned', result)
+        self.assertTrue(result['report']['complete'])
+        self.assertEqual([row['values'] for row in result['report']['observations']],
+                         [[i + 7] for i in range(512)])
 
     def test_out_of_profile_metadata_refuses_without_mutating_owned_bytes(self):
         image = self.inputs['trap'][0]

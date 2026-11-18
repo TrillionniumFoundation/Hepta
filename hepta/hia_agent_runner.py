@@ -26,6 +26,21 @@ from .hia_agent_store import AgentRejected, reject, stable_read, wire
 from .hia_agent_buffers import (PROFILE as BUFFER_PROFILE, buffer_bytes,
                                buffer_observation, validate_cases)
 from .hia_native_byte_abi import LOANS
+from .hia_program_tools import HIAEditRejected
+
+_REPORT_LIMIT = 2 << 20
+_REPORT_TOO_LARGE = 65
+_ROW_START = 16 << 10
+_REPORT_BUDGET_ERRORS = frozenset({
+    'JSON input exceeds node/byte budget',
+    'JSON container exceeds queued-node/byte budget',
+    'JSON integer exceeds byte budget',
+    'JSON string exceeds byte budget before encoding',
+    'JSON key exceeds numeric byte budget',
+    'JSON key exceeds byte budget',
+    'JSON encoding exceeds byte budget',
+})
+
 
 _CTYPES = {"i8": ctypes.c_int8, "u8": ctypes.c_uint8, "i16": ctypes.c_int16,
     "u16": ctypes.c_uint16, "i32": ctypes.c_int32, "u32": ctypes.c_uint32,
@@ -69,6 +84,40 @@ def _cancel_runner(proc, *, has_reference_child):
 
 def _end_reference_runner(_signal, _frame):
     raise SystemExit(124)
+
+
+def _observation_wire(row, available):
+    if available < 0:
+        return None
+    cap = min(available, _ROW_START)
+    while True:
+        try:
+            return wire(row, maximum=cap)
+        except HIAEditRejected as error:
+            if str(error).removeprefix('E_HIA_EDIT: ') not in _REPORT_BUDGET_ERRORS:
+                raise
+            if cap == available:
+                return None
+            cap = min(available, cap * 2)
+
+
+def _write_child_report(report, stream):
+    """Preserve the canonical receipt without an 8 MiB serializer workspace."""
+    envelope = wire({**report, 'observations': []}, maximum=_ROW_START)
+    before, marker, after = envelope.partition(b'"observations":[')
+    if not marker or not after.startswith(b']') or marker in after:
+        raise ValueError('native report envelope has no unique observation sequence')
+    remaining = _REPORT_LIMIT - len(envelope) - 1  # Include the final newline.
+    stream.write(before + marker)
+    for index, row in enumerate(report['observations']):
+        separator = b',' if index else b''
+        row_bytes = _observation_wire(row, remaining - len(separator))
+        if row_bytes is None:
+            return _REPORT_TOO_LARGE
+        stream.write(separator + row_bytes)
+        remaining -= len(row_bytes) + len(separator)
+    stream.write(after + b'\n')
+    return 0
 
 
 def _direct_call_transport(signature, case, files, artifact_bytes, executable, custody,
@@ -258,7 +307,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                     captured.append({**observation, "data": data})
             snapshots.append({"case": index, "buffers": observed})
     report = None
-    if len(stdout) > 2 * 1024 * 1024 or len(stderr) > 65536:
+    if len(stdout) > _REPORT_LIMIT or len(stderr) > 65536 or proc.returncode == _REPORT_TOO_LARGE:
         status = "invalid_report"
     elif timed_out or proc.returncode == -signal.SIGXCPU:
         status = "budget_exceeded"
@@ -369,8 +418,7 @@ def main():
         if owned is not None:
             result["owned_reference_executable_sha256"] = owned.digest
             result["owned_reference_standalone_calls"] = owned.calls
-        sys.stdout.buffer.write(wire(result) + b"\n")
-        return 0
+        return _write_child_report(result, sys.stdout.buffer)
     if request.get("mode") != "native":
         return 2
     validate_cases(request["signatures"], request["cases"])
@@ -455,8 +503,7 @@ def main():
             "warmup": request["warmup"], "repetitions": request["repetitions"],
             "measured_calls": calls, "total_native_ns": str(total_ns),
             "observations": observations, "timing_scope": "ctypes call including FFI overhead; snapshot reset and complete-byte hashing outside call timing, inside subprocess wall cost"}
-        sys.stdout.buffer.write(wire(result) + b"\n")
-    return 0
+        return _write_child_report(result, sys.stdout.buffer)
 
 
 if __name__ == "__main__":
