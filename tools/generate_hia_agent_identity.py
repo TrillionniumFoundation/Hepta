@@ -3,7 +3,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scalar_functions
+from tools.generate_hia_elf_linker import LinkerBuilder
+from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
 MAGIC=int.from_bytes(b'HIAIDP01','little')
 RESULT_MAGIC=int.from_bytes(b'HIAIDR01','little')
 SOURCE=r'''
@@ -21,6 +22,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return observation_agreement(s, o)
     if kind == 8:
         return record_authority(s, o)
+    if kind == 9:
+        return wall_window(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -222,6 +225,38 @@ def equal_pair(s:readbuf, left_at:u64, left:u64, right_at:u64, right:u64) -> u64
         index = index + 1
     return 1
 
+def wall_window(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 40:
+        return 4294967293
+    if length(o) < 32:
+        return 4294967294
+    created = read_word(s, 16)
+    now = read_word(s, 24)
+    limit = read_word(s, 32)
+    remaining = 0
+    expired = 0
+    high = 0
+    if created > now:
+        # A backwards wall-clock adjustment extends the current interval.
+        remaining = limit + (created - now) // 1000000
+        if remaining < limit:
+            high = 1
+    else:
+        elapsed = now - created
+        whole = elapsed // 1000000
+        fraction = elapsed % 1000000
+        if whole > limit or (whole == limit and fraction != 0):
+            expired = 1
+        else:
+            remaining = limit - whole
+            if fraction != 0:
+                remaining = remaining - 1
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, expired)
+    put(o, 16, remaining)
+    put(o, 24, high)
+    return 32
+
 def rational_bits(numerator:u64, denominator:u64) -> u64:
     # A nonzero ratio of two u64 values is always normal in binary64.
     exponent = 1023
@@ -316,7 +351,7 @@ def document():
     signatures={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     total=total_scalar_functions(nodes);functions=[]
     for node in nodes:
-        builder=Builder(node,names,signatures,total);builder.statements(node.body)
+        builder=LinkerBuilder(node,names,signatures,total);builder.statements(node.body)
         functions.append({'name':names[node.name],'params':[builder.param(v) for v in builder.params],
             'returns':[builder.returns],'effects':['read','write','trap'],'entry':'b0','blocks':builder.blocks})
     return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':'agent_identity','functions':functions})

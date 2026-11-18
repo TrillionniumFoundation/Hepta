@@ -15,21 +15,21 @@ def comparison(mode, fields, operation=7):
     return packet(operation, struct.pack('<Q', mode) + b''.join(
         struct.pack('<2Q', len(left), len(right)) + left + right for left, right in fields))
 
-def vm(wire,workspace):
+def vm(wire,workspace,capacity=24):
  from tools.hia_selfhost_bulk import Body
  from hepta.hia_agent_assembly import assemble_program
  from hepta.hia_program import execute_program
  b=Body(0);owners=[];views=[]
- for size,initial in ((len(wire),wire),(24,b''),(workspace,b'')):
+ for size,initial in ((len(wire),wire),(capacity,b''),(workspace,b'')):
   owner=b.value('buffer','buffer.new',[b.const('usize',size)]);view=b.value('mutbuf','borrow.mut',[owner])
   for i,value in enumerate(initial):
    if value:b.effect('buffer.store',[view,b.const('usize',i),b.const('u8',value)])
   owners.append(owner);views.append(view)
  b.effect('loan.end',[views[0]]);views[0]=b.value('readbuf','borrow.read',[owners[0]])
- code=b.value('u32','call',views,{'function':'f0'});raw=[b.value('u8','buffer.load',[views[1],b.const('usize',i)]) for i in range(24)]
+ code=b.value('u32','call',views,{'function':'f0'});raw=[b.value('u8','buffer.load',[views[1],b.const('usize',i)]) for i in range(capacity)]
  for view in views:b.effect('loan.end',[view])
  for owner in owners:b.effect('owner.drop',[owner])
- source=('hia-asm.v1 hepta.hia.program.v8 agent_identity_reference\nfn observe() -> (u32,'+','.join(['u8']*24)+') effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'+b.text()+'  ret('+','.join([code,*raw])+')\nend\n'+SOURCE.read_text().split('\n',1)[1])
+ source=('hia-asm.v1 hepta.hia.program.v8 agent_identity_reference\nfn observe() -> (u32,'+','.join(['u8']*capacity)+') effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'+b.text()+'  ret('+','.join([code,*raw])+')\nend\n'+SOURCE.read_text().split('\n',1)[1])
  row=execute_program(assemble_program(source),'observe',[],max_steps=2000000);assert row['status']=='returned',row
  code,*raw=row['values'];return code,bytes(raw)
 
@@ -71,6 +71,13 @@ class AgentIdentitySourceTests(unittest.TestCase):
         self.assertEqual(vm(comparison(0, fields, 8), 0), (24, expected(1, 1)))
         fields[2] = (b'uri', b'different')
         self.assertEqual(vm(comparison(1, fields, 8), 0), (24, expected(1, 1)))
+
+    def test_wall_clock_keeps_exact_expiration_and_remaining_in_vm(self):
+        for now, expired, remaining in ((999_999, 0, 9), (2_000_001, 0, 7),
+                                         (10_000_000, 0, 0), (10_000_001, 1, 0)):
+            wire = packet(9, struct.pack('<3Q', 2_000_000, now, 8))
+            self.assertEqual(vm(wire, 0, 32),
+                             (32, struct.pack('<4Q', RESULT_MAGIC, expired, remaining, 0)))
 
     def test_builder_refuses_bad_cold_before_any_output_or_compilation(self):
         from copy import deepcopy
@@ -264,6 +271,57 @@ class AgentIdentityNativeTests(unittest.TestCase):
                     self.assertEqual(raised.exception.code, 'E_HIA_CURSOR')
             finally:
                 service.close()
+
+    def test_native_wall_window_matches_absolute_deadline_without_overflow(self):
+        from hepta.hia_agent_service import _reference_wall_window
+
+        end = (1 << 64) - 1
+        samples = [(0, 0, 0), (1, 0, end), (400_000_000, 0, end), (0, end, 0),
+                   (0, end, end), (end, end - 999_999, 0), (100, 1_000_101, 1)]
+        rng = random.Random(0xa651f)
+        samples += [tuple(rng.getrandbits(64) for _ in range(3)) for _ in range(256)]
+        for created, now, budget in samples:
+            self.assertEqual(self.native.wall_window(created, now, budget),
+                             _reference_wall_window(created, now, budget))
+        wire = packet(9, struct.pack('<3Q', 0, 0, 1))
+        self.assertEqual(self.raw(wire[:-1], 32)[0], 0xfffffffd)
+        self.assertEqual(self.raw(wire, 31)[0], 0xfffffffe)
+
+    def test_real_context_admission_uses_hia_for_clock_window_and_binding(self):
+        from hepta import hia_agent_service as hosted, hia_agent_store as store
+        from tests.test_hia_agent_buffer_lifecycle import workload
+        from tools.hia_agent_native_qualification import Session, ToolClient
+
+        service = hosted.HIAAgentService(self.folder / 'wall-window')
+        try:
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch.object(store, '_reference_record_authority',
+                               side_effect=AssertionError('host context identity used')),
+                  patch.object(hosted, '_reference_wall_window',
+                               side_effect=AssertionError('host clock budget used'))):
+                session = Session(ToolClient(service.call))
+                session.freeze(workload([{'function': 'take', 'arguments': [{'bytes_hex': '00'}]}],
+                                        function='take'))
+                ref = session.context
+                with self.assertRaises(AgentRejected) as raised:
+                    service._context({**ref, 'sha256': 'f' * 64})
+                self.assertEqual(raised.exception.code, 'E_HIA_CONTEXT_IDENTITY')
+                context = service._context(ref)
+                issued = service.store.db.execute('SELECT created_ns FROM contexts WHERE id=?',
+                                                  (ref['id'],)).fetchone()
+                deadline = int(issued['created_ns']) + context['budget']['max_total_wall_ms'] * 1_000_000
+                with patch.object(hosted.time, 'time_ns', return_value=deadline):
+                    self.assertEqual(service._remaining_ms(context), 0)
+                    service._budget(context, candidate=True)
+                with (patch.object(hosted.time, 'time_ns', return_value=deadline + 1),
+                      patch.object(service, '_consume_attempt',
+                                   side_effect=AssertionError('expired context advanced a candidate'))):
+                    self.assertEqual(service._remaining_ms(context), 0)
+                    with self.assertRaises(AgentRejected) as raised:
+                        service._budget(context, candidate=True)
+                    self.assertEqual(raised.exception.code, 'E_HIA_BUDGET')
+        finally:
+            service.close()
 
     def test_public_context_limits_match_reference_and_use_native_decisions(self):
         from hepta.hia_agent_service import HIAAgentService

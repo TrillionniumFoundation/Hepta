@@ -41,6 +41,14 @@ digest, URI, and required kind. Cursor groups use an empty URI and no kind.
 The decision is 0 for an authorized row, 1 for a missing or mismatched
 identity, or 2 for an existing identity with the wrong required kind.
 
+Operation 9 consumes the issued creation timestamp, current wall-clock
+timestamp (both nanoseconds), and frozen total wall-clock budget in
+milliseconds. Its 32-byte response contains the magic, strict expiration
+flag and the low/high words of the remaining whole milliseconds. At the
+exact deadline admission has not expired but no complete millisecond
+remains. Clock adjustments and a duration beyond one word are supported
+without multiplying the budget by one million inside the native image.
+
 Malformed input packet returns 0xfffffffd. Insufficient output returns
 0xfffffffe without writing output. No scratch workspace is required or touched.
 

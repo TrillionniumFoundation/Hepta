@@ -137,6 +137,13 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA Agent record authority decision')
         return decision
 
+    def wall_window(self, created_ns, now_ns, total_ms):
+        packet = struct.pack('<5Q', MAGIC, 9, created_ns, now_ns, total_ms)
+        expired, remaining, high = self._response(packet, 32, '<4Q')
+        if expired not in (0, 1) or high not in (0, 1) or (expired and (remaining or high)):
+            raise RuntimeError('invalid HIA Agent deadline decision')
+        return bool(expired), (high << 64) | remaining
+
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(
             struct.pack('<2Q', scope, value) for scope, value in rows)

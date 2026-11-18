@@ -34,6 +34,11 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def _reference_wall_window(created_ns, now_ns, total_ms):
+    delta = created_ns + total_ms * 1_000_000 - now_ns
+    return delta < 0, max(0, delta // 1_000_000)
+
+
 def _signatures(program, foreign_buffer_exports=()):
     from .hia_program_native import WIDTHS
     from .hia_native_byte_abi import normalize_exports
@@ -432,7 +437,8 @@ class HIAAgentService:
     def _context(self, ref):
         keys(ref, ("id", "sha256"), label="context reference")
         row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (ref["id"],)).fetchone()
-        if row is None or row["sha256"] != ref["sha256"]:
+        stored = None if row is None else (row["id"], row["sha256"], "")
+        if record_authority((ref["id"], ref["sha256"], ""), stored):
             reject("E_HIA_CONTEXT_IDENTITY", "context is not a retained server record", "context")
         context, _ = self.store.get_json(decode_data(row["artifact"]), kind="context")
         if context["installation"] != self.identities or context["catalog_sha256"] != self.catalog_sha256:
@@ -443,9 +449,8 @@ class HIAAgentService:
         return context
 
     def _budget(self, context, *, candidate=False):
-        row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
-        limits = context["budget"]
-        if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
+        expired, _ = self._wall_window(context)
+        if expired:
             reject("E_HIA_BUDGET", "context total wall budget has expired", "context")
         if candidate:
             self._consume_attempt(context)
@@ -462,9 +467,21 @@ class HIAAgentService:
             reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
 
     def _remaining_ms(self, context):
+        return self._wall_window(context)[1]
+
+    def _wall_window(self, context):
+        from .hia_agent_store import _native_agent_identity
+
         row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
-        deadline = int(row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
-        return max(0, (deadline - time.time_ns()) // 1_000_000)
+        created_ns = int(row["created_ns"])
+        now_ns = time.time_ns()
+        total_ms = context["budget"]["max_total_wall_ms"]
+        native = _native_agent_identity()
+        # Normal issued timestamps and frozen budgets are unsigned words.
+        # Keep the established semantics for older, hand-restored integer text.
+        if native is not None and all(0 <= value < 1 << 64 for value in (created_ns, now_ns, total_ms)):
+            return native.wall_window(created_ns, now_ns, total_ms)
+        return _reference_wall_window(created_ns, now_ns, total_ms)
 
     def _hia_describe(self, args):
         selected = os.environ.get('HEPTA_HIA_AGENT_DISCOVERY_MANIFEST')
