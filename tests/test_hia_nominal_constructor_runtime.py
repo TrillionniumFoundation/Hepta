@@ -18,7 +18,7 @@ from hepta.hia_composite_function_tokens import ObjectTokenDecoder, detached_pac
 from hepta.hia_composite_types_native import ERRORS as TYPE_ERRORS, NativeCompositeTypes
 from hepta.hia_instruction_policy_native import transport
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
-from hepta.hia_program import HIAProgramRejected
+from hepta.hia_program import HIAProgramRejected, verify_core
 from hepta.hia_program_composite import _Elaborator
 from tests.test_hia_partial_record import roundtrip_program
 from tests.test_hia_composite_returned_loans import pair_program, task_program as loan_task
@@ -168,7 +168,7 @@ def check(executable, oracle):
     assert run(b'{}', flags=1) == (64, b'')
     assert run(b'{}', trailer=b' ') == (64, b'')
     assert run(b'{}', handoff=True, flags=0) == (64, b'')
-    assert run(b'{}', handoff=True, flags=5) == (64, b'')
+    assert run(b'{}', handoff=True, flags=6) == (64, b'')
     bad_param = task_program()
     bad_param['functions'][0]['blocks'][0]['params'][0]['type'] = 'Missing'
     bad_raw = json.dumps(bad_param, separators=(',', ':')).encode()
@@ -179,6 +179,7 @@ def check(executable, oracle):
           f'{seeds} exact function or outer seed packets; '
           f'{admitted} automatic first-function parameter requests and two refusal stages')
     check_bodies(run)
+    check_modules(run)
 
 
 def check_bodies(run):
@@ -255,6 +256,64 @@ def check_bodies(run):
     assert first(wrong) == (65, FRAME.pack(b'HIAFBL01', 1, 999, 2, 0, 0, 1, 18))
     print(f'{len(samples)} exact lowered Core function packets, {requests} automatic dependent requests, '
           f'{helper_count} generated helper functions, and two refusal stages with no partial output')
+
+
+def check_modules(run):
+    def module(raw, *, legacy=False):
+        return run(raw, legacy=legacy, flags=5, handoff=True)
+
+    root = Path(__file__).resolve().parents[1]
+    checked = [(name, doc, legacy) for name, doc, legacy, status in cases()
+               if not status[0] and name != 'multi-chunk']
+    examples = (
+        'examples/hia_program/cooperative_task.hepta',
+        'examples/hia_program/generic_owned_enum.hepta',
+        'examples/hia_program/partial_record.hepta',
+        'examples/hia_program/stored_loan_record.hepta',
+        'examples/hia_recursive_chain/composite_v2.hepta',
+    )
+    samples = [
+        (name, json.dumps(doc, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode(), legacy)
+        for name, doc, legacy in checked]
+    samples += [(path, (root / path).read_bytes(), False) for path in examples]
+    ordinary_count, helper_count = 0, 0
+    for name, raw, legacy in samples:
+        document = json.loads(raw)
+        owner = _Elaborator(document, legacy=legacy)
+        expected = owner.lower()
+        payload = transport(expected)
+        # The oracle still runs ordinary primitive verification; elaboration
+        # alone neither grants execution authority nor mutates the source.
+        verify_core(expected)
+        code, result = module(raw, legacy=legacy)
+        count, helpers = len(document['functions']), len(owner.helpers)
+        assert code == 0, (name, code)
+        assert FRAME.unpack_from(result) == (b'HIAOMF01', 2, 0, 2000, count, 0, count, helpers), name
+        assert FRAME.unpack_from(result, 64) == (
+            b'HIAOTP01', count, len(payload), count, helpers, owner.serial, 0, 0), name
+        assert result[128:] == payload, name
+        ordinary_count += count
+        helper_count += helpers
+
+    # A later function may reject after prior functions are already retained;
+    # the outer status contains its delegate, not a partial Core program.
+    broken = task_program()
+    broken['functions'][-1]['blocks'] = []
+    raw = json.dumps(broken, separators=(',', ':')).encode()
+    code, result = module(raw)
+    assert code == 65 and len(result) == 128
+    assert FRAME.unpack_from(result) == (b'HIAOMF01', 1, 999, 2000, 3, 0, 2, 0)
+    magic, action, error, phase, _serial, _slots, request, delegate = FRAME.unpack_from(result, 64)
+    assert (magic, action, error, phase, delegate) == (b'HIAFBL01', 1, 1, 0, 0)
+    assert request > 0
+
+    for name, document, legacy, status in cases():
+        if status[0]:
+            raw = json.dumps(document, separators=(',', ':')).encode()
+            assert module(raw, legacy=legacy) == run(raw, legacy=legacy), name
+    print(f'{len(samples)} exact complete nominal modules ({len(examples)} repository sources), '
+          f'{ordinary_count} ordinary functions, {helper_count} helpers, '
+          'and four failure prefixes without partial Core')
 
 
 if __name__ == '__main__':

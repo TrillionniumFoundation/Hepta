@@ -431,3 +431,24 @@ An earlier constructor refusal retains its original framing.
 The typed function packet is a private artifact bounded by the supplied
 output buffer; it does not change the more general public streaming route.
 Role 4 does not advance to later functions or replace outer-module assembly.
+
+
+Role 5 carries the entire nominal module through native elaboration. It
+starts both native handoffs against the same admitted constructor and
+resolver. The outer owner selects each function and binds its completed
+workspace, including the helper lease, completed handle count, names,
+inventory caps and ordering. A native typed encoder then resolves the
+issued object handles to the retained Core function packets. This
+produces the complete Core document, not a dictionary assembled by a
+host process. The private frame/output capacity does not change the
+public structural quotas.
+
+After successful elaboration role 5 emits `HIAOMF01` (action, outer
+error, phase, request count, handle, ordinary function count, helper
+function count) followed by `HIAOTP01` (request, payload length, ordinary
+count, helper count, fresh-name counter, and two reserved words) and the
+complete Core typed packet. On an outer refusal only the status frame
+is written; a delegated function refusal also returns its `HIAFBL01`
+status. Earlier constructor refusals retain their framing. No partial
+module or helper stream is published. Primitive Core verification
+remains a separate required stage.

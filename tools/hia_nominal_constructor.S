@@ -46,6 +46,22 @@
 .equ HELPER_WORKSPACE, 2<<20
 .equ HELPER_OUTPUT, 4<<20
 .equ FUNCTION_STATE_ACTION, 4096+64
+.equ METADATA_REQUEST, 0x3130514d46414948
+.equ METADATA_REPLY, 0x3130444d46414948
+.equ OUTER_FRAME, 0x313052544f414948
+.equ OUTER_ACK, 0x313041544f414948
+.equ OUTER_FAIL, 0x313046544f414948
+.equ OUTER_HEADER, 0x313048544f414948
+.equ OUTER_NAME_REQUEST, 0x3130514e4f414948
+.equ OUTER_NAME_REPLY, 0x3130504e4f414948
+.equ OUTER_PACKET_REQUEST, 0x313051544f414948
+.equ OUTER_PACKET_REPLY, 0x313050544f414948
+.equ OUTER_FINAL, 0x3130464d4f414948
+.equ FUNCTION_NEXT, 0x3130584e46414948
+.equ OUTER_ARENA, 80<<20
+.equ OBJECT_ROWS, 1744
+.equ OBJECT_DATA, 64+OBJECT_ROWS*16
+.equ OBJECT_CAPACITY, 64<<20
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
 .macro region bytes, slot
@@ -78,7 +94,7 @@ _start:
  mov rax,[rip+request+32]
  test rax,rax
  je malformed
- cmp rax,4
+ cmp rax,5
  ja malformed
  mov [rip+handoff_role],rax
  jmp reserved_header
@@ -398,6 +414,15 @@ type_call:
 
 pack_helper_request:
  mov [rip+last_request],r13
+ cmp QWORD PTR [rip+handoff_role],5
+ jne helper_projection
+ mov rdi,[rip+function_work]
+ mov esi,CONSTRUCTOR_ARENA
+ call outer_entry
+ mov edi,3
+ mov esi,20
+ call check_outer
+helper_projection:
  mov rdi,[rip+type_work]
  add rdi,TYPES_ARENA-64
  call clear_header
@@ -449,9 +474,11 @@ pack_helper_request:
  je retain_helper
  add rax,64
  mov [rip+delegate_status],rax
- jmp deliver_helper
+ jmp retain_outer_helper
 retain_helper:
  mov QWORD PTR [rip+delegate_status],0
+ cmp QWORD PTR [rip+handoff_role],5
+ je retain_outer_helper
  mov edi,[rip+helper_fd]
  mov rdx,r15
  call write_exact
@@ -460,6 +487,53 @@ deliver_helper:
  mov rsi,r15
  call owner_frame
  jmp dispatch
+
+retain_outer_helper:
+ cmp QWORD PTR [rip+handoff_role],5
+ jne deliver_helper
+ /* The helper entry has already returned. Its retained workspace and actual
+    result remain disjoint from both clients' output buffers. */
+ mov [rip+helper_extent],r15
+ mov rdi,[rip+helper_work]
+ mov esi,HELPER_WORKSPACE
+ call outer_entry
+ mov edi,7
+ mov esi,22
+ call check_outer
+ lea rdi,[rip+outer_control]
+ mov rax,OUTER_HEADER
+ mov [rdi],rax
+ mov rax,[rip+outer_request]
+ mov [rdi+8],rax
+ mov [rdi+16],r15
+ mov QWORD PTR [rdi+24],HELPER_OUTPUT
+ add rdi,32
+ mov rsi,[rip+helper_output]
+ mov ecx,8
+ rep movsq
+ lea rdi,[rip+outer_control]
+ mov esi,96
+ call outer_entry
+ cmp QWORD PTR [rip+delegate_status],0
+ jne outer_helper_refused
+ mov edi,5
+ mov esi,21
+ call check_outer
+ mov rax,[r12+40]
+ mov [rip+outer_handle],rax
+ call pack_outer_helper
+ mov edx,2
+ call ack_outer
+ mov edi,0
+ mov esi,10
+ call check_outer
+ mov r15,[rip+helper_extent]
+ jmp deliver_helper
+outer_helper_refused:
+ mov edi,6
+ mov esi,10
+ call check_outer
+ jmp deliver_helper
 
 /* The sender controls the extent and cursor; each caller checks correlation. */
 body_packet:
@@ -593,6 +667,13 @@ handoff:
  mov rax,HANDOFF_REQUEST
  mov [rdi],rax
  mov r13,[rip+handoff_role]
+ cmp r13,5
+ jne normalize_handoff
+ cmp QWORD PTR [rip+outer_work],0
+ jne normalize_handoff
+ mov r13d,2
+ jmp handoff_command
+normalize_handoff:
  cmp r13,3
  jb handoff_command
  mov r13d,1
@@ -621,12 +702,31 @@ handoff_command:
  mov rax,[rip+last_request]
  cmp [rsi+32],rax
  jne io_failure
+ cmp QWORD PTR [rip+handoff_role],5
+ jne handoff_delivery
+ cmp r13,2
+ je initialize_outer
+handoff_delivery:
  cmp QWORD PTR [rip+handoff_role],3
  jae initialize_function
  mov edi,1
  call write_exact
  xor edi,edi
  jmp exit
+
+initialize_outer:
+ region OUTER_ARENA, outer_work
+ region FRAME_CAPACITY, outer_frame
+ region OBJECT_CAPACITY, objects
+ mov QWORD PTR [rip+object_cursor],OBJECT_DATA
+ mov rdi,[rip+type_output]
+ mov rsi,[rdi+16]
+ add rdi,64
+ call outer_entry
+ mov edi,0
+ mov esi,0
+ call check_outer
+ jmp handoff
 
 initialize_function:
  /* The seed is disjoint in type_output. Only the retained resolver remains. */
@@ -642,9 +742,11 @@ initialize_function:
  lea rax,[rip+function_admit_start]
  mov [rip+function_kernel],rax
  cmp QWORD PTR [rip+handoff_role],4
- jne function_begin
+ jb function_begin
  region HELPER_WORKSPACE, helper_work
  region HELPER_OUTPUT, helper_output
+ cmp QWORD PTR [rip+handoff_role],5
+ je function_begin
  lea rdi,[rip+helper_stream_name]
  mov esi,1
  mov eax,319
@@ -660,7 +762,11 @@ function_begin:
  mov rsi,[rdi+16]
  add rdi,64
  call owner_frame
- jmp dispatch
+ cmp QWORD PTR [rip+handoff_role],5
+ jne dispatch
+ cmp eax,64
+ jne io_failure
+ jmp next_outer
 
 finish_body:
  cmp QWORD PTR [r12+8],2
@@ -687,6 +793,8 @@ finish_body:
  mov rax,[r12+40]
  cmp [rdi+40],rax
  jne io_failure
+ cmp QWORD PTR [rip+handoff_role],5
+ je bind_outer_function
  mov rax,BODY_FINAL
  mov [r12],rax
  mov rsi,r12
@@ -738,6 +846,8 @@ function_delegate:
  test rax,rax
  je io_failure
 function_complete:
+ cmp QWORD PTR [rip+handoff_role],5
+ je reject_outer_function
  mov rsi,r12
  mov [rsi+56],rax
  mov rax,FUNCTION_FINAL
@@ -754,6 +864,314 @@ write_function_status:
  je exit
  mov edi,65
  jmp exit
+
+next_outer:
+ mov rdi,[rip+type_work]
+ mov esi,TYPES_ARENA
+ call outer_entry
+ cmp eax,64
+ jne io_failure
+ mov r12,[rip+outer_frame]
+ mov rcx,OUTER_FRAME
+ cmp [r12],rcx
+ jne io_failure
+ cmp QWORD PTR [r12+24],2000
+ je finish_outer
+ mov edi,2
+ mov esi,10
+ call check_outer
+ mov rax,[rip+outer_request]
+ inc rax
+ cmp [r12+32],rax
+ jne io_failure
+ mov [rip+outer_request],rax
+ lea rdi,[rip+outer_control]
+ mov rcx,OUTER_NAME_REQUEST
+ mov [rdi],rcx
+ mov [rdi+8],rax
+ mov esi,16
+ call outer_entry
+ cmp eax,65
+ jb io_failure
+ cmp eax,192
+ ja io_failure
+ mov r12,[rip+outer_frame]
+ mov rcx,OUTER_NAME_REPLY
+ cmp [r12],rcx
+ jne io_failure
+ mov rcx,[rip+outer_request]
+ cmp [r12+8],rcx
+ jne io_failure
+ sub eax,64
+ cmp [r12+16],rax
+ jne io_failure
+ mov rdx,[r12+24]
+ inc rdx
+ cmp [rip+outer_request],rdx
+ jne io_failure
+ lea rdi,[rip+outer_control]
+ mov rcx,FUNCTION_NEXT
+ mov [rdi],rcx
+ mov [rdi+8],rax
+ add rdi,16
+ lea rsi,[r12+64]
+ mov ecx,eax
+ rep movsb
+ lea rdi,[rip+outer_control]
+ lea rsi,[rax+16]
+ lea rax,[rip+function_admit_start]
+ mov [rip+function_kernel],rax
+ call owner_frame
+ jmp dispatch
+
+bind_outer_function:
+ /* Reflect the function owner's final accounting before borrowing its arena. */
+ mov [rip+pending_extent],r15
+ lea rdi,[rip+outer_control]
+ mov rax,METADATA_REQUEST
+ mov [rdi],rax
+ mov QWORD PTR [rdi+8],0
+ mov esi,16
+ mov rdx,[rip+frame]
+ mov ecx,FRAME_CAPACITY
+ mov r8,[rip+function_work]
+ mov r9d,CONSTRUCTOR_ARENA
+ call function_records_start
+ cmp eax,64
+ jb io_failure
+ cmp eax,FRAME_CAPACITY
+ ja io_failure
+ mov rdi,[rip+frame]
+ mov rax,METADATA_REPLY
+ cmp [rdi],rax
+ jne io_failure
+ mov rdi,[rip+function_work]
+ mov esi,CONSTRUCTOR_ARENA
+ call outer_entry
+ mov edi,4
+ mov esi,11
+ call check_outer
+ mov rax,[r12+40]
+ mov [rip+outer_handle],rax
+ mov rsi,[rip+type_output]
+ add rsi,64
+ mov rdx,[rip+pending_extent]
+ call store_object
+ mov edx,1
+ call ack_outer
+ mov edi,0
+ xor esi,esi
+ call check_outer
+ jmp next_outer
+
+reject_outer_function:
+ /* Preserve the component's exact refusal while the outer owner closes. */
+ mov [r12+56],rax
+ mov rax,BODY_FINAL
+ mov [r12],rax
+ lea rdi,[rip+outer_control]
+ mov rax,OUTER_FAIL
+ mov [rdi],rax
+ mov rax,[rip+outer_request]
+ mov [rdi+8],rax
+ mov QWORD PTR [rdi+16],0
+ mov QWORD PTR [rdi+24],0
+ mov esi,32
+ call outer_entry
+ cmp eax,64
+ jne io_failure
+ mov r12,[rip+outer_frame]
+ mov rax,OUTER_FRAME
+ cmp [r12],rax
+ jne io_failure
+ cmp QWORD PTR [r12+16],999
+ jne io_failure
+ jmp finish_outer
+
+finish_outer:
+ mov rax,[r12+16]
+ test rax,rax
+ jne outer_refusal
+ cmp QWORD PTR [r12+8],2
+ jne io_failure
+ mov rdi,[rip+objects]
+ call clear_header
+ mov rax,OUTER_PACKET_REQUEST
+ mov [rdi],rax
+ mov rsi,[rip+object_cursor]
+ mov [rdi+8],rsi
+ mov rax,[r12+32]
+ mov [rdi+16],rax
+ mov rax,[r12+48]
+ mov [rdi+24],rax
+ mov rax,[r12+56]
+ mov [rdi+32],rax
+ mov rdx,[rip+type_output]
+ mov ecx,TYPES_OUTPUT
+ mov r8,[rip+outer_work]
+ mov r9d,OUTER_ARENA
+ call outer_render_start
+ cmp eax,88
+ jb io_failure
+ cmp eax,TYPES_OUTPUT
+ ja io_failure
+ mov r15d,eax
+ mov rsi,[rip+type_output]
+ mov rax,OUTER_PACKET_REPLY
+ cmp [rsi],rax
+ jne io_failure
+ lea rax,[r15-64]
+ cmp [rsi+16],rax
+ jne io_failure
+ mov rax,[r12+32]
+ cmp [rsi+8],rax
+ jne io_failure
+ mov rax,[r12+48]
+ cmp [rsi+24],rax
+ jne io_failure
+ mov rax,[r12+56]
+ cmp [rsi+32],rax
+ jne io_failure
+ call write_outer_status
+ mov rsi,[rip+type_output]
+ mov rdx,r15
+ mov edi,1
+ call write_exact
+ xor edi,edi
+ jmp exit
+outer_refusal:
+ cmp QWORD PTR [r12+8],1
+ jne io_failure
+ mov r15,rax
+ call write_outer_status
+ cmp r15,999
+ jne outer_failed
+ mov rsi,[rip+frame]
+ mov edx,64
+ mov edi,1
+ call write_exact
+outer_failed:
+ mov edi,65
+ jmp exit
+
+write_outer_status:
+ mov rax,OUTER_FINAL
+ mov [r12],rax
+ mov rsi,r12
+ mov edi,1
+ mov edx,64
+ jmp write_exact
+
+ack_outer:
+ lea rdi,[rip+outer_control]
+ mov rax,OUTER_ACK
+ mov [rdi],rax
+ mov rax,[rip+outer_request]
+ mov [rdi+8],rax
+ mov [rdi+16],rdx
+ mov rax,[rip+outer_handle]
+ mov [rdi+24],rax
+ mov esi,32
+ jmp outer_entry
+
+outer_entry:
+ sub rsp,8
+ mov rdx,[rip+outer_frame]
+ mov ecx,FRAME_CAPACITY
+ mov r8,[rip+outer_work]
+ mov r9d,OUTER_ARENA
+ call outer_owner_start
+ add rsp,8
+ ret
+
+check_outer:
+ cmp eax,64
+ jne io_failure
+ mov r12,[rip+outer_frame]
+ mov rax,OUTER_FRAME
+ cmp [r12],rax
+ jne io_failure
+ cmp [r12+8],rdi
+ jne io_failure
+ cmp [r12+24],rsi
+ jne io_failure
+ cmp QWORD PTR [r12+16],0
+ jne io_failure
+ ret
+
+pack_outer_helper:
+ sub rsp,8
+ mov rdi,[rip+codec_work]
+ call clear_header
+ mov rax,DECODE_REQUEST
+ mov [rdi],rax
+ mov rax,[rip+request+8]
+ mov [rdi+8],rax
+ mov r8,rdi
+ mov rdi,[rip+helper_output]
+ mov rsi,[rdi+32]
+ add rdi,64
+ mov rdx,[rip+type_output]
+ mov ecx,PACKET_CAPACITY
+ mov r9d,PACKET_CAPACITY
+ call codec
+ cmp eax,70
+ jb io_failure
+ cmp eax,PACKET_CAPACITY
+ ja io_failure
+ mov rdx,rax
+ mov rsi,[rip+type_output]
+ cmp QWORD PTR [rsi],6
+ jne io_failure
+ cmp QWORD PTR [rsi+16],1
+ jne io_failure
+ cmp QWORD PTR [rsi+24],4
+ jne io_failure
+ cmp QWORD PTR [rsi+32],6
+ jne io_failure
+ mov rax,0x7265706c6568
+ mov rcx,[rsi+40]
+ shl rcx,16
+ shr rcx,16
+ cmp rcx,rax
+ jne io_failure
+ add rsi,46
+ sub rdx,46
+ call store_object
+ add rsp,8
+ ret
+
+/* Only an outer-issued handle can select its bounded, write-once row. */
+store_object:
+ cmp rdx,24
+ jb io_failure
+ cmp QWORD PTR [rsi],6
+ jne io_failure
+ lea rax,[rdx-16]
+ cmp [rsi+8],rax
+ jne io_failure
+ mov rcx,[rip+outer_handle]
+ btr rcx,63
+ jnc io_failure
+ cmp rcx,OBJECT_ROWS
+ jae io_failure
+ shl rcx,4
+ mov r8,[rip+objects]
+ lea r9,[r8+rcx+64]
+ cmp QWORD PTR [r9],0
+ jne io_failure
+ mov rax,[rip+object_cursor]
+ mov rcx,OBJECT_CAPACITY
+ sub rcx,rax
+ cmp rdx,rcx
+ ja io_failure
+ mov [r9],rax
+ mov [r9+8],rdx
+ lea rdi,[r8+rax]
+ add [rip+object_cursor],rdx
+ mov rcx,rdx
+ rep movsb
+ ret
 
 owner_frame:
  sub rsp,8
@@ -871,5 +1289,15 @@ function_kernel: .skip 8
 helper_work: .skip 8
 helper_output: .skip 8
 helper_fd: .skip 4
+.balign 8
+outer_work: .skip 8
+outer_frame: .skip 8
+outer_request: .skip 8
+outer_handle: .skip 8
+pending_extent: .skip 8
+helper_extent: .skip 8
+objects: .skip 8
+object_cursor: .skip 8
+outer_control: .skip 144
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

@@ -18,6 +18,12 @@ CONSTANTS = {**GENERIC,
     'ACK_MAGIC': int.from_bytes(b'HIAOTA01','little'),
     'FAIL_MAGIC': int.from_bytes(b'HIAOTF01','little'),
     'HEADER_MAGIC': int.from_bytes(b'HIAOTH01','little'),
+    'NAME_REQUEST': int.from_bytes(b'HIAONQ01','little'),
+    'NAME_REPLY': int.from_bytes(b'HIAONP01','little'),
+    'OUTER_PACKET_REQUEST': int.from_bytes(b'HIAOTQ01','little'),
+    'OUTER_PACKET_REPLY': int.from_bytes(b'HIAOTP01','little'),
+    'FUNCTION_HELPER_MAGIC': int.from_bytes(b'HIAFHR01','little'),
+    'RECORDS': 1744, 'RECORD_DATA': 64 + 1744 * 16,
     'HELPER_MAGIC': int.from_bytes(b'HIATHP01','little'),
     'FUNCTION_MAGIC': int.from_bytes(b'HIAFNS01','little'),
     'TYPE_MAGIC': int.from_bytes(b'HIATYS01','little'),
@@ -54,6 +60,8 @@ def outer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return frame(o, w, 0, 0)
     if get(w, S) != STATE_MAGIC or get(w, S + 120) == 2000:
         return fatal(w)
+    if length(s) == 16 and word(s, 0) == NAME_REQUEST:
+        return requested_name(s, o, w)
     if length(s) == 96:
         if word(s, 0) != HEADER_MAGIC or word(s, 8) != get(w, S + 88) or get(w, S + 120) != 22:
             return fatal(w)
@@ -161,6 +169,27 @@ def next_function(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     stream_begin(w, command, 1)
     return frame(o, w, 2, 0)
 
+def requested_name(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if word(s, 8) != get(w, S + 88) or get(w, S + 120) != 10:
+        return ABI
+    name = g_field(w, get(w, S + 152), K_name)
+    size = g_size(w, name)
+    if g_kind(w, name) != 4 or size < 1 or size > 128 or length(o) < 64 + size:
+        return ABI
+    put(o, 0, NAME_REPLY)
+    put(o, 8, get(w, S + 88))
+    put(o, 16, size)
+    put(o, 24, get(w, S + 160))
+    put(o, 32, 0)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    i = 0
+    while i < size:
+        store(o, 64 + i, byte(w, name + 16 + i))
+        i = i + 1
+    return 64 + size
+
 def function_binding(s:readbuf, w:mutbuf) -> u64:
     if word(s, S) != FUNCTION_MAGIC or word(s, S + 96) != 0 or word(s, S + 112) != 0:
         return 0
@@ -227,11 +256,16 @@ def helper_complete(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def helper_header(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if word(s, 16) != get(w, S + 360) or word(s, 24) != HELPER_OUTPUT_BYTES:
         return fatal(w)
-    if word(s, 32) != HELPER_MAGIC or word(s, 40) != get(w, S + 328):
+    if word(s, 32) == FUNCTION_HELPER_MAGIC:
+        if word(s, 72) != get(w, S + 240):
+            return fatal(w)
+    elif word(s, 32) != HELPER_MAGIC or word(s, 72) != 0:
+        return fatal(w)
+    if word(s, 40) != get(w, S + 328):
         return fatal(w)
     if word(s, 48) != get(w, S + 336) or word(s, 56) != get(w, S + 344):
         return fatal(w)
-    if word(s, 64) != get(w, S + 360) - 64 or word(s, 72) != 0 or word(s, 80) != 0 or word(s, 88) != 0:
+    if word(s, 64) != get(w, S + 360) - 64 or word(s, 80) != 0 or word(s, 88) != 0:
         return fatal(w)
     error = get(w, S + 328)
     put(w, S + 264, get(w, S + 336))
@@ -403,6 +437,100 @@ def complete_program(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 '''
 
 
+OUTER_PACKET = r"""
+def outer_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if get(w, S + 120) != 2000 or get(w, S + 48) != 0 or get(w, S + 64) != 0:
+        return ABI
+    if get(w, S + 112) != 0 or get(w, S + 96) != 0 or length(o) < 64:
+        return ABI
+    extent = word(s, 8)
+    if extent != length(s) or word(s, 16) != get(w, S + 88):
+        return ABI
+    if word(s, 24) != get(w, S + 160) or word(s, 32) != get(w, S + 216):
+        return ABI
+    if word(s, 40) != 0 or word(s, 48) != 0 or word(s, 56) != 0:
+        return ABI
+    limit = length(o)
+    if limit >= ABI:
+        limit = ABI - 1
+    put(w, PACK_AT, 64)
+    put(w, PACK_LIMIT, limit)
+    put(w, PACK_BAD, 0)
+    packet_value(s, o, w, get(w, S + 32))
+    if get(w, PACK_BAD) != 0:
+        return ABI
+    result = get(w, PACK_AT)
+    put(o, 0, OUTER_PACKET_REPLY)
+    put(o, 8, get(w, S + 88))
+    put(o, 16, result - 64)
+    put(o, 24, get(w, S + 160))
+    put(o, 32, get(w, S + 216))
+    put(o, 40, get(w, S + 264))
+    put(o, 48, 0)
+    put(o, 56, 0)
+    put(w, S + 48, 1)
+    return result
+
+def packet_source(s:readbuf, o:mutbuf, w:mutbuf, offset:u64) -> u64:
+    if offset >= OBJECTS:
+        return packet_object(s, o, w, offset - OBJECTS)
+    total = get(w, S + 16)
+    if offset > total or total - offset < 16:
+        put(w, PACK_BAD, 1)
+        return 0
+    source = SOURCE_BASE + offset
+    size = get(w, source + 8)
+    if size > total - offset - 16:
+        put(w, PACK_BAD, 1)
+        return 0
+    at = packet_reserve(w, 16 + size)
+    if at != N:
+        packet_copy(o, w, source, at, 16 + size)
+    return 0
+
+def packet_object(s:readbuf, o:mutbuf, w:mutbuf, index:u64) -> u64:
+    if index >= RECORDS:
+        put(w, PACK_BAD, 1)
+        return 0
+    row = 64 + index * 16
+    start = word(s, row)
+    size = word(s, row + 8)
+    if start < RECORD_DATA or start > length(s) or size < 24 or size > length(s) - start:
+        put(w, PACK_BAD, 1)
+        return 0
+    if word(s, start) != 6 or word(s, start + 8) != size - 16:
+        put(w, PACK_BAD, 1)
+        return 0
+    at = packet_reserve(w, size)
+    if at != N:
+        i = 0
+        while i < size:
+            store(o, at + i, byte(s, start + i))
+            i = i + 1
+    return 0
+"""
+
+
+def packet_renderer():
+    from tools.generate_hia_composite_functions import PACK_RENDER, decimal_powers
+    shared = PACK_RENDER[PACK_RENDER.index('def packet_reserve('):]
+    start = shared.index('def packet_source(')
+    end = shared.index('def packet_copy(', start)
+    shared = shared[:start] + shared[end:]
+    shared = shared.replace('def packet_value(o:', 'def packet_value(s:readbuf, o:')
+    shared = shared.replace('def packet_leaf(o:', 'def packet_leaf(s:readbuf, o:')
+    shared = shared.replace('packet_leaf(o,', 'packet_leaf(s, o,')
+    shared = shared.replace('packet_source(o,', 'packet_source(s, o,')
+    render = RENDER.replace('def function_render(', 'def outer_render(')
+    render = render.replace('    if length(o) < O_BYTES', """
+    if length(s) >= RECORD_DATA and word(s, 0) == OUTER_PACKET_REQUEST:
+        if get(w, S) != STATE_MAGIC:
+            return ABI
+        return outer_packet(s, o, w)
+    if length(o) < O_BYTES""", 1)
+    return render + '\n' + OUTER_PACKET + '\n' + shared + '\n' + decimal_powers()
+
+
 def suffix():
     lines=['def key_id(w:mutbuf, node:u64) -> u64:']
     for i,text in enumerate(KEYS):
@@ -423,7 +551,7 @@ def source_program(kernel):
                     if isinstance(node,ast.FunctionDef) and node.name=='validate')
     validation.name='validate_packet'
     body=BODY+'\n'+generic+'\n'+suffix()+'\n'+ast.unparse(validation)
-    if kernel=='render':body=RENDER.replace('def function_render(', 'def outer_render(')
+    if kernel=='render':body=packet_renderer()
     elif kernel!='owner':raise ValueError('unknown outer kernel')
     literals={'L_'+key:packed(key) for key in ('schema','module','exports','functions')}
     literals.update({'L_core_v'+str(i):packed('hepta.hia.program.v'+str(i)) for i in (6,7,8)})
