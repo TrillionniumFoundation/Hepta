@@ -103,6 +103,22 @@ internal failures become `NominalJSONProtocolError`; they are not relabelled as
 invalid user JSON. A rejected output buffer is private scratch, including the
 decoder's work area, and the Python API never exposes it as a packet.
 
+## Standalone native transport
+
+Build with `tools.build_hia_nominal_json --standalone` to include
+`hia-nominal-packet`. The Linux x86-64 executable takes no arguments; send
+the 64-byte `HIANJQ01` request header, one little-endian unsigned 64-bit
+JSON byte length, the raw JSON, and EOF. The header contains the eight-byte
+tag, decimal digit limit, wrapper flag, legacy flag, and four zero words.
+
+On success it returns the exact 64-byte `HIANJP01` header followed by the
+packet, with no interpreter, runtime FFI, or subprocess. On codec refusal
+it exits 65 and returns only `HIANJE01` and the original zero-extended status.
+Truncated or overlong transport framing exits 64 without output; an
+oversized declared JSON length instead returns the codec byte-limit refusal
+without reading its body. This transport does not elaborate composite
+types, run the verified Core program, or replace ordinary `hia verify`.
+
 For a valid configuration, input-byte limits precede complete UTF-8 validation;
 UTF-8 validation precedes the existing ordered syntax/budget/duplicate checks;
 the full preflight precedes integer conversion limits. Thus a late invalid UTF-8

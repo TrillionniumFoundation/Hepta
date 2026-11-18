@@ -9,12 +9,15 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_NAME = 'examples/hia_bootstrap/nominal_json.hepta'
 SCHEMA = 'hepta.hia.nominal-json-native.v1'
+STDIO = 'tools/hia_nominal_json_stdio.S'
+LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
@@ -45,7 +48,7 @@ def admit_compile_receipt(receipt, *, compiler_bytes: bytes,
         raise ValueError('native nominal JSON compile receipt does not bind the consumed inputs and output')
 
 
-def build(output: Path, compiler: Path, cold_report: Path) -> Path:
+def build(output: Path, compiler: Path, cold_report: Path, *, standalone=False) -> Path:
     from tools.build_hia_json_preflight import admit_cold_build, current_sources
     from tools.hia_selfhost_contract import PROFILE
     from tools.qualify_hia_selfhost import compile_stage
@@ -57,6 +60,9 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     source_bytes = source_path.read_bytes()
     if sources.get(SOURCE_NAME) != sha256(source_bytes).hexdigest():
         raise ValueError('nominal JSON source is not in the matching complete cold source contract')
+    extra = {name: (ROOT / name).read_bytes() for name in (STDIO, LINKER)} if standalone else {}
+    if any(sources.get(name) != sha256(raw).hexdigest() for name, raw in extra.items()):
+        raise ValueError('nominal JSON application source differs from the cold source contract')
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, 'nominal-json', compiler, source_bytes)
     image_bytes = image.read_bytes()
@@ -66,6 +72,17 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     receipt_bytes = receipt_path.read_bytes()
     if json.loads(receipt_bytes) != receipt:
         raise ValueError('nominal JSON compile receipt readback differs')
+    executable = None
+    if standalone:
+        from tools.build_hia_sqlite_pager import assemble, link
+        linker, linker_receipt = compile_stage(output, 'nominal-linker', compiler, extra[LINKER])
+        linker_body = linker.read_bytes()
+        if sha256(linker_body).hexdigest() != linker_receipt['produced_sha256']:
+            raise ValueError('nominal JSON application linker changed')
+        adapter = assemble(output, STDIO, extra[STDIO])
+        executable, _ = link(output, linker_body, image_bytes, (adapter,), wire_magic=b'HIALNK01')
+        if linker.read_bytes() != linker_body or any((ROOT / name).read_bytes() != raw for name, raw in extra.items()):
+            raise ValueError('nominal JSON application changed during linking')
     if (source_path.read_bytes() != source_bytes or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes or current_sources() != sources
             or image.read_bytes() != image_bytes or receipt_path.read_bytes() != receipt_bytes):
@@ -78,6 +95,14 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     path.write_bytes(raw_manifest)
     if path.read_bytes() != raw_manifest:
         raise ValueError('nominal JSON manifest readback differs')
+    executable_identity = None
+    if executable is not None:
+        entry = output / 'hia-nominal-packet'
+        with entry.open('xb') as stream:
+            stream.write(executable)
+            os.fchmod(stream.fileno(), 0o500)
+        executable_identity = {'name': entry.name, 'bytes': len(executable),
+                               'sha256': sha256(executable).hexdigest()}
     report = {'schema': 'hepta.hia.nominal-json-build.v1',
               'status': 'NATIVE_CANDIDATE_BUILT', 'scope': 'MATCHING_SOURCE_COLD',
               'profile': PROFILE, 'source_manifest': sources, 'manifest': manifest,
@@ -87,6 +112,8 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
               'all_payload_conversion_in_hia': True, 'public_diagnostics_replaced': False,
               'production_activated': False, 'all_input_equivalence_proved': False,
               'whole_stack_rewritten_in_hia': False}
+    if executable_identity is not None:
+        report['standalone_packet_transport'] = executable_identity
     report_path = output / 'build.json'
     report_bytes = (json.dumps(report, sort_keys=True, indent=2) + '\n').encode()
     report_path.write_bytes(report_bytes)
@@ -100,8 +127,10 @@ def main():
     parser.add_argument('--compiler', type=Path, required=True)
     parser.add_argument('--cold-report', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--standalone', action='store_true')
     args = parser.parse_args()
-    path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve())
+    path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
+                 standalone=args.standalone)
     print(json.dumps({'status': 'NATIVE_CANDIDATE_BUILT', 'manifest': str(path)}))
 
 

@@ -423,6 +423,8 @@ SOURCE_FILES = (
     'docs/HIA_NATIVE_SOURCE_BUILD.md',
     'tools/generate_hia_nominal_json.py',
     'tools/build_hia_nominal_json.py',
+    'tools/hia_nominal_json_stdio.S',
+    'tests/test_hia_nominal_packet_runtime.py',
     'examples/hia_bootstrap/nominal_json.hepta',
     'tests/test_hia_nominal_json_native.py',
     'tests/test_hia_nominal_json_constructor_ingress.py',
