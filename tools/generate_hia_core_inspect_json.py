@@ -1,4 +1,4 @@
-"""Author inspection of admitted primitive Core using the native JSON arena."""
+"""Author bounded reports for admitted primitive and elaborated nominal Core."""
 import ast
 from pathlib import Path
 
@@ -17,29 +17,31 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < 128 or length(w) < 9280:
         return 4294967293
     mode = get(w, length(w) - 8)
-    if mode == NOMINAL_HASH:
-        return hash_canonical_input(s, o, w)
-    original = nominal_profile(w)
-    if original > 4:
-        return 4294967293
+    if NOMINAL:
+        if mode == NOMINAL_HASH:
+            return hash_canonical_input(s, o, w)
+        original = nominal_profile(w)
+        if original > 4:
+            return 4294967293
     verification = mode == REPORT_MODE
     put(o, 48, 262144)
     put(o, 56, 64)
     decoded_size = widen(decode_json(s, w, o))
     if decoded_size >= 4294967292:
         return decoded_size
-    if mode == SCHEMA_MODE:
-        return composite_schema(w)
-    if mode == NORMALIZED_MODE:
-        if decoded_size + 9280 > length(w):
-            return 4294967293
-        put(w, 56, 0)
-        fragment(s, o, w, 0, 0, 1)
-        append_byte(o, w, 10)
-        size = get(w, 56)
-        if size > length(o):
-            return 4294967294
-        return size
+    if NOMINAL:
+        if mode == SCHEMA_MODE:
+            return composite_schema(w)
+        if mode == NORMALIZED_MODE:
+            if decoded_size + 9280 > length(w):
+                return 4294967293
+            put(w, 56, 0)
+            fragment(s, o, w, 0, 0, 1)
+            append_byte(o, w, 10)
+            size = get(w, 56)
+            if size > length(o):
+                return 4294967294
+            return size
     # Hash the exact canonical Core, not the original whitespace or key order.
     reserved = choose(original == 0, 9280, NOMINAL_TAIL)
     if decoded_size + reserved > length(w):
@@ -441,7 +443,7 @@ def hash_put(w:mutbuf, offset:u64, value:u64) -> u64:
 '''
 
 
-def source_program():
+def source_program(*, nominal=False):
     helpers = FRONTEND[FRONTEND.index('def kind('):FRONTEND.index('def shape(')]
     match = FRONTEND[FRONTEND.index('def same('):]
     key_fn = '''def key_id(w:mutbuf, node:u64) -> u64:
@@ -455,6 +457,7 @@ def source_program():
         'NOMINAL_HASH': int.from_bytes(b'HIAONH01', 'little'),
         'NOMINAL_CONTEXT': int.from_bytes(b'HIAONC01', 'little'),
         'NOMINAL_TAIL': 9472,
+        'NOMINAL': nominal,
     }
     for i, name in enumerate(KEYS):
         constants['K_' + name] = 1 << i
@@ -465,13 +468,14 @@ def source_program():
     for index, value in enumerate(PRIMITIVE_PROFILES.values(), ord('1')):
         profile += f'    if version == {index}:\n        lit(o, w, {chr(34) + value + chr(34)!r})\n'
     profile += '    return 0\n'
-    for name, values in (('declared_profile', COMPOSITE_PROFILES.values()),
-                         ('declared_schema', COMPOSITE_PROFILES.keys())):
-        profile += f'def {name}(o:mutbuf, w:mutbuf, version:u64) -> u64:\n'
-        for version, value in enumerate(values, 1):
-            profile += f'    if version == {version}:\n        lit(o, w, {chr(34) + value + chr(34)!r})\n'
-        profile += '    return 0\n'
-    profile += '''def composite_schema(w:mutbuf) -> u32:
+    if nominal:
+        for name, values in (('declared_profile', COMPOSITE_PROFILES.values()),
+                             ('declared_schema', COMPOSITE_PROFILES.keys())):
+            profile += f'def {name}(o:mutbuf, w:mutbuf, version:u64) -> u64:\n'
+            for version, value in enumerate(values, 1):
+                profile += f'    if version == {version}:\n        lit(o, w, {chr(34) + value + chr(34)!r})\n'
+            profile += '    return 0\n'
+        profile += '''def composite_schema(w:mutbuf) -> u32:
     schema = field(w, 0, K_schema)
     if schema == NONE or kind(w, schema) != 4:
         return 0
@@ -479,14 +483,60 @@ def source_program():
     start = get(w, record + 24)
     size = get(w, record + 32)
 '''
-    for version, schema in enumerate(COMPOSITE_PROFILES, 1):
-        profile += '    if same(w, start, size, ' + ', '.join(map(str, packed(schema))) + ') == 1:\n'
-        profile += f'        return {version}\n'
-    profile += '    return 0\n'
+        for version, schema in enumerate(COMPOSITE_PROFILES, 1):
+            profile += '    if same(w, start, size, ' + ', '.join(map(str, packed(schema))) + ') == 1:\n'
+            profile += f'        return {version}\n'
+        profile += '    return 0\n'
 
     class Expand(ast.NodeTransformer):
+        # Keep the existing primitive-only payload within its fixed 1 MiB
+        # suite envelope. This is an authoring-time profile, not a runtime flag.
+        def visit_FunctionDef(self, node):
+            if not nominal and node.name in {
+                'nominal_profile', 'hash_canonical_input', 'quoted_input_hash',
+            }:
+                return None
+            return self.generic_visit(node)
+
+        def visit_Assign(self, node):
+            if not nominal and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'original':
+                return None
+            return self.generic_visit(node)
+
         def visit_Name(self, node):
+            if not nominal and node.id == 'original':
+                return ast.Constant(0)
             return ast.Constant(constants[node.id]) if node.id in constants else node
+
+        def visit_Call(self, node):
+            self.generic_visit(node)
+            if not nominal and isinstance(node.func, ast.Name):
+                if node.func.id == 'nominal_profile':
+                    return ast.Constant(0)
+                if node.func.id == 'quoted_input_hash':
+                    node.func.id = 'quoted_hash'
+                if node.func.id == 'choose' and isinstance(node.args[0], ast.Constant):
+                    return node.args[1 if node.args[0].value else 2]
+            return node
+
+        def visit_Compare(self, node):
+            self.generic_visit(node)
+            if len(node.comparators) != 1:
+                return node
+            right, = node.comparators
+            if not nominal and isinstance(node.left, ast.Constant) and isinstance(right, ast.Constant):
+                if isinstance(node.ops[0], ast.Eq):
+                    return ast.Constant(node.left.value == right.value)
+                if isinstance(node.ops[0], ast.NotEq):
+                    return ast.Constant(node.left.value != right.value)
+            return node
+
+        def visit_If(self, node):
+            test = self.visit(node.test)
+            if isinstance(test, ast.Constant) and isinstance(test.value, bool):
+                selected = node.body if test.value else node.orelse
+                return self.visit(ast.Module(body=selected, type_ignores=[])).body
+            return self.generic_visit(node)
 
         def visit_Expr(self, node):
             call = node.value
@@ -504,8 +554,10 @@ def source_program():
 
 
 def main():
-    file = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_inspect_json.hepta'
-    file.write_text(render_assembly(document(source_program(), 'core_inspect_json')))
+    root = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap'
+    for name, nominal in (('core_inspect_json', False), ('core_nominal_report_json', True)):
+        (root / (name + '.hepta')).write_text(
+            render_assembly(document(source_program(nominal=nominal), name)))
 
 
 if __name__ == '__main__':

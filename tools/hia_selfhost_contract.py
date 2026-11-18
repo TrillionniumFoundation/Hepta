@@ -106,6 +106,7 @@ CORE_NORMALIZE_SDIST_FILES = (
     'examples/hia_bootstrap/core_normalize_cli_packer.hepta',
     'examples/hia_bootstrap/core_pretty_json.hepta',
     'examples/hia_bootstrap/core_inspect_json.hepta',
+    'examples/hia_bootstrap/core_nominal_report_json.hepta',
     'examples/hia_bootstrap/core_inspect_cli_packer.hepta',
     'tools/generate_hia_core_inspect_json.py',
     'tools/generate_hia_core_suite.py',
