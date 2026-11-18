@@ -1,4 +1,4 @@
-"""Check the eight native Core file publication routes against ordinary hia."""
+"""Compare the installed native Core CLI with ordinary hia."""
 
 import argparse
 from contextlib import redirect_stdout
@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 
 from hepta.cli import HIA_AGENT_ACTIONS, _reference_hia_main
-from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_assembly import diagnose_assembly, render_assembly
 from hepta.hia_edit_batch import prepare_batch
 from hepta.hia_edit_query import prepare_edit
 from hepta.hia_program_native import build_program_machine
@@ -29,6 +29,43 @@ def reference_cli(arguments):
             status = error.code
     assert status == 0, (arguments[0], report.getvalue())
     return report.getvalue().encode()
+
+
+def check_assembly_rejections(release, directory):
+    header = 'hia-asm.v1 hepta.hia.program.v8 m\n'
+    function = 'fn f() -> () effects() entry(b)\n'
+    body = header + function + 'block b()\n'
+    node_payload = ','.join(['0'] * 2046)
+    large_body = ('_ = opaque() {"payload":[' + node_payload + ']}\n') * 128
+    cases = {
+        'utf8': b'\xff',
+        'bom': b'\xef\xbb\xbf',
+        'bare-cr': b'one\rtwo',
+        'line-count': b'\n' * 16384,
+        'line-bytes': b'x' * 16385,
+        'source-bytes': b'x' * 1048577,
+        'empty': b'',
+        'header': b'not assembly',
+        'unterminated': (header + function).encode(),
+        'empty-list': (body + 'ret(a,)\n').encode(),
+        'malformed-attributes': (body + 'x:u32 = const() []\n').encode(),
+        'invalid-instruction': (body + 'not an instruction\n').encode(),
+        'no-functions': header.encode(),
+        'unknown-opcode': (body + '_ = opaque()\nret()\nend\n').encode(),
+        'undefined': (body + 'ret(undefined)\nend\n').encode(),
+        'constant-type': (body + 'y:bool = const() {"value":1}\nret()\nend\n').encode(),
+        'node-budget': (body + large_body + 'ret()\nend\n').encode(),
+    }
+    for label, raw in cases.items():
+        path = directory / (label + '.hepta')
+        path.write_bytes(raw)
+        expected = wire(diagnose_assembly(raw), pretty=True)
+        result = subprocess.run([release / 'hia', 'check-assembly', path], input=b'ignored stdin',
+                                capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (1, expected, b''), (
+            label, result.returncode, result.stdout, result.stderr)
+        assert path.read_bytes() == raw, label
+    return len(cases)
 
 
 def check_release(release, directory):
@@ -135,7 +172,9 @@ def check_release(release, directory):
         assert actual_stat.st_ino == target.stat().st_ino and target.read_bytes() == reference.read_bytes()
         assert list(target.parent.iterdir()) == [target], action
     assert {name: (directory / name).read_bytes() for name in inputs} == inputs
-    return len(cases) * 3 + checked_actions
+    diagnostics = directory / 'diagnostics'
+    diagnostics.mkdir()
+    return len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
 
 
 if __name__ == '__main__':
@@ -143,4 +182,4 @@ if __name__ == '__main__':
     parser.add_argument('release', type=Path)
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='hia-core-publication-runtime-') as root:
-        print(f'{check_release(args.release.resolve(), Path(root))} native ordinary CLI and file publication checks passed')
+        print(f'{check_release(args.release.resolve(), Path(root))} native CLI, publication and diagnostic checks passed')

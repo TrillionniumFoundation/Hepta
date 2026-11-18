@@ -1,7 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
-.equ INPUT_N,1048576
+.equ INPUT_N,8388608
 .equ INPUT_EXTENT,1052672
 .equ JSON_AT,1052672
 .equ JSON_N,16777216
@@ -44,18 +44,46 @@ read_input:
  test rax,rax
  js io_failure
  jz input_complete
+ cmp rax,rdx
+ ja io_failure
  add [rbp+S],rax
  cmp QWORD PTR [rbp+S],INPUT_N
  ja capacity
  jmp read_input
 input_complete:
  mov rdi,r12
- mov esi,INPUT_EXTENT
+ mov rsi,[rbp+S]
+ add rsi,4095
+ and rsi,-4096
+ test rsi,rsi
+ jnz preflight_protect
+ mov esi,4096
+preflight_protect:
  mov edx,1
  mov eax,10
  syscall
  test rax,rax
  jnz io_failure
+ mov QWORD PTR [rbp+88],1274
+ mov rdi,r12
+ mov rsi,[rbp+S]
+ lea rdx,[r12+CORE_AT]
+ mov ecx,512
+ mov r8,rbp
+ mov r9d,4096
+ .byte 0xe8
+preflight_call_hole: .long 0
+ test rax,rax
+ jz source_preflight_passed
+ cmp rax,1
+ jne io_failure
+ mov r13,rax
+ mov r14,[rbp+80]
+ jmp report_ready
+source_preflight_passed:
+ cmp QWORD PTR [rbp+80],0
+ jne io_failure
+ mov QWORD PTR [rbp+88],0
  mov rdi,r12
  mov rsi,[rbp+S]
  lea rdx,[r12+JSON_AT]
@@ -66,6 +94,10 @@ input_complete:
 syntax_call_hole: .long 0
  mov [rbp+104],rax
  mov [rbp+S+24],rax
+ mov rdx,[r12+ARENA_AT+256]
+ mov [rbp+144],rdx
+ mov rdx,[r12+ARENA_AT+264]
+ mov [rbp+152],rdx
  # This is only a CABI view-range check. HIA classifies every raw status.
  test rax,rax
  jz admission_skipped
@@ -93,6 +125,18 @@ syntax_call_hole: .long 0
 core_call_hole: .long 0
  # Preserve the full actual Core decision. HIA owns classification.
  mov [rbp+112],rax
+ mov rdx,[r12+CORE_AT+120]
+ mov [rbp+160],rdx
+ mov rdx,[r12+CORE_AT+80]
+ mov [rbp+168],rdx
+ mov rdx,[r12+CORE_AT+56]
+ mov [rbp+176],rdx
+ mov rdx,[r12+CORE_AT+72]
+ mov [rbp+184],rdx
+ # Canonical output is not needed when Core returned a nonzero raw result.
+ # No status/message classification here: only native HIA can authorize JSON.
+ test rax,rax
+ jnz admission_skipped
  mov QWORD PTR [r12+ARENA_AT+48],262144
  mov QWORD PTR [r12+ARENA_AT+56],64
  lea rdi,[r12+JSON_AT]
@@ -108,7 +152,7 @@ canonical_call_hole: .long 0
 admission_skipped:
  # All source ranges become immutable before either HIA hash is computed.
  mov rdi,r12
- mov esi,CANON_AT+CANON_N
+ mov esi,SCRATCH_AT
  mov edx,1
  mov eax,10
  syscall
@@ -117,15 +161,16 @@ admission_skipped:
  mov rax,[rbp+S]
  mov [rbp+120],rax
  mov rdi,r12
- mov esi,CANON_AT+CANON_N
+ mov esi,SCRATCH_AT
  lea rdx,[r12+CORE_AT]
- mov ecx,512
+ mov ecx,8192
  mov r8,rbp
  mov r9d,4096
  .byte 0xe8
 diagnostic_call_hole: .long 0
  mov r13,rax
  mov r14,[rbp+80]
+report_ready:
  cmp r13,255
  ja io_failure
  mov rdi,r12
@@ -152,11 +197,14 @@ diagnostic_call_hole: .long 0
  syscall
  test rax,rax
  jnz io_failure
+ cmp r13,1
+ je diagnostic_output
  test r13,r13
  jnz HIA_status
+diagnostic_output:
  test r14,r14
  jz io_failure
- cmp r14,512
+ cmp r14,8192
  ja io_failure
  lea rdi,[r12+CORE_AT]
  mov esi,CORE_N
@@ -195,7 +243,7 @@ write_output:
  syscall
  test rax,rax
  jnz io_failure
- xor edi,edi
+ mov rdi,r13
  jmp exit_process
 HIA_status:
  mov rdi,r13

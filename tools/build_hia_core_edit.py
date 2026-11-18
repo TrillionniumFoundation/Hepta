@@ -69,10 +69,10 @@ PROGRAMS = {
         (CLI + 'assembly_syntax.hepta', ('syntax',)),
     )),
     'check_assembly_accepted': ('hia-check-assembly-accepted', (
-        (CLI + 'assembly_syntax.hepta', ('syntax_call',)),
-        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (CLI + 'assembly_syntax_diagnostics.hepta', ('syntax_call',)),
+        (CLI + 'assembly_core_diagnostics.hepta', ('core_call',)),
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
-        (CLI + 'assembly_accepted.hepta', ('diagnostic_call',)),
+        (CLI + 'assembly_diagnostic_report.hepta', ('preflight_call', 'diagnostic_call')),
     )),
     'capabilities': ('hia-capabilities', (
         (CLI + 'capabilities.hepta', ('capabilities_call',)),
