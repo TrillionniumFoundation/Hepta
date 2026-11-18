@@ -10,9 +10,10 @@
 .equ WORKSPACE,512+4128
 
 _start:
- cmp QWORD PTR [rsp],1
+ /* HIALNK01 calls this entry; argc follows the return address. */
+ cmp QWORD PTR [rsp+8],1
  jne bad_frame
- sub rsp,160
+ sub rsp,168
  xor edi,edi
  mov esi,1034                       /* F_GET_SEALS */
  mov eax,72                        /* fcntl */
