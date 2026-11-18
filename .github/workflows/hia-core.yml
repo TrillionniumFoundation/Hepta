@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation sqlite_agent_catalog; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice agent_read_page elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal execution_budget candidate_budget source_build nominal_json slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation continuation sqlite_agent_catalog; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -46,6 +46,7 @@ jobs:
               'tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests',
               'tests.test_hia_agent_identity_native.AgentIdentitySourceTests',
               'tests.test_hia_agent_slice_native.AgentSliceSourceTests',
+              'tests.test_hia_agent_read_page_native.AgentReadPageSourceTests',
               'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests',
               'tests.test_hia_sqlite_snapshot_native',
               'tests.test_hia_agent_stdio.AgentStdioSourceTests',
@@ -245,6 +246,15 @@ jobs:
             --component-root "$installed" --test-root "$package"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
+      - name: Native artifact read-page and ordinary Agent callers
+        run: |
+          set -euo pipefail
+          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          python -B -m tools.build_hia_json_preflight --candidate agent-read-page \
+            --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/agent-read-page"
+          python -B -m tests.test_hia_agent_read_page_native \
+            --manifest "$RUNNER_TEMP/agent-read-page/manifest.json" --test-root "$RUNNER_TEMP"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
         run: |

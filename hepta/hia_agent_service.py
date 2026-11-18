@@ -438,6 +438,21 @@ class HIAAgentService:
                 reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
             offset = row["offset"]
         limit = int(args.get("max_bytes", 65536))
+        selected = os.environ.get('HEPTA_HIA_AGENT_READ_PAGE_MANIFEST')
+        if selected:
+            from .hia_agent_read_page_native import installed_agent_read_page
+            encoding, content, next_offset = installed_agent_read_page(selected).read_page(data, offset, limit)
+        else:
+            encoding, content, next_offset = self._reference_read_page(data, offset, limit)
+        next_cursor = None
+        if next_offset is not None:
+            next_cursor = "page-" + digest({"artifact": ref, "offset": next_offset})
+            self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+                (next_cursor, ref["id"], ref["sha256"], next_offset))
+        return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
+
+    @staticmethod
+    def _reference_read_page(data, offset, limit):
         chunk = data[offset:offset + limit]
         encoding = "utf8"
         try:
@@ -468,12 +483,8 @@ class HIAAgentService:
                         break
                     except UnicodeDecodeError:
                         chunk = chunk[:-1]
-        next_cursor = None
-        if offset + len(chunk) < len(data):
-            next_cursor = "page-" + digest({"artifact": ref, "offset": offset + len(chunk)})
-            self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
-                (next_cursor, ref["id"], ref["sha256"], offset + len(chunk)))
-        return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
+        next_offset = offset + len(chunk)
+        return encoding, content, next_offset if next_offset < len(data) else None
 
     def _hia_context(self, args):
         from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES

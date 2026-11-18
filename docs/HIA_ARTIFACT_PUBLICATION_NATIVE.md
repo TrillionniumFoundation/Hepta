@@ -130,3 +130,30 @@ The Python custody bridge and SQLite request/ref authority remain dependencies.
 The standalone HIA executable is still the only filesystem payload hash/read/
 write implementation on the selected route. This does not select a live default,
 qualify a native-only installed worker, or replace its journal.
+
+## Artifact page policy in HIA
+
+Build `agent-read-page` from an admitted cold compiler:
+
+```sh
+python -B -m tools.build_hia_json_preflight --candidate agent-read-page \
+  --compiler "$compiler" --cold-report "$cold_report" --output "$page_policy"
+```
+
+Select its `manifest.json` with `HEPTA_HIA_AGENT_READ_PAGE_MANIFEST`, or as
+that slot in an operator-pinned Agent helper bundle. This runs the same page
+policy for ordinary `hia_read` calls and the MCP resource-read alias. HIA
+classifies the complete artifact as UTF-8 or binary, trims to a Unicode
+boundary, implements the existing double-JSON page budget and Base64
+encoding, and computes the next byte offset. Invalid or unavailable selected
+code does not fall back to hosted pagination.
+
+The input is `HIAARP01`, the unsigned byte offset and page-byte limit as
+little-endian u64s, followed by authenticated artifact bytes. The result is
+`HIAARO01`, the encoding (0 UTF-8, 1 Base64), source bytes consumed, next
+offset (u64 max at end), encoded length, and the encoded content. The HIA
+entry returns the complete result length, or u32 max / u32 max minus one
+for a malformed frame or insufficient output. Scratch is not needed.
+
+Artifact-reference/URI admission, file capture, cursor identity and the
+transaction/journal stay with the current Agent store. No default changed.
