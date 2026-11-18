@@ -381,3 +381,14 @@ perform function lowering, outer-module assembly or primitive Core verification
 and does not replace public `hia verify`. It uses the raw codec envelope;
 public Core depth/diagnostic ordering remains independently qualified before
 any future switch.
+
+A client can request the exact constructor-to-next-stage packet instead of
+the terminal token stream. With the same raw framing, use `HIACBX01` and
+the first reserved word set to role 1 (function entry) or role 2 (outer
+module entry). On success the response is `HIACIP01`, role, packet length,
+profile, completed request count, three zero words, and the seed packet.
+The HIA constructor assembles it from the committed document, signatures,
+and (where appropriate) returned-loan origins. It does not round-trip
+through host dictionaries or materialize the terminal token stream. On
+construction failure, the original failure-prefix response is unchanged.
+This exposes the handoff artifact, not completion of those later stages.

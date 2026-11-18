@@ -84,15 +84,16 @@ def cases():
 
 
 def check(executable, oracle):
-    def run(raw, *, digits=4300, legacy=False, count=None, flags=0, trailer=b''):
+    def run(raw, *, digits=4300, legacy=False, count=None, flags=0, trailer=b'', handoff=False):
         length = len(raw) if count is None else count
-        request = FRAME.pack(b'HIACSX01', digits, int(legacy), length, flags, 0, 0, 0)
+        magic = b'HIACBX01' if handoff else b'HIACSX01'
+        request = FRAME.pack(magic, digits, int(legacy), length, flags, 0, 0, 0)
         result = subprocess.run([executable], input=request + raw + trailer, capture_output=True,
                                 env={'PATH': ''}, timeout=20, check=False)
         assert not result.stderr
         return result.returncode, result.stdout
 
-    requests, documents, kinds = 0, 0, set()
+    requests, documents, kinds, seeds = 0, 0, set(), 0
     for name, document, legacy, status in cases():
         commands, expected, old_code, old_message = reference(oracle, document, legacy)
         assert expected is not None, (name, old_message)
@@ -123,6 +124,21 @@ def check(executable, oracle):
         assert cursor == len(data) and decoder.root == expected, name
         if name == 'multi-chunk':
             assert sequence > 1
+        for role in (1, 2):
+            seed_code, seed_data = run(raw, legacy=legacy, flags=role, handoff=True)
+            if status[0]:
+                assert (seed_code, seed_data) == (code, data)
+                continue
+            registry = [row[:3] for row in expected[4]]
+            if role == 1:
+                payload = transport([document, registry, expected[5], 0, 0, legacy, 0])
+            else:
+                payload = transport([document, registry, 0, 0, [], []])
+            assert seed_code == 0
+            assert FRAME.unpack_from(seed_data) == (
+                b'HIACIP01', role, len(payload), expected[1], len(commands), 0, 0, 0)
+            assert seed_data[64:] == payload
+            seeds += 1
         requests += len(commands)
         kinds.update(commands)
         documents += 1
@@ -136,8 +152,11 @@ def check(executable, oracle):
     assert run(b'', count=1) == (64, b'')
     assert run(b'{}', flags=1) == (64, b'')
     assert run(b'{}', trailer=b' ') == (64, b'')
+    assert run(b'{}', handoff=True, flags=0) == (64, b'')
+    assert run(b'{}', handoff=True, flags=3) == (64, b'')
     print(f'{documents} exact constructor completions and failure prefixes; '
-          f'{requests} dependent requests across all five kinds; seven raw framing controls')
+          f'{requests} dependent requests across all five kinds; nine raw framing controls; '
+          f'{seeds} exact function or outer seed packets')
 
 
 if __name__ == '__main__':

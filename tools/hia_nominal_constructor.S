@@ -16,6 +16,9 @@
 .equ FRAME_CAPACITY, 64<<10
 
 .equ INPUT_MAGIC, 0x3130585343414948
+.equ HANDOFF_INPUT, 0x3130584243414948
+.equ HANDOFF_REQUEST, 0x3130514943414948
+.equ HANDOFF_REPLY, 0x3130504943414948
 .equ COMPLETE_MAGIC, 0x3130465343414948
 .equ DECODE_REQUEST, 0x3130514a4e414948
 .equ DECODE_REPLY, 0x3130504a4e414948
@@ -54,9 +57,22 @@ _start:
  call read_exact
  mov rax,INPUT_MAGIC
  cmp QWORD PTR [rip+request],rax
+ je normal_header
+ mov rax,HANDOFF_INPUT
+ cmp QWORD PTR [rip+request],rax
  jne malformed
  mov rax,[rip+request+32]
- or rax,[rip+request+40]
+ test rax,rax
+ je malformed
+ cmp rax,2
+ ja malformed
+ mov [rip+handoff_role],rax
+ jmp reserved_header
+normal_header:
+ cmp QWORD PTR [rip+request+32],0
+ jne malformed
+reserved_header:
+ mov rax,[rip+request+40]
  or rax,[rip+request+48]
  or rax,[rip+request+56]
  jne malformed
@@ -282,6 +298,10 @@ finished:
  jne io_failure
  cmp r15,14
  ja io_failure
+ test r15,r15
+ jne complete
+ cmp QWORD PTR [rip+handoff_role],0
+ jne handoff
  jmp complete
 delegated:
  test rax,rax
@@ -346,6 +366,40 @@ stream_result:
  test r15,r15
  je exit
  mov edi,65
+ jmp exit
+
+handoff:
+ lea rdi,[rip+pack_command]
+ mov rax,HANDOFF_REQUEST
+ mov [rdi],rax
+ mov r13,[rip+handoff_role]
+ mov [rdi+8],r13
+ mov esi,16
+ mov rdx,[rip+type_output]
+ mov ecx,PACKET_CAPACITY+64
+ mov r8,[rip+constructor_work]
+ mov r9d,CONSTRUCTOR_ARENA
+ call owner
+ cmp eax,88
+ jb io_failure
+ cmp eax,PACKET_CAPACITY+64
+ ja io_failure
+ mov edx,eax
+ mov rsi,[rip+type_output]
+ mov rax,HANDOFF_REPLY
+ cmp [rsi],rax
+ jne io_failure
+ cmp [rsi+8],r13
+ jne io_failure
+ lea rax,[rdx-64]
+ cmp [rsi+16],rax
+ jne io_failure
+ mov rax,[rip+last_request]
+ cmp [rsi+32],rax
+ jne io_failure
+ mov edi,1
+ call write_exact
+ xor edi,edi
  jmp exit
 
 owner_frame:
@@ -449,5 +503,6 @@ type_work: .skip 8
 type_output: .skip 8
 last_request: .skip 8
 delegate_status: .skip 8
+handoff_role: .skip 8
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

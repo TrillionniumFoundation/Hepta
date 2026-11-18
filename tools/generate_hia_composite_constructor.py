@@ -25,6 +25,8 @@ CONSTANTS = {**GENERIC,
     'RESPONSE_MAGIC': int.from_bytes(b'HIACTP01', 'little'),
     'COMMAND_REQUEST': int.from_bytes(b'HIACCQ01', 'little'),
     'COMMAND_REPLY': int.from_bytes(b'HIACCP01', 'little'),
+    'HANDOFF_REQUEST': int.from_bytes(b'HIACIQ01', 'little'),
+    'HANDOFF_REPLY': int.from_bytes(b'HIACIP01', 'little'),
     'COMMAND_CAPACITY': (32 << 20) + 64,
     'COMMAND_CURSOR': 4096 + 384,
     'COMMAND_LIMIT': 4096 + 392,
@@ -61,6 +63,8 @@ def constructor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return fatal(w)
     if length(s) == 24 and word(s, 0) == COMMAND_REQUEST:
         return pack_command(s, o, w)
+    if length(s) == 16 and word(s, 0) == HANDOFF_REQUEST:
+        return pack_handoff(s, o, w)
     if length(s) >= 64 and word(s, 0) == RESPONSE_MAGIC:
         if get(w, S) != STATE_MAGIC or get(w, S + 128) == 0 or get(w, S + 48) != 1:
             return fatal(w)
@@ -200,16 +204,25 @@ def pack_reference(o:mutbuf, w:mutbuf, node:u64) -> u64:
     return pack_original(o, w, SOURCE_BASE + get(w, node + 8))
 
 def pack_boolean(o:mutbuf, w:mutbuf, node:u64) -> u64:
+    return pack_flag(o, w, get(w, node + 8))
+
+def pack_flag(o:mutbuf, w:mutbuf, flag:u64) -> u64:
     at = pack_reserve(w, 17)
     if at != N:
         put(o, at, 1)
         put(o, at + 8, 1)
-        store(o, at + 16, get(w, node + 8))
+        store(o, at + 16, flag)
     return 0
 
 def pack_identifier(o:mutbuf, w:mutbuf, node:u64) -> u64:
     value = get(w, node + 8)
     if value == 0 or value > 144:
+        put(w, COMMAND_FAILED, 1)
+        return 0
+    return pack_small_number(o, w, value)
+
+def pack_small_number(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    if value > 512:
         put(w, COMMAND_FAILED, 1)
         return 0
     digits = 1
@@ -224,9 +237,12 @@ def pack_identifier(o:mutbuf, w:mutbuf, node:u64) -> u64:
     put(o, at + 8, digits)
     cursor = at + 16
     if digits == 3:
-        store(o, cursor, 49)
+        hundreds = 0
+        while value >= 100:
+            value = value - 100
+            hundreds = hundreds + 1
+        store(o, cursor, 48 + hundreds)
         cursor = cursor + 1
-        value = value - 100
     if digits >= 2:
         tens = 0
         while value >= 10:
@@ -314,19 +330,106 @@ def pack_task(o:mutbuf, w:mutbuf, command:u64) -> u64:
     pack_text(o, w, T_task)
     pack_identifier(o, w, ir_item(w, command, 1))
     pack_text(o, w, T_functions)
-    registry = ir_item(w, command, 2)
+    pack_signatures(o, w, ir_item(w, command, 2), False)
+    return pack_close(o, w, root)
+
+def pack_signatures(o:mutbuf, w:mutbuf, registry:u64, include_names:bool) -> u64:
     functions = pack_open(o, w, 5, get(w, registry + 24))
     segment = get(w, registry + 8)
     while segment != 0:
         item = get(w, segment + 16)
         row = pack_open(o, w, 5, 3)
         pack_reference(o, w, ir_item(w, item, 0))
-        pack_parameters(o, w, ir_item(w, item, 1), False)
+        pack_parameters(o, w, ir_item(w, item, 1), include_names)
         pack_returns(o, w, ir_item(w, item, 2))
         pack_close(o, w, row)
         segment = get(w, segment)
-    pack_close(o, w, functions)
+    return pack_close(o, w, functions)
+
+def pack_handoff(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if get(w, S) != STATE_MAGIC or get(w, S + 112) != 0:
+        return ABI
+    if get(w, S + 120) != 2000 or get(w, S + 128) != 0 or get(w, S + 136) != 3:
+        return ABI
+    role = word(s, 8)
+    if role != 1 and role != 2:
+        return ABI
+    limit = length(o)
+    if limit > COMMAND_CAPACITY:
+        limit = COMMAND_CAPACITY
+    put(w, COMMAND_CURSOR, 64)
+    put(w, COMMAND_LIMIT, limit)
+    put(w, COMMAND_FAILED, 0)
+    root = pack_open(o, w, 5, choose(role == 1, 7, 6))
+    pack_original(o, w, get(w, S + 144))
+    pack_signatures(o, w, get(w, S + 208), True)
+    if role == 1:
+        pack_loan_inventory(o, w, get(w, S + 216))
+    # Constructor commits precede all generated-name and output-slot claims.
+    pack_small_number(o, w, 0)
+    pack_small_number(o, w, 0)
+    if role == 1:
+        pack_flag(o, w, get(w, S + 152))
+        pack_small_number(o, w, 0)
+    else:
+        pack_close(o, w, pack_open(o, w, 5, 0))
+        pack_close(o, w, pack_open(o, w, 5, 0))
+    pack_close(o, w, root)
+    if get(w, COMMAND_FAILED) != 0:
+        return ABI
+    extent = get(w, COMMAND_CURSOR)
+    put(o, 0, HANDOFF_REPLY)
+    put(o, 8, role)
+    put(o, 16, extent - 64)
+    put(o, 24, get(w, S + 160))
+    put(o, 32, get(w, S + 88))
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    return extent
+
+def pack_loan_inventory(o:mutbuf, w:mutbuf, list:u64) -> u64:
+    root = pack_open(o, w, 5, get(w, list + 24))
+    segment = get(w, list + 8)
+    while segment != 0:
+        item = get(w, segment + 16)
+        row = pack_open(o, w, 5, 2)
+        pack_reference(o, w, ir_item(w, item, 0))
+        pack_loan_slots(o, w, ir_item(w, item, 1))
+        pack_close(o, w, row)
+        segment = get(w, segment)
     return pack_close(o, w, root)
+
+def pack_loan_slots(o:mutbuf, w:mutbuf, list:u64) -> u64:
+    root = pack_open(o, w, 5, get(w, list + 24))
+    segment = get(w, list + 8)
+    while segment != 0:
+        slot = get(w, segment + 16)
+        if get(w, slot) == 4:
+            at = pack_reserve(w, 16)
+            if at != N:
+                put(o, at, 0)
+                put(o, at + 8, 0)
+        else:
+            row = pack_open(o, w, 5, 2)
+            pack_generated_text(o, w, ir_item(w, slot, 0))
+            pack_small_number(o, w, get(w, ir_item(w, slot, 1) + 8))
+            pack_close(o, w, row)
+        segment = get(w, segment)
+    return pack_close(o, w, root)
+
+def pack_generated_text(o:mutbuf, w:mutbuf, node:u64) -> u64:
+    start = get(w, node + 8)
+    count = get(w, node + 16)
+    at = pack_reserve(w, 16 + count)
+    if at != N:
+        put(o, at, 4)
+        put(o, at + 8, count)
+        index = 0
+        while index < count:
+            store(o, at + 16 + index, byte(w, start + index))
+            index = index + 1
+    return 0
 
 
 def ctor_frame(o:mutbuf, w:mutbuf, action:u64) -> u32:
