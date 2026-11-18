@@ -469,11 +469,12 @@ class HIAAgentService:
     def _remaining_ms(self, context):
         return self._wall_window(context)[1]
 
-    def _wall_window(self, context):
+    def _wall_window(self, context, *, created_ns=None):
         from .hia_agent_store import _native_agent_identity
 
-        row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
-        created_ns = int(row["created_ns"])
+        if created_ns is None:
+            row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
+            created_ns = int(row["created_ns"])
         now_ns = time.time_ns()
         total_ms = context["budget"]["max_total_wall_ms"]
         native = _native_agent_identity()
@@ -1343,10 +1344,10 @@ class HIAAgentService:
         correct, complete, budget_exceeded = True, True, False
         reference_started = time.monotonic_ns()
         context_row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (args["context"]["id"],)).fetchone()
-        context_deadline = int(context_row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
+        created_ns = int(context_row["created_ns"])
 
         def remaining_total_ms():
-            return max(0, (context_deadline - time.time_ns()) // 1_000_000)
+            return self._wall_window(context, created_ns=created_ns)[1]
 
         references = {}
         for label, program in (("baseline", baseline_program), ("candidate", candidate_program)):

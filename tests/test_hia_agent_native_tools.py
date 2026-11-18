@@ -599,13 +599,21 @@ class NativeLifecycleTests(AgentToolCase):
         context_deadline_ns = int(context_row["created_ns"]) + 3_000_000_000
         from hepta.hia_agent_runner import run_reference_batch
         references, wall_reads, entered_evaluation = [], [], []
+        evaluation_windows = []
         real_time_ns = time.time_ns
         required_claims = self.service._required_claims
+        wall_window = self.service._wall_window
 
         def observe_wall_time():
             observed = real_time_ns()
             wall_reads.append(observed)
             return observed
+
+        def observe_window(context, *, created_ns=None):
+            window = wall_window(context, created_ns=created_ns)
+            if created_ns is not None:
+                evaluation_windows.append((created_ns, window[1]))
+            return window
 
         def wait_inside_evaluation(*arguments):
             result = required_claims(*arguments)
@@ -626,6 +634,7 @@ class NativeLifecycleTests(AgentToolCase):
             self.assertTrue(wall_reads)
             remaining_ms = max(0, (context_deadline_ns - wall_reads[-1]) // 1_000_000)
             self.assertEqual(options["timeout_ms"], remaining_ms)
+            self.assertEqual(evaluation_windows[-1], (int(context_row["created_ns"]), remaining_ms))
             self.assertGreater(options["timeout_ms"], 0)
             observed = run_reference_batch(program, cases, **options)
             references.append(observed)
@@ -635,6 +644,7 @@ class NativeLifecycleTests(AgentToolCase):
         # before dispatch left only 100ms for schema, source-identity and
         # context I/O, so a valid rejection could bypass the reference test.
         with patch("hepta.hia_agent_service.time.time_ns", side_effect=observe_wall_time), \
+             patch.object(self.service, "_wall_window", side_effect=observe_window), \
              patch.object(self.service, "_required_claims", side_effect=wait_inside_evaluation), \
              patch("hepta.hia_agent_runner.run_reference_batch", side_effect=observe_reference):
             evaluation = self.session.evaluate(baseline, build, receipts=receipts)
