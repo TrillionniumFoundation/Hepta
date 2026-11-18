@@ -5,7 +5,8 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import (
-    ALLOCATION_MAGIC, BYTE_MAGIC, DOMAIN_MAGIC, LOAN_MAGIC, MAGIC, OBSERVATION_MAGIC, OPCODES, RESULT,
+    ALLOCATION_MAGIC, BYTE_MAGIC, CHAIN_MAGIC, DOMAIN_MAGIC, LOAN_MAGIC, MAGIC, OBSERVATION_MAGIC,
+    OPCODES, RESULT,
 )
 from hepta.hia_scalar_reference_wire import (
     MAX_FRAME_WORDS, MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
@@ -30,6 +31,8 @@ def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return same_observation(s)
     if uint(s, 0, 8) == @LOAN_MAGIC@:
         return loan_operation(s, o, w)
+    if uint(s, 0, 8) == @CHAIN_MAGIC@:
+        return chain_operation(s, o, w)
     if length(s) != 56:
         return 4294967295
     if length(o) < 24:
@@ -629,16 +632,19 @@ def same_observation(s:readbuf) -> u32:
         i = i + 1
     return 1
 
-def loan_slot(w:mutbuf, token:u64) -> u64:
+def arena_slot(w:mutbuf, token:u64, width:u64) -> u64:
     index = (token >> 1) & 16777215
     if (token & 1) == 0 or index == 0 or index > get(w, 8):
         return 0
-    slot = 24 * index
-    if within(length(w), slot, 24) == 0:
+    slot = width * index
+    if within(length(w), slot, width) == 0:
         return 0
     if get(w, slot) != token:
         return 0
     return slot
+
+def loan_slot(w:mutbuf, token:u64) -> u64:
+    return arena_slot(w, token, 24)
 
 def loan_root(w:mutbuf, token:u64) -> u64:
     remaining = get(w, 8)
@@ -650,24 +656,43 @@ def loan_root(w:mutbuf, token:u64) -> u64:
         remaining = remaining - 1
     return token
 
-def loan_allocate(w:mutbuf, parent:u64, permission:u64) -> u64:
-    next_generation = get(w, 0) + 1
-    if next_generation == 0 or next_generation > 549755813887:
-        return 0
+def arena_claim(w:mutbuf, width:u64) -> u64:
     free = get(w, 16)
     index = free
     if index == 0:
         index = get(w, 8) + 1
-    if index == 0 or index > 16777215 or within(length(w), index * 24, 24) == 0:
+    if index == 0 or index > 16777215 or within(length(w), index * width, width) == 0:
         return 0
-    slot = index * 24
+    slot = index * width
+    token = arena_renew(w, slot, width)
+    if token == 0:
+        return 0
     if free == 0:
         put(w, 8, index)
     else:
         put(w, 16, get(w, slot + 8))
-    token = (next_generation << 25) | (index << 1) | 1
+    return token
+
+def arena_renew(w:mutbuf, slot:u64, width:u64) -> u64:
+    next_generation = get(w, 0) + 1
+    if next_generation == 0 or next_generation > 549755813887:
+        return 0
+    token = (next_generation << 25) | ((slot // width) << 1) | 1
     put(w, 0, next_generation)
     put(w, slot, token)
+    return token
+
+def arena_release(w:mutbuf, slot:u64, width:u64) -> u64:
+    put(w, slot, 0)
+    put(w, slot + 8, get(w, 16))
+    put(w, 16, slot // width)
+    return 0
+
+def loan_allocate(w:mutbuf, parent:u64, permission:u64) -> u64:
+    token = arena_claim(w, 24)
+    if token == 0:
+        return 0
+    slot = loan_slot(w, token)
     put(w, slot + 8, parent)
     put(w, slot + 16, permission)
     return token
@@ -697,10 +722,8 @@ def loan_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if slot == 0:
             status = 1
         else:
-            put(w, slot, 0)
-            put(w, slot + 8, get(w, 16))
+            arena_release(w, slot, 24)
             put(w, slot + 16, 0)
-            put(w, 16, slot // 24)
     elif operation == 4:
         origin = loan_slot(w, second)
         if slot == 0 or origin == 0 or loan_root(w, second) != root:
@@ -718,6 +741,90 @@ def loan_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 16, result)
     put(o, 24, root)
     return 32
+
+def chain_slot(w:mutbuf, token:u64, kind:u64) -> u64:
+    slot = arena_slot(w, token, 40)
+    if slot == 0 or get(w, slot + 8) != kind:
+        return 0
+    return slot
+
+def chain_reply(o:mutbuf, w:mutbuf, status:u64, first:u64, payload:u64, storage:u64, present:u64) -> u32:
+    put(o, 0, @RESULT@)
+    put(o, 8, status)
+    put(o, 16, first)
+    put(o, 24, payload)
+    put(o, 32, storage)
+    put(o, 40, present)
+    put(o, 48, get(w, 24))
+    return 56
+
+def chain_operation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 48 or length(w) < 40 or length(o) < 56:
+        return 4294967295
+    op = uint(s, 8, 8)
+    if op < 1 or op > 6 or get(w, 0) >= 549755813885:
+        return 4294967295
+    subject = uint(s, 16, 8)
+    if op == 1:
+        token = arena_claim(w, 40)
+        if token == 0:
+            return chain_reply(o, w, 3, 0, 0, 0, 0)
+        slot = arena_slot(w, token, 40)
+        put(w, slot + 8, 1)
+        put(w, slot + 16, 0)
+        put(w, 24, get(w, 24) + 1)
+        return chain_reply(o, w, 0, token, 0, 0, 0)
+    if op == 6:
+        node = chain_slot(w, subject, 2)
+        if node == 0:
+            return chain_reply(o, w, 1, 0, 0, 0, 0)
+        tail = get(w, node + 16)
+        payload = get(w, node + 24)
+        storage = get(w, node + 32)
+        arena_release(w, node, 40)
+        return chain_reply(o, w, 0, tail, payload, storage, 1)
+    slot = chain_slot(w, subject, 1)
+    if slot == 0:
+        return chain_reply(o, w, 1, 0, 0, 0, 0)
+    head = get(w, slot + 16)
+    node = chain_slot(w, head, 2)
+    if head != 0 and node == 0:
+        return chain_reply(o, w, 1, 0, 0, 0, 0)
+    if op == 2:
+        if head == 0:
+            return chain_reply(o, w, 0, head, 0, 0, 0)
+        return chain_reply(o, w, 0, head, get(w, node + 24), 0, 1)
+    if op == 3:
+        admitted = uint(s, 40, 8)
+        if admitted > 1:
+            return 4294967295
+        if admitted == 1:
+            payload = uint(s, 24, 8)
+            storage = uint(s, 32, 8)
+            if payload == 0 or storage == 0 or payload == storage:
+                return chain_reply(o, w, 1, 0, 0, 0, 0)
+            new_head = arena_claim(w, 40)
+            if new_head == 0:
+                return chain_reply(o, w, 3, 0, 0, 0, 0)
+            new_node = arena_slot(w, new_head, 40)
+            put(w, new_node + 8, 2)
+            put(w, new_node + 16, head)
+            put(w, new_node + 24, payload)
+            put(w, new_node + 32, storage)
+            put(w, slot + 16, new_head)
+        return chain_reply(o, w, 0, arena_renew(w, slot, 40), 0, 0, admitted)
+    if op == 4:
+        token = arena_renew(w, slot, 40)
+        if head == 0:
+            return chain_reply(o, w, 0, token, 0, 0, 0)
+        put(w, slot + 16, get(w, node + 16))
+        payload = get(w, node + 24)
+        storage = get(w, node + 32)
+        arena_release(w, node, 40)
+        return chain_reply(o, w, 0, token, payload, storage, 1)
+    arena_release(w, slot, 40)
+    put(w, 24, get(w, 24) - 1)
+    return chain_reply(o, w, 0, head, 0, 0, 0)
 '''
 
 class ReferenceBuilder(LinkerBuilder):
@@ -731,6 +838,7 @@ def document():
     constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
                  'LOAN_MAGIC': LOAN_MAGIC,
+                 'CHAIN_MAGIC': CHAIN_MAGIC,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,

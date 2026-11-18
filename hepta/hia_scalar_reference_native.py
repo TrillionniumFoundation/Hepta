@@ -22,6 +22,7 @@ ALLOCATION_MAGIC = int.from_bytes(b'HIASAM01', 'little')
 DOMAIN_MAGIC = int.from_bytes(b'HIASDM01', 'little')
 OBSERVATION_MAGIC = int.from_bytes(b'HIASOM01', 'little')
 LOAN_MAGIC = int.from_bytes(b'HIASLM01', 'little')
+CHAIN_MAGIC = int.from_bytes(b'HIASCM01', 'little')
 WORD_MASK = (1 << 64) - 1
 _ACTIVE = ContextVar('hia_scalar_reference_child', default=None)
 OPCODES = {name: index for index, name in enumerate((
@@ -151,6 +152,17 @@ class NativeScalarReference(NativeHiaJsonImage):
         if size != 32 or identity != RESULT or status > 4:
             raise RuntimeError('invalid HIA native loan result')
         return status, result, root
+
+    def chain_operation(self, workspace, operation, subject, payload=0, storage=0, allocated=False):
+        request = struct.pack('<6Q', CHAIN_MAGIC, operation, subject, payload, storage, int(allocated))
+        source = ctypes.create_string_buffer(request)
+        output = ctypes.create_string_buffer(56)
+        table = (ctypes.c_ubyte * len(workspace)).from_buffer(workspace)
+        size = self._entry(source, len(request), output, len(output), table, len(workspace))
+        identity, status, first, payload, storage, present, live = struct.unpack_from('<7Q', output)
+        if size != 56 or identity != RESULT or status not in (0, 1, 3) or present > 1:
+            raise RuntimeError('invalid HIA native chain result')
+        return status, first, payload, storage, bool(present), live
 
     @staticmethod
     def _arithmetic_error(error, typ):

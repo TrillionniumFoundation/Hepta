@@ -339,6 +339,7 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertTrue(any(row['status'] == 'budget_exceeded' for row in expected))
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter')),
+              patch.object(_Machine, 'operation', side_effect=AssertionError('host resource interpreter')),
               patch.object(_Machine, '_reference_allocation_decision',
                            side_effect=AssertionError('host allocation preflight'))):
             self.assertEqual(observe(), expected)
@@ -363,19 +364,10 @@ class ScalarReferenceNativeTests(unittest.TestCase):
 
         expected = observe()
         self.assertEqual({row['status'] for row in expected}, {'returned', 'budget_exceeded'})
-        legacy_operation = _Machine.operation
-
-        def operation(machine, ins, env, depth):
-            name = ins['op']
-            if name.startswith(('borrow.', 'chain.head_', 'loan.')) or (
-                    name.startswith('buffer.') and name not in {'buffer.new', 'buffer.try_new'}):
-                raise AssertionError(f'host loan operation: {name}')
-            return legacy_operation(machine, ins, env, depth)
-
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter')),
               patch.object(_Machine, 'return_view', side_effect=AssertionError('host return-loan owner')),
-              patch.object(_Machine, 'operation', operation)):
+              patch.object(_Machine, 'operation', side_effect=AssertionError('host resource interpreter'))):
             self.assertEqual(observe(), expected)
 
     def test_native_loan_arena_refuses_expired_generation_and_permission_escalation(self):
@@ -398,6 +390,55 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertEqual(self.native.loan_operation(table, 1, first)[0], 1)
         self.assertEqual(table, frozen)
         self.assertEqual(self.native.loan_operation(table, 4, second, parent), (0, second, 2))
+
+    def test_native_chain_arena_rotates_consumed_handles_and_preserves_refusal(self):
+        table = bytearray(40 * 3)
+        status, empty, _, _, present, live = self.native.chain_operation(table, 1, 0)
+        self.assertEqual((status, present, live), (0, False, 1))
+        status, pushed, _, _, present, live = self.native.chain_operation(table, 3, empty, 21, 31, True)
+        self.assertEqual((status, present, live), (0, True, 1))
+        self.assertNotEqual(empty, pushed)
+        frozen = table[:]
+        self.assertEqual(self.native.chain_operation(table, 2, empty)[0], 1)
+        self.assertEqual(self.native.chain_operation(table, 3, pushed, 22, 32, True)[0], 3)
+        self.assertEqual(table, frozen)
+        status, rest, payload, storage, present, live = self.native.chain_operation(table, 4, pushed)
+        self.assertEqual((status, payload, storage, present, live), (0, 21, 31, True, 1))
+        self.assertEqual(self.native.chain_operation(table, 5, rest), (0, 0, 0, 0, False, 0))
+
+    def test_native_chain_reclaims_a_wide_list_under_the_exact_step_limit(self):
+        from hepta.hia_program_runtime import HIAProgramBudgetExceeded
+        from hepta.hia_schema import SCHEMA_V7
+        from tests.test_hia_program import b, c, f, i, m, ret
+
+        operations = [c('size', 'usize', 1), i('chain.empty', out=[('chain0', 'chain')])]
+        for ordinal in range(36):
+            payload, fallback, ok = (f'{name}{ordinal}' for name in ('payload', 'fallback', 'ok'))
+            operations.extend([
+                i('buffer.new', ['size'], [(payload, 'buffer')]),
+                i('chain.try_push', [f'chain{ordinal}', payload],
+                  [(f'chain{ordinal+1}', 'chain'), (fallback, 'buffer'), (ok, 'bool')]),
+                i('owner.drop', [fallback]),
+            ])
+        operations += [i('owner.drop', ['chain36'])]
+        program = m(f('many', [], [], ['alloc', 'trap'], [b('entry', [], operations, ret())]))
+        program['schema'] = SCHEMA_V7
+
+        def observe():
+            states = []
+            for steps in (112, 128, 256):
+                try:
+                    states.append(execute_program(program, 'many', [], max_steps=steps))
+                except HIAProgramBudgetExceeded as error:
+                    states.append(error.report)
+            return states
+
+        expected = observe()
+        self.assertEqual([row['resources']['chain_nodes_dropped'] for row in expected], [0, 16, 36])
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter')),
+              patch.object(_Machine, 'operation', side_effect=AssertionError('host resource interpreter'))):
+            self.assertEqual(observe(), expected)
 
     def test_live_read_loans_grow_the_table_and_balance_without_host_borrows(self):
         from tests.test_hia_program import b, c, f, i, m, ret

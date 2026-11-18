@@ -110,6 +110,7 @@ class _Machine:
         self.loans_started = self.loans_ended = 0
         self.owners = {}
         self.chains = {}
+        self.native_chain_count = None
         self.chains_created = self.chains_consumed = 0
         self.chain_nodes_created = self.chain_nodes_dropped = 0
 
@@ -131,11 +132,14 @@ class _Machine:
         if self.recursive_chain:
             result.update({"chains_created": self.chains_created,
                            "chains_consumed": self.chains_consumed,
-                           "live_chains": len(self.chains),
+                           "live_chains": self.live_chains(),
                            "chain_nodes_created": self.chain_nodes_created,
                            "chain_nodes_dropped": self.chain_nodes_dropped,
                            "live_chain_nodes": self.chain_nodes_created - self.chain_nodes_dropped})
         return result
+
+    def live_chains(self):
+        return len(self.chains) if self.native_chain_count is None else self.native_chain_count
 
     def new_chain(self, head=None):
         self.chains_created += 1
@@ -600,27 +604,16 @@ class _Machine:
 
 
 class _ReferenceResources:
-    """Keep physical backing for the reference VM's HIA loan table."""
+    """Transport physical memory effects for HIA's loan and chain arenas."""
 
     def __init__(self, machine):
         self.machine = machine
         self.native = machine.scalar_reference
         self.loans = bytearray(24 * 17)
+        self.chains = bytearray(40 * 17)
+        self.machine.native_chain_count = 0
         self.external_owners = {}
         self.external_loans = set()
-
-    def decode(self, kind, word):
-        from .hia_scalar_reference_native import NativeScalarReference
-
-        if kind in SCALARS:
-            value = NativeScalarReference._value(kind, word)
-            if scalar_value_valid(value, kind):
-                return value
-            raise HIAProgramRejected("invalid native runtime operand", "E_HIA_RUNTIME_INVARIANT")
-        active = self.machine.owners if kind == "buffer" else self.machine.chains
-        if word not in active:
-            raise HIAProgramRejected("unknown native resource handle", "E_HIA_RUNTIME_INVARIANT")
-        return active[word]
 
     def encode(self, kind, value):
         from .hia_scalar_reference_native import WORD_MASK
@@ -658,12 +651,73 @@ class _ReferenceResources:
                 messages = {1: "expired/cyclic runtime view", 2: "returned view permission invariant",
                             4: "returned view origin invariant"}
                 raise HIAProgramRejected(messages[status], "E_HIA_RUNTIME_INVARIANT")
-            if len(self.loans) >= 24 * (1 << 24):
-                raise HIAProgramBudgetExceeded("host_memory", "native loan table capacity exhausted")
-            try:
-                self.loans.extend(bytes(min(len(self.loans), 24 * (1 << 24) - len(self.loans))))
-            except MemoryError as error:
-                raise HIAProgramBudgetExceeded("host_memory", "cannot extend native loan table") from error
+            self._grow_arena(self.loans, 24)
+
+    @staticmethod
+    def _grow_arena(table, width):
+        remaining = width * (1 << 24) - len(table)
+        if not remaining:
+            raise HIAProgramBudgetExceeded("host_memory", "native resource arena capacity exhausted")
+        try:
+            table.extend(bytes(min(len(table), remaining)))
+        except MemoryError as error:
+            raise HIAProgramBudgetExceeded("host_memory", "cannot extend native resource arena") from error
+
+    def chain(self, operation, subject=0, payload=0, storage=0, allocated=False):
+        while True:
+            status, first, payload_out, storage_out, present, live = self.native.chain_operation(
+                self.chains, operation, subject, payload, storage, allocated)
+            if status == 0:
+                self.machine.native_chain_count = live
+                return first, payload_out, storage_out, present
+            if status == 1:
+                raise HIAProgramRejected("expired runtime chain", "E_HIA_RUNTIME_INVARIANT")
+            self._grow_arena(self.chains, 40)
+
+    def drop_chain(self, subject):
+        head, _, _, _ = self.chain(5, subject)
+        self.machine.chains_consumed += 1
+        while head:
+            self.machine.tick()
+            head, payload, storage, _ = self.chain(6, head)
+            self.machine.drop(self.owner(self.owner_token(payload)))
+            self.machine.drop(self.owner(self.owner_token(storage)))
+            self.machine.chain_nodes_dropped += 1
+
+    def _chain_operation(self, op, words):
+        if op == "chain.empty":
+            token, _, _, _ = self.chain(1)
+            self.machine.chains_created += 1
+            return [token]
+        if op == "chain.is_empty":
+            _, _, _, present = self.chain(2, words[0])
+            return [int(not present)]
+        if op == "chain.try_push":
+            original, payload = words
+            self.chain(2, original)
+            self.owner(self.owner_token(payload))
+            storage, allocated = self.machine.allocate(CHAIN_NODE_BYTES, True)
+            changed, _, _, pushed = self.chain(3, original, payload, storage.ident, allocated)
+            if pushed:
+                self.machine.chain_nodes_created += 1
+                remainder = self.machine.new_owner(bytearray()).ident
+            else:
+                self.machine.drop(storage)
+                remainder = payload
+            self.machine.chains_consumed += 1
+            self.machine.chains_created += 1
+            return [changed, remainder, int(pushed)]
+        if op == "chain.pop":
+            changed, payload, storage, present = self.chain(4, words[0])
+            self.machine.chains_consumed += 1
+            if present:
+                self.machine.drop(self.owner(self.owner_token(storage)))
+                self.machine.chain_nodes_dropped += 1
+            else:
+                payload = self.machine.new_owner(bytearray()).ident
+            self.machine.chains_created += 1
+            return [changed, payload, int(present)]
+        raise HIAProgramRejected("unhandled native chain opcode", "E_HIA_RUNTIME_INVARIANT")
 
     def _byte_operation(self, op, kinds, words):
         read_only = op in {"len", "load"}
@@ -715,10 +769,10 @@ class _ReferenceResources:
             return values
         if op in {"borrow.read", "borrow.mut", "chain.head_read", "chain.head_mut"}:
             if types[0] == "chain":
-                head = self.machine.chain_head(self.decode("chain", words[0]))
-                if head is None:
+                _, payload, _, present = self.chain(2, words[0])
+                if not present:
                     raise HIAProgramTrap("bounds", "head borrow of an empty chain")
-                parent = self.owner_token(head.payload.ident)
+                parent = self.owner_token(payload)
             else:
                 parent = self.owner_token(words[0]) if types[0] == "buffer" else words[0]
             token, _ = self.loan(2, parent, mutable=instruction["out"][0]["type"] == "mutbuf")
@@ -732,10 +786,25 @@ class _ReferenceResources:
             return []
         if op.startswith("buffer.") and op not in {"buffer.new", "buffer.try_new"}:
             return self._byte_operation(op.removeprefix("buffer."), types, words)
-        values = [self.decode(kind, word) for kind, word in zip(types, words)]
-        env = dict(zip(instruction["args"], values))
-        self.machine.operation(instruction, env, 0)
-        return [self.encode(output["type"], env[output["name"]]) for output in instruction["out"]]
+        if op.startswith("chain."):
+            return self._chain_operation(op, words)
+        if op in {"buffer.new", "buffer.try_new"}:
+            optional = op == "buffer.try_new"
+            owner, allocated = self.machine.allocate(words[0], optional)
+            return [owner.ident, int(allocated)] if optional else [owner.ident]
+        if op in {"owner.move", "owner.drop"}:
+            subject, = words
+            if types[0] == "chain":
+                if op == "owner.drop":
+                    self.drop_chain(subject)
+                else:
+                    self.chain(2, subject)
+            else:
+                owner = self.owner(self.owner_token(subject))
+                if op == "owner.drop":
+                    self.machine.drop(owner)
+            return [subject] if op == "owner.move" else []
+        raise HIAProgramRejected("unhandled native resource opcode", "E_HIA_RUNTIME_INVARIANT")
 
 
 def execute_program(program, function, arguments, *, max_steps=1_000_000,
@@ -802,6 +871,6 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
         limit = HIAProgramBudgetExceeded("calls", "host recursion limit reached")
         limit.report = report("budget_exceeded", error=limit)
         raise limit from exc
-    if machine.owners or machine.chains or machine.loans_started != machine.loans_ended:
+    if machine.owners or machine.live_chains() or machine.loans_started != machine.loans_ended:
         raise HIAProgramRejected("successful scalar entry leaked a verified resource", "E_HIA_RUNTIME_INVARIANT")
     return report("returned", values)
