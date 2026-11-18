@@ -9,8 +9,9 @@ from pathlib import Path
 import struct
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scalar_functions
-from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
+from tools.generate_hia_elf_linker import MAGIC as LINK_WIRE_MAGIC, SOURCE as LINK_SOURCE
 MAGIC=int.from_bytes(b'HIAFLT01','little')
+LINK_FILTER_MAGIC = int.from_bytes(b'HIAELF01', 'little')
 WIRE_BYTES=8<<20
 OUTPUT_OFFSET=WIRE_BYTES+4096
 OUTPUT_BYTES=8<<20
@@ -20,7 +21,8 @@ MAPPING_BYTES=WORKSPACE_OFFSET+WORKSPACE_BYTES
 CORE_REPORT_MODE = int.from_bytes(b'HIACRPT1', 'little')
 
 
-def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, formatter=False, suite=False):
+def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
+             formatter=False, suite=False, object_files=False):
     workspace_offset=OUTPUT_OFFSET+output_bytes
     mapping_bytes=workspace_offset+workspace_bytes
     code=bytearray();labels={};branches=[]
@@ -43,7 +45,12 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
     if suite:
         branch('0f 84','map')
         emit('48 83 3c 24 03')
-    branch('0f 85','usage')
+    if object_files:
+        branch('0f 84','map')
+        emit('48 83 3c 24 03');branch('0f 82','usage')
+        emit('48 83 3c 24 42');branch('0f 87','usage')
+    else:
+        branch('0f 85','usage')
     label('map')
     emit('31 ff be');word(mapping_bytes)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff');branch('0f 83','io')
@@ -74,6 +81,48 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
         emit('48 85 c0');branch('0f 88','io')
         emit('41 8b 44 24 18 25 00 f0 00 00 3d 00 80 00 00');branch('0f 85','io')
         emit('49 81 7c 24 30');word(WIRE_BYTES);branch('0f 87','space')
+    if object_files:
+        emit('48 83 3c 24 01');branch('0f 84','read')
+        # Capture the argument extents and construct HIALNK01 for the existing
+        # HIA linker. Only that linker admits object headers, symbols and code.
+        emit('48 b8');code.extend(struct.pack('<Q', LINK_WIRE_MAGIC))
+        emit('49 89 04 24 48 8b 04 24 48 83 e8 02 49 89 44 24 08')
+        emit('48 8b 74 24 10')  # argv[1], entry.
+        label('entry_byte')
+        emit('42 80 3c 2e 00');branch('0f 84','entry_end')
+        emit('49 81 fd 00 10 00 00');branch('0f 83','usage')
+        emit('49 ff c5');branch('e9','entry_byte')
+        label('entry_end')
+        emit('4d 85 ed');branch('0f 84','usage')
+        emit('4d 89 6c 24 10 49 8d 7c 24 20 4c 89 e9 fc f3 a4 49 83 c5 20')
+        emit('bb 02 00 00 00')  # rbx: argv index, r13: total frame extent.
+        label('next_object')
+        emit('48 3b 1c 24');branch('0f 83','invoke')
+        emit('49 81 fd');word(WIRE_BYTES - 8);branch('0f 87','space')
+        emit('4d 89 ee 49 83 c5 08 48 8b 74 dc 08')  # r14: size word offset.
+        label('open_object')
+        emit('b8 01 01 00 00 bf 9c ff ff ff ba 00 08 0a 00 45 31 d2 0f 05')
+        emit('48 83 f8 fc');branch('0f 84','open_object')
+        emit('48 85 c0');branch('0f 88','io')
+        emit('41 89 c7')  # r15: descriptor, including zero.
+        label('stat_object')
+        emit('b8 05 00 00 00 44 89 ff 49 8d b4 24');word(workspace_offset);emit('0f 05')
+        emit('48 83 f8 fc');branch('0f 84','stat_object')
+        emit('48 85 c0');branch('0f 88','io')
+        emit('41 8b 84 24');word(workspace_offset + 24)
+        emit('25 00 f0 00 00 3d 00 80 00 00');branch('0f 85','io')
+        emit('b8');word(WIRE_BYTES);emit('4c 29 e8 49 3b 84 24');word(workspace_offset + 48)
+        branch('0f 82','space')
+        label('read_object')
+        emit('31 c0 44 89 ff 4b 8d 34 2c ba');word(WIRE_BYTES + 1)
+        emit('4c 29 ea 0f 05 48 83 f8 fc');branch('0f 84','read_object')
+        emit('48 85 c0');branch('0f 88','io');branch('0f 84','object_end')
+        emit('49 01 c5 49 81 fd');word(WIRE_BYTES);branch('0f 87','space')
+        branch('e9','read_object')
+        label('object_end')
+        emit('b8 03 00 00 00 44 89 ff 0f 05 48 85 c0');branch('0f 88','io')
+        emit('4c 89 e8 4c 29 f0 48 83 e8 08 4b 89 04 34 48 ff c3')
+        branch('e9','next_object')
     label('read')
     emit('31 c0')
     emit('44 89 ff' if suite else '31 ff')
@@ -121,8 +170,10 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
     return head+code,tuple(176+offset for offset in calls)
 
 
-def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC, formatter=False):
-    prefix,calls=template(output_bytes=output_bytes,workspace_bytes=workspace_bytes,formatter=formatter)
+def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
+                   magic=MAGIC, formatter=False, object_files=False):
+    prefix,calls=template(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
+                          formatter=formatter,object_files=object_files)
     header = 24 if formatter else 16
     minimum = header + len(calls)
     text=f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -163,9 +214,9 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
 
 
 def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC,
-             module='native_filter_packer', formatter=False):
+             module='native_filter_packer', formatter=False, object_files=False):
     nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
-                                   magic=magic,formatter=formatter)).body
+                                   magic=magic,formatter=formatter,object_files=object_files)).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     fns=[]
@@ -177,6 +228,13 @@ def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magi
 
 
 def main():
-    p=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/native_filter_packer.hepta'
-    p.write_text(render_assembly(document()));print(p.name,p.stat().st_size)
+    root=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap'
+    for name, source in (
+        ('native_filter_packer', document()),
+        ('elf_linker_filter_packer', document(magic=LINK_FILTER_MAGIC,
+                                             module='elf_linker_filter_packer', object_files=True)),
+    ):
+        path = root/f'{name}.hepta'
+        path.write_text(render_assembly(source))
+        print(path.name,path.stat().st_size)
 if __name__=='__main__':main()

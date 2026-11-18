@@ -64,6 +64,14 @@ a compile, verification or assembly command. For example:
 hia-native assemble --output-profile=elf < exported.hepta > exported.o
 ```
 
+The same sealed release provides `hia-elf-link`. For an object exporting a
+supported no-argument scalar entry, `hia-elf-link entry exported.o > program`
+links through HIA without invoking an external linker. Additional ordinary
+object files may be passed in link order. The linker still accepts its existing
+`HIALNK01` framed stdin input when invoked without arguments. File mode
+refuses symlinks, non-regular objects and an oversized aggregate before
+producing any bytes; the original bounded ELF profile still applies.
+
 Input module or
 export metadata cannot switch that operator-selected profile. For `assemble` and `check-assembly`,
 an ordinary module selects flat output, `selfhost_elf` or explicit scalar

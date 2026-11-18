@@ -2,6 +2,7 @@
 from __future__ import annotations
 import ctypes
 from hashlib import sha256
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -11,7 +12,8 @@ from hepta.hia_agent_assembly import assemble_program,render_assembly
 from hepta.hia_program import execute_program
 from hepta.hia_program_runtime import _Machine,_Owner,_View
 from tools.generate_hia_elf_linker import MAGIC,WORKSPACE_BYTES,document
-from tools.generate_hia_native_filter import MAGIC as FILTER_MAGIC,document as filter_document
+from tools.generate_hia_native_filter import (MAGIC as FILTER_MAGIC, LINK_FILTER_MAGIC,
+                                             document as filter_document)
 from tools.qualify_hia_selfhost import build_seed,compile_stage,INVALID,NO_SPACE
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -34,7 +36,10 @@ def sections(obj):
 
 class ElfLinkerSourceTests(unittest.TestCase):
     def test_checked_in_linker_and_filter_are_exact_ordinary_Core(self):
-        for name,doc in (('elf_static_linker',document()),('native_filter_packer',filter_document())):
+        linker_filter = filter_document(magic=LINK_FILTER_MAGIC, module='elf_linker_filter_packer',
+                                        object_files=True)
+        for name,doc in (('elf_static_linker',document()),('native_filter_packer',filter_document()),
+                         ('elf_linker_filter_packer',linker_filter)):
             source=render_assembly(doc)
             self.assertEqual((ROOT/f'examples/hia_bootstrap/{name}.hepta').read_text(),source)
             assemble_program(source)
@@ -81,6 +86,17 @@ class ElfLinkerNativeTests(unittest.TestCase):
         actual,packed=cls.invoke(cls.pack_code,wire,capacity=1<<20,workspace=1)
         assert actual==expected and packed==output
         cls.executable=cls.folder/'hia-elf-link';cls.executable.write_bytes(output[:expected]);cls.executable.chmod(0o700)
+        direct_packer=(ROOT/'examples/hia_bootstrap/elf_linker_filter_packer.hepta').read_bytes()
+        packed,_=compile_stage(cls.folder,'direct-linker-packer',cls.compiler,direct_packer)
+        pack_image=packed.read_bytes()
+        packer=NativeHiaJsonImage(pack_image,sha256(pack_image).hexdigest())
+        wire=struct.pack('<2Q',LINK_FILTER_MAGIC,len(cls.image.read_bytes()))+cls.image.read_bytes()
+        expected,output=reference(assemble_program(direct_packer),wire,capacity=1<<20,workspace=1)
+        actual,packed_output=cls.invoke(packer,wire,capacity=1<<20,workspace=1)
+        assert actual==expected and packed_output==output
+        cls.direct=cls.folder/'hia-elf-link-direct'
+        cls.direct.write_bytes(packed_output[:actual])
+        cls.direct.chmod(0o500)
 
     @classmethod
     def tearDownClass(cls):cls.tmp.cleanup()
@@ -195,6 +211,32 @@ class ElfLinkerNativeTests(unittest.TestCase):
         for command,payload,status in (([str(self.executable),'extra'],b'',64),([str(self.executable)],b'bad',2),([str(self.executable)],b'x'*(8*1024*1024+1),3)):
             r=subprocess.run(command,input=payload,capture_output=True,timeout=5)
             self.assertEqual((r.returncode,r.stdout,r.stderr),(status,b'',b''))
+
+    def test_ordinary_object_paths_match_framed_linking_and_refuse_special_files(self):
+        def run(arguments, payload=b'', expected=0, output=b'', **options):
+            result=subprocess.run([self.direct,*arguments],input=payload,capture_output=True,
+                                  timeout=10,env={'PATH':''},**options)
+            self.assertEqual((result.returncode,result.stdout,result.stderr),(expected,output,b''))
+        linked=self.reference_output[:self.reference_value]
+        caller, answer = (self.folder/name for name in ('caller.o','answer.o'))
+        run([],self.basic_wire,output=linked)
+        run(['entry',caller,answer],b'irrelevant stdin',output=linked)
+        run(['entry',caller,answer],output=linked,preexec_fn=lambda: os.close(0))
+        self.run_elf(linked,37,'direct-link')
+        run(['other',caller,answer],expected=2)
+        run(['entry',caller,answer,answer],expected=2)
+        run(['entry'],expected=64)
+        run(['',caller],expected=64)
+        run(['e'*4097,caller],expected=64)
+        run(['entry',*([caller]*65)],expected=64)
+        symlink, fifo, huge = (self.folder/name for name in ('symlink.o','fifo.o','huge.o'))
+        symlink.symlink_to(caller)
+        os.mkfifo(fifo)
+        with huge.open('wb') as output:
+            output.truncate(8<<20)
+        for path in (symlink,fifo,self.folder,self.folder/'missing.o'):
+            run(['entry',path],expected=4)
+        run(['entry',huge],expected=3)
 
     def test_filter_packer_refuses_invalid_and_short_output_without_publication(self):
         wire=struct.pack('<2Q',FILTER_MAGIC,len(self.image.read_bytes()))+self.image.read_bytes()

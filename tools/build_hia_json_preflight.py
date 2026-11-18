@@ -96,6 +96,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'canonical': ('json_canonical', 'json-canonical'),
                   'core-frontend': ('core_json_frontend', 'core-json-frontend'),
                   'elf-linker': ('elf_static_linker', 'elf-linker'),
+                  'elf-linker-filter': ('elf_linker_filter_packer', 'elf-linker-filter'),
                   'native-filter': ('native_filter_packer', 'native-filter'),
                   'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
                   'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json'),

@@ -232,6 +232,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-stdio"
           python -B -m tools.build_hia_source_build --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/source-build"
+          python -B -m tools.build_hia_elf_linker --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/elf-linker"
           source_roles=(selfhost.hepta source_build_policy.hepta source_build_packer.hepta)
           install -m 0500 "$package/installer/hia-release" \
             "$package/packager/hia-directory-package-build" \
@@ -239,6 +241,7 @@ jobs:
             "$RUNNER_TEMP/core-suite/hia-core" \
             "$RUNNER_TEMP/agent-stdio/hia-native" \
             "$RUNNER_TEMP/source-build/hia-source-build" \
+            "$RUNNER_TEMP/elf-linker/hia-elf-link" \
             "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
@@ -306,6 +309,23 @@ jobs:
           done
           readelf -h "$package/bytesum-elf.bin" | grep -E 'Type: +REL'
           readelf -h "$package/bytesum-exec.bin" | grep -E 'Type: +EXEC'
+          cat > "$package/link-entry.hepta" <<'HIA'
+          hia-asm.v1 hepta.hia.program.v8 linker_entry
+          exports(entry)
+          fn entry() -> (u64) effects() entry(b0)
+          block b0()
+            status:u64 = const() {"value":37}
+            ret(status)
+          end
+          HIA
+          env -i PATH= "$installed/hia-native" assemble --output-profile=elf \
+            < "$package/link-entry.hepta" > "$package/link-entry.o"
+          env -i PATH= "$installed/hia-elf-link" entry "$package/link-entry.o" \
+            > "$package/linked-entry"
+          chmod 0500 "$package/linked-entry"
+          exit_status=0
+          env -i PATH= "$package/linked-entry" || exit_status=$?
+          test "$exit_status" -eq 37
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
           for action in normalize inspect verify-report; do
