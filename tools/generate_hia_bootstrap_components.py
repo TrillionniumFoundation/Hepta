@@ -379,7 +379,14 @@ def constant_compiler(words):
 
 def component_document():
     words = ["hia", "asm.v1", "hepta.hia.program.v8", "exports", "fn", "u64", "effects", "entry", "block", "const", '"value"', "ret", "end"]
+    flat_params = [("source", "readbuf"), ("target", "mutbuf"), ("scratch", "mutbuf")]
+    flat_entry = fn("compile_flat", flat_params, ["u32"], ["read", "write", "trap"], [
+        block("entry", flat_params, [
+            ins("call", ["source", "target"], [("result", "u32")], function="compile_constant"),
+        ], ret("result")),
+    ])
     functions = [
+        flat_entry,
         ascii_predicate("ascii_space", singles=(9, 10, 13, 32)),
         ascii_predicate("ascii_name_first", ranges=((65, 90), (97, 122)), singles=(95,)),
         ascii_predicate("ascii_name_continue", ranges=((65, 90), (97, 122), (48, 57)), singles=(95, 46)),

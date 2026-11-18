@@ -315,6 +315,33 @@ jobs:
           done
           readelf -h "$package/bytesum-elf.bin" | grep -E 'Type: +REL'
           readelf -h "$package/bytesum-exec.bin" | grep -E 'Type: +EXEC'
+          env -i PATH= "$installed/hia-native" assemble \
+            < examples/hia_bootstrap/components.hepta > "$package/bootstrap-components.image.bin"
+          env -i PATH= "$installed/hia-native" assemble --output-profile=elf \
+            < tests/fixtures/hia_host_region/scalars.hepta > "$package/region-scalars.o"
+          readelf --syms --wide "$package/region-scalars.o" > "$package/region-scalars.symbols"
+          grep -E 'GLOBAL.*hia_region_fold$' "$package/region-scalars.symbols"
+          grep -E 'GLOBAL.*hia_region_byte$' "$package/region-scalars.symbols"
+          python -B - "$package/bootstrap-components.image.bin" <<'PYBOOTSTRAP'
+          from ctypes import create_string_buffer
+          from hashlib import sha256
+          from pathlib import Path
+          import sys
+          from hepta.hia_json_preflight_native import NativeHiaJsonImage
+          from tests.test_hia_bootstrap_components import constant_source
+
+          image = Path(sys.argv[1]).read_bytes()
+          bootstrap = NativeHiaJsonImage(image, sha256(image).hexdigest())
+          for value in (37, 0xfedcba9876543210):
+              wire = constant_source(value)
+              source = create_string_buffer(wire)
+              result = create_string_buffer(b'\xa5' * 32, 32)
+              scratch = create_string_buffer(1)
+              size = bootstrap._entry(source, len(wire), result, len(result), scratch, len(scratch))
+              assert size == 11
+              assert result.raw == b'\x48\xb8' + value.to_bytes(8, 'little') + b'\xc3' + b'\xa5' * 21
+          print('installed HIA compiler built and ran the original bootstrap component')
+          PYBOOTSTRAP
           cat > "$package/link-entry.hepta" <<'HIA'
           hia-asm.v1 hepta.hia.program.v8 linker_entry
           exports(entry)

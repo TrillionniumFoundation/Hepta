@@ -103,8 +103,13 @@ has no completed output and is never converted to success.
 
 The checked-in
 [`components.hepta`](../examples/hia_bootstrap/components.hepta) is the complete
-source of 30 HIA functions. The Python authoring script can reproduce that source
-but does not participate in the native lexer/parser/emitter calls.
+source of 31 HIA functions. Its first function `compile_flat` implements the
+standard flat-image three-buffer ABI and delegates to the same
+`compile_constant` HIA function. The installed self-host compiler can assemble
+this exact source. This does not change the original named lexer and compiler
+calls or the finite input language `compile_constant` accepts. The Python
+authoring script can reproduce the source but does not participate in these
+native lexer/parser/emitter calls.
 
 ### ASCII assembly lexer
 

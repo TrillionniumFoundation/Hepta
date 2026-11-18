@@ -1,4 +1,9 @@
 hia-asm.v1 hepta.hia.program.v8 bootstrap_components
+fn compile_flat(source:readbuf,target:mutbuf,scratch:mutbuf) -> (u32) effects(read,write,trap) entry(entry)
+block entry(source:readbuf,target:mutbuf,scratch:mutbuf)
+  result:u32 = call(source,target) {"function":"compile_constant"}
+  ret(result)
+end
 fn ascii_space(ch:u8) -> (bool) effects() entry(entry)
 block entry(ch:u8)
   ascii_space_v1:bool = const() {"value":false}

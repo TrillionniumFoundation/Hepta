@@ -74,7 +74,8 @@ class BootstrapSourceTests(unittest.TestCase):
         program = assemble_program(source)
         self.assertEqual(render_assembly(program).encode(), source)
         self.assertEqual(render_assembly(component_document()).encode(), source)
-        self.assertEqual(len(program.as_dict()["functions"]), 30)
+        self.assertEqual(len(program.as_dict()["functions"]), 31)
+        self.assertEqual(program.as_dict()["functions"][0]["name"], "compile_flat")
         self.assertGreater(len(source), 60000)
 
 
