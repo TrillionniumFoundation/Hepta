@@ -10,10 +10,10 @@ second, older fact-encoder/materializer implementation. It preserves the current
 workspace JSON path and its original public names, privacy, cycle and capture
 avoidance policy. Default selections remain unchanged; there is no host fallback.
 
-The workspace materializer can represent multiple primitive feature schemas, but
-this complete compiler pipeline's workspace profile accepts **primitive v8 only**.
-Older versions and nominal types are refused, never
-silently upgraded or erased. Unsupported Core programs remain unsupported.
+The compiler pipeline accepts **primitive v6–v8**. All modules in one workspace
+must declare the same version. Older schemas and nominal types are refused,
+never silently upgraded or erased. The compiler retains each version's feature
+rules and its existing capacity limits.
 Representation is not semantic admission: all private functions are checked,
 including unused ones. Invalid SSA and owner drop under a live loan are refused
 by full native Core admission before the compiler or stdout. Only ELF relocatable objects are returned;

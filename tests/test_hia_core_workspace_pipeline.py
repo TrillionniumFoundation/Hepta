@@ -21,8 +21,10 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_pipeline_packer.hepta'
 
 
-def executable_project(increment):
+def executable_project(increment, version=8):
     document = project(increment)
+    for module in document['modules']:
+        module['core']['schema'] = f'hepta.hia.program.v{version}'
     app = document['modules'][0]
     app['core']['functions'].append(f('start', [], ['u32'], [], [
         b('entry', [], [c('a', 'u32', 41), i('call', ['a'], [('v', 'u32')], function='work')], ret('v'))
@@ -242,11 +244,12 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         from hepta.hia_program import execute_program
         from tools.generate_hia_elf_linker import MAGIC as LINK_MAGIC,WORKSPACE_BYTES as LINK_SCRATCH
         cases=[]
-        for inc in (1,7):
-            wire=json.dumps(executable_project(inc)).encode()
+        for version, inc in ((6, 1), (7, 7), (8, 1), (8, 7)):
+            wire=json.dumps(executable_project(inc, version)).encode()
             checked,_=link_workspace(wire,native=self.workspace);assembly=render_assembly(checked).encode()
+            self.assertEqual(checked.as_dict()['schema'], f'hepta.hia.program.v{version}')
             oracle=execute_program(checked,'start',[])['result'];status,obj=self.call(self.compiler,assembly,1<<20,1<<20)
-            self.assertTrue(0<status<=1<<20);self.assertEqual(oracle,41+inc);cases.append((inc,wire,obj,oracle))
+            self.assertTrue(0<status<=1<<20);self.assertEqual(oracle,41+inc);cases.append((version,inc,wire,obj,oracle))
         copied=self.folder/'copied';copied.mkdir();target=copied/'compile'
         shutil.copyfile(self.executable,target);target.chmod(0o700);tracer=shutil.which('strace');self.assertIsNotNone(tracer)
         rows=[]
@@ -255,8 +258,9 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
              patch('hepta.hia_core_module_graph_native.link_workspace',side_effect=AssertionError('host materializer')), \
              patch('hepta.hia_agent_assembly.render_assembly',side_effect=AssertionError('host renderer')), \
              patch('hepta.hia_program.verify_program',side_effect=AssertionError('host semantic checker')):
-            for inc,wire,wanted,oracle in cases:
-                trace=copied/('project-'+str(inc)+'.trace')
+            for version,inc,wire,wanted,oracle in cases:
+                name=f'project-v{version}-{inc}'
+                trace=copied/(name+'.trace')
                 result=subprocess.run([tracer,'-f','-e','trace=execve,openat,clone,fork,vfork','-o',str(trace),str(target)],
                     input=wire,capture_output=True,env={'PATH':''},cwd=copied,timeout=20,preexec_fn=self.native_limits)
                 self.assertEqual((result.returncode,result.stdout,result.stderr),(0,wanted,b''))
@@ -264,26 +268,27 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
                 for forbidden in ('openat(','clone(','fork(','vfork('):self.assertNotIn(forbidden,text)
                 entry=b'start';link_frame=struct.pack('<4Q',LINK_MAGIC,1,len(entry),0)+entry+struct.pack('<Q',len(wanted))+wanted
                 size,elf=self.call(self.linker,link_frame,65536,LINK_SCRATCH);self.assertTrue(0<size<65536)
-                folder=copied/('project-'+str(inc));folder.mkdir()
+                folder=copied/name;folder.mkdir()
                 payloads={'workspace.json':wire,'program.o':wanted,'linker.input':link_frame,'program.elf':elf}
                 for name,data in payloads.items():(folder/name).write_bytes(data)
                 executable=folder/'program.elf';executable.chmod(0o700)
                 actual=subprocess.run([str(executable)],capture_output=True,env={'PATH':''},cwd=folder,timeout=3)
                 self.assertEqual((actual.returncode,actual.stdout,actual.stderr),(oracle,b'',b''))
-                rows.append({'increment':inc,'actual_kernel_exit':actual.returncode,'independent_Core_VM_result':oracle,
+                rows.append({'schema_version':version,'increment':inc,'actual_kernel_exit':actual.returncode,'independent_Core_VM_result':oracle,
                     'empty_PATH_one_exec_no_open_or_child':True,'sha256':{n:sha256(v).hexdigest() for n,v in payloads.items()}})
         (self.folder/'actual-projects.json').write_text(json.dumps(rows,indent=2)+'\n')
 
     def test_semantic_policy_and_feature_refusals_keep_empty_stdout(self):
         cases=[b'',b'null',b'{}',b'\xff',b'{"entry":1,"entry":2}']
-        for label in ('undefined','private','duplicate','empty-exports','old-version','nominal','invalid-private'):
+        for label in ('undefined','private','duplicate','empty-exports','old-version','mixed-version','nominal','invalid-private'):
             doc=project()
             if label=='undefined':doc['modules'][1]['core']['functions'][0]['blocks'][0]['ops'][1]['args'][0]='undefined_SSA'
             if label=='private':doc['modules'][1]['exports']=[]
             if label=='duplicate':doc['modules'].append(copy.deepcopy(doc['modules'][0]))
             if label=='empty-exports':doc['modules'][0]['exports']=[]
             if label=='old-version':
-                for module in doc['modules']:module['core']['schema']='hepta.hia.program.v7'
+                for module in doc['modules']:module['core']['schema']='hepta.hia.program.v5'
+            if label=='mixed-version':doc['modules'][1]['core']['schema']='hepta.hia.program.v7'
             if label=='nominal':doc['modules'][0]['core']['types']=[]
             if label=='invalid-private':doc['modules'][1]['core']['functions'].append(f('unused',[],['u32'],[],[b('entry',[],[],ret('undefined'))]))
             cases.append(json.dumps(doc).encode())

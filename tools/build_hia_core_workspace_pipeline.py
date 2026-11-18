@@ -88,7 +88,7 @@ def build(output,compiler,cold_report):
         'bundle_profile_bytes':BUNDLE_LIMIT,'compiler_and_qualification_child_caps_unchanged':True,
         'runtime_host_payload_decoder_materializer_renderer_or_semantic_checker_required':False,
         'host_authoring_build_filesystem_custody_and_installation':True,
-        'Core_profile':'primitive v8; existing native compiler limits; ELF object only',
+        'Core_profile':'primitive v6-v8; one explicit version per workspace; unchanged compiler limits; ELF object only',
         'mandatory_complete_primitive_Core_admission':True,
         'whole_native_delivery_qualified':False,'production_activated':False}
     with (output/'build.json').open('x') as stream:json.dump(record,stream,indent=2,sort_keys=True);stream.write('\n')

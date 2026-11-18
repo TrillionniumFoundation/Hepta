@@ -1518,7 +1518,7 @@ def support_contract(root=ROOT):
             "source": "examples/hia_bootstrap/core_workspace_pipeline_packer.hepta",
             "selection": "explicit standalone hia-workspace-compile or pipeline-manifest; defaults unchanged; no fallback",
             "stages": ["current native workspace JSON policy/materialization", "mandatory full primitive native Core admission", "native Core frontend", "mandatory native semantic compiler"],
-            "Core_profile": "primitive v8; older feature versions and nominal types refused, not erased/upgraded",
+            "Core_profile": "primitive v6-v8 with one explicit version for all modules; older schemas and nominal types refused",
             "wire_and_linked_JSON_bytes": 8388608,
             "assembly_and_object_bytes": 1048576,
             "trusted_application_bundle_bytes": 4198400,
