@@ -1,4 +1,4 @@
-"""Serialize verified scalar Core for the independent HIA reference interpreter."""
+"""Serialize admitted Core instructions and capability sites for the HIA reference VM."""
 
 from functools import lru_cache
 import json
@@ -16,7 +16,7 @@ TYPES = ('bool', 'unit', *WIDTHS)
 TRAPS = ('user', 'overflow', 'division_by_zero', 'bounds', 'allocation')
 COMMAND = struct.Struct('<8Q')
 CONSTANT, CALL, RETURN, TRAP, JUMP, BRANCH = range(32, 38)
-RESOURCE = 38
+RESOURCE, RESOURCE_RETURN = 38, 39
 
 
 @lru_cache(maxsize=8)
@@ -30,9 +30,7 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
     types = SCALARS | RESOURCES if allow_resources else SCALARS
     for name in order:
         fn = functions[name]
-        # Returning a nested loan has additional origin/permission rules;
-        # this dispatcher does not yet implement that boundary.
-        if any(typ not in types or typ in {'readbuf', 'mutbuf'} for typ in fn['returns']):
+        if any(typ not in types for typ in fn['returns']):
             return None
         for block in fn['blocks']:
             if not all(param['type'] in types for param in block['params']):
@@ -59,7 +57,8 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
         fn = functions[name]
         for block in fn['blocks']:
             locations[name, block['id']] = len(output)
-            output.extend(bytes(64*(len(block['ops']) + 1)))
+            loan_return = any(fn.get('return_loans', ())) and block['term']['op'] == 'ret'
+            output.extend(bytes(64*(len(block['ops']) + 1 + loan_return)))
             if len(output) > MAX_PACKET_BYTES:
                 return None
         struct.pack_into('<Q', output, 64 + 8*identifiers[name], locations[name, fn['entry']])
@@ -71,6 +70,27 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
 
     max_regs = max_arguments = 1
     resource_sites = []
+    loan_layouts = {}
+    for name in order:
+        fn = functions[name]
+        origins = fn.get('return_loans')
+        if not origins or not any(origins):
+            continue
+        # Entry arguments stay pinned across subsequent blocks or recursive
+        # calls. Ordinary register assignments never touch these upper slots.
+        first = max(len(block['params']) + sum(len(op['out']) for op in block['ops'])
+                    for block in fn['blocks'])
+        params = {p['name']: (pos, p['type']) for pos, p in enumerate(fn['params'])}
+        bindings = {}
+        for origin in origins:
+            if origin is not None and origin not in bindings:
+                pos, kind = params[origin]
+                bindings[origin] = (pos, first + len(bindings), kind)
+        pairs = [word for index, saved, _ in bindings.values() for word in (index, saved)]
+        output_slots = tuple(range(first + len(bindings), first + len(bindings) + len(origins)))
+        loan_layouts[name] = bindings, output_slots, append_words(pairs), len(bindings)
+        max_regs = max(max_regs, output_slots[-1] + 1)
+
     for name in order:
         fn = functions[name]
         for block in fn['blocks']:
@@ -92,8 +112,10 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
                 elif op == 'call':
                     arguments = [index for index, _ in operands]
                     max_arguments = max(max_arguments, len(arguments), len(outputs))
-                    command = (CALL, identifiers[ins['attrs']['function']], append_words(arguments),
-                               len(arguments), append_words(outputs), len(outputs))
+                    callee = ins['attrs']['function']
+                    pinned, pin_count = loan_layouts[callee][2:] if callee in loan_layouts else (0, 0)
+                    command = (CALL, identifiers[callee], append_words(arguments),
+                               len(arguments), append_words(outputs), len(outputs), pinned, pin_count)
                 elif op == 'int.cast' or op in OPCODES:
                     typ = ins['out'][0]['type']
                     opcode = 'cast.' + ins['attrs']['mode'] if op == 'int.cast' else op
@@ -125,7 +147,23 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
             if kind == 'ret':
                 returns = [registers[arg][0] for arg in term['values']]
                 max_arguments = max(max_arguments, len(returns))
-                command = (RETURN, append_words(returns), len(returns))
+                if name in loan_layouts:
+                    bindings, output_slots, _, _ = loan_layouts[name]
+                    inputs = returns + [saved for _, saved, _ in bindings.values()]
+                    kinds = (*fn['returns'], *(kind for _, _, kind in bindings.values()))
+                    lookup = {origin: len(returns) + i for i, origin in enumerate(bindings)}
+                    original = {i: lookup[origin] for i, origin in enumerate(fn['return_loans'])
+                                if origin is not None}
+                    resource_sites.append(({'op': 'return_loans', 'returns': fn['returns'],
+                                            'original': original}, kinds))
+                    COMMAND.pack_into(output, at, RESOURCE, len(resource_sites)-1,
+                                      append_words(inputs), len(inputs), append_words(output_slots),
+                                      len(output_slots), 0, 0)
+                    max_arguments = max(max_arguments, len(inputs))
+                    at += 64
+                    command = (RESOURCE_RETURN, append_words(output_slots), len(returns))
+                else:
+                    command = (RETURN, append_words(returns), len(returns))
             elif kind == 'trap':
                 command = (TRAP, TRAPS.index(term['code']))
             elif kind == 'jump':

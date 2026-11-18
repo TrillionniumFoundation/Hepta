@@ -342,3 +342,53 @@ class ScalarReferenceNativeTests(unittest.TestCase):
               patch.object(_Machine, '_reference_allocation_decision',
                            side_effect=AssertionError('host allocation preflight'))):
             self.assertEqual(observe(), expected)
+
+    def test_native_nested_return_loans_keep_original_parent_and_exact_deadline(self):
+        from hepta.hia_program_runtime import HIAProgramBudgetExceeded
+        from tests.test_hia_returned_chain_loans import chain_program
+
+        def observe():
+            result = []
+            for permission in ('read', 'mut'):
+                for kind in ('child', 'forward'):
+                    source = chain_program(permission, kind)
+                    entry, = source['exports']
+                    for ticks in range(11, 37):
+                        try:
+                            report = execute_program(source, entry, [37], max_steps=ticks)
+                        except HIAProgramBudgetExceeded as error:
+                            report = error.report
+                        result.append(report)
+            return result
+
+        expected = observe()
+        self.assertEqual({row['status'] for row in expected}, {'returned', 'budget_exceeded'})
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
+            self.assertEqual(observe(), expected)
+
+    def test_external_snapshots_use_native_cfg_on_return_and_abort(self):
+        from hepta.hia_agent_buffers import reference_observation
+        from tests.test_hia_agent_buffer_lifecycle import trap_program, workload
+        from tests.test_hia_native_byte_abi import byte_program
+        from tests.test_hia_program import b, c, f, ret
+
+        copy_case, = workload()['cases']
+        trap_case = {'function': 'write_then_trap', 'arguments': [{'bytes_hex': 'ff00'}]}
+        params = [('snapshot', 'readbuf')]
+        unused = trap_program()
+        unused['functions'] = [f('unused', params, ['u32'], [], [
+            b('entry', params, [c('answer', 'u32', 1)], ret('answer'))])]
+        unused_case = {'function': 'unused', 'arguments': [{'bytes_hex': '00ff'}]}
+
+        def observe():
+            return [reference_observation(doc, case, ((case['function'], 8),), steps=ticks, heap=0)
+                    for doc, case in ((byte_program(), copy_case), (trap_program(), trap_case),
+                                      (unused, unused_case))
+                    for ticks in (1, 5, 1000)]
+
+        expected = observe()
+        self.assertEqual({row['status'] for row in expected}, {'returned', 'trapped', 'budget_exceeded'})
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
+            self.assertEqual(observe(), expected)

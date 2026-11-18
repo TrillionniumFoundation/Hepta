@@ -514,19 +514,7 @@ class _Machine:
                 for index, (typ, origin) in enumerate(zip(fn["returns"], fn.get("return_loans", [None] * len(values)))):
                     if typ not in {"readbuf", "mutbuf"}:
                         continue
-                    value, parent = values[index], bindings[origin]
-                    _underlying(value)
-                    _underlying(parent)
-                    if (not isinstance(value, _View) or not isinstance(parent, _View)
-                            or typ == "mutbuf" and (not value.mutable or not parent.mutable)):
-                        raise HIAProgramRejected("returned view permission invariant", "E_HIA_RUNTIME_INVARIANT")
-                    if value is parent:
-                        # Forwarding must not expose one consumable runtime view
-                        # as both the caller's parent and its returned child.
-                        values[index] = _View(parent, typ == "mutbuf")
-                        self.loans_started += 1
-                    elif value.parent is not parent:
-                        raise HIAProgramRejected("returned view origin invariant", "E_HIA_RUNTIME_INVARIANT")
+                    values[index] = self.return_view(values[index], bindings[origin], typ)
                 return values
             if term["op"] == "trap":
                 raise HIAProgramTrap(term["code"], "explicit core trap")
@@ -537,6 +525,32 @@ class _Machine:
             # create new dynamic instances of the same static SSA names.
             env = {p["name"]: a for p, a in zip(target["params"], values)}
             current = target["id"]
+
+    def return_view(self, value, parent, typ):
+        _underlying(value)
+        _underlying(parent)
+        if (not isinstance(value, _View) or not isinstance(parent, _View)
+                or typ == "mutbuf" and (not value.mutable or not parent.mutable)):
+            raise HIAProgramRejected("returned view permission invariant", "E_HIA_RUNTIME_INVARIANT")
+        if value is parent:
+            # The caller keeps its parent and receives a separate child loan.
+            self.loans_started += 1
+            return _View(parent, typ == "mutbuf")
+        if value.parent is not parent:
+            raise HIAProgramRejected("returned view origin invariant", "E_HIA_RUNTIME_INVARIANT")
+        return value
+
+    def execute(self, fn, arguments):
+        native = self.scalar_reference
+        result = (None if native is None else
+                  native.program(self.program.canonical_bytes, fn["name"], arguments,
+                                 self.max_steps, self.max_call_depth, machine=self))
+        if result is None:
+            return self.invoke(fn, arguments)
+        self.steps, values, error = result
+        if error is not None:
+            raise error
+        return values
 
     def report(self, function, status, values=None, error=None, *, external_roots=()):
         # Borrowed entry storage belongs to its caller, not this VM's heap.
@@ -592,40 +606,49 @@ class _ReferenceResources:
         self.machine = machine
         self.views = {}
         self.view_ids = {}
+        self.last_view = 0
+
+    def decode(self, kind, word):
+        from .hia_scalar_reference_native import NativeScalarReference
+
+        if kind in SCALARS:
+            value = NativeScalarReference._value(kind, word)
+            if scalar_value_valid(value, kind):
+                return value
+            raise HIAProgramRejected("invalid native runtime operand", "E_HIA_RUNTIME_INVARIANT")
+        active = (self.machine.owners if kind == "buffer" else
+                  self.machine.chains if kind == "chain" else self.views)
+        if word not in active:
+            raise HIAProgramRejected("unknown native resource handle", "E_HIA_RUNTIME_INVARIANT")
+        return active[word]
+
+    def encode(self, kind, value):
+        from .hia_scalar_reference_native import WORD_MASK
+
+        if kind in SCALARS:
+            return int(value or 0) & WORD_MASK
+        if kind in OWNERS:
+            return value.ident
+        if value not in self.view_ids:
+            self.last_view += 1
+            self.view_ids[value] = self.last_view
+            self.views[self.last_view] = value
+        return self.view_ids[value]
 
     def operation(self, instruction, types, words):
-        from .hia_scalar_reference_native import NativeScalarReference, WORD_MASK
-
-        def decode(kind, word):
-            if kind in SCALARS:
-                value = NativeScalarReference._value(kind, word)
-                if scalar_value_valid(value, kind):
-                    return value
-                raise HIAProgramRejected("invalid native runtime operand", "E_HIA_RUNTIME_INVARIANT")
-            active = (self.machine.owners if kind == "buffer" else
-                      self.machine.chains if kind == "chain" else self.views)
-            if word not in active:
-                raise HIAProgramRejected("unknown native resource handle", "E_HIA_RUNTIME_INVARIANT")
-            return active[word]
-
-        env = {name: decode(kind, word) for name, kind, word in zip(instruction["args"], types, words)}
-        ended = words[0] if instruction["op"] == "loan.end" else None
+        values = [self.decode(kind, word) for kind, word in zip(types, words)]
+        op = instruction["op"]
+        if op == "return_loans":
+            result_types = instruction["returns"]
+            for result, original in instruction["original"].items():
+                values[result] = self.machine.return_view(values[result], values[original],
+                                                          result_types[result])
+            return [self.encode(kind, value) for kind, value in zip(result_types, values)]
+        env = dict(zip(instruction["args"], values))
         self.machine.operation(instruction, env, 0)
-        if ended is not None:
-            del self.view_ids[self.views.pop(ended)]
-        returned = []
-        for output in instruction["out"]:
-            kind, value = output["type"], env[output["name"]]
-            if kind in SCALARS:
-                word = int(value or 0) & WORD_MASK
-            elif kind in OWNERS:
-                word = value.ident
-            else:
-                # Loan starts are monotonic even when earlier loans have ended.
-                word = self.view_ids.setdefault(value, self.machine.loans_started)
-                self.views[word] = value
-            returned.append(word)
-        return returned
+        if op == "loan.end":
+            del self.view_ids[self.views.pop(words[0])]
+        return [self.encode(output["type"], env[output["name"]]) for output in instruction["out"]]
 
 
 def execute_program(program, function, arguments, *, max_steps=1_000_000,
@@ -681,15 +704,7 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
     if any(not scalar_value_valid(a, p["type"]) for p, a in zip(fn["params"], arguments)):
         raise HIAProgramRejected("entry arguments are not exactly typed machine values", "E_HIA_INPUT")
     try:
-        result = (None if machine.scalar_reference is None else
-                  machine.scalar_reference.program(checked.canonical_bytes, function,
-                                                   arguments, max_steps, max_call_depth, machine=machine))
-        if result is None:
-            values = machine.invoke(fn, arguments)
-        else:
-            machine.steps, values, error = result
-            if error is not None:
-                raise error
+        values = machine.execute(fn, arguments)
     except HIAProgramTrap as exc:
         exc.report = report("trapped", error=exc)
         raise

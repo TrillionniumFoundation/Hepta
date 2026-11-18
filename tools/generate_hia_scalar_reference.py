@@ -256,6 +256,7 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
     depth = 0
     stride = get(w, 24)
     saved = get(w, 8)
+    resumed = saved != 0
     if saved == 0:
         if tick(s, w) == 0:
             return 5
@@ -268,9 +269,15 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
     while pc != 0:
         if within(length(s), pc, 64) == 0:
             return 12
-        if tick(s, w) == 0:
-            return 5
         op = uint(s, pc, 8)
+        if op == 39:
+            # This synthetic return follows an already-charged validation
+            # request. It is never a legal entry or jump target.
+            if not resumed:
+                return 12
+        elif tick(s, w) == 0:
+            return 5
+        resumed = False
         if op >= 1 and op <= @select@:
             status = scalar_command(s, w, pc, frame, op)
             if status != 0:
@@ -292,7 +299,7 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
             depth = depth + 1
             if tick(s, w) == 0:
                 return 5
-        elif op == 34:
+        elif op == 34 or op == 39:
             count = uint(s, pc + 16, 8)
             if count > (stride - get(w, 32) - 8) // 8:
                 return 12
@@ -408,6 +415,18 @@ def enter_call(s:readbuf, w:mutbuf, pc:u64, frame:u64) -> u64:
     child = frame + get(w, 24)
     if gather(s, w, uint(s, pc + 16, 8), count, frame, child) == 0:
         return 0
+    bindings = uint(s, pc + 48, 8)
+    bind_count = uint(s, pc + 56, 8)
+    if bind_count > count or within(length(s), bindings, bind_count * 16) == 0:
+        return 0
+    i = 0
+    while i < bind_count:
+        src = uint(s, bindings + i * 16, 8)
+        dst = uint(s, bindings + i * 16 + 8, 8)
+        if src >= count or dst < count or dst >= get(w, 32) // 8:
+            return 0
+        put(w, child + dst * 8, get(w, child + src * 8))
+        i = i + 1
     put(w, child + get(w, 24) - 8, pc)
     return uint(s, 64 + callee * 8, 8)
 

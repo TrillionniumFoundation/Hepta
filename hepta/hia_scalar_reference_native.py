@@ -166,6 +166,7 @@ class NativeScalarReference(NativeHiaJsonImage):
 
     def program(self, canonical, function, arguments, max_steps, max_call_depth, *, machine=None):
         from .hia_program import scalar_value_valid
+        from .hia_opcodes import RESOURCES
         from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, _ReferenceResources
         from .hia_scalar_reference_wire import (
             MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
@@ -178,15 +179,22 @@ class NativeScalarReference(NativeHiaJsonImage):
         body, registers, bounce, returns, resource_sites = compiled
         if len(body) + 8*len(arguments) > MAX_PACKET_BYTES:
             return None
+        kinds = ([param['type'] for param in machine.functions[function]['params']]
+                 if machine is not None else ())
+        resources = (_ReferenceResources(machine)
+                     if resource_sites or any(kind in RESOURCES for kind in kinds) else None)
         magic = RESOURCE_PROGRAM_MAGIC if resource_sites else PROGRAM_MAGIC
         header = struct.pack('<8Q', magic, max_steps, max_call_depth,
                              registers, bounce, len(body), len(arguments), len(returns))
-        words = struct.pack(f'<{len(arguments)}Q', *(int(arg or 0) & WORD_MASK for arg in arguments))
+        if resources is not None:
+            encoded = (resources.encode(kind, value) for kind, value in zip(kinds, arguments))
+        else:
+            encoded = (int(arg or 0) & WORD_MASK for arg in arguments)
+        words = struct.pack(f'<{len(arguments)}Q', *encoded)
         wire = header + body[64:] + words
         source = ctypes.create_string_buffer(wire)
         output = ctypes.create_string_buffer(32 + 8*(bounce if resource_sites else len(returns)))
         workspace = ctypes.create_string_buffer(64 + (registers + bounce + 1)*8*max_call_depth)
-        resources = _ReferenceResources(machine) if resource_sites else None
         previous = 0
         while True:
             size = self._entry(source, len(wire), output, len(output), workspace, len(workspace))

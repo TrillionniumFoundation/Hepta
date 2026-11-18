@@ -162,7 +162,7 @@ def reference_observation(program, case, exports, *, steps, heap):
         return {"status": status, "buffers": buffers, "ledger": ledger}
 
     try:
-        values = machine.invoke(fn, arguments)
+        values = machine.execute(fn, arguments)
     except HIAProgramTrap as exc:
         return {**report("trapped", error=exc), "trap_code": exc.code}
     except HIAProgramBudgetExceeded as exc:
