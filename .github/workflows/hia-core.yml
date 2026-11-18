@@ -192,6 +192,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-batch-commit"
           python -B -m tools.build_hia_agent_batch_commit --kind sealed --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-sealed-commit"
+          python -B -m tools.build_hia_agent_batch_commit --kind initialize --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-store-init"
           python -B -m tools.build_hia_agent_store --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-store"
       - name: Original call graph and native convergence controls

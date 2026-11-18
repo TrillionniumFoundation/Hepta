@@ -316,3 +316,16 @@ the original Store operations. An optional read-only artifact capability
 allows already migrated content to be reopened and checked. The Agent's
 tool methods, public request routing and active Store selection are not
 replaced by this build.
+
+## Initializing a fresh native Store
+
+Build the standalone initializer with `python -B -m
+tools.build_hia_agent_batch_commit --kind initialize` and the same compiler,
+cold report, and output options as the batch writer. Run
+`hia-agent-store-init <owned-parent> <new-basename>` to initialize a
+fresh Store under a caller-selected private parent. The HIA policy owns
+namespace naming, real kernel entropy admission, modes, the initial
+`HIAWAK01` anchor, sync ordering and no-replace publication. The assembly
+adapter passes only fixed effects to Linux; no external programs or SQL
+are used to initialize state. The initializer does not move data or select
+the result as the Agent's active Store.

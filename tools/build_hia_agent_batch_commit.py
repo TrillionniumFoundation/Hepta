@@ -1,4 +1,4 @@
-"""Bootstrap the explicit Linux x86-64 HIA Agent transaction executables."""
+"""Bootstrap the explicit Linux x86-64 HIA Agent Store operation executables."""
 from __future__ import annotations
 
 import argparse
@@ -24,16 +24,21 @@ PARTS = {
     'writer': 'examples/hia_bootstrap/agent_transaction_writer.hepta',
     'stager': 'examples/hia_bootstrap/agent_transaction_stager.hepta',
     'producer': 'examples/hia_bootstrap/agent_transaction_producer.hepta',
+    'namespace': 'examples/hia_bootstrap/agent_store/namespace_init.hepta',
 }
 VARIANTS = {
     'batch': ('hia-agent-batch-commit', b'HIA3PK01',
               'examples/hia_bootstrap/agent_transaction_stager_packer.hepta',
               'tools/hia_agent_transaction_stager_syscalls.S',
-              {name: name + '_call_hole' for name in PARTS}),
+              {name: name + '_call_hole' for name in ('writer', 'stager', 'producer')}),
     'sealed': ('hia-agent-sealed-commit', b'HIAWPK01',
                'examples/hia_bootstrap/agent_transaction_writer_packer.hepta',
                'tools/hia_agent_transaction_writer_syscalls.S',
                {'writer': 'policy_call_hole'}),
+    'initialize': ('hia-agent-store-init', b'HIALPK01',
+                   'examples/hia_bootstrap/agent_store/namespace_init_packer.hepta',
+                   'tools/hia_agent_store_init_syscalls.S',
+                   {'namespace': 'policy_call_hole'}),
 }
 DRIVER = 'tools/build_hia_agent_batch_commit.py'
 ELF_HEADER_SIZE = 176
@@ -131,9 +136,11 @@ def build(output, compiler, cold_report, *, kind='batch'):
         stream.write(binary)
         os.fchmod(stream.fileno(), 0o500)
     report = {
-        'schema': 'hepta.hia.agent-batch-commit-build.v1',
+        'schema': ('hepta.hia.agent-store-init-build.v1' if kind == 'initialize'
+                   else 'hepta.hia.agent-batch-commit-build.v1'),
         'status': {'batch': 'NATIVE_AGENT_BATCH_COMMIT_BUILT',
-                   'sealed': 'NATIVE_AGENT_SEALED_COMMIT_BUILT'}[kind],
+                   'sealed': 'NATIVE_AGENT_SEALED_COMMIT_BUILT',
+                   'initialize': 'NATIVE_AGENT_STORE_INIT_BUILT'}[kind],
         'executable_path': executable_name,
         'source_sha256': {name: digest(raw) for name, raw in sources.items()},
         'compiler_sha256': digest(compiler_bytes),
