@@ -194,13 +194,30 @@ class NativeScalarReference(NativeHiaJsonImage):
         wire = header + body[64:] + words
         source = ctypes.create_string_buffer(wire)
         output = ctypes.create_string_buffer(32 + 8*(bounce if resource_sites else len(returns)))
-        workspace = ctypes.create_string_buffer(64 + (registers + bounce + 1)*8*max_call_depth)
+        stride = (registers + bounce + 1) * 8
+        workspace = ctypes.create_string_buffer(64 + stride)
         previous = 0
         while True:
             size = self._entry(source, len(wire), output, len(output), workspace, len(workspace))
             identity, status, steps, typ = struct.unpack_from('<4Q', output)
             if identity != PROGRAM_RESULT or not previous <= steps <= max_steps + 1:
                 raise RuntimeError('invalid HIA Core reference progress')
+            if status == 14:
+                required = typ
+                limit = 64 + stride * max_call_depth
+                if (size != 32 or not previous < steps <= max_steps
+                        or required != len(workspace) + stride or required > limit):
+                    raise RuntimeError('invalid HIA Core reference workspace request')
+                try:
+                    capacity = min(limit, 64 + 2*(len(workspace)-64))
+                    expanded = ctypes.create_string_buffer(capacity)
+                    ctypes.memmove(expanded, workspace, len(workspace))
+                except MemoryError:
+                    return steps, None, HIAProgramBudgetExceeded(
+                        'host_memory', 'cannot extend reference call workspace')
+                workspace = expanded
+                previous = steps
+                continue
             if status != 13:
                 break
             if resources is None or steps <= previous or steps > max_steps or typ >= len(resource_sites):

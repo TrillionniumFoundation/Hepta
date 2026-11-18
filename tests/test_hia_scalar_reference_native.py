@@ -392,3 +392,26 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
             self.assertEqual(observe(), expected)
+
+    def test_wide_verified_function_needs_only_one_materialized_root_frame(self):
+        from hepta.hia_program import verify_program
+        from tests.test_hia_program import b, c, f, m, ret
+
+        operations = [c(f'value{i}', 'u16', i) for i in range(5000)]
+        doc = m(f('wide', [], ['u16'], [], [b('entry', [], operations, ret('value4999'))]))
+        checked = verify_program(doc)
+        expected = execute_program(checked, 'wide', [])
+        native_entry = self.native._entry
+        workspaces = []
+
+        def enter(source, source_size, output, output_size, workspace, workspace_size):
+            workspaces.append(workspace_size)
+            return native_entry(source, source_size, output, output_size, workspace, workspace_size)
+
+        with patch.object(self.native, '_entry', side_effect=enter):
+            self.assertEqual(self.native.program(checked.canonical_bytes, 'wide', [], 1_000_000, 256),
+                             (expected['steps'], [4999], None))
+        self.assertEqual(workspaces, [64 + 8*(5000 + 1 + 1)])
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
+            self.assertEqual(execute_program(checked, 'wide', []), expected)

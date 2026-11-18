@@ -9,8 +9,10 @@ from .hia_opcodes import RESOURCES, SCALARS, WIDTHS
 PROGRAM_MAGIC = int.from_bytes(b'HIASPG01', 'little')
 RESOURCE_PROGRAM_MAGIC = int.from_bytes(b'HIARPG01', 'little')
 PROGRAM_RESULT = int.from_bytes(b'HIASPR01', 'little')
-MAX_PACKET_BYTES = 8 << 20
-MAX_FRAME_WORDS = 4096
+# The verified input is bounded independently by Core's 8 MiB / 262,144
+# nodes. The execution wire expands instructions and repeated lists.
+MAX_PACKET_BYTES = 32 << 20
+MAX_FRAME_WORDS = 524288
 MASK = (1 << 64) - 1
 TYPES = ('bool', 'unit', *WIDTHS)
 TRAPS = ('user', 'overflow', 'division_by_zero', 'bounds', 'allocation')

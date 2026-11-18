@@ -7,7 +7,9 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import (
     ALLOCATION_MAGIC, BYTE_MAGIC, DOMAIN_MAGIC, MAGIC, OBSERVATION_MAGIC, OPCODES, RESULT,
 )
-from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC
+from hepta.hia_scalar_reference_wire import (
+    MAX_FRAME_WORDS, MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
+)
 from tools.generate_hia_elf_linker import LinkerBuilder, SOURCE as STATIC_SOURCE
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
 
@@ -178,7 +180,7 @@ def comparison(op:u64, a:u64, b:u64, negative_a:u64, negative_b:u64) -> u64:
     return 0
 
 def reference_program(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 72 or length(s) > 8388608:
+    if length(s) < 72 or length(s) > @MAX_PACKET_BYTES@:
         return 4294967295
     if uint(s, 8, 8) == 0 or uint(s, 8, 8) > 10000000:
         return 4294967295
@@ -188,18 +190,19 @@ def reference_program(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     arguments = uint(s, 40, 8)
     arg_count = uint(s, 48, 8)
     result_count = uint(s, 56, 8)
-    if depth == 0 or depth > 256 or registers == 0 or registers > 4096 or bounce == 0 or bounce > 4096 - registers:
+    if depth == 0 or depth > 256 or registers == 0 or registers > @MAX_FRAME_WORDS@ or bounce == 0 or bounce > @MAX_FRAME_WORDS@ - registers:
         return 4294967295
     stride = (registers + bounce + 1) * 8
     if arg_count > registers or result_count > bounce or within(length(s), arguments, arg_count * 8) == 0:
         return 4294967295
-    if length(w) < 64 + stride * depth or length(o) < 32 + result_count * 8:
+    if length(w) < 64 + stride or length(o) < 32 + result_count * 8:
         return 4294967294
     resource = uint(s, 0, 8) == @RESOURCE_PROGRAM_MAGIC@
     if resource and length(o) < 32 + bounce * 8:
         return 4294967294
     start = uint(s, 64, 8)
-    if not resource or get(w, 8) == 0:
+    saved = get(w, 8)
+    if saved == 0:
         put(w, 0, 0)
         put(w, 8, 0)
         put(w, 16, depth)
@@ -213,11 +216,26 @@ def reference_program(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     else:
         if get(w, 16) != depth or get(w, 24) != stride or get(w, 32) != registers * 8:
             return 4294967295
-        if resume_resource(s, o, w) == 0:
+        active_depth = get(w, 40)
+        if active_depth >= depth or within(length(s), saved, 64) == 0:
+            return 4294967295
+        if length(w) < 64 + (active_depth + 1) * stride or get(w, 0) > uint(s, 8, 8):
+            return 4294967295
+        operation = uint(s, saved, 8)
+        if operation == 38:
+            if not resource or resume_resource(s, o, w) == 0:
+                return 4294967295
+        elif operation != 33:
             return 4294967295
     status = run_program(s, w, start)
     if status == 13:
         return resource_request(s, o, w)
+    if status == 14:
+        put(o, 0, @PROGRAM_RESULT@)
+        put(o, 8, 14)
+        put(o, 16, get(w, 0))
+        put(o, 24, 64 + (get(w, 40) + 2) * stride)
+        return 32
     if status >= 12:
         return 4294967295
     put(o, 0, @PROGRAM_RESULT@)
@@ -240,7 +258,7 @@ def tick(s:readbuf, w:mutbuf) -> u64:
     return 1
 
 def gather(s:readbuf, w:mutbuf, listing:u64, count:u64, frame:u64, target:u64) -> u64:
-    if count > 4096 or within(length(s), listing, count * 8) == 0:
+    if count > @MAX_FRAME_WORDS@ or within(length(s), listing, count * 8) == 0:
         return 0
     i = 0
     while i < count:
@@ -257,11 +275,15 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
     stride = get(w, 24)
     saved = get(w, 8)
     resumed = saved != 0
+    resumed_call = False
     if saved == 0:
         if tick(s, w) == 0:
             return 5
     else:
         pc = saved + 64
+        if uint(s, saved, 8) == 33:
+            pc = saved
+            resumed_call = True
         depth = get(w, 40)
         put(w, 8, 0)
         put(w, 40, 0)
@@ -275,9 +297,10 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
             # request. It is never a legal entry or jump target.
             if not resumed:
                 return 12
-        elif tick(s, w) == 0:
+        elif not resumed_call and tick(s, w) == 0:
             return 5
         resumed = False
+        resumed_call = False
         if op >= 1 and op <= @select@:
             status = scalar_command(s, w, pc, frame, op)
             if status != 0:
@@ -292,6 +315,10 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
         elif op == 33:
             if depth + 1 >= get(w, 16):
                 return 6
+            if length(w) < 64 + (depth + 2) * stride:
+                put(w, 8, pc)
+                put(w, 40, depth)
+                return 14
             pc = enter_call(s, w, pc, frame)
             if pc == 0:
                 return 12
@@ -362,10 +389,6 @@ def resource_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def resume_resource(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     pc = get(w, 8)
     depth = get(w, 40)
-    if depth >= get(w, 16) or within(length(s), pc, 64) == 0:
-        return 0
-    if uint(s, pc, 8) != 38 or get(w, 0) > uint(s, 8, 8):
-        return 0
     count = uint(s, pc + 40, 8)
     listing = uint(s, pc + 32, 8)
     stride = get(w, 24)
@@ -617,7 +640,8 @@ def document():
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
-                 'PROGRAM_RESULT': PROGRAM_RESULT, **OPCODES}
+                 'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,
+                 'MAX_PACKET_BYTES': MAX_PACKET_BYTES, **OPCODES}
     source = SOURCE
     for name, number in constants.items():
         source = source.replace(f'@{name}@', str(number))
