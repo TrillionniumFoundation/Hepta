@@ -301,3 +301,44 @@ class ScalarReferenceNativeTests(unittest.TestCase):
               patch.object(_Machine, '_reference_allocation_decision',
                            side_effect=AssertionError('host allocation preflight'))):
             self.assertEqual(compare(), expected)
+
+    def test_resource_cfg_resumes_exactly_at_calls_edges_and_partial_destruction(self):
+        from hepta.hia_program_runtime import HIAProgramBudgetExceeded
+        from hepta.hia_schema import SCHEMA_V7
+        from tests.test_hia_program import b, c, f, i, joined_loan_program, m, ret
+
+        child = f('dispose', [('nodes', 'chain')], [], ['alloc', 'write', 'trap'], [
+            b('entry', [('nodes', 'chain')], [i('owner.drop', ['nodes'])], ret())])
+        entry = f('build', [], ['bool'], ['alloc', 'write', 'trap'], [b('entry', [], [
+            c('size', 'usize', 2), i('chain.empty', [], [('empty', 'chain')]),
+            i('buffer.new', ['size'], [('payload', 'buffer')]),
+            i('chain.try_push', ['empty', 'payload'],
+              [('built', 'chain'), ('remaining', 'buffer'), ('pushed', 'bool')]),
+            i('owner.drop', ['remaining']),
+            i('call', ['built'], function='dispose'),
+        ], ret('pushed'))])
+        chain = m(entry, child)
+        chain['schema'] = SCHEMA_V7
+        cases = [(joined_loan_program(), 'join', [condition], {})
+                 for condition in (False, True)]
+        cases += [(chain, 'build', [], {'max_steps': steps, 'allocation_fail_at': failure})
+                  for steps in range(1, 15) for failure in (None, 2)]
+        cases += [(chain, 'build', [], {'max_call_depth': 1})]
+
+        def observe():
+            reports = []
+            for program, entry, arguments, options in cases:
+                try:
+                    reports.append(execute_program(program, entry, arguments, **options))
+                except (HIAProgramTrap, HIAProgramBudgetExceeded) as error:
+                    reports.append(error.report)
+            return reports
+
+        expected = observe()
+        self.assertTrue(any(row['status'] == 'returned' for row in expected))
+        self.assertTrue(any(row['status'] == 'budget_exceeded' for row in expected))
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter')),
+              patch.object(_Machine, '_reference_allocation_decision',
+                           side_effect=AssertionError('host allocation preflight'))):
+            self.assertEqual(observe(), expected)

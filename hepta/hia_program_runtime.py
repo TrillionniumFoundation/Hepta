@@ -585,6 +585,49 @@ class _Machine:
         return result
 
 
+class _ReferenceResources:
+    """Map native register words to the existing checked resource primitives."""
+
+    def __init__(self, machine):
+        self.machine = machine
+        self.views = {}
+        self.view_ids = {}
+
+    def operation(self, instruction, types, words):
+        from .hia_scalar_reference_native import NativeScalarReference, WORD_MASK
+
+        def decode(kind, word):
+            if kind in SCALARS:
+                value = NativeScalarReference._value(kind, word)
+                if scalar_value_valid(value, kind):
+                    return value
+                raise HIAProgramRejected("invalid native runtime operand", "E_HIA_RUNTIME_INVARIANT")
+            active = (self.machine.owners if kind == "buffer" else
+                      self.machine.chains if kind == "chain" else self.views)
+            if word not in active:
+                raise HIAProgramRejected("unknown native resource handle", "E_HIA_RUNTIME_INVARIANT")
+            return active[word]
+
+        env = {name: decode(kind, word) for name, kind, word in zip(instruction["args"], types, words)}
+        ended = words[0] if instruction["op"] == "loan.end" else None
+        self.machine.operation(instruction, env, 0)
+        if ended is not None:
+            del self.view_ids[self.views.pop(ended)]
+        returned = []
+        for output in instruction["out"]:
+            kind, value = output["type"], env[output["name"]]
+            if kind in SCALARS:
+                word = int(value or 0) & WORD_MASK
+            elif kind in OWNERS:
+                word = value.ident
+            else:
+                # Loan starts are monotonic even when earlier loans have ended.
+                word = self.view_ids.setdefault(value, self.machine.loans_started)
+                self.views[word] = value
+            returned.append(word)
+        return returned
+
+
 def execute_program(program, function, arguments, *, max_steps=1_000_000,
                     max_heap_bytes=16 * 1024 * 1024, allocation_fail_at=None,
                     max_call_depth=256, bounded_resource_limits=None):
@@ -640,7 +683,7 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
     try:
         result = (None if machine.scalar_reference is None else
                   machine.scalar_reference.program(checked.canonical_bytes, function,
-                                                   arguments, max_steps, max_call_depth))
+                                                   arguments, max_steps, max_call_depth, machine=machine))
         if result is None:
             values = machine.invoke(fn, arguments)
         else:

@@ -4,9 +4,10 @@ from functools import lru_cache
 import json
 import struct
 
-from .hia_opcodes import SCALARS, WIDTHS
+from .hia_opcodes import RESOURCES, SCALARS, WIDTHS
 
 PROGRAM_MAGIC = int.from_bytes(b'HIASPG01', 'little')
+RESOURCE_PROGRAM_MAGIC = int.from_bytes(b'HIARPG01', 'little')
 PROGRAM_RESULT = int.from_bytes(b'HIASPR01', 'little')
 MAX_PACKET_BYTES = 8 << 20
 MAX_FRAME_WORDS = 4096
@@ -15,33 +16,38 @@ TYPES = ('bool', 'unit', *WIDTHS)
 TRAPS = ('user', 'overflow', 'division_by_zero', 'bounds', 'allocation')
 COMMAND = struct.Struct('<8Q')
 CONSTANT, CALL, RETURN, TRAP, JUMP, BRANCH = range(32, 38)
+RESOURCE = 38
 
 
 @lru_cache(maxsize=8)
-def program_wire(canonical: bytes, entry: str):
+def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
     """No evaluation here: assign register slots and freeze exact CFG edges."""
     from .hia_scalar_reference_native import OPCODES
 
     functions = {fn['name']: fn for fn in json.loads(canonical)['functions']}
     reachable = {entry}
     order = [entry]
+    types = SCALARS | RESOURCES if allow_resources else SCALARS
     for name in order:
         fn = functions[name]
-        if not all(typ in SCALARS for typ in fn['returns']):
+        # Returning a nested loan has additional origin/permission rules;
+        # this dispatcher does not yet implement that boundary.
+        if any(typ not in types or typ in {'readbuf', 'mutbuf'} for typ in fn['returns']):
             return None
         for block in fn['blocks']:
-            if not all(param['type'] in SCALARS for param in block['params']):
+            if not all(param['type'] in types for param in block['params']):
                 return None
             for ins in block['ops']:
                 op = ins['op']
-                if not all(out['type'] in SCALARS for out in ins['out']):
+                if not all(out['type'] in types for out in ins['out']):
                     return None
                 if op == 'call':
                     callee = ins['attrs']['function']
                     if callee not in reachable:
                         reachable.add(callee)
                         order.append(callee)
-                elif op not in ('const', 'int.cast') and op not in OPCODES:
+                elif (op not in ('const', 'int.cast') and op not in OPCODES
+                      and not allow_resources):
                     return None
 
     # The first eight words are written for each invocation. The next
@@ -64,6 +70,7 @@ def program_wire(canonical: bytes, entry: str):
         return at
 
     max_regs = max_arguments = 1
+    resource_sites = []
     for name in order:
         fn = functions[name]
         for block in fn['blocks']:
@@ -87,7 +94,7 @@ def program_wire(canonical: bytes, entry: str):
                     max_arguments = max(max_arguments, len(arguments), len(outputs))
                     command = (CALL, identifiers[ins['attrs']['function']], append_words(arguments),
                                len(arguments), append_words(outputs), len(outputs))
-                else:
+                elif op == 'int.cast' or op in OPCODES:
                     typ = ins['out'][0]['type']
                     opcode = 'cast.' + ins['attrs']['mode'] if op == 'int.cast' else op
                     sign = int(typ.startswith('i'))
@@ -97,6 +104,12 @@ def program_wire(canonical: bytes, entry: str):
                         sign |= int(argument_type.startswith('i')) << (index+1)
                     indexes.extend([0] * (3-len(indexes)))
                     command = (OPCODES[opcode], outputs[0], *indexes, WIDTHS.get(typ, 1), sign, TYPES.index(typ))
+                else:
+                    arguments = [index for index, _ in operands]
+                    max_arguments = max(max_arguments, len(arguments), len(outputs))
+                    command = (RESOURCE, len(resource_sites), append_words(arguments), len(arguments),
+                               append_words(outputs), len(outputs))
+                    resource_sites.append((ins, tuple(typ for _, typ in operands)))
                 COMMAND.pack_into(output, at, *command, *([0]*(8-len(command))))
                 at += 64
             max_regs = max(max_regs, len(registers))
@@ -123,4 +136,4 @@ def program_wire(canonical: bytes, entry: str):
             COMMAND.pack_into(output, at, *command, *([0]*(8-len(command))))
     if len(output) > MAX_PACKET_BYTES or max_regs + max_arguments > MAX_FRAME_WORDS:
         return None
-    return bytes(output), max_regs, max_arguments, tuple(functions[entry]['returns'])
+    return bytes(output), max_regs, max_arguments, tuple(functions[entry]['returns']), resource_sites

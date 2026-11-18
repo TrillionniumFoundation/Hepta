@@ -164,33 +164,52 @@ class NativeScalarReference(NativeHiaJsonImage):
             return bool(result)
         return result - (1 << 64) if typ.startswith('i') and result >> 63 else result
 
-    def program(self, canonical, function, arguments, max_steps, max_call_depth):
+    def program(self, canonical, function, arguments, max_steps, max_call_depth, *, machine=None):
         from .hia_program import scalar_value_valid
-        from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap
+        from .hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, _ReferenceResources
         from .hia_scalar_reference_wire import (
-            MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, TRAPS, TYPES, program_wire,
+            MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
+            TRAPS, TYPES, program_wire,
         )
 
-        compiled = program_wire(canonical, function)
+        compiled = program_wire(canonical, function, allow_resources=machine is not None)
         if compiled is None:
             return None
-        body, registers, bounce, returns = compiled
+        body, registers, bounce, returns, resource_sites = compiled
         if len(body) + 8*len(arguments) > MAX_PACKET_BYTES:
             return None
-        header = struct.pack('<8Q', PROGRAM_MAGIC, max_steps, max_call_depth,
+        magic = RESOURCE_PROGRAM_MAGIC if resource_sites else PROGRAM_MAGIC
+        header = struct.pack('<8Q', magic, max_steps, max_call_depth,
                              registers, bounce, len(body), len(arguments), len(returns))
         words = struct.pack(f'<{len(arguments)}Q', *(int(arg or 0) & WORD_MASK for arg in arguments))
         wire = header + body[64:] + words
         source = ctypes.create_string_buffer(wire)
-        output = ctypes.create_string_buffer(32 + 8*len(returns))
+        output = ctypes.create_string_buffer(32 + 8*(bounce if resource_sites else len(returns)))
         workspace = ctypes.create_string_buffer(64 + (registers + bounce + 1)*8*max_call_depth)
-        size = self._entry(source, len(wire), output, len(output), workspace, len(workspace))
-        identity, status, steps, typ = struct.unpack_from('<4Q', output.raw)
-        if (identity != PROGRAM_RESULT or not 0 <= status <= 11 or steps > max_steps + 1
-                or size != (32 if status else len(output))):
+        resources = _ReferenceResources(machine) if resource_sites else None
+        previous = 0
+        while True:
+            size = self._entry(source, len(wire), output, len(output), workspace, len(workspace))
+            identity, status, steps, typ = struct.unpack_from('<4Q', output)
+            if identity != PROGRAM_RESULT or not previous <= steps <= max_steps + 1:
+                raise RuntimeError('invalid HIA Core reference progress')
+            if status != 13:
+                break
+            if resources is None or steps <= previous or steps > max_steps or typ >= len(resource_sites):
+                raise RuntimeError('invalid HIA Core reference resource request')
+            instruction, operand_types = resource_sites[typ]
+            if size != 32 + 8*len(operand_types):
+                raise RuntimeError('invalid HIA Core reference resource arguments')
+            operands = struct.unpack_from(f'<{len(operand_types)}Q', output, 32)
+            machine.steps = steps
+            returned = resources.operation(instruction, operand_types, operands)
+            struct.pack_into(f'<{len(returned)}Q', output, 32, *returned)
+            struct.pack_into('<Q', workspace, 0, machine.steps)
+            previous = machine.steps
+        if not 0 <= status <= 11 or size != (32 if status else 32 + 8*len(returns)):
             raise RuntimeError('invalid HIA scalar Core reference terminal')
         if status == 0:
-            values = struct.unpack_from(f'<{len(returns)}Q', output.raw, 32)
+            values = struct.unpack_from(f'<{len(returns)}Q', output, 32)
             decoded = [self._value(kind, value) for kind, value in zip(returns, values)]
             if any(not scalar_value_valid(value, kind) for kind, value in zip(returns, decoded)):
                 raise RuntimeError('invalid HIA scalar Core reference value')

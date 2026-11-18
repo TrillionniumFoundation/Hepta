@@ -7,7 +7,7 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import (
     ALLOCATION_MAGIC, BYTE_MAGIC, DOMAIN_MAGIC, MAGIC, OBSERVATION_MAGIC, OPCODES, RESULT,
 )
-from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT
+from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC
 from tools.generate_hia_elf_linker import LinkerBuilder, SOURCE as STATIC_SOURCE
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
 
@@ -16,7 +16,7 @@ SOURCE = '''
 def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8:
         return 4294967295
-    if uint(s, 0, 8) == @PROGRAM_MAGIC@:
+    if uint(s, 0, 8) == @PROGRAM_MAGIC@ or uint(s, 0, 8) == @RESOURCE_PROGRAM_MAGIC@:
         return reference_program(s, o, w)
     if uint(s, 0, 8) == @BYTE_MAGIC@:
         return byte_operation(s, o, w)
@@ -195,16 +195,29 @@ def reference_program(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967295
     if length(w) < 64 + stride * depth or length(o) < 32 + result_count * 8:
         return 4294967294
-    put(w, 0, 0)
-    put(w, 16, depth)
-    put(w, 24, stride)
-    put(w, 32, registers * 8)
-    put(w, 40, 0)
-    i = 0
-    while i < arg_count:
-        put(w, 64 + i * 8, uint(s, arguments + i * 8, 8))
-        i = i + 1
-    status = run_program(s, w, uint(s, 64, 8))
+    resource = uint(s, 0, 8) == @RESOURCE_PROGRAM_MAGIC@
+    if resource and length(o) < 32 + bounce * 8:
+        return 4294967294
+    start = uint(s, 64, 8)
+    if not resource or get(w, 8) == 0:
+        put(w, 0, 0)
+        put(w, 8, 0)
+        put(w, 16, depth)
+        put(w, 24, stride)
+        put(w, 32, registers * 8)
+        put(w, 40, 0)
+        i = 0
+        while i < arg_count:
+            put(w, 64 + i * 8, uint(s, arguments + i * 8, 8))
+            i = i + 1
+    else:
+        if get(w, 16) != depth or get(w, 24) != stride or get(w, 32) != registers * 8:
+            return 4294967295
+        if resume_resource(s, o, w) == 0:
+            return 4294967295
+    status = run_program(s, w, start)
+    if status == 13:
+        return resource_request(s, o, w)
     if status >= 12:
         return 4294967295
     put(o, 0, @PROGRAM_RESULT@)
@@ -239,12 +252,19 @@ def gather(s:readbuf, w:mutbuf, listing:u64, count:u64, frame:u64, target:u64) -
     return 1
 
 def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
-    if tick(s, w) == 0:
-        return 5
-    frame = 64
+    pc = start
     depth = 0
     stride = get(w, 24)
-    pc = start
+    saved = get(w, 8)
+    if saved == 0:
+        if tick(s, w) == 0:
+            return 5
+    else:
+        pc = saved + 64
+        depth = get(w, 40)
+        put(w, 8, 0)
+        put(w, 40, 0)
+    frame = 64 + depth * stride
     while pc != 0:
         if within(length(s), pc, 64) == 0:
             return 12
@@ -303,9 +323,57 @@ def run_program(s:readbuf, w:mutbuf, start:u64) -> u64:
                 else:
                     edge = uint(s, pc + 24, 8)
             pc = transfer(s, w, edge, frame)
+        elif op == 38 and uint(s, 0, 8) == @RESOURCE_PROGRAM_MAGIC@:
+            put(w, 8, pc)
+            put(w, 40, depth)
+            return 13
         else:
             return 12
     return 12
+
+def resource_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    pc = get(w, 8)
+    count = uint(s, pc + 24, 8)
+    registers = get(w, 32)
+    stride = get(w, 24)
+    if count > (stride - registers - 8) // 8:
+        return 4294967295
+    frame = 64 + get(w, 40) * stride
+    bounce = frame + registers
+    if gather(s, w, uint(s, pc + 16, 8), count, frame, bounce) == 0:
+        return 4294967295
+    put(o, 0, @PROGRAM_RESULT@)
+    put(o, 8, 13)
+    put(o, 16, get(w, 0))
+    put(o, 24, uint(s, pc + 8, 8))
+    i = 0
+    while i < count:
+        put(o, 32 + i * 8, get(w, bounce + i * 8))
+        i = i + 1
+    return 32 + count * 8
+
+def resume_resource(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    pc = get(w, 8)
+    depth = get(w, 40)
+    if depth >= get(w, 16) or within(length(s), pc, 64) == 0:
+        return 0
+    if uint(s, pc, 8) != 38 or get(w, 0) > uint(s, 8, 8):
+        return 0
+    count = uint(s, pc + 40, 8)
+    listing = uint(s, pc + 32, 8)
+    stride = get(w, 24)
+    registers = get(w, 32)
+    if count > (stride - registers - 8) // 8 or within(length(s), listing, count * 8) == 0:
+        return 0
+    frame = 64 + depth * stride
+    i = 0
+    while i < count:
+        slot = uint(s, listing + i * 8, 8)
+        if slot >= registers // 8:
+            return 0
+        put(w, frame + slot * 8, get(o, 32 + i * 8))
+        i = i + 1
+    return 1
 
 def scalar_command(s:readbuf, w:mutbuf, pc:u64, frame:u64, op:u64) -> u64:
     limit = get(w, 32) // 8
@@ -529,6 +597,7 @@ def document():
     constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
                  'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
+                 'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, **OPCODES}
     source = SOURCE
     for name, number in constants.items():
