@@ -54,9 +54,17 @@ the compiled program. The exact diagnostics of the ordinary hosted
 `hia check-assembly` action are outside this bounded native command contract.
 These are command-specific output contracts, not JSON-lines RPC.
 
-The output profile is chosen explicitly at build time: `flat`, `elf` (ET_REL
-objects) or `exec` (the existing syscall-only program entry). The capabilities
-record reports its numeric build profile, 0/1/2 respectively. Input module or
+Fixed-profile builds choose `flat`, `elf` (ET_REL objects) or `exec` (the
+existing syscall-only program entry). The capabilities record reports 0, 1 or 2
+respectively. The sealed release uses one `portable` build (profile 3), which
+defaults to flat and accepts one `--output-profile=flat|elf|exec` argument after
+a compile, verification or assembly command. For example:
+
+```sh
+hia-native assemble --output-profile=elf < exported.hepta > exported.o
+```
+
+Input module or
 export metadata cannot switch that operator-selected profile. For `assemble` and `check-assembly`,
 an ordinary module selects flat output, `selfhost_elf` or explicit scalar
 exports select ELF, and `selfhost_exec` selects the executable profile. The
@@ -82,8 +90,9 @@ The private command mode occupies bytes beyond the input's oversize-read guard,
 outside all frontend/compiler output and workspace regions.
 
 A command is required. The adapter scans at most 32 command bytes; the HIA
-dispatcher accepts only the seven exact declared words. Only `catalog` accepts
-additional arguments, with bounded tokens for the optional `--schema` setting.
+dispatcher accepts only the seven exact declared words. `catalog` accepts
+bounded tokens for the optional `--schema` setting. The portable compiler
+checks its one explicit output-profile argument before reading stdin.
 Exit codes:
 
 | Exit | Category |

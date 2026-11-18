@@ -114,22 +114,29 @@ def dispatcher_reference():
     assert result==0xfffffffe and raw==b'\xa5'*3
     result,raw=vm_window(DISPATCH,b'verify',workspace=bytes(47))
     assert result==0xfffffffd and raw==b'\xa5'
-    for phase,profile in ((3,0),(0,3),(2,3)):
+    for phase,profile in ((3,0),(0,4),(2,3),(5,0)):
         workspace=bytearray(48)
         struct.pack_into('<Q',workspace,0,phase);struct.pack_into('<Q',workspace,40,profile)
         result,raw=vm_window(DISPATCH,b'assemble',workspace=workspace)
         assert result==0xfffffffd and raw==b'\xa5'
+    workspace=struct.pack('<6Q',5,0,0,0,0,3)
+    for argument, expected in ((b'--output-profile=flat',1), (b'--output-profile=elf',2),
+                               (b'--output-profile=exec',3), (b'--output-profile=elfx',0),
+                               (b'--output-profile=',0), (b'--Output-profile=elf',0)):
+        result,raw=vm_window(DISPATCH,argument,workspace=workspace)
+        assert result==expected and raw==b'\xa5'
 
 
 def packed_reference(dispatch=b'\xc3',frontend=b'\xc3',compiler=b'\xc3',profile=0,catalog=b'table'):
     prefix,holes=template()
     raw=bytearray(prefix+dispatch+frontend+compiler+catalog)
     struct.pack_into('<QQ',raw,96,len(raw),len(raw))
-    for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_dispatch_assembly',
-                 'profile_dispatch_catalog_argument','profile_dispatch_catalog_finish','profile_frontend'):
+    for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_dispatch_output_profile',
+                 'profile_dispatch_catalog_argument','profile_dispatch_catalog_finish'):
         struct.pack_into('<I',raw,holes[name],profile)
     for name,position in [('dispatch_initial',len(prefix)),('dispatch_verified',len(prefix)),
-                          ('dispatch_assembly',len(prefix)),('dispatch_catalog_argument',len(prefix)),
+                          ('dispatch_assembly',len(prefix)),('dispatch_output_profile',len(prefix)),
+                          ('dispatch_catalog_argument',len(prefix)),
                           ('dispatch_catalog_finish',len(prefix)),
                           ('frontend',len(prefix)+len(dispatch)),
                           ('compiler',len(prefix)+len(dispatch)+len(frontend)),
@@ -151,7 +158,7 @@ def packer_reference():
         result,raw=vm_window(PACKER,frame,capacity=len(expected)+1,start=start,count=count)
         assert result==len(expected) and raw==(expected+b'\xa5')[start:start+count],(start,result)
     for source,capacity,status in [(frame[:-1],4,0xffffffff),(frame,4,0xfffffffe),
-                                   (struct.pack('<6Q',MAGIC,1,1,1,3,5)+frame[48:],4,0xffffffff),
+                                   (struct.pack('<6Q',MAGIC,1,1,1,4,5)+frame[48:],4,0xffffffff),
                                    (struct.pack('<6Q',MAGIC,1,1,1,2,0)+frame[48:51],4,0xffffffff)]:
         result,raw=vm_window(PACKER,source,capacity=capacity,count=capacity)
         assert result==status and raw==b'\xa5'*capacity
@@ -210,7 +217,7 @@ class AgentStdioNativeTests(unittest.TestCase):
         cls.compiler=Path(actual['generations'][-1]['produced_image'])
         assert all(h==sha256(cls.compiler.read_bytes()).hexdigest() for h in outer['generation_sha256'])
         cls.executables={profile:build(cls.root/profile,cls.compiler,cls.cold,output_profile=profile)
-                         for profile in ('flat','elf','exec')}
+                         for profile in ('flat','elf','exec','portable')}
         source=DISPATCH.parents[2]/'examples/hia_bootstrap/selfhost.hepta'
         cls.assembly=(source.parent/'bytesum.hepta').read_bytes()
         cls.sample=assemble_program(cls.assembly).as_dict()
@@ -220,7 +227,7 @@ class AgentStdioNativeTests(unittest.TestCase):
                               capture_output=True,timeout=20,env={'PATH':'','LANG':'C'},**kwargs)
 
     def test_capabilities_and_usage_need_no_stdin_payload_or_host_tools(self):
-        for index,profile in enumerate(('flat','elf','exec')):
+        for index,profile in enumerate(('flat','elf','exec','portable')):
             p=self.invoke(['capabilities'],b'not JSON',profile)
             self.assertEqual((p.returncode,p.stderr),(0,b''))
             self.assertEqual(json.loads(p.stdout),{**EXPECTED_CAPABILITY,'build_profile':index})
@@ -461,6 +468,39 @@ class AgentStdioNativeTests(unittest.TestCase):
         for profile in ('flat','exec'):
             refused=self.invoke(['assemble'],source,profile=profile)
             self.assertEqual((refused.returncode,refused.stdout),(2,b''))
+
+    def test_portable_compiler_selects_all_three_outputs_without_another_binary(self):
+        from tools.qualify_hia_selfhost_cli import echo_source
+        sources = {
+            'flat': self.assembly,
+            'elf': self.assembly.replace(b'v8 selfhost\n', b'v8 selfhost_elf\n', 1),
+            'exec': echo_source().replace(b'v8 selfhost\n', b'v8 selfhost_exec\n', 1),
+        }
+        expected_default = self.invoke(['assemble'], sources['flat'])
+        actual_default = self.invoke(['assemble'], sources['flat'], profile='portable')
+        self.assertEqual((actual_default.returncode, actual_default.stdout), (0, expected_default.stdout))
+        for mode, source in sources.items():
+            wire = assemble_program(source).canonical_bytes
+            for action, payload in (('assemble', source), ('check-assembly', source),
+                                    ('compile', wire), ('verify', wire), ('render-assembly', wire)):
+                with self.subTest(mode=mode, action=action):
+                    expected = self.invoke([action], payload, profile=mode)
+                    actual = self.invoke([action, '--output-profile=' + mode], payload, profile='portable')
+                    self.assertEqual((expected.returncode, expected.stderr), (0, b''))
+                    self.assertEqual((actual.returncode, actual.stdout, actual.stderr), (0, expected.stdout, b''))
+        for arguments in (
+            ['assemble', '--output-profile=ELF'],
+            ['assemble', '--output-profile=elf', '--output-profile=exec'],
+            ['assemble', '--output-profile', 'flat'],
+            ['capabilities', '--output-profile=elf'],
+            ['catalog', '--output-profile=elf'],
+        ):
+            refused = self.invoke(arguments, sources['flat'], profile='portable')
+            self.assertEqual((refused.returncode, refused.stdout), (64, b''))
+        refused = self.invoke(['assemble', '--output-profile=elf'], sources['exec'], profile='portable')
+        self.assertEqual((refused.returncode, refused.stdout), (2, b''))
+        refused = self.invoke(['assemble', '--output-profile=flat'], sources['flat'])
+        self.assertEqual((refused.returncode, refused.stdout), (64, b''))
 
     def test_original_modified_compiler_chains_are_genuine_and_separate(self):
         from tools.qualify_hia_selfhost import compile_stage,mutate_compiler

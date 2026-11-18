@@ -21,6 +21,8 @@ from tools.generate_hia_core_json_cli import (
 
 MAGIC = int.from_bytes(b'HIAAGNT2', 'little')
 MODE_OFFSET = WIRE_LIMIT + 16
+ACTIVE_PROFILE_OFFSET = MODE_OFFSET + 8
+OUTPUT_PROFILES = ('flat', 'elf', 'exec', 'portable')
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -150,8 +152,12 @@ def dispatcher_source():
         return 4294967293
     phase = read_word(w, 0)
     profile = read_word(w, 40)
-    if profile > 2:
+    if profile > 3:
         return 4294967293
+    if phase == 5:
+        if profile != 3:
+            return 4294967293
+        return output_profile(s)
     if phase > 2:
         if length(w) < 80:
             return 4294967293
@@ -163,6 +169,8 @@ def dispatcher_source():
             return catalog(s, o, read_word(w, 64))
         return 4294967295
     if phase == 2:
+        if profile == 3:
+            return 4294967293
         return emitted_profile(s, profile)
     if length(s) > 32:
         return 4294967293
@@ -174,8 +182,10 @@ def dispatcher_source():
             put_word(w, 64, CATALOG_DEFAULT)
             put_word(w, 72, 1)
             return 6
-        if length(w) >= 56 and read_word(w, 48) != 0:
-            return 4294967295
+        if length(w) >= 56:
+            extras = read_word(w, 48)
+            if extras != 0 and (profile != 3 or extras != 1):
+                return 4294967295
     if matches(s, 6, 133476589827702) == 1:
         if phase == 0:
             return 1
@@ -196,6 +206,8 @@ def dispatcher_source():
         return 4
     if matches(s, 12, 7809644627822477667) == 1:
         if byte(s, 8) == 116 and byte(s, 9) == 105 and byte(s, 10) == 101 and byte(s, 11) == 115:
+            if length(w) >= 56 and read_word(w, 48) != 0:
+                return 4294967295
             return capabilities(o, profile)
     return 4294967295
 
@@ -293,6 +305,16 @@ def catalog_argument(s:readbuf, w:mutbuf) -> u32:
     put_word(w, 64, selected)
     return 1
 '''.replace('SCHEMA_OPTION', str(int.from_bytes(b'--schema', 'little')))
+    prefix = b'--output-profile='
+    source += '\ndef output_profile(s:readbuf) -> u32:\n'
+    source += f'    if length(s) < {len(prefix) + 3}:\n        return 0\n'
+    for at, value in enumerate(prefix):
+        source += f'    if byte(s, {at}) != {value}:\n        return 0\n'
+    for mode, suffix in enumerate(OUTPUT_PROFILES[:3], 1):
+        values = ' and '.join(f'byte(s, {len(prefix) + at}) == {value}'
+                              for at, value in enumerate(suffix.encode('ascii')))
+        source += f'    if length(s) == {len(prefix) + len(suffix)} and {values}:\n        return {mode}\n'
+    source += '    return 0\n'
     return source + '\n' + catalog_source()
 
 
@@ -369,8 +391,21 @@ def template():
     branch('e9', 'check_output')
     label('mode')
     emit('41 89 84 24'); word(MODE_OFFSET)      # outside input/compiler output
+    emit('41 8b 84 24'); word(ARENA_OFFSET + 40)  # packaged profile from prior dispatch
+    emit('83 f8 03'); branch('0f 85', 'save_profile')
+    emit('31 c0 48 83 3c 24 02'); branch('0f 84', 'save_profile')
+    emit('48 8b 7c 24 18 31 f6')              # portable profile argument, argv[2]
+    label('profile_length')
+    emit('48 83 fe 20'); branch('0f 83', 'usage')
+    emit('80 3c 37 00'); branch('0f 84', 'profile_dispatch')
+    emit('48 ff c6'); branch('e9', 'profile_length')
+    label('profile_dispatch')
+    dispatch('dispatch_output_profile', phase=5)
+    emit('ff c8 83 f8 02'); branch('0f 87', 'usage')
+    label('save_profile')
+    emit('41 89 84 24'); word(ACTIVE_PROFILE_OFFSET)
     emit('bb'); word(WIRE_LIMIT)               # JSON wire ceiling
-    emit('83 f8 04'); branch('0f 82', 'reading')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 82', 'reading')
     emit('bb'); word(LIMIT)                    # exact native assembly ceiling
     label('reading')
     emit('45 31 ed')
@@ -389,7 +424,8 @@ def template():
     emit('41 b9'); word(ARENA_BYTES)
     emit('49 c7 40 30'); word(1048576)
     emit('49 c7 40 38'); word(128)
-    emit('41 c7 40 28'); hole('profile_frontend')
+    emit('41 8b 84 24'); word(ACTIVE_PROFILE_OFFSET)
+    emit('41 89 40 28')                       # frontend receives the admitted profile
     emit('e8'); hole('frontend')
     emit('83 f8 fe'); branch('0f 84', 'space')
     emit('83 f8 fa'); branch('0f 84', 'space')
@@ -429,7 +465,8 @@ def template():
     emit('4d 8d 84 24'); word(ARENA_OFFSET)
     emit('41 b9'); word(ARENA_BYTES)
     emit('49 c7 00 02 00 00 00')
-    emit('49 c7 40 28'); hole('profile_dispatch_assembly')
+    emit('41 8b 84 24'); word(ACTIVE_PROFILE_OFFSET)
+    emit('49 89 40 28')
     emit('e8'); hole('dispatch_assembly')
     emit('83 f8 01'); branch('0f 85', 'invalid')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('05'); branch('0f 84', 'verified')
@@ -489,7 +526,7 @@ def packer_source():
     compiler = read_word(s, 24)
     profile = read_word(s, 32)
     catalog = read_word(s, 40)
-    if dispatch == 0 or frontend == 0 or compiler == 0 or dispatch > 1048576 or frontend > 1048576 or compiler > 1048576 or profile > 2:
+    if dispatch == 0 or frontend == 0 or compiler == 0 or dispatch > 1048576 or frontend > 1048576 or compiler > 1048576 or profile > 3:
         return 4294967295
     if catalog == 0 or catalog > 1048576 or length(s) != 48 + dispatch + frontend + compiler + catalog:
         return 4294967295

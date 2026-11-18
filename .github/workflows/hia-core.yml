@@ -228,7 +228,7 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/selector"
           python -B -m tools.build_hia_core_admission_cli --suite --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-suite"
-          python -B -m tools.build_hia_agent_stdio --compiler "$compiler" \
+          python -B -m tools.build_hia_agent_stdio --output-profile portable --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-stdio"
           python -B -m tools.build_hia_source_build --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/source-build"
@@ -298,6 +298,14 @@ jobs:
             > "$package/installed-migration-plan.image.bin"
           cmp "$RUNNER_TEMP/sqlite-components/sqlite-migration-plan/sqlite-migration-plan.image.bin" \
             "$package/installed-migration-plan.image.bin"
+          for profile in elf exec; do
+            sed "1s/ selfhost$/ selfhost_$profile/" examples/hia_bootstrap/bytesum.hepta \
+              > "$package/bytesum-$profile.hepta"
+            env -i PATH= "$installed/hia-native" assemble "--output-profile=$profile" \
+              < "$package/bytesum-$profile.hepta" > "$package/bytesum-$profile.bin"
+          done
+          readelf -h "$package/bytesum-elf.bin" | grep -E 'Type: +REL'
+          readelf -h "$package/bytesum-exec.bin" | grep -E 'Type: +EXEC'
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
           for action in normalize inspect verify-report; do

@@ -19,7 +19,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_frontend)
-from tools.generate_hia_agent_stdio import MAGIC, LIMIT, catalog_table
+from tools.generate_hia_agent_stdio import MAGIC, LIMIT, OUTPUT_PROFILES, catalog_table
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -28,7 +28,7 @@ PACKER = ROOT/'examples/hia_bootstrap/agent_stdio_packer.hepta'
 
 
 def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='flat'):
-    if type(output_profile) is not str or output_profile not in ('flat','elf','exec'):
+    if type(output_profile) is not str or output_profile not in OUTPUT_PROFILES:
         raise ValueError('unknown Agent stdio output profile')
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     sources = {path: path.read_bytes() for path in
@@ -48,7 +48,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     dispatch_bytes, frontend_bytes = dispatch.read_bytes(), frontend.read_bytes()
     if sha256(frontend_bytes).hexdigest() != metadata['image_sha256']:
         raise ValueError('Agent frontend bytes changed')
-    profile = ('flat','elf','exec').index(output_profile)
+    profile = OUTPUT_PROFILES.index(output_profile)
     catalog = catalog_table()
     frame = struct.pack('<6Q', MAGIC, len(dispatch_bytes), len(frontend_bytes),
                         len(compiler_bytes), profile, len(catalog))
@@ -98,7 +98,7 @@ def main():
     parser.add_argument('--compiler',type=Path,required=True)
     parser.add_argument('--cold-report',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--output-profile',choices=('flat','elf','exec'),default='flat')
+    parser.add_argument('--output-profile',choices=OUTPUT_PROFILES,default='flat')
     args=parser.parse_args()
     print(build(args.output.resolve(),args.compiler.resolve(),args.cold_report.resolve(),
                 output_profile=args.output_profile))

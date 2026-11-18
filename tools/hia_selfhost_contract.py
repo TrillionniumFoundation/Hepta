@@ -1620,7 +1620,7 @@ def support_contract(root=ROOT):
             "direct_assembly_input_bytes": 1048576,
             "direct_assembly_preserves_explicit_output_profile": True,
             "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hepta",
-            "output_profile_selection": "explicit build-time flat/elf/exec; never inferred from payload",
+            "output_profile_selection": "fixed build-time flat/elf/exec or an explicit invocation option in the portable build; never inferred from payload",
             "native_runtime_python_required": False,
             "host_build_and_custody_driver": True,
             "whole_agent_editing_and_persistence_replaced": False,
