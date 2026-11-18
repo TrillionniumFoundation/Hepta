@@ -208,6 +208,26 @@ class WorkerRequestNativeTests(unittest.TestCase):
         self.assertEqual(unknown[1]['response']['error']['retry_action'], 'observe_original')
         self.assertEqual(db.execute('SELECT state,response FROM requests WHERE key=?', (key,)).fetchone(), ('running', None))
 
+    def test_ordinary_worker_renders_admitted_terminal_envelope_without_host_encoder(self):
+        from hepta import hia_agent_worker as worker
+        from hepta.hia_agent_contract import catalog
+
+        def terminal_body_only(value):
+            if value.get('schema') == 'hia-agent-worker-report-v1':
+                raise AssertionError('host worker terminal encoder selected')
+            return wire(value)
+
+        catalog_sha = catalog()[1]
+        with patch.object(worker, 'wire', terminal_body_only):
+            completed = self.call_worker(wire(request({'section': 'manifest'}, catalog=catalog_sha)),
+                                         self.case / 'state')
+            refused = self.call_worker(wire(request({}, catalog=catalog_sha)), self.case / 'state')
+        for call, expected in ((completed, 'completed'), (refused, 'rejected')):
+            self.assertEqual(call[0], 0, call)
+            self.assertEqual(call[1]['response']['status'], expected)
+            self.assertTrue(call[1]['complete'])
+            self.assertIn('native_helpers_sha256', call[1])
+
     def test_errors_keep_original_report_correlation_and_never_create_store(self):
         value = request({'z': 1, 'a': {'request_sha256': 'keep'}})
         value['request_sha256'] = '0' * 64

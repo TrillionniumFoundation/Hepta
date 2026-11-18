@@ -1,9 +1,18 @@
-# Native ordinary worker request admission
+# Native ordinary worker request and terminal envelope
 
 The explicit `HEPTA_HIA_WORKER_REQUEST_MANIFEST` selection moves the complete
 request-payload admission in `hia_agent_worker` into the checked-in
 `examples/hia_bootstrap/worker_request.hepta`. A selected missing, changed or
 invalid source/image is refused; there is no hosted admission retry.
+
+For admitted requests in the ordinary worker route, the same HIA image
+emits the terminal envelope. It uses the retained, authenticated request
+fields rather than re-encoding the host's materialized request object.
+The adapter supplies the installed source pins and an already serialized
+terminal service object. HIA binds them to the request, preserves the
+existing byte budget and canonical key order, and consumes the arena
+once. The standalone admission-only command below does not expose this
+internal continuation.
 
 HIA owns UTF-8/JSON parsing, duplicate-key and structural limits, decoded string
 and key handling, finite decimal-to-binary64 conversion, shortest binary64 JSON
@@ -53,9 +62,12 @@ The Python adapter validates installed code/source custody, allocates buffers,
 and materializes the already-decoded arena into objects consumed by the existing
 service. The service still owns its catalog validator, SQLite namespace,
 request intent, completion journal, costs, artifacts, leases and adoption.
-The worker still owns administrator argument parsing, service entry, installation
-readback, unknown-result handling and final report serialization. The Runtime
-still owns process creation, cancellation and report identity checks.
+The worker still owns administrator argument parsing, service entry,
+installation readback, service-body serialization and unknown-result
+handling. Refusals before admission keep the original correlation behavior;
+they do not have an authenticated terminal continuation. The separate
+selected report-control route and the Runtime's process ownership,
+cancellation and report identity checks are unchanged.
 
 This request kernel is not a complete native worker or a new native journal.
 The default hosted path and the Runtime executable profile are not changed by

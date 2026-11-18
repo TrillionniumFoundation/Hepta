@@ -70,6 +70,7 @@ def _reference_run(parser, args):
     if not args.state_root or not args.request_json_stdin:
         parser.error("request execution requires --state-root and --request-json-stdin")
     request = None
+    terminal = None
     service_entered = False
     try:
         for field in ("worker", "backend", "catalog"):
@@ -81,7 +82,8 @@ def _reference_run(parser, args):
         if selected:
             from .hia_worker_request_native import installed_worker_request, NativeRequestRejected
             try:
-                request = installed_worker_request(selected).admit(raw, identities['catalog_sha256'])
+                request, terminal = installed_worker_request(selected).admit_for_terminal(
+                    raw, identities['catalog_sha256'])
             except NativeRequestRejected as exc:
                 request = exc.request
                 raise
@@ -123,6 +125,9 @@ def _reference_run(parser, args):
             "status": "rejected", "error": {"code": getattr(exc, "code", "E_HIA_WORKER"),
                 "phase": "admission", "message": str(exc)[:4096] or type(exc).__name__,
                 "retry_action": getattr(exc, "retry_action", "correct_input"), "details_artifact": None}}
+    if terminal is not None:
+        sys.stdout.buffer.write(terminal(identities, wire(response)) + b"\n")
+        return 0
     report = {"schema": "hia-agent-worker-report-v1", "tool": request["tool"],
         "request_sha256": request["request_sha256"], "profile_sha256": request["profile_sha256"],
         "catalog_sha256": request["catalog_sha256"], "backend_sha256": identities["backend_sha256"],

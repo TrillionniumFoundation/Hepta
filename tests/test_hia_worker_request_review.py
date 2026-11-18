@@ -301,6 +301,30 @@ class WorkerRequestAdversarialTests(unittest.TestCase):
         self.assertEqual([value_identity(value) for value in observed],
                          [value_identity(value) for value in values])
 
+    def test_terminal_wire_uses_the_admitted_arena_and_consumes_it_once(self):
+        request = envelope(tool='\N{UMBRELLA}"\n\x00')
+        raw = json.dumps(request, ensure_ascii=True, indent=2).encode()
+        response = {'status': 'completed', 'result': {'payload': '字\n' * 20000,
+                                                      'numbers': [-0.0, 1e-20]}}
+        pins = {'backend_sha256': 'a' * 64, 'worker_sha256': 'b' * 64}
+        for helpers in ({}, {'native_helpers_sha256': 'c' * 64}):
+            identities = {**pins, **helpers}
+            value, terminal = self.native.admit_for_terminal(raw, CATALOG)
+            value['tool'] = 'mutated decoded view'
+            expected = {'schema': 'hia-agent-worker-report-v1', 'tool': request['tool'],
+                        'request_sha256': request['request_sha256'],
+                        'profile_sha256': request['profile_sha256'], 'catalog_sha256': CATALOG,
+                        'complete': True, 'response': response, **identities}
+            self.assertEqual(terminal(identities, ordinary_wire(response)), ordinary_wire(expected))
+            with self.assertRaisesRegex(ValueError, 'terminal report was not admitted'):
+                terminal(identities, ordinary_wire(response))
+
+        _, terminal = self.native.admit_for_terminal(raw, CATALOG)
+        prefix, suffix = b'{"payload":"', b'"}'
+        body = prefix + b'x' * (MAX_BYTES - len(prefix) - len(suffix)) + suffix
+        with self.assertRaisesRegex(ValueError, 'exceeds byte budget'):
+            terminal(pins, body)
+
 
 if __name__ == '__main__':
     unittest.main()

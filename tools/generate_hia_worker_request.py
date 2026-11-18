@@ -23,17 +23,22 @@ SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hepta'
 
 ENTRY = r'''
 def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) > 8388608 or length(o) < 128 or length(w) < 16512:
+        return 4294967293
+    mode = get(w, 0)
+    if mode == 2:
+        return terminal_wire(s, o, w)
     bound = (length(s) + 1) >> 1
     bound = bound + 1
     if bound > 262144:
         bound = 262144
-    if length(s) > 8388608 or length(o) < 128 or length(w) < 64 + bound * 56 + length(s) + 16384:
+    if length(w) < 64 + bound * 56 + length(s) + 16384:
         return 4294967293
-    mode = get(w, 0)
     digits = get(w, 8)
     if mode > 1:
         return 4294967293
     private = length(w) - 16384
+    put(w, private + 512, 0)
     put(w, private, digits)
     put(o, 48, 262144)
     put(o, 56, 128)
@@ -60,6 +65,8 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     status = finish_request(s, o, w, mode)
     restore_order(w)
     put(w, 56, 0)
+    if mode == 1 and status <= 8388608:
+        put(w, private + 512, 3544423407010851144)
     return status
 
 def finish_request(s:readbuf, o:mutbuf, w:mutbuf, mode:u64) -> u64:
@@ -188,6 +195,68 @@ def request_fields(w:mutbuf) -> u64:
     put(w, private + 24, get(w, private + 288))
     put(w, private + 32, get(w, private + 304))
     put(w, private + 40, get(w, private + 272))
+    return 0
+
+def terminal_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    # The request arena belongs to the same worker invocation. The body is
+    # an already serialized terminal service object, not request input.
+    private = length(w) - 16384
+    if get(w, private + 512) != 3544423407010851144:
+        return 4294967293
+    put(w, private + 512, 0)
+    helpers = get(w, private + 520)
+    if helpers > 1 or length(s) < 2:
+        return 4294967293
+    if byte(s, 0) != 123 or byte(s, length(s) - 1) != 125:
+        return 4294967293
+    extent = 128 + helpers * 64
+    i = 0
+    while i < extent:
+        ch = byte(w, private + 528 + i)
+        if (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
+            return 4294967277
+        i = i + 1
+    put(w, 56, 0)
+    text(o, w, '{"backend_sha256":')
+    append_string(o, w, private + 528, 64)
+    text(o, w, ',"catalog_sha256":')
+    report_request_field(o, w, 6)
+    text(o, w, ',"complete":true')
+    if helpers == 1:
+        text(o, w, ',"native_helpers_sha256":')
+        append_string(o, w, private + 656, 64)
+    text(o, w, ',"profile_sha256":')
+    report_request_field(o, w, 5)
+    text(o, w, ',"request_sha256":')
+    report_request_field(o, w, 4)
+    text(o, w, ',"response":')
+    if get(w, 56) > 8388608 - length(s):
+        return 4294967274
+    i = 0
+    while i < length(s):
+        append_byte(o, w, byte(s, i))
+        i = i + 1
+    text(o, w, ',"schema":"hia-agent-worker-report-v1","tool":')
+    report_request_field(o, w, 2)
+    text(o, w, ',"worker_sha256":')
+    append_string(o, w, private + 592, 64)
+    append_byte(o, w, 125)
+    result = get(w, 56)
+    if result > 8388608:
+        return 4294967274
+    return result
+
+def report_request_field(o:mutbuf, w:mutbuf, key:u64) -> u64:
+    node = get(w, length(w) - 16384 + 256 + key * 8)
+    record = 64 + node * 56
+    append_string(o, w, get(w, record + 24), get(w, record + 32))
+    return 0
+
+def emit_word(o:mutbuf, w:mutbuf, word:u64, size:u64) -> u64:
+    index = 0
+    while index < size:
+        append_byte(o, w, (word >> (index * 8)) & 255)
+        index = index + 1
     return 0
 '''
 
@@ -323,7 +392,23 @@ def source_program():
 
 
 def document():
-    nodes = ast.parse(source_program()).body
+    class Text(ast.NodeTransformer):
+        def visit_Expr(self, node):
+            call = node.value
+            if not (isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+                    and call.func.id == 'text'):
+                return self.generic_visit(node)
+            o, w, literal = call.args
+            body = literal.value.encode('ascii')
+            words = (body[start:start + 8] for start in range(0, len(body), 8))
+            return [
+                ast.Expr(ast.Call(ast.Name('emit_word', ast.Load()),
+                                  [o, w, ast.Constant(int.from_bytes(word, 'little')),
+                                   ast.Constant(len(word))], []))
+                for word in words
+            ]
+
+    nodes = ast.fix_missing_locations(Text().visit(ast.parse(source_program()))).body
     if len({node.name for node in nodes}) != len(nodes):
         raise ValueError('duplicate composed HIA symbol')
     names = {node.name: 'f' + str(i) for i, node in enumerate(nodes)}

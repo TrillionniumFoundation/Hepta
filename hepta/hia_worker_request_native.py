@@ -1,14 +1,14 @@
 """HIA-owned ordinary JSON canonical bytes and worker request admission.
 
-The byte arena and request digest come from the immutable HIA image. This
-adapter owns trusted code/buffer custody and materializes Python objects for
-the existing service. It does not replace that service, its journal, response
-serialization, or the Runtime process owner. Explicit selection never falls
-back to the hosted request validator.
+The byte arena, request digest and admitted terminal envelope come from the
+immutable HIA image. The adapter holds buffers and materializes objects for
+the existing service; it does not replace the service, its body serialization,
+its journal or the Runtime process owner.
 """
 from __future__ import annotations
 
 import ctypes
+from functools import partial
 import struct
 import sys
 
@@ -50,7 +50,7 @@ def buffer_sizes(size):
 
 
 class NativeWorkerRequest(NativeHiaJsonImage):
-    def _run(self, raw, catalog=None):
+    def _run(self, raw, catalog=None, *, terminal=False):
         if type(raw) is not bytes or len(raw) > MAX_BYTES:
             raise ValueError('worker JSON must be bytes within 8 MiB')
         if catalog is not None and (type(catalog) is not str or len(catalog) != 64
@@ -85,6 +85,9 @@ class NativeWorkerRequest(NativeHiaJsonImage):
             request = materialize_data(arena, raw)
             code, message = ERRORS[result]
             raise NativeRequestRejected(code, message, request)
+        if terminal:
+            request = materialize_data(arena, raw)
+            return request, partial(self._terminal, scratch)
         return ctypes.string_at(output, result), arena
 
     def canonicalize(self, raw):
@@ -97,6 +100,35 @@ class NativeWorkerRequest(NativeHiaJsonImage):
             raise ValueError('trusted catalog pin must be canonical SHA-256')
         _canonical, arena = self._run(raw, catalog)
         return materialize_data(arena, raw)
+
+    def admit_for_terminal(self, raw, catalog):
+        """Keep the admitted arena for this worker's one terminal report."""
+        if catalog is None:
+            raise ValueError('trusted catalog pin must be canonical SHA-256')
+        return self._run(raw, catalog, terminal=True)
+
+    def _terminal(self, scratch, identities, body):
+        if type(body) is not bytes or len(body) > MAX_BYTES:
+            raise ValueError('worker terminal JSON must be bytes within 8 MiB')
+        names = ('backend_sha256', 'worker_sha256')
+        if 'native_helpers_sha256' in identities:
+            names += ('native_helpers_sha256',)
+        pins = [identities[name].encode('ascii') for name in names]
+        if any(len(pin) != 64 for pin in pins):
+            raise ValueError('invalid terminal source identity')
+        size = ctypes.sizeof(scratch)
+        struct.pack_into('<Q', scratch, 0, 2)
+        at = size - PRIVATE_BYTES + 520
+        struct.pack_into('<Q', scratch, at, len(pins) - 2)
+        ctypes.memmove(ctypes.addressof(scratch) + at + 8, b''.join(pins), 64 * len(pins))
+        source = ctypes.create_string_buffer(body, max(1, len(body)))
+        output = ctypes.create_string_buffer(MAX_BYTES)
+        result = self._entry(source, len(body), output, MAX_BYTES, scratch, size)
+        if result == 0xffffffea:
+            raise ValueError('E_HIA_EDIT: JSON encoding exceeds byte budget')
+        if not 0 < result <= MAX_BYTES:
+            raise ValueError('native worker terminal report was not admitted')
+        return ctypes.string_at(output, result)
 
 
 def installed_worker_request(manifest):
