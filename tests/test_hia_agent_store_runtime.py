@@ -123,6 +123,18 @@ class NativeStoreArgv(unittest.TestCase):
             self.run_native([*args[:2], '', self.module_root], expected=73)
             self.run_native(args[:3], expected=64)
 
+            wal = parent / 'store' / 'wal.data'
+            valid = wal.read_bytes()
+            reopen = command(1, 27, 12, lookup) + command(2, 3)
+            for offset in (0, 96 + 64 + 32 + 32, len(valid) - 1):
+                with self.subTest(corrupt_offset=offset):
+                    corrupted = bytearray(valid)
+                    corrupted[offset] ^= 1
+                    wal.write_bytes(corrupted)
+                    before = self.state(parent)
+                    self.run_native(args, reopen, expected=73)
+                    self.assertEqual(self.state(parent), before)
+
     def test_direct_migration_batch(self):
         if self.batch is None:
             self.skipTest('run with the cold-built native Agent batch commit path')

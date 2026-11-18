@@ -416,6 +416,13 @@ capability allows already migrated content to be reopened and checked. This
 does not replace the Agent's tool methods, public routing or active Store
 selection.
 
+The Store reader checks complete WAL frames and index nodes even when it
+processes several contiguous bytes at once. Its bounded private memo keeps
+recent digests within the Store process. Before using a cached digest, HIA
+compares every SHA-256 state and block byte (or the exact index node bytes).
+A miss always recomputes the digest; the memo does not change persisted
+bytes, anchor selection, locking, or the checks on admitted rows.
+
 ## Initializing a fresh native Store
 
 Build the standalone initializer with `python -B -m

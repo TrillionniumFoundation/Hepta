@@ -9,7 +9,10 @@
 .equ QUERYEXPORT,1245184
 .equ PACKETEXPORT,1376256
 .equ COPYBUFFER,1441792
-.equ MAPSIZE,1572864
+.equ READER_WORK,1572864
+.equ READER_TRANSIENT,196608
+.equ READER_WITH_MEMO,6922760
+.equ MAPSIZE,READER_WORK+READER_WITH_MEMO
 .equ IO_MAGIC,0x314f494446414948
 .equ ARGV_NAMESPACE,224
 _start:
@@ -569,6 +572,12 @@ reset_bundled_unit:
  add rdi,rbp
  mov rcx,[rax+24]
 reset_native_work:
+ /* The reader resets transaction state but retains its private memo suffix.
+  * HIA compares the complete inputs before reusing either digest. */
+ cmp rbx,1
+ jne reset_native_work_full
+ mov ecx,READER_TRANSIENT
+reset_native_work_full:
  xor eax,eax
  rep stosb
 owner_unit_input:
@@ -2604,27 +2613,27 @@ stream_binding_read_done:
 
 unit_table:
  .quad 0,136,720896,65536
- .quad 1,136,786432,196608
+ .quad 1,136,READER_WORK,READER_WITH_MEMO
  .quad 2,136,983040,4096
  .quad 0,635912,999424,4096
  .quad 3,761488,995328,80
  .quad 0,939352,987136,80
- .quad 1,780672,991232,2048
- .quad 1,606872,1003520,8192
+ .quad 1,763936,991232,2048
+ .quad 1,590136,1003520,8192
  .quad 3,354960,1011712,16384
  .quad 3,136,1028096,32768
  .quad 2,192544,1507328,4096
  .quad 2,674592,1511424,4096
  .quad 3,625568,1515520,4096
- .quad 1,955312,1519616,80
+ .quad 1,938576,1519616,80
  .quad 0,169664,1060864,16384
  .quad 0,373840,1077248,16384
- .quad 1,830864,1093632,8192
- .quad 1,606872,1003520,8192
+ .quad 1,814128,1093632,8192
+ .quad 1,590136,1003520,8192
  .quad 0,0,0,0
  .quad 0,757920,1519704,16384
  .quad 0,0,0,0
  .quad 3,832560,1101824,8192
  .quad 2,725336,1536096,8192
- .quad 2,511120,786432,196608
+ .quad 2,511120,READER_WORK,READER_TRANSIENT
  .quad 3,917912,1544288,16384
