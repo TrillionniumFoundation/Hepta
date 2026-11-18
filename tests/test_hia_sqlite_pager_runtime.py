@@ -685,6 +685,34 @@ class NativeMigrationPublisher(unittest.TestCase):
             self.assertEqual({p.name: p.read_bytes() for p in store.iterdir()}, committed)
             self.assertEqual(recorded.read_bytes(), payload)
 
+            coordinator = self.root / 'hia-sqlite-migrate'
+            target = parent / 'coordinated'
+            target.mkdir(mode=0o700)
+            profile = '35302' if sqlite3.sqlite_version_info[:2] == (3, 53) else '34600'
+            args = [coordinator, source.database.parent, source.database.name, source.artifacts]
+            with tempfile.TemporaryFile(dir=self.test_root) as audit:
+                result = subprocess.run([*args, target, '2', profile], input=b'',
+                                        stdout=subprocess.PIPE, stderr=audit, timeout=15,
+                                        env={'PATH': ''}, check=False)
+                self.assertEqual((result.returncode, result.stdout), (0, receipt))
+                self.assertGreater(audit.tell(), 64)
+            self.assertEqual((target / 'store' / 'wal.data').read_bytes(), committed['wal.data'])
+            self.assertEqual(self.invoke('hia-artifact', 'store-get', target / 'artifacts', artifact['sha256']),
+                             payload)
+            self.assertEqual(source.database.read_bytes(), raw)
+
+            blocked_target = parent / 'blocked'
+            blocked_target.mkdir(mode=0o700)
+            with closing(sqlite3.connect(source.database, isolation_level=None, timeout=0)) as writer:
+                writer.execute('BEGIN IMMEDIATE')
+                try:
+                    result = subprocess.run([*args, blocked_target, '1', profile], input=b'',
+                                            capture_output=True, timeout=15, env={'PATH': ''}, check=False)
+                    self.assertEqual((result.returncode, result.stdout), (65, b''))
+                    self.assertEqual(list(blocked_target.iterdir()), [])
+                finally:
+                    writer.execute('ROLLBACK')
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

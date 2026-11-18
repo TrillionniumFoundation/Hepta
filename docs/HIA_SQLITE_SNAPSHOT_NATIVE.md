@@ -116,6 +116,27 @@ namespace. This command neither acquires the SQLite source lock nor
 activates the candidate. Keep the source Pager alive through the receipt
 and issue END explicitly. Source paths must not be used as staging paths.
 
+The installed `hia-sqlite-migrate` command handles those private steps
+without a hosted orchestrator:
+
+```sh
+hia-sqlite-migrate OLD_DIRECTORY DB_BASENAME OLD_ARTIFACTS FRESH_PARENT MODE PROFILE
+```
+
+`MODE` is `1` for a live WAL source or `2` for a fully checkpointed source
+without sidecars. `PROFILE` is the supported SQLite WAL-index profile number
+(`34600` or `35302`). There is no fallback between profiles or modes.
+`FRESH_PARENT` is an existing owned directory of mode `0700`, separate from
+the source directory, without `store` or `artifacts`. The command initializes
+those two private entries after projecting the retained data.
+
+Capture stderr separately: it carries the raw Pager audit stream, not
+text diagnostics. Stdout contains the 32-byte `HIASDUR1` receipt only after
+the publisher acknowledges the durable state and the held source closes
+normally. Any nonzero exit leaves no successful receipt. Reopen and
+inspect any target data rather than retrying in place. This is an offline
+staging operation; it does not stop a deployed service or activate a Store.
+
 ### Coordinating Agent migration
 
 `hia-sqlite-migration-plan` takes the completed 112-byte `HIASCOK1` Agent

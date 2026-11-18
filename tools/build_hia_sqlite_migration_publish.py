@@ -76,7 +76,8 @@ def build(output, compiler, cold_report, artifact, writer):
     with result.open('xb') as stream:
         stream.write(binary)
         os.fchmod(stream.fileno(), 0o500)
-    report = dict(executable_sha256=digest(binary), compiler_sha256=digest(compiler_bytes),
+    report = dict(schema='hepta.hia.sqlite-migration-publish-build.v1',
+                  executable_sha256=digest(binary), compiler_sha256=digest(compiler_bytes),
                   cold_report_sha256=digest(cold_bytes), link_receipt=receipt,
                   dependency_sha256={name: digest(raw) for name, raw in dependencies.items()},
                   source_sha256={name: digest(raw) for name, raw in sources.items()})
