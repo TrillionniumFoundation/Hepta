@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
 
 from hepta.cli import HIA_AGENT_ACTIONS, _reference_hia_main
@@ -115,15 +116,24 @@ def check_selected_selfhost(release, directory):
     )
     for label, path, options, error in negative:
         target = directory / (label + '.o')
-        result = subprocess.run([release / 'hia', 'build', path, *options, '--output', target],
-                                cwd=directory, input=b'ignored', capture_output=True, env={'PATH': ''},
+        arguments = ['build', path, *options, '--output', target]
+        environment = {'PATH': '', 'LC_ALL': 'C.UTF-8', 'NO_COLOR': '1'}
+        result = subprocess.run([release / 'hia', *arguments],
+                                cwd=directory, input=b'ignored', capture_output=True, env=environment,
                                 timeout=35, check=False)
-        assert (result.returncode, result.stderr) == (2 if error else 64, b''), label
         if error:
+            assert (result.returncode, result.stderr) == (2, b''), label
             diagnostic, = json.loads(result.stdout)['diagnostics']
             assert diagnostic['code'] == 'E_DRIVER' and diagnostic['message'].startswith(error + ':'), label
         else:
-            assert result.stdout == b'', label
+            reference_env = {**environment, 'PYTHONPATH': str(Path(__file__).resolve().parents[1])}
+            reference = subprocess.run(
+                [sys.executable, '-c',
+                 'from hepta.cli import _reference_hia_main; raise SystemExit(_reference_hia_main())', *arguments],
+                cwd=directory, capture_output=True, env=reference_env, timeout=10, check=False)
+            assert reference.returncode == 2 and not reference.stdout and reference.stderr
+            assert (result.returncode, result.stdout, result.stderr) == (
+                reference.returncode, reference.stdout, reference.stderr), label
         assert not target.exists(), label
     assert source.read_bytes() == dashed.read_bytes() == raw
     assert sha256(manifest.read_bytes()).hexdigest() == manifest_pin
