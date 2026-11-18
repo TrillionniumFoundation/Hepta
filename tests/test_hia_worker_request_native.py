@@ -51,6 +51,24 @@ def interpreted(raw, catalog=None):
 
 
 class WorkerRequestSourceTests(unittest.TestCase):
+    def test_standalone_admission_packer_is_reproduced_and_runs_in_the_core_vm(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_native_filter import WORKER_FILTER_MAGIC, WORKER_WORKSPACE_BYTES, document, template
+        from tests.test_hia_core_workspace_facts_native import vm_run
+
+        path = SOURCE.with_name('worker_request_filter_packer.hepta')
+        options = {'worker_request': True, 'workspace_bytes': WORKER_WORKSPACE_BYTES}
+        authored = document(magic=WORKER_FILTER_MAGIC, module=path.stem, **options)
+        self.assertEqual(path.read_text(), render_assembly(authored))
+        prefix, (call,) = template(**options)
+        payload = b'\x31\xc0\xc3'
+        frame = struct.pack('<2Q', WORKER_FILTER_MAGIC, len(payload)) + payload
+        expected = bytearray(prefix + payload)
+        struct.pack_into('<QQ', expected, 96, len(expected), len(expected))
+        struct.pack_into('<i', expected, call, len(prefix) - call - 4)
+        self.assertEqual(vm_run(path, frame, len(expected), 1), (len(expected), bytes(expected)))
+        self.assertEqual(vm_run(path, frame, 16, 1), (0xfffffffe, b'\xa5' * 16))
+
     def test_generated_source_and_independent_VM(self):
         from hepta.hia_agent_assembly import render_assembly
         from tools.generate_hia_worker_request import document

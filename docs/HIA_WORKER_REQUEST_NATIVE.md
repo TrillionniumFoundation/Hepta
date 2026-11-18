@@ -62,6 +62,29 @@ The default hosted path and the Runtime executable profile are not changed by
 this explicit selector. The current Runtime profile does not expose this selector
 as a model argument or silently import ambient environment configuration.
 
+## Installed native admission
+
+The sealed release also supplies `hia-worker-admit`, a standalone
+Linux x86-64 executable. It takes no arguments. An operator's process owner
+writes one input on stdin:
+
+| Bytes | Contents |
+| --- | --- |
+| 0–7 | ASCII `HIAWRA01` |
+| 8–15 | Configured integer digit limit, unsigned 64-bit little-endian; 0 or 640 through 2,147,483,647 |
+| 16–79 | The 64 ASCII bytes of the trusted catalog SHA-256 |
+| 80 onward | The unmodified request JSON, at most 8 MiB |
+
+The first 80 bytes must come from the process owner's configuration, not
+from the request. On success stdout contains the exact admitted five-field
+canonical digest input (no trailing newline); it does not contain a terminal
+report. The kernel verifies the submitted request digest and catalog before
+any stdout. Status 2 means admission refusal, 3 denotes a byte or structural
+limit, 4 denotes transport/profile failure and 64 denotes unexpected arguments.
+Error output does not carry a fabricated request or correlated report.
+This command does not open a Store, run a tool, enter MCP or change the
+current worker's administrator options or service selection.
+
 ## Reproduction and evidence
 
 `tools/generate_hia_worker_request.py` reproducibly authors the checked-in HIA.

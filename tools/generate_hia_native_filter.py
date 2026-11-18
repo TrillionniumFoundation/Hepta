@@ -12,19 +12,25 @@ from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scal
 from tools.generate_hia_elf_linker import MAGIC as LINK_WIRE_MAGIC, SOURCE as LINK_SOURCE
 MAGIC=int.from_bytes(b'HIAFLT01','little')
 LINK_FILTER_MAGIC = int.from_bytes(b'HIAELF01', 'little')
+WORKER_FILTER_MAGIC = int.from_bytes(b'HIAWRF01', 'little')
+WORKER_REQUEST_MAGIC = int.from_bytes(b'HIAWRA01', 'little')
+WORKER_HEADER_BYTES = 80
+WORKER_PRIVATE_BYTES = 16384
 WIRE_BYTES=8<<20
 OUTPUT_OFFSET=WIRE_BYTES+4096
 OUTPUT_BYTES=8<<20
 WORKSPACE_OFFSET=OUTPUT_OFFSET+OUTPUT_BYTES
 WORKSPACE_BYTES=16<<20
+WORKER_WORKSPACE_BYTES = 64 + 262144 * 56 + WIRE_BYTES + WORKER_PRIVATE_BYTES
 MAPPING_BYTES=WORKSPACE_OFFSET+WORKSPACE_BYTES
 CORE_REPORT_MODE = int.from_bytes(b'HIACRPT1', 'little')
 
 
 def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
-             formatter=False, suite=False, object_files=False):
+             formatter=False, suite=False, object_files=False, worker_request=False):
     workspace_offset=OUTPUT_OFFSET+output_bytes
     mapping_bytes=workspace_offset+workspace_bytes
+    input_bytes = WIRE_BYTES + (WORKER_HEADER_BYTES if worker_request else 0)
     code=bytearray();labels={};branches=[]
     def emit(value):code.extend(bytes.fromhex(value))
     def word(value):code.extend(struct.pack('<I',value))
@@ -33,6 +39,8 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
     def call_image(*, argument=False):
         if argument:
             emit('48 8b 7c 24 10 48 89 de')  # argv[1] and its observed extent
+        elif worker_request:
+            emit('49 8d 7c 24 50 49 8d 75 b0')  # Skip the trusted 80-byte input header.
         else:
             emit('4c 89 e7 4c 89 ee')
         emit('49 8d 94 24');word(OUTPUT_OFFSET)
@@ -126,16 +134,33 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
     label('read')
     emit('31 c0')
     emit('44 89 ff' if suite else '31 ff')
-    emit('4b 8d 34 2c ba');word(WIRE_BYTES+1)
+    emit('4b 8d 34 2c ba');word(input_bytes+1)
     emit('4c 29 ea 0f 05 48 83 f8 fc');branch('0f 84','read')
     emit('48 85 c0');branch('0f 88','io');branch('0f 84','invoke')
-    emit('49 01 c5 49 81 fd');word(WIRE_BYTES);branch('0f 87','space');branch('e9','read')
+    emit('49 01 c5 49 81 fd');word(input_bytes);branch('0f 87','space');branch('e9','read')
     label('invoke')
     if suite:
         emit('48 83 3c 24 02');branch('0f 84','admit')
         emit('b8 03 00 00 00 44 89 ff 0f 05 48 85 c0');branch('0f 88','io')
         label('admit')
+    if worker_request:
+        emit('49 83 fd 50');branch('0f 82','invalid')
+        emit('48 b8');code.extend(struct.pack('<Q', WORKER_REQUEST_MAGIC))
+        emit('49 39 04 24');branch('0f 85','invalid')
+        # Read the process owner's configured integer conversion budget.
+        # The worker's original semantics admit zero (no numeric digit cap).
+        emit('49 8b 44 24 08 48 3d ff ff ff 7f');branch('0f 87','invalid')
+        emit('48 85 c0');branch('0f 84','worker_context')
+        emit('48 3d 80 02 00 00');branch('0f 82','invalid')
+        label('worker_context')
+        emit('49 89 84 24');word(workspace_offset + 8)
+        emit('49 c7 84 24');word(workspace_offset);word(1)  # Request admission mode.
+        emit('49 8d 74 24 10 49 8d bc 24')
+        word(mapping_bytes - WORKER_PRIVATE_BYTES + 64)
+        emit('b9 40 00 00 00 fc f3 a4')  # Exact catalog pin, not request data.
     calls.append(call_image())
+    if worker_request:
+        emit('83 f8 fd');branch('0f 84','io')
     if formatter or suite:
         emit('83 f8 fe');branch('0f 84','space')
         emit('85 c0');branch('0f 85','invalid')
@@ -171,9 +196,9 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
 
 
 def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
-                   magic=MAGIC, formatter=False, object_files=False):
+                   magic=MAGIC, formatter=False, object_files=False, worker_request=False):
     prefix,calls=template(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
-                          formatter=formatter,object_files=object_files)
+                          formatter=formatter,object_files=object_files,worker_request=worker_request)
     header = 24 if formatter else 16
     minimum = header + len(calls)
     text=f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -214,9 +239,10 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
 
 
 def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC,
-             module='native_filter_packer', formatter=False, object_files=False):
+             module='native_filter_packer', formatter=False, object_files=False, worker_request=False):
     nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
-                                   magic=magic,formatter=formatter,object_files=object_files)).body
+                                   magic=magic,formatter=formatter,object_files=object_files,
+                                   worker_request=worker_request)).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     fns=[]
@@ -233,6 +259,9 @@ def main():
         ('native_filter_packer', document()),
         ('elf_linker_filter_packer', document(magic=LINK_FILTER_MAGIC,
                                              module='elf_linker_filter_packer', object_files=True)),
+        ('worker_request_filter_packer', document(magic=WORKER_FILTER_MAGIC,
+             module='worker_request_filter_packer', workspace_bytes=WORKER_WORKSPACE_BYTES,
+             worker_request=True)),
     ):
         path = root/f'{name}.hepta'
         path.write_text(render_assembly(source))

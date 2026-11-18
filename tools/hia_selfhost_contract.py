@@ -100,11 +100,16 @@ CORE_NORMALIZE_SDIST_FILES = (
 NATIVE_LINKER_SDIST_FILES = (
     'examples/hia_bootstrap/elf_linker_filter_packer.hepta',
 )
+WORKER_REQUEST_SDIST_FILES = (
+    'examples/hia_bootstrap/worker_request_filter_packer.hepta',
+    'tools/build_hia_worker_request_cli.py',
+)
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,
     *ARTIFACT_CAPTURE_SDIST_FILES,
     *CORE_NORMALIZE_SDIST_FILES,
     *NATIVE_LINKER_SDIST_FILES,
+    *WORKER_REQUEST_SDIST_FILES,
     'examples/hia_bootstrap/agent_artifact_capture.hepta',
     'tests/test_hia_agent_artifact_capture_runtime.py',
     'tests/test_hia_sqlite_snapshot_native.py',

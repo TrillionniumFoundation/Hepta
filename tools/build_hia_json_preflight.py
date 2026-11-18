@@ -69,6 +69,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'execution-budget': ('execution_budget', 'execution-budget'),
                   'retirement-state': ('retirement_state', 'retirement-state'),
                   'worker-request': ('worker_request', 'worker-request'),
+                  'worker-request-filter': ('worker_request_filter_packer', 'worker-request-filter'),
                   'core-admission': ('core_admission', 'core-admission'),
                   'composite-types': ('composite_types', 'composite-types'),
                   'task-helpers': ('task_helpers', 'task-helpers'),
