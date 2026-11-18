@@ -163,6 +163,18 @@ def canonical_digest(value):
     return native.digest(value) if native is not None else _reference_digest(value)
 
 
+def _reference_record_authority(expected, observed, *, required_kind, observed_kind):
+    if observed != expected:
+        return 1
+    return 2 if required_kind is not None and observed_kind != required_kind else 0
+
+
+def record_authority(expected, observed, *, required_kind=None, observed_kind=None):
+    native = _native_agent_identity()
+    decide = _reference_record_authority if native is None else native.record_authority
+    return decide(expected, observed, required_kind=required_kind, observed_kind=observed_kind)
+
+
 def uint64(value, label):
     native = _native_agent_identity()
     number = native.uint64(value) if native is not None else _reference_uint64(value)
@@ -490,11 +502,16 @@ class AgentStore:
         return {name: row[name] for name in ("id", "sha256", "uri")}
 
     def get(self, ref, *, kind=None):
-        keys(ref, ("id", "sha256", "uri"), label="artifact reference")
+        identity_fields = ("id", "sha256", "uri")
+        keys(ref, identity_fields, label="artifact reference")
         row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
-        if row is None or self._ref(row) != ref:
+        stored = None if row is None else tuple(row[key] for key in identity_fields)
+        decision = record_authority(tuple(ref[key] for key in identity_fields), stored,
+                                    required_kind=kind,
+                                    observed_kind=None if row is None else row["kind"])
+        if decision == 1:
             reject("E_HIA_ARTIFACT_IDENTITY", "artifact reference was not issued in this runtime namespace")
-        if kind is not None and row["kind"] != kind:
+        if decision == 2:
             reject("E_HIA_ARTIFACT_AUTHORITY", "input bytes cannot impersonate a retained " + kind)
         data = self._artifact_file('store-get', content_hash=row['sha256'])
         if data is None:

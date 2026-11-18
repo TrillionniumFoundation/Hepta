@@ -11,8 +11,8 @@ ROOT=Path(__file__).resolve().parents[1]
 def packet(kind,value):return struct.pack('<2Q',MAGIC,kind)+value
 def expected(valid,value=0):return struct.pack('<3Q',RESULT_MAGIC,valid,value)
 
-def comparison(mode, fields):
-    return packet(7, struct.pack('<Q', mode) + b''.join(
+def comparison(mode, fields, operation=7):
+    return packet(operation, struct.pack('<Q', mode) + b''.join(
         struct.pack('<2Q', len(left), len(right)) + left + right for left, right in fields))
 
 def vm(wire,workspace):
@@ -62,6 +62,15 @@ class AgentIdentitySourceTests(unittest.TestCase):
         fields[2] = (b'[]', b'[]')
         self.assertEqual(vm(comparison(NATIVE_OBSERVATION, fields), 0), (24, expected(1, 1)))
         self.assertEqual(vm(comparison(REFERENCE_OBSERVATION, fields), 0), (24, expected(1, 0)))
+
+    def test_authority_protocol_preserves_identity_precedence_and_optional_kind(self):
+        fields = [(b'id', b'id'), (b'sha', b'sha'), (b'uri', b'uri'), (b'', b'input')]
+        self.assertEqual(vm(comparison(1, fields, 8), 0), (24, expected(1, 0)))
+        fields[-1] = (b'proof', b'input')
+        self.assertEqual(vm(comparison(1, fields, 8), 0), (24, expected(1, 2)))
+        self.assertEqual(vm(comparison(0, fields, 8), 0), (24, expected(1, 1)))
+        fields[2] = (b'uri', b'different')
+        self.assertEqual(vm(comparison(1, fields, 8), 0), (24, expected(1, 1)))
 
     def test_builder_refuses_bad_cold_before_any_output_or_compilation(self):
         from copy import deepcopy
@@ -219,6 +228,42 @@ class AgentIdentityNativeTests(unittest.TestCase):
                 self.assertEqual(raised.exception.code,'E_HIA_RANGE')
                 self.assertEqual(str(raised.exception),'epoch must be a canonical u64 decimal string')
             self.assertEqual(list(ThreadPoolExecutor(8).map(lambda i:uint64(str(i),'epoch'),range(128))),list(range(128)))
+
+    def test_store_authorizes_artifact_and_cursor_through_installed_policy(self):
+        from hepta import hia_agent_store as store
+        from hepta.hia_agent_service import HIAAgentService
+
+        fields = [(b'', b'')] * 4
+        complete = comparison(1, fields, 8)
+        for malformed in (complete[:-1], complete + b'X', comparison(2, fields, 8),
+                          packet(8, struct.pack('<3Q', 1, (1 << 64) - 1, 0))):
+            self.assertEqual(self.raw(malformed)[0], 0xfffffffd)
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(store, '_reference_record_authority',
+                           side_effect=AssertionError('host authority policy used'))):
+            service = HIAAgentService(self.folder / 'record-authority')
+            try:
+                original = service.store.put(b'x' * 520, 'input')
+                alternate = service.store.put(b'other', 'input')
+                self.assertEqual(service.store.get(original, kind='input')[0], b'x' * 520)
+                unissued = {**original, 'id': 'not-issued'}
+                changed = {**original, 'uri': alternate['uri']}
+                for supplied, code in ((original, 'E_HIA_ARTIFACT_AUTHORITY'),
+                                       (unissued, 'E_HIA_ARTIFACT_IDENTITY'),
+                                       (changed, 'E_HIA_ARTIFACT_IDENTITY'),
+                                       ({**original, 'sha256': 1}, 'E_HIA_ARTIFACT_IDENTITY')):
+                    with self.subTest(code=code, supplied=supplied), self.assertRaises(AgentRejected) as raised:
+                        service.store.get(supplied, kind='proof')
+                    self.assertEqual(raised.exception.code, code)
+                page = service._hia_read({'artifact': original, 'max_bytes': 512})
+                query = {'artifact': original, 'cursor': page['next_cursor'], 'max_bytes': 512}
+                self.assertEqual(service._hia_read(query)['content'], 'x' * 8)
+                for invalid in ({**query, 'artifact': alternate}, {**query, 'cursor': 'unissued'}):
+                    with self.assertRaises(AgentRejected) as raised:
+                        service._hia_read(invalid)
+                    self.assertEqual(raised.exception.code, 'E_HIA_CURSOR')
+            finally:
+                service.close()
 
     def test_public_context_limits_match_reference_and_use_native_decisions(self):
         from hepta.hia_agent_service import HIAAgentService

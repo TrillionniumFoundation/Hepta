@@ -37,6 +37,27 @@ def _observation_fields(observation, *, reference):
     resources = wire(observation['ledger']['resources']) if reference else b''
     return status.encode('ascii'), returned, buffers, trap, resources
 
+
+def _paired_packet(operation, mode, left, right):
+    packet = bytearray(struct.pack('<3Q', MAGIC, operation, mode))
+    for expected, observed in zip(left, right, strict=True):
+        packet.extend(struct.pack('<2Q', len(expected), len(observed)))
+        packet.extend(expected)
+        packet.extend(observed)
+    return bytes(packet)
+
+
+def _record_fields(fields, kind):
+    # Persisted namespace fields are strings. Any other supplied JSON type
+    # cannot equal an issued string, regardless of its textual form.
+    encoded = []
+    for field in fields:
+        encoded.append(b'\x01' + field.encode('utf-8', 'surrogatepass')
+                       if isinstance(field, str) else b'\x02')
+    encoded.append(b'' if kind is None else b'\x01' + kind.encode('utf-8', 'surrogatepass'))
+    return encoded
+
+
 class NativeAgentIdentity(NativeHiaJsonImage):
     def scalar(self, value, kind):
         if type(kind)is not int or kind not in (0,1):
@@ -101,17 +122,20 @@ class NativeAgentIdentity(NativeHiaJsonImage):
 
     def observation_agreement(self, left, right, *, mode):
         reference = mode == REFERENCE_OBSERVATION
-        packet = bytearray(struct.pack('<3Q', MAGIC, 7, mode))
-        fields = zip(_observation_fields(left, reference=reference),
-                     _observation_fields(right, reference=reference), strict=True)
-        for a, b in fields:
-            packet.extend(struct.pack('<2Q', len(a), len(b)))
-            packet.extend(a)
-            packet.extend(b)
-        valid, agreement = self._request(bytes(packet))
+        packet = _paired_packet(7, mode, _observation_fields(left, reference=reference),
+                                _observation_fields(right, reference=reference))
+        valid, agreement = self._request(packet)
         if valid != 1 or agreement not in (0, 1):
             raise RuntimeError('invalid HIA Agent observation decision')
         return bool(agreement)
+
+    def record_authority(self, expected, observed, *, required_kind=None, observed_kind=None):
+        packet = _paired_packet(8, int(observed is not None), _record_fields(expected, required_kind),
+                                (b'',) * 4 if observed is None else _record_fields(observed, observed_kind))
+        valid, decision = self._request(packet)
+        if valid != 1 or decision not in (0, 1, 2):
+            raise RuntimeError('invalid HIA Agent record authority decision')
+        return decision
 
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(

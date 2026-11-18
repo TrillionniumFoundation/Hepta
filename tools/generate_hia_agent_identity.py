@@ -19,6 +19,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return cost_totals(s, o)
     if kind == 7:
         return observation_agreement(s, o)
+    if kind == 8:
+        return record_authority(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -164,15 +166,8 @@ def observation_agreement(s:readbuf, o:mutbuf) -> u32:
         right_at = offset + left
         if right > length(s) - right_at:
             return 4294967293
-        if field < 2 or (field == 2 and (mode != 0 or right != 0)) or mode == 1:
-            if left != right:
-                equal = 0
-            else:
-                index = 0
-                while index < left and equal != 0:
-                    if byte(s, offset + index) != byte(s, right_at + index):
-                        equal = 0
-                    index = index + 1
+        if equal != 0 and (field < 2 or (field == 2 and (mode != 0 or right != 0)) or mode == 1):
+            equal = equal_pair(s, offset, left, right_at, right)
         field = field + 1
         offset = right_at + right
     if offset != length(s):
@@ -181,6 +176,51 @@ def observation_agreement(s:readbuf, o:mutbuf) -> u32:
     put(o, 8, 1)
     put(o, 16, equal)
     return 24
+
+def record_authority(s:readbuf, o:mutbuf) -> u32:
+    # Three exact namespace fields followed by an optional required kind.
+    # Missing references and mismatching identity take precedence over kind.
+    if length(s) < 24 or read_word(s, 16) > 1:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    offset = 24
+    field = 0
+    decision = 1 - read_word(s, 16)
+    while field < 4:
+        if length(s) - offset < 16:
+            return 4294967293
+        left = read_word(s, offset)
+        right = read_word(s, offset + 8)
+        offset = offset + 16
+        if left > length(s) - offset:
+            return 4294967293
+        right_at = offset + left
+        if right > length(s) - right_at:
+            return 4294967293
+        if decision == 0 and (field < 3 or left != 0):
+            if equal_pair(s, offset, left, right_at, right) == 0:
+                decision = 1
+                if field == 3:
+                    decision = 2
+        field = field + 1
+        offset = right_at + right
+    if offset != length(s):
+        return 4294967293
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, 1)
+    put(o, 16, decision)
+    return 24
+
+def equal_pair(s:readbuf, left_at:u64, left:u64, right_at:u64, right:u64) -> u64:
+    if left != right:
+        return 0
+    index = 0
+    while index < left:
+        if byte(s, left_at + index) != byte(s, right_at + index):
+            return 0
+        index = index + 1
+    return 1
 
 def rational_bits(numerator:u64, denominator:u64) -> u64:
     # A nonzero ratio of two u64 values is always normal in binary64.

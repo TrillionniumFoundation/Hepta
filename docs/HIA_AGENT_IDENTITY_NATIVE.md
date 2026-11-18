@@ -35,6 +35,12 @@ resource counters; native comparison uses status, result and buffer bytes
 represented by their exact observation records. The result value is 1 for
 agreement, 0 otherwise.
 
+Operation 8 decides Store record authority. Its header adds a stored-row
+presence flag, followed by four pairs of length-prefixed fields: namespace ID,
+digest, URI, and required kind. Cursor groups use an empty URI and no kind.
+The decision is 0 for an authorized row, 1 for a missing or mismatched
+identity, or 2 for an existing identity with the wrong required kind.
+
 Malformed input packet returns 0xfffffffd. Insufficient output returns
 0xfffffffe without writing output. No scratch workspace is required or touched.
 

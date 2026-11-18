@@ -21,7 +21,7 @@ import uuid
 
 from .hia_agent_contract import (VERSION, ROOT, COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA,
     PLAN_SCHEMA, WORKLOAD_SCHEMA, catalog, installation_manifest, validate)
-from .hia_agent_store import (AgentRejected, AgentStore, digest, keys,
+from .hia_agent_store import (AgentRejected, AgentStore, digest, keys, record_authority,
     reject, uint64, wire, decode_data, _agent_resource_path)
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
@@ -531,7 +531,8 @@ class HIAAgentService:
         offset = 0
         if "cursor" in args:
             row = self.store.db.execute("SELECT * FROM cursors WHERE id=?", (args["cursor"],)).fetchone()
-            if row is None or row["artifact_id"] != ref["id"] or row["sha256"] != ref["sha256"]:
+            stored = None if row is None else (row["artifact_id"], row["sha256"], "")
+            if record_authority((ref["id"], ref["sha256"], ""), stored):
                 reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
             offset = row["offset"]
         limit = int(args.get("max_bytes", 65536))
