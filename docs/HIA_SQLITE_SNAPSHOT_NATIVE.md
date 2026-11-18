@@ -306,8 +306,10 @@ byte-range lock; it does not write any database bytes. It checks the held and
 named file identity under that lock, requires every sidecar to be absent
 (including symlinks), and validates page size/count against the actual file and
 its version-valid page-count header. It rechecks the identity, extent,
-timestamps and all three sidecars at END before releasing the lock. Requests
-remain limited to the same retained-page ABI. This mode never starts WAL or
+timestamps and all three sidecars at END before releasing the lock. Retained
+page tokens and spans bind to this database identity and require the exclusive
+lock; WAL-mode tokens continue to bind to their captured WAL header and lock.
+This mode never starts WAL or
 recovery, creates a sidecar, or falls back to another source/mode. The caller
 must select the migration profile matching the source.
 

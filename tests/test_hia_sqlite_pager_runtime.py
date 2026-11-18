@@ -64,9 +64,9 @@ class NativePagerArgv(unittest.TestCase):
                 self.assertEqual((result.returncode, result.stdout, result.stderr), (status, b'', b''))
 
     @staticmethod
-    def event(operation, argument=0, *, begin_mode=0):
+    def event(operation, argument=0, *, begin_mode=0, byte_count=0):
         return EVENT.pack(b'HIAPGEV2', 2, NONCE, operation, 0, 0, 0, 0,
-                          argument, begin_mode, *([0] * 6))
+                          argument, begin_mode, byte_count, *([0] * 5))
 
     def test_write_quiescent_snapshot_excludes_writers_until_end(self):
         if self.executable is None:
@@ -158,13 +158,27 @@ class NativePagerArgv(unittest.TestCase):
                 self.assertTrue(sidecar.is_symlink())
                 sidecar.unlink()
 
-            result = self.run_pager(args, begin + self.event(3, page_count) + end)
+            token = 1
+            result = self.run_pager(
+                args, begin + self.event(6, page_count)
+                + self.event(7, token, byte_count=page_size) + self.event(8, token) + end,
+            )
             self.assertEqual(result.returncode, 0)
+            frame_size = 1152
             ready = EVENT.unpack_from(result.stdout)
             self.assertEqual(ready[3:5], (128, 0))
             self.assertEqual(ready[8:13], (128, page_size, page_count, 0, 0))
-            self.assertEqual(result.stdout[2304:2304 + page_size], original[-page_size:])
-            self.assertEqual(EVENT.unpack_from(result.stdout, 2304 + page_size)[3], 130)
+            captured = EVENT.unpack_from(result.stdout, frame_size)
+            self.assertEqual((captured[3], captured[13], captured[15]), (129, page_count, token))
+            span_at = 2 * frame_size + page_size
+            span = EVENT.unpack_from(result.stdout, span_at)
+            self.assertEqual(span[3:8], (134, token, page_count, 0, page_size))
+            self.assertEqual(result.stdout[2 * frame_size:span_at], original[-page_size:])
+            drop_at = span_at + frame_size + page_size
+            self.assertEqual(result.stdout[span_at + frame_size:drop_at], original[-page_size:])
+            self.assertEqual(EVENT.unpack_from(result.stdout, drop_at)[3:6], (135, token, page_count))
+            self.assertEqual(EVENT.unpack_from(result.stdout, drop_at + frame_size)[3], 130)
+            self.assertEqual(len(result.stdout), drop_at + 2 * frame_size)
             self.audit(result.stderr)
             self.assertEqual(set(parent.iterdir()), {database})
 
