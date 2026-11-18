@@ -298,10 +298,13 @@ class AgentStore:
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
             reject("E_HIA_STORE", "artifact directory must be owned and not writable by other users")
         self.lock = threading.RLock()
+        self._artifact_code = None
+        self._capture_code = None
         if native_store is not None:
             from .hia_agent_store_native import NativeStoreConnection
-            release, expected_sha256 = native_store
-            self.db = NativeStoreConnection(self.root, release, expected_sha256, lock=self.lock)
+            self.db = NativeStoreConnection(self.root, *native_store, lock=self.lock)
+            self._artifact_code = self.db.artifact_code
+            self._capture_code = self.db.capture_code
             try:
                 self.db.execute("BEGIN IMMEDIATE")
                 self.db.execute("ROLLBACK")
@@ -409,14 +412,38 @@ class AgentStore:
             finally:
                 self.db.close()
 
-    def put(self, data, kind, metadata=None):
+    def _artifact_file(self, operation, *, data=b'', content_hash='-', admission=None):
+        if self._artifact_code is None:
+            return _native_artifact_file(operation, self.artifacts, data=data,
+                                         content_hash=content_hash, _admission=admission)
+        from .artifact_publication import PublicationRejected
+        from .artifact_publication_native import invoke_pinned_artifact_store
+        try:
+            return invoke_pinned_artifact_store(self._artifact_code, operation, self.artifacts,
+                                                data=data, digest=content_hash)
+        except PublicationRejected as exc:
+            _native_artifact_rejection(exc)
+
+    def capture(self, path, roots, limit, expected):
+        if self._capture_code is None:
+            data = capture_path(path, roots, limit)
+            if expected is not None and expected != sha256(data).hexdigest():
+                reject("E_HIA_ARTIFACT_CHANGED", "captured bytes differ from the expected digest")
+            return self.put(data, "input"), len(data)
+        from .hia_agent_artifact_capture_native import capture_pinned
+        data = capture_pinned(self._capture_code, path, roots, limit)
+        return self.put(data, "input", expected_sha256=expected), len(data)
+
+    def put(self, data, kind, metadata=None, *, expected_sha256=None):
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
             reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
         metadata = {} if metadata is None else metadata
-        admission = _native_artifact_admission()
-        native_hash = (_native_artifact_file('store-hash',self.artifacts,data=data,_admission=admission)
-                       if admission is not None else None)
+        admission = _native_artifact_admission() if self._artifact_code is None else None
+        native_hash = (self._artifact_file('store-hash', data=data, admission=admission)
+                       if self._artifact_code is not None or admission is not None else None)
         content_hash = native_hash['sha256'] if native_hash is not None else sha256(data).hexdigest()
+        if expected_sha256 is not None and content_hash != expected_sha256:
+            reject("E_HIA_ARTIFACT_CHANGED", "captured bytes differ from the expected digest")
         content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
         previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
         if previous is not None:
@@ -424,7 +451,7 @@ class AgentStore:
             self.get(ref, kind=kind)
             return ref
         if native_hash is not None:
-            stored = _native_artifact_file('store-put',self.artifacts,data=data,_admission=admission)
+            stored = self._artifact_file('store-put', data=data, admission=admission)
             if stored != native_hash:
                 reject('E_HIA_ARTIFACT_CORRUPT','native artifact hash and durable file receipt differ')
         else:
@@ -469,7 +496,7 @@ class AgentStore:
             reject("E_HIA_ARTIFACT_IDENTITY", "artifact reference was not issued in this runtime namespace")
         if kind is not None and row["kind"] != kind:
             reject("E_HIA_ARTIFACT_AUTHORITY", "input bytes cannot impersonate a retained " + kind)
-        data = _native_artifact_file('store-get',self.artifacts,content_hash=row['sha256'])
+        data = self._artifact_file('store-get', content_hash=row['sha256'])
         if data is None:
             data = stable_read(self.artifacts / row["sha256"], MAX_ARTIFACT_BYTES)
             if sha256(data).hexdigest() != row["sha256"]:

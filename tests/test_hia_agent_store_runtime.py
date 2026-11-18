@@ -246,6 +246,7 @@ class InstalledAgentStore(NativeStoreArgv):
 
         with patch('tempfile.tempdir', str(self.test_root)), \
                 patch('sqlite3.connect', side_effect=AssertionError('SQLite engine was opened')), \
+                patch('hepta.hia_agent_store.stable_read', side_effect=AssertionError('hosted artifact read')), \
                 patch('tests.test_hia_agent_native_tools.HIAAgentService', construct):
             case = NativeLifecycleTests('test_all_eleven_tools_and_full_u8_native_workload')
             case.setUp()
@@ -263,15 +264,27 @@ class InstalledAgentStore(NativeStoreArgv):
         with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
             path = Path(temporary)
             self.run_native([self.initializer, path, 'store'])
-            release, executable_sha256 = self.selection()
+            release, executable_sha256, artifact_sha256, capture_sha256 = self.selection()
             pins = installation_manifest()
-            request = {'schema': 'hia-agent-worker-request-v1', 'tool': 'hia_describe',
-                       'arguments': {'section': 'manifest', 'request_key': 'durable-discovery'},
-                       'profile_sha256': 'a' * 64, 'catalog_sha256': pins['catalog_sha256']}
-            request['request_sha256'] = sha256(wire(request)).hexdigest()
+
+            def envelope(tool, arguments):
+                request = {'schema': 'hia-agent-worker-request-v1', 'tool': tool,
+                           'arguments': arguments, 'profile_sha256': 'a' * 64,
+                           'catalog_sha256': pins['catalog_sha256']}
+                request['request_sha256'] = sha256(wire(request)).hexdigest()
+                return request
+
+            describe = envelope('hia_describe', {'section': 'manifest'})
+            files = path / 'inputs'
+            files.mkdir(mode=0o700)
+            source = files / 'content'
+            source.write_bytes(b'captured via the installed native executable')
+            source_digest = sha256(source.read_bytes()).hexdigest()
             args = ['--state-root', str(path), '--request-json-stdin',
-                    '--native-store-release', str(release),
-                    '--expected-native-store-sha256', executable_sha256]
+                    '--artifact-root', str(files), '--native-store-release', str(release),
+                    '--expected-native-store-sha256', executable_sha256,
+                    '--expected-native-artifact-sha256', artifact_sha256,
+                    '--expected-native-capture-sha256', capture_sha256]
 
             def invoke(flags, envelope):
                 output, errors = io.BytesIO(), io.StringIO()
@@ -281,16 +294,27 @@ class InstalledAgentStore(NativeStoreArgv):
                 return json.loads(output.getvalue())
 
             snapshot = self.state(path)
-            with patch.object(sqlite3, 'connect', side_effect=AssertionError('SQLite engine was opened')):
-                refused = invoke([*args[:-1], '0' * 64], request)
+            with patch.object(sqlite3, 'connect', side_effect=AssertionError('SQLite engine was opened')), \
+                    patch('hepta.hia_agent_store.stable_read', side_effect=AssertionError('hosted artifact read')):
+                refused = invoke([*args[:-1], '0' * 64], describe)
                 self.assertEqual(refused['response']['status'], 'rejected')
                 self.assertEqual(self.state(path), snapshot)
                 with self.assertRaisesRegex(AgentRejected, 'native Store'):
                     AgentStore(path)
                 self.assertFalse((path / 'state.sqlite3').exists())
 
+                discovery = invoke(args, describe)['response']
+                self.assertEqual(discovery['status'], 'completed', discovery)
+                upload = {'catalog_sha256': pins['catalog_sha256'], 'request_key': 'durable-capture',
+                          'artifact_profile': discovery['result']['artifact_profiles'][0],
+                          'source': {'kind': 'path', 'path': str(source),
+                                     'expected_sha256': source_digest, 'max_bytes': 4096}}
+                request = envelope('hia_artifact', upload)
                 first = invoke(args, request)
                 self.assertEqual(first['response']['status'], 'completed', first)
+                self.assertEqual(first['response']['result']['artifact']['sha256'], source_digest)
+                self.assertEqual((path / 'artifacts' / source_digest).read_bytes(), source.read_bytes())
+                source.write_bytes(b'source changed after commit')
                 committed = self.state(path)
                 self.assertNotEqual(committed, snapshot)
                 self.assertEqual(invoke(args, request), first)
@@ -299,7 +323,9 @@ class InstalledAgentStore(NativeStoreArgv):
                 self.assertFalse((path / 'state.sqlite3').exists())
 
     def selection(self):
-        return self.module_root, sha256(self.executable.read_bytes()).hexdigest()
+        images = (self.executable, self.module_root / 'hia-artifact',
+                  self.module_root / 'hia-agent-artifact-capture')
+        return self.module_root, *(sha256(path.read_bytes()).hexdigest() for path in images)
 
 
 def main():

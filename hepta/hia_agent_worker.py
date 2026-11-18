@@ -30,9 +30,13 @@ def main(argv=None):
     parser.add_argument("--expected-native-helpers-sha256")
     parser.add_argument("--native-store-release")
     parser.add_argument("--expected-native-store-sha256")
+    parser.add_argument("--expected-native-artifact-sha256")
+    parser.add_argument("--expected-native-capture-sha256")
     args = parser.parse_args(argv)
-    if (args.native_store_release is None) != (args.expected_native_store_sha256 is None):
-        parser.error("native Store requires both the installed release directory and the executable SHA-256")
+    configured = (args.native_store_release, args.expected_native_store_sha256,
+                  args.expected_native_artifact_sha256, args.expected_native_capture_sha256)
+    if any(value is not None for value in configured) and any(value is None for value in configured):
+        parser.error("native Store requires the installed release directory and the three executable SHA-256 pins")
     from .hia_native_helpers import native_helpers_scope
     try:
         with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256):
@@ -131,7 +135,8 @@ def _open_service(args, state_root, artifact_roots):
     release = getattr(args, "native_store_release", None)
     if release is None:
         return HIAAgentService(state_root, artifact_roots=artifact_roots)
-    selected = (release, args.expected_native_store_sha256)
+    selected = (release, args.expected_native_store_sha256, args.expected_native_artifact_sha256,
+                args.expected_native_capture_sha256)
     return HIAAgentService(state_root, artifact_roots=artifact_roots, native_store=selected)
 
 

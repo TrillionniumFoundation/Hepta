@@ -224,7 +224,7 @@ def _sealed_image(code):
 class NativeStoreConnection:
     """A serialized connection to an explicitly installed, already initialized Store."""
 
-    def __init__(self, state_root, release, digest, *, lock=None):
+    def __init__(self, state_root, release, digest, artifact_digest, capture_digest, *, lock=None):
         self.lock = lock if lock is not None else RLock()
         self.root = Path(state_root)
         self.release = Path(release).absolute()
@@ -234,15 +234,22 @@ class NativeStoreConnection:
             raise StoreProtocolError('native Store release must be an owned sealed directory')
         # The module loader independently authenticates every module against this
         # pinned executable. It never interprets a path from a public request.
-        self.code = _read(self.release / 'hia-agent-store', 16 << 20).raw
-        if sha256(self.code).hexdigest() != digest:
-            raise StoreProtocolError('native Store executable identity differs')
+        self.code = self._image('hia-agent-store', digest, 16 << 20)
+        self.artifact_code = self._image('hia-artifact', artifact_digest, 1 << 20)
+        self.capture_code = self._image('hia-agent-artifact-capture', capture_digest, 1 << 20)
         self.process = None
         self.request = 0
         self.in_transaction = False
         self.generation = None
         self.failed = False
         self.closed = False
+
+    def _image(self, name, digest, limit):
+        code = _read(self.release / name, limit).raw
+        if (sha256(code).hexdigest() != digest or len(code) < 176
+                or code[:7] != b'\x7fELF\x02\x01\x01' or struct.unpack_from('<2H', code, 16) != (2, 62)):
+            raise StoreProtocolError(f'native Store executable identity differs: {name}')
+        return code
 
     def _open(self):
         with _sealed_image(self.code) as fd:

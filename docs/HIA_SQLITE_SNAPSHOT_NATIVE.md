@@ -418,27 +418,32 @@ capability allows already migrated content to be reopened and checked.
 
 For validation on a separate state root, initialize a `store` namespace inside
 that root and keep its existing immutable artifacts in `artifacts`. Pass the
-installed release directory and the exact installed `hia-agent-store` SHA-256
-to the existing worker, along with its ordinary request envelope:
+installed release directory and the executable SHA-256 pins to the existing
+worker, along with its ordinary request envelope:
 
 ```sh
 python -m hepta.hia_agent_worker --state-root "$staged_state" --request-json-stdin \
   --native-store-release "$installed_release" \
-  --expected-native-store-sha256 "$store_executable_sha256" < request.json
+  --expected-native-store-sha256 "$store_executable_sha256" \
+  --expected-native-artifact-sha256 "$artifact_executable_sha256" \
+  --expected-native-capture-sha256 "$capture_executable_sha256" < request.json
 ```
 
-The Store executable is pinned and sealed before launch; HIA authenticates
-the four modules against that executable. The worker transports the existing
-typed operations to the same Store process. It does not open SQLite, fall
+All three executables are pinned and sealed before launch; HIA authenticates
+the four Store modules against the Store executable. The installed capture
+application admits and reads permitted input paths. The installed artifact
+application hashes, publishes and verifies complete artifact byte streams.
+The worker transports the existing typed operations to the same Store
+process. It does not open SQLite, fall
 back on refusal, or replay an unacknowledged commit. A native state root is
 not eligible for the legacy worker, and the worker refuses to select the
 native backend on a root containing a legacy journal or its sidecars.
 
-This selection changes persistence for the existing tool methods, not the
-implementation of those methods, artifact byte effects or public MCP
-routing. The legacy SQLite-specific candidate and execution budget adapters
-cannot be combined with this selection. The default backend and migration
-cutover are unchanged.
+This selection changes persistence, capture and artifact byte effects, not
+the implementation of the remaining tool methods or public MCP routing.
+The legacy SQLite-specific candidate and execution budget adapters cannot
+be combined with this selection. The default backend and migration cutover
+are unchanged.
 
 The Store reader checks complete WAL frames and index nodes even when it
 processes several contiguous bytes at once. Its bounded private memo keeps

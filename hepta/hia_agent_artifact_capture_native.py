@@ -59,14 +59,26 @@ def _admit(manifest):
     return code
 
 
-def capture(manifest, path, roots, limit):
+def _admit_path(path):
     # The public tool bounds this path to 4096 characters. NUL cannot be passed
     # through argv; preserve the original handling of that one transport case.
     if type(path) is not str or not os.path.isabs(path):
         raise AgentRejected(*ERRORS[65])
     if '\x00' in path:
         raise AgentRejected(*ERRORS[69])
-    code = _admit(manifest)
+
+
+def capture(manifest, path, roots, limit):
+    _admit_path(path)
+    return _capture(_admit(manifest), path, roots, limit)
+
+
+def capture_pinned(code, path, roots, limit):
+    _admit_path(path)
+    return _capture(code, path, roots, limit)
+
+
+def _capture(code, path, roots, limit):
     for root in roots or ('',):
         try:
             result = _run_sealed_native(code, (os.fspath(root), path, str(limit)), b'')

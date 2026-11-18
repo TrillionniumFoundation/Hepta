@@ -133,6 +133,10 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
                 or operation not in ('store-hash','store-put','store-get')):
             _reject('E_PUBLISH_NATIVE_CUSTODY','call-local artifact code admission differs')
         code=_admission[1]
+    return _execute_code(code, operation, stage, destination, expected)
+
+
+def _execute_code(code, operation, stage, destination, expected):
     result=_run_sealed_native(code, (operation, os.fspath(stage), os.fspath(destination)), expected)
     codes={10:'E_PUBLISH_IDENTITY',11:'E_PUBLISH_BYTES',12:'E_PUBLISH_RACE',
            14:'E_PUBLISH_LINK',15:'E_PUBLISH_IO',16:'E_PUBLISH_INPUT',17:'E_PUBLISH_LIMIT',64:'E_PUBLISH_INPUT'}
@@ -195,14 +199,27 @@ def invoke_native(manifest,operation,stage,destination,expected=b''):
 
 def invoke_artifact_store(manifest,operation,root,*,data=b'',digest='-',_admission=None):
     """Only the artifact byte layer; DB-issued refs and journal stay in AgentStore."""
+    def execute(operation, root, destination, payload):
+        return _execute_native(manifest, operation, root, destination, payload, _admission)
+    return _invoke_artifact_store(execute, operation, root, data, digest)
+
+
+def invoke_pinned_artifact_store(code, operation, root, *, data=b'', digest='-'):
+    """Transport to an immutable artifact image already pinned by the operator."""
+    def execute(operation, root, destination, payload):
+        return _execute_code(code, operation, root, destination, payload)
+    return _invoke_artifact_store(execute, operation, root, data, digest)
+
+
+def _invoke_artifact_store(execute, operation, root, data, digest):
     if operation not in ('store-hash','store-put','store-get'):
         _reject('E_PUBLISH_INPUT','unknown native Agent artifact operation')
     if type(data) is not bytes or len(data)>64<<20:
         _reject('E_PUBLISH_LIMIT','Agent artifact exceeds original 64 MiB quota')
     if operation=='store-get' and (type(digest) is not str or re.fullmatch('[0-9a-f]{64}',digest) is None):
         _reject('E_PUBLISH_INPUT','Agent artifact key is not exact lower hexadecimal')
-    raw=_execute_native(manifest,operation,Path(root),digest if operation=='store-get' else '-',
-                        data if operation!='store-get' else b'',_admission)
+    raw = execute(operation, Path(root), digest if operation == 'store-get' else '-',
+                  data if operation != 'store-get' else b'')
     if operation=='store-get':
         if len(raw)>64<<20:_reject('E_PUBLISH_LIMIT','native artifact output exceeds original quota')
         return raw
