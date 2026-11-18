@@ -117,7 +117,7 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False, suit
         'default_changed': False, 'whole_native_delivery_qualified': False,
     }
     if suite:
-        receipt.update(status='NATIVE_CORE_SUITE_CLI_BUILT', commands=['verify', 'normalize', 'inspect'],
+        receipt.update(status='NATIVE_CORE_SUITE_CLI_BUILT', commands=['verify', 'normalize', 'inspect', 'verify-report'],
                        native_component_compile_receipts=component_receipts)
     elif component_receipts:
         formatter_receipt, = component_receipts.values()
@@ -139,6 +139,6 @@ if __name__ == '__main__':
     mode = p.add_mutually_exclusive_group()
     mode.add_argument('--normalize', action='store_true', help='build hia-normalize-core instead of hia-verify-core')
     mode.add_argument('--inspect', action='store_true', help='build hia-inspect-core instead of hia-verify-core')
-    mode.add_argument('--suite', action='store_true', help='build hia-core with all three commands')
+    mode.add_argument('--suite', action='store_true', help='build hia-core with the verification and view commands')
     a = p.parse_args()
     print(build(a.output.resolve(), a.compiler.resolve(), a.cold_report.resolve(), normalize=a.normalize, inspect=a.inspect, suite=a.suite))

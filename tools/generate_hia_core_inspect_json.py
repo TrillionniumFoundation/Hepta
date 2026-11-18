@@ -8,13 +8,15 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_core_json_frontend import KEYS, FRONTEND, packed
 from tools.generate_hia_json_canonical import core_pretty_source
 from tools.generate_hia_json_decode import source_program as decoder
+from tools.generate_hia_native_filter import CORE_REPORT_MODE
 from tools.generate_hia_sha256 import source_program as sha_source
 
 
 POLICY = r'''
 def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(o) < 128:
+    if length(o) < 128 or length(w) < 9280:
         return 4294967293
+    verification = get(w, length(w) - 8) == REPORT_MODE
     put(o, 48, 262144)
     put(o, 56, 64)
     decoded_size = widen(decode_json(s, w, o))
@@ -33,6 +35,12 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     schema = field(w, 0, K_schema)
     version = byte(w, get(w, 64 + schema * 56 + 24) + 19)
     functions = field(w, 0, K_functions)
+    if verification:
+        render_verification(s, o, w, schema, functions, version)
+        size = get(w, 56)
+        if size > length(o):
+            return 4294967294
+        return size
     lit(o, w, '{\n  "claims": {\n    "native_executed": false,\n    "whole_language_soundness_proved": false\n  },\n')
     lit(o, w, '  "functions": [')
     fn = child(w, functions)
@@ -257,6 +265,60 @@ def quoted_hash(o:mutbuf, w:mutbuf) -> u64:
 '''
 
 
+def report_source():
+    claims = {
+        "backend_refinement_proved": "false",
+        "background_tasks_supported": "false",
+        "concurrency_supported": "false",
+        "cooperative_task_protocol_checked": "false",
+        "escaping_loans_supported": "false",
+        "foreign_code_supported": "false",
+        "linear_resources_and_loan_provenance_checked": "true",
+        "local_stored_loan_identity_checked": "false",
+        "nominal_products_and_enums_checked": "false",
+        "parameter_bound_loan_returns_supported": "version == 56",
+        "preemptive_or_async_cancellation_supported": "false",
+        "record_field_borrow_provenance_checked": "false",
+        "recursive_buffer_chains_supported": "version >= 55",
+        "recursive_heap_adts_supported": "false",
+        "typed_closed_ssa_checked": "true",
+        "whole_language_soundness_proved": "false",
+    }
+    lines = [r"""def render_verification(s:readbuf, o:mutbuf, w:mutbuf, schema:u64, functions:u64, version:u64) -> u64:
+    fn = child(w, functions)
+    blocks = 0
+    while fn != NONE:
+        blocks = blocks + count(w, field(w, fn, K_blocks))
+        fn = next_node(w, fn)
+    lit(o, w, '{\n  "blocks_checked": ')
+    number(o, w, blocks)
+    lit(o, w, ',\n  "claims": {')
+"""]
+    for index, (name, value) in enumerate(claims.items()):
+        comma = '\n' if index == 0 else ',\n'
+        key = comma + f'    "{name}": '
+        if value in ('true', 'false'):
+            lines.append(f'    lit(o, w, {key + value!r})\n')
+        else:
+            lines.append(f'    lit(o, w, {key!r})\n')
+            lines.append(f"    if {value}:\n        lit(o, w, 'true')\n    else:\n        lit(o, w, 'false')\n")
+    lines.append(r"""    lit(o, w, '\n  },\n  "functions_checked": ')
+    number(o, w, count(w, functions))
+    lit(o, w, ',\n  "input_sha256": ')
+    quoted_hash(o, w)
+    lit(o, w, ',\n  "native_executed": false,\n  "normalization": {')
+    render_normalization(s, o, w, schema, functions, version)
+    lit(o, w, '\n  },\n  "ok": true,\n  "profile": ')
+    profile(o, w, version)
+    lit(o, w, ',\n  "program_sha256": ')
+    quoted_hash(o, w)
+    lit(o, w, ',\n  "schema": "hepta.hia.program-verification.v1",')
+    lit(o, w, '\n  "source_required": false,\n  "status": "standalone_core_checked",\n  "word_bits": 64\n}\n')
+    return 0
+""")
+    return ''.join(lines)
+
+
 def fragment_source():
     pretty = core_pretty_source()
     nodes = ast.parse(pretty).body
@@ -315,7 +377,7 @@ def source_program():
     start = get(w, 64 + node * 56 + 40)
     size = get(w, 64 + node * 56 + 48)
 '''
-    constants = {'NONE': (1 << 64) - 1}
+    constants = {'NONE': (1 << 64) - 1, 'REPORT_MODE': CORE_REPORT_MODE}
     for i, name in enumerate(KEYS):
         constants['K_' + name] = 1 << i
         key_fn += '    if same(w, start, size, ' + ', '.join(map(str, packed(name))) + ') == 1:\n'
@@ -341,7 +403,7 @@ def source_program():
                         for i in range(0, len(value), 24)]
             return self.generic_visit(node)
 
-    source = POLICY + profile + fragment_source() + helpers + match + key_fn + hash_source() + decoder()
+    source = POLICY + report_source() + profile + fragment_source() + helpers + match + key_fn + hash_source() + decoder()
     return ast.unparse(ast.fix_missing_locations(Expand().visit(ast.parse(source))))
 
 

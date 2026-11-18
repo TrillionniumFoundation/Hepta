@@ -12,7 +12,7 @@ SUITE_MAGIC = int.from_bytes(b'HIACS001', 'little')
 def dispatcher_source():
     source = '''def dispatch(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 '''
-    for action, mode in (('verify', 1), ('normalize', 2), ('inspect', 3)):
+    for action, mode in (('verify', 1), ('normalize', 2), ('inspect', 3), ('verify-report', 4)):
         source += f'    if length(s) == {len(action)}:\n'
         match = ' and '.join(f'byte(s, {i}) == {value}'
                              for i, value in enumerate(action.encode('ascii')))

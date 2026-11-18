@@ -58,7 +58,7 @@ on stdin. It emits sorted, two-space-indented JSON and uses the original input
 limit and exit categories. This version does not normalize composite input or
 change the default hosted CLI.
 
-## One executable for all three operations
+## One executable for primitive Core verification and views
 
 ```sh
 python -B -m tools.build_hia_core_admission_cli --suite \
@@ -66,10 +66,14 @@ python -B -m tools.build_hia_core_admission_cli --suite \
 /private/new-core-suite/hia-core inspect < primitive-core.json
 ```
 
-Use exactly one command argument: `verify`, `normalize`, or `inspect`. The
+Use exactly one command argument: `verify`, `normalize`, `inspect`, or
+`verify-report`. The
 combined executable carries one admission kernel and both formatters. It uses
 the same stdin, stdout and exit codes as the individual commands. It does not
-call the other executables or load an interpreter.
+call the other executables or load an interpreter. `verify-report` emits the
+original hosted verification report for admitted primitive Core, including
+function and block counts, canonical identity, source and backend claims. The
+quiet `verify` mode remains unchanged; refused programs do not emit a report.
 
 ## Full profile and remaining work
 

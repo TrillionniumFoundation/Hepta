@@ -17,6 +17,7 @@ OUTPUT_BYTES=8<<20
 WORKSPACE_OFFSET=OUTPUT_OFFSET+OUTPUT_BYTES
 WORKSPACE_BYTES=16<<20
 MAPPING_BYTES=WORKSPACE_OFFSET+WORKSPACE_BYTES
+CORE_REPORT_MODE = int.from_bytes(b'HIACRPT1', 'little')
 
 
 def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, formatter=False, suite=False):
@@ -52,7 +53,7 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
         label('dispatch')
         calls.append(call_image(argument=True))
         emit('83 f8 01');branch('0f 82','usage')
-        emit('83 f8 03');branch('0f 87','usage')
+        emit('83 f8 04');branch('0f 87','usage')
         emit('89 c3')  # Admitted mode remains in the callee-saved register.
     label('read')
     emit('31 c0 31 ff 4b 8d 34 2c ba');word(WIRE_BYTES+1)
@@ -71,6 +72,10 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, form
         if suite:
             branch('e9','check_output')
             label('inspect')
+            emit('83 fb 04');branch('0f 85','render_view')
+            emit('48 b8');code.extend(struct.pack('<Q', CORE_REPORT_MODE))
+            emit('49 89 84 24');word(workspace_offset+workspace_bytes-8)
+            label('render_view')
             calls.append(call_image())
     label('check_output')
     emit('83 f8 fe');branch('0f 84','space')

@@ -248,9 +248,11 @@ jobs:
           test "$(stat -c '%a' "$installed")" = 500
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
-          for action in normalize inspect; do
+          for action in normalize inspect verify-report; do
+            reference_action="$action"
+            if [[ "$action" == verify-report ]]; then reference_action=verify; fi
             python -B -c 'from hepta.cli import hia_main; raise SystemExit(hia_main())' \
-              "$action" "$core_fixture" > "$package/core-$action-expected.json"
+              "$reference_action" "$core_fixture" > "$package/core-$action-expected.json"
             env -i PATH= "$installed/hia-core" "$action" < "$core_fixture" > "$package/core-$action.json"
             cmp "$package/core-$action-expected.json" "$package/core-$action.json"
           done

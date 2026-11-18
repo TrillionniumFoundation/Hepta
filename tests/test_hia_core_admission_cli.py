@@ -109,7 +109,7 @@ class CoreAdmissionCliSourceTests(unittest.TestCase):
         self.assertEqual(packer.read_text(),
                          render_assembly(document(packer_source(), 'core_suite_packer')))
         for command, mode in ((b'verify', 1), (b'normalize', 2), (b'inspect', 3),
-                              (b'inspectx', 0), (b'in', 0), (b'', 0)):
+                              (b'verify-report', 4), (b'inspectx', 0), (b'in', 0), (b'', 0)):
             self.assertEqual(vm_run(dispatcher, command, 32, 32)[0], mode)
         images = tuple(bytes((i,)) * i for i in range(3, 7))
         request = struct.pack('<5Q', SUITE_MAGIC, *map(len, images)) + b''.join(images)
@@ -380,6 +380,8 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
 
 
     def test_combined_executable_uses_one_admission_kernel_for_all_modes(self):
+        from hepta.hia_program import verify_program
+        from hepta.hia_schema import PRIMITIVE_PROFILES
         from hepta.hia_program_tools import inspect_program
         from tools.generate_hia_core_suite import SUITE_MAGIC
         from tools.qualify_hia_selfhost import compile_stage, invoke
@@ -421,11 +423,19 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
             return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2)+'\n').encode()
 
         padded = wire(VALID).ljust(8 << 20, b' ')
+        supported = {**verify_program(VALID).report(), 'native_executed': False,
+                     'status': 'standalone_core_checked'}
         for action, expected in (('verify', b''), ('normalize', pretty(VALID)),
-                                 ('inspect', pretty(inspect_program(VALID)))):
+                                 ('inspect', pretty(inspect_program(VALID))),
+                                 ('verify-report', pretty(supported))):
             with self.subTest(action=action):
                 run([action], padded, 0, expected)
                 run([action], padded+b' ', 3)
                 run([action], wire(borrowed_owner()), 2)
+        for schema in PRIMITIVE_PROFILES:
+            raw = wire({**VALID, 'schema': schema})
+            digest_report = {**verify_program(raw).report(), 'native_executed': False,
+                             'status': 'standalone_core_checked'}
+            run(['verify-report'], raw, 0, pretty(digest_report))
         for argv in ([], [''], ['i'], ['Inspect'], ['inspect', 'unexpected'], ['i'*16]):
             run(argv, b'', 64)
