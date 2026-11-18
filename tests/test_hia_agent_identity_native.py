@@ -5,10 +5,16 @@ import ctypes,json,os,random,struct,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch
 from hepta.hia_agent_identity_native import SOURCE,SCHEMA,MAGIC,RESULT_MAGIC,NativeAgentIdentity,installed_agent_identity,SELECTOR
+from hepta.hia_agent_identity_native import DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION
 from hepta.hia_agent_store import AgentRejected,uint64,canonical_digest
 ROOT=Path(__file__).resolve().parents[1]
 def packet(kind,value):return struct.pack('<2Q',MAGIC,kind)+value
 def expected(valid,value=0):return struct.pack('<3Q',RESULT_MAGIC,valid,value)
+
+def comparison(mode, fields):
+    return packet(7, struct.pack('<Q', mode) + b''.join(
+        struct.pack('<2Q', len(left), len(right)) + left + right for left, right in fields))
+
 def vm(wire,workspace):
  from tools.hia_selfhost_bulk import Body
  from hepta.hia_agent_assembly import assemble_program
@@ -47,6 +53,15 @@ class AgentIdentitySourceTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly
         self.assertEqual(SOURCE.read_text(),render_assembly(document()))
         self.assertEqual(len(witnesses()),10)
+
+    def test_observation_protocol_distinguishes_omission_and_reference_ledger(self):
+        fields = [(b'returned', b'returned'), (b'[1]', b'[1]'), (b'[]', b''),
+                  (b'null', b'null'), (b'{"live":0}', b'{"live":1}')]
+        self.assertEqual(vm(comparison(DECLARED_OBSERVATION, fields), 0), (24, expected(1, 1)))
+        self.assertEqual(vm(comparison(NATIVE_OBSERVATION, fields), 0), (24, expected(1, 0)))
+        fields[2] = (b'[]', b'[]')
+        self.assertEqual(vm(comparison(NATIVE_OBSERVATION, fields), 0), (24, expected(1, 1)))
+        self.assertEqual(vm(comparison(REFERENCE_OBSERVATION, fields), 0), (24, expected(1, 0)))
 
     def test_builder_refuses_bad_cold_before_any_output_or_compilation(self):
         from copy import deepcopy
@@ -134,6 +149,65 @@ class AgentIdentityNativeTests(unittest.TestCase):
             self.assertEqual(self.raw(wire)[0],0xfffffffd)
         self.assertEqual(self.raw(packet(0,b'0'),23)[0],0xfffffffe)
         with self.assertRaises(ValueError):self.native.scalar('1',False)
+
+    def test_native_observation_agreement_matches_host_policy_and_rejects_bad_framing(self):
+        from hepta.hia_agent_service import HIAAgentService
+
+        original = HIAAgentService._reference_observation_agreement
+        buffers = [{'argument': 0, 'kind': 'mutbuf', 'sha256': 'ab' * 32, 'byte_length': 3}]
+        returned = {'status': 'returned', 'values': [True], 'buffers': buffers,
+                    'ledger': {'resources': {'live': 0, 'allocated': 3}}}
+        trapped = {'status': 'trapped', 'trap_code': 'E_HIA_BOUNDS', 'buffers': buffers,
+                   'ledger': {'resources': {'live': 1, 'allocated': 3}}}
+        cases = [
+            (DECLARED_OBSERVATION, returned, {'status': 'returned', 'values': [1]}),
+            (DECLARED_OBSERVATION, returned, {'status': 'returned', 'values': [0]}),
+            (DECLARED_OBSERVATION, trapped, {'status': 'trapped'}),
+            (REFERENCE_OBSERVATION, returned, {**returned, 'values': [1]}),
+            (REFERENCE_OBSERVATION, returned, {**returned, 'ledger': {'resources': {'live': 1, 'allocated': 3}}}),
+            (REFERENCE_OBSERVATION, trapped, {**trapped, 'trap_code': 'E_HIA_DIVISION'}),
+            (NATIVE_OBSERVATION, trapped, {**trapped, 'trap_code': 'different', 'ledger': {}}),
+            (NATIVE_OBSERVATION, trapped, {**trapped, 'buffers': [{**buffers[0], 'sha256': 'ba' * 32}]}),
+            (NATIVE_OBSERVATION, returned, trapped),
+        ]
+        for mode, left, right in cases:
+            with self.subTest(mode=mode, right=right):
+                self.assertEqual(self.native.observation_agreement(left, right, mode=mode),
+                                 original(left, right, mode=mode))
+        empty = [(b'', b'')] * 5
+        accepted = comparison(0, empty)
+        self.assertEqual(self.raw(accepted), (24, expected(1, 1)))
+        for malformed in (accepted[:-1], accepted + b'X', comparison(3, empty),
+                          packet(7, struct.pack('<3Q', 0, (1 << 64) - 1, 10))):
+            self.assertEqual(self.raw(malformed)[0], 0xfffffffd)
+
+    def test_real_evaluation_distinguishes_trap_writes_without_host_comparison(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from tests.test_hia_agent_buffer_lifecycle import trap_program, workload
+        from tools.hia_agent_native_qualification import Session, ToolClient
+
+        with (tempfile.TemporaryDirectory(prefix='hia-agent-observation-') as directory,
+              patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(HIAAgentService, '_reference_observation_agreement',
+                           side_effect=AssertionError('host comparison used'))):
+            service = HIAAgentService(directory)
+            try:
+                for prefix, written, expected_outcome in (('identical', 91, 'unchanged'),
+                                                          ('different', 92, 'incorrect')):
+                    session = Session(ToolClient(service.call), prefix=prefix)
+                    session.freeze(workload([{'function': 'write_then_trap',
+                        'arguments': [{'bytes_hex': '010203'}], 'expected': {'status': 'trapped'}}],
+                        function='write_then_trap'))
+                    base, candidate = [session.import_program(trap_program(value))
+                                       for value in (91, written)]
+                    verification = session.verify(candidate)['verification_receipt']
+                    base_image, candidate_image = session.emit(base), session.emit(candidate, receipts=[verification])
+                    encoding = session.encoding(candidate, candidate_image)['verification_receipt']
+                    evaluation = session.evaluate(base_image, candidate_image, receipts=[verification, encoding])
+                    self.assertTrue(evaluation['planned_workload_complete'])
+                    self.assertEqual(evaluation['outcome'], expected_outcome)
+            finally:
+                service.close()
 
     def test_actual_store_callers_disable_reference_and_keep_errors(self):
         from hepta import hia_agent_store as store

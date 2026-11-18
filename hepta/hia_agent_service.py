@@ -1290,6 +1290,8 @@ class HIAAgentService:
     def _hia_evaluate(self, args):
         from .hia_agent_runner import run_native_batch, run_reference_batch
         from .hia_agent_buffers import validate_cases
+        from .hia_agent_identity_native import DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION
+        from .hia_agent_store import _native_agent_identity
         started = time.monotonic_ns()
         context = self._context(args["context"])
         baseline_bytes, baseline_meta, baseline_program = self._native(args["baseline_artifact"], args["context"])
@@ -1306,6 +1308,8 @@ class HIAAgentService:
         workload, _ = self.store.get_json(context["workload"])
         validate(workload, WORKLOAD_SCHEMA, "workload")
         validate_cases(baseline_meta["signatures"], workload["cases"])
+        policy = _native_agent_identity()
+        agree = self._reference_observation_agreement if policy is None else policy.observation_agreement
         exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
         observations, normal, trapping = [], [], []
         correct, complete, budget_exceeded = True, True, False
@@ -1344,17 +1348,12 @@ class HIAAgentService:
                 complete, budget_exceeded = False, True
                 break
             expected_value = _value_observation(expected)
-            if "expected" in case:
-                declared_scope = expected_value if "buffers" in case["expected"] else {
-                    key: value for key, value in expected_value.items() if key != "buffers"}
-                if case["expected"] != declared_scope:
-                    reject("E_HIA_WORKLOAD_EXPECTATION", "declared case expectation differs from baseline Core at index " + str(index), "execution")
+            if "expected" in case and not agree(expected, case["expected"], mode=DECLARED_OBSERVATION):
+                reject("E_HIA_WORKLOAD_EXPECTATION", "declared case expectation differs from baseline Core at index " + str(index), "execution")
             # A native result cannot excuse a reference-level first-trap or
             # resource behavior difference. This is an observation at this
             # workload, separate from an equivalence proof over all inputs.
-            observables = lambda x: {"value": _value_observation(x), "first_trap": x.get("trap_code"),
-                                     "resources": x["ledger"]["resources"]}
-            if observables(expected) != observables(candidate_reference):
+            if not agree(expected, candidate_reference, mode=REFERENCE_OBSERVATION):
                 correct = False
             prepared = {"function": case["function"], "arguments": case["arguments"], "expected": expected_value}
             if expected["status"] == "trapped":
@@ -1390,9 +1389,8 @@ class HIAAgentService:
                     reject("E_HIA_NATIVE_REPORT", "native report did not account for every planned case", "execution")
                 runs[label]["total_native_ns"] = report["total_native_ns"]
                 for (index, case), observed in zip(normal, report["observations"]):
-                    value = _value_observation(observed)
                     observations[index][label + "_native"] = observed
-                    if observed["mismatch"] or value != case["expected"]:
+                    if observed["mismatch"] or not agree(observed, case["expected"], mode=NATIVE_OBSERVATION):
                         correct = False
             for index, case in trapping:
                 outcome = run([case], 0, 1)
@@ -1401,7 +1399,8 @@ class HIAAgentService:
                 if "buffers" in case["expected"]:
                     actual_buffers = outcome.get("buffer_snapshots", [{}])[0].get("buffers")
                     observations[index][label + "_native"]["buffers"] = actual_buffers
-                    if actual_buffers != case["expected"]["buffers"]:
+                    if outcome["status"] == "trapped" and not agree(
+                            observations[index][label + "_native"], case["expected"], mode=NATIVE_OBSERVATION):
                         correct = False
                 if outcome["status"] != "trapped":
                     correct = False
@@ -1421,8 +1420,6 @@ class HIAAgentService:
         else:
             before = int(runs.get("baseline", {}).get("total_native_ns", "0"))
             after = int(runs.get("candidate", {}).get("total_native_ns", "0"))
-        from .hia_agent_store import _native_agent_identity
-        policy = _native_agent_identity()
         threshold = objective["min_improvement_ratio"]
         latency = objective["metric"] == "latency_ns"
         if policy is not None:
@@ -1469,6 +1466,19 @@ class HIAAgentService:
             "evaluation_receipt": receipt, "report_complete": True, "planned_workload_complete": complete,
             "termination_confirmed": True, "outcome": outcome, "measurements": measurements,
             "full_cost_ledger": ledger, "adopted": False}
+
+    @staticmethod
+    def _reference_observation_agreement(left, right, *, mode):
+        from .hia_agent_identity_native import DECLARED_OBSERVATION, REFERENCE_OBSERVATION
+
+        value = _value_observation(left)
+        if mode == DECLARED_OBSERVATION and "buffers" not in right:
+            value.pop("buffers", None)
+        if value != _value_observation(right):
+            return False
+        return mode != REFERENCE_OBSERVATION or (
+            left.get("trap_code") == right.get("trap_code")
+            and left["ledger"]["resources"] == right["ledger"]["resources"])
 
     @staticmethod
     def _reference_evaluation_measurement(before, after, threshold, *,

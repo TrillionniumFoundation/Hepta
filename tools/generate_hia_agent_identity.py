@@ -17,6 +17,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return measurement_policy(s, o)
     if kind == 6:
         return cost_totals(s, o)
+    if kind == 7:
+        return observation_agreement(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -136,6 +138,48 @@ def measurement_policy(s:readbuf, o:mutbuf) -> u32:
     put(o, 0, @RESULT_MAGIC@)
     put(o, 8, outcome)
     put(o, 16, ratio)
+    return 24
+
+def observation_agreement(s:readbuf, o:mutbuf) -> u32:
+    # Header followed by five pairs of length-prefixed fields, in order:
+    # status, scalar result, external bytes, first trap, resource ledger.
+    # Mode 0 compares a workload declaration, where buffers may be omitted;
+    # mode 1 compares two reference executions; mode 2 compares native results.
+    if length(s) < 24 or read_word(s, 16) > 2:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    mode = read_word(s, 16)
+    offset = 24
+    field = 0
+    equal = 1
+    while field < 5:
+        if length(s) - offset < 16:
+            return 4294967293
+        left = read_word(s, offset)
+        right = read_word(s, offset + 8)
+        offset = offset + 16
+        if left > length(s) - offset:
+            return 4294967293
+        right_at = offset + left
+        if right > length(s) - right_at:
+            return 4294967293
+        if field < 2 or (field == 2 and (mode != 0 or right != 0)) or mode == 1:
+            if left != right:
+                equal = 0
+            else:
+                index = 0
+                while index < left and equal != 0:
+                    if byte(s, offset + index) != byte(s, right_at + index):
+                        equal = 0
+                    index = index + 1
+        field = field + 1
+        offset = right_at + right
+    if offset != length(s):
+        return 4294967293
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, 1)
+    put(o, 16, equal)
     return 24
 
 def rational_bits(numerator:u64, denominator:u64) -> u64:

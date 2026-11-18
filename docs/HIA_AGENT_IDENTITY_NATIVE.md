@@ -25,6 +25,16 @@ The source is `examples/hia_bootstrap/agent_identity.hepta`, authored by
 checks u64 decimal and returns its value; operation one checks digest grammar.
 A 24-byte result (`HIAIDR01`, valid u64, parsed value u64) returns length 24.
 Rejected scalar text produces valid=0/value=0; valid digest produces value=0.
+Operations 2–6 admit context budgets, classify measured outcomes and aggregate
+costs. Operation 7 compares workload declarations, reference executions, or
+native execution observations. Its header adds the comparison mode, followed
+by five pairs of length-prefixed fields: status, scalar result, external buffer
+observations, first trap and resource counters. A declaration can omit its
+external buffers. Reference comparison requires matching first traps and
+resource counters; native comparison uses status, result and buffer bytes
+represented by their exact observation records. The result value is 1 for
+agreement, 0 otherwise.
+
 Malformed input packet returns 0xfffffffd. Insufficient output returns
 0xfffffffe without writing output. No scratch workspace is required or touched.
 
@@ -32,15 +42,14 @@ Build with `python -B -m tools.build_hia_agent_identity --compiler B3.image.bin
 --cold-report cold.json --output NEW_DIRECTORY`. A complete matching cold
 qualification and unchanged inputs are required before publishing a manifest.
 
-Tests interpret three independent full result-byte witnesses before native
-seed compilation, compare overflow boundaries and randomized integer oracles,
-mutate all byte values, check canaries and concurrent owned calls, and execute
-real store callers with both former Python predicates disabled.
+Tests interpret full result-byte witnesses before native seed compilation,
+compare overflow boundaries and randomized integer oracles, mutate all byte
+values, check canaries and concurrent calls, and execute real store and
+evaluation callers with their former Python decisions disabled.
 
 ## Remaining authority
 
-JSON decoding/serialization, hash computation, worker report correlation,
-authorization, filesystem and SQLite transactions, recovery and all other Agent
-operations remain host-owned. This selected component is not full Agent
-protocol replacement, native-only installation, production activation or
-legacy-retirement qualification. Defaults and prior failed evidence remain.
+This component takes only framed observations and scalar policy inputs. It
+does not own the Store, filesystem, worker correlation or proof solver, and
+does not qualify native-only installation, production activation or retirement
+of the hosted Agent.

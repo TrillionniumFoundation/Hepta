@@ -6,7 +6,7 @@ to this policy. It retains its existing public rejection codes and messages.
 from __future__ import annotations
 import ctypes
 import struct
-from .hia_agent_store import _agent_resource_path, reject
+from .hia_agent_store import _agent_resource_path, reject, wire
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 SOURCE=_agent_resource_path('examples/hia_bootstrap/agent_identity.hepta')
@@ -23,6 +23,19 @@ CONTEXT_REFUSALS = {
 }
 EVALUATION_OUTCOMES = ('budget_exceeded', 'incorrect', 'inconclusive', 'improved', 'regressed', 'unchanged')
 WORD_MASK = (1 << 64) - 1
+DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION = range(3)
+
+
+def _observation_fields(observation, *, reference):
+    status = observation['status']
+    # Preserve the public comparison in which JSON true/false and 1/0
+    # compare equally when used as result values (not as typed arguments).
+    returned = (wire([int(value) if type(value) is bool else value for value in observation['values']])
+                if status == 'returned' else b'')
+    buffers = wire(observation['buffers']) if 'buffers' in observation else b''
+    trap = wire(observation.get('trap_code')) if reference else b''
+    resources = wire(observation['ledger']['resources']) if reference else b''
+    return status.encode('ascii'), returned, buffers, trap, resources
 
 class NativeAgentIdentity(NativeHiaJsonImage):
     def scalar(self, value, kind):
@@ -85,6 +98,20 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('nonfinite HIA Agent evaluation ratio')
         ratio = struct.unpack('<d', struct.pack('<Q', bits))[0]
         return ratio, EVALUATION_OUTCOMES[decision - 1]
+
+    def observation_agreement(self, left, right, *, mode):
+        reference = mode == REFERENCE_OBSERVATION
+        packet = bytearray(struct.pack('<3Q', MAGIC, 7, mode))
+        fields = zip(_observation_fields(left, reference=reference),
+                     _observation_fields(right, reference=reference), strict=True)
+        for a, b in fields:
+            packet.extend(struct.pack('<2Q', len(a), len(b)))
+            packet.extend(a)
+            packet.extend(b)
+        valid, agreement = self._request(bytes(packet))
+        if valid != 1 or agreement not in (0, 1):
+            raise RuntimeError('invalid HIA Agent observation decision')
+        return bool(agreement)
 
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(
