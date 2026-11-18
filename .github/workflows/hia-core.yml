@@ -47,6 +47,7 @@ jobs:
               'tests.test_hia_agent_identity_native.AgentIdentitySourceTests',
               'tests.test_hia_agent_slice_native.AgentSliceSourceTests',
               'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests',
+              'tests.test_hia_sqlite_snapshot_native',
               'tests.test_hia_agent_stdio.AgentStdioSourceTests',
               'tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests',
               'tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests',
@@ -175,6 +176,18 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Build source-bound native SQLite components
+        run: |
+          set -euo pipefail
+          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          test -n "$compiler"
+          for candidate in sqlite-wal-snapshot sqlite-rowid-lookup sqlite-record-layout; do
+            python -B -m tools.build_hia_json_preflight --candidate "$candidate" \
+              --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
+              --output "$RUNNER_TEMP/$candidate"
+          done
+          python -B -m tools.build_hia_sqlite_pager --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/sqlite-pager"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"

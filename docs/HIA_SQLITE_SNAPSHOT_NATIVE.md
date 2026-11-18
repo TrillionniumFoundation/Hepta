@@ -10,7 +10,8 @@ The components do not replace the Agent Store.
 
 ## Build
 
-Use the flat compiler from a matching source-only cold replay of this checkout:
+Use a complete HIA source checkout and the flat compiler from its matching
+source-only cold replay. These build commands are not Agent wheel entry points.
 
 ```sh
 python -B -m tools.build_hia_json_preflight --candidate sqlite-wal-snapshot \

@@ -4,11 +4,12 @@ from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
 from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
 from hepta.hia_agent_store import wire
+from tools.hia_selfhost_contract import SQLITE_SNAPSHOT_SDIST_FILES
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
-# Source-distribution test inputs are not installed Agent resources and must
-# never expand the worker's production source identity or _data payload.
-SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',)
+# Source-distribution tools and test inputs are not installed Agent resources.
+SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',
+                     *SQLITE_SNAPSHOT_SDIST_FILES)
 BUNDLED_SOURCE_BINDINGS={
     'cli_control':('hepta.hia_cli_native','control'),
     'cli_format':('hepta.hia_cli_native','format'),

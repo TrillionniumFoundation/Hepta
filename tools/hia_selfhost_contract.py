@@ -14,7 +14,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
-SOURCE_FILES = (
+SQLITE_SNAPSHOT_SDIST_FILES = (
     'tools/build_hia_sqlite_pager.py',
     'tools/hia_sqlite_pager_start.S',
     'tools/hia_sqlite_pager_os.S',
@@ -25,6 +25,9 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/sqlite_wal_snapshot.hepta',
     'examples/hia_bootstrap/sqlite_rowid_lookup.hepta',
     'examples/hia_bootstrap/sqlite_record_layout.hepta',
+)
+SOURCE_FILES = (
+    *SQLITE_SNAPSHOT_SDIST_FILES,
     'tests/test_hia_sqlite_snapshot_native.py',
     'tests/test_hia_selfhost_call_graph_efficiency.py',
     'docs/HIA_WORKER_SCHEDULING_CUSTODY.md',
