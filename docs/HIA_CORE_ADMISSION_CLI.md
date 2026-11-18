@@ -100,3 +100,20 @@ parsing, other CLI commands, structured diagnostic presentation, Agent editing
 and persistence still require separate native replacements and acceptance.
 There is no default switch or legacy removal here, no whole-product native-only
 delivery claim, and no claim of an all-input formal refinement proof.
+## Native primitive Core edit applications
+
+The sealed native release also installs four Linux x86-64 commands. Each reads
+one JSON array from stdin; it neither needs a child process nor changes the
+source file. The accepted inputs have these shapes:
+
+| Command | Input |
+| --- | --- |
+| `hia-prepare-edit-query` | `[program, {"function": ..., "block": ..., "output": ..., "fields": [...]}]` |
+| `hia-prepare-edit-batch` | `[program, {"selections": [...]}]` with 1–16 selections |
+| `hia-apply-edit` | `[program, {"query": ..., "response": ...}]` |
+| `hia-apply-edit-batch` | `[program, {"query": ..., "response": ...}]` |
+
+The apply commands verify the whole primitive Core candidate before returning
+the receipt and edited program. Batch changes are applied simultaneously, not
+as intermediate candidates. They do not replace the hosted CLI's diagnostics,
+all file-publication actions, or the nominal/composite frontend.

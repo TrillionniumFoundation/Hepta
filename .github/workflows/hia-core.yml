@@ -240,6 +240,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/patch-result"
           python -B -m tools.build_hia_worker_request_cli --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/worker-request"
+          python -B -m tools.build_hia_core_edit --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-edit"
           source_roles=(selfhost.hepta source_build_policy.hepta source_build_packer.hepta)
           install -m 0500 "$package/installer/hia-release" \
             "$package/packager/hia-directory-package-build" \
@@ -251,6 +253,7 @@ jobs:
             "$RUNNER_TEMP/workspace-pipeline/hia-workspace-compile" \
             "$RUNNER_TEMP/patch-result/hia-patch-result" \
             "$RUNNER_TEMP/worker-request/hia-worker-admit" \
+            "$RUNNER_TEMP/core-edit"/hia-*-edit* \
             "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
@@ -465,6 +468,7 @@ jobs:
               assert (refused.returncode, refused.stdout, refused.stderr) == (status, b'', b'')
           print('installed worker admission: exact digest input, full 8 MiB, invalid inputs suppressed')
           PYWR
+          python -B -m tests.test_hia_core_edit_runtime "$installed"
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
           for action in normalize inspect verify-report; do
