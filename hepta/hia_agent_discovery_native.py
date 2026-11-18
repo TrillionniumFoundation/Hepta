@@ -57,7 +57,22 @@ class NativeAgentDiscovery(NativeHiaJsonImage):
         flags = ('cursor' in arguments) | (('backend_profile' in arguments) << 1) | (
             ('language_schema' in arguments) << 2)
         frame = REQUEST.pack(b'HIADIS01', flags, len(section), len(requested), len(installed), len(schema))
-        raw = frame + section + requested + installed + schema
+        header, body = self._render(frame + section + requested + installed + schema)
+        version, count, recipe, _ = header
+        if not 1 <= version <= len(VERSIONS) or not 1 <= count <= 10 or recipe >> (count * 5):
+            raise ValueError('invalid native HIA Agent discovery plan')
+        roles = tuple((recipe >> (index * 5)) & 31 for index in range(count))
+        if max(roles) >= len(RESOURCE_ROLES) or len(set(roles)) != count:
+            raise ValueError('invalid native HIA Agent discovery resource role')
+        return VERSIONS[version - 1], body, roles
+
+    def registry(self):
+        header, body = self._render(b'HIADISRG')
+        if header[:3] != (len(VERSIONS) + 1, 0, 0):
+            raise ValueError('invalid native HIA Agent schema registry header')
+        return body
+
+    def _render(self, raw):
         source = ctypes.create_string_buffer(raw)
         output = ctypes.create_string_buffer(RESPONSE.size + 65536)
         workspace = ctypes.create_string_buffer(65536)
@@ -66,14 +81,10 @@ class NativeAgentDiscovery(NativeHiaJsonImage):
             reject(*REFUSALS[width])
         if not RESPONSE.size < width <= len(output):
             raise ValueError('invalid native HIA Agent discovery response')
-        version, count, recipe, catalog_bytes = RESPONSE.unpack_from(output)
-        if (not 1 <= version <= len(VERSIONS) or not 1 <= count <= 10 or recipe >> (count * 5)
-                or catalog_bytes != width - RESPONSE.size):
-            raise ValueError('invalid native HIA Agent discovery plan')
-        roles = tuple((recipe >> (index * 5)) & 31 for index in range(count))
-        if max(roles) >= len(RESOURCE_ROLES) or len(set(roles)) != count:
-            raise ValueError('invalid native HIA Agent discovery resource role')
-        return VERSIONS[version - 1], output[RESPONSE.size:width], roles
+        header = RESPONSE.unpack_from(output)
+        if header[3] != width - RESPONSE.size:
+            raise ValueError('invalid native HIA Agent discovery extent')
+        return header, output[RESPONSE.size:width]
 
 
 def installed_agent_discovery(path):

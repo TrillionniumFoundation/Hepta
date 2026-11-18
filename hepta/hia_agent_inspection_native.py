@@ -1,4 +1,4 @@
-"""Pinned native exact selector and immutable Core subtree renderer."""
+"""Pinned native Core summary and exact inspection of immutable subtrees."""
 from __future__ import annotations
 
 import ctypes
@@ -8,13 +8,19 @@ from .hia_agent_store import _agent_resource_path, reject
 from .hia_json_decode_native import arena_sizes
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 from .hia_program import MAX_BYTES, MAX_DEPTH, MAX_NODES
+from .hia_program_tools import HIAEditRejected
 
 SOURCE = _agent_resource_path('examples/hia_bootstrap/agent_inspection.hepta')
 SCHEMA = 'hepta.hia.agent-inspection-native.v1'
 SELECTOR = 'HEPTA_HIA_AGENT_INSPECTION_MANIFEST'
 SELECTOR_BYTES = 512
 HEADER = struct.Struct('<3Q')
-TAIL = HEADER.size + 2 * SELECTOR_BYTES
+TAIL = HEADER.size + 2 * SELECTOR_BYTES + 8
+VIEW = b'HIAVIEW1'
+SCHEMA_PROBE = b'HIAOSC01'
+HASH_INPUT = b'HIAONH01'
+NOMINAL_CONTEXT = b'HIAONC01'
+NOMINAL_TAIL = 9472
 REFUSALS = {
     4294967288: 'function view requires an exact function',
     4294967289: 'function is not in this program',
@@ -40,12 +46,46 @@ class NativeAgentInspection(NativeHiaJsonImage):
         arena[at:at + len(fn)] = fn
         at += SELECTOR_BYTES
         arena[at:at + len(block)] = block
+        arena[-8:] = VIEW
         width = self._entry(source, len(canonical_core), output, len(output), arena, len(arena))
         if width in REFUSALS:
             reject('E_HIA_SELECTOR', REFUSALS[width])
         if not 0 < width <= len(canonical_core):
             raise ValueError('invalid native HIA Agent inspection reply')
         return output.raw[:width]
+
+    def summary(self, admitted):
+        core = admitted.canonical_bytes
+        original = admitted.structured_bytes
+        context = b''
+        if original is not None:
+            version, _ = self._report(original, mode=SCHEMA_PROBE)
+            if not 1 <= version <= 4:
+                raise ValueError('unknown native Agent inspection input profile')
+            length, digest = self._report(original, mode=HASH_INPUT)
+            if length != 64:
+                raise ValueError('invalid native Agent inspection input digest')
+            context = NOMINAL_CONTEXT + struct.pack('<Q', version) + digest
+        length, result = self._report(core, context=context)
+        if length == 4294967294:
+            raise HIAEditRejected('E_HIA_EDIT: JSON encoding exceeds byte budget')
+        if not 0 < length <= MAX_BYTES:
+            raise ValueError('invalid native HIA Agent inspection summary')
+        return result
+
+    def _report(self, raw, *, mode=bytes(8), context=b''):
+        if type(raw) is not bytes or not 0 < len(raw) <= MAX_BYTES:
+            raise ValueError('invalid native HIA Agent inspection input extent')
+        arena_size, parser_size = arena_sizes(len(raw), MAX_NODES, MAX_DEPTH)
+        output_size = (MAX_BYTES if mode == bytes(8)
+                       else max(parser_size, len(raw) if mode == HASH_INPUT else 64))
+        source = ctypes.create_string_buffer(raw)
+        output = ctypes.create_string_buffer(output_size)
+        workspace = ctypes.create_string_buffer(arena_size + NOMINAL_TAIL)
+        workspace[arena_size:arena_size + len(context)] = context
+        workspace[-8:] = mode
+        size = self._entry(source, len(raw), output, output_size, workspace, len(workspace))
+        return size, output.raw[:size] if 0 < size <= output_size else b''
 
 
 def installed_agent_inspection(path):

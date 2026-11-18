@@ -1,21 +1,28 @@
-"""Author the typed Agent function/block view of an already checked Core."""
+"""Author the Agent summary and typed views of already checked Core."""
+import ast
 from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_core_json_frontend import FRONTEND, packed
-from tools.generate_hia_core_inspect_json import fragment_source
-from tools.generate_hia_json_decode import source_program as decoder
+from tools.generate_hia_core_inspect_json import KEYS, source_program as report_source
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'examples/hia_bootstrap/agent_inspection.hepta'
 HEADER = 24
 SELECTOR_BYTES = 512
-TAIL = HEADER + 2 * SELECTOR_BYTES
+TAIL = HEADER + 2 * SELECTOR_BYTES + 8
+VIEW_MODE = int.from_bytes(b'HIAVIEW1', 'little')
 NONE = (1 << 64) - 1
 
 POLICY = '''
+def inspect_agent(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) < 8:
+        return 4294967293
+    if get(w, length(w) - 8) == VIEW_MODE:
+        return inspect_part(s, o, w)
+    return inspect_core(s, o, w)
+
 def inspect_part(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < TAIL + 64 or length(o) < 128:
         return 4294967293
@@ -34,14 +41,14 @@ def inspect_part(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return decoded
     if decoded > frame:
         return 4294967293
-    functions = field(w, 0, FUNCTIONS)
-    fn = named_element(w, functions, NAME, 4, frame + 24, function_size)
+    functions = field(w, 0, K_functions)
+    fn = named_element(w, functions, K_name, frame + 24, function_size)
     if fn == NONE:
         return 4294967289
     node = fn
     if mode == 2:
-        blocks = field(w, fn, BLOCKS)
-        node = named_element(w, blocks, ID, 2, frame + 24 + SELECTOR_BYTES, block_size)
+        blocks = field(w, fn, K_blocks)
+        node = named_element(w, blocks, K_id, frame + 24 + SELECTOR_BYTES, block_size)
         if node == NONE:
             return 4294967290
     put(w, 56, 0)
@@ -51,29 +58,18 @@ def inspect_part(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     return size
 
-def named_element(w:mutbuf, array:u64, name:u64, width:u64, at:u64, size:u64) -> u64:
+def named_element(w:mutbuf, array:u64, name:u64, at:u64, size:u64) -> u64:
     if array == NONE or size == 0 or get(w, 64 + array * 56) != 5:
         return NONE
     element = get(w, 64 + array * 56 + 24)
     while element != NONE:
-        label = field(w, element, width, name, 0, 0)
+        label = field(w, element, name)
         if label != NONE:
             record = 64 + label * 56
             if get(w, record) == 4 and get(w, record + 32) == size:
                 if equal_bytes(w, get(w, record + 24), at, size) == 1:
                     return element
         element = get(w, 64 + element * 56 + 16)
-    return NONE
-
-def field(w:mutbuf, object:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
-    if object == NONE or get(w, 64 + object * 56) != 6:
-        return NONE
-    child = get(w, 64 + object * 56 + 24)
-    while child != NONE:
-        record = 64 + child * 56
-        if same(w, get(w, record + 40), get(w, record + 48), width, a, b, c) == 1:
-            return child
-        child = get(w, record + 16)
     return NONE
 
 def equal_bytes(w:mutbuf, left:u64, right:u64, size:u64) -> u64:
@@ -86,14 +82,28 @@ def equal_bytes(w:mutbuf, left:u64, right:u64, size:u64) -> u64:
 '''
 
 
+def reachable_source(source):
+    """Keep only the functions reached by the Agent entry and its modes."""
+    tree = ast.parse(source)
+    functions = {node.name: node for node in tree.body}
+    pending = ['inspect_agent']
+    reached = set(pending)
+    while pending:
+        for node in ast.walk(functions[pending.pop()]):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                name = node.func.id
+                if name in functions and name not in reached:
+                    reached.add(name)
+                    pending.append(name)
+    return ast.unparse(ast.Module(body=[node for node in tree.body if node.name in reached],
+                                type_ignores=[]))
+
+
 def source_program():
-    words = {symbol: ', '.join(map(str, packed(key)))
-             for symbol, key in (('FUNCTIONS', 'functions'), ('BLOCKS', 'blocks'))}
-    words.update(NAME=str(int.from_bytes(b'name', 'little')), ID=str(int.from_bytes(b'id', 'little')),
-                 NONE=str(NONE), SELECTOR_BYTES=str(SELECTOR_BYTES), TAIL=str(TAIL))
-    same = FRONTEND[FRONTEND.index('def same('):FRONTEND.index('def text_is(')]
-    source = '\n'.join((POLICY, same, fragment_source(), decoder()))
-    return re.sub(r'\b(' + '|'.join(words) + r')\b', lambda match: words[match[0]], source)
+    words = {'K_' + name: 1 << index for index, name in enumerate(KEYS)}
+    words.update(NONE=NONE, SELECTOR_BYTES=SELECTOR_BYTES, TAIL=TAIL, VIEW_MODE=VIEW_MODE)
+    lens = re.sub(r'\b(' + '|'.join(words) + r')\b', lambda match: str(words[match[0]]), POLICY)
+    return reachable_source(lens + '\n' + report_source(nominal=True, compact=True))
 
 
 if __name__ == '__main__':

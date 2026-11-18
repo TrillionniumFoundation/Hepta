@@ -1,6 +1,7 @@
 """Author bounded reports for admitted primitive and elaborated nominal Core."""
 import ast
 from pathlib import Path
+import re
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_schema import COMPOSITE_PROFILES, PRIMITIVE_PROFILES
@@ -443,7 +444,7 @@ def hash_put(w:mutbuf, offset:u64, value:u64) -> u64:
 '''
 
 
-def source_program(*, nominal=False):
+def source_program(*, nominal=False, compact=False):
     helpers = FRONTEND[FRONTEND.index('def kind('):FRONTEND.index('def shape(')]
     match = FRONTEND[FRONTEND.index('def same('):]
     key_fn = '''def key_id(w:mutbuf, node:u64) -> u64:
@@ -499,6 +500,8 @@ def source_program(*, nominal=False):
             return self.generic_visit(node)
 
         def visit_Assign(self, node):
+            if compact and ast.unparse(node.targets[0]) == 'verification':
+                return None
             if not nominal and isinstance(node.targets[0], ast.Name) and node.targets[0].id == 'original':
                 return None
             return self.generic_visit(node)
@@ -510,6 +513,8 @@ def source_program(*, nominal=False):
 
         def visit_Call(self, node):
             self.generic_visit(node)
+            if compact and isinstance(node.func, ast.Name) and node.func.id == 'fragment':
+                node.args[-1] = ast.Constant(0)
             if not nominal and isinstance(node.func, ast.Name):
                 if node.func.id == 'nominal_profile':
                     return ast.Constant(0)
@@ -532,11 +537,19 @@ def source_program(*, nominal=False):
             return node
 
         def visit_If(self, node):
+            if compact and ast.unparse(node.test) in ('verification', 'mode == NORMALIZED_MODE'):
+                return None
             test = self.visit(node.test)
             if isinstance(test, ast.Constant) and isinstance(test.value, bool):
                 selected = node.body if test.value else node.orelse
                 return self.visit(ast.Module(body=selected, type_ignores=[])).body
-            return self.generic_visit(node)
+            node = self.generic_visit(node)
+            if compact and not node.body:
+                if not node.orelse:
+                    return None
+                node.test = ast.UnaryOp(op=ast.Not(), operand=node.test)
+                node.body, node.orelse = node.orelse, []
+            return node
 
         def visit_Expr(self, node):
             call = node.value
@@ -544,6 +557,9 @@ def source_program(*, nominal=False):
                     and call.func.id == 'lit'):
                 o, w, literal = call.args
                 value = literal.value
+                if compact:
+                    value = re.sub(r'"(?:[^"\\]|\\.)*"|[ \t\r\n]+',
+                                   lambda match: match[0] if match[0].startswith('"') else '', value)
                 return [ast.Expr(ast.Call(ast.Name('emit', ast.Load()),
                                          [o, w, *map(ast.Constant, packed(value[i:i+24]))], []))
                         for i in range(0, len(value), 24)]

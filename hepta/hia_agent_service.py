@@ -118,8 +118,14 @@ class HIAAgentService:
 
     def _profiles(self):
         from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
-        from .hia_schema import schema_registry
         from .hia_safe_core import ARTIFACT_PROFILE, LIMITS
+        selected = os.environ.get('HEPTA_HIA_AGENT_DISCOVERY_MANIFEST')
+        if selected:
+            from .hia_agent_discovery_native import installed_agent_discovery
+            registry_bytes = installed_agent_discovery(selected).registry()
+        else:
+            from .hia_schema import schema_registry
+            registry_bytes = wire(schema_registry())
         common = {"implementation": self.identities, "catalog_sha256": self.catalog_sha256}
         bodies = {
             "compiler": {**common, "schema": "hepta.hia.agent.compiler-profile.v1",
@@ -175,7 +181,7 @@ class HIAAgentService:
             ref, artifact = self.store.profile("hia-" + name + "-v1", body)
             self.profiles[name], self.profile_artifacts[name] = ref, artifact
         self.resources = {
-            "schema_registry": self.store.json(schema_registry(), "discovery"),
+            "schema_registry": self.store.put(registry_bytes, "discovery"),
             "workload_schema": self.store.json(WORKLOAD_SCHEMA, "discovery"),
             "objective_schema": self.store.json(OBJECTIVE_SCHEMA, "discovery"),
             "cost_policy_schema": self.store.json(COST_POLICY_SCHEMA, "discovery"),
@@ -599,7 +605,12 @@ class HIAAgentService:
             reject("E_HIA_CURSOR", "inspection returns an immutable artifact; paginate it through hia_read")
         view, query, view_bytes = args["view"], None, None
         selected = os.environ.get('HEPTA_HIA_AGENT_INSPECTION_MANIFEST')
-        if view == "summary":
+        if selected and view in ("summary", "function", "block"):
+            from .hia_agent_inspection_native import installed_agent_inspection
+            image = installed_agent_inspection(selected)
+            view_bytes = (image.summary(program) if view == "summary"
+                          else image.view(program.canonical_bytes, view, selector))
+        elif view == "summary":
             result = inspect_program(program)
         elif view == "lowering":
             context = self._context(args["context"])
@@ -617,9 +628,6 @@ class HIAAgentService:
                                     output=selector["output"], fields=["op", "args", "attrs"])
             result = prepared
             query = self.store.json(prepared, "edit-query")
-        elif selected:
-            from .hia_agent_inspection_native import installed_agent_inspection
-            view_bytes = installed_agent_inspection(selected).view(program.canonical_bytes, view, selector)
         else:
             if "function" not in selector:
                 reject("E_HIA_SELECTOR", "function view requires an exact function")

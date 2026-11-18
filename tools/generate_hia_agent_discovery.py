@@ -4,7 +4,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_store import wire
 from hepta.hia_opcodes import opcode_catalog
-from hepta.hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES
+from hepta.hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES, schema_registry
 from tools.generate_hia_agent_stdio import catalog_source, document, pack_catalog_recipes, writes
 from tools.generate_hia_core_json_cli import source_program as core_cli_source
 
@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'examples/hia_bootstrap/agent_discovery.hepta'
 HEADER_BYTES = 32
 MAGIC = int.from_bytes(b'HIADIS01', 'little')
+REGISTRY_MAGIC = int.from_bytes(b'HIADISRG', 'little')
 
 # Stable resource-role IDs in the discovery ABI; the Store binds them to issued refs.
 ROUTES = {
@@ -25,7 +26,12 @@ ROUTES = {
 
 ENTRY = """
 def discover(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 48 or length(o) < 32 or length(w) < TABLE_SIZE or read_word(s, 0) != FRAME_MAGIC:
+    if length(s) < 8 or length(o) < 32 or length(w) < TABLE_SIZE:
+        return 4294967293
+    tag = read_word(s, 0)
+    if length(s) == 8 and tag == REGISTRY_MAGIC:
+        return render_recipe(o, w, REGISTRY_RECIPE, 0)
+    if length(s) < 48 or tag != FRAME_MAGIC:
         return 4294967293
     flags = read_word(s, 8)
     section_size = read_word(s, 16)
@@ -50,7 +56,12 @@ def discover(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     route = lookup_route(s, section_size)
     if route == 0:
         return 4294967293
+    return render_recipe(o, w, version, route)
+
+def render_recipe(o:mutbuf, w:mutbuf, version:u64, route:u64) -> u64:
     seed(w)
+    if unpack_table(w) == 0:
+        return 4294967293
     size = catalog(w, o, version)
     if size >= 4294967294:
         return size
@@ -59,6 +70,34 @@ def discover(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put_word(o, 16, route >> 4)
     put_word(o, 24, size)
     return size + 32
+
+def unpack_table(w:mutbuf) -> u64:
+    source = PACK_START
+    target = 0
+    while source < PACK_END:
+        tag = byte(w, source)
+        source = source + 1
+        if tag < 128:
+            count = tag + 1
+            if count > PACK_END - source or count > PACK_START - target:
+                return 0
+            copy_from = source
+            source = source + count
+        else:
+            count = (tag & 127) + 3
+            if PACK_END - source < 2 or count > PACK_START - target:
+                return 0
+            distance = byte(w, source) | (byte(w, source + 1) << 8)
+            source = source + 2
+            if distance == 0 or distance > target:
+                return 0
+            copy_from = target - distance
+        index = 0
+        while index < count:
+            store(w, target + index, byte(w, copy_from + index))
+            index = index + 1
+        target = target + count
+    return choose(target == PACK_START, 1, 0)
 
 def same_backend(s:readbuf, left:u64, right:u64, n:u64, m:u64) -> u64:
     if n != m:
@@ -77,13 +116,16 @@ def canonical_parts(value):
     yield b'{'
     for index, (key, field) in enumerate(sorted(value.items())):
         prefix = (b',' if index else b'') + wire(key) + b':'
-        if key != 'instructions':
+        if key == 'instruction_catalog':
+            yield prefix
+            yield from canonical_parts(field)
+        elif key == 'instructions':
+            yield prefix + b'['
+            for row_index, row in enumerate(field):
+                yield (b',' if row_index else b'') + wire(row)
+            yield b']'
+        else:
             yield prefix + wire(field)
-            continue
-        yield prefix + b'['
-        for row_index, row in enumerate(field):
-            yield (b',' if row_index else b'') + wire(row)
-        yield b']'
     yield b'}'
 
 
@@ -98,23 +140,67 @@ def routes_source():
     return '\n'.join((*lines, '    return route', ''))
 
 
-def seed_source(table):
+def pack_seed(data):
+    """Encode literals and overlapping u16-distance copies for the HIA loader."""
+    packed = bytearray()
+    literals = bytearray()
+    seen = {}
+
+    def flush_literals():
+        if literals:
+            packed.append(len(literals) - 1)
+            packed.extend(literals)
+            literals.clear()
+
+    index = 0
+    while index < len(data):
+        key = data[index:index + 3]
+        before = seen.get(key, -1)
+        # A copy costs three bytes. Short matches can remain in a literal run.
+        width = 0
+        if len(key) == 3 and 0 <= before < index and index - before <= 65535:
+            limit = min(130, len(data) - index)
+            while width < limit and data[before + width] == data[index + width]:
+                width += 1
+        if width >= 4:
+            flush_literals()
+            packed.append(128 | (width - 3))
+            packed.extend((index - before).to_bytes(2, 'little'))
+        else:
+            literals.append(data[index])
+            width = 1
+            if len(literals) == 128:
+                flush_literals()
+        for position in range(index, index + width):
+            seen[data[position:position + 3]] = position
+        index += width
+    flush_literals()
+    return bytes(packed)
+
+
+def seed_source(table, *, offset):
     """Seed a private table with bounded straight-line chunks."""
     names, chunks = [], []
     for start in range(0, len(table), 512):
         name = f'seed_{start // 512}'
         names.append(name)
-        body = writes(table[start:start + 512], offset=start)
+        body = writes(table[start:start + 512], offset=offset + start)
         chunks.append(f'def {name}(o:mutbuf) -> u64:\n{body}    return 0\n')
     return 'def seed(o:mutbuf) -> u64:\n' + ''.join(f'    {name}(o)\n' for name in names) + '    return 0\n\n' + '\n'.join(chunks)
 
 
 def source_program():
-    table = pack_catalog_recipes(canonical_parts(opcode_catalog(schema)) for schema in PRIMITIVE_PROFILES)
-    assert len(table) <= 65536
-    source = (ENTRY.replace('FRAME_MAGIC', str(MAGIC)).replace('TABLE_SIZE', str(len(table)))
+    catalogs = [opcode_catalog(schema) for schema in PRIMITIVE_PROFILES]
+    documents = [*catalogs, schema_registry()]
+    table = pack_catalog_recipes(canonical_parts(value) for value in documents)
+    seed = pack_seed(table)
+    total = len(table) + len(seed)
+    assert total <= 65536
+    source = (ENTRY.replace('FRAME_MAGIC', str(MAGIC)).replace('TABLE_SIZE', str(total))
+              .replace('PACK_START', str(len(table))).replace('PACK_END', str(total))
+              .replace('REGISTRY_MAGIC', str(REGISTRY_MAGIC)).replace('REGISTRY_RECIPE', str(len(documents)))
               .replace('DEFAULT_VERSION', str(tuple(PRIMITIVE_PROFILES).index(LATEST_CORE_SCHEMA) + 1)))
-    catalog = (catalog_source()
+    catalog = (catalog_source(recipes=len(documents))
         .replace('def catalog(s:readbuf, o:mutbuf, version:u64) -> u32:',
                  'def catalog(s:mutbuf, o:mutbuf, version:u64) -> u64:')
         .replace('def catalog_u32(s:readbuf', 'def catalog_u32(s:mutbuf')
@@ -122,7 +208,7 @@ def source_program():
         .replace('store(o, out + j,', f'store(o, {HEADER_BYTES} + out + j,'))
     word_source = core_cli_source()
     words = word_source[word_source.index('\ndef read_word('):word_source.index('\ndef put_four(')]
-    return '\n'.join((source, routes_source(), catalog, seed_source(table), words))
+    return '\n'.join((source, routes_source(), catalog, seed_source(seed, offset=len(table)), words))
 
 
 if __name__ == '__main__':

@@ -48,6 +48,29 @@ class AgentInspectionNativeTests(unittest.TestCase):
         if self.manifest is None:
             self.skipTest('provide the matching native Agent inspection image')
 
+    def test_ordinary_summary_retains_exact_nominal_origin_without_hosted_renderer(self):
+        from tools.hia_agent_native_qualification import (
+            Session, ToolClient, add_program, exhaustive_u8_workload,
+        )
+        root = Path(__file__).resolve().parents[1]
+        nominal = (root / 'examples/hia_program/generic_owned_enum.hepta').read_bytes()
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            service = HIAAgentService(Path(temporary) / 'state')
+            try:
+                session = Session(ToolClient(service.call, validate=False))
+                session.freeze(exhaustive_u8_workload())
+                sources = (session.artifact(add_program()), service.store.put(nominal, 'input'))
+                for source in sources:
+                    args = session.arguments(mutable=False, program=source, view='summary')
+                    reference = service.call('hia_inspect', args)
+                    self.assertEqual(reference['status'], 'completed', reference)
+                    with (patch.dict('os.environ', {inspection.SELECTOR: str(self.manifest)}),
+                          patch('hepta.hia_program_tools.inspect_program',
+                                side_effect=AssertionError('hosted summary entered'))):
+                        self.assertEqual(service.call('hia_inspect', args), reference)
+            finally:
+                service.close()
+
     def test_ordinary_function_and_block_artifact_bytes_without_host_projection(self):
         from hepta.hia_agent_store import wire
         from hepta.hia_program import VerifiedProgram, verify_program
@@ -101,6 +124,30 @@ class AgentDiscoveryNativeTests(unittest.TestCase):
     def setUp(self):
         if self.manifest is None:
             self.skipTest('provide the matching native Agent discovery image')
+
+    def test_profiles_initialize_and_reopen_without_hosted_registry_or_opcodes(self):
+        from hepta.hia_agent_store import wire
+        from hepta.hia_schema import schema_registry
+        expected = wire(schema_registry())
+        with tempfile.TemporaryDirectory(dir=self.test_root) as root:
+            state = Path(root) / 'state'
+            with (patch.dict('os.environ', {discovery.SELECTOR: str(self.manifest)}),
+                  patch('hepta.hia_schema.schema_registry', side_effect=AssertionError('hosted registry used')),
+                  patch('hepta.hia_opcodes.opcode_catalog', side_effect=AssertionError('hosted opcodes used'))):
+                original = None
+                for _ in range(2):
+                    service = HIAAgentService(state)
+                    try:
+                        reply = service.call('hia_describe', {'section': 'language'})
+                        self.assertEqual(reply['status'], 'completed', reply)
+                        ref = reply['result']['resources'][0]
+                        if original is not None:
+                            self.assertEqual(ref, original)
+                        original = ref
+                        raw, _ = service.store.get(ref, kind='discovery')
+                        self.assertEqual(raw, expected)
+                    finally:
+                        service.close()
 
     def test_exact_issued_resources_and_canonical_catalog_for_all_versions(self):
         from hepta.hia_agent_store import wire

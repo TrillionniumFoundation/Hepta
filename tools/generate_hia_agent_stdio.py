@@ -97,17 +97,20 @@ def pack_catalog_recipes(documents):
     return bytes(header + entries + data)
 
 
-def catalog_source():
+def catalog_source(*, recipes=None):
     schemas = tuple(PRIMITIVE_PROFILES)
     # The currently declared catalog ids are consecutive ASCII versions.
     prefix = b'hepta.hia.program.v'
     assert tuple(schema.encode('ascii') for schema in schemas) == tuple(
         prefix + bytes((49 + index,)) for index in range(len(schemas)))
     assert 0 < len(schemas) <= 9
-    header_size = 4 + 12 * len(schemas)
+    recipes = len(schemas) if recipes is None else recipes
+    if not len(schemas) <= recipes <= 9:
+        raise ValueError('unsupported native catalog recipe table')
+    header_size = 4 + 12 * recipes
     output = [f'''def catalog(s:readbuf, o:mutbuf, version:u64) -> u32:
     total = length(s)
-    if version == 0 or version > {len(schemas)} or total < {header_size}:
+    if version == 0 or version > {recipes} or total < {header_size}:
         return 4294967295
     base = catalog_u32(s, 0)
     if base < {header_size} or base > total:

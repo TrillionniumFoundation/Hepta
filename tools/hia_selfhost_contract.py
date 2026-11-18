@@ -1147,7 +1147,8 @@ def support_contract(root=ROOT):
         'agent_inspection': {
             'source': 'examples/hia_bootstrap/agent_inspection.hepta',
             'selection': 'explicit HEPTA_HIA_AGENT_INSPECTION_MANIFEST; no fallback',
-            'native_owners': ['exact function and block selection', 'canonical inspection artifact bytes'],
+            'native_owners': ['canonical summary including the original structured identity',
+                              'exact function and block selection', 'canonical inspection artifact bytes'],
             'whole_program_admission_and_store_issued_authority_retained': True,
             'other_views_and_default_service_unchanged': True,
         },
@@ -1155,7 +1156,7 @@ def support_contract(root=ROOT):
             'source': 'examples/hia_bootstrap/agent_discovery.hepta',
             'selection': 'explicit HEPTA_HIA_AGENT_DISCOVERY_MANIFEST; no fallback',
             'native_owners': ['discovery refusal precedence', 'six resource routes',
-                              'eight canonical primitive opcode catalogs'],
+                              'eight canonical primitive opcode catalogs', 'canonical startup schema registry'],
             'profile_creation_and_resource_authority': 'original Store interface',
             'default_service_changed': False,
         },
