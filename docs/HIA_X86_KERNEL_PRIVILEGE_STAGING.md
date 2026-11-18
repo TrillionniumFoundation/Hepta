@@ -130,3 +130,18 @@ device-resource lifecycle has been implemented by this staged addition.
 Run:
 
     python3 -B -m unittest tests.test_hia_x86_kernel_control_io_staging -v
+
+## Isolated GDTR load encoding (LGDT m80)
+
+The experimental KernelCode.lgdt(base, disp32) adds x86-64 0F 01 /2
+using a ten-byte GDTR memory operand. Independent GNU objdump vectors
+check RAX/RSP/R12/R13; the existing module checks all 16 GPR bases,
+signed displacement bounds, and refusal without partial emission.
+Ordinary Code and HIA Core opcode admission still reject x86.lgdt.
+
+This is instruction encoding only, not a source-level HIA opcode,
+verifier effect, selfhost_elf backend capability or CPL0 execution test.
+GDTR memory ownership, selector lifetimes, canonical bases and interrupt-safe
+replacement need separate proofs and QEMU tests. The non-HIA HeptaKernel
+boot bridge remains mandatory. All 17 Linux acceptance gates and 422
+x86-64 syscall obligations remain HOLD.
