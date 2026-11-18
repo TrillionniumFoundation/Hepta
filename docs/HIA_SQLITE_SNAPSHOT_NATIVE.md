@@ -230,3 +230,31 @@ Client event 6 reads and retains the selected page, 7 reads a checked span of
 that copy by nonce and pin, and 8 releases the copy without releasing the read
 transaction. END and cleanup invalidate the copy. Replies for event 7 carry
 the exact requested offset/count and a separate payload of that length.
+
+## Committing a proposal to a staged HIA Store
+
+The source-bound Agent batch commit executable stages a transaction from an
+admitted `HIATXB01` proposal, emits the sealed `HIAWAL01` records, and runs the
+native writer to append the records and publish the next immutable anchor.
+The producer, stager, writer, and executable packer are all HIA. The
+Linux x86-64 adapter transports fixed descriptor operations to the kernel;
+the resulting ELF needs no interpreter, libc, hosted SQL, or child process.
+
+```sh
+python -B -m tools.build_hia_agent_batch_commit \
+  --compiler "$compiler" --cold-report "$cold_report" --output "$writer_output"
+```
+
+The executable takes no arguments. Supply the selected 128-byte `HIAWAK01`
+anchor on stdin (followed by EOF). The caller supplies the open WAL data
+file on fd 3, selected anchor file on fd 4, Store directory on fd 5,
+WAL lock on fd 6, namespace identity file on fd 7, and an unnamed new
+anchor file in the Store directory on fd 10. Fd 12 holds the read-only-mode
+(`0400`) proposal memfd with all four seals; fd 9 must be unoccupied.
+The HIA stager creates and seals its own transaction file on that slot.
+A nonzero exit or missing receipt is not permission to repeat a possibly
+durable write; first reopen the Store and verify the selected anchor.
+
+This primitive is selected explicitly for private migration. The executable
+does not initialize a destination, select a source snapshot, move artifact
+bytes, switch the Agent's active Store, or replace the existing SQL path.

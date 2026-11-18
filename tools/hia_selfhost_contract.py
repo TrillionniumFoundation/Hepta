@@ -15,6 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 SQLITE_SNAPSHOT_SDIST_FILES = (
+    'tools/build_hia_agent_batch_commit.py',
+    'tools/hia_agent_transaction_stager_syscalls.S',
+    'examples/hia_bootstrap/agent_transaction_writer.hepta',
+    'examples/hia_bootstrap/agent_transaction_stager.hepta',
+    'examples/hia_bootstrap/agent_transaction_producer.hepta',
+    'examples/hia_bootstrap/agent_transaction_stager_packer.hepta',
     'tools/build_hia_sqlite_pager.py',
     'tools/hia_sqlite_pager_start.S',
     'tools/hia_sqlite_pager_os.S',

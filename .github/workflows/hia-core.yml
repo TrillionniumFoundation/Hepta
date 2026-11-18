@@ -188,6 +188,8 @@ jobs:
           done
           python -B -m tools.build_hia_sqlite_pager --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/sqlite-pager"
+          python -B -m tools.build_hia_agent_batch_commit --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-batch-commit"
       - name: Original call graph and native convergence controls
         run: python -B -m unittest tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
