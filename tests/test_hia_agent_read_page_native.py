@@ -29,6 +29,7 @@ class AgentReadPageNativeTests(unittest.TestCase):
     manifest = None
     test_root = None
     native_release = None
+    executable = None
 
     def setUp(self):
         if self.manifest is None:
@@ -91,6 +92,32 @@ class AgentReadPageNativeTests(unittest.TestCase):
         self.assertEqual((code, output.raw), (0xfffffffe, before))
         code = self.native._entry(source, len(raw), output, capacity, scratch, len(scratch) - 1)
         self.assertEqual((code, output.raw), (0xffffffff, before))
+
+    def test_standalone_page_rejects_open_input_and_preserves_issued_cursor(self):
+        if self.executable is None:
+            self.skipTest('run with the matching standalone artifact pager')
+        image = self.executable.read_bytes()
+        self.assertTrue(self.native.matches_standalone(image))
+        ref = {'uri': 'hia://artifacts/abc', 'sha256': 'b' * 64, 'id': 'a-12'}
+        cases = ((b'', 0, 1), ('甲乙'.encode(), 0, 5), (b'a\xff', 0, 1),
+                 (b'\0' * 70000, 0, 65536), (b'abc', 3, 1))
+        expected = [self.native.read_issued_page(data, offset, limit, ref)
+                    for data, offset, limit in cases]
+        with (patch('hepta.hia_native_helpers.pinned_agent_read_page_executable', return_value=image),
+              patch.object(self.native, '_entry', side_effect=AssertionError('mapped page invoked'))):
+            actual = [self.native.read_issued_page(data, offset, limit, ref)
+                      for data, offset, limit in cases]
+        self.assertEqual(actual, expected)
+        wire = REQUEST.pack(b'HIAARP01', 0, 3) + b'abc'
+        unsealed = subprocess.run([self.executable], input=wire, capture_output=True,
+                                  timeout=5, env={'PATH': ''})
+        self.assertEqual((unsealed.returncode, unsealed.stdout, unsealed.stderr), (2, b'', b''))
+        from hepta.hia_scalar_reference_native import sealed_reference_bytes
+
+        with sealed_reference_bytes(b'badframe' + wire[8:]) as fd:
+            invalid = subprocess.run([self.executable], stdin=fd, capture_output=True,
+                                     timeout=5, env={'PATH': ''})
+        self.assertEqual((invalid.returncode, invalid.stdout, invalid.stderr), (2, b'', b''))
 
     def test_tool_resource_alias_and_restart_reuse_exact_cursor(self):
         with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
@@ -172,10 +199,12 @@ def main():
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--test-root', type=Path, required=True)
     parser.add_argument('--native-release', type=Path)
+    parser.add_argument('--executable', type=Path)
     args = parser.parse_args()
     AgentReadPageNativeTests.manifest = args.manifest.resolve()
     AgentReadPageNativeTests.test_root = args.test_root.resolve()
     AgentReadPageNativeTests.native_release = args.native_release.resolve() if args.native_release else None
+    AgentReadPageNativeTests.executable = args.executable.resolve() if args.executable else None
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite(loader.loadTestsFromTestCase(tests)
                               for tests in (AgentReadPageSourceTests, AgentReadPageNativeTests))

@@ -352,6 +352,11 @@ def pinned_direct_call_protocol():
     return getattr(_ACTIVE, 'native_direct_call_protocol', 1)
 
 
+def pinned_agent_read_page_executable():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_agent_read_page_executable', None)
+
+
 def native_helpers_identity():
     _check_scope_owner()
     if _ACTIVE is None:

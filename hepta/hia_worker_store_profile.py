@@ -14,7 +14,8 @@ OWNED_REFERENCE_SCHEMA = 'hepta.hia.native-helpers.v8'
 DIRECT_CALL_SCHEMA = 'hepta.hia.native-helpers.v9'
 DIRECT_REPEAT_SCHEMA = 'hepta.hia.native-helpers.v10'
 DIRECT_BATCH_SCHEMA = 'hepta.hia.native-helpers.v11'
-DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, DIRECT_BATCH_SCHEMA)
+SEALED_PAGE_SCHEMA = 'hepta.hia.native-helpers.v12'
+DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, DIRECT_BATCH_SCHEMA, SEALED_PAGE_SCHEMA)
 OWNED_REFERENCE_SCHEMAS = (OWNED_REFERENCE_SCHEMA, *DIRECT_CALL_SCHEMAS)
 REFERENCE_SCHEMAS = (REFERENCE_SCHEMA, *OWNED_REFERENCE_SCHEMAS)
 SCHEMAS = (SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, *REFERENCE_SCHEMAS)
@@ -43,6 +44,8 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'owned_reference_path', 'owned_reference_sha256'})
         if schema in DIRECT_CALL_SCHEMAS:
             reference_fields.update({'direct_call_path', 'direct_call_sha256'})
+        if schema == SEALED_PAGE_SCHEMA:
+            reference_fields.update({'read_page_path', 'read_page_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
                 or record['target'] != authority.TARGET
@@ -109,7 +112,7 @@ class NativeWorkerStoreBinding:
             self.native_owned_reference_executable = (owned.raw, pin)
         self.native_direct_call_executable = None
         self.native_direct_call_protocol = {
-            DIRECT_REPEAT_SCHEMA: 2, DIRECT_BATCH_SCHEMA: 3,
+            DIRECT_REPEAT_SCHEMA: 2, DIRECT_BATCH_SCHEMA: 3, SEALED_PAGE_SCHEMA: 3,
         }.get(schema, 1)
         if schema in DIRECT_CALL_SCHEMAS:
             from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR
@@ -123,6 +126,20 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone direct call requires its separate pinned executable')
             self.snapshots.append((direct_call, MAX_IMAGE_BYTES))
             self.native_direct_call_executable = (direct_call.raw, pin)
+        self.native_agent_read_page_executable = None
+        if schema == SEALED_PAGE_SCHEMA:
+            from .hia_agent_read_page_native import NativeAgentReadPage, SELECTOR
+
+            if SELECTOR not in self.selections or not authority._digest(record['read_page_sha256']):
+                raise ValueError('standalone read page requires its pinned HIA page image and executable')
+            selected = authority._path(record['read_page_path'], snapshot.path.parent)
+            page = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, record['read_page_sha256'])
+            manifest = str(Path(self.selections[SELECTOR]).resolve(strict=True))
+            owners = [image for key, image in self.images.items() if key[0] == manifest and key[3] is NativeAgentReadPage]
+            if len(owners) != 1 or not owners[0].matches_standalone(page.raw):
+                raise ValueError('standalone read page omits its exact pinned HIA image')
+            self.snapshots.append((page, MAX_IMAGE_BYTES))
+            self.native_agent_read_page_executable = page.raw
         self._check_release()
 
     def check_owner(self):

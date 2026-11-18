@@ -57,13 +57,15 @@ _OWNED = ContextVar('hia-standalone-owned-reference', default=None)
 
 
 @contextmanager
-def sealed_reference_bytes(image):
+def sealed_reference_bytes(image, *additional_parts):
     import fcntl
 
     fd = os.memfd_create('hia-reference-evaluator', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
     try:
         with os.fdopen(os.dup(fd), 'wb') as stream:
             stream.write(image)
+            for part in additional_parts:
+                stream.write(part)
         fcntl.fcntl(fd, fcntl.F_ADD_SEALS, _seals(fcntl))
         yield fd
     finally:
