@@ -14,7 +14,7 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     stub = uint(s, 8, 8)
     calls = uint(s, 16, 8)
     parts = uint(s, 24, 8)
-    if stub < 5 or stub > 3920 or calls == 0 or calls > 32 or parts == 0 or parts > 4:
+    if stub < 5 or stub > 8016 or calls == 0 or calls > 32 or parts == 0 or parts > 4:
         return 16
     stub_at = 64 + 16 * calls
     image_at = stub_at + stub
@@ -24,14 +24,15 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     index = 0
     while index < parts:
         size = uint(s, 32 + 8 * index, 8)
-        if size == 0 or size > 1048576:
+        # A role can contain an offset table and more than one linked image.
+        if size == 0 or size > 2097152:
             return 16
         end = end + size
         index = index + 1
     if end != length(s):
         return 16
     size = position(s, 176 + stub, parts)
-    if size > length(o):
+    if size > length(o) or size > 4198400:
         return 3
     last = 0
     i = 0

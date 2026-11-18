@@ -66,19 +66,22 @@ def check_assembly_rejections(release, directory):
                                 capture_output=True, env={'PATH': ''}, timeout=20, check=False)
         assert (result.returncode, result.stdout, result.stderr) == (1, expected, b''), (
             label, result.returncode, result.stdout, result.stderr)
-        arguments = ['import-assembly', str(path)]
-        reference_stdout = StringIO()
-        reference_stderr = StringIO()
-        with redirect_stdout(reference_stdout), redirect_stderr(reference_stderr):
-            reference_status = _reference_hia_main(arguments)
-        assert reference_status == 2, label
-        result = subprocess.run([release / 'hia', *arguments], input=b'ignored stdin',
-                                capture_output=True, env={'PATH': ''}, timeout=20, check=False)
-        assert (result.returncode, result.stdout, result.stderr) == (
-            reference_status, reference_stdout.getvalue().encode(),
-            reference_stderr.getvalue().encode()), (label, result.returncode, result.stdout, result.stderr)
+        target = directory / (label + '-output') / 'program.hepta'
+        for output in ([], ['-o', str(target)]):
+            arguments = ['import-assembly', str(path), *output]
+            reference_stdout = StringIO()
+            reference_stderr = StringIO()
+            with redirect_stdout(reference_stdout), redirect_stderr(reference_stderr):
+                reference_status = _reference_hia_main(arguments)
+            assert reference_status == 2, label
+            result = subprocess.run([release / 'hia', *arguments], input=b'ignored stdin',
+                                    capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+            assert (result.returncode, result.stdout, result.stderr) == (
+                reference_status, reference_stdout.getvalue().encode(),
+                reference_stderr.getvalue().encode()), (label, output, result.returncode, result.stdout, result.stderr)
+            assert not target.parent.exists(), label
         assert path.read_bytes() == raw, label
-    return len(cases) * 2
+    return len(cases) * 3
 
 
 def check_selected_selfhost(release, directory):
@@ -235,8 +238,10 @@ def check_release(release, directory):
         published = expected if 'output' in expected else expected['publication']
         published['output'] = str(target)
         command = [release / 'hia', *command_args, target]
-        for executable, payload in ((command, b'ignored stdin'), (
-                [release / ('hia-publish-' + name), *native_options, directory / 'raw' / name], raw)):
+        raw_command = ([release / 'hia-import-assembly', '--publish'] if name == 'import'
+                       else [release / ('hia-publish-' + name), *native_options])
+        for executable, payload in ((command, b'ignored stdin'),
+                                    ([*raw_command, directory / 'raw' / name], raw)):
             published['output'] = str(executable[-1])
             result = subprocess.run(executable, input=payload, capture_output=True, env={'PATH': ''},
                                     timeout=20, check=False)

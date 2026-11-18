@@ -27,6 +27,8 @@ ARGUMENT_ARCHIVE = '<public-argument-images>'
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
 ASSEMBLY_PRESENTERS = tuple(CLI + name + '.hepta' for name in (
     'assembly_diagnostic_report', 'assembly_pretty', 'assembly_driver'))
+ASSEMBLY_PUBLICATION = tuple(EDIT + name + '.hepta' for name in (
+    'publication_frontend', 'publication_import', 'publication_policy'))
 
 # Each entry lists the flat payloads in placement order, then the adapter
 # relocation sites belonging to each. Several stages use the same image entry.
@@ -104,12 +106,6 @@ PROGRAMS = {
         (EDIT + 'admission_word_io.hepta', ('core_address',)),
         (EDIT + 'publication_frontend.hepta', ('front_address',)),
         (EDIT + 'publication_program.hepta', ('owner_address',)),
-        (EDIT + 'publication_policy.hepta', ('publication_address',)),
-    )),
-    'publish_import': ('hia-publish-import', (
-        (EDIT + 'admission_word_io.hepta', ('core_address',)),
-        (EDIT + 'publication_frontend.hepta', ('front_address',)),
-        (EDIT + 'publication_import.hepta', ('owner_address',)),
         (EDIT + 'publication_policy.hepta', ('publication_address',)),
     )),
     'publish_assembly': ('hia-publish-assembly', (
@@ -233,7 +229,8 @@ def build(output, compiler, cold_report, *, release_only=False):
     programs = {key: value for key, value in PROGRAMS.items()
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
-    source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *ASSEMBLY_PRESENTERS, *adapters.values(),
+    assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
+    source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
@@ -250,11 +247,13 @@ def build(output, compiler, cold_report, *, release_only=False):
         images[path] = image.read_bytes()
         receipts[path] = receipt
     images[ARGUMENT_ARCHIVE] = argument_images(images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER])
-    diagnostic, pretty, driver = (images[path] for path in ASSEMBLY_PRESENTERS)
-    images[ASSEMBLY_PRESENTATION] = (
-        struct.pack('<3Q', 24, 24 + len(diagnostic), 24 + len(diagnostic) + len(pretty))
-        + diagnostic + pretty + driver
-    )
+    payloads = [images[path] for path in assembly_images]
+    position = 8 * len(payloads)
+    offsets = []
+    for payload in payloads:
+        offsets.append(struct.pack('<Q', position))
+        position += len(payload)
+    images[ASSEMBLY_PRESENTATION] = b''.join((*offsets, *payloads))
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
     products = {}
     for kind, (name, roles) in programs.items():

@@ -183,7 +183,6 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_publish_batch.S',
     'tools/hia_core_edit_publish_batch_query.S',
     'tools/hia_core_edit_publish_edit.S',
-    'tools/hia_core_edit_publish_import.S',
     'tools/hia_core_edit_publish_patch.S',
     'tools/hia_core_edit_publish_program.S',
     'tools/hia_core_edit_publish_query.S',
