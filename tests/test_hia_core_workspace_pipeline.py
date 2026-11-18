@@ -21,6 +21,16 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_pipeline_packer.hepta'
 
 
+def executable_project(increment):
+    document = project(increment)
+    app = document['modules'][0]
+    app['core']['functions'].append(f('start', [], ['u32'], [], [
+        b('entry', [], [c('a', 'u32', 41), i('call', ['a'], [('v', 'u32')], function='work')], ret('v'))
+    ]))
+    app['exports'] = ['start']
+    return document
+
+
 def frame(workspace,admission,frontend,compiler,profile=1):
     return struct.pack('<6Q',MAGIC,len(workspace),len(admission),len(frontend),len(compiler),profile)+workspace+admission+frontend+compiler
 
@@ -233,9 +243,7 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         from tools.generate_hia_elf_linker import MAGIC as LINK_MAGIC,WORKSPACE_BYTES as LINK_SCRATCH
         cases=[]
         for inc in (1,7):
-            doc=project(inc);doc['modules'][0]['core']['functions'].append(f('start',[],['u32'],[],[
-                b('entry',[],[c('a','u32',41),i('call',['a'],[('v','u32')],function='work')],ret('v'))]))
-            doc['modules'][0]['exports']=['start'];wire=json.dumps(doc).encode()
+            wire=json.dumps(executable_project(inc)).encode()
             checked,_=link_workspace(wire,native=self.workspace);assembly=render_assembly(checked).encode()
             oracle=execute_program(checked,'start',[])['result'];status,obj=self.call(self.compiler,assembly,1<<20,1<<20)
             self.assertTrue(0<status<=1<<20);self.assertEqual(oracle,41+inc);cases.append((inc,wire,obj,oracle))

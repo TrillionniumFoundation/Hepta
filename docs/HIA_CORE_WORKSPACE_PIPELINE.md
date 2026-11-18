@@ -11,8 +11,8 @@ workspace JSON path and its original public names, privacy, cycle and capture
 avoidance policy. Default selections remain unchanged; there is no host fallback.
 
 The workspace materializer can represent multiple primitive feature schemas, but
-this complete compiler pipeline accepts **primitive v8 only**, matching the
-existing frontend/compiler. Older versions and nominal types are refused, never
+this complete compiler pipeline's workspace profile accepts **primitive v8 only**.
+Older versions and nominal types are refused, never
 silently upgraded or erased. Unsupported Core programs remain unsupported.
 Representation is not semantic admission: all private functions are checked,
 including unused ones. Invalid SSA and owner drop under a live loan are refused
@@ -20,6 +20,16 @@ by full native Core admission before the compiler or stdout. Only ELF relocatabl
 an executable project still requires linking.
 
 ## Build and use
+
+The sealed native release supplies both `hia-workspace-compile` and
+`hia-elf-link`. For a project exporting an integer-returning, no-argument
+`start`:
+
+```sh
+/absolute/installed/hia-workspace-compile < workspace.json > workspace.o &&
+  /absolute/installed/hia-elf-link start workspace.o > workspace &&
+  chmod +x workspace
+```
 
 Build from a clean checkout with a completed matching-source original/modified
 cold replay. A completed older-source receipt is not sufficient. Refusal precedes
