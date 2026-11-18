@@ -50,6 +50,24 @@ class WorkerHelperSourceTests(unittest.TestCase):
         self.environment.start()
         self.addCleanup(self.environment.stop)
 
+    @unittest.skipUnless(sys.platform == 'linux', 'native Agent address-space profile')
+    def test_small_helper_reads_inside_the_minimum_agent_address_space(self):
+        code = '''
+from pathlib import Path
+import resource
+import sys
+from hepta.hia_native_helpers import _read
+limit = 64 << 20
+resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+assert _read(Path(sys.argv[1]), limit).raw == b"pinned helper"
+'''
+        with tempfile.TemporaryDirectory() as temporary:
+            helper = Path(temporary) / 'smaller-than-limit'
+            helper.write_bytes(b'pinned helper')
+            result = subprocess.run([sys.executable, '-B', '-c', code, str(helper)],
+                                    cwd=ROOT, env=self.clean, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr.decode('utf-8', 'replace'))
+
     def test_empty_authority_selectors_refuse_before_ordinary_reference_or_effects(self):
         from hepta.hia_agent_store import AgentStore
         from hepta.hia_native_retirement import PathIdentityPin

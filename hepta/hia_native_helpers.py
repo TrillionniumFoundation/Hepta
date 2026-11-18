@@ -120,7 +120,7 @@ def _read(path, limit):
                 or before.st_uid not in (0, os.getuid()) or before.st_mode & 0o022
                 or not 0 < before.st_size <= limit):
             raise ValueError("native helper input must be an owned bounded ordinary file")
-        raw = stream.read(limit + 1)
+        raw = stream.read(before.st_size + 1)
         after = os.fstat(stream.fileno())
     fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns", "st_mode", "st_uid", "st_nlink")
     identity = tuple(getattr(before, name) for name in fields)
