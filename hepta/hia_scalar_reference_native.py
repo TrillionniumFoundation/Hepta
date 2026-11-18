@@ -19,6 +19,8 @@ MAGIC = int.from_bytes(b'HIASCP01', 'little')
 RESULT = int.from_bytes(b'HIASCR01', 'little')
 BYTE_MAGIC = int.from_bytes(b'HIASBM01', 'little')
 ALLOCATION_MAGIC = int.from_bytes(b'HIASAM01', 'little')
+DOMAIN_MAGIC = int.from_bytes(b'HIASDM01', 'little')
+OBSERVATION_MAGIC = int.from_bytes(b'HIASOM01', 'little')
 WORD_MASK = (1 << 64) - 1
 _ACTIVE = ContextVar('hia_scalar_reference_child', default=None)
 OPCODES = {name: index for index, name in enumerate((
@@ -115,6 +117,28 @@ class NativeScalarReference(NativeHiaJsonImage):
                 or new_attempts != attempts + (decision >= 3)):
             raise RuntimeError('invalid HIA reference allocation decision')
         return ALLOCATION_DECISIONS[decision], new_attempts
+
+    def finite_arguments(self, types, ordinal, required):
+        # One-byte kinds encode Boolean, unsigned byte, and signed byte.
+        kinds = bytes({'bool': 1, 'u8': 8, 'i8': 136}[kind] for kind in types)
+        request = struct.pack('<3Q', DOMAIN_MAGIC, ordinal, len(kinds)) + kinds
+        source = ctypes.create_string_buffer(request)
+        output = ctypes.create_string_buffer(8 + 8 * len(kinds))
+        unused = ctypes.create_string_buffer(1)
+        size = self._entry(source, len(request), output, len(output), unused, 0)
+        if size != len(output) or struct.unpack_from('<Q', output.raw)[0] != required:
+            raise RuntimeError('invalid HIA finite-domain argument result')
+        words = struct.unpack_from(f'<{len(kinds)}q', output.raw, 8)
+        return tuple(bool(value) if kind == 'bool' else value for kind, value in zip(types, words))
+
+    def same_observation(self, first, second):
+        request = struct.pack('<3Q', OBSERVATION_MAGIC, len(first), len(second)) + first + second
+        source = ctypes.create_string_buffer(request)
+        unused = ctypes.create_string_buffer(1)
+        status = self._entry(source, len(request), unused, 0, unused, 0)
+        if status not in (0, 1):
+            raise RuntimeError('invalid HIA finite-domain observation result')
+        return bool(status)
 
     @staticmethod
     def _arithmetic_error(error, typ):

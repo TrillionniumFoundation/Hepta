@@ -4,7 +4,9 @@ import ast
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_scalar_reference_native import ALLOCATION_MAGIC, BYTE_MAGIC, MAGIC, OPCODES, RESULT
+from hepta.hia_scalar_reference_native import (
+    ALLOCATION_MAGIC, BYTE_MAGIC, DOMAIN_MAGIC, MAGIC, OBSERVATION_MAGIC, OPCODES, RESULT,
+)
 from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT
 from tools.generate_hia_elf_linker import LinkerBuilder, SOURCE as STATIC_SOURCE
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
@@ -20,6 +22,10 @@ def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return byte_operation(s, o, w)
     if uint(s, 0, 8) == @ALLOCATION_MAGIC@:
         return allocation_decision(s, o)
+    if uint(s, 0, 8) == @DOMAIN_MAGIC@:
+        return finite_arguments(s, o)
+    if uint(s, 0, 8) == @OBSERVATION_MAGIC@:
+        return same_observation(s)
     if length(s) != 56:
         return 4294967295
     if length(o) < 24:
@@ -453,6 +459,63 @@ def allocation_decision(s:readbuf, o:mutbuf) -> u32:
     put(o, 8, status)
     put(o, 16, attempts)
     return 24
+
+def finite_arguments(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 24:
+        return 4294967295
+    ordinal = uint(s, 8, 8)
+    count = uint(s, 16, 8)
+    if count > 12 or length(s) != 24 + count:
+        return 4294967295
+    output_size = 8 + 8 * count
+    if length(o) < output_size:
+        return 4294967294
+    i = 0
+    bits = 0
+    while i < count:
+        kind = byte(s, 24 + i)
+        if kind == 1:
+            bits = bits + 1
+        elif kind == 8 or kind == 136:
+            bits = bits + 8
+        else:
+            return 4294967295
+        i = i + 1
+    if bits > 12:
+        return 4294967295
+    cases = 1 << bits
+    if ordinal >= cases:
+        return 4294967295
+    put(o, 0, cases)
+    # The last argument changes fastest. The signed range starts at -128.
+    while i > 0:
+        i = i - 1
+        kind = byte(s, 24 + i)
+        width = kind & 127
+        mask = (1 << width) - 1
+        digit = ordinal & mask
+        if kind == 136:
+            digit = digit - 128
+        put(o, 8 + 8 * i, digit)
+        ordinal = ordinal >> width
+    return output_size
+
+def same_observation(s:readbuf) -> u32:
+    if length(s) < 24:
+        return 4294967295
+    left = uint(s, 8, 8)
+    right = uint(s, 16, 8)
+    available = length(s) - 24
+    if left > available or right != available - left:
+        return 4294967295
+    if left != right:
+        return 0
+    i = 0
+    while i < left:
+        if byte(s, 24 + i) != byte(s, 24 + left + i):
+            return 0
+        i = i + 1
+    return 1
 '''
 
 class ReferenceBuilder(LinkerBuilder):
@@ -464,6 +527,7 @@ class ReferenceBuilder(LinkerBuilder):
 
 def document():
     constants = {'MAGIC': MAGIC, 'BYTE_MAGIC': BYTE_MAGIC, 'ALLOCATION_MAGIC': ALLOCATION_MAGIC,
+                 'DOMAIN_MAGIC': DOMAIN_MAGIC, 'OBSERVATION_MAGIC': OBSERVATION_MAGIC,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, **OPCODES}
     source = SOURCE

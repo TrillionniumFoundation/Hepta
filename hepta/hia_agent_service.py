@@ -762,6 +762,7 @@ class HIAAgentService:
         """A conservative proof decision, separate from workload testing."""
         from .hia_optimization import PURE, DEFAULT_POLICY, verify_optimization
         from .hia_program import WIDTHS, integer_range
+        from .hia_scalar_reference_native import selected_scalar_reference
         if timeout_ms <= 0:
             return "unknown", "Verification cannot exceed the frozen context deadline", {
                 "method": "context_budget_exhausted", "reason": "context wall budget exhausted"}
@@ -810,15 +811,23 @@ class HIAAgentService:
                 if bits > 12 or total + (1 << bits) > 4096:
                     finite = False
                     break
-                domains[name] = [[False, True] if typ == "bool" else range(integer_range(typ)[0], integer_range(typ)[1] + 1)
-                                 for typ in signature["params"]]
+                domains[name] = signature["params"], 1 << bits
                 total += 1 << bits
         if finite:
+            native = selected_scalar_reference()
             transcript = sha256()
             checked = 0
             deadline = time.monotonic_ns() + min(10000, timeout_ms) * 1_000_000
-            for name, input_domains in domains.items():
-                for arguments in itertools.product(*input_domains):
+            for name, (types, required) in domains.items():
+                if native is None:
+                    input_domains = [[False, True] if typ == "bool" else
+                                     range(integer_range(typ)[0], integer_range(typ)[1] + 1)
+                                     for typ in types]
+                    cases = itertools.product(*input_domains)
+                else:
+                    cases = (native.finite_arguments(types, ordinal, required)
+                             for ordinal in range(required))
+                for arguments in cases:
                     if time.monotonic_ns() > deadline:
                         return "unknown", "Pure acyclic scalar finite domain; exhaustive enumeration deadline expired", {
                             "method": "finite_domain", "checked": checked, "required": total, "complete": False}
@@ -833,7 +842,9 @@ class HIAAgentService:
                     first, second = observables(before), observables(after)
                     transcript.update(wire({"case": case, "before": first, "after": second}))
                     checked += 1
-                    if first != second:
+                    same = (first == second if native is None else
+                            native.same_observation(wire(first), wire(second)))
+                    if not same:
                         return "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
                             "method": "finite_domain", "counterexample": case, "before": first, "after": second,
                             "checked": checked, "required": total, "complete": False}

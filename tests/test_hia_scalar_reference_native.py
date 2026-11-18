@@ -1,6 +1,7 @@
 """Independent checks for the selected reference VM scalar semantics."""
 
 from hashlib import sha256
+from itertools import product
 import json
 import os
 from pathlib import Path
@@ -48,6 +49,43 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         cls.manifest.write_text(json.dumps({'schema': SCHEMA,
             'source_sha256': sha256(SOURCE.read_bytes()).hexdigest(), 'image_path': image.name,
             'image_sha256': digest, 'compiler_sha256': sha256(compiler.read_bytes()).hexdigest()}))
+
+    def test_finite_domains_are_complete_and_lexicographic(self):
+        by_type = {'bool': (False, True), 'i8': range(-128, 128), 'u8': range(256)}
+        for types in ((), ('bool',) * 12, ('bool', 'i8', 'bool'), ('u8',) + ('bool',) * 4):
+            expected = list(product(*(by_type[kind] for kind in types)))
+            actual = [self.native.finite_arguments(types, i, len(expected))
+                      for i in range(len(expected))]
+            self.assertEqual(actual, expected)
+            with self.assertRaisesRegex(RuntimeError, 'finite-domain argument'):
+                self.native.finite_arguments(types, len(expected), len(expected))
+
+    def test_agent_finite_proof_matches_transcript_and_first_counterexample(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_program import verify_program
+        from tools.hia_agent_native_qualification import add_program
+
+        service = object.__new__(HIAAgentService)
+        original = verify_program(add_program(typ='i8'))
+        equivalent = verify_program(add_program(typ='i8', optimized=True))
+        changed = add_program(typ='i8')
+        changed['functions'][0]['blocks'][0]['term']['values'] = ['x']
+        changed = verify_program(changed)
+        targets = equivalent, changed
+        expected = [service._behavior_equivalence(original, target, 10000) for target in targets]
+        self.assertEqual(expected[0][0], 'proved')
+        self.assertEqual(expected[0][2]['checked'], 256)
+        self.assertEqual(expected[1][0], 'refuted')
+        self.assertEqual(expected[1][2]['counterexample']['arguments'], [-128])
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch('hepta.hia_agent_service.itertools.product', side_effect=AssertionError('host enumeration')),
+              patch.object(_Machine, 'invoke', side_effect=AssertionError('host CFG interpreter'))):
+            self.assertEqual([service._behavior_equivalence(original, target, 10000)
+                              for target in targets], expected)
+
+        self.assertTrue(self.native.same_observation(b'\0\xff', b'\0\xff'))
+        self.assertFalse(self.native.same_observation(b'\0\xff', b'\0\xfe'))
+        self.assertFalse(self.native.same_observation(b'\0', b'\0\0'))
 
     def test_every_scalar_operator_and_signed_unsigned_boundaries_match_reference(self):
         rng = random.Random(0x484941)
