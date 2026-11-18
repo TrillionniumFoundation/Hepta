@@ -27,6 +27,7 @@ LOAN_MAGIC = int.from_bytes(b'HIASLM01', 'little')
 CHAIN_MAGIC = int.from_bytes(b'HIASCM01', 'little')
 OWNER_MAGIC = int.from_bytes(b'HIASOW01', 'little')
 STORAGE_MAGIC = int.from_bytes(b'HIASOS01', 'little')
+ARENA_BYTES_MAGIC = int.from_bytes(b'HIASOB01', 'little')
 OWNER_RECORD_BYTES = 112
 WORD_MASK = (1 << 64) - 1
 _ACTIVE = ContextVar('hia_scalar_reference_child', default=None)
@@ -216,6 +217,27 @@ class NativeScalarReference(NativeHiaJsonImage):
         if status not in (0, 2, 3):
             raise RuntimeError('invalid HIA native storage result')
         return status, struct.unpack_from('<Q', workspace, OWNER_RECORD_BYTES - 8)[0]
+
+    def storage_bytes(self, name, workspace, storage, destination, *, source=0, offset=0,
+                      source_offset=0, count=0, value=0):
+        from .hia_program_runtime import HIAProgramTrap
+
+        opcode, message = BYTE_OPERATIONS[name]
+        request = struct.pack('<8Q', ARENA_BYTES_MAGIC, opcode, destination, source,
+                              offset, source_offset, count, value)
+        wire = ctypes.create_string_buffer(request)
+        capacity = 0 if storage is None else len(storage)
+        backing = ((ctypes.c_ubyte * capacity).from_buffer(storage)
+                   if capacity else ctypes.create_string_buffer(1))
+        table = (ctypes.c_ubyte * len(workspace)).from_buffer(workspace)
+        status = self._entry(wire, len(request), backing, capacity, table, len(workspace))
+        if status == 0xfffffffd:
+            raise HIAProgramTrap('bounds', message)
+        if name == 'load' and 256 <= status <= 511:
+            return status - 256
+        if name != 'load' and status == 0:
+            return None
+        raise RuntimeError('invalid HIA native storage byte result')
 
     @staticmethod
     def _arithmetic_error(error, typ):

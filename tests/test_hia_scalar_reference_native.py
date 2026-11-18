@@ -613,6 +613,44 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertEqual(ask(4, replacement)[:2], (0, 0))
         self.assertEqual(ask(0)[2], [2, 1, 1, 2, 2, 0, 8])
 
+    def test_owned_storage_operations_do_not_export_host_slices(self):
+        from hepta.hia_program_runtime import _ReferenceResources
+
+        table = bytearray(OWNER_RECORD_BYTES * 4)
+        backing = bytearray(19)
+        first = self.native.attach_storage(table, backing, 8, 19)[1]
+        second = self.native.attach_storage(table, backing, 8, 19)[1]
+
+        def access(operation, owner, **fields):
+            return self.native.storage_bytes(operation, table, backing, owner, **fields)
+
+        access('store', first, offset=0, value=7)
+        access('fill', first, offset=1, count=4, value=17)
+        access('copy_range', second, source=first, offset=2, source_offset=0, count=5)
+        access('move', second, offset=1, source_offset=2, count=5)
+        access('swap', second, offset=1, source_offset=5)
+        self.assertEqual(backing[8:16], bytes((0, 17, 17, 17, 17, 7, 17, 0)))
+        self.assertEqual(access('load', second, offset=5), 7)
+        prior = backing[:]
+        with self.assertRaises(HIAProgramTrap):
+            access('copy', second, source=first, count=9)
+        self.native.owner_operation(table, 4, first, 19)
+        with self.assertRaises(RuntimeError):
+            access('copy_range', second, source=first, count=1)
+        with self.assertRaises(RuntimeError):
+            access('copy_range', second, source=second, count=1)
+        self.assertEqual(backing, prior)
+
+        from tests.test_hia_program import resource_program
+
+        program = resource_program()
+        baseline = execute_program(program, 'owned', [8, 25])
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_ReferenceResources, 'byte_storage', side_effect=AssertionError('host slice')),
+              patch.object(NativeScalarReference, 'byte_operation', side_effect=AssertionError('old byte transport'))):
+            actual = execute_program(program, 'owned', [8, 25])
+        self.assertEqual(actual, baseline)
+
     def test_native_storage_compacts_live_spans_and_zeros_reclaimed_bytes(self):
         import mmap
 

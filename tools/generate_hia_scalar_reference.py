@@ -6,7 +6,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import (
     ALLOCATION_MAGIC, BYTE_MAGIC, CHAIN_MAGIC, DOMAIN_MAGIC, LOAN_MAGIC, MAGIC, OBSERVATION_MAGIC,
-    OPCODES, OWNER_MAGIC, OWNER_RECORD_BYTES, RESULT, STORAGE_MAGIC,
+    ARENA_BYTES_MAGIC, OPCODES, OWNER_MAGIC, OWNER_RECORD_BYTES, RESULT, STORAGE_MAGIC,
 )
 from hepta.hia_opcodes import opcode_spec
 from hepta.hia_scalar_reference_wire import (
@@ -39,6 +39,8 @@ def execute(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return owner_operation(s, o, w)
     if uint(s, 0, 8) == @STORAGE_MAGIC@:
         return attach_storage(s, o, w)
+    if uint(s, 0, 8) == @ARENA_BYTES_MAGIC@:
+        return storage_bytes(s, o, w)
     if length(s) != 56:
         return 4294967295
     if length(o) < 24:
@@ -725,6 +727,71 @@ def attach_storage(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
     put(w, 104, token >> 1)
     return 0
 
+def owner_span(w:mutbuf, ident:u64, capacity:u64) -> u64:
+    if ident == 0 or ident >= 4611686018427387904:
+        return 0
+    slot = arena_slot(w, (ident << 1) | 1, @OWNER_RECORD_BYTES@)
+    if slot == 0 or within(capacity, get(w, slot + 24), get(w, slot + 16)) == 0:
+        return 0
+    return slot
+
+def storage_bytes(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 64 or length(w) < @OWNER_RECORD_BYTES@:
+        return 4294967295
+    operation = uint(s, 8, 8)
+    if operation < 1 or operation > 6:
+        return 4294967295
+    ident = uint(s, 16, 8)
+    slot = owner_span(w, ident, length(backing))
+    if slot == 0:
+        return 4294967295
+    start = get(w, slot + 24)
+    size = get(w, slot + 16)
+    offset = uint(s, 32, 8)
+    other = uint(s, 40, 8)
+    count = uint(s, 48, 8)
+    value = uint(s, 56, 8)
+    if operation == 1 or operation == 2:
+        if offset >= size:
+            return 4294967293
+        if operation == 1:
+            return 256 + byte(backing, start + offset)
+        if value > 255:
+            return 4294967295
+        store(backing, start + offset, value)
+    elif operation == 6:
+        if offset >= size or other >= size:
+            return 4294967293
+        if offset != other:
+            previous = byte(backing, start + offset)
+            store(backing, start + offset, byte(backing, start + other))
+            store(backing, start + other, previous)
+    else:
+        if within(size, offset, count) == 0:
+            return 4294967293
+        if operation == 3:
+            if value > 255:
+                return 4294967295
+            i = 0
+            while i < count:
+                store(backing, start + offset + i, value)
+                i = i + 1
+        elif operation == 4:
+            source = uint(s, 24, 8)
+            if source == ident:
+                return 4294967295
+            source_slot = owner_span(w, source, length(backing))
+            if source_slot == 0:
+                return 4294967295
+            if within(get(w, source_slot + 16), other, count) == 0:
+                return 4294967293
+            move_bytes(backing, start + offset, get(w, source_slot + 24) + other, count)
+        else:
+            if within(size, other, count) == 0:
+                return 4294967293
+            move_bytes(backing, start + offset, start + other, count)
+    return 0
+
 def compact_storage(backing:mutbuf, w:mutbuf) -> u64:
     slot = get(w, 80)
     end = 0
@@ -1031,6 +1098,7 @@ def document():
                  'LOAN_MAGIC': LOAN_MAGIC,
                  'CHAIN_MAGIC': CHAIN_MAGIC, 'OWNER_MAGIC': OWNER_MAGIC,
                  'STORAGE_MAGIC': STORAGE_MAGIC, 'OWNER_RECORD_BYTES': OWNER_RECORD_BYTES,
+                 'ARENA_BYTES_MAGIC': ARENA_BYTES_MAGIC,
                  'RESULT': RESULT, 'PROGRAM_MAGIC': PROGRAM_MAGIC,
                  'RESOURCE_PROGRAM_MAGIC': RESOURCE_PROGRAM_MAGIC,
                  'PROGRAM_RESULT': PROGRAM_RESULT, 'MAX_FRAME_WORDS': MAX_FRAME_WORDS,

@@ -815,15 +815,23 @@ class _ReferenceResources:
             return [changed, payload, int(present)]
         raise HIAProgramRejected("unhandled native chain opcode", "E_HIA_RUNTIME_INVARIANT")
 
+    def transfer_bytes(self, name, destination, *, source=None, **transfer):
+        if isinstance(destination, _OwnerSpan) and (source is None or isinstance(source, _OwnerSpan)):
+            return self.native.storage_bytes(name, self.owners, self.storage, destination.ident,
+                                             source=0 if source is None else source.ident, **transfer)
+        return self.native.byte_operation(name, self.byte_storage(destination),
+                                          source=None if source is None else self.byte_storage(source),
+                                          **transfer)
+
     def _byte_operation(self, op, first_kind, words):
         read_only = op in {"len", "load"}
         token = self.owner_token(words[0]) if first_kind == "buffer" else words[0]
         _, owner = self.loan(1, token, mutable=not read_only)
-        data = self.byte_storage(owner)
+        extent = owner.length if isinstance(owner, _OwnerSpan) else len(owner.data)
         if op == "len":
-            return [len(data)]
+            return [extent]
         if op == "load":
-            return [self.native.byte_operation("load", data, offset=words[1])]
+            return [self.transfer_bytes("load", owner, offset=words[1])]
         if op in {"copy", "copy_range"}:
             _, source = self.loan(1, words[1])
             if owner.ident == source.ident:
@@ -831,7 +839,7 @@ class _ReferenceResources:
                            "range copy violates checked distinct-owner loans")
                 raise HIAProgramRejected(message, "E_HIA_RUNTIME_INVARIANT")
             offsets = {} if op == "copy" else {"offset": words[2], "source_offset": words[3]}
-            self.native.byte_operation(op, data, source=self.byte_storage(source), count=words[-1], **offsets)
+            self.transfer_bytes(op, owner, source=source, count=words[-1], **offsets)
             return []
         options = {
             "store": ("store", ("offset", "value"), None),
@@ -843,9 +851,9 @@ class _ReferenceResources:
         name, keys, memory_error = options[op]
         transfer = dict(zip(keys, words[1:]))
         if op == "fill":
-            transfer["count"] = len(data)
+            transfer["count"] = extent
         try:
-            self.native.byte_operation(name, data, **transfer)
+            self.transfer_bytes(name, owner, **transfer)
         except MemoryError as error:
             if memory_error is None:
                 raise
