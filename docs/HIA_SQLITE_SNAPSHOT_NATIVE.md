@@ -83,6 +83,21 @@ its lock, authenticate independently supplied pages, validate artifact
 files or durably publish the target. The caller must supply pages from one
 retained snapshot and retain its lock until the target commit has finished.
 
+For an initialized private destination, pass `--stage` and use target
+transaction 1 in the same snapshot input. This mode additionally runs the
+HIA proposal, artifact-inventory and historical-sequence policies without
+another process. Its output starts with `HIASTAG1` and three lengths:
+proposal, artifact inventory and sequence extension, followed by those
+regions in that order. A nonempty proposal is ready for the first batch
+writer; the inventory includes its 24-byte header even when empty. A missing
+business batch produces no proposal. A deleted high-water ahead of surviving
+cost rows produces the sealed sequence transaction, numbered 2 after a
+business batch or 1 when no business batch is needed. An absent or
+non-advancing sequence produces no extension. The complete staged output is
+bounded to 128 MiB. No bytes are emitted before every required stage succeeds.
+The artifacts must still be verified and copied, and the resulting proposal
+and any extension must still be durably committed while the source is held.
+
 ### Coordinating Agent migration
 
 `hia-sqlite-migration-plan` takes the completed 112-byte `HIASCOK1` Agent

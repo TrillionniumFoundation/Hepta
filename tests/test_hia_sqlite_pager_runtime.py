@@ -289,6 +289,8 @@ class NativeSQLiteComponents(unittest.TestCase):
                 store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
                 empty = store.database.read_bytes()
                 store.db.execute('INSERT INTO costs VALUES (?, ?, ?, ?, ?, ?, ?)', fields)
+                store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                current = store.database.read_bytes()
                 store.db.execute('INSERT INTO costs VALUES (?, ?, ?, ?, ?, ?, ?)',
                                  (128, None, 'hia_artifact', 'deleted', '1', 'completed', '{}'))
                 store.db.execute('DELETE FROM costs WHERE sequence = 128')
@@ -296,19 +298,22 @@ class NativeSQLiteComponents(unittest.TestCase):
                 self.assertEqual(sequence, 128)
                 store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
                 full = store.database.read_bytes()
+                store.db.execute('DELETE FROM costs')
+                store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+                sequence_only = store.database.read_bytes()
                 store.db.execute('CREATE TABLE extra_table (unexpected TEXT)')
                 store.db.execute('PRAGMA wal_checkpoint(TRUNCATE)')
                 extra_schema = store.database.read_bytes()
             finally:
                 store.close()
 
-        def project(raw, *, trailing=b'', expected_status=0):
+        def project(raw, *, trailing=b'', expected_status=0, options=(), transaction=9):
             page_size = int.from_bytes(raw[16:18], 'big')
             if page_size == 1:
                 page_size = 65536
-            header = struct.pack('<8s3Q24s', b'HIASMIG1', 9, len(raw) // page_size,
+            header = struct.pack('<8s3Q24s', b'HIASMIG1', transaction, len(raw) // page_size,
                                  page_size, bytes(range(1, 25)))
-            result = subprocess.run([self.root / 'hia-sqlite-migration-projection'],
+            result = subprocess.run([self.root / 'hia-sqlite-migration-projection', *options],
                                     input=struct.pack('<Q', len(header) + len(raw)) + header + raw + trailing,
                                     capture_output=True, env={'PATH': ''}, timeout=15, check=False)
             self.assertEqual((result.returncode, result.stderr), (expected_status, b''))
@@ -342,6 +347,33 @@ class NativeSQLiteComponents(unittest.TestCase):
         self.assertEqual(reply[at + 56:], bytes.fromhex('031702636f7374730080'))
         project(extra_schema, expected_status=65)
         project(full, trailing=b'x', expected_status=64)
+        project(full, options=('--stage',), expected_status=64)
+        project(full, options=('--st',), expected_status=64)
+
+        def staged(raw):
+            data = project(raw, options=('--stage',), transaction=1)
+            tag, proposal, inventory, extension = COMPONENT_FRAME.unpack_from(data)
+            self.assertEqual((tag, inventory, len(data)), (b'HIASTAG1', 24, 32 + proposal + 24 + extension))
+            self.assertEqual(data[32 + proposal:56 + proposal], struct.pack('<8s2Q', b'HIAFID01', 1, 0))
+            return data[32:32 + proposal], data[56 + proposal:]
+
+        self.assertEqual(staged(empty), (b'', b''))
+        current_proposal, current_extension = staged(current)
+        self.assertEqual(current_extension, b'')
+        staged_proposal, staged_extension = staged(full)
+        self.assertEqual(staged_proposal, current_proposal)
+        original = project(full, transaction=1)
+        _, batch, _, maximum = COMPONENT_FRAME.unpack_from(original)
+        [(status, proposal)] = self.component('agent-import-batch',
+                                              self.request(original[32:32 + batch], batch + 8, 0))
+        self.assertEqual((status, staged_proposal), (0, proposal))
+        sequence_record = original[32 + batch + 56:]
+        request = COMPONENT_FRAME.pack(b'HIASQH01', 1, 2, maximum) + sequence_record
+        [(status, extension)] = self.component('agent-cost-sequence', self.request(request, 656, 4096))
+        self.assertEqual((status, staged_extension), (0, extension))
+        proposal, sequence = staged(sequence_only)
+        self.assertEqual(proposal, b'')
+        self.assertEqual(struct.unpack_from('<8s2Q', sequence), (b'HIAWAL01', 96, 1))
 
     def test_native_migration_stream_keeps_the_source_locked(self):
         if self.root is None or NativePagerArgv.executable is None:

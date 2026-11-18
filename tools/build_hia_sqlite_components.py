@@ -22,7 +22,9 @@ WRAPPER = 'tools/hia_sqlite_pager_image.S'
 COMPONENT_DRIVER = 'tools/build_hia_sqlite_components.py'
 PROJECTION = 'sqlite-migration-projection'
 PROJECTION_ROLES = ('sqlite-agent-catalog', 'sqlite-table-walk', 'sqlite-rowid-lookup',
-                    'sqlite-record-layout', 'sqlite-agent-row-import', 'sqlite-migration-plan')
+                    'sqlite-record-layout', 'sqlite-agent-row-import', 'sqlite-migration-plan',
+                    'sqlite-migration-stage', 'sqlite-agent-import-batch',
+                    'sqlite-agent-artifact-catalog', 'sqlite-agent-cost-sequence')
 PROJECTION_ADAPTER = 'tools/hia_sqlite_migration_projection.S'
 STATIC_LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
 
