@@ -19,6 +19,7 @@ TAIL = HEADER.size + 2 * SELECTOR_BYTES + 8
 VIEW = b'HIAVIEW1'
 SCHEMA_PROBE = b'HIAOSC01'
 HASH_INPUT = b'HIAONH01'
+IMPORT_DIAGNOSTICS = b'HIAADG01'
 NOMINAL_CONTEXT = b'HIAONC01'
 NOMINAL_TAIL = 9472
 REFUSALS = {
@@ -73,12 +74,25 @@ class NativeAgentInspection(NativeHiaJsonImage):
             raise ValueError('invalid native HIA Agent inspection summary')
         return result
 
+    def import_diagnostics(self, core, original, profile):
+        context = b''
+        if profile:
+            length, digest = self._report(original, mode=HASH_INPUT)
+            if length != 64:
+                raise ValueError('invalid native Agent import digest')
+            context = NOMINAL_CONTEXT + struct.pack('<Q', profile) + digest
+        size, result = self._report(core, mode=IMPORT_DIAGNOSTICS, context=context)
+        if not 0 < size <= 256 or len(result) != size:
+            raise ValueError('invalid native Agent import diagnostics')
+        return result
+
     def _report(self, raw, *, mode=bytes(8), context=b''):
         if type(raw) is not bytes or not 0 < len(raw) <= MAX_BYTES:
             raise ValueError('invalid native HIA Agent inspection input extent')
         arena_size, parser_size = arena_sizes(len(raw), MAX_NODES, MAX_DEPTH)
         output_size = (MAX_BYTES if mode == bytes(8)
-                       else max(parser_size, len(raw) if mode == HASH_INPUT else 64))
+                       else max(parser_size, len(raw), 256) if mode in (HASH_INPUT, IMPORT_DIAGNOSTICS)
+                       else max(parser_size, 64))
         source = ctypes.create_string_buffer(raw)
         output = ctypes.create_string_buffer(output_size)
         workspace = ctypes.create_string_buffer(arena_size + NOMINAL_TAIL)

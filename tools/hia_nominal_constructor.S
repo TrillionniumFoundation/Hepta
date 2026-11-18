@@ -114,6 +114,10 @@ _start:
  call argument_equal
  test eax,eax
  jnz stdin_normalize
+ lea rsi,[rip+stdio_agent_admit]
+ call argument_equal
+ test eax,eax
+ jnz stdin_agent_admit
  lea rsi,[rip+request]
  mov edx,64
  call read_exact
@@ -1101,6 +1105,9 @@ outer_failed:
  mov edi,65
  jmp exit
 
+stdin_agent_admit:
+ mov edi,6
+ jmp stdin_begin
 stdin_verify:
  mov edi,7
  jmp stdin_begin
@@ -1182,6 +1189,8 @@ verify_primitive_stdin:
  mov r15,[rip+original_extent]
  mov rax,[rip+original_canonical]
  mov [rip+type_output],rax
+ cmp QWORD PTR [rip+handoff_role],6
+ je write_admitted_bytes
  jmp present_public
 
 canonical_original:
@@ -1269,6 +1278,7 @@ verify_assembled_core:
  mov r15d,eax
  cmp QWORD PTR [rip+handoff_role],6
  ja present_public
+write_admitted_bytes:
  lea rdi,[rip+verified_header]
  call clear_header
  mov rax,[rip+input_profile]
@@ -1647,6 +1657,7 @@ helper_stream_name: .asciz "hia-function-helpers"
 stdio_verify: .asciz "hia-verify-core-json"
 stdio_inspect: .asciz "hia-inspect-core-json"
 stdio_normalize: .asciz "hia-normalize-core"
+stdio_agent_admit: .asciz "hia-admit-agent-json"
 stdio_publish: .asciz "hia-publish-program"
 .balign 16
 owner: .incbin "owner.image.bin"

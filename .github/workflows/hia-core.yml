@@ -559,7 +559,8 @@ jobs:
             --response-manifest "$installed/agent-response-schema-manifest.json" \
             --proof-manifest "$installed/agent-verify-response-schema-manifest.json" \
             --discovery-manifest "$installed/agent-discovery-manifest.json" \
-            --inspection-manifest "$installed/agent-inspection-manifest.json"
+            --inspection-manifest "$installed/agent-inspection-manifest.json" \
+            --native-release "$installed"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
         run: |

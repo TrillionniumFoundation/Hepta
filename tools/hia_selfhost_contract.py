@@ -1152,11 +1152,19 @@ def support_contract(root=ROOT):
             'whole_program_admission_and_store_issued_authority_retained': True,
             'native_dependency_query': {
                 'source': 'examples/hia_bootstrap/core_edit/query.hepta',
-                'selection': 'sealed hia-prepare-edit-query pinned in native helpers v5',
+                'selection': 'sealed hia-prepare-edit-query pinned in native helpers v5 or v6',
                 'retains_distinct_admitted_original_input_digest': True,
                 'hosted_rejection_diagnostic_only_after_native_refusal': True,
             },
             'lowering_view_and_default_service_unchanged': True,
+        },
+        'agent_candidate_import': {
+            'selection': 'explicit native worker helper v6 on the sealed release',
+            'native_admission': ['whole primitive Core v1–v8', 'nominal Core elaboration and independent recheck',
+                                 'typed assembly v6–v8'],
+            'diagnostic_owner': 'HIA serialization with SHA-256 of original and canonical Core',
+            'hosted_rejection_diagnostic_only_after_native_refusal': True,
+            'store_authority_and_default_service_unchanged': True,
         },
         'agent_discovery': {
             'source': 'examples/hia_bootstrap/agent_discovery.hepta',

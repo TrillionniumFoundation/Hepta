@@ -42,6 +42,7 @@ def main(argv=None):
         with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256) as binding:
             args.pinned_native_store = getattr(binding, 'native_store', None)
             args.pinned_native_edit_query = getattr(binding, 'native_edit_query', None)
+            args.pinned_native_candidate_import = getattr(binding, 'native_candidate_import', None)
             if args.pinned_native_store is not None and args.native_store_release is not None:
                 raise ValueError('native Store must be selected only once')
             return _run(parser, args)
@@ -144,7 +145,8 @@ def _open_service(args, state_root, artifact_roots):
     selected = getattr(args, 'pinned_native_store', None)
     if selected is not None:
         return HIAAgentService(state_root, artifact_roots=artifact_roots, native_store=selected,
-                               native_edit_query=getattr(args, "pinned_native_edit_query", None))
+                               native_edit_query=getattr(args, "pinned_native_edit_query", None),
+                               native_candidate_import=getattr(args, "pinned_native_candidate_import", None))
     release = getattr(args, "native_store_release", None)
     if release is None:
         return HIAAgentService(state_root, artifact_roots=artifact_roots)

@@ -6,11 +6,11 @@ import json
 from pathlib import Path
 
 from hepta import hia_native_helpers as authority
-from hepta.hia_agent_store_native import RELEASE_IMAGES, capture_release_image, release_identity
-from hepta.hia_worker_store_profile import EDIT_QUERY_SCHEMA, PIN_FIELDS, SCHEMA
+from hepta.hia_agent_store_native import capture_release_image, release_identity
+from hepta.hia_worker_store_profile import EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, SCHEMA, profile_images
 
 
-def bind_worker_store(output, base_bundle, release, *, edit_query=False):
+def bind_worker_store(output, base_bundle, release, *, edit_query=False, candidate_import=False):
     base = authority._read(authority._path(str(Path(base_bundle).absolute())), authority.MAX_BUNDLE_BYTES)
     record = authority._decode(base.raw)
     if type(record) is not dict or record.get('schema') not in (
@@ -19,18 +19,14 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False):
     release = authority._path(str(Path(release).absolute()))
     directory = release_identity(release)
     pins = {}
-    images = list(zip(PIN_FIELDS, RELEASE_IMAGES, strict=True))
-    if edit_query:
-        from hepta.hia_agent_edit_query_native import EXECUTABLE
-        images.append(('edit_query_sha256', EXECUTABLE))
-    for field, (name, limit) in images:
+    schema = IMPORT_SCHEMA if candidate_import else EDIT_QUERY_SCHEMA if edit_query else SCHEMA
+    for field, (name, limit) in profile_images(schema).items():
         digest = sha256(authority._read(release / name, limit).raw).hexdigest()
         capture_release_image(release, name, limit, digest)
         pins[field] = digest
     if release_identity(release) != directory:
         raise ValueError('native Store release changed while binding')
-    record = {'schema': EDIT_QUERY_SCHEMA if edit_query else SCHEMA,
-              'target': authority.TARGET, 'abi': authority.ABI,
+    record = {'schema': schema, 'target': authority.TARGET, 'abi': authority.ABI,
               'base_bundle': str(base.path), 'base_bundle_sha256': sha256(base.raw).hexdigest(),
               'release_path': str(release), **pins}
     raw = (json.dumps(record, indent=2, sort_keys=True) + '\n').encode()
@@ -46,8 +42,11 @@ def main():
     parser.add_argument('--release', type=Path, required=True)
     parser.add_argument('--edit-query', action='store_true',
                         help='select the sealed native Agent dependency query')
+    parser.add_argument('--candidate-import', action='store_true',
+                        help='select native Agent candidate admission and dependency query')
     args = parser.parse_args()
-    pin = bind_worker_store(args.output, args.base_bundle, args.release, edit_query=args.edit_query)
+    pin = bind_worker_store(args.output, args.base_bundle, args.release,
+                            edit_query=args.edit_query, candidate_import=args.candidate_import)
     print(json.dumps({'manifest': str(args.output.absolute()), 'sha256': pin}))
 
 

@@ -444,7 +444,7 @@ def hash_put(w:mutbuf, offset:u64, value:u64) -> u64:
 '''
 
 
-def source_program(*, nominal=False, compact=False):
+def source_program(*, nominal=False, compact=False, entry=''):
     helpers = FRONTEND[FRONTEND.index('def kind('):FRONTEND.index('def shape(')]
     match = FRONTEND[FRONTEND.index('def same('):]
     key_fn = '''def key_id(w:mutbuf, node:u64) -> u64:
@@ -565,7 +565,7 @@ def source_program(*, nominal=False, compact=False):
                         for i in range(0, len(value), 24)]
             return self.generic_visit(node)
 
-    source = POLICY + report_source() + profile + fragment_source() + helpers + match + key_fn + hash_source() + decoder()
+    source = entry + POLICY + report_source() + profile + fragment_source() + helpers + match + key_fn + hash_source() + decoder()
     return ast.unparse(ast.fix_missing_locations(Expand().visit(ast.parse(source))))
 
 

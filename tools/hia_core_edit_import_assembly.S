@@ -16,9 +16,11 @@
 .equ TOTAL_N,135286784
 .equ O,4096
 .equ S,8192
+.equ COMPACT_MODE,S+32
 _start:
- cmp QWORD PTR [rsp],1
- jne usage
+ mov r15,rsp
+ cmp QWORD PTR [r15],2
+ ja usage
  xor edi,edi
  mov esi,TOTAL_N
  mov edx,3
@@ -31,6 +33,22 @@ _start:
  jae io_failure
  mov r12,rax
  lea rbp,[r12+SCRATCH_AT]
+ cmp QWORD PTR [r15],1
+ je read_input
+ mov rsi,[r15+16]
+ lea rdi,[rip+compact_option]
+option_byte:
+ mov al,[rdi]
+ cmp al,[rsi]
+ jne usage
+ inc rdi
+ inc rsi
+ test al,al
+ jne option_byte
+ mov QWORD PTR [rbp+COMPACT_MODE],1
+ jmp read_input
+compact_option:
+ .asciz "--agent-compact"
 read_input:
  xor edi,edi
  mov rax,[rbp+S]
@@ -148,6 +166,8 @@ pretty_loop:
 pretty_call_hole: .long 0
  test rax,rax
  jnz HIA_status
+ cmp QWORD PTR [rbp+COMPACT_MODE],0
+ jne compact_output
  mov rax,[rbp+80]
  cmp rax,128
  ja io_failure
@@ -177,6 +197,25 @@ write_output:
  jb write_output
  cmp QWORD PTR [rbp+8],5
  jne pretty_loop
+ jmp completed
+compact_output:
+ mov rdx,[rbp+96]
+ test rdx,rdx
+ jz io_failure
+ cmp rdx,8388608
+ ja capacity
+ lea rsi,[r12+CANON_AT]
+compact_write:
+ mov eax,1
+ mov edi,1
+ syscall
+ cmp rax,-4
+ je compact_write
+ test rax,rax
+ jle io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz compact_write
 completed:
  lea rdi,[r12+CANON_AT]
  mov esi,CANON_N

@@ -10,6 +10,7 @@ from __future__ import annotations
 import ctypes
 from pathlib import Path
 import struct
+import subprocess
 
 from .hia_core_patch_native import (ERROR_MESSAGES, MAX_COMPONENT, MAX_WIRE,
     NativeCorePatch, SCHEMA, SOURCE, envelope, scratch_sizes)
@@ -92,3 +93,65 @@ def apply_candidate_patch(manifest, original, request, patch_schema):
         raise
     except (ValueError, OSError, UnicodeError, RuntimeError) as exc:
         raise HIAEditRejected('E_HIA_EDIT: selected native Agent patch refused: ' + str(exc)) from exc
+
+
+IMPORT_EXECUTABLES = {
+    'assembly_import_sha256': ('hia-import-assembly', 4 << 20),
+    'json_admission_sha256': ('hia-nominal-constructor', 8 << 20),
+}
+ADMISSION_FRAME = struct.Struct('<8s7Q')
+
+
+class NativeAgentCandidateImport:
+    """Use the dispatched native admission owners, never a hosted success."""
+
+    def __init__(self, assembly, nominal, diagnostics):
+        self._assembly = assembly.raw
+        self._nominal = nominal.raw
+        self._diagnostics = diagnostics
+
+    @staticmethod
+    def _run(code, command, data):
+        from .hia_agent_store_native import _sealed_image
+
+        with _sealed_image(code) as fd:
+            try:
+                result = subprocess.run(command, executable=f'/proc/self/fd/{fd}',
+                                        input=data, capture_output=True, env={'PATH': ''},
+                                        pass_fds=(fd,), timeout=20, check=False)
+            except subprocess.TimeoutExpired as exc:
+                raise OSError('native Agent candidate admission did not finish') from exc
+        if result.returncode in (2, 3) and not result.stdout and not result.stderr:
+            return None
+        if result.returncode != 0 or result.stderr or not result.stdout:
+            raise ValueError('invalid native Agent candidate admission reply')
+        return result.stdout
+
+    def admit(self, data, source_format):
+        from .hia_agent_inspection_native import installed_agent_inspection
+        from .hia_program import MAX_BYTES
+
+        if source_format == 'hia-asm.v1':
+            core = self._run(self._assembly, ('hia-import-assembly', '--agent-compact'), data)
+            if core is None:
+                return None
+            if not 0 < len(core) <= MAX_BYTES:
+                raise ValueError('invalid native Agent assembly result extent')
+            original, profile = core, 0
+        else:
+            packet = self._run(self._nominal, ('hia-admit-agent-json',), data)
+            if packet is None:
+                return None
+            if len(packet) < ADMISSION_FRAME.size:
+                raise ValueError('missing native Agent candidate admission header')
+            magic, action, error, profile, original_size, core_size, spare1, spare2 = ADMISSION_FRAME.unpack_from(packet)
+            if (magic != b'HIAVCF01' or action or error or spare1 or spare2 or profile > 4
+                    or not 0 < original_size <= MAX_BYTES or not 0 < core_size <= MAX_BYTES
+                    or len(packet) != ADMISSION_FRAME.size + original_size + core_size):
+                raise ValueError('invalid native Agent candidate admission extent')
+            end = ADMISSION_FRAME.size + original_size
+            original, core = packet[ADMISSION_FRAME.size:end], packet[end:]
+            if profile == 0 and original != core:
+                raise ValueError('native primitive Agent source and Core identities differ')
+        diagnostics = installed_agent_inspection(self._diagnostics).import_diagnostics(core, original, profile)
+        return core, diagnostics

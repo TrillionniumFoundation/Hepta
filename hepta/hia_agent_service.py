@@ -152,7 +152,8 @@ def _manifest_document(identities, catalog_sha256, profiles, profile_artifacts, 
 
 
 class HIAAgentService:
-    def __init__(self, state_root, *, artifact_roots=(), native_store=None, native_edit_query=None):
+    def __init__(self, state_root, *, artifact_roots=(), native_store=None,
+                 native_edit_query=None, native_candidate_import=None):
         from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
         from .hia_slot_ledger_native import selected_slot_ledger, NativeSlotLedgerStore
         candidate_budget_image = selected_candidate_budget()
@@ -163,6 +164,7 @@ class HIAAgentService:
         self.identities = installation_manifest()
         self.store = AgentStore(state_root, native_store=native_store)
         self._native_edit_query = native_edit_query
+        self._native_candidate_import = native_candidate_import
         self._candidate_budget = None
         self._slot_ledger = None
         try:
@@ -677,14 +679,21 @@ class HIAAgentService:
                 "query_artifact": query, "next_cursor": None}
 
     def _hia_candidate(self, args):
-        from .hia_agent_assembly import assemble_program
         from .hia_program_tools import apply_program_patch
         change, base, native_payloads = args["change"], None, None
         if change["kind"] == "import":
             data, _ = self.store.get(change["source"])
-            program = assemble_program(data) if change["format"] == "hia-asm.v1" else verify_program(decode_json(data))
-            diagnostics = {"schema": "hepta.hia.agent.candidate-diagnostics.v1", "whole_program_checked": True,
-                           "input_sha256": program.input_sha256, "core_sha256": program.sha256}
+            if self._native_candidate_import is not None:
+                native_payloads = self._native_candidate_import.admit(data, change["format"])
+                if native_payloads is None:
+                    # Keep the existing specific diagnostic without allowing a
+                    # hosted candidate to override a selected native refusal.
+                    self._reference_import(data, change["format"])
+                    raise ValueError('native Agent candidate refusal disagrees with hosted admission')
+            else:
+                program = self._reference_import(data, change["format"])
+                diagnostics = {"schema": "hepta.hia.agent.candidate-diagnostics.v1", "whole_program_checked": True,
+                               "input_sha256": program.input_sha256, "core_sha256": program.sha256}
         else:
             base = change["base_program"]
             selected = os.environ.get('HEPTA_HIA_CORE_PATCH_MANIFEST')
@@ -706,6 +715,13 @@ class HIAAgentService:
         return {"candidate": candidate, "base_program": base,
             "diagnostics": diagnostic_artifact, "core_admitted": True,
             "behavior_equivalence_proved": False, "adopted": False}
+
+    @staticmethod
+    def _reference_import(data, source_format):
+        if source_format == "hia-asm.v1":
+            from .hia_agent_assembly import assemble_program
+            return assemble_program(data)
+        return verify_program(decode_json(data))
 
     def _behavior_equivalence(self, original, revised, timeout_ms):
         """A conservative proof decision, separate from workload testing."""

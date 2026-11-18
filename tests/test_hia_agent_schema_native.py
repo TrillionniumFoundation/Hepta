@@ -42,6 +42,7 @@ class AgentSchemaSourceTests(unittest.TestCase):
 
 class AgentInspectionNativeTests(unittest.TestCase):
     manifest = None
+    native_release = None
     test_root = None
 
     def setUp(self):
@@ -70,6 +71,58 @@ class AgentInspectionNativeTests(unittest.TestCase):
                         self.assertEqual(service.call('hia_inspect', args), reference)
             finally:
                 service.close()
+
+    def test_ordinary_candidate_ingress_and_diagnostics_without_hosted_admission(self):
+        if self.native_release is None:
+            self.skipTest('provide the matching release for candidate import')
+        from hashlib import sha256
+        from hepta.hia_agent_assembly import render_assembly
+        from hepta.hia_agent_candidate_native import NativeAgentCandidateImport, IMPORT_EXECUTABLES
+        from hepta.hia_agent_store_native import capture_release_image
+        from tools.hia_agent_native_qualification import (
+            Session, ToolClient, add_program, exhaustive_u8_workload,
+        )
+        root = Path(__file__).resolve().parents[1]
+        captures = []
+        for name, limit in IMPORT_EXECUTABLES.values():
+            pin = sha256((self.native_release / name).read_bytes()).hexdigest()
+            captures.append(capture_release_image(self.native_release, name, limit, pin))
+        importer = NativeAgentCandidateImport(*captures, str(self.manifest))
+        nominal = (root / 'examples/hia_program/generic_owned_enum.hepta').read_text()
+        primitive = add_program()
+        sources = ((primitive, 'core-json'), (render_assembly(primitive), 'hia-asm.v1'),
+                   (nominal, 'core-json'), ('{"a":1,"a":2}', 'core-json'),
+                   ('invalid assembly', 'hia-asm.v1'))
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            state = Path(temporary) / 'state'
+            ordinary = HIAAgentService(state)
+            try:
+                session = Session(ToolClient(ordinary.call, validate=False))
+                session.freeze(exhaustive_u8_workload())
+                controls = []
+                for raw, source_format in sources:
+                    source = session.artifact(raw)
+                    args = session.arguments(change={'kind': 'import', 'format': source_format, 'source': source})
+                    reply = ordinary.call('hia_candidate', args)
+                    controls.append((args, reply))
+            finally:
+                ordinary.close()
+            selected = HIAAgentService(state, native_candidate_import=importer)
+            try:
+                for index, (args, expected) in enumerate(controls):
+                    args = {**args, 'request_key': args['request_key'] + '/native'}
+                    if index < 3:
+                        self.assertEqual(expected['status'], 'completed', expected)
+                        with patch.object(HIAAgentService, '_reference_import',
+                                          side_effect=AssertionError('hosted import entered')):
+                            result = selected.call('hia_candidate', args)
+                        self.assertEqual(result['result'], expected['result'])
+                    else:
+                        self.assertEqual(expected['status'], 'rejected', expected)
+                        result = selected.call('hia_candidate', args)
+                        self.assertEqual(result['error'], expected['error'])
+            finally:
+                selected.close()
 
     def test_ordinary_function_and_block_artifact_bytes_without_host_projection(self):
         from hepta.hia_agent_store import wire
@@ -360,6 +413,7 @@ def main():
     parser.add_argument('--proof-manifest', type=Path)
     parser.add_argument('--discovery-manifest', type=Path)
     parser.add_argument('--inspection-manifest', type=Path)
+    parser.add_argument('--native-release', type=Path)
     args = parser.parse_args()
     AgentSchemaNativeTests.manifest = args.manifest.resolve()
     AgentSchemaNativeTests.test_root = args.test_root.resolve()
@@ -371,6 +425,7 @@ def main():
     AgentDiscoveryNativeTests.test_root = AgentSchemaNativeTests.test_root
     AgentInspectionNativeTests.manifest = args.inspection_manifest
     AgentInspectionNativeTests.test_root = AgentSchemaNativeTests.test_root
+    AgentInspectionNativeTests.native_release = args.native_release
     loader = unittest.defaultTestLoader
     suite = unittest.TestSuite(loader.loadTestsFromTestCase(cls)
                               for cls in (AgentSchemaSourceTests, AgentSchemaNativeTests,

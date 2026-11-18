@@ -13,15 +13,32 @@ HEADER = 24
 SELECTOR_BYTES = 512
 TAIL = HEADER + 2 * SELECTOR_BYTES + 8
 VIEW_MODE = int.from_bytes(b'HIAVIEW1', 'little')
+IMPORT_MODE = int.from_bytes(b'HIAADG01', 'little')
 NONE = (1 << 64) - 1
 
 POLICY = '''
 def inspect_agent(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 8:
         return 4294967293
-    if get(w, length(w) - 8) == VIEW_MODE:
+    mode = get(w, length(w) - 8)
+    if mode == VIEW_MODE:
         return inspect_part(s, o, w)
+    if mode == IMPORT_MODE:
+        return import_diagnostics(s, o, w)
     return inspect_core(s, o, w)
+
+def import_diagnostics(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) < 9472 or length(o) < 256 or nominal_profile(w) > 4:
+        return 4294967293
+    if widen(hash_canonical_input(s, o, w)) != 64:
+        return 4294967293
+    put(w, 56, 0)
+    lit(o, w, '{"core_sha256":')
+    quoted_hash(o, w)
+    lit(o, w, ',"input_sha256":')
+    quoted_input_hash(o, w)
+    lit(o, w, ',"schema":"hepta.hia.agent.candidate-diagnostics.v1","whole_program_checked":true}')
+    return get(w, 56)
 
 def inspect_part(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < TAIL + 64 or length(o) < 128:
@@ -101,9 +118,9 @@ def reachable_source(source):
 
 def source_program():
     words = {'K_' + name: 1 << index for index, name in enumerate(KEYS)}
-    words.update(NONE=NONE, SELECTOR_BYTES=SELECTOR_BYTES, TAIL=TAIL, VIEW_MODE=VIEW_MODE)
+    words.update(NONE=NONE, SELECTOR_BYTES=SELECTOR_BYTES, TAIL=TAIL, VIEW_MODE=VIEW_MODE, IMPORT_MODE=IMPORT_MODE)
     lens = re.sub(r'\b(' + '|'.join(words) + r')\b', lambda match: str(words[match[0]]), POLICY)
-    return reachable_source(lens + '\n' + report_source(nominal=True, compact=True))
+    return reachable_source(report_source(nominal=True, compact=True, entry=lens + '\n'))
 
 
 if __name__ == '__main__':
