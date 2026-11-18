@@ -26,6 +26,13 @@ CAPACITY = 4 * (1 << 20) + 4096
 PROGRAMS = {
     'dispatch': ('hia', (
         (CLI + 'dispatch.hepta', ('dispatch_call',)),
+        (CLI + 'selfhost_entry.hepta', ('selfhost_call',)),
+    )),
+    'selfhost_component': ('hia-selfhost-component', (
+        (CLI + 'selfhost_controller.hepta', ('dispatch_call',)),
+        (CLI + 'selfhost_selection.hepta', ('capsule_call',)),
+        (CLI + 'selfhost_semantics.hepta', ('full_Core_call',)),
+        (CLI + 'selfhost_wire.hepta', ('emergency_call', 'canonical_wire_call', 'policy_call')),
     )),
     'normalize_core': ('hia-normalize-core', (
         (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),

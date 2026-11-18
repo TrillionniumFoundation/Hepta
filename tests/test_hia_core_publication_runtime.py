@@ -15,6 +15,7 @@ from hepta.hia_agent_assembly import diagnose_assembly, render_assembly
 from hepta.hia_edit_batch import prepare_batch
 from hepta.hia_edit_query import prepare_edit
 from hepta.hia_program_native import build_program_machine
+from hepta.hia_program_selfhost import build_program_selfhost
 from tests.test_hia_core_edit_runtime import wire
 from tests.test_hia_edit_batch import selected
 from tests.test_hia_program_tools import add_two_patch, scalar_program
@@ -66,6 +67,67 @@ def check_assembly_rejections(release, directory):
             label, result.returncode, result.stdout, result.stderr)
         assert path.read_bytes() == raw, label
     return len(cases)
+
+
+def check_selected_selfhost(release, directory):
+    manifest = release / 'compiler-manifest.json'
+    manifest_pin = sha256(manifest.read_bytes()).hexdigest()
+    selector = ['--selfhost-manifest', str(manifest), '--selfhost-manifest-sha256', manifest_pin]
+    program = scalar_program()
+    program['schema'] = 'hepta.hia.program.v8'
+    source = directory / 'program.hepta'
+    raw = wire(program)
+    source.write_bytes(raw)
+    dashed = directory / '-program.hepta'
+    dashed.write_bytes(raw)
+    reference = directory / 'reference.o'
+    expected = build_program_selfhost(raw, reference, manifest=manifest, manifest_sha256=manifest_pin)
+    expected['claims']['hosted_cli_and_publication'] = False
+    switch = ['--backend', 'selfhost', *selector]
+    cases = (
+        ('absolute', [str(source), *switch, '--output', str(directory / 'absolute.o')]),
+        ('relative', [source.name, *switch, '--output', './relative.o']),
+        ('attached', ['--backend=selfhost', '--kind=object', '--target=x86_64-unknown-linux-gnu',
+                      f'--selfhost-manifest={manifest}', f'--selfhost-manifest-sha256={manifest_pin}',
+                      '-oattached.o', source.name]),
+        ('separator', [*switch, '--output', 'separator.o', '--', dashed.name]),
+    )
+    for label, arguments in cases:
+        result = subprocess.run([release / 'hia', 'build', *arguments], cwd=directory,
+                                input=b'unrelated stdin', capture_output=True, env={'PATH': ''},
+                                timeout=35, check=False)
+        assert (result.returncode, result.stderr) == (0, b''), (
+            label, result.returncode, result.stdout, result.stderr)
+        target = directory / (label + '.o')
+        assert target.read_bytes() == reference.read_bytes(), label
+        actual = json.loads(result.stdout)
+        expected['output'] = str(target)
+        expected['capture']['wall_seconds'] = actual['capture']['wall_seconds']
+        assert 0 <= expected['capture']['wall_seconds'] <= 30, label
+        assert (len(actual), result.stdout) == (23, wire(expected, pretty=True)), label
+    wrong_schema = directory / 'not-v8.hepta'
+    wrong_schema.write_bytes(wire({**program, 'schema': 'hepta.hia.program.v7'}))
+    negative = (
+        ('pin', source, ['--backend=selfhost', *selector[:-1], '0' * 64], 'E_HIA_SELFHOST_PIN'),
+        ('profile', wrong_schema, switch, 'E_HIA_SELFHOST_PROFILE'),
+        ('missing-pin', source, ['--backend=selfhost', *selector[:2]], None),
+        ('native-with-pin', source, ['--backend=native', *selector], None),
+    )
+    for label, path, options, error in negative:
+        target = directory / (label + '.o')
+        result = subprocess.run([release / 'hia', 'build', path, *options, '--output', target],
+                                cwd=directory, input=b'ignored', capture_output=True, env={'PATH': ''},
+                                timeout=35, check=False)
+        assert (result.returncode, result.stderr) == (2 if error else 64, b''), label
+        if error:
+            diagnostic, = json.loads(result.stdout)['diagnostics']
+            assert diagnostic['code'] == 'E_DRIVER' and diagnostic['message'].startswith(error + ':'), label
+        else:
+            assert result.stdout == b'', label
+        assert not target.exists(), label
+    assert source.read_bytes() == dashed.read_bytes() == raw
+    assert sha256(manifest.read_bytes()).hexdigest() == manifest_pin
+    return len(cases) + len(negative)
 
 
 def check_release(release, directory):
@@ -174,7 +236,10 @@ def check_release(release, directory):
     assert {name: (directory / name).read_bytes() for name in inputs} == inputs
     diagnostics = directory / 'diagnostics'
     diagnostics.mkdir()
-    return len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
+    selfhost = directory / 'selfhost'
+    selfhost.mkdir()
+    return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
+            + check_selected_selfhost(release, selfhost))
 
 
 if __name__ == '__main__':

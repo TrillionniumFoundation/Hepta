@@ -67,6 +67,8 @@ captured:
  mov [rsp+24],r15
  mov QWORD PTR [rsp+32],1048576
  mov QWORD PTR [rsp+40],8388608
+ # Only the validated initial dispatch may hand off to the selfhost role.
+ mov QWORD PTR [rsp+120],0
 dispatch_loop:
  mov rdi,r12
  mov rsi,r15
@@ -74,8 +76,15 @@ dispatch_loop:
  mov ecx,1048576
  mov r8,r14
  mov r9d,8388608
+ cmp QWORD PTR [rsp+120],0
+ jne selfhost_dispatch
  .byte 0xe8
 dispatch_call_hole: .long 0
+ jmp dispatch_result
+selfhost_dispatch:
+ .byte 0xe8
+selfhost_call_hole: .long 0
+dispatch_result:
  cmp rax,96
  jne failure
  mov rdi,r13
@@ -88,6 +97,8 @@ dispatch_call_hole: .long 0
  je terminal
  cmp QWORD PTR [r13+16],3
  je execute_fd
+ cmp QWORD PTR [r13+16],4
+ je select_selfhost
  cmp QWORD PTR [r13+16],1
  jne failure
  mov rbx,[r13+32]
@@ -130,6 +141,27 @@ argument_ready:
  mov r9,[rsp+88]
  syscall
  jmp capture_result
+select_selfhost:
+ cmp QWORD PTR [rsp+120],0
+ jne failure
+ cmp QWORD PTR [r13+8],1
+ jne failure
+ mov QWORD PTR [rsp+120],1
+ mov rdi,r13
+ mov esi,1048576
+ push 3
+ pop rdx
+ call protect
+ # Reuse the immutable original argv packet, not the dispatcher's scratch.
+ cld
+ xor eax,eax
+ mov rdi,r13
+ mov ecx,1048576/8
+ rep stosq
+ mov rdi,r14
+ mov ecx,8388608/8
+ rep stosq
+ jmp dispatch_loop
 execute_fd:
  mov rbx,[r13+32]
  test rbx,rbx

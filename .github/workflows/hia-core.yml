@@ -251,6 +251,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/worker-request"
           python -B -m tools.build_hia_core_edit --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-edit"
+          python -B -m tools.build_hia_core_json_cli --output-profile elf --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/public-selfhost"
           source_roles=(selfhost.hepta source_build_policy.hepta source_build_packer.hepta)
           install -m 0500 "$package/installer/hia-release" \
             "$package/packager/hia-directory-package-build" \
@@ -275,6 +277,11 @@ jobs:
           for role in "${source_roles[@]}"; do
             install -m 0400 "examples/hia_bootstrap/$role" "$package/stage"
           done
+          install -m 0400 "$RUNNER_TEMP/public-selfhost/hia-core-json" \
+            "$RUNNER_TEMP/public-selfhost/compiler-manifest.json" \
+            examples/hia_bootstrap/core_json_frontend.hepta \
+            examples/hia_bootstrap/core_json_cli_packer.hepta \
+            docs/HIA_SELFHOST_CORE_SUPPORT.json "$package/stage"
           env -i PATH= "$package/packager/hia-directory-package-build" "$package/stage" \
             > "$package/store.hiapack" 2> "$package/store.sha256"
           read -r digest < "$package/store.sha256"

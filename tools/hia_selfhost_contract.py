@@ -163,6 +163,11 @@ CORE_EDIT_SDIST_FILES = (
     'examples/hia_bootstrap/core_cli/inspect.hepta',
     'examples/hia_bootstrap/core_cli/normalize_pretty.hepta',
     'examples/hia_bootstrap/core_cli/patch.hepta',
+    'examples/hia_bootstrap/core_cli/selfhost_controller.hepta',
+    'examples/hia_bootstrap/core_cli/selfhost_entry.hepta',
+    'examples/hia_bootstrap/core_cli/selfhost_selection.hepta',
+    'examples/hia_bootstrap/core_cli/selfhost_semantics.hepta',
+    'examples/hia_bootstrap/core_cli/selfhost_wire.hepta',
     'examples/hia_bootstrap/core_cli/verify.hepta',
     'examples/hia_bootstrap/core_cli/verify_pretty.hepta',
     'tools/hia_core_edit_build_object.S',
@@ -176,6 +181,7 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_normalize_core.S',
     'tools/hia_core_edit_patch_core_json.S',
     'tools/hia_core_edit_render_assembly.S',
+    'tools/hia_core_edit_selfhost_component.S',
     'tools/hia_core_edit_verify_core_json.S',
 )
 SOURCE_FILES = (

@@ -159,10 +159,11 @@ block b27(v206:readbuf,v207:mutbuf,v208:mutbuf,v212:u64)
 block b28(v214:readbuf,v215:mutbuf,v216:mutbuf,v220:u64,v221:bool)
   branch v221 b29(v214,v215,v216) b30(v214,v215,v216,v220)
 block b29(v226:readbuf,v227:mutbuf,v228:mutbuf)
-  v240:u64 = const() {"value":64}
-  v241:u64 = call(v227,v228,v240) {"function":"f10"}
-  v242:u32 = int.cast(v241) {"mode":"wrap"}
-  ret(v242)
+  v240:u64 = const() {"value":0}
+  v241:u64 = const() {"value":4}
+  v242:u64 = call(v227,v228,v240,v241) {"function":"f8"}
+  v2430:u32 = const() {"value":96}
+  ret(v2430)
 block b30(v233:readbuf,v234:mutbuf,v235:mutbuf,v239:u64)
   v243:u64 = const() {"value":8}
   v244:bool = compare.ne(v239,v243)
