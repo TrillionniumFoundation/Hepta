@@ -271,7 +271,7 @@ def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=
 
 
 class AgentStore:
-    def __init__(self, root):
+    def __init__(self, root, *, native_store=None):
         from .hia_execution_budget import admitted_execution_budget, execution_budget_store
         budget_admission = admitted_execution_budget()
         supplied = Path(root).absolute()
@@ -282,6 +282,14 @@ class AgentStore:
         info = self.root.stat()
         if info.st_uid != os.geteuid() or info.st_mode & 0o022:
             reject("E_HIA_STORE", "state directory must be owned and not writable by other users")
+        database = self.root / "state.sqlite3"
+        if native_store is None and os.path.lexists(self.root / "store" / "namespace.bin"):
+            reject("E_HIA_STORE", "this state root belongs to the explicitly selected native Store")
+        if native_store is not None:
+            if budget_admission is not None:
+                reject("E_HIA_STORE", "SQLite execution-budget custody does not apply to a native Store")
+            if any(os.path.lexists(str(database) + suffix) for suffix in ("", "-wal", "-shm", "-journal")):
+                reject("E_HIA_STORE", "native Store requires a separate staged state root")
         self.artifacts = self.root / "artifacts"
         self.artifacts.mkdir(mode=0o700, exist_ok=True)
         if self.artifacts.is_symlink():
@@ -289,7 +297,19 @@ class AgentStore:
         info = self.artifacts.lstat()
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
             reject("E_HIA_STORE", "artifact directory must be owned and not writable by other users")
-        database = self.root / "state.sqlite3"
+        self.lock = threading.RLock()
+        if native_store is not None:
+            from .hia_agent_store_native import NativeStoreConnection
+            release, expected_sha256 = native_store
+            self.db = NativeStoreConnection(self.root, release, expected_sha256, lock=self.lock)
+            try:
+                self.db.execute("BEGIN IMMEDIATE")
+                self.db.execute("ROLLBACK")
+            except BaseException:
+                self.db.close()
+                raise
+            self.execution_budgets = execution_budget_store(self, None)
+            return
         if database.exists() or database.is_symlink():
             info = database.lstat()
             if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
@@ -304,7 +324,6 @@ class AgentStore:
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA synchronous=FULL")
-        self.lock = threading.RLock()
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS artifacts (
                 id TEXT PRIMARY KEY, sha256 TEXT NOT NULL, uri TEXT UNIQUE NOT NULL,
@@ -377,14 +396,18 @@ class AgentStore:
             try:
                 yield
             except BaseException:
-                self.db.execute("ROLLBACK")
+                if self.db.in_transaction:
+                    self.db.execute("ROLLBACK")
                 raise
             else:
                 self.db.execute("COMMIT")
 
     def close(self):
-        self.execution_budgets.close()
-        self.db.close()
+        with self.lock:
+            try:
+                self.execution_budgets.close()
+            finally:
+                self.db.close()
 
     def put(self, data, kind, metadata=None):
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:

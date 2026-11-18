@@ -269,8 +269,7 @@ class WorkerSession:
             elif opcode == 9:
                 x = reg(value(a)(value(b), value(c)))
             elif opcode == 10:
-                from .hia_agent_service import HIAAgentService
-                x = reg(HIAAgentService(value(a), artifact_roots=value(b)))
+                x = reg(self.worker._open_service(self.args, value(a), value(b)))
             elif opcode == 11:
                 x = reg(self.worker.sys.stdin.buffer.read(a))
             elif opcode == 12:

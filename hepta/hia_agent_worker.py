@@ -28,7 +28,11 @@ def main(argv=None):
     parser.add_argument("--expected-catalog-sha256")
     parser.add_argument("--native-helpers-manifest")
     parser.add_argument("--expected-native-helpers-sha256")
+    parser.add_argument("--native-store-release")
+    parser.add_argument("--expected-native-store-sha256")
     args = parser.parse_args(argv)
+    if (args.native_store_release is None) != (args.expected_native_store_sha256 is None):
+        parser.error("native Store requires both the installed release directory and the executable SHA-256")
     from .hia_native_helpers import native_helpers_scope
     try:
         with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256):
@@ -89,8 +93,7 @@ def _reference_run(parser, args):
                 raise AgentRejected("E_HIA_CATALOG_STALE", "worker request catalog differs from installed bytes")
             if type(request["tool"]) is not str or len(request["tool"]) > 128:
                 raise AgentRejected("E_HIA_WORKER_TOOL", "invalid worker tool name")
-        from .hia_agent_service import HIAAgentService
-        service = HIAAgentService(args.state_root, artifact_roots=args.artifact_root)
+        service = _open_service(args, args.state_root, args.artifact_root)
         try:
             service_entered = True
             response = service.call(request["tool"], request["arguments"])
@@ -121,6 +124,15 @@ def _reference_run(parser, args):
         report["native_helpers_sha256"] = identities["native_helpers_sha256"]
     sys.stdout.buffer.write(wire(report) + b"\n")
     return 0
+
+
+def _open_service(args, state_root, artifact_roots):
+    from .hia_agent_service import HIAAgentService
+    release = getattr(args, "native_store_release", None)
+    if release is None:
+        return HIAAgentService(state_root, artifact_roots=artifact_roots)
+    selected = (release, args.expected_native_store_sha256)
+    return HIAAgentService(state_root, artifact_roots=artifact_roots, native_store=selected)
 
 
 def _reference_admission(raw, identities, assigned):

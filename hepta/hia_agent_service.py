@@ -80,7 +80,7 @@ def _value_observation(observation):
     return value
 
 class HIAAgentService:
-    def __init__(self, state_root, *, artifact_roots=()):
+    def __init__(self, state_root, *, artifact_roots=(), native_store=None):
         from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
         from .hia_slot_ledger_native import selected_slot_ledger, NativeSlotLedgerStore
         candidate_budget_image = selected_candidate_budget()
@@ -88,7 +88,9 @@ class HIAAgentService:
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
-        self.store = AgentStore(state_root)
+        if native_store is not None and candidate_budget_image is not None:
+            reject("E_HIA_STORE", "SQLite candidate-budget custody does not apply to a native Store")
+        self.store = AgentStore(state_root, native_store=native_store)
         self._candidate_budget = None
         self._slot_ledger = None
         try:

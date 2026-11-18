@@ -2,11 +2,17 @@
 
 import argparse
 import fcntl
+from hashlib import sha256
+import io
+import json
 from pathlib import Path
+import sqlite3
 import struct
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 
 def command(request, kind, target=0, body=b''):
@@ -224,6 +230,78 @@ class NativeStoreArgv(unittest.TestCase):
         return {file.name: file.read_bytes() for file in (parent / 'store').iterdir()}
 
 
+class InstalledAgentStore(NativeStoreArgv):
+    def setUp(self):
+        if self.test_root is None or self.module_root != self.executable.parent:
+            self.skipTest('run with the installed native Store release')
+
+    def test_public_tools_with_no_sqlite_connection(self):
+        from tests.test_hia_agent_native_tools import NativeLifecycleTests
+
+        def construct(path, **kwargs):
+            from hepta.hia_agent_service import HIAAgentService
+            path.mkdir(mode=0o700)
+            self.run_native([self.initializer, path, 'store'])
+            return HIAAgentService(path, native_store=self.selection(), **kwargs)
+
+        with patch('tempfile.tempdir', str(self.test_root)), \
+                patch('sqlite3.connect', side_effect=AssertionError('SQLite engine was opened')), \
+                patch('tests.test_hia_agent_native_tools.HIAAgentService', construct):
+            case = NativeLifecycleTests('test_all_eleven_tools_and_full_u8_native_workload')
+            case.setUp()
+            try:
+                case.test_all_eleven_tools_and_full_u8_native_workload()
+                self.assertFalse((case.state_root / 'state.sqlite3').exists())
+            finally:
+                case.tearDown()
+
+    def test_public_worker_reopens_native_state_with_exact_replay(self):
+        from hepta.hia_agent_contract import installation_manifest
+        from hepta.hia_agent_store import AgentRejected, AgentStore, wire
+        from hepta.hia_agent_worker import main as worker
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            path = Path(temporary)
+            self.run_native([self.initializer, path, 'store'])
+            release, executable_sha256 = self.selection()
+            pins = installation_manifest()
+            request = {'schema': 'hia-agent-worker-request-v1', 'tool': 'hia_describe',
+                       'arguments': {'section': 'manifest', 'request_key': 'durable-discovery'},
+                       'profile_sha256': 'a' * 64, 'catalog_sha256': pins['catalog_sha256']}
+            request['request_sha256'] = sha256(wire(request)).hexdigest()
+            args = ['--state-root', str(path), '--request-json-stdin',
+                    '--native-store-release', str(release),
+                    '--expected-native-store-sha256', executable_sha256]
+
+            def invoke(flags, envelope):
+                output, errors = io.BytesIO(), io.StringIO()
+                with patch('sys.stdin', SimpleNamespace(buffer=io.BytesIO(wire(envelope)))), \
+                        patch('sys.stdout', SimpleNamespace(buffer=output)), patch('sys.stderr', errors):
+                    self.assertEqual(worker(flags), 0, errors.getvalue())
+                return json.loads(output.getvalue())
+
+            snapshot = self.state(path)
+            with patch.object(sqlite3, 'connect', side_effect=AssertionError('SQLite engine was opened')):
+                refused = invoke([*args[:-1], '0' * 64], request)
+                self.assertEqual(refused['response']['status'], 'rejected')
+                self.assertEqual(self.state(path), snapshot)
+                with self.assertRaisesRegex(AgentRejected, 'native Store'):
+                    AgentStore(path)
+                self.assertFalse((path / 'state.sqlite3').exists())
+
+                first = invoke(args, request)
+                self.assertEqual(first['response']['status'], 'completed', first)
+                committed = self.state(path)
+                self.assertNotEqual(committed, snapshot)
+                self.assertEqual(invoke(args, request), first)
+                # Replaying a known key has no durable effect.
+                self.assertEqual(self.state(path), committed)
+                self.assertFalse((path / 'state.sqlite3').exists())
+
+    def selection(self):
+        return self.module_root, sha256(self.executable.read_bytes()).hexdigest()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for option in ('executable', 'module-root', 'initializer', 'test-root'):
@@ -233,6 +311,11 @@ def main():
     for key, value in vars(parser.parse_args()).items():
         setattr(NativeStoreArgv, key, value.resolve() if value is not None else None)
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(NativeStoreArgv)
+    if NativeStoreArgv.module_root == NativeStoreArgv.executable.parent:
+        suite.addTests(InstalledAgentStore(name) for name in (
+            'test_public_tools_with_no_sqlite_connection',
+            'test_public_worker_reopens_native_state_with_exact_replay',
+        ))
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 
 
