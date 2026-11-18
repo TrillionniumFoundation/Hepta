@@ -352,7 +352,7 @@ jobs:
           end
           HIA
           env -i PATH= "$installed/hia-native" assemble --output-profile=elf \
-            < "$package/link-entry.hepta" > "$package/link-entry.o"
+            --input-file "$package/link-entry.hepta" > "$package/link-entry.o"
           env -i PATH= "$installed/hia-elf-link" entry "$package/link-entry.o" \
             > "$package/linked-entry"
           chmod 0500 "$package/linked-entry"

@@ -158,6 +158,11 @@ def dispatcher_source():
         if profile != 3:
             return 4294967293
         return output_profile(s)
+    if phase == 6:
+        if profile == 3 and matches(s, 12, FILE_OPTION) == 1:
+            if byte(s, 8) == 102 and byte(s, 9) == 105 and byte(s, 10) == 108 and byte(s, 11) == 101:
+                return 1
+        return 4294967295
     if phase > 2:
         if length(w) < 80:
             return 4294967293
@@ -184,7 +189,7 @@ def dispatcher_source():
             return 6
         if length(w) >= 56:
             extras = read_word(w, 48)
-            if extras != 0 and (profile != 3 or extras != 1):
+            if extras != 0 and (profile != 3 or extras > 3):
                 return 4294967295
     if matches(s, 6, 133476589827702) == 1:
         if phase == 0:
@@ -220,6 +225,7 @@ def capabilities(o:mutbuf, profile:u64) -> u32:
     source = source.replace('7809644627822477667', str(int.from_bytes(b'capabili', 'little')))
     source = source.replace('8314318707009022051', str(int.from_bytes(b'check-as', 'little')))
     source = source.replace('CATALOG_NAME', str(int.from_bytes(b'catalog', 'little')))
+    source = source.replace('FILE_OPTION', str(int.from_bytes(b'--input-', 'little')))
     source = source.replace('CATALOG_DEFAULT', str(tuple(PRIMITIVE_PROFILES).index(LATEST_CORE_SCHEMA) + 1))
     source += f'    if length(o) < {len(cap)}:\n        return 4294967294\n'
     source += writes(cap)
@@ -394,6 +400,7 @@ def template():
     emit('41 8b 84 24'); word(ARENA_OFFSET + 40)  # packaged profile from prior dispatch
     emit('83 f8 03'); branch('0f 85', 'save_profile')
     emit('31 c0 48 83 3c 24 02'); branch('0f 84', 'save_profile')
+    emit('48 83 3c 24 04'); branch('0f 84', 'save_profile')  # file option without a profile
     emit('48 8b 7c 24 18 31 f6')              # portable profile argument, argv[2]
     label('profile_length')
     emit('48 83 fe 20'); branch('0f 83', 'usage')
@@ -405,17 +412,44 @@ def template():
     label('save_profile')
     emit('41 89 84 24'); word(ACTIVE_PROFILE_OFFSET)
     emit('bb'); word(WIRE_LIMIT)               # JSON wire ceiling
-    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 82', 'reading')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 82', 'select_input')
     emit('bb'); word(LIMIT)                    # exact native assembly ceiling
+    label('select_input')
+    emit('45 31 ff 48 8b 04 24 48 83 f8 04'); branch('0f 82', 'reading')
+    emit('48 8b 7c c4 f8 31 f6')              # argv[argc - 2], exact option marker
+    label('file_option_length')
+    emit('48 83 fe 0d'); branch('0f 83', 'usage')
+    emit('80 3c 37 00'); branch('0f 84', 'file_option_dispatch')
+    emit('48 ff c6'); branch('e9', 'file_option_length')
+    label('file_option_dispatch')
+    dispatch('dispatch_file_argument', phase=6)
+    emit('83 f8 01'); branch('0f 85', 'usage')
+    emit('48 8b 04 24 48 8b 34 c4')           # argv[argc - 1], supplied filename
+    emit('80 3e 00'); branch('0f 84', 'usage')
+    label('open_input')
+    # Do not block on a FIFO or follow a final symlink before fstat.
+    emit('b8 01 01 00 00 bf 9c ff ff ff ba 00 08 0a 00 45 31 d2 0f 05')
+    emit('48 83 f8 fc'); branch('0f 84', 'open_input')
+    emit('48 85 c0'); branch('0f 88', 'io')
+    emit('41 89 c7')                          # file descriptors may include stdin's fd
+    label('stat_input')
+    emit('b8 05 00 00 00 44 89 ff 4c 89 e6 0f 05')
+    emit('48 83 f8 fc'); branch('0f 84', 'stat_input')
+    emit('48 85 c0'); branch('0f 88', 'io')
+    emit('41 8b 44 24 18 25 00 f0 00 00 3d 00 80 00 00'); branch('0f 85', 'io')
+    emit('49 39 5c 24 30'); branch('0f 87', 'space')
     label('reading')
     emit('45 31 ed')
     label('read')
-    emit('31 c0 31 ff 4b 8d 34 2c 89 da 83 c2 01')
+    emit('31 c0 44 89 ff 4b 8d 34 2c 89 da 83 c2 01')
     emit('4c 29 ea 0f 05 48 83 f8 fc'); branch('0f 84', 'read')
     emit('48 85 c0'); branch('0f 88', 'io'); branch('0f 84', 'received')
     emit('49 01 c5 49 39 dd'); branch('0f 87', 'space')
     branch('e9', 'read')
     label('received')
+    emit('48 83 3c 24 04'); branch('0f 82', 'input_ready')
+    emit('b8 03 00 00 00 44 89 ff 0f 05 48 85 c0'); branch('0f 88', 'io')
+    label('input_ready')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 83', 'assembly')
     label('frontend')
     emit('4c 89 e7 4c 89 ee 49 8d 94 24'); word(OUTPUT_OFFSET)

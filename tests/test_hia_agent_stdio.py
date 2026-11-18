@@ -125,6 +125,11 @@ def dispatcher_reference():
                                (b'--output-profile=',0), (b'--Output-profile=elf',0)):
         result,raw=vm_window(DISPATCH,argument,workspace=workspace)
         assert result==expected and raw==b'\xa5'
+    workspace=struct.pack('<6Q',6,0,0,0,0,3)
+    for argument, expected in ((b'--input-file',1), (b'--input-filex',0xffffffff),
+                               (b'--input-fil',0xffffffff), (b'',0xffffffff)):
+        result,raw=vm_window(DISPATCH,argument,workspace=workspace)
+        assert result==expected and raw==b'\xa5'
 
 
 def packed_reference(dispatch=b'\xc3',frontend=b'\xc3',compiler=b'\xc3',profile=0,catalog=b'table'):
@@ -132,10 +137,12 @@ def packed_reference(dispatch=b'\xc3',frontend=b'\xc3',compiler=b'\xc3',profile=
     raw=bytearray(prefix+dispatch+frontend+compiler+catalog)
     struct.pack_into('<QQ',raw,96,len(raw),len(raw))
     for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_dispatch_output_profile',
+                 'profile_dispatch_file_argument',
                  'profile_dispatch_catalog_argument','profile_dispatch_catalog_finish'):
         struct.pack_into('<I',raw,holes[name],profile)
     for name,position in [('dispatch_initial',len(prefix)),('dispatch_verified',len(prefix)),
                           ('dispatch_assembly',len(prefix)),('dispatch_output_profile',len(prefix)),
+                          ('dispatch_file_argument',len(prefix)),
                           ('dispatch_catalog_argument',len(prefix)),
                           ('dispatch_catalog_finish',len(prefix)),
                           ('frontend',len(prefix)+len(dispatch)),
@@ -501,6 +508,55 @@ class AgentStdioNativeTests(unittest.TestCase):
         self.assertEqual((refused.returncode, refused.stdout), (2, b''))
         refused = self.invoke(['assemble', '--output-profile=flat'], sources['flat'])
         self.assertEqual((refused.returncode, refused.stdout), (64, b''))
+
+    def test_portable_compiler_reads_ordinary_files_with_the_unchanged_stdio_limits(self):
+        folder = self.root / 'input-files'
+        folder.mkdir()
+        assembly = folder / '编译 sample.hepta'
+        assembly.write_bytes(self.assembly)
+        core = folder / 'program.json'
+        core.write_bytes(assemble_program(self.assembly).canonical_bytes)
+        for action, path in (('assemble', assembly), ('check-assembly', assembly),
+                             ('compile', core), ('verify', core), ('render-assembly', core)):
+            with self.subTest(action=action):
+                expected = self.invoke([action], path.read_bytes(), profile='portable')
+                observed = self.invoke([action, '--input-file', str(path)], b'not the file', profile='portable')
+                self.assertEqual(expected.returncode, 0)
+                self.assertEqual((observed.returncode, observed.stdout, observed.stderr),
+                                 (0, expected.stdout, b''))
+        elf = folder / 'exported.hepta'
+        elf.write_bytes(self.assembly.replace(b'v8 selfhost\n', b'v8 selfhost_elf\n', 1))
+        flags = ['--output-profile=elf']
+        expected = self.invoke(['assemble', *flags], elf.read_bytes(), profile='portable')
+        observed = subprocess.run([self.executables['portable'], 'assemble', *flags, '--input-file', elf],
+                                  capture_output=True, env={'PATH': ''}, timeout=20,
+                                  preexec_fn=lambda: os.close(0))
+        self.assertEqual((observed.returncode, observed.stdout, observed.stderr), (0, expected.stdout, b''))
+        fifo = folder / 'fifo'
+        os.mkfifo(fifo)
+        symlink = folder / 'symlink'
+        symlink.symlink_to(assembly)
+        for path in (fifo, symlink, folder, folder / 'missing'):
+            observed = self.invoke(['assemble', '--input-file', path], profile='portable')
+            self.assertEqual((observed.returncode, observed.stdout), (4, b''))
+        for action, path, ceiling in (('assemble', assembly, 1 << 20), ('verify', core, 8 << 20)):
+            raw = path.read_bytes()
+            path.write_bytes(raw.ljust(ceiling, b' '))
+            result = self.invoke([action, '--input-file', path], profile='portable')
+            expected = self.invoke([action], path.read_bytes(), profile='portable')
+            self.assertEqual((result.returncode, result.stdout, result.stderr),
+                             (expected.returncode, expected.stdout, expected.stderr))
+            with path.open('ab') as stream:
+                stream.write(b' ')
+            result = self.invoke([action, '--input-file', path], profile='portable')
+            self.assertEqual((result.returncode, result.stdout), (3, b''))
+        for arguments in (['assemble', '--input-file'], ['assemble', '--input-file', ''],
+                          ['assemble', '--input-filex', assembly], ['capabilities', '--input-file', assembly],
+                          ['assemble', '--input-file', assembly, '--output-profile=elf']):
+            result = self.invoke(arguments, profile='portable')
+            self.assertEqual((result.returncode, result.stdout), (64, b''))
+        result = self.invoke(['assemble', '--input-file', assembly], profile='flat')
+        self.assertEqual((result.returncode, result.stdout), (64, b''))
 
     def test_explicit_v6_v7_schemas_preserve_namespaces_and_feature_guards(self):
         def invoke(action, raw):

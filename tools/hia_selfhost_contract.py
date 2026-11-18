@@ -1626,6 +1626,7 @@ def support_contract(root=ROOT):
             "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hepta",
             "compiler_source_schemas": ["hepta.hia.program.v6", "hepta.hia.program.v7", "hepta.hia.program.v8"],
             "output_profile_selection": "fixed build-time flat/elf/exec or an explicit invocation option in the portable build; never inferred from payload",
+            "portable_file_input": "explicit ordinary source path with unchanged byte limits, or stdin when no path is supplied",
             "native_runtime_python_required": False,
             "host_build_and_custody_driver": True,
             "whole_agent_editing_and_persistence_replaced": False,

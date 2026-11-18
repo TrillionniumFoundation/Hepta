@@ -64,8 +64,15 @@ defaults to flat and accepts one `--output-profile=flat|elf|exec` argument after
 a compile, verification or assembly command. For example:
 
 ```sh
-hia-native assemble --output-profile=elf < exported.hepta > exported.o
+hia-native assemble --output-profile=elf --input-file exported.hepta > exported.o
 ```
+
+The portable build accepts `--input-file FILE` for verification, compilation,
+rendering and both assembly commands, after any output-profile option. It reads
+that ordinary file instead of stdin, with the same byte limits and parser. The
+file is opened without following a final symlink; directories, FIFOs and
+other special files are refused. Discovery and the fixed-profile builds keep
+their original argument contracts.
 
 The same sealed release provides `hia-elf-link`. For an object exporting a
 supported no-argument scalar entry, `hia-elf-link entry exported.o > program`
@@ -103,7 +110,7 @@ outside all frontend/compiler output and workspace regions.
 A command is required. The adapter scans at most 32 command bytes; the HIA
 dispatcher accepts only the seven exact declared words. `catalog` accepts
 bounded tokens for the optional `--schema` setting. The portable compiler
-checks its one explicit output-profile argument before reading stdin.
+checks the explicit options before opening a file or reading stdin.
 Exit codes:
 
 | Exit | Category |
@@ -120,8 +127,8 @@ can prevent or truncate that diagnostic; the exit category remains authoritative
 when the process exits normally. Actual EINTR is retried for input and both
 output streams. A successful partial stdout write followed by I/O failure is
 not transactional publication. Kernel signals can terminate the process;
-SIGPIPE disposition is inherited. There is no arbitrary filesystem-open path,
-automatic retry of execution or deployment/persistence authority.
+SIGPIPE disposition is inherited. Only the explicitly named input file is
+opened. There is no automatic retry of execution or deployment/persistence authority.
 
 ## Evidence and remaining scope
 
