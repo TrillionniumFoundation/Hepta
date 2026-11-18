@@ -236,6 +236,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/elf-linker"
           python -B -m tools.build_hia_core_workspace_pipeline --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/workspace-pipeline"
+          python -B -m tools.build_hia_core_patch_result_cli --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/patch-result"
           source_roles=(selfhost.hepta source_build_policy.hepta source_build_packer.hepta)
           install -m 0500 "$package/installer/hia-release" \
             "$package/packager/hia-directory-package-build" \
@@ -245,6 +247,7 @@ jobs:
             "$RUNNER_TEMP/source-build/hia-source-build" \
             "$RUNNER_TEMP/elf-linker/hia-elf-link" \
             "$RUNNER_TEMP/workspace-pipeline/hia-workspace-compile" \
+            "$RUNNER_TEMP/patch-result/hia-patch-result" \
             "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
@@ -367,6 +370,35 @@ jobs:
           assert (refused.returncode, refused.stdout, refused.stderr) == (2, b'', b'')
           print('unexported import: refused without object output')
           PYWORKSPACE
+          python -B - "$installed" "$package" <<'PYPATCH'
+          from pathlib import Path
+          import subprocess
+          import sys
+          from tests.test_hia_core_patch_native import four_kinds, request_wire
+          from tests.test_hia_core_patch_result_cli import expected_result, split_result
+
+          installed, package = map(Path, sys.argv[1:])
+          patches = package / 'patches'
+          patches.mkdir()
+          base, requests = four_kinds()
+          for index, request in enumerate(requests):
+              version = request['schema'].rsplit('.', 1)[-1]
+              raw = request_wire(base, request)
+              command = [installed / 'hia-patch-result', version]
+              result = subprocess.run(command, input=raw, capture_output=True,
+                                      env={'PATH': ''}, timeout=20, check=True)
+              assert (result.stdout, result.stderr) == (expected_result(base, request), b'')
+              (patches / f'request-{index}.json').write_bytes(raw)
+              (patches / f'result-{index}.bin').write_bytes(result.stdout)
+              candidate, _ = split_result(result.stdout)
+              subprocess.run([installed / 'hia-core', 'verify'], input=candidate,
+                             env={'PATH': ''}, timeout=20, check=True)
+              stale = {**request, 'expected_sha256': '0' * 64}
+              refused = subprocess.run(command, input=request_wire(base, stale),
+                                       capture_output=True, env={'PATH': ''}, timeout=20)
+              assert (refused.returncode, refused.stdout, refused.stderr) == (2, b'', b'')
+          print(f'{len(requests)} installed patch results matched, and stale requests produced no output')
+          PYPATCH
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
           for action in normalize inspect verify-report; do
@@ -981,6 +1013,7 @@ jobs:
             ${{ runner.temp }}/hia-slot-ledger/
             ${{ runner.temp }}/hia-source-build/
             ${{ runner.temp }}/workspace-pipeline/
+            ${{ runner.temp }}/patch-result/
             ${{ runner.temp }}/json-wire-cache-fixture/
             ${{ runner.temp }}/json-wire-entry-fixture/
             ${{ runner.temp }}/json-wire-fixture/

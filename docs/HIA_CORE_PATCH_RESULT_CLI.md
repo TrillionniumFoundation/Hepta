@@ -71,6 +71,11 @@ existing signature comparison, including returned-loan interfaces. Explicit
 
 ## Build and use
 
+The sealed native release installs this command alongside `hia-core`.
+Its installation gate runs the installed executable for both patch schemas,
+compares the complete frames against the independent reference, verifies
+candidate bytes with installed `hia-core`, and rejects stale bases.
+
 ```sh
 python -B -m tools.build_hia_core_patch_result_cli \
   --compiler /qualified/B3.image.bin --cold-report /completed-cold.json \
@@ -136,5 +141,5 @@ descriptor/mapping failures, partial writes, syscall traces and injected EINTR.
 
 This component closes native result computation and its standalone transport.
 Hosted source authoring/build, composite normalization, object/reference
-custody, SQLite intent journals, crash recovery, adoption, installation and
+custody, SQLite intent journals, crash recovery, adoption and
 whole-product default-runtime replacement remain separate obligations.
