@@ -37,7 +37,7 @@ python -B -m tools.build_hia_sqlite_components --compiler "$compiler" \
   --cold-report "$cold_report" --output "$component_output"
 ```
 
-The output contains eight standalone Linux x86-64 programs (`hia-sqlite-*`),
+The output contains nine standalone Linux x86-64 programs (`hia-sqlite-*`),
 each linked with one unchanged HIA image. They run without a runtime FFI,
 interpreter, dynamic loader or subprocess. Start a separate process for each
 component and each independent scratch lifetime. A request consists of
@@ -56,6 +56,46 @@ output and scratch; the individual HIA image still applies its own limits.
 These programs expose the component ABI only. The caller must still hold the
 same Pager snapshot across components, stage all references and bytes, and
 handle migration and activation as a whole.
+
+### Coordinating Agent migration
+
+`hia-sqlite-migration-plan` takes the completed 112-byte `HIASCOK1` Agent
+catalog from the retained snapshot. Keep the same plan process and workspace
+through all eleven admitted roots. Each input starts with `HIASMP01`, an
+8-byte phase, and the Pager's 24-byte snapshot identity:
+
+- Phase 1 adds the page count, the nonzero target transaction id, and the
+  catalog. Success selects the first table root.
+- Phase 2 adds the current table id and the exact `HIASWA01` walker result
+  for the requested page, including its signed rowids. It cannot advance
+  while a row from that page is still pending.
+- Phase 3 adds the current table id, leaf page, signed rowid and the
+  `HIAROW01` projection from the row importer. For table 11 use the raw
+  retained `HIAROW01` lookup envelope instead; the cost-sequence component
+  still validates the raw record before its transaction. The plan allows
+  zero or one record from this original sequence table.
+
+The first 64 output bytes are `HIASMR01`, action, table id, table root,
+page, signed requested rowid, maximum observed positive cost rowid, and a
+flag for the existence of a source sequence record. Action 1 starts a fresh
+walk at the returned root; action 2 continues the current walk at the returned
+page; action 3 requests the returned row from that page; action 4 completes
+the plan. Only action 4 returns the 32-byte `HIASQB01` batch header at
+offset 64. A successful row observation also returns a frame at offset 96:
+table id, signed rowid, byte length, and projection (or raw sequence
+envelope). Concatenate only the business frames, in their emitted order,
+after the batch header. An empty plan has zero business frames and does not
+require a batch-write transaction. Keep the raw sequence separately.
+
+The plan requires 208 workspace bytes plus eight per rowid on the largest
+leaf. The output capacity is at least 96 bytes, and for phase 3 at least
+120 bytes plus the projection length. Codes 1 (correlation or framing), 2
+(output), 3 (workspace), and 4 (row or sequence shape) do not advance the plan.
+A component process fixes the workspace extent; choose it before phase 1.
+The snapshot identity correlates calls through a trusted Pager transport; it
+does not authenticate supplied page or record bytes independently. The
+plan neither releases the original lock nor commits or activates the new
+Store. The caller must hold the lock across durable import.
 
 ## Flat-image ABI
 

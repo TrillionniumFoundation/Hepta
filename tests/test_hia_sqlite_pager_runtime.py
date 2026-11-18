@@ -318,6 +318,30 @@ class NativeSQLiteComponents(unittest.TestCase):
         self.assertEqual(replies[len(frames):], [(0, expected), (1, bytes(112))])
         self.assertEqual(self.component('agent-catalog', finish), [(1, bytes(112))])
 
+        # The unpopulated original Agent schema produces eleven genuinely
+        # empty roots. Exercise the sealed plan, including its zero-row header.
+        snapshot_id = bytes(range(1, 25))
+        plan_prefix = b'HIASMP01'
+        begin = struct.pack('<8sQ24s2Q', plan_prefix, 1, snapshot_id, pages, 7)
+        inputs = [self.request(begin + expected, 96, 208)]
+        for table, name in enumerate(order, 1):
+            root = roots[name]
+            page_size = int.from_bytes(snapshot[16:18], 'big')
+            page = snapshot[(root - 1) * page_size:root * page_size]
+            self.assertEqual((page[0], int.from_bytes(page[3:5], 'big')), (13, 0))
+            observed = struct.pack('<8sQ24sQ8s3Q', plan_prefix, 2, snapshot_id, table,
+                                   b'HIASWA01', root, 0, 0)
+            inputs.append(self.request(observed, 96, 208))
+        replies = self.component('migration-plan', b''.join(inputs) + inputs[-1])
+        for table, ((code, response), name) in enumerate(zip(replies, order), 1):
+            self.assertEqual(code, 0)
+            self.assertEqual(struct.unpack_from('<8s7Q', response),
+                             (b'HIASMR01', 1, table, roots[name], roots[name], 0, 0, 0))
+            self.assertEqual(response[64:], bytes(32))
+        done = struct.pack('<8s7Q8s3Q', b'HIASMR01', 4, 11, roots[order[-1]], 0, 0, 0, 0,
+                           b'HIASQB01', 1, 7, 0)
+        self.assertEqual(replies[len(order):], [(0, done), (1, bytes(96))])
+
     def test_partial_frame_and_changed_workspace_cannot_invoke(self):
         if self.root is None:
             self.skipTest('run with the cold-built native SQLite components')
