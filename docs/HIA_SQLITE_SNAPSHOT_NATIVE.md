@@ -74,3 +74,28 @@ file is written or claimed safe to restore without further integrity checks.
 Return codes `0` through `3` have the meanings above. The WAL component also
 returns `4` for an invalid nonempty WAL header and `5` for an unsupported WAL
 version. Errors leave the output untouched.
+
+## Read-only retained Pager
+
+The retained Pager is separately built and selected. Unlike the offline WAL
+component, it acquires an actual SQLite-compatible read transaction and
+retains its file/lock ownership until END. It does not open an Agent database
+by default, implement SQL or write transactions, or replace the Agent Store.
+
+```sh
+python -B -m tools.build_hia_sqlite_pager \
+  --compiler "$compiler" --cold-report "$cold_report" --output "$pager_output"
+```
+
+The hosted build uses the cold HIA compiler, a fixed three-file assembler
+adapter, and the HIA ELF linker. The resulting `hia-sqlite-pager` is a Linux
+x86-64 executable with no interpreter, libc, child program, or host SQL engine.
+It takes one database basename and an inherited directory capability on fd 3.
+Its cmd/reply transport uses stdin/stdout and requires a drained lossless
+audit pipe on fd 4. There is no pathname fallback.
+
+The retained operation is a separate copy from the ordinary page output.
+Client event 6 reads and retains the selected page, 7 reads a checked span of
+that copy by nonce and pin, and 8 releases the copy without releasing the read
+transaction. END and cleanup invalidate the copy. Replies for event 7 carry
+the exact requested offset/count and a separate payload of that length.

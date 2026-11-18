@@ -1,14 +1,15 @@
 """Exercise the checked-in HIA snapshot and record sources with real SQLite bytes."""
+from contextlib import closing
 from pathlib import Path
 import sqlite3
 import struct
 import tempfile
 import unittest
-from contextlib import closing
 
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program_runtime import _Machine, _Owner, _View
 from tools.build_hia_json_preflight import build
+from tools.build_hia_sqlite_pager import build as build_pager
 
 
 SOURCES = Path(__file__).resolve().parents[1] / 'examples' / 'hia_bootstrap'
@@ -100,6 +101,9 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                         build(output, compiler, cold, candidate=candidate)
                     self.assertFalse(output.exists())
+            with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
+                build_pager(output, compiler, cold)
+            self.assertFalse(output.exists())
 
     def test_wal_overlay_recovers_committed_row_and_ignores_torn_final_frame(self):
         with tempfile.TemporaryDirectory() as folder:

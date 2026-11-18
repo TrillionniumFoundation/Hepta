@@ -15,7 +15,13 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 SOURCE_FILES = (
+    'tools/build_hia_sqlite_pager.py',
+    'tools/hia_sqlite_pager_start.S',
+    'tools/hia_sqlite_pager_os.S',
+    'tools/hia_sqlite_pager_image.S',
     'docs/HIA_SQLITE_SNAPSHOT_NATIVE.md',
+    'examples/hia_bootstrap/sqlite_pager_retained.hepta',
+    'examples/hia_bootstrap/sqlite_pager_elf_linker.hepta',
     'examples/hia_bootstrap/sqlite_wal_snapshot.hepta',
     'examples/hia_bootstrap/sqlite_rowid_lookup.hepta',
     'examples/hia_bootstrap/sqlite_record_layout.hepta',
