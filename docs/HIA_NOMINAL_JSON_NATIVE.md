@@ -332,3 +332,22 @@ limit `0xfffffffb`, and invalid request/work buffers `0xfffffffd`,
 in the existing `HIANJE01` envelope. Refusal returns no partial JSON.
 The codec does not yet translate the constructor continuation tokens
 or dispatch the five resolver commands.
+
+The type resolver can return the existing `HIACTP01` constructor frame
+directly, without constructing resolver descriptors or having a host
+marshal the reply. The caller writes the last 64 bytes of a 128 MiB
+type workspace: `HIACTQ01`, a nonzero request sequence, command kind
+(1 initializer, 2 parameters, 3 resolve, 4 returned origins, 5 task
+protocol), and five zero words. The unchanged compact JSON request
+must agree with the requested kind.
+
+A completed reply replaces the control words with `HIACTY01`, the
+issued sequence and kind, the native semantic code, byte extent, and
+the three resolver counters. Binary reply payloads are zero or more
+u64 issued identities, or the original constructor origin rows. On
+semantic refusal the constructor frame contains the existing generic
+error bit, no rows, and the native code is retained in the separate
+custody words. The caller, not the type resolver, owns continuation
+sequencing. Invalid frames still fail before dispatch. Without the
+explicit private request magic, the existing JSON-descriptor ABI is
+unchanged.

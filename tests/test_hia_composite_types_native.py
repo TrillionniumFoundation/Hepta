@@ -7,6 +7,7 @@ import copy
 import ctypes
 from hashlib import sha256
 import json
+import mmap
 import os
 from pathlib import Path
 import random
@@ -549,6 +550,98 @@ class CompositeTypesNativeTests(unittest.TestCase):
             self.assertIsInstance(value.key, _NativeTypeIdentity)
             self.assertLess(len(types._descriptors), 100)
             self.assertIs(value, types.resolve(expression))
+
+    def test_constructor_receives_all_five_binary_type_replies_without_host_descriptors(self):
+        from hepta.hia_composite_constructor_native import RESPONSE_MAGIC
+
+        request_magic = int.from_bytes(b'HIACTQ01', 'little')
+        custody_magic = int.from_bytes(b'HIACTY01', 'little')
+        control = SESSION_BYTES - 64
+        # mmap keeps independent sessions without allocating their untouched
+        # address ranges, and lets this test observe unmaterialized identities.
+        with mmap.mmap(-1, SESSION_BYTES) as reference, mmap.mmap(-1, SESSION_BYTES) as native, \
+                mmap.mmap(-1, OUTPUT_BYTES) as output:
+            reference_ptr = ctypes.addressof(ctypes.c_char.from_buffer(reference))
+            native_ptr = ctypes.addressof(ctypes.c_char.from_buffer(native))
+            output_ptr = ctypes.addressof(ctypes.c_char.from_buffer(output))
+            request = 0
+
+            def invoke(command, workspace):
+                raw = wire(command)
+                source = ctypes.create_string_buffer(raw)
+                size = self.native._entry(source, len(raw), output_ptr, OUTPUT_BYTES,
+                                          workspace, SESSION_BYTES)
+                self.assertEqual(source.raw[:len(raw)], raw)
+                return bytes(output[:size]) if HEADER_BYTES <= size <= OUTPUT_BYTES else size
+
+            def compare(kind, command):
+                nonlocal request
+                request += 1
+                reference_frame = invoke(command, reference_ptr)
+                _, error, result, size, cached, active, steps, _ = struct.unpack_from('<8Q', reference_frame)
+                self.assertEqual(size, len(reference_frame) - 64)
+                reference_payload = json.loads(reference_frame[64:])
+                expected_count = 0
+                parts = []
+                if not error:
+                    if kind == 2:
+                        parts = [struct.pack('<Q', ident) for _, ident in reference_payload['params']]
+                    elif kind == 4:
+                        for origin in reference_payload['origins']:
+                            if origin is None:
+                                parts.append(struct.pack('<3Q', 0, 0, 0))
+                            else:
+                                name = origin[0].encode()
+                                parts.append(struct.pack('<3Q', 1, len(name), origin[1]) + name)
+                    elif kind != 1:
+                        parts.append(struct.pack('<Q', result))
+                    expected_count = len(parts)
+                payload = b''.join(parts)
+                expected = struct.pack('<8Q', RESPONSE_MAGIC, request, kind, int(bool(error)),
+                                       expected_count, len(payload), 0, 0) + payload
+                struct.pack_into('<8Q', native, control, request_magic, request, kind, 0, 0, 0, 0, 0)
+                self.assertEqual(invoke(command, native_ptr), expected)
+                self.assertEqual(struct.unpack_from('<8Q', native, control),
+                                 (custody_magic, request, kind, error, len(expected), cached, active, steps))
+                return result, error
+
+            definitions = [
+                record('Pair', [('left', 'usize'), ('view', 'readbuf')]),
+                enum('BinaryStep', [('pending', [('state', 'usize')]), ('ready', [('result', 'u8')])]),
+                dict(name='Work', kind='task', params=[], state='usize', result='u8', poll='poll', cancel='cancel'),
+            ]
+            setup = dict(op='init', definitions=definitions, recursive_chain=True, partial_records=True)
+            self.assertEqual(compare(1, setup), (0, 0))
+            pair, error = compare(3, dict(op='resolve', ref='Pair'))
+            self.assertGreater(pair, 16)
+            self.assertEqual(error, 0)
+            step, _ = compare(3, dict(op='resolve', ref='BinaryStep'))
+            task, _ = compare(3, dict(op='resolve', ref='Work'))
+            _, error = compare(2, dict(op='parameters', params=[
+                dict(name='formal', type='Pair'), dict(name='count', type='u8')]))
+            self.assertEqual(error, 0)
+            origins = dict(op='origins', params=[['formal', pair]],
+                           returns=[PRIMITIVES.index(name) + 1 for name in ('readbuf', 'u8')],
+                           return_loans=[loan_fixtures.origin('formal', 'view'), None])
+            self.assertEqual(compare(4, origins), (2, 0))
+            origins['return_loans'][0] = loan_fixtures.origin('missing', 'view')
+            self.assertEqual(compare(4, origins), (0, 39))
+            state = PRIMITIVES.index('usize') + 1
+            signatures = [['poll', [state], [step]], ['cancel', [state], []]]
+            self.assertEqual(compare(5, dict(op='task_protocol', task=task, functions=signatures)), (step, 0))
+            self.assertEqual(compare(5, dict(op='task_protocol', task=task, functions=[])), (0, 47))
+            self.assertEqual(compare(3, dict(op='resolve', ref='Missing'))[1], 18)
+
+            # Controls fail before resolving or publishing another descriptor.
+            for bad_id, wrong_kind, reserved in ((0, 3, 0), (request + 1, 1, 0), (request + 1, 3, 1)):
+                struct.pack_into('<8Q', native, control, request_magic, bad_id, wrong_kind, reserved, 0, 0, 0, 0)
+                self.assertEqual(invoke(dict(op='resolve', ref='Pair'), native_ptr), 4294967281)
+            # An ordinary reader still receives the accumulated type descriptors:
+            # no binary response claims to have published host object mirrors.
+            struct.pack_into('<8Q', native, control, *([0] * 8))
+            ordinary = invoke(dict(op='resolve', ref='Pair'), native_ptr)
+            descriptors = json.loads(ordinary[64:])['types']
+            self.assertTrue({pair, step, task} <= {row['id'] for row in descriptors})
 
     def test_native_ABI_bounds_duplicate_JSON_and_private_session_canaries(self):
         source = ctypes.create_string_buffer(wire(dict(op='init', definitions=[],

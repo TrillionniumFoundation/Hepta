@@ -108,6 +108,10 @@ ERRORS = {
 CONSTANTS = {
     'N': (1 << 64) - 1, 'MAGIC': MAGIC, 'ORIGINS_MAGIC': ORIGINS_MAGIC, 'STATE_MAGIC': STATE_MAGIC,
     'PARAMETERS_MAGIC': PARAMETERS_MAGIC,
+    'CTOR_CONTROL': WORKSPACE_BYTES - 64,
+    'CTOR_REQUEST': int.from_bytes(b'HIACTQ01', 'little'),
+    'CTOR_REPLY': int.from_bytes(b'HIACTP01', 'little'),
+    'CTOR_CUSTODY': int.from_bytes(b'HIACTY01', 'little'),
     'O_BYTES': OUTPUT_BYTES, 'W_BYTES': WORKSPACE_BYTES,
     'INPUT_BYTES': MAX_COMMAND_BYTES,
     'Q': 32 * 1024 * 1024, 'D': 64 * 1024 * 1024,
@@ -134,6 +138,9 @@ BODY = r'''
 def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < O_BYTES or length(w) < W_BYTES or length(s) > INPUT_BYTES:
         return 4294967280
+    if get(w, CTOR_CONTROL) == CTOR_REQUEST:
+        if ctor_control_ok(w) == 0:
+            return 4294967281
     put(w, 48, 262144)
     put(w, 56, 128)
     decoded_size = widen(decode_json(s, o, w))
@@ -142,6 +149,8 @@ def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     copy_words(o, w, Q, decoded_size)
     root = Q + 64
     operation = field(w, root, K_op)
+    if get(w, CTOR_CONTROL) == CTOR_REQUEST and ctor_matches(w, operation) == 0:
+        return 4294967281
     result = 0
     if text_is(w, operation, L_init) == 1:
         if shape(w, root, K_op | K_definitions | K_recursive_chain | K_partial_records) == 0:
@@ -150,7 +159,7 @@ def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         partial = field(w, root, K_partial_records)
         if (kind(w, recursive) != 1 and kind(w, recursive) != 2) or (kind(w, partial) != 1 and kind(w, partial) != 2):
             return 4294967281
-        fill_range(w, S, 33554432, 0)
+        fill_range(w, S, CTOR_CONTROL - S, 0)
         put(w, S, STATE_MAGIC)
         put(w, S + 56, choose(kind(w, recursive) == 2, 1, 0))
         put(w, S + 64, choose(kind(w, partial) == 2, 1, 0))
@@ -186,6 +195,8 @@ def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 return 4294967281
             params = field(w, root, K_params)
             resolve_parameters(w, params)
+            if get(w, CTOR_CONTROL) == CTOR_REQUEST:
+                return ctor_parameters(o, w, params)
             return render_parameters(o, w, params)
         elif text_is(w, operation, L_task_protocol) == 1:
             result = task_protocol(s, w, root)
@@ -195,7 +206,73 @@ def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967281
     if error(w) != 0:
         result = 0
+    if get(w, CTOR_CONTROL) == CTOR_REQUEST:
+        return ctor_result(o, w, result)
     return render_result(o, w, result)
+
+# Standalone clients opt in through a private, caller-owned word at the
+# end of the type-session workspace. Normal callers keep their JSON ABI.
+def ctor_control_ok(w:mutbuf) -> u64:
+    request = get(w, CTOR_CONTROL + 8)
+    service = get(w, CTOR_CONTROL + 16)
+    if request == 0 or service < 1 or service > 5:
+        return 0
+    offset = 24
+    while offset < 64:
+        if get(w, CTOR_CONTROL + offset) != 0:
+            return 0
+        offset = offset + 8
+    return 1
+
+def ctor_matches(w:mutbuf, operation:u64) -> u64:
+    service = get(w, CTOR_CONTROL + 16)
+    if service == 1:
+        return text_is(w, operation, L_init)
+    if service == 2:
+        return text_is(w, operation, L_parameters)
+    if service == 3:
+        return text_is(w, operation, L_resolve)
+    if service == 4:
+        return text_is(w, operation, L_origins)
+    return text_is(w, operation, L_task_protocol)
+
+def ctor_frame(o:mutbuf, w:mutbuf, count:u64, extent:u64) -> u32:
+    semantic = error(w)
+    if semantic != 0:
+        count = 0
+        extent = 64
+    put(o, 0, CTOR_REPLY)
+    put(o, 8, get(w, CTOR_CONTROL + 8))
+    put(o, 16, get(w, CTOR_CONTROL + 16))
+    put(o, 24, choose(semantic == 0, 0, 1))
+    put(o, 32, count)
+    put(o, 40, extent - 64)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    # Keep the specific semantic refusal separate from the constructor's
+    # established generic delegate status. Counters are still type-owned.
+    put(w, CTOR_CONTROL, CTOR_CUSTODY)
+    put(w, CTOR_CONTROL + 24, semantic)
+    put(w, CTOR_CONTROL + 32, extent)
+    put(w, CTOR_CONTROL + 40, get(w, S + 24))
+    put(w, CTOR_CONTROL + 48, get(w, S + 16) - 16 - get(w, S + 24))
+    put(w, CTOR_CONTROL + 56, get(w, S + 32))
+    return extent
+
+def ctor_result(o:mutbuf, w:mutbuf, result:u64) -> u32:
+    if result != 0:
+        put(o, 64, result)
+        return ctor_frame(o, w, 1, 72)
+    return ctor_frame(o, w, 0, 64)
+
+def ctor_parameters(o:mutbuf, w:mutbuf, params:u64) -> u32:
+    emitted = 0
+    item = child(w, params)
+    while item != N and error(w) == 0:
+        put(o, 64 + emitted * 8, get(w, item + 8))
+        emitted = emitted + 1
+        item = next_node(w, item)
+    return ctor_frame(o, w, emitted, 64 + emitted * 8)
 
 def copy_words(o:mutbuf, w:mutbuf, target:u64, size:u64) -> u64:
     i = 0
@@ -1196,27 +1273,36 @@ def render_origins(s:readbuf, o:mutbuf, w:mutbuf, root:u64) -> u32:
         reject(w, 37)
     put(w, S + 136, 64)
     put(w, S + 144, 0)
-    emit_text(o, w, '{"origins":[')
+    binary = get(w, CTOR_CONTROL) == CTOR_REQUEST
+    if binary == False:
+        emit_text(o, w, '{"origins":[')
     item = child(w, returns)
     annotation = child(w, annotations)
     emitted = 0
     while item != N and error(w) == 0:
         resolve_origin(s, w, input_id(s, w, item), annotation)
         if error(w) == 0:
-            if emitted != 0:
-                append_byte(o, w, 44)
             name = get(w, S + 176)
-            if name == N:
-                emit_text(o, w, 'null')
+            if binary:
+                ctor_origin(o, w, name)
             else:
-                append_byte(o, w, 91)
-                emit_name(o, w, name)
-                append_byte(o, w, 44)
-                emit_number(o, w, get(w, S + 184))
-                append_byte(o, w, 93)
+                if emitted != 0:
+                    append_byte(o, w, 44)
+                if name == N:
+                    emit_text(o, w, 'null')
+                else:
+                    append_byte(o, w, 91)
+                    emit_name(o, w, name)
+                    append_byte(o, w, 44)
+                    emit_number(o, w, get(w, S + 184))
+                    append_byte(o, w, 93)
             emitted = emitted + 1
         item = next_node(w, item)
         annotation = next_node(w, annotation)
+    if binary:
+        if get(w, S + 144) != 0:
+            return 4294967280
+        return ctor_frame(o, w, emitted, get(w, S + 136))
     if error(w) != 0:
         put(w, S + 136, 64)
         emitted = 0
@@ -1233,6 +1319,22 @@ def render_origins(s:readbuf, o:mutbuf, w:mutbuf, root:u64) -> u32:
     put(o, 48, get(w, S + 32))
     put(o, 56, 0)
     return get(w, S + 136)
+
+def ctor_origin(o:mutbuf, w:mutbuf, name:u64) -> u64:
+    at = get(w, S + 136)
+    size = count(w, name)
+    if O_BYTES - at < 24 or O_BYTES - at - 24 < size:
+        put(w, S + 144, 1)
+        return 0
+    put(o, at, choose(name == N, 0, 1))
+    put(o, at + 8, size)
+    put(o, at + 16, choose(name == N, 0, get(w, S + 184)))
+    i = 0
+    while i < size:
+        store(o, at + 24 + i, byte(w, data(w, name) + i))
+        i = i + 1
+    put(w, S + 136, at + 24 + size)
+    return 0
 
 def partial_step(w:mutbuf) -> u64:
     steps = get(w, S + 32) + 1
