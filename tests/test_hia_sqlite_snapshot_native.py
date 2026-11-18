@@ -35,6 +35,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
     def setUpClass(cls):
         cls.lookup = assemble_program((SOURCES / 'sqlite_rowid_lookup.hepta').read_bytes())
         cls.record = assemble_program((SOURCES / 'sqlite_record_layout.hepta').read_bytes())
+        cls.row_import = assemble_program((SOURCES / 'sqlite_agent_row_import.hepta').read_bytes())
         cls.wal = assemble_program((SOURCES / 'sqlite_wal_snapshot.hepta').read_bytes())
         cls.key = -(1 << 63)
         cls.blob = bytes(range(256)) * 7
@@ -176,7 +177,8 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             output = directory / 'output'
             compiler.write_bytes(b'not a qualified compiler')
             cold.write_text('{}')
-            for candidate in ('sqlite-wal-snapshot', 'sqlite-rowid-lookup', 'sqlite-record-layout'):
+            for candidate in ('sqlite-wal-snapshot', 'sqlite-rowid-lookup',
+                              'sqlite-record-layout', 'sqlite-agent-row-import'):
                 with self.subTest(candidate=candidate):
                     with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                         build(output, compiler, cold, candidate=candidate)
@@ -184,6 +186,35 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                 build_pager(output, compiler, cold)
             self.assertFalse(output.exists())
+
+    def test_import_preserves_storage_classes_and_materializes_cost_rowid(self):
+        def packet(table, rowid, payload, columns, encoding=1):
+            status, layout = run_vm(self.record, payload, 32 + columns * 32, 16)
+            self.assertEqual(status, 0)
+            return struct.pack('<8sQq2Q', b'HIASQI01', table, rowid, encoding,
+                               len(layout)) + layout + payload
+
+        text = 'é'.encode()
+        request = packet(2, 1, bytes((4, 17, 1, 0)) + text + b'\xff', 3)
+        status, output = run_vm(self.row_import, request, 128, 0)
+        wanted = struct.pack('<8s3Q', b'HIAROW01', 1, 2, 3)
+        wanted += struct.pack('<9Q', 3, 104, 2, 1, 106, 8, 0, 114, 0)
+        wanted += text + struct.pack('<q', -1)
+        self.assertEqual((status, output), (0, wanted.ljust(128, b'\xa7')))
+        bad = bytearray(request)
+        struct.pack_into('<Q', bad, 72 + 32 + 24, 7)
+        self.assertEqual(run_vm(self.row_import, bad, 128, 0), (1, b'\xa7' * 128))
+        self.assertEqual(run_vm(self.row_import, request, 113, 0), (2, b'\xa7' * 113))
+        other_encoding = packet(2, 1, bytes((4, 17, 1, 0)) + text + b'\xff', 3, 2)
+        self.assertEqual(run_vm(self.row_import, other_encoding, 128, 0), (5, b'\xa7' * 128))
+
+        key = (1 << 63) - 1
+        costs = packet(5, key, bytes((8, 0, 0, 15, 15, 15, 15, 15)) + b'abcde', 7)
+        status, output = run_vm(self.row_import, costs, 256, 0)
+        self.assertEqual(status, 0)
+        self.assertEqual(struct.unpack_from('<8s3Q', output), (b'HIAROW01', 1, 5, 7))
+        self.assertEqual(struct.unpack_from('<3Q', output, 32), (1, 200, 8))
+        self.assertEqual(output[200:213], struct.pack('<q', key) + b'abcde')
 
     def test_wal_overlay_recovers_committed_row_and_ignores_torn_final_frame(self):
         with tempfile.TemporaryDirectory() as folder:

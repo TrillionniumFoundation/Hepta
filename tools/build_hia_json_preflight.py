@@ -100,6 +100,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json'),
                   'sqlite-wal-snapshot': ('sqlite_wal_snapshot', 'sqlite-wal-snapshot'),
                   'sqlite-rowid-lookup': ('sqlite_rowid_lookup', 'sqlite-rowid-lookup'),
+                  'sqlite-agent-row-import': ('sqlite_agent_row_import', 'sqlite-agent-row-import'),
                   'sqlite-record-layout': ('sqlite_record_layout', 'sqlite-record-layout')}
     if candidate not in candidates:
         raise ValueError('unknown HIA JSON candidate')
@@ -149,7 +150,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--candidate', default='preflight',
                         choices=('preflight', 'sqlite-wal-snapshot',
-                                 'sqlite-rowid-lookup', 'sqlite-record-layout'))
+                                 'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

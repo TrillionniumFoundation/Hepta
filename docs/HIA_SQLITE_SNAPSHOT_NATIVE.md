@@ -94,6 +94,32 @@ Traverse interior entries from a known root; keep a visited set to reject
 cycles and repeated pages. Page 1 is the root of SQLite's schema table.
 An index or a WITHOUT ROWID table is not a rowid table and is not supported.
 
+### Projecting a SQLite row to the private HIA Store format
+
+`sqlite-agent-row-import` produces one typed stored row for the ten known
+Agent table numbers (artifacts, profiles, contexts, requests, costs, cursors,
+slots, versions, leases and execution budgets, in that order). Its source is
+the eight-byte tag `HIASQI01`, table number, signed physical rowid, encoding
+code, layout byte count, the exact `HIASREC1` descriptor bytes, then the raw
+record. All header numbers are eight bytes. The layout must come from the
+record decoder for that exact record; neither input supplies table or
+transaction authority.
+
+On status `0`, the output is a private Store `HIAROW01` version 1 record, not
+the lookup output described above. After the tag, version, table and number
+of columns, each column has three 8-byte words: storage kind (NULL 0, INTEGER
+1, REAL 2, TEXT 3, BLOB 4), output-relative offset, and byte count. The cost
+sequence alias comes from the physical rowid, because its SQLite record
+column is NULL. Actual integers and binary64 values retain their exact bits.
+Status `1` is malformed input, `2` is insufficient output, and `5` is
+unsupported text encoding (this bridge accepts UTF-8 only). The output is
+untouched on an error; this component needs no scratch.
+
+This is only a row projection. It does not apply constraints, migrate
+`sqlite_sequence`, publish durable data, move artifacts, or change which
+Store the Agent uses. The receiving Store must still validate the row and
+apply its complete transaction protocol.
+
 ## Committed WAL view
 
 The WAL component takes an 8-byte size of the base database, the corresponding
