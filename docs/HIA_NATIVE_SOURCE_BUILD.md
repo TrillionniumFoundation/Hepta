@@ -111,6 +111,14 @@ normalization bridges, or justify removal of the retained reference tools.
 
 ## Validation and integration
 
+The normal Core/Store release includes the native source builder and its three
+HIA sources. From installed bytes the release job packs a source-only bundle,
+recompiles it, uses the compiled sources and images to reproduce the installed
+builder byte for byte, then repeats the build with that reproduced executable.
+Both generations must emit an identical source kit. This checks the retained
+assembly compiler and its bundle transport, not the rest of the product's
+source build.
+
 `tests.test_hia_source_build` contains complete source regeneration checks,
 independent HIA VM policy/ELF byte oracles, strict receipt refusal controls, actual
 B0/B1/B2/B3 development compilation, actual native two-round self-rebuilds,

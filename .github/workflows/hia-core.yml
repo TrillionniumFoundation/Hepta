@@ -230,11 +230,15 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-suite"
           python -B -m tools.build_hia_agent_stdio --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-stdio"
+          python -B -m tools.build_hia_source_build --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/source-build"
+          source_roles=(selfhost.hepta source_build_policy.hepta source_build_packer.hepta)
           install -m 0500 "$package/installer/hia-release" \
             "$package/packager/hia-directory-package-build" \
             "$package/selector/hia-select" \
             "$RUNNER_TEMP/core-suite/hia-core" \
             "$RUNNER_TEMP/agent-stdio/hia-native" \
+            "$RUNNER_TEMP/source-build/hia-source-build" \
             "$RUNNER_TEMP/agent-store/hia-agent-store" \
             "$RUNNER_TEMP/agent-store-init/hia-agent-store-init" \
             "$RUNNER_TEMP/agent-batch-commit/hia-agent-batch-commit" \
@@ -244,6 +248,9 @@ jobs:
             "$RUNNER_TEMP/sqlite-pager/hia-sqlite-pager" \
             "$RUNNER_TEMP"/sqlite-components/hia-sqlite-* "$package/stage"
           install -m 0400 "$RUNNER_TEMP"/agent-store/module-root/module-*.bin "$package/stage"
+          for role in "${source_roles[@]}"; do
+            install -m 0400 "examples/hia_bootstrap/$role" "$package/stage"
+          done
           env -i PATH= "$package/packager/hia-directory-package-build" "$package/stage" \
             > "$package/store.hiapack" 2> "$package/store.sha256"
           read -r digest < "$package/store.sha256"
@@ -266,6 +273,21 @@ jobs:
             < "$package/repacked.hiapack" > "$package/activate.json"
           env -i PATH= "$installed/hia-select" verify "$package/reinstalled" 1 "$digest" \
             < "$package/repacked.hiapack" > "$package/selected.json"
+          mkdir -m 0700 "$package/compiler-sources"
+          for role in "${source_roles[@]}"; do
+            install -m 0400 "$installed/$role" "$package/compiler-sources"
+          done
+          env -i PATH= "$installed/hia-directory-package-build" "$package/compiler-sources" \
+            > "$package/compiler-sources.hiapack" 2> "$package/compiler-sources.sha256"
+          env -i PATH= "$installed/hia-source-build" build < "$package/compiler-sources.hiapack" \
+            > "$package/compiler-sourcekit.hiapack"
+          env -i PATH= "$installed/hia-source-build" pack < "$package/compiler-sourcekit.hiapack" \
+            > "$package/rebuilt-source-build"
+          cmp "$installed/hia-source-build" "$package/rebuilt-source-build"
+          chmod 0500 "$package/rebuilt-source-build"
+          env -i PATH= "$package/rebuilt-source-build" build < "$package/compiler-sources.hiapack" \
+            > "$package/rebuilt-compiler-sourcekit.hiapack"
+          cmp "$package/compiler-sourcekit.hiapack" "$package/rebuilt-compiler-sourcekit.hiapack"
           env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/selfhost.hepta \
             > "$package/installed-compiler.image.bin"
           cmp "$compiler" "$package/installed-compiler.image.bin"
