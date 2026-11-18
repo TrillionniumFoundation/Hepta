@@ -68,6 +68,11 @@ explicit. Native runtime needs neither Python nor an external compiler for those
 commands. Its input/node/depth/output and process limits remain enforced. It is
 not the complete hosted Agent service or a general module/build system.
 
+The separate native `hia-normalize-core` filter verifies a complete primitive
+Core v1–v8 document and emits the same sorted JSON as hosted
+`hia normalize` on stdout, without the hosted parser or compiler subset
+limits. Composite normalization and file publication still use other routes.
+
 The hosted `hia` entry exposes Core tools including capabilities, verification,
 object building and bounded editing. Use `hia --help` and command help from the
 actual installed version. No `hepta` high-level entry or source migration command

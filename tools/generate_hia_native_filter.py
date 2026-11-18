@@ -19,7 +19,7 @@ WORKSPACE_BYTES=16<<20
 MAPPING_BYTES=WORKSPACE_OFFSET+WORKSPACE_BYTES
 
 
-def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES):
+def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, formatter=False):
     workspace_offset=OUTPUT_OFFSET+output_bytes
     mapping_bytes=workspace_offset+workspace_bytes
     code=bytearray();labels={};branches=[]
@@ -27,6 +27,13 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES):
     def word(value):code.extend(struct.pack('<I',value))
     def label(name):labels[name]=len(code)
     def branch(op,name):emit(op);branches.append((len(code),name));word(0)
+    def call_image():
+        emit('4c 89 e7 4c 89 ee 49 8d 94 24');word(OUTPUT_OFFSET)
+        emit('b9');word(output_bytes)
+        emit('4d 8d 84 24');word(workspace_offset)
+        emit('41 b9');word(workspace_bytes)
+        emit('e8');offset=len(code);word(0)
+        return offset
     emit('48 83 3c 24 01');branch('0f 85','usage')
     emit('31 ff be');word(mapping_bytes)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff');branch('0f 83','io')
@@ -36,11 +43,11 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES):
     emit('48 85 c0');branch('0f 88','io');branch('0f 84','invoke')
     emit('49 01 c5 49 81 fd');word(WIRE_BYTES);branch('0f 87','space');branch('e9','read')
     label('invoke')
-    emit('4c 89 e7 4c 89 ee 49 8d 94 24');word(OUTPUT_OFFSET)
-    emit('b9');word(output_bytes)
-    emit('4d 8d 84 24');word(workspace_offset)
-    emit('41 b9');word(workspace_bytes)
-    emit('e8');hole=len(code);word(0)
+    calls = [call_image()]
+    if formatter:
+        emit('83 f8 fe');branch('0f 84','space')
+        emit('85 c0');branch('0f 85','invalid')
+        calls.append(call_image())
     emit('83 f8 fe');branch('0f 84','space')
     emit('3d');word(output_bytes);branch('0f 87','invalid')
     emit('41 89 c6 4d 8d bc 24');word(OUTPUT_OFFSET)
@@ -56,20 +63,31 @@ def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES):
         +struct.pack('<IIQQQQQQ',1,5,0,0x400000,0x400000,0,0,4096)
         +struct.pack('<IIQQQQQQ',0x6474e551,6,0,0,0,0,0,16))
     assert len(head)==176
-    return head+code,176+hole
+    return head+code,tuple(176+offset for offset in calls)
 
 
-def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC):
-    prefix,hole=template(output_bytes=output_bytes,workspace_bytes=workspace_bytes)
+def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC, formatter=False):
+    prefix,calls=template(output_bytes=output_bytes,workspace_bytes=workspace_bytes,formatter=formatter)
+    header = 24 if formatter else 16
+    minimum = header + len(calls)
     text=f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 17 or length(s) > 1048576:
+    if length(s) < {minimum} or length(s) > 1048576:
         return 4294967295
     if uint(s, 0, 8) != {magic}:
         return 4294967295
     image = uint(s, 8, 8)
-    if image != length(s) - 16:
+'''
+    if formatter:
+        text += '''    format_image = uint(s, 16, 8)
+    if image == 0 or image >= length(s) - 24 or format_image != length(s) - 24 - image:
         return 4294967295
-    size = {len(prefix)} + image
+'''
+    else:
+        text += '''    if image != length(s) - 16:
+        return 4294967295
+'''
+    payload = 'length(s) - 24' if formatter else 'image'
+    text += f'''    size = {len(prefix)} + ({payload})
     if size > 1048576 or length(o) < size:
         return 4294967294
 '''
@@ -77,8 +95,11 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
         chunk=prefix[at:at+8];text+=f'    write(o, {at}, {int.from_bytes(chunk,"little")}, {len(chunk)})\n'
     text+=f'''    write(o, 96, size, 8)
     write(o, 104, size, 8)
-    write(o, {hole}, {len(prefix)-hole-4}, 4)
-    copy_bytes(s, o, 16, {len(prefix)}, image)
+    write(o, {calls[0]}, {len(prefix)-calls[0]-4}, 4)
+'''
+    if formatter:
+        text+=f'    write(o, {calls[1]}, {len(prefix)-calls[1]-4} + image, 4)\n'
+    text+=f'''    copy_bytes(s, o, {header}, {len(prefix)}, {payload})
     return size
 '''
     # Exact ordinary Core helper bodies, never a host-side payload copier.
@@ -86,8 +107,10 @@ def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES
     return text
 
 
-def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC, module='native_filter_packer'):
-    nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,magic=magic)).body
+def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC,
+             module='native_filter_packer', formatter=False):
+    nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,
+                                   magic=magic,formatter=formatter)).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     fns=[]

@@ -6,16 +6,17 @@ at execution time, or turn the still-Python semantic checker into HIA.
 from __future__ import annotations
 import ast
 from pathlib import Path
+from string import Template
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_json_decode import source_program as decoder_source
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
-SOURCE = r'''
+CANONICAL = Template(r'''
 def canonical_json(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 128 or length(o) < 128 or length(o) < length(s):
         return 4294967293
-    maximum = get(w, 48)
-    maximum_depth = get(w, 56)
+    maximum = $maximum
+    maximum_depth = $maximum_depth
     put(o, 48, maximum)
     put(o, 56, maximum_depth)
     result = widen(decode_json(s, w, o))
@@ -25,15 +26,18 @@ def canonical_json(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     # no foreign object or buffer alias is involved in serialization.
     put(w, 56, 0)
     node = 0
+    $initial_depth
     going = True
     while going:
         record = 64 + node * 56
         kind = get(w, record)
         parent = get(w, record + 8)
         if parent != 18446744073709551615:
+            $open_line
             if get(w, 64 + parent * 56) == 6:
                 append_string(o, w, get(w, record + 40), get(w, record + 48))
                 append_byte(o, w, 58)
+                $colon_space
         complete = True
         if kind == 5 or kind == 6:
             if kind == 6:
@@ -43,6 +47,7 @@ def canonical_json(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 append_byte(o, w, choose(kind == 5, 93, 125))
             else:
                 node = get(w, record + 24)
+                $descend
                 complete = False
         else:
             start = get(w, record + 24)
@@ -73,12 +78,16 @@ def canonical_json(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                         moving = False
                     else:
                         node = parent
+                        $ascend
+                        $close_line
                         append_byte(o, w, choose(get(w, 64 + node * 56) == 5, 93, 125))
+    $end_line
+$check_capacity
     return get(w, 56)
 
 def append_byte(o:mutbuf, w:mutbuf, value:u64) -> u64:
     index = get(w, 56)
-    store(o, index, value)
+$write
     put(w, 56, index + 1)
     return 0
 
@@ -183,11 +192,39 @@ def sort_object(w:mutbuf, node:u64) -> u64:
         width = width * 2
     put(w, record + 24, head)
     return 0
+''')
+
+SOURCE = CANONICAL.substitute(
+    maximum='get(w, 48)', maximum_depth='get(w, 56)', initial_depth='',
+    open_line='', colon_space='', descend='', ascend='', close_line='',
+    end_line='', check_capacity='', write='    store(o, index, value)',
+)
+
+
+def core_pretty_source():
+    from hepta.hia_program import MAX_DEPTH, MAX_NODES
+    return CANONICAL.substitute(
+        maximum=MAX_NODES, maximum_depth=MAX_DEPTH, initial_depth='depth = 0',
+        open_line='newline(o, w, depth)', colon_space='append_byte(o, w, 32)',
+        descend='depth = depth + 1', ascend='depth = depth - 1',
+        close_line='newline(o, w, depth)', end_line='append_byte(o, w, 10)',
+        check_capacity='    if get(w, 56) > length(o):\n        return 4294967294',
+        write='    if index < length(o):\n        store(o, index, value)',
+    ) + '''
+def newline(o:mutbuf, w:mutbuf, depth:u64) -> u64:
+    append_byte(o, w, 10)
+    at = 0
+    while at < depth * 2:
+        append_byte(o, w, 32)
+        at = at + 1
+    return 0
 '''
 
 
-def document():
-    nodes = ast.parse(SOURCE + decoder_source()).body
+def document(*, core_pretty=False):
+    source, module = ((core_pretty_source(), 'core_pretty_json') if core_pretty
+                      else (SOURCE, 'json_canonical'))
+    nodes = ast.parse(source + decoder_source()).body
     names = {node.name: 'f' + str(i) for i, node in enumerate(nodes)}
     signatures = {node.name: ([a.annotation.id for a in node.args.args], node.returns.id) for node in nodes}
     total = total_scalar_functions(nodes)
@@ -198,13 +235,15 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'json_canonical', 'functions': functions})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module, 'functions': functions})
 
 
 def main():
-    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/json_canonical.hepta'
-    path.write_text(render_assembly(document()))
-    print(path.name, path.stat().st_size)
+    folder = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap'
+    for name, pretty in (('json_canonical', False), ('core_pretty_json', True)):
+        path = folder / f'{name}.hepta'
+        path.write_text(render_assembly(document(core_pretty=pretty)))
+        print(path.name, path.stat().st_size)
 
 
 if __name__ == '__main__':

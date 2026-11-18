@@ -12,7 +12,9 @@ import subprocess
 import tempfile
 import unittest
 
-from tools.generate_hia_core_admission_cli import MAGIC, STATE_BYTES, ARENA_BYTES, document
+from tools.generate_hia_core_admission_cli import (
+    MAGIC, NORMALIZE_MAGIC, STATE_BYTES, ARENA_BYTES, NORMALIZE_OUTPUT_BYTES, document,
+)
 from tools.build_hia_core_admission_cli import SOURCE, PACKER, build
 from tests.test_hia_core_admission_native import VALID, borrowed_owner, interpreted, wire
 from tests.test_hia_core_workspace_facts_native import vm_run
@@ -20,6 +22,10 @@ from tests.test_hia_core_workspace_facts_native import vm_run
 
 def frame(image):
     return struct.pack('<QQ', MAGIC, len(image)) + image
+
+
+def normalize_frame(admission, formatter):
+    return struct.pack('<3Q', NORMALIZE_MAGIC, len(admission), len(formatter)) + admission + formatter
 
 
 class CoreAdmissionCliSourceTests(unittest.TestCase):
@@ -43,6 +49,33 @@ class CoreAdmissionCliSourceTests(unittest.TestCase):
         for request, cap, status in ((request, 64, 0xfffffffe), (request + b'x', 4096, 0xffffffff),
                                      (b'wrong', 4096, 0xffffffff)):
             self.assertEqual(vm_run(PACKER, request, cap, 1), (status, b'\xa5' * cap))
+
+    def test_normalize_sources_and_two_image_packer(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from hepta.hia_json_decode_native import arena_sizes
+        from hepta.hia_program import MAX_BYTES, MAX_NODES, MAX_DEPTH
+        from tools.generate_hia_json_canonical import document as pretty_document
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+
+        packer = PACKER.with_name('core_normalize_cli_packer.hepta')
+        self.assertEqual(packer.read_text(), render_assembly(document(normalize=True)))
+        pretty = SOURCE.with_name('core_pretty_json.hepta')
+        self.assertEqual(pretty.read_text(),render_assembly(pretty_document(core_pretty=True)))
+        arena, keys = arena_sizes(MAX_BYTES, MAX_NODES, MAX_DEPTH)
+        self.assertGreaterEqual(ARENA_BYTES, arena)
+        self.assertGreaterEqual(NORMALIZE_OUTPUT_BYTES, keys)
+        self.assertGreaterEqual(NORMALIZE_OUTPUT_BYTES,
+                                1 + MAX_BYTES + MAX_NODES * (4 * MAX_DEPTH + 4))
+        first, second = b'\x31\xc0\xc3', b'\x31\xc0\x90\xc3'
+        request = normalize_frame(first, second)
+        size, raw = vm_run(packer, request, 4096, 1)
+        self.assertEqual(size,len(raw))
+        self.assertTrue(raw.endswith(first + second))
+        self.assertFalse(inspect_executable(raw)['dynamic_loader'])
+        for invalid in (normalize_frame(b'', second), normalize_frame(first,b''), request[:-1],
+                        request + b'x', frame(first)):
+            self.assertEqual(vm_run(packer, invalid, 4096, 1), (0xffffffff, b'\xa5' * 4096))
+        self.assertEqual(vm_run(packer, request, 64, 1), (0xfffffffe, b'\xa5' * 64))
 
 
 class CoreAdmissionCliNativeTests(unittest.TestCase):
@@ -70,6 +103,8 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
             assert first.read_bytes() == compiler.read_bytes()
         cls.compiler = compiler
         image, cls.kernel_receipt = compile_stage(cls.folder, 'core-admission', compiler, SOURCE.read_bytes())
+        cls.admission = image
+        cls.cold = Path(cold) if cold else None
         packer, cls.packer_receipt = compile_stage(cls.folder, 'core-admission-cli-packer', compiler, PACKER.read_bytes())
         request = frame(image.read_bytes())
         receipt, arena = invoke(cls.folder, 'core-admission-cli-pack', packer, request)
@@ -195,3 +230,52 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'matching-source'):
             build(output, self.compiler, wrong)
         self.assertFalse(output.exists())
+
+    def test_native_normalize_matches_hosted_output_after_full_admission(self):
+        from hepta.hia_program import verify_program
+        from hepta.hia_schema import PRIMITIVE_PROFILES
+        from tools.qualify_hia_selfhost import compile_stage, invoke
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+
+        if self.cold:
+            target = build(self.folder/'normalize', self.compiler, self.cold, normalize=True)
+        else:
+            images = []
+            for name in ('core_pretty_json', 'core_normalize_cli_packer'):
+                image, _ = compile_stage(self.folder, name, self.compiler, SOURCE.with_name(name+'.hepta').read_bytes())
+                images.append(image)
+            receipt, arena = invoke(self.folder,'normalize-pack',images[1],
+                                    normalize_frame(self.admission.read_bytes(),images[0].read_bytes()))
+            size = receipt['core_u32']
+            self.assertTrue(0 < size <= 1 << 20)
+            target = self.folder/'hia-normalize-core'
+            target.write_bytes(arena[:size])
+            target.chmod(0o700)
+        copied=self.folder/'copied-normalize'
+        shutil.copyfile(target,copied);copied.chmod(0o500)
+        self.assertFalse(inspect_executable(copied.read_bytes())['dynamic_loader'])
+
+        def run(raw, expected=0, args=()):
+            stdout = b''
+            if expected == 0:
+                data = verify_program(raw).as_dict()
+                stdout = (json.dumps(data,ensure_ascii=False,indent=2,sort_keys=True)+'\n').encode()
+            result = subprocess.run([copied,*args],input=raw,capture_output=True,
+                                    env={'PATH':'','HOME':'/nonexistent','LC_ALL':'C'},
+                                    timeout=20,preexec_fn=self.limits)
+            self.assertEqual((result.returncode,result.stdout,result.stderr),(expected,stdout,b''))
+
+        for schema in PRIMITIVE_PROFILES:
+            with self.subTest(schema=schema):
+                raw=wire({**VALID,'schema':schema}).replace(b'"module"',b'"m\\u006fdule"',1)
+                run(b'\n'+raw+b'\t ')
+        for raw in (b'', b'\xff', wire(borrowed_owner()), b'{"schema":0,"\\u0073chema":1}'):
+            run(raw, 2)
+        value=copy.deepcopy(VALID)
+        fn=value['functions'][0]
+        value['functions']=[{**fn,'name':'f'+str(i)} for i in range(1024)]
+        run(wire(value))
+        padded=wire(VALID).ljust(8 << 20,b' ')
+        run(padded)
+        run(padded+b' ',3)
+        run(wire(VALID),64,('unexpected',))

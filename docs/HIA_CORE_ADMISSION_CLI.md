@@ -1,4 +1,4 @@
-# Standalone native primitive Core checker
+# Standalone native primitive Core checker and normalizer
 
 The explicit `tools.build_hia_core_admission_cli` builder emits a standalone
 Linux x86-64 ELF executable named `hia-verify-core`. Feed one raw primitive
@@ -23,6 +23,24 @@ Stdout and stderr are empty, including refusals. Excess function and block
 inventories retain their existing Core FORMAT/CFG refusal classification (2),
 not decoder-budget classification (3). This command does not execute submitted
 Core or dynamically load code from its JSON input.
+
+## Normalize admitted primitive Core
+
+```sh
+python -B -m tools.build_hia_core_admission_cli --normalize \
+  --compiler /qualified/B3.image.bin --cold-report /qualified/cold.json \
+  --output /private/new-normalizer
+/private/new-normalizer/hia-normalize-core < primitive-core.json
+```
+
+The normalizer first runs the same complete HIA admission. Only on success
+does a second embedded HIA image emit sorted, two-space-indented UTF-8 JSON
+and a final newline, matching the hosted `hia normalize` stdout for primitive
+v1–v8 input. It does not accept composite Core or write files by path. The
+normalizer retains the same source limits and exit categories. Its 80 MiB
+output/scratch mapping allows for formatting expansion; refusals write no
+stdout. A descriptor error during output can leave a prefix on stdout and
+exits 4. Stdout is not atomic publication.
 
 ## Full profile and remaining work
 

@@ -11,6 +11,7 @@ import importlib
 import json
 from pathlib import Path
 import stat
+import struct
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -161,6 +162,9 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         if self.pack_mutation:
             self.pack_mutation()
         raw = b'not an ELF executable; custody fixture only'
+        if len(args) >= 4 and args[1] == 'agent-pack':
+            catalog_size, = struct.unpack_from('<Q', source, 40)
+            raw += source[-catalog_size:]
         receipt['core_u32'] = len(raw)
         return receipt, raw
 
