@@ -476,9 +476,14 @@ snapshot from the verified Core and do not claim native execution or
 whole-language soundness.
 
 The cold-built, sealed native `hia` routes `verify`, `inspect` and
-stdout-only `normalize` through this component. It checks the component's
+`normalize` through this component. It checks the component's
 size, digest and custody before handing over a source descriptor. The
 component decodes the original schema and selects native nominal lowering
-or the existing independent primitive verifier. The separate file-publishing
-form `normalize -o`, other build/edit commands and the host CLI/API are
-unchanged by this route.
+or the existing independent primitive verifier.
+
+With `normalize -o PATH`, the verified canonical Core goes directly to
+the existing native filesystem publisher in the same process. No public
+frame can supply allegedly verified bytes. The result distinguishes the
+original source SHA-256 from the verified Core SHA-256, and uses the same
+nofollow and no-overwrite publication policy. Other build/edit commands
+and the host CLI/API are not changed by this route.

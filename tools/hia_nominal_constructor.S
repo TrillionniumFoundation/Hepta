@@ -82,8 +82,10 @@
 .endm
 
 _start:
- cmp QWORD PTR [rsp+8],1
- jne malformed
+ cmp QWORD PTR [rsp+8],2
+ ja malformed
+ cmp QWORD PTR [rsp+8],0
+ je malformed
  xor ebp,ebp
  mov rbx,[rsp+16]
  lea rsi,[rip+sigpipe]
@@ -94,6 +96,12 @@ _start:
  syscall
  test rax,rax
  jne io_failure
+ lea rsi,[rip+stdio_publish]
+ call argument_equal
+ test eax,eax
+ jnz stdin_publish
+ cmp QWORD PTR [rsp+8],1
+ jne malformed
  lea rsi,[rip+stdio_verify]
  call argument_equal
  test eax,eax
@@ -1101,6 +1109,13 @@ stdin_inspect:
  jmp stdin_begin
 stdin_normalize:
  mov edi,9
+ jmp stdin_begin
+stdin_publish:
+ cmp QWORD PTR [rsp+8],2
+ jne malformed
+ mov rax,[rsp+24]
+ mov [rip+publication_path],rax
+ mov edi,10
 stdin_begin:
  mov [rip+handoff_role],rdi
  mov QWORD PTR [rip+request+8],4300
@@ -1308,6 +1323,8 @@ select_presentation:
  mov ecx,8
  rep movsq
 select_report:
+ cmp QWORD PTR [rip+handoff_role],10
+ je publish_canonical
  xor eax,eax
  cmp QWORD PTR [rip+handoff_role],7
  jne present_core
@@ -1337,6 +1354,16 @@ present_core:
  call write_exact
  xor edi,edi
  jmp exit
+
+publish_canonical:
+ mov rdi,[rip+publication_path]
+ mov rsi,[rip+type_output]
+ mov rdx,[rip+verified_core_extent]
+ xor ecx,ecx
+ cmp QWORD PTR [rip+input_profile],0
+ cmovne rcx,[rip+presentation_output]
+ add rsp,8
+ jmp nominal_publish
 
 verified_budget:
  mov eax,0xfffffffb
@@ -1620,6 +1647,7 @@ helper_stream_name: .asciz "hia-function-helpers"
 stdio_verify: .asciz "hia-verify-core-json"
 stdio_inspect: .asciz "hia-inspect-core-json"
 stdio_normalize: .asciz "hia-normalize-core"
+stdio_publish: .asciz "hia-publish-program"
 .balign 16
 owner: .incbin "owner.image.bin"
 .balign 16
@@ -1666,6 +1694,7 @@ public_core_state: .skip 8
 verified_header: .skip 64
 verified_core_extent: .skip 8
 presentation_output: .skip 8
+publication_path: .skip 8
 stdio_mode: .skip 8
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

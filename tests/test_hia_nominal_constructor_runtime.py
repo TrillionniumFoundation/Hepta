@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import struct
 import subprocess
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -20,7 +21,7 @@ from hepta.hia_instruction_policy_native import transport
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from hepta.hia_program import HIAProgramRejected, verify_core
 from hepta.hia_program_composite import _Elaborator
-from hepta.hia_program_tools import inspect_program
+from hepta.hia_program_tools import inspect_program, publish_program
 from tests.test_hia_partial_record import roundtrip_program
 from tests.test_hia_composite_returned_loans import pair_program, task_program as loan_task
 from tests.test_hia_program_composite import enum_owner_program, i, stored_loan_program, task_program
@@ -367,7 +368,11 @@ def reports(program):
         ('normalize', program.as_dict()),
     )
     for action, value in values:
-        yield action, (json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + '\n').encode()
+        yield action, pretty(value)
+
+
+def pretty(value):
+    return (json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + '\n').encode()
 
 
 def check_ordinary(executable, run):
@@ -375,12 +380,14 @@ def check_ordinary(executable, run):
     sources = subprocess.check_output(
         ['git', 'ls-files', '-z', '--', '*.hepta'], cwd=root).split(b'\0')
     count = nominal = 0
+    programs = []
     for encoded in filter(None, sources):
         path = root / encoded.decode()
         raw = path.read_bytes()
         if not raw.lstrip().startswith(b'{'):
             continue
         program = verify_core(raw)
+        programs.append((path, program))
         count += 1
         nominal += program.structured_bytes is not None
         for action, expected in reports(program):
@@ -400,6 +407,63 @@ def check_ordinary(executable, run):
             65, FRAME.pack(b'HIAVCF01', 3, 0xfffffff7, 1, 0, 0, 0, 0))
     print(f'{count * 3} byte-exact ordinary reports on {count} structured sources '
           f'({nominal} nominal), and three no-payload post-lowering refusals')
+    check_publication(executable, programs, raw)
+
+
+def check_publication(executable, programs, rejected):
+    def command(source, destination):
+        return [executable, 'normalize', source, '-o', destination]
+
+    def publish(source, destination):
+        return subprocess.run(command(source, destination), env={'PATH': ''},
+                              capture_output=True, timeout=20, check=False)
+
+    with TemporaryDirectory(prefix='hia-nominal-publication-') as temporary:
+        root = Path(temporary)
+        for index, (source, program) in enumerate(programs):
+            destination = root / 'actual' / str(index) / 'normalized.hepta'
+            reference = publish_program(program, root / 'expected' / str(index) / 'normalized.hepta')
+            reference['output'] = str(destination)
+            result = publish(source, destination)
+            assert (result.returncode, result.stdout, result.stderr) == (
+                0, pretty(reference), b''), (source, result.returncode, result.stdout)
+            assert destination.read_bytes() == program.canonical_bytes, source
+        assert any(program.input_sha256 != program.sha256 for _, program in programs)
+
+        source, program = next(pair for pair in programs if pair[1].structured_bytes is not None)
+        broken = root / 'rejected.hepta'
+        broken.write_bytes(rejected)
+        untouched = root / 'not-created' / 'normalized.hepta'
+        result = publish(broken, untouched)
+        assert (result.returncode, result.stdout, result.stderr) == (2, b'', b'')
+        assert not untouched.parent.exists()
+
+        protected = root / 'protected'
+        protected.mkdir()
+        alias = root / 'alias'
+        alias.symlink_to(protected, target_is_directory=True)
+        result = publish(source, alias / 'normalized.hepta')
+        assert (result.returncode, result.stdout, result.stderr) == (4, b'', b'')
+        assert not tuple(protected.iterdir())
+
+        shared = root / 'race' / 'normalized.hepta'
+        shared.parent.mkdir()
+        with (subprocess.Popen(command(source, shared), env={'PATH': ''},
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE) as first,
+              subprocess.Popen(command(source, shared), env={'PATH': ''},
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE) as second):
+            outputs = [child.communicate(timeout=20) for child in (first, second)]
+            statuses = [child.returncode for child in (first, second)]
+        assert sorted(statuses) == [0, 4]
+        committed = shared.stat()
+        assert shared.read_bytes() == program.canonical_bytes
+        assert outputs[statuses.index(4)] == (b'', b'')
+        result = publish(source, shared)
+        assert (result.returncode, result.stdout, result.stderr) == (4, b'', b'')
+        assert (shared.stat().st_ino, shared.read_bytes()) == (
+            committed.st_ino, program.canonical_bytes)
+    print(f'{len(programs)} exact canonical files and publication receipts; '
+          'semantic refusal, symlink parent, competing writers and no overwrite')
 
 
 if __name__ == '__main__':

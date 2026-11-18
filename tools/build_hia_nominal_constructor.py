@@ -9,11 +9,14 @@ from pathlib import Path
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_json import admit_compile_receipt
 from tools.build_hia_sqlite_migrate import embed
-from tools.build_hia_sqlite_pager import ROOT, assemble, digest, link, verify_executable, write_new
+from tools.build_hia_sqlite_pager import (
+    LINK_OUTPUT, ROOT, assemble, digest, link, verify_executable, write_new,
+)
 from tools.qualify_hia_selfhost import compile_stage
 
 
 ADAPTER = 'tools/hia_nominal_constructor.S'
+PUBLICATION_ADAPTER = 'tools/hia_core_edit_publish_program.S'
 DRIVER = 'tools/build_hia_nominal_constructor.py'
 COMPONENTS = {
     'nominal-json': 'examples/hia_bootstrap/nominal_json.hepta',
@@ -31,6 +34,9 @@ COMPONENTS = {
     'public-core': 'examples/hia_bootstrap/core_admission.hepta',
     'public-canonical': 'examples/hia_bootstrap/json_canonical.hepta',
     'public-presentation': 'examples/hia_bootstrap/core_nominal_report_json.hepta',
+    'publish-frontend': 'examples/hia_bootstrap/core_edit/publication_frontend.hepta',
+    'publish-program': 'examples/hia_bootstrap/core_edit/publication_program.hepta',
+    'publish-policy': 'examples/hia_bootstrap/core_edit/publication_policy.hepta',
     'linker': 'examples/hia_bootstrap/elf_static_linker.hepta',
 }
 
@@ -38,7 +44,8 @@ COMPONENTS = {
 def build(output: Path, compiler: Path, cold: Path) -> Path:
     compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
     admitted = admit_cold_build(compiler_body, cold_body)
-    inputs = {name: (ROOT / name).read_bytes() for name in (*COMPONENTS.values(), ADAPTER, DRIVER)}
+    inputs = {name: (ROOT / name).read_bytes()
+              for name in (*COMPONENTS.values(), ADAPTER, PUBLICATION_ADAPTER, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in inputs.items()):
         raise ValueError('constructor source differs from admitted cold build')
 
@@ -51,18 +58,23 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
                               source_bytes=inputs[filename], image_bytes=body)
         images[label], checks[path] = body, body
     transport = assemble(output, ADAPTER, inputs[ADAPTER])
-    objects = [transport]
+    publisher = assemble(output, PUBLICATION_ADAPTER,
+                         b'.set HIA_VERIFIED_PUBLISH,1\n' + inputs[PUBLICATION_ADAPTER])
+    objects = [transport, publisher]
     embedded = {'types': 'types_image', 'admit': 'function_admit',
                 'records': 'function_records', 'terms': 'function_terms',
                 'advanced': 'function_advanced', 'function-render': 'function_render',
                 'helpers': 'function_helper', 'outer-owner': 'outer_owner',
                 'outer-render': 'outer_render', 'public-core': 'public_core',
-                'public-canonical': 'public_canonical', 'public-presentation': 'public_presentation'}
+                'public-canonical': 'public_canonical', 'public-presentation': 'public_presentation',
+                'publish-frontend': 'publish_frontend', 'publish-program': 'publish_program',
+                'publish-policy': 'publish_policy'}
     for role, label in embedded.items():
         stem = 'constructor-' + role
         objects.append(embed(output, label, stem, images[role]))
         checks[output / (stem + '.embedded.elf')] = images[role]
-    binary, link_receipt = link(output, images['linker'], images['owner'], objects, wire_magic=b'HIALNK01')
+    binary, link_receipt = link(output, images['linker'], images['owner'], objects,
+                                wire_magic=b'HIALNK01', executable_limit=LINK_OUTPUT)
     for label in ('nominal-json', 'render', *embedded):
         verify_executable(binary, images[label])
     if (current_sources() != admitted or compiler.read_bytes() != compiler_body

@@ -83,7 +83,8 @@ def verify_executable(elf, pager):
         raise ValueError('unexpected Pager ELF load segment or stack permissions')
 
 
-def link(directory, linker, pager, objects, *, wire_magic=b'HIAPGLK2'):
+def link(directory, linker, pager, objects, *, wire_magic=b'HIAPGLK2',
+         executable_limit=EXECUTABLE_LIMIT):
     packet = struct.pack('<8s3Q', wire_magic, len(objects), 6, 0) + b'_start'
     packet += b''.join(struct.pack('<Q', len(obj)) + obj for obj in objects)
     write_new(directory / 'link.input.bin', packet)
@@ -99,7 +100,7 @@ def link(directory, linker, pager, objects, *, wire_magic=b'HIAPGLK2'):
     receipt = {'status': result, 'input_sha256': digest(packet),
                'buffer_sha256': [digest(buf) for buf in buffers]}
     write_new(directory / 'link.json', (json.dumps(receipt, indent=2) + '\n').encode())
-    if (not 0 < result <= EXECUTABLE_LIMIT
+    if (not 0 < result <= min(executable_limit, LINK_OUTPUT)
             or any(buf[:len(CANARY)] != CANARY or buf[-len(CANARY):] != CANARY
                    for buf in buffers)
             or input_bytes[len(CANARY):-len(CANARY)] != packet

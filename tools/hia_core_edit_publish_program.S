@@ -1,11 +1,33 @@
 .intel_syntax noprefix
 .text
-.global _start
 .equ RAW_N,8388608
 .equ SOURCE_N,41943040
 .equ CORE_N,67108864
 .equ CANON_N,16777216
 .equ CANON_MAP,16781312
+.ifdef HIA_VERIFIED_PUBLISH
+.global nominal_publish
+/* Only the in-process Core verifier calls this entry. There is no framed
+   external entry which could substitute bytes or their source identity. */
+nominal_publish:
+ mov r12,rdi
+ mov r13,rsi
+ mov r14,rdx
+ mov r15,rcx
+ mov esi,16384
+ call allocate
+ mov rbp,rax
+ mov [rbp+160],r13
+ mov [rbp+168],r14
+ mov [rbp+176],r15
+ lea rax,[rip+publish_frontend_start]
+ mov [rbp+320],rax
+ lea rax,[rip+publish_program_start]
+ mov [rbp+336],rax
+ lea rax,[rip+publish_policy_start]
+ mov [rbp+344],rax
+.else
+.global _start
 _start:
  cmp QWORD PTR [rsp],2
  jne usage
@@ -25,6 +47,7 @@ owner_address_hole: .long 0
  .byte 0x48,0x8d,0x05
 publication_address_hole: .long 0
  mov [rbp+344],rax
+.endif
  mov esi,270336
  call allocate
  mov [rbp],rax
@@ -98,6 +121,18 @@ cwd_ready:
  mov rdi,[rbp+32]
  mov esi,1048576
  call release
+.ifdef HIA_VERIFIED_PUBLISH
+ mov rax,[rbp+168]
+ mov [rbp+72],rax
+ mov esi,CANON_MAP
+ call allocate
+ mov [rbp+64],rax
+ lea rdi,[rax+4096]
+ mov rsi,[rbp+160]
+ mov rcx,[rbp+72]
+ cld
+ rep movsb
+.else
  mov esi,SOURCE_N
  call allocate
  mov [rbp+40],rax
@@ -183,6 +218,7 @@ input_complete:
  mov rdi,[rbp+40]
  mov esi,SOURCE_N
  call release
+.endif
  mov rdi,[rbp+64]
  mov esi,CANON_MAP
  call readonly
@@ -270,6 +306,21 @@ hash_copy_next:
  mov rsi,[rbp+16]
  mov rcx,[rbp+24]
  rep movsb
+.ifdef HIA_VERIFIED_PUBLISH
+ mov rsi,[rbp+176]
+ test rsi,rsi
+ jz report_frame_ready
+ mov QWORD PTR [rbx+8],2
+ /* Native SHA presents eight zero-extended, big-endian numeric words. */
+ mov ecx,8
+source_hash_word:
+ lodsq
+ bswap eax
+ stosd
+ loop source_hash_word
+ mov QWORD PTR [rbp+184],32
+report_frame_ready:
+.endif
  mov rdi,rbx
  mov esi,8192
  call readonly
@@ -288,6 +339,9 @@ hash_copy_next:
  mov rdi,[rbp+104]
  mov rsi,[rbp+24]
  add rsi,80
+.ifdef HIA_VERIFIED_PUBLISH
+ add rsi,[rbp+184]
+.endif
  mov rdx,[rbp+112]
  mov ecx,262144
  mov r8,[rbp+128]

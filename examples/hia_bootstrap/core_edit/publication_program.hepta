@@ -1284,7 +1284,10 @@ block b6(v34:readbuf,v35:mutbuf,v36:mutbuf)
   v41:u64 = const() {"value":8}
   v42:u64 = call(v34,v41) {"function":"f20"}
   v43:u64 = const() {"value":1}
-  v44:bool = compare.ne(v42,v43)
+  v400:u64 = const() {"value":2}
+  v401:bool = compare.ne(v42,v43)
+  v402:bool = compare.ne(v42,v400)
+  v44:bool = bool.and(v401,v402)
   branch v44 b8(v34,v35,v36,v40,v44) b7(v34,v35,v36,v40)
 block b7(v45:readbuf,v46:mutbuf,v47:mutbuf,v48:u64)
   v55:u64 = const() {"value":16}
@@ -1318,7 +1321,9 @@ block b15(v97:readbuf,v98:mutbuf,v99:mutbuf,v100:u64)
   v107:usize = buffer.len(v97)
   v108:u64 = int.cast(v107) {"mode":"wrap"}
   v109:u64 = const() {"value":80}
-  v110:u64 = int.add.wrap(v109,v100)
+  v403:u64 = int.add.wrap(v109,v100)
+  v404:u64 = call(v97) {"function":"publication_source_hash_bytes"}
+  v110:u64 = int.add.wrap(v403,v404)
   v111:bool = compare.ne(v108,v110)
   jump b16(v97,v98,v99,v100,v111)
 block b16(v102:readbuf,v103:mutbuf,v104:mutbuf,v105:u64,v106:bool)
@@ -1359,8 +1364,8 @@ block b24(v160:readbuf,v161:mutbuf,v162:mutbuf,v163:u64)
   v166:u64 = const() {"value":80}
   jump b25(v160,v161,v162,v163,v166)
 block b25(v167:readbuf,v168:mutbuf,v169:mutbuf,v170:u64,v171:u64)
-  v172:usize = buffer.len(v167)
-  v173:u64 = int.cast(v172) {"mode":"wrap"}
+  v405:u64 = const() {"value":80}
+  v173:u64 = int.add.wrap(v170,v405)
   v174:bool = compare.lt(v171,v173)
   branch v174 b26(v167,v168,v169,v170,v171) b27(v167,v168,v169,v170)
 block b26(v175:readbuf,v176:mutbuf,v177:mutbuf,v178:u64,v179:u64)
@@ -1377,7 +1382,8 @@ block b27(v180:readbuf,v181:mutbuf,v182:mutbuf,v183:u64)
   v207:u64 = call(v182,v206,v204) {"function":"f22"}
   v208:u64 = call(v181,v182,v204) {"function":"f23"}
   v209:u64 = const() {"value":32}
-  v210:u64 = call(v180,v181,v182,v209) {"function":"f16"}
+  v406:u64 = call(v180,v183) {"function":"publication_input_sha_offset"}
+  v210:u64 = call(v180,v181,v182,v406) {"function":"f16"}
   v211:u64 = const() {"value":1}
   v212:u64 = call(v181,v182,v211) {"function":"f23"}
   v213:u64 = const() {"value":80}
@@ -2827,4 +2833,32 @@ block b12(v249:mutbuf,v250:mutbuf)
   v441:u64 = call(v250,v439,v440) {"function":"f22"}
   v442:u64 = const() {"value":0}
   ret(v442)
+end
+fn publication_source_hash_bytes(v0:readbuf) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf)
+  v1:u64 = const() {"value":8}
+  v2:u64 = call(v0,v1) {"function":"f20"}
+  v3:u64 = const() {"value":2}
+  v4:bool = compare.eq(v2,v3)
+  branch v4 b1() b2()
+block b1()
+  v5:u64 = const() {"value":32}
+  ret(v5)
+block b2()
+  v6:u64 = const() {"value":0}
+  ret(v6)
+end
+fn publication_input_sha_offset(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:u64)
+  v2:u64 = call(v0) {"function":"publication_source_hash_bytes"}
+  v3:u64 = const() {"value":0}
+  v4:bool = compare.eq(v2,v3)
+  branch v4 b1() b2(v1)
+block b1()
+  v5:u64 = const() {"value":32}
+  ret(v5)
+block b2(v6:u64)
+  v7:u64 = const() {"value":80}
+  v8:u64 = int.add.wrap(v6,v7)
+  ret(v8)
 end
