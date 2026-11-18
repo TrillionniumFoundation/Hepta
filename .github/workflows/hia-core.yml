@@ -265,7 +265,7 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-packet"
           python -B -m tools.build_hia_nominal_constructor --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-constructor"
-          agent_helpers=(agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection)
+          agent_helpers=(agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection agent-identity)
           for profile in "${agent_helpers[@]}"; do
             python -B -m tools.build_hia_json_preflight --candidate "$profile" \
               --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
@@ -550,7 +550,7 @@ jobs:
           python -B -m tests.test_hia_agent_read_page_native \
             --manifest "$RUNNER_TEMP/agent-read-page/manifest.json" --test-root "$RUNNER_TEMP" \
             --native-release "$installed"
-          for profile in agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection; do
+          for profile in agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection agent-identity; do
             cmp "$RUNNER_TEMP/$profile/$profile.image.bin" "$installed/$profile.image.bin"
             cmp "$RUNNER_TEMP/$profile/manifest.json" "$installed/$profile-manifest.json"
           done

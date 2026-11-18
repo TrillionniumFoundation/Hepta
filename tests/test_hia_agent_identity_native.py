@@ -29,7 +29,13 @@ def vm(wire,workspace):
 
 def witnesses():
     values=[(packet(0,b'18446744073709551615'),expected(1,(1<<64)-1)),
-        (packet(0,b'18446744073709551616'),expected(0)),(packet(1,b'0'*64),expected(1))]
+        (packet(0,b'18446744073709551616'),expected(0)),(packet(1,b'0'*64),expected(1)),
+        (packet(2,struct.pack('<3Q',64<<20,500,500)),expected(1)),
+        (packet(2,struct.pack('<3Q',(64<<20)-1,500,501)),expected(1,1)),
+        (packet(2,struct.pack('<3Q',4<<30,500,501)),expected(1,2)),
+        (packet(3,struct.pack('<4Q',0,1,6,1)),expected(1,3)),
+        (packet(3,struct.pack('<4Q',1,1,6,1)),expected(1,4)),
+        (packet(4,struct.pack('<33Q',*([1<<20]*32),1)),expected(1,5))]
     for wire,result in values:assert vm(wire,0)==(24,result)
     return values
 
@@ -38,7 +44,7 @@ class AgentIdentitySourceTests(unittest.TestCase):
         from tools.generate_hia_agent_identity import document
         from hepta.hia_agent_assembly import render_assembly
         self.assertEqual(SOURCE.read_text(),render_assembly(document()))
-        self.assertEqual(len(witnesses()),3)
+        self.assertEqual(len(witnesses()),9)
 
     def test_builder_refuses_bad_cold_before_any_output_or_compilation(self):
         from copy import deepcopy
@@ -119,7 +125,9 @@ class AgentIdentityNativeTests(unittest.TestCase):
             self.assertFalse(self.native.digest(value))
 
     def test_malformed_transport_short_output_and_poisoned_canaries(self):
-        for wire in [b'',b'0'*15,packet(2,b'0'),packet((1<<64)-1,b''),b'0'*16,packet(0,b'0'*65)]:
+        for wire in [b'',b'0'*15,packet(2,b'0'),packet((1<<64)-1,b''),b'0'*16,packet(0,b'0'*65),
+                     packet(3,struct.pack('<4Q',1,1,1,0)),packet(4,b'0'),
+                     packet(4,struct.pack('<Q',(1<<20)+1))]:
             self.assertEqual(self.raw(wire)[0],0xfffffffd)
         self.assertEqual(self.raw(packet(0,b'0'),23)[0],0xfffffffe)
         with self.assertRaises(ValueError):self.native.scalar('1',False)
@@ -134,6 +142,66 @@ class AgentIdentityNativeTests(unittest.TestCase):
                 self.assertEqual(raised.exception.code,'E_HIA_RANGE')
                 self.assertEqual(str(raised.exception),'epoch must be a canonical u64 decimal string')
             self.assertEqual(list(ThreadPoolExecutor(8).map(lambda i:uint64(str(i),'epoch'),range(128))),list(range(128)))
+
+    def test_public_context_limits_match_reference_and_use_native_decisions(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from tools.hia_agent_native_qualification import Session, ToolClient
+
+        service = HIAAgentService(self.folder/'frozen-context')
+        try:
+            session = Session(ToolClient(service.call, validate=False))
+            objective = session.artifact({
+                'schema': 'hepta.hia.agent.objective.v1', 'metric': 'artifact_bytes',
+                'required_claims': ['core_admission'], 'allow_unchanged': False,
+                'min_improvement_ratio': 0})
+            cost = {'schema': 'hepta.hia.agent.cost-policy.v1', 'expected_invocations': '1',
+                    'external_costs_complete': True, 'external_costs': {
+                        'model_tokens': 1, 'model_wall_ns': '0', 'discovery_wall_ns': '0'}}
+            workload = {
+                'schema': 'hepta.hia.agent.workload.v2', 'warmup_iterations': 0, 'repetitions': 1,
+                'foreign_buffer_exports': [{'function': 'take', 'max_buffer_bytes': 1<<20}],
+                'cases': [{'function': 'take', 'arguments': [{'byte_length': 1<<20, 'fill_byte': 0}]}]}
+            equal_snapshot = session.artifact({**workload, 'cases': workload['cases']*32})
+            excessive_snapshot = session.artifact({**workload, 'cases': workload['cases']*33})
+            exact_cost = session.artifact(cost)
+            missing_cost = session.artifact({**cost,
+                'external_costs': {**cost['external_costs'], 'discovery_wall_ns': None}})
+            standard = {'max_candidates': 1, 'max_model_tokens': 1, 'max_total_wall_ms': 500,
+                        'max_native_wall_ms': 500, 'max_memory_bytes': str(64<<20), 'cost_policy': exact_cost}
+            cases = ((equal_snapshot, {}, None), (equal_snapshot, {'max_memory_bytes': str(4<<30)}, None),
+                     (equal_snapshot, {'max_memory_bytes': str((64<<20)-1)}, 1),
+                     (equal_snapshot, {'max_total_wall_ms': 499}, 2),
+                     (equal_snapshot, {'max_model_tokens': 0, 'cost_policy': missing_cost}, 3),
+                     (equal_snapshot, {'cost_policy': missing_cost}, 4),
+                     (excessive_snapshot, {'max_memory_bytes': '0'}, 5))
+            from hepta.hia_agent_identity_native import CONTEXT_REFUSALS
+            for workload_ref, overrides, refusal in cases:
+                with self.subTest(overrides=overrides, refusal=refusal):
+                    args = session.arguments(context=False, compiler_profile=session.profiles['compiler'],
+                        target_profile=session.profiles['target'], baseline_program=None,
+                        workload=workload_ref, objective=objective, budget={**standard, **overrides})
+                    reference = service.call('hia_context', args)
+                    args['request_key'] = session.key('native')
+                    image = installed_agent_identity(str(self.manifest))
+                    with (patch.dict(os.environ, {SELECTOR:str(self.manifest)}),
+                          patch.object(image, '_context', wraps=image._context) as selected_calls):
+                        selected = service.call('hia_context', args)
+                    self.assertEqual(selected['status'], reference['status'])
+                    if refusal is None:
+                        self.assertEqual(selected['status'], 'completed', selected)
+                        contexts = [session.read_json(x['result']['manifest']) for x in (reference, selected)]
+                        for context in contexts:
+                            context.pop('sampled_at')
+                        self.assertEqual(*contexts)
+                    else:
+                        self.assertEqual(selected['status'], 'rejected', selected)
+                        self.assertEqual(selected['error'], reference['error'])
+                        code, message = CONTEXT_REFUSALS[refusal]
+                        self.assertEqual((selected['error']['code'], selected['error']['message']), (code, message))
+                    # The current source-bound image is pinned once per lookup.
+                    self.assertIn(4, [call.args[0] for call in selected_calls.call_args_list])
+        finally:
+            service.close()
 
     def test_manifest_selected_rejects_corruption_without_fallback(self):
         bad=self.folder/'bad.json';bad.write_text('{}')

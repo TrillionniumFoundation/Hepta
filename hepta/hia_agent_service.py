@@ -575,6 +575,9 @@ class HIAAgentService:
 
     def _hia_context(self, args):
         from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
+        from .hia_agent_store import _native_agent_identity
+
+        context_policy = _native_agent_identity()
         self._profile(args["compiler_profile"], "compiler")
         self._profile(args["target_profile"], "target")
         workload, _ = self.store.get_json(args["workload"])
@@ -582,9 +585,11 @@ class HIAAgentService:
         cost_policy, _ = self.store.get_json(args["budget"]["cost_policy"])
         validate(workload, WORKLOAD_SCHEMA, "workload")
         foreign_buffer_exports = export_manifest(workload)
-        snapshot_bytes = sum(buffer_size(value) for case in workload["cases"]
-                             for value in case["arguments"] if type(value) is dict)
-        if snapshot_bytes > MAX_WORKLOAD_BUFFER_BYTES:
+        snapshot_sizes = (buffer_size(value) for case in workload["cases"]
+                          for value in case["arguments"] if type(value) is dict)
+        if context_policy is not None:
+            context_policy.context_snapshots(snapshot_sizes)
+        elif sum(snapshot_sizes) > MAX_WORKLOAD_BUFFER_BYTES:
             reject("E_HIA_BUFFER_BUDGET", "frozen workload exceeds 32 MiB of external byte snapshots", "context")
         validate(objective, OBJECTIVE_SCHEMA, "objective")
         validate(cost_policy, COST_POLICY_SCHEMA, "cost_policy")
@@ -592,18 +597,26 @@ class HIAAgentService:
             args["budget"][name] = int(args["budget"][name])
         uint64(cost_policy["expected_invocations"], "expected_invocations")
         memory = uint64(args["budget"]["max_memory_bytes"], "max_memory_bytes")
-        if not 64 * 1024**2 <= memory <= 4 * 1024**3:
-            reject("E_HIA_BUDGET", "execution profile admits 64 MiB..4 GiB address-space budgets", "context")
-        if args["budget"]["max_native_wall_ms"] > args["budget"]["max_total_wall_ms"]:
-            reject("E_HIA_BUDGET", "native wall budget exceeds total wall budget", "context")
+        if context_policy is not None:
+            context_policy.context_limits(memory, args["budget"]["max_total_wall_ms"],
+                                          args["budget"]["max_native_wall_ms"])
+        else:
+            if not 64 * 1024**2 <= memory <= 4 * 1024**3:
+                reject("E_HIA_BUDGET", "execution profile admits 64 MiB..4 GiB address-space budgets", "context")
+            if args["budget"]["max_native_wall_ms"] > args["budget"]["max_total_wall_ms"]:
+                reject("E_HIA_BUDGET", "native wall budget exceeds total wall budget", "context")
         for name in ("model_wall_ns", "discovery_wall_ns"):
             if cost_policy["external_costs"][name] is not None:
                 uint64(cost_policy["external_costs"][name], name)
-        tokens = cost_policy["external_costs"]["model_tokens"]
-        if tokens is not None and tokens > args["budget"]["max_model_tokens"]:
-            reject("E_HIA_BUDGET", "reported model tokens exceed the frozen budget", "context")
-        if cost_policy["external_costs_complete"] and any(v is None for v in cost_policy["external_costs"].values()):
-            reject("E_HIA_COST", "complete external cost report cannot contain unknown fields", "context")
+        if context_policy is not None:
+            context_policy.context_cost(args["budget"]["max_model_tokens"], cost_policy["external_costs"],
+                                        cost_policy["external_costs_complete"])
+        else:
+            tokens = cost_policy["external_costs"]["model_tokens"]
+            if tokens is not None and tokens > args["budget"]["max_model_tokens"]:
+                reject("E_HIA_BUDGET", "reported model tokens exceed the frozen budget", "context")
+            if cost_policy["external_costs_complete"] and any(v is None for v in cost_policy["external_costs"].values()):
+                reject("E_HIA_COST", "complete external cost report cannot contain unknown fields", "context")
         baseline_sha = None
         if args["baseline_program"] is not None:
             baseline_sha = self._program(args["baseline_program"]).sha256

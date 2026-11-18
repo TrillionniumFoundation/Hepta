@@ -8,12 +8,14 @@ MAGIC=int.from_bytes(b'HIAIDP01','little')
 RESULT_MAGIC=int.from_bytes(b'HIAIDR01','little')
 SOURCE=r'''
 def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 16 or length(s) > 80:
+    if length(s) < 16:
         return 4294967293
     if read_word(s, 0) != @MAGIC@:
         return 4294967293
     kind = read_word(s, 8)
     if kind > 1:
+        return context_policy(s, o, kind)
+    if length(s) > 80:
         return 4294967293
     if length(o) < 24:
         return 4294967294
@@ -51,6 +53,50 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 0, @RESULT_MAGIC@)
     put(o, 8, valid)
     put(o, 16, value)
+    return 24
+
+def context_policy(s:readbuf, o:mutbuf, kind:u64) -> u32:
+    decision = 0
+    if kind == 2:
+        if length(s) != 40:
+            return 4294967293
+        memory = read_word(s, 16)
+        if memory < 67108864 or memory > 4294967296:
+            decision = 1
+        elif read_word(s, 32) > read_word(s, 24):
+            decision = 2
+    elif kind == 3:
+        if length(s) != 48:
+            return 4294967293
+        tokens = read_word(s, 24)
+        missing = read_word(s, 32)
+        complete = read_word(s, 40)
+        if missing > 7 or complete > 1 or ((missing & 1) != 0 and tokens != 0):
+            return 4294967293
+        if tokens > read_word(s, 16):
+            decision = 3
+        elif complete == 1 and missing != 0:
+            decision = 4
+    elif kind == 4:
+        if length(s) > 524304 or (length(s) & 7) != 0:
+            return 4294967293
+        offset = 16
+        total = 0
+        while offset < length(s):
+            size = read_word(s, offset)
+            if size > 1048576:
+                return 4294967293
+            total = total + size
+            offset = offset + 8
+        if total > 33554432:
+            decision = 5
+    else:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, 1)
+    put(o, 16, decision)
     return 24
 
 def read_word(s:readbuf, index:u64) -> u64:
