@@ -322,6 +322,29 @@ class InstalledAgentStore(NativeStoreArgv):
                 self.assertEqual(self.state(path), committed)
                 self.assertFalse((path / 'state.sqlite3').exists())
 
+    def test_connection_cannot_move_to_replacement_namespace(self):
+        from hepta.hia_agent_store import AgentStore
+        from hepta.hia_agent_store_native import StoreProtocolError
+
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            path = Path(temporary)
+            self.run_native([self.initializer, path, 'store'])
+            store = AgentStore(path, native_store=self.selection())
+            try:
+                contents = self.state(path)
+                (path / 'store').rename(path / 'original')
+                self.run_native([self.initializer, path, 'store'])
+                replacement = self.state(path)
+                self.assertNotEqual(replacement['namespace.bin'], contents['namespace.bin'])
+                with self.assertRaisesRegex(StoreProtocolError, 'namespace identity changed'):
+                    store.db.execute("INSERT INTO contexts VALUES (?,?,?,?,0)",
+                                     ('replacement', 'sha', 'artifact', '0'))
+                self.assertEqual(self.state(path), replacement)
+                self.assertEqual({entry.name: entry.read_bytes() for entry in (path / 'original').iterdir()},
+                                 contents)
+            finally:
+                store.close()
+
     def selection(self):
         images = (self.executable, self.module_root / 'hia-artifact',
                   self.module_root / 'hia-agent-artifact-capture')
@@ -341,6 +364,7 @@ def main():
         suite.addTests(InstalledAgentStore(name) for name in (
             'test_public_tools_with_no_sqlite_connection',
             'test_public_worker_reopens_native_state_with_exact_replay',
+            'test_connection_cannot_move_to_replacement_namespace',
         ))
     return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
 

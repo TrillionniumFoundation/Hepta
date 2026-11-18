@@ -237,6 +237,8 @@ class NativeStoreConnection:
         self.code = self._image('hia-agent-store', digest, 16 << 20)
         self.artifact_code = self._image('hia-artifact', artifact_digest, 1 << 20)
         self.capture_code = self._image('hia-agent-artifact-capture', capture_digest, 1 << 20)
+        self.creator = os.getpid()
+        self.namespace = self._namespace_files()
         self.process = None
         self.request = 0
         self.in_transaction = False
@@ -250,6 +252,27 @@ class NativeStoreConnection:
                 or code[:7] != b'\x7fELF\x02\x01\x01' or struct.unpack_from('<2H', code, 16) != (2, 62)):
             raise StoreProtocolError(f'native Store executable identity differs: {name}')
         return code
+
+    def _namespace_files(self):
+        namespace = self.root / 'store'
+        roles = ((self.root, stat.S_ISDIR), (namespace, stat.S_ISDIR),
+                 (namespace / 'namespace.bin', stat.S_ISREG),
+                 (namespace / 'wal.lock', stat.S_ISREG), (namespace / 'wal.data', stat.S_ISREG))
+        identity = []
+        for path, correct_type in roles:
+            info = path.lstat()
+            if not correct_type(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
+                raise StoreProtocolError('native Store namespace is not owned ordinary state')
+            identity.append((info.st_dev, info.st_ino))
+            if path.name == 'namespace.bin':
+                identity.append((info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+        return tuple(identity)
+
+    def check_custody(self):
+        if self.creator != os.getpid() or self.closed or self.failed:
+            raise StoreProtocolError('native Store connection no longer has custody')
+        if self._namespace_files() != self.namespace:
+            raise StoreProtocolError('native Store namespace identity changed')
 
     def _open(self):
         with _sealed_image(self.code) as fd:
@@ -360,6 +383,7 @@ class NativeStoreConnection:
     def _begin(self):
         if self.in_transaction:
             raise sqlite3.OperationalError('cannot start a transaction within a transaction')
+        self.check_custody()
         if self.process is None:
             self._open()
         else:
@@ -401,7 +425,7 @@ class NativeStoreConnection:
             return self._execute(sql, values)
 
     def _execute(self, sql, values):
-        if self.closed or self.failed:
+        if self.creator != os.getpid() or self.closed or self.failed:
             raise StoreProtocolError('native Store connection is no longer usable')
         if sql in ('BEGIN IMMEDIATE', 'COMMIT', 'ROLLBACK'):
             try:
@@ -455,6 +479,8 @@ class NativeStoreConnection:
         self.close()
 
     def close(self):
+        if self.creator != os.getpid():
+            raise StoreProtocolError('native Store connection belongs to its creator process')
         with self.lock:
             self._close()
 

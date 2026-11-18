@@ -88,8 +88,6 @@ class HIAAgentService:
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
-        if native_store is not None and candidate_budget_image is not None:
-            reject("E_HIA_STORE", "SQLite candidate-budget custody does not apply to a native Store")
         self.store = AgentStore(state_root, native_store=native_store)
         self._candidate_budget = None
         self._slot_ledger = None

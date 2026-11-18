@@ -132,7 +132,7 @@ class AttemptState:
 
 
 class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
-    """Reuse original-WAL connection custody; never call execution-budget SQL."""
+    """Reuse Store connection custody; never call execution-budget statements."""
     def __init__(self, store, admission):
         image, source = admission
         if type(source) is not bytes or SOURCE.read_bytes() != source:
@@ -140,9 +140,12 @@ class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
         # Candidate selection can be enabled independently of native wall-cost
         # budgets. Capture the already open official WAL before creating the
         # private effect connection, without enabling or altering that policy.
-        store.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
-        sidecars = {suffix: self._file_identity(Path(str(store.database) + suffix))
-                    for suffix in ('-wal', '-shm')}
+        from .hia_agent_store_native import NativeStoreConnection
+        sidecars = None
+        if not isinstance(store.db, NativeStoreConnection):
+            store.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+            sidecars = {suffix: self._file_identity(Path(str(store.database) + suffix))
+                        for suffix in ('-wal', '-shm')}
         super().__init__(store, image, sidecars=sidecars)
         self.source_bytes = source
 

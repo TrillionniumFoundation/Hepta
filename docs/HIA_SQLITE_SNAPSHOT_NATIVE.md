@@ -441,9 +441,9 @@ native backend on a root containing a legacy journal or its sidecars.
 
 This selection changes persistence, capture and artifact byte effects, not
 the implementation of the remaining tool methods or public MCP routing.
-The legacy SQLite-specific candidate and execution budget adapters cannot
-be combined with this selection. The default backend and migration cutover
-are unchanged.
+Selected HIA candidate and execution-budget policies use the same native
+transaction session and lock. They cannot borrow an active caller
+transaction. The default backend and migration cutover are unchanged.
 
 The Store reader checks complete WAL frames and index nodes even when it
 processes several contiguous bytes at once. Its bounded private memo keeps

@@ -286,8 +286,6 @@ class AgentStore:
         if native_store is None and os.path.lexists(self.root / "store" / "namespace.bin"):
             reject("E_HIA_STORE", "this state root belongs to the explicitly selected native Store")
         if native_store is not None:
-            if budget_admission is not None:
-                reject("E_HIA_STORE", "SQLite execution-budget custody does not apply to a native Store")
             if any(os.path.lexists(str(database) + suffix) for suffix in ("", "-wal", "-shm", "-journal")):
                 reject("E_HIA_STORE", "native Store requires a separate staged state root")
         self.artifacts = self.root / "artifacts"
@@ -308,10 +306,10 @@ class AgentStore:
             try:
                 self.db.execute("BEGIN IMMEDIATE")
                 self.db.execute("ROLLBACK")
+                self.execution_budgets = execution_budget_store(self, budget_admission)
             except BaseException:
                 self.db.close()
                 raise
-            self.execution_budgets = execution_budget_store(self, None)
             return
         if database.exists() or database.is_symlink():
             info = database.lstat()

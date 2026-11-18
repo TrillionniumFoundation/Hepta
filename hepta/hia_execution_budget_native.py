@@ -1,9 +1,9 @@
-"""HIA-owned execution budgets over the original SQLite journal.
+"""HIA-owned execution budgets over the selected Agent journal.
 
-The foreign adapter transports exact rows and executes a fixed SQL vocabulary.
-It owns a dedicated connection to the same observed database/WAL, never another
-budget store. Native claims retain their state and cannot resume after an
-unconfirmed transition, commit or child outcome.
+The adapter transports typed bindings and exact rows. The existing SQLite
+backend uses a dedicated connection to its observed WAL. The selected HIA
+backend uses the existing transaction session under the Store lock. Claims
+cannot resume after an unconfirmed transition, commit or child outcome.
 """
 from __future__ import annotations
 
@@ -194,18 +194,28 @@ class BudgetState:
 
 
 class NativeExecutionBudgetStore:
-    """Fixed SQLite effects on a dedicated connection to the original WAL."""
+    """Fixed effects on the selected Store with an exclusively owned transaction."""
     def __init__(self, store, image, *, sidecars=None):
         self.store, self.image = store, image
+        from .hia_agent_store_native import NativeStoreConnection
         self.official = store.db
-        self.path = Path(store.database)
-        self.identity = store.database_identity
         self.creator = os.getpid()
-        self.lock = threading.RLock()
         self.connection_identity = struct.unpack('<2Q', os.urandom(16))
         self._db = None
         self.closed = False
         self.poisoned = None
+        self.borrowed = isinstance(self.official, NativeStoreConnection)
+        if self.borrowed:
+            # The native Store already owns one byte stream and kernel lock.
+            # Keep the selected policy and all of its effects on that same
+            # session under the common service transaction lock.
+            self.lock = store.lock
+            self._db = self.official
+            self.check()
+            return
+        self.lock = threading.RLock()
+        self.path = Path(store.database)
+        self.identity = store.database_identity
         self.sidecars = dict(store.database_sidecars if sidecars is None else sidecars)
         self.check()
         main = [row for row in self.official.execute('PRAGMA database_list') if row['name'] == 'main']
@@ -249,6 +259,12 @@ class NativeExecutionBudgetStore:
         # it or replacing AgentStore.db cannot transfer this authority.
         if self.store.db is not self.official:
             _reject(2, 'official execution budget database connection changed')
+        if self.borrowed:
+            try:
+                self.official.check_custody()
+            except OSError as exc:
+                _reject(2, str(exc))
+            return
         self.official.in_transaction
         if self._file_identity(self.path) != self.identity:
             _reject(2, 'official execution budget database file changed')
@@ -257,9 +273,10 @@ class NativeExecutionBudgetStore:
         self._check_main()
         if self.closed or self.poisoned is not None:
             _reject(2, 'execution budget connection is closed or fenced')
-        for suffix, identity in self.sidecars.items():
-            if self._file_identity(Path(str(self.path) + suffix)) != identity:
-                _reject(2, 'execution budget WAL identity changed')
+        if not self.borrowed:
+            for suffix, identity in self.sidecars.items():
+                if self._file_identity(Path(str(self.path) + suffix)) != identity:
+                    _reject(2, 'execution budget WAL identity changed')
 
     def _state(self, kind, context, owner='', maximum=0, started=0):
         self.check()
@@ -356,7 +373,8 @@ class NativeExecutionBudgetStore:
         with self.lock:
             if not self.closed:
                 self.closed = True
-                self.db.close()
+                if not self.borrowed:
+                    self.db.close()
 
 
 class NativeBudgetClaim:
