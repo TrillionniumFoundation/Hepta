@@ -43,7 +43,7 @@ class NativeBuilderSourceBindingTests(unittest.TestCase):
     SOURCE_STEMS = (
         'json_preflight', 'agent_stdio_dispatch', 'agent_stdio_packer',
         'core_json_frontend', 'core_json_cli_packer', 'elf_static_linker',
-        'native_filter_packer', 'agent_snapshot_json', 'agent_snapshot_json_packer',
+        'native_filter_packer', 'elf_linker_filter_packer', 'agent_snapshot_json', 'agent_snapshot_json_packer',
         'core_workspace_json', 'core_workspace_json_packer', 'core_workspace_facts',
         'core_workspace_facts_packer', 'core_workspace_materialize',
         'core_workspace_cli_packer', 'core_admission', 'core_admission_cli_packer',

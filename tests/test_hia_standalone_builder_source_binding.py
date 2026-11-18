@@ -44,7 +44,7 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
         ('build_hia_agent_slice', 'native_filter_packer', 'hia-agent-slice'),
         ('build_hia_agent_stdio', 'agent_stdio_packer', 'hia-native'),
         ('build_hia_core_json_cli', 'core_json_cli_packer', 'hia-core-json'),
-        ('build_hia_elf_linker', 'native_filter_packer', 'hia-elf-link'),
+        ('build_hia_elf_linker', 'elf_linker_filter_packer', 'hia-elf-link'),
         ('build_hia_agent_snapshot_json', 'agent_snapshot_json_packer', 'hia-snapshot-json'),
         ('build_hia_core_workspace_json_cli', 'core_workspace_json_packer', 'hia-workspace-json'),
         ('build_hia_core_workspace_facts', 'core_workspace_facts_packer', 'hia-workspace-json'),
@@ -81,7 +81,8 @@ class StandaloneBuilderSourceBindingTests(unittest.TestCase):
                     sources.add(value.relative_to(module.ROOT).as_posix())
         sources.update('examples/hia_bootstrap/' + name + '.hepta' for name in
                        ('agent_slice', 'core_json_frontend', 'agent_snapshot_json',
-                        'core_workspace_json', 'elf_static_linker', 'native_filter_packer'))
+                        'core_workspace_json', 'elf_static_linker', 'native_filter_packer',
+                        'elf_linker_filter_packer'))
         self.source_names = tuple(sorted(sources))
         for name in self.source_names:
             path = self.root / name

@@ -97,10 +97,14 @@ CORE_NORMALIZE_SDIST_FILES = (
     'examples/hia_bootstrap/core_suite_dispatch.hepta',
     'examples/hia_bootstrap/core_suite_packer.hepta',
 )
+NATIVE_LINKER_SDIST_FILES = (
+    'examples/hia_bootstrap/elf_linker_filter_packer.hepta',
+)
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,
     *ARTIFACT_CAPTURE_SDIST_FILES,
     *CORE_NORMALIZE_SDIST_FILES,
+    *NATIVE_LINKER_SDIST_FILES,
     'examples/hia_bootstrap/agent_artifact_capture.hepta',
     'tests/test_hia_agent_artifact_capture_runtime.py',
     'tests/test_hia_sqlite_snapshot_native.py',
@@ -517,7 +521,6 @@ SOURCE_FILES = (
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hepta',
     'examples/hia_bootstrap/native_filter_packer.hepta',
-    'examples/hia_bootstrap/elf_linker_filter_packer.hepta',
     'tests/test_hia_elf_linker.py',
     'tools/build_hia_elf_linker.py',
     'tools/generate_hia_elf_linker.py',
