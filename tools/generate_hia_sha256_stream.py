@@ -2,9 +2,10 @@
 from __future__ import annotations
 import ast
 from pathlib import Path
+import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
-from tools.generate_hia_sha256 import INITIAL, ROUND, BODY, HELPERS
+from tools.generate_hia_sha256 import INITIAL, ROUND, BODY
 
 # Bytes 0..1087 retain the one-shot schedule/chaining layout. The state then
 # holds total length, partial-block size, phase, 64 pending bytes and an ABI tag.
@@ -12,6 +13,26 @@ STATE_BYTES = 1184
 MAX_CHUNK = 8 << 20
 MAX_TOTAL = (1 << 61) - 1
 MAGIC = 0x3153484132353648
+
+
+def word_access_source():
+    # Expand each little-endian byte in order. The HIA access bounds and
+    # workspace layout stay unchanged; only the run-time loop is eliminated.
+    lines = ['def get(w:mutbuf, offset:u64) -> u64:',
+             '    value = byte(w, offset)']
+    for index in range(1, 8):
+        lines.append(f'    value = value | (byte(w, offset + {index}) << {8 * index})')
+    lines.extend(('    return value', '', 'def put(w:mutbuf, offset:u64, value:u64) -> u64:'))
+    for index in range(8):
+        byte = 'value' if index == 0 else f'value >> {8 * index}'
+        lines.append(f'    store(w, offset + {index}, {byte})')
+    lines.append('    return 0')
+    return '\n'.join(lines) + '\n'
+
+
+def fixed_rotation(match):
+    word, shift = match[1], int(match[2])
+    return f'(({word} >> {shift}) | (({word} << {32 - shift}) & 4294967295))'
 
 
 def source_program():
@@ -97,11 +118,14 @@ def compress(w:mutbuf) -> u64:
     # Reuse exactly the independently qualified SHA schedule and round algebra;
     # only message delivery/padding and persistent state differ from one-shot.
     compression = BODY[BODY.index('        while i < 64:'):]
+    compression = re.sub(r'rotate\((\w+), (\d+)\)', fixed_rotation, compression)
+    if 'rotate(' in compression:
+        raise ValueError('streaming compression needs constant rotations')
     source += ''.join(line[4:] + '\n' for line in compression.splitlines())
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    return source + '\n' + word_access_source()
 
 
 def document():

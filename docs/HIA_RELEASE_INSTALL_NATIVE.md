@@ -10,8 +10,8 @@ copies the two HIA images. There is no Python, libc, dynamic interpreter or chil
 executable at runtime.
 
 This replaces the installation byte/publication boundary for this explicit
-package profile. It does not compile the package, select the default `hia`
-entry, implement the eleven-tool worker, migrate its journal, upgrade a service,
+package profile. It does not select the default `hia` entry, implement the
+eleven-tool worker, migrate its journal, upgrade a service,
 activate a release, delete old owners, or establish that packaged code is HIA
 or qualified. The initial build/custody driver and authoring-time fixed-adapter
 assembler remain hosted components.
@@ -50,6 +50,24 @@ overwritten. A new version has another content hash and leaves all prior
 releases in place. There is no automatic `current` update.
 
 ## Exact package format
+
+To construct a package with the native directory builder, build the same
+tool with `--kind directory` and run:
+
+```sh
+/new/private/builder/hia-directory-package-build /absolute/private/input \
+  > release.hiapack 2> release.sha256
+```
+
+The source must be an ordinary effective-UID-owned directory with mode `0700`
+or a sealed release directory with mode `0500`.
+The builder accepts only the direct regular files described below, with modes
+`0400` or `0500`, one hard link, and the same owner. It checks file identity
+before and after reading and emits records in ascending ASCII filename order.
+On exit zero, stdout contains the package and stderr contains its lowercase
+SHA-256 followed by a newline. This receipt is not a signature or an external
+authorization to install the package. A nonzero exit can leave partial output;
+discard it even if the digest was already written.
 
 The binary input is little-endian and includes no implicit padding:
 

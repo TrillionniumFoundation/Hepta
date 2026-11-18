@@ -21,6 +21,9 @@ from tools.hia_selfhost_bulk import Body
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = ROOT/'examples/hia_bootstrap/release_install_policy.hepta'
 PACKER = ROOT/'examples/hia_bootstrap/release_install_packer.hepta'
+DIRECTORY_PACKER = ROOT/'examples/hia_bootstrap/release_directory_packer.hepta'
+DIRECTORY_POLICY = ROOT/'examples/hia_bootstrap/release_directory_policy.hepta'
+DIRECTORY_ADAPTER = 'hia_release_directory_syscalls.S'
 
 
 def bundle(files):
@@ -68,7 +71,8 @@ def fields(**values):
     return raw
 
 
-def observe(wire, workspace, *, output_bytes=b'', output_size=8192, offsets=(), workspace_offsets=()):
+def observe(wire, workspace, *, output_bytes=b'', output_size=8192, offsets=(),
+            workspace_offsets=(), policy=POLICY):
     b = Body(0)
     owners, views = [], []
     for data, size in ((wire, max(1, len(wire))), (output_bytes, output_size), (workspace, 65536)):
@@ -91,16 +95,16 @@ def observe(wire, workspace, *, output_bytes=b'', output_size=8192, offsets=(), 
         b.effect('owner.drop', [owner])
     source = ('hia-asm.v1 hepta.hia.program.v8 release_reference\nfn observe() -> ('+
               ','.join(['u32']+['u8']*len(values))+') effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'+
-              b.text()+'  ret('+','.join([result, *values])+')\nend\n'+POLICY.read_text().split('\n', 1)[1])
+              b.text()+'  ret('+','.join([result, *values])+')\nend\n'+policy.read_text().split('\n', 1)[1])
     result = execute_program(assemble_program(source), 'observe', [], max_steps=4000000)
     assert result['status'] == 'returned', result
     return result['values'][0], bytes(result['values'][1:])
 
 
-def vm_pack():
+def vm_pack(packer=PACKER, adapter='hia_release_install_syscalls.S'):
     policy, sha = b'\xc3', b'\x90\xc3'
     frame = struct.pack('<3Q', MAGIC, len(policy), len(sha))+policy+sha
-    prefix, holes = template()
+    prefix, holes = template(adapter)
     expected = bytearray(prefix+policy+sha)
     struct.pack_into('<Q', expected, 96, len(expected))
     struct.pack_into('<Q', expected, 104, len(expected))
@@ -136,7 +140,7 @@ def vm_pack():
     reference = render_assembly(document(reference, 'comparison')).split('\n', 1)[1].replace('fn f0(', 'fn compare_all(')
     source = ('hia-asm.v1 hepta.hia.program.v8 packer_reference\n'
               'fn observe() -> (u32,u8) effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'+
-              b.text()+'  ret('+size+','+mismatch+')\nend\n'+reference+PACKER.read_text().split('\n', 1)[1])
+              b.text()+'  ret('+size+','+mismatch+')\nend\n'+reference+packer.read_text().split('\n', 1)[1])
     actual = execute_program(assemble_program(source), 'observe', [], max_steps=4000000)
     assert actual['status'] == 'returned' and actual['values'] == [len(expected), 0], actual
 
@@ -145,6 +149,8 @@ class ReleaseInstallerSourceTests(unittest.TestCase):
     def test_policy_and_packer_sources_are_exact(self):
         self.assertEqual(POLICY.read_text(), render_assembly(document(policy_source(), 'release_install_policy')))
         self.assertEqual(PACKER.read_text(), render_assembly(document(packer_source(), 'release_install_packer')))
+        self.assertEqual(DIRECTORY_PACKER.read_text(),
+                         render_assembly(document(packer_source(DIRECTORY_ADAPTER), 'release_directory_packer')))
 
     def test_independent_vm_package_and_rejection(self):
         raw = bundle([('hia-native', 0o500, b'\x7fELF\x00'), ('source.hepta', 0o400, b'' )])
@@ -181,6 +187,15 @@ class ReleaseInstallerSourceTests(unittest.TestCase):
 
     def test_independent_vm_packer_bytes_and_elf_shape(self):
         vm_pack()
+        vm_pack(DIRECTORY_PACKER, DIRECTORY_ADAPTER)
+
+    def test_directory_builder_admits_private_staging_and_sealed_releases(self):
+        for mode, uid, expected in [(0o40700, 1000, 0), (0o40500, 1000, 0),
+                                    (0o40500, 1001, 10), (0o40755, 1000, 10),
+                                    (0o42500, 1000, 10), (0o100500, 1000, 10)]:
+            w = fields(p0=1, p64=1000, p440=mode)
+            struct.pack_into('<I', w, 444, uid)
+            self.assertEqual(observe(b'x', w, policy=DIRECTORY_POLICY)[0], expected)
 
     def test_independent_vm_only_private_owned_stage_accepts_inherited_sgid(self):
         for mode, uid, expected in [(0o40700,1000,0),(0o42700,1000,0),

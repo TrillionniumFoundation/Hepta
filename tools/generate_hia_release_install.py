@@ -471,10 +471,10 @@ def policy_source():
     return source
 
 
-def template():
+def template(adapter='hia_release_install_syscalls.S'):
     with tempfile.TemporaryDirectory(prefix='hia-release-template-') as folder:
         obj, raw = Path(folder)/'adapter.o', Path(folder)/'adapter.bin'
-        subprocess.run(['as', '--64', str(ROOT/'tools/hia_release_install_syscalls.S'), '-o', str(obj)],
+        subprocess.run(['as', '--64', str(ROOT/'tools'/adapter), '-o', str(obj)],
                        check=True, capture_output=True)
         subprocess.run(['objcopy', '-O', 'binary', '-j', '.text', str(obj), str(raw)],
                        check=True, capture_output=True)
@@ -493,9 +493,9 @@ def template():
                         ('policy_initial_hole','policy_hole','sha_hole')}
 
 
-def packer_source():
+def packer_source(adapter='hia_release_install_syscalls.S'):
     from tools.generate_hia_native_filter import LINK_SOURCE
-    prefix, holes = template()
+    prefix, holes = template(adapter)
     source = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 26 or length(s) > 1048576:
         return 4294967295
@@ -523,7 +523,12 @@ def packer_source():
 
 
 def main():
-    for name, source in [('release_install_policy', policy_source()), ('release_install_packer', packer_source())]:
+    sources = [
+        ('release_install_policy', policy_source()),
+        ('release_install_packer', packer_source()),
+        ('release_directory_packer', packer_source('hia_release_directory_syscalls.S')),
+    ]
+    for name, source in sources:
         path = ROOT/'examples/hia_bootstrap'/f'{name}.hepta'
         path.write_text(render_assembly(document(source, name)))
         print(path.name, path.stat().st_size)
