@@ -79,6 +79,7 @@ class AgentInspectionNativeTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly
         from hepta.hia_agent_candidate_native import NativeAgentCandidateImport, IMPORT_EXECUTABLES
         from hepta.hia_agent_store_native import capture_release_image
+        from hepta.hia_program import verify_program
         from tools.hia_agent_native_qualification import (
             Session, ToolClient, add_program, exhaustive_u8_workload,
         )
@@ -89,7 +90,7 @@ class AgentInspectionNativeTests(unittest.TestCase):
             captures.append(capture_release_image(self.native_release, name, limit, pin))
         importer = NativeAgentCandidateImport(*captures, str(self.manifest))
         nominal = (root / 'examples/hia_program/generic_owned_enum.hepta').read_text()
-        primitive = add_program()
+        primitive = {**add_program(), 'schema': 'hepta.hia.program.v6'}
         sources = ((primitive, 'core-json'), (render_assembly(primitive), 'hia-asm.v1'),
                    (nominal, 'core-json'), ('{"a":1,"a":2}', 'core-json'),
                    ('invalid assembly', 'hia-asm.v1'))
@@ -100,6 +101,8 @@ class AgentInspectionNativeTests(unittest.TestCase):
                 session = Session(ToolClient(ordinary.call, validate=False))
                 session.freeze(exhaustive_u8_workload())
                 controls = []
+                nominal_ref = session.artifact(nominal)
+                nominal_program = verify_program(nominal)
                 for raw, source_format in sources:
                     source = session.artifact(raw)
                     args = session.arguments(change={'kind': 'import', 'format': source_format, 'source': source})
@@ -109,6 +112,13 @@ class AgentInspectionNativeTests(unittest.TestCase):
                 ordinary.close()
             selected = HIAAgentService(state, native_candidate_import=importer)
             try:
+                with patch.object(HIAAgentService, '_reference_import',
+                                  side_effect=AssertionError('hosted retained Core entered')):
+                    confirmed = selected._program(nominal_ref)
+                    self.assertEqual(confirmed, nominal_program)
+                    explanation = selected.call('hia_inspect', session.arguments(
+                        mutable=False, program=nominal_ref, view='summary'))
+                    self.assertEqual(explanation['status'], 'completed', explanation)
                 for index, (args, expected) in enumerate(controls):
                     args = {**args, 'request_key': args['request_key'] + '/native'}
                     if index < 3:

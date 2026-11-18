@@ -1164,6 +1164,7 @@ def support_contract(root=ROOT):
                                  'typed assembly v6–v8'],
             'diagnostic_owner': 'HIA serialization with SHA-256 of original and canonical Core',
             'hosted_rejection_diagnostic_only_after_native_refusal': True,
+            'retained_program_reopen_uses_the_same_native_admission': True,
             'store_authority_and_default_service_unchanged': True,
         },
         'agent_discovery': {

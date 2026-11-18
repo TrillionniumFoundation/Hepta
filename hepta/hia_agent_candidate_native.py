@@ -127,6 +127,34 @@ class NativeAgentCandidateImport:
             raise ValueError('invalid native Agent candidate admission reply')
         return result.stdout
 
+    def _admit_json(self, data):
+        from .hia_program import MAX_BYTES
+
+        packet = self._run(self._nominal, ('hia-admit-agent-json',), data)
+        if packet is None:
+            return None
+        if len(packet) < ADMISSION_FRAME.size:
+            raise ValueError('missing native Agent candidate admission header')
+        magic, action, error, profile, original_size, core_size, spare1, spare2 = ADMISSION_FRAME.unpack_from(packet)
+        if (magic != b'HIAVCF01' or action or error or spare1 or spare2 or profile > 4
+                or not 0 < original_size <= MAX_BYTES or not 0 < core_size <= MAX_BYTES
+                or len(packet) != ADMISSION_FRAME.size + original_size + core_size):
+            raise ValueError('invalid native Agent candidate admission extent')
+        end = ADMISSION_FRAME.size + original_size
+        original, core = packet[ADMISSION_FRAME.size:end], packet[end:]
+        if profile == 0 and original != core:
+            raise ValueError('native primitive Agent source and Core identities differ')
+        return core, original, profile
+
+    def retained_program(self, data):
+        from .hia_program import VerifiedProgram
+
+        admitted = self._admit_json(data)
+        if admitted is None:
+            return None
+        core, original, profile = admitted
+        return VerifiedProgram(core, original if profile else None)
+
     def admit(self, data, source_format):
         from .hia_agent_inspection_native import installed_agent_inspection
         from .hia_program import MAX_BYTES
@@ -139,19 +167,9 @@ class NativeAgentCandidateImport:
                 raise ValueError('invalid native Agent assembly result extent')
             original, profile = core, 0
         else:
-            packet = self._run(self._nominal, ('hia-admit-agent-json',), data)
-            if packet is None:
+            admitted = self._admit_json(data)
+            if admitted is None:
                 return None
-            if len(packet) < ADMISSION_FRAME.size:
-                raise ValueError('missing native Agent candidate admission header')
-            magic, action, error, profile, original_size, core_size, spare1, spare2 = ADMISSION_FRAME.unpack_from(packet)
-            if (magic != b'HIAVCF01' or action or error or spare1 or spare2 or profile > 4
-                    or not 0 < original_size <= MAX_BYTES or not 0 < core_size <= MAX_BYTES
-                    or len(packet) != ADMISSION_FRAME.size + original_size + core_size):
-                raise ValueError('invalid native Agent candidate admission extent')
-            end = ADMISSION_FRAME.size + original_size
-            original, core = packet[ADMISSION_FRAME.size:end], packet[end:]
-            if profile == 0 and original != core:
-                raise ValueError('native primitive Agent source and Core identities differ')
+            core, original, profile = admitted
         diagnostics = installed_agent_inspection(self._diagnostics).import_diagnostics(core, original, profile)
         return core, diagnostics

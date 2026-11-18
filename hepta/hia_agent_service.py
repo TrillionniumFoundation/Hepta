@@ -410,7 +410,13 @@ class HIAAgentService:
 
     def _program(self, ref):
         data, _ = self.store.get(ref)
-        return verify_program(decode_json(data))
+        if self._native_candidate_import is None:
+            return self._reference_import(data, 'core-json')
+        program = self._native_candidate_import.retained_program(data)
+        if program is None:
+            self._reference_import(data, 'core-json')
+            raise ValueError('native Agent retained-program refusal disagrees with hosted admission')
+        return program
 
     def _context(self, ref):
         keys(ref, ("id", "sha256"), label="context reference")
