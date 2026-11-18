@@ -266,3 +266,29 @@ carries the HIA-generated `HIAWAL01` transaction in a `0400` memfd with
 all four seals; there is no proposal or fd 12. Reopen the staged Store and
 select its current anchor before switching from the batch entry to this
 entry. Both refuse to overwrite an existing anchor.
+
+## Reading and updating the staged Agent Store
+
+The persistent Agent Store transaction root and its four authenticated
+modules build from checked-in HIA sources. The bootstrap requires the
+source-bound cold compiler. Its fixed word filter admits the exact compiled
+bytes and relocation frame for each unit before copying or patching any
+output. The build plan records the admitted input and output digests; it is
+not a runtime extension mechanism. The HIA packers build all four modules
+and place the loader, transaction owner, module manifest, and JSON hub in
+the final ELF. The builder independently checks the emitted layout against
+the assembled descriptor adapter.
+
+```sh
+python -B -m tools.build_hia_agent_store \
+  --compiler "$compiler" --cold-report "$cold_report" --output "$store_output"
+```
+
+This is the explicit Linux x86-64 private Store transaction protocol,
+not the public Agent service. Its inherited directory capabilities select
+one staged namespace and the four built modules. The native engine owns
+overlay reads, typed updates, indexed lookups, and commit or rollback for
+the original Store operations. An optional read-only artifact capability
+allows already migrated content to be reopened and checked. The Agent's
+tool methods, public request routing and active Store selection are not
+replaced by this build.

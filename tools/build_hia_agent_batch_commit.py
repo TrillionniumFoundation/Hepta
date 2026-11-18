@@ -43,7 +43,7 @@ def digest(raw):
     return sha256(raw).hexdigest()
 
 
-def adapter_layout(output, adapter, source, call_symbols):
+def assemble_adapter(output, adapter, source):
     # Build-time verification only. The checked-in HIA packer assembles the
     # actual ELF; these tools independently check the retained syscall bytes.
     object_bytes = assemble(output, adapter, source)
@@ -64,16 +64,22 @@ def adapter_layout(output, adapter, source, call_symbols):
     symbols = {}
     for row in observations['symbols'].splitlines():
         fields = row.split()
-        if len(fields) == 3 and fields[1] == b'T':
+        if len(fields) == 3 and fields[1] in {b'T', b't'}:
             symbols[fields[2].decode('ascii')] = int(fields[0], 16)
     stub = (output / 'adapter.text.bin').read_bytes()
+    if (output / object_path).read_bytes() != object_bytes or not stub or symbols.get('_start') != 0:
+        raise ValueError('invalid transaction syscall adapter entry or object identity')
+    return stub, symbols, digest(object_bytes)
+
+
+def adapter_layout(output, adapter, source, call_symbols):
+    stub, symbols, identity = assemble_adapter(output, adapter, source)
     holes = {name: symbols.get(symbol, 0) for name, symbol in call_symbols.items()}
-    if ((output / object_path).read_bytes() != object_bytes or not stub
-            or symbols.get('_start') != 0 or len(set(holes.values())) != len(holes)
+    if (len(set(holes.values())) != len(holes)
             or any(not 0 < offset <= len(stub) - 4
                    or stub[offset - 1:offset + 4] != b'\xe8\0\0\0\0' for offset in holes.values())):
-        raise ValueError('invalid transaction syscall adapter entry or call placement')
-    return stub, holes, digest(object_bytes)
+        raise ValueError('invalid transaction syscall adapter call placement')
+    return stub, holes, identity
 
 
 def verify_placement(binary, stub, holes, parts):
