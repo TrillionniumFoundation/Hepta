@@ -97,6 +97,35 @@ Error output does not carry a fabricated request or correlated report.
 This command does not open a Store, run a tool, enter MCP or change the
 current worker's administrator options or service selection.
 
+## Installed terminal renderer
+
+The same release includes `hia-worker-terminal`, an independent Linux x86-64
+executable accepting one framed record on stdin and no arguments. Its process
+owner supplies the first 296 bytes; user-supplied request JSON starts after
+that header. All integers in the header are unsigned 64-bit little-endian.
+
+| Bytes | Contents |
+| --- | --- |
+| 0–7 | ASCII `HIATRP01` |
+| 8–31 | Raw request length, raw terminal response length, integer digit limit |
+| 32–39 | 0 for no helpers digest; 1 to include it |
+| 40–231 | Catalog, backend and worker SHA-256, 64 lowercase ASCII hex bytes each |
+| 232–295 | Helpers SHA-256 or 64 zero bytes, according to the flag |
+| 296 onward | Exact request JSON, exact terminal service JSON, then EOF |
+
+The two input documents and the full canonical report each have independent
+8 MiB limits. The service JSON must contain the existing contract version, a
+nonempty request ID, and either `completed` with an object-valued `result` or
+`rejected` with an object-valued `error`. HIA verifies the request and canonicalizes
+the body before emitting the authenticated report and a newline. Failed framing,
+admission or canonicalization emits no report. Statuses 2, 3, 4 and 64 indicate
+content refusal, a size/structural limit, I/O failure and invalid framing or
+arguments, respectively.
+
+Only the process owner can attest the supplied source pins and service result.
+The renderer supplies no tool execution, service entry, journal access, or
+process authority. It is not selected by the current public Runtime worker.
+
 ## Reproduction and evidence
 
 `tools/generate_hia_worker_request.py` reproducibly authors the checked-in HIA.

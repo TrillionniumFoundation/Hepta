@@ -119,6 +119,7 @@ NATIVE_LINKER_SDIST_FILES = (
 WORKER_REQUEST_SDIST_FILES = (
     'examples/hia_bootstrap/worker_request_filter_packer.hepta',
     'tools/build_hia_worker_request_cli.py',
+    'tools/hia_worker_terminal.S',
     'tools/bind_hia_worker_store.py',
 )
 EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
@@ -465,6 +466,7 @@ SOURCE_FILES = (
     'tools/generate_hia_worker_request.py',
     'examples/hia_bootstrap/worker_request.hepta',
     'tests/test_hia_worker_request_native.py',
+    'tests/test_hia_worker_terminal_runtime.py',
     'tests/test_hia_worker_request_review.py',
     'tests/test_hia_worker_native_helpers.py',
     'docs/HIA_NATIVE_HELPER_WORKER.md',
@@ -1113,7 +1115,14 @@ def support_contract(root=ROOT):
             'canonical_budget_applies_to': 'five-field digest input, not a reencoded six-field envelope',
             'integer_conversion_limit': 'actual trusted host int digit profile; zero means unlimited within wire budget',
             'source_preorder_arena_restored_on_parsed_returns': True,
-            'service_journal_foreign_objects_and_report_serialization_are_hosted': True,
+            'installed_terminal_transport': {
+                'executable': 'hia-worker-terminal',
+                'frame_magic': 'HIATRP01',
+                'native_owners': ['request admission', 'terminal response JSON shape and canonicalization',
+                                  'authenticated terminal envelope'],
+                'opens_service_or_store': False,
+            },
+            'service_journal_and_foreign_objects_are_hosted': True,
             'default_worker_changed': False,
         },
         'native_worker_helper_bundle': {

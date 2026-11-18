@@ -1,0 +1,210 @@
+/* Stdio transport only. HIA owns request admission, response canonicalization
+ * and terminal rendering. This is an internal process-owner interface. */
+.intel_syntax noprefix
+.text
+.global _start
+.type _start,@function
+.equ WIRE_LIMIT,8<<20
+.equ WORKSPACE,64+262144*56+WIRE_LIMIT+16384
+.equ PRIVATE,WORKSPACE-16384
+.equ FRAME_BYTES,296
+.equ REPORT_INPUT,0x3130505254414948
+
+_start:
+ cld
+ cmp QWORD PTR [rsp+8],1
+ jne bad_frame
+ mov edi,13
+ lea rsi,[rip+sigpipe]
+ xor edx,edx
+ mov r10d,8
+ mov eax,13
+ syscall
+ test rax,rax
+ jne io_failure
+ lea rsi,[rip+header]
+ mov edx,FRAME_BYTES
+ call read_exact
+ movabs rax,REPORT_INPUT
+ cmp [rip+header],rax
+ jne bad_frame
+ cmp QWORD PTR [rip+header+8],0
+ je bad_frame
+ cmp QWORD PTR [rip+header+16],0
+ je bad_frame
+ cmp QWORD PTR [rip+header+8],WIRE_LIMIT
+ ja budget
+ cmp QWORD PTR [rip+header+16],WIRE_LIMIT
+ ja budget
+ mov rax,[rip+header+24]
+ test rax,rax
+ jz digits_valid
+ cmp rax,640
+ jb bad_frame
+ cmp rax,2147483647
+ ja bad_frame
+digits_valid:
+ mov rax,[rip+header+32]
+ cmp rax,1
+ ja bad_frame
+ je pins_ready
+ lea rdi,[rip+header+232]
+ mov ecx,8
+ repe scasq
+ jne bad_frame
+pins_ready:
+ mov esi,WIRE_LIMIT
+ call map_private
+ mov r12,rax
+ mov esi,WIRE_LIMIT
+ call map_private
+ mov r13,rax
+ mov esi,WORKSPACE
+ call map_private
+ mov r14,rax
+ mov QWORD PTR [r14],1
+ mov rax,[rip+header+24]
+ mov [r14+8],rax
+ lea rdi,[r14+PRIVATE+64]
+ lea rsi,[rip+header+40]
+ mov ecx,8
+ rep movsq
+
+ mov rsi,r12
+ mov rdx,[rip+header+8]
+ call read_exact
+ mov rdi,r12
+ mov rsi,[rip+header+8]
+ mov rdx,r13
+ mov r8,r14
+ call run_hia
+
+ mov rsi,r12
+ mov rdx,[rip+header+16]
+ call read_exact
+check_eof:
+ xor edi,edi
+ lea rsi,[rip+extra]
+ mov edx,1
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je check_eof
+ test rax,rax
+ js io_failure
+ jne bad_frame
+ mov esi,WORKSPACE
+ call map_private
+ mov r15,rax
+ mov QWORD PTR [r15],3
+ mov rax,[rip+header+24]
+ mov QWORD PTR [r15+8],rax
+ mov rdi,r12
+ mov rsi,[rip+header+16]
+ mov rdx,r13
+ mov r8,r15
+ call run_hia
+ mov rbx,rax
+
+ mov QWORD PTR [r14],2
+ mov rax,[rip+header+32]
+ mov [r14+PRIVATE+520],rax
+ lea rdi,[r14+PRIVATE+528]
+ lea rsi,[rip+header+104]
+ mov ecx,24
+ rep movsq
+ mov rdi,r13
+ mov rsi,rbx
+ mov rdx,r12
+ mov r8,r14
+ call run_hia
+ mov rdx,rax
+ mov rsi,r12
+ call write_exact
+ lea rsi,[rip+newline]
+ mov edx,1
+ call write_exact
+ xor edi,edi
+ jmp exit
+
+run_hia:
+ mov ecx,WIRE_LIMIT
+ mov r9d,WORKSPACE
+ call worker_request_start
+ cmp eax,0xfffffffe
+ je budget
+ cmp eax,0xffffffea
+ je budget
+ cmp eax,0xfffffffd
+ je bad_frame
+ cmp eax,0xffffff00
+ jae rejected
+ test eax,eax
+ jz io_failure
+ cmp eax,WIRE_LIMIT
+ ja io_failure
+ mov eax,eax
+ ret
+map_private:
+ xor edi,edi
+ mov edx,3
+ mov r10d,34
+ mov r8,-1
+ xor r9d,r9d
+ mov eax,9
+ syscall
+ cmp rax,-4095
+ jae io_failure
+ ret
+read_exact:
+ xor edi,edi
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je read_exact
+ test rax,rax
+ js io_failure
+ jz bad_frame
+ add rsi,rax
+ sub rdx,rax
+ jne read_exact
+ ret
+write_exact:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je write_exact
+ test rax,rax
+ jle io_failure
+ add rsi,rax
+ sub rdx,rax
+ jne write_exact
+ ret
+rejected:
+ mov edi,2
+ jmp exit
+budget:
+ mov edi,3
+ jmp exit
+io_failure:
+ mov edi,4
+ jmp exit
+bad_frame:
+ mov edi,64
+exit:
+ mov eax,60
+ syscall
+ ud2
+.size _start,.-_start
+
+.section .rodata
+.balign 8
+sigpipe: .quad 1,0,0,0
+newline: .byte 10
+
+.bss
+.balign 8
+header: .skip FRAME_BYTES
+extra: .skip 1
+.section .note.GNU-stack,"",@progbits

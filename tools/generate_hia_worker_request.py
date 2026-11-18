@@ -11,6 +11,7 @@ import ast
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_contract import VERSION
 from tools.generate_hia_agent_data_json import source_program as data_source
 from tools.generate_hia_agent_binary64 import source_program as decimal_source
 from tools.generate_hia_agent_binary64_format import source_program as format_source
@@ -35,7 +36,7 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 64 + bound * 56 + length(s) + 16384:
         return 4294967293
     digits = get(w, 8)
-    if mode > 1:
+    if mode > 3:
         return 4294967293
     private = length(w) - 16384
     put(w, private + 512, 0)
@@ -132,6 +133,8 @@ def finish_request(s:readbuf, o:mutbuf, w:mutbuf, mode:u64) -> u64:
         # The hosted protocol bounds only the digest's five-field payload.
         # Re-encoding the full envelope here would add a stricter byte gate.
         return count
+    if mode == 3 and terminal_body(w) == 0:
+        return 4294967279
     count = serialize(s, o, w)
     put(w, 56, 0)
     return count
@@ -245,6 +248,38 @@ def terminal_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if result > 8388608:
         return 4294967274
     return result
+
+def terminal_body(w:mutbuf) -> u64:
+    if get(w, 64) != 6 or get(w, 96) != 4:
+        return 0
+    node = get(w, 88)
+    fields = 0
+    outcome = 0
+    index = 0
+    while index < 4:
+        record = 64 + node * 56
+        key = terminal_body_key(w, get(w, record + 40), get(w, record + 48))
+        if key == 0:
+            return 0
+        kind = get(w, record)
+        if key <= 3:
+            if kind != 4:
+                return 0
+            start = get(w, record + 24)
+            size = get(w, record + 32)
+            if key == 1 and terminal_contract(w, start, size) == 0:
+                return 0
+            if size == 0:
+                return 0
+            if key == 3:
+                outcome = terminal_outcome(w, start, size)
+        else:
+            if kind != 6:
+                return 0
+        fields = fields | (1 << key)
+        node = get(w, record + 16)
+        index = index + 1
+    return choose(fields == outcome, 1, 0)
 
 def report_request_field(o:mutbuf, w:mutbuf, key:u64) -> u64:
     node = get(w, length(w) - 16384 + 256 + key * 8)
@@ -376,14 +411,24 @@ def canonical_program():
 
 
 def key_program():
-    source = '\ndef request_key(w:mutbuf, start:u64, size:u64) -> u64:\n'
-    for number, name in enumerate(('schema', 'tool', 'arguments', 'request_sha256', 'profile_sha256', 'catalog_sha256'), 1):
-        checks = [f'size == {len(name)}'] + [f'byte(w, start + {i}) == {value}' for i, value in enumerate(name.encode())]
-        source += '    if ' + ' and '.join(checks) + f':\n        return {number}\n'
-    source += '    return 0\n\ndef request_schema(w:mutbuf, start:u64, size:u64) -> u64:\n'
-    name = b'hia-agent-worker-request-v1'
-    checks = [f'size == {len(name)}'] + [f'byte(w, start + {i}) == {value}' for i, value in enumerate(name)]
-    return source + '    return choose(' + ' and '.join(checks) + ', 1, 0)\n'
+    tables = {
+        'request_key': tuple(enumerate(
+            ('schema', 'tool', 'arguments', 'request_sha256', 'profile_sha256', 'catalog_sha256'), 1)),
+        'request_schema': ((1, 'hia-agent-worker-request-v1'),),
+        'terminal_body_key': tuple(enumerate(
+            ('contract_version', 'request_id', 'status', 'result', 'error'), 1)),
+        'terminal_contract': ((1, VERSION),),
+        'terminal_outcome': ((30, 'completed'), (46, 'rejected')),
+    }
+    functions = []
+    for function, entries in tables.items():
+        source = f'def {function}(w:mutbuf, start:u64, size:u64) -> u64:\n'
+        for number, name in entries:
+            checks = [f'size == {len(name)}'] + [
+                f'byte(w, start + {i}) == {value}' for i, value in enumerate(name.encode('ascii'))]
+            source += '    if ' + ' and '.join(checks) + f':\n        return {number}\n'
+        functions.append(source + '    return 0\n')
+    return '\n'.join(functions)
 
 
 def source_program():
