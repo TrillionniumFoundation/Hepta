@@ -1400,19 +1400,18 @@ class HIAAgentService:
         else:
             before = int(runs.get("baseline", {}).get("total_native_ns", "0"))
             after = int(runs.get("candidate", {}).get("total_native_ns", "0"))
-        ratio = (before - after) / before if before else 0.0
-        if budget_exceeded:
-            outcome = "budget_exceeded"
-        elif not correct:
-            outcome = "incorrect"
-        elif not complete or objective["metric"] == "latency_ns" and trapping:
-            outcome = "inconclusive"
-        elif after < before and ratio >= objective["min_improvement_ratio"]:
-            outcome = "improved"
-        elif after > before:
-            outcome = "regressed"
+        from .hia_agent_store import _native_agent_identity
+        policy = _native_agent_identity()
+        threshold = objective["min_improvement_ratio"]
+        latency = objective["metric"] == "latency_ns"
+        if policy is not None:
+            ratio, outcome = policy.evaluation_measurement(before, after, threshold,
+                budget_exceeded=budget_exceeded, correct=correct, complete=complete,
+                latency=latency, trapping=bool(trapping))
         else:
-            outcome = "unchanged"
+            ratio, outcome = self._reference_evaluation_measurement(before, after, threshold,
+                budget_exceeded=budget_exceeded, correct=correct, complete=complete,
+                latency=latency, trapping=bool(trapping))
         measurements = self.store.json({"schema": "hepta.hia.agent.measurements.v1", "context": args["context"],
             "workload": context["workload"], "objective": context["objective"],
             "baseline_artifact": args["baseline_artifact"], "candidate_artifact": args["candidate_artifact"],
@@ -1438,6 +1437,24 @@ class HIAAgentService:
             "evaluation_receipt": receipt, "report_complete": True, "planned_workload_complete": complete,
             "termination_confirmed": True, "outcome": outcome, "measurements": measurements,
             "full_cost_ledger": ledger, "adopted": False}
+
+    @staticmethod
+    def _reference_evaluation_measurement(before, after, threshold, *,
+                                          budget_exceeded, correct, complete, latency, trapping):
+        ratio = (before - after) / before if before else 0.0
+        if budget_exceeded:
+            outcome = "budget_exceeded"
+        elif not correct:
+            outcome = "incorrect"
+        elif not complete or latency and trapping:
+            outcome = "inconclusive"
+        elif after < before and ratio >= threshold:
+            outcome = "improved"
+        elif after > before:
+            outcome = "regressed"
+        else:
+            outcome = "unchanged"
+        return ratio, outcome
 
     def _slot_snapshot(self, slot):
         if self._slot_ledger is not None:

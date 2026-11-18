@@ -35,7 +35,9 @@ def witnesses():
         (packet(2,struct.pack('<3Q',4<<30,500,501)),expected(1,2)),
         (packet(3,struct.pack('<4Q',0,1,6,1)),expected(1,3)),
         (packet(3,struct.pack('<4Q',1,1,6,1)),expected(1,4)),
-        (packet(4,struct.pack('<33Q',*([1<<20]*32),1)),expected(1,5))]
+        (packet(4,struct.pack('<33Q',*([1<<20]*32),1)),expected(1,5)),
+        (packet(5,struct.pack('<2QdQ',3,2,0.0,6)),
+         expected(4,struct.unpack('<Q',struct.pack('<d',1/3))[0]))]
     for wire,result in values:assert vm(wire,0)==(24,result)
     return values
 
@@ -44,7 +46,7 @@ class AgentIdentitySourceTests(unittest.TestCase):
         from tools.generate_hia_agent_identity import document
         from hepta.hia_agent_assembly import render_assembly
         self.assertEqual(SOURCE.read_text(),render_assembly(document()))
-        self.assertEqual(len(witnesses()),9)
+        self.assertEqual(len(witnesses()),10)
 
     def test_builder_refuses_bad_cold_before_any_output_or_compilation(self):
         from copy import deepcopy
@@ -127,7 +129,8 @@ class AgentIdentityNativeTests(unittest.TestCase):
     def test_malformed_transport_short_output_and_poisoned_canaries(self):
         for wire in [b'',b'0'*15,packet(2,b'0'),packet((1<<64)-1,b''),b'0'*16,packet(0,b'0'*65),
                      packet(3,struct.pack('<4Q',1,1,1,0)),packet(4,b'0'),
-                     packet(4,struct.pack('<Q',(1<<20)+1))]:
+                     packet(4,struct.pack('<Q',(1<<20)+1)),packet(5,struct.pack('<2QdQ',3,2,1.1,6)),
+                     packet(5,struct.pack('<2QdQ',3,2,0.0,32))]:
             self.assertEqual(self.raw(wire)[0],0xfffffffd)
         self.assertEqual(self.raw(packet(0,b'0'),23)[0],0xfffffffe)
         with self.assertRaises(ValueError):self.native.scalar('1',False)
@@ -202,6 +205,33 @@ class AgentIdentityNativeTests(unittest.TestCase):
                     self.assertIn(4, [call.args[0] for call in selected_calls.call_args_list])
         finally:
             service.close()
+
+    def test_evaluation_ratios_match_binary64_and_preserve_outcome_priority(self):
+        from hepta.hia_agent_service import HIAAgentService
+
+        limit = (1 << 64) - 1
+        cases = [(0, 0), (0, 1), (1, limit), (limit, 1), (limit, limit-1), (limit, limit),
+                 (3, 2), (3, 7), (1<<54, (1<<53)-1), (1<<54, (1<<53)-3)]
+        reference = HIAAgentService._reference_evaluation_measurement
+        flags = ('budget_exceeded', 'correct', 'complete', 'latency', 'trapping')
+
+        def exact(before, after, threshold, mask):
+            status = {name: bool(mask & (1 << index)) for index, name in enumerate(flags)}
+            expected_ratio, expected_outcome = reference(before, after, threshold, **status)
+            actual_ratio, actual_outcome = self.native.evaluation_measurement(before, after, threshold, **status)
+            self.assertEqual(struct.pack('<d', actual_ratio), struct.pack('<d', expected_ratio),
+                             (before, after, threshold, mask))
+            self.assertEqual(actual_outcome, expected_outcome, (before, after, threshold, mask))
+
+        for before, after in cases:
+            for threshold in (-0.0, 0.0, 0.1, 0.5, 1.0):
+                for mask in range(32):
+                    exact(before, after, threshold, mask)
+        random_values = random.Random(0x484941)
+        for _ in range(4000):
+            before = random_values.getrandbits(random_values.randrange(65))
+            after = random_values.getrandbits(random_values.randrange(65))
+            exact(before, after, random_values.random(), random_values.randrange(32))
 
     def test_manifest_selected_rejects_corruption_without_fallback(self):
         bad=self.folder/'bad.json';bad.write_text('{}')

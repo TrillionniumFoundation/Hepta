@@ -21,6 +21,7 @@ CONTEXT_REFUSALS = {
     4: ('E_HIA_COST', 'complete external cost report cannot contain unknown fields'),
     5: ('E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots'),
 }
+EVALUATION_OUTCOMES = ('budget_exceeded', 'incorrect', 'inconclusive', 'improved', 'regressed', 'unchanged')
 
 class NativeAgentIdentity(NativeHiaJsonImage):
     def scalar(self, value, kind):
@@ -33,7 +34,7 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         except UnicodeEncodeError:return None
         wire=struct.pack('<2Q',MAGIC,kind)+payload
         valid, number = self._request(wire)
-        if (not valid and number != 0) or (kind == 1 and number != 0):
+        if valid not in (0, 1) or (not valid and number != 0) or (kind == 1 and number != 0):
             raise RuntimeError('invalid HIA Agent scalar result')
         return number if valid else None
 
@@ -44,7 +45,7 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         status=self._entry(source,len(wire),output,24,unused,0)
         if status!=24:raise RuntimeError('HIA Agent identity rejected owned packet')
         magic,valid,number=struct.unpack('<3Q',output.raw)
-        if magic != RESULT_MAGIC or valid not in (0, 1):
+        if magic != RESULT_MAGIC:
             raise RuntimeError('invalid HIA Agent identity result')
         return valid, number
 
@@ -67,6 +68,19 @@ class NativeAgentIdentity(NativeHiaJsonImage):
 
     def context_snapshots(self, sizes):
         self._context(4, tuple(sizes), (5,))
+
+    def evaluation_measurement(self, before, after, threshold, *,
+                               budget_exceeded, correct, complete, latency, trapping):
+        flags = (budget_exceeded | (correct << 1) | (complete << 2)
+                 | (latency << 3) | (trapping << 4))
+        packet = struct.pack('<4QdQ', MAGIC, 5, before, after, threshold, flags)
+        decision, bits = self._request(packet)
+        if not 1 <= decision <= len(EVALUATION_OUTCOMES):
+            raise RuntimeError('invalid HIA Agent evaluation decision')
+        if (bits >> 52) & 2047 == 2047:
+            raise RuntimeError('nonfinite HIA Agent evaluation ratio')
+        ratio = struct.unpack('<d', struct.pack('<Q', bits))[0]
+        return ratio, EVALUATION_OUTCOMES[decision - 1]
 
     def uint64(self,value):return self.scalar(value,0)
     def digest(self,value):return self.scalar(value,1)is not None

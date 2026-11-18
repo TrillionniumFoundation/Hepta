@@ -13,6 +13,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if read_word(s, 0) != @MAGIC@:
         return 4294967293
     kind = read_word(s, 8)
+    if kind == 5:
+        return measurement_policy(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -98,6 +100,76 @@ def context_policy(s:readbuf, o:mutbuf, kind:u64) -> u32:
     put(o, 8, 1)
     put(o, 16, decision)
     return 24
+
+def measurement_policy(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 48:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    before = read_word(s, 16)
+    after = read_word(s, 24)
+    threshold = read_word(s, 32)
+    flags = read_word(s, 40)
+    if threshold == 9223372036854775808:
+        threshold = 0
+    if flags > 31 or threshold > 4607182418800017408:
+        return 4294967293
+    ratio = 0
+    if before != 0 and before != after:
+        if before > after:
+            ratio = rational_bits(before - after, before)
+        else:
+            ratio = rational_bits(after - before, before) | 9223372036854775808
+    outcome = 6
+    if (flags & 1) != 0:
+        outcome = 1
+    elif (flags & 2) == 0:
+        outcome = 2
+    elif (flags & 4) == 0 or (flags & 24) == 24:
+        outcome = 3
+    elif after < before and ratio >= threshold:
+        outcome = 4
+    elif after > before:
+        outcome = 5
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, outcome)
+    put(o, 16, ratio)
+    return 24
+
+def rational_bits(numerator:u64, denominator:u64) -> u64:
+    # A nonzero ratio of two u64 values is always normal in binary64.
+    exponent = 1023
+    divisor = denominator
+    remainder = numerator
+    if numerator >= denominator:
+        while divisor <= (numerator >> 1):
+            divisor = divisor << 1
+            exponent = exponent + 1
+        remainder = numerator - divisor
+    else:
+        exponent = exponent - 1
+        while remainder < divisor - remainder:
+            remainder = remainder + remainder
+            exponent = exponent - 1
+        remainder = remainder - (divisor - remainder)
+    significand = 1
+    count = 0
+    while count < 52:
+        complement = divisor - remainder
+        significand = significand << 1
+        if remainder >= complement:
+            remainder = remainder - complement
+            significand = significand | 1
+        else:
+            remainder = remainder + remainder
+        count = count + 1
+    complement = divisor - remainder
+    if remainder > complement or (remainder == complement and (significand & 1) == 1):
+        significand = significand + 1
+    if significand == 9007199254740992:
+        significand = significand >> 1
+        exponent = exponent + 1
+    return (exponent << 52) | (significand & 4503599627370495)
 
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
