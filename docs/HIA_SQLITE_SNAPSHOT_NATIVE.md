@@ -1,6 +1,6 @@
 # Native SQLite snapshot components
 
-These HIA components reconstruct a committed view from an offline database and
+These flat HIA components reconstruct a committed view from an offline database and
 WAL pair, locate a row in an immutable SQLite table B-tree, and describe its
 physical record. No component opens a file, starts a transaction, or uses
 SQLite, libc, or Python at runtime. Snapshot consistency and database/WAL
@@ -25,9 +25,13 @@ python -B -m tools.build_hia_json_preflight --candidate sqlite-record-layout \
 Each output is a flat Linux x86-64 image and a manifest. The hosted build driver
 and independent VM are not runtime dependencies of the images.
 
+For private Agent migration, use the same command with
+`sqlite-agent-row-import`, `sqlite-agent-import-batch`,
+`sqlite-agent-cost-sequence`, or `sqlite-agent-artifact-catalog`.
+
 ## Flat-image ABI
 
-All three use the existing `(readbuf, mutbuf, mutbuf) -> u32` HIA entry ABI.
+The flat images use the existing `(readbuf, mutbuf, mutbuf) -> u32` HIA entry ABI.
 The input, output, and scratch buffers must not overlap. Offsets within the
 component wire formats are bytes; integer fields are little endian.
 
@@ -159,6 +163,23 @@ writer must still admit, append, and publish against the selected anchor.
 No writes occur in the caller's output on status `1` (malformed),
 `2` (output too small), `3` (scratch smaller than 4096), or `4` (the
 sequence is not ahead; no transaction is needed). Success is status `0`.
+
+### Artifact byte inventory for staged migration
+
+`sqlite-agent-artifact-catalog` takes the exact `HIATXB01` proposal and
+returns `HIAFID01`, version 1 and artifact row count, followed by one
+lowercase 64-byte content digest per artifact row in physical rowid order.
+Version and count each occupy eight bytes. Two rows may legitimately name
+the same content. A valid proposal without artifact rows returns count zero.
+The image validates the directory extent and ordering, and reads only the
+typed digest within each bounded artifact row; other values remain the
+transaction producer's responsibility. Malformed records (status `1`) or
+short output (status `2`) leave the output untouched. Scratch is not needed.
+
+An inventory alone neither reads nor authorizes files. Actual migration
+must still verify the content bytes against the digest and stage them under
+the private destination's artifact ownership before exposing any migrated
+references.
 
 ## Committed WAL view
 

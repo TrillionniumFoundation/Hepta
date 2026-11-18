@@ -28,6 +28,7 @@ SQLITE_SNAPSHOT_SDIST_FILES = (
     'examples/hia_bootstrap/sqlite_agent_row_import.hepta',
     'examples/hia_bootstrap/sqlite_agent_import_batch.hepta',
     'examples/hia_bootstrap/sqlite_agent_cost_sequence.hepta',
+    'examples/hia_bootstrap/sqlite_agent_artifact_catalog.hepta',
 )
 SOURCE_FILES = (
     *SQLITE_SNAPSHOT_SDIST_FILES,

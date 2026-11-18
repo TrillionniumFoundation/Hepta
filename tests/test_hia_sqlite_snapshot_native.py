@@ -39,6 +39,7 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         cls.row_import = assemble_program((SOURCES / 'sqlite_agent_row_import.hepta').read_bytes())
         cls.import_batch = assemble_program((SOURCES / 'sqlite_agent_import_batch.hepta').read_bytes())
         cls.cost_sequence = assemble_program((SOURCES / 'sqlite_agent_cost_sequence.hepta').read_bytes())
+        cls.artifact_catalog = assemble_program((SOURCES / 'sqlite_agent_artifact_catalog.hepta').read_bytes())
         cls.wal = assemble_program((SOURCES / 'sqlite_wal_snapshot.hepta').read_bytes())
         cls.key = -(1 << 63)
         cls.blob = bytes(range(256)) * 7
@@ -182,7 +183,8 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
             cold.write_text('{}')
             for candidate in ('sqlite-wal-snapshot', 'sqlite-rowid-lookup',
                               'sqlite-record-layout', 'sqlite-agent-row-import',
-                              'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence'):
+                              'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
+                              'sqlite-agent-artifact-catalog'):
                 with self.subTest(candidate=candidate):
                     with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                         build(output, compiler, cold, candidate=candidate)
@@ -277,6 +279,25 @@ class SqliteSnapshotSourceTests(unittest.TestCase):
         for request, extent, workspace, code in cases:
             self.assertEqual(run_vm(self.cost_sequence, request, extent, workspace),
                              (code, b'\xa7' * extent))
+
+    def test_artifact_catalog_uses_only_typed_lowercase_content_keys(self):
+        digest = b'0123456789abcdef' * 4
+        values = b'artifact' + digest
+        row = struct.pack('<8s3Q', b'HIAROW01', 1, 1, 6)
+        row += struct.pack('<6Q', 3, 176, 8, 3, 184, 64)
+        row += struct.pack('<3Q', 3, 248, 0) * 4 + values
+        header = struct.pack('<8s3Q', b'HIATXB01', 1, 1, 1)
+        entry = struct.pack('<QqQQ', 1, -1, 64, len(row))
+        prefix = header + entry
+        expected = struct.pack('<8s2Q', b'HIAFID01', 1, 1) + digest
+        self.assertEqual(run_vm(self.artifact_catalog, prefix + row, 89, 0),
+                         (0, expected + b'\xa7'))
+        self.assertEqual(run_vm(self.artifact_catalog, prefix + row, 87, 0),
+                         (2, b'\xa7' * 87))
+        for invalid in (prefix + row[:-1], prefix + row + b'0',
+                        prefix + row[:-1] + b'F', prefix + row[:-64] + b'/' * 64):
+            self.assertEqual(run_vm(self.artifact_catalog, invalid, 88, 0),
+                             (1, b'\xa7' * 88))
 
     def test_wal_overlay_recovers_committed_row_and_ignores_torn_final_frame(self):
         with tempfile.TemporaryDirectory() as folder:

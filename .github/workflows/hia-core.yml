@@ -181,7 +181,7 @@ jobs:
           set -euo pipefail
           compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
           test -n "$compiler"
-          for candidate in sqlite-wal-snapshot sqlite-rowid-lookup sqlite-record-layout sqlite-agent-row-import sqlite-agent-import-batch sqlite-agent-cost-sequence; do
+          for candidate in sqlite-wal-snapshot sqlite-rowid-lookup sqlite-record-layout sqlite-agent-row-import sqlite-agent-import-batch sqlite-agent-cost-sequence sqlite-agent-artifact-catalog; do
             python -B -m tools.build_hia_json_preflight --candidate "$candidate" \
               --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
               --output "$RUNNER_TEMP/$candidate"
