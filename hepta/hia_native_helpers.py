@@ -50,6 +50,7 @@ HELPERS = {
     "HEPTA_HIA_TASK_HELPERS_MANIFEST": ("hia_task_helpers_native", "NativeTaskHelpers"),
     "HEPTA_HIA_AGENT_JOURNAL_MANIFEST": ("hia_agent_journal_native", "NativeAgentJournal"),
     "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": ("hia_execution_budget_native", "NativeExecutionBudgetImage"),
+    "HEPTA_HIA_EXECUTION_LEDGER_MANIFEST": ("hia_execution_ledger_native", "NativeExecutionLedger"),
     "HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST": ("hia_candidate_budget_native", "NativeCandidateBudgetImage"),
     "HEPTA_HIA_SLOT_LEDGER_MANIFEST": ("hia_slot_ledger_native", "NativeSlotLedger"),
     "HEPTA_HIA_RETIREMENT_STATE_MANIFEST": ("hia_retirement_state_native", "NativeRetirementImage"),

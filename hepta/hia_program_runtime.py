@@ -8,11 +8,13 @@ aborting native process performed normal-path destructor cleanup.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 
 from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS,
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
+from .hia_execution_ledger_native import SELECTOR as LEDGER_SELECTOR, installed_execution_ledger
 from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation
 
 
@@ -506,7 +508,13 @@ class _Machine:
             raise HIAProgramRejected("invalid external runtime roots", "E_HIA_RUNTIME_INVARIANT")
         resources = self.resources()
         try:
-            validate_execution_observation(status, resources, steps=self.steps,
+            validator = validate_execution_observation
+            selected = os.environ.get(LEDGER_SELECTOR)
+            if selected is not None:
+                if not selected:
+                    raise ValueError('native execution ledger selector must not be empty')
+                validator = installed_execution_ledger(selected).validate
+            validator(status, resources, steps=self.steps,
                 max_steps=self.max_steps, max_heap_bytes=self.max_heap_bytes,
                 error_code=error.code if error is not None else None,
                 with_chains=self.recursive_chain, allow_host_memory=True,

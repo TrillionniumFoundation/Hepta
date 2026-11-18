@@ -40,6 +40,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/nominal_json.hepta',
     'examples/hia_bootstrap/agent_journal.hepta',
     'examples/hia_bootstrap/execution_budget.hepta',
+    'examples/hia_bootstrap/execution_ledger.hepta',
     'examples/hia_bootstrap/worker_request.hepta',
     'examples/hia_bootstrap/agent_identity.hepta',
     'examples/hia_bootstrap/agent_slice.hepta',

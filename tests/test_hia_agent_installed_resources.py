@@ -5,7 +5,8 @@ import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
 from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, installation_manifest, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
 from hepta.hia_agent_store import wire
 from tools.hia_selfhost_contract import (
-    ARTIFACT_CAPTURE_SDIST_FILES, CORE_NORMALIZE_SDIST_FILES, NATIVE_LINKER_SDIST_FILES,
+    ARTIFACT_CAPTURE_SDIST_FILES, CORE_EDIT_SDIST_FILES, CORE_NORMALIZE_SDIST_FILES,
+    EXECUTION_LEDGER_SDIST_FILES, NATIVE_LINKER_SDIST_FILES,
     SQLITE_SNAPSHOT_SDIST_FILES, WORKER_REQUEST_SDIST_FILES,
 )
 ROOT=Path(__file__).resolve().parents[1]
@@ -14,6 +15,8 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',
                      *ARTIFACT_CAPTURE_SDIST_FILES,
                      *CORE_NORMALIZE_SDIST_FILES,
+                     *CORE_EDIT_SDIST_FILES,
+                     *EXECUTION_LEDGER_SDIST_FILES,
                      *NATIVE_LINKER_SDIST_FILES,
                      *WORKER_REQUEST_SDIST_FILES,
                      *SQLITE_SNAPSHOT_SDIST_FILES)

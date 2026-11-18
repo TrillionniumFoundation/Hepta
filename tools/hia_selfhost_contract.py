@@ -105,6 +105,7 @@ WORKER_REQUEST_SDIST_FILES = (
     'tools/build_hia_worker_request_cli.py',
     'tools/bind_hia_worker_store.py',
 )
+EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
 CORE_EDIT_SDIST_FILES = (
     'tools/build_hia_core_edit.py',
     'tools/generate_hia_core_edit_packer.py',
@@ -128,6 +129,7 @@ SOURCE_FILES = (
     *NATIVE_LINKER_SDIST_FILES,
     *WORKER_REQUEST_SDIST_FILES,
     *CORE_EDIT_SDIST_FILES,
+    *EXECUTION_LEDGER_SDIST_FILES,
     'tests/test_hia_core_edit_runtime.py',
     'examples/hia_bootstrap/agent_artifact_capture.hepta',
     'tests/test_hia_agent_artifact_capture_runtime.py',
@@ -361,6 +363,8 @@ SOURCE_FILES = (
     'tools/build_hia_execution_budget.py',
     'examples/hia_bootstrap/execution_budget.hepta',
     'tests/test_hia_execution_budget_native.py',
+    'examples/hia_bootstrap/execution_ledger.hepta',
+    'tests/test_hia_execution_ledger_native.py',
     'docs/HIA_EXECUTION_BUDGET_NATIVE.md',
     'tools/generate_hia_candidate_budget.py',
     'tools/build_hia_candidate_budget.py',

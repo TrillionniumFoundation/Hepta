@@ -67,6 +67,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'candidate-budget': ('candidate_budget', 'candidate-budget'),
                   'agent-journal': ('agent_journal', 'agent-journal'),
                   'execution-budget': ('execution_budget', 'execution-budget'),
+                  'execution-ledger': ('execution_ledger', 'execution-ledger'),
                   'retirement-state': ('retirement_state', 'retirement-state'),
                   'worker-request': ('worker_request', 'worker-request'),
                   'worker-request-filter': ('worker_request_filter_packer', 'worker-request-filter'),
@@ -156,7 +157,7 @@ def main():
     parser.add_argument('--cold-report', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--candidate', default='preflight',
-                        choices=('preflight', 'agent-read-page', 'sqlite-wal-snapshot',
+                        choices=('preflight', 'agent-read-page', 'execution-ledger', 'sqlite-wal-snapshot',
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog'))
