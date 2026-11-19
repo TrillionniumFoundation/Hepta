@@ -924,7 +924,7 @@ write_owned_done:
 lower_nominal:
  mov rdi,r12
  mov rsi,[rbp+88]
- call nominal_lower_for_build
+ call nominal_lower_for_core
  test rdx,rdx
  jz io_failure
  cmp rdx,RAW_N

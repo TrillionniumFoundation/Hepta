@@ -29,6 +29,29 @@ def wire(value, *, pretty=False):
     return (json.dumps(value, ensure_ascii=False, **formatting) + ('\n' if pretty else '')).encode()
 
 
+def nominal_query_fixtures():
+    from hepta.hia_program import verify_program
+    from tests.test_hia_composite_constructor_native import simple
+    from tests.test_hia_composite_returned_loans import pair_program
+    from tests.test_hia_program_composite import stored_loan_program
+
+    documents = [*(simple(version=version) for version in range(1, 5)),
+                 pair_program(), stored_loan_program()]
+    for document in documents:
+        verified = verify_program(document)
+        function, block, operation = next(
+            (function, block, operation)
+            for function in verified.as_dict()['functions']
+            for block in function['blocks']
+            for operation in block['ops'] if operation['out']
+        )
+        site = {'function': function['name'], 'block': block['id'],
+                'output': operation['out'][0]['name'], 'fields': ['attrs', 'args', 'op']}
+        query = prepare_edit(verified, **site)
+        assert query['base_sha256'] != query['input_sha256']
+        yield document, site, query
+
+
 def check_release(release):
     passed = 0
 
@@ -54,6 +77,10 @@ def check_release(release):
 
     from hepta.hia_program import verify_program
     from tests.test_hia_program_composite import stored_loan_program
+    for document, site, expected in nominal_query_fixtures():
+        raw = b' \t[  ' + wire(document, pretty=True) + b' ,  ' + wire(site) + b']  \n'
+        case('hia-prepare-edit-query', raw, expected)
+
     nominal = verify_program(stored_loan_program())
     core = nominal.as_dict()
     fn = core['functions'][0]

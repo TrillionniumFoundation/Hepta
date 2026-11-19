@@ -811,9 +811,38 @@ block patch_driver_report(patch_status2:readbuf,patch_output2:mutbuf,patch_works
         path.write_text(source + presenter)
 
 
+def nominal_base_span():
+    # The caller has the extractor's strict two-object admission and passes
+    # those exact bytes. This unit only locates the original base's right edge;
+    # the native caller preserves the selector suffix without parsing it.
+    entry = """
+def base_span(source:readbuf, output:mutbuf, work:mutbuf) -> u32:
+    if length(source) < 7 or length(source) > 16777219:
+        return 0
+    opening = whitespace(source, 0)
+    if opening >= length(source) or byte(source, opening) != 91:
+        return 0
+    base = whitespace(source, opening + 1)
+    if base >= length(source) or byte(source, base) != 123:
+        return 0
+    end = component_end(source, base)
+    comma = whitespace(source, end)
+    if comma >= length(source) or byte(source, comma) != 44:
+        return 0
+    return end
+"""
+    helpers = {'whitespace', 'component_end'}
+    selected = [node for node in ast.parse(source_program()).body if node.name in helpers]
+    if {node.name for node in selected} != helpers:
+        raise ValueError('missing Core patch envelope scanner')
+    source = entry + ast.unparse(ast.Module(body=selected, type_ignores=[])) + '\n'
+    return render_assembly(document(source, module='nominal_edit_base_span'))
+
+
 def main():
     target = Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_patch.hepta'
     target.write_text(render_assembly(document()))
+    (target.parent / 'core_edit' / 'nominal_base_span.hepta').write_text(nominal_base_span())
     update_public_edit_kernels(target.parent / 'core_edit')
     print(target.name, target.stat().st_size)
 

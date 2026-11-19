@@ -89,6 +89,26 @@ class CorePatchSourceTests(unittest.TestCase):
                 self.assertEqual(code, 32 + len(wanted))
                 self.assertEqual(output[32:], wanted)
 
+    def test_base_span_preserves_the_exact_suffix_of_admitted_json(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        from tools.generate_hia_core_patch import nominal_base_span
+
+        source = SOURCE.parent / 'core_edit' / 'nominal_base_span.hepta'
+        self.assertEqual(source.read_text(), nominal_base_span())
+        checked = assemble_program(source.read_bytes())
+        machine = _Machine(checked, 100_000, 1 << 20, None, 32)
+        base = b' \t[  ' + wire({'nested': [{'quote': '}["\\'}], 'empty': {}})
+        suffix = b' \r,  {"fields":["attrs"]} ]'
+        for raw, end in ((base + suffix, len(base)), (b'[{},{}]', 3),
+                         (base + b' ]junk', 0), (b'not-json', 0)):
+            roots = [_Owner(-1, bytearray(raw)), _Owner(-2, bytearray()),
+                     _Owner(-3, bytearray())]
+            actual = machine.invoke(checked.as_dict()['functions'][0],
+                                    [_View(roots[0], False), _View(roots[1], True),
+                                     _View(roots[2], True)])[0]
+            self.assertEqual(actual, end)
+
     def test_independent_VM_stale_overlap_and_exact_types(self):
         program = scalar_program()
         request = add_two_patch(program)

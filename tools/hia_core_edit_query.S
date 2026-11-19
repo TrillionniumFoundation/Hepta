@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
+.type _start,@function
 .equ RAW_N,16777219
 .equ RAW_EXTENT,16781312
 .equ SOURCE_N,25169920
@@ -23,12 +24,15 @@
 .equ COMPACT_MODE,S+56
 .equ ORIGIN_DIGEST,S+64
 .equ AGENT_DIAGNOSTICS,S+104
+.equ NOMINAL_ORIGIN,S+112
 .equ ORIGIN_TAG,CTRL+1536
 .equ ORIGIN_BYTES,CTRL+1544
 .equ ORIGIN_MAGIC,3544423407359707464
 .equ DRIVER_TEXT,CTRL+2048
 .equ DRIVER_TEXT_LIMIT,512
 _start:
+ # The linked entry is called with the original kernel stack underneath.
+ add rsp,8
  mov r15,rsp
  cmp QWORD PTR [r15],3
  ja usage
@@ -130,14 +134,14 @@ input_complete:
  syscall
  test rax,rax
  jnz io_failure
+extract_base:
  mov rdi,r12
  mov rsi,[rbp+S]
  lea rdx,[r12+TEMP_AT]
  mov ecx,TEMP_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-extract_hole: .long 0
+ call edit_base_extract_start
  call scalar_status
  cmp rax,32
  jbe invalid
@@ -167,9 +171,15 @@ extract_hole: .long 0
  mov ecx,CORE_N
  lea r8,[r12+WORK_AT]
  mov r9d,33554432
- .byte 0xe8
-core_hole: .long 0
+ call edit_base_admission_start
  mov [rbp+S+24],rax
+ cmp eax,0xfffffffb
+ jne base_checked
+ cmp QWORD PTR [rbp+COMPACT_MODE],0
+ jne base_checked
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je lower_nominal
+base_checked:
  lea rdi,[r12+CORE_AT]
  mov esi,CORE_N
  mov eax,11
@@ -197,8 +207,7 @@ core_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-decode_hole: .long 0
+ call edit_query_start
  call scalar_status
  test rax,rax
  jz invalid
@@ -210,8 +219,7 @@ decode_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-facts_hole: .long 0
+ call edit_query_start
  mov r10d,0xffffffff
  cmp rax,r10
  jne facts_status
@@ -243,8 +251,7 @@ facts_status:
  mov ecx,8388608
  lea r8,[r12+TEMP_AT]
  mov r9d,TEMP_N
- .byte 0xe8
-slice_hole: .long 0
+ call edit_slice_start
  mov [r13+CTRL+256],rax
  mov rdi,r13
  mov esi,8388608
@@ -256,7 +263,10 @@ slice_hole: .long 0
  movabs rax,3544422316236687688
  mov [r13+CTRL],rax
  cmp QWORD PTR [rbp+COMPACT_MODE],2
- jne render_query
+ je bind_query_origin
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je render_query
+bind_query_origin:
  movabs rax,ORIGIN_MAGIC
  mov [r13+ORIGIN_TAG],rax
  lea rdi,[r13+ORIGIN_BYTES]
@@ -270,8 +280,7 @@ render_query:
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-query_hole: .long 0
+ call edit_query_start
  call query_status
  test rax,rax
  jz invalid
@@ -326,8 +335,7 @@ pretty_loop:
  mov ecx,128
  mov r8,rbp
  mov r9d,4096
- .byte 0xe8
-pretty_hole: .long 0
+ call edit_query_start
  test rax,rax
  jnz HIA_status
  mov rax,[rbp+80]
@@ -414,6 +422,30 @@ query_status:
  mov r10d,0xfffffffc
  cmp rax,r10
  je invalid
+ jmp scalar_status
+
+# Rewrite only this private envelope mapping, then repeat strict extraction
+# and whole-Core admission using the independent original stages.
+lower_nominal:
+ mov rdi,r12
+ mov rsi,[rbp+S]
+ lea rdx,[r12+RAW_EXTENT]
+ mov rcx,[rbp+S+8]
+ lea r8,[rbp+ORIGIN_DIGEST]
+ call nominal_edit_envelope
+ test rax,rax
+ jz envelope_refused
+ mov [rbp+S],rax
+ mov QWORD PTR [rbp+NOMINAL_ORIGIN],1
+ lea rdi,[r12+WORK_AT]
+ mov ecx,WORK_N/8
+ xor eax,eax
+ rep stosq
+ jmp extract_base
+envelope_refused:
+ mov rdi,rdx
+ jmp exit_process
+
 scalar_status:
  mov r10,rax
  shr r10,32

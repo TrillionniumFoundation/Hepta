@@ -32,6 +32,7 @@ ARGUMENT_FORMATTER = BOOTSTRAP + 'cli_format.hepta'
 ARGUMENT_PAYLOAD = CLI + 'argument_payload.hepta'
 ARGUMENT_ARCHIVE = '<public-argument-images>'
 EXEC_LAUNCHER = 'tools/hia_core_edit_packed_exec.S'
+EDIT_ENVELOPE = 'tools/hia_core_edit_nominal_envelope.S'
 EXEC_ARCHIVE_MAGIC = b'HIAECP01'
 EXEC_CHUNK = 1 << 19
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
@@ -57,6 +58,26 @@ OBJECT_BUILD_IMAGES = {
     CLI + 'build_codegen.hepta': 'build_codegen',
     CLI + 'build_backend.hepta': 'build_backend',
 }
+EDIT_QUERY_IMAGES = {
+    BOOTSTRAP + 'core_patch.hepta': 'edit_base_extract',
+    BOOTSTRAP + 'core_admission.hepta': 'edit_base_admission',
+    EDIT + 'nominal_base_span.hepta': 'edit_base_span',
+    EDIT + 'query.hepta': 'edit_query',
+    BOOTSTRAP + 'agent_slice.hepta': 'edit_slice',
+}
+PUBLISHED_EDIT_QUERY_IMAGES = {
+    EDIT + 'admission_word_io.hepta': 'edit_base_admission',
+    EDIT + 'patch_word_io.hepta': 'edit_base_extract',
+    EDIT + 'nominal_base_span.hepta': 'edit_base_span',
+    EDIT + 'query.hepta': 'edit_query',
+    EDIT + 'publication_json_view.hepta': 'edit_publication',
+}
+NOMINAL_CLI_IMAGES = {
+    'build_object': OBJECT_BUILD_IMAGES,
+    'query': EDIT_QUERY_IMAGES,
+    'publish_query': PUBLISHED_EDIT_QUERY_IMAGES,
+}
+EDIT_ENVELOPE_ROLES = ('query', 'publish_query')
 
 # Each entry lists the flat payloads in placement order, then the adapter
 # relocation sites belonging to each. Several stages use the same image entry.
@@ -148,12 +169,7 @@ PROGRAMS = {
         (EDIT + 'publication_single_edit.hepta', ('owner_address',)),
         (EDIT + 'publication_edit_policy.hepta', ('publication_address',)),
     )),
-    'publish_query': ('hia-publish-query', (
-        (EDIT + 'admission_word_io.hepta', ('core_address',)),
-        (EDIT + 'patch_word_io.hepta', ('front_address',)),
-        (EDIT + 'query.hepta', ('owner_address',)),
-        (EDIT + 'publication_json_view.hepta', ('publication_address',)),
-    )),
+    'publish_query': ('hia-publish-query', tuple((path, ()) for path in PUBLISHED_EDIT_QUERY_IMAGES)),
     'publish_batch_query': ('hia-publish-batch-query', (
         (EDIT + 'admission_word_io.hepta', ('core_address',)),
         (EDIT + 'patch_word_io.hepta', ('front_address',)),
@@ -172,12 +188,7 @@ PROGRAMS = {
         (EDIT + 'impact.hepta', ('compose', 'impact')),
         (EDIT + 'impact_json_io.hepta', ('canonical', 'pretty')),
     )),
-    'query': ('hia-prepare-edit-query', (
-        (BOOTSTRAP + 'core_patch.hepta', ('extract',)),
-        (BOOTSTRAP + 'core_admission.hepta', ('core',)),
-        (EDIT + 'query.hepta', ('decode', 'facts', 'query', 'pretty')),
-        (BOOTSTRAP + 'agent_slice.hepta', ('slice',)),
-    )),
+    'query': ('hia-prepare-edit-query', tuple((path, ()) for path in EDIT_QUERY_IMAGES)),
     'batch_query': ('hia-prepare-edit-batch', (
         (EDIT + 'patch_word_io.hepta', ('extract',)),
         (EDIT + 'admission_word_io.hepta', ('core',)),
@@ -243,24 +254,26 @@ def pack(packer, stub, holes, images):
     return binary, inspect_executable(binary)
 
 
-def link_object_builder(folder, adapter, sources, images):
+def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=False):
     for key in ('owner', 'render', 'nominal-json'):
         (folder / (key + '.image.bin')).write_bytes(images[NOMINAL_BUILD_SOURCES[key]])
     objects = [assemble(folder, adapter, sources[adapter]), assemble(
         folder, NOMINAL_ADAPTER, b'.set HIA_NOMINAL_BUILD,1\n' + sources[NOMINAL_ADAPTER])]
+    if edit_envelope:
+        objects.append(assemble(folder, EDIT_ENVELOPE, sources[EDIT_ENVELOPE]))
     payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
                 for key, label in NOMINAL_BUILD_IMAGES.items()}
-    payloads.update({label: images[path] for path, label in OBJECT_BUILD_IMAGES.items()})
+    payloads.update({label: images[path] for path, label in roles.items()})
     objects.extend(embed(folder, label, label, raw) for label, raw in payloads.items())
-    compiler = images[CLI + 'build_codegen.hepta']
-    binary, receipt = link(folder, images[NOMINAL_BUILD_SOURCES['linker']], compiler, objects,
+    reference = next(iter(roles))
+    binary, receipt = link(folder, images[NOMINAL_BUILD_SOURCES['linker']], images[reference], objects,
                            wire_magic=b'HIALNK01', executable_limit=ORDINARY_CLI_IMAGE_CAPACITY)
     for raw in (*payloads.values(), *(images[NOMINAL_BUILD_SOURCES[key]]
                                       for key in ('owner', 'render', 'nominal-json'))):
         verify_executable(binary, raw)
     writable_offset = struct.unpack_from('<Q', binary, 128)[0]
     if any(memoryview(binary)[writable_offset:]):
-        raise ValueError('native object builder must have an initially zero writable segment')
+        raise ValueError('linked nominal CLI must have an initially zero writable segment')
     return binary, {'link_receipt': receipt, 'adapter_object_sha256': digest(objects[0])}
 
 
@@ -295,7 +308,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
     source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
-                    NOMINAL_ADAPTER, EXEC_LAUNCHER, *NOMINAL_BUILD_SOURCES.values(),
+                    NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
@@ -325,8 +338,10 @@ def build(output, compiler, cold_report, *, release_only=False):
         adapter = adapters[kind]
         folder = output / kind
         folder.mkdir(mode=0o700)
-        if kind == 'build_object':
-            executable, details = link_object_builder(folder, adapter, sources, images)
+        if kind in NOMINAL_CLI_IMAGES:
+            executable, details = link_nominal_cli(
+                folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind],
+                edit_envelope=kind in EDIT_ENVELOPE_ROLES)
             binary, packed = pack_executable(folder, packer, sources[EXEC_LAUNCHER],
                                              images[ARGUMENT_PAYLOAD], executable)
             products[name] = (binary, {**details, **packed})

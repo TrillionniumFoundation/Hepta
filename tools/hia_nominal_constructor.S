@@ -87,11 +87,11 @@
 .endm
 
 .ifdef HIA_NOMINAL_BUILD
-.global nominal_lower_for_build
-.type nominal_lower_for_build,@function
-/* Only the object builder calls this with its already captured raw bytes.
-   Return the compact Core span and the original canonical SHA-256 words. */
-nominal_lower_for_build:
+.global nominal_lower_for_core
+.type nominal_lower_for_core,@function
+/* The embedded callers pass their already captured bytes. Return the
+   compact Core span and the original canonical SHA-256 words. */
+nominal_lower_for_core:
  push rbp
  push rbx
  push r12
@@ -1351,7 +1351,7 @@ verify_assembled_core:
  mov [rip+compact_core_extent],rax
 
 .ifdef HIA_NOMINAL_BUILD
- /* The object builder independently checks these Core bytes on return. */
+ /* The caller independently checks these Core bytes on return. */
  region PRESENTATION_BYTES, presentation_output
  mov rdi,[rip+public_core_arena]
  mov esi,PUBLIC_CORE_ARENA

@@ -18,7 +18,9 @@ from hepta.hia_edit_batch import prepare_batch
 from hepta.hia_edit_query import prepare_edit
 from hepta.hia_program_native import build_program_machine
 from hepta.hia_program_selfhost import build_program_selfhost
-from tests.test_hia_core_edit_runtime import packed_implementation_sha256, wire
+from tests.test_hia_core_edit_runtime import (
+    nominal_query_fixtures, packed_implementation_sha256, wire,
+)
 from tests.test_hia_edit_batch import loans, selected, swaps
 from tests.test_hia_program_tools import add_two_patch, scalar_program
 
@@ -234,6 +236,37 @@ def check_batch_apply_refusals(release, directory):
     return len(cases) * 2
 
 
+def check_nominal_queries(release, directory):
+    passed = 0
+    for index, (document, site, query) in enumerate(nominal_query_fixtures()):
+        source = directory / f'{index}.hepta'
+        source.write_bytes(wire(document, pretty=True))
+        arguments = ['edit-query', str(source), '--function', site['function'],
+                     '--block', site['block'], '--value', site['output'],
+                     '--fields', ','.join(site['fields'])]
+        executable = release / 'hia'
+        result = subprocess.run([executable, *arguments], capture_output=True,
+                                env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (
+            0, wire(query, pretty=True), b''), result
+
+        reference = directory / f'reference-{index}.json'
+        expected = json.loads(reference_cli([*arguments, '-o', str(reference)]))
+        target = directory / f'native-{index}.json'
+        expected['output'] = str(target)
+        command = [executable, *arguments, '-o', target]
+        result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20)
+        assert (result.returncode, result.stdout, result.stderr) == (
+            0, wire(expected, pretty=True), b''), result
+        assert target.read_bytes() == reference.read_bytes()
+        pinned = target.stat()
+        replay = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20)
+        assert replay.returncode != 0 and not replay.stdout and not replay.stderr, replay
+        assert target.stat().st_ino == pinned.st_ino and target.read_bytes() == reference.read_bytes()
+        passed += 3
+    return passed
+
+
 def check_release(release, directory):
     program = scalar_program()
     program['schema'] = 'hepta.hia.program.v8'
@@ -366,7 +399,10 @@ def check_release(release, directory):
     destinations.mkdir()
     batch = directory / 'batch-refusals'
     batch.mkdir()
+    nominal = directory / 'nominal-queries'
+    nominal.mkdir()
     return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
+            + check_nominal_queries(release, nominal)
             + check_import_existing_destinations(release, assembly_source, destinations)
             + check_selected_selfhost(release, selfhost) + check_batch_apply_refusals(release, batch))
 

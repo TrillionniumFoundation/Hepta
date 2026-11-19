@@ -508,3 +508,10 @@ For the packaged `hia build` object path, the bounded launcher expands the nativ
 builder into a private executable file descriptor and seals it before execution.
 The release pins the launcher bytes; the build receipt's implementation digest
 identifies the exact expanded ELF that produced the object.
+
+The installed `hia edit-query` paths (stdout and atomic file publication)
+retain the original canonical input digest while selecting instructions from
+independently reverified lowered Core. HIA finds the end of the base in the
+strictly decoded command envelope; the Linux bridge preserves the selector
+bytes. This does not yet extend nominal input support to edit application,
+batch edits, patch or impact.
