@@ -79,7 +79,7 @@ def _native_unsat(cnf, z3, mismatch, deadline):
     if remaining <= 0:
         return None
     variables, clauses = formula
-    result, _, steps = cnf.solve(variables, clauses, steps=min(200_000, remaining * 100))
+    result, _, steps = cnf.solve_sparse(variables, clauses, steps=min(200_000, remaining * 100))
     if result != UNSAT:
         return None  # The legacy counterexample/model interface remains intact.
     return {"method": "native_hia_cnf", "image_sha256": cnf.image_sha256,
