@@ -132,7 +132,9 @@ class AgentInspectionNativeTests(unittest.TestCase):
         primitive = {**add_program(), 'schema': 'hepta.hia.program.v6'}
         sources = ((primitive, 'core-json'), (render_assembly(primitive), 'hia-asm.v1'),
                    (nominal, 'core-json'), ('{"a":1,"a":2}', 'core-json'),
-                   ('invalid assembly', 'hia-asm.v1'))
+                   ('invalid assembly', 'hia-asm.v1'), ('', 'hia-asm.v1'),
+                   ({**primitive, 'schema': 'not-admitted'}, 'core-json'),
+                   ({key: value for key, value in primitive.items() if key != 'functions'}, 'core-json'))
         with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
             state = Path(temporary) / 'state'
             ordinary = HIAAgentService(state)
@@ -191,7 +193,12 @@ class AgentInspectionNativeTests(unittest.TestCase):
                         self.assertEqual(result['result'], expected['result'])
                     else:
                         self.assertEqual(expected['status'], 'rejected', expected)
-                        result = selected.call('hia_candidate', args)
+                        if index == 3:
+                            result = selected.call('hia_candidate', args)
+                        else:
+                            with patch.object(HIAAgentService, '_reference_import',
+                                              side_effect=AssertionError('hosted refusal entered')):
+                                result = selected.call('hia_candidate', args)
                         self.assertEqual(result['error'], expected['error'])
             finally:
                 selected.close()

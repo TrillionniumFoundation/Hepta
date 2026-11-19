@@ -15,6 +15,7 @@ import subprocess
 from .hia_core_patch_native import (ERROR_MESSAGES, MAX_COMPONENT, MAX_WIRE,
     NativeCorePatch, SCHEMA, SOURCE, envelope, scratch_sizes)
 from .hia_json_preflight_native import _installed_json_image
+from .hia_agent_store import decode_data
 
 
 RESULT_MAGIC = int.from_bytes(b'HIAPAR01', 'little')
@@ -111,7 +112,7 @@ class NativeAgentCandidateImport:
         self._diagnostics = diagnostics
 
     @staticmethod
-    def _run(code, command, data):
+    def _invoke(code, command, data):
         from .hia_agent_store_native import _sealed_image
 
         with _sealed_image(code) as fd:
@@ -121,17 +122,75 @@ class NativeAgentCandidateImport:
                                         pass_fds=(fd,), timeout=20, check=False)
             except subprocess.TimeoutExpired as exc:
                 raise OSError('native Agent candidate admission did not finish') from exc
-        if result.returncode in (2, 3) and not result.stdout and not result.stderr:
-            return None
-        if result.returncode != 0 or result.stderr or not result.stdout:
+        if result.stderr:
             raise ValueError('invalid native Agent candidate admission reply')
-        return result.stdout
+        return result.returncode, result.stdout
 
-    def _admit_json(self, data):
+    def _run(self, code, command, data):
+        status, output = self._invoke(code, command, data)
+        if status in (2, 3) and not output:
+            return None
+        if status != 0 or not output:
+            raise ValueError('invalid native Agent candidate admission reply')
+        return output
+
+    @staticmethod
+    def _core_refusal(code, message):
+        from .hia_program import HIAProgramRejected
+
+        if (type(code) is not str or not code.startswith('E_HIA_') or type(message) is not str
+                or not message.startswith(code + ': ') or len(message) > 4096):
+            raise ValueError('invalid native Agent candidate refusal')
+        raise HIAProgramRejected(message[len(code) + 2:], code)
+
+    def _explain_json_refusal(self, data):
+        status, output = self._invoke(self._nominal, ('hia-verify-core-json',), data)
+        if status != 2 or not output:
+            return
+        reply = decode_data(output)
+        rows = reply.get('diagnostics') if type(reply) is dict else None
+        if (type(rows) is not list or len(rows) != 1 or type(rows[0]) is not dict
+                or rows[0].get('code') != 'E_DRIVER' or rows[0].get('phase') != 'driver'):
+            raise ValueError('invalid native Agent candidate diagnostic envelope')
+        message = rows[0].get('message')
+        if type(message) is not str:
+            raise ValueError('invalid native Agent candidate diagnostic message')
+        # The public verifier's combined ingress error does not preserve the
+        # prior candidate decoder's distinct syntax, Unicode and budget
+        # exceptions. Do not claim equivalence for this unsupported refusal.
+        if message == 'E_HIA_FORMAT: invalid/deep UTF-8 JSON':
+            return
+        self._core_refusal(message.partition(': ')[0], message)
+
+    def _explain_assembly_refusal(self, data):
+        from .hia_agent_assembly import HIAAssemblyRejected
+
+        status, output = self._invoke(self._assembly, ('hia-check-assembly-accepted',), data)
+        if status != 1 or not output:
+            return
+        reply = decode_data(output)
+        diagnostic = reply.get('diagnostic') if type(reply) is dict else None
+        if (type(diagnostic) is not dict or reply.get('schema') != 'hepta.hia.assembly-diagnostic.v1'
+                or reply.get('accepted') is not False):
+            raise ValueError('invalid native Agent assembly diagnostic envelope')
+        code, message = diagnostic.get('code'), diagnostic.get('message')
+        phase, line = diagnostic.get('phase'), diagnostic.get('line')
+        if phase == 'core_verification' and line is None:
+            self._core_refusal(code, message)
+        if (phase == 'syntax' and code in ('E_HIA_ASSEMBLY', 'E_HIA_ASSEMBLY_LIMIT')
+                and (line is None or type(line) is int and line > 0)):
+            prefix = code + ': ' + (f'line {line}: ' if line is not None else '')
+            if type(message) is str and message.startswith(prefix) and len(message) <= 4096:
+                raise HIAAssemblyRejected(message[len(prefix):], code, line=line)
+        raise ValueError('invalid native Agent assembly refusal')
+
+    def _admit_json(self, data, *, explain=False):
         from .hia_program import MAX_BYTES
 
         packet = self._run(self._nominal, ('hia-admit-agent-json',), data)
         if packet is None:
+            if explain:
+                self._explain_json_refusal(data)
             return None
         if len(packet) < ADMISSION_FRAME.size:
             raise ValueError('missing native Agent candidate admission header')
@@ -182,12 +241,13 @@ class NativeAgentCandidateImport:
         if source_format == 'hia-asm.v1':
             core = self._run(self._assembly, ('hia-import-assembly', '--agent-compact'), data)
             if core is None:
+                self._explain_assembly_refusal(data)
                 return None
             if not 0 < len(core) <= MAX_BYTES:
                 raise ValueError('invalid native Agent assembly result extent')
             original, profile = core, 0
         else:
-            admitted = self._admit_json(data)
+            admitted = self._admit_json(data, explain=True)
             if admitted is None:
                 return None
             core, original, profile = admitted
