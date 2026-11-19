@@ -19,7 +19,7 @@ import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
 from .hia_cnf_native import SAT, UNSAT, bitblast_clauses, core_circuit, selected_cnf
-from .hia_opcodes import TRAP_CODES
+from .hia_opcodes import RESOURCES, TRAP_CODES
 from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_symbolic
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
@@ -138,8 +138,7 @@ def _native_circuit_witness(before, after, function, model):
 
 def _native_block_circuits(before, after, limit):
     sources = [list(_segments(block)) for block in (before, after)]
-    if len(sources[0]) > limit or any(barrier is not None and barrier["op"] != "call"
-                                     for _, barrier in sources[0]):
+    if len(sources[0]) > limit:
         return None
     exits = _term_names(before["term"])
     remaining = set(exits)
@@ -154,8 +153,14 @@ def _native_block_circuits(before, after, limit):
     params = before["params"]
     results = []
     for (left, barrier), (right, _), live in zip(*sources, reversed(live_after), strict=True):
+        # Core admission and the identical ordered skeleton pair opaque
+        # resources by binding, including aliasing and ownership transitions.
+        # Only the scalar operands and values need a bit-vector obligation.
+        resources = {item["name"] for item in params if item["type"] in RESOURCES}
+        scalar_params = [item for item in params if item["name"] not in resources]
         if barrier is None:
-            term, observed = before["term"], exits
+            term = before["term"]
+            observed = [name for name in exits if name not in resources]
         else:
             known = []
             for operations in (left, right):
@@ -166,13 +171,13 @@ def _native_block_circuits(before, after, limit):
             carried = [item for name, item in known[0].items() if name in live and name in known[1]]
             if any(known[1][item["name"]] != item for item in carried):
                 return None
-            # A matching call receives equal arguments. Any scalar value
-            # carried across it is also proved equal before being shared
-            # as an arbitrary input to the continuation.
-            observed = list(dict.fromkeys((*barrier["args"], *(item["name"] for item in carried))))
+            # Before an identical effect, prove equal operands and any
+            # scalar live values that the continuation will pair again.
+            observed = list(dict.fromkeys(name for name in (
+                *barrier["args"], *(item["name"] for item in carried)) if name not in resources))
             term = {"op": "ret", "values": observed}
-        circuit = core_circuit({"params": params, "ops": left, "term": term},
-                               {"params": params, "ops": right, "term": term}, observed)
+        circuit = core_circuit({"params": scalar_params, "ops": left, "term": term},
+                               {"params": scalar_params, "ops": right, "term": term}, observed)
         if circuit is None:
             return None
         results.append((observed, circuit))
@@ -191,7 +196,8 @@ def _native_core_obligations(cnf, before, after, left, right, deadline, limit):
         if segments is None:
             return None
         can_replay = (len(segments) == 1 and len(function["blocks"]) == 1
-                      and lb["term"]["op"] in {"ret", "trap"})
+                      and lb["term"]["op"] in {"ret", "trap"}
+                      and all(item["type"] not in RESOURCES for item in function["params"]))
         prepared.extend((fi, bi, function, lb["id"], index, observed, circuit, can_replay)
                         for index, (observed, circuit) in enumerate(segments))
     obligations = []

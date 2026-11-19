@@ -11,6 +11,7 @@ from hashlib import sha256
 import platform
 
 from .hia_agent_store import digest, reject
+from .hia_opcodes import TRAP_CODES
 
 
 PROOF_SCHEMA = "hepta.hia.agent.proof-result.v1"
@@ -301,7 +302,8 @@ def _native_circuit_scope(status, evidence):
         def valid_observation(side):
             values, trap = replay.get(f"{side}_values"), replay.get(f"{side}_trap")
             return (f"{side}_values" in replay
-                    and ((type(values) is list and trap is None) or (values is None and trap == "overflow")))
+                    and ((type(values) is list and trap is None)
+                         or (values is None and type(trap) is str and trap in TRAP_CODES)))
 
         _require(type(last.get("counterexample")) is dict and type(replay) is dict
                  and replay.get("function") == last.get("function")

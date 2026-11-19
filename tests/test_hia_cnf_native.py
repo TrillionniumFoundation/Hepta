@@ -263,7 +263,7 @@ class CnfInstalledTests(unittest.TestCase):
         from hepta.hia_optimization import NATIVE_CORE_SCHEMA, verify_optimization
         from hepta.hia_proof_contract import proof_result
         from tests.test_hia_optimization import arithmetic
-        from tests.test_hia_program import b, branch, c, f, i, jump, m, ret
+        from tests.test_hia_program import b, branch, c, f, i, jump, m, resource_program, ret
         from tools.hia_agent_native_qualification import Session, ToolClient, add_program
 
         # Both U64 operands range over their complete declared domains.
@@ -452,6 +452,33 @@ class CnfInstalledTests(unittest.TestCase):
                     changed_carry = deepcopy(simplified_nested)
                     changed_carry['functions'][1]['blocks'][0]['ops'][1]['args'][0] = 'y'
                     self.assertEqual(verify_optimization(nested, changed_carry)['status'], 'unknown')
+                    owned = {**resource_program(), 'schema': NATIVE_CORE_SCHEMA}
+                    folded = deepcopy(owned)
+                    operations = owned['functions'][0]['blocks'][0]['ops']
+                    operations[2:3] = [
+                        c('one', 'usize', 1),
+                        i('int.sub.wrap', ['one', 'one'], [('zero', 'usize')]),
+                    ]
+                    owned_workload = {**workload, 'cases': [
+                        {'function': 'owned', 'arguments': [4, 21],
+                         'expected': {'status': 'returned', 'values': [21]}}]}
+                    session.freeze(owned_workload)
+                    original = session.import_program(owned)
+                    session.freeze(owned_workload, baseline=original)
+                    proposed = session.import_program(folded)
+                    resource_proof = session.verify(proposed, base=original,
+                                                    claims=['behavior_equivalence'])['checks'][0]
+                    self.assertEqual(resource_proof['status'], 'proved', resource_proof)
+                    self.assertEqual(resource_proof['checker']['solver'], report['solver'])
+                    resource_evidence = session.read_json(resource_proof['evidence_artifact'])
+                    self.assertTrue(resource_evidence['resource_delta'][
+                        'allocation_failure_sequence_preserved_under_core_model'])
+                    self.assertEqual(len(resource_evidence['obligations']), 10)
+                    self.assertIn('zero', resource_evidence['obligations'][2]['observed'])
+                    changed_index = deepcopy(folded)
+                    changed_index['functions'][0]['blocks'][0]['ops'][2]['attrs']['value'] = 1
+                    denied_proof = verify_optimization(owned, changed_index)
+                    self.assertEqual(denied_proof['status'], 'unknown', denied_proof)
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)
@@ -466,8 +493,13 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(frame[24:32], bytes(8))
 
     def test_checked_negation_precedes_a_matching_explicit_trap(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        from hepta.hia_agent_service import HIAAgentService
         from hepta.hia_optimization import NATIVE_CORE_SCHEMA, verify_optimization
         from tests.test_hia_program import b, c, f, i, m
+        from tools.hia_agent_native_qualification import Session, ToolClient
 
         def program(kind, code, operations):
             parameters = [('x', kind)]
@@ -508,3 +540,26 @@ class CnfInstalledTests(unittest.TestCase):
                         self.assertEqual(value, -(1 << 63))
                     else:
                         self.assertGreater(value, 0)
+
+            with TemporaryDirectory(prefix='hia-terminal-trap-agent-') as temporary:
+                service = HIAAgentService(Path(temporary) / 'state')
+                try:
+                    session = Session(ToolClient(service.call), prefix='hia-trap-witness')
+                    workload = {'schema': 'hepta.hia.agent.workload.v1', 'cases': [
+                        {'function': 'stop', 'arguments': [0],
+                         'expected': {'status': 'trapped'}}],
+                        'warmup_iterations': 0, 'repetitions': 1}
+                    session.freeze(workload)
+                    original = session.import_program(program('i64', 'user', [
+                        i('int.neg.checked', ['x'], [('discarded', 'i64')]),
+                    ]))
+                    session.freeze(workload, baseline=original)
+                    proposed = session.import_program(program('i64', 'user', []))
+                    check = session.verify(proposed, base=original,
+                                           claims=['behavior_equivalence'])['checks'][0]
+                    self.assertEqual(check['status'], 'refuted', check)
+                    evidence = session.read_json(check['evidence_artifact'])
+                    witness = evidence['obligations'][-1]['counterexample_replay']
+                    self.assertEqual((witness['base_trap'], witness['candidate_trap']), ('overflow', 'user'))
+                finally:
+                    service.close()
