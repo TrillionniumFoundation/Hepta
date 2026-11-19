@@ -1046,7 +1046,7 @@ class HIAAgentService:
                 "verification_receipt": receipt, "checks": checks, "adopted": False}
 
     def _verification(self, ref, context, candidate=None):
-        record, _ = self.store.get_json(ref, kind="verification-receipt")
+        record, _, raw = self.store.get_json_with_wire(ref, kind="verification-receipt")
         if (record["context"] != context or record["installation"] != self.identities
                 or candidate is not None and record["candidate"] != candidate):
             reject("E_HIA_RECEIPT_BINDING", "verification receipt belongs to a different context, candidate or implementation", "verification")
@@ -1060,13 +1060,7 @@ class HIAAgentService:
         self._subject(record, program)
         context_record = self._context(context)
         subject = proof_subject(record, context_record["target_profile"])
-        checks_schema = self.tools["hia_verify"]["outputSchema"]["properties"]["result"]["properties"]["checks"]
-        try:
-            validate(record["checks"], checks_schema, "verification.checks")
-        except AgentRejected as exc:
-            reject("E_HIA_PROOF_SCOPE", "missing or invalid proof scope; rerun verification with a fresh request key: " + str(exc), "verification")
-        if len({check["claim"] for check in record["checks"]}) != len(record["checks"]):
-            reject("E_HIA_PROOF_SCOPE", "verification repeats a proof property", "verification")
+        self._validate_retained_checks(record["checks"], raw)
         for check in record["checks"]:
             evidence, _ = self.store.get_json(check["evidence_artifact"], kind="verification-evidence")
             assumptions, _ = self.store.get_json(check["assumptions_artifact"], kind="verification-assumptions")
@@ -1080,6 +1074,26 @@ class HIAAgentService:
                     or assumptions != assumptions_document(expected)):
                 reject("E_HIA_PROOF_SCOPE", "proof scope or retained checker conclusion differs; rerun verification with a fresh request key", "verification")
         return record
+
+    def _validate_retained_checks(self, checks, raw):
+        from .hia_agent_verify_response_schema_native import (
+            RETAINED_RECEIPT_ROLE, SELECTOR, installed_agent_verify_response_schema,
+        )
+
+        selected = os.environ.get(SELECTOR)
+        if selected and installed_agent_verify_response_schema(selected).accepts_wire(
+                raw, RETAINED_RECEIPT_ROLE, self.catalog_sha256):
+            return
+        # On refusal, retain the public diagnostics for malformed and repeated checks.
+        checks_schema = self.tools["hia_verify"]["outputSchema"]["properties"]["result"]["properties"]["checks"]
+        try:
+            validate(checks, checks_schema, "verification.checks")
+        except AgentRejected as exc:
+            reject("E_HIA_PROOF_SCOPE", "missing or invalid proof scope; rerun verification with a fresh request key: " + str(exc), "verification")
+        if len({check["claim"] for check in checks}) != len(checks):
+            reject("E_HIA_PROOF_SCOPE", "verification repeats a proof property", "verification")
+        if selected:
+            raise ValueError("native proof receipt disagrees with the contract")
 
     def _replay_verification(self, response, arguments):
         """Observe an original result only if its complete scope remains valid."""

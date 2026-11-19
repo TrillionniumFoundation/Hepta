@@ -597,6 +597,49 @@ class AgentResponseSchemaNativeTests(unittest.TestCase):
                     validate(value, schema, 'result')
                 self.assertFalse(checker.accepts(value, role, pin))
 
+    def test_retained_receipt_validation_uses_the_native_role_and_keeps_diagnostics(self):
+        from tools.hia_agent_native_qualification import Session, ToolClient, add_program, exhaustive_u8_workload
+
+        paths = {proofs.SELECTOR: str(self.proof_manifest)}
+        with tempfile.TemporaryDirectory(dir=self.test_root) as root:
+            service = HIAAgentService(Path(root) / 'state')
+            try:
+                session = Session(ToolClient(service.call, validate=False))
+                session.freeze(exhaustive_u8_workload())
+                candidate = session.import_program(add_program())
+                result = session.verify(candidate)
+                receipt = result['verification_receipt']
+                record, _ = service.store.get_json(receipt, kind='verification-receipt')
+
+                def forbid_host_checks(value, schema, label='arguments'):
+                    if label == 'verification.checks':
+                        raise AssertionError('hosted retained receipt checker entered')
+                    return validate(value, schema, label)
+
+                with (patch.dict('os.environ', paths),
+                      patch('hepta.hia_agent_service.validate', forbid_host_checks)):
+                    self.assertEqual(service._verification(receipt, session.context, candidate), record)
+                    emitted = session.emit(candidate, receipts=[receipt])
+                    self.assertEqual(emitted['candidate'], candidate)
+
+                check, = record['checks']
+                cases = {
+                    'repeated proof property': [check, check],
+                    'invalid scope': [dict(check, subject=False)],
+                    'empty checks': [],
+                }
+                for label, checks in cases.items():
+                    with self.subTest(kind=label):
+                        bad = service.store.json(dict(record, checks=checks), 'verification-receipt')
+                        with self.assertRaises(AgentRejected) as expected:
+                            service._verification(bad, session.context, candidate)
+                        with patch.dict('os.environ', paths), self.assertRaises(AgentRejected) as actual:
+                            service._verification(bad, session.context, candidate)
+                        self.assertEqual(str(actual.exception), str(expected.exception))
+            finally:
+                service.close()
+
+
     def test_selected_service_uses_native_schemas_for_completed_result(self):
         paths = {SELECTOR: str(self.manifest), responses.SELECTOR: str(self.response_manifest),
                  proofs.SELECTOR: str(self.proof_manifest)}

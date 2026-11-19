@@ -10,6 +10,7 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_contract import COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA, PLAN_SCHEMA, WORKLOAD_SCHEMA
 from hepta.hia_agent_payload_schema_native import COST_POLICY_ROLE, OBJECTIVE_ROLE, WORKLOAD_ROLE
 from hepta.hia_agent_plan_schema_native import PLAN_ROLE, NativeAgentPlanSchema
+from hepta.hia_agent_verify_response_schema_native import RETAINED_RECEIPT_ROLE
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
 from tools.generate_hia_worker_request import data_source, decimal_program
@@ -33,6 +34,41 @@ KEYWORDS = frozenset(('$schema', 'description', 'title', 'type', 'properties', '
                       'additionalProperties', 'minProperties', 'maxProperties', 'minLength', 'maxLength', 'minimum', 'maximum',
                       'minItems', 'maxItems', 'items', 'contains', 'uniqueItems', 'pattern',
                       'const', 'enum', 'oneOf', 'anyOf', 'allOf', 'if', 'then', 'else', 'not'))
+
+PROOF_RECEIPT = r'''
+def proof_member(w:mutbuf, record:u64, key:u64) -> u64:
+    if get(w, record) != 6:
+        return 0
+    item = get(w, record + 24)
+    while item != ARENA_END:
+        node = 64 + item * 56
+        if property_key(w, get(w, node + 40), get(w, node + 48)) == key:
+            return node
+        item = get(w, node + 16)
+    return 0
+
+def retained_proof(s:readbuf, w:mutbuf) -> u64:
+    checks = proof_member(w, 64, CHECKS_KEY)
+    if checks == 0:
+        return 1
+    if CHECKS_RULE(s, w, checks) == 0:
+        return 1
+    seen = 0
+    item = get(w, checks + 24)
+    while item != ARENA_END:
+        record = 64 + item * 56
+        claim = proof_member(w, record, CLAIM_KEY)
+        if claim == 0:
+            return 1
+        symbol = value_symbol(w, get(w, claim + 24), get(w, claim + 32))
+        bit = 1 << symbol
+        if symbol == 0 or (seen & bit) != 0:
+            return 1
+        seen = seen | bit
+        item = get(w, record + 16)
+    return 0
+'''
+
 
 ENTRY = r'''
 def agent_schema(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -530,6 +566,7 @@ def plan_dispatch(catalog):
 
 def source_program(raw, *, profile='input'):
     catalog = Catalog()
+    receipt = ''
     if profile == 'plan':
         dispatch = plan_dispatch(catalog)
     else:
@@ -544,10 +581,18 @@ def source_program(raw, *, profile='input'):
             for role, tool in enumerate(json.loads(raw)['tools'], 1):
                 if profile != 'input' and (tool['name'] == 'hia_verify') != (profile == 'verify'):
                     continue
-                roles.append((role, catalog.add(tool[field])))
+                output = tool[field]
+                roles.append((role, catalog.add(output)))
         lines = ['def dispatch_schema(s:readbuf, w:mutbuf, role:u64) -> u64:']
         for role, name in roles:
             lines += [f'    if role == {role}:', f'        return 1 - {name}(s, w, 64)']
+        if profile == 'verify':
+            checks = output['properties']['result']['properties']['checks']
+            rule = catalog.add(checks)
+            lines += [f'    if role == {RETAINED_RECEIPT_ROLE}:', '        return retained_proof(s, w)']
+            receipt = (PROOF_RECEIPT.replace('ARENA_END', str(END)).replace('CHECKS_RULE', rule)
+                       .replace('CHECKS_KEY', str(catalog.keys['checks']))
+                       .replace('CLAIM_KEY', str(catalog.keys['claim'])))
         dispatch = '\n'.join(lines + ['    return 4294967293'])
     uri = b'hia://artifacts/'
     helpers = HELPERS.replace('URI_HEAD', str(int.from_bytes(uri[:8], 'little')))
@@ -564,7 +609,7 @@ def source_program(raw, *, profile='input'):
         table('pinned_catalog', [(1, sha256(raw).hexdigest())]),
         table('property_key', [(code, key) for key, code in catalog.keys.items()]),
         table('value_symbol', [(code, value) for value, code in catalog.symbols.items()]),
-        helpers, extra, *rules, data_source(), decimal_program() if numeric else ''))
+        helpers, extra, receipt, *rules, data_source(), decimal_program() if numeric else ''))
     return (source.replace('SCHEMA_AUXILIARY_BYTES', str(scratch))
             .replace('SCHEMA_MINIMUM_WORKSPACE', str(scratch + 128)))
 
