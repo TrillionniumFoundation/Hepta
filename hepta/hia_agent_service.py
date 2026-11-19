@@ -1485,12 +1485,14 @@ class HIAAgentService:
         context = self._context(args["context"])
         baseline_bytes, baseline_meta, baseline_program = self._native(args["baseline_artifact"], args["context"])
         candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
-        built = self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
+        self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
         if baseline_meta["output_kind"] != "shared" or candidate_meta["output_kind"] != "shared":
             reject("E_HIA_EXECUTION_PROFILE", "evaluation requires retained direct shared images", "execution")
-        if baseline_meta["signatures"] != candidate_meta["signatures"]:
+        equal = selected_json_equality()
+        if not equal(baseline_meta["signatures"], candidate_meta["signatures"]):
             reject("E_HIA_ABI", "baseline and candidate frozen public ABI differ", "execution")
-        if context["baseline_core_sha256"] is not None and context["baseline_core_sha256"] != baseline_program.sha256:
+        if (context["baseline_core_sha256"] is not None
+                and not equal(context["baseline_core_sha256"], baseline_program.sha256)):
             reject("E_HIA_BASELINE", "evaluation baseline differs from the frozen Core snapshot", "execution")
         objective = self._required_claims(context, args["candidate_artifact"],
                                          args["verification_receipts"], baseline_program.sha256)
@@ -1630,19 +1632,31 @@ class HIAAgentService:
                       if run["normal"] and run["normal"]["report"] is not None}
             if scopes:
                 measurement_scope += "; " + "; ".join(sorted(scopes))
-        measurements = self.store.json({"schema": "hepta.hia.agent.measurements.v1", "context": args["context"],
-            "workload": context["workload"], "objective": context["objective"],
-            "baseline_artifact": args["baseline_artifact"], "candidate_artifact": args["candidate_artifact"],
-            "metric": objective["metric"], "baseline_value": str(before), "candidate_value": str(after),
-            "improvement_ratio": ratio, "reference_wall_ns": str(reference_ns),
-            "planned_cases": len(workload["cases"]), "observations": observations, "native_runs": runs,
-            "reference_runs": references,
-            "native_correctness_scope": "frozen workload return/trap behavior and all external snapshot bytes; VM first-trap/resource observations recorded separately",
-            "universal_equivalence_or_native_refinement_proved": False,
-            "measurement_scope": measurement_scope,
-            "outcome": outcome, "planned_workload_complete": complete}, "measurements")
+        if policy is not None:
+            measurement_record = policy.measurement_record(args, context, before=before, after=after, ratio=ratio,
+                scope=measurement_scope, metric=objective["metric"], native_runs=runs, observations=observations,
+                outcome=outcome, planned_cases=len(workload["cases"]), complete=complete,
+                reference_runs=references, reference_ns=reference_ns)
+            measurements = self.store.put(measurement_record, "measurements")
+        else:
+            measurements = self.store.json({"schema": "hepta.hia.agent.measurements.v1", "context": args["context"],
+                "workload": context["workload"], "objective": context["objective"],
+                "baseline_artifact": args["baseline_artifact"], "candidate_artifact": args["candidate_artifact"],
+                "metric": objective["metric"], "baseline_value": str(before), "candidate_value": str(after),
+                "improvement_ratio": ratio, "reference_wall_ns": str(reference_ns),
+                "planned_cases": len(workload["cases"]), "observations": observations, "native_runs": runs,
+                "reference_runs": references,
+                "native_correctness_scope": "frozen workload return/trap behavior and all external snapshot bytes; VM first-trap/resource observations recorded separately",
+                "universal_equivalence_or_native_refinement_proved": False,
+                "measurement_scope": measurement_scope,
+                "outcome": outcome, "planned_workload_complete": complete}, "measurements")
         costs = self._cost_ledger(context, time.monotonic_ns() - started, native_ns)
         ledger = self.store.json(costs, "cost-ledger")
+        if policy is not None:
+            evaluation_record = policy.evaluation_record(args, baseline_program.sha256, candidate_program.sha256,
+                self.identities, measurements, ledger, outcome, complete)
+            receipt = self.store.put(evaluation_record, "evaluation-receipt")
+            return policy.evaluation_result(args, receipt, measurements, ledger, outcome, complete)
         receipt = self.store.json({"schema": "hepta.hia.agent.evaluation.v1", "context": args["context"],
             "installation": self.identities, "baseline_artifact": args["baseline_artifact"],
             "candidate_artifact": args["candidate_artifact"], "baseline_core_sha256": baseline_program.sha256,

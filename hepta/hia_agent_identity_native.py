@@ -415,6 +415,30 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         fields = (artifact, current, previous, receipt, args['target_slot'])
         return decode_data(self._issued_record(34, fields))
 
+    def measurement_record(self, args, context, *, before, after, ratio, scope, metric,
+                           native_runs, observations, outcome, planned_cases, complete,
+                           reference_runs, reference_ns):
+        fields = (args['baseline_artifact'], str(before), args['candidate_artifact'], str(after),
+                  args['context'], ratio, scope, metric, native_runs, context['objective'],
+                  observations, outcome, planned_cases, complete, reference_runs, str(reference_ns),
+                  context['workload'])
+        # Admit the full forest in one bounded pass (including the record's
+        # three fixed scalar fields); per-fragment budgets do not compose.
+        packet = struct.pack('<2Q', MAGIC, 35) + wire((*fields, 0, 0, 0))
+        return self._variable_response(packet, min(MAX_INPUT_BYTES, len(packet) + 1024))
+
+    def evaluation_record(self, args, baseline_sha, candidate_sha, installation, measurements,
+                          ledger, outcome, complete):
+        fields = (args['baseline_artifact'], baseline_sha, args['build_receipt'],
+                  args['candidate_artifact'], candidate_sha, args['context'], ledger,
+                  installation, measurements, outcome, complete, args['verification_receipts'])
+        return self._issued_record(36, fields)
+
+    def evaluation_result(self, args, receipt, measurements, ledger, outcome, complete):
+        fields = (args['baseline_artifact'], args['candidate_artifact'], receipt, ledger,
+                  measurements, outcome, complete)
+        return decode_data(self._issued_record(37, fields))
+
     def _issued_record(self, mode, values):
         packet = bytearray(struct.pack('<2Q', MAGIC, mode))
         for value in values:

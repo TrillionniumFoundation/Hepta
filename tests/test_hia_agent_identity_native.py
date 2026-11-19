@@ -803,6 +803,34 @@ class AgentIdentityNativeTests(unittest.TestCase):
             finally:
                 reopened.close()
 
+    def test_measurement_packet_keeps_nested_json_and_document_limits(self):
+        from hepta.hia_agent_store import wire
+        from hepta.hia_program_tools import HIAEditRejected, MAX_AGENT_JSON_NODES
+
+        artifact = {"id": "observed", "extra": ['a,["b"]', {"quoted": 'u"\\ü'}]}
+        args = {"baseline_artifact": artifact, "candidate_artifact": artifact, "context": artifact}
+        context = {"objective": artifact, "workload": artifact}
+        observed = [{"status": "returned", "buffers": ["]", ",", '{"escaped":"\\"}']}]
+        measurements = dict(before=11, after=10, ratio=1 / 11, scope="timing measurements", metric="artifact_bytes",
+            native_runs={"baseline": None}, observations=observed, outcome="improved", planned_cases=1,
+            complete=True, reference_runs={"candidate": {"observations": observed}}, reference_ns=13)
+        expected = {"schema": "hepta.hia.agent.measurements.v1", "context": artifact, "workload": artifact,
+            "objective": artifact, "baseline_artifact": artifact, "candidate_artifact": artifact,
+            "metric": measurements["metric"], "baseline_value": "11", "candidate_value": "10",
+            "improvement_ratio": 1 / 11, "reference_wall_ns": "13", "planned_cases": 1,
+            "observations": observed, "native_runs": measurements["native_runs"],
+            "reference_runs": measurements["reference_runs"],
+            "native_correctness_scope": "frozen workload return/trap behavior and all external snapshot bytes; VM first-trap/resource observations recorded separately",
+            "universal_equivalence_or_native_refinement_proved": False,
+            "measurement_scope": measurements["scope"], "outcome": "improved", "planned_workload_complete": True}
+        self.assertEqual(self.native.measurement_record(args, context, **measurements), wire(expected))
+        malformed = wire([0] * 18 + [1])
+        self.assertEqual(self.raw(packet(35, malformed), 1024)[0], 4294967293)
+        over_budget = [None] * (MAX_AGENT_JSON_NODES // 2)
+        with self.assertRaisesRegex(HIAEditRejected, "node/byte budget"):
+            self.native.measurement_record(args, context, **{**measurements,
+                "observations": over_budget, "reference_runs": over_budget})
+
     def test_native_slot_receipts_and_failed_rollback_preserve_the_transaction(self):
         from hepta.hia_agent_service import HIAAgentService
         from hepta.hia_agent_store import wire
@@ -816,11 +844,20 @@ class AgentIdentityNativeTests(unittest.TestCase):
                 stored_json = service.store.json
 
                 def retain_json(value, kind, *args):
-                    self.assertNotIn(kind, ("adoption-receipt", "rollback-receipt"))
+                    self.assertNotIn(kind, ("adoption-receipt", "rollback-receipt",
+                                            "measurements", "evaluation-receipt"))
                     return stored_json(value, kind, *args)
 
                 with patch.object(service.store, "json", side_effect=retain_json):
                     result = scripted_loop(session, target_slot="issued-slots")
+                evaluation = result["evaluation"]
+                record, _, raw = service.store.get_json_with_wire(
+                    evaluation["evaluation_receipt"], kind="evaluation-receipt")
+                self.assertEqual(raw, wire(record))
+                self.assertEqual(record["measurements"], evaluation["measurements"])
+                self.assertEqual(record["full_cost_ledger"], evaluation["full_cost_ledger"])
+                self.assertIs(record["net_optimization_benefit_proved"], False)
+                self.assertTrue(record["termination_confirmed"])
                 adopted, rolled = result["adoption"], result["rollback"]
                 for kind, issued in (("adoption", adopted), ("rollback", rolled)):
                     record, _, raw = service.store.get_json_with_wire(

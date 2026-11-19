@@ -119,6 +119,21 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size > length(o):
             return size
         return rollback_result(s, o, 1)
+    if kind == 35:
+        size = measurement_record(s, o, 0)
+        if size > length(o):
+            return size
+        return measurement_record(s, o, 1)
+    if kind == 36:
+        size = evaluation_record(s, o, 0)
+        if size > length(o):
+            return size
+        return evaluation_record(s, o, 1)
+    if kind == 37:
+        size = evaluation_result(s, o, 0)
+        if size > length(o):
+            return size
+        return evaluation_result(s, o, 1)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -769,6 +784,30 @@ def receipt_fragment(s:readbuf, o:mutbuf, at:u64, cursor:u64, size:u64, emit:u64
         index = index + 1
     return cursor + size
 
+def receipt_array_fragment(s:readbuf, at:u64) -> u64:
+    index = at
+    nested = 0
+    quoted = 0
+    while index < length(s):
+        ch = byte(s, index)
+        if quoted != 0:
+            if ch == 92:
+                index = index + 1
+            elif ch == 34:
+                quoted = 0
+        elif ch == 34:
+            quoted = 1
+        elif ch == 91 or ch == 123:
+            nested = nested + 1
+        elif ch == 93 or ch == 125:
+            if nested == 0:
+                return 0
+            nested = nested - 1
+        elif ch == 44 and nested == 0:
+            return index - at
+        index = index + 1
+    return 0
+
 def artifact_input(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 20:
         return 4294967293
@@ -1039,28 +1078,37 @@ def issued_artifact_source():
     return '\n'.join(lines) + '\n'
 
 
-def receipt_template(name, template):
+def receipt_template(name, template, *, aggregate=False):
     """Serialize already-admitted JSON fragments in a fixed HIA schema."""
-    lines = [
-        f'def {name}(s:readbuf, o:mutbuf, emit:u64) -> u64:',
-        '    at = 16',
-        '    cursor = 0',
-    ]
+    lines = [f'def {name}(s:readbuf, o:mutbuf, emit:u64) -> u64:']
+    if aggregate:
+        lines.extend(('    if length(s) < 18 or byte(s, 16) != 91:',
+                      '        return 4294967293', '    at = 17'))
+    else:
+        lines.append('    at = 16')
+    lines.append('    cursor = 0')
     chunks = template.split('{}')
     for index, chunk in enumerate(chunks):
         for offset in range(0, len(chunk), 8):
             raw = chunk[offset:offset + 8].encode('ascii')
             lines.append(f'    cursor = receipt_literal(o, cursor, {int.from_bytes(raw, "little")}, {len(raw)}, emit)')
         if index + 1 < len(chunks):
-            lines.extend((
-                '    size = receipt_fragment_size(s, at)',
-                '    if size == 0:',
-                '        return 4294967293',
-                '    at = at + 8',
-                '    cursor = receipt_fragment(s, o, at, cursor, size, emit)',
-                '    at = at + size',
-            ))
-    lines.extend(('    if at != length(s):', '        return 4294967293',
+            fragment = 'receipt_array_fragment' if aggregate else 'receipt_fragment_size'
+            lines.extend((f'    size = {fragment}(s, at)', '    if size == 0:', '        return 4294967293'))
+            if not aggregate:
+                lines.append('    at = at + 8')
+            lines.extend(('    cursor = receipt_fragment(s, o, at, cursor, size, emit)',
+                          '    at = at + size' + (' + 1' if aggregate else '')))
+    if aggregate:
+        # Three zero placeholders keep the whole-document ingress node budget
+        # identical to the fixed scalar fields added by the HIA template.
+        suffix = '0,0,0]'
+        lines.extend((f'    if length(s) - at != {len(suffix)}:', '        return 4294967293'))
+        for position, character in enumerate(suffix):
+            lines.extend((f'    if byte(s, at + {position}) != {ord(character)}:', '        return 4294967293'))
+    else:
+        lines.extend(('    if at != length(s):', '        return 4294967293'))
+    lines.extend((
                   '    if cursor > length(o):', '        return 4294967294', '    return cursor'))
     return '\n'.join(lines) + '\n'
 
@@ -1086,9 +1134,6 @@ BUILD_RECORD = ('{"backend_profile":{},"candidate":{},"codegen":{},"context":{},
 BUILD_RESULT = ('{"adopted":false,"backend_profile":{},"build_receipt":{},"candidate":{},'
                 '"codegen_backend":"hia-direct","external_assembler_used":false,"linker_used":{},'
                 '"llvm_codegen_used":false,"native_artifact":{},"native_execution_observed":false,"target_profile":{}}')
-
-
-
 ADOPTION_RECORD = ('{"active_artifact":{},"consumer_api":"acquire_slot -> invoke_lease -> release_slot",'
                    '"context":{},"current":{},"evaluation_receipt":{},"future_calls_only":true,'
                    '"in_flight_versions_retained":true,"previous":{},"retained_baseline":{},'
@@ -1100,6 +1145,22 @@ ROLLBACK_RECORD = ('{"active_artifact":{},"context":{},"current":{},"future_call
                    '"schema":"hepta.hia.agent.rollback.v1","target_slot":{}}')
 ROLLBACK_RESULT = ('{"active_artifact":{},"current":{},"future_calls_only":true,"past_effects_reversed":false,'
                    '"previous":{},"rollback_receipt":{},"target_slot":{}}')
+MEASUREMENT_RECORD = ('{"baseline_artifact":{},"baseline_value":{},"candidate_artifact":{},"candidate_value":{},'
+                      '"context":{},"improvement_ratio":{},"measurement_scope":{},"metric":{},'
+                      '"native_correctness_scope":"frozen workload return/trap behavior and all external snapshot '
+                      'bytes; VM first-trap/resource observations recorded separately","native_runs":{},'
+                      '"objective":{},"observations":{},"outcome":{},"planned_cases":{},'
+                      '"planned_workload_complete":{},"reference_runs":{},"reference_wall_ns":{},'
+                      '"schema":"hepta.hia.agent.measurements.v1",'
+                      '"universal_equivalence_or_native_refinement_proved":false,"workload":{}}')
+EVALUATION_RECORD = ('{"adopted":false,"baseline_artifact":{},"baseline_core_sha256":{},"build_receipt":{},'
+                     '"candidate_artifact":{},"candidate_core_sha256":{},"context":{},"full_cost_ledger":{},'
+                     '"installation":{},"measurements":{},"net_optimization_benefit_proved":false,"outcome":{},'
+                     '"planned_workload_complete":{},"report_complete":true,"schema":"hepta.hia.agent.evaluation.v1",'
+                     '"termination_confirmed":true,"verification_receipts":{}}')
+EVALUATION_RESULT = ('{"adopted":false,"baseline_artifact":{},"candidate_artifact":{},"evaluation_receipt":{},'
+                     '"full_cost_ledger":{},"measurements":{},"outcome":{},"planned_workload_complete":{},'
+                     '"report_complete":true,"termination_confirmed":true}')
 
 
 def source_program():
@@ -1130,7 +1191,10 @@ def source_program():
             + receipt_template('adoption_record', ADOPTION_RECORD)
             + receipt_template('adoption_result', ADOPTION_RESULT)
             + receipt_template('rollback_record', ROLLBACK_RECORD)
-            + receipt_template('rollback_result', ROLLBACK_RESULT))
+            + receipt_template('rollback_result', ROLLBACK_RESULT)
+            + receipt_template('measurement_record', MEASUREMENT_RECORD, aggregate=True)
+            + receipt_template('evaluation_record', EVALUATION_RECORD)
+            + receipt_template('evaluation_result', EVALUATION_RESULT))
 
 
 def document():
