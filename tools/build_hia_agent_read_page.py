@@ -11,9 +11,9 @@ import struct
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link
-from tools.generate_hia_mcp_stdio_packer import MAGIC as MCP_PACK_MAGIC, MODES as MCP_MODES
-from tools.generate_hia_mcp_stdio_packer import DESCRIPTORS, template
-from tools.generate_hia_mcp_stdio_packer import SOURCE as MCP_PACKER
+from tools.generate_hia_mcp_stdio_packer import MAGIC as STDIO_PACK_MAGIC, MODES as STDIO_MODES
+from tools.generate_hia_mcp_stdio_packer import template
+from tools.generate_hia_mcp_stdio_packer import SOURCE as STDIO_PACKER
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -29,29 +29,29 @@ VARIANTS = {
     'mcp-catalog': ('mcp_catalog_wire', 'hepta.hia.mcp-catalog-native.v1'),
     'mcp-uri': ('mcp_resource_uri', 'hepta.hia.mcp-uri-native.v1'),
 }
-MCP_PACK_CAPACITY = (1 << 20) + 4096
+STDIO_PACK_CAPACITY = (1 << 20) + 4096
 
 
-def pack_mcp(output, compiler, sources, mode, image, pins):
-    packer, compiled = compile_stage(output, 'mcp-packer', compiler, sources[MCP_PACKER])
+def pack_stdio(output, compiler, sources, mode, image, pins):
+    packer, compiled = compile_stage(output, 'stdio-packer', compiler, sources[STDIO_PACKER])
     pins[packer] = packer.read_bytes()
     program = NativeHiaJsonImage(pins[packer], compiled['produced_sha256'])
-    request = struct.pack('<2Q', MCP_PACK_MAGIC, mode) + image
+    request = struct.pack('<2Q', STDIO_PACK_MAGIC, mode) + image
     input_bytes = ctypes.create_string_buffer(request)
-    result = ctypes.create_string_buffer(MCP_PACK_CAPACITY)
+    result = ctypes.create_string_buffer(STDIO_PACK_CAPACITY)
     count = program._entry(input_bytes, len(request), result, len(result), None, 0)
 
-    prefix, call = template(DESCRIPTORS[mode])
+    prefix, call = template(mode)
     expected_size = len(prefix) + len(image)
     if (count != expected_size or input_bytes.raw != request + b'\0'
             or any(result.raw[count:])):
-        raise ValueError('native HIA MCP packer refused or changed private bytes')
+        raise ValueError('native HIA stdio packer refused or changed private bytes')
     expected = bytearray(prefix)
     struct.pack_into('<2Q', expected, 96, count, count)
     struct.pack_into('<i', expected, call, len(prefix) - call - 4)
     executable = result.raw[:count]
     if executable[:len(prefix)] != expected or not executable.endswith(image):
-        raise ValueError('packed MCP adapter or kernel differs from the admitted bytes')
+        raise ValueError('packed stdio adapter or kernel differs from the admitted bytes')
     return executable, {'elf': inspect_executable(executable), 'mode': mode,
                         'packer_compilation': compiled, 'input_sha256': sha256(request).hexdigest()}
 
@@ -60,9 +60,9 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     symbol, schema = VARIANTS[kind]
     label = 'agent-' + kind
     source = 'examples/hia_bootstrap/' + symbol + '.hepta'
-    mode = MCP_MODES.get(kind)
+    mode = STDIO_MODES.get(kind)
     adapter = 'tools/hia_' + symbol + '_stdio.S'
-    assembly_inputs = (LINKER, EMBED_SOURCE, adapter) if mode is None else (MCP_PACKER,)
+    assembly_inputs = (LINKER, EMBED_SOURCE, adapter) if mode is None else (STDIO_PACKER,)
     pins = {path: path.read_bytes() for path in (compiler, cold_report, manifest)}
     sources = {name: (ROOT / name).read_bytes() for name in (source, DRIVER, *assembly_inputs)}
     source_digests = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
@@ -92,7 +92,7 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
         executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')
         build_receipt['linking'] = receipt
     else:
-        executable, receipt = pack_mcp(output, compiler, sources, mode, image, pins)
+        executable, receipt = pack_stdio(output, compiler, sources, mode, image, pins)
         build_receipt['native_packing'] = receipt
     if (current_sources() != admitted or any(path.read_bytes() != raw for path, raw in pins.items())
             or any((ROOT / name).read_bytes() != raw for name, raw in sources.items())):

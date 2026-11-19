@@ -1,4 +1,4 @@
-"""Author the fixed Linux transport embedded by the HIA MCP ELF packer."""
+"""Author fixed Linux transports for the HIA sealed stdio ELF packer."""
 from __future__ import annotations
 
 import struct
@@ -13,12 +13,21 @@ INPUT_MAX = 8 << 20
 ARENA_BYTES = 64 + 262144 * 72 + INPUT_MAX
 # A zero descriptor selects the variable-length reply contract.
 DESCRIPTORS = (88, 0, 112, 24)
+PAGE_MODE = len(DESCRIPTORS)
+PAGE_OUTPUT = 40 + 69 + 4 * ((65536 + 2) // 3)
+PAGE_WORKSPACE = 512 + 4128
 MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-catalog': 1,
-         'mcp-negotiation': 2, 'mcp-uri': 3}
+         'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE}
 
 
-def template(descriptor):
-    scratch = (4 << 20) if descriptor else INPUT_MAX + 32
+def template(mode):
+    page = mode == PAGE_MODE
+    descriptor = None if page else DESCRIPTORS[mode]
+    scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor else INPUT_MAX + 32)
+    prefix_bytes = 0 if page else 8
+    workspace = PAGE_WORKSPACE if page else ARENA_BYTES
+    minimum = 24 if page else 2
+    maximum = ((64 << 20) + 32 + 512) if page else INPUT_MAX
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -46,10 +55,10 @@ def template(descriptor):
     emit('31 ff 48 89 e6 b8 05 00 00 00 0f 05')  # fstat(STDIN, &stat)
     emit('48 85 c0')
     branch('0f 85', 'io_error')
-    emit('4c 8b 6c 24 30 49 83 fd 02')          # r13 = stat.st_size
+    emit(f'4c 8b 6c 24 30 49 83 fd {minimum:02x}')  # r13 = stat.st_size
     branch('0f 82', 'bad_frame')
     emit('49 81 fd')
-    word(INPUT_MAX)
+    word(maximum)
     branch('0f 87', 'bad_frame')
 
     # The sealed input is mapped read-only; result and kernel workspace stay RW.
@@ -57,32 +66,42 @@ def template(descriptor):
     emit('b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff')
     branch('0f 83', 'io_error')
     emit('49 89 c4 31 ff be')
-    word(8 + scratch + ARENA_BYTES)
+    word(prefix_bytes + scratch + workspace)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff 45 31 c9')
     emit('b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff')
     branch('0f 83', 'io_error')
 
-    emit('49 89 c6 4c 89 e7 4c 89 ee 49 8d 56 08 b9')
+    emit('49 89 c6 4c 89 e7 4c 89 ee')
+    emit('4c 89 f2' if page else '49 8d 56 08')   # payload or status-prefixed result
+    emit('b9')
     word(scratch)
     emit('4d 8d 86')
-    word(8 + scratch)
+    word(prefix_bytes + scratch)
     emit('41 b9')
-    word(ARENA_BYTES)
+    word(workspace)
     emit('e8')
     branch_address = len(code)
     word(0)                                     # packer binds the actual HIA kernel
-    emit('89 c0 49 89 06 4c 89 f6 ba 08 00 00 00')
-    if descriptor:
-        emit('83 f8 %02x' % descriptor)
-        branch('0f 85', 'write_result')
-        emit('83 c2 %02x' % descriptor)
-    else:
-        emit('83 f8 02')
-        branch('0f 82', 'write_result')
-        emit('3d')
+    if page:
+        emit('48 83 f8 28')                      # complete 40-byte page header
+        branch('0f 82', 'bad_frame')
+        emit('48 3d')
         word(scratch)
-        branch('0f 87', 'write_result')
-        emit('01 c2')
+        branch('0f 87', 'bad_frame')
+        emit('48 89 c2 4c 89 f6')                # raw page without a status word
+    else:
+        emit('89 c0 49 89 06 4c 89 f6 ba 08 00 00 00')
+        if descriptor:
+            emit(f'83 f8 {descriptor:02x}')
+            branch('0f 85', 'write_result')
+            emit(f'83 c2 {descriptor:02x}')
+        else:
+            emit('83 f8 02')
+            branch('0f 82', 'write_result')
+            emit('3d')
+            word(scratch)
+            branch('0f 87', 'write_result')
+            emit('01 c2')
     label('write_result')
     emit('bf 01 00 00 00 b8 01 00 00 00 0f 05 48 83 f8 fc')
     branch('0f 84', 'write_result')              # retry EINTR without dropping bytes
@@ -118,11 +137,11 @@ def render():
         return 4294967295
     mode = read_word(s, 8)
 '''
-    for mode in range(len(DESCRIPTORS)):
+    for mode in range(PAGE_MODE + 1):
         source += f'    if mode == {mode}:\n        return pack_{mode}(s, o)\n'
     source += '    return 4294967295\n'
-    for mode, descriptor in enumerate(DESCRIPTORS):
-        prefix, call = template(descriptor)
+    for mode in range(PAGE_MODE + 1):
+        prefix, call = template(mode)
         source += f'''
 def pack_{mode}(s:readbuf, o:mutbuf) -> u32:
     size = {len(prefix)} + length(s) - 16

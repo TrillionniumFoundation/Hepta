@@ -1421,10 +1421,10 @@
       "sha256": "bccc68b65177c7663f0580d73459a9a751dae0baa0e1479a85fa749cba371caf"
     },
     {
-      "bytes": 10783,
+      "bytes": 10917,
       "kind": ".md",
       "path": "docs/HIA_NATIVE_HELPER_WORKER.md",
-      "sha256": "f4db6ef3997c739e1e813cea134c89e4cfe067342da6aa4733fc8ac002028406"
+      "sha256": "3a703689b07d586673f71002adc6050920827da7ae0116cadc2e3ef0b511a4e1"
     },
     {
       "bytes": 5839,
@@ -2282,7 +2282,7 @@
       "bytes": 216700,
       "kind": ".json",
       "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-      "sha256": "b9b325bc5092d2fad861e8cca1fd5785277a63bf2f0a26e36de7bb5d43172176"
+      "sha256": "fc95b49a7487ac417ceda755d90eeb112bd64dd2f9c66ca3f595f74c0d5a1fe4"
     },
     {
       "bytes": 176641,
@@ -4242,10 +4242,10 @@
       "source_format": "hia-assembly"
     },
     {
-      "bytes": 42703,
+      "bytes": 52725,
       "kind": ".hepta",
       "path": "examples/hia_bootstrap/mcp_stdio_packer.hepta",
-      "sha256": "e7f1629f9fdb3099c80996b94046e87f1eb566b9144bab3a67000645766333c9",
+      "sha256": "ed6c2e3be068ef1846a87bab8b27e6fac7d7c8e5599013020280623bab283f98",
       "source_format": "hia-assembly"
     },
     {
@@ -13140,10 +13140,10 @@
       "sha256": "04f7491530c7221323e0114c3581c304639d3bf67d3de3c8dd96624fff2411ce"
     },
     {
-      "bytes": 7937,
+      "bytes": 7912,
       "kind": ".py",
       "path": "tests/test_hia_mcp_request_native.py",
-      "sha256": "df15430c249ad7d67db70a0b354bc4747c8a9bfc8fdbb66ea0ba410bae8af2cb"
+      "sha256": "01b3396b78fc4be80d2fa5b12b0ff2f3b3963043fe41d4b9eee6017dfa455945"
     },
     {
       "bytes": 3204,
@@ -14742,10 +14742,10 @@
       "sha256": "fd661d5f427b48b4706c007463b3366f52cd1c2e33459132923722d38262bccf"
     },
     {
-      "bytes": 6388,
+      "bytes": 6390,
       "kind": ".py",
       "path": "tools/build_hia_agent_read_page.py",
-      "sha256": "0b9d6532ab8de6e5fdd9b0a213bba288c0739d562a1a9845fcbaa3e99e2fba70"
+      "sha256": "1d329d1af208476f395b7d9b4f3d4864a4bbf25c4dd159d4c219f72a7516afa3"
     },
     {
       "bytes": 3921,
@@ -15756,10 +15756,10 @@
       "sha256": "5149ff4b607a6f0c88a212680f638d4255294cc1cb2a37367c412191bd00b84c"
     },
     {
-      "bytes": 5155,
+      "bytes": 6003,
       "kind": ".py",
       "path": "tools/generate_hia_mcp_stdio_packer.py",
-      "sha256": "609757a05d19434cb8f6d24c08ce31831df1d7606f6b3fa24a2eeb40c3c1603a"
+      "sha256": "f448bcb7482e2aa09d5a882b8d3048bb5592478573cf366a1326fb10bb0ace11"
     },
     {
       "bytes": 2418,
@@ -17604,8 +17604,8 @@
       "sha256": "c4001e492c1694f6e74ba7ac4317776ec70e6e1b640ee863741ac55a300532be"
     }
   ],
-  "git_head": "2aa7f0bf2c43096085a55309fd2aaec590e7dbd8",
-  "git_head_tree": "1072c05f77803f897663bf1b47ccb442e28fad8e",
+  "git_head": "b807f0197e44e37455dea89f3bcf257f7d62ab18",
+  "git_head_tree": "fbfa3769d0b64827a84ce5c086514d7ebc002408",
   "hosted_tools": [
     {
       "imports": [
@@ -18157,7 +18157,6 @@
         "tools.build_hia_sqlite_pager.embed",
         "tools.build_hia_sqlite_pager.link",
         "tools.generate_hia_mcp_stdio_packer",
-        "tools.generate_hia_mcp_stdio_packer.DESCRIPTORS",
         "tools.generate_hia_mcp_stdio_packer.MAGIC",
         "tools.generate_hia_mcp_stdio_packer.MODES",
         "tools.generate_hia_mcp_stdio_packer.SOURCE",
@@ -18181,7 +18180,7 @@
         "tools/build_hia_worker_release.py"
       ],
       "top_level_public_definitions": [
-        "pack_mcp",
+        "pack_stdio",
         "build"
       ]
     },
@@ -24142,14 +24141,14 @@
         "tools.generate_hia_core_json_cli.LIMIT",
         "tools.generate_hia_core_json_cli.source_program"
       ],
-      "lines": 148,
+      "lines": 167,
       "literal_hia_paths": [
         "examples/hia_bootstrap/mcp_stdio_packer.hepta"
       ],
       "literal_native_selectors": [],
       "module": "tools.generate_hia_mcp_stdio_packer",
       "path": "tools/generate_hia_mcp_stdio_packer.py",
-      "purpose": "Author the fixed Linux transport embedded by the HIA MCP ELF packer.",
+      "purpose": "Author fixed Linux transports for the HIA sealed stdio ELF packer.",
       "repository_static_callers": [
         "tests/test_hia_mcp_request_native.py",
         "tools/build_hia_agent_read_page.py"
@@ -35714,9 +35713,12 @@
     }
   ],
   "index_vs_head_changed_paths": [
-    ".github/workflows/hia-core.yml",
+    "docs/HIA_NATIVE_HELPER_WORKER.md",
     "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-    "tools/hia_selfhost_contract.py"
+    "examples/hia_bootstrap/mcp_stdio_packer.hepta",
+    "tests/test_hia_mcp_request_native.py",
+    "tools/build_hia_agent_read_page.py",
+    "tools/generate_hia_mcp_stdio_packer.py"
   ],
   "package_modules": [
     {

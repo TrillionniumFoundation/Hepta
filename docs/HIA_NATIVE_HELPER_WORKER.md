@@ -134,8 +134,10 @@ profile to its current cold-compiled image; the HIA packer emits the static ELF,
 patches its single image call, and appends the exact image. These five builders
 no longer assemble or link a foreign object. The syscall entry accepts exactly
 one fully sealed stdin frame up to 8 MiB. It leaves transport authorization,
-effect execution and session ownership to the existing runtime. Page and
-journal executables still use their separate syscall adapters.
+effect execution and session ownership to the existing runtime. The retained
+artifact page reader uses the same HIA packer with its original sealed page
+frame, input limits and raw output contract. The session journal executable
+still uses its separate syscall adapter.
 
 ## Verification
 
