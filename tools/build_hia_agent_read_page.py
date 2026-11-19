@@ -10,7 +10,8 @@ import struct
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
-from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link
+from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link, verify_executable
+from tools.generate_hia_agent_journal_transport import SOURCE as JOURNAL_TRANSPORT
 from tools.generate_hia_mcp_stdio_packer import MAGIC as STDIO_PACK_MAGIC, MODES as STDIO_MODES
 from tools.generate_hia_mcp_stdio_packer import template
 from tools.generate_hia_mcp_stdio_packer import SOURCE as STDIO_PACKER
@@ -62,7 +63,7 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     source = 'examples/hia_bootstrap/' + symbol + '.hepta'
     mode = STDIO_MODES.get(kind)
     adapter = 'tools/hia_' + symbol + '_stdio.S'
-    assembly_inputs = (LINKER, EMBED_SOURCE, adapter) if mode is None else (STDIO_PACKER,)
+    assembly_inputs = (LINKER, EMBED_SOURCE, adapter, JOURNAL_TRANSPORT) if kind == 'journal' else (STDIO_PACKER,)
     pins = {path: path.read_bytes() for path in (compiler, cold_report, manifest)}
     sources = {name: (ROOT / name).read_bytes() for name in (source, DRIVER, *assembly_inputs)}
     source_digests = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
@@ -86,11 +87,19 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
         linker = pins[linker_path] = linker_path.read_bytes()
         if sha256(linker).hexdigest() != linker_receipt['produced_sha256']:
             raise ValueError(label + ' linker changed')
+        transport_path, transport_receipt = compile_stage(
+            output, 'journal-wire', compiler, sources[JOURNAL_TRANSPORT])
+        transport = pins[transport_path] = transport_path.read_bytes()
+        if sha256(transport).hexdigest() != transport_receipt['produced_sha256']:
+            raise ValueError(label + ' transport differs from its compilation receipt')
         embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
         objects = (assemble(output, adapter, sources[adapter]),
-                   embed(output, symbol, kind, image, embedder))
+                   embed(output, symbol, kind, image, embedder),
+                   embed(output, 'agent_journal_transport', 'journal-wire', transport, embedder))
         executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')
+        verify_executable(executable, transport)
         build_receipt['linking'] = receipt
+        build_receipt['journal_wire_compilation'] = transport_receipt
     else:
         executable, receipt = pack_stdio(output, compiler, sources, mode, image, pins)
         build_receipt['native_packing'] = receipt

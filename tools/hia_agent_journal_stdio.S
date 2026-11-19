@@ -146,7 +146,7 @@ admit_header:
  xor ecx,ecx
  lea r8,[rsp+TRANSFER]
  mov r9d,24
- call agent_journal_start
+ call agent_journal_transport_start
  cmp eax,1
  jne bad_frame
  mov rbx,[r12+48]                 /* foreign-type tag count */
@@ -215,7 +215,7 @@ invoke:
  mov ecx,REPLY
  lea r8,[rsp+TRANSFER]
  mov r9d,24
- call agent_journal_start
+ call agent_journal_transport_start
  cmp eax,1
  ja bad_frame
  mov [rsp+CARRY_STATE],rax
