@@ -18,7 +18,7 @@ from hepta.hia_edit_batch import prepare_batch
 from hepta.hia_edit_query import prepare_edit
 from hepta.hia_program_native import build_program_machine
 from hepta.hia_program_selfhost import build_program_selfhost
-from tests.test_hia_core_edit_runtime import wire
+from tests.test_hia_core_edit_runtime import packed_implementation_sha256, wire
 from tests.test_hia_edit_batch import loans, selected, swaps
 from tests.test_hia_program_tools import add_two_patch, scalar_program
 
@@ -295,7 +295,7 @@ def check_release(release, directory):
             original.parent.mkdir()
             receipt = build_program_machine(program, original, kind='object')
             receipt['output'] = str(build_target)
-            receipt['implementation_sha256'] = sha256((release / 'hia-build-object').read_bytes()).hexdigest()
+            receipt['implementation_sha256'] = packed_implementation_sha256(release / 'hia-build-object')
             expected = wire(receipt, pretty=True)
             arguments += ['--output', str(build_target)]
         else:

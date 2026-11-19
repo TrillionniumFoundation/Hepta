@@ -174,14 +174,8 @@ def check_agent_diagnostics(executable):
     return passed
 
 
-def check_object_builds(release):
-    from hepta.hia_program import verify_program
-    from hepta.hia_program_native import build_program_machine
-    from tests.test_hia_composite_constructor_native import simple
-    from tests.test_hia_composite_returned_loans import pair_program
-
-    executable = release / 'hia'
-    launcher = (release / 'hia-build-object').read_bytes()
+def packed_implementation_sha256(path):
+    launcher = path.read_bytes()
     marker = b'HIAECP01'
     assert launcher.count(marker) == 1
     offset = launcher.index(marker) + len(marker)
@@ -199,7 +193,17 @@ def check_object_builds(release):
         expanded.extend(decoded)
         offset += stored_size
     assert len(expanded) == expanded_size and expanded.startswith(b'\x7fELF')
-    implementation = sha256(expanded).hexdigest()
+    return sha256(expanded).hexdigest()
+
+
+def check_object_builds(release):
+    from hepta.hia_program import verify_program
+    from hepta.hia_program_native import build_program_machine
+    from tests.test_hia_composite_constructor_native import simple
+    from tests.test_hia_composite_returned_loans import pair_program
+
+    executable = release / 'hia'
+    implementation = packed_implementation_sha256(release / 'hia-build-object')
     documents = [scalar_program(), *(simple(version=v) for v in range(1, 5)), pair_program()]
     with tempfile.TemporaryDirectory(prefix='hia-public-object-') as directory:
         folder = Path(directory)
