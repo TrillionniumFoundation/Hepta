@@ -79,7 +79,10 @@ def _reference_reject(message, code="E_HIA_PROGRAM_NATIVE"):
 
 
 def _implementation_hash():
-    digest = sha256()
+    from .hia_sha256_stream_native import selected_stream_hasher
+
+    native = selected_stream_hasher()
+    digest = sha256() if native is None else native.new()
     root = Path(__file__).parent
     for name in (
         "hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",

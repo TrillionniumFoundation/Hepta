@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 
 from .hia_agent_store import AgentRejected, reject, wire, _agent_resource_path
+from .hia_sha256_stream_native import selected_stream_hasher
 
 VERSION = "hepta.hia.agent-native.v1"
 ROOT = Path(__file__).resolve().parent.parent
@@ -215,19 +216,24 @@ def catalog():
 
 def installation_manifest():
     """Hash actual installed source bytes, never infer a clean Git commit."""
+    native = selected_stream_hasher()
+
+    def digest(data):
+        return sha256(data).hexdigest() if native is None else native.digest(data).hex()
+
     entries = {}
     for path in sorted((ROOT / "hepta").rglob("*.py")):
         if path.relative_to(ROOT / "hepta").parts[0] == "_data":
             continue  # Explicit build assets below are data, never Python modules.
-        entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()
+        entries[str(path.relative_to(ROOT))] = digest(path.read_bytes())
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
-        entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
+        entries["docs/" + filename] = digest(path.read_bytes())
     for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES, *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES):
-        entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+        entries[native_source] = digest(_agent_resource_path(native_source).read_bytes())
     from .hia_program_native import _implementation_hash
     from .hia_native_helpers import native_helpers_identity
-    return {"worker_sha256": sha256(wire(entries)).hexdigest(),
+    return {"worker_sha256": digest(wire(entries)),
             "backend_sha256": _implementation_hash(),
             "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"],
             **native_helpers_identity()}

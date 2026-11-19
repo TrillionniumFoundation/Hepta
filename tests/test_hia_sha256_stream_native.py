@@ -138,6 +138,28 @@ class Sha256StreamNativeTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=8) as pool:
             self.assertEqual(list(pool.map(self.image.digest, wires)), [sha256(w).digest() for w in wires])
 
+    def test_installation_and_backend_identities_match_without_host_hashing(self):
+        from hepta.hia_agent_contract import installation_manifest
+
+        with patch.dict('os.environ', {'HEPTA_HIA_SHA256_STREAM_MANIFEST': ''}):
+            expected = installation_manifest()
+        with patch.dict('os.environ', {'HEPTA_HIA_SHA256_STREAM_MANIFEST': str(self.manifest)}), \
+                patch('hepta.hia_agent_contract.sha256', side_effect=AssertionError('foreign installation hash')), \
+                patch('hepta.hia_program_native.sha256', side_effect=AssertionError('foreign backend hash')):
+            self.assertEqual(installation_manifest(), expected)
+            read_bytes = Path.read_bytes
+            changed_path = ROOT / 'hepta/hia_opcodes.py'
+
+            def changed_source(path):
+                data = read_bytes(path)
+                return data + b'\n# independent stale identity control\n' if path == changed_path else data
+
+            with patch.object(Path, 'read_bytes', new=changed_source):
+                stale = installation_manifest()
+            self.assertNotEqual(stale['worker_sha256'], expected['worker_sha256'])
+            self.assertNotEqual(stale['backend_sha256'], expected['backend_sha256'])
+            self.assertEqual(stale['catalog_sha256'], expected['catalog_sha256'])
+
     def raw(self, wire, state, *, source_size=None, output_size=32, state_size=STATE_BYTES):
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
         output = ctypes.create_string_buffer(b'\xa5' * 40, 40)

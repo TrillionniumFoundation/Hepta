@@ -1,6 +1,7 @@
 """Operator-selected HIA incremental SHA-256; Python owns buffers, not hashing."""
 from __future__ import annotations
 import ctypes
+import os
 from pathlib import Path
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
@@ -67,3 +68,8 @@ class Sha256State:
 
 def installed_stream_hasher(manifest_path: str) -> NativeSha256Stream:
     return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeSha256Stream)
+
+
+def selected_stream_hasher():
+    manifest = os.environ.get('HEPTA_HIA_SHA256_STREAM_MANIFEST')
+    return installed_stream_hasher(manifest) if manifest else None
