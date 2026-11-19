@@ -39,6 +39,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return exact_comparison(s, o)
     if kind == 14:
         return abi_scalar(s, o)
+    if kind == 15:
+        return proof_evidence(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -435,6 +437,86 @@ def claim_eligibility(s:readbuf, o:mutbuf) -> u32:
     put(o, 8, 1)
     put(o, 16, decision)
     return 24
+
+def proof_evidence(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 96:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    claim = read_word(s, 16)
+    status = read_word(s, 24)
+    subject = read_word(s, 32)
+    method = read_word(s, 40)
+    flags = read_word(s, 48)
+    checked = read_word(s, 56)
+    required = read_word(s, 64)
+    complete = read_word(s, 72)
+    bytes_equal = read_word(s, 80)
+    object_equal = read_word(s, 88)
+    if claim > 4 or status > 4 or subject > 4 or method > 5 or flags > 511:
+        return 4294967293
+    if complete > 2 or bytes_equal > 2 or object_equal > 2:
+        return 4294967293
+    matched = proof_text_matches(s)
+    if matched > 127:
+        return 4294967293
+    decision = 0
+    if claim == 1:
+        if status == 1 and (matched & 3) == 3:
+            decision = 1
+    elif claim == 2 and (flags & 3) == 3:
+        if method == 1:
+            if status == 1 and (matched & 28) == 28 and (flags & 4) != 0:
+                decision = 2
+        elif method == 2:
+            if checked <= required and required > 0 and required <= 4096:
+                if status == 1 and complete == 2 and checked == required and (flags & 24) == 24 and (matched & 24) == 24:
+                    decision = 3
+                elif status == 2 and (flags & 32) != 0:
+                    decision = 8
+                elif status == 3 and complete == 1 and (flags & 32) == 0:
+                    decision = 3
+        elif method == 3:
+            if status == 3:
+                decision = 4
+        elif (flags & 256) != 0:
+            decision = 9
+    elif claim == 3:
+        if subject == 4:
+            decision = 10
+        elif subject == 2 and status == 4 and (flags & 64) != 0:
+            decision = 6
+        elif subject == 3 and status == 1 and method == 4 and (flags & 128) != 0 and (matched & 34) == 34:
+            decision = 5
+    elif claim == 4 and subject == 4 and method == 5 and (matched & 64) != 0:
+        if bytes_equal != 0 and object_equal != 0:
+            if status == choose(bytes_equal == 2 and object_equal == 2, 1, 2):
+                decision = 7
+    return finite_function_reply(o, decision)
+
+def proof_text_matches(s:readbuf) -> u64:
+    offset = 96
+    field = 0
+    matched = 0
+    while field < 7:
+        if length(s) - offset < 16:
+            return 128
+        left = read_word(s, offset)
+        right = read_word(s, offset + 8)
+        offset = offset + 16
+        if left == 0 or right == 0 or left > length(s) - offset:
+            return 128
+        right_at = offset + left
+        if right > length(s) - right_at:
+            return 128
+        if byte(s, offset) == 1 and byte(s, right_at) == 1:
+            if equal_pair(s, offset, left, right_at, right) != 0:
+                matched = matched | (1 << field)
+        field = field + 1
+        offset = right_at + right
+    if offset != length(s):
+        return 128
+    return matched
 
 def rational_bits(numerator:u64, denominator:u64) -> u64:
     # A nonzero ratio of two u64 values is always normal in binary64.

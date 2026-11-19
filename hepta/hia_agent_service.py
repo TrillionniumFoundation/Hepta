@@ -26,6 +26,7 @@ from .hia_agent_store import (AgentRejected, AgentStore, digest, keys, record_au
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
 from .hia_sha256_native import payload_sha256
+from .hia_worker_report_native import selected_json_equality
 from .hia_proof_contract import (PROOF_SCHEMA, PROVED_MEANING, proof_subject, proof_result,
     assumptions_document, proof_contract_description, SAFE_CORE_METHOD, SAFE_CORE_DOMAIN,
     SAFE_CORE_SERVICE_PROFILE)
@@ -45,14 +46,6 @@ def _exact_artifact_equal(left: bytes, right: bytes) -> bool:
 
     policy = _native_agent_identity()
     return left == right if policy is None else policy.exact_bytes_equal(left, right)
-
-
-def _retained_record_equality():
-    from operator import eq
-    from .hia_worker_report_native import SELECTOR, installed_worker_report
-
-    selected = os.environ.get(SELECTOR)
-    return eq if not selected else installed_worker_report(selected).equal_json
 
 
 def _reference_finite_function(function):
@@ -506,7 +499,7 @@ class HIAAgentService:
         if record_authority((ref["id"], ref["sha256"], ""), stored):
             reject("E_HIA_CONTEXT_IDENTITY", "context is not a retained server record", "context")
         context, _ = self.store.get_json(decode_data(row["artifact"]), kind="context")
-        equal = _retained_record_equality()
+        equal = selected_json_equality()
         if not equal((context["installation"], context["catalog_sha256"]),
                      (self.identities, self.catalog_sha256)):
             reject("E_HIA_CONTEXT_STALE", "context binds a different installed implementation", "context")
@@ -1057,7 +1050,7 @@ class HIAAgentService:
 
     def _verification(self, ref, context, candidate=None):
         record, _, raw = self.store.get_json_with_wire(ref, kind="verification-receipt")
-        equal = _retained_record_equality()
+        equal = selected_json_equality()
         if (not equal(record["context"], context) or not equal(record["installation"], self.identities)
                 or candidate is not None and not equal(record["candidate"], candidate)):
             reject("E_HIA_RECEIPT_BINDING", "verification receipt belongs to a different context, candidate or implementation", "verification")
@@ -1116,7 +1109,7 @@ class HIAAgentService:
             reject("E_HIA_IMPLEMENTATION_STALE", "installed implementation changed during verification replay")
         result = response["result"]
         retained = self._verification(result["verification_receipt"], arguments["context"], arguments["candidate"])
-        equal = _retained_record_equality()
+        equal = selected_json_equality()
         if not equal(
                 (result["candidate"], result["subject"], result["checks"], retained["subject"],
                  retained["base_program"], retained["validation_profile"],
@@ -1190,7 +1183,7 @@ class HIAAgentService:
 
     def _native(self, ref, context=None):
         data, metadata = self.store.get(ref, kind="native")
-        equal = _retained_record_equality()
+        equal = selected_json_equality()
         if (not equal(metadata["installation"], self.identities)
                 or context is not None and not equal(metadata["context"], context)):
             reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
@@ -1208,7 +1201,7 @@ class HIAAgentService:
     def _build_inputs(self, ref, context, artifact):
         """Capture and validate one immutable Core/object/final build observation."""
         record, _ = self.store.get_json(ref, kind="build-receipt")
-        equal = _retained_record_equality()
+        equal = selected_json_equality()
         if not equal(
                 (record["context"], record["native_artifact"], record["installation"],
                  record.get("target_profile"), record.get("backend_profile")),

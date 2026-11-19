@@ -31,6 +31,20 @@ CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK = range(3)
 PROOF_OPCODE_IDS = {name: index for index, name in enumerate(sorted(OPCODES), 1)}
 PROOF_EFFECT_IDS = {name: 1 << index for index, name in enumerate(sorted(EFFECTS))}
 EXACT_COMPARISON_CHUNK = 256 * 1024
+PROOF_EVIDENCE_METHODS = (
+    '', 'core_admission', 'canonical_core_identity', 'finite_domain',
+    'context_budget_exhausted', 'checked_explicit_machine_choices',
+    'canonical_lowering_unsupported', 'complete_native_rederivation',
+)
+PROOF_FINITE_COUNTEREXAMPLE = 8
+PROOF_COMPOSITIONAL = 9
+PROOF_INDEPENDENT_MACHINE = 10
+_EVIDENCE_METHOD_IDS = {
+    'canonical_core_identity': 1, 'finite_domain': 2, 'context_budget_exhausted': 3,
+    'checked_explicit_machine_choices': 4, 'complete_native_rederivation': 5,
+}
+_PROOF_STATUS_IDS = {'proved': 1, 'refuted': 2, 'unknown': 3, 'unsupported': 4}
+_PROOF_SUBJECT_IDS = {'core': 1, 'canonical_lowering': 2, 'agent_machine_plan': 3, 'native_artifact': 4}
 ABI_SCALAR_IDS = {name: role for role, name in enumerate((*WIDTHS, 'bool', 'unit'), 1)}
 
 
@@ -44,6 +58,22 @@ def _observation_fields(observation, *, reference):
     trap = wire(observation.get('trap_code')) if reference else b''
     resources = wire(observation['ledger']['resources']) if reference else b''
     return status.encode('ascii'), returned, buffers, trap, resources
+
+
+def _enum_id(table, value):
+    return table.get(value, 0) if type(value) is str else 0
+
+
+def _proof_text(value):
+    return b'\x01' + value.encode('utf-8', 'surrogatepass') if type(value) is str else b'\x00'
+
+
+def _proof_count(value):
+    return value if type(value) is int and 0 <= value <= WORD_MASK else WORD_MASK
+
+
+def _proof_boolean(value):
+    return 2 if value is True else 1 if value is False else 0
 
 
 def _paired_packet(header, left, right):
@@ -181,6 +211,38 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         valid, decision = self._request(packet)
         if valid != 1 or decision not in (CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK):
             raise RuntimeError('invalid HIA Agent claim eligibility decision')
+        return decision
+
+    def proof_evidence(self, claim, status, subject, evidence, *, admission_checker):
+        claim_id = _CLAIMS.index(claim) + 1 if type(claim) is str and claim in _CLAIMS else 0
+        core, base = subject['candidate_core_sha256'], subject['base_core_sha256']
+        plan = evidence.get('plan')
+        native = subject.get('native_artifact')
+        flags = (
+            (subject.get('base_program') is not None)
+            | ((base is not None) << 1)
+            | ((evidence.get('all_inputs') is True) << 2)
+            | ((evidence.get('all_inputs_in_declared_widths') is True) << 3)
+            | ((type(evidence.get('transcript_sha256')) is str) << 4)
+            | (('counterexample' in evidence) << 5)
+            | ((type(evidence.get('reason')) is str) << 6)
+            | ((type(plan) is dict) << 7)
+            | ((_enum_id({'hepta.hia.optimization-verification.v1': 1}, evidence.get('schema'))) << 8)
+        )
+        header = struct.pack('<12Q', MAGIC, 15, claim_id, _enum_id(_PROOF_STATUS_IDS, status),
+            _enum_id(_PROOF_SUBJECT_IDS, subject.get('kind')), _enum_id(_EVIDENCE_METHOD_IDS, evidence.get('method')),
+            flags, _proof_count(evidence.get('checked')), _proof_count(evidence.get('required')),
+            _proof_boolean(evidence.get('complete')), _proof_boolean(evidence.get('bytes_equal')),
+            _proof_boolean(evidence.get('object_identity_equal')))
+        expected = (admission_checker, core, core, base, core, core,
+                    native.get('sha256') if type(native) is dict else None)
+        observed = (evidence.get('checker'), evidence.get('core_sha256'), base,
+                    evidence.get('base_sha256'), evidence.get('candidate_sha256'),
+                    plan.get('core_sha256') if type(plan) is dict else None, evidence.get('actual_sha256'))
+        code, decision = self._request(_paired_packet(header, map(_proof_text, expected),
+                                                     map(_proof_text, observed)))
+        if code != 1 or not 0 <= decision <= PROOF_INDEPENDENT_MACHINE:
+            raise RuntimeError('invalid HIA verification evidence decision')
         return decision
 
     def finite_function(self, function):

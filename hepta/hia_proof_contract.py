@@ -175,7 +175,7 @@ def proof_subject(record, target_profile):
     }
 
 
-def _method(claim, status, subject, evidence):
+def _reference_method(claim, status, subject, evidence):
     """Reject a conclusion that contradicts the retained checker's own result."""
     _require(type(evidence) is dict, "verification evidence must be a retained object")
     core = subject["candidate_core_sha256"]
@@ -264,6 +264,33 @@ def _method(claim, status, subject, evidence):
                  "encoding conclusion differs from the actual byte/object comparison")
         return "complete_native_rederivation"
     _require(False, "unknown proof property")
+
+
+def _method(claim, status, subject, evidence):
+    from .hia_agent_store import _native_agent_identity
+    from .hia_agent_identity_native import (
+        PROOF_EVIDENCE_METHODS, PROOF_FINITE_COUNTEREXAMPLE, PROOF_COMPOSITIONAL,
+        PROOF_INDEPENDENT_MACHINE,
+    )
+
+    native = _native_agent_identity()
+    if native is None or type(evidence) is not dict:
+        return _reference_method(claim, status, subject, evidence)
+    decision = native.proof_evidence(claim, status, subject, evidence,
+                                     admission_checker=_CHECKERS['core_admission'])
+    if 0 < decision < PROOF_FINITE_COUNTEREXAMPLE:
+        return PROOF_EVIDENCE_METHODS[decision]
+    if decision == PROOF_FINITE_COUNTEREXAMPLE:
+        from .hia_worker_report_native import selected_json_equality
+        equal = selected_json_equality()
+        _require(not equal(evidence.get('before'), evidence.get('after')),
+                 'finite-domain refutation lacks a differing observation')
+        return 'finite_domain'
+    if decision in (PROOF_COMPOSITIONAL, PROOF_INDEPENDENT_MACHINE):
+        # These paths still rely on separate circuit or machine semantics.
+        return _reference_method(claim, status, subject, evidence)
+    _reference_method(claim, status, subject, evidence)
+    _require(False, 'native proof evidence disagrees with the retained contract')
 
 
 def _native_circuit_scope(status, evidence):

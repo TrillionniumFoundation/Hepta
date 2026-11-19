@@ -217,6 +217,61 @@ class AgentIdentityNativeTests(unittest.TestCase):
             self.assertEqual(self.raw(malformed)[0], 0xfffffffd)
         self.assertEqual(self.raw(wire, 23)[0], 0xfffffffe)
 
+    def test_native_proof_evidence_preserves_types_and_evidence_precedence(self):
+        from hepta.hia_agent_identity_native import PROOF_EVIDENCE_METHODS
+        from hepta.hia_agent_store import AgentRejected
+        from hepta.hia_proof_contract import _CHECKERS, _reference_method
+
+        core = {'kind': 'core', 'candidate_core_sha256': 'c' * 64,
+                'base_core_sha256': 'b' * 64, 'base_program': {'id': 'base'}}
+        admitted = {'checker': _CHECKERS['core_admission'], 'core_sha256': 'c' * 64}
+        identity = {'method': 'canonical_core_identity', 'base_sha256': 'c' * 64,
+                    'candidate_sha256': 'c' * 64, 'all_inputs': True}
+        finite = {'method': 'finite_domain', 'checked': 4096, 'required': 4096, 'complete': True,
+                  'candidate_sha256': 'c' * 64, 'base_sha256': 'b' * 64,
+                  'all_inputs_in_declared_widths': True, 'transcript_sha256': 't' * 64}
+        image = dict(core, kind='native_artifact', native_artifact={'sha256': 'a' * 64})
+        encoding = {'method': 'complete_native_rederivation', 'actual_sha256': 'a' * 64,
+                    'bytes_equal': True, 'object_identity_equal': True}
+        plan = {'method': 'checked_explicit_machine_choices',
+                'core_sha256': 'c' * 64, 'plan': {'core_sha256': 'c' * 64}}
+        cases = [
+            ('core_admission', 'proved', core, admitted),
+            ('core_admission', 'unknown', core, admitted),
+            ('core_admission', 'proved', core, dict(admitted, core_sha256='other')),
+            ('behavior_equivalence', 'proved', dict(core, base_core_sha256='c' * 64), identity),
+            ('behavior_equivalence', 'proved', core, identity),
+            ('behavior_equivalence', 'unknown', core, {'method': 'context_budget_exhausted'}),
+            ('behavior_equivalence', 'proved', core, finite),
+            ('behavior_equivalence', 'proved', core, dict(finite, checked=4096.0)),
+            ('behavior_equivalence', 'proved', core, dict(finite, required=4097)),
+            ('behavior_equivalence', 'proved', core, dict(finite, all_inputs_in_declared_widths=1)),
+            ('behavior_equivalence', 'unknown', core, dict(finite, complete=False)),
+            ('behavior_equivalence', 'unknown', core, dict(finite, complete=False, counterexample=None)),
+            ('lowering_refinement', 'unsupported', dict(core, kind='canonical_lowering'), {'reason': ''}),
+            ('lowering_refinement', 'proved', dict(core, kind='agent_machine_plan'), plan),
+            ('lowering_refinement', 'proved', dict(core, kind='agent_machine_plan'), dict(plan, plan=[])),
+            ('encoding_check', 'proved', image, encoding),
+            ('encoding_check', 'refuted', image, dict(encoding, bytes_equal=False)),
+            ('encoding_check', 'proved', image, dict(encoding, bytes_equal=1)),
+        ]
+        for index, args in enumerate(cases):
+            with self.subTest(index=index):
+                try:
+                    expected = _reference_method(*args)
+                except AgentRejected:
+                    expected = ''
+                decision = self.native.proof_evidence(*args, admission_checker=_CHECKERS['core_admission'])
+                self.assertEqual(PROOF_EVIDENCE_METHODS[decision], expected)
+
+        header = packet(15, struct.pack('<10Q', 1, 1, 1, 0, 0, 0, 0, 0, 0, 0))
+        pair = struct.pack('<2Q', 1, 1) + bytes(2)
+        valid_frame = header + pair * 7
+        self.assertEqual(self.raw(valid_frame)[0], 24)
+        for malformed in (valid_frame[:-1], valid_frame + b'x',
+                          header + struct.pack('<2Q', 0, 1) + pair * 6):
+            self.assertEqual(self.raw(malformed)[0], 0xfffffffd)
+
     def test_call_scalar_gate_preserves_exact_frozen_types_and_ranges(self):
         from hepta.hia_agent_buffers import validate_arguments
         from hepta.hia_agent_identity_native import ABI_SCALAR_IDS

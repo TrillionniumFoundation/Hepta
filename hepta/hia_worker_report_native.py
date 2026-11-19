@@ -403,6 +403,13 @@ class NativeWorkerReport:
         return session.run() == 0
 
 
+def selected_json_equality():
+    from operator import eq
+
+    selected = os.environ.get(SELECTOR)
+    return eq if not selected else installed_worker_report(selected).equal_json
+
+
 def installed_worker_report(path):
     from .hia_native_helpers import pinned_bundle
     captured = pinned_bundle(path, SCHEMA, NativeWorkerReport)
