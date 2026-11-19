@@ -37,7 +37,7 @@ INSTALLED_HELPERS = (
 ADDITIONAL_HELPERS = (
     'worker-request', 'agent-journal', 'execution-budget', 'candidate-budget',
     'agent-read-page', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
-    'sha256-stream',
+    'sha256-stream', 'cnf',
 )
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_agent_identity_native import PROOF_EFFECT_IDS, PROOF_OPCODE_IDS
+from hepta.hia_agent_identity_native import EXACT_COMPARISON_CHUNK, PROOF_EFFECT_IDS, PROOF_OPCODE_IDS
 from hepta.hia_optimization import PURE
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
@@ -32,6 +32,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return finite_function(s, o, w)
     if kind == 12:
         return finite_domain(s, o)
+    if kind == 13:
+        return exact_comparison(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -513,6 +515,20 @@ def put(w:mutbuf, index:u64, value:u64) -> u64:
         store(w, index + count, value >> (count * 8))
         count = count + 1
     return value
+
+def exact_comparison(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 32:
+        return 4294967293
+    left = read_word(s, 16)
+    right = read_word(s, 24)
+    if left > @EXACT_COMPARISON_CHUNK@ or right > @EXACT_COMPARISON_CHUNK@:
+        return 4294967293
+    right_at = 32 + left
+    if length(s) != right_at + right:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    return finite_function_reply(o, equal_pair(s, 32, left, right_at, right))
 '''
 
 def source_program():
@@ -520,7 +536,8 @@ def source_program():
     disallowed = ((1 << 64) - 1) ^ PROOF_EFFECT_IDS['trap']
     return (SOURCE.replace('@MAGIC@', str(MAGIC)).replace('@RESULT_MAGIC@', str(RESULT_MAGIC))
             .replace('@PURE_OPCODE_MASK@', str(pure))
-            .replace('@DISALLOWED_EFFECT_MASK@', str(disallowed)))
+            .replace('@DISALLOWED_EFFECT_MASK@', str(disallowed))
+            .replace('@EXACT_COMPARISON_CHUNK@', str(EXACT_COMPARISON_CHUNK)))
 
 def document():
     nodes=ast.parse(source_program()).body;names={n.name:'f'+str(i) for i,n in enumerate(nodes)}

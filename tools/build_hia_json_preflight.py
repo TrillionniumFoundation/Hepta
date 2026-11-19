@@ -107,6 +107,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
                   'scalar-reference': ('scalar_reference', 'scalar-reference'),
                   'scalar-symbolic': ('scalar_symbolic', 'scalar-symbolic'),
+                  'cnf': ('cnf', 'cnf'),
                   'elf-linker-filter': ('elf_linker_filter_packer', 'elf-linker-filter'),
                   'native-filter': ('native_filter_packer', 'native-filter'),
                   'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
@@ -171,7 +172,7 @@ def main():
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
-                                 'scalar-reference', 'scalar-symbolic'))
+                                 'scalar-reference', 'scalar-symbolic', 'cnf'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

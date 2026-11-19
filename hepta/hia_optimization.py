@@ -18,6 +18,7 @@ import tempfile
 import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
+from .hia_cnf_native import UNSAT, bitblast_clauses, selected_cnf
 from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_symbolic
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
@@ -58,7 +59,32 @@ def checker_identity():
     if native is not None:
         digest.update(Path(__file__).with_name("hia_scalar_symbolic_native.py").read_bytes())
         digest.update(bytes.fromhex(native.image_sha256))
+    cnf = selected_cnf()
+    if cnf is not None:
+        digest.update(Path(__file__).with_name("hia_cnf_native.py").read_bytes())
+        digest.update(bytes.fromhex(cnf.image_sha256))
     return digest.hexdigest()
+
+
+def _native_unsat(cnf, z3, mismatch, deadline):
+    if cnf is None:
+        return None
+    remaining = (deadline - time.monotonic_ns()) // 1_000_000
+    if remaining < 4:
+        return None
+    formula = bitblast_clauses(z3, mismatch, timeout_ms=min(100, remaining // 4))
+    if formula is None:
+        return None
+    remaining = (deadline - time.monotonic_ns()) // 1_000_000
+    if remaining <= 0:
+        return None
+    variables, clauses = formula
+    result, _, steps = cnf.solve(variables, clauses, steps=min(200_000, remaining * 100))
+    if result != UNSAT:
+        return None  # The legacy counterexample/model interface remains intact.
+    return {"method": "native_hia_cnf", "image_sha256": cnf.image_sha256,
+            "formula_sha256": _digest([variables, clauses]), "variables": variables,
+            "clauses": len(clauses), "steps": steps}
 
 
 def _solver_identity(z3):
@@ -323,6 +349,7 @@ def verify_optimization(base, candidate, policy=None):
     # owns all its ASTs and solver in a separate context, including constants
     # and empty disjunctions. No process-global solver lock is assumed.
     context = z3.Context()
+    native_cnf = selected_cnf()
     deadline = started + policy["timeout_ms"] * 1_000_000
     for fi, (lf, rf) in enumerate(zip(left["functions"], right["functions"])):
         for bi, (lb, rb) in enumerate(zip(lf["blocks"], rf["blocks"])):
@@ -363,11 +390,20 @@ def verify_optimization(base, candidate, policy=None):
                 remaining = (deadline - time.monotonic_ns()) // 1_000_000
                 if remaining <= 0:
                     return finish("timeout", "verification deadline exhausted while encoding")
-                solver.set(timeout=int(remaining))
-                outcome = solver.check()
+                cnf_evidence = _native_unsat(native_cnf, z3, mismatch, deadline)
+                remaining = (deadline - time.monotonic_ns()) // 1_000_000
+                if remaining <= 0:
+                    return finish("timeout", "verification deadline exhausted while solving")
+                if cnf_evidence is None:
+                    solver.set(timeout=int(remaining))
+                    outcome = solver.check()
+                else:
+                    outcome = z3.unsat
                 obligation = {"function": lf["name"], "block": lb["id"], "segment": si,
                               "observed": observed, "result": str(outcome),
                               "smt2_sha256": sha256(smt.encode()).hexdigest(), "smt2": smt}
+                if cnf_evidence is not None:
+                    obligation["discharge"] = cnf_evidence
                 report["obligations"].append(obligation)
                 if time.monotonic_ns() >= deadline:
                     return finish("timeout", "total verification deadline exhausted during solving")

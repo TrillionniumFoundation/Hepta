@@ -33,6 +33,7 @@ HELPERS = {
     "HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST": ("hia_elf_shared_linker_native", "NativeSharedLinker"),
     "HEPTA_HIA_SCALAR_REFERENCE_MANIFEST": ("hia_scalar_reference_native", "NativeScalarReference"),
     "HEPTA_HIA_SCALAR_SYMBOLIC_MANIFEST": ("hia_scalar_symbolic_native", "NativeScalarSymbolic"),
+    "HEPTA_HIA_CNF_MANIFEST": ("hia_cnf_native", "NativeCnf"),
     "HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST": ("hia_agent_snapshot_native", "NativeAgentSnapshot"),
     "HEPTA_HIA_AGENT_DATA_JSON_MANIFEST": ("hia_agent_data_json_native", "NativeAgentDataJson"),
     "HEPTA_HIA_AGENT_BINARY64_MANIFEST": ("hia_agent_binary64_native", "NativeAgentBinary64"),

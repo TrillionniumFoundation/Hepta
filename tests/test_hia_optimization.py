@@ -206,8 +206,8 @@ class OptimizationVerificationTests(unittest.TestCase):
             self.assertEqual(verify_optimization(original, original)["status"], "unknown")
 
     def test_solver_unknown_cannot_claim_verified(self):
-        original_check = z3.Solver.check
-        with patch.object(z3.Solver, "check", return_value=z3.unknown), \
+        with patch("hepta.hia_optimization.selected_cnf", return_value=None), \
+                patch.object(z3.Solver, "check", return_value=z3.unknown), \
                 patch.object(z3.Solver, "reason_unknown", return_value="incomplete"):
             report = verify_optimization(constant_program(), constant_program())
         self.assertEqual(report["status"], "unknown")

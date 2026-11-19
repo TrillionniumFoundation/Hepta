@@ -133,7 +133,9 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tools/hia_scalar_reference_syscalls.S',
     'tools/generate_hia_scalar_reference.py',
     'tools/generate_hia_scalar_symbolic.py',
+    'tools/generate_hia_cnf.py',
     'tests/test_hia_scalar_reference_native.py',
+    'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
     'examples/hia_bootstrap/worker_request_filter_packer.hepta',
@@ -839,6 +841,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/scalar_reference.hepta',
     'examples/hia_bootstrap/owned_reference.hepta',
     'examples/hia_bootstrap/scalar_symbolic.hepta',
+    'examples/hia_bootstrap/cnf.hepta',
     'setup.py',
     'tests/test_hia_agent_identity_native.py',
     'tests/test_hia_agent_installed_resources.py',

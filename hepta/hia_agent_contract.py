@@ -47,6 +47,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/scalar_reference.hepta',
     'examples/hia_bootstrap/owned_reference.hepta',
     'examples/hia_bootstrap/scalar_symbolic.hepta',
+    'examples/hia_bootstrap/cnf.hepta',
     'examples/hia_bootstrap/agent_slice.hepta',
     'examples/hia_bootstrap/agent_read_page.hepta',
     'examples/hia_bootstrap/agent_inspection.hepta',
