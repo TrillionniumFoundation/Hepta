@@ -30,6 +30,7 @@ MAX_SOURCE_BYTES = 8 << 20
 HELPERS = {
     "HEPTA_HIA_WORKER_REQUEST_MANIFEST": ("hia_worker_request_native", "NativeWorkerRequest"),
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
+    "HEPTA_HIA_MACHINE_PLAN_MANIFEST": ("hia_machine_plan_native", "NativeMachinePlan"),
     "HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST": ("hia_elf_shared_linker_native", "NativeSharedLinker"),
     "HEPTA_HIA_SCALAR_REFERENCE_MANIFEST": ("hia_scalar_reference_native", "NativeScalarReference"),
     "HEPTA_HIA_SCALAR_SYMBOLIC_MANIFEST": ("hia_scalar_symbolic_native", "NativeScalarSymbolic"),
