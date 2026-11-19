@@ -6,6 +6,7 @@ grant ordinary artifact writers the private verification-receipt authority.
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
 import importlib.util
 import json
 import platform
@@ -114,6 +115,8 @@ class ProofContractTests(AgentToolCase):
         self.service._verification(result["verification_receipt"], self.session.context, candidate)
 
     def test_finite_domain_is_complete_despite_single_case_workload(self):
+        from hepta.hia_opcodes import EXECUTION_RESOURCE_FIELDS
+
         base = self.prepare()
         candidate = self.session.import_program(add_program(optimized=True))
         result = self.session.verify(candidate, base=base, claims=["behavior_equivalence"])
@@ -123,6 +126,15 @@ class ProofContractTests(AgentToolCase):
         evidence = self.session.read_json(check["evidence_artifact"])
         self.assertEqual((evidence["checked"], evidence["required"]), (256, 256))
         self.assertTrue(evidence["complete"])
+        transcript = sha256()
+        resources = dict.fromkeys(EXECUTION_RESOURCE_FIELDS, 0)
+        for value in range(256):
+            observation = {"status": "returned", "first_trap": None,
+                           "resources": resources, "values": [(value + 7) % 256]}
+            row = {"case": {"function": "transform", "arguments": [value]},
+                   "before": observation, "after": observation}
+            transcript.update(json.dumps(row, sort_keys=True, separators=(',', ':')).encode())
+        self.assertEqual(evidence["transcript_sha256"], transcript.hexdigest())
         self.assert_scope(check, candidate, base=base)
         self.service._verification(result["verification_receipt"], self.session.context, candidate)
 

@@ -852,7 +852,12 @@ class HIAAgentService:
                 domains[name] = parameters, needed
         if finite:
             native = selected_scalar_reference()
-            transcript = sha256()
+            stream = os.environ.get('HEPTA_HIA_SHA256_STREAM_MANIFEST')
+            if stream:
+                from .hia_sha256_stream_native import installed_stream_hasher
+                transcript = installed_stream_hasher(stream).new()
+            else:
+                transcript = sha256()
             checked = 0
             deadline = time.monotonic_ns() + min(10000, timeout_ms) * 1_000_000
             for name, (types, required) in domains.items():

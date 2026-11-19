@@ -24,6 +24,7 @@ from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
+from tools.build_hia_sha256 import build as build_sha256
 from tools.build_hia_slot_ledger import build as build_slot_ledger
 from tools.build_hia_worker_report import bind_worker_bundle, build as build_report
 from tools.build_hia_worker_scheduling_bundle import bind_scheduling_bundle
@@ -36,6 +37,7 @@ INSTALLED_HELPERS = (
 ADDITIONAL_HELPERS = (
     'worker-request', 'agent-journal', 'execution-budget', 'candidate-budget',
     'agent-read-page', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
+    'sha256-stream',
 )
 
 
@@ -96,9 +98,13 @@ def build(output, compiler, cold_report, package, package_sha256):
             if candidate in INSTALLED_HELPERS:
                 manifest = release / (candidate + '-manifest.json')
             else:
-                source = (build_slot_ledger(scratch / candidate, compiler, cold_report)
-                          if candidate == 'slot-ledger' else
-                          build_helper(scratch / candidate, compiler, cold_report, candidate=candidate))
+                staging = scratch / candidate
+                if candidate == 'slot-ledger':
+                    source = build_slot_ledger(staging, compiler, cold_report)
+                elif candidate == 'sha256-stream':
+                    source = build_sha256(staging, compiler, cold_report, candidate='sha256_stream')
+                else:
+                    source = build_helper(staging, compiler, cold_report, candidate=candidate)
                 manifest = _copy_image_manifest(source, output / candidate / 'manifest.json')
             selector = 'HEPTA_HIA_' + candidate.replace('-', '_').upper() + '_MANIFEST'
             helpers.append({'selector': selector, 'manifest_path': manifest.relative_to(output).as_posix(),
