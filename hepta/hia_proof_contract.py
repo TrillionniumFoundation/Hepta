@@ -339,7 +339,7 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
         assumptions.append(_item("complete_finite_domain", "The input domain is the complete declared-width domain of the checked pure scalar acyclic functions, limited to 12 input bits and 4096 enumerated cases; the reference interpreter defines the observations."))
     if method == "compositional_scalar_effect":
         if solver is not None and solver["name"] == "HIA":
-            assumptions.append(_item("structural_correspondence", "The admitted scalar blocks have identical signatures and CFG edges and do not perform any external resource or call effects."))
+            assumptions.append(_item("structural_correspondence", "The admitted scalar blocks have identical signatures, CFG edges and corresponding internal calls; no external resource-effect operation is admitted."))
             assumptions.append(_item("identified_hia_circuit_solver", "The identified HIA image correctly encodes admitted scalar block exits and overflow and decides each retained Boolean obligation."))
         else:
             assumptions.append(_item("structural_correspondence", "The qualified primitive Core v1-v7 profile requires identical signatures, CFG edges and ordered resource/call operations; corresponding effects share the same modeled state."))

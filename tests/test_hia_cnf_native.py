@@ -303,6 +303,21 @@ class CnfInstalledTests(unittest.TestCase):
         ]))
         simplified_loop = deepcopy(loop)
         simplified_loop['functions'][0]['blocks'][2]['ops'][2] = c('step_size', 'u64', 1)
+        word_pair = [('x', 'u64'), ('y', 'u64')]
+        kernel = f('kernel', word_pair, ['u64'], [], [b('entry', word_pair, [
+            i('int.add.wrap', ['x', 'y'], [('answer', 'u64')]),
+        ], ret('answer'))])
+        caller = f('caller', word_pair, ['u64'], [], [b('entry', word_pair, [
+            c('zero', 'u64', 0),
+            i('int.add.wrap', ['x', 'zero'], [('carried', 'u64')]),
+            i('int.add.wrap', ['y', 'zero'], [('argument', 'u64')]),
+            i('call', ['x', 'argument'], [('returned', 'u64')], function='kernel'),
+            i('int.add.wrap', ['carried', 'returned'], [('out', 'u64')]),
+        ], ret('out'))])
+        nested = {**m(kernel, caller), 'schema': NATIVE_CORE_SCHEMA}
+        simplified_nested = deepcopy(nested)
+        call_ops = simplified_nested['functions'][1]['blocks'][0]['ops']
+        call_ops[1]['op'] = call_ops[2]['op'] = 'bit.or'
         original_import = builtins.__import__
 
         def without_z3(name, *args, **kwargs):
@@ -428,6 +443,15 @@ class CnfInstalledTests(unittest.TestCase):
                     unsupported = verify_optimization(unsupported_v8, unsupported_v8)
                     self.assertEqual(unsupported['status'], 'unknown', unsupported)
                     self.assertNotIn('solver', unsupported)
+                    calls = verify_optimization(nested, simplified_nested)
+                    self.assertEqual(calls['status'], 'verified', calls)
+                    self.assertEqual(calls['solver'], report['solver'])
+                    call_obligations = [row for row in calls['obligations'] if row['function'] == 'caller']
+                    self.assertEqual([row['observed'] for row in call_obligations],
+                                     [['x', 'argument', 'carried'], ['out']])
+                    changed_carry = deepcopy(simplified_nested)
+                    changed_carry['functions'][1]['blocks'][0]['ops'][1]['args'][0] = 'y'
+                    self.assertEqual(verify_optimization(nested, changed_carry)['status'], 'unknown')
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)

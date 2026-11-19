@@ -135,24 +135,70 @@ def _native_circuit_witness(before, after, function, model):
                           "scalar_reference_image_sha256": None if reference is None else reference.image_sha256}
 
 
+def _native_block_circuits(before, after, limit):
+    sources = [list(_segments(block)) for block in (before, after)]
+    if len(sources[0]) > limit or any(barrier is not None and barrier["op"] != "call"
+                                     for _, barrier in sources[0]):
+        return None
+    exits = _term_names(before["term"])
+    remaining = set(exits)
+    live_after = []
+    for left, right in reversed(list(zip(*sources, strict=True))):
+        live_after.append(remaining.copy())
+        for operations, barrier in (left, right):
+            for operation in operations:
+                remaining.update(operation["args"])
+            if barrier is not None:
+                remaining.update(barrier["args"])
+    params = before["params"]
+    results = []
+    for (left, barrier), (right, _), live in zip(*sources, reversed(live_after), strict=True):
+        if barrier is None:
+            term, observed = before["term"], exits
+        else:
+            known = []
+            for operations in (left, right):
+                declarations = {item["name"]: item for item in params}
+                for operation in operations:
+                    declarations.update((item["name"], item) for item in operation["out"])
+                known.append(declarations)
+            carried = [item for name, item in known[0].items() if name in live and name in known[1]]
+            if any(known[1][item["name"]] != item for item in carried):
+                return None
+            # A matching call receives equal arguments. Any scalar value
+            # carried across it is also proved equal before being shared
+            # as an arbitrary input to the continuation.
+            observed = list(dict.fromkeys((*barrier["args"], *(item["name"] for item in carried))))
+            term = {"op": "ret", "values": observed}
+        circuit = core_circuit({"params": params, "ops": left, "term": term},
+                               {"params": params, "ops": right, "term": term}, observed)
+        if circuit is None:
+            return None
+        results.append((observed, circuit))
+        if barrier is not None:
+            params = [*carried, *barrier["out"]]
+    return results
+
+
 def _native_core_obligations(cnf, before, after, left, right, deadline, limit):
     pairs = [(fi, bi, lf, lb, rb)
              for fi, (lf, rf) in enumerate(zip(left["functions"], right["functions"], strict=True))
              for bi, (lb, rb) in enumerate(zip(lf["blocks"], rf["blocks"], strict=True))]
-    if len(pairs) > limit:
-        return None
-    observations = [_term_names(lb["term"]) for _, _, _, lb, _ in pairs]
-    circuits = [core_circuit(lb, rb, observed)
-                for (_, _, _, lb, rb), observed in zip(pairs, observations, strict=True)]
-    if any(circuit is None for circuit in circuits):
-        return None
+    prepared = []
+    for fi, bi, function, lb, rb in pairs:
+        segments = _native_block_circuits(lb, rb, limit - len(prepared))
+        if segments is None:
+            return None
+        can_replay = len(segments) == 1 and len(function["blocks"]) == 1 and lb["term"]["op"] == "ret"
+        prepared.extend((fi, bi, function, lb["id"], index, observed, circuit, can_replay)
+                        for index, (observed, circuit) in enumerate(segments))
     obligations = []
-    for (fi, bi, function, block, _), circuit, observed in zip(pairs, circuits, observations, strict=True):
+    for fi, bi, function, block, index, observed, circuit, can_replay in prepared:
         outcome = _native_circuit_decision(cnf, circuit, deadline)
         if outcome is None:
             return None
         verdict, model, evidence, formula = outcome
-        obligation = {"function": function["name"], "block": block["id"], "segment": 0,
+        obligation = {"function": function["name"], "block": block, "segment": index,
                       "observed": observed, "result": "unsat" if verdict == UNSAT else "sat",
                       "cnf_encoding": "hepta.hia.cnf-sparse-le.v2",
                       "cnf_frame_hex": formula.hex(), "discharge": evidence}
@@ -160,7 +206,7 @@ def _native_core_obligations(cnf, before, after, left, right, deadline, limit):
         if verdict == SAT:
             # A model of an arbitrary block input is not proof that the
             # input is reachable, or that the full function disagrees.
-            if len(function["blocks"]) != 1 or block["term"]["op"] != "ret":
+            if not can_replay:
                 return None
             witness = _native_circuit_witness(before, after, function, model)
             if witness is None:
