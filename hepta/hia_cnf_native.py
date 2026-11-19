@@ -550,9 +550,7 @@ def scalar_model_arguments(model, parameters):
     for parameter in parameters:
         typ = parameter['type']
         if typ == 'unit':
-            # Graph frames reserve one initial circuit position for each
-            # parameter. The projection never uses a unit position's bit.
-            model >>= 1
+            # Its fixed node allocates no witness bit.
             yield None
             continue
         width = _CORE_WIDTHS[typ]

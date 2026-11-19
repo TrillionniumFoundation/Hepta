@@ -241,6 +241,18 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertIs(type(flag), bool)
         self.assertEqual(different['counterexample']['after'], {'status': 'returned', 'values': [None, 0]})
 
+        # Unit coordinates carry no information. Interspersing them must not
+        # consume any of the exhaustive word table's 16 independent bits.
+        from hepta.hia_translation_validation import _profile
+
+        wide_params = [('u1', 'unit'), ('word', 'u16'), ('u2', 'unit')]
+        wide = f('wide', wide_params, ['u16'], [], [b('entry', wide_params, [], ret('word'))])
+        nodes, observations, traps = self.native.project_scalar_graphs((wide,), (_profile(wide),), totality=True)
+        self.assertEqual([width for operation, width, *_ in nodes if operation == 1], [16])
+        verdict, _, assignments, _ = self.native.search_word_table(
+            nodes, observations, traps=traps, work=1 << 22)
+        self.assertEqual((verdict, assignments), (UNSAT, 65_536))
+
     def test_feedback_bound_and_candidate_have_separate_native_checks(self):
         from hepta.hia_scalar_proof_contract import CIRCUIT_BOUND_CHECKER, CIRCUIT_TRANSLATION_CHECKER
         from tests.test_hia_bounded_unroll import candidate, counted, proof

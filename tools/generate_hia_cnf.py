@@ -1623,7 +1623,10 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
         if p_width(typ) == 0:
             return TOO_LARGE
         if i < inputs:
-            p_node(o, w, 1, p_width(typ), 0, 0, 0)
+            # Fixed unit nodes keep parameter positions without adding an
+            # input bit. Append rather than intern to keep every index.
+            operation = choose(typ == PROJECT_UNIT_TYPE, 2, 1)
+            p_append_node(o, w, operation, p_width(typ), 0, 0, 0)
         i = i + 1
     yes = p_node(o, w, 2, 1, 0, 0, 1)
     no = p_node(o, w, 2, 1, 0, 0, 0)
@@ -1748,6 +1751,10 @@ def p_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
                 if read_stack(o, at + 24) == b and read_stack(o, at + 32) == c:
                     return previous
             previous = previous + 1
+    return p_append_node(o, w, op, width, a, b, c)
+
+def p_append_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
+    index = read_stack(w, 0)
     if index >= CIRCUIT_NODES:
         write64(w, 0, CIRCUIT_NODES + 1)
         return CIRCUIT_NODES
@@ -1844,10 +1851,7 @@ def p_function(s:readbuf, o:mutbuf, w:mutbuf, start:u64) -> u64:
         typ = read64(s, types + 8 * i)
         if read64(s, origin + 64 + 8 * i) != typ:
             return 0
-        # Unit occupies a dummy input slot for stable symbol indices; its
-        # sole typed value is the zero word, not that unconstrained input.
-        value = choose(typ == PROJECT_UNIT_TYPE, read_stack(w, 40), i)
-        write64(w, 4608 + 2048 * entry + 8 * i, value)
+        write64(w, 4608 + 2048 * entry + 8 * i, i)
         i = i + 1
     write64(w, 64, read_stack(w, 40))
     write64(w, 80, read_stack(w, 40))
@@ -2050,7 +2054,10 @@ def p_rebind_summary(s:readbuf, o:mutbuf, w:mutbuf, summary:u64, arguments:u64, 
         value = p_var(w, read64(s, arguments + 8 * index))
         typ = read64(s, types + 8 * index)
         at = summary + 32 + 40 * index
-        if typ == 0 or value >> 16 != typ or read64(s, at) != 1 or read64(s, at + 8) != p_width(typ):
+        operation = choose(typ == PROJECT_UNIT_TYPE, 2, 1)
+        if typ == 0 or value >> 16 != typ or read64(s, at) != operation or read64(s, at + 8) != p_width(typ):
+            return 0
+        if (read64(s, at + 16) | read64(s, at + 24) | read64(s, at + 32)) != 0:
             return 0
         write64(w, 270336 + 8 * index, value & 65535)
         index = index + 1
