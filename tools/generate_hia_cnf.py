@@ -301,7 +301,7 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf) -> u32:
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width != 1 and width != 8 and width != 16 and width != 32 and width != 64:
         return 0
-    if operation < 1 or operation > 8:
+    if operation < 1 or operation > 10:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -317,10 +317,12 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         return 1
     if right >= index or node_width(source, left) != node_width(source, right):
         return 0
-    if operation >= 7:
+    if operation == 7 or operation == 8:
         if width != 1:
             return 0
     elif width != node_width(source, left):
+        return 0
+    if operation >= 9 and width == 1:
         return 0
     return 1
 
@@ -344,11 +346,14 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
         left = read64(source, origin + 16)
         right = read64(source, origin + 24)
         immediate = read64(source, origin + 32)
-        if operation >= 7:
+        if operation == 7 or operation == 8:
             delta = unequal_bits(output, scratch, left, right, node_width(source, left))
             if delta == 0:
                 return TOO_LARGE
             put_token(scratch, 32 + 128 * node, delta ^ (operation & 1))
+        elif operation >= 9:
+            if encode_wrapping_sum(output, scratch, node, left, right, width, operation == 10) == 0:
+                return TOO_LARGE
         else:
             bit = 0
             while bit < width:
@@ -394,6 +399,36 @@ def encode_bit(output:mutbuf, scratch:mutbuf, operation:u64, left:u64, right:u64
     if operation == 4:
         return logic_or(output, scratch, a, b)
     return logic_xor(output, scratch, a, b)
+
+def encode_wrapping_sum(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, width:u64, subtract:bool) -> u64:
+    # Literal 2 is true and 3 false. For subtraction, add the complement
+    # of the right operand with incoming carry one; drop the high carry.
+    carry = 3
+    complement = 0
+    if subtract:
+        carry = 2
+        complement = 1
+    bit = 0
+    while bit < width:
+        a = load_token(scratch, 32 + 128 * left + 2 * bit)
+        b = load_token(scratch, 32 + 128 * right + 2 * bit) ^ complement
+        parity = logic_xor(output, scratch, a, b)
+        if parity == 0:
+            return 0
+        digit = logic_xor(output, scratch, parity, carry)
+        if digit == 0:
+            return 0
+        put_token(scratch, 32 + 128 * node + 2 * bit, digit)
+        bit = bit + 1
+        if bit < width:
+            generate = logic_and(output, scratch, a, b)
+            propagate = logic_and(output, scratch, parity, carry)
+            if generate == 0 or propagate == 0:
+                return 0
+            carry = logic_or(output, scratch, generate, propagate)
+            if carry == 0:
+                return 0
+    return 1
 
 def unequal_bits(output:mutbuf, scratch:mutbuf, left:u64, right:u64, width:u64) -> u64:
     delta = 3

@@ -35,7 +35,8 @@ CIRCUIT_WORKSPACE = CIRCUIT_GATES_OFFSET + 8 * CIRCUIT_GATE_SLOTS
 UNKNOWN, SAT, UNSAT = range(3)
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
-                    'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8}
+                    'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8,
+                    'int.add.wrap': 9, 'int.sub.wrap': 10}
 
 
 class NativeCnf(NativeHiaJsonImage):

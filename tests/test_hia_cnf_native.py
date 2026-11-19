@@ -145,6 +145,24 @@ class CnfInstalledTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'circuit representation'):
             self.native.solve_circuit([(6, 1, 0, 0, 0)], [(0, 0)], steps=10)
 
+    def test_native_wrapping_arithmetic_matches_independent_words(self):
+        rng = random.Random(862910)
+        for width in (8, 16, 32, 64):
+            mask = (1 << width) - 1
+            operands = [(0, 0), (0, 1), (mask, 1), (mask, mask),
+                        (1, 1 << (width - 1)), (1 << (width - 1), 1 << (width - 1))]
+            operands.extend((rng.getrandbits(width), rng.getrandbits(width)) for _ in range(48))
+            for left, right in operands:
+                for op, expected in ((9, (left + right) & mask), (10, (left - right) & mask)):
+                    nodes = [(2, width, 0, 0, left), (2, width, 0, 0, right),
+                             (op, width, 0, 1, 0), (2, width, 0, 0, expected),
+                             (2, width, 0, 0, expected ^ 1)]
+                    self.assertEqual(self.native.solve_circuit(nodes, [(2, 3)], steps=8)[0], UNSAT)
+                    self.assertEqual(self.native.solve_circuit(nodes, [(2, 4)], steps=8)[0], SAT)
+        for op in (9, 10):
+            with self.assertRaisesRegex(ValueError, 'circuit representation'):
+                self.native.solve_circuit([(1, 1, 0, 0, 0), (op, 1, 0, 0, 0)], [(1, 1)], steps=8)
+
     def test_actual_optimizer_discharge_and_legacy_counterexample(self):
         try:
             import z3
@@ -183,7 +201,7 @@ class CnfInstalledTests(unittest.TestCase):
         from hepta.hia_optimization import verify_optimization
         from hepta.hia_proof_contract import proof_result
         from tests.test_hia_program import b, c, f, i, m, ret
-        from tools.hia_agent_native_qualification import Session, ToolClient
+        from tools.hia_agent_native_qualification import Session, ToolClient, add_program
 
         # Both U64 operands range over their complete declared domains.
         params = [('left', 'u64'), ('right', 'u64')]
@@ -270,6 +288,17 @@ class CnfInstalledTests(unittest.TestCase):
                     self.assertEqual(replay['arguments'], [-5, True])
                     self.assertEqual(replay['base_values'], [True])
                     self.assertEqual(replay['candidate_values'], [False])
+                    arithmetic_workload = {**workload, 'cases': [
+                        {'function': 'transform', 'arguments': [(1 << 64) - 1],
+                         'expected': {'status': 'returned', 'values': [6]}}]}
+                    session.freeze(arithmetic_workload)
+                    arithmetic_base = session.import_program(add_program(typ='u64', redundant_additions=3))
+                    session.freeze(arithmetic_workload, baseline=arithmetic_base)
+                    arithmetic_candidate = session.import_program(add_program(typ='u64', optimized=True))
+                    arithmetic_proof = session.verify(arithmetic_candidate, base=arithmetic_base,
+                                                      claims=['behavior_equivalence'])['checks'][0]
+                    self.assertEqual(arithmetic_proof['status'], 'proved')
+                    self.assertEqual(arithmetic_proof['checker']['solver']['name'], 'HIA')
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)
