@@ -1,7 +1,8 @@
 /* Linux x86-64 transport for the six-argument HIA journal image.
  * One-shot mode admits an existing sealed frame. Session mode receives
  * sealed frame descriptors and carries only the state returned by HIA.
- * Neither mode receives a writable Store descriptor. */
+ * HIA validates the wire frame and prepares each reply. Neither mode
+ * receives a writable Store descriptor. */
 .intel_syntax noprefix
 .text
 .global _start
@@ -13,10 +14,6 @@
 .equ FRAME,64
 .equ REPLY,48
 .equ ENVELOPE,192
-.equ ENVELOPE_SCRATCH,8+STATE
-.equ MAX_TAGS,262144
-.equ MIN_SCRATCH,4256+PRIVATE
-.equ MAX_SCRATCH,LIMIT+56*262144+64+PRIVATE+MAX_TAGS
 .equ LOCAL_BYTES,920
 .equ SESSION_MODE,144
 .equ INPUT_EXTENT,152
@@ -28,6 +25,8 @@
 .equ CONTROL,760
 .equ PREFIX,784
 .equ NEXT_SEQUENCE,792
+.equ TRANSFER,800
+.equ CARRY_STATE,824
 
 _start:
  /* The static linker calls this entry, leaving argc one word above rsp. */
@@ -55,6 +54,7 @@ single_frame:
  sub rsp,LOCAL_BYTES
  mov QWORD PTR [rsp+SESSION_MODE],0
  mov QWORD PTR [rsp+PREFIX],FRAME+STATE
+ mov QWORD PTR [rsp+NEXT_SEQUENCE],0
  mov QWORD PTR [rsp+INPUT_FD],0
  jmp admit_frame
 
@@ -129,65 +129,30 @@ admit_frame:
  call map
  mov r12,rax
  cmp QWORD PTR [rsp+SESSION_MODE],0
- je single_header
+ je admit_header
  mov rdi,[rsp+INPUT_FD]
  mov eax,3                       /* close; mapping retains the sealed file */
  syscall
  test rax,rax
  jne io_error
- movabs rax,0x32304e494a414948   /* HIAJIN02 */
- cmp [r12],rax
- jne bad_frame
+
+admit_header:
+ mov QWORD PTR [rsp+TRANSFER],15
  mov rax,[rsp+NEXT_SEQUENCE]
- cmp [r12+56],rax
+ mov [rsp+TRANSFER+8],rax
+ mov rdi,r12
+ mov rsi,r13
+ xor edx,edx
+ xor ecx,ecx
+ lea r8,[rsp+TRANSFER]
+ mov r9d,24
+ call agent_journal_start
+ cmp eax,1
  jne bad_frame
- jmp frame_extent
-single_header:
- movabs rax,0x31304e494a414948   /* HIAJIN01 */
- cmp [r12],rax
- jne bad_frame
- cmp QWORD PTR [r12+56],0
- jne bad_frame
-frame_extent:
  mov rbx,[r12+48]                 /* foreign-type tag count */
- cmp rbx,MAX_TAGS
- ja bad_frame
  sub r13,[rsp+PREFIX]
  sub r13,rbx
- jb bad_frame
- cmp r13,[r12+8]                  /* exactly the raw input tail */
- jne bad_frame
  mov r15,[r12+16]                 /* scratch capacity */
- mov rax,[r12+24]                 /* journal stage */
- cmp rax,14
- ja bad_frame
- cmp QWORD PTR [r12+40],1         /* data profile bit */
- ja bad_frame
- cmp rax,13
- jae envelope_frame
- cmp rax,10
- je transition_frame
- cmp r13,LIMIT
- ja bad_frame
-transition_frame:
- lea rcx,[rbx+MIN_SCRATCH]
- cmp r15,rcx
- jb bad_frame
- cmp r15,MAX_SCRATCH
- ja bad_frame
- test rax,rax
- jz allocate
- test rbx,rbx
- jnz bad_frame
- jmp allocate
-envelope_frame:
- cmp r15,ENVELOPE_SCRATCH
- jne bad_frame
- cmp r13,LIMIT
- ja bad_frame
- test rbx,rbx
- jnz bad_frame
-allocate:
  lea rsi,[r15+OUT]
  mov r8,-1
  mov edx,3
@@ -238,44 +203,22 @@ invoke:
  mov rdx,r14
  mov r9,r15
  call agent_journal_start
- /* Return status even when it denotes an HIA diagnostic. Only transport
-  * faults exit nonzero. Validate every length before writing any output. */
- movabs rdx,0x3130554f4a414948   /* HIAJOU01 */
- mov [rsp],rdx
- mov [rsp+8],rax
- xor edx,edx
- mov [rsp+16],rdx                 /* response or envelope size */
- mov [rsp+24],rdx                 /* cost size */
- mov [rsp+32],rdx                 /* state / diagnostic size */
- mov [rsp+40],rdx                 /* cached arena size */
- cmp QWORD PTR [r12+24],13
- jb transition_output
- cmp rax,ENVELOPE
- ja send_output
- mov [rsp+16],rax
- jmp send_output
-transition_output:
- mov QWORD PTR [rsp+32],STATE
- cmp rax,0x7fffffff
- ja send_output
- mov rdx,[r14+2*LIMIT+272]
- cmp rdx,LIMIT
+ /* Let HIA validate the payload extents and stage the complete header
+  * before any bytes are written. */
+ mov QWORD PTR [rsp+TRANSFER],16
+ mov [rsp+TRANSFER+8],rax
+ mov rax,[r12+24]
+ mov [rsp+TRANSFER+16],rax
+ mov rdi,r14
+ lea rsi,[r15+OUT]
+ mov rdx,rsp
+ mov ecx,REPLY
+ lea r8,[rsp+TRANSFER]
+ mov r9d,24
+ call agent_journal_start
+ cmp eax,1
  ja bad_frame
- mov [rsp+16],rdx
- mov rdx,[r14+2*LIMIT+280]
- cmp rdx,LIMIT
- ja bad_frame
- mov [rsp+24],rdx
- cmp QWORD PTR [r12+24],3
- jne send_output
- mov rdx,[r14+OUT+32]
- cmp rdx,64
- jb bad_frame
- lea rcx,[r15-PRIVATE]
- cmp rdx,rcx
- ja bad_frame
- mov [rsp+40],rdx
-send_output:
+ mov [rsp+CARRY_STATE],rax
  mov rsi,rsp
  mov edx,REPLY
  call write_all
@@ -293,10 +236,8 @@ send_output:
  call write_all
  cmp QWORD PTR [rsp+SESSION_MODE],0
  je session_end
- cmp QWORD PTR [r12+24],13
- jae release_frame
- cmp QWORD PTR [rsp+8],0x7fffffff
- ja release_frame
+ cmp QWORD PTR [rsp+CARRY_STATE],0
+ je release_frame
  lea rdi,[rsp+HELD_STATE]
  lea rsi,[r14+2*LIMIT]
  mov ecx,STATE/8
