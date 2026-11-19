@@ -22,11 +22,15 @@ STEP_LIMIT = 10_000_000
 WORKSPACE = 1024
 SPARSE_REQUEST = int.from_bytes(b'HIACNX02', 'little')
 BATCH_REQUEST = int.from_bytes(b'HIACNB03', 'little')
+WATCHED_REQUEST = int.from_bytes(b'HIACNW04', 'little')
 SPARSE_REPLY = int.from_bytes(b'HIACNR02', 'little')
 SPARSE_VARIABLES = 4096
 SPARSE_CLAUSES = 65536
 SPARSE_ENTRIES = 1 << 20
 SPARSE_WORKSPACE = SPARSE_VARIABLES * 7
+WATCH_HEADS = SPARSE_WORKSPACE + 8
+WATCH_ROWS = WATCH_HEADS + (2 * SPARSE_VARIABLES + 2) * 8
+WATCH_ROW_BYTES = 32
 CIRCUIT_REQUEST = int.from_bytes(b'HIABVC01', 'little')
 GUARDED_CIRCUIT_REQUEST = int.from_bytes(b'HIABVG01', 'little')
 CIRCUIT_NODES = 128
@@ -64,7 +68,7 @@ class NativeCnf(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA Boolean solver reply')
         return verdict, model, cost
 
-    def solve_sparse(self, variables, clauses, *, steps, batch=False):
+    def solve_sparse(self, variables, clauses, *, steps, batch=False, watched=False):
         if (type(variables) is not int or not 0 <= variables <= SPARSE_VARIABLES
                 or len(clauses) > SPARSE_CLAUSES or type(steps) is not int or not 0 <= steps <= STEP_LIMIT):
             raise ValueError('formula or work budget exceeds the sparse HIA Boolean profile')
@@ -78,14 +82,19 @@ class NativeCnf(NativeHiaJsonImage):
             tokens.append(0)
         if byteorder != 'little':
             tokens.byteswap()
-        magic = BATCH_REQUEST if batch else SPARSE_REQUEST
+        magic = WATCHED_REQUEST if watched else BATCH_REQUEST if batch else SPARSE_REQUEST
         frame = struct.pack('<5Q', magic, variables, len(clauses), steps, len(tokens)) + tokens.tobytes()
-        return self._solve_sparse_frame(frame, variables, steps, batch=batch)
+        return self._solve_sparse_frame(frame, variables, steps)
 
-    def _solve_sparse_frame(self, frame, variables, steps, *, batch=False):
+    def _solve_sparse_frame(self, frame, variables, steps):
+        magic, _, clauses = struct.unpack_from('<3Q', frame)
+        if magic == WATCHED_REQUEST:
+            extent = WATCH_ROWS + 2 * clauses * WATCH_ROW_BYTES
+        else:
+            extent = SPARSE_WORKSPACE + (8 if magic == BATCH_REQUEST else 0)
         source = ctypes.create_string_buffer(frame, len(frame))
         reply = ctypes.create_string_buffer(32 + (variables + 7) // 8)
-        scratch = ctypes.create_string_buffer(SPARSE_WORKSPACE + (8 if batch else 0))
+        scratch = ctypes.create_string_buffer(extent)
         size = self._entry(source, len(frame), reply, len(reply), scratch, len(scratch))
         magic, verdict, received, cost = struct.unpack_from('<4Q', reply)
         if (magic != SPARSE_REPLY or received != variables or verdict not in (UNKNOWN, SAT, UNSAT)
@@ -97,7 +106,7 @@ class NativeCnf(NativeHiaJsonImage):
             raise RuntimeError('invalid sparse HIA Boolean solver model')
         return verdict, model, cost
 
-    def solve_circuit(self, nodes, returns, *, steps, traps=None, batch=False):
+    def solve_circuit(self, nodes, returns, *, steps, traps=None, batch=False, watched=False):
         if len(nodes) > CIRCUIT_NODES or len(returns) > CIRCUIT_RETURNS or not 0 <= steps <= STEP_LIMIT:
             return None
         magic = CIRCUIT_REQUEST if traps is None else GUARDED_CIRCUIT_REQUEST
@@ -119,9 +128,9 @@ class NativeCnf(NativeHiaJsonImage):
         if (magic != SPARSE_REQUEST or variables > SPARSE_VARIABLES or clauses > SPARSE_CLAUSES
                 or steps != budget or entries > SPARSE_ENTRIES or size != 40 + 2 * entries):
             raise RuntimeError('invalid HIA circuit encoding result')
-        if batch:
-            formula = struct.pack('<Q', BATCH_REQUEST) + formula[8:]
-        verdict, model, cost = self._solve_sparse_frame(formula, variables, steps, batch=batch)
+        if watched or batch:
+            formula = struct.pack('<Q', WATCHED_REQUEST if watched else BATCH_REQUEST) + formula[8:]
+        verdict, model, cost = self._solve_sparse_frame(formula, variables, steps)
         return verdict, model, cost, variables, clauses, formula
 
 

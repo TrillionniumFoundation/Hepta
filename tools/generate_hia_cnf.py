@@ -5,7 +5,8 @@ from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUI
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                   SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES,
-                                  SPARSE_WORKSPACE, STEP_LIMIT, WORKSPACE)
+                                  SPARSE_WORKSPACE, STEP_LIMIT, WATCHED_REQUEST, WATCH_HEADS,
+                                  WATCH_ROWS, WATCH_ROW_BYTES, WORKSPACE)
 from tools.generate_hia_artifact_publication import document
 
 
@@ -17,8 +18,8 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
     if length(source) < 32 or length(result) < 32:
         return INVALID
     magic = read64(source, 0)
-    if magic == SPARSE_REQUEST or magic == BATCH_REQUEST:
-        return solve_sparse(source, result, stack, magic == BATCH_REQUEST)
+    if magic == SPARSE_REQUEST or magic == BATCH_REQUEST or magic == WATCHED_REQUEST:
+        return solve_sparse(source, result, stack, magic)
     if magic == CIRCUIT_REQUEST or magic == GUARDED_CIRCUIT_REQUEST:
         return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
     if magic != REQUEST or length(stack) < WORKSPACE:
@@ -125,8 +126,8 @@ def write64(output:mutbuf, offset:u64, value:u64) -> u64:
         index = index + 1
     return 0
 
-def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, batch:bool) -> u32:
-    if length(source) < 40 or length(stack) < SPARSE_WORKSPACE + choose(batch, 8, 0):
+def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, magic:u64) -> u32:
+    if length(source) < 40 or length(stack) < SPARSE_WORKSPACE:
         return INVALID
     variables = read64(source, 8)
     clauses = read64(source, 16)
@@ -135,6 +136,10 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, batch:bool) -> u32
     if variables > SPARSE_VARIABLES or clauses > SPARSE_CLAUSES:
         return INVALID
     if entries > SPARSE_ENTRIES or budget > STEP_LIMIT or length(source) != 40 + 2 * entries:
+        return INVALID
+    if magic == WATCHED_REQUEST and length(stack) < WATCH_ROWS + 2 * clauses * WATCH_ROW_BYTES:
+        return INVALID
+    if magic == BATCH_REQUEST and length(stack) < SPARSE_WORKSPACE + 8:
         return INVALID
     if length(result) < 32 + ((variables + 7) >> 3):
         return INVALID
@@ -156,7 +161,186 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, batch:bool) -> u32
     while key < variables:
         store(stack, key, 0)
         key = key + 1
-    return search_sparse(source, result, stack, variables, budget, batch)
+    if magic == WATCHED_REQUEST:
+        return search_watched(source, result, stack, variables, budget)
+    return search_sparse(source, result, stack, variables, budget, magic == BATCH_REQUEST)
+
+def search_watched(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, budget:u64) -> u32:
+    head = 0
+    while head < 2 * variables + 2:
+        write64(stack, WATCH_HEADS + head * 8, 0)
+        head = head + 1
+    write64(stack, SPARSE_WORKSPACE, 0)
+    seeded = watch_seed(source, stack, budget)
+    steps = seeded >> 2
+    status = seeded & 3
+    if status != 0:
+        return reply_sparse(result, stack, variables, choose(status == 2, 2, 0), steps)
+    propagated = 0
+    depth = 0
+    while steps < budget:
+        trail = read_stack(stack, SPARSE_WORKSPACE)
+        observed = watch_propagate(source, stack, propagated, steps, budget)
+        steps = observed >> 2
+        status = observed & 3
+        if status == 1:
+            return reply_sparse(result, stack, variables, 0, steps)
+        decision = 2
+        if status == 0:
+            trail = read_stack(stack, SPARSE_WORKSPACE)
+            observed = watch_decision(source, stack, steps, budget)
+            steps = observed >> 17
+            decision = observed & 131071
+        if decision == 0:
+            return reply_sparse(result, stack, variables, 1, steps)
+        if decision == 1:
+            return reply_sparse(result, stack, variables, 0, steps)
+        if decision == 2:
+            if depth == 0:
+                return reply_sparse(result, stack, variables, 2, steps)
+            depth = depth - 1
+            mark = load_token(stack, DECISIONS + 4 * depth)
+            alternative = load_token(stack, DECISIONS + 4 * depth + 2)
+            trail = read_stack(stack, SPARSE_WORKSPACE)
+            while trail > mark:
+                trail = trail - 1
+                store(stack, load_token(stack, TRAIL + 2 * trail), 0)
+            write64(stack, SPARSE_WORKSPACE, mark)
+            propagated = mark
+            watch_enqueue(stack, alternative)
+        else:
+            # Try the observed polarity first; retain precisely its complement.
+            literal = decision & 32767
+            put_token(stack, DECISIONS + 4 * depth, trail)
+            put_token(stack, DECISIONS + 4 * depth + 2, literal ^ 1)
+            depth = depth + 1
+            propagated = trail
+            watch_enqueue(stack, literal)
+    return reply_sparse(result, stack, variables, 0, steps)
+
+def watch_enqueue(stack:mutbuf, literal:u64) -> u64:
+    variable = (literal >> 1) - 1
+    target = 1 + (literal & 1)
+    state = byte(stack, variable)
+    if state != 0:
+        return choose(state == target, 0, 2)
+    trail = read_stack(stack, SPARSE_WORKSPACE)
+    store(stack, variable, target)
+    put_token(stack, TRAIL + 2 * trail, variable)
+    write64(stack, SPARSE_WORKSPACE, trail + 1)
+    return 0
+
+def watch_row(token:u64) -> u64:
+    return WATCH_ROWS + (token - 1) * WATCH_ROW_BYTES
+
+def watch_link(source:readbuf, stack:mutbuf, link:u64, start:u64, end:u64, at:u64) -> u64:
+    row = watch_row(link)
+    head = WATCH_HEADS + 8 * read_token(source, at)
+    write64(stack, row, start)
+    write64(stack, row + 8, end)
+    write64(stack, row + 16, at)
+    write64(stack, row + 24, read_stack(stack, head))
+    write64(stack, head, link)
+    return 0
+
+def watch_seed(source:readbuf, stack:mutbuf, budget:u64) -> u64:
+    steps = 0
+    start = 40
+    link = 1
+    while start < length(source):
+        first = read_token(source, start)
+        at = start
+        second = 0
+        active = True
+        while active:
+            if steps == budget:
+                return (steps << 2) | 1
+            steps = steps + 1
+            literal = read_token(source, at)
+            if literal == 0:
+                active = False
+            else:
+                if second == 0 and literal != first:
+                    second = at
+                at = at + 2
+        if first == 0:
+            return (steps << 2) | 2
+        if second == 0:
+            if watch_enqueue(stack, first) != 0:
+                return (steps << 2) | 2
+        else:
+            watch_link(source, stack, link, start, at, start)
+            watch_link(source, stack, link + 1, start, at, second)
+        start = at + 2
+        link = link + 2
+    return steps << 2
+
+def watch_propagate(source:readbuf, stack:mutbuf, propagated:u64, steps:u64, budget:u64) -> u64:
+    cursor = propagated
+    while cursor < read_stack(stack, SPARSE_WORKSPACE):
+        variable = load_token(stack, TRAIL + 2 * cursor)
+        false_literal = 2 * (variable + 1) + (2 - byte(stack, variable))
+        previous = WATCH_HEADS + 8 * false_literal
+        while read_stack(stack, previous) != 0:
+            if steps == budget:
+                return (steps << 2) | 1
+            steps = steps + 1
+            link = read_stack(stack, previous)
+            row = watch_row(link)
+            sibling = watch_row(((link - 1) ^ 1) + 1)
+            other_literal = read_token(source, read_stack(stack, sibling + 16))
+            other_state = byte(stack, (other_literal >> 1) - 1)
+            if other_state == 1 + (other_literal & 1):
+                previous = row + 24
+            else:
+                start = read_stack(stack, row)
+                end = read_stack(stack, row + 8)
+                replacement = 0
+                while start < end and replacement == 0:
+                    if steps == budget:
+                        return (steps << 2) | 1
+                    steps = steps + 1
+                    literal = read_token(source, start)
+                    state = byte(stack, (literal >> 1) - 1)
+                    if literal != other_literal and state != 2 - (literal & 1):
+                        replacement = start
+                    start = start + 2
+                if replacement == 0:
+                    if watch_enqueue(stack, other_literal) != 0:
+                        return (steps << 2) | 2
+                    previous = row + 24
+                else:
+                    write64(stack, previous, read_stack(stack, row + 24))
+                    watch_link(source, stack, link, read_stack(stack, row), end, replacement)
+        cursor = cursor + 1
+    return steps << 2
+
+def watch_decision(source:readbuf, stack:mutbuf, steps:u64, budget:u64) -> u64:
+    # Search backward from the retained result constraint, where unresolved
+    # gates are typically closer to the observation than arbitrary input bits.
+    position = length(source)
+    choice = 0
+    satisfied = 1
+    while position > 40:
+        if steps == budget:
+            return (steps << 17) | 1
+        steps = steps + 1
+        position = position - 2
+        literal = read_token(source, position)
+        if literal == 0:
+            if satisfied == 0:
+                return (steps << 17) | choose(choice == 0, 2, 32768 + choice)
+            choice = 0
+            satisfied = 0
+        elif satisfied == 0:
+            state = byte(stack, (literal >> 1) - 1)
+            if state == 1 + (literal & 1):
+                satisfied = 1
+            elif state == 0 and choice == 0:
+                choice = literal
+    if satisfied == 0:
+        return (steps << 17) | choose(choice == 0, 2, 32768 + choice)
+    return steps << 17
 
 def search_sparse(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
                   budget:u64, batch:bool) -> u32:
@@ -732,6 +916,8 @@ def source_program():
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
                      TOO_LARGE=0xfffffffc, BATCH_REQUEST=BATCH_REQUEST, SPARSE_REQUEST=SPARSE_REQUEST,
+                     WATCHED_REQUEST=WATCHED_REQUEST, WATCH_HEADS=WATCH_HEADS,
+                     WATCH_ROWS=WATCH_ROWS, WATCH_ROW_BYTES=WATCH_ROW_BYTES,
                      SPARSE_REPLY=SPARSE_REPLY, SPARSE_CLAUSES=SPARSE_CLAUSES,
                      SPARSE_ENTRIES=SPARSE_ENTRIES, SPARSE_VARIABLES=SPARSE_VARIABLES,
                      SPARSE_WORKSPACE=SPARSE_WORKSPACE, DECISIONS=SPARSE_VARIABLES * 3,

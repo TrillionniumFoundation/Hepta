@@ -296,7 +296,8 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     remaining = int((deadline - time.monotonic()) * 1000)
     if circuit is not None and remaining > 0:
         step_limit = 750_000 if reduced_memory is not None else 200_000
-        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(step_limit, remaining * 100), batch=True)
+        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(step_limit, remaining * 100),
+                                   batch=True, watched=reduced_memory is not None)
         if solved is not None:
             result, assignment, steps, variables, clauses, formula = solved
             witness = circuit.witness(z, assignment, candidate) if result == SAT else None
@@ -321,7 +322,7 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
         return None
     variables = len(reduced.atoms)
     result, assignment, steps = cnf.solve_sparse(variables, reduced.clauses, steps=min(200_000, remaining * 100),
-                                                 batch=True)
+                                                 batch=True, watched=reduced_memory is not None)
     if result not in (SAT, UNSAT):
         return None
     witness = None

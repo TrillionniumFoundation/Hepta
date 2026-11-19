@@ -164,6 +164,36 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual((verdict, model), (UNSAT, 0))
         self.assertLess(cost, 10_000)
 
+    def test_watched_solver_handles_repeated_literals_and_undoes_only_the_dead_branch(self):
+        rng = random.Random(3017)
+        for variables in range(1, 7):
+            literals = range(2, 2 * variables + 2)
+            for index in range(240):
+                clauses = [[rng.choice(literals) for _ in range(rng.randrange(1, 6))]
+                           for _ in range(rng.randrange(1, 15))]
+                if index % 11 == 0:
+                    clauses.append([])
+                if index % 13 == 0:
+                    clauses.extend(([2, 3, 2, 2, 2], [3, 3, 2, 3, 3, 2, 2]))
+
+                def satisfies(bits):
+                    return all(any(bool(bits & 1 << ((token >> 1) - 1)) != bool(token & 1)
+                                   for token in clause) for clause in clauses)
+
+                verdict, model, _ = self.native.solve_sparse(variables, clauses, steps=100_000, watched=True)
+                expected = SAT if any(satisfies(bits) for bits in range(1 << variables)) else UNSAT
+                self.assertEqual(verdict, expected, (variables, clauses))
+                if verdict == SAT:
+                    self.assertTrue(satisfies(model))
+
+    def test_watched_solver_finishes_long_chains_in_both_clause_orders(self):
+        chain = [(2,), *((2 * index + 1, 2 * (index + 1)) for index in range(1, 4096)), (8193,)]
+        for clauses in (chain, chain[::-1]):
+            self.assertEqual(self.native.solve_sparse(4096, clauses, steps=24_573, watched=True),
+                             (UNKNOWN, 0, 24_573))
+            self.assertEqual(self.native.solve_sparse(4096, clauses, steps=50_000, watched=True),
+                             (UNSAT, 0, 24_574))
+
     def test_native_circuit_matches_boolean_truth_tables(self):
         rng = random.Random(393072)
         for _ in range(200):
