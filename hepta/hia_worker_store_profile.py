@@ -15,7 +15,9 @@ DIRECT_CALL_SCHEMA = 'hepta.hia.native-helpers.v9'
 DIRECT_REPEAT_SCHEMA = 'hepta.hia.native-helpers.v10'
 DIRECT_BATCH_SCHEMA = 'hepta.hia.native-helpers.v11'
 SEALED_PAGE_SCHEMA = 'hepta.hia.native-helpers.v12'
-DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, DIRECT_BATCH_SCHEMA, SEALED_PAGE_SCHEMA)
+TERMINAL_SCHEMA = 'hepta.hia.native-helpers.v13'
+PAGE_SCHEMAS = (SEALED_PAGE_SCHEMA, TERMINAL_SCHEMA)
+DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, DIRECT_BATCH_SCHEMA, *PAGE_SCHEMAS)
 OWNED_REFERENCE_SCHEMAS = (OWNED_REFERENCE_SCHEMA, *DIRECT_CALL_SCHEMAS)
 REFERENCE_SCHEMAS = (REFERENCE_SCHEMA, *OWNED_REFERENCE_SCHEMAS)
 SCHEMAS = (SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, *REFERENCE_SCHEMAS)
@@ -32,6 +34,8 @@ def profile_images(schema):
     if schema in (IMPORT_SCHEMA, *REFERENCE_SCHEMAS):
         from .hia_agent_candidate_native import IMPORT_EXECUTABLES
         result.update(IMPORT_EXECUTABLES)
+    if schema == TERMINAL_SCHEMA:
+        result['terminal_sha256'] = ('hia-worker-terminal', authority.MAX_IMAGE_BYTES)
     return result
 
 
@@ -44,7 +48,7 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'owned_reference_path', 'owned_reference_sha256'})
         if schema in DIRECT_CALL_SCHEMAS:
             reference_fields.update({'direct_call_path', 'direct_call_sha256'})
-        if schema == SEALED_PAGE_SCHEMA:
+        if schema in PAGE_SCHEMAS:
             reference_fields.update({'read_page_path', 'read_page_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
@@ -112,7 +116,7 @@ class NativeWorkerStoreBinding:
             self.native_owned_reference_executable = (owned.raw, pin)
         self.native_direct_call_executable = None
         self.native_direct_call_protocol = {
-            DIRECT_REPEAT_SCHEMA: 2, DIRECT_BATCH_SCHEMA: 3, SEALED_PAGE_SCHEMA: 3,
+            DIRECT_REPEAT_SCHEMA: 2, DIRECT_BATCH_SCHEMA: 3, SEALED_PAGE_SCHEMA: 3, TERMINAL_SCHEMA: 3,
         }.get(schema, 1)
         if schema in DIRECT_CALL_SCHEMAS:
             from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR
@@ -127,7 +131,7 @@ class NativeWorkerStoreBinding:
             self.snapshots.append((direct_call, MAX_IMAGE_BYTES))
             self.native_direct_call_executable = (direct_call.raw, pin)
         self.native_agent_read_page_executable = None
-        if schema == SEALED_PAGE_SCHEMA:
+        if schema in PAGE_SCHEMAS:
             from .hia_agent_read_page_native import NativeAgentReadPage, SELECTOR
 
             if SELECTOR not in self.selections or not authority._digest(record['read_page_sha256']):
@@ -140,6 +144,18 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone read page omits its exact pinned HIA image')
             self.snapshots.append((page, MAX_IMAGE_BYTES))
             self.native_agent_read_page_executable = page.raw
+        self.native_worker_terminal_executable = None
+        if schema == TERMINAL_SCHEMA:
+            from .hia_worker_request_native import NativeWorkerRequest, SELECTOR
+
+            if SELECTOR not in self.selections:
+                raise ValueError('standalone terminal requires its pinned HIA worker request image and executable')
+            terminal = captures['terminal_sha256']
+            manifest = str(Path(self.selections[SELECTOR]).resolve(strict=True))
+            owners = [image for key, image in self.images.items() if key[0] == manifest and key[3] is NativeWorkerRequest]
+            if len(owners) != 1 or not owners[0].matches_standalone(terminal.raw):
+                raise ValueError('standalone terminal omits its exact pinned HIA worker request image')
+            self.native_worker_terminal_executable = terminal.raw
         self._check_release()
 
     def check_owner(self):

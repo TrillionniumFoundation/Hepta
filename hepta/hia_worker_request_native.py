@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import ctypes
 from functools import partial
+import os
 import struct
+import subprocess
 import sys
 
 from .hia_agent_data_json_native import materialize_data
@@ -22,6 +24,7 @@ SCHEMA = 'hepta.hia.worker-request-native.v1'
 SELECTOR = 'HEPTA_HIA_WORKER_REQUEST_MANIFEST'
 MAX_BYTES = 8 * 1024 * 1024
 PRIVATE_BYTES = 16384
+TERMINAL_FRAME = struct.Struct('<8s4Q')
 
 ERRORS = {
     0xffffffef: ('E_HIA_FIELDS', 'worker request has missing or unknown fields'),
@@ -50,6 +53,9 @@ def buffer_sizes(size):
 
 
 class NativeWorkerRequest(NativeHiaJsonImage):
+    def matches_standalone(self, executable):
+        return executable.startswith(b'\x7fELF') and executable.count(self._mapping[:]) == 1
+
     def _run(self, raw, catalog=None, *, terminal=False):
         if type(raw) is not bytes or len(raw) > MAX_BYTES:
             raise ValueError('worker JSON must be bytes within 8 MiB')
@@ -60,7 +66,8 @@ class NativeWorkerRequest(NativeHiaJsonImage):
         source = ctypes.create_string_buffer(raw, max(1, len(raw)))
         output = ctypes.create_string_buffer(output_size)
         scratch = ctypes.create_string_buffer(scratch_size)
-        struct.pack_into('<2Q', scratch, 0, int(catalog is not None), sys.get_int_max_str_digits())
+        max_digits = sys.get_int_max_str_digits()
+        struct.pack_into('<2Q', scratch, 0, int(catalog is not None), max_digits)
         if catalog is not None:
             ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES + 64,
                            catalog.encode('ascii'), 64)
@@ -87,6 +94,22 @@ class NativeWorkerRequest(NativeHiaJsonImage):
             raise NativeRequestRejected(code, message, request)
         if terminal:
             request = materialize_data(arena, raw)
+            from .hia_native_helpers import pinned_worker_terminal_executable
+
+            executable = pinned_worker_terminal_executable()
+            if executable is not None:
+                admitted = raw
+
+                def terminal(identities, body):
+                    nonlocal admitted
+                    if admitted is None:
+                        raise ValueError('native worker terminal report was not admitted')
+                    _validate_terminal_body(body)
+                    pins = _terminal_pins(identities)
+                    payload, admitted = admitted, None
+                    return _standalone_terminal(executable, payload, catalog, max_digits, pins, body)
+
+                return request, terminal
             return request, partial(self._terminal, scratch)
         return ctypes.string_at(output, result), arena
 
@@ -108,14 +131,8 @@ class NativeWorkerRequest(NativeHiaJsonImage):
         return self._run(raw, catalog, terminal=True)
 
     def _terminal(self, scratch, identities, body):
-        if type(body) is not bytes or len(body) > MAX_BYTES:
-            raise ValueError('worker terminal JSON must be bytes within 8 MiB')
-        names = ('backend_sha256', 'worker_sha256')
-        if 'native_helpers_sha256' in identities:
-            names += ('native_helpers_sha256',)
-        pins = [identities[name].encode('ascii') for name in names]
-        if any(len(pin) != 64 for pin in pins):
-            raise ValueError('invalid terminal source identity')
+        _validate_terminal_body(body)
+        pins = _terminal_pins(identities)
         size = ctypes.sizeof(scratch)
         struct.pack_into('<Q', scratch, 0, 2)
         at = size - PRIVATE_BYTES + 520
@@ -129,6 +146,40 @@ class NativeWorkerRequest(NativeHiaJsonImage):
         if not 0 < result <= MAX_BYTES:
             raise ValueError('native worker terminal report was not admitted')
         return ctypes.string_at(output, result)
+
+
+def _validate_terminal_body(body):
+    if type(body) is not bytes or len(body) > MAX_BYTES:
+        raise ValueError('worker terminal JSON must be bytes within 8 MiB')
+
+
+def _terminal_pins(identities):
+    names = ('backend_sha256', 'worker_sha256')
+    if 'native_helpers_sha256' in identities:
+        names += ('native_helpers_sha256',)
+    pins = [identities[name].encode('ascii') for name in names]
+    if any(len(pin) != 64 for pin in pins):
+        raise ValueError('invalid terminal source identity')
+    return pins
+
+
+def _standalone_terminal(executable, request, catalog, max_digits, pins, body):
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    helpers = len(pins) - 2
+    header = TERMINAL_FRAME.pack(b'HIATRP01', len(request), len(body), max_digits, helpers)
+    header += catalog.encode('ascii') + b''.join(pins) + (b'\0' * 64 if not helpers else b'')
+    with (sealed_reference_bytes(executable) as program,
+          sealed_reference_bytes(header, request, body) as contents):
+        os.lseek(contents, 0, os.SEEK_SET)
+        child = subprocess.run(['/proc/self/fd/' + str(program)], stdin=contents,
+                               pass_fds=(program,), capture_output=True, env={'PATH': ''})
+    if child.returncode == 3 and not child.stdout and not child.stderr:
+        raise ValueError('E_HIA_EDIT: JSON encoding exceeds byte budget')
+    if (child.returncode or child.stderr or not 1 < len(child.stdout) <= MAX_BYTES + 1
+            or not child.stdout.endswith(b'\n')):
+        raise ValueError('native worker terminal report was not admitted')
+    return child.stdout[:-1]
 
 
 def installed_worker_request(manifest):

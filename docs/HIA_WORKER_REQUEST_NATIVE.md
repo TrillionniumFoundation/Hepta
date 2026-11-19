@@ -124,7 +124,12 @@ arguments, respectively.
 
 Only the process owner can attest the supplied source pins and service result.
 The renderer supplies no tool execution, service entry, journal access, or
-process authority. It is not selected by the current public Runtime worker.
+process authority. The v13 worker release binds the installed executable to
+the exact admitted request image and uses it for admitted terminal reports.
+The adapter hands the executable and its one-use input to the child as sealed
+file descriptors. A terminal refusal does not fall back to in-process
+rendering. v12 and prior bundles retain the original report path; the default
+public Runtime profile is unchanged.
 
 ## Agent schema selection
 

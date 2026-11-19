@@ -9,14 +9,15 @@ from hepta import hia_native_helpers as authority
 from hepta.hia_agent_store_native import capture_release_image, release_identity
 from hepta.hia_worker_store_profile import (
     DIRECT_BATCH_SCHEMA, DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA,
-    OWNED_REFERENCE_SCHEMA, REFERENCE_SCHEMA, SCHEMA, SEALED_PAGE_SCHEMA, profile_images,
+    OWNED_REFERENCE_SCHEMA, REFERENCE_SCHEMA, SCHEMA, SEALED_PAGE_SCHEMA, TERMINAL_SCHEMA, profile_images,
 )
 from tools.build_hia_worker_report import custody_path
 
 
 def bind_worker_store(output, base_bundle, release, *, edit_query=False, candidate_import=False,
                       portable=False, reference_executable=None, owned_reference_executable=None,
-                      direct_call_executable=None, direct_call_protocol=1, read_page_executable=None):
+                      direct_call_executable=None, direct_call_protocol=1, read_page_executable=None,
+                      standalone_terminal=False):
     base = authority._read(authority._path(str(Path(base_bundle).absolute())), authority.MAX_BUNDLE_BYTES)
     record = authority._decode(base.raw)
     if type(record) is not dict or record.get('schema') not in (
@@ -37,6 +38,8 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
         raise ValueError('standalone direct calls require both reference executables')
     if read_page_executable is not None and (direct_call_executable is None or direct_call_protocol != 3):
         raise ValueError('standalone read page requires the complete direct batch profile')
+    if standalone_terminal and read_page_executable is None:
+        raise ValueError('standalone terminal requires the complete sealed page profile')
     for name, executable, profile in (('reference', reference_executable, REFERENCE_SCHEMA),
                                       ('owned_reference', owned_reference_executable, OWNED_REFERENCE_SCHEMA),
                                       ('direct_call', direct_call_executable, direct_schema),
@@ -52,6 +55,8 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
         reference_fields[name + '_path'] = custody_path(output, captured.path, portable=portable)
         reference_fields[name + '_sha256'] = digest
         schema = profile
+    if standalone_terminal:
+        schema = TERMINAL_SCHEMA
     for field, (name, limit) in profile_images(schema).items():
         digest = sha256(authority._read(release / name, limit).raw).hexdigest()
         capture_release_image(release, name, limit, digest)
@@ -84,6 +89,7 @@ def main():
     parser.add_argument('--direct-call-executable', type=Path)
     parser.add_argument('--direct-call-protocol', type=int, choices=(1, 2, 3), default=1)
     parser.add_argument('--read-page-executable', type=Path)
+    parser.add_argument('--standalone-terminal', action='store_true')
     parser.add_argument('--portable', action='store_true',
                         help='require relative base/installation paths within the output directory')
     args = parser.parse_args()
@@ -93,7 +99,7 @@ def main():
                             owned_reference_executable=args.owned_reference_executable,
                             direct_call_executable=args.direct_call_executable,
                             direct_call_protocol=args.direct_call_protocol,
-                            read_page_executable=args.read_page_executable)
+                            read_page_executable=args.read_page_executable, standalone_terminal=args.standalone_terminal)
     print(json.dumps({'manifest': str(args.output.absolute()), 'sha256': pin}))
 
 

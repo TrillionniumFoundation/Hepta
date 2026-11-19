@@ -1172,6 +1172,7 @@ def support_contract(root=ROOT):
                 'native_owners': ['request admission', 'terminal response JSON shape and canonicalization',
                                   'authenticated terminal envelope'],
                 'opens_service_or_store': False,
+                'worker_release_selection': 'hepta.hia.native-helpers.v13; sealed request and terminal executable',
             },
             'service_journal_and_foreign_objects_are_hosted': True,
             'default_worker_changed': False,

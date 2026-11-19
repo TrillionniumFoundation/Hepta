@@ -325,6 +325,27 @@ class WorkerRequestAdversarialTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'exceeds byte budget'):
             terminal(pins, body)
 
+    def test_selected_terminal_consumes_only_the_admitted_wire_and_never_retries(self):
+        request = envelope()
+        raw = source_wire(request)
+        pins = {'backend_sha256': 'a' * 64, 'worker_sha256': 'b' * 64}
+        body = b'{"contract_version":"hia-agent-native-v1","request_id":"r","status":"completed","result":{}}'
+        failure = ValueError('standalone HIA terminal rejected the response')
+        with (patch('hepta.hia_native_helpers.pinned_worker_terminal_executable', return_value=b'pinned'),
+              patch.object(type(self.native), '_terminal', side_effect=AssertionError('in-process fallback')),
+              patch('hepta.hia_worker_request_native._standalone_terminal', side_effect=failure) as transport):
+            decoded, terminal = self.native.admit_for_terminal(raw, CATALOG)
+            decoded['tool'] = 'mutated foreign request'
+            with self.assertRaisesRegex(ValueError, 'standalone HIA terminal rejected'):
+                terminal(pins, body)
+            with self.assertRaisesRegex(ValueError, 'terminal report was not admitted'):
+                terminal(pins, body)
+        transport.assert_called_once()
+        executable, admitted, catalog, digits, observed_pins, observed_body = transport.call_args.args
+        self.assertEqual((executable, admitted, catalog, observed_body), (b'pinned', raw, CATALOG, body))
+        self.assertEqual(observed_pins, [b'a' * 64, b'b' * 64])
+        self.assertGreaterEqual(digits, 0)
+
 
 if __name__ == '__main__':
     unittest.main()
