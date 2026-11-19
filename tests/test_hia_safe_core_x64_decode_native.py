@@ -231,7 +231,9 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             final = Path(root) / 'candidate.so'
             compile_program_machine(image, program=core, output=final, linker='ld')
             retained = Path(root) / 'queries'
-            with patch.object(z3.Solver, 'check', side_effect=AssertionError('host SMT search entered')):
+            with (patch.object(z3.Solver, 'check', side_effect=AssertionError('host SMT search entered')),
+                  patch('hepta.hia_cnf_native.bitblast_goal',
+                        side_effect=AssertionError('host Boolean lowering entered'))):
                 report = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes(),
                                                      query_directory=retained)
                 ctx = z3.Context()
@@ -242,7 +244,7 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         self.assertEqual(report['source_identity']['native_cnf_image_sha256'], cnf.image_sha256)
         for row in report['obligations']:
             proof = row['native_cnf']
-            self.assertEqual(proof['method'], 'native_hia_cnf')
+            self.assertEqual(proof['method'], 'native_hia_circuit_cnf')
             self.assertEqual(proof['image_sha256'], cnf.image_sha256)
             self.assertEqual(len(proof['formula_sha256']), 64)
         self.assertEqual(verdict, 'sat')

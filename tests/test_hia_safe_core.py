@@ -387,6 +387,7 @@ class SafeCoreTests(unittest.TestCase):
             def reason_unknown(self): return "injected deadline"
         output = self.newpath("unknown.so")
         with (patch.object(z3, "Solver", Unknown),
+              patch.object(NativeCnf, "solve_circuit", return_value=None),
               patch.object(NativeCnf, "solve_sparse", return_value=(UNKNOWN, 0, 0))):
             with self.assertRaisesRegex(SafeCoreRejected, "unknown"):
                 build_safe_core(arithmetic("int.add.wrap", "u32"), output)

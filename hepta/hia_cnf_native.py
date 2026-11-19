@@ -209,6 +209,124 @@ def core_circuit(before, after, observed):
     return nodes, list(zip(*returned, strict=True)), guards
 
 
+
+@dataclass(frozen=True)
+class BitvectorCircuit:
+    nodes: tuple
+    returns: tuple
+    inputs: tuple
+
+    def witness(self, z3, bits, expression):
+        model = z3.Model(ctx=expression.ctx)
+        # Literal variable one is fixed to true by the native circuit ABI.
+        # Input nodes are a contiguous prefix before any derived gate.
+        offset = 1
+        for term, width in self.inputs:
+            value = (bits >> offset) & ((1 << width) - 1)
+            offset += width
+            translated = (z3.BoolVal(bool(value), ctx=expression.ctx) if z3.is_bool(term)
+                          else z3.BitVecVal(value, width, ctx=expression.ctx))
+            model.update_value(term, translated)
+        return model if z3.is_true(model.eval(expression, model_completion=True)) else None
+
+
+def _op_frame(z3, term, width, arguments, nodes, references):
+    kind = term.decl().kind()
+    if z3.is_true(term) or z3.is_false(term):
+        return 2, width, 0, 0, int(z3.is_true(term))
+    if z3.is_bv_value(term):
+        return 2, width, 0, 0, term.as_long()
+    source = tuple(references[item.get_id()] for item in arguments)
+    if kind == z3.Z3_OP_ITE and len(source) == 3:
+        return (11, width, *source)
+    if kind == z3.Z3_OP_EXTRACT and len(source) == 1:
+        _, low = term.decl().params()
+        return 26, width, source[0], 0, low
+    if kind in (z3.Z3_OP_SIGN_EXT, z3.Z3_OP_ZERO_EXT) and len(source) == 1:
+        return (31 if kind == z3.Z3_OP_SIGN_EXT else 30), width, source[0], 0, 0
+    if kind in (z3.Z3_OP_BSHL, z3.Z3_OP_BLSHR) and len(source) == 2:
+        if not z3.is_bv_value(arguments[1]):
+            return None
+        return (28 if kind == z3.Z3_OP_BSHL else 29), width, source[0], 0, arguments[1].as_long()
+    if kind in (z3.Z3_OP_NOT, z3.Z3_OP_BNOT) and len(source) == 1:
+        return 6, width, source[0], 0, 0
+    if kind == z3.Z3_OP_IMPLIES and len(source) == 2:
+        negated = len(nodes)
+        nodes.append((6, 1, source[0], 0, 0))
+        return 4, 1, negated, source[1], 0
+    if kind == z3.Z3_OP_BMUL and len(source) == 2:
+        # The foreign expression normalizer writes modular negation as a
+        # product by all-one bits. The admitted word circuit has subtraction.
+        if width == 1:
+            return None
+        for index, argument in enumerate(arguments):
+            if z3.is_bv_value(argument) and argument.as_long() == (1 << width) - 1:
+                zero = len(nodes)
+                nodes.append((2, width, 0, 0, 0))
+                return 10, width, zero, source[1 - index], 0
+        return None
+    binary = {
+        z3.Z3_OP_AND: 3, z3.Z3_OP_BAND: 3,
+        z3.Z3_OP_OR: 4, z3.Z3_OP_BOR: 4,
+        z3.Z3_OP_XOR: 5, z3.Z3_OP_BXOR: 5,
+        z3.Z3_OP_EQ: 7, z3.Z3_OP_DISTINCT: 8, z3.Z3_OP_BADD: 9, z3.Z3_OP_BSUB: 10,
+        z3.Z3_OP_ULT: 12, z3.Z3_OP_ULEQ: 13, z3.Z3_OP_UGT: 14, z3.Z3_OP_UGEQ: 15,
+        z3.Z3_OP_SLT: 16, z3.Z3_OP_SLEQ: 17, z3.Z3_OP_SGT: 18, z3.Z3_OP_SGEQ: 19,
+        z3.Z3_OP_CONCAT: 27,
+    }
+    op = binary.get(kind)
+    if op is None or len(source) < 2 or len(source) > 2 and op not in (3, 4, 5):
+        return None
+    if width == 1 and op in (9, 10) or 12 <= op <= 19 and nodes[source[0]][1] == 1:
+        return None
+    left = source[0]
+    for right in source[1:-1]:
+        nodes.append((op, width, left, right, 0))
+        left = len(nodes) - 1
+    return op, width, left, source[-1], 0
+
+
+def bitvector_circuit(z3, expression):
+    """Observe a finite typed DAG without asking the foreign library to bit-blast."""
+    if not z3.is_bool(expression):
+        return None
+    ordered, variables, seen = [], [], set()
+
+    def visit(term):
+        identity = term.get_id()
+        if identity in seen:
+            return True
+        seen.add(identity)
+        if len(seen) >= CIRCUIT_NODES or not z3.is_app(term):
+            return False
+        width = 1 if z3.is_bool(term) else term.size() if z3.is_bv(term) else 0
+        if not 1 <= width <= 64:
+            return False
+        children = tuple(term.children())
+        if not children and term.decl().kind() == z3.Z3_OP_UNINTERPRETED:
+            variables.append((term, width))
+            return True
+        if not all(visit(child) for child in children):
+            return False
+        ordered.append((term, width, children))
+        return True
+
+    if not visit(expression):
+        return None
+    references = {term.get_id(): index for index, (term, _) in enumerate(variables)}
+    nodes = [(1, width, 0, 0, 0) for _, width in variables]
+    for term, width, children in ordered:
+        record = _op_frame(z3, term, width, children, nodes, references)
+        if record is None or len(nodes) >= CIRCUIT_NODES - 1:
+            return None
+        references[term.get_id()] = len(nodes)
+        nodes.append(record)
+    result = references[expression.get_id()]
+    false = len(nodes)
+    nodes.append((2, 1, 0, 0, 0))
+    return BitvectorCircuit(tuple(nodes), ((result, false),), tuple(variables))
+
+
 @dataclass(frozen=True)
 class BooleanReduction:
     goal: object

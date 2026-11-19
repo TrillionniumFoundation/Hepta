@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from hepta.hia_cnf_native import (REPLY, REQUEST, SAT, SOURCE, SPARSE_REPLY, SPARSE_REQUEST,
                                   SPARSE_WORKSPACE, UNKNOWN, UNSAT, WORKSPACE,
-                                  bitblast_clauses, selected_cnf)
+                                  bitblast_clauses, bitvector_circuit, selected_cnf)
 from tests.test_hia_core_workspace_facts_native import vm_run
 from tools.generate_hia_cnf import source_program
 
@@ -115,6 +115,36 @@ class CnfInstalledTests(unittest.TestCase):
         long_chain.append((265,))
         self.assertEqual(self.native.solve_sparse(4096, long_chain, steps=100000)[0], UNSAT)
         self.assertEqual(self.native.solve_sparse(4096, long_chain, steps=32), (UNKNOWN, 0, 32))
+
+    def test_native_projection_handles_unaligned_bits_and_projects_witness(self):
+        import z3
+
+        ctx = z3.Context()
+        first = z3.BitVec('native_five_bits', 5, ctx=ctx)
+        second = z3.BitVec('native_three_bits', 3, ctx=ctx)
+        joined = z3.Concat(z3.Extract(4, 2, first), second)
+        expressions = (
+            (z3.LShR(joined << 2, 1), lambda a, b: (((a >> 2) * 8 + b) << 2 & 63) >> 1),
+            (z3.SignExt(3, second), lambda a, b: b | 56 if b & 4 else b),
+            (z3.ZeroExt(3, second), lambda a, b: b),
+            (z3.LShR(joined, 63), lambda a, b: 0),
+            (joined << 63, lambda a, b: 0),
+            (joined * 63, lambda a, b: (-((a >> 2) * 8 + b)) & 63),
+        )
+        for a, b in ((0, 0), (7, 3), (8, 4), (21, 5), (31, 7)):
+            for expr, independent in expressions:
+                result = independent(a, b)
+                premise = z3.And(first == a, second == b)
+                for formula, expected in ((z3.And(premise, expr == result), SAT),
+                                          (z3.And(premise, expr != result), UNSAT)):
+                    circuit = bitvector_circuit(z3, formula)
+                    self.assertIsNotNone(circuit)
+                    verdict, assignment, *_ = self.native.solve_circuit(circuit.nodes, circuit.returns, steps=200000)
+                    self.assertEqual(verdict, expected, (a, b, expr))
+                    if verdict == SAT:
+                        witness = circuit.witness(z3, assignment, formula)
+                        self.assertIsNotNone(witness)
+                        self.assertEqual((witness.eval(first).as_long(), witness.eval(second).as_long()), (a, b))
 
     def test_native_circuit_matches_boolean_truth_tables(self):
         rng = random.Random(393072)

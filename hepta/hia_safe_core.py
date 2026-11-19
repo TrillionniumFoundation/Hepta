@@ -148,10 +148,25 @@ def _solver_identity(z):
 
 def _native_obligation(z, cnf, expression, deadline):
     """Use HIA for a precise finite Boolean reduction when available."""
-    from .hia_cnf_native import SAT, UNSAT, bitblast_goal
+    from .hia_cnf_native import SAT, UNSAT, bitblast_goal, bitvector_circuit
 
     if cnf is None:
         return None
+    remaining = int((deadline - time.monotonic()) * 1000)
+    if remaining < 4:
+        return None
+    circuit = bitvector_circuit(z, z.simplify(expression))
+    remaining = int((deadline - time.monotonic()) * 1000)
+    if circuit is not None and remaining > 0:
+        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(200_000, remaining * 100))
+        if solved is not None:
+            result, assignment, steps, variables, clauses, formula = solved
+            witness = circuit.witness(z, assignment, expression) if result == SAT else None
+            if result == UNSAT or (result == SAT and witness is not None):
+                receipt = {"method": "native_hia_circuit_cnf", "image_sha256": cnf.image_sha256,
+                           "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
+                           "clauses": clauses, "steps": steps}
+                return ("sat" if result == SAT else "unsat"), witness, receipt
     remaining = int((deadline - time.monotonic()) * 1000)
     if remaining < 4:
         return None

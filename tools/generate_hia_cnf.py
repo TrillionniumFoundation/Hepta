@@ -310,9 +310,9 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, guarded:bool) 
     return encode_checked_circuit(source, output, scratch, nodes, returns, budget, guarded)
 
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
-    if width != 1 and width != 8 and width != 16 and width != 32 and width != 64:
+    if width == 0 or width > 64:
         return 0
-    if operation < 1 or operation > 25:
+    if operation < 1 or operation > 31:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -328,6 +328,19 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         if width != node_width(source, right) or width != node_width(source, immediate):
             return 0
         return 1
+    if operation == 26:
+        origin_width = node_width(source, left)
+        if right != 0 or immediate > origin_width:
+            return 0
+        return choose(width <= origin_width - immediate, 1, 0)
+    if operation == 27:
+        if right >= index or immediate != 0:
+            return 0
+        return choose(width == node_width(source, left) + node_width(source, right), 1, 0)
+    if operation == 28 or operation == 29:
+        return choose(right == 0 and width == node_width(source, left), 1, 0)
+    if operation == 30 or operation == 31:
+        return choose(right == 0 and immediate == 0 and width >= node_width(source, left), 1, 0)
     if immediate != 0:
         return 0
     if operation == 20 or operation == 21:
@@ -372,7 +385,9 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
         left = read64(source, origin + 16)
         right = read64(source, origin + 24)
         immediate = read64(source, origin + 32)
-        if operation == 7 or operation == 8:
+        if operation >= 26:
+            encode_projection(source, scratch, node, operation, width, left, right, immediate)
+        elif operation == 7 or operation == 8:
             delta = unequal_bits(output, scratch, left, right, node_width(source, left))
             if delta == 0:
                 return TOO_LARGE
@@ -433,6 +448,35 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
     write64(output, 24, budget)
     write64(output, 32, (size - 40) >> 1)
     return size
+
+def encode_projection(source:readbuf, scratch:mutbuf, node:u64, operation:u64, width:u64,
+                      left:u64, right:u64, immediate:u64) -> u64:
+    bit = 0
+    while bit < width:
+        token = 3
+        if operation == 26:
+            token = load_token(scratch, 32 + 128 * left + 2 * (bit + immediate))
+        elif operation == 27:
+            low_width = node_width(source, right)
+            if bit < low_width:
+                token = load_token(scratch, 32 + 128 * right + 2 * bit)
+            else:
+                token = load_token(scratch, 32 + 128 * left + 2 * (bit - low_width))
+        elif operation == 28:
+            if bit >= immediate:
+                token = load_token(scratch, 32 + 128 * left + 2 * (bit - immediate))
+        elif operation == 29:
+            if immediate < width and bit < width - immediate:
+                token = load_token(scratch, 32 + 128 * left + 2 * (bit + immediate))
+        else:
+            source_width = node_width(source, left)
+            if bit < source_width:
+                token = load_token(scratch, 32 + 128 * left + 2 * bit)
+            elif operation == 31:
+                token = load_token(scratch, 32 + 128 * left + 2 * (source_width - 1))
+        put_token(scratch, 32 + 128 * node + 2 * bit, token)
+        bit = bit + 1
+    return 1
 
 def encode_bit(output:mutbuf, scratch:mutbuf, operation:u64, left:u64, right:u64, immediate:u64, bit:u64) -> u64:
     if operation == 1:
