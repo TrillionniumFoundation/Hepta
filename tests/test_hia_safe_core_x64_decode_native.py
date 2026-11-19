@@ -210,6 +210,45 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                 policy.observed(False)
         self.assertEqual(steps, 65536)
 
+    def test_actual_native_solver_proves_scalar_artifact_without_host_search(self):
+        from pathlib import Path
+        import tempfile
+        import time
+
+        import z3
+        from hepta.hia_cnf_native import selected_cnf
+        from hepta.hia_program import verify_program
+        from hepta.hia_program_native import compile_program_machine, emit_program_machine
+        from hepta.hia_safe_core import _native_obligation, validate_safe_core_artifact
+        from tests.test_hia_program import arithmetic
+
+        cnf = selected_cnf()
+        if cnf is None:
+            self.skipTest('requires the installed HIA Boolean solver')
+        with tempfile.TemporaryDirectory(prefix='hia-safe-core-native-sat-') as root:
+            core = verify_program(arithmetic('int.mul.wrap', 'u32'))
+            image = emit_program_machine(core)
+            final = Path(root) / 'candidate.so'
+            compile_program_machine(image, program=core, output=final, linker='ld')
+            retained = Path(root) / 'queries'
+            with patch.object(z3.Solver, 'check', side_effect=AssertionError('host SMT search entered')):
+                report = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes(),
+                                                     query_directory=retained)
+                ctx = z3.Context()
+                word = z3.BitVec('native_witness_word', 64, ctx=ctx)
+                verdict, witness, receipt = _native_obligation(z3, cnf, word == 0xD00D, time.monotonic() + 4)
+        self.assertTrue(report['ok'], report)
+        self.assertEqual([row['result'] for row in report['obligations']], ['sat', *(['unsat'] * 4)])
+        self.assertEqual(report['source_identity']['native_cnf_image_sha256'], cnf.image_sha256)
+        for row in report['obligations']:
+            proof = row['native_cnf']
+            self.assertEqual(proof['method'], 'native_hia_cnf')
+            self.assertEqual(proof['image_sha256'], cnf.image_sha256)
+            self.assertEqual(len(proof['formula_sha256']), 64)
+        self.assertEqual(verdict, 'sat')
+        self.assertEqual(witness.eval(word).as_long(), 0xD00D)
+        self.assertEqual(receipt['image_sha256'], cnf.image_sha256)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 from array import array
+from dataclasses import dataclass
 import os
 import struct
 from sys import byteorder
@@ -208,7 +209,28 @@ def core_circuit(before, after, observed):
     return nodes, list(zip(*returned, strict=True)), guards
 
 
+@dataclass(frozen=True)
+class BooleanReduction:
+    goal: object
+    atoms: tuple
+    clauses: tuple
+
+    def witness(self, z3, bits, expression):
+        model = z3.Model(ctx=expression.ctx)
+        for index, atom in enumerate(self.atoms):
+            model.update_value(atom, z3.BoolVal(bool(bits & (1 << index)), ctx=expression.ctx))
+        projected = self.goal.convert_model(model)
+        # Never report a solver witness unless it satisfies the pre-reduction
+        # formula, including the actual caller premises.
+        return projected if z3.is_true(projected.eval(expression, model_completion=True)) else None
+
+
 def bitblast_clauses(z3, expression, *, timeout_ms):
+    reduced = bitblast_goal(z3, expression, timeout_ms=timeout_ms)
+    return None if reduced is None else (len(reduced.atoms), [list(clause) for clause in reduced.clauses])
+
+
+def bitblast_goal(z3, expression, *, timeout_ms):
     """Accept only the precise tactic result of one closed Boolean subgoal."""
     context = expression.ctx
     goal = z3.Goal(ctx=context)
@@ -224,6 +246,7 @@ def bitblast_clauses(z3, expression, *, timeout_ms):
     if goal.precision() != z3.Z3_GOAL_PRECISE or len(goal) > SPARSE_CLAUSES:
         return None
     variables = {}
+    atoms = []
     clauses = []
     entries = 0
     for clause in goal:
@@ -239,7 +262,12 @@ def bitblast_clauses(z3, expression, *, timeout_ms):
             if not (z3.is_const(atom) and z3.is_bool(atom)
                     and atom.decl().kind() == z3.Z3_OP_UNINTERPRETED):
                 return None
-            index = variables.setdefault(atom.get_id(), len(variables))
+            identity = atom.get_id()
+            index = variables.get(identity)
+            if index is None:
+                index = len(atoms)
+                variables[identity] = index
+                atoms.append(atom)
             if index >= SPARSE_VARIABLES:
                 return None
             tokens.append(2 * (index + 1) + int(negated))
@@ -247,5 +275,5 @@ def bitblast_clauses(z3, expression, *, timeout_ms):
             entries += len(tokens) + 1
             if entries > SPARSE_ENTRIES:
                 return None
-            clauses.append(tokens)
-    return len(variables), clauses
+            clauses.append(tuple(tokens))
+    return BooleanReduction(goal, tuple(atoms), tuple(clauses))

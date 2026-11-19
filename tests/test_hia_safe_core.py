@@ -375,6 +375,8 @@ class SafeCoreTests(unittest.TestCase):
 
     def test_solver_unknown_never_publishes_a_candidate(self):
         import z3
+        from hepta.hia_cnf_native import NativeCnf, UNKNOWN
+
         original = z3.Solver
         class Unknown:
             def __init__(self, *args, **kwargs): self.inner = original(*args, **kwargs)
@@ -384,7 +386,8 @@ class SafeCoreTests(unittest.TestCase):
             def check(self): return z3.unknown
             def reason_unknown(self): return "injected deadline"
         output = self.newpath("unknown.so")
-        with patch.object(z3, "Solver", Unknown):
+        with (patch.object(z3, "Solver", Unknown),
+              patch.object(NativeCnf, "solve_sparse", return_value=(UNKNOWN, 0, 0))):
             with self.assertRaisesRegex(SafeCoreRejected, "unknown"):
                 build_safe_core(arithmetic("int.add.wrap", "u32"), output)
         self.assertFalse(output.exists())

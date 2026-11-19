@@ -93,6 +93,7 @@ CHECKER_SOURCE_FILES = (
 
 def _checker_source_identity():
     """Identify the consumer models separately from producer provenance."""
+    from .hia_cnf_native import selected_cnf
     from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
     from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
 
@@ -101,6 +102,7 @@ def _checker_source_identity():
     helpers = (
         ('x64_decoder', 'hia_safe_core_x64_decode_native.py', selected_safe_core_x64_decode()),
         ('elf_inventory', 'hia_safe_core_elf_inventory_native.py', selected_safe_core_elf_inventory()),
+        ('cnf', 'hia_cnf_native.py', selected_cnf()),
     )
     for name, adapter, selected in helpers:
         if selected is not None:
@@ -142,6 +144,38 @@ def _solver_identity(z):
         digest.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
     return {"name": "Z3", "version": z.get_version_string(), "binding_sha256": digest.hexdigest(),
             "library_sha256": sha256(library.read_bytes()).hexdigest()}
+
+
+def _native_obligation(z, cnf, expression, deadline):
+    """Use HIA for a precise finite Boolean reduction when available."""
+    from .hia_cnf_native import SAT, UNSAT, bitblast_goal
+
+    if cnf is None:
+        return None
+    remaining = int((deadline - time.monotonic()) * 1000)
+    if remaining < 4:
+        return None
+    reduced = bitblast_goal(z, expression, timeout_ms=min(100, remaining // 4))
+    remaining = int((deadline - time.monotonic()) * 1000)
+    if reduced is None or remaining <= 0:
+        return None
+    variables = len(reduced.atoms)
+    result, assignment, steps = cnf.solve_sparse(variables, reduced.clauses, steps=min(200_000, remaining * 100))
+    if result not in (SAT, UNSAT):
+        return None
+    witness = None
+    if result == SAT:
+        try:
+            witness = reduced.witness(z, assignment, expression)
+        except z.Z3Exception:
+            return None
+        if witness is None:
+            return None
+    payload = json.dumps((variables, reduced.clauses), separators=(",", ":")).encode("ascii")
+    receipt = {"method": "native_hia_cnf", "image_sha256": cnf.image_sha256,
+               "formula_sha256": sha256(payload).hexdigest(),
+               "variables": variables, "clauses": len(reduced.clauses), "steps": steps}
+    return ("sat" if result == SAT else "unsat"), witness, receipt
 
 
 def _profile_configuration(profile_version):
@@ -378,6 +412,8 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     noncanonical encoding only when the independent model proves all obligations;
     producer receipts and matching hashes never substitute for that computation.
     """
+    from .hia_cnf_native import selected_cnf
+
     require(type(object_bytes) is bytes and type(final_bytes) is bytes,
             "object and final image must be immutable bytes, not mutable buffers or subclasses")
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000, "timeout must be 100..60000 milliseconds")
@@ -393,6 +429,7 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     except ImportError as exc:
         raise SafeCoreRejected("pinned z3-solver is unavailable; no proof result") from exc
     solver_identity = _solver_identity(z)
+    cnf = selected_cnf()
     retained = None
     if query_directory is not None:
         retained = Path(query_directory).absolute()
@@ -463,7 +500,6 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     for index, (name, violation, expected) in enumerate(obligations):
         check_deadline()
         solver = z.Solver(ctx=t.ctx)
-        solver.set(timeout=max(1, int((t.deadline - time.monotonic()) * 1000)))
         solver.add(*assumptions, violation)
         query_bytes = (solver.sexpr() + "\n(check-sat)\n").encode()
         require(len(query_bytes) <= 16 * 1024 * 1024, "SMT query byte budget exceeded")
@@ -473,9 +509,18 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
             with (retained / filename).open("xb") as stream:
                 stream.write(query_bytes)
         started = time.monotonic()
-        result = str(solver.check())
+        native = _native_obligation(z, cnf, z.And(*assumptions, violation), t.deadline)
+        if native is None:
+            check_deadline()
+            solver.set(timeout=max(1, int((t.deadline - time.monotonic()) * 1000)))
+            result = str(solver.check())
+            witness = None
+        else:
+            result, witness, receipt = native
         reports.append({"name": name, "result": result, "expected": expected,
                         "query_sha256": query_hash, "elapsed_seconds": time.monotonic() - started})
+        if native is not None:
+            reports[-1]["native_cnf"] = receipt
         if retained is not None:
             reports[-1]["query_file"] = filename
             (retained / (filename + ".result.json")).write_text(json.dumps(reports[-1], indent=2) + "\n")
@@ -483,7 +528,7 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
         if result != expected:
             counterexample = None
             if result == "sat":
-                model = solver.model()
+                model = solver.model() if native is None else witness
                 counterexample = {"abi_words": [model.eval(v, model_completion=True).as_long() for v in t.words],
                                   "initial_rsp": model.eval(machine.sp, model_completion=True).as_long(),
                                   "obligation": name}
