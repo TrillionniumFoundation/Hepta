@@ -156,8 +156,10 @@ class _FiniteCallerMemory:
 
     def __init__(self, z, decoder, initial, deadline):
         self.z, self.decoder, self.initial, self.deadline = z, decoder, initial, deadline
+        # Keep the source ASTs alive: the solver may recycle the numeric IDs
+        # of temporary expressions after word/array substitution.
         self.scalars = {}
-        self.array_indices = {initial.get_id(): 0}
+        self.array_indices = {initial: 0}
         self.rows = [(0, 0, 0)]
         self.effects = [()]
         self.reads = {}
@@ -182,9 +184,8 @@ class _FiniteCallerMemory:
 
     def scalar(self, term):
         z = self.z
-        identity = term.get_id()
-        if identity in self.scalars:
-            return self.scalars[identity]
+        if term in self.scalars:
+            return self.scalars[term]
         if len(self.scalars) >= 1024 or time.monotonic() >= self.deadline or not z.is_app(term):
             raise _MemoryReductionUnavailable
         if not (z.is_bool(term) or z.is_bv(term)):
@@ -212,16 +213,15 @@ class _FiniteCallerMemory:
             value = z.substitute(term, *changes) if changes else term
         if len(self.scalars) >= 1024:
             raise _MemoryReductionUnavailable
-        self.scalars[identity] = value
+        self.scalars[term] = value
         return value
 
     def array(self, term):
         from .hia_safe_core_x64_decode_native import MEMORY_GRAPH_ROWS
 
         z = self.z
-        identity = term.get_id()
-        if identity in self.array_indices:
-            return self.array_indices[identity]
+        if term in self.array_indices:
+            return self.array_indices[term]
         if not z.is_app(term) or len(self.rows) >= MEMORY_GRAPH_ROWS or time.monotonic() >= self.deadline:
             raise _MemoryReductionUnavailable
         kind = term.decl().kind()
@@ -240,7 +240,7 @@ class _FiniteCallerMemory:
         index = len(self.rows)
         if index >= MEMORY_GRAPH_ROWS:
             raise _MemoryReductionUnavailable
-        self.array_indices[identity] = index
+        self.array_indices[term] = index
         self.rows.append(row)
         self.effects.append(effect)
         return index
@@ -295,9 +295,10 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     circuit = bitvector_circuit(z, candidate)
     remaining = int((deadline - time.monotonic()) * 1000)
     if circuit is not None and remaining > 0:
-        step_limit = 750_000 if reduced_memory is not None else 200_000
-        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(step_limit, remaining * 100),
-                                   batch=True, watched=reduced_memory is not None)
+        learning = memory is not None
+        steps = (min(4_000_000, remaining * 500) if reduced_memory is not None
+                 else min(200_000, remaining * 100))
+        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=steps, batch=True, learning=learning)
         if solved is not None:
             result, assignment, steps, variables, clauses, formula = solved
             witness = circuit.witness(z, assignment, candidate) if result == SAT else None
@@ -309,6 +310,8 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
                 receipt = {"method": "native_hia_circuit_cnf", "image_sha256": cnf.image_sha256,
                            "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
                            "clauses": clauses, "steps": steps}
+                if learning:
+                    receipt["search"] = "native_hia_conflict_learning"
                 if reduced_memory is not None:
                     receipt["caller_memory"] = "native_hia_finite_byte_array"
                 return ("sat" if result == SAT else "unsat"), witness, receipt

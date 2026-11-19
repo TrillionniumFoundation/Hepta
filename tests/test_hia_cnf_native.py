@@ -180,19 +180,22 @@ class CnfInstalledTests(unittest.TestCase):
                     return all(any(bool(bits & 1 << ((token >> 1) - 1)) != bool(token & 1)
                                    for token in clause) for clause in clauses)
 
-                verdict, model, _ = self.native.solve_sparse(variables, clauses, steps=100_000, watched=True)
                 expected = SAT if any(satisfies(bits) for bits in range(1 << variables)) else UNSAT
-                self.assertEqual(verdict, expected, (variables, clauses))
-                if verdict == SAT:
-                    self.assertTrue(satisfies(model))
+                for learning in (False, True):
+                    verdict, model, _ = self.native.solve_sparse(variables, clauses, steps=100_000,
+                                                                 watched=True, learning=learning)
+                    self.assertEqual(verdict, expected, (variables, clauses, learning))
+                    if verdict == SAT:
+                        self.assertTrue(satisfies(model))
 
     def test_watched_solver_finishes_long_chains_in_both_clause_orders(self):
         chain = [(2,), *((2 * index + 1, 2 * (index + 1)) for index in range(1, 4096)), (8193,)]
         for clauses in (chain, chain[::-1]):
-            self.assertEqual(self.native.solve_sparse(4096, clauses, steps=24_573, watched=True),
-                             (UNKNOWN, 0, 24_573))
-            self.assertEqual(self.native.solve_sparse(4096, clauses, steps=50_000, watched=True),
-                             (UNSAT, 0, 24_574))
+            for learning in (False, True):
+                self.assertEqual(self.native.solve_sparse(4096, clauses, steps=24_573, watched=True,
+                                                          learning=learning), (UNKNOWN, 0, 24_573))
+                self.assertEqual(self.native.solve_sparse(4096, clauses, steps=50_000, watched=True,
+                                                          learning=learning), (UNSAT, 0, 24_574))
 
     def test_native_circuit_matches_boolean_truth_tables(self):
         rng = random.Random(393072)

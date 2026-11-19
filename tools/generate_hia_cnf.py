@@ -4,6 +4,9 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
+                                 LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
+                                 LEARNING_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
+                                 LEARNING_ORDER, LEARNING_HEAD, LEARNING_PHASE,
                                   SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES,
                                   SPARSE_WORKSPACE, STEP_LIMIT, WATCHED_REQUEST, WATCH_HEADS,
                                   WATCH_ROWS, WATCH_ROW_BYTES, WORKSPACE)
@@ -18,7 +21,7 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
     if length(source) < 32 or length(result) < 32:
         return INVALID
     magic = read64(source, 0)
-    if magic == SPARSE_REQUEST or magic == BATCH_REQUEST or magic == WATCHED_REQUEST:
+    if magic == SPARSE_REQUEST or magic == BATCH_REQUEST or magic == WATCHED_REQUEST or magic == LEARNING_REQUEST:
         return solve_sparse(source, result, stack, magic)
     if magic == CIRCUIT_REQUEST or magic == GUARDED_CIRCUIT_REQUEST:
         return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
@@ -139,6 +142,8 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, magic:u64) -> u32:
         return INVALID
     if magic == WATCHED_REQUEST and length(stack) < WATCH_ROWS + 2 * clauses * WATCH_ROW_BYTES:
         return INVALID
+    if magic == LEARNING_REQUEST and length(stack) < WATCH_ROWS + 2 * (clauses + LEARNED_CLAUSES) * WATCH_ROW_BYTES + LEARNING_BYTES:
+        return INVALID
     if magic == BATCH_REQUEST and length(stack) < SPARSE_WORKSPACE + 8:
         return INVALID
     if length(result) < 32 + ((variables + 7) >> 3):
@@ -161,11 +166,11 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, magic:u64) -> u32:
     while key < variables:
         store(stack, key, 0)
         key = key + 1
-    if magic == WATCHED_REQUEST:
-        return search_watched(source, result, stack, variables, budget)
+    if magic == WATCHED_REQUEST or magic == LEARNING_REQUEST:
+        return search_watched(source, result, stack, variables, budget, magic == LEARNING_REQUEST)
     return search_sparse(source, result, stack, variables, budget, magic == BATCH_REQUEST)
 
-def search_watched(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, budget:u64) -> u32:
+def search_watched(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, budget:u64, learning:bool) -> u32:
     head = 0
     while head < 2 * variables + 2:
         write64(stack, WATCH_HEADS + head * 8, 0)
@@ -176,13 +181,15 @@ def search_watched(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, b
     status = seeded & 3
     if status != 0:
         return reply_sparse(result, stack, variables, choose(status == 2, 2, 0), steps)
+    if learning:
+        return search_learning(source, result, stack, variables, budget, steps)
     propagated = 0
     depth = 0
     while steps < budget:
         trail = read_stack(stack, SPARSE_WORKSPACE)
-        observed = watch_propagate(source, stack, propagated, steps, budget)
-        steps = observed >> 2
-        status = observed & 3
+        observed = watch_propagate(source, stack, propagated, steps, budget, 0)
+        steps = observed >> 18
+        status = observed & 262143
         if status == 1:
             return reply_sparse(result, stack, variables, 0, steps)
         decision = 2
@@ -233,9 +240,15 @@ def watch_enqueue(stack:mutbuf, literal:u64) -> u64:
 def watch_row(token:u64) -> u64:
     return WATCH_ROWS + (token - 1) * WATCH_ROW_BYTES
 
+def watched_literal(source:readbuf, stack:mutbuf, position:u64) -> u64:
+    if position < length(source):
+        return read_token(source, position)
+    aux = length(stack) - LEARNING_BYTES
+    return load_token(stack, aux + LEARNING_TOKENS + position - length(source))
+
 def watch_link(source:readbuf, stack:mutbuf, link:u64, start:u64, end:u64, at:u64) -> u64:
     row = watch_row(link)
-    head = WATCH_HEADS + 8 * read_token(source, at)
+    head = WATCH_HEADS + 8 * watched_literal(source, stack, at)
     write64(stack, row, start)
     write64(stack, row + 8, end)
     write64(stack, row + 16, at)
@@ -275,7 +288,7 @@ def watch_seed(source:readbuf, stack:mutbuf, budget:u64) -> u64:
         link = link + 2
     return steps << 2
 
-def watch_propagate(source:readbuf, stack:mutbuf, propagated:u64, steps:u64, budget:u64) -> u64:
+def watch_propagate(source:readbuf, stack:mutbuf, propagated:u64, steps:u64, budget:u64, depth:u64) -> u64:
     cursor = propagated
     while cursor < read_stack(stack, SPARSE_WORKSPACE):
         variable = load_token(stack, TRAIL + 2 * cursor)
@@ -283,12 +296,12 @@ def watch_propagate(source:readbuf, stack:mutbuf, propagated:u64, steps:u64, bud
         previous = WATCH_HEADS + 8 * false_literal
         while read_stack(stack, previous) != 0:
             if steps == budget:
-                return (steps << 2) | 1
+                return (steps << 18) | 1
             steps = steps + 1
             link = read_stack(stack, previous)
             row = watch_row(link)
             sibling = watch_row(((link - 1) ^ 1) + 1)
-            other_literal = read_token(source, read_stack(stack, sibling + 16))
+            other_literal = watched_literal(source, stack, read_stack(stack, sibling + 16))
             other_state = byte(stack, (other_literal >> 1) - 1)
             if other_state == 1 + (other_literal & 1):
                 previous = row + 24
@@ -298,22 +311,25 @@ def watch_propagate(source:readbuf, stack:mutbuf, propagated:u64, steps:u64, bud
                 replacement = 0
                 while start < end and replacement == 0:
                     if steps == budget:
-                        return (steps << 2) | 1
+                        return (steps << 18) | 1
                     steps = steps + 1
-                    literal = read_token(source, start)
+                    literal = watched_literal(source, stack, start)
                     state = byte(stack, (literal >> 1) - 1)
                     if literal != other_literal and state != 2 - (literal & 1):
                         replacement = start
                     start = start + 2
                 if replacement == 0:
-                    if watch_enqueue(stack, other_literal) != 0:
-                        return (steps << 2) | 2
+                    if other_state != 0:
+                        return (steps << 18) | (link + 2)
+                    watch_enqueue(stack, other_literal)
+                    if depth != 0:
+                        learn_cause(stack, other_literal, depth, link)
                     previous = row + 24
                 else:
                     write64(stack, previous, read_stack(stack, row + 24))
                     watch_link(source, stack, link, read_stack(stack, row), end, replacement)
         cursor = cursor + 1
-    return steps << 2
+    return steps << 18
 
 def watch_decision(source:readbuf, stack:mutbuf, steps:u64, budget:u64) -> u64:
     # Search backward from the retained result constraint, where unresolved
@@ -341,6 +357,220 @@ def watch_decision(source:readbuf, stack:mutbuf, steps:u64, budget:u64) -> u64:
     if satisfied == 0:
         return (steps << 17) | choose(choice == 0, 2, 32768 + choice)
     return steps << 17
+
+def learn_cause(stack:mutbuf, literal:u64, depth:u64, reason:u64) -> u64:
+    aux = length(stack) - LEARNING_BYTES
+    variable = (literal >> 1) - 1
+    put_token(stack, aux + 2 * variable, depth)
+    write64(stack, aux + LEARNING_REASONS + 8 * variable, reason)
+    return 0
+
+def init_learning(stack:mutbuf, aux:u64, variables:u64) -> u64:
+    order = aux + LEARNING_ORDER
+    first = choose(variables == 0, 0, 1)
+    put_token(stack, aux + LEARNING_HEAD, first)
+    put_token(stack, aux + LEARNING_HEAD + 2, first)
+    variable = 0
+    while variable < variables:
+        put_token(stack, aux + 2 * variable, 0)
+        put_token(stack, aux + LEARNING_SEEN + 2 * variable, 0)
+        store(stack, aux + LEARNING_PHASE + variable, 0)
+        index = variable + 1
+        put_token(stack, order + 4 * index, index - 1)
+        put_token(stack, order + 4 * index + 2, choose(index == variables, 0, index + 1))
+        variable = variable + 1
+    return 0
+
+def promote_learning(stack:mutbuf, aux:u64, index:u64) -> u64:
+    order = aux + LEARNING_ORDER
+    head = load_token(stack, aux + LEARNING_HEAD)
+    if head == index:
+        return 0
+    row = order + 4 * index
+    previous = load_token(stack, row)
+    next_index = load_token(stack, row + 2)
+    put_token(stack, order + 4 * previous + 2, next_index)
+    if next_index != 0:
+        put_token(stack, order + 4 * next_index, previous)
+    put_token(stack, order + 4 * head, index)
+    put_token(stack, row, 0)
+    put_token(stack, row + 2, head)
+    put_token(stack, aux + LEARNING_HEAD, index)
+    return 0
+
+def choose_learning(stack:mutbuf, aux:u64, steps:u64, budget:u64) -> u64:
+    index = load_token(stack, aux + LEARNING_HEAD + 2)
+    order = aux + LEARNING_ORDER
+    while index != 0:
+        if steps == budget:
+            return (steps << 17) | 1
+        steps = steps + 1
+        if byte(stack, index - 1) == 0:
+            put_token(stack, aux + LEARNING_HEAD + 2, load_token(stack, order + 4 * index + 2))
+            return (steps << 17) | 32768 | (2 * index + byte(stack, aux + LEARNING_PHASE + index - 1))
+        index = load_token(stack, order + 4 * index + 2)
+    return steps << 17
+
+def search_learning(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
+                    budget:u64, steps:u64) -> u32:
+    aux = length(stack) - LEARNING_BYTES
+    init_learning(stack, aux, variables)
+    propagated = 0
+    depth = 0
+    learned = 0
+    position = length(source)
+    while steps < budget:
+        observed = watch_propagate(source, stack, propagated, steps, budget, depth)
+        steps = observed >> 18
+        status = observed & 262143
+        if status == 1:
+            return reply_sparse(result, stack, variables, 0, steps)
+        trail = read_stack(stack, SPARSE_WORKSPACE)
+        if status == 0:
+            pick = choose_learning(stack, aux, steps, budget)
+            steps = pick >> 17
+            literal = pick & 32767
+            if literal < 2:
+                return reply_sparse(result, stack, variables, literal ^ 1, steps)
+            if (pick & 32768) == 0 or depth >= variables:
+                return INVALID
+            put_token(stack, DECISIONS + 4 * depth, trail)
+            depth = depth + 1
+            propagated = trail
+            watch_enqueue(stack, literal)
+            learn_cause(stack, literal, depth, 0)
+        else:
+            if depth == 0:
+                return reply_sparse(result, stack, variables, 2, steps)
+            # Exhausted learning storage is not a conclusive result.
+            if learned == LEARNED_CLAUSES:
+                return reply_sparse(result, stack, variables, 0, budget)
+            level_and_stamp = (depth << 13) | (learned + 1)
+            analyzed = analyze_conflict(source, stack, level_and_stamp, status - 2, steps, budget)
+            steps = analyzed >> 26
+            count = analyzed & 8191
+            if count == 0 or position + 2 * count > length(source) + 2 * LEARNED_ENTRIES:
+                return reply_sparse(result, stack, variables, 0, budget)
+            depth = (analyzed >> 13) & 8191
+            mark = load_token(stack, DECISIONS + 4 * depth)
+            while trail > mark:
+                trail = trail - 1
+                popped = load_token(stack, TRAIL + 2 * trail)
+                store(stack, aux + LEARNING_PHASE + popped, byte(stack, popped) - 1)
+                store(stack, popped, 0)
+                put_token(stack, aux + 2 * popped, 0)
+            put_token(stack, aux + LEARNING_HEAD + 2, load_token(stack, aux + LEARNING_HEAD))
+            write64(stack, SPARSE_WORKSPACE, mark)
+            propagated = mark
+            link = 1 + 2 * (read64(source, 16) + learned)
+            if count > 1:
+                position = publish_learned(source, stack, position, count, link)
+            else:
+                link = 0
+            literal = load_token(stack, aux + LEARNING_TEMP)
+            if watch_enqueue(stack, literal) != 0:
+                return INVALID
+            learn_cause(stack, literal, depth, link)
+            learned = learned + 1
+    return reply_sparse(result, stack, variables, 0, budget)
+
+def analyze_conflict(source:readbuf, stack:mutbuf, level_and_stamp:u64, link:u64,
+                     steps:u64, budget:u64) -> u64:
+    aux = length(stack) - LEARNING_BYTES
+    depth = level_and_stamp >> 13
+    stamp = level_and_stamp & 8191
+    seen = aux + LEARNING_SEEN
+    literals = aux + LEARNING_TEMP
+    # The low three 13-bit fields hold unresolved variables at this level,
+    # learned literal count, and the highest earlier-level literal's index.
+    # All fit 4096 variables; the remaining high bits hold the work count.
+    progress = (steps << 39) | 8192
+    pivot = 65535
+    trail = read_stack(stack, SPARSE_WORKSPACE)
+    while link != 0:
+        progress = analyze_clause(source, stack, link, (level_and_stamp << 16) | pivot, progress, budget)
+        if progress == 0:
+            return 0
+        steps = progress >> 39
+        # Walk the implication trail backward to the first unique
+        # implication point. Repeated literals are marked once per conflict.
+        found = False
+        while trail != 0 and found == False:
+            if steps == budget:
+                return 0
+            steps = steps + 1
+            trail = trail - 1
+            pivot = load_token(stack, TRAIL + 2 * trail)
+            found = load_token(stack, aux + 2 * pivot) == depth and load_token(stack, seen + 2 * pivot) == stamp
+        if found == False or (progress & 8191) == 0:
+            return 0
+        progress = (steps << 39) | ((progress & 549755813887) - 1)
+        if (progress & 8191) == 0:
+            put_token(stack, literals, 2 * (pivot + 1) + 2 - byte(stack, pivot))
+            second = (progress >> 26) & 8191
+            backjump = learned_level(stack, aux, second)
+            if second > 1:
+                saved = load_token(stack, literals + 2)
+                put_token(stack, literals + 2, load_token(stack, literals + 2 * second))
+                put_token(stack, literals + 2 * second, saved)
+            return (steps << 26) | (backjump << 13) | ((progress >> 13) & 8191)
+        link = read_stack(stack, aux + LEARNING_REASONS + 8 * pivot)
+    return 0
+
+def learned_level(stack:mutbuf, aux:u64, index:u64) -> u64:
+    if index == 0:
+        return 0
+    literal = load_token(stack, aux + LEARNING_TEMP + 2 * index)
+    return load_token(stack, aux + 2 * ((literal >> 1) - 1))
+
+def analyze_clause(source:readbuf, stack:mutbuf, link:u64, phase:u64,
+                   progress:u64, budget:u64) -> u64:
+    row = watch_row(link)
+    position = read_stack(stack, row)
+    end = read_stack(stack, row + 8)
+    aux = length(stack) - LEARNING_BYTES
+    while position < end:
+        if (progress >> 39) == budget:
+            return 0
+        progress = progress + 549755813888
+        literal = watched_literal(source, stack, position)
+        variable = (literal >> 1) - 1
+        level = load_token(stack, aux + 2 * variable)
+        stamp = (phase >> 16) & 8191
+        if variable != (phase & 65535) and level != 0 and load_token(stack, aux + LEARNING_SEEN + 2 * variable) != stamp:
+            put_token(stack, aux + LEARNING_SEEN + 2 * variable, stamp)
+            promote_learning(stack, aux, variable + 1)
+            progress = note_learned(stack, aux, literal, level, phase >> 29, progress)
+            if progress == 0:
+                return 0
+        position = position + 2
+    return progress
+
+def note_learned(stack:mutbuf, aux:u64, literal:u64, level:u64, depth:u64, progress:u64) -> u64:
+    if level == depth:
+        return progress + 1
+    count = (progress >> 13) & 8191
+    if count >= SPARSE_VARIABLES:
+        return 0
+    second = (progress >> 26) & 8191
+    if level > learned_level(stack, aux, second):
+        progress = progress ^ ((second ^ count) << 26)
+    put_token(stack, aux + LEARNING_TEMP + 2 * count, literal)
+    return progress + 8192
+
+def publish_learned(source:readbuf, stack:mutbuf, position:u64, count:u64, link:u64) -> u64:
+    # Position is in one logical address space. Learned literals occupy a
+    # disjoint scratch region beyond the end of the original frame.
+    aux = length(stack) - LEARNING_BYTES
+    destination = aux + LEARNING_TOKENS + position - length(source)
+    index = 0
+    while index < count:
+        put_token(stack, destination + 2 * index, load_token(stack, aux + LEARNING_TEMP + 2 * index))
+        index = index + 1
+    end = position + 2 * count
+    watch_link(source, stack, link, position, end, position)
+    watch_link(source, stack, link + 1, position, end, position + 2)
+    return end
 
 def search_sparse(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
                   budget:u64, batch:bool) -> u32:
@@ -918,6 +1148,11 @@ def source_program():
                      TOO_LARGE=0xfffffffc, BATCH_REQUEST=BATCH_REQUEST, SPARSE_REQUEST=SPARSE_REQUEST,
                      WATCHED_REQUEST=WATCHED_REQUEST, WATCH_HEADS=WATCH_HEADS,
                      WATCH_ROWS=WATCH_ROWS, WATCH_ROW_BYTES=WATCH_ROW_BYTES,
+                     LEARNED_CLAUSES=LEARNED_CLAUSES, LEARNED_ENTRIES=LEARNED_ENTRIES,
+                     LEARNING_REQUEST=LEARNING_REQUEST, LEARNING_BYTES=LEARNING_BYTES,
+                     LEARNING_REASONS=LEARNING_REASONS, LEARNING_SEEN=LEARNING_SEEN,
+                     LEARNING_TEMP=LEARNING_TEMP, LEARNING_TOKENS=LEARNING_TOKENS,
+                     LEARNING_ORDER=LEARNING_ORDER, LEARNING_HEAD=LEARNING_HEAD, LEARNING_PHASE=LEARNING_PHASE,
                      SPARSE_REPLY=SPARSE_REPLY, SPARSE_CLAUSES=SPARSE_CLAUSES,
                      SPARSE_ENTRIES=SPARSE_ENTRIES, SPARSE_VARIABLES=SPARSE_VARIABLES,
                      SPARSE_WORKSPACE=SPARSE_WORKSPACE, DECISIONS=SPARSE_VARIABLES * 3,

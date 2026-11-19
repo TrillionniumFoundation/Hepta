@@ -266,6 +266,34 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'memory graph'):
                 self.native.possible_memory_writes(rows, 0, len(rows) - 1)
 
+    def test_native_learning_discharges_the_guarded_update_memory_obligation(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        from hepta.hia_cnf_native import selected_cnf
+        from hepta.hia_safe_core import build_safe_core
+        from tests.test_hia_safe_core import guarded_update
+
+        cnf = selected_cnf()
+        if cnf is None:
+            self.skipTest('requires the installed HIA Boolean solver')
+        with TemporaryDirectory(prefix='hia-safe-core-guarded-cnf-') as root:
+            for extent in (64, 4096):
+                with self.subTest(extent=extent):
+                    destination = Path(root) / f'guarded-{extent}.so'
+                    report = build_safe_core(guarded_update(), destination, foreign_extent=extent)
+                    self.assertTrue(report['ok'], report)
+                    self.assertTrue(destination.is_file())
+                    obligation = report['validation']['obligations'][-1]
+                    self.assertEqual(obligation['name'], 'core_to_final_image_return_abort_and_caller_bytes')
+                    self.assertEqual(obligation['result'], 'unsat')
+                    evidence = obligation['native_cnf']
+                    self.assertEqual(evidence['method'], 'native_hia_circuit_cnf')
+                    self.assertEqual(evidence['search'], 'native_hia_conflict_learning')
+                    self.assertEqual(evidence['caller_memory'], 'native_hia_finite_byte_array')
+                    self.assertEqual(evidence['image_sha256'], cnf.image_sha256)
+                    self.assertGreater(evidence['steps'], 750_000)
+
     def test_finite_memory_obligation_projects_aliases_and_counterexamples(self):
         import time
         import z3
