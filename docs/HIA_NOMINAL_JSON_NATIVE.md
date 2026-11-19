@@ -485,8 +485,15 @@ With `normalize -o PATH`, the verified canonical Core goes directly to
 the existing native filesystem publisher in the same process. No public
 frame can supply allegedly verified bytes. The result distinguishes the
 original source SHA-256 from the verified Core SHA-256, and uses the same
-nofollow and no-overwrite publication policy. Other build/edit commands
-and the host CLI/API are not changed by this route.
+nofollow and no-overwrite publication policy.
+
+For `hia build -o PATH`, the installed object builder reuses the constructor
+and outer lowering in the same process. The builder captures the input once,
+independently admits the lowered Core in fresh scratch, and uses the same
+native object emitter, inventory checks and no-overwrite publication as for
+primitive Core. Its report binds the canonical nominal input separately from
+the verified Core and the emitted object. Edit commands and the host CLI/API
+are not changed by this route.
 
 Ordinary `render-assembly` uses the same verified classification. Valid
 nominal documents and primitive v1–v5 produce the exact public unsupported

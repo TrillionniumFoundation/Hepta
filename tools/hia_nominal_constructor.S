@@ -4,8 +4,6 @@
  */
 .intel_syntax noprefix
 .text
-.global _start
-.type _start,@function
 
 .equ RAW_LIMIT, 8<<20
 .equ PACKET_CAPACITY, 32<<20
@@ -88,6 +86,30 @@
  mov [rip+\slot],rax
 .endm
 
+.ifdef HIA_NOMINAL_BUILD
+.global nominal_lower_for_build
+.type nominal_lower_for_build,@function
+/* Only the object builder calls this with its already captured raw bytes.
+   Return the compact Core span and the original canonical SHA-256 words. */
+nominal_lower_for_build:
+ push rbp
+ push rbx
+ push r12
+ push r13
+ push r14
+ push r15
+ sub rsp,8
+ mov r12,rdi
+ mov r15,rsi
+ mov [rip+request+24],rsi
+ mov QWORD PTR [rip+request+8],4300
+ mov QWORD PTR [rip+handoff_role],6
+ mov QWORD PTR [rip+stdio_mode],1
+ call canonical_original
+ jmp input_ready
+.else
+.global _start
+.type _start,@function
 _start:
  cmp QWORD PTR [rsp+8],2
  ja malformed
@@ -179,6 +201,7 @@ confirm_eof:
  test rax,rax
  js io_failure
  jne malformed
+.endif
 
 input_ready:
  region PACKET_CAPACITY, json
@@ -1150,6 +1173,7 @@ public_outer_refusal:
  jz stdio_rejected
  jmp public_driver_refusal
 
+.ifndef HIA_NOMINAL_BUILD
 stdin_agent_admit:
  mov edi,6
  jmp stdin_begin
@@ -1276,6 +1300,7 @@ render_primitive_assembly:
  mov rdx,[rip+publication_path]
  sub rsp,8
  jmp nominal_render_assembly
+.endif
 
 canonical_original:
  sub rsp,8
@@ -1325,6 +1350,35 @@ verify_assembled_core:
  ja verified_budget
  mov [rip+compact_core_extent],rax
 
+.ifdef HIA_NOMINAL_BUILD
+ /* The object builder independently checks these Core bytes on return. */
+ region PRESENTATION_BYTES, presentation_output
+ mov rdi,[rip+public_core_arena]
+ mov esi,PUBLIC_CORE_ARENA
+ call discard
+ mov rdi,[rip+original_canonical]
+ mov rsi,[rip+original_extent]
+ mov rdx,[rip+presentation_output]
+ mov ecx,PRESENTATION_BYTES
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov rax,PRESENTATION_HASH
+ mov [r8+PUBLIC_CORE_ARENA-8],rax
+ call public_presentation_start
+ cmp eax,64
+ jne io_failure
+ mov rax,[rip+json]
+ mov rdx,[rip+compact_core_extent]
+ mov rcx,[rip+presentation_output]
+ add rsp,8
+ pop r15
+ pop r14
+ pop r13
+ pop r12
+ pop rbx
+ pop rbp
+ ret
+.else
  region PUBLIC_CORE_STATE, public_core_state
  mov rdi,[rip+public_core_arena]
  mov esi,PUBLIC_CORE_ARENA
@@ -1454,8 +1508,12 @@ present_core:
 assembly_profile_refused:
  xor eax,eax
  jmp public_driver_refusal
+.endif
 
 public_driver_refusal:
+.ifdef HIA_NOMINAL_BUILD
+ jmp stdio_rejected
+.else
  mov [rip+driver_status],eax
  cmp QWORD PTR [rip+presentation_output],0
  jne driver_work
@@ -1493,6 +1551,7 @@ publish_canonical:
  cmovne rcx,[rip+presentation_output]
  add rsp,8
  jmp nominal_publish
+.endif
 
 verified_budget:
  mov eax,0xfffffffb
@@ -1779,7 +1838,9 @@ exit:
  mov eax,60
  syscall
  ud2
+.ifndef HIA_NOMINAL_BUILD
 .size _start,.-_start
+.endif
 
 .balign 8
 sigpipe: .quad 1,0,0,0

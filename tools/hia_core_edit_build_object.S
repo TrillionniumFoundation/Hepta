@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
+.type _start,@function
 .equ CORE_N,67108864
 .equ SOURCE_N,41943040
 .equ RAW_N,8388608
@@ -10,7 +11,14 @@
 .equ ART_N,67108864
 .equ WRITE_W,33554432
 .equ C,67092480
+.equ NOMINAL_HASH,1800
+.equ NOMINAL_PRESENT,1832
+.equ LOWERED_CORE,1840
+.equ LOWERED_EXTENT,1848
+.equ IMAGE_LIMIT,13<<19
 _start:
+ # The static linker calls this entry. The adapter itself never returns.
+ add rsp,8
  mov rax,[rsp]
  sub rax,2
  cmp rax,1
@@ -20,8 +28,7 @@ _start:
  je output_arg_ready
  mov r15,[rsp+24]
 output_arg_ready:
- .byte 0x4c,0x8d,0x35
-byte_address_hole: .long 0
+ lea r14,[rip+build_backend_start]
  mov esi,4096
  call allocate
  mov rbp,rax
@@ -89,8 +96,7 @@ cwd_count_captured:
  mov ecx,262144
  mov r8,rax
  mov r9d,1048576
- .byte 0xe8
-path_hole: .long 0
+ call build_frontend_start
  test rax,rax
  jz io_failure
  cmp rax,4095
@@ -143,8 +149,7 @@ stat_source:
  lea r8,[rdx+8]
  push 8
  pop r9
- .byte 0xe8
-source_admit_hole: .long 0
+ call build_frontend_start
  mov rdi,rax
  test rax,rax
  jnz exit
@@ -212,26 +217,30 @@ source_closed:
  mov rdi,r12
  mov esi,RAW_N
  call protect_readonly
+check_core:
+ mov rdi,r12
  mov rsi,[rbp+88]
  mov rdx,r13
  mov ecx,CORE_N
  lea r8,[r12+RAW_N]
  mov r9d,33554432
- .byte 0xe8
-core_hole: .long 0
+ call build_core_start
  mov [rbp+1112],rax
+ cmp eax,0xfffffffb
+ jne core_verified
+ cmp QWORD PTR [rbp+NOMINAL_PRESENT],0
+ je lower_nominal
+core_verified:
  call require_native_zero
  mov rdi,r12
  mov esi,SOURCE_N
  call protect_readonly
  call frontend_arguments
- .byte 0xe8
-frame_hole: .long 0
+ call build_frontend_start
  mov [rbp+1120],rax
  call require_native_zero
  call frontend_arguments
- .byte 0xe8
-exports_hole: .long 0
+ call build_frontend_start
  mov [rbp+1128],rax
  call require_native_zero
  movabs rax,3616483217365879112
@@ -239,8 +248,7 @@ exports_hole: .long 0
  mov QWORD PTR [rbp+776],1
 codegen_loop:
  call frontend_arguments
- .byte 0xe8
-codegen_hole: .long 0
+ call build_codegen_start
  mov [rbp+1136],rax
  call require_native_zero
  mov rdi,[rbp+16]
@@ -409,8 +417,7 @@ codegen_complete:
  mov ecx,20480
  mov r8,r13
  mov r9d,CORE_N
- .byte 0xe8
-expectations_hole: .long 0
+ call build_frontend_start
  test rax,rax
  jz io_failure
  cmp rax,18496
@@ -439,8 +446,7 @@ expectations_hole: .long 0
  mov ecx,262144
  mov r8,r13
  mov r9d,CORE_N
- .byte 0xe8
-facts_hole: .long 0
+ call build_frontend_start
  test rax,rax
  jz io_failure
  cmp rax,200703
@@ -463,8 +469,7 @@ facts_hole: .long 0
  mov ecx,8388608
  mov r8,rax
  mov r9d,33554432
- .byte 0xe8
-canonical_hole: .long 0
+ call build_frontend_start
  test rax,rax
  jz io_failure
  cmp rax,8388608
@@ -602,7 +607,12 @@ canonical_hole: .long 0
  mov esi,4096
  call allocate
  mov [r15-24],rax
- mov rax,QWORD PTR ds:0x400060
+ # The linker materializes its writable segment as zero-filled bytes.
+ # Use the full ELF file extent without hashing mutated constructor state.
+ mov rax,QWORD PTR ds:0x400080
+ add rax,QWORD PTR ds:0x400098
+ cmp rax,IMAGE_LIMIT
+ ja io_failure
  mov [r15+80],rax
  lea r12,[rbp+1152]
  movabs rax,3544416750009403720
@@ -636,7 +646,7 @@ canonical_hole: .long 0
  add rsi,[r15+80]
  add rsi,192
  jc io_failure
- cmp rsi,96473280
+ cmp rsi,RAW_N+ART_N+(16<<20)+IMAGE_LIMIT+192
  ja io_failure
  mov [r15+112],rsi
  call allocate
@@ -658,8 +668,11 @@ canonical_hole: .long 0
  mov rcx,[rbp+56]
  rep movsb
  mov esi,0x400000
- mov rcx,[r15+80]
+ mov rcx,QWORD PTR ds:0x400080
  rep movsb
+ xor eax,eax
+ mov rcx,QWORD PTR ds:0x400098
+ rep stosb
  mov rdi,[r15+104]
  mov rsi,[r15+112]
  call protect_readonly
@@ -667,10 +680,20 @@ canonical_hole: .long 0
  mov ecx,320
  mov r8,[r15-32]
  mov r9d,1184
- .byte 0xe8
-hash_direct_hole: .long 0
+ call build_frontend_start
  cmp rax,320
  jne native_status
+ cmp QWORD PTR [rbp+NOMINAL_PRESENT],0
+ je freeze_hashes
+ mov rdi,[r15-24]
+ mov QWORD PTR [rdi+152],1
+ add rdi,288
+ lea rsi,[rbp+NOMINAL_HASH]
+ push 4
+ pop rcx
+ cld
+ rep movsq
+freeze_hashes:
  mov rdi,[r15-24]
  mov esi,4096
  call protect_readonly
@@ -733,8 +756,7 @@ hashes_complete:
  mov ecx,262144
  mov r8,rax
  mov r9d,32768
- .byte 0xe8
-report_hole: .long 0
+ call build_codegen_start
  test rax,rax
  jz io_failure
  cmp rax,262144
@@ -899,6 +921,57 @@ write_owned_loop:
  jmp write_owned_loop
 write_owned_done:
  ret
+lower_nominal:
+ mov rdi,r12
+ mov rsi,[rbp+88]
+ call nominal_lower_for_build
+ test rdx,rdx
+ jz io_failure
+ cmp rdx,RAW_N
+ ja capacity
+ mov [rbp+LOWERED_CORE],rax
+ mov [rbp+LOWERED_EXTENT],rdx
+ mov rsi,rcx
+ lea rdi,[rbp+NOMINAL_HASH]
+ lea rbx,[rsi+64]
+ cld
+copy_digest:
+ # The HIA report owner returns eight SHA-256 words in 64-bit slots.
+ lodsq
+ mov rdx,rax
+ shr rdx,32
+ jnz io_failure
+ bswap eax
+ stosd
+ cmp rsi,rbx
+ jb copy_digest
+ mov QWORD PTR [rbp+NOMINAL_PRESENT],1
+ # Retry independent Core admission in fresh, disjoint memory.
+ mov rdi,r12
+ mov esi,SOURCE_N
+ call release
+ mov rdi,r13
+ mov esi,CORE_N
+ call release
+ mov esi,SOURCE_N
+ call allocate
+ mov r12,rax
+ mov [rbp],rax
+ mov rdi,rax
+ mov rsi,[rbp+LOWERED_CORE]
+ mov rcx,[rbp+LOWERED_EXTENT]
+ mov [rbp+88],rcx
+ cld
+ rep movsb
+ mov esi,CORE_N
+ call allocate
+ mov r13,rax
+ mov [rbp+8],rax
+ mov rdi,r12
+ mov esi,RAW_N
+ call protect_readonly
+ jmp check_core
+
 frontend_arguments:
  mov rdi,r12
  mov esi,SOURCE_N

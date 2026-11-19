@@ -2,6 +2,7 @@
 
 import argparse
 from copy import deepcopy
+from hashlib import sha256
 import json
 from pathlib import Path
 import subprocess
@@ -171,9 +172,60 @@ def check_agent_diagnostics(executable):
     return passed
 
 
+def check_object_builds(release):
+    from hepta.hia_program import verify_program
+    from hepta.hia_program_native import build_program_machine
+    from tests.test_hia_composite_constructor_native import simple
+    from tests.test_hia_composite_returned_loans import pair_program
+
+    executable = release / 'hia'
+    implementation = sha256((release / 'hia-build-object').read_bytes()).hexdigest()
+    documents = [scalar_program(), *(simple(version=v) for v in range(1, 5)), pair_program()]
+    with tempfile.TemporaryDirectory(prefix='hia-public-object-') as directory:
+        folder = Path(directory)
+
+        def build(source, destination):
+            return subprocess.run(
+                [executable, 'build', source, '-o', destination], capture_output=True,
+                env={'PATH': ''}, check=False, timeout=30)
+
+        for index, document in enumerate(documents):
+            source = folder / f'{index}.hepta'
+            source.write_bytes(wire(document))
+            expected = verify_program(document)
+            reference = folder / f'{index}-reference.o'
+            build_program_machine(expected, reference, kind='object')
+            output = folder / f'{index}.o'
+            result = build(source, output)
+            assert result.returncode == 0 and not result.stderr, result
+            report = json.loads(result.stdout)
+            artifact = output.read_bytes()
+            assert artifact == reference.read_bytes()
+            assert report['core_sha256'] == expected.sha256
+            assert report['input_sha256'] == expected.input_sha256
+            assert report['implementation_sha256'] == implementation
+            assert report['artifact_sha256'] == sha256(artifact).hexdigest()
+            assert build(source, output).returncode != 0
+            assert output.read_bytes() == artifact
+
+        invalid = pair_program()
+        invalid['functions'][-1]['entry'] = 'absent'
+        source.write_bytes(wire(invalid))
+        refused = folder / 'refused.o'
+        result = build(source, refused)
+        assert result.returncode == 2 and not refused.exists(), result
+        source.write_bytes(wire(pair_program()))
+        link = folder / 'source-link.hepta'
+        link.symlink_to(source)
+        result = build(link, refused)
+        assert result.returncode != 0 and not refused.exists(), result
+    return 2 * len(documents) + 2
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('release', type=Path)
     args = parser.parse_args()
     print(f'{check_release(args.release)} installed native Core edit and impact comparisons passed')
+    print(f'{check_object_builds(args.release)} installed native object build comparisons passed')
     print(f'{check_agent_diagnostics(args.release / "hia-prepare-edit-query")} installed Agent query comparisons passed')

@@ -1,4 +1,4 @@
-"""Cold-build the native primitive Core query, edit, impact and publication executables."""
+"""Cold-build native Core query, edit, impact and publication executables."""
 
 import argparse
 import ctypes
@@ -11,6 +11,12 @@ import zlib
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE, assemble_adapter
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.build_hia_nominal_constructor import (
+    ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
+    ORDINARY_CLI_IMAGE_CAPACITY,
+)
+from tools.build_hia_sqlite_migrate import embed
+from tools.build_hia_sqlite_pager import assemble, link, verify_executable
 from tools.generate_hia_core_edit_packer import MAGIC
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -29,6 +35,24 @@ ASSEMBLY_PRESENTERS = tuple(CLI + name + '.hepta' for name in (
     'assembly_diagnostic_report', 'assembly_pretty', 'assembly_driver'))
 ASSEMBLY_PUBLICATION = tuple(EDIT + name + '.hepta' for name in (
     'publication_frontend', 'publication_import', 'publication_policy'))
+NOMINAL_BUILD_IMAGES = {
+    'types': 'types_image', 'admit': 'function_admit',
+    'records': 'function_records', 'terms': 'function_terms',
+    'advanced': 'function_advanced', 'function-render': 'function_render',
+    'helpers': 'function_helper', 'outer-owner': 'outer_owner',
+    'outer-render': 'outer_render', 'public-canonical': 'public_canonical',
+    'public-presentation': 'public_presentation',
+}
+NOMINAL_BUILD_SOURCES = {
+    key: NOMINAL_COMPONENTS[key]
+    for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')
+}
+OBJECT_BUILD_IMAGES = {
+    EDIT + 'admission_word_io.hepta': 'build_core',
+    EDIT + 'publication_frontend.hepta': 'build_frontend',
+    CLI + 'build_codegen.hepta': 'build_codegen',
+    CLI + 'build_backend.hepta': 'build_backend',
+}
 
 # Each entry lists the flat payloads in placement order, then the adapter
 # relocation sites belonging to each. Several stages use the same image entry.
@@ -221,6 +245,27 @@ def pack(packer, stub, holes, images):
     return binary, inspect_executable(binary)
 
 
+def link_object_builder(folder, adapter, sources, images):
+    for key in ('owner', 'render', 'nominal-json'):
+        (folder / (key + '.image.bin')).write_bytes(images[NOMINAL_BUILD_SOURCES[key]])
+    objects = [assemble(folder, adapter, sources[adapter]), assemble(
+        folder, NOMINAL_ADAPTER, b'.set HIA_NOMINAL_BUILD,1\n' + sources[NOMINAL_ADAPTER])]
+    payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
+                for key, label in NOMINAL_BUILD_IMAGES.items()}
+    payloads.update({label: images[path] for path, label in OBJECT_BUILD_IMAGES.items()})
+    objects.extend(embed(folder, label, label, raw) for label, raw in payloads.items())
+    compiler = images[CLI + 'build_codegen.hepta']
+    binary, receipt = link(folder, images[NOMINAL_BUILD_SOURCES['linker']], compiler, objects,
+                           wire_magic=b'HIALNK01', executable_limit=ORDINARY_CLI_IMAGE_CAPACITY)
+    for raw in (*payloads.values(), *(images[NOMINAL_BUILD_SOURCES[key]]
+                                      for key in ('owner', 'render', 'nominal-json'))):
+        verify_executable(binary, raw)
+    writable_offset = struct.unpack_from('<Q', binary, 128)[0]
+    if any(memoryview(binary)[writable_offset:]):
+        raise ValueError('native object builder must have an initially zero writable segment')
+    return binary, {'link_receipt': receipt, 'adapter_object_sha256': digest(objects[0])}
+
+
 def build(output, compiler, cold_report, *, release_only=False):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
@@ -231,6 +276,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
     source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
+                    NOMINAL_ADAPTER, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
@@ -260,6 +306,9 @@ def build(output, compiler, cold_report, *, release_only=False):
         adapter = adapters[kind]
         folder = output / kind
         folder.mkdir(mode=0o700)
+        if kind == 'build_object':
+            products[name] = link_object_builder(folder, adapter, sources, images)
+            continue
         stub, symbols, adapter_hash = assemble_adapter(folder, adapter, sources[adapter])
         holes = sorted((symbols[call + '_hole'], index)
                        for index, (_path, calls) in enumerate(roles) for call in calls)
