@@ -88,6 +88,8 @@ class CoreWorkflowContractTests(unittest.TestCase):
             'child_limits', 'seccomp', 'side_effects', 'cleanup',
             'mapping_identity', 'startup_isolation'))
         required.add('tests.test_hia_selfhost_emitter_words')
+        required.add('tests.test_hia_mcp_request_native')
+        required.add('tests.test_hia_mcp_reply_native')
         required.add('tests.test_hia_json_preflight_native')
         required.add('tests.test_hia_agent_data_json_native')
         required.add('tests.test_hia_agent_binary64_native')

@@ -116,7 +116,9 @@ def route(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 72, argument_bytes)
     put(o, 80, decision)
     return 88
+'''
 
+WIRE_HELPERS = r'''
 def lookup(w:mutbuf, parent:u64, field:u64) -> u64:
     children = get(w, parent + 24)
     while children != NONE:
@@ -184,7 +186,8 @@ def render():
               .replace('WIRE_LIMIT', str(LIMIT))
               .replace('OUTPUT_LIMIT', str(OUTPUT_BYTES))
               .replace('BAD_ENVELOPE', str(INVALID_ENVELOPE)))
-    source = '\n'.join((policy, comparison_table('tool_id', tool_names()),
+    source = '\n'.join((policy, WIRE_HELPERS.replace('NONE', '18446744073709551615'),
+                       comparison_table('tool_id', tool_names()),
                        comparison_table('method_id', METHODS),
                        comparison_table('key_id', ('jsonrpc', 'method', 'id', 'params',
                                                    'name', 'arguments')),

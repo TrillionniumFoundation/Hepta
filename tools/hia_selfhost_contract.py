@@ -236,7 +236,15 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_selfhost_component.S',
     'tools/hia_core_edit_verify_core_json.S',
 )
+MCP_WIRE_SDIST_FILES = (
+    'tools/generate_hia_mcp_request.py',
+    'examples/hia_bootstrap/mcp_request_route.hepta',
+    'tools/hia_mcp_wire_stdio.S',
+    'tools/generate_hia_mcp_reply.py',
+    'examples/hia_bootstrap/mcp_reply_wire.hepta',
+)
 SOURCE_FILES = (
+    *MCP_WIRE_SDIST_FILES,
     *SQLITE_SNAPSHOT_SDIST_FILES,
     *ARTIFACT_CAPTURE_SDIST_FILES,
     *CORE_NORMALIZE_SDIST_FILES,
@@ -713,9 +721,7 @@ SOURCE_FILES = (
     'tools/build_hia_json_decode.py',
     'tests/test_hia_json_decode_native.py',
     'examples/hia_bootstrap/json_decode.hepta',
-    'tools/generate_hia_mcp_request.py',
-    'examples/hia_bootstrap/mcp_request_route.hepta',
-    'tools/hia_mcp_request_route_stdio.S',
+    'tests/test_hia_mcp_reply_native.py',
     'tests/test_hia_mcp_request_native.py',
     'tools/generate_hia_json_preflight.py',
     'tools/build_hia_json_preflight.py',

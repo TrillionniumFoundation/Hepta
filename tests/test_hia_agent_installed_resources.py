@@ -6,7 +6,7 @@ from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURC
 from hepta.hia_agent_store import wire
 from tools.hia_selfhost_contract import (
     ARTIFACT_CAPTURE_SDIST_FILES, CORE_EDIT_SDIST_FILES, CORE_NORMALIZE_SDIST_FILES,
-    EXECUTION_LEDGER_SDIST_FILES, NATIVE_LINKER_SDIST_FILES,
+    EXECUTION_LEDGER_SDIST_FILES, MCP_WIRE_SDIST_FILES, NATIVE_LINKER_SDIST_FILES,
     SCALAR_REFERENCE_SDIST_FILES,
     SQLITE_SNAPSHOT_SDIST_FILES, WORKER_REQUEST_SDIST_FILES,
 )
@@ -17,6 +17,7 @@ SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',
                      *ARTIFACT_CAPTURE_SDIST_FILES,
                      *CORE_NORMALIZE_SDIST_FILES,
                      *CORE_EDIT_SDIST_FILES,
+                     *MCP_WIRE_SDIST_FILES,
                      *EXECUTION_LEDGER_SDIST_FILES,
                      *NATIVE_LINKER_SDIST_FILES,
                      *SCALAR_REFERENCE_SDIST_FILES,

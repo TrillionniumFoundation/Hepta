@@ -1,14 +1,17 @@
-/* Stdio admission for a single, sealed JSON-RPC request. The selected host
- * retains all transport and effect authority; this process only classifies
- * immutable wire bytes. Result: zero-extended status followed by descriptor
- * on success, or a status word alone when the HIA program refuses.
+/* Native wire kernel for one sealed MCP request or response frame. The
+ * caller retains transport and effect authority. Return a status word and
+ * either the successful request descriptor or the full response line.
  */
 .intel_syntax noprefix
 .text
 .global _start
 .type _start,@function
 .equ INPUT_MAX, 8<<20
+.ifdef MCP_REPLY
+.equ SCRATCH, INPUT_MAX+32
+.else
 .equ SCRATCH, 4<<20
+.endif
 .equ ARENA, 64+(262144*72)+INPUT_MAX
 .equ DESCRIPTOR, 88
 
@@ -68,14 +71,26 @@ _start:
  mov ecx,SCRATCH
  lea r8,[r14+8+SCRATCH]
  mov r9d,ARENA
+.ifdef MCP_REPLY
+ call mcp_reply_wire_start
+.else
  call mcp_request_route_start
+.endif
  mov eax,eax                              /* Export u32, never a stale high word. */
  mov [r14],rax
  mov rsi,r14
  mov edx,8
+.ifdef MCP_REPLY
+ cmp eax,2
+ jb write_result
+ cmp eax,SCRATCH
+ ja write_result
+ add edx,eax
+.else
  cmp eax,DESCRIPTOR
  jne write_result
  add edx,DESCRIPTOR
+.endif
 write_result:
  mov edi,1
  mov eax,1                                /* write */

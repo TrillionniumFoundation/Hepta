@@ -1,4 +1,4 @@
-"""Build the standalone HIA page or journal transport for the pinned worker."""
+"""Build sealed HIA page, journal and MCP wire executables."""
 from __future__ import annotations
 
 import argparse
@@ -17,6 +17,7 @@ VARIANTS = {
     'read-page': ('agent_read_page', 'hepta.hia.agent-read-page-native.v1'),
     'journal': ('agent_journal', 'hepta.hia.agent-journal-native.v2'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),
+    'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
 }
 
 
@@ -24,7 +25,8 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     symbol, schema = VARIANTS[kind]
     label = 'agent-' + kind
     source = 'examples/hia_bootstrap/' + symbol + '.hepta'
-    adapter = 'tools/hia_' + symbol + '_stdio.S'
+    adapter = ('tools/hia_mcp_wire_stdio.S' if kind in ('mcp-request', 'mcp-reply')
+               else 'tools/hia_' + symbol + '_stdio.S')
     pins = {path: path.read_bytes() for path in (compiler, cold_report, manifest)}
     sources = {name: (ROOT / name).read_bytes() for name in
                (source, LINKER, EMBED_SOURCE, adapter, DRIVER)}
@@ -48,7 +50,11 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     if sha256(linker).hexdigest() != linker_receipt['produced_sha256']:
         raise ValueError(label + ' linker changed')
     embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
-    objects = (assemble(output, adapter, sources[adapter]), embed(output, symbol, kind, image, embedder))
+    adapter_source = sources[adapter]
+    if kind == 'mcp-reply':
+        adapter_source = b'.set MCP_REPLY, 1\n' + adapter_source
+    objects = (assemble(output, adapter, adapter_source),
+               embed(output, symbol, kind, image, embedder))
     executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')
     if (current_sources() != admitted or any(path.read_bytes() != raw for path, raw in pins.items())
             or any((ROOT / name).read_bytes() != raw for name, raw in sources.items())):
