@@ -16,6 +16,7 @@ from tools.generate_hia_json_decode import source_program as json_decoder
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / 'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json'
 SOURCE = 'examples/hia_bootstrap/mcp_request_route.hepta'
+KEYS = ('jsonrpc', 'method', 'id', 'params', 'name', 'arguments')
 MAGIC = b'HIAMCP01'
 LIMIT = 8 << 20
 OUTPUT_BYTES = 8192  # Includes scratch used before exporting the descriptor.
@@ -180,19 +181,21 @@ def comparison_table(name, values):
     return '\n'.join(lines)
 
 
-def render():
+def source_program(*, methods=METHODS, keys=KEYS):
     policy = (POLICY.replace('ROUTE_MAGIC', str(int.from_bytes(MAGIC, 'little')))
               .replace('NONE', '18446744073709551615')
               .replace('WIRE_LIMIT', str(LIMIT))
               .replace('OUTPUT_LIMIT', str(OUTPUT_BYTES))
               .replace('BAD_ENVELOPE', str(INVALID_ENVELOPE)))
-    source = '\n'.join((policy, WIRE_HELPERS.replace('NONE', '18446744073709551615'),
-                       comparison_table('tool_id', tool_names()),
-                       comparison_table('method_id', METHODS),
-                       comparison_table('key_id', ('jsonrpc', 'method', 'id', 'params',
-                                                   'name', 'arguments')),
-                       json_decoder(wire_spans=True)))
-    return render_assembly(document(source, 'mcp_request_route'))
+    return '\n'.join((policy, WIRE_HELPERS.replace('NONE', '18446744073709551615'),
+                      comparison_table('tool_id', tool_names()),
+                      comparison_table('method_id', methods),
+                      comparison_table('key_id', keys),
+                      json_decoder(wire_spans=True)))
+
+
+def render():
+    return render_assembly(document(source_program(), 'mcp_request_route'))
 
 
 def main():

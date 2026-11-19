@@ -18,6 +18,12 @@ VARIANTS = {
     'journal': ('agent_journal', 'hepta.hia.agent-journal-native.v2'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),
     'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
+    'mcp-negotiation': ('mcp_negotiation', 'hepta.hia.mcp-negotiation-native.v1'),
+}
+MCP_ADAPTER_MODES = {
+    'mcp-request': b'',
+    'mcp-reply': b'.set MCP_REPLY, 1\n',
+    'mcp-negotiation': b'.set MCP_NEGOTIATE, 1\n',
 }
 
 
@@ -25,7 +31,8 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     symbol, schema = VARIANTS[kind]
     label = 'agent-' + kind
     source = 'examples/hia_bootstrap/' + symbol + '.hepta'
-    adapter = ('tools/hia_mcp_wire_stdio.S' if kind in ('mcp-request', 'mcp-reply')
+    mode = MCP_ADAPTER_MODES.get(kind)
+    adapter = ('tools/hia_mcp_wire_stdio.S' if mode is not None
                else 'tools/hia_' + symbol + '_stdio.S')
     pins = {path: path.read_bytes() for path in (compiler, cold_report, manifest)}
     sources = {name: (ROOT / name).read_bytes() for name in
@@ -50,9 +57,7 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     if sha256(linker).hexdigest() != linker_receipt['produced_sha256']:
         raise ValueError(label + ' linker changed')
     embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
-    adapter_source = sources[adapter]
-    if kind == 'mcp-reply':
-        adapter_source = b'.set MCP_REPLY, 1\n' + adapter_source
+    adapter_source = (mode or b'') + sources[adapter]
     objects = (assemble(output, adapter, adapter_source),
                embed(output, symbol, kind, image, embedder))
     executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')

@@ -13,7 +13,11 @@
 .equ SCRATCH, 4<<20
 .endif
 .equ ARENA, 64+(262144*72)+INPUT_MAX
+.ifdef MCP_NEGOTIATE
+.equ DESCRIPTOR, 112
+.else
 .equ DESCRIPTOR, 88
+.endif
 
 _start:
  cmp QWORD PTR [rsp+8],1                  /* _start is called by HIALNK01. */
@@ -74,7 +78,11 @@ _start:
 .ifdef MCP_REPLY
  call mcp_reply_wire_start
 .else
+ .ifdef MCP_NEGOTIATE
+ call mcp_negotiation_start
+ .else
  call mcp_request_route_start
+ .endif
 .endif
  mov eax,eax                              /* Export u32, never a stale high word. */
  mov [r14],rax
