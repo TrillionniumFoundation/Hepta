@@ -569,6 +569,11 @@ by that command's exact typed payload. No borrowed parameter fd is needed.
 Commit or rollback ends the current transaction; use NEXT before sending
 more operations. A lost commit receipt is not safe to replay.
 
+A competing transaction lock is retried against a monotonic nine-second
+deadline before Store readiness or NEXT is acknowledged. Other lock errors
+are not retried; this does not change the staged migration writer's separate
+immediate-busy contract.
+
 The native engine owns overlay reads, typed updates, indexed lookups, and
 commit or rollback for the original Store operations. An optional artifact
 capability allows already migrated content to be reopened and checked.

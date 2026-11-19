@@ -709,15 +709,70 @@ get_flags:
  mov r12d,184
  jmp policy_loop
 
+/* Retain the nonblocking lock so the kernel cannot strand a Store owner.
+   Wait only for EAGAIN, using a monotonic deadline below the 10 s client
+   request deadline. All other failures still reach the HIA owner intact. */
 fd_lock:
+ sub rsp,32
+ mov QWORD PTR [rsp+16],0
+fd_lock_attempt:
  mov rdi,[rbp+OUTPUT+24]
- mov esi,6
- mov eax,73
+ mov esi,6                         /* LOCK_EX | LOCK_NB */
+ mov eax,73                        /* flock */
  syscall
  cmp rax,-4
- je fd_lock
+ je fd_lock_interrupted
+ cmp rax,-11
+ jne fd_lock_result
+ cmp QWORD PTR [rsp+16],0
+ jne fd_lock_pause
+ call fd_lock_clock
+ test rax,rax
+ js fd_lock_result
+ mov rax,[rsp]
+ add rax,9
+ mov [rsp+16],rax
+ mov rax,[rsp+8]
+ mov [rsp+24],rax
+fd_lock_pause:
+ mov QWORD PTR [rsp],0
+ mov QWORD PTR [rsp+8],5000000
+ mov rdi,rsp
+ xor esi,esi
+ mov eax,35                        /* nanosleep */
+ syscall
+ cmp rax,-4
+ je fd_lock_remaining
+ test rax,rax
+ js fd_lock_result
+fd_lock_remaining:
+ call fd_lock_clock
+ test rax,rax
+ js fd_lock_result
+ mov rax,[rsp]
+ cmp rax,[rsp+16]
+ jb fd_lock_attempt
+ ja fd_lock_expired
+ mov rax,[rsp+8]
+ cmp rax,[rsp+24]
+ jb fd_lock_attempt
+fd_lock_expired:
+ mov rax,-11
+ jmp fd_lock_result
+fd_lock_interrupted:
+ cmp QWORD PTR [rsp+16],0
+ je fd_lock_attempt
+ jmp fd_lock_remaining
+fd_lock_result:
+ add rsp,32
  mov r15,rax
  jmp meta_reply
+fd_lock_clock:
+ mov edi,1                         /* CLOCK_MONOTONIC */
+ lea rsi,[rsp+8]
+ mov eax,228                       /* clock_gettime */
+ syscall
+ ret
 
 read_meta:
  mov rax,[rbp+OUTPUT+32]
