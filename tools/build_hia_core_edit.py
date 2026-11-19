@@ -27,6 +27,8 @@ EDIT = BOOTSTRAP + 'core_edit/'
 CLI = BOOTSTRAP + 'core_cli/'
 PACKER = EDIT + 'packer.hepta'
 CAPACITY = 4 * (1 << 20) + 4096
+DISPATCH = CLI + 'dispatch.hepta'
+DISPATCH_ARCHIVE = '<public-dispatch-images>'
 ARGUMENT_PARSER = CLI + 'arguments.hepta'
 ARGUMENT_FORMATTER = BOOTSTRAP + 'cli_format.hepta'
 ARGUMENT_PAYLOAD = CLI + 'argument_payload.hepta'
@@ -158,7 +160,7 @@ EDIT_ENVELOPE_ROLES = ('query', 'publish_query', 'patch_core_json', 'publish_pat
 # relocation sites belonging to each. Several stages use the same image entry.
 PROGRAMS = {
     'dispatch': ('hia', (
-        (CLI + 'dispatch.hepta', ('dispatch_call',)),
+        (DISPATCH_ARCHIVE, ('dispatch_archive', 'query_syntax_archive')),
         (CLI + 'selfhost_entry.hepta', ('selfhost_call',)),
         (ARGUMENT_PAYLOAD, ('argument_unpack', 'argument_frame', 'argument_encode', 'argument_command')),
         (ARGUMENT_ARCHIVE, ('argument_images',)),
@@ -333,10 +335,10 @@ def build(output, compiler, cold_report, *, release_only=False):
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
-    source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
+    source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
-                      if path not in (ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
+                      if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
     if any(admitted.get(path) != digest(raw) for path, raw in sources.items()):
         raise ValueError('native Core edit source differs from admitted cold source')
@@ -351,6 +353,9 @@ def build(output, compiler, cold_report, *, release_only=False):
         images[path] = image.read_bytes()
         receipts[path] = receipt
     images[ARGUMENT_ARCHIVE] = argument_images(images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER])
+    dispatch_image = images[DISPATCH]
+    query_image = images[NOMINAL_BUILD_SOURCES['public-presentation']]
+    images[DISPATCH_ARCHIVE] = struct.pack('<2Q', 16, 16 + len(dispatch_image)) + dispatch_image + query_image
     payloads = [images[path] for path in assembly_images]
     position = 8 * len(payloads)
     offsets = []

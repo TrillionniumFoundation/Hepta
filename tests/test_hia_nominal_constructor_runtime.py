@@ -816,6 +816,24 @@ def check_secondary_input_failures(executable):
                         status, stdout.getvalue().encode(), b''), (source, fault, payload[:64], result)
                     assert status == 2 and not output.parent.exists(), (source, fault, args)
                     total += 1
+        response = root / 'response.json'
+        for source in (primitive, nominal, *broken):
+            for payload in queries[:-2]:
+                query.write_bytes(payload)
+                for raw in (b'{"args":["a"]}', b'\xff'):
+                    response.write_bytes(raw)
+                    for publication in ([], ['-o', str(output)]):
+                        args = ['edit-apply', str(source), '--query', str(query),
+                                '--response', str(response), *publication]
+                        stdout = StringIO()
+                        with redirect_stdout(stdout):
+                            status = _reference_hia_main(args)
+                        result = subprocess.run([executable, *args], capture_output=True,
+                                                env={'PATH': ''}, timeout=20, check=False)
+                        assert (result.returncode, result.stdout, result.stderr) == (
+                            status, stdout.getvalue().encode(), b''), (source, raw, payload[:64], result)
+                        assert status == 2 and not output.parent.exists(), (source, args)
+                        total += 1
     print(f'{total} byte-exact secondary-input and precedence refusals without publication')
 
 

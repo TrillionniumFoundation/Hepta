@@ -1,5 +1,10 @@
 .intel_syntax noprefix
 .text
+.equ QUERY_INPUT, 8<<20
+.equ QUERY_OUTPUT, 4<<20
+.equ QUERY_WORK, 12288
+.equ QUERY_MAPPING, QUERY_INPUT+QUERY_OUTPUT+QUERY_WORK
+.equ QUERY_SYNTAX, 0x313053514f414948
 .global _start
 _start:
  mov rbp,rsp
@@ -34,8 +39,11 @@ dispatch_loop:
  mov r9d,8388608
  cmp QWORD PTR [rsp+120],0
  jne selfhost_dispatch
- .byte 0xe8
-dispatch_call_hole: .long 0
+ # Both entry offsets are relative to the immutable HIA dispatch archive.
+ .byte 0x48,0x8d,0x05
+dispatch_archive_hole: .long 0
+ add rax,[rax]
+ call rax
  jmp dispatch_result
 selfhost_dispatch:
  .byte 0xe8
@@ -55,6 +63,8 @@ dispatch_result:
  je execute_fd
  cmp QWORD PTR [r13+16],4
  je select_selfhost
+ cmp QWORD PTR [r13+16],5
+ je inspect_query
  cmp QWORD PTR [r13+16],1
  jne failure
  mov rbx,[r13+32]
@@ -96,6 +106,72 @@ argument_ready:
  mov r8,[rsp+80]
  mov r9,[rsp+88]
  syscall
+ jmp capture_result
+inspect_query:
+ # The selected dispatcher supplies a span in its own capture descriptor.
+ # Use positioned reads, preserving the write offset for the response trailer.
+ cmp QWORD PTR [rsp+120],0
+ jne failure
+ cmp QWORD PTR [r14+65536],53
+ jne failure
+ mov rax,[r13+24]
+ cmp rax,[r14+65792]
+ jne failure
+ cmp rax,0x7fffffff
+ ja failure
+ mov rax,[r13+32]
+ cmp rax,11
+ jb failure
+ cmp rax,QUERY_INPUT+11
+ ja failure
+ cmp QWORD PTR [r13+40],QUERY_INPUT
+ ja failure
+ mov esi,QUERY_MAPPING
+ call allocate
+ mov [rsp+104],rax
+ xor ebx,ebx
+query_read:
+ mov rdx,[r13+40]
+ sub rdx,rbx
+ jz query_read_complete
+ mov rdi,[r13+24]
+ mov rsi,[rsp+104]
+ add rsi,rbx
+ mov r10,[r13+32]
+ add r10,rbx
+ mov eax,17
+ syscall
+ cmp rax,-4
+ je query_read
+ test rax,rax
+ jle failure
+ cmp rax,rdx
+ ja failure
+ add rbx,rax
+ jmp query_read
+query_read_complete:
+ mov rdi,[rsp+104]
+ mov esi,QUERY_INPUT
+ call readonly
+ mov rdi,[rsp+104]
+ mov rsi,rbx
+ lea rdx,[rdi+QUERY_INPUT]
+ mov ecx,QUERY_OUTPUT
+ lea r8,[rdx+QUERY_OUTPUT]
+ mov r9d,QUERY_WORK
+ movabs rax,QUERY_SYNTAX
+ mov [r8+QUERY_WORK-8],rax
+ .byte 0x48,0x8d,0x05
+query_syntax_archive_hole: .long 0
+ add rax,[rax+8]
+ call rax
+ cmp eax,QUERY_OUTPUT
+ ja failure
+ mov ebx,eax
+ mov rdi,[rsp+104]
+ mov esi,QUERY_MAPPING
+ call release
+ mov eax,ebx
  jmp capture_result
 select_selfhost:
  cmp QWORD PTR [rsp+120],0
