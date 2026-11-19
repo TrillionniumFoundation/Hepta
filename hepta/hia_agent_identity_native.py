@@ -31,6 +31,7 @@ CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK = range(3)
 PROOF_OPCODE_IDS = {name: index for index, name in enumerate(sorted(OPCODES), 1)}
 PROOF_EFFECT_IDS = {name: 1 << index for index, name in enumerate(sorted(EFFECTS))}
 EXACT_COMPARISON_CHUNK = 256 * 1024
+ABI_SCALAR_IDS = {name: role for role, name in enumerate((*WIDTHS, 'bool', 'unit'), 1)}
 
 
 def _observation_fields(observation, *, reference):
@@ -79,6 +80,21 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         if valid not in (0, 1) or (not valid and number != 0) or (kind == 1 and number != 0):
             raise RuntimeError('invalid HIA Agent scalar result')
         return number if valid else None
+
+    def abi_scalar(self, value, typ):
+        if value is None:
+            kind, word = 1, 0
+        elif type(value) is bool:
+            kind, word = 2, int(value)
+        elif type(value) is int and value.bit_length() <= 64:
+            kind, word = (4, -value) if value < 0 else (3, value)
+        else:
+            kind, word = 0, 0
+        packet = struct.pack('<5Q', MAGIC, 14, ABI_SCALAR_IDS.get(typ, 0), kind, word)
+        valid, result = self._request(packet)
+        if valid != 1 or result not in (0, 1):
+            raise RuntimeError('invalid HIA Agent call scalar result')
+        return bool(result)
 
     def _request(self, wire):
         return self._response(wire, 24, '<3Q')

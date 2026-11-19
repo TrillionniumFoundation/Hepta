@@ -217,6 +217,33 @@ class AgentIdentityNativeTests(unittest.TestCase):
             self.assertEqual(self.raw(malformed)[0], 0xfffffffd)
         self.assertEqual(self.raw(wire, 23)[0], 0xfffffffe)
 
+    def test_call_scalar_gate_preserves_exact_frozen_types_and_ranges(self):
+        from hepta.hia_agent_buffers import validate_arguments
+        from hepta.hia_agent_identity_native import ABI_SCALAR_IDS
+        from hepta.hia_opcodes import WIDTHS, scalar_value_valid
+
+        for typ in (*WIDTHS, 'bool', 'unit', 'missing'):
+            width = WIDTHS.get(typ, 1)
+            boundary = 1 << (width - 1)
+            samples = (None, False, True, -0.0, 1.0, '0', 0, -1, 1,
+                       -boundary - 1, -boundary, -boundary + 1, boundary - 1,
+                       boundary, (1 << width) - 1, 1 << width, 1 << 200)
+            for value in samples:
+                with self.subTest(typ=typ, value=value):
+                    self.assertEqual(self.native.abi_scalar(value, typ), scalar_value_valid(value, typ))
+        encoded = packet(14, struct.pack('<3Q', ABI_SCALAR_IDS['u64'], 3, (1 << 64) - 1))
+        self.assertEqual(self.raw(encoded), (24, expected(1, 1)))
+        self.assertEqual(self.raw(encoded[:-1])[0], 0xfffffffd)
+        self.assertEqual(self.raw(encoded + b'\0')[0], 0xfffffffd)
+        self.assertEqual(self.raw(encoded, 23)[0], 0xfffffffe)
+        signature = {'params': ('u64', 'i64', 'bool', 'unit')}
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch('hepta.hia_program.scalar_value_valid', side_effect=AssertionError('host range used'))):
+            self.assertEqual(validate_arguments(signature, [(1 << 64) - 1, -(1 << 63), True, None]), 0)
+            with self.assertRaises(AgentRejected) as error:
+                validate_arguments(signature, [1 << 64, -(1 << 63), True, None])
+            self.assertEqual(error.exception.code, 'E_HIA_ARGUMENTS')
+
     def test_native_exact_byte_comparison_across_chunks_and_bad_framing(self):
         prefix = bytes(range(256)) * (EXACT_COMPARISON_CHUNK // 256)
         for left, right in (

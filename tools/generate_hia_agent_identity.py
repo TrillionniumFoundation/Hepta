@@ -3,7 +3,10 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_agent_identity_native import EXACT_COMPARISON_CHUNK, PROOF_EFFECT_IDS, PROOF_OPCODE_IDS
+from hepta.hia_agent_identity_native import (
+    ABI_SCALAR_IDS, EXACT_COMPARISON_CHUNK, PROOF_EFFECT_IDS, PROOF_OPCODE_IDS,
+)
+from hepta.hia_opcodes import WIDTHS
 from hepta.hia_optimization import PURE
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
@@ -34,6 +37,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return finite_domain(s, o)
     if kind == 13:
         return exact_comparison(s, o)
+    if kind == 14:
+        return abi_scalar(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -516,6 +521,35 @@ def put(w:mutbuf, index:u64, value:u64) -> u64:
         count = count + 1
     return value
 
+def abi_scalar(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 40:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    role = read_word(s, 16)
+    kind = read_word(s, 24)
+    word = read_word(s, 32)
+    if role == @BOOL_ABI_ROLE@:
+        return finite_function_reply(o, choose(kind == 2 and word <= 1, 1, 0))
+    if role == @UNIT_ABI_ROLE@:
+        return finite_function_reply(o, choose(kind == 1 and word == 0, 1, 0))
+    if kind != 3 and kind != 4:
+        return finite_function_reply(o, 0)
+    spec = scalar_abi_type(role)
+    width = spec & 127
+    if width == 0:
+        return finite_function_reply(o, 0)
+    if (spec & 128) != 0:
+        boundary = 1 << (width - 1)
+        if kind == 4:
+            return finite_function_reply(o, choose(word > 0 and word <= boundary, 1, 0))
+        return finite_function_reply(o, choose(word < boundary, 1, 0))
+    if kind == 4:
+        return finite_function_reply(o, 0)
+    if width == 64:
+        return finite_function_reply(o, 1)
+    return finite_function_reply(o, choose(word < (1 << width), 1, 0))
+
 def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 32:
         return 4294967293
@@ -534,10 +568,18 @@ def exact_comparison(s:readbuf, o:mutbuf) -> u32:
 def source_program():
     pure = sum(1 << PROOF_OPCODE_IDS[opcode] for opcode in PURE)
     disallowed = ((1 << 64) - 1) ^ PROOF_EFFECT_IDS['trap']
+    types = ['def scalar_abi_type(role:u64) -> u64:']
+    for name, width in WIDTHS.items():
+        spec = width | (128 if name.startswith('i') else 0)
+        types += [f'    if role == {ABI_SCALAR_IDS[name]}:', f'        return {spec}']
+    types.append('    return 0')
     return (SOURCE.replace('@MAGIC@', str(MAGIC)).replace('@RESULT_MAGIC@', str(RESULT_MAGIC))
             .replace('@PURE_OPCODE_MASK@', str(pure))
             .replace('@DISALLOWED_EFFECT_MASK@', str(disallowed))
-            .replace('@EXACT_COMPARISON_CHUNK@', str(EXACT_COMPARISON_CHUNK)))
+            .replace('@EXACT_COMPARISON_CHUNK@', str(EXACT_COMPARISON_CHUNK))
+            .replace('@BOOL_ABI_ROLE@', str(ABI_SCALAR_IDS['bool']))
+            .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n')
+
 
 def document():
     nodes=ast.parse(source_program()).body;names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
