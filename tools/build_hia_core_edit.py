@@ -64,7 +64,7 @@ PROGRAMS = {
         (EDIT + 'publication_pretty.hepta', ('pretty_call',)),
     )),
     'patch_core_json': ('hia-patch-core-json', (
-        (EDIT + 'impact_patch.hepta', ('extract_call', 'result_call')),
+        (EDIT + 'impact_patch.hepta', ('extract_call', 'result_call', 'patch_diagnostic')),
         (EDIT + 'admission_word_io.hepta', ('base_admission_call', 'candidate_admission_call')),
         (CLI + 'patch.hepta', ('compose_call',)),
         (EDIT + 'publication_pretty.hepta', ('pretty_call',)),
@@ -116,7 +116,7 @@ PROGRAMS = {
     )),
     'publish_patch': ('hia-publish-patch', (
         (EDIT + 'admission_word_io.hepta', ('core_address',)),
-        (EDIT + 'publication_patch_policy.hepta', ('front_address',)),
+        (EDIT + 'publication_patch_policy.hepta', ('front_address', 'patch_diagnostic')),
         (EDIT + 'publication_patch.hepta', ('owner_address',)),
         (EDIT + 'publication_pretty.hepta', ('publication_address',)),
     )),
@@ -145,7 +145,7 @@ PROGRAMS = {
         (EDIT + 'publication_batch_policy.hepta', ('publication_address',)),
     )),
     'impact': ('hia-impact-core-json', (
-        (EDIT + 'impact_patch.hepta', ('extract', 'result')),
+        (EDIT + 'impact_patch.hepta', ('extract', 'result', 'patch_diagnostic')),
         (EDIT + 'admission_word_io.hepta', ('base_admission', 'candidate_admission')),
         (EDIT + 'impact.hepta', ('compose', 'impact')),
         (EDIT + 'impact_json_io.hepta', ('canonical', 'pretty')),

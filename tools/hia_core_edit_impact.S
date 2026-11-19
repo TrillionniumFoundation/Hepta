@@ -138,6 +138,9 @@ base_admission_hole: .long 0
  .byte 0xe8
 result_hole: .long 0
  call patch_status
+ # A policy refusal cannot reach candidate or publication handling.
+ cmp eax,0xffffffe0
+ jae patch_diagnostic
  cmp rax,32
  jbe invalid
  cmp rax,16777248
@@ -413,6 +416,34 @@ HIA_status:
  ja io_failure
  mov rdi,rax
  jmp exit_process
+patch_diagnostic:
+ lea rdi,[r12+FRAME_AT]
+ mov [rdi],rax
+ mov esi,8
+ lea rdx,[rdi+16]
+ mov ecx,512
+ xor r8d,r8d
+ xor r9d,r9d
+ .byte 0xe8
+patch_diagnostic_hole: .long 0
+ test eax,eax
+ jz invalid
+ cmp eax,512
+ ja io_failure
+ mov edx,eax
+ lea rsi,[r12+FRAME_AT+16]
+patch_diagnostic_write:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je patch_diagnostic_write
+ test rax,rax
+ jle io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz patch_diagnostic_write
+ jmp invalid
 invalid:
  mov edi,2
  jmp exit_process

@@ -94,6 +94,8 @@ class CorePatchSourceTests(unittest.TestCase):
         request = add_two_patch(program)
         request['expected_sha256'] = '0' * 64
         self.assertEqual(interpreted(request_wire(program, request))[0], 0xfffffff9)
+        request['expected_sha256'] = '0' * 63 + 'g'
+        self.assertEqual(interpreted(request_wire(program, request))[0], 0xfffffffa)
         request = add_two_patch(program)
         request['edits'] *= 2
         self.assertEqual(interpreted(request_wire(program, request))[0], 0xfffffff3)

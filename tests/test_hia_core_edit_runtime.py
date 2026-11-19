@@ -31,7 +31,7 @@ def check_release(release):
         raw = payload if type(payload) is bytes else wire(payload)
         run = subprocess.run([release / command, *args], input=raw, capture_output=True,
                              env={'PATH': ''}, timeout=20, check=False)
-        output = b'' if status else (canonical_wire(expected) if compact else wire(expected, pretty=True))
+        output = b'' if status and expected is None else (canonical_wire(expected) if compact else wire(expected, pretty=True))
         if (run.returncode, run.stdout, run.stderr) != (status, output, b''):
             raise AssertionError((command, status, run.returncode, run.stdout[:200], run.stderr))
         passed += 1
@@ -114,7 +114,10 @@ def check_release(release):
         'patch': receipt, 'impact': impact,
     }, args=('v2',))
     stale = {**request, 'expected_sha256': '0' * 64}
-    case('hia-impact-core-json', [source, stale], status=2, args=('v2',))
+    case('hia-impact-core-json', [source, stale], {
+        'diagnostics': [{'code': 'E_DRIVER', 'message': 'E_HIA_EDIT: stale base snapshot', 'phase': 'driver'}],
+        'ok': False, 'status': 'error',
+    }, status=2, args=('v2',))
     case('hia-impact-core-json', wire([source, request]) + b'junk', status=2, args=('v2',))
     case('hia-impact-core-json', [source, request], status=64, args=('v3',))
     return passed

@@ -7,7 +7,9 @@ separate stage before and after it, never inferred from a matching digest.
 """
 from __future__ import annotations
 import ast
+import json
 from pathlib import Path
+import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_core_json_frontend import packed, source_program as frontend_source
 from tools.generate_hia_sha256 import source_program as sha_source
@@ -23,6 +25,47 @@ LITERALS = {'patch_v1':'hepta.hia.patch.v1', 'patch_v2':'hepta.hia.patch.v2',
             'preserve':'preserve', 'migrate':'migrate',
             'replace_function':'replace_function', 'add_function':'add_function',
             'replace_operation':'replace_operation', 'replace_terminator':'replace_terminator'}
+PUBLIC_DIAGNOSTICS = {
+    0xfffffffa: 'invalid expected snapshot digest',
+    0xfffffff9: 'stale base snapshot',
+    0xfffffff8: 'patch needs 1..64 edits',
+    0xfffffff4: 'invalid operation index',
+    0xfffffff7: 'unknown edit action',
+    0xffffffe1: 'edit needs an action',
+    0xffffffe2: 'function identity must be a string',
+    0xffffffe3: 'function not found',
+    0xffffffe4: 'added function already exists',
+    0xffffffe5: 'block identity must be a string',
+    0xffffffe6: 'block not found',
+    0xffffffe7: 'duplicate operation edit',
+    0xffffffe8: 'duplicate terminator edit',
+    0xffffffe9: 'overlapping whole-function and local edits',
+    0xffffffea: 'v2 interface_policy must be preserve or migrate',
+    0xffffffeb: 'unsupported patch schema',
+    0xffffffec: 'patch requires exactly its declared fields; unknown or missing fields',
+    0xffffffed: 'function edit requires exactly its declared fields; unknown or missing fields',
+    0xffffffee: 'operation edit requires exactly its declared fields; unknown or missing fields',
+    0xffffffef: 'terminator edit requires exactly its declared fields; unknown or missing fields',
+    0xfffffff0: 'function edit must retain its declared identity',
+}
+PUBLIC_STATUS = {
+    'D_ACTION_TYPE': (0xffffffe1, 0xfffffff7),
+    'D_FUNCTION_TYPE': (0xffffffe2, 0xfffffff6),
+    'D_FUNCTION_ABSENT': (0xffffffe3, 0xfffffff6),
+    'D_FUNCTION_EXISTS': (0xffffffe4, 0xfffffff6),
+    'D_BLOCK_TYPE': (0xffffffe5, 0xfffffff5),
+    'D_BLOCK_ABSENT': (0xffffffe6, 0xfffffff5),
+    'D_DUPLICATE_OP': (0xffffffe7, 0xfffffff3),
+    'D_DUPLICATE_TERM': (0xffffffe8, 0xfffffff3),
+    'D_OVERLAP': (0xffffffe9, 0xfffffff3),
+    'D_POLICY': (0xffffffea, 0xfffffffb),
+    'D_SCHEMA': (0xffffffeb, 0xfffffffb),
+    'D_PATCH_FIELDS': (0xffffffec, 0xfffffffb),
+    'D_FUNCTION_FIELDS': (0xffffffed, 0xfffffffb),
+    'D_OPERATION_FIELDS': (0xffffffee, 0xfffffffb),
+    'D_TERMINATOR_FIELDS': (0xffffffef, 0xfffffffb),
+    'D_DEFINITION': (0xfffffff0, 0xfffffff6),
+}
 
 BODY = r'''
 def patch_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -81,42 +124,47 @@ def patch_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return size
     if tree_limit(w, base, 64) == 0 or tree_limit(w, request, 128) == 0:
         return 4294967294
+    tag = field(w, request, K_schema)
+    v1 = text_is(w, tag, L_patch_v1)
+    v2 = text_is(w, tag, L_patch_v2)
+    if v1 == 0 and v2 == 0:
+        return D_SCHEMA
     if mode == 2:
-        if declared == 1 and text_is(w, field(w, request, K_schema), L_patch_v1) == 0:
+        if declared == 1 and v1 == 0:
             return 4294967281
-        if declared == 2 and text_is(w, field(w, request, K_schema), L_patch_v2) == 0:
+        if declared == 2 and v2 == 0:
             return 4294967281
     schema = 0
     policy = 0
-    if text_is(w, field(w, request, K_schema), L_patch_v1) != 0:
+    if v1 != 0:
         schema = 1
         if shape(w, request, K_schema | K_expected_sha256 | K_edits) == 0:
-            return 4294967291
-    elif text_is(w, field(w, request, K_schema), L_patch_v2) != 0:
+            return D_PATCH_FIELDS
+    else:
         schema = 2
         if shape(w, request, K_schema | K_expected_sha256 | K_edits | K_interface_policy) == 0:
-            return 4294967291
+            return D_PATCH_FIELDS
         selected = field(w, request, K_interface_policy)
         if text_is(w, selected, L_migrate) != 0:
             policy = 1
         elif text_is(w, selected, L_preserve) == 0:
-            return 4294967291
-    else:
-        return 4294967291
+            return D_POLICY
     expected = field(w, request, K_expected_sha256)
     if kind(w, expected) != 4 or count(w, expected) != 64:
         return 4294967290
     digest_fragment(o, w, size - 32)
     offset = get(w, 64 + expected * 56 + 24)
     i = 0
+    mismatch = False
     while i < 32:
         a = lower_nibble(byte(w, offset + i * 2))
         b = lower_nibble(byte(w, offset + i * 2 + 1))
         if a > 15 or b > 15:
             return 4294967290
-        if byte(w, scratch + 1088 + i) != ((a << 4) | b):
-            return 4294967289
+        mismatch = mismatch or byte(w, scratch + 1088 + i) != ((a << 4) | b)
         i = i + 1
+    if mismatch:
+        return 4294967289
     edits = field(w, request, K_edits)
     if kind(w, edits) != 5 or count(w, edits) < 1 or count(w, edits) > 64:
         return 4294967288
@@ -169,7 +217,11 @@ def apply_edits(s:readbuf, o:mutbuf, w:mutbuf, functions:u64, edits:u64, policy:
 
 def edit_target(s:readbuf, w:mutbuf, functions:u64, edit:u64) -> u64:
     action = 0
+    if kind(w, edit) != 6:
+        return D_ACTION_TYPE
     tag = field(w, edit, K_action)
+    if kind(w, tag) != 4:
+        return D_ACTION_TYPE
     if text_is(w, tag, L_replace_function) != 0:
         action = 1
     if text_is(w, tag, L_add_function) != 0:
@@ -188,26 +240,28 @@ def edit_target(s:readbuf, w:mutbuf, functions:u64, edit:u64) -> u64:
     else:
         fields = fields | K_block | K_term
     if shape(w, edit, fields) == 0:
-        return 4294967291
+        if action <= 2:
+            return D_FUNCTION_FIELDS
+        return choose(action == 3, D_OPERATION_FIELDS, D_TERMINATOR_FIELDS)
     name = field(w, edit, K_function)
     if kind(w, name) != 4:
-        return 4294967286
+        return D_FUNCTION_TYPE
     fn = named(w, functions, K_name, name)
     if action == 2:
         if fn != 18446744073709551615:
-            return 4294967286
+            return D_FUNCTION_EXISTS
     elif fn == 18446744073709551615:
-        return 4294967286
+        return D_FUNCTION_ABSENT
     block = 18446744073709551615
     block_name = 18446744073709551615
     index = 18446744073709551615
     if action >= 3:
         block_name = field(w, edit, K_block)
         if kind(w, block_name) != 4:
-            return 4294967285
+            return D_BLOCK_TYPE
         block = named(w, field(w, fn, K_blocks), K_id, block_name)
         if block == 18446744073709551615:
-            return 4294967285
+            return D_BLOCK_ABSENT
         if action == 3:
             index = exact_index(s, w, field(w, edit, K_index))
             ops = field(w, block, K_ops)
@@ -234,10 +288,10 @@ def edit_overlap(w:mutbuf, applied:u64) -> u64:
         if same_text(w, name, get(w, entry)) != 0:
             old_action = get(w, entry + 24)
             if action <= 2 or old_action <= 2:
-                return 4294967283
+                return D_OVERLAP
             if same_text(w, block_name, get(w, entry + 8)) != 0:
                 if action == old_action and index == get(w, entry + 16):
-                    return 4294967283
+                    return choose(action == 3, D_DUPLICATE_OP, D_DUPLICATE_TERM)
         previous = previous + 1
     return 0
 
@@ -251,7 +305,7 @@ def edit_materialize(s:readbuf, o:mutbuf, w:mutbuf, functions:u64, edit:u64, pol
     if action <= 2:
         replacement = field(w, edit, K_definition)
         if kind(w, replacement) != 6 or same_text(w, name, field(w, replacement, K_name)) == 0:
-            return 4294967286
+            return D_DEFINITION
         changed = 0
         if action == 2:
             changed = 1
@@ -588,10 +642,11 @@ def hash_put(w:mutbuf, index:u64, value:u64) -> u64:
 '''
 
 
-def source_program():
+def source_program(*, public=False):
     constants = {'K_'+key:1 << i for i,key in enumerate(KEYS)}
     constants['MAGIC'] = MAGIC
     constants['RESULT_MAGIC'] = RESULT_MAGIC
+    constants.update({name: codes[0 if public else 1] for name, codes in PUBLIC_STATUS.items()})
     literals = {'L_'+key:packed(value) for key,value in LITERALS.items()}
     class Expand(ast.NodeTransformer):
         def visit_Expr(self, node):
@@ -644,8 +699,8 @@ def source_program():
     return ast.unparse(ast.fix_missing_locations(own))+'\n'+helper_text+'\n'+'\n'.join(key)+'\n'+decoder+'\n'+digest+'\n'
 
 
-def document():
-    nodes = ast.parse(source_program()).body
+def document(source=None, *, module='core_patch'):
+    nodes = ast.parse(source_program() if source is None else source).body
     assert len({node.name for node in nodes}) == len(nodes)
     names = {node.name:'f'+str(i) for i,node in enumerate(nodes)}
     signatures = {node.name:([arg.annotation.id for arg in node.args.args],node.returns.id) for node in nodes}
@@ -657,12 +712,95 @@ def document():
         functions.append({'name':names[node.name], 'params':[builder.param(p) for p in builder.params],
             'returns':[builder.returns], 'effects':['read','write','trap'],
             'entry':'b0', 'blocks':builder.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':'core_patch','functions':functions})
+    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':functions})
+
+
+def diagnostic_source():
+    lines = [
+        'def patch_diagnostic(s:readbuf, o:mutbuf, w:mutbuf) -> u32:',
+        '    if length(s) != 8 or length(o) < 512:',
+        '        return 0',
+        '    status = 0',
+        '    index = 0',
+        '    while index < 8:',
+        '        status = status | (byte(s, index) << (8 * index))',
+        '        index = index + 1',
+    ]
+    for code, message in PUBLIC_DIAGNOSTICS.items():
+        raw = (json.dumps({
+            'diagnostics': [{'code': 'E_DRIVER', 'message': 'E_HIA_EDIT: ' + message, 'phase': 'driver'}],
+            'ok': False, 'status': 'error',
+        }, indent=2, sort_keys=True) + '\n').encode('ascii')
+        lines.append(f'    if status == {code}:')
+        for offset in range(0, len(raw), 8):
+            word = int.from_bytes(raw[offset:offset + 8], 'little')
+            lines.append(f'        put(o, {offset}, {word})')
+        lines.append(f'        return {len(raw)}')
+    lines += ['    return 0', '',
+              'def put(output:mutbuf, offset:u64, word:u64) -> u64:',
+              '    index = 0',
+              '    while index < 8:',
+              '        store(output, offset + index, (word >> (8 * index)) & 255)',
+              '        index = index + 1',
+              '    return 0']
+    return '\n'.join(lines) + '\n'
+
+
+def update_public_edit_kernels(directory):
+    # These sealed kernels share the five patch-policy functions. Their
+    # underlying parser, output/custody and imported tables intentionally stay
+    # variant-specific. Update only the shared functions, not those adapters.
+    public = render_assembly(document(source_program(public=True)))
+    shared = re.findall(r'^fn f[0-4]\(.*?^end\n', public, re.MULTILINE | re.DOTALL)
+    if len(shared) != 5:
+        raise ValueError('incomplete public patch policy')
+    presenter = render_assembly(document(diagnostic_source())).split('\n', 1)[1]
+    presenter = re.sub(r'\bf0(?=["(])', 'patch_diagnostic', presenter)
+    presenter = re.sub(r'\bf1(?=["(])', 'patch_diagnostic_word', presenter)
+    # An eight-byte immutable status with no workspace is disjoint from both
+    # established execution ABIs. All other requests use the original entry.
+    gate = '''block patch_driver_start(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  patch_input_bytes:usize = buffer.len(v0)
+  patch_workspace_bytes:usize = buffer.len(v2)
+  patch_eight:usize = const() {"value":8}
+  patch_zero:usize = const() {"value":0}
+  patch_input_ok:bool = compare.eq(patch_input_bytes,patch_eight)
+  patch_workspace_ok:bool = compare.eq(patch_workspace_bytes,patch_zero)
+  patch_diagnostic_only:bool = bool.and(patch_input_ok,patch_workspace_ok)
+  branch patch_diagnostic_only patch_driver_report(v0,v1,v2) b0(v0,v1,v2)
+block patch_driver_report(patch_status2:readbuf,patch_output2:mutbuf,patch_workspace2:mutbuf)
+  patch_amount:u32 = call(patch_status2,patch_output2,patch_workspace2) {"function":"patch_diagnostic"}
+  ret(patch_amount)
+'''
+    for name, function_offset in (('impact_patch', 0), ('publication_patch_policy', 26)):
+        path = directory / (name + '.hepta')
+        source = path.read_text()
+        source = source.split('\nfn patch_diagnostic(', 1)[0].rstrip() + '\n'
+        source = re.sub(r'entry\(patch_driver_start\)\n.*?(?=^block b0\()', 'entry(b0)\n',
+                        source, count=1, flags=re.MULTILINE | re.DOTALL)
+        for index, function in enumerate(shared):
+            identity = function_offset + index
+            shifted = re.sub(r'(?<=\bf)(\d+)(?=["(])', lambda match: str(int(match[1]) + function_offset), function)
+            source, count = re.subn(rf'^fn f{identity}\(.*?^end\n', lambda _: shifted, source,
+                                    flags=re.MULTILINE | re.DOTALL)
+            if count != 1:
+                raise ValueError('missing unique patch policy function for ' + name)
+        header = (r'^(fn f0\([^\n]*\) -> \(u32\) effects\(read,write,trap\)) entry\(b0\)\n'
+                  r'(block b0\([^\n]*\)\n.*?)(?=^block |^end\n)')
+        def gate_entry(match):
+            ports = {'v0': 'patch_source', 'v1': 'patch_output', 'v2': 'patch_workspace'}
+            original = re.sub(r'\bv[0-2]\b', lambda name: ports[name[0]], match[2])
+            return match[1] + ' entry(patch_driver_start)\n' + gate + original
+        source, count = re.subn(header, gate_entry, source, flags=re.MULTILINE | re.DOTALL)
+        if count != 1:
+            raise ValueError('missing unique patch transport function for ' + name)
+        path.write_text(source + presenter)
 
 
 def main():
     target = Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_patch.hepta'
     target.write_text(render_assembly(document()))
+    update_public_edit_kernels(target.parent / 'core_edit')
     print(target.name, target.stat().st_size)
 
 

@@ -417,6 +417,7 @@ def check_ordinary(executable, run):
     check_source_files(executable)
     check_argument_cli(executable)
     check_edit_query_refusals(executable)
+    check_patch_refusals(executable)
 
 
 def check_edit_query_refusals(executable):
@@ -450,6 +451,52 @@ def check_edit_query_refusals(executable):
                     status, stdout.getvalue().encode(), b''), (selection, publication, result)
                 assert status == 2 and not destination.parent.exists()
     print(f'{len(cases) * 2} exact edit-query refusals before publication')
+
+
+def check_patch_refusals(executable):
+    from hepta.cli import _reference_hia_main
+    from tests.test_hia_program_tools import add_two_patch, scalar_program
+
+    program = scalar_program()
+    request = add_two_patch(program)
+    edit = request['edits'][0]
+    cases = (
+        {**request, 'expected_sha256': '0' * 64},
+        {**request, 'expected_sha256': 'g' + '0' * 63},
+        {**request, 'expected_sha256': '0' * 63 + 'g'},
+        {**request, 'expected_sha256': False},
+        {**request, 'edits': []},
+        {**request, 'additional': True},
+        {**request, 'schema': 'hepta.hia.patch.v2', 'interface_policy': 'unknown'},
+        {**request, 'edits': [False]},
+        {**request, 'edits': [{**edit, 'action': 'unknown'}]},
+        {**request, 'edits': [{**edit, 'action': False}]},
+        {**request, 'edits': [{**edit, 'index': True}]},
+        {**request, 'edits': [{**edit, 'index': 999}]},
+        {**request, 'edits': [{**edit, 'function': 'absent'}]},
+        {**request, 'edits': [{**edit, 'function': 1}]},
+        {**request, 'edits': [{**edit, 'block': 'absent'}]},
+        {**request, 'edits': [{**edit, 'block': 1}]},
+        {**request, 'edits': request['edits'] * 2},
+    )
+    with TemporaryDirectory(prefix='hia-cli-patch-refusal-') as temporary:
+        root = Path(temporary)
+        source, packet, destination = root / 'source.hepta', root / 'patch.hepta', root / 'new/edited.hepta'
+        source.write_text(json.dumps(program))
+        modes = (('patch', []), ('patch', ['-o', str(destination)]), ('impact', []))
+        for payload in cases:
+            packet.write_text(json.dumps(payload))
+            for action, publication in modes:
+                args = [action, str(source), '--request', str(packet), *publication]
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    status = _reference_hia_main(args)
+                result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                        timeout=20, check=False)
+                assert (result.returncode, result.stdout, result.stderr) == (
+                    status, stdout.getvalue().encode(), b''), (action, publication, payload, result)
+                assert status == 2 and not destination.parent.exists()
+    print(f'{len(cases) * len(modes)} exact patch and impact refusals without changing the snapshot')
 
 
 def check_argument_cli(executable):
