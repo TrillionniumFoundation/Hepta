@@ -2282,7 +2282,7 @@
       "bytes": 212482,
       "kind": ".json",
       "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-      "sha256": "2d40e4035dc30636ebc461d3f5036e6cdaaa6af2539804d3174cb903b529b1de"
+      "sha256": "0109f9f9b01de03dbec66d8bcd437b4958ced09d067567fa8393d7048fec97a1"
     },
     {
       "bytes": 176641,
@@ -4480,10 +4480,10 @@
       "source_format": "hia-assembly"
     },
     {
-      "bytes": 215370,
+      "bytes": 257343,
       "kind": ".hepta",
       "path": "examples/hia_bootstrap/worker_report.hepta",
-      "sha256": "7fa67e1b42812cdccc209da2025a008e074fa23422936f3b1104996ecb4acb88",
+      "sha256": "0b1f17fa0cd872f68d26d2769fc14a932ab05b46159d45fde9bd7c19b52b05d9",
       "source_format": "hia-assembly"
     },
     {
@@ -7451,10 +7451,10 @@
       "sha256": "4252fe4d03bb94801f749c8ed5706842fed400e73661af8f501d3a0acbbfd842"
     },
     {
-      "bytes": 10492,
+      "bytes": 11240,
       "kind": ".py",
       "path": "hepta/hia_agent_worker.py",
-      "sha256": "59e050d474e2d9df945c822ef60ed7f7d212544cabfa03de26868039531e2993"
+      "sha256": "3238d879c8dcdfdac89c7185a1fb1f941a05038c176313bbbeb51b4e2b1b6416"
     },
     {
       "bytes": 29551,
@@ -8393,10 +8393,10 @@
       "sha256": "a32cee8164ac6b3cd9062fa6e637a37dcb3a34e11b0047015c3d6af3098384dc"
     },
     {
-      "bytes": 20710,
+      "bytes": 23016,
       "kind": ".py",
       "path": "hepta/hia_worker_report_native.py",
-      "sha256": "7dde1d04d57291630ea1e22446fdf8b96ee4d855cd6a41d7a658684de895835f"
+      "sha256": "2e3fe518c10235ba191fb979657cd7abd3cb1d2f83aacbc3c549468ec30a2ab5"
     },
     {
       "bytes": 10723,
@@ -14487,10 +14487,10 @@
       "sha256": "381f968c2a46ac6658946846b18b3d38be7e0a92ef19a692ff79eff2bb655d8e"
     },
     {
-      "bytes": 59033,
+      "bytes": 62176,
       "kind": ".py",
       "path": "tests/test_hia_worker_report_native.py",
-      "sha256": "3326909911cff25a80b06bafdbd0e080ae66fc8b0ff8501afe4e429f0771c600"
+      "sha256": "548a8ea74e7276d1a4ad2d6544c90c8b37de38a213852ce3b2f293a7e1210bec"
     },
     {
       "bytes": 17351,
@@ -15801,10 +15801,10 @@
       "sha256": "427b7fd762077b802ee0254b49e7c015f3b14e5a3b8fd5b7b8dde332df8d1ebc"
     },
     {
-      "bytes": 32749,
+      "bytes": 35321,
       "kind": ".py",
       "path": "tools/generate_hia_worker_report.py",
-      "sha256": "64e7b1dcaeb8331dc465ccfd1cf2a18d5c01bab18dece2973754b5adc4f0c19e"
+      "sha256": "cdd8e9ac978d44d39c91afef1b709e4e9bf2073b5f78b805660f4f1cfa23cc22"
     },
     {
       "bytes": 18649,
@@ -17445,8 +17445,8 @@
       "sha256": "c4001e492c1694f6e74ba7ac4317776ec70e6e1b640ee863741ac55a300532be"
     }
   ],
-  "git_head": "87b39f27020a85c8c37eb3c2987ec6533e65f64d",
-  "git_head_tree": "88ae952667bc85149a99560c19d3218e59b13d73",
+  "git_head": "915d4518af83ec7868732de0dfa4ffaac97fa70b",
+  "git_head_tree": "14dba8172c0fc7b759108f735b3ee749fa2f0f0f",
   "hosted_tools": [
     {
       "imports": [
@@ -24854,6 +24854,8 @@
         "ast",
         "hepta.hia_agent_assembly",
         "hepta.hia_agent_assembly.render_assembly",
+        "hepta.hia_agent_worker",
+        "hepta.hia_agent_worker.WORKER_OPTIONS",
         "pathlib",
         "pathlib.Path",
         "tools.generate_hia_selfhost",
@@ -24861,7 +24863,7 @@
         "tools.generate_hia_selfhost.compact_authoring_cfg",
         "tools.generate_hia_selfhost.total_scalar_functions"
       ],
-      "lines": 850,
+      "lines": 923,
       "literal_hia_paths": [
         "examples/hia_bootstrap/worker_report.hepta"
       ],
@@ -24877,6 +24879,7 @@
       ],
       "top_level_public_definitions": [
         "constant_program",
+        "argv_options",
         "source_program",
         "document"
       ]
@@ -37998,7 +38001,7 @@
         "sys",
         "uuid"
       ],
-      "lines": 185,
+      "lines": 203,
       "literal_hia_paths": [],
       "literal_native_selectors": [
         "HEPTA_HIA_WORKER_REPORT_MANIFEST",
@@ -38012,7 +38015,8 @@
         "tests/test_hia_agent_store_runtime.py",
         "tests/test_hia_worker_report_custody.py",
         "tests/test_hia_worker_report_native.py",
-        "tests/test_hia_worker_request_native.py"
+        "tests/test_hia_worker_request_native.py",
+        "tools/generate_hia_worker_report.py"
       ],
       "retained_language": "Python",
       "top_level_public_definitions": [
@@ -46975,6 +46979,8 @@
       "imports": [
         "__future__",
         "__future__.annotations",
+        "argparse",
+        "argparse.Namespace",
         "ctypes",
         "hashlib",
         "hashlib.sha256",
@@ -47004,7 +47010,7 @@
         "struct",
         "sys"
       ],
-      "lines": 455,
+      "lines": 502,
       "literal_hia_paths": [
         "examples/hia_bootstrap/worker_report.hepta"
       ],
@@ -47459,9 +47465,10 @@
   "status": "STATIC_INVENTORY_NOT_NATIVE_DELIVERY_ACCEPTANCE",
   "worktree_vs_index_changed_paths": [
     "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-    "examples/hia_bootstrap/agent_journal.hepta",
-    "hepta/hia_agent_journal_native.py",
-    "tests/test_hia_agent_journal_native.py",
-    "tools/generate_hia_agent_journal.py"
+    "examples/hia_bootstrap/worker_report.hepta",
+    "hepta/hia_agent_worker.py",
+    "hepta/hia_worker_report_native.py",
+    "tests/test_hia_worker_report_native.py",
+    "tools/generate_hia_worker_report.py"
   ]
 }

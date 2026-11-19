@@ -6,6 +6,7 @@ request validator is an explicit retained foreign owner, not relabelled HIA.
 """
 from __future__ import annotations
 
+from argparse import Namespace
 import ctypes
 from hashlib import sha256
 import json
@@ -26,6 +27,7 @@ POLICY_SCHEMA = 'hepta.hia.worker-report-native.v1'
 SCHEMA = 'hepta.hia.worker-report-bundle.v1'
 SELECTOR = 'HEPTA_HIA_WORKER_REPORT_MANIFEST'
 MAGIC = int.from_bytes(b'HIAWKR02', 'little')
+ARGV_REQUEST, ARGV_REPLY = b'HIAWAV01', b'HIAWVO01'
 HIGH = 1 << 63
 NODE_BASE = 32768
 
@@ -394,6 +396,51 @@ class NativeWorkerReport:
 
     def run(self, args, parser, identities, worker):
         return WorkerSession(self, args, parser, identities, worker).run()
+
+    def startup_arguments(self, argv, options):
+        """Parse canonical worker arguments after the image is held in custody."""
+        if any(type(value) is not str or '\0' in value for value in argv):
+            return None
+        try:
+            arguments = [os.fsencode(value) + b'\0' for value in argv]
+        except UnicodeEncodeError:
+            return None
+        extent = len(ARGV_REQUEST) + sum(map(len, arguments))
+        if extent > 8 * 1024 * 1024:
+            return None
+        raw = ARGV_REQUEST + b''.join(arguments)
+        source = ctypes.create_string_buffer(raw, extent)
+        output = ctypes.create_string_buffer(16 + 24 * len(arguments))
+        scratch = ctypes.create_string_buffer(1)
+        size = self.policy._entry(source, extent, output, len(output), scratch, 0)
+        if size == 0:
+            return None
+        if not 16 <= size <= len(output) or output.raw[:8] != ARGV_REPLY:
+            raise ValueError('invalid native worker argv response')
+        count, = struct.unpack_from('<Q', output, 8)
+        if size != 16 + 24 * count:
+            raise ValueError('invalid native worker argv extent')
+        roles = [(name.replace('-', '_'), action) for name, action in options]
+        values = {name: [] if action == 'append' else False if action == 'store_true' else None
+                  for name, action in roles}
+        for role, start, length in struct.iter_unpack('<3Q', output.raw[16:size]):
+            if not 1 <= role <= len(roles):
+                raise ValueError('invalid native worker argv role')
+            name, action = roles[role - 1]
+            if action == 'store_true':
+                if start != 0 or length != 0:
+                    raise ValueError('invalid native worker argv flag')
+                values[name] = True
+                continue
+            end = start + length
+            if not len(ARGV_REQUEST) <= start <= end < extent or raw[end] != 0:
+                raise ValueError('invalid native worker argv span')
+            value = os.fsdecode(raw[start:end])
+            if action == 'append':
+                values[name].append(value)
+            else:
+                values[name] = value
+        return Namespace(**values)
 
     def equal_json(self, left, right):
         """Compare already admitted JSON graphs; no Python rich leaf equality."""

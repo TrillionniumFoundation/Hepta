@@ -8,6 +8,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_worker import WORKER_OPTIONS
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 SOURCE_PATH = 'examples/hia_bootstrap/worker_report.hepta'
@@ -37,6 +38,8 @@ LITERALS = {
 CONSTANTS = {name: HIGH + i for i, name in enumerate(LITERALS, 1)}
 FIELDS = {
     'MAGIC': MAGIC, 'HIGH': HIGH,
+    'ARGV_REQUEST': int.from_bytes(b'HIAWAV01', 'little'),
+    'ARGV_REPLY': int.from_bytes(b'HIAWVO01', 'little'),
     'AWAIT': 8, 'SEQ': 16, 'PHASE': 24, 'EXC': 32, 'EXC_DOMAIN': 40,
     'ENTERED': 48, 'REQUEST': 56, 'IDENTITIES': 64, 'AFTER': 72, 'REPLY': 80,
     'SERVICE': 88, 'PENDING_EXC': 96, 'PENDING_DOMAIN': 104, 'CATCH': 112,
@@ -68,6 +71,8 @@ FIELDS['FALSE_NODE'] = HIGH + len(LITERALS) + 2
 
 SOURCE = r'''
 def worker_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 8 and read64(s, 0) == ARGV_REQUEST:
+        return worker_argv(s, o)
     if length(w) < 262144 or length(o) < 8:
         return 199
     if get(w, 0) == 0:
@@ -821,11 +826,79 @@ def constant_program():
     return '\n'.join(lines + ['    return 0', ''])
 
 
+ARGV = r'''
+def worker_argv(s:readbuf, o:mutbuf) -> u32:
+    if length(o) < 16 or length(s) > 8388608:
+        return 0
+    at = 8
+    count = 0
+    while at < length(s):
+        end = worker_arg_end(s, at)
+        if end == length(s):
+            return 0
+        split = at
+        while split < end and byte(s, split) != 61:
+            split = split + 1
+        role = worker_arg_role(s, at, split - at)
+        if role == 0:
+            return 0
+        start = 0
+        size = 0
+        if worker_arg_boolean(role):
+            if split != end:
+                return 0
+        else:
+            if split != end:
+                start = split + 1
+            else:
+                start = end + 1
+                end = worker_arg_end(s, start)
+                if end == length(s) or (end > start + 1 and byte(s, start) == 45):
+                    return 0
+            size = end - start
+        cursor = 16 + count * 24
+        if cursor + 24 > length(o):
+            return 0
+        put(o, cursor, role)
+        put(o, cursor + 8, start)
+        put(o, cursor + 16, size)
+        count = count + 1
+        at = end + 1
+    put(o, 0, ARGV_REPLY)
+    put(o, 8, count)
+    return 16 + count * 24
+
+def worker_arg_end(s:readbuf, start:u64) -> u64:
+    end = start
+    while end < length(s) and byte(s, end) != 0:
+        end = end + 1
+    return end
+'''
+
+
+def argv_options():
+    lines = ['def worker_arg_role(s:readbuf, start:u64, size:u64) -> u64:']
+    for role, (name, _action) in enumerate(WORKER_OPTIONS, 1):
+        text = ('--' + name).encode('ascii')
+        words = len(text) // 8
+        terms = [f'size == {len(text)}']
+        for at in range(0, words * 8, 8):
+            word = int.from_bytes(text[at:at + 8], 'little')
+            terms.append(f'read64(s, start + {at}) == {word}')
+        terms.extend(f'byte(s, start + {at}) == {text[at]}' for at in range(words * 8, len(text)))
+        lines.extend(('    if ' + ' and '.join(terms) + ':', f'        return {role}'))
+    flags = [f'role == {role}' for role, (_, action) in enumerate(WORKER_OPTIONS, 1)
+             if action == 'store_true']
+    lines.extend(('    return 0', '', 'def worker_arg_boolean(role:u64) -> bool:',
+                  '    return ' + ' or '.join(flags), ''))
+    return '\n' + '\n'.join(lines)
+
+
 def source_program():
     class Constants(ast.NodeTransformer):
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
-    tree = Constants().visit(ast.parse(SOURCE + EQUALITY + constant_program()))
+    tree = Constants().visit(ast.parse(SOURCE + EQUALITY + constant_program() + ARGV + argv_options()))
     return ast.unparse(ast.fix_missing_locations(tree)) + '\n'
 
 

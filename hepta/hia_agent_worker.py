@@ -16,23 +16,30 @@ import uuid
 from .hia_agent_contract import VERSION, installation_manifest
 from .hia_agent_store import AgentRejected, canonical_digest, decode_data, keys, wire
 
+WORKER_OPTIONS = (
+    ("installation-manifest", "store_true"),
+    ("state-root", "store"),
+    ("artifact-root", "append"),
+    ("request-json-stdin", "store_true"),
+    ("expected-worker-sha256", "store"),
+    ("expected-backend-sha256", "store"),
+    ("expected-catalog-sha256", "store"),
+    ("native-helpers-manifest", "store"),
+    ("expected-native-helpers-sha256", "store"),
+    ("native-store-release", "store"),
+    ("expected-native-store-sha256", "store"),
+    ("expected-native-artifact-sha256", "store"),
+    ("expected-native-capture-sha256", "store"),
+)
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--installation-manifest", action="store_true")
-    parser.add_argument("--state-root")
-    parser.add_argument("--artifact-root", action="append", default=[])
-    parser.add_argument("--request-json-stdin", action="store_true")
-    parser.add_argument("--expected-worker-sha256")
-    parser.add_argument("--expected-backend-sha256")
-    parser.add_argument("--expected-catalog-sha256")
-    parser.add_argument("--native-helpers-manifest")
-    parser.add_argument("--expected-native-helpers-sha256")
-    parser.add_argument("--native-store-release")
-    parser.add_argument("--expected-native-store-sha256")
-    parser.add_argument("--expected-native-artifact-sha256")
-    parser.add_argument("--expected-native-capture-sha256")
-    args = parser.parse_args(argv)
+    for name, action in WORKER_OPTIONS:
+        defaults = {"default": []} if action == "append" else {}
+        parser.add_argument("--" + name, action=action, **defaults)
+    present = sys.argv[1:] if argv is None else list(argv)
+    args = parser.parse_args(present)
     configured = (args.native_store_release, args.expected_native_store_sha256,
                   args.expected_native_artifact_sha256, args.expected_native_capture_sha256)
     if any(value is not None for value in configured) and any(value is None for value in configured):
@@ -40,6 +47,17 @@ def main(argv=None):
     from .hia_native_helpers import native_helpers_scope
     try:
         with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256) as binding:
+            selected = os.environ.get('HEPTA_HIA_WORKER_REPORT_MANIFEST')
+            if selected:
+                # The host still admits the administrator's bundle pin and
+                # keeps its legacy CLI errors. Execute policy only in custody.
+                from .hia_worker_report_native import installed_worker_report
+                report = installed_worker_report(selected)
+                startup = report.startup_arguments(present, WORKER_OPTIONS)
+                if startup is not None:
+                    if vars(startup) != vars(args):
+                        raise ValueError('native worker arguments differ from pinned CLI admission')
+                    args = startup
             args.pinned_native_store = getattr(binding, 'native_store', None)
             args.pinned_native_edit_query = getattr(binding, 'native_edit_query', None)
             args.pinned_native_candidate_import = getattr(binding, 'native_candidate_import', None)

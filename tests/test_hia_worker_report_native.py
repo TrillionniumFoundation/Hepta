@@ -311,6 +311,60 @@ class WorkerReportNativeTests(unittest.TestCase):
         self.assertEqual(actual, expected)
         return actual, new
 
+    def test_canonical_startup_argv_parity(self):
+        options = worker.WORKER_OPTIONS
+        parser = argparse.ArgumentParser()
+        for name, action in options:
+            defaults = {'default': []} if action == 'append' else {}
+            parser.add_argument('--' + name, action=action, **defaults)
+        raw_path = os.fsdecode(b'/raw-\xff')
+        cases = [
+            [],
+            ['--state-root', '/unused', '--request-json-stdin', '--artifact-root',
+             raw_path, '--artifact-root=/a=b', '--state-root=--last', '--request-json-stdin'],
+            ['--installation-manifest', '--state-root=', '--expected-worker-sha256', '-'],
+            [f'--{name}' if action == 'store_true' else f'--{name}=value-{index}'
+             for index, (name, action) in enumerate(options)],
+        ]
+        for argv in cases:
+            with self.subTest(argv=argv):
+                self.assertEqual(self.owner.startup_arguments(argv, options), parser.parse_args(argv))
+        for argv in (['--state-roo=/abbreviated'], ['--request-json-stdin=true'],
+                     ['--state-root'], ['--state-root', '--request-json-stdin'],
+                     ['--help'], ['--'], ['--state-root', '\0'], ['--state-root', '\ud800']):
+            with self.subTest(argv=argv):
+                self.assertIsNone(self.owner.startup_arguments(argv, options))
+
+    def test_native_startup_argv_uses_only_pinned_report_and_refuses_disagreement(self):
+        from hepta import hia_native_helpers as authority
+        argv = ['--state-root=/a=b', '--request-json-stdin', '--artifact-root', '/first',
+                '--artifact-root=/second', '--native-helpers-manifest', str(self.worker_bundle),
+                '--expected-native-helpers-sha256', self.worker_pin]
+        calls = []
+        original = NativeWorkerReport.startup_arguments
+
+        def observe(owner, present, options):
+            self.assertEqual(authority.native_helpers_identity(), {'native_helpers_sha256': self.worker_pin})
+            calls.append(tuple(present))
+            return original(owner, present, options)
+
+        errors = io.StringIO()
+        with patch.dict(os.environ, {}, clear=True), patch.object(sys, 'stderr', errors):
+            with patch.object(NativeWorkerReport, 'startup_arguments', observe):
+                with patch.object(worker, '_run', return_value=0) as run:
+                    self.assertEqual(worker.main(argv), 0)
+                parsed = run.call_args.args[1]
+                self.assertEqual((parsed.state_root, parsed.artifact_root), ('/a=b', ['/first', '/second']))
+                self.assertEqual(calls, [tuple(argv)])
+                self.assertEqual(worker.main([*argv[:-1], '0' * 64]), 2)
+                self.assertEqual(calls, [tuple(argv)])
+            with (
+                patch.object(NativeWorkerReport, 'startup_arguments', return_value=argparse.Namespace()),
+                patch.object(worker, '_run', side_effect=AssertionError('effect after disagreement')),
+            ):
+                self.assertEqual(worker.main(argv), 2)
+        self.assertIn('native worker arguments differ', errors.getvalue())
+
     def test_ordinary_success_and_service_close_exception_order(self):
         success, _ = self.same()
         self.assertEqual(success[0], ('return', 0))
