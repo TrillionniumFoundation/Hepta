@@ -1,5 +1,5 @@
-/* Stdio transport only. HIA owns request admission, response canonicalization
- * and terminal rendering. This is an internal process-owner interface. */
+/* Stdio transport only. HIA owns framing, request admission, response
+ * canonicalization and terminal rendering for this process-owner interface. */
 .intel_syntax noprefix
 .text
 .global _start
@@ -8,9 +8,7 @@
 .equ WORKSPACE,64+262144*56+WIRE_LIMIT+16384
 .equ PRIVATE,WORKSPACE-16384
 .equ FRAME_BYTES,296
-.equ REPORT_INPUT,0x3130505254414948
 .equ ADMISSION_BYTES,88
-.equ ADMISSION_INPUT,0x3230415257414948
 .equ ADMISSION_OUTPUT,0x32304f5257414948
 
 _start:
@@ -28,34 +26,21 @@ _start:
  lea rsi,[rip+header]
  mov edx,8
  call read_exact
- movabs rax,ADMISSION_INPUT
- cmp [rip+header],rax
+ mov esi,8
+ call check_header
+ cmp eax,ADMISSION_BYTES
  je admission
- movabs rax,REPORT_INPUT
- cmp [rip+header],rax
+ cmp eax,FRAME_BYTES
  jne bad_frame
  lea rsi,[rip+header+8]
  mov edx,FRAME_BYTES-8
  call read_exact
- cmp QWORD PTR [rip+header+8],0
- je bad_frame
- cmp QWORD PTR [rip+header+16],0
- je bad_frame
- cmp QWORD PTR [rip+header+8],WIRE_LIMIT
- ja budget
- cmp QWORD PTR [rip+header+16],WIRE_LIMIT
- ja budget
- mov rax,[rip+header+24]
- call check_digits
- mov rax,[rip+header+32]
- cmp rax,1
- ja bad_frame
- je pins_ready
- lea rdi,[rip+header+232]
- mov ecx,8
- repe scasq
+ mov esi,FRAME_BYTES
+ call check_header
+ cmp eax,0xfffffffe
+ je budget
+ cmp eax,FRAME_BYTES
  jne bad_frame
-pins_ready:
  mov esi,WIRE_LIMIT
  call map_private
  mov r12,rax
@@ -127,10 +112,12 @@ admission:
  lea rsi,[rip+header+8]
  mov edx,ADMISSION_BYTES-8
  call read_exact
- cmp QWORD PTR [rip+header+8],WIRE_LIMIT
- ja budget
- mov rax,[rip+header+16]
- call check_digits
+ mov esi,ADMISSION_BYTES
+ call check_header
+ cmp eax,0xfffffffe
+ je budget
+ cmp eax,ADMISSION_BYTES
+ jne bad_frame
  mov esi,WIRE_LIMIT
  call map_private
  mov r12,rax
@@ -192,15 +179,13 @@ admission_complete:
  xor edi,edi
  jmp exit
 
-check_digits:
- test rax,rax
- jz digits_valid
- cmp rax,640
- jb bad_frame
- cmp rax,2147483647
- ja bad_frame
-digits_valid:
- ret
+check_header:
+ lea rdi,[rip+header]
+ xor edx,edx
+ xor ecx,ecx
+ lea r8,[rip+transport_mode]
+ mov r9d,8
+ jmp worker_request_start
 run_hia:
  mov ecx,WIRE_LIMIT
  mov r9d,WORKSPACE
@@ -288,6 +273,10 @@ exit:
 .balign 8
 sigpipe: .quad 1,0,0,0
 newline: .byte 10
+
+.data
+.balign 8
+transport_mode: .quad 4
 
 .bss
 .balign 8

@@ -24,9 +24,13 @@ SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hepta'
 
 ENTRY = r'''
 def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) > 8388608 or length(o) < 128 or length(w) < 16512:
+    if length(w) < 8:
         return 4294967293
     mode = get(w, 0)
+    if mode == 4:
+        return terminal_header(s)
+    if length(s) > 8388608 or length(o) < 128 or length(w) < 16512:
+        return 4294967293
     if mode == 2:
         return terminal_wire(s, o, w)
     bound = (length(s) + 1) >> 1
@@ -431,9 +435,68 @@ def key_program():
     return '\n'.join(functions)
 
 
+def terminal_frame_program():
+    source = '''
+def terminal_header(s:readbuf) -> u32:
+    size = length(s)
+    if size < 8:
+        return 4294967293
+    magic = frame_word(s, 0)
+    if magic == ADMISSION_INPUT:
+        if size == 8:
+            return 88
+        if size != 88:
+            return 4294967293
+        if frame_word(s, 8) > 8388608:
+            return 4294967294
+        if valid_digits(frame_word(s, 16)) == 0:
+            return 4294967293
+        return 88
+    if magic != REPORT_INPUT:
+        return 4294967293
+    if size == 8:
+        return 296
+    if size != 296:
+        return 4294967293
+    request = frame_word(s, 8)
+    response = frame_word(s, 16)
+    if request == 0 or response == 0:
+        return 4294967293
+    if request > 8388608 or response > 8388608:
+        return 4294967294
+    if valid_digits(frame_word(s, 24)) == 0:
+        return 4294967293
+    pins = frame_word(s, 32)
+    if pins > 1:
+        return 4294967293
+    if pins == 0:
+        at = 232
+        while at < 296:
+            if frame_word(s, at) != 0:
+                return 4294967293
+            at = at + 8
+    return 296
+
+def valid_digits(digits:u64) -> u64:
+    if digits == 0 or (digits >= 640 and digits <= 2147483647):
+        return 1
+    return 0
+
+def frame_word(s:readbuf, at:u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | (byte(s, at + index) << (index * 8))
+        index = index + 1
+    return value
+'''
+    return (source.replace('ADMISSION_INPUT', str(int.from_bytes(b'HIAWRA02', 'little')))
+                  .replace('REPORT_INPUT', str(int.from_bytes(b'HIATRP01', 'little'))))
+
+
 def source_program():
     return '\n'.join((ENTRY, canonical_program(), key_program(), data_source(),
-                       decimal_program(), format_program(), hash_program()))
+                       decimal_program(), format_program(), hash_program(), terminal_frame_program()))
 
 
 def document():

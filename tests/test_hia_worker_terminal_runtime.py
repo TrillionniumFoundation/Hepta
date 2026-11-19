@@ -71,16 +71,31 @@ def check(executable: Path):
     run(frame(raw, body, helpers=HELPERS, flags=0), 64)
     run(frame(raw, body, flags=2), 64)
     run(frame(raw, body, digits=639), 64)
+    run(frame(raw, body, digits=2147483648), 64)
     packet = frame(raw, body)
+    for digits in (0, 640, 2147483647):
+        run(frame(raw, body, digits=digits), 0, wire(dict(report, response=complete)) + b'\n')
     for truncated in (packet[:295], packet[:300], packet[:-1], packet + b'\x00'):
         run(truncated, 64)
     run(packet, 64, extra_args=('unexpected',))
     oversized_header = packet[:16] + struct.pack('<Q', LIMIT + 1) + packet[24:296]
     run(oversized_header, 3)
+    run(packet[:8] + bytes(8) + oversized_header[16:], 64)
     # The canonical body alone fits; its authenticated full report does not.
     big = wire(dict(complete, result={'a': ''}))
     big = big.replace(b'""', b'"' + b'a' * (LIMIT - len(big)) + b'"', 1)
     run(frame(raw, big), 3)
+
+    admission = struct.pack('<8s2Q64s', b'HIAWRA02', len(raw), 640, CATALOG.encode())
+    for invalid in (b'UNKNOWN!', admission[:87], admission + raw[:-1], admission + raw + b'\0'):
+        run(invalid, 64)
+    for value, status in ((639, 64), (2147483648, 64)):
+        run(admission[:16] + struct.pack('<Q', value) + admission[24:] + raw, status)
+    run(admission[:8] + struct.pack('<Q', LIMIT + 1) + admission[16:], 3)
+    from hepta.hia_worker_request_native import _standalone_admit, _materialize_request
+    for digits in (0, 640, 2147483647):
+        status, arena = _standalone_admit(executable.read_bytes(), raw, CATALOG, digits)
+        assert _materialize_request(status, arena, raw) == request
     print('installed worker terminal: completed and rejected reports byte-exact; malformed and over-budget inputs emit nothing')
 
 
