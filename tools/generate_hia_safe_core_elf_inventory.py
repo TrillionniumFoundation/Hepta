@@ -19,6 +19,9 @@ HELPER_NAME = b'__hia_native_fn_0\0'
 FIELDS.update(HELPER_HEAD=int.from_bytes(HELPER_NAME[:8], 'little'),
               HELPER_BODY=int.from_bytes(HELPER_NAME[8:16], 'little'),
               HELPER_TAIL=int.from_bytes(HELPER_NAME[16:], 'little'))
+FIELDS.update(LIBC_HEAD=int.from_bytes(b'libc.so.', 'little'),
+              VERSION_HEAD=int.from_bytes(b'GLIBC_2.', 'little'),
+              VERSION_TAIL=int.from_bytes(b'2.5', 'little'))
 
 SOURCE = r'''
 def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -38,8 +41,15 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) == 48 and get(w, 40) == 0:
         return verify_plt_slot(s, o, w)
     if length(w) >= 64:
-        if get(w, 0) == 2:
+        operation = get(w, 0)
+        if operation == 2:
             return object_relocations(s, o, w)
+        if operation == 3 and length(w) == 88:
+            return review_version_tables(s, o, w)
+        if operation == 4 and length(w) == 64:
+            return review_version_import(s, o, w)
+        if operation == 5 and length(w) == 64:
+            return verify_relro(s, o, w)
         return loader_hash(s, o, w)
     if length(w) != 8:
         return 4294967293
@@ -641,6 +651,107 @@ def linked_text_matches(s:readbuf, o:mutbuf, w:mutbuf, text:u64, size:u64) -> u6
             return 0
         index = index + 1
     return 1
+
+def review_version_tables(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    versions = get(w, 8)
+    needed = get(w, 32)
+    if get(w, 16) != 6 or get(w, 40) != 32 or get(w, 56) != 7:
+        return terminal(o, E_VERSION_AUTHORITY, 0, 0)
+    if get(w, 64) != get(w, 24) or get(w, 72) != get(w, 48) or get(w, 80) != 1:
+        return terminal(o, E_VERSION_AUTHORITY, 0, 0)
+    if in_file(length(s), versions, 6) == 0 or in_file(length(s), needed, 32) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    return terminal(o, choose(word(s, versions, 6) == 0x000100020000, 0, E_VERSION_AUTHORITY), 0, 0)
+
+def review_version_import(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    needed = get(w, 8)
+    start = get(w, 16)
+    size = get(w, 24)
+    if in_file(length(s), needed, 32) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    if word(s, needed, 4) != 0x00010001 or word(s, needed + 8, 8) != 16:
+        return terminal(o, E_VERSION_IMPORT, 0, 0)
+    if word(s, needed + 16, 4) != version_hash() or word(s, needed + 20, 4) != 0x00020000:
+        return terminal(o, E_VERSION_IMPORT, 0, 0)
+    if word(s, needed + 28, 4) != 0:
+        return terminal(o, E_VERSION_IMPORT, 0, 0)
+    error = verify_version_name(s, start, size, word(s, needed + 4, 4), 0)
+    if error != 0:
+        return terminal(o, error, 0, 0)
+    return terminal(o, verify_version_name(s, start, size, word(s, needed + 24, 4), 1), 0, 0)
+
+def version_hash() -> u64:
+    index = 0
+    value = 0
+    while index < 8:
+        value = sysv_step(value, (VERSION_HEAD >> (index * 8)) & 255)
+        index = index + 1
+    index = 0
+    while index < 3:
+        value = sysv_step(value, (VERSION_TAIL >> (index * 8)) & 255)
+        index = index + 1
+    return value
+
+def verify_version_name(s:readbuf, start:u64, size:u64, index:u64, kind:u64) -> u64:
+    if index >= size:
+        return E_NAME_INDEX
+    if in_file(length(s), start, size) == 0:
+        return E_RANGE
+    at = start + index
+    count = name_length(s, at, size - index)
+    if count > 256:
+        return E_NAME_LENGTH
+    if ascii_name(s, at, count) == 0:
+        return E_NAME_ASCII
+    if kind == 0:
+        if count == 9 and word(s, at, 8) == LIBC_HEAD and byte(s, at + 8) == 54:
+            return 0
+    else:
+        if count == 11 and word(s, at, 8) == VERSION_HEAD and word(s, at + 8, 3) == VERSION_TAIL:
+            return 0
+    return E_VERSION_IMPORT
+
+def verify_relro(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    phoff = word(s, 32, 8)
+    phnum = word(s, 56, 2)
+    if phnum > MAX_SEGMENTS or in_file(length(s), phoff, phnum * 56) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    seen = 0
+    relro = 0
+    index = 0
+    while index < phnum:
+        row = phoff + index * 56
+        if word(s, row, 4) == 0x6474e552:
+            relro = row
+            seen = seen + 1
+        index = index + 1
+    if seen != 1:
+        return terminal(o, E_RELRO_COUNT, 0, 0)
+    relative = word(s, relro + 16, 8)
+    size = word(s, relro + 40, 8)
+    base = get(w, 8)
+    writable_size = get(w, 24)
+    if word(s, relro + 4, 4) != 4 or word(s, relro + 48, 8) != 1:
+        return terminal(o, E_RELRO_MAPPING, 0, 0)
+    if size == 0 or word(s, relro + 32, 8) != size or relative < base or size > writable_size:
+        return terminal(o, E_RELRO_MAPPING, 0, 0)
+    offset = word(s, relro + 8, 8)
+    writable_offset = get(w, 16)
+    if relative - base > writable_size - size or offset < writable_offset:
+        return terminal(o, E_RELRO_MAPPING, 0, 0)
+    if offset - writable_offset != relative - base:
+        return terminal(o, E_RELRO_MAPPING, 0, 0)
+    first_page = relative // 4096
+    end_page = (relative + size) // 4096
+    writable_end = base + get(w, 32)
+    last_page = writable_end // 4096 + choose(writable_end % 4096 == 0, 0, 1)
+    if first_page < base // 4096 or first_page >= end_page or end_page > last_page:
+        return terminal(o, E_RELRO_GOT, 0, 0)
+    got = get(w, 40)
+    protected_end = end_page * 4096
+    if got < first_page * 4096 or got > protected_end or get(w, 48) > protected_end - got:
+        return terminal(o, E_RELRO_GOT, 0, 0)
+    return terminal(o, 0, 0, 0)
 '''
 
 

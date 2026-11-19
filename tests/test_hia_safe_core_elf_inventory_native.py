@@ -7,6 +7,7 @@ from pathlib import Path
 import random
 import struct
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
@@ -97,7 +98,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         blocked = {name: Mock(side_effect=AssertionError('host ELF boundary entered: ' + name))
                    for name in boundaries}
         loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup',
-                             '_reference_plt_slot', '_reference_object_relocations')
+                             '_reference_plt_slot', '_reference_object_relocations',
+                             '_reference_symbol_versions', '_reference_relro')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
@@ -189,6 +191,60 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                                  result(elf_reader._reference_object_relocations, obj, section,
                                         source['data'], link, plt, functions),
                                  (table['name'], index))
+
+    def test_native_version_and_relro_rules_match_reference(self):
+        final = _ELF(self.final_bytes, 3)
+        dynamic, got, rela = (final.section(name) for name in ('.dynamic', '.got', '.rela.plt'))
+        tags = elf_reader._reference_dynamic_tags(final, dynamic, got, rela)
+        writable = final.load_binding(got, 6)
+        versions, needed, strings = (final.section(name) for name in
+                                     ('.gnu.version', '.gnu.version_r', '.dynstr'))
+
+        def result(check, *args):
+            try:
+                return check(*args)
+            except SafeCoreELFRejected as exc:
+                return str(exc)
+
+        def native_versions(data, records, requirements, names, loader_tags):
+            self.native.verify_version_tables(data, records, requirements, loader_tags)
+            self.native.verify_version_names(data, requirements, names)
+
+        def reference_versions(data, records, requirements, names, loader_tags):
+            reference = _ELF.__new__(_ELF)
+            reference._reference_inventory(data, 3)
+            elf_reader._reference_symbol_versions(reference, loader_tags, records, requirements)
+
+        native_versions(self.final_bytes, versions, needed, strings, tags)
+        for table in (versions, needed, strings):
+            for index in range(table['size']):
+                changed = bytearray(table['data'])
+                changed[index] ^= 128
+                at = table['offset']
+                data = self.final_bytes[:at] + bytes(changed) + self.final_bytes[at + table['size']:]
+                regions = [dict(section, data=bytes(changed)) if section is table else section
+                           for section in (versions, needed, strings)]
+                self.assertEqual(result(native_versions, data, *regions, tags),
+                                 result(reference_versions, data, *regions, tags), (table['name'], index))
+        for absent in (0x6ffffff0, 0x6ffffffe, 0x6fffffff):
+            reduced = {tag: value for tag, value in tags.items() if tag != absent}
+            args = (self.final_bytes, versions, needed, strings, reduced)
+            self.assertEqual(result(native_versions, *args), result(reference_versions, *args), absent)
+
+        self.native.verify_relro(self.final_bytes, writable, got)
+        phoff = struct.unpack_from('<Q', self.final_bytes, 32)[0]
+        ordinal = next(index for index, row in enumerate(final.segments) if row['type'] == 0x6474e552)
+        base = phoff + ordinal * 56
+        for index in range(56):
+            data = bytearray(self.final_bytes)
+            data[base + index] ^= 1
+            kind, flags, offset, addr, _, filesz, memsz, align = struct.unpack_from('<II6Q', data, base)
+            segments = list(final.segments)
+            segments[ordinal] = dict(type=kind, flags=flags, offset=offset, addr=addr,
+                                     filesz=filesz, memsz=memsz, align=align)
+            self.assertEqual(result(self.native.verify_relro, bytes(data), writable, got),
+                             result(elf_reader._reference_relro, SimpleNamespace(segments=segments),
+                                    writable, got), index)
 
 
 if __name__ == '__main__':

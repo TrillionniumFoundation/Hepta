@@ -68,6 +68,11 @@ REFUSALS = (
     ('object_call', 'unreviewed or duplicate call relocation'),
     ('object_displacement', 'linked call is outside rel32'),
     ('object_text', 'final text differs outside exact resolved call fields'),
+    ('version_authority', 'loader symbol-version authority differs'),
+    ('version_import', 'abort is not bound to the reviewed libc symbol version'),
+    ('relro_count', 'expected exactly one RELRO authority'),
+    ('relro_mapping', 'RELRO differs from the reviewed writable load mapping'),
+    ('relro_got', 'GOT is outside the effective RELRO page protection'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -175,9 +180,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
 
     def verify_plt_slot(self, data, plt, got, rela, abort_symbols):
         arguments = (plt['offset'], plt['addr'], got['addr'], rela['offset'], abort_symbols, 0)
-        _, size, first, second = self._exchange(data, arguments)
-        if size != HEADER.size or first or second:
-            raise RuntimeError('invalid native Safe Core PLT response')
+        self._require_empty_response(data, arguments)
 
     def object_relocations(self, data, relocations, source, linked, plt, helper):
         arguments = (2, relocations['offset'], source['offset'], source['size'],
@@ -195,6 +198,28 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
                                 linked_target=target, displacement=displacement))
         return calls, records
+
+    def _require_empty_response(self, data, arguments):
+        _, size, first, second = self._exchange(data, arguments)
+        if size != HEADER.size or first or second:
+            raise RuntimeError('invalid native Safe Core verification response')
+
+    def verify_version_tables(self, data, versions, needed, tags):
+        keys = (0x6ffffff0, 0x6ffffffe, 0x6fffffff)
+        present = sum(1 << index for index, tag in enumerate(keys) if tag in tags)
+        arguments = (3, versions['offset'], versions['size'], versions['addr'],
+                     needed['offset'], needed['size'], needed['addr'], present,
+                     *(tags.get(tag, 0) for tag in keys))
+        self._require_empty_response(data, arguments)
+
+    def verify_version_names(self, data, needed, strings):
+        arguments = (4, needed['offset'], strings['offset'], strings['size'], 0, 0, 0, 0)
+        self._require_empty_response(data, arguments)
+
+    def verify_relro(self, data, writable, got):
+        arguments = (5, writable['addr'], writable['offset'], writable['filesz'], writable['memsz'],
+                     got['addr'], got['size'], 0)
+        self._require_empty_response(data, arguments)
 
 
 def installed_safe_core_elf_inventory(path):

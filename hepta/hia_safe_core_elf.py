@@ -254,6 +254,15 @@ def _reference_gnu_lookup(table, authority, export):
 
 def _verify_symbol_versions(final, tags):
     versions, needed = final.section(".gnu.version", 0x6fffffff), final.section(".gnu.version_r", 0x6ffffffe)
+    if final._native_inventory is None:
+        _reference_symbol_versions(final, tags, versions, needed)
+        return
+    final._native_inventory.verify_version_tables(final.data, versions, needed, tags)
+    strings = final.section(".dynstr", 3)
+    final._native_inventory.verify_version_names(final.data, needed, strings)
+
+
+def _reference_symbol_versions(final, tags, versions, needed):
     require(tags.get(0x6ffffff0) == versions["addr"] and versions["data"] == struct.pack("<HHH", 0, 2, 1) and
             tags.get(0x6ffffffe) == needed["addr"] and tags.get(0x6fffffff) == 1 and needed["size"] == 32,
             "loader symbol-version authority differs")
@@ -290,6 +299,27 @@ def _reference_dynamic_tags(final, dynamic, got, rela):
             "PLT is not the exact immediately bound abort slot")
     return tags
 
+
+def _reference_relro(final, writable, got):
+    relros = [s for s in final.segments if s["type"] == 0x6474E552]
+    require(len(relros) == 1, "expected exactly one RELRO authority")
+    relro = relros[0]
+    require(relro["flags"] == 4 and relro["align"] == 1 and
+            relro["filesz"] == relro["memsz"] and relro["memsz"] > 0 and
+            writable["addr"] <= relro["addr"] and
+            relro["addr"] + relro["memsz"] <= writable["addr"] + writable["filesz"] and
+            relro["offset"] - writable["offset"] == relro["addr"] - writable["addr"],
+            "RELRO differs from the reviewed writable load mapping")
+    # glibc elf/dl-reloc.c:_dl_protect_relro protects
+    # [ALIGN_DOWN(start), ALIGN_DOWN(end)) with PROT_READ.
+    # Raw GOT containment alone neither establishes its effective protection
+    # nor prevents a forged RELRO range from removing execution from .text.
+    protected_start = relro["addr"] // 4096 * 4096
+    protected_end = (relro["addr"] + relro["memsz"]) // 4096 * 4096
+    require(writable["addr"] // 4096 * 4096 <= protected_start < protected_end <=
+            (writable["addr"] + writable["memsz"] + 4095) // 4096 * 4096 and
+            protected_start <= got["addr"] and got["addr"] + got["size"] <= protected_end,
+            "GOT is outside the effective RELRO page protection")
 
 def _reference_plt_slot(plt, got, rela, dynsymbols):
     slot, info, addend = struct.unpack("<QQq", rela["data"])
@@ -403,25 +433,10 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
             linked["addr"] + linked["size"] == textload["addr"] + textload["filesz"],
             "executable segment contains unbound bytes")
     writable = final.load_binding(got, 6)
-    relros = [s for s in final.segments if s["type"] == 0x6474E552]
-    require(len(relros) == 1, "expected exactly one RELRO authority")
-    relro = relros[0]
-    require(relro["flags"] == 4 and relro["align"] == 1 and
-            relro["filesz"] == relro["memsz"] and relro["memsz"] > 0 and
-            writable["addr"] <= relro["addr"] and
-            relro["addr"] + relro["memsz"] <= writable["addr"] + writable["filesz"] and
-            relro["offset"] - writable["offset"] == relro["addr"] - writable["addr"],
-            "RELRO differs from the reviewed writable load mapping")
-    # glibc elf/dl-reloc.c:_dl_protect_relro protects
-    # [ALIGN_DOWN(start), ALIGN_DOWN(end)) with PROT_READ.
-    # Raw GOT containment alone neither establishes its effective protection
-    # nor prevents a forged RELRO range from removing execution from .text.
-    protected_start = relro["addr"] // 4096 * 4096
-    protected_end = (relro["addr"] + relro["memsz"]) // 4096 * 4096
-    require(writable["addr"] // 4096 * 4096 <= protected_start < protected_end <=
-            (writable["addr"] + writable["memsz"] + 4095) // 4096 * 4096 and
-            protected_start <= got["addr"] and got["addr"] + got["size"] <= protected_end,
-            "GOT is outside the effective RELRO page protection")
+    if final._native_inventory is None:
+        _reference_relro(final, writable, got)
+    else:
+        final._native_inventory.verify_relro(final.data, writable, got)
     require([s["name"] for s in final.sections if s["type"] in (4, 9)] == [".rela.plt"] and
             rela["entsize"] == 24 and rela["size"] == 24 and
             rela["link"] == final.section(".dynsym")["index"] and rela["info"] == got["index"],
