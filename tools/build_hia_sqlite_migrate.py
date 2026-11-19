@@ -7,7 +7,9 @@ import os
 from pathlib import Path
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
-from tools.build_hia_sqlite_pager import ROOT, assemble, digest, link, write_new
+from tools.build_hia_sqlite_pager import (
+    EMBED_SOURCE, ROOT, assemble, build_embedder, digest, embed, link, write_new,
+)
 from tools.qualify_hia_selfhost import compile_stage
 
 
@@ -21,18 +23,6 @@ COMPONENTS = (
     ('initializer', 'hia-agent-store-init', 'hepta.hia.agent-store-init-build.v1'),
     ('publisher', 'hia-sqlite-migration-publish', 'hepta.hia.sqlite-migration-publish-build.v1'),
 )
-
-
-def embed(output, label, name, raw):
-    filename = name + '.embedded.elf'
-    write_new(output / filename, raw)
-    source = (
-        '.section .rodata,"a",@progbits\n.balign 16\n'
-        f'.global {label}_start, {label}_end\n{label}_start:\n'
-        f'.incbin "{filename}"\n{label}_end:\n'
-        '.section .note.GNU-stack,"",@progbits\n'
-    )
-    return assemble(output, f'embed_{label}.S', source.encode())
 
 
 def read_component(folder, label, name, schema, compiler_pin, cold_pin, admitted):
@@ -58,7 +48,8 @@ def read_component(folder, label, name, schema, compiler_pin, cold_pin, admitted
 def build(output, compiler, cold, folders):
     compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
     admitted = admit_cold_build(compiler_body, cold_body)
-    sources = {name: (ROOT / name).read_bytes() for name in (COORDINATOR, LINKER, ADAPTER, DRIVER)}
+    sources = {name: (ROOT / name).read_bytes() for name in
+               (COORDINATOR, LINKER, EMBED_SOURCE, ADAPTER, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('migration coordinator source differs from admitted cold source')
 
@@ -79,10 +70,11 @@ def build(output, compiler, cold, folders):
             raise ValueError('migration controller image changed')
         images[label] = body
         inputs.append((image, body))
+    embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
     adapters = [assemble(output, ADAPTER, sources[ADAPTER])]
     for label, name, _ in COMPONENTS:
         raw = bodies[label]
-        adapters.append(embed(output, label, name, raw))
+        adapters.append(embed(output, label, name, raw, embedder))
         inputs.append((output / (name + '.embedded.elf'), raw))
     binary, receipt = link(output, images['linker'], images['sqlite-migrate'], adapters, wire_magic=b'HIALNK01')
     if (current_sources() != admitted or any(path.read_bytes() != raw for path, raw in inputs)

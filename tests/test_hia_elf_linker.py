@@ -50,6 +50,31 @@ class ElfLinkerSourceTests(unittest.TestCase):
                 self.assertLessEqual(len(f['blocks']),256)
                 for b in f['blocks']:self.assertLessEqual(len(b['params']),16)
 
+    def test_embedded_object_exact_readonly_section_and_short_output_refusal(self):
+        from tools.generate_hia_elf_embed import EMBED_MAGIC, EMBED_SOURCE, render
+
+        source = (ROOT / EMBED_SOURCE).read_text()
+        self.assertEqual(source, render())
+        program = assemble_program(source)
+        name, data = b'image', bytes(range(20))
+        packet = struct.pack('<8s3Q', EMBED_MAGIC, len(name), len(data), 0) + name + data
+        count, output = reference(program, packet, capacity=1024, workspace=0)
+        obj = output[:count]
+        self.assertEqual(obj[:7], b'\x7fELF\x02\x01\x01')
+        headers = [fields for _, fields in sections(obj)]
+        self.assertEqual(headers[4], (44, 1, 2, 0, 64, len(data), 0, 0, 16, 0))
+        self.assertEqual(obj[64:64 + len(data)], data)
+        symbols, strings = headers[6][4], headers[7][4]
+        self.assertEqual(struct.unpack_from('<IBBHQQ', obj, symbols + 24), (1, 16, 0, 4, 0, 0))
+        self.assertEqual(struct.unpack_from('<IBBHQQ', obj, symbols + 48), (13, 16, 0, 4, len(data), 0))
+        self.assertEqual(obj[strings:strings + headers[7][5]], b'\0image_start\0image_end\0')
+        self.assertEqual(output[count:], b'\xa5' * (1024 - count))
+        self.assertEqual(reference(program, packet, capacity=count - 1, workspace=0),
+                         (0xfffffffe, b'\xa5' * (count - 1)))
+        for invalid in (packet[:32] + b'/' + packet[33:], packet[:-1], packet + b'x'):
+            self.assertEqual(reference(program, invalid, capacity=64, workspace=0),
+                             (0xffffffff, b'\xa5' * 64))
+
     def test_shared_linker_reproduces_and_interprets_a_minimal_owned_object(self):
         from hepta.elf_shared_abi import inspect_owned_shared_elf
         from hepta.hia_machine_elf import write_elf_object

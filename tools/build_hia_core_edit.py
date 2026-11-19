@@ -14,8 +14,7 @@ from tools.build_hia_nominal_constructor import (
     ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
     ORDINARY_CLI_IMAGE_CAPACITY,
 )
-from tools.build_hia_sqlite_migrate import embed
-from tools.build_hia_sqlite_pager import assemble, link, verify_executable
+from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, embed, link, verify_executable
 from tools.generate_hia_core_edit_packer import MAGIC
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -308,7 +307,7 @@ def pack(packer, stub, holes, images):
     return binary, inspect_executable(binary)
 
 
-def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=False,
+def link_nominal_cli(folder, adapter, sources, images, roles, embedder, *, edit_envelope=False,
                      edit_response=False, batch_capture=False):
     for key in ('owner', 'render', 'nominal-json'):
         (folder / (key + '.image.bin')).write_bytes(images[NOMINAL_BUILD_SOURCES[key]])
@@ -323,7 +322,7 @@ def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=F
     payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
                 for key, label in NOMINAL_BUILD_IMAGES.items()}
     payloads.update({label: images[path] for path, label in roles.items()})
-    objects.extend(embed(folder, label, label, raw) for label, raw in payloads.items())
+    objects.extend(embed(folder, label, label, raw, embedder) for label, raw in payloads.items())
     reference = next(iter(roles))
     binary, receipt = link(folder, images[NOMINAL_BUILD_SOURCES['linker']], images[reference], objects,
                            wire_magic=b'HIALNK01', executable_limit=ORDINARY_CLI_IMAGE_CAPACITY)
@@ -363,7 +362,7 @@ def build(output, compiler, cold_report, *, release_only=False):
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
-    source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE,
+    source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE, EMBED_SOURCE,
                     *assembly_images, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
@@ -397,6 +396,7 @@ def build(output, compiler, cold_report, *, release_only=False):
         position += len(payload)
     images[ASSEMBLY_PRESENTATION] = b''.join((*offsets, *payloads))
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
+    embedder = NativeHiaJsonImage(images[EMBED_SOURCE], receipts[EMBED_SOURCE]['produced_sha256'])
     products = {}
     for kind, (name, roles) in programs.items():
         adapter = adapters[kind]
@@ -404,7 +404,7 @@ def build(output, compiler, cold_report, *, release_only=False):
         folder.mkdir(mode=0o700)
         if kind in NOMINAL_CLI_IMAGES:
             executable, details = link_nominal_cli(
-                folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind],
+                folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind], embedder,
                 edit_envelope=kind in EDIT_ENVELOPE_ROLES,
                 edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'))
             binary, packed = pack_executable(folder, packer, sources[EXEC_LAUNCHER],

@@ -9,8 +9,7 @@ from pathlib import Path
 import struct
 
 from tools.build_hia_json_preflight import admit_cold_build, build as build_image, current_sources
-from tools.build_hia_sqlite_migrate import embed
-from tools.build_hia_sqlite_pager import assemble, link
+from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link
 from tools.generate_hia_native_filter import WORKER_FILTER_MAGIC
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -20,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
 TERMINAL = 'tools/hia_worker_terminal.S'
 SOURCES = ('examples/hia_bootstrap/worker_request.hepta',
-           'examples/hia_bootstrap/worker_request_filter_packer.hepta', LINKER, TERMINAL)
+           'examples/hia_bootstrap/worker_request_filter_packer.hepta', LINKER, EMBED_SOURCE, TERMINAL)
 
 
 def build(output: Path, compiler: Path, cold_report: Path) -> Path:
@@ -59,8 +58,9 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     pins[linker] = linker.read_bytes()
     if sha256(pins[linker]).hexdigest() != linker_receipt['produced_sha256']:
         raise ValueError('worker terminal linker differs from its receipt')
+    embedder = build_embedder(terminal_build, compiler, pins[ROOT / EMBED_SOURCE])
     objects = [assemble(terminal_build, 'worker-terminal', pins[ROOT / TERMINAL]),
-               embed(terminal_build, 'worker_request', 'worker-request', raw)]
+               embed(terminal_build, 'worker_request', 'worker-request', raw, embedder)]
     terminal_raw, terminal_link = link(
         terminal_build, pins[linker], raw, objects, wire_magic=b'HIALNK01')
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:

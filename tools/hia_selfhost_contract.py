@@ -150,6 +150,8 @@ CORE_EDIT_SDIST_FILES = (
     'tools/generate_hia_core_edit_packer.py',
     'tools/generate_hia_release_deflate.py',
     'examples/hia_bootstrap/core_cli/release_deflate.hepta',
+    'tools/generate_hia_elf_embed.py',
+    'examples/hia_bootstrap/elf_embed_image.hepta',
     'tools/generate_hia_cli_argument_transport.py',
     'tools/generate_hia_assembly_driver.py',
     'tools/hia_core_edit_apply.S',

@@ -17,6 +17,7 @@ if __package__ in {None, ''}:
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.generate_hia_elf_embed import EMBED_MAGIC, EMBED_SOURCE
 from tools.qualify_hia_selfhost import compile_stage
 
 
@@ -58,6 +59,27 @@ def assemble(directory, name, source):
     if (directory / filename).read_bytes() != source:
         raise ValueError('Pager adapter source changed during assembly')
     return object_path.read_bytes()
+
+
+def build_embedder(directory, compiler, source):
+    image, receipt = compile_stage(directory, 'elf-embed', compiler, source)
+    return NativeHiaJsonImage(image.read_bytes(), receipt['produced_sha256'])
+
+
+def embed(output, label, name, raw, embedder):
+    """Wrap an opaque image in the HIA-generated read-only relocatable object."""
+    label_bytes = label.encode('ascii')
+    packet = struct.pack('<8s3Q', EMBED_MAGIC, len(label_bytes), len(raw), 0) + label_bytes + raw
+    source = ctypes.create_string_buffer(packet, len(packet))
+    target = ctypes.create_string_buffer(OBJECT_LIMIT)
+    size = embedder._entry(source, len(packet), target, len(target), None, 0)
+    if (not 64 <= size <= len(target) or source.raw != packet
+            or target.raw[64:64 + len(raw)] != raw or any(target.raw[size:])):
+        raise ValueError('HIA embedder refused or changed immutable image bytes')
+    obj = target.raw[:size]
+    write_new(output / (name + '.embedded.elf'), raw)
+    write_new(output / ('embed_' + label + '.o'), obj)
+    return obj
 
 
 def verify_executable(elf, pager):

@@ -7,8 +7,7 @@ import json
 from pathlib import Path
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
-from tools.build_hia_sqlite_migrate import embed
-from tools.build_hia_sqlite_pager import assemble, link
+from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link
 from tools.qualify_hia_selfhost import compile_stage
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,7 +25,8 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     source = 'examples/hia_bootstrap/' + symbol + '.hepta'
     adapter = 'tools/hia_' + symbol + '_stdio.S'
     pins = {path: path.read_bytes() for path in (compiler, cold_report, manifest)}
-    sources = {name: (ROOT / name).read_bytes() for name in (source, LINKER, adapter, DRIVER)}
+    sources = {name: (ROOT / name).read_bytes() for name in
+               (source, LINKER, EMBED_SOURCE, adapter, DRIVER)}
     source_digests = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
     if any(admitted.get(name) != digest for name, digest in source_digests.items()):
@@ -46,7 +46,8 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     linker = pins[linker_path] = linker_path.read_bytes()
     if sha256(linker).hexdigest() != linker_receipt['produced_sha256']:
         raise ValueError(label + ' linker changed')
-    objects = (assemble(output, adapter, sources[adapter]), embed(output, symbol, kind, image))
+    embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
+    objects = (assemble(output, adapter, sources[adapter]), embed(output, symbol, kind, image, embedder))
     executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')
     if (current_sources() != admitted or any(path.read_bytes() != raw for path, raw in pins.items())
             or any((ROOT / name).read_bytes() != raw for name, raw in sources.items())):
