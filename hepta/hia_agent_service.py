@@ -1373,23 +1373,31 @@ class HIAAgentService:
 
         rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
                                      (context["ref"]["id"],)).fetchall()
-        truncated = len(rows) > 10000
-        rows = rows[:10000]
+        observed_count = len(rows)
+        policy_image = _native_agent_identity()
+        retained = min(observed_count, 10000) if policy_image is None else policy_image.cost_window(observed_count)
+        rows = rows[:retained]
         entries = [{"sequence": row["sequence"], "tool": row["tool"], "request_id": row["request_id"],
                     "context_id": row["context_id"], "wall_ns": row["wall_ns"], "status": row["status"],
                     "details": decode_data(row["details"])} for row in rows]
         policy, _ = self.store.get_json(context["budget"]["cost_policy"])
+        if policy_image is not None:
+            ledger = policy_image.cost_ledger_header(context["ref"], observed_count, policy,
+                policy_image.observed_cost_totals(rows, context["ref"]["id"]), evaluation_wall_ns, native_wall_ns)
+            ledger["entries"] = entries
+            return ledger
+        return self._reference_cost_receipt(context["ref"], entries, observed_count > retained, policy,
+            self._reference_observed_cost_totals(rows, context["ref"]["id"]), evaluation_wall_ns, native_wall_ns)
+
+    @staticmethod
+    def _reference_cost_receipt(context_ref, entries, truncated, policy, totals, evaluation_wall_ns, native_wall_ns):
         external = dict(policy["external_costs"])
         # A caller may record measured zero; an incomplete model ledger cannot
         # convert a placeholder zero into an observed zero-cost model call.
         if not policy["external_costs_complete"]:
             external = {name: None for name in external}
-        policy_image = _native_agent_identity()
-        if policy_image is not None:
-            attributed, unscoped = policy_image.observed_cost_totals(rows, context["ref"]["id"])
-        else:
-            attributed, unscoped = self._reference_observed_cost_totals(rows, context["ref"]["id"])
-        return {"schema": "hepta.hia.agent.cost-ledger.v1", "context": context["ref"],
+        attributed, unscoped = totals
+        return {"schema": "hepta.hia.agent.cost-ledger.v1", "context": context_ref,
             "entries": entries, "entries_truncated": truncated,
             "context_tool_wall_ns_before_evaluation": str(attributed),
             "unattributed_discovery_artifact_read_wall_ns": str(unscoped),

@@ -6,9 +6,10 @@ to this policy. It retains its existing public rejection codes and messages.
 from __future__ import annotations
 import ctypes
 import struct
-from .hia_agent_store import _agent_resource_path, reject, wire
+from .hia_agent_store import MAX_INPUT_BYTES, _agent_resource_path, decode_data, reject, wire
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 from .hia_opcodes import EFFECTS, OPCODES, WIDTHS
+from .hia_program_tools import HIAEditRejected
 
 SOURCE=_agent_resource_path('examples/hia_bootstrap/agent_identity.hepta')
 SCHEMA='hepta.hia.agent-identity-native.v1'
@@ -300,6 +301,34 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         if context_high + unscoped_high > len(rows):
             raise RuntimeError('invalid HIA Agent cost totals')
         return (context_high << 64) | context_low, (unscoped_high << 64) | unscoped_low
+
+    def cost_window(self, observed_count):
+        valid, retained = self._request(struct.pack('<3Q', MAGIC, 17, observed_count))
+        if valid != 1 or retained > observed_count:
+            raise RuntimeError('invalid HIA Agent observed-cost window')
+        return retained
+
+    def cost_ledger_header(self, context_ref, observed_count, policy, totals, evaluation_ns, native_ns):
+        """Transport the captured values; HIA owns the report policy and shape."""
+        attributed, unscoped = totals
+        external = policy['external_costs']
+        fields = (context_ref, str(attributed), str(evaluation_ns), external['discovery_wall_ns'],
+                  external['model_tokens'], external['model_wall_ns'], policy['expected_invocations'],
+                  str(native_ns), str(unscoped))
+        packet = bytearray(struct.pack('<4Q', MAGIC, 16, observed_count, int(policy['external_costs_complete'])))
+        for value in fields:
+            fragment = wire(value)
+            packet.extend(struct.pack('<Q', len(fragment)))
+            packet.extend(fragment)
+        capacity = min(MAX_INPUT_BYTES, len(packet) + 2048)
+        source = ctypes.create_string_buffer(bytes(packet))
+        output = ctypes.create_string_buffer(capacity)
+        size = self._entry(source, len(packet), output, capacity, None, 0)
+        if size == 4294967294:
+            raise HIAEditRejected('E_HIA_EDIT: JSON encoding exceeds byte budget')
+        if not 0 < size <= capacity:
+            raise RuntimeError('invalid HIA Agent cost receipt')
+        return decode_data(output.raw[:size])
 
     def observed_cost_totals(self, rows, context_id):
         # Match the Store's historic integer text decoder. New elapsed times

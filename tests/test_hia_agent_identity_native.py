@@ -652,6 +652,59 @@ class AgentIdentityNativeTests(unittest.TestCase):
         for invalid in (b'1', struct.pack('<2Q', 2, 0), bytes(160016)):
             self.assertEqual(self.raw(packet(6, invalid), 40)[0], 0xfffffffd)
 
+    def test_native_cost_receipt_distinguishes_zero_unknown_and_truncated_history(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_agent_store import wire
+
+        context = {'id': 'ctx-observed', 'sha256': 'a' * 64, 'uri': 'hia://context/observed'}
+        policy = {'external_costs': {'model_tokens': 0, 'discovery_wall_ns': '0', 'model_wall_ns': '12'},
+                  'expected_invocations': '17'}
+        totals = (2**200, -2**140)
+        for count in (0, 1, 9999, 10000, 10001):
+            retained = self.native.cost_window(count)
+            self.assertEqual(retained, min(count, 10000))
+            for complete in (False, True):
+                frozen = {**policy, 'external_costs_complete': complete}
+                expected = HIAAgentService._reference_cost_receipt(
+                    context, [], count > retained, frozen, totals, 8, 3)
+                expected.pop('entries')
+                self.assertEqual(self.native.cost_ledger_header(context, count, frozen, totals, 8, 3), expected)
+        self.assertEqual(self.raw(packet(17, struct.pack('<Q', 10002)))[0], 0xfffffffd)
+        fragments = (context, '0', '0', '0', 0, '0', '1', '0', '0')
+        payload = packet(16, struct.pack('<2Q', 0, 1) + b''.join(
+            struct.pack('<Q', len(raw)) + raw for raw in map(wire, fragments)))
+        for malformed in (payload[:-1], payload + b'X', packet(16, bytes(16))):
+            self.assertEqual(self.raw(malformed, 1024)[0], 0xfffffffd)
+        self.assertEqual(self.raw(payload, 63)[0], 0xfffffffe)
+
+    def test_ordinary_cost_ledger_uses_installed_receipt_with_no_reference_policy(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_agent_store import wire
+
+        service = HIAAgentService(self.folder / 'cost-ledger')
+        try:
+            policy = {'external_costs': {'model_tokens': 0, 'discovery_wall_ns': '0', 'model_wall_ns': None},
+                      'expected_invocations': '18', 'external_costs_complete': False}
+            context_ref = {'id': 'mine', 'sha256': 'a' * 64, 'uri': 'hia://ctx/mine'}
+            context = {'ref': context_ref, 'budget': {'cost_policy': service.store.json(policy, 'input')}}
+            details = wire({'error': {'message': '保留失败'}, 'replayed': False}).decode()
+            service.store.db.executemany('INSERT INTO costs'
+                ' (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
+                [(scope, 'hia_test', 'request-' + str(index), str(time_ns), 'rejected', details)
+                 for index, (scope, time_ns) in enumerate((('other', 7), (None, 3), ('mine', 2**90), ('mine', -9)))])
+            expected = service._cost_ledger(context, 13, 5)
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch.object(service, '_reference_cost_receipt', side_effect=AssertionError('host cost receipt')),
+                  patch.object(service, '_reference_observed_cost_totals', side_effect=AssertionError('host aggregation'))):
+                selected = service._cost_ledger(context, 13, 5)
+            self.assertEqual(wire(selected), wire(expected))
+            self.assertEqual([entry['request_id'] for entry in selected['entries']],
+                             ['request-1', 'request-2', 'request-3'])
+            self.assertEqual(selected['context_tool_wall_ns_before_evaluation'], str(2**90 - 9))
+            self.assertEqual(selected['external_costs'], dict.fromkeys(policy['external_costs']))
+        finally:
+            service.close()
+
     def test_manifest_selected_rejects_corruption_without_fallback(self):
         bad=self.folder/'bad.json';bad.write_text('{}')
         with patch.dict(os.environ,{SELECTOR:str(bad)}):

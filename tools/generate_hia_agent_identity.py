@@ -41,6 +41,10 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return abi_scalar(s, o)
     if kind == 15:
         return proof_evidence(s, o)
+    if kind == 16:
+        return cost_receipt(s, o)
+    if kind == 17:
+        return cost_window(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -588,6 +592,44 @@ def cost_totals(s:readbuf, o:mutbuf) -> u32:
     put(o, 32, unscoped_high)
     return 40
 
+def cost_window(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 24 or read_word(s, 16) > 10001:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    observed = read_word(s, 16)
+    return finite_function_reply(o, choose(observed > 10000, 10000, observed))
+
+def cost_receipt(s:readbuf, o:mutbuf) -> u32:
+    size = cost_receipt_pass(s, o, 0)
+    if size > length(o):
+        return size
+    return cost_receipt_pass(s, o, 1)
+
+def receipt_fragment_size(s:readbuf, at:u64) -> u64:
+    if at > length(s) or length(s) - at < 8:
+        return 0
+    size = read_word(s, at)
+    return choose(size <= length(s) - at - 8, size, 0)
+
+def receipt_literal(o:mutbuf, cursor:u64, word:u64, size:u64, emit:u64) -> u64:
+    if cursor > length(o) or size > length(o) - cursor:
+        return length(o) + 1
+    index = 0
+    while emit != 0 and index < size:
+        store(o, cursor + index, word >> (8 * index))
+        index = index + 1
+    return cursor + size
+
+def receipt_fragment(s:readbuf, o:mutbuf, at:u64, cursor:u64, size:u64, emit:u64) -> u64:
+    if cursor > length(o) or size > length(o) - cursor:
+        return length(o) + 1
+    index = 0
+    while emit != 0 and index < size:
+        store(o, cursor + index, byte(s, at + index))
+        index = index + 1
+    return cursor + size
+
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
     count = 0
@@ -647,6 +689,74 @@ def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     return finite_function_reply(o, equal_pair(s, 32, left, right_at, right))
 '''
 
+def cost_receipt_source():
+    """Emit the fixed receipt schema and a bounded captured-fragment ABI."""
+    lines = [
+        'def cost_receipt_pass(s:readbuf, o:mutbuf, emit:u64) -> u64:',
+        '    if length(s) < 32 or length(o) > 8388608:',
+        '        return 4294967293',
+        '    count = read_word(s, 16)',
+        '    complete = read_word(s, 24)',
+        '    if count > 10001 or complete > 1:',
+        '        return 4294967293',
+        '    at = 32',
+        '    cursor = 0',
+    ]
+
+    def literal(raw, indent='    '):
+        for index in range(0, len(raw), 8):
+            part = raw[index:index + 8].encode('ascii')
+            lines.append(f'{indent}cursor = receipt_literal(o, cursor, '
+                         f'{int.from_bytes(part, "little")}, {len(part)}, emit)')
+
+    def boolean(field):
+        lines.append(f'    if {field}:')
+        literal('true', '        ')
+        lines.append('    else:')
+        literal('false', '        ')
+
+    def fragment(*, external=False):
+        lines.extend(('    size = receipt_fragment_size(s, at)',
+                      '    if size == 0:',
+                      '        return 4294967293',
+                      '    at = at + 8'))
+        if external:
+            lines.extend(('    if complete == 1:',
+                          '        cursor = receipt_fragment(s, o, at, cursor, size, emit)',
+                          '    else:'))
+            literal('null', '        ')
+        else:
+            lines.append('    cursor = receipt_fragment(s, o, at, cursor, size, emit)')
+        lines.append('    at = at + size')
+
+    literal('{"adoption_wall_ns":null,"context":')
+    fragment()
+    literal(',"context_tool_wall_ns_before_evaluation":')
+    fragment()
+    literal(',"entries_truncated":')
+    boolean('count > 10000')
+    literal(',"evaluation_wall_ns_through_report":')
+    fragment()
+    literal(',"external_cost_source":"caller-supplied report, independently unmeasured","external_costs":{')
+    for prefix, name in (('', 'discovery_wall_ns'), (',', 'model_tokens'), (',', 'model_wall_ns')):
+        literal(f'{prefix}"{name}":')
+        fragment(external=True)
+    literal('},"external_costs_complete":')
+    boolean('complete == 1')
+    literal(',"failed_attempts_retained":true,"full_search_cost_complete":false,"future_execution_count":')
+    fragment()
+    literal(',"native_child_wall_ns":')
+    fragment()
+    literal(',"net_optimization_benefit_proved":false,"schema":"hepta.hia.agent.cost-ledger.v1",'
+            '"scope":"observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/'
+            'model cost may be unknown","unattributed_discovery_artifact_read_wall_ns":')
+    fragment()
+    literal('}')
+    lines.extend(('    if at != length(s):', '        return 4294967293',
+                  '    if cursor > length(o):', '        return 4294967294', '    return cursor'))
+    return '\n'.join(lines) + '\n'
+
+
 def source_program():
     pure = sum(1 << PROOF_OPCODE_IDS[opcode] for opcode in PURE)
     disallowed = ((1 << 64) - 1) ^ PROOF_EFFECT_IDS['trap']
@@ -660,7 +770,8 @@ def source_program():
             .replace('@DISALLOWED_EFFECT_MASK@', str(disallowed))
             .replace('@EXACT_COMPARISON_CHUNK@', str(EXACT_COMPARISON_CHUNK))
             .replace('@BOOL_ABI_ROLE@', str(ABI_SCALAR_IDS['bool']))
-            .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n')
+            .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n'
+            + cost_receipt_source())
 
 
 def document():
