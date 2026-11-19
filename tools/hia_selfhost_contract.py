@@ -151,6 +151,7 @@ CORE_EDIT_SDIST_FILES = (
     'tools/generate_hia_cli_argument_transport.py',
     'tools/generate_hia_assembly_driver.py',
     'tools/hia_core_edit_apply.S',
+    'tools/hia_core_edit_response.S',
     'tools/hia_core_edit_batch_apply.S',
     'tools/hia_core_edit_batch_query.S',
     'tools/hia_core_edit_query.S',

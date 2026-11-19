@@ -421,6 +421,7 @@ def check_ordinary(executable, run):
     check_patch_refusals(executable)
     check_batch_query_refusals(executable)
     check_edit_apply_refusals(executable)
+    check_edit_response_bytes(executable)
 
 
 def check_edit_query_refusals(executable):
@@ -582,6 +583,52 @@ def check_edit_apply_refusals(executable):
                 assert status == 2 and not destination.parent.exists()
     print(f'{len(cases) * 2} exact edit-apply refusals without changing the base or creating the destination')
 
+
+
+def check_edit_response_bytes(executable):
+    from hepta.cli import _reference_hia_main
+    from hepta.hia_edit_query import prepare_edit
+    from hepta.hia_program import verify_program
+    from tests.test_hia_edit_batch import loans, selected
+
+    raw_program = json.dumps(loans()).encode()
+    prepared = prepare_edit(verify_program(raw_program), **selected('reader'))
+    valid = b' { "args" : [ "\\u0061" ] } \r\n'
+    cases = (b'', b'.', b'\xff', b'{"args":["\xe2\x82"]}', b'{"args":["a"],"args":["a"]}',
+             b'{"args":["a"],"\xc3\xa9":false}', b'9' * 4301, b'[1  2]', valid,
+             valid.ljust(16384, b' '), valid.ljust(16385, b' '))
+    with TemporaryDirectory(prefix='hia-cli-edit-response-') as temporary:
+        root = Path(temporary)
+        base, query, response = (root / name for name in ('base.hepta', 'query.json', 'response.json'))
+        base.write_bytes(raw_program)
+        total = 0
+        for selection, payloads in ((prepared, cases), ({}, cases[:6])):
+            query.write_text(json.dumps(selection, indent=2))
+            for raw in payloads:
+                response.write_bytes(raw)
+                for publication in (False, True):
+                    path = root / f'publication-{total}' / 'result.hepta'
+                    args = ['edit-apply', str(base), '--query', str(query), '--response', str(response)]
+                    if publication:
+                        args += ['-o', str(path)]
+                    stdout = StringIO()
+                    with redirect_stdout(stdout):
+                        status = _reference_hia_main(args)
+                    expected_output = path.read_bytes() if path.is_file() else None
+                    if expected_output is not None:
+                        path.unlink()
+                        path.parent.rmdir()
+                    result = subprocess.run([executable, *args], capture_output=True,
+                                            env={'PATH': ''}, timeout=20, check=False)
+                    assert (result.returncode, result.stdout, result.stderr) == (
+                        status, stdout.getvalue().encode(), b''), (raw[:64], selection, result)
+                    if expected_output is not None:
+                        assert path.read_bytes() == expected_output
+                    else:
+                        assert not path.parent.exists()
+                    assert base.read_bytes() == raw_program
+                    total += 1
+    print(f'{total} exact edit response byte, precedence and publication comparisons')
 
 
 def check_argument_cli(executable):

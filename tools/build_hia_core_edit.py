@@ -35,6 +35,7 @@ ARGUMENT_PAYLOAD = CLI + 'argument_payload.hepta'
 ARGUMENT_ARCHIVE = '<public-argument-images>'
 EXEC_LAUNCHER = 'tools/hia_core_edit_packed_exec.S'
 EDIT_ENVELOPE = 'tools/hia_core_edit_nominal_envelope.S'
+EDIT_RESPONSE = 'tools/hia_core_edit_response.S'
 EXEC_ARCHIVE_MAGIC = b'HIAECP01'
 EXEC_CHUNK = 1 << 19
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
@@ -282,13 +283,15 @@ def pack(packer, stub, holes, images):
     return binary, inspect_executable(binary)
 
 
-def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=False):
+def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=False, edit_response=False):
     for key in ('owner', 'render', 'nominal-json'):
         (folder / (key + '.image.bin')).write_bytes(images[NOMINAL_BUILD_SOURCES[key]])
     objects = [assemble(folder, adapter, sources[adapter]), assemble(
         folder, NOMINAL_ADAPTER, b'.set HIA_NOMINAL_BUILD,1\n' + sources[NOMINAL_ADAPTER])]
     if edit_envelope:
         objects.append(assemble(folder, EDIT_ENVELOPE, sources[EDIT_ENVELOPE]))
+    if edit_response:
+        objects.append(assemble(folder, EDIT_RESPONSE, sources[EDIT_RESPONSE]))
     payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
                 for key, label in NOMINAL_BUILD_IMAGES.items()}
     payloads.update({label: images[path] for path, label in roles.items()})
@@ -336,7 +339,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
     source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
-                    NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, *NOMINAL_BUILD_SOURCES.values(),
+                    NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
@@ -372,7 +375,7 @@ def build(output, compiler, cold_report, *, release_only=False):
         if kind in NOMINAL_CLI_IMAGES:
             executable, details = link_nominal_cli(
                 folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind],
-                edit_envelope=kind in EDIT_ENVELOPE_ROLES)
+                edit_envelope=kind in EDIT_ENVELOPE_ROLES, edit_response=kind in ('apply', 'publish_edit'))
             binary, packed = pack_executable(folder, packer, sources[EXEC_LAUNCHER],
                                              images[ARGUMENT_PAYLOAD], executable)
             products[name] = (binary, {**details, **packed})

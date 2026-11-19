@@ -272,13 +272,23 @@ render_query:
  call run_edit_owner
  mov [r13+CTRL+384],rax
  call scalar_status
- test rax,rax
- jz invalid
  cmp rax,16384
  ja io_failure
  lea rdi,[r12+WORK_AT+58720256]
  mov esi,16384
  call readonly
+ lea rdi,[r12+WORK_AT+58720256]
+ mov rsi,[r13+CTRL+384]
+ lea rdx,[r12+TEMP_AT]
+ call edit_response_syntax
+ test eax,eax
+ jz response_admitted
+ cmp eax,DRIVER_TEXT_LIMIT
+ ja io_failure
+ lea rsi,[r12+TEMP_AT]
+ mov edx,eax
+ jmp write_refusal
+response_admitted:
  lea rdi,[r12+TEMP_AT]
  mov ecx,TEMP_N/8
  xor eax,eax
