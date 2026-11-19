@@ -1,0 +1,21 @@
+{
+  "schema": "hepta.hia.verified-kernel-microbench.v1",
+  "scope": "single-core, same-host, indirect-call, hot-cache kernels",
+  "samples_per_case": 21,
+  "warmup_batches": 3,
+  "scalar_iterations": 10000000,
+  "span_iterations": {"256": 100000, "4096": 10000, "4097": 10000, "65536": 1000},
+  "lengths": [256, 4096, 4097, 65536],
+  "data": "deterministic xorshift64* bytes; all-zero scan input with untimed nonzero controls",
+  "address_offsets": "1 + (iteration & 15)",
+  "primary_statistic": "median ns/call, with all 21 samples retained",
+  "correctness": "independent scalar recurrence, nonzero scan controls, exact checksum and copy-byte comparisons for every batch",
+  "direct_span_baseline": "original checked packed-u32 ABI; wrapping-u64 accumulation retained and final return narrowed. All benchmark counts and byte sums fit u32, so valid-input outputs agree. Invalid-input ABI behaviors are distinct.",
+  "clock": "CLOCK_MONOTONIC_RAW",
+  "compiler_flags_c": ["-O3", "-march=native", "-fPIC", "-shared"],
+  "compiler_flags_rust": ["--crate-type", "cdylib", "--edition=2021", "-C", "opt-level=3", "-C", "target-cpu=native", "-C", "panic=abort"],
+  "order": "one deterministic shuffle of all cases with seed 20261119",
+  "reruns": "no selected-cell reruns or discarded samples",
+  "machine_sharing": "affinity is not exclusive CPU ownership",
+  "excluded_claims": ["whole-language performance", "cold-start parity", "all-Safe-Rust FFI", "side-channel security"]
+}

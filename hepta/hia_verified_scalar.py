@@ -1,0 +1,249 @@
+"""Opt-in register-only scalar kernels checked against their final ELF bytes.
+
+The producer accepts one straight-line unsigned Core function. It allocates
+only SysV caller-saved registers and exports that function directly. The
+existing independent Safe Core consumer proves the linked bytes; it never
+imports this producer. Unsupported programs raise a typed refusal so callers
+can retain their ordinary checked lowering.
+"""
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import dataclass
+from hashlib import sha256
+import os
+from pathlib import Path
+import platform
+import shutil
+import tempfile
+
+from .artifact_publication import publish_verified, verify_published, withdraw_own_link
+from .clang_capture import run_bounded
+from .hia_machine_elf import write_elf_object
+from .hia_machine_x64 import Code, native_implementation_identity
+from .hia_program import verify_program
+from .hia_safe_core import SafeCoreRejected, _checker_source_identity, _profile, validate_safe_core_artifact
+from .hia_safe_core_elf import _ELF
+from .native_tool_identity import digest_executable
+
+
+PROFILE = "hia.verified-scalar.register-leaf.x86_64.v1"
+WIDTHS = {"bool": 1, "u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
+ARGUMENTS = ("rdi", "rsi", "rdx", "rcx", "r8", "r9")
+REGISTERS = ("rax", "rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11")
+BINARY = {"int.add.wrap": "add", "int.sub.wrap": "sub", "int.mul.wrap": "imul",
+          "bit.and": "and_", "bit.or": "or_", "bit.xor": "xor",
+          "bool.and": "and_", "bool.or": "or_"}
+CONDITIONS = {"eq": "e", "ne": "ne", "lt": "b", "le": "be", "gt": "a", "ge": "ae"}
+OPERATIONS = frozenset(BINARY) | {"const", "int.cast", "bit.not", "bool.not", "select"} | {
+    "compare." + relation for relation in CONDITIONS}
+SOURCE_FILES = ("hia_verified_scalar.py", "hia_machine_x64.py", "hia_machine_elf.py")
+
+
+class VerifiedScalarRejected(ValueError):
+    """The source lies outside the register-only producer's explicit profile."""
+
+
+def _require(condition, message):
+    if not condition:
+        raise VerifiedScalarRejected("E_HIA_VERIFIED_SCALAR: " + message)
+
+
+def _producer_identity():
+    root = Path(__file__).parent
+    return {**{name: sha256((root / name).read_bytes()).hexdigest() for name in SOURCE_FILES},
+            "selected_native_encoder": sha256(native_implementation_identity()).hexdigest()}
+
+
+@dataclass(frozen=True)
+class VerifiedScalarImage:
+    object_bytes: bytes
+    text_bytes: bytes
+    export: str
+    core_sha256: str
+    profile: str
+    hot_text_bytes: int
+    source_identity: tuple
+
+
+def emit_verified_scalar(document):
+    """Emit a direct SysV leaf without spills, entry wrappers or solver calls.
+
+    Admission here is producer capability selection. Only subsequent
+    ``validate_safe_core_artifact`` validates the actual linked machine code.
+    """
+    checked = verify_program(document)
+    try:
+        fn, blocks = _profile(checked, profile_version=2)
+    except SafeCoreRejected as exc:
+        raise VerifiedScalarRejected("E_HIA_VERIFIED_SCALAR: " + str(exc)) from exc
+    _require(len(blocks) == 1, "only one straight-line block is supported")
+    _require(all(p["type"] in WIDTHS for p in fn["params"]), "borrowed memory uses a separate kernel profile")
+    _require(fn["name"] not in {"_init", "_fini", "__gmon_start__", "__cxa_finalize", "__dso_handle",
+                                "_ITM_registerTMCloneTable", "_ITM_deregisterTMCloneTable", "abort"},
+             "loader and imported symbol names cannot be exported")
+    block = blocks[fn["entry"]]
+    _require(block["term"]["op"] == "ret" and len(block["term"]["values"]) == 1,
+             "a scalar return is required")
+    _require(all(op["op"] in OPERATIONS and
+                 (op["op"] != "int.cast" or op["attrs"]["mode"] == "wrap") for op in block["ops"]),
+             "operation requires the ordinary checked lowering")
+    identity = tuple(sorted(_producer_identity().items()))
+    code = Code(alu_immediate="imm8_if_exact")
+    uses = Counter(name for op in block["ops"] for name in op["args"])
+    uses.update(block["term"]["values"])
+    locations = {p["name"]: reg for p, reg in zip(block["params"], ARGUMENTS) if uses[p["name"]]}
+
+    def normalize(reg, typ):
+        width = WIDTHS[typ]
+        if width < 32:
+            code.alu_imm("and", reg, (1 << width) - 1)
+        elif width == 32:
+            # The independent decoder deliberately admits only wide ordinary
+            # moves. Two shifts implement zero extension without a scratch.
+            code.shl(reg, 32)
+            code.shr(reg, 32)
+
+    for parameter in block["params"]:
+        if parameter["name"] in locations:
+            normalize(locations[parameter["name"]], parameter["type"])
+
+    for op in block["ops"]:
+        names, operation = op["args"], op["op"]
+        args = [locations[name] for name in names]
+        counts = Counter(names)
+        dead = {name for name, count in counts.items() if uses[name] == count}
+        output = op["out"][0]
+        # A binary instruction may overwrite its dying left operand. Only
+        # commutative operations may instead overwrite the right operand.
+        reusable = []
+        if operation in BINARY:
+            reusable = names[:1]
+            if operation != "int.sub.wrap":
+                reusable += names[1:2]
+        elif operation in {"int.cast", "bit.not", "bool.not"}:
+            reusable = names[:1]
+        elif operation.startswith("compare."):
+            reusable = names
+        elif operation == "select":
+            reusable = names[2:3]
+        candidates = [locations[name] for name in reusable if name in dead]
+        available = [reg for reg in REGISTERS if reg not in locations.values()]
+        _require(bool(candidates or available), "live values exceed the caller-saved register budget")
+        destination = (candidates or available)[0]
+
+        if operation == "const":
+            code.mov_imm(destination, int(op["attrs"]["value"]))
+        elif operation in BINARY:
+            left, right = args
+            if destination == right and operation != "int.sub.wrap":
+                left, right = right, left
+            if destination != left:
+                code.mov_rr(destination, left)
+            getattr(code, BINARY[operation])(destination, right)
+        elif operation in {"int.cast", "bit.not", "bool.not"}:
+            if destination != args[0]:
+                code.mov_rr(destination, args[0])
+            if operation == "bit.not":
+                code.bitnot(destination)
+            elif operation == "bool.not":
+                code.alu_imm("xor", destination, 1)
+        elif operation.startswith("compare."):
+            code.cmp(*args)
+            code.setcc(CONDITIONS[operation.split(".")[1]], destination)
+        elif operation == "select":
+            condition, yes, no = args
+            code.test(condition, condition)
+            if destination != no:
+                code.mov_rr(destination, no)
+            code.cmov("ne", destination, yes)
+        normalize(destination, output["type"])
+        for name, count in counts.items():
+            uses[name] -= count
+            if uses[name] == 0:
+                del locations[name]
+        if uses[output["name"]]:
+            locations[output["name"]] = destination
+
+    returned = locations[block["term"]["values"][0]]
+    if returned != "rax":
+        code.mov_rr("rax", returned)
+    code.ret()
+    hot_text_bytes = code.offset
+    # Preserve the closed libc/loader contract checked by the ELF consumer.
+    # This stub is unreachable from every admitted straight-line return.
+    code.push("rbp")
+    code.call("abort")
+    code.ud2()
+    text, relocations = code.finalize()
+    obj = write_elf_object(text, [{"name": fn["name"], "offset": 0,
+                                  "size": len(text), "global": True}], relocations)
+    _require(identity == tuple(sorted(_producer_identity().items())), "producer changed during emission")
+    return VerifiedScalarImage(obj, text, fn["name"], checked.sha256, PROFILE,
+                               hot_text_bytes, identity)
+
+
+def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, query_directory=None, image=None):
+    """Link privately, check all inputs on the final ELF, and publish on success."""
+    checked = verify_program(document)
+    if image is None:
+        image = emit_verified_scalar(checked)
+    else:
+        _require(type(image) is VerifiedScalarImage and type(image.object_bytes) is bytes and
+                 type(image.text_bytes) is bytes and image.core_sha256 == checked.sha256 and
+                 image.profile == PROFILE and image.source_identity == tuple(sorted(_producer_identity().items())),
+                 "selected image does not match the current immutable source and producer")
+        _require(image.export == checked.as_dict()["functions"][0]["name"] and
+                 _ELF(image.object_bytes, 1).section(".text", 1)["data"] == image.text_bytes,
+                 "selected image text or export differs from the supplied Core/object")
+    _require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
+             "shared linkage requires a Linux x86-64 host")
+    destination = Path(os.path.abspath(output))
+    _require(not destination.exists() and not destination.is_symlink() and destination.parent.is_dir(),
+             "output must be a new path in an existing directory")
+    found = shutil.which(linker)
+    _require(found is not None, "GNU ld is required")
+    tool = Path(found).resolve()
+    tool_digest = digest_executable(tool)
+    version = run_bounded([str(tool), "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
+    _require(version.returncode == 0 and version.stdout.startswith("GNU ld "), "GNU ld is required")
+    flags = ["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack",
+             "-z", "relro", "-z", "now", "--hash-style=both", "--build-id=none"]
+    with tempfile.TemporaryDirectory(prefix=".hia-verified-scalar-", dir=destination.parent) as temporary:
+        obj, candidate = Path(temporary) / "kernel.o", Path(temporary) / "kernel.so"
+        obj.write_bytes(image.object_bytes)
+        result = run_bounded([str(tool), *flags, str(obj), "-lc", "-o", str(candidate)],
+                             timeout=30, stdout_limit=65536, stderr_limit=1048576)
+        _require(result.returncode == 0, "linker rejected kernel: " + result.stderr[:3000])
+        _require(candidate.stat().st_size <= 8 * 1024 * 1024, "linked image exceeds checker budget")
+        data = candidate.read_bytes()
+        validation = validate_safe_core_artifact(checked, image.object_bytes, data,
+            timeout_ms=timeout_ms, query_directory=query_directory, profile_version=2)
+        _require(validation.get("ok") is True and validation.get("complete") is True,
+                 "final-image validation did not complete")
+
+        def recheck():
+            _require(image.source_identity == tuple(sorted(_producer_identity().items())) and
+                     tool_digest == digest_executable(tool), "producer or linker changed during build")
+            _require(validation["checker"]["source_identity"] == _checker_source_identity(),
+                     "checker changed before final publication")
+
+        recheck()
+        published = publish_verified(candidate, destination, data)
+        try:
+            recheck()
+            verify_published(candidate, destination, data)
+        except BaseException:
+            withdraw_own_link(candidate, destination)
+            raise
+    return {"schema": "hepta.hia.verified-scalar-build.v1", "profile": PROFILE, "ok": True,
+            "status": "smt_validated_not_executed", "output": str(destination),
+            "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],
+            "object_sha256": sha256(image.object_bytes).hexdigest(), "core_sha256": checked.sha256,
+            "machine_text_sha256": sha256(image.text_bytes).hexdigest(), "hot_text_bytes": image.hot_text_bytes,
+            "source_identity": dict(image.source_identity), "export": image.export,
+            "toolchain": {"path": str(tool), "sha256": tool_digest,
+                          "version": version.stdout.splitlines()[0], "flags": flags},
+            "validation": validation, "claims": dict(validation["claims"]),
+            "register_abi": "SysV AMD64 direct leaf; caller-saved registers only",
+            "wrapper_calls": 0, "hot_stack_bytes": 0}
