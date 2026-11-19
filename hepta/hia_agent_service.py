@@ -1726,10 +1726,13 @@ class HIAAgentService:
         return snapshot
 
     def _hia_adopt(self, args):
+        from .hia_agent_store import _native_agent_identity
+
         context = self._context(args["context"])
         evaluation, _ = self.store.get_json(args["evaluation_receipt"], kind="evaluation-receipt")
-        if (evaluation["context"] != args["context"] or evaluation["candidate_artifact"] != args["candidate_artifact"]
-                or evaluation["installation"] != self.identities):
+        equal = selected_json_equality()
+        if not equal((evaluation["context"], evaluation["candidate_artifact"], evaluation["installation"]),
+                     (args["context"], args["candidate_artifact"], self.identities)):
             reject("E_HIA_RECEIPT_BINDING", "evaluation does not authorize this candidate/context", "adoption")
         self._build_receipt(evaluation["build_receipt"], args["context"], args["candidate_artifact"])
         objective = self._required_claims(context, args["candidate_artifact"], args["verification_receipts"], evaluation["baseline_core_sha256"])
@@ -1745,7 +1748,7 @@ class HIAAgentService:
             self._reference_adoption_net_benefit(objective)
         _data, metadata, _program = self._native(args["candidate_artifact"], args["context"])
         _baseline_data, baseline, _baseline_program = self._native(evaluation["baseline_artifact"], args["context"])
-        if metadata["signatures"] != baseline["signatures"]:
+        if not equal(metadata["signatures"], baseline["signatures"]):
             reject("E_HIA_ABI", "candidate and baseline are not ABI compatible", "adoption")
         snapshot = self._conditional_slot(args)
         abi = digest(metadata["signatures"])
@@ -1753,6 +1756,11 @@ class HIAAgentService:
             current = self._slot_ledger.adopt(args, snapshot, evaluation, abi, self._native)
         else:
             current = self._reference_slot_adopt(args, snapshot, evaluation, abi)
+        native = _native_agent_identity()
+        if native is not None:
+            record = native.adoption_record(args, snapshot["current"], current, evaluation["baseline_artifact"])
+            receipt = self.store.put(record, "adoption-receipt")
+            return native.adoption_result(args, snapshot["current"], current, receipt)
         receipt = self.store.json({"schema": "hepta.hia.agent.adoption.v1", "context": args["context"],
             "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
             "active_artifact": args["candidate_artifact"], "retained_baseline": evaluation["baseline_artifact"],
@@ -1798,6 +1806,8 @@ class HIAAgentService:
         return current
 
     def _hia_rollback(self, args):
+        from .hia_agent_store import _native_agent_identity
+
         if self._slot_ledger is not None:
             self._slot_ledger.validate_u64(args["retained_generation"], "retained_generation")
         else:
@@ -1807,6 +1817,11 @@ class HIAAgentService:
             current, artifact = self._slot_ledger.rollback(args, snapshot, self._native)
         else:
             current, artifact = self._reference_slot_rollback(args, snapshot)
+        native = _native_agent_identity()
+        if native is not None:
+            record = native.rollback_record(args, snapshot["current"], current, artifact)
+            receipt = self.store.put(record, "rollback-receipt")
+            return native.rollback_result(args, snapshot["current"], current, artifact, receipt)
         receipt = self.store.json({"schema": "hepta.hia.agent.rollback.v1", "context": args["context"],
             "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
             "active_artifact": artifact, "reason": args["reason"], "future_calls_only": True,

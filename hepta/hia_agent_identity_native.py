@@ -398,6 +398,23 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         packet = struct.pack('<2Q', MAGIC, 30) + digest.encode('ascii') + identity_nonce + uri_nonce
         return decode_data(self._variable_response(packet, 256))
 
+    def adoption_record(self, args, previous, current, baseline):
+        fields = (args['candidate_artifact'], args['context'], current, args['evaluation_receipt'],
+                  previous, baseline, args['target_slot'], args['verification_receipts'])
+        return self._issued_record(31, fields)
+
+    def adoption_result(self, args, previous, current, receipt):
+        fields = (args['candidate_artifact'], receipt, current, previous, args['target_slot'])
+        return decode_data(self._issued_record(32, fields))
+
+    def rollback_record(self, args, previous, current, artifact):
+        fields = (artifact, args['context'], current, previous, args['reason'], args['target_slot'])
+        return self._issued_record(33, fields)
+
+    def rollback_result(self, args, previous, current, artifact, receipt):
+        fields = (artifact, current, previous, receipt, args['target_slot'])
+        return decode_data(self._issued_record(34, fields))
+
     def _issued_record(self, mode, values):
         packet = bytearray(struct.pack('<2Q', MAGIC, mode))
         for value in values:

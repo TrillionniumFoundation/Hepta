@@ -99,6 +99,26 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return build_result(s, o, 1)
     if kind == 30:
         return issued_artifact(s, o)
+    if kind == 31:
+        size = adoption_record(s, o, 0)
+        if size > length(o):
+            return size
+        return adoption_record(s, o, 1)
+    if kind == 32:
+        size = adoption_result(s, o, 0)
+        if size > length(o):
+            return size
+        return adoption_result(s, o, 1)
+    if kind == 33:
+        size = rollback_record(s, o, 0)
+        if size > length(o):
+            return size
+        return rollback_record(s, o, 1)
+    if kind == 34:
+        size = rollback_result(s, o, 0)
+        if size > length(o):
+            return size
+        return rollback_result(s, o, 1)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1069,6 +1089,19 @@ BUILD_RESULT = ('{"adopted":false,"backend_profile":{},"build_receipt":{},"candi
 
 
 
+ADOPTION_RECORD = ('{"active_artifact":{},"consumer_api":"acquire_slot -> invoke_lease -> release_slot",'
+                   '"context":{},"current":{},"evaluation_receipt":{},"future_calls_only":true,'
+                   '"in_flight_versions_retained":true,"previous":{},"retained_baseline":{},'
+                   '"schema":"hepta.hia.agent.adoption.v1","target_slot":{},"verification_receipts":{}}')
+ADOPTION_RESULT = ('{"active_artifact":{},"adoption_receipt":{},"current":{},"future_calls_only":true,'
+                   '"previous":{},"target_slot":{}}')
+ROLLBACK_RECORD = ('{"active_artifact":{},"context":{},"current":{},"future_calls_only":true,'
+                   '"in_flight_versions_retained":true,"past_effects_reversed":false,"previous":{},"reason":{},'
+                   '"schema":"hepta.hia.agent.rollback.v1","target_slot":{}}')
+ROLLBACK_RESULT = ('{"active_artifact":{},"current":{},"future_calls_only":true,"past_effects_reversed":false,'
+                   '"previous":{},"rollback_receipt":{},"target_slot":{}}')
+
+
 def source_program():
     pure = sum(1 << PROOF_OPCODE_IDS[opcode] for opcode in PURE)
     disallowed = ((1 << 64) - 1) ^ PROOF_EFFECT_IDS['trap']
@@ -1093,7 +1126,11 @@ def source_program():
             + receipt_template('verification_record', VERIFICATION_RECORD)
             + receipt_template('verification_result', VERIFICATION_RESULT)
             + receipt_template('build_record', BUILD_RECORD)
-            + receipt_template('build_result', BUILD_RESULT) + issued_artifact_source())
+            + receipt_template('build_result', BUILD_RESULT) + issued_artifact_source()
+            + receipt_template('adoption_record', ADOPTION_RECORD)
+            + receipt_template('adoption_result', ADOPTION_RESULT)
+            + receipt_template('rollback_record', ROLLBACK_RECORD)
+            + receipt_template('rollback_result', ROLLBACK_RESULT))
 
 
 def document():

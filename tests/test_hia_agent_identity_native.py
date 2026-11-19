@@ -803,6 +803,50 @@ class AgentIdentityNativeTests(unittest.TestCase):
             finally:
                 reopened.close()
 
+    def test_native_slot_receipts_and_failed_rollback_preserve_the_transaction(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_agent_store import wire
+        from tools.hia_agent_native_qualification import Session, ToolClient, scripted_loop
+
+        state = self.folder / "issued-slot-receipts"
+        with patch.dict(os.environ, {SELECTOR: str(self.manifest)}):
+            service = HIAAgentService(state)
+            try:
+                session = Session(ToolClient(service.call, validate=False))
+                stored_json = service.store.json
+
+                def retain_json(value, kind, *args):
+                    self.assertNotIn(kind, ("adoption-receipt", "rollback-receipt"))
+                    return stored_json(value, kind, *args)
+
+                with patch.object(service.store, "json", side_effect=retain_json):
+                    result = scripted_loop(session, target_slot="issued-slots")
+                adopted, rolled = result["adoption"], result["rollback"]
+                for kind, issued in (("adoption", adopted), ("rollback", rolled)):
+                    record, _, raw = service.store.get_json_with_wire(
+                        issued[kind + "_receipt"], kind=kind + "-receipt")
+                    self.assertEqual(raw, wire(record))
+                    for field in ("active_artifact", "current", "future_calls_only", "previous", "target_slot"):
+                        self.assertEqual(record[field], issued[field])
+                    self.assertIs(record["in_flight_versions_retained"], True)
+                self.assertIs(rolled["past_effects_reversed"], False)
+
+                current = service._slot_snapshot("issued-slots")
+                request = session.arguments(target_slot="issued-slots", expected_current=rolled["current"],
+                    retained_generation=adopted["current"]["generation"], reason="receipt publication fails")
+                with patch.object(NativeAgentIdentity, "rollback_result", side_effect=ValueError("receipt failure")):
+                    rejected = service.call("hia_rollback", request)
+                self.assertEqual(rejected["status"], "rejected")
+                self.assertEqual(service._slot_snapshot("issued-slots"), current)
+            finally:
+                service.close()
+            reopened = HIAAgentService(state)
+            try:
+                self.assertEqual(reopened._slot_snapshot("issued-slots"), current)
+                self.assertEqual(reopened.call("hia_rollback", request), rejected)
+            finally:
+                reopened.close()
+
     def test_store_issues_native_artifact_identity_and_reuses_it_without_new_nonces(self):
         from uuid import UUID
         from hepta.hia_agent_store import AgentStore, wire
