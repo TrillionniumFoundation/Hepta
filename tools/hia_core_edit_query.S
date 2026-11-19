@@ -22,6 +22,7 @@
 .equ S,8192
 .equ COMPACT_MODE,S+56
 .equ ORIGIN_DIGEST,S+64
+.equ AGENT_DIAGNOSTICS,S+104
 .equ ORIGIN_TAG,CTRL+1536
 .equ ORIGIN_BYTES,CTRL+1544
 .equ ORIGIN_MAGIC,3544423407359707464
@@ -56,6 +57,20 @@ option_byte:
  test al,al
  jne option_byte
  mov QWORD PTR [rbp+COMPACT_MODE],1
+ # The compact Agent entry can return the existing HIA-owned refusal.
+ # This is an argv[0] transport selector, not a new public CLI option.
+ mov rsi,[r15+8]
+ lea rdi,[rip+agent_query_alias]
+agent_alias_byte:
+ mov al,[rdi]
+ cmp al,[rsi]
+ jne compact_origin
+ inc rdi
+ inc rsi
+ test al,al
+ jne agent_alias_byte
+ mov QWORD PTR [rbp+AGENT_DIAGNOSTICS],1
+compact_origin:
  cmp QWORD PTR [r15],2
  je read_input
  mov rsi,[r15+24]
@@ -88,6 +103,8 @@ hex_ready:
  ret
 compact_option:
  .asciz "--agent-compact"
+agent_query_alias:
+ .asciz "hia-prepare-agent-edit-query"
 read_input:
  xor edi,edi
  mov rax,[rbp+S]
@@ -199,6 +216,8 @@ facts_hole: .long 0
  cmp rax,r10
  jne facts_status
  cmp QWORD PTR [rbp+COMPACT_MODE],0
+ je driver_refusal
+ cmp QWORD PTR [rbp+AGENT_DIAGNOSTICS],1
  je driver_refusal
 facts_status:
  call scalar_status

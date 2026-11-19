@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import subprocess
 
-from .hia_agent_store import wire
+from .hia_agent_store import decode_data, wire
 from .hia_agent_store_native import _sealed_image
 from .hia_edit_query import MAX_QUERY_BYTES
+from .hia_program_tools import HIAEditRejected
 
 EXECUTABLE = ('hia-prepare-edit-query', 4 << 20)
 
@@ -24,13 +25,25 @@ class NativeAgentEditQuery:
             flags.append(program.input_sha256)
         with _sealed_image(self._code) as fd:
             try:
-                result = subprocess.run([f'/proc/self/fd/{fd}', *flags], input=request,
+                result = subprocess.run(['hia-prepare-agent-edit-query', *flags],
+                                        executable=f'/proc/self/fd/{fd}', input=request,
                                         capture_output=True, env={'PATH': ''},
                                         pass_fds=(fd,), timeout=20, check=False)
             except subprocess.TimeoutExpired as exc:
                 raise OSError('native Agent dependency query did not finish') from exc
         if result.returncode in (2, 3) and not result.stdout and not result.stderr:
             return None
+        if result.returncode == 2 and not result.stderr and 0 < len(result.stdout) <= 512:
+            report = decode_data(result.stdout)
+            diagnostics = report.get('diagnostics') if type(report) is dict else None
+            if (type(diagnostics) is list and len(diagnostics) == 1
+                    and type(diagnostics[0]) is dict):
+                message = diagnostics[0].get('message')
+                if (report.get('ok') is False and report.get('status') == 'error'
+                        and diagnostics[0].get('code') == 'E_DRIVER'
+                        and diagnostics[0].get('phase') == 'driver' and type(message) is str
+                        and message.startswith('E_HIA_QUERY: ')):
+                    raise HIAEditRejected(message)
         if (result.returncode != 0 or result.stderr
                 or not 0 < len(result.stdout) <= MAX_QUERY_BYTES):
             raise ValueError('invalid native Agent dependency reply')

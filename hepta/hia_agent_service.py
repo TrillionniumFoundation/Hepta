@@ -811,7 +811,8 @@ class HIAAgentService:
             if self._native_edit_query is not None:
                 view_bytes = self._native_edit_query.prepare(program, site)
                 if view_bytes is None:
-                    # Retain the public error detail, never accept a native refusal.
+                    # A transport/extent refusal lacks a domain diagnostic.
+                    # Retain the old error, but never accept a native refusal.
                     prepare_edit(program, **site, fields=["op", "args", "attrs"])
                     raise ValueError('native Agent dependency refusal disagrees with admitted Core')
                 query = self.store.put(view_bytes, "edit-query")

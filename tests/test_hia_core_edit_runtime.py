@@ -5,6 +5,9 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import subprocess
+import tempfile
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from hepta.hia_agent_store import wire as canonical_wire
 from hepta.hia_edit_batch import apply_batch, prepare_batch
@@ -132,8 +135,45 @@ def check_release(release):
     return passed
 
 
+def check_agent_diagnostics(executable):
+    from hepta.hia_agent_edit_query_native import NativeAgentEditQuery
+    from hepta.hia_agent_service import HIAAgentService
+    from tests.test_hia_program_composite import stored_loan_program
+    from tools.hia_agent_native_qualification import Session, ToolClient, exhaustive_u8_workload
+
+    query = NativeAgentEditQuery(SimpleNamespace(raw=executable.read_bytes()))
+    passed = 0
+    with tempfile.TemporaryDirectory(prefix='hia-query-agent-') as directory:
+        service = HIAAgentService(Path(directory) / 'state')
+        try:
+            session = Session(ToolClient(service.call))
+            session.freeze(exhaustive_u8_workload())
+            for document in (scalar_program(), stored_loan_program()):
+                program = session.artifact(document)
+                args = session.arguments(mutable=False, program=program, view='dependencies')
+                fn = service._program(program).as_dict()['functions'][0]
+                block = next(row for row in fn['blocks'] if row['id'] == fn['entry'])
+                output = next(operation['out'][0]['name'] for operation in block['ops'] if operation['out'])
+                site = {'function': fn['name'], 'block': block['id'], 'output': output}
+                candidates = [site, *(site | {field: 'unlisted'} for field in site)]
+                for index, selector in enumerate(candidates):
+                    arguments = args | {'selector': selector}
+                    expected = service.call('hia_inspect', arguments)
+                    assert expected['status'] == ('rejected' if index else 'completed'), expected
+                    with (patch.object(service, '_native_edit_query', query),
+                          patch('hepta.hia_edit_query.prepare_edit',
+                                side_effect=AssertionError('host query diagnostics entered'))):
+                        actual = service.call('hia_inspect', arguments)
+                    assert actual == expected, (actual, expected)
+                    passed += 1
+        finally:
+            service.close()
+    return passed
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('release', type=Path)
     args = parser.parse_args()
     print(f'{check_release(args.release)} installed native Core edit and impact comparisons passed')
+    print(f'{check_agent_diagnostics(args.release / "hia-prepare-edit-query")} installed Agent query comparisons passed')
