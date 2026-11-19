@@ -10,6 +10,16 @@ SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_cli/
 
 BODY = r'''
 def driver(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) == 16 and word(s, 0, 8) == OUTPUT_PROBE:
+        # A successful no-follow stat observes an existing directory entry,
+        # including a dangling symlink. Leave other observations to the
+        # established HIA publisher and its no-replace link.
+        if word(s, 8, 8) != 0 or length(o) < ENVELOPE_SIZE + EXISTS_SIZE:
+            return 0
+        prefix(o, 0)
+        output_exists(o, PREFIX_SIZE)
+        suffix(o, PREFIX_SIZE + EXISTS_SIZE)
+        return ENVELOPE_SIZE + EXISTS_SIZE
     if length(s) > 8192 or length(s) < 98:
         return 0
     # Read exactly the existing presenter's quoted JSON string. Its
@@ -70,6 +80,7 @@ def write_word(o:mutbuf, at:u64, width:u64, value:u64) -> u64:
 
 PREFIX = b'{\n  "diagnostics": [\n    {\n      "code": "E_DRIVER",\n      "message": '
 SUFFIX = b',\n      "phase": "driver"\n    }\n  ],\n  "ok": false,\n  "status": "error"\n}\n'
+EXISTS = b'"E_HIA_EDIT: destination must be a new file"'
 
 
 def put_literal(name, literal):
@@ -93,13 +104,15 @@ def source_program():
         'AFTER_A': int.from_bytes(after[:8], 'little'),
         'AFTER_B': int.from_bytes(after[8:], 'little'),
         'PREFIX_SIZE': len(PREFIX), 'ENVELOPE_SIZE': len(PREFIX + SUFFIX),
+        'OUTPUT_PROBE': int.from_bytes(b'HIAPEX01', 'little'), 'EXISTS_SIZE': len(EXISTS),
     }
     # The marker spans two words and one opening quote.
     assert len(marker) == 17 and len(after) == 15
     source = BODY
     for name, value in constants.items():
         source = source.replace(name, str(value))
-    return source + '\n' + put_literal('prefix', PREFIX) + '\n' + put_literal('suffix', SUFFIX)
+    return (source + '\n' + put_literal('prefix', PREFIX) + '\n' + put_literal('suffix', SUFFIX)
+            + '\n' + put_literal('output_exists', EXISTS))
 
 
 if __name__ == '__main__':

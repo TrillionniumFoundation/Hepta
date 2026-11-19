@@ -5,6 +5,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from hashlib import sha256
 from io import StringIO
 import json
+import os
 from pathlib import Path
 import stat
 import subprocess
@@ -82,6 +83,41 @@ def check_assembly_rejections(release, directory):
             assert not target.parent.exists(), label
         assert path.read_bytes() == raw, label
     return len(cases) * 3
+
+
+def check_import_existing_destinations(release, source, directory):
+    ordinary = directory / 'ordinary'
+    ordinary.write_bytes(b'retained original')
+    folder = directory / 'folder'
+    folder.mkdir()
+    link = directory / 'link'
+    link.symlink_to(ordinary)
+    missing = directory / 'missing'
+    dangling = directory / 'dangling'
+    dangling.symlink_to(missing)
+    fifo = directory / 'fifo'
+    os.mkfifo(fifo)
+    targets = (ordinary, folder, link, dangling, fifo)
+
+    def identity(path):
+        info = path.lstat()
+        return info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+    before = [identity(path) for path in targets]
+    for target in targets:
+        args = ['import-assembly', source, '-o', str(target)]
+        reference_stdout = StringIO()
+        with redirect_stdout(reference_stdout):
+            code = _reference_hia_main(args)
+        assert code == 2, target
+        result = subprocess.run([release / 'hia', *args], capture_output=True,
+                                env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (
+            code, reference_stdout.getvalue().encode(), b''), (target, result)
+    assert [identity(path) for path in targets] == before
+    assert ordinary.read_bytes() == b'retained original' and not missing.exists()
+    assert set(directory.iterdir()) == set(targets)
+    return len(targets)
 
 
 def check_selected_selfhost(release, directory):
@@ -256,7 +292,14 @@ def check_release(release, directory):
 
         replay = subprocess.run(command, input=b'ignored stdin', capture_output=True, env={'PATH': ''},
                                 timeout=20, check=False)
-        assert replay.returncode > 0 and not replay.stdout and not replay.stderr, (action, replay)
+        if name == 'import':
+            refusal = StringIO()
+            with redirect_stdout(refusal):
+                code = _reference_hia_main([*command_args, str(target)])
+            assert (replay.returncode, replay.stdout, replay.stderr) == (
+                code, refusal.getvalue().encode(), b''), (action, replay)
+        else:
+            assert replay.returncode > 0 and not replay.stdout and not replay.stderr, (action, replay)
         assert actual_stat.st_ino == target.stat().st_ino and target.read_bytes() == reference.read_bytes()
         assert list(target.parent.iterdir()) == [target], action
     assert {name: (directory / name).read_bytes() for name in inputs} == inputs
@@ -264,7 +307,10 @@ def check_release(release, directory):
     diagnostics.mkdir()
     selfhost = directory / 'selfhost'
     selfhost.mkdir()
+    destinations = directory / 'destinations'
+    destinations.mkdir()
     return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
+            + check_import_existing_destinations(release, assembly_source, destinations)
             + check_selected_selfhost(release, selfhost))
 
 

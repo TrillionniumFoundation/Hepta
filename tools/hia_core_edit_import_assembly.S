@@ -505,6 +505,9 @@ publish_write:
  mov [rbp+72],r14
  mov [rbp+384],r13
  mov r12,rbx
+ mov rax,[r15+16]
+ add rax,r15
+ mov [rbp+392],rax
  mov rax,[r15+24]
  add rax,r15
  mov [rbp+320],rax
@@ -587,6 +590,35 @@ pub_cwd_ready:
  mov rdi,[rbp+32]
  mov esi,1048576
  call pub_release
+ # Observe the exact new destination, without dereferencing its final
+ # component or creating any staging file. HIA classifies the observation.
+ mov edi,-100
+ mov rsi,[rbp+16]
+ lea rdx,[rbp+768]
+ mov r10d,256
+ mov eax,262
+ syscall
+ mov [rbp+456],rax
+ mov rax,QWORD PTR [rip+pub_output_probe]
+ mov [rbp+448],rax
+ lea rdi,[rbp+448]
+ mov esi,16
+ lea rdx,[rbp+1024]
+ mov ecx,512
+ lea r8,[rbp+1536]
+ xor r9d,r9d
+ call QWORD PTR [rbp+392]
+ cmp rax,512
+ ja pub_io_failure
+ test rax,rax
+ jz pub_destination_ready
+ lea rdx,[rbp+1024]
+ mov [rbp+112],rdx
+ mov [rbp+120],rax
+ call pub_write_report
+ mov edi,2
+ jmp pub_exit
+pub_destination_ready:
  # Retain the native publisher's post-admission byte limits.
  mov esi,4096
  call pub_allocate
@@ -963,4 +995,5 @@ pub_exit:
  ud2
 pub_sha_initialize: .byte 0
 pub_sha_finalize: .byte 2
+pub_output_probe: .ascii "HIAPEX01"
 .section .note.GNU-stack,"",@progbits
