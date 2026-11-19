@@ -715,6 +715,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/json_decode.hepta',
     'tools/generate_hia_mcp_request.py',
     'examples/hia_bootstrap/mcp_request_route.hepta',
+    'tools/hia_mcp_request_route_stdio.S',
     'tests/test_hia_mcp_request_native.py',
     'tools/generate_hia_json_preflight.py',
     'tools/build_hia_json_preflight.py',

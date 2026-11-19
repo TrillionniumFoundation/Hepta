@@ -16,6 +16,7 @@ DRIVER = 'tools/build_hia_agent_read_page.py'
 VARIANTS = {
     'read-page': ('agent_read_page', 'hepta.hia.agent-read-page-native.v1'),
     'journal': ('agent_journal', 'hepta.hia.agent-journal-native.v2'),
+    'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),
 }
 
 
