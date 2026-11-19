@@ -533,6 +533,19 @@ def check_core_ingress(executable):
         'absent-export': dict(program, exports=['absent']),
     }
     inputs.update({name: json.dumps(value).encode() for name, value in primitive_refusals.items()})
+    nominal = json.loads((source_root / 'examples/hia_program/cooperative_task.hepta').read_bytes())
+    first_type, *other_types = nominal['types']
+    first_function, *other_functions = nominal['functions']
+    nominal_refusals = {
+        'nominal-invalid-module': dict(nominal, module='9invalid'),
+        'nominal-unknown-type': dict(nominal, types=[dict(first_type, kind='unknown'), *other_types]),
+        'nominal-duplicate-type': dict(nominal, types=[*nominal['types'], first_type]),
+        'nominal-missing-functions': {key: value for key, value in nominal.items() if key != 'functions'},
+        'nominal-extra-field': dict(nominal, extra=1),
+        'nominal-duplicate-function': dict(nominal, functions=[*nominal['functions'], first_function]),
+        'nominal-missing-entry': dict(nominal, functions=[dict(first_function, entry='absent'), *other_functions]),
+    }
+    inputs.update({name: json.dumps(value).encode() for name, value in nominal_refusals.items()})
     with TemporaryDirectory(prefix='hia-cli-core-ingress-') as temporary:
         root = Path(temporary)
         output = root / 'new' / 'blocked.hepta'

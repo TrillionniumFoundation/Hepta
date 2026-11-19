@@ -76,6 +76,9 @@
 .equ PRESENTATION_SCHEMA, 0x313043534f414948
 .equ PRESENTATION_ASSEMBLY_SCHEMA, 0x323043534f414948
 .equ PRESENTATION_DRIVER_ERROR, 0x313052444f414948
+.equ PRESENTATION_CONSTRUCTOR_DETAIL, 65568
+.equ PRESENTATION_TYPE_DETAIL, 65600
+.equ PRESENTATION_FUNCTION_DETAIL, 65700
 .equ RENDER_ASSEMBLY, 11
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
@@ -655,7 +658,7 @@ delegated:
  je io_failure
 complete:
  cmp QWORD PTR [rip+stdio_mode],0
- jne stdio_rejected
+ jne public_constructor_refusal
  lea rsi,[rip+complete_header]
  mov [rsi+8],r15
  mov [rsi+16],rax
@@ -716,6 +719,24 @@ stream_result:
  je exit
  mov edi,65
  jmp exit
+
+public_constructor_refusal:
+ cmp QWORD PTR [rip+handoff_role],6
+ jbe stdio_rejected
+ cmp r15,999
+ je public_nominal_type_refusal
+ test r15,r15
+ jz stdio_rejected
+ lea eax,[r15+PRESENTATION_CONSTRUCTOR_DETAIL]
+ jmp public_driver_refusal
+public_nominal_type_refusal:
+ cmp rax,4
+ je render_type_refusal
+ cmp rax,7
+ jne stdio_rejected
+render_type_refusal:
+ add eax,PRESENTATION_TYPE_DETAIL
+ jmp public_driver_refusal
 
 handoff:
  lea rdi,[rip+pack_command]
@@ -1021,6 +1042,12 @@ bind_outer_function:
 
 reject_outer_function:
  /* Preserve the component's exact refusal while the outer owner closes. */
+ cmp r15,15
+ jne pack_outer_function_refusal
+ test rax,rax
+ jne pack_outer_function_refusal
+ mov QWORD PTR [rip+public_function_refusal],PRESENTATION_FUNCTION_DETAIL+15
+pack_outer_function_refusal:
  mov [r12+56],rax
  mov rax,BODY_FINAL
  mov [r12],rax
@@ -1098,7 +1125,7 @@ finish_outer:
  jmp exit
 outer_refusal:
  cmp QWORD PTR [rip+stdio_mode],0
- jne stdio_rejected
+ jne public_outer_refusal
  cmp QWORD PTR [r12+8],1
  jne io_failure
  mov r15,rax
@@ -1112,6 +1139,16 @@ outer_refusal:
 outer_failed:
  mov edi,65
  jmp exit
+
+public_outer_refusal:
+ cmp QWORD PTR [rip+handoff_role],6
+ jbe stdio_rejected
+ cmp rax,999
+ jne stdio_rejected
+ mov eax,[rip+public_function_refusal]
+ test eax,eax
+ jz stdio_rejected
+ jmp public_driver_refusal
 
 stdin_agent_admit:
  mov edi,6
@@ -1793,6 +1830,7 @@ outer_control: .skip 144
 input_profile: .skip 8
 legacy_assembly_profile: .skip 8
 driver_status: .skip 8
+public_function_refusal: .skip 8
 original_canonical: .skip 8
 original_extent: .skip 8
 compact_core_extent: .skip 8

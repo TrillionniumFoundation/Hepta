@@ -4,6 +4,9 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_composite_constructor_errors import ERRORS as CONSTRUCTOR_DIAGNOSTICS
+from hepta.hia_composite_functions_errors import ERRORS as FUNCTION_DIAGNOSTICS
+from hepta.hia_composite_types_native import ERRORS as TYPE_DIAGNOSTICS
 from hepta.hia_schema import COMPOSITE_PROFILES, PRIMITIVE_PROFILES
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_core_json_frontend import KEYS, FRONTEND, packed
@@ -529,6 +532,14 @@ def source_program(*, nominal=False, compact=False, entry=''):
         profile += 'def driver_detail(o:mutbuf, w:mutbuf, status:u64) -> u64:\n'
         for code, message in PUBLIC_DIAGNOSTICS.values():
             profile += f'    if status == {code}:\n        lit(o, w, {message!r})\n        return 1\n'
+        for base, table, codes in (
+                (65568, CONSTRUCTOR_DIAGNOSTICS, tuple(CONSTRUCTOR_DIAGNOSTICS)),
+                (65600, TYPE_DIAGNOSTICS, (4, 7)),
+                (65700, FUNCTION_DIAGNOSTICS, (15,))):
+            for code in codes:
+                key, detail = table[code]
+                message = key + ': ' + detail
+                profile += f'    if status == {base + code}:\n        lit(o, w, {message!r})\n        return 1\n'
         profile += '    return 0\n'
 
     class Expand(ast.NodeTransformer):
