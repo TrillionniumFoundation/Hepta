@@ -47,7 +47,12 @@ LEARNING_BYTES = LEARNING_TOKENS + 2 * LEARNED_ENTRIES
 CIRCUIT_REQUEST = int.from_bytes(b'HIABVC01', 'little')
 GUARDED_CIRCUIT_REQUEST = int.from_bytes(b'HIABVG01', 'little')
 WORD_WITNESS_REQUEST = int.from_bytes(b'HIABVW01', 'little')
+WORD_TABLE_REQUEST = int.from_bytes(b'HIABVT01', 'little')
+WORD_TABLE_INPUT_BITS = 16
+WORD_TABLE_WORK_LIMIT = 32 * 1024 * 1024
 GRAPH_PROJECTION_REQUEST = int.from_bytes(b'HIABVP01', 'little')
+CALL_PROJECTION_REQUEST = int.from_bytes(b'HIABVP02', 'little')
+SCALAR_SUMMARY = int.from_bytes(b'HIABVS01', 'little')
 CIRCUIT_NODES = 256
 CIRCUIT_RETURNS = 16
 CIRCUIT_CAPACITY = 192 * 1024
@@ -55,7 +60,7 @@ CIRCUIT_GATE_SLOTS = 8192
 CIRCUIT_GATES_OFFSET = 32 + CIRCUIT_NODES * 128
 CIRCUIT_DIVISION_TEMP = CIRCUIT_GATES_OFFSET + 8 * CIRCUIT_GATE_SLOTS
 CIRCUIT_WORKSPACE = CIRCUIT_DIVISION_TEMP + 256
-PROJECTION_OUTPUT = 32 + 40 * CIRCUIT_NODES + 16 * CIRCUIT_RETURNS
+PROJECTION_OUTPUT = 64 + 40 * CIRCUIT_NODES + 16 * CIRCUIT_RETURNS
 PROJECTION_WORKSPACE = 294912
 PROJECTION_INPUT_LIMIT = 131072
 UNKNOWN, SAT, UNSAT = range(3)
@@ -66,6 +71,7 @@ PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR = 34, 35
 PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM = 36, 37
 PROJECT_CHECKED_CAST = 38
 PROJECT_CHECKED_MUL = 39
+PROJECT_DIRECT_CALL = 40
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_TRAP_TAGS = {code: index for index, code in enumerate(sorted(TRAP_CODES), 1)}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
@@ -199,9 +205,35 @@ class NativeCnf(NativeHiaJsonImage):
             raise ValueError('HIA rejected the concrete word witness')
         return bool(status)
 
-    def project_scalar_graphs(self, functions, graphs, *, totality):
-        frame = _graph_packet(functions, graphs, totality=totality)
-        if frame is None:
+    def search_word_table(self, nodes, returns, *, traps=None, work):
+        """Independently enumerate a small complete input domain in HIA."""
+        bits = sum(width for operation, width, *_ in nodes if operation == 1)
+        if bits > WORD_TABLE_INPUT_BITS:
+            return None
+        frame = struct.pack('<4Q', WORD_TABLE_REQUEST, len(nodes), len(returns), int(traps is not None))
+        frame += b''.join(struct.pack('<5Q', *instruction) for instruction in nodes)
+        frame += b''.join(struct.pack('<2Q', *pair) for pair in returns)
+        if traps is not None:
+            frame += struct.pack('<2Q', *traps)
+        frame += struct.pack('<Q', min(work, WORD_TABLE_WORK_LIMIT))
+        source = ctypes.create_string_buffer(frame, len(frame))
+        output = ctypes.create_string_buffer(32)
+        scratch = ctypes.create_string_buffer(max(8, len(nodes) * 8))
+        size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
+        if size == 0xfffffffc:
+            return None
+        if size != len(output):
+            raise RuntimeError('invalid HIA word table reply extent')
+        magic, verdict, assignment, checked = struct.unpack('<4Q', output.raw)
+        if (magic != WORD_TABLE_REQUEST or verdict not in (SAT, UNSAT)
+                or verdict == SAT and (assignment >= 1 << bits or checked != assignment + 1)
+                or verdict == UNSAT and (assignment != 0 or checked != 1 << bits)):
+            raise RuntimeError('invalid HIA word table reply')
+        # The circuit's defined model format reserves bit zero for true.
+        return verdict, (assignment << 1) | 1, checked, frame[:-8]
+
+    def _run_projection(self, frame):
+        if frame is None or len(frame) > PROJECTION_INPUT_LIMIT:
             return None
         source = ctypes.create_string_buffer(frame, len(frame))
         reply = ctypes.create_string_buffer(PROJECTION_OUTPUT)
@@ -209,14 +241,49 @@ class NativeCnf(NativeHiaJsonImage):
         size = self._entry(source, len(frame), reply, len(reply), scratch, len(scratch))
         if size == 0xfffffffc:
             return None
+        if not 32 <= size <= len(reply):
+            raise RuntimeError('invalid HIA scalar projection extent')
+        return reply.raw[:size]
+
+    def project_scalar_graphs(self, functions, graphs, *, totality, summaries=None):
+        reply = self._run_projection(_graph_packet(functions, graphs, totality=totality, summaries=summaries))
+        if reply is None:
+            return None
         magic, nodes, pairs, reserved = struct.unpack_from('<4Q', reply)
         if (magic != CIRCUIT_REQUEST or reserved or nodes > CIRCUIT_NODES or pairs > CIRCUIT_RETURNS
-                or size != 32 + 40 * nodes + 16 * pairs):
+                or len(reply) != 32 + 40 * nodes + 16 * pairs):
             raise RuntimeError('invalid HIA scalar circuit projection')
         split = 32 + 40 * nodes
-        instructions = tuple(struct.iter_unpack('<5Q', reply.raw[32:split]))
-        observed = tuple(struct.iter_unpack('<2Q', reply.raw[split:size]))
+        instructions = tuple(struct.iter_unpack('<5Q', reply[32:split]))
+        observed = tuple(struct.iter_unpack('<2Q', reply[split:]))
         return instructions, observed, None
+
+    def project_scalar_calls(self, name, closures, *, totality, expansion_limit):
+        roots, graphs, bindings, expansions = [], [], [], []
+        for functions, closure in closures:
+            compiled, costs = {}, {}
+            for callee, graph in closure.items():
+                function = functions[callee]
+                costs[callee] = 1 + sum(
+                    costs[op['attrs']['function']] for block in function['blocks'] for op in block['ops']
+                    if op['op'] == 'call')
+                if costs[callee] > expansion_limit:
+                    return None
+                if callee == name:
+                    roots.append(function)
+                    graphs.append(graph)
+                    bindings.append(compiled)
+                    expansions.append(costs[callee])
+                    break
+                raw = self._run_projection(_graph_packet(
+                    (function,), (graph,), totality=False, summaries=(compiled,), summarize=True))
+                if raw is None:
+                    return None
+                if struct.unpack_from('<Q', raw)[0] != SCALAR_SUMMARY:
+                    raise RuntimeError('invalid HIA scalar callee summary')
+                compiled[callee] = raw
+        circuit = self.project_scalar_graphs(roots, graphs, totality=totality, summaries=bindings)
+        return None if circuit is None else (circuit, expansions)
 
 
 def _search_mode(*, batch, watched, learning, restarts):
@@ -242,7 +309,7 @@ def _word_type(name):
     return _CORE_WIDTHS.get(name, 0) | (128 if name.startswith('i') else 0)
 
 
-def _graph_packet(functions, graphs, *, totality):
+def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=False):
     """Marshal verified SSA slots without constructing formulas.
 
     The type table precedes sized functions, each carrying topologically
@@ -251,13 +318,18 @@ def _graph_packet(functions, graphs, *, totality):
     """
     parameters = functions[0]['params']
     returns = functions[0]['returns']
-    if not totality and len(returns) + 2 > CIRCUIT_RETURNS:
+    if summarize and len(returns) != 1 or not totality and len(returns) + 2 > CIRCUIT_RETURNS:
         return None
-    buffer = bytearray(struct.pack('<4Q', GRAPH_PROJECTION_REQUEST, 1 if totality else 2,
+    magic = GRAPH_PROJECTION_REQUEST if summaries is None else CALL_PROJECTION_REQUEST
+    buffer = bytearray(struct.pack('<4Q', magic, 3 if summarize else 1 if totality else 2,
                                    len(parameters), len(returns)))
+    if summaries is not None:
+        buffer.extend(bytes(8))
+    calls = []
     types = [*(_word_type(item['type']) for item in parameters), *map(_word_type, returns)]
     buffer.extend(struct.pack(f'<{len(types)}Q', *types))
-    for function, (blocks, order) in zip(functions, graphs, strict=True):
+    bindings = [None] * len(functions) if summaries is None else summaries
+    for function, (blocks, order), available in zip(functions, graphs, bindings, strict=True):
         start = len(buffer)
         indexes = {name: index for index, name in enumerate(order)}
         buffer.extend(struct.pack('<3Q', 0, len(order), indexes[function['entry']]))
@@ -279,6 +351,11 @@ def _graph_packet(functions, graphs, *, totality):
                     role = PROJECT_CHECKED_CAST
                 slots[result['name']] = index
                 operands = [slots[argument] for argument in op['args']]
+                if op['op'] == 'call' and available is not None:
+                    summary = available[op['attrs']['function']]
+                    calls.append((len(buffer), operands, summary))
+                    buffer.extend(struct.pack('<6Q', PROJECT_DIRECT_CALL, _word_type(result['type']), 0, 0, 0, 0))
+                    continue
                 operands.extend([0] * (3 - len(operands)))
                 literal = op['attrs'].get('value', 0)
                 buffer.extend(struct.pack('<6Q', role, _word_type(result['type']),
@@ -299,6 +376,16 @@ def _graph_packet(functions, graphs, *, totality):
             if len(buffer) > PROJECTION_INPUT_LIMIT:
                 return None
         struct.pack_into('<Q', buffer, start, len(buffer) - start)
+    if summaries is not None:
+        struct.pack_into('<Q', buffer, 32, len(buffer))
+        addresses = {}
+        for row, operands, summary in calls:
+            if summary not in addresses:
+                addresses[summary] = len(buffer)
+                buffer.extend(summary)
+            arguments = len(buffer)
+            buffer.extend(struct.pack(f'<{len(operands)}Q', *operands))
+            struct.pack_into('<3Q', buffer, row + 16, addresses[summary], arguments, len(operands))
     return bytes(buffer)
 
 

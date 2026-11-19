@@ -245,6 +245,34 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
     return result
 
 
+def _native_call_totality(result, scope, program, fn, closures, deadline_ns):
+    from .hia_cnf_native import UNSAT, scalar_model_arguments
+    from .hia_scalar_call_validation import _native_call_query, _observe
+
+    answer = _native_call_query(fn["name"], closures, scope, totality=True, deadline_ns=deadline_ns)
+    if answer is None:
+        return False
+    verdict, model, expansions, identity, discharge = answer
+    result["solver"].update(name=CIRCUIT_TOTALITY_CHECKER, version="1", identity=identity,
+                            result="unsat" if verdict == UNSAT else "sat", discharge=discharge)
+    result["call_expansions"], = expansions
+    result["trusted_components"] = ["canonical Core checker", "HIA call projection and Boolean solver",
+                                    "canonical VM counterexample replay"]
+    if verdict == UNSAT:
+        result.update(status="proved", reason="nonreturning_call_closure_unsatisfiable")
+    else:
+        arguments = list(scalar_model_arguments(model, fn["params"]))
+        observed = _observe(program, fn["name"], arguments)
+        tag = semantics._TRAP_TAGS.get(observed.get("code"))
+        if observed["status"] != "trapped" or tag is None:
+            result["reason"] = "counterexample_replay_disagrees_with_encoder"
+        else:
+            result.update(status="disproved", reason="nonreturning_counterexample_replayed",
+                          counterexample={"arguments": arguments, "parameter_types": semantics._signature(fn)[0],
+                                          "observation": observed, "outcome_tag": tag})
+    return True
+
+
 def validate_scalar_call_totality(document, *, function, timeout_ms=10000):
     """Prove normal return for one bounded direct-call closure on all inputs.
 
@@ -301,6 +329,9 @@ def validate_scalar_call_totality(document, *, function, timeout_ms=10000):
         functions, graphs = calls._closure(program.as_dict(), function)
         fn = functions[function]
         result["call_closure"] = sorted(graphs)
+        if _native_call_totality(result, scope, program, fn, ((functions, graphs),),
+                                 started + timeout_ms * 1_000_000):
+            return result
         z = semantics._z3_module()
         result["solver"]["version"] = z.get_version_string()
         if z.get_version_string() != PINNED_Z3_VERSION:
@@ -361,7 +392,7 @@ def validate_scalar_call_totality(document, *, function, timeout_ms=10000):
         if result["status"] in {"proved", "disproved"}:
             try:
                 if (result["implementation"] != _call_implementation_identity()
-                        or solver_identity != _solver_identity(z)):
+                        or z is not None and solver_identity != _solver_identity(z)):
                     result.update(status="unknown", reason="implementation_changed_during_proof",
                                   counterexample=None)
             except Exception as exc:

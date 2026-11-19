@@ -86,6 +86,50 @@ class CnfInstalledTests(unittest.TestCase):
         if cls.native is None:
             raise unittest.SkipTest('a source-bound HIA Boolean image is required')
 
+    def test_word_table_requires_a_complete_domain_budget(self):
+        # x differs from zero for the first time at x=1. Count all eight
+        # input bits when admitting the search, even for this early witness.
+        nodes = ((1, 8, 0, 0, 0), (2, 8, 0, 0, 0))
+        returns = ((0, 1),)
+        self.assertIsNone(self.native.search_word_table(nodes, returns, work=1023))
+        verdict, model, assignments, _ = self.native.search_word_table(nodes, returns, work=1024)
+        self.assertEqual((verdict, model, assignments), (SAT, 3, 2))
+        result = self.native.search_word_table(nodes, ((0, 0),), work=1024)
+        self.assertEqual((result[0], result[2]), (UNSAT, 256))
+        self.assertIsNone(self.native.search_word_table(((1, 32, 0, 0, 0),), ((0, 0),), work=1024))
+
+    def test_real_call_closure_and_inline_proposal_without_host_solver(self):
+        from hepta.hia_scalar_call_validation import inline_scalar_calls, validate_scalar_calls
+        from hepta.hia_scalar_totality import validate_scalar_call_totality
+        from tests.test_hia_program import i, ret
+        from tests.test_hia_scalar_call_validation import signed_calls
+        from tests.test_hia_scalar_totality import guarded_call_division
+
+        source = signed_calls()
+        block = source["functions"][0]["blocks"][0]
+        block["ops"] += [
+            i("call", ["answer"], [("second", "i8")], function="helper"),
+            i("int.add.checked", ["r", "second"], [("final", "i8")]),
+        ]
+        block["term"] = ret("final")
+        proposed = inline_scalar_calls(source, function="calculate")
+        module = "hepta.hia_scalar_call_validation"
+        with (patch(module + ".inline_scalar_calls", side_effect=AssertionError("inlining producer called")),
+              patch(module + "._z3_module", side_effect=AssertionError("host solver called")),
+              patch("hepta.hia_translation_validation._z3_module", side_effect=AssertionError("host solver called"))):
+            proof = validate_scalar_calls(source, proposed, function="calculate")
+            total = validate_scalar_call_totality(guarded_call_division("u64"), function="calculate")
+            trapped = validate_scalar_call_totality(guarded_call_division("i64"), function="calculate")
+        self.assertEqual(proof["status"], "proved", proof)
+        self.assertEqual(proof["call_expansions"], [3, 1])
+        discharge = proof["solver"]["discharge"]
+        if discharge["method"] == "native_hia_exhaustive_word_table":
+            self.assertEqual(discharge["assignments_checked"], 65_536)
+        self.assertEqual(total["status"], "proved", total)
+        self.assertEqual(trapped["status"], "disproved", trapped)
+        self.assertEqual(trapped["counterexample"]["arguments"], [-(1 << 63), -1])
+        self.assertEqual(trapped["counterexample"]["observation"], {"status": "trapped", "code": "overflow"})
+
     def test_differential_boolean_formulas_and_bounded_work(self):
         rng = random.Random(125113)
         counts = {SAT: 0, UNSAT: 0}

@@ -14,7 +14,9 @@ import json
 from pathlib import Path
 import time
 
-from .hia_scalar_proof_contract import begin_scalar_proof, finish_scalar_proof
+from .hia_scalar_proof_contract import (
+    CIRCUIT_TRANSLATION_CHECKER, begin_scalar_proof, finish_scalar_proof,
+)
 from .hia_program import HIAProgramRejected, verify_program
 from .hia_program_runtime import HIAProgramTrap, execute_program
 from .hia_translation_validation import (
@@ -105,6 +107,62 @@ def _observe(program, function, arguments):
         return {"status": "trapped", "code": error.code}
 
 
+def _native_call_query(function, closures, scope, *, totality, deadline_ns):
+    from .hia_cnf_native import selected_cnf
+    from .hia_optimization import _native_circuit_decision, _native_solver_identity
+
+    cnf = selected_cnf()
+    if cnf is None:
+        return None
+    if (scope["source_identity"] or {}).get("cnf.image.bin") != cnf.image_sha256:
+        raise _OutsideProfile("native_call_identity_changed")
+    projected = cnf.project_scalar_calls(function, closures, totality=totality,
+                                         expansion_limit=MAX_CALL_EXPANSIONS)
+    if projected is None:
+        return None
+    circuit, expansions = projected
+    verdict = _native_circuit_decision(cnf, circuit, deadline_ns)
+    identity = _native_solver_identity(cnf)
+    if verdict is not None:
+        decision, model, discharge, _ = verdict
+        return decision, model, expansions, identity, discharge
+
+    remaining_ms = (deadline_ns - time.monotonic_ns()) // 1_000_000
+    if remaining_ms <= 0:
+        return None
+    nodes, observed, traps = circuit
+    table = cnf.search_word_table(nodes, observed, traps=traps, work=remaining_ms * 16_384)
+    if table is None:
+        return None
+    decision, model, assignments, query = table
+    discharge = {"method": "native_hia_exhaustive_word_table", "image_sha256": cnf.image_sha256,
+                 "formula_sha256": sha256(query).hexdigest(), "assignments_checked": assignments}
+    return decision, model, expansions, identity, discharge
+
+
+def _native_call_equivalence(report, selected, checked, closures, scope, deadline_ns):
+    from .hia_cnf_native import UNSAT, scalar_model_arguments
+
+    native = _native_call_query(report["function"], closures, scope, totality=False, deadline_ns=deadline_ns)
+    if native is None:
+        return False
+    verdict, model, expansions, identity, discharge = native
+    report.update(solver={"name": CIRCUIT_TRANSLATION_CHECKER, "identity": identity,
+                          "discharge": discharge}, solver_result="unsat" if verdict == UNSAT else "sat",
+                  call_expansions=expansions, call_closures=[sorted(graphs) for _, graphs in closures])
+    if verdict == UNSAT:
+        report["status"] = "proved"
+        report["claims"]["all_input_return_and_first_trap_equivalence"] = True
+    else:
+        arguments = list(scalar_model_arguments(model, selected[0]["params"]))
+        before, after = (_observe(p, report["function"], arguments) for p in checked)
+        if before == after:
+            report["reason"] = "counterexample_replay_disagrees_with_encoder"
+        else:
+            report.update(status="disproved", counterexample={"arguments": arguments, "before": before, "after": after})
+    return True
+
+
 def validate_scalar_calls(before, after, *, function, timeout_ms=10000):
     """Freshly compare a bounded direct-call closure, including first-trap code."""
     started = time.monotonic_ns()
@@ -133,6 +191,9 @@ def validate_scalar_calls(before, after, *, function, timeout_ms=10000):
         selected = [f[function] for f, _ in closures]
         if _signature(selected[0]) != _signature(selected[1]):
             raise _OutsideProfile("signature_mismatch")
+        if _native_call_equivalence(report, selected, checked, closures, scope,
+                                    started + timeout_ms * 1_000_000):
+            return report
         z = _z3_module()
         from .hia_optimization import PINNED_Z3_VERSION, _solver_identity
         if z.get_version_string() != PINNED_Z3_VERSION:
@@ -175,7 +236,8 @@ def validate_scalar_calls(before, after, *, function, timeout_ms=10000):
         report["reason"] = str(error)
         report["error_type"] = type(error).__name__
     finally:
-        finish_scalar_proof(report, scope, started_ns=started)
+        native = report.get("solver", {}).get("name") == CIRCUIT_TRANSLATION_CHECKER
+        finish_scalar_proof(report, scope, started_ns=started, deadline_ms=timeout_ms if native else None)
     return report
 
 

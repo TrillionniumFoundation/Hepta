@@ -78,18 +78,20 @@ performance separately; enabling this profile does not assert a speedup.
 
 `validate_scalar_call_totality(document, function=..., timeout_ms=10000)` adds
 the explicit `hia.scalar-acyclic-direct-calls-bitvector-totality.v1` evidence
-profile. It reuses the existing independent direct-call encoder. That encoder
-reads the original caller and callee operations, without asking the inlining
-producer to establish its own correctness. The legacy totality API and native
-runtime continue to reject calls.
+profile. The installed HIA checker reads the original caller and callee
+operations, composes their typed word circuits and uses native search for
+admitted obligations. The pinned independent SMT encoder remains available
+outside those native bounds. Neither checker asks the inlining producer to
+establish its own correctness. The legacy totality API and native runtime
+continue to reject calls.
 
 The selected primitive v1-v7 call closure must have acyclic CFGs and an acyclic
 direct-call graph, at most 16 functions, 32 blocks, 512 operations and 32
 symbolic call expansions. Each function has one scalar result. Loops,
 recursion, resources, foreign effects and other schema versions are outside
-this profile. Every input value of the selected function is quantified in the
-finite-width SMT query. Other public functions and other programs accepted by
-the profile do not acquire a theorem from this result.
+this profile. The finite-width query covers every typed input of the selected
+function. Other public functions and other programs accepted by the profile
+do not acquire a theorem from this result.
 
 A non-total helper can occur in a total caller: `divide(x,d)` may trap on zero,
 while a caller returns early on `d == 0` and reaches that helper only on the

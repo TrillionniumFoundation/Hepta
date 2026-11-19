@@ -141,12 +141,12 @@ Equivalence of a program that traps remains possible and leaves normal-return
 totality open.
 
 `checker` names the actual Python entry point, the enumerated source-file hashes,
-the Python implementation/version, and the actual Z3 binding and loaded native
-library identities. The source inventory is observed before checking and
+the Python implementation/version, and the actual solver binding and loaded
+image identities (HIA or Z3). The source inventory is observed before checking and
 rechecked before publishing a proof or counterexample. Missing or changed
 identity leaves `unknown` and clears proof claims. This remains a trusted
-executable SMT checker; the source inventory does not attest imported memory or
-prove the Python/SMT implementation sound. Execution of those bytes and the
+executable checker; the source inventory does not attest imported memory or
+prove the implementation sound. Execution of those bytes and the
 absence of concurrent tampering remain explicit assumptions.
 
 These Core queries leave compiler-to-machine refinement, ABI/FFI/loading,

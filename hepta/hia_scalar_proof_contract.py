@@ -79,7 +79,7 @@ def _source_identity(name):
     hashes = {n: sha256(Path(__file__).with_name(n).read_bytes()).hexdigest() for n in sorted(names)}
     if native is not None:
         hashes["scalar_symbolic.image.bin"] = native.image_sha256
-    if name in {"validate_scalar_totality", "validate_translation"}:
+    if name in {"validate_scalar_totality", "validate_translation", "validate_scalar_calls", "validate_scalar_call_totality"}:
         from .hia_cnf_native import selected_cnf
         from .hia_scalar_reference_native import selected_scalar_reference
 
@@ -190,13 +190,18 @@ def finish_scalar_proof(result, scope, *, started_ns=None, deadline_ms=None):
         assumptions[4] = _item("termination_rule", "Every transition in the verified finite DAG leads to a successor or to a normal return; its admitted fixed-width scalar operations cannot trap.")
         obligations[0] = _item("checker_soundness", "A machine-checked correctness theorem for the canonical verifier and HIA structural checker remains open.")
     elif (name, checker_name) in {("validate_scalar_totality", CIRCUIT_TOTALITY_CHECKER),
-                                 ("validate_translation", CIRCUIT_TRANSLATION_CHECKER)}:
+                                 ("validate_scalar_call_totality", CIRCUIT_TOTALITY_CHECKER),
+                                 ("validate_translation", CIRCUIT_TRANSLATION_CHECKER),
+                                 ("validate_scalar_calls", CIRCUIT_TRANSLATION_CHECKER)}:
         kind = "trusted_executable_hia_circuit_checker"
         query = "any input without a normal return" if totality else "an observable difference or missing terminal outcome"
-        method = f"HIA word-circuit encoding and CNF search for {query}; independent Core replay for counterexamples"
+        search = ("exhaustive finite word-table search"
+                  if result["solver"]["discharge"]["method"] == "native_hia_exhaustive_word_table"
+                  else "CNF search")
+        method = f"HIA word-circuit projection and {search} for {query}; independent Core replay for counterexamples"
         meaning = PROVED_MEANING.replace("SMT checker", "HIA circuit checker")
         assumptions[2] = _item("trusted_implementation", "The canonical verifier, typed circuit projection and independent Core replay are trusted, not machine-proved.")
-        assumptions[4] = _item("solver", "The selected HIA circuit encoder and Boolean solver correctly answer the projected counterexample query.")
+        assumptions[4] = _item("solver", "The selected HIA word-circuit evaluator or Boolean solver correctly answers the projected counterexample query.")
         obligations[0] = _item("checker_soundness", "A machine-checked correctness theorem for the Core projection, native circuit encoding, solver and replay remains open.")
     result.update(proof_scope_schema=SCHEMA, proved_meaning=meaning,
         subject=subject, property={"id": property_id, "statement": statement},

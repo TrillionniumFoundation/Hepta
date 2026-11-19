@@ -3,10 +3,11 @@
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS, WORD_WITNESS_REQUEST,
+                                  WORD_TABLE_REQUEST, WORD_TABLE_INPUT_BITS, WORD_TABLE_WORK_LIMIT,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                   CIRCUIT_DIVISION_TEMP, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_PRODUCT_EXCEEDS,
                                   PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR, PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM,
-                                  PROJECT_CHECKED_CAST, PROJECT_CHECKED_MUL,
+                                  PROJECT_CHECKED_CAST, PROJECT_CHECKED_MUL, PROJECT_DIRECT_CALL,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
                                  LEARNING_REQUEST, RESTART_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
                                  LEARNING_ORDER, LEARNING_HEAD, LEARNING_PHASE,
@@ -14,7 +15,7 @@ from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUI
                                   SPARSE_WORKSPACE, STEP_LIMIT, WATCHED_REQUEST, WATCH_HEADS,
                                   WATCH_ROWS, WATCH_ROW_BYTES, WORKSPACE)
 from hepta.hia_cnf_native import (
-    GRAPH_PROJECTION_REQUEST, PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
+    GRAPH_PROJECTION_REQUEST, CALL_PROJECTION_REQUEST, SCALAR_SUMMARY, PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
     PROJECTION_WORKSPACE, _CORE_TRAP_TAGS,
 )
 from tools.generate_hia_artifact_publication import document
@@ -32,10 +33,12 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
         return solve_sparse(source, result, stack, magic)
     if magic == CIRCUIT_REQUEST or magic == GUARDED_CIRCUIT_REQUEST:
         return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
-    if magic == GRAPH_PROJECTION_REQUEST:
-        return project_graphs(source, result, stack)
+    if magic == GRAPH_PROJECTION_REQUEST or magic == CALL_PROJECTION_REQUEST:
+        return project_graphs(source, result, stack, magic == CALL_PROJECTION_REQUEST)
     if magic == WORD_WITNESS_REQUEST:
         return check_word_witness(source, stack)
+    if magic == WORD_TABLE_REQUEST:
+        return search_word_table(source, result, stack)
     if magic != REQUEST or length(stack) < WORKSPACE:
         return INVALID
     variables = read64(source, 8)
@@ -792,19 +795,88 @@ def check_word_witness(source:readbuf, scratch:mutbuf) -> u32:
         return INVALID
     if evaluate_word_nodes(source, scratch, nodes, begin) == 0:
         return INVALID
-    if guards != 0:
+    if word_mismatch(source, scratch, return_offset, end, guards != 0):
+        return 1
+    return 0
+
+def word_mismatch(source:readbuf, scratch:mutbuf, at:u64, end:u64, guarded:bool) -> bool:
+    if guarded:
         left_guard = read_stack(scratch, 8 * read64(source, end))
         right_guard = read_stack(scratch, 8 * read64(source, end + 8))
         if left_guard != right_guard:
-            return 1
+            return True
         if left_guard == 1:
-            return 0
-    while return_offset < end:
-        left = read_stack(scratch, 8 * read64(source, return_offset))
-        right = read_stack(scratch, 8 * read64(source, return_offset + 8))
+            return False
+    while at < end:
+        left = read_stack(scratch, 8 * read64(source, at))
+        right = read_stack(scratch, 8 * read64(source, at + 8))
         if left != right:
-            return 1
-        return_offset = return_offset + 16
+            return True
+        at = at + 16
+    return False
+
+def search_word_table(source:readbuf, output:mutbuf, scratch:mutbuf) -> u32:
+    nodes = read64(source, 8)
+    returns = read64(source, 16)
+    guards = read64(source, 24)
+    if nodes > CIRCUIT_NODES or returns > CIRCUIT_RETURNS or guards > 1 or length(scratch) < nodes * 8:
+        return INVALID
+    start = 32 + 40 * nodes
+    end = start + 16 * returns
+    budget_at = end + 16 * guards
+    if length(source) != budget_at + 8 or valid_circuit(source, nodes, returns, guards != 0) == 0:
+        return INVALID
+    budget = read64(source, budget_at)
+    if budget > WORD_TABLE_WORK_LIMIT:
+        return INVALID
+    bits = 0
+    cost = 1 + nodes + returns + guards
+    node = 0
+    while node < nodes:
+        at = 32 + 40 * node
+        operation = read64(source, at)
+        width = read64(source, at + 8)
+        if operation == 1:
+            bits = bits + width
+        elif operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
+            cost = cost + width
+        elif operation == WORD_PRODUCT_EXCEEDS:
+            cost = cost + node_width(source, read64(source, at + 16))
+        node = node + 1
+    if bits > WORD_TABLE_INPUT_BITS:
+        return TOO_LARGE
+    count = 1 << bits
+    if count * cost > budget:
+        return TOO_LARGE
+    candidate = 0
+    while candidate < count:
+        evaluate_table_nodes(source, scratch, nodes, candidate)
+        if word_mismatch(source, scratch, start, end, guards != 0):
+            return word_table_reply(output, 1, candidate, candidate + 1)
+        candidate = candidate + 1
+    return word_table_reply(output, 2, 0, count)
+
+def word_table_reply(output:mutbuf, verdict:u64, assignment:u64, checked:u64) -> u32:
+    write64(output, 0, WORD_TABLE_REQUEST)
+    write64(output, 8, verdict)
+    write64(output, 16, assignment)
+    write64(output, 24, checked)
+    return 32
+
+def evaluate_table_nodes(source:readbuf, scratch:mutbuf, nodes:u64, assignment:u64) -> u64:
+    node = 0
+    while node < nodes:
+        origin = 32 + 40 * node
+        operation = read64(source, origin)
+        width = read64(source, origin + 8)
+        word = read64(source, origin + 32)
+        if operation == 1:
+            word = assignment & word_mask(width)
+            assignment = assignment >> width
+        elif operation > 2:
+            word = evaluate_word_node(source, scratch, operation, width, origin)
+        write64(scratch, 8 * node, word)
+        node = node + 1
     return 0
 
 def evaluate_word_nodes(source:readbuf, scratch:mutbuf, nodes:u64, at:u64) -> u64:
@@ -986,6 +1058,15 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
 def node_width(source:readbuf, node:u64) -> u64:
     return read64(source, 40 + 40 * node)
 
+def word_arguments(operation:u64) -> u64:
+    if operation <= 2:
+        return 0
+    if operation == 6 or operation == 20 or operation == 21 or operation == 26 or (operation >= 28 and operation <= 31):
+        return 1
+    if operation == 11 or operation == WORD_PRODUCT_EXCEEDS:
+        return 3
+    return 2
+
 def mark_observed_nodes(source:readbuf, scratch:mutbuf, nodes:u64, returns:u64, guarded:bool) -> u64:
     # The first byte of each token row temporarily marks liveness. Nodes
     # are visited backwards here and consume the mark before encoding.
@@ -1004,14 +1085,13 @@ def mark_observed_nodes(source:readbuf, scratch:mutbuf, nodes:u64, returns:u64, 
         node = node - 1
         origin = 32 + 40 * node
         operation = read64(source, origin)
-        if operation > 2 and byte(scratch, 32 + 128 * node) != 0:
-            store(scratch, 32 + 128 * read64(source, origin + 16), 1)
-            unary = (operation == 6 or operation == 20 or operation == 21 or
-                     operation == 26 or (operation >= 28 and operation <= 31))
-            if unary == False:
-                store(scratch, 32 + 128 * read64(source, origin + 24), 1)
-            if operation == 11 or operation == WORD_PRODUCT_EXCEEDS:
-                store(scratch, 32 + 128 * read64(source, origin + 32), 1)
+        if byte(scratch, 32 + 128 * node) != 0:
+            count = word_arguments(operation)
+            argument = 0
+            while argument < count:
+                dependency = read64(source, origin + 16 + 8 * argument)
+                store(scratch, 32 + 128 * dependency, 1)
+                argument = argument + 1
     return 0
 
 def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:u64, returns:u64, budget:u64, guarded:bool) -> u32:
@@ -1505,23 +1585,35 @@ def emit_clause(output:mutbuf, scratch:mutbuf, a:u64, b:u64, c:u64) -> u64:
 # at 512 and incoming guards at 1536. Local typed slots begin at 2560; incoming
 # parameter values use 128 disjoint 2 KiB rows from 4608.
 PROJECTION = '''
-def project_graphs(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
     if length(s) > PROJECTION_INPUT_LIMIT or length(o) < PROJECTION_OUTPUT or length(w) < PROJECTION_WORKSPACE:
         return TOO_LARGE
     mode = read64(s, 8)
     inputs = read64(s, 16)
     outputs = read64(s, 24)
-    if mode < 1 or mode > 2 or inputs > 32 or outputs > 16 or length(s) < 32 + 8 * (inputs + outputs):
+    origin = 32
+    if calls:
+        origin = 40
+    if mode < 1 or mode > 3 or inputs > 32 or outputs > 16 or length(s) < origin + 8 * (inputs + outputs):
         return TOO_LARGE
     if mode == 2 and outputs + 2 > CIRCUIT_RETURNS:
         return TOO_LARGE
+    if mode == 3 and (calls == False or outputs != 1):
+        return TOO_LARGE
+    tail = length(s)
+    if calls:
+        tail = read64(s, 32)
+        if tail < origin + 8 * (inputs + outputs) or tail > length(s):
+            return TOO_LARGE
+    write64(w, 72, origin)
+    write64(w, 120, tail)
     write64(w, 0, 0)
     write64(w, 8, mode)
     write64(w, 16, inputs)
     write64(w, 24, outputs)
     i = 0
     while i < inputs + outputs:
-        typ = read64(s, 32 + 8 * i)
+        typ = read64(s, origin + 8 * i)
         if p_width(typ) == 0:
             return TOO_LARGE
         if i < inputs:
@@ -1531,7 +1623,7 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     no = p_node(o, w, 2, 1, 0, 0, 0)
     write64(w, 32, yes)
     write64(w, 40, no)
-    cursor = 32 + 8 * (inputs + outputs)
+    cursor = origin + 8 * (inputs + outputs)
     cursor = p_function(s, o, w, cursor)
     if cursor == 0:
         return TOO_LARGE
@@ -1545,7 +1637,7 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         cursor = p_function(s, o, w, cursor)
         if cursor == 0:
             return TOO_LARGE
-    if cursor != length(s):
+    if cursor != tail:
         return TOO_LARGE
     both = read_stack(w, 64)
     pairs = 1
@@ -1555,6 +1647,8 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     nodes = read_stack(w, 0)
     if nodes > CIRCUIT_NODES:
         return TOO_LARGE
+    if mode == 3:
+        return write_scalar_summary(s, o, w, nodes, inputs, origin)
     at = 32 + 40 * nodes
     write64(o, 0, CIRCUIT_REQUEST)
     write64(o, 8, nodes)
@@ -1571,6 +1665,22 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             write64(o, at + 40 + 16 * i, read_stack(w, 128 + 8 * i))
             i = i + 1
     return at + 16 * pairs
+
+def write_scalar_summary(s:readbuf, o:mutbuf, w:mutbuf, nodes:u64, inputs:u64, origin:u64) -> u64:
+    at = 32 + 40 * nodes
+    write64(o, 0, SCALAR_SUMMARY)
+    write64(o, 8, nodes)
+    write64(o, 16, inputs)
+    write64(o, 24, read64(s, origin + 8 * inputs))
+    write64(o, at, read_stack(w, 64))      # known outcome
+    write64(o, at + 8, read_stack(w, 80))  # normal return
+    write64(o, at + 16, read_stack(w, 56)) # selected first trap tag
+    write64(o, at + 24, read_stack(w, 128))
+    i = 0
+    while i < inputs:
+        write64(o, at + 32 + 8 * i, read64(s, origin + 8 * i))
+        i = i + 1
+    return at + 32 + 8 * inputs
 
 def p_width(typ:u64) -> u64:
     bits = typ & 127
@@ -1598,12 +1708,13 @@ def p_logic(o:mutbuf, w:mutbuf, op:u64, a:u64, b:u64) -> u64:
     return p_node(o, w, op, 1, a, b, 0)
 
 def p_function(s:readbuf, o:mutbuf, w:mutbuf, start:u64) -> u64:
-    if start > length(s) or length(s) - start < 24:
+    tail = read_stack(w, 120)
+    if start > tail or tail - start < 24:
         return 0
     extent = read64(s, start)
     count = read64(s, start + 8)
     entry = read64(s, start + 16)
-    if extent < 24 or extent > length(s) - start or count == 0 or count > 128 or entry >= count:
+    if extent < 24 or extent > tail - start or count == 0 or count > 128 or entry >= count:
         return 0
     end = start + extent
     cursor = start + 24
@@ -1631,18 +1742,20 @@ def p_function(s:readbuf, o:mutbuf, w:mutbuf, start:u64) -> u64:
     if read64(s, origin) != inputs:
         return 0
     write64(w, 1536 + 8 * entry, read_stack(w, 32))
+    types = read_stack(w, 72)
     i = 0
     while i < inputs:
-        if read64(s, origin + 64 + 8 * i) != read64(s, 32 + 8 * i):
+        if read64(s, origin + 64 + 8 * i) != read64(s, types + 8 * i):
             return 0
         write64(w, 4608 + 2048 * entry + 8 * i, i)
         i = i + 1
     write64(w, 64, read_stack(w, 40))
-    if read_stack(w, 8) == 2:
+    write64(w, 80, read_stack(w, 40))
+    if read_stack(w, 8) != 1:
         write64(w, 56, p_node(o, w, 2, 8, 0, 0, 0))
         i = 0
         while i < read_stack(w, 24):
-            typ = read64(s, 32 + 8 * (inputs + i))
+            typ = read64(s, types + 8 * (inputs + i))
             write64(w, 128 + 8 * i, p_node(o, w, 2, p_width(typ), 0, 0, 0))
             i = i + 1
     index = 0
@@ -1661,6 +1774,7 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
     write64(w, 88, read_stack(w, 40))
     write64(w, 96, params)
     write64(w, 104, read_stack(w, 40))
+    write64(w, 112, inherited)
     i = 0
     while i < params:
         typ = read64(s, row + 64 + 8 * i)
@@ -1676,19 +1790,8 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
             return 0
         i = i + 1
     cursor = cursor + 48 * ops
-    reach = inherited
-    no = read_stack(w, 40)
-    fault = read_stack(w, 88)
+    reach = p_flush_faults(o, w)
     mode = read_stack(w, 8)
-    if fault != no:
-        if mode == 2:
-            division = read_stack(w, 104)
-            overflow = fault
-            if division != no:
-                overflow = p_logic(o, w, 3, fault, p_logic(o, w, 6, division, 0))
-                p_trap(o, w, p_logic(o, w, 3, reach, division), PROJECT_DIVISION_CODE)
-            p_trap(o, w, p_logic(o, w, 3, reach, overflow), PROJECT_OVERFLOW_CODE)
-        reach = p_logic(o, w, 3, reach, p_logic(o, w, 6, fault, 0))
     kind = read64(s, row + 16)
     control = read64(s, row + 24)
     argc = read64(s, row + 40)
@@ -1697,11 +1800,13 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
         if argd != 0 or argc != read_stack(w, 24):
             return 0
         p_complete(o, w, reach)
-        if mode == 2:
+        if mode == 3:
+            write64(w, 80, p_logic(o, w, 4, reach, read_stack(w, 80)))
+        if mode != 1:
             i = 0
             while i < argc:
                 value = p_var(w, read64(s, cursor + 8 * i))
-                typ = read64(s, 32 + 8 * (read_stack(w, 16) + i))
+                typ = read64(s, read_stack(w, 72) + 8 * (read_stack(w, 16) + i))
                 if value >> 16 != typ:
                     return 0
                 previous = read_stack(w, 128 + 8 * i)
@@ -1712,7 +1817,7 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
     if kind == 2:
         if argc != 0 or argd != 0 or control == 0 or control > PROJECT_TRAP_CODE_MAX:
             return 0
-        if mode == 2:
+        if mode != 1:
             p_trap(o, w, reach, control)
         return 1
     if kind == 3:
@@ -1730,13 +1835,112 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
         return p_edge(s, o, w, read64(s, row + 48), count * 256 + index, cursor + 8 * argc, argd, no_edge)
     return 0
 
+def p_flush_faults(o:mutbuf, w:mutbuf) -> u64:
+    reach = read_stack(w, 112)
+    no = read_stack(w, 40)
+    fault = read_stack(w, 88)
+    if fault == no:
+        return reach
+    if read_stack(w, 8) != 1:
+        division = read_stack(w, 104)
+        overflow = fault
+        if division != no:
+            overflow = p_logic(o, w, 3, fault, p_logic(o, w, 6, division, 0))
+            p_trap(o, w, p_logic(o, w, 3, reach, division), PROJECT_DIVISION_CODE)
+        p_trap(o, w, p_logic(o, w, 3, reach, overflow), PROJECT_OVERFLOW_CODE)
+    write64(w, 88, no)
+    write64(w, 104, no)
+    return p_logic(o, w, 3, reach, p_logic(o, w, 6, fault, 0))
+
 def p_complete(o:mutbuf, w:mutbuf, reach:u64) -> u64:
     return write64(w, 64, p_logic(o, w, 4, reach, read_stack(w, 64)))
 
 def p_trap(o:mutbuf, w:mutbuf, reach:u64, code:u64) -> u64:
-    p_complete(o, w, reach)
     tag = p_node(o, w, 2, 8, 0, 0, code)
+    return p_trap_tag(o, w, reach, tag)
+
+def p_trap_tag(o:mutbuf, w:mutbuf, reach:u64, tag:u64) -> u64:
+    p_complete(o, w, reach)
     return write64(w, 56, p_node(o, w, 11, 8, reach, tag, read_stack(w, 56)))
+
+def p_call(s:readbuf, o:mutbuf, w:mutbuf, instruction:u64, typ:u64) -> u64:
+    summary = read64(s, instruction + 16)
+    arguments = read64(s, instruction + 24)
+    argc = read64(s, instruction + 32)
+    tail = read_stack(w, 120)
+    if summary < tail or summary > length(s) or length(s) - summary < 64:
+        return 0
+    if arguments < tail or arguments > length(s) or argc > 32 or argc * 8 > length(s) - arguments:
+        return 0
+    if read64(s, summary) != SCALAR_SUMMARY or read64(s, summary + 16) != argc or read64(s, summary + 24) != typ:
+        return 0
+    count = read64(s, summary + 8)
+    if count < argc or count > CIRCUIT_NODES or 64 + 40 * count + 8 * argc > length(s) - summary:
+        return 0
+    if p_rebind_summary(s, o, w, summary, arguments, argc, count) == 0:
+        return 0
+    end = summary + 32 + 40 * count
+    known = p_summary_result(s, w, summary, read64(s, end), 1)
+    normal = p_summary_result(s, w, summary, read64(s, end + 8), 1)
+    tag = p_summary_result(s, w, summary, read64(s, end + 16), 8)
+    value = p_summary_result(s, w, summary, read64(s, end + 24), p_width(typ))
+    if known == 65535 or normal == 65535 or tag == 65535 or value == 65535:
+        return 0
+    # Commit earlier caller traps before applying the callee at the actual
+    # call site. Only normal callee returns reach later caller operations.
+    reached = p_flush_faults(o, w)
+    if read_stack(w, 8) != 1:
+        failed = p_logic(o, w, 3, known, p_logic(o, w, 6, normal, 0))
+        p_trap_tag(o, w, p_logic(o, w, 3, reached, failed), tag)
+    write64(w, 112, p_logic(o, w, 3, reached, normal))
+    return p_bind(w, typ, value)
+
+def p_summary_result(s:readbuf, w:mutbuf, summary:u64, node:u64, width:u64) -> u64:
+    if node >= read64(s, summary + 8) or read64(s, summary + 40 + 40 * node) != width:
+        return 65535
+    return read_stack(w, 270336 + 8 * node)
+
+def p_rebind_summary(s:readbuf, o:mutbuf, w:mutbuf, summary:u64, arguments:u64, argc:u64, count:u64) -> u64:
+    index = 0
+    types = summary + 64 + 40 * count
+    while index < argc:
+        value = p_var(w, read64(s, arguments + 8 * index))
+        typ = read64(s, types + 8 * index)
+        at = summary + 32 + 40 * index
+        if typ == 0 or value >> 16 != typ or read64(s, at) != 1 or read64(s, at + 8) != p_width(typ):
+            return 0
+        write64(w, 270336 + 8 * index, value & 65535)
+        index = index + 1
+    while index < count:
+        node = p_clone_summary_node(s, o, w, summary + 32 + 40 * index, index)
+        if node == 65535:
+            return 0
+        write64(w, 270336 + 8 * index, node)
+        index = index + 1
+    return 1
+
+def p_clone_summary_node(s:readbuf, o:mutbuf, w:mutbuf, at:u64, index:u64) -> u64:
+    op = read64(s, at)
+    width = read64(s, at + 8)
+    if op < 2 or op > WORD_PRODUCT_EXCEEDS or width == 0 or width > 64:
+        return 65535
+    count = word_arguments(op)
+    a = read64(s, at + 16)
+    b = read64(s, at + 24)
+    c = read64(s, at + 32)
+    if count > 0:
+        if a >= index:
+            return 65535
+        a = read_stack(w, 270336 + 8 * a)
+    if count > 1:
+        if b >= index:
+            return 65535
+        b = read_stack(w, 270336 + 8 * b)
+    if count == 3:
+        if c >= index:
+            return 65535
+        c = read_stack(w, 270336 + 8 * c)
+    return p_node(o, w, op, width, a, b, c)
 
 def p_var(w:mutbuf, index:u64) -> u64:
     if index >= read_stack(w, 96):
@@ -1775,6 +1979,8 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
     width = p_width(typ)
     if width == 0:
         return 0
+    if role == PROJECT_DIRECT_CALL:
+        return p_call(s, o, w, row, typ)
     if role == 2:
         literal = read64(s, row + 40) & word_mask(width)
         return p_bind(w, typ, p_node(o, w, 2, width, 0, 0, literal))
@@ -1862,7 +2068,7 @@ def p_checked_division(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, b:u64) -> u
     width = p_width(typ)
     zero = p_node(o, w, 2, width, 0, 0, 0)
     by_zero = p_logic(o, w, 7, b, zero)
-    if read_stack(w, 8) == 2:
+    if read_stack(w, 8) != 1:
         prior = read_stack(w, 88)
         first_zero = p_logic(o, w, 3, by_zero, p_logic(o, w, 6, prior, 0))
         write64(w, 104, p_logic(o, w, 4, read_stack(w, 104), first_zero))
@@ -1947,13 +2153,17 @@ def source_program():
                      PROJECT_CHECKED_DIV=PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM=PROJECT_CHECKED_REM,
                      PROJECT_CHECKED_CAST=PROJECT_CHECKED_CAST,
                      PROJECT_CHECKED_MUL=PROJECT_CHECKED_MUL,
+                     PROJECT_DIRECT_CALL=PROJECT_DIRECT_CALL,
                      WORD_UNSIGNED_DIV=WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM=WORD_UNSIGNED_REM,
                      WORD_PRODUCT_EXCEEDS=WORD_PRODUCT_EXCEEDS,
                      CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
                      WORD_WITNESS_REQUEST=WORD_WITNESS_REQUEST,
+                     WORD_TABLE_REQUEST=WORD_TABLE_REQUEST, WORD_TABLE_INPUT_BITS=WORD_TABLE_INPUT_BITS,
+                     WORD_TABLE_WORK_LIMIT=WORD_TABLE_WORK_LIMIT,
                      GRAPH_PROJECTION_REQUEST=GRAPH_PROJECTION_REQUEST,
+                     CALL_PROJECTION_REQUEST=CALL_PROJECTION_REQUEST, SCALAR_SUMMARY=SCALAR_SUMMARY,
                      PROJECTION_INPUT_LIMIT=PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT=PROJECTION_OUTPUT,
                      PROJECTION_WORKSPACE=PROJECTION_WORKSPACE, PROJECT_OVERFLOW_CODE=_CORE_TRAP_TAGS['overflow'],
                      PROJECT_DIVISION_CODE=_CORE_TRAP_TAGS['division_by_zero'],

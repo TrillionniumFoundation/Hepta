@@ -40,6 +40,15 @@ outside this profile. A function is limited to 128 blocks, 2048 operations,
 timeout/unknown, and invalid canonical programs return `unknown`; none are
 implicitly approved, including an identical unsupported before/after pair.
 
+`validate_scalar_calls` is a separate bounded profile for acyclic direct
+calls. With the installed HIA checker selected, actual callee graphs produce
+typed summaries that are rebound to each call site's arguments. The checker
+does not use the inlining producer, and observes traps at the original call
+position. If Boolean search is inconclusive, the HIA word evaluator can
+exhaustively check domains with at most 16 input bits and sufficient work
+budget. Larger or unsupported obligations may use the existing pinned Z3
+path; they are not certified by an incomplete search.
+
 ## API and consumers
 
 ```python
