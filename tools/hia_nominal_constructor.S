@@ -133,6 +133,10 @@ _start:
  call argument_equal
  test eax,eax
  jnz stdin_render
+ lea rsi,[rip+stdio_input_refusal]
+ call argument_equal
+ test eax,eax
+ jnz stdin_input_refusal
  cmp QWORD PTR [rsp+8],1
  jne malformed
  lea rsi,[rip+stdio_verify]
@@ -1204,6 +1208,25 @@ stdin_render:
  mov [rip+publication_path],rax
 render_from_stdin:
  mov edi,RENDER_ASSEMBLY
+ jmp stdin_begin
+stdin_input_refusal:
+ cmp QWORD PTR [rsp+8],2
+ jne malformed
+ mov rax,[rsp+24]
+ xor ecx,ecx
+measure_input_refusal:
+ cmp ecx,256
+ jae malformed
+ cmp BYTE PTR [rax+rcx],0
+ je retain_input_refusal
+ inc ecx
+ jmp measure_input_refusal
+retain_input_refusal:
+ test ecx,ecx
+ jz malformed
+ mov [rip+input_refusal_arg],rax
+ mov [rip+input_refusal_bytes],rcx
+ mov edi,7
 stdin_begin:
  mov [rip+handoff_role],rdi
  mov QWORD PTR [rip+request+8],4300
@@ -1441,6 +1464,8 @@ write_admitted_bytes:
  jmp exit
 
 present_public:
+ cmp QWORD PTR [rip+input_refusal_arg],0
+ jne write_input_refusal
  cmp QWORD PTR [rip+handoff_role],RENDER_ASSEMBLY
  je assembly_profile_refused
  mov [rip+verified_core_extent],r15
@@ -1507,6 +1532,16 @@ present_core:
  mov edi,1
  call write_exact
  xor edi,edi
+ jmp exit
+
+write_input_refusal:
+ # stdin was admitted. Forward the bounded diagnostic prepared by HIA's
+ # dispatcher, not a public report or the incomplete edit envelope.
+ mov rsi,[rip+input_refusal_arg]
+ mov rdx,[rip+input_refusal_bytes]
+ mov edi,1
+ call write_exact
+ mov edi,2
  jmp exit
 
 assembly_profile_refused:
@@ -1855,6 +1890,9 @@ stdio_normalize: .asciz "hia-normalize-core"
 stdio_agent_admit: .asciz "hia-admit-agent-json"
 stdio_publish: .asciz "hia-publish-program"
 stdio_render: .asciz "hia-render-assembly"
+.ifndef HIA_NOMINAL_BUILD
+stdio_input_refusal: .asciz "hia-report-input-refusal"
+.endif
 .balign 16
 owner: .incbin "owner.image.bin"
 .balign 16
@@ -1905,6 +1943,10 @@ verified_header: .skip 64
 verified_core_extent: .skip 8
 presentation_output: .skip 8
 publication_path: .skip 8
+.ifndef HIA_NOMINAL_BUILD
+input_refusal_arg: .skip 8
+input_refusal_bytes: .skip 8
+.endif
 stdio_mode: .skip 8
 spare: .skip 1
 .section .note.GNU-stack,"",@progbits

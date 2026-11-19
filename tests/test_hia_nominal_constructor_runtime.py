@@ -415,6 +415,7 @@ def check_ordinary(executable, run):
     check_render_assembly(executable, programs, raw)
     check_core_ingress(executable)
     check_source_files(executable)
+    check_secondary_input_failures(executable)
     check_argument_cli(executable)
     check_edit_query_refusals(executable)
     check_patch_refusals(executable)
@@ -744,6 +745,58 @@ def check_source_files(executable):
                     status, stdout.getvalue().encode(), b''), (path, action, result)
                 assert status == 2 and not output.parent.exists(), (path, action)
     print('20 byte-exact missing, nonregular, symlink and oversized source-file refusals')
+
+
+def check_secondary_input_failures(executable):
+    from hepta.cli import _reference_hia_main
+
+    source_root = Path(__file__).resolve().parents[1]
+    primitive = source_root / 'examples/hia_safe_core/scalar_add.core.hepta'
+    nominal = source_root / 'examples/hia_program/cooperative_task.hepta'
+    with TemporaryDirectory(prefix='hia-cli-secondary-inputs-') as temporary:
+        root = Path(temporary)
+        output = root / 'unpublished' / 'out.hepta'
+        broken = []
+        for profile, original in [('primitive', primitive), ('nominal', nominal)]:
+            source = root / (profile + '.hepta')
+            source.write_text(json.dumps(dict(json.loads(original.read_bytes()), module='9invalid')))
+            broken.append(source)
+        query = root / 'query.json'
+        query.write_bytes(b'{}')
+        missing = root / 'missing.json'
+        symlink = root / 'link.json'
+        symlink.symlink_to(query)
+        fifo = root / 'pipe.json'
+        os.mkfifo(fifo)
+        oversized = root / 'large.json'
+        with oversized.open('wb') as stream:
+            stream.truncate((8 << 20) + 1)
+        total = 0
+        for source in (primitive, nominal, *broken):
+            for fault in (missing, root, symlink, fifo, oversized):
+                cases = [
+                    ['patch', '--request', str(fault)],
+                    ['impact', '--request', str(fault)],
+                    ['edit-batch-query', '--selections', str(fault)],
+                    ['edit-apply', '--query', str(fault), '--response', str(query)],
+                    ['edit-apply', '--query', str(query), '--response', str(fault)],
+                    ['edit-batch-apply', '--query', str(fault), '--response', str(query)],
+                    ['edit-batch-apply', '--query', str(query), '--response', str(fault)],
+                ]
+                for action, *options in cases:
+                    args = [action, str(source), *options]
+                    if action != 'impact' and fault in (missing, oversized):
+                        args += ['--output', str(output)]
+                    stdout = StringIO()
+                    with redirect_stdout(stdout):
+                        status = _reference_hia_main(args)
+                    result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                            timeout=20, check=False)
+                    assert (result.returncode, result.stdout, result.stderr) == (
+                        status, stdout.getvalue().encode(), b''), (source, fault, args, result)
+                    assert status == 2 and not output.parent.exists(), (source, fault, args)
+                    total += 1
+    print(f'{total} byte-exact secondary-input and precedence refusals without publication')
 
 
 def check_render_assembly(executable, programs, rejected):
