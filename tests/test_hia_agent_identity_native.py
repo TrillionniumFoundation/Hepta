@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 from hepta.hia_agent_identity_native import SOURCE,SCHEMA,MAGIC,RESULT_MAGIC,NativeAgentIdentity,installed_agent_identity,SELECTOR
 from hepta.hia_agent_identity_native import (DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION,
-    CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK)
+    CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK, EXACT_COMPARISON_CHUNK)
 from hepta.hia_agent_store import AgentRejected,uint64,canonical_digest
 ROOT=Path(__file__).resolve().parents[1]
 def packet(kind,value):return struct.pack('<2Q',MAGIC,kind)+value
@@ -216,6 +216,24 @@ class AgentIdentityNativeTests(unittest.TestCase):
                           proof_request(3, 1, 0, [8], scope), proof_request(3, 1, 0, [7] * 5, scope)):
             self.assertEqual(self.raw(malformed)[0], 0xfffffffd)
         self.assertEqual(self.raw(wire, 23)[0], 0xfffffffe)
+
+    def test_native_exact_byte_comparison_across_chunks_and_bad_framing(self):
+        prefix = bytes(range(256)) * (EXACT_COMPARISON_CHUNK // 256)
+        for left, right in (
+            (b'', b''), (b'', b'\x00'), (b'\xff\x00', b'\xff\x00'),
+            (prefix, prefix), (prefix, prefix + b'\x00'),
+            (prefix + b'\xff\x00', prefix + b'\xff\x00'),
+            (prefix + b'\xff\x00', prefix + b'\xff\x01'),
+        ):
+            with self.subTest(lengths=(len(left), len(right)), expected=left == right):
+                self.assertEqual(self.native.exact_bytes_equal(left, right), left == right)
+        framed = packet(13, struct.pack('<2Q', 1, 1) + b'\x00\x00')
+        self.assertEqual(self.raw(framed), (24, expected(1, 1)))
+        for bad in (framed[:-1], framed + b'\x00', packet(13, b''),
+                    packet(13, struct.pack('<2Q', EXACT_COMPARISON_CHUNK + 1, 0)),
+                    packet(13, struct.pack('<2Q', 0, (1 << 64) - 1))):
+            self.assertEqual(self.raw(bad)[0], 0xfffffffd)
+        self.assertEqual(self.raw(framed, 23)[0], 0xfffffffe)
 
     def test_required_claims_recheck_every_qualifying_build_in_order(self):
         from unittest.mock import Mock, call

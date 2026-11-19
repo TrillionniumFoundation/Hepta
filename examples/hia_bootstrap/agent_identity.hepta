@@ -79,9 +79,16 @@ block b19(v108:readbuf,v109:mutbuf,v110:mutbuf)
   v116:u32 = call(v108,v109) {"function":"f9"}
   ret(v116)
 block b20(v112:readbuf,v113:mutbuf,v114:mutbuf,v115:u64)
+  v500:u64 = const() {"value":13}
+  v501:bool = compare.eq(v115,v500)
+  branch v501 b50(v112,v113,v114) b51(v112,v113,v114,v115)
+block b50(v502:readbuf,v503:mutbuf,v504:mutbuf)
+  v505:u32 = call(v502,v503) {"function":"f17"}
+  ret(v505)
+block b51(v506:readbuf,v507:mutbuf,v508:mutbuf,v509:u64)
   v117:u64 = const() {"value":1}
-  v118:bool = compare.gt(v115,v117)
-  branch v118 b21(v112,v113,v114,v115) b22(v112,v113,v114,v115)
+  v118:bool = compare.gt(v509,v117)
+  branch v118 b21(v506,v507,v508,v509) b22(v506,v507,v508,v509)
 block b21(v119:readbuf,v120:mutbuf,v121:mutbuf,v122:u64)
   v127:u32 = call(v119,v120,v122) {"function":"f1"}
   ret(v127)
@@ -1707,6 +1714,44 @@ block b14(v116:readbuf,v117:mutbuf,v118:u64,v119:u64,v120:u64,v121:u64,v122:u64)
   v126:u64 = const() {"value":16}
   v127:u64 = int.add.wrap(v122,v126)
   jump b7(v116,v117,v118,v119,v120,v121,v127)
+end
+fn f17(input:readbuf,output:mutbuf) -> (u32) effects(read,write,trap) entry(start)
+block start(input:readbuf,output:mutbuf)
+  input_size:usize = buffer.len(input)
+  size:u64 = int.cast(input_size) {"mode":"wrap"}
+  header:u64 = const() {"value":32}
+  short:bool = compare.lt(size,header)
+  branch short bad() framing(input,output,size,header)
+block framing(framed_input:readbuf,framed_output:mutbuf,framed_size:u64,framed_header:u64)
+  left_field:u64 = const() {"value":16}
+  right_field:u64 = const() {"value":24}
+  left_size:u64 = call(framed_input,left_field) {"function":"f15"}
+  right_size:u64 = call(framed_input,right_field) {"function":"f15"}
+  limit:u64 = const() {"value":262144}
+  left_large:bool = compare.gt(left_size,limit)
+  right_large:bool = compare.gt(right_size,limit)
+  too_large:bool = bool.or(left_large,right_large)
+  branch too_large bad() bounds(framed_input,framed_output,framed_size,framed_header,left_size,right_size)
+block bounds(bounded_input:readbuf,bounded_output:mutbuf,bounded_size:u64,bounded_header:u64,bounded_left:u64,bounded_right:u64)
+  right_start:u64 = int.add.wrap(bounded_header,bounded_left)
+  end:u64 = int.add.wrap(right_start,bounded_right)
+  wrong_size:bool = compare.ne(bounded_size,end)
+  branch wrong_size bad() result_capacity(bounded_input,bounded_output,bounded_header,bounded_left,right_start,bounded_right)
+block result_capacity(checked_input:readbuf,checked_output:mutbuf,checked_header:u64,checked_left:u64,checked_start:u64,checked_right:u64)
+  capacity:usize = buffer.len(checked_output)
+  result_size:usize = const() {"value":24}
+  cannot_write:bool = compare.lt(capacity,result_size)
+  branch cannot_write small() compare(checked_input,checked_output,checked_header,checked_left,checked_start,checked_right)
+block compare(compare_input:readbuf,compare_output:mutbuf,compare_header:u64,compare_left:u64,compare_start:u64,compare_right:u64)
+  equal:u64 = call(compare_input,compare_header,compare_left,compare_start,compare_right) {"function":"f5"}
+  written:u32 = call(compare_output,equal) {"function":"f7"}
+  ret(written)
+block bad()
+  bad_status:u32 = const() {"value":4294967293}
+  ret(bad_status)
+block small()
+  small_status:u32 = const() {"value":4294967294}
+  ret(small_status)
 end
 fn f15(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64)

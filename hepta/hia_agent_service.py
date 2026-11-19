@@ -25,6 +25,7 @@ from .hia_agent_store import (AgentRejected, AgentStore, digest, keys, record_au
     reject, uint64, wire, decode_data, _agent_resource_path)
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
+from .hia_sha256_native import payload_sha256
 from .hia_proof_contract import (PROOF_SCHEMA, PROVED_MEANING, proof_subject, proof_result,
     assumptions_document, proof_contract_description, SAFE_CORE_METHOD, SAFE_CORE_DOMAIN,
     SAFE_CORE_SERVICE_PROFILE)
@@ -37,6 +38,13 @@ def _now():
 def _reference_wall_window(created_ns, now_ns, total_ms):
     delta = created_ns + total_ms * 1_000_000 - now_ns
     return delta < 0, max(0, delta // 1_000_000)
+
+
+def _exact_artifact_equal(left: bytes, right: bytes) -> bool:
+    from .hia_agent_store import _native_agent_identity
+
+    policy = _native_agent_identity()
+    return left == right if policy is None else policy.exact_bytes_equal(left, right)
 
 
 def _reference_finite_function(function):
@@ -725,7 +733,7 @@ class HIAAgentService:
                 view_bytes = installed_agent_inspection(selected).lowering(image, profile, object_ref)
             else:
                 result = {"schema": "hepta.hia.agent.lowering-view.v1", "core_sha256": program.sha256,
-                    "text_sha256": sha256(image.text_bytes).hexdigest(), "object_sha256": image.sha256,
+                    "text_sha256": payload_sha256(image.text_bytes).hex(), "object_sha256": image.sha256,
                     "text_bytes": str(len(image.text_bytes)), "frames": dict(image.function_frames),
                     "lowering_profile": profile, "optimizer_used": False, "object": object_ref}
         elif view == "dependencies":
@@ -971,13 +979,15 @@ class HIAAgentService:
                 exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
                 reemitted, rebuilt = self._compile(program, built["output_kind"], built["machine_plan"], self._remaining_ms(context),
                     **({"foreign_buffer_exports": exports} if exports else {}))
-                bytes_equal = actual == reemitted
-                object_equal = rebuilt["object_sha256"] == built["native_build"]["object_sha256"]
+                actual_object = rebuilt["object_sha256"]
+                retained_object = built["native_build"]["object_sha256"]
+                bytes_equal = _exact_artifact_equal(actual, reemitted)
+                object_equal = _exact_artifact_equal(wire(actual_object), wire(retained_object))
                 matches = bytes_equal and object_equal
                 status = "proved" if matches else "refuted"
                 domain = "Exact actual artifact equals reverified Core/plan reemission and linkage by the same installed implementation, with checked closed symbol/ABI inventory; no independent semantic refinement claim"
-                evidence = {"method": "complete_native_rederivation", "actual_sha256": sha256(actual).hexdigest(),
-                    "rederived_sha256": sha256(reemitted).hexdigest(), "bytes_equal": bytes_equal,
+                evidence = {"method": "complete_native_rederivation", "actual_sha256": payload_sha256(actual).hex(),
+                    "rederived_sha256": payload_sha256(reemitted).hex(), "bytes_equal": bytes_equal,
                     "object_identity_equal": object_equal,
                     "native_build": rebuilt, "no_llvm_or_external_assembler": True}
             else:
@@ -1072,10 +1082,10 @@ class HIAAgentService:
             data = output.read_bytes()
         result.pop("output", None)
         result["commands"] = commands
-        if (result.get("object_sha256") != sha256(object_bytes).hexdigest()
+        if (result.get("object_sha256") != payload_sha256(object_bytes).hex()
                 or result.get("core_sha256") != program.sha256
-                or result.get("artifact_sha256") != sha256(data).hexdigest()
-                or kind == "object" and data != object_bytes):
+                or result.get("artifact_sha256") != payload_sha256(data).hex()
+                or kind == "object" and not _exact_artifact_equal(data, object_bytes)):
             reject("E_HIA_RECEIPT_BINDING", "native build metadata differs from the actual emitted bytes", "codegen")
         result["object_artifact"] = self.store.put(object_bytes, "build-object", {
             "schema": "hepta.hia.agent.build-object.v1", "core_sha256": program.sha256,
@@ -1152,14 +1162,14 @@ class HIAAgentService:
                 or built.get("implementation_sha256") != self.identities["backend_sha256"]
                 or built.get("kind") != record["output_kind"]
                 or built.get("foreign_buffer_exports") != record.get("foreign_buffer_exports", [])
-                or built.get("artifact_sha256") != sha256(data).hexdigest()):
+                or built.get("artifact_sha256") != payload_sha256(data).hex()):
             reject("E_HIA_RECEIPT_BINDING", "build record differs from actual artifact bytes")
         object_bytes, object_metadata = self.store.get(record["object_artifact"], kind="build-object")
         expected_metadata = {"schema": "hepta.hia.agent.build-object.v1", "core_sha256": program.sha256,
             "machine_plan_sha256": built.get("machine_plan_sha256"), "installation": self.identities}
-        if (object_metadata != expected_metadata or sha256(object_bytes).hexdigest() != record["object_sha256"]
+        if (object_metadata != expected_metadata or payload_sha256(object_bytes).hex() != record["object_sha256"]
                 or record["object_artifact"]["sha256"] != record["object_sha256"]
-                or record["output_kind"] == "object" and object_bytes != data):
+                or record["output_kind"] == "object" and not _exact_artifact_equal(object_bytes, data)):
             reject("E_HIA_RECEIPT_BINDING", "retained object differs from its exact build binding")
         return record, data, object_bytes, program
 
@@ -1167,8 +1177,8 @@ class HIAAgentService:
     def _native_refinement_binding(subject, built, program, object_bytes, final_bytes):
         return {"candidate_core_sha256": program.sha256, "input_sha256": program.input_sha256,
             "native_artifact": subject["native_artifact"], "build_receipt": subject["build_receipt"],
-            "object_artifact": built["object_artifact"], "object_sha256": sha256(object_bytes).hexdigest(),
-            "final_image_sha256": sha256(final_bytes).hexdigest(), "output_kind": built["output_kind"],
+            "object_artifact": built["object_artifact"], "object_sha256": payload_sha256(object_bytes).hex(),
+            "final_image_sha256": payload_sha256(final_bytes).hex(), "output_kind": built["output_kind"],
             "entry_symbols": [fn["name"] for fn in program.as_dict()["functions"]],
             "foreign_buffer_exports": built["native_build"].get("foreign_buffer_exports")}
 
@@ -1225,7 +1235,7 @@ class HIAAgentService:
                 evidence["solver"] = validation["solver"]
             for path in sorted(query_directory.glob("*.smt2")):
                 data = path.read_bytes()
-                evidence["queries"].append({"name": path.name, "sha256": sha256(data).hexdigest(),
+                evidence["queries"].append({"name": path.name, "sha256": payload_sha256(data).hex(),
                     "artifact": self.store.put(data, "machine-validation-query")})
         evidence["deadline_met"] = self._remaining_ms(context) > 0
         if not evidence["deadline_met"]:
@@ -1256,7 +1266,7 @@ class HIAAgentService:
             if type(query) is not dict or set(query) != {"name", "sha256", "artifact"}:
                 reject("E_HIA_PROOF_SCOPE", "machine proof query reference is invalid", "verification")
             data, _ = self.store.get(query["artifact"], kind="machine-validation-query")
-            if (sha256(data).hexdigest() != query["sha256"]
+            if (payload_sha256(data).hex() != query["sha256"]
                     or validation is not None and (query["sha256"] != reports[index].get("query_sha256")
                         or query["name"] != reports[index].get("query_file"))):
                 reject("E_HIA_PROOF_SCOPE", "machine proof query bytes differ", "verification")
@@ -1646,7 +1656,7 @@ class HIAAgentService:
             if current["abi_sha256"] != abi:
                 reject("E_HIA_ABI", "candidate changes the live slot ABI", "adoption")
             active_data, _active_meta, _ = self._native(snapshot["active_artifact"])
-            if sha256(active_data).hexdigest() != evaluation["baseline_artifact"]["sha256"]:
+            if payload_sha256(active_data).hex() != evaluation["baseline_artifact"]["sha256"]:
                 reject("E_HIA_BASELINE", "evaluation baseline is not the currently active image", "adoption")
         generations = self.store.db.execute("SELECT generation FROM versions WHERE slot=?", (args["target_slot"],)).fetchall()
         generation = max(int(row["generation"]) for row in generations) + 1

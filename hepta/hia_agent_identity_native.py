@@ -30,6 +30,7 @@ _SUBJECT_KINDS = {'native_artifact': 1, 'agent_machine_plan': 2}
 CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK = range(3)
 PROOF_OPCODE_IDS = {name: index for index, name in enumerate(sorted(OPCODES), 1)}
 PROOF_EFFECT_IDS = {name: 1 << index for index, name in enumerate(sorted(EFFECTS))}
+EXACT_COMPARISON_CHUNK = 256 * 1024
 
 
 def _observation_fields(observation, *, reference):
@@ -200,6 +201,19 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         if valid != 1 or needed > 4096 or total != consumed + needed or total > 4096:
             raise RuntimeError('invalid HIA finite-domain decision')
         return needed, total
+
+    def exact_bytes_equal(self, left: bytes, right: bytes) -> bool:
+        if type(left) is not bytes or type(right) is not bytes:
+            raise TypeError('HIA Agent exact comparison requires bytes')
+        for offset in range(0, max(1, len(left), len(right)), EXACT_COMPARISON_CHUNK):
+            end = offset + EXACT_COMPARISON_CHUNK
+            packet = _paired_packet(struct.pack('<2Q', MAGIC, 13), (left[offset:end],), (right[offset:end],))
+            valid, equal = self._request(packet)
+            if valid != 1 or equal not in (0, 1):
+                raise RuntimeError('invalid HIA Agent exact comparison result')
+            if not equal:
+                return False
+        return True
 
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(
