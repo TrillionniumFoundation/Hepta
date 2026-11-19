@@ -59,75 +59,127 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
     return sources
 
 
+CANDIDATES = {
+    'machine-plan': ('machine_plan', 'machine-plan'),
+    'safe-core-x64-decode': ('safe_core_x64_decode', 'safe-core-x64-decode'),
+    'safe-core-elf-inventory': ('safe_core_elf_inventory', 'safe-core-elf-inventory'),
+    'machine-encoding': ('machine_encoding', 'machine-encoding'),
+    'candidate-budget': ('candidate_budget', 'candidate-budget'),
+    'agent-journal': ('agent_journal', 'agent-journal'),
+    'execution-budget': ('execution_budget', 'execution-budget'),
+    'execution-ledger': ('execution_ledger', 'execution-ledger'),
+    'retirement-state': ('retirement_state', 'retirement-state'),
+    'worker-request': ('worker_request', 'worker-request'),
+    'worker-request-filter': ('worker_request_filter_packer', 'worker-request-filter'),
+    'core-admission': ('core_admission', 'core-admission'),
+    'composite-types': ('composite_types', 'composite-types'),
+    'task-helpers': ('task_helpers', 'task-helpers'),
+    'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
+    'composite-function-records': ('composite_function_records', 'composite-function-records'),
+    'composite-function-advanced': ('composite_function_advanced', 'composite-function-advanced'),
+    'composite-function-terms': ('composite_function_terms', 'composite-function-terms'),
+    'composite-function-render': ('composite_function_render', 'composite-function-render'),
+    'composite-constructor-owner': ('composite_constructor_owner', 'composite-constructor-owner'),
+    'composite-constructor-render': ('composite_constructor_render', 'composite-constructor-render'),
+    'composite-outer-owner': ('composite_outer_owner', 'composite-outer-owner'),
+    'composite-outer-render': ('composite_outer_render', 'composite-outer-render'),
+    'instruction-policy': ('instruction_policy','instruction-policy'),
+    'core-workspace-materialize': ('core_workspace_materialize','core-workspace-materialize'),
+    'core-workspace-facts': ('core_workspace_facts','core-workspace-facts'),
+    'program-shape': ('program_shape', 'program-shape'),
+    'function-shape': ('function_shape', 'function-shape'),
+    'capability-renaming': ('capability_renaming', 'capability-renaming'),
+    'agent-slice': ('agent_slice', 'agent-slice'),
+    'agent-identity': ('agent_identity', 'agent-identity'),
+    'agent-inspection': ('agent_inspection', 'agent-inspection'),
+    'agent-discovery': ('agent_discovery', 'agent-discovery'),
+    'agent-describe-answer': ('agent_describe_answer', 'agent-describe-answer'),
+    'agent-read-page': ('agent_read_page', 'agent-read-page'),
+    'agent-schema': ('agent_schema', 'agent-schema'),
+    'agent-payload-schema': ('agent_payload_schema', 'agent-payload-schema'),
+    'agent-plan-schema': ('agent_plan_schema', 'agent-plan-schema'),
+    'agent-response-schema': ('agent_response_schema', 'agent-response-schema'),
+    'agent-verify-response-schema': ('agent_verify_response_schema', 'agent-verify-response-schema'),
+    'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
+    'core-module-graph': ('core_module_graph', 'core-module-graph'),
+    'preflight': ('json_preflight', 'json-preflight'),
+    'decode': ('json_decode', 'json-decode'),
+    'canonical': ('json_canonical', 'json-canonical'),
+    'core-frontend': ('core_json_frontend', 'core-json-frontend'),
+    'elf-linker': ('elf_static_linker', 'elf-linker'),
+    'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
+    'scalar-reference': ('scalar_reference', 'scalar-reference'),
+    'scalar-symbolic': ('scalar_symbolic', 'scalar-symbolic'),
+    'cnf': ('cnf', 'cnf'),
+    'elf-linker-filter': ('elf_linker_filter_packer', 'elf-linker-filter'),
+    'native-filter': ('native_filter_packer', 'native-filter'),
+    'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
+    'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json'),
+    'sqlite-wal-snapshot': ('sqlite_wal_snapshot', 'sqlite-wal-snapshot'),
+    'sqlite-rowid-lookup': ('sqlite_rowid_lookup', 'sqlite-rowid-lookup'),
+    'sqlite-agent-row-import': ('sqlite_agent_row_import', 'sqlite-agent-row-import'),
+    'sqlite-agent-import-batch': ('sqlite_agent_import_batch', 'sqlite-agent-import-batch'),
+    'sqlite-agent-cost-sequence': ('sqlite_agent_cost_sequence', 'sqlite-agent-cost-sequence'),
+    'sqlite-agent-artifact-catalog': ('sqlite_agent_artifact_catalog', 'sqlite-agent-artifact-catalog'),
+    'sqlite-agent-catalog': ('sqlite_agent_catalog', 'sqlite-agent-catalog'),
+    'sqlite-record-layout': ('sqlite_record_layout', 'sqlite-record-layout'),
+}
+
+
+def _image_manifest(candidate, protocol, source, image, image_name, compiler_sha):
+    version = '2' if candidate in ('agent-journal', 'machine-encoding') else '1'
+    return {'schema': 'hepta.hia.' + protocol + '-native.v' + version,
+            'source_sha256': sha256(source).hexdigest(), 'image_path': image_name,
+            'image_sha256': sha256(image).hexdigest(), 'compiler_sha256': compiler_sha}
+
+
+def build_batch(output, compiler, cold_report, *, candidates):
+    """Compile generic helper sources in the sealed HIA source builder."""
+    from tools.build_hia_source_build import compile_source_batch
+
+    if not candidates or len(set(candidates)) != len(candidates) or any(
+            name not in CANDIDATES for name in candidates):
+        raise ValueError('expected distinct known HIA JSON candidates')
+    raw, compiler_bytes = cold_report.read_bytes(), compiler.read_bytes()
+    source_identity = admit_cold_build(compiler_bytes, raw)
+    files = {}
+    for candidate in candidates:
+        name, _ = CANDIDATES[candidate]
+        path = ROOT / 'examples/hia_bootstrap' / (name + '.hepta')
+        source = path.read_bytes()
+        if sha256(source).hexdigest() != source_identity.get(path.relative_to(ROOT).as_posix()):
+            raise ValueError('native candidate source changed after contract admission')
+        files[path] = source
+    output.mkdir(mode=0o700)
+    images = compile_source_batch(output / 'bootstrap', compiler, cold_report,
+                                  {path.name: source for path, source in files.items()})
+    if (compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != raw
+            or any(path.read_bytes() != source for path, source in files.items())
+            or current_sources() != source_identity):
+        raise ValueError('native batch build inputs changed')
+    compiler_sha = sha256(compiler_bytes).hexdigest()
+    manifests = {}
+    for candidate in candidates:
+        name, protocol = CANDIDATES[candidate]
+        source_name = name + '.hepta'
+        source = files[ROOT / 'examples/hia_bootstrap' / source_name]
+        image = images[source_name]
+        manifest = _image_manifest(candidate, protocol, source, image, protocol + '.image.bin', compiler_sha)
+        directory = output / candidate
+        directory.mkdir(mode=0o700)
+        (directory / manifest['image_path']).write_bytes(image)
+        path = directory / 'manifest.json'
+        path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+        manifests[candidate] = path
+    return manifests
+
+
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
-                  'safe-core-x64-decode': ('safe_core_x64_decode', 'safe-core-x64-decode'),
-                  'safe-core-elf-inventory': ('safe_core_elf_inventory', 'safe-core-elf-inventory'),
-                  'machine-encoding': ('machine_encoding', 'machine-encoding'),
-                  'candidate-budget': ('candidate_budget', 'candidate-budget'),
-                  'agent-journal': ('agent_journal', 'agent-journal'),
-                  'execution-budget': ('execution_budget', 'execution-budget'),
-                  'execution-ledger': ('execution_ledger', 'execution-ledger'),
-                  'retirement-state': ('retirement_state', 'retirement-state'),
-                  'worker-request': ('worker_request', 'worker-request'),
-                  'worker-request-filter': ('worker_request_filter_packer', 'worker-request-filter'),
-                  'core-admission': ('core_admission', 'core-admission'),
-                  'composite-types': ('composite_types', 'composite-types'),
-                  'task-helpers': ('task_helpers', 'task-helpers'),
-                  'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
-                  'composite-function-records': ('composite_function_records', 'composite-function-records'),
-                  'composite-function-advanced': ('composite_function_advanced', 'composite-function-advanced'),
-                  'composite-function-terms': ('composite_function_terms', 'composite-function-terms'),
-                  'composite-function-render': ('composite_function_render', 'composite-function-render'),
-                  'composite-constructor-owner': ('composite_constructor_owner', 'composite-constructor-owner'),
-                  'composite-constructor-render': ('composite_constructor_render', 'composite-constructor-render'),
-                  'composite-outer-owner': ('composite_outer_owner', 'composite-outer-owner'),
-                  'composite-outer-render': ('composite_outer_render', 'composite-outer-render'),
-                  'instruction-policy': ('instruction_policy','instruction-policy'),
-                  'core-workspace-materialize': ('core_workspace_materialize','core-workspace-materialize'),
-                  'core-workspace-facts': ('core_workspace_facts','core-workspace-facts'),
-                  'program-shape': ('program_shape', 'program-shape'),
-                  'function-shape': ('function_shape', 'function-shape'),
-                  'capability-renaming': ('capability_renaming', 'capability-renaming'),
-                  'agent-slice': ('agent_slice', 'agent-slice'),
-                  'agent-identity': ('agent_identity', 'agent-identity'),
-                  'agent-inspection': ('agent_inspection', 'agent-inspection'),
-                  'agent-discovery': ('agent_discovery', 'agent-discovery'),
-                  'agent-describe-answer': ('agent_describe_answer', 'agent-describe-answer'),
-                  'agent-read-page': ('agent_read_page', 'agent-read-page'),
-                  'agent-schema': ('agent_schema', 'agent-schema'),
-                  'agent-payload-schema': ('agent_payload_schema', 'agent-payload-schema'),
-                  'agent-plan-schema': ('agent_plan_schema', 'agent-plan-schema'),
-                  'agent-response-schema': ('agent_response_schema', 'agent-response-schema'),
-                  'agent-verify-response-schema': ('agent_verify_response_schema', 'agent-verify-response-schema'),
-                  'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
-                  'core-module-graph': ('core_module_graph', 'core-module-graph'),
-                  'preflight': ('json_preflight', 'json-preflight'),
-                  'decode': ('json_decode', 'json-decode'),
-                  'canonical': ('json_canonical', 'json-canonical'),
-                  'core-frontend': ('core_json_frontend', 'core-json-frontend'),
-                  'elf-linker': ('elf_static_linker', 'elf-linker'),
-                  'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
-                  'scalar-reference': ('scalar_reference', 'scalar-reference'),
-                  'scalar-symbolic': ('scalar_symbolic', 'scalar-symbolic'),
-                  'cnf': ('cnf', 'cnf'),
-                  'elf-linker-filter': ('elf_linker_filter_packer', 'elf-linker-filter'),
-                  'native-filter': ('native_filter_packer', 'native-filter'),
-                  'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
-                  'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json'),
-                  'sqlite-wal-snapshot': ('sqlite_wal_snapshot', 'sqlite-wal-snapshot'),
-                  'sqlite-rowid-lookup': ('sqlite_rowid_lookup', 'sqlite-rowid-lookup'),
-                  'sqlite-agent-row-import': ('sqlite_agent_row_import', 'sqlite-agent-row-import'),
-                  'sqlite-agent-import-batch': ('sqlite_agent_import_batch', 'sqlite-agent-import-batch'),
-                  'sqlite-agent-cost-sequence': ('sqlite_agent_cost_sequence', 'sqlite-agent-cost-sequence'),
-                  'sqlite-agent-artifact-catalog': ('sqlite_agent_artifact_catalog', 'sqlite-agent-artifact-catalog'),
-                  'sqlite-agent-catalog': ('sqlite_agent_catalog', 'sqlite-agent-catalog'),
-                  'sqlite-record-layout': ('sqlite_record_layout', 'sqlite-record-layout')}
-    if candidate not in candidates:
+    if candidate not in CANDIDATES:
         raise ValueError('unknown HIA JSON candidate')
-    source_name, protocol = candidates[candidate]
+    source_name, protocol = CANDIDATES[candidate]
     raw = cold_report.read_bytes()
     compiler_bytes = compiler.read_bytes()
     compiler_sha = sha256(compiler_bytes).hexdigest()
@@ -145,10 +197,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
             or cold_report.read_bytes() != raw or current_sources() != sources
             or image.read_bytes() != image_bytes):
         raise ValueError('native candidate build inputs changed')
-    protocol_version = '2' if candidate in ('agent-journal', 'machine-encoding') else '1'
-    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
-                'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
-                'image_sha256': sha256(image_bytes).hexdigest(), 'compiler_sha256': compiler_sha}
+    manifest = _image_manifest(candidate, protocol, source, image_bytes, image.name, compiler_sha)
     path = output / 'manifest.json'
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     (output / 'build.json').write_text(json.dumps({

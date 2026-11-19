@@ -60,13 +60,52 @@ def _check_compile_receipt(receipt, *, compiler, source, produced):
         raise ValueError('native compile receipt does not bind actual produced bytes')
 
 
-def _source_bundle(sources):
+def _source_bundle(sources, *, names=ROLE_NAMES):
     """Bootstrap transport only; the native policy independently admits all bytes."""
-    wire = bytearray(struct.pack('<3Q', BUNDLE_MAGIC, 3, 0))
-    for name, raw in zip(ROLE_NAMES, sources):
+    wire = bytearray(struct.pack('<3Q', BUNDLE_MAGIC, len(names), 0))
+    for name, raw in zip(names, sources, strict=True):
         name = name.encode('ascii')
         wire += struct.pack('<3Q', len(name), 0o400, len(raw)) + name + raw
     return bytes(wire)
+
+
+def _compiled_sources(raw, sources):
+    """Read only the admitted source/image pairs from a successful native build."""
+    expected = set(sources) | {name + '.bin' for name in sources}
+    if (not 24 <= len(raw) <= 64 << 20
+            or struct.unpack_from('<3Q', raw) != (BUNDLE_MAGIC, len(expected), 0)):
+        raise ValueError('native batch output does not bind the requested inventory')
+    cursor, members = 24, {}
+    for _ in expected:
+        if len(raw) - cursor < 24:
+            raise ValueError('truncated native batch member')
+        name_size, mode, size = struct.unpack_from('<3Q', raw, cursor)
+        cursor += 24
+        stop = cursor + name_size + size
+        if not (1 <= name_size <= 127 and 0 < size <= 1 << 20
+                and mode == 0o400 and stop <= len(raw)):
+            raise ValueError('invalid native batch member extent')
+        name = raw[cursor:cursor + name_size].decode('ascii')
+        if name not in expected or name in members:
+            raise ValueError('unexpected or duplicate native batch member')
+        members[name] = raw[cursor + name_size:stop]
+        cursor = stop
+    if (cursor != len(raw) or set(members) != expected
+            or any(members[name] != source for name, source in sources.items())):
+        raise ValueError('native batch did not return the exact supplied sources')
+    return {name: members[name + '.bin'] for name in sources}
+
+
+def compile_source_batch(bootstrap, compiler, cold_report, sources):
+    """Build all selected source/image pairs in one sealed HIA process."""
+    if not 1 <= len(sources) <= 128:
+        raise ValueError('native batch source inventory exceeds the builder profile')
+    _, executable = _build_captured(bootstrap, compiler, cold_report)
+    packet = _source_bundle(sources.values(), names=tuple(sources))
+    run = _run_captured(executable, 'build', packet, bootstrap)
+    if run.returncode or run.stderr:
+        raise ValueError('HIA refused the complete native batch: ' + str(run.returncode))
+    return _compiled_sources(run.stdout, sources)
 
 
 def _run_captured(executable, operation, wire, directory):
@@ -212,7 +251,7 @@ def _publish_captured(directory, executable, report, *, sourcekit=None):
         os.close(dfd)
 
 
-def build(output: Path, compiler: Path, cold_report: Path):
+def _build_captured(output: Path, compiler: Path, cold_report: Path):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     source_bytes = {name: (ROOT / name).read_bytes() for name in SOURCES}
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
@@ -281,6 +320,11 @@ def build(output: Path, compiler: Path, cold_report: Path):
         'all_input_equivalence_proved': False, 'whole_native_delivery_qualified': False,
     }
     _publish_captured(output, executable_bytes, report, sourcekit=built.stdout)
+    return executable, executable_bytes
+
+
+def build(output: Path, compiler: Path, cold_report: Path):
+    executable, _ = _build_captured(output, compiler, cold_report)
     return executable
 
 

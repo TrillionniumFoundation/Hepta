@@ -23,7 +23,7 @@ from tools.build_hia_agent_binary64_format import build as build_binary64_format
 from tools.build_hia_agent_data_json import build as build_agent_data_json
 from tools.build_hia_direct_call import build as build_direct_call
 from tools.build_hia_agent_read_page import build as build_agent_stdio
-from tools.build_hia_json_preflight import build as build_helper
+from tools.build_hia_json_preflight import build_batch as build_helper_batch
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
@@ -107,16 +107,17 @@ def build(output, compiler, cold_report, package, package_sha256):
         contract = 'HIA_SELFHOST_CORE_SUPPORT.json'
         if (release / contract).read_bytes() != _source_resource_path('docs/' + contract).read_bytes():
             raise ValueError('Store release source contract differs from the worker build')
+        batched = build_helper_batch(scratch / 'generic-helpers', compiler, cold_report,
+                                     candidates=tuple(candidate for candidate in ADDITIONAL_HELPERS
+                                                      if candidate not in HELPER_BUILDERS))
         helpers = []
         for candidate in (*INSTALLED_HELPERS, *ADDITIONAL_HELPERS):
             if candidate in INSTALLED_HELPERS:
                 manifest = release / (candidate + '-manifest.json')
             else:
-                staging = scratch / candidate
                 builder = HELPER_BUILDERS.get(candidate)
-                if builder is None:
-                    builder = partial(build_helper, candidate=candidate)
-                source = builder(staging, compiler, cold_report)
+                source = (batched[candidate] if builder is None
+                          else builder(scratch / candidate, compiler, cold_report))
                 manifest = _copy_image_manifest(source, output / candidate / 'manifest.json')
             selector = 'HEPTA_HIA_' + candidate.replace('-', '_').upper() + '_MANIFEST'
             helpers.append({'selector': selector, 'manifest_path': manifest.relative_to(output).as_posix(),

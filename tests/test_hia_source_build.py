@@ -170,6 +170,22 @@ def vm_packer():
 
 
 class SourceBuilderSourceTests(unittest.TestCase):
+    def test_batch_readback_rebinds_every_original_and_compiled_member(self):
+        from tools.build_hia_source_build import _compiled_sources
+
+        sources = {'first.hepta': SMALL, 'second.hepta': SMALL.replace(b'7', b'8')}
+        members = [
+            ('first.hepta', 0o400, sources['first.hepta']), ('first.hepta.bin', 0o400, b'first'),
+            ('second.hepta', 0o400, sources['second.hepta']), ('second.hepta.bin', 0o400, b'second'),
+        ]
+        raw = bundle(members)
+        self.assertEqual(_compiled_sources(raw, sources),
+                         {'first.hepta': b'first', 'second.hepta': b'second'})
+        for bad in (raw[:-1], raw + b'x', bundle([*members[:-1], members[1]]),
+                    bundle([*members[:2], ('second.hepta', 0o400, SMALL), members[3]])):
+            with self.assertRaises(ValueError):
+                _compiled_sources(bad, sources)
+
     def test_complete_generated_sources_and_disjoint_fixed_layout(self):
         from tools.qualify_hia_selfhost import CAPACITY
         self.assertEqual(POLICY.read_text(), render_assembly(document(policy_source(), 'source_build_policy')))
