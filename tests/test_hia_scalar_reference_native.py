@@ -243,7 +243,7 @@ class ScalarReferenceNativeTests(unittest.TestCase):
     def test_standalone_reference_preserves_scalar_wire_and_grows_call_space(self):
         from hepta.hia_program import verify_program
         from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT, program_wire
-        from tests.test_hia_program import b, f, i, m, ret
+        from tests.test_hia_program import b, c, f, i, m, ret
         from tools.generate_hia_native_filter import (
             REFERENCE_CLI_ADAPTER, REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, elf_header, reference_cli_document,
         )
@@ -308,22 +308,48 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertGreater(ticks, 4)
         self.assertLess(ticks, 50)
 
-        from hepta.hia_agent_runner import run_reference_batch
-        checked = verify_program(identity)
-        cases = [{'function': 'identity', 'arguments': [value]} for value in (-132, 0, 319)]
+        from hepta import hia_agent_runner as runner
+        trap_program = m(f('divide', argument, ['i32'], ['trap'], [b('entry', argument, [
+            c('zero', 'i32', 0), i('int.div.checked', ['x', 'zero'], [('y', 'i32')])], ret('y'))]))
+        checked = verify_program(m(*identity['functions'], *trap_program['functions'], *recursive['functions']))
+        cases = [{'function': name, 'arguments': [value]} for name, value in (
+            ('identity', -132), ('divide', 10), ('identity', 319), ('again', 0), ('identity', 99))]
         budget = {'timeout_ms': 15000, 'memory_bytes': 128 << 20}
-        expected = run_reference_batch(checked, cases, **budget)
+        expected = runner.run_reference_batch(checked, cases, **budget)
         binary = executable.read_bytes()
         pin = sha256(binary).hexdigest()
+        process = runner._run_owned_process
+        calls = []
+
+        def isolated(command, payload, **options):
+            self.assertTrue(command[0].startswith('/proc/self/fd/'), command)
+            self.assertEqual(command[1:3], [str(os.getpid()), str(budget['memory_bytes'])])
+            self.assertEqual(options['env'], {'PATH': ''})
+            calls.append(command)
+            return process(command, payload, **options)
+
         with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
-              patch('hepta.hia_native_helpers.pinned_reference_executable', return_value=(binary, pin))):
-            selected = run_reference_batch(checked, cases, **budget)
+              patch('hepta.hia_native_helpers.pinned_reference_executable', return_value=(binary, pin)),
+              patch('hepta.hia_program_runtime._Machine.invoke',
+                    side_effect=AssertionError('host reference interpreter entered')),
+              patch.object(runner, '_run_owned_process', side_effect=isolated)):
+            selected = runner.run_reference_batch(checked, cases, **budget)
         self.assertEqual(selected['status'], 'returned', selected)
         self.assertEqual(selected['report']['observations'], expected['report']['observations'])
         self.assertEqual(selected['report']['reference_executable_sha256'], pin)
-        self.assertEqual(selected['report']['reference_standalone_calls'], len(cases))
+        self.assertEqual(selected['report']['reference_standalone_calls'], len(calls))
+        self.assertEqual(len(calls), 4)
+        self.assertEqual([row['status'] for row in selected['report']['observations']],
+                         ['returned', 'trapped', 'returned', 'budget_exceeded'])
+        constrained = run(frame(recursive, 'again', depth=200, override_registers=150_000),
+                          str(os.getpid()), str(64 << 20), '10')
+        self.assertEqual((constrained.returncode, constrained.stderr), (0, b''))
+        self.assertEqual(struct.unpack('<4Q', constrained.stdout)[1], 12)
         for raw, options, code in ((b'bad', (), 2), (b'X' * (72), (), 2),
-                                  (b'', ('not-an-option',), 64), (bytes((32 << 20) + 1), (), 3)):
+                                  (b'', ('not-an-option',), 64), (bytes((32 << 20) + 1), (), 3),
+                                  (b'', ('1', str(64 << 20), '10'), 125),
+                                  (b'', (str(os.getpid()), str((64 << 20)-1), '10'), 64),
+                                  (b'', (str(os.getpid()), str(64 << 20), str(1 << 64)), 64)):
             response = run(raw, *options)
             self.assertEqual((response.returncode, response.stdout, response.stderr), (code, b'', b''))
 

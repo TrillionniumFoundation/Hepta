@@ -9,6 +9,7 @@ from __future__ import annotations
 from contextlib import ExitStack
 import ctypes
 from hashlib import sha256
+from io import BytesIO
 import json
 import math
 import mmap
@@ -46,6 +47,24 @@ _CTYPES = {"i8": ctypes.c_int8, "u8": ctypes.c_uint8, "i16": ctypes.c_int16,
     "u16": ctypes.c_uint16, "i32": ctypes.c_int32, "u32": ctypes.c_uint32,
     "i64": ctypes.c_int64, "u64": ctypes.c_uint64, "isize": ctypes.c_int64,
     "usize": ctypes.c_uint64, "bool": ctypes.c_uint8}
+
+
+def _reference_batch_receipt(artifact_hash, cases, observations, warmup, repetitions,
+                             evaluator, standalone, owned):
+    report = {"schema": "hepta.hia.agent.reference-observation.v1",
+        "artifact_sha256": artifact_hash,
+        "complete": len(observations) == len(cases) and
+            all(row["status"] != "budget_exceeded" for row in observations),
+        "planned_cases": len(cases), "completed_cases": len(observations),
+        "warmup": warmup, "repetitions": repetitions,
+        "observations": observations, "native_code_executed": False}
+    if evaluator is not None:
+        report["reference_evaluator_sha256"] = evaluator.image_sha256
+    if standalone is not None:
+        report["reference_executable_sha256"], report["reference_standalone_calls"] = standalone
+    if owned is not None:
+        report["owned_reference_executable_sha256"], report["owned_reference_standalone_calls"] = owned
+    return report
 
 
 def _child_setup(parent_pid, memory_bytes, cpu_seconds):
@@ -179,6 +198,95 @@ def _run_owned_process(command, payload, *, cwd, timeout, has_reference_child=Fa
            "execution", retry_action="observe_original")
 
 
+class _ReferenceStopped(Exception):
+    def __init__(self, returncode, stderr, timed_out):
+        self.result = returncode, b'', stderr, timed_out
+
+
+class _IsolatedScalarReference:
+    """An already selected HIA image, one isolated native process per invocation."""
+    scalar_only = True
+
+    def __init__(self, fd, memory_bytes, timeout_ms):
+        self.fd = fd
+        self.memory_bytes = memory_bytes
+        self.cpu_seconds = max(1, math.ceil(timeout_ms / 1000))
+        self.deadline = time.monotonic_ns() + math.ceil(timeout_ms * 1_000_000)
+        self.calls = 0
+
+    def remaining(self):
+        return (self.deadline - time.monotonic_ns()) / 1_000_000_000
+
+    def run(self, payload):
+        timeout = self.remaining()
+        if timeout <= 0:
+            raise _ReferenceStopped(0 if self.calls else None, b'', True)
+        command = ['/proc/self/fd/' + str(self.fd), str(os.getpid()),
+                   str(self.memory_bytes), str(self.cpu_seconds)]
+        returncode, stdout, stderr, timed_out = _run_owned_process(
+            command, payload, cwd=Path(__file__).resolve().parent.parent,
+            timeout=timeout, pass_fds=(self.fd,), env={'PATH': ''})
+        if timed_out or returncode != 0 or stderr:
+            raise _ReferenceStopped(returncode or 125, stderr, timed_out)
+        self.calls += 1
+        return stdout
+
+
+def _direct_scalar_program(artifact_bytes, cases):
+    """Admit only complete scalar closures before allowing an in-worker observer."""
+    from .hia_program import scalar_value_valid, verify_program
+    from .hia_program_tools import decode_json
+    from .hia_scalar_reference_wire import MAX_PACKET_BYTES, program_wire
+    try:
+        program = verify_program(decode_json(artifact_bytes))
+        signatures = {fn['name']: tuple(param['type'] for param in fn['params'])
+                      for fn in program.as_dict()['functions']}
+        entries = program.scalar_entrypoints
+        admitted = []
+        for case in cases:
+            name, arguments = case['function'], case['arguments']
+            if type(name) is not str or name not in entries or type(arguments) not in (list, tuple):
+                return None
+            arguments = tuple(arguments)
+            kinds = signatures[name]
+            if len(kinds) != len(arguments) or not all(
+                    scalar_value_valid(value, kind) for kind, value in zip(kinds, arguments)):
+                return None
+            packed = program_wire(program.canonical_bytes, name, allow_resources=True)
+            if packed is None or packed[4] or len(packed[0]) + 8 * len(kinds) > MAX_PACKET_BYTES:
+                return None
+            admitted.append({'function': name, 'arguments': arguments})
+    except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
+        return None
+    return program, admitted
+
+
+def _run_scalar_reference_direct(program, artifact_hash, cases, executable, owned, evaluator,
+                                 memory_bytes, timeout_ms, warmup, repetitions):
+    from .hia_agent_service import _vm_observation
+    from .hia_scalar_reference_native import sealed_reference_bytes, use_standalone_reference
+
+    observations = []
+    with sealed_reference_bytes(executable[0]) as fd:
+        runner = _IsolatedScalarReference(fd, memory_bytes, timeout_ms)
+        try:
+            with use_standalone_reference(evaluator, runner):
+                for case in cases:
+                    observation = _vm_observation(program, case)
+                    observations.append(observation)
+                    if observation['status'] == 'budget_exceeded':
+                        break
+        except _ReferenceStopped as stopped:
+            return stopped.result
+        report = _reference_batch_receipt(artifact_hash, cases, observations, warmup, repetitions,
+            evaluator, (executable[1], runner.calls), (owned[1], 0) if owned is not None else None)
+        stream = BytesIO()
+        status = _write_child_report(report, stream)
+        if runner.remaining() <= 0:
+            return 0 if runner.calls else None, b'', b'', True
+    return status, stream.getvalue(), b'', False
+
+
 def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_files, cwd,
                       memory_bytes, deadline, protocol, warmup, repetitions):
     from .hia_scalar_reference_native import sealed_reference_bytes
@@ -286,6 +394,11 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             ('reference_executable', 'reference_standalone_calls', pinned_reference_executable()),
             ('owned_reference_executable', 'owned_reference_standalone_calls', pinned_owned_reference_executable()),
         )
+    isolated_reference = None
+    if executables and executables[0][2] is not None and not foreign_buffer_exports and 1 <= len(cases) <= 512:
+        scalar_executable = executables[0][2]
+        if reference_evaluator.matches_isolated_standalone(scalar_executable[0]):
+            isolated_reference = _direct_scalar_program(artifact_bytes, cases)
     direct_protocol = pinned_direct_call_protocol() if _mode == 'native' else 1
     one_call = warmup == 0 and repetitions == 1
     supported_repeat = direct_protocol >= 2 and 0 <= warmup <= 100 and 1 <= repetitions <= 10000
@@ -296,7 +409,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
     with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
           ExitStack() as custody):
         artifact = Path(directory) / "program.so"
-        if direct_call is None:
+        if direct_call is None and isolated_reference is None:
             with artifact.open("xb") as stream:
                 stream.write(artifact_bytes)
             artifact.chmod(0o400)
@@ -322,19 +435,24 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                    "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
                    "snapshot_files": snapshot_files}
         process_options = {}
-        if reference_evaluator is not None:
+        if reference_evaluator is not None and isolated_reference is None:
             fd = custody.enter_context(reference_evaluator.sealed_descriptor())
             request["scalar_reference"] = {"fd": fd, "sha256": reference_evaluator.image_sha256}
             process_options["pass_fds"] = (fd,)
         for name, _, executable in executables:
-            if executable is None:
+            if executable is None or isolated_reference is not None:
                 continue
             executable_bytes, digest = executable
             fd = custody.enter_context(sealed_reference_bytes(executable_bytes))
             request[name] = {"fd": fd, "sha256": digest}
             process_options["pass_fds"] += (fd,)
         runner_root = Path(__file__).resolve().parent.parent
-        if direct_call is not None:
+        if isolated_reference is not None:
+            program, admitted_cases = isolated_reference
+            returncode, stdout, stderr, timed_out = _run_scalar_reference_direct(
+                program, artifact_hash, admitted_cases, scalar_executable, executables[1][2],
+                reference_evaluator, memory_bytes, timeout_ms, warmup, repetitions)
+        elif direct_call is not None:
             deadline = started + math.ceil(timeout_ms * 1_000_000)
             returncode, stdout, stderr, timed_out, direct_receipts = _run_direct_cases(
                 artifact_bytes, direct_call[0], signatures, cases, snapshot_files, runner_root,
@@ -458,21 +576,10 @@ def main():
                 observations.append(observation)
                 if observation["status"] == "budget_exceeded":
                     break
-        result = {"schema": "hepta.hia.agent.reference-observation.v1",
-            "artifact_sha256": request["artifact_sha256"],
-            "complete": len(observations) == len(request["cases"]) and
-                all(row["status"] != "budget_exceeded" for row in observations),
-            "planned_cases": len(request["cases"]), "completed_cases": len(observations),
-            "warmup": request["warmup"], "repetitions": request["repetitions"],
-            "observations": observations, "native_code_executed": False}
-        if scalar_reference is not None:
-            result["reference_evaluator_sha256"] = scalar_reference.image_sha256
-        if standalone is not None:
-            result["reference_executable_sha256"] = standalone.digest
-            result["reference_standalone_calls"] = standalone.calls
-        if owned is not None:
-            result["owned_reference_executable_sha256"] = owned.digest
-            result["owned_reference_standalone_calls"] = owned.calls
+        result = _reference_batch_receipt(request["artifact_sha256"], request["cases"], observations,
+            request["warmup"], request["repetitions"], scalar_reference,
+            (standalone.digest, standalone.calls) if standalone is not None else None,
+            (owned.digest, owned.calls) if owned is not None else None)
         return _write_child_report(result, sys.stdout.buffer)
     if request.get("mode") != "native":
         return 2

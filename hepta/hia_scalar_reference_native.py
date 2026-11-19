@@ -54,6 +54,7 @@ ALLOCATION_DECISIONS = ('empty', 'object-model', 'heap-budget', 'injected', 'all
 
 _STANDALONE = ContextVar('hia-standalone-reference', default=None)
 _OWNED = ContextVar('hia-standalone-owned-reference', default=None)
+ISOLATED_REFERENCE_MARKER = b'HIAREF-ISOLATED\0'
 
 
 @contextmanager
@@ -111,6 +112,10 @@ class NativeScalarReference(NativeHiaJsonImage):
 
     def matches_standalone(self, image):
         return image.startswith(b'\x7fELF') and image.endswith(self._mapping[:])
+
+    def matches_isolated_standalone(self, image):
+        return (self.matches_standalone(image)
+                and image[:-len(self._mapping)].endswith(ISOLATED_REFERENCE_MARKER))
 
     def operation(self, opcode, typ, arguments):
         from .hia_program import WIDTHS
@@ -293,17 +298,22 @@ class NativeScalarReference(NativeHiaJsonImage):
             program_wire, resource_request,
         )
 
+        standalone = _STANDALONE.get()
+        isolated = getattr(standalone, 'scalar_only', False)
         compiled = program_wire(canonical, function, allow_resources=machine is not None)
-        if compiled is None:
+        if compiled is None or len(compiled[0]) + 8*len(arguments) > MAX_PACKET_BYTES:
+            if isolated:
+                raise RuntimeError('admitted isolated reference lost its scalar wire')
             return None
         body, registers, bounce, returns, resource_sites = compiled
-        if len(body) + 8*len(arguments) > MAX_PACKET_BYTES:
-            return None
         kinds = ([param['type'] for param in machine.functions[function]['params']]
                  if machine is not None else ())
+        needs_resources = resource_sites or any(kind in RESOURCES for kind in kinds)
+        if isolated and needs_resources:
+            raise RuntimeError('isolated reference cannot request hosted resources')
         owned = _OWNED.get()
         if (machine is not None and owned is not None
-                and (resource_sites or any(kind in RESOURCES for kind in kinds))
+                and needs_resources
                 and not any(kind in OWNERS for kind in kinds)
                 and not any(kind in RESOURCES for kind in returns)):
             header = struct.pack('<8Q', RESOURCE_PROGRAM_MAGIC, max_steps, max_call_depth,
@@ -311,8 +321,7 @@ class NativeScalarReference(NativeHiaJsonImage):
             suffix, external = self._owned_arguments(kinds, arguments, machine)
             if len(body) + len(suffix) <= MAX_PACKET_BYTES:
                 return self._owned_result(owned.run(header + body[64:] + suffix), machine, returns, external)
-        resources = (_ReferenceResources(machine)
-                     if resource_sites or any(kind in RESOURCES for kind in kinds) else None)
+        resources = _ReferenceResources(machine) if needs_resources else None
         magic = RESOURCE_PROGRAM_MAGIC if resource_sites else PROGRAM_MAGIC
         header = struct.pack('<8Q', magic, max_steps, max_call_depth,
                              registers, bounce, len(body), len(arguments), len(returns))
@@ -322,7 +331,6 @@ class NativeScalarReference(NativeHiaJsonImage):
             encoded = (int(arg or 0) & WORD_MASK for arg in arguments)
         words = struct.pack(f'<{len(arguments)}Q', *encoded)
         wire = header + body[64:] + words
-        standalone = _STANDALONE.get()
         if standalone is not None and resources is None:
             result = standalone.run(wire)
             if len(result) < 32:
@@ -540,11 +548,19 @@ def child_standalone_reference(record, reference):
         if reference is None or not reference.matches_standalone(image):
             raise ValueError('standalone reference does not contain the selected HIA image')
         standalone = _StandaloneReference(fd, record['sha256'])
-        token = _STANDALONE.set(standalone)
-        try:
+        with use_standalone_reference(reference, standalone):
             yield standalone
-        finally:
-            _STANDALONE.reset(token)
+
+
+@contextmanager
+def use_standalone_reference(reference, standalone):
+    active = _ACTIVE.set(reference)
+    token = _STANDALONE.set(standalone)
+    try:
+        yield
+    finally:
+        _STANDALONE.reset(token)
+        _ACTIVE.reset(active)
 
 
 @contextmanager

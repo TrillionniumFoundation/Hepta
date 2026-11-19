@@ -14,7 +14,63 @@
 
 _start:
     cmp QWORD PTR [rsp],1
+    je isolated_ready
+    cmp QWORD PTR [rsp],4
     jne usage
+    mov rsi,[rsp+16]
+    call parse_limit
+    cmp rax,0x7fffffff
+    ja usage
+    mov r12,rax
+    mov rsi,[rsp+24]
+    call parse_limit
+    cmp rax,67108864
+    jb usage
+    movabs rdx,4294967296
+    cmp rax,rdx
+    ja usage
+    mov r13,rax
+    mov rsi,[rsp+32]
+    call parse_limit
+    mov r14,rax
+
+    mov edi,1                       /* PR_SET_PDEATHSIG */
+    mov esi,9                       /* SIGKILL */
+    xor edx,edx
+    xor r10d,r10d
+    xor r8d,r8d
+    mov eax,157
+    syscall
+    test rax,rax
+    jne isolation_failed
+    mov eax,110                     /* getppid */
+    syscall
+    cmp rax,r12
+    jne isolation_failed
+    mov edi,4                       /* PR_SET_DUMPABLE */
+    xor esi,esi
+    mov eax,157
+    syscall
+    test rax,rax
+    jne isolation_failed
+    mov edi,3                       /* PR_GET_DUMPABLE */
+    mov eax,157
+    syscall
+    test rax,rax
+    jne isolation_failed
+    mov esi,9                       /* RLIMIT_AS */
+    mov rax,r13
+    call set_limit
+    xor esi,esi                     /* RLIMIT_CPU */
+    mov rax,r14
+    call set_limit
+    mov esi,4                       /* RLIMIT_CORE */
+    xor eax,eax
+    call set_limit
+    mov esi,1                       /* RLIMIT_FSIZE */
+    mov eax,8388608
+    call set_limit
+isolated_ready:
     mov esi,OUTPUT+MAX_OUTPUT
     call map_bytes
     mov r12,rax
@@ -136,6 +192,43 @@ map_bytes:
     cmp rax,-4095
     jae io
     ret
+parse_limit:
+    xor eax,eax
+    mov ecx,10
+    xor r9d,r9d
+parse_digit:
+    movzx r8d,BYTE PTR [rsi]
+    test r8d,r8d
+    jz parsed_limit
+    sub r8d,48
+    cmp r8d,9
+    ja usage
+    inc r9
+    cmp r9,20
+    ja usage
+    mul rcx
+    test rdx,rdx
+    jne usage
+    add rax,r8
+    jc usage
+    inc rsi
+    jmp parse_digit
+parsed_limit:
+    test rax,rax
+    jz usage
+    ret
+set_limit:
+    push rax
+    push rax
+    xor edi,edi
+    mov rdx,rsp
+    xor r10d,r10d
+    mov eax,302                     /* prlimit64 */
+    syscall
+    add rsp,16
+    test rax,rax
+    jne isolation_failed
+    ret
 success:
     xor edi,edi
     jmp finish
@@ -150,7 +243,11 @@ space:
     jmp finish
 io:
     mov edi,4
+    jmp finish
+isolation_failed:
+    mov edi,125
 finish:
     mov eax,60
     syscall
     ud2
+    .ascii "HIAREF-ISOLATED\0"
