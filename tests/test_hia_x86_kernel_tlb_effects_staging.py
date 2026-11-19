@@ -4,7 +4,7 @@ from __future__ import annotations
 import copy
 import unittest
 
-from hepta.hia_x86_kernel_tlb_effects_staging import (
+from experiments.hia_kernel_tlb_effects_staging import (
     KernelEffectRejected, PageTableEffectSummary, admit_single_cpu_tlb_sequence,
 )
 
