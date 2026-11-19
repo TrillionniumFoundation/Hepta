@@ -51,7 +51,7 @@ def _implementation_digest():
 
 
 def _native_circuit_totality(result, scope, program, fn, graph, deadline_ns):
-    from .hia_cnf_native import UNSAT, core_trap_circuit, scalar_model_arguments, selected_cnf
+    from .hia_cnf_native import UNSAT, scalar_model_arguments, selected_cnf
     from .hia_optimization import _native_circuit_decision, _native_solver_identity
 
     cnf = selected_cnf()
@@ -59,7 +59,8 @@ def _native_circuit_totality(result, scope, program, fn, graph, deadline_ns):
         return False
     if (scope["source_identity"] or {}).get("cnf.image.bin") != cnf.image_sha256:
         raise semantics._OutsideProfile("native_totality_identity_changed")
-    decision = _native_circuit_decision(cnf, core_trap_circuit(fn, *graph), deadline_ns)
+    circuit = cnf.project_scalar_graphs((fn,), (graph,), totality=True)
+    decision = _native_circuit_decision(cnf, circuit, deadline_ns)
     if decision is None:
         return False
     verdict, model, evidence, _formula = decision

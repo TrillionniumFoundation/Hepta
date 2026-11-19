@@ -47,12 +47,16 @@ LEARNING_BYTES = LEARNING_TOKENS + 2 * LEARNED_ENTRIES
 CIRCUIT_REQUEST = int.from_bytes(b'HIABVC01', 'little')
 GUARDED_CIRCUIT_REQUEST = int.from_bytes(b'HIABVG01', 'little')
 WORD_WITNESS_REQUEST = int.from_bytes(b'HIABVW01', 'little')
+GRAPH_PROJECTION_REQUEST = int.from_bytes(b'HIABVP01', 'little')
 CIRCUIT_NODES = 256
 CIRCUIT_RETURNS = 16
 CIRCUIT_CAPACITY = 192 * 1024
 CIRCUIT_GATE_SLOTS = 8192
 CIRCUIT_GATES_OFFSET = 32 + CIRCUIT_NODES * 128
 CIRCUIT_WORKSPACE = CIRCUIT_GATES_OFFSET + 8 * CIRCUIT_GATE_SLOTS
+PROJECTION_OUTPUT = 32 + 40 * CIRCUIT_NODES + 16 * CIRCUIT_RETURNS
+PROJECTION_WORKSPACE = 294912
+PROJECTION_INPUT_LIMIT = 131072
 UNKNOWN, SAT, UNSAT = range(3)
 WRAPPING_PRODUCT = 32
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
@@ -184,6 +188,25 @@ class NativeCnf(NativeHiaJsonImage):
             raise ValueError('HIA rejected the concrete word witness')
         return bool(status)
 
+    def project_scalar_graphs(self, functions, graphs, *, totality):
+        frame = _graph_packet(functions, graphs, totality=totality)
+        if frame is None:
+            return None
+        source = ctypes.create_string_buffer(frame, len(frame))
+        reply = ctypes.create_string_buffer(PROJECTION_OUTPUT)
+        scratch = ctypes.create_string_buffer(PROJECTION_WORKSPACE)
+        size = self._entry(source, len(frame), reply, len(reply), scratch, len(scratch))
+        if size == 0xfffffffc:
+            return None
+        magic, nodes, pairs, reserved = struct.unpack_from('<4Q', reply)
+        if (magic != CIRCUIT_REQUEST or reserved or nodes > CIRCUIT_NODES or pairs > CIRCUIT_RETURNS
+                or size != 32 + 40 * nodes + 16 * pairs):
+            raise RuntimeError('invalid HIA scalar circuit projection')
+        split = 32 + 40 * nodes
+        instructions = tuple(struct.iter_unpack('<5Q', reply.raw[32:split]))
+        observed = tuple(struct.iter_unpack('<2Q', reply.raw[split:size]))
+        return instructions, observed, None
+
 
 def _search_mode(*, batch, watched, learning, restarts):
     if restarts:
@@ -202,6 +225,72 @@ def selected_cnf():
     if not manifest:
         raise ValueError('HIA Boolean solver selector must not be empty')
     return _installed_json_image(manifest, SOURCE, SCHEMA, NativeCnf)
+
+
+def _word_type(name):
+    return _CORE_WIDTHS.get(name, 0) | (128 if name.startswith('i') else 0)
+
+
+def _graph_packet(functions, graphs, *, totality):
+    """Marshal verified SSA slots without constructing formulas.
+
+    The type table precedes sized functions, each carrying topologically
+    ordered blocks. A block has a fixed terminal header, parameter types,
+    fixed-width instruction rows, and the local slots of its outgoing values.
+    """
+    parameters = functions[0]['params']
+    returns = functions[0]['returns']
+    if not totality and len(returns) + 2 > CIRCUIT_RETURNS:
+        return None
+    buffer = bytearray(struct.pack('<4Q', GRAPH_PROJECTION_REQUEST, 1 if totality else 2,
+                                   len(parameters), len(returns)))
+    types = [*(_word_type(item['type']) for item in parameters), *map(_word_type, returns)]
+    buffer.extend(struct.pack(f'<{len(types)}Q', *types))
+    for function, (blocks, order) in zip(functions, graphs, strict=True):
+        start = len(buffer)
+        indexes = {name: index for index, name in enumerate(order)}
+        buffer.extend(struct.pack('<3Q', 0, len(order), indexes[function['entry']]))
+        for name in order:
+            block = blocks[name]
+            bound = len(block['params']) + len(block['ops'])
+            if bound > CIRCUIT_NODES:
+                return None
+            term = block['term']
+            kind = {'ret': 1, 'trap': 2, 'jump': 3, 'branch': 4}[term['op']]
+            layout = len(buffer)
+            buffer.extend(bytes(64))
+            slots = {item['name']: index for index, item in enumerate(block['params'])}
+            buffer.extend(b''.join(struct.pack('<Q', _word_type(item['type'])) for item in block['params']))
+            for index, op in enumerate(block['ops'], len(slots)):
+                result, = op['out']
+                role = _CORE_OPERATIONS.get(op['op'], 0)
+                if op['op'] == 'int.neg.checked':
+                    role = 33
+                elif op['op'] == 'int.cast' and op['attrs']['mode'] != 'wrap':
+                    role = 0
+                slots[result['name']] = index
+                operands = [slots[argument] for argument in op['args']]
+                operands.extend([0] * (3 - len(operands)))
+                literal = op['attrs'].get('value', 0)
+                buffer.extend(struct.pack('<6Q', role, _word_type(result['type']),
+                                          *operands, int(literal or 0) & ((1 << 64) - 1)))
+            edges = ((term['then'], term['else']) if kind == 4 else (term,) if kind == 3 else ())
+            control = (slots[term['cond']] if kind == 4
+                       else _CORE_TRAP_TAGS[term['code']] if kind == 2 else 0)
+            row = [len(block['params']), len(block['ops']), kind, control, 0, 0, 0, 0]
+            if kind == 1:
+                row[5] = len(term['values'])
+                for value in term['values']:
+                    buffer.extend(struct.pack('<Q', slots[value]))
+            for edge, offset in zip(edges, (4, 6)):
+                row[offset:offset + 2] = [indexes[edge['target']], len(edge['args'])]
+                for argument in edge['args']:
+                    buffer.extend(struct.pack('<Q', slots[argument]))
+            struct.pack_into('<8Q', buffer, layout, *row)
+            if len(buffer) > PROJECTION_INPUT_LIMIT:
+                return None
+        struct.pack_into('<Q', buffer, start, len(buffer) - start)
+    return bytes(buffer)
 
 
 def core_circuit(before, after, observed):
@@ -298,140 +387,6 @@ def _scalar_block(nodes, values, operations):
             nodes.append((4, 1, trap, flag, 0))
         trap = len(nodes) - 1
     return trap, True
-
-
-def _append_node(nodes, opcode, width=1, left=0, right=0, immediate=0):
-    nodes.append((opcode, width, left, right, immediate))
-    return len(nodes) - 1
-
-
-def _any_flag(nodes, flags):
-    values = iter(flags)
-    result = next(values)
-    for value in values:
-        result = _append_node(nodes, 4, left=result, right=value)
-    return result
-
-
-def _scalar_graph(nodes, function, blocks, order, inputs, entry):
-    """Partition a verified scalar DAG into normal and first-trap outcomes."""
-    incoming = {name: [] for name in order}
-    incoming[function['entry']].append((entry, inputs))
-    outcomes = []
-    for name in order:
-        edges = incoming[name]
-        if not edges:
-            continue
-        block = blocks[name]
-        values = {}
-        budget = max(0, len(edges) - 1) * (len(block['params']) + 1)
-        if len(nodes) + budget > CIRCUIT_NODES:
-            return None
-        reach = _any_flag(nodes, (guard for guard, _ in edges))
-        for index, parameter in enumerate(block['params']):
-            typ = parameter['type']
-            if typ not in _CORE_WIDTHS:
-                return None
-            value = edges[0][1][index]
-            for guard, arguments in edges[1:]:
-                value = _append_node(nodes, 11, _CORE_WIDTHS[typ], guard, arguments[index], value)
-            values[parameter['name']] = (value, typ)
-        trapped, supported = _scalar_block(nodes, values, block['ops'])
-        if not supported:
-            return None
-        if trapped is not None:
-            first = _append_node(nodes, 3, left=reach, right=trapped)
-            # Every trapping instruction in this word profile traps only on
-            # overflow. The block cannot reach its terminator after that.
-            outcomes.append((first, _CORE_TRAP_TAGS['overflow'], ()))
-            alive = _append_node(nodes, 6, left=trapped)
-            reach = _append_node(nodes, 3, left=reach, right=alive)
-        terminal = block['term']
-        if terminal['op'] == 'trap':
-            outcomes.append((reach, _CORE_TRAP_TAGS[terminal['code']], ()))
-        elif terminal['op'] == 'ret':
-            outcomes.append((reach, 0, tuple(values[value][0] for value in terminal['values'])))
-        elif terminal['op'] == 'jump':
-            destination = incoming[terminal['target']]
-            destination.append((reach, tuple(values[argument][0] for argument in terminal['args'])))
-        elif terminal['op'] == 'branch':
-            condition = values[terminal['cond']][0]
-            complement = _append_node(nodes, 6, left=condition)
-            for key, flag in (('then', condition), ('else', complement)):
-                edge = terminal[key]
-                taken = _append_node(nodes, 3, left=reach, right=flag)
-                incoming[edge['target']].append((taken, tuple(values[argument][0] for argument in edge['args'])))
-        else:
-            return None
-    return outcomes
-
-
-def core_trap_circuit(function, blocks, order):
-    """Frame the existence of any Core trap over a verified scalar DAG."""
-    inputs = _scalar_inputs(function['params'])
-    if inputs is None:
-        return None
-    nodes, parameters = inputs
-    entry = _append_node(nodes, 2, immediate=1)
-    outcomes = _scalar_graph(nodes, function, blocks, order,
-                             tuple(index for index, _ in parameters.values()), entry)
-    if outcomes is None:
-        return None
-    unreachable = _append_node(nodes, 2)
-    # Prove that a normal-return domain covers every input. This also treats
-    # a missing terminal domain as a counterexample, not as absence of traps.
-    normal = [guard for guard, tag, _ in outcomes if tag == 0]
-    returns = _any_flag(nodes, normal) if normal else unreachable
-    missing_return = _append_node(nodes, 6, left=returns)
-    if len(nodes) > CIRCUIT_NODES:
-        return None
-    return nodes, (), (missing_return, unreachable)
-
-
-def _comparison_observation(nodes, outcomes, widths, unreachable):
-    # Tags and word values are independent observations. All word fields
-    # stay zero on a trap; differing traps must still differ in the tag.
-    tag = _append_node(nodes, 2, 8)
-    returned = [_append_node(nodes, 2, width) for width in widths]
-    for guard, code, values in outcomes:
-        if code:
-            encoded = _append_node(nodes, 2, 8, immediate=code)
-            tag = _append_node(nodes, 11, 8, guard, encoded, tag)
-        else:
-            returned = [_append_node(nodes, 11, width, guard, value, prior)
-                        for width, value, prior in zip(widths, values, returned, strict=True)]
-        if len(nodes) > CIRCUIT_NODES:
-            return None
-    complete = _any_flag(nodes, (guard for guard, _, _ in outcomes)) if outcomes else unreachable
-    return (tag, *returned), complete
-
-
-def core_comparison_circuit(first, second, graphs):
-    """Frame the all-input difference of two verified, same-signature DAGs."""
-    widths = tuple(_CORE_WIDTHS.get(typ) for typ in first['returns'])
-    if None in widths or len(widths) + 2 > CIRCUIT_RETURNS:
-        return None
-    inputs = _scalar_inputs(first['params'])
-    if inputs is None:
-        return None
-    nodes, parameters = inputs
-    arguments = tuple(index for index, _ in parameters.values())
-    entry = _append_node(nodes, 2, immediate=1)
-    unreachable = _append_node(nodes, 2)
-    policies = []
-    for fn, (blocks, order) in zip((first, second), graphs, strict=True):
-        outcomes = _scalar_graph(nodes, fn, blocks, order, arguments, entry)
-        if outcomes is None:
-            return None
-        observed = _comparison_observation(nodes, outcomes, widths, unreachable)
-        if observed is None:
-            return None
-        policies.append(observed)
-    (lhs, left_complete), (rhs, right_complete) = policies
-    both_complete = _append_node(nodes, 3, left=left_complete, right=right_complete)
-    if len(nodes) > CIRCUIT_NODES:
-        return None
-    return nodes, [*zip(lhs, rhs, strict=True), (both_complete, entry)], None
 
 
 def scalar_model_arguments(model, parameters):

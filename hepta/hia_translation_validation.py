@@ -436,10 +436,11 @@ def _partition_entry_equality(z, encoder, inputs, functions, difference):
 
 
 def _native_translation(result, cnf, checked, first, second, graphs, deadline_ns):
-    from .hia_cnf_native import UNSAT, core_comparison_circuit, scalar_model_arguments
+    from .hia_cnf_native import UNSAT, scalar_model_arguments
     from .hia_optimization import _native_circuit_decision, _native_solver_identity
 
-    decision = _native_circuit_decision(cnf, core_comparison_circuit(first, second, graphs), deadline_ns)
+    circuit = cnf.project_scalar_graphs((first, second), graphs, totality=False)
+    decision = _native_circuit_decision(cnf, circuit, deadline_ns)
     if decision is None:
         return False
     verdict, model, evidence, _formula = decision

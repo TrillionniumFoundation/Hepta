@@ -59,6 +59,25 @@ class CnfSourceTests(unittest.TestCase):
                     sparse(65, 2, 20, (1, 0, 3, 0))):
             self.assertEqual(vm_run(SOURCE, bad, 41, SPARSE_WORKSPACE), (0xfffffffd, b'\xa5' * 41))
 
+    def test_graph_projection_extent_and_corrupt_ssa_slots(self):
+        from hepta.hia_cnf_native import CIRCUIT_REQUEST, PROJECTION_OUTPUT, PROJECTION_WORKSPACE, _graph_packet
+        from hepta.hia_translation_validation import _profile
+        from tests.test_hia_program import arithmetic
+
+        function, = arithmetic('int.add.checked', 'u8')['functions']
+        wire = _graph_packet((function,), (_profile(function),), totality=True)
+        size, result = vm_run(SOURCE, wire, PROJECTION_OUTPUT, PROJECTION_WORKSPACE)
+        magic, nodes, pairs, reserved = struct.unpack_from('<4Q', result)
+        self.assertEqual((magic, pairs, reserved), (CIRCUIT_REQUEST, 1, 0))
+        self.assertEqual(size, 32 + 40 * nodes + 16)
+        bad = bytearray(wire)
+        # Header (32), type table (24), function header (24), block header
+        # (64), parameter types (16) and the first instruction's left slot.
+        struct.pack_into('<Q', bad, 32 + 24 + 24 + 64 + 16 + 16, 0xffff)
+        for malformed in (wire[:-1], wire + b'x', bytes(bad)):
+            self.assertEqual(vm_run(SOURCE, malformed, PROJECTION_OUTPUT, PROJECTION_WORKSPACE)[0],
+                             0xfffffffc)
+
 
 class CnfInstalledTests(unittest.TestCase):
     @classmethod
