@@ -39,7 +39,8 @@ _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.
                     'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8,
                     'int.add.wrap': 9, 'int.sub.wrap': 10, 'select': 11,
                     'compare.lt': 12, 'compare.le': 13, 'compare.gt': 14, 'compare.ge': 15,
-                    'int.cast': 20, 'int.add.checked': 22, 'int.sub.checked': 23}
+                    'int.cast': 20, 'int.add.checked': 22, 'int.sub.checked': 23,
+                    'int.neg.checked': 23}
 
 
 class NativeCnf(NativeHiaJsonImage):
@@ -130,7 +131,7 @@ def selected_cnf():
 
 def core_circuit(before, after, observed):
     """Frame one checked scalar block, including the values on all its exits."""
-    if (before['term'] != after['term'] or before['term']['op'] not in {'ret', 'jump', 'branch'}
+    if (before['term'] != after['term'] or before['term']['op'] not in {'ret', 'jump', 'branch', 'trap'}
             or before['params'] != after['params']):
         return None
     if len(before['params']) + len(before['ops']) + len(after['ops']) > CIRCUIT_NODES:
@@ -168,13 +169,28 @@ def core_circuit(before, after, observed):
                 if operation['attrs']['mode'] != 'wrap':
                     return None
                 opcode += values[operation['args'][0]][1].startswith('i')
+            elif operation['op'] == 'int.neg.checked':
+                # Encode negation as checked zero minus the operand. Signed
+                # minimum and nonzero unsigned operands share the original
+                # subtraction overflow condition.
+                left, right = len(nodes), left
+                nodes.append((2, width, 0, 0, 0))
             values[output['name']] = (len(nodes), output['type'])
             if opcode < 22:
                 nodes.append((opcode, width, left, right, immediate))
                 continue
             nodes.append((opcode - 13, width, left, right, 0))
-            flag = len(nodes)
-            nodes.append((opcode + 2 * output['type'].startswith('i'), 1, left, right, 0))
+            signed = output['type'].startswith('i')
+            if opcode == 23 and nodes[left][0] == 2 and nodes[left][4] == 0:
+                # Negation overflows exactly at signed MIN, or for any
+                # nonzero unsigned input. Avoid asking the solver to
+                # discover this through the unused subtraction result.
+                boundary = len(nodes)
+                nodes.append((2, width, 0, 0, 1 << (width - 1) if signed else 0))
+                nodes.append((7 if signed else 8, 1, right, boundary, 0))
+            else:
+                nodes.append((opcode + 2 * signed, 1, left, right, 0))
+            flag = len(nodes) - 1
             if trap is not None:
                 nodes.append((4, 1, trap, flag, 0))
             trap = len(nodes) - 1

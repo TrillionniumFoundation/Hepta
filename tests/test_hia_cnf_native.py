@@ -464,3 +464,47 @@ class CnfInstalledTests(unittest.TestCase):
         frame = bytes.fromhex(obligation['cnf_frame_hex'])
         self.assertEqual(discharge['formula_sha256'], sha256(frame).hexdigest())
         self.assertEqual(frame[24:32], bytes(8))
+
+    def test_checked_negation_precedes_a_matching_explicit_trap(self):
+        from hepta.hia_optimization import NATIVE_CORE_SCHEMA, verify_optimization
+        from tests.test_hia_program import b, c, f, i, m
+
+        def program(kind, code, operations):
+            parameters = [('x', kind)]
+            document = m(f('stop', parameters, [], ['trap'], [
+                b('entry', parameters, operations, {'op': 'trap', 'code': code}),
+            ]))
+            document['schema'] = NATIVE_CORE_SCHEMA
+            return document
+
+        importer = builtins.__import__
+
+        def no_z3(name, *args, **kwargs):
+            if name == 'z3' or name.startswith('z3.'):
+                raise AssertionError('foreign solver imported')
+            return importer(name, *args, **kwargs)
+
+        with patch('builtins.__import__', side_effect=no_z3):
+            for kind in ('i64', 'u64'):
+                with self.subTest(kind=kind):
+                    with_negation = program(kind, 'user', [
+                        i('int.neg.checked', ['x'], [('discarded', kind)]),
+                    ])
+                    with_subtraction = program(kind, 'user', [
+                        c('zero', kind, 0),
+                        i('int.sub.checked', ['zero', 'x'], [('discarded', kind)]),
+                    ])
+                    proved = verify_optimization(with_negation, with_subtraction)
+                    self.assertEqual(proved['status'], 'verified', proved)
+                    self.assertEqual(proved['solver']['name'], 'HIA')
+
+                    explicit_only = program(kind, 'user', [])
+                    rejected = verify_optimization(with_negation, explicit_only)
+                    self.assertEqual(rejected['status'], 'rejected', rejected)
+                    witness = rejected['obligations'][-1]['counterexample_replay']
+                    self.assertEqual((witness['base_trap'], witness['candidate_trap']), ('overflow', 'user'))
+                    value, = witness['arguments']
+                    if kind == 'i64':
+                        self.assertEqual(value, -(1 << 63))
+                    else:
+                        self.assertGreater(value, 0)

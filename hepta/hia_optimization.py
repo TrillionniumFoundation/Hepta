@@ -19,6 +19,7 @@ import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
 from .hia_cnf_native import SAT, UNSAT, bitblast_clauses, core_circuit, selected_cnf
+from .hia_opcodes import TRAP_CODES
 from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_symbolic
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
@@ -121,7 +122,7 @@ def _native_circuit_witness(before, after, function, model):
         try:
             return execute_program(program, name, arguments, max_steps=512)["values"], None
         except HIAProgramTrap as error:
-            if error.code != "overflow":
+            if error.code not in TRAP_CODES:
                 raise
             return None, error.code
 
@@ -189,7 +190,8 @@ def _native_core_obligations(cnf, before, after, left, right, deadline, limit):
         segments = _native_block_circuits(lb, rb, limit - len(prepared))
         if segments is None:
             return None
-        can_replay = len(segments) == 1 and len(function["blocks"]) == 1 and lb["term"]["op"] == "ret"
+        can_replay = (len(segments) == 1 and len(function["blocks"]) == 1
+                      and lb["term"]["op"] in {"ret", "trap"})
         prepared.extend((fi, bi, function, lb["id"], index, observed, circuit, can_replay)
                         for index, (observed, circuit) in enumerate(segments))
     obligations = []
