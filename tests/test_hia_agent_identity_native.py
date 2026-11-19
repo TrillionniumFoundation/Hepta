@@ -716,6 +716,52 @@ class AgentIdentityNativeTests(unittest.TestCase):
             self.assertEqual(self.native._entry(raw, len(raw), result, capacity, workspace, scratch), code)
             self.assertEqual(result.raw, b'\xa5' * capacity)
 
+    def test_call_argument_plan_keeps_ordered_snapshot_effects_and_first_refusal(self):
+        from hepta import hia_agent_buffers as buffers
+
+        profile = buffers.PROFILE
+        details = {'params': ['i64', 'readbuf', 'bool', 'mutbuf'],
+                   'abi': profile, 'max_buffer_bytes': 2}
+        short, oversized, malformed = ({'bytes_hex': '0102'}, {'byte_length': 3, 'fill_byte': 0}, {})
+        samples = [
+            (details, (-2**63, short, True, {'bytes_hex': ''})),
+            (details, (-2**63 - 1, malformed, False, malformed)),
+            (details, (0, oversized, 3, malformed)),
+            (details, (0, malformed, 0, malformed)),
+            (details, (0, short, 1, malformed)),
+            (details, (0, short, True, oversized)),
+            ({**details, 'abi': 'other'}, (1, malformed, True, malformed)),
+            (details, (1, short)),
+            (details, {'not': 'an argument list'}),
+            ({'params': ['u64', 'unit']}, ((1 << 64) - 1, None)),
+            ({'params': []}, []),
+        ]
+
+        def observe(invoke, signature, arguments):
+            observed = []
+            original = buffers.buffer_size
+
+            def snapshot(value):
+                observed.append(value)
+                return original(value)
+
+            with patch.object(buffers, 'buffer_size', side_effect=snapshot):
+                try:
+                    return 'accepted', invoke(signature, arguments), observed
+                except AgentRejected as error:
+                    return error.code, str(error), observed
+
+        for signature, arguments in samples:
+            expected = observe(buffers._reference_validate_arguments, signature, arguments)
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch.object(buffers, '_reference_validate_arguments', side_effect=AssertionError('host ABI'))):
+                self.assertEqual(observe(buffers.validate_arguments, signature, arguments), expected)
+
+        empty = packet(43, struct.pack('<6Q', 1, 0, 0, 0, (1 << 64) - 1, 0))
+        self.assertEqual(self.raw(empty, 32), (32, struct.pack('<4Q', RESULT_MAGIC, 0, 0, 0)))
+        self.assertEqual(self.raw(empty, 31)[0], 0xfffffffe)
+        self.assertEqual(self.raw(empty + b'x', 32)[0], 0xfffffffd)
+
     def test_public_context_limits_match_reference_and_use_native_decisions(self):
         from hepta.hia_agent_service import HIAAgentService
         from tools.hia_agent_native_qualification import Session, ToolClient

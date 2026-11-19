@@ -79,10 +79,16 @@ def buffer_bytes(value):
 
 def validate_arguments(signature, arguments):
     from .hia_agent_store import _native_agent_identity
-    from .hia_program import scalar_value_valid
 
     policy = _native_agent_identity()
-    valid_scalar = scalar_value_valid if policy is None else policy.abi_scalar
+    if policy is not None:
+        return policy.call_arguments(signature, arguments, snapshot_profile=PROFILE, snapshot_size=buffer_size)
+    return _reference_validate_arguments(signature, arguments)
+
+
+def _reference_validate_arguments(signature, arguments):
+    from .hia_program import scalar_value_valid
+
     if type(arguments) not in (list, tuple) or len(arguments) != len(signature["params"]):
         reject("E_HIA_ARGUMENTS", "call does not match the frozen public ABI")
     total = 0
@@ -94,7 +100,7 @@ def validate_arguments(signature, arguments):
             if size > signature["max_buffer_bytes"]:
                 reject("E_HIA_BUFFER_EXTENT", "snapshot exceeds the frozen wrapper extent")
             total += size
-        elif not valid_scalar(value, typ):
+        elif not scalar_value_valid(value, typ):
             reject("E_HIA_ARGUMENTS", "call arguments do not have the exact declared scalar types")
     return total
 

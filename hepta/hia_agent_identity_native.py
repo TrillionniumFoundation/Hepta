@@ -8,6 +8,7 @@ import ctypes
 import struct
 from .hia_agent_store import MAX_INPUT_BYTES, _agent_resource_path, decode_data, reject, wire
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
+from .hia_native_byte_abi import LOANS
 from .hia_opcodes import EFFECTS, OPCODES, WIDTHS
 from .hia_program_tools import HIAEditRejected
 
@@ -101,6 +102,16 @@ def _record_fields(fields, kind):
     return encoded
 
 
+def _abi_value_words(value):
+    if value is None:
+        return 1, 0
+    if type(value) is bool:
+        return 2, int(value)
+    if type(value) is int and value.bit_length() <= 64:
+        return (4, -value) if value < 0 else (3, value)
+    return 0, 0
+
+
 class NativeAgentIdentity(NativeHiaJsonImage):
     def scalar(self, value, kind):
         if type(kind)is not int or kind not in (0,1):
@@ -117,19 +128,44 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         return number if valid else None
 
     def abi_scalar(self, value, typ):
-        if value is None:
-            kind, word = 1, 0
-        elif type(value) is bool:
-            kind, word = 2, int(value)
-        elif type(value) is int and value.bit_length() <= 64:
-            kind, word = (4, -value) if value < 0 else (3, value)
-        else:
-            kind, word = 0, 0
+        kind, word = _abi_value_words(value)
         packet = struct.pack('<5Q', MAGIC, 14, ABI_SCALAR_IDS.get(typ, 0), kind, word)
         valid, result = self._request(packet)
         if valid != 1 or result not in (0, 1):
             raise RuntimeError('invalid HIA Agent call scalar result')
         return bool(result)
+
+    def call_arguments(self, signature, arguments, *, snapshot_profile, snapshot_size):
+        """Execute only the snapshot observations requested by the HIA plan."""
+        matched = type(arguments) in (list, tuple) and len(arguments) == len(signature['params'])
+        borrowed = matched and signature.get('abi') == snapshot_profile
+        packet = bytearray(struct.pack('<8Q', MAGIC, 43, int(matched), int(borrowed), 0, 0, WORD_MASK, 0))
+        if matched:
+            for typ, value in zip(signature['params'], arguments, strict=True):
+                role = 256 if typ in LOANS else ABI_SCALAR_IDS.get(typ, 0)
+                kind, word = _abi_value_words(value)
+                packet.extend(struct.pack('<3Q', role, kind, word))
+        index = -1
+        while True:
+            action, next_index, total = self._response(bytes(packet), 32, '<4Q')
+            if action == 0 and matched and next_index == len(arguments):
+                return total
+            if action == 1 and matched and index < next_index < len(arguments):
+                index = next_index
+                size = snapshot_size(arguments[index])
+                extent = signature['max_buffer_bytes']
+                limit = WORD_MASK if extent < 0 else min(int(extent), WORD_MASK - 1)
+                struct.pack_into('<4Q', packet, 32, index, total, size, limit)
+            elif action == 2:
+                reject('E_HIA_ARGUMENTS', 'call does not match the frozen public ABI')
+            elif action == 3:
+                reject('E_HIA_ABI', 'borrowed entry is absent from the frozen invocation profile')
+            elif action == 4:
+                reject('E_HIA_BUFFER_EXTENT', 'snapshot exceeds the frozen wrapper extent')
+            elif action == 5:
+                reject('E_HIA_ARGUMENTS', 'call arguments do not have the exact declared scalar types')
+            else:
+                raise RuntimeError('invalid native call-argument instruction')
 
     def _request(self, wire):
         return self._response(wire, 24, '<3Q')

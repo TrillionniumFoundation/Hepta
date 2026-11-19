@@ -148,6 +148,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return cost_receipt(s, o, 1)
     if kind == 42:
         return workload_exports(s, o, w)
+    if kind == 43:
+        return abi_arguments(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1051,26 +1053,79 @@ def abi_scalar(s:readbuf, o:mutbuf) -> u32:
     role = read_word(s, 16)
     kind = read_word(s, 24)
     word = read_word(s, 32)
+    return finite_function_reply(o, abi_scalar_valid(role, kind, word))
+
+def abi_scalar_valid(role:u64, kind:u64, word:u64) -> u64:
     if role == @BOOL_ABI_ROLE@:
-        return finite_function_reply(o, choose(kind == 2 and word <= 1, 1, 0))
+        return choose(kind == 2 and word <= 1, 1, 0)
     if role == @UNIT_ABI_ROLE@:
-        return finite_function_reply(o, choose(kind == 1 and word == 0, 1, 0))
+        return choose(kind == 1 and word == 0, 1, 0)
     if kind != 3 and kind != 4:
-        return finite_function_reply(o, 0)
+        return 0
     spec = scalar_abi_type(role)
     width = spec & 127
     if width == 0:
-        return finite_function_reply(o, 0)
+        return 0
     if (spec & 128) != 0:
         boundary = 1 << (width - 1)
         if kind == 4:
-            return finite_function_reply(o, choose(word > 0 and word <= boundary, 1, 0))
-        return finite_function_reply(o, choose(word < boundary, 1, 0))
+            return choose(word > 0 and word <= boundary, 1, 0)
+        return choose(word < boundary, 1, 0)
     if kind == 4:
-        return finite_function_reply(o, 0)
+        return 0
     if width == 64:
-        return finite_function_reply(o, 1)
-    return finite_function_reply(o, choose(word < (1 << width), 1, 0))
+        return 1
+    return choose(word < (1 << width), 1, 0)
+
+def abi_arguments_reply(o:mutbuf, action:u64, index:u64, total:u64) -> u32:
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, action)
+    put(o, 16, index)
+    put(o, 24, total)
+    return 32
+
+def abi_arguments(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 64 or (length(s) - 64) % 24 != 0:
+        return 4294967293
+    if length(o) < 32:
+        return 4294967294
+    shape = read_word(s, 16)
+    borrowed = read_word(s, 24)
+    index = read_word(s, 32)
+    total = read_word(s, 40)
+    size = read_word(s, 48)
+    extent = read_word(s, 56)
+    count = (length(s) - 64) // 24
+    pending = 18446744073709551615
+    if shape > 1 or borrowed > 1 or index > count:
+        return 4294967293
+    if size != pending:
+        if index >= count or size > @MAX_EXPORT_EXTENT@:
+            return 4294967293
+        if read_word(s, 64 + index * 24) != 256 or borrowed == 0:
+            return 4294967293
+    elif index != 0 or total != 0 or extent != 0:
+        return 4294967293
+    if shape == 0:
+        if count != 0 or borrowed != 0 or size != pending:
+            return 4294967293
+        return abi_arguments_reply(o, 2, 0, 0)
+    while index < count:
+        at = 64 + index * 24
+        role = read_word(s, at)
+        if role == 256:
+            if borrowed == 0:
+                return abi_arguments_reply(o, 3, index, total)
+            if size == pending:
+                return abi_arguments_reply(o, 1, index, total)
+            if size > extent or extent == pending:
+                return abi_arguments_reply(o, 4, index, total)
+            total = total + size
+            size = pending
+        elif abi_scalar_valid(role, read_word(s, at + 8), read_word(s, at + 16)) == 0:
+            return abi_arguments_reply(o, 5, index, total)
+        index = index + 1
+    return abi_arguments_reply(o, 0, index, total)
 
 def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 32:
