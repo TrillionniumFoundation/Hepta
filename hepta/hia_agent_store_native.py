@@ -16,6 +16,7 @@ import subprocess
 import time
 from threading import RLock
 
+from .hia_execution_budget import INSERT_CONTEXT
 from .hia_native_helpers import _read
 
 RELEASE_IMAGES = (
@@ -58,7 +59,7 @@ _SELECTS = (
     ('SELECT id,attempts FROM main.contexts WHERE id=?', 1, 'contexts', 17),
 )
 _INSERTS = (
-    ('INSERT INTO contexts VALUES (?,?,?,?,0)', 4),
+    (INSERT_CONTEXT, 4),
     ('INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)', 6),
     ("INSERT INTO execution_budgets VALUES (?,'0',NULL)", 1),
     ('INSERT INTO leases VALUES (?,?,?,?,1)', 4),

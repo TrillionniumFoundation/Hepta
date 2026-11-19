@@ -698,9 +698,8 @@ class HIAAgentService:
             "resource_reservation_held": False, "context_is_execution_authority": False}
         manifest = self.store.json(record, "context")
         context = {"id": "ctx-" + uuid.uuid4().hex, "sha256": manifest["sha256"]}
-        self.store.db.execute("INSERT INTO contexts VALUES (?,?,?,?,0)",
-            (context["id"], context["sha256"], wire(manifest).decode(), str(time.time_ns())))
-        self.store.execution_budgets.create(context["id"])
+        self.store.execution_budgets.create(context["id"], context_record=(
+            context["sha256"], wire(manifest).decode(), str(time.time_ns())))
         return {"context": context, "manifest": manifest, "sampled_at": sampled,
             "compiler_profile": args["compiler_profile"], "target_profile": args["target_profile"],
             "resource_reservation_held": False, "context_is_execution_authority": False}

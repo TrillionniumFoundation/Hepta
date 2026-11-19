@@ -16,6 +16,7 @@ import stat
 import struct
 import threading
 
+from .hia_execution_budget import INSERT_CONTEXT
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/execution_budget.hepta')
@@ -282,7 +283,7 @@ class NativeExecutionBudgetStore:
         self.check()
         return BudgetState(self.image, self.connection_identity, kind, context, owner, maximum, started)
 
-    def _drive(self, state):
+    def _drive(self, state, *, context_record=None):
         state.check()
         with self.lock:
             owned_transaction = False
@@ -328,6 +329,10 @@ class NativeExecutionBudgetStore:
                     elif action == 6:
                         if not owned_transaction:
                             _reject(2)
+                        if context_record is not None:
+                            changed = self._execute(INSERT_CONTEXT, (context, *context_record)).rowcount
+                            if changed != 1:
+                                _reject(2, 'context creation did not publish exactly one row')
                         self.check()
                         self._execute('COMMIT')
                         self.check()
@@ -353,9 +358,9 @@ class NativeExecutionBudgetStore:
                                          'message': str(cleanup_error)[:1024]}
                 raise
 
-    def create(self, context):
+    def create(self, context, *, context_record=None):
         state = self._state(0, context)
-        self._drive(state)
+        self._drive(state, context_record=context_record)
 
     def claim(self, context, owner, maximum, started):
         state = self._state(1, context, owner, maximum, started)

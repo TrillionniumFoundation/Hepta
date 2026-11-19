@@ -5,6 +5,8 @@ for an AgentStore lifetime; a native failure never falls back to this reference.
 """
 from __future__ import annotations
 
+INSERT_CONTEXT = "INSERT INTO contexts VALUES (?,?,?,?,0)"
+
 
 def admitted_execution_budget():
     from .hia_execution_budget_native import selected_execution_budget
@@ -22,8 +24,14 @@ class _ReferenceExecutionBudgetStore:
     def __init__(self, store):
         self.store = store
 
-    def create(self, context):
-        self.store.db.execute("INSERT INTO execution_budgets VALUES (?,'0',NULL)", (context,))
+    def create(self, context, *, context_record=None):
+        budget = "INSERT INTO execution_budgets VALUES (?,'0',NULL)"
+        if context_record is None:
+            self.store.db.execute(budget, (context,))
+            return
+        with self.store.transaction():
+            self.store.db.execute(INSERT_CONTEXT, (context, *context_record))
+            self.store.db.execute(budget, (context,))
 
     def claim(self, context, owner, maximum, started):
         from .hia_agent_store import reject
