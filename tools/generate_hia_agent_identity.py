@@ -77,6 +77,26 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size > length(o):
             return size
         return candidate_receipt(s, o, 1)
+    if kind == 26:
+        size = verification_record(s, o, 0)
+        if size > length(o):
+            return size
+        return verification_record(s, o, 1)
+    if kind == 27:
+        size = verification_result(s, o, 0)
+        if size > length(o):
+            return size
+        return verification_result(s, o, 1)
+    if kind == 28:
+        size = build_record(s, o, 0)
+        if size > length(o):
+            return size
+        return build_record(s, o, 1)
+    if kind == 29:
+        size = build_result(s, o, 0)
+        if size > length(o):
+            return size
+        return build_result(s, o, 1)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1000,6 +1020,18 @@ CONTEXT_RECEIPT = ('{"compiler_profile":{},"context":{},"context_is_execution_au
 PAGE_RECEIPT = '{"artifact":{},"content":{},"encoding":{},"next_cursor":{}}'
 CANDIDATE_RECEIPT = ('{"adopted":false,"base_program":{},"behavior_equivalence_proved":false,'
                      '"candidate":{},"core_admitted":true,"diagnostics":{}}')
+VERIFICATION_RECORD = ('{"base_core_sha256":{},"base_program":{},"candidate":{},"candidate_core_sha256":{},'
+                       '"checks":{},"context":{},"installation":{},"schema":"hepta.hia.agent.verification.v1",'
+                       '"subject":{},"validation_profile":{}}')
+VERIFICATION_RESULT = ('{"adopted":false,"candidate":{},"checks":{},"subject":{},"verification_receipt":{}}')
+BUILD_RECORD = ('{"backend_profile":{},"candidate":{},"codegen":{},"context":{},"core_sha256":{},'
+                '"foreign_buffer_exports":{},"installation":{},"machine_plan":{},"native_artifact":{},'
+                '"native_build":{},"object_artifact":{},"object_sha256":{},"output_kind":{},'
+                '"schema":"hepta.hia.agent.build.v1","signatures":{},"target_profile":{},"verification_receipts":{}}')
+BUILD_RESULT = ('{"adopted":false,"backend_profile":{},"build_receipt":{},"candidate":{},'
+                '"codegen_backend":"hia-direct","external_assembler_used":false,"linker_used":{},'
+                '"llvm_codegen_used":false,"native_artifact":{},"native_execution_observed":false,"target_profile":{}}')
+
 
 
 def source_program():
@@ -1022,7 +1054,11 @@ def source_program():
             + receipt_template('context_manifest', CONTEXT_MANIFEST)
             + receipt_template('context_receipt', CONTEXT_RECEIPT)
             + receipt_template('page_receipt', PAGE_RECEIPT)
-            + receipt_template('candidate_receipt', CANDIDATE_RECEIPT))
+            + receipt_template('candidate_receipt', CANDIDATE_RECEIPT)
+            + receipt_template('verification_record', VERIFICATION_RECORD)
+            + receipt_template('verification_result', VERIFICATION_RESULT)
+            + receipt_template('build_record', BUILD_RECORD)
+            + receipt_template('build_result', BUILD_RESULT))
 
 
 def document():

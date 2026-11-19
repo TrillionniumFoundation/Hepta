@@ -1010,6 +1010,8 @@ class HIAAgentService:
         return None
 
     def _hia_verify(self, args):
+        from .hia_agent_store import _native_agent_identity
+
         context = self._context(args["context"])
         self._profile(args["validation_profile"], "validation")
         program = self._program(args["candidate"])
@@ -1083,6 +1085,11 @@ class HIAAgentService:
             checks.append({**scoped,
                 "assumptions_artifact": self.store.json(assumptions_document(scoped), "verification-assumptions"),
                 "evidence_artifact": self.store.json({**evidence, "proof_binding": scoped}, "verification-evidence")})
+        native = _native_agent_identity()
+        if native is not None:
+            record = native.verification_record(binding, checks, self.identities, args["validation_profile"])
+            receipt = self.store.put(record, "verification-receipt")
+            return native.verification_result(binding, checks, receipt)
         receipt = self.store.json({"schema": "hepta.hia.agent.verification.v1", "context": args["context"],
             "candidate": args["candidate"], "candidate_core_sha256": program.sha256,
             "base_program": args["base_program"], "base_core_sha256": None if original is None else original.sha256,
@@ -1190,6 +1197,8 @@ class HIAAgentService:
         return data, result
 
     def _hia_emit(self, args):
+        from .hia_agent_store import _native_agent_identity
+
         self._profile(args["backend_profile"], "backend")
         context = self._context(args["context"])
         program = self._program(args["candidate"])
@@ -1215,6 +1224,14 @@ class HIAAgentService:
             "foreign_buffer_exports": [list(pair) for pair in exports],
             "object_artifact": native_build["object_artifact"], "object_sha256": native_build["object_sha256"]}
         artifact = self.store.put(data, "native", metadata)
+        native = _native_agent_identity()
+        if native is not None:
+            backend, target = args["backend_profile"], context["target_profile"]
+            record = native.build_record(metadata, backend, target, artifact, native_build,
+                                         args["verification_receipts"])
+            receipt = self.store.put(record, "build-receipt")
+            return native.build_result(args["candidate"], backend, target, receipt, artifact,
+                                       linked=args["output_kind"] == "shared")
         receipt = self.store.json({"schema": "hepta.hia.agent.build.v1", **metadata,
             "native_artifact": artifact, "native_build": native_build,
             "backend_profile": args["backend_profile"], "target_profile": context["target_profile"],

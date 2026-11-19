@@ -753,6 +753,56 @@ class AgentIdentityNativeTests(unittest.TestCase):
                 "candidate": artifact, "core_admitted": True, "diagnostics": diagnostics,
             })
 
+    def test_issued_verification_and_build_records_survive_service_restart(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_agent_store import wire
+        from tools.hia_agent_native_qualification import Session, ToolClient, add_program, exhaustive_u8_workload
+
+        state = self.folder / "issued-verification-and-build"
+        service = HIAAgentService(state)
+        try:
+            session = Session(ToolClient(service.call, validate=False))
+            session.freeze(exhaustive_u8_workload())
+            candidate = session.import_program(add_program())
+            hosted = session.verify(candidate)
+            verification = session.arguments(candidate=candidate, base_program=None,
+                validation_profile=session.profiles["validation"], subject={"kind": "core"},
+                claims=["core_admission"])
+            stored_json = service.store.json
+
+            def retain_json(value, kind, *args):
+                self.assertNotIn(kind, ("verification-receipt", "build-receipt"))
+                return stored_json(value, kind, *args)
+
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch.object(service.store, "json", side_effect=retain_json)):
+                accepted = service.call("hia_verify", verification)
+                self.assertEqual(accepted["result"], hosted)
+                build = session.arguments(candidate=candidate, backend_profile=session.backend, output_kind="object",
+                    codegen={"kind": "canonical", "lowering_profile": session.profiles["lowering"]},
+                    verification_receipts=[hosted["verification_receipt"]])
+                emitted = service.call("hia_emit", build)
+                self.assertEqual(emitted["status"], "completed", emitted)
+                result = emitted["result"]
+                self.assertIs(result["linker_used"], False)
+                self.assertIs(result["adopted"], False)
+                self.assertIs(result["native_execution_observed"], False)
+                record, _, raw = service.store.get_json_with_wire(result["build_receipt"], kind="build-receipt")
+                self.assertEqual(raw, wire(record))
+                self.assertEqual(record["candidate"], candidate)
+                self.assertEqual(record["native_artifact"], result["native_artifact"])
+                self.assertEqual(record["verification_receipts"], build["verification_receipts"])
+                self.assertEqual(record["object_sha256"], sha256(session.read(result["native_artifact"])).hexdigest())
+        finally:
+            service.close()
+        with patch.dict(os.environ, {SELECTOR: str(self.manifest)}):
+            reopened = HIAAgentService(state)
+            try:
+                self.assertEqual(reopened.call("hia_verify", verification), accepted)
+                self.assertEqual(reopened.call("hia_emit", build), emitted)
+            finally:
+                reopened.close()
+
     def test_artifact_packets_keep_exact_utf8_and_refuse_invalid_scalars(self):
         rng = random.Random(3027)
         boundary = '\x00\x7f\x80\u07ff\u0800\ud7ff\ue000\uffff\U00010000\U0010ffff'

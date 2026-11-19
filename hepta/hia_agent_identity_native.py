@@ -370,6 +370,27 @@ class NativeAgentIdentity(NativeHiaJsonImage):
     def candidate_receipt(self, base, candidate, diagnostics):
         return decode_data(self._issued_record(25, (base, candidate, diagnostics)))
 
+    def verification_record(self, binding, checks, installation, validation_profile):
+        fields = (binding['base_core_sha256'], binding['base_program'], binding['candidate'],
+                  binding['candidate_core_sha256'], checks, binding['context'], installation,
+                  binding['subject'], validation_profile)
+        return self._issued_record(26, fields)
+
+    def verification_result(self, binding, checks, verification_receipt):
+        fields = (binding['candidate'], checks, binding['subject'], verification_receipt)
+        return decode_data(self._issued_record(27, fields))
+
+    def build_record(self, metadata, backend, target, artifact, native_build, verification):
+        fields = (backend, metadata['candidate'], metadata['codegen'], metadata['context'],
+                  metadata['core_sha256'], metadata['foreign_buffer_exports'], metadata['installation'],
+                  metadata['machine_plan'], artifact, native_build, metadata['object_artifact'],
+                  metadata['object_sha256'], metadata['output_kind'], metadata['signatures'],
+                  target, verification)
+        return self._issued_record(28, fields)
+
+    def build_result(self, candidate, backend, target, receipt, artifact, *, linked):
+        return decode_data(self._issued_record(29, (backend, receipt, candidate, linked, artifact, target)))
+
     def _issued_record(self, mode, values):
         packet = bytearray(struct.pack('<2Q', MAGIC, mode))
         for value in values:
