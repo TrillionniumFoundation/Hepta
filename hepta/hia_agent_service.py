@@ -506,7 +506,9 @@ class HIAAgentService:
         if record_authority((ref["id"], ref["sha256"], ""), stored):
             reject("E_HIA_CONTEXT_IDENTITY", "context is not a retained server record", "context")
         context, _ = self.store.get_json(decode_data(row["artifact"]), kind="context")
-        if context["installation"] != self.identities or context["catalog_sha256"] != self.catalog_sha256:
+        equal = _retained_record_equality()
+        if not equal((context["installation"], context["catalog_sha256"]),
+                     (self.identities, self.catalog_sha256)):
             reject("E_HIA_CONTEXT_STALE", "context binds a different installed implementation", "context")
         for name in ("compiler", "target"):
             self._profile(context[name + "_profile"], name)
@@ -1188,13 +1190,15 @@ class HIAAgentService:
 
     def _native(self, ref, context=None):
         data, metadata = self.store.get(ref, kind="native")
-        if metadata["installation"] != self.identities or context is not None and metadata["context"] != context:
+        equal = _retained_record_equality()
+        if (not equal(metadata["installation"], self.identities)
+                or context is not None and not equal(metadata["context"], context)):
             reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
         program = self._program(metadata["candidate"])
         retained_context = self._context(metadata["context"])
         exports = tuple(map(tuple, retained_context.get("foreign_buffer_exports", [])))
-        if (metadata["core_sha256"] != program.sha256 or _signatures(program, exports) != metadata["signatures"]
-                or metadata.get("foreign_buffer_exports", []) != [list(pair) for pair in exports]):
+        if not equal((metadata["core_sha256"], metadata["signatures"], metadata.get("foreign_buffer_exports", [])),
+                     (program.sha256, _signatures(program, exports), [list(pair) for pair in exports])):
             reject("E_HIA_RECEIPT_BINDING", "native artifact's admitted Core identity differs")
         return data, metadata, program
 
@@ -1204,29 +1208,32 @@ class HIAAgentService:
     def _build_inputs(self, ref, context, artifact):
         """Capture and validate one immutable Core/object/final build observation."""
         record, _ = self.store.get_json(ref, kind="build-receipt")
-        if (record["context"] != context or record["native_artifact"] != artifact or record["installation"] != self.identities
-                or record.get("target_profile") != self.profiles["target"]
-                or record.get("backend_profile") != self.profiles["backend"]):
+        equal = _retained_record_equality()
+        if not equal(
+                (record["context"], record["native_artifact"], record["installation"],
+                 record.get("target_profile"), record.get("backend_profile")),
+                (context, artifact, self.identities, self.profiles["target"], self.profiles["backend"])):
             reject("E_HIA_RECEIPT_BINDING", "build receipt belongs to a different native subject")
         data, metadata, program = self._native(artifact, context)
-        if any(record.get(name) != value for name, value in metadata.items()):
+        if not equal(tuple(record.get(name) for name in metadata), tuple(metadata.values())):
             reject("E_HIA_RECEIPT_BINDING", "build record differs from retained native metadata")
         built = record.get("native_build")
         if (type(built) is not dict or type(record.get("object_artifact")) is not dict
-                or record["object_artifact"] != built.get("object_artifact")
-                or record.get("object_sha256") != built.get("object_sha256")
-                or built.get("core_sha256") != program.sha256
-                or built.get("input_sha256") != program.input_sha256
-                or built.get("implementation_sha256") != self.identities["backend_sha256"]
-                or built.get("kind") != record["output_kind"]
-                or built.get("foreign_buffer_exports") != record.get("foreign_buffer_exports", [])
-                or built.get("artifact_sha256") != payload_sha256(data).hex()):
+                or not equal(
+                    (built.get("object_artifact"), built.get("object_sha256"), built.get("core_sha256"),
+                     built.get("input_sha256"), built.get("implementation_sha256"), built.get("kind"),
+                     built.get("foreign_buffer_exports")),
+                    (record["object_artifact"], record.get("object_sha256"), program.sha256,
+                     program.input_sha256, self.identities["backend_sha256"], record["output_kind"],
+                     record.get("foreign_buffer_exports", [])))
+                or not equal(built.get("artifact_sha256"), payload_sha256(data).hex())):
             reject("E_HIA_RECEIPT_BINDING", "build record differs from actual artifact bytes")
         object_bytes, object_metadata = self.store.get(record["object_artifact"], kind="build-object")
         expected_metadata = {"schema": "hepta.hia.agent.build-object.v1", "core_sha256": program.sha256,
             "machine_plan_sha256": built.get("machine_plan_sha256"), "installation": self.identities}
-        if (object_metadata != expected_metadata or payload_sha256(object_bytes).hex() != record["object_sha256"]
-                or record["object_artifact"]["sha256"] != record["object_sha256"]
+        if (not equal(object_metadata, expected_metadata)
+                or not equal(payload_sha256(object_bytes).hex(), record["object_sha256"])
+                or not equal(record["object_artifact"]["sha256"], record["object_sha256"])
                 or record["output_kind"] == "object" and not _exact_artifact_equal(object_bytes, data)):
             reject("E_HIA_RECEIPT_BINDING", "retained object differs from its exact build binding")
         return record, data, object_bytes, program
