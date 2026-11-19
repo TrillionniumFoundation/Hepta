@@ -111,9 +111,10 @@ assert _read(Path(sys.argv[1]), limit).raw == b"pinned helper"
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 34)
+        self.assertEqual(len(HELPERS), 35)
         self.assertEqual(HELPERS['HEPTA_HIA_SCALAR_SYMBOLIC_MANIFEST'],
                          ('hia_scalar_symbolic_native', 'NativeScalarSymbolic'))
+        self.assertEqual(HELPERS['HEPTA_HIA_CNF_MANIFEST'], ('hia_cnf_native', 'NativeCnf'))
         self.assertEqual(HELPERS['HEPTA_HIA_AGENT_READ_PAGE_MANIFEST'],
                          ('hia_agent_read_page_native', 'NativeAgentReadPage'))
         for selector, (name, factory_name) in HELPERS.items():

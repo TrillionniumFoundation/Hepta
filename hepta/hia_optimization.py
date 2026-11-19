@@ -18,7 +18,7 @@ import tempfile
 import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
-from .hia_cnf_native import UNSAT, bitblast_clauses, selected_cnf
+from .hia_cnf_native import UNSAT, bitblast_clauses, core_circuit, selected_cnf
 from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_symbolic
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
@@ -64,6 +64,22 @@ def checker_identity():
         digest.update(Path(__file__).with_name("hia_cnf_native.py").read_bytes())
         digest.update(bytes.fromhex(cnf.image_sha256))
     return digest.hexdigest()
+
+
+def _native_core_unsat(cnf, before, after, deadline):
+    circuit = core_circuit(before, after)
+    if circuit is None:
+        return None
+    remaining = (deadline - time.monotonic_ns()) // 1_000_000
+    if remaining <= 0:
+        return None
+    result = cnf.solve_circuit(*circuit, steps=min(200_000, remaining * 100))
+    if result is None or result[0] != UNSAT:
+        return None
+    _, _, steps, variables, clauses, frame = result
+    return {"method": "native_hia_core_circuit", "image_sha256": cnf.image_sha256,
+            "formula_sha256": sha256(frame[:24] + bytes(8) + frame[32:]).hexdigest(), "variables": variables,
+            "clauses": clauses, "steps": steps}
 
 
 def _native_unsat(cnf, z3, mismatch, deadline):
@@ -390,7 +406,11 @@ def verify_optimization(base, candidate, policy=None):
                 remaining = (deadline - time.monotonic_ns()) // 1_000_000
                 if remaining <= 0:
                     return finish("timeout", "verification deadline exhausted while encoding")
-                cnf_evidence = _native_unsat(native_cnf, z3, mismatch, deadline)
+                cnf_evidence = None
+                if native_cnf is not None and si == 0 and barrier is None:
+                    cnf_evidence = _native_core_unsat(native_cnf, lb, rb, deadline)
+                if cnf_evidence is None:
+                    cnf_evidence = _native_unsat(native_cnf, z3, mismatch, deadline)
                 remaining = (deadline - time.monotonic_ns()) // 1_000_000
                 if remaining <= 0:
                     return finish("timeout", "verification deadline exhausted while solving")

@@ -8,6 +8,7 @@ import struct
 from sys import byteorder
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
+from .hia_opcodes import WIDTHS
 
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/cnf.hepta')
@@ -24,7 +25,17 @@ SPARSE_VARIABLES = 4096
 SPARSE_CLAUSES = 65536
 SPARSE_ENTRIES = 1 << 20
 SPARSE_WORKSPACE = SPARSE_VARIABLES * 7
+CIRCUIT_REQUEST = int.from_bytes(b'HIABVC01', 'little')
+CIRCUIT_NODES = 128
+CIRCUIT_RETURNS = 16
+CIRCUIT_CAPACITY = 192 * 1024
+CIRCUIT_GATE_SLOTS = 8192
+CIRCUIT_GATES_OFFSET = 32 + CIRCUIT_NODES * 128
+CIRCUIT_WORKSPACE = CIRCUIT_GATES_OFFSET + 8 * CIRCUIT_GATE_SLOTS
 UNKNOWN, SAT, UNSAT = range(3)
+_CORE_WIDTHS = {'bool': 1, **WIDTHS}
+_CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
+                    'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8}
 
 
 class NativeCnf(NativeHiaJsonImage):
@@ -61,6 +72,9 @@ class NativeCnf(NativeHiaJsonImage):
         if byteorder != 'little':
             tokens.byteswap()
         frame = struct.pack('<5Q', SPARSE_REQUEST, variables, len(clauses), steps, len(tokens)) + tokens.tobytes()
+        return self._solve_sparse_frame(frame, variables, steps)
+
+    def _solve_sparse_frame(self, frame, variables, steps):
         source = ctypes.create_string_buffer(frame, len(frame))
         reply = ctypes.create_string_buffer(32 + (variables + 7) // 8)
         scratch = ctypes.create_string_buffer(SPARSE_WORKSPACE)
@@ -75,10 +89,72 @@ class NativeCnf(NativeHiaJsonImage):
             raise RuntimeError('invalid sparse HIA Boolean solver model')
         return verdict, model, cost
 
+    def solve_circuit(self, nodes, returns, *, steps):
+        if len(nodes) > CIRCUIT_NODES or len(returns) > CIRCUIT_RETURNS or not 0 <= steps <= STEP_LIMIT:
+            return None
+        frame = struct.pack('<4Q', CIRCUIT_REQUEST, len(nodes), len(returns), steps)
+        frame += b''.join(struct.pack('<5Q', *instruction) for instruction in nodes)
+        frame += b''.join(struct.pack('<2Q', *pair) for pair in returns)
+        source = ctypes.create_string_buffer(frame, len(frame))
+        output = ctypes.create_string_buffer(CIRCUIT_CAPACITY)
+        scratch = ctypes.create_string_buffer(CIRCUIT_WORKSPACE)
+        size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
+        if size == 0xfffffffc:
+            return None  # No claim with a circuit that exceeds its admitted gate budget.
+        if not 40 <= size <= len(output):
+            raise ValueError('HIA rejected the circuit representation')
+        formula = output.raw[:size]
+        magic, variables, clauses, budget, entries = struct.unpack_from('<5Q', formula)
+        if (magic != SPARSE_REQUEST or variables > SPARSE_VARIABLES or clauses > SPARSE_CLAUSES
+                or steps != budget or entries > SPARSE_ENTRIES or size != 40 + 2 * entries):
+            raise RuntimeError('invalid HIA circuit encoding result')
+        verdict, model, cost = self._solve_sparse_frame(formula, variables, steps)
+        return verdict, model, cost, variables, clauses, formula
+
 
 def selected_cnf():
     manifest = os.environ.get(SELECTOR)
-    return None if not manifest else _installed_json_image(manifest, SOURCE, SCHEMA, NativeCnf)
+    if manifest is None:
+        return None
+    if not manifest:
+        raise ValueError('HIA Boolean solver selector must not be empty')
+    return _installed_json_image(manifest, SOURCE, SCHEMA, NativeCnf)
+
+
+def core_circuit(before, after):
+    """Frame a checked pure return segment; do not interpret any scalar op."""
+    if before['term']['op'] != 'ret' or after['term']['op'] != 'ret' or before['params'] != after['params']:
+        return None
+    if len(before['params']) + len(before['ops']) + len(after['ops']) > CIRCUIT_NODES:
+        return None
+    nodes = []
+    parameters = {}
+    for parameter in before['params']:
+        width = _CORE_WIDTHS.get(parameter['type'])
+        if width not in (1, 8, 16, 32, 64):
+            return None
+        parameters[parameter['name']] = len(nodes)
+        nodes.append((1, width, 0, 0, 0))
+    returned = []
+    for block in (before, after):
+        values = parameters.copy()
+        for operation in block['ops']:
+            opcode = _CORE_OPERATIONS.get(operation['op'])
+            if opcode is None or len(operation['out']) != 1:
+                return None
+            output, = operation['out']
+            width = _CORE_WIDTHS.get(output['type'])
+            if width not in (1, 8, 16, 32, 64) or any(arg not in values for arg in operation['args']):
+                return None
+            args = [values[arg] for arg in operation['args']]
+            left, right = (args + [0, 0])[:2]
+            immediate = int(operation['attrs']['value']) % (1 << width) if opcode == 2 else 0
+            values[output['name']] = len(nodes)
+            nodes.append((opcode, width, left, right, immediate))
+        if any(name not in values for name in block['term']['values']):
+            return None
+        returned.append([values[name] for name in block['term']['values']])
+    return nodes, list(zip(*returned, strict=True))
 
 
 def bitblast_clauses(z3, expression, *, timeout_ms):

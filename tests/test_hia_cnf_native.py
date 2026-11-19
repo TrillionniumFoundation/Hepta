@@ -113,6 +113,36 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(self.native.solve_sparse(4096, long_chain, steps=100000)[0], UNSAT)
         self.assertEqual(self.native.solve_sparse(4096, long_chain, steps=32), (UNKNOWN, 0, 32))
 
+    def test_native_circuit_matches_boolean_truth_tables(self):
+        rng = random.Random(393072)
+        for _ in range(200):
+            nodes = [(1, 1, 0, 0, 0)] * 4
+            for _ in range(12):
+                op = rng.randrange(2, 9)
+                left = rng.randrange(len(nodes)) if op != 2 else 0
+                right = rng.randrange(len(nodes)) if op not in (2, 6) else 0
+                nodes.append((op, 1, left, right, rng.randrange(2) if op == 2 else 0))
+            left, right = rng.sample(range(len(nodes)), 2)
+
+            def differ(assignment):
+                known = [bool(assignment & (1 << index)) for index in range(4)]
+                for op, _, one, two, value in nodes[4:]:
+                    if op == 2:
+                        known.append(bool(value))
+                        continue
+                    a, b = known[one], known[two]
+                    known.append({3: a and b, 4: a or b, 5: a != b, 6: not a, 7: a == b, 8: a != b}[op])
+                return known[left] != known[right]
+
+            verdict, model, *_ = self.native.solve_circuit(nodes, [(left, right)], steps=10000)
+            expected = any(differ(assignment) for assignment in range(16))
+            self.assertEqual(verdict, SAT if expected else UNSAT)
+            if expected:
+                self.assertTrue(differ(model >> 1))  # Variable 1 is the circuit's true constant.
+
+        with self.assertRaisesRegex(ValueError, 'circuit representation'):
+            self.native.solve_circuit([(6, 1, 0, 0, 0)], [(0, 0)], steps=10)
+
     def test_actual_optimizer_discharge_and_legacy_counterexample(self):
         try:
             import z3
@@ -150,10 +180,13 @@ class CnfInstalledTests(unittest.TestCase):
         constant = m(f('check', params, ['bool'], [], [b('entry', params, [
             c('out', 'bool', False),
         ], ret('out'))]))
-        with patch.object(z3.Solver, 'check', side_effect=AssertionError('legacy solve invoked')):
+        with patch.object(z3.Solver, 'check', side_effect=AssertionError('legacy solve invoked')), \
+                patch('hepta.hia_optimization.bitblast_clauses', side_effect=AssertionError('foreign bit-blast invoked')):
             report = verify_optimization(wide, constant)
         self.assertEqual(report['status'], 'verified', report)
-        self.assertGreater(report['obligations'][0]['discharge']['variables'], 128)
+        discharge = report['obligations'][0]['discharge']
+        self.assertEqual(discharge['method'], 'native_hia_core_circuit')
+        self.assertGreater(discharge['variables'], 128)
 
         old = verify_optimization(arithmetic(typ='u32'), arithmetic('int.add.wrap', 'u32'))
         self.assertEqual(old['status'], 'rejected', old)
