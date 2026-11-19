@@ -116,6 +116,27 @@ class JournalSourceTests(unittest.TestCase):
             else:
                 self.assertEqual((result, bytes(output.data)), (4294967293, b'\xa5' * 48))
 
+    def test_transport_packer_binds_two_separate_images(self):
+        from tools.generate_hia_journal_stdio_packer import MAGIC, SOURCE as PACKER, render, template
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+        from tests.test_hia_core_workspace_facts_native import vm_run
+
+        source = ROOT / PACKER
+        self.assertEqual(source.read_text(), render())
+        prefix, (first, second) = template()
+        journal, codec = b'journal-transitions', b'frame-policy'
+        packet = struct.pack('<3Q', MAGIC, len(journal), len(codec)) + journal + codec
+        size = len(prefix) + len(journal) + len(codec)
+        count, executable = vm_run(source, packet, size, 0)
+        self.assertEqual(count, size)
+        self.assertEqual(inspect_executable(executable)['bytes'], size)
+        self.assertEqual(executable[len(prefix):], journal + codec)
+        for displacement, expected in ((first, len(prefix)), (second, len(prefix) + len(journal))):
+            self.assertEqual(displacement + 4 + struct.unpack_from('<i', executable, displacement)[0],
+                             expected)
+        self.assertEqual(vm_run(source, packet, size - 1, 0), (0xfffffffe, b'\xa5' * (size - 1)))
+        self.assertEqual(vm_run(source, packet[:-1], size, 0), (0xffffffff, b'\xa5' * size))
+
     def test_independent_core_VM_request_identity(self):
         # Bound the child, rather than risking the test controller when a VM
         # regression allocates excessive memory. No native image is loaded.

@@ -10,8 +10,10 @@ import struct
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
-from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link, verify_executable
 from tools.generate_hia_agent_journal_transport import SOURCE as JOURNAL_TRANSPORT
+from tools.generate_hia_journal_stdio_packer import (
+    MAGIC as JOURNAL_PACK_MAGIC, SOURCE as JOURNAL_PACKER, template as journal_template,
+)
 from tools.generate_hia_mcp_stdio_packer import MAGIC as STDIO_PACK_MAGIC, MODES as STDIO_MODES
 from tools.generate_hia_mcp_stdio_packer import template
 from tools.generate_hia_mcp_stdio_packer import SOURCE as STDIO_PACKER
@@ -19,7 +21,6 @@ from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
-LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
 DRIVER = 'tools/build_hia_agent_read_page.py'
 VARIANTS = {
     'read-page': ('agent_read_page', 'hepta.hia.agent-read-page-native.v1'),
@@ -30,31 +31,39 @@ VARIANTS = {
     'mcp-catalog': ('mcp_catalog_wire', 'hepta.hia.mcp-catalog-native.v1'),
     'mcp-uri': ('mcp_resource_uri', 'hepta.hia.mcp-uri-native.v1'),
 }
-STDIO_PACK_CAPACITY = (1 << 20) + 4096
+IMAGE_LIMIT = 1 << 20
 
 
-def pack_stdio(output, compiler, sources, mode, image, pins):
-    packer, compiled = compile_stage(output, 'stdio-packer', compiler, sources[STDIO_PACKER])
+def pack_elf(output, compiler, source, request, prefix, relocations, images, pins):
+    packer, compiled = compile_stage(output, 'stdio-packer', compiler, source)
     pins[packer] = packer.read_bytes()
     program = NativeHiaJsonImage(pins[packer], compiled['produced_sha256'])
-    request = struct.pack('<2Q', STDIO_PACK_MAGIC, mode) + image
     input_bytes = ctypes.create_string_buffer(request)
-    result = ctypes.create_string_buffer(STDIO_PACK_CAPACITY)
+    result = ctypes.create_string_buffer(len(images) * IMAGE_LIMIT + 4096)
     count = program._entry(input_bytes, len(request), result, len(result), None, 0)
 
-    prefix, call = template(mode)
-    expected_size = len(prefix) + len(image)
+    raw_images = b''.join(images)
+    expected_size = len(prefix) + len(raw_images)
     if (count != expected_size or input_bytes.raw != request + b'\0'
             or any(result.raw[count:])):
         raise ValueError('native HIA stdio packer refused or changed private bytes')
     expected = bytearray(prefix)
     struct.pack_into('<2Q', expected, 96, count, count)
-    struct.pack_into('<i', expected, call, len(prefix) - call - 4)
+    for address, image_offset in relocations:
+        struct.pack_into('<i', expected, address, len(prefix) + image_offset - address - 4)
     executable = result.raw[:count]
-    if executable[:len(prefix)] != expected or not executable.endswith(image):
+    if executable[:len(prefix)] != expected or executable[len(prefix):] != raw_images:
         raise ValueError('packed stdio adapter or kernel differs from the admitted bytes')
-    return executable, {'elf': inspect_executable(executable), 'mode': mode,
+    return executable, {'elf': inspect_executable(executable),
                         'packer_compilation': compiled, 'input_sha256': sha256(request).hexdigest()}
+
+
+def pack_stdio(output, compiler, sources, mode, image, pins):
+    prefix, call = template(mode)
+    request = struct.pack('<2Q', STDIO_PACK_MAGIC, mode) + image
+    executable, receipt = pack_elf(output, compiler, sources[STDIO_PACKER], request, prefix,
+                                   ((call, 0),), (image,), pins)
+    return executable, {**receipt, 'mode': mode}
 
 
 def build(output, compiler, cold_report, manifest, *, kind='read-page'):
@@ -62,10 +71,9 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     label = 'agent-' + kind
     source = 'examples/hia_bootstrap/' + symbol + '.hepta'
     mode = STDIO_MODES.get(kind)
-    adapter = 'tools/hia_' + symbol + '_stdio.S'
-    assembly_inputs = (LINKER, EMBED_SOURCE, adapter, JOURNAL_TRANSPORT) if kind == 'journal' else (STDIO_PACKER,)
+    pack_inputs = (JOURNAL_TRANSPORT, JOURNAL_PACKER) if kind == 'journal' else (STDIO_PACKER,)
     pins = {path: path.read_bytes() for path in (compiler, cold_report, manifest)}
-    sources = {name: (ROOT / name).read_bytes() for name in (source, DRIVER, *assembly_inputs)}
+    sources = {name: (ROOT / name).read_bytes() for name in (source, DRIVER, *pack_inputs)}
     source_digests = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
     if any(admitted.get(name) != digest for name, digest in source_digests.items()):
@@ -78,31 +86,25 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
         raise ValueError(label + ' image manifest does not match this cold build')
     image_path = manifest.parent / record['image_path']
     image = pins[image_path] = image_path.read_bytes()
-    if not 0 < len(image) <= 1 << 20 or sha256(image).hexdigest() != record['image_sha256']:
+    if not 0 < len(image) <= IMAGE_LIMIT or sha256(image).hexdigest() != record['image_sha256']:
         raise ValueError(label + ' image does not match its manifest')
     output.mkdir(mode=0o700)
     build_receipt = {}
     if mode is None:
-        linker_path, linker_receipt = compile_stage(output, 'linker', compiler, sources[LINKER])
-        linker = pins[linker_path] = linker_path.read_bytes()
-        if sha256(linker).hexdigest() != linker_receipt['produced_sha256']:
-            raise ValueError(label + ' linker changed')
         transport_path, transport_receipt = compile_stage(
             output, 'journal-wire', compiler, sources[JOURNAL_TRANSPORT])
         transport = pins[transport_path] = transport_path.read_bytes()
         if sha256(transport).hexdigest() != transport_receipt['produced_sha256']:
             raise ValueError(label + ' transport differs from its compilation receipt')
-        embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
-        objects = (assemble(output, adapter, sources[adapter]),
-                   embed(output, symbol, kind, image, embedder),
-                   embed(output, 'agent_journal_transport', 'journal-wire', transport, embedder))
-        executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')
-        verify_executable(executable, transport)
-        build_receipt['linking'] = receipt
+        prefix, (primary, codec) = journal_template()
+        request = struct.pack('<3Q', JOURNAL_PACK_MAGIC, len(image), len(transport)) + image + transport
+        executable, receipt = pack_elf(
+            output, compiler, sources[JOURNAL_PACKER], request, prefix,
+            ((primary, 0), (codec, len(image))), (image, transport), pins)
         build_receipt['journal_wire_compilation'] = transport_receipt
     else:
         executable, receipt = pack_stdio(output, compiler, sources, mode, image, pins)
-        build_receipt['native_packing'] = receipt
+    build_receipt['native_packing'] = receipt
     if (current_sources() != admitted or any(path.read_bytes() != raw for path, raw in pins.items())
             or any((ROOT / name).read_bytes() != raw for name, raw in sources.items())):
         raise ValueError(label + ' inputs changed before publishing')
