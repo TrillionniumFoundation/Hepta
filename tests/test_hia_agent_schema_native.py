@@ -12,6 +12,7 @@ from hepta import hia_agent_describe_answer_native as describe_answer
 from hepta import hia_agent_discovery_native as discovery
 from hepta import hia_agent_inspection_native as inspection
 from hepta.hia_agent_schema_native import SELECTOR, SOURCE, installed_agent_schema
+from hepta import hia_agent_payload_schema_native as payloads
 from hepta import hia_agent_response_schema_native as responses
 from hepta import hia_agent_verify_response_schema_native as proofs
 from hepta.hia_agent_service import HIAAgentService
@@ -25,6 +26,7 @@ class AgentSchemaSourceTests(unittest.TestCase):
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
         self.assertEqual(responses.SOURCE.read_text(), render_assembly(document(profile='response')))
         self.assertEqual(proofs.SOURCE.read_text(), render_assembly(document(profile='verify')))
+        self.assertEqual(payloads.SOURCE.read_text(), render_assembly(document(profile='payload')))
 
 
     def test_generated_discovery_matches_current_opcodes(self):
@@ -333,6 +335,7 @@ class AgentDiscoveryNativeTests(unittest.TestCase):
 
 class AgentSchemaNativeTests(unittest.TestCase):
     manifest = None
+    payload_manifest = None
     test_root = None
 
     def setUp(self):
@@ -404,6 +407,79 @@ class AgentSchemaNativeTests(unittest.TestCase):
                     self.assertEqual(self.image.accepts(case, role, pin), expected)
         with self.assertRaisesRegex(ValueError, 'authenticate'):
             self.image.accepts(tools['hia_describe'], 1, '0' * 64)
+
+    def test_issued_evaluation_inputs_match_reference(self):
+        from hepta.hia_agent_contract import COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA, WORKLOAD_SCHEMA
+        from hepta.hia_agent_payload_schema_native import COST_POLICY_ROLE, OBJECTIVE_ROLE, WORKLOAD_ROLE
+        from hepta.hia_agent_store import decode_data, wire
+
+        if self.payload_manifest is None:
+            self.skipTest('provide the matching evaluation payload image')
+        image = payloads.installed_agent_payload_schema(str(self.payload_manifest))
+        _, pin = catalog()
+        example = HIAAgentService._examples()
+        workload, objective, policy = (example[name] for name in ('workload', 'objective', 'cost_policy'))
+        case = workload['cases'][0]
+        buffer = {'function': 'take', 'arguments': [{'bytes_hex': '00ff'}]}
+        buffers = {**workload, 'schema': 'hepta.hia.agent.workload.v2', 'cases': [buffer],
+                   'foreign_buffer_exports': [{'function': 'take', 'max_buffer_bytes': 1048576}]}
+        cases = (
+            (WORKLOAD_ROLE, WORKLOAD_SCHEMA, [
+                workload, buffers, dict(workload, cases=[]),
+                *(dict(workload, cases=[dict(case, arguments=[n, -n])])
+                  for n in (0.0, 1.0, 1.5, 2.**52 - 0.5, 2.**53, 1e300, 10**100, 5e-324)),
+                *(dict(buffers, cases=[dict(buffer, arguments=[{'bytes_hex': data}])])
+                  for data in ('', 'ff', 'f', 'FF', '00 ff', '00\n', '0\n', '00\n\n')),
+                dict(buffers, cases=[dict(buffer, arguments=[{'byte_length': 1048577, 'fill_byte': 0}])]),
+                dict(buffers, cases=[dict(buffer, arguments=[{'byte_length': 1048576.0, 'fill_byte': 255}])]),
+            ]),
+            (OBJECTIVE_ROLE, OBJECTIVE_SCHEMA, [
+                objective, dict(objective, required_claims=['encoding_check']),
+                dict(objective, required_claims=['core_admission', 'core_admission']),
+                *(dict(objective, min_improvement_ratio=n)
+                  for n in (False, -0.0, -5e-324, 5e-324, 0.5, 1, 1.0000000000000002, 1 << 80)),
+            ]),
+            (COST_POLICY_ROLE, COST_POLICY_SCHEMA, [
+                policy, dict(policy, expected_invocations='09'),
+                dict(policy, external_costs={**policy['external_costs'], 'model_tokens': 1e8}),
+                dict(policy, external_costs={**policy['external_costs'], 'model_tokens': 1e8 + 1}),
+            ]),
+        )
+        for role, schema, values in cases:
+            for value in values:
+                raw = b' \n' + wire(value) + b'\n '
+                with self.subTest(role=role, value=value):
+                    try:
+                        validate(decode_data(raw), schema)
+                    except AgentRejected:
+                        expected = False
+                    else:
+                        expected = True
+                    self.assertEqual(image.accepts_wire(raw, role, pin), expected)
+
+    def test_selected_service_admits_frozen_evaluation_inputs_natively(self):
+        from tools.hia_agent_native_qualification import Session, ToolClient
+
+        if self.payload_manifest is None:
+            self.skipTest('provide the matching evaluation payload image')
+        with tempfile.TemporaryDirectory(dir=self.test_root) as root:
+            service = HIAAgentService(Path(root) / 'state')
+            try:
+                session = Session(ToolClient(service.call, validate=False))
+                example = service._examples()
+
+                def result_only(value, schema, label='arguments'):
+                    if label != 'result':
+                        raise AssertionError('hosted validator selected for admitted evaluation input: ' + label)
+                    return validate(value, schema, label)
+
+                with (patch.dict('os.environ', {SELECTOR: str(self.manifest),
+                                                payloads.SELECTOR: str(self.payload_manifest)}),
+                      patch('hepta.hia_agent_service.validate', result_only)):
+                    session.freeze(example['workload'], objective=example['objective'])
+                    self.assertEqual(service._context(session.context)['ref'], session.context)
+            finally:
+                service.close()
 
     def test_selected_ordinary_service_uses_native_decisions(self):
         with tempfile.TemporaryDirectory(dir=self.test_root) as root:
@@ -486,6 +562,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--test-root', type=Path, required=True)
+    parser.add_argument('--payload-manifest', type=Path)
     parser.add_argument('--response-manifest', type=Path)
     parser.add_argument('--proof-manifest', type=Path)
     parser.add_argument('--discovery-manifest', type=Path)
@@ -494,6 +571,7 @@ def main():
     parser.add_argument('--native-release', type=Path)
     args = parser.parse_args()
     AgentSchemaNativeTests.manifest = args.manifest.resolve()
+    AgentSchemaNativeTests.payload_manifest = args.payload_manifest
     AgentSchemaNativeTests.test_root = args.test_root.resolve()
     AgentResponseSchemaNativeTests.manifest = AgentSchemaNativeTests.manifest
     AgentResponseSchemaNativeTests.response_manifest = args.response_manifest

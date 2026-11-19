@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_contract import COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA, WORKLOAD_SCHEMA
+from hepta.hia_agent_payload_schema_native import COST_POLICY_ROLE, OBJECTIVE_ROLE, WORKLOAD_ROLE
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
 from tools.generate_hia_worker_request import data_source, decimal_program
@@ -16,6 +18,7 @@ CATALOG = ROOT / 'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json'
 SOURCE = ROOT / 'examples/hia_bootstrap/agent_schema.hepta'
 RESPONSE_SOURCE = SOURCE.with_name('agent_response_schema.hepta')
 VERIFY_RESPONSE_SOURCE = SOURCE.with_name('agent_verify_response_schema.hepta')
+PAYLOAD_SOURCE = SOURCE.with_name('agent_payload_schema.hepta')
 END = 18446744073709551615
 TYPES = {'string': 4, 'array': 5, 'object': 6, 'null': 0}
 PATTERNS = {
@@ -151,6 +154,50 @@ def integer_between(s:readbuf, w:mutbuf, node:u64, low:u64, high:u64) -> u64:
     return choose(value >= low and value <= high, 1, 0)
 '''
 
+PAYLOAD_HELPERS = r'''
+def hex_byte_pairs(w:mutbuf, start:u64, size:u64) -> u64:
+    if size > 0 and byte(w, start + size - 1) == 10:
+        size = size - 1
+    if (size & 1) != 0:
+        return 0
+    index = 0
+    while index < size:
+        unit = byte(w, start + index)
+        if (unit < 48 or unit > 57) and (unit < 97 or unit > 102):
+            return 0
+        index = index + 1
+    return 1
+
+
+def unrestricted_integer(s:readbuf, w:mutbuf, node:u64) -> u64:
+    kind = get(w, node)
+    if kind == 3:
+        return 1
+    if kind != 7 or widen(decimal_convert(s, w, get(w, node + 24), get(w, node + 32))) != 8:
+        return 0
+    bits = get(w, length(w) - 8192 + 8000)
+    exponent = (bits >> 52) & 2047
+    fraction = bits & 4503599627370495
+    if exponent == 0:
+        return choose(fraction == 0, 1, 0)
+    if exponent < 1023 or exponent == 2047:
+        return 0
+    if exponent >= 1075:
+        return 1
+    mask = (1 << (1075 - exponent)) - 1
+    return choose((fraction & mask) == 0, 1, 0)
+
+
+def unit_number(s:readbuf, w:mutbuf, node:u64) -> u64:
+    if get(w, node) != 7:
+        return integer_between(s, w, node, 0, 1)
+    if widen(decimal_convert(s, w, get(w, node + 24), get(w, node + 32))) != 8:
+        return 0
+    bits = get(w, length(w) - 8192 + 8000)
+    magnitude = bits & 9223372036854775807
+    return choose(magnitude == 0 or bits <= 4607182418800017408, 1, 0)
+'''
+
 
 def table(name, entries):
     lines = [f'def {name}(w:mutbuf, start:u64, size:u64) -> u64:']
@@ -210,10 +257,17 @@ class Catalog:
 
         kind = schema.get('type')
         if kind == 'integer':
-            low, high = schema['minimum'], schema['maximum']
-            if type(low) is not int or type(high) is not int or not 0 <= low <= high <= 1 << 30:
+            low, high = schema.get('minimum'), schema.get('maximum')
+            if low is None and high is None:
+                reject('unrestricted_integer(s, w, node) == 0')
+            elif type(low) is int and type(high) is int and 0 <= low <= high <= 1 << 30:
+                reject(f'integer_between(s, w, node, {low}, {high}) == 0')
+            else:
                 raise ValueError('unsupported numeric bounds')
-            reject(f'integer_between(s, w, node, {low}, {high}) == 0')
+        elif kind == 'number':
+            if (schema.get('minimum'), schema.get('maximum')) != (0, 1):
+                raise ValueError('unsupported Agent numeric interval')
+            reject('unit_number(s, w, node) == 0')
         elif kind == 'boolean':
             add('kind = get(w, node)')
             reject('kind != 1 and kind != 2')
@@ -330,7 +384,9 @@ class Catalog:
                     reject(f'count < {schema["minLength"]}', scope)
                 if 'maxLength' in schema:
                     reject(f'count > {schema["maxLength"]}', scope)
-            if 'pattern' in schema:
+            if schema.get('pattern') == '^(?:[0-9a-f]{2})*$':
+                reject('hex_byte_pairs(w, start, size) == 0', scope)
+            elif 'pattern' in schema:
                 reject(f'pattern(w, start, size, {PATTERNS[schema["pattern"]]}) == 0', scope)
         add('return 1')
         return '\n'.join(lines) + '\n'
@@ -339,12 +395,18 @@ class Catalog:
 def source_program(raw, *, profile='input'):
     value = json.loads(raw)
     catalog = Catalog()
-    field = 'inputSchema' if profile == 'input' else 'outputSchema'
-    roles = []
-    for role, tool in enumerate(value['tools'], 1):
-        if profile != 'input' and (tool['name'] == 'hia_verify') != (profile == 'verify'):
-            continue
-        roles.append((role, catalog.add(tool[field])))
+    if profile == 'payload':
+        roles = [(role, catalog.add(schema)) for role, schema in (
+            (WORKLOAD_ROLE, WORKLOAD_SCHEMA), (OBJECTIVE_ROLE, OBJECTIVE_SCHEMA),
+            (COST_POLICY_ROLE, COST_POLICY_SCHEMA),
+        )]
+    else:
+        field = 'inputSchema' if profile == 'input' else 'outputSchema'
+        roles = []
+        for role, tool in enumerate(value['tools'], 1):
+            if profile != 'input' and (tool['name'] == 'hia_verify') != (profile == 'verify'):
+                continue
+            roles.append((role, catalog.add(tool[field])))
     dispatch = ['def dispatch_schema(s:readbuf, w:mutbuf, role:u64) -> u64:']
     for role, name in roles:
         dispatch += [f'    if role == {role}:', f'        return 1 - {name}(s, w, 64)']
@@ -362,7 +424,8 @@ def source_program(raw, *, profile='input'):
         table('pinned_catalog', [(1, sha256(raw).hexdigest())]),
         table('property_key', [(code, key) for key, code in catalog.keys.items()]),
         table('value_symbol', [(code, value) for value, code in catalog.symbols.items()]),
-        helpers, *rules, data_source(), decimal_program() if numeric else ''))
+        helpers, PAYLOAD_HELPERS if profile == 'payload' else '', *rules,
+        data_source(), decimal_program() if numeric else ''))
 
 
 def document(raw=None, *, profile='input'):
@@ -380,7 +443,7 @@ def document(raw=None, *, profile='input'):
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
     module = {'input': SOURCE.stem, 'response': RESPONSE_SOURCE.stem,
-              'verify': VERIFY_RESPONSE_SOURCE.stem}[profile]
+              'verify': VERIFY_RESPONSE_SOURCE.stem, 'payload': PAYLOAD_SOURCE.stem}[profile]
     return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
                                   'functions': functions})
 
@@ -389,3 +452,4 @@ if __name__ == '__main__':
     SOURCE.write_text(render_assembly(document()))
     RESPONSE_SOURCE.write_text(render_assembly(document(profile='response')))
     VERIFY_RESPONSE_SOURCE.write_text(render_assembly(document(profile='verify')))
+    PAYLOAD_SOURCE.write_text(render_assembly(document(profile='payload')))

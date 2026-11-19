@@ -457,6 +457,17 @@ class HIAAgentService:
             validate(response, schema, label)
             raise ValueError('native Agent output schema disagrees with the catalog')
 
+    def _validate_payload(self, value, raw, schema, label, role):
+        from .hia_agent_payload_schema_native import SELECTOR, installed_agent_payload_schema
+
+        selected = os.environ.get(SELECTOR)
+        if not selected:
+            validate(value, schema, label)
+        elif not installed_agent_payload_schema(selected).accepts_wire(raw, role, self.catalog_sha256):
+            # Preserve the established field diagnostic on native refusal.
+            validate(value, schema, label)
+            raise ValueError('native Agent payload schema disagrees with the contract')
+
     def _profile(self, ref, name):
         return self.store.check_profile(ref, self.profiles[name])
 
@@ -651,15 +662,16 @@ class HIAAgentService:
 
     def _hia_context(self, args):
         from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
+        from .hia_agent_payload_schema_native import COST_POLICY_ROLE, OBJECTIVE_ROLE, WORKLOAD_ROLE
         from .hia_agent_store import _native_agent_identity
 
         context_policy = _native_agent_identity()
         self._profile(args["compiler_profile"], "compiler")
         self._profile(args["target_profile"], "target")
-        workload, _ = self.store.get_json(args["workload"])
-        objective, _ = self.store.get_json(args["objective"])
-        cost_policy, _ = self.store.get_json(args["budget"]["cost_policy"])
-        validate(workload, WORKLOAD_SCHEMA, "workload")
+        workload, _, workload_raw = self.store.get_json_with_wire(args["workload"])
+        objective, _, objective_raw = self.store.get_json_with_wire(args["objective"])
+        cost_policy, _, cost_policy_raw = self.store.get_json_with_wire(args["budget"]["cost_policy"])
+        self._validate_payload(workload, workload_raw, WORKLOAD_SCHEMA, "workload", WORKLOAD_ROLE)
         foreign_buffer_exports = export_manifest(workload)
         snapshot_sizes = (buffer_size(value) for case in workload["cases"]
                           for value in case["arguments"] if type(value) is dict)
@@ -667,8 +679,8 @@ class HIAAgentService:
             context_policy.context_snapshots(snapshot_sizes)
         elif sum(snapshot_sizes) > MAX_WORKLOAD_BUFFER_BYTES:
             reject("E_HIA_BUFFER_BUDGET", "frozen workload exceeds 32 MiB of external byte snapshots", "context")
-        validate(objective, OBJECTIVE_SCHEMA, "objective")
-        validate(cost_policy, COST_POLICY_SCHEMA, "cost_policy")
+        self._validate_payload(objective, objective_raw, OBJECTIVE_SCHEMA, "objective", OBJECTIVE_ROLE)
+        self._validate_payload(cost_policy, cost_policy_raw, COST_POLICY_SCHEMA, "cost_policy", COST_POLICY_ROLE)
         for name in ("max_candidates", "max_model_tokens", "max_total_wall_ms", "max_native_wall_ms"):
             args["budget"][name] = int(args["budget"][name])
         uint64(cost_policy["expected_invocations"], "expected_invocations")
@@ -1366,6 +1378,7 @@ class HIAAgentService:
         from .hia_agent_runner import run_native_batch, run_reference_batch
         from .hia_agent_buffers import validate_cases
         from .hia_agent_identity_native import DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION
+        from .hia_agent_payload_schema_native import WORKLOAD_ROLE
         from .hia_agent_store import _native_agent_identity
         started = time.monotonic_ns()
         context = self._context(args["context"])
@@ -1380,8 +1393,8 @@ class HIAAgentService:
             reject("E_HIA_BASELINE", "evaluation baseline differs from the frozen Core snapshot", "execution")
         objective = self._required_claims(context, args["candidate_artifact"],
                                          args["verification_receipts"], baseline_program.sha256)
-        workload, _ = self.store.get_json(context["workload"])
-        validate(workload, WORKLOAD_SCHEMA, "workload")
+        workload, _, workload_raw = self.store.get_json_with_wire(context["workload"])
+        self._validate_payload(workload, workload_raw, WORKLOAD_SCHEMA, "workload", WORKLOAD_ROLE)
         validate_cases(baseline_meta["signatures"], workload["cases"])
         policy = _native_agent_identity()
         agree = self._reference_observation_agreement if policy is None else policy.observation_agreement

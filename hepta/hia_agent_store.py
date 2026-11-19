@@ -521,8 +521,12 @@ class AgentStore:
         return data, decode_data(row["metadata"])
 
     def get_json(self, ref, *, kind=None):
+        value, metadata, _ = self.get_json_with_wire(ref, kind=kind)
+        return value, metadata
+
+    def get_json_with_wire(self, ref, *, kind=None):
         data, metadata = self.get(ref, kind=kind)
-        return decode_data(data), metadata
+        return decode_data(data), metadata, data
 
     def resolve_uri(self, uri):
         row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
