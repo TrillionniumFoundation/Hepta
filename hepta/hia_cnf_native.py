@@ -36,7 +36,9 @@ UNKNOWN, SAT, UNSAT = range(3)
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
                     'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8,
-                    'int.add.wrap': 9, 'int.sub.wrap': 10}
+                    'int.add.wrap': 9, 'int.sub.wrap': 10, 'select': 11,
+                    'compare.lt': 12, 'compare.le': 13, 'compare.gt': 14, 'compare.ge': 15,
+                    'int.cast': 20}
 
 
 class NativeCnf(NativeHiaJsonImage):
@@ -134,7 +136,7 @@ def core_circuit(before, after):
         width = _CORE_WIDTHS.get(parameter['type'])
         if width not in (1, 8, 16, 32, 64):
             return None
-        parameters[parameter['name']] = len(nodes)
+        parameters[parameter['name']] = (len(nodes), parameter['type'])
         nodes.append((1, width, 0, 0, 0))
     returned = []
     for block in (before, after):
@@ -147,14 +149,24 @@ def core_circuit(before, after):
             width = _CORE_WIDTHS.get(output['type'])
             if width not in (1, 8, 16, 32, 64) or any(arg not in values for arg in operation['args']):
                 return None
-            args = [values[arg] for arg in operation['args']]
+            args = [values[arg][0] for arg in operation['args']]
             left, right = (args + [0, 0])[:2]
-            immediate = int(operation['attrs']['value']) % (1 << width) if opcode == 2 else 0
-            values[output['name']] = len(nodes)
+            immediate = 0
+            if opcode == 2:
+                immediate = int(operation['attrs']['value']) % (1 << width)
+            elif opcode == 11:
+                immediate = args[2]
+            elif 12 <= opcode <= 15:
+                opcode += 4 * values[operation['args'][0]][1].startswith('i')
+            elif opcode == 20:
+                if operation['attrs']['mode'] != 'wrap':
+                    return None
+                opcode += values[operation['args'][0]][1].startswith('i')
+            values[output['name']] = (len(nodes), output['type'])
             nodes.append((opcode, width, left, right, immediate))
         if any(name not in values for name in block['term']['values']):
             return None
-        returned.append([values[name] for name in block['term']['values']])
+        returned.append([values[name][0] for name in block['term']['values']])
     return nodes, list(zip(*returned, strict=True))
 
 

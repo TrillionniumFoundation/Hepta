@@ -2,6 +2,7 @@
 
 import builtins
 from hashlib import sha256
+from operator import ge, gt, le, lt
 import random
 import struct
 import unittest
@@ -163,6 +164,39 @@ class CnfInstalledTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'circuit representation'):
                 self.native.solve_circuit([(1, 1, 0, 0, 0), (op, 1, 0, 0, 0)], [(1, 1)], steps=8)
 
+    def test_order_cast_and_select_match_independent_words(self):
+        rng = random.Random(224941)
+        for width in (8, 16, 32, 64):
+            mask = (1 << width) - 1
+            signed_minimum = 1 << (width - 1)
+            operands = [(0, 0), (0, mask), (mask, 0), (1, signed_minimum),
+                        (signed_minimum, 1), (signed_minimum, mask), (mask, mask)]
+            operands.extend((rng.getrandbits(width), rng.getrandbits(width)) for _ in range(32))
+            for a, b in operands:
+                signed_a = (a ^ signed_minimum) - signed_minimum
+                signed_b = (b ^ signed_minimum) - signed_minimum
+                for form, compare in enumerate((lt, le, gt, ge)):
+                    for signed in (False, True):
+                        left, right = (signed_a, signed_b) if signed else (a, b)
+                        expected = int(compare(left, right))
+                        values = [(2, width, 0, 0, a), (2, width, 0, 0, b),
+                                  (12 + form + 4 * signed, 1, 0, 1, 0),
+                                  (11, width, 2, 0, 1),
+                                  (2, 1, 0, 0, expected),
+                                  (2, width, 0, 0, a if expected else b)]
+                        self.assertEqual(self.native.solve_circuit(values, [(2, 4), (3, 5)], steps=8)[0], UNSAT)
+                for destination in (8, 16, 32, 64):
+                    for signed in (False, True):
+                        value = (signed_a if signed else a) % (1 << destination)
+                        values = [(2, width, 0, 0, a), (20 + signed, destination, 0, 0, 0),
+                                  (2, destination, 0, 0, value)]
+                        self.assertEqual(self.native.solve_circuit(values, [(1, 2)], steps=8)[0], UNSAT)
+        for malformed in ([(1, 8, 0, 0, 0), (11, 8, 0, 0, 0)],
+                          [(1, 1, 0, 0, 0), (12, 1, 0, 0, 0)],
+                          [(1, 8, 0, 0, 0), (20, 1, 0, 0, 0)]):
+            with self.assertRaisesRegex(ValueError, 'circuit representation'):
+                self.native.solve_circuit(malformed, [(1, 1)], steps=8)
+
     def test_actual_optimizer_discharge_and_legacy_counterexample(self):
         try:
             import z3
@@ -299,6 +333,18 @@ class CnfInstalledTests(unittest.TestCase):
                                                       claims=['behavior_equivalence'])['checks'][0]
                     self.assertEqual(arithmetic_proof['status'], 'proved')
                     self.assertEqual(arithmetic_proof['checker']['solver']['name'], 'HIA')
+                    signed_words = [('x', 'i64'), ('y', 'i64')]
+
+                    def choose(reversed_order):
+                        comparison, left, right = ('compare.ge', 'y', 'x') if reversed_order else ('compare.lt', 'x', 'y')
+                        return m(f('minimum', signed_words, ['i64'], [], [b('entry', signed_words, [
+                            i(comparison, ['x', 'y'], [('take_first', 'bool')]),
+                            i('select', ['take_first', left, right], [('out', 'i64')]),
+                        ], ret('out'))]))
+
+                    ordered = verify_optimization(choose(False), choose(True))
+                    self.assertEqual(ordered['status'], 'verified', ordered)
+                    self.assertEqual(ordered['solver'], report['solver'])
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)

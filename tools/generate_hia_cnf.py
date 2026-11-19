@@ -301,7 +301,7 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf) -> u32:
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width != 1 and width != 8 and width != 16 and width != 32 and width != 64:
         return 0
-    if operation < 1 or operation > 10:
+    if operation < 1 or operation > 21:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -309,20 +309,35 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         if width < 64 and immediate >= (1 << width):
             return 0
         return 1
-    if immediate != 0 or left >= index:
+    if left >= index:
         return 0
+    if operation == 11:
+        if right >= index or immediate >= index or node_width(source, left) != 1:
+            return 0
+        if width != node_width(source, right) or width != node_width(source, immediate):
+            return 0
+        return 1
+    if immediate != 0:
+        return 0
+    if operation >= 20:
+        if right != 0 or width == 1 or node_width(source, left) == 1:
+            return 0
+        return 1
     if operation == 6:
         if right != 0 or width != node_width(source, left):
             return 0
         return 1
     if right >= index or node_width(source, left) != node_width(source, right):
         return 0
-    if operation == 7 or operation == 8:
+    if operation >= 12:
+        if width != 1 or node_width(source, left) == 1:
+            return 0
+    elif operation == 7 or operation == 8:
         if width != 1:
             return 0
     elif width != node_width(source, left):
         return 0
-    if operation >= 9 and width == 1:
+    if (operation == 9 or operation == 10) and width == 1:
         return 0
     return 1
 
@@ -351,9 +366,16 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
             if delta == 0:
                 return TOO_LARGE
             put_token(scratch, 32 + 128 * node, delta ^ (operation & 1))
-        elif operation >= 9:
+        elif operation == 9 or operation == 10:
             if encode_wrapping_sum(output, scratch, node, left, right, width, operation == 10) == 0:
                 return TOO_LARGE
+        elif operation >= 12 and operation <= 19:
+            digit = ordered_comparison(output, scratch, source, operation, left, right)
+            if digit == 0:
+                return TOO_LARGE
+            put_token(scratch, 32 + 128 * node, digit)
+        elif operation >= 20:
+            encode_wrapping_cast(scratch, node, left, width, node_width(source, left), operation == 21)
         else:
             bit = 0
             while bit < width:
@@ -390,6 +412,11 @@ def encode_bit(output:mutbuf, scratch:mutbuf, operation:u64, left:u64, right:u64
         return allocate_variable(scratch)
     if operation == 2:
         return 3 ^ ((immediate >> bit) & 1)
+    if operation == 11:
+        condition = load_token(scratch, 32 + 128 * left)
+        first = load_token(scratch, 32 + 128 * right + 2 * bit)
+        second = load_token(scratch, 32 + 128 * immediate + 2 * bit)
+        return logic_select(output, scratch, condition, first, second)
     a = load_token(scratch, 32 + 128 * left + 2 * bit)
     if operation == 6:
         return a ^ 1
@@ -399,6 +426,61 @@ def encode_bit(output:mutbuf, scratch:mutbuf, operation:u64, left:u64, right:u64
     if operation == 4:
         return logic_or(output, scratch, a, b)
     return logic_xor(output, scratch, a, b)
+
+def encode_wrapping_cast(scratch:mutbuf, node:u64, source:u64, width:u64, source_width:u64, signed:bool) -> u64:
+    extension = 3
+    if signed:
+        extension = load_token(scratch, 32 + 128 * source + 2 * (source_width - 1))
+    bit = 0
+    while bit < width:
+        digit = extension
+        if bit < source_width:
+            digit = load_token(scratch, 32 + 128 * source + 2 * bit)
+        put_token(scratch, 32 + 128 * node + 2 * bit, digit)
+        bit = bit + 1
+    return 1
+
+def ordered_comparison(output:mutbuf, scratch:mutbuf, source:readbuf, operation:u64, left:u64, right:u64) -> u64:
+    # LT, LE, GT, GE are respectively a<b, not b<a, b<a, not a<b.
+    form = operation & 3
+    signed = operation >= 16
+    width = node_width(source, left)
+    if form == 1 or form == 2:
+        swapped = left
+        left = right
+        right = swapped
+    bit = 0
+    lower_less = 3
+    while bit < width:
+        a = load_token(scratch, 32 + 128 * left + 2 * bit)
+        b = load_token(scratch, 32 + 128 * right + 2 * bit)
+        if signed and bit + 1 == width:
+            a = a ^ 1
+            b = b ^ 1
+        if a != b:
+            current_less = logic_and(output, scratch, a ^ 1, b)
+            mismatch = logic_xor(output, scratch, a, b)
+            if current_less == 0 or mismatch == 0:
+                return 0
+            lower_if_equal = logic_and(output, scratch, mismatch ^ 1, lower_less)
+            if lower_if_equal == 0:
+                return 0
+            lower_less = logic_or(output, scratch, current_less, lower_if_equal)
+            if lower_less == 0:
+                return 0
+        bit = bit + 1
+    return lower_less ^ (form & 1)
+
+def logic_select(output:mutbuf, scratch:mutbuf, condition:u64, first:u64, second:u64) -> u64:
+    if first == second or condition == 2:
+        return first
+    if condition == 3:
+        return second
+    a = logic_and(output, scratch, condition, first)
+    b = logic_and(output, scratch, condition ^ 1, second)
+    if a == 0 or b == 0:
+        return 0
+    return logic_or(output, scratch, a, b)
 
 def encode_wrapping_sum(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, width:u64, subtract:bool) -> u64:
     # Literal 2 is true and 3 false. For subtraction, add the complement
