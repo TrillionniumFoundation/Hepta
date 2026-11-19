@@ -1602,7 +1602,7 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
         return TOO_LARGE
     if mode == 2 and outputs + 2 > CIRCUIT_RETURNS:
         return TOO_LARGE
-    if mode == 3 and (calls == False or outputs == 0):
+    if mode == 3 and calls == False:
         return TOO_LARGE
     if mode == 4 and (calls or outputs != 1 or read64(s, origin + 8 * inputs) != 1):
         return TOO_LARGE
@@ -1969,7 +1969,7 @@ def p_call(s:readbuf, o:mutbuf, w:mutbuf, instruction:u64, typ:u64, remaining:u6
     argc = read64(s, instruction + 32)
     output_count = read64(s, instruction + 40)
     tail = read_stack(w, 120)
-    if summary < tail or summary > length(s) or length(s) - summary < 64:
+    if summary < tail or summary > length(s) or length(s) - summary < 56:
         return 0
     if arguments < tail or arguments > length(s) or argc > SUMMARIZED_CALL_INPUTS or argc * 8 > length(s) - arguments:
         return 0
@@ -1978,11 +1978,12 @@ def p_call(s:readbuf, o:mutbuf, w:mutbuf, instruction:u64, typ:u64, remaining:u6
         return 0
     end = summary + 32 + 40 * count
     table = end + 32
-    if output_count == 0:
-        if read64(s, summary) != SCALAR_SUMMARY or read64(s, summary + 24) != typ:
+    legacy_scalar = output_count == 0 and typ != 0
+    if legacy_scalar:
+        if p_width(typ) == 0 or read64(s, summary) != SCALAR_SUMMARY or read64(s, summary + 24) != typ:
             return 0
     else:
-        if output_count < 2 or output_count > CIRCUIT_RETURNS or output_count > remaining:
+        if output_count == 1 or output_count > CIRCUIT_RETURNS or output_count > remaining:
             return 0
         if read64(s, summary) != TUPLE_SUMMARY or read64(s, summary + 24) != output_count:
             return 0
@@ -2003,11 +2004,13 @@ def p_call(s:readbuf, o:mutbuf, w:mutbuf, instruction:u64, typ:u64, remaining:u6
         failed = p_logic(o, w, 3, known, p_logic(o, w, 6, normal, 0))
         p_trap_tag(o, w, p_logic(o, w, 3, reached, failed), tag)
     write64(w, 112, p_logic(o, w, 3, reached, normal))
-    if output_count == 0:
+    if legacy_scalar:
         value = p_summary_result(s, w, summary, read64(s, end + 24), p_width(typ))
         if value == 65535:
             return 0
         return p_bind(w, typ, value)
+    if output_count == 0:
+        return 1
     return p_bind_call_tuple(s, w, instruction, summary, end + 24, output_count)
 
 def p_bind_call_tuple(s:readbuf, w:mutbuf, instruction:u64, summary:u64, results:u64, count:u64) -> u64:
@@ -2110,11 +2113,11 @@ def p_edge(s:readbuf, o:mutbuf, w:mutbuf, target:u64, extent:u64, cursor:u64, ar
 def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64, remaining:u64) -> u64:
     role = read64(s, row)
     typ = read64(s, row + 8)
+    if role == PROJECT_DIRECT_CALL:
+        return p_call(s, o, w, row, typ, remaining)
     width = p_width(typ)
     if width == 0:
         return 0
-    if role == PROJECT_DIRECT_CALL:
-        return p_call(s, o, w, row, typ, remaining)
     if role == 2:
         literal = read64(s, row + 40) & word_mask(width)
         return p_bind(w, typ, p_node(o, w, 2, width, 0, 0, literal))

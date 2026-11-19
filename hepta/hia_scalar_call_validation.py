@@ -45,7 +45,7 @@ def _closure(document, function):
         if len(graphs) + len(active) >= MAX_FUNCTIONS:
             raise _OutsideProfile("call_function_budget_exceeded")
         fn = functions[name]
-        if not 1 <= len(fn["returns"]) <= MAX_RETURNS:
+        if len(fn["returns"]) > MAX_RETURNS:
             raise _OutsideProfile("bounded_scalar_call_results_required")
         blocks += len(fn["blocks"])
         operations += sum(len(b["ops"]) for b in fn["blocks"])

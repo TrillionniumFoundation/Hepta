@@ -173,6 +173,40 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(total['counterexample']['arguments'], [-128])
         self.assertEqual(total['counterexample']['observation'], {'status':'trapped', 'code':'overflow'})
 
+    def test_no_result_calls_still_change_exact_first_trap(self):
+        import copy
+
+        from hepta.hia_scalar_call_validation import inline_scalar_calls, validate_scalar_calls
+        from hepta.hia_scalar_totality import validate_scalar_call_totality
+        from tests.test_hia_program import b, f, i, m, ret
+
+        params = [('x', 'i8')]
+        helper = f('helper', params, [], ['trap'], [b('h', params, [
+            i('int.neg.checked', ['x'], [('unused', 'i8')]),
+        ], ret())])
+        caller = f('calculate', params, ['i8'], ['trap'], [b('entry', params, [
+            i('call', ['x'], [], function='helper'),
+        ], ret('x'))])
+        source = m(caller, helper)
+        source['exports'] = ['calculate', 'helper']
+        proposed = inline_scalar_calls(source, function='calculate')
+        removed = copy.deepcopy(source)
+        removed['functions'][0]['blocks'][0]['ops'] = []
+
+        with (patch('hepta.hia_scalar_call_validation._z3_module', side_effect=AssertionError('host solver used')),
+              patch('hepta.hia_translation_validation._z3_module', side_effect=AssertionError('host solver used'))):
+            self.assertEqual(validate_scalar_calls(source, proposed, function='calculate')['status'], 'proved')
+            different = validate_scalar_calls(source, removed, function='calculate')
+            total = validate_scalar_call_totality(source, function='helper')
+
+        self.assertEqual(different['status'], 'disproved', different)
+        self.assertEqual(different['counterexample'], {
+            'arguments': [-128], 'before': {'status': 'trapped', 'code': 'overflow'},
+            'after': {'status': 'returned', 'values': [-128]},
+        })
+        self.assertEqual(total['status'], 'disproved', total)
+        self.assertEqual(total['counterexample']['observation'], {'status': 'trapped', 'code': 'overflow'})
+
     def test_feedback_bound_and_candidate_have_separate_native_checks(self):
         from hepta.hia_scalar_proof_contract import CIRCUIT_BOUND_CHECKER, CIRCUIT_TRANSLATION_CHECKER
         from tests.test_hia_bounded_unroll import candidate, counted, proof

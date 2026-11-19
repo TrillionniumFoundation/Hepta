@@ -363,7 +363,7 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
     """
     parameters = functions[0]['params']
     returns = functions[0]['returns']
-    if (summarize and not 1 <= len(returns) <= CIRCUIT_RETURNS
+    if (summarize and len(returns) > CIRCUIT_RETURNS
             or not (totality or summarize) and len(returns) + 2 > CIRCUIT_RETURNS):
         return None
     magic = GRAPH_PROJECTION_REQUEST if summaries is None else CALL_PROJECTION_REQUEST
@@ -382,7 +382,7 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
         buffer.extend(struct.pack('<3Q', 0, len(order), indexes[function['entry']]))
         for name in order:
             block = blocks[name]
-            operation_rows = sum(len(op['out']) for op in block['ops'])
+            operation_rows = sum(max(1, len(op['out'])) for op in block['ops'])
             bound = len(block['params']) + operation_rows
             if bound > CIRCUIT_NODES:
                 return None
@@ -401,7 +401,8 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
                     summary = available[op['attrs']['function']]
                     calls.append((len(buffer), operands, summary))
                     count = len(outputs) if len(outputs) != 1 else 0  # v1 scalar summary uses a zero count.
-                    buffer.extend(struct.pack('<6Q', PROJECT_DIRECT_CALL, _word_type(outputs[0]['type']),
+                    first_type = _word_type(outputs[0]['type']) if outputs else 0
+                    buffer.extend(struct.pack('<6Q', PROJECT_DIRECT_CALL, first_type,
                                               0, 0, 0, count))
                     for result in outputs[1:]:
                         buffer.extend(struct.pack('<6Q', PROJECT_CALL_RESULT, _word_type(result['type']),
