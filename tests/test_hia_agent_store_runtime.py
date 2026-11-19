@@ -97,6 +97,28 @@ class NativeStoreArgv(unittest.TestCase):
         self.assertEqual(acks, [0, *kinds])
         return rows, receipts
 
+    def test_initializer_refuses_existing_names_without_creating_a_stage(self):
+        if self.test_root is None:
+            self.skipTest('run with the cold-built native Agent Store paths')
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary:
+            root = Path(temporary)
+            self.assertEqual(self.run_native([self.initializer, root, 'store'])[:8], b'HIAWNA01')
+            store = self.state(root)
+            (root / 'file').write_bytes(b'retained')
+            (root / 'empty').mkdir()
+            (root / 'link').symlink_to('store')
+            (root / 'dangling').symlink_to('missing')
+            names = {'store', 'file', 'empty', 'link', 'dangling'}
+            for name in sorted(names):
+                with self.subTest(name=name):
+                    self.run_native([self.initializer, root, name], expected=76)
+                    self.assertEqual({entry.name for entry in root.iterdir()}, names)
+            self.assertEqual(self.state(root), store)
+            self.assertEqual((root / 'file').read_bytes(), b'retained')
+            self.assertEqual(list((root / 'empty').iterdir()), [])
+            self.assertEqual((root / 'link').readlink(), Path('store'))
+            self.assertEqual((root / 'dangling').readlink(), Path('missing'))
+
     def test_direct_native_cli(self):
         if self.test_root is None:
             self.skipTest('run with the cold-built native Agent Store paths')
