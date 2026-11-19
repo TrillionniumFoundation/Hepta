@@ -165,6 +165,38 @@ class NativeAgentIdentity(NativeHiaJsonImage):
     def context_snapshots(self, sizes):
         self._context(4, tuple(sizes), (5,))
 
+    def workload_exports(self, workload):
+        """Observe validated workload values; HIA admits and orders exports."""
+        version = {'hepta.hia.agent.workload.v1': 1, 'hepta.hia.agent.workload.v2': 2}.get(workload['schema'], 0)
+        rows = workload['foreign_buffer_exports'] if version == 2 else ()
+        pairs = tuple((row['function'], row['max_buffer_bytes']) for row in rows)
+        packet = bytearray(struct.pack('<4Q', MAGIC, 42, version, len(pairs)))
+        for name, extent in pairs:
+            raw = name.encode('utf-8') if type(name) is str else b''
+            word = extent if type(extent) is int and 0 <= extent <= WORD_MASK else 0
+            packet.extend(struct.pack('<2Q', len(raw), word))
+            packet.extend(raw)
+        source = ctypes.create_string_buffer(bytes(packet))
+        scratch = ctypes.create_string_buffer(max(1, 8 * len(pairs)))
+        output = ctypes.create_string_buffer(24 + 8 * len(pairs))
+        size = self._entry(source, len(packet), output, len(output), scratch, 8 * len(pairs))
+        magic, status, count = struct.unpack_from('<3Q', output)
+        if (magic != RESULT_MAGIC or size not in (24, len(output))
+                or size != 24 + count * 8 or count != (0 if status else len(pairs))):
+            raise RuntimeError('native workload export record differs from its admitted extent')
+        if status == 1:
+            reject('E_HIA_WORKLOAD', 'unknown invocation workload profile')
+        if status == 2:
+            reject('E_HIA_BYTE_ABI', 'duplicate borrowed-buffer export name')
+        if status == 3:
+            reject('E_HIA_BYTE_ABI', 'invalid frozen borrowed-buffer export')
+        if status:
+            raise RuntimeError('unknown native workload export decision')
+        ordinals = struct.unpack_from(f'<{count}Q', output, 24)
+        if frozenset(ordinals) != frozenset(range(count)):
+            raise RuntimeError('invalid native workload export ordinals')
+        return tuple(pairs[ordinal] for ordinal in ordinals)
+
     def evaluation_measurement(self, before, after, threshold, *,
                                budget_exceeded, correct, complete, latency, trapping):
         flags = (budget_exceeded | (correct << 1) | (complete << 2)

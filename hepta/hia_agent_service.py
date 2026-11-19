@@ -710,7 +710,8 @@ class HIAAgentService:
         objective, _, objective_raw = self.store.get_json_with_wire(args["objective"])
         cost_policy, _, cost_policy_raw = self.store.get_json_with_wire(args["budget"]["cost_policy"])
         self._validate_payload(workload, workload_raw, WORKLOAD_SCHEMA, "workload", WORKLOAD_ROLE)
-        foreign_buffer_exports = export_manifest(workload)
+        foreign_buffer_exports = (export_manifest(workload) if context_policy is None
+                                  else context_policy.workload_exports(workload))
         snapshot_sizes = (buffer_size(value) for case in workload["cases"]
                           for value in case["arguments"] if type(value) is dict)
         if context_policy is not None:

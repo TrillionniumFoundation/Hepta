@@ -7,6 +7,7 @@ from hepta.hia_agent_identity_native import (
     ABI_SCALAR_IDS, EXACT_COMPARISON_CHUNK, PROOF_EFFECT_IDS, PROOF_OPCODE_IDS,
 )
 from hepta.hia_agent_store import MAX_ARTIFACT_BYTES
+from hepta.hia_native_byte_abi import MAX_EXTENT
 from hepta.hia_opcodes import WIDTHS
 from hepta.hia_optimization import PURE
 from tools.generate_hia_elf_linker import LinkerBuilder
@@ -145,6 +146,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return evaluation_reference(s, o)
     if kind == 41:
         return cost_receipt(s, o, 1)
+    if kind == 42:
+        return workload_exports(s, o, w)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -770,6 +773,89 @@ def cost_receipt(s:readbuf, o:mutbuf, entries:u64) -> u32:
     if size > length(o):
         return size
     return cost_receipt_pass(s, o, 1, entries)
+
+def workload_name_order(s:readbuf, left:u64, right:u64) -> u64:
+    # UTF-8 byte order preserves Unicode scalar lexicographic order.
+    left_size = read_word(s, left)
+    right_size = read_word(s, right)
+    index = 0
+    while index < left_size and index < right_size:
+        a = byte(s, left + 16 + index)
+        b = byte(s, right + 16 + index)
+        if a != b:
+            return choose(a < b, 1, 2)
+        index = index + 1
+    if left_size == right_size:
+        return 0
+    return choose(left_size < right_size, 1, 2)
+
+def workload_export_word(w:mutbuf, index:u64) -> u64:
+    word = 0
+    i = 0
+    while i < 8:
+        word = word | (byte(w, index + i) << (i * 8))
+        i = i + 1
+    return word
+
+def workload_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 32:
+        return 4294967293
+    version = read_word(s, 16)
+    count = read_word(s, 24)
+    if count > 128 or length(w) < count * 8:
+        return 4294967293
+    if version != 2 and count != 0:
+        return 4294967293
+    at = 32
+    row = 0
+    duplicate = 0
+    invalid = 0
+    while row < count:
+        if length(s) - at < 16:
+            return 4294967293
+        size = read_word(s, at)
+        extent = read_word(s, at + 8)
+        if size > 512 or size > length(s) - at - 16:
+            return 4294967293
+        if size == 0 or extent == 0 or extent > @MAX_EXPORT_EXTENT@:
+            invalid = 1
+        # Each scratch word binds an admitted source-record offset and the
+        # original ordinal. The reordered table never copies function text.
+        position = row
+        searching = 1
+        while position != 0 and searching != 0:
+            previous = workload_export_word(w, (position - 1) * 8)
+            order = workload_name_order(s, previous >> 8, at)
+            if order == 0:
+                duplicate = 1
+            if order != 2:
+                searching = 0
+            else:
+                put(w, position * 8, previous)
+                position = position - 1
+        put(w, position * 8, (at << 8) | row)
+        at = at + 16 + size
+        row = row + 1
+    if at != length(s):
+        return 4294967293
+    status = choose(invalid != 0, 3, 0)
+    if duplicate != 0:
+        status = 2
+    if version != 1 and version != 2:
+        status = 1
+    returned = choose(status != 0, 0, count)
+    used = 24 + returned * 8
+    if length(o) < used:
+        return 4294967294
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, status)
+    put(o, 16, returned)
+    index = 0
+    while index < returned:
+        position = workload_export_word(w, index * 8) & 255
+        put(o, 24 + index * 8, position)
+        index = index + 1
+    return used
 
 def receipt_fragment_size(s:readbuf, at:u64) -> u64:
     if at > length(s) or length(s) - at < 8:
@@ -1408,6 +1494,7 @@ def source_program():
             .replace('@ARTIFACT_PATH@', str(int.from_bytes(b'path', 'little')))
             .replace('@ARTIFACT_UTF8@', str(int.from_bytes(b'utf8', 'little')))
             .replace('@BOOL_ABI_ROLE@', str(ABI_SCALAR_IDS['bool']))
+            .replace('@MAX_EXPORT_EXTENT@', str(MAX_EXTENT))
             .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n'
             + cost_receipt_source() + artifact_receipt_source()
             + receipt_template('context_manifest', CONTEXT_MANIFEST)

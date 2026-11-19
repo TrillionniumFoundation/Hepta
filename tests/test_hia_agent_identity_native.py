@@ -648,7 +648,9 @@ class AgentIdentityNativeTests(unittest.TestCase):
                   patch.object(store, '_reference_record_authority',
                                side_effect=AssertionError('host context identity used')),
                   patch.object(hosted, '_reference_wall_window',
-                               side_effect=AssertionError('host clock budget used'))):
+                               side_effect=AssertionError('host clock budget used')),
+                  patch.object(hosted, 'export_manifest',
+                               side_effect=AssertionError('host export plan used'))):
                 session = Session(ToolClient(service.call))
                 session.freeze(workload([{'function': 'take', 'arguments': [{'bytes_hex': '00'}]}],
                                         function='take'))
@@ -657,6 +659,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
                     service._context({**ref, 'sha256': 'f' * 64})
                 self.assertEqual(raised.exception.code, 'E_HIA_CONTEXT_IDENTITY')
                 context = service._context(ref)
+                self.assertEqual(context['foreign_buffer_exports'], [['take', 4096]])
                 issued = service.store.db.execute('SELECT created_ns FROM contexts WHERE id=?',
                                                   (ref['id'],)).fetchone()
                 deadline = int(issued['created_ns']) + context['budget']['max_total_wall_ms'] * 1_000_000
@@ -680,6 +683,37 @@ class AgentIdentityNativeTests(unittest.TestCase):
                         self.assertEqual(service._wall_window(context), (True, 0))
         finally:
             service.close()
+
+    def test_frozen_workload_exports_match_host_order_and_refusals(self):
+        from hepta.hia_agent_buffers import export_manifest
+
+        def workload(pairs):
+            return {'schema': 'hepta.hia.agent.workload.v2',
+                    'foreign_buffer_exports': [{'function': name, 'max_buffer_bytes': extent}
+                                               for name, extent in pairs]}
+
+        pairs = [(f'f{index:03}', index + 1) for index in range(124)]
+        pairs.extend((('f010x', 1048576), ('汉字', 6), ('\U0001f680' * 128, 6), ('f', 8)))
+        for sample in (workload(list(reversed(pairs))), workload(pairs), {'schema': 'hepta.hia.agent.workload.v1'}):
+            self.assertEqual(self.native.workload_exports(sample), export_manifest(sample))
+        for invalid in (workload([('same', 0), ('same', 1)]), workload([('valid_name', 1048577)]),
+                        {'schema': 'not-a-workload'}):
+            with self.assertRaises(AgentRejected) as reference:
+                export_manifest(invalid)
+            with self.assertRaises(AgentRejected) as native:
+                self.native.workload_exports(invalid)
+            self.assertEqual((native.exception.code, str(native.exception)),
+                             (reference.exception.code, str(reference.exception)))
+        row = struct.pack('<2Q', 1, 1) + b'x'
+        valid = packet(42, struct.pack('<2Q', 2, 1) + row)
+        for raw, capacity, scratch, code in (
+            (valid, 31, 8, 0xfffffffe), (valid, 32, 7, 0xfffffffd),
+            (valid[:-1], 32, 8, 0xfffffffd), (valid + b'x', 32, 8, 0xfffffffd),
+        ):
+            result = ctypes.create_string_buffer(b'\xa5' * capacity, capacity)
+            workspace = ctypes.create_string_buffer(scratch)
+            self.assertEqual(self.native._entry(raw, len(raw), result, capacity, workspace, scratch), code)
+            self.assertEqual(result.raw, b'\xa5' * capacity)
 
     def test_public_context_limits_match_reference_and_use_native_decisions(self):
         from hepta.hia_agent_service import HIAAgentService
