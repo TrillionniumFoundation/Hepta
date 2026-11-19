@@ -8,7 +8,7 @@ import random
 import struct
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from hepta.hia_safe_core_elf import _ELF, SafeCoreELFRejected
 from hepta.hia_safe_core_elf_inventory_native import SELECTOR, SOURCE, installed_safe_core_elf_inventory
@@ -67,11 +67,35 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 self.assertEqual(capture(self.native.inventory, sample, kind), capture(old, sample, kind),
                                  (kind, index))
 
+    def test_native_symbols_names_and_load_mappings_match_owned_elf(self):
+        for kind, data in ((1, self.object_bytes), (3, self.final_bytes)):
+            reference = _ELF.__new__(_ELF)
+            reference._reference_inventory(data, kind)
+            selected = _ELF(data, kind)
+            for name in ('.symtab', '.dynsym') if kind == 3 else ('.symtab',):
+                self.assertEqual(selected.symbols(name), reference.symbols(name))
+            for section in reference.sections:
+                if kind == 3 and section['flags'] & 2 and section['size']:
+                    permissions = 6 if section['flags'] & 1 else 5 if section['flags'] & 4 else 4
+                    self.assertEqual(selected.load_binding(section, permissions),
+                                     reference.load_binding(section, permissions))
+            text = reference.section('.text')
+            cases = ((text, 4), (dict(text, addr=(1 << 64) - 1), 5),
+                     (dict(text, offset=text['offset'] + 1), 5))
+            for section, permissions in cases:
+                with self.assertRaises(SafeCoreELFRejected) as expected:
+                    reference.load_binding(section, permissions)
+                with self.assertRaises(SafeCoreELFRejected) as actual:
+                    selected.load_binding(section, permissions)
+                self.assertEqual(str(actual.exception), str(expected.exception))
+
     def test_actual_consumer_uses_and_pins_native_inventory(self):
         from hepta.hia_safe_core import validate_safe_core_artifact
 
-        with patch.object(_ELF, '_reference_inventory',
-                          side_effect=AssertionError('host ELF inventory entered the checker')):
+        boundaries = ('_reference_inventory', '_reference_symbols', '_reference_string', '_reference_load_binding')
+        blocked = {name: Mock(side_effect=AssertionError('host ELF boundary entered: ' + name))
+                   for name in boundaries}
+        with patch.multiple(_ELF, **blocked):
             result = validate_safe_core_artifact(self.core, self.object_bytes, self.final_bytes)
         self.assertTrue(result['ok'], result)
         closure = result['source_identity']

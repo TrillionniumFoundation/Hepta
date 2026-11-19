@@ -6,22 +6,31 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
-    CAPACITY, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, REFUSAL_IDS,
+    CAPACITY, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
 )
-from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
+from tools.generate_hia_elf_linker import LinkerBuilder
+from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
 
 SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
 FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
-          'MAX_SEGMENTS': MAX_SEGMENTS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
+          'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
 FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
 
 SOURCE = r'''
 def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(o) < CAPACITY or length(w) < 8:
+    if length(o) < CAPACITY:
         return 4294967294
     size = length(s)
     if size < 64 or size > MAX_ELF:
         return terminal(o, E_EXTENT, 0, 0)
+    if length(w) == 16 and get(w, 8) == 0:
+        return symbol_table(s, o, get(w, 0))
+    if length(w) == 24:
+        return string_response(s, o, get(w, 0), get(w, 8), get(w, 16))
+    if length(w) == 32:
+        return load_binding(s, o, get(w, 0), get(w, 8), get(w, 16), get(w, 24))
+    if length(w) != 8:
+        return 4294967293
     kind = get(w, 0)
     if word(s, 0, 8) != ELF_IDENT or word(s, 8, 8) != 0 or word(s, 16, 2) != kind:
         return terminal(o, E_IDENTITY, 0, 0)
@@ -61,10 +70,13 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return terminal(o, 0, count, phnum)
 
 def terminal(o:mutbuf, error:u64, sections:u64, segments:u64) -> u64:
+    return reply(o, error, sections, segments, 24 + sections * 96 + segments * 56)
+
+def reply(o:mutbuf, error:u64, first:u64, second:u64, extent:u64) -> u64:
     put(o, 0, error)
-    put(o, 8, sections)
-    put(o, 16, segments)
-    return 24 + sections * 96 + segments * 56
+    put(o, 8, first)
+    put(o, 16, second)
+    return extent
 
 def word(s:readbuf, offset:u64, size:u64) -> u64:
     value = 0
@@ -220,6 +232,103 @@ def review_loads(o:mutbuf, count:u64, base:u64) -> u64:
                 last_end = ((addr + size - 1) >> 12) + 1
         index = index + 1
     return choose(overlap != 0, E_LOAD_OVERLAP, 0)
+
+
+def string_response(s:readbuf, o:mutbuf, offset:u64, size:u64, index:u64) -> u64:
+    if index >= size:
+        return terminal(o, E_NAME_INDEX, 0, 0)
+    if in_file(length(s), offset, size) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    start = offset + index
+    count = name_length(s, start, size - index)
+    if count > 256:
+        return terminal(o, E_NAME_LENGTH, 0, 0)
+    if ascii_name(s, start, count) == 0:
+        return terminal(o, E_NAME_ASCII, 0, 0)
+    return reply(o, 0, start, count, 24)
+
+def symbol_table(s:readbuf, o:mutbuf, index:u64) -> u64:
+    shoff = word(s, 40, 8)
+    count = word(s, 60, 2)
+    if count == 0 or count > MAX_SECTIONS or index >= count:
+        return terminal(o, E_SYMBOL_TABLE, 0, 0)
+    if in_file(length(s), shoff, count * 64) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    row = shoff + index * 64
+    kind = word(s, row + 4, 4)
+    size = word(s, row + 32, 8)
+    if (kind != 2 and kind != 11) or word(s, row + 56, 8) != 24 or size > 24 * MAX_SYMBOLS or size % 24 != 0:
+        return terminal(o, E_SYMBOL_TABLE, 0, 0)
+    link = word(s, row + 40, 4)
+    if link >= count:
+        return terminal(o, E_SYMBOL_LINK, 0, 0)
+    names = shoff + link * 64
+    if word(s, names + 4, 4) != 3:
+        return terminal(o, E_SYMBOL_NAMES, 0, 0)
+    start = word(s, row + 24, 8)
+    if in_file(length(s), start, size) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    return symbol_rows(s, o, start, size // 24, word(s, names + 24, 8), word(s, names + 32, 8))
+
+def symbol_rows(s:readbuf, o:mutbuf, start:u64, count:u64, names_at:u64, names_size:u64) -> u64:
+    index = 0
+    while index < count:
+        row = start + index * 24
+        name_index = word(s, row, 4)
+        if name_index >= names_size:
+            return terminal(o, E_NAME_INDEX, 0, 0)
+        if in_file(length(s), names_at, names_size) == 0:
+            return terminal(o, E_RANGE, 0, 0)
+        at = names_at + name_index
+        extent = name_length(s, at, names_size - name_index)
+        if extent > 256:
+            return terminal(o, E_NAME_LENGTH, 0, 0)
+        if ascii_name(s, at, extent) == 0:
+            return terminal(o, E_NAME_ASCII, 0, 0)
+        result = 24 + index * 56
+        put(o, result, at)
+        put(o, result + 8, extent)
+        put(o, result + 16, word(s, row + 4, 1))
+        put(o, result + 24, word(s, row + 5, 1))
+        put(o, result + 32, word(s, row + 6, 2))
+        put(o, result + 40, word(s, row + 8, 8))
+        put(o, result + 48, word(s, row + 16, 8))
+        index = index + 1
+    return reply(o, 0, count, 0, 24 + count * 56)
+
+def load_binding(s:readbuf, o:mutbuf, section_addr:u64, section_size:u64, section_offset:u64, permissions:u64) -> u64:
+    phoff = word(s, 32, 8)
+    phnum = word(s, 56, 2)
+    if phnum > MAX_SEGMENTS or in_file(length(s), phoff, phnum * 56) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    selected = 0
+    matches = 0
+    index = 0
+    while index < phnum:
+        row = phoff + index * 56
+        if word(s, row, 4) == 1:
+            addr = word(s, row + 16, 8)
+            extent = word(s, row + 32, 8)
+            if section_addr >= addr and section_size <= extent:
+                if section_addr - addr <= extent - section_size:
+                    selected = row
+                    matches = matches + 1
+        index = index + 1
+    if matches != 1:
+        return terminal(o, E_MISSING_LOAD, 0, 0)
+    offset = word(s, selected + 8, 8)
+    addr = word(s, selected + 16, 8)
+    flags = word(s, selected + 4, 4)
+    if flags != permissions or section_offset < offset or section_offset - offset != section_addr - addr:
+        return terminal(o, E_LOAD_BINDING, 0, 0)
+    put(o, 24, 1)
+    put(o, 32, flags)
+    put(o, 40, offset)
+    put(o, 48, addr)
+    put(o, 56, word(s, selected + 32, 8))
+    put(o, 64, word(s, selected + 40, 8))
+    put(o, 72, word(s, selected + 48, 8))
+    return reply(o, 0, 0, 0, 80)
 '''
 
 
@@ -235,7 +344,7 @@ def document():
     total = total_scalar_functions(nodes)
     functions = []
     for node in nodes:
-        builder = Builder(node, names, signatures, total)
+        builder = LinkerBuilder(node, names, signatures, total)
         builder.statements(node.body)
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],

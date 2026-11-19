@@ -17,9 +17,12 @@ MAX_SEGMENTS = 16
 HEADER = struct.Struct('<3Q')
 SECTION = struct.Struct('<12Q')
 SEGMENT = struct.Struct('<7Q')
+SYMBOL = struct.Struct('<7Q')
 CAPACITY = HEADER.size + MAX_SECTIONS * SECTION.size + MAX_SEGMENTS * SEGMENT.size
 SECTION_FIELDS = ('type', 'flags', 'addr', 'offset', 'size', 'link', 'info', 'align', 'entsize')
 SEGMENT_FIELDS = ('type', 'flags', 'offset', 'addr', 'filesz', 'memsz', 'align')
+SYMBOL_FIELDS = ('info', 'other', 'shndx', 'value', 'size')
+MAX_SYMBOLS = 32
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -38,29 +41,45 @@ REFUSALS = (
     ('load_order', 'PT_LOAD entries are not in ascending virtual-address order'),
     ('load_overlap', 'PT_LOAD page ranges overlap'),
     ('object_segments', 'relocatable object has load segments'),
+    ('symbol_table', 'symbol table is outside the profile'),
+    ('symbol_link', 'invalid symbol string-table link'),
+    ('symbol_names', 'symbol name table has wrong kind'),
+    ('missing_load', 'section has ambiguous or missing PT_LOAD authority'),
+    ('load_binding', 'section bytes differ from the loader mapping'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
 
 class NativeSafeCoreElfInventory(NativeHiaJsonImage):
-    def inventory(self, data, kind):
+    def _exchange(self, data, arguments):
         require(type(data) is bytes and 64 <= len(data) <= MAX_ELF, REFUSALS[0][1])
-        if type(kind) is not int or not 0 <= kind <= 65535:
-            require(False, REFUSALS[1][1])
         source = ctypes.create_string_buffer(data, len(data))
         output = ctypes.create_string_buffer(CAPACITY)
-        scratch = ctypes.create_string_buffer(struct.pack('<Q', kind), 8)
+        packet = struct.pack(f'<{len(arguments)}Q', *arguments)
+        scratch = ctypes.create_string_buffer(packet, len(packet))
         size = self._entry(source, len(data), output, CAPACITY, scratch, len(scratch))
         if not HEADER.size <= size <= CAPACITY:
-            raise RuntimeError('invalid native Safe Core ELF inventory size')
-        status, section_count, segment_count = HEADER.unpack_from(output)
+            raise RuntimeError('invalid native Safe Core ELF response extent')
+        status, first, second = HEADER.unpack_from(output)
         if status:
-            if status > len(REFUSALS) or size != HEADER.size or section_count or segment_count:
+            if status > len(REFUSALS) or size != HEADER.size or first or second:
                 raise RuntimeError('invalid native Safe Core ELF refusal')
             name, reason = REFUSALS[status - 1]
             if name == 'name_ascii':
                 raise SafeCoreELFRejected(reason)
             require(False, reason)
+        return output, size, first, second
+
+    @staticmethod
+    def _name(data, offset, count):
+        if offset >= len(data) or count > min(256, len(data) - offset - 1):
+            raise RuntimeError('invalid native Safe Core ELF name extent')
+        return data[offset:offset + count].decode('ascii')
+
+    def inventory(self, data, kind):
+        if type(kind) is not int or not 0 <= kind <= 65535:
+            require(False, REFUSALS[1][1])
+        output, size, section_count, segment_count = self._exchange(data, (kind,))
         if (not 1 <= section_count <= MAX_SECTIONS or segment_count > MAX_SEGMENTS
                 or size != HEADER.size + section_count * SECTION.size + segment_count * SEGMENT.size):
             raise RuntimeError('invalid native Safe Core ELF inventory counts')
@@ -69,13 +88,13 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         for ordinal in range(section_count):
             index, name_at, name_len, *fields = SECTION.unpack_from(output, cursor)
             cursor += SECTION.size
-            if index != ordinal or name_at >= len(data) or name_len > min(256, len(data) - name_at - 1):
-                raise RuntimeError('invalid native Safe Core ELF name extent')
+            if index != ordinal:
+                raise RuntimeError('invalid native Safe Core ELF section index')
             section = dict(zip(SECTION_FIELDS, fields, strict=True))
             offset, extent = section['offset'], section['size']
             if offset > len(data) or extent > len(data) - offset:
                 raise RuntimeError('invalid native Safe Core ELF section extent')
-            section.update(index=index, name=data[name_at:name_at + name_len].decode('ascii'),
+            section.update(index=index, name=self._name(data, name_at, name_len),
                            data=data[offset:offset + extent])
             sections.append(section)
         segments = []
@@ -83,6 +102,34 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             segments.append(dict(zip(SEGMENT_FIELDS, SEGMENT.unpack_from(output, cursor), strict=True)))
             cursor += SEGMENT.size
         return sections, segments
+
+
+    def symbols(self, data, index):
+        output, size, count, reserved = self._exchange(data, (index, 0))
+        if reserved or count > MAX_SYMBOLS or size != HEADER.size + count * SYMBOL.size:
+            raise RuntimeError('invalid native Safe Core ELF symbol inventory')
+        symbols = []
+        for at in range(HEADER.size, size, SYMBOL.size):
+            offset, extent, *fields = SYMBOL.unpack_from(output, at)
+            symbols.append(dict(zip(SYMBOL_FIELDS, fields, strict=True),
+                                name=self._name(data, offset, extent)))
+        return symbols
+
+    def string(self, data, offset, size, index):
+        require(0 <= index < size, REFUSALS[REFUSAL_IDS['name_index'] - 1][1])
+        require(0 <= offset <= len(data) and 0 <= size <= len(data) - offset,
+                REFUSALS[REFUSAL_IDS['range'] - 1][1])
+        _, extent, start, length = self._exchange(data, (offset, size, index))
+        if extent != HEADER.size:
+            raise RuntimeError('invalid native Safe Core ELF string response')
+        return self._name(data, start, length)
+
+    def load_binding(self, data, section, permissions):
+        arguments = (section['addr'], section['size'], section['offset'], permissions)
+        output, size, first, second = self._exchange(data, arguments)
+        if size != HEADER.size + SEGMENT.size or first or second:
+            raise RuntimeError('invalid native Safe Core ELF load authority')
+        return dict(zip(SEGMENT_FIELDS, SEGMENT.unpack_from(output, HEADER.size), strict=True))
 
 
 def installed_safe_core_elf_inventory(path):

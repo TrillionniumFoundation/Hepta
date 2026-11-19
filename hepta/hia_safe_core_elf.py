@@ -26,7 +26,7 @@ class _ELF:
     def __init__(self, data, kind):
         from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
 
-        selected = selected_safe_core_elf_inventory()
+        selected = self._native_inventory = selected_safe_core_elf_inventory()
         if selected is None:
             self._reference_inventory(data, kind)
             return
@@ -35,6 +35,7 @@ class _ELF:
         self.by_name = {section['name']: section for section in self.sections}
 
     def _reference_inventory(self, data, kind):
+        self._native_inventory = None
         require(type(data) is bytes and 64 <= len(data) <= 8 * 1024 * 1024,
                 "expected bounded immutable ELF bytes")
         self.data = data
@@ -104,6 +105,11 @@ class _ELF:
         return struct.unpack(fmt, self.slice(offset, struct.calcsize(fmt)))
 
     def string(self, offset, size, index):
+        if self._native_inventory is not None:
+            return self._native_inventory.string(self.data, offset, size, index)
+        return self._reference_string(offset, size, index)
+
+    def _reference_string(self, offset, size, index):
         require(0 <= index < size, "string index is outside the table")
         data = self.slice(offset, size)
         end = data.find(b"\0", index)
@@ -121,6 +127,11 @@ class _ELF:
 
     def symbols(self, name):
         section = self.section(name)
+        if self._native_inventory is not None:
+            return self._native_inventory.symbols(self.data, section['index'])
+        return self._reference_symbols(section)
+
+    def _reference_symbols(self, section):
         require(section["type"] in (2, 11) and section["entsize"] == 24 and
                 section["size"] % 24 == 0 and section["size"] <= 24 * 32,
                 "symbol table is outside the profile")
@@ -135,6 +146,11 @@ class _ELF:
         return result
 
     def load_binding(self, section, permissions):
+        if self._native_inventory is not None:
+            return self._native_inventory.load_binding(self.data, section, permissions)
+        return self._reference_load_binding(section, permissions)
+
+    def _reference_load_binding(self, section, permissions):
         matches = [seg for seg in self.segments if seg["type"] == 1 and
                    seg["addr"] <= section["addr"] and
                    section["addr"] + section["size"] <= seg["addr"] + seg["filesz"]]
