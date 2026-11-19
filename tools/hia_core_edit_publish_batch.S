@@ -198,11 +198,29 @@ base_checked:
  movabs rax,3544418953277294920
  call mechanical_compact_1
  call batch_stage_status
- test rax,rax
- jz normalized_input_ready
- cmp rax,1048576
+ cmp rax,2097153
  ja io_failure
+ movabs r10,3688534141353150792
+ cmp [r13+CTRL+8192+672],r10
+ jne normalized_input_ready
+ /* Undo capture framing only after the admitted base owns this query. */
+ lea rdi,[r13+23064576]
+ mov rsi,rax
+ lea rdx,[r12+TEMP_AT]
+ mov ecx,1048576
+ call decode_batch_capture
+ cmp rax,1048576
+ ja invalid
  mov [rbp+BS+48],rax
+ mov [r13+CTRL+8192+680],rax
+ lea rsi,[r12+TEMP_AT]
+ lea rdi,[r13+19922944]
+ mov rcx,rax
+ cld
+ rep movsb
+ lea rdi,[r13+19922944]
+ mov rsi,rax
+ call check_batch_input_syntax
  lea rdi,[r13+19922944]
  mov esi,1048576
  call mechanical_outline_2
@@ -319,10 +337,27 @@ mechanical_error_hub_4_skip:
  jnz invalid
  movabs rax,3544428848881944904
  call mechanical_compact_1
- mov [r13+CTRL+360],rax
- call mechanical_outline_1
- cmp rax,65536
+ call scalar_status
+ cmp rax,131073
  ja mechanical_error_hub_4
+ /* The query has now been reconstructed and verified. */
+ lea rdi,[r13+20971520]
+ mov rsi,rax
+ lea rdx,[r12+TEMP_AT]
+ mov ecx,65536
+ call decode_batch_capture
+ cmp rax,65536
+ ja invalid
+ mov [r13+CTRL+360],rax
+ mov [r13+CTRL+8192+224],rax
+ lea rsi,[r12+TEMP_AT]
+ lea rdi,[r13+20971520]
+ mov rcx,rax
+ cld
+ rep movsb
+ lea rdi,[r13+20971520]
+ mov rsi,rax
+ call check_batch_input_syntax
  movabs rax,3544412356207528264
  call mechanical_compact_2
  mov [r13+CTRL+8584],rax
@@ -748,6 +783,18 @@ batch_write_refusal:
  sub rdx,rax
  jnz batch_write_refusal
  jmp invalid
+check_batch_input_syntax:
+ lea rdx,[r12+TEMP_AT]
+ call edit_batch_input_syntax
+ test rax,rax
+ jz batch_input_valid
+ cmp rax,4096
+ ja io_failure
+ mov rdx,rax
+ lea rsi,[r12+TEMP_AT]
+ jmp batch_write_refusal
+batch_input_valid:
+ ret
 scalar_status:
  mov r10,rax
  shr r10,32

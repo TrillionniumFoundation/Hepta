@@ -36,6 +36,7 @@ ARGUMENT_ARCHIVE = '<public-argument-images>'
 EXEC_LAUNCHER = 'tools/hia_core_edit_packed_exec.S'
 EDIT_ENVELOPE = 'tools/hia_core_edit_nominal_envelope.S'
 EDIT_RESPONSE = 'tools/hia_core_edit_response.S'
+BATCH_CAPTURE = 'tools/hia_core_edit_batch_capture.S'
 EXEC_ARCHIVE_MAGIC = b'HIAECP01'
 EXEC_CHUNK = 1 << 19
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
@@ -101,6 +102,7 @@ PUBLISHED_EDIT_APPLY_IMAGES = {
 }
 
 BATCH_APPLY_INPUT_IMAGES = {
+    EDIT + 'batch_capture.hepta': 'edit_batch_capture',
     EDIT + 'nominal_base_span.hepta': 'edit_base_span',
     EDIT + 'batch_apply.hepta': 'edit_batch_apply',
 }
@@ -111,6 +113,7 @@ BATCH_APPLY_IMAGES = {
     BOOTSTRAP + 'agent_slice.hepta': 'edit_slice',
 }
 PUBLISHED_BATCH_APPLY_IMAGES = {
+    EDIT + 'batch_capture.hepta': 'edit_batch_capture',
     EDIT + 'publication_batch_admission.hepta': 'edit_base_admission',
     EDIT + 'publication_batch_receipt.hepta': 'edit_batch_front',
     **BATCH_APPLY_INPUT_IMAGES,
@@ -283,7 +286,8 @@ def pack(packer, stub, holes, images):
     return binary, inspect_executable(binary)
 
 
-def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=False, edit_response=False):
+def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=False,
+                     edit_response=False, batch_capture=False):
     for key in ('owner', 'render', 'nominal-json'):
         (folder / (key + '.image.bin')).write_bytes(images[NOMINAL_BUILD_SOURCES[key]])
     objects = [assemble(folder, adapter, sources[adapter]), assemble(
@@ -292,6 +296,8 @@ def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=F
         objects.append(assemble(folder, EDIT_ENVELOPE, sources[EDIT_ENVELOPE]))
     if edit_response:
         objects.append(assemble(folder, EDIT_RESPONSE, sources[EDIT_RESPONSE]))
+    if batch_capture:
+        objects.append(assemble(folder, BATCH_CAPTURE, sources[BATCH_CAPTURE]))
     payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
                 for key, label in NOMINAL_BUILD_IMAGES.items()}
     payloads.update({label: images[path] for path, label in roles.items()})
@@ -339,7 +345,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
     source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
-                    NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, *NOMINAL_BUILD_SOURCES.values(),
+                    NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
@@ -375,7 +381,8 @@ def build(output, compiler, cold_report, *, release_only=False):
         if kind in NOMINAL_CLI_IMAGES:
             executable, details = link_nominal_cli(
                 folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind],
-                edit_envelope=kind in EDIT_ENVELOPE_ROLES, edit_response=kind in ('apply', 'publish_edit'))
+                edit_envelope=kind in EDIT_ENVELOPE_ROLES,
+                edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'))
             binary, packed = pack_executable(folder, packer, sources[EXEC_LAUNCHER],
                                              images[ARGUMENT_PAYLOAD], executable)
             products[name] = (binary, {**details, **packed})

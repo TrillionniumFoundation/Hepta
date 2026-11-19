@@ -1,0 +1,87 @@
+hia-asm.v1 hepta.hia.program.v8 core_edit_batch_capture
+fn decode(source:readbuf,output:mutbuf,workspace:mutbuf) -> (u32) effects(read,write,trap) entry(entry)
+block entry(source:readbuf,output:mutbuf,workspace:mutbuf)
+  size:usize = buffer.len(source)
+  zero:usize = const() {"value":0}
+  empty:bool = compare.eq(size,zero)
+  branch empty done(zero) format(source,output,size,zero)
+block format(format_source:readbuf,format_output:mutbuf,format_size:usize,format_zero:usize)
+  format_first:u8 = buffer.load(format_source,format_zero)
+  format_marker:u8 = const() {"value":126}
+  format_encoded:bool = compare.eq(format_first,format_marker)
+  branch format_encoded measure(format_source,format_output,format_size) legacy(format_source,format_output,format_size,format_zero)
+block legacy(legacy_source:readbuf,legacy_output:mutbuf,legacy_size:usize,legacy_zero:usize)
+  legacy_limit:usize = buffer.len(legacy_output)
+  legacy_oversized:bool = compare.gt(legacy_size,legacy_limit)
+  branch legacy_oversized bad() copy(legacy_source,legacy_output,legacy_size,legacy_zero)
+block copy(copy_source:readbuf,copy_output:mutbuf,copy_size:usize,copy_at:usize)
+  copy_remaining:bool = compare.lt(copy_at,copy_size)
+  branch copy_remaining copy_byte(copy_source,copy_output,copy_size,copy_at) done(copy_size)
+block copy_byte(copy_byte_source:readbuf,copy_byte_output:mutbuf,copy_byte_size:usize,copy_byte_at:usize)
+  copy_byte_value:u8 = buffer.load(copy_byte_source,copy_byte_at)
+  _ = buffer.store(copy_byte_output,copy_byte_at,copy_byte_value)
+  copy_byte_one:usize = const() {"value":1}
+  copy_byte_next:usize = int.add.wrap(copy_byte_at,copy_byte_one)
+  jump copy(copy_byte_source,copy_byte_output,copy_byte_size,copy_byte_next)
+block measure(measure_source:readbuf,measure_output:mutbuf,measure_size:usize)
+  measure_one:usize = const() {"value":1}
+  measure_chars:usize = int.sub.wrap(measure_size,measure_one)
+  measure_raw:usize = int.shr.checked(measure_chars,measure_one)
+  measure_trailing:usize = bit.and(measure_chars,measure_one)
+  measure_zero:usize = const() {"value":0}
+  measure_unpaired:bool = compare.ne(measure_trailing,measure_zero)
+  measure_limit:usize = buffer.len(measure_output)
+  measure_oversized:bool = compare.gt(measure_raw,measure_limit)
+  measure_invalid:bool = bool.or(measure_unpaired,measure_oversized)
+  branch measure_invalid bad() pair(measure_source,measure_output,measure_raw,measure_zero,measure_one)
+block pair(pair_source:readbuf,pair_output:mutbuf,pair_size:usize,pair_at:usize,pair_start:usize)
+  pair_remaining:bool = compare.lt(pair_at,pair_size)
+  branch pair_remaining decode_pair(pair_source,pair_output,pair_size,pair_at,pair_start) done(pair_size)
+block decode_pair(decode_pair_source:readbuf,decode_pair_output:mutbuf,decode_pair_size:usize,decode_pair_at:usize,decode_pair_start:usize)
+  decode_pair_one:usize = const() {"value":1}
+  decode_pair_second:usize = int.add.wrap(decode_pair_start,decode_pair_one)
+  decode_pair_a:u8 = buffer.load(decode_pair_source,decode_pair_start)
+  decode_pair_b:u8 = buffer.load(decode_pair_source,decode_pair_second)
+  decode_pair_high:u8 = call(decode_pair_a) {"function":"nibble"}
+  decode_pair_low:u8 = call(decode_pair_b) {"function":"nibble"}
+  decode_pair_max:u8 = const() {"value":15}
+  decode_pair_bad_high:bool = compare.gt(decode_pair_high,decode_pair_max)
+  decode_pair_bad_low:bool = compare.gt(decode_pair_low,decode_pair_max)
+  decode_pair_invalid:bool = bool.or(decode_pair_bad_high,decode_pair_bad_low)
+  branch decode_pair_invalid bad() decoded(decode_pair_source,decode_pair_output,decode_pair_size,decode_pair_at,decode_pair_second,decode_pair_high,decode_pair_low)
+block decoded(decoded_source:readbuf,decoded_output:mutbuf,decoded_size:usize,decoded_at:usize,decoded_second:usize,decoded_high:u8,decoded_low:u8)
+  decoded_shift:u8 = const() {"value":4}
+  decoded_upper:u8 = int.shl.checked(decoded_high,decoded_shift)
+  decoded_value:u8 = bit.or(decoded_upper,decoded_low)
+  _ = buffer.store(decoded_output,decoded_at,decoded_value)
+  decoded_one:usize = const() {"value":1}
+  decoded_next:usize = int.add.wrap(decoded_at,decoded_one)
+  decoded_start:usize = int.add.wrap(decoded_second,decoded_one)
+  jump pair(decoded_source,decoded_output,decoded_size,decoded_next,decoded_start)
+block done(done_size:usize)
+  done_length:u32 = int.cast(done_size) {"mode":"wrap"}
+  ret(done_length)
+block bad()
+  bad_status:u32 = const() {"value":4294967293}
+  ret(bad_status)
+end
+fn nibble(byte:u8) -> (u8) effects() entry(entry)
+block entry(byte:u8)
+  zero:u8 = const() {"value":48}
+  digit:u8 = int.sub.wrap(byte,zero)
+  max_digit:u8 = const() {"value":9}
+  decimal:bool = compare.le(digit,max_digit)
+  branch decimal done(digit) letter(byte)
+block letter(letter_byte:u8)
+  letter_lower_a:u8 = const() {"value":97}
+  letter_value:u8 = int.sub.wrap(letter_byte,letter_lower_a)
+  letter_last:u8 = const() {"value":5}
+  letter_valid:bool = compare.le(letter_value,letter_last)
+  letter_ten:u8 = const() {"value":10}
+  letter_nibble:u8 = int.add.wrap(letter_value,letter_ten)
+  letter_invalid:u8 = const() {"value":16}
+  letter_result:u8 = select(letter_valid,letter_nibble,letter_invalid)
+  jump done(letter_result)
+block done(done_value:u8)
+  ret(done_value)
+end

@@ -9526,19 +9526,13 @@ block b0(v0:readbuf,v1:mutbuf,v2:mutbuf,v3:u64)
   branch v6 b1(v0,v1,v2,v3) b2(v0,v1,v2,v3,v4)
 block b1(v7:readbuf,v8:mutbuf,v9:mutbuf,v10:u64)
   v17:u64 = call(v9,v10) {"function":"f27"}
-  v18:u64 = const() {"value":0}
-  v19:bool = compare.eq(v17,v18)
-  branch v19 b3(v7,v8,v9) b4(v7,v8,v9,v10,v17)
+  jump b4(v7,v8,v9,v10,v17)
 block b2(v12:readbuf,v13:mutbuf,v14:mutbuf,v15:u64,v16:u64)
   v132:u64 = const() {"value":6}
   v133:bool = compare.eq(v16,v132)
   branch v133 b14(v12,v13,v14,v15) b15(v12,v13,v14)
-block b3(v20:readbuf,v21:mutbuf,v22:mutbuf)
-  v32:u64 = const() {"value":4294967295}
-  v33:u32 = int.cast(v32) {"mode":"wrap"}
-  ret(v33)
 block b4(v26:readbuf,v27:mutbuf,v28:mutbuf,v29:u64,v31:u64)
-  v34:u64 = const() {"value":65536}
+  v34:u64 = const() {"value":131073}
   v35:bool = compare.gt(v31,v34)
   branch v35 b5(v26,v27,v28) b6(v26,v27,v28,v29,v31)
 block b5(v36:readbuf,v37:mutbuf,v38:mutbuf)
@@ -9647,15 +9641,12 @@ block b19(v197:readbuf,v198:mutbuf,v199:mutbuf)
   v207:u64 = call(v198,v206) {"function":"f55"}
   jump b20(v197,v198,v199,v207)
 block b20(v210:readbuf,v211:mutbuf,v212:mutbuf,v215:u64)
-  v216:u64 = const() {"value":0}
-  v217:bool = compare.eq(v215,v216)
-  v218:u64 = const() {"value":65536}
+  v218:u64 = const() {"value":131073}
   v219:bool = compare.gt(v215,v218)
-  v220:bool = bool.or(v217,v219)
   v221:u64 = const() {"value":4294967293}
   v222:u32 = int.cast(v221) {"mode":"wrap"}
   v223:u32 = int.cast(v215) {"mode":"wrap"}
-  v224:u32 = select(v220,v222,v223)
+  v224:u32 = select(v219,v222,v223)
   ret(v224)
 end
 fn f94(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
@@ -9793,15 +9784,9 @@ block b15(v243:readbuf,v244:mutbuf,v245:mutbuf)
   ret(v278)
 block b16(v260:readbuf,v261:mutbuf,v262:mutbuf,v273:u64,v276:u64)
   v279:u64 = call(v262,v276) {"function":"f27"}
-  v280:u64 = const() {"value":0}
-  v281:bool = compare.eq(v279,v280)
-  branch v281 b17(v260,v261,v262) b18(v260,v261,v262,v273,v276,v279)
-block b17(v282:readbuf,v283:mutbuf,v284:mutbuf)
-  v318:u64 = const() {"value":4294967295}
-  v319:u32 = int.cast(v318) {"mode":"wrap"}
-  ret(v319)
+  jump b18(v260,v261,v262,v273,v276,v279)
 block b18(v300:readbuf,v301:mutbuf,v302:mutbuf,v313:u64,v316:u64,v317:u64)
-  v320:u64 = const() {"value":1048576}
+  v320:u64 = const() {"value":2097153}
   v321:bool = compare.gt(v317,v320)
   branch v321 b19(v300,v301,v302) b20(v300,v301,v302,v313,v316,v317)
 block b19(v322:readbuf,v323:mutbuf,v324:mutbuf)
@@ -9836,7 +9821,7 @@ block b23(v420:readbuf,v421:mutbuf,v422:mutbuf,v433:u64,v437:u64,v438:u64,v441:u
   v442:bool = compare.lt(v441,v437)
   branch v442 b24(v420,v421,v422,v433,v437,v438,v441) b25(v420,v421,v422,v433,v437)
 block b24(v443:readbuf,v444:mutbuf,v445:mutbuf,v456:u64,v460:u64,v461:u64,v464:u64)
-  v487:u64 = const() {"value":19922944}
+  v487:u64 = const() {"value":23064576}
   v488:u64 = int.add.wrap(v487,v464)
   v489:u64 = int.add.wrap(v461,v464)
   v490:usize = int.cast(v489) {"mode":"wrap"}

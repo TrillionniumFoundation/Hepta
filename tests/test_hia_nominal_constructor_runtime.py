@@ -422,6 +422,7 @@ def check_ordinary(executable, run):
     check_batch_query_refusals(executable)
     check_edit_apply_refusals(executable)
     check_edit_response_bytes(executable)
+    check_batch_edit_input_bytes(executable)
 
 
 def check_edit_query_refusals(executable):
@@ -629,6 +630,65 @@ def check_edit_response_bytes(executable):
                     assert base.read_bytes() == raw_program
                     total += 1
     print(f'{total} exact edit response byte, precedence and publication comparisons')
+
+
+def check_batch_edit_input_bytes(executable):
+    from hepta.cli import _reference_hia_main
+    from hepta.hia_edit_batch import MAX_QUERY_BYTES, MAX_RESPONSE_BYTES, prepare_batch
+    from tests.test_hia_edit_batch import loans, selected
+
+    original = json.dumps(loans()).encode()
+    query = json.dumps(prepare_batch(original, [selected('reader')]), indent=2).encode()
+    update = b' { "edits": [{"site": 0,"changes":{"args":["\\u0061"]}}] }\r\n'
+    queries = (query, b'{}', b'[]', b'', b'\xff', b'{',
+               b'{"sites":[],"sites":[]}', b'9' * 4301)
+    responses = (update, b'{}', b'', b'\xff', b'{',
+                 b'{"edits":[],"edits":[]}', b'[1 2]')
+    pairs = [(item, payload) for item in queries for payload in responses]
+    pairs.extend((
+        (query.ljust(MAX_QUERY_BYTES, b' '), update),
+        (query.ljust(MAX_QUERY_BYTES + 1, b' '), update),
+        (query, update.ljust(MAX_RESPONSE_BYTES, b' ')),
+        (query, update.ljust(MAX_RESPONSE_BYTES + 1, b' ')),
+        (b'{', None),
+        (b'\xff', update.ljust(MAX_RESPONSE_BYTES + 1, b' ')),
+    ))
+    total = 0
+    with TemporaryDirectory(prefix='hia-cli-batch-edit-input-') as temporary:
+        root = Path(temporary)
+        base, selection, response = (root / name for name in ('base.hepta', 'query.json', 'response.json'))
+        base.write_bytes(original)
+        for selected_query, supplied in pairs:
+            selection.write_bytes(selected_query)
+            if supplied is None:
+                response.unlink(missing_ok=True)
+            else:
+                response.write_bytes(supplied)
+            for publication in (False, True):
+                output = root / f'result-{total}' / 'result.hepta'
+                argv = ['edit-batch-apply', str(base), '--query', str(selection), '--response', str(response)]
+                if publication:
+                    argv += ['-o', str(output)]
+                expected_stdout = StringIO()
+                with redirect_stdout(expected_stdout):
+                    expected_status = _reference_hia_main(argv)
+                expected_bytes = output.read_bytes() if output.is_file() else None
+                if expected_bytes is not None:
+                    output.unlink()
+                    output.parent.rmdir()
+                result = subprocess.run([executable, *argv], capture_output=True,
+                                        env={'PATH': ''}, timeout=20, check=False)
+                assert (result.returncode, result.stdout, result.stderr) == (
+                    expected_status, expected_stdout.getvalue().encode(), b''), (
+                    selected_query[:64], None if supplied is None else supplied[:64], publication,
+                    expected_status, expected_stdout.getvalue()[:512], result)
+                if expected_bytes is None:
+                    assert not output.parent.exists()
+                else:
+                    assert output.read_bytes() == expected_bytes
+                assert base.read_bytes() == original
+                total += 1
+    print(f'{total} exact batch edit input, precedence and publication comparisons')
 
 
 def check_argument_cli(executable):
