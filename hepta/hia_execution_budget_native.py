@@ -243,8 +243,14 @@ class NativeExecutionBudgetStore:
         return self._db
 
     def _execute(self, sql, parameters=()):
-        """Fixed foreign statement boundary, used by fault qualification."""
+        """Legacy SQLite statement boundary, used by fault qualification."""
         return self._db.execute(sql, parameters)
+
+    def _effect(self, operation, sql, parameters=(), *, read=False):
+        if self.borrowed:
+            return getattr(self._db, operation)(*parameters)
+        cursor = self._execute(sql, parameters)
+        return cursor.fetchone() if read else cursor.rowcount
 
     @staticmethod
     def _file_identity(path):
@@ -301,45 +307,49 @@ class NativeExecutionBudgetStore:
                         # exclusively held until COMMIT/ROLLBACK. The flag is
                         # foreign transaction custody, never an execution right.
                         owned_transaction = True
-                        self._execute('BEGIN IMMEDIATE')
+                        self._effect('begin_immediate', 'BEGIN IMMEDIATE')
                         receipt = state.call(1, values=(1,))
                     elif action == 2:
-                        row = self._execute('SELECT context_id,used_native_ns,owner FROM main.execution_budgets WHERE context_id=?',
-                                              (context,)).fetchone()
+                        row = self._effect('wall_budget_lookup',
+                            'SELECT context_id,used_native_ns,owner FROM main.execution_budgets WHERE context_id=?',
+                            (context,), read=True)
                         receipt = state.row(row)
                     elif action == 3:
                         if not owned_transaction:
                             _reject(2)
-                        changed = self._execute('INSERT INTO main.execution_budgets(context_id,used_native_ns,owner) VALUES (?,?,NULL)',
-                            (context, receipt.used.decode('ascii'))).rowcount
+                        changed = self._effect('wall_budget_create',
+                            'INSERT INTO main.execution_budgets(context_id,used_native_ns,owner) VALUES (?,?,NULL)',
+                            (context, receipt.used.decode('ascii')))
                         receipt = state.call(3, values=(changed,))
                     elif action == 4:
                         if not owned_transaction:
                             _reject(2)
-                        changed = self._execute('UPDATE main.execution_budgets SET owner=? WHERE context_id=? AND used_native_ns=? AND owner IS NULL',
-                            (receipt.owner.decode('ascii'), context, receipt.used.decode('ascii'))).rowcount
+                        changed = self._effect('wall_budget_claim',
+                            'UPDATE main.execution_budgets SET owner=? WHERE context_id=? AND used_native_ns=? AND owner IS NULL',
+                            (receipt.owner.decode('ascii'), context, receipt.used.decode('ascii')))
                         receipt = state.call(3, values=(changed,))
                     elif action == 5:
                         if not owned_transaction:
                             _reject(2)
-                        changed = self._execute('UPDATE main.execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND used_native_ns=? AND owner=?',
+                        changed = self._effect('wall_budget_finish',
+                            'UPDATE main.execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND used_native_ns=? AND owner=?',
                             (receipt.updated.decode('ascii'), context, receipt.used.decode('ascii'),
-                             receipt.owner.decode('ascii'))).rowcount
+                             receipt.owner.decode('ascii')))
                         receipt = state.call(3, values=(changed,))
                     elif action == 6:
                         if not owned_transaction:
                             _reject(2)
                         if context_record is not None:
-                            changed = self._execute(INSERT_CONTEXT, (context, *context_record)).rowcount
+                            changed = self._effect('context_create', INSERT_CONTEXT, (context, *context_record))
                             if changed != 1:
                                 _reject(2, 'context creation did not publish exactly one row')
                         self.check()
-                        self._execute('COMMIT')
+                        self._effect('commit', 'COMMIT')
                         self.check()
                         receipt = state.call(4, values=(int(not self.db.in_transaction),))
                         owned_transaction = False
                     else:
-                        _reject(2, 'native execution request reached the SQL effect transport')
+                        _reject(2, 'unknown native execution budget effect')
                 if owned_transaction or self.db.in_transaction:
                     _reject(2, 'native execution budget ended without a confirmed commit')
                 return receipt
@@ -352,7 +362,7 @@ class NativeExecutionBudgetStore:
                         # After a successful but lost COMMIT the flag is false
                         # in SQLite, so no compensating write is attempted.
                         if self.db.in_transaction:
-                            self._execute('ROLLBACK')
+                            self._effect('rollback', 'ROLLBACK')
                     except BaseException as cleanup_error:
                         self.poisoned = {'type': type(cleanup_error).__name__,
                                          'message': str(cleanup_error)[:1024]}

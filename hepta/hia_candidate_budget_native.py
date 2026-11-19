@@ -1,9 +1,9 @@
 """Native candidate-attempt policy over the original AgentStore contexts.
 
-The inherited connection is the existing bounded SQLite effect transport, not
-a second budget namespace. HIA owns count admission, increment, exact readback
-and commit acknowledgement. Request identity and replay stay with the original
-ordinary or explicitly selected native request journal.
+The inherited connection uses the selected durable Store, not a second budget
+namespace. HIA owns count admission, increment, exact readback and commit
+acknowledgement. Request identity and replay stay with the original ordinary
+or explicitly selected native request journal.
 """
 from __future__ import annotations
 
@@ -167,23 +167,25 @@ class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
                     context = receipt.context.decode('utf-8')
                     if receipt.action == 1:
                         owned = True
-                        self._execute('BEGIN IMMEDIATE')
+                        self._effect('begin_immediate', 'BEGIN IMMEDIATE')
                         receipt = state.call(1, a=1)
                     elif receipt.action == 2:
-                        row = self._execute('SELECT id,attempts FROM main.contexts WHERE id=?', (context,)).fetchone()
+                        row = self._effect('attempt_lookup',
+                            'SELECT id,attempts FROM main.contexts WHERE id=?', (context,), read=True)
                         receipt = state.row(row)
                     elif receipt.action == 3:
                         if not owned:
                             _reject(5)
-                        changed = self._execute('UPDATE main.contexts SET attempts=? WHERE id=? AND attempts=?',
-                                                (receipt.updated, context, receipt.original)).rowcount
+                        changed = self._effect('attempt_set',
+                            'UPDATE main.contexts SET attempts=? WHERE id=? AND attempts=?',
+                            (receipt.updated, context, receipt.original))
                         receipt = state.call(3, a=changed)
                     elif receipt.action == 4:
                         if not owned:
                             _reject(5)
                         self.check()
                         commit_attempted = True
-                        self._execute('COMMIT')
+                        self._effect('commit', 'COMMIT')
                         committed = True
                         self.check()
                         receipt = state.call(4, a=int(not self.db.in_transaction))
@@ -197,10 +199,10 @@ class NativeCandidateBudgetStore(NativeExecutionBudgetStore):
                 state.fenced = True
                 if owned and self.db.in_transaction:
                     try:
-                        self._execute('ROLLBACK')
+                        self._effect('rollback', 'ROLLBACK')
                     except BaseException as cleanup:
                         self.poisoned = {'type': type(cleanup).__name__, 'message': str(cleanup)[:1024]}
-                # A commit that reached SQLite but lost its acknowledgment is
+                # A Store commit that lost its acknowledgment is
                 # never compensated. The original request journal prevents
                 # replay; its counter remains consumed if the commit happened.
                 if commit_attempted and isinstance(error, (ValueError, OSError, self.store.database_error)):

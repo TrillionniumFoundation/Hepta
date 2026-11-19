@@ -334,7 +334,7 @@ class AgentStore:
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
             reject("E_HIA_STORE", "artifact directory must be owned and not writable by other users")
         self.lock = threading.RLock()
-        self._typed_journal = native_store is not None
+        self._native_backend = native_store is not None
         self._artifact_code = None
         self._capture_code = None
         if native_store is not None:
@@ -344,8 +344,8 @@ class AgentStore:
             self._artifact_code = self.db.artifact_code
             self._capture_code = self.db.capture_code
             try:
-                self.db.execute("BEGIN IMMEDIATE")
-                self.db.execute("ROLLBACK")
+                self.db.begin_immediate()
+                self.db.rollback()
                 self.execution_budgets = execution_budget_store(self, budget_admission)
             except BaseException:
                 self.db.close()
@@ -443,43 +443,71 @@ class AgentStore:
             raise
 
     def journal_lookup(self, key):
-        if self._typed_journal:
+        if self._native_backend:
             return self.db.journal_lookup(key)
         return self.db.execute('SELECT * FROM requests WHERE key=?', (key,)).fetchone()
 
     def journal_reserve(self, key, digest, tool, started_ns):
-        if self._typed_journal:
+        if self._native_backend:
             self.db.journal_reserve(key, digest, tool, started_ns)
         else:
             self.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
                             (key, digest, tool, 'running', None, started_ns))
 
     def journal_complete(self, key, response):
-        if self._typed_journal:
+        if self._native_backend:
             self.db.journal_complete(key, response)
         else:
             self.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?", (response, key))
 
     def journal_cost(self, context, tool, request_id, wall_ns, status, details):
-        if self._typed_journal:
+        if self._native_backend:
             self.db.journal_cost(context, tool, request_id, wall_ns, status, details)
         else:
             self.db.execute(
                 'INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
                 (context, tool, request_id, wall_ns, status, details))
 
+    def context_lookup(self, context):
+        if self._native_backend:
+            return self.db.context_lookup(context)
+        return self.db.execute('SELECT * FROM contexts WHERE id=?', (context,)).fetchone()
+
+    def context_created_ns(self, context):
+        if self._native_backend:
+            row = self.db.context_created(context)
+        else:
+            row = self.db.execute('SELECT created_ns FROM contexts WHERE id=?', (context,)).fetchone()
+        return int(row['created_ns'])
+
+    def context_costs(self, context):
+        if self._native_backend:
+            return self.db.context_costs(context)
+        return self.db.execute(
+            'SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001',
+            (context,)).fetchall()
+
     @contextmanager
     def transaction(self):
         with self.lock:
-            self.db.execute("BEGIN IMMEDIATE")
+            if self._native_backend:
+                self.db.begin_immediate()
+            else:
+                self.db.execute("BEGIN IMMEDIATE")
             try:
                 yield
             except BaseException:
                 if self.db.in_transaction:
-                    self.db.execute("ROLLBACK")
+                    if self._native_backend:
+                        self.db.rollback()
+                    else:
+                        self.db.execute("ROLLBACK")
                 raise
             else:
-                self.db.execute("COMMIT")
+                if self._native_backend:
+                    self.db.commit()
+                else:
+                    self.db.execute("COMMIT")
 
     def close(self):
         with self.lock:

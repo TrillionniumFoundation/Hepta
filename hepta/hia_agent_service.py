@@ -497,7 +497,7 @@ class HIAAgentService:
 
     def _context(self, ref):
         keys(ref, ("id", "sha256"), label="context reference")
-        row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (ref["id"],)).fetchone()
+        row = self.store.context_lookup(ref["id"])
         stored = None if row is None else (row["id"], row["sha256"], "")
         if record_authority((ref["id"], ref["sha256"], ""), stored):
             reject("E_HIA_CONTEXT_IDENTITY", "context is not a retained server record", "context")
@@ -536,8 +536,7 @@ class HIAAgentService:
         from .hia_agent_store import _native_agent_identity
 
         if created_ns is None:
-            row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
-            created_ns = int(row["created_ns"])
+            created_ns = self.store.context_created_ns(context["ref"]["id"])
         now_ns = time.time_ns()
         total_ms = context["budget"]["max_total_wall_ms"]
         native = _native_agent_identity()
@@ -1442,8 +1441,7 @@ class HIAAgentService:
     def _cost_ledger(self, context, evaluation_wall_ns, native_wall_ns):
         from .hia_agent_store import _native_agent_identity
 
-        rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
-                                     (context["ref"]["id"],)).fetchall()
+        rows = self.store.context_costs(context["ref"]["id"])
         observed_count = len(rows)
         policy_image = _native_agent_identity()
         retained = min(observed_count, 10000) if policy_image is None else policy_image.cost_window(observed_count)
@@ -1516,8 +1514,7 @@ class HIAAgentService:
         observations, normal, trapping = [], [], []
         correct, complete, budget_exceeded = True, True, False
         reference_started = time.monotonic_ns()
-        context_row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (args["context"]["id"],)).fetchone()
-        created_ns = int(context_row["created_ns"])
+        created_ns = self.store.context_created_ns(args["context"]["id"])
 
         def remaining_total_ms():
             return self._wall_window(context, created_ns=created_ns)[1]

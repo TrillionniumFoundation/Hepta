@@ -94,12 +94,22 @@ def _write_plan(index, operations, magic):
     return 1, index, count, magic, 0
 
 
-# The journal's typed transport uses the same operation numbers as the
-# compatibility path, without entering its SQL-shaped dispatch table.
+# Typed transport shares the stored operation numbers with the compatibility
+# path without entering its SQL-shaped dispatch table.
 _JOURNAL_LOOKUP = _query_plan(9)
 _JOURNAL_RESERVE = _write_plan(6, _INSERTS, b'HIAINS01')
 _JOURNAL_COMPLETE = _write_plan(1, _UPDATES, b'HIAUPB01')
 _JOURNAL_COST = _write_plan(2, _INSERTS, b'HIAINS01')
+_CONTEXT_LOOKUP = _query_plan(4)
+_CONTEXT_CREATED = _query_plan(15)
+_CONTEXT_COSTS = _query_plan(5)
+_ATTEMPT_LOOKUP = _query_plan(17)
+_ATTEMPT_SET = _write_plan(8, _UPDATES, b'HIAUPB01')
+_WALL_BUDGET_LOOKUP = _query_plan(14)
+_WALL_BUDGET_CREATE = _write_plan(5, _INSERTS, b'HIAINS01')
+_WALL_BUDGET_CLAIM = _write_plan(6, _UPDATES, b'HIAUPB01')
+_WALL_BUDGET_FINISH = _write_plan(7, _UPDATES, b'HIAUPB01')
+_CONTEXT_CREATE = _write_plan(1, _INSERTS, b'HIAINS01')
 _STATEMENTS = {
     **{row[0]: _query_plan(i) for i, row in enumerate(_SELECTS, 1)},
     **{row[0]: _write_plan(i, _INSERTS, b'HIAINS01') for i, row in enumerate(_INSERTS, 1)},
@@ -489,33 +499,77 @@ class NativeStoreConnection:
             raise StoreProtocolError('native Store connection is no longer usable')
 
     def journal_lookup(self, key):
-        return self._journal_operation(_JOURNAL_LOOKUP, (key,)).fetchone()
+        return self._typed_operation(_JOURNAL_LOOKUP, (key,)).fetchone()
 
     def journal_reserve(self, key, digest, tool, started_ns):
-        self._journal_operation(_JOURNAL_RESERVE, (key, digest, tool, 'running', None, started_ns))
+        self._typed_operation(_JOURNAL_RESERVE, (key, digest, tool, 'running', None, started_ns))
 
     def journal_complete(self, key, response):
-        self._journal_operation(_JOURNAL_COMPLETE, (response, key))
+        self._typed_operation(_JOURNAL_COMPLETE, (response, key))
 
     def journal_cost(self, context, tool, request_id, wall_ns, status, details):
-        self._journal_operation(_JOURNAL_COST, (context, tool, request_id, wall_ns, status, details))
+        self._typed_operation(_JOURNAL_COST, (context, tool, request_id, wall_ns, status, details))
 
-    def _journal_operation(self, specification, values):
+    def context_lookup(self, context):
+        return self._typed_operation(_CONTEXT_LOOKUP, (context,)).fetchone()
+
+    def context_created(self, context):
+        return self._typed_operation(_CONTEXT_CREATED, (context,)).fetchone()
+
+    def context_costs(self, context):
+        return self._typed_operation(_CONTEXT_COSTS, (context,)).fetchall()
+
+    def attempt_lookup(self, context):
+        return self._typed_operation(_ATTEMPT_LOOKUP, (context,)).fetchone()
+
+    def attempt_set(self, updated, context, previous):
+        return self._typed_operation(_ATTEMPT_SET, (updated, context, previous)).rowcount
+
+    def wall_budget_lookup(self, context):
+        return self._typed_operation(_WALL_BUDGET_LOOKUP, (context,)).fetchone()
+
+    def wall_budget_create(self, context, used):
+        return self._typed_operation(_WALL_BUDGET_CREATE, (context, used)).rowcount
+
+    def wall_budget_claim(self, owner, context, used):
+        return self._typed_operation(_WALL_BUDGET_CLAIM, (owner, context, used)).rowcount
+
+    def wall_budget_finish(self, updated, context, used, owner):
+        return self._typed_operation(_WALL_BUDGET_FINISH, (updated, context, used, owner)).rowcount
+
+    def context_create(self, context, digest, artifact, started_ns):
+        return self._typed_operation(_CONTEXT_CREATE, (context, digest, artifact, started_ns)).rowcount
+
+    def _typed_operation(self, specification, values):
         with self.lock:
             self._check_live()
             return self._perform(specification, values)
 
-    def _execute(self, sql, values):
-        self._check_live()
-        if sql in ('BEGIN IMMEDIATE', 'COMMIT', 'ROLLBACK'):
+    def begin_immediate(self):
+        self._transaction_command(begin=True)
+
+    def commit(self):
+        self._transaction_command(commit=True)
+
+    def rollback(self):
+        self._transaction_command()
+
+    def _transaction_command(self, *, begin=False, commit=False):
+        with self.lock:
+            self._check_live()
             try:
-                if sql == 'BEGIN IMMEDIATE':
+                if begin:
                     self._begin()
                 else:
-                    self._finish(sql == 'COMMIT')
+                    self._finish(commit)
             except OSError:
                 self._abort()
                 raise
+
+    def _execute(self, sql, values):
+        self._check_live()
+        if sql in ('BEGIN IMMEDIATE', 'COMMIT', 'ROLLBACK'):
+            self._transaction_command(begin=sql == 'BEGIN IMMEDIATE', commit=sql == 'COMMIT')
             return _Cursor()
         specification = _STATEMENTS.get(sql)
         if specification is None:
