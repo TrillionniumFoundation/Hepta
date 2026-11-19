@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
+.type _start,@function
 .equ RAW_N,16777219
 .equ RAW_EXTENT,16781312
 .equ SOURCE_N,25169920
@@ -24,24 +25,27 @@
 .equ S,8192
 .equ OUTPUT_N,33554432
 .equ FRAME_N,16777216
+.equ NOMINAL_ORIGIN,S+112
+.equ ORIGIN_DIGEST,S+64
+.equ ORIGIN_TAG,CTRL+1536
+.equ ORIGIN_BYTES,CTRL+1544
+.equ ORIGIN_MAGIC,3544423407359707464
+
 _start:
+ add rsp,8
  cmp QWORD PTR [rsp],2
  jne usage
  mov r12,[rsp+16]
  mov esi,16384
  call allocate
  mov rbp,rax
- .byte 0x48,0x8d,0x05
-core_address_hole: .long 0
+ lea rax,[rip+edit_base_admission_start]
  mov [rbp+328],rax
- .byte 0x48,0x8d,0x05
-front_address_hole: .long 0
+ lea rax,[rip+edit_base_extract_start]
  mov [rbp+320],rax
- .byte 0x48,0x8d,0x05
-owner_address_hole: .long 0
+ lea rax,[rip+edit_apply_owner_start]
  mov [rbp+336],rax
- .byte 0x48,0x8d,0x05
-publication_address_hole: .long 0
+ lea rax,[rip+edit_publication_start]
  mov [rbp+344],rax
  mov esi,270336
  call allocate
@@ -144,6 +148,7 @@ input_complete:
  mov rdi,r12
  mov esi,RAW_EXTENT
  call readonly
+extract_base:
  mov rdi,r12
  mov rsi,[rbp+S]
  lea rdx,[r12+TEMP_AT]
@@ -178,6 +183,11 @@ input_complete:
  mov r9d,33554432
  call QWORD PTR [r15+328]
  mov [rbp+S+24],rax
+ cmp eax,0xfffffffb
+ jne base_checked
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je lower_nominal
+base_checked:
  lea rdi,[r12+WORK_AT]
  mov ecx,WORK_N/8
  xor eax,eax
@@ -233,6 +243,16 @@ input_complete:
  call protect
  movabs rax,3544422316236687688
  mov [r13+CTRL],rax
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je render_query
+ movabs rax,ORIGIN_MAGIC
+ mov [r13+ORIGIN_TAG],rax
+ lea rdi,[r13+ORIGIN_BYTES]
+ lea rsi,[rbp+ORIGIN_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+render_query:
  call run_edit_owner
  mov [r13+CTRL+320],rax
  call query_status
@@ -310,6 +330,16 @@ input_complete:
  rep stosq
  mov QWORD PTR [r12+CORE_AT],2
  mov QWORD PTR [r12+CORE_AT+8],1
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je patch_request
+ movabs rax,3544423407342930248
+ mov [r12+CORE_AT+CORE_N-40],rax
+ lea rdi,[r12+CORE_AT+CORE_N-32]
+ lea rsi,[rbp+ORIGIN_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+patch_request:
  mov rdi,r13
  mov rsi,[r13+CTRL+472]
  lea rdx,[r12+TEMP_AT]
@@ -871,4 +901,25 @@ exit:
  mov eax,60
  syscall
  ud2
+lower_nominal:
+ mov rdi,r12
+ mov rsi,[rbp+S]
+ lea rdx,[r12+RAW_EXTENT]
+ mov rcx,[rbp+S+8]
+ lea r8,[rbp+ORIGIN_DIGEST]
+ call nominal_edit_envelope
+ test rax,rax
+ jz envelope_refused
+ mov [rbp+S],rax
+ mov QWORD PTR [rbp+NOMINAL_ORIGIN],1
+ lea rdi,[r12+WORK_AT]
+ mov ecx,WORK_N/8
+ xor eax,eax
+ cld
+ rep stosq
+ jmp extract_base
+envelope_refused:
+ mov rax,rdx
+ jmp HIA_status
+
 .section .note.GNU-stack,"",@progbits

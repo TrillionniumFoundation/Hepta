@@ -524,5 +524,10 @@ digest. The impact graph validates these two identities separately.
 `hia edit-batch-query` uses the same captured base for all ordered selections.
 The outer manifest and every nested query retain its original input digest;
 the Core digest still identifies the snapshot on which selections were made.
-Overlapping selections are rejected before any publication. Edit application
+Overlapping selections are rejected before any publication.
+
+`hia edit-apply` reconstructs the entire original query, including the nominal
+input identity, against the same independently verified Core. It preserves
+the exact response bytes used for its receipt and independently admits the
+revised Core before stdout or no-overwrite file publication. Batch application
 does not yet use this route.

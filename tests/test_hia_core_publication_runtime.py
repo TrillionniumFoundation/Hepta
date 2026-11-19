@@ -312,19 +312,70 @@ def check_nominal_batch_queries(release, directory):
     return passed
 
 
+def nominal_constant_site(program):
+    return next(
+        (function, block, offset, operation)
+        for function in program.as_dict()['functions']
+        for block in function['blocks']
+        for offset, operation in enumerate(block['ops'])
+        if operation['op'] == 'const' and type(operation['attrs']['value']) is int
+    )
+
+
+def check_nominal_apply(release, directory):
+    passed = 0
+    for index, (document, _, _) in enumerate(nominal_query_fixtures()):
+        program = verify_program(document)
+        function, block, _, operation = nominal_constant_site(program)
+        query = prepare_edit(program, function=function['name'], block=block['id'],
+                             output=operation['out'][0]['name'], fields=['attrs'])
+        source, query_file, response, target, reference, absent = (
+            directory / f'{index}.{suffix}' for suffix in
+            ('hepta', 'query', 'response', 'target', 'reference', 'absent')
+        )
+        source.write_bytes(wire(document, pretty=True))
+        query_file.write_bytes(wire(query, pretty=True))
+        response.write_bytes(wire({'attrs': {**operation['attrs'], 'value': operation['attrs']['value'] + 1}},
+                                  pretty=True))
+        arguments = ['edit-apply', str(source), '--query', str(query_file), '--response', str(response)]
+        executable = release / 'hia'
+        result = subprocess.run([executable, *arguments], capture_output=True, env={'PATH': ''}, timeout=20)
+        expected = reference_cli(arguments)
+        assert (result.returncode, result.stdout, result.stderr) == (0, expected, b''), result
+
+        receipt = json.loads(reference_cli([*arguments, '-o', str(reference)]))
+        receipt['publication']['output'] = str(target)
+        command = [executable, *arguments, '-o', target]
+        result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20)
+        assert (result.returncode, result.stdout, result.stderr) == (0, wire(receipt, pretty=True), b''), result
+        assert target.read_bytes() == reference.read_bytes()
+        pinned = target.stat()
+        replay = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20)
+        assert replay.returncode != 0 and not replay.stdout and not replay.stderr, replay
+        assert target.stat().st_ino == pinned.st_ino and target.read_bytes() == reference.read_bytes()
+
+        # Even a correct lowered Core hash cannot stand in for the original input.
+        query_file.write_bytes(wire({**query, 'input_sha256': query['base_sha256']}, pretty=True))
+        report = StringIO()
+        with redirect_stdout(report):
+            status = _reference_hia_main(arguments)
+        for options in ([], ['-o', str(absent)]):
+            refusal = subprocess.run([executable, *arguments, *options], capture_output=True,
+                                     env={'PATH': ''}, timeout=20)
+            assert (status, refusal.returncode, refusal.stdout, refusal.stderr) == (
+                2, 2, report.getvalue().encode(), b''), refusal
+            assert not absent.exists()
+        passed += 5
+    return passed
+
+
 def check_nominal_patches(release, directory):
     passed = 0
     for index, (document, _, query) in enumerate(nominal_query_fixtures()):
         source = directory / f'{index}.hepta'
         source.write_bytes(wire(document, pretty=True))
         verified = verify_program(document)
-        function, block, offset, operation = next(
-            (function, block, offset, operation)
-            for function in verified.as_dict()['functions']
-            for block in function['blocks']
-            for offset, operation in enumerate(block['ops'])
-            if operation['op'] == 'const' and type(operation['attrs']['value']) is int
-        )
+        function, block, offset, operation = nominal_constant_site(verified)
         replacement = {**operation, 'attrs': {**operation['attrs'], 'value': operation['attrs']['value'] + 1}}
         for version in (1, 2):
             name = f'{index}-v{version}'
@@ -499,11 +550,13 @@ def check_release(release, directory):
     nominal.mkdir()
     nominal_batch = directory / 'nominal-batch-queries'
     nominal_batch.mkdir()
+    apply = directory / 'nominal-apply'
+    apply.mkdir()
     patches = directory / 'nominal-patches'
     patches.mkdir()
     return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
             + check_nominal_queries(release, nominal) + check_nominal_patches(release, patches)
-            + check_nominal_batch_queries(release, nominal_batch)
+            + check_nominal_batch_queries(release, nominal_batch) + check_nominal_apply(release, apply)
             + check_import_existing_destinations(release, assembly_source, destinations)
             + check_selected_selfhost(release, selfhost) + check_batch_apply_refusals(release, batch))
 

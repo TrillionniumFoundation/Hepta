@@ -645,7 +645,7 @@ def hash_put(w:mutbuf, index:u64, value:u64) -> u64:
 '''
 
 
-def source_program(*, public=False):
+def source_program(*, public=False, retain_origin=False):
     constants = {'K_'+key:1 << i for i,key in enumerate(KEYS)}
     constants['MAGIC'] = MAGIC
     constants['RESULT_MAGIC'] = RESULT_MAGIC
@@ -683,6 +683,7 @@ def source_program(*, public=False):
         body = body.replace(base_shape, 'if kind(w, base) != 6:', 1)
         body = body.replace(
             request_shape, 'if kind(w, request) != 6:\n        return D_REQUEST_TYPE\n    ' + request_shape, 1)
+    if public or retain_origin:
         # Only the trusted carrier supplies this separate nominal source digest.
         # All patch preconditions continue to check the normalized Core digest.
         field = """    emit_text(o, w, ',"ok":true,"original_input_sha256":')
@@ -838,6 +839,21 @@ block patch_driver_report(patch_status2:readbuf,patch_output2:mutbuf,patch_works
         if count != 1:
             raise ValueError('missing unique patch transport function for ' + name)
         path.write_text(source + presenter)
+
+    # The word-I/O edit transport retains its existing diagnostics and parser.
+    # Only the private patch receipt consumes the constructor's source identity.
+    transport = directory / 'patch_word_io.hepta'
+    source = source_program(retain_origin=True)
+    receipt = next(index for index, node in enumerate(ast.parse(source).body) if node.name == 'patch_result')
+    pattern = rf'^fn f{receipt}\(.*?^end\n'
+    shared_receipt = re.search(pattern, render_assembly(document(source)), re.MULTILINE | re.DOTALL)
+    if shared_receipt is None:
+        raise ValueError('missing shared word-I/O patch receipt')
+    updated, count = re.subn(pattern, lambda _: shared_receipt[0], transport.read_text(),
+                            flags=re.MULTILINE | re.DOTALL)
+    if count != 1:
+        raise ValueError('missing unique word-I/O patch receipt')
+    transport.write_text(updated)
 
 
 def nominal_base_span():
