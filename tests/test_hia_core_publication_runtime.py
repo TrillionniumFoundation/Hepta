@@ -292,7 +292,7 @@ def check_release(release, directory):
 
         replay = subprocess.run(command, input=b'ignored stdin', capture_output=True, env={'PATH': ''},
                                 timeout=20, check=False)
-        if name == 'import':
+        if name in {'import', 'assembly'}:
             refusal = StringIO()
             with redirect_stdout(refusal):
                 code = _reference_hia_main([*command_args, str(target)])
