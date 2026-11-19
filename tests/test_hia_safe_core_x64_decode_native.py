@@ -8,7 +8,10 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from hepta.hia_safe_core_x64 import Executor, SafeCoreMachineRejected, _reference_decode
+from hepta.hia_safe_core_x64 import (
+    Executor, SafeCoreMachineRejected, _reference_decode, _reference_memory_admitted,
+    _reference_validate_calls,
+)
 from hepta.hia_safe_core_x64_decode_native import SELECTOR, SOURCE, installed_safe_core_x64_decode
 
 
@@ -112,6 +115,10 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                        for name in ('_reference_alu', '_reference_condition', '_reference_register_formula')}
             with (patch('hepta.hia_safe_core_x64._reference_decode',
                         side_effect=AssertionError('host decoder entered the Safe Core checker')),
+                  patch('hepta.hia_safe_core_x64._reference_validate_calls',
+                        side_effect=AssertionError('host call binding entered the Safe Core checker')),
+                  patch('hepta.hia_safe_core_x64._reference_memory_admitted',
+                        side_effect=AssertionError('host access policy entered the Safe Core checker')),
                   patch.multiple(Executor, **blocked)):
                 proof = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes())
         self.assertTrue(proof['ok'], proof)
@@ -119,6 +126,38 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         self.assertEqual(proof['source_identity']['native_x64_decoder_source_sha256'],
                          sha256(SOURCE.read_bytes()).hexdigest())
         self.assertFalse(proof['checker']['producer_reemission_used'])
+
+    def test_call_inventory_matches_exact_decoded_instruction_boundaries(self):
+        def retained(data, calls):
+            code = _reference_decode(data)
+            _reference_validate_calls(code, calls)
+            return code
+
+        def observe(check, data, calls):
+            try:
+                return check(data, calls)
+            except SafeCoreMachineRejected as exc:
+                return str(exc)
+
+        text = bytes.fromhex('e801000000 90 c3')
+        pair = bytes.fromhex('e805000000 e801000000 90 c3')
+        cases = [(text, calls) for calls in ({0: 6}, {0: 'abort'}, {}, {1: 6}, {0: 5},
+                                            {0: 2}, {0: -1}, {-1: 6}, {0: 6, 1: 6})]
+        cases += [(pair, calls) for calls in ({5: 11, 0: 10}, {0: 2}, {0: 2, 5: 11},
+                                             {0: 'abort', 5: 11}, {0: 'abort', 6: 11})]
+        cases.append((text[:-3], {0: 6}))
+        for data, calls in cases:
+            self.assertEqual(observe(self.native.decode, data, calls),
+                             observe(retained, data, calls), calls)
+
+    def test_memory_admission_matches_reference_at_signed_boundaries(self):
+        offsets = (-(1 << 63), -16385, -16384, -8, -7, -1, 0, 1, 7, 8, 9, (1 << 63) - 1)
+        cases = itertools.chain(
+            itertools.product(offsets, (-16384, -8, 0, 8), (1, 8), (False, True), (None,)),
+            itertools.product((None,), (None,), (1, 8), (False, True), (None, 'readbuf', 'mutbuf')),
+        )
+        for args in cases:
+            self.assertEqual(self.native.memory_admitted(*args), _reference_memory_admitted(*args), args)
 
 
 if __name__ == '__main__':

@@ -28,6 +28,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
     if size == 0 and length(w) == 16:
         return machine_formula(o, get(w, 0), get(w, 8))
+    if size == 0 and length(w) == 40:
+        return memory_admission(w)
     if length(o) < 24 or length(w) < WORKSPACE:
         return 4294967294
     if size == 0 or size > MAX_TEXT:
@@ -76,7 +78,58 @@ def review_targets(o:mutbuf, w:mutbuf, size:u64, count:u64) -> u64:
             if condition < 2 or condition > 7:
                 return terminal(o, E_CONDITION, get(o, row), 0)
         index = index + 1
+    if length(w) != WORKSPACE:
+        if length(w) < WORKSPACE + 8:
+            return terminal(o, E_CALL_INVENTORY, 0, 0)
+        return review_call_bindings(o, w, count, size)
     return terminal(o, 0, 0, count)
+
+def review_call_bindings(o:mutbuf, w:mutbuf, count:u64, size:u64) -> u64:
+    expected = get(w, WORKSPACE)
+    if expected > MAX_CODE or length(w) != WORKSPACE + 8 + expected * 24:
+        return terminal(o, E_CALL_INVENTORY, 0, 0)
+    matched = 0
+    first_wrong = size
+    index = 0
+    while index < count:
+        row = 24 + index * 48
+        if get(o, row + 8) == OP_CALL:
+            pc = get(o, row)
+            if matched >= expected:
+                return terminal(o, E_CALL_INVENTORY, pc, 0)
+            binding = WORKSPACE + 8 + matched * 24
+            if get(w, binding) != pc:
+                return terminal(o, E_CALL_INVENTORY, pc, 0)
+            external = get(w, binding + 8)
+            target = get(w, binding + 16)
+            if external == 0 and first_wrong == size:
+                if target >= size or target != get(o, row + 24):
+                    first_wrong = pc
+                else:
+                    if byte(w, BOUNDARIES + target) != 1:
+                        first_wrong = pc
+            matched = matched + 1
+        index = index + 1
+    if matched != expected:
+        return terminal(o, E_CALL_INVENTORY, 0, 0)
+    if first_wrong != size:
+        return terminal(o, E_CALL_TARGET, first_wrong, 0)
+    return terminal(o, 0, 0, count)
+
+def memory_admission(w:mutbuf) -> u64:
+    kind = get(w, 0)
+    first = get(w, 8)
+    second = get(w, 16)
+    size = get(w, 24)
+    write = get(w, 32)
+    if kind == 1:
+        return choose(size == 1 and first != 0 and (write == 0 or first == 2), 1, 0)
+    ceiling = choose(write == 0, 8, 0)
+    sign = 9223372036854775808
+    biased = first ^ sign
+    if biased < (second ^ sign) or biased > (ceiling ^ sign):
+        return 0
+    return choose(size <= ceiling - first, 1, 0)
 
 def terminal(o:mutbuf, error:u64, detail:u64, count:u64) -> u64:
     put(o, 0, error)

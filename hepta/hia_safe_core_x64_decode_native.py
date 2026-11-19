@@ -17,6 +17,9 @@ MAX_INSTRUCTIONS = 8192
 WORKSPACE = 128 + MAX_TEXT
 HEADER = struct.Struct('<3Q')
 ROW = struct.Struct('<6Q')
+CALL_COUNT = struct.Struct('<Q')
+CALL_BINDING = struct.Struct('<3Q')
+MEMORY_REQUEST = struct.Struct('<5Q')
 OPERATIONS = (
     ('push', ('u',)), ('pop', ('u',)), ('imm', ('u', 'u')), ('ret', ()),
     ('leave', ()), ('nop', ()), ('call', ('i',)), ('jmp', ('i',)),
@@ -92,6 +95,8 @@ REFUSALS = (
     ('instruction_budget', 'decoded instruction budget exceeded'),
     ('target', 'branch is not an exact instruction boundary'),
     ('condition', 'only reviewed unsigned/equality conditions are admitted'),
+    ('call_inventory', 'call instruction inventory differs from checked relocations'),
+    ('call_target', 'call target is not an admitted function boundary'),
 )
 REFUSAL_IDS = {name: code for code, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -107,15 +112,26 @@ def _operand(kind, word):
 
 
 class NativeSafeCoreX64Decode(NativeHiaJsonImage):
-    def decode(self, data):
+    def decode(self, data, calls=None):
         from .hia_safe_core_x64 import require
 
         require(type(data) is bytes and 0 < len(data) <= MAX_TEXT, REFUSALS[0][1])
         source = ctypes.create_string_buffer(data, len(data))
         capacity = HEADER.size + min(len(data), MAX_INSTRUCTIONS) * ROW.size
         output = ctypes.create_string_buffer(capacity)
-        scratch = ctypes.create_string_buffer(WORKSPACE)
-        size = self._entry(source, len(data), output, capacity, scratch, WORKSPACE)
+        if calls is None:
+            scratch = ctypes.create_string_buffer(WORKSPACE)
+        else:
+            require(len(calls) <= MAX_INSTRUCTIONS, REFUSALS[REFUSAL_IDS['call_inventory'] - 1][1])
+            scratch = ctypes.create_string_buffer(WORKSPACE + CALL_COUNT.size + len(calls) * CALL_BINDING.size)
+            CALL_COUNT.pack_into(scratch, WORKSPACE, len(calls))
+            for index, (pc, target) in enumerate(sorted(calls.items())):
+                external = target == 'abort'
+                encoded_pc = pc if 0 <= pc < 1 << 64 else (1 << 64) - 1
+                encoded_target = 0 if external else target if 0 <= target < 1 << 64 else (1 << 64) - 1
+                CALL_BINDING.pack_into(scratch, WORKSPACE + CALL_COUNT.size + index * CALL_BINDING.size,
+                                       encoded_pc, int(external), encoded_target)
+        size = self._entry(source, len(data), output, capacity, scratch, len(scratch))
         if not HEADER.size <= size <= capacity:
             raise RuntimeError('invalid native Safe Core decoder response size')
         status, detail, count = HEADER.unpack_from(output)
@@ -141,6 +157,21 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if pc != len(data):
             raise RuntimeError('native Safe Core decoder left unconsumed machine bytes')
         return result
+
+    def memory_admitted(self, offset, low, size, writing, loan=None):
+        if offset is None:
+            kind = 1
+            access = 0 if loan is None else 2 if loan == 'mutbuf' else 1
+            first, second = access, 0
+        else:
+            kind = 0
+            first, second = offset % (1 << 64), low % (1 << 64)
+        packet = MEMORY_REQUEST.pack(kind, first, second, size, int(writing))
+        request = ctypes.create_string_buffer(packet, len(packet))
+        result = self._entry(None, 0, None, 0, request, len(packet))
+        if result not in (0, 1):
+            raise RuntimeError('invalid native Safe Core memory admission')
+        return result == 1
 
     @lru_cache(maxsize=512)
     def recipe(self, operation, parameter=0):

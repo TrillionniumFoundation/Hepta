@@ -165,6 +165,21 @@ def _reference_decode(data):
     return result
 
 
+def _reference_validate_calls(code, calls):
+    require({pc for pc, op in code.items() if op.op == "call"} == set(calls),
+            "call instruction inventory differs from checked relocations")
+    for pc, target in calls.items():
+        if target != "abort":
+            require(target in code and code[pc].args == (target,),
+                    "call target is not an admitted function boundary")
+
+
+def _reference_memory_admitted(offset, low, size, writing, loan):
+    if offset is not None:
+        return low <= offset and offset + size <= (0 if writing else 8)
+    return loan is not None and size == 1 and (not writing or loan == "mutbuf")
+
+
 @dataclass
 class State:
     pc: int
@@ -189,15 +204,12 @@ class Executor:
         from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
 
         self.native_model = selected_safe_core_x64_decode()
-        self.code = (_reference_decode(binding["text"]) if self.native_model is None
-                     else self.native_model.decode(binding["text"]))
         self.calls, self.entry = binding["calls"], binding["entry"]
-        require({pc for pc, op in self.code.items() if op.op == "call"} == set(self.calls),
-                "call instruction inventory differs from checked relocations")
-        for pc, target in self.calls.items():
-            if target != "abort":
-                require(target in self.code and self.code[pc].args == (target,),
-                        "call target is not an admitted function boundary")
+        if self.native_model is None:
+            self.code = _reference_decode(binding["text"])
+            _reference_validate_calls(self.code, self.calls)
+        else:
+            self.code = self.native_model.decode(binding["text"], self.calls)
         self.loan = loan
         self.words = words
         self.initial = {i: self.z.BitVec("native_register_" + str(i), 64, ctx=self.ctx) for i in range(16)}
@@ -228,12 +240,18 @@ class Executor:
         self.minimum_stack_offset = min(self.minimum_stack_offset, offset)
         return offset
 
+    def memory_admitted(self, offset, low, size, writing):
+        loan = None if self.loan is None else self.loan[2]
+        if self.native_model is None:
+            return _reference_memory_admitted(offset, low, size, writing, loan)
+        return self.native_model.memory_admitted(offset, low, size, writing, loan)
+
     def memory(self, state, address, size, value=None):
         write = value is not None
         offset = self.offset(address)
         if offset is not None:
             low = self.stack_offset(state)
-            allowed = low <= offset and offset + size <= (0 if write else 8)
+            allowed = self.memory_admitted(offset, low, size, write)
             if not allowed:
                 self.faults.append(state.path)
                 state.path = self.z.BoolVal(False, ctx=self.ctx)
@@ -259,7 +277,7 @@ class Executor:
                     self.unknown_stack[at] = self.z.BitVec("initial_stack_byte_" + str(at), 8, ctx=self.ctx)
                 result.append(state.stack.get(at, self.unknown_stack[at]))
             return self.z.Concat(*reversed(result)) if size > 1 else result[0]
-        if self.loan is None or size != 1 or (write and self.loan[2] != "mutbuf"):
+        if not self.memory_admitted(None, None, size, write):
             self.faults.append(state.path)
             state.path = self.z.BoolVal(False, ctx=self.ctx)
             return self.z.BitVecVal(0, size * 8, ctx=self.ctx)
