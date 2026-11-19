@@ -26,6 +26,7 @@ LITERALS = {'patch_v1':'hepta.hia.patch.v1', 'patch_v2':'hepta.hia.patch.v2',
             'replace_function':'replace_function', 'add_function':'add_function',
             'replace_operation':'replace_operation', 'replace_terminator':'replace_terminator'}
 PUBLIC_DIAGNOSTICS = {
+    0xffffffe0: 'patch must be a structured request',
     0xfffffffa: 'invalid expected snapshot digest',
     0xfffffff9: 'stale base snapshot',
     0xfffffff8: 'patch needs 1..64 edits',
@@ -49,6 +50,7 @@ PUBLIC_DIAGNOSTICS = {
     0xfffffff0: 'function edit must retain its declared identity',
 }
 PUBLIC_STATUS = {
+    'D_REQUEST_TYPE': (0xffffffe0, 0xfffffffb),
     'D_ACTION_TYPE': (0xffffffe1, 0xfffffff7),
     'D_FUNCTION_TYPE': (0xffffffe2, 0xfffffff6),
     'D_FUNCTION_ABSENT': (0xffffffe3, 0xfffffff6),
@@ -667,7 +669,16 @@ def source_program(*, public=False):
                 args.extend(ast.Constant(value) for value in literals[arg.id]) if isinstance(arg,ast.Name) and arg.id in literals else args.append(arg)
             node.args = args
             return node
-    own = Expand().visit(ast.parse(BODY))
+    body = BODY
+    if public:
+        # Let the original Core be verified before reporting a bad request
+        # shape; only the standalone driver has a corresponding diagnostic.
+        base_shape = 'if kind(w, base) != 6 or kind(w, request) != 6:'
+        request_shape = 'if tree_limit(w, base, 64) == 0 or tree_limit(w, request, 128) == 0:'
+        body = body.replace(base_shape, 'if kind(w, base) != 6:', 1)
+        body = body.replace(
+            request_shape, 'if kind(w, request) != 6:\n        return D_REQUEST_TYPE\n    ' + request_shape, 1)
+    own = Expand().visit(ast.parse(body))
     # Reuse the exact JSON/key/Unicode/sorting algorithms. Only this envelope's
     # outer framing budget is larger; subtree ceilings are checked separately.
     keep = {'kind','count','child','field','shape','same','text_is','render_fragment',

@@ -27,7 +27,7 @@ _start:
  cmp BYTE PTR [rax],118
  jne usage
  movzx r15d,BYTE PTR [rax+1]
- cmp r15d,49
+ cmp r15d,48
  jb usage
  cmp r15d,50
  ja usage
@@ -127,7 +127,12 @@ base_admission_hole: .long 0
  lea rdi,[r12+SCRATCH_AT]
  mov ecx,PATCH_WORK_N
  rep stosb
- mov QWORD PTR [r12+SCRATCH_AT],2
+ # v0 delegates schema admission to HIA; v1 and v2 retain explicit pins.
+ xor eax,eax
+ test r15,r15
+ setne al
+ inc eax
+ mov [r12+SCRATCH_AT],rax
  mov [r12+SCRATCH_AT+8],r15
  mov rdi,r12
  mov rsi,r13

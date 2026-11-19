@@ -462,6 +462,9 @@ def check_patch_refusals(executable):
     request = add_two_patch(program)
     edit = request['edits'][0]
     cases = (
+        13, None, [], {},
+        {**request, 'schema': 'hepta.hia.patch.v9'},
+        {**request, 'schema': False},
         {**request, 'expected_sha256': '0' * 64},
         {**request, 'expected_sha256': 'g' + '0' * 63},
         {**request, 'expected_sha256': '0' * 63 + 'g'},
