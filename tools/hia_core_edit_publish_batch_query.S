@@ -16,6 +16,8 @@
 .equ SCR_N,16384
 .equ TOTAL_N,209735680
 .equ CTRL,25165824
+.equ DRIVER_TEXT,OUT_N-504
+.equ DRIVER_TEXT_LIMIT,504
 .equ SLICE,8388608
 .equ QUERY,18874368
 .equ IO,12288
@@ -211,14 +213,14 @@ input_complete:
  movabs rax,3544413455719156040
  mov [r13+CTRL],rax
  call run_edit_owner
- call scalar_status
+ call batch_query_status
  test rax,rax
  jz invalid
  cmp rax,16
  ja io_failure
 selection_loop:
  call run_edit_owner
- call scalar_status
+ call batch_query_status
  test rax,rax
  jz invalid
  cmp rax,8388608
@@ -257,7 +259,7 @@ selection_loop:
  movabs rax,3544404659626133832
  mov [r13+CTRL],rax
  call run_edit_owner
- call scalar_status
+ call batch_query_status
  test rax,rax
  jz selection_loop
  cmp rax,1048576
@@ -558,6 +560,34 @@ scalar_status:
  cmp rax,r10
  je invalid
  ret
+# Only these stages can publish a refusal packet at the end of OUT_N.
+batch_query_status:
+ mov r10d,0xffffffff
+ cmp rax,r10
+ je driver_refusal
+ jmp scalar_status
+driver_refusal:
+ mov rdx,[r13+DRIVER_TEXT-8]
+ test rdx,rdx
+ jz invalid
+ cmp rdx,DRIVER_TEXT_LIMIT
+ ja io_failure
+ lea rsi,[r13+DRIVER_TEXT]
+write_refusal:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je write_refusal
+ test rax,rax
+ jle io_failure
+ cmp rax,rdx
+ ja io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz write_refusal
+ jmp invalid
+
 invalid:
  mov edi,2
  jmp exit

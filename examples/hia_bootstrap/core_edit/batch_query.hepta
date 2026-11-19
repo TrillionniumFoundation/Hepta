@@ -435,11 +435,20 @@ block b41(v384:readbuf,v385:mutbuf,v386:mutbuf,v391:u64,v392:u64)
   v413:bool = compare.eq(v411,v412)
   jump b42(v384,v385,v386,v391,v392,v413)
 block b42(v394:readbuf,v395:mutbuf,v396:mutbuf,v401:u64,v402:u64,v403:bool)
-  branch v403 b43(v394,v395,v396) b44(v394,v395,v396,v401,v402)
+  branch v403 b43(v394,v395,v396) check_fields(v394,v395,v396,v401,v402)
 block b43(v414:readbuf,v415:mutbuf,v416:mutbuf)
-  v432:u64 = const() {"value":4294967295}
-  v433:u32 = int.cast(v432) {"mode":"wrap"}
-  ret(v433)
+  refusal_code_b43:u64 = const() {"value":2}
+  refusal_b43:u32 = call(v415,refusal_code_b43) {"function":"batch_query_refusal"}
+  ret(refusal_b43)
+block check_fields(field_input:readbuf,field_output:mutbuf,field_work:mutbuf,source_end:u64,selection_token:u64)
+  fields_key:u64 = const() {"value":268435456}
+  fields_token:u64 = call(field_work,selection_token,fields_key) {"function":"f15"}
+  fields_mask:u64 = call(field_work,fields_token) {"function":"f3"}
+  fields_offset:u64 = const() {"value":25166552}
+  recorded_fields:u64 = call(field_output,fields_offset,fields_mask) {"function":"f21"}
+  no_fields:u64 = const() {"value":0}
+  invalid_fields:bool = compare.eq(fields_mask,no_fields)
+  branch invalid_fields b51(field_input,field_output,field_work) b44(field_input,field_output,field_work,source_end,selection_token)
 block b44(v423:readbuf,v424:mutbuf,v425:mutbuf,v430:u64,v431:u64)
   v434:u64 = const() {"value":33554432}
   v435:u64 = call(v425,v431,v434) {"function":"f15"}
@@ -470,23 +479,15 @@ block b47(v472:readbuf,v473:mutbuf,v474:mutbuf,v479:u64,v480:u64,v481:u64,v482:u
 block b48(v484:readbuf,v485:mutbuf,v486:mutbuf,v491:u64,v492:u64,v493:u64,v494:u64,v495:bool)
   branch v495 b49(v484,v485,v486) b50(v484,v485,v486,v491,v492,v493,v494)
 block b49(v501:readbuf,v502:mutbuf,v503:mutbuf)
-  v523:u64 = const() {"value":4294967295}
-  v524:u32 = int.cast(v523) {"mode":"wrap"}
-  ret(v524)
+  refusal_code_b49:u64 = const() {"value":4}
+  refusal_b49:u32 = call(v502,refusal_code_b49) {"function":"batch_query_refusal"}
+  ret(refusal_b49)
 block b50(v512:readbuf,v513:mutbuf,v514:mutbuf,v519:u64,v520:u64,v521:u64,v522:u64)
-  v525:u64 = const() {"value":25166552}
-  v526:u64 = const() {"value":268435456}
-  v527:u64 = call(v514,v520,v526) {"function":"f15"}
-  v528:u64 = call(v514,v527) {"function":"f3"}
-  v529:u64 = call(v513,v525,v528) {"function":"f21"}
-  v530:u64 = call(v513,v525) {"function":"f20"}
-  v531:u64 = const() {"value":0}
-  v532:bool = compare.eq(v530,v531)
-  branch v532 b51(v512,v513,v514) b52(v512,v513,v514,v519,v521,v522)
+  jump b52(v512,v513,v514,v519,v521,v522)
 block b51(v533:readbuf,v534:mutbuf,v535:mutbuf)
-  v555:u64 = const() {"value":4294967295}
-  v556:u32 = int.cast(v555) {"mode":"wrap"}
-  ret(v556)
+  refusal_code_b51:u64 = const() {"value":3}
+  refusal_b51:u32 = call(v534,refusal_code_b51) {"function":"batch_query_refusal"}
+  ret(refusal_b51)
 block b52(v544:readbuf,v545:mutbuf,v546:mutbuf,v551:u64,v553:u64,v554:u64)
   v557:u64 = const() {"value":25166560}
   v558:u64 = call(v545,v557) {"function":"f20"}
@@ -510,9 +511,9 @@ block b54(v576:readbuf,v577:mutbuf,v578:mutbuf,v583:u64,v585:u64,v586:u64,v587:u
   v596:bool = compare.eq(v594,v595)
   branch v596 b55(v576,v577,v578) b56(v576,v577,v578,v583,v586)
 block b55(v597:readbuf,v598:mutbuf,v599:mutbuf)
-  v621:u64 = const() {"value":4294967295}
-  v622:u32 = int.cast(v621) {"mode":"wrap"}
-  ret(v622)
+  refusal_code_b55:u64 = const() {"value":5}
+  refusal_b55:u32 = call(v598,refusal_code_b55) {"function":"batch_query_refusal"}
+  ret(refusal_b55)
 block b56(v609:readbuf,v610:mutbuf,v611:mutbuf,v616:u64,v619:u64)
   v623:u64 = const() {"value":25166528}
   v624:u64 = const() {"value":25166520}
@@ -541,9 +542,9 @@ block b58(v645:readbuf,v646:mutbuf,v647:mutbuf,v652:u64,v655:u64)
   v667:bool = compare.eq(v665,v666)
   branch v667 b59(v645,v646,v647) b60(v645,v646,v647,v652)
 block b59(v668:readbuf,v669:mutbuf,v670:mutbuf)
-  v692:u64 = const() {"value":4294967295}
-  v693:u32 = int.cast(v692) {"mode":"wrap"}
-  ret(v693)
+  refusal_code_b59:u64 = const() {"value":6}
+  refusal_b59:u32 = call(v669,refusal_code_b59) {"function":"batch_query_refusal"}
+  ret(refusal_b59)
 block b60(v680:readbuf,v681:mutbuf,v682:mutbuf,v687:u64)
   v694:u64 = const() {"value":25166336}
   v695:u64 = const() {"value":25166528}
@@ -759,9 +760,9 @@ block b89(v1328:readbuf,v1329:mutbuf,v1330:mutbuf,v1335:u64)
 block b90(v1343:readbuf,v1344:mutbuf,v1345:mutbuf,v1350:u64,v1357:bool)
   branch v1357 b91(v1343,v1344,v1345) b92(v1343,v1344,v1345,v1350)
 block b91(v1362:readbuf,v1363:mutbuf,v1364:mutbuf)
-  v1390:u64 = const() {"value":4294967295}
-  v1391:u32 = int.cast(v1390) {"mode":"wrap"}
-  ret(v1391)
+  refusal_code_b91:u64 = const() {"value":7}
+  refusal_b91:u32 = call(v1363,refusal_code_b91) {"function":"batch_query_refusal"}
+  ret(refusal_b91)
 block b92(v1376:readbuf,v1377:mutbuf,v1378:mutbuf,v1383:u64)
   v1392:u64 = const() {"value":25166336}
   v1393:u64 = call(v1377,v1392) {"function":"f20"}
@@ -8700,9 +8701,9 @@ block b47(v401:readbuf,v402:mutbuf,v403:mutbuf,v406:u64,v408:u64,v409:u64)
 block b48(v411:readbuf,v412:mutbuf,v413:mutbuf,v416:u64,v418:u64,v419:u64,v420:bool)
   branch v420 b49(v411,v412,v413) b50(v411,v412,v413,v416,v418,v419)
 block b49(v423:readbuf,v424:mutbuf,v425:mutbuf)
-  v441:u64 = const() {"value":4294967295}
-  v442:u32 = int.cast(v441) {"mode":"wrap"}
-  ret(v442)
+  refusal_code_b49:u64 = const() {"value":1}
+  refusal_b49:u32 = call(v424,refusal_code_b49) {"function":"batch_query_refusal"}
+  ret(refusal_b49)
 block b50(v432:readbuf,v433:mutbuf,v434:mutbuf,v437:u64,v439:u64,v440:u64)
   v443:u64 = const() {"value":25174016}
   v444:u64 = const() {"value":8}
@@ -9193,9 +9194,9 @@ block b27(v203:readbuf,v204:mutbuf,v205:mutbuf,v206:u64,v207:u64,v208:u64)
   v244:bool = compare.eq(v207,v243)
   branch v244 b30(v203,v204,v205,v206,v207) b31(v203,v204,v205,v206,v207)
 block b28(v218:readbuf,v219:mutbuf,v220:mutbuf)
-  v232:u64 = const() {"value":4294967295}
-  v233:u32 = int.cast(v232) {"mode":"wrap"}
-  ret(v233)
+  refusal_code_b28:u64 = const() {"value":8}
+  refusal_b28:u32 = call(v219,refusal_code_b28) {"function":"batch_query_refusal"}
+  ret(refusal_b28)
 block b29(v225:readbuf,v226:mutbuf,v227:mutbuf,v228:u64,v229:u64,v230:u64,v231:u64)
   v234:u64 = const() {"value":1}
   v235:u64 = int.add.wrap(v231,v234)
@@ -9537,4 +9538,698 @@ block b0(v0:mutbuf,v1:u64,v2:u64,v3:u64)
   _ = buffer.move_within(v0,move_target,move_source,move_count)
   move_zero:u64 = const() {"value":0}
   ret(move_zero)
+end
+fn batch_query_refusal(v0:mutbuf,v1:u64) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:mutbuf,v1:u64)
+  extent:usize = buffer.len(v0)
+  needed:usize = const() {"value":33554432}
+  available:bool = compare.ge(extent,needed)
+  branch available check_1(v0,v1) invalid()
+block check_1(out_1:mutbuf,reason_1:u64)
+  code_1:u64 = const() {"value":1}
+  matches_1:bool = compare.eq(reason_1,code_1)
+  branch matches_1 emit_1(out_1) check_2(out_1,reason_1)
+block emit_1(packet_1:mutbuf)
+  at_1_0:u64 = const() {"value":33553928}
+  word_1_0:u64 = const() {"value":7019251591964265083}
+  written_1_0:u64 = call(packet_1,at_1_0,word_1_0) {"function":"f21"}
+  at_1_8:u64 = const() {"value":33553936}
+  word_1_8:u64 = const() {"value":8314605285929872999}
+  written_1_8:u64 = call(packet_1,at_1_8,word_1_8) {"function":"f21"}
+  at_1_16:u64 = const() {"value":33553944}
+  word_1_16:u64 = const() {"value":2314885437319035426}
+  written_1_16:u64 = call(packet_1,at_1_16,word_1_16) {"function":"f21"}
+  at_1_24:u64 = const() {"value":33553952}
+  word_1_24:u64 = const() {"value":2314885530817035040}
+  written_1_24:u64 = call(packet_1,at_1_24,word_1_24) {"function":"f21"}
+  at_1_32:u64 = const() {"value":33553960}
+  word_1_32:u64 = const() {"value":4189022085447885344}
+  written_1_32:u64 = call(packet_1,at_1_32,word_1_32) {"function":"f21"}
+  at_1_40:u64 = const() {"value":33553968}
+  word_1_40:u64 = const() {"value":6217591214171300384}
+  written_1_40:u64 = call(packet_1,at_1_40,word_1_40) {"function":"f21"}
+  at_1_48:u64 = const() {"value":33553976}
+  word_1_48:u64 = const() {"value":2314885436530643525}
+  written_1_48:u64 = call(packet_1,at_1_48,word_1_48) {"function":"f21"}
+  at_1_56:u64 = const() {"value":33553984}
+  word_1_56:u64 = const() {"value":8319104456081809440}
+  written_1_56:u64 = call(packet_1,at_1_56,word_1_56) {"function":"f21"}
+  at_1_64:u64 = const() {"value":33553992}
+  word_1_64:u64 = const() {"value":4981579571882452833}
+  written_1_64:u64 = call(packet_1,at_1_64,word_1_64) {"function":"f21"}
+  at_1_72:u64 = const() {"value":33554000}
+  word_1_72:u64 = const() {"value":5279420938604595295}
+  written_1_72:u64 = call(packet_1,at_1_72,word_1_72) {"function":"f21"}
+  at_1_80:u64 = const() {"value":33554008}
+  word_1_80:u64 = const() {"value":4199680681674170196}
+  written_1_80:u64 = call(packet_1,at_1_80,word_1_80) {"function":"f21"}
+  at_1_88:u64 = const() {"value":33554016}
+  word_1_88:u64 = const() {"value":7521983764245799200}
+  written_1_88:u64 = call(packet_1,at_1_88,word_1_88) {"function":"f21"}
+  at_1_96:u64 = const() {"value":33554024}
+  word_1_96:u64 = const() {"value":7310021098310300192}
+  written_1_96:u64 = call(packet_1,at_1_96,word_1_96) {"function":"f21"}
+  at_1_104:u64 = const() {"value":33554032}
+  word_1_104:u64 = const() {"value":2321096732369297523}
+  written_1_104:u64 = call(packet_1,at_1_104,word_1_104) {"function":"f21"}
+  at_1_112:u64 = const() {"value":33554040}
+  word_1_112:u64 = const() {"value":8028075781016806771}
+  written_1_112:u64 = call(packet_1,at_1_112,word_1_112) {"function":"f21"}
+  at_1_120:u64 = const() {"value":33554048}
+  word_1_120:u64 = const() {"value":2314885436530652014}
+  written_1_120:u64 = call(packet_1,at_1_120,word_1_120) {"function":"f21"}
+  at_1_128:u64 = const() {"value":33554056}
+  word_1_128:u64 = const() {"value":8314041217920802848}
+  written_1_128:u64 = call(packet_1,at_1_128,word_1_128) {"function":"f21"}
+  at_1_136:u64 = const() {"value":33554064}
+  word_1_136:u64 = const() {"value":7598245619059794533}
+  written_1_136:u64 = call(packet_1,at_1_136,word_1_136) {"function":"f21"}
+  at_1_144:u64 = const() {"value":33554072}
+  word_1_144:u64 = const() {"value":2314885436368119158}
+  written_1_144:u64 = call(packet_1,at_1_144,word_1_144) {"function":"f21"}
+  at_1_152:u64 = const() {"value":33554080}
+  word_1_152:u64 = const() {"value":733063231912443168}
+  written_1_152:u64 = call(packet_1,at_1_152,word_1_152) {"function":"f21"}
+  at_1_160:u64 = const() {"value":33554088}
+  word_1_160:u64 = const() {"value":2322206402684264480}
+  written_1_160:u64 = call(packet_1,at_1_160,word_1_160) {"function":"f21"}
+  at_1_168:u64 = const() {"value":33554096}
+  word_1_168:u64 = const() {"value":2308706573220602214}
+  written_1_168:u64 = call(packet_1,at_1_168,word_1_168) {"function":"f21"}
+  at_1_176:u64 = const() {"value":33554104}
+  word_1_176:u64 = const() {"value":8319683848551211552}
+  written_1_176:u64 = call(packet_1,at_1_176,word_1_176) {"function":"f21"}
+  at_1_184:u64 = const() {"value":33554112}
+  word_1_184:u64 = const() {"value":8030606864244816418}
+  written_1_184:u64 = call(packet_1,at_1_184,word_1_184) {"function":"f21"}
+  at_1_192:u64 = const() {"value":33554120}
+  word_1_192:u64 = const() {"value":45047489138}
+  written_1_192:u64 = call(packet_1,at_1_192,word_1_192) {"function":"f21"}
+  length_at_1:u64 = const() {"value":33553920}
+  length_1:u64 = const() {"value":197}
+  finish_1:u64 = call(packet_1,length_at_1,length_1) {"function":"f21"}
+  jump invalid()
+block check_2(out_2:mutbuf,reason_2:u64)
+  code_2:u64 = const() {"value":2}
+  matches_2:bool = compare.eq(reason_2,code_2)
+  branch matches_2 emit_2(out_2) check_3(out_2,reason_2)
+block emit_2(packet_2:mutbuf)
+  at_2_0:u64 = const() {"value":33553928}
+  word_2_0:u64 = const() {"value":7019251591964265083}
+  written_2_0:u64 = call(packet_2,at_2_0,word_2_0) {"function":"f21"}
+  at_2_8:u64 = const() {"value":33553936}
+  word_2_8:u64 = const() {"value":8314605285929872999}
+  written_2_8:u64 = call(packet_2,at_2_8,word_2_8) {"function":"f21"}
+  at_2_16:u64 = const() {"value":33553944}
+  word_2_16:u64 = const() {"value":2314885437319035426}
+  written_2_16:u64 = call(packet_2,at_2_16,word_2_16) {"function":"f21"}
+  at_2_24:u64 = const() {"value":33553952}
+  word_2_24:u64 = const() {"value":2314885530817035040}
+  written_2_24:u64 = call(packet_2,at_2_24,word_2_24) {"function":"f21"}
+  at_2_32:u64 = const() {"value":33553960}
+  word_2_32:u64 = const() {"value":4189022085447885344}
+  written_2_32:u64 = call(packet_2,at_2_32,word_2_32) {"function":"f21"}
+  at_2_40:u64 = const() {"value":33553968}
+  word_2_40:u64 = const() {"value":6217591214171300384}
+  written_2_40:u64 = call(packet_2,at_2_40,word_2_40) {"function":"f21"}
+  at_2_48:u64 = const() {"value":33553976}
+  word_2_48:u64 = const() {"value":2314885436530643525}
+  written_2_48:u64 = call(packet_2,at_2_48,word_2_48) {"function":"f21"}
+  at_2_56:u64 = const() {"value":33553984}
+  word_2_56:u64 = const() {"value":8319104456081809440}
+  written_2_56:u64 = call(packet_2,at_2_56,word_2_56) {"function":"f21"}
+  at_2_64:u64 = const() {"value":33553992}
+  word_2_64:u64 = const() {"value":4981579571882452833}
+  written_2_64:u64 = call(packet_2,at_2_64,word_2_64) {"function":"f21"}
+  at_2_72:u64 = const() {"value":33554000}
+  word_2_72:u64 = const() {"value":5279420938604595295}
+  written_2_72:u64 = call(packet_2,at_2_72,word_2_72) {"function":"f21"}
+  at_2_80:u64 = const() {"value":33554008}
+  word_2_80:u64 = const() {"value":4199680681674170196}
+  written_2_80:u64 = call(packet_2,at_2_80,word_2_80) {"function":"f21"}
+  at_2_88:u64 = const() {"value":33554016}
+  word_2_88:u64 = const() {"value":7162249965381640480}
+  written_2_88:u64 = call(packet_2,at_2_88,word_2_88) {"function":"f21"}
+  at_2_96:u64 = const() {"value":33554024}
+  word_2_96:u64 = const() {"value":8171062582550948212}
+  written_2_96:u64 = call(packet_2,at_2_96,word_2_96) {"function":"f21"}
+  at_2_104:u64 = const() {"value":33554032}
+  word_2_104:u64 = const() {"value":8675375937194453365}
+  written_2_104:u64 = call(packet_2,at_2_104,word_2_104) {"function":"f21"}
+  at_2_112:u64 = const() {"value":33554040}
+  word_2_112:u64 = const() {"value":8459484655944754017}
+  written_2_112:u64 = call(packet_2,at_2_112,word_2_112) {"function":"f21"}
+  at_2_120:u64 = const() {"value":33554048}
+  word_2_120:u64 = const() {"value":2318349332978623342}
+  written_2_120:u64 = call(packet_2,at_2_120,word_2_120) {"function":"f21"}
+  at_2_128:u64 = const() {"value":33554056}
+  word_2_128:u64 = const() {"value":8007448977206111330}
+  written_2_128:u64 = call(packet_2,at_2_128,word_2_128) {"function":"f21"}
+  at_2_136:u64 = const() {"value":33554064}
+  word_2_136:u64 = const() {"value":7358930669821523061}
+  written_2_136:u64 = call(packet_2,at_2_136,word_2_136) {"function":"f21"}
+  at_2_144:u64 = const() {"value":33554072}
+  word_2_144:u64 = const() {"value":732998718355957097}
+  written_2_144:u64 = call(packet_2,at_2_144,word_2_144) {"function":"f21"}
+  at_2_152:u64 = const() {"value":33554080}
+  word_2_152:u64 = const() {"value":8080056003806109728}
+  written_2_152:u64 = call(packet_2,at_2_152,word_2_152) {"function":"f21"}
+  at_2_160:u64 = const() {"value":33554088}
+  word_2_160:u64 = const() {"value":2459029315949650280}
+  written_2_160:u64 = call(packet_2,at_2_160,word_2_160) {"function":"f21"}
+  at_2_168:u64 = const() {"value":33554096}
+  word_2_168:u64 = const() {"value":730271869691327076}
+  written_2_168:u64 = call(packet_2,at_2_168,word_2_168) {"function":"f21"}
+  at_2_176:u64 = const() {"value":33554104}
+  word_2_176:u64 = const() {"value":2314861740994600992}
+  written_2_176:u64 = call(packet_2,at_2_176,word_2_176) {"function":"f21"}
+  at_2_184:u64 = const() {"value":33554112}
+  word_2_184:u64 = const() {"value":7741443805845007453}
+  written_2_184:u64 = call(packet_2,at_2_184,word_2_184) {"function":"f21"}
+  at_2_192:u64 = const() {"value":33554120}
+  word_2_192:u64 = const() {"value":7310305785733462562}
+  written_2_192:u64 = call(packet_2,at_2_192,word_2_192) {"function":"f21"}
+  at_2_200:u64 = const() {"value":33554128}
+  word_2_200:u64 = const() {"value":7022364309382498860}
+  written_2_200:u64 = call(packet_2,at_2_200,word_2_200) {"function":"f21"}
+  at_2_208:u64 = const() {"value":33554136}
+  word_2_208:u64 = const() {"value":7287422581097067892}
+  written_2_208:u64 = call(packet_2,at_2_208,word_2_208) {"function":"f21"}
+  at_2_216:u64 = const() {"value":33554144}
+  word_2_216:u64 = const() {"value":755771455533183602}
+  written_2_216:u64 = call(packet_2,at_2_216,word_2_216) {"function":"f21"}
+  length_at_2:u64 = const() {"value":33553920}
+  length_2:u64 = const() {"value":224}
+  finish_2:u64 = call(packet_2,length_at_2,length_2) {"function":"f21"}
+  jump invalid()
+block check_3(out_3:mutbuf,reason_3:u64)
+  code_3:u64 = const() {"value":3}
+  matches_3:bool = compare.eq(reason_3,code_3)
+  branch matches_3 emit_3(out_3) check_4(out_3,reason_3)
+block emit_3(packet_3:mutbuf)
+  at_3_0:u64 = const() {"value":33553928}
+  word_3_0:u64 = const() {"value":7019251591964265083}
+  written_3_0:u64 = call(packet_3,at_3_0,word_3_0) {"function":"f21"}
+  at_3_8:u64 = const() {"value":33553936}
+  word_3_8:u64 = const() {"value":8314605285929872999}
+  written_3_8:u64 = call(packet_3,at_3_8,word_3_8) {"function":"f21"}
+  at_3_16:u64 = const() {"value":33553944}
+  word_3_16:u64 = const() {"value":2314885437319035426}
+  written_3_16:u64 = call(packet_3,at_3_16,word_3_16) {"function":"f21"}
+  at_3_24:u64 = const() {"value":33553952}
+  word_3_24:u64 = const() {"value":2314885530817035040}
+  written_3_24:u64 = call(packet_3,at_3_24,word_3_24) {"function":"f21"}
+  at_3_32:u64 = const() {"value":33553960}
+  word_3_32:u64 = const() {"value":4189022085447885344}
+  written_3_32:u64 = call(packet_3,at_3_32,word_3_32) {"function":"f21"}
+  at_3_40:u64 = const() {"value":33553968}
+  word_3_40:u64 = const() {"value":6217591214171300384}
+  written_3_40:u64 = call(packet_3,at_3_40,word_3_40) {"function":"f21"}
+  at_3_48:u64 = const() {"value":33553976}
+  word_3_48:u64 = const() {"value":2314885436530643525}
+  written_3_48:u64 = call(packet_3,at_3_48,word_3_48) {"function":"f21"}
+  at_3_56:u64 = const() {"value":33553984}
+  word_3_56:u64 = const() {"value":8319104456081809440}
+  written_3_56:u64 = call(packet_3,at_3_56,word_3_56) {"function":"f21"}
+  at_3_64:u64 = const() {"value":33553992}
+  word_3_64:u64 = const() {"value":4981579571882452833}
+  written_3_64:u64 = call(packet_3,at_3_64,word_3_64) {"function":"f21"}
+  at_3_72:u64 = const() {"value":33554000}
+  word_3_72:u64 = const() {"value":4995988831196498015}
+  written_3_72:u64 = call(packet_3,at_3_72,word_3_72) {"function":"f21"}
+  at_3_80:u64 = const() {"value":33554008}
+  word_3_80:u64 = const() {"value":7810765016092268882}
+  written_3_80:u64 = call(packet_3,at_3_80,word_3_80) {"function":"f21"}
+  at_3_88:u64 = const() {"value":33554016}
+  word_3_88:u64 = const() {"value":2338621054691341156}
+  written_3_88:u64 = call(packet_3,at_3_88,word_3_88) {"function":"f21"}
+  at_3_96:u64 = const() {"value":33554024}
+  word_3_96:u64 = const() {"value":7597138403349521762}
+  written_3_96:u64 = call(packet_3,at_3_96,word_3_96) {"function":"f21"}
+  at_3_104:u64 = const() {"value":33554032}
+  word_3_104:u64 = const() {"value":7308901764049499505}
+  written_3_104:u64 = call(packet_3,at_3_104,word_3_104) {"function":"f21"}
+  at_3_112:u64 = const() {"value":33554040}
+  word_3_112:u64 = const() {"value":7094703371305906285}
+  written_3_112:u64 = call(packet_3,at_3_112,word_3_112) {"function":"f21"}
+  at_3_120:u64 = const() {"value":33554048}
+  word_3_120:u64 = const() {"value":8007512764936643955}
+  written_3_120:u64 = call(packet_3,at_3_120,word_3_120) {"function":"f21"}
+  at_3_128:u64 = const() {"value":33554056}
+  word_3_128:u64 = const() {"value":3203017500943985776}
+  written_3_128:u64 = call(packet_3,at_3_128,word_3_128) {"function":"f21"}
+  at_3_136:u64 = const() {"value":33554064}
+  word_3_136:u64 = const() {"value":3180231222294241568}
+  written_3_136:u64 = call(packet_3,at_3_136,word_3_136) {"function":"f21"}
+  at_3_144:u64 = const() {"value":33554072}
+  word_3_144:u64 = const() {"value":2459000718894309386}
+  written_3_144:u64 = call(packet_3,at_3_144,word_3_144) {"function":"f21"}
+  at_3_152:u64 = const() {"value":33554080}
+  word_3_152:u64 = const() {"value":2322206376985716848}
+  written_3_152:u64 = call(packet_3,at_3_152,word_3_152) {"function":"f21"}
+  at_3_160:u64 = const() {"value":33554088}
+  word_3_160:u64 = const() {"value":2482157903884215330}
+  written_3_160:u64 = call(packet_3,at_3_160,word_3_160) {"function":"f21"}
+  at_3_168:u64 = const() {"value":33554096}
+  word_3_168:u64 = const() {"value":2308795335912202250}
+  written_3_168:u64 = call(packet_3,at_3_168,word_3_168) {"function":"f21"}
+  at_3_176:u64 = const() {"value":33554104}
+  word_3_176:u64 = const() {"value":8007998409399885088}
+  written_3_176:u64 = call(packet_3,at_3_176,word_3_176) {"function":"f21"}
+  at_3_184:u64 = const() {"value":33554112}
+  word_3_184:u64 = const() {"value":8317129703101702763}
+  written_3_184:u64 = call(packet_3,at_3_184,word_3_184) {"function":"f21"}
+  at_3_192:u64 = const() {"value":33554120}
+  word_3_192:u64 = const() {"value":8391088052093201509}
+  written_3_192:u64 = call(packet_3,at_3_192,word_3_192) {"function":"f21"}
+  at_3_200:u64 = const() {"value":33554128}
+  word_3_200:u64 = const() {"value":2459029316184667233}
+  written_3_200:u64 = call(packet_3,at_3_200,word_3_200) {"function":"f21"}
+  at_3_208:u64 = const() {"value":33554136}
+  word_3_208:u64 = const() {"value":9010051879399486053}
+  written_3_208:u64 = call(packet_3,at_3_208,word_3_208) {"function":"f21"}
+  at_3_216:u64 = const() {"value":33554144}
+  word_3_216:u64 = const() {"value":10}
+  written_3_216:u64 = call(packet_3,at_3_216,word_3_216) {"function":"f21"}
+  length_at_3:u64 = const() {"value":33553920}
+  length_3:u64 = const() {"value":217}
+  finish_3:u64 = call(packet_3,length_at_3,length_3) {"function":"f21"}
+  jump invalid()
+block check_4(out_4:mutbuf,reason_4:u64)
+  code_4:u64 = const() {"value":4}
+  matches_4:bool = compare.eq(reason_4,code_4)
+  branch matches_4 emit_4(out_4) check_5(out_4,reason_4)
+block emit_4(packet_4:mutbuf)
+  at_4_0:u64 = const() {"value":33553928}
+  word_4_0:u64 = const() {"value":7019251591964265083}
+  written_4_0:u64 = call(packet_4,at_4_0,word_4_0) {"function":"f21"}
+  at_4_8:u64 = const() {"value":33553936}
+  word_4_8:u64 = const() {"value":8314605285929872999}
+  written_4_8:u64 = call(packet_4,at_4_8,word_4_8) {"function":"f21"}
+  at_4_16:u64 = const() {"value":33553944}
+  word_4_16:u64 = const() {"value":2314885437319035426}
+  written_4_16:u64 = call(packet_4,at_4_16,word_4_16) {"function":"f21"}
+  at_4_24:u64 = const() {"value":33553952}
+  word_4_24:u64 = const() {"value":2314885530817035040}
+  written_4_24:u64 = call(packet_4,at_4_24,word_4_24) {"function":"f21"}
+  at_4_32:u64 = const() {"value":33553960}
+  word_4_32:u64 = const() {"value":4189022085447885344}
+  written_4_32:u64 = call(packet_4,at_4_32,word_4_32) {"function":"f21"}
+  at_4_40:u64 = const() {"value":33553968}
+  word_4_40:u64 = const() {"value":6217591214171300384}
+  written_4_40:u64 = call(packet_4,at_4_40,word_4_40) {"function":"f21"}
+  at_4_48:u64 = const() {"value":33553976}
+  word_4_48:u64 = const() {"value":2314885436530643525}
+  written_4_48:u64 = call(packet_4,at_4_48,word_4_48) {"function":"f21"}
+  at_4_56:u64 = const() {"value":33553984}
+  word_4_56:u64 = const() {"value":8319104456081809440}
+  written_4_56:u64 = call(packet_4,at_4_56,word_4_56) {"function":"f21"}
+  at_4_64:u64 = const() {"value":33553992}
+  word_4_64:u64 = const() {"value":4981579571882452833}
+  written_4_64:u64 = call(packet_4,at_4_64,word_4_64) {"function":"f21"}
+  at_4_72:u64 = const() {"value":33554000}
+  word_4_72:u64 = const() {"value":4995988831196498015}
+  written_4_72:u64 = call(packet_4,at_4_72,word_4_72) {"function":"f21"}
+  at_4_80:u64 = const() {"value":33554008}
+  word_4_80:u64 = const() {"value":7164793138680846674}
+  written_4_80:u64 = call(packet_4,at_4_80,word_4_80) {"function":"f21"}
+  at_4_88:u64 = const() {"value":33554016}
+  word_4_88:u64 = const() {"value":7809840079017306484}
+  written_4_88:u64 = call(packet_4,at_4_88,word_4_88) {"function":"f21"}
+  at_4_96:u64 = const() {"value":33554024}
+  word_4_96:u64 = const() {"value":2334111870319551343}
+  written_4_96:u64 = call(packet_4,at_4_96,word_4_96) {"function":"f21"}
+  at_4_104:u64 = const() {"value":33554032}
+  word_4_104:u64 = const() {"value":7575182620983850351}
+  written_4_104:u64 = call(packet_4,at_4_104,word_4_104) {"function":"f21"}
+  at_4_112:u64 = const() {"value":33554040}
+  word_4_112:u64 = const() {"value":7307499866659120484}
+  written_4_112:u64 = call(packet_4,at_4_112,word_4_112) {"function":"f21"}
+  at_4_120:u64 = const() {"value":33554048}
+  word_4_120:u64 = const() {"value":7070779454211825779}
+  written_4_120:u64 = call(packet_4,at_4_120,word_4_120) {"function":"f21"}
+  at_4_128:u64 = const() {"value":33554056}
+  word_4_128:u64 = const() {"value":7453010373645639781}
+  written_4_128:u64 = call(packet_4,at_4_128,word_4_128) {"function":"f21"}
+  at_4_136:u64 = const() {"value":33554064}
+  word_4_136:u64 = const() {"value":2314885530450141811}
+  written_4_136:u64 = call(packet_4,at_4_136,word_4_136) {"function":"f21"}
+  at_4_144:u64 = const() {"value":33554072}
+  word_4_144:u64 = const() {"value":7310293721338224672}
+  written_4_144:u64 = call(packet_4,at_4_144,word_4_144) {"function":"f21"}
+  at_4_152:u64 = const() {"value":33554080}
+  word_4_152:u64 = const() {"value":8532476743424948770}
+  written_4_152:u64 = call(packet_4,at_4_152,word_4_152) {"function":"f21"}
+  at_4_160:u64 = const() {"value":33554088}
+  word_4_160:u64 = const() {"value":2314885530449506917}
+  written_4_160:u64 = call(packet_4,at_4_160,word_4_160) {"function":"f21"}
+  at_4_168:u64 = const() {"value":33554096}
+  word_4_168:u64 = const() {"value":2308706537463351933}
+  written_4_168:u64 = call(packet_4,at_4_168,word_4_168) {"function":"f21"}
+  at_4_176:u64 = const() {"value":33554104}
+  word_4_176:u64 = const() {"value":7358945710629134880}
+  written_4_176:u64 = call(packet_4,at_4_176,word_4_176) {"function":"f21"}
+  at_4_184:u64 = const() {"value":33554112}
+  word_4_184:u64 = const() {"value":2314861394265336929}
+  written_4_184:u64 = call(packet_4,at_4_184,word_4_184) {"function":"f21"}
+  at_4_192:u64 = const() {"value":33554120}
+  word_4_192:u64 = const() {"value":2482456962322952994}
+  written_4_192:u64 = call(packet_4,at_4_192,word_4_192) {"function":"f21"}
+  at_4_200:u64 = const() {"value":33554128}
+  word_4_200:u64 = const() {"value":8245935278387241018}
+  written_4_200:u64 = call(packet_4,at_4_200,word_4_200) {"function":"f21"}
+  at_4_208:u64 = const() {"value":33554136}
+  word_4_208:u64 = const() {"value":175966754}
+  written_4_208:u64 = call(packet_4,at_4_208,word_4_208) {"function":"f21"}
+  length_at_4:u64 = const() {"value":33553920}
+  length_4:u64 = const() {"value":212}
+  finish_4:u64 = call(packet_4,length_at_4,length_4) {"function":"f21"}
+  jump invalid()
+block check_5(out_5:mutbuf,reason_5:u64)
+  code_5:u64 = const() {"value":5}
+  matches_5:bool = compare.eq(reason_5,code_5)
+  branch matches_5 emit_5(out_5) check_6(out_5,reason_5)
+block emit_5(packet_5:mutbuf)
+  at_5_0:u64 = const() {"value":33553928}
+  word_5_0:u64 = const() {"value":7019251591964265083}
+  written_5_0:u64 = call(packet_5,at_5_0,word_5_0) {"function":"f21"}
+  at_5_8:u64 = const() {"value":33553936}
+  word_5_8:u64 = const() {"value":8314605285929872999}
+  written_5_8:u64 = call(packet_5,at_5_8,word_5_8) {"function":"f21"}
+  at_5_16:u64 = const() {"value":33553944}
+  word_5_16:u64 = const() {"value":2314885437319035426}
+  written_5_16:u64 = call(packet_5,at_5_16,word_5_16) {"function":"f21"}
+  at_5_24:u64 = const() {"value":33553952}
+  word_5_24:u64 = const() {"value":2314885530817035040}
+  written_5_24:u64 = call(packet_5,at_5_24,word_5_24) {"function":"f21"}
+  at_5_32:u64 = const() {"value":33553960}
+  word_5_32:u64 = const() {"value":4189022085447885344}
+  written_5_32:u64 = call(packet_5,at_5_32,word_5_32) {"function":"f21"}
+  at_5_40:u64 = const() {"value":33553968}
+  word_5_40:u64 = const() {"value":6217591214171300384}
+  written_5_40:u64 = call(packet_5,at_5_40,word_5_40) {"function":"f21"}
+  at_5_48:u64 = const() {"value":33553976}
+  word_5_48:u64 = const() {"value":2314885436530643525}
+  written_5_48:u64 = call(packet_5,at_5_48,word_5_48) {"function":"f21"}
+  at_5_56:u64 = const() {"value":33553984}
+  word_5_56:u64 = const() {"value":8319104456081809440}
+  written_5_56:u64 = call(packet_5,at_5_56,word_5_56) {"function":"f21"}
+  at_5_64:u64 = const() {"value":33553992}
+  word_5_64:u64 = const() {"value":4981579571882452833}
+  written_5_64:u64 = call(packet_5,at_5_64,word_5_64) {"function":"f21"}
+  at_5_72:u64 = const() {"value":33554000}
+  word_5_72:u64 = const() {"value":4995988831196498015}
+  written_5_72:u64 = call(packet_5,at_5_72,word_5_72) {"function":"f21"}
+  at_5_80:u64 = const() {"value":33554008}
+  word_5_80:u64 = const() {"value":7164793138680846674}
+  written_5_80:u64 = call(packet_5,at_5_80,word_5_80) {"function":"f21"}
+  at_5_88:u64 = const() {"value":33554016}
+  word_5_88:u64 = const() {"value":8390045716385327476}
+  written_5_88:u64 = call(packet_5,at_5_88,word_5_88) {"function":"f21"}
+  at_5_96:u64 = const() {"value":33554024}
+  word_5_96:u64 = const() {"value":3180214712456406560}
+  written_5_96:u64 = call(packet_5,at_5_96,word_5_96) {"function":"f21"}
+  at_5_104:u64 = const() {"value":33554032}
+  word_5_104:u64 = const() {"value":2459000718894309386}
+  written_5_104:u64 = call(packet_5,at_5_104,word_5_104) {"function":"f21"}
+  at_5_112:u64 = const() {"value":33554040}
+  word_5_112:u64 = const() {"value":2322206376985716848}
+  written_5_112:u64 = call(packet_5,at_5_112,word_5_112) {"function":"f21"}
+  at_5_120:u64 = const() {"value":33554048}
+  word_5_120:u64 = const() {"value":2482157903884215330}
+  written_5_120:u64 = call(packet_5,at_5_120,word_5_120) {"function":"f21"}
+  at_5_128:u64 = const() {"value":33554056}
+  word_5_128:u64 = const() {"value":2308795335912202250}
+  written_5_128:u64 = call(packet_5,at_5_128,word_5_128) {"function":"f21"}
+  at_5_136:u64 = const() {"value":33554064}
+  word_5_136:u64 = const() {"value":8007998409399885088}
+  written_5_136:u64 = call(packet_5,at_5_136,word_5_136) {"function":"f21"}
+  at_5_144:u64 = const() {"value":33554072}
+  word_5_144:u64 = const() {"value":8317129703101702763}
+  written_5_144:u64 = call(packet_5,at_5_144,word_5_144) {"function":"f21"}
+  at_5_152:u64 = const() {"value":33554080}
+  word_5_152:u64 = const() {"value":8391088052093201509}
+  written_5_152:u64 = call(packet_5,at_5_152,word_5_152) {"function":"f21"}
+  at_5_160:u64 = const() {"value":33554088}
+  word_5_160:u64 = const() {"value":2459029316184667233}
+  written_5_160:u64 = call(packet_5,at_5_160,word_5_160) {"function":"f21"}
+  at_5_168:u64 = const() {"value":33554096}
+  word_5_168:u64 = const() {"value":9010051879399486053}
+  written_5_168:u64 = call(packet_5,at_5_168,word_5_168) {"function":"f21"}
+  at_5_176:u64 = const() {"value":33554104}
+  word_5_176:u64 = const() {"value":10}
+  written_5_176:u64 = call(packet_5,at_5_176,word_5_176) {"function":"f21"}
+  length_at_5:u64 = const() {"value":33553920}
+  length_5:u64 = const() {"value":177}
+  finish_5:u64 = call(packet_5,length_at_5,length_5) {"function":"f21"}
+  jump invalid()
+block check_6(out_6:mutbuf,reason_6:u64)
+  code_6:u64 = const() {"value":6}
+  matches_6:bool = compare.eq(reason_6,code_6)
+  branch matches_6 emit_6(out_6) check_7(out_6,reason_6)
+block emit_6(packet_6:mutbuf)
+  at_6_0:u64 = const() {"value":33553928}
+  word_6_0:u64 = const() {"value":7019251591964265083}
+  written_6_0:u64 = call(packet_6,at_6_0,word_6_0) {"function":"f21"}
+  at_6_8:u64 = const() {"value":33553936}
+  word_6_8:u64 = const() {"value":8314605285929872999}
+  written_6_8:u64 = call(packet_6,at_6_8,word_6_8) {"function":"f21"}
+  at_6_16:u64 = const() {"value":33553944}
+  word_6_16:u64 = const() {"value":2314885437319035426}
+  written_6_16:u64 = call(packet_6,at_6_16,word_6_16) {"function":"f21"}
+  at_6_24:u64 = const() {"value":33553952}
+  word_6_24:u64 = const() {"value":2314885530817035040}
+  written_6_24:u64 = call(packet_6,at_6_24,word_6_24) {"function":"f21"}
+  at_6_32:u64 = const() {"value":33553960}
+  word_6_32:u64 = const() {"value":4189022085447885344}
+  written_6_32:u64 = call(packet_6,at_6_32,word_6_32) {"function":"f21"}
+  at_6_40:u64 = const() {"value":33553968}
+  word_6_40:u64 = const() {"value":6217591214171300384}
+  written_6_40:u64 = call(packet_6,at_6_40,word_6_40) {"function":"f21"}
+  at_6_48:u64 = const() {"value":33553976}
+  word_6_48:u64 = const() {"value":2314885436530643525}
+  written_6_48:u64 = call(packet_6,at_6_48,word_6_48) {"function":"f21"}
+  at_6_56:u64 = const() {"value":33553984}
+  word_6_56:u64 = const() {"value":8319104456081809440}
+  written_6_56:u64 = call(packet_6,at_6_56,word_6_56) {"function":"f21"}
+  at_6_64:u64 = const() {"value":33553992}
+  word_6_64:u64 = const() {"value":4981579571882452833}
+  written_6_64:u64 = call(packet_6,at_6_64,word_6_64) {"function":"f21"}
+  at_6_72:u64 = const() {"value":33554000}
+  word_6_72:u64 = const() {"value":4995988831196498015}
+  written_6_72:u64 = call(packet_6,at_6_72,word_6_72) {"function":"f21"}
+  at_6_80:u64 = const() {"value":33554008}
+  word_6_80:u64 = const() {"value":7165064700873038162}
+  written_6_80:u64 = call(packet_6,at_6_80,word_6_80) {"function":"f21"}
+  at_6_88:u64 = const() {"value":33554016}
+  word_6_88:u64 = const() {"value":8027139070292271211}
+  written_6_88:u64 = call(packet_6,at_6_88,word_6_88) {"function":"f21"}
+  at_6_96:u64 = const() {"value":33554024}
+  word_6_96:u64 = const() {"value":2314861393140280949}
+  written_6_96:u64 = call(packet_6,at_6_96,word_6_96) {"function":"f21"}
+  at_6_104:u64 = const() {"value":33554032}
+  word_6_104:u64 = const() {"value":7018983311127093280}
+  written_6_104:u64 = call(packet_6,at_6_104,word_6_104) {"function":"f21"}
+  at_6_112:u64 = const() {"value":33554040}
+  word_6_112:u64 = const() {"value":8242750739804480883}
+  written_6_112:u64 = call(packet_6,at_6_112,word_6_112) {"function":"f21"}
+  at_6_120:u64 = const() {"value":33554048}
+  word_6_120:u64 = const() {"value":2314861351532852841}
+  written_6_120:u64 = call(packet_6,at_6_120,word_6_120) {"function":"f21"}
+  at_6_128:u64 = const() {"value":33554056}
+  word_6_128:u64 = const() {"value":3196746632489934880}
+  written_6_128:u64 = call(packet_6,at_6_128,word_6_128) {"function":"f21"}
+  at_6_136:u64 = const() {"value":33554064}
+  word_6_136:u64 = const() {"value":4189028728466055178}
+  written_6_136:u64 = call(packet_6,at_6_136,word_6_136) {"function":"f21"}
+  at_6_144:u64 = const() {"value":33554072}
+  word_6_144:u64 = const() {"value":733072385768515104}
+  written_6_144:u64 = call(packet_6,at_6_144,word_6_144) {"function":"f21"}
+  at_6_152:u64 = const() {"value":33554080}
+  word_6_152:u64 = const() {"value":8463496752511721504}
+  written_6_152:u64 = call(packet_6,at_6_152,word_6_152) {"function":"f21"}
+  at_6_160:u64 = const() {"value":33554088}
+  word_6_160:u64 = const() {"value":8246765064912773747}
+  written_6_160:u64 = call(packet_6,at_6_160,word_6_160) {"function":"f21"}
+  at_6_168:u64 = const() {"value":33554096}
+  word_6_168:u64 = const() {"value":11532157219439}
+  written_6_168:u64 = call(packet_6,at_6_168,word_6_168) {"function":"f21"}
+  length_at_6:u64 = const() {"value":33553920}
+  length_6:u64 = const() {"value":174}
+  finish_6:u64 = call(packet_6,length_at_6,length_6) {"function":"f21"}
+  jump invalid()
+block check_7(out_7:mutbuf,reason_7:u64)
+  code_7:u64 = const() {"value":7}
+  matches_7:bool = compare.eq(reason_7,code_7)
+  branch matches_7 emit_7(out_7) check_8(out_7,reason_7)
+block emit_7(packet_7:mutbuf)
+  at_7_0:u64 = const() {"value":33553928}
+  word_7_0:u64 = const() {"value":7019251591964265083}
+  written_7_0:u64 = call(packet_7,at_7_0,word_7_0) {"function":"f21"}
+  at_7_8:u64 = const() {"value":33553936}
+  word_7_8:u64 = const() {"value":8314605285929872999}
+  written_7_8:u64 = call(packet_7,at_7_8,word_7_8) {"function":"f21"}
+  at_7_16:u64 = const() {"value":33553944}
+  word_7_16:u64 = const() {"value":2314885437319035426}
+  written_7_16:u64 = call(packet_7,at_7_16,word_7_16) {"function":"f21"}
+  at_7_24:u64 = const() {"value":33553952}
+  word_7_24:u64 = const() {"value":2314885530817035040}
+  written_7_24:u64 = call(packet_7,at_7_24,word_7_24) {"function":"f21"}
+  at_7_32:u64 = const() {"value":33553960}
+  word_7_32:u64 = const() {"value":4189022085447885344}
+  written_7_32:u64 = call(packet_7,at_7_32,word_7_32) {"function":"f21"}
+  at_7_40:u64 = const() {"value":33553968}
+  word_7_40:u64 = const() {"value":6217591214171300384}
+  written_7_40:u64 = call(packet_7,at_7_40,word_7_40) {"function":"f21"}
+  at_7_48:u64 = const() {"value":33553976}
+  word_7_48:u64 = const() {"value":2314885436530643525}
+  written_7_48:u64 = call(packet_7,at_7_48,word_7_48) {"function":"f21"}
+  at_7_56:u64 = const() {"value":33553984}
+  word_7_56:u64 = const() {"value":8319104456081809440}
+  written_7_56:u64 = call(packet_7,at_7_56,word_7_56) {"function":"f21"}
+  at_7_64:u64 = const() {"value":33553992}
+  word_7_64:u64 = const() {"value":4981579571882452833}
+  written_7_64:u64 = call(packet_7,at_7_64,word_7_64) {"function":"f21"}
+  at_7_72:u64 = const() {"value":33554000}
+  word_7_72:u64 = const() {"value":4995988831196498015}
+  written_7_72:u64 = call(packet_7,at_7_72,word_7_72) {"function":"f21"}
+  at_7_80:u64 = const() {"value":33554008}
+  word_7_80:u64 = const() {"value":2324230499187972434}
+  written_7_80:u64 = call(packet_7,at_7_80,word_7_80) {"function":"f21"}
+  at_7_88:u64 = const() {"value":33554016}
+  word_7_88:u64 = const() {"value":7214894650794210671}
+  written_7_88:u64 = call(packet_7,at_7_88,word_7_88) {"function":"f21"}
+  at_7_96:u64 = const() {"value":33554024}
+  word_7_96:u64 = const() {"value":2338616625293649263}
+  written_7_96:u64 = call(packet_7,at_7_96,word_7_96) {"function":"f21"}
+  at_7_104:u64 = const() {"value":33554032}
+  word_7_104:u64 = const() {"value":8747795275003028585}
+  written_7_104:u64 = call(packet_7,at_7_104,word_7_104) {"function":"f21"}
+  at_7_112:u64 = const() {"value":33554040}
+  word_7_112:u64 = const() {"value":8317701149661490976}
+  written_7_112:u64 = call(packet_7,at_7_112,word_7_112) {"function":"f21"}
+  at_7_120:u64 = const() {"value":33554048}
+  word_7_120:u64 = const() {"value":7957695015192719988}
+  written_7_120:u64 = call(packet_7,at_7_120,word_7_120) {"function":"f21"}
+  at_7_128:u64 = const() {"value":33554056}
+  word_7_128:u64 = const() {"value":2314885530817014818}
+  written_7_128:u64 = call(packet_7,at_7_128,word_7_128) {"function":"f21"}
+  at_7_136:u64 = const() {"value":33554064}
+  word_7_136:u64 = const() {"value":2478514032138527264}
+  written_7_136:u64 = call(packet_7,at_7_136,word_7_136) {"function":"f21"}
+  at_7_144:u64 = const() {"value":33554072}
+  word_7_144:u64 = const() {"value":7311146985109725242}
+  written_7_144:u64 = call(packet_7,at_7_144,word_7_144) {"function":"f21"}
+  at_7_152:u64 = const() {"value":33554080}
+  word_7_152:u64 = const() {"value":9016241776344310386}
+  written_7_152:u64 = call(packet_7,at_7_152,word_7_152) {"function":"f21"}
+  at_7_160:u64 = const() {"value":33554088}
+  word_7_160:u64 = const() {"value":2314861394125660170}
+  written_7_160:u64 = call(packet_7,at_7_160,word_7_160) {"function":"f21"}
+  at_7_168:u64 = const() {"value":33554096}
+  word_7_168:u64 = const() {"value":7018332503361154850}
+  written_7_168:u64 = call(packet_7,at_7_168,word_7_168) {"function":"f21"}
+  at_7_176:u64 = const() {"value":33554104}
+  word_7_176:u64 = const() {"value":2459000624610898796}
+  written_7_176:u64 = call(packet_7,at_7_176,word_7_176) {"function":"f21"}
+  at_7_184:u64 = const() {"value":33554112}
+  word_7_184:u64 = const() {"value":4189037551708894323}
+  written_7_184:u64 = call(packet_7,at_7_184,word_7_184) {"function":"f21"}
+  at_7_192:u64 = const() {"value":33554120}
+  word_7_192:u64 = const() {"value":2482168881970749984}
+  written_7_192:u64 = call(packet_7,at_7_192,word_7_192) {"function":"f21"}
+  at_7_200:u64 = const() {"value":33554128}
+  word_7_200:u64 = const() {"value":687370}
+  written_7_200:u64 = call(packet_7,at_7_200,word_7_200) {"function":"f21"}
+  length_at_7:u64 = const() {"value":33553920}
+  length_7:u64 = const() {"value":203}
+  finish_7:u64 = call(packet_7,length_at_7,length_7) {"function":"f21"}
+  jump invalid()
+block check_8(out_8:mutbuf,reason_8:u64)
+  code_8:u64 = const() {"value":8}
+  matches_8:bool = compare.eq(reason_8,code_8)
+  branch matches_8 emit_8(out_8) invalid()
+block emit_8(packet_8:mutbuf)
+  at_8_0:u64 = const() {"value":33553928}
+  word_8_0:u64 = const() {"value":7019251591964265083}
+  written_8_0:u64 = call(packet_8,at_8_0,word_8_0) {"function":"f21"}
+  at_8_8:u64 = const() {"value":33553936}
+  word_8_8:u64 = const() {"value":8314605285929872999}
+  written_8_8:u64 = call(packet_8,at_8_8,word_8_8) {"function":"f21"}
+  at_8_16:u64 = const() {"value":33553944}
+  word_8_16:u64 = const() {"value":2314885437319035426}
+  written_8_16:u64 = call(packet_8,at_8_16,word_8_16) {"function":"f21"}
+  at_8_24:u64 = const() {"value":33553952}
+  word_8_24:u64 = const() {"value":2314885530817035040}
+  written_8_24:u64 = call(packet_8,at_8_24,word_8_24) {"function":"f21"}
+  at_8_32:u64 = const() {"value":33553960}
+  word_8_32:u64 = const() {"value":4189022085447885344}
+  written_8_32:u64 = call(packet_8,at_8_32,word_8_32) {"function":"f21"}
+  at_8_40:u64 = const() {"value":33553968}
+  word_8_40:u64 = const() {"value":6217591214171300384}
+  written_8_40:u64 = call(packet_8,at_8_40,word_8_40) {"function":"f21"}
+  at_8_48:u64 = const() {"value":33553976}
+  word_8_48:u64 = const() {"value":2314885436530643525}
+  written_8_48:u64 = call(packet_8,at_8_48,word_8_48) {"function":"f21"}
+  at_8_56:u64 = const() {"value":33553984}
+  word_8_56:u64 = const() {"value":8319104456081809440}
+  written_8_56:u64 = call(packet_8,at_8_56,word_8_56) {"function":"f21"}
+  at_8_64:u64 = const() {"value":33553992}
+  word_8_64:u64 = const() {"value":4981579571882452833}
+  written_8_64:u64 = call(packet_8,at_8_64,word_8_64) {"function":"f21"}
+  at_8_72:u64 = const() {"value":33554000}
+  word_8_72:u64 = const() {"value":5279420938604595295}
+  written_8_72:u64 = call(packet_8,at_8_72,word_8_72) {"function":"f21"}
+  at_8_80:u64 = const() {"value":33554008}
+  word_8_80:u64 = const() {"value":4199680681674170196}
+  written_8_80:u64 = call(packet_8,at_8_80,word_8_80) {"function":"f21"}
+  at_8_88:u64 = const() {"value":33554016}
+  word_8_88:u64 = const() {"value":7598807758542304032}
+  written_8_88:u64 = call(packet_8,at_8_88,word_8_88) {"function":"f21"}
+  at_8_96:u64 = const() {"value":33554024}
+  word_8_96:u64 = const() {"value":8243124912629444207}
+  written_8_96:u64 = call(packet_8,at_8_96,word_8_96) {"function":"f21"}
+  at_8_104:u64 = const() {"value":33554032}
+  word_8_104:u64 = const() {"value":2334393405426131308}
+  written_8_104:u64 = call(packet_8,at_8_104,word_8_104) {"function":"f21"}
+  at_8_112:u64 = const() {"value":33554040}
+  word_8_112:u64 = const() {"value":8386676065534439017}
+  written_8_112:u64 = call(packet_8,at_8_112,word_8_112) {"function":"f21"}
+  at_8_120:u64 = const() {"value":33554048}
+  word_8_120:u64 = const() {"value":2314861393140936553}
+  written_8_120:u64 = call(packet_8,at_8_120,word_8_120) {"function":"f21"}
+  at_8_128:u64 = const() {"value":33554056}
+  word_8_128:u64 = const() {"value":7018983311127093280}
+  written_8_128:u64 = call(packet_8,at_8_128,word_8_128) {"function":"f21"}
+  at_8_136:u64 = const() {"value":33554064}
+  word_8_136:u64 = const() {"value":8242750739804480883}
+  written_8_136:u64 = call(packet_8,at_8_136,word_8_136) {"function":"f21"}
+  at_8_144:u64 = const() {"value":33554072}
+  word_8_144:u64 = const() {"value":2314861351532852841}
+  written_8_144:u64 = call(packet_8,at_8_144,word_8_144) {"function":"f21"}
+  at_8_152:u64 = const() {"value":33554080}
+  word_8_152:u64 = const() {"value":3196746632489934880}
+  written_8_152:u64 = call(packet_8,at_8_152,word_8_152) {"function":"f21"}
+  at_8_160:u64 = const() {"value":33554088}
+  word_8_160:u64 = const() {"value":4189028728466055178}
+  written_8_160:u64 = call(packet_8,at_8_160,word_8_160) {"function":"f21"}
+  at_8_168:u64 = const() {"value":33554096}
+  word_8_168:u64 = const() {"value":733072385768515104}
+  written_8_168:u64 = call(packet_8,at_8_168,word_8_168) {"function":"f21"}
+  at_8_176:u64 = const() {"value":33554104}
+  word_8_176:u64 = const() {"value":8463496752511721504}
+  written_8_176:u64 = call(packet_8,at_8_176,word_8_176) {"function":"f21"}
+  at_8_184:u64 = const() {"value":33554112}
+  word_8_184:u64 = const() {"value":8246765064912773747}
+  written_8_184:u64 = call(packet_8,at_8_184,word_8_184) {"function":"f21"}
+  at_8_192:u64 = const() {"value":33554120}
+  word_8_192:u64 = const() {"value":11532157219439}
+  written_8_192:u64 = call(packet_8,at_8_192,word_8_192) {"function":"f21"}
+  length_at_8:u64 = const() {"value":33553920}
+  length_8:u64 = const() {"value":198}
+  finish_8:u64 = call(packet_8,length_at_8,length_8) {"function":"f21"}
+  jump invalid()
+block invalid()
+  result:u32 = const() {"value":4294967295}
+  ret(result)
 end

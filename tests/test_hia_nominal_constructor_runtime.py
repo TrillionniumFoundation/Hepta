@@ -418,6 +418,7 @@ def check_ordinary(executable, run):
     check_argument_cli(executable)
     check_edit_query_refusals(executable)
     check_patch_refusals(executable)
+    check_batch_query_refusals(executable)
 
 
 def check_edit_query_refusals(executable):
@@ -497,6 +498,41 @@ def check_patch_refusals(executable):
                     status, stdout.getvalue().encode(), b''), (action, publication, payload, result)
                 assert status == 2 and not destination.parent.exists()
     print(f'{len(cases) * len(modes)} exact patch and impact refusals without changing the snapshot')
+
+
+def check_batch_query_refusals(executable):
+    from hepta.cli import _reference_hia_main
+    from tests.test_hia_edit_batch import loans, selected
+
+    program = loans()
+    site = selected('reader')
+    cases = (
+        {}, [], [site] * 17, [False], [{'output': site['output']}],
+        [{**site, 'extra': False}], [{**site, 'fields': []}],
+        [{**site, 'function': False}],
+        [{**site, 'function': False, 'fields': []}],
+        [{**site, 'function': 'absent'}], [{**site, 'block': 'absent'}],
+        [{**site, 'output': 'absent'}], [site, site],
+    )
+    with TemporaryDirectory(prefix='hia-cli-batch-query-refusal-') as temporary:
+        root = Path(temporary)
+        source, packet = root / 'source.hepta', root / 'selections.json'
+        destination = root / 'new/result.hepta'
+        source.write_text(json.dumps(program))
+        for selections in cases:
+            packet.write_text(json.dumps(selections))
+            for publication in ([], ['-o', str(destination)]):
+                args = ['edit-batch-query', str(source), '--selections', str(packet), *publication]
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    status = _reference_hia_main(args)
+                result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                        timeout=20, check=False)
+                assert (result.returncode, result.stdout, result.stderr) == (
+                    status, stdout.getvalue().encode(), b''), (selections, publication, result)
+                assert status == 2 and not destination.parent.exists()
+    print(f'{len(cases) * 2} exact batch-query refusals without creating a destination')
+
 
 
 def check_argument_cli(executable):
