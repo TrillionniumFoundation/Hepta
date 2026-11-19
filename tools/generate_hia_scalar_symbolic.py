@@ -7,7 +7,7 @@ from hepta.hia_scalar_reference_native import OPCODES
 from hepta.hia_scalar_symbolic_native import (
     CONTROL_KINDS, CONTROL_MAGIC, MAGIC, MAX_BLOCKS, MAX_EDGES, MAX_NODES,
     MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS,
-    OPERATIONS, ORDER_MAGIC, RESULT,
+    OPERATIONS, ORDER_MAGIC, RESULT, TOTALITY_MAGIC, TOTALITY_TERMINATORS,
 )
 from tools.generate_hia_scalar_reference import ReferenceBuilder
 from tools.generate_hia_elf_linker import SOURCE as SUPPORT
@@ -20,6 +20,8 @@ def recipe(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return acyclic_order(s, o, w)
     if length(s) >= 8 and uint(s, 0, 8) == @CONTROL_MAGIC@:
         return control(s, o)
+    if length(s) >= 8 and uint(s, 0, 8) == @TOTALITY_MAGIC@:
+        return structural_totality(s, o)
     if length(s) != 64 or length(o) < 64 + 32 * @MAX_NODES@:
         return 4294967295
     if uint(s, 0, 8) != @MAGIC@:
@@ -309,19 +311,54 @@ def overflow(o:mutbuf, full:u64, width:u64, original:u64, signed:u64) -> u64:
     return node(o, @n.not@, node(o, @n.and@, first, second, 0), 0, 0)
 '''
 
+TOTALITY_SOURCE = '''
+def structural_totality(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 24 or length(o) < 16:
+        return 4294967295
+    blocks = uint(s, 8, 8)
+    operations = uint(s, 16, 8)
+    if blocks == 0 or blocks > @MAX_BLOCKS@ or operations > @MAX_OPERATIONS@:
+        return 4294967295
+    start = 24 + blocks
+    if length(s) != start + operations:
+        return 4294967295
+    put(o, 0, @RESULT@)
+    put(o, 8, 0)
+    at = 24
+    while at < start:
+        term = byte(s, at)
+        if term != @t.ret@ and term != @t.jump@ and term != @t.branch@:
+            return 16
+        at = at + 1
+    while at < length(s):
+        op = byte(s, at)
+        if op >= 64 or ((@NONTRAPPING@ >> op) & 1) == 0:
+            return 16
+        at = at + 1
+    put(o, 8, 1)
+    return 16
+
+'''
+
 
 def document():
+    total_ops = ('int.add.wrap', 'int.sub.wrap', 'int.mul.wrap', 'bit.and', 'bit.or', 'bit.xor',
+                 'bit.not', 'compare.eq', 'compare.ne', 'compare.lt', 'compare.le',
+                 'compare.gt', 'compare.ge', 'bool.not', 'bool.and', 'bool.or', 'select')
     constants = {'MAGIC': MAGIC, 'RESULT': RESULT, 'MAX_NODES': MAX_NODES, 'ORDER_MAGIC': ORDER_MAGIC,
                  'MAX_BLOCKS': MAX_BLOCKS, 'MAX_OPERATIONS': MAX_OPERATIONS,
                  'MAX_PARAMETERS': MAX_PARAMETERS, 'MAX_RETURNS': MAX_RETURNS,
                  'CONTROL_MAGIC': CONTROL_MAGIC, 'MAX_EDGES': MAX_EDGES, **OPCODES,
+                 'TOTALITY_MAGIC': TOTALITY_MAGIC,
+                 'NONTRAPPING': 1 | sum(1 << OPCODES[name] for name in total_ops),
+                 **{'t.' + name: code for name, code in TOTALITY_TERMINATORS.items()},
                  **{'c.' + name: code for name, code in CONTROL_KINDS.items()},
                  **{'n.' + name: code for name, code in OPERATIONS.items()}}
-    source = SOURCE
+    support = SUPPORT[SUPPORT.index('\ndef uint('):SUPPORT.index('\ndef copy_bytes(')]
+    source = SOURCE + support + TOTALITY_SOURCE
     for name, value in constants.items():
         source = source.replace(f'@{name}@', str(value))
-    support = SUPPORT[SUPPORT.index('\ndef uint('):SUPPORT.index('\ndef copy_bytes(')]
-    nodes = ast.parse(source + support).body
+    nodes = ast.parse(source).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}

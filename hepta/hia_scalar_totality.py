@@ -1,10 +1,10 @@
 """Fresh all-input normal-return proofs for the finite scalar HIA encoder.
 
 This is distinct from equivalence: a program can be equivalent to itself and
-still trap. Only UNSAT of ``outcome_tag != 0`` proves normal return. The tag's
-negative missing-path sentinel is included, so incomplete execution cannot
-vacuously establish totality. Consumers must recompute; a receipt is evidence,
-not admission authority. Native runtimes may impose a narrower opcode profile.
+still trap. A selected HIA checker can prove normal return structurally for
+trap-free DAGs. Otherwise UNSAT of ``outcome_tag != 0`` is required; its negative
+missing-path sentinel prevents incomplete execution from vacuously establishing
+totality. Consumers must recompute; a receipt is not admission authority.
 """
 from __future__ import annotations
 
@@ -12,8 +12,9 @@ from hashlib import sha256
 from pathlib import Path
 import time
 
-from .hia_scalar_proof_contract import begin_scalar_proof, finish_scalar_proof
+from .hia_scalar_proof_contract import STRUCTURAL_TOTALITY_CHECKER, begin_scalar_proof, finish_scalar_proof
 from .hia_program import HIAProgramRejected, verify_program
+from .hia_scalar_symbolic_native import selected_scalar_symbolic
 from . import hia_translation_validation as semantics
 
 SCHEMA = "hepta.hia.scalar-totality.v1"
@@ -51,8 +52,10 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
     """Prove one public scalar function returns normally on every typed input.
 
     Canonical validation and the existing acyclic scalar profile run first.
-    Every invocation constructs an independent context with the pinned Z3
-    binding/library identity. SAT becomes ``disproved`` only after the
+    With a selected HIA checker, a verified DAG consisting of nontrapping
+    operations and normal return sinks needs no symbolic expression.
+    Other cases create an independent context with the pinned Z3 identity.
+    SAT becomes ``disproved`` only after the
     canonical VM replays the same first trap. The deadline includes source
     checking, encoding, solver work, replay and final identity checks.
 
@@ -115,6 +118,19 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
             raise semantics._OutsideProfile("not_a_public_scalar_entrypoint")
         fn = functions[function]
         graph = semantics._profile(fn)
+        native = selected_scalar_symbolic()
+        if native is not None:
+            established, predicate_sha256 = native.structural_totality(graph[0])
+            if established:
+                if (scope["source_identity"] or {}).get("scalar_symbolic.image.bin") != native.image_sha256:
+                    raise semantics._OutsideProfile("native_totality_identity_changed")
+                result.update(status="proved", reason="nontrapping_operations_and_return_only_dag")
+                result["solver"].update(name=STRUCTURAL_TOTALITY_CHECKER, version="1", result="established",
+                                        identity={"image_sha256": native.image_sha256},
+                                        predicate_sha256=predicate_sha256)
+                result["limits"][1] = (
+                    "The canonical verifier and selected HIA graph and totality checks are trusted implementations.")
+                return result
         z = semantics._z3_module()
         result["solver"]["version"] = z.get_version_string()
         if z.get_version_string() != PINNED_Z3_VERSION:
@@ -179,7 +195,7 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
                 if (result["validator_sha256"] != _implementation_digest()
                         or result["encoder_sha256"] != semantics._implementation_digest()
                         or result["implementation"] != _primitive_implementation_identity()
-                        or solver_identity != _solver_identity(z)):
+                        or (z is not None and solver_identity != _solver_identity(z))):
                     result.update(status="unknown", reason="implementation_changed_during_proof",
                                   counterexample=None)
             except Exception as exc:

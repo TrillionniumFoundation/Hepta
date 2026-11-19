@@ -439,8 +439,12 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             NativeScalarSymbolic, PROFILE_REFUSALS, SCHEMA, SELECTOR, SOURCE, SymbolicRecipeRejected,
         )
         from hepta import hia_translation_validation
+        from hepta.hia_multiversion import _admit
+        from hepta.hia_scalar_totality import validate_scalar_totality
         from hepta.hia_translation_validation import _Encoder as TranslationEncoder, validate_translation
-        from tests.test_hia_translation_validation import arithmetic
+        from tests.test_hia_program import i
+        from tests.test_hia_scalar_totality import total_division
+        from tests.test_hia_translation_validation import arithmetic, explicit_trap
         from tools.qualify_hia_selfhost import compile_stage
 
         image, _ = compile_stage(self.compiler.parent, 'symbolic', self.compiler, SOURCE.read_bytes())
@@ -462,6 +466,33 @@ class ScalarReferenceNativeTests(unittest.TestCase):
                              ((), PROFILE_REFUSALS[expected]))
         self.assertEqual(native.function_order([str(i) for i in range(MAX_BLOCKS + 1)], (),
             0, 0, 0, 0), ((), PROFILE_REFUSALS[0]))
+
+        branch_and_join = total_division()
+        branch_and_join['functions'][0]['blocks'][2]['ops'] = [
+            i('int.add.wrap', ['n', 'd'], [('answer', 'u8')])]
+        checked = arithmetic('int.add.checked', 'u8')
+        trap = explicit_trap('u8', 'user')
+        self.assertEqual(validate_scalar_totality(branch_and_join)['solver']['result'], 'unsat')
+        with (patch.dict(os.environ, {SELECTOR: str(manifest)}),
+              patch.object(hia_translation_validation, '_z3_module', side_effect=ImportError)):
+            proof = validate_scalar_totality(branch_and_join)
+            self.assertEqual(proof['status'], 'proved', proof)
+            self.assertEqual(proof['checker']['kind'], 'trusted_executable_structural_checker')
+            self.assertEqual(proof['solver']['identity']['image_sha256'], native.image_sha256)
+            self.assertEqual(proof['checker']['source_identity']['scalar_symbolic.image.bin'],
+                             native.image_sha256)
+            self.assertFalse(proof['execution_authority'])
+            _, _, frozen = _admit(arithmetic('int.mul.wrap', 'u32'), prove_total=True)
+            self.assertEqual(json.loads(frozen[0])['solver']['result'], 'established')
+            for program in (checked, trap):
+                rejected = validate_scalar_totality(program)
+                self.assertEqual(rejected['status'], 'unknown', rejected)
+                self.assertEqual(rejected['reason'], 'solver_unavailable')
+        with patch.dict(os.environ, {SELECTOR: str(manifest)}):
+            for program in (checked, trap):
+                proof = validate_scalar_totality(program)
+                self.assertEqual(proof['status'], 'disproved', proof)
+                self.assertEqual(proof['solver']['result'], 'sat')
 
         shapes = []
         for kind in WIDTHS:

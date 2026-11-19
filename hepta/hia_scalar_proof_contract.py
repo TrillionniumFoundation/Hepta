@@ -1,4 +1,4 @@
-"""Scope for the public scalar SMT validators, including non-proof outcomes.
+"""Scope for the public scalar validators, including non-proof outcomes.
 
 These fields describe the checker that ran and the property it attempted. They
 are not a proof of the Python implementation, an ISA theorem, or permission to
@@ -14,6 +14,7 @@ import platform
 import time
 
 SCHEMA = "hepta.hia.scalar-proof-scope.v1"
+STRUCTURAL_TOTALITY_CHECKER = "hia-structural-totality"
 FIELDS = ("subject", "property", "profile", "assumptions", "checker", "unproved_obligations")
 PROVED_MEANING = (
     "The identified SMT checker established only the stated property for the "
@@ -164,12 +165,22 @@ def finish_scalar_proof(result, scope, *, started_ns=None, deadline_ms=None):
         obligations.append(_item("normal_return_totality", "Equivalence may preserve a trap; it does not establish that every input returns normally."))
     if result["status"] != "proved":
         obligations.append(_item("requested_property", "The requested property is not established by this result; inspect status, reason and any replayed counterexample."))
-    result.update(proof_scope_schema=SCHEMA, proved_meaning=PROVED_MEANING,
+    kind = "trusted_executable_smt_checker"
+    method = "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples"
+    meaning = PROVED_MEANING
+    if name == "validate_scalar_totality" and result.get("solver", {}).get("name") == STRUCTURAL_TOTALITY_CHECKER:
+        kind = "trusted_executable_structural_checker"
+        method = "Typed scalar DAG, nontrapping operations and return-only sinks; no SMT"
+        meaning = PROVED_MEANING.replace("SMT checker", "HIA structural checker")
+        assumptions[2] = _item("trusted_implementation", "The canonical verifier and selected HIA graph and nontrapping-instruction checks are trusted, not machine-proved.")
+        assumptions[4] = _item("termination_rule", "Every transition in the verified finite DAG leads to a successor or to a normal return; its admitted fixed-width scalar operations cannot trap.")
+        obligations[0] = _item("checker_soundness", "A machine-checked correctness theorem for the canonical verifier and HIA structural checker remains open.")
+    result.update(proof_scope_schema=SCHEMA, proved_meaning=meaning,
         subject=subject, property={"id": property_id, "statement": statement},
         assumptions=assumptions, unproved_obligations=obligations,
         checker={"name": "hepta." + _MODULES[name] + "." + name,
-                 "kind": "trusted_executable_smt_checker",
-                 "method": "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples",
+                 "kind": kind,
+                 "method": method,
                  "source_identity": deepcopy(identity),
                  "source_identity_sha256": sha256(json.dumps(identity, sort_keys=True,
                      separators=(",", ":")).encode()).hexdigest() if identity is not None else None,

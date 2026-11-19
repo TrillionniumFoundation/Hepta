@@ -1,8 +1,9 @@
-"""Transport closed HIA scalar expression recipes to the pinned SMT engine."""
+"""Transport scalar proof requests to the selected HIA proof image."""
 from __future__ import annotations
 
 import ctypes
 from functools import lru_cache
+from hashlib import sha256
 import os
 import struct
 
@@ -17,6 +18,8 @@ MAGIC = int.from_bytes(b'HIASMT01', 'little')
 RESULT = int.from_bytes(b'HIASMR01', 'little')
 ORDER_MAGIC = int.from_bytes(b'HIASMO01', 'little')
 CONTROL_MAGIC = int.from_bytes(b'HIASMC01', 'little')
+TOTALITY_MAGIC = int.from_bytes(b'HIASTO01', 'little')
+TOTALITY_TERMINATORS = {'ret': 1, 'jump': 2, 'branch': 3, 'trap': 4}
 MAX_BLOCKS, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS = 128, 2048, 32, 16
 PROFILE_REFUSALS = ('symbolic_program_budget_exceeded', 'symbolic_signature_budget_exceeded',
                     'resource_effects_outside_scalar_profile', 'resource_types_outside_scalar_profile',
@@ -84,6 +87,21 @@ class NativeScalarSymbolic(NativeHiaJsonImage):
         if set(indexes) != set(range(1, count + 1)):
             raise SymbolicRecipeRejected('invalid HIA acyclic-order permutation')
         return tuple(names[index - 1] for index in indexes), None
+
+    def structural_totality(self, blocks):
+        """Send the exact instructions and terminals of an already qualified DAG."""
+        operations = bytes(0 if op['op'] == 'const' else OPCODES.get(op['op'], 255)
+                           for block in blocks.values() for op in block['ops'])
+        terminals = bytes(TOTALITY_TERMINATORS.get(block['term']['op'], 255)
+                          for block in blocks.values())
+        wire = struct.pack('<3Q', TOTALITY_MAGIC, len(terminals), len(operations)) + terminals + operations
+        request = ctypes.create_string_buffer(wire)
+        output = ctypes.create_string_buffer(16)
+        size = self._entry(request, len(wire), output, len(output), None, 0)
+        mark, established = struct.unpack('<2Q', output)
+        if mark != RESULT or size != len(output) or established not in (0, 1):
+            raise SymbolicRecipeRejected('invalid HIA structural totality reply')
+        return bool(established), sha256(wire).hexdigest()
 
     def operation(self, z3, context, name, attrs, result, source, operands, *, translation=False):
         if translation and result == 'unit':

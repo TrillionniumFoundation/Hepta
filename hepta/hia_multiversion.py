@@ -309,7 +309,8 @@ def _admit(document, *, prove_total=False, timeout_ms=2000):
                     or type(proof.get("claims")) is not dict
                     or proof["claims"].get("all_inputs_return_normally_proved") is not True
                     or type(proof.get("solver")) is not dict
-                    or proof["solver"].get("result") != "unsat"):
+                    or (proof["solver"].get("name"), proof["solver"].get("result")) not in {
+                        ("z3", "unsat"), (total.STRUCTURAL_TOTALITY_CHECKER, "established")}):
                 _reject("fresh scalar totality did not prove every input returns normally")
             # Freeze evidence independently of a validator-owned mutable dict.
             totality.append(json.dumps(proof, sort_keys=True, separators=(",", ":"),
