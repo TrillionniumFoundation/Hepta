@@ -65,6 +65,7 @@
 .equ PUBLIC_CANONICAL, 16<<20
 .equ PUBLIC_CORE_ARENA, 32<<20
 .equ PUBLIC_CORE_STATE, 64<<20
+.equ CORE_REFUSAL_DETAIL, 120
 .equ VERIFIED_FINAL, 0x3130464356414948
 .equ PRESENTATION_BYTES, 96<<20
 .equ PRESENTATION_CONTEXT, 0x3130434e4f414948
@@ -1210,7 +1211,7 @@ verify_primitive_stdin:
  call public_core_start
  mov edi,3
  test eax,eax
- jne verified_refusal
+ jne primitive_stdin_refusal
  cmp QWORD PTR [rip+handoff_role],RENDER_ASSEMBLY
  je render_primitive_assembly
  mov r15,[rip+original_extent]
@@ -1219,6 +1220,16 @@ verify_primitive_stdin:
  cmp QWORD PTR [rip+handoff_role],6
  je write_admitted_bytes
  jmp present_public
+
+primitive_stdin_refusal:
+ cmp QWORD PTR [rip+handoff_role],6
+ jbe verified_refusal
+ mov rdx,[rip+public_core_state]
+ mov edx,DWORD PTR [rdx+CORE_REFUSAL_DETAIL]
+ test edx,edx
+ jz verified_refusal
+ mov eax,edx
+ jmp public_driver_refusal
 
 render_primitive_assembly:
  cmp QWORD PTR [rip+legacy_assembly_profile],0

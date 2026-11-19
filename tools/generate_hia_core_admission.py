@@ -680,7 +680,7 @@ def transfer(w:mutbuf, o:mutbuf, edge:u64, queue:u64, last:u64) -> u64:
 
 
 def source_program():
-    declarations=ast.parse(declaration_source()).body
+    declarations=ast.parse(declaration_source(diagnostics=True)).body
     # Retain the complete declarations policy; only its already-admitted SSA
     # symbol value becomes the original parameter node for body-state lookup.
     defs=next(n for n in declarations if n.name=='definitions')

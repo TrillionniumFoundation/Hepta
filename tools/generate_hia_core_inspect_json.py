@@ -10,6 +10,7 @@ from tools.generate_hia_core_json_frontend import KEYS, FRONTEND, packed
 from tools.generate_hia_json_canonical import core_pretty_source
 from tools.generate_hia_json_decode import source_program as decoder
 from tools.generate_hia_native_filter import CORE_REPORT_MODE
+from tools.generate_hia_program_shape import PUBLIC_DIAGNOSTICS
 from tools.generate_hia_sha256 import source_program as sha_source
 
 
@@ -97,18 +98,19 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return size
 
 def driver_report(o:mutbuf, w:mutbuf, status:u64) -> u32:
-    # Only first-pass JSON values and a fully verified assembly profile use
-    # this projection. Later semantic and private-protocol refusals are distinct.
-    if status != 0 and status != 4294967295 and status != 4294967294 and status != 4294967292:
-        return 4294967293
+    # Keep admission's exact refusal site distinct from private protocol
+    # errors and from the verified assembly profile decision.
     put(w, 56, 0)
     lit(o, w, '{\n  "diagnostics": [\n    {\n      "code": "E_DRIVER",\n      "message": "')
     if status == 0:
         lit(o, w, 'E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8 Core; use the existing adapter first')
     elif status == 4294967294:
         lit(o, w, 'E_HIA_LIMIT: program exceeds structural budget before JSON allocation')
-    else:
+    elif status == 4294967295 or status == 4294967292:
         lit(o, w, 'E_HIA_FORMAT: invalid/deep UTF-8 JSON')
+    else:
+        if driver_detail(o, w, status) == 0:
+            return 4294967293
     lit(o, w, '",\n      "phase": "driver"\n    }\n  ],\n  "ok": false,\n  "status": "error"\n}\n')
     size = get(w, 56)
     if size > length(o):
@@ -522,6 +524,11 @@ def source_program(*, nominal=False, compact=False, entry=''):
             for schema in list(PRIMITIVE_PROFILES)[:5]:
                 profile += '        if same(w, start, size, ' + ', '.join(map(str, packed(schema))) + ') == 1:\n'
                 profile += '            return 5\n'
+        profile += '    return 0\n'
+    if constants['CLI_DRIVER']:
+        profile += 'def driver_detail(o:mutbuf, w:mutbuf, status:u64) -> u64:\n'
+        for code, message in PUBLIC_DIAGNOSTICS.values():
+            profile += f'    if status == {code}:\n        lit(o, w, {message!r})\n        return 1\n'
         profile += '    return 0\n'
 
     class Expand(ast.NodeTransformer):

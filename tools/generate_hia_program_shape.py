@@ -14,10 +14,29 @@ from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scal
 ERRORS={'FORMAT':0xfffffffb,'NAME':0xfffffffa,'TYPE':0xfffffff9,
         'SCHEMA_ERROR':0xfffffff4,'CALL_ERROR':0xfffffff3,'EXPORT_TYPE':0xfffffff2,'NONE':(1<<64)-1}
 
+# Private detail extensions to the declaration workspace. Public reports use
+# these only when the original admission rejected at the corresponding branch.
+PUBLIC_DIAGNOSTICS = {
+    'D_PROGRAM_FIELDS': (65536, 'E_HIA_FORMAT: program: expected exactly functions, module, schema'),
+    'D_PROGRAM_EXPORT_FIELDS': (65537, 'E_HIA_FORMAT: program: expected exactly exports, functions, module, schema'),
+    'D_SCHEMA': (65538, 'E_HIA_SCHEMA: unsupported program schema'),
+    'D_MODULE': (65539, 'E_HIA_NAME: module: invalid/reserved ASCII identifier'),
+    'D_FUNCTION_INVENTORY': (65540, 'E_HIA_FORMAT: invalid function inventory'),
+    'D_FUNCTION_FIELDS': (65541, 'E_HIA_FORMAT: function: expected exactly blocks, effects, entry, name, params, returns'),
+    'D_FUNCTION_LOAN_FIELDS': (65542, 'E_HIA_FORMAT: function: expected exactly blocks, effects, entry, name, params, return_loans, returns'),
+    'D_ENTRY_SIGNATURE': (65543, 'E_HIA_CFG: entry parameters must equal the function signature'),
+    'D_DUPLICATE_FUNCTION': (65544, 'E_HIA_NAME: duplicate function'),
+    'D_DUPLICATE_EXPORT': (65545, 'E_HIA_NAME: duplicate explicit scalar export'),
+    'D_ABSENT_EXPORT': (65546, 'E_HIA_CALL: explicit export names a missing function'),
+    'D_RESOURCE_EXPORT': (65547, 'E_HIA_TYPE: public exports cannot carry resource descriptors'),
+}
+D_CODES = {name: info[0] for name, info in PUBLIC_DIAGNOSTICS.items()}
+
 PROGRAM = r'''
 def program_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 128 or length(o) < 128:
         return 4294967293
+    detail(o, 0)
     put(o, 48, 262144)
     put(o, 56, 64)
     decoded_size = widen(decode_json(s, w, o))
@@ -41,14 +60,18 @@ def program_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if exports != NONE:
         fields = fields | K_exports
     if shape(w, 0, fields) == 0:
+        detail(o, choose(exports == NONE, D_PROGRAM_FIELDS, D_PROGRAM_EXPORT_FIELDS))
         return FORMAT
     version = schema_version(w, field(w, 0, K_schema))
     if version == 0:
+        detail(o, D_SCHEMA)
         return SCHEMA_ERROR
     if identifier(w, field(w, 0, K_module)) == 0:
+        detail(o, D_MODULE)
         return NAME
     functions = field(w, 0, K_functions)
     if kind(w, functions) != 5 or count(w, functions) == 0 or count(w, functions) > 1024:
+        detail(o, D_FUNCTION_INVENTORY)
         return FORMAT
     flags = choose(version >= 7, 1, 0) | choose(version >= 8, 2, 0)
     fn = child(w, functions)
@@ -61,6 +84,7 @@ def program_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         # Complete function admission precedes duplicate function diagnostics.
         put(o, 96, 0)
         if symbol(w, o, field(w, fn, K_name), 1, 1, fn) != NONE:
+            detail(o, D_DUPLICATE_FUNCTION)
             return NAME
         fn = next_node(w, fn)
         index = index + 1
@@ -71,21 +95,25 @@ def program_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         item = child(w, exports)
         while item != NONE:
             if symbol(w, o, item, 2, 1, 0) != NONE:
+                detail(o, D_DUPLICATE_EXPORT)
                 return NAME
             item = next_node(w, item)
         item = child(w, exports)
         while item != NONE:
             fn = symbol(w, o, item, 1, 0, 0)
             if fn == NONE:
+                detail(o, D_ABSENT_EXPORT)
                 return CALL_ERROR
             parameter = child(w, field(w, fn, K_params))
             while parameter != NONE:
                 if type_id(w, field(w, parameter, K_type)) > 12:
+                    detail(o, D_RESOURCE_EXPORT)
                     return EXPORT_TYPE
                 parameter = next_node(w, parameter)
             result = child(w, field(w, fn, K_returns))
             while result != NONE:
                 if type_id(w, result) > 12:
+                    detail(o, D_RESOURCE_EXPORT)
                     return EXPORT_TYPE
                 result = next_node(w, result)
             item = next_node(w, item)
@@ -93,8 +121,8 @@ def program_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 '''
 
 
-def source_program():
-    nodes=ast.parse(function_source()).body
+def source_program(*, diagnostics=False):
+    nodes=ast.parse(function_source(diagnostics=D_CODES if diagnostics else None)).body
     original=nodes[0]
     assert original.name=='function_shape'
     cut=next(i for i,n in enumerate(original.body) if isinstance(n,ast.Assign)
@@ -117,8 +145,17 @@ def source_program():
     # high context bits avoids clustering same local names across many functions.
     symbol=next(n for n in nodes if n.name=='symbol')
     symbol.body[:1]=ast.parse('namespace = namespace + get(o, 96)\nhash_value = namespace ^ (namespace >> 32)').body
-    constants={**ERRORS,**{'K_'+name:1<<i for i,name in enumerate(KEYS)}}
+    constants={**ERRORS,**D_CODES,**{'K_'+name:1<<i for i,name in enumerate(KEYS)}}
     class Expand(ast.NodeTransformer):
+        def visit_Expr(self, node):
+            if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
+                    and node.value.func.id == 'detail'):
+                if not diagnostics:
+                    return None
+                node.value.func.id = 'put'
+                node.value.args.insert(1, ast.Constant(120))
+            return self.generic_visit(node)
+
         def visit_Name(self,node):
             return ast.copy_location(ast.Constant(constants[node.id]),node) if node.id in constants else node
     root=Expand().visit(ast.parse(PROGRAM))

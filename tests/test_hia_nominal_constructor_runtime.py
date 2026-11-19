@@ -479,6 +479,26 @@ def check_core_ingress(executable):
         'depth-budget': b'[' * 66 + b'0' + b']' * 66,
         'node-budget': b'[' + b'0,' * 262144 + b'0]',
     }
+    source_root = Path(__file__).resolve().parents[1]
+    program = json.loads((source_root / 'examples/hia_safe_core/scalar_add.core.hepta').read_bytes())
+    function = program['functions'][0]
+    primitive_refusals = {
+        'unsupported-schema': dict(program, schema='hepta.hia.program.v999'),
+        'unsupported-schema-and-extra-key': dict(program, schema='hepta.hia.program.v999', extra=0),
+        'missing-functions': {key: value for key, value in program.items() if key != 'functions'},
+        'invalid-module': dict(program, module='9invalid'),
+        'empty-functions': dict(program, functions=[]),
+        'extra-program-key': dict(program, exports=[], extra=0),
+        'missing-function-name': dict(program, functions=[
+            {key: value for key, value in function.items() if key != 'name'}]),
+        'extra-return-loan-key': dict(program, functions=[dict(
+            function, return_loans=[None] * len(function['returns']), extra=0)]),
+        'missing-entry': dict(program, functions=[dict(function, entry='absent')]),
+        'duplicate-function': dict(program, functions=[function, function]),
+        'duplicate-export': dict(program, exports=[function['name'], function['name']]),
+        'absent-export': dict(program, exports=['absent']),
+    }
+    inputs.update({name: json.dumps(value).encode() for name, value in primitive_refusals.items()})
     with TemporaryDirectory(prefix='hia-cli-core-ingress-') as temporary:
         root = Path(temporary)
         output = root / 'new' / 'blocked.hepta'
@@ -498,7 +518,7 @@ def check_core_ingress(executable):
                     status, stdout.getvalue().encode(), b''), (label, action, result)
                 assert status == 2 and not output.parent.exists(), (label, action)
             assert source.read_bytes() == raw
-    print(f'{len(inputs) * 4} byte-exact ordinary JSON ingress refusals without publication')
+    print(f'{len(inputs) * 4} byte-exact ordinary JSON and Core ingress refusals without publication')
 
 
 def check_source_files(executable):

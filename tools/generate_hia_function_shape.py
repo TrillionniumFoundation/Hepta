@@ -49,6 +49,7 @@ def function_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if (flags & 2) != 0 and origins != NONE:
         fields = fields | K_return_loans
     if shape(w, 0, fields) == 0:
+        detail(o, choose((fields & K_return_loans) == 0, D_FUNCTION_FIELDS, D_FUNCTION_LOAN_FIELDS))
         return FORMAT
     name = field(w, 0, K_name)
     if identifier(w, name) == 0 or runtime_name(w, name) != 0:
@@ -160,9 +161,11 @@ def function_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         block = next_node(w, block)
     entry_index = symbol(w, o, entry, 2, 0, 0)
     if entry_index == NONE:
+        detail(o, D_ENTRY_SIGNATURE)
         return CFG
     entry_block = get(o, base + entry_index * 32)
     if same_parameters(w, params, field(w, entry_block, K_params)) == 0:
+        detail(o, D_ENTRY_SIGNATURE)
         return CFG
     index = 0
     while index < count(w, blocks):
@@ -365,12 +368,23 @@ def symbol(w:mutbuf, o:mutbuf, node:u64, namespace:u64, insert:u64, value:u64) -
 '''
 
 
-def source_program():
+def source_program(*, diagnostics=None):
     constants = {'K_'+name: 1<<i for i,name in enumerate(KEYS)}
     constants.update({'NONE': (1<<64)-1, **ERRORS})
     constants.update({'T_'+name:i+1 for i,name in enumerate(TYPES)})
+    if diagnostics is not None:
+        constants.update(diagnostics)
     literals = {'L_'+x:packed(x) for x in ('ret','jump','branch','trap')}
     class Expand(ast.NodeTransformer):
+        def visit_Expr(self, node):
+            if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
+                    and node.value.func.id == 'detail'):
+                if diagnostics is None:
+                    return None
+                node.value.func.id = 'put'
+                node.value.args.insert(1, ast.Constant(120))
+            return self.generic_visit(node)
+
         def visit_Name(self,node):
             return ast.copy_location(ast.Constant(constants[node.id]),node) if node.id in constants else node
         def visit_Call(self,node):
