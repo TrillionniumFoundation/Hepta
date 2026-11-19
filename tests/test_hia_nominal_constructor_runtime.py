@@ -680,13 +680,29 @@ def check_core_ingress(executable):
     with TemporaryDirectory(prefix='hia-cli-core-ingress-') as temporary:
         root = Path(temporary)
         output = root / 'new' / 'blocked.hepta'
+        request = root / 'request.json'
+        request.write_bytes(b'{}')
+        pair = ['--query', str(request), '--response', str(request)]
+        choices = (
+            ('patch', ['--request', str(request)]),
+            ('edit-query', ['--function', 'f', '--block', 'entry', '--value', 'x', '--fields', 'attrs']),
+            ('edit-batch-query', ['--selections', str(request)]),
+            ('edit-apply', pair),
+            ('edit-batch-apply', pair),
+        )
+        rejected_actions = (('build', ['-o', str(output)]), ('impact', ['--request', str(request)]),
+                            *((action, [*options, *publication]) for action, options in choices
+                              for publication in ([], ['-o', str(output)])))
+        total = 0
         for label, raw in inputs.items():
             source = root / (label + '.hepta')
             source.write_bytes(raw)
-            for action in ('verify', 'inspect', 'normalize', 'render-assembly'):
-                args = [action, str(source)]
-                if action in ('normalize', 'render-assembly'):
-                    args += ['-o', str(output)]
+            actions = (('verify', []), ('inspect', []), ('normalize', ['-o', str(output)]),
+                       ('render-assembly', ['-o', str(output)]))
+            if label in nominal_refusals:
+                actions += rejected_actions
+            for action, options in actions:
+                args = [action, str(source), *options]
                 stdout = StringIO()
                 with redirect_stdout(stdout):
                     status = _reference_hia_main(args)
@@ -695,8 +711,9 @@ def check_core_ingress(executable):
                 assert (result.returncode, result.stdout, result.stderr) == (
                     status, stdout.getvalue().encode(), b''), (label, action, result)
                 assert status == 2 and not output.parent.exists(), (label, action)
+                total += 1
             assert source.read_bytes() == raw
-    print(f'{len(inputs) * 4} byte-exact ordinary JSON and Core ingress refusals without publication')
+    print(f'{total} byte-exact ordinary JSON and Core ingress refusals without publication')
 
 
 def check_source_files(executable):

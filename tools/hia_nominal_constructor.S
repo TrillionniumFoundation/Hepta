@@ -744,8 +744,10 @@ stream_result:
  jmp exit
 
 public_constructor_refusal:
+.ifndef HIA_NOMINAL_BUILD
  cmp QWORD PTR [rip+handoff_role],6
  jbe stdio_rejected
+.endif
  cmp r15,999
  je public_nominal_type_refusal
  test r15,r15
@@ -1164,8 +1166,10 @@ outer_failed:
  jmp exit
 
 public_outer_refusal:
+.ifndef HIA_NOMINAL_BUILD
  cmp QWORD PTR [rip+handoff_role],6
  jbe stdio_rejected
+.endif
  cmp rax,999
  jne stdio_rejected
  mov eax,[rip+public_function_refusal]
@@ -1511,9 +1515,6 @@ assembly_profile_refused:
 .endif
 
 public_driver_refusal:
-.ifdef HIA_NOMINAL_BUILD
- jmp stdio_rejected
-.else
  mov [rip+driver_status],eax
  cmp QWORD PTR [rip+presentation_output],0
  jne driver_work
@@ -1542,6 +1543,7 @@ driver_work:
  mov edi,2
  jmp exit
 
+.ifndef HIA_NOMINAL_BUILD
 publish_canonical:
  mov rdi,[rip+publication_path]
  mov rsi,[rip+type_output]
@@ -1791,8 +1793,10 @@ io_failure:
  mov edi,74
  jmp exit
 stdio_refusal:
+.ifndef HIA_NOMINAL_BUILD
  cmp QWORD PTR [rip+handoff_role],6
  jbe private_stdio_refusal
+.endif
  cmp edi,1
  jne private_stdio_refusal
  cmp eax,0xffffffff

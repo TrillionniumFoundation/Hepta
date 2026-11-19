@@ -536,3 +536,8 @@ queries against the same captured nominal snapshot. It applies the selected
 fields together, verifies only the complete candidate, and binds the exact
 response bytes in the resulting receipt. A change to a nested original input
 digest alone is enough to refuse the request without publishing a file.
+
+The installed build, patch, impact and edit roles reuse the ordinary HIA
+constructor's diagnostic renderer for a rejected nominal source. They emit
+the structured refusal before producing a build or edit receipt or creating an
+output path.
