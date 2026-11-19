@@ -185,14 +185,87 @@ def write_scalar(o:mutbuf, w:mutbuf, cp:u64) -> u64:
 '''
 
 
-def source_program():
+# The standard foreign arena has a fixed 56-byte record ABI. A private
+# consumer may ask for two additional words, the exact raw offset and extent,
+# without using the words reserved for children and decoded scalar data.
+_WIRE_SPAN_EDITS = (
+    ("count * 56", "count * 72"),
+    ("node * 56", "node * 72"),
+    ("parent * 56", "parent * 72"),
+    ("previous * 56", "previous * 72"),
+    (
+        "node = new_node(o, w, kind, 18446744073709551615, 0)",
+        "node = new_node(o, w, kind, 18446744073709551615, 0)\n"
+        "                        put(o, 64 + node * 72 + 56, index)",
+    ),
+    (
+        "put(w, 96, get(w, 96) - 1)",
+        "depth = get(w, 96) - 1\n"
+        "                    node = get(w, 128 + depth * 48)\n"
+        "                    record = 64 + node * 72\n"
+        "                    put(o, record + 64, index + 1 - get(o, record + 56))\n"
+        "                    put(w, 96, depth)",
+    ),
+    (
+        "new_node(o, w, 4, get(w, 80), get(w, 88))",
+        "string_node = new_node(o, w, 4, get(w, 80), get(w, 88))\n"
+        "                                record = 64 + string_node * 72\n"
+        "                                put(o, record + 56, index)\n"
+        "                                put(o, record + 64, get(w, 0) - index)",
+    ),
+)
+
+
+_WIRE_NUMBER_SOURCE = r'''
+def wire_atom(s:readbuf, index:u64) -> u64:
+    end = atom(s, index)
+    size = length(s)
+    if end >= size or byte(s, index) >= 97:
+        return end
+    if byte(s, end) == 46:
+        fraction = end + 1
+        end = digit_end(s, fraction)
+        if end == fraction:
+            return 4294967295
+    if end < size and (byte(s, end) == 101 or byte(s, end) == 69):
+        exponent = end + 1
+        if exponent < size and (byte(s, exponent) == 43 or byte(s, exponent) == 45):
+            exponent = exponent + 1
+        end = digit_end(s, exponent)
+        if end == exponent:
+            return 4294967295
+    return end
+
+def digit_end(s:readbuf, index:u64) -> u64:
+    while index < length(s):
+        point = byte(s, index)
+        if point < 48 or point > 57:
+            return index
+        index = index + 1
+    return index
+'''
+
+
+def source_program(*, wire_spans=False):
     # Preserve the already qualified preflight algorithm exactly; only export
     # its observed node count to private state for this separate arena profile.
     old = '            if index == length(s):\n                return 0'
     new = '            if index == length(s):\n                put(w, 64, nodes)\n                return 0'
     if PREFLIGHT_SOURCE.count(old) != 1:
         raise ValueError('preflight node-count export point changed')
-    return DECODER_SOURCE + PREFLIGHT_SOURCE.replace(old, new)
+    decoder = DECODER_SOURCE
+    if wire_spans:
+        for before, after in _WIRE_SPAN_EDITS:
+            if decoder.count(before) != 1:
+                raise ValueError('JSON wire-span export point changed')
+            decoder = decoder.replace(before, after)
+    source = decoder + PREFLIGHT_SOURCE.replace(old, new)
+    if wire_spans:
+        atom_call = 'atom(s, index)'
+        if source.count(atom_call) != 2:
+            raise ValueError('JSON wire-number export point changed')
+        source = source.replace(atom_call, 'wire_atom(s, index)') + _WIRE_NUMBER_SOURCE
+    return source
 
 
 def document():

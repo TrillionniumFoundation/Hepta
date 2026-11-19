@@ -66,6 +66,7 @@ CANDIDATES = {
     'machine-encoding': ('machine_encoding', 'machine-encoding'),
     'candidate-budget': ('candidate_budget', 'candidate-budget'),
     'agent-journal': ('agent_journal', 'agent-journal'),
+    'mcp-request': ('mcp_request_route', 'mcp-request'),
     'execution-budget': ('execution_budget', 'execution-budget'),
     'execution-ledger': ('execution_ledger', 'execution-ledger'),
     'retirement-state': ('retirement_state', 'retirement-state'),
@@ -222,6 +223,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--candidate', default='preflight',
                         choices=('preflight', 'agent-identity', 'agent-inspection', 'agent-discovery',
+                                 'mcp-request',
                                  'agent-describe-answer', 'agent-read-page', 'agent-schema', 'agent-payload-schema',
                                  'agent-plan-schema', 'agent-response-schema',
                                  'agent-verify-response-schema', 'execution-ledger', 'sqlite-wal-snapshot',
