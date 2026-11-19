@@ -796,6 +796,26 @@ def check_secondary_input_failures(executable):
                         status, stdout.getvalue().encode(), b''), (source, fault, args, result)
                     assert status == 2 and not output.parent.exists(), (source, fault, args)
                     total += 1
+        # Single-edit queries are decoded before reading the response. Shape
+        # checking, on the other hand, only happens once both files arrived.
+        queries = (b'', b'{   ', b'{"x":true,"x":false}', b'{"x":"\xff"}',
+                   b'[1  2]', b'[' * 130 + b'0' + b']' * 130,
+                   b'9' * 4301, b'  []  ', b'\r\n { "x" : [1, 2] } \n')
+        for source in (primitive, nominal, *broken):
+            for payload in queries:
+                query.write_bytes(payload)
+                for fault in (missing, root, oversized):
+                    args = ['edit-apply', str(source), '--query', str(query),
+                            '--response', str(fault), '-o', str(output)]
+                    stdout = StringIO()
+                    with redirect_stdout(stdout):
+                        status = _reference_hia_main(args)
+                    result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                            timeout=20, check=False)
+                    assert (result.returncode, result.stdout, result.stderr) == (
+                        status, stdout.getvalue().encode(), b''), (source, fault, payload[:64], result)
+                    assert status == 2 and not output.parent.exists(), (source, fault, args)
+                    total += 1
     print(f'{total} byte-exact secondary-input and precedence refusals without publication')
 
 

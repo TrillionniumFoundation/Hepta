@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_json_preflight_native import SYNTAX_REASONS
 from hepta.hia_composite_constructor_errors import ERRORS as CONSTRUCTOR_DIAGNOSTICS
 from hepta.hia_composite_functions_errors import ERRORS as FUNCTION_DIAGNOSTICS
 from hepta.hia_composite_types_native import ERRORS as TYPE_DIAGNOSTICS
@@ -25,6 +26,8 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if CLI_DRIVER:
         if mode == DRIVER_REPORT_MODE:
             return driver_report(o, w, get(w, length(w) - 16))
+        if mode == EDIT_QUERY_SYNTAX_MODE:
+            return edit_query_syntax(s, o, w)
     if NOMINAL:
         if mode == NOMINAL_HASH:
             return hash_canonical_input(s, o, w)
@@ -119,6 +122,49 @@ def driver_report(o:mutbuf, w:mutbuf, status:u64) -> u32:
     if size > length(o):
         return 4294967294
     return size
+
+def edit_query_syntax(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    # The ordinary byte decoder validates all UTF-8 before applying grammar.
+    index = 0
+    while index < length(s):
+        if byte(s, index) < 128:
+            index = index + 1
+        else:
+            unit = decoded(s, index)
+            if unit & 4294967295 > 1114111:
+                return driver_report(o, w, 65800)
+            index = unit >> 32
+    put(w, 48, 262144)
+    put(w, 56, 128)
+    status = widen(preflight(s, o, w))
+    if status == 1:
+        return driver_report(o, w, 65800 + get(w, 32))
+    if status == 2:
+        return driver_report(o, w, 65821)
+    if status == 4:
+        return driver_report(o, w, 65822)
+    if status != 0:
+        return 4294967293
+    # With valid grammar, a digit run outside a string is one integer token.
+    # Match the ordinary CLI's default 4,300-digit value construction limit.
+    index = 0
+    while index < length(s):
+        ch = byte(s, index)
+        if ch == 34:
+            index = index + 1
+            unit = decoded(s, index)
+            while unit & 4294967295 != 1114112:
+                index = unit >> 32
+                unit = decoded(s, index)
+            index = unit >> 32
+        elif ch >= 48 and ch <= 57:
+            end = atom(s, index)
+            if end - index > 4300:
+                return driver_report(o, w, 100000000 + end - index)
+            index = end
+        else:
+            index = index + 1
+    return 0
 
 def render_function(s:readbuf, o:mutbuf, w:mutbuf, fn:u64, version:u64) -> u64:
     lit(o, w, '\n      "blocks": [')
@@ -487,6 +533,7 @@ def source_program(*, nominal=False, compact=False, entry=''):
         'SCHEMA_MODE': int.from_bytes(b'HIAOSC01', 'little'),
         'ASSEMBLY_SCHEMA_MODE': int.from_bytes(b'HIAOSC02', 'little'),
         'DRIVER_REPORT_MODE': int.from_bytes(b'HIAODR01', 'little'),
+        'EDIT_QUERY_SYNTAX_MODE': int.from_bytes(b'HIAOQS01', 'little'),
         'NORMALIZED_MODE': int.from_bytes(b'HIAONJ01', 'little'),
         'NOMINAL_HASH': int.from_bytes(b'HIAONH01', 'little'),
         'NOMINAL_CONTEXT': int.from_bytes(b'HIAONC01', 'little'),
@@ -530,6 +577,21 @@ def source_program(*, nominal=False, compact=False, entry=''):
         profile += '    return 0\n'
     if constants['CLI_DRIVER']:
         profile += 'def driver_detail(o:mutbuf, w:mutbuf, status:u64) -> u64:\n'
+        edit_syntax = {
+            65800: 'E_HIA_EDIT: invalid JSON',
+            65821: 'E_HIA_EDIT: JSON node/depth budget exceeded before decoding',
+            65822: 'E_HIA_EDIT: invalid JSON: HIA JSON preflight: duplicate decoded object key',
+        }
+        edit_syntax.update({65800 + reason: 'E_HIA_EDIT: invalid JSON: HIA JSON preflight: ' + text
+                            for reason, text in SYNTAX_REASONS.items() if reason != 20})
+        for code, message in edit_syntax.items():
+            profile += f'    if status == {code}:\n        lit(o, w, {message!r})\n        return 1\n'
+        profile += '''    if status > 100004300 and status <= 108388608:
+        lit(o, w, 'E_HIA_EDIT: invalid JSON: Exceeds the limit (4300 digits) for integer string conversion: value has ')
+        edit_query_digits(o, w, status - 100000000)
+        lit(o, w, ' digits; use sys.set_int_max_str_digits() to increase the limit')
+        return 1
+'''
         for code, message in PUBLIC_DIAGNOSTICS.values():
             profile += f'    if status == {code}:\n        lit(o, w, {message!r})\n        return 1\n'
         for base, table, codes in (
@@ -541,12 +603,26 @@ def source_program(*, nominal=False, compact=False, entry=''):
                 message = key + ': ' + detail
                 profile += f'    if status == {base + code}:\n        lit(o, w, {message!r})\n        return 1\n'
         profile += '    return 0\n'
+        profile += '''
+def edit_query_digits(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    power = choose(value >= 1000000, 1000000, 100000)
+    while power > value:
+        power = quotient10(power)
+    while power != 0:
+        digit = 0
+        while value >= power:
+            value = value - power
+            digit = digit + 1
+        append_byte(o, w, digit + 48)
+        power = choose(power == 1000000, 100000, quotient10(power))
+    return 0
+'''
 
     class Expand(ast.NodeTransformer):
         # Keep the existing primitive-only payload within its fixed 1 MiB
         # suite envelope. This is an authoring-time profile, not a runtime flag.
         def visit_FunctionDef(self, node):
-            if node.name == 'driver_report' and not constants['CLI_DRIVER']:
+            if node.name in ('driver_report', 'edit_query_syntax') and not constants['CLI_DRIVER']:
                 return None
             if not nominal and node.name in {
                 'nominal_profile', 'hash_canonical_input', 'quoted_input_hash',

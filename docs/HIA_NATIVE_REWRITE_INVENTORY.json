@@ -2282,7 +2282,7 @@
       "bytes": 212482,
       "kind": ".json",
       "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-      "sha256": "071e459c68f013298f5ea12b45c1f8989793000482ae85e0cd62e165f535664a"
+      "sha256": "171f29d7dadc5688bfc56c38c8939d00422841f3d6d60c359d0149350c985de9"
     },
     {
       "bytes": 176641,
@@ -3227,10 +3227,10 @@
       "sha256": "442a679ac685e6a356d75c725e34ea71b6a1b24db8a4d563b7ad8f116aa53d56"
     },
     {
-      "bytes": 335193,
+      "bytes": 337846,
       "kind": ".hepta",
       "path": "examples/hia_bootstrap/core_cli/dispatch.hepta",
-      "sha256": "9577bd264743de1a27906b98929548fa7cf335ac2a76c14be0b3484e84656278",
+      "sha256": "c6ddf299c5c051ee94e4685850582996fe3d26b4a0a8159cea05027c6c413272",
       "source_format": "hia-assembly"
     },
     {
@@ -3815,10 +3815,10 @@
       "source_format": "hia-assembly"
     },
     {
-      "bytes": 267730,
+      "bytes": 300373,
       "kind": ".hepta",
       "path": "examples/hia_bootstrap/core_nominal_report_json.hepta",
-      "sha256": "6b199d3bd290fac60b5bd1287ca192d99e118fb7f2852f2d8a062a7add9e1e22",
+      "sha256": "1073ff8f32377ac91c5b3dc32d9f866366260d14c764efc305d622e6ed69ed9c",
       "source_format": "hia-assembly"
     },
     {
@@ -13449,10 +13449,10 @@
       "sha256": "bd5a6fa0f0bbc3a8a8542c5e44fd071e2eae63a9626e535f0b5d2b1d52a5e91e"
     },
     {
-      "bytes": 48764,
+      "bytes": 50099,
       "kind": ".py",
       "path": "tests/test_hia_nominal_constructor_runtime.py",
-      "sha256": "cb74eb623a9b72d78faa23a610344c94af76f483905023ecd3a237d947dc32d2"
+      "sha256": "2870b5e92e50e9e725cb9c741008788406618b0bb351b8059e7c1bb123047912"
     },
     {
       "bytes": 10316,
@@ -15441,10 +15441,10 @@
       "sha256": "362764c7f41a08d7cd0e2b2f99a04e4c94ffa7b0477b9934c1f7ba229a216f4f"
     },
     {
-      "bytes": 25807,
+      "bytes": 28928,
       "kind": ".py",
       "path": "tools/generate_hia_core_inspect_json.py",
-      "sha256": "c1896c18652ecfb9f809febdcd1ff4f57c96b78295b1d55de09e5b09efa59dd4"
+      "sha256": "5483fec0eeda78777afad129084eef5c52ea6ddcbf7bee4a9f3f5b272e11bf6f"
     },
     {
       "bytes": 8200,
@@ -16227,10 +16227,10 @@
       "sha256": "d0a55a4f4abf7c0db0359638aa3eea2287c968d82b373a5fb73a690c57bdf762"
     },
     {
-      "bytes": 40219,
+      "bytes": 42285,
       "kind": ".S",
       "path": "tools/hia_nominal_constructor.S",
-      "sha256": "3dfd6cd7d855da50977c0ebcfb5b534082d93c0a4bb3a106be260f3903ba10f3"
+      "sha256": "c5493d1f4012576beab92a2066091aa0f77f3624fbe81a081817303f8f9beff6"
     },
     {
       "bytes": 3505,
@@ -17445,8 +17445,8 @@
       "sha256": "c4001e492c1694f6e74ba7ac4317776ec70e6e1b640ee863741ac55a300532be"
     }
   ],
-  "git_head": "3363dffbed930b86250f7ecf1ea078827415933c",
-  "git_head_tree": "d90d602b6d612c3eed238e4f9a2c6eb595bd7215",
+  "git_head": "00cd26333d2011fc7c029e21a431b96337c68d82",
+  "git_head_tree": "2c7b5c59591398849ab75dc7cce4c393cb219ee1",
   "hosted_tools": [
     {
       "imports": [
@@ -22602,6 +22602,8 @@
         "hepta.hia_composite_functions_errors.ERRORS",
         "hepta.hia_composite_types_native",
         "hepta.hia_composite_types_native.ERRORS",
+        "hepta.hia_json_preflight_native",
+        "hepta.hia_json_preflight_native.SYNTAX_REASONS",
         "hepta.hia_schema",
         "hepta.hia_schema.COMPOSITE_PROFILES",
         "hepta.hia_schema.PRIMITIVE_PROFILES",
@@ -22625,7 +22627,7 @@
         "tools.generate_hia_sha256",
         "tools.generate_hia_sha256.source_program"
       ],
-      "lines": 635,
+      "lines": 711,
       "literal_hia_paths": [
         ".hepta"
       ],
@@ -41302,7 +41304,8 @@
         "tools/build_hia_sqlite_pager.py",
         "tools/build_hia_worker_release.py",
         "tools/compile_hia_core_json.py",
-        "tools/compile_hia_core_workspace.py"
+        "tools/compile_hia_core_workspace.py",
+        "tools/generate_hia_core_inspect_json.py"
       ],
       "retained_language": "Python",
       "top_level_public_definitions": [
@@ -47466,8 +47469,12 @@
   },
   "status": "STATIC_INVENTORY_NOT_NATIVE_DELIVERY_ACCEPTANCE",
   "worktree_vs_index_changed_paths": [
+    "docs/HIA_NATIVE_REWRITE_INVENTORY.json",
     "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-    "hepta/hia_agent_worker.py",
-    "tests/test_hia_worker_report_native.py"
+    "examples/hia_bootstrap/core_cli/dispatch.hepta",
+    "examples/hia_bootstrap/core_nominal_report_json.hepta",
+    "tests/test_hia_nominal_constructor_runtime.py",
+    "tools/generate_hia_core_inspect_json.py",
+    "tools/hia_nominal_constructor.S"
   ]
 }

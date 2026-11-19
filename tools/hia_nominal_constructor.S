@@ -74,6 +74,7 @@
 .equ PRESENTATION_SCHEMA, 0x313043534f414948
 .equ PRESENTATION_ASSEMBLY_SCHEMA, 0x323043534f414948
 .equ PRESENTATION_DRIVER_ERROR, 0x313052444f414948
+.equ PRESENTATION_EDIT_QUERY_SYNTAX, 0x313053514f414948
 .equ PRESENTATION_CONSTRUCTOR_DETAIL, 65568
 .equ PRESENTATION_TYPE_DETAIL, 65600
 .equ PRESENTATION_FUNCTION_DETAIL, 65700
@@ -1213,6 +1214,35 @@ stdin_input_refusal:
  cmp QWORD PTR [rsp+8],2
  jne malformed
  mov rax,[rsp+24]
+ cmp BYTE PTR [rax],64
+ jne measure_input_refusal_start
+ /* The dispatcher retains [ + base + the ten-byte query prefix + query.
+    The marker is followed by eight hexadecimal digits giving base length. */
+ lea rsi,[rax+1]
+ xor r8d,r8d
+ xor ecx,ecx
+read_refusal_boundary:
+ movzx edx,BYTE PTR [rsi+rcx]
+ sub edx,48
+ cmp edx,9
+ jbe retain_refusal_digit
+ sub edx,39
+ cmp edx,10
+ jb malformed
+ cmp edx,15
+ ja malformed
+retain_refusal_digit:
+ shl r8d,4
+ or r8d,edx
+ inc ecx
+ cmp ecx,8
+ jne read_refusal_boundary
+ cmp r8d,RAW_LIMIT
+ ja malformed
+ mov [rip+input_refusal_base_bytes],r8
+ mov QWORD PTR [rip+input_refusal_query],1
+ add rax,9
+measure_input_refusal_start:
  xor ecx,ecx
 measure_input_refusal:
  cmp ecx,256
@@ -1234,11 +1264,24 @@ stdin_begin:
  mov esi,RAW_LIMIT+1
  call map_private
  mov r12,rax
+ mov ebx,RAW_LIMIT+1
+ cmp QWORD PTR [rip+input_refusal_query],0
+ cmovne rbx,[rip+input_refusal_base_bytes]
+ call read_raw_stdin
+ cmp QWORD PTR [rip+input_refusal_query],0
+ je classify_stdin
+ cmp r15,rbx
+ jne io_failure
+ jmp classify_stdin
+
+read_raw_stdin:
  xor r15d,r15d
 read_stdin:
+ cmp r15,rbx
+ je read_stdin_done
  xor edi,edi
  lea rsi,[r12+r15]
- mov edx,RAW_LIMIT+1
+ mov rdx,rbx
  sub rdx,r15
  xor eax,eax
  syscall
@@ -1246,11 +1289,14 @@ read_stdin:
  je read_stdin
  test rax,rax
  js io_failure
- jz classify_stdin
+ jz read_stdin_done
  add r15,rax
  cmp r15,RAW_LIMIT
  ja stdio_limit
  jmp read_stdin
+read_stdin_done:
+ ret
+
 classify_stdin:
  mov [rip+request+24],r15
  call canonical_original
@@ -1535,10 +1581,52 @@ present_core:
  jmp exit
 
 write_input_refusal:
+ cmp QWORD PTR [rip+input_refusal_query],0
+ jne check_captured_query
+emit_input_refusal:
  # stdin was admitted. Forward the bounded diagnostic prepared by HIA's
  # dispatcher, not a public report or the incomplete edit envelope.
  mov rsi,[rip+input_refusal_arg]
  mov rdx,[rip+input_refusal_bytes]
+ mov edi,1
+ call write_exact
+ mov edi,2
+ jmp exit
+
+check_captured_query:
+ /* Skip the framing bytes; the exact query ends at the sealed file extent. */
+ xor edi,edi
+ mov rsi,[rip+input_refusal_base_bytes]
+ add rsi,11
+ xor edx,edx
+ mov eax,8
+ syscall
+ cmp rax,rsi
+ jne io_failure
+ mov esi,RAW_LIMIT+1
+ call map_private
+ mov r12,rax
+ mov ebx,RAW_LIMIT+1
+ call read_raw_stdin
+ cmp QWORD PTR [rip+presentation_output],0
+ jne check_query_syntax
+ region PRESENTATION_BYTES, presentation_output
+check_query_syntax:
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,[rip+presentation_output]
+ mov ecx,PRESENTATION_BYTES
+ mov r8,[rip+public_core_arena]
+ mov r9d,PUBLIC_CORE_ARENA
+ mov rax,PRESENTATION_EDIT_QUERY_SYNTAX
+ mov [r8+PUBLIC_CORE_ARENA-8],rax
+ call public_presentation_start
+ test eax,eax
+ jz emit_input_refusal
+ cmp eax,PRESENTATION_BYTES
+ ja io_failure
+ mov edx,eax
+ mov rsi,[rip+presentation_output]
  mov edi,1
  call write_exact
  mov edi,2
@@ -1946,6 +2034,8 @@ publication_path: .skip 8
 .ifndef HIA_NOMINAL_BUILD
 input_refusal_arg: .skip 8
 input_refusal_bytes: .skip 8
+input_refusal_query: .skip 8
+input_refusal_base_bytes: .skip 8
 .endif
 stdio_mode: .skip 8
 spare: .skip 1
