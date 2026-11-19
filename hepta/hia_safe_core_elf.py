@@ -201,7 +201,22 @@ def _lookup_tables(final, tags, dynsymbols, export):
             dynsymbols[1] == {"name": "abort", "info": 18, "other": 0, "shndx": 0, "value": 0, "size": 0} and
             dynsymbols[2]["name"] == export, "closed dynamic symbol order differs")
     table = final.section(".hash", 5)
-    require(tags.get(4) == table["addr"] and table["size"] >= 8,
+    if final._native_inventory is None:
+        _reference_sysv_lookup(table, tags.get(4), dynsymbols)
+    else:
+        final._native_inventory.verify_hash(final.data, table, tags.get(4), export, gnu=False)
+
+    table = final.section(".gnu.hash", 0x6ffffff6)
+    if final._native_inventory is None:
+        _reference_gnu_lookup(table, tags.get(0x6ffffef5), export)
+    else:
+        final._native_inventory.verify_hash(final.data, table, tags.get(0x6ffffef5), export, gnu=True)
+
+    _verify_symbol_versions(final, tags)
+
+
+def _reference_sysv_lookup(table, authority, dynsymbols):
+    require(authority == table["addr"] and table["size"] >= 8,
             "SysV hash authority differs")
     buckets, chains = struct.unpack_from("<II", table["data"])
     require(1 <= buckets <= 64 and chains == 3 and table["size"] == 8 + 4 * (buckets + chains),
@@ -218,8 +233,9 @@ def _lookup_tables(final, tags, dynsymbols, export):
             index = nexts[index]
     require(seen == {1, 2}, "SysV lookup omits a dynamic symbol")
 
-    table = final.section(".gnu.hash", 0x6ffffff6)
-    require(tags.get(0x6ffffef5) == table["addr"] and table["size"] >= 16,
+
+def _reference_gnu_lookup(table, authority, export):
+    require(authority == table["addr"] and table["size"] >= 16,
             "GNU hash authority differs")
     count, first, bloom_size, shift = struct.unpack_from("<IIII", table["data"])
     require(1 <= count <= 64 and first == 2 and bloom_size in {1, 2, 4, 8} and shift < 32 and
@@ -235,6 +251,8 @@ def _lookup_tables(final, tags, dynsymbols, export):
     require(bloom == expected_bloom and bucket_words == expected_buckets and chain == value | 1,
             "GNU lookup does not exactly resolve the checked export")
 
+
+def _verify_symbol_versions(final, tags):
     versions, needed = final.section(".gnu.version", 0x6fffffff), final.section(".gnu.version_r", 0x6ffffffe)
     require(tags.get(0x6ffffff0) == versions["addr"] and versions["data"] == struct.pack("<HHH", 0, 2, 1) and
             tags.get(0x6ffffffe) == needed["addr"] and tags.get(0x6fffffff) == 1 and needed["size"] == 32,
@@ -247,6 +265,30 @@ def _lookup_tables(final, tags, dynsymbols, export):
             final.string(strings["offset"], strings["size"], fileoff) == "libc.so.6" and
             final.string(strings["offset"], strings["size"], nameoff) == "GLIBC_2.2.5",
             "abort is not bound to the reviewed libc symbol version")
+
+
+def _reference_dynamic_tags(final, dynamic, got, rela):
+    authorities = [s for s in final.segments if s["type"] == 2]
+    require(len(authorities) == 1 and authorities[0]["offset"] == dynamic["offset"] and
+            authorities[0]["addr"] == dynamic["addr"] and authorities[0]["filesz"] == dynamic["size"],
+            "dynamic section is not the loader's dynamic table")
+    allowed = {0, 1, 2, 3, 4, 5, 6, 10, 11, 20, 23, 30, 0x6ffffef5,
+               0x6ffffffb, 0x6ffffffe, 0x6fffffff, 0x6ffffff0}
+    tags = {}
+    require(dynamic["size"] % 16 == 0, "truncated dynamic table")
+    for at in range(0, dynamic["size"], 16):
+        tag, value = struct.unpack_from("<QQ", dynamic["data"], at)
+        require(tag in allowed, "unreviewed loader hook or relocation tag")
+        if tag == 0:
+            require(dynamic["data"][at:] == b"\0" * (dynamic["size"] - at),
+                    "nonzero dynamic entries follow DT_NULL")
+            break
+        require(tag not in tags, "duplicated dynamic authority")
+        tags[tag] = value
+    require(tags.get(3) == got["addr"] and tags.get(2) == 24 and tags.get(20) == 7 and
+            tags.get(23) == rela["addr"] and tags.get(30) == 8 and tags.get(0x6ffffffb) == 1,
+            "PLT is not the exact immediately bound abort slot")
+    return tags
 
 
 def bind_final_artifact(object_bytes, final_bytes, export):
@@ -358,26 +400,10 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
 
     dynamic = final.section(".dynamic", 6)
     final.load_binding(dynamic, 6)
-    authorities = [s for s in final.segments if s["type"] == 2]
-    require(len(authorities) == 1 and authorities[0]["offset"] == dynamic["offset"] and
-            authorities[0]["addr"] == dynamic["addr"] and authorities[0]["filesz"] == dynamic["size"],
-            "dynamic section is not the loader's dynamic table")
-    allowed = {0, 1, 2, 3, 4, 5, 6, 10, 11, 20, 23, 30, 0x6ffffef5,
-               0x6ffffffb, 0x6ffffffe, 0x6fffffff, 0x6ffffff0}
-    tags = {}
-    require(dynamic["size"] % 16 == 0, "truncated dynamic table")
-    for at in range(0, dynamic["size"], 16):
-        tag, value = struct.unpack_from("<QQ", dynamic["data"], at)
-        require(tag in allowed, "unreviewed loader hook or relocation tag")
-        if tag == 0:
-            require(dynamic["data"][at:] == b"\0" * (dynamic["size"] - at),
-                    "nonzero dynamic entries follow DT_NULL")
-            break
-        require(tag not in tags, "duplicated dynamic authority")
-        tags[tag] = value
-    require(tags.get(3) == got["addr"] and tags.get(2) == 24 and tags.get(20) == 7 and
-            tags.get(23) == rela["addr"] and tags.get(30) == 8 and tags.get(0x6ffffffb) == 1,
-            "PLT is not the exact immediately bound abort slot")
+    if final._native_inventory is None:
+        tags = _reference_dynamic_tags(final, dynamic, got, rela)
+    else:
+        tags = final._native_inventory.dynamic_tags(final.data, dynamic, got, rela)
     _lookup_tables(final, tags, dynsymbols, export)
 
     relsec = obj.section(".rela.text", 4)

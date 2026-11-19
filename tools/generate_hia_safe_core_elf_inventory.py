@@ -29,6 +29,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return string_response(s, o, get(w, 0), get(w, 8), get(w, 16))
     if length(w) == 32:
         return load_binding(s, o, get(w, 0), get(w, 8), get(w, 16), get(w, 24))
+    if length(w) == 40:
+        return dynamic_tags(s, o, w)
+    if length(w) >= 64:
+        return loader_hash(s, o, w)
     if length(w) != 8:
         return 4294967293
     kind = get(w, 0)
@@ -329,6 +333,177 @@ def load_binding(s:readbuf, o:mutbuf, section_addr:u64, section_size:u64, sectio
     put(o, 64, word(s, selected + 40, 8))
     put(o, 72, word(s, selected + 48, 8))
     return reply(o, 0, 0, 0, 80)
+
+def dynamic_tags(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    start = get(w, 0)
+    size = get(w, 8)
+    addr = get(w, 16)
+    phoff = word(s, 32, 8)
+    phnum = word(s, 56, 2)
+    if phnum > MAX_SEGMENTS or in_file(length(s), phoff, phnum * 56) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    matches = 0
+    index = 0
+    while index < phnum:
+        row = phoff + index * 56
+        if word(s, row, 4) == 2:
+            if word(s, row + 8, 8) != start or word(s, row + 16, 8) != addr or word(s, row + 32, 8) != size:
+                return terminal(o, E_DYNAMIC_AUTHORITY, 0, 0)
+            matches = matches + 1
+        index = index + 1
+    if matches != 1:
+        return terminal(o, E_DYNAMIC_AUTHORITY, 0, 0)
+    if size % 16 != 0:
+        return terminal(o, E_DYNAMIC_EXTENT, 0, 0)
+    if in_file(length(s), start, size) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    rows = 0
+    at = 0
+    while at < size:
+        tag = word(s, start + at, 8)
+        value = word(s, start + at + 8, 8)
+        if tag == 0:
+            while at < size:
+                if word(s, start + at, 8) != 0 or word(s, start + at + 8, 8) != 0:
+                    return terminal(o, E_DYNAMIC_TAIL, 0, 0)
+                at = at + 16
+        else:
+            if approved_tag(tag) == 0:
+                return terminal(o, E_DYNAMIC_TAG, 0, 0)
+            scan = 0
+            while scan < rows:
+                if get(o, 24 + scan * 16) == tag:
+                    return terminal(o, E_DYNAMIC_DUPLICATE, 0, 0)
+                scan = scan + 1
+            put(o, 24 + rows * 16, tag)
+            put(o, 32 + rows * 16, value)
+            rows = rows + 1
+            at = at + 16
+    if tag_equals(o, rows, 3, get(w, 24)) == 0 or tag_equals(o, rows, 2, 24) == 0:
+        return terminal(o, E_DYNAMIC_PLT, 0, 0)
+    if tag_equals(o, rows, 20, 7) == 0 or tag_equals(o, rows, 23, get(w, 32)) == 0:
+        return terminal(o, E_DYNAMIC_PLT, 0, 0)
+    if tag_equals(o, rows, 30, 8) == 0 or tag_equals(o, rows, 0x6ffffffb, 1) == 0:
+        return terminal(o, E_DYNAMIC_PLT, 0, 0)
+    return reply(o, 0, rows, 0, 24 + rows * 16)
+
+def approved_tag(tag:u64) -> u64:
+    if tag >= 1 and tag <= 6:
+        return 1
+    if tag == 10 or tag == 11 or tag == 20 or tag == 23 or tag == 30:
+        return 1
+    if tag == 0x6ffffef5 or tag == 0x6ffffffb or tag == 0x6ffffffe or tag == 0x6fffffff or tag == 0x6ffffff0:
+        return 1
+    return 0
+
+def tag_equals(o:mutbuf, rows:u64, tag:u64, value:u64) -> u64:
+    index = 0
+    while index < rows:
+        at = 24 + index * 16
+        if get(o, at) == tag:
+            return choose(get(o, at + 8) == value, 1, 0)
+        index = index + 1
+    return 0
+
+def loader_hash(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    name_size = get(w, 48)
+    if name_size != length(w) - 64 or name_size > 256 or get(w, 56) != 0:
+        return 4294967293
+    start = get(w, 8)
+    size = get(w, 16)
+    if in_file(length(s), start, size) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    authorized = choose(get(w, 32) == 1 and get(w, 24) == get(w, 40), 1, 0)
+    kind = get(w, 0)
+    if kind == 0:
+        if authorized == 0 or size < 8:
+            return terminal(o, E_SYSV_AUTHORITY, 0, 0)
+        return terminal(o, review_sysv(s, start, size, sysv_export(w, name_size)), 0, 0)
+    if kind == 1:
+        if authorized == 0 or size < 16:
+            return terminal(o, E_GNU_AUTHORITY, 0, 0)
+        return terminal(o, review_gnu(s, start, size, gnu_export(w, name_size)), 0, 0)
+    return 4294967293
+
+def sysv_step(value:u64, letter:u64) -> u64:
+    next = (value << 4) + letter
+    high = next & 0xf0000000
+    return (next ^ (high >> 24)) & 0x0fffffff
+
+def sysv_export(w:mutbuf, size:u64) -> u64:
+    value = 0
+    index = 0
+    while index < size:
+        value = sysv_step(value, byte(w, 64 + index))
+        index = index + 1
+    return value
+
+def sysv_abort() -> u64:
+    return sysv_step(sysv_step(sysv_step(sysv_step(sysv_step(0, 97), 98), 111), 114), 116)
+
+def review_sysv(s:readbuf, at:u64, size:u64, export:u64) -> u64:
+    buckets = word(s, at, 4)
+    chains = word(s, at + 4, 4)
+    if buckets == 0 or buckets > 64 or chains != 3 or size != 8 + (buckets + chains) * 4:
+        return E_SYSV_SHAPE
+    head = at + 8
+    next = head + buckets * 4
+    if word(s, next, 4) != 0:
+        return E_SYSV_INDEX
+    index = 0
+    while index < buckets + chains:
+        if word(s, head + index * 4, 4) >= chains:
+            return E_SYSV_INDEX
+        index = index + 1
+    seen = 0
+    bucket = 0
+    abort = sysv_abort()
+    while bucket < buckets:
+        index = word(s, head + bucket * 4, 4)
+        while index != 0:
+            mask = 1 << index
+            hash = choose(index == 1, abort, export)
+            if (seen & mask) != 0 or hash % buckets != bucket:
+                return E_SYSV_LOOKUP
+            seen = seen | mask
+            index = word(s, next + index * 4, 4)
+        bucket = bucket + 1
+    return choose(seen == 6, 0, E_SYSV_MISSING)
+
+def gnu_export(w:mutbuf, size:u64) -> u64:
+    value = 5381
+    index = 0
+    while index < size:
+        value = (value * 33 + byte(w, 64 + index)) & 0xffffffff
+        index = index + 1
+    return value
+
+def review_gnu(s:readbuf, at:u64, size:u64, hash:u64) -> u64:
+    buckets = word(s, at, 4)
+    first = word(s, at + 4, 4)
+    count = word(s, at + 8, 4)
+    shift = word(s, at + 12, 4)
+    if buckets == 0 or buckets > 64 or first != 2 or shift >= 32:
+        return E_GNU_SHAPE
+    if count != 1 and count != 2 and count != 4 and count != 8:
+        return E_GNU_SHAPE
+    if size != 16 + count * 8 + buckets * 4 + 4:
+        return E_GNU_SHAPE
+    mask = (1 << (hash % 64)) | (1 << ((hash >> shift) % 64))
+    index = 0
+    while index < count:
+        expected = choose(index == (hash // 64) % count, mask, 0)
+        if word(s, at + 16 + index * 8, 8) != expected:
+            return E_GNU_LOOKUP
+        index = index + 1
+    start = at + 16 + count * 8
+    index = 0
+    while index < buckets:
+        expected = choose(index == hash % buckets, 2, 0)
+        if word(s, start + index * 4, 4) != expected:
+            return E_GNU_LOOKUP
+        index = index + 1
+    return choose(word(s, start + buckets * 4, 4) == (hash | 1), 0, E_GNU_LOOKUP)
 '''
 
 

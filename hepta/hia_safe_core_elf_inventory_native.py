@@ -18,6 +18,7 @@ HEADER = struct.Struct('<3Q')
 SECTION = struct.Struct('<12Q')
 SEGMENT = struct.Struct('<7Q')
 SYMBOL = struct.Struct('<7Q')
+DYNAMIC_TAG = struct.Struct('<2Q')
 CAPACITY = HEADER.size + MAX_SECTIONS * SECTION.size + MAX_SEGMENTS * SEGMENT.size
 SECTION_FIELDS = ('type', 'flags', 'addr', 'offset', 'size', 'link', 'info', 'align', 'entsize')
 SEGMENT_FIELDS = ('type', 'flags', 'offset', 'addr', 'filesz', 'memsz', 'align')
@@ -46,16 +47,30 @@ REFUSALS = (
     ('symbol_names', 'symbol name table has wrong kind'),
     ('missing_load', 'section has ambiguous or missing PT_LOAD authority'),
     ('load_binding', 'section bytes differ from the loader mapping'),
+    ('dynamic_authority', "dynamic section is not the loader's dynamic table"),
+    ('dynamic_extent', 'truncated dynamic table'),
+    ('dynamic_tag', 'unreviewed loader hook or relocation tag'),
+    ('dynamic_tail', 'nonzero dynamic entries follow DT_NULL'),
+    ('dynamic_duplicate', 'duplicated dynamic authority'),
+    ('dynamic_plt', 'PLT is not the exact immediately bound abort slot'),
+    ('sysv_authority', 'SysV hash authority differs'),
+    ('sysv_shape', 'SysV hash shape differs'),
+    ('sysv_index', 'invalid SysV hash index'),
+    ('sysv_lookup', 'SysV hash cycle, duplicate or wrong name bucket'),
+    ('sysv_missing', 'SysV lookup omits a dynamic symbol'),
+    ('gnu_authority', 'GNU hash authority differs'),
+    ('gnu_shape', 'GNU hash shape differs'),
+    ('gnu_lookup', 'GNU lookup does not exactly resolve the checked export'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
 
 class NativeSafeCoreElfInventory(NativeHiaJsonImage):
-    def _exchange(self, data, arguments):
+    def _exchange(self, data, arguments, suffix=b''):
         require(type(data) is bytes and 64 <= len(data) <= MAX_ELF, REFUSALS[0][1])
         source = ctypes.create_string_buffer(data, len(data))
         output = ctypes.create_string_buffer(CAPACITY)
-        packet = struct.pack(f'<{len(arguments)}Q', *arguments)
+        packet = struct.pack(f'<{len(arguments)}Q', *arguments) + suffix
         scratch = ctypes.create_string_buffer(packet, len(packet))
         size = self._entry(source, len(data), output, CAPACITY, scratch, len(scratch))
         if not HEADER.size <= size <= CAPACITY:
@@ -130,6 +145,26 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         if size != HEADER.size + SEGMENT.size or first or second:
             raise RuntimeError('invalid native Safe Core ELF load authority')
         return dict(zip(SEGMENT_FIELDS, SEGMENT.unpack_from(output, HEADER.size), strict=True))
+
+    def dynamic_tags(self, data, dynamic, got, rela):
+        arguments = (dynamic['offset'], dynamic['size'], dynamic['addr'], got['addr'], rela['addr'])
+        output, size, count, reserved = self._exchange(data, arguments)
+        if reserved or count > 16 or size != HEADER.size + count * DYNAMIC_TAG.size:
+            raise RuntimeError('invalid native Safe Core dynamic authority')
+        tags = dict(DYNAMIC_TAG.iter_unpack(output.raw[HEADER.size:size]))
+        if len(tags) != count:
+            raise RuntimeError('duplicate native Safe Core dynamic authority')
+        return tags
+
+    def verify_hash(self, data, table, authority, export, *, gnu):
+        # Presence is separate from value: an absent loader tag is not address zero.
+        name = export.encode('ascii')
+        arguments = (int(gnu), table['offset'], table['size'], table['addr'],
+                     int(authority is not None), authority if authority is not None else 0,
+                     len(name), 0)
+        _, size, first, second = self._exchange(data, arguments, name)
+        if size != HEADER.size or first or second:
+            raise RuntimeError('invalid native Safe Core loader hash response')
 
 
 def installed_safe_core_elf_inventory(path):

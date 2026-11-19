@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
+from hepta import hia_safe_core_elf as elf_reader
 from hepta.hia_safe_core_elf import _ELF, SafeCoreELFRejected
 from hepta.hia_safe_core_elf_inventory_native import SELECTOR, SOURCE, installed_safe_core_elf_inventory
 
@@ -95,13 +96,51 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         boundaries = ('_reference_inventory', '_reference_symbols', '_reference_string', '_reference_load_binding')
         blocked = {name: Mock(side_effect=AssertionError('host ELF boundary entered: ' + name))
                    for name in boundaries}
-        with patch.multiple(_ELF, **blocked):
+        loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup')
+        loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
+                          for name in loader_boundaries}
+        with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
             result = validate_safe_core_artifact(self.core, self.object_bytes, self.final_bytes)
         self.assertTrue(result['ok'], result)
         closure = result['source_identity']
         self.assertEqual(closure['native_elf_inventory_image_sha256'], self.native.image_sha256)
         self.assertEqual(closure['native_elf_inventory_source_sha256'], sha256(SOURCE.read_bytes()).hexdigest())
         self.assertFalse(result['checker']['producer_reemission_used'])
+
+    def test_dynamic_and_lookup_bytes_match_retained_checker(self):
+        def result(check, *args, **kwargs):
+            try:
+                return check(*args, **kwargs)
+            except SafeCoreELFRejected as exc:
+                return str(exc)
+
+        final = _ELF(self.final_bytes, 3)
+        dynamic, got, rela = (final.section(name) for name in ('.dynamic', '.got', '.rela.plt'))
+        tags = elf_reader._reference_dynamic_tags(final, dynamic, got, rela)
+        self.assertEqual(self.native.dynamic_tags(self.final_bytes, dynamic, got, rela), tags)
+        dynsymbols = final.symbols('.dynsym')
+        export = dynsymbols[2]['name']
+
+        for name, key, gnu in (('.dynamic', None, False), ('.hash', 4, False),
+                               ('.gnu.hash', 0x6ffffef5, True)):
+            table = final.section(name)
+            for at, original in enumerate(table['data']):
+                for value in (0, 1, 128, 255):
+                    if value == original:
+                        continue
+                    changed = table['data'][:at] + bytes((value,)) + table['data'][at + 1:]
+                    offset = table['offset']
+                    data = self.final_bytes[:offset] + changed + self.final_bytes[offset + len(changed):]
+                    section = dict(table, data=changed)
+                    if key is None:
+                        expected = result(elf_reader._reference_dynamic_tags, final, section, got, rela)
+                        actual = result(self.native.dynamic_tags, data, section, got, rela)
+                    else:
+                        check, symbol_arg = ((elf_reader._reference_gnu_lookup, export) if gnu else
+                                             (elf_reader._reference_sysv_lookup, dynsymbols))
+                        expected = result(check, section, tags[key], symbol_arg)
+                        actual = result(self.native.verify_hash, data, section, tags[key], export, gnu=gnu)
+                    self.assertEqual(actual, expected, (name, at, value))
 
 
 if __name__ == '__main__':
