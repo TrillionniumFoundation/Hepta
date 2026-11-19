@@ -513,5 +513,11 @@ The installed `hia edit-query` paths (stdout and atomic file publication)
 retain the original canonical input digest while selecting instructions from
 independently reverified lowered Core. HIA finds the end of the base in the
 strictly decoded command envelope; the Linux bridge preserves the selector
-bytes. This does not yet extend nominal input support to edit application,
-batch edits, patch or impact.
+bytes.
+
+The installed `hia patch` (stdout and atomic file publication) and
+`hia impact` routes also admit nominal inputs. Both patch schemas retain
+the original canonical input digest in the receipt without changing the
+patch precondition: the request must bind the independently verified Core
+digest. The impact graph validates these two identities separately. Edit
+application and batch edits do not yet use this route.

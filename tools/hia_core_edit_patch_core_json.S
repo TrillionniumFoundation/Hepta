@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
+.type _start,@function
 .equ WIRE_N,16777219
 .equ INPUT_N,16781312
 .equ FRAME_AT,16781312
@@ -20,6 +21,7 @@
 .equ O,4096
 .equ S,8192
 _start:
+ add rsp,8
  cmp QWORD PTR [rsp],2
  jne usage
  mov rax,[rsp+16]
@@ -33,6 +35,8 @@ _start:
  cmp BYTE PTR [rax+2],0
  jne usage
  sub r15d,48
+ sub rsp,128
+ mov QWORD PTR [rsp+72],0
  xor edi,edi
  mov esi,TOTAL_N
  mov edx,3
@@ -70,6 +74,7 @@ captured:
  test rax,rax
  jnz io_failure
  # Original mode0, full base admission, mode2, full candidate admission.
+extract_base:
  lea rdi,[r12+FRAME_AT]
  xor eax,eax
  mov ecx,FRAME_N+PATCH_WORK_N
@@ -81,8 +86,7 @@ captured:
  mov ecx,FRAME_N
  lea r8,[r12+SCRATCH_AT]
  mov r9d,PATCH_WORK_N
- .byte 0xe8
-extract_call_hole: .long 0
+ call edit_patch_start
  call patch_status
  cmp rax,32
  jbe invalid
@@ -109,8 +113,12 @@ extract_call_hole: .long 0
  mov ecx,CORE_STATE_N
  lea r8,[r12+SCRATCH_AT+CORE_STATE_N]
  mov r9d,CORE_ARENA_N
- .byte 0xe8
-base_admission_call_hole: .long 0
+ call edit_base_admission_start
+ cmp eax,0xfffffffb
+ jne base_checked
+ cmp QWORD PTR [rsp+72],0
+ je lower_nominal
+base_checked:
  call core_status
  lea rdi,[r12+FRAME_AT]
  xor eax,eax
@@ -119,14 +127,23 @@ base_admission_call_hole: .long 0
  # Application mode returns a sealed result for v0, v1 and v2.
  mov QWORD PTR [r12+SCRATCH_AT],2
  mov [r12+SCRATCH_AT+8],r15
+ cmp QWORD PTR [rsp+72],0
+ je run_patch
+ movabs rax,0x3130524f50414948
+ mov [r12+SCRATCH_AT+PATCH_WORK_N-40],rax
+ lea rdi,[r12+SCRATCH_AT+PATCH_WORK_N-32]
+ lea rsi,[rsp+80]
+ mov ecx,4
+ cld
+ rep movsq
+run_patch:
  mov rdi,r12
  mov rsi,r13
  lea rdx,[r12+FRAME_AT]
  mov ecx,FRAME_N
  lea r8,[r12+SCRATCH_AT]
  mov r9d,PATCH_WORK_N
- .byte 0xe8
-result_call_hole: .long 0
+ call edit_patch_start
  call patch_status
  # A policy refusal cannot reach candidate or publication handling.
  cmp eax,0xffffffe0
@@ -173,8 +190,7 @@ result_call_hole: .long 0
  mov ecx,CORE_STATE_N
  lea r8,[r12+SCRATCH_AT+CORE_STATE_N]
  mov r9d,CORE_ARENA_N
- .byte 0xe8
-candidate_admission_call_hole: .long 0
+ call edit_base_admission_start
  mov r14,rax
  call core_status
  # Reuse released Core state for private composed output and presenter scratch.
@@ -203,8 +219,7 @@ candidate_admission_call_hole: .long 0
  mov ecx,OUTPUT_N
  mov r8,rbp
  mov r9d,4096
- .byte 0xe8
-compose_call_hole: .long 0
+ call edit_patch_receipt_start
  mov [rbp+96],rax
  lea rdi,[r12+FRAME_AT]
  mov esi,FRAME_N
@@ -226,8 +241,7 @@ pretty_loop:
  mov ecx,128
  mov r8,rbp
  mov r9d,4096
- .byte 0xe8
-pretty_call_hole: .long 0
+ call edit_pretty_start
  test rax,rax
  jnz HIA_status
  mov rax,[rbp+80]
@@ -274,6 +288,22 @@ completed:
  jnz io_failure
  xor edi,edi
  jmp exit_process
+# Lower only the verified base fragment and preserve the exact patch request.
+lower_nominal:
+ mov rdi,r12
+ mov rsi,r13
+ lea rdx,[r12+FRAME_AT+32]
+ mov rcx,r14
+ lea r8,[rsp+80]
+ call nominal_edit_envelope
+ test rax,rax
+ jz envelope_refused
+ mov r13,rax
+ mov QWORD PTR [rsp+72],1
+ jmp extract_base
+envelope_refused:
+ mov rdi,rdx
+ jmp exit_process
 core_status:
  call patch_status
  test rax,rax
@@ -304,8 +334,7 @@ patch_diagnostic:
  mov ecx,512
  xor r8d,r8d
  xor r9d,r9d
- .byte 0xe8
-patch_diagnostic_hole: .long 0
+ call edit_patch_start
  test eax,eax
  jz invalid
  cmp eax,512

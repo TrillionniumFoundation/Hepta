@@ -16,6 +16,7 @@ from hepta.cli import HIA_AGENT_ACTIONS, _reference_hia_main
 from hepta.hia_agent_assembly import diagnose_assembly, render_assembly
 from hepta.hia_edit_batch import prepare_batch
 from hepta.hia_edit_query import prepare_edit
+from hepta.hia_program import verify_program
 from hepta.hia_program_native import build_program_machine
 from hepta.hia_program_selfhost import build_program_selfhost
 from tests.test_hia_core_edit_runtime import (
@@ -267,6 +268,57 @@ def check_nominal_queries(release, directory):
     return passed
 
 
+def check_nominal_patches(release, directory):
+    passed = 0
+    for index, (document, _, query) in enumerate(nominal_query_fixtures()):
+        source = directory / f'{index}.hepta'
+        source.write_bytes(wire(document, pretty=True))
+        verified = verify_program(document)
+        function, block, offset, operation = next(
+            (function, block, offset, operation)
+            for function in verified.as_dict()['functions']
+            for block in function['blocks']
+            for offset, operation in enumerate(block['ops'])
+            if operation['op'] == 'const' and type(operation['attrs']['value']) is int
+        )
+        replacement = {**operation, 'attrs': {**operation['attrs'], 'value': operation['attrs']['value'] + 1}}
+        for version in (1, 2):
+            name = f'{index}-v{version}'
+            request = {'schema': f'hepta.hia.patch.v{version}', 'expected_sha256': verified.sha256,
+                       'edits': [{'action': 'replace_operation', 'function': function['name'],
+                                  'block': block['id'], 'index': offset, 'operation': replacement}]}
+            if version == 2:
+                request['interface_policy'] = 'preserve'
+            patch = directory / f'{name}.json'
+            patch.write_bytes(wire(request, pretty=True))
+            reference = directory / f'{name}.reference'
+            target = directory / f'{name}.target'
+            for action, publish in (('patch', False), ('impact', False), ('patch', True)):
+                arguments = [action, str(source), '--request', str(patch)]
+                expected = reference_cli([*arguments, '-o', str(reference)] if publish else arguments)
+                if publish:
+                    receipt = json.loads(expected)
+                    receipt['publication']['output'] = str(target)
+                    expected = wire(receipt, pretty=True)
+                    arguments.extend(('-o', str(target)))
+                result = subprocess.run([release / 'hia', *arguments], capture_output=True,
+                                        env={'PATH': ''}, timeout=20)
+                assert (result.returncode, result.stdout, result.stderr) == (0, expected, b''), result
+                if publish:
+                    assert target.read_bytes() == reference.read_bytes()
+                passed += 1
+
+            patch.write_bytes(wire({**request, 'expected_sha256': query['input_sha256']}))
+            absent = directory / f'{name}.absent'
+            for arguments in (['patch'], ['impact'], ['patch', '-o', str(absent)]):
+                action, *options = arguments
+                result = subprocess.run([release / 'hia', action, source, '--request', patch, *options],
+                                        capture_output=True, env={'PATH': ''}, timeout=20)
+                assert result.returncode == 2 and not result.stderr and not absent.exists(), result
+                passed += 1
+    return passed
+
+
 def check_release(release, directory):
     program = scalar_program()
     program['schema'] = 'hepta.hia.program.v8'
@@ -401,8 +453,10 @@ def check_release(release, directory):
     batch.mkdir()
     nominal = directory / 'nominal-queries'
     nominal.mkdir()
+    patches = directory / 'nominal-patches'
+    patches.mkdir()
     return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
-            + check_nominal_queries(release, nominal)
+            + check_nominal_queries(release, nominal) + check_nominal_patches(release, patches)
             + check_import_existing_destinations(release, assembly_source, destinations)
             + check_selected_selfhost(release, selfhost) + check_batch_apply_refusals(release, batch))
 

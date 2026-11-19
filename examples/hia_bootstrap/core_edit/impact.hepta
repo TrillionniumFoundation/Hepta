@@ -1568,7 +1568,7 @@ block b34(v478:readbuf,v479:mutbuf,v480:mutbuf,v482:u64,v483:u64,v484:u64,v485:u
 block b35(v496:readbuf,v497:mutbuf,v498:mutbuf,v500:u64,v501:u64,v502:u64,v503:u64,v507:u64)
   v522:u64 = const() {"value":23}
   v523:u64 = call(v498,v501,v522) {"function":"f38"}
-  v524:u64 = call(v498,v523) {"function":"f16"}
+  v524:u64 = call(v498,v523) {"function":"impact_verify_original"}
   v525:u64 = const() {"value":0}
   v526:bool = compare.eq(v524,v525)
   jump b36(v496,v497,v498,v500,v501,v502,v503,v507,v526)
@@ -1770,12 +1770,42 @@ block b81(v1329:readbuf,v1330:mutbuf,v1331:mutbuf)
   v1345:u64 = const() {"value":1}
   ret(v1345)
 end
-fn f16(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
-block b0(v0:mutbuf,v1:u64)
+fn f16(work:mutbuf,digest_node:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(work:mutbuf,digest_node:u64)
+  scratch_slot:u64 = const() {"value":40}
+  scratch:u64 = call(work,scratch_slot) {"function":"f32"}
+  relative:u64 = const() {"value":1088}
+  digest:u64 = int.add.wrap(scratch,relative)
+  matched:u64 = call(work,digest_node,digest) {"function":"impact_verify_hex_at"}
+  ret(matched)
+end
+fn impact_verify_original(work:mutbuf,digest_node:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(work:mutbuf,digest_node:u64)
+  length:usize = buffer.len(work)
+  actual:u64 = int.cast(length) {"mode":"wrap"}
+  carrier_extent:u64 = const() {"value":67108864}
+  has_carrier:bool = compare.eq(actual,carrier_extent)
+  branch has_carrier inspect_origin(work,digest_node) use_core(work,digest_node)
+block inspect_origin(input_work:mutbuf,native_node:u64)
+  tag_at:u64 = const() {"value":67108824}
+  tag:u64 = call(input_work,tag_at) {"function":"f32"}
+  magic:u64 = const() {"value":3544423407342930248}
+  has_origin:bool = compare.eq(tag,magic)
+  branch has_origin use_original(input_work,native_node) use_core(input_work,native_node)
+block use_core(core_work:mutbuf,core_node:u64)
+  core_ok:u64 = call(core_work,core_node) {"function":"f16"}
+  ret(core_ok)
+block use_original(nominal_work:mutbuf,nominal_node:u64)
+  origin_at:u64 = const() {"value":67108832}
+  nominal_ok:u64 = call(nominal_work,nominal_node,origin_at) {"function":"impact_verify_hex_at"}
+  ret(nominal_ok)
+end
+fn impact_verify_hex_at(v0:mutbuf,v1:u64,digest0:u64) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:mutbuf,v1:u64,digest0:u64)
   v2:u64 = const() {"value":18446744073709551615}
   v3:bool = compare.eq(v1,v2)
-  branch v3 b2(v0,v1,v3) b1(v0,v1)
-block b1(v4:mutbuf,v5:u64)
+  branch v3 b2(v0,v1,v3,digest0) b1(v0,v1,digest0)
+block b1(v4:mutbuf,v5:u64,digest1:u64)
   v10:u64 = const() {"value":64}
   v11:u64 = const() {"value":56}
   v12:u64 = int.mul.wrap(v5,v11)
@@ -1783,20 +1813,20 @@ block b1(v4:mutbuf,v5:u64)
   v14:u64 = call(v4,v13) {"function":"f32"}
   v15:u64 = const() {"value":4}
   v16:bool = compare.ne(v14,v15)
-  jump b2(v4,v5,v16)
-block b2(v7:mutbuf,v8:u64,v9:bool)
-  branch v9 b4(v7,v8,v9) b3(v7,v8)
-block b3(v17:mutbuf,v18:u64)
+  jump b2(v4,v5,v16,digest1)
+block b2(v7:mutbuf,v8:u64,v9:bool,digest2:u64)
+  branch v9 b4(v7,v8,v9,digest2) b3(v7,v8,digest2)
+block b3(v17:mutbuf,v18:u64,digest3:u64)
   v23:u64 = call(v17,v18) {"function":"f21"}
   v24:u64 = const() {"value":64}
   v25:bool = compare.ne(v23,v24)
-  jump b4(v17,v18,v25)
-block b4(v20:mutbuf,v21:u64,v22:bool)
-  branch v22 b5(v20) b6(v20,v21)
+  jump b4(v17,v18,v25,digest3)
+block b4(v20:mutbuf,v21:u64,v22:bool,digest4:u64)
+  branch v22 b5(v20) b6(v20,v21,digest4)
 block b5(v26:mutbuf)
   v30:u64 = const() {"value":0}
   ret(v30)
-block b6(v28:mutbuf,v29:u64)
+block b6(v28:mutbuf,v29:u64,digest6:u64)
   v31:u64 = const() {"value":64}
   v32:u64 = const() {"value":56}
   v33:u64 = int.mul.wrap(v29,v32)
@@ -1805,17 +1835,13 @@ block b6(v28:mutbuf,v29:u64)
   v36:u64 = int.add.wrap(v34,v35)
   v37:u64 = call(v28,v36) {"function":"f32"}
   v38:u64 = const() {"value":0}
-  jump b7(v28,v37,v38)
-block b7(v39:mutbuf,v41:u64,v42:u64)
+  jump b7(v28,v37,v38,digest6)
+block b7(v39:mutbuf,v41:u64,v42:u64,digest7:u64)
   v43:u64 = const() {"value":32}
   v44:bool = compare.lt(v42,v43)
-  branch v44 b8(v39,v41,v42) b9(v39)
-block b8(v45:mutbuf,v47:u64,v48:u64)
-  v53:u64 = const() {"value":40}
-  v54:u64 = call(v45,v53) {"function":"f32"}
-  v55:u64 = const() {"value":1088}
-  v56:u64 = int.add.wrap(v54,v55)
-  v57:u64 = int.add.wrap(v56,v48)
+  branch v44 b8(v39,v41,v42,digest7) b9(v39)
+block b8(v45:mutbuf,v47:u64,v48:u64,digest8:u64)
+  v57:u64 = int.add.wrap(digest8,v48)
   v58:usize = int.cast(v57) {"mode":"wrap"}
   v59:u8 = buffer.load(v45,v58)
   v60:u64 = int.cast(v59) {"mode":"wrap"}
@@ -1829,11 +1855,11 @@ block b8(v45:mutbuf,v47:u64,v48:u64)
   v68:u64 = int.shr.checked(v60,v67)
   v69:u64 = call(v68) {"function":"f26"}
   v70:bool = compare.ne(v66,v69)
-  branch v70 b11(v45,v47,v48,v70) b10(v45,v47,v48,v60)
+  branch v70 b11(v45,v47,v48,v70,digest8) b10(v45,v47,v48,v60,digest8)
 block b9(v49:mutbuf)
   v108:u64 = const() {"value":1}
   ret(v108)
-block b10(v71:mutbuf,v73:u64,v74:u64,v75:u64)
+block b10(v71:mutbuf,v73:u64,v74:u64,v75:u64,digest10:u64)
   v83:u64 = const() {"value":2}
   v84:u64 = int.mul.wrap(v74,v83)
   v85:u64 = int.add.wrap(v73,v84)
@@ -1846,16 +1872,16 @@ block b10(v71:mutbuf,v73:u64,v74:u64,v75:u64)
   v92:u64 = bit.and(v75,v91)
   v93:u64 = call(v92) {"function":"f26"}
   v94:bool = compare.ne(v90,v93)
-  jump b11(v71,v73,v74,v94)
-block b11(v77:mutbuf,v79:u64,v80:u64,v82:bool)
-  branch v82 b12(v77) b13(v77,v79,v80)
+  jump b11(v71,v73,v74,v94,digest10)
+block b11(v77:mutbuf,v79:u64,v80:u64,v82:bool,digest11:u64)
+  branch v82 b12(v77) b13(v77,v79,v80,digest11)
 block b12(v95:mutbuf)
   v105:u64 = const() {"value":0}
   ret(v105)
-block b13(v100:mutbuf,v102:u64,v103:u64)
+block b13(v100:mutbuf,v102:u64,v103:u64,digest13:u64)
   v106:u64 = const() {"value":1}
   v107:u64 = int.add.wrap(v103,v106)
-  jump b7(v100,v102,v107)
+  jump b7(v100,v102,v107,digest13)
 end
 fn f17(v0:mutbuf,v1:mutbuf,v2:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf,v2:u64)

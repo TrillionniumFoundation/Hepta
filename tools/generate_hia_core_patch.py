@@ -17,6 +17,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 
 MAGIC = int.from_bytes(b'HIAPAT01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAPAR01', 'little')
+ORIGIN_MAGIC = int.from_bytes(b'HIAPOR01', 'little')
 KEYS = ('schema', 'expected_sha256', 'interface_policy', 'edits', 'action',
         'function', 'definition', 'block', 'index', 'operation', 'term',
         'functions', 'name', 'params', 'returns', 'effects', 'return_loans',
@@ -648,6 +649,7 @@ def source_program(*, public=False):
     constants = {'K_'+key:1 << i for i,key in enumerate(KEYS)}
     constants['MAGIC'] = MAGIC
     constants['RESULT_MAGIC'] = RESULT_MAGIC
+    constants['ORIGIN_MAGIC'] = ORIGIN_MAGIC
     constants.update({name: codes[0 if public else 1] for name, codes in PUBLIC_STATUS.items()})
     literals = {'L_'+key:packed(value) for key,value in LITERALS.items()}
     class Expand(ast.NodeTransformer):
@@ -681,6 +683,28 @@ def source_program(*, public=False):
         body = body.replace(base_shape, 'if kind(w, base) != 6:', 1)
         body = body.replace(
             request_shape, 'if kind(w, request) != 6:\n        return D_REQUEST_TYPE\n    ' + request_shape, 1)
+        # Only the trusted carrier supplies this separate nominal source digest.
+        # All patch preconditions continue to check the normalized Core digest.
+        field = """    emit_text(o, w, ',"ok":true,"original_input_sha256":')
+    append_string(o, w, get(w, 64 + expected * 56 + 24), 64)
+"""
+        replacement = """    emit_text(o, w, ',"ok":true,"original_input_sha256":')
+    origin = length(w) - 40
+    if get(w, origin) == ORIGIN_MAGIC:
+        digest = get(w, 40) + 1088
+        i = 0
+        while i < 32:
+            store(w, digest + i, byte(w, origin + 8 + i))
+            i = i + 1
+        append_byte(o, w, 34)
+        receipt_digest(o, w)
+        append_byte(o, w, 34)
+    else:
+        append_string(o, w, get(w, 64 + expected * 56 + 24), 64)
+"""
+        if body.count(field) != 1:
+            raise ValueError('missing unique patch input-identity field')
+        body = body.replace(field, replacement)
     own = Expand().visit(ast.parse(body))
     # Reuse the exact JSON/key/Unicode/sorting algorithms. Only this envelope's
     # outer framing budget is larger; subtree ceilings are checked separately.
@@ -764,10 +788,15 @@ def update_public_edit_kernels(directory):
     # These sealed kernels share the five patch-policy functions. Their
     # underlying parser, output/custody and imported tables intentionally stay
     # variant-specific. Update only the shared functions, not those adapters.
-    public = render_assembly(document(source_program(public=True)))
-    shared = re.findall(r'^fn f[0-4]\(.*?^end\n', public, re.MULTILINE | re.DOTALL)
-    if len(shared) != 5:
-        raise ValueError('incomplete public patch policy')
+    source = source_program(public=True)
+    public = render_assembly(document(source))
+    identities = {node.name: index for index, node in enumerate(ast.parse(source).body)}
+    shared = {}
+    for identity in (*range(5), identities['patch_result']):
+        functions = re.findall(rf'^fn f{identity}\(.*?^end\n', public, re.MULTILINE | re.DOTALL)
+        if len(functions) != 1:
+            raise ValueError('incomplete public patch policy')
+        shared[identity] = functions[0]
     presenter = render_assembly(document(diagnostic_source())).split('\n', 1)[1]
     presenter = re.sub(r'\bf0(?=["(])', 'patch_diagnostic', presenter)
     presenter = re.sub(r'\bf1(?=["(])', 'patch_diagnostic_word', presenter)
@@ -792,7 +821,7 @@ block patch_driver_report(patch_status2:readbuf,patch_output2:mutbuf,patch_works
         source = source.split('\nfn patch_diagnostic(', 1)[0].rstrip() + '\n'
         source = re.sub(r'entry\(patch_driver_start\)\n.*?(?=^block b0\()', 'entry(b0)\n',
                         source, count=1, flags=re.MULTILINE | re.DOTALL)
-        for index, function in enumerate(shared):
+        for index, function in shared.items():
             identity = function_offset + index
             shifted = re.sub(r'(?<=\bf)(\d+)(?=["(])', lambda match: str(int(match[1]) + function_offset), function)
             source, count = re.subn(rf'^fn f{identity}\(.*?^end\n', lambda _: shifted, source,

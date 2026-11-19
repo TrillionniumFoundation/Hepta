@@ -72,12 +72,37 @@ PUBLISHED_EDIT_QUERY_IMAGES = {
     EDIT + 'query.hepta': 'edit_query',
     EDIT + 'publication_json_view.hepta': 'edit_publication',
 }
+PATCH_INPUT_IMAGES = {
+    EDIT + 'admission_word_io.hepta': 'edit_base_admission',
+    EDIT + 'nominal_base_span.hepta': 'edit_base_span',
+}
+PATCH_IMAGES = {
+    **PATCH_INPUT_IMAGES,
+    EDIT + 'impact_patch.hepta': 'edit_patch',
+    CLI + 'patch.hepta': 'edit_patch_receipt',
+    EDIT + 'publication_pretty.hepta': 'edit_pretty',
+}
+PUBLISHED_PATCH_IMAGES = {
+    **PATCH_INPUT_IMAGES,
+    EDIT + 'publication_patch_policy.hepta': 'edit_patch',
+    EDIT + 'publication_patch.hepta': 'edit_patch_receipt',
+    EDIT + 'publication_pretty.hepta': 'edit_pretty',
+}
+IMPACT_IMAGES = {
+    **PATCH_INPUT_IMAGES,
+    EDIT + 'impact_patch.hepta': 'edit_patch',
+    EDIT + 'impact.hepta': 'edit_impact',
+    EDIT + 'impact_json_io.hepta': 'edit_pretty',
+}
 NOMINAL_CLI_IMAGES = {
     'build_object': OBJECT_BUILD_IMAGES,
     'query': EDIT_QUERY_IMAGES,
     'publish_query': PUBLISHED_EDIT_QUERY_IMAGES,
+    'patch_core_json': PATCH_IMAGES,
+    'publish_patch': PUBLISHED_PATCH_IMAGES,
+    'impact': IMPACT_IMAGES,
 }
-EDIT_ENVELOPE_ROLES = ('query', 'publish_query')
+EDIT_ENVELOPE_ROLES = ('query', 'publish_query', 'patch_core_json', 'publish_patch', 'impact')
 
 # Each entry lists the flat payloads in placement order, then the adapter
 # relocation sites belonging to each. Several stages use the same image entry.
@@ -111,12 +136,7 @@ PROGRAMS = {
         (CLI + 'inspect.hepta', ('report_call',)),
         (EDIT + 'publication_pretty.hepta', ('pretty_call',)),
     )),
-    'patch_core_json': ('hia-patch-core-json', (
-        (EDIT + 'impact_patch.hepta', ('extract_call', 'result_call', 'patch_diagnostic')),
-        (EDIT + 'admission_word_io.hepta', ('base_admission_call', 'candidate_admission_call')),
-        (CLI + 'patch.hepta', ('compose_call',)),
-        (EDIT + 'publication_pretty.hepta', ('pretty_call',)),
-    )),
+    'patch_core_json': ('hia-patch-core-json', tuple((path, ()) for path in PATCH_IMAGES)),
     'catalog': ('hia-catalog', (
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
         (CLI + 'catalog.hepta', ('catalog_call',)),
@@ -157,12 +177,7 @@ PROGRAMS = {
         (EDIT + 'publication_render.hepta', ('owner_address',)),
         (EDIT + 'publication_assembly.hepta', ('publication_address',)),
     )),
-    'publish_patch': ('hia-publish-patch', (
-        (EDIT + 'admission_word_io.hepta', ('core_address',)),
-        (EDIT + 'publication_patch_policy.hepta', ('front_address', 'patch_diagnostic')),
-        (EDIT + 'publication_patch.hepta', ('owner_address',)),
-        (EDIT + 'publication_pretty.hepta', ('publication_address',)),
-    )),
+    'publish_patch': ('hia-publish-patch', tuple((path, ()) for path in PUBLISHED_PATCH_IMAGES)),
     'publish_edit': ('hia-publish-edit', (
         (EDIT + 'admission_word_io.hepta', ('core_address',)),
         (EDIT + 'patch_word_io.hepta', ('front_address',)),
@@ -182,12 +197,7 @@ PROGRAMS = {
         (EDIT + 'batch_apply.hepta', ('owner_address',)),
         (EDIT + 'publication_batch_policy.hepta', ('publication_address',)),
     )),
-    'impact': ('hia-impact-core-json', (
-        (EDIT + 'impact_patch.hepta', ('extract', 'result', 'patch_diagnostic')),
-        (EDIT + 'admission_word_io.hepta', ('base_admission', 'candidate_admission')),
-        (EDIT + 'impact.hepta', ('compose', 'impact')),
-        (EDIT + 'impact_json_io.hepta', ('canonical', 'pretty')),
-    )),
+    'impact': ('hia-impact-core-json', tuple((path, ()) for path in IMPACT_IMAGES)),
     'query': ('hia-prepare-edit-query', tuple((path, ()) for path in EDIT_QUERY_IMAGES)),
     'batch_query': ('hia-prepare-edit-batch', (
         (EDIT + 'patch_word_io.hepta', ('extract',)),

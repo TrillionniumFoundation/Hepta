@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
+.type _start,@function
 .equ RAW_N,8388608
 .equ SOURCE_N,41943040
 .equ CORE_N,67108864
@@ -25,6 +26,7 @@
 .equ O,4096
 .equ S,8192
 _start:
+ add rsp,8
  cmp QWORD PTR [rsp],3
  jne usage
  mov rax,[rsp+16]
@@ -42,17 +44,13 @@ _start:
  mov esi,16384
  call allocate
  mov rbp,rax
- .byte 0x48,0x8d,0x05
-core_address_hole: .long 0
+ lea rax,[rip+edit_base_admission_start]
  mov [rbp+328],rax
- .byte 0x48,0x8d,0x05
-front_address_hole: .long 0
+ lea rax,[rip+edit_patch_start]
  mov [rbp+320],rax
- .byte 0x48,0x8d,0x05
-owner_address_hole: .long 0
+ lea rax,[rip+edit_patch_receipt_start]
  mov [rbp+336],rax
- .byte 0x48,0x8d,0x05
-publication_address_hole: .long 0
+ lea rax,[rip+edit_pretty_start]
  mov [rbp+344],rax
  mov esi,270336
  call allocate
@@ -167,6 +165,7 @@ captured:
  test rax,rax
  jnz io_failure
  # Original mode0, full base admission, mode2, full candidate admission.
+extract_base:
  lea rdi,[r12+FRAME_AT]
  xor eax,eax
  mov ecx,FRAME_N+PATCH_WORK_N
@@ -206,6 +205,11 @@ captured:
  lea r8,[r12+SCRATCH_AT+CORE_STATE_N]
  mov r9d,CORE_ARENA_N
  call QWORD PTR [rbx+328]
+ cmp eax,0xfffffffb
+ jne base_checked
+ cmp QWORD PTR [rbx+400],0
+ je lower_nominal
+base_checked:
  call core_status
  lea rdi,[r12+FRAME_AT]
  xor eax,eax
@@ -214,6 +218,16 @@ captured:
  # Application mode returns a sealed result for v0, v1 and v2.
  mov QWORD PTR [r12+SCRATCH_AT],2
  mov [r12+SCRATCH_AT+8],r15
+ cmp QWORD PTR [rbx+400],0
+ je run_patch
+ movabs rax,0x3130524f50414948
+ mov [r12+SCRATCH_AT+PATCH_WORK_N-40],rax
+ lea rdi,[r12+SCRATCH_AT+PATCH_WORK_N-32]
+ lea rsi,[rbx+408]
+ mov ecx,4
+ cld
+ rep movsq
+run_patch:
  mov rdi,r12
  mov rsi,r13
  lea rdx,[r12+FRAME_AT]
@@ -586,6 +600,22 @@ core_status:
  test rax,rax
  jnz invalid
  ret
+# Lower only the verified base fragment and preserve the exact patch request.
+lower_nominal:
+ mov rdi,r12
+ mov rsi,r13
+ lea rdx,[r12+FRAME_AT+32]
+ mov rcx,r14
+ lea r8,[rbx+408]
+ call nominal_edit_envelope
+ test rax,rax
+ jz envelope_refused
+ mov r13,rax
+ mov QWORD PTR [rbx+400],1
+ jmp extract_base
+envelope_refused:
+ mov rax,rdx
+ jmp HIA_status
 patch_status:
  mov r10,rax
  shr r10,32
@@ -606,8 +636,7 @@ patch_diagnostic:
  mov ecx,512
  xor r8d,r8d
  xor r9d,r9d
- .byte 0xe8
-patch_diagnostic_hole: .long 0
+ call edit_patch_start
  test eax,eax
  jz invalid
  cmp eax,512
