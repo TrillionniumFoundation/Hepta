@@ -519,5 +519,10 @@ The installed `hia patch` (stdout and atomic file publication) and
 `hia impact` routes also admit nominal inputs. Both patch schemas retain
 the original canonical input digest in the receipt without changing the
 patch precondition: the request must bind the independently verified Core
-digest. The impact graph validates these two identities separately. Edit
-application and batch edits do not yet use this route.
+digest. The impact graph validates these two identities separately.
+
+`hia edit-batch-query` uses the same captured base for all ordered selections.
+The outer manifest and every nested query retain its original input digest;
+the Core digest still identifies the snapshot on which selections were made.
+Overlapping selections are rejected before any publication. Edit application
+does not yet use this route.

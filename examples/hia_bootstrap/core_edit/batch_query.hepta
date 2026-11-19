@@ -5693,7 +5693,8 @@ block b154(v1703:readbuf,v1704:mutbuf,v1705:mutbuf)
   v1718:u64 = const() {"value":25165824}
   v1719:u64 = const() {"value":1104}
   v1720:u64 = int.add.wrap(v1718,v1719)
-  v1721:u64 = call(v1704,v1720) {"function":"f54"}
+  selected_input_hash:u64 = call(v1704,v1720) {"function":"input_hash_offset"}
+  v1721:u64 = call(v1704,selected_input_hash) {"function":"f54"}
   v1722:u64 = const() {"value":20}
   v1723:u64 = const() {"value":8386109761144169004}
   v1724:u64 = const() {"value":3630297619368931177}
@@ -9232,7 +9233,8 @@ block b30(v245:readbuf,v246:mutbuf,v247:mutbuf,v248:u64,v249:u64)
   v286:u64 = const() {"value":2465216336530797407}
   v287:u64 = const() {"value":8762}
   v288:u64 = call(v246,v284,v285,v286,v287) {"function":"f73"}
-  v289:u64 = call(v246,v282) {"function":"f74"}
+  batch_input_hash:u64 = call(v246,v282) {"function":"input_hash_offset"}
+  v289:u64 = call(v246,batch_input_hash) {"function":"f74"}
   v290:u64 = const() {"value":7882821499124591650}
   v291:u64 = const() {"value":8390317603716473441}
   v292:u64 = const() {"value":7234239372355710561}
@@ -9538,6 +9540,19 @@ block b0(v0:mutbuf,v1:u64,v2:u64,v3:u64)
   _ = buffer.move_within(v0,move_target,move_source,move_count)
   move_zero:u64 = const() {"value":0}
   ret(move_zero)
+end
+fn input_hash_offset(output:mutbuf,core_hash:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(output:mutbuf,core_hash:u64)
+  tag_at:u64 = const() {"value":25167360}
+  tag:u64 = call(output,tag_at) {"function":"f20"}
+  origin_magic:u64 = const() {"value":3544423407359707464}
+  present:bool = compare.eq(tag,origin_magic)
+  branch present original() primitive(core_hash)
+block original()
+  origin_at:u64 = const() {"value":25167368}
+  ret(origin_at)
+block primitive(primitive_hash:u64)
+  ret(primitive_hash)
 end
 fn batch_query_refusal(v0:mutbuf,v1:u64) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)

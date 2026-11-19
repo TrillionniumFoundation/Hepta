@@ -268,6 +268,50 @@ def check_nominal_queries(release, directory):
     return passed
 
 
+def check_nominal_batch_queries(release, directory):
+    passed = 0
+    for index, (document, site, single_query) in enumerate(nominal_query_fixtures()):
+        source = directory / f'{index}.hepta'
+        source.write_bytes(wire(document, pretty=True))
+        request = directory / f'{index}.json'
+        request.write_bytes(wire([site]))
+        arguments = ['edit-batch-query', str(source), '--selections', str(request)]
+        executable = release / 'hia'
+        result = subprocess.run([executable, *arguments], capture_output=True,
+                                env={'PATH': ''}, timeout=20)
+        expected = prepare_batch(document, [site])
+        assert (result.returncode, result.stdout, result.stderr) == (0, wire(expected, pretty=True), b''), result
+        assert expected['input_sha256'] == single_query['input_sha256'] != expected['base_sha256']
+        assert expected['sites'][0]['query']['input_sha256'] == expected['input_sha256']
+
+        reference = directory / f'{index}.reference'
+        target = directory / f'{index}.target'
+        receipt = json.loads(reference_cli([*arguments, '-o', str(reference)]))
+        receipt['output'] = str(target)
+        command = [executable, *arguments, '-o', target]
+        result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20)
+        assert (result.returncode, result.stdout, result.stderr) == (0, wire(receipt, pretty=True), b''), result
+        assert target.read_bytes() == reference.read_bytes()
+        pinned = target.stat()
+        replay = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20)
+        assert replay.returncode != 0 and not replay.stdout and not replay.stderr, replay
+        assert target.stat().st_ino == pinned.st_ino and target.read_bytes() == reference.read_bytes()
+
+        request.write_bytes(wire([site, site]))
+        absent = directory / f'{index}.absent'
+        report = StringIO()
+        with redirect_stdout(report):
+            status = _reference_hia_main(arguments)
+        for options in ([], ['-o', str(absent)]):
+            refusal = subprocess.run([executable, *arguments, *options], capture_output=True,
+                                     env={'PATH': ''}, timeout=20)
+            assert (status, refusal.returncode, refusal.stdout, refusal.stderr) == (
+                2, 2, report.getvalue().encode(), b''), refusal
+            assert not absent.exists()
+        passed += 5
+    return passed
+
+
 def check_nominal_patches(release, directory):
     passed = 0
     for index, (document, _, query) in enumerate(nominal_query_fixtures()):
@@ -453,10 +497,13 @@ def check_release(release, directory):
     batch.mkdir()
     nominal = directory / 'nominal-queries'
     nominal.mkdir()
+    nominal_batch = directory / 'nominal-batch-queries'
+    nominal_batch.mkdir()
     patches = directory / 'nominal-patches'
     patches.mkdir()
     return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
             + check_nominal_queries(release, nominal) + check_nominal_patches(release, patches)
+            + check_nominal_batch_queries(release, nominal_batch)
             + check_import_existing_destinations(release, assembly_source, destinations)
             + check_selected_selfhost(release, selfhost) + check_batch_apply_refusals(release, batch))
 
