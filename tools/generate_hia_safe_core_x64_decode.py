@@ -6,7 +6,8 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_x64_decode_native import (
-    CORE_FORMULA_IDS, MAX_INSTRUCTIONS, MAX_RECIPE_NODES, MAX_TEXT, OPERATION_IDS, RECIPE_IDS, RECIPE_INPUTS,
+    CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MAX_INSTRUCTIONS, MAX_RECIPE_NODES, MAX_TEXT,
+    OPERATION_IDS, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE,
 )
@@ -22,6 +23,7 @@ FIELDS.update({'OP_' + name.upper(): index for name, index in OPERATION_IDS.item
 FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()})
 FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
 FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in CORE_FORMULA_IDS.items()})
+FIELDS.update(CORE_GRAPH_LIMIT=CORE_GRAPH_LIMIT, CORE_GRAPH_SIZE=CORE_GRAPH_REQUEST.size)
 FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
               LEFT=1, RIGHT=2, THIRD=3, ZF=3, CF=4, ARBITRARY=5)
 FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHED_ACTIVE=32,
@@ -40,6 +42,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return core_scalar_formula(o, get(w, 0), get(w, 8), get(w, 16))
     if size == 0 and length(w) == 40:
         return memory_admission(w)
+    if size == 0 and length(w) == CORE_GRAPH_SIZE:
+        return review_core_graph(w)
     if length(o) < 24 or length(w) < WORKSPACE:
         return 4294967294
     if size == 0 or size > MAX_TEXT:
@@ -461,8 +465,14 @@ def core_scalar_formula(o:mutbuf, op:u64, width:u64, literal:u64) -> u64:
     put(o, 0, 0)
     if op == C_CONST:
         return formula_done(o, node(o, R_LITERAL64, literal, 0, 0), 0, 0, 0)
+    if op >= C_BORROW_EXTENT and op <= C_BORROW_WRAP and width == 64:
+        return core_borrow_formula(o, op, literal)
     if literal != 0:
         return 4294967293
+    if op == C_BUFFER_ADDRESS and width == 64:
+        address = node(o, R_ADD, LEFT, THIRD, 0)
+        outside = node(o, R_UGE, THIRD, RIGHT, 0)
+        return formula_done(o, address, 0, 0, outside)
     if op >= C_COMPARE_EQ and op <= C_COMPARE_GE:
         return core_compare_formula(o, op)
     if op == C_SELECT:
@@ -529,6 +539,57 @@ def core_compare_formula(o:mutbuf, op:u64) -> u64:
     one = node(o, R_LITERAL64, 1, 0, 0)
     zero = node(o, R_LITERAL64, 0, 0, 0)
     return formula_done(o, node(o, R_CHOOSE, condition, one, zero), 0, 0, 0)
+
+def core_borrow_formula(o:mutbuf, op:u64, literal:u64) -> u64:
+    if op == C_BORROW_EXTENT:
+        if literal == 0 or literal > 1048576:
+            return 4294967293
+        extent = node(o, R_LITERAL64, literal, 0, 0)
+        outside = node(o, R_UGT, RIGHT, extent, 0)
+        packed = node(o, R_LITERAL64, 4294967296, 0, 0)
+        return formula_done(o, packed, 0, 0, outside)
+    if literal != 0:
+        return 4294967293
+    nonempty = node(o, R_NONZERO, RIGHT, 0, 0)
+    if op == C_BORROW_NULL:
+        zero = node(o, R_ZERO, LEFT, 0, 0)
+        outside = node(o, R_BOOL_AND, nonempty, zero, 0)
+        packed = node(o, R_LITERAL64, 8589934592, 0, 0)
+        return formula_done(o, packed, 0, 0, outside)
+    end = node(o, R_ADD, LEFT, RIGHT, 0)
+    wraps = node(o, R_ULT, end, LEFT, 0)
+    outside = node(o, R_BOOL_AND, nonempty, wraps, 0)
+    packed = node(o, R_LITERAL64, 12884901888, 0, 0)
+    return formula_done(o, packed, 0, 0, outside)
+
+def review_core_graph(w:mutbuf) -> u64:
+    count = get(w, 0)
+    if count == 0 or count > CORE_GRAPH_LIMIT:
+        return 0
+    limit = 1 << count
+    index = 0
+    while index < count:
+        if get(w, 8 + index * 8) >= limit:
+            return 0
+        index = index + 1
+    pivot = 0
+    while pivot < count:
+        target = get(w, 8 + pivot * 8)
+        reachable = 1 << pivot
+        index = 0
+        while index < count:
+            at = 8 + index * 8
+            row = get(w, at)
+            if (row & reachable) != 0:
+                put(w, at, row | target)
+            index = index + 1
+        pivot = pivot + 1
+    index = 0
+    while index < count:
+        if (get(w, 8 + index * 8) & (1 << index)) != 0:
+            return 0
+        index = index + 1
+    return 1
 
 def schedule_request(s:readbuf, offset:u64) -> u64:
     value = 0

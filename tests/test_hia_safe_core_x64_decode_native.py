@@ -130,6 +130,49 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             compare(op, {}, boolean, 'bool')
         compare('bool.not', {}, boolean[:1], 'bool')
 
+    def test_native_core_topology_matches_reference_for_all_graph_sizes(self):
+        from hepta.hia_safe_core import SafeCoreRejected, _reference_core_graph
+
+        rng = random.Random(3009)
+        for count in range(1, 17):
+            for trial in range(32):
+                adjacency, blocks = [], {}
+                for index in range(count):
+                    start = 0 if trial % 2 else index + 1
+                    targets = rng.sample(range(start, count), min(max(0, count - start), rng.randrange(3)))
+                    adjacency.append(sum(1 << target for target in targets))
+                    if targets == []:
+                        term = dict(op='ret')
+                    elif len(targets) == 1:
+                        term = dict(op='jump', target=targets[0])
+                    else:
+                        term = {'op': 'branch', 'then': {'target': targets[0]},
+                                'else': {'target': targets[1]}}
+                    blocks[index] = {'term': term}
+                try:
+                    _reference_core_graph(blocks)
+                    expected = True
+                except SafeCoreRejected:
+                    expected = False
+                self.assertEqual(self.native.acyclic_core_graph(adjacency), expected, adjacency)
+
+    def test_actual_borrowed_abi_uses_native_guards_and_byte_addresses(self):
+        from pathlib import Path
+        import tempfile
+
+        from hepta.hia_safe_core import _Theory, build_safe_core
+        from tests.test_hia_safe_core import guarded_update
+
+        blocked = {name: Mock(side_effect=AssertionError('host borrow rule entered: ' + name))
+                   for name in ('_reference_borrow_guards', '_reference_buffer_address')}
+        with (tempfile.TemporaryDirectory(prefix='hia-safe-core-borrow-') as root,
+              patch('hepta.hia_safe_core._reference_core_graph',
+                    side_effect=AssertionError('host Core topology entered')),
+              patch.multiple(_Theory, **blocked)):
+            report = build_safe_core(guarded_update(), Path(root) / 'candidate.so',
+                                     foreign_extent=32)
+        self.assertTrue(report['validation']['ok'], report)
+
     def test_actual_consumer_proves_from_installed_machine_rules_without_host_formulas(self):
         from hashlib import sha256
         from pathlib import Path

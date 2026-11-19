@@ -51,6 +51,8 @@ OPERATIONS = (
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
 RECIPE_REQUEST = struct.Struct('<2Q')
 CORE_FORMULA_REQUEST = struct.Struct('<3Q')
+CORE_GRAPH_LIMIT = 16
+CORE_GRAPH_REQUEST = struct.Struct('<17Q')
 RECIPE_HEADER = struct.Struct('<5Q')
 RECIPE_NODE = struct.Struct('<4Q')
 MAX_RECIPE_NODES = 12
@@ -92,7 +94,7 @@ CORE_FORMULA_IDS = {name: code for code, name in enumerate((
     'const', 'int.add.wrap', 'int.sub.wrap', 'int.mul.wrap', 'int.add.checked', 'int.sub.checked',
     'bit.and', 'bit.or', 'bit.xor', 'bit.not', 'bool.and', 'bool.or', 'bool.not',
     'int.cast.wrap', 'int.cast.checked', 'compare.eq', 'compare.ne', 'compare.lt', 'compare.le',
-    'compare.gt', 'compare.ge', 'select',
+    'compare.gt', 'compare.ge', 'select', 'borrow.extent', 'borrow.null', 'borrow.wrap', 'buffer.address',
 ), 1)}
 ALU_GROUPS = {0: 'add', 1: 'or', 4: 'and', 5: 'sub', 6: 'xor', 7: 'cmp'}
 REFUSALS = (
@@ -236,6 +238,17 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         result = self._entry(None, 0, None, 0, request, len(packet))
         if result not in (0, 1):
             raise RuntimeError('invalid native Safe Core memory admission')
+        return result == 1
+
+    def acyclic_core_graph(self, successors):
+        count = len(successors)
+        if not 1 <= count <= CORE_GRAPH_LIMIT:
+            raise ValueError('outside the Safe Core graph budget')
+        packet = CORE_GRAPH_REQUEST.pack(count, *successors, *([0] * (CORE_GRAPH_LIMIT - count)))
+        request = ctypes.create_string_buffer(packet, len(packet))
+        result = self._entry(None, 0, None, 0, request, len(packet))
+        if result not in (0, 1):
+            raise RuntimeError('invalid native Safe Core graph')
         return result == 1
 
     @lru_cache(maxsize=512)

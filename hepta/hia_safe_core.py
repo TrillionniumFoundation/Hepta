@@ -238,6 +238,37 @@ def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=
                     "checked casts are outside Safe Core v1")
             types.extend(p["type"] for p in op["out"])
     require(all(t in widths or t in LOANS for t in types), "type lies outside Safe Core")
+    _review_core_graph(blocks)
+    return fn, blocks
+
+
+def _review_core_graph(blocks):
+    from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
+    native = selected_safe_core_x64_decode()
+    kinds = {"ret", "trap", "jump", "branch"}
+    if native is None or any(block["term"]["op"] not in kinds for block in blocks.values()):
+        # Preserve the original rejection order for out-of-profile terminators.
+        _reference_core_graph(blocks)
+        return
+    indices = {name: index for index, name in enumerate(blocks)}
+    adjacency = []
+    for block in blocks.values():
+        term = block["term"]
+        if term["op"] == "jump":
+            targets = (term["target"],)
+        elif term["op"] == "branch":
+            targets = (term["then"]["target"], term["else"]["target"])
+        else:
+            targets = ()
+        bits = 0
+        for target in targets:
+            bits |= 1 << indices[target]
+        adjacency.append(bits)
+    require(native.acyclic_core_graph(adjacency), "loops or recursion lie outside Safe Core")
+
+
+def _reference_core_graph(blocks):
     visiting, done = set(), set()
 
     def visit(name):
@@ -254,7 +285,6 @@ def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=
         done.add(name)
     for name in blocks:
         visit(name)
-    return fn, blocks
 
 
 class _Theory:
@@ -333,6 +363,28 @@ class _Theory:
             raise SafeCoreRejected("missing independent Core semantics")
         return value, trap
 
+    def borrow_guards(self, extent):
+        if self.core_model is None:
+            return self._reference_borrow_guards(extent)
+        pointer, length, _ = self.loan
+        return tuple(self.core_model.symbolic_core(self.z, self.ctx, name, 64, (pointer, length), literal)
+                     for name, literal in (("borrow.extent", extent), ("borrow.null", 0), ("borrow.wrap", 0)))
+
+    def _reference_borrow_guards(self, extent):
+        z = self.z
+        pointer, length, _ = self.loan
+        return ((self.bv(1 << 32), z.UGT(length, extent)),
+                (self.bv(2 << 32), z.And(length != 0, pointer == 0)),
+                (self.bv(3 << 32), z.And(length != 0, z.ULT(pointer + length, pointer))))
+
+    def buffer_address(self, pointer, length, index):
+        if self.core_model is None:
+            return self._reference_buffer_address(pointer, length, index)
+        return self.core_model.symbolic_core(self.z, self.ctx, "buffer.address", 64, (pointer, length, index))
+
+    def _reference_buffer_address(self, pointer, length, index):
+        return pointer + index, self.z.UGE(index, length)
+
     def reference(self, fn, blocks, extent):
         z = self.z
         outcomes, path = [], z.BoolVal(True, ctx=self.ctx)
@@ -342,10 +394,8 @@ class _Theory:
                                  value=self.bv(0) if value is None else value))
 
         if self.loan is not None:
-            pointer, length, typ = self.loan
-            for code, bad in ((1, z.UGT(length, extent)), (2, z.And(length != 0, pointer == 0)),
-                              (3, z.And(length != 0, z.ULT(pointer + length, pointer)))):
-                outcome("return", z.And(path, bad), self.memory, self.bv(code << 32))
+            for packed, bad in self.borrow_guards(extent):
+                outcome("return", z.And(path, bad), self.memory, packed)
                 path = z.simplify(z.And(path, z.Not(bad)))
         pending = [(fn["entry"], dict(self.inputs), self.memory, path)]
         paths = 0
@@ -368,15 +418,15 @@ class _Theory:
                 elif name in ("buffer.load", "buffer.store"):
                     pointer, length, permission = args[0]
                     index = args[1]
-                    trap = z.UGE(index, length)
+                    address, trap = self.buffer_address(pointer, length, index)
                     outcome("abort", z.And(path, trap), memory)
                     path = z.simplify(z.And(path, z.Not(trap)))
                     trap = None
                     if name == "buffer.load":
-                        value = z.ZeroExt(56, z.Select(memory, pointer + index))
+                        value = z.ZeroExt(56, z.Select(memory, address))
                     else:
                         require(permission == "mutbuf", "reference cannot write a read-only loan")
-                        memory = z.Store(memory, pointer + index, z.Extract(7, 0, args[2]))
+                        memory = z.Store(memory, address, z.Extract(7, 0, args[2]))
                 else:
                     value, trap = self.scalar_operation(name, attrs, args, typ)
                 if trap is not None:
