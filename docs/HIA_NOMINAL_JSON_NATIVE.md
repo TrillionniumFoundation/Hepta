@@ -503,3 +503,8 @@ admission. Primitive v6–v8 use the existing HIA renderer and round-trip
 check before writing assembly bytes or publishing a new file. The direct
 Core helpers remain available; the installed dispatcher does not invoke
 the former unstructured renderer for this command.
+
+For the packaged `hia build` object path, the bounded launcher expands the native
+builder into a private executable file descriptor and seals it before execution.
+The release pins the launcher bytes; the build receipt's implementation digest
+identifies the exact expanded ELF that produced the object.

@@ -214,6 +214,7 @@ CORE_EDIT_SDIST_FILES = (
     'examples/hia_bootstrap/core_cli/verify.hepta',
     'examples/hia_bootstrap/core_cli/verify_pretty.hepta',
     'tools/hia_core_edit_build_object.S',
+    'tools/hia_core_edit_packed_exec.S',
     'tools/hia_core_edit_capabilities.S',
     'tools/hia_core_edit_catalog.S',
     'tools/hia_core_edit_dispatch.S',

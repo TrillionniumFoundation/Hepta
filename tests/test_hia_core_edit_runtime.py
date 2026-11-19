@@ -5,10 +5,12 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 from pathlib import Path
+import struct
 import subprocess
 import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
+import zlib
 
 from hepta.hia_agent_store import wire as canonical_wire
 from hepta.hia_edit_batch import apply_batch, prepare_batch
@@ -179,7 +181,25 @@ def check_object_builds(release):
     from tests.test_hia_composite_returned_loans import pair_program
 
     executable = release / 'hia'
-    implementation = sha256((release / 'hia-build-object').read_bytes()).hexdigest()
+    launcher = (release / 'hia-build-object').read_bytes()
+    marker = b'HIAECP01'
+    assert launcher.count(marker) == 1
+    offset = launcher.index(marker) + len(marker)
+    expanded_size, = struct.unpack_from('<Q', launcher, offset)
+    offset += 8
+    expanded = bytearray()
+    while offset < len(launcher):
+        stored_size, decoded_size = struct.unpack_from('<2Q', launcher, offset)
+        offset += 16
+        assert 0 < decoded_size <= 512 * 1024
+        assert 0 < stored_size <= len(launcher) - offset
+        decoder = zlib.decompressobj(wbits=-15)
+        decoded = decoder.decompress(launcher[offset:offset + stored_size], decoded_size + 1)
+        assert len(decoded) == decoded_size and decoder.eof and not decoder.unused_data
+        expanded.extend(decoded)
+        offset += stored_size
+    assert len(expanded) == expanded_size and expanded.startswith(b'\x7fELF')
+    implementation = sha256(expanded).hexdigest()
     documents = [scalar_program(), *(simple(version=v) for v in range(1, 5)), pair_program()]
     with tempfile.TemporaryDirectory(prefix='hia-public-object-') as directory:
         folder = Path(directory)

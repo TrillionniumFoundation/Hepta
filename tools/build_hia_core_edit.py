@@ -29,7 +29,11 @@ PACKER = EDIT + 'packer.hepta'
 CAPACITY = 4 * (1 << 20) + 4096
 ARGUMENT_PARSER = CLI + 'arguments.hepta'
 ARGUMENT_FORMATTER = BOOTSTRAP + 'cli_format.hepta'
+ARGUMENT_PAYLOAD = CLI + 'argument_payload.hepta'
 ARGUMENT_ARCHIVE = '<public-argument-images>'
+EXEC_LAUNCHER = 'tools/hia_core_edit_packed_exec.S'
+EXEC_ARCHIVE_MAGIC = b'HIAECP01'
+EXEC_CHUNK = 1 << 19
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
 ASSEMBLY_PRESENTERS = tuple(CLI + name + '.hepta' for name in (
     'assembly_diagnostic_report', 'assembly_pretty', 'assembly_driver'))
@@ -60,8 +64,7 @@ PROGRAMS = {
     'dispatch': ('hia', (
         (CLI + 'dispatch.hepta', ('dispatch_call',)),
         (CLI + 'selfhost_entry.hepta', ('selfhost_call',)),
-        (CLI + 'argument_payload.hepta', ('argument_unpack', 'argument_frame', 'argument_encode',
-                                         'argument_command')),
+        (ARGUMENT_PAYLOAD, ('argument_unpack', 'argument_frame', 'argument_encode', 'argument_command')),
         (ARGUMENT_ARCHIVE, ('argument_images',)),
     )),
     'selfhost_component': ('hia-selfhost-component', (
@@ -120,12 +123,7 @@ PROGRAMS = {
         (CLI + 'build_codegen.hepta', ('codegen',)),
         (CLI + 'build_backend.hepta', ('byte_address',)),
     )),
-    'build_object': ('hia-build-object', (
-        (EDIT + 'admission_word_io.hepta', ('core',)),
-        (EDIT + 'publication_frontend.hepta', ('path', 'source_admit', 'frame', 'exports', 'expectations', 'facts', 'canonical', 'hash_direct')),
-        (CLI + 'build_codegen.hepta', ('codegen', 'report')),
-        (CLI + 'build_backend.hepta', ('byte_address',)),
-    )),
+    'build_object': ('hia-build-object', tuple((path, ()) for path in OBJECT_BUILD_IMAGES)),
     'publish_program': ('hia-publish-program', (
         (EDIT + 'admission_word_io.hepta', ('core_address',)),
         (EDIT + 'publication_frontend.hepta', ('front_address',)),
@@ -266,6 +264,27 @@ def link_object_builder(folder, adapter, sources, images):
     return binary, {'link_receipt': receipt, 'adapter_object_sha256': digest(objects[0])}
 
 
+def pack_executable(folder, packer, launcher, inflater, executable):
+    if not 0 < len(executable) <= ORDINARY_CLI_IMAGE_CAPACITY:
+        raise ValueError('packed CLI executable exceeds the admitted extent')
+    parts = [struct.pack('<8sQ', EXEC_ARCHIVE_MAGIC, len(executable))]
+    for start in range(0, len(executable), EXEC_CHUNK):
+        block = executable[start:start + EXEC_CHUNK]
+        compressor = zlib.compressobj(9, zlib.DEFLATED, -15, 6)
+        encoded = compressor.compress(block) + compressor.flush()
+        if not 0 < len(encoded) <= (1 << 20) or zlib.decompress(encoded, -15) != block:
+            raise ValueError('CLI executable failed lossless packing')
+        parts.extend((struct.pack('<2Q', len(encoded), len(block)), encoded))
+    stub, symbols, adapter_hash = assemble_adapter(folder, EXEC_LAUNCHER, launcher)
+    holes = sorted((symbols[name + '_hole'], index)
+                   for index, name in enumerate(('decompress', 'archive')))
+    binary, details = pack(packer, stub, holes, [inflater, b''.join(parts)])
+    if binary.count(EXEC_ARCHIVE_MAGIC) != 1:
+        raise ValueError('packed CLI executable has ambiguous framing')
+    return binary, {'elf': details, 'launcher_object_sha256': adapter_hash,
+                    'implementation_sha256': digest(executable), 'implementation_bytes': len(executable)}
+
+
 def build(output, compiler, cold_report, *, release_only=False):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
@@ -276,7 +295,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
     source_files = {PACKER, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
-                    NOMINAL_ADAPTER, *NOMINAL_BUILD_SOURCES.values(),
+                    NOMINAL_ADAPTER, EXEC_LAUNCHER, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
@@ -307,7 +326,10 @@ def build(output, compiler, cold_report, *, release_only=False):
         folder = output / kind
         folder.mkdir(mode=0o700)
         if kind == 'build_object':
-            products[name] = link_object_builder(folder, adapter, sources, images)
+            executable, details = link_object_builder(folder, adapter, sources, images)
+            binary, packed = pack_executable(folder, packer, sources[EXEC_LAUNCHER],
+                                             images[ARGUMENT_PAYLOAD], executable)
+            products[name] = (binary, {**details, **packed})
             continue
         stub, symbols, adapter_hash = assemble_adapter(folder, adapter, sources[adapter])
         holes = sorted((symbols[call + '_hole'], index)
