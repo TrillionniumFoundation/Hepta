@@ -346,6 +346,20 @@ class WorkerRequestAdversarialTests(unittest.TestCase):
         self.assertEqual(observed_pins, [b'a' * 64, b'b' * 64])
         self.assertGreaterEqual(digits, 0)
 
+    def test_standalone_admission_uses_returned_arena_without_inprocess_retry(self):
+        request = envelope({'z': [-0.0, '☂'], 'a': 3})
+        raw = source_wire(request)
+        canonical, arena = self.native._run(raw, CATALOG)
+        with (patch('hepta.hia_native_helpers.pinned_worker_admission_executable', return_value=b'pinned'),
+              patch.object(self.native, '_entry', side_effect=AssertionError('in-process fallback')),
+              patch('hepta.hia_worker_request_native._standalone_admit',
+                    return_value=(len(canonical), arena)) as admission):
+            decoded, _ = self.native.admit_for_terminal(raw, CATALOG)
+            self.assertEqual(value_identity(decoded), value_identity(request))
+            admission.side_effect = ValueError('incomplete standalone admission frame')
+            with self.assertRaisesRegex(ValueError, 'incomplete standalone admission frame'):
+                self.native.admit_for_terminal(raw, CATALOG)
+
 
 if __name__ == '__main__':
     unittest.main()

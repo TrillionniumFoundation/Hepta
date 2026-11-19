@@ -25,6 +25,10 @@ SELECTOR = 'HEPTA_HIA_WORKER_REQUEST_MANIFEST'
 MAX_BYTES = 8 * 1024 * 1024
 PRIVATE_BYTES = 16384
 TERMINAL_FRAME = struct.Struct('<8s4Q')
+ADMISSION_FRAME = struct.Struct('<8s2Q64s')
+ADMISSION_REPLY = struct.Struct('<8s2Q')
+ADMISSION_INPUT_MAGIC = b'HIAWRA02'
+ADMISSION_OUTPUT_MAGIC = b'HIAWRO02'
 
 ERRORS = {
     0xffffffef: ('E_HIA_FIELDS', 'worker request has missing or unknown fields'),
@@ -62,26 +66,26 @@ class NativeWorkerRequest(NativeHiaJsonImage):
         if catalog is not None and (type(catalog) is not str or len(catalog) != 64
                 or any(ch not in '0123456789abcdef' for ch in catalog)):
             raise ValueError('trusted catalog pin must be canonical SHA-256')
+        max_digits = sys.get_int_max_str_digits()
+        if terminal:
+            from .hia_native_helpers import pinned_worker_admission_executable
+
+            executable = pinned_worker_admission_executable()
+            if executable is not None:
+                status, arena = _standalone_admit(executable, raw, catalog, max_digits)
+                request = _materialize_request(status, arena, raw)
+                return request, _terminal_callback(executable, raw, catalog, max_digits)
+
         output_size, scratch_size = buffer_sizes(len(raw))
         source = ctypes.create_string_buffer(raw, max(1, len(raw)))
         output = ctypes.create_string_buffer(output_size)
         scratch = ctypes.create_string_buffer(scratch_size)
-        max_digits = sys.get_int_max_str_digits()
         struct.pack_into('<2Q', scratch, 0, int(catalog is not None), max_digits)
         if catalog is not None:
             ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES + 64,
                            catalog.encode('ascii'), 64)
         result = self._entry(source, len(raw), output, output_size, scratch, scratch_size)
-        if result == 0xfffffffd:
-            raise RuntimeError('native worker request rejected its scratch profile')
-        if result in (0xffffffff, 0xfffffffc, 0xfffffffe, 0xfffffff0):
-            reasons = {0xffffffff: 'invalid JSON syntax or Unicode',
-                       0xfffffffc: 'duplicate decoded object key',
-                       0xfffffffe: 'JSON node/depth budget exceeded',
-                       0xfffffff0: 'nonfinite number or integer conversion limit'}
-            raise ValueError(reasons[result])
-        if result not in ERRORS and not 1 <= result <= MAX_BYTES:
-            raise RuntimeError('invalid native worker request result')
+        _validate_admission_status(result)
         # Validate the exact HIA arena in the shared foreign-value bridge. It
         # does not reparse JSON syntax, recompute a hash or encode any payload.
         arena_size = struct.unpack_from('<Q', scratch, 32)[0]
@@ -89,27 +93,14 @@ class NativeWorkerRequest(NativeHiaJsonImage):
             raise RuntimeError('invalid native worker request arena extent')
         arena = ctypes.string_at(scratch, arena_size)
         if result in ERRORS:
-            request = materialize_data(arena, raw)
-            code, message = ERRORS[result]
-            raise NativeRequestRejected(code, message, request)
+            _materialize_request(result, arena, raw)
         if terminal:
             request = materialize_data(arena, raw)
             from .hia_native_helpers import pinned_worker_terminal_executable
 
             executable = pinned_worker_terminal_executable()
             if executable is not None:
-                admitted = raw
-
-                def terminal(identities, body):
-                    nonlocal admitted
-                    if admitted is None:
-                        raise ValueError('native worker terminal report was not admitted')
-                    _validate_terminal_body(body)
-                    pins = _terminal_pins(identities)
-                    payload, admitted = admitted, None
-                    return _standalone_terminal(executable, payload, catalog, max_digits, pins, body)
-
-                return request, terminal
+                return request, _terminal_callback(executable, raw, catalog, max_digits)
             return request, partial(self._terminal, scratch)
         return ctypes.string_at(output, result), arena
 
@@ -148,6 +139,57 @@ class NativeWorkerRequest(NativeHiaJsonImage):
         return ctypes.string_at(output, result)
 
 
+def _validate_admission_status(status):
+    if status == 0xfffffffd:
+        raise RuntimeError('native worker request rejected its scratch profile')
+    reasons = {0xffffffff: 'invalid JSON syntax or Unicode',
+               0xfffffffc: 'duplicate decoded object key',
+               0xfffffffe: 'JSON node/depth budget exceeded',
+               0xfffffff0: 'nonfinite number or integer conversion limit'}
+    if status in reasons:
+        raise ValueError(reasons[status])
+    if status not in ERRORS and not 1 <= status <= MAX_BYTES:
+        raise RuntimeError('invalid native worker request result')
+
+
+def _materialize_request(status, arena, raw):
+    request = materialize_data(arena, raw)
+    if status in ERRORS:
+        code, message = ERRORS[status]
+        raise NativeRequestRejected(code, message, request)
+    return request
+
+
+def _standalone_admit(executable, request, catalog, max_digits):
+    header = ADMISSION_FRAME.pack(ADMISSION_INPUT_MAGIC, len(request), max_digits, catalog.encode('ascii'))
+    child = _run_sealed(executable, header, request)
+    if child.returncode or child.stderr or len(child.stdout) < ADMISSION_REPLY.size:
+        raise ValueError('standalone HIA worker admission did not return a complete arena')
+    magic, status, extent = ADMISSION_REPLY.unpack_from(child.stdout)
+    if magic != ADMISSION_OUTPUT_MAGIC or len(child.stdout) != ADMISSION_REPLY.size + extent:
+        raise ValueError('invalid standalone HIA worker admission frame')
+    _validate_admission_status(status)
+    _, workspace = buffer_sizes(len(request))
+    if not 64 <= extent <= workspace - PRIVATE_BYTES:
+        raise RuntimeError('invalid native worker request arena extent')
+    return status, child.stdout[ADMISSION_REPLY.size:]
+
+
+def _terminal_callback(executable, raw, catalog, max_digits):
+    admitted = raw
+
+    def terminal(identities, body):
+        nonlocal admitted
+        if admitted is None:
+            raise ValueError('native worker terminal report was not admitted')
+        _validate_terminal_body(body)
+        pins = _terminal_pins(identities)
+        payload, admitted = admitted, None
+        return _standalone_terminal(executable, payload, catalog, max_digits, pins, body)
+
+    return terminal
+
+
 def _validate_terminal_body(body):
     if type(body) is not bytes or len(body) > MAX_BYTES:
         raise ValueError('worker terminal JSON must be bytes within 8 MiB')
@@ -164,22 +206,26 @@ def _terminal_pins(identities):
 
 
 def _standalone_terminal(executable, request, catalog, max_digits, pins, body):
-    from .hia_scalar_reference_native import sealed_reference_bytes
-
     helpers = len(pins) - 2
     header = TERMINAL_FRAME.pack(b'HIATRP01', len(request), len(body), max_digits, helpers)
     header += catalog.encode('ascii') + b''.join(pins) + (b'\0' * 64 if not helpers else b'')
-    with (sealed_reference_bytes(executable) as program,
-          sealed_reference_bytes(header, request, body) as contents):
-        os.lseek(contents, 0, os.SEEK_SET)
-        child = subprocess.run(['/proc/self/fd/' + str(program)], stdin=contents,
-                               pass_fds=(program,), capture_output=True, env={'PATH': ''})
+    child = _run_sealed(executable, header, request, body)
     if child.returncode == 3 and not child.stdout and not child.stderr:
         raise ValueError('E_HIA_EDIT: JSON encoding exceeds byte budget')
     if (child.returncode or child.stderr or not 1 < len(child.stdout) <= MAX_BYTES + 1
             or not child.stdout.endswith(b'\n')):
         raise ValueError('native worker terminal report was not admitted')
     return child.stdout[:-1]
+
+
+def _run_sealed(executable, *frame):
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    with (sealed_reference_bytes(executable) as program,
+          sealed_reference_bytes(*frame) as contents):
+        os.lseek(contents, 0, os.SEEK_SET)
+        return subprocess.run(['/proc/self/fd/' + str(program)], stdin=contents,
+                              pass_fds=(program,), capture_output=True, env={'PATH': ''})
 
 
 def installed_worker_request(manifest):

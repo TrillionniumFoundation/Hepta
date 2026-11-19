@@ -97,6 +97,15 @@ Error output does not carry a fabricated request or correlated report.
 This command does not open a Store, run a tool, enter MCP or change the
 current worker's administrator options or service selection.
 
+The v14 worker release also has a private admission route in
+`hia-worker-terminal`. The owner supplies `HIAWRA02`, the little-endian u64
+request length and integer digit limit, the same 64-byte catalog SHA-256,
+and the unmodified request. The `HIAWRO02` reply contains the u64 HIA status
+and arena length followed by the HIA arena. Only a success or a parsed
+refusal can carry an arena. The existing foreign graph bridge materializes
+the arena for the service and retains the prior request correlation rules.
+It does not run an in-process request parser if standalone transport fails.
+
 ## Installed terminal renderer
 
 The same release includes `hia-worker-terminal`, an independent Linux x86-64
@@ -124,7 +133,7 @@ arguments, respectively.
 
 Only the process owner can attest the supplied source pins and service result.
 The renderer supplies no tool execution, service entry, journal access, or
-process authority. The v13 worker release binds the installed executable to
+process authority. The v13 and v14 worker releases bind the installed executable to
 the exact admitted request image and uses it for admitted terminal reports.
 The adapter hands the executable and its one-use input to the child as sealed
 file descriptors. A terminal refusal does not fall back to in-process

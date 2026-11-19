@@ -9,6 +9,9 @@
 .equ PRIVATE,WORKSPACE-16384
 .equ FRAME_BYTES,296
 .equ REPORT_INPUT,0x3130505254414948
+.equ ADMISSION_BYTES,88
+.equ ADMISSION_INPUT,0x3230415257414948
+.equ ADMISSION_OUTPUT,0x32304f5257414948
 
 _start:
  cld
@@ -23,11 +26,17 @@ _start:
  test rax,rax
  jne io_failure
  lea rsi,[rip+header]
- mov edx,FRAME_BYTES
+ mov edx,8
  call read_exact
+ movabs rax,ADMISSION_INPUT
+ cmp [rip+header],rax
+ je admission
  movabs rax,REPORT_INPUT
  cmp [rip+header],rax
  jne bad_frame
+ lea rsi,[rip+header+8]
+ mov edx,FRAME_BYTES-8
+ call read_exact
  cmp QWORD PTR [rip+header+8],0
  je bad_frame
  cmp QWORD PTR [rip+header+16],0
@@ -37,13 +46,7 @@ _start:
  cmp QWORD PTR [rip+header+16],WIRE_LIMIT
  ja budget
  mov rax,[rip+header+24]
- test rax,rax
- jz digits_valid
- cmp rax,640
- jb bad_frame
- cmp rax,2147483647
- ja bad_frame
-digits_valid:
+ call check_digits
  mov rax,[rip+header+32]
  cmp rax,1
  ja bad_frame
@@ -82,17 +85,7 @@ pins_ready:
  mov rsi,r12
  mov rdx,[rip+header+16]
  call read_exact
-check_eof:
- xor edi,edi
- lea rsi,[rip+extra]
- mov edx,1
- xor eax,eax
- syscall
- cmp rax,-4
- je check_eof
- test rax,rax
- js io_failure
- jne bad_frame
+ call read_eof
  mov esi,WORKSPACE
  call map_private
  mov r15,rax
@@ -127,6 +120,87 @@ check_eof:
  xor edi,edi
  jmp exit
 
+/* This route hands the existing HIA decoder arena to the process owner.
+ * No parsing, normalization, identity computation or refusal judgment is
+ * performed by the transport. Only parsed refusals carry an arena. */
+admission:
+ lea rsi,[rip+header+8]
+ mov edx,ADMISSION_BYTES-8
+ call read_exact
+ cmp QWORD PTR [rip+header+8],WIRE_LIMIT
+ ja budget
+ mov rax,[rip+header+16]
+ call check_digits
+ mov esi,WIRE_LIMIT
+ call map_private
+ mov r12,rax
+ mov esi,WIRE_LIMIT
+ call map_private
+ mov r13,rax
+ mov esi,WORKSPACE
+ call map_private
+ mov r14,rax
+ mov QWORD PTR [r14],1
+ mov rax,[rip+header+16]
+ mov [r14+8],rax
+ lea rdi,[r14+PRIVATE+64]
+ lea rsi,[rip+header+24]
+ mov ecx,8
+ rep movsq
+ mov rsi,r12
+ mov rdx,[rip+header+8]
+ test rdx,rdx
+ jz admit_eof
+ call read_exact
+admit_eof:
+ call read_eof
+ mov rdi,r12
+ mov rsi,[rip+header+8]
+ mov rdx,r13
+ mov ecx,WIRE_LIMIT
+ mov r8,r14
+ mov r9d,WORKSPACE
+ call worker_request_start
+ mov eax,eax
+ mov [rip+header+8],rax
+ xor r15d,r15d
+ cmp eax,WIRE_LIMIT
+ jbe admit_arena
+ cmp eax,0xffffffe9
+ jb admit_reply
+ cmp eax,0xffffffef
+ ja admit_reply
+admit_arena:
+ mov r15,[r14+32]
+ cmp r15,64
+ jb io_failure
+ cmp r15,PRIVATE
+ ja io_failure
+admit_reply:
+ movabs rax,ADMISSION_OUTPUT
+ mov [rip+header],rax
+ mov [rip+header+16],r15
+ lea rsi,[rip+header]
+ mov edx,24
+ call write_exact
+ test r15,r15
+ jz admission_complete
+ mov rsi,r14
+ mov rdx,r15
+ call write_exact
+admission_complete:
+ xor edi,edi
+ jmp exit
+
+check_digits:
+ test rax,rax
+ jz digits_valid
+ cmp rax,640
+ jb bad_frame
+ cmp rax,2147483647
+ ja bad_frame
+digits_valid:
+ ret
 run_hia:
  mov ecx,WIRE_LIMIT
  mov r9d,WORKSPACE
@@ -168,6 +242,18 @@ read_exact:
  add rsi,rax
  sub rdx,rax
  jne read_exact
+ ret
+read_eof:
+ xor edi,edi
+ lea rsi,[rip+extra]
+ mov edx,1
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je read_eof
+ test rax,rax
+ js io_failure
+ jne bad_frame
  ret
 write_exact:
  mov edi,1
