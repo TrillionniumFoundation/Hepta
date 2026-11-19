@@ -845,6 +845,8 @@ def evaluate_word_node(source:readbuf, scratch:mutbuf, operation:u64, width:u64,
         return evaluate_word_order(a, b, source_width, operation)
     if operation >= 22 and operation <= 25:
         return evaluate_word_overflow(a, b, source_width, operation)
+    if operation == 32:
+        return (a * b) & word_mask(width)
     if operation == 26:
         return (a >> immediate) & word_mask(width)
     if operation == 27:
@@ -891,7 +893,7 @@ def evaluate_word_overflow(a:u64, b:u64, width:u64, operation:u64) -> u64:
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width == 0 or width > 64:
         return 0
-    if operation < 1 or operation > 31:
+    if operation < 1 or operation > 32:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -932,6 +934,8 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         return 1
     if right >= index or node_width(source, left) != node_width(source, right):
         return 0
+    if operation == 32:
+        return choose(width > 1 and width == node_width(source, left), 1, 0)
     if operation >= 12:
         if width != 1 or node_width(source, left) == 1:
             return 0
@@ -964,7 +968,10 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
         left = read64(source, origin + 16)
         right = read64(source, origin + 24)
         immediate = read64(source, origin + 32)
-        if operation >= 26:
+        if operation == 32:
+            if encode_product(output, scratch, node, choose(left < right, left, right), choose(left < right, right, left), width) == 0:
+                return TOO_LARGE
+        elif operation >= 26:
             encode_projection(source, scratch, node, operation, width, left, right, immediate)
         elif operation == 7 or operation == 8:
             delta = unequal_bits(output, scratch, left, right, node_width(source, left))
@@ -1155,11 +1162,7 @@ def encode_sum(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, wid
             put_token(scratch, 32 + 128 * node + 2 * bit, digit)
         bit = bit + 1
         if bit < width or flag_only:
-            generate = logic_and(output, scratch, a, b)
-            propagate = logic_and(output, scratch, parity, carry)
-            if generate == 0 or propagate == 0:
-                return 0
-            next_carry = logic_or(output, scratch, generate, propagate)
+            next_carry = carry_after_digit(output, scratch, a, b, parity, carry)
             if next_carry == 0:
                 return 0
             if flag_only and bit == width:
@@ -1170,6 +1173,47 @@ def encode_sum(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, wid
                         return 0
                 put_token(scratch, 32 + 128 * node, overflow)
             carry = next_carry
+    return 1
+
+def carry_after_digit(output:mutbuf, scratch:mutbuf, a:u64, b:u64, parity:u64, carry:u64) -> u64:
+    generate = logic_and(output, scratch, a, b)
+    propagate = logic_and(output, scratch, parity, carry)
+    if generate == 0 or propagate == 0:
+        return 0
+    return logic_or(output, scratch, generate, propagate)
+
+def encode_product(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, width:u64) -> u64:
+    # The destination is a fresh token row. Accumulate each shifted partial
+    # product in place, deliberately discarding bits above the word width.
+    destination = 32 + 128 * node
+    bit = 0
+    while bit < width:
+        put_token(scratch, destination + 2 * bit, 3)
+        bit = bit + 1
+    row = 0
+    while row < width:
+        factor = load_token(scratch, 32 + 128 * right + 2 * row)
+        if factor != 3:
+            carry = 3
+            bit = row
+            while bit < width:
+                a = load_token(scratch, destination + 2 * bit)
+                b = logic_and(output, scratch, factor, load_token(scratch, 32 + 128 * left + 2 * (bit - row)))
+                if b == 0:
+                    return 0
+                parity = logic_xor(output, scratch, a, b)
+                if parity == 0:
+                    return 0
+                digit = logic_xor(output, scratch, parity, carry)
+                if digit == 0:
+                    return 0
+                put_token(scratch, destination + 2 * bit, digit)
+                bit = bit + 1
+                if bit < width:
+                    carry = carry_after_digit(output, scratch, a, b, parity, carry)
+                    if carry == 0:
+                        return 0
+        row = row + 1
     return 1
 
 def unequal_bits(output:mutbuf, scratch:mutbuf, left:u64, right:u64, width:u64) -> u64:

@@ -247,6 +247,23 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertTrue(self.native.check_word_witness(interleaved, [(4, 5)], [250, 5]))
         self.assertFalse(self.native.check_word_witness(interleaved, [(4, 5)], [250, 6]))
 
+    def test_product_circuits_bind_full_width_low_bits_and_keep_gate_limits(self):
+        from hepta.hia_cnf_native import WRAPPING_PRODUCT
+
+        for width in (8, 16, 32, 64):
+            with self.subTest(width=width):
+                mask = (1 << width) - 1
+                nodes = [(1, width, 0, 0, 0), (1, width, 0, 0, 0),
+                         (WRAPPING_PRODUCT, width, 0, 1, 0),
+                         (WRAPPING_PRODUCT, width, 1, 0, 0), (2, width, 0, 0, 1)]
+                self.assertFalse(self.native.check_word_witness(nodes, [(2, 3), (2, 4)], [mask, mask]))
+                self.assertTrue(self.native.check_word_witness(nodes, [(3, 4)], [mask, mask - 1]))
+                result = self.native.solve_circuit(nodes, [(2, 3)], steps=500_000, restarts=True)
+                if width == 64:
+                    self.assertIsNone(result)
+                else:
+                    self.assertEqual(result[0], UNSAT)
+
     def test_native_wrapping_arithmetic_matches_independent_words(self):
         rng = random.Random(862910)
         for width in (8, 16, 32, 64):

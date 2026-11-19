@@ -54,13 +54,14 @@ CIRCUIT_GATE_SLOTS = 8192
 CIRCUIT_GATES_OFFSET = 32 + CIRCUIT_NODES * 128
 CIRCUIT_WORKSPACE = CIRCUIT_GATES_OFFSET + 8 * CIRCUIT_GATE_SLOTS
 UNKNOWN, SAT, UNSAT = range(3)
+WRAPPING_PRODUCT = 32
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
                     'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8,
                     'int.add.wrap': 9, 'int.sub.wrap': 10, 'select': 11,
                     'compare.lt': 12, 'compare.le': 13, 'compare.gt': 14, 'compare.ge': 15,
                     'int.cast': 20, 'int.add.checked': 22, 'int.sub.checked': 23,
-                    'int.neg.checked': 23}
+                    'int.neg.checked': 23, 'int.mul.wrap': WRAPPING_PRODUCT}
 
 
 class NativeCnf(NativeHiaJsonImage):
@@ -249,7 +250,7 @@ def core_circuit(before, after, observed):
                 left, right = len(nodes), left
                 nodes.append((2, width, 0, 0, 0))
             values[output['name']] = (len(nodes), output['type'])
-            if opcode < 22:
+            if opcode < 22 or opcode == WRAPPING_PRODUCT:
                 nodes.append((opcode, width, left, right, immediate))
                 continue
             nodes.append((opcode - 13, width, left, right, 0))
@@ -336,7 +337,7 @@ def _op_frame(z3, term, width, arguments, nodes, references):
                 zero = len(nodes)
                 nodes.append((2, width, 0, 0, 0))
                 return 10, width, zero, source[1 - index], 0
-        return None
+        return WRAPPING_PRODUCT, width, source[0], source[1], 0
     binary = {
         z3.Z3_OP_AND: 3, z3.Z3_OP_BAND: 3,
         z3.Z3_OP_OR: 4, z3.Z3_OP_BOR: 4,

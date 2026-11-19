@@ -281,7 +281,7 @@ class _FiniteCallerMemory:
 
 def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     """Use HIA for a precise finite Boolean reduction when available."""
-    from .hia_cnf_native import SAT, UNSAT, bitblast_goal, bitvector_circuit
+    from .hia_cnf_native import SAT, UNSAT, WRAPPING_PRODUCT, bitblast_goal, bitvector_circuit
 
     if cnf is None:
         return None
@@ -295,10 +295,13 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     circuit = bitvector_circuit(z, candidate)
     remaining = int((deadline - time.monotonic()) * 1000)
     if circuit is not None and remaining > 0:
-        learning = memory is not None
-        if learning:
+        product = any(node[0] == WRAPPING_PRODUCT for node in circuit.nodes)
+        learning = memory is not None or product
+        if memory is not None:
             ceiling = 5_000_000 if reduced_memory is None else 8_000_000
             steps = min(ceiling, remaining * 800)
+        elif product:
+            steps = min(2_000_000, remaining * 800)
         else:
             steps = min(200_000, remaining * 100)
         solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=steps, batch=True,
