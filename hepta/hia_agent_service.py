@@ -1485,6 +1485,7 @@ class HIAAgentService:
         from .hia_agent_identity_native import (
             DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION,
             EVALUATION_NORMAL, EVALUATION_FINISH,
+            REF_BATCH, REF_CLOCK, REF_CASE, REF_COMPARE_TRAP, REF_FINISH, REF_EXPECTATION,
         )
         from .hia_agent_payload_schema_native import WORKLOAD_ROLE
         from .hia_agent_store import _native_agent_identity
@@ -1510,7 +1511,6 @@ class HIAAgentService:
         agree = self._reference_observation_agreement if policy is None else policy.observation_agreement
         exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
         observations, normal, trapping = [], [], []
-        correct, complete, budget_exceeded = True, True, False
         reference_started = time.monotonic_ns()
         created_ns = self.store.context_created_ns(args["context"]["id"])
 
@@ -1518,45 +1518,67 @@ class HIAAgentService:
             return self._wall_window(context, created_ns=created_ns)[1]
 
         references = {}
-        for label, program in (("baseline", baseline_program), ("candidate", candidate_program)):
+        def run_reference(arm):
+            label, program = (("baseline", baseline_program), ("candidate", candidate_program))[arm]
             reference = run_reference_batch(program, workload["cases"], timeout_ms=remaining_total_ms(),
                 memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"),
                 foreign_buffer_exports=exports)
             references[label] = reference
-            if reference["status"] != "returned" or not reference["report"]["complete"]:
-                complete = False
-                budget_exceeded = reference["status"] == "budget_exceeded" or reference["report"] is not None and any(
-                    row["status"] == "budget_exceeded" for row in reference["report"]["observations"])
-                if not budget_exceeded:
-                    correct = False
-                break
-        for index, case in enumerate(workload["cases"]):
-            if not complete:
-                break
-            if remaining_total_ms() <= 0:
-                complete, budget_exceeded = False, True
-                break
+            status = reference["status"]
+            report = reference["report"] if status != "budget_exceeded" else None
+            complete = status == "returned" and report["complete"]
+            exhausted = not complete and report is not None and any(
+                row["status"] == "budget_exceeded" for row in report["observations"])
+            return status, bool(complete), bool(exhausted)
+
+        def read_case(index):
+            case = workload["cases"][index]
             expected = references["baseline"]["report"]["observations"][index]
             candidate_reference = references["candidate"]["report"]["observations"][index]
             row = {"index": index, "function": case["function"], "arguments": case["arguments"],
                    "baseline_vm": expected, "candidate_vm": candidate_reference}
             observations.append(row)
-            if "budget_exceeded" in {expected["status"], candidate_reference["status"]}:
-                complete, budget_exceeded = False, True
-                break
+            return expected["status"], candidate_reference["status"]
+
+        def compare_case(index, trap):
+            case = workload["cases"][index]
+            row = observations[index]
+            expected, candidate_reference = row["baseline_vm"], row["candidate_vm"]
             expected_value = _value_observation(expected)
             if "expected" in case and not agree(expected, case["expected"], mode=DECLARED_OBSERVATION):
-                reject("E_HIA_WORKLOAD_EXPECTATION", "declared case expectation differs from baseline Core at index " + str(index), "execution")
+                return False, False
             # A native result cannot excuse a reference-level first-trap or
             # resource behavior difference. This is an observation at this
             # workload, separate from an equivalence proof over all inputs.
-            if not agree(expected, candidate_reference, mode=REFERENCE_OBSERVATION):
-                correct = False
+            agrees = agree(expected, candidate_reference, mode=REFERENCE_OBSERVATION)
             prepared = {"function": case["function"], "arguments": case["arguments"], "expected": expected_value}
-            if expected["status"] == "trapped":
-                trapping.append((index, prepared))
-            else:
-                normal.append((index, prepared))
+            cases = trapping if trap else normal
+            cases.append((index, prepared))
+            return True, agrees
+
+        def expectation_refused(index):
+            reject("E_HIA_WORKLOAD_EXPECTATION",
+                   "declared case expectation differs from baseline Core at index " + str(index), "execution")
+
+        case_count = len(workload["cases"])
+        if policy is None:
+            state = self._reference_evaluation_prepare(
+                case_count, run_reference, remaining_total_ms, read_case, compare_case, expectation_refused)
+        else:
+            step, state = policy.evaluation_reference(case_count, (0, 0), (False, True, True))
+            while step[0] != REF_FINISH:
+                action, index = step
+                if action == REF_EXPECTATION:
+                    expectation_refused(index)
+                if action == REF_BATCH:
+                    evidence = run_reference(index)
+                elif action == REF_CLOCK:
+                    evidence = (remaining_total_ms() > 0, 0, 0)
+                elif action == REF_CASE:
+                    evidence = (*read_case(index), 0)
+                else:
+                    evidence = (*compare_case(index, action == REF_COMPARE_TRAP), 0)
+                step, state = policy.evaluation_reference(case_count, step, state, evidence)
         reference_ns = time.monotonic_ns() - reference_started
         native_started = time.monotonic_ns()
         owner = digest({"tool": "hia_evaluate", "key": args["request_key"]})
@@ -1603,7 +1625,6 @@ class HIAAgentService:
             return status, agrees
 
         counts = len(normal), len(trapping)
-        state = budget_exceeded, correct, complete
         if policy is None:
             state = self._reference_evaluation_schedule(counts, state, run_normal, run_trap)
         else:
@@ -1683,6 +1704,27 @@ class HIAAgentService:
             "evaluation_receipt": receipt, "report_complete": True, "planned_workload_complete": complete,
             "termination_confirmed": True, "outcome": outcome, "measurements": measurements,
             "full_cost_ledger": ledger, "adopted": False}
+
+    @staticmethod
+    def _reference_evaluation_prepare(case_count, run_reference, remaining_ms, read_case,
+                                      compare_case, expectation_refused):
+        for arm in range(2):
+            status, complete, exhausted = run_reference(arm)
+            if status != "returned" or not complete:
+                exceeded = status == "budget_exceeded" or exhausted
+                return exceeded, exceeded, False
+        correct = True
+        for index in range(case_count):
+            if remaining_ms() <= 0:
+                return True, correct, False
+            expected, candidate = read_case(index)
+            if "budget_exceeded" in {expected, candidate}:
+                return True, correct, False
+            declared, agrees = compare_case(index, expected == "trapped")
+            if not declared:
+                expectation_refused(index)
+            correct = correct and agrees
+        return False, correct, True
 
     @staticmethod
     def _reference_evaluation_schedule(counts, state, run_normal, run_trap):

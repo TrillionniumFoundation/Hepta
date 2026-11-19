@@ -7,7 +7,8 @@ from unittest.mock import patch
 from hepta.hia_agent_identity_native import SOURCE,SCHEMA,MAGIC,RESULT_MAGIC,NativeAgentIdentity,installed_agent_identity,SELECTOR
 from hepta.hia_agent_identity_native import (DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION,
     CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK, EXACT_COMPARISON_CHUNK,
-    EVALUATION_NORMAL, EVALUATION_TRAP, EVALUATION_FINISH)
+    EVALUATION_NORMAL, EVALUATION_TRAP, EVALUATION_FINISH,
+    REF_BATCH, REF_CLOCK, REF_CASE, REF_COMPARE_NORMAL, REF_COMPARE_TRAP, REF_FINISH, REF_EXPECTATION)
 from hepta.hia_agent_store import AgentRejected,uint64,canonical_digest
 ROOT=Path(__file__).resolve().parents[1]
 def packet(kind,value):return struct.pack('<2Q',MAGIC,kind)+value
@@ -384,6 +385,8 @@ class AgentIdentityNativeTests(unittest.TestCase):
               patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(HIAAgentService, '_reference_observation_agreement',
                            side_effect=AssertionError('host comparison used')),
+              patch.object(HIAAgentService, '_reference_evaluation_prepare',
+                           side_effect=AssertionError('host reference preparation used')),
               patch.object(HIAAgentService, '_reference_evaluation_schedule',
                            side_effect=AssertionError('host evaluation scheduling used'))):
             service = HIAAgentService(directory)
@@ -402,8 +405,87 @@ class AgentIdentityNativeTests(unittest.TestCase):
                     evaluation = session.evaluate(base_image, candidate_image, receipts=[verification, encoding])
                     self.assertTrue(evaluation['planned_workload_complete'])
                     self.assertEqual(evaluation['outcome'], expected_outcome)
+                session = Session(ToolClient(service.call), prefix='wrong-declaration')
+                session.freeze(workload([{'function': 'write_then_trap',
+                    'arguments': [{'bytes_hex': '010203'}],
+                    'expected': {'status': 'returned', 'values': [0]}}], function='write_then_trap'))
+                candidate = session.import_program(trap_program(91))
+                verification = session.verify(candidate)['verification_receipt']
+                image = session.emit(candidate, receipts=[verification])
+                encoding = session.encoding(candidate, image)['verification_receipt']
+                with patch.object(service.store.execution_budgets, 'claim',
+                                  side_effect=AssertionError('execution started after expectation refusal')):
+                    refusal = session.client.call('hia_evaluate', session.arguments(
+                        baseline_artifact=image['native_artifact'], candidate_artifact=image['native_artifact'],
+                        build_receipt=image['build_receipt'], verification_receipts=[verification, encoding]),
+                        expected_status='rejected')
+                self.assertEqual(refusal['error']['code'], 'E_HIA_WORKLOAD_EXPECTATION')
+                self.assertIn('index 0', refusal['error']['message'])
             finally:
                 service.close()
+
+    def test_native_reference_schedule_preserves_time_and_expectation_cutoffs(self):
+        from hepta.hia_agent_service import HIAAgentService
+
+        class Refused(Exception):
+            pass
+
+        rng = random.Random(3073)
+        witness = set()
+        for _ in range(2400):
+            count = rng.randrange(6)
+            batches = [rng.choice([('returned', True, False)] * 7
+                       + [('returned', False, True), ('budget_exceeded', False, False),
+                          ('faulted', False, False)]) for _ in range(2)]
+            clocks = [rng.choice([5, 4, 3, 2, 1, 0]) for _ in range(count)]
+            statuses = [('returned', 'trapped'), ('trapped', 'returned'), ('returned', 'returned'),
+                        ('trapped', 'trapped'), ('budget_exceeded', 'returned'), ('returned', 'budget_exceeded')]
+            cases = [rng.choice(statuses) for _ in range(count)]
+            comparisons = [(rng.randrange(5) > 0, rng.randrange(3) > 0) for _ in range(count)]
+            instructions = []
+
+            def observe(action, index):
+                instructions.append((action, index))
+
+            def refuse(index):
+                observe(REF_EXPECTATION, index)
+                raise Refused
+
+            clock_index = iter(range(count))
+
+            def clock():
+                index = next(clock_index)
+                observe(REF_CLOCK, index)
+                return clocks[index]
+
+            try:
+                expected = HIAAgentService._reference_evaluation_prepare(
+                    count, lambda index: (observe(REF_BATCH, index), batches[index])[1],
+                    clock, lambda index: (observe(REF_CASE, index), cases[index])[1],
+                    lambda index, trap: (observe(REF_COMPARE_TRAP if trap else REF_COMPARE_NORMAL, index),
+                                         comparisons[index])[1], refuse)
+            except Refused:
+                expected = None
+            step, state = self.native.evaluation_reference(count, (0, 0), (False, True, True))
+            for instruction in instructions:
+                self.assertEqual(step, instruction)
+                action, index = step
+                witness.add(action)
+                if action == REF_EXPECTATION:
+                    break
+                if action == REF_BATCH:
+                    evidence = batches[index]
+                elif action == REF_CLOCK:
+                    evidence = (clocks[index] > 0, 0, 0)
+                elif action == REF_CASE:
+                    evidence = (*cases[index], 0)
+                else:
+                    evidence = (*comparisons[index], 0)
+                step, state = self.native.evaluation_reference(count, step, state, evidence)
+            if expected is not None:
+                self.assertEqual(step, (REF_FINISH, 0))
+                self.assertEqual(state, expected)
+        self.assertEqual(witness, {REF_BATCH, REF_CLOCK, REF_CASE, REF_COMPARE_NORMAL, REF_COMPARE_TRAP, REF_EXPECTATION})
 
     def test_native_evaluation_schedule_preserves_dispatch_and_stops_after_runner_failure(self):
         from hepta.hia_agent_service import HIAAgentService

@@ -141,6 +141,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return artifact_key_material(s, o, 1)
     if kind == 39:
         return evaluation_schedule(s, o)
+    if kind == 40:
+        return evaluation_reference(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1026,6 +1028,66 @@ def evaluation_schedule_reply(o:mutbuf, action:u64, arm:u64, index:u64, flags:u6
     put(o, 24, index)
     put(o, 32, flags)
     return 40
+
+def evaluation_reference(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 72:
+        return 4294967293
+    if length(o) < 32:
+        return 4294967294
+    phase = read_word(s, 16)
+    index = read_word(s, 24)
+    count = read_word(s, 32)
+    flags = read_word(s, 40)
+    first = read_word(s, 48)
+    second = read_word(s, 56)
+    third = read_word(s, 64)
+    if phase > 5 or (flags != 4 and flags != 6):
+        return 4294967293
+    if phase == 0:
+        if index != 0 or first != 0 or second != 0 or third != 0:
+            return 4294967293
+        return evaluation_reference_reply(o, 1, 0, flags)
+    if phase == 1:
+        if index > 1 or first == 0 or first > 6 or second > 1 or third > 1:
+            return 4294967293
+        if first == 1 and second == 1:
+            if index == 0:
+                return evaluation_reference_reply(o, 1, 1, flags)
+            return evaluation_reference_case(o, 0, count, flags)
+        if first == 3 or third == 1:
+            return evaluation_reference_reply(o, 6, 0, (flags & 2) | 1)
+        return evaluation_reference_reply(o, 6, 0, 0)
+    if index >= count or third != 0:
+        return 4294967293
+    if phase == 2:
+        if first > 1 or second != 0:
+            return 4294967293
+        if first == 0:
+            return evaluation_reference_reply(o, 6, 0, (flags & 2) | 1)
+        return evaluation_reference_reply(o, 3, index, flags)
+    if phase == 3:
+        if first == 0 or first > 6 or second == 0 or second > 6:
+            return 4294967293
+        if first == 3 or second == 3:
+            return evaluation_reference_reply(o, 6, 0, (flags & 2) | 1)
+        return evaluation_reference_reply(o, choose(first == 2, 5, 4), index, flags)
+    if first > 1 or second > 1:
+        return 4294967293
+    if first == 0:
+        return evaluation_reference_reply(o, 7, index, flags)
+    return evaluation_reference_case(o, index + 1, count, flags & choose(second == 1, 7, 5))
+
+def evaluation_reference_case(o:mutbuf, index:u64, count:u64, flags:u64) -> u32:
+    if index == count:
+        return evaluation_reference_reply(o, 6, 0, flags)
+    return evaluation_reference_reply(o, 2, index, flags)
+
+def evaluation_reference_reply(o:mutbuf, action:u64, index:u64, flags:u64) -> u32:
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, action)
+    put(o, 16, index)
+    put(o, 24, flags)
+    return 32
 '''
 
 def cost_receipt_source():
