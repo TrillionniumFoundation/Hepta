@@ -829,7 +829,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
 
     def test_ordinary_cost_ledger_uses_installed_receipt_with_no_reference_policy(self):
         from hepta.hia_agent_service import HIAAgentService
-        from hepta.hia_agent_store import wire
+        from hepta.hia_agent_store import decode_data, wire
 
         service = HIAAgentService(self.folder / 'cost-ledger')
         try:
@@ -847,13 +847,42 @@ class AgentIdentityNativeTests(unittest.TestCase):
                   patch.object(service, '_reference_cost_receipt', side_effect=AssertionError('host cost receipt')),
                   patch.object(service, '_reference_observed_cost_totals', side_effect=AssertionError('host aggregation'))):
                 selected = service._cost_ledger(context, 13, 5)
-            self.assertEqual(wire(selected), wire(expected))
+            self.assertEqual(selected, expected)
+            selected = decode_data(selected)
             self.assertEqual([entry['request_id'] for entry in selected['entries']],
                              ['request-1', 'request-2', 'request-3'])
             self.assertEqual(selected['context_tool_wall_ns_before_evaluation'], str(2**90 - 9))
             self.assertEqual(selected['external_costs'], dict.fromkeys(policy['external_costs']))
         finally:
             service.close()
+
+    def test_complete_cost_receipt_counts_rows_and_never_publishes_short_output(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_agent_store import wire
+
+        ref = {'id': 'mine', 'sha256': 'a' * 64, 'uri': 'hia://context/mine'}
+        external = {'discovery_wall_ns': '0', 'model_tokens': '2', 'model_wall_ns': '3'}
+        policy = {'external_costs_complete': True, 'external_costs': external, 'expected_invocations': '8'}
+        detail = {'message': '保留，"\\\\]",', 'floats': [-0.0, 1e-7], 'nested': [None, {'z': True}]}
+        row = (None, detail, 'r', 9, 'rejected', 'hia_call', '-3')
+        entry = {'sequence': 9, 'wall_ns': '-3', 'details': detail, 'context_id': None,
+                 'request_id': 'r', 'status': 'rejected', 'tool': 'hia_call'}
+        for count in (0, 1, 10000, 10001):
+            rows = [row] * min(count, 10000)
+            canonical = wire(HIAAgentService._reference_cost_receipt(
+                ref, [entry] * len(rows), count > len(rows), policy, (0, -3), 9, 1))
+            self.assertEqual(self.native.cost_ledger_record(ref, count, policy, (0, -3), 9, 1, rows), canonical)
+
+        values = (ref, '0', [row], '9', ('0', '2', '3'), '8', '1', '-3', *([0] * 9))
+        payload = packet(41, struct.pack('<2Q', 1, 1) + wire(values))
+        expected = wire(HIAAgentService._reference_cost_receipt(ref, [entry], False, policy, (0, -3), 9, 1))
+        self.assertEqual(self.raw(payload, len(expected)), (len(expected), expected))
+        size, output = self.raw(payload, len(expected) - 1)
+        self.assertEqual((size, output), (0xfffffffe, b'\xa5' * (len(expected) - 1)))
+        for malformed in (payload[:-1], payload + b'X', packet(41, struct.pack('<2Q', 2, 1) + wire(values)),
+                          packet(41, struct.pack('<2Q', 1, 1) + wire((*values[:2], [row[:-1]], *values[3:])))):
+            size, output = self.raw(malformed, len(expected))
+            self.assertEqual((size, output), (0xfffffffd, b'\xa5' * len(expected)))
 
     def test_issued_page_and_candidate_receipts_are_canonical_and_inert(self):
         from hepta.hia_agent_store import wire

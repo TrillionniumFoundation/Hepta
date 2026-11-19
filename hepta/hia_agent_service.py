@@ -1441,17 +1441,17 @@ class HIAAgentService:
         policy_image = _native_agent_identity()
         retained = min(observed_count, 10000) if policy_image is None else policy_image.cost_window(observed_count)
         rows = rows[:retained]
-        entries = [{"sequence": row["sequence"], "tool": row["tool"], "request_id": row["request_id"],
-                    "context_id": row["context_id"], "wall_ns": row["wall_ns"], "status": row["status"],
-                    "details": decode_data(row["details"])} for row in rows]
+        values = [(row["context_id"], decode_data(row["details"]), row["request_id"],
+                   row["sequence"], row["status"], row["tool"], row["wall_ns"]) for row in rows]
         policy, _ = self.store.get_json(context["budget"]["cost_policy"])
         if policy_image is not None:
-            ledger = policy_image.cost_ledger_header(context["ref"], observed_count, policy,
-                policy_image.observed_cost_totals(rows, context["ref"]["id"]), evaluation_wall_ns, native_wall_ns)
-            ledger["entries"] = entries
-            return ledger
-        return self._reference_cost_receipt(context["ref"], entries, observed_count > retained, policy,
-            self._reference_observed_cost_totals(rows, context["ref"]["id"]), evaluation_wall_ns, native_wall_ns)
+            totals = policy_image.observed_cost_totals(rows, context["ref"]["id"])
+            return policy_image.cost_ledger_record(context["ref"], observed_count, policy, totals,
+                                                   evaluation_wall_ns, native_wall_ns, values)
+        fields = ("context_id", "details", "request_id", "sequence", "status", "tool", "wall_ns")
+        entries = [dict(zip(fields, value, strict=True)) for value in values]
+        return wire(self._reference_cost_receipt(context["ref"], entries, observed_count > retained, policy,
+            self._reference_observed_cost_totals(rows, context["ref"]["id"]), evaluation_wall_ns, native_wall_ns))
 
     @staticmethod
     def _reference_cost_receipt(context_ref, entries, truncated, policy, totals, evaluation_wall_ns, native_wall_ns):
@@ -1686,7 +1686,7 @@ class HIAAgentService:
                 "measurement_scope": measurement_scope,
                 "outcome": outcome, "planned_workload_complete": complete}, "measurements")
         costs = self._cost_ledger(context, time.monotonic_ns() - started, native_ns)
-        ledger = self.store.json(costs, "cost-ledger")
+        ledger = self.store.put(costs, "cost-ledger")
         if policy is not None:
             evaluation_record = policy.evaluation_record(args, baseline_program.sha256, candidate_program.sha256,
                 self.identities, measurements, ledger, outcome, complete)

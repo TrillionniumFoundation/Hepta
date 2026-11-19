@@ -43,7 +43,7 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if kind == 15:
         return proof_evidence(s, o)
     if kind == 16:
-        return cost_receipt(s, o)
+        return cost_receipt(s, o, 0)
     if kind == 17:
         return cost_window(s, o)
     if kind == 18:
@@ -143,6 +143,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return evaluation_schedule(s, o)
     if kind == 40:
         return evaluation_reference(s, o)
+    if kind == 41:
+        return cost_receipt(s, o, 1)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -763,11 +765,11 @@ def cost_window(s:readbuf, o:mutbuf) -> u32:
     observed = read_word(s, 16)
     return finite_function_reply(o, choose(observed > 10000, 10000, observed))
 
-def cost_receipt(s:readbuf, o:mutbuf) -> u32:
-    size = cost_receipt_pass(s, o, 0)
+def cost_receipt(s:readbuf, o:mutbuf, entries:u64) -> u32:
+    size = cost_receipt_pass(s, o, 0, entries)
     if size > length(o):
         return size
-    return cost_receipt_pass(s, o, 1)
+    return cost_receipt_pass(s, o, 1, entries)
 
 def receipt_fragment_size(s:readbuf, at:u64) -> u64:
     if at > length(s) or length(s) - at < 8:
@@ -794,10 +796,18 @@ def receipt_fragment(s:readbuf, o:mutbuf, at:u64, cursor:u64, size:u64, emit:u64
     return cursor + size
 
 def receipt_array_fragment(s:readbuf, at:u64) -> u64:
+    size = receipt_delimited_fragment(s, at, length(s))
+    if size == 0:
+        return 0
+    if byte(s, at + size) == 93 and at + size + 1 != length(s):
+        return 0
+    return size
+
+def receipt_delimited_fragment(s:readbuf, at:u64, stop:u64) -> u64:
     index = at
     nested = 0
     quoted = 0
-    while index < length(s):
+    while index < stop:
         ch = byte(s, index)
         if quoted != 0:
             if ch == 92:
@@ -810,7 +820,7 @@ def receipt_array_fragment(s:readbuf, at:u64) -> u64:
             nested = nested + 1
         elif ch == 93 or ch == 125:
             if nested == 0:
-                if ch == 93 and index + 1 == length(s):
+                if ch == 93:
                     return index - at
                 return 0
             nested = nested - 1
@@ -818,6 +828,32 @@ def receipt_array_fragment(s:readbuf, at:u64) -> u64:
             return index - at
         index = index + 1
     return 0
+
+def cost_rows(s:readbuf, o:mutbuf, at:u64, stop:u64, cursor:u64, count:u64, emit:u64) -> u64:
+    if at >= stop or byte(s, at) != 91 or byte(s, stop - 1) != 93:
+        return 0
+    at = at + 1
+    cursor = receipt_literal(o, cursor, 91, 1, emit)
+    index = 0
+    while index < count:
+        if index != 0:
+            if at >= stop or byte(s, at) != 44:
+                return 0
+            at = at + 1
+            cursor = receipt_literal(o, cursor, 44, 1, emit)
+        if at >= stop or byte(s, at) != 91:
+            return 0
+        size = receipt_delimited_fragment(s, at, stop)
+        if size == 0:
+            return 0
+        cursor = cost_row(s, o, at + 1, at + size, cursor, emit)
+        if cursor == 0:
+            return 0
+        at = at + size
+        index = index + 1
+    if at + 1 != stop:
+        return 0
+    return receipt_literal(o, cursor, 93, 1, emit)
 
 def artifact_input(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 20:
@@ -1091,9 +1127,9 @@ def evaluation_reference_reply(o:mutbuf, action:u64, index:u64, flags:u64) -> u3
 '''
 
 def cost_receipt_source():
-    """Emit the fixed receipt schema and a bounded captured-fragment ABI."""
+    """Emit the fixed receipt schema and the bounded captured-row ABI."""
     lines = [
-        'def cost_receipt_pass(s:readbuf, o:mutbuf, emit:u64) -> u64:',
+        'def cost_receipt_pass(s:readbuf, o:mutbuf, emit:u64, entries:u64) -> u64:',
         '    if length(s) < 32 or length(o) > 8388608:',
         '        return 4294967293',
         '    count = read_word(s, 16)',
@@ -1102,6 +1138,10 @@ def cost_receipt_source():
         '        return 4294967293',
         '    at = 32',
         '    cursor = 0',
+        '    if entries == 1:',
+        '        if length(s) < 34 or length(s) > 8388640 or byte(s, at) != 91:',
+        '            return 4294967293',
+        '        at = at + 1',
     ]
 
     def literal(raw, indent='    '):
@@ -1116,11 +1156,16 @@ def cost_receipt_source():
         lines.append('    else:')
         literal('false', '        ')
 
-    def fragment(*, external=False):
-        lines.extend(('    size = receipt_fragment_size(s, at)',
-                      '    if size == 0:',
-                      '        return 4294967293',
-                      '    at = at + 8'))
+    def fragment(*, external=False, delimiter=44):
+        lines.extend(('    if entries == 1:',
+                      '        size = receipt_delimited_fragment(s, at, length(s))',
+                      f'        if size == 0 or byte(s, at + size) != {delimiter}:',
+                      '            return 4294967293',
+                      '    else:',
+                      '        size = receipt_fragment_size(s, at)',
+                      '        if size == 0:',
+                      '            return 4294967293',
+                      '        at = at + 8'))
         if external:
             lines.extend(('    if complete == 1:',
                           '        cursor = receipt_fragment(s, o, at, cursor, size, emit)',
@@ -1129,19 +1174,38 @@ def cost_receipt_source():
         else:
             lines.append('    cursor = receipt_fragment(s, o, at, cursor, size, emit)')
         lines.append('    at = at + size')
+        lines.extend(('    if entries == 1:', '        at = at + 1'))
 
     literal('{"adoption_wall_ns":null,"context":')
     fragment()
     literal(',"context_tool_wall_ns_before_evaluation":')
     fragment()
+    lines.append('    if entries == 1:')
+    literal(',"entries":', '        ')
+    lines.extend(('        size = receipt_delimited_fragment(s, at, length(s))',
+                  '        if size == 0 or byte(s, at + size) != 44:',
+                  '            return 4294967293',
+                  '        retained = choose(count > 10000, 10000, count)',
+                  '        cursor = cost_rows(s, o, at, at + size, cursor, retained, emit)',
+                  '        if cursor == 0:',
+                  '            return 4294967293',
+                  '        at = at + size + 1'))
     literal(',"entries_truncated":')
     boolean('count > 10000')
     literal(',"evaluation_wall_ns_through_report":')
     fragment()
     literal(',"external_cost_source":"caller-supplied report, independently unmeasured","external_costs":{')
+    lines.extend(('    if entries == 1:',
+                  '        if at >= length(s) or byte(s, at) != 91:',
+                  '            return 4294967293',
+                  '        at = at + 1'))
     for prefix, name in (('', 'discovery_wall_ns'), (',', 'model_tokens'), (',', 'model_wall_ns')):
         literal(f'{prefix}"{name}":')
-        fragment(external=True)
+        fragment(external=True, delimiter=93 if name == 'model_wall_ns' else 44)
+    lines.extend(('    if entries == 1:',
+                  '        if at >= length(s) or byte(s, at) != 44:',
+                  '            return 4294967293',
+                  '        at = at + 1'))
     literal('},"external_costs_complete":')
     boolean('complete == 1')
     literal(',"failed_attempts_retained":true,"full_search_cost_complete":false,"future_execution_count":')
@@ -1153,8 +1217,35 @@ def cost_receipt_source():
             'model cost may be unknown","unattributed_discovery_artifact_read_wall_ns":')
     fragment()
     literal('}')
+    # The positional wire preserves the original whole-object depth and node
+    # budgets. Its nine zero placeholders stand for the nine fixed scalars.
+    fixed = b'0,0,0,0,0,0,0,0,0]'
+    lines.extend(('    if entries == 1:',
+                  f'        if length(s) - at != {len(fixed)}:',
+                  '            return 4294967293'))
+    for index in (0, 8):
+        word = int.from_bytes(fixed[index:index + 8], 'little')
+        lines.extend((f'        if read_word(s, at + {index}) != {word}:',
+                      '            return 4294967293'))
+    lines.extend(('        if byte(s, at + 16) != 48 or byte(s, at + 17) != 93:',
+                  '            return 4294967293',
+                  f'        at = at + {len(fixed)}'))
     lines.extend(('    if at != length(s):', '        return 4294967293',
                   '    if cursor > length(o):', '        return 4294967294', '    return cursor'))
+    lines.extend(('', 'def cost_row(s:readbuf, o:mutbuf, at:u64, stop:u64, cursor:u64, emit:u64) -> u64:'))
+    fields = ('context_id', 'details', 'request_id', 'sequence', 'status', 'tool', 'wall_ns')
+    for index, field in enumerate(fields):
+        prefix = '{' if index == 0 else ','
+        literal(f'{prefix}"{field}":')
+        delimiter = 93 if index == len(fields) - 1 else 44
+        lines.extend(('    size = receipt_delimited_fragment(s, at, stop)',
+                      f'    if size == 0 or byte(s, at + size) != {delimiter}:',
+                      '        return 0',
+                      '    cursor = receipt_fragment(s, o, at, cursor, size, emit)',
+                      '    at = at + size + 1'))
+    lines.extend(('    if at != stop:', '        return 0'))
+    literal('}')
+    lines.append('    return cursor')
     return '\n'.join(lines) + '\n'
 
 

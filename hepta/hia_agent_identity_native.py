@@ -530,6 +530,20 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA Agent cost receipt')
         return decode_data(output.raw[:size])
 
+    def cost_ledger_record(self, context_ref, observed_count, policy, totals, evaluation_ns, native_ns, rows):
+        """Marshal stored values, leaving canonical report and row emission to HIA."""
+        attributed, unscoped = totals
+        external = policy['external_costs']
+        costs = tuple(external[name] for name in ('discovery_wall_ns', 'model_tokens', 'model_wall_ns'))
+        # Positional tuples have the same depth and number of value nodes as
+        # the original record. Placeholders account for HIA's fixed scalars.
+        values = (context_ref, str(attributed), rows, str(evaluation_ns), costs,
+                  policy['expected_invocations'], str(native_ns), str(unscoped), *([0] * 9))
+        packet = struct.pack('<4Q', MAGIC, 41, observed_count, int(policy['external_costs_complete'])) + wire(values)
+        # Row keys and separators are not in the transport. Their combined
+        # output overhead is bounded by 96 bytes per row plus the outer keys.
+        return self._variable_response(packet, min(MAX_INPUT_BYTES, len(packet) + 2048 + 96 * len(rows)))
+
     def observed_cost_totals(self, rows, context_id):
         # Match the Store's historic integer text decoder. New elapsed times
         # fit a word; imported historical integers keep their exact value.
