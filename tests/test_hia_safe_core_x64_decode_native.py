@@ -96,6 +96,31 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.assertTrue(z3.eq(reference.condition(state(), condition),
                                   native.condition(state(), condition)), condition)
 
+    def test_machine_address_and_stack_formulas_match_reference(self):
+        import z3
+
+        ctx = z3.Context()
+        base, pointer, length = (z3.BitVec(name, 64, ctx=ctx) for name in ('base', 'pointer', 'length'))
+        executor = Executor.__new__(Executor)
+        executor.__dict__.update(z=z3, ctx=ctx, native_model=self.native)
+        for offset in (None, -(1 << 63), -16385, -16384, -1, 0, 8, 9, (1 << 63) - 1):
+            self.assertEqual(self.native.stack_admitted(offset), executor._reference_stack_admitted(offset))
+        for word in (base, base + 8, executor.value(-1)):
+            for op in ('load', 'load8', 'store', 'store8', 'lea'):
+                for disp in (-(1 << 31), -1, 0, (1 << 31) - 1):
+                    self.assertTrue(z3.eq(executor.address(op, word, disp),
+                                          executor._reference_address(word, disp)), (op, disp))
+            for op in ('push', 'pop', 'leave', 'call', 'ret'):
+                actual = executor.stack_adjustment(op, word)
+                expected = executor._reference_stack_adjustment(op, word)
+                self.assertTrue(z3.eq(actual[0], expected[0]), op)
+                if expected[1] is None:
+                    self.assertIsNone(actual[1], op)
+                else:
+                    self.assertTrue(z3.eq(actual[1], expected[1]), op)
+            self.assertTrue(z3.eq(executor.borrow_range(word, pointer, length),
+                                  executor._reference_borrow_range(word, pointer, length)))
+
     def test_core_scalar_rules_preserve_normalized_values_and_traps(self):
         import z3
 
@@ -165,9 +190,15 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
 
         blocked = {name: Mock(side_effect=AssertionError('host borrow rule entered: ' + name))
                    for name in ('_reference_borrow_guards', '_reference_buffer_address')}
+        blocked_machine = {
+            name: Mock(side_effect=AssertionError('host machine memory rule entered: ' + name))
+            for name in ('_reference_borrow_range', '_reference_address', '_reference_stack_admitted',
+                         '_reference_stack_adjustment')
+        }
         with (tempfile.TemporaryDirectory(prefix='hia-safe-core-borrow-') as root,
               patch('hepta.hia_safe_core._reference_core_graph',
                     side_effect=AssertionError('host Core topology entered')),
+              patch.multiple(Executor, **blocked_machine),
               patch.multiple(_Theory, **blocked)):
             report = build_safe_core(guarded_update(), Path(root) / 'candidate.so',
                                      foreign_extent=32)

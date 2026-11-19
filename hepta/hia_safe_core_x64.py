@@ -235,10 +235,16 @@ class Executor:
 
     def stack_offset(self, state):
         offset = self.offset(state.registers[4])
-        require(offset is not None and -16384 <= offset <= 8,
+        allowed = (self._reference_stack_admitted(offset) if self.native_model is None
+                   else self.native_model.stack_admitted(offset))
+        require(allowed,
                 "stack pointer is not a bounded displacement of the caller stack")
         self.minimum_stack_offset = min(self.minimum_stack_offset, offset)
         return offset
+
+    @staticmethod
+    def _reference_stack_admitted(offset):
+        return offset is not None and -16384 <= offset <= 8
 
     def memory_admitted(self, offset, low, size, writing):
         loan = None if self.loan is None else self.loan[2]
@@ -281,15 +287,49 @@ class Executor:
             self.faults.append(state.path)
             state.path = self.z.BoolVal(False, ctx=self.ctx)
             return self.z.BitVecVal(0, size * 8, ctx=self.ctx)
-        pointer, length, typ = self.loan
-        allowed = self.z.And(length != 0, self.z.UGE(address, pointer),
-                             self.z.ULT(address, pointer + length))
+        pointer, length, _ = self.loan
+        allowed = self.borrow_range(address, pointer, length)
         self.faults.append(self.z.And(state.path, self.z.Not(allowed)))
         state.path = self.z.simplify(self.z.And(state.path, allowed))
         if write:
             state.memory = self.z.Store(state.memory, address, self.z.Extract(7, 0, value))
             return None
         return self.z.Select(state.memory, address)
+
+    def borrow_range(self, address, pointer, length):
+        if self.native_model is None:
+            return self._reference_borrow_range(address, pointer, length)
+        return self.native_model.borrow_predicate(self.z, self.ctx, address, pointer, length)
+
+    def _reference_borrow_range(self, address, pointer, length):
+        return self.z.And(length != 0, self.z.UGE(address, pointer),
+                          self.z.ULT(address, pointer + length))
+
+    def address(self, operation, base, displacement):
+        if self.native_model is None:
+            return self._reference_address(base, displacement)
+        value, _, _, _ = self.native_model.symbolic(
+            self.z, self.ctx, operation, left=base, right=self.value(displacement),
+        )
+        if value is None:
+            raise RuntimeError("missing native Safe Core effective address")
+        return value
+
+    def _reference_address(self, base, displacement):
+        return self.z.simplify(base + self.value(displacement))
+
+    def stack_adjustment(self, operation, pointer):
+        if self.native_model is None:
+            return self._reference_stack_adjustment(operation, pointer)
+        adjusted, _, _, fault = self.native_model.symbolic(self.z, self.ctx, operation, left=pointer)
+        if adjusted is None or (fault is not None) != (operation == "call"):
+            raise RuntimeError("invalid native Safe Core stack adjustment")
+        return adjusted, fault
+
+    def _reference_stack_adjustment(self, operation, pointer):
+        adjusted = pointer - self.value(8) if operation in ("push", "call") else pointer + self.value(8)
+        fault = (pointer & self.value(15)) != 0 if operation == "call" else None
+        return self.z.simplify(adjusted), fault
 
     def condition(self, state, code):
         if self.native_model is None:
@@ -469,34 +509,35 @@ class Executor:
             self.register_formula(state, op, args)
         elif op in ("load", "load8", "lea"):
             dst, base, disp = args
-            address = z.simplify(regs[base] + self.value(disp))
+            address = self.address(op, regs[base], disp)
             regs[dst] = (address if op == "lea" else self.memory(state, address, 8) if op == "load"
                          else z.ZeroExt(56, self.memory(state, address, 1)))
         elif op in ("store", "store8"):
             base, disp, src = args
-            self.memory(state, z.simplify(regs[base] + self.value(disp)), 8 if op == "store" else 1, regs[src])
+            self.memory(state, self.address(op, regs[base], disp), 8 if op == "store" else 1, regs[src])
         elif op in ("add", "sub", "and", "or", "xor", "cmp", "test"):
             self.alu(state, op, args[0], regs[args[1]])
         elif op == "immediate_alu":
             self.alu(state, args[0], args[1], self.value(args[2]))
         elif op == "push":
             value = regs[args[0]]
-            regs[4] = z.simplify(regs[4] - self.value(8))
+            regs[4], _ = self.stack_adjustment(op, regs[4])
             self.memory(state, regs[4], 8, value)
         elif op in ("pop", "leave"):
             register = args[0] if op == "pop" else 5
             if op == "leave":
                 regs[4] = regs[5]
             value = self.memory(state, regs[4], 8)
-            regs[4] = z.simplify(regs[4] + self.value(8))
+            regs[4], _ = self.stack_adjustment(op, regs[4])
             regs[register] = value
         elif op == "call":
-            self.abi_faults.append(z.And(state.path, (regs[4] & self.value(15)) != 0))
+            adjusted, fault = self.stack_adjustment(op, regs[4])
+            self.abi_faults.append(z.And(state.path, fault))
             target = self.calls[state.pc]
             # CALL writes its return address before entering either a
             # local function or a nonreturning external one.  Modelling
             # abort as terminal must not erase this stack memory access.
-            regs[4] = z.simplify(regs[4] - self.value(8))
+            regs[4] = adjusted
             self.memory(state, regs[4], 8, self.codebase + self.value(nextpc))
             if target == "abort":
                 self.outcomes.append(dict(kind="abort", path=state.path, value=self.value(0), memory=state.memory))
@@ -505,7 +546,7 @@ class Executor:
             return False, None
         elif op == "ret":
             address = z.simplify(self.memory(state, regs[4], 8))
-            regs[4] = z.simplify(regs[4] + self.value(8))
+            regs[4], _ = self.stack_adjustment(op, regs[4])
             if z.eq(address, self.return_address):
                 restored = z.And(regs[4] == self.sp + self.value(8),
                                  *[regs[r] == self.initial[r] for r in (3, 5, 12, 13, 14, 15)])

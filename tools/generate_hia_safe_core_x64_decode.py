@@ -6,8 +6,8 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_x64_decode_native import (
-    CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MAX_INSTRUCTIONS, MAX_RECIPE_NODES, MAX_TEXT,
-    OPERATION_IDS, RECIPE_IDS, RECIPE_INPUTS,
+    CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
+    MAX_RECIPE_NODES, MAX_TEXT, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE,
 )
@@ -19,7 +19,7 @@ FIELDS = {
     'OP': 64, 'A': 72, 'B': 80, 'C': 88,
     'BOUNDARIES': 128, 'MAX_TEXT': MAX_TEXT, 'MAX_CODE': MAX_INSTRUCTIONS, 'WORKSPACE': WORKSPACE,
 }
-FIELDS.update({'OP_' + name.upper(): index for name, index in OPERATION_IDS.items()})
+FIELDS.update({'OP_' + name.upper(): index for name, index in MACHINE_FORMULA_IDS.items()})
 FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()})
 FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
 FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in CORE_FORMULA_IDS.items()})
@@ -138,9 +138,13 @@ def memory_admission(w:mutbuf) -> u64:
     write = get(w, 32)
     if kind == 1:
         return choose(size == 1 and first != 0 and (write == 0 or first == 2), 1, 0)
-    ceiling = choose(write == 0, 8, 0)
     sign = 9223372036854775808
     biased = first ^ sign
+    if kind == 2:
+        return choose(second == 1 and biased >= sign - 16384 and biased <= sign + 8, 1, 0)
+    if kind != 0:
+        return 4294967293
+    ceiling = choose(write == 0, 8, 0)
     if biased < (second ^ sign) or biased > (ceiling ^ sign):
         return 0
     return choose(size <= ceiling - first, 1, 0)
@@ -363,6 +367,18 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         return shift_formula(o, op, param)
     if param != 0:
         return 4294967293
+    if op == OP_LOAD or op == OP_LOAD8 or op == OP_STORE or op == OP_STORE8 or op == OP_LEA:
+        result = node(o, R_ADD, LEFT, RIGHT, 0)
+        return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
+    if op == OP_PUSH or op == OP_POP or op == OP_LEAVE or op == OP_CALL or op == OP_RET:
+        return stack_formula(o, op)
+    if op == OP_BORROW_RANGE:
+        limit = node(o, R_ADD, RIGHT, THIRD, 0)
+        nonempty = node(o, R_NONZERO, THIRD, 0, 0)
+        above_start = node(o, R_UGE, LEFT, RIGHT, 0)
+        below_end = node(o, R_ULT, LEFT, limit, 0)
+        inside = node(o, R_BOOL_AND3, nonempty, above_start, below_end)
+        return formula_done(o, 0, 0, 0, inside)
     if op == OP_NOT:
         return formula_done(o, node(o, R_NOT, LEFT, 0, 0), 0, 0, 0)
     if op == OP_CMOVNE:
@@ -372,6 +388,18 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
     if op == OP_IMUL:
         return imul_formula(o)
     return alu_formula(o, op)
+
+def stack_formula(o:mutbuf, op:u64) -> u64:
+    word = node(o, R_LITERAL64, 8, 0, 0)
+    decrement = op == OP_PUSH or op == OP_CALL
+    rsp = node(o, choose(decrement, R_SUB, R_ADD), LEFT, word, 0)
+    adjusted = node(o, R_SIMPLIFY, rsp, 0, 0)
+    if op == OP_CALL:
+        mask = node(o, R_LITERAL64, 15, 0, 0)
+        misalignment = node(o, R_AND, LEFT, mask, 0)
+        fault = node(o, R_NONZERO, misalignment, 0, 0)
+        return formula_done(o, adjusted, 0, 0, fault)
+    return formula_done(o, adjusted, 0, 0, 0)
 
 def node(o:mutbuf, code:u64, left:u64, right:u64, extra:u64) -> u64:
     count = get(o, 0)

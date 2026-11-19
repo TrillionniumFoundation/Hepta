@@ -1,4 +1,4 @@
-"""Pinned x86 decoding and register-only symbolic formulas from HIA."""
+"""Pinned x86 decoding and symbolic formulas from HIA."""
 from __future__ import annotations
 
 import ctypes
@@ -49,6 +49,7 @@ OPERATIONS = (
     ('not', ('u',)),
 )
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
+MACHINE_FORMULA_IDS = {**OPERATION_IDS, 'borrow_range': len(OPERATIONS) + 1}
 RECIPE_REQUEST = struct.Struct('<2Q')
 CORE_FORMULA_REQUEST = struct.Struct('<3Q')
 CORE_GRAPH_LIMIT = 16
@@ -87,6 +88,7 @@ RECIPE_PRIMITIVES = {
     'lshr': ('ri', lambda z, ctx, a, bits: z.LShR(a, bits)),
     'literal64': ('i', lambda z, ctx, number: z.BitVecVal(number, 64, ctx=ctx)),
     'simplify': ('r', lambda z, ctx, a: z.simplify(a)),
+    'bool_and3': ('rrr', lambda z, ctx, a, b, c: z.And(a, b, c)),
 }
 RECIPE_LAYOUT = tuple(RECIPE_PRIMITIVES.values())
 RECIPE_IDS = {name: code for code, name in enumerate(RECIPE_PRIMITIVES, 1)}
@@ -233,7 +235,14 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         else:
             kind = 0
             first, second = offset % (1 << 64), low % (1 << 64)
-        packet = MEMORY_REQUEST.pack(kind, first, second, size, int(writing))
+        return self._memory_admission(kind, first, second, size, int(writing))
+
+    def stack_admitted(self, offset):
+        return self._memory_admission(2, 0 if offset is None else offset % (1 << 64),
+                                      int(offset is not None), 0, 0)
+
+    def _memory_admission(self, *words):
+        packet = MEMORY_REQUEST.pack(*words)
         request = ctypes.create_string_buffer(packet, len(packet))
         result = self._entry(None, 0, None, 0, request, len(packet))
         if result not in (0, 1):
@@ -253,7 +262,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
 
     @lru_cache(maxsize=512)
     def recipe(self, operation, parameter=0):
-        return self._decode_recipe(RECIPE_REQUEST.pack(OPERATION_IDS[operation], parameter))
+        return self._decode_recipe(RECIPE_REQUEST.pack(MACHINE_FORMULA_IDS[operation], parameter))
 
     @lru_cache(maxsize=512)
     def core_recipe(self, operation, width, literal):
@@ -286,6 +295,12 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
     def symbolic(self, z, ctx, operation, parameter=0, *, left=None, right=None,
                  zf=None, cf=None, arbitrary=None):
         return self._evaluate(z, ctx, self.recipe(operation, parameter), (left, right, zf, cf, arbitrary))
+
+    def borrow_predicate(self, z, ctx, address, pointer, length):
+        _, _, _, allowed = self._evaluate(z, ctx, self.recipe('borrow_range'), (address, pointer, length))
+        if allowed is None:
+            raise RuntimeError('missing native Safe Core borrow predicate')
+        return allowed
 
     def symbolic_core(self, z, ctx, operation, width, arguments, literal=0):
         recipe = self.core_recipe(operation, width, literal)
