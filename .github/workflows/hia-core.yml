@@ -315,6 +315,16 @@ jobs:
             examples/hia_bootstrap/core_json_frontend.hepta \
             examples/hia_bootstrap/core_json_cli_packer.hepta \
             docs/HIA_SELFHOST_CORE_SUPPORT.json "$package/stage"
+          for profile in mcp-request mcp-reply mcp-negotiation mcp-catalog mcp-uri; do
+            python -B -m tools.build_hia_json_preflight --candidate "$profile" \
+              --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
+              --output "$RUNNER_TEMP/$profile-image"
+            python -B -m tools.build_hia_agent_read_page --kind "$profile" \
+              --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
+              --manifest "$RUNNER_TEMP/$profile-image/manifest.json" --output "$RUNNER_TEMP/$profile-stdio"
+            install -m 0500 "$RUNNER_TEMP/$profile-stdio/hia-agent-$profile" "$package/stage"
+          done
+          install -m 0400 docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json "$package/stage"
           env -i PATH= "$package/packager/hia-directory-package-build" "$package/stage" \
             > "$package/store.hiapack" 2> "$package/store.sha256"
           read -r digest < "$package/store.sha256"
@@ -519,8 +529,12 @@ jobs:
           print('installed worker admission: exact digest input, full 8 MiB, invalid inputs suppressed')
           PYWR
           python -B -m tests.test_hia_worker_terminal_runtime "$installed/hia-worker-terminal"
-          python -B -m tests.test_hia_core_edit_runtime "$installed"
-          python -B -m tests.test_hia_core_publication_runtime "$installed"
+          (
+            cd "$RUNNER_TEMP/hia-cold.cold/source"
+            unset PYTHONPATH
+            python -B -m tests.test_hia_core_edit_runtime "$installed"
+            python -B -m tests.test_hia_core_publication_runtime "$installed"
+          )
           core_fixture=examples/hia_program/parameter_loan_return_v8.hepta
           env -i PATH= "$installed/hia-core" verify < "$core_fixture"
           for action in normalize inspect verify-report; do
