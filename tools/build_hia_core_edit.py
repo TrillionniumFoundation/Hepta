@@ -6,7 +6,6 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import struct
-import zlib
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE, assemble_adapter
@@ -33,6 +32,7 @@ ARGUMENT_PARSER = CLI + 'arguments.hepta'
 ARGUMENT_FORMATTER = BOOTSTRAP + 'cli_format.hepta'
 ARGUMENT_PAYLOAD = CLI + 'argument_payload.hepta'
 ARGUMENT_ARCHIVE = '<public-argument-images>'
+RELEASE_DEFLATE = CLI + 'release_deflate.hepta'
 EXEC_LAUNCHER = 'tools/hia_core_edit_packed_exec.S'
 EDIT_ENVELOPE = 'tools/hia_core_edit_nominal_envelope.S'
 EDIT_RESPONSE = 'tools/hia_core_edit_response.S'
@@ -250,14 +250,36 @@ def digest(raw):
     return sha256(raw).hexdigest()
 
 
-def argument_images(control, formatter):
+class ReleaseCompressor:
+    """Transport build bytes through the admitted HIA encoder and decoder."""
+
+    def __init__(self, encoder, decoder):
+        self.encoder = encoder
+        self.decoder = decoder
+        self.encoder_workspace = ctypes.create_string_buffer(393216)
+        self.decoder_workspace = ctypes.create_string_buffer(4096)
+
+    def compress(self, raw, capacity):
+        source = ctypes.create_string_buffer(raw, len(raw))
+        packed = ctypes.create_string_buffer(capacity)
+        size = self.encoder._entry(source, len(raw), packed, capacity,
+                                   self.encoder_workspace, len(self.encoder_workspace))
+        if not 0 < size <= capacity or source.raw != raw or any(packed.raw[size:]):
+            raise ValueError('HIA release encoder refused or changed private bytes')
+        encoded = packed.raw[:size]
+        decoded = ctypes.create_string_buffer(len(raw))
+        restored = self.decoder._entry(packed, size, decoded, len(raw),
+                                       self.decoder_workspace, len(self.decoder_workspace))
+        if restored != len(raw) or decoded.raw != raw or packed.raw[:size] != encoded:
+            raise ValueError('HIA release encoder failed the native round trip')
+        return encoded
+
+
+def argument_images(control, formatter, compressor):
     raw = control + formatter
     if not control or not formatter or len(raw) > 1048576:
         raise ValueError('native CLI argument images exceed the decoded extent')
-    compressor = zlib.compressobj(9, zlib.DEFLATED, -15, 6)
-    compressed = compressor.compress(raw) + compressor.flush()
-    if len(compressed) + 24 > 1048576 or zlib.decompress(compressed, -15) != raw:
-        raise ValueError('native CLI argument images failed packing')
+    compressed = compressor.compress(raw, 1048576 - 24)
     return struct.pack('<3Q', len(compressed), len(raw), len(control)) + compressed
 
 
@@ -314,16 +336,13 @@ def link_nominal_cli(folder, adapter, sources, images, roles, *, edit_envelope=F
     return binary, {'link_receipt': receipt, 'adapter_object_sha256': digest(objects[0])}
 
 
-def pack_executable(folder, packer, launcher, inflater, executable):
+def pack_executable(folder, packer, launcher, inflater, executable, compressor):
     if not 0 < len(executable) <= ORDINARY_CLI_IMAGE_CAPACITY:
         raise ValueError('packed CLI executable exceeds the admitted extent')
     parts = [struct.pack('<8sQ', EXEC_ARCHIVE_MAGIC, len(executable))]
     for start in range(0, len(executable), EXEC_CHUNK):
         block = executable[start:start + EXEC_CHUNK]
-        compressor = zlib.compressobj(9, zlib.DEFLATED, -15, 6)
-        encoded = compressor.compress(block) + compressor.flush()
-        if not 0 < len(encoded) <= (1 << 20) or zlib.decompress(encoded, -15) != block:
-            raise ValueError('CLI executable failed lossless packing')
+        encoded = compressor.compress(block, 1 << 20)
         parts.extend((struct.pack('<2Q', len(encoded), len(block)), encoded))
     stub, symbols, adapter_hash = assemble_adapter(folder, EXEC_LAUNCHER, launcher)
     holes = sorted((symbols[name + '_hole'], index)
@@ -344,7 +363,8 @@ def build(output, compiler, cold_report, *, release_only=False):
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
-    source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, *assembly_images, *adapters.values(),
+    source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE,
+                    *assembly_images, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
@@ -361,7 +381,11 @@ def build(output, compiler, cold_report, *, release_only=False):
         image, receipt = compile_stage(output, Path(path).stem, compiler, raw)
         images[path] = image.read_bytes()
         receipts[path] = receipt
-    images[ARGUMENT_ARCHIVE] = argument_images(images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER])
+    compressor = ReleaseCompressor(*(
+        NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
+        for path in (RELEASE_DEFLATE, ARGUMENT_PAYLOAD)))
+    images[ARGUMENT_ARCHIVE] = argument_images(
+        images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER], compressor)
     dispatch_image = images[DISPATCH]
     query_image = images[NOMINAL_BUILD_SOURCES['public-presentation']]
     images[DISPATCH_ARCHIVE] = struct.pack('<2Q', 16, 16 + len(dispatch_image)) + dispatch_image + query_image
@@ -384,7 +408,7 @@ def build(output, compiler, cold_report, *, release_only=False):
                 edit_envelope=kind in EDIT_ENVELOPE_ROLES,
                 edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'))
             binary, packed = pack_executable(folder, packer, sources[EXEC_LAUNCHER],
-                                             images[ARGUMENT_PAYLOAD], executable)
+                                             images[ARGUMENT_PAYLOAD], executable, compressor)
             products[name] = (binary, {**details, **packed})
             continue
         stub, symbols, adapter_hash = assemble_adapter(folder, adapter, sources[adapter])

@@ -149,10 +149,14 @@ def vm_pack(packer=PACKER, adapter='hia_release_install_syscalls.S'):
 
 class ReleaseInstallerSourceTests(unittest.TestCase):
     def test_policy_and_packer_sources_are_exact(self):
+        from tools.generate_hia_release_deflate import render as render_deflate
+
         self.assertEqual(POLICY.read_text(), render_assembly(document(policy_source(), 'release_install_policy')))
         self.assertEqual(PACKER.read_text(), render_assembly(document(packer_source(), 'release_install_packer')))
         self.assertEqual(DIRECTORY_PACKER.read_text(),
                          render_assembly(document(packer_source(DIRECTORY_ADAPTER), 'release_directory_packer')))
+        deflate = ROOT / 'examples/hia_bootstrap/core_cli/release_deflate.hepta'
+        self.assertEqual(deflate.read_text(), render_deflate())
 
     def test_independent_vm_package_and_rejection(self):
         raw = bundle([('hia-native', 0o500, b'\x7fELF\x00'), ('source.hepta', 0o400, b'' )])
