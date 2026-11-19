@@ -1,0 +1,249 @@
+"""Generate the independent HIA ELF header, section and segment reader."""
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_safe_core_elf_inventory_native import (
+    CAPACITY, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, REFUSAL_IDS,
+)
+from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
+
+SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
+FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
+          'MAX_SEGMENTS': MAX_SEGMENTS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
+FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
+
+SOURCE = r'''
+def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(o) < CAPACITY or length(w) < 8:
+        return 4294967294
+    size = length(s)
+    if size < 64 or size > MAX_ELF:
+        return terminal(o, E_EXTENT, 0, 0)
+    kind = get(w, 0)
+    if word(s, 0, 8) != ELF_IDENT or word(s, 8, 8) != 0 or word(s, 16, 2) != kind:
+        return terminal(o, E_IDENTITY, 0, 0)
+    if word(s, 18, 2) != 62 or word(s, 20, 4) != 1 or word(s, 24, 8) != 0 or word(s, 48, 4) != 0:
+        return terminal(o, E_IDENTITY, 0, 0)
+    if word(s, 52, 2) != 64 or word(s, 58, 2) != 64:
+        return terminal(o, E_IDENTITY, 0, 0)
+    count = word(s, 60, 2)
+    names = word(s, 62, 2)
+    if count == 0 or count > MAX_SECTIONS or names == 0 or names >= count:
+        return terminal(o, E_SECTIONS, 0, 0)
+    shoff = word(s, 40, 8)
+    if in_file(size, shoff, count * 64) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    names_row = shoff + names * 64
+    if word(s, names_row + 4, 4) != 3:
+        return terminal(o, E_MISSING_NAMES, 0, 0)
+    error = sections(s, o, shoff, count, word(s, names_row + 24, 8), word(s, names_row + 32, 8))
+    if error != 0:
+        return terminal(o, error, 0, 0)
+    phoff = word(s, 32, 8)
+    phsize = word(s, 54, 2)
+    phnum = word(s, 56, 2)
+    if kind != 3:
+        if phoff != 0 or phsize != 0 or phnum != 0:
+            return terminal(o, E_OBJECT_SEGMENTS, 0, 0)
+        return terminal(o, 0, count, 0)
+    if phsize != 56 or phnum == 0 or phnum > MAX_SEGMENTS:
+        return terminal(o, E_SEGMENTS, 0, 0)
+    segment_base = 24 + count * 96
+    error = segments(s, o, phoff, phnum, segment_base)
+    if error != 0:
+        return terminal(o, error, 0, 0)
+    error = review_loads(o, phnum, segment_base)
+    if error != 0:
+        return terminal(o, error, 0, 0)
+    return terminal(o, 0, count, phnum)
+
+def terminal(o:mutbuf, error:u64, sections:u64, segments:u64) -> u64:
+    put(o, 0, error)
+    put(o, 8, sections)
+    put(o, 16, segments)
+    return 24 + sections * 96 + segments * 56
+
+def word(s:readbuf, offset:u64, size:u64) -> u64:
+    value = 0
+    index = 0
+    while index < size:
+        value = value | (byte(s, offset + index) << (index * 8))
+        index = index + 1
+    return value
+
+def get(w:mutbuf, offset:u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | (byte(w, offset + index) << (index * 8))
+        index = index + 1
+    return value
+
+def put(w:mutbuf, offset:u64, value:u64) -> u64:
+    index = 0
+    while index < 8:
+        store(w, offset + index, (value >> (index * 8)) & 255)
+        index = index + 1
+    return 0
+
+def in_file(size:u64, offset:u64, count:u64) -> u64:
+    if offset > size:
+        return 0
+    return choose(count <= size - offset, 1, 0)
+
+def name_length(s:readbuf, offset:u64, extent:u64) -> u64:
+    count = 0
+    while count <= 256 and count < extent:
+        if byte(s, offset + count) == 0:
+            return count
+        count = count + 1
+    return 257
+
+def ascii_name(s:readbuf, offset:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        if byte(s, offset + index) > 127:
+            return 0
+        index = index + 1
+    return 1
+
+def same_name(s:readbuf, left:u64, right:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        if byte(s, left + index) != byte(s, right + index):
+            return 0
+        index = index + 1
+    return 1
+
+def unique_name(s:readbuf, o:mutbuf, index:u64, offset:u64, count:u64) -> u64:
+    previous = 0
+    while previous < index:
+        row = 24 + previous * 96
+        if get(o, row + 16) == count and same_name(s, get(o, row + 8), offset, count) != 0:
+            return 0
+        previous = previous + 1
+    return 1
+
+def sections(s:readbuf, o:mutbuf, start:u64, count:u64, names_at:u64, names_size:u64) -> u64:
+    index = 0
+    while index < count:
+        row = start + index * 64
+        offset = word(s, row, 4)
+        if offset >= names_size:
+            return E_NAME_INDEX
+        if in_file(length(s), names_at, names_size) == 0:
+            return E_RANGE
+        name_at = names_at + offset
+        extent = name_length(s, name_at, names_size - offset)
+        if extent > 256:
+            return E_NAME_LENGTH
+        if ascii_name(s, name_at, extent) == 0:
+            return E_NAME_ASCII
+        if unique_name(s, o, index, name_at, extent) == 0:
+            return E_DUPLICATE
+        kind = word(s, row + 4, 4)
+        contents = word(s, row + 24, 8)
+        size = word(s, row + 32, 8)
+        if kind == 8 or size > MAX_ELF:
+            return E_SECTION_EXTENT
+        if in_file(length(s), contents, size) == 0:
+            return E_RANGE
+        result = 24 + index * 96
+        put(o, result, index)
+        put(o, result + 8, name_at)
+        put(o, result + 16, extent)
+        put(o, result + 24, kind)
+        put(o, result + 32, word(s, row + 8, 8))
+        put(o, result + 40, word(s, row + 16, 8))
+        put(o, result + 48, contents)
+        put(o, result + 56, size)
+        put(o, result + 64, word(s, row + 40, 4))
+        put(o, result + 72, word(s, row + 44, 4))
+        put(o, result + 80, word(s, row + 48, 8))
+        put(o, result + 88, word(s, row + 56, 8))
+        index = index + 1
+    return 0
+
+def segments(s:readbuf, o:mutbuf, start:u64, count:u64, base:u64) -> u64:
+    index = 0
+    while index < count:
+        relative = index * 56
+        if in_file(length(s), start, relative + 56) == 0:
+            return E_RANGE
+        row = start + relative
+        kind = word(s, row, 4)
+        flags = word(s, row + 4, 4)
+        offset = word(s, row + 8, 8)
+        addr = word(s, row + 16, 8)
+        paddr = word(s, row + 24, 8)
+        filesz = word(s, row + 32, 8)
+        memsz = word(s, row + 40, 8)
+        align = word(s, row + 48, 8)
+        if filesz > memsz or addr + memsz < addr:
+            return E_SEGMENT_EXTENT
+        if (kind != 1 and kind != 2 and kind != 0x6474e551 and kind != 0x6474e552) or paddr != addr:
+            return E_SEGMENT_AUTHORITY
+        if kind == 1 and (align != 4096 or (offset & 4095) != (addr & 4095) or filesz != memsz):
+            return E_LOAD_EXTENT
+        if in_file(length(s), offset, filesz) == 0:
+            return E_RANGE
+        result = base + relative
+        put(o, result, kind)
+        put(o, result + 8, flags)
+        put(o, result + 16, offset)
+        put(o, result + 24, addr)
+        put(o, result + 32, filesz)
+        put(o, result + 40, memsz)
+        put(o, result + 48, align)
+        index = index + 1
+    return 0
+
+def review_loads(o:mutbuf, count:u64, base:u64) -> u64:
+    index = 0
+    previous = 0
+    last_end = 0
+    overlap = 0
+    while index < count:
+        row = base + index * 56
+        if get(o, row) == 1:
+            addr = get(o, row + 24)
+            if addr < previous:
+                return E_LOAD_ORDER
+            previous = addr
+            size = get(o, row + 40)
+            if size != 0:
+                if (addr >> 12) < last_end:
+                    overlap = 1
+                last_end = ((addr + size - 1) >> 12) + 1
+        index = index + 1
+    return choose(overlap != 0, E_LOAD_OVERLAP, 0)
+'''
+
+
+def document():
+    class Constants(ast.NodeTransformer):
+        def visit_Name(self, node):
+            return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
+
+    nodes = ast.fix_missing_locations(Constants().visit(ast.parse(SOURCE))).body
+    names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
+    signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
+                  for node in nodes}
+    total = total_scalar_functions(nodes)
+    functions = []
+    for node in nodes:
+        builder = Builder(node, names, signatures, total)
+        builder.statements(node.body)
+        functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
+                          'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
+                          'entry': 'b0', 'blocks': builder.blocks})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'safe_core_elf_inventory',
+                                  'functions': functions})
+
+
+if __name__ == '__main__':
+    target = Path(__file__).resolve().parents[1] / SOURCE_PATH
+    target.write_text(render_assembly(document()))

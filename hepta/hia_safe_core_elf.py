@@ -24,6 +24,17 @@ def require(condition, message):
 
 class _ELF:
     def __init__(self, data, kind):
+        from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
+
+        selected = selected_safe_core_elf_inventory()
+        if selected is None:
+            self._reference_inventory(data, kind)
+            return
+        self.sections, self.segments = selected.inventory(data, kind)
+        self.data = data
+        self.by_name = {section['name']: section for section in self.sections}
+
+    def _reference_inventory(self, data, kind):
         require(type(data) is bytes and 64 <= len(data) <= 8 * 1024 * 1024,
                 "expected bounded immutable ELF bytes")
         self.data = data

@@ -44,7 +44,7 @@ ADDITIONAL_HELPERS = (
     'sha256-stream', 'cnf',
     'agent-data-json', 'agent-binary64', 'agent-binary64-format',
     'agent-describe-answer', 'agent-payload-schema', 'agent-plan-schema', 'machine-plan',
-    'safe-core-x64-decode',
+    'safe-core-x64-decode', 'safe-core-elf-inventory',
 )
 HELPER_BUILDERS = {
     'slot-ledger': build_slot_ledger,
