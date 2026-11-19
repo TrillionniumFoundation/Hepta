@@ -185,6 +185,26 @@ class JournalNativeTests(unittest.TestCase):
         result = {'status': 'completed', 'result': values}
         self.assertEqual(session.finish(result).response, independent_wire(result))
 
+    def test_completion_envelope_binds_the_original_result_before_validation(self):
+        from hepta.hia_agent_contract import VERSION
+
+        session = self.image.session()
+        result = {'z': None, 'a': [-0.0, '雪']}
+        with self.assertRaisesRegex(RuntimeError, 'completion envelope'):
+            session.completed(result)
+        self.assertEqual(session.prepare(independent_wire({'tool': 'hia_describe', 'arguments': {}})).action,
+                         CONTINUE)
+        with self.assertRaisesRegex(RuntimeError, 'completion envelope'):
+            session.completed(result)
+        self.assertEqual(session.effect().action, CONTINUE)
+        with patch('hepta.hia_agent_journal_native.wire', side_effect=AssertionError('result serialized early')):
+            response = session.completed(result)
+        self.assertEqual(tuple(response), ('contract_version', 'request_id', 'status', 'result'))
+        self.assertEqual(response, {'contract_version': VERSION, 'request_id': session.request_id,
+                                    'status': 'completed', 'result': result})
+        self.assertIs(response['result'], result)
+        self.assertEqual(session.finish(response).response, independent_wire(response))
+
     def test_ack_order_conflict_unknown_and_special_verification_replay(self):
         for tool in ('hia_artifact', 'hia_verify', 'hia_adopt'):
             raw = independent_wire({'tool': tool, 'arguments': {'request_key': 'phase'}})
@@ -406,7 +426,7 @@ class JournalNativeTests(unittest.TestCase):
         from hepta.hia_agent_journal_native import JournalSession
         import itertools
         for operation, after, exception in itertools.product(
-                ('reserved', 'inline', 'committed_inline'), (False, True),
+                ('reserved', 'completed', 'inline', 'committed_inline'), (False, True),
                 (RuntimeError, KeyboardInterrupt, SystemExit, MemoryError)):
                 with self.subTest(operation=operation, after=after, exception=exception.__name__), self.selected():
                     service = HIAAgentService(self.case / ('ack-%s-%s-%s' % (operation, after, exception.__name__)))

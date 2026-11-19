@@ -29,6 +29,8 @@ MAGIC = int.from_bytes(b'HIAJRN02', 'little')
 
 ENTRY = r'''
 def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) >= 8 and get(w, 0) == 13:
+        return completed_envelope(s, o, w)
     if length(o) < 16777728 or length(w) < 4256 + 32768:
         return 4294967293
     stage = get(w, 0)
@@ -103,6 +105,21 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 56, 0)
     copy_state(o, w)
     return answer
+
+def completed_envelope(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 0 or length(w) != 520 or length(o) < 192:
+        return 4294967293
+    if get(w, 8) != MAGIC_VALUE or get(w, 16) != 10 or word_at(w, 200, 2) != 11634:
+        return 4294967293
+    # The actual request ID was assigned during admission. The result is a
+    # foreign object handle, not another serialization of the result body.
+    completed_prefix(o)
+    index = 0
+    while index < 66:
+        store(o, COMPLETED_PREFIX_BYTES + index, byte(w, 200 + index))
+        index = index + 1
+    completed_suffix(o)
+    return COMPLETED_RECIPE_BYTES
 
 def copy_state(o:mutbuf, w:mutbuf) -> u64:
     index = 0
@@ -596,6 +613,38 @@ def literal(name, value):
         f'    append_byte(o, w, {b})\n' for b in value) + '    return 0\n'
 
 
+def completed_recipe():
+    from hepta.hia_agent_contract import VERSION
+
+    def field(key, value=None, *, width=None):
+        key = key.encode('ascii')
+        if width is not None:
+            return bytes((0, len(key), width)) + key
+        if value is None:
+            return bytes((1, len(key), 0)) + key
+        text = value.encode('ascii')
+        return bytes((0, len(key), len(text))) + key + text
+
+    def writer(name, start, data):
+        rows = [f'\ndef {name}(output:mutbuf) -> u64:\n']
+        chunks = range(0, len(data) - len(data) % 8, 8)
+        for index in chunks:
+            value = int.from_bytes(data[index:index + 8], 'little')
+            rows.append(f'    put(output, {start + index}, {value})\n')
+        for index in range(len(data) - len(data) % 8, len(data)):
+            rows.append(f'    store(output, {start + index}, {data[index]})\n')
+        rows.append('    return 0\n')
+        return ''.join(rows)
+
+    prefix = field('contract_version', VERSION) + field('request_id', width=66)
+    suffix = field('status', 'completed') + field('result')
+    size = len(prefix) + 66 + len(suffix)
+    if size > 192:
+        raise ValueError('journal completion recipe exceeds its private envelope')
+    functions = writer('completed_prefix', 0, prefix) + writer('completed_suffix', len(prefix) + 66, suffix)
+    return len(prefix), size, functions
+
+
 def canonical_program():
     source = worker_canonical()
     source = replace_once(source, 'def serialize(s:readbuf, o:mutbuf, w:mutbuf) -> u64:',
@@ -734,8 +783,11 @@ def diagnostic_program():
 
 def source_program():
     restore = WORKER_ENTRY[WORKER_ENTRY.index('\ndef restore_order('):WORKER_ENTRY.index('\ndef request_fields(')]
+    prefix_size, recipe_size, completion = completed_recipe()
+    entry = (ENTRY.replace('MAGIC_VALUE', str(MAGIC))
+             .replace('COMPLETED_PREFIX_BYTES', str(prefix_size)).replace('COMPLETED_RECIPE_BYTES', str(recipe_size)))
     return '\n'.join((
-        ENTRY.replace('MAGIC_VALUE', str(MAGIC)), catalog_program(),
+        entry, completion, catalog_program(),
         matcher('tool_code', TOOLS),
         matcher('field_code', ('tool', 'arguments', 'request_key', 'digest', 'status', 'state', 'error')),
         matcher('value_code', ('completed', 'rejected')),
