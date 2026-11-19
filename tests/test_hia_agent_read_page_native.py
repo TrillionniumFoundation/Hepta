@@ -176,13 +176,21 @@ class AgentReadPageNativeTests(unittest.TestCase):
                                                    return_value=self.executable.read_bytes()))
                     invocation.enter_context(patch.object(self.native, '_entry',
                                                           side_effect=AssertionError('mapped pager selected')))
+                    invocation.enter_context(patch.object(self.native, 'read_issued_page',
+                                                          side_effect=AssertionError('hosted artifact transfer')))
                 service = HIAAgentService(directory, native_store=store)
                 try:
                     first_page, second_page = b'a' * 512, b'b' * 512
                     ref = service.store.put(first_page + second_page + b'\xff', 'input')
                     args = {'artifact': ref, 'catalog_sha256': service.catalog_sha256, 'max_bytes': 512}
-                    first = service.call('hia_read', args)
+                    with ExitStack() as page:
+                        if self.executable is not None:
+                            page.enter_context(patch.object(
+                                service.store, 'get', side_effect=AssertionError('hosted Store payload read')))
+                        first = service.call('hia_read', args)
+                        alias = service.call('hia_resource_read', {'uri': ref['uri'], 'max_bytes': 512})
                     self.assertEqual(first['status'], 'completed', first)
+                    self.assertEqual(alias['result'], first['result'])
                     self.assertEqual(first['result']['content'], b64encode(first_page).decode())
                     cursor = first['result']['next_cursor']
                     self.assertIsNotNone(cursor)

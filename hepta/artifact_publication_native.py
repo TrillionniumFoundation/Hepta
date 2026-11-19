@@ -136,8 +136,9 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
     return _execute_code(code, operation, stage, destination, expected)
 
 
-def _execute_code(code, operation, stage, destination, expected):
-    result=_run_sealed_native(code, (operation, os.fspath(stage), os.fspath(destination)), expected)
+def _execute_code(code, operation, stage, destination, expected, *, output=None):
+    result=_run_sealed_native(code, (operation, os.fspath(stage), os.fspath(destination)), expected,
+                              output=output)
     codes={10:'E_PUBLISH_IDENTITY',11:'E_PUBLISH_BYTES',12:'E_PUBLISH_RACE',
            14:'E_PUBLISH_LINK',15:'E_PUBLISH_IO',16:'E_PUBLISH_INPUT',17:'E_PUBLISH_LIMIT',64:'E_PUBLISH_INPUT'}
     if result.returncode or result.stderr:
@@ -146,7 +147,7 @@ def _execute_code(code, operation, stage, destination, expected):
     return result.stdout
 
 
-def _run_sealed_native(code, argv, input_bytes):
+def _run_sealed_native(code, argv, input_bytes, *, output=None):
     from .artifact_publication import PublicationRejected
     fd=None
     try:
@@ -168,7 +169,7 @@ def _run_sealed_native(code, argv, input_bytes):
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
         return subprocess.run(['/proc/self/fd/'+str(fd), *argv],
-            input=input_bytes,capture_output=True,
+            input=input_bytes,stdout=subprocess.PIPE if output is None else output,stderr=subprocess.PIPE,
             pass_fds=(fd,),env={'PATH':''})
     except OSError as exc:
         raise PublicationRejected('E_PUBLISH_IO: native execution unavailable; no automatic replay') from exc
@@ -209,6 +210,13 @@ def invoke_pinned_artifact_store(code, operation, root, *, data=b'', digest='-')
     def execute(operation, root, destination, payload):
         return _execute_code(code, operation, root, destination, payload)
     return _invoke_artifact_store(execute, operation, root, data, digest)
+
+
+def capture_pinned_artifact(code, root, digest, output):
+    """Let the pinned Store verify and write directly to a private descriptor."""
+    if type(digest) is not str or re.fullmatch('[0-9a-f]{64}', digest) is None:
+        _reject('E_PUBLISH_INPUT', 'Agent artifact key is not exact lower hexadecimal')
+    _execute_code(code, 'store-get', root, digest, b'', output=output)
 
 
 def _invoke_artifact_store(execute, operation, root, data, digest):

@@ -542,7 +542,7 @@ class AgentStore:
     def _ref(row):
         return {name: row[name] for name in ("id", "sha256", "uri")}
 
-    def get(self, ref, *, kind=None):
+    def _artifact_record(self, ref, kind=None):
         identity_fields = ("id", "sha256", "uri")
         keys(ref, identity_fields, label="artifact reference")
         row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
@@ -554,12 +554,28 @@ class AgentStore:
             reject("E_HIA_ARTIFACT_IDENTITY", "artifact reference was not issued in this runtime namespace")
         if decision == 2:
             reject("E_HIA_ARTIFACT_AUTHORITY", "input bytes cannot impersonate a retained " + kind)
+        return row
+
+    def get(self, ref, *, kind=None):
+        row = self._artifact_record(ref, kind)
         data = self._artifact_file('store-get', content_hash=row['sha256'])
         if data is None:
             data = stable_read(self.artifacts / row["sha256"], MAX_ARTIFACT_BYTES)
             if sha256(data).hexdigest() != row["sha256"]:
                 reject("E_HIA_ARTIFACT_CORRUPT", "artifact bytes no longer match their recorded digest")
         return data, decode_data(row["metadata"])
+
+    def write_retained_artifact(self, ref, output):
+        from .artifact_publication import PublicationRejected
+        from .artifact_publication_native import capture_pinned_artifact
+
+        row = self._artifact_record(ref)
+        try:
+            capture_pinned_artifact(self._artifact_code, self.artifacts, row['sha256'], output)
+        except PublicationRejected as exc:
+            _native_artifact_rejection(exc)
+        # Preserve rejection order for a corrupt retained metadata record.
+        decode_data(row['metadata'])
 
     def get_json(self, ref, *, kind=None):
         value, metadata, _ = self.get_json_with_wire(ref, kind=kind)
@@ -574,7 +590,12 @@ class AgentStore:
         if row is None:
             reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")
         ref = self._ref(row)
-        self.get(ref)
+        if self._artifact_code is None:
+            self.get(ref)
+        else:
+            from subprocess import DEVNULL
+
+            self.write_retained_artifact(ref, DEVNULL)
         return ref
 
     def profile(self, identifier, value):

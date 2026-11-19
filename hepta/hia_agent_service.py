@@ -630,26 +630,27 @@ class HIAAgentService:
 
     def _hia_read(self, args):
         from .hia_agent_store import _native_agent_identity
+        from .hia_agent_read_page_native import SELECTOR, capture_retained_page, installed_agent_read_page
+        from .hia_native_helpers import pinned_agent_read_page_executable
 
         ref = args["artifact"]
-        data, _ = self.store.get(ref)
-        offset = 0
-        if "cursor" in args:
-            row = self.store.db.execute("SELECT * FROM cursors WHERE id=?", (args["cursor"],)).fetchone()
-            stored = None if row is None else (row["artifact_id"], row["sha256"], "")
-            if record_authority((ref["id"], ref["sha256"], ""), stored):
-                reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
-            offset = row["offset"]
-        limit = int(args.get("max_bytes", 65536))
-        selected = os.environ.get('HEPTA_HIA_AGENT_READ_PAGE_MANIFEST')
-        if selected:
-            from .hia_agent_read_page_native import installed_agent_read_page
-            encoding, content, next_offset, next_cursor = installed_agent_read_page(
-                selected).read_issued_page(data, offset, limit, ref)
+        executable = pinned_agent_read_page_executable()
+        if executable is not None and self.store._artifact_code is not None:
+            with capture_retained_page(self.store, ref) as captured:
+                offset, limit = self._read_window(args, ref)
+                encoding, content, next_offset, next_cursor = installed_agent_read_page(
+                    os.environ[SELECTOR]).read_captured_page(captured, offset, limit, executable)
         else:
-            encoding, content, next_offset = self._reference_read_page(data, offset, limit)
-            next_cursor = ("page-" + digest({"artifact": ref, "offset": next_offset})
-                           if next_offset is not None else None)
+            data, _ = self.store.get(ref)
+            offset, limit = self._read_window(args, ref)
+            selected = os.environ.get(SELECTOR)
+            if selected:
+                encoding, content, next_offset, next_cursor = installed_agent_read_page(
+                    selected).read_issued_page(data, offset, limit, ref)
+            else:
+                encoding, content, next_offset = self._reference_read_page(data, offset, limit)
+                next_cursor = ("page-" + digest({"artifact": ref, "offset": next_offset})
+                               if next_offset is not None else None)
         if next_offset is not None:
             self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
                 (next_cursor, ref["id"], ref["sha256"], next_offset))
@@ -657,6 +658,16 @@ class HIAAgentService:
         if native is not None:
             return native.page_receipt(ref, content, encoding, next_cursor)
         return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
+
+    def _read_window(self, args, ref):
+        offset = 0
+        if "cursor" in args:
+            row = self.store.db.execute("SELECT * FROM cursors WHERE id=?", (args["cursor"],)).fetchone()
+            stored = None if row is None else (row["artifact_id"], row["sha256"], "")
+            if record_authority((ref["id"], ref["sha256"], ""), stored):
+                reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
+            offset = row["offset"]
+        return offset, int(args.get("max_bytes", 65536))
 
     @staticmethod
     def _reference_read_page(data, offset, limit):

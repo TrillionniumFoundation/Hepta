@@ -1202,6 +1202,7 @@ def support_contract(root=ROOT):
             'native_owners': ['text/binary classification', 'bounded page encoding',
                               'next byte offset', 'canonical SHA-256 cursor'],
             'issued_result_wire': 'agent_identity.hepta role 24; Store authorization retained',
+            'installed_payload_custody': 'pinned Store streams verified artifact bytes into the sealed pager input; no hosted payload copy',
             'reference_authentication_and_cursor_storage': 'original Store interface',
             'default_service_changed': False,
         },
