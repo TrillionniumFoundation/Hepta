@@ -7,7 +7,7 @@
 .global _start
 .type _start,@function
 .equ INPUT_MAX, 8<<20
-.ifdef MCP_REPLY
+.ifdef MCP_STREAM_RESULT
 .equ SCRATCH, INPUT_MAX+32
 .else
 .equ SCRATCH, 4<<20
@@ -81,14 +81,18 @@ _start:
  .ifdef MCP_NEGOTIATE
  call mcp_negotiation_start
  .else
+  .ifdef MCP_CATALOG
+ call mcp_catalog_wire_start
+  .else
  call mcp_request_route_start
+  .endif
  .endif
 .endif
  mov eax,eax                              /* Export u32, never a stale high word. */
  mov [r14],rax
  mov rsi,r14
  mov edx,8
-.ifdef MCP_REPLY
+.ifdef MCP_STREAM_RESULT
  cmp eax,2
  jb write_result
  cmp eax,SCRATCH
