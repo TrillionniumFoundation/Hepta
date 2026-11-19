@@ -260,7 +260,7 @@ class CnfInstalledTests(unittest.TestCase):
 
         from hepta.hia_agent_service import HIAAgentService
         from hepta.hia_agent_store import AgentRejected
-        from hepta.hia_optimization import verify_optimization
+        from hepta.hia_optimization import NATIVE_CORE_SCHEMA, verify_optimization
         from hepta.hia_proof_contract import proof_result
         from tests.test_hia_optimization import arithmetic
         from tests.test_hia_program import b, branch, c, f, i, jump, m, ret
@@ -409,6 +409,25 @@ class CnfInstalledTests(unittest.TestCase):
                     by_block = {row['block']: row['observed'] for row in control_flow['obligations']}
                     self.assertEqual(by_block['loop'], ['more', 'remaining', 'value', 'value'])
                     self.assertEqual(by_block['step'], ['next_remaining', 'next_value'])
+                    loop['schema'] = simplified_loop['schema'] = NATIVE_CORE_SCHEMA
+                    with patch('hepta.hia_optimization.selected_cnf', return_value=None):
+                        self.assertEqual(verify_optimization(loop, simplified_loop)['status'], 'unknown')
+                    loop_workload = {**workload, 'cases': [
+                        {'function': 'count', 'arguments': [3],
+                         'expected': {'status': 'returned', 'values': [3]}}]}
+                    session.freeze(loop_workload)
+                    loop_base = session.import_program(loop)
+                    session.freeze(loop_workload, baseline=loop_base)
+                    loop_candidate = session.import_program(simplified_loop)
+                    loop_proof = session.verify(loop_candidate, base=loop_base,
+                                                claims=['behavior_equivalence'])['checks'][0]
+                    self.assertEqual(loop_proof['status'], 'proved')
+                    self.assertEqual(loop_proof['checker']['solver'], report['solver'])
+                    unsupported_v8 = deepcopy(loop)
+                    unsupported_v8['functions'][0]['blocks'][2]['ops'][2]['op'] = 'int.mul.checked'
+                    unsupported = verify_optimization(unsupported_v8, unsupported_v8)
+                    self.assertEqual(unsupported['status'], 'unknown', unsupported)
+                    self.assertNotIn('solver', unsupported)
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)

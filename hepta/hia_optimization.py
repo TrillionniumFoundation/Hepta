@@ -23,6 +23,7 @@ from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
 QUALIFIED_CORE_SCHEMAS = frozenset("hepta.hia.program.v" + str(version) for version in range(1, 8))
+NATIVE_CORE_SCHEMA = "hepta.hia.program.v8"
 POLICY_SCHEMA = "hepta.hia.optimization-policy.v1"
 TARGETS = frozenset({"x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
                      "riscv64-unknown-linux-gnu"})
@@ -437,7 +438,9 @@ def verify_optimization(base, candidate, policy=None):
     report.update(base_sha256=original.sha256, candidate_sha256=revised.sha256,
                   base_input_sha256=original.input_sha256, candidate_input_sha256=revised.input_sha256)
     left, right = original.as_dict(), revised.as_dict()
-    if left["schema"] not in QUALIFIED_CORE_SCHEMAS or right["schema"] not in QUALIFIED_CORE_SCHEMAS:
+    legacy_schema = left["schema"] in QUALIFIED_CORE_SCHEMAS and right["schema"] in QUALIFIED_CORE_SCHEMAS
+    native_cnf = selected_cnf()
+    if not legacy_schema and not (native_cnf is not None and left["schema"] == right["schema"] == NATIVE_CORE_SCHEMA):
         return finish("unknown", "Core schema outside qualified primitive v1-v7 optimization profile")
     if _skeleton(left) != _skeleton(right):
         return finish("unknown", "CFG, interface, ordered effects or resource operations differ")
@@ -452,7 +455,6 @@ def verify_optimization(base, candidate, policy=None):
     if policy["timeout_ms"] == 0:
         return finish("timeout", "verification deadline exhausted before solving")
     deadline = started + policy["timeout_ms"] * 1_000_000
-    native_cnf = selected_cnf()
     if native_cnf is not None:
         obligations = _native_core_obligations(native_cnf, original, revised, left, right,
                                                deadline, policy["max_obligations"])
@@ -466,6 +468,8 @@ def verify_optimization(base, candidate, policy=None):
                     return finish("timeout", "total verification deadline exhausted during witness replay")
                 return finish("rejected", "a scalar/effect/trap counterexample exists")
             return verified()
+    if not legacy_schema:
+        return finish("unknown", "Core v8 obligations exceeded the installed native scalar circuit profile")
     try:
         import z3
     except ImportError:

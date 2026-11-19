@@ -815,7 +815,7 @@ class HIAAgentService:
     def _behavior_equivalence(self, original, revised, timeout_ms):
         """A conservative proof decision, separate from workload testing."""
         from .hia_agent_store import _native_agent_identity
-        from .hia_optimization import DEFAULT_POLICY, verify_optimization
+        from .hia_optimization import DEFAULT_POLICY, NATIVE_CORE_SCHEMA, verify_optimization
         from .hia_program import WIDTHS, integer_range
         from .hia_scalar_reference_native import selected_scalar_reference
         if timeout_ms <= 0:
@@ -909,6 +909,8 @@ class HIAAgentService:
         status = {"verified": "proved", "rejected": "refuted", "unknown": "unknown", "timeout": "unknown"}[report["status"]]
         if (report.get("solver") or {}).get("name") == "HIA":
             return status, "HIA native Boolean obligations for scalar CFG transitions, returns and checked overflow over all declared inputs", report
+        if left["schema"] == right["schema"] == NATIVE_CORE_SCHEMA:
+            return status, "The Core v8 scalar circuit profile did not establish a complete result", report
         return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
 
     def _subject(self, args, program):
