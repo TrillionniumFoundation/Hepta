@@ -79,7 +79,10 @@ def check_release(release):
     document = loans()
     sites = [selected('reader'), selected('writer')]
     query = case('hia-prepare-edit-batch', [document, {'selections': sites}], prepare_batch(document, sites))
-    case('hia-prepare-edit-batch', [document, {'selections': sites[:1] * 2}], status=2)
+    overlap = {'diagnostics': [{'code': 'E_DRIVER', 'phase': 'driver',
+                                'message': 'E_HIA_EDIT_BATCH: selections overlap one instruction'}],
+               'ok': False, 'status': 'error'}
+    case('hia-prepare-edit-batch', [document, {'selections': sites[:1] * 2}], overlap, status=2)
     response = swaps()
     candidate, receipt = apply_batch(document, query, response)
     result = {**receipt, 'program': candidate.as_dict()}
