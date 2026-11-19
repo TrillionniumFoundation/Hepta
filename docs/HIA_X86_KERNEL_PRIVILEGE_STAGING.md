@@ -148,7 +148,7 @@ x86-64 syscall obligations remain HOLD.
 
 ## Static TLB/IRQ effect admission experiment (not native HIA)
 
-The separate `hepta/hia_x86_kernel_tlb_effects_staging.py` prototype now
+The separate `experiments/hia_kernel_tlb_effects_staging.py` prototype now
 rejects a narrow set of unsafe *planned* single-CPU 4KiB PTE transitions
 before any machine-code generation. It requires an exact CPL0/single-CPU,
 PCID-off/global-page-off profile; a caller-declared, aligned owned CR3 root;
