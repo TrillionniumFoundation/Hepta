@@ -6,6 +6,7 @@ from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUI
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                   CIRCUIT_DIVISION_TEMP, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
                                   PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR, PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM,
+                                  PROJECT_CHECKED_CAST,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
                                  LEARNING_REQUEST, RESTART_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
                                  LEARNING_ORDER, LEARNING_HEAD, LEARNING_PHASE,
@@ -1735,13 +1736,18 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
     if role == 2:
         literal = read64(s, row + 40) & word_mask(width)
         return p_bind(w, typ, p_node(o, w, 2, width, 0, 0, literal))
-    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and (role < 32 or role > PROJECT_CHECKED_REM):
+    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and (role < 32 or role > PROJECT_CHECKED_CAST):
         return 0
     first = p_var(w, read64(s, row + 16))
     if first == 0:
         return 0
     a = first & 65535
     signed = (first >> 23) & 1
+    if role == PROJECT_CHECKED_CAST:
+        origin = first >> 16
+        if width < 8 or p_width(origin) < 8:
+            return 0
+        return p_checked_cast(o, w, origin, typ, a)
     if role == 6 or role == 20:
         if role == 20:
             role = role + signed
@@ -1837,6 +1843,28 @@ def p_checked_division(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, b:u64) -> u
         sign = p_logic(o, w, 5, sign_a, sign_b)
     return p_bind(w, typ, p_node(o, w, 11, width, sign, p_node(o, w, 10, width, zero, result, 0), result))
 
+def p_checked_cast(o:mutbuf, w:mutbuf, origin:u64, target:u64, value:u64) -> u64:
+    source_width = p_width(origin)
+    target_width = p_width(target)
+    source_signed = origin >> 7
+    target_signed = target >> 7
+    # Compare in the source type. Emit only bounds that can exclude
+    # a source value, so every threshold fits its comparison type.
+    if source_signed != 0:
+        if target_signed == 0:
+            zero = p_node(o, w, 2, source_width, 0, 0, 0)
+            p_fault(o, w, p_logic(o, w, 16, value, zero))
+        elif target_width < source_width:
+            below = word_mask(source_width) ^ ((1 << (target_width - 1)) - 1)
+            lower = p_node(o, w, 2, source_width, 0, 0, below)
+            p_fault(o, w, p_logic(o, w, 16, value, lower))
+    source_positive = source_width - source_signed
+    target_positive = target_width - target_signed
+    if target_positive < source_positive:
+        upper = p_node(o, w, 2, source_width, 0, 0, (1 << target_positive) - 1)
+        p_fault(o, w, p_logic(o, w, 14 + 4 * source_signed, value, upper))
+    return p_bind(w, target, p_node(o, w, 20 + source_signed, target_width, value, 0, 0))
+
 def p_bind(w:mutbuf, typ:u64, node:u64) -> u64:
     index = read_stack(w, 96)
     write64(w, 2560 + 8 * index, typ * 65536 + node)
@@ -1850,6 +1878,7 @@ def source_program():
                      CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
                      PROJECT_CHECKED_SHL=PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR=PROJECT_CHECKED_SHR,
                      PROJECT_CHECKED_DIV=PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM=PROJECT_CHECKED_REM,
+                     PROJECT_CHECKED_CAST=PROJECT_CHECKED_CAST,
                      WORD_UNSIGNED_DIV=WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM=WORD_UNSIGNED_REM,
                      CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,

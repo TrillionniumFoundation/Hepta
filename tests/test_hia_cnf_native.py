@@ -520,6 +520,53 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertNotEqual(different['counterexample']['before']['values'],
                             different['counterexample']['after']['values'])
 
+    def test_checked_cast_projects_every_integer_source_and_destination(self):
+        from hepta import hia_translation_validation as semantics
+        from hepta.hia_cnf_native import _CORE_TRAP_TAGS
+        from hepta.hia_scalar_totality import validate_scalar_totality
+        from tests.test_hia_program import b, f, i, m, ret
+
+        def program(source, target, mode='checked'):
+            params = [('value', source)]
+            cast = i('int.cast', ['value'], [('result', target)], mode=mode)
+            return m(f('convert', params, [target], ['trap'], [b('entry', params, [cast], ret('result'))]))
+
+        def bounds(typ):
+            width, signed = int(typ[1:]), typ.startswith('i')
+            return (-(1 << (width - 1)) if signed else 0,
+                    (1 << (width - signed)) - 1, (1 << width) - 1)
+
+        types = ('i8', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64')
+        for source in types:
+            for target in types:
+                src_low, src_high, input_mask = bounds(source)
+                low, high, mask = bounds(target)
+                function, = program(source, target)['functions']
+                graph = semantics._profile(function)
+                nodes, pairs, _ = self.native.project_scalar_graphs(
+                    [function, function], [graph, graph], totality=False)
+                for value in sorted({src_low, src_low + 1, -1, 0, 1, src_high - 1, src_high,
+                                     low - 1, low, low + 1, high - 1, high, high + 1}):
+                    if not src_low <= value <= src_high:
+                        continue
+                    safe = low <= value <= high
+                    tag = 0 if safe else _CORE_TRAP_TAGS['overflow']
+                    circuit = (*nodes, (2, 8, 0, 0, tag), (2, int(target[1:]), 0, 0, (value & mask) if safe else 0))
+                    observed = [pairs[0], (pairs[1][0], len(nodes)), (pairs[2][0], len(nodes) + 1)]
+                    self.assertFalse(self.native.check_word_witness(circuit, observed, [value & input_mask]),
+                                     (source, target, value))
+        with patch.object(semantics, '_z3_module', side_effect=ImportError):
+            safe = validate_scalar_totality(program('u32', 'i64'))
+            negative = validate_scalar_totality(program('i64', 'u64'))
+            upper = validate_scalar_totality(program('u64', 'i64'))
+            equal = semantics.validate_translation(program('i32', 'i64'), program('i32', 'i64', 'wrap'))
+        self.assertEqual((safe['status'], equal['status']), ('proved', 'proved'))
+        for proof in (negative, upper):
+            self.assertEqual(proof['status'], 'disproved', proof['reason'])
+            self.assertEqual(proof['counterexample']['observation']['code'], 'overflow')
+        self.assertLess(negative['counterexample']['arguments'][0], 0)
+        self.assertGreater(upper['counterexample']['arguments'][0], (1 << 63) - 1)
+
     def test_translation_keeps_first_trap_and_return_values_without_z3(self):
         from hepta import hia_translation_validation as semantics
         from tests.test_hia_program import b, branch, c, f, i, m, ret

@@ -63,6 +63,7 @@ WRAPPING_PRODUCT = 32
 WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM = 33, 34
 PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR = 34, 35
 PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM = 36, 37
+PROJECT_CHECKED_CAST = 38
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_TRAP_TAGS = {code: index for index, code in enumerate(sorted(TRAP_CODES), 1)}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
@@ -271,8 +272,8 @@ def _graph_packet(functions, graphs, *, totality):
             for index, op in enumerate(block['ops'], len(slots)):
                 result, = op['out']
                 role = _GRAPH_OPERATIONS.get(op['op'], 0)
-                if op['op'] == 'int.cast' and op['attrs']['mode'] != 'wrap':
-                    role = 0
+                if op['op'] == 'int.cast' and op['attrs']['mode'] == 'checked':
+                    role = PROJECT_CHECKED_CAST
                 slots[result['name']] = index
                 operands = [slots[argument] for argument in op['args']]
                 operands.extend([0] * (3 - len(operands)))
