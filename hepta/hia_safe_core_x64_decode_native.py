@@ -20,6 +20,22 @@ ROW = struct.Struct('<6Q')
 CALL_COUNT = struct.Struct('<Q')
 CALL_BINDING = struct.Struct('<3Q')
 MEMORY_REQUEST = struct.Struct('<5Q')
+SCHEDULER_REQUEST = struct.Struct('<4Q')
+SCHEDULER_REPLY = struct.Struct('<3Q')
+# One bit per decoded instruction per pending ancestry. Each fork keeps a
+# separate native snapshot, instead of sharing a mutable visited set.
+SCHEDULER_HEADER = 64
+SCHEDULER_FRAMES = MAX_INSTRUCTIONS + 1
+SCHEDULER_BITMAP = MAX_INSTRUCTIONS // 8
+SCHEDULER_VISITS = SCHEDULER_HEADER + SCHEDULER_FRAMES * 8
+SCHEDULER_WORKSPACE = SCHEDULER_VISITS + SCHEDULER_FRAMES * SCHEDULER_BITMAP
+SCHEDULER_LIVE = 1
+SCHEDULER_EXECUTE = 2
+SCHEDULER_REFUSALS = {
+    3: 'machine path budget exceeded',
+    4: 'machine execution budget exceeded',
+    5: 'unknown instruction entry, machine cycle or recursion',
+}
 OPERATIONS = (
     ('push', ('u',)), ('pop', ('u',)), ('imm', ('u', 'u')), ('ret', ()),
     ('leave', ()), ('nop', ()), ('call', ('i',)), ('jmp', ('i',)),
@@ -111,6 +127,40 @@ def _operand(kind, word):
     return word
 
 
+class NativeMachineScheduler:
+    """HIA owns pending paths, exact visitation and budget counters."""
+
+    def __init__(self, entry):
+        self._entry = entry
+        self._workspace = ctypes.create_string_buffer(SCHEDULER_WORKSPACE)
+        self._output = ctypes.create_string_buffer(SCHEDULER_REPLY.size)
+
+    def _exchange(self, operation, first, second=0):
+        from .hia_safe_core_x64 import require
+
+        request = SCHEDULER_REQUEST.pack(operation, first, second, 0)
+        source = ctypes.create_string_buffer(request, len(request))
+        result = self._entry(source, len(source), self._output, len(self._output),
+                             self._workspace, len(self._workspace))
+        if result != SCHEDULER_REPLY.size:
+            raise RuntimeError('invalid native Safe Core scheduler exchange')
+        action, handle, steps = SCHEDULER_REPLY.unpack(self._output)
+        if action in SCHEDULER_REFUSALS:
+            require(False, SCHEDULER_REFUSALS[action])
+        if action not in (0, SCHEDULER_LIVE, SCHEDULER_EXECUTE) or bool(handle) != bool(action):
+            raise RuntimeError('invalid native Safe Core scheduler action')
+        return action, handle, steps
+
+    def start(self, handle):
+        return self._exchange(0, handle)
+
+    def observed(self, live, ordinal=MAX_INSTRUCTIONS):
+        return self._exchange(1, int(live), ordinal)
+
+    def advance(self, finished, fork=0):
+        return self._exchange(2, int(finished), fork)
+
+
 class NativeSafeCoreX64Decode(NativeHiaJsonImage):
     def decode(self, data, calls=None):
         from .hia_safe_core_x64 import require
@@ -157,6 +207,9 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if pc != len(data):
             raise RuntimeError('native Safe Core decoder left unconsumed machine bytes')
         return result
+
+    def scheduler(self):
+        return NativeMachineScheduler(self._entry)
 
     def memory_admitted(self, offset, low, size, writing, loan=None):
         if offset is None:

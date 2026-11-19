@@ -111,8 +111,9 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='hia-safe-core-x64-') as root:
             final = Path(root) / 'candidate.so'
             compile_program_machine(image, program=core, output=final, linker='ld')
-            blocked = {name: Mock(side_effect=AssertionError('host machine formula entered: ' + name))
-                       for name in ('_reference_alu', '_reference_condition', '_reference_register_formula')}
+            blocked = {name: Mock(side_effect=AssertionError('host machine rule entered: ' + name))
+                       for name in ('_reference_alu', '_reference_condition',
+                                    '_reference_register_formula', '_reference_schedule')}
             with (patch('hepta.hia_safe_core_x64._reference_decode',
                         side_effect=AssertionError('host decoder entered the Safe Core checker')),
                   patch('hepta.hia_safe_core_x64._reference_validate_calls',
@@ -158,6 +159,56 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         )
         for args in cases:
             self.assertEqual(self.native.memory_admitted(*args), _reference_memory_admitted(*args), args)
+
+    def test_scheduler_paths_are_depth_first_with_independent_ancestor_snapshots(self):
+        policy = self.native.scheduler()
+        self.assertEqual(policy.start(1), (1, 1, 0))
+        self.assertEqual(policy.observed(True, 0), (2, 1, 1))
+        self.assertEqual(policy.advance(False, 2), (1, 1, 1))
+        self.assertEqual(policy.observed(True, 1), (2, 1, 2))
+        self.assertEqual(policy.advance(False, 3), (1, 1, 2))
+        self.assertEqual(policy.observed(True, 2), (2, 1, 3))
+        self.assertEqual(policy.advance(True), (1, 3, 3))
+        self.assertEqual(policy.observed(True, 2), (2, 3, 4))
+        self.assertEqual(policy.advance(True), (1, 2, 4))
+        self.assertEqual(policy.observed(True, 1), (2, 2, 5))
+        self.assertEqual(policy.advance(False), (1, 2, 5))
+        with self.assertRaisesRegex(SafeCoreMachineRejected, 'cycle or recursion'):
+            policy.observed(True, 0)
+
+        policy = self.native.scheduler()
+        self.assertEqual(policy.start(4), (1, 4, 0))
+        self.assertEqual(policy.observed(False), (0, 0, 0))
+        policy = self.native.scheduler()
+        policy.start(5)
+        with self.assertRaisesRegex(SafeCoreMachineRejected, 'unknown instruction entry'):
+            policy.observed(True)
+
+    def test_scheduler_checks_both_exact_budget_boundaries(self):
+        policy = self.native.scheduler()
+        policy.start(1)
+        for ordinal in range(4096):
+            self.assertEqual(policy.observed(True, ordinal), (2, 1, ordinal + 1))
+            policy.advance(False, ordinal + 2)
+        for handle in range(4097, 2, -1):
+            self.assertEqual(policy.observed(False), (1, handle, 4096))
+        with self.assertRaisesRegex(SafeCoreMachineRejected, 'machine path budget exceeded'):
+            policy.observed(False)
+
+        policy = self.native.scheduler()
+        policy.start(1)
+        for ordinal in range(16):
+            policy.observed(True, ordinal)
+            policy.advance(False, ordinal + 2)
+        steps = 16
+        with self.assertRaisesRegex(SafeCoreMachineRejected, 'machine execution budget exceeded'):
+            for handle in (1, *range(17, 1, -1)):
+                for ordinal in range(16, 4112):
+                    self.assertEqual(policy.observed(True, ordinal), (2, handle, steps + 1))
+                    steps += 1
+                    policy.advance(False)
+                policy.observed(False)
+        self.assertEqual(steps, 65536)
 
 
 if __name__ == '__main__':

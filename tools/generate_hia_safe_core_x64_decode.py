@@ -7,7 +7,8 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_x64_decode_native import (
     MAX_INSTRUCTIONS, MAX_RECIPE_NODES, MAX_TEXT, OPERATION_IDS, RECIPE_IDS, RECIPE_INPUTS,
-    REFUSAL_IDS, WORKSPACE,
+    REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
+    SCHEDULER_WORKSPACE, WORKSPACE,
 )
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
@@ -22,10 +23,16 @@ FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()
 FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
 FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
               LEFT=1, RIGHT=2, ZF=3, CF=4, ARBITRARY=5)
+FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHED_ACTIVE=32,
+              SCHED_HEADER=SCHEDULER_HEADER, SCHED_VISITS=SCHEDULER_VISITS,
+              SCHED_BITMAP=SCHEDULER_BITMAP, SCHED_FRAMES=SCHEDULER_FRAMES,
+              SCHED_WORKSPACE=SCHEDULER_WORKSPACE)
 
 SOURCE = r'''
 def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
+    if size == 32 and length(w) == SCHED_WORKSPACE:
+        return schedule_machine(s, o, w)
     if size == 0 and length(w) == 16:
         return machine_formula(o, get(w, 0), get(w, 8))
     if size == 0 and length(w) == 40:
@@ -442,6 +449,94 @@ def imul_formula(o:mutbuf) -> u64:
     restored = node(o, R_SIGNEXT, low, 64, 0)
     cf = node(o, R_NE, full, restored, 0)
     return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), ARBITRARY, cf, 0)
+
+def schedule_request(s:readbuf, offset:u64) -> u64:
+    value = 0
+    index = 0
+    while index < 8:
+        value = value | (byte(s, offset + index) << (8 * index))
+        index = index + 1
+    return value
+
+def schedule_reply(o:mutbuf, w:mutbuf, action:u64, handle:u64) -> u64:
+    put(o, 0, action)
+    put(o, 8, handle)
+    put(o, 16, get(w, SCHED_STEPS))
+    return 24
+
+def schedule_path(o:mutbuf, w:mutbuf, handle:u64) -> u64:
+    paths = get(w, SCHED_PATHS) + 1
+    put(w, SCHED_PATHS, paths)
+    if paths > 4096:
+        return schedule_reply(o, w, 3, 0)
+    put(w, SCHED_ACTIVE, handle)
+    put(w, SCHED_PHASE, 1)
+    return schedule_reply(o, w, 1, handle)
+
+def schedule_finish_path(o:mutbuf, w:mutbuf) -> u64:
+    depth = get(w, SCHED_DEPTH)
+    if depth == 0:
+        put(w, SCHED_PHASE, 3)
+        return schedule_reply(o, w, 0, 0)
+    depth = depth - 1
+    put(w, SCHED_DEPTH, depth)
+    return schedule_path(o, w, get(w, SCHED_HEADER + depth * 8))
+
+def schedule_visit(o:mutbuf, w:mutbuf, ordinal:u64) -> u64:
+    steps = get(w, SCHED_STEPS) + 1
+    put(w, SCHED_STEPS, steps)
+    if steps > 65536:
+        return schedule_reply(o, w, 4, 0)
+    if ordinal >= MAX_CODE:
+        return schedule_reply(o, w, 5, 0)
+    bitmap = SCHED_VISITS + get(w, SCHED_DEPTH) * SCHED_BITMAP
+    at = bitmap + (ordinal >> 3)
+    visited = byte(w, at)
+    bit = 1 << (ordinal & 7)
+    if (visited & bit) != 0:
+        return schedule_reply(o, w, 5, 0)
+    store(w, at, visited | bit)
+    put(w, SCHED_PHASE, 2)
+    return schedule_reply(o, w, 2, get(w, SCHED_ACTIVE))
+
+def schedule_fork(w:mutbuf, handle:u64) -> u64:
+    depth = get(w, SCHED_DEPTH)
+    if depth + 1 >= SCHED_FRAMES:
+        return 0
+    put(w, SCHED_HEADER + depth * 8, handle)
+    bitmap = SCHED_VISITS + depth * SCHED_BITMAP
+    index = 0
+    while index < SCHED_BITMAP:
+        put(w, bitmap + SCHED_BITMAP + index, get(w, bitmap + index))
+        index = index + 8
+    put(w, SCHED_DEPTH, depth + 1)
+    return 1
+
+def schedule_machine(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(o) != 24 or schedule_request(s, 24) != 0:
+        return 4294967293
+    op = schedule_request(s, 0)
+    first = schedule_request(s, 8)
+    second = schedule_request(s, 16)
+    phase = get(w, SCHED_PHASE)
+    if op == 0 and phase == 0:
+        if first == 0 or second != 0:
+            return 4294967293
+        return schedule_path(o, w, first)
+    if op == 1 and phase == 1:
+        if first == 0:
+            return schedule_finish_path(o, w)
+        if first == 1:
+            return schedule_visit(o, w, second)
+    if op == 2 and phase == 2:
+        if first == 1 and second == 0:
+            return schedule_finish_path(o, w)
+        if first == 0:
+            if second != 0 and schedule_fork(w, second) == 0:
+                return schedule_reply(o, w, 3, 0)
+            put(w, SCHED_PHASE, 1)
+            return schedule_reply(o, w, 1, get(w, SCHED_ACTIVE))
+    return 4294967293
 '''
 
 

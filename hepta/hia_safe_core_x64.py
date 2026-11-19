@@ -386,96 +386,149 @@ class Executor:
             regs[register] = z.simplify((regs[register] & self.value(~255)) |
                                        z.If(self._reference_condition(state, condition), self.value(1), self.value(0)))
 
-    def run(self):
+    def _initial_state(self):
         z = self.z
         stack = {i: z.Extract(8 * i + 7, 8 * i, self.return_address) for i in range(8)}
-        initial = State(self.entry, z.BoolVal(True, ctx=self.ctx), dict(self.initial),
-                        {f: z.Bool("initial_" + f, ctx=self.ctx) for f in ("zf", "cf")},
-                        stack, {0: self.return_address}, self.t.memory)
+        return State(self.entry, z.BoolVal(True, ctx=self.ctx), dict(self.initial),
+                     {f: z.Bool("initial_" + f, ctx=self.ctx) for f in ("zf", "cf")},
+                     stack, {0: self.return_address}, self.t.memory)
+
+    def _path_live(self, state):
+        return not self.z.is_false(self.z.simplify(state.path))
+
+    def run(self):
+        initial = self._initial_state()
+        if self.native_model is None:
+            self._reference_schedule(initial)
+        else:
+            self._native_schedule(initial)
+        return self.outcomes
+
+    def _reference_schedule(self, initial):
         pending = [initial]
         states = 0
         while pending:
             state = pending.pop()
             states += 1
             require(states <= 4096, "machine path budget exceeded")
-            while not z.is_false(z.simplify(state.path)):
+            while self._path_live(state):
                 self.t.check_time()
                 self.steps += 1
                 require(self.steps <= 65536, "machine execution budget exceeded")
                 require(state.pc in self.code and state.pc not in state.visited,
                         "unknown instruction entry, machine cycle or recursion")
                 state.visited = state.visited | {state.pc}
-                instruction = self.code[state.pc]
-                op, args, nextpc = instruction.op, instruction.args, state.pc + instruction.size
-                regs = state.registers
-                if op == "imm":
-                    regs[args[0]] = self.value(args[1])
-                elif op == "mov":
-                    regs[args[0]] = regs[args[1]]
-                elif op in ("cmovne", "imul", "not", "shl", "shr", "setcc"):
-                    self.register_formula(state, op, args)
-                elif op in ("load", "load8", "lea"):
-                    dst, base, disp = args
-                    address = z.simplify(regs[base] + self.value(disp))
-                    regs[dst] = (address if op == "lea" else self.memory(state, address, 8) if op == "load"
-                                 else z.ZeroExt(56, self.memory(state, address, 1)))
-                elif op in ("store", "store8"):
-                    base, disp, src = args
-                    self.memory(state, z.simplify(regs[base] + self.value(disp)), 8 if op == "store" else 1, regs[src])
-                elif op in ("add", "sub", "and", "or", "xor", "cmp", "test"):
-                    self.alu(state, op, args[0], regs[args[1]])
-                elif op == "immediate_alu":
-                    self.alu(state, args[0], args[1], self.value(args[2]))
-                elif op == "push":
-                    value = regs[args[0]]
-                    regs[4] = z.simplify(regs[4] - self.value(8))
-                    self.memory(state, regs[4], 8, value)
-                elif op in ("pop", "leave"):
-                    register = args[0] if op == "pop" else 5
-                    if op == "leave":
-                        regs[4] = regs[5]
-                    value = self.memory(state, regs[4], 8)
-                    regs[4] = z.simplify(regs[4] + self.value(8))
-                    regs[register] = value
-                elif op == "call":
-                    self.abi_faults.append(z.And(state.path, (regs[4] & self.value(15)) != 0))
-                    target = self.calls[state.pc]
-                    # CALL writes its return address before entering either a
-                    # local function or a nonreturning external one.  Modelling
-                    # abort as terminal must not erase this stack memory access.
-                    regs[4] = z.simplify(regs[4] - self.value(8))
-                    self.memory(state, regs[4], 8, self.codebase + self.value(nextpc))
-                    if target == "abort":
-                        self.outcomes.append(dict(kind="abort", path=state.path, value=self.value(0), memory=state.memory))
-                        break
-                    state.pc = target
-                    continue
-                elif op == "ret":
-                    address = z.simplify(self.memory(state, regs[4], 8))
-                    regs[4] = z.simplify(regs[4] + self.value(8))
-                    if z.eq(address, self.return_address):
-                        restored = z.And(regs[4] == self.sp + self.value(8),
-                                         *[regs[r] == self.initial[r] for r in (3, 5, 12, 13, 14, 15)])
-                        self.abi_faults.append(z.And(state.path, z.Not(restored)))
-                        self.outcomes.append(dict(kind="return", path=state.path, value=regs[0], memory=state.memory))
-                        break
-                    displacement = z.simplify(address - self.codebase)
-                    if not z.is_bv_value(displacement) or displacement.as_long() not in self.code:
-                        self.faults.append(state.path)
-                        break
-                    state.pc = displacement.as_long()
-                    continue
-                elif op == "jmp":
-                    state.pc = args[0]
-                    continue
-                elif op == "jcc":
-                    condition = self.condition(state, args[0])
-                    pending.append(state.fork(args[1], z.simplify(z.And(state.path, condition))))
-                    state.path = z.simplify(z.And(state.path, z.Not(condition)))
-                elif op == "ud2":
-                    self.faults.append(state.path)
+                finished, fork = self._instruction_step(state)
+                if fork is not None:
+                    pending.append(fork)
+                if finished:
                     break
-                elif op != "nop":
-                    raise SafeCoreMachineRejected("instruction has no reviewed semantics")
-                state.pc = nextpc
-        return self.outcomes
+
+    def _native_schedule(self, initial):
+        from .hia_safe_core_x64_decode_native import MAX_INSTRUCTIONS, SCHEDULER_LIVE
+
+        scheduler = self.native_model.scheduler()
+        # The decoder supplied the complete immutable PC inventory; Python
+        # only looks up its ordinal for the HIA-owned path visit bitmap.
+        ordinals = {pc: index for index, pc in enumerate(self.code)}
+        states = {1: initial}
+        last_handle = 1
+        action, handle, steps = scheduler.start(last_handle)
+        while action:
+            state = states[handle]
+            if action == SCHEDULER_LIVE:
+                if self._path_live(state):
+                    self.t.check_time()
+                    action, handle, steps = scheduler.observed(True, ordinals.get(state.pc, MAX_INSTRUCTIONS))
+                else:
+                    del states[handle]
+                    action, handle, steps = scheduler.observed(False)
+            else:
+                self.steps = steps
+                finished, fork = self._instruction_step(state)
+                fork_handle = 0
+                if fork is not None:
+                    last_handle += 1
+                    states[last_handle] = fork
+                    fork_handle = last_handle
+                if finished:
+                    del states[handle]
+                action, handle, steps = scheduler.advance(finished, fork_handle)
+
+    def _instruction_step(self, state):
+        z = self.z
+        fork = None
+        instruction = self.code[state.pc]
+        op, args, nextpc = instruction.op, instruction.args, state.pc + instruction.size
+        regs = state.registers
+        if op == "imm":
+            regs[args[0]] = self.value(args[1])
+        elif op == "mov":
+            regs[args[0]] = regs[args[1]]
+        elif op in ("cmovne", "imul", "not", "shl", "shr", "setcc"):
+            self.register_formula(state, op, args)
+        elif op in ("load", "load8", "lea"):
+            dst, base, disp = args
+            address = z.simplify(regs[base] + self.value(disp))
+            regs[dst] = (address if op == "lea" else self.memory(state, address, 8) if op == "load"
+                         else z.ZeroExt(56, self.memory(state, address, 1)))
+        elif op in ("store", "store8"):
+            base, disp, src = args
+            self.memory(state, z.simplify(regs[base] + self.value(disp)), 8 if op == "store" else 1, regs[src])
+        elif op in ("add", "sub", "and", "or", "xor", "cmp", "test"):
+            self.alu(state, op, args[0], regs[args[1]])
+        elif op == "immediate_alu":
+            self.alu(state, args[0], args[1], self.value(args[2]))
+        elif op == "push":
+            value = regs[args[0]]
+            regs[4] = z.simplify(regs[4] - self.value(8))
+            self.memory(state, regs[4], 8, value)
+        elif op in ("pop", "leave"):
+            register = args[0] if op == "pop" else 5
+            if op == "leave":
+                regs[4] = regs[5]
+            value = self.memory(state, regs[4], 8)
+            regs[4] = z.simplify(regs[4] + self.value(8))
+            regs[register] = value
+        elif op == "call":
+            self.abi_faults.append(z.And(state.path, (regs[4] & self.value(15)) != 0))
+            target = self.calls[state.pc]
+            # CALL writes its return address before entering either a
+            # local function or a nonreturning external one.  Modelling
+            # abort as terminal must not erase this stack memory access.
+            regs[4] = z.simplify(regs[4] - self.value(8))
+            self.memory(state, regs[4], 8, self.codebase + self.value(nextpc))
+            if target == "abort":
+                self.outcomes.append(dict(kind="abort", path=state.path, value=self.value(0), memory=state.memory))
+                return True, None
+            state.pc = target
+            return False, None
+        elif op == "ret":
+            address = z.simplify(self.memory(state, regs[4], 8))
+            regs[4] = z.simplify(regs[4] + self.value(8))
+            if z.eq(address, self.return_address):
+                restored = z.And(regs[4] == self.sp + self.value(8),
+                                 *[regs[r] == self.initial[r] for r in (3, 5, 12, 13, 14, 15)])
+                self.abi_faults.append(z.And(state.path, z.Not(restored)))
+                self.outcomes.append(dict(kind="return", path=state.path, value=regs[0], memory=state.memory))
+                return True, None
+            displacement = z.simplify(address - self.codebase)
+            if not z.is_bv_value(displacement) or displacement.as_long() not in self.code:
+                self.faults.append(state.path)
+                return True, None
+            state.pc = displacement.as_long()
+            return False, None
+        elif op == "jmp":
+            state.pc = args[0]
+            return False, None
+        elif op == "jcc":
+            condition = self.condition(state, args[0])
+            fork = state.fork(args[1], z.simplify(z.And(state.path, condition)))
+            state.path = z.simplify(z.And(state.path, z.Not(condition)))
+        elif op == "ud2":
+            self.faults.append(state.path)
+            return True, None
+        elif op != "nop":
+            raise SafeCoreMachineRejected("instruction has no reviewed semantics")
+        state.pc = nextpc
+        return False, fork
