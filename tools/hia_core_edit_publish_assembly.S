@@ -378,6 +378,9 @@ select_publication:
  mov esi,SCRATCH_N
  call release
  mov rbp,r14
+ # Capture the destination observation before creating parents or files.
+ # The HIA publication program decides whether it is a public refusal.
+ call observe_destination
  mov esi,4096
  call allocate
  mov [rbp+88],rax
@@ -510,6 +513,44 @@ select_publication:
  mov esi,16384
  call release
  xor edi,edi
+ jmp exit
+observe_destination:
+ sub rsp,8
+observe_destination_retry:
+ mov edi,-100
+ mov rsi,[rbp+16]
+ lea rdx,[rbp+912]
+ mov r10d,256
+ mov eax,262
+ syscall
+ cmp rax,-4
+ je observe_destination_retry
+ mov [rbp+904],rax
+ mov rax,QWORD PTR [rip+destination_observation_magic]
+ mov [rbp+896],rax
+ mov esi,4096
+ call allocate
+ mov [rbp+112],rax
+ xor edi,edi
+ xor esi,esi
+ mov rdx,rax
+ mov ecx,4096
+ lea r8,[rbp+896]
+ mov r9d,16
+ call QWORD PTR [rbp+344]
+ test rax,rax
+ jnz destination_refusal
+ mov rdi,[rbp+112]
+ mov esi,4096
+ call release
+ add rsp,8
+ ret
+destination_refusal:
+ cmp rax,4096
+ ja io_failure
+ mov [rbp+120],rax
+ call write_report
+ mov edi,2
  jmp exit
 hash_payload:
  sub rsp,8
@@ -765,4 +806,5 @@ exit:
  ud2
 sha_initialize: .byte 0
 sha_finalize: .byte 2
+destination_observation_magic: .ascii "HAIAEX01"
 .section .note.GNU-stack,"",@progbits

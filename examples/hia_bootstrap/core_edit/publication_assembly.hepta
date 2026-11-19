@@ -18,7 +18,15 @@ block b3(v19:readbuf,v20:mutbuf,v21:mutbuf)
   v25:u32 = call(v19,v20,v21) {"function":"f1"}
   ret(v25)
 block b4(v22:readbuf,v23:mutbuf,v24:mutbuf)
-  v26:u32 = call(v22,v23,v24) {"function":"f26"}
+  probe_size:usize = buffer.len(v24)
+  expected_probe_size:usize = const() {"value":16}
+  is_observation:bool = compare.eq(probe_size,expected_probe_size)
+  branch is_observation destination_probe(v23,v24) roundtrip(v22,v23,v24)
+block destination_probe(output:mutbuf,observation:mutbuf)
+  diagnostic_size:u32 = call(output,observation) {"function":"render_output_observation"}
+  ret(diagnostic_size)
+block roundtrip(input:readbuf,render_output:mutbuf,arena:mutbuf)
+  v26:u32 = call(input,render_output,arena) {"function":"f26"}
   ret(v26)
 end
 fn f1(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
@@ -6375,4 +6383,95 @@ block b25(v161:readbuf,v162:mutbuf,v165:u64,v166:u64)
   v168:u64 = const() {"value":1}
   v169:u64 = int.add.wrap(v166,v168)
   jump b21(v161,v162,v165,v169)
+end
+fn render_output_observation(output:mutbuf,observation:mutbuf) -> (u32) effects(read,write,trap) entry(check)
+block check(output:mutbuf,observation:mutbuf)
+  magic_offset:u64 = const() {"value":0}
+  status_offset:u64 = const() {"value":8}
+  magic:u64 = call(observation,magic_offset) {"function":"f24"}
+  status:u64 = call(observation,status_offset) {"function":"f24"}
+  expected_magic:u64 = const() {"value":3544429961211887944}
+  correct_packet:bool = compare.eq(magic,expected_magic)
+  exists:bool = compare.eq(status,magic_offset)
+  observed:bool = bool.and(correct_packet,exists)
+  size:usize = buffer.len(output)
+  required_size:usize = const() {"value":184}
+  enough_space:bool = compare.ge(size,required_size)
+  emit:bool = bool.and(observed,enough_space)
+  branch emit write(output) no_diagnostic()
+block no_diagnostic()
+  empty:u32 = const() {"value":0}
+  ret(empty)
+block write(report:mutbuf)
+  offset0:u64 = const() {"value":0}
+  word0:u64 = const() {"value":7019251591964265083}
+  written0:u64 = call(report,offset0,word0) {"function":"f25"}
+  offset1:u64 = const() {"value":8}
+  word1:u64 = const() {"value":8314605285929872999}
+  written1:u64 = call(report,offset1,word1) {"function":"f25"}
+  offset2:u64 = const() {"value":16}
+  word2:u64 = const() {"value":2314885437319035426}
+  written2:u64 = call(report,offset2,word2) {"function":"f25"}
+  offset3:u64 = const() {"value":24}
+  word3:u64 = const() {"value":2314885530817035040}
+  written3:u64 = call(report,offset3,word3) {"function":"f25"}
+  offset4:u64 = const() {"value":32}
+  word4:u64 = const() {"value":4189022085447885344}
+  written4:u64 = call(report,offset4,word4) {"function":"f25"}
+  offset5:u64 = const() {"value":40}
+  word5:u64 = const() {"value":6217591214171300384}
+  written5:u64 = call(report,offset5,word5) {"function":"f25"}
+  offset6:u64 = const() {"value":48}
+  word6:u64 = const() {"value":2314885436530643525}
+  written6:u64 = call(report,offset6,word6) {"function":"f25"}
+  offset7:u64 = const() {"value":56}
+  word7:u64 = const() {"value":8319104456081809440}
+  written7:u64 = call(report,offset7,word7) {"function":"f25"}
+  offset8:u64 = const() {"value":64}
+  word8:u64 = const() {"value":4693349195730741089}
+  written8:u64 = call(report,offset8,word8) {"function":"f25"}
+  offset9:u64 = const() {"value":72}
+  word9:u64 = const() {"value":2340020651393643379}
+  written9:u64 = call(report,offset9,word9) {"function":"f25"}
+  offset10:u64 = const() {"value":80}
+  word10:u64 = const() {"value":7863412997135562095}
+  written10:u64 = call(report,offset10,word10) {"function":"f25"}
+  offset11:u64 = const() {"value":88}
+  word11:u64 = const() {"value":6998705293059453813}
+  written11:u64 = call(report,offset11,word11) {"function":"f25"}
+  offset12:u64 = const() {"value":96}
+  word12:u64 = const() {"value":7811887318278958624}
+  written12:u64 = call(report,offset12,word12) {"function":"f25"}
+  offset13:u64 = const() {"value":104}
+  word13:u64 = const() {"value":2314885530450141797}
+  written13:u64 = call(report,offset13,word13) {"function":"f25"}
+  offset14:u64 = const() {"value":112}
+  word14:u64 = const() {"value":7310293721338224672}
+  written14:u64 = call(report,offset14,word14) {"function":"f25"}
+  offset15:u64 = const() {"value":120}
+  word15:u64 = const() {"value":8532476743424948770}
+  written15:u64 = call(report,offset15,word15) {"function":"f25"}
+  offset16:u64 = const() {"value":128}
+  word16:u64 = const() {"value":2314885530449506917}
+  written16:u64 = call(report,offset16,word16) {"function":"f25"}
+  offset17:u64 = const() {"value":136}
+  word17:u64 = const() {"value":2308706537463351933}
+  written17:u64 = call(report,offset17,word17) {"function":"f25"}
+  offset18:u64 = const() {"value":144}
+  word18:u64 = const() {"value":7358945710629134880}
+  written18:u64 = call(report,offset18,word18) {"function":"f25"}
+  offset19:u64 = const() {"value":152}
+  word19:u64 = const() {"value":2314861394265336929}
+  written19:u64 = call(report,offset19,word19) {"function":"f25"}
+  offset20:u64 = const() {"value":160}
+  word20:u64 = const() {"value":2482456962322952994}
+  written20:u64 = call(report,offset20,word20) {"function":"f25"}
+  offset21:u64 = const() {"value":168}
+  word21:u64 = const() {"value":8245935278387241018}
+  written21:u64 = call(report,offset21,word21) {"function":"f25"}
+  offset22:u64 = const() {"value":176}
+  word22:u64 = const() {"value":175966754}
+  written22:u64 = call(report,offset22,word22) {"function":"f25"}
+  length:u32 = const() {"value":180}
+  ret(length)
 end

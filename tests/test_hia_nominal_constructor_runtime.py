@@ -565,6 +565,23 @@ def check_render_assembly(executable, programs, rejected):
                 report['output'] = str(output)
                 assert render(source, '-o', output) == (status, pretty(report), stderr), source
                 assert output.read_bytes() == reference_path.read_bytes() == expected[1]
+                if rendered == 0:
+                    directory = root / 'existing-directory'
+                    link = root / 'existing-link'
+                    dangling = root / 'dangling-link'
+                    missing = root / 'absent-target'
+                    fifo = root / 'existing-fifo'
+                    directory.mkdir()
+                    link.symlink_to(output)
+                    dangling.symlink_to(missing)
+                    os.mkfifo(fifo)
+                    for destination in (output, directory, link, dangling, fifo):
+                        refusal = reference(source, '-o', destination)
+                        assert refusal[0] == 2 and b'Assembly output must be a new file' in refusal[1]
+                        assert render(source, '-o', destination) == refusal, destination
+                    assert output.read_bytes() == expected[1]
+                    assert not missing.exists() and not list(directory.iterdir())
+                    assert link.readlink() == output and dangling.readlink() == missing
                 rendered += 1
         broken = root / 'unverified.hepta'
         broken.write_bytes(rejected)
@@ -573,7 +590,8 @@ def check_render_assembly(executable, programs, rejected):
         assert refused == (2, b'', b'') and not forbidden.parent.exists()
     assert profile_refusals >= 5 and rendered >= 5, (profile_refusals, rendered)
     print(f'{profile_refusals} byte-exact profile refusals and {rendered} rendered/published '
-          'primitive assemblies; unverified nominal input has no profile report or publication')
+          'primitive assemblies; five no-replace diagnostics; unverified nominal input has no '
+          'profile report or publication')
 
 
 def check_publication(executable, programs, rejected):
