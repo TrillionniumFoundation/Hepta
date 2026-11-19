@@ -18,7 +18,7 @@ from hepta.hia_cnf_native import (
     FEEDBACK_BLOCK_LIMIT, FEEDBACK_LAYER_LIMIT, FEEDBACK_OP_LIMIT, FEEDBACK_REPLY,
     FEEDBACK_REQUEST, FEEDBACK_WORKSPACE,
     GRAPH_PROJECTION_REQUEST, CALL_PROJECTION_REQUEST, SCALAR_SUMMARY, PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
-    PROJECTION_WORKSPACE, _CORE_TRAP_TAGS,
+    PROJECT_CALL_RESULT, PROJECTION_WORKSPACE, SUMMARIZED_CALL_INPUTS, TUPLE_SUMMARY, _CORE_TRAP_TAGS,
 )
 from tools.generate_hia_artifact_publication import document
 
@@ -1598,11 +1598,11 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
     origin = 32
     if calls:
         origin = 40
-    if mode < 1 or mode > 4 or inputs > 32 or outputs > 16 or length(s) < origin + 8 * (inputs + outputs):
+    if mode < 1 or mode > 4 or inputs > SUMMARIZED_CALL_INPUTS or outputs > CIRCUIT_RETURNS or length(s) < origin + 8 * (inputs + outputs):
         return TOO_LARGE
     if mode == 2 and outputs + 2 > CIRCUIT_RETURNS:
         return TOO_LARGE
-    if mode == 3 and (calls == False or outputs != 1):
+    if mode == 3 and (calls == False or outputs == 0):
         return TOO_LARGE
     if mode == 4 and (calls or outputs != 1 or read64(s, origin + 8 * inputs) != 1):
         return TOO_LARGE
@@ -1681,19 +1681,32 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
 
 def write_scalar_summary(s:readbuf, o:mutbuf, w:mutbuf, nodes:u64, inputs:u64, origin:u64) -> u64:
     at = 32 + 40 * nodes
-    write64(o, 0, SCALAR_SUMMARY)
+    outputs = read_stack(w, 24)
     write64(o, 8, nodes)
     write64(o, 16, inputs)
-    write64(o, 24, read64(s, origin + 8 * inputs))
     write64(o, at, read_stack(w, 64))      # known outcome
     write64(o, at + 8, read_stack(w, 80))  # normal return
     write64(o, at + 16, read_stack(w, 56)) # selected first trap tag
-    write64(o, at + 24, read_stack(w, 128))
+    types = at + 32
+    if outputs == 1:
+        write64(o, 0, SCALAR_SUMMARY)
+        write64(o, 24, read64(s, origin + 8 * inputs))
+        write64(o, at + 24, read_stack(w, 128))
+    else:
+        write64(o, 0, TUPLE_SUMMARY)
+        write64(o, 24, outputs)
+        types = at + 24
+        index = 0
+        while index < outputs:
+            write64(o, types, read64(s, origin + 8 * (inputs + index)))
+            write64(o, types + 8, read_stack(w, 128 + 8 * index))
+            types = types + 16
+            index = index + 1
     i = 0
     while i < inputs:
-        write64(o, at + 32 + 8 * i, read64(s, origin + 8 * i))
+        write64(o, types + 8 * i, read64(s, origin + 8 * i))
         i = i + 1
-    return at + 32 + 8 * inputs
+    return types + 8 * inputs
 
 def p_width(typ:u64) -> u64:
     bits = typ & 127
@@ -1867,9 +1880,10 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
     cursor = row + 64 + 8 * params
     i = 0
     while i < ops:
-        if p_operation(s, o, w, cursor + 48 * i) == 0:
+        consumed = p_operation(s, o, w, cursor + 48 * i, ops - i)
+        if consumed == 0:
             return 0
-        i = i + 1
+        i = i + consumed
     cursor = cursor + 48 * ops
     reach = p_flush_faults(o, w)
     mode = read_stack(w, 8)
@@ -1949,46 +1963,80 @@ def p_trap_tag(o:mutbuf, w:mutbuf, reach:u64, tag:u64) -> u64:
     p_complete(o, w, reach)
     return write64(w, 56, p_node(o, w, 11, 8, reach, tag, read_stack(w, 56)))
 
-def p_call(s:readbuf, o:mutbuf, w:mutbuf, instruction:u64, typ:u64) -> u64:
+def p_call(s:readbuf, o:mutbuf, w:mutbuf, instruction:u64, typ:u64, remaining:u64) -> u64:
     summary = read64(s, instruction + 16)
     arguments = read64(s, instruction + 24)
     argc = read64(s, instruction + 32)
+    output_count = read64(s, instruction + 40)
     tail = read_stack(w, 120)
     if summary < tail or summary > length(s) or length(s) - summary < 64:
         return 0
-    if arguments < tail or arguments > length(s) or argc > 32 or argc * 8 > length(s) - arguments:
-        return 0
-    if read64(s, summary) != SCALAR_SUMMARY or read64(s, summary + 16) != argc or read64(s, summary + 24) != typ:
+    if arguments < tail or arguments > length(s) or argc > SUMMARIZED_CALL_INPUTS or argc * 8 > length(s) - arguments:
         return 0
     count = read64(s, summary + 8)
-    if count < argc or count > CIRCUIT_NODES or 64 + 40 * count + 8 * argc > length(s) - summary:
-        return 0
-    if p_rebind_summary(s, o, w, summary, arguments, argc, count) == 0:
+    if count < argc or count > CIRCUIT_NODES or read64(s, summary + 16) != argc:
         return 0
     end = summary + 32 + 40 * count
+    table = end + 32
+    if output_count == 0:
+        if read64(s, summary) != SCALAR_SUMMARY or read64(s, summary + 24) != typ:
+            return 0
+    else:
+        if output_count < 2 or output_count > CIRCUIT_RETURNS or output_count > remaining:
+            return 0
+        if read64(s, summary) != TUPLE_SUMMARY or read64(s, summary + 24) != output_count:
+            return 0
+        table = end + 24 + 16 * output_count
+    if table > length(s) or 8 * argc > length(s) - table:
+        return 0
+    if p_rebind_summary(s, o, w, summary, arguments, argc, count, table) == 0:
+        return 0
     known = p_summary_result(s, w, summary, read64(s, end), 1)
     normal = p_summary_result(s, w, summary, read64(s, end + 8), 1)
     tag = p_summary_result(s, w, summary, read64(s, end + 16), 8)
-    value = p_summary_result(s, w, summary, read64(s, end + 24), p_width(typ))
-    if known == 65535 or normal == 65535 or tag == 65535 or value == 65535:
+    if known == 65535 or normal == 65535 or tag == 65535:
         return 0
-    # Commit earlier caller traps before applying the callee at the actual
-    # call site. Only normal callee returns reach later caller operations.
+    # Commit earlier caller traps once. Only normal callee returns reach
+    # later operations, regardless of the number of result bindings.
     reached = p_flush_faults(o, w)
     if read_stack(w, 8) != 1:
         failed = p_logic(o, w, 3, known, p_logic(o, w, 6, normal, 0))
         p_trap_tag(o, w, p_logic(o, w, 3, reached, failed), tag)
     write64(w, 112, p_logic(o, w, 3, reached, normal))
-    return p_bind(w, typ, value)
+    if output_count == 0:
+        value = p_summary_result(s, w, summary, read64(s, end + 24), p_width(typ))
+        if value == 65535:
+            return 0
+        return p_bind(w, typ, value)
+    return p_bind_call_tuple(s, w, instruction, summary, end + 24, output_count)
+
+def p_bind_call_tuple(s:readbuf, w:mutbuf, instruction:u64, summary:u64, results:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        row = instruction + 48 * index
+        if index != 0:
+            if read64(s, row) != PROJECT_CALL_RESULT:
+                return 0
+            if (read64(s, row + 16) | read64(s, row + 24) | read64(s, row + 32) | read64(s, row + 40)) != 0:
+                return 0
+        typ = read64(s, row + 8)
+        width = p_width(typ)
+        if width == 0 or read64(s, results + 16 * index) != typ:
+            return 0
+        node = p_summary_result(s, w, summary, read64(s, results + 16 * index + 8), width)
+        if node == 65535:
+            return 0
+        p_bind(w, typ, node)
+        index = index + 1
+    return count
 
 def p_summary_result(s:readbuf, w:mutbuf, summary:u64, node:u64, width:u64) -> u64:
     if node >= read64(s, summary + 8) or read64(s, summary + 40 + 40 * node) != width:
         return 65535
     return read_stack(w, 270336 + 8 * node)
 
-def p_rebind_summary(s:readbuf, o:mutbuf, w:mutbuf, summary:u64, arguments:u64, argc:u64, count:u64) -> u64:
+def p_rebind_summary(s:readbuf, o:mutbuf, w:mutbuf, summary:u64, arguments:u64, argc:u64, count:u64, types:u64) -> u64:
     index = 0
-    types = summary + 64 + 40 * count
     while index < argc:
         value = p_var(w, read64(s, arguments + 8 * index))
         typ = read64(s, types + 8 * index)
@@ -2059,14 +2107,14 @@ def p_edge(s:readbuf, o:mutbuf, w:mutbuf, target:u64, extent:u64, cursor:u64, ar
     write64(w, 1536 + 8 * target, merge)
     return 1
 
-def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
+def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64, remaining:u64) -> u64:
     role = read64(s, row)
     typ = read64(s, row + 8)
     width = p_width(typ)
     if width == 0:
         return 0
     if role == PROJECT_DIRECT_CALL:
-        return p_call(s, o, w, row, typ)
+        return p_call(s, o, w, row, typ, remaining)
     if role == 2:
         literal = read64(s, row + 40) & word_mask(width)
         return p_bind(w, typ, p_node(o, w, 2, width, 0, 0, literal))
@@ -2382,7 +2430,7 @@ def source_program():
                      PROJECT_CHECKED_DIV=PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM=PROJECT_CHECKED_REM,
                      PROJECT_CHECKED_CAST=PROJECT_CHECKED_CAST,
                      PROJECT_CHECKED_MUL=PROJECT_CHECKED_MUL,
-                     PROJECT_DIRECT_CALL=PROJECT_DIRECT_CALL,
+                     PROJECT_DIRECT_CALL=PROJECT_DIRECT_CALL, PROJECT_CALL_RESULT=PROJECT_CALL_RESULT,
                      WORD_UNSIGNED_DIV=WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM=WORD_UNSIGNED_REM,
                      WORD_PRODUCT_EXCEEDS=WORD_PRODUCT_EXCEEDS,
                      CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,
@@ -2393,6 +2441,7 @@ def source_program():
                      WORD_TABLE_WORK_LIMIT=WORD_TABLE_WORK_LIMIT,
                      GRAPH_PROJECTION_REQUEST=GRAPH_PROJECTION_REQUEST,
                      CALL_PROJECTION_REQUEST=CALL_PROJECTION_REQUEST, SCALAR_SUMMARY=SCALAR_SUMMARY,
+                     TUPLE_SUMMARY=TUPLE_SUMMARY, SUMMARIZED_CALL_INPUTS=SUMMARIZED_CALL_INPUTS,
                      FEEDBACK_REQUEST=FEEDBACK_REQUEST, FEEDBACK_REPLY=FEEDBACK_REPLY,
                      FEEDBACK_BLOCK_LIMIT=FEEDBACK_BLOCK_LIMIT, FEEDBACK_OP_LIMIT=FEEDBACK_OP_LIMIT,
                      FEEDBACK_LAYER_LIMIT=FEEDBACK_LAYER_LIMIT, FEEDBACK_WORKSPACE=FEEDBACK_WORKSPACE,

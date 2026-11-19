@@ -53,6 +53,7 @@ WORD_TABLE_WORK_LIMIT = 32 * 1024 * 1024
 GRAPH_PROJECTION_REQUEST = int.from_bytes(b'HIABVP01', 'little')
 CALL_PROJECTION_REQUEST = int.from_bytes(b'HIABVP02', 'little')
 SCALAR_SUMMARY = int.from_bytes(b'HIABVS01', 'little')
+TUPLE_SUMMARY = int.from_bytes(b'HIABVS02', 'little')
 FEEDBACK_REQUEST = int.from_bytes(b'HIABVF01', 'little')
 FEEDBACK_REPLY = int.from_bytes(b'HIABFR01', 'little')
 FEEDBACK_BLOCK_LIMIT = 128
@@ -66,7 +67,8 @@ CIRCUIT_GATE_SLOTS = 8192
 CIRCUIT_GATES_OFFSET = 32 + CIRCUIT_NODES * 128
 CIRCUIT_DIVISION_TEMP = CIRCUIT_GATES_OFFSET + 8 * CIRCUIT_GATE_SLOTS
 CIRCUIT_WORKSPACE = CIRCUIT_DIVISION_TEMP + 256
-PROJECTION_OUTPUT = 64 + 40 * CIRCUIT_NODES + 16 * CIRCUIT_RETURNS
+SUMMARIZED_CALL_INPUTS = 32
+PROJECTION_OUTPUT = 56 + 40 * CIRCUIT_NODES + 16 * CIRCUIT_RETURNS + 8 * SUMMARIZED_CALL_INPUTS
 PROJECTION_WORKSPACE = 294912
 PROJECTION_INPUT_LIMIT = 131072
 UNKNOWN, SAT, UNSAT = range(3)
@@ -78,6 +80,7 @@ PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM = 36, 37
 PROJECT_CHECKED_CAST = 38
 PROJECT_CHECKED_MUL = 39
 PROJECT_DIRECT_CALL = 40
+PROJECT_CALL_RESULT = 41
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_TRAP_TAGS = {code: index for index, code in enumerate(sorted(TRAP_CODES), 1)}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
@@ -286,7 +289,7 @@ class NativeCnf(NativeHiaJsonImage):
                     (function,), (graph,), totality=False, summaries=(compiled,), summarize=True))
                 if raw is None:
                     return None
-                if struct.unpack_from('<Q', raw)[0] != SCALAR_SUMMARY:
+                if struct.unpack_from('<Q', raw)[0] not in (SCALAR_SUMMARY, TUPLE_SUMMARY):
                     raise RuntimeError('invalid HIA scalar callee summary')
                 compiled[callee] = raw
         circuit = self.project_scalar_graphs(roots, graphs, totality=totality, summaries=bindings)
@@ -360,7 +363,8 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
     """
     parameters = functions[0]['params']
     returns = functions[0]['returns']
-    if summarize and len(returns) != 1 or not totality and len(returns) + 2 > CIRCUIT_RETURNS:
+    if (summarize and not 1 <= len(returns) <= CIRCUIT_RETURNS
+            or not (totality or summarize) and len(returns) + 2 > CIRCUIT_RETURNS):
         return None
     magic = GRAPH_PROJECTION_REQUEST if summaries is None else CALL_PROJECTION_REQUEST
     mode = 4 if bound_marker else 3 if summarize else 1 if totality else 2
@@ -378,7 +382,8 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
         buffer.extend(struct.pack('<3Q', 0, len(order), indexes[function['entry']]))
         for name in order:
             block = blocks[name]
-            bound = len(block['params']) + len(block['ops'])
+            operation_rows = sum(len(op['out']) for op in block['ops'])
+            bound = len(block['params']) + operation_rows
             if bound > CIRCUIT_NODES:
                 return None
             term = block['term']
@@ -387,18 +392,25 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
             buffer.extend(bytes(64))
             slots = {item['name']: index for index, item in enumerate(block['params'])}
             buffer.extend(b''.join(struct.pack('<Q', _word_type(item['type'])) for item in block['params']))
-            for index, op in enumerate(block['ops'], len(slots)):
-                result, = op['out']
-                role = _GRAPH_OPERATIONS.get(op['op'], 0)
-                if op['op'] == 'int.cast' and op['attrs']['mode'] == 'checked':
-                    role = PROJECT_CHECKED_CAST
-                slots[result['name']] = index
+            for op in block['ops']:
                 operands = [slots[argument] for argument in op['args']]
+                outputs = op['out']
+                for result in outputs:
+                    slots[result['name']] = len(slots)
                 if op['op'] == 'call' and available is not None:
                     summary = available[op['attrs']['function']]
                     calls.append((len(buffer), operands, summary))
-                    buffer.extend(struct.pack('<6Q', PROJECT_DIRECT_CALL, _word_type(result['type']), 0, 0, 0, 0))
+                    count = len(outputs) if len(outputs) != 1 else 0  # v1 scalar summary uses a zero count.
+                    buffer.extend(struct.pack('<6Q', PROJECT_DIRECT_CALL, _word_type(outputs[0]['type']),
+                                              0, 0, 0, count))
+                    for result in outputs[1:]:
+                        buffer.extend(struct.pack('<6Q', PROJECT_CALL_RESULT, _word_type(result['type']),
+                                                  0, 0, 0, 0))
                     continue
+                result, = outputs
+                role = _GRAPH_OPERATIONS.get(op['op'], 0)
+                if op['op'] == 'int.cast' and op['attrs']['mode'] == 'checked':
+                    role = PROJECT_CHECKED_CAST
                 operands.extend([0] * (3 - len(operands)))
                 literal = op['attrs'].get('value', 0)
                 buffer.extend(struct.pack('<6Q', role, _word_type(result['type']),
@@ -406,7 +418,7 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
             edges = ((term['then'], term['else']) if kind == 4 else (term,) if kind == 3 else ())
             control = (slots[term['cond']] if kind == 4
                        else _CORE_TRAP_TAGS[term['code']] if kind == 2 else 0)
-            row = [len(block['params']), len(block['ops']), kind, control, 0, 0, 0, 0]
+            row = [len(block['params']), operation_rows, kind, control, 0, 0, 0, 0]
             if kind == 1:
                 row[5] = len(term['values'])
                 for value in term['values']:

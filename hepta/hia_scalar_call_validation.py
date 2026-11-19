@@ -20,7 +20,7 @@ from .hia_scalar_proof_contract import (
 from .hia_program import HIAProgramRejected, verify_program
 from .hia_program_runtime import HIAProgramTrap, execute_program
 from .hia_translation_validation import (
-    QUALIFIED_CORE_SCHEMAS, _Encoder, _OutsideProfile, _TRAP_TAGS, _profile,
+    MAX_RETURNS, QUALIFIED_CORE_SCHEMAS, _Encoder, _OutsideProfile, _TRAP_TAGS, _profile,
     _signature, _z3_module,
 )
 
@@ -45,21 +45,25 @@ def _closure(document, function):
         if len(graphs) + len(active) >= MAX_FUNCTIONS:
             raise _OutsideProfile("call_function_budget_exceeded")
         fn = functions[name]
-        if len(fn["returns"]) != 1:
-            raise _OutsideProfile("one_scalar_call_result_required")
+        if not 1 <= len(fn["returns"]) <= MAX_RETURNS:
+            raise _OutsideProfile("bounded_scalar_call_results_required")
         blocks += len(fn["blocks"])
         operations += sum(len(b["ops"]) for b in fn["blocks"])
         if blocks > MAX_BLOCKS or operations > MAX_OPERATIONS:
             raise _OutsideProfile("call_closure_program_budget_exceeded")
         shape, callees = copy.deepcopy(fn), []
         for block in shape["blocks"]:
+            operations = []
             for op in block["ops"]:
-                if op["op"] == "call":
-                    if len(op["out"]) != 1:
-                        raise _OutsideProfile("one_scalar_call_result_required")
-                    callees.append(op["attrs"]["function"])
-                    typ = op["out"][0]["type"]
-                    op.update(op="const", args=[], attrs={"value": None if typ == "unit" else False if typ == "bool" else 0})
+                if op["op"] != "call":
+                    operations.append(op)
+                    continue
+                callees.append(op["attrs"]["function"])
+                for result in op["out"]:
+                    typ = result["type"]
+                    literal = None if typ == "unit" else False if typ == "bool" else 0
+                    operations.append({"op": "const", "args": [], "out": [result], "attrs": {"value": literal}})
+            block["ops"] = operations
         # Only the graph/type/effect check uses a call-shaped placeholder.  The
         # encoder below reads the ORIGINAL blocks and actual callees, never it.
         _, order = _profile(shape)
@@ -92,10 +96,11 @@ class _Calls(_Encoder):
         tag, values = self.function(callee, [env[name] for name in op["args"]],
                                     *self.graphs[callee["name"]])
         self.incomplete.append(tag < 0)
-        # The callee produces ONE already ordered first-trap tag.  These
+        # The callee produces one already ordered first-trap tag.  These
         # mutually exclusive conditions enter the caller at the call's exact
         # position; later caller operations remain unreachable after any trap.
-        return values[0], [(code, tag == value) for code, value in sorted(_TRAP_TAGS.items())]
+        result = values[0] if len(values) == 1 else values
+        return result, [(code, tag == value) for code, value in sorted(_TRAP_TAGS.items())]
 
 
 def _observe(program, function, arguments):

@@ -130,6 +130,49 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(trapped["counterexample"]["arguments"], [-(1 << 63), -1])
         self.assertEqual(trapped["counterexample"]["observation"], {"status": "trapped", "code": "overflow"})
 
+    def test_nested_mixed_call_results_keep_every_value_and_the_callee_trap(self):
+        import copy
+
+        from hepta.hia_scalar_call_validation import inline_scalar_calls, validate_scalar_calls
+        from hepta.hia_scalar_totality import validate_scalar_call_totality
+        from tests.test_hia_program import b, c, f, i, m, ret
+
+        params = [('x', 'i8')]
+        returns = ['i8', 'bool']
+        pair = f('pair', params, returns, ['trap'], [b('p', params, [
+            c('zero', 'i8', 0),
+            i('int.neg.checked', ['x'], [('negated', 'i8')]),
+            i('compare.lt', ['x', 'zero'], [('negative', 'bool')]),
+        ], ret('negated', 'negative'))])
+        middle = f('middle', params, returns, ['trap'], [b('m', params, [
+            i('call', ['x'], [('r', 'i8'), ('sign', 'bool')], function='pair'),
+        ], ret('r', 'sign'))])
+        caller = f('calculate', params, returns, ['trap'], [b('entry', params, [
+            i('call', ['x'], [('r', 'i8'), ('sign', 'bool')], function='middle'),
+        ], ret('r', 'sign'))])
+        source = m(caller, middle, pair)
+        source['exports'] = ['calculate']
+        proposed = inline_scalar_calls(source, function='calculate')
+        changed = copy.deepcopy(source)
+        block = changed['functions'][2]['blocks'][0]
+        block['ops'][-1]['op'] = 'compare.ge'
+
+        with (patch('hepta.hia_scalar_call_validation._z3_module', side_effect=AssertionError('host solver used')),
+              patch('hepta.hia_translation_validation._z3_module', side_effect=AssertionError('host solver used'))):
+            equivalent = validate_scalar_calls(source, proposed, function='calculate')
+            different = validate_scalar_calls(source, changed, function='calculate')
+            total = validate_scalar_call_totality(source, function='calculate')
+
+        self.assertEqual(equivalent['status'], 'proved', equivalent)
+        self.assertEqual(equivalent['call_expansions'], [3, 1])
+        self.assertEqual(different['status'], 'disproved', different)
+        witness = different['counterexample']
+        self.assertEqual(witness['before']['values'][0], witness['after']['values'][0])
+        self.assertNotEqual(witness['before']['values'][1], witness['after']['values'][1])
+        self.assertEqual(total['status'], 'disproved', total)
+        self.assertEqual(total['counterexample']['arguments'], [-128])
+        self.assertEqual(total['counterexample']['observation'], {'status':'trapped', 'code':'overflow'})
+
     def test_feedback_bound_and_candidate_have_separate_native_checks(self):
         from hepta.hia_scalar_proof_contract import CIRCUIT_BOUND_CHECKER, CIRCUIT_TRANSLATION_CHECKER
         from tests.test_hia_bounded_unroll import candidate, counted, proof

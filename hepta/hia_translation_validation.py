@@ -348,8 +348,10 @@ class _Encoder:
                 for code, condition in traps:
                     trapped, guard = self.split(guard, condition)
                     outcomes.append((trapped, _TRAP_TAGS[code], None))
-                output = op["out"][0]
-                env[output["name"]], types[output["name"]] = value, output["type"]
+                outputs = op["out"]
+                returned = (value,) if len(outputs) == 1 else value
+                for output, item in zip(outputs, returned, strict=True):
+                    env[output["name"]], types[output["name"]] = item, output["type"]
             term = block["term"]
             if term["op"] == "ret":
                 outcomes.append((guard, 0, [env[name] for name in term["values"]]))

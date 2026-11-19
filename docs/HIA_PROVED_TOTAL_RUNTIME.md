@@ -87,7 +87,7 @@ continue to reject calls.
 
 The selected primitive v1-v7 call closure must have acyclic CFGs and an acyclic
 direct-call graph, at most 16 functions, 32 blocks, 512 operations and 32
-symbolic call expansions. Each function has one scalar result. Loops,
+symbolic call expansions. Each function has a bounded ordered list of scalar results. Loops,
 recursion, resources, foreign effects and other schema versions are outside
 this profile. The finite-width query covers every typed input of the selected
 function. Other public functions and other programs accepted by the profile
