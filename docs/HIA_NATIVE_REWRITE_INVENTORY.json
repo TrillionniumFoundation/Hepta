@@ -2282,7 +2282,7 @@
       "bytes": 215387,
       "kind": ".json",
       "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-      "sha256": "acf2b18ce9ad05bafea190e33981f796c4aeb700536d40f0931c5eb6d6a78d12"
+      "sha256": "f9808389ce57048cef2cf124b5f3271decf2cc31fc735ca53b6a1bacfe08a0bb"
     },
     {
       "bytes": 176641,
@@ -14742,10 +14742,10 @@
       "sha256": "fd661d5f427b48b4706c007463b3366f52cd1c2e33459132923722d38262bccf"
     },
     {
-      "bytes": 6007,
+      "bytes": 6388,
       "kind": ".py",
       "path": "tools/build_hia_agent_read_page.py",
-      "sha256": "99f38895d2465b75c9f7d2d444b22c39f508fc4adcd6c4ab390701e27399d926"
+      "sha256": "0b9d6532ab8de6e5fdd9b0a213bba288c0739d562a1a9845fcbaa3e99e2fba70"
     },
     {
       "bytes": 3921,
@@ -17604,8 +17604,8 @@
       "sha256": "c4001e492c1694f6e74ba7ac4317776ec70e6e1b640ee863741ac55a300532be"
     }
   ],
-  "git_head": "4a0bd603a1b8b8414d6b227b5763883c1de1b0c1",
-  "git_head_tree": "dbdcb2fb5355cff232e6f1f6148392fb98cc973a",
+  "git_head": "9a791400fca56f44ba22eb2e9359a1eb7a606cc6",
+  "git_head_tree": "efc6c92fe54fcd8eb639e3e455d6fef22633414d",
   "hosted_tools": [
     {
       "imports": [
@@ -18138,8 +18138,11 @@
         "__future__",
         "__future__.annotations",
         "argparse",
+        "ctypes",
         "hashlib",
         "hashlib.sha256",
+        "hepta.hia_json_preflight_native",
+        "hepta.hia_json_preflight_native.NativeHiaJsonImage",
         "json",
         "pathlib",
         "pathlib.Path",
@@ -18154,16 +18157,17 @@
         "tools.build_hia_sqlite_pager.embed",
         "tools.build_hia_sqlite_pager.link",
         "tools.generate_hia_mcp_stdio_packer",
+        "tools.generate_hia_mcp_stdio_packer.DESCRIPTORS",
         "tools.generate_hia_mcp_stdio_packer.MAGIC",
         "tools.generate_hia_mcp_stdio_packer.MODES",
         "tools.generate_hia_mcp_stdio_packer.SOURCE",
+        "tools.generate_hia_mcp_stdio_packer.template",
         "tools.qualify_hia_selfhost",
         "tools.qualify_hia_selfhost.compile_stage",
-        "tools.qualify_hia_selfhost.invoke",
         "tools.qualify_hia_selfhost_cli",
         "tools.qualify_hia_selfhost_cli.inspect_executable"
       ],
-      "lines": 110,
+      "lines": 118,
       "literal_hia_paths": [
         ".hepta",
         "examples/hia_bootstrap/elf_static_linker.hepta"
@@ -35710,14 +35714,8 @@
     }
   ],
   "index_vs_head_changed_paths": [
-    "MANIFEST.in",
-    "docs/HIA_NATIVE_HELPER_WORKER.md",
     "docs/HIA_SELFHOST_CORE_SUPPORT.json",
-    "examples/hia_bootstrap/mcp_stdio_packer.hepta",
-    "tests/test_hia_mcp_request_native.py",
-    "tools/build_hia_agent_read_page.py",
-    "tools/generate_hia_mcp_stdio_packer.py",
-    "tools/hia_selfhost_contract.py"
+    "tools/build_hia_agent_read_page.py"
   ],
   "package_modules": [
     {
@@ -41787,6 +41785,7 @@
         "tests/test_hia_worker_report_custody.py",
         "tests/test_hia_worker_report_native.py",
         "tests/test_hia_worker_scheduling_bundle.py",
+        "tools/build_hia_agent_read_page.py",
         "tools/build_hia_agent_store.py",
         "tools/build_hia_core_edit.py",
         "tools/build_hia_core_patch_cli.py",

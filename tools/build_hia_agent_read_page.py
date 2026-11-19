@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 from hashlib import sha256
 import json
 from pathlib import Path
 import struct
 
+from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link
 from tools.generate_hia_mcp_stdio_packer import MAGIC as MCP_PACK_MAGIC, MODES as MCP_MODES
+from tools.generate_hia_mcp_stdio_packer import DESCRIPTORS, template
 from tools.generate_hia_mcp_stdio_packer import SOURCE as MCP_PACKER
-from tools.qualify_hia_selfhost import compile_stage, invoke
+from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,20 +35,25 @@ MCP_PACK_CAPACITY = (1 << 20) + 4096
 def pack_mcp(output, compiler, sources, mode, image, pins):
     packer, compiled = compile_stage(output, 'mcp-packer', compiler, sources[MCP_PACKER])
     pins[packer] = packer.read_bytes()
-    if sha256(pins[packer]).hexdigest() != compiled['produced_sha256']:
-        raise ValueError('MCP packer differs from its compiler receipt')
+    program = NativeHiaJsonImage(pins[packer], compiled['produced_sha256'])
     request = struct.pack('<2Q', MCP_PACK_MAGIC, mode) + image
-    receipt, result = invoke(output, 'mcp-pack', packer, request,
-                             capacity=MCP_PACK_CAPACITY, workspace_size=0)
-    count = receipt.get('core_u32')
-    if (receipt.get('status') != 'returned' or receipt.get('abi_status') != 0
-            or type(count) is not int or not len(image) < count <= MCP_PACK_CAPACITY):
-        raise ValueError('native HIA MCP packer refused the image')
-    executable = result[:count]
-    if not executable.endswith(image):
-        raise ValueError('packed MCP kernel differs from the admitted image')
+    input_bytes = ctypes.create_string_buffer(request)
+    result = ctypes.create_string_buffer(MCP_PACK_CAPACITY)
+    count = program._entry(input_bytes, len(request), result, len(result), None, 0)
+
+    prefix, call = template(DESCRIPTORS[mode])
+    expected_size = len(prefix) + len(image)
+    if (count != expected_size or input_bytes.raw != request + b'\0'
+            or any(result.raw[count:])):
+        raise ValueError('native HIA MCP packer refused or changed private bytes')
+    expected = bytearray(prefix)
+    struct.pack_into('<2Q', expected, 96, count, count)
+    struct.pack_into('<i', expected, call, len(prefix) - call - 4)
+    executable = result.raw[:count]
+    if executable[:len(prefix)] != expected or not executable.endswith(image):
+        raise ValueError('packed MCP adapter or kernel differs from the admitted bytes')
     return executable, {'elf': inspect_executable(executable), 'mode': mode,
-                        'packer_compilation': compiled, 'packing': receipt}
+                        'packer_compilation': compiled, 'input_sha256': sha256(request).hexdigest()}
 
 
 def build(output, compiler, cold_report, manifest, *, kind='read-page'):
