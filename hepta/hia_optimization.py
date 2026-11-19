@@ -66,8 +66,7 @@ def checker_identity():
     return digest.hexdigest()
 
 
-def _native_core_unsat(cnf, before, after, deadline):
-    circuit = core_circuit(before, after)
+def _native_core_unsat(cnf, circuit, deadline):
     if circuit is None:
         return None
     remaining = (deadline - time.monotonic_ns()) // 1_000_000
@@ -77,9 +76,38 @@ def _native_core_unsat(cnf, before, after, deadline):
     if result is None or result[0] != UNSAT:
         return None
     _, _, steps, variables, clauses, frame = result
-    return {"method": "native_hia_core_circuit", "image_sha256": cnf.image_sha256,
-            "formula_sha256": sha256(frame[:24] + bytes(8) + frame[32:]).hexdigest(), "variables": variables,
-            "clauses": clauses, "steps": steps}
+    formula = frame[:24] + bytes(8) + frame[32:]
+    return ({"method": "native_hia_core_circuit", "image_sha256": cnf.image_sha256,
+             "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
+             "clauses": clauses, "steps": steps}, formula)
+
+
+def _native_solver_identity(cnf):
+    return {"name": "HIA", "version": "core-circuit-cnf.v2",
+            "binding_sha256": sha256(Path(__file__).with_name("hia_cnf_native.py").read_bytes()).hexdigest(),
+            "library_sha256": cnf.image_sha256}
+
+
+def _native_core_obligations(cnf, left, right, deadline, limit):
+    pairs = [(lf["name"], lb, rb)
+             for lf, rf in zip(left["functions"], right["functions"], strict=True)
+             for lb, rb in zip(lf["blocks"], rf["blocks"], strict=True)]
+    if len(pairs) > limit:
+        return None
+    circuits = [core_circuit(lb, rb) for _, lb, rb in pairs]
+    if any(circuit is None for circuit in circuits):
+        return None
+    obligations = []
+    for (function, lb, _), circuit in zip(pairs, circuits, strict=True):
+        outcome = _native_core_unsat(cnf, circuit, deadline)
+        if outcome is None:
+            return None
+        evidence, formula = outcome
+        obligations.append({"function": function, "block": lb["id"], "segment": 0,
+                            "observed": lb["term"]["values"], "result": "unsat",
+                            "cnf_encoding": "hepta.hia.cnf-sparse-le.v2",
+                            "cnf_frame_hex": formula.hex(), "discharge": evidence})
+    return obligations
 
 
 def _native_unsat(cnf, z3, mismatch, deadline):
@@ -330,6 +358,17 @@ def verify_optimization(base, candidate, policy=None):
         report["verification_sha256"] = _digest(report)
         return report
 
+    def verified():
+        if time.monotonic_ns() >= deadline:
+            return finish("timeout", "verification deadline exhausted before final admission")
+        report["claims"].update(core_scalar_effect_equivalence_checked=True,
+                                all_scalar_inputs_in_declared_widths=True,
+                                cfg_and_resource_protocol_preserved=True)
+        report["resource_delta"].update(allocation_failure_sequence_preserved_under_core_model=True,
+                                        resource_trace_equivalence_checked=True,
+                                        peak_live_bytes_change_under_core_model=0)
+        return finish("verified", "all compositional scalar/effect/trap obligations are UNSAT")
+
     try:
         original, revised = verify_program(base), verify_program(candidate)
     except (HIAProgramRejected, ValueError) as exc:
@@ -351,6 +390,16 @@ def verify_optimization(base, candidate, policy=None):
         return finish("unknown", "scalar verification operation budget exceeded")
     if policy["timeout_ms"] == 0:
         return finish("timeout", "verification deadline exhausted before solving")
+    deadline = started + policy["timeout_ms"] * 1_000_000
+    native_cnf = selected_cnf()
+    if native_cnf is not None:
+        obligations = _native_core_obligations(native_cnf, left, right, deadline, policy["max_obligations"])
+        if obligations is not None:
+            if checker_identity() != report["checker_sha256"]:
+                return finish("unknown", "checker source changed during verification")
+            report["solver"] = _native_solver_identity(native_cnf)
+            report["obligations"] = obligations
+            return verified()
     try:
         import z3
     except ImportError:
@@ -365,8 +414,6 @@ def verify_optimization(base, candidate, policy=None):
     # owns all its ASTs and solver in a separate context, including constants
     # and empty disjunctions. No process-global solver lock is assumed.
     context = z3.Context()
-    native_cnf = selected_cnf()
-    deadline = started + policy["timeout_ms"] * 1_000_000
     for fi, (lf, rf) in enumerate(zip(left["functions"], right["functions"])):
         for bi, (lb, rb) in enumerate(zip(lf["blocks"], rf["blocks"])):
             # Separate namespaces prevent an adversarial parameter such as
@@ -408,7 +455,9 @@ def verify_optimization(base, candidate, policy=None):
                     return finish("timeout", "verification deadline exhausted while encoding")
                 cnf_evidence = None
                 if native_cnf is not None and si == 0 and barrier is None:
-                    cnf_evidence = _native_core_unsat(native_cnf, lb, rb, deadline)
+                    outcome = _native_core_unsat(native_cnf, core_circuit(lb, rb), deadline)
+                    if outcome is not None:
+                        cnf_evidence = outcome[0]
                 if cnf_evidence is None:
                     cnf_evidence = _native_unsat(native_cnf, z3, mismatch, deadline)
                 remaining = (deadline - time.monotonic_ns()) // 1_000_000
@@ -451,15 +500,7 @@ def verify_optimization(base, candidate, policy=None):
             return finish("unknown", "SMT implementation changed during verification")
     except OptimizationRejected as exc:
         return finish("unknown", str(exc))
-    if time.monotonic_ns() >= deadline:
-        return finish("timeout", "verification deadline exhausted before final admission")
-    report["claims"].update(core_scalar_effect_equivalence_checked=True,
-                            all_scalar_inputs_in_declared_widths=True,
-                            cfg_and_resource_protocol_preserved=True)
-    report["resource_delta"].update(allocation_failure_sequence_preserved_under_core_model=True,
-                                    resource_trace_equivalence_checked=True,
-                                    peak_live_bytes_change_under_core_model=0)
-    return finish("verified", "all compositional scalar/effect/trap obligations are UNSAT")
+    return verified()
 
 
 def require_verified(base, candidate, policy=None):
@@ -514,11 +555,19 @@ def build_optimized_native(base, candidate, output, *, policy=None, clang="clang
     destination = Path(output).absolute()
     if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
         raise OptimizationRejected("E_HIA_OPT_OUTPUT: new path in an existing directory required")
-    import z3
+    if verified["solver"]["name"] == "HIA":
+        def solver_identity():
+            cnf = selected_cnf()
+            return None if cnf is None else _native_solver_identity(cnf)
+    else:
+        import z3
+
+        def solver_identity():
+            return _solver_identity(z3)
 
     def recheck():
         if (checker_identity() != verified["checker_sha256"]
-                or _solver_identity(z3) != verified["solver"]):
+                or solver_identity() != verified["solver"]):
             raise OptimizationRejected("E_HIA_OPT_STALE: checker or SMT implementation changed during build")
 
     with tempfile.TemporaryDirectory(prefix=".hia-optimized-", dir=destination.parent) as temporary:

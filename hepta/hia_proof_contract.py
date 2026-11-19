@@ -7,6 +7,7 @@ checkers, the backend, or arbitrary native execution.
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
 import platform
 
 from .hia_agent_store import digest, reject
@@ -231,6 +232,8 @@ def _method(claim, status, subject, evidence):
                          and type(evidence.get("obligations")) is list
                          and all(type(item) is dict and item.get("result") == "unsat" for item in evidence["obligations"]),
                          "compositional proof lacks its identified solver or discharged obligations")
+                if evidence["solver"].get("name") == "HIA":
+                    _native_circuit_scope(evidence)
             return "compositional_scalar_effect"
         _require(False, "unrecognized behavioral equivalence evidence")
     if claim == "lowering_refinement":
@@ -261,9 +264,39 @@ def _method(claim, status, subject, evidence):
     _require(False, "unknown proof property")
 
 
+def _native_circuit_scope(evidence):
+    from .hia_cnf_native import selected_cnf
+    from .hia_optimization import _native_solver_identity, checker_identity
+
+    selected = selected_cnf()
+    _require(selected is not None and evidence["solver"] == _native_solver_identity(selected)
+             and evidence["checker_sha256"] == checker_identity(),
+             "native circuit solver or binding differs from the installation")
+    _require(bool(evidence["obligations"]), "native circuit proof has no discharged obligations")
+    for item in evidence["obligations"]:
+        try:
+            formula = bytes.fromhex(item["cnf_frame_hex"])
+            discharge = item["discharge"]
+        except (KeyError, TypeError, ValueError):
+            _require(False, "native circuit proof lacks its retained formula")
+        _require(type(discharge) is dict
+                 and item.get("cnf_encoding") == "hepta.hia.cnf-sparse-le.v2"
+                 and len(formula) >= 40 and formula[:8] == b"HIACNX02"
+                 and formula[24:32] == bytes(8)
+                 and discharge.get("method") == "native_hia_core_circuit"
+                 and discharge.get("image_sha256") == selected.image_sha256
+                 and discharge.get("formula_sha256") == sha256(formula).hexdigest(),
+                 "native circuit proof formula identity differs")
+
+
 def proof_result(*, claim, status, domain, subject, profile, installation, evidence):
     """Produce a self-contained description, never upgrade checker conclusions."""
     method = _method(claim, status, subject, evidence)
+    solver = evidence.get("solver") if method in {"compositional_scalar_effect", SAFE_CORE_METHOD} else None
+    solver_fields = ("name", "version", "binding_sha256", "library_sha256")
+    _require(solver is None or type(solver) is dict and all(type(solver.get(key)) is str for key in solver_fields),
+             "solver identity is incomplete")
+    solver_identity = None if solver is None else {key: solver[key] for key in solver_fields}
     assumptions = [
         _item("identified_checker_execution", "The identified Python runtime, checker source and hashing implementation execute their specified checks faithfully."),
     ]
@@ -281,10 +314,11 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
     if method == "finite_domain":
         assumptions.append(_item("complete_finite_domain", "The input domain is the complete declared-width domain of the checked pure scalar acyclic functions, limited to 12 input bits and 4096 enumerated cases; the reference interpreter defines the observations."))
     if method == "compositional_scalar_effect":
-        assumptions.extend([
-            _item("structural_correspondence", "The qualified primitive Core v1-v7 profile requires identical signatures, CFG edges and ordered resource/call operations; corresponding effects share the same modeled state."),
-            _item("identified_smt_solver", "When solving is performed, the identified pinned Z3 binding and native library correctly decide the retained bit-vector obligations."),
-        ])
+        assumptions.append(_item("structural_correspondence", "The qualified primitive Core v1-v7 profile requires identical signatures, CFG edges and ordered resource/call operations; corresponding effects share the same modeled state."))
+        if solver is not None and solver["name"] == "HIA":
+            assumptions.append(_item("identified_hia_circuit_solver", "The identified HIA image correctly encodes the admitted pure return circuit and decides each retained Boolean obligation."))
+        else:
+            assumptions.append(_item("identified_smt_solver", "When solving is performed, the identified pinned Z3 binding and native library correctly decide the retained bit-vector obligations."))
         obligations.append(_item("vm_tick_preservation", "VM instruction tick counts and native execution costs are not equivalence observables in this structural profile."))
     if method == "checked_explicit_machine_choices":
         assumptions.extend([
@@ -312,11 +346,6 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
     if status != "proved":
         obligations.append(_item("requested_property", "The requested property is not established; this result is " + status + " and cannot satisfy a required proof."))
 
-    solver = evidence.get("solver") if method in {"compositional_scalar_effect", SAFE_CORE_METHOD} else None
-    solver_fields = ("name", "version", "binding_sha256", "library_sha256")
-    _require(solver is None or type(solver) is dict and all(type(solver.get(key)) is str for key in solver_fields),
-             "solver identity is incomplete")
-    solver_identity = None if solver is None else {key: solver[key] for key in solver_fields}
     return {
         "schema": PROOF_SCHEMA, "claim": claim, "status": status, "domain": domain,
         "subject": deepcopy(subject),

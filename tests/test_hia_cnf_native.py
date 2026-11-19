@@ -1,5 +1,7 @@
 """Check the HIA Boolean solver before and after cold native compilation."""
 
+import builtins
+from hashlib import sha256
 import random
 import struct
 import unittest
@@ -150,7 +152,6 @@ class CnfInstalledTests(unittest.TestCase):
             self.skipTest('the transitional bit-blast front end requires the pinned Z3 binding')
         from hepta.hia_optimization import fold_constants, verify_optimization
         from tests.test_hia_optimization import arithmetic, constant_program
-        from tests.test_hia_program import b, c, f, i, m, ret
 
         flag_a, flag_b, flag_c, flag_d = z3.Bools('a b c d')
         formula = z3.And(flag_a, z3.Implies(flag_a, flag_b), z3.Implies(flag_b, flag_c),
@@ -168,6 +169,22 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(discharge['image_sha256'], self.native.image_sha256)
         self.assertEqual(discharge['method'], 'native_hia_cnf')
 
+        old = verify_optimization(arithmetic(typ='u32'), arithmetic('int.add.wrap', 'u32'))
+        self.assertEqual(old['status'], 'rejected', old)
+        self.assertIn('counterexample', old['obligations'][-1])
+
+    def test_wide_core_and_public_verification_do_not_import_z3(self):
+        from copy import deepcopy
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_agent_store import AgentRejected
+        from hepta.hia_optimization import verify_optimization
+        from hepta.hia_proof_contract import proof_result
+        from tests.test_hia_program import b, c, f, i, m, ret
+        from tools.hia_agent_native_qualification import Session, ToolClient
+
         # Both U64 operands range over their complete declared domains.
         params = [('left', 'u64'), ('right', 'u64')]
         wide = m(f('check', params, ['bool'], [], [b('entry', params, [
@@ -180,14 +197,58 @@ class CnfInstalledTests(unittest.TestCase):
         constant = m(f('check', params, ['bool'], [], [b('entry', params, [
             c('out', 'bool', False),
         ], ret('out'))]))
-        with patch.object(z3.Solver, 'check', side_effect=AssertionError('legacy solve invoked')), \
-                patch('hepta.hia_optimization.bitblast_clauses', side_effect=AssertionError('foreign bit-blast invoked')):
-            report = verify_optimization(wide, constant)
+        original_import = builtins.__import__
+
+        def without_z3(name, *args, **kwargs):
+            if name == 'z3' or name.startswith('z3.'):
+                raise AssertionError('the native circuit route imported Z3')
+            return original_import(name, *args, **kwargs)
+
+        workload = {"schema": "hepta.hia.agent.workload.v1", "warmup_iterations": 0,
+                    "repetitions": 1, "cases": [
+                        {"function": "check", "arguments": [1, 2],
+                         "expected": {"status": "returned", "values": [False]}}]}
+        with TemporaryDirectory(prefix='hia-circuit-agent-') as temporary:
+            state = Path(temporary) / 'state'
+            service = HIAAgentService(state)
+            try:
+                client = ToolClient(service.call)
+                session = Session(client, prefix='hia-circuit-native')
+                session.freeze(workload)
+                base = session.import_program(wide)
+                session.freeze(workload, baseline=base)
+                candidate = session.import_program(constant)
+                with patch('builtins.__import__', side_effect=without_z3), \
+                        patch('hepta.hia_optimization.bitblast_clauses',
+                              side_effect=AssertionError('foreign bit-blast invoked')):
+                    report = verify_optimization(wide, constant)
+                    result = session.verify(candidate, base=base, claims=['behavior_equivalence'])
+                    actual = result['checks'][0]
+                    evidence = session.read_json(actual['evidence_artifact'])
+                    self.assertEqual(actual['status'], 'proved')
+                    self.assertEqual(actual['checker']['solver'], report['solver'])
+                    self.assertEqual(evidence['obligations'], report['obligations'])
+                    self.assertIn('identified_hia_circuit_solver',
+                                  {item['id'] for item in actual['assumptions']})
+                    altered = deepcopy(evidence)
+                    altered['obligations'][0]['cnf_frame_hex'] += '00'
+                    with self.assertRaisesRegex(AgentRejected, 'native circuit proof formula identity differs'):
+                        proof_result(claim=actual['claim'], status=actual['status'],
+                                     domain=actual['domain'], subject=actual['subject'],
+                                     profile=actual['profile'], installation=service.identities, evidence=altered)
+                    request = next(item for item in client.records if item['tool'] == 'hia_verify')
+                    service.close()
+                    service = HIAAgentService(state)
+                    self.assertEqual(ToolClient(service.call).result('hia_verify', request['arguments']), result)
+            finally:
+                service.close()
         self.assertEqual(report['status'], 'verified', report)
-        discharge = report['obligations'][0]['discharge']
+        self.assertEqual(report['solver']['name'], 'HIA')
+        obligation = report['obligations'][0]
+        discharge = obligation['discharge']
         self.assertEqual(discharge['method'], 'native_hia_core_circuit')
         self.assertGreater(discharge['variables'], 128)
-
-        old = verify_optimization(arithmetic(typ='u32'), arithmetic('int.add.wrap', 'u32'))
-        self.assertEqual(old['status'], 'rejected', old)
-        self.assertIn('counterexample', old['obligations'][-1])
+        self.assertNotIn('smt2', obligation)
+        frame = bytes.fromhex(obligation['cnf_frame_hex'])
+        self.assertEqual(discharge['formula_sha256'], sha256(frame).hexdigest())
+        self.assertEqual(frame[24:32], bytes(8))

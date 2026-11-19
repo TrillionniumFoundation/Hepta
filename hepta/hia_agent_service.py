@@ -908,6 +908,8 @@ class HIAAgentService:
                 "base_sha256": original.sha256, "candidate_sha256": revised.sha256}
         report = verify_optimization(original, revised, {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
         status = {"verified": "proved", "rejected": "refuted", "unknown": "unknown", "timeout": "unknown"}[report["status"]]
+        if (report.get("solver") or {}).get("name") == "HIA":
+            return status, "HIA native Boolean obligations for pure return circuits over all declared scalar inputs", report
         return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
 
     def _subject(self, args, program):
