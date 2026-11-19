@@ -121,6 +121,29 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.assertTrue(z3.eq(executor.borrow_range(word, pointer, length),
                                   executor._reference_borrow_range(word, pointer, length)))
 
+    def test_native_return_recovers_sites_and_preserves_exact_caller_registers(self):
+        import z3
+
+        ctx = z3.Context()
+        initial = [z3.BitVec(f'caller_r{register}', 64, ctx=ctx) for register in range(16)]
+        executor = Executor.__new__(Executor)
+        executor.__dict__.update(z=z3, ctx=ctx, native_model=self.native,
+                                 codebase=z3.BitVec('codebase', 64, ctx=ctx),
+                                 sp=initial[4], initial=initial)
+        for offset in (0, 1, 128, 65535):
+            address = executor.return_site(offset)
+            expected = executor._reference_return_site(offset, recover=False)
+            self.assertTrue(z3.eq(address, expected))
+            self.assertEqual(executor.return_site(address, recover=True).as_long(), offset)
+        restored = initial.copy()
+        restored[4] = initial[4] + 8
+        for register in range(16):
+            changed = restored.copy()
+            changed[register] += 1
+            actual = executor.caller_restored(changed)
+            self.assertTrue(z3.eq(actual, executor._reference_caller_restored(changed)), register)
+            self.assertEqual(z3.is_true(z3.simplify(actual)), register not in (3, 4, 5, 12, 13, 14, 15))
+
     def test_core_scalar_rules_preserve_normalized_values_and_traps(self):
         import z3
 
@@ -193,7 +216,7 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         blocked_machine = {
             name: Mock(side_effect=AssertionError('host machine memory rule entered: ' + name))
             for name in ('_reference_borrow_range', '_reference_address', '_reference_stack_admitted',
-                         '_reference_stack_adjustment')
+                         '_reference_stack_adjustment', '_reference_return_site', '_reference_caller_restored')
         }
         with (tempfile.TemporaryDirectory(prefix='hia-safe-core-borrow-') as root,
               patch('hepta.hia_safe_core._reference_core_graph',

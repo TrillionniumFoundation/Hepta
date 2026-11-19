@@ -36,6 +36,9 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
     if size == 32 and length(w) == SCHED_WORKSPACE:
         return schedule_machine(s, o, w)
+    if size == 0 and length(w) == 8:
+        # System V AMD64: RBX, RBP, R12–R15; RSP is checked separately.
+        return choose(get(w, 0) == 1, 61480, 4294967293)
     if size == 0 and length(w) == 16:
         return machine_formula(o, get(w, 0), get(w, 8))
     if size == 0 and length(w) == 24:
@@ -379,6 +382,15 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         below_end = node(o, R_ULT, LEFT, limit, 0)
         inside = node(o, R_BOOL_AND3, nonempty, above_start, below_end)
         return formula_done(o, 0, 0, 0, inside)
+    if op == OP_CALL_ADDRESS:
+        return formula_done(o, node(o, R_ADD, LEFT, RIGHT, 0), 0, 0, 0)
+    if op == OP_RETURN_OFFSET:
+        difference = node(o, R_SUB, LEFT, RIGHT, 0)
+        return formula_done(o, node(o, R_SIMPLIFY, difference, 0, 0), 0, 0, 0)
+    if op == OP_RETURN_STACK:
+        word = node(o, R_LITERAL64, 8, 0, 0)
+        adjusted = node(o, R_ADD, RIGHT, word, 0)
+        return formula_done(o, 0, 0, 0, node(o, R_EQ, LEFT, adjusted, 0))
     if op == OP_NOT:
         return formula_done(o, node(o, R_NOT, LEFT, 0, 0), 0, 0, 0)
     if op == OP_CMOVNE:

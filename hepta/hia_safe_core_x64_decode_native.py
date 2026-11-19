@@ -49,7 +49,11 @@ OPERATIONS = (
     ('not', ('u',)),
 )
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
-MACHINE_FORMULA_IDS = {**OPERATION_IDS, 'borrow_range': len(OPERATIONS) + 1}
+MACHINE_FORMULA_IDS = {**OPERATION_IDS, **{
+    name: index for index, name in enumerate(
+        ('borrow_range', 'call_address', 'return_offset', 'return_stack'), len(OPERATIONS) + 1)
+}}
+CALLER_ABI_REQUEST = struct.Struct('<Q')
 RECIPE_REQUEST = struct.Struct('<2Q')
 CORE_FORMULA_REQUEST = struct.Struct('<3Q')
 CORE_GRAPH_LIMIT = 16
@@ -301,6 +305,22 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if allowed is None:
             raise RuntimeError('missing native Safe Core borrow predicate')
         return allowed
+
+    @lru_cache(maxsize=1)
+    def preserved_registers(self):
+        packet = CALLER_ABI_REQUEST.pack(1)
+        request = ctypes.create_string_buffer(packet, len(packet))
+        mask = self._entry(None, 0, None, 0, request, len(packet))
+        if not 0 < mask < 1 << 16 or mask & (1 << 4):
+            raise RuntimeError('invalid native Safe Core caller preservation mask')
+        return tuple(index for index in range(16) if mask & (1 << index))
+
+    def caller_restored(self, z, ctx, registers, initial, stack):
+        _, _, _, restored = self.symbolic(z, ctx, 'return_stack', left=registers[4], right=stack)
+        if restored is None:
+            raise RuntimeError('missing native Safe Core caller stack predicate')
+        return z.And(restored, *(registers[index] == initial[index]
+                                for index in self.preserved_registers()))
 
     def symbolic_core(self, z, ctx, operation, width, arguments, literal=0):
         recipe = self.core_recipe(operation, width, literal)

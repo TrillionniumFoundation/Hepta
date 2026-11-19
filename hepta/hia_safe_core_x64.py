@@ -331,6 +331,32 @@ class Executor:
         fault = (pointer & self.value(15)) != 0 if operation == "call" else None
         return self.z.simplify(adjusted), fault
 
+    def return_site(self, operand, *, recover=False):
+        if self.native_model is None:
+            return self._reference_return_site(operand, recover=recover)
+        if recover:
+            operation, left, right = "return_offset", operand, self.codebase
+        else:
+            operation, left, right = "call_address", self.codebase, self.value(operand)
+        value, _, _, _ = self.native_model.symbolic(self.z, self.ctx, operation, left=left, right=right)
+        if value is None:
+            raise RuntimeError("missing native Safe Core return site")
+        return value
+
+    def _reference_return_site(self, operand, *, recover):
+        if recover:
+            return self.z.simplify(operand - self.codebase)
+        return self.codebase + self.value(operand)
+
+    def caller_restored(self, registers):
+        if self.native_model is None:
+            return self._reference_caller_restored(registers)
+        return self.native_model.caller_restored(self.z, self.ctx, registers, self.initial, self.sp)
+
+    def _reference_caller_restored(self, registers):
+        return self.z.And(registers[4] == self.sp + self.value(8),
+                          *(registers[r] == self.initial[r] for r in (3, 5, 12, 13, 14, 15)))
+
     def condition(self, state, code):
         if self.native_model is None:
             return self._reference_condition(state, code)
@@ -538,7 +564,7 @@ class Executor:
             # local function or a nonreturning external one.  Modelling
             # abort as terminal must not erase this stack memory access.
             regs[4] = adjusted
-            self.memory(state, regs[4], 8, self.codebase + self.value(nextpc))
+            self.memory(state, regs[4], 8, self.return_site(nextpc))
             if target == "abort":
                 self.outcomes.append(dict(kind="abort", path=state.path, value=self.value(0), memory=state.memory))
                 return True, None
@@ -548,12 +574,11 @@ class Executor:
             address = z.simplify(self.memory(state, regs[4], 8))
             regs[4], _ = self.stack_adjustment(op, regs[4])
             if z.eq(address, self.return_address):
-                restored = z.And(regs[4] == self.sp + self.value(8),
-                                 *[regs[r] == self.initial[r] for r in (3, 5, 12, 13, 14, 15)])
+                restored = self.caller_restored(regs)
                 self.abi_faults.append(z.And(state.path, z.Not(restored)))
                 self.outcomes.append(dict(kind="return", path=state.path, value=regs[0], memory=state.memory))
                 return True, None
-            displacement = z.simplify(address - self.codebase)
+            displacement = self.return_site(address, recover=True)
             if not z.is_bv_value(displacement) or displacement.as_long() not in self.code:
                 self.faults.append(state.path)
                 return True, None
