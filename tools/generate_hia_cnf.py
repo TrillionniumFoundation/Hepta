@@ -15,6 +15,8 @@ from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUI
                                   SPARSE_WORKSPACE, STEP_LIMIT, WATCHED_REQUEST, WATCH_HEADS,
                                   WATCH_ROWS, WATCH_ROW_BYTES, WORKSPACE)
 from hepta.hia_cnf_native import (
+    FEEDBACK_BLOCK_LIMIT, FEEDBACK_LAYER_LIMIT, FEEDBACK_OP_LIMIT, FEEDBACK_REPLY,
+    FEEDBACK_REQUEST, FEEDBACK_WORKSPACE,
     GRAPH_PROJECTION_REQUEST, CALL_PROJECTION_REQUEST, SCALAR_SUMMARY, PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
     PROJECTION_WORKSPACE, _CORE_TRAP_TAGS,
 )
@@ -39,6 +41,8 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
         return check_word_witness(source, stack)
     if magic == WORD_TABLE_REQUEST:
         return search_word_table(source, result, stack)
+    if magic == FEEDBACK_REQUEST:
+        return plan_feedback(source, result, stack)
     if magic != REQUEST or length(stack) < WORKSPACE:
         return INVALID
     variables = read64(source, 8)
@@ -2229,6 +2233,148 @@ def p_bind(w:mutbuf, typ:u64, node:u64) -> u64:
 '''
 
 
+FEEDBACK = '''
+def plan_feedback(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 48 or length(w) < FEEDBACK_WORKSPACE:
+        return INVALID
+    blocks = read64(s, 8)
+    entry = read64(s, 16)
+    maximum = read64(s, 24)
+    block_budget = read64(s, 32)
+    op_budget = read64(s, 40)
+    if blocks == 0 or blocks > FEEDBACK_BLOCK_LIMIT or entry >= blocks or maximum > FEEDBACK_LAYER_LIMIT:
+        return INVALID
+    if block_budget == 0 or block_budget > FEEDBACK_BLOCK_LIMIT or op_budget > FEEDBACK_OP_LIMIT:
+        return INVALID
+    if length(s) != 48 + 24 * blocks or length(o) < 40 + 16 * block_budget:
+        return INVALID
+    node = 0
+    while node < blocks:
+        at = 48 + 24 * node
+        a = read64(s, at)
+        b = read64(s, at + 8)
+        if (a >= blocks and a != FEEDBACK_BLOCK_LIMIT) or (b >= blocks and b != FEEDBACK_BLOCK_LIMIT):
+            return INVALID
+        if (a == FEEDBACK_BLOCK_LIMIT and b != FEEDBACK_BLOCK_LIMIT) or read64(s, at + 16) > FEEDBACK_OP_LIMIT:
+            return INVALID
+        store(w, node, 0)
+        node = node + 1
+    edge = discover_feedback(s, w, blocks, entry)
+    if edge == 0 or edge == 65535:
+        return feedback_reply(o, 1, 0, 0, 0)
+    if block_budget < 2:
+        return feedback_reply(o, 2, 0, 0, 0)
+    return feedback_states(s, o, w, entry, maximum, edge, block_budget, op_budget)
+
+def discover_feedback(s:readbuf, w:mutbuf, blocks:u64, entry:u64) -> u64:
+    edge = 0
+    root = 0
+    while root <= blocks:
+        node = entry
+        if root != 0:
+            node = root - 1
+        if byte(w, node) == 0:
+            edge = visit_feedback(s, w, node, edge)
+            if edge == 65535:
+                return edge
+        root = root + 1
+    return edge
+
+def visit_feedback(s:readbuf, w:mutbuf, root:u64, edge:u64) -> u64:
+    depth = 1
+    store(w, root, 1)
+    write64(w, 256, root)
+    write64(w, 264, 0)
+    while depth > 0:
+        frame = 256 + 16 * (depth - 1)
+        node = read_stack(w, frame)
+        choice = read_stack(w, frame + 8)
+        if choice == 2:
+            store(w, node, 2)
+            depth = depth - 1
+        else:
+            child = ordered_feedback_child(s, node, choice)
+            write64(w, frame + 8, choice + 1)
+            if child != FEEDBACK_BLOCK_LIMIT:
+                color = byte(w, child)
+                if color == 0:
+                    store(w, child, 1)
+                    write64(w, frame + 16, child)
+                    write64(w, frame + 24, 0)
+                    depth = depth + 1
+                elif color == 1:
+                    if edge != 0:
+                        return 65535
+                    edge = 1 + node * FEEDBACK_BLOCK_LIMIT + child
+    return edge
+
+def ordered_feedback_child(s:readbuf, node:u64, choice:u64) -> u64:
+    at = 48 + 24 * node
+    a = read64(s, at)
+    b = read64(s, at + 8)
+    if choice == 0:
+        return choose(a < b, a, b)
+    if a == b:
+        return FEEDBACK_BLOCK_LIMIT
+    return choose(a > b, a, b)
+
+def feedback_states(s:readbuf, o:mutbuf, w:mutbuf, entry:u64, maximum:u64, edge:u64,
+                    block_budget:u64, op_budget:u64) -> u32:
+    # Keep one byte per (layer, original block); output doubles as the queue.
+    index = 0
+    while index < (maximum + 1) * FEEDBACK_BLOCK_LIMIT:
+        store(w, 4096 + index, 0)
+        index = index + 1
+    store(w, 4096 + entry, 1)
+    write64(o, 40, entry)
+    write64(o, 48, 0)
+    total = 1
+    index = 0
+    ops = 0
+    while index < total:
+        node = read_stack(o, 40 + 16 * index)
+        layer = read_stack(o, 48 + 16 * index)
+        at = 48 + 24 * node
+        ops = ops + read64(s, at + 16)
+        if index + 2 > block_budget or ops + index + 2 > op_budget:
+            return feedback_reply(o, 2, 0, 0, 0)
+        total = append_feedback_states(s, o, w, node, layer, maximum, edge, total, block_budget)
+        if total == 0:
+            return feedback_reply(o, 3, 0, 0, 0)
+        index = index + 1
+    source = (edge - 1) >> 7
+    target = (edge - 1) & (FEEDBACK_BLOCK_LIMIT - 1)
+    return feedback_reply(o, 0, source, target, total)
+
+def append_feedback_states(s:readbuf, o:mutbuf, w:mutbuf, node:u64, layer:u64, maximum:u64,
+                           edge:u64, total:u64, block_budget:u64) -> u64:
+    arm = 0
+    while arm < 2:
+        child = read64(s, 48 + 24 * node + 8 * arm)
+        if child != FEEDBACK_BLOCK_LIMIT:
+            following = layer + choose(1 + node * FEEDBACK_BLOCK_LIMIT + child == edge, 1, 0)
+            if following <= maximum:
+                seen = 4096 + following * FEEDBACK_BLOCK_LIMIT + child
+                if byte(w, seen) == 0:
+                    if total + 2 > block_budget:
+                        return 0
+                    store(w, seen, 1)
+                    write64(o, 40 + 16 * total, child)
+                    write64(o, 48 + 16 * total, following)
+                    total = total + 1
+        arm = arm + 1
+    return total
+
+def feedback_reply(o:mutbuf, status:u64, source:u64, target:u64, states:u64) -> u32:
+    write64(o, 0, FEEDBACK_REPLY)
+    write64(o, 8, status)
+    write64(o, 16, source)
+    write64(o, 24, target)
+    write64(o, 32, states)
+    return 40 + 16 * states
+'''
+
+
 def source_program():
     constants = dict(GUARDED_CIRCUIT_REQUEST=GUARDED_CIRCUIT_REQUEST, CIRCUIT_REQUEST=CIRCUIT_REQUEST,
                      CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
@@ -2247,6 +2393,9 @@ def source_program():
                      WORD_TABLE_WORK_LIMIT=WORD_TABLE_WORK_LIMIT,
                      GRAPH_PROJECTION_REQUEST=GRAPH_PROJECTION_REQUEST,
                      CALL_PROJECTION_REQUEST=CALL_PROJECTION_REQUEST, SCALAR_SUMMARY=SCALAR_SUMMARY,
+                     FEEDBACK_REQUEST=FEEDBACK_REQUEST, FEEDBACK_REPLY=FEEDBACK_REPLY,
+                     FEEDBACK_BLOCK_LIMIT=FEEDBACK_BLOCK_LIMIT, FEEDBACK_OP_LIMIT=FEEDBACK_OP_LIMIT,
+                     FEEDBACK_LAYER_LIMIT=FEEDBACK_LAYER_LIMIT, FEEDBACK_WORKSPACE=FEEDBACK_WORKSPACE,
                      PROJECTION_INPUT_LIMIT=PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT=PROJECTION_OUTPUT,
                      PROJECTION_WORKSPACE=PROJECTION_WORKSPACE, PROJECT_OVERFLOW_CODE=_CORE_TRAP_TAGS['overflow'],
                      PROJECT_DIVISION_CODE=_CORE_TRAP_TAGS['division_by_zero'],
@@ -2264,7 +2413,7 @@ def source_program():
                      SPARSE_WORKSPACE=SPARSE_WORKSPACE, DECISIONS=SPARSE_VARIABLES * 3,
                      TRAIL=SPARSE_VARIABLES, REQUEST=REQUEST, REPLY=REPLY, CLAUSE_LIMIT=CLAUSE_LIMIT,
                      STEP_LIMIT=STEP_LIMIT, WORD_MASK=WORD_MASK, WORKSPACE=WORKSPACE, INVALID=0xfffffffd)
-    code = BODY + PROJECTION
+    code = BODY + PROJECTION + FEEDBACK
     for name, value in constants.items():
         code = code.replace(name, str(value))
     return render_assembly(document(code, 'cnf'))

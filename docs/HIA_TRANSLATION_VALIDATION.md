@@ -50,7 +50,10 @@ budget. Larger or unsupported obligations may use the existing pinned Z3
 path; they are not certified by an incomplete search.
 
 `validate_bounded_translation` is the separate single-feedback-edge
-profile. The canonical unfolding marks a would-be traversal past its limit
+profile. The selected HIA image discovers the feedback edge and enumerates
+the reachable (block, traversal count) pairs in deterministic order, with
+the same block and operation limits as the retained path. The canonical
+unfolding marks a would-be traversal past its limit
 with a distinct Boolean return. The selected HIA circuit checker tests
 whether that marker or an incomplete outcome is reachable; normal traps in
 the original graph do not count as truncation. Only a successful bound check

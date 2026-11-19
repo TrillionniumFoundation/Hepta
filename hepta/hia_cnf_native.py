@@ -53,6 +53,12 @@ WORD_TABLE_WORK_LIMIT = 32 * 1024 * 1024
 GRAPH_PROJECTION_REQUEST = int.from_bytes(b'HIABVP01', 'little')
 CALL_PROJECTION_REQUEST = int.from_bytes(b'HIABVP02', 'little')
 SCALAR_SUMMARY = int.from_bytes(b'HIABVS01', 'little')
+FEEDBACK_REQUEST = int.from_bytes(b'HIABVF01', 'little')
+FEEDBACK_REPLY = int.from_bytes(b'HIABFR01', 'little')
+FEEDBACK_BLOCK_LIMIT = 128
+FEEDBACK_OP_LIMIT = 2048
+FEEDBACK_LAYER_LIMIT = 32
+FEEDBACK_WORKSPACE = 12288
 CIRCUIT_NODES = 256
 CIRCUIT_RETURNS = 16
 CIRCUIT_CAPACITY = 192 * 1024
@@ -285,6 +291,41 @@ class NativeCnf(NativeHiaJsonImage):
                 compiled[callee] = raw
         circuit = self.project_scalar_graphs(roots, graphs, totality=totality, summaries=bindings)
         return None if circuit is None else (circuit, expansions)
+
+    def plan_feedback(self, blocks, edges, entry, maximum, *, block_budget, operation_budget):
+        """Return the ordered bounded graph states, not a proof that its limit holds."""
+        names = sorted(blocks)
+        ids = {name: index for index, name in enumerate(names)}
+        frame = struct.pack('<6Q', FEEDBACK_REQUEST, len(names), ids[entry], maximum,
+                            block_budget, operation_budget)
+        for name in names:
+            targets = [ids[target] for target in edges[name]]
+            targets.extend([FEEDBACK_BLOCK_LIMIT] * (2 - len(targets)))
+            frame += struct.pack('<3Q', *targets, len(blocks[name]['ops']))
+        source = ctypes.create_string_buffer(frame, len(frame))
+        reply = ctypes.create_string_buffer(40 + 16 * FEEDBACK_BLOCK_LIMIT)
+        scratch = ctypes.create_string_buffer(FEEDBACK_WORKSPACE)
+        size = self._entry(source, len(frame), reply, len(reply), scratch, len(scratch))
+        if not 40 <= size <= len(reply):
+            raise ValueError('HIA refused the bounded feedback graph')
+        magic, status, start, end, count = struct.unpack_from('<5Q', reply)
+        if magic != FEEDBACK_REPLY or status > 3 or size != 40 + 16 * count:
+            raise RuntimeError('invalid HIA bounded feedback plan')
+        if status:
+            if start or end or count:
+                raise RuntimeError('invalid HIA bounded feedback refusal')
+            return status, None, []
+        if (start >= len(names) or end >= len(names) or names[end] not in edges[names[start]]
+                or not 0 < count < block_budget):
+            raise RuntimeError('invalid HIA bounded feedback plan dimensions')
+        states = []
+        for node, layer in struct.iter_unpack('<2Q', reply.raw[40:size]):
+            if node >= len(names) or layer > maximum:
+                raise RuntimeError('invalid HIA bounded feedback state')
+            states.append((names[node], layer))
+        if states[0] != (entry, 0) or len(set(states)) != count:
+            raise RuntimeError('invalid HIA bounded feedback state order')
+        return status, (names[start], names[end]), states
 
 
 def _search_mode(*, batch, watched, learning, restarts):

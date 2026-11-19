@@ -62,7 +62,10 @@ def _source(document, function, maximum):
             _reject(str(error))
     else:
         _reject("a cyclic scalar function is required")
-    blocks = {b["id"]: b for b in fn["blocks"]}
+    return checked, fn
+
+
+def _reference_feedback(fn, blocks):
     colors, feedback = {}, set()
 
     def visit(ident):
@@ -80,12 +83,10 @@ def _source(document, function, maximum):
             visit(ident)
     if len(feedback) != 1:
         _reject("exactly one DFS feedback edge is supported")
-    return checked, fn, next(iter(feedback))
+    return next(iter(feedback))
 
 
-def _unfold(document, function, maximum):
-    original, fn, feedback = _source(document, function, maximum)
-    blocks = {b["id"]: b for b in fn["blocks"]}
+def _reference_states(fn, blocks, feedback, maximum):
     initial = (fn["entry"], 0)
     pending, states, indices = deque([initial]), [], {initial: 0}
     operations = 0
@@ -106,6 +107,36 @@ def _unfold(document, function, maximum):
                     _reject("unfolded block budget exceeded")
                 indices[target] = len(indices)
                 pending.append(target)
+    return states
+
+
+def _feedback_plan(fn, blocks, maximum):
+    from .hia_cnf_native import selected_cnf
+
+    try:
+        cnf = selected_cnf()
+        if cnf is not None:
+            edges = {name: [edge["target"] for edge in _edges(block)] for name, block in blocks.items()}
+            status, feedback, states = cnf.plan_feedback(blocks, edges, fn["entry"], maximum,
+                block_budget=MAX_BLOCKS, operation_budget=MAX_OPERATIONS)
+            if status == 0:
+                return feedback, states
+    except (OSError, ValueError, RuntimeError) as error:
+        _reject("native feedback planner unavailable: " + str(error))
+    if cnf is not None:
+        _reject({1: "exactly one DFS feedback edge is supported",
+                 2: "unfolded scalar proof budget exceeded",
+                 3: "unfolded block budget exceeded"}[status])
+    feedback = _reference_feedback(fn, blocks)
+    return feedback, _reference_states(fn, blocks, feedback, maximum)
+
+
+def _unfold(document, function, maximum):
+    original, fn = _source(document, function, maximum)
+    blocks = {b["id"]: b for b in fn["blocks"]}
+    feedback, states = _feedback_plan(fn, blocks, maximum)
+    indices = {state: index for index, state in enumerate(states)}
+    initial = (fn["entry"], 0)
     renamed, unfolded = {}, []
     for state in states:
         block, index = blocks[state[0]], indices[state]

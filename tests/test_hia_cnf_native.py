@@ -141,7 +141,9 @@ class CnfInstalledTests(unittest.TestCase):
         division["op"] = "int.shl.checked"
         division["args"] = [division["args"][0]] * 2
 
-        with (patch("hepta.hia_bounded_unroll._z3_module", side_effect=AssertionError("host bound solver")),
+        with (patch("hepta.hia_bounded_unroll._reference_feedback", side_effect=AssertionError("host feedback DFS")),
+              patch("hepta.hia_bounded_unroll._reference_states", side_effect=AssertionError("host feedback BFS")),
+              patch("hepta.hia_bounded_unroll._z3_module", side_effect=AssertionError("host bound solver")),
               patch("hepta.hia_translation_validation._z3_module", side_effect=AssertionError("host equivalence solver"))):
             finite = proof(counted(32), maximum=32)
             exceeded = proof(counted(dynamic=True))
@@ -158,6 +160,22 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertTrue(first_trap["claims"]["first_trap_code_preserved"])
         self.assertEqual(different["status"], "disproved", different)
         self.assertTrue(different["claims"]["all_input_bound_proved"])
+
+    def test_feedback_planner_keeps_original_arm_order_and_graph_limits(self):
+        edges = {"enter": ["head"], "head": ["loop", "done"], "loop": ["head", "head"], "done": []}
+        blocks = {name: {"ops": [None]} for name in edges}
+        plan = self.native.plan_feedback(blocks, edges, "enter", 1, block_budget=128, operation_budget=2048)
+        self.assertEqual(plan, (0, ("loop", "head"), [
+            ("enter", 0), ("head", 0), ("loop", 0), ("done", 0),
+            ("head", 1), ("loop", 1), ("done", 1),
+        ]))
+        self.assertEqual(self.native.plan_feedback(
+            blocks, edges, "enter", 1, block_budget=3, operation_budget=2048), (3, None, []))
+        self.assertEqual(self.native.plan_feedback(
+            blocks, edges, "enter", 1, block_budget=128, operation_budget=1), (2, None, []))
+        edges["done"] = ["done"]
+        self.assertEqual(self.native.plan_feedback(
+            blocks, edges, "enter", 1, block_budget=128, operation_budget=2048), (1, None, []))
 
     def test_differential_boolean_formulas_and_bounded_work(self):
         rng = random.Random(125113)
