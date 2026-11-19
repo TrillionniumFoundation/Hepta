@@ -487,8 +487,12 @@ class AgentStore:
                     os.close(directory_fd)
             finally:
                 temporary.unlink(missing_ok=True)
-        ref = {"id": "a-" + uuid.uuid4().hex, "sha256": content_hash,
-               "uri": "hia://artifacts/" + uuid.uuid4().hex}
+        native = _native_agent_identity()
+        if native is None:
+            ref = {"id": "a-" + uuid.uuid4().hex, "sha256": content_hash,
+                   "uri": "hia://artifacts/" + uuid.uuid4().hex}
+        else:
+            ref = native.issued_artifact(content_hash, uuid.uuid4().bytes, uuid.uuid4().bytes)
         self.db.execute("INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
                         (ref["id"], content_hash, ref["uri"], kind, wire(metadata).decode(), content_key))
         row = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
@@ -547,7 +551,11 @@ class AgentStore:
         return profile, ref
 
     def check_profile(self, ref, expected):
-        if ref != expected:
+        from .hia_worker_report_native import SELECTOR, installed_worker_report
+
+        selected = os.environ.get(SELECTOR)
+        stale = not installed_worker_report(selected).equal_json(ref, expected) if selected else ref != expected
+        if stale:
             reject("E_HIA_PROFILE_STALE", "profile is unavailable or differs from the installed implementation")
         row = self.db.execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
                               (ref["id"], ref["sha256"])).fetchone()

@@ -803,6 +803,40 @@ class AgentIdentityNativeTests(unittest.TestCase):
             finally:
                 reopened.close()
 
+    def test_store_issues_native_artifact_identity_and_reuses_it_without_new_nonces(self):
+        from uuid import UUID
+        from hepta.hia_agent_store import AgentStore, wire
+
+        data = b"native artifact reference"
+        digest = sha256(data).hexdigest()
+        a = UUID(bytes=bytes(range(16)))
+        b = UUID(bytes=bytes(range(240, 256)))
+        expected = {"id": "a-" + a.hex, "sha256": digest, "uri": "hia://artifacts/" + b.hex}
+        expected_wire = wire(expected)
+        request = packet(30, digest.encode("ascii") + a.bytes + b.bytes)
+        self.assertEqual(self.raw(request, len(expected_wire)), (len(expected_wire), expected_wire))
+        self.assertEqual(self.raw(request, len(expected_wire) - 1)[0], 0xfffffffe)
+        self.assertEqual(self.raw(request[:-1], len(expected_wire))[0], 0xfffffffd)
+        self.assertEqual(self.raw(packet(30, b"A" + request[17:]), len(expected_wire))[0], 0xfffffffd)
+        root = self.folder / "native-artifact-reference"
+        with patch.dict(os.environ, {SELECTOR: str(self.manifest)}):
+            store = AgentStore(root)
+            try:
+                # Legacy file custody consumes a nonce for the temporary file
+                # before either of the two public reference observations.
+                with patch("hepta.hia_agent_store.uuid.uuid4", side_effect=(UUID(int=1), a, b)) as nonce:
+                    self.assertEqual(store.put(data, "input"), expected)
+                    self.assertEqual(store.put(data, "input"), expected)
+                    self.assertEqual(nonce.call_count, 3)
+            finally:
+                store.close()
+            reopened = AgentStore(root)
+            try:
+                self.assertEqual(reopened.resolve_uri(expected["uri"]), expected)
+                self.assertEqual(reopened.get(expected), (data, {}))
+            finally:
+                reopened.close()
+
     def test_artifact_packets_keep_exact_utf8_and_refuse_invalid_scalars(self):
         rng = random.Random(3027)
         boundary = '\x00\x7f\x80\u07ff\u0800\ud7ff\ue000\uffff\U00010000\U0010ffff'

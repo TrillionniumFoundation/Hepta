@@ -391,6 +391,13 @@ class NativeAgentIdentity(NativeHiaJsonImage):
     def build_result(self, candidate, backend, target, receipt, artifact, *, linked):
         return decode_data(self._issued_record(29, (backend, receipt, candidate, linked, artifact, target)))
 
+    def issued_artifact(self, digest, identity_nonce, uri_nonce):
+        if (type(identity_nonce) is not bytes or len(identity_nonce) != 16
+                or type(uri_nonce) is not bytes or len(uri_nonce) != 16):
+            raise ValueError('HIA artifact reference requires two 16-byte nonces')
+        packet = struct.pack('<2Q', MAGIC, 30) + digest.encode('ascii') + identity_nonce + uri_nonce
+        return decode_data(self._variable_response(packet, 256))
+
     def _issued_record(self, mode, values):
         packet = bytearray(struct.pack('<2Q', MAGIC, mode))
         for value in values:

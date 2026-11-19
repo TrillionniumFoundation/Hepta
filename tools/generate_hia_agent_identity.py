@@ -97,6 +97,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size > length(o):
             return size
         return build_result(s, o, 1)
+    if kind == 30:
+        return issued_artifact(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -820,16 +822,19 @@ def context_id(s:readbuf, o:mutbuf) -> u32:
     if length(o) < 36:
         return 4294967294
     receipt_literal(o, 0, 762868835, 4, 1)
+    return nonce_hex(s, o, 16, 4)
+
+def nonce_hex(s:readbuf, o:mutbuf, start:u64, destination:u64) -> u64:
     index = 0
     while index < 16:
-        value = byte(s, index + 16)
+        value = byte(s, start + index)
         high = value >> 4
         low = value & 15
-        position = 4 + 2 * index
+        position = destination + 2 * index
         store(o, position, choose(high < 10, 48 + high, 87 + high))
-        store(o, 5 + 2 * index, choose(low < 10, 48 + low, 87 + low))
+        store(o, position + 1, choose(low < 10, 48 + low, 87 + low))
         index = index + 1
-    return 36
+    return destination + 32
 
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
@@ -984,6 +989,36 @@ def artifact_receipt_source():
     return '\n'.join(lines) + '\n'
 
 
+def issued_artifact_source():
+    """Encode independent, already-observed nonces and a canonical digest."""
+    parts = ('{"id":"a-', '","sha256":"', '","uri":"hia://artifacts/', '"}')
+    result_size = sum(map(len, parts)) + 128
+    lines = [
+        'def issued_artifact(s:readbuf, o:mutbuf) -> u32:',
+        '    if length(s) != 112:',
+        '        return 4294967293',
+        '    at = 16',
+        '    while at < 80:',
+        '        value = byte(s, at)',
+        '        if (value < 48 or value > 57) and (value < 97 or value > 102):',
+        '            return 4294967293',
+        '        at = at + 1',
+        f'    if length(o) < {result_size}:',
+        '        return 4294967294',
+        '    cursor = 0',
+    ]
+    for text, field in zip(parts, (
+            'nonce_hex(s, o, 80, cursor)', 'receipt_fragment(s, o, 16, cursor, 64, 1)',
+            'nonce_hex(s, o, 96, cursor)', None), strict=True):
+        for start in range(0, len(text), 8):
+            raw = text[start:start + 8].encode('ascii')
+            lines.append(f'    cursor = receipt_literal(o, cursor, {int.from_bytes(raw, "little")}, {len(raw)}, 1)')
+        if field is not None:
+            lines.append(f'    cursor = {field}')
+    lines.append('    return cursor')
+    return '\n'.join(lines) + '\n'
+
+
 def receipt_template(name, template):
     """Serialize already-admitted JSON fragments in a fixed HIA schema."""
     lines = [
@@ -1058,7 +1093,7 @@ def source_program():
             + receipt_template('verification_record', VERIFICATION_RECORD)
             + receipt_template('verification_result', VERIFICATION_RESULT)
             + receipt_template('build_record', BUILD_RECORD)
-            + receipt_template('build_result', BUILD_RESULT))
+            + receipt_template('build_result', BUILD_RESULT) + issued_artifact_source())
 
 
 def document():
