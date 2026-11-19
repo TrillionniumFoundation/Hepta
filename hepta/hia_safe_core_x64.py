@@ -2,8 +2,8 @@
 
 This module intentionally imports neither the encoder nor the lowering module.
 It decodes the final linked bytes, models integer flags and SysV stack effects,
-and rejects unreviewed encodings.  These Python semantics are in the proof's
-trust base; they are not an independently machine-checked Intel ISA model.
+and rejects unreviewed encodings. Its selected HIA register formulas and
+remaining host semantics are trusted, not a machine-checked Intel ISA model.
 """
 from __future__ import annotations
 
@@ -186,7 +186,11 @@ class Executor:
 
     def __init__(self, theory, binding, words, loan):
         self.t, self.z, self.ctx = theory, theory.z, theory.ctx
-        self.code = decode(binding["text"])
+        from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
+        self.native_model = selected_safe_core_x64_decode()
+        self.code = (_reference_decode(binding["text"]) if self.native_model is None
+                     else self.native_model.decode(binding["text"]))
         self.calls, self.entry = binding["calls"], binding["entry"]
         require({pc for pc, op in self.code.items() if op.op == "call"} == set(self.calls),
                 "call instruction inventory differs from checked relocations")
@@ -270,12 +274,41 @@ class Executor:
         return self.z.Select(state.memory, address)
 
     def condition(self, state, code):
+        if self.native_model is None:
+            return self._reference_condition(state, code)
+        _, _, _, condition = self.native_model.symbolic(
+            self.z, self.ctx, "jcc", code, zf=state.flags["zf"], cf=state.flags["cf"],
+        )
+        if condition is None:
+            raise RuntimeError("missing native Safe Core condition")
+        return condition
+
+    def _reference_condition(self, state, code):
         zf, cf = state.flags["zf"], state.flags["cf"]
         return {2: lambda: cf, 3: lambda: self.z.Not(cf), 4: lambda: zf,
                 5: lambda: self.z.Not(zf), 6: lambda: self.z.Or(cf, zf),
                 7: lambda: self.z.And(self.z.Not(cf), self.z.Not(zf))}[code]()
 
     def alu(self, state, action, destination, right):
+        if self.native_model is None:
+            self._reference_alu(state, action, destination, right)
+            return
+        formula = self.native_model.symbolic(
+            self.z, self.ctx, action, left=state.registers[destination], right=right,
+        )
+        self.apply_register_formula(state, destination, formula)
+
+    @staticmethod
+    def apply_register_formula(state, destination, formula):
+        value, zf, cf, branch = formula
+        if branch is not None or (zf is None) != (cf is None):
+            raise RuntimeError("invalid native Safe Core register effects")
+        if value is not None:
+            state.registers[destination] = value
+        if zf is not None:
+            state.flags = {"zf": zf, "cf": cf}
+
+    def _reference_alu(self, state, action, destination, right):
         left = state.registers[destination]
         if action in ("add", "sub", "cmp"):
             result = left + right if action == "add" else left - right
@@ -286,6 +319,54 @@ class Executor:
         state.flags = {"zf": result == 0, "cf": cf}
         if action not in ("cmp", "test"):
             state.registers[destination] = self.z.simplify(result)
+
+    def register_formula(self, state, operation, args):
+        if self.native_model is None:
+            self._reference_register_formula(state, operation, args)
+            return
+        parameter, right, arbitrary = 0, None, None
+        if operation == "setcc":
+            parameter, destination = args
+        else:
+            destination = args[0]
+        if operation in ("cmovne", "imul"):
+            right = state.registers[args[1]]
+        elif operation in ("shl", "shr"):
+            parameter = args[1]
+        if operation == "imul":
+            arbitrary = self.z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)
+        formula = self.native_model.symbolic(
+            self.z, self.ctx, operation, parameter, left=state.registers[destination], right=right,
+            zf=state.flags["zf"], cf=state.flags["cf"], arbitrary=arbitrary,
+        )
+        self.apply_register_formula(state, destination, formula)
+
+    def _reference_register_formula(self, state, operation, args):
+        z, regs = self.z, state.registers
+        if operation == "cmovne":
+            destination, source = args
+            regs[destination] = z.simplify(z.If(z.Not(state.flags["zf"]),
+                regs[source], regs[destination]))
+        elif operation == "imul":
+            destination, source = args
+            full = z.SignExt(64, regs[destination]) * z.SignExt(64, regs[source])
+            product = z.Extract(63, 0, full)
+            regs[destination] = z.simplify(product)
+            state.flags = {"cf": full != z.SignExt(64, product),
+                           "zf": z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)}
+        elif operation == "not":
+            regs[args[0]] = ~regs[args[0]]
+        elif operation in ("shl", "shr"):
+            register, count = args
+            if count:
+                old = regs[register]
+                regs[register] = z.simplify(old << count if operation == "shl" else z.LShR(old, count))
+                bit = 64 - count if operation == "shl" else count - 1
+                state.flags = {"zf": regs[register] == 0, "cf": z.Extract(bit, bit, old) == 1}
+        elif operation == "setcc":
+            condition, register = args
+            regs[register] = z.simplify((regs[register] & self.value(~255)) |
+                                       z.If(self._reference_condition(state, condition), self.value(1), self.value(0)))
 
     def run(self):
         z = self.z
@@ -313,26 +394,8 @@ class Executor:
                     regs[args[0]] = self.value(args[1])
                 elif op == "mov":
                     regs[args[0]] = regs[args[1]]
-                elif op == "cmovne":
-                    destination, source = args
-                    # Both operands and ZF belong to the pre-instruction state;
-                    # this also preserves self-aliases. CMOV never changes flags.
-                    regs[destination] = z.simplify(z.If(z.Not(state.flags["zf"]),
-                        regs[source], regs[destination]))
-                elif op == "imul":
-                    destination, source = args
-                    # Two-operand IMUL keeps the low product. CF (and OF,
-                    # outside this decoder's condition set) reports signed
-                    # truncation, not unsigned overflow. Read both operands
-                    # before writing, including self-aliases.
-                    full = z.SignExt(64, regs[destination]) * z.SignExt(64, regs[source])
-                    product = z.Extract(63, 0, full)
-                    regs[destination] = z.simplify(product)
-                    # ZF is architecturally undefined. A fresh arbitrary value
-                    # overapproximates every allowed result; preserving the old
-                    # ZF or deriving it from the product could prove false code.
-                    state.flags = {"cf": full != z.SignExt(64, product),
-                        "zf": z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)}
+                elif op in ("cmovne", "imul", "not", "shl", "shr", "setcc"):
+                    self.register_formula(state, op, args)
                 elif op in ("load", "load8", "lea"):
                     dst, base, disp = args
                     address = z.simplify(regs[base] + self.value(disp))
@@ -345,20 +408,6 @@ class Executor:
                     self.alu(state, op, args[0], regs[args[1]])
                 elif op == "immediate_alu":
                     self.alu(state, args[0], args[1], self.value(args[2]))
-                elif op == "not":
-                    regs[args[0]] = ~regs[args[0]]
-                elif op in ("shl", "shr"):
-                    register, count = args
-                    if count:
-                        old = regs[register]
-                        regs[register] = z.simplify(old << count if op == "shl" else z.LShR(old, count))
-                        state.flags = {"zf": regs[register] == 0,
-                                       "cf": z.Extract(64 - count if op == "shl" else count - 1,
-                                                       64 - count if op == "shl" else count - 1, old) == 1}
-                elif op == "setcc":
-                    condition, register = args
-                    regs[register] = z.simplify((regs[register] & self.value(~255)) |
-                                               z.If(self.condition(state, condition), self.value(1), self.value(0)))
                 elif op == "push":
                     value = regs[args[0]]
                     regs[4] = z.simplify(regs[4] - self.value(8))

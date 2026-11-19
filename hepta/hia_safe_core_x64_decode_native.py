@@ -1,7 +1,8 @@
-"""Build the HIA x86 decoder interface for the independent Safe Core checker."""
+"""Pinned x86 decoding and register-only symbolic formulas from HIA."""
 from __future__ import annotations
 
 import ctypes
+from functools import lru_cache
 import os
 import struct
 
@@ -29,6 +30,39 @@ OPERATIONS = (
     ('not', ('u',)),
 )
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
+RECIPE_REQUEST = struct.Struct('<2Q')
+RECIPE_HEADER = struct.Struct('<5Q')
+RECIPE_NODE = struct.Struct('<4Q')
+MAX_RECIPE_NODES = 12
+RECIPE_INPUTS = 5
+# Only generic bit-vector/Boolean primitives cross this ABI. HIA supplies
+# their composition and selects which architectural observations change.
+RECIPE_PRIMITIVES = {
+    'add': ('rr', lambda z, ctx, a, b: a + b),
+    'sub': ('rr', lambda z, ctx, a, b: a - b),
+    'and': ('rr', lambda z, ctx, a, b: a & b),
+    'or': ('rr', lambda z, ctx, a, b: a | b),
+    'xor': ('rr', lambda z, ctx, a, b: a ^ b),
+    'not': ('r', lambda z, ctx, a: ~a),
+    'imul': ('rr', lambda z, ctx, a, b: a * b),
+    'ne': ('rr', lambda z, ctx, a, b: a != b),
+    'ult': ('rr', lambda z, ctx, a, b: z.ULT(a, b)),
+    'zero': ('r', lambda z, ctx, a: a == 0),
+    'one': ('r', lambda z, ctx, a: a == 1),
+    'false': ('', lambda z, ctx: z.BoolVal(False, ctx=ctx)),
+    'bool_not': ('r', lambda z, ctx, a: z.Not(a)),
+    'bool_or': ('rr', lambda z, ctx, a, b: z.Or(a, b)),
+    'bool_and': ('rr', lambda z, ctx, a, b: z.And(a, b)),
+    'choose': ('rrr', lambda z, ctx, a, b, c: z.If(a, b, c)),
+    'signext': ('ri', lambda z, ctx, a, bits: z.SignExt(bits, a)),
+    'extract': ('rii', lambda z, ctx, a, high, low: z.Extract(high, low, a)),
+    'shl': ('ri', lambda z, ctx, a, bits: a << bits),
+    'lshr': ('ri', lambda z, ctx, a, bits: z.LShR(a, bits)),
+    'literal64': ('i', lambda z, ctx, number: z.BitVecVal(number, 64, ctx=ctx)),
+    'simplify': ('r', lambda z, ctx, a: z.simplify(a)),
+}
+RECIPE_LAYOUT = tuple(RECIPE_PRIMITIVES.values())
+RECIPE_IDS = {name: code for code, name in enumerate(RECIPE_PRIMITIVES, 1)}
 ALU_GROUPS = {0: 'add', 1: 'or', 4: 'and', 5: 'sub', 6: 'xor', 7: 'cmp'}
 REFUSALS = (
     ('text_budget', 'machine text budget exceeded'),
@@ -106,6 +140,47 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             pc += width
         if pc != len(data):
             raise RuntimeError('native Safe Core decoder left unconsumed machine bytes')
+        return result
+
+    @lru_cache(maxsize=512)
+    def recipe(self, operation, parameter=0):
+        packet = RECIPE_REQUEST.pack(OPERATION_IDS[operation], parameter)
+        request = ctypes.create_string_buffer(packet, len(packet))
+        capacity = RECIPE_HEADER.size + MAX_RECIPE_NODES * RECIPE_NODE.size
+        output = ctypes.create_string_buffer(capacity)
+        size = self._entry(None, 0, output, capacity, request, len(packet))
+        if not RECIPE_HEADER.size <= size <= capacity:
+            raise RuntimeError('invalid native Safe Core formula extent')
+        count, *roots = RECIPE_HEADER.unpack_from(output)
+        if (count > MAX_RECIPE_NODES or size != RECIPE_HEADER.size + count * RECIPE_NODE.size
+                or any(ref > RECIPE_INPUTS + count for ref in roots)):
+            raise RuntimeError('invalid native Safe Core formula roots')
+        nodes = []
+        for at in range(RECIPE_HEADER.size, size, RECIPE_NODE.size):
+            code, *args = RECIPE_NODE.unpack_from(output, at)
+            if not 1 <= code <= len(RECIPE_LAYOUT):
+                raise RuntimeError('invalid native Safe Core formula primitive')
+            roles, lower = RECIPE_LAYOUT[code - 1]
+            limit = RECIPE_INPUTS + len(nodes)
+            if any(arg != 0 for arg in args[len(roles):]) or any(
+                    not 1 <= arg <= limit for role, arg in zip(roles, args) if role == 'r'):
+                raise RuntimeError('invalid native Safe Core formula operand')
+            nodes.append((lower, tuple((role == 'r', arg) for role, arg in zip(roles, args))))
+        return tuple(roots), tuple(nodes)
+
+    def symbolic(self, z, ctx, operation, parameter=0, *, left=None, right=None,
+                 zf=None, cf=None, arbitrary=None):
+        roots, nodes = self.recipe(operation, parameter)
+        values = [None, left, right, zf, cf, arbitrary]
+        for lower, sources in nodes:
+            args = [values[index] if is_ref else index for is_ref, index in sources]
+            if any(value is None for value in args):
+                raise RuntimeError('missing native Safe Core formula input')
+            values.append(lower(z, ctx, *args))
+        result = tuple(values[ref] for ref in roots)
+        for index, (ref, value) in enumerate(zip(roots, result, strict=True)):
+            if ref and not ((z.is_bv(value) and value.size() == 64) if index == 0 else z.is_bool(value)):
+                raise RuntimeError('invalid native Safe Core formula result sort')
         return result
 
 

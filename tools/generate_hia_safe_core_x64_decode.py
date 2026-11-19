@@ -5,7 +5,10 @@ import ast
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_safe_core_x64_decode_native import MAX_INSTRUCTIONS, MAX_TEXT, OPERATION_IDS, REFUSAL_IDS, WORKSPACE
+from hepta.hia_safe_core_x64_decode_native import (
+    MAX_INSTRUCTIONS, MAX_RECIPE_NODES, MAX_TEXT, OPERATION_IDS, RECIPE_IDS, RECIPE_INPUTS,
+    REFUSAL_IDS, WORKSPACE,
+)
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 SOURCE_PATH = 'examples/hia_bootstrap/safe_core_x64_decode.hepta'
@@ -16,10 +19,15 @@ FIELDS = {
 }
 FIELDS.update({'OP_' + name.upper(): index for name, index in OPERATION_IDS.items()})
 FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()})
+FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
+FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
+              LEFT=1, RIGHT=2, ZF=3, CF=4, ARBITRARY=5)
 
 SOURCE = r'''
 def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
+    if size == 0 and length(w) == 16:
+        return machine_formula(o, get(w, 0), get(w, 8))
     if length(o) < 24 or length(w) < WORKSPACE:
         return 4294967294
     if size == 0 or size > MAX_TEXT:
@@ -266,6 +274,121 @@ def decode_instruction(s:readbuf, w:mutbuf) -> u64:
     if opcode == 0x0f:
         return decode_extension(s, w, rex)
     return decode_operands(s, w, rex, opcode)
+
+def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
+    if length(o) < 40 + MAX_RECIPE_NODES * 32:
+        return 4294967294
+    put(o, 0, 0)
+    if op == OP_JCC or op == OP_SETCC:
+        condition = condition_formula(o, param)
+        if condition == 0:
+            return 4294967293
+        if op == OP_JCC:
+            return formula_done(o, 0, 0, 0, condition)
+        mask = node(o, R_LITERAL64, 18446744073709551360, 0, 0)
+        low = node(o, R_AND, LEFT, mask, 0)
+        one = node(o, R_LITERAL64, 1, 0, 0)
+        zero = node(o, R_LITERAL64, 0, 0, 0)
+        bit = node(o, R_CHOOSE, condition, one, zero)
+        result = node(o, R_OR, low, bit, 0)
+        return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
+    if op == OP_SHL or op == OP_SHR:
+        return shift_formula(o, op, param)
+    if param != 0:
+        return 4294967293
+    if op == OP_NOT:
+        return formula_done(o, node(o, R_NOT, LEFT, 0, 0), 0, 0, 0)
+    if op == OP_CMOVNE:
+        take = node(o, R_BOOL_NOT, ZF, 0, 0)
+        result = node(o, R_CHOOSE, take, RIGHT, LEFT)
+        return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
+    if op == OP_IMUL:
+        return imul_formula(o)
+    return alu_formula(o, op)
+
+def node(o:mutbuf, code:u64, left:u64, right:u64, extra:u64) -> u64:
+    count = get(o, 0)
+    at = 40 + count * 32
+    put(o, at, code)
+    put(o, at + 8, left)
+    put(o, at + 16, right)
+    put(o, at + 24, extra)
+    put(o, 0, count + 1)
+    return RECIPE_INPUTS + count + 1
+
+def formula_done(o:mutbuf, value:u64, zf:u64, cf:u64, branch:u64) -> u64:
+    put(o, 8, value)
+    put(o, 16, zf)
+    put(o, 24, cf)
+    put(o, 32, branch)
+    return 40 + get(o, 0) * 32
+
+def condition_formula(o:mutbuf, condition:u64) -> u64:
+    if condition == 2:
+        return CF
+    if condition == 3:
+        return node(o, R_BOOL_NOT, CF, 0, 0)
+    if condition == 4:
+        return ZF
+    if condition == 5:
+        return node(o, R_BOOL_NOT, ZF, 0, 0)
+    if condition == 6:
+        return node(o, R_BOOL_OR, CF, ZF, 0)
+    if condition == 7:
+        not_cf = node(o, R_BOOL_NOT, CF, 0, 0)
+        not_zf = node(o, R_BOOL_NOT, ZF, 0, 0)
+        return node(o, R_BOOL_AND, not_cf, not_zf, 0)
+    return 0
+
+def alu_formula(o:mutbuf, op:u64) -> u64:
+    if op == OP_ADD:
+        result = node(o, R_ADD, LEFT, RIGHT, 0)
+        cf = node(o, R_ULT, result, LEFT, 0)
+    else:
+        if op == OP_SUB or op == OP_CMP:
+            result = node(o, R_SUB, LEFT, RIGHT, 0)
+            cf = node(o, R_ULT, LEFT, RIGHT, 0)
+        else:
+            primitive = 0
+            if op == OP_AND or op == OP_TEST:
+                primitive = R_AND
+            if op == OP_OR:
+                primitive = R_OR
+            if op == OP_XOR:
+                primitive = R_XOR
+            if primitive == 0:
+                return 4294967293
+            result = node(o, primitive, LEFT, RIGHT, 0)
+            cf = node(o, R_FALSE, 0, 0, 0)
+    zf = node(o, R_ZERO, result, 0, 0)
+    if op == OP_CMP or op == OP_TEST:
+        return formula_done(o, 0, zf, cf, 0)
+    return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), zf, cf, 0)
+
+def shift_formula(o:mutbuf, op:u64, count:u64) -> u64:
+    if count >= 64:
+        return 4294967293
+    if count == 0:
+        return formula_done(o, 0, 0, 0, 0)
+    left = op == OP_SHL
+    shifted = node(o, choose(left, R_SHL, R_LSHR), LEFT, count, 0)
+    result = node(o, R_SIMPLIFY, shifted, 0, 0)
+    zf = node(o, R_ZERO, result, 0, 0)
+    carry_bit = choose(left, 64 - count, count - 1)
+    bit = node(o, R_EXTRACT, LEFT, carry_bit, carry_bit)
+    cf = node(o, R_ONE, bit, 0, 0)
+    return formula_done(o, result, zf, cf, 0)
+
+def imul_formula(o:mutbuf) -> u64:
+    # The low bits are written; carry reflects signed truncation. Undefined
+    # ZF is a separate arbitrary input, never preserved or inferred.
+    left = node(o, R_SIGNEXT, LEFT, 64, 0)
+    right = node(o, R_SIGNEXT, RIGHT, 64, 0)
+    full = node(o, R_IMUL, left, right, 0)
+    low = node(o, R_EXTRACT, full, 63, 0)
+    restored = node(o, R_SIGNEXT, low, 64, 0)
+    cf = node(o, R_NE, full, restored, 0)
+    return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), ARBITRARY, cf, 0)
 '''
 
 

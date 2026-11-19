@@ -74,7 +74,7 @@ ASSUMPTIONS = [
 
 UNPROVED_OBLIGATIONS = [
     {"property": "complete_x86_hardware_refinement", "status": "unproved",
-     "reason": "The independent instruction semantics and ELF/loader model are trusted Python implementations."},
+     "reason": "The independent checker, including selected HIA rules and retained host semantics, is trusted."},
     {"property": "whole_HIA_language_refinement", "status": "unproved",
      "reason": "Only the declared finite Safe Core profile is admitted."},
     {"property": "foreign_pointer_provenance_and_liveness", "status": "assumed",
