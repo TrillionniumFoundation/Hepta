@@ -660,8 +660,11 @@ class NativeWorkerJournalBundleTests(unittest.TestCase):
                 'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
                 'compiler_sha256': sha256(compiler.read_bytes()).hexdigest()}))
         from hepta.hia_agent_journal_native import installed_agent_journal
-        cls.journal_image = bytes(installed_agent_journal(str(manifest))._mapping)
         cls.journal_record = json.loads(manifest.read_bytes())
+        journal = installed_agent_journal(str(manifest))
+        cls.journal_image = (manifest.parent / cls.journal_record['image_path']).read_bytes()
+        if sha256(cls.journal_image).hexdigest() != journal.image_sha256:
+            raise ValueError('journal fixture changed after admission')
 
     @classmethod
     def tearDownClass(cls):
