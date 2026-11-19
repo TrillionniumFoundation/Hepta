@@ -383,14 +383,15 @@ class CnfInstalledTests(unittest.TestCase):
         with patch.object(semantics, '_z3_module', side_effect=ImportError):
             proved = validate_scalar_totality(safe)
             disproved = validate_scalar_totality(unsafe)
-            unsupported = validate_scalar_totality(total_division())
+            division = validate_scalar_totality(total_division())
         self.assertEqual(proved['status'], 'proved', proved)
         self.assertEqual(proved['solver']['result'], 'unsat')
         self.assertEqual(proved['checker']['source_identity']['cnf.image.bin'], self.native.image_sha256)
         self.assertEqual(disproved['status'], 'disproved', disproved)
         self.assertEqual(disproved['counterexample']['arguments'], [255])
         self.assertEqual(disproved['counterexample']['observation'], {'status': 'trapped', 'code': 'overflow'})
-        self.assertEqual(unsupported['reason'], 'solver_unavailable')
+        self.assertEqual((division['status'], division['reason']),
+                         ('proved', 'native_trap_predicate_unsatisfiable'))
 
     def test_checked_dynamic_shifts_bind_words_and_first_overflow(self):
         from hepta import hia_translation_validation as semantics
@@ -448,6 +449,76 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(wrong['status'], 'disproved', wrong)
         for proof in (safe, unsafe, same, wrong):
             self.assertEqual(proof['checker']['source_identity']['cnf.image.bin'], self.native.image_sha256)
+
+    def test_checked_division_and_remainder_preserve_sign_and_first_trap(self):
+        from hepta import hia_translation_validation as semantics
+        from hepta.hia_cnf_native import _CORE_TRAP_TAGS
+        from hepta.hia_scalar_totality import validate_scalar_totality
+        from tests.test_hia_program import b, c, f, i, m, ret
+
+        def program(typ, operations, returned='answer'):
+            params = [('a', typ), ('b', typ)]
+            return m(f('divide', params, [typ], ['trap'], [b('entry', params, operations, ret(returned))]))
+
+        def projection(raw):
+            function, = raw['functions']
+            graph = semantics._profile(function)
+            return self.native.project_scalar_graphs([function, function], [graph, graph], totality=False)
+
+        for typ in ('i8', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64'):
+            width = int(typ[1:])
+            signed = typ.startswith('i')
+            mask = (1 << width) - 1
+            lower = -(1 << (width - 1)) if signed else 0
+            upper = (1 << (width - signed)) - 1
+            values = (lower, lower + 1, -7 if signed else 7, 0, 1, 2, upper - 1, upper)
+            divisors = (lower, -3 if signed else 3, -1 if signed else 1, 0, 1, 2, upper)
+            for op in ('div', 'rem'):
+                raw = program(typ, [i(f'int.{op}.checked', ['a', 'b'], [('answer', typ)])])
+                nodes, pairs, _ = projection(raw)
+                for a in values:
+                    for divisor in divisors:
+                        if divisor == 0:
+                            status, expected = 'division_by_zero', 0
+                        elif signed and a == lower and divisor == -1:
+                            status, expected = 'overflow', 0
+                        else:
+                            magnitude = abs(a) // abs(divisor)
+                            quotient = -magnitude if (a < 0) != (divisor < 0) else magnitude
+                            status, expected = None, quotient if op == 'div' else a - quotient * divisor
+                        tag = _CORE_TRAP_TAGS.get(status, 0)
+                        circuit = (*nodes, (2, 8, 0, 0, tag), (2, width, 0, 0, expected & mask))
+                        observed = [pairs[0], (pairs[1][0], len(nodes)), (pairs[2][0], len(nodes) + 1)]
+                        self.assertFalse(self.native.check_word_witness(circuit, observed, [a & mask, divisor & mask]),
+                                         (typ, op, a, divisor))
+
+        divide = i('int.div.checked', ['a', 'b'], [('unused_division', 'i64')])
+        negate = i('int.neg.checked', ['a'], [('unused_negation', 'i64')])
+        earlier_overflow = program('i64', [negate, divide], 'a')
+        earlier_zero = program('i64', [divide, negate], 'a')
+        safe = program('i64', [c('one', 'i64', 1), i('bit.or', ['b', 'one'], [('odd', 'i64')]),
+                               c('positive_bits', 'i64', (1 << 63) - 1),
+                               i('bit.and', ['a', 'positive_bits'], [('positive', 'i64')]),
+                               i('int.rem.checked', ['positive', 'odd'], [('answer', 'i64')])])
+        divide_by_two = program('u64', [c('two', 'u64', 2),
+                                        i('int.div.checked', ['a', 'two'], [('answer', 'u64')])])
+        shift_by_one = program('u64', [c('one', 'u64', 1),
+                                        i('int.shr.checked', ['a', 'one'], [('answer', 'u64')])])
+        divide8 = program('u8', [i('int.div.checked', ['a', 'b'], [('answer', 'u8')])])
+        remainder8 = program('u8', [i('int.rem.checked', ['a', 'b'], [('answer', 'u8')])])
+        with patch.object(semantics, '_z3_module', side_effect=ImportError):
+            proof = validate_scalar_totality(safe)
+            mismatch = semantics.validate_translation(earlier_overflow, earlier_zero)
+            equal = semantics.validate_translation(divide_by_two, shift_by_one)
+            different = semantics.validate_translation(divide8, remainder8)
+        self.assertEqual((proof['status'], proof['reason']), ('proved', 'native_trap_predicate_unsatisfiable'))
+        self.assertEqual((mismatch['status'], mismatch['reason']), ('disproved', 'behavioral_counterexample_replayed'))
+        self.assertEqual(mismatch['counterexample']['before']['code'], 'overflow')
+        self.assertEqual(mismatch['counterexample']['after']['code'], 'division_by_zero')
+        self.assertEqual(equal['status'], 'proved', equal['reason'])
+        self.assertEqual(different['status'], 'disproved', different['reason'])
+        self.assertNotEqual(different['counterexample']['before']['values'],
+                            different['counterexample']['after']['values'])
 
     def test_translation_keeps_first_trap_and_return_values_without_z3(self):
         from hepta import hia_translation_validation as semantics

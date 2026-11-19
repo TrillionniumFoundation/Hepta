@@ -4,7 +4,8 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS, WORD_WITNESS_REQUEST,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
-                                  PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR,
+                                  CIRCUIT_DIVISION_TEMP, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
+                                  PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR, PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
                                  LEARNING_REQUEST, RESTART_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
                                  LEARNING_ORDER, LEARNING_HEAD, LEARNING_PHASE,
@@ -854,6 +855,8 @@ def evaluate_word_node(source:readbuf, scratch:mutbuf, operation:u64, width:u64,
         return evaluate_word_overflow(a, b, source_width, operation)
     if operation == 32:
         return (a * b) & word_mask(width)
+    if operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
+        return evaluate_word_division(a, b, width, operation)
     if operation == 26:
         return (a >> immediate) & word_mask(width)
     if operation == 27:
@@ -865,6 +868,20 @@ def evaluate_word_node(source:readbuf, scratch:mutbuf, operation:u64, width:u64,
     if (operation == 21 or operation == 31) and (a >> (source_width - 1)) == 1:
         a = a | (WORD_MASK ^ word_mask(source_width))
     return a & word_mask(width)
+
+def evaluate_word_division(a:u64, b:u64, width:u64, operation:u64) -> u64:
+    quotient = 0
+    remainder = 0
+    bit = width
+    mask = word_mask(width)
+    while bit > 0:
+        bit = bit - 1
+        carried = remainder >> (width - 1)
+        remainder = ((remainder << 1) | ((a >> bit) & 1)) & mask
+        if carried != 0 or remainder >= b:
+            remainder = (remainder - b) & mask
+            quotient = quotient | (1 << bit)
+    return choose(operation == WORD_UNSIGNED_DIV, quotient, remainder)
 
 def word_mask(width:u64) -> u64:
     if width == 64:
@@ -900,7 +917,7 @@ def evaluate_word_overflow(a:u64, b:u64, width:u64, operation:u64) -> u64:
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width == 0 or width > 64:
         return 0
-    if operation < 1 or operation > 32:
+    if operation < 1 or operation > WORD_UNSIGNED_REM:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -941,7 +958,7 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         return 1
     if right >= index or node_width(source, left) != node_width(source, right):
         return 0
-    if operation == 32:
+    if operation == 32 or operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
         return choose(width > 1 and width == node_width(source, left), 1, 0)
     if operation >= 12:
         if width != 1 or node_width(source, left) == 1:
@@ -1007,7 +1024,10 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
             left = read64(source, origin + 16)
             right = read64(source, origin + 24)
             immediate = read64(source, origin + 32)
-            if operation == 32:
+            if operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
+                if encode_division(output, scratch, node, left, right, width, operation) == 0:
+                    return TOO_LARGE
+            elif operation == 32:
                 if encode_product(output, scratch, node, choose(left < right, left, right), choose(left < right, right, left), width) == 0:
                     return TOO_LARGE
             elif operation >= 26:
@@ -1220,6 +1240,72 @@ def carry_after_digit(output:mutbuf, scratch:mutbuf, a:u64, b:u64, parity:u64, c
     if generate == 0 or propagate == 0:
         return 0
     return logic_or(output, scratch, generate, propagate)
+
+def encode_division(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64,
+                    width:u64, operation:u64) -> u64:
+    # Unsigned restoring division. Keep the extra bit separately: a carry
+    # from shifting the remainder makes subtraction unconditional.
+    row = CIRCUIT_DIVISION_TEMP
+    result = 32 + 128 * node
+    bit = 0
+    while bit < width:
+        put_token(scratch, row + 2 * bit, 3)
+        bit = bit + 1
+    incoming = width
+    while incoming > 0:
+        incoming = incoming - 1
+        high = load_token(scratch, row + 2 * (width - 1))
+        digit = load_token(scratch, 32 + 128 * left + 2 * incoming)
+        carry = division_trial(output, scratch, right, width, digit)
+        if carry == 0:
+            return 0
+        subtract = logic_or(output, scratch, high, carry)
+        if subtract == 0:
+            return 0
+        if operation == WORD_UNSIGNED_DIV:
+            put_token(scratch, result + 2 * incoming, subtract)
+        if division_restore(output, scratch, width, subtract) == 0:
+            return 0
+    if operation == WORD_UNSIGNED_REM:
+        bit = 0
+        while bit < width:
+            put_token(scratch, result + 2 * bit, load_token(scratch, row + 2 * bit))
+            bit = bit + 1
+    return 1
+
+def division_trial(output:mutbuf, scratch:mutbuf, right:u64, width:u64, digit:u64) -> u64:
+    divisor_row = 32 + 128 * right
+    bit = 0
+    carry = 2
+    while bit < width:
+        at = CIRCUIT_DIVISION_TEMP + 2 * bit
+        old = load_token(scratch, at)
+        put_token(scratch, at, digit)
+        divisor = load_token(scratch, divisor_row + 2 * bit) ^ 1
+        parity = logic_xor(output, scratch, digit, divisor)
+        if parity == 0:
+            return 0
+        trial = logic_xor(output, scratch, parity, carry)
+        if trial == 0:
+            return 0
+        put_token(scratch, at + 128, trial)
+        carry = carry_after_digit(output, scratch, digit, divisor, parity, carry)
+        if carry == 0:
+            return 0
+        digit = old
+        bit = bit + 1
+    return carry
+
+def division_restore(output:mutbuf, scratch:mutbuf, width:u64, subtract:u64) -> u64:
+    bit = 0
+    while bit < width:
+        at = CIRCUIT_DIVISION_TEMP + 2 * bit
+        remainder = logic_select(output, scratch, subtract, load_token(scratch, at + 128), load_token(scratch, at))
+        if remainder == 0:
+            return 0
+        put_token(scratch, at, remainder)
+        bit = bit + 1
+    return 1
 
 def encode_product(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, width:u64) -> u64:
     # The destination is a fresh token row. Accumulate each shifted partial
@@ -1531,6 +1617,7 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
     ops = read64(s, row + 8)
     write64(w, 88, read_stack(w, 40))
     write64(w, 96, params)
+    write64(w, 104, read_stack(w, 40))
     i = 0
     while i < params:
         typ = read64(s, row + 64 + 8 * i)
@@ -1552,7 +1639,12 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
     mode = read_stack(w, 8)
     if fault != no:
         if mode == 2:
-            p_trap(o, w, p_logic(o, w, 3, reach, fault), PROJECT_OVERFLOW_CODE)
+            division = read_stack(w, 104)
+            overflow = fault
+            if division != no:
+                overflow = p_logic(o, w, 3, fault, p_logic(o, w, 6, division, 0))
+                p_trap(o, w, p_logic(o, w, 3, reach, division), PROJECT_DIVISION_CODE)
+            p_trap(o, w, p_logic(o, w, 3, reach, overflow), PROJECT_OVERFLOW_CODE)
         reach = p_logic(o, w, 3, reach, p_logic(o, w, 6, fault, 0))
     kind = read64(s, row + 16)
     control = read64(s, row + 24)
@@ -1643,7 +1735,7 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
     if role == 2:
         literal = read64(s, row + 40) & word_mask(width)
         return p_bind(w, typ, p_node(o, w, 2, width, 0, 0, literal))
-    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and (role < 32 or role > PROJECT_CHECKED_SHR):
+    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and (role < 32 or role > PROJECT_CHECKED_REM):
         return 0
     first = p_var(w, read64(s, row + 16))
     if first == 0:
@@ -1664,9 +1756,11 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
     if second == 0:
         return 0
     b = second & 65535
-    if role == PROJECT_CHECKED_SHL or role == PROJECT_CHECKED_SHR:
+    if role >= PROJECT_CHECKED_SHL:
         if width < 8 or (first >> 16) != typ or (second >> 16) != typ:
             return 0
+        if role == PROJECT_CHECKED_DIV or role == PROJECT_CHECKED_REM:
+            return p_checked_division(o, w, typ, role, a, b)
         return p_checked_shift(o, w, typ, role, a, b)
     third = 0
     if role == 11:
@@ -1714,6 +1808,35 @@ def p_checked_shift(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, count:u64) -> 
 def p_fault(o:mutbuf, w:mutbuf, fault:u64) -> u64:
     return write64(w, 88, p_logic(o, w, 4, read_stack(w, 88), fault))
 
+def p_checked_division(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, b:u64) -> u64:
+    width = p_width(typ)
+    zero = p_node(o, w, 2, width, 0, 0, 0)
+    by_zero = p_logic(o, w, 7, b, zero)
+    if read_stack(w, 8) == 2:
+        prior = read_stack(w, 88)
+        first_zero = p_logic(o, w, 3, by_zero, p_logic(o, w, 6, prior, 0))
+        write64(w, 104, p_logic(o, w, 4, read_stack(w, 104), first_zero))
+    p_fault(o, w, by_zero)
+    operation = choose(role == PROJECT_CHECKED_DIV, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM)
+    if (typ & 128) == 0:
+        return p_bind(w, typ, p_node(o, w, operation, width, a, b, 0))
+
+    minimum = p_node(o, w, 2, width, 0, 0, 1 << (width - 1))
+    minus_one = p_node(o, w, 2, width, 0, 0, word_mask(width))
+    minimum_input = p_logic(o, w, 7, a, minimum)
+    minus_one_input = p_logic(o, w, 7, b, minus_one)
+    p_fault(o, w, p_logic(o, w, 3, minimum_input, minus_one_input))
+
+    sign_a = p_node(o, w, 26, 1, a, 0, width - 1)
+    sign_b = p_node(o, w, 26, 1, b, 0, width - 1)
+    magnitude_a = p_node(o, w, 11, width, sign_a, p_node(o, w, 10, width, zero, a, 0), a)
+    magnitude_b = p_node(o, w, 11, width, sign_b, p_node(o, w, 10, width, zero, b, 0), b)
+    result = p_node(o, w, operation, width, magnitude_a, magnitude_b, 0)
+    sign = sign_a
+    if operation == WORD_UNSIGNED_DIV:
+        sign = p_logic(o, w, 5, sign_a, sign_b)
+    return p_bind(w, typ, p_node(o, w, 11, width, sign, p_node(o, w, 10, width, zero, result, 0), result))
+
 def p_bind(w:mutbuf, typ:u64, node:u64) -> u64:
     index = read_stack(w, 96)
     write64(w, 2560 + 8 * index, typ * 65536 + node)
@@ -1726,12 +1849,16 @@ def source_program():
     constants = dict(GUARDED_CIRCUIT_REQUEST=GUARDED_CIRCUIT_REQUEST, CIRCUIT_REQUEST=CIRCUIT_REQUEST,
                      CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
                      PROJECT_CHECKED_SHL=PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR=PROJECT_CHECKED_SHR,
+                     PROJECT_CHECKED_DIV=PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM=PROJECT_CHECKED_REM,
+                     WORD_UNSIGNED_DIV=WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM=WORD_UNSIGNED_REM,
+                     CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
                      WORD_WITNESS_REQUEST=WORD_WITNESS_REQUEST,
                      GRAPH_PROJECTION_REQUEST=GRAPH_PROJECTION_REQUEST,
                      PROJECTION_INPUT_LIMIT=PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT=PROJECTION_OUTPUT,
                      PROJECTION_WORKSPACE=PROJECTION_WORKSPACE, PROJECT_OVERFLOW_CODE=_CORE_TRAP_TAGS['overflow'],
+                     PROJECT_DIVISION_CODE=_CORE_TRAP_TAGS['division_by_zero'],
                      PROJECT_TRAP_CODE_MAX=len(_CORE_TRAP_TAGS),
                      TOO_LARGE=0xfffffffc, BATCH_REQUEST=BATCH_REQUEST, SPARSE_REQUEST=SPARSE_REQUEST,
                      WATCHED_REQUEST=WATCHED_REQUEST, WATCH_HEADS=WATCH_HEADS,
