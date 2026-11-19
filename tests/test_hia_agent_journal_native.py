@@ -83,12 +83,38 @@ class JournalSourceTests(unittest.TestCase):
     def test_source_reproduces_and_original_owner_is_unchanged(self):
         from hepta.hia_agent_assembly import render_assembly
         from tools.generate_hia_agent_journal import document
+        from tools.generate_hia_agent_journal_transport import (
+            SOURCE as TRANSPORT_SOURCE, document as transport_document, transport_program,
+        )
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
+        expected_transport = render_assembly(transport_document(transport_program(), 'agent_journal_transport'))
+        self.assertEqual((ROOT / TRANSPORT_SOURCE).read_text(), expected_transport)
         # The retained owner remains independently callable for differential
         # comparison; selection cannot be implemented by renaming that owner.
         import inspect
         self.assertNotIn('native', inspect.getsource(HIAAgentService._reference_call))
         self.assertIn('call_with_native_journal', inspect.getsource(HIAAgentService.call))
+
+    def test_transport_rejects_bad_reply_extents_without_publishing_a_header(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        from tools.generate_hia_agent_journal_transport import SOURCE as TRANSPORT_SOURCE
+
+        program = assemble_program((ROOT / TRANSPORT_SOURCE).read_bytes())
+        data = _Owner(-1, bytearray(HEADER_OFFSET + 512 + PRIVATE_BYTES + 64))
+        output = _Owner(-2, bytearray(b'\xa5' * 48))
+        control = _Owner(-3, bytearray(struct.pack('<3Q', 16, 1, 3)))
+        arguments = [_View(data, False), _View(output, True), _View(control, True)]
+        arena = HEADER_OFFSET + 512 + 32
+        for extent in (63, 65, 64):
+            struct.pack_into('<Q', data.data, arena, extent)
+            machine = _Machine(program, 1_000_000, 64 << 20, None, 128)
+            result = machine.invoke(program.as_dict()['functions'][0], arguments)[0]
+            if extent == 64:
+                self.assertEqual((result, bytes(output.data)),
+                                 (1, struct.pack('<8s5Q', b'HIAJOU01', 1, 0, 0, 512, 64)))
+            else:
+                self.assertEqual((result, bytes(output.data)), (4294967293, b'\xa5' * 48))
 
     def test_independent_core_VM_request_identity(self):
         # Bound the child, rather than risking the test controller when a VM
