@@ -96,6 +96,40 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.assertTrue(z3.eq(reference.condition(state(), condition),
                                   native.condition(state(), condition)), condition)
 
+    def test_core_scalar_rules_preserve_normalized_values_and_traps(self):
+        import z3
+
+        from hepta.hia_safe_core import WIDTHS_V2, _Theory
+
+        theory = _Theory(z3, 15000, widths=WIDTHS_V2)
+        a, b, c = (z3.BitVec(name, 64, ctx=theory.ctx) for name in ('core_a', 'core_b', 'core_c'))
+
+        def compare(name, attributes, args, kind):
+            expected = theory._reference_scalar_operation(name, attributes, args, kind)
+            actual = theory.scalar_operation(name, attributes, args, kind)
+            for before, after in zip(expected, actual, strict=True):
+                if before is None or after is None:
+                    self.assertIs(before, after, (name, kind))
+                else:
+                    self.assertTrue(z3.eq(before, after), (name, kind))
+
+        for kind in ('u8', 'u16', 'u32', 'u64', 'usize'):
+            left, right = theory.normalized(a, kind), theory.normalized(b, kind)
+            for op in ('int.add.wrap', 'int.sub.wrap', 'int.mul.wrap', 'int.add.checked',
+                       'int.sub.checked', 'bit.and', 'bit.or', 'bit.xor'):
+                compare(op, {}, [left, right], kind)
+            compare('bit.not', {}, [left], kind)
+            for mode in ('wrap', 'checked'):
+                compare('int.cast', {'mode': mode}, [a], kind)
+            compare('const', {'value': (1 << theory.widths[kind]) - 1}, [], kind)
+            for relation in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
+                compare('compare.' + relation, {}, [left, right], 'bool')
+            compare('select', {}, [theory.normalized(c, 'bool'), left, right], kind)
+        boolean = [theory.normalized(value, 'bool') for value in (a, b)]
+        for op in ('bool.and', 'bool.or'):
+            compare(op, {}, boolean, 'bool')
+        compare('bool.not', {}, boolean[:1], 'bool')
+
     def test_actual_consumer_proves_from_installed_machine_rules_without_host_formulas(self):
         from hashlib import sha256
         from pathlib import Path
@@ -103,7 +137,7 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
 
         from hepta.hia_program import verify_program
         from hepta.hia_program_native import compile_program_machine, emit_program_machine
-        from hepta.hia_safe_core import validate_safe_core_artifact
+        from hepta.hia_safe_core import _Theory, validate_safe_core_artifact
         from tests.test_hia_program import arithmetic
 
         core = verify_program(arithmetic('int.mul.wrap', 'u32'))
@@ -120,6 +154,8 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                         side_effect=AssertionError('host call binding entered the Safe Core checker')),
                   patch('hepta.hia_safe_core_x64._reference_memory_admitted',
                         side_effect=AssertionError('host access policy entered the Safe Core checker')),
+                  patch.object(_Theory, '_reference_scalar_operation',
+                               side_effect=AssertionError('host Core scalar semantics entered')),
                   patch.multiple(Executor, **blocked)):
                 proof = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes())
         self.assertTrue(proof['ok'], proof)

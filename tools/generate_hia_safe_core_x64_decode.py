@@ -6,7 +6,7 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_x64_decode_native import (
-    MAX_INSTRUCTIONS, MAX_RECIPE_NODES, MAX_TEXT, OPERATION_IDS, RECIPE_IDS, RECIPE_INPUTS,
+    CORE_FORMULA_IDS, MAX_INSTRUCTIONS, MAX_RECIPE_NODES, MAX_TEXT, OPERATION_IDS, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE,
 )
@@ -21,8 +21,9 @@ FIELDS = {
 FIELDS.update({'OP_' + name.upper(): index for name, index in OPERATION_IDS.items()})
 FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()})
 FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
+FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in CORE_FORMULA_IDS.items()})
 FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
-              LEFT=1, RIGHT=2, ZF=3, CF=4, ARBITRARY=5)
+              LEFT=1, RIGHT=2, THIRD=3, ZF=3, CF=4, ARBITRARY=5)
 FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHED_ACTIVE=32,
               SCHED_HEADER=SCHEDULER_HEADER, SCHED_VISITS=SCHEDULER_VISITS,
               SCHED_BITMAP=SCHEDULER_BITMAP, SCHED_FRAMES=SCHEDULER_FRAMES,
@@ -35,6 +36,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return schedule_machine(s, o, w)
     if size == 0 and length(w) == 16:
         return machine_formula(o, get(w, 0), get(w, 8))
+    if size == 0 and length(w) == 24:
+        return core_scalar_formula(o, get(w, 0), get(w, 8), get(w, 16))
     if size == 0 and length(w) == 40:
         return memory_admission(w)
     if length(o) < 24 or length(w) < WORKSPACE:
@@ -449,6 +452,83 @@ def imul_formula(o:mutbuf) -> u64:
     restored = node(o, R_SIGNEXT, low, 64, 0)
     cf = node(o, R_NE, full, restored, 0)
     return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), ARBITRARY, cf, 0)
+
+def core_scalar_formula(o:mutbuf, op:u64, width:u64, literal:u64) -> u64:
+    if length(o) < 40 + MAX_RECIPE_NODES * 32:
+        return 4294967294
+    if width != 1 and width != 8 and width != 16 and width != 32 and width != 64:
+        return 4294967293
+    put(o, 0, 0)
+    if op == C_CONST:
+        return formula_done(o, node(o, R_LITERAL64, literal, 0, 0), 0, 0, 0)
+    if literal != 0:
+        return 4294967293
+    if op >= C_COMPARE_EQ and op <= C_COMPARE_GE:
+        return core_compare_formula(o, op)
+    if op == C_SELECT:
+        use_then = node(o, R_NONZERO, LEFT, 0, 0)
+        return formula_done(o, node(o, R_CHOOSE, use_then, RIGHT, THIRD), 0, 0, 0)
+    if op >= C_INT_ADD_WRAP and op <= C_INT_SUB_CHECKED:
+        return core_numeric_formula(o, op, width)
+    if op == C_INT_CAST_WRAP or op == C_INT_CAST_CHECKED:
+        mask = core_mask(o, width)
+        value = core_normalized(o, LEFT, mask)
+        trap = 0
+        if op == C_INT_CAST_CHECKED:
+            trap = node(o, R_UGT, LEFT, mask, 0)
+        return formula_done(o, value, 0, 0, trap)
+    if op == C_BIT_NOT or op == C_BOOL_NOT:
+        flipped = node(o, R_NOT, LEFT, 0, 0)
+        return formula_done(o, core_normalized(o, flipped, core_mask(o, width)), 0, 0, 0)
+    if op == C_BIT_AND or op == C_BOOL_AND:
+        return formula_done(o, node(o, R_AND, LEFT, RIGHT, 0), 0, 0, 0)
+    if op == C_BIT_OR or op == C_BOOL_OR:
+        return formula_done(o, node(o, R_OR, LEFT, RIGHT, 0), 0, 0, 0)
+    if op == C_BIT_XOR:
+        return formula_done(o, node(o, R_XOR, LEFT, RIGHT, 0), 0, 0, 0)
+    return 4294967293
+
+def core_mask(o:mutbuf, width:u64) -> u64:
+    mask = 18446744073709551615
+    if width < 64:
+        mask = (1 << width) - 1
+    return node(o, R_LITERAL64, mask, 0, 0)
+
+def core_normalized(o:mutbuf, value:u64, mask:u64) -> u64:
+    truncated = node(o, R_AND, value, mask, 0)
+    return node(o, R_SIMPLIFY, truncated, 0, 0)
+
+def core_numeric_formula(o:mutbuf, op:u64, width:u64) -> u64:
+    primitive = R_SUB
+    if op == C_INT_ADD_WRAP or op == C_INT_ADD_CHECKED:
+        primitive = R_ADD
+    if op == C_INT_MUL_WRAP:
+        primitive = R_IMUL
+    raw = node(o, primitive, LEFT, RIGHT, 0)
+    value = core_normalized(o, raw, core_mask(o, width))
+    trap = 0
+    if op == C_INT_ADD_CHECKED:
+        trap = node(o, R_ULT, value, LEFT, 0)
+    if op == C_INT_SUB_CHECKED:
+        trap = node(o, R_ULT, LEFT, RIGHT, 0)
+    return formula_done(o, value, 0, 0, trap)
+
+def core_compare_formula(o:mutbuf, op:u64) -> u64:
+    primitive = R_EQ
+    if op == C_COMPARE_NE:
+        primitive = R_NE
+    if op == C_COMPARE_LT:
+        primitive = R_ULT
+    if op == C_COMPARE_LE:
+        primitive = R_ULE
+    if op == C_COMPARE_GT:
+        primitive = R_UGT
+    if op == C_COMPARE_GE:
+        primitive = R_UGE
+    condition = node(o, primitive, LEFT, RIGHT, 0)
+    one = node(o, R_LITERAL64, 1, 0, 0)
+    zero = node(o, R_LITERAL64, 0, 0, 0)
+    return formula_done(o, node(o, R_CHOOSE, condition, one, zero), 0, 0, 0)
 
 def schedule_request(s:readbuf, offset:u64) -> u64:
     value = 0

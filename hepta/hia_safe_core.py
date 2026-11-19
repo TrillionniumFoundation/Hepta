@@ -259,6 +259,9 @@ def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=
 
 class _Theory:
     def __init__(self, z, timeout_ms, *, widths=WIDTHS):
+        from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
+        self.core_model = selected_safe_core_x64_decode()
         self.z, self.ctx = z, z.Context()
         self.widths = dict(widths)
         self.started = time.monotonic()
@@ -287,6 +290,48 @@ class _Theory:
                 self.inputs[name] = self.loan
             else:
                 self.inputs[name] = self.normalized(first, typ)
+
+    def scalar_operation(self, name, attrs, args, typ):
+        if self.core_model is None:
+            return self._reference_scalar_operation(name, attrs, args, typ)
+        if name == "int.cast":
+            name += "." + attrs["mode"]
+        literal = int(attrs["value"]) & ((1 << 64) - 1) if name == "const" else 0
+        return self.core_model.symbolic_core(self.z, self.ctx, name, self.widths[typ], args, literal)
+
+    def _reference_scalar_operation(self, name, attrs, args, typ):
+        z = self.z
+        trap = None
+        if name == "const":
+            value = self.bv(int(attrs["value"]))
+        elif name.startswith("int.add.") or name.startswith("int.sub."):
+            a, b = args
+            value = self.normalized(a + b if name.startswith("int.add.") else a - b, typ)
+            if name.endswith("checked"):
+                trap = z.ULT(value, a) if name.startswith("int.add.") else z.ULT(a, b)
+        elif name == "int.mul.wrap":
+            value = self.normalized(args[0] * args[1], typ)
+        elif name in ("bit.and", "bool.and", "bit.or", "bool.or", "bit.xor"):
+            a, b = args
+            value = a & b if name.endswith("and") else a | b if name.endswith("or") and name != "bit.xor" else a ^ b
+        elif name in ("bit.not", "bool.not"):
+            value = self.normalized(~args[0], typ)
+        elif name == "int.cast":
+            value = self.normalized(args[0], typ)
+            if attrs["mode"] == "checked":
+                # Normalized unsigned inputs must fit the target before
+                # narrowing. Equal-width and widening casts never fail.
+                trap = z.UGT(args[0], self.bv((1 << self.widths[typ]) - 1))
+        elif name.startswith("compare."):
+            a, b = args
+            relation = {"eq": lambda: a == b, "ne": lambda: a != b, "lt": lambda: z.ULT(a, b),
+                        "le": lambda: z.ULE(a, b), "gt": lambda: z.UGT(a, b), "ge": lambda: z.UGE(a, b)}[name.split(".")[1]]()
+            value = z.If(relation, self.bv(1), self.bv(0))
+        elif name == "select":
+            value = z.If(args[0] != 0, args[1], args[2])
+        else:
+            raise SafeCoreRejected("missing independent Core semantics")
+        return value, trap
 
     def reference(self, fn, blocks, extent):
         z = self.z
@@ -318,34 +363,7 @@ class _Theory:
                 out = operation["out"]
                 typ = out[0]["type"] if out else None
                 value, trap = None, None
-                if name == "const":
-                    value = self.bv(int(attrs["value"]))
-                elif name.startswith("int.add.") or name.startswith("int.sub."):
-                    a, b = args
-                    value = self.normalized(a + b if name.startswith("int.add.") else a - b, typ)
-                    if name.endswith("checked"):
-                        trap = z.ULT(value, a) if name.startswith("int.add.") else z.ULT(a, b)
-                elif name == "int.mul.wrap":
-                    value = self.normalized(args[0] * args[1], typ)
-                elif name in ("bit.and", "bool.and", "bit.or", "bool.or", "bit.xor"):
-                    a, b = args
-                    value = a & b if name.endswith("and") else a | b if name.endswith("or") and name != "bit.xor" else a ^ b
-                elif name in ("bit.not", "bool.not"):
-                    value = self.normalized(~args[0], typ)
-                elif name == "int.cast":
-                    value = self.normalized(args[0], typ)
-                    if attrs["mode"] == "checked":
-                        # Normalized unsigned inputs must fit the target before
-                        # narrowing. Equal-width and widening casts never fail.
-                        trap = z.UGT(args[0], self.bv((1 << self.widths[typ]) - 1))
-                elif name.startswith("compare."):
-                    a, b = args
-                    relation = {"eq": lambda: a == b, "ne": lambda: a != b, "lt": lambda: z.ULT(a, b),
-                                "le": lambda: z.ULE(a, b), "gt": lambda: z.UGT(a, b), "ge": lambda: z.UGE(a, b)}[name.split(".")[1]]()
-                    value = z.If(relation, self.bv(1), self.bv(0))
-                elif name == "select":
-                    value = z.If(args[0] != 0, args[1], args[2])
-                elif name == "buffer.len":
+                if name == "buffer.len":
                     value = args[0][1]
                 elif name in ("buffer.load", "buffer.store"):
                     pointer, length, permission = args[0]
@@ -360,7 +378,7 @@ class _Theory:
                         require(permission == "mutbuf", "reference cannot write a read-only loan")
                         memory = z.Store(memory, pointer + index, z.Extract(7, 0, args[2]))
                 else:
-                    raise SafeCoreRejected("missing independent Core semantics")
+                    value, trap = self.scalar_operation(name, attrs, args, typ)
                 if trap is not None:
                     outcome("abort", z.And(path, trap), memory)
                     path = z.simplify(z.And(path, z.Not(trap)))

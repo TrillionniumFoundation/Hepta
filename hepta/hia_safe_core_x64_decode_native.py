@@ -50,6 +50,7 @@ OPERATIONS = (
 )
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
 RECIPE_REQUEST = struct.Struct('<2Q')
+CORE_FORMULA_REQUEST = struct.Struct('<3Q')
 RECIPE_HEADER = struct.Struct('<5Q')
 RECIPE_NODE = struct.Struct('<4Q')
 MAX_RECIPE_NODES = 12
@@ -66,7 +67,12 @@ RECIPE_PRIMITIVES = {
     'imul': ('rr', lambda z, ctx, a, b: a * b),
     'ne': ('rr', lambda z, ctx, a, b: a != b),
     'ult': ('rr', lambda z, ctx, a, b: z.ULT(a, b)),
+    'ule': ('rr', lambda z, ctx, a, b: z.ULE(a, b)),
+    'ugt': ('rr', lambda z, ctx, a, b: z.UGT(a, b)),
+    'uge': ('rr', lambda z, ctx, a, b: z.UGE(a, b)),
+    'eq': ('rr', lambda z, ctx, a, b: a == b),
     'zero': ('r', lambda z, ctx, a: a == 0),
+    'nonzero': ('r', lambda z, ctx, a: a != 0),
     'one': ('r', lambda z, ctx, a: a == 1),
     'false': ('', lambda z, ctx: z.BoolVal(False, ctx=ctx)),
     'bool_not': ('r', lambda z, ctx, a: z.Not(a)),
@@ -82,6 +88,12 @@ RECIPE_PRIMITIVES = {
 }
 RECIPE_LAYOUT = tuple(RECIPE_PRIMITIVES.values())
 RECIPE_IDS = {name: code for code, name in enumerate(RECIPE_PRIMITIVES, 1)}
+CORE_FORMULA_IDS = {name: code for code, name in enumerate((
+    'const', 'int.add.wrap', 'int.sub.wrap', 'int.mul.wrap', 'int.add.checked', 'int.sub.checked',
+    'bit.and', 'bit.or', 'bit.xor', 'bit.not', 'bool.and', 'bool.or', 'bool.not',
+    'int.cast.wrap', 'int.cast.checked', 'compare.eq', 'compare.ne', 'compare.lt', 'compare.le',
+    'compare.gt', 'compare.ge', 'select',
+), 1)}
 ALU_GROUPS = {0: 'add', 1: 'or', 4: 'and', 5: 'sub', 6: 'xor', 7: 'cmp'}
 REFUSALS = (
     ('text_budget', 'machine text budget exceeded'),
@@ -228,7 +240,13 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
 
     @lru_cache(maxsize=512)
     def recipe(self, operation, parameter=0):
-        packet = RECIPE_REQUEST.pack(OPERATION_IDS[operation], parameter)
+        return self._decode_recipe(RECIPE_REQUEST.pack(OPERATION_IDS[operation], parameter))
+
+    @lru_cache(maxsize=512)
+    def core_recipe(self, operation, width, literal):
+        return self._decode_recipe(CORE_FORMULA_REQUEST.pack(CORE_FORMULA_IDS[operation], width, literal))
+
+    def _decode_recipe(self, packet):
         request = ctypes.create_string_buffer(packet, len(packet))
         capacity = RECIPE_HEADER.size + MAX_RECIPE_NODES * RECIPE_NODE.size
         output = ctypes.create_string_buffer(capacity)
@@ -254,8 +272,19 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
 
     def symbolic(self, z, ctx, operation, parameter=0, *, left=None, right=None,
                  zf=None, cf=None, arbitrary=None):
-        roots, nodes = self.recipe(operation, parameter)
-        values = [None, left, right, zf, cf, arbitrary]
+        return self._evaluate(z, ctx, self.recipe(operation, parameter), (left, right, zf, cf, arbitrary))
+
+    def symbolic_core(self, z, ctx, operation, width, arguments, literal=0):
+        recipe = self.core_recipe(operation, width, literal)
+        value, unused_zf, unused_cf, trap = self._evaluate(z, ctx, recipe, arguments)
+        if value is None or unused_zf is not None or unused_cf is not None:
+            raise RuntimeError('invalid native Safe Core reference formula roots')
+        return value, trap
+
+    @staticmethod
+    def _evaluate(z, ctx, recipe, inputs):
+        roots, nodes = recipe
+        values = [None, *inputs, *([None] * (RECIPE_INPUTS - len(inputs)))]
         for lower, sources in nodes:
             args = [values[index] if is_ref else index for is_ref, index in sources]
             if any(value is None for value in args):
