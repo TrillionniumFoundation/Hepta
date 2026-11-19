@@ -49,6 +49,14 @@ exhaustively check domains with at most 16 input bits and sufficient work
 budget. Larger or unsupported obligations may use the existing pinned Z3
 path; they are not certified by an incomplete search.
 
+`validate_bounded_translation` is the separate single-feedback-edge
+profile. The canonical unfolding marks a would-be traversal past its limit
+with a distinct Boolean return. The selected HIA circuit checker tests
+whether that marker or an incomplete outcome is reachable; normal traps in
+the original graph do not count as truncation. Only a successful bound check
+admits the independent all-input comparison against the candidate. Bounds
+and results are freshly checked, not assumptions supplied by the unroller.
+
 ## API and consumers
 
 ```python

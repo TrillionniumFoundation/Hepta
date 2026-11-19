@@ -17,6 +17,7 @@ SCHEMA = "hepta.hia.scalar-proof-scope.v1"
 STRUCTURAL_TOTALITY_CHECKER = "hia-structural-totality"
 CIRCUIT_TOTALITY_CHECKER = "hia-native-cnf-totality"
 CIRCUIT_TRANSLATION_CHECKER = "hia-native-cnf-translation"
+CIRCUIT_BOUND_CHECKER = "hia-native-cnf-feedback-bound"
 FIELDS = ("subject", "property", "profile", "assumptions", "checker", "unproved_obligations")
 PROVED_MEANING = (
     "The identified SMT checker established only the stated property for the "
@@ -79,17 +80,16 @@ def _source_identity(name):
     hashes = {n: sha256(Path(__file__).with_name(n).read_bytes()).hexdigest() for n in sorted(names)}
     if native is not None:
         hashes["scalar_symbolic.image.bin"] = native.image_sha256
-    if name in {"validate_scalar_totality", "validate_translation", "validate_scalar_calls", "validate_scalar_call_totality"}:
-        from .hia_cnf_native import selected_cnf
-        from .hia_scalar_reference_native import selected_scalar_reference
+    from .hia_cnf_native import selected_cnf
+    from .hia_scalar_reference_native import selected_scalar_reference
 
-        for label, adapter, selected in (
-            ("cnf", "hia_cnf_native.py", selected_cnf()),
-            ("scalar_reference", "hia_scalar_reference_native.py", selected_scalar_reference()),
-        ):
-            if selected is not None:
-                hashes[adapter] = sha256(Path(__file__).with_name(adapter).read_bytes()).hexdigest()
-                hashes[label + ".image.bin"] = selected.image_sha256
+    for label, adapter, selected in (
+        ("cnf", "hia_cnf_native.py", selected_cnf()),
+        ("scalar_reference", "hia_scalar_reference_native.py", selected_scalar_reference()),
+    ):
+        if selected is not None:
+            hashes[adapter] = sha256(Path(__file__).with_name(adapter).read_bytes()).hexdigest()
+            hashes[label + ".image.bin"] = selected.image_sha256
     return hashes
 
 
@@ -181,7 +181,7 @@ def finish_scalar_proof(result, scope, *, started_ns=None, deadline_ms=None):
     kind = "trusted_executable_smt_checker"
     method = "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples"
     meaning = PROVED_MEANING
-    checker_name = result.get("solver", {}).get("name")
+    checker_name = result.get("bound_solver", result.get("solver", {})).get("name")
     if name == "validate_scalar_totality" and checker_name == STRUCTURAL_TOTALITY_CHECKER:
         kind = "trusted_executable_structural_checker"
         method = "Typed scalar DAG, nontrapping operations and return-only sinks; no SMT"
@@ -189,6 +189,13 @@ def finish_scalar_proof(result, scope, *, started_ns=None, deadline_ms=None):
         assumptions[2] = _item("trusted_implementation", "The canonical verifier and selected HIA graph and nontrapping-instruction checks are trusted, not machine-proved.")
         assumptions[4] = _item("termination_rule", "Every transition in the verified finite DAG leads to a successor or to a normal return; its admitted fixed-width scalar operations cannot trap.")
         obligations[0] = _item("checker_soundness", "A machine-checked correctness theorem for the canonical verifier and HIA structural checker remains open.")
+    elif name == "validate_bounded_translation" and checker_name == CIRCUIT_BOUND_CHECKER:
+        kind = "trusted_executable_hia_circuit_checker"
+        method = "HIA projection and CNF search for truncation or missing outcomes; separate first-trap equivalence query"
+        meaning = PROVED_MEANING.replace("SMT checker", "bounded HIA checker")
+        assumptions[2] = _item("trusted_implementation", "The canonical verifier, finite unfolding, HIA marker projection, and independent Core replay are trusted, not machine-proved.")
+        assumptions[4] = _item("solver", "The identified HIA solver correctly decides the projected bound query; the nested equivalence has its own checker and assumptions.")
+        obligations[0] = _item("checker_soundness", "A machine-checked correctness theorem for finite unfolding, native marker encoding, search and replay remains open.")
     elif (name, checker_name) in {("validate_scalar_totality", CIRCUIT_TOTALITY_CHECKER),
                                  ("validate_scalar_call_totality", CIRCUIT_TOTALITY_CHECKER),
                                  ("validate_translation", CIRCUIT_TRANSLATION_CHECKER),

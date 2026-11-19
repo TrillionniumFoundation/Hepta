@@ -13,8 +13,9 @@ from collections import deque
 import copy
 from hashlib import sha256
 from pathlib import Path
+import time
 
-from .hia_scalar_proof_contract import (begin_scalar_proof, finish_scalar_proof,
+from .hia_scalar_proof_contract import (CIRCUIT_BOUND_CHECKER, begin_scalar_proof, finish_scalar_proof,
                                         same_scalar_proof_scope)
 from .hia_program import HIAProgramRejected, verify_program
 from .hia_translation_validation import (
@@ -180,10 +181,50 @@ def _marker(reference, function):
                            "functions": [fn]})
 
 
+def _native_bound(result, scope, marker, fn, graph, deadline_ns):
+    from .hia_cnf_native import UNSAT, scalar_model_arguments, selected_cnf
+    from .hia_optimization import _native_circuit_decision, _native_solver_identity, _native_word_table_decision
+
+    cnf = selected_cnf()
+    if cnf is None:
+        return False
+    if (scope["source_identity"] or {}).get("cnf.image.bin") != cnf.image_sha256:
+        raise _OutsideProfile("native_bound_identity_changed")
+    circuit = cnf.project_scalar_graphs((fn,), (graph,), totality=False, bound_marker=True)
+    decision = (_native_circuit_decision(cnf, circuit, deadline_ns)
+                or _native_word_table_decision(cnf, circuit, deadline_ns))
+    if decision is None:
+        return False
+    verdict, model, evidence, _ = decision
+    if time.monotonic_ns() >= deadline_ns:
+        raise _OutsideProfile("bound_proof_deadline_exhausted")
+    result["bound_solver"].update(name=CIRCUIT_BOUND_CHECKER, version="1",
+        identity=_native_solver_identity(cnf), result="unsat" if verdict == UNSAT else "sat",
+        marker_sha256=marker.sha256, discharge=evidence)
+    if verdict != UNSAT:
+        arguments = list(scalar_model_arguments(model, fn["params"]))
+        _replay_bound(result, marker, fn["name"], arguments)
+    return True
+
+
+def _replay_bound(result, marker, name, arguments):
+    from .hia_program_runtime import HIAProgramTrap, execute_program
+
+    try:
+        values = execute_program(marker, name, arguments, max_steps=MAX_OPERATIONS + MAX_BLOCKS + 2)["values"]
+    except HIAProgramTrap:
+        values = None
+    if values == [True]:
+        result.update(status="disproved", reason="bound_exceeded_for_typed_input",
+                      counterexample={"arguments": arguments, "marker_values": values})
+    else:
+        result["reason"] = "bound_counterexample_replay_disagrees"
+
+
 def validate_bounded_translation(before, after, *, function, max_backedges, timeout_ms=2000):
     """Prove the bound and then compare values/first traps for all typed inputs.
 
-    The timeout applies separately to the bound and equivalence SMT queries.
+    The timeout applies separately to the bound and equivalence queries.
     No wall-clock deadline or unbounded-loop/general resource proof is claimed.
     """
     scope = begin_scalar_proof("validate_bounded_translation")
@@ -225,44 +266,24 @@ def validate_bounded_translation(before, after, *, function, max_backedges, time
     except (HIAProgramRejected, _OutsideProfile) as error:
         result["reason"] = "outside_profile: " + str(error)
         return finish_scalar_proof(result, scope)
+    deadline_ns = time.monotonic_ns() + timeout_ms * 1_000_000
     try:
-        z = _z3_module()
-    except (ImportError, OSError):
-        result["reason"] = "solver_unavailable"
+        use_native = _native_bound(result, scope, marker, fn, graph, deadline_ns)
+    except _OutsideProfile as error:
+        result["reason"] = str(error)
         return finish_scalar_proof(result, scope)
-    try:
-        from .hia_optimization import _solver_identity
-        result["bound_solver"]["identity"] = _solver_identity(z)
-    except Exception as exc:
-        result.update(reason="solver_identity_unavailable", error_type=type(exc).__name__)
+    except (OSError, ValueError, RuntimeError) as error:
+        result.update(reason="native_bound_unavailable", error_type=type(error).__name__)
         return finish_scalar_proof(result, scope)
-    try:
-        encoder = _Encoder(z)
-        inputs = [encoder.input(i, p["type"]) for i, p in enumerate(fn["params"])]
-        tag, values = encoder.function(fn, inputs, *graph)
-        solver = z.Solver(ctx=encoder.context)
-        solver.set(timeout=timeout_ms)
-        solver.add(z.Or(tag < 0, z.And(tag == 0, values[0])))
-        verdict = solver.check()
-        result["bound_solver"].update(result=str(verdict), version=z.get_version_string())
-        if verdict != z.unsat:
-            result["reason"] = "bound_unknown" if verdict != z.sat else "bound_exceeded_for_typed_input"
-            if verdict == z.sat:
-                from .hia_program_runtime import execute_program
-                model = solver.model()
-                arguments = [encoder.concrete(model, v, p["type"]) for v, p in zip(inputs, fn["params"])]
-                observation = execute_program(marker, function, arguments,
-                                              max_steps=MAX_OPERATIONS + MAX_BLOCKS + 2)
-                if observation["values"] != [True]:
-                    result["reason"] = "bound_counterexample_replay_disagrees"
-                    return finish_scalar_proof(result, scope)
-                result["status"] = "disproved"
-                result["counterexample"] = {"arguments": arguments, "marker_values": observation["values"]}
-            else:
-                result["bound_solver"]["reason_unknown"] = solver.reason_unknown()
-            return finish_scalar_proof(result, scope)
-    except z.Z3Exception as error:
-        result["reason"] = "solver_error: " + str(error)
+    if not use_native:
+        remaining_ms = timeout_ms
+        if "cnf.image.bin" in (scope["source_identity"] or {}):
+            remaining_ms = (deadline_ns - time.monotonic_ns()) // 1_000_000
+        if remaining_ms <= 0:
+            result["reason"] = "bound_proof_deadline_exhausted"
+        else:
+            _smt_bound(result, marker, fn, graph, remaining_ms)
+    if result["bound_solver"]["result"] != "unsat":
         return finish_scalar_proof(result, scope)
     result["claims"]["all_input_bound_proved"] = True
     proof = validate_translation(reference, candidate, function=function, timeout_ms=timeout_ms)
@@ -273,6 +294,39 @@ def validate_bounded_translation(before, after, *, function, max_backedges, time
     elif proof["status"] == "disproved":
         result["counterexample"] = proof["counterexample"]
     return finish_scalar_proof(result, scope)
+
+
+def _smt_bound(result, marker, fn, graph, timeout_ms):
+    from .hia_optimization import _solver_identity
+
+    try:
+        z = _z3_module()
+    except (ImportError, OSError):
+        result["reason"] = "solver_unavailable"
+        return
+    try:
+        result["bound_solver"]["identity"] = _solver_identity(z)
+    except Exception as exc:
+        result.update(reason="solver_identity_unavailable", error_type=type(exc).__name__)
+        return
+    try:
+        encoder = _Encoder(z)
+        inputs = [encoder.input(i, p["type"]) for i, p in enumerate(fn["params"])]
+        tag, values = encoder.function(fn, inputs, *graph)
+        solver = z.Solver(ctx=encoder.context)
+        solver.set(timeout=timeout_ms)
+        solver.add(z.Or(tag < 0, z.And(tag == 0, values[0])))
+        verdict = solver.check()
+        result["bound_solver"].update(result=str(verdict), version=z.get_version_string())
+        if verdict == z.sat:
+            model = solver.model()
+            arguments = [encoder.concrete(model, v, p["type"]) for v, p in zip(inputs, fn["params"])]
+            _replay_bound(result, marker, fn["name"], arguments)
+        elif verdict != z.unsat:
+            result["reason"] = "bound_unknown"
+            result["bound_solver"]["reason_unknown"] = solver.reason_unknown()
+    except z.Z3Exception as error:
+        result["reason"] = "solver_error: " + str(error)
 
 
 def verify_bounded_translation_receipt(before, after, receipt, *, function, max_backedges, timeout_ms=2000):

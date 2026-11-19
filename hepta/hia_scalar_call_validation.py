@@ -109,7 +109,7 @@ def _observe(program, function, arguments):
 
 def _native_call_query(function, closures, scope, *, totality, deadline_ns):
     from .hia_cnf_native import selected_cnf
-    from .hia_optimization import _native_circuit_decision, _native_solver_identity
+    from .hia_optimization import _native_circuit_decision, _native_solver_identity, _native_word_table_decision
 
     cnf = selected_cnf()
     if cnf is None:
@@ -121,23 +121,12 @@ def _native_call_query(function, closures, scope, *, totality, deadline_ns):
     if projected is None:
         return None
     circuit, expansions = projected
-    verdict = _native_circuit_decision(cnf, circuit, deadline_ns)
-    identity = _native_solver_identity(cnf)
-    if verdict is not None:
-        decision, model, discharge, _ = verdict
-        return decision, model, expansions, identity, discharge
-
-    remaining_ms = (deadline_ns - time.monotonic_ns()) // 1_000_000
-    if remaining_ms <= 0:
+    verdict = (_native_circuit_decision(cnf, circuit, deadline_ns)
+               or _native_word_table_decision(cnf, circuit, deadline_ns))
+    if verdict is None:
         return None
-    nodes, observed, traps = circuit
-    table = cnf.search_word_table(nodes, observed, traps=traps, work=remaining_ms * 16_384)
-    if table is None:
-        return None
-    decision, model, assignments, query = table
-    discharge = {"method": "native_hia_exhaustive_word_table", "image_sha256": cnf.image_sha256,
-                 "formula_sha256": sha256(query).hexdigest(), "assignments_checked": assignments}
-    return decision, model, expansions, identity, discharge
+    decision, model, discharge, _ = verdict
+    return decision, model, expansions, _native_solver_identity(cnf), discharge
 
 
 def _native_call_equivalence(report, selected, checked, closures, scope, deadline_ns):

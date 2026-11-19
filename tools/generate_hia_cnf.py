@@ -1594,11 +1594,13 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
     origin = 32
     if calls:
         origin = 40
-    if mode < 1 or mode > 3 or inputs > 32 or outputs > 16 or length(s) < origin + 8 * (inputs + outputs):
+    if mode < 1 or mode > 4 or inputs > 32 or outputs > 16 or length(s) < origin + 8 * (inputs + outputs):
         return TOO_LARGE
     if mode == 2 and outputs + 2 > CIRCUIT_RETURNS:
         return TOO_LARGE
     if mode == 3 and (calls == False or outputs != 1):
+        return TOO_LARGE
+    if mode == 4 and (calls or outputs != 1 or read64(s, origin + 8 * inputs) != 1):
         return TOO_LARGE
     tail = length(s)
     if calls:
@@ -1644,6 +1646,10 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
     if mode == 2:
         both = p_logic(o, w, 3, both, read_stack(w, 264))
         pairs = outputs + 2
+    over_bound = no
+    if mode == 4:
+        over_bound = p_logic(o, w, 3, read_stack(w, 80), read_stack(w, 128))
+        pairs = 2
     nodes = read_stack(w, 0)
     if nodes > CIRCUIT_NODES:
         return TOO_LARGE
@@ -1656,6 +1662,9 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
     write64(o, 24, 0)
     write64(o, at, both)
     write64(o, at + 8, yes)
+    if mode == 4:
+        write64(o, at + 16, over_bound)
+        write64(o, at + 24, no)
     if mode == 2:
         write64(o, at + 16, read_stack(w, 256))
         write64(o, at + 24, read_stack(w, 56))
@@ -1692,6 +1701,34 @@ def p_width(typ:u64) -> u64:
 
 def p_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
     index = read_stack(w, 0)
+    if (op == 9 or op == 10) and a < index and b < index and index <= CIRCUIT_NODES:
+        left = 32 + 40 * a
+        right = 32 + 40 * b
+        if read_stack(o, left) == 2 and read_stack(o, right) == 2:
+            if read_stack(o, left + 8) == width and read_stack(o, right + 8) == width:
+                av = read_stack(o, left + 32)
+                bv = read_stack(o, right + 32)
+                c = choose(op == 9, av + bv, av - bv) & word_mask(width)
+                a = 0
+                b = 0
+                op = 2
+    if op > 2 and index <= CIRCUIT_NODES:
+        folded = p_fold(o, op, width, a, b, c, index)
+        if folded < CIRCUIT_NODES:
+            return folded
+        if folded != 65535:
+            # The helper's non-node form encodes a Boolean literal.
+            return choose(folded == 65536, read_stack(w, 40), read_stack(w, 32))
+    # A repeated word expression has the same value everywhere in this DAG.
+    # Input nodes are intentionally never shared: their order binds models.
+    if op != 1 and index <= CIRCUIT_NODES:
+        previous = 0
+        while previous < index:
+            at = 32 + 40 * previous
+            if read_stack(o, at) == op and read_stack(o, at + 8) == width and read_stack(o, at + 16) == a:
+                if read_stack(o, at + 24) == b and read_stack(o, at + 32) == c:
+                    return previous
+            previous = previous + 1
     if index >= CIRCUIT_NODES:
         write64(w, 0, CIRCUIT_NODES + 1)
         return CIRCUIT_NODES
@@ -1703,6 +1740,46 @@ def p_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
     write64(o, at + 32, c)
     write64(w, 0, index + 1)
     return index
+
+def p_fold(o:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64, nodes:u64) -> u64:
+    if a >= nodes:
+        return 65535
+    left = 32 + 40 * a
+    left_width = read_stack(o, left + 8)
+    left_known = read_stack(o, left) == 2
+    av = read_stack(o, left + 32)
+    if op == 6 and left_width == 1 and width == 1 and left_known:
+        return 65536 + (av ^ 1)
+    if b >= nodes:
+        return 65535
+    right = 32 + 40 * b
+    right_width = read_stack(o, right + 8)
+    right_known = read_stack(o, right) == 2
+    bv = read_stack(o, right + 32)
+    if op == 11 and left_width == 1 and right_width == width and c < nodes:
+        if read_stack(o, 40 + 40 * c) == width:
+            if b == c:
+                return b
+            if left_known:
+                return choose(av == 1, b, c)
+    if width != 1 or left_width != right_width:
+        return 65535
+    if op == 3 and left_width == 1:
+        if left_known:
+            return choose(av == 0, a, b)
+        if right_known:
+            return choose(bv == 0, b, a)
+    if op == 4 and left_width == 1:
+        if left_known:
+            return choose(av == 1, a, b)
+        if right_known:
+            return choose(bv == 1, b, a)
+    if op == 7 or op == 8:
+        if a == b or (left_known and right_known):
+            return 65536 + choose((a == b or av == bv) == (op == 7), 1, 0)
+    if op >= 12 and op < 20 and left_known and right_known:
+        return 65536 + evaluate_word_order(av, bv, left_width, op)
+    return 65535
 
 def p_logic(o:mutbuf, w:mutbuf, op:u64, a:u64, b:u64) -> u64:
     return p_node(o, w, op, 1, a, b, 0)
@@ -1800,7 +1877,7 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
         if argd != 0 or argc != read_stack(w, 24):
             return 0
         p_complete(o, w, reach)
-        if mode == 3:
+        if mode == 3 or mode == 4:
             write64(w, 80, p_logic(o, w, 4, reach, read_stack(w, 80)))
         if mode != 1:
             i = 0
@@ -1817,7 +1894,9 @@ def p_block(s:readbuf, o:mutbuf, w:mutbuf, index:u64, count:u64, inherited:u64) 
     if kind == 2:
         if argc != 0 or argd != 0 or control == 0 or control > PROJECT_TRAP_CODE_MAX:
             return 0
-        if mode != 1:
+        if mode == 4:
+            p_complete(o, w, reach)
+        elif mode != 1:
             p_trap(o, w, reach, control)
         return 1
     if kind == 3:
@@ -1841,7 +1920,10 @@ def p_flush_faults(o:mutbuf, w:mutbuf) -> u64:
     fault = read_stack(w, 88)
     if fault == no:
         return reach
-    if read_stack(w, 8) != 1:
+    mode = read_stack(w, 8)
+    if mode == 4:
+        p_complete(o, w, p_logic(o, w, 3, reach, fault))
+    elif mode != 1:
         division = read_stack(w, 104)
         overflow = fault
         if division != no:
@@ -2068,7 +2150,8 @@ def p_checked_division(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, b:u64) -> u
     width = p_width(typ)
     zero = p_node(o, w, 2, width, 0, 0, 0)
     by_zero = p_logic(o, w, 7, b, zero)
-    if read_stack(w, 8) != 1:
+    mode = read_stack(w, 8)
+    if mode == 2 or mode == 3:
         prior = read_stack(w, 88)
         first_zero = p_logic(o, w, 3, by_zero, p_logic(o, w, 6, prior, 0))
         write64(w, 104, p_logic(o, w, 4, read_stack(w, 104), first_zero))

@@ -96,6 +96,22 @@ def _native_circuit_decision(cnf, circuit, deadline):
     return verdict, model, discharge, formula
 
 
+def _native_word_table_decision(cnf, circuit, deadline):
+    if circuit is None:
+        return None
+    remaining_ms = (deadline - time.monotonic_ns()) // 1_000_000
+    if remaining_ms <= 0:
+        return None
+    nodes, observed, traps = circuit
+    answer = cnf.search_word_table(nodes, observed, traps=traps, work=remaining_ms * 16_384)
+    if answer is None:
+        return None
+    verdict, model, assignments, query = answer
+    discharge = {"method": "native_hia_exhaustive_word_table", "image_sha256": cnf.image_sha256,
+                 "formula_sha256": sha256(query).hexdigest(), "assignments_checked": assignments}
+    return verdict, model, discharge, query
+
+
 def _native_solver_identity(cnf):
     return {"name": "HIA", "version": "core-circuit-cnf.v2",
             "binding_sha256": sha256(Path(__file__).with_name("hia_cnf_native.py").read_bytes()).hexdigest(),

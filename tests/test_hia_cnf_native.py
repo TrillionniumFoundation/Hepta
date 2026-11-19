@@ -130,6 +130,35 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(trapped["counterexample"]["arguments"], [-(1 << 63), -1])
         self.assertEqual(trapped["counterexample"]["observation"], {"status": "trapped", "code": "overflow"})
 
+    def test_feedback_bound_and_candidate_have_separate_native_checks(self):
+        from hepta.hia_scalar_proof_contract import CIRCUIT_BOUND_CHECKER, CIRCUIT_TRANSLATION_CHECKER
+        from tests.test_hia_bounded_unroll import candidate, counted, proof
+
+        trapping = counted(8, division=True)
+        changed = candidate(trapping, 0)
+        division = next(op for block in changed["functions"][0]["blocks"] for op in block["ops"]
+                        if op["op"] == "int.div.checked")
+        division["op"] = "int.shl.checked"
+        division["args"] = [division["args"][0]] * 2
+
+        with (patch("hepta.hia_bounded_unroll._z3_module", side_effect=AssertionError("host bound solver")),
+              patch("hepta.hia_translation_validation._z3_module", side_effect=AssertionError("host equivalence solver"))):
+            finite = proof(counted(32), maximum=32)
+            exceeded = proof(counted(dynamic=True))
+            first_trap = proof(trapping, maximum=0)
+            different = proof(trapping, changed, maximum=0)
+        self.assertEqual(finite["status"], "proved", finite)
+        self.assertEqual(finite["bound_solver"]["name"], CIRCUIT_BOUND_CHECKER)
+        self.assertEqual(finite["equivalence"]["solver"]["name"], CIRCUIT_TRANSLATION_CHECKER)
+        self.assertEqual(exceeded["status"], "disproved", exceeded)
+        self.assertFalse(exceeded["claims"]["all_input_bound_proved"])
+        self.assertGreater(exceeded["counterexample"]["arguments"][1], 8)
+        self.assertEqual(exceeded["counterexample"]["marker_values"], [True])
+        self.assertEqual(first_trap["status"], "proved", first_trap)
+        self.assertTrue(first_trap["claims"]["first_trap_code_preserved"])
+        self.assertEqual(different["status"], "disproved", different)
+        self.assertTrue(different["claims"]["all_input_bound_proved"])
+
     def test_differential_boolean_formulas_and_bounded_work(self):
         rng = random.Random(125113)
         counts = {SAT: 0, UNSAT: 0}

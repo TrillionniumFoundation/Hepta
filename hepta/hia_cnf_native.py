@@ -245,8 +245,9 @@ class NativeCnf(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA scalar projection extent')
         return reply.raw[:size]
 
-    def project_scalar_graphs(self, functions, graphs, *, totality, summaries=None):
-        reply = self._run_projection(_graph_packet(functions, graphs, totality=totality, summaries=summaries))
+    def project_scalar_graphs(self, functions, graphs, *, totality, summaries=None, bound_marker=False):
+        reply = self._run_projection(_graph_packet(functions, graphs, totality=totality, summaries=summaries,
+                                                   bound_marker=bound_marker))
         if reply is None:
             return None
         magic, nodes, pairs, reserved = struct.unpack_from('<4Q', reply)
@@ -309,7 +310,7 @@ def _word_type(name):
     return _CORE_WIDTHS.get(name, 0) | (128 if name.startswith('i') else 0)
 
 
-def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=False):
+def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=False, bound_marker=False):
     """Marshal verified SSA slots without constructing formulas.
 
     The type table precedes sized functions, each carrying topologically
@@ -321,7 +322,8 @@ def _graph_packet(functions, graphs, *, totality, summaries=None, summarize=Fals
     if summarize and len(returns) != 1 or not totality and len(returns) + 2 > CIRCUIT_RETURNS:
         return None
     magic = GRAPH_PROJECTION_REQUEST if summaries is None else CALL_PROJECTION_REQUEST
-    buffer = bytearray(struct.pack('<4Q', magic, 3 if summarize else 1 if totality else 2,
+    mode = 4 if bound_marker else 3 if summarize else 1 if totality else 2
+    buffer = bytearray(struct.pack('<4Q', magic, mode,
                                    len(parameters), len(returns)))
     if summaries is not None:
         buffer.extend(bytes(8))
