@@ -81,6 +81,7 @@ PROJECT_CHECKED_CAST = 38
 PROJECT_CHECKED_MUL = 39
 PROJECT_DIRECT_CALL = 40
 PROJECT_CALL_RESULT = 41
+PROJECT_UNIT_TYPE = 65
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_TRAP_TAGS = {code: index for index, code in enumerate(sorted(TRAP_CODES), 1)}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
@@ -351,6 +352,8 @@ def selected_cnf():
 
 
 def _word_type(name):
+    if name == 'unit':
+        return PROJECT_UNIT_TYPE
     return _CORE_WIDTHS.get(name, 0) | (128 if name.startswith('i') else 0)
 
 
@@ -546,6 +549,12 @@ def scalar_model_arguments(model, parameters):
     model >>= 1  # Variable one is the fixed true literal, not an input.
     for parameter in parameters:
         typ = parameter['type']
+        if typ == 'unit':
+            # Graph frames reserve one initial circuit position for each
+            # parameter. The projection never uses a unit position's bit.
+            model >>= 1
+            yield None
+            continue
         width = _CORE_WIDTHS[typ]
         raw = model & ((1 << width) - 1)
         model >>= width

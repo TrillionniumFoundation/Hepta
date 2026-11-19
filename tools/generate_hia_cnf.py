@@ -18,7 +18,7 @@ from hepta.hia_cnf_native import (
     FEEDBACK_BLOCK_LIMIT, FEEDBACK_LAYER_LIMIT, FEEDBACK_OP_LIMIT, FEEDBACK_REPLY,
     FEEDBACK_REQUEST, FEEDBACK_WORKSPACE,
     GRAPH_PROJECTION_REQUEST, CALL_PROJECTION_REQUEST, SCALAR_SUMMARY, PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
-    PROJECT_CALL_RESULT, PROJECTION_WORKSPACE, SUMMARIZED_CALL_INPUTS, TUPLE_SUMMARY, _CORE_TRAP_TAGS,
+    PROJECT_CALL_RESULT, PROJECT_UNIT_TYPE, PROJECTION_WORKSPACE, SUMMARIZED_CALL_INPUTS, TUPLE_SUMMARY, _CORE_TRAP_TAGS,
 )
 from tools.generate_hia_artifact_publication import document
 
@@ -1709,6 +1709,8 @@ def write_scalar_summary(s:readbuf, o:mutbuf, w:mutbuf, nodes:u64, inputs:u64, o
     return types + 8 * inputs
 
 def p_width(typ:u64) -> u64:
+    if typ == PROJECT_UNIT_TYPE:
+        return 1
     bits = typ & 127
     if typ > 192 or (bits == 1 and typ != 1):
         return 0
@@ -1839,9 +1841,13 @@ def p_function(s:readbuf, o:mutbuf, w:mutbuf, start:u64) -> u64:
     types = read_stack(w, 72)
     i = 0
     while i < inputs:
-        if read64(s, origin + 64 + 8 * i) != read64(s, types + 8 * i):
+        typ = read64(s, types + 8 * i)
+        if read64(s, origin + 64 + 8 * i) != typ:
             return 0
-        write64(w, 4608 + 2048 * entry + 8 * i, i)
+        # Unit occupies a dummy input slot for stable symbol indices; its
+        # sole typed value is the zero word, not that unconstrained input.
+        value = choose(typ == PROJECT_UNIT_TYPE, read_stack(w, 40), i)
+        write64(w, 4608 + 2048 * entry + 8 * i, value)
         i = i + 1
     write64(w, 64, read_stack(w, 40))
     write64(w, 80, read_stack(w, 40))
@@ -2434,6 +2440,7 @@ def source_program():
                      PROJECT_CHECKED_CAST=PROJECT_CHECKED_CAST,
                      PROJECT_CHECKED_MUL=PROJECT_CHECKED_MUL,
                      PROJECT_DIRECT_CALL=PROJECT_DIRECT_CALL, PROJECT_CALL_RESULT=PROJECT_CALL_RESULT,
+                     PROJECT_UNIT_TYPE=PROJECT_UNIT_TYPE,
                      WORD_UNSIGNED_DIV=WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM=WORD_UNSIGNED_REM,
                      WORD_PRODUCT_EXCEEDS=WORD_PRODUCT_EXCEEDS,
                      CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,

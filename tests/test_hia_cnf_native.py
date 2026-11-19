@@ -207,6 +207,40 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(total['status'], 'disproved', total)
         self.assertEqual(total['counterexample']['observation'], {'status': 'trapped', 'code': 'overflow'})
 
+    def test_unit_parameters_and_results_never_consume_a_real_witness_value(self):
+        import copy
+
+        from hepta.hia_scalar_call_validation import inline_scalar_calls, validate_scalar_calls
+        from tests.test_hia_program import b, c, f, i, m, ret
+
+        params = [('left', 'unit'), ('x', 'i8'), ('right', 'unit'), ('flag', 'bool')]
+        returns = ['unit', 'i8']
+        helper = f('helper', params, returns, ['trap'], [b('h', params, [
+            i('select', ['flag', 'left', 'right'], [('unit_value', 'unit')]),
+            i('int.neg.checked', ['x'], [('negated', 'i8')]),
+        ], ret('unit_value', 'negated'))])
+        caller = f('calculate', params, returns, ['trap'], [b('entry', params, [
+            i('call', [name for name, _ in params], [('u', 'unit'), ('result', 'i8')], function='helper'),
+        ], ret('u', 'result'))])
+        source = m(caller, helper)
+        source['exports'] = ['calculate']
+        proposed = inline_scalar_calls(source, function='calculate')
+        changed = copy.deepcopy(source)
+        changed['functions'][1]['blocks'][0]['ops'][-1] = c('negated', 'i8', 0)
+
+        with patch('hepta.hia_scalar_call_validation._z3_module', side_effect=AssertionError('host solver used')):
+            equivalent = validate_scalar_calls(source, proposed, function='calculate')
+            different = validate_scalar_calls(source, changed, function='calculate')
+
+        self.assertEqual(equivalent['status'], 'proved', equivalent)
+        self.assertEqual(different['status'], 'disproved', different)
+        left, word, right, flag = different['counterexample']['arguments']
+        self.assertIsNone(left)
+        self.assertIsNone(right)
+        self.assertIs(type(word), int)
+        self.assertIs(type(flag), bool)
+        self.assertEqual(different['counterexample']['after'], {'status': 'returned', 'values': [None, 0]})
+
     def test_feedback_bound_and_candidate_have_separate_native_checks(self):
         from hepta.hia_scalar_proof_contract import CIRCUIT_BOUND_CHECKER, CIRCUIT_TRANSLATION_CHECKER
         from tests.test_hia_bounded_unroll import candidate, counted, proof
