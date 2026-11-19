@@ -49,6 +49,11 @@ exact deadline admission has not expired but no complete millisecond
 remains. Clock adjustments and a duration beyond one word are supported
 without multiplying the budget by one million inside the native image.
 
+Operation 38 consumes a single bounded JSON array of artifact kind, metadata
+and verified SHA-256. HIA builds the canonical Store content-key object.
+When the selected Store also pins the HIA SHA-256 stream, that stream hashes
+the object; the resulting key is unchanged for previously retained records.
+
 Malformed input packet returns 0xfffffffd. Insufficient output returns
 0xfffffffe without writing output. No scratch workspace is required or touched.
 

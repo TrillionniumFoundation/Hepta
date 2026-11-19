@@ -493,7 +493,15 @@ class AgentStore:
         content_hash = native_hash['sha256'] if native_hash is not None else sha256(data).hexdigest()
         if expected_sha256 is not None and content_hash != expected_sha256:
             reject("E_HIA_ARTIFACT_CHANGED", "captured bytes differ from the expected digest")
-        content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
+        native = _native_agent_identity()
+        stream = os.environ.get('HEPTA_HIA_SHA256_STREAM_MANIFEST')
+        if native is not None and stream:
+            from .hia_sha256_stream_native import installed_stream_hasher
+
+            key_material = native.artifact_key_material(content_hash, kind, metadata)
+            content_key = installed_stream_hasher(stream).new(key_material).hexdigest()
+        else:
+            content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
         previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
         if previous is not None:
             ref = self._ref(previous)
@@ -524,7 +532,6 @@ class AgentStore:
                     os.close(directory_fd)
             finally:
                 temporary.unlink(missing_ok=True)
-        native = _native_agent_identity()
         if native is None:
             ref = {"id": "a-" + uuid.uuid4().hex, "sha256": content_hash,
                    "uri": "hia://artifacts/" + uuid.uuid4().hex}

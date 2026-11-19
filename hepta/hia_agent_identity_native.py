@@ -398,6 +398,11 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         packet = struct.pack('<2Q', MAGIC, 30) + digest.encode('ascii') + identity_nonce + uri_nonce
         return decode_data(self._variable_response(packet, 256))
 
+    def artifact_key_material(self, content_digest, kind, metadata):
+        # One bounded forest preserves the original combined node/depth limit.
+        packet = struct.pack('<2Q', MAGIC, 38) + wire((kind, metadata, content_digest))
+        return self._variable_response(packet, min(MAX_INPUT_BYTES, len(packet) + 32))
+
     def adoption_record(self, args, previous, current, baseline):
         fields = (args['candidate_artifact'], args['context'], current, args['evaluation_receipt'],
                   previous, baseline, args['target_slot'], args['verification_receipts'])

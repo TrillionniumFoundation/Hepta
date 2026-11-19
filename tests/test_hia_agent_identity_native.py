@@ -918,6 +918,20 @@ class AgentIdentityNativeTests(unittest.TestCase):
             finally:
                 reopened.close()
 
+    def test_native_artifact_key_keeps_canonical_metadata_and_requires_exact_extent(self):
+        from hepta.hia_agent_store import wire
+
+        digest = 'a' * 64
+        metadata = {'nest': [None, {'雪': '"],雪'}, [False, -0.0, 5e-324]], 'empty': {}}
+        expected = wire({'metadata': metadata, 'sha256': digest, 'kind': 'input'})
+        incoming = packet(38, wire(('input', metadata, digest)))
+        self.assertEqual(self.native.artifact_key_material(digest, 'input', metadata), expected)
+        self.assertEqual(self.raw(incoming, len(expected)), (len(expected), expected))
+        self.assertEqual(self.raw(incoming, len(expected) - 1),
+                         (0xfffffffe, b'\xa5' * (len(expected) - 1)))
+        for damaged in (incoming[:-1], incoming[:-1] + b',', incoming + b']'):
+            self.assertEqual(self.raw(damaged, len(expected)), (0xfffffffd, b'\xa5' * len(expected)))
+
     def test_artifact_packets_keep_exact_utf8_and_refuse_invalid_scalars(self):
         rng = random.Random(3027)
         boundary = '\x00\x7f\x80\u07ff\u0800\ud7ff\ue000\uffff\U00010000\U0010ffff'

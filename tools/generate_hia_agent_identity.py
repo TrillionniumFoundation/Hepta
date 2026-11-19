@@ -134,6 +134,11 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size > length(o):
             return size
         return evaluation_result(s, o, 1)
+    if kind == 38:
+        size = artifact_key_material(s, o, 0)
+        if size > length(o):
+            return size
+        return artifact_key_material(s, o, 1)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -801,6 +806,8 @@ def receipt_array_fragment(s:readbuf, at:u64) -> u64:
             nested = nested + 1
         elif ch == 93 or ch == 125:
             if nested == 0:
+                if ch == 93 and index + 1 == length(s):
+                    return index - at
                 return 0
             nested = nested - 1
         elif ch == 44 and nested == 0:
@@ -1078,8 +1085,9 @@ def issued_artifact_source():
     return '\n'.join(lines) + '\n'
 
 
-def receipt_template(name, template, *, aggregate=False):
+def receipt_template(name, template, *, aggregate_suffix=None):
     """Serialize already-admitted JSON fragments in a fixed HIA schema."""
+    aggregate = aggregate_suffix is not None
     lines = [f'def {name}(s:readbuf, o:mutbuf, emit:u64) -> u64:']
     if aggregate:
         lines.extend(('    if length(s) < 18 or byte(s, 16) != 91:',
@@ -1100,11 +1108,12 @@ def receipt_template(name, template, *, aggregate=False):
             lines.extend(('    cursor = receipt_fragment(s, o, at, cursor, size, emit)',
                           '    at = at + size' + (' + 1' if aggregate else '')))
     if aggregate:
-        # Three zero placeholders keep the whole-document ingress node budget
-        # identical to the fixed scalar fields added by the HIA template.
-        suffix = '0,0,0]'
-        lines.extend((f'    if length(s) - at != {len(suffix)}:', '        return 4294967293'))
-        for position, character in enumerate(suffix):
+        # Fixed scalar fields use zero placeholders to preserve the original
+        # whole-document node budget. Without them, the last delimiter is ']'.
+        final_delimiter = 44 if aggregate_suffix else 93
+        lines.extend((f'    if length(s) - at != {len(aggregate_suffix)} or byte(s, at - 1) != {final_delimiter}:',
+                      '        return 4294967293'))
+        for position, character in enumerate(aggregate_suffix):
             lines.extend((f'    if byte(s, at + {position}) != {ord(character)}:', '        return 4294967293'))
     else:
         lines.extend(('    if at != length(s):', '        return 4294967293'))
@@ -1161,6 +1170,7 @@ EVALUATION_RECORD = ('{"adopted":false,"baseline_artifact":{},"baseline_core_sha
 EVALUATION_RESULT = ('{"adopted":false,"baseline_artifact":{},"candidate_artifact":{},"evaluation_receipt":{},'
                      '"full_cost_ledger":{},"measurements":{},"outcome":{},"planned_workload_complete":{},'
                      '"report_complete":true,"termination_confirmed":true}')
+ARTIFACT_KEY_MATERIAL = '{"kind":{},"metadata":{},"sha256":{}}'
 
 
 def source_program():
@@ -1192,9 +1202,10 @@ def source_program():
             + receipt_template('adoption_result', ADOPTION_RESULT)
             + receipt_template('rollback_record', ROLLBACK_RECORD)
             + receipt_template('rollback_result', ROLLBACK_RESULT)
-            + receipt_template('measurement_record', MEASUREMENT_RECORD, aggregate=True)
+            + receipt_template('measurement_record', MEASUREMENT_RECORD, aggregate_suffix='0,0,0]')
             + receipt_template('evaluation_record', EVALUATION_RECORD)
-            + receipt_template('evaluation_result', EVALUATION_RESULT))
+            + receipt_template('evaluation_result', EVALUATION_RESULT)
+            + receipt_template('artifact_key_material', ARTIFACT_KEY_MATERIAL, aggregate_suffix=''))
 
 
 def document():
