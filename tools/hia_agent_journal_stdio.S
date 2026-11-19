@@ -1,6 +1,7 @@
 /* Linux x86-64 transport for the six-argument HIA journal image.
- * The image owns the state transitions. This process sees only one sealed
- * request and returns the affected byte ranges, never a writable Store fd. */
+ * One-shot mode admits an existing sealed frame. Session mode receives
+ * sealed frame descriptors and carries only the state returned by HIA.
+ * Neither mode receives a writable Store descriptor. */
 .intel_syntax noprefix
 .text
 .global _start
@@ -16,13 +17,93 @@
 .equ MAX_TAGS,262144
 .equ MIN_SCRATCH,4256+PRIVATE
 .equ MAX_SCRATCH,LIMIT+56*262144+64+PRIVATE+MAX_TAGS
+.equ LOCAL_BYTES,920
+.equ SESSION_MODE,144
+.equ INPUT_EXTENT,152
+.equ INPUT_FD,160
+.equ HELD_STATE,168
+.equ MARKER,680
+.equ IOV,688
+.equ MESSAGE,704
+.equ CONTROL,760
+.equ PREFIX,784
+.equ NEXT_SEQUENCE,792
 
 _start:
  /* The static linker calls this entry, leaving argc one word above rsp. */
  cmp QWORD PTR [rsp+8],1
+ je single_frame
+ cmp QWORD PTR [rsp+8],2
  jne bad_frame
- sub rsp,168
+ mov rdx,[rsp+24]
+ movabs rax,0x6f69737365732d2d /* "--sessio" */
+ cmp QWORD PTR [rdx],rax
+ jne bad_frame
+ cmp WORD PTR [rdx+8],0x006e   /* "n\0" */
+ jne bad_frame
+ sub rsp,LOCAL_BYTES
+ mov QWORD PTR [rsp+SESSION_MODE],1
+ mov QWORD PTR [rsp+PREFIX],FRAME
+ mov QWORD PTR [rsp+NEXT_SEQUENCE],1
+ lea rdi,[rsp+HELD_STATE]
+ mov ecx,STATE/8
+ xor eax,eax
+ rep stosq
+ jmp receive_frame
+
+single_frame:
+ sub rsp,LOCAL_BYTES
+ mov QWORD PTR [rsp+SESSION_MODE],0
+ mov QWORD PTR [rsp+PREFIX],FRAME+STATE
+ mov QWORD PTR [rsp+INPUT_FD],0
+ jmp admit_frame
+
+receive_frame:
+ /* recvmsg on stdin: one byte and one SCM_RIGHTS file descriptor.
+  * Check kernel output lengths and refuse any truncated ancillary data. */
+ lea rdi,[rsp+MESSAGE]
+ mov ecx,56/8
+ xor eax,eax
+ rep stosq
+ lea rax,[rsp+MARKER]
+ mov [rsp+IOV],rax
+ mov QWORD PTR [rsp+IOV+8],1
+ lea rax,[rsp+IOV]
+ mov [rsp+MESSAGE+16],rax
+ mov QWORD PTR [rsp+MESSAGE+24],1
+ lea rax,[rsp+CONTROL]
+ mov [rsp+MESSAGE+32],rax
+ mov QWORD PTR [rsp+MESSAGE+40],24
  xor edi,edi
+ lea rsi,[rsp+MESSAGE]
+ mov edx,0x40000000              /* MSG_CMSG_CLOEXEC */
+ mov eax,47                      /* recvmsg */
+ syscall
+ cmp rax,-4
+ je receive_frame
+ test rax,rax
+ jz session_end
+ cmp rax,1
+ jne bad_frame
+ cmp BYTE PTR [rsp+MARKER],0x4a /* 'J' */
+ jne bad_frame
+ test DWORD PTR [rsp+MESSAGE+48],40 /* MSG_TRUNC | MSG_CTRUNC */
+ jnz bad_frame
+ cmp QWORD PTR [rsp+MESSAGE+40],24
+ jne bad_frame
+ cmp QWORD PTR [rsp+CONTROL],20  /* CMSG_LEN(sizeof(int)) */
+ jne bad_frame
+ cmp DWORD PTR [rsp+CONTROL+8],1 /* SOL_SOCKET */
+ jne bad_frame
+ cmp DWORD PTR [rsp+CONTROL+12],1 /* SCM_RIGHTS */
+ jne bad_frame
+ mov eax,[rsp+CONTROL+16]
+ test eax,eax
+ js bad_frame
+ mov [rsp+INPUT_FD],rax
+
+admit_frame:
+ mov rdi,[rsp+INPUT_FD]
  mov esi,1034                    /* F_GET_SEALS */
  mov eax,72
  syscall
@@ -31,30 +112,47 @@ _start:
  and eax,15
  cmp eax,15
  jne bad_frame
- xor edi,edi
+ mov rdi,[rsp+INPUT_FD]
  mov rsi,rsp
  mov eax,5                       /* fstat */
  syscall
  test rax,rax
  jnz io_error
  mov r13,[rsp+48]                 /* st_size */
- cmp r13,FRAME+STATE
+ cmp r13,[rsp+PREFIX]
  jb bad_frame
+ mov [rsp+INPUT_EXTENT],r13
  mov rsi,r13
- xor r8d,r8d                     /* stdin */
+ mov r8,[rsp+INPUT_FD]
  mov edx,1                       /* PROT_READ */
  mov r10d,2                      /* MAP_PRIVATE */
  call map
  mov r12,rax
+ cmp QWORD PTR [rsp+SESSION_MODE],0
+ je single_header
+ mov rdi,[rsp+INPUT_FD]
+ mov eax,3                       /* close; mapping retains the sealed file */
+ syscall
+ test rax,rax
+ jne io_error
+ movabs rax,0x32304e494a414948   /* HIAJIN02 */
+ cmp [r12],rax
+ jne bad_frame
+ mov rax,[rsp+NEXT_SEQUENCE]
+ cmp [r12+56],rax
+ jne bad_frame
+ jmp frame_extent
+single_header:
  movabs rax,0x31304e494a414948   /* HIAJIN01 */
  cmp [r12],rax
  jne bad_frame
  cmp QWORD PTR [r12+56],0
  jne bad_frame
+frame_extent:
  mov rbx,[r12+48]                 /* foreign-type tag count */
  cmp rbx,MAX_TAGS
  ja bad_frame
- sub r13,FRAME+STATE
+ sub r13,[rsp+PREFIX]
  sub r13,rbx
  jb bad_frame
  cmp r13,[r12+8]                  /* exactly the raw input tail */
@@ -106,6 +204,9 @@ allocate:
  lea rdi,[rdx+r15-PRIVATE]
  /* Write tags and the carried state into distinct portions of scratch. */
  lea rsi,[r12+FRAME]
+ lea rax,[rsp+HELD_STATE]
+ cmp QWORD PTR [rsp+SESSION_MODE],0
+ cmovne rsi,rax
  mov ecx,STATE/8
  rep movsq
  mov [rdi-STATE+336],rbx
@@ -113,7 +214,8 @@ allocate:
  mov [rdi-STATE+344],rax
  lea rdi,[rdx+r15-PRIVATE]
  sub rdi,rbx
- lea rsi,[r12+FRAME+STATE]
+ mov rsi,[rsp+PREFIX]
+ add rsi,r12
  mov rcx,rbx
  rep movsb
  mov ecx,OUT
@@ -121,11 +223,16 @@ allocate:
 prepare_envelope:
  lea rdi,[rdx+8]
  lea rsi,[r12+FRAME]
+ lea rax,[rsp+HELD_STATE]
+ cmp QWORD PTR [rsp+SESSION_MODE],0
+ cmovne rsi,rax
  mov ecx,STATE/8
  rep movsq
  mov ecx,ENVELOPE
 invoke:
- lea rdi,[r12+rbx+FRAME+STATE]
+ mov rdi,[rsp+PREFIX]
+ add rdi,r12
+ add rdi,rbx
  mov rsi,r13
  mov r8,rdx
  mov rdx,r14
@@ -184,6 +291,33 @@ send_output:
  lea rsi,[r14+OUT]
  mov rdx,[rsp+40]
  call write_all
+ cmp QWORD PTR [rsp+SESSION_MODE],0
+ je session_end
+ cmp QWORD PTR [r12+24],13
+ jae release_frame
+ cmp QWORD PTR [rsp+8],0x7fffffff
+ ja release_frame
+ lea rdi,[rsp+HELD_STATE]
+ lea rsi,[r14+2*LIMIT]
+ mov ecx,STATE/8
+ rep movsq
+release_frame:
+ mov rdi,r12
+ mov rsi,[rsp+INPUT_EXTENT]
+ mov eax,11                      /* munmap */
+ syscall
+ test rax,rax
+ jne io_error
+ mov rdi,r14
+ lea rsi,[r15+OUT]
+ mov eax,11
+ syscall
+ test rax,rax
+ jne io_error
+ inc QWORD PTR [rsp+NEXT_SEQUENCE]
+ jz bad_frame
+ jmp receive_frame
+session_end:
  xor edi,edi
  jmp exit_process
 map:
@@ -219,4 +353,5 @@ exit_process:
  syscall
  ud2
 .size _start,.-_start
+.asciz "hepta.hia.agent-journal.session.v1"
 .section .note.GNU-stack,"",@progbits

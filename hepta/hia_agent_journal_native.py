@@ -13,6 +13,7 @@ from hashlib import sha256
 from json import JSONDecodeError
 import math
 import os
+import socket
 import struct
 import subprocess
 import sys
@@ -35,6 +36,7 @@ MAGIC = int.from_bytes(b'HIAJRN02', 'little')
 COMPLETED_STAGE, REJECTED_STAGE, ENVELOPE_CAPACITY = 13, 14, 192
 JOURNAL_FRAME = struct.Struct('<8s7Q')
 JOURNAL_REPLY = struct.Struct('<8s5Q')
+SESSION_EXECUTABLE_MARKER = b'hepta.hia.agent-journal.session.v1\0'
 NONE, CONTINUE, LOOKUP, RESERVE, CACHE, REPLAY, VERIFY_REPLAY, ALIAS, ATOMIC, JOURNAL, FINAL, REFUSE, BOUND = range(13)
 COST_WRITE, JOURNAL_WRITE = 1, 2
 CONTEXT_NONE, CONTEXT_READ, CONTEXT_BUDGET, CONTEXT_CANDIDATE = range(4)
@@ -48,12 +50,53 @@ def buffer_sizes(size):
     return HEADER_OFFSET + STATE_BYTES, max(arena, 4256 + _keys) + PRIVATE_BYTES
 
 
+def _journal_scratch(stage, raw, tags):
+    envelope = stage in (COMPLETED_STAGE, REJECTED_STAGE)
+    return (8 + STATE_BYTES if envelope else
+            buffer_sizes(0 if stage == 10 else len(raw))[1] + len(tags))
+
+
+def _journal_reply(stage, scratch_size, header):
+    if len(header) != JOURNAL_REPLY.size:
+        raise RuntimeError('sealed HIA journal transport failed')
+    envelope = stage in (COMPLETED_STAGE, REJECTED_STAGE)
+    magic, code, response, cost, fixed, arena = JOURNAL_REPLY.unpack(header)
+    if (magic != b'HIAJOU01' or code >= 1 << 32
+            or response > (ENVELOPE_CAPACITY if envelope else MAX_BYTES)
+            or cost > (0 if envelope else MAX_BYTES)
+            or fixed != (0 if envelope else STATE_BYTES)
+            or arena > (scratch_size - PRIVATE_BYTES if stage == 3 else 0)):
+        raise RuntimeError('invalid sealed HIA journal frame')
+    return code, response, cost, fixed, arena
+
+
+def _journal_payload(reply, payload):
+    code, response, cost, fixed, arena = reply
+    if len(payload) != response + cost + fixed + arena:
+        raise RuntimeError('invalid sealed HIA journal frame')
+    response_end = response
+    cost_end = response_end + cost
+    state_end = cost_end + fixed
+    return (code, payload[:response_end], payload[response_end:cost_end],
+            payload[cost_end:state_end], payload[state_end:])
+
+
+def _read_journal_bytes(stream, size):
+    result = bytearray(size)
+    view = memoryview(result)
+    offset = 0
+    while offset < size:
+        count = stream.readinto(view[offset:])
+        if not count:
+            raise RuntimeError('sealed HIA journal session stopped before replying')
+        offset += count
+    return bytes(result)
+
+
 def _standalone_journal(executable, stage, raw, state, tags=b'', *, data_profile=False):
     from .hia_scalar_reference_native import sealed_reference_bytes
 
-    envelope = stage in (COMPLETED_STAGE, REJECTED_STAGE)
-    scratch_size = (8 + STATE_BYTES if envelope else
-                    buffer_sizes(0 if stage == 10 else len(raw))[1] + len(tags))
+    scratch_size = _journal_scratch(stage, raw, tags)
     header = JOURNAL_FRAME.pack(b'HIAJIN01', len(raw), scratch_size, stage,
                                 sys.get_int_max_str_digits(), data_profile, len(tags), 0)
     try:
@@ -63,22 +106,58 @@ def _standalone_journal(executable, stage, raw, state, tags=b'', *, data_profile
                                    pass_fds=(program,), capture_output=True, env={'PATH': ''})
     except OSError as exc:
         raise RuntimeError('could not start the sealed HIA journal') from exc
-    if child.returncode or child.stderr or len(child.stdout) < JOURNAL_REPLY.size:
+    if child.returncode or child.stderr:
         raise RuntimeError('sealed HIA journal transport failed')
-    magic, code, response, cost, fixed, arena = JOURNAL_REPLY.unpack_from(child.stdout)
-    if (magic != b'HIAJOU01' or code >= 1 << 32
-            or response > (ENVELOPE_CAPACITY if envelope else MAX_BYTES)
-            or cost > (0 if envelope else MAX_BYTES)
-            or fixed != (0 if envelope else STATE_BYTES)
-            or arena > (scratch_size - PRIVATE_BYTES if stage == 3 else 0)
-            or len(child.stdout) != JOURNAL_REPLY.size + response + cost + fixed + arena):
-        raise RuntimeError('invalid sealed HIA journal frame')
-    at = JOURNAL_REPLY.size
-    response_end = at + response
-    cost_end = response_end + cost
-    state_end = cost_end + fixed
-    return (code, child.stdout[at:response_end], child.stdout[response_end:cost_end],
-            child.stdout[cost_end:state_end], child.stdout[state_end:])
+    header = child.stdout[:JOURNAL_REPLY.size]
+    return _journal_payload(_journal_reply(stage, scratch_size, header), child.stdout[JOURNAL_REPLY.size:])
+
+
+class _JournalProcess:
+    """One exact executable owns a request's state; the bridge sends observations only."""
+    def __init__(self, executable):
+        from .hia_scalar_reference_native import sealed_reference_bytes
+
+        control, child = socket.socketpair()
+        try:
+            with child, sealed_reference_bytes(executable) as program:
+                self.process = subprocess.Popen(['/proc/self/fd/' + str(program), '--session'],
+                    stdin=child, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                    pass_fds=(program,), env={'PATH': ''}, bufsize=0)
+        except BaseException:
+            control.close()
+            raise
+        self.control, self.sequence = control, 0
+
+    def step(self, stage, raw, tags, *, data_profile):
+        from .hia_scalar_reference_native import sealed_reference_bytes
+
+        self.sequence += 1
+        scratch_size = _journal_scratch(stage, raw, tags)
+        header = JOURNAL_FRAME.pack(b'HIAJIN02', len(raw), scratch_size, stage,
+                                    sys.get_int_max_str_digits(), data_profile, len(tags), self.sequence)
+        try:
+            with sealed_reference_bytes(header, tags, raw) as contents:
+                ancillary = [(socket.SOL_SOCKET, socket.SCM_RIGHTS, struct.pack('@i', contents))]
+                if self.control.sendmsg([b'J'], ancillary) != 1:
+                    raise RuntimeError('incomplete HIA journal observation')
+            reply = _journal_reply(stage, scratch_size,
+                                   _read_journal_bytes(self.process.stdout, JOURNAL_REPLY.size))
+            return _journal_payload(reply, _read_journal_bytes(self.process.stdout, sum(reply[1:])))
+        except OSError as exc:
+            raise RuntimeError('sealed HIA journal session transport failed') from exc
+
+    def close(self, *, check):
+        self.control.close()
+        try:
+            trailer, _ = self.process.communicate(timeout=5)
+        except subprocess.TimeoutExpired as exc:
+            self.process.kill()
+            self.process.communicate()
+            if check:
+                raise RuntimeError('sealed HIA journal session did not exit') from exc
+        else:
+            if check and (trailer or self.process.returncode):
+                raise RuntimeError('sealed HIA journal session did not close cleanly')
 
 
 def _foreign_tool_types(tool):
@@ -110,8 +189,30 @@ class Instruction:
 class JournalSession:
     """Opaque state passed only between calls of one selected immutable image."""
     def __init__(self, image):
+        from .hia_native_helpers import pinned_agent_journal_executable
+
         self.image = image
         self._state = bytes(STATE_BYTES)
+        self._process = None
+        self._executable = pinned_agent_journal_executable()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, *_):
+        if self._process is not None:
+            self._process.close(check=exc_type is None)
+
+    def _exchange(self, stage, raw, tags=b'', *, data_profile=False):
+        if self._process is None:
+            if SESSION_EXECUTABLE_MARKER not in self._executable:
+                return _standalone_journal(
+                    self._executable, stage, raw, self._state, tags, data_profile=data_profile)
+            try:
+                self._process = _JournalProcess(self._executable)
+            except OSError as exc:
+                raise RuntimeError('could not start the sealed HIA journal session') from exc
+        return self._process.step(stage, raw, tags, data_profile=data_profile)
 
     def _word(self, offset):
         return struct.unpack_from('<Q', self._state, offset)[0]
@@ -171,18 +272,14 @@ class JournalSession:
                 ctypes.string_at(ctypes.addressof(output) + MAX_BYTES, cost_size), state, arena)
 
     def _run(self, stage, raw=b'', foreign_types=b'', *, data_profile=False):
-        from .hia_native_helpers import pinned_agent_journal_executable
-
         if type(raw) is not bytes or stage != 10 and len(raw) > MAX_BYTES:
             raise ValueError('journal JSON must be bytes within 8 MiB')
         if type(foreign_types) is not bytes or len(foreign_types) > 262144 or stage != 0 and foreign_types:
             raise RuntimeError('invalid journal foreign-type observation')
-        executable = pinned_agent_journal_executable()
-        if executable is None:
+        if self._executable is None:
             code, response, cost, state, arena = self._in_process_transition(stage, raw, foreign_types, data_profile)
         else:
-            code, response, cost, state, arena = _standalone_journal(
-                executable, stage, raw, self._state, foreign_types, data_profile=data_profile)
+            code, response, cost, state, arena = self._exchange(stage, raw, foreign_types, data_profile=data_profile)
         if code >= 1 << 31 and (response or cost or arena):
             raise RuntimeError('native journal diagnostic supplied write instructions')
         if code == 0xffffffe8:
@@ -353,13 +450,10 @@ class JournalSession:
     def _envelope(self, stage, observed, value):
         # Capture a small, read-only recipe. The result itself is not encoded,
         # copied, or inspected before the ordinary output-schema check.
-        from .hia_native_helpers import pinned_agent_journal_executable
-
-        executable = pinned_agent_journal_executable()
-        if executable is None:
+        if self._executable is None:
             output = self._in_process_envelope(stage, observed)
         else:
-            size, output, _, _, _ = _standalone_journal(executable, stage, observed, self._state)
+            size, output, _, _, _ = self._exchange(stage, observed)
             if not 0 < size == len(output) <= ENVELOPE_CAPACITY:
                 raise RuntimeError('invalid sealed HIA journal response envelope')
         size = len(output)
@@ -456,10 +550,10 @@ class NativeAgentJournal(NativeHiaJsonImage):
         return JournalSession(self)
 
     def bind_catalog(self, raw):
-        session = self.session()
-        result = session._run(9, raw)
-        if result.action == REFUSE:
-            session.raise_refusal()
+        with self.session() as session:
+            result = session._run(9, raw)
+            if result.action == REFUSE:
+                session.raise_refusal()
         return self
 
 
@@ -474,6 +568,15 @@ def call_with_native_journal(service, tool, arguments, manifest):
 
     started = hosted.time.monotonic_ns()
     request_id = 'unadmitted-' + hosted.uuid.uuid4().hex
+    try:
+        session = installed_agent_journal(manifest).session()
+    except (ValueError, OSError) as exc:
+        return service._error(request_id, AgentRejected('E_HIA_JOURNAL_NATIVE', str(exc)))
+    with session:
+        return _run_native_journal(hosted, service, session, tool, arguments, started, request_id)
+
+
+def _run_native_journal(hosted, service, session, tool, arguments, started, request_id):
     context_id, response = None, None
     native_failed = False
     domain_errors = (ValueError, TypeError, OSError, OverflowError, RecursionError, service.store.database_error)
@@ -491,10 +594,6 @@ def call_with_native_journal(service, tool, arguments, manifest):
             if acknowledgement or not isinstance(exc, domain_errors):
                 native_failed = True
             raise
-    try:
-        session = installed_agent_journal(manifest).session()
-    except (ValueError, OSError) as exc:
-        return service._error(request_id, AgentRejected('E_HIA_JOURNAL_NATIVE', str(exc)))
     try:
         # Existing foreign snapshot and its error order remain explicit.
         arguments = hosted.decode_data(wire(arguments))

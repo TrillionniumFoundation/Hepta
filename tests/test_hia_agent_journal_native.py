@@ -135,9 +135,11 @@ class JournalNativeTests(unittest.TestCase):
             compiler = Path(nested['generations'][-1]['produced_image'])
             cls.manifest = build(cls.folder / 'build', compiler, Path(cold), candidate='agent-journal')
             cls.scope = 'MATCHING_SOURCE_COLD_BUILD'
+            cls.compiler, cls.cold = compiler, Path(cold)
         elif development:
             cls.manifest = Path(development).resolve(strict=True)
             cls.scope = 'EXPLICIT_DEVELOPMENT_ONLY'
+            cls.compiler, cls.cold = None, None
         else:
             cls.temp.cleanup()
             raise unittest.SkipTest('requires explicit journal cold report or development manifest')
@@ -290,6 +292,57 @@ class JournalNativeTests(unittest.TestCase):
                 self.assertEqual(list(value), ['z', 'status', 'a'])
                 self.assertEqual(decision.action, VERIFY_REPLAY if tool == 'hia_verify' and status == 'completed' else REPLAY)
                 self.assertEqual(other.finish(None).flags, 0)
+
+    def _session_executable(self):
+        executable = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_DEVELOPMENT_EXECUTABLE')
+        if executable is not None and self.cold is not None:
+            self.fail('development executable cannot override a requested cold report')
+        if executable is None:
+            if self.cold is None:
+                self.skipTest('requires the journal executable or a matching cold report')
+            from tools.build_hia_agent_read_page import build
+            executable = build(self.case / 'transport', self.compiler, self.cold, self.manifest, kind='journal')
+        binary = Path(executable).read_bytes()
+        self.assertTrue(self.image.matches_standalone(binary))
+        return binary
+
+    def test_one_journal_process_holds_admitted_state_and_refuses_replayed_frames(self):
+        from hepta.hia_agent_journal_native import _JournalProcess, _standalone_journal, STATE_BYTES
+
+        binary = self._session_executable()
+        raw = independent_wire({'tool': 'hia_adopt', 'arguments': {'request_key': 'sealed-session'}})
+        process = _JournalProcess(binary)
+        self.addCleanup(process.close, check=False)
+        pid = process.process.pid
+        state = bytes(STATE_BYTES)
+        for stage, observed in ((0, raw), (7, b''), (1, b'null'), (2, b''), (5, b'')):
+            expected = _standalone_journal(binary, stage, observed, state)
+            self.assertEqual(process.step(stage, observed, b'', data_profile=False), expected)
+            self.assertEqual(process.process.pid, pid)
+            if expected[0] < 1 << 31:
+                state = expected[3]
+        self.assertEqual(expected[0], ATOMIC)
+
+        process.sequence -= 1
+        with self.assertRaisesRegex(RuntimeError, 'stopped before replying'):
+            process.step(7, b'', b'', data_profile=False)
+        self.assertEqual(process.process.wait(timeout=5), 2)
+
+    def test_journal_session_rejects_unsealed_observation_before_hia(self):
+        import socket
+        from hepta.hia_agent_journal_native import JOURNAL_FRAME, _JournalProcess, _journal_scratch
+
+        process = _JournalProcess(self._session_executable())
+        self.addCleanup(process.close, check=False)
+        raw = independent_wire({'tool': 'hia_describe', 'arguments': {}})
+        frame = JOURNAL_FRAME.pack(
+            b'HIAJIN02', len(raw), _journal_scratch(0, raw, b''), 0, 4300, 0, 0, 1)
+        fd = os.memfd_create('journal-unsealed', os.MFD_ALLOW_SEALING | os.MFD_CLOEXEC)
+        with os.fdopen(fd, 'wb', buffering=0) as stream:
+            stream.write(frame + raw)
+            process.control.sendmsg([b'J'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, struct.pack('@i', fd))])
+        self.assertEqual(process.process.communicate(timeout=5), (b'', None))
+        self.assertEqual(process.process.returncode, 2)
 
     def test_native_post_schema_tool_admission_preserves_order_and_context_effects(self):
         from hepta.hia_agent_store import AgentRejected
