@@ -1482,7 +1482,10 @@ class HIAAgentService:
     def _hia_evaluate(self, args):
         from .hia_agent_runner import run_native_batch, run_reference_batch
         from .hia_agent_buffers import validate_cases
-        from .hia_agent_identity_native import DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION
+        from .hia_agent_identity_native import (
+            DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION,
+            EVALUATION_NORMAL, EVALUATION_FINISH,
+        )
         from .hia_agent_payload_schema_native import WORKLOAD_ROLE
         from .hia_agent_store import _native_agent_identity
         started = time.monotonic_ns()
@@ -1555,29 +1558,26 @@ class HIAAgentService:
             else:
                 normal.append((index, prepared))
         reference_ns = time.monotonic_ns() - reference_started
-        runs, native_started = {}, time.monotonic_ns()
+        native_started = time.monotonic_ns()
         owner = digest({"tool": "hia_evaluate", "key": args["request_key"]})
         budget_claim = self.store.execution_budgets.claim(args["context"]["id"], owner,
             context["budget"]["max_native_wall_ms"], native_started)
-        for label, data, metadata in (("baseline", baseline_bytes, baseline_meta), ("candidate", candidate_bytes, candidate_meta)):
-            runs[label] = {"normal": None, "traps": [], "total_native_ns": "0"}
-            if not complete:
-                continue
+        arms = (("baseline", baseline_bytes, baseline_meta), ("candidate", candidate_bytes, candidate_meta))
+        runs = {label: {"normal": None, "traps": [], "total_native_ns": "0"} for label, _, _ in arms}
 
-            def run(cases, warmup, repetitions):
-                return budget_claim.run(run_native_batch, data, metadata["signatures"], cases,
-                    now=time.monotonic_ns(), total_ms=remaining_total_ms(),
-                    warmup=int(warmup), repetitions=int(repetitions),
-                    memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"))
+        def run(arm, cases, warmup, repetitions):
+            _, data, metadata = arms[arm]
+            return budget_claim.run(run_native_batch, data, metadata["signatures"], cases,
+                now=time.monotonic_ns(), total_ms=remaining_total_ms(),
+                warmup=int(warmup), repetitions=int(repetitions),
+                memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"))
 
-            if normal:
-                outcome = run([case for _, case in normal], workload["warmup_iterations"], workload["repetitions"])
-                runs[label]["normal"] = outcome
-                if outcome["status"] != "returned":
-                    correct = False
-                    complete = False
-                    budget_exceeded = outcome["status"] == "budget_exceeded"
-                    continue
+        def run_normal(arm):
+            label = arms[arm][0]
+            outcome = run(arm, [case for _, case in normal], workload["warmup_iterations"], workload["repetitions"])
+            runs[label]["normal"] = outcome
+            status, agrees = outcome["status"], True
+            if status == "returned":
                 report = outcome["report"]
                 if report["completed_cases"] != len(normal) or len(report["observations"]) != len(normal):
                     reject("E_HIA_NATIVE_REPORT", "native report did not account for every planned case", "execution")
@@ -1585,23 +1585,34 @@ class HIAAgentService:
                 for (index, case), observed in zip(normal, report["observations"]):
                     observations[index][label + "_native"] = observed
                     if observed["mismatch"] or not agree(observed, case["expected"], mode=NATIVE_OBSERVATION):
-                        correct = False
-            for index, case in trapping:
-                outcome = run([case], 0, 1)
-                runs[label]["traps"].append({"index": index, **outcome})
-                observations[index][label + "_native"] = {"status": outcome["status"], "returncode": outcome["returncode"]}
-                if "buffers" in case["expected"]:
-                    actual_buffers = outcome.get("buffer_snapshots", [{}])[0].get("buffers")
-                    observations[index][label + "_native"]["buffers"] = actual_buffers
-                    if outcome["status"] == "trapped" and not agree(
-                            observations[index][label + "_native"], case["expected"], mode=NATIVE_OBSERVATION):
-                        correct = False
-                if outcome["status"] != "trapped":
-                    correct = False
-                    if outcome["status"] in {"budget_exceeded", "faulted", "invalid_report"}:
-                        complete = False
-                        budget_exceeded = outcome["status"] == "budget_exceeded"
-                        break
+                        agrees = False
+            return status, agrees
+
+        def run_trap(arm, position):
+            label = arms[arm][0]
+            index, case = trapping[position]
+            outcome = run(arm, [case], 0, 1)
+            runs[label]["traps"].append({"index": index, **outcome})
+            status, agrees = outcome["status"], True
+            observed = {"status": status, "returncode": outcome["returncode"]}
+            observations[index][label + "_native"] = observed
+            if "buffers" in case["expected"]:
+                observed["buffers"] = outcome.get("buffer_snapshots", [{}])[0].get("buffers")
+                if status == "trapped":
+                    agrees = agree(observed, case["expected"], mode=NATIVE_OBSERVATION)
+            return status, agrees
+
+        counts = len(normal), len(trapping)
+        state = budget_exceeded, correct, complete
+        if policy is None:
+            state = self._reference_evaluation_schedule(counts, state, run_normal, run_trap)
+        else:
+            step, state = policy.evaluation_schedule(counts, (0, 0, 0), state)
+            while step[0] != EVALUATION_FINISH:
+                action, arm, index = step
+                status, agrees = run_normal(arm) if action == EVALUATION_NORMAL else run_trap(arm, index)
+                step, state = policy.evaluation_schedule(counts, step, state, status=status, agrees=agrees)
+        budget_exceeded, correct, complete = state
         # A nonterminal crash leaves the owner fenced and never refunds an
         # unknown native cost. Only the confirmed terminal path releases it.
         budget_claim.complete()
@@ -1672,6 +1683,25 @@ class HIAAgentService:
             "evaluation_receipt": receipt, "report_complete": True, "planned_workload_complete": complete,
             "termination_confirmed": True, "outcome": outcome, "measurements": measurements,
             "full_cost_ledger": ledger, "adopted": False}
+
+    @staticmethod
+    def _reference_evaluation_schedule(counts, state, run_normal, run_trap):
+        normal, trapping = counts
+        budget_exceeded, correct, complete = state
+        if not complete:
+            return state
+        for arm in range(2):
+            if normal:
+                status, agrees = run_normal(arm)
+                if status != "returned":
+                    return status == "budget_exceeded", False, False
+                correct = correct and agrees
+            for index in range(trapping):
+                status, agrees = run_trap(arm, index)
+                if status in {"budget_exceeded", "faulted", "invalid_report"}:
+                    return status == "budget_exceeded", False, False
+                correct = correct and status == "trapped" and agrees
+        return budget_exceeded, correct, complete
 
     @staticmethod
     def _reference_observation_agreement(left, right, *, mode):

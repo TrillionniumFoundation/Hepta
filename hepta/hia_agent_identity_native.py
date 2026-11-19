@@ -24,6 +24,9 @@ CONTEXT_REFUSALS = {
     5: ('E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots'),
 }
 EVALUATION_OUTCOMES = ('budget_exceeded', 'incorrect', 'inconclusive', 'improved', 'regressed', 'unchanged')
+EVALUATION_NORMAL, EVALUATION_TRAP, EVALUATION_FINISH = range(1, 4)
+_EVALUATION_STATUS = {'returned': 1, 'trapped': 2, 'budget_exceeded': 3,
+                      'faulted': 4, 'invalid_report': 5}
 WORD_MASK = (1 << 64) - 1
 DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION = range(3)
 _CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
@@ -182,6 +185,23 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         if valid != 1 or agreement not in (0, 1):
             raise RuntimeError('invalid HIA Agent observation decision')
         return bool(agreement)
+
+    def evaluation_schedule(self, counts, previous, state, *, status=None, agrees=False):
+        """Request the next evaluation effect using scalar runner observations."""
+        budget_exceeded, correct, complete = state
+        flags = budget_exceeded | (correct << 1) | (complete << 2)
+        phase, arm, index = previous
+        outcome = 0 if phase == 0 else _EVALUATION_STATUS.get(status, 6)
+        packet = struct.pack('<10Q', MAGIC, 39, phase, arm, index, *counts,
+                             flags, outcome, int(agrees))
+        action, arm, index, flags = self._response(packet, 40, '<5Q')
+        if (flags > 7 or
+                not (action == EVALUATION_FINISH and arm == 2 and index == 0
+                     or action == EVALUATION_NORMAL and arm < 2 and index == 0 and counts[0] and flags & 4
+                     or action == EVALUATION_TRAP and arm < 2 and index < counts[1] and flags & 4)):
+            raise RuntimeError('invalid HIA Agent evaluation schedule result')
+        state = tuple(bool(flags & (1 << bit)) for bit in range(3))
+        return (action, arm, index), state
 
     def record_authority(self, expected, observed, *, required_kind=None, observed_kind=None):
         header = struct.pack('<3Q', MAGIC, 8, int(observed is not None))

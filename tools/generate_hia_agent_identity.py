@@ -139,6 +139,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size > length(o):
             return size
         return artifact_key_material(s, o, 1)
+    if kind == 39:
+        return evaluation_schedule(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -961,6 +963,71 @@ def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     return finite_function_reply(o, equal_pair(s, 32, left, right_at, right))
 '''
 
+EVALUATION_SCHEDULE = r'''# The foreign runner supplies observations; this state machine owns arm order,
+# normal-batch vs single-trap dispatch and whether further effects are allowed.
+def evaluation_schedule(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 80:
+        return 4294967293
+    if length(o) < 40:
+        return 4294967294
+    phase = read_word(s, 16)
+    arm = read_word(s, 24)
+    index = read_word(s, 32)
+    normal = read_word(s, 40)
+    traps = read_word(s, 48)
+    flags = read_word(s, 56)
+    status = read_word(s, 64)
+    agrees = read_word(s, 72)
+    if arm > 1 or phase > 2 or flags > 7 or status > 6 or agrees > 1:
+        return 4294967293
+    if phase == 0:
+        if arm != 0 or index != 0 or status != 0 or agrees != 0:
+            return 4294967293
+        return evaluation_arm(o, arm, normal, traps, flags)
+    if (flags & 4) == 0 or status == 0:
+        return 4294967293
+    if phase == 1:
+        if normal == 0 or index != 0:
+            return 4294967293
+        if status != 1:
+            return evaluation_schedule_reply(o, 3, 2, 0, evaluation_failure(status))
+        if agrees == 0:
+            flags = flags & 5
+    else:
+        if index >= traps:
+            return 4294967293
+        if status == 3 or status == 4 or status == 5:
+            return evaluation_schedule_reply(o, 3, 2, 0, evaluation_failure(status))
+        if status != 2 or agrees == 0:
+            flags = flags & 5
+        index = index + 1
+    if index < traps:
+        return evaluation_schedule_reply(o, 2, arm, index, flags)
+    return evaluation_arm(o, arm + 1, normal, traps, flags)
+
+def evaluation_failure(status:u64) -> u64:
+    if status == 3:
+        return 1
+    return 0
+
+def evaluation_arm(o:mutbuf, arm:u64, normal:u64, traps:u64, flags:u64) -> u32:
+    if arm == 2 or (flags & 4) == 0:
+        return evaluation_schedule_reply(o, 3, 2, 0, flags)
+    if normal != 0:
+        return evaluation_schedule_reply(o, 1, arm, 0, flags)
+    if traps != 0:
+        return evaluation_schedule_reply(o, 2, arm, 0, flags)
+    return evaluation_schedule_reply(o, 3, 2, 0, flags)
+
+def evaluation_schedule_reply(o:mutbuf, action:u64, arm:u64, index:u64, flags:u64) -> u32:
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, action)
+    put(o, 16, arm)
+    put(o, 24, index)
+    put(o, 32, flags)
+    return 40
+'''
+
 def cost_receipt_source():
     """Emit the fixed receipt schema and a bounded captured-fragment ABI."""
     lines = [
@@ -1205,7 +1272,8 @@ def source_program():
             + receipt_template('measurement_record', MEASUREMENT_RECORD, aggregate_suffix='0,0,0]')
             + receipt_template('evaluation_record', EVALUATION_RECORD)
             + receipt_template('evaluation_result', EVALUATION_RESULT)
-            + receipt_template('artifact_key_material', ARTIFACT_KEY_MATERIAL, aggregate_suffix=''))
+            + receipt_template('artifact_key_material', ARTIFACT_KEY_MATERIAL, aggregate_suffix='')
+            + EVALUATION_SCHEDULE.replace('@RESULT_MAGIC@', str(RESULT_MAGIC)))
 
 
 def document():

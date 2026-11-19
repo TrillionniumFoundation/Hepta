@@ -6,7 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 from hepta.hia_agent_identity_native import SOURCE,SCHEMA,MAGIC,RESULT_MAGIC,NativeAgentIdentity,installed_agent_identity,SELECTOR
 from hepta.hia_agent_identity_native import (DECLARED_OBSERVATION, REFERENCE_OBSERVATION, NATIVE_OBSERVATION,
-    CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK, EXACT_COMPARISON_CHUNK)
+    CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK, EXACT_COMPARISON_CHUNK,
+    EVALUATION_NORMAL, EVALUATION_TRAP, EVALUATION_FINISH)
 from hepta.hia_agent_store import AgentRejected,uint64,canonical_digest
 ROOT=Path(__file__).resolve().parents[1]
 def packet(kind,value):return struct.pack('<2Q',MAGIC,kind)+value
@@ -382,7 +383,9 @@ class AgentIdentityNativeTests(unittest.TestCase):
         with (tempfile.TemporaryDirectory(prefix='hia-agent-observation-') as directory,
               patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
               patch.object(HIAAgentService, '_reference_observation_agreement',
-                           side_effect=AssertionError('host comparison used'))):
+                           side_effect=AssertionError('host comparison used')),
+              patch.object(HIAAgentService, '_reference_evaluation_schedule',
+                           side_effect=AssertionError('host evaluation scheduling used'))):
             service = HIAAgentService(directory)
             try:
                 for prefix, written, expected_outcome in (('identical', 91, 'unchanged'),
@@ -401,6 +404,43 @@ class AgentIdentityNativeTests(unittest.TestCase):
                     self.assertEqual(evaluation['outcome'], expected_outcome)
             finally:
                 service.close()
+
+    def test_native_evaluation_schedule_preserves_dispatch_and_stops_after_runner_failure(self):
+        from hepta.hia_agent_service import HIAAgentService
+
+        rng = random.Random(3072)
+        states = [(False, True, True), (True, True, False), (False, False, True),
+                  (False, False, False), (True, False, True)]
+        statuses = ('returned', 'trapped', 'budget_exceeded', 'faulted', 'invalid_report', 'other')
+        for _ in range(2400):
+            counts = rng.randrange(3), rng.randrange(5)
+            state = rng.choice(states)
+            outcomes = {(action, arm, index): (rng.choice(statuses), rng.choice((True, False)))
+                        for action in (EVALUATION_NORMAL, EVALUATION_TRAP)
+                        for arm in range(2) for index in range(max(1, counts[1]))}
+            expected = []
+
+            def observe(action, arm, index):
+                key = action, arm, index
+                expected.append(key)
+                return outcomes[key]
+
+            expected_state = HIAAgentService._reference_evaluation_schedule(
+                counts, state, lambda arm: observe(EVALUATION_NORMAL, arm, 0),
+                lambda arm, index: observe(EVALUATION_TRAP, arm, index))
+            step, actual_state = self.native.evaluation_schedule(counts, (0, 0, 0), state)
+            for wanted in expected:
+                self.assertEqual(step, wanted)
+                status, agrees = outcomes[step]
+                step, actual_state = self.native.evaluation_schedule(
+                    counts, step, actual_state, status=status, agrees=agrees)
+            self.assertEqual(step, (EVALUATION_FINISH, 2, 0))
+            self.assertEqual(actual_state, expected_state)
+
+        for words in ((0, 1, 0, 1, 1, 6, 0, 0), (1, 0, 1, 1, 1, 6, 1, 1),
+                      (2, 0, 2, 1, 2, 6, 2, 1), (2, 0, 0, 1, 2, 2, 2, 1)):
+            request = packet(39, struct.pack('<8Q', *words))
+            self.assertEqual(self.raw(request, capacity=40)[0], 0xfffffffd)
 
     def test_actual_store_callers_disable_reference_and_keep_errors(self):
         from hepta import hia_agent_store as store
