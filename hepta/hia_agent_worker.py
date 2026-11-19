@@ -7,6 +7,7 @@ All executable/path/profile options below are administrator configuration.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 from hashlib import sha256
 import json
 import os
@@ -39,36 +40,82 @@ def main(argv=None):
         defaults = {"default": []} if action == "append" else {}
         parser.add_argument("--" + name, action=action, **defaults)
     present = sys.argv[1:] if argv is None else list(argv)
-    args = parser.parse_args(present)
-    configured = (args.native_store_release, args.expected_native_store_sha256,
-                  args.expected_native_artifact_sha256, args.expected_native_capture_sha256)
-    if any(value is not None for value in configured) and any(value is None for value in configured):
-        parser.error("native Store requires the installed release directory and the three executable SHA-256 pins")
     from .hia_native_helpers import native_helpers_scope
     try:
+        native = _pinned_request_startup(present, parser, native_helpers_scope)
+        if native is not None:
+            return native
+        args = parser.parse_args(present)
+        _check_store_options(parser, args)
         with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256) as binding:
-            selected = os.environ.get('HEPTA_HIA_WORKER_REPORT_MANIFEST')
-            if selected:
+            report = _selected_report(binding)
+            if report is not None:
                 # The host still admits the administrator's bundle pin and
-                # keeps its legacy CLI errors. Execute policy only in custody.
-                from .hia_worker_report_native import installed_worker_report
-                report = installed_worker_report(selected)
+                # CLI errors for noncanonical invocation shapes.
                 startup = report.startup_arguments(present, WORKER_OPTIONS)
                 if startup is not None:
                     if vars(startup) != vars(args):
                         raise ValueError('native worker arguments differ from pinned CLI admission')
                     args = startup
-            args.pinned_native_store = getattr(binding, 'native_store', None)
-            args.pinned_native_edit_query = getattr(binding, 'native_edit_query', None)
-            args.pinned_native_candidate_import = getattr(binding, 'native_candidate_import', None)
-            if args.pinned_native_store is not None and args.native_store_release is not None:
-                raise ValueError('native Store must be selected only once')
-            return _run(parser, args)
+            return _start(parser, args, binding)
     except (ValueError, OSError, TypeError, OverflowError, RecursionError) as exc:
         # No authenticated envelope, or terminal rendering could not complete.
         # A partial report cannot become a correlated success.
         sys.stderr.write(str(exc)[:4096] + "\n")
         return 2
+
+
+def _selected_report(binding):
+    if binding is not None:
+        path = binding.selections.get('HEPTA_HIA_WORKER_REPORT_MANIFEST')
+        if path is not None:
+            from .hia_worker_report_native import installed_worker_report
+            return installed_worker_report(path)
+    return None
+
+
+def _pinned_request_startup(argv, parser, scope):
+    """Admit the explicit capsule before interpreting the provider's argv."""
+    if len(argv) < 5 or any(type(value) is not str for value in argv):
+        return None
+    manifest_flag, manifest, digest_flag, digest, mode = argv[-5:]
+    if (manifest_flag, digest_flag, mode) != (
+        '--native-helpers-manifest', '--expected-native-helpers-sha256', '--request-json-stdin',
+    ) or not canonical_digest(digest):
+        return None
+    with ExitStack() as custody:
+        try:
+            binding = custody.enter_context(scope(manifest, digest))
+        except (ValueError, OSError, TypeError, OverflowError, RecursionError):
+            # Normal argparse diagnostics precede bundle errors for malformed
+            # invocations. No worker request or Store is entered on this path.
+            return None
+        report = _selected_report(binding)
+        if report is None:
+            return None
+        args = report.startup_arguments(argv, WORKER_OPTIONS)
+        if args is None:
+            return None
+        if (args.native_helpers_manifest, args.expected_native_helpers_sha256) != (manifest, digest):
+            raise ValueError('native worker arguments differ from admitted capsule')
+        _check_store_options(parser, args)
+        return _start(parser, args, binding)
+
+
+def _check_store_options(parser, args):
+    configured = (args.native_store_release, args.expected_native_store_sha256,
+                  args.expected_native_artifact_sha256, args.expected_native_capture_sha256)
+    if any(value is not None for value in configured) and any(value is None for value in configured):
+        parser.error("native Store requires the installed release directory and the three executable SHA-256 pins")
+
+
+def _start(parser, args, binding):
+    args.pinned_native_store = getattr(binding, 'native_store', None)
+    args.pinned_native_edit_query = getattr(binding, 'native_edit_query', None)
+    args.pinned_native_candidate_import = getattr(binding, 'native_candidate_import', None)
+    if args.pinned_native_store is not None and args.native_store_release is not None:
+        raise ValueError('native Store must be selected only once')
+    return _run(parser, args)
 
 
 def _run(parser, args):

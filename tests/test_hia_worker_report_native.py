@@ -365,6 +365,35 @@ class WorkerReportNativeTests(unittest.TestCase):
                 self.assertEqual(worker.main(argv), 2)
         self.assertIn('native worker arguments differ', errors.getvalue())
 
+    def test_provider_startup_uses_hia_without_argparse(self):
+        from hepta import hia_native_helpers as authority
+        pins = ['--native-helpers-manifest', str(self.worker_bundle),
+                '--expected-native-helpers-sha256', self.worker_pin, '--request-json-stdin']
+        argv = ['--state-root=/root', '--artifact-root', '/first', '--artifact-root=/second', *pins]
+
+        def run(_parser, args):
+            self.assertEqual(authority.native_helpers_identity(), {'native_helpers_sha256': self.worker_pin})
+            self.assertEqual(args.state_root, '/root')
+            self.assertEqual(args.artifact_root, ['/first', '/second'])
+            self.assertTrue(args.request_json_stdin)
+            return 0
+
+        errors = io.StringIO()
+        with patch.dict(os.environ, {}, clear=True), patch.object(sys, 'stderr', errors):
+            with (
+                patch.object(worker, '_run', side_effect=run),
+                patch.object(argparse.ArgumentParser, 'parse_args', side_effect=AssertionError('argparse entered')),
+            ):
+                self.assertEqual(worker.main(argv), 0)
+            with patch.object(worker, '_run') as effects:
+                with self.assertRaises(SystemExit):
+                    worker.main(['--state-root', *pins])
+                invalid_pin = [*pins[:-2], '0' * 64, pins[-1]]
+                self.assertEqual(worker.main(['--state-root=/root', *invalid_pin]), 2)
+                effects.assert_not_called()
+        self.assertIn('expected one argument', errors.getvalue())
+        self.assertIn('native helper bundle identity mismatch', errors.getvalue())
+
     def test_ordinary_success_and_service_close_exception_order(self):
         success, _ = self.same()
         self.assertEqual(success[0], ('return', 0))
@@ -914,7 +943,7 @@ class WorkerReportNativeTests(unittest.TestCase):
                                  (ROOT / 'examples/hia_bootstrap' / name).read_bytes())
             archive.extractall(installed)
         script = r'''
-import builtins,io,json,os,pathlib,sys
+import argparse,builtins,io,json,os,pathlib,sys
 from types import SimpleNamespace
 from unittest.mock import patch
 sys.path.insert(0,sys.argv[1])
@@ -932,9 +961,9 @@ def no_tools(name,*args,**kwargs):
  if name=='tools' or name.startswith('tools.'):raise AssertionError('installed worker imported development tools')
  return real_import(name,*args,**kwargs)
 output=io.BytesIO();errors=io.StringIO()
-with patch('builtins.__import__',no_tools),patch.object(worker,'_reference_run',side_effect=AssertionError('retained worker owner')),patch.object(sys,'stdin',SimpleNamespace(buffer=io.BytesIO(raw))),patch.object(sys,'stdout',SimpleNamespace(buffer=output)),patch.object(sys,'stderr',errors):
- code=worker.main(['--state-root',sys.argv[3],'--request-json-stdin','--native-helpers-manifest',sys.argv[4],'--expected-native-helpers-sha256',sys.argv[5]])
-assert code==0 and errors.getvalue()==''
+with patch('builtins.__import__',no_tools),patch.object(worker,'_reference_run',side_effect=AssertionError('retained worker owner')),patch.object(sys,'stdin',SimpleNamespace(buffer=io.BytesIO(raw))),patch.object(sys,'stdout',SimpleNamespace(buffer=output)),patch.object(sys,'stderr',errors),patch.object(argparse.ArgumentParser,'parse_args',side_effect=AssertionError('hosted argv owner')):
+ code=worker.main(['--state-root',sys.argv[3],'--native-helpers-manifest',sys.argv[4],'--expected-native-helpers-sha256',sys.argv[5],'--request-json-stdin'])
+assert code==0 and errors.getvalue()=='',(code,errors.getvalue())
 report=json.loads(output.getvalue());assert report['native_helpers_sha256']==sys.argv[5];assert report['complete'] is True and report['response']['status']=='completed',report
 original=SOURCE.read_bytes();SOURCE.write_bytes(original+b'\n')
 try:installed_worker_report(sys.argv[2])
