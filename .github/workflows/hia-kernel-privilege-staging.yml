@@ -5,6 +5,8 @@ on:
     paths:
       - hepta/hia_machine_x64.py
       - hepta/hia_machine_x64_kernel.py
+      - experiments/hia_kernel_tlb_effects_staging.py
+      - tests/test_hia_x86_kernel_tlb_effects_staging.py
       - docs/HIA_SELFHOST_CORE_SUPPORT.json
       - docs/HIA_X86_KERNEL_PRIVILEGE_STAGING.md
       - tests/test_hia_x86_kernel_privilege_staging.py
@@ -17,6 +19,8 @@ on:
     paths:
       - hepta/hia_machine_x64.py
       - hepta/hia_machine_x64_kernel.py
+      - experiments/hia_kernel_tlb_effects_staging.py
+      - tests/test_hia_x86_kernel_tlb_effects_staging.py
       - docs/HIA_SELFHOST_CORE_SUPPORT.json
       - docs/HIA_X86_KERNEL_PRIVILEGE_STAGING.md
       - tests/test_hia_x86_kernel_privilege_staging.py
@@ -39,4 +43,4 @@ jobs:
       - name: Verify complete cold-replay source closure, including the new kernel helper
         run: python3 -B -c 'from tools.hia_selfhost_contract import validate_contract; validate_contract()'
       - name: Check kernel CRx, port I/O, interrupts, atomics and native CAS/XADD
-        run: python3 -B -m unittest tests.test_hia_x86_kernel_privilege_staging tests.test_hia_x86_kernel_interrupt_staging tests.test_hia_x86_kernel_atomic_staging tests.test_hia_x86_kernel_control_io_staging tests.test_hia_x86_kernel_msr_interrupt_staging -v
+        run: python3 -B -m unittest tests.test_hia_x86_kernel_privilege_staging tests.test_hia_x86_kernel_interrupt_staging tests.test_hia_x86_kernel_atomic_staging tests.test_hia_x86_kernel_control_io_staging tests.test_hia_x86_kernel_msr_interrupt_staging tests.test_hia_x86_kernel_tlb_effects_staging -v

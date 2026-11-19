@@ -145,3 +145,29 @@ GDTR memory ownership, selector lifetimes, canonical bases and interrupt-safe
 replacement need separate proofs and QEMU tests. The non-HIA HeptaKernel
 boot bridge remains mandatory. All 17 Linux acceptance gates and 422
 x86-64 syscall obligations remain HOLD.
+
+## Static TLB/IRQ effect admission experiment (not native HIA)
+
+The separate `experiments/hia_kernel_tlb_effects_staging.py` prototype now
+rejects a narrow set of unsafe *planned* single-CPU 4KiB PTE transitions
+before any machine-code generation. It requires an exact CPL0/single-CPU,
+PCID-off/global-page-off profile; a caller-declared, aligned owned CR3 root;
+canonical aligned virtual pages; IRQ masking before a page-table write;
+matching complete old-value snapshots; and an address-matched INVLPG before
+interrupts can be re-enabled. It refuses duplicate/unbalanced operations,
+an unmatched invalidation, cross-address flushes, unknown privilege operations,
+unexpected fields, forged integer types and multiple CPUs. A static summary
+reports checked effect counts. Independent adversarial tests exercise the
+allowed plans and all refusal families. The separate workflow runs them.
+
+**This does not authenticate the CPU state, owner, old PTE or actual runtime
+observations.** IRQ masking does not exclude NMI, DMA, a racing host or another
+CPU, and even the declared single-CPU environment is not verified. In
+particular, this module neither parses HIA Core v8 source nor adds any Core
+opcode, integrates the selfhost_elf compiler, creates code, performs a
+runtime CAS, loads CR3, invalidates a CPU TLB, or establishes memory safety.
+It is a static effect-ordering testbed with explicit assumptions, **not**
+a privileged HIA kernel backend, separate interpreter, or a Linux acceptance
+closure. The next required step remains translating the reviewed authority
+and ordering checks into the actual HIA verifier and locked selfhost native
+compiler, with QEMU negative controls and independent machine-code provenance.
