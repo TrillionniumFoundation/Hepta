@@ -19,6 +19,7 @@ SECTION = struct.Struct('<12Q')
 SEGMENT = struct.Struct('<7Q')
 SYMBOL = struct.Struct('<7Q')
 DYNAMIC_TAG = struct.Struct('<2Q')
+RELOCATION = struct.Struct('<3Qq')
 CAPACITY = HEADER.size + MAX_SECTIONS * SECTION.size + MAX_SEGMENTS * SEGMENT.size
 SECTION_FIELDS = ('type', 'flags', 'addr', 'offset', 'size', 'link', 'info', 'align', 'entsize')
 SEGMENT_FIELDS = ('type', 'flags', 'offset', 'addr', 'filesz', 'memsz', 'align')
@@ -61,6 +62,12 @@ REFUSALS = (
     ('gnu_authority', 'GNU hash authority differs'),
     ('gnu_shape', 'GNU hash shape differs'),
     ('gnu_lookup', 'GNU lookup does not exactly resolve the checked export'),
+    ('plt_slot', 'abort GOT relocation changed'),
+    ('plt_target', 'abort PLT instruction or GOT target differs'),
+    ('object_operand', 'object relocation does not name an E8 rel32 operand'),
+    ('object_call', 'unreviewed or duplicate call relocation'),
+    ('object_displacement', 'linked call is outside rel32'),
+    ('object_text', 'final text differs outside exact resolved call fields'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -165,6 +172,29 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         _, size, first, second = self._exchange(data, arguments, name)
         if size != HEADER.size or first or second:
             raise RuntimeError('invalid native Safe Core loader hash response')
+
+    def verify_plt_slot(self, data, plt, got, rela, abort_symbols):
+        arguments = (plt['offset'], plt['addr'], got['addr'], rela['offset'], abort_symbols, 0)
+        _, size, first, second = self._exchange(data, arguments)
+        if size != HEADER.size or first or second:
+            raise RuntimeError('invalid native Safe Core PLT response')
+
+    def object_relocations(self, data, relocations, source, linked, plt, helper):
+        arguments = (2, relocations['offset'], source['offset'], source['size'],
+                     linked['addr'], plt['addr'] + 16, helper, relocations['link'])
+        output, size, count, reserved = self._exchange(data, arguments, linked['data'])
+        if reserved or count != 2 or size != HEADER.size + count * RELOCATION.size:
+            raise RuntimeError('invalid native Safe Core call relocation response')
+        calls, records = {}, []
+        for at in range(HEADER.size, size, RELOCATION.size):
+            offset, symbol, target, displacement = RELOCATION.unpack_from(output, at)
+            if symbol not in (1, 2) or not 0 < offset <= source['size'] - 4 or offset - 1 in calls:
+                raise RuntimeError('invalid native Safe Core call relocation')
+            name = 'abort' if symbol == 1 else '__hia_native_fn_0'
+            calls[offset - 1] = 'abort' if symbol == 1 else target - linked['addr']
+            records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
+                                linked_target=target, displacement=displacement))
+        return calls, records
 
 
 def installed_safe_core_elf_inventory(path):

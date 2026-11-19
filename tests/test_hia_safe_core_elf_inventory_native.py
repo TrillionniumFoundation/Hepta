@@ -96,7 +96,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         boundaries = ('_reference_inventory', '_reference_symbols', '_reference_string', '_reference_load_binding')
         blocked = {name: Mock(side_effect=AssertionError('host ELF boundary entered: ' + name))
                    for name in boundaries}
-        loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup')
+        loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup',
+                             '_reference_plt_slot', '_reference_object_relocations')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
@@ -141,6 +142,53 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                         expected = result(check, section, tags[key], symbol_arg)
                         actual = result(self.native.verify_hash, data, section, tags[key], export, gnu=gnu)
                     self.assertEqual(actual, expected, (name, at, value))
+
+    def test_native_relocations_match_real_link_and_retained_rejections(self):
+        def result(check, *args):
+            try:
+                return check(*args)
+            except SafeCoreELFRejected as exc:
+                return str(exc)
+
+        obj, final = _ELF(self.object_bytes, 1), _ELF(self.final_bytes, 3)
+        plt, got, rela = (final.section(name) for name in ('.plt', '.got', '.rela.plt'))
+        dynamic_symbols = final.symbols('.dynsym')
+        abort_mask = sum(1 << i for i, row in enumerate(dynamic_symbols) if row['name'] == 'abort')
+        self.native.verify_plt_slot(self.final_bytes, plt, got, rela, abort_mask)
+        for table in (plt, rela):
+            for index in range(table['size']):
+                changed = bytearray(table['data'])
+                changed[index] ^= 1
+                at = table['offset']
+                data = self.final_bytes[:at] + bytes(changed) + self.final_bytes[at + table['size']:]
+                regions = [dict(section, data=bytes(changed)) if section is table else section
+                           for section in (plt, got, rela)]
+                self.assertEqual(result(self.native.verify_plt_slot, data, *regions, abort_mask),
+                                 result(elf_reader._reference_plt_slot, *regions, dynamic_symbols),
+                                 (table['name'], index))
+
+        source, linked = obj.section('.text'), final.section('.text')
+        relocations = obj.section('.rela.text')
+        functions = elf_reader._functions(final, linked, '.symtab')
+        helper = functions['__hia_native_fn_0']['value']
+        self.assertEqual(self.native.object_relocations(self.object_bytes, relocations, source, linked, plt, helper),
+                         elf_reader._reference_object_relocations(obj, relocations, source['data'],
+                                                                 linked, plt, functions))
+        for table in (relocations, linked):
+            for index in range(table['size']):
+                changed = bytearray(table['data'])
+                changed[index] ^= 1
+                at = table['offset']
+                changed_table = dict(table, data=bytes(changed))
+                if table is relocations:
+                    data = self.object_bytes[:at] + bytes(changed) + self.object_bytes[at + table['size']:]
+                    section, link = changed_table, linked
+                else:
+                    data, section, link = self.object_bytes, relocations, changed_table
+                self.assertEqual(result(self.native.object_relocations, data, section, source, link, plt, helper),
+                                 result(elf_reader._reference_object_relocations, obj, section,
+                                        source['data'], link, plt, functions),
+                                 (table['name'], index))
 
 
 if __name__ == '__main__':

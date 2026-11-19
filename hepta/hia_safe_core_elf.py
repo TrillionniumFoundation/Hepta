@@ -291,6 +291,47 @@ def _reference_dynamic_tags(final, dynamic, got, rela):
     return tags
 
 
+def _reference_plt_slot(plt, got, rela, dynsymbols):
+    slot, info, addend = struct.unpack("<QQq", rela["data"])
+    require(info & 0xffffffff == 7 and info >> 32 < len(dynsymbols) and
+            dynsymbols[info >> 32]["name"] == "abort" and addend == 0 and
+            slot == got["addr"] + 24, "abort GOT relocation changed")
+    p = plt["data"]
+    require(p[:2] == b"\xff\x35" and p[6:8] == b"\xff\x25" and p[12:16] == b"\x0f\x1f\x40\0" and
+            plt["addr"] + 6 + struct.unpack("<i", p[2:6])[0] == got["addr"] + 8 and
+            plt["addr"] + 12 + struct.unpack("<i", p[8:12])[0] == got["addr"] + 16 and
+            p[16:18] == b"\xff\x25" and plt["addr"] + 22 + struct.unpack("<i", p[18:22])[0] == slot and
+            p[22:27] == b"\x68\0\0\0\0" and p[27] == 0xe9 and
+            plt["addr"] + 32 + struct.unpack("<i", p[28:32])[0] == plt["addr"],
+            "abort PLT instruction or GOT target differs")
+
+
+def _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc):
+    objectsymbols = obj.symbols(".symtab")
+    expected_text = bytearray(text_bytes)
+    calls, records = {}, []
+    for at in range(0, relsec["size"], 24):
+        offset, info, addend = struct.unpack_from("<QQq", relsec["data"], at)
+        require(0 < offset <= len(text_bytes) - 4 and info & 0xffffffff == 4 and
+                info >> 32 < len(objectsymbols) and addend == -4 and
+                text_bytes[offset - 1:offset + 4] == b"\xe8\0\0\0\0",
+                "object relocation does not name an E8 rel32 operand")
+        name = objectsymbols[info >> 32]["name"]
+        require(name in {"abort", "__hia_native_fn_0"} and offset - 1 not in calls,
+                "unreviewed or duplicate call relocation")
+        target = plt["addr"] + 16 if name == "abort" else dstfunc[name]["value"]
+        displacement = target - (linked["addr"] + offset + 4)
+        require(-(1 << 31) <= displacement < 1 << 31, "linked call is outside rel32")
+        expected_text[offset:offset + 4] = struct.pack("<i", displacement)
+        calls[offset - 1] = "abort" if name == "abort" else target - linked["addr"]
+        records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
+                            linked_target=target, displacement=displacement))
+    require({r["symbol"] for r in records} == {"abort", "__hia_native_fn_0"} and
+            bytes(expected_text) == linked["data"],
+            "final text differs outside exact resolved call fields")
+    return calls, records
+
+
 def bind_final_artifact(object_bytes, final_bytes, export):
     """Bind untrusted supplied ELF bytes without a producer's text or symbol map."""
     obj = _ELF(object_bytes, 1)
@@ -385,18 +426,11 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
             rela["entsize"] == 24 and rela["size"] == 24 and
             rela["link"] == final.section(".dynsym")["index"] and rela["info"] == got["index"],
             "unreviewed dynamic relocation inventory")
-    slot, info, addend = struct.unpack("<QQq", rela["data"])
-    require(info & 0xffffffff == 7 and info >> 32 < len(dynsymbols) and
-            dynsymbols[info >> 32]["name"] == "abort" and addend == 0 and
-            slot == got["addr"] + 24, "abort GOT relocation changed")
-    p = plt["data"]
-    require(p[:2] == b"\xff\x35" and p[6:8] == b"\xff\x25" and p[12:16] == b"\x0f\x1f\x40\0" and
-            plt["addr"] + 6 + struct.unpack("<i", p[2:6])[0] == got["addr"] + 8 and
-            plt["addr"] + 12 + struct.unpack("<i", p[8:12])[0] == got["addr"] + 16 and
-            p[16:18] == b"\xff\x25" and plt["addr"] + 22 + struct.unpack("<i", p[18:22])[0] == slot and
-            p[22:27] == b"\x68\0\0\0\0" and p[27] == 0xe9 and
-            plt["addr"] + 32 + struct.unpack("<i", p[28:32])[0] == plt["addr"],
-            "abort PLT instruction or GOT target differs")
+    if final._native_inventory is None:
+        _reference_plt_slot(plt, got, rela, dynsymbols)
+    else:
+        abort_symbols = sum(1 << index for index, row in enumerate(dynsymbols) if row["name"] == "abort")
+        final._native_inventory.verify_plt_slot(final.data, plt, got, rela, abort_symbols)
 
     dynamic = final.section(".dynamic", 6)
     final.load_binding(dynamic, 6)
@@ -410,28 +444,15 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     require(relsec["entsize"] == 24 and relsec["size"] == 48 and
             relsec["info"] == source["index"] and relsec["link"] == obj.section(".symtab")["index"],
             "object relocation inventory is outside the one-function profile")
-    objectsymbols = obj.symbols(".symtab")
-    expected_text = bytearray(text_bytes)
-    calls, records = {}, []
-    for at in range(0, relsec["size"], 24):
-        offset, info, addend = struct.unpack_from("<QQq", relsec["data"], at)
-        require(0 < offset <= len(text_bytes) - 4 and info & 0xffffffff == 4 and
-                info >> 32 < len(objectsymbols) and addend == -4 and
-                text_bytes[offset - 1:offset + 4] == b"\xe8\0\0\0\0",
-                "object relocation does not name an E8 rel32 operand")
-        name = objectsymbols[info >> 32]["name"]
-        require(name in {"abort", "__hia_native_fn_0"} and offset - 1 not in calls,
-                "unreviewed or duplicate call relocation")
-        target = plt["addr"] + 16 if name == "abort" else dstfunc[name]["value"]
-        displacement = target - (linked["addr"] + offset + 4)
-        require(-(1 << 31) <= displacement < 1 << 31, "linked call is outside rel32")
-        expected_text[offset:offset + 4] = struct.pack("<i", displacement)
-        calls[offset - 1] = "abort" if name == "abort" else target - linked["addr"]
-        records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
-                            linked_target=target, displacement=displacement))
-    require({r["symbol"] for r in records} == {"abort", "__hia_native_fn_0"} and
-            bytes(expected_text) == linked["data"],
-            "final text differs outside exact resolved call fields")
+    if obj._native_inventory is None:
+        calls, records = _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
+    else:
+        # Check all names in table order (including unreferenced entries)
+        # before interpreting relocations, as in the retained checker.
+        obj.symbols(".symtab")
+        calls, records = obj._native_inventory.object_relocations(
+            obj.data, relsec, source, linked, plt, dstfunc["__hia_native_fn_0"]["value"],
+        )
     return {"text": linked["data"], "text_vaddr": linked["addr"],
             "entry": srcfunc[export]["value"], "calls": calls,
             "binding": {"object_sha256": sha256(object_bytes).hexdigest(),

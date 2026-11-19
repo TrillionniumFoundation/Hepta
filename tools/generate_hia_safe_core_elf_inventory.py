@@ -15,6 +15,10 @@ SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
 FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
           'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
 FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
+HELPER_NAME = b'__hia_native_fn_0\0'
+FIELDS.update(HELPER_HEAD=int.from_bytes(HELPER_NAME[:8], 'little'),
+              HELPER_BODY=int.from_bytes(HELPER_NAME[8:16], 'little'),
+              HELPER_TAIL=int.from_bytes(HELPER_NAME[16:], 'little'))
 
 SOURCE = r'''
 def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -31,7 +35,11 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return load_binding(s, o, get(w, 0), get(w, 8), get(w, 16), get(w, 24))
     if length(w) == 40:
         return dynamic_tags(s, o, w)
+    if length(w) == 48 and get(w, 40) == 0:
+        return verify_plt_slot(s, o, w)
     if length(w) >= 64:
+        if get(w, 0) == 2:
+            return object_relocations(s, o, w)
         return loader_hash(s, o, w)
     if length(w) != 8:
         return 4294967293
@@ -504,6 +512,135 @@ def review_gnu(s:readbuf, at:u64, size:u64, hash:u64) -> u64:
             return E_GNU_LOOKUP
         index = index + 1
     return choose(word(s, start + buckets * 4, 4) == (hash | 1), 0, E_GNU_LOOKUP)
+
+def verify_plt_slot(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    at = get(w, 0)
+    addr = get(w, 8)
+    got = get(w, 16)
+    rela = get(w, 24)
+    if in_file(length(s), at, 32) == 0 or in_file(length(s), rela, 24) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    slot = word(s, rela, 8)
+    info = word(s, rela + 8, 8)
+    symbol = info >> 32
+    if (info & 0xffffffff) != 7 or symbol >= 32 or word(s, rela + 16, 8) != 0:
+        return terminal(o, E_PLT_SLOT, 0, 0)
+    if (get(w, 32) & (1 << symbol)) == 0 or slot != got + 24:
+        return terminal(o, E_PLT_SLOT, 0, 0)
+    if word(s, at, 2) != 0x35ff or word(s, at + 6, 2) != 0x25ff or word(s, at + 12, 4) != 0x00401f0f:
+        return terminal(o, E_PLT_TARGET, 0, 0)
+    if word(s, at + 16, 2) != 0x25ff or word(s, at + 22, 6) != 0xe90000000068:
+        return terminal(o, E_PLT_TARGET, 0, 0)
+    if rel32_matches(addr + 6, word(s, at + 2, 4), got + 8) == 0:
+        return terminal(o, E_PLT_TARGET, 0, 0)
+    if rel32_matches(addr + 12, word(s, at + 8, 4), got + 16) == 0:
+        return terminal(o, E_PLT_TARGET, 0, 0)
+    if rel32_matches(addr + 22, word(s, at + 18, 4), slot) == 0:
+        return terminal(o, E_PLT_TARGET, 0, 0)
+    if rel32_matches(addr + 32, word(s, at + 28, 4), addr) == 0:
+        return terminal(o, E_PLT_TARGET, 0, 0)
+    return terminal(o, 0, 0, 0)
+
+def rel32_matches(base:u64, operand:u64, target:u64) -> u64:
+    if operand >= 2147483648:
+        return choose(target <= base and base - target == 4294967296 - operand, 1, 0)
+    return choose(target >= base and target - base == operand, 1, 0)
+
+def ordinary_call_symbol(s:readbuf, table:u64, symbol:u64) -> u64:
+    # Inventories have already verified table/strings bounds and all names.
+    secbase = word(s, 40, 8)
+    count = word(s, 60, 2)
+    if table >= count or in_file(length(s), secbase, count * 64) == 0:
+        return 0
+    row = secbase + table * 64
+    names = word(s, row + 40, 4)
+    if names >= count:
+        return 0
+    at = word(s, row + 24, 8)
+    size = word(s, row + 32, 8)
+    if symbol >= size // 24 or in_file(length(s), at, size) == 0:
+        return 0
+    names_row = secbase + names * 64
+    start = word(s, names_row + 24, 8)
+    span = word(s, names_row + 32, 8)
+    index = word(s, at + symbol * 24, 4)
+    if index >= span or in_file(length(s), start, span) == 0:
+        return 0
+    at = start + index
+    remaining = span - index
+    if remaining >= 6 and word(s, at, 6) == 0x0074726f6261:
+        return 1
+    if remaining >= 18 and word(s, at, 8) == HELPER_HEAD:
+        if word(s, at + 8, 8) == HELPER_BODY and word(s, at + 16, 2) == HELPER_TAIL:
+            return 2
+    return 3
+
+def object_relocations(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    rela = get(w, 8)
+    text = get(w, 16)
+    size = get(w, 24)
+    addr = get(w, 32)
+    table = get(w, 56)
+    if size != length(w) - 64 or size > 65536:
+        return 4294967293
+    if in_file(length(s), text, size) == 0 or in_file(length(s), rela, 48) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    columns = 0
+    seen = 0
+    first = 0
+    while columns < 2:
+        at = rela + columns * 24
+        offset = word(s, at, 8)
+        info = word(s, at + 8, 8)
+        if size < 4 or offset == 0 or offset > size - 4:
+            return terminal(o, E_OBJECT_OPERAND, 0, 0)
+        if (info & 0xffffffff) != 4 or word(s, at + 16, 8) != 18446744073709551612:
+            return terminal(o, E_OBJECT_OPERAND, 0, 0)
+        if word(s, text + offset - 1, 5) != 0xe8:
+            return terminal(o, E_OBJECT_OPERAND, 0, 0)
+        symbol = ordinary_call_symbol(s, table, info >> 32)
+        if symbol == 0:
+            return terminal(o, E_OBJECT_OPERAND, 0, 0)
+        if symbol == 3 or offset == first:
+            return terminal(o, E_OBJECT_CALL, 0, 0)
+        target = choose(symbol == 1, get(w, 40), get(w, 48))
+        end = addr + offset + 4
+        if target < end:
+            if end - target > 2147483648:
+                return terminal(o, E_OBJECT_DISPLACEMENT, 0, 0)
+        else:
+            if target - end >= 2147483648:
+                return terminal(o, E_OBJECT_DISPLACEMENT, 0, 0)
+        out = 24 + columns * 32
+        put(o, out, offset)
+        put(o, out + 8, symbol)
+        put(o, out + 16, target)
+        put(o, out + 24, target - end)
+        seen = seen | (1 << symbol)
+        first = offset
+        columns = columns + 1
+    if seen != 6:
+        return terminal(o, E_OBJECT_TEXT, 0, 0)
+    if linked_text_matches(s, o, w, text, size) == 0:
+        return terminal(o, E_OBJECT_TEXT, 0, 0)
+    return reply(o, 0, 2, 0, 88)
+
+def linked_text_matches(s:readbuf, o:mutbuf, w:mutbuf, text:u64, size:u64) -> u64:
+    first = get(o, 24)
+    first_value = get(o, 48)
+    second = get(o, 56)
+    second_value = get(o, 80)
+    index = 0
+    while index < size:
+        expected = byte(s, text + index)
+        if index >= first and index - first < 4:
+            expected = (first_value >> ((index - first) * 8)) & 255
+        if index >= second and index - second < 4:
+            expected = (second_value >> ((index - second) * 8)) & 255
+        if byte(w, 64 + index) != expected:
+            return 0
+        index = index + 1
+    return 1
 '''
 
 
