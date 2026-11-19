@@ -46,6 +46,19 @@ def rows(service):
 
 
 class JournalSourceTests(unittest.TestCase):
+    def test_sealed_journal_refuses_a_truncated_or_overlong_reply(self):
+        from hepta.hia_agent_journal_native import JOURNAL_REPLY, STATE_BYTES, _standalone_journal
+
+        state = bytes(STATE_BYTES)
+        accepted = JOURNAL_REPLY.pack(b'HIAJOU01', 1, 0, 0, STATE_BYTES, 0) + state
+        for stdout in (accepted[:-1], accepted + b'\0',
+                       JOURNAL_REPLY.pack(b'HIAJOU01', 1, 0, 0, STATE_BYTES, 1) + state + b'a'):
+            with self.subTest(length=len(stdout)), patch(
+                    'hepta.hia_agent_journal_native.subprocess.run',
+                    return_value=SimpleNamespace(returncode=0, stdout=stdout, stderr=b'')):
+                with self.assertRaisesRegex(RuntimeError, 'invalid sealed HIA journal frame'):
+                    _standalone_journal(b'program', 0, b'input', state)
+
     def test_caller_gate_rejects_incomplete_and_expected_failure_results(self):
         from tools.qualify_hia_agent_journal_callers import strict_pass
         class Expected(unittest.TestCase):

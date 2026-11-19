@@ -18,7 +18,9 @@ SEALED_PAGE_SCHEMA = 'hepta.hia.native-helpers.v12'
 TERMINAL_SCHEMA = 'hepta.hia.native-helpers.v13'
 ADMISSION_SCHEMA = 'hepta.hia.native-helpers.v14'
 STARTUP_SCHEMA = 'hepta.hia.native-helpers.v15'
-ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, STARTUP_SCHEMA)
+JOURNAL_SCHEMA = 'hepta.hia.native-helpers.v16'
+STARTUP_SCHEMAS = (STARTUP_SCHEMA, JOURNAL_SCHEMA)
+ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, *STARTUP_SCHEMAS)
 TERMINAL_SCHEMAS = (TERMINAL_SCHEMA, *ADMISSION_SCHEMAS)
 PAGE_SCHEMAS = (SEALED_PAGE_SCHEMA, *TERMINAL_SCHEMAS)
 DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, DIRECT_BATCH_SCHEMA, *PAGE_SCHEMAS)
@@ -40,7 +42,7 @@ def profile_images(schema):
         result.update(IMPORT_EXECUTABLES)
     if schema in TERMINAL_SCHEMAS:
         result['terminal_sha256'] = ('hia-worker-terminal', authority.MAX_IMAGE_BYTES)
-    if schema == STARTUP_SCHEMA:
+    if schema in STARTUP_SCHEMAS:
         result['initializer_sha256'] = ('hia-agent-store-init', authority.MAX_IMAGE_BYTES)
     return result
 
@@ -56,6 +58,8 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'direct_call_path', 'direct_call_sha256'})
         if schema in PAGE_SCHEMAS:
             reference_fields.update({'read_page_path', 'read_page_sha256'})
+        if schema == JOURNAL_SCHEMA:
+            reference_fields.update({'journal_path', 'journal_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
                 or record['target'] != authority.TARGET
@@ -152,6 +156,21 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone read page omits its exact pinned HIA image')
             self.snapshots.append((page, MAX_IMAGE_BYTES))
             self.native_agent_read_page_executable = page.raw
+        self.native_agent_journal_executable = None
+        if schema == JOURNAL_SCHEMA:
+            from .hia_agent_journal_native import NativeAgentJournal, SELECTOR
+
+            pin = record['journal_sha256']
+            if SELECTOR not in self.selections or not authority._digest(pin):
+                raise ValueError('standalone journal requires its pinned HIA journal image and executable')
+            selected = authority._path(record['journal_path'], snapshot.path.parent)
+            journal = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, pin)
+            manifest = str(Path(self.selections[SELECTOR]).resolve(strict=True))
+            owners = [image for key, image in self.images.items() if key[0] == manifest and key[3] is NativeAgentJournal]
+            if len(owners) != 1 or not owners[0].matches_standalone(journal.raw):
+                raise ValueError('standalone journal omits its exact pinned HIA image')
+            self.snapshots.append((journal, MAX_IMAGE_BYTES))
+            self.native_agent_journal_executable = journal.raw
         self.native_worker_terminal_executable = None
         self.native_worker_admission_executable = None
         if schema in TERMINAL_SCHEMAS:

@@ -8,16 +8,21 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
+from functools import cached_property
+from hashlib import sha256
 from json import JSONDecodeError
 import math
 import os
 import struct
+import subprocess
 import sys
 
 from .hia_agent_data_json_native import materialize_data
 from .hia_agent_store import AgentRejected, _agent_resource_path, wire
 from .hia_json_decode_native import arena_sizes
-from .hia_json_preflight_native import NativeHiaJsonImage, SYNTAX_REASONS, _installed_json_image, _source_resource_path
+from .hia_json_preflight_native import (
+    MAX_IMAGE_BYTES, NativeHiaJsonImage, SYNTAX_REASONS, _installed_json_image, _source_resource_path,
+)
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/agent_journal.hepta')
 SCHEMA = 'hepta.hia.agent-journal-native.v2'
@@ -28,6 +33,8 @@ STATE_BYTES = 512
 PRIVATE_BYTES = 32768
 MAGIC = int.from_bytes(b'HIAJRN02', 'little')
 COMPLETED_STAGE, REJECTED_STAGE, ENVELOPE_CAPACITY = 13, 14, 192
+JOURNAL_FRAME = struct.Struct('<8s7Q')
+JOURNAL_REPLY = struct.Struct('<8s5Q')
 NONE, CONTINUE, LOOKUP, RESERVE, CACHE, REPLAY, VERIFY_REPLAY, ALIAS, ATOMIC, JOURNAL, FINAL, REFUSE, BOUND = range(13)
 COST_WRITE, JOURNAL_WRITE = 1, 2
 CONTEXT_NONE, CONTEXT_READ, CONTEXT_BUDGET, CONTEXT_CANDIDATE = range(4)
@@ -39,6 +46,39 @@ TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context', 'hia_inspect
 def buffer_sizes(size):
     arena, _keys = arena_sizes(size, 262144, 128)
     return HEADER_OFFSET + STATE_BYTES, max(arena, 4256 + _keys) + PRIVATE_BYTES
+
+
+def _standalone_journal(executable, stage, raw, state, tags=b'', *, data_profile=False):
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    envelope = stage in (COMPLETED_STAGE, REJECTED_STAGE)
+    scratch_size = (8 + STATE_BYTES if envelope else
+                    buffer_sizes(0 if stage == 10 else len(raw))[1] + len(tags))
+    header = JOURNAL_FRAME.pack(b'HIAJIN01', len(raw), scratch_size, stage,
+                                sys.get_int_max_str_digits(), data_profile, len(tags), 0)
+    try:
+        with (sealed_reference_bytes(executable) as program,
+              sealed_reference_bytes(header, state, tags, raw) as contents):
+            child = subprocess.run(['/proc/self/fd/' + str(program)], stdin=contents,
+                                   pass_fds=(program,), capture_output=True, env={'PATH': ''})
+    except OSError as exc:
+        raise RuntimeError('could not start the sealed HIA journal') from exc
+    if child.returncode or child.stderr or len(child.stdout) < JOURNAL_REPLY.size:
+        raise RuntimeError('sealed HIA journal transport failed')
+    magic, code, response, cost, fixed, arena = JOURNAL_REPLY.unpack_from(child.stdout)
+    if (magic != b'HIAJOU01' or code >= 1 << 32
+            or response > (ENVELOPE_CAPACITY if envelope else MAX_BYTES)
+            or cost > (0 if envelope else MAX_BYTES)
+            or fixed != (0 if envelope else STATE_BYTES)
+            or arena > (scratch_size - PRIVATE_BYTES if stage == 3 else 0)
+            or len(child.stdout) != JOURNAL_REPLY.size + response + cost + fixed + arena):
+        raise RuntimeError('invalid sealed HIA journal frame')
+    at = JOURNAL_REPLY.size
+    response_end = at + response
+    cost_end = response_end + cost
+    state_end = cost_end + fixed
+    return (code, child.stdout[at:response_end], child.stdout[response_end:cost_end],
+            child.stdout[cost_end:state_end], child.stdout[state_end:])
 
 
 def _foreign_tool_types(tool):
@@ -93,12 +133,8 @@ class JournalSession:
         value = self._word(16)
         return TOOLS[value - 1] if 1 <= value <= len(TOOLS) else None
 
-    def _run(self, stage, raw=b'', foreign_types=b'', *, data_profile=False):
-        if type(raw) is not bytes or stage != 10 and len(raw) > MAX_BYTES:
-            raise ValueError('journal JSON must be bytes within 8 MiB')
+    def _in_process_transition(self, stage, raw, foreign_types, data_profile):
         output_size, scratch_size = buffer_sizes(0 if stage == 10 else len(raw))
-        if type(foreign_types) is not bytes or len(foreign_types) > 262144 or stage != 0 and foreign_types:
-            raise RuntimeError('invalid journal foreign-type observation')
         scratch_size += len(foreign_types)
         canary = bytes(range(64))
         source = ctypes.create_string_buffer(raw + canary)
@@ -119,19 +155,49 @@ class JournalSession:
                 or ctypes.string_at(ctypes.addressof(output) + output_size, len(canary)) != canary
                 or ctypes.string_at(ctypes.addressof(scratch) + scratch_size, len(canary)) != canary):
             raise RuntimeError('native journal violated buffer custody')
+        state = ctypes.string_at(ctypes.addressof(output) + HEADER_OFFSET, STATE_BYTES)
+        if code >= 1 << 31:
+            return code, b'', b'', state, b''
+        response_size, cost_size = struct.unpack_from('<2Q', state, 272)
+        if max(response_size, cost_size) > MAX_BYTES:
+            raise RuntimeError('invalid native journal write extent')
+        arena = b''
+        if stage == 3:
+            extent = struct.unpack_from('<Q', scratch, 32)[0]
+            if not 64 <= extent <= scratch_size - PRIVATE_BYTES:
+                raise RuntimeError('invalid native journal arena extent')
+            arena = ctypes.string_at(scratch, extent)
+        return (code, ctypes.string_at(output, response_size),
+                ctypes.string_at(ctypes.addressof(output) + MAX_BYTES, cost_size), state, arena)
+
+    def _run(self, stage, raw=b'', foreign_types=b'', *, data_profile=False):
+        from .hia_native_helpers import pinned_agent_journal_executable
+
+        if type(raw) is not bytes or stage != 10 and len(raw) > MAX_BYTES:
+            raise ValueError('journal JSON must be bytes within 8 MiB')
+        if type(foreign_types) is not bytes or len(foreign_types) > 262144 or stage != 0 and foreign_types:
+            raise RuntimeError('invalid journal foreign-type observation')
+        executable = pinned_agent_journal_executable()
+        if executable is None:
+            code, response, cost, state, arena = self._in_process_transition(stage, raw, foreign_types, data_profile)
+        else:
+            code, response, cost, state, arena = _standalone_journal(
+                executable, stage, raw, self._state, foreign_types, data_profile=data_profile)
+        if code >= 1 << 31 and (response or cost or arena):
+            raise RuntimeError('native journal diagnostic supplied write instructions')
         if code == 0xffffffe8:
-            reason = struct.unpack_from('<Q', output, HEADER_OFFSET)[0]
+            reason = struct.unpack_from('<Q', state)[0]
             if stage != 3 or reason not in SYNTAX_REASONS:
                 raise RuntimeError('invalid native cached JSON syntax diagnostic')
             raise ValueError('HIA JSON preflight: ' + SYNTAX_REASONS[reason])
         if code == 0xffffffe7:
-            start, end, reason = struct.unpack_from('<3Q', output, HEADER_OFFSET)
+            start, end, reason = struct.unpack_from('<3Q', state)
             reasons = {1: 'invalid start byte', 2: 'invalid continuation byte', 3: 'unexpected end of data'}
             if stage != 10 or not 0 <= start < end <= len(raw) or reason not in reasons:
                 raise RuntimeError('invalid native UTF-8 codec diagnostic')
             raise UnicodeDecodeError('utf-8', raw, start, end, reasons[reason])
         if code == 0xffffffe4:
-            reason, position, line, column = struct.unpack_from('<4Q', output, HEADER_OFFSET)
+            reason, position, line, column = struct.unpack_from('<4Q', state)
             reasons = {9: 'Expecting value', 10: 'Expecting value', 12: 'Extra data',
                        14: "Expecting ',' delimiter", 18: "Expecting ',' delimiter",
                        16: 'Expecting property name enclosed in double quotes',
@@ -168,7 +234,6 @@ class JournalSession:
             raise ValueError(reasons[code])
         if code == 0xfffffffd:
             raise RuntimeError('native journal rejected its protocol phase or scratch profile')
-        state = ctypes.string_at(ctypes.addressof(output) + HEADER_OFFSET, STATE_BYTES)
         word = lambda offset: struct.unpack_from('<Q', state, offset)[0]
         actions = {0: {CONTINUE, LOOKUP, ALIAS, REFUSE}, 1: {RESERVE, CACHE, REFUSE},
                    2: {CONTINUE}, 3: {REPLAY, VERIFY_REPLAY, REFUSE}, 4: {CONTINUE},
@@ -178,7 +243,7 @@ class JournalSession:
         if (word(0) != MAGIC or code not in actions[stage] or word(48) != code
                 or word(8) not in {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11}
                 or word(16) > 12 or word(24) > 1 or word(32) > 1 or word(40) > 1
-                or word(264) > 2 or word(272) > MAX_BYTES or word(280) > MAX_BYTES
+                or word(264) > 2 or word(272) != len(response) or word(280) != len(cost)
                 or word(288) > 3):
             raise RuntimeError('invalid native journal instruction')
         if self.request_id is not None and state[64:258] != self._state[64:258]:
@@ -190,15 +255,10 @@ class JournalSession:
         if stage == 12 and (word(320) > CONTEXT_CANDIDATE
                             or code == REFUSE and word(320) != CONTEXT_NONE):
             raise RuntimeError('invalid native journal context instruction')
-        arena = b''
-        if stage == 3:
-            extent = struct.unpack_from('<Q', scratch, 32)[0]
-            if not 64 <= extent <= scratch_size - PRIVATE_BYTES:
-                raise RuntimeError('invalid native journal arena extent')
-            arena = ctypes.string_at(scratch, extent)
+        if stage == 3 and len(arena) < 64:
+            raise RuntimeError('invalid native journal arena extent')
         self._state = state
-        return Instruction(code, word(288), ctypes.string_at(output, word(272)),
-                           ctypes.string_at(ctypes.addressof(output) + MAX_BYTES, word(280)),
+        return Instruction(code, word(288), response, cost,
                            {0: None, 1: 'completed', 2: 'rejected'}[word(264)], arena)
 
     def prepare(self, raw, foreign_types=b''):
@@ -293,16 +353,16 @@ class JournalSession:
     def _envelope(self, stage, observed, value):
         # Capture a small, read-only recipe. The result itself is not encoded,
         # copied, or inspected before the ordinary output-schema check.
-        frame = struct.pack('<Q', stage) + self._state
-        source = ctypes.create_string_buffer(observed, max(1, len(observed)))
-        scratch = ctypes.create_string_buffer(frame, len(frame))
-        canary = bytes(range(64))
-        output = ctypes.create_string_buffer(ENVELOPE_CAPACITY + len(canary))
-        output[ENVELOPE_CAPACITY:] = canary
-        size = self.image._entry(source, len(observed), output, ENVELOPE_CAPACITY, scratch, len(frame))
-        if not 0 < size <= ENVELOPE_CAPACITY or scratch.raw != frame or output[ENVELOPE_CAPACITY:] != canary:
-            raise RuntimeError('invalid native journal response envelope')
+        from .hia_native_helpers import pinned_agent_journal_executable
 
+        executable = pinned_agent_journal_executable()
+        if executable is None:
+            output = self._in_process_envelope(stage, observed)
+        else:
+            size, output, _, _, _ = _standalone_journal(executable, stage, observed, self._state)
+            if not 0 < size == len(output) <= ENVELOPE_CAPACITY:
+                raise RuntimeError('invalid sealed HIA journal response envelope')
+        size = len(output)
         response, cursor, bound = {}, 0, False
         while cursor < size:
             if size - cursor < 3:
@@ -326,6 +386,18 @@ class JournalSession:
         if not bound:
             raise RuntimeError('native journal response did not bind its payload')
         return response
+
+    def _in_process_envelope(self, stage, observed):
+        frame = struct.pack('<Q', stage) + self._state
+        source = ctypes.create_string_buffer(observed, max(1, len(observed)))
+        scratch = ctypes.create_string_buffer(frame, len(frame))
+        canary = bytes(range(64))
+        output = ctypes.create_string_buffer(ENVELOPE_CAPACITY + len(canary))
+        output[ENVELOPE_CAPACITY:] = canary
+        size = self.image._entry(source, len(observed), output, ENVELOPE_CAPACITY, scratch, len(frame))
+        if not 0 < size <= ENVELOPE_CAPACITY or scratch.raw != frame or output[ENVELOPE_CAPACITY:] != canary:
+            raise RuntimeError('invalid native journal response envelope')
+        return output[:size]
 
     def inline(self, response):
         return self._run(6, wire(response))
@@ -363,6 +435,23 @@ class JournalSession:
 
 
 class NativeAgentJournal(NativeHiaJsonImage):
+    def __init__(self, image, expected_sha256):
+        if (type(image) is not bytes or not 0 < len(image) <= MAX_IMAGE_BYTES
+                or sha256(image).hexdigest() != expected_sha256):
+            raise ValueError('native HIA journal executable identity mismatch')
+        self.image_sha256 = expected_sha256
+        self._bytes = image
+
+    def matches_standalone(self, executable):
+        return executable.startswith(b'\x7fELF') and executable.count(self._bytes) == 1
+
+    @cached_property
+    def _in_process_image(self):
+        return NativeHiaJsonImage(self._bytes, self.image_sha256)
+
+    def _entry(self, *arguments):
+        return self._in_process_image._entry(*arguments)
+
     def session(self):
         return JournalSession(self)
 

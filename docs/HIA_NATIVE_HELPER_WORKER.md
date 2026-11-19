@@ -113,6 +113,13 @@ The journal's HIA source binds the exact tool catalog bytes. Adding the optional
 bundle identity therefore regenerates the current journal's catalog constants;
 an older journal image is correctly refused with the new catalog.
 
+The v16 portable worker pins `hia-agent-journal` and verifies that it contains
+the same HIA journal image as its base bundle. Each journal transition reads
+one sealed input frame and returns only the instruction and its byte ranges.
+The process has no Store descriptor. A framing or process failure does not
+retry in the worker or authorize terminal writes. The worker still owns foreign
+objects and invokes the service and Store; v16 is not a fully native service.
+
 ## Verification
 
 `tests/test_hia_worker_native_helpers.py` exercises real HIA identity, request

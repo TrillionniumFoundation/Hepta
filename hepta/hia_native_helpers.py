@@ -366,6 +366,12 @@ def pinned_agent_read_page_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_agent_read_page_executable', None)
 
+
+def pinned_agent_journal_executable():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_agent_journal_executable', None)
+
+
 def pinned_worker_terminal_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_worker_terminal_executable', None)
