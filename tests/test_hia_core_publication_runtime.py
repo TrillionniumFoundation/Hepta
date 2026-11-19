@@ -322,22 +322,30 @@ def nominal_constant_site(program):
     )
 
 
-def check_nominal_apply(release, directory):
+def check_nominal_apply(release, directory, *, batch=False):
     passed = 0
     for index, (document, _, _) in enumerate(nominal_query_fixtures()):
         program = verify_program(document)
         function, block, _, operation = nominal_constant_site(program)
-        query = prepare_edit(program, function=function['name'], block=block['id'],
-                             output=operation['out'][0]['name'], fields=['attrs'])
+        site = {'function': function['name'], 'block': block['id'],
+                'output': operation['out'][0]['name'], 'fields': ['attrs']}
+        changes = {'attrs': {**operation['attrs'], 'value': operation['attrs']['value'] + 1}}
+        if batch:
+            query = prepare_batch(program, [site])
+            response_value = {'edits': [{'site': 0, 'changes': changes}]}
+            action = 'edit-batch-apply'
+        else:
+            query = prepare_edit(program, **site)
+            response_value = changes
+            action = 'edit-apply'
         source, query_file, response, target, reference, absent = (
             directory / f'{index}.{suffix}' for suffix in
             ('hepta', 'query', 'response', 'target', 'reference', 'absent')
         )
         source.write_bytes(wire(document, pretty=True))
         query_file.write_bytes(wire(query, pretty=True))
-        response.write_bytes(wire({'attrs': {**operation['attrs'], 'value': operation['attrs']['value'] + 1}},
-                                  pretty=True))
-        arguments = ['edit-apply', str(source), '--query', str(query_file), '--response', str(response)]
+        response.write_bytes(wire(response_value, pretty=True))
+        arguments = [action, str(source), '--query', str(query_file), '--response', str(response)]
         executable = release / 'hia'
         result = subprocess.run([executable, *arguments], capture_output=True, env={'PATH': ''}, timeout=20)
         expected = reference_cli(arguments)
@@ -355,7 +363,12 @@ def check_nominal_apply(release, directory):
         assert target.stat().st_ino == pinned.st_ino and target.read_bytes() == reference.read_bytes()
 
         # Even a correct lowered Core hash cannot stand in for the original input.
-        query_file.write_bytes(wire({**query, 'input_sha256': query['base_sha256']}, pretty=True))
+        if batch:
+            nested = query['sites'][0]['query']
+            nested['input_sha256'] = query['base_sha256']
+        else:
+            query['input_sha256'] = query['base_sha256']
+        query_file.write_bytes(wire(query, pretty=True))
         report = StringIO()
         with redirect_stdout(report):
             status = _reference_hia_main(arguments)
@@ -552,11 +565,14 @@ def check_release(release, directory):
     nominal_batch.mkdir()
     apply = directory / 'nominal-apply'
     apply.mkdir()
+    batch_apply = directory / 'nominal-batch-apply'
+    batch_apply.mkdir()
     patches = directory / 'nominal-patches'
     patches.mkdir()
     return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
             + check_nominal_queries(release, nominal) + check_nominal_patches(release, patches)
             + check_nominal_batch_queries(release, nominal_batch) + check_nominal_apply(release, apply)
+            + check_nominal_apply(release, batch_apply, batch=True)
             + check_import_existing_destinations(release, assembly_source, destinations)
             + check_selected_selfhost(release, selfhost) + check_batch_apply_refusals(release, batch))
 

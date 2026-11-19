@@ -842,18 +842,22 @@ block patch_driver_report(patch_status2:readbuf,patch_output2:mutbuf,patch_works
 
     # The word-I/O edit transport retains its existing diagnostics and parser.
     # Only the private patch receipt consumes the constructor's source identity.
-    transport = directory / 'patch_word_io.hepta'
     source = source_program(retain_origin=True)
     receipt = next(index for index, node in enumerate(ast.parse(source).body) if node.name == 'patch_result')
     pattern = rf'^fn f{receipt}\(.*?^end\n'
     shared_receipt = re.search(pattern, render_assembly(document(source)), re.MULTILINE | re.DOTALL)
     if shared_receipt is None:
         raise ValueError('missing shared word-I/O patch receipt')
-    updated, count = re.subn(pattern, lambda _: shared_receipt[0], transport.read_text(),
-                            flags=re.MULTILINE | re.DOTALL)
-    if count != 1:
-        raise ValueError('missing unique word-I/O patch receipt')
-    transport.write_text(updated)
+    for name, function_offset in (('patch_word_io', 0), ('batch_normalize', 1),
+                                  ('publication_batch_receipt', 1)):
+        path = directory / (name + '.hepta')
+        shifted = re.sub(r'(?<=\bf)(\d+)(?=["(])', lambda match: str(int(match[1]) + function_offset),
+                         shared_receipt[0])
+        pattern = rf'^fn f{receipt + function_offset}\(.*?^end\n'
+        updated, count = re.subn(pattern, lambda _: shifted, path.read_text(), flags=re.MULTILINE | re.DOTALL)
+        if count != 1:
+            raise ValueError('missing unique word-I/O patch receipt for ' + name)
+        path.write_text(updated)
 
 
 def nominal_base_span():

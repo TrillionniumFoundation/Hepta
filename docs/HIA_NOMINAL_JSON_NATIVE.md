@@ -529,5 +529,10 @@ Overlapping selections are rejected before any publication.
 `hia edit-apply` reconstructs the entire original query, including the nominal
 input identity, against the same independently verified Core. It preserves
 the exact response bytes used for its receipt and independently admits the
-revised Core before stdout or no-overwrite file publication. Batch application
-does not yet use this route.
+revised Core before stdout or no-overwrite file publication.
+
+`hia edit-batch-apply` independently rebuilds and checks the outer and nested
+queries against the same captured nominal snapshot. It applies the selected
+fields together, verifies only the complete candidate, and binds the exact
+response bytes in the resulting receipt. A change to a nested original input
+digest alone is enough to refuse the request without publishing a file.

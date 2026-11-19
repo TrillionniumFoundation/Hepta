@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
+.type _start,@function
 .equ RAW_N,16777219
 .equ RAW_EXTENT,16781312
 .equ SOURCE_N,25169920
@@ -23,7 +24,14 @@
 .equ BS,0
 .equ OUTPUT_N,33554432
 .equ FRAME_N,16777216
+.equ NOMINAL_ORIGIN,S+112
+.equ ORIGIN_DIGEST,S+64
+.equ ORIGIN_TAG,CTRL+1536
+.equ ORIGIN_BYTES,CTRL+1544
+.equ ORIGIN_MAGIC,3544423407359707464
+
 _start:
+ add rsp,8
  cld
  cmp QWORD PTR [rsp],2
  jne usage
@@ -32,17 +40,13 @@ _start:
  call allocate
  mov rbp,rax
  lea r15,[rbp+256]
- .byte 0x48,0x8d,0x05
-core_address_hole: .long 0
+ lea rax,[rip+edit_base_admission_start]
  mov [r15+72],rax
- .byte 0x48,0x8d,0x05
-front_address_hole: .long 0
+ lea rax,[rip+edit_batch_front_start]
  mov [r15+64],rax
- .byte 0x48,0x8d,0x05
-owner_address_hole: .long 0
+ lea rax,[rip+edit_batch_apply_start]
  mov [r15+80],rax
- .byte 0x48,0x8d,0x05
-publication_address_hole: .long 0
+ lea rax,[rip+edit_publication_start]
  mov [r15+88],rax
  mov esi,270336
  call allocate
@@ -151,6 +155,7 @@ mechanical_error_hub_2_skip:
  jmp read_input
 input_complete:
  call mechanical_outline_13
+extract_base:
  mov rdi,r12
  mov rsi,[rbp+BS]
  call mechanical_compact_6
@@ -181,6 +186,11 @@ mechanical_error_hub_8_skip:
  mov rsi,[rbp+BS+8]
  call mechanical_outline_5
  mov [rbp+BS+24],rax
+ cmp eax,0xfffffffb
+ jne base_checked
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je lower_nominal
+base_checked:
  call mechanical_outline_3
  lea r13,[r12+OUT_AT]
  call mechanical_outline_0
@@ -268,6 +278,16 @@ mechanical_error_hub_10_skip:
  mov rdi,r13
  mov esi,8388608
  call mechanical_compact_0
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je render_query
+ movabs rax,ORIGIN_MAGIC
+ mov [r13+ORIGIN_TAG],rax
+ lea rdi,[r13+ORIGIN_BYTES]
+ lea rsi,[rbp+ORIGIN_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+render_query:
  movabs rax,3544422316236687688
  call mechanical_compact_2
  mov [r13+CTRL+320],rax
@@ -346,6 +366,16 @@ mechanical_error_hub_6_skip:
  call mechanical_outline_2
  mov QWORD PTR [r12+CORE_AT],2
  mov QWORD PTR [r12+CORE_AT+8],1
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je patch_request
+ movabs rax,3544423407342930248
+ mov [r12+CORE_AT+CORE_N-40],rax
+ lea rdi,[r12+CORE_AT+CORE_N-32]
+ lea rsi,[rbp+ORIGIN_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+patch_request:
  mov rdi,r13
  mov rsi,[r13+CTRL+8192+456]
  call mechanical_compact_6
@@ -901,6 +931,27 @@ exit:
  pop rax
  syscall
  ud2
+lower_nominal:
+ mov rdi,r12
+ mov rsi,[rbp+BS]
+ lea rdx,[r12+RAW_EXTENT]
+ mov rcx,[rbp+BS+8]
+ lea r8,[rbp+ORIGIN_DIGEST]
+ call nominal_edit_envelope
+ test rax,rax
+ jz envelope_refused
+ mov [rbp+BS],rax
+ mov QWORD PTR [rbp+NOMINAL_ORIGIN],1
+ lea rdi,[r12+WORK_AT]
+ mov ecx,WORK_N/8
+ xor eax,eax
+ cld
+ rep stosq
+ jmp extract_base
+envelope_refused:
+ mov rax,rdx
+ jmp HIA_status
+
 .section .note.GNU-stack,"",@progbits
 .text
 mechanical_outline_0:

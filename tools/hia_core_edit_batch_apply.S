@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 .global _start
+.type _start,@function
 .equ RAW_N,16777219
 .equ RAW_EXTENT,16781312
 .equ SOURCE_N,25169920
@@ -20,7 +21,14 @@
 .equ QUERY,0
 .equ IO,12288
 .equ S,8192
+.equ NOMINAL_ORIGIN,S+112
+.equ ORIGIN_DIGEST,S+64
+.equ ORIGIN_TAG,CTRL+1536
+.equ ORIGIN_BYTES,CTRL+1544
+.equ ORIGIN_MAGIC,3544423407359707464
+
 _start:
+ add rsp,8
  cmp QWORD PTR [rsp],1
  jne usage
  xor edi,edi
@@ -60,14 +68,14 @@ input_complete:
  syscall
  test rax,rax
  jnz io_failure
+extract_base:
  mov rdi,r12
  mov rsi,[rbp+S]
  lea rdx,[r12+TEMP_AT]
  mov ecx,TEMP_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-extract_hole: .long 0
+ call edit_batch_front_start
  call scalar_status
  cmp rax,32
  jbe invalid
@@ -97,9 +105,13 @@ extract_hole: .long 0
  mov ecx,CORE_N
  lea r8,[r12+WORK_AT]
  mov r9d,33554432
- .byte 0xe8
-core_hole: .long 0
+ call edit_base_admission_start
  mov [rbp+S+24],rax
+ cmp eax,0xfffffffb
+ jne base_checked
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je lower_nominal
+base_checked:
  lea rdi,[r12+WORK_AT]
  mov ecx,WORK_N/8
  xor eax,eax
@@ -121,8 +133,7 @@ core_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-decode_hole: .long 0
+ call edit_batch_apply_start
  mov [r13+CTRL+504],rax
  call scalar_status
  test rax,rax
@@ -137,8 +148,7 @@ decode_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-normalize_prepare_hole: .long 0
+ call edit_batch_front_start
  call batch_stage_status
  test rax,rax
  jz normalized_input_ready
@@ -167,8 +177,7 @@ normalize_prepare_hole: .long 0
  mov ecx,CORE_N
  lea r8,[r12+TEMP_AT]
  mov r9d,TEMP_N
- .byte 0xe8
-query_decode_hole: .long 0
+ call edit_batch_apply_start
  mov [r13+CTRL+8192+696],rax
  call scalar_status
  mov r10d,0xffffffe0
@@ -189,8 +198,7 @@ query_decode_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+CORE_AT]
  mov r9d,CORE_N
- .byte 0xe8
-normalize_finish_hole: .long 0
+ call edit_batch_front_start
  call batch_stage_status
  test rax,rax
  jz invalid
@@ -242,8 +250,7 @@ normalize_finish_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-normalized_decode_hole: .long 0
+ call edit_batch_apply_start
  mov [r13+CTRL+504],rax
  call scalar_status
  test rax,rax
@@ -259,8 +266,7 @@ normalized_input_ready:
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-initialize_hole: .long 0
+ call edit_batch_apply_start
  call batch_stage_status
  test rax,rax
  jz invalid
@@ -273,8 +279,7 @@ selection_loop:
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-facts_hole: .long 0
+ call edit_batch_apply_start
  call scalar_status
  test rax,rax
  jz invalid
@@ -298,8 +303,7 @@ facts_hole: .long 0
  mov ecx,8388608
  lea r8,[r12+TEMP_AT]
  mov r9d,TEMP_N
- .byte 0xe8
-slice_hole: .long 0
+ call edit_slice_start
  mov [r13+CTRL+256],rax
  mov rdi,r13
  mov esi,8388608
@@ -308,6 +312,16 @@ slice_hole: .long 0
  syscall
  test rax,rax
  jnz io_failure
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je render_query
+ movabs rax,ORIGIN_MAGIC
+ mov [r13+ORIGIN_TAG],rax
+ lea rdi,[r13+ORIGIN_BYTES]
+ lea rsi,[rbp+ORIGIN_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+render_query:
  movabs rax,3544422316236687688
  mov [r13+CTRL],rax
  mov rdi,r12
@@ -316,8 +330,7 @@ slice_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-query_hole: .long 0
+ call edit_batch_apply_start
  mov [r13+CTRL+320],rax
  mov r10,[r13+CTRL]
  mov [r13+CTRL+328],r10
@@ -334,8 +347,7 @@ query_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-append_hole: .long 0
+ call edit_batch_apply_start
  call scalar_status
  test rax,rax
  jz selection_loop
@@ -352,8 +364,7 @@ append_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-replay_hole: .long 0
+ call edit_batch_front_start
  mov [r13+CTRL+352],rax
  call batch_stage_status
  test rax,rax
@@ -366,8 +377,7 @@ replay_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-raw_response_hole: .long 0
+ call edit_batch_front_start
  mov [r13+CTRL+360],rax
  call scalar_status
  test rax,rax
@@ -382,8 +392,7 @@ raw_response_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-hash_hole: .long 0
+ call edit_batch_apply_start
  mov [r13+CTRL+8584],rax
  call scalar_status
  test rax,rax
@@ -407,8 +416,7 @@ hash_hole: .long 0
  mov ecx,8323072
  lea r8,[r12+TEMP_AT]
  mov r9d,TEMP_N
- .byte 0xe8
-response_decode_hole: .long 0
+ call edit_batch_apply_start
  mov [r13+CTRL+8192+400],rax
  lea rdi,[r13+20971520]
  mov esi,65536
@@ -425,8 +433,7 @@ response_decode_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-response_validate_hole: .long 0
+ call edit_batch_front_start
  mov [r13+CTRL+8616],rax
  call batch_stage_status
  test rax,rax
@@ -439,8 +446,7 @@ response_validate_hole: .long 0
  mov ecx,OUT_N
  lea r8,[r12+WORK_AT]
  mov r9d,WORK_N
- .byte 0xe8
-pair_hole: .long 0
+ call edit_batch_front_start
  mov [r13+CTRL+8648],rax
  call scalar_status
  test rax,rax
@@ -472,14 +478,23 @@ pair_hole: .long 0
  rep stosq
  mov QWORD PTR [r12+CORE_AT],2
  mov QWORD PTR [r12+CORE_AT+8],1
+ cmp QWORD PTR [rbp+NOMINAL_ORIGIN],0
+ je patch_request
+ movabs rax,3544423407342930248
+ mov [r12+CORE_AT+CORE_N-40],rax
+ lea rdi,[r12+CORE_AT+CORE_N-32]
+ lea rsi,[rbp+ORIGIN_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+patch_request:
  mov rdi,r13
  mov rsi,[r13+CTRL+8192+456]
  lea rdx,[r12+TEMP_AT]
  mov ecx,TEMP_N
  lea r8,[r12+CORE_AT]
  mov r9d,CORE_N
- .byte 0xe8
-patch_hole: .long 0
+ call edit_batch_front_start
  mov [r13+CTRL+8192+464],rax
  call scalar_status
  mov r10d,0xffffffe0
@@ -531,8 +546,7 @@ patch_hole: .long 0
  mov ecx,CORE_N
  lea r8,[r12+WORK_AT]
  mov r9d,33554432
- .byte 0xe8
-candidate_core_hole: .long 0
+ call edit_base_admission_start
  mov [r13+CTRL+8192+480],rax
  mov rdi,r13
  mov esi,16777216
@@ -581,8 +595,7 @@ candidate_core_hole: .long 0
  mov ecx,OUT_N
  mov r8,rbp
  mov r9d,4096
- .byte 0xe8
-compose_hole: .long 0
+ call edit_batch_front_start
  call scalar_status
  test rax,rax
  jz invalid
@@ -617,8 +630,7 @@ pretty_loop:
  mov ecx,4096
  mov r8,rbp
  mov r9d,4096
- .byte 0xe8
-pretty_hole: .long 0
+ call edit_batch_apply_start
  test rax,rax
  jnz HIA_status
  mov rax,[rbp+80]
@@ -705,8 +717,7 @@ batch_stage_status:
  mov ecx,256
  xor r8d,r8d
  xor r9d,r9d
- .byte 0xe8
-batch_refusal_hole: .long 0
+ call edit_batch_apply_start
  add rsp,8
  test rax,rax
  jz invalid
@@ -763,3 +774,25 @@ exit_process:
  mov eax,60
  syscall
  ud2
+
+lower_nominal:
+ mov rdi,r12
+ mov rsi,[rbp+S]
+ lea rdx,[r12+RAW_EXTENT]
+ mov rcx,[rbp+S+8]
+ lea r8,[rbp+ORIGIN_DIGEST]
+ call nominal_edit_envelope
+ test rax,rax
+ jz envelope_refused
+ mov [rbp+S],rax
+ mov QWORD PTR [rbp+NOMINAL_ORIGIN],1
+ lea rdi,[r12+WORK_AT]
+ mov ecx,WORK_N/8
+ xor eax,eax
+ rep stosq
+ jmp extract_base
+envelope_refused:
+ mov rdi,rdx
+ jmp exit_process
+
+.section .note.GNU-stack,"",@progbits
