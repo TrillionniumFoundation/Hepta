@@ -258,21 +258,15 @@ class InstalledAgentStore(NativeStoreArgv):
         if self.test_root is None or self.module_root != self.executable.parent:
             self.skipTest('run with the installed native Store release')
 
-    def test_typed_journal_transactions_never_dispatch_sql_operations(self):
+    def test_typed_records_never_dispatch_sql_operations(self):
         from hepta.hia_agent_store import AgentStore
         from hepta.hia_agent_store_native import NativeStoreConnection
-
-        original = NativeStoreConnection._execute
-
-        def no_journal_sql(connection, sql, values):
-            if 'requests' in sql or sql.startswith('INSERT INTO costs '):
-                raise AssertionError('typed journal entered the SQL compatibility adapter')
-            return original(connection, sql, values)
 
         selection = self.selection()
         key, digest = 'a' * 64, 'b' * 64
         with tempfile.TemporaryDirectory(dir=self.test_root) as temporary, \
-                patch.object(NativeStoreConnection, '_execute', no_journal_sql):
+                patch.object(NativeStoreConnection, '_execute',
+                             side_effect=AssertionError('typed operation entered SQL compatibility')):
             path = Path(temporary)
             self.run_native([self.initializer, path, 'store'])
             store = AgentStore(path, native_store=selection)
@@ -290,6 +284,11 @@ class InstalledAgentStore(NativeStoreArgv):
                 with store.transaction():
                     store.journal_complete(key, '{"status":"completed"}')
                     store.journal_cost(None, 'hia_artifact', 'r-' + digest, '3', 'completed', '{}')
+                ref = store.put(b'opaque', 'input')
+                self.assertEqual(store.put(b'opaque', 'input'), ref)
+                self.assertEqual(store.resolve_uri(ref['uri']), ref)
+                profile, _ = store.profile('test-profile', {'test': True})
+                store.cursor_retain('cursor', ref['id'], ref['sha256'], 2)
             finally:
                 store.close()
             committed = self.state(path)
@@ -298,10 +297,12 @@ class InstalledAgentStore(NativeStoreArgv):
                 row = reopened.journal_lookup(key)
                 self.assertEqual((row['digest'], row['state'], row['response']),
                                  (digest, 'completed', '{"status":"completed"}'))
-                costs = reopened.db.execute(
-                    'SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001',
-                    (None,)).fetchall()
+                costs = reopened.context_costs(None)
                 self.assertEqual([(row['request_id'], row['wall_ns']) for row in costs], [('r-' + digest, '3')])
+                self.assertEqual(reopened.get(ref), (b'opaque', {}))
+                self.assertEqual(reopened.check_profile(profile, profile), {'test': True})
+                self.assertEqual(tuple(reopened.cursor_lookup('cursor')),
+                                 ('cursor', ref['id'], ref['sha256'], 2))
             finally:
                 reopened.close()
             self.assertEqual(self.state(path), committed)
@@ -591,7 +592,7 @@ def main():
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(NativeStoreArgv)
     if NativeStoreArgv.module_root == NativeStoreArgv.executable.parent:
         suite.addTests(InstalledAgentStore(name) for name in (
-            'test_typed_journal_transactions_never_dispatch_sql_operations',
+            'test_typed_records_never_dispatch_sql_operations',
             'test_public_tools_with_no_sqlite_connection',
             'test_public_worker_reopens_native_state_with_exact_replay',
             'test_fresh_initialization_is_serialized_and_never_replaces_prior_data',

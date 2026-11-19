@@ -110,6 +110,24 @@ _WALL_BUDGET_CREATE = _write_plan(5, _INSERTS, b'HIAINS01')
 _WALL_BUDGET_CLAIM = _write_plan(6, _UPDATES, b'HIAUPB01')
 _WALL_BUDGET_FINISH = _write_plan(7, _UPDATES, b'HIAUPB01')
 _CONTEXT_CREATE = _write_plan(1, _INSERTS, b'HIAINS01')
+_ARTIFACT_BY_CONTENT = _query_plan(1)
+_ARTIFACT_BY_ID = _query_plan(2)
+_ARTIFACT_BY_URI = _query_plan(3)
+_ARTIFACT_RETAIN = _write_plan(9, _INSERTS, b'HIAINS01')
+_PROFILE_LOOKUP = _query_plan(12)
+_PROFILE_RETAIN = _write_plan(11, _INSERTS, b'HIAINS01')
+_CURSOR_LOOKUP = _query_plan(6)
+_CURSOR_RETAIN = _write_plan(10, _INSERTS, b'HIAINS01')
+_SLOT_LOOKUP = _query_plan(10)
+_VERSION_LOOKUP = _query_plan(13)
+_SLOT_LEASE_COUNT = _query_plan(11)
+_SLOT_CREATE = _write_plan(7, _INSERTS, b'HIAINS01')
+_VERSION_RETAIN = _write_plan(8, _INSERTS, b'HIAINS01')
+_SLOT_GENERATIONS = _query_plan(16)
+_SLOT_MOVE = _write_plan(2, _UPDATES, b'HIAUPB01')
+_LEASE_LOOKUP = _query_plan(8)
+_LEASE_RETAIN = _write_plan(4, _INSERTS, b'HIAINS01')
+_LEASE_RELEASE = _write_plan(3, _UPDATES, b'HIAUPB01')
 _STATEMENTS = {
     **{row[0]: _query_plan(i) for i, row in enumerate(_SELECTS, 1)},
     **{row[0]: _write_plan(i, _INSERTS, b'HIAINS01') for i, row in enumerate(_INSERTS, 1)},
@@ -539,6 +557,60 @@ class NativeStoreConnection:
 
     def context_create(self, context, digest, artifact, started_ns):
         return self._typed_operation(_CONTEXT_CREATE, (context, digest, artifact, started_ns)).rowcount
+
+    def artifact_by_content(self, key):
+        return self._typed_operation(_ARTIFACT_BY_CONTENT, (key,)).fetchone()
+
+    def artifact_by_id(self, identity):
+        return self._typed_operation(_ARTIFACT_BY_ID, (identity,)).fetchone()
+
+    def artifact_by_uri(self, uri):
+        return self._typed_operation(_ARTIFACT_BY_URI, (uri,)).fetchone()
+
+    def artifact_retain(self, identity, digest, uri, kind, metadata, key):
+        self._typed_operation(_ARTIFACT_RETAIN, (identity, digest, uri, kind, metadata, key))
+
+    def profile_lookup(self, identity, digest):
+        return self._typed_operation(_PROFILE_LOOKUP, (identity, digest)).fetchone()
+
+    def profile_retain(self, identity, digest, artifact):
+        self._typed_operation(_PROFILE_RETAIN, (identity, digest, artifact))
+
+    def cursor_lookup(self, identity):
+        return self._typed_operation(_CURSOR_LOOKUP, (identity,)).fetchone()
+
+    def cursor_retain(self, identity, artifact, digest, offset):
+        self._typed_operation(_CURSOR_RETAIN, (identity, artifact, digest, offset))
+
+    def slot_lookup(self, slot):
+        return self._typed_operation(_SLOT_LOOKUP, (slot,)).fetchone()
+
+    def version_lookup(self, slot, generation):
+        return self._typed_operation(_VERSION_LOOKUP, (slot, generation)).fetchone()
+
+    def slot_lease_count(self, slot):
+        return self._typed_operation(_SLOT_LEASE_COUNT, (slot,)).fetchone()[0]
+
+    def slot_create(self, slot, context, generation, epoch, abi):
+        self._typed_operation(_SLOT_CREATE, (slot, context, generation, epoch, abi))
+
+    def version_retain(self, slot, generation, artifact):
+        self._typed_operation(_VERSION_RETAIN, (slot, generation, artifact))
+
+    def slot_generations(self, slot):
+        return self._typed_operation(_SLOT_GENERATIONS, (slot,))
+
+    def slot_move(self, generation, epoch, context, slot):
+        self._typed_operation(_SLOT_MOVE, (generation, epoch, context, slot))
+
+    def lease_lookup(self, identity):
+        return self._typed_operation(_LEASE_LOOKUP, (identity,)).fetchone()
+
+    def lease_retain(self, identity, slot, generation, artifact):
+        self._typed_operation(_LEASE_RETAIN, (identity, slot, generation, artifact))
+
+    def lease_release(self, identity):
+        self._typed_operation(_LEASE_RELEASE, (identity,))
 
     def _typed_operation(self, specification, values):
         with self.lock:

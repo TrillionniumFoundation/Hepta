@@ -375,7 +375,7 @@ class HIAAgentService:
             if type(candidate_key) is str and 1 <= len(candidate_key) <= 192:
                 key = digest({"tool": tool, "key": candidate_key})
                 with self.store.transaction():
-                    previous = self.store.db.execute("SELECT * FROM requests WHERE key=?", (key,)).fetchone()
+                    previous = self.store.journal_lookup(key)
                     if previous is not None:
                         if previous["digest"] != request_digest:
                             reject("E_HIA_REQUEST_CONFLICT", "request key is already bound to different arguments")
@@ -386,8 +386,7 @@ class HIAAgentService:
                             return cached
                         reject("E_HIA_REQUEST_UNKNOWN", "original request has durable intent but no confirmed terminal result",
                                retry_action="observe_original")
-                    self.store.db.execute("INSERT INTO requests VALUES (?,?,?,?,?,?)",
-                        (key, request_digest, tool, "running", None, str(time.time_ns())))
+                    self.store.journal_reserve(key, request_digest, tool, str(time.time_ns()))
                     reserved = True
             self._validate_tool_arguments(tool, arguments)
             if tool != "hia_describe" and arguments["catalog_sha256"] != self.catalog_sha256:
@@ -408,8 +407,7 @@ class HIAAgentService:
                                 "status": "completed", "result": result}
                     self._validate_tool_response(tool, response)
                     if reserved:
-                        self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                              (wire(response).decode(), key))
+                        self.store.journal_complete(key, wire(response).decode())
                         reserved = False
             else:
                 result = getattr(self, "_" + tool)(arguments)
@@ -422,12 +420,10 @@ class HIAAgentService:
             if response is not None:
                 # Preserve every attempted request, including malformed, slower,
                 # timed-out and rejected candidates; exact replay costs no effect.
-                self.store.db.execute("INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)",
-                    (context_id, str(tool), request_id, str(time.monotonic_ns() - started), response["status"],
-                     wire({"error": response.get("error"), "replayed": False}).decode()))
+                self.store.journal_cost(context_id, str(tool), request_id, str(time.monotonic_ns() - started),
+                    response["status"], wire({"error": response.get("error"), "replayed": False}).decode())
                 if reserved:
-                    self.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                          (wire(response).decode(), key))
+                    self.store.journal_complete(key, wire(response).decode())
         return response
 
     def _validate_tool_arguments(self, tool, arguments):
@@ -651,8 +647,7 @@ class HIAAgentService:
                 next_cursor = ("page-" + digest({"artifact": ref, "offset": next_offset})
                                if next_offset is not None else None)
         if next_offset is not None:
-            self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
-                (next_cursor, ref["id"], ref["sha256"], next_offset))
+            self.store.cursor_retain(next_cursor, ref["id"], ref["sha256"], next_offset)
         native = _native_agent_identity()
         if native is not None:
             return native.page_receipt(ref, content, encoding, next_cursor)
@@ -661,7 +656,7 @@ class HIAAgentService:
     def _read_window(self, args, ref):
         offset = 0
         if "cursor" in args:
-            row = self.store.db.execute("SELECT * FROM cursors WHERE id=?", (args["cursor"],)).fetchone()
+            row = self.store.cursor_lookup(args["cursor"])
             stored = None if row is None else (row["artifact_id"], row["sha256"], "")
             if record_authority((ref["id"], ref["sha256"], ""), stored):
                 reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")

@@ -1,16 +1,18 @@
 # HIA ordinary request-journal owner
 
 This explicitly selected component moves ordinary request-journal decisions
-into executable HIA. It does not replace SQLite, the full AgentStore, or the
-eleven business-method implementations. The retained call owner remains the
-default until a separately qualified installation is explicitly selected.
+into executable HIA. With the native Store selected, typed calls carry
+journal records, context budgets, artifacts, profiles, read cursors, slots
+and leases without SQLite or the SQL compatibility adapter. The component
+does not by itself replace the eleven business-method implementations.
+The retained call owner remains the default outside the selected installation.
 
 The checked-in source is **examples/hia_bootstrap/agent_journal.hepta**,
 authored by **tools/generate_hia_agent_journal.py**. It composes the existing HIA
 JSON arena, exact binary64 canonicalization and SHA-256 algorithms. There is no
 generated lookup table of past requests or Python-computed replay decision.
 **hepta/hia_agent_journal_native.py** owns executable/buffer custody, foreign
-Python values and the mechanical SQL bridge.
+Python values and the mechanical Store bridge.
 
 ## Ownership
 
@@ -26,7 +28,8 @@ Python values and the mechanical SQL bridge.
 | Cached BLOB UTF-8 validation, first error span and reason | HIA |
 | Cached scalar values, lazy selected float conversion, Python objects | Foreign value bridge |
 | Response and cost-details canonical bytes and write instructions | HIA |
-| Transaction begin/commit/rollback, SELECT/INSERT/UPDATE and clocks | Hosted SQLite bridge |
+| Transactions and record operations | Selected HIA Store; SQLite via the retained bridge otherwise |
+| Clocks | Existing process clock interface |
 | Resource URI authority and alias argument expansion | Existing service/store |
 | Schemas, installation/context/budget checks and business methods | Existing owners |
 | Verification replay evidence checks, slot/lease semantics and migration | Existing owners |

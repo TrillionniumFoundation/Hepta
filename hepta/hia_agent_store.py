@@ -487,6 +487,24 @@ class AgentStore:
             'SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001',
             (context,)).fetchall()
 
+    def cursor_lookup(self, cursor):
+        return self._record('cursor_lookup', 'SELECT * FROM cursors WHERE id=?', (cursor,))
+
+    def cursor_retain(self, cursor, artifact, digest, offset):
+        self._retain('cursor_retain', 'INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)',
+                     (cursor, artifact, digest, offset))
+
+    def _record(self, operation, fallback, values):
+        if self._native_backend:
+            return getattr(self.db, operation)(*values)
+        return self.db.execute(fallback, values).fetchone()
+
+    def _retain(self, operation, fallback, values):
+        if self._native_backend:
+            getattr(self.db, operation)(*values)
+        else:
+            self.db.execute(fallback, values)
+
     @contextmanager
     def transaction(self):
         with self.lock:
@@ -557,7 +575,8 @@ class AgentStore:
             content_key = installed_stream_hasher(stream).new(key_material).hexdigest()
         else:
             content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
-        previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
+        previous = self._record('artifact_by_content', 'SELECT * FROM artifacts WHERE content_key=?',
+                                (content_key,))
         if previous is not None:
             ref = self._ref(previous)
             self.get(ref, kind=kind)
@@ -592,9 +611,9 @@ class AgentStore:
                    "uri": "hia://artifacts/" + uuid.uuid4().hex}
         else:
             ref = native.issued_artifact(content_hash, uuid.uuid4().bytes, uuid.uuid4().bytes)
-        self.db.execute("INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
-                        (ref["id"], content_hash, ref["uri"], kind, wire(metadata).decode(), content_key))
-        row = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
+        self._retain('artifact_retain', 'INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)',
+                     (ref["id"], content_hash, ref["uri"], kind, wire(metadata).decode(), content_key))
+        row = self._record('artifact_by_content', 'SELECT * FROM artifacts WHERE content_key=?', (content_key,))
         return self._ref(row)
 
     def json(self, value, kind, metadata=None):
@@ -607,7 +626,7 @@ class AgentStore:
     def _artifact_record(self, ref, kind=None):
         identity_fields = ("id", "sha256", "uri")
         keys(ref, identity_fields, label="artifact reference")
-        row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
+        row = self._record('artifact_by_id', 'SELECT * FROM artifacts WHERE id=?', (ref["id"],))
         stored = None if row is None else tuple(row[key] for key in identity_fields)
         decision = record_authority(tuple(ref[key] for key in identity_fields), stored,
                                     required_kind=kind,
@@ -648,7 +667,7 @@ class AgentStore:
         return decode_data(data), metadata, data
 
     def resolve_uri(self, uri):
-        row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
+        row = self._record('artifact_by_uri', 'SELECT * FROM artifacts WHERE uri=?', (uri,))
         if row is None:
             reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")
         ref = self._ref(row)
@@ -666,8 +685,8 @@ class AgentStore:
     def profile_bytes(self, identifier, canonical):
         ref = self.put(canonical, "profile")
         profile = {"id": identifier, "sha256": ref["sha256"]}
-        self.db.execute("INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
-                        (identifier, ref["sha256"], wire(ref).decode()))
+        self._retain('profile_retain', 'INSERT OR IGNORE INTO profiles VALUES (?,?,?)',
+                     (identifier, ref["sha256"], wire(ref).decode()))
         return profile, ref
 
     def check_profile(self, ref, expected):
@@ -677,8 +696,8 @@ class AgentStore:
         stale = not installed_worker_report(selected).equal_json(ref, expected) if selected else ref != expected
         if stale:
             reject("E_HIA_PROFILE_STALE", "profile is unavailable or differs from the installed implementation")
-        row = self.db.execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
-                              (ref["id"], ref["sha256"])).fetchone()
+        row = self._record('profile_lookup', 'SELECT artifact FROM profiles WHERE id=? AND sha256=?',
+                           (ref["id"], ref["sha256"]))
         if row is None:
             reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
         return self.get_json(decode_data(row["artifact"]), kind="profile")[0]
