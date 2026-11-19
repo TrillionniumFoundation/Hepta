@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from hepta.hia_agent_contract import VERSION, catalog, validate
+from hepta import hia_agent_describe_answer_native as describe_answer
 from hepta import hia_agent_discovery_native as discovery
 from hepta import hia_agent_inspection_native as inspection
 from hepta.hia_agent_schema_native import SELECTOR, SOURCE, installed_agent_schema
@@ -28,9 +29,11 @@ class AgentSchemaSourceTests(unittest.TestCase):
 
     def test_generated_discovery_matches_current_opcodes(self):
         from hepta.hia_agent_assembly import render_assembly
-        from tools.generate_hia_agent_discovery import document, source_program
+        from tools.generate_hia_agent_discovery import answer_source, document, source_program
         self.assertEqual(discovery.SOURCE.read_text(),
                          render_assembly(document(source_program(), 'agent_discovery')))
+        self.assertEqual(describe_answer.SOURCE.read_text(),
+                         render_assembly(document(answer_source(), 'agent_describe_answer')))
 
 
     def test_generated_inspection_matches_current_core_renderer(self):
@@ -237,6 +240,7 @@ class AgentInspectionNativeTests(unittest.TestCase):
 
 class AgentDiscoveryNativeTests(unittest.TestCase):
     manifest = None
+    answer_manifest = None
     test_root = None
 
     def setUp(self):
@@ -309,7 +313,10 @@ class AgentDiscoveryNativeTests(unittest.TestCase):
                 ]
                 reference = [service.call('hia_describe', case) for case in cases]
                 catalogs = {version: wire(opcode_catalog(version)) for version in discovery.VERSIONS}
-                with (patch.dict('os.environ', {discovery.SELECTOR: str(self.manifest)}),
+                selectors = {discovery.SELECTOR: str(self.manifest)}
+                if self.answer_manifest is not None:
+                    selectors[describe_answer.SELECTOR] = str(self.answer_manifest)
+                with (patch.dict('os.environ', selectors),
                       patch.object(service, '_reference_describe', side_effect=AssertionError('host routing used')),
                       patch('hepta.hia_opcodes.opcode_catalog', side_effect=AssertionError('host catalog used'))):
                     for args, expected in zip(cases, reference):
@@ -482,6 +489,7 @@ def main():
     parser.add_argument('--response-manifest', type=Path)
     parser.add_argument('--proof-manifest', type=Path)
     parser.add_argument('--discovery-manifest', type=Path)
+    parser.add_argument('--describe-answer-manifest', type=Path)
     parser.add_argument('--inspection-manifest', type=Path)
     parser.add_argument('--native-release', type=Path)
     args = parser.parse_args()
@@ -492,6 +500,7 @@ def main():
     AgentResponseSchemaNativeTests.proof_manifest = args.proof_manifest
     AgentResponseSchemaNativeTests.test_root = AgentSchemaNativeTests.test_root
     AgentDiscoveryNativeTests.manifest = args.discovery_manifest
+    AgentDiscoveryNativeTests.answer_manifest = args.describe_answer_manifest
     AgentDiscoveryNativeTests.test_root = AgentSchemaNativeTests.test_root
     AgentInspectionNativeTests.manifest = args.inspection_manifest
     AgentInspectionNativeTests.test_root = AgentSchemaNativeTests.test_root

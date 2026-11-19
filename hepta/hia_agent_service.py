@@ -521,21 +521,31 @@ class HIAAgentService:
         return _reference_wall_window(created_ns, now_ns, total_ms)
 
     def _hia_describe(self, args):
+        from .hia_agent_describe_answer_native import (
+            SELECTOR as answer_selector, installed_agent_describe_answer,
+        )
         selected = os.environ.get('HEPTA_HIA_AGENT_DISCOVERY_MANIFEST')
+        answer = os.environ.get(answer_selector)
+        if answer is not None and not selected:
+            raise ValueError('HIA discovery answer requires the native discovery plan')
         if selected:
             from .hia_agent_discovery_native import RESOURCE_ROLES, installed_agent_discovery
             language_schema, language, roles = installed_agent_discovery(selected).plan(
                 args, self.profiles['backend']['id'])
             profile, language_ref = self.store.profile_bytes(language_schema, language)
-            resources = []
-            for role in roles:
-                owner, name = RESOURCE_ROLES[role]
+
+            def reference(role):
+                owner, name = role
                 if owner is None:
-                    resources.append(language_ref)
-                elif name is None:
-                    resources.append(getattr(self, owner))
-                else:
-                    resources.append(getattr(self, owner)[name])
+                    return language_ref
+                value = getattr(self, owner)
+                return value if name is None else value[name]
+
+            if answer is not None:
+                return installed_agent_describe_answer(answer).render(
+                    self.catalog_sha256, self.manifest, profile, self.profiles['backend'],
+                    self.profiles['artifact'], roles, [reference(role) for role in RESOURCE_ROLES])
+            resources = [reference(RESOURCE_ROLES[role]) for role in roles]
         else:
             profile, resources = self._reference_describe(args)
         return {"catalog_sha256": self.catalog_sha256, "manifest": self.manifest,

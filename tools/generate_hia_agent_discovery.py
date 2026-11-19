@@ -3,6 +3,9 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_describe_answer_native import (
+    BASE_FIELDS, MAGIC as ANSWER_MAGIC, REFERENCE_COUNT, SOURCE_NAME as ANSWER_SOURCE,
+)
 from hepta.hia_agent_discovery_native import (
     DISCOVERY_RESOURCE_NAMES, MACRO_PROFILE_ROLE, PROFILE_NAMES, WORKSPACE_BYTES,
 )
@@ -329,5 +332,84 @@ def source_program():
     return '\n'.join((source, routes_source(), catalog, seed_source(seed, offset=len(table)), words))
 
 
+def answer_source():
+    prefixes = (b'{"artifact_profiles":[', b'],"backend_profiles":[', b'],"catalog_sha256":',
+                b',"language_catalogs":[', b'],"manifest":', b',"next_cursor":null,"resources":[')
+    suffix = b']}'
+    fields = BASE_FIELDS + REFERENCE_COUNT
+    head = 16 + 8 * fields
+    fixed = sum(map(len, prefixes)) + len(suffix)
+    routes = [len(roles) | sum(role << (4 + index * 5) for index, role in enumerate(roles))
+              for roles in ROUTES.values()]
+    unknown_route = ' and '.join(f'route != {route}' for route in routes)
+    source = f'''
+def describe_answer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < {head} or read_word(s, 0) != {int.from_bytes(ANSWER_MAGIC, 'little')}:
+        return 4294967293
+    route = read_word(s, 8)
+    if {unknown_route}:
+        return 4294967293
+    position = {head}
+    index = 0
+    while index < {fields}:
+        size = read_word(s, 16 + index * 8)
+        if size == 0 or size > length(s) - position:
+            return 4294967293
+        position = position + size
+        index = index + 1
+    if position != length(s):
+        return 4294967293
+    count = route & 15
+    size = {fixed} + count - 1
+    index = 0
+    while index < {BASE_FIELDS}:
+        size = size + read_word(s, 16 + index * 8)
+        index = index + 1
+    index = 0
+    while index < count:
+        role = (route >> (4 + index * 5)) & 31
+        size = size + read_word(s, 16 + ({BASE_FIELDS} + role) * 8)
+        index = index + 1
+    if size > length(o):
+        return 4294967294
+    out = 0
+'''
+    for index in range(BASE_FIELDS):
+        source += f'    out = prefix_{index}(o, out)\n'
+        source += f'    out = copy_field(s, o, {index}, out)\n'
+    source += f'''    out = prefix_{BASE_FIELDS}(o, out)
+    index = 0
+    while index < count:
+        if index != 0:
+            store(o, out, 44)
+            out = out + 1
+        role = (route >> (4 + index * 5)) & 31
+        out = copy_field(s, o, {BASE_FIELDS} + role, out)
+        index = index + 1
+    return prefix_{len(prefixes)}(o, out)
+
+def copy_field(s:readbuf, o:mutbuf, field:u64, out:u64) -> u64:
+    start = {head}
+    index = 0
+    while index < field:
+        start = start + read_word(s, 16 + index * 8)
+        index = index + 1
+    size = read_word(s, 16 + field * 8)
+    index = 0
+    while index < size:
+        store(o, out + index, byte(s, start + index))
+        index = index + 1
+    return out + size
+'''
+    for index, literal in enumerate((*prefixes, suffix)):
+        source += f'\ndef prefix_{index}(o:mutbuf, start:u64) -> u64:\n'
+        for offset, value in enumerate(literal):
+            source += f'    store(o, start + {offset}, {value})\n'
+        source += f'    return start + {len(literal)}\n'
+    words = core_cli_source()
+    return source + words[words.index('\ndef read_word('):words.index('\ndef put_word(')]
+
+
 if __name__ == '__main__':
     SOURCE.write_text(render_assembly(document(source_program(), 'agent_discovery')))
+    (ROOT / ANSWER_SOURCE).write_text(render_assembly(document(answer_source(), 'agent_describe_answer')))

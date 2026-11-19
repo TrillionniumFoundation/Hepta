@@ -93,6 +93,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'agent-identity': ('agent_identity', 'agent-identity'),
                   'agent-inspection': ('agent_inspection', 'agent-inspection'),
                   'agent-discovery': ('agent_discovery', 'agent-discovery'),
+                  'agent-describe-answer': ('agent_describe_answer', 'agent-describe-answer'),
                   'agent-read-page': ('agent_read_page', 'agent-read-page'),
                   'agent-schema': ('agent_schema', 'agent-schema'),
                   'agent-response-schema': ('agent_response_schema', 'agent-response-schema'),
@@ -167,7 +168,8 @@ def main():
     parser.add_argument('--cold-report', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--candidate', default='preflight',
-                        choices=('preflight', 'agent-identity', 'agent-inspection', 'agent-discovery', 'agent-read-page', 'agent-schema', 'agent-response-schema',
+                        choices=('preflight', 'agent-identity', 'agent-inspection', 'agent-discovery',
+                                 'agent-describe-answer', 'agent-read-page', 'agent-schema', 'agent-response-schema',
                                  'agent-verify-response-schema', 'execution-ledger', 'sqlite-wal-snapshot',
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',

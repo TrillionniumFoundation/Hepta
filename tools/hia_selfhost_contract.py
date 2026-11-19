@@ -869,6 +869,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/agent_inspection.hepta',
     'tools/generate_hia_agent_inspection.py',
     'examples/hia_bootstrap/agent_discovery.hepta',
+    'examples/hia_bootstrap/agent_describe_answer.hepta',
     'tools/generate_hia_agent_discovery.py',
     'examples/hia_bootstrap/agent_schema.hepta',
     'tools/generate_hia_agent_schema.py',

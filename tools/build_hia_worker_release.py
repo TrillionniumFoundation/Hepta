@@ -43,6 +43,7 @@ ADDITIONAL_HELPERS = (
     'agent-read-page', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
     'sha256-stream', 'cnf',
     'agent-data-json', 'agent-binary64', 'agent-binary64-format',
+    'agent-describe-answer',
 )
 HELPER_BUILDERS = {
     'slot-ledger': build_slot_ledger,
