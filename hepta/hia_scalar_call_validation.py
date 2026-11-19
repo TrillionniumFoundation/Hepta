@@ -53,17 +53,17 @@ def _closure(document, function):
             raise _OutsideProfile("call_closure_program_budget_exceeded")
         shape, callees = copy.deepcopy(fn), []
         for block in shape["blocks"]:
-            operations = []
+            shaped_ops = []
             for op in block["ops"]:
                 if op["op"] != "call":
-                    operations.append(op)
+                    shaped_ops.append(op)
                     continue
                 callees.append(op["attrs"]["function"])
                 for result in op["out"]:
                     typ = result["type"]
                     literal = None if typ == "unit" else False if typ == "bool" else 0
-                    operations.append({"op": "const", "args": [], "out": [result], "attrs": {"value": literal}})
-            block["ops"] = operations
+                    shaped_ops.append({"op": "const", "args": [], "out": [result], "attrs": {"value": literal}})
+            block["ops"] = shaped_ops
         # Only the graph/type/effect check uses a call-shaped placeholder.  The
         # encoder below reads the ORIGINAL blocks and actual callees, never it.
         _, order = _profile(shape)
