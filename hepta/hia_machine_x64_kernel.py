@@ -166,3 +166,37 @@ class KernelCode(Code):
     def sfence(self):
         """x86 SFENCE, including earlier non-temporal streaming stores."""
         self.emit(b"\x0f\xae\xf8")
+
+    # Isolated stage only: no Core v8 opcode, authority, native selfhost path,
+    # or guest execution is created by exposing these byte encodings.
+    def cli(self):
+        """CLI: mask maskable interrupts; CPL <= IOPL is a CPU precondition."""
+        self.emit(b"\xfa")
+
+    def sti(self):
+        """STI: enable interrupts with architectural one-instruction shadow."""
+        self.emit(b"\xfb")
+
+    def rdmsr(self):
+        """RDMSR: ECX selects MSR, EDX:EAX receives data; CPL0 required."""
+        self.emit(b"\x0f\x32")
+
+    def wrmsr(self):
+        """WRMSR: ECX selects MSR, EDX:EAX provides data; CPL0 required.
+
+        A future verifier must constrain MSR index, reserved bits, feature
+        availability, cross-CPU state and side effects before any execution.
+        """
+        self.emit(b"\x0f\x30")
+
+    def swapgs(self):
+        """SWAPGS exchanges GS base/KERNEL_GS_BASE; CPL0 long mode only.
+
+        Valid entry/exit sequencing must be proven separately; never use this
+        unchecked before the CPU has established a legitimate kernel GS base.
+        """
+        self.emit(b"\x0f\x01\xf8")
+
+    def cpuid(self):
+        """CPUID, with EAX/ECX input and EAX/EBX/ECX/EDX results."""
+        self.emit(b"\x0f\xa2")
