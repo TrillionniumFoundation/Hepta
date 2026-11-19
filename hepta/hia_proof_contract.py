@@ -232,8 +232,9 @@ def _method(claim, status, subject, evidence):
                          and type(evidence.get("obligations")) is list
                          and all(type(item) is dict and item.get("result") == "unsat" for item in evidence["obligations"]),
                          "compositional proof lacks its identified solver or discharged obligations")
-                if evidence["solver"].get("name") == "HIA":
-                    _native_circuit_scope(evidence)
+            solver = evidence.get("solver")
+            if type(solver) is dict and solver.get("name") == "HIA" and status in {"proved", "refuted"}:
+                _native_circuit_scope(status, evidence)
             return "compositional_scalar_effect"
         _require(False, "unrecognized behavioral equivalence evidence")
     if claim == "lowering_refinement":
@@ -264,16 +265,21 @@ def _method(claim, status, subject, evidence):
     _require(False, "unknown proof property")
 
 
-def _native_circuit_scope(evidence):
+def _native_circuit_scope(status, evidence):
     from .hia_cnf_native import selected_cnf
     from .hia_optimization import _native_solver_identity, checker_identity
+    from .hia_scalar_reference_native import selected_scalar_reference
 
     selected = selected_cnf()
     _require(selected is not None and evidence["solver"] == _native_solver_identity(selected)
              and evidence["checker_sha256"] == checker_identity(),
              "native circuit solver or binding differs from the installation")
-    _require(bool(evidence["obligations"]), "native circuit proof has no discharged obligations")
-    for item in evidence["obligations"]:
+    obligations = evidence.get("obligations")
+    _require(type(obligations) is list and bool(obligations), "native circuit proof has no discharged obligations")
+    for index, item in enumerate(obligations):
+        expected = "sat" if status == "refuted" and index + 1 == len(obligations) else "unsat"
+        _require(type(item) is dict and item.get("result") == expected,
+                 "native circuit proof has an unexpected decision")
         try:
             formula = bytes.fromhex(item["cnf_frame_hex"])
             discharge = item["discharge"]
@@ -287,6 +293,17 @@ def _native_circuit_scope(evidence):
                  and discharge.get("image_sha256") == selected.image_sha256
                  and discharge.get("formula_sha256") == sha256(formula).hexdigest(),
                  "native circuit proof formula identity differs")
+    if status == "refuted":
+        last = obligations[-1]
+        replay = last.get("counterexample_replay")
+        reference = selected_scalar_reference()
+        _require(type(last.get("counterexample")) is dict and type(replay) is dict
+                 and replay.get("function") == last.get("function")
+                 and type(replay.get("arguments")) is list
+                 and type(replay.get("base_values")) is list and type(replay.get("candidate_values")) is list
+                 and replay["base_values"] != replay["candidate_values"]
+                 and replay.get("scalar_reference_image_sha256") == (None if reference is None else reference.image_sha256),
+                 "native circuit refutation lacks a typed replay or its evaluator identity differs")
 
 
 def proof_result(*, claim, status, domain, subject, profile, installation, evidence):

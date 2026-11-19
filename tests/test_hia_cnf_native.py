@@ -197,6 +197,15 @@ class CnfInstalledTests(unittest.TestCase):
         constant = m(f('check', params, ['bool'], [], [b('entry', params, [
             c('out', 'bool', False),
         ], ret('out'))]))
+        signed = [('left', 'i64'), ('enabled', 'bool')]
+        only_negative_five = m(f('predicate', signed, ['bool'], [], [b('entry', signed, [
+            c('target', 'i64', -5),
+            i('compare.eq', ['left', 'target'], [('at_target', 'bool')]),
+            i('bool.and', ['at_target', 'enabled'], [('out', 'bool')]),
+        ], ret('out'))]))
+        incorrect = m(f('predicate', signed, ['bool'], [], [b('entry', signed, [
+            c('out', 'bool', False),
+        ], ret('out'))]))
         original_import = builtins.__import__
 
         def without_z3(name, *args, **kwargs):
@@ -239,7 +248,28 @@ class CnfInstalledTests(unittest.TestCase):
                     request = next(item for item in client.records if item['tool'] == 'hia_verify')
                     service.close()
                     service = HIAAgentService(state)
-                    self.assertEqual(ToolClient(service.call).result('hia_verify', request['arguments']), result)
+                    client = ToolClient(service.call)
+                    self.assertEqual(client.result('hia_verify', request['arguments']), result)
+                    session = Session(client, prefix='hia-circuit-witness')
+                    workload['cases'] = [
+                        {'function': 'predicate', 'arguments': [0, True],
+                         'expected': {'status': 'returned', 'values': [False]}}]
+                    session.freeze(workload)
+                    original = session.import_program(only_negative_five)
+                    session.freeze(workload, baseline=original)
+                    changed = session.import_program(incorrect)
+                    refutation = session.verify(changed, base=original, claims=['behavior_equivalence'])
+                    check = refutation['checks'][0]
+                    self.assertEqual(check['status'], 'refuted')
+                    self.assertEqual(check['checker']['solver'], report['solver'])
+                    counterexample = session.read_json(check['evidence_artifact'])['obligations'][-1]
+                    self.assertEqual(counterexample['result'], 'sat')
+                    self.assertEqual(counterexample['counterexample'], {
+                        'f0.b0.input:left': str((1 << 64) - 5), 'f0.b0.input:enabled': 'True'})
+                    replay = counterexample['counterexample_replay']
+                    self.assertEqual(replay['arguments'], [-5, True])
+                    self.assertEqual(replay['base_values'], [True])
+                    self.assertEqual(replay['candidate_values'], [False])
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)

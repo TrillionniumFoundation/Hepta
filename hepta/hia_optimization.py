@@ -18,7 +18,7 @@ import tempfile
 import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
-from .hia_cnf_native import UNSAT, bitblast_clauses, core_circuit, selected_cnf
+from .hia_cnf_native import SAT, UNSAT, bitblast_clauses, core_circuit, selected_cnf
 from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_symbolic
 
 SCHEMA = "hepta.hia.optimization-verification.v1"
@@ -66,20 +66,21 @@ def checker_identity():
     return digest.hexdigest()
 
 
-def _native_core_unsat(cnf, circuit, deadline):
+def _native_circuit_decision(cnf, circuit, deadline):
     if circuit is None:
         return None
     remaining = (deadline - time.monotonic_ns()) // 1_000_000
     if remaining <= 0:
         return None
     result = cnf.solve_circuit(*circuit, steps=min(200_000, remaining * 100))
-    if result is None or result[0] != UNSAT:
+    if result is None or result[0] not in (SAT, UNSAT):
         return None
-    _, _, steps, variables, clauses, frame = result
+    verdict, model, steps, variables, clauses, frame = result
     formula = frame[:24] + bytes(8) + frame[32:]
-    return ({"method": "native_hia_core_circuit", "image_sha256": cnf.image_sha256,
-             "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
-             "clauses": clauses, "steps": steps}, formula)
+    discharge = {"method": "native_hia_core_circuit", "image_sha256": cnf.image_sha256,
+                 "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
+                 "clauses": clauses, "steps": steps}
+    return verdict, model, discharge, formula
 
 
 def _native_solver_identity(cnf):
@@ -88,25 +89,71 @@ def _native_solver_identity(cnf):
             "library_sha256": cnf.image_sha256}
 
 
-def _native_core_obligations(cnf, left, right, deadline, limit):
-    pairs = [(lf["name"], lb, rb)
-             for lf, rf in zip(left["functions"], right["functions"], strict=True)
-             for lb, rb in zip(lf["blocks"], rf["blocks"], strict=True)]
+def _native_circuit_witness(before, after, function, model):
+    from .hia_program_runtime import execute_program
+    from .hia_scalar_reference_native import selected_scalar_reference
+
+    # HIABVC01 allocates variable 1 to true. The initial input nodes
+    # then allocate consecutive, little-endian variable numbers.
+    reference = selected_scalar_reference()
+    model >>= 1
+    arguments, model_values = [], {}
+    for parameter in function["params"]:
+        typ = parameter["type"]
+        width = 1 if typ == "bool" else WIDTHS[typ]
+        raw = model & ((1 << width) - 1)
+        model >>= width
+        if typ == "bool":
+            typed = bool(raw)
+            model_values[parameter["name"]] = str(typed)
+        else:
+            typed = raw - (1 << width) if typ.startswith("i") and raw >> (width - 1) else raw
+            model_values[parameter["name"]] = str(raw)
+        arguments.append(typed)
+    name = function["name"]
+    previous = execute_program(before, name, arguments, max_steps=512)
+    revised = execute_program(after, name, arguments, max_steps=512)
+    if previous["status"] != "returned" or revised["status"] != "returned":
+        return None
+    if previous["values"] == revised["values"]:
+        return None
+    if selected_scalar_reference() is not reference:
+        return None
+    return model_values, {"function": name, "arguments": arguments, "base_values": previous["values"],
+                          "candidate_values": revised["values"],
+                          "scalar_reference_image_sha256": None if reference is None else reference.image_sha256}
+
+
+def _native_core_obligations(cnf, before, after, left, right, deadline, limit):
+    pairs = [(fi, bi, lf, lb, rb)
+             for fi, (lf, rf) in enumerate(zip(left["functions"], right["functions"], strict=True))
+             for bi, (lb, rb) in enumerate(zip(lf["blocks"], rf["blocks"], strict=True))]
     if len(pairs) > limit:
         return None
-    circuits = [core_circuit(lb, rb) for _, lb, rb in pairs]
+    circuits = [core_circuit(lb, rb) for _, _, _, lb, rb in pairs]
     if any(circuit is None for circuit in circuits):
         return None
     obligations = []
-    for (function, lb, _), circuit in zip(pairs, circuits, strict=True):
-        outcome = _native_core_unsat(cnf, circuit, deadline)
+    for (fi, bi, function, block, _), circuit in zip(pairs, circuits, strict=True):
+        outcome = _native_circuit_decision(cnf, circuit, deadline)
         if outcome is None:
             return None
-        evidence, formula = outcome
-        obligations.append({"function": function, "block": lb["id"], "segment": 0,
-                            "observed": lb["term"]["values"], "result": "unsat",
-                            "cnf_encoding": "hepta.hia.cnf-sparse-le.v2",
-                            "cnf_frame_hex": formula.hex(), "discharge": evidence})
+        verdict, model, evidence, formula = outcome
+        obligation = {"function": function["name"], "block": block["id"], "segment": 0,
+                      "observed": block["term"]["values"], "result": "unsat" if verdict == UNSAT else "sat",
+                      "cnf_encoding": "hepta.hia.cnf-sparse-le.v2",
+                      "cnf_frame_hex": formula.hex(), "discharge": evidence}
+        obligations.append(obligation)
+        if verdict == SAT:
+            if block["id"] != function["entry"]:
+                return None
+            witness = _native_circuit_witness(before, after, function, model)
+            if witness is None:
+                return None
+            fields, replay = witness
+            obligation["counterexample"] = {f"f{fi}.b{bi}.input:{name}": value for name, value in fields.items()}
+            obligation["counterexample_replay"] = replay
+            break
     return obligations
 
 
@@ -393,12 +440,17 @@ def verify_optimization(base, candidate, policy=None):
     deadline = started + policy["timeout_ms"] * 1_000_000
     native_cnf = selected_cnf()
     if native_cnf is not None:
-        obligations = _native_core_obligations(native_cnf, left, right, deadline, policy["max_obligations"])
+        obligations = _native_core_obligations(native_cnf, original, revised, left, right,
+                                               deadline, policy["max_obligations"])
         if obligations is not None:
             if checker_identity() != report["checker_sha256"]:
                 return finish("unknown", "checker source changed during verification")
             report["solver"] = _native_solver_identity(native_cnf)
             report["obligations"] = obligations
+            if obligations and obligations[-1]["result"] == "sat":
+                if time.monotonic_ns() >= deadline:
+                    return finish("timeout", "total verification deadline exhausted during witness replay")
+                return finish("rejected", "a scalar/effect/trap counterexample exists")
             return verified()
     try:
         import z3
@@ -455,9 +507,9 @@ def verify_optimization(base, candidate, policy=None):
                     return finish("timeout", "verification deadline exhausted while encoding")
                 cnf_evidence = None
                 if native_cnf is not None and si == 0 and barrier is None:
-                    outcome = _native_core_unsat(native_cnf, core_circuit(lb, rb), deadline)
-                    if outcome is not None:
-                        cnf_evidence = outcome[0]
+                    outcome = _native_circuit_decision(native_cnf, core_circuit(lb, rb), deadline)
+                    if outcome is not None and outcome[0] == UNSAT:
+                        cnf_evidence = outcome[2]
                 if cnf_evidence is None:
                     cnf_evidence = _native_unsat(native_cnf, z3, mismatch, deadline)
                 remaining = (deadline - time.monotonic_ns()) // 1_000_000
