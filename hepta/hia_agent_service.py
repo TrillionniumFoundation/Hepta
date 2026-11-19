@@ -629,6 +629,8 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        from .hia_agent_store import _native_agent_identity
+
         ref = args["artifact"]
         data, _ = self.store.get(ref)
         offset = 0
@@ -651,6 +653,9 @@ class HIAAgentService:
         if next_offset is not None:
             self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
                 (next_cursor, ref["id"], ref["sha256"], next_offset))
+        native = _native_agent_identity()
+        if native is not None:
+            return native.page_receipt(ref, content, encoding, next_cursor)
         return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
 
     @staticmethod
@@ -837,6 +842,7 @@ class HIAAgentService:
                 "query_artifact": query, "next_cursor": None}
 
     def _hia_candidate(self, args):
+        from .hia_agent_store import _native_agent_identity
         from .hia_program_tools import apply_program_patch
         change, base, native_payloads = args["change"], None, None
         if change["kind"] == "import":
@@ -870,6 +876,9 @@ class HIAAgentService:
                                    "core", {"context": args["context"]})
         diagnostic_artifact = (self.store.put(native_payloads[1], "candidate-diagnostics") if native_payloads is not None
                                else self.store.json(diagnostics, "candidate-diagnostics"))
+        native = _native_agent_identity()
+        if native is not None:
+            return native.candidate_receipt(base, candidate, diagnostic_artifact)
         return {"candidate": candidate, "base_program": base,
             "diagnostics": diagnostic_artifact, "core_admitted": True,
             "behavior_equivalence_proved": False, "adopted": False}

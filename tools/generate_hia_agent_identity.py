@@ -55,6 +55,28 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size > length(o):
             return size
         return artifact_receipt(s, o, 1)
+    if kind == 21:
+        size = context_manifest(s, o, 0)
+        if size > length(o):
+            return size
+        return context_manifest(s, o, 1)
+    if kind == 22:
+        size = context_receipt(s, o, 0)
+        if size > length(o):
+            return size
+        return context_receipt(s, o, 1)
+    if kind == 23:
+        return context_id(s, o)
+    if kind == 24:
+        size = page_receipt(s, o, 0)
+        if size > length(o):
+            return size
+        return page_receipt(s, o, 1)
+    if kind == 25:
+        size = candidate_receipt(s, o, 0)
+        if size > length(o):
+            return size
+        return candidate_receipt(s, o, 1)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -772,6 +794,23 @@ def artifact_size_text(o:mutbuf, cursor:u64, size:u64, emit:u64) -> u64:
         divisor = divisor // 10
     return cursor
 
+def context_id(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 32:
+        return 4294967293
+    if length(o) < 36:
+        return 4294967294
+    receipt_literal(o, 0, 762868835, 4, 1)
+    index = 0
+    while index < 16:
+        value = byte(s, index + 16)
+        high = value >> 4
+        low = value & 15
+        position = 4 + 2 * index
+        store(o, position, choose(high < 10, 48 + high, 87 + high))
+        store(o, 5 + 2 * index, choose(low < 10, 48 + low, 87 + low))
+        index = index + 1
+    return 36
+
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
     count = 0
@@ -925,6 +964,44 @@ def artifact_receipt_source():
     return '\n'.join(lines) + '\n'
 
 
+def receipt_template(name, template):
+    """Serialize already-admitted JSON fragments in a fixed HIA schema."""
+    lines = [
+        f'def {name}(s:readbuf, o:mutbuf, emit:u64) -> u64:',
+        '    at = 16',
+        '    cursor = 0',
+    ]
+    chunks = template.split('{}')
+    for index, chunk in enumerate(chunks):
+        for offset in range(0, len(chunk), 8):
+            raw = chunk[offset:offset + 8].encode('ascii')
+            lines.append(f'    cursor = receipt_literal(o, cursor, {int.from_bytes(raw, "little")}, {len(raw)}, emit)')
+        if index + 1 < len(chunks):
+            lines.extend((
+                '    size = receipt_fragment_size(s, at)',
+                '    if size == 0:',
+                '        return 4294967293',
+                '    at = at + 8',
+                '    cursor = receipt_fragment(s, o, at, cursor, size, emit)',
+                '    at = at + size',
+            ))
+    lines.extend(('    if at != length(s):', '        return 4294967293',
+                  '    if cursor > length(o):', '        return 4294967294', '    return cursor'))
+    return '\n'.join(lines) + '\n'
+
+
+CONTEXT_MANIFEST = ('{"baseline_core_sha256":{},"baseline_program":{},"budget":{},"catalog_sha256":{},'
+                    '"compiler_profile":{},"context_is_execution_authority":false,"foreign_buffer_exports":{},'
+                    '"installation":{},"objective":{},"resource_reservation_held":false,"sampled_at":{},'
+                    '"schema":"hepta.hia.agent.context.v1","target_observation":{"cpu_count":{},"machine":{},'
+                    '"observation_only":true,"system":{}},"target_profile":{},"workload":{}}')
+CONTEXT_RECEIPT = ('{"compiler_profile":{},"context":{},"context_is_execution_authority":false,'
+                   '"manifest":{},"resource_reservation_held":false,"sampled_at":{},"target_profile":{}}')
+PAGE_RECEIPT = '{"artifact":{},"content":{},"encoding":{},"next_cursor":{}}'
+CANDIDATE_RECEIPT = ('{"adopted":false,"base_program":{},"behavior_equivalence_proved":false,'
+                     '"candidate":{},"core_admitted":true,"diagnostics":{}}')
+
+
 def source_program():
     pure = sum(1 << PROOF_OPCODE_IDS[opcode] for opcode in PURE)
     disallowed = ((1 << 64) - 1) ^ PROOF_EFFECT_IDS['trap']
@@ -941,7 +1018,11 @@ def source_program():
             .replace('@ARTIFACT_UTF8@', str(int.from_bytes(b'utf8', 'little')))
             .replace('@BOOL_ABI_ROLE@', str(ABI_SCALAR_IDS['bool']))
             .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n'
-            + cost_receipt_source() + artifact_receipt_source())
+            + cost_receipt_source() + artifact_receipt_source()
+            + receipt_template('context_manifest', CONTEXT_MANIFEST)
+            + receipt_template('context_receipt', CONTEXT_RECEIPT)
+            + receipt_template('page_receipt', PAGE_RECEIPT)
+            + receipt_template('candidate_receipt', CANDIDATE_RECEIPT))
 
 
 def document():

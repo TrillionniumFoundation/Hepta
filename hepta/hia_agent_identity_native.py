@@ -350,11 +350,11 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         fields = (baseline_sha, args['baseline_program'], args['budget'], catalog_sha256,
                   args['compiler_profile'], exports, installation, args['objective'], sampled,
                   cpu_count, machine, system, args['target_profile'], args['workload'])
-        return self._context_record(21, fields)
+        return self._issued_record(21, fields)
 
     def context_receipt(self, args, context, manifest, sampled):
         fields = (args['compiler_profile'], context, manifest, sampled, args['target_profile'])
-        return decode_data(self._context_record(22, fields))
+        return decode_data(self._issued_record(22, fields))
 
     def context_id(self, nonce):
         if type(nonce) is not bytes or len(nonce) != 16:
@@ -364,7 +364,13 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA context ID')
         return raw.decode('ascii')
 
-    def _context_record(self, mode, values):
+    def page_receipt(self, artifact, content, encoding, next_cursor):
+        return decode_data(self._issued_record(24, (artifact, content, encoding, next_cursor)))
+
+    def candidate_receipt(self, base, candidate, diagnostics):
+        return decode_data(self._issued_record(25, (base, candidate, diagnostics)))
+
+    def _issued_record(self, mode, values):
         packet = bytearray(struct.pack('<2Q', MAGIC, mode))
         for value in values:
             fragment = wire(value)

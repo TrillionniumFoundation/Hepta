@@ -733,6 +733,26 @@ class AgentIdentityNativeTests(unittest.TestCase):
         finally:
             service.close()
 
+    def test_issued_page_and_candidate_receipts_are_canonical_and_inert(self):
+        from hepta.hia_agent_store import wire
+
+        artifact = {"id": "issued", "sha256": "a" * 64, "uri": "hia://artifact/issued"}
+        diagnostics = {**artifact, "id": "diagnostic"}
+        cursor = "page-" + "b" * 64
+        for content, encoding, next_cursor in (('你"\n\x00', 'utf8', cursor), ('AAE=', 'base64', None)):
+            fields = (artifact, content, encoding, next_cursor)
+            expected = wire(dict(zip(('artifact', 'content', 'encoding', 'next_cursor'), fields)))
+            request = packet(24, b''.join(struct.pack('<Q', len(wire(value))) + wire(value) for value in fields))
+            self.assertEqual(self.raw(request, len(expected)), (len(expected), expected))
+            self.assertEqual(self.raw(request, len(expected) - 1)[0], 0xfffffffe)
+            self.assertEqual(self.raw(request[:-1], len(expected))[0], 0xfffffffd)
+            self.assertEqual(wire(self.native.page_receipt(*fields)), expected)
+        for base in (None, artifact):
+            self.assertEqual(self.native.candidate_receipt(base, artifact, diagnostics), {
+                "adopted": False, "base_program": base, "behavior_equivalence_proved": False,
+                "candidate": artifact, "core_admitted": True, "diagnostics": diagnostics,
+            })
+
     def test_artifact_packets_keep_exact_utf8_and_refuse_invalid_scalars(self):
         rng = random.Random(3027)
         boundary = '\x00\x7f\x80\u07ff\u0800\ud7ff\ue000\uffff\U00010000\U0010ffff'
