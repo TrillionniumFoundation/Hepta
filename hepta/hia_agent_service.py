@@ -541,9 +541,7 @@ class HIAAgentService:
         now_ns = time.time_ns()
         total_ms = context["budget"]["max_total_wall_ms"]
         native = _native_agent_identity()
-        # Normal issued timestamps and frozen budgets are unsigned words.
-        # Keep the established semantics for older, hand-restored integer text.
-        if native is not None and all(0 <= value < 1 << 64 for value in (created_ns, now_ns, total_ms)):
+        if native is not None:
             return native.wall_window(created_ns, now_ns, total_ms)
         return _reference_wall_window(created_ns, now_ns, total_ms)
 

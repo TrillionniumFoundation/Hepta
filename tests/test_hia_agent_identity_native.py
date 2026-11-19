@@ -457,12 +457,22 @@ class AgentIdentityNativeTests(unittest.TestCase):
                    (0, end, end), (end, end - 999_999, 0), (100, 1_000_101, 1)]
         rng = random.Random(0xa651f)
         samples += [tuple(rng.getrandbits(64) for _ in range(3)) for _ in range(256)]
+        high = 1 << 200
+        samples += [(high, high + change, budget)
+                    for change in (-1_000_001, -1_000_000, -1, 0, 1, 1_000_000, 1_000_001)
+                    for budget in (-1, 0, 1)]
+        samples += [tuple(rng.choice((-1, 1)) * rng.getrandbits(rng.randrange(9000))
+                          for _ in range(3)) for _ in range(256)]
         for created, now, budget in samples:
             self.assertEqual(self.native.wall_window(created, now, budget),
                              _reference_wall_window(created, now, budget))
         wire = packet(9, struct.pack('<3Q', 0, 0, 1))
         self.assertEqual(self.raw(wire[:-1], 32)[0], 0xfffffffd)
         self.assertEqual(self.raw(wire, 31)[0], 0xfffffffe)
+        wide = packet(18, struct.pack('<Q3I', 1, 0, 0, 0))
+        self.assertEqual(self.raw(wide[:-1], 20)[0], 0xfffffffd)
+        self.assertEqual(self.raw(wide, 19)[0], 0xfffffffe)
+        self.assertEqual(self.raw(packet(18, struct.pack('<Q3I', 1, 0, 0, 1)), 20)[0], 0xfffffffd)
 
     def test_native_finite_domain_matches_scalar_cfg_and_width_boundaries(self):
         from hepta.hia_agent_service import _reference_finite_function
@@ -538,6 +548,14 @@ class AgentIdentityNativeTests(unittest.TestCase):
                     with self.assertRaises(AgentRejected) as raised:
                         service._budget(context, candidate=True)
                     self.assertEqual(raised.exception.code, 'E_HIA_BUDGET')
+                for historical in (-(1 << 200), (1 << 200) + 17):
+                    service.store.db.execute('UPDATE contexts SET created_ns=? WHERE id=?',
+                                             (str(historical), ref['id']))
+                    limit = context['budget']['max_total_wall_ms']
+                    with patch.object(hosted.time, 'time_ns', return_value=historical + limit * 1_000_000):
+                        self.assertEqual(service._wall_window(context), (False, 0))
+                    with patch.object(hosted.time, 'time_ns', return_value=historical + limit * 1_000_000 + 1):
+                        self.assertEqual(service._wall_window(context), (True, 0))
         finally:
             service.close()
 

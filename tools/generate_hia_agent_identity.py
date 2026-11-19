@@ -45,6 +45,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return cost_receipt(s, o)
     if kind == 17:
         return cost_window(s, o)
+    if kind == 18:
+        return wide_wall_window(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -385,6 +387,71 @@ def wall_window(s:readbuf, o:mutbuf) -> u32:
     put(o, 16, remaining)
     put(o, 24, high)
     return 32
+
+def wide_wall_window(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 36:
+        return 4294967293
+    words = read_word(s, 16)
+    if words == 0 or words > (length(s) - 24) // 12 or length(s) != 24 + 12 * words:
+        return 4294967293
+    width = 4 * words
+    if width > 4294967279 or length(o) < 16 + width:
+        return 4294967294
+    # Each operand has an entire sign-extension limb. This leaves at least
+    # 31 spare magnitude bits, enough for the scale and the two signed sums.
+    if wall_sign_limb(s, 20 + width) == 0 or wall_sign_limb(s, 20 + 2 * width) == 0 or wall_sign_limb(s, 20 + 3 * width) == 0:
+        return 4294967293
+    top = wide_wall_delta(s, o, width)
+    expired = top >> 31
+    at = width
+    remainder = 0
+    while at != 0:
+        at = at - 4
+        value = get_wall_limb(o, 16 + at) | (remainder << 32)
+        quotient = choose(expired == 0, value // 1000000, 0)
+        remainder = value % 1000000
+        put_wall_limb(o, 16 + at, quotient)
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, expired)
+    return 16 + width
+
+def wide_wall_delta(s:readbuf, o:mutbuf, width:u64) -> u64:
+    at = 0
+    scale_carry = 0
+    sum_carry = 0
+    borrow = 0
+    digit = 0
+    # Work modulo the transport width. Because of the admitted spare limb,
+    # the sign bit of the result is the sign of the exact mathematical delta.
+    while at < width:
+        scaled = read_wall_limb(s, 24 + 2 * width + at) * 1000000 + scale_carry
+        scale_carry = scaled >> 32
+        summed = read_wall_limb(s, 24 + at) + (scaled & 4294967295) + sum_carry
+        sum_carry = summed >> 32
+        left = summed & 4294967295
+        right = read_wall_limb(s, 24 + width + at) + borrow
+        borrow = choose(left < right, 1, 0)
+        digit = (left - right) & 4294967295
+        put_wall_limb(o, 16 + at, digit)
+        at = at + 4
+    return digit
+
+def wall_sign_limb(s:readbuf, offset:u64) -> u64:
+    word = read_wall_limb(s, offset)
+    return choose(word == 0 or word == 4294967295, 1, 0)
+
+def read_wall_limb(s:readbuf, offset:u64) -> u64:
+    return byte(s, offset) | (byte(s, offset + 1) << 8) | (byte(s, offset + 2) << 16) | (byte(s, offset + 3) << 24)
+
+def get_wall_limb(o:mutbuf, offset:u64) -> u64:
+    return byte(o, offset) | (byte(o, offset + 1) << 8) | (byte(o, offset + 2) << 16) | (byte(o, offset + 3) << 24)
+
+def put_wall_limb(o:mutbuf, offset:u64, word:u64) -> u64:
+    store(o, offset, word & 255)
+    store(o, offset + 1, (word >> 8) & 255)
+    store(o, offset + 2, (word >> 16) & 255)
+    store(o, offset + 3, word >> 24)
+    return 0
 
 def claim_eligibility(s:readbuf, o:mutbuf) -> u32:
     # Claim, subject kind, candidate plan flag, check count, checks,

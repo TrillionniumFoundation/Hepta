@@ -193,7 +193,21 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         return decision
 
     def wall_window(self, created_ns, now_ns, total_ms):
-        packet = struct.pack('<5Q', MAGIC, 9, created_ns, now_ns, total_ms)
+        values = (created_ns, now_ns, total_ms)
+        if not all(0 <= value < 1 << 64 for value in values):
+            # A whole padding limb carries the exact observed sign. The HIA
+            # kernel supplies arithmetic, overflow handling, and floor.
+            bits = max(value.bit_length() for value in values)
+            words = (bits + 31) // 32 + 1
+            width = 4 * words
+            packet = struct.pack('<3Q', MAGIC, 18, words) + b''.join(
+                value.to_bytes(width, 'little', signed=True) for value in values)
+            expired, raw = self._response(packet, 16 + width, f'<2Q{width}s')
+            remaining = int.from_bytes(raw, 'little')
+            if expired not in (0, 1) or (expired and remaining):
+                raise RuntimeError('invalid wide HIA Agent deadline decision')
+            return bool(expired), remaining
+        packet = struct.pack('<5Q', MAGIC, 9, *values)
         expired, remaining, high = self._response(packet, 32, '<4Q')
         if expired not in (0, 1) or high not in (0, 1) or (expired and (remaining or high)):
             raise RuntimeError('invalid HIA Agent deadline decision')
