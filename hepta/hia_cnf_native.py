@@ -59,6 +59,7 @@ PROJECTION_WORKSPACE = 294912
 PROJECTION_INPUT_LIMIT = 131072
 UNKNOWN, SAT, UNSAT = range(3)
 WRAPPING_PRODUCT = 32
+PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR = 34, 35
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_TRAP_TAGS = {code: index for index, code in enumerate(sorted(TRAP_CODES), 1)}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
@@ -67,6 +68,8 @@ _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.
                     'compare.lt': 12, 'compare.le': 13, 'compare.gt': 14, 'compare.ge': 15,
                     'int.cast': 20, 'int.add.checked': 22, 'int.sub.checked': 23,
                     'int.neg.checked': 23, 'int.mul.wrap': WRAPPING_PRODUCT}
+_GRAPH_OPERATIONS = {**_CORE_OPERATIONS, 'int.neg.checked': 33,
+                     'int.shl.checked': PROJECT_CHECKED_SHL, 'int.shr.checked': PROJECT_CHECKED_SHR}
 
 
 class NativeCnf(NativeHiaJsonImage):
@@ -263,10 +266,8 @@ def _graph_packet(functions, graphs, *, totality):
             buffer.extend(b''.join(struct.pack('<Q', _word_type(item['type'])) for item in block['params']))
             for index, op in enumerate(block['ops'], len(slots)):
                 result, = op['out']
-                role = _CORE_OPERATIONS.get(op['op'], 0)
-                if op['op'] == 'int.neg.checked':
-                    role = 33
-                elif op['op'] == 'int.cast' and op['attrs']['mode'] != 'wrap':
+                role = _GRAPH_OPERATIONS.get(op['op'], 0)
+                if op['op'] == 'int.cast' and op['attrs']['mode'] != 'wrap':
                     role = 0
                 slots[result['name']] = index
                 operands = [slots[argument] for argument in op['args']]

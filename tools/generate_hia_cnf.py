@@ -4,6 +4,7 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS, WORD_WITNESS_REQUEST,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
+                                  PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
                                  LEARNING_REQUEST, RESTART_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
                                  LEARNING_ORDER, LEARNING_HEAD, LEARNING_PHASE,
@@ -957,6 +958,34 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
 def node_width(source:readbuf, node:u64) -> u64:
     return read64(source, 40 + 40 * node)
 
+def mark_observed_nodes(source:readbuf, scratch:mutbuf, nodes:u64, returns:u64, guarded:bool) -> u64:
+    # The first byte of each token row temporarily marks liveness. Nodes
+    # are visited backwards here and consume the mark before encoding.
+    node = 0
+    while node < nodes:
+        store(scratch, 32 + 128 * node, 0)
+        node = node + 1
+    offset = 32 + 40 * nodes
+    end = offset + 16 * returns
+    if guarded:
+        end = end + 16
+    while offset < end:
+        store(scratch, 32 + 128 * read64(source, offset), 1)
+        offset = offset + 8
+    while node > 0:
+        node = node - 1
+        origin = 32 + 40 * node
+        operation = read64(source, origin)
+        if operation > 2 and byte(scratch, 32 + 128 * node) != 0:
+            store(scratch, 32 + 128 * read64(source, origin + 16), 1)
+            unary = (operation == 6 or operation == 20 or operation == 21 or
+                     operation == 26 or (operation >= 28 and operation <= 31))
+            if unary == False:
+                store(scratch, 32 + 128 * read64(source, origin + 24), 1)
+            if operation == 11:
+                store(scratch, 32 + 128 * read64(source, origin + 32), 1)
+    return 0
+
 def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:u64, returns:u64, budget:u64, guarded:bool) -> u32:
     write64(scratch, 0, 1)
     write64(scratch, 8, 0)
@@ -966,45 +995,49 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
         store(scratch, position, 0)
         position = position + 1
     emit_clause(output, scratch, 2, 0, 0)
+    mark_observed_nodes(source, scratch, nodes, returns, guarded)
     node = 0
     while node < nodes:
         origin = 32 + 40 * node
         operation = read64(source, origin)
-        width = read64(source, origin + 8)
-        left = read64(source, origin + 16)
-        right = read64(source, origin + 24)
-        immediate = read64(source, origin + 32)
-        if operation == 32:
-            if encode_product(output, scratch, node, choose(left < right, left, right), choose(left < right, right, left), width) == 0:
-                return TOO_LARGE
-        elif operation >= 26:
-            encode_projection(source, scratch, node, operation, width, left, right, immediate)
-        elif operation == 7 or operation == 8:
-            delta = unequal_bits(output, scratch, left, right, node_width(source, left))
-            if delta == 0:
-                return TOO_LARGE
-            put_token(scratch, 32 + 128 * node, delta ^ (operation & 1))
-        elif operation == 9 or operation == 10:
-            if encode_sum(output, scratch, node, left, right, width, operation) == 0:
-                return TOO_LARGE
-        elif operation >= 22:
-            if encode_sum(output, scratch, node, left, right, node_width(source, left), operation) == 0:
-                return TOO_LARGE
-        elif operation >= 12 and operation <= 19:
-            digit = ordered_comparison(output, scratch, source, operation, left, right)
-            if digit == 0:
-                return TOO_LARGE
-            put_token(scratch, 32 + 128 * node, digit)
-        elif operation >= 20:
-            encode_wrapping_cast(scratch, node, left, width, node_width(source, left), operation == 21)
-        else:
-            bit = 0
-            while bit < width:
-                token = encode_bit(output, scratch, operation, left, right, immediate, bit)
-                if token == 0:
+        # Preserve allocation and witness decoding for every input even
+        # when its computation does not flow to an observed result.
+        if operation == 1 or byte(scratch, 32 + 128 * node) != 0:
+            width = read64(source, origin + 8)
+            left = read64(source, origin + 16)
+            right = read64(source, origin + 24)
+            immediate = read64(source, origin + 32)
+            if operation == 32:
+                if encode_product(output, scratch, node, choose(left < right, left, right), choose(left < right, right, left), width) == 0:
                     return TOO_LARGE
-                put_token(scratch, 32 + 128 * node + 2 * bit, token)
-                bit = bit + 1
+            elif operation >= 26:
+                encode_projection(source, scratch, node, operation, width, left, right, immediate)
+            elif operation == 7 or operation == 8:
+                delta = unequal_bits(output, scratch, left, right, node_width(source, left))
+                if delta == 0:
+                    return TOO_LARGE
+                put_token(scratch, 32 + 128 * node, delta ^ (operation & 1))
+            elif operation == 9 or operation == 10:
+                if encode_sum(output, scratch, node, left, right, width, operation) == 0:
+                    return TOO_LARGE
+            elif operation >= 22:
+                if encode_sum(output, scratch, node, left, right, node_width(source, left), operation) == 0:
+                    return TOO_LARGE
+            elif operation >= 12 and operation <= 19:
+                digit = ordered_comparison(output, scratch, source, operation, left, right)
+                if digit == 0:
+                    return TOO_LARGE
+                put_token(scratch, 32 + 128 * node, digit)
+            elif operation >= 20:
+                encode_wrapping_cast(scratch, node, left, width, node_width(source, left), operation == 21)
+            else:
+                bit = 0
+                while bit < width:
+                    token = encode_bit(output, scratch, operation, left, right, immediate, bit)
+                    if token == 0:
+                        return TOO_LARGE
+                    put_token(scratch, 32 + 128 * node + 2 * bit, token)
+                    bit = bit + 1
         node = node + 1
     mismatch = 3
     offset = 32 + 40 * nodes
@@ -1610,7 +1643,7 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
     if role == 2:
         literal = read64(s, row + 40) & word_mask(width)
         return p_bind(w, typ, p_node(o, w, 2, width, 0, 0, literal))
-    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and role != 32 and role != 33:
+    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and (role < 32 or role > PROJECT_CHECKED_SHR):
         return 0
     first = p_var(w, read64(s, row + 16))
     if first == 0:
@@ -1631,6 +1664,10 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
     if second == 0:
         return 0
     b = second & 65535
+    if role == PROJECT_CHECKED_SHL or role == PROJECT_CHECKED_SHR:
+        if width < 8 or (first >> 16) != typ or (second >> 16) != typ:
+            return 0
+        return p_checked_shift(o, w, typ, role, a, b)
     third = 0
     if role == 11:
         last = p_var(w, read64(s, row + 32))
@@ -1643,6 +1680,36 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
         p_fault(o, w, p_logic(o, w, role + 2 * signed, a, b))
         role = role - 13
     return p_bind(w, typ, p_node(o, w, role, width, a, b, third))
+
+def p_checked_shift(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, count:u64) -> u64:
+    width = p_width(typ)
+    limit = p_node(o, w, 2, width, 0, 0, width)
+    # An unsigned comparison rejects both a count >= width and a signed
+    # negative count, whose word representation has its high bit set.
+    p_fault(o, w, p_logic(o, w, 15, count, limit))
+
+    signed_right = role == PROJECT_CHECKED_SHR and (typ & 128) != 0
+    padding = 0
+    if signed_right:
+        sign = p_node(o, w, 26, 1, a, 0, width - 1)
+        padding = p_node(o, w, 31, width, sign, 0, 0)
+        a = p_node(o, w, 5, width, a, padding, 0)
+    shift = 28
+    if role == PROJECT_CHECKED_SHR:
+        shift = 29
+    power = 1
+    bit = 0
+    while power < width:
+        enabled = p_node(o, w, 26, 1, count, 0, bit)
+        displaced = p_node(o, w, shift, width, a, 0, power)
+        a = p_node(o, w, 11, width, enabled, displaced, a)
+        power = power * 2
+        bit = bit + 1
+    if signed_right:
+        # Complementing a negative input before and after a zero-fill right
+        # shift produces the required sign fill; positive words are unchanged.
+        a = p_node(o, w, 5, width, a, padding, 0)
+    return p_bind(w, typ, a)
 
 def p_fault(o:mutbuf, w:mutbuf, fault:u64) -> u64:
     return write64(w, 88, p_logic(o, w, 4, read_stack(w, 88), fault))
@@ -1658,6 +1725,7 @@ def p_bind(w:mutbuf, typ:u64, node:u64) -> u64:
 def source_program():
     constants = dict(GUARDED_CIRCUIT_REQUEST=GUARDED_CIRCUIT_REQUEST, CIRCUIT_REQUEST=CIRCUIT_REQUEST,
                      CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
+                     PROJECT_CHECKED_SHL=PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR=PROJECT_CHECKED_SHR,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
                      WORD_WITNESS_REQUEST=WORD_WITNESS_REQUEST,

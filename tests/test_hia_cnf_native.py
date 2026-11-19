@@ -392,6 +392,63 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(disproved['counterexample']['observation'], {'status': 'trapped', 'code': 'overflow'})
         self.assertEqual(unsupported['reason'], 'solver_unavailable')
 
+    def test_checked_dynamic_shifts_bind_words_and_first_overflow(self):
+        from hepta import hia_translation_validation as semantics
+        from hepta.hia_cnf_native import _CORE_TRAP_TAGS
+        from hepta.hia_scalar_totality import validate_scalar_totality
+        from tests.test_hia_program import b, c, f, i, m, ret
+
+        def program(typ, opcode, *, guarded=False):
+            width = int(typ[1:])
+            params = [('x', typ), ('count', typ)]
+            operations = []
+            count = 'count'
+            if guarded:
+                operations = [c('mask', typ, width - 1),
+                              i('bit.and', ['count', 'mask'], [('bounded', typ)])]
+                count = 'bounded'
+            operations.append(i(opcode, ['x', count], [('answer', typ)]))
+            return m(f('shift', params, [typ], ['trap'], [b('entry', params, operations, ret('answer'))]))
+
+        for signed in (False, True):
+            for width in (8, 16, 32, 64):
+                typ = ('i' if signed else 'u') + str(width)
+                mask = (1 << width) - 1
+                values = (0, 1, -1, -(1 << (width - 1))) if signed else (0, 1, mask, 1 << (width - 1))
+                counts = (0, 1, width // 2, width - 1, width, width + 1, -1 if signed else mask)
+                for opcode in ('int.shl.checked', 'int.shr.checked'):
+                    raw = program(typ, opcode)
+                    function, = raw['functions']
+                    graph = semantics._profile(function)
+                    nodes, pairs, _ = self.native.project_scalar_graphs(
+                        [function, function], [graph, graph], totality=False)
+                    for value in values:
+                        for count in counts:
+                            trap = not 0 <= count < width
+                            tag = _CORE_TRAP_TAGS['overflow'] if trap else 0
+                            replay = [(pairs[1][0], len(nodes))]
+                            circuit = (*nodes, (2, 8, 0, 0, tag))
+                            if not trap:
+                                result = (value << count if opcode == 'int.shl.checked' else value >> count) & mask
+                                replay.append((pairs[2][0], len(circuit)))
+                                circuit += ((2, width, 0, 0, result),)
+                            self.assertFalse(self.native.check_word_witness(
+                                circuit, [pairs[0], *replay], [value & mask, count & mask]),
+                                (typ, opcode, value, count))
+        with patch.object(semantics, '_z3_module', side_effect=ImportError):
+            safe = validate_scalar_totality(program('i64', 'int.shr.checked', guarded=True))
+            unsafe = validate_scalar_totality(program('i64', 'int.shr.checked'))
+            word = program('i8', 'int.shr.checked', guarded=True)
+            same = semantics.validate_translation(word, deepcopy(word))
+            wrong = semantics.validate_translation(word, program('i8', 'int.shl.checked', guarded=True))
+        self.assertEqual(safe['status'], 'proved', safe)
+        self.assertEqual(unsafe['status'], 'disproved', unsafe)
+        self.assertEqual(unsafe['counterexample']['observation'], {'status': 'trapped', 'code': 'overflow'})
+        self.assertEqual(same['status'], 'proved', same)
+        self.assertEqual(wrong['status'], 'disproved', wrong)
+        for proof in (safe, unsafe, same, wrong):
+            self.assertEqual(proof['checker']['source_identity']['cnf.image.bin'], self.native.image_sha256)
+
     def test_translation_keeps_first_trap_and_return_values_without_z3(self):
         from hepta import hia_translation_validation as semantics
         from tests.test_hia_program import b, branch, c, f, i, m, ret
