@@ -190,11 +190,11 @@ class JournalNativeTests(unittest.TestCase):
 
         session = self.image.session()
         result = {'z': None, 'a': [-0.0, '雪']}
-        with self.assertRaisesRegex(RuntimeError, 'completion envelope'):
+        with self.assertRaisesRegex(RuntimeError, 'response envelope'):
             session.completed(result)
         self.assertEqual(session.prepare(independent_wire({'tool': 'hia_describe', 'arguments': {}})).action,
                          CONTINUE)
-        with self.assertRaisesRegex(RuntimeError, 'completion envelope'):
+        with self.assertRaisesRegex(RuntimeError, 'response envelope'):
             session.completed(result)
         self.assertEqual(session.effect().action, CONTINUE)
         with patch('hepta.hia_agent_journal_native.wire', side_effect=AssertionError('result serialized early')):
@@ -204,6 +204,36 @@ class JournalNativeTests(unittest.TestCase):
                                     'status': 'completed', 'result': result})
         self.assertIs(response['result'], result)
         self.assertEqual(session.finish(response).response, independent_wire(response))
+
+    def test_rejected_envelope_uses_admitted_identity_or_pre_admission_nonce(self):
+        from hepta.hia_agent_contract import VERSION
+
+        session = self.image.session()
+        details = {'message': '雪'}
+        pending = 'unadmitted-' + '5a' * 16
+        for wrong in ('r-' + '5a' * 32, pending[:-1], pending[:-1] + 'G'):
+            with self.assertRaisesRegex(RuntimeError, 'response envelope'):
+                session.rejected(wrong, details)
+        before = session.rejected(pending, details)
+        session.prepare(independent_wire({'tool': 'unknown', 'arguments': {}}))
+        after = session.rejected(pending, details)
+        for response, identity in ((before, pending), (after, session.request_id)):
+            self.assertEqual(tuple(response), ('contract_version', 'request_id', 'status', 'error'))
+            self.assertEqual(response, {'contract_version': VERSION, 'request_id': identity,
+                                        'status': 'rejected', 'error': details})
+            self.assertIs(response['error'], details)
+        self.assertNotEqual(before['request_id'], after['request_id'])
+
+        with self.selected():
+            service = HIAAgentService(self.case / 'selected-rejection')
+            self.addCleanup(service.close)
+            with patch.object(service, '_error', side_effect=AssertionError('host envelope used')):
+                invalid = service.call('unknown', {})
+                unserializable = service.call('hia_describe', {'set'})
+            self.assertEqual(invalid['error']['code'], 'E_HIA_TOOL')
+            self.assertTrue(invalid['request_id'].startswith('r-'))
+            self.assertEqual(unserializable['error']['code'], 'E_HIA_REJECTED')
+            self.assertTrue(unserializable['request_id'].startswith('unadmitted-'))
 
     def test_ack_order_conflict_unknown_and_special_verification_replay(self):
         for tool in ('hia_artifact', 'hia_verify', 'hia_adopt'):

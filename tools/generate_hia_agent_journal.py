@@ -29,8 +29,8 @@ MAGIC = int.from_bytes(b'HIAJRN02', 'little')
 
 ENTRY = r'''
 def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(w) >= 8 and get(w, 0) == 13:
-        return completed_envelope(s, o, w)
+    if length(w) >= 8 and (get(w, 0) == 13 or get(w, 0) == 14):
+        return response_envelope(s, o, w)
     if length(o) < 16777728 or length(w) < 4256 + 32768:
         return 4294967293
     stage = get(w, 0)
@@ -106,20 +106,56 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     copy_state(o, w)
     return answer
 
-def completed_envelope(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) != 0 or length(w) != 520 or length(o) < 192:
+def response_envelope(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) != 520 or length(o) < 192:
         return 4294967293
-    if get(w, 8) != MAGIC_VALUE or get(w, 16) != 10 or word_at(w, 200, 2) != 11634:
+    completed = get(w, 0) == 13
+    magic = get(w, 8)
+    phase = get(w, 16)
+    if completed and phase != 10:
         return 4294967293
-    # The actual request ID was assigned during admission. The result is a
-    # foreign object handle, not another serialization of the result body.
-    completed_prefix(o)
+    admitted = magic == MAGIC_VALUE and word_at(w, 200, 2) == 11634
+    if admitted:
+        if length(s) != 0 or phase == 11:
+            return 4294967293
+        end = admitted_response(o, w)
+    else:
+        if completed or magic != 0 or phase != 0 or length(s) != 43:
+            return 4294967293
+        end = unadmitted_response(s, o)
+        if end == 4294967293:
+            return 4294967293
+    if completed:
+        completed_suffix(o, end)
+        return end + COMPLETED_SUFFIX_BYTES
+    rejected_suffix(o, end)
+    return end + REJECTED_SUFFIX_BYTES
+
+def admitted_response(o:mutbuf, w:mutbuf) -> u64:
+    # The actual request ID was assigned during admission. A renderer cannot
+    # replace it with an identifier supplied later by the service adapter.
+    admitted_prefix(o, 0)
     index = 0
     while index < 66:
-        store(o, COMPLETED_PREFIX_BYTES + index, byte(w, 200 + index))
+        store(o, RESPONSE_PREFIX_BYTES + index, byte(w, 200 + index))
         index = index + 1
-    completed_suffix(o)
-    return COMPLETED_RECIPE_BYTES
+    return RESPONSE_PREFIX_BYTES + 66
+
+def unadmitted_response(s:readbuf, o:mutbuf) -> u64:
+    if input_word(s, 0) != UNADMITTED_FIRST_WORD or byte(s, 8) != 101 or byte(s, 9) != 100 or byte(s, 10) != 45:
+        return 4294967293
+    index = 11
+    while index < 43:
+        digit = byte(s, index)
+        if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
+            return 4294967293
+        index = index + 1
+    unadmitted_prefix(o, 0)
+    index = 0
+    while index < 43:
+        store(o, RESPONSE_PREFIX_BYTES + index, byte(s, index))
+        index = index + 1
+    return RESPONSE_PREFIX_BYTES + 43
 
 def copy_state(o:mutbuf, w:mutbuf) -> u64:
     index = 0
@@ -598,13 +634,20 @@ def word_at(w:mutbuf, start:u64, size:u64) -> u64:
 
 def matcher(name, values):
     result = f'\ndef {name}(w:mutbuf, start:u64, size:u64) -> u64:\n'
+    groups = {}
     for number, value in enumerate(values, 1):
         raw = value.encode()
-        chunks = [(offset, raw[offset:offset + 8]) for offset in range(0, len(raw), 8)]
-        checks = [f'size == {len(raw)}'] + [
-            f'word_at(w, start + {offset}, {len(chunk)}) == {int.from_bytes(chunk, "little")}'
-            for offset, chunk in chunks]
-        result += '    if ' + ' and '.join(checks) + f':\n        return {number}\n'
+        groups.setdefault(len(raw), []).append((number, raw))
+    for size, candidates in groups.items():
+        result += f'    if size == {size}:\n'
+        chunks = [(offset, min(8, size - offset)) for offset in range(0, size, 8)]
+        for offset, count in chunks:
+            result += f'        part{offset} = word_at(w, start + {offset}, {count})\n'
+        for number, raw in candidates:
+            checks = [f'part{offset} == {int.from_bytes(raw[offset:offset + count], "little")}'
+                      for offset, count in chunks]
+            result += '        if ' + ' and '.join(checks) + f':\n            return {number}\n'
+        result += '        return 0\n'
     return result + '    return 0\n'
 
 
@@ -613,7 +656,7 @@ def literal(name, value):
         f'    append_byte(o, w, {b})\n' for b in value) + '    return 0\n'
 
 
-def completed_recipe():
+def response_recipe():
     from hepta.hia_agent_contract import VERSION
 
     def field(key, value=None, *, width=None):
@@ -625,24 +668,29 @@ def completed_recipe():
         text = value.encode('ascii')
         return bytes((0, len(key), len(text))) + key + text
 
-    def writer(name, start, data):
-        rows = [f'\ndef {name}(output:mutbuf) -> u64:\n']
+    def writer(name, data):
+        rows = [f'\ndef {name}(output:mutbuf, start:u64) -> u64:\n']
         chunks = range(0, len(data) - len(data) % 8, 8)
         for index in chunks:
             value = int.from_bytes(data[index:index + 8], 'little')
-            rows.append(f'    put(output, {start + index}, {value})\n')
+            rows.append(f'    put(output, start + {index}, {value})\n')
         for index in range(len(data) - len(data) % 8, len(data)):
-            rows.append(f'    store(output, {start + index}, {data[index]})\n')
+            rows.append(f'    store(output, start + {index}, {data[index]})\n')
         rows.append('    return 0\n')
         return ''.join(rows)
 
-    prefix = field('contract_version', VERSION) + field('request_id', width=66)
-    suffix = field('status', 'completed') + field('result')
-    size = len(prefix) + 66 + len(suffix)
-    if size > 192:
-        raise ValueError('journal completion recipe exceeds its private envelope')
-    functions = writer('completed_prefix', 0, prefix) + writer('completed_suffix', len(prefix) + 66, suffix)
-    return len(prefix), size, functions
+    version = field('contract_version', VERSION)
+    admitted = version + field('request_id', width=66)
+    unadmitted = version + field('request_id', width=43)
+    completed = field('status', 'completed') + field('result')
+    rejected = field('status', 'rejected') + field('error')
+    if len(admitted) != len(unadmitted) or len(admitted) + 66 + max(len(completed), len(rejected)) > 192:
+        raise ValueError('journal response recipe exceeds its private envelope')
+    functions = ''.join(writer(name, data) for name, data in (
+        ('admitted_prefix', admitted), ('unadmitted_prefix', unadmitted),
+        ('completed_suffix', completed), ('rejected_suffix', rejected),
+    ))
+    return len(admitted), len(completed), len(rejected), functions
 
 
 def canonical_program():
@@ -783,11 +831,13 @@ def diagnostic_program():
 
 def source_program():
     restore = WORKER_ENTRY[WORKER_ENTRY.index('\ndef restore_order('):WORKER_ENTRY.index('\ndef request_fields(')]
-    prefix_size, recipe_size, completion = completed_recipe()
+    prefix_size, completed_size, rejected_size, recipes = response_recipe()
     entry = (ENTRY.replace('MAGIC_VALUE', str(MAGIC))
-             .replace('COMPLETED_PREFIX_BYTES', str(prefix_size)).replace('COMPLETED_RECIPE_BYTES', str(recipe_size)))
+             .replace('RESPONSE_PREFIX_BYTES', str(prefix_size))
+             .replace('COMPLETED_SUFFIX_BYTES', str(completed_size)).replace('REJECTED_SUFFIX_BYTES', str(rejected_size))
+             .replace('UNADMITTED_FIRST_WORD', str(int.from_bytes(b'unadmitt', 'little'))))
     return '\n'.join((
-        entry, completion, catalog_program(),
+        entry, recipes, catalog_program(),
         matcher('tool_code', TOOLS),
         matcher('field_code', ('tool', 'arguments', 'request_key', 'digest', 'status', 'state', 'error')),
         matcher('value_code', ('completed', 'rejected')),

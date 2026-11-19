@@ -27,7 +27,7 @@ HEADER_OFFSET = MAX_BYTES * 2
 STATE_BYTES = 512
 PRIVATE_BYTES = 32768
 MAGIC = int.from_bytes(b'HIAJRN02', 'little')
-COMPLETED_STAGE, ENVELOPE_CAPACITY = 13, 192
+COMPLETED_STAGE, REJECTED_STAGE, ENVELOPE_CAPACITY = 13, 14, 192
 NONE, CONTINUE, LOOKUP, RESERVE, CACHE, REPLAY, VERIFY_REPLAY, ALIAS, ATOMIC, JOURNAL, FINAL, REFUSE, BOUND = range(13)
 COST_WRITE, JOURNAL_WRITE = 1, 2
 CONTEXT_NONE, CONTEXT_READ, CONTEXT_BUDGET, CONTEXT_CANDIDATE = range(4)
@@ -284,40 +284,47 @@ class JournalSession:
         return self._run(5)
 
     def completed(self, result):
+        return self._envelope(COMPLETED_STAGE, b'', result)
+
+    def rejected(self, request_id, details):
+        pending = request_id.encode('ascii') if self.request_id is None else b''
+        return self._envelope(REJECTED_STAGE, pending, details)
+
+    def _envelope(self, stage, observed, value):
         # Capture a small, read-only recipe. The result itself is not encoded,
         # copied, or inspected before the ordinary output-schema check.
-        frame = struct.pack('<Q', COMPLETED_STAGE) + self._state
-        source = ctypes.create_string_buffer(1)
+        frame = struct.pack('<Q', stage) + self._state
+        source = ctypes.create_string_buffer(observed, max(1, len(observed)))
         scratch = ctypes.create_string_buffer(frame, len(frame))
         canary = bytes(range(64))
         output = ctypes.create_string_buffer(ENVELOPE_CAPACITY + len(canary))
         output[ENVELOPE_CAPACITY:] = canary
-        size = self.image._entry(source, 0, output, ENVELOPE_CAPACITY, scratch, len(frame))
+        size = self.image._entry(source, len(observed), output, ENVELOPE_CAPACITY, scratch, len(frame))
         if not 0 < size <= ENVELOPE_CAPACITY or scratch.raw != frame or output[ENVELOPE_CAPACITY:] != canary:
-            raise RuntimeError('invalid native journal completion envelope')
+            raise RuntimeError('invalid native journal response envelope')
 
         response, cursor, bound = {}, 0, False
         while cursor < size:
             if size - cursor < 3:
-                raise RuntimeError('truncated native journal completion field')
+                raise RuntimeError('truncated native journal response field')
             kind, key_size, text_size = struct.unpack_from('<3B', output, cursor)
             start = cursor + 3
             text = start + key_size
             cursor = text + text_size
             if not key_size or cursor > size:
-                raise RuntimeError('invalid native journal completion field extent')
+                raise RuntimeError('invalid native journal response field extent')
             key = output[start:text].decode('ascii')
             if key in response:
-                raise RuntimeError('duplicate native journal completion field')
+                raise RuntimeError('duplicate native journal response field')
             if kind == 0:
                 response[key] = output[text:cursor].decode('ascii')
             elif kind == 1 and not bound and not text_size:
-                response[key] = result
+                response[key] = value
                 bound = True
             else:
-                raise RuntimeError('invalid native journal completion field kind')
+                raise RuntimeError('invalid native journal response field kind')
         if not bound:
-            raise RuntimeError('native journal completion did not bind its result')
+            raise RuntimeError('native journal response did not bind its payload')
         return response
 
     def inline(self, response):
@@ -464,8 +471,10 @@ def call_with_native_journal(service, tool, arguments, manifest):
             response = native_step(session.completed, result, acknowledgement=True)
             service._validate_tool_response(tool, response)
     except domain_errors as exc:
+        if native_failed:
+            raise
         try:
-            response = service._error(request_id, exc)
+            response = native_step(session.rejected, request_id, service._error_details(exc), acknowledgement=True)
         except BaseException:
             native_failed = True
             raise

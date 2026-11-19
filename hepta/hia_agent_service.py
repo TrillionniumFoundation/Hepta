@@ -323,6 +323,10 @@ class HIAAgentService:
                     "external_costs_complete": False, "expected_invocations": "0"}}
 
     def _error(self, request_id, exc):
+        return {"contract_version": VERSION, "request_id": request_id, "status": "rejected",
+                "error": self._error_details(exc)}
+
+    def _error_details(self, exc):
         code = getattr(exc, "code", "E_HIA_REJECTED")
         if type(code) is not str:
             code = "E_HIA_REJECTED"
@@ -331,11 +335,10 @@ class HIAAgentService:
             # A failed CAS rolls back its effect transaction first. Publish the
             # diagnostic afterwards so its issued reference remains readable.
             details = self.store.json(exc.pending_slot_snapshot, "slot-snapshot")
-        return {"contract_version": VERSION, "request_id": request_id, "status": "rejected",
-            "error": {"code": code[:128], "phase": getattr(exc, "phase", "admission"),
+        return {"code": code[:128], "phase": getattr(exc, "phase", "admission"),
                 "message": str(exc)[:4096] or type(exc).__name__,
                 "retry_action": getattr(exc, "retry_action", "correct_input"),
-                "details_artifact": details}}
+                "details_artifact": details}
 
     def call(self, tool, arguments):
         from .hia_program import native_verified_program_scope
