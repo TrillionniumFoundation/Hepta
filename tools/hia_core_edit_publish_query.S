@@ -23,6 +23,8 @@
 .equ OUTPUT_N,262144
 .equ PAYLOAD_N,33554432
 .equ VIEW_PACKET_N,1056768
+.equ DRIVER_TEXT,CTRL+2048
+.equ DRIVER_TEXT_LIMIT,512
 _start:
  cmp QWORD PTR [rsp],2
  jne usage
@@ -208,6 +210,9 @@ input_complete:
  cmp rax,WORK_N
  ja io_failure
  call run_edit_owner
+ mov r10d,0xffffffff
+ cmp rax,r10
+ je driver_refusal
  call scalar_status
  test rax,rax
  jz invalid
@@ -537,6 +542,26 @@ scalar_status:
  cmp rax,r10
  je invalid
  ret
+driver_refusal:
+ mov rdx,[r13+DRIVER_TEXT-8]
+ test rdx,rdx
+ jz invalid
+ cmp rdx,DRIVER_TEXT_LIMIT
+ ja io_failure
+ lea rsi,[r13+DRIVER_TEXT]
+write_refusal:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je write_refusal
+ test rax,rax
+ jle io_failure
+ cmp rax,rdx
+ ja io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz write_refusal
 invalid:
  mov edi,2
  jmp exit

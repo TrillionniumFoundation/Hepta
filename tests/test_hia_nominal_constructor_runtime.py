@@ -416,6 +416,40 @@ def check_ordinary(executable, run):
     check_core_ingress(executable)
     check_source_files(executable)
     check_argument_cli(executable)
+    check_edit_query_refusals(executable)
+
+
+def check_edit_query_refusals(executable):
+    from hepta.cli import _reference_hia_main
+
+    source = Path(__file__).resolve().parents[1] / 'examples/hia_safe_core/scalar_add.core.hepta'
+    function = json.loads(source.read_bytes())['functions'][0]
+    block = function['blocks'][0]
+    output = next(p['name'] for op in block['ops'] for p in op['out'])
+    known = (function['name'], block['id'], output, 'op')
+    cases = (
+        ('absent', 'absent', 'absent', 'type'),
+        (*known[:3], 'op,op'),
+        (*known[:3], ''),
+        ('absent', *known[1:]),
+        (known[0], 'absent', *known[2:]),
+        (*known[:2], 'absent', known[3]),
+    )
+    with TemporaryDirectory(prefix='hia-cli-query-refusal-') as temporary:
+        destination = Path(temporary) / 'not-created' / 'query.hepta'
+        for selection in cases:
+            for publication in ([], ['-o', str(destination)]):
+                selectors = zip(('--function', '--block', '--value', '--fields'), selection, strict=True)
+                args = ['edit-query', str(source), *(word for pair in selectors for word in pair), *publication]
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    status = _reference_hia_main(args)
+                result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                        timeout=20, check=False)
+                assert (result.returncode, result.stdout, result.stderr) == (
+                    status, stdout.getvalue().encode(), b''), (selection, publication, result)
+                assert status == 2 and not destination.parent.exists()
+    print(f'{len(cases) * 2} exact edit-query refusals before publication')
 
 
 def check_argument_cli(executable):

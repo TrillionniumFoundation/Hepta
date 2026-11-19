@@ -25,6 +25,8 @@
 .equ ORIGIN_TAG,CTRL+1536
 .equ ORIGIN_BYTES,CTRL+1544
 .equ ORIGIN_MAGIC,3544423407359707464
+.equ DRIVER_TEXT,CTRL+2048
+.equ DRIVER_TEXT_LIMIT,512
 _start:
  mov r15,rsp
  cmp QWORD PTR [r15],3
@@ -193,6 +195,12 @@ decode_hole: .long 0
  mov r9d,WORK_N
  .byte 0xe8
 facts_hole: .long 0
+ mov r10d,0xffffffff
+ cmp rax,r10
+ jne facts_status
+ cmp QWORD PTR [rbp+COMPACT_MODE],0
+ je driver_refusal
+facts_status:
  call scalar_status
  test rax,rax
  jz invalid
@@ -407,6 +415,26 @@ HIA_status:
  ja io_failure
  mov rdi,rax
  jmp exit_process
+driver_refusal:
+ mov rdx,[r13+DRIVER_TEXT-8]
+ test rdx,rdx
+ jz invalid
+ cmp rdx,DRIVER_TEXT_LIMIT
+ ja io_failure
+ lea rsi,[r13+DRIVER_TEXT]
+write_refusal:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je write_refusal
+ test rax,rax
+ jle io_failure
+ cmp rax,rdx
+ ja io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz write_refusal
 invalid:
  mov edi,2
  jmp exit_process
