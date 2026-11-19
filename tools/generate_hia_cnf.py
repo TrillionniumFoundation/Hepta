@@ -2,7 +2,7 @@
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
-                                  CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS,
+                                  CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS, WORD_WITNESS_REQUEST,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
                                  LEARNING_REQUEST, RESTART_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
@@ -25,6 +25,8 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
         return solve_sparse(source, result, stack, magic)
     if magic == CIRCUIT_REQUEST or magic == GUARDED_CIRCUIT_REQUEST:
         return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
+    if magic == WORD_WITNESS_REQUEST:
+        return check_word_witness(source, stack)
     if magic != REQUEST or length(stack) < WORKSPACE:
         return INVALID
     variables = read64(source, 8)
@@ -732,6 +734,11 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, guarded:bool) 
         expected_size = end + 16
     if length(source) != expected_size:
         return INVALID
+    if valid_circuit(source, nodes, returns, guarded) == 0:
+        return INVALID
+    return encode_checked_circuit(source, output, scratch, nodes, returns, budget, guarded)
+
+def valid_circuit(source:readbuf, nodes:u64, returns:u64, guarded:bool) -> u64:
     index = 0
     while index < nodes:
         origin = 32 + 40 * index
@@ -741,23 +748,145 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, guarded:bool) 
         right = read64(source, origin + 24)
         immediate = read64(source, origin + 32)
         if valid_node(source, index, operation, width, left, right, immediate) == 0:
-            return INVALID
+            return 0
         index = index + 1
+    return_offset = 32 + 40 * nodes
     index = 0
     while index < returns:
         left = read64(source, return_offset + 16 * index)
         right = read64(source, return_offset + 16 * index + 8)
         if left >= nodes or right >= nodes or node_width(source, left) != node_width(source, right):
-            return INVALID
+            return 0
         index = index + 1
     if guarded:
+        end = return_offset + 16 * returns
         left_guard = read64(source, end)
         right_guard = read64(source, end + 8)
         if left_guard >= nodes or right_guard >= nodes:
-            return INVALID
+            return 0
         if node_width(source, left_guard) != 1 or node_width(source, right_guard) != 1:
-            return INVALID
-    return encode_checked_circuit(source, output, scratch, nodes, returns, budget, guarded)
+            return 0
+    return 1
+
+def check_word_witness(source:readbuf, scratch:mutbuf) -> u32:
+    nodes = read64(source, 8)
+    returns = read64(source, 16)
+    guards = read64(source, 24)
+    if nodes > CIRCUIT_NODES or returns > CIRCUIT_RETURNS or guards > 1 or length(scratch) < nodes * 8:
+        return INVALID
+    return_offset = 32 + 40 * nodes
+    end = return_offset + 16 * returns
+    begin = end + 16 * guards
+    if length(source) < begin or length(source) > begin + 8 * nodes:
+        return INVALID
+    if valid_circuit(source, nodes, returns, guards != 0) == 0:
+        return INVALID
+    if evaluate_word_nodes(source, scratch, nodes, begin) == 0:
+        return INVALID
+    if guards != 0:
+        left_guard = read_stack(scratch, 8 * read64(source, end))
+        right_guard = read_stack(scratch, 8 * read64(source, end + 8))
+        if left_guard != right_guard:
+            return 1
+        if left_guard == 1:
+            return 0
+    while return_offset < end:
+        left = read_stack(scratch, 8 * read64(source, return_offset))
+        right = read_stack(scratch, 8 * read64(source, return_offset + 8))
+        if left != right:
+            return 1
+        return_offset = return_offset + 16
+    return 0
+
+def evaluate_word_nodes(source:readbuf, scratch:mutbuf, nodes:u64, at:u64) -> u64:
+    node = 0
+    while node < nodes:
+        origin = 32 + 40 * node
+        operation = read64(source, origin)
+        width = read64(source, origin + 8)
+        word = read64(source, origin + 32)
+        if operation == 1:
+            if length(source) - at < 8:
+                return 0
+            word = read64(source, at)
+            if word > word_mask(width):
+                return 0
+            at = at + 8
+        elif operation > 2:
+            word = evaluate_word_node(source, scratch, operation, width, origin)
+        write64(scratch, 8 * node, word)
+        node = node + 1
+    return choose(at == length(source), 1, 0)
+
+def evaluate_word_node(source:readbuf, scratch:mutbuf, operation:u64, width:u64, origin:u64) -> u64:
+    left = read64(source, origin + 16)
+    right = read64(source, origin + 24)
+    immediate = read64(source, origin + 32)
+    a = read_stack(scratch, 8 * left)
+    b = read_stack(scratch, 8 * right)
+    if operation == 3:
+        return a & b
+    if operation == 4:
+        return a | b
+    if operation == 5:
+        return a ^ b
+    if operation == 6:
+        return a ^ word_mask(width)
+    if operation == 7 or operation == 8:
+        return choose((a == b) == (operation == 7), 1, 0)
+    if operation == 9:
+        return (a + b) & word_mask(width)
+    if operation == 10:
+        return (a - b) & word_mask(width)
+    if operation == 11:
+        return choose(a == 1, b, read_stack(scratch, 8 * immediate))
+    source_width = node_width(source, left)
+    if operation < 20:
+        return evaluate_word_order(a, b, source_width, operation)
+    if operation >= 22 and operation <= 25:
+        return evaluate_word_overflow(a, b, source_width, operation)
+    if operation == 26:
+        return (a >> immediate) & word_mask(width)
+    if operation == 27:
+        return (a << node_width(source, right)) | b
+    if operation == 28 or operation == 29:
+        if immediate >= width:
+            return 0
+        return choose(operation == 28, (a << immediate) & word_mask(width), a >> immediate)
+    if (operation == 21 or operation == 31) and (a >> (source_width - 1)) == 1:
+        a = a | (WORD_MASK ^ word_mask(source_width))
+    return a & word_mask(width)
+
+def word_mask(width:u64) -> u64:
+    if width == 64:
+        return WORD_MASK
+    return (1 << width) - 1
+
+def evaluate_word_order(a:u64, b:u64, width:u64, operation:u64) -> u64:
+    if operation >= 16:
+        sign = 1 << (width - 1)
+        a = a ^ sign
+        b = b ^ sign
+    relation = operation & 3
+    if relation == 0:
+        return choose(a < b, 1, 0)
+    if relation == 1:
+        return choose(a <= b, 1, 0)
+    if relation == 2:
+        return choose(a > b, 1, 0)
+    return choose(a >= b, 1, 0)
+
+def evaluate_word_overflow(a:u64, b:u64, width:u64, operation:u64) -> u64:
+    if operation == 22:
+        return choose(a > word_mask(width) - b, 1, 0)
+    if operation == 23:
+        return choose(a < b, 1, 0)
+    sign = 1 << (width - 1)
+    if operation == 24:
+        result = a + b
+        return choose(((a ^ result) & (b ^ result) & sign) != 0, 1, 0)
+    result = a - b
+    return choose(((a ^ b) & (a ^ result) & sign) != 0, 1, 0)
 
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width == 0 or width > 64:
@@ -1164,6 +1293,7 @@ def source_program():
                      CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
+                     WORD_WITNESS_REQUEST=WORD_WITNESS_REQUEST,
                      TOO_LARGE=0xfffffffc, BATCH_REQUEST=BATCH_REQUEST, SPARSE_REQUEST=SPARSE_REQUEST,
                      WATCHED_REQUEST=WATCHED_REQUEST, WATCH_HEADS=WATCH_HEADS,
                      WATCH_ROWS=WATCH_ROWS, WATCH_ROW_BYTES=WATCH_ROW_BYTES,

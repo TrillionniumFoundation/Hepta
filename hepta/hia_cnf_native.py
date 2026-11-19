@@ -46,6 +46,7 @@ LEARNING_TOKENS = LEARNING_TEMP + 2 * SPARSE_VARIABLES
 LEARNING_BYTES = LEARNING_TOKENS + 2 * LEARNED_ENTRIES
 CIRCUIT_REQUEST = int.from_bytes(b'HIABVC01', 'little')
 GUARDED_CIRCUIT_REQUEST = int.from_bytes(b'HIABVG01', 'little')
+WORD_WITNESS_REQUEST = int.from_bytes(b'HIABVW01', 'little')
 CIRCUIT_NODES = 256
 CIRCUIT_RETURNS = 16
 CIRCUIT_CAPACITY = 192 * 1024
@@ -148,7 +149,38 @@ class NativeCnf(NativeHiaJsonImage):
         if mode != SPARSE_REQUEST:
             formula = struct.pack('<Q', mode) + formula[8:]
         verdict, model, cost = self._solve_sparse_frame(formula, variables, steps)
+        if verdict == SAT:
+            words = []
+            for node, (operation, width, _, _, _) in enumerate(nodes):
+                if operation == 1:
+                    tokens = struct.unpack_from(f'<{width}H', scratch, 32 + 128 * node)
+                    if any(token < 4 or token & 1 or token >> 1 > variables for token in tokens):
+                        raise RuntimeError('invalid HIA circuit input projection')
+                    words.append(sum(((model >> ((token >> 1) - 1)) & 1) << bit
+                                     for bit, token in enumerate(tokens)))
+            if not self.check_word_witness(nodes, returns, words, traps=traps):
+                raise RuntimeError('native HIA SAT model did not satisfy the original word circuit')
         return verdict, model, cost, variables, clauses, formula
+
+    def check_word_witness(self, nodes, returns, words, *, traps=None):
+        """Check a candidate mismatch directly on words, without encoding CNF."""
+        if len(nodes) > CIRCUIT_NODES or len(returns) > CIRCUIT_RETURNS or len(words) > len(nodes):
+            raise ValueError('outside HIA word-witness profile')
+        raw = bytearray(struct.pack('<4Q', WORD_WITNESS_REQUEST, len(nodes), len(returns), int(traps is not None)))
+        for instruction in nodes:
+            raw.extend(struct.pack('<5Q', *instruction))
+        for pair in returns:
+            raw.extend(struct.pack('<2Q', *pair))
+        if traps is not None:
+            raw.extend(struct.pack('<2Q', *traps))
+        raw.extend(struct.pack(f'<{len(words)}Q', *words))
+        source = ctypes.create_string_buffer(bytes(raw), len(raw))
+        scratch = ctypes.create_string_buffer(max(8, len(nodes) * 8))
+        output = ctypes.create_string_buffer(32)
+        status = self._entry(source, len(raw), output, len(output), scratch, len(scratch))
+        if status not in (0, 1):
+            raise ValueError('HIA rejected the concrete word witness')
+        return bool(status)
 
 
 def _search_mode(*, batch, watched, learning, restarts):

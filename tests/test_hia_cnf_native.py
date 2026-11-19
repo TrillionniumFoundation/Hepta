@@ -227,6 +227,26 @@ class CnfInstalledTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'circuit representation'):
             self.native.solve_circuit([(6, 1, 0, 0, 0)], [(0, 0)], steps=10)
 
+    def test_concrete_word_witness_rejects_false_sat_assignments(self):
+        from unittest.mock import patch
+
+        nodes = [(1, 8, 0, 0, 0), (2, 8, 0, 0, 0)]
+        self.assertTrue(self.native.check_word_witness(nodes, [(0, 1)], [1]))
+        self.assertFalse(self.native.check_word_witness(nodes, [(0, 1)], [0]))
+        for malformed in ([], [0, 0], [256]):
+            with self.assertRaisesRegex(ValueError, 'concrete word witness'):
+                self.native.check_word_witness(nodes, [(0, 1)], malformed)
+        with patch.object(self.native, '_solve_sparse_frame', return_value=(SAT, 1, 0)):
+            with self.assertRaisesRegex(RuntimeError, 'did not satisfy the original word circuit'):
+                self.native.solve_circuit(nodes, [(0, 1)], steps=1000)
+
+        interleaved = [(1, 8, 0, 0, 0), (2, 8, 0, 0, 11), (9, 8, 0, 1, 0),
+                       (1, 8, 0, 0, 0), (7, 1, 2, 3, 0), (2, 1, 0, 0, 0)]
+        result = self.native.solve_circuit(interleaved, [(4, 5)], steps=100_000, restarts=True)
+        self.assertEqual(result[0], SAT)
+        self.assertTrue(self.native.check_word_witness(interleaved, [(4, 5)], [250, 5]))
+        self.assertFalse(self.native.check_word_witness(interleaved, [(4, 5)], [250, 6]))
+
     def test_native_wrapping_arithmetic_matches_independent_words(self):
         rng = random.Random(862910)
         for width in (8, 16, 32, 64):
