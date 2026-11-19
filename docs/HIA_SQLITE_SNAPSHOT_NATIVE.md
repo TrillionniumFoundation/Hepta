@@ -623,3 +623,10 @@ namespace naming, real kernel entropy admission, modes, the initial
 adapter passes only fixed effects to Linux; no external programs or SQL
 are used to initialize state. The initializer does not move data or select
 the result as the Agent's active Store.
+
+The v15 worker release pins that initializer and runs it on first access to
+a fresh state root. Workers serialize the initial backend selection on the
+state directory itself; no lock file is added. Existing native state reopens
+without reinitialization. A root containing legacy SQLite data or retained
+artifacts without a native namespace is not treated as fresh. This does not
+migrate an existing store or change the default worker profile.

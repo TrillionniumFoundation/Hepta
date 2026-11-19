@@ -281,6 +281,25 @@ def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=
     except PublicationRejected as exc:_native_artifact_rejection(exc)
 
 
+@contextmanager
+def _claim_state_directory(root):
+    import fcntl
+
+    fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        opened = os.fstat(fd)
+        observed = root.lstat()
+        if (not os.path.samestat(opened, observed) or opened.st_uid != os.geteuid()
+                or opened.st_mode & 0o022):
+            reject("E_HIA_STORE", "state directory changed while selecting its journal")
+        yield fd
+        if not os.path.samestat(opened, root.lstat()):
+            reject("E_HIA_STORE", "state directory changed while selecting its journal")
+    finally:
+        os.close(fd)
+
+
 class AgentStore:
     def __init__(self, root, *, native_store=None):
         from .hia_execution_budget import admitted_execution_budget, execution_budget_store
@@ -297,8 +316,16 @@ class AgentStore:
         if native_store is None and os.path.lexists(self.root / "store" / "namespace.bin"):
             reject("E_HIA_STORE", "this state root belongs to the explicitly selected native Store")
         if native_store is not None:
-            if any(os.path.lexists(str(database) + suffix) for suffix in ("", "-wal", "-shm", "-journal")):
-                reject("E_HIA_STORE", "native Store requires a separate staged state root")
+            from .hia_native_helpers import pinned_store_initializer
+
+            initializer = pinned_store_initializer(native_store)
+            with _claim_state_directory(self.root) as parent:
+                if any(os.path.lexists(str(database) + suffix) for suffix in ("", "-wal", "-shm", "-journal")):
+                    reject("E_HIA_STORE", "native Store requires a separate staged state root")
+                if initializer is not None and not os.path.lexists(self.root / "store"):
+                    from .hia_agent_store_native import initialize_store
+
+                    initialize_store(self.root, parent, initializer)
         self.artifacts = self.root / "artifacts"
         self.artifacts.mkdir(mode=0o700, exist_ok=True)
         if self.artifacts.is_symlink():
@@ -329,7 +356,17 @@ class AgentStore:
                 reject("E_HIA_STORE", "journal must be an owned private ordinary file")
         import sqlite3
         self.database_error = sqlite3.Error
-        self.db = sqlite3.connect(database, isolation_level=None, timeout=10, check_same_thread=False)
+        connection = None
+        try:
+            with _claim_state_directory(self.root):
+                if os.path.lexists(self.root / "store" / "namespace.bin"):
+                    reject("E_HIA_STORE", "this state root belongs to the explicitly selected native Store")
+                connection = sqlite3.connect(database, isolation_level=None, timeout=10, check_same_thread=False)
+        except BaseException:
+            if connection is not None:
+                connection.close()
+            raise
+        self.db = connection
         os.chmod(database, 0o600)
         self.database = database
         database_info = database.lstat()

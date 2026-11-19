@@ -1169,7 +1169,7 @@ def support_contract(root=ROOT):
             'installed_admission_transport': {
                 'executable': 'hia-worker-terminal',
                 'frames': ['HIAWRA02', 'HIAWRO02'],
-                'worker_release_selection': 'hepta.hia.native-helpers.v14; sealed raw request, HIA arena returned',
+                'worker_release_selection': 'hepta.hia.native-helpers.v14/v15; sealed raw request, HIA arena returned',
                 'parsed_refusal_correlation_preserved': True,
                 'opens_service_or_store': False,
             },
@@ -1179,10 +1179,18 @@ def support_contract(root=ROOT):
                 'native_owners': ['request admission', 'terminal response JSON shape and canonicalization',
                                   'authenticated terminal envelope'],
                 'opens_service_or_store': False,
-                'worker_release_selection': 'hepta.hia.native-helpers.v13/v14; sealed request and terminal executable',
+                'worker_release_selection': 'hepta.hia.native-helpers.v13/v14/v15; sealed request and terminal executable',
             },
             'service_journal_and_foreign_objects_are_hosted': True,
             'default_worker_changed': False,
+        },
+        'worker_store_startup': {
+            'selection': 'hepta.hia.native-helpers.v15; exact installed initializer pin',
+            'initializer': 'hia-agent-store-init',
+            'backend_selection_serialized_on_state_directory': True,
+            'reinitialize_existing_namespace': False,
+            'existing_sqlite_or_retained_artifacts_without_namespace_refuse': True,
+            'migration_or_public_activation': False,
         },
         'agent_read_page': {
             'source': 'examples/hia_bootstrap/agent_read_page.hepta',

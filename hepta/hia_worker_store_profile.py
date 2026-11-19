@@ -17,7 +17,9 @@ DIRECT_BATCH_SCHEMA = 'hepta.hia.native-helpers.v11'
 SEALED_PAGE_SCHEMA = 'hepta.hia.native-helpers.v12'
 TERMINAL_SCHEMA = 'hepta.hia.native-helpers.v13'
 ADMISSION_SCHEMA = 'hepta.hia.native-helpers.v14'
-TERMINAL_SCHEMAS = (TERMINAL_SCHEMA, ADMISSION_SCHEMA)
+STARTUP_SCHEMA = 'hepta.hia.native-helpers.v15'
+ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, STARTUP_SCHEMA)
+TERMINAL_SCHEMAS = (TERMINAL_SCHEMA, *ADMISSION_SCHEMAS)
 PAGE_SCHEMAS = (SEALED_PAGE_SCHEMA, *TERMINAL_SCHEMAS)
 DIRECT_CALL_SCHEMAS = (DIRECT_CALL_SCHEMA, DIRECT_REPEAT_SCHEMA, DIRECT_BATCH_SCHEMA, *PAGE_SCHEMAS)
 OWNED_REFERENCE_SCHEMAS = (OWNED_REFERENCE_SCHEMA, *DIRECT_CALL_SCHEMAS)
@@ -38,6 +40,8 @@ def profile_images(schema):
         result.update(IMPORT_EXECUTABLES)
     if schema in TERMINAL_SCHEMAS:
         result['terminal_sha256'] = ('hia-worker-terminal', authority.MAX_IMAGE_BYTES)
+    if schema == STARTUP_SCHEMA:
+        result['initializer_sha256'] = ('hia-agent-store-init', authority.MAX_IMAGE_BYTES)
     return result
 
 
@@ -71,6 +75,8 @@ class NativeWorkerStoreBinding:
             captured = capture_release_image(release, name, limit, record[field])
             self.snapshots.append((captured, limit))
             captures[field] = captured
+        initializer = captures.get('initializer_sha256')
+        self.native_store_initializer = initializer.raw if initializer is not None else None
         self.native_edit_query = None
         if 'edit_query_sha256' in captures:
             from .hia_agent_edit_query_native import NativeAgentEditQuery
@@ -161,7 +167,7 @@ class NativeWorkerStoreBinding:
             if len(owners) != 1 or not owners[0].matches_standalone(terminal.raw):
                 raise ValueError('standalone terminal omits its exact pinned HIA worker request image')
             self.native_worker_terminal_executable = terminal.raw
-            if schema == ADMISSION_SCHEMA:
+            if schema in ADMISSION_SCHEMAS:
                 if ADMISSION_INPUT_MAGIC not in terminal.raw or ADMISSION_OUTPUT_MAGIC not in terminal.raw:
                     raise ValueError('standalone worker omits the required admission arena transport')
                 self.native_worker_admission_executable = terminal.raw

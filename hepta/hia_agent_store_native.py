@@ -248,6 +248,32 @@ def capture_release_image(release, name, limit, digest):
     return captured
 
 
+def initialize_store(root, parent, code):
+    """Publish the first native namespace with the held selection lock."""
+    try:
+        entries = set(os.listdir(parent))
+        if entries - {'artifacts'}:
+            raise StoreProtocolError('native Store cannot initialize a nonempty state root')
+        if 'artifacts' in entries:
+            artifacts = os.open('artifacts', os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW,
+                                dir_fd=parent)
+            try:
+                info = os.fstat(artifacts)
+                if info.st_uid != os.geteuid() or info.st_mode & 0o022 or os.listdir(artifacts):
+                    raise StoreProtocolError('native Store cannot initialize over retained artifacts')
+            finally:
+                os.close(artifacts)
+        with _sealed_image(code) as fd:
+            image = f'/proc/self/fd/{fd}'
+            receipt = subprocess.run([image, root, 'store'], stdin=subprocess.DEVNULL, capture_output=True,
+                                     pass_fds=(fd,), env={'PATH': ''}, timeout=_TIMEOUT)
+    except subprocess.TimeoutExpired as exc:
+        raise StoreProtocolError('native Store initialization did not confirm publication') from exc
+    if (receipt.returncode or receipt.stderr or len(receipt.stdout) != 256
+            or struct.unpack_from('<8sQ', receipt.stdout) != (b'HIAWNA01', 1)):
+        raise StoreProtocolError('native Store initialization did not confirm publication')
+
+
 class NativeStoreConnection:
     """A serialized connection to an explicitly installed, already initialized Store."""
 

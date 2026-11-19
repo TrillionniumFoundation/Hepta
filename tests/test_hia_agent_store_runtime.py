@@ -433,6 +433,53 @@ assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
             self.assertEqual(self.state(state), committed)
             self.assertFalse((state / 'state.sqlite3').exists())
 
+    def test_fresh_initialization_is_serialized_and_never_replaces_prior_data(self):
+        from concurrent.futures import ThreadPoolExecutor
+
+        from hepta.hia_agent_store import AgentRejected, AgentStore
+        from hepta.hia_agent_store_native import StoreProtocolError
+
+        selection = self.selection()
+        initializer = self.initializer.read_bytes()
+
+        def open_store(root, native):
+            store = AgentStore(root, native_store=selection if native else None)
+            store.close()
+
+        with (tempfile.TemporaryDirectory(dir=self.test_root) as temporary,
+              patch('hepta.hia_native_helpers.pinned_store_initializer', return_value=initializer)):
+            parent = Path(temporary)
+            fresh = parent / 'new'
+            with (patch('sqlite3.connect', side_effect=AssertionError('native Store selected SQLite')),
+                  ThreadPoolExecutor(max_workers=4) as pool):
+                opened = [pool.submit(open_store, fresh, True) for _ in range(4)]
+                for result in opened:
+                    result.result()
+            first = self.state(fresh)
+            self.assertEqual({entry.name for entry in fresh.iterdir()}, {'artifacts', 'store'})
+            open_store(fresh, True)
+            self.assertEqual(self.state(fresh), first)
+            with self.assertRaisesRegex(AgentRejected, 'belongs to the explicitly selected native Store'):
+                open_store(fresh, False)
+
+            legacy = parent / 'legacy'
+            open_store(legacy, False)
+            database = legacy / 'state.sqlite3'
+            original = database.read_bytes()
+            with self.assertRaisesRegex(AgentRejected, 'separate staged state root'):
+                open_store(legacy, True)
+            self.assertEqual(database.read_bytes(), original)
+            self.assertFalse((legacy / 'store').exists())
+
+            retained = parent / 'retained'
+            artifacts = retained / 'artifacts'
+            artifacts.mkdir(parents=True)
+            (artifacts / 'retained').write_bytes(b'untouched')
+            with self.assertRaisesRegex(StoreProtocolError, 'retained artifacts'):
+                open_store(retained, True)
+            self.assertEqual((artifacts / 'retained').read_bytes(), b'untouched')
+            self.assertFalse((retained / 'store').exists())
+
     def test_connection_cannot_move_to_replacement_namespace(self):
         from hepta.hia_agent_store import AgentStore
         from hepta.hia_agent_store_native import StoreProtocolError
@@ -476,6 +523,7 @@ def main():
         suite.addTests(InstalledAgentStore(name) for name in (
             'test_public_tools_with_no_sqlite_connection',
             'test_public_worker_reopens_native_state_with_exact_replay',
+            'test_fresh_initialization_is_serialized_and_never_replaces_prior_data',
             'test_connection_cannot_move_to_replacement_namespace',
         ))
         if NativeStoreArgv.worker_request_manifest is not None:

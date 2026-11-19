@@ -374,6 +374,13 @@ def pinned_worker_admission_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_worker_admission_executable', None)
 
+def pinned_store_initializer(selection):
+    _check_scope_owner()
+    initializer = getattr(_ACTIVE, 'native_store_initializer', None)
+    if initializer is not None and selection != _ACTIVE.native_store:
+        raise ValueError('native Store initialization must use its own pinned release')
+    return initializer
+
 
 def native_helpers_identity():
     _check_scope_owner()
