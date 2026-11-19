@@ -1229,7 +1229,10 @@ def support_contract(root=ROOT):
             'installed_terminal_transport': {
                 'executable': 'hia-worker-terminal',
                 'frame_magic': 'HIATRP01',
-                'native_owners': ['request admission', 'terminal response JSON shape and canonicalization',
+                'elf_packer_source': 'examples/hia_bootstrap/mcp_stdio_packer.hepta',
+                'external_assembler_or_linker_required_for_terminal': False,
+                'native_owners': ['admission and terminal frame validation', 'request admission',
+                                  'terminal response JSON shape and canonicalization',
                                   'authenticated terminal envelope'],
                 'opens_service_or_store': False,
                 'worker_release_selection': 'hepta.hia.native-helpers.v13/v14/v15; sealed request and terminal executable',
