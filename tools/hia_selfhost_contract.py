@@ -246,6 +246,8 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/mcp_negotiation.hepta',
     'tools/generate_hia_mcp_catalog.py',
     'examples/hia_bootstrap/mcp_catalog_wire.hepta',
+    'tools/generate_hia_mcp_uri.py',
+    'examples/hia_bootstrap/mcp_resource_uri.hepta',
 )
 SOURCE_FILES = (
     *MCP_WIRE_SDIST_FILES,
@@ -728,6 +730,7 @@ SOURCE_FILES = (
     'tests/test_hia_mcp_reply_native.py',
     'tests/test_hia_mcp_negotiation_native.py',
     'tests/test_hia_mcp_catalog_native.py',
+    'tests/test_hia_mcp_uri_native.py',
     'tests/test_hia_mcp_request_native.py',
     'tools/generate_hia_json_preflight.py',
     'tools/build_hia_json_preflight.py',

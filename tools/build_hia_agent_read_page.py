@@ -20,12 +20,14 @@ VARIANTS = {
     'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
     'mcp-negotiation': ('mcp_negotiation', 'hepta.hia.mcp-negotiation-native.v1'),
     'mcp-catalog': ('mcp_catalog_wire', 'hepta.hia.mcp-catalog-native.v1'),
+    'mcp-uri': ('mcp_resource_uri', 'hepta.hia.mcp-uri-native.v1'),
 }
 MCP_ADAPTER_MODES = {
     'mcp-request': b'',
     'mcp-reply': b'.set MCP_REPLY, 1\n.set MCP_STREAM_RESULT, 1\n',
     'mcp-negotiation': b'.set MCP_NEGOTIATE, 1\n',
     'mcp-catalog': b'.set MCP_CATALOG, 1\n.set MCP_STREAM_RESULT, 1\n',
+    'mcp-uri': b'.set MCP_URI, 1\n',
 }
 
 

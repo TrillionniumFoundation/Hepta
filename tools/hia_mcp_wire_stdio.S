@@ -16,7 +16,11 @@
 .ifdef MCP_NEGOTIATE
 .equ DESCRIPTOR, 112
 .else
+.ifdef MCP_URI
+.equ DESCRIPTOR, 24
+.else
 .equ DESCRIPTOR, 88
+.endif
 .endif
 
 _start:
@@ -84,7 +88,11 @@ _start:
   .ifdef MCP_CATALOG
  call mcp_catalog_wire_start
   .else
+   .ifdef MCP_URI
+ call mcp_resource_uri_start
+   .else
  call mcp_request_route_start
+   .endif
   .endif
  .endif
 .endif
