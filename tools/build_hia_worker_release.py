@@ -7,6 +7,7 @@ Only the program images and policy manifests are deployed by this command.
 from __future__ import annotations
 
 import argparse
+from functools import partial
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -17,6 +18,9 @@ from hepta import hia_native_helpers as authority
 from hepta.hia_json_preflight_native import _source_resource_path
 from hepta.hia_worker_scheduling_bundle import FAMILIES
 from tools.bind_hia_worker_store import bind_worker_store
+from tools.build_hia_agent_binary64 import build as build_binary64
+from tools.build_hia_agent_binary64_format import build as build_binary64_format
+from tools.build_hia_agent_data_json import build as build_agent_data_json
 from tools.build_hia_direct_call import build as build_direct_call
 from tools.build_hia_agent_read_page import build as build_read_page
 from tools.build_hia_json_preflight import build as build_helper
@@ -38,7 +42,15 @@ ADDITIONAL_HELPERS = (
     'worker-request', 'agent-journal', 'execution-budget', 'candidate-budget',
     'agent-read-page', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
     'sha256-stream', 'cnf',
+    'agent-data-json', 'agent-binary64', 'agent-binary64-format',
 )
+HELPER_BUILDERS = {
+    'slot-ledger': build_slot_ledger,
+    'sha256-stream': partial(build_sha256, candidate='sha256_stream'),
+    'agent-data-json': build_agent_data_json,
+    'agent-binary64': build_binary64,
+    'agent-binary64-format': build_binary64_format,
+}
 
 
 def _copy_runtime_file(source, destination):
@@ -99,12 +111,10 @@ def build(output, compiler, cold_report, package, package_sha256):
                 manifest = release / (candidate + '-manifest.json')
             else:
                 staging = scratch / candidate
-                if candidate == 'slot-ledger':
-                    source = build_slot_ledger(staging, compiler, cold_report)
-                elif candidate == 'sha256-stream':
-                    source = build_sha256(staging, compiler, cold_report, candidate='sha256_stream')
-                else:
-                    source = build_helper(staging, compiler, cold_report, candidate=candidate)
+                builder = HELPER_BUILDERS.get(candidate)
+                if builder is None:
+                    builder = partial(build_helper, candidate=candidate)
+                source = builder(staging, compiler, cold_report)
                 manifest = _copy_image_manifest(source, output / candidate / 'manifest.json')
             selector = 'HEPTA_HIA_' + candidate.replace('-', '_').upper() + '_MANIFEST'
             helpers.append({'selector': selector, 'manifest_path': manifest.relative_to(output).as_posix(),

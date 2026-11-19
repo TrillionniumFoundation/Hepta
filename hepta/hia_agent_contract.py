@@ -9,10 +9,12 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 import math
+import os
 from pathlib import Path
 import re
 
-from .hia_agent_store import AgentRejected, reject, wire, _agent_resource_path
+from .hia_agent_store import AgentRejected, decode_data, reject, wire, _agent_resource_path
+from .hia_agent_data_json_native import SELECTOR as NATIVE_DATA_JSON_SELECTOR
 from .hia_sha256_stream_native import selected_stream_hasher
 
 VERSION = "hepta.hia.agent-native.v1"
@@ -207,11 +209,12 @@ PUBLICATION_BUILD_FILES = (
 
 def catalog():
     data = CATALOG_PATH.read_bytes()
-    value = json.loads(data)
+    value = decode_data(data) if os.environ.get(NATIVE_DATA_JSON_SELECTOR) else json.loads(data)
     for tool in value["tools"]:
         check_vocabulary(tool["inputSchema"])
         check_vocabulary(tool["outputSchema"])
-    return value, sha256(data).hexdigest()
+    native = selected_stream_hasher()
+    return value, sha256(data).hexdigest() if native is None else native.digest(data).hex()
 
 
 def installation_manifest():
