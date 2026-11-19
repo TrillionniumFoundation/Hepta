@@ -596,19 +596,29 @@ class AgentIdentityNativeTests(unittest.TestCase):
                     args = session.arguments(context=False, compiler_profile=session.profiles['compiler'],
                         target_profile=session.profiles['target'], baseline_program=None,
                         workload=workload_ref, objective=objective, budget={**standard, **overrides})
-                    reference = service.call('hia_context', args)
+                    sampled = '2026-11-19T00:01:02.345678+00:00'
+                    with patch('hepta.hia_agent_service._now', return_value=sampled):
+                        reference = service.call('hia_context', args)
                     args['request_key'] = session.key('native')
                     image = installed_agent_identity(str(self.manifest))
                     with (patch.dict(os.environ, {SELECTOR:str(self.manifest)}),
+                          patch('hepta.hia_agent_service._now', return_value=sampled),
+                          patch.object(service, '_reference_context_manifest',
+                                       side_effect=AssertionError('host context manifest entered')),
+                          patch.object(service, '_reference_context_receipt',
+                                       side_effect=AssertionError('host context receipt entered')),
                           patch.object(image, '_context', wraps=image._context) as selected_calls):
                         selected = service.call('hia_context', args)
                     self.assertEqual(selected['status'], reference['status'])
                     if refusal is None:
                         self.assertEqual(selected['status'], 'completed', selected)
-                        contexts = [session.read_json(x['result']['manifest']) for x in (reference, selected)]
-                        for context in contexts:
-                            context.pop('sampled_at')
-                        self.assertEqual(*contexts)
+                        original, actual = reference['result'], selected['result']
+                        self.assertEqual(original['manifest'], actual['manifest'])
+                        self.assertEqual(original['context']['sha256'], actual['context']['sha256'])
+                        self.assertRegex(actual['context']['id'], r'^ctx-[0-9a-f]{32}$')
+                        self.assertNotEqual(original['context']['id'], actual['context']['id'])
+                        self.assertEqual({**actual, 'context': original['context']}, original)
+                        self.assertEqual(service.call('hia_context', args), selected)
                     else:
                         self.assertEqual(selected['status'], 'rejected', selected)
                         self.assertEqual(selected['error'], reference['error'])

@@ -737,19 +737,37 @@ class HIAAgentService:
         if args["baseline_program"] is not None:
             baseline_sha = self._program(args["baseline_program"]).sha256
         sampled = _now()
-        record = {"schema": "hepta.hia.agent.context.v1", "catalog_sha256": self.catalog_sha256,
+        target = platform.system(), platform.machine(), os.cpu_count()
+        exports = [list(pair) for pair in foreign_buffer_exports]
+        if context_policy is None:
+            manifest = self._reference_context_manifest(args, baseline_sha, exports, sampled, target)
+            context_id = "ctx-" + uuid.uuid4().hex
+        else:
+            payload = context_policy.context_manifest(
+                args, self.catalog_sha256, self.identities, baseline_sha, exports, sampled, target)
+            manifest = self.store.put(payload, "context")
+            context_id = context_policy.context_id(uuid.uuid4().bytes)
+        context = {"id": context_id, "sha256": manifest["sha256"]}
+        self.store.execution_budgets.create(context_id, context_record=(
+            context["sha256"], wire(manifest).decode(), str(time.time_ns())))
+        if context_policy is not None:
+            return context_policy.context_receipt(args, context, manifest, sampled)
+        return self._reference_context_receipt(args, context, manifest, sampled)
+
+    def _reference_context_manifest(self, args, baseline_sha, exports, sampled, target):
+        system, machine, cpu_count = target
+        return self.store.json({"schema": "hepta.hia.agent.context.v1", "catalog_sha256": self.catalog_sha256,
             "installation": self.identities, "compiler_profile": args["compiler_profile"],
             "target_profile": args["target_profile"], "baseline_program": args["baseline_program"],
             "baseline_core_sha256": baseline_sha, "workload": args["workload"], "objective": args["objective"],
-            "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
+            "foreign_buffer_exports": exports,
             "budget": args["budget"], "sampled_at": sampled,
-            "target_observation": {"system": platform.system(), "machine": platform.machine(),
-                "cpu_count": os.cpu_count(), "observation_only": True},
-            "resource_reservation_held": False, "context_is_execution_authority": False}
-        manifest = self.store.json(record, "context")
-        context = {"id": "ctx-" + uuid.uuid4().hex, "sha256": manifest["sha256"]}
-        self.store.execution_budgets.create(context["id"], context_record=(
-            context["sha256"], wire(manifest).decode(), str(time.time_ns())))
+            "target_observation": {"system": system, "machine": machine,
+                "cpu_count": cpu_count, "observation_only": True},
+            "resource_reservation_held": False, "context_is_execution_authority": False}, "context")
+
+    @staticmethod
+    def _reference_context_receipt(args, context, manifest, sampled):
         return {"context": context, "manifest": manifest, "sampled_at": sampled,
             "compiler_profile": args["compiler_profile"], "target_profile": args["target_profile"],
             "resource_reservation_held": False, "context_is_execution_authority": False}

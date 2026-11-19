@@ -318,7 +318,7 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         else:
             payload = struct.pack('<Q', int(source['max_bytes']))
             capacity = 24
-        raw = self._artifact_response(struct.pack('<2Q', MAGIC, 19) + kind + payload, capacity)
+        raw = self._variable_response(struct.pack('<2Q', MAGIC, 19) + kind + payload, capacity)
         if len(raw) < 16:
             raise RuntimeError('invalid HIA Agent artifact input')
         magic, mode = struct.unpack_from('<2Q', raw)
@@ -333,15 +333,44 @@ class NativeAgentIdentity(NativeHiaJsonImage):
     def artifact_receipt(self, reference, size):
         fragment = wire(reference)
         packet = struct.pack('<4Q', MAGIC, 20, size, len(fragment)) + fragment
-        return decode_data(self._artifact_response(packet, len(fragment) + 160))
+        return decode_data(self._variable_response(packet, len(fragment) + 160))
 
-    def _artifact_response(self, packet, capacity):
+    def _variable_response(self, packet, capacity):
         source = ctypes.create_string_buffer(packet)
         result = ctypes.create_string_buffer(capacity)
         used = self._entry(source, len(packet), result, capacity, None, 0)
+        if used == 4294967294:
+            raise HIAEditRejected('E_HIA_EDIT: JSON encoding exceeds byte budget')
         if not 0 < used <= capacity:
-            raise RuntimeError('HIA refused the admitted artifact packet')
+            raise RuntimeError('HIA refused the admitted Agent packet')
         return result.raw[:used]
+
+    def context_manifest(self, args, catalog_sha256, installation, baseline_sha, exports, sampled, target):
+        system, machine, cpu_count = target
+        fields = (baseline_sha, args['baseline_program'], args['budget'], catalog_sha256,
+                  args['compiler_profile'], exports, installation, args['objective'], sampled,
+                  cpu_count, machine, system, args['target_profile'], args['workload'])
+        return self._context_record(21, fields)
+
+    def context_receipt(self, args, context, manifest, sampled):
+        fields = (args['compiler_profile'], context, manifest, sampled, args['target_profile'])
+        return decode_data(self._context_record(22, fields))
+
+    def context_id(self, nonce):
+        if type(nonce) is not bytes or len(nonce) != 16:
+            raise ValueError('HIA context ID requires a 16-byte nonce')
+        raw = self._variable_response(struct.pack('<2Q', MAGIC, 23) + nonce, 36)
+        if len(raw) != 36:
+            raise RuntimeError('invalid HIA context ID')
+        return raw.decode('ascii')
+
+    def _context_record(self, mode, values):
+        packet = bytearray(struct.pack('<2Q', MAGIC, mode))
+        for value in values:
+            fragment = wire(value)
+            packet.extend(struct.pack('<Q', len(fragment)))
+            packet.extend(fragment)
+        return self._variable_response(bytes(packet), min(MAX_INPUT_BYTES, len(packet) + 512))
 
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(
