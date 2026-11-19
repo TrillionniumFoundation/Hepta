@@ -308,6 +308,41 @@ class NativeAgentIdentity(NativeHiaJsonImage):
                 return False
         return True
 
+    def artifact_input(self, source):
+        """Marshal an admitted source, returning inline bytes or a capture limit."""
+        kind = source['kind'].encode('ascii')
+        # Marshal the caller's Unicode scalars, not the retained UTF-8 bytes.
+        if 'text' in source:
+            payload = source['text'].encode('utf-32-le', 'surrogatepass')
+            capacity = len(payload) + 16
+        else:
+            payload = struct.pack('<Q', int(source['max_bytes']))
+            capacity = 24
+        raw = self._artifact_response(struct.pack('<2Q', MAGIC, 19) + kind + payload, capacity)
+        if len(raw) < 16:
+            raise RuntimeError('invalid HIA Agent artifact input')
+        magic, mode = struct.unpack_from('<2Q', raw)
+        if magic != RESULT_MAGIC:
+            raise RuntimeError('invalid HIA Agent artifact input')
+        if mode == 0:
+            return raw[16:], None
+        if mode == 1 and len(raw) == 24:
+            return None, struct.unpack_from('<Q', raw, 16)[0]
+        raise RuntimeError('invalid HIA Agent artifact input')
+
+    def artifact_receipt(self, reference, size):
+        fragment = wire(reference)
+        packet = struct.pack('<4Q', MAGIC, 20, size, len(fragment)) + fragment
+        return decode_data(self._artifact_response(packet, len(fragment) + 160))
+
+    def _artifact_response(self, packet, capacity):
+        source = ctypes.create_string_buffer(packet)
+        result = ctypes.create_string_buffer(capacity)
+        used = self._entry(source, len(packet), result, capacity, None, 0)
+        if not 0 < used <= capacity:
+            raise RuntimeError('HIA refused the admitted artifact packet')
+        return result.raw[:used]
+
     def _cost_word_totals(self, rows):
         wire = struct.pack('<2Q', MAGIC, 6) + b''.join(
             struct.pack('<2Q', scope, value) for scope, value in rows)

@@ -603,8 +603,22 @@ class HIAAgentService:
         return profile, resources
 
     def _hia_artifact(self, args):
+        from .hia_agent_store import _native_agent_identity
+
         self._profile(args["artifact_profile"], "artifact")
         source = args["source"]
+        native = _native_agent_identity()
+        if native is None:
+            return self._reference_artifact(source)
+        data, limit = native.artifact_input(source)
+        if limit is None:
+            ref, size = self.store.put(data, "input"), len(data)
+        else:
+            ref, size = self.store.capture(source["path"], self.artifact_roots,
+                                           limit, source["expected_sha256"])
+        return native.artifact_receipt(ref, size)
+
+    def _reference_artifact(self, source):
         if source["kind"] == "utf8":
             data = source["text"].encode("utf-8")
             ref, size = self.store.put(data, "input"), len(data)

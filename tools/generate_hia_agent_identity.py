@@ -6,6 +6,7 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_identity_native import (
     ABI_SCALAR_IDS, EXACT_COMPARISON_CHUNK, PROOF_EFFECT_IDS, PROOF_OPCODE_IDS,
 )
+from hepta.hia_agent_store import MAX_ARTIFACT_BYTES
 from hepta.hia_opcodes import WIDTHS
 from hepta.hia_optimization import PURE
 from tools.generate_hia_elf_linker import LinkerBuilder
@@ -47,6 +48,13 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return cost_window(s, o)
     if kind == 18:
         return wide_wall_window(s, o)
+    if kind == 19:
+        return artifact_input(s, o)
+    if kind == 20:
+        size = artifact_receipt(s, o, 0)
+        if size > length(o):
+            return size
+        return artifact_receipt(s, o, 1)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -697,6 +705,73 @@ def receipt_fragment(s:readbuf, o:mutbuf, at:u64, cursor:u64, size:u64, emit:u64
         index = index + 1
     return cursor + size
 
+def artifact_input(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 20:
+        return 4294967293
+    kind = quad(s, 16)
+    if kind == @ARTIFACT_PATH@:
+        if length(s) != 28:
+            return 4294967293
+        limit = read_word(s, 20)
+        if limit == 0 or limit > 8388608:
+            return 4294967293
+        if length(o) < 24:
+            return 4294967294
+        put(o, 0, @RESULT_MAGIC@)
+        put(o, 8, 1)
+        put(o, 16, limit)
+        return 24
+    if kind != @ARTIFACT_UTF8@ or (length(s) - 20) % 4 != 0 or length(s) > 262164:
+        return 4294967293
+    size = artifact_text(s, o, 0)
+    if size > length(o):
+        return size
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, 0)
+    return artifact_text(s, o, 1)
+
+def quad(s:readbuf, at:u64) -> u64:
+    return byte(s, at) | (byte(s, at + 1) << 8) | (byte(s, at + 2) << 16) | (byte(s, at + 3) << 24)
+
+def artifact_text(s:readbuf, o:mutbuf, emit:u64) -> u64:
+    cursor = 16
+    at = 20
+    while at < length(s):
+        codepoint = quad(s, at)
+        if codepoint > 1114111 or (codepoint >= 55296 and codepoint <= 57343):
+            return 4294967293
+        tail = 128 | (codepoint & 63)
+        if codepoint < 128:
+            cursor = receipt_literal(o, cursor, codepoint, 1, emit)
+        elif codepoint < 2048:
+            first = 192 | (codepoint >> 6)
+            cursor = receipt_literal(o, cursor, first | (tail << 8), 2, emit)
+        elif codepoint < 65536:
+            first = 224 | (codepoint >> 12)
+            second = 128 | ((codepoint >> 6) & 63)
+            cursor = receipt_literal(o, cursor, first | (second << 8) | (tail << 16), 3, emit)
+        else:
+            first = 240 | (codepoint >> 18)
+            second = 128 | ((codepoint >> 12) & 63)
+            third = 128 | ((codepoint >> 6) & 63)
+            cursor = receipt_literal(o, cursor, first | (second << 8) | (third << 16) | (tail << 24), 4, emit)
+        at = at + 4
+    if cursor > length(o):
+        return 4294967294
+    return cursor
+
+def artifact_size_text(o:mutbuf, cursor:u64, size:u64, emit:u64) -> u64:
+    rest = size
+    divisor = 1
+    while rest >= 10:
+        rest = rest // 10
+        divisor = divisor * 10
+    while divisor != 0:
+        cursor = receipt_literal(o, cursor, 48 + size // divisor, 1, emit)
+        size = size % divisor
+        divisor = divisor // 10
+    return cursor
+
 def read_word(s:readbuf, index:u64) -> u64:
     value = 0
     count = 0
@@ -824,6 +899,32 @@ def cost_receipt_source():
     return '\n'.join(lines) + '\n'
 
 
+def artifact_receipt_source():
+    """Append only the issued reference fragment to a fixed inert receipt."""
+    lines = [
+        'def artifact_receipt(s:readbuf, o:mutbuf, emit:u64) -> u64:',
+        f'    if length(s) < 32 or read_word(s, 16) > {MAX_ARTIFACT_BYTES}:',
+        '        return 4294967293',
+        '    size = receipt_fragment_size(s, 24)',
+        '    if size == 0 or size != length(s) - 32:',
+        '        return 4294967293',
+        '    cursor = 0',
+    ]
+
+    def literal(text):
+        for start in range(0, len(text), 8):
+            raw = text[start:start + 8].encode('ascii')
+            lines.append(f'    cursor = receipt_literal(o, cursor, {int.from_bytes(raw, "little")}, {len(raw)}, emit)')
+
+    literal('{"artifact":')
+    lines.append('    cursor = receipt_fragment(s, o, 32, cursor, size, emit)')
+    literal(',"byte_length":"')
+    lines.append('    cursor = artifact_size_text(o, cursor, read_word(s, 16), emit)')
+    literal('","content_admitted_as_program":false,"execution_authority_granted":false}')
+    lines.extend(('    if cursor > length(o):', '        return 4294967294', '    return cursor'))
+    return '\n'.join(lines) + '\n'
+
+
 def source_program():
     pure = sum(1 << PROOF_OPCODE_IDS[opcode] for opcode in PURE)
     disallowed = ((1 << 64) - 1) ^ PROOF_EFFECT_IDS['trap']
@@ -836,9 +937,11 @@ def source_program():
             .replace('@PURE_OPCODE_MASK@', str(pure))
             .replace('@DISALLOWED_EFFECT_MASK@', str(disallowed))
             .replace('@EXACT_COMPARISON_CHUNK@', str(EXACT_COMPARISON_CHUNK))
+            .replace('@ARTIFACT_PATH@', str(int.from_bytes(b'path', 'little')))
+            .replace('@ARTIFACT_UTF8@', str(int.from_bytes(b'utf8', 'little')))
             .replace('@BOOL_ABI_ROLE@', str(ABI_SCALAR_IDS['bool']))
             .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n'
-            + cost_receipt_source())
+            + cost_receipt_source() + artifact_receipt_source())
 
 
 def document():

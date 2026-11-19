@@ -723,6 +723,65 @@ class AgentIdentityNativeTests(unittest.TestCase):
         finally:
             service.close()
 
+    def test_artifact_packets_keep_exact_utf8_and_refuse_invalid_scalars(self):
+        rng = random.Random(3027)
+        boundary = '\x00\x7f\x80\u07ff\u0800\ud7ff\ue000\uffff\U00010000\U0010ffff'
+        random_scalars = ''.join(chr(code) for code in rng.choices(
+            range(0x110000), k=2048) if not 0xd800 <= code <= 0xdfff)
+        for value in ('', boundary, random_scalars, '\U00010000' * 65536):
+            self.assertEqual(self.native.artifact_input({'kind': 'utf8', 'text': value}),
+                             (value.encode('utf-8'), None))
+        for limit in (1, 4096, 8388608):
+            self.assertEqual(self.native.artifact_input({'kind': 'path', 'max_bytes': limit}),
+                             (None, limit))
+        for payload, capacity, code in (
+            (b'utf8' + struct.pack('<I', 0xd800), 32, 4294967293),
+            (b'utf8' + struct.pack('<I', 0x110000), 32, 4294967293),
+            (b'utf8x', 32, 4294967293),
+            (b'path' + struct.pack('<Q', 0), 32, 4294967293),
+            (b'path' + struct.pack('<Q', 8388609), 32, 4294967293),
+            (b'utf8' + struct.pack('<I', 0x10000), 19, 4294967294),
+        ):
+            status, output = self.raw(packet(19, payload), capacity)
+            self.assertEqual((status, output), (code, b'\xa5' * capacity))
+
+    def test_public_artifact_uses_hia_inputs_and_inert_receipts(self):
+        from hepta.hia_agent_service import HIAAgentService
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            files = root / 'files'
+            files.mkdir()
+            path = files / '测量.hepta'
+            path.write_bytes(b'\x00\xff\n')
+            service = HIAAgentService(root / 'state', artifact_roots=(files,))
+            try:
+                policy = {'artifact_profile': service.profiles['artifact'],
+                          'catalog_sha256': service.catalog_sha256}
+                with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                      patch.object(service, '_reference_artifact',
+                                   side_effect=AssertionError('reference artifact flow entered'))):
+                    for key, source, data in (
+                        ('empty', {'kind': 'utf8', 'text': ''}, b''),
+                        ('unicode', {'kind': 'utf8', 'text': '雪\x00🧪'}, '雪\x00🧪'.encode()),
+                        ('path', {'kind': 'path', 'path': str(path), 'max_bytes': 3,
+                                  'expected_sha256': sha256(path.read_bytes()).hexdigest()},
+                         path.read_bytes()),
+                    ):
+                        args = dict(policy, request_key=key, source=source)
+                        response = service.call('hia_artifact', args)
+                        self.assertEqual(response['status'], 'completed', response)
+                        result = response['result']
+                        self.assertEqual(result['byte_length'], str(len(data)))
+                        self.assertIs(result['content_admitted_as_program'], False)
+                        self.assertIs(result['execution_authority_granted'], False)
+                        self.assertEqual(service.store.get(result['artifact']), (data, {}))
+                        if key == 'path':
+                            path.write_bytes(b'new')
+                        self.assertEqual(service.call('hia_artifact', args), response)
+            finally:
+                service.close()
+
     def test_manifest_selected_rejects_corruption_without_fallback(self):
         bad=self.folder/'bad.json';bad.write_text('{}')
         with patch.dict(os.environ,{SELECTOR:str(bad)}):
