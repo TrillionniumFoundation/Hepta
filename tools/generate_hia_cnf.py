@@ -4,9 +4,9 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS, WORD_WITNESS_REQUEST,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
-                                  CIRCUIT_DIVISION_TEMP, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
+                                  CIRCUIT_DIVISION_TEMP, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_PRODUCT_EXCEEDS,
                                   PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR, PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM,
-                                  PROJECT_CHECKED_CAST,
+                                  PROJECT_CHECKED_CAST, PROJECT_CHECKED_MUL,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
                                  LEARNING_REQUEST, RESTART_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
                                  LEARNING_ORDER, LEARNING_HEAD, LEARNING_PHASE,
@@ -858,6 +858,11 @@ def evaluate_word_node(source:readbuf, scratch:mutbuf, operation:u64, width:u64,
         return (a * b) & word_mask(width)
     if operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
         return evaluate_word_division(a, b, width, operation)
+    if operation == WORD_PRODUCT_EXCEEDS:
+        if b == 0:
+            return 0
+        limit = read_stack(scratch, 8 * immediate)
+        return choose(a > evaluate_word_division(limit, b, source_width, WORD_UNSIGNED_DIV), 1, 0)
     if operation == 26:
         return (a >> immediate) & word_mask(width)
     if operation == 27:
@@ -918,7 +923,7 @@ def evaluate_word_overflow(a:u64, b:u64, width:u64, operation:u64) -> u64:
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width == 0 or width > 64:
         return 0
-    if operation < 1 or operation > WORD_UNSIGNED_REM:
+    if operation < 1 or operation > WORD_PRODUCT_EXCEEDS:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -934,6 +939,11 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         if width != node_width(source, right) or width != node_width(source, immediate):
             return 0
         return 1
+    if operation == WORD_PRODUCT_EXCEEDS:
+        if width != 1 or right >= index or immediate >= index:
+            return 0
+        word = node_width(source, left)
+        return choose(word > 1 and node_width(source, right) == word and node_width(source, immediate) == word, 1, 0)
     if operation == 26:
         origin_width = node_width(source, left)
         if right != 0 or immediate > origin_width:
@@ -1000,7 +1010,7 @@ def mark_observed_nodes(source:readbuf, scratch:mutbuf, nodes:u64, returns:u64, 
                      operation == 26 or (operation >= 28 and operation <= 31))
             if unary == False:
                 store(scratch, 32 + 128 * read64(source, origin + 24), 1)
-            if operation == 11:
+            if operation == 11 or operation == WORD_PRODUCT_EXCEEDS:
                 store(scratch, 32 + 128 * read64(source, origin + 32), 1)
     return 0
 
@@ -1025,7 +1035,10 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
             left = read64(source, origin + 16)
             right = read64(source, origin + 24)
             immediate = read64(source, origin + 32)
-            if operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
+            if operation == WORD_PRODUCT_EXCEEDS:
+                if encode_product_limit(output, scratch, node, left, right, immediate, node_width(source, left)) == 0:
+                    return TOO_LARGE
+            elif operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
                 if encode_division(output, scratch, node, left, right, width, operation) == 0:
                     return TOO_LARGE
             elif operation == 32:
@@ -1309,11 +1322,14 @@ def division_restore(output:mutbuf, scratch:mutbuf, width:u64, subtract:u64) -> 
     return 1
 
 def encode_product(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, width:u64) -> u64:
-    # The destination is a fresh token row. Accumulate each shifted partial
-    # product in place, deliberately discarding bits above the word width.
-    destination = 32 + 128 * node
+    return accumulate_product(output, scratch, 32 + 128 * node, left, right, width, width)
+
+def accumulate_product(output:mutbuf, scratch:mutbuf, destination:u64, left:u64, right:u64,
+                       width:u64, extent:u64) -> u64:
+    # Low products use the ordinary word row; checked products retain
+    # twice as many bits in scratch for comparison with the signed limit.
     bit = 0
-    while bit < width:
+    while bit < extent:
         put_token(scratch, destination + 2 * bit, 3)
         bit = bit + 1
     row = 0
@@ -1322,9 +1338,11 @@ def encode_product(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64,
         if factor != 3:
             carry = 3
             bit = row
-            while bit < width:
+            while bit < extent:
                 a = load_token(scratch, destination + 2 * bit)
-                b = logic_and(output, scratch, factor, load_token(scratch, 32 + 128 * left + 2 * (bit - row)))
+                b = 3
+                if bit - row < width:
+                    b = logic_and(output, scratch, factor, load_token(scratch, 32 + 128 * left + 2 * (bit - row)))
                 if b == 0:
                     return 0
                 parity = logic_xor(output, scratch, a, b)
@@ -1335,11 +1353,35 @@ def encode_product(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64,
                     return 0
                 put_token(scratch, destination + 2 * bit, digit)
                 bit = bit + 1
-                if bit < width:
+                if bit < extent:
                     carry = carry_after_digit(output, scratch, a, b, parity, carry)
                     if carry == 0:
                         return 0
         row = row + 1
+    return 1
+
+def encode_product_limit(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64,
+                         limit:u64, width:u64) -> u64:
+    # Division and this full product never run at the same time; both
+    # need two word rows. The full product keeps all high bits.
+    row = CIRCUIT_DIVISION_TEMP
+    if accumulate_product(output, scratch, row, left, right, width, width * 2) == 0:
+        return 0
+    above = 3
+    bit = 0
+    while bit < width * 2:
+        product = load_token(scratch, row + 2 * bit)
+        bound = 3
+        if bit < width:
+            bound = load_token(scratch, 32 + 128 * limit + 2 * bit)
+        changed = logic_xor(output, scratch, product, bound)
+        if changed == 0:
+            return 0
+        above = logic_select(output, scratch, changed, product, above)
+        if above == 0:
+            return 0
+        bit = bit + 1
+    put_token(scratch, 32 + 128 * node, above)
     return 1
 
 def unequal_bits(output:mutbuf, scratch:mutbuf, left:u64, right:u64, width:u64) -> u64:
@@ -1736,7 +1778,7 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
     if role == 2:
         literal = read64(s, row + 40) & word_mask(width)
         return p_bind(w, typ, p_node(o, w, 2, width, 0, 0, literal))
-    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and (role < 32 or role > PROJECT_CHECKED_CAST):
+    if (role < 3 or role > 15) and role != 20 and role != 22 and role != 23 and (role < 32 or role > PROJECT_CHECKED_MUL):
         return 0
     first = p_var(w, read64(s, row + 16))
     if first == 0:
@@ -1767,6 +1809,8 @@ def p_operation(s:readbuf, o:mutbuf, w:mutbuf, row:u64) -> u64:
             return 0
         if role == PROJECT_CHECKED_DIV or role == PROJECT_CHECKED_REM:
             return p_checked_division(o, w, typ, role, a, b)
+        if role == PROJECT_CHECKED_MUL:
+            return p_checked_mul(o, w, typ, a, b)
         return p_checked_shift(o, w, typ, role, a, b)
     third = 0
     if role == 11:
@@ -1835,13 +1879,36 @@ def p_checked_division(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, b:u64) -> u
 
     sign_a = p_node(o, w, 26, 1, a, 0, width - 1)
     sign_b = p_node(o, w, 26, 1, b, 0, width - 1)
-    magnitude_a = p_node(o, w, 11, width, sign_a, p_node(o, w, 10, width, zero, a, 0), a)
-    magnitude_b = p_node(o, w, 11, width, sign_b, p_node(o, w, 10, width, zero, b, 0), b)
+    magnitude_a = p_magnitude(o, w, width, zero, sign_a, a)
+    magnitude_b = p_magnitude(o, w, width, zero, sign_b, b)
     result = p_node(o, w, operation, width, magnitude_a, magnitude_b, 0)
     sign = sign_a
     if operation == WORD_UNSIGNED_DIV:
         sign = p_logic(o, w, 5, sign_a, sign_b)
     return p_bind(w, typ, p_node(o, w, 11, width, sign, p_node(o, w, 10, width, zero, result, 0), result))
+
+def p_magnitude(o:mutbuf, w:mutbuf, width:u64, zero:u64, sign:u64, value:u64) -> u64:
+    negative = p_node(o, w, 10, width, zero, value, 0)
+    return p_node(o, w, 11, width, sign, negative, value)
+
+def p_checked_mul(o:mutbuf, w:mutbuf, typ:u64, a:u64, b:u64) -> u64:
+    width = p_width(typ)
+    limit = p_node(o, w, 2, width, 0, 0, word_mask(width))
+    magnitude_a = a
+    magnitude_b = b
+    if (typ & 128) != 0:
+        negative = 1 << (width - 1)
+        zero = p_node(o, w, 2, width, 0, 0, 0)
+        sign_a = p_node(o, w, 26, 1, a, 0, width - 1)
+        sign_b = p_node(o, w, 26, 1, b, 0, width - 1)
+        magnitude_a = p_magnitude(o, w, width, zero, sign_a, a)
+        magnitude_b = p_magnitude(o, w, width, zero, sign_b, b)
+        negative_limit = p_node(o, w, 2, width, 0, 0, negative)
+        positive_limit = p_node(o, w, 2, width, 0, 0, negative - 1)
+        sign = p_logic(o, w, 5, sign_a, sign_b)
+        limit = p_node(o, w, 11, width, sign, negative_limit, positive_limit)
+    p_fault(o, w, p_node(o, w, WORD_PRODUCT_EXCEEDS, 1, magnitude_a, magnitude_b, limit))
+    return p_bind(w, typ, p_node(o, w, 32, width, a, b, 0))
 
 def p_checked_cast(o:mutbuf, w:mutbuf, origin:u64, target:u64, value:u64) -> u64:
     source_width = p_width(origin)
@@ -1879,7 +1946,9 @@ def source_program():
                      PROJECT_CHECKED_SHL=PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR=PROJECT_CHECKED_SHR,
                      PROJECT_CHECKED_DIV=PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM=PROJECT_CHECKED_REM,
                      PROJECT_CHECKED_CAST=PROJECT_CHECKED_CAST,
+                     PROJECT_CHECKED_MUL=PROJECT_CHECKED_MUL,
                      WORD_UNSIGNED_DIV=WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM=WORD_UNSIGNED_REM,
+                     WORD_PRODUCT_EXCEEDS=WORD_PRODUCT_EXCEEDS,
                      CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,

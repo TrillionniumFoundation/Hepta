@@ -19,7 +19,8 @@ import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
 from .hia_cnf_native import (
-    SAT, UNSAT, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, bitblast_clauses, core_circuit, selected_cnf,
+    SAT, UNSAT, WORD_PRODUCT_EXCEEDS, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
+    bitblast_clauses, core_circuit, selected_cnf,
 )
 from .hia_opcodes import RESOURCES, TRAP_CODES
 from .hia_scalar_symbolic_native import SymbolicRecipeRejected, selected_scalar_symbolic
@@ -80,10 +81,11 @@ def _native_circuit_decision(cnf, circuit, deadline):
     # Carry clauses for checked 64-bit arithmetic require substantially
     # more unit propagation than pure bitwise obligations.
     steps = min(2_000_000, remaining * 1000) if traps is not None else min(200_000, remaining * 100)
-    # Division's many coupled carry clauses benefit from the installed
-    # learning solver even when only its ordered fault conditions stay live.
-    division = any(operation in (WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM) for operation, *_ in nodes)
-    result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps, learning=division)
+    # Nonlinear words benefit from conflict learning, even when only their
+    # ordered fault conditions survive projection into the observed circuit.
+    nonlinear = any(operation in (WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_PRODUCT_EXCEEDS)
+                    for operation, *_ in nodes)
+    result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps, learning=nonlinear)
     if result is None or result[0] not in (SAT, UNSAT):
         return None
     verdict, model, steps, variables, clauses, frame = result

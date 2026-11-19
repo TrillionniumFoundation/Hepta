@@ -61,9 +61,11 @@ PROJECTION_INPUT_LIMIT = 131072
 UNKNOWN, SAT, UNSAT = range(3)
 WRAPPING_PRODUCT = 32
 WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM = 33, 34
+WORD_PRODUCT_EXCEEDS = 35
 PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR = 34, 35
 PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM = 36, 37
 PROJECT_CHECKED_CAST = 38
+PROJECT_CHECKED_MUL = 39
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
 _CORE_TRAP_TAGS = {code: index for index, code in enumerate(sorted(TRAP_CODES), 1)}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
@@ -74,7 +76,8 @@ _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.
                     'int.neg.checked': 23, 'int.mul.wrap': WRAPPING_PRODUCT}
 _GRAPH_OPERATIONS = {**_CORE_OPERATIONS, 'int.neg.checked': 33,
                      'int.shl.checked': PROJECT_CHECKED_SHL, 'int.shr.checked': PROJECT_CHECKED_SHR,
-                     'int.div.checked': PROJECT_CHECKED_DIV, 'int.rem.checked': PROJECT_CHECKED_REM}
+                     'int.div.checked': PROJECT_CHECKED_DIV, 'int.rem.checked': PROJECT_CHECKED_REM,
+                     'int.mul.checked': PROJECT_CHECKED_MUL}
 
 
 class NativeCnf(NativeHiaJsonImage):

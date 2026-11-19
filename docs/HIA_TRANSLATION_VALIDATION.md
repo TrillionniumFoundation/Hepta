@@ -25,8 +25,12 @@ scalar function in two independently verified programs. It supports:
   the count, not the bits discarded by a left shift.
 
 The encoder creates symbolic inputs covering every value of each declared type
-and asks Z3 whether a behavior difference exists. `unsat` yields `proved`;
-`sat` yields `disproved` only after the model's arguments are replayed in the
+and asks whether a behavior difference exists. With a source-bound
+`HEPTA_HIA_CNF_MANIFEST`, HIA projects the bounded boolean and fixed-width
+integer graph into its own Boolean solver, including the checked operations'
+ordered traps. If the native profile or its circuit budget cannot decide the
+obligation, the existing Z3 path can try it. `unsat` yields `proved`; `sat`
+yields `disproved` only after the model's arguments are replayed in the
 canonical HIA interpreter and reproduce different observations. This replay
 validates counterexamples; it is **not** the basis of the all-input proof.
 
@@ -69,15 +73,15 @@ authorize arbitrary edits to other functions.
 
 ## Trust and claims
 
-Z3 and the Python symbolic encoder are in the trusted implementation. The
-encoder follows the canonical executable HIA semantics; its correspondence is
+The selected solver and its encoder are in the trusted implementation. The
+encoders follow the canonical executable HIA semantics; their correspondence is
 tested and inspected, not proved by Lean/Coq. Canonical ownership checks remain
 executable checks, not a whole-language soundness theorem. This module does not
 prove LLVM/native refinement, resource bounds, latency, energy, or global
 optimality. Backend execution requires its existing qualification independently.
 
-The optional `z3-solver` dependency is needed to obtain `proved` or `disproved`.
-Absence is reported as `unknown` with `reason = "solver_unavailable"`.
+If the installed HIA solver cannot decide a case and the optional `z3-solver`
+dependency is absent, the result is `unknown` with `reason = "solver_unavailable"`.
 
 Run the focused adversarial tests and retain a real qualification receipt:
 
