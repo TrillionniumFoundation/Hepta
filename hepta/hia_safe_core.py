@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import importlib
+from itertools import combinations
 import json
 import os
 from pathlib import Path
@@ -146,7 +147,139 @@ def _solver_identity(z):
             "library_sha256": sha256(library.read_bytes()).hexdigest()}
 
 
-def _native_obligation(z, cnf, expression, deadline):
+class _MemoryReductionUnavailable(Exception):
+    """This bounded lowering cannot represent the input; make no proof claim."""
+
+
+class _FiniteCallerMemory:
+    """Transport a single-base byte-array DAG to the HIA memory formulas."""
+
+    def __init__(self, z, decoder, initial, deadline):
+        self.z, self.decoder, self.initial, self.deadline = z, decoder, initial, deadline
+        self.scalars = {}
+        self.array_indices = {initial.get_id(): 0}
+        self.rows = [(0, 0, 0)]
+        self.effects = [()]
+        self.reads = {}
+        self.initial_bytes = {}
+        self.used = False
+
+    def reduce(self, expression):
+        try:
+            value = self.scalar(expression)
+        except (_MemoryReductionUnavailable, RecursionError):
+            return None
+        if not self.used:
+            return None
+        # Each distinct symbolic read represents a byte of the same initial
+        # array. Equal addresses cannot be assigned independent bytes.
+        consistency = [self.formula('memory_read_agrees', left, right, a, b)
+                       for (left, a), (right, b) in combinations(self.initial_bytes.values(), 2)]
+        return self.z.simplify(self.z.And(value, *consistency))
+
+    def formula(self, operation, *arguments):
+        return self.decoder.memory_formula(self.z, self.initial.ctx, operation, *arguments)
+
+    def scalar(self, term):
+        z = self.z
+        identity = term.get_id()
+        if identity in self.scalars:
+            return self.scalars[identity]
+        if len(self.scalars) >= 1024 or time.monotonic() >= self.deadline or not z.is_app(term):
+            raise _MemoryReductionUnavailable
+        if not (z.is_bool(term) or z.is_bv(term)):
+            raise _MemoryReductionUnavailable
+        children = term.children()
+        kind = term.decl().kind()
+        if kind == z.Z3_OP_SELECT:
+            memory, address = children
+            self.used = True
+            value = self.read(self.array(memory), self.scalar(address))
+        elif kind in (z.Z3_OP_EQ, z.Z3_OP_DISTINCT) and len(children) == 2 and z.is_array(children[0]):
+            left, right = map(self.array, children)
+            self.used = True
+            terms = []
+            # Both snapshots use the same initial array. Away from the
+            # union of writes they agree, even if the write addresses alias.
+            for index in self.decoder.possible_memory_writes(self.rows, left, right):
+                address = self.effects[index][0]
+                terms.append(self.read(left, address) != self.read(right, address))
+            difference = z.Or(*terms) if terms else z.BoolVal(False, ctx=self.initial.ctx)
+            value = z.Not(difference) if kind == z.Z3_OP_EQ else difference
+        else:
+            changes = [(child, lowered) for child in children
+                       if not z.eq(child, lowered := self.scalar(child))]
+            value = z.substitute(term, *changes) if changes else term
+        if len(self.scalars) >= 1024:
+            raise _MemoryReductionUnavailable
+        self.scalars[identity] = value
+        return value
+
+    def array(self, term):
+        from .hia_safe_core_x64_decode_native import MEMORY_GRAPH_ROWS
+
+        z = self.z
+        identity = term.get_id()
+        if identity in self.array_indices:
+            return self.array_indices[identity]
+        if not z.is_app(term) or len(self.rows) >= MEMORY_GRAPH_ROWS or time.monotonic() >= self.deadline:
+            raise _MemoryReductionUnavailable
+        kind = term.decl().kind()
+        if kind == z.Z3_OP_STORE:
+            parent, address, byte = term.children()
+            row = (1, self.array(parent), 0)
+            effect = (self.scalar(address), self.scalar(byte))
+        elif kind == z.Z3_OP_ITE:
+            condition, yes, no = term.children()
+            row = (2, self.array(yes), self.array(no))
+            effect = (self.scalar(condition),)
+        else:
+            # An unrelated second array, a constant array, or arbitrary
+            # function application does not satisfy the common-base theorem.
+            raise _MemoryReductionUnavailable
+        index = len(self.rows)
+        if index >= MEMORY_GRAPH_ROWS:
+            raise _MemoryReductionUnavailable
+        self.array_indices[identity] = index
+        self.rows.append(row)
+        self.effects.append(effect)
+        return index
+
+    def read(self, index, address):
+        z = self.z
+        address = z.simplify(address)
+        identity = address.get_id()
+        key = (index, address)
+        if key in self.reads:
+            return self.reads[key]
+        if len(self.reads) >= 512 or time.monotonic() >= self.deadline:
+            raise _MemoryReductionUnavailable
+        kind, first, second = self.rows[index]
+        if kind == 0:
+            if len(self.initial_bytes) >= 16:
+                raise _MemoryReductionUnavailable
+            value = z.FreshConst(self.initial.range(), prefix='hia_initial_byte')
+            self.initial_bytes[identity] = (address, value)
+        elif kind == 1:
+            write_address, byte = self.effects[index]
+            value = self.formula('memory_read_store', address, write_address, byte, self.read(first, address))
+        else:
+            condition, = self.effects[index]
+            value = self.formula('memory_read_join', condition, self.read(first, address), self.read(second, address))
+        self.reads[key] = z.simplify(value)
+        return self.reads[key]
+
+    def witness(self, model, original):
+        z = self.z
+        memory = z.K(self.initial.domain(), z.BitVecVal(0, 8, ctx=self.initial.ctx))
+        for address, byte in self.initial_bytes.values():
+            memory = z.Store(memory, model.eval(address, model_completion=True),
+                             model.eval(byte, model_completion=True))
+        model.update_value(self.initial, memory)
+        return model if z.is_true(model.eval(original, model_completion=True)) else None
+
+
+def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     """Use HIA for a precise finite Boolean reduction when available."""
     from .hia_cnf_native import SAT, UNSAT, bitblast_goal, bitvector_circuit
 
@@ -155,22 +288,34 @@ def _native_obligation(z, cnf, expression, deadline):
     remaining = int((deadline - time.monotonic()) * 1000)
     if remaining < 4:
         return None
-    circuit = bitvector_circuit(z, z.simplify(expression))
+    candidate = z.simplify(expression)
+    reduced_memory = memory.reduce(candidate) if memory is not None else None
+    if reduced_memory is not None:
+        candidate = reduced_memory
+    circuit = bitvector_circuit(z, candidate)
     remaining = int((deadline - time.monotonic()) * 1000)
     if circuit is not None and remaining > 0:
-        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(200_000, remaining * 100), batch=True)
+        step_limit = 750_000 if reduced_memory is not None else 200_000
+        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(step_limit, remaining * 100), batch=True)
         if solved is not None:
             result, assignment, steps, variables, clauses, formula = solved
-            witness = circuit.witness(z, assignment, expression) if result == SAT else None
+            witness = circuit.witness(z, assignment, candidate) if result == SAT else None
+            if witness is not None and reduced_memory is not None:
+                witness = memory.witness(witness, expression)
+            elif witness is not None and not z.is_true(witness.eval(expression, model_completion=True)):
+                witness = None
             if result == UNSAT or (result == SAT and witness is not None):
                 receipt = {"method": "native_hia_circuit_cnf", "image_sha256": cnf.image_sha256,
                            "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
                            "clauses": clauses, "steps": steps}
+                if reduced_memory is not None:
+                    receipt["caller_memory"] = "native_hia_finite_byte_array"
                 return ("sat" if result == SAT else "unsat"), witness, receipt
     remaining = int((deadline - time.monotonic()) * 1000)
     if remaining < 4:
         return None
-    reduced = bitblast_goal(z, expression, timeout_ms=min(100, remaining // 4))
+    goal = expression if reduced_memory is None else candidate
+    reduced = bitblast_goal(z, goal, timeout_ms=min(100, remaining // 4))
     remaining = int((deadline - time.monotonic()) * 1000)
     if reduced is None or remaining <= 0:
         return None
@@ -182,7 +327,9 @@ def _native_obligation(z, cnf, expression, deadline):
     witness = None
     if result == SAT:
         try:
-            witness = reduced.witness(z, assignment, expression)
+            witness = reduced.witness(z, assignment, goal)
+            if witness is not None and reduced_memory is not None:
+                witness = memory.witness(witness, expression)
         except z.Z3Exception:
             return None
         if witness is None:
@@ -191,6 +338,8 @@ def _native_obligation(z, cnf, expression, deadline):
     receipt = {"method": "native_hia_cnf", "image_sha256": cnf.image_sha256,
                "formula_sha256": sha256(payload).hexdigest(),
                "variables": variables, "clauses": len(reduced.clauses), "steps": steps}
+    if reduced_memory is not None:
+        receipt["caller_memory"] = "native_hia_finite_byte_array"
     return ("sat" if result == SAT else "unsat"), witness, receipt
 
 
@@ -593,7 +742,9 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
             with (retained / filename).open("xb") as stream:
                 stream.write(query_bytes)
         started = time.monotonic()
-        native = _native_obligation(z, cnf, z.And(*assumptions, violation), t.deadline)
+        memory = (_FiniteCallerMemory(z, machine.native_model, t.memory, t.deadline)
+                  if t.loan is not None and machine.native_model is not None and cnf is not None else None)
+        native = _native_obligation(z, cnf, z.And(*assumptions, violation), t.deadline, memory=memory)
         if native is None:
             check_deadline()
             solver.set(timeout=max(1, int((t.deadline - time.monotonic()) * 1000)))

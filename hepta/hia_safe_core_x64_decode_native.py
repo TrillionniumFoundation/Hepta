@@ -51,13 +51,16 @@ OPERATIONS = (
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
 MACHINE_FORMULA_IDS = {**OPERATION_IDS, **{
     name: index for index, name in enumerate(
-        ('borrow_range', 'call_address', 'return_offset', 'return_stack'), len(OPERATIONS) + 1)
+        ('borrow_range', 'call_address', 'return_offset', 'return_stack',
+         'memory_read_store', 'memory_read_join', 'memory_read_agrees'), len(OPERATIONS) + 1)
 }}
 CALLER_ABI_REQUEST = struct.Struct('<Q')
 RECIPE_REQUEST = struct.Struct('<2Q')
 CORE_FORMULA_REQUEST = struct.Struct('<3Q')
 CORE_GRAPH_LIMIT = 16
 CORE_GRAPH_REQUEST = struct.Struct('<17Q')
+MEMORY_GRAPH_ROWS = 63
+MEMORY_GRAPH_REQUEST = struct.Struct('<' + str(3 + 3 * MEMORY_GRAPH_ROWS) + 'Q')
 RECIPE_HEADER = struct.Struct('<5Q')
 RECIPE_NODE = struct.Struct('<4Q')
 MAX_RECIPE_NODES = 12
@@ -264,6 +267,21 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             raise RuntimeError('invalid native Safe Core graph')
         return result == 1
 
+    def possible_memory_writes(self, rows, first, second):
+        count = len(rows)
+        if not 1 <= count <= MEMORY_GRAPH_ROWS:
+            raise ValueError('outside the Safe Core memory graph budget')
+        packet = MEMORY_GRAPH_REQUEST.pack(count, first, second, *(word for row in rows for word in row),
+                                           *([0] * (3 * (MEMORY_GRAPH_ROWS - count))))
+        request = ctypes.create_string_buffer(packet, len(packet))
+        output = ctypes.create_string_buffer(8)
+        if self._entry(None, 0, output, len(output), request, len(packet)) != len(output):
+            raise RuntimeError('invalid native Safe Core memory graph')
+        mask, = struct.unpack('<Q', output)
+        if mask >> count or any(mask & (1 << index) and row[0] != 1 for index, row in enumerate(rows)):
+            raise RuntimeError('invalid native Safe Core memory write projection')
+        return tuple(index for index in range(count) if mask & (1 << index))
+
     @lru_cache(maxsize=512)
     def recipe(self, operation, parameter=0):
         return self._decode_recipe(RECIPE_REQUEST.pack(MACHINE_FORMULA_IDS[operation], parameter))
@@ -329,8 +347,15 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             raise RuntimeError('invalid native Safe Core reference formula roots')
         return value, trap
 
+    def memory_formula(self, z, ctx, operation, *arguments):
+        value, _, _, predicate = self._evaluate(z, ctx, self.recipe(operation), arguments, word_width=8)
+        result = predicate if operation == 'memory_read_agrees' else value
+        if result is None:
+            raise RuntimeError('missing native Safe Core memory formula')
+        return result
+
     @staticmethod
-    def _evaluate(z, ctx, recipe, inputs):
+    def _evaluate(z, ctx, recipe, inputs, *, word_width=64):
         roots, nodes = recipe
         values = [None, *inputs, *([None] * (RECIPE_INPUTS - len(inputs)))]
         for lower, sources in nodes:
@@ -340,7 +365,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             values.append(lower(z, ctx, *args))
         result = tuple(values[ref] for ref in roots)
         for index, (ref, value) in enumerate(zip(roots, result, strict=True)):
-            if ref and not ((z.is_bv(value) and value.size() == 64) if index == 0 else z.is_bool(value)):
+            if ref and not ((z.is_bv(value) and value.size() == word_width) if index == 0 else z.is_bool(value)):
                 raise RuntimeError('invalid native Safe Core formula result sort')
         return result
 

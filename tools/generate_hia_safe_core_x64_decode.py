@@ -7,7 +7,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_x64_decode_native import (
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
-    MAX_RECIPE_NODES, MAX_TEXT, RECIPE_IDS, RECIPE_INPUTS,
+    MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE,
 )
@@ -24,8 +24,9 @@ FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()
 FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
 FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in CORE_FORMULA_IDS.items()})
 FIELDS.update(CORE_GRAPH_LIMIT=CORE_GRAPH_LIMIT, CORE_GRAPH_SIZE=CORE_GRAPH_REQUEST.size)
+FIELDS.update(MEMORY_GRAPH_ROWS=MEMORY_GRAPH_ROWS, MEMORY_GRAPH_SIZE=MEMORY_GRAPH_REQUEST.size)
 FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
-              LEFT=1, RIGHT=2, THIRD=3, ZF=3, CF=4, ARBITRARY=5)
+              LEFT=1, RIGHT=2, THIRD=3, FOURTH=4, ZF=3, CF=4, ARBITRARY=5)
 FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHED_ACTIVE=32,
               SCHED_HEADER=SCHEDULER_HEADER, SCHED_VISITS=SCHEDULER_VISITS,
               SCHED_BITMAP=SCHEDULER_BITMAP, SCHED_FRAMES=SCHEDULER_FRAMES,
@@ -47,6 +48,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return memory_admission(w)
     if size == 0 and length(w) == CORE_GRAPH_SIZE:
         return review_core_graph(w)
+    if size == 0 and length(w) == MEMORY_GRAPH_SIZE:
+        return memory_write_inventory(o, w)
     if length(o) < 24 or length(w) < WORKSPACE:
         return 4294967294
     if size == 0 or size > MAX_TEXT:
@@ -132,6 +135,37 @@ def review_call_bindings(o:mutbuf, w:mutbuf, count:u64, size:u64) -> u64:
     if first_wrong != size:
         return terminal(o, E_CALL_TARGET, first_wrong, 0)
     return terminal(o, 0, 0, count)
+
+def memory_write_inventory(o:mutbuf, w:mutbuf) -> u64:
+    count = get(w, 0)
+    first = get(w, 8)
+    second = get(w, 16)
+    if count == 0 or count > MEMORY_GRAPH_ROWS or first >= count or second >= count or length(o) < 8:
+        return 4294967293
+    index = 0
+    while index < count:
+        row = 24 + index * 24
+        kind = get(w, row)
+        parent = get(w, row + 8)
+        alternative = get(w, row + 16)
+        mask = 0
+        if kind == 0:
+            if index != 0 or parent != 0 or alternative != 0:
+                return 4294967293
+        else:
+            if parent >= index:
+                return 4294967293
+            mask = get(w, 24 + parent * 24)
+            if kind == 1 and alternative == 0:
+                mask = mask | (1 << index)
+            elif kind == 2 and alternative < index:
+                mask = mask | get(w, 24 + alternative * 24)
+            else:
+                return 4294967293
+        put(w, row, mask)
+        index = index + 1
+    put(o, 0, get(w, 24 + first * 24) | get(w, 24 + second * 24))
+    return 8
 
 def memory_admission(w:mutbuf) -> u64:
     kind = get(w, 0)
@@ -391,6 +425,15 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         word = node(o, R_LITERAL64, 8, 0, 0)
         adjusted = node(o, R_ADD, RIGHT, word, 0)
         return formula_done(o, 0, 0, 0, node(o, R_EQ, LEFT, adjusted, 0))
+    if op == OP_MEMORY_READ_STORE:
+        same = node(o, R_EQ, LEFT, RIGHT, 0)
+        return formula_done(o, node(o, R_CHOOSE, same, THIRD, FOURTH), 0, 0, 0)
+    if op == OP_MEMORY_READ_JOIN:
+        return formula_done(o, node(o, R_CHOOSE, LEFT, RIGHT, THIRD), 0, 0, 0)
+    if op == OP_MEMORY_READ_AGREES:
+        different = node(o, R_NE, LEFT, RIGHT, 0)
+        same_byte = node(o, R_EQ, THIRD, FOURTH, 0)
+        return formula_done(o, 0, 0, 0, node(o, R_BOOL_OR, different, same_byte, 0))
     if op == OP_NOT:
         return formula_done(o, node(o, R_NOT, LEFT, 0, 0), 0, 0, 0)
     if op == OP_CMOVNE:

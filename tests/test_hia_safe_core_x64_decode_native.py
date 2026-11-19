@@ -208,7 +208,8 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         from pathlib import Path
         import tempfile
 
-        from hepta.hia_safe_core import _Theory, build_safe_core
+        from hepta.hia_cnf_native import selected_cnf
+        from hepta.hia_safe_core import _FiniteCallerMemory, _Theory, build_safe_core
         from tests.test_hia_safe_core import guarded_update
 
         blocked = {name: Mock(side_effect=AssertionError('host borrow rule entered: ' + name))
@@ -218,14 +219,95 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             for name in ('_reference_borrow_range', '_reference_address', '_reference_stack_admitted',
                          '_reference_stack_adjustment', '_reference_return_site', '_reference_caller_restored')
         }
+        lowered = []
+        reduce_memory = _FiniteCallerMemory.reduce
+
+        def observe_memory(memory, expression):
+            result = reduce_memory(memory, expression)
+            if result is not None:
+                lowered.append((len(memory.rows), len(memory.initial_bytes)))
+            return result
+
         with (tempfile.TemporaryDirectory(prefix='hia-safe-core-borrow-') as root,
               patch('hepta.hia_safe_core._reference_core_graph',
                     side_effect=AssertionError('host Core topology entered')),
               patch.multiple(Executor, **blocked_machine),
-              patch.multiple(_Theory, **blocked)):
+              patch.multiple(_Theory, **blocked),
+              patch.object(_FiniteCallerMemory, 'reduce', observe_memory)):
             report = build_safe_core(guarded_update(), Path(root) / 'candidate.so',
                                      foreign_extent=32)
         self.assertTrue(report['validation']['ok'], report)
+        if selected_cnf() is not None:
+            self.assertEqual(len(lowered), 1)
+            self.assertGreater(lowered[0][0], 1)
+            self.assertGreater(lowered[0][1], 0)
+
+    def test_finite_memory_inventory_tracks_only_reachable_writes(self):
+        rng = random.Random(3015)
+        for count in range(1, 64):
+            rows, writes = [(0, 0, 0)], [set()]
+            for index in range(1, count):
+                parent = rng.randrange(index)
+                if rng.randrange(2):
+                    rows.append((1, parent, 0))
+                    writes.append(writes[parent] | {index})
+                else:
+                    alternate = rng.randrange(index)
+                    rows.append((2, parent, alternate))
+                    writes.append(writes[parent] | writes[alternate])
+            for _ in range(4):
+                first, second = (rng.randrange(count) for _ in range(2))
+                self.assertEqual(self.native.possible_memory_writes(rows, first, second),
+                                 tuple(sorted(writes[first] | writes[second])))
+        self.assertEqual(self.native.possible_memory_writes(
+            [(0, 0, 0), *[(1, index - 1, 0) for index in range(1, 63)]], 0, 62), tuple(range(1, 63)))
+        for rows in ([(1, 0, 0)], [(0, 0, 0), (1, 1, 0)], [(0, 0, 0), (2, 0, 1)],
+                     [(0, 0, 0), (0, 0, 0)], [(0, 0, 0), (1, 0, 1)]):
+            with self.assertRaisesRegex(RuntimeError, 'memory graph'):
+                self.native.possible_memory_writes(rows, 0, len(rows) - 1)
+
+    def test_finite_memory_obligation_projects_aliases_and_counterexamples(self):
+        import time
+        import z3
+
+        from hepta.hia_cnf_native import selected_cnf
+        from hepta.hia_safe_core import _FiniteCallerMemory, _native_obligation
+
+        cnf = selected_cnf()
+        if cnf is None:
+            self.skipTest('requires the installed HIA Boolean solver')
+        ctx = z3.Context()
+        initial = z3.Array('caller_memory', z3.BitVecSort(64, ctx), z3.BitVecSort(8, ctx))
+        at, other = (z3.BitVec(name, 64, ctx=ctx) for name in ('at', 'other'))
+        condition = z3.Bool('pick_left', ctx=ctx)
+        update = z3.Store(initial, at, 117)
+        joined = z3.If(condition, update, z3.Store(initial, other, 53))
+        cases = (
+            (z3.And(at == other, z3.Select(initial, at) != z3.Select(initial, other)), 'unsat'),
+            (z3.And(condition, at == other, update != joined), 'unsat'),
+            (z3.And(z3.Not(condition), at == other, update == joined), 'unsat'),
+            (z3.And(z3.Not(condition), at == other, joined != initial, z3.Select(initial, at) == 17), 'sat'),
+        )
+        for expression, expected in cases:
+            deadline = time.monotonic() + 8
+            finite = _FiniteCallerMemory(z3, self.native, initial, deadline)
+            reference = z3.Solver(ctx=ctx)
+            reference.add(expression)
+            self.assertEqual(str(reference.check()), expected)
+            with (patch.object(z3.Solver, 'check', side_effect=AssertionError('host SMT search entered')),
+                  patch('hepta.hia_cnf_native.bitblast_goal',
+                        side_effect=AssertionError('host Boolean lowering entered'))):
+                solved = _native_obligation(z3, cnf, expression, deadline, memory=finite)
+            self.assertIsNotNone(solved, expression)
+            verdict, model, receipt = solved
+            self.assertEqual(verdict, expected, expression)
+            self.assertEqual(receipt.get('caller_memory'), 'native_hia_finite_byte_array')
+            if model is not None:
+                self.assertTrue(z3.is_true(model.eval(expression, model_completion=True)))
+                self.assertEqual(model.eval(z3.Select(initial, model.eval(at))).as_long(), 17)
+        alien = z3.Array('different_memory', initial.domain(), initial.range())
+        finite = _FiniteCallerMemory(z3, self.native, initial, time.monotonic() + 8)
+        self.assertIsNone(finite.reduce(initial != alien))
 
     def test_actual_consumer_proves_from_installed_machine_rules_without_host_formulas(self):
         from hashlib import sha256
