@@ -70,6 +70,44 @@ class SingleCpuKernelTlbStaging(unittest.TestCase):
                 with self.assertRaises(KernelEffectRejected):
                     admit(steps)
 
+    def test_repeated_page_requires_exact_plan_dataflow(self):
+        # The intervening invalidation does not restore the old PTE word.
+        second = sequence(VA)
+        second[1]["expected_old"] = 0x21
+        second[1]["observed_old"] = 0x21
+        second[1]["candidate"] = 0x01
+        chained = sequence(VA) + second
+        self.assertEqual(admit(chained),
+                         PageTableEffectSummary(2, 2, 2, (VA,)))
+
+        # A different page can still be edited between these two writes.
+        separated = sequence(VA) + sequence(HI) + second
+        self.assertEqual(admit(separated),
+                         PageTableEffectSummary(3, 3, 3, (VA, HI)))
+
+        # A repeated caller-supplied snapshot remains stale after INVLPG.
+        for bad in (
+            sequence(VA) + sequence(VA),
+            sequence(VA)[:3] + sequence(VA)[1:],
+        ):
+            with self.subTest(bad=bad):
+                with self.assertRaises(KernelEffectRejected):
+                    admit(bad)
+
+    def test_replayed_old_word_cannot_be_cured_by_forged_readback(self):
+        second = sequence(VA)
+        second[1]["expected_old"] = 0x23
+        second[1]["observed_old"] = 0x23
+        second[1]["candidate"] = 0x01
+        with self.assertRaises(KernelEffectRejected):
+            admit(sequence(VA) + second)
+
+        # Also refuse a claimant that merely relabels the observed word
+        # without updating the requested expected old word.
+        second[1]["observed_old"] = 0x21
+        with self.assertRaises(KernelEffectRejected):
+            admit(sequence(VA) + second)
+
     def test_stale_full_old_and_untrusted_fields(self):
         for field, replacement in (
             ("expected_old", 0x22), ("observed_old", 0x22),
