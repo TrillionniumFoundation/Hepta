@@ -296,9 +296,13 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     remaining = int((deadline - time.monotonic()) * 1000)
     if circuit is not None and remaining > 0:
         learning = memory is not None
-        steps = (min(4_000_000, remaining * 500) if reduced_memory is not None
-                 else min(200_000, remaining * 100))
-        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=steps, batch=True, learning=learning)
+        if learning:
+            ceiling = 5_000_000 if reduced_memory is None else 8_000_000
+            steps = min(ceiling, remaining * 800)
+        else:
+            steps = min(200_000, remaining * 100)
+        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=steps, batch=True,
+                                   restarts=learning)
         if solved is not None:
             result, assignment, steps, variables, clauses, formula = solved
             witness = circuit.witness(z, assignment, candidate) if result == SAT else None
@@ -312,6 +316,7 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
                            "clauses": clauses, "steps": steps}
                 if learning:
                     receipt["search"] = "native_hia_conflict_learning"
+                    receipt["restarts"] = "bounded_geometric"
                 if reduced_memory is not None:
                     receipt["caller_memory"] = "native_hia_finite_byte_array"
                 return ("sat" if result == SAT else "unsat"), witness, receipt

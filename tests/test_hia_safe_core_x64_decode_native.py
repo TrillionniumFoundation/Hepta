@@ -266,12 +266,14 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'memory graph'):
                 self.native.possible_memory_writes(rows, 0, len(rows) - 1)
 
-    def test_native_learning_discharges_the_guarded_update_memory_obligation(self):
+    def test_native_learning_discharges_all_guarded_update_obligations(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory
 
+        import z3
+
         from hepta.hia_cnf_native import selected_cnf
-        from hepta.hia_safe_core import build_safe_core
+        from hepta.hia_safe_core import ARTIFACT_OBLIGATIONS, build_safe_core
         from tests.test_hia_safe_core import guarded_update
 
         cnf = selected_cnf()
@@ -281,18 +283,23 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             for extent in (64, 4096):
                 with self.subTest(extent=extent):
                     destination = Path(root) / f'guarded-{extent}.so'
-                    report = build_safe_core(guarded_update(), destination, foreign_extent=extent)
+                    with (patch.object(z3.Solver, 'check', side_effect=AssertionError('host solver entered')),
+                          patch('hepta.hia_cnf_native.bitblast_goal',
+                                side_effect=AssertionError('host bitblaster entered'))):
+                        report = build_safe_core(guarded_update(), destination, foreign_extent=extent)
                     self.assertTrue(report['ok'], report)
                     self.assertTrue(destination.is_file())
-                    obligation = report['validation']['obligations'][-1]
-                    self.assertEqual(obligation['name'], 'core_to_final_image_return_abort_and_caller_bytes')
-                    self.assertEqual(obligation['result'], 'unsat')
-                    evidence = obligation['native_cnf']
-                    self.assertEqual(evidence['method'], 'native_hia_circuit_cnf')
-                    self.assertEqual(evidence['search'], 'native_hia_conflict_learning')
-                    self.assertEqual(evidence['caller_memory'], 'native_hia_finite_byte_array')
-                    self.assertEqual(evidence['image_sha256'], cnf.image_sha256)
-                    self.assertGreater(evidence['steps'], 750_000)
+                    obligations = report['validation']['obligations']
+                    self.assertEqual(tuple((item['name'], item['result']) for item in obligations),
+                                     ARTIFACT_OBLIGATIONS)
+                    for item in obligations:
+                        evidence = item['native_cnf']
+                        self.assertEqual(evidence['method'], 'native_hia_circuit_cnf')
+                        self.assertEqual(evidence['search'], 'native_hia_conflict_learning')
+                        self.assertEqual(evidence['restarts'], 'bounded_geometric')
+                        self.assertEqual(evidence['image_sha256'], cnf.image_sha256)
+                    self.assertEqual(obligations[-1]['native_cnf']['caller_memory'],
+                                     'native_hia_finite_byte_array')
 
     def test_finite_memory_obligation_projects_aliases_and_counterexamples(self):
         import time

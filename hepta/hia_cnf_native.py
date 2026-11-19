@@ -24,6 +24,7 @@ SPARSE_REQUEST = int.from_bytes(b'HIACNX02', 'little')
 BATCH_REQUEST = int.from_bytes(b'HIACNB03', 'little')
 WATCHED_REQUEST = int.from_bytes(b'HIACNW04', 'little')
 LEARNING_REQUEST = int.from_bytes(b'HIACNL05', 'little')
+RESTART_REQUEST = int.from_bytes(b'HIACNG06', 'little')
 SPARSE_REPLY = int.from_bytes(b'HIACNR02', 'little')
 SPARSE_VARIABLES = 4096
 SPARSE_CLAUSES = 65536
@@ -80,7 +81,7 @@ class NativeCnf(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA Boolean solver reply')
         return verdict, model, cost
 
-    def solve_sparse(self, variables, clauses, *, steps, batch=False, watched=False, learning=False):
+    def solve_sparse(self, variables, clauses, *, steps, batch=False, watched=False, learning=False, restarts=False):
         if (type(variables) is not int or not 0 <= variables <= SPARSE_VARIABLES
                 or len(clauses) > SPARSE_CLAUSES or type(steps) is not int or not 0 <= steps <= STEP_LIMIT):
             raise ValueError('formula or work budget exceeds the sparse HIA Boolean profile')
@@ -94,13 +95,13 @@ class NativeCnf(NativeHiaJsonImage):
             tokens.append(0)
         if byteorder != 'little':
             tokens.byteswap()
-        magic = _search_mode(batch=batch, watched=watched, learning=learning)
+        magic = _search_mode(batch=batch, watched=watched, learning=learning, restarts=restarts)
         frame = struct.pack('<5Q', magic, variables, len(clauses), steps, len(tokens)) + tokens.tobytes()
         return self._solve_sparse_frame(frame, variables, steps)
 
     def _solve_sparse_frame(self, frame, variables, steps):
         magic, _, clauses = struct.unpack_from('<3Q', frame)
-        if magic == LEARNING_REQUEST:
+        if magic in (LEARNING_REQUEST, RESTART_REQUEST):
             extent = WATCH_ROWS + 2 * (clauses + LEARNED_CLAUSES) * WATCH_ROW_BYTES + LEARNING_BYTES
         elif magic == WATCHED_REQUEST:
             extent = WATCH_ROWS + 2 * clauses * WATCH_ROW_BYTES
@@ -120,7 +121,8 @@ class NativeCnf(NativeHiaJsonImage):
             raise RuntimeError('invalid sparse HIA Boolean solver model')
         return verdict, model, cost
 
-    def solve_circuit(self, nodes, returns, *, steps, traps=None, batch=False, watched=False, learning=False):
+    def solve_circuit(self, nodes, returns, *, steps, traps=None, batch=False, watched=False, learning=False,
+                      restarts=False):
         if len(nodes) > CIRCUIT_NODES or len(returns) > CIRCUIT_RETURNS or not 0 <= steps <= STEP_LIMIT:
             return None
         magic = CIRCUIT_REQUEST if traps is None else GUARDED_CIRCUIT_REQUEST
@@ -142,14 +144,16 @@ class NativeCnf(NativeHiaJsonImage):
         if (magic != SPARSE_REQUEST or variables > SPARSE_VARIABLES or clauses > SPARSE_CLAUSES
                 or steps != budget or entries > SPARSE_ENTRIES or size != 40 + 2 * entries):
             raise RuntimeError('invalid HIA circuit encoding result')
-        mode = _search_mode(batch=batch, watched=watched, learning=learning)
+        mode = _search_mode(batch=batch, watched=watched, learning=learning, restarts=restarts)
         if mode != SPARSE_REQUEST:
             formula = struct.pack('<Q', mode) + formula[8:]
         verdict, model, cost = self._solve_sparse_frame(formula, variables, steps)
         return verdict, model, cost, variables, clauses, formula
 
 
-def _search_mode(*, batch, watched, learning):
+def _search_mode(*, batch, watched, learning, restarts):
+    if restarts:
+        return RESTART_REQUEST
     if learning:
         return LEARNING_REQUEST
     if watched:

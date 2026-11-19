@@ -5,7 +5,7 @@ from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUI
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
-                                 LEARNING_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
+                                 LEARNING_REQUEST, RESTART_REQUEST, LEARNING_SEEN, LEARNING_TEMP, LEARNING_TOKENS,
                                  LEARNING_ORDER, LEARNING_HEAD, LEARNING_PHASE,
                                   SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES,
                                   SPARSE_WORKSPACE, STEP_LIMIT, WATCHED_REQUEST, WATCH_HEADS,
@@ -21,7 +21,7 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
     if length(source) < 32 or length(result) < 32:
         return INVALID
     magic = read64(source, 0)
-    if magic == SPARSE_REQUEST or magic == BATCH_REQUEST or magic == WATCHED_REQUEST or magic == LEARNING_REQUEST:
+    if magic == SPARSE_REQUEST or magic == BATCH_REQUEST or magic == WATCHED_REQUEST or magic == LEARNING_REQUEST or magic == RESTART_REQUEST:
         return solve_sparse(source, result, stack, magic)
     if magic == CIRCUIT_REQUEST or magic == GUARDED_CIRCUIT_REQUEST:
         return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
@@ -142,7 +142,8 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, magic:u64) -> u32:
         return INVALID
     if magic == WATCHED_REQUEST and length(stack) < WATCH_ROWS + 2 * clauses * WATCH_ROW_BYTES:
         return INVALID
-    if magic == LEARNING_REQUEST and length(stack) < WATCH_ROWS + 2 * (clauses + LEARNED_CLAUSES) * WATCH_ROW_BYTES + LEARNING_BYTES:
+    learning = magic == LEARNING_REQUEST or magic == RESTART_REQUEST
+    if learning and length(stack) < WATCH_ROWS + 2 * (clauses + LEARNED_CLAUSES) * WATCH_ROW_BYTES + LEARNING_BYTES:
         return INVALID
     if magic == BATCH_REQUEST and length(stack) < SPARSE_WORKSPACE + 8:
         return INVALID
@@ -166,8 +167,8 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, magic:u64) -> u32:
     while key < variables:
         store(stack, key, 0)
         key = key + 1
-    if magic == WATCHED_REQUEST or magic == LEARNING_REQUEST:
-        return search_watched(source, result, stack, variables, budget, magic == LEARNING_REQUEST)
+    if magic == WATCHED_REQUEST or learning:
+        return search_watched(source, result, stack, variables, budget, learning)
     return search_sparse(source, result, stack, variables, budget, magic == BATCH_REQUEST)
 
 def search_watched(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, budget:u64, learning:bool) -> u32:
@@ -411,6 +412,18 @@ def choose_learning(stack:mutbuf, aux:u64, steps:u64, budget:u64) -> u64:
         index = load_token(stack, order + 4 * index + 2)
     return steps << 17
 
+def drop_learning_levels(stack:mutbuf, aux:u64, trail:u64, depth:u64) -> u64:
+    mark = load_token(stack, DECISIONS + 4 * depth)
+    while trail > mark:
+        trail = trail - 1
+        popped = load_token(stack, TRAIL + 2 * trail)
+        store(stack, aux + LEARNING_PHASE + popped, byte(stack, popped) - 1)
+        store(stack, popped, 0)
+        put_token(stack, aux + 2 * popped, 0)
+    put_token(stack, aux + LEARNING_HEAD + 2, load_token(stack, aux + LEARNING_HEAD))
+    write64(stack, SPARSE_WORKSPACE, mark)
+    return mark
+
 def search_learning(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
                     budget:u64, steps:u64) -> u32:
     aux = length(stack) - LEARNING_BYTES
@@ -419,6 +432,8 @@ def search_learning(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
     depth = 0
     learned = 0
     position = length(source)
+    restart_interval = 128
+    next_restart = choose(read64(source, 0) == RESTART_REQUEST, restart_interval, LEARNED_CLAUSES + 1)
     while steps < budget:
         observed = watch_propagate(source, stack, propagated, steps, budget, depth)
         steps = observed >> 18
@@ -427,6 +442,19 @@ def search_learning(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
             return reply_sparse(result, stack, variables, 0, steps)
         trail = read_stack(stack, SPARSE_WORKSPACE)
         if status == 0:
+            # Restart only after propagation is complete. Keep root
+            # implications, learned clauses, and saved phases.
+            if learned >= next_restart:
+                restart_interval = restart_interval + (restart_interval >> 1)
+                next_restart = learned + restart_interval
+                if depth != 0:
+                    root = load_token(stack, DECISIONS)
+                    removed = trail - root
+                    if removed >= budget - steps:
+                        return reply_sparse(result, stack, variables, 0, budget)
+                    steps = steps + removed
+                    trail = drop_learning_levels(stack, aux, trail, 0)
+                    depth = 0
             pick = choose_learning(stack, aux, steps, budget)
             steps = pick >> 17
             literal = pick & 32767
@@ -452,16 +480,7 @@ def search_learning(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
             if count == 0 or position + 2 * count > length(source) + 2 * LEARNED_ENTRIES:
                 return reply_sparse(result, stack, variables, 0, budget)
             depth = (analyzed >> 13) & 8191
-            mark = load_token(stack, DECISIONS + 4 * depth)
-            while trail > mark:
-                trail = trail - 1
-                popped = load_token(stack, TRAIL + 2 * trail)
-                store(stack, aux + LEARNING_PHASE + popped, byte(stack, popped) - 1)
-                store(stack, popped, 0)
-                put_token(stack, aux + 2 * popped, 0)
-            put_token(stack, aux + LEARNING_HEAD + 2, load_token(stack, aux + LEARNING_HEAD))
-            write64(stack, SPARSE_WORKSPACE, mark)
-            propagated = mark
+            propagated = drop_learning_levels(stack, aux, trail, depth)
             link = 1 + 2 * (read64(source, 16) + learned)
             if count > 1:
                 position = publish_learned(source, stack, position, count, link)
@@ -1149,7 +1168,7 @@ def source_program():
                      WATCHED_REQUEST=WATCHED_REQUEST, WATCH_HEADS=WATCH_HEADS,
                      WATCH_ROWS=WATCH_ROWS, WATCH_ROW_BYTES=WATCH_ROW_BYTES,
                      LEARNED_CLAUSES=LEARNED_CLAUSES, LEARNED_ENTRIES=LEARNED_ENTRIES,
-                     LEARNING_REQUEST=LEARNING_REQUEST, LEARNING_BYTES=LEARNING_BYTES,
+                     LEARNING_REQUEST=LEARNING_REQUEST, RESTART_REQUEST=RESTART_REQUEST, LEARNING_BYTES=LEARNING_BYTES,
                      LEARNING_REASONS=LEARNING_REASONS, LEARNING_SEEN=LEARNING_SEEN,
                      LEARNING_TEMP=LEARNING_TEMP, LEARNING_TOKENS=LEARNING_TOKENS,
                      LEARNING_ORDER=LEARNING_ORDER, LEARNING_HEAD=LEARNING_HEAD, LEARNING_PHASE=LEARNING_PHASE,
