@@ -128,9 +128,10 @@ def selected_cnf():
     return _installed_json_image(manifest, SOURCE, SCHEMA, NativeCnf)
 
 
-def core_circuit(before, after):
-    """Frame a checked pure return segment; do not interpret any scalar op."""
-    if before['term']['op'] != 'ret' or after['term']['op'] != 'ret' or before['params'] != after['params']:
+def core_circuit(before, after, observed):
+    """Frame one checked scalar block, including the values on all its exits."""
+    if (before['term'] != after['term'] or before['term']['op'] not in {'ret', 'jump', 'branch'}
+            or before['params'] != after['params']):
         return None
     if len(before['params']) + len(before['ops']) + len(after['ops']) > CIRCUIT_NODES:
         return None
@@ -177,9 +178,9 @@ def core_circuit(before, after):
             if trap is not None:
                 nodes.append((4, 1, trap, flag, 0))
             trap = len(nodes) - 1
-        if any(name not in values for name in block['term']['values']):
+        if any(name not in values for name in observed):
             return None
-        returned.append([values[name][0] for name in block['term']['values']])
+        returned.append([values[name][0] for name in observed])
         traps.append(trap)
     if all(trap is None for trap in traps):
         guards = None

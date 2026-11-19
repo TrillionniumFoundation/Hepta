@@ -340,7 +340,7 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
     if method == "compositional_scalar_effect":
         assumptions.append(_item("structural_correspondence", "The qualified primitive Core v1-v7 profile requires identical signatures, CFG edges and ordered resource/call operations; corresponding effects share the same modeled state."))
         if solver is not None and solver["name"] == "HIA":
-            assumptions.append(_item("identified_hia_circuit_solver", "The identified HIA image correctly encodes the admitted scalar return and overflow circuit and decides each retained Boolean obligation."))
+            assumptions.append(_item("identified_hia_circuit_solver", "The identified HIA image correctly encodes admitted scalar block exits and overflow and decides each retained Boolean obligation."))
         else:
             assumptions.append(_item("identified_smt_solver", "When solving is performed, the identified pinned Z3 binding and native library correctly decide the retained bit-vector obligations."))
         obligations.append(_item("vm_tick_preservation", "VM instruction tick counts and native execution costs are not equivalence observables in this structural profile."))

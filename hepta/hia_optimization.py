@@ -140,22 +140,26 @@ def _native_core_obligations(cnf, before, after, left, right, deadline, limit):
              for bi, (lb, rb) in enumerate(zip(lf["blocks"], rf["blocks"], strict=True))]
     if len(pairs) > limit:
         return None
-    circuits = [core_circuit(lb, rb) for _, _, _, lb, rb in pairs]
+    observations = [_term_names(lb["term"]) for _, _, _, lb, _ in pairs]
+    circuits = [core_circuit(lb, rb, observed)
+                for (_, _, _, lb, rb), observed in zip(pairs, observations, strict=True)]
     if any(circuit is None for circuit in circuits):
         return None
     obligations = []
-    for (fi, bi, function, block, _), circuit in zip(pairs, circuits, strict=True):
+    for (fi, bi, function, block, _), circuit, observed in zip(pairs, circuits, observations, strict=True):
         outcome = _native_circuit_decision(cnf, circuit, deadline)
         if outcome is None:
             return None
         verdict, model, evidence, formula = outcome
         obligation = {"function": function["name"], "block": block["id"], "segment": 0,
-                      "observed": block["term"]["values"], "result": "unsat" if verdict == UNSAT else "sat",
+                      "observed": observed, "result": "unsat" if verdict == UNSAT else "sat",
                       "cnf_encoding": "hepta.hia.cnf-sparse-le.v2",
                       "cnf_frame_hex": formula.hex(), "discharge": evidence}
         obligations.append(obligation)
         if verdict == SAT:
-            if block["id"] != function["entry"]:
+            # A model of an arbitrary block input is not proof that the
+            # input is reachable, or that the full function disagrees.
+            if len(function["blocks"]) != 1 or block["term"]["op"] != "ret":
                 return None
             witness = _native_circuit_witness(before, after, function, model)
             if witness is None:
@@ -517,7 +521,7 @@ def verify_optimization(base, candidate, policy=None):
                     return finish("timeout", "verification deadline exhausted while encoding")
                 cnf_evidence = None
                 if native_cnf is not None and si == 0 and barrier is None:
-                    outcome = _native_circuit_decision(native_cnf, core_circuit(lb, rb), deadline)
+                    outcome = _native_circuit_decision(native_cnf, core_circuit(lb, rb, observed), deadline)
                     if outcome is not None and outcome[0] == UNSAT:
                         cnf_evidence = outcome[2]
                 if cnf_evidence is None:

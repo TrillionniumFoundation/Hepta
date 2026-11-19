@@ -908,7 +908,7 @@ class HIAAgentService:
         report = verify_optimization(original, revised, {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
         status = {"verified": "proved", "rejected": "refuted", "unknown": "unknown", "timeout": "unknown"}[report["status"]]
         if (report.get("solver") or {}).get("name") == "HIA":
-            return status, "HIA native Boolean obligations for scalar returns and checked overflow over all declared inputs", report
+            return status, "HIA native Boolean obligations for scalar CFG transitions, returns and checked overflow over all declared inputs", report
         return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
 
     def _subject(self, args, program):

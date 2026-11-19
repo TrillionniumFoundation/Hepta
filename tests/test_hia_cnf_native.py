@@ -263,7 +263,7 @@ class CnfInstalledTests(unittest.TestCase):
         from hepta.hia_optimization import verify_optimization
         from hepta.hia_proof_contract import proof_result
         from tests.test_hia_optimization import arithmetic
-        from tests.test_hia_program import b, c, f, i, m, ret
+        from tests.test_hia_program import b, branch, c, f, i, jump, m, ret
         from tools.hia_agent_native_qualification import Session, ToolClient, add_program
 
         # Both U64 operands range over their complete declared domains.
@@ -287,6 +287,22 @@ class CnfInstalledTests(unittest.TestCase):
         incorrect = m(f('predicate', signed, ['bool'], [], [b('entry', signed, [
             c('out', 'bool', False),
         ], ret('out'))]))
+        incoming = [('remaining', 'u64'), ('value', 'u64')]
+        loop = m(f('count', [('n', 'u64')], ['u64'], ['trap'], [
+            b('entry', [('n', 'u64')], [c('zero', 'u64', 0)], jump('loop', 'n', 'zero')),
+            b('loop', incoming, [c('stop', 'u64', 0),
+                i('compare.ne', ['remaining', 'stop'], [('more', 'bool')])],
+                branch('more', ('step', 'remaining', 'value'), ('done', 'value'))),
+            b('step', [('prior_remaining', 'u64'), ('prior_value', 'u64')], [
+                c('one', 'u64', 1), c('two', 'u64', 2),
+                i('int.sub.checked', ['two', 'one'], [('step_size', 'u64')]),
+                i('int.sub.checked', ['prior_remaining', 'step_size'], [('next_remaining', 'u64')]),
+                i('int.add.checked', ['prior_value', 'step_size'], [('next_value', 'u64')])],
+                jump('loop', 'next_remaining', 'next_value')),
+            b('done', [('answer', 'u64')], [], ret('answer')),
+        ]))
+        simplified_loop = deepcopy(loop)
+        simplified_loop['functions'][0]['blocks'][2]['ops'][2] = c('step_size', 'u64', 1)
         original_import = builtins.__import__
 
         def without_z3(name, *args, **kwargs):
@@ -386,6 +402,13 @@ class CnfInstalledTests(unittest.TestCase):
                     self.assertIsNone(guard_witness['candidate_trap'])
                     self.assertIsNone(guard_witness['base_values'])
                     self.assertEqual(guard_witness['candidate_values'], [sum(guard_witness['arguments']) % (1 << 64)])
+                    control_flow = verify_optimization(loop, simplified_loop)
+                    self.assertEqual(control_flow['status'], 'verified', control_flow)
+                    self.assertEqual(control_flow['solver'], report['solver'])
+                    self.assertEqual(len(control_flow['obligations']), 4)
+                    by_block = {row['block']: row['observed'] for row in control_flow['obligations']}
+                    self.assertEqual(by_block['loop'], ['more', 'remaining', 'value', 'value'])
+                    self.assertEqual(by_block['step'], ['next_remaining', 'next_value'])
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)
