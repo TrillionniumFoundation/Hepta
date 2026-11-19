@@ -1,9 +1,10 @@
 """Fail-closed, all-input translation validation for a finite scalar HIA profile.
 
 The canonical HIA verifier remains the structural/resource authority.  This
-module first re-runs it, then encodes the actual operations of a public scalar
-function in Z3.  It asks whether *any* well-typed input changes the return values
-or the first specified trap code.  Only UNSAT is a successful equivalence check.
+module first re-runs it, then encodes the operations of a public scalar
+function in the selected bounded HIA circuit or Z3. It asks whether *any*
+well-typed input changes the return values or the first specified trap code.
+Only UNSAT is a successful equivalence check.
 
 This is an executable SMT encoder, not a machine-checked refinement proof of
 the encoder, HIA verifier, LLVM, linker, or native code.  The supported profile
@@ -18,6 +19,7 @@ from hashlib import sha256
 import importlib
 import json
 from pathlib import Path
+import time
 
 from .hia_program import (
     HIAProgramRejected, SCALARS, TRAP_CODES, WIDTHS, integer_range, verify_program,
@@ -27,8 +29,9 @@ from .hia_scalar_symbolic_native import (
     MAX_BLOCKS, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS, SymbolicRecipeRejected,
     selected_scalar_symbolic,
 )
-from .hia_scalar_proof_contract import (begin_scalar_proof, finish_scalar_proof,
-                                        same_scalar_proof_scope)
+from .hia_scalar_proof_contract import (
+    CIRCUIT_TRANSLATION_CHECKER, begin_scalar_proof, finish_scalar_proof, same_scalar_proof_scope,
+)
 
 SCHEMA = "hepta.hia.translation-validation.v1"
 QUALIFIED_CORE_SCHEMAS = frozenset("hepta.hia.program.v" + str(version) for version in range(1, 8))
@@ -432,16 +435,46 @@ def _partition_entry_equality(z, encoder, inputs, functions, difference):
     return difference, {"strategy": "unpartitioned", "input_assumptions": []}
 
 
+def _native_translation(result, cnf, checked, first, second, graphs, deadline_ns):
+    from .hia_cnf_native import UNSAT, core_comparison_circuit, scalar_model_arguments
+    from .hia_optimization import _native_circuit_decision, _native_solver_identity
+
+    decision = _native_circuit_decision(cnf, core_comparison_circuit(first, second, graphs), deadline_ns)
+    if decision is None:
+        return False
+    verdict, model, evidence, _formula = decision
+    result["solver"].update(name=CIRCUIT_TRANSLATION_CHECKER, version="1",
+                            result="unsat" if verdict == UNSAT else "sat",
+                            identity=_native_solver_identity(cnf), discharge=evidence)
+    result["limits"][3] = (
+        "The canonical verifier, circuit projection, HIA solver and independent Core replay are trusted.")
+    if verdict == UNSAT:
+        result.update(status="proved", reason="all_input_behavior_difference_unsatisfiable")
+        result["claims"].update(all_input_behavior_equivalence_proved=True, first_trap_code_preserved=True)
+    else:
+        arguments = list(scalar_model_arguments(model, first["params"]))
+        observations = {label: _execute_observation(doc, first["name"], arguments)
+                        for label, doc in checked.items()}
+        if observations["before"] == observations["after"]:
+            result["reason"] = "counterexample_replay_disagrees_with_encoder"
+        else:
+            result.update(status="disproved", reason="behavioral_counterexample_replayed",
+                          counterexample={"arguments": arguments, "parameter_types": _signature(first)[0],
+                                          **observations})
+    return True
+
+
 def validate_translation(before, after, *, function=None, timeout_ms=2000):
     """Compare all typed inputs of one function; return a JSON evidence receipt.
 
-    ``proved`` means Z3 found the exact behavioral-difference query UNSAT in the
+    ``proved`` means the identified solver found the exact behavioral-difference query UNSAT in the
     declared scalar profile.  ``disproved`` includes a concrete counterexample
     independently replayed by the canonical interpreter.  Invalid programs,
     unsupported constructs, unavailable solver, and solver exhaustion all yield
     ``unknown``.  Missing/changed signatures do not constitute an equivalence
     proof.  If omitted, ``function`` is inferred only for single-function cores.
     """
+    started = time.monotonic_ns()
     scope = begin_scalar_proof("validate_translation")
     result = _receipt(function, timeout_ms)
     if type(timeout_ms) is not int or not 1 <= timeout_ms <= MAX_TIMEOUT_MS:
@@ -482,6 +515,25 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
     except _OutsideProfile as exc:
         result["reason"] = str(exc)
         return finish_scalar_proof(result, scope)
+    from .hia_cnf_native import selected_cnf
+
+    solver_timeout = timeout_ms
+    try:
+        cnf = selected_cnf()
+        if cnf is not None:
+            if (scope["source_identity"] or {}).get("cnf.image.bin") != cnf.image_sha256:
+                raise _OutsideProfile("native_translation_identity_changed")
+            if _native_translation(result, cnf, checked, first, second, graphs, started + timeout_ms * 1_000_000):
+                return finish_scalar_proof(result, scope, started_ns=started, deadline_ms=timeout_ms)
+            solver_timeout -= (time.monotonic_ns() - started + 999999) // 1_000_000
+            if solver_timeout <= 0:
+                raise _OutsideProfile("proof_deadline_exhausted")
+    except _OutsideProfile as exc:
+        result["reason"] = str(exc)
+        return finish_scalar_proof(result, scope)
+    except (OSError, ValueError, RuntimeError) as exc:
+        result.update(reason="native_translation_unavailable", error_type=type(exc).__name__)
+        return finish_scalar_proof(result, scope)
     try:
         z = _z3_module()
     except (ImportError, OSError):
@@ -509,7 +561,7 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
             z, encoder, inputs, (second, first), difference)
         result["solver"]["query_preprocessing"] = preprocessing
         solver = z.Solver(ctx=encoder.context)
-        solver.set(timeout=timeout_ms)
+        solver.set(timeout=solver_timeout)
         solver.add(difference)
         verdict = solver.check()
         result["solver"]["result"] = str(verdict)
@@ -546,7 +598,8 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
     except z.Z3Exception as exc:
         result["reason"] = "solver_error"
         result["solver"]["error"] = str(exc)
-    return finish_scalar_proof(result, scope)
+    return finish_scalar_proof(result, scope, started_ns=started if cnf is not None else None,
+                               deadline_ms=timeout_ms)
 
 
 def verify_translation_receipt(before, after, receipt, *, function=None, timeout_ms=2000):

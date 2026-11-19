@@ -9,7 +9,7 @@ import struct
 from sys import byteorder
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
-from .hia_opcodes import WIDTHS
+from .hia_opcodes import TRAP_CODES, WIDTHS
 
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/cnf.hepta')
@@ -56,6 +56,7 @@ CIRCUIT_WORKSPACE = CIRCUIT_GATES_OFFSET + 8 * CIRCUIT_GATE_SLOTS
 UNKNOWN, SAT, UNSAT = range(3)
 WRAPPING_PRODUCT = 32
 _CORE_WIDTHS = {'bool': 1, **WIDTHS}
+_CORE_TRAP_TAGS = {code: index for index, code in enumerate(sorted(TRAP_CODES), 1)}
 _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.or': 4,
                     'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8,
                     'int.add.wrap': 9, 'int.sub.wrap': 10, 'select': 11,
@@ -312,22 +313,11 @@ def _any_flag(nodes, flags):
     return result
 
 
-def core_trap_circuit(function, blocks, order):
-    """Frame the existence of any Core trap over a verified scalar DAG.
-
-    Only admitted nodes may contribute trapping operations to the packet.
-    Continuing down a path after its first trap cannot create a false positive:
-    that execution already satisfies the trap predicate.
-    """
-    inputs = _scalar_inputs(function['params'])
-    if inputs is None:
-        return None
-    nodes, parameters = inputs
-    unreachable = _append_node(nodes, 2)
-    entry = _append_node(nodes, 2, immediate=1)
+def _scalar_graph(nodes, function, blocks, order, inputs, entry):
+    """Partition a verified scalar DAG into normal and first-trap outcomes."""
     incoming = {name: [] for name in order}
-    incoming[function['entry']].append((entry, tuple(index for index, _ in parameters.values())))
-    traps = []
+    incoming[function['entry']].append((entry, inputs))
+    outcomes = []
     for name in order:
         edges = incoming[name]
         if not edges:
@@ -350,10 +340,17 @@ def core_trap_circuit(function, blocks, order):
         if not supported:
             return None
         if trapped is not None:
-            traps.append(_append_node(nodes, 3, left=reach, right=trapped))
+            first = _append_node(nodes, 3, left=reach, right=trapped)
+            # Every trapping instruction in this word profile traps only on
+            # overflow. The block cannot reach its terminator after that.
+            outcomes.append((first, _CORE_TRAP_TAGS['overflow'], ()))
+            alive = _append_node(nodes, 6, left=trapped)
+            reach = _append_node(nodes, 3, left=reach, right=alive)
         terminal = block['term']
         if terminal['op'] == 'trap':
-            traps.append(reach)
+            outcomes.append((reach, _CORE_TRAP_TAGS[terminal['code']], ()))
+        elif terminal['op'] == 'ret':
+            outcomes.append((reach, 0, tuple(values[value][0] for value in terminal['values'])))
         elif terminal['op'] == 'jump':
             destination = incoming[terminal['target']]
             destination.append((reach, tuple(values[argument][0] for argument in terminal['args'])))
@@ -364,12 +361,77 @@ def core_trap_circuit(function, blocks, order):
                 edge = terminal[key]
                 taken = _append_node(nodes, 3, left=reach, right=flag)
                 incoming[edge['target']].append((taken, tuple(values[argument][0] for argument in edge['args'])))
-        elif terminal['op'] != 'ret':
+        else:
             return None
-    predicate = _any_flag(nodes, traps) if traps else unreachable
+    return outcomes
+
+
+def core_trap_circuit(function, blocks, order):
+    """Frame the existence of any Core trap over a verified scalar DAG."""
+    inputs = _scalar_inputs(function['params'])
+    if inputs is None:
+        return None
+    nodes, parameters = inputs
+    entry = _append_node(nodes, 2, immediate=1)
+    outcomes = _scalar_graph(nodes, function, blocks, order,
+                             tuple(index for index, _ in parameters.values()), entry)
+    if outcomes is None:
+        return None
+    unreachable = _append_node(nodes, 2)
+    # Prove that a normal-return domain covers every input. This also treats
+    # a missing terminal domain as a counterexample, not as absence of traps.
+    normal = [guard for guard, tag, _ in outcomes if tag == 0]
+    returns = _any_flag(nodes, normal) if normal else unreachable
+    missing_return = _append_node(nodes, 6, left=returns)
     if len(nodes) > CIRCUIT_NODES:
         return None
-    return nodes, (), (predicate, unreachable)
+    return nodes, (), (missing_return, unreachable)
+
+
+def _comparison_observation(nodes, outcomes, widths, unreachable):
+    # Tags and word values are independent observations. All word fields
+    # stay zero on a trap; differing traps must still differ in the tag.
+    tag = _append_node(nodes, 2, 8)
+    returned = [_append_node(nodes, 2, width) for width in widths]
+    for guard, code, values in outcomes:
+        if code:
+            encoded = _append_node(nodes, 2, 8, immediate=code)
+            tag = _append_node(nodes, 11, 8, guard, encoded, tag)
+        else:
+            returned = [_append_node(nodes, 11, width, guard, value, prior)
+                        for width, value, prior in zip(widths, values, returned, strict=True)]
+        if len(nodes) > CIRCUIT_NODES:
+            return None
+    complete = _any_flag(nodes, (guard for guard, _, _ in outcomes)) if outcomes else unreachable
+    return (tag, *returned), complete
+
+
+def core_comparison_circuit(first, second, graphs):
+    """Frame the all-input difference of two verified, same-signature DAGs."""
+    widths = tuple(_CORE_WIDTHS.get(typ) for typ in first['returns'])
+    if None in widths or len(widths) + 2 > CIRCUIT_RETURNS:
+        return None
+    inputs = _scalar_inputs(first['params'])
+    if inputs is None:
+        return None
+    nodes, parameters = inputs
+    arguments = tuple(index for index, _ in parameters.values())
+    entry = _append_node(nodes, 2, immediate=1)
+    unreachable = _append_node(nodes, 2)
+    policies = []
+    for fn, (blocks, order) in zip((first, second), graphs, strict=True):
+        outcomes = _scalar_graph(nodes, fn, blocks, order, arguments, entry)
+        if outcomes is None:
+            return None
+        observed = _comparison_observation(nodes, outcomes, widths, unreachable)
+        if observed is None:
+            return None
+        policies.append(observed)
+    (lhs, left_complete), (rhs, right_complete) = policies
+    both_complete = _append_node(nodes, 3, left=left_complete, right=right_complete)
+    if len(nodes) > CIRCUIT_NODES:
+        return None
+    return nodes, [*zip(lhs, rhs, strict=True), (both_complete, entry)], None
 
 
 def scalar_model_arguments(model, parameters):

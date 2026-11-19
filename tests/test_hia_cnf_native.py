@@ -373,6 +373,50 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertEqual(disproved['counterexample']['observation'], {'status': 'trapped', 'code': 'overflow'})
         self.assertEqual(unsupported['reason'], 'solver_unavailable')
 
+    def test_translation_keeps_first_trap_and_return_values_without_z3(self):
+        from hepta import hia_translation_validation as semantics
+        from tests.test_hia_program import b, branch, c, f, i, m, ret
+
+        params = [('x', 'u8')]
+        checked = m(f('calculate', params, ['u8'], ['trap'], [
+            b('entry', params, [c('one', 'u8', 1),
+                i('int.add.checked', ['x', 'one'], [('answer', 'u8')])], ret('answer'))]))
+        branch_form = m(f('calculate', params, ['u8'], ['trap'], [
+            b('entry', params, [c('max', 'u8', 255),
+                i('compare.eq', ['x', 'max'], [('at_max', 'bool')])],
+              branch('at_max', ('overflow',), ('returning', 'x'))),
+            b('overflow', [], [], {'op': 'trap', 'code': 'overflow'}),
+            b('returning', [('value', 'u8')], [c('one', 'u8', 1),
+                i('int.add.wrap', ['value', 'one'], [('answer', 'u8')])], ret('answer')),
+        ]))
+        wrong_trap = deepcopy(branch_form)
+        wrong_trap['functions'][0]['blocks'][1]['term']['code'] = 'user'
+        wrong_return = deepcopy(branch_form)
+        wrong_return['functions'][0]['blocks'][2]['ops'][0]['attrs']['value'] = 2
+        checked_then_trap = deepcopy(checked)
+        checked_then_trap['functions'][0]['blocks'][0]['term'] = {'op': 'trap', 'code': 'user'}
+        partitioned_traps = deepcopy(branch_form)
+        partitioned_traps['functions'][0]['blocks'][2]['term'] = {'op': 'trap', 'code': 'user'}
+        with patch.object(semantics, '_z3_module', side_effect=ImportError):
+            proof = semantics.validate_translation(checked, branch_form)
+            self.assertEqual(proof['status'], 'proved', proof)
+            self.assertEqual(proof['solver']['name'], 'hia-native-cnf-translation')
+            self.assertEqual(proof['checker']['source_identity']['cnf.image.bin'], self.native.image_sha256)
+            self.assertEqual(semantics.verify_translation_receipt(checked, branch_form, proof)['status'],
+                             'proved')
+            traps = semantics.validate_translation(checked, wrong_trap)
+            values = semantics.validate_translation(checked, wrong_return)
+            first_trap = semantics.validate_translation(checked_then_trap, partitioned_traps)
+        self.assertEqual(first_trap['status'], 'proved', first_trap)
+        self.assertEqual(traps['status'], 'disproved', traps)
+        self.assertEqual(traps['counterexample']['arguments'], [255])
+        self.assertEqual(traps['counterexample']['before'], {'status': 'trapped', 'code': 'overflow'})
+        self.assertEqual(traps['counterexample']['after'], {'status': 'trapped', 'code': 'user'})
+        self.assertEqual(values['status'], 'disproved', values)
+        self.assertEqual(values['counterexample']['before']['status'], 'returned')
+        self.assertNotEqual(values['counterexample']['before']['values'],
+                            values['counterexample']['after']['values'])
+
     def test_actual_optimizer_discharge_and_legacy_counterexample(self):
         try:
             import z3
