@@ -86,10 +86,14 @@ class CnfInstalledTests(unittest.TestCase):
                           for positive, negative in clauses]
                 sparse_verdict, sparse_model, _ = self.native.solve_sparse(variables, sparse, steps=10000)
                 self.assertEqual(sparse_verdict, verdict)
+                batched_verdict, batched_model, _ = self.native.solve_sparse(variables, sparse, steps=10000,
+                                                                             batch=True)
+                self.assertEqual(batched_verdict, verdict)
                 counts[verdict] += 1
                 if verdict == SAT:
                     self.assertTrue(satisfied(model, clauses))
                     self.assertTrue(satisfied(sparse_model, clauses))
+                    self.assertTrue(satisfied(batched_model, clauses))
         self.assertGreater(counts[SAT], 0)
         self.assertGreater(counts[UNSAT], 0)
         impossible = [(0, 0)]
@@ -145,6 +149,20 @@ class CnfInstalledTests(unittest.TestCase):
                         witness = circuit.witness(z3, assignment, formula)
                         self.assertIsNotNone(witness)
                         self.assertEqual((witness.eval(first).as_long(), witness.eval(second).as_long()), (a, b))
+
+    def test_batch_propagates_long_units_without_weakening_the_work_budget(self):
+        variables = 1024
+        chain = [(2,)]
+        chain.extend((2 * index + 1, 2 * (index + 1)) for index in range(1, variables))
+        self.assertEqual(self.native.solve_sparse(variables, chain, steps=10_000)[0], UNKNOWN)
+        verdict, model, cost = self.native.solve_sparse(variables, chain, steps=10_000, batch=True)
+        self.assertEqual((verdict, model), (SAT, (1 << variables) - 1))
+        self.assertLess(cost, 10_000)
+        self.assertEqual(self.native.solve_sparse(variables, chain, steps=32, batch=True), (UNKNOWN, 0, 32))
+        chain.append((2 * variables + 1,))
+        verdict, model, cost = self.native.solve_sparse(variables, chain, steps=10_000, batch=True)
+        self.assertEqual((verdict, model), (UNSAT, 0))
+        self.assertLess(cost, 10_000)
 
     def test_native_circuit_matches_boolean_truth_tables(self):
         rng = random.Random(393072)

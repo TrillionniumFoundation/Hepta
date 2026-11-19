@@ -1,7 +1,7 @@
 """Generate the checked-in HIA Boolean solver from its readable authoring form."""
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_cnf_native import (GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
+from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                   SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES,
@@ -17,8 +17,8 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
     if length(source) < 32 or length(result) < 32:
         return INVALID
     magic = read64(source, 0)
-    if magic == SPARSE_REQUEST:
-        return solve_sparse(source, result, stack)
+    if magic == SPARSE_REQUEST or magic == BATCH_REQUEST:
+        return solve_sparse(source, result, stack, magic == BATCH_REQUEST)
     if magic == CIRCUIT_REQUEST or magic == GUARDED_CIRCUIT_REQUEST:
         return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
     if magic != REQUEST or length(stack) < WORKSPACE:
@@ -125,8 +125,8 @@ def write64(output:mutbuf, offset:u64, value:u64) -> u64:
         index = index + 1
     return 0
 
-def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
-    if length(source) < 40 or length(stack) < SPARSE_WORKSPACE:
+def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, batch:bool) -> u32:
+    if length(source) < 40 or length(stack) < SPARSE_WORKSPACE + choose(batch, 8, 0):
         return INVALID
     variables = read64(source, 8)
     clauses = read64(source, 16)
@@ -156,14 +156,19 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
     while key < variables:
         store(stack, key, 0)
         key = key + 1
-    return search_sparse(source, result, stack, variables, budget)
+    return search_sparse(source, result, stack, variables, budget, batch)
 
-def search_sparse(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, budget:u64) -> u32:
+def search_sparse(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64,
+                  budget:u64, batch:bool) -> u32:
     steps = 0
     trail = 0
     depth = 0
     while steps < budget:
-        observed = scan_sparse(source, stack, steps + 1, budget)
+        if batch:
+            write64(stack, SPARSE_WORKSPACE, trail)
+        observed = scan_sparse(source, stack, steps + 1, budget, batch)
+        if batch:
+            trail = read_stack(stack, SPARSE_WORKSPACE)
         steps = observed >> 17
         decision = observed & 131071
         if decision == 0:
@@ -183,7 +188,7 @@ def search_sparse(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, bu
             store(stack, variable, 2)
             put_token(stack, TRAIL + 2 * trail, variable)
             trail = trail + 1
-        else:
+        elif decision != 3:
             literal = decision & 32767
             variable = (literal >> 1) - 1
             if decision >= 65536:
@@ -196,12 +201,13 @@ def search_sparse(source:readbuf, result:mutbuf, stack:mutbuf, variables:u64, bu
             trail = trail + 1
     return reply_sparse(result, stack, variables, 0, steps)
 
-def scan_sparse(source:readbuf, stack:mutbuf, steps:u64, budget:u64) -> u64:
+def scan_sparse(source:readbuf, stack:mutbuf, steps:u64, budget:u64, batch:bool) -> u64:
     position = 40
     choice = 0
     first = 0
     several = 0
     satisfied = 0
+    changed = 0
     while position < length(source):
         if steps == budget:
             return (steps << 17) | 1
@@ -212,8 +218,16 @@ def scan_sparse(source:readbuf, stack:mutbuf, steps:u64, budget:u64) -> u64:
                 if first == 0:
                     return (steps << 17) | 2
                 if several == 0:
-                    return (steps << 17) | (32768 + first)
-                if choice == 0:
+                    if batch:
+                        variable = (first >> 1) - 1
+                        trail = read_stack(stack, SPARSE_WORKSPACE)
+                        put_token(stack, TRAIL + 2 * trail, variable)
+                        store(stack, variable, 1 + (first & 1))
+                        write64(stack, SPARSE_WORKSPACE, trail + 1)
+                        changed = 1
+                    else:
+                        return (steps << 17) | (32768 + first)
+                elif choice == 0:
                     choice = first
             first = 0
             several = 0
@@ -228,6 +242,9 @@ def scan_sparse(source:readbuf, stack:mutbuf, steps:u64, budget:u64) -> u64:
                 elif first != literal:
                     several = 1
         position = position + 2
+    if changed != 0:
+        # An earlier clause can have become newly unit in this pass.
+        return (steps << 17) | 3
     if choice == 0:
         return steps << 17
     return (steps << 17) | (65536 + choice)
@@ -714,7 +731,8 @@ def source_program():
                      CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
-                     TOO_LARGE=0xfffffffc, SPARSE_REQUEST=SPARSE_REQUEST, SPARSE_REPLY=SPARSE_REPLY, SPARSE_CLAUSES=SPARSE_CLAUSES,
+                     TOO_LARGE=0xfffffffc, BATCH_REQUEST=BATCH_REQUEST, SPARSE_REQUEST=SPARSE_REQUEST,
+                     SPARSE_REPLY=SPARSE_REPLY, SPARSE_CLAUSES=SPARSE_CLAUSES,
                      SPARSE_ENTRIES=SPARSE_ENTRIES, SPARSE_VARIABLES=SPARSE_VARIABLES,
                      SPARSE_WORKSPACE=SPARSE_WORKSPACE, DECISIONS=SPARSE_VARIABLES * 3,
                      TRAIL=SPARSE_VARIABLES, REQUEST=REQUEST, REPLY=REPLY, CLAUSE_LIMIT=CLAUSE_LIMIT,

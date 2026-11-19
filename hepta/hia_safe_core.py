@@ -158,7 +158,7 @@ def _native_obligation(z, cnf, expression, deadline):
     circuit = bitvector_circuit(z, z.simplify(expression))
     remaining = int((deadline - time.monotonic()) * 1000)
     if circuit is not None and remaining > 0:
-        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(200_000, remaining * 100))
+        solved = cnf.solve_circuit(circuit.nodes, circuit.returns, steps=min(200_000, remaining * 100), batch=True)
         if solved is not None:
             result, assignment, steps, variables, clauses, formula = solved
             witness = circuit.witness(z, assignment, expression) if result == SAT else None
@@ -175,7 +175,8 @@ def _native_obligation(z, cnf, expression, deadline):
     if reduced is None or remaining <= 0:
         return None
     variables = len(reduced.atoms)
-    result, assignment, steps = cnf.solve_sparse(variables, reduced.clauses, steps=min(200_000, remaining * 100))
+    result, assignment, steps = cnf.solve_sparse(variables, reduced.clauses, steps=min(200_000, remaining * 100),
+                                                 batch=True)
     if result not in (SAT, UNSAT):
         return None
     witness = None
