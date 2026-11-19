@@ -197,6 +197,34 @@ class CnfInstalledTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'circuit representation'):
                 self.native.solve_circuit(malformed, [(1, 1)], steps=8)
 
+    def test_guarded_add_and_subtract_observe_overflow_and_returns(self):
+        rng = random.Random(987281)
+        for width in (8, 16, 32, 64):
+            high = 1 << (width - 1)
+            mask = 2 * high - 1
+            operands = [(0, 0), (0, 1), (mask, 1), (high - 1, 1),
+                        (high, 1), (high, mask), (0, high), (1, 0)]
+            operands.extend((rng.getrandbits(width), rng.getrandbits(width)) for _ in range(24))
+            for a, b in operands:
+                for signed in (False, True):
+                    low, limit = (-high, high - 1) if signed else (0, mask)
+                    left, right = ((a ^ high) - high, (b ^ high) - high) if signed else (a, b)
+                    for subtract, mathematical in enumerate((left + right, left - right)):
+                        overflow = int(not low <= mathematical <= limit)
+                        nodes = [(2, width, 0, 0, a), (2, width, 0, 0, b),
+                                 (9 + subtract, width, 0, 1, 0),
+                                 (22 + 2 * signed + subtract, 1, 0, 1, 0),
+                                 (2, 1, 0, 0, overflow), (2, 1, 0, 0, overflow ^ 1),
+                                 (2, width, 0, 0, mathematical & mask),
+                                 (2, width, 0, 0, (mathematical & mask) ^ 1)]
+                        same = self.native.solve_circuit(nodes, [(2, 6)], traps=(3, 4), steps=8)
+                        wrong_trap = self.native.solve_circuit(nodes, [(2, 6)], traps=(3, 5), steps=8)
+                        different_word = self.native.solve_circuit(nodes, [(2, 7)], traps=(3, 4), steps=8)
+                        self.assertEqual((same[0], wrong_trap[0], different_word[0]),
+                                         (UNSAT, SAT, UNSAT if overflow else SAT))
+        with self.assertRaisesRegex(ValueError, 'circuit representation'):
+            self.native.solve_circuit([(1, 8, 0, 0, 0)], [(0, 0)], traps=(0, 0), steps=8)
+
     def test_actual_optimizer_discharge_and_legacy_counterexample(self):
         try:
             import z3
@@ -234,6 +262,7 @@ class CnfInstalledTests(unittest.TestCase):
         from hepta.hia_agent_store import AgentRejected
         from hepta.hia_optimization import verify_optimization
         from hepta.hia_proof_contract import proof_result
+        from tests.test_hia_optimization import arithmetic
         from tests.test_hia_program import b, c, f, i, m, ret
         from tools.hia_agent_native_qualification import Session, ToolClient, add_program
 
@@ -345,6 +374,18 @@ class CnfInstalledTests(unittest.TestCase):
                     ordered = verify_optimization(choose(False), choose(True))
                     self.assertEqual(ordered['status'], 'verified', ordered)
                     self.assertEqual(ordered['solver'], report['solver'])
+                    checked = arithmetic('int.add.checked', 'u64')
+                    wrapped = arithmetic('int.add.wrap', 'u64')
+                    same_guarded = verify_optimization(checked, checked)
+                    self.assertEqual(same_guarded['status'], 'verified')
+                    self.assertEqual(same_guarded['solver'], report['solver'])
+                    lost_overflow = verify_optimization(checked, wrapped)
+                    self.assertEqual(lost_overflow['status'], 'rejected', lost_overflow)
+                    guard_witness = lost_overflow['obligations'][-1]['counterexample_replay']
+                    self.assertEqual(guard_witness['base_trap'], 'overflow')
+                    self.assertIsNone(guard_witness['candidate_trap'])
+                    self.assertIsNone(guard_witness['base_values'])
+                    self.assertEqual(guard_witness['candidate_values'], [sum(guard_witness['arguments']) % (1 << 64)])
             finally:
                 service.close()
         self.assertEqual(report['status'], 'verified', report)

@@ -172,8 +172,17 @@ class ProofContractTests(AgentToolCase):
 
     @unittest.skipUnless(importlib.util.find_spec("z3"), "optional pinned Z3 is not installed")
     def test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks(self):
-        base = self.prepare(typ="u32")
-        candidate = self.session.import_program(add_program(optimized=True, typ="u32"))
+        self.session.freeze({"schema": "hepta.hia.agent.workload.v1",
+            "cases": [{"function": "transform", "arguments": [0]}],
+            "warmup_iterations": 0, "repetitions": 1})
+        original = add_program(typ="u32")
+        folded = add_program(optimized=True, typ="u32")
+        original["functions"][0]["effects"] = folded["functions"][0]["effects"] = ["trap"]
+        operations = original["functions"][0]["blocks"][0]["ops"]
+        operations[0]["attrs"]["value"] = 7
+        operations[2]["op"] = "int.mul.checked"  # Deliberately outside the native circuit profile.
+        base = self.session.import_program(original)
+        candidate = self.session.import_program(folded)
         result = self.session.verify(candidate, base=base, claims=["behavior_equivalence"])
         check = result["checks"][0]
         self.assertEqual(check["status"], "proved", check)

@@ -72,7 +72,11 @@ def _native_circuit_decision(cnf, circuit, deadline):
     remaining = (deadline - time.monotonic_ns()) // 1_000_000
     if remaining <= 0:
         return None
-    result = cnf.solve_circuit(*circuit, steps=min(200_000, remaining * 100))
+    nodes, returns, traps = circuit
+    # Carry clauses for checked 64-bit arithmetic require substantially
+    # more unit propagation than pure bitwise obligations.
+    steps = min(2_000_000, remaining * 1000) if traps is not None else min(200_000, remaining * 100)
+    result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps)
     if result is None or result[0] not in (SAT, UNSAT):
         return None
     verdict, model, steps, variables, clauses, frame = result
@@ -90,7 +94,7 @@ def _native_solver_identity(cnf):
 
 
 def _native_circuit_witness(before, after, function, model):
-    from .hia_program_runtime import execute_program
+    from .hia_program_runtime import HIAProgramTrap, execute_program
     from .hia_scalar_reference_native import selected_scalar_reference
 
     # HIABVC01 allocates variable 1 to true. The initial input nodes
@@ -111,16 +115,22 @@ def _native_circuit_witness(before, after, function, model):
             model_values[parameter["name"]] = str(raw)
         arguments.append(typed)
     name = function["name"]
-    previous = execute_program(before, name, arguments, max_steps=512)
-    revised = execute_program(after, name, arguments, max_steps=512)
-    if previous["status"] != "returned" or revised["status"] != "returned":
-        return None
-    if previous["values"] == revised["values"]:
+
+    def observe(program):
+        try:
+            return execute_program(program, name, arguments, max_steps=512)["values"], None
+        except HIAProgramTrap as error:
+            if error.code != "overflow":
+                raise
+            return None, error.code
+
+    previous, revised = observe(before), observe(after)
+    if previous == revised:
         return None
     if selected_scalar_reference() is not reference:
         return None
-    return model_values, {"function": name, "arguments": arguments, "base_values": previous["values"],
-                          "candidate_values": revised["values"],
+    return model_values, {"function": name, "arguments": arguments, "base_values": previous[0],
+                          "candidate_values": revised[0], "base_trap": previous[1], "candidate_trap": revised[1],
                           "scalar_reference_image_sha256": None if reference is None else reference.image_sha256}
 
 

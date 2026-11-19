@@ -297,11 +297,18 @@ def _native_circuit_scope(status, evidence):
         last = obligations[-1]
         replay = last.get("counterexample_replay")
         reference = selected_scalar_reference()
+
+        def valid_observation(side):
+            values, trap = replay.get(f"{side}_values"), replay.get(f"{side}_trap")
+            return (f"{side}_values" in replay
+                    and ((type(values) is list and trap is None) or (values is None and trap == "overflow")))
+
         _require(type(last.get("counterexample")) is dict and type(replay) is dict
                  and replay.get("function") == last.get("function")
                  and type(replay.get("arguments")) is list
-                 and type(replay.get("base_values")) is list and type(replay.get("candidate_values")) is list
-                 and replay["base_values"] != replay["candidate_values"]
+                 and valid_observation("base") and valid_observation("candidate")
+                 and (replay["base_values"], replay.get("base_trap"))
+                 != (replay["candidate_values"], replay.get("candidate_trap"))
                  and replay.get("scalar_reference_image_sha256") == (None if reference is None else reference.image_sha256),
                  "native circuit refutation lacks a typed replay or its evaluator identity differs")
 
@@ -333,7 +340,7 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
     if method == "compositional_scalar_effect":
         assumptions.append(_item("structural_correspondence", "The qualified primitive Core v1-v7 profile requires identical signatures, CFG edges and ordered resource/call operations; corresponding effects share the same modeled state."))
         if solver is not None and solver["name"] == "HIA":
-            assumptions.append(_item("identified_hia_circuit_solver", "The identified HIA image correctly encodes the admitted pure return circuit and decides each retained Boolean obligation."))
+            assumptions.append(_item("identified_hia_circuit_solver", "The identified HIA image correctly encodes the admitted scalar return and overflow circuit and decides each retained Boolean obligation."))
         else:
             assumptions.append(_item("identified_smt_solver", "When solving is performed, the identified pinned Z3 binding and native library correctly decide the retained bit-vector obligations."))
         obligations.append(_item("vm_tick_preservation", "VM instruction tick counts and native execution costs are not equivalence observables in this structural profile."))

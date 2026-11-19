@@ -26,6 +26,7 @@ SPARSE_CLAUSES = 65536
 SPARSE_ENTRIES = 1 << 20
 SPARSE_WORKSPACE = SPARSE_VARIABLES * 7
 CIRCUIT_REQUEST = int.from_bytes(b'HIABVC01', 'little')
+GUARDED_CIRCUIT_REQUEST = int.from_bytes(b'HIABVG01', 'little')
 CIRCUIT_NODES = 128
 CIRCUIT_RETURNS = 16
 CIRCUIT_CAPACITY = 192 * 1024
@@ -38,7 +39,7 @@ _CORE_OPERATIONS = {'const': 2, 'bit.and': 3, 'bool.and': 3, 'bit.or': 4, 'bool.
                     'bit.xor': 5, 'bit.not': 6, 'bool.not': 6, 'compare.eq': 7, 'compare.ne': 8,
                     'int.add.wrap': 9, 'int.sub.wrap': 10, 'select': 11,
                     'compare.lt': 12, 'compare.le': 13, 'compare.gt': 14, 'compare.ge': 15,
-                    'int.cast': 20}
+                    'int.cast': 20, 'int.add.checked': 22, 'int.sub.checked': 23}
 
 
 class NativeCnf(NativeHiaJsonImage):
@@ -92,12 +93,15 @@ class NativeCnf(NativeHiaJsonImage):
             raise RuntimeError('invalid sparse HIA Boolean solver model')
         return verdict, model, cost
 
-    def solve_circuit(self, nodes, returns, *, steps):
+    def solve_circuit(self, nodes, returns, *, steps, traps=None):
         if len(nodes) > CIRCUIT_NODES or len(returns) > CIRCUIT_RETURNS or not 0 <= steps <= STEP_LIMIT:
             return None
-        frame = struct.pack('<4Q', CIRCUIT_REQUEST, len(nodes), len(returns), steps)
+        magic = CIRCUIT_REQUEST if traps is None else GUARDED_CIRCUIT_REQUEST
+        frame = struct.pack('<4Q', magic, len(nodes), len(returns), steps)
         frame += b''.join(struct.pack('<5Q', *instruction) for instruction in nodes)
         frame += b''.join(struct.pack('<2Q', *pair) for pair in returns)
+        if traps is not None:
+            frame += struct.pack('<2Q', *traps)
         source = ctypes.create_string_buffer(frame, len(frame))
         output = ctypes.create_string_buffer(CIRCUIT_CAPACITY)
         scratch = ctypes.create_string_buffer(CIRCUIT_WORKSPACE)
@@ -138,9 +142,10 @@ def core_circuit(before, after):
             return None
         parameters[parameter['name']] = (len(nodes), parameter['type'])
         nodes.append((1, width, 0, 0, 0))
-    returned = []
+    returned, traps = [], []
     for block in (before, after):
         values = parameters.copy()
+        trap = None
         for operation in block['ops']:
             opcode = _CORE_OPERATIONS.get(operation['op'])
             if opcode is None or len(operation['out']) != 1:
@@ -163,11 +168,27 @@ def core_circuit(before, after):
                     return None
                 opcode += values[operation['args'][0]][1].startswith('i')
             values[output['name']] = (len(nodes), output['type'])
-            nodes.append((opcode, width, left, right, immediate))
+            if opcode < 22:
+                nodes.append((opcode, width, left, right, immediate))
+                continue
+            nodes.append((opcode - 13, width, left, right, 0))
+            flag = len(nodes)
+            nodes.append((opcode + 2 * output['type'].startswith('i'), 1, left, right, 0))
+            if trap is not None:
+                nodes.append((4, 1, trap, flag, 0))
+            trap = len(nodes) - 1
         if any(name not in values for name in block['term']['values']):
             return None
         returned.append([values[name][0] for name in block['term']['values']])
-    return nodes, list(zip(*returned, strict=True))
+        traps.append(trap)
+    if all(trap is None for trap in traps):
+        guards = None
+    elif None in traps:
+        guards = tuple(len(nodes) if trap is None else trap for trap in traps)
+        nodes.append((2, 1, 0, 0, 0))
+    else:
+        guards = tuple(traps)
+    return nodes, list(zip(*returned, strict=True)), guards
 
 
 def bitblast_clauses(z3, expression, *, timeout_ms):

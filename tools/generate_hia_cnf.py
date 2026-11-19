@@ -1,7 +1,7 @@
 """Generate the checked-in HIA Boolean solver from its readable authoring form."""
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_cnf_native import (CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
+from hepta.hia_cnf_native import (GUARDED_CIRCUIT_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS,
                                   CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                   SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES,
@@ -19,8 +19,8 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
     magic = read64(source, 0)
     if magic == SPARSE_REQUEST:
         return solve_sparse(source, result, stack)
-    if magic == CIRCUIT_REQUEST:
-        return encode_circuit(source, result, stack)
+    if magic == CIRCUIT_REQUEST or magic == GUARDED_CIRCUIT_REQUEST:
+        return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
     if magic != REQUEST or length(stack) < WORKSPACE:
         return INVALID
     variables = read64(source, 8)
@@ -267,7 +267,7 @@ def put_token(output:mutbuf, position:u64, value:u64) -> u64:
     store(output, position + 1, value >> 8)
     return 0
 
-def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf) -> u32:
+def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, guarded:bool) -> u32:
     if length(output) < CIRCUIT_CAPACITY or length(scratch) < CIRCUIT_WORKSPACE:
         return INVALID
     nodes = read64(source, 8)
@@ -276,7 +276,11 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf) -> u32:
     if nodes > CIRCUIT_NODES or returns > CIRCUIT_RETURNS or budget > STEP_LIMIT:
         return INVALID
     return_offset = 32 + 40 * nodes
-    if length(source) != return_offset + 16 * returns:
+    end = return_offset + 16 * returns
+    expected_size = end
+    if guarded:
+        expected_size = end + 16
+    if length(source) != expected_size:
         return INVALID
     index = 0
     while index < nodes:
@@ -296,12 +300,19 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf) -> u32:
         if left >= nodes or right >= nodes or node_width(source, left) != node_width(source, right):
             return INVALID
         index = index + 1
-    return encode_checked_circuit(source, output, scratch, nodes, returns, budget)
+    if guarded:
+        left_guard = read64(source, end)
+        right_guard = read64(source, end + 8)
+        if left_guard >= nodes or right_guard >= nodes:
+            return INVALID
+        if node_width(source, left_guard) != 1 or node_width(source, right_guard) != 1:
+            return INVALID
+    return encode_checked_circuit(source, output, scratch, nodes, returns, budget, guarded)
 
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width != 1 and width != 8 and width != 16 and width != 32 and width != 64:
         return 0
-    if operation < 1 or operation > 21:
+    if operation < 1 or operation > 25:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -319,7 +330,7 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         return 1
     if immediate != 0:
         return 0
-    if operation >= 20:
+    if operation == 20 or operation == 21:
         if right != 0 or width == 1 or node_width(source, left) == 1:
             return 0
         return 1
@@ -344,7 +355,7 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
 def node_width(source:readbuf, node:u64) -> u64:
     return read64(source, 40 + 40 * node)
 
-def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:u64, returns:u64, budget:u64) -> u32:
+def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:u64, returns:u64, budget:u64, guarded:bool) -> u32:
     write64(scratch, 0, 1)
     write64(scratch, 8, 0)
     write64(scratch, 16, 40)
@@ -367,7 +378,10 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
                 return TOO_LARGE
             put_token(scratch, 32 + 128 * node, delta ^ (operation & 1))
         elif operation == 9 or operation == 10:
-            if encode_wrapping_sum(output, scratch, node, left, right, width, operation == 10) == 0:
+            if encode_sum(output, scratch, node, left, right, width, operation) == 0:
+                return TOO_LARGE
+        elif operation >= 22:
+            if encode_sum(output, scratch, node, left, right, node_width(source, left), operation) == 0:
                 return TOO_LARGE
         elif operation >= 12 and operation <= 19:
             digit = ordered_comparison(output, scratch, source, operation, left, right)
@@ -398,6 +412,19 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
         if mismatch == 0:
             return TOO_LARGE
         offset = offset + 16
+    if guarded:
+        left_guard = load_token(scratch, 32 + 128 * read64(source, end))
+        right_guard = load_token(scratch, 32 + 128 * read64(source, end + 8))
+        trap_mismatch = logic_xor(output, scratch, left_guard, right_guard)
+        success = logic_and(output, scratch, left_guard ^ 1, right_guard ^ 1)
+        if trap_mismatch == 0 or success == 0:
+            return TOO_LARGE
+        observed_return_mismatch = logic_and(output, scratch, success, mismatch)
+        if observed_return_mismatch == 0:
+            return TOO_LARGE
+        mismatch = logic_or(output, scratch, trap_mismatch, observed_return_mismatch)
+        if mismatch == 0:
+            return TOO_LARGE
     emit_clause(output, scratch, mismatch, 0, 0)
     size = read_stack(scratch, 16)
     write64(output, 0, SPARSE_REQUEST)
@@ -482,12 +509,13 @@ def logic_select(output:mutbuf, scratch:mutbuf, condition:u64, first:u64, second
         return 0
     return logic_or(output, scratch, a, b)
 
-def encode_wrapping_sum(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, width:u64, subtract:bool) -> u64:
+def encode_sum(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64, width:u64, operation:u64) -> u64:
     # Literal 2 is true and 3 false. For subtraction, add the complement
     # of the right operand with incoming carry one; drop the high carry.
     carry = 3
     complement = 0
-    if subtract:
+    flag_only = operation >= 22
+    if operation == 10 or (flag_only and (operation & 1) == 1):
         carry = 2
         complement = 1
     bit = 0
@@ -497,19 +525,28 @@ def encode_wrapping_sum(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right
         parity = logic_xor(output, scratch, a, b)
         if parity == 0:
             return 0
-        digit = logic_xor(output, scratch, parity, carry)
-        if digit == 0:
-            return 0
-        put_token(scratch, 32 + 128 * node + 2 * bit, digit)
+        if operation < 22:
+            digit = logic_xor(output, scratch, parity, carry)
+            if digit == 0:
+                return 0
+            put_token(scratch, 32 + 128 * node + 2 * bit, digit)
         bit = bit + 1
-        if bit < width:
+        if bit < width or flag_only:
             generate = logic_and(output, scratch, a, b)
             propagate = logic_and(output, scratch, parity, carry)
             if generate == 0 or propagate == 0:
                 return 0
-            carry = logic_or(output, scratch, generate, propagate)
-            if carry == 0:
+            next_carry = logic_or(output, scratch, generate, propagate)
+            if next_carry == 0:
                 return 0
+            if flag_only and bit == width:
+                overflow = next_carry ^ complement
+                if operation >= 24:
+                    overflow = logic_xor(output, scratch, carry, next_carry)
+                    if overflow == 0:
+                        return 0
+                put_token(scratch, 32 + 128 * node, overflow)
+            carry = next_carry
     return 1
 
 def unequal_bits(output:mutbuf, scratch:mutbuf, left:u64, right:u64, width:u64) -> u64:
@@ -629,7 +666,8 @@ def emit_clause(output:mutbuf, scratch:mutbuf, a:u64, b:u64, c:u64) -> u64:
 
 
 def source_program():
-    constants = dict(CIRCUIT_REQUEST=CIRCUIT_REQUEST, CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
+    constants = dict(GUARDED_CIRCUIT_REQUEST=GUARDED_CIRCUIT_REQUEST, CIRCUIT_REQUEST=CIRCUIT_REQUEST,
+                     CIRCUIT_CAPACITY=CIRCUIT_CAPACITY, CIRCUIT_NODES=CIRCUIT_NODES,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
                      TOO_LARGE=0xfffffffc, SPARSE_REQUEST=SPARSE_REQUEST, SPARSE_REPLY=SPARSE_REPLY, SPARSE_CLAUSES=SPARSE_CLAUSES,
