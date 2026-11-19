@@ -171,3 +171,16 @@ a privileged HIA kernel backend, separate interpreter, or a Linux acceptance
 closure. The next required step remains translating the reviewed authority
 and ordering checks into the actual HIA verifier and locked selfhost native
 compiler, with QEMU negative controls and independent machine-code provenance.
+
+## Same-page plan dataflow (isolated staging refinement)
+
+Within one admitted sequence, a second 4 KiB PTE write to the same virtual
+page must take the **previous candidate** as its entire expected and observed
+old word. Even after a matching INVLPG and balanced IRQ mask interval, an
+older expected value is rejected. Tests exercise valid chains, interleaved
+pages, stale replay and attempts to relabel a stale observation. This checks
+only *internal planned dataflow*; it does not authenticate CPU readback,
+hardware-updated Accessed/Dirty bits, page-table ownership, NMI/reentrant
+interrupt behavior, or another CPU. A legitimate hardware A/D change between
+writes needs a separately modeled observation transition rather than bypassing
+the equality guard. No privileged HIA source operation or backend is added.

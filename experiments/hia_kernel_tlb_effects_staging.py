@@ -47,6 +47,9 @@ def admit_single_cpu_tlb_sequence(
 
     A planned PTE write's expected_old and observed_old must agree, but the
     latter is caller-supplied; no memory or runtime readback is performed.
+    Rewriting one VA later in this same plan requires the previous candidate
+    as the next expected_old. This excludes unmodeled hardware A/D changes;
+    the check does not establish that the real memory has this value.
     The sequence must be interrupt-masked for each write and flush, must
     flush each written VA before unmasking, and must end unmasked. This is
     deliberately *not* sufficient for Linux SMP or async exception safety.
@@ -69,6 +72,11 @@ def admit_single_cpu_tlb_sequence(
     masked = False
     pending: set[int] = set()
     touched: set[int] = set()
+    # Within one admitted plan, a later write to the same page must use the
+    # earlier write's candidate as its complete old word. An intervening
+    # INVLPG orders the TLB, but does not reset the PTE's dataflow.
+    # Hardware A/D updates and external writers are outside this model.
+    last_candidate: dict[int, int] = {}
     writes = invalidations = pairs = 0
     for index, step in enumerate(steps):
         if type(step) is not dict or type(step.get("op")) is not str:
@@ -92,6 +100,9 @@ def admit_single_cpu_tlb_sequence(
             candidate = _u64(step["candidate"], "candidate")
             if not masked or va in pending or seen != old or candidate == old:
                 raise KernelEffectRejected("PTE write not exclusively admitted or stale")
+            if va in last_candidate and old != last_candidate[va]:
+                raise KernelEffectRejected("PTE write reuses a stale prior plan state")
+            last_candidate[va] = candidate
             pending.add(va)
             touched.add(va)
             writes += 1
