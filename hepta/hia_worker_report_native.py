@@ -209,16 +209,18 @@ def _pure_builtin_key_hash(key):
 
 
 class WorkerSession:
-    def __init__(self, owner, args, parser, identities, worker):
+    def __init__(self, owner, args=None, parser=None, identities=None, worker=None):
         self.owner, self.args, self.parser, self.worker = owner, args, parser, worker
         self.workspace = ctypes.create_string_buffer(262144)
         self.output = ctypes.create_string_buffer(8)
         self.observer = WorkerGraphObserver(self)
-        reg = self.observer.register
-        self.packet = struct.pack('<14Q', MAGIC, 0, 0, int(args.installation_manifest),
-            int(args.request_json_stdin), reg(args.state_root), reg(args.artifact_root),
-            reg(args.expected_worker_sha256), reg(args.expected_backend_sha256),
-            reg(args.expected_catalog_sha256), reg(identities), reg(worker.VERSION), reg(None), 0)
+        self.packet = None
+        if args is not None:
+            reg = self.observer.register
+            self.packet = struct.pack('<14Q', MAGIC, 0, 0, int(args.installation_manifest),
+                int(args.request_json_stdin), reg(args.state_root), reg(args.artifact_root),
+                reg(args.expected_worker_sha256), reg(args.expected_backend_sha256),
+                reg(args.expected_catalog_sha256), reg(identities), reg(worker.VERSION), reg(None), 0)
         self.finished = False
         self._dict_next, self._dict_lookup, self._dict_stored_hash = _dict_primitives()
 
@@ -392,6 +394,13 @@ class NativeWorkerReport:
 
     def run(self, args, parser, identities, worker):
         return WorkerSession(self, args, parser, identities, worker).run()
+
+    def equal_json(self, left, right):
+        """Compare already admitted JSON graphs; no Python rich leaf equality."""
+        session = WorkerSession(self)
+        reg = session.observer.register
+        session.packet = struct.pack('<5Q', MAGIC, 1, 0, reg(left), reg(right))
+        return session.run() == 0
 
 
 def installed_worker_report(path):

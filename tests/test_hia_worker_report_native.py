@@ -970,6 +970,36 @@ print(json.dumps({'installed_entry':True,'retained_report_owner_entered':False,'
             child.write_bytes(raw)
         self.assertEqual(dict(os.environ), before)
 
+    def test_standalone_json_equality_uses_only_graph_transport(self):
+        cases = (
+            ({'α': [True, -0.0, 123]}, {'α': [1.0, 0, 123.0]}),
+            ({'a': 2**53 + 1}, {'a': float(2**53 + 1)}),
+            ({'a': 2**100}, {'a': float(2**100)}),
+            ({'a': -(2**100)}, {'a': float(2**100)}),
+            ({'a': 1, 'b': 2}, {'b': 2, 'a': 1}),
+            ({'a': 1, 'b': 2}, {'a': 1, 'c': 2}),
+            ([{'key': None}, {'key': False}], [{'key': 0}, {'key': None}]),
+            (('☃' * 1025,), ('☃' * 1024 + '☺',)),
+            (['a'], ('a',)),
+        )
+        observe = WorkerSession._observe
+
+        def graph_only(session):
+            opcode, = struct.unpack_from('<Q', session.workspace, 8)
+            self.assertIn(opcode, {1, 2, 3, 4, 31, 34, 35, 36, 37})
+            return observe(session)
+
+        class Opaque:
+            def __eq__(self, other):
+                raise AssertionError('standalone JSON walker entered hosted rich equality')
+
+        with patch.object(WorkerSession, '_observe', graph_only):
+            for index, (left, right) in enumerate(cases):
+                with self.subTest(index=index):
+                    self.assertIs(self.owner.equal_json(left, right), left == right)
+            with self.assertRaisesRegex(RuntimeError, 'profile refused'):
+                self.owner.equal_json(Opaque(), Opaque())
+
     def test_continuation_sequence_packet_lengths_and_output_canary(self):
         args = SimpleNamespace(installation_manifest=False, request_json_stdin=True, state_root='/unused', artifact_root=[],
             expected_worker_sha256=None, expected_backend_sha256=None, expected_catalog_sha256=None)

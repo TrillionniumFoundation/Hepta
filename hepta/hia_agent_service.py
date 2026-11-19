@@ -47,6 +47,14 @@ def _exact_artifact_equal(left: bytes, right: bytes) -> bool:
     return left == right if policy is None else policy.exact_bytes_equal(left, right)
 
 
+def _retained_record_equality():
+    from operator import eq
+    from .hia_worker_report_native import SELECTOR, installed_worker_report
+
+    selected = os.environ.get(SELECTOR)
+    return eq if not selected else installed_worker_report(selected).equal_json
+
+
 def _reference_finite_function(function):
     from .hia_optimization import PURE
 
@@ -1047,8 +1055,9 @@ class HIAAgentService:
 
     def _verification(self, ref, context, candidate=None):
         record, _, raw = self.store.get_json_with_wire(ref, kind="verification-receipt")
-        if (record["context"] != context or record["installation"] != self.identities
-                or candidate is not None and record["candidate"] != candidate):
+        equal = _retained_record_equality()
+        if (not equal(record["context"], context) or not equal(record["installation"], self.identities)
+                or candidate is not None and not equal(record["candidate"], candidate)):
             reject("E_HIA_RECEIPT_BINDING", "verification receipt belongs to a different context, candidate or implementation", "verification")
         self._profile(record["validation_profile"], "validation")
         program = self._program(record["candidate"])
@@ -1070,8 +1079,8 @@ class HIAAgentService:
                 subject=subject, profile=record["validation_profile"], installation=self.identities, evidence=evidence)
             actual = {key: value for key, value in check.items()
                       if key not in {"assumptions_artifact", "evidence_artifact"}}
-            if (actual != expected or evidence.get("proof_binding") != expected
-                    or assumptions != assumptions_document(expected)):
+            if not equal((actual, evidence.get("proof_binding"), assumptions),
+                         (expected, expected, assumptions_document(expected))):
                 reject("E_HIA_PROOF_SCOPE", "proof scope or retained checker conclusion differs; rerun verification with a fresh request key", "verification")
         return record
 
@@ -1105,11 +1114,13 @@ class HIAAgentService:
             reject("E_HIA_IMPLEMENTATION_STALE", "installed implementation changed during verification replay")
         result = response["result"]
         retained = self._verification(result["verification_receipt"], arguments["context"], arguments["candidate"])
-        if (result["candidate"] != retained["candidate"] or result["subject"] != retained["subject"]
-                or result["checks"] != retained["checks"] or retained["subject"] != arguments["subject"]
-                or retained["base_program"] != arguments["base_program"]
-                or retained["validation_profile"] != arguments["validation_profile"]
-                or [check["claim"] for check in retained["checks"]] != arguments["claims"]):
+        equal = _retained_record_equality()
+        if not equal(
+                (result["candidate"], result["subject"], result["checks"], retained["subject"],
+                 retained["base_program"], retained["validation_profile"],
+                 [check["claim"] for check in retained["checks"]]),
+                (retained["candidate"], retained["subject"], retained["checks"], arguments["subject"],
+                 arguments["base_program"], arguments["validation_profile"], arguments["claims"])):
             reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")
 
     def _compile(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):

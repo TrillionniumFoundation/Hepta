@@ -57,7 +57,7 @@ FIELDS = {
     'ER_KIND': 600, 'ER_SIZE': 608, 'ER_A': 616, 'ER_B': 624,
     'EQ_INDEX': 632, 'EQ_COUNT': 640, 'EQ_RECORD': 648,
     'EQ_LEAF_NE': 656, 'EQ_OPAQUE_RESULT': 664,
-    'EQ_TOTAL': 672,
+    'EQ_TOTAL': 672, 'EQ_JSON_ONLY': 680,
     'NODE_BASE': 32768, 'DATA_BASE': 65536, 'EQ_BASE': 131072,
     'EQ_CHUNK_A': 8192, 'EQ_CHUNK_B': 12288,
 }
@@ -71,6 +71,14 @@ def worker_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 262144 or length(o) < 8:
         return 199
     if get(w, 0) == 0:
+        if length(s) == 40 and read64(s, 0) == MAGIC and read64(s, 8) == 1 and read64(s, 16) == 0:
+            left = read64(s, 24)
+            right = read64(s, 32)
+            if left == 0 or right == 0 or left >= HIGH or right >= HIGH:
+                return 199
+            put(w, 0, MAGIC)
+            put(w, EQ_JSON_ONLY, 1)
+            return equal_begin(w, left, right, 239)
         if length(s) != 112 or read64(s, 0) != MAGIC or read64(s, 8) != 0 or read64(s, 16) != 0:
             return 199
         if read64(s, 24) > 1 or read64(s, 32) > 1 or read64(s, 104) != 0:
@@ -114,6 +122,9 @@ def worker_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             domain = read64(s, 40)
             if exception == 0 or domain > 1:
                 return 199
+            if get(w, EQ_JSON_ONLY) != 0:
+                put(w, EXC, exception)
+                return 3
             if get(w, CALL_REGION) != 0:
                 put(w, CALL_REGION, 0)
                 put(w, PENDING_EXC, exception)
@@ -563,6 +574,8 @@ def equality(s:readbuf, w:mutbuf, phase:u64) -> u64:
         a = get(w, EL_KIND)
         b = get(w, ER_KIND)
         if a == 8 or b == 8:
+            if get(w, EQ_JSON_ONLY) != 0:
+                return 199
             put(w, EQ_LEAF_NE, choose(get(w, EQ_CHILD) == 0, 1, 0))
             return ask(w, 20, get(w, EQ_LEFT), get(w, EQ_RIGHT), get(w, EQ_LEAF_NE), 0, 220)
         if a >= 1 and a <= 3 and b >= 1 and b <= 3:
@@ -741,6 +754,9 @@ def equality(s:readbuf, w:mutbuf, phase:u64) -> u64:
         if index >= left_size or index >= right_size:
             return eq_pop(w, choose(left_size == right_size, 1, 0))
         return ask(w, 2, get(w, frame), index, 0, 0, 226)
+    if phase == 239:
+        put(w, RETURN_CODE, choose(get(w, EQ_RESULT) == 1, 0, 2))
+        return 2
     return 199
 
 def integer_bits(kind:u64, size:u64, value:u64) -> u64:
