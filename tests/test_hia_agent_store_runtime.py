@@ -258,6 +258,54 @@ class InstalledAgentStore(NativeStoreArgv):
         if self.test_root is None or self.module_root != self.executable.parent:
             self.skipTest('run with the installed native Store release')
 
+    def test_typed_journal_transactions_never_dispatch_sql_operations(self):
+        from hepta.hia_agent_store import AgentStore
+        from hepta.hia_agent_store_native import NativeStoreConnection
+
+        original = NativeStoreConnection._execute
+
+        def no_journal_sql(connection, sql, values):
+            if 'requests' in sql or sql.startswith('INSERT INTO costs '):
+                raise AssertionError('typed journal entered the SQL compatibility adapter')
+            return original(connection, sql, values)
+
+        selection = self.selection()
+        key, digest = 'a' * 64, 'b' * 64
+        with tempfile.TemporaryDirectory(dir=self.test_root) as temporary, \
+                patch.object(NativeStoreConnection, '_execute', no_journal_sql):
+            path = Path(temporary)
+            self.run_native([self.initializer, path, 'store'])
+            store = AgentStore(path, native_store=selection)
+            try:
+                self.assertIsNone(store.journal_lookup(key))
+                with store.transaction():
+                    store.journal_reserve(key, digest, 'hia_artifact', '1')
+                    self.assertEqual(store.journal_lookup(key)['state'], 'running')
+                before = self.state(path)
+                with self.assertRaisesRegex(ValueError, 'rollback probe'), store.transaction():
+                    store.journal_complete(key, '{}')
+                    store.journal_cost(None, 'hia_artifact', 'r-' + digest, '2', 'completed', '{}')
+                    raise ValueError('rollback probe')
+                self.assertEqual(self.state(path), before)
+                with store.transaction():
+                    store.journal_complete(key, '{"status":"completed"}')
+                    store.journal_cost(None, 'hia_artifact', 'r-' + digest, '3', 'completed', '{}')
+            finally:
+                store.close()
+            committed = self.state(path)
+            reopened = AgentStore(path, native_store=selection)
+            try:
+                row = reopened.journal_lookup(key)
+                self.assertEqual((row['digest'], row['state'], row['response']),
+                                 (digest, 'completed', '{"status":"completed"}'))
+                costs = reopened.db.execute(
+                    'SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001',
+                    (None,)).fetchall()
+                self.assertEqual([(row['request_id'], row['wall_ns']) for row in costs], [('r-' + digest, '3')])
+            finally:
+                reopened.close()
+            self.assertEqual(self.state(path), committed)
+
     def test_public_tools_with_no_sqlite_connection(self):
         guard = """
 import importlib.abc
@@ -543,6 +591,7 @@ def main():
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(NativeStoreArgv)
     if NativeStoreArgv.module_root == NativeStoreArgv.executable.parent:
         suite.addTests(InstalledAgentStore(name) for name in (
+            'test_typed_journal_transactions_never_dispatch_sql_operations',
             'test_public_tools_with_no_sqlite_connection',
             'test_public_worker_reopens_native_state_with_exact_replay',
             'test_fresh_initialization_is_serialized_and_never_replaces_prior_data',

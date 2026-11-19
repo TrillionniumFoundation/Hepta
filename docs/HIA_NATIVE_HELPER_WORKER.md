@@ -115,14 +115,16 @@ an older journal image is correctly refused with the new catalog.
 
 The v16 portable worker pins `hia-agent-journal` and verifies that it contains
 the same HIA journal image as its base bundle. New executables carry transition
-state within one process from request admission through completion. Each
-observation is a sequenced, sealed file descriptor; the worker observes the
+state within one process from catalog binding and request admission through
+completion. Each observation is a sequenced, sealed file descriptor; the worker observes the
 instruction, but cannot supply the continuation state back to the process.
 Earlier pinned v16 executables still accept the single-frame contract.
 The journal process has no Store descriptor. A framing or process failure does
 not retry in the worker or authorize terminal writes. The worker still owns
-foreign objects and invokes the service and Store; v16 is not a fully native
-service.
+foreign objects and invokes the service and Store. When the HIA Store is
+selected, the journal's lookup, reservation, completion and cost writes use
+its typed Store protocol without SQL dispatch. The retained SQLite backend
+still receives its original statements; v16 is not a fully native service.
 
 ## Verification
 

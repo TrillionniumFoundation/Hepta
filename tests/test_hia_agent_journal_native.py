@@ -315,7 +315,8 @@ class JournalNativeTests(unittest.TestCase):
         self.addCleanup(process.close, check=False)
         pid = process.process.pid
         state = bytes(STATE_BYTES)
-        for stage, observed in ((0, raw), (7, b''), (1, b'null'), (2, b''), (5, b'')):
+        catalog = (ROOT / 'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json').read_bytes()
+        for stage, observed in ((9, catalog), (0, raw), (7, b''), (1, b'null'), (2, b''), (5, b'')):
             expected = _standalone_journal(binary, stage, observed, state)
             self.assertEqual(process.step(stage, observed, b'', data_profile=False), expected)
             self.assertEqual(process.process.pid, pid)

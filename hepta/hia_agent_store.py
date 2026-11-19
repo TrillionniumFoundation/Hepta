@@ -334,6 +334,7 @@ class AgentStore:
         if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
             reject("E_HIA_STORE", "artifact directory must be owned and not writable by other users")
         self.lock = threading.RLock()
+        self._typed_journal = native_store is not None
         self._artifact_code = None
         self._capture_code = None
         if native_store is not None:
@@ -440,6 +441,32 @@ class AgentStore:
             except BaseException as failure:
                 error.add_note('AgentStore construction cleanup failed: ' + type(failure).__name__)
             raise
+
+    def journal_lookup(self, key):
+        if self._typed_journal:
+            return self.db.journal_lookup(key)
+        return self.db.execute('SELECT * FROM requests WHERE key=?', (key,)).fetchone()
+
+    def journal_reserve(self, key, digest, tool, started_ns):
+        if self._typed_journal:
+            self.db.journal_reserve(key, digest, tool, started_ns)
+        else:
+            self.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
+                            (key, digest, tool, 'running', None, started_ns))
+
+    def journal_complete(self, key, response):
+        if self._typed_journal:
+            self.db.journal_complete(key, response)
+        else:
+            self.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?", (response, key))
+
+    def journal_cost(self, context, tool, request_id, wall_ns, status, details):
+        if self._typed_journal:
+            self.db.journal_cost(context, tool, request_id, wall_ns, status, details)
+        else:
+            self.db.execute(
+                'INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
+                (context, tool, request_id, wall_ns, status, details))
 
     @contextmanager
     def transaction(self):

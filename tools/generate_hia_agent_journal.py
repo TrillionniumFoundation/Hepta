@@ -120,7 +120,10 @@ def response_envelope(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967293
         end = admitted_response(o, w)
     else:
-        if completed or magic != 0 or phase != 0 or length(s) != 43:
+        # A read-only catalog check may initialize this session without
+        # admitting a request. Its bound instruction is not a request ID.
+        catalog_only = magic == MAGIC_VALUE and get(w, 56) == 12
+        if completed or (magic != 0 and catalog_only == False) or phase != 0 or length(s) != 43:
             return 4294967293
         end = unadmitted_response(s, o)
         if end == 4294967293:

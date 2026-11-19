@@ -82,13 +82,28 @@ _UPDATES = (
     ('UPDATE main.contexts SET attempts=? WHERE id=? AND attempts=?', 3),
     ('UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?', 2),
 )
+
+
+def _query_plan(index):
+    _, count, table, mask = _SELECTS[index - 1]
+    return index + 3, index, count, table, mask
+
+
+def _write_plan(index, operations, magic):
+    _, count = operations[index - 1]
+    return 1, index, count, magic, 0
+
+
+# The journal's typed transport uses the same operation numbers as the
+# compatibility path, without entering its SQL-shaped dispatch table.
+_JOURNAL_LOOKUP = _query_plan(9)
+_JOURNAL_RESERVE = _write_plan(6, _INSERTS, b'HIAINS01')
+_JOURNAL_COMPLETE = _write_plan(1, _UPDATES, b'HIAUPB01')
+_JOURNAL_COST = _write_plan(2, _INSERTS, b'HIAINS01')
 _STATEMENTS = {
-    **{sql: (i + 3, i, count, table, mask)
-       for i, (sql, count, table, mask) in enumerate(_SELECTS, 1)},
-    **{sql: (1, i, count, b'HIAINS01', 0)
-       for i, (sql, count) in enumerate(_INSERTS, 1)},
-    **{sql: (1, i, count, b'HIAUPB01', 0)
-       for i, (sql, count) in enumerate(_UPDATES, 1)},
+    **{row[0]: _query_plan(i) for i, row in enumerate(_SELECTS, 1)},
+    **{row[0]: _write_plan(i, _INSERTS, b'HIAINS01') for i, row in enumerate(_INSERTS, 1)},
+    **{row[0]: _write_plan(i, _UPDATES, b'HIAUPB01') for i, row in enumerate(_UPDATES, 1)},
 }
 _TABLE_IDS = ('artifacts', 'profiles', 'contexts', 'requests', 'costs',
               'cursors', 'slots', 'versions', 'leases', 'execution_budgets')
@@ -469,9 +484,29 @@ class NativeStoreConnection:
         with self.lock:
             return self._execute(sql, values)
 
-    def _execute(self, sql, values):
+    def _check_live(self):
         if self.creator != os.getpid() or self.closed or self.failed:
             raise StoreProtocolError('native Store connection is no longer usable')
+
+    def journal_lookup(self, key):
+        return self._journal_operation(_JOURNAL_LOOKUP, (key,)).fetchone()
+
+    def journal_reserve(self, key, digest, tool, started_ns):
+        self._journal_operation(_JOURNAL_RESERVE, (key, digest, tool, 'running', None, started_ns))
+
+    def journal_complete(self, key, response):
+        self._journal_operation(_JOURNAL_COMPLETE, (response, key))
+
+    def journal_cost(self, context, tool, request_id, wall_ns, status, details):
+        self._journal_operation(_JOURNAL_COST, (context, tool, request_id, wall_ns, status, details))
+
+    def _journal_operation(self, specification, values):
+        with self.lock:
+            self._check_live()
+            return self._perform(specification, values)
+
+    def _execute(self, sql, values):
+        self._check_live()
         if sql in ('BEGIN IMMEDIATE', 'COMMIT', 'ROLLBACK'):
             try:
                 if sql == 'BEGIN IMMEDIATE':
@@ -485,6 +520,9 @@ class NativeStoreConnection:
         specification = _STATEMENTS.get(sql)
         if specification is None:
             raise StoreRefusal('not an Agent Store statement')
+        return self._perform(specification, values)
+
+    def _perform(self, specification, values):
         command, plan, arity, table, mask = specification
         if len(values) != arity:
             raise StoreRefusal('incorrect Agent Store bindings')

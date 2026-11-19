@@ -361,6 +361,10 @@ class JournalSession:
     def prepare(self, raw, foreign_types=b''):
         return self._run(0, raw, foreign_types)
 
+    def bind_catalog(self, raw):
+        if self._run(9, raw).action == REFUSE:
+            self.raise_refusal()
+
     def lookup(self, row):
         # Actual observed columns, not a hosted comparison or decision.
         # Preserve non-TEXT SQLite storage classes without trying to JSON
@@ -551,28 +555,34 @@ class NativeAgentJournal(NativeHiaJsonImage):
 
     def bind_catalog(self, raw):
         with self.session() as session:
-            result = session._run(9, raw)
-            if result.action == REFUSE:
-                session.raise_refusal()
+            session.bind_catalog(raw)
         return self
+
+
+def _catalog_bytes():
+    return _agent_resource_path('docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json').read_bytes()
 
 
 def installed_agent_journal(manifest):
     image = _installed_json_image(manifest, SOURCE, SCHEMA, NativeAgentJournal)
-    return image.bind_catalog(_agent_resource_path('docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json').read_bytes())
+    return image.bind_catalog(_catalog_bytes())
 
 
 def call_with_native_journal(service, tool, arguments, manifest):
-    """Execute HIA instructions; hosted methods and SQL retain their own owners."""
+    """Execute HIA instructions; tool effects retain their existing owners."""
     from . import hia_agent_service as hosted
 
     started = hosted.time.monotonic_ns()
     request_id = 'unadmitted-' + hosted.uuid.uuid4().hex
     try:
-        session = installed_agent_journal(manifest).session()
+        session = _installed_json_image(manifest, SOURCE, SCHEMA, NativeAgentJournal).session()
     except (ValueError, OSError) as exc:
         return service._error(request_id, AgentRejected('E_HIA_JOURNAL_NATIVE', str(exc)))
     with session:
+        try:
+            session.bind_catalog(_catalog_bytes())
+        except (ValueError, OSError) as exc:
+            return service._error(request_id, AgentRejected('E_HIA_JOURNAL_NATIVE', str(exc)))
         return _run_native_journal(hosted, service, session, tool, arguments, started, request_id)
 
 
@@ -611,15 +621,14 @@ def _run_native_journal(hosted, service, session, tool, arguments, started, requ
             tool = session.tool
         if step.action == LOOKUP:
             with service.store.transaction():
-                previous = service.store.db.execute(
-                    'SELECT * FROM requests WHERE key=?', (session.key,)).fetchone()
+                previous = service.store.journal_lookup(session.key)
                 row = native_step(session.lookup, previous)
                 if row.action == REFUSE:
                     session.raise_refusal()
                 if row.action == RESERVE:
-                    service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
-                        (session.key, session.request_digest, tool, 'running', None, str(hosted.time.time_ns())))
-                    # SQL succeeded; acknowledgement precedes COMMIT, as before.
+                    service.store.journal_reserve(session.key, session.request_digest, tool,
+                                                  str(hosted.time.time_ns()))
+                    # The write succeeded; acknowledgement precedes COMMIT, as before.
                     native_step(session.reserved, acknowledgement=True)
                 elif row.action == CACHE:
                     replay, cached = native_step(session.cached, previous['response'])
@@ -644,9 +653,8 @@ def _run_native_journal(hosted, service, session, tool, arguments, started, requ
                     service._validate_tool_response(tool, response)
                     instruction = native_step(session.inline, response)
                     if instruction.action == JOURNAL:
-                        service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                                 (instruction.response.decode('utf-8'), session.key))
-                        # UPDATE succeeded; acknowledgement still precedes COMMIT.
+                        service.store.journal_complete(session.key, instruction.response.decode('utf-8'))
+                        # The write succeeded; acknowledgement still precedes COMMIT.
                         native_step(session.committed_inline, acknowledgement=True)
             except BaseException as exc:
                 # Also cover an asynchronous exception after SQL UPDATE returns
@@ -676,11 +684,9 @@ def _run_native_journal(hosted, service, session, tool, arguments, started, requ
         if not native_failed:
             instruction = session.finish(response)
             if instruction.flags & COST_WRITE:
-                service.store.db.execute(
-                    'INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
-                    (context_id, str(tool), request_id, str(hosted.time.monotonic_ns() - started),
-                     instruction.status, instruction.cost_details.decode('utf-8')))
+                service.store.journal_cost(context_id, str(tool), request_id,
+                                           str(hosted.time.monotonic_ns() - started), instruction.status,
+                                           instruction.cost_details.decode('utf-8'))
             if instruction.flags & JOURNAL_WRITE:
-                service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                        (instruction.response.decode('utf-8'), session.key))
+                service.store.journal_complete(session.key, instruction.response.decode('utf-8'))
     return response
