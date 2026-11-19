@@ -31,6 +31,7 @@ HELPERS = {
     "HEPTA_HIA_WORKER_REQUEST_MANIFEST": ("hia_worker_request_native", "NativeWorkerRequest"),
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
     "HEPTA_HIA_MACHINE_PLAN_MANIFEST": ("hia_machine_plan_native", "NativeMachinePlan"),
+    "HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST": ("hia_safe_core_x64_decode_native", "NativeSafeCoreX64Decode"),
     "HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST": ("hia_elf_shared_linker_native", "NativeSharedLinker"),
     "HEPTA_HIA_SCALAR_REFERENCE_MANIFEST": ("hia_scalar_reference_native", "NativeScalarReference"),
     "HEPTA_HIA_SCALAR_SYMBOLIC_MANIFEST": ("hia_scalar_symbolic_native", "NativeScalarSymbolic"),
@@ -257,7 +258,9 @@ class NativeHelpersBinding:
             # Every declared view is checked before its first executable mapping.
             # Both factories receive the same captured, hash-verified bytes.
             for key, view in zip(keys, factories):
-                self.images[key] = view(image.raw, record["image_sha256"])
+                mapped = view(image.raw, record["image_sha256"])
+                mapped.admitted_source_sha256 = record["source_sha256"]
+                self.images[key] = mapped
             self.selections[selector] = str(manifest_path)
             self.snapshots.extend(((manifest, MAX_MANIFEST_BYTES), (source, MAX_SOURCE_BYTES), (image, MAX_IMAGE_BYTES)))
         self.check_files()

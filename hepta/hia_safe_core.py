@@ -93,8 +93,17 @@ CHECKER_SOURCE_FILES = (
 
 def _checker_source_identity():
     """Identify the consumer models separately from producer provenance."""
-    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-            for name in CHECKER_SOURCE_FILES}
+    from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
+    source = {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+              for name in CHECKER_SOURCE_FILES}
+    selected = selected_safe_core_x64_decode()
+    if selected is not None:
+        adapter = Path(__file__).with_name('hia_safe_core_x64_decode_native.py')
+        source[adapter.name] = sha256(adapter.read_bytes()).hexdigest()
+        source['native_x64_decoder_source_sha256'] = selected.admitted_source_sha256
+        source['native_x64_decoder_image_sha256'] = selected.image_sha256
+    return source
 
 
 class SafeCoreRejected(ValueError):

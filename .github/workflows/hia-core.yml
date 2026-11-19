@@ -776,6 +776,13 @@ jobs:
           HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE: ${{ runner.temp }}/machine-plan-fixture
       - name: Actual original callers with HIA machine plans
         run: python -B tools/qualify_hia_machine_plan_native_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/machine-plan-callers.json" --evidence-dir "$RUNNER_TEMP/machine-plan-callers"
+      - name: Independent Safe Core HIA x86 byte decoder
+        run: |
+          compiler="$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)"
+          python -B -m tools.build_hia_json_preflight --candidate safe-core-x64-decode \
+            --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/safe-core-x64-decode"
+          HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST="$RUNNER_TEMP/safe-core-x64-decode/manifest.json" \
+            python -B -m unittest -v tests.test_hia_safe_core_x64_decode_native
       - name: Native machine encoding and actual source-bound installed controls
         run: |
           python -B - <<'PYMACHINE'

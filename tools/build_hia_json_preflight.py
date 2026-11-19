@@ -63,6 +63,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
     candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
+                  'safe-core-x64-decode': ('safe_core_x64_decode', 'safe-core-x64-decode'),
                   'machine-encoding': ('machine_encoding', 'machine-encoding'),
                   'candidate-budget': ('candidate_budget', 'candidate-budget'),
                   'agent-journal': ('agent_journal', 'agent-journal'),
@@ -177,7 +178,7 @@ def main():
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
-                                 'scalar-reference', 'scalar-symbolic', 'cnf'))
+                                 'scalar-reference', 'scalar-symbolic', 'cnf', 'safe-core-x64-decode'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

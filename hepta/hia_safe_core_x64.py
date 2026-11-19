@@ -29,6 +29,13 @@ class Instruction:
 
 def decode(data):
     """Decode complete bytes, including unreachable code, with exact boundaries."""
+    from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
+    selected = selected_safe_core_x64_decode()
+    return _reference_decode(data) if selected is None else selected.decode(data)
+
+
+def _reference_decode(data):
     require(type(data) is bytes and 0 < len(data) <= 65536, "machine text budget exceeded")
     result, pc = {}, 0
     while pc < len(data):

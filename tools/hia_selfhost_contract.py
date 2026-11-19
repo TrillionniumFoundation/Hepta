@@ -389,6 +389,9 @@ SOURCE_FILES = (
 
     'docs/HIA_MACHINE_ENCODING_NATIVE.md',
     'examples/hia_bootstrap/machine_encoding.hepta',
+    'examples/hia_bootstrap/safe_core_x64_decode.hepta',
+    'tools/generate_hia_safe_core_x64_decode.py',
+    'tests/test_hia_safe_core_x64_decode_native.py',
     'tests/test_hia_machine_encoding_native.py',
     'tools/build_hia_machine_encoding.py',
     'tools/generate_hia_machine_encoding.py',
