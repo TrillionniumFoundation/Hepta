@@ -526,6 +526,7 @@ observe_destination_retry:
  cmp rax,-4
  je observe_destination_retry
  mov [rbp+904],rax
+render_destination_observation:
  mov rax,QWORD PTR [rip+destination_observation_magic]
  mov [rbp+896],rax
  mov esi,4096
@@ -540,6 +541,8 @@ observe_destination_retry:
  call QWORD PTR [rbp+344]
  test rax,rax
  jnz destination_refusal
+ cmp QWORD PTR [rbp+904],-4096
+ je io_failure
  mov rdi,[rbp+112]
  mov esi,4096
  call release
@@ -723,10 +726,19 @@ effect_done:
  mov rdi,[r12+24]
  cmp rdi,255
  ja io_failure
+ cmp rdi,90
+ je render_parent_refusal
  test rdi,rdi
  jnz exit
  add rsp,8
  ret
+render_parent_refusal:
+ # Only the parent-policy image can request this diagnostic.
+ mov rax,[rbp+352]
+ cmp rax,[rbp+336]
+ jne io_failure
+ mov QWORD PTR [rbp+904],-4096
+ jmp render_destination_observation
 write_report:
  mov r12,[rbp+112]
  mov r13,[rbp+120]

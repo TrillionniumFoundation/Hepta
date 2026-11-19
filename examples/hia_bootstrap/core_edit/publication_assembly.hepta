@@ -6398,7 +6398,16 @@ block check(output:mutbuf,observation:mutbuf)
   required_size:usize = const() {"value":184}
   enough_space:bool = compare.ge(size,required_size)
   emit:bool = bool.and(observed,enough_space)
-  branch emit write(output) no_diagnostic()
+  branch emit write(output) parent_probe(output,status,correct_packet)
+block parent_probe(parent_output:mutbuf,parent_status:u64,parent_packet:bool)
+  parent_link:u64 = const() {"value":18446744073709547520}
+  is_parent_link:bool = compare.eq(parent_status,parent_link)
+  parent_observed:bool = bool.and(parent_packet,is_parent_link)
+  parent_size:usize = buffer.len(parent_output)
+  parent_required:usize = const() {"value":200}
+  parent_space:bool = compare.ge(parent_size,parent_required)
+  emit_parent:bool = bool.and(parent_observed,parent_space)
+  branch emit_parent write_parent(parent_output) no_diagnostic()
 block no_diagnostic()
   empty:u32 = const() {"value":0}
   ret(empty)
@@ -6474,4 +6483,82 @@ block write(report:mutbuf)
   written22:u64 = call(report,offset22,word22) {"function":"f25"}
   length:u32 = const() {"value":180}
   ret(length)
+block write_parent(parent_report:mutbuf)
+  parent_offset0:u64 = const() {"value":0}
+  parent_word0:u64 = const() {"value":7019251591964265083}
+  parent_written0:u64 = call(parent_report,parent_offset0,parent_word0) {"function":"f25"}
+  parent_offset8:u64 = const() {"value":8}
+  parent_word8:u64 = const() {"value":8314605285929872999}
+  parent_written8:u64 = call(parent_report,parent_offset8,parent_word8) {"function":"f25"}
+  parent_offset16:u64 = const() {"value":16}
+  parent_word16:u64 = const() {"value":2314885437319035426}
+  parent_written16:u64 = call(parent_report,parent_offset16,parent_word16) {"function":"f25"}
+  parent_offset24:u64 = const() {"value":24}
+  parent_word24:u64 = const() {"value":2314885530817035040}
+  parent_written24:u64 = call(parent_report,parent_offset24,parent_word24) {"function":"f25"}
+  parent_offset32:u64 = const() {"value":32}
+  parent_word32:u64 = const() {"value":4189022085447885344}
+  parent_written32:u64 = call(parent_report,parent_offset32,parent_word32) {"function":"f25"}
+  parent_offset40:u64 = const() {"value":40}
+  parent_word40:u64 = const() {"value":6217591214171300384}
+  parent_written40:u64 = call(parent_report,parent_offset40,parent_word40) {"function":"f25"}
+  parent_offset48:u64 = const() {"value":48}
+  parent_word48:u64 = const() {"value":2314885436530643525}
+  parent_written48:u64 = call(parent_report,parent_offset48,parent_word48) {"function":"f25"}
+  parent_offset56:u64 = const() {"value":56}
+  parent_word56:u64 = const() {"value":8319104456081809440}
+  parent_written56:u64 = call(parent_report,parent_offset56,parent_word56) {"function":"f25"}
+  parent_offset64:u64 = const() {"value":64}
+  parent_word64:u64 = const() {"value":4693349195730741089}
+  parent_written64:u64 = call(parent_report,parent_offset64,parent_word64) {"function":"f25"}
+  parent_offset72:u64 = const() {"value":72}
+  parent_word72:u64 = const() {"value":2340020651393643379}
+  parent_written72:u64 = call(parent_report,parent_offset72,parent_word72) {"function":"f25"}
+  parent_offset80:u64 = const() {"value":80}
+  parent_word80:u64 = const() {"value":8079585779249345903}
+  parent_written80:u64 = call(parent_report,parent_offset80,parent_word80) {"function":"f25"}
+  parent_offset88:u64 = const() {"value":88}
+  parent_word88:u64 = const() {"value":8461454959339467361}
+  parent_written88:u64 = call(parent_report,parent_offset88,parent_word88) {"function":"f25"}
+  parent_offset96:u64 = const() {"value":96}
+  parent_word96:u64 = const() {"value":8367816129592194163}
+  parent_written96:u64 = call(parent_report,parent_offset96,parent_word96) {"function":"f25"}
+  parent_offset104:u64 = const() {"value":104}
+  parent_word104:u64 = const() {"value":2334398917027193202}
+  parent_written104:u64 = call(parent_report,parent_offset104,parent_word104) {"function":"f25"}
+  parent_offset112:u64 = const() {"value":112}
+  parent_word112:u64 = const() {"value":7956009434171514977}
+  parent_written112:u64 = call(parent_report,parent_offset112,parent_word112) {"function":"f25"}
+  parent_offset120:u64 = const() {"value":120}
+  parent_word120:u64 = const() {"value":2314885530450141803}
+  parent_written120:u64 = call(parent_report,parent_offset120,parent_word120) {"function":"f25"}
+  parent_offset128:u64 = const() {"value":128}
+  parent_word128:u64 = const() {"value":7310293721338224672}
+  parent_written128:u64 = call(parent_report,parent_offset128,parent_word128) {"function":"f25"}
+  parent_offset136:u64 = const() {"value":136}
+  parent_word136:u64 = const() {"value":8532476743424948770}
+  parent_written136:u64 = call(parent_report,parent_offset136,parent_word136) {"function":"f25"}
+  parent_offset144:u64 = const() {"value":144}
+  parent_word144:u64 = const() {"value":2314885530449506917}
+  parent_written144:u64 = call(parent_report,parent_offset144,parent_word144) {"function":"f25"}
+  parent_offset152:u64 = const() {"value":152}
+  parent_word152:u64 = const() {"value":2308706537463351933}
+  parent_written152:u64 = call(parent_report,parent_offset152,parent_word152) {"function":"f25"}
+  parent_offset160:u64 = const() {"value":160}
+  parent_word160:u64 = const() {"value":7358945710629134880}
+  parent_written160:u64 = call(parent_report,parent_offset160,parent_word160) {"function":"f25"}
+  parent_offset168:u64 = const() {"value":168}
+  parent_word168:u64 = const() {"value":2314861394265336929}
+  parent_written168:u64 = call(parent_report,parent_offset168,parent_word168) {"function":"f25"}
+  parent_offset176:u64 = const() {"value":176}
+  parent_word176:u64 = const() {"value":2482456962322952994}
+  parent_written176:u64 = call(parent_report,parent_offset176,parent_word176) {"function":"f25"}
+  parent_offset184:u64 = const() {"value":184}
+  parent_word184:u64 = const() {"value":8245935278387241018}
+  parent_written184:u64 = call(parent_report,parent_offset184,parent_word184) {"function":"f25"}
+  parent_offset192:u64 = const() {"value":192}
+  parent_word192:u64 = const() {"value":175966754}
+  parent_written192:u64 = call(parent_report,parent_offset192,parent_word192) {"function":"f25"}
+  parent_length:u32 = const() {"value":196}
+  ret(parent_length)
 end

@@ -13,6 +13,7 @@ from hepta import hia_agent_discovery_native as discovery
 from hepta import hia_agent_inspection_native as inspection
 from hepta.hia_agent_schema_native import SELECTOR, SOURCE, installed_agent_schema
 from hepta import hia_agent_payload_schema_native as payloads
+from hepta import hia_agent_plan_schema_native as plans
 from hepta import hia_agent_response_schema_native as responses
 from hepta import hia_agent_verify_response_schema_native as proofs
 from hepta.hia_agent_service import HIAAgentService
@@ -27,6 +28,7 @@ class AgentSchemaSourceTests(unittest.TestCase):
         self.assertEqual(responses.SOURCE.read_text(), render_assembly(document(profile='response')))
         self.assertEqual(proofs.SOURCE.read_text(), render_assembly(document(profile='verify')))
         self.assertEqual(payloads.SOURCE.read_text(), render_assembly(document(profile='payload')))
+        self.assertEqual(plans.SOURCE.read_text(), render_assembly(document(profile='plan')))
 
 
     def test_generated_discovery_matches_current_opcodes(self):
@@ -336,6 +338,7 @@ class AgentDiscoveryNativeTests(unittest.TestCase):
 class AgentSchemaNativeTests(unittest.TestCase):
     manifest = None
     payload_manifest = None
+    plan_manifest = None
     test_root = None
 
     def setUp(self):
@@ -457,6 +460,65 @@ class AgentSchemaNativeTests(unittest.TestCase):
                         expected = True
                     self.assertEqual(image.accepts_wire(raw, role, pin), expected)
 
+    def test_issued_machine_plan_schema_matches_all_four_shapes(self):
+        from hepta.hia_agent_contract import PLAN_SCHEMA
+        from hepta.hia_agent_store import decode_data, wire
+
+        if self.plan_manifest is None:
+            self.skipTest('provide the matching machine-plan schema image')
+        image = plans.installed_agent_plan_schema(str(self.plan_manifest))
+        _, pin = catalog()
+        layout = {'schema': 'hepta.hia.agent.block-layout.v1', 'core_sha256': 'a' * 64,
+                  'block_order': {'choose': ['entry', 'yes', 'no']}}
+        explicit = dict(layout, schema='hepta.hia.agent.machine-plan.v2',
+                        function_order=['choose'], scratch_registers={'r10': 'r11', 'r11': 'r10'},
+                        instruction_selection={'move_immediate': 'mov32_if_exact',
+                                               'alu_immediate': 'imm8_if_exact'},
+                        function_alignment=32)
+        scalar = dict(explicit, schema='hepta.hia.agent.machine-plan.v3',
+                      instruction_selection=dict(explicit['instruction_selection'], scalar_select='branch'),
+                      value_registers={'choose': {'cond': 'r12'}})
+        leaf = dict(scalar, schema='hepta.hia.agent.machine-plan.v4',
+                    value_registers={'choose': {'cond': 'r8'}})
+        large = [f'{index:04x}' + 'x' * 124 for index in reversed(range(4096))]
+        cases = {
+            'layout': layout, 'explicit': explicit, 'scalar': scalar, 'leaf': leaf,
+            'empty layout': dict(layout, block_order={}),
+            'empty explicit layout': dict(explicit, block_order={}),
+            'missing type': {k: v for k, v in layout.items() if k != 'schema'},
+            'unknown field': dict(scalar, extra=True),
+            'unknown type': dict(leaf, schema='hepta.hia.agent.machine-plan.v5'),
+            'empty block list': dict(layout, block_order={'choose': []}),
+            'non-string block': dict(layout, block_order={'choose': ['entry', 2]}),
+            'wide block name': dict(layout, block_order={'choose': ['a' * 129]}),
+            'duplicate block': dict(layout, block_order={'choose': ['entry', 'yes', 'entry']}),
+            'duplicate function': dict(explicit, function_order=['a', 'b', 'a']),
+            'layout property limit': dict(layout, block_order={str(i): ['entry'] for i in range(1025)}),
+            'invalid scalar register': dict(scalar, value_registers=leaf['value_registers']),
+            'incorrect register type': dict(leaf, value_registers={'choose': {'cond': ['r8']}}),
+            'maximum unique blocks': dict(layout, block_order={'choose': large}),
+            'distant duplicate blocks': dict(layout, block_order={'choose': large[:-1] + large[:1]}),
+            'over maximum blocks': dict(layout, block_order={'choose': large + ['extra']}),
+            'Unicode exact distinctness': dict(layout, block_order={'choose': ['é', 'é', '😀', '😃']}),
+        }
+        for number in (False, 1, 16, 16.0, 32, 64, 128, None, '16'):
+            cases['alignment ' + repr(number)] = dict(explicit, function_alignment=number)
+        wires = {name: wire(value) for name, value in cases.items()}
+        wires['exponent alignment'] = wire(explicit).replace(b'"function_alignment":32', b'"function_alignment":32e0')
+        wires['escaped duplicate'] = wire(dict(layout, block_order={'choose': ['X', 'X']})).replace(
+            b'["X","X"]', b'["X","\\u0058"]')
+        for label, raw in wires.items():
+            with self.subTest(case=label):
+                try:
+                    validate(decode_data(raw), PLAN_SCHEMA)
+                except AgentRejected:
+                    expected = False
+                else:
+                    expected = True
+                self.assertEqual(image.accepts_wire(b' \n' + raw, plans.PLAN_ROLE, pin), expected)
+        with self.assertRaisesRegex(ValueError, 'authenticate'):
+            image.accepts_wire(wires['layout'], 2, pin)
+
     def test_selected_service_admits_frozen_evaluation_inputs_natively(self):
         from tools.hia_agent_native_qualification import Session, ToolClient
 
@@ -563,6 +625,7 @@ def main():
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--test-root', type=Path, required=True)
     parser.add_argument('--payload-manifest', type=Path)
+    parser.add_argument('--plan-manifest', type=Path)
     parser.add_argument('--response-manifest', type=Path)
     parser.add_argument('--proof-manifest', type=Path)
     parser.add_argument('--discovery-manifest', type=Path)
@@ -572,6 +635,7 @@ def main():
     args = parser.parse_args()
     AgentSchemaNativeTests.manifest = args.manifest.resolve()
     AgentSchemaNativeTests.payload_manifest = args.payload_manifest
+    AgentSchemaNativeTests.plan_manifest = args.plan_manifest
     AgentSchemaNativeTests.test_root = args.test_root.resolve()
     AgentResponseSchemaNativeTests.manifest = AgentSchemaNativeTests.manifest
     AgentResponseSchemaNativeTests.response_manifest = args.response_manifest

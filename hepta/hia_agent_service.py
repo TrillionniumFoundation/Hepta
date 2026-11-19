@@ -458,15 +458,25 @@ class HIAAgentService:
             raise ValueError('native Agent output schema disagrees with the catalog')
 
     def _validate_payload(self, value, raw, schema, label, role):
-        from .hia_agent_payload_schema_native import SELECTOR, installed_agent_payload_schema
+        if schema is PLAN_SCHEMA:
+            from .hia_agent_plan_schema_native import SELECTOR, installed_agent_plan_schema as load
+        else:
+            from .hia_agent_payload_schema_native import SELECTOR, installed_agent_payload_schema as load
 
         selected = os.environ.get(SELECTOR)
         if not selected:
             validate(value, schema, label)
-        elif not installed_agent_payload_schema(selected).accepts_wire(raw, role, self.catalog_sha256):
+        elif not load(selected).accepts_wire(raw, role, self.catalog_sha256):
             # Preserve the established field diagnostic on native refusal.
             validate(value, schema, label)
             raise ValueError('native Agent payload schema disagrees with the contract')
+
+    def _read_machine_plan(self, ref):
+        from .hia_agent_plan_schema_native import PLAN_ROLE
+
+        plan, _, raw = self.store.get_json_with_wire(ref)
+        self._validate_payload(plan, raw, PLAN_SCHEMA, "machine_plan", PLAN_ROLE)
+        return plan
 
     def _profile(self, ref, name):
         return self.store.check_profile(ref, self.profiles[name])
@@ -944,8 +954,7 @@ class HIAAgentService:
         if subject["kind"] == "agent_machine_plan":
             from .hia_program_native import validate_block_layout_plan
             self._profile(subject["plan_profile"], "plan")
-            plan, _ = self.store.get_json(subject["plan"])
-            validate(plan, PLAN_SCHEMA, "machine_plan")
+            plan = self._read_machine_plan(subject["plan"])
             return validate_block_layout_plan(program, plan)
         if subject["kind"] == "native_artifact":
             receipt = self._build_receipt(subject["build_receipt"], args["context"],
@@ -1128,8 +1137,7 @@ class HIAAgentService:
             self._profile(codegen["lowering_profile"], "lowering")
         else:
             self._profile(codegen["plan_profile"], "plan")
-            plan, _ = self.store.get_json(codegen["plan"])
-            validate(plan, PLAN_SCHEMA, "machine_plan")
+            plan = self._read_machine_plan(codegen["plan"])
             receipt = self._verification(codegen["verification_receipt"], args["context"], args["candidate"])
             expected_subject = {"kind": "agent_machine_plan", "backend_profile": args["backend_profile"],
                                 "plan_profile": codegen["plan_profile"], "plan": codegen["plan"]}

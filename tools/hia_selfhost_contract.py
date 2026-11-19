@@ -873,6 +873,7 @@ SOURCE_FILES = (
     'tools/generate_hia_agent_discovery.py',
     'examples/hia_bootstrap/agent_schema.hepta',
     'examples/hia_bootstrap/agent_payload_schema.hepta',
+    'examples/hia_bootstrap/agent_plan_schema.hepta',
     'tools/generate_hia_agent_schema.py',
     'tests/test_hia_agent_schema_native.py',
     'examples/hia_bootstrap/agent_response_schema.hepta',

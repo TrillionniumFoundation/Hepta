@@ -16,6 +16,8 @@ SELECTOR = 'HEPTA_HIA_AGENT_SCHEMA_MANIFEST'
 
 
 class NativeAgentSchema(NativeHiaJsonImage):
+    AUXILIARY_BYTES = 8192
+
     def accepts(self, arguments, role, catalog_digest):
         return self.accepts_wire(wire(arguments), role, catalog_digest)
 
@@ -27,7 +29,7 @@ class NativeAgentSchema(NativeHiaJsonImage):
         arena_size, parser_size = arena_sizes(len(raw), 262144, 128)
         source = ctypes.create_string_buffer(raw)
         parser = ctypes.create_string_buffer(parser_size)
-        arena = ctypes.create_string_buffer(max(128, arena_size) + 8192)
+        arena = ctypes.create_string_buffer(max(128, arena_size) + self.AUXILIARY_BYTES)
         struct.pack_into('<Q64s', arena, 0, role, catalog_digest.encode('ascii'))
         result = self._entry(source, len(raw), parser, len(parser), arena, len(arena))
         if result not in (0, 1):

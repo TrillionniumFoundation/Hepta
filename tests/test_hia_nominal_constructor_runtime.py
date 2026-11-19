@@ -582,6 +582,19 @@ def check_render_assembly(executable, programs, rejected):
                     assert output.read_bytes() == expected[1]
                     assert not missing.exists() and not list(directory.iterdir())
                     assert link.readlink() == output and dangling.readlink() == missing
+
+                    parent = root / 'safe-parent'
+                    (parent / 'nested').mkdir(parents=True)
+                    linked_parent = root / 'linked-parent'
+                    linked_parent.symlink_to(parent, target_is_directory=True)
+                    for name in ('render.hepta', 'nested/render.hepta'):
+                        destination = linked_parent / name
+                        refusal = reference(source, '-o', destination)
+                        assert refusal[0] == 2 and b'parent must not traverse a symlink' in refusal[1]
+                        assert render(source, '-o', destination) == refusal, destination
+                        assert not (parent / name).exists()
+                    assert render(source, '-o', linked_parent / 'new/render.hepta') == refusal
+                    assert not (parent / 'new').exists()
                 rendered += 1
         broken = root / 'unverified.hepta'
         broken.write_bytes(rejected)
@@ -590,7 +603,7 @@ def check_render_assembly(executable, programs, rejected):
         assert refused == (2, b'', b'') and not forbidden.parent.exists()
     assert profile_refusals >= 5 and rendered >= 5, (profile_refusals, rendered)
     print(f'{profile_refusals} byte-exact profile refusals and {rendered} rendered/published '
-          'primitive assemblies; five no-replace diagnostics; unverified nominal input has no '
+          'primitive assemblies; five no-replace and three symlink-parent diagnostics; unverified nominal input has no '
           'profile report or publication')
 
 

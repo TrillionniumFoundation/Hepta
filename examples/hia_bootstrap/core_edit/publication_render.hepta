@@ -6382,13 +6382,28 @@ block b24(v240:readbuf,v241:mutbuf,v242:mutbuf)
   v258:u32 = call(v241,v242,v250,v251,v250,v253,v255,v256,v257,v257,v257) {"function":"f70"}
   ret(v258)
 block b25(v245:readbuf,v246:mutbuf,v247:mutbuf,v248:u64,v249:u64)
-  v259:u64 = const() {"value":9223372036854775807}
-  v260:bool = compare.gt(v249,v259)
-  branch v260 b26(v245,v246,v247) b27(v245,v246,v247,v248,v249)
-block b26(v261:readbuf,v262:mutbuf,v263:mutbuf)
-  v271:u64 = const() {"value":4}
-  v272:u32 = call(v262,v263,v271) {"function":"f71"}
-  ret(v272)
+  first_stat:u64 = const() {"value":10}
+  stat_stage:bool = compare.ge(v248,first_stat)
+  branch stat_stage stat_result(v246,v247,v248,v249) open_result(v245,v246,v247,v248,v249)
+block stat_result(stat_output:mutbuf,stat_workspace:mutbuf,stat_phase:u64,stat_status:u64)
+  stat_decision:u32 = call(stat_output,stat_workspace,stat_phase,stat_status) {"function":"assembly_parent_observe"}
+  ret(stat_decision)
+block open_result(open_path:readbuf,open_output:mutbuf,open_workspace:mutbuf,open_phase:u64,open_status:u64)
+  negative_limit:u64 = const() {"value":9223372036854775807}
+  open_failed:bool = compare.gt(open_status,negative_limit)
+  branch open_failed b26(open_output,open_workspace,open_phase,open_status) b27(open_path,open_output,open_workspace,open_phase,open_status)
+block b26(failed_output:mutbuf,failed_workspace:mutbuf,failed_phase:u64,failed_status:u64)
+  open_phase_id:u64 = const() {"value":2}
+  not_directory_errno:u64 = const() {"value":18446744073709551596}
+  is_open:bool = compare.eq(failed_phase,open_phase_id)
+  not_directory:bool = compare.eq(failed_status,not_directory_errno)
+  inspect:bool = bool.and(is_open,not_directory)
+  branch inspect stat_request(failed_output,failed_workspace) b45(failed_output,failed_workspace)
+block stat_request(probe_output:mutbuf,probe_workspace:mutbuf)
+  nofollow_phase:u64 = const() {"value":10}
+  nofollow_flag:u64 = const() {"value":256}
+  request:u32 = call(probe_output,probe_workspace,nofollow_phase,nofollow_flag) {"function":"assembly_parent_probe"}
+  ret(request)
 block b27(v266:readbuf,v267:mutbuf,v268:mutbuf,v269:u64,v270:u64)
   v273:u64 = const() {"value":1}
   v274:bool = compare.eq(v269,v273)
@@ -6462,7 +6477,7 @@ block b40(v373:readbuf,v374:mutbuf,v375:mutbuf,v377:u64)
 block b41(v378:readbuf,v379:mutbuf,v380:mutbuf,v381:u64,v382:u64)
   v404:u64 = const() {"value":9}
   v405:bool = compare.eq(v381,v404)
-  branch v405 b44(v378,v379,v380,v382) b45(v378,v379,v380)
+  branch v405 b44(v378,v379,v380,v382) b45(v379,v380)
 block b42(v385:readbuf,v386:mutbuf,v387:mutbuf)
   v395:u64 = const() {"value":4}
   v396:u32 = call(v386,v387,v395) {"function":"f71"}
@@ -6480,7 +6495,7 @@ block b44(v406:readbuf,v407:mutbuf,v408:mutbuf,v410:u64)
   v416:u64 = const() {"value":0}
   v417:bool = compare.ne(v410,v416)
   branch v417 b46(v406,v407,v408) b47(v406,v407,v408)
-block b45(v411:readbuf,v412:mutbuf,v413:mutbuf)
+block b45(v412:mutbuf,v413:mutbuf)
   v435:u64 = const() {"value":4}
   v436:u32 = call(v412,v413,v435) {"function":"f71"}
   ret(v436)
@@ -7599,4 +7614,55 @@ block b12(v249:mutbuf,v250:mutbuf)
   v441:u64 = call(v250,v439,v440) {"function":"f79"}
   v442:u64 = const() {"value":0}
   ret(v442)
+end
+fn assembly_parent_probe(output:mutbuf,workspace:mutbuf,phase:u64,flags:u64) -> (u32) effects(read,write,trap) entry(request)
+block request(output:mutbuf,workspace:mutbuf,phase:u64,flags:u64)
+  directory_offset:u64 = const() {"value":64}
+  directory:u64 = call(workspace,directory_offset) {"function":"f78"}
+  output_region:u64 = const() {"value":2}
+  path_offset:u64 = const() {"value":4096}
+  path:u64 = call(output_region,path_offset) {"function":"f69"}
+  workspace_region:u64 = const() {"value":3}
+  stat_offset:u64 = const() {"value":1024}
+  stat_buffer:u64 = call(workspace_region,stat_offset) {"function":"f69"}
+  syscall_newfstatat:u64 = const() {"value":262}
+  pointer_mask:u64 = const() {"value":6}
+  unused:u64 = const() {"value":0}
+  size:u32 = call(output,workspace,phase,syscall_newfstatat,pointer_mask,directory,path,stat_buffer,flags,unused,unused) {"function":"f70"}
+  ret(size)
+end
+fn assembly_parent_observe(output:mutbuf,workspace:mutbuf,phase:u64,status:u64) -> (u32) effects(read,write,trap) entry(check)
+block check(output:mutbuf,workspace:mutbuf,phase:u64,status:u64)
+  success:u64 = const() {"value":0}
+  observed:bool = compare.eq(status,success)
+  branch observed mode(output,workspace,phase) unavailable(output,workspace)
+block mode(output_bytes:mutbuf,control:mutbuf,phase_id:u64)
+  st_mode_offset:u64 = const() {"value":1048}
+  st_mode:u64 = call(control,st_mode_offset) {"function":"f78"}
+  type_mask:u64 = const() {"value":61440}
+  file_kind:u64 = bit.and(st_mode,type_mask)
+  nofollow_phase:u64 = const() {"value":10}
+  nofollow:bool = compare.eq(phase_id,nofollow_phase)
+  branch nofollow link_mode(output_bytes,control,file_kind) followed_mode(output_bytes,control,file_kind)
+block link_mode(link_output:mutbuf,link_workspace:mutbuf,link_kind:u64)
+  symlink:u64 = const() {"value":40960}
+  is_link:bool = compare.eq(link_kind,symlink)
+  branch is_link observe_target(link_output,link_workspace) unavailable(link_output,link_workspace)
+block observe_target(target_output:mutbuf,target_workspace:mutbuf)
+  follow_phase:u64 = const() {"value":11}
+  follow_flags:u64 = const() {"value":0}
+  target_request:u32 = call(target_output,target_workspace,follow_phase,follow_flags) {"function":"assembly_parent_probe"}
+  ret(target_request)
+block followed_mode(final_output:mutbuf,final_workspace:mutbuf,target_kind:u64)
+  directory:u64 = const() {"value":16384}
+  resolves_to_directory:bool = compare.eq(target_kind,directory)
+  branch resolves_to_directory symlink_parent(final_output,final_workspace) unavailable(final_output,final_workspace)
+block symlink_parent(refusal_output:mutbuf,refusal_workspace:mutbuf)
+  parent_link:u64 = const() {"value":90}
+  refusal:u32 = call(refusal_output,refusal_workspace,parent_link) {"function":"f71"}
+  ret(refusal)
+block unavailable(error_output:mutbuf,error_workspace:mutbuf)
+  io_error:u64 = const() {"value":4}
+  error:u32 = call(error_output,error_workspace,io_error) {"function":"f71"}
+  ret(error)
 end

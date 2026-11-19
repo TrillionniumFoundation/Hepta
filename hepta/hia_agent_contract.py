@@ -58,6 +58,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/agent_describe_answer.hepta',
     'examples/hia_bootstrap/agent_schema.hepta',
     'examples/hia_bootstrap/agent_payload_schema.hepta',
+    'examples/hia_bootstrap/agent_plan_schema.hepta',
     'examples/hia_bootstrap/agent_response_schema.hepta',
     'examples/hia_bootstrap/agent_verify_response_schema.hepta',
     'examples/hia_bootstrap/agent_artifact_capture.hepta',

@@ -562,7 +562,7 @@ jobs:
             cmp "$RUNNER_TEMP/$profile/$profile.image.bin" "$installed/$profile.image.bin"
             cmp "$RUNNER_TEMP/$profile/manifest.json" "$installed/$profile-manifest.json"
           done
-          for profile in agent-describe-answer agent-payload-schema; do
+          for profile in agent-describe-answer agent-payload-schema agent-plan-schema; do
             python -B -m tools.build_hia_json_preflight --candidate "$profile" \
               --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
               --output "$RUNNER_TEMP/$profile"
@@ -570,6 +570,7 @@ jobs:
           python -B -m tests.test_hia_agent_schema_native \
             --manifest "$installed/agent-schema-manifest.json" --test-root "$RUNNER_TEMP" \
             --payload-manifest "$RUNNER_TEMP/agent-payload-schema/manifest.json" \
+            --plan-manifest "$RUNNER_TEMP/agent-plan-schema/manifest.json" \
             --response-manifest "$installed/agent-response-schema-manifest.json" \
             --proof-manifest "$installed/agent-verify-response-schema-manifest.json" \
             --discovery-manifest "$installed/agent-discovery-manifest.json" \
