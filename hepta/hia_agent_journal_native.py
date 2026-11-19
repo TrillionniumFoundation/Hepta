@@ -12,6 +12,7 @@ from functools import cached_property
 from hashlib import sha256
 from json import JSONDecodeError
 import math
+from operator import attrgetter
 import os
 import socket
 import struct
@@ -43,6 +44,7 @@ CONTEXT_NONE, CONTEXT_READ, CONTEXT_BUDGET, CONTEXT_CANDIDATE = range(4)
 TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context', 'hia_inspect',
          'hia_candidate', 'hia_verify', 'hia_emit', 'hia_evaluate',
          'hia_adopt', 'hia_rollback', 'hia_resource_read')
+_TOOL_EFFECTS = tuple(attrgetter('_' + name) for name in TOOLS[:-1])
 
 
 def buffer_sizes(size):
@@ -184,6 +186,7 @@ class Instruction:
     cost_details: bytes = b''
     status: str | None = None
     arena: bytes = b''
+    effect_role: int = 0
 
 
 class JournalSession:
@@ -352,11 +355,15 @@ class JournalSession:
         if stage == 12 and (word(320) > CONTEXT_CANDIDATE
                             or code == REFUSE and word(320) != CONTEXT_NONE):
             raise RuntimeError('invalid native journal context instruction')
+        role = word(328)
+        if (stage == 5 and not (1 <= role <= len(_TOOL_EFFECTS) and role == word(16) == self._word(16))
+                or stage != 5 and role != 0):
+            raise RuntimeError('invalid native journal tool effect')
         if stage == 3 and len(arena) < 64:
             raise RuntimeError('invalid native journal arena extent')
         self._state = state
         return Instruction(code, word(288), response, cost,
-                           {0: None, 1: 'completed', 2: 'rejected'}[word(264)], arena)
+                           {0: None, 1: 'completed', 2: 'rejected'}[word(264)], arena, role)
 
     def prepare(self, raw, foreign_types=b''):
         return self._run(0, raw, foreign_types)
@@ -645,10 +652,11 @@ def _run_native_journal(hosted, service, session, tool, arguments, started, requ
             if context_plan in {CONTEXT_BUDGET, CONTEXT_CANDIDATE}:
                 service._budget(context, candidate=context_plan == CONTEXT_CANDIDATE)
         mode = native_step(session.effect)
+        effect = _TOOL_EFFECTS[mode.effect_role - 1]
         if mode.action == ATOMIC:
             try:
                 with service.store.transaction():
-                    result = getattr(service, '_' + tool)(arguments)
+                    result = effect(service)(arguments)
                     response = native_step(session.completed, result, acknowledgement=True)
                     service._validate_tool_response(tool, response)
                     instruction = native_step(session.inline, response)
@@ -663,7 +671,7 @@ def _run_native_journal(hosted, service, session, tool, arguments, started, requ
                     native_failed = True
                 raise
         else:
-            result = getattr(service, '_' + tool)(arguments)
+            result = effect(service)(arguments)
             response = native_step(session.completed, result, acknowledgement=True)
             service._validate_tool_response(tool, response)
     except domain_errors as exc:

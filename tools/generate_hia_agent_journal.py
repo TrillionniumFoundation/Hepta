@@ -66,6 +66,7 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, p + 280, 0)
     put(w, p + 288, 0)
     put(w, p + 320, 0)
+    put(w, p + 328, 0)
     parsed = False
     if stage == 0 or stage == 1 or stage == 3 or stage == 6 or (stage == 8 and length(s) != 0):
         put(o, 48, 262144)
@@ -335,6 +336,10 @@ def dispatch(s:readbuf, o:mutbuf, w:mutbuf, stage:u64) -> u64:
     if stage == 5:
         if phase != 3 and phase != 4:
             return 4294967293
+        role = get(w, p + 16)
+        if role < 1 or role > 11:
+            return 4294967293
+        put(w, p + 328, role)
         put(w, p + 8, 10)
         if get(w, p + 32) != 0:
             return instruction(w, 8)

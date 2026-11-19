@@ -374,8 +374,9 @@ class JournalNativeTests(unittest.TestCase):
                 expected = {'hia_inspect': 1, 'hia_rollback': 1, 'hia_candidate': 3}.get(tool, 2)
                 self.assertEqual(session.plan_context(dict(reversed(installed.items())), installed, True),
                                  expected)
-                self.assertEqual(session.effect().action,
-                                 ATOMIC if tool in {'hia_adopt', 'hia_rollback'} else CONTINUE)
+                effect = session.effect()
+                self.assertEqual(effect.action, ATOMIC if tool in {'hia_adopt', 'hia_rollback'} else CONTINUE)
+                self.assertEqual(effect.effect_role, 3 if tool == 'hia_resource_read' else TOOLS.index(tool) + 1)
 
     def test_exact_reference_errors_rows_and_arbitrary_precision_clock_TEXT(self):
         services = [HIAAgentService(self.case / name) for name in ('reference', 'native')]
@@ -883,6 +884,18 @@ print('REFUSED_WITH_INPUT_AND_OUTPUT_CANARIES_INTACT')
             with self.subTest(location=location), patch.object(self.image, '_entry', corrupt):
                 with self.assertRaises(RuntimeError):
                     self.image.session().prepare(b'{"tool":"hia_describe","arguments":{}}')
+
+        session = self.image.session()
+        session.prepare(b'{"tool":"hia_describe","arguments":{}}')
+
+        def substitute_effect(source, source_size, output, output_size, scratch, scratch_size):
+            result = original(source, source_size, output, output_size, scratch, scratch_size)
+            struct.pack_into('<Q', output, HEADER_OFFSET + 328, 2)
+            return result
+
+        with patch.object(self.image, '_entry', substitute_effect):
+            with self.assertRaisesRegex(RuntimeError, 'invalid native journal tool effect'):
+                session.effect()
 
     def test_installed_wheel_ordinary_call_no_tools_and_source_catalog_binding(self):
         from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
