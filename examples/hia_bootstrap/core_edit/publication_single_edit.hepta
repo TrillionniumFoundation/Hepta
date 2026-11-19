@@ -489,11 +489,20 @@ block b42(v392:readbuf,v393:mutbuf,v394:mutbuf,v399:u64,v400:u64)
   v405:u64 = call(v394,v404) {"function":"f12"}
   v406:u64 = const() {"value":6}
   v407:bool = compare.ne(v405,v406)
-  branch v407 b43(v392,v393,v394) b44(v392,v393,v394,v399,v400)
+  branch v407 b43(v392,v393,v394) check_fields(v392,v393,v394,v399,v400)
 block b43(v408:readbuf,v409:mutbuf,v410:mutbuf)
   v426:u64 = const() {"value":4294967295}
   v427:u32 = int.cast(v426) {"mode":"wrap"}
   ret(v427)
+block check_fields(field_input:readbuf,field_output:mutbuf,field_work:mutbuf,source_end:u64,selector_token:u64)
+  selected_fields_at:u64 = const() {"value":25166128}
+  selected_fields_token:u64 = call(field_output,selected_fields_at) {"function":"f20"}
+  fields_mask:u64 = call(field_work,selected_fields_token) {"function":"f3"}
+  fields_offset:u64 = const() {"value":25166552}
+  recorded_fields:u64 = call(field_output,fields_offset,fields_mask) {"function":"f21"}
+  no_fields:u64 = const() {"value":0}
+  invalid_fields:bool = compare.eq(fields_mask,no_fields)
+  branch invalid_fields b51(field_input,field_output,field_work) b44(field_input,field_output,field_work,source_end,selector_token)
 block b44(v417:readbuf,v418:mutbuf,v419:mutbuf,v424:u64,v425:u64)
   v428:u64 = const() {"value":33554432}
   v429:u64 = call(v419,v425,v428) {"function":"f15"}
@@ -524,23 +533,15 @@ block b47(v466:readbuf,v467:mutbuf,v468:mutbuf,v473:u64,v475:u64,v476:u64)
 block b48(v478:readbuf,v479:mutbuf,v480:mutbuf,v485:u64,v487:u64,v488:u64,v489:bool)
   branch v489 b49(v478,v479,v480) b50(v478,v479,v480,v485,v487,v488)
 block b49(v495:readbuf,v496:mutbuf,v497:mutbuf)
-  v517:u64 = const() {"value":4294967295}
-  v518:u32 = int.cast(v517) {"mode":"wrap"}
-  ret(v518)
+  refusal_code_b49:u64 = const() {"value":4}
+  refusal_b49:u32 = call(v496,refusal_code_b49) {"function":"edit_refusal"}
+  ret(refusal_b49)
 block b50(v506:readbuf,v507:mutbuf,v508:mutbuf,v513:u64,v515:u64,v516:u64)
-  v519:u64 = const() {"value":25166552}
-  v520:u64 = const() {"value":25166128}
-  v521:u64 = call(v507,v520) {"function":"f20"}
-  v522:u64 = call(v508,v521) {"function":"f3"}
-  v523:u64 = call(v507,v519,v522) {"function":"f21"}
-  v524:u64 = call(v507,v519) {"function":"f20"}
-  v525:u64 = const() {"value":0}
-  v526:bool = compare.eq(v524,v525)
-  branch v526 b51(v506,v507,v508) b52(v506,v507,v508,v513,v515,v516)
+  jump b52(v506,v507,v508,v513,v515,v516)
 block b51(v527:readbuf,v528:mutbuf,v529:mutbuf)
-  v549:u64 = const() {"value":4294967295}
-  v550:u32 = int.cast(v549) {"mode":"wrap"}
-  ret(v550)
+  refusal_code_b51:u64 = const() {"value":3}
+  refusal_b51:u32 = call(v528,refusal_code_b51) {"function":"edit_refusal"}
+  ret(refusal_b51)
 block b52(v538:readbuf,v539:mutbuf,v540:mutbuf,v545:u64,v547:u64,v548:u64)
   v551:u64 = const() {"value":25166560}
   v552:u64 = call(v539,v551) {"function":"f20"}
@@ -564,9 +565,9 @@ block b54(v570:readbuf,v571:mutbuf,v572:mutbuf,v577:u64,v579:u64,v580:u64,v581:u
   v590:bool = compare.eq(v588,v589)
   branch v590 b55(v570,v571,v572) b56(v570,v571,v572,v577,v580)
 block b55(v591:readbuf,v592:mutbuf,v593:mutbuf)
-  v615:u64 = const() {"value":4294967295}
-  v616:u32 = int.cast(v615) {"mode":"wrap"}
-  ret(v616)
+  refusal_code_b55:u64 = const() {"value":5}
+  refusal_b55:u32 = call(v592,refusal_code_b55) {"function":"edit_refusal"}
+  ret(refusal_b55)
 block b56(v603:readbuf,v604:mutbuf,v605:mutbuf,v610:u64,v613:u64)
   v617:u64 = const() {"value":25166528}
   v618:u64 = const() {"value":25166520}
@@ -595,9 +596,9 @@ block b58(v639:readbuf,v640:mutbuf,v641:mutbuf,v646:u64,v649:u64)
   v661:bool = compare.eq(v659,v660)
   branch v661 b59(v639,v640,v641) b60(v639,v640,v641,v646)
 block b59(v662:readbuf,v663:mutbuf,v664:mutbuf)
-  v686:u64 = const() {"value":4294967295}
-  v687:u32 = int.cast(v686) {"mode":"wrap"}
-  ret(v687)
+  refusal_code_b59:u64 = const() {"value":6}
+  refusal_b59:u32 = call(v663,refusal_code_b59) {"function":"edit_refusal"}
+  ret(refusal_b59)
 block b60(v674:readbuf,v675:mutbuf,v676:mutbuf,v681:u64)
   v688:u64 = const() {"value":25166336}
   v689:u64 = const() {"value":25166528}
@@ -813,9 +814,9 @@ block b89(v1322:readbuf,v1323:mutbuf,v1324:mutbuf,v1329:u64)
 block b90(v1337:readbuf,v1338:mutbuf,v1339:mutbuf,v1344:u64,v1351:bool)
   branch v1351 b91(v1337,v1338,v1339) b92(v1337,v1338,v1339,v1344)
 block b91(v1356:readbuf,v1357:mutbuf,v1358:mutbuf)
-  v1384:u64 = const() {"value":4294967295}
-  v1385:u32 = int.cast(v1384) {"mode":"wrap"}
-  ret(v1385)
+  refusal_code_b91:u64 = const() {"value":7}
+  refusal_b91:u32 = call(v1357,refusal_code_b91) {"function":"edit_refusal"}
+  ret(refusal_b91)
 block b92(v1370:readbuf,v1371:mutbuf,v1372:mutbuf,v1377:u64)
   v1386:u64 = const() {"value":25166336}
   v1387:u64 = call(v1371,v1386) {"function":"f20"}
@@ -8532,28 +8533,15 @@ block b7(v60:mutbuf,v61:mutbuf)
 block b8(v63:mutbuf,v64:mutbuf,v65:u64)
   v67:u64 = const() {"value":34359738368}
   v68:u64 = call(v64,v65,v67) {"function":"f15"}
-  v69:u64 = const() {"value":1}
-  v70:u64 = const() {"value":536870912}
-  v71:u64 = bit.or(v69,v70)
-  v72:u64 = const() {"value":1073741824}
-  v73:u64 = bit.or(v71,v72)
-  v74:u64 = const() {"value":17179869184}
-  v75:u64 = bit.or(v73,v74)
-  v76:u64 = const() {"value":268435456}
-  v77:u64 = bit.or(v75,v76)
-  v78:u64 = const() {"value":2147483648}
-  v79:u64 = bit.or(v77,v78)
-  v80:u64 = const() {"value":4294967296}
-  v81:u64 = bit.or(v79,v80)
-  v82:u64 = const() {"value":8589934592}
-  v83:u64 = bit.or(v81,v82)
-  v84:u64 = call(v64,v68,v83) {"function":"f16"}
-  v85:u64 = const() {"value":0}
-  v86:bool = compare.eq(v84,v85)
-  branch v86 b9(v63,v64) b10(v63,v64,v65,v68)
+  query_kind:u64 = call(v64,v68) {"function":"f12"}
+  object_kind:u64 = const() {"value":6}
+  not_an_object:bool = compare.ne(query_kind,object_kind)
+  branch not_an_object b9(v63,v64) b10(v63,v64,v65,v68)
 block b9(v87:mutbuf,v88:mutbuf)
-  v95:u64 = const() {"value":18446744073709551615}
-  ret(v95)
+  refusal_code_b9:u64 = const() {"value":1}
+  refusal_b9:u32 = call(v87,refusal_code_b9) {"function":"edit_refusal"}
+  no_token_b9:u64 = const() {"value":18446744073709551615}
+  ret(no_token_b9)
 block b10(v91:mutbuf,v92:mutbuf,v93:u64,v94:u64)
   v96:u64 = const() {"value":17179869184}
   v97:u64 = call(v92,v94,v96) {"function":"f15"}
@@ -8567,8 +8555,10 @@ block b10(v91:mutbuf,v92:mutbuf,v93:u64,v94:u64)
   v105:bool = compare.eq(v103,v104)
   branch v105 b11(v91,v92) b12(v91,v92,v93,v94,v97)
 block b11(v106:mutbuf,v107:mutbuf)
-  v116:u64 = const() {"value":18446744073709551615}
-  ret(v116)
+  refusal_code_b11:u64 = const() {"value":2}
+  refusal_b11:u32 = call(v106,refusal_code_b11) {"function":"edit_refusal"}
+  no_token_b11:u64 = const() {"value":18446744073709551615}
+  ret(no_token_b11)
 block b12(v111:mutbuf,v112:mutbuf,v113:u64,v114:u64,v115:u64)
   v117:u64 = const() {"value":268435456}
   v118:u64 = call(v112,v114,v117) {"function":"f15"}
@@ -8748,9 +8738,9 @@ block b22(v177:readbuf,v178:mutbuf,v179:mutbuf,v180:u64)
   v190:bool = compare.ne(v186,v180)
   branch v190 b23(v177,v178,v179) b24(v177,v178,v179,v180)
 block b23(v191:readbuf,v192:mutbuf,v193:mutbuf)
-  v201:u64 = const() {"value":4294967295}
-  v202:u32 = int.cast(v201) {"mode":"wrap"}
-  ret(v202)
+  refusal_code_b23:u64 = const() {"value":8}
+  refusal_b23:u32 = call(v192,refusal_code_b23) {"function":"edit_refusal"}
+  ret(refusal_b23)
 block b24(v196:readbuf,v197:mutbuf,v198:mutbuf,v199:u64)
   v203:u64 = const() {"value":0}
   jump b25(v196,v197,v198,v199,v203)
@@ -8786,9 +8776,9 @@ block b27(v217:readbuf,v218:mutbuf,v219:mutbuf)
   v262:u32 = int.cast(v260) {"mode":"wrap"}
   ret(v262)
 block b28(v234:readbuf,v235:mutbuf,v236:mutbuf)
-  v246:u64 = const() {"value":4294967295}
-  v247:u32 = int.cast(v246) {"mode":"wrap"}
-  ret(v247)
+  refusal_code_b28:u64 = const() {"value":8}
+  refusal_b28:u32 = call(v235,refusal_code_b28) {"function":"edit_refusal"}
+  ret(refusal_b28)
 block b29(v240:readbuf,v241:mutbuf,v242:mutbuf,v243:u64,v245:u64)
   v248:u64 = const() {"value":1}
   v249:u64 = int.add.wrap(v245,v248)
@@ -9873,9 +9863,9 @@ block b43(v338:readbuf,v339:mutbuf,v340:mutbuf)
 block b44(v345:readbuf,v346:mutbuf,v347:mutbuf,v351:bool)
   branch v351 b45(v345,v346,v347) b46(v345,v346,v347)
 block b45(v356:readbuf,v357:mutbuf,v358:mutbuf)
-  v368:u64 = const() {"value":4294967295}
-  v369:u32 = int.cast(v368) {"mode":"wrap"}
-  ret(v369)
+  refusal_code_b45:u64 = const() {"value":9}
+  refusal_b45:u32 = call(v357,refusal_code_b45) {"function":"edit_refusal"}
+  ret(refusal_b45)
 block b46(v362:readbuf,v363:mutbuf,v364:mutbuf)
   v370:u64 = const() {"value":88}
   v371:u64 = call(v364,v370) {"function":"f72"}
@@ -9905,9 +9895,9 @@ block b49(v391:readbuf,v392:mutbuf,v393:mutbuf,v398:u64)
   v441:bool = bool.or(v438,v440)
   branch v441 b52(v391,v392,v393) b53(v391,v392,v393,v398)
 block b50(v405:readbuf,v406:mutbuf,v407:mutbuf)
-  v423:u64 = const() {"value":4294967295}
-  v424:u32 = int.cast(v423) {"mode":"wrap"}
-  ret(v424)
+  refusal_code_b50:u64 = const() {"value":9}
+  refusal_b50:u32 = call(v406,refusal_code_b50) {"function":"edit_refusal"}
+  ret(refusal_b50)
 block b51(v414:readbuf,v415:mutbuf,v416:mutbuf,v420:u64,v421:u64,v422:u64)
   v425:u64 = bit.or(v421,v422)
   v426:u64 = const() {"value":64}
@@ -9919,9 +9909,9 @@ block b51(v414:readbuf,v415:mutbuf,v416:mutbuf,v420:u64,v421:u64,v422:u64)
   v432:u64 = call(v416,v431) {"function":"f72"}
   jump b47(v414,v415,v416,v432,v425)
 block b52(v442:readbuf,v443:mutbuf,v444:mutbuf)
-  v460:u64 = const() {"value":4294967295}
-  v461:u32 = int.cast(v460) {"mode":"wrap"}
-  ret(v461)
+  refusal_code_b52:u64 = const() {"value":9}
+  refusal_b52:u32 = call(v443,refusal_code_b52) {"function":"edit_refusal"}
+  ret(refusal_b52)
 block b53(v451:readbuf,v452:mutbuf,v453:mutbuf,v458:u64)
   v462:u64 = const() {"value":25165824}
   v463:u64 = const() {"value":392}
@@ -11340,4 +11330,18 @@ block b0(v0:readbuf,v1:u64)
   v63:u64 = int.shl.checked(v61,v62)
   v64:u64 = bit.or(v56,v63)
   ret(v64)
+end
+fn edit_refusal(o:mutbuf,reason:u64) -> (u32) effects(read,write,trap) entry(b0)
+block b0(o:mutbuf,reason:u64)
+  extent:usize = buffer.len(o)
+  needed:usize = const() {"value":33554432}
+  available:bool = compare.ge(extent,needed)
+  branch available store_reason(o,reason) invalid()
+block store_reason(output:mutbuf,code:u64)
+  reason_offset:u64 = const() {"value":33553920}
+  recorded_reason:u64 = call(output,reason_offset,code) {"function":"f21"}
+  jump invalid()
+block invalid()
+  status:u32 = const() {"value":4294967295}
+  ret(status)
 end

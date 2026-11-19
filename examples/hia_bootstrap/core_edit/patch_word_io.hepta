@@ -1,11 +1,26 @@
 hia-asm.v1 hepta.hia.program.v8 word_unrolled_patch_same_byte_semantics
-fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
-block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
-  v3:usize = buffer.len(v2)
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(dispatch)
+block dispatch(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  input_extent:usize = buffer.len(v0)
+  work_extent:usize = buffer.len(v2)
+  eight:usize = const() {"value":8}
+  zero:usize = const() {"value":0}
+  request_bytes:bool = compare.eq(input_extent,eight)
+  no_work:bool = compare.eq(work_extent,zero)
+  presentation:bool = bool.and(request_bytes,no_work)
+  branch presentation present(v0,v1) b0(v0,v1,v2)
+block present(s:readbuf,o:mutbuf)
+  start:usize = const() {"value":0}
+  reason_byte:u8 = buffer.load(s,start)
+  reason:u64 = int.cast(reason_byte) {"mode":"wrap"}
+  amount:u32 = call(o,reason) {"function":"edit_refusal"}
+  ret(amount)
+block b0(patch_in:readbuf,patch_out:mutbuf,patch_work:mutbuf)
+  v3:usize = buffer.len(patch_work)
   v4:u64 = int.cast(v3) {"mode":"wrap"}
   v5:u64 = const() {"value":8192}
   v6:bool = compare.lt(v4,v5)
-  branch v6 b2(v0,v1,v2,v6) b1(v0,v1,v2)
+  branch v6 b2(patch_in,patch_out,patch_work,v6) b1(patch_in,patch_out,patch_work)
 block b1(v7:readbuf,v8:mutbuf,v9:mutbuf)
   v15:usize = buffer.len(v8)
   v16:u64 = int.cast(v15) {"mode":"wrap"}
@@ -5765,4 +5780,312 @@ block b0(v0:u64,v1:u64)
   v7:u64 = bit.and(v5,v6)
   v8:u64 = bit.or(v2,v7)
   ret(v8)
+end
+fn edit_refusal(v0:mutbuf,v1:u64) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:mutbuf,v1:u64)
+  out_extent:usize = buffer.len(v0)
+  expected_extent:usize = const() {"value":504}
+  can_write:bool = compare.ge(out_extent,expected_extent)
+  branch can_write choose_1(v0,v1) invalid()
+block choose_1(out_1:mutbuf,reason_1:u64)
+  code_1:u64 = const() {"value":1}
+  match_1:bool = compare.eq(reason_1,code_1)
+  branch match_1 emit_1(out_1) choose_2(out_1,reason_1)
+block emit_1(emit_out_1:mutbuf)
+  at_msg_1_0:u64 = const() {"value":84}
+  word_msg_1_0:u64 = const() {"value":8461454980881413489}
+  wrote_msg_1_0:u64 = call(emit_out_1,at_msg_1_0,word_msg_1_0) {"function":"f55"}
+  at_msg_1_8:u64 = const() {"value":92}
+  word_msg_1_8:u64 = const() {"value":7953674036723086451}
+  wrote_msg_1_8:u64 = call(emit_out_1,at_msg_1_8,word_msg_1_8) {"function":"f55"}
+  at_msg_1_16:u64 = const() {"value":100}
+  word_msg_1_16:u64 = const() {"value":8079585701688534304}
+  wrote_msg_1_16:u64 = call(emit_out_1,at_msg_1_16,word_msg_1_16) {"function":"f55"}
+  at_msg_1_24:u64 = const() {"value":108}
+  word_msg_1_24:u64 = const() {"value":7304668662553666930}
+  wrote_msg_1_24:u64 = call(emit_out_1,at_msg_1_24,word_msg_1_24) {"function":"f55"}
+  at_msg_1_32:u64 = const() {"value":116}
+  word_msg_1_32:u64 = const() {"value":8463219665604471140}
+  wrote_msg_1_32:u64 = call(emit_out_1,at_msg_1_32,word_msg_1_32) {"function":"f55"}
+  at_msg_1_40:u64 = const() {"value":124}
+  word_msg_1_40:u64 = const() {"value":29804}
+  wrote_msg_1_40:u64 = call(emit_out_1,at_msg_1_40,word_msg_1_40) {"function":"f55"}
+  suffix_at_1:u64 = const() {"value":126}
+  packet_len_1:u64 = const() {"value":201}
+  jump envelope(emit_out_1,suffix_at_1,packet_len_1)
+block choose_2(out_2:mutbuf,reason_2:u64)
+  code_2:u64 = const() {"value":2}
+  match_2:bool = compare.eq(reason_2,code_2)
+  branch match_2 emit_2(out_2) choose_3(out_2,reason_2)
+block emit_2(emit_out_2:mutbuf)
+  at_msg_2_0:u64 = const() {"value":84}
+  word_msg_2_0:u64 = const() {"value":2334106421097295465}
+  wrote_msg_2_0:u64 = call(emit_out_2,at_msg_2_0,word_msg_2_0) {"function":"f55"}
+  at_msg_2_8:u64 = const() {"value":92}
+  word_msg_2_8:u64 = const() {"value":7310222326134830449}
+  wrote_msg_2_8:u64 = call(emit_out_2,at_msg_2_8,word_msg_2_8) {"function":"f55"}
+  at_msg_2_16:u64 = const() {"value":100}
+  word_msg_2_16:u64 = const() {"value":125823019607404}
+  wrote_msg_2_16:u64 = call(emit_out_2,at_msg_2_16,word_msg_2_16) {"function":"f55"}
+  suffix_at_2:u64 = const() {"value":106}
+  packet_len_2:u64 = const() {"value":181}
+  jump envelope(emit_out_2,suffix_at_2,packet_len_2)
+block choose_3(out_3:mutbuf,reason_3:u64)
+  code_3:u64 = const() {"value":3}
+  match_3:bool = compare.eq(reason_3,code_3)
+  branch match_3 emit_3(out_3) choose_4(out_3,reason_3)
+block emit_3(emit_out_3:mutbuf)
+  at_msg_3_0:u64 = const() {"value":84}
+  word_msg_3_0:u64 = const() {"value":7863411824541395302}
+  wrote_msg_3_0:u64 = call(emit_out_3,at_msg_3_0,word_msg_3_0) {"function":"f55"}
+  at_msg_3_8:u64 = const() {"value":92}
+  word_msg_3_8:u64 = const() {"value":6998705293059453813}
+  wrote_msg_3_8:u64 = call(emit_out_3,at_msg_3_8,word_msg_3_8) {"function":"f55"}
+  at_msg_3_16:u64 = const() {"value":100}
+  word_msg_3_16:u64 = const() {"value":2334401111822071072}
+  wrote_msg_3_16:u64 = call(emit_out_3,at_msg_3_16,word_msg_3_16) {"function":"f55"}
+  at_msg_3_24:u64 = const() {"value":108}
+  word_msg_3_24:u64 = const() {"value":8751743591043198830}
+  wrote_msg_3_24:u64 = call(emit_out_3,at_msg_3_24,word_msg_3_24) {"function":"f55"}
+  at_msg_3_32:u64 = const() {"value":116}
+  word_msg_3_32:u64 = const() {"value":2338605652759638816}
+  wrote_msg_3_32:u64 = call(emit_out_3,at_msg_3_32,word_msg_3_32) {"function":"f55"}
+  at_msg_3_40:u64 = const() {"value":124}
+  word_msg_3_40:u64 = const() {"value":6998642682346104431}
+  wrote_msg_3_40:u64 = call(emit_out_3,at_msg_3_40,word_msg_3_40) {"function":"f55"}
+  at_msg_3_48:u64 = const() {"value":132}
+  word_msg_3_48:u64 = const() {"value":8391438796510685042}
+  wrote_msg_3_48:u64 = call(emit_out_3,at_msg_3_48,word_msg_3_48) {"function":"f55"}
+  at_msg_3_56:u64 = const() {"value":140}
+  word_msg_3_56:u64 = const() {"value":29554}
+  wrote_msg_3_56:u64 = call(emit_out_3,at_msg_3_56,word_msg_3_56) {"function":"f55"}
+  suffix_at_3:u64 = const() {"value":142}
+  packet_len_3:u64 = const() {"value":217}
+  jump envelope(emit_out_3,suffix_at_3,packet_len_3)
+block choose_4(out_4:mutbuf,reason_4:u64)
+  code_4:u64 = const() {"value":4}
+  match_4:bool = compare.eq(reason_4,code_4)
+  branch match_4 emit_4(out_4) choose_5(out_4,reason_4)
+block emit_4(emit_out_4:mutbuf)
+  at_msg_4_0:u64 = const() {"value":84}
+  word_msg_4_0:u64 = const() {"value":7957695015192261990}
+  wrote_msg_4_0:u64 = call(emit_out_4,at_msg_4_0,word_msg_4_0) {"function":"f55"}
+  at_msg_4_8:u64 = const() {"value":92}
+  word_msg_4_8:u64 = const() {"value":2336070161932623916}
+  wrote_msg_4_8:u64 = call(emit_out_4,at_msg_4_8,word_msg_4_8) {"function":"f55"}
+  at_msg_4_16:u64 = const() {"value":100}
+  word_msg_4_16:u64 = const() {"value":8103230749691637345}
+  wrote_msg_4_16:u64 = call(emit_out_4,at_msg_4_16,word_msg_4_16) {"function":"f55"}
+  at_msg_4_24:u64 = const() {"value":108}
+  word_msg_4_24:u64 = const() {"value":8389754637772682357}
+  wrote_msg_4_24:u64 = call(emit_out_4,at_msg_4_24,word_msg_4_24) {"function":"f55"}
+  at_msg_4_32:u64 = const() {"value":116}
+  word_msg_4_32:u64 = const() {"value":8461454954893767785}
+  wrote_msg_4_32:u64 = call(emit_out_4,at_msg_4_32,word_msg_4_32) {"function":"f55"}
+  at_msg_4_40:u64 = const() {"value":124}
+  word_msg_4_40:u64 = const() {"value":8391086150531445875}
+  wrote_msg_4_40:u64 = call(emit_out_4,at_msg_4_40,word_msg_4_40) {"function":"f55"}
+  at_msg_4_48:u64 = const() {"value":132}
+  word_msg_4_48:u64 = const() {"value":495656528242}
+  wrote_msg_4_48:u64 = call(emit_out_4,at_msg_4_48,word_msg_4_48) {"function":"f55"}
+  suffix_at_4:u64 = const() {"value":137}
+  packet_len_4:u64 = const() {"value":212}
+  jump envelope(emit_out_4,suffix_at_4,packet_len_4)
+block choose_5(out_5:mutbuf,reason_5:u64)
+  code_5:u64 = const() {"value":5}
+  match_5:bool = compare.eq(reason_5,code_5)
+  branch match_5 emit_5(out_5) choose_6(out_5,reason_5)
+block emit_5(emit_out_5:mutbuf)
+  at_msg_5_0:u64 = const() {"value":84}
+  word_msg_5_0:u64 = const() {"value":7957695015192261990}
+  wrote_msg_5_0:u64 = call(emit_out_5,at_msg_5_0,word_msg_5_0) {"function":"f55"}
+  at_msg_5_8:u64 = const() {"value":92}
+  word_msg_5_8:u64 = const() {"value":8462094514430897696}
+  wrote_msg_5_8:u64 = call(emit_out_5,at_msg_5_8,word_msg_5_8) {"function":"f55"}
+  at_msg_5_16:u64 = const() {"value":100}
+  word_msg_5_16:u64 = const() {"value":25710}
+  wrote_msg_5_16:u64 = call(emit_out_5,at_msg_5_16,word_msg_5_16) {"function":"f55"}
+  suffix_at_5:u64 = const() {"value":102}
+  packet_len_5:u64 = const() {"value":177}
+  jump envelope(emit_out_5,suffix_at_5,packet_len_5)
+block choose_6(out_6:mutbuf,reason_6:u64)
+  code_6:u64 = const() {"value":6}
+  match_6:bool = compare.eq(reason_6,code_6)
+  branch match_6 emit_6(out_6) choose_7(out_6,reason_6)
+block emit_6(emit_out_6:mutbuf)
+  at_msg_6_0:u64 = const() {"value":84}
+  word_msg_6_0:u64 = const() {"value":8029390831250009186}
+  wrote_msg_6_0:u64 = call(emit_out_6,at_msg_6_0,word_msg_6_0) {"function":"f55"}
+  at_msg_6_8:u64 = const() {"value":92}
+  word_msg_6_8:u64 = const() {"value":28268948330258548}
+  wrote_msg_6_8:u64 = call(emit_out_6,at_msg_6_8,word_msg_6_8) {"function":"f55"}
+  suffix_at_6:u64 = const() {"value":99}
+  packet_len_6:u64 = const() {"value":174}
+  jump envelope(emit_out_6,suffix_at_6,packet_len_6)
+block choose_7(out_7:mutbuf,reason_7:u64)
+  code_7:u64 = const() {"value":7}
+  match_7:bool = compare.eq(reason_7,code_7)
+  branch match_7 emit_7(out_7) choose_8(out_7,reason_7)
+block emit_7(emit_out_7:mutbuf)
+  at_msg_7_0:u64 = const() {"value":84}
+  word_msg_7_0:u64 = const() {"value":8103230749689336659}
+  wrote_msg_7_0:u64 = call(emit_out_7,at_msg_7_0,word_msg_7_0) {"function":"f55"}
+  at_msg_7_8:u64 = const() {"value":92}
+  word_msg_7_8:u64 = const() {"value":2338324160631043189}
+  wrote_msg_7_8:u64 = call(emit_out_7,at_msg_7_8,word_msg_7_8) {"function":"f55"}
+  at_msg_7_16:u64 = const() {"value":100}
+  word_msg_7_16:u64 = const() {"value":7954874719498694510}
+  wrote_msg_7_16:u64 = call(emit_out_7,at_msg_7_16,word_msg_7_16) {"function":"f55"}
+  at_msg_7_24:u64 = const() {"value":108}
+  word_msg_7_24:u64 = const() {"value":7308901430535285108}
+  wrote_msg_7_24:u64 = call(emit_out_7,at_msg_7_24,word_msg_7_24) {"function":"f55"}
+  at_msg_7_32:u64 = const() {"value":116}
+  word_msg_7_32:u64 = const() {"value":7166760226508400928}
+  wrote_msg_7_32:u64 = call(emit_out_7,at_msg_7_32,word_msg_7_32) {"function":"f55"}
+  at_msg_7_40:u64 = const() {"value":124}
+  word_msg_7_40:u64 = const() {"value":1852795252}
+  wrote_msg_7_40:u64 = call(emit_out_7,at_msg_7_40,word_msg_7_40) {"function":"f55"}
+  suffix_at_7:u64 = const() {"value":128}
+  packet_len_7:u64 = const() {"value":203}
+  jump envelope(emit_out_7,suffix_at_7,packet_len_7)
+block choose_8(out_8:mutbuf,reason_8:u64)
+  code_8:u64 = const() {"value":8}
+  match_8:bool = compare.eq(reason_8,code_8)
+  branch match_8 emit_8(out_8) choose_9(out_8,reason_8)
+block emit_8(emit_out_8:mutbuf)
+  at_msg_8_0:u64 = const() {"value":84}
+  word_msg_8_0:u64 = const() {"value":8245845062720779379}
+  wrote_msg_8_0:u64 = call(emit_out_8,at_msg_8_0,word_msg_8_0) {"function":"f55"}
+  at_msg_8_8:u64 = const() {"value":92}
+  word_msg_8_8:u64 = const() {"value":7307484473227963680}
+  wrote_msg_8_8:u64 = call(emit_out_8,at_msg_8_8,word_msg_8_8) {"function":"f55"}
+  at_msg_8_16:u64 = const() {"value":100}
+  word_msg_8_16:u64 = const() {"value":8151643321545334884}
+  wrote_msg_8_16:u64 = call(emit_out_8,at_msg_8_16,word_msg_8_16) {"function":"f55"}
+  at_msg_8_24:u64 = const() {"value":108}
+  word_msg_8_24:u64 = const() {"value":2037540213}
+  wrote_msg_8_24:u64 = call(emit_out_8,at_msg_8_24,word_msg_8_24) {"function":"f55"}
+  suffix_at_8:u64 = const() {"value":112}
+  packet_len_8:u64 = const() {"value":187}
+  jump envelope(emit_out_8,suffix_at_8,packet_len_8)
+block choose_9(out_9:mutbuf,reason_9:u64)
+  code_9:u64 = const() {"value":9}
+  match_9:bool = compare.eq(reason_9,code_9)
+  branch match_9 emit_9(out_9) invalid()
+block emit_9(emit_out_9:mutbuf)
+  at_msg_9_0:u64 = const() {"value":84}
+  word_msg_9_0:u64 = const() {"value":7310308045059482994}
+  wrote_msg_9_0:u64 = call(emit_out_9,at_msg_9_0,word_msg_9_0) {"function":"f55"}
+  at_msg_9_8:u64 = const() {"value":92}
+  word_msg_9_8:u64 = const() {"value":8099004988696653088}
+  wrote_msg_9_8:u64 = call(emit_out_9,at_msg_9_8,word_msg_9_8) {"function":"f55"}
+  at_msg_9_16:u64 = const() {"value":100}
+  word_msg_9_16:u64 = const() {"value":7813304588465037676}
+  wrote_msg_9_16:u64 = call(emit_out_9,at_msg_9_16,word_msg_9_16) {"function":"f55"}
+  at_msg_9_24:u64 = const() {"value":108}
+  word_msg_9_24:u64 = const() {"value":7310222240068673657}
+  wrote_msg_9_24:u64 = call(emit_out_9,at_msg_9_24,word_msg_9_24) {"function":"f55"}
+  at_msg_9_32:u64 = const() {"value":116}
+  word_msg_9_32:u64 = const() {"value":7575164960144319852}
+  wrote_msg_9_32:u64 = call(emit_out_9,at_msg_9_32,word_msg_9_32) {"function":"f55"}
+  at_msg_9_40:u64 = const() {"value":124}
+  word_msg_9_40:u64 = const() {"value":7598807827363427182}
+  wrote_msg_9_40:u64 = call(emit_out_9,at_msg_9_40,word_msg_9_40) {"function":"f55"}
+  at_msg_9_48:u64 = const() {"value":132}
+  word_msg_9_48:u64 = const() {"value":7236270204636917359}
+  wrote_msg_9_48:u64 = call(emit_out_9,at_msg_9_48,word_msg_9_48) {"function":"f55"}
+  at_msg_9_56:u64 = const() {"value":140}
+  word_msg_9_56:u64 = const() {"value":115}
+  wrote_msg_9_56:u64 = call(emit_out_9,at_msg_9_56,word_msg_9_56) {"function":"f55"}
+  suffix_at_9:u64 = const() {"value":141}
+  packet_len_9:u64 = const() {"value":216}
+  jump envelope(emit_out_9,suffix_at_9,packet_len_9)
+block envelope(packet:mutbuf,tail_at:u64,packet_len:u64)
+  at_prefix_0:u64 = const() {"value":0}
+  word_prefix_0:u64 = const() {"value":7019251591964265083}
+  wrote_prefix_0:u64 = call(packet,at_prefix_0,word_prefix_0) {"function":"f55"}
+  at_prefix_8:u64 = const() {"value":8}
+  word_prefix_8:u64 = const() {"value":8314605285929872999}
+  wrote_prefix_8:u64 = call(packet,at_prefix_8,word_prefix_8) {"function":"f55"}
+  at_prefix_16:u64 = const() {"value":16}
+  word_prefix_16:u64 = const() {"value":2314885437319035426}
+  wrote_prefix_16:u64 = call(packet,at_prefix_16,word_prefix_16) {"function":"f55"}
+  at_prefix_24:u64 = const() {"value":24}
+  word_prefix_24:u64 = const() {"value":2314885530817035040}
+  wrote_prefix_24:u64 = call(packet,at_prefix_24,word_prefix_24) {"function":"f55"}
+  at_prefix_32:u64 = const() {"value":32}
+  word_prefix_32:u64 = const() {"value":4189022085447885344}
+  wrote_prefix_32:u64 = call(packet,at_prefix_32,word_prefix_32) {"function":"f55"}
+  at_prefix_40:u64 = const() {"value":40}
+  word_prefix_40:u64 = const() {"value":6217591214171300384}
+  wrote_prefix_40:u64 = call(packet,at_prefix_40,word_prefix_40) {"function":"f55"}
+  at_prefix_48:u64 = const() {"value":48}
+  word_prefix_48:u64 = const() {"value":2314885436530643525}
+  wrote_prefix_48:u64 = call(packet,at_prefix_48,word_prefix_48) {"function":"f55"}
+  at_prefix_56:u64 = const() {"value":56}
+  word_prefix_56:u64 = const() {"value":8319104456081809440}
+  wrote_prefix_56:u64 = call(packet,at_prefix_56,word_prefix_56) {"function":"f55"}
+  at_prefix_64:u64 = const() {"value":64}
+  word_prefix_64:u64 = const() {"value":4981579571882452833}
+  wrote_prefix_64:u64 = call(packet,at_prefix_64,word_prefix_64) {"function":"f55"}
+  at_prefix_72:u64 = const() {"value":72}
+  word_prefix_72:u64 = const() {"value":4995988831196498015}
+  wrote_prefix_72:u64 = call(packet,at_prefix_72,word_prefix_72) {"function":"f55"}
+  at_prefix_tail_80:usize = const() {"value":80}
+  byte_prefix_tail_80:u8 = const() {"value":82}
+  _ = buffer.store(packet,at_prefix_tail_80,byte_prefix_tail_80)
+  at_prefix_tail_81:usize = const() {"value":81}
+  byte_prefix_tail_81:u8 = const() {"value":89}
+  _ = buffer.store(packet,at_prefix_tail_81,byte_prefix_tail_81)
+  at_prefix_tail_82:usize = const() {"value":82}
+  byte_prefix_tail_82:u8 = const() {"value":58}
+  _ = buffer.store(packet,at_prefix_tail_82,byte_prefix_tail_82)
+  at_prefix_tail_83:usize = const() {"value":83}
+  byte_prefix_tail_83:u8 = const() {"value":32}
+  _ = buffer.store(packet,at_prefix_tail_83,byte_prefix_tail_83)
+  offset_suffix_0:u64 = const() {"value":0}
+  at_suffix_0:u64 = int.add.wrap(tail_at,offset_suffix_0)
+  word_suffix_0:u64 = const() {"value":2314885530817014818}
+  wrote_suffix_0:u64 = call(packet,at_suffix_0,word_suffix_0) {"function":"f55"}
+  offset_suffix_8:u64 = const() {"value":8}
+  at_suffix_8:u64 = int.add.wrap(tail_at,offset_suffix_8)
+  word_suffix_8:u64 = const() {"value":2478514032138527264}
+  wrote_suffix_8:u64 = call(packet,at_suffix_8,word_suffix_8) {"function":"f55"}
+  offset_suffix_16:u64 = const() {"value":16}
+  at_suffix_16:u64 = int.add.wrap(tail_at,offset_suffix_16)
+  word_suffix_16:u64 = const() {"value":7311146985109725242}
+  wrote_suffix_16:u64 = call(packet,at_suffix_16,word_suffix_16) {"function":"f55"}
+  offset_suffix_24:u64 = const() {"value":24}
+  at_suffix_24:u64 = int.add.wrap(tail_at,offset_suffix_24)
+  word_suffix_24:u64 = const() {"value":9016241776344310386}
+  wrote_suffix_24:u64 = call(packet,at_suffix_24,word_suffix_24) {"function":"f55"}
+  offset_suffix_32:u64 = const() {"value":32}
+  at_suffix_32:u64 = int.add.wrap(tail_at,offset_suffix_32)
+  word_suffix_32:u64 = const() {"value":2314861394125660170}
+  wrote_suffix_32:u64 = call(packet,at_suffix_32,word_suffix_32) {"function":"f55"}
+  offset_suffix_40:u64 = const() {"value":40}
+  at_suffix_40:u64 = int.add.wrap(tail_at,offset_suffix_40)
+  word_suffix_40:u64 = const() {"value":7018332503361154850}
+  wrote_suffix_40:u64 = call(packet,at_suffix_40,word_suffix_40) {"function":"f55"}
+  offset_suffix_48:u64 = const() {"value":48}
+  at_suffix_48:u64 = int.add.wrap(tail_at,offset_suffix_48)
+  word_suffix_48:u64 = const() {"value":2459000624610898796}
+  wrote_suffix_48:u64 = call(packet,at_suffix_48,word_suffix_48) {"function":"f55"}
+  offset_suffix_56:u64 = const() {"value":56}
+  at_suffix_56:u64 = int.add.wrap(tail_at,offset_suffix_56)
+  word_suffix_56:u64 = const() {"value":4189037551708894323}
+  wrote_suffix_56:u64 = call(packet,at_suffix_56,word_suffix_56) {"function":"f55"}
+  offset_suffix_64:u64 = const() {"value":64}
+  at_suffix_64:u64 = int.add.wrap(tail_at,offset_suffix_64)
+  word_suffix_64:u64 = const() {"value":2482168881970749984}
+  wrote_suffix_64:u64 = call(packet,at_suffix_64,word_suffix_64) {"function":"f55"}
+  offset_suffix_72:u64 = const() {"value":72}
+  at_suffix_72:u64 = int.add.wrap(tail_at,offset_suffix_72)
+  word_suffix_72:u64 = const() {"value":687370}
+  wrote_suffix_72:u64 = call(packet,at_suffix_72,word_suffix_72) {"function":"f55"}
+  amount:u32 = int.cast(packet_len) {"mode":"wrap"}
+  ret(amount)
+block invalid()
+  status:u32 = const() {"value":0}
+  ret(status)
 end

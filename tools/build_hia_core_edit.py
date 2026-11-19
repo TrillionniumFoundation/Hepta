@@ -163,7 +163,7 @@ PROGRAMS = {
         (BOOTSTRAP + 'agent_slice.hepta', ('slice',)),
     )),
     'apply': ('hia-apply-edit', (
-        (EDIT + 'patch_word_io.hepta', ('extract', 'patch')),
+        (EDIT + 'patch_word_io.hepta', ('extract', 'patch', 'edit_refusal')),
         (EDIT + 'admission_word_io.hepta', ('core', 'candidate_core')),
         (EDIT + 'apply.hepta', ('decode', 'facts', 'query', 'replay', 'raw_response',
                                'response_decode', 'response_validate', 'build_pair', 'compose', 'pretty')),

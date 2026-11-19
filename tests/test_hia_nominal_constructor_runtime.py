@@ -419,6 +419,7 @@ def check_ordinary(executable, run):
     check_edit_query_refusals(executable)
     check_patch_refusals(executable)
     check_batch_query_refusals(executable)
+    check_edit_apply_refusals(executable)
 
 
 def check_edit_query_refusals(executable):
@@ -535,6 +536,50 @@ def check_batch_query_refusals(executable):
                     status, stdout.getvalue().encode(), b''), (selections, publication, result)
                 assert status == 2 and not destination.parent.exists()
     print(f'{len(cases) * 2} exact batch-query refusals without creating a destination')
+
+
+
+def check_edit_apply_refusals(executable):
+    from hepta.cli import _reference_hia_main
+    from hepta.hia_edit_query import prepare_edit
+    from tests.test_hia_edit_batch import loans, selected
+
+    program = loans()
+    query = prepare_edit(program, **selected('reader'))
+    selector = query['selector']
+    change = {'args': ['a']}
+    cases = (
+        (False, change), ({}, change),
+        ({**query, 'selector': {**selector, 'extra': False}}, change),
+        ({**query, 'fields': ['op', 'op']}, change),
+        ({**query, 'selector': {**selector, 'block': None}}, change),
+        ({**query, 'selector': {**selector, 'function': 'absent'}}, change),
+        ({**query, 'selector': {**selector, 'block': 'absent'}}, change),
+        ({**query, 'selector': {**selector, 'output': 'absent'}}, change),
+        ({**query, 'base_sha256': '0' * 64}, change),
+        ({**query, 'context': {**query['context'], 'operation_index': 0}}, change),
+        (query, None), (query, {}), (query, {**change, 'metadata': False}),
+        (query, {'op': 'owner.move'}),
+    )
+    with TemporaryDirectory(prefix='hia-cli-edit-apply-refusal-') as temporary:
+        root = Path(temporary)
+        source, selection, response = (root / name for name in ('base.hepta', 'query.json', 'response.json'))
+        destination = root / 'new/result.hepta'
+        source.write_text(json.dumps(program))
+        for supplied_query, supplied_response in cases:
+            selection.write_text(json.dumps(supplied_query))
+            response.write_text(json.dumps(supplied_response))
+            for publication in ([], ['-o', str(destination)]):
+                args = ['edit-apply', str(source), '--query', str(selection), '--response', str(response), *publication]
+                stdout = StringIO()
+                with redirect_stdout(stdout):
+                    status = _reference_hia_main(args)
+                result = subprocess.run([executable, *args], capture_output=True, env={'PATH': ''},
+                                        timeout=20, check=False)
+                assert (result.returncode, result.stdout, result.stderr) == (
+                    status, stdout.getvalue().encode(), b''), (supplied_query, supplied_response, publication, result)
+                assert status == 2 and not destination.parent.exists()
+    print(f'{len(cases) * 2} exact edit-apply refusals without changing the base or creating the destination')
 
 
 

@@ -73,8 +73,14 @@ def check_release(release):
     case('hia-apply-edit', [document, {'query': query, 'response': wire(edit).decode()}], result)
     changed = deepcopy(document)
     changed['functions'][0]['blocks'][0]['ops'][0]['attrs']['value'] = 2
-    case('hia-apply-edit', [changed, {'query': query, 'response': edit}], status=2)
-    case('hia-apply-edit', [document, {'query': query, 'response': {'out': []}}], status=2)
+    def edit_rejection(message):
+        return {'diagnostics': [{'code': 'E_DRIVER', 'message': 'E_HIA_QUERY: ' + message, 'phase': 'driver'}],
+                'ok': False, 'status': 'error'}
+
+    case('hia-apply-edit', [changed, {'query': query, 'response': edit}],
+         edit_rejection('stale or modified edit query'), status=2)
+    case('hia-apply-edit', [document, {'query': query, 'response': {'out': []}}],
+         edit_rejection('response may replace only the selected instruction fields'), status=2)
 
     document = loans()
     sites = [selected('reader'), selected('writer')]

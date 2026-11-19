@@ -16,6 +16,8 @@
 .equ SCR_N,16384
 .equ TOTAL_N,209735680
 .equ CTRL,25165824
+.equ DRIVER_TEXT,OUT_N-504
+.equ DRIVER_TEXT_LIMIT,504
 .equ SLICE,8388608
 .equ QUERY,16777216
 .equ IO,12288
@@ -136,7 +138,7 @@ decode_hole: .long 0
  mov r9d,WORK_N
  .byte 0xe8
 facts_hole: .long 0
- call scalar_status
+ call edit_status
  test rax,rax
  jz invalid
  cmp rax,8388608
@@ -196,7 +198,7 @@ query_hole: .long 0
  .byte 0xe8
 replay_hole: .long 0
  mov [r13+CTRL+344],rax
- call scalar_status
+ call edit_status
  test rax,rax
  jnz invalid
  movabs rax,3544423420043282760
@@ -255,7 +257,7 @@ response_decode_hole: .long 0
  .byte 0xe8
 response_validate_hole: .long 0
  mov [r13+CTRL+416],rax
- call scalar_status
+ call edit_status
  test rax,rax
  jnz invalid
  movabs rax,3544405819267303752
@@ -535,6 +537,44 @@ HIA_status:
  ja io_failure
  mov rdi,rax
  jmp exit_process
+# Only these stages can publish a refusal packet at the end of OUT_N.
+edit_status:
+ mov r10d,0xffffffff
+ cmp rax,r10
+ je driver_refusal
+ jmp scalar_status
+driver_refusal:
+ lea rdi,[r13+DRIVER_TEXT-8]
+ cmp QWORD PTR [rdi],0
+ je invalid
+ mov esi,8
+ lea rdx,[r13+DRIVER_TEXT]
+ mov ecx,DRIVER_TEXT_LIMIT
+ xor r8d,r8d
+ xor r9d,r9d
+ .byte 0xe8
+edit_refusal_hole: .long 0
+ test rax,rax
+ jz invalid
+ cmp rax,DRIVER_TEXT_LIMIT
+ ja io_failure
+ mov rdx,rax
+ lea rsi,[r13+DRIVER_TEXT]
+write_refusal:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je write_refusal
+ test rax,rax
+ jle io_failure
+ cmp rax,rdx
+ ja io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz write_refusal
+ jmp invalid
+
 invalid:
  mov edi,2
  jmp exit_process
