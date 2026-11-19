@@ -5,10 +5,14 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
+import struct
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, assemble, build_embedder, embed, link
-from tools.qualify_hia_selfhost import compile_stage
+from tools.generate_hia_mcp_stdio_packer import MAGIC as MCP_PACK_MAGIC, MODES as MCP_MODES
+from tools.generate_hia_mcp_stdio_packer import SOURCE as MCP_PACKER
+from tools.qualify_hia_selfhost import compile_stage, invoke
+from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
 LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
@@ -22,25 +26,37 @@ VARIANTS = {
     'mcp-catalog': ('mcp_catalog_wire', 'hepta.hia.mcp-catalog-native.v1'),
     'mcp-uri': ('mcp_resource_uri', 'hepta.hia.mcp-uri-native.v1'),
 }
-MCP_ADAPTER_MODES = {
-    'mcp-request': b'',
-    'mcp-reply': b'.set MCP_REPLY, 1\n.set MCP_STREAM_RESULT, 1\n',
-    'mcp-negotiation': b'.set MCP_NEGOTIATE, 1\n',
-    'mcp-catalog': b'.set MCP_CATALOG, 1\n.set MCP_STREAM_RESULT, 1\n',
-    'mcp-uri': b'.set MCP_URI, 1\n',
-}
+MCP_PACK_CAPACITY = (1 << 20) + 4096
+
+
+def pack_mcp(output, compiler, sources, mode, image, pins):
+    packer, compiled = compile_stage(output, 'mcp-packer', compiler, sources[MCP_PACKER])
+    pins[packer] = packer.read_bytes()
+    if sha256(pins[packer]).hexdigest() != compiled['produced_sha256']:
+        raise ValueError('MCP packer differs from its compiler receipt')
+    request = struct.pack('<2Q', MCP_PACK_MAGIC, mode) + image
+    receipt, result = invoke(output, 'mcp-pack', packer, request,
+                             capacity=MCP_PACK_CAPACITY, workspace_size=0)
+    count = receipt.get('core_u32')
+    if (receipt.get('status') != 'returned' or receipt.get('abi_status') != 0
+            or type(count) is not int or not len(image) < count <= MCP_PACK_CAPACITY):
+        raise ValueError('native HIA MCP packer refused the image')
+    executable = result[:count]
+    if not executable.endswith(image):
+        raise ValueError('packed MCP kernel differs from the admitted image')
+    return executable, {'elf': inspect_executable(executable), 'mode': mode,
+                        'packer_compilation': compiled, 'packing': receipt}
 
 
 def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     symbol, schema = VARIANTS[kind]
     label = 'agent-' + kind
     source = 'examples/hia_bootstrap/' + symbol + '.hepta'
-    mode = MCP_ADAPTER_MODES.get(kind)
-    adapter = ('tools/hia_mcp_wire_stdio.S' if mode is not None
-               else 'tools/hia_' + symbol + '_stdio.S')
+    mode = MCP_MODES.get(kind)
+    adapter = 'tools/hia_' + symbol + '_stdio.S'
+    assembly_inputs = (LINKER, EMBED_SOURCE, adapter) if mode is None else (MCP_PACKER,)
     pins = {path: path.read_bytes() for path in (compiler, cold_report, manifest)}
-    sources = {name: (ROOT / name).read_bytes() for name in
-               (source, LINKER, EMBED_SOURCE, adapter, DRIVER)}
+    sources = {name: (ROOT / name).read_bytes() for name in (source, DRIVER, *assembly_inputs)}
     source_digests = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
     if any(admitted.get(name) != digest for name, digest in source_digests.items()):
@@ -56,15 +72,20 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     if not 0 < len(image) <= 1 << 20 or sha256(image).hexdigest() != record['image_sha256']:
         raise ValueError(label + ' image does not match its manifest')
     output.mkdir(mode=0o700)
-    linker_path, linker_receipt = compile_stage(output, 'linker', compiler, sources[LINKER])
-    linker = pins[linker_path] = linker_path.read_bytes()
-    if sha256(linker).hexdigest() != linker_receipt['produced_sha256']:
-        raise ValueError(label + ' linker changed')
-    embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
-    adapter_source = (mode or b'') + sources[adapter]
-    objects = (assemble(output, adapter, adapter_source),
-               embed(output, symbol, kind, image, embedder))
-    executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')
+    build_receipt = {}
+    if mode is None:
+        linker_path, linker_receipt = compile_stage(output, 'linker', compiler, sources[LINKER])
+        linker = pins[linker_path] = linker_path.read_bytes()
+        if sha256(linker).hexdigest() != linker_receipt['produced_sha256']:
+            raise ValueError(label + ' linker changed')
+        embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
+        objects = (assemble(output, adapter, sources[adapter]),
+                   embed(output, symbol, kind, image, embedder))
+        executable, receipt = link(output, linker, image, objects, wire_magic=b'HIALNK01')
+        build_receipt['linking'] = receipt
+    else:
+        executable, receipt = pack_mcp(output, compiler, sources, mode, image, pins)
+        build_receipt['native_packing'] = receipt
     if (current_sources() != admitted or any(path.read_bytes() != raw for path, raw in pins.items())
             or any((ROOT / name).read_bytes() != raw for name, raw in sources.items())):
         raise ValueError(label + ' inputs changed before publishing')
@@ -75,7 +96,7 @@ def build(output, compiler, cold_report, manifest, *, kind='read-page'):
     with (output / 'build.json').open('x') as stream:
         json.dump({'schema': 'hepta.hia.' + label + '-stdio-build.v1',
                    'source_sha256': source_digests, 'binding': record,
-                   'executable_sha256': sha256(executable).hexdigest(), 'linking': receipt}, stream, indent=2)
+                   'executable_sha256': sha256(executable).hexdigest(), **build_receipt}, stream, indent=2)
         stream.write('\n')
     return target
 

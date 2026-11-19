@@ -101,6 +101,35 @@ class McpRequestSourceTests(RoutingCases, unittest.TestCase):
         return reference(self.checked, wire, capacity=OUTPUT_BYTES, workspace=1 << 14)
 
 
+    def test_native_wire_packer_keeps_exact_image_and_rejects_before_writing(self):
+        from tools.generate_hia_mcp_stdio_packer import DESCRIPTORS, MAGIC, SOURCE, render, template
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+
+        source = (ROOT / SOURCE).read_text()
+        self.assertEqual(source, render())
+        checked = assemble_program(source)
+        image = b'\x00\x01opaque-HIA-image'
+        for mode, descriptor in enumerate(DESCRIPTORS):
+            with self.subTest(mode=mode):
+                prefix, call = template(descriptor)
+                request = struct.pack('<2Q', MAGIC, mode) + image
+                size = len(prefix) + len(image)
+                status, output = reference(checked, request, capacity=size, workspace=0)
+                self.assertEqual(status, size)
+                self.assertEqual(inspect_executable(output)['bytes'], size)
+                self.assertEqual(output[len(prefix):], image)
+                self.assertEqual(call + 4 + struct.unpack_from('<i', output, call)[0],
+                                 len(prefix))
+                self.assertEqual(reference(checked, request, capacity=size-1, workspace=0),
+                                 (0xfffffffe, b'\xa5' * (size-1)))
+
+        for request in (struct.pack('<2Q', MAGIC, len(DESCRIPTORS)) + image,
+                        struct.pack('<2Q', MAGIC ^ 1, 0) + image,
+                        struct.pack('<2Q', MAGIC, 0)):
+            self.assertEqual(reference(checked, request, capacity=128, workspace=0),
+                             (0xffffffff, b'\xa5' * 128))
+
+
 class McpRequestNativeTests(RoutingCases, unittest.TestCase):
     @classmethod
     def setUpClass(cls):

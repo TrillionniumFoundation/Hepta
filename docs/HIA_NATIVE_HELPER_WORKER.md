@@ -126,6 +126,17 @@ selected, the journal's lookup, reservation, completion and cost writes use
 its typed Store protocol without SQL dispatch. The retained SQLite backend
 still receives its original statements; v16 is not a fully native service.
 
+## Build the isolated MCP wire executables
+
+The five sealed MCP filters (request, reply, negotiation, catalog, and artifact
+URI admission) share a checked HIA ELF packer. The build driver binds each
+profile to its current cold-compiled image; the HIA packer emits the static ELF,
+patches its single image call, and appends the exact image. These five builders
+no longer assemble or link a foreign object. The syscall entry accepts exactly
+one fully sealed stdin frame up to 8 MiB. It leaves transport authorization,
+effect execution and session ownership to the existing runtime. Page and
+journal executables still use their separate syscall adapters.
+
 ## Verification
 
 `tests/test_hia_worker_native_helpers.py` exercises real HIA identity, request

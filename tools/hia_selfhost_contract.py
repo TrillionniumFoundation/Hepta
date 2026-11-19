@@ -240,6 +240,8 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_mcp_request.py',
     'examples/hia_bootstrap/mcp_request_route.hepta',
     'tools/hia_mcp_wire_stdio.S',
+    'tools/generate_hia_mcp_stdio_packer.py',
+    'examples/hia_bootstrap/mcp_stdio_packer.hepta',
     'tools/generate_hia_mcp_reply.py',
     'examples/hia_bootstrap/mcp_reply_wire.hepta',
     'tools/generate_hia_mcp_negotiation.py',
