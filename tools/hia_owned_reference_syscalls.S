@@ -12,6 +12,15 @@
 _start:
     cmp QWORD PTR [rsp],1
     jne usage
+    mov edi,4                       /* PR_SET_DUMPABLE; exec can reset it. */
+    xor esi,esi
+    xor edx,edx
+    xor r10d,r10d
+    xor r8d,r8d
+    mov eax,157
+    syscall
+    test rax,rax
+    jne io
     sub rsp,224
     mov esi,MAX_INPUT+1
     call map_bytes
@@ -168,3 +177,4 @@ finish:
     mov eax,60
     syscall
     ud2
+    .ascii "HIAREF-OWNED-NODUMP\0"

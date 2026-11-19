@@ -15,8 +15,19 @@
 _start:
     cmp QWORD PTR [rsp],1
     je isolated_ready
+    xor r15d,r15d
     cmp QWORD PTR [rsp],4
+    je read_isolation_limits
+    cmp QWORD PTR [rsp],5
     jne usage
+    mov rsi,[rsp+40]
+    call parse_limit
+    cmp rax,3
+    jb usage
+    cmp rax,0x7fffffff
+    ja usage
+    mov r15,rax
+read_isolation_limits:
     mov rsi,[rsp+16]
     call parse_limit
     cmp rax,0x7fffffff
@@ -70,6 +81,8 @@ _start:
     mov esi,1                       /* RLIMIT_FSIZE */
     mov eax,8388608
     call set_limit
+    test r15,r15
+    jnz exec_owned_reference
 isolated_ready:
     mov esi,OUTPUT+MAX_OUTPUT
     call map_bytes
@@ -229,6 +242,33 @@ set_limit:
     test rax,rax
     jne isolation_failed
     ret
+exec_owned_reference:
+    mov rdi,r15
+    mov esi,1034                    /* F_GET_SEALS */
+    xor edx,edx
+    mov eax,72
+    syscall
+    test rax,rax
+    js isolation_failed
+    and eax,15                      /* SEAL | SHRINK | GROW | WRITE */
+    cmp eax,15
+    jne isolation_failed
+    mov esi,2                       /* F_SETFD */
+    mov edx,1                       /* FD_CLOEXEC */
+    mov eax,72
+    syscall
+    test rax,rax
+    jne isolation_failed
+    mov rax,[rsp+8]                 /* Address of a nonempty argv[0]. */
+    push 0                          /* Empty envp and argv terminator. */
+    push rax
+    mov rdx,rsp
+    lea r10,[rsp+8]
+    mov rsi,r10                    /* Empty execveat path. */
+    mov r8d,4096                   /* AT_EMPTY_PATH */
+    mov eax,322
+    syscall
+    jmp isolation_failed
 success:
     xor edi,edi
     jmp finish
@@ -250,4 +290,4 @@ finish:
     mov eax,60
     syscall
     ud2
-    .ascii "HIAREF-ISOLATED\0"
+    .ascii "HIAREF-ISOLATED2\0"

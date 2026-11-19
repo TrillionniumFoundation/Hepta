@@ -354,6 +354,7 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             self.assertEqual((response.returncode, response.stdout, response.stderr), (code, b'', b''))
 
     def test_standalone_owned_reference_preserves_grown_state_chains_and_returned_loans(self):
+        from hepta import hia_agent_runner as runner
         from hepta.hia_agent_runner import run_reference_batch
         from hepta.hia_agent_buffers import reference_observation
         from hepta.hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
@@ -364,7 +365,9 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         from tests.test_hia_returned_chain_loans import chain_program
         from tests.test_hia_returned_loans import loan_program
         from tools.build_hia_owned_reference_cli import assemble
+        from tools.generate_hia_native_filter import REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER
         from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH, cli_document, document
+        from tools.qualify_hia_selfhost import compile_stage
 
         root = SOURCE.parents[2]
         sources = {path: (root / path).read_bytes() for path in (ADAPTER_PATH, PACKER_PATH, SOURCE_PATH)}
@@ -375,6 +378,39 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         binary, report = assemble(directory, self.compiler, sources)
         self.assertEqual(report['executable']['elf_type'], 'ET_EXEC')
         digest = sha256(binary).hexdigest()
+        packer, _ = compile_stage(directory, 'scalar-isolation-packer', self.compiler,
+                                  (root / REFERENCE_CLI_PACKER).read_bytes())
+        image = self.image.read_bytes()
+        guard, _ = compile_stage(directory, 'isolation-guard', packer,
+            struct.pack('<2Q', REFERENCE_CLI_MAGIC, len(image)) + image, output_extension='.elf')
+        guard_bytes = guard.read_bytes()
+        guard_identity = guard_bytes, sha256(guard_bytes).hexdigest()
+        guard.chmod(0o500)
+        unsealed = os.memfd_create('unsealed-reference-test', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        try:
+            response = subprocess.run([guard, str(os.getpid()), str(64 << 20), '15', str(unsealed)],
+                input=b'', capture_output=True, pass_fds=(unsealed,), timeout=5)
+            self.assertEqual((response.returncode, response.stdout, response.stderr), (125, b'', b''))
+        finally:
+            os.close(unsealed)
+
+        process = runner._run_owned_process
+        command_sizes = []
+
+        def isolated(command, payload, **options):
+            self.assertTrue(command[0].startswith('/proc/self/fd/'), command)
+            self.assertEqual(options['env'], {'PATH': ''})
+            command_sizes.append(len(command))
+            return process(command, payload, **options)
+
+        def run_direct(program, cases, **options):
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch('hepta.hia_native_helpers.pinned_reference_executable', return_value=guard_identity),
+                  patch('hepta.hia_native_helpers.pinned_owned_reference_executable', return_value=(binary, digest)),
+                  patch('hepta.hia_program_runtime._Machine.invoke', side_effect=AssertionError('host Core interpreter')),
+                  patch.object(_ReferenceResources, '__init__', side_effect=AssertionError('host resource adapter')),
+                  patch.object(runner, '_run_owned_process', side_effect=isolated)):
+                return run_reference_batch(program, cases, **options)
         operations = [c('size', 'usize', 100_000), i('buffer.new', ['size'], [('owner', 'buffer')])]
         loans = [f'loan{n}' for n in range(80)]
         operations.extend(i('borrow.read', ['owner'], [(name, 'readbuf')]) for name in loans)
@@ -420,6 +456,18 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertEqual(actual['report']['owned_reference_executable_sha256'], digest)
         self.assertEqual(actual['report']['owned_reference_standalone_calls'], len(cases))
 
+        scalar = f('identity', [('n', 'u8')], ['u8'], [], [b('entry', [('n', 'u8')], [], ret('n'))])
+        mixed = verify_program(m(scalar, *resource_program()['functions']))
+        mixed_cases = [{'function': 'identity', 'arguments': [5]}, *cases,
+                       {'function': 'identity', 'arguments': [255]}]
+        baseline = run_reference_batch(mixed, mixed_cases, **limits)
+        actual = run_direct(mixed, mixed_cases, **limits)
+        self.assertEqual(actual['status'], 'returned', actual)
+        self.assertEqual(actual['report']['observations'], baseline['report']['observations'])
+        self.assertEqual(actual['report']['reference_standalone_calls'], 2)
+        self.assertEqual(actual['report']['owned_reference_standalone_calls'], len(cases))
+        self.assertEqual(command_sizes, [4, 5, 5, 5, 4])
+
         params = [('src', 'readbuf'), ('out', 'mutbuf')]
         bridge = m(f('bridge', params, ['u32'], ['alloc', 'read', 'write', 'trap'], [
             b('entry', params, [c('n', 'usize', 3), c('ok', 'u32', 0),
@@ -442,6 +490,11 @@ class ScalarReferenceNativeTests(unittest.TestCase):
                 actual = reference_observation(source, case, exports, steps=10_000_000, heap=1 << 24)
             self.assertEqual(actual, baseline)
             self.assertEqual(selected.calls, 1)
+            checked = verify_program(source)
+            actual = run_direct(checked, [case], foreign_buffer_exports=exports, **limits)
+            self.assertEqual(actual['status'], 'returned', actual)
+            self.assertEqual(actual['report']['observations'], [baseline])
+            self.assertEqual(actual['report']['owned_reference_standalone_calls'], 1)
 
         slow = trap_program()
         blocks = slow['functions'][0]['blocks']

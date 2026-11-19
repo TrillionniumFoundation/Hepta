@@ -25,7 +25,7 @@ import time
 
 from .hia_agent_store import AgentRejected, reject, stable_read, wire
 from .hia_agent_buffers import (PROFILE as BUFFER_PROFILE, buffer_bytes,
-                               buffer_observation, validate_cases)
+                               buffer_observation, validate_arguments, validate_cases)
 from .hia_native_byte_abi import LOANS
 from .hia_program_tools import HIAEditRejected
 
@@ -203,15 +203,16 @@ class _ReferenceStopped(Exception):
         self.result = returncode, b'', stderr, timed_out
 
 
-class _IsolatedScalarReference:
+class _IsolatedReference:
     """An already selected HIA image, one isolated native process per invocation."""
-    scalar_only = True
+    direct_only = True
 
-    def __init__(self, fd, memory_bytes, timeout_ms):
+    def __init__(self, fd, memory_bytes, cpu_seconds, deadline, target=None):
         self.fd = fd
+        self.target = target
         self.memory_bytes = memory_bytes
-        self.cpu_seconds = max(1, math.ceil(timeout_ms / 1000))
-        self.deadline = time.monotonic_ns() + math.ceil(timeout_ms * 1_000_000)
+        self.cpu_seconds = cpu_seconds
+        self.deadline = deadline
         self.calls = 0
 
     def remaining(self):
@@ -223,67 +224,101 @@ class _IsolatedScalarReference:
             raise _ReferenceStopped(0 if self.calls else None, b'', True)
         command = ['/proc/self/fd/' + str(self.fd), str(os.getpid()),
                    str(self.memory_bytes), str(self.cpu_seconds)]
+        descriptors = (self.fd,)
+        if self.target is not None:
+            command.append(str(self.target))
+            descriptors += (self.target,)
         returncode, stdout, stderr, timed_out = _run_owned_process(
             command, payload, cwd=Path(__file__).resolve().parent.parent,
-            timeout=timeout, pass_fds=(self.fd,), env={'PATH': ''})
+            timeout=timeout, pass_fds=descriptors, env={'PATH': ''})
+        if self.target is not None and returncode == 3 and not timed_out and not stdout and not stderr:
+            self.calls += 1
+            return None
         if timed_out or returncode != 0 or stderr:
             raise _ReferenceStopped(returncode or 125, stderr, timed_out)
         self.calls += 1
         return stdout
 
 
-def _direct_scalar_program(artifact_bytes, cases):
-    """Admit only complete scalar closures before allowing an in-worker observer."""
+def _direct_reference_program(artifact_bytes, cases, exports, *, owned=False):
+    """Admit complete closed wire programs before allowing an in-worker observer."""
+    from .hia_agent_buffers import normalize_exports
+    from .hia_opcodes import RESOURCES
     from .hia_program import scalar_value_valid, verify_program
     from .hia_program_tools import decode_json
     from .hia_scalar_reference_wire import MAX_PACKET_BYTES, program_wire
     try:
         program = verify_program(decode_json(artifact_bytes))
-        signatures = {fn['name']: tuple(param['type'] for param in fn['params'])
-                      for fn in program.as_dict()['functions']}
+        functions = {fn['name']: fn for fn in program.as_dict()['functions']}
         entries = program.scalar_entrypoints
+        exports = normalize_exports(exports, program)
+        borrowed = dict(exports)
         admitted = []
         for case in cases:
             name, arguments = case['function'], case['arguments']
-            if type(name) is not str or name not in entries or type(arguments) not in (list, tuple):
+            if (type(name) is not str or name not in entries and name not in borrowed
+                    or type(arguments) not in (list, tuple)):
                 return None
-            arguments = tuple(arguments)
-            kinds = signatures[name]
-            if len(kinds) != len(arguments) or not all(
+            function = functions[name]
+            kinds = tuple(param['type'] for param in function['params'])
+            arguments = tuple(value.copy() if type(value) is dict else value for value in arguments)
+            suffix_bytes = 8 * len(arguments)
+            loans = sum(kind in LOANS for kind in kinds)
+            if name in borrowed:
+                extent = validate_arguments({'params': kinds, 'abi': BUFFER_PROFILE,
+                                             'max_buffer_bytes': borrowed[name]}, arguments)
+                suffix_bytes += 8 + 24 * loans + extent
+            elif len(kinds) != len(arguments) or not all(
                     scalar_value_valid(value, kind) for kind, value in zip(kinds, arguments)):
                 return None
             packed = program_wire(program.canonical_bytes, name, allow_resources=True)
-            if packed is None or packed[4] or len(packed[0]) + 8 * len(kinds) > MAX_PACKET_BYTES:
+            if packed is None:
+                return None
+            if packed[4] or loans:
+                if not owned or any(kind in RESOURCES for kind in packed[3]):
+                    return None
+                suffix_bytes += 16  # Heap limit and allocation-injection index.
+            if len(packed[0]) + suffix_bytes > MAX_PACKET_BYTES:
                 return None
             admitted.append({'function': name, 'arguments': arguments})
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
         return None
-    return program, admitted
+    return program, admitted, exports
 
 
-def _run_scalar_reference_direct(program, artifact_hash, cases, executable, owned, evaluator,
-                                 memory_bytes, timeout_ms, warmup, repetitions):
+def _run_reference_direct(admitted, artifact_hash, executable, owned, evaluator,
+                          memory_bytes, timeout_ms, warmup, repetitions, owned_capable):
     from .hia_agent_service import _vm_observation
-    from .hia_scalar_reference_native import sealed_reference_bytes, use_standalone_reference
+    from .hia_scalar_reference_native import sealed_reference_bytes, use_direct_reference
 
+    program, cases, exports = admitted
     observations = []
-    with sealed_reference_bytes(executable[0]) as fd:
-        runner = _IsolatedScalarReference(fd, memory_bytes, timeout_ms)
+    with ExitStack() as custody:
+        fd = custody.enter_context(sealed_reference_bytes(executable[0]))
+        cpu_seconds = max(1, math.ceil(timeout_ms / 1000))
+        deadline = time.monotonic_ns() + math.ceil(timeout_ms * 1_000_000)
+        runner = _IsolatedReference(fd, memory_bytes, cpu_seconds, deadline)
+        owned_runner = None
+        if owned_capable:
+            target = custody.enter_context(sealed_reference_bytes(owned[0]))
+            owned_runner = _IsolatedReference(fd, memory_bytes, cpu_seconds, deadline, target=target)
         try:
-            with use_standalone_reference(evaluator, runner):
+            with use_direct_reference(evaluator, runner, owned_runner):
                 for case in cases:
-                    observation = _vm_observation(program, case)
+                    observation = _vm_observation(program, case, foreign_buffer_exports=exports)
                     observations.append(observation)
                     if observation['status'] == 'budget_exceeded':
                         break
         except _ReferenceStopped as stopped:
-            return stopped.result
+            returncode, stdout, stderr, timed_out = stopped.result
+            return (0 if returncode is None and observations else returncode), stdout, stderr, timed_out
         report = _reference_batch_receipt(artifact_hash, cases, observations, warmup, repetitions,
-            evaluator, (executable[1], runner.calls), (owned[1], 0) if owned is not None else None)
+            evaluator, (executable[1], runner.calls), (owned[1], owned_runner.calls if owned_runner else 0)
+            if owned is not None else None)
         stream = BytesIO()
         status = _write_child_report(report, stream)
         if runner.remaining() <= 0:
-            return 0 if runner.calls else None, b'', b'', True
+            return 0 if observations else None, b'', b'', True
     return status, stream.getvalue(), b'', False
 
 
@@ -386,7 +421,9 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         pinned_direct_call_executable, pinned_direct_call_protocol, pinned_owned_reference_executable,
         pinned_reference_executable,
     )
-    from .hia_scalar_reference_native import sealed_reference_bytes, selected_scalar_reference
+    from .hia_scalar_reference_native import (
+        ISOLATED_OWNED_MARKER, sealed_reference_bytes, selected_scalar_reference,
+    )
     reference_evaluator = selected_scalar_reference() if _mode == "reference" else None
     executables = []
     if reference_evaluator is not None:
@@ -395,10 +432,14 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             ('owned_reference_executable', 'owned_reference_standalone_calls', pinned_owned_reference_executable()),
         )
     isolated_reference = None
-    if executables and executables[0][2] is not None and not foreign_buffer_exports and 1 <= len(cases) <= 512:
-        scalar_executable = executables[0][2]
-        if reference_evaluator.matches_isolated_standalone(scalar_executable[0]):
-            isolated_reference = _direct_scalar_program(artifact_bytes, cases)
+    if executables and executables[0][2] is not None and 1 <= len(cases) <= 512:
+        scalar_executable, owned_executable = (binding for _, _, binding in executables)
+        version = reference_evaluator.isolated_standalone_version(scalar_executable[0])
+        owned_admitted = owned_executable is not None and owned_executable[0].startswith(b'\x7fELF')
+        owned_capable = version >= 2 and owned_admitted and ISOLATED_OWNED_MARKER in owned_executable[0][:4096]
+        if version and (owned_executable is None or owned_admitted):
+            isolated_reference = _direct_reference_program(
+                artifact_bytes, cases, foreign_buffer_exports, owned=owned_capable)
     direct_protocol = pinned_direct_call_protocol() if _mode == 'native' else 1
     one_call = warmup == 0 and repetitions == 1
     supported_repeat = direct_protocol >= 2 and 0 <= warmup <= 100 and 1 <= repetitions <= 10000
@@ -448,10 +489,9 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             process_options["pass_fds"] += (fd,)
         runner_root = Path(__file__).resolve().parent.parent
         if isolated_reference is not None:
-            program, admitted_cases = isolated_reference
-            returncode, stdout, stderr, timed_out = _run_scalar_reference_direct(
-                program, artifact_hash, admitted_cases, scalar_executable, executables[1][2],
-                reference_evaluator, memory_bytes, timeout_ms, warmup, repetitions)
+            returncode, stdout, stderr, timed_out = _run_reference_direct(
+                isolated_reference, artifact_hash, scalar_executable, owned_executable,
+                reference_evaluator, memory_bytes, timeout_ms, warmup, repetitions, owned_capable)
         elif direct_call is not None:
             deadline = started + math.ceil(timeout_ms * 1_000_000)
             returncode, stdout, stderr, timed_out, direct_receipts = _run_direct_cases(

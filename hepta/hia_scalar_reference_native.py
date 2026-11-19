@@ -54,7 +54,8 @@ ALLOCATION_DECISIONS = ('empty', 'object-model', 'heap-budget', 'injected', 'all
 
 _STANDALONE = ContextVar('hia-standalone-reference', default=None)
 _OWNED = ContextVar('hia-standalone-owned-reference', default=None)
-ISOLATED_REFERENCE_MARKER = b'HIAREF-ISOLATED\0'
+ISOLATED_REFERENCE_MARKERS = (b'HIAREF-ISOLATED\0', b'HIAREF-ISOLATED2\0')
+ISOLATED_OWNED_MARKER = b'HIAREF-OWNED-NODUMP\0'
 
 
 @contextmanager
@@ -113,9 +114,12 @@ class NativeScalarReference(NativeHiaJsonImage):
     def matches_standalone(self, image):
         return image.startswith(b'\x7fELF') and image.endswith(self._mapping[:])
 
-    def matches_isolated_standalone(self, image):
-        return (self.matches_standalone(image)
-                and image[:-len(self._mapping)].endswith(ISOLATED_REFERENCE_MARKER))
+    def isolated_standalone_version(self, image):
+        if not self.matches_standalone(image):
+            return 0
+        stub = image[:-len(self._mapping)]
+        return next((version for version, marker in enumerate(ISOLATED_REFERENCE_MARKERS, 1)
+                     if stub.endswith(marker)), 0)
 
     def operation(self, opcode, typ, arguments):
         from .hia_program import WIDTHS
@@ -299,7 +303,7 @@ class NativeScalarReference(NativeHiaJsonImage):
         )
 
         standalone = _STANDALONE.get()
-        isolated = getattr(standalone, 'scalar_only', False)
+        isolated = getattr(standalone, 'direct_only', False)
         compiled = program_wire(canonical, function, allow_resources=machine is not None)
         if compiled is None or len(compiled[0]) + 8*len(arguments) > MAX_PACKET_BYTES:
             if isolated:
@@ -309,8 +313,6 @@ class NativeScalarReference(NativeHiaJsonImage):
         kinds = ([param['type'] for param in machine.functions[function]['params']]
                  if machine is not None else ())
         needs_resources = resource_sites or any(kind in RESOURCES for kind in kinds)
-        if isolated and needs_resources:
-            raise RuntimeError('isolated reference cannot request hosted resources')
         owned = _OWNED.get()
         if (machine is not None and owned is not None
                 and needs_resources
@@ -321,6 +323,8 @@ class NativeScalarReference(NativeHiaJsonImage):
             suffix, external = self._owned_arguments(kinds, arguments, machine)
             if len(body) + len(suffix) <= MAX_PACKET_BYTES:
                 return self._owned_result(owned.run(header + body[64:] + suffix), machine, returns, external)
+        if isolated and needs_resources:
+            raise RuntimeError('isolated reference cannot request hosted resources')
         resources = _ReferenceResources(machine) if needs_resources else None
         magic = RESOURCE_PROGRAM_MAGIC if resource_sites else PROGRAM_MAGIC
         header = struct.pack('<8Q', magic, max_steps, max_call_depth,
@@ -561,6 +565,16 @@ def use_standalone_reference(reference, standalone):
     finally:
         _STANDALONE.reset(token)
         _ACTIVE.reset(active)
+
+
+@contextmanager
+def use_direct_reference(reference, standalone, owned):
+    token = _OWNED.set(owned)
+    try:
+        with use_standalone_reference(reference, standalone):
+            yield
+    finally:
+        _OWNED.reset(token)
 
 
 @contextmanager
