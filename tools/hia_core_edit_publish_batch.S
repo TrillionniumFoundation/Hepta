@@ -187,7 +187,8 @@ mechanical_error_hub_8_skip:
  call mechanical_outline_11
  movabs rax,3544418953277294920
  call mechanical_compact_1
- call mechanical_compact_3
+ call batch_stage_status
+ test rax,rax
  jz normalized_input_ready
  cmp rax,1048576
  ja io_failure
@@ -212,7 +213,11 @@ mechanical_error_hub_8_skip:
  mov [r13+CTRL],rax
  call mechanical_outline_4
  call mechanical_outline_14
- call mechanical_outline_8
+ call batch_stage_status
+ test rax,rax
+ jz invalid
+ cmp rax,16777216
+ ja io_failure
  mov [rbp+BS],rax
  mov rdi,r12
  mov esi,RAW_EXTENT
@@ -235,7 +240,9 @@ mechanical_error_hub_8_skip:
 normalized_input_ready:
  movabs rax,3544413455719156040
  call mechanical_compact_2
- call mechanical_outline_1
+ call batch_stage_status
+ test rax,rax
+ jz invalid
  cmp rax,16
  ja mechanical_error_hub_10
 selection_loop:
@@ -287,7 +294,9 @@ mechanical_error_hub_4_skip:
  movabs rax,3544423351323806024
  call mechanical_compact_1
  mov [r13+CTRL+352],rax
- call mechanical_outline_7
+ call batch_stage_status
+ test rax,rax
+ jnz invalid
  movabs rax,3544428848881944904
  call mechanical_compact_1
  mov [r13+CTRL+360],rax
@@ -313,7 +322,9 @@ mechanical_error_hub_4_skip:
  movabs rax,3544427749370317128
  call mechanical_compact_1
  mov [r13+CTRL+8616],rax
- call mechanical_outline_7
+ call batch_stage_status
+ test rax,rax
+ jnz invalid
  movabs rax,3544421152300550472
  call mechanical_compact_1
  mov [r13+CTRL+8648],rax
@@ -670,6 +681,43 @@ mechanical_error_hub_9_skip:
  mov r10d,0xfffffffc
  cmp rax,r10
  je invalid
+# A native stage returns a reserved refusal code, never a length.
+batch_stage_status:
+ mov r10d,0xffffffd1
+ cmp rax,r10
+ jb scalar_status
+ mov r10d,0xffffffda
+ cmp rax,r10
+ ja scalar_status
+ push rax
+ mov rdi,rsp
+ mov esi,8
+ lea rdx,[r13+OUT_N-256]
+ mov ecx,256
+ xor r8d,r8d
+ xor r9d,r9d
+ call QWORD PTR [r15+80]
+ add rsp,8
+ test rax,rax
+ jz invalid
+ cmp rax,256
+ ja io_failure
+ mov rdx,rax
+ lea rsi,[r13+OUT_N-256]
+batch_write_refusal:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je batch_write_refusal
+ test rax,rax
+ jle io_failure
+ cmp rax,rdx
+ ja io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz batch_write_refusal
+ jmp invalid
 scalar_status:
  mov r10,rax
  shr r10,32

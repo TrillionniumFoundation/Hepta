@@ -19,7 +19,7 @@ from hepta.hia_edit_query import prepare_edit
 from hepta.hia_program_native import build_program_machine
 from hepta.hia_program_selfhost import build_program_selfhost
 from tests.test_hia_core_edit_runtime import wire
-from tests.test_hia_edit_batch import selected
+from tests.test_hia_edit_batch import loans, selected, swaps
 from tests.test_hia_program_tools import add_two_patch, scalar_program
 
 
@@ -190,12 +190,57 @@ def check_selected_selfhost(release, directory):
     return len(cases) + len(negative)
 
 
+def check_batch_apply_refusals(release, directory):
+    program = loans()
+    query = prepare_batch(program, [selected('reader'), selected('writer')])
+    response = swaps()
+    site = query['sites'][0]
+    first, second = response['edits']
+    cases = (
+        ('scalar query', True, response),
+        ('unknown schema', {**query, 'schema': 'hepta.hia.edit-batch-query.v1'}, response),
+        ('wrong sites type', {**query, 'sites': None}, response),
+        ('empty sites', {**query, 'sites': []}, response),
+        ('malformed site', {**query, 'sites': [False]}, response),
+        ('site identity type', {**query, 'sites': [{**site, 'site': False}]}, response),
+        ('nested query type', {**query, 'sites': [{**site, 'query': []}]}, response),
+        ('missing nested selector', {**query, 'sites': [{**site, 'query': {}}]}, response),
+        ('stale digest', {**query, 'base_sha256': '0' * 64}, response),
+        ('null response', query, None),
+        ('wrong response key', query, {'alternate': []}),
+        ('response site count', query, {'edits': [first]}),
+        ('extra edit key', query, {'edits': [{**first, 'extra': True}, second]}),
+        ('duplicate response site', query, {'edits': [first, first]}),
+        ('invalid response site', query, {'edits': [{**first, 'site': False}, second]}),
+        ('unselected changes', query, {'edits': [{**first, 'changes': {'op': 'owner.move'}}, second]}),
+    )
+    original, request, reply = (directory / name for name in ('source.hepta', 'query.json', 'response.json'))
+    original.write_bytes(wire(program))
+    target = directory / 'unpublished' / 'target.hepta'
+    for label, query_input, response_input in cases:
+        request.write_bytes(wire(query_input))
+        reply.write_bytes(wire(response_input))
+        arguments = ['edit-batch-apply', str(original), '--query', str(request), '--response', str(reply)]
+        for options in ([], ['-o', str(target)]):
+            reference = StringIO()
+            with redirect_stdout(reference):
+                code = _reference_hia_main([*arguments, *options])
+            result = subprocess.run([release / 'hia', *arguments, *options], input=b'ignored',
+                                    capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+            assert (code, result.returncode, result.stdout, result.stderr) == (
+                2, 2, reference.getvalue().encode(), b''), (label, options, result)
+            assert not target.parent.exists(), (label, options)
+    assert original.read_bytes() == wire(program)
+    return len(cases) * 2
+
+
 def check_release(release, directory):
     program = scalar_program()
     program['schema'] = 'hepta.hia.program.v8'
     program_wire = wire(program)
     assembly = render_assembly(program).encode()
     request = add_two_patch(program)
+    request_v2 = {**request, 'schema': 'hepta.hia.patch.v2', 'interface_policy': 'preserve'}
     site = selected('one', 'attrs', 'increment')
     query = prepare_edit(program, **site)
     batch_query = prepare_batch(program, [site])
@@ -210,6 +255,7 @@ def check_release(release, directory):
     source = saved('source.hepta', program_wire)
     assembly_source = saved('assembly.hepta', assembly)
     request_file = saved('patch.json', request)
+    request_v2_file = saved('patch-v2.json', request_v2)
     query_file = saved('query.json', query)
     edit_file = saved('edit.json', edit)
     selections_file = saved('selections.json', [site])
@@ -221,6 +267,7 @@ def check_release(release, directory):
         ('import', 'import-assembly', assembly_source, (), assembly, ()),
         ('assembly', 'render-assembly', source, (), program_wire, ()),
         ('patch', 'patch', source, ('--request', request_file), wire([program, request]), ('v1',)),
+        ('patch-v2', 'patch', source, ('--request', request_v2_file), wire([program, request_v2]), ('v2',)),
         ('edit', 'edit-apply', source, ('--query', query_file, '--response', edit_file),
          wire([program, {'query': query, 'response': wire(edit).decode()}]), ()),
         ('query', 'edit-query', source, ('--function', 'increment', '--block', 'entry',
@@ -232,7 +279,7 @@ def check_release(release, directory):
          wire([program, {'query': wire(batch_query).decode(), 'response': wire(batch_response).decode()}]), ()),
     )
     arguments_by_action = {action: [input_path, *arguments]
-                           for _, action, input_path, arguments, _, _ in cases}
+                           for name, action, input_path, arguments, _, _ in cases if name != 'patch-v2'}
     arguments_by_action.update(
         capabilities=[], catalog=[], verify=[source], inspect=[source],
         impact=[source, '--request', request_file], build=[source],
@@ -260,6 +307,13 @@ def check_release(release, directory):
         if action == 'build':
             assert build_target.read_bytes() == original.read_bytes()
         checked_actions += 1
+    for action in ('patch', 'impact'):
+        arguments = [action, source, '--request', request_v2_file]
+        result = subprocess.run([release / 'hia', *arguments], input=b'ignored',
+                                capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (0, reference_cli(arguments), b''), (
+            action, result.returncode, result.stdout, result.stderr)
+        checked_actions += 1
     for flag in ('--help', '--version'):
         result = subprocess.run([release / 'hia', flag], input=b'', capture_output=True,
                                 env={'PATH': ''}, timeout=20, check=False)
@@ -274,8 +328,9 @@ def check_release(release, directory):
         published = expected if 'output' in expected else expected['publication']
         published['output'] = str(target)
         command = [release / 'hia', *command_args, target]
+        raw_name = 'patch' if name == 'patch-v2' else name
         raw_command = ([release / 'hia-import-assembly', '--publish'] if name == 'import'
-                       else [release / ('hia-publish-' + name), *native_options])
+                       else [release / ('hia-publish-' + raw_name), *native_options])
         for executable, payload in ((command, b'ignored stdin'),
                                     ([*raw_command, directory / 'raw' / name], raw)):
             published['output'] = str(executable[-1])
@@ -309,9 +364,11 @@ def check_release(release, directory):
     selfhost.mkdir()
     destinations = directory / 'destinations'
     destinations.mkdir()
+    batch = directory / 'batch-refusals'
+    batch.mkdir()
     return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
             + check_import_existing_destinations(release, assembly_source, destinations)
-            + check_selected_selfhost(release, selfhost))
+            + check_selected_selfhost(release, selfhost) + check_batch_apply_refusals(release, batch))
 
 
 if __name__ == '__main__':

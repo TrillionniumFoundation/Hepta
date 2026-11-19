@@ -1,11 +1,23 @@
 hia-asm.v1 hepta.hia.program.v8 native_batch_query1MiB_response64KiB_explicit_Agent_decoder_roles
-fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
-block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
-  v3:usize = buffer.len(v2)
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(batch_abi)
+block batch_abi(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  input_length:usize = buffer.len(v0)
+  scratch_length:usize = buffer.len(v2)
+  receipt_bytes:usize = const() {"value":8}
+  empty_scratch:usize = const() {"value":0}
+  length_ok:bool = compare.eq(input_length,receipt_bytes)
+  no_scratch:bool = compare.eq(scratch_length,empty_scratch)
+  diagnostic_only:bool = bool.and(length_ok,no_scratch)
+  branch diagnostic_only render_batch_refusal(v0,v1,v2) b0(v0,v1,v2)
+block render_batch_refusal(receipt:readbuf,text:mutbuf,empty:mutbuf)
+  size:u32 = call(receipt,text) {"function":"batch_refusal_text"}
+  ret(size)
+block b0(abi_source:readbuf,abi_out:mutbuf,abi_work:mutbuf)
+  v3:usize = buffer.len(abi_work)
   v4:u64 = int.cast(v3) {"mode":"wrap"}
   v5:u64 = const() {"value":128}
   v6:bool = compare.ge(v4,v5)
-  branch v6 b1(v0,v1,v2) b7(v0,v1,v2)
+  branch v6 b1(abi_source,abi_out,abi_work) b7(abi_source,abi_out,abi_work)
 block b1(v7:readbuf,v8:mutbuf,v9:mutbuf)
   v13:u64 = const() {"value":120}
   v14:u64 = call(v9,v13) {"function":"f20"}
@@ -8764,29 +8776,13 @@ block b45(v380:readbuf,v381:mutbuf,v382:mutbuf)
   v395:u32 = int.cast(v394) {"mode":"wrap"}
   ret(v395)
 block b46(v387:readbuf,v388:mutbuf,v389:mutbuf,v392:u64)
-  v396:u64 = const() {"value":25174016}
-  v397:u64 = const() {"value":128}
-  v398:u64 = int.add.wrap(v396,v397)
-  v399:u64 = call(v388,v398) {"function":"f20"}
-  v400:u64 = call(v389,v399) {"function":"f12"}
-  v401:u64 = const() {"value":6}
-  v402:bool = compare.ne(v400,v401)
-  branch v402 b48(v387,v388,v389,v392,v402) b47(v387,v388,v389,v392)
-block b47(v403:readbuf,v404:mutbuf,v405:mutbuf,v408:u64)
-  v419:u64 = const() {"value":25174016}
-  v420:u64 = const() {"value":128}
-  v421:u64 = int.add.wrap(v419,v420)
-  v422:u64 = call(v404,v421) {"function":"f20"}
-  v423:u64 = call(v405,v422) {"function":"f13"}
-  v424:u64 = const() {"value":6}
-  v425:bool = compare.ne(v423,v424)
-  jump b48(v403,v404,v405,v408,v425)
-block b48(v411:readbuf,v412:mutbuf,v413:mutbuf,v416:u64,v418:bool)
-  branch v418 b49(v411,v412,v413) b50(v411,v412,v413,v416)
-block b49(v426:readbuf,v427:mutbuf,v428:mutbuf)
-  v440:u64 = const() {"value":4294967295}
-  v441:u32 = int.cast(v440) {"mode":"wrap"}
-  ret(v441)
+  root_ptr:u64 = const() {"value":25174144}
+  query_root:u64 = call(v388,root_ptr) {"function":"f20"}
+  supported:bool = call(v389,query_root) {"function":"batch_schema_supported"}
+  branch supported b50(v387,v388,v389,v392) query_schema_refusal(v387,v388,v389)
+block query_schema_refusal(wrong_source:readbuf,wrong_out:mutbuf,wrong_tree:mutbuf)
+  wrong_schema:u32 = const() {"value":4294967249}
+  ret(wrong_schema)
 block b50(v433:readbuf,v434:mutbuf,v435:mutbuf,v438:u64)
   v442:u64 = const() {"value":25174016}
   v443:u64 = const() {"value":128}
@@ -8813,7 +8809,7 @@ block b53(v475:readbuf,v476:mutbuf,v477:mutbuf,v480:u64,v482:u64,v483:u64)
 block b54(v485:readbuf,v486:mutbuf,v487:mutbuf,v490:u64,v492:u64,v493:u64,v494:bool)
   branch v494 b55(v485,v486,v487) b56(v485,v486,v487,v490,v492,v493)
 block b55(v497:readbuf,v498:mutbuf,v499:mutbuf)
-  v515:u64 = const() {"value":4294967295}
+  v515:u64 = const() {"value":4294967250}
   v516:u32 = int.cast(v515) {"mode":"wrap"}
   ret(v516)
 block b56(v506:readbuf,v507:mutbuf,v508:mutbuf,v511:u64,v513:u64,v514:u64)
@@ -8840,7 +8836,7 @@ block b60(v557:readbuf,v558:mutbuf,v559:mutbuf,v562:u64,v564:u64,v565:u64,v566:u
 block b61(v569:readbuf,v570:mutbuf,v571:mutbuf,v574:u64,v576:u64,v577:u64,v578:u64,v579:u64,v580:bool)
   branch v580 b62(v569,v570,v571) b63(v569,v570,v571,v574,v576,v577,v578,v579)
 block b62(v584:readbuf,v585:mutbuf,v586:mutbuf)
-  v606:u64 = const() {"value":4294967295}
+  v606:u64 = const() {"value":4294967251}
   v607:u32 = int.cast(v606) {"mode":"wrap"}
   ret(v607)
 block b63(v595:readbuf,v596:mutbuf,v597:mutbuf,v600:u64,v602:u64,v603:u64,v604:u64,v605:u64)
@@ -8860,23 +8856,34 @@ block b64(v617:readbuf,v618:mutbuf,v619:mutbuf,v622:u64,v624:u64,v625:u64,v626:u
 block b65(v631:readbuf,v632:mutbuf,v633:mutbuf,v636:u64,v638:u64,v639:u64,v640:u64,v641:u64,v642:u64,v644:bool)
   branch v644 b66(v631,v632,v633) b67(v631,v632,v633,v636,v638,v639,v640,v641,v642)
 block b66(v646:readbuf,v647:mutbuf,v648:mutbuf)
-  v672:u64 = const() {"value":4294967295}
+  v672:u64 = const() {"value":4294967251}
   v673:u32 = int.cast(v672) {"mode":"wrap"}
   ret(v673)
 block b67(v659:readbuf,v660:mutbuf,v661:mutbuf,v664:u64,v666:u64,v667:u64,v668:u64,v669:u64,v670:u64)
   v674:u64 = call(v661,v670) {"function":"f12"}
   v675:u64 = const() {"value":6}
   v676:bool = compare.ne(v674,v675)
-  branch v676 b69(v659,v660,v661,v664,v666,v667,v668,v669,v670,v676) b68(v659,v660,v661,v664,v666,v667,v668,v669,v670)
+  branch v676 nested_kind_refusal(v659,v660,v661) b68(v659,v660,v661,v664,v666,v667,v668,v669,v670)
+block nested_kind_refusal(invalid_source:readbuf,invalid_out:mutbuf,invalid_tree:mutbuf)
+  nested_kind_refusal_status:u32 = const() {"value":4294967251}
+  ret(nested_kind_refusal_status)
 block b68(v677:readbuf,v678:mutbuf,v679:mutbuf,v682:u64,v684:u64,v685:u64,v686:u64,v687:u64,v688:u64)
   v705:u64 = call(v679,v688) {"function":"f13"}
   v706:u64 = const() {"value":8}
   v707:bool = compare.ne(v705,v706)
-  jump b69(v677,v678,v679,v682,v684,v685,v686,v687,v688,v707)
+  selector_width:u64 = const() {"value":8}
+  selector_key:u64 = const() {"value":8245937412990854515}
+  unused_word:u64 = const() {"value":0}
+  selector:u64 = call(v679,v688,selector_width,selector_key,unused_word,unused_word) {"function":"f76"}
+  selection_exact:bool = call(v679,selector) {"function":"batch_selector_exact"}
+  branch selection_exact b69(v677,v678,v679,v682,v684,v685,v686,v687,v688,v707) nested_selection_refusal(v677,v678,v679)
+block nested_selection_refusal(missing_src:readbuf,missing_out:mutbuf,missing_tree:mutbuf)
+  nested_selection_refusal_status:u32 = const() {"value":4294967252}
+  ret(nested_selection_refusal_status)
 block b69(v691:readbuf,v692:mutbuf,v693:mutbuf,v696:u64,v698:u64,v699:u64,v700:u64,v701:u64,v702:u64,v704:bool)
   branch v704 b70(v691,v692,v693) b71(v691,v692,v693,v696,v698,v699,v700,v701,v702)
 block b70(v708:readbuf,v709:mutbuf,v710:mutbuf)
-  v734:u64 = const() {"value":4294967295}
+  v734:u64 = const() {"value":4294967253}
   v735:u32 = int.cast(v734) {"mode":"wrap"}
   ret(v735)
 block b71(v721:readbuf,v722:mutbuf,v723:mutbuf,v726:u64,v728:u64,v729:u64,v730:u64,v731:u64,v732:u64)
@@ -10546,4 +10553,385 @@ block b36(v353:readbuf,v354:mutbuf,v355:mutbuf,v357:u64,v360:u64,v361:u64)
   v408:u64 = call(v354,v407) {"function":"f20"}
   v409:u32 = int.cast(v408) {"mode":"wrap"}
   ret(v409)
+end
+fn batch_refusal_text(v0:readbuf,v1:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf)
+  available:usize = buffer.len(v1)
+  reserved:usize = const() {"value":256}
+  fits:bool = compare.ge(available,reserved)
+  branch fits dispatch_refusal(v0,v1) unrenderable(v1)
+block dispatch_refusal(frame:readbuf,output:mutbuf)
+  index_zero:usize = const() {"value":0}
+  id_byte:u8 = buffer.load(frame,index_zero)
+  id:u32 = int.cast(id_byte) {"mode":"wrap"}
+  header_0_position:u64 = const() {"value":0}
+  header_0_word:u64 = const() {"value":7019251591964265083}
+  header_0_end:u64 = call(output,header_0_position,header_0_word) {"function":"f21"}
+  header_8_position:u64 = const() {"value":8}
+  header_8_word:u64 = const() {"value":8314605285929872999}
+  header_8_end:u64 = call(output,header_8_position,header_8_word) {"function":"f21"}
+  header_16_position:u64 = const() {"value":16}
+  header_16_word:u64 = const() {"value":2314885437319035426}
+  header_16_end:u64 = call(output,header_16_position,header_16_word) {"function":"f21"}
+  header_24_position:u64 = const() {"value":24}
+  header_24_word:u64 = const() {"value":2314885530817035040}
+  header_24_end:u64 = call(output,header_24_position,header_24_word) {"function":"f21"}
+  header_32_position:u64 = const() {"value":32}
+  header_32_word:u64 = const() {"value":4189022085447885344}
+  header_32_end:u64 = call(output,header_32_position,header_32_word) {"function":"f21"}
+  header_40_position:u64 = const() {"value":40}
+  header_40_word:u64 = const() {"value":6217591214171300384}
+  header_40_end:u64 = call(output,header_40_position,header_40_word) {"function":"f21"}
+  header_48_position:u64 = const() {"value":48}
+  header_48_word:u64 = const() {"value":2314885436530643525}
+  header_48_end:u64 = call(output,header_48_position,header_48_word) {"function":"f21"}
+  header_56_position:u64 = const() {"value":56}
+  header_56_word:u64 = const() {"value":8319104456081809440}
+  header_56_end:u64 = call(output,header_56_position,header_56_word) {"function":"f21"}
+  header_64_position:u64 = const() {"value":64}
+  header_64_word:u64 = const() {"value":4981579571882452833}
+  header_64_end:u64 = call(output,header_64_position,header_64_word) {"function":"f21"}
+  header_72_position:u64 = const() {"value":72}
+  header_72_word:u64 = const() {"value":5279420938604595295}
+  header_72_end:u64 = call(output,header_72_position,header_72_word) {"function":"f21"}
+  header_80_position:u64 = const() {"value":80}
+  header_80_word:u64 = const() {"value":4199680681674170196}
+  header_80_end:u64 = call(output,header_80_position,header_80_word) {"function":"f21"}
+  header_88_position:u64 = const() {"value":88}
+  header_88_word:u64 = const() {"value":32}
+  header_88_end:u64 = call(output,header_88_position,header_88_word) {"function":"f21"}
+  jump reason_check_1(output,id)
+block reason_check_1(reason_1_out:mutbuf,reason_1_id:u32)
+  reason_1_match:u32 = const() {"value":209}
+  reason_1_known:bool = compare.eq(reason_1_id,reason_1_match)
+  branch reason_1_known reason_1(reason_1_out) reason_check_2(reason_1_out,reason_1_id)
+block reason_1(reason_1_text:mutbuf)
+  reason_1_0_position:u64 = const() {"value":89}
+  reason_1_0_word:u64 = const() {"value":7234316346693023845}
+  reason_1_0_end:u64 = call(reason_1_text,reason_1_0_position,reason_1_0_word) {"function":"f21"}
+  reason_1_8_position:u64 = const() {"value":97}
+  reason_1_8_word:u64 = const() {"value":7161137258226934048}
+  reason_1_8_end:u64 = call(reason_1_text,reason_1_8_position,reason_1_8_word) {"function":"f21"}
+  reason_1_16_position:u64 = const() {"value":105}
+  reason_1_16_word:u64 = const() {"value":8241992374078677108}
+  reason_1_16_end:u64 = call(reason_1_text,reason_1_16_position,reason_1_16_word) {"function":"f21"}
+  reason_1_24_position:u64 = const() {"value":113}
+  reason_1_24_word:u64 = const() {"value":7521983764245800037}
+  reason_1_24_end:u64 = call(reason_1_text,reason_1_24_position,reason_1_24_word) {"function":"f21"}
+  reason_1_32_position:u64 = const() {"value":121}
+  reason_1_32_word:u64 = const() {"value":133532235428128}
+  reason_1_32_end:u64 = call(reason_1_text,reason_1_32_position,reason_1_32_word) {"function":"f21"}
+  phrase_1_end:u64 = const() {"value":127}
+  jump finish_refusal(reason_1_text,phrase_1_end)
+block reason_check_2(reason_2_out:mutbuf,reason_2_id:u32)
+  reason_2_match:u32 = const() {"value":210}
+  reason_2_known:bool = compare.eq(reason_2_id,reason_2_match)
+  branch reason_2_known reason_2(reason_2_out) reason_check_3(reason_2_out,reason_2_id)
+block reason_2(reason_2_text:mutbuf)
+  reason_2_0_position:u64 = const() {"value":89}
+  reason_2_0_word:u64 = const() {"value":2334106421097295465}
+  reason_2_0_end:u64 = call(reason_2_text,reason_2_0_position,reason_2_0_word) {"function":"f21"}
+  reason_2_8_position:u64 = const() {"value":97}
+  reason_2_8_word:u64 = const() {"value":7598452702286542193}
+  reason_2_8_end:u64 = call(reason_2_text,reason_2_8_position,reason_2_8_word) {"function":"f21"}
+  reason_2_16_position:u64 = const() {"value":105}
+  reason_2_16_word:u64 = const() {"value":7562612}
+  reason_2_16_end:u64 = call(reason_2_text,reason_2_16_position,reason_2_16_word) {"function":"f21"}
+  phrase_2_end:u64 = const() {"value":108}
+  jump finish_refusal(reason_2_text,phrase_2_end)
+block reason_check_3(reason_3_out:mutbuf,reason_3_id:u32)
+  reason_3_match:u32 = const() {"value":211}
+  reason_3_known:bool = compare.eq(reason_3_id,reason_3_match)
+  branch reason_3_known reason_3(reason_3_out) reason_check_4(reason_3_out,reason_3_id)
+block reason_3(reason_3_text:mutbuf)
+  reason_3_0_position:u64 = const() {"value":89}
+  reason_3_0_word:u64 = const() {"value":7598452702286542193}
+  reason_3_0_end:u64 = call(reason_3_text,reason_3_0_position,reason_3_0_word) {"function":"f21"}
+  reason_3_8_position:u64 = const() {"value":97}
+  reason_3_8_word:u64 = const() {"value":8391179642277684596}
+  reason_3_8_end:u64 = call(reason_3_text,reason_3_8_position,reason_3_8_word) {"function":"f21"}
+  reason_3_16_position:u64 = const() {"value":105}
+  reason_3_16_word:u64 = const() {"value":2336921123937415712}
+  reason_3_16_end:u64 = call(reason_3_text,reason_3_16_position,reason_3_16_word) {"function":"f21"}
+  reason_3_24_position:u64 = const() {"value":113}
+  reason_3_24_word:u64 = const() {"value":8675375932965742708}
+  reason_3_24_end:u64 = call(reason_3_text,reason_3_24_position,reason_3_24_word) {"function":"f21"}
+  reason_3_32_position:u64 = const() {"value":121}
+  reason_3_32_word:u64 = const() {"value":7306090317113221985}
+  reason_3_32_end:u64 = call(reason_3_text,reason_3_32_position,reason_3_32_word) {"function":"f21"}
+  reason_3_40_position:u64 = const() {"value":129}
+  reason_3_40_word:u64 = const() {"value":7954874719497643378}
+  reason_3_40_end:u64 = call(reason_3_text,reason_3_40_position,reason_3_40_word) {"function":"f21"}
+  reason_3_48_position:u64 = const() {"value":137}
+  reason_3_48_word:u64 = const() {"value":126879398127988}
+  reason_3_48_end:u64 = call(reason_3_text,reason_3_48_position,reason_3_48_word) {"function":"f21"}
+  phrase_3_end:u64 = const() {"value":143}
+  jump finish_refusal(reason_3_text,phrase_3_end)
+block reason_check_4(reason_4_out:mutbuf,reason_4_id:u32)
+  reason_4_match:u32 = const() {"value":212}
+  reason_4_known:bool = compare.eq(reason_4_id,reason_4_match)
+  branch reason_4_known reason_4(reason_4_out) reason_check_5(reason_4_out,reason_4_id)
+block reason_4(reason_4_text:mutbuf)
+  reason_4_0_position:u64 = const() {"value":89}
+  reason_4_0_word:u64 = const() {"value":2334106421097295465}
+  reason_4_0_end:u64 = call(reason_4_text,reason_4_0_position,reason_4_0_word) {"function":"f21"}
+  reason_4_8_position:u64 = const() {"value":97}
+  reason_4_8_word:u64 = const() {"value":8295740900524647790}
+  reason_4_8_end:u64 = call(reason_4_text,reason_4_8_position,reason_4_8_word) {"function":"f21"}
+  reason_4_16_position:u64 = const() {"value":105}
+  reason_4_16_word:u64 = const() {"value":7957695015191669861}
+  reason_4_16_end:u64 = call(reason_4_text,reason_4_16_position,reason_4_16_word) {"function":"f21"}
+  phrase_4_end:u64 = const() {"value":113}
+  jump finish_refusal(reason_4_text,phrase_4_end)
+block reason_check_5(reason_5_out:mutbuf,reason_5_id:u32)
+  reason_5_match:u32 = const() {"value":213}
+  reason_5_known:bool = compare.eq(reason_5_id,reason_5_match)
+  branch reason_5_known reason_5(reason_5_out) reason_check_6(reason_5_out,reason_5_id)
+block reason_5(reason_5_text:mutbuf)
+  reason_5_0_position:u64 = const() {"value":89}
+  reason_5_0_word:u64 = const() {"value":8245845062720779379}
+  reason_5_0_end:u64 = call(reason_5_text,reason_5_0_position,reason_5_0_word) {"function":"f21"}
+  reason_5_8_position:u64 = const() {"value":97}
+  reason_5_8_word:u64 = const() {"value":7234314156511093024}
+  reason_5_8_end:u64 = call(reason_5_text,reason_5_8_position,reason_5_8_word) {"function":"f21"}
+  reason_5_16_position:u64 = const() {"value":105}
+  reason_5_16_word:u64 = const() {"value":8151630101904187936}
+  reason_5_16_end:u64 = call(reason_5_text,reason_5_16_position,reason_5_16_word) {"function":"f21"}
+  reason_5_24_position:u64 = const() {"value":113}
+  reason_5_24_word:u64 = const() {"value":2037540213}
+  reason_5_24_end:u64 = call(reason_5_text,reason_5_24_position,reason_5_24_word) {"function":"f21"}
+  phrase_5_end:u64 = const() {"value":117}
+  jump finish_refusal(reason_5_text,phrase_5_end)
+block reason_check_6(reason_6_out:mutbuf,reason_6_id:u32)
+  reason_6_match:u32 = const() {"value":214}
+  reason_6_known:bool = compare.eq(reason_6_id,reason_6_match)
+  branch reason_6_known reason_6(reason_6_out) reason_check_7(reason_6_out,reason_6_id)
+block reason_6(reason_6_text:mutbuf)
+  reason_6_0_position:u64 = const() {"value":89}
+  reason_6_0_word:u64 = const() {"value":7310308045059482994}
+  reason_6_0_end:u64 = call(reason_6_text,reason_6_0_position,reason_6_0_word) {"function":"f21"}
+  reason_6_8_position:u64 = const() {"value":97}
+  reason_6_8_word:u64 = const() {"value":7310021098310300192}
+  reason_6_8_end:u64 = call(reason_6_text,reason_6_8_position,reason_6_8_word) {"function":"f21"}
+  reason_6_16_position:u64 = const() {"value":105}
+  reason_6_16_word:u64 = const() {"value":7814980523677524083}
+  reason_6_16_end:u64 = call(reason_6_text,reason_6_16_position,reason_6_16_word) {"function":"f21"}
+  reason_6_24_position:u64 = const() {"value":113}
+  reason_6_24_word:u64 = const() {"value":32497618326462585}
+  reason_6_24_end:u64 = call(reason_6_text,reason_6_24_position,reason_6_24_word) {"function":"f21"}
+  phrase_6_end:u64 = const() {"value":120}
+  jump finish_refusal(reason_6_text,phrase_6_end)
+block reason_check_7(reason_7_out:mutbuf,reason_7_id:u32)
+  reason_7_match:u32 = const() {"value":215}
+  reason_7_known:bool = compare.eq(reason_7_id,reason_7_match)
+  branch reason_7_known reason_7(reason_7_out) reason_check_8(reason_7_out,reason_7_id)
+block reason_7(reason_7_text:mutbuf)
+  reason_7_0_position:u64 = const() {"value":89}
+  reason_7_0_word:u64 = const() {"value":7310222326134830693}
+  reason_7_0_end:u64 = call(reason_7_text,reason_7_0_position,reason_7_0_word) {"function":"f21"}
+  reason_7_8_position:u64 = const() {"value":97}
+  reason_7_8_word:u64 = const() {"value":8295740900523599212}
+  reason_7_8_end:u64 = call(reason_7_text,reason_7_8_position,reason_7_8_word) {"function":"f21"}
+  reason_7_16_position:u64 = const() {"value":105}
+  reason_7_16_word:u64 = const() {"value":8391179642276770921}
+  reason_7_16_end:u64 = call(reason_7_text,reason_7_16_position,reason_7_16_word) {"function":"f21"}
+  reason_7_24_position:u64 = const() {"value":113}
+  reason_7_24_word:u64 = const() {"value":7286950045589663520}
+  reason_7_24_end:u64 = call(reason_7_text,reason_7_24_position,reason_7_24_word) {"function":"f21"}
+  reason_7_32_position:u64 = const() {"value":121}
+  reason_7_32_word:u64 = const() {"value":8007533644180840824}
+  reason_7_32_end:u64 = call(reason_7_text,reason_7_32_position,reason_7_32_word) {"function":"f21"}
+  reason_7_40_position:u64 = const() {"value":129}
+  reason_7_40_word:u64 = const() {"value":6644590}
+  reason_7_40_end:u64 = call(reason_7_text,reason_7_40_position,reason_7_40_word) {"function":"f21"}
+  phrase_7_end:u64 = const() {"value":132}
+  jump finish_refusal(reason_7_text,phrase_7_end)
+block reason_check_8(reason_8_out:mutbuf,reason_8_id:u32)
+  reason_8_match:u32 = const() {"value":216}
+  reason_8_known:bool = compare.eq(reason_8_id,reason_8_match)
+  branch reason_8_known reason_8(reason_8_out) reason_check_9(reason_8_out,reason_8_id)
+block reason_8(reason_8_text:mutbuf)
+  reason_8_0_position:u64 = const() {"value":89}
+  reason_8_0_word:u64 = const() {"value":2338609986426400353}
+  reason_8_0_end:u64 = call(reason_8_text,reason_8_0_position,reason_8_0_word) {"function":"f21"}
+  reason_8_8_position:u64 = const() {"value":97}
+  reason_8_8_word:u64 = const() {"value":8315178084276987250}
+  reason_8_8_end:u64 = call(reason_8_text,reason_8_8_position,reason_8_8_word) {"function":"f21"}
+  reason_8_16_position:u64 = const() {"value":105}
+  reason_8_16_word:u64 = const() {"value":8749496146259895584}
+  reason_8_16_end:u64 = call(reason_8_text,reason_8_16_position,reason_8_16_word) {"function":"f21"}
+  reason_8_24_position:u64 = const() {"value":113}
+  reason_8_24_word:u64 = const() {"value":7953674037029860128}
+  reason_8_24_end:u64 = call(reason_8_text,reason_8_24_position,reason_8_24_word) {"function":"f21"}
+  reason_8_32_position:u64 = const() {"value":121}
+  reason_8_32_word:u64 = const() {"value":7306930285074128996}
+  reason_8_32_end:u64 = call(reason_8_text,reason_8_32_position,reason_8_32_word) {"function":"f21"}
+  reason_8_40_position:u64 = const() {"value":129}
+  reason_8_40_word:u64 = const() {"value":115}
+  reason_8_40_end:u64 = call(reason_8_text,reason_8_40_position,reason_8_40_word) {"function":"f21"}
+  phrase_8_end:u64 = const() {"value":130}
+  jump finish_refusal(reason_8_text,phrase_8_end)
+block reason_check_9(reason_9_out:mutbuf,reason_9_id:u32)
+  reason_9_match:u32 = const() {"value":217}
+  reason_9_known:bool = compare.eq(reason_9_id,reason_9_match)
+  branch reason_9_known reason_9(reason_9_out) reason_check_10(reason_9_out,reason_9_id)
+block reason_9(reason_9_text:mutbuf)
+  reason_9_0_position:u64 = const() {"value":89}
+  reason_9_0_word:u64 = const() {"value":8386093285582599524}
+  reason_9_0_end:u64 = call(reason_9_text,reason_9_0_position,reason_9_0_word) {"function":"f21"}
+  reason_9_8_position:u64 = const() {"value":97}
+  reason_9_8_word:u64 = const() {"value":8533873931993423973}
+  reason_9_8_end:u64 = call(reason_9_text,reason_9_8_position,reason_9_8_word) {"function":"f21"}
+  reason_9_16_position:u64 = const() {"value":105}
+  reason_9_16_word:u64 = const() {"value":8388362363915037793}
+  reason_9_16_end:u64 = call(reason_9_text,reason_9_16_position,reason_9_16_word) {"function":"f21"}
+  reason_9_24_position:u64 = const() {"value":113}
+  reason_9_24_word:u64 = const() {"value":101}
+  reason_9_24_end:u64 = call(reason_9_text,reason_9_24_position,reason_9_24_word) {"function":"f21"}
+  phrase_9_end:u64 = const() {"value":114}
+  jump finish_refusal(reason_9_text,phrase_9_end)
+block reason_check_10(reason_10_out:mutbuf,reason_10_id:u32)
+  reason_10_match:u32 = const() {"value":218}
+  reason_10_known:bool = compare.eq(reason_10_id,reason_10_match)
+  branch reason_10_known reason_10(reason_10_out) unrenderable(reason_10_out)
+block reason_10(reason_10_text:mutbuf)
+  reason_10_0_position:u64 = const() {"value":89}
+  reason_10_0_word:u64 = const() {"value":2338324126443333731}
+  reason_10_0_end:u64 = call(reason_10_text,reason_10_0_position,reason_10_0_word) {"function":"f21"}
+  reason_10_8_position:u64 = const() {"value":97}
+  reason_10_8_word:u64 = const() {"value":8295740900271945829}
+  reason_10_8_end:u64 = call(reason_10_text,reason_10_8_position,reason_10_8_word) {"function":"f21"}
+  reason_10_16_position:u64 = const() {"value":105}
+  reason_10_16_word:u64 = const() {"value":2334102057442962533}
+  reason_10_16_end:u64 = call(reason_10_text,reason_10_16_position,reason_10_16_word) {"function":"f21"}
+  reason_10_24_position:u64 = const() {"value":113}
+  reason_10_24_word:u64 = const() {"value":126875152509286}
+  reason_10_24_end:u64 = call(reason_10_text,reason_10_24_position,reason_10_24_word) {"function":"f21"}
+  phrase_10_end:u64 = const() {"value":119}
+  jump finish_refusal(reason_10_text,phrase_10_end)
+block finish_refusal(out:mutbuf,cursor:u64)
+  suffix_0_offset:u64 = const() {"value":0}
+  suffix_0_position:u64 = int.add.wrap(cursor,suffix_0_offset)
+  suffix_0_word:u64 = const() {"value":2314885530817014818}
+  suffix_0_end:u64 = call(out,suffix_0_position,suffix_0_word) {"function":"f21"}
+  suffix_8_offset:u64 = const() {"value":8}
+  suffix_8_position:u64 = int.add.wrap(cursor,suffix_8_offset)
+  suffix_8_word:u64 = const() {"value":2478514032138527264}
+  suffix_8_end:u64 = call(out,suffix_8_position,suffix_8_word) {"function":"f21"}
+  suffix_16_offset:u64 = const() {"value":16}
+  suffix_16_position:u64 = int.add.wrap(cursor,suffix_16_offset)
+  suffix_16_word:u64 = const() {"value":7311146985109725242}
+  suffix_16_end:u64 = call(out,suffix_16_position,suffix_16_word) {"function":"f21"}
+  suffix_24_offset:u64 = const() {"value":24}
+  suffix_24_position:u64 = int.add.wrap(cursor,suffix_24_offset)
+  suffix_24_word:u64 = const() {"value":9016241776344310386}
+  suffix_24_end:u64 = call(out,suffix_24_position,suffix_24_word) {"function":"f21"}
+  suffix_32_offset:u64 = const() {"value":32}
+  suffix_32_position:u64 = int.add.wrap(cursor,suffix_32_offset)
+  suffix_32_word:u64 = const() {"value":2314861394125660170}
+  suffix_32_end:u64 = call(out,suffix_32_position,suffix_32_word) {"function":"f21"}
+  suffix_40_offset:u64 = const() {"value":40}
+  suffix_40_position:u64 = int.add.wrap(cursor,suffix_40_offset)
+  suffix_40_word:u64 = const() {"value":7018332503361154850}
+  suffix_40_end:u64 = call(out,suffix_40_position,suffix_40_word) {"function":"f21"}
+  suffix_48_offset:u64 = const() {"value":48}
+  suffix_48_position:u64 = int.add.wrap(cursor,suffix_48_offset)
+  suffix_48_word:u64 = const() {"value":2459000624610898796}
+  suffix_48_end:u64 = call(out,suffix_48_position,suffix_48_word) {"function":"f21"}
+  suffix_56_offset:u64 = const() {"value":56}
+  suffix_56_position:u64 = int.add.wrap(cursor,suffix_56_offset)
+  suffix_56_word:u64 = const() {"value":4189037551708894323}
+  suffix_56_end:u64 = call(out,suffix_56_position,suffix_56_word) {"function":"f21"}
+  suffix_64_offset:u64 = const() {"value":64}
+  suffix_64_position:u64 = int.add.wrap(cursor,suffix_64_offset)
+  suffix_64_word:u64 = const() {"value":2482168881970749984}
+  suffix_64_end:u64 = call(out,suffix_64_position,suffix_64_word) {"function":"f21"}
+  suffix_72_offset:u64 = const() {"value":72}
+  suffix_72_position:u64 = int.add.wrap(cursor,suffix_72_offset)
+  suffix_72_word:u64 = const() {"value":687370}
+  suffix_72_end:u64 = call(out,suffix_72_position,suffix_72_word) {"function":"f21"}
+  suffix_length:u64 = const() {"value":75}
+  total:u64 = int.add.wrap(cursor,suffix_length)
+  result:u32 = int.cast(total) {"mode":"wrap"}
+  ret(result)
+block unrenderable(text_out:mutbuf)
+  written:u32 = const() {"value":0}
+  ret(written)
+end
+fn batch_schema_supported(tree:mutbuf,root:u64) -> (bool) effects(read,write,trap) entry(b0)
+block b0(tree:mutbuf,root:u64)
+  field_length:u64 = const() {"value":6}
+  schema_field:u64 = const() {"value":107122480669555}
+  zero:u64 = const() {"value":0}
+  tag:u64 = call(tree,root,field_length,schema_field,zero,zero) {"function":"f76"}
+  tag_kind:u64 = call(tree,tag) {"function":"f12"}
+  string:u64 = const() {"value":4}
+  is_text:bool = compare.eq(tag_kind,string)
+  branch is_text check_length(tree,tag) unsupported()
+block check_length(token_tree:mutbuf,schema_node:u64)
+  width:u64 = call(token_tree,schema_node) {"function":"f13"}
+  expected:u64 = const() {"value":29}
+  has_width:bool = compare.eq(width,expected)
+  branch has_width check_name(token_tree,schema_node) unsupported()
+block check_name(names:mutbuf,node_index:u64)
+  token_stride:u64 = const() {"value":56}
+  token_number:u64 = int.mul.wrap(node_index,token_stride)
+  string_header:u64 = const() {"value":88}
+  string_offset:u64 = int.add.wrap(token_number,string_header)
+  start:u64 = call(names,string_offset) {"function":"f20"}
+  prefix_length:u64 = const() {"value":24}
+  name_a:u64 = const() {"value":7595371767660569960}
+  name_b:u64 = const() {"value":7074438585673657953}
+  name_c:u64 = const() {"value":7310874009944683617}
+  prefix_equal:u64 = call(names,start,prefix_length,prefix_length,name_a,name_b,name_c) {"function":"f17"}
+  prefix_yes:u64 = const() {"value":1}
+  named:bool = compare.eq(prefix_equal,prefix_yes)
+  suffix_offset:u64 = int.add.wrap(start,prefix_length)
+  branch named check_version(names,suffix_offset) unsupported()
+block check_version(version_tree:mutbuf,version_start:u64)
+  suffix_length:u64 = const() {"value":5}
+  version_2:u64 = const() {"value":216731122034}
+  version_3:u64 = const() {"value":221026089330}
+  ignore:u64 = const() {"value":0}
+  v2_match:u64 = call(version_tree,version_start,suffix_length,suffix_length,version_2,ignore,ignore) {"function":"f17"}
+  v3_match:u64 = call(version_tree,version_start,suffix_length,suffix_length,version_3,ignore,ignore) {"function":"f17"}
+  known_version:u64 = bit.or(v2_match,v3_match)
+  result:bool = compare.ne(known_version,ignore)
+  ret(result)
+block unsupported()
+  reject:bool = const() {"value":false}
+  ret(reject)
+end
+fn batch_selector_exact(tree:mutbuf,selector:u64) -> (bool) effects(read,write,trap) entry(b0)
+block b0(tree:mutbuf,selector:u64)
+  selector_kind:u64 = call(tree,selector) {"function":"f12"}
+  object_kind:u64 = const() {"value":6}
+  is_object:bool = compare.eq(selector_kind,object_kind)
+  branch is_object require_fields(tree,selector) reject()
+block require_fields(selection:mutbuf,node:u64)
+  members:u64 = call(selection,node) {"function":"f13"}
+  expected:u64 = const() {"value":3}
+  shape:bool = compare.eq(members,expected)
+  branch shape check_fields(selection,node) reject()
+block check_fields(fields:mutbuf,selection_node:u64)
+  none:u64 = const() {"value":18446744073709551615}
+  zero:u64 = const() {"value":0}
+  function_length:u64 = const() {"value":8}
+  function_key:u64 = const() {"value":7957695015192261990}
+  function_node:u64 = call(fields,selection_node,function_length,function_key,zero,zero) {"function":"f76"}
+  block_length:u64 = const() {"value":5}
+  block_key:u64 = const() {"value":461229747298}
+  block_node:u64 = call(fields,selection_node,block_length,block_key,zero,zero) {"function":"f76"}
+  output_length:u64 = const() {"value":6}
+  output_key:u64 = const() {"value":128047746676079}
+  output_node:u64 = call(fields,selection_node,output_length,output_key,zero,zero) {"function":"f76"}
+  function_present:bool = compare.ne(function_node,none)
+  block_present:bool = compare.ne(block_node,none)
+  output_present:bool = compare.ne(output_node,none)
+  first_two:bool = bool.and(function_present,block_present)
+  exact:bool = bool.and(first_two,output_present)
+  ret(exact)
+block reject()
+  invalid:bool = const() {"value":false}
+  ret(invalid)
 end

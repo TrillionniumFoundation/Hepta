@@ -116,12 +116,8 @@ base_admission_call_hole: .long 0
  xor eax,eax
  mov ecx,FRAME_N+PATCH_WORK_N
  rep stosb
- # v0 delegates schema admission to HIA; v1 and v2 retain explicit pins.
- xor eax,eax
- test r15,r15
- setne al
- inc eax
- mov [r12+SCRATCH_AT],rax
+ # Application mode returns a sealed result for v0, v1 and v2.
+ mov QWORD PTR [r12+SCRATCH_AT],2
  mov [r12+SCRATCH_AT+8],r15
  mov rdi,r12
  mov rsi,r13

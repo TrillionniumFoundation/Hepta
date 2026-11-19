@@ -671,6 +671,9 @@ def source_program(*, public=False):
             return node
     body = BODY
     if public:
+        # In public application mode a zero declaration delegates the
+        # schema decision to the same decoded JSON used by patch_result.
+        body = body.replace('if declared < 1 or declared > 2:', 'if declared > 2:', 1)
         # Let the original Core be verified before reporting a bad request
         # shape; only the standalone driver has a corresponding diagnostic.
         base_shape = 'if kind(w, base) != 6 or kind(w, request) != 6:'

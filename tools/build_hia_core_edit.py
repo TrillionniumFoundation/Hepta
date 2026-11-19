@@ -175,7 +175,7 @@ PROGRAMS = {
                                          'patch', 'compose')),
         (EDIT + 'admission_word_io.hepta', ('core', 'candidate_core')),
         (EDIT + 'batch_apply.hepta', ('decode', 'query_decode', 'normalized_decode', 'initialize',
-                                     'facts', 'query', 'append', 'hash', 'response_decode', 'pretty')),
+                                     'facts', 'query', 'append', 'hash', 'response_decode', 'pretty', 'batch_refusal')),
         (BOOTSTRAP + 'agent_slice.hepta', ('slice',)),
     )),
 }

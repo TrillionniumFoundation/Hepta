@@ -139,7 +139,7 @@ decode_hole: .long 0
  mov r9d,WORK_N
  .byte 0xe8
 normalize_prepare_hole: .long 0
- call scalar_status
+ call batch_stage_status
  test rax,rax
  jz normalized_input_ready
  cmp rax,1048576
@@ -191,7 +191,7 @@ query_decode_hole: .long 0
  mov r9d,CORE_N
  .byte 0xe8
 normalize_finish_hole: .long 0
- call scalar_status
+ call batch_stage_status
  test rax,rax
  jz invalid
  cmp rax,16777216
@@ -261,7 +261,7 @@ normalized_input_ready:
  mov r9d,WORK_N
  .byte 0xe8
 initialize_hole: .long 0
- call scalar_status
+ call batch_stage_status
  test rax,rax
  jz invalid
  cmp rax,16
@@ -355,7 +355,7 @@ append_hole: .long 0
  .byte 0xe8
 replay_hole: .long 0
  mov [r13+CTRL+352],rax
- call scalar_status
+ call batch_stage_status
  test rax,rax
  jnz invalid
  movabs rax,3544428848881944904
@@ -428,7 +428,7 @@ response_decode_hole: .long 0
  .byte 0xe8
 response_validate_hole: .long 0
  mov [r13+CTRL+8616],rax
- call scalar_status
+ call batch_stage_status
  test rax,rax
  jnz invalid
  movabs rax,3544421152300550472
@@ -690,6 +690,44 @@ query_status:
  mov r10d,0xfffffffc
  cmp rax,r10
  je invalid
+# A native stage returns a reserved refusal code, never a length.
+batch_stage_status:
+ mov r10d,0xffffffd1
+ cmp rax,r10
+ jb scalar_status
+ mov r10d,0xffffffda
+ cmp rax,r10
+ ja scalar_status
+ push rax
+ mov rdi,rsp
+ mov esi,8
+ lea rdx,[r13+OUT_N-256]
+ mov ecx,256
+ xor r8d,r8d
+ xor r9d,r9d
+ .byte 0xe8
+batch_refusal_hole: .long 0
+ add rsp,8
+ test rax,rax
+ jz invalid
+ cmp rax,256
+ ja io_failure
+ mov rdx,rax
+ lea rsi,[r13+OUT_N-256]
+batch_write_refusal:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je batch_write_refusal
+ test rax,rax
+ jle io_failure
+ cmp rax,rdx
+ ja io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz batch_write_refusal
+ jmp invalid
 scalar_status:
  mov r10,rax
  shr r10,32
