@@ -639,6 +639,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
 
     def test_real_context_admission_uses_hia_for_clock_window_and_binding(self):
         from hepta import hia_agent_service as hosted, hia_agent_store as store
+        from hepta import hia_agent_buffers as buffers
         from tests.test_hia_agent_buffer_lifecycle import workload
         from tools.hia_agent_native_qualification import Session, ToolClient
 
@@ -649,7 +650,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
                                side_effect=AssertionError('host context identity used')),
                   patch.object(hosted, '_reference_wall_window',
                                side_effect=AssertionError('host clock budget used')),
-                  patch.object(hosted, 'export_manifest',
+                  patch.object(buffers, 'export_manifest',
                                side_effect=AssertionError('host export plan used'))):
                 session = Session(ToolClient(service.call))
                 session.freeze(workload([{'function': 'take', 'arguments': [{'bytes_hex': '00'}]}],
