@@ -210,64 +210,16 @@ def core_circuit(before, after, observed):
         return None
     if len(before['params']) + len(before['ops']) + len(after['ops']) > CIRCUIT_NODES:
         return None
-    nodes = []
-    parameters = {}
-    for parameter in before['params']:
-        width = _CORE_WIDTHS.get(parameter['type'])
-        if width not in (1, 8, 16, 32, 64):
-            return None
-        parameters[parameter['name']] = (len(nodes), parameter['type'])
-        nodes.append((1, width, 0, 0, 0))
+    inputs = _scalar_inputs(before['params'])
+    if inputs is None:
+        return None
+    nodes, parameters = inputs
     returned, traps = [], []
     for block in (before, after):
         values = parameters.copy()
-        trap = None
-        for operation in block['ops']:
-            opcode = _CORE_OPERATIONS.get(operation['op'])
-            if opcode is None or len(operation['out']) != 1:
-                return None
-            output, = operation['out']
-            width = _CORE_WIDTHS.get(output['type'])
-            if width not in (1, 8, 16, 32, 64) or any(arg not in values for arg in operation['args']):
-                return None
-            args = [values[arg][0] for arg in operation['args']]
-            left, right = (args + [0, 0])[:2]
-            immediate = 0
-            if opcode == 2:
-                immediate = int(operation['attrs']['value']) % (1 << width)
-            elif opcode == 11:
-                immediate = args[2]
-            elif 12 <= opcode <= 15:
-                opcode += 4 * values[operation['args'][0]][1].startswith('i')
-            elif opcode == 20:
-                if operation['attrs']['mode'] != 'wrap':
-                    return None
-                opcode += values[operation['args'][0]][1].startswith('i')
-            elif operation['op'] == 'int.neg.checked':
-                # Encode negation as checked zero minus the operand. Signed
-                # minimum and nonzero unsigned operands share the original
-                # subtraction overflow condition.
-                left, right = len(nodes), left
-                nodes.append((2, width, 0, 0, 0))
-            values[output['name']] = (len(nodes), output['type'])
-            if opcode < 22 or opcode == WRAPPING_PRODUCT:
-                nodes.append((opcode, width, left, right, immediate))
-                continue
-            nodes.append((opcode - 13, width, left, right, 0))
-            signed = output['type'].startswith('i')
-            if opcode == 23 and nodes[left][0] == 2 and nodes[left][4] == 0:
-                # Negation overflows exactly at signed MIN, or for any
-                # nonzero unsigned input. Avoid asking the solver to
-                # discover this through the unused subtraction result.
-                boundary = len(nodes)
-                nodes.append((2, width, 0, 0, 1 << (width - 1) if signed else 0))
-                nodes.append((7 if signed else 8, 1, right, boundary, 0))
-            else:
-                nodes.append((opcode + 2 * signed, 1, left, right, 0))
-            flag = len(nodes) - 1
-            if trap is not None:
-                nodes.append((4, 1, trap, flag, 0))
-            trap = len(nodes) - 1
+        trap, supported = _scalar_block(nodes, values, block['ops'])
+        if not supported:
+            return None
         if any(name not in values for name in observed):
             return None
         returned.append([values[name][0] for name in observed])
@@ -281,6 +233,159 @@ def core_circuit(before, after, observed):
         guards = tuple(traps)
     return nodes, list(zip(*returned, strict=True)), guards
 
+
+def _scalar_inputs(declarations):
+    nodes = []
+    parameters = {}
+    for parameter in declarations:
+        width = _CORE_WIDTHS.get(parameter['type'])
+        if width not in (1, 8, 16, 32, 64):
+            return None
+        parameters[parameter['name']] = (len(nodes), parameter['type'])
+        nodes.append((1, width, 0, 0, 0))
+    return nodes, parameters
+
+
+def _scalar_block(nodes, values, operations):
+    if len(nodes) + len(operations) > CIRCUIT_NODES:
+        return None, False
+    trap = None
+    for operation in operations:
+        opcode = _CORE_OPERATIONS.get(operation['op'])
+        if opcode is None or len(operation['out']) != 1:
+            return None, False
+        output, = operation['out']
+        width = _CORE_WIDTHS.get(output['type'])
+        if width not in (1, 8, 16, 32, 64) or any(arg not in values for arg in operation['args']):
+            return None, False
+        args = [values[arg][0] for arg in operation['args']]
+        left, right = (args + [0, 0])[:2]
+        immediate = 0
+        if opcode == 2:
+            immediate = int(operation['attrs']['value']) % (1 << width)
+        elif opcode == 11:
+            immediate = args[2]
+        elif 12 <= opcode <= 15:
+            opcode += 4 * values[operation['args'][0]][1].startswith('i')
+        elif opcode == 20:
+            if operation['attrs']['mode'] != 'wrap':
+                return None, False
+            opcode += values[operation['args'][0]][1].startswith('i')
+        elif operation['op'] == 'int.neg.checked':
+            # Encode negation as checked zero minus the operand. Signed
+            # minimum and nonzero unsigned operands share the original
+            # subtraction overflow condition.
+            left, right = len(nodes), left
+            nodes.append((2, width, 0, 0, 0))
+        values[output['name']] = (len(nodes), output['type'])
+        if opcode < 22 or opcode == WRAPPING_PRODUCT:
+            nodes.append((opcode, width, left, right, immediate))
+            continue
+        nodes.append((opcode - 13, width, left, right, 0))
+        signed = output['type'].startswith('i')
+        if opcode == 23 and nodes[left][0] == 2 and nodes[left][4] == 0:
+            # Negation overflows exactly at signed MIN, or for any
+            # nonzero unsigned input. Avoid asking the solver to
+            # discover this through the unused subtraction result.
+            boundary = len(nodes)
+            nodes.append((2, width, 0, 0, 1 << (width - 1) if signed else 0))
+            nodes.append((7 if signed else 8, 1, right, boundary, 0))
+        else:
+            nodes.append((opcode + 2 * signed, 1, left, right, 0))
+        flag = len(nodes) - 1
+        if trap is not None:
+            nodes.append((4, 1, trap, flag, 0))
+        trap = len(nodes) - 1
+    return trap, True
+
+
+def _append_node(nodes, opcode, width=1, left=0, right=0, immediate=0):
+    nodes.append((opcode, width, left, right, immediate))
+    return len(nodes) - 1
+
+
+def _any_flag(nodes, flags):
+    values = iter(flags)
+    result = next(values)
+    for value in values:
+        result = _append_node(nodes, 4, left=result, right=value)
+    return result
+
+
+def core_trap_circuit(function, blocks, order):
+    """Frame the existence of any Core trap over a verified scalar DAG.
+
+    Only admitted nodes may contribute trapping operations to the packet.
+    Continuing down a path after its first trap cannot create a false positive:
+    that execution already satisfies the trap predicate.
+    """
+    inputs = _scalar_inputs(function['params'])
+    if inputs is None:
+        return None
+    nodes, parameters = inputs
+    unreachable = _append_node(nodes, 2)
+    entry = _append_node(nodes, 2, immediate=1)
+    incoming = {name: [] for name in order}
+    incoming[function['entry']].append((entry, tuple(index for index, _ in parameters.values())))
+    traps = []
+    for name in order:
+        edges = incoming[name]
+        if not edges:
+            continue
+        block = blocks[name]
+        values = {}
+        budget = max(0, len(edges) - 1) * (len(block['params']) + 1)
+        if len(nodes) + budget > CIRCUIT_NODES:
+            return None
+        reach = _any_flag(nodes, (guard for guard, _ in edges))
+        for index, parameter in enumerate(block['params']):
+            typ = parameter['type']
+            if typ not in _CORE_WIDTHS:
+                return None
+            value = edges[0][1][index]
+            for guard, arguments in edges[1:]:
+                value = _append_node(nodes, 11, _CORE_WIDTHS[typ], guard, arguments[index], value)
+            values[parameter['name']] = (value, typ)
+        trapped, supported = _scalar_block(nodes, values, block['ops'])
+        if not supported:
+            return None
+        if trapped is not None:
+            traps.append(_append_node(nodes, 3, left=reach, right=trapped))
+        terminal = block['term']
+        if terminal['op'] == 'trap':
+            traps.append(reach)
+        elif terminal['op'] == 'jump':
+            destination = incoming[terminal['target']]
+            destination.append((reach, tuple(values[argument][0] for argument in terminal['args'])))
+        elif terminal['op'] == 'branch':
+            condition = values[terminal['cond']][0]
+            complement = _append_node(nodes, 6, left=condition)
+            for key, flag in (('then', condition), ('else', complement)):
+                edge = terminal[key]
+                taken = _append_node(nodes, 3, left=reach, right=flag)
+                incoming[edge['target']].append((taken, tuple(values[argument][0] for argument in edge['args'])))
+        elif terminal['op'] != 'ret':
+            return None
+    predicate = _any_flag(nodes, traps) if traps else unreachable
+    if len(nodes) > CIRCUIT_NODES:
+        return None
+    return nodes, (), (predicate, unreachable)
+
+
+def scalar_model_arguments(model, parameters):
+    """Project the initial contiguous input words of a checked HIA circuit model."""
+    model >>= 1  # Variable one is the fixed true literal, not an input.
+    for parameter in parameters:
+        typ = parameter['type']
+        width = _CORE_WIDTHS[typ]
+        raw = model & ((1 << width) - 1)
+        model >>= width
+        if typ == 'bool':
+            yield bool(raw)
+        elif typ.startswith('i') and raw >> (width - 1):
+            yield raw - (1 << width)
+        else:
+            yield raw
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,7 @@
 """Check the HIA Boolean solver before and after cold native compilation."""
 
 import builtins
+from copy import deepcopy
 from hashlib import sha256
 from operator import ge, gt, le, lt
 import random
@@ -342,6 +343,35 @@ class CnfInstalledTests(unittest.TestCase):
                                          (UNSAT, SAT, UNSAT if overflow else SAT))
         with self.assertRaisesRegex(ValueError, 'circuit representation'):
             self.native.solve_circuit([(1, 8, 0, 0, 0)], [(0, 0)], traps=(0, 0), steps=8)
+
+    def test_totality_through_branch_join_and_core_replay_without_z3(self):
+        from hepta import hia_translation_validation as semantics
+        from hepta.hia_scalar_totality import validate_scalar_totality
+        from tests.test_hia_program import b, branch, c, f, i, jump, m, ret
+        from tests.test_hia_scalar_totality import total_division
+
+        params = [('x', 'u8')]
+        safe = m(f('calculate', params, ['u8'], ['trap'], [
+            b('entry', params, [c('max', 'u8', 255),
+                i('compare.eq', ['x', 'max'], [('at_max', 'bool')])],
+              branch('at_max', ('replace', 'x'), ('join', 'x'))),
+            b('replace', [('old', 'u8')], [c('less', 'u8', 254)], jump('join', 'less')),
+            b('join', [('value', 'u8')], [c('one', 'u8', 1),
+                i('int.add.checked', ['value', 'one'], [('answer', 'u8')])], ret('answer')),
+        ]))
+        unsafe = deepcopy(safe)
+        unsafe['functions'][0]['blocks'][1]['ops'][0]['attrs']['value'] = 255
+        with patch.object(semantics, '_z3_module', side_effect=ImportError):
+            proved = validate_scalar_totality(safe)
+            disproved = validate_scalar_totality(unsafe)
+            unsupported = validate_scalar_totality(total_division())
+        self.assertEqual(proved['status'], 'proved', proved)
+        self.assertEqual(proved['solver']['result'], 'unsat')
+        self.assertEqual(proved['checker']['source_identity']['cnf.image.bin'], self.native.image_sha256)
+        self.assertEqual(disproved['status'], 'disproved', disproved)
+        self.assertEqual(disproved['counterexample']['arguments'], [255])
+        self.assertEqual(disproved['counterexample']['observation'], {'status': 'trapped', 'code': 'overflow'})
+        self.assertEqual(unsupported['reason'], 'solver_unavailable')
 
     def test_actual_optimizer_discharge_and_legacy_counterexample(self):
         try:

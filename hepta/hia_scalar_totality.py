@@ -12,7 +12,9 @@ from hashlib import sha256
 from pathlib import Path
 import time
 
-from .hia_scalar_proof_contract import STRUCTURAL_TOTALITY_CHECKER, begin_scalar_proof, finish_scalar_proof
+from .hia_scalar_proof_contract import (
+    CIRCUIT_TOTALITY_CHECKER, STRUCTURAL_TOTALITY_CHECKER, begin_scalar_proof, finish_scalar_proof,
+)
 from .hia_program import HIAProgramRejected, verify_program
 from .hia_scalar_symbolic_native import selected_scalar_symbolic
 from . import hia_translation_validation as semantics
@@ -48,13 +50,47 @@ def _implementation_digest():
     return sha256(Path(__file__).read_bytes()).hexdigest()
 
 
+def _native_circuit_totality(result, scope, program, fn, graph, deadline_ns):
+    from .hia_cnf_native import UNSAT, core_trap_circuit, scalar_model_arguments, selected_cnf
+    from .hia_optimization import _native_circuit_decision, _native_solver_identity
+
+    cnf = selected_cnf()
+    if cnf is None:
+        return False
+    if (scope["source_identity"] or {}).get("cnf.image.bin") != cnf.image_sha256:
+        raise semantics._OutsideProfile("native_totality_identity_changed")
+    decision = _native_circuit_decision(cnf, core_trap_circuit(fn, *graph), deadline_ns)
+    if decision is None:
+        return False
+    verdict, model, evidence, _formula = decision
+    result["solver"].update(name=CIRCUIT_TOTALITY_CHECKER, version="1",
+                            result="unsat" if verdict == UNSAT else "sat",
+                            identity=_native_solver_identity(cnf), discharge=evidence)
+    result["limits"][1] = (
+        "The canonical verifier, circuit projection, selected HIA solver and independent Core replay are trusted.")
+    if verdict == UNSAT:
+        result.update(status="proved", reason="native_trap_predicate_unsatisfiable")
+    else:
+        arguments = list(scalar_model_arguments(model, fn["params"]))
+        observed = semantics._execute_observation(program, fn["name"], arguments)
+        tag = semantics._TRAP_TAGS.get(observed.get("code"))
+        if observed["status"] != "trapped" or tag is None:
+            result["reason"] = "counterexample_replay_disagrees_with_encoder"
+        else:
+            result.update(status="disproved", reason="nonreturning_counterexample_replayed",
+                          counterexample={"arguments": arguments, "parameter_types": semantics._signature(fn)[0],
+                                          "observation": observed, "outcome_tag": tag})
+    return True
+
+
 def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
     """Prove one public scalar function returns normally on every typed input.
 
     Canonical validation and the existing acyclic scalar profile run first.
     With a selected HIA checker, a verified DAG consisting of nontrapping
     operations and normal return sinks needs no symbolic expression.
-    Other cases create an independent context with the pinned Z3 identity.
+    Bounded cases can use the selected HIA word and Boolean circuit solver.
+    Remaining cases create an independent context with the pinned Z3 identity.
     SAT becomes ``disproved`` only after the
     canonical VM replays the same first trap. The deadline includes source
     checking, encoding, solver work, replay and final identity checks.
@@ -131,6 +167,8 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
                 result["limits"][1] = (
                     "The canonical verifier and selected HIA graph and totality checks are trusted implementations.")
                 return result
+        if _native_circuit_totality(result, scope, program, fn, graph, started + timeout_ms * 1_000_000):
+            return result
         z = semantics._z3_module()
         result["solver"]["version"] = z.get_version_string()
         if z.get_version_string() != PINNED_Z3_VERSION:
