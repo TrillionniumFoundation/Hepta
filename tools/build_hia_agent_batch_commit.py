@@ -88,7 +88,7 @@ def adapter_layout(output, adapter, source, call_symbols):
     return stub, holes, identity
 
 
-def verify_placement(binary, binding, parts):
+def verify_placement(binary, binding, parts, *, instructions=None):
     _, adapter_size, _ = binding
     images = bytearray()
     entries = []
@@ -97,7 +97,7 @@ def verify_placement(binary, binding, parts):
         images.extend(bytes(padding))
         entries.append(len(images))
         images.extend(image)
-    verify_adapter(binary, images, binding, entries=entries)
+    verify_adapter(binary, images, binding, entries=entries, instructions=instructions)
 
 
 def build(output, compiler, cold_report, *, kind='batch'):

@@ -15,8 +15,9 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
-from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE, assemble_adapter, digest
+from tools.build_hia_agent_batch_commit import digest, verify_placement
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.generate_hia_native_filter import read_adapter_binding
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -24,9 +25,12 @@ PROGRAMS = 'examples/hia_bootstrap/agent_store/'
 ADAPTER = 'tools/hia_agent_store_syscalls.S'
 DRIVER = 'tools/build_hia_agent_store.py'
 ADAPTER_READER = 'tools/build_hia_agent_batch_commit.py'
+ADAPTER_BINDING_READER = 'tools/generate_hia_native_filter.py'
 PLAN = PROGRAMS + 'build-plan.json'
 CANARY = b'\xb3' * 64
 CAPACITY = 1 << 20
+ROOT_INSTRUCTIONS = {'loader': b'\xe8', 'owner': b'\xe8',
+                     'manifest': b'\x48\x8d\x35', 'json': b'\xe8'}
 
 
 def write_new(path, raw, mode=0o600):
@@ -86,27 +90,6 @@ def build_modules(output, plan, images, packer):
     return struct.pack('<8s3Q', b'HIAMSI01', 1, len(records), 0) + b''.join(records)
 
 
-def verify_root(binary, stub, symbols, parts):
-    starts = {
-        'loader': ('loader_call_hole', b'\xe8'),
-        'owner': ('owner_call_hole', b'\xe8'),
-        'manifest': ('manifest_address_hole', b'\x48\x8d\x35'),
-        'json': ('json_call_hole', b'\xe8'),
-    }
-    expected = bytearray(stub)
-    for label, img in parts.items():
-        symbol, instruction = starts[label]
-        at = symbols[symbol]
-        if (not len(instruction) <= at <= len(stub) - 4
-                or stub[at - len(instruction):at + 4] != instruction + bytes(4)):
-            raise ValueError(f'wrong adapter placement for {label}')
-        expected.extend(bytes((-len(expected)) % 8))
-        struct.pack_into('<i', expected, at, len(expected) - (at + 4))
-        expected.extend(img)
-    if binary[ELF_HEADER_SIZE:] != expected:
-        raise ValueError('root ELF disagrees with the exact adapter, module manifest or HIA inputs')
-
-
 def build(output, compiler, cold_report):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
@@ -120,9 +103,12 @@ def build(output, compiler, cold_report):
     filters = {'word-filter': PROGRAMS + 'word_filter.hepta',
                'bundle-packer': PROGRAMS + 'bundle_packer.hepta'}
     sources = {name: (ROOT / name).read_bytes() for name in
-               (*unit_files.values(), *filters.values(), ADAPTER, DRIVER, ADAPTER_READER)}
+               (*unit_files.values(), *filters.values(), ADAPTER, DRIVER,
+                ADAPTER_READER, ADAPTER_BINDING_READER)}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('native Agent Store source differs from admitted cold source')
+    binding = read_adapter_binding(sources[unit_files['packer']], sources[ADAPTER],
+                                   calls=len(ROOT_INSTRUCTIONS))
     output.mkdir(mode=0o700)
     compiled, receipts = {}, {}
     for label, name in {**filters, **unit_files}.items():
@@ -153,12 +139,12 @@ def build(output, compiler, cold_report):
     if not digest(binary) == pack_receipt['produced_sha256'] == plan['expected_root_sha256']:
         raise ValueError('native Agent Store root identity changed')
     inspection = inspect_executable(binary)
-    stub, symbols, object_sha = assemble_adapter(output, ADAPTER, sources[ADAPTER])
-    verify_root(binary, stub, symbols, parts)
+    verify_placement(binary, binding, parts,
+                     instructions=tuple(ROOT_INSTRUCTIONS[label] for label in parts))
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes or (ROOT / PLAN).read_bytes() != plan_bytes
             or any(path.read_bytes() != data for path, data in compiled.values())
-            or elf.read_bytes() != binary or (output / Path(ADAPTER).name).read_bytes() != sources[ADAPTER]
+            or elf.read_bytes() != binary or (ROOT / ADAPTER).read_bytes() != sources[ADAPTER]
             or any(digest((output / 'module-root' / f"module-{group['role']}.bin").read_bytes()) != group['sha256']
                    for group in plan['modules'])):
         raise ValueError('Agent Store build inputs changed before publication')
@@ -176,7 +162,8 @@ def build(output, compiler, cold_report):
         'executable_path': executable.name,
         'executable_sha256': digest(binary),
         'executable': inspection,
-        'adapter_object_sha256': object_sha,
+        'adapter_text_sha256': binding[0].hex(),
+        'adapter_assembled_during_build': False,
         'compile_receipts': receipts,
         'word_filter_calls': calls,
         'pack_receipt': pack_receipt,

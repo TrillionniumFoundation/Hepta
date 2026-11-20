@@ -238,7 +238,7 @@ def read_adapter_binding(packer, adapter_source, *, calls):
     return adapter, size, tuple(holes)
 
 
-def verify_adapter(binary, code, binding, *, entries):
+def verify_adapter(binary, code, binding, *, entries, instructions=None):
     adapter_digest, size, holes = binding
     header = bytearray(elf_header())
     end = len(header) + size
@@ -247,9 +247,13 @@ def verify_adapter(binary, code, binding, *, entries):
     if len(binary) != length or binary[:len(header)] != header or binary[end:] != code:
         raise ValueError('HIA packer changed the ELF envelope or application image')
     adapter = bytearray(binary[len(header):end])
-    for hole, entry in zip(holes, entries, strict=True):
-        if adapter[hole - 1:hole + 4] != b'\xe8' + struct.pack('<i', size + entry - hole - 4):
-            raise ValueError('HIA packer changed an admitted application call relocation')
+    if instructions is None:
+        instructions = (b'\xe8',) * len(holes)
+    for hole, entry, instruction in zip(holes, entries, instructions, strict=True):
+        if (hole < len(instruction)
+                or adapter[hole - len(instruction):hole + 4]
+                != instruction + struct.pack('<i', size + entry - hole - 4)):
+            raise ValueError('HIA packer changed an admitted application relocation')
         adapter[hole:hole + 4] = bytes(4)
     if sha256(adapter).digest() != adapter_digest:
         raise ValueError('HIA packer changed the admitted syscall adapter')
