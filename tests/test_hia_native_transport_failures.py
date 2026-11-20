@@ -505,7 +505,7 @@ def _child_store_owner(root, manifests):
 
         before = store_native.unconfirmed_lifecycle_count()
         with patch.dict(os.environ, {store_native.SELECTOR: manifests['store']}), \
-                patch.object(store_api.sqlite3, 'connect', connect), patch.object(image, '_entry', lost):
+                patch.object(sqlite3, 'connect', connect), patch.object(image, '_entry', lost):
             error = observe_error(lambda: store_api.AgentStore(root / name))
         check_transport(error, injected, store_native.StoreLifecycleUnknown)
         assert store_native.unconfirmed_lifecycle_count() == before + 1
@@ -531,7 +531,7 @@ def _child_store_owner(root, manifests):
             raise injected
 
         with patch.dict(os.environ, {store_native.SELECTOR: manifests['store']}), \
-                patch.object(store_api.sqlite3, 'connect', failed):
+                patch.object(sqlite3, 'connect', failed):
             error = observe_error(lambda: store_api.AgentStore(root / ('foreign-' + name)))
         assert error is injected
         assert store_native.unconfirmed_lifecycle_count() == before
@@ -610,7 +610,7 @@ def _child_store_worker(root, manifests):
         stderr = io.TextIOWrapper(diagnostic_output, encoding='utf-8')
         error = None
         with patch.object(store_native.NativeStoreLifecycleImage, '__init__', image_init), \
-                patch.object(store_api.sqlite3, 'connect', connect), \
+                patch.object(sqlite3, 'connect', connect), \
                 patch.object(sys, 'stdin', stdin), redirect_stdout(stdout), \
                 redirect_stderr(stderr), \
                 patch.object(worker_api, '_unknown_request_exit', observe_terminal):
