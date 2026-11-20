@@ -786,27 +786,69 @@ def set(w:mutbuf, index:u64, value:u64) -> u64:
     return value
 '''
 
-def source_program():
+# Private helpers retain their original byte path for every short-tail and
+# high-offset refusal. A v9 word access is used only after its complete extent
+# is proved; this also preserves the old partial-store prefix on a byte trap.
+# Word operations cost their defined single VM tick. This implementation does
+# not claim identical interruptions under arbitrary smaller step budgets.
+WORD_PREFIXES = {
+    'def read_word(s:readbuf, index:u64) -> u64:\n': '''    if index <= length(s):
+        if length(s) - index >= 8:
+            return word_load(s, index)
+''',
+    'def get(w:mutbuf, index:u64) -> u64:\n': '''    if index * 8 <= length(w):
+        if length(w) - index * 8 >= 8:
+            return word_load(w, index * 8)
+''',
+    'def set(w:mutbuf, index:u64, value:u64) -> u64:\n': '''    if index * 8 <= length(w):
+        if length(w) - index * 8 >= 8:
+            word_store(w, index * 8, value)
+            return value
+''',
+}
+
+
+def source_program(*, word_memory=True):
+    if type(word_memory) is not bool:
+        raise ValueError('Slot word-memory authoring selection must be an exact bool')
+    text = PROTOCOL
+    if word_memory:
+        for signature, prefix in WORD_PREFIXES.items():
+            if text.count(signature) != 1:
+                raise ValueError('Slot fixed-word helper signature changed')
+            text = text.replace(signature, signature + prefix)
     values = {**PORT, 'REQUEST_MAGIC': REQUEST_MAGIC, 'RESULT_MAGIC': RESULT_MAGIC,
               'STATE_MAGIC': STATE_MAGIC, 'MAX_PORT': len(PORTS)}
-    return re.sub(r'@([A-Za-z_][A-Za-z_0-9]*)@', lambda match: str(values[match[1]]), PROTOCOL)
+    return re.sub(r'@([A-Za-z_][A-Za-z_0-9]*)@', lambda match: str(values[match[1]]), text)
 
 
-def document():
-    nodes = ast.parse(source_program()).body
+class SlotBuilder(ContextBuilder):
+    def expr(self, node):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == 'word_store'):
+            if len(node.args) != 3 or node.keywords:
+                raise ValueError('Slot word store requires exactly three ordered operands')
+            args = [self.expr(value) for value in node.args]
+            return self.op('buffer.store.u64.le',
+                           [args[0], self.cast(args[1], 'usize'), self.cast(args[2], 'u64')])
+        return super().expr(node)
+
+
+def document(*, word_memory=True):
+    nodes = ast.parse(source_program(word_memory=word_memory)).body
     names = {node.name: 'f' + str(index) for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}
     total = total_scalar_functions(nodes)
     functions = []
     for node in nodes:
-        builder = ContextBuilder(node, names, signatures, total)
+        builder = SlotBuilder(node, names, signatures, total)
         builder.statements(node.body)
         functions.append({'name': names[node.name],
                           'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8',
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9' if word_memory else 'hepta.hia.program.v8',
                                   'module': 'slot_operations', 'functions': functions})
 
 

@@ -179,6 +179,8 @@ class CliDiscoverySelectionNativeTests(unittest.TestCase):
         from hepta.hia_cli_discovery_json_native import NativeCliDiscoveryJson
         from tools.hia_cli_discovery_controls import original_oracles, save
         cases = original_oracles()
+        self.assertEqual([row[0] for row in cases],
+            ['capabilities'] + ['catalog-v'+str(i) for i in range(1, 10)] + ['catalog-default'])
         calls, records = [], []
         original_observe = NativeCliDiscoveryJson.observe
         def observe(owner, wire, **kwargs):
@@ -199,7 +201,7 @@ class CliDiscoverySelectionNativeTests(unittest.TestCase):
                         actual = outcome(argv, mode)
                         self.assertEqual(actual, (('return', 0), expected.decode('utf-8'), ''))
                         records.append({'mode': sorted(mode), 'label': label, 'output_bytes': len(expected)})
-        self.assertEqual(len(calls), 20)
+        self.assertEqual(len(calls), 22)
         save(self.fixture.folder / 'ORDINARY_CLI.json', {'status': 'PASS', 'scope': self.fixture.scope,
             'observations': records, 'actual_native_json_calls': len(calls),
             'retained_semantic_calls': 0, 'host_json_constructor_calls': 0,

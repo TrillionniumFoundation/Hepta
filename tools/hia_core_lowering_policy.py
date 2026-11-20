@@ -1,7 +1,8 @@
 """Authoring-only complete Function lowering policy, compiled into HIA continuations.
 
-Runtime packages never execute or import this source. It preserves the exact608
-Function and helper AST as the explicit policy input, rather than replay outputs.
+Runtime packages never execute or import this source. The exact608 v8 Function
+and helper AST is retained, with the separately checked v9 word-memory branch.
+These are explicit policy inputs, rather than replay outputs.
 """
 
 def _reject(message, code="E_HIA_PROGRAM_NATIVE"):
@@ -272,6 +273,23 @@ class _Function:
                 done = self.label("drop_done")
                 self.load(args[0], "rdi"); c.test("rdi", "rdi"); c.jcc("e", done)
                 c.call("free"); c.label(done)
+        elif op in WORD_MEMORY:
+            # Subtract only after the full-width offset check. Both guards
+            # precede address formation and the single unaligned word access.
+            self.load(args[0], "rdx", 1); self.load(args[1], "rcx")
+            c.cmp("rcx", "rdx"); self.fail_if("a")
+            c.sub("rdx", "rcx"); self.compare_imm("rdx", 8); self.fail_if("b")
+            self.load(args[0]); c.add("rax", "rcx")
+            if op in WORD_LOADS:
+                c.load("rax", "rax")
+                if WORD_LOADS[op] == "big":
+                    c.emit(bytes((0x48, 0x0f, 0xc8)))  # bswap rax
+                self.store(out[0])
+            else:
+                self.load(args[2], "rcx")
+                if WORD_STORES[op] == "big":
+                    c.emit(bytes((0x48, 0x0f, 0xc9)))  # bswap rcx
+                c.store("rax", 0, "rcx")
         elif op in {"buffer.load", "buffer.store"}:
             self.load(args[0], "rdx", 1); self.load(args[1], "rcx")
             c.cmp("rcx", "rdx"); self.fail_if("ae")

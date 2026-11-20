@@ -20,6 +20,7 @@ def main():
     for name in ("root", "installed", "bundle", "evidence"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--expected-bundle-sha256", required=True)
+    parser.add_argument("--lane", choices=("current-v1", "current-v5"), default="current-v5")
     args = parser.parse_args()
     root, installed = args.root.resolve(strict=True), args.installed.resolve(strict=True)
     output = args.evidence.resolve()
@@ -29,6 +30,10 @@ def main():
     from hepta import hia_agent_service as api, hia_agent_store as store
     from hepta.hia_native_helpers import native_helpers_scope
     from hepta.hia_agent_contract import installation_manifest
+    from tests.hia_slot_worker_terminal import SourceAuthority, worker_profile, assert_terminal
+    authority = SourceAuthority(root)
+    profile = worker_profile((installed / "hepta/hia_agent_worker.py").read_bytes())
+    assert profile == authority.profile
     from tests.test_hia_agent_native_tools import AgentToolCase
     from tools.hia_agent_native_qualification import exhaustive_u8_workload
     from tests.hia_slot_operations_qualification_support import (
@@ -39,8 +44,10 @@ def main():
     bundle_raw = regular_bytes(args.bundle)
     assert sha256(bundle_raw).hexdigest() == args.expected_bundle_sha256
     capsule = json.loads(bundle_raw)
-    assert capsule["schema"] == "hepta.hia.native-helpers.v5"
-    bridge = capsule["bridges"][0]
+    mechanical_lane = args.lane == "current-v5"
+    assert capsule["schema"] == ("hepta.hia.native-helpers.v5" if mechanical_lane
+                                 else "hepta.hia.native-helpers.v1")
+    bridge = capsule["bridges"][0] if mechanical_lane else None
     environment = clean_environment()
     environment["PYTHONDONTWRITEBYTECODE"] = "1"
     test = unittest.TestCase()
@@ -80,6 +87,8 @@ def main():
         counts = tagged(b"SLOT_OPERATIONS_INSTALLED=")
         mechanical = tagged(b"SLOT_MECHANICAL_WORKER=")
         test.assertEqual(counts["retained_calls"], [])
+        assert_terminal(test, counts["terminal"], stderr, label, profile)
+        require_loaded = require_loaded and mechanical_lane
         test.assertIs(mechanical["loaded"], require_loaded)
         if require_loaded:
             test.assertEqual(mechanical["abi"], bridge["abi"])
@@ -175,7 +184,7 @@ def main():
     try:
         before = state(case, request)
         raw, counts, code = run_worker("lost-SQL-ACK", mode="lost-execute-ack",
-            case=case, request=request, code=1, identity=identities)
+            case=case, request=request, code=profile["lost_ack_exit"], identity=identities)
         after = state(case, request)
         test.assertEqual(raw, b"")
         test.assertTrue(counts["lost_ack_injected"])
@@ -239,8 +248,10 @@ def main():
     finally:
         case.tearDown()
     test.assertEqual(regular_bytes(args.bundle), bundle_raw)
+    authority.finish()
     write_json(output / "report.json", {
-        "schema": "hepta.slot.mechanical.installed-worker.v1", "status": "PASS",
+        "schema": "hepta.slot.mechanical.installed-worker.v2", "status": "PASS",
+        "lane": args.lane, "source_authority": authority.summary(),
         "capsule": {"path": str(args.bundle), **pin(args.bundle)},
         "installed": str(installed), "identities": identities,
         "identity_child": {"counts": identity_counts, "mechanical": identity_mechanical},

@@ -24,6 +24,22 @@ from hepta.hia_core_lowering_native import NativeCoreLowering, LoweringSession
 from hepta import hia_program_native as backend
 
 COMPONENT_MODULES = ('tests.test_hia_core_lowering_native',)
+# The original component controls plus the separately added v9 word case.
+COMPONENT_IDS = (
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_actual_installed_wheel_uses_complete_bundle_without_authoring',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_actual_native_return_then_foreign_failure_closes_every_continuation',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_capture_identity_reentrancy_and_all_bridge_dependencies',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_exact_foreign_store_binding_and_nested_native_invocation_order',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_five_helpers_and_native_literal_owner_keep_errors_and_values',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_ordinary_backend_is_native_with_complete_metadata_and_no_retained_Function',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_protocol_buffers_canaries_and_single_use_observations',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_v9_word_lowering_matches_complete_machine_metadata_and_actual_bytes',
+    'tests.test_hia_core_lowering_native.CoreLoweringNativeTests.test_warm_source_ABI_and_fresh_manifest_key_must_be_readmitted',
+    'tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_complete_original_Function_and_five_helpers_are_independent',
+    'tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_current_33_sources_keep_original_Core_caps_and_literal_VM',
+    'tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unqualified_cold_refuses_before_output_creation',
+    'tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_unselected_constructor_subclass_and_early_target_errors_stay_original',
+)
 CORE_MODULES = (
     'tests.test_hia_program_native', 'tests.test_hia_program_native_review',
     'tests.test_hia_machine_lowering_edges', 'tests.test_hia_native_byte_abi',
@@ -145,6 +161,7 @@ def source_pins():
                  'tools/build_hia_core_lowering.py',
                  'tools/qualify_hia_core_lowering_callers.py',
                  'tests/test_hia_core_lowering_native.py',
+                 'tests/test_hia_program_native_review.py',
                  'tests/fixtures/hia_program_native_608.py.txt',
                  *source_names(checked_abi(abi_raw))):
         values[name] = sha256((ROOT / name).read_bytes()).hexdigest()
@@ -217,8 +234,14 @@ def main():
         'public_control_mode_count': 27, 'abi_control_mode_count': 28,
         'private_fixture_modes': ['_native_globals'],
         'native_step_unit_index_basis': 'owner.images excludes literal pool; unit_index0 is core_lowering_000; bundle_image_index is unit_index+1; complete bundle index0 is core_lowering_pool.',
-        'component_denominator': 12, 'original_machine_denominator': 51,
-        'original_core_denominator': 50, 'original_methods_modified': False,
+        'component_denominator': len(COMPONENT_IDS), 'original_machine_denominator': 51,
+        'original_core_denominator': 50, 'original_methods_modified': True,
+        'original_method_identities_preserved': True,
+        'original_method_updates': [{
+            'id': 'tests.test_hia_program_native_review.DirectNativeProfileReview.test_future_verifier_admission_cannot_silently_extend_machine_lowering',
+            'change': 'future schema witness v9 to v10 after explicit v9 admission',
+            'rejection_assertion_preserved': True,
+        }],
         'hosted_primitive_kinds': 18, 'Emitter_control_still_hosted': True,
         'default_activated': False, 'whole_native_claimed': False,
     }
@@ -346,7 +369,7 @@ def main():
                                       for p, raw in inputs])
         with patch.object(NativeCoreLowering, 'invoke', invoke), patch.object(LoweringSession, 'step', step):
             for label, modules, count, expected_ids, guard_reference in (
-                ('component', COMPONENT_MODULES, 12, None, False),
+                ('component', COMPONENT_MODULES, 13, COMPONENT_IDS, False),
                 ('original-machine', ORIGINAL_MODULES, 51, ORIGINAL_IDS, True),
                 ('original-core', CORE_MODULES, 50, CORE_IDS, True)):
                 if label not in expected_groups:
@@ -375,7 +398,8 @@ def main():
                         super().startTest(test)
                 row = {'label': label, 'modules': list(modules), 'expected_methods': count,
                        'loaded_ids': loaded, 'loader_errors': list(loader.errors),
-                       'frozen_original_ids': list(expected_ids) if expected_ids is not None else None}
+                       'frozen_original_ids': list(expected_ids) if expected_ids is not None and label != 'component' else None,
+                       'frozen_component_ids': list(COMPONENT_IDS) if label == 'component' else None}
                 report['groups'].append(row)
                 if (loader.errors or len(loaded) != count or len(set(loaded)) != count
                         or (expected_ids is not None and loaded != list(expected_ids))):

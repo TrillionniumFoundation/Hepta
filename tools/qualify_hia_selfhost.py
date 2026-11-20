@@ -63,6 +63,18 @@ def digest(data):
     return sha256(data).hexdigest()
 
 
+def with_selfhost_module(source, module):
+    """Change only the first-line module; keep the schema and body bytes intact."""
+    header, newline, body = source.partition(b"\n")
+    schema, space, previous = header.rpartition(b" ")
+    if (not newline or previous != b"selfhost"
+            or not schema.startswith(b"hia-asm.v1 hepta.hia.program.v")
+            or not module or module == previous
+            or any(byte in b" \t\r\n" for byte in module)):
+        raise ValueError("selfhost source module header was not replaced")
+    return schema + space + module + newline + body
+
+
 def source_manifest():
     return {**file_digests(), CONTRACT_PATH: digest((ROOT / CONTRACT_PATH).read_bytes())}
 
@@ -424,8 +436,7 @@ def observe_native_tool(directory, label, tool_name, arguments):
 def qualify_elf_outputs(directory, compilers, sample, checks):
     observations = []
     def object_source(source):
-        return source.replace(b"hepta.hia.program.v8 selfhost\n",
-                              b"hepta.hia.program.v8 selfhost_elf\n", 1)
+        return with_selfhost_module(source, b"selfhost_elf")
     for label, compiler, own_source in compilers:
         for subject, source, flat in (("compiler", own_source, compiler),
                                      ("bytesum", sample, directory / (label + "-bytesum.image.bin"))):
@@ -904,12 +915,9 @@ def qualify(output, *, native_transport=False):
         # No inherited native transport image is admitted. This source-only
         # replay first finishes the original references/B0/B1..M3/observers,
         # then builds this policy and its mechanical bridge from this very B3.
-        from tools.build_hia_cold_native_transport import build as build_cold_transport
-        import sysconfig
-        library_name = sysconfig.get_config_var("LDLIBRARY")
-        if type(library_name) is not str or "/" in library_name:
-            raise ValueError("current runtime did not declare one shared Python library")
-        library = Path(sys.executable).resolve().parent.parent / "lib" / library_name
+        from tools.build_hia_cold_native_transport import (
+            build as build_cold_transport, current_python_library)
+        library = current_python_library()
         manifest_path = build_cold_transport(directory / "native-transport-build",
             original, digest(original.read_bytes()), library,
             cc=shutil.which("cc") or "cc", development=True)

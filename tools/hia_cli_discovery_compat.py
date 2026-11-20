@@ -6,9 +6,12 @@ runtime selection continues to load the single current discovery HIA owner.
 from __future__ import annotations
 
 import base64
+import builtins
 from hashlib import sha1, sha256
 import json
 from pathlib import Path
+import sys
+from types import ModuleType
 import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +19,8 @@ FIXTURE = ROOT / 'tests/fixtures/hia_cli_discovery_verified_build.json'
 FIXTURE_SHA256 = '21f399cdb8e6d89f4a911a3f566e2cd0caba3fa459ed7b5d2acd8da2c3ed8e76'
 R5_SOURCE_NAME = 'examples/hia_bootstrap/cli_discovery_json.hepta'
 R5_SOURCE_SHA256 = '8e14590337e501c2315befe8dea1df9f6e7b02dbda28ca82d54b2f20959ed543'
+WORD_FIXTURE = ROOT / 'tests/fixtures/hia_cli_discovery_word_memory.json'
+WORD_FIXTURE_SHA256 = '278d8b2ae36291a849f195fa6a5627a0e5482d23d91135786eb93fd930ebca3e'
 
 
 def fixture():
@@ -39,8 +44,70 @@ def original_source(name):
     return raw
 
 
+def word_fixture():
+    raw = WORD_FIXTURE.read_bytes()
+    if sha256(raw).hexdigest() != WORD_FIXTURE_SHA256:
+        raise ValueError('word-memory compatibility fixture changed')
+    value = json.loads(raw)
+    if (value['schema'] != 'hepta.hia.cli-discovery-word-memory-compat.v1'
+            or value['base_commit'] != 'f33d8da316de8fdf27b504371f1a5310997ff548'
+            or value['feature_head'] != 'd99855451c8140899c85cf264b330a81a1c00362'
+            or value['verified_build_head'] != '633feee656f000e2a9b683b366e391b5eefe3ce1'):
+        raise ValueError('word-memory compatibility source identity differs')
+    return value
+
+
+def word_original_source(name):
+    row = word_fixture()['pre_v9_sources'][name]
+    raw = zlib.decompress(base64.b64decode(row['data'], validate=True))
+    blob = sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+    if len(raw) != row['bytes'] or sha256(raw).hexdigest() != row['sha256'] or blob != row['git_blob']:
+        raise ValueError('archived pre-v9 source bytes differ')
+    return raw
+
+
+def legacy_catalog_owner():
+    """Execute both complete pinned v8 sources only as an independent test oracle."""
+    schema = ModuleType('hepta._cli_discovery_frozen_schema')
+    schema.__package__ = 'hepta'
+    schema_raw = word_original_source('hepta/hia_schema.py')
+    exec(compile(schema_raw, '<pinned-v8-hia_schema>', 'exec'), schema.__dict__)
+    catalog = ModuleType('hepta._cli_discovery_frozen_opcodes')
+    catalog.__package__ = 'hepta'
+    imports = []
+    ordinary_import = builtins.__import__
+    def frozen_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if level == 1 and name == 'hia_schema':
+            imports.append((name, fromlist))
+            return schema
+        return ordinary_import(name, globals, locals, fromlist, level)
+    catalog.__dict__['__builtins__'] = {**vars(builtins), '__import__': frozen_import}
+    raw = word_original_source('hepta/hia_opcodes.py')
+    missing = object()
+    previous = sys.modules.get(catalog.__name__, missing)
+    sys.modules[catalog.__name__] = catalog
+    try:
+        exec(compile(raw, '<pinned-v8-hia_opcodes>', 'exec'), catalog.__dict__)
+    finally:
+        if previous is missing:
+            del sys.modules[catalog.__name__]
+        else:
+            sys.modules[catalog.__name__] = previous
+    if (imports != [('hia_schema', ('LATEST_CORE_SCHEMA', 'PRIMITIVE_PROFILES'))]
+            or tuple(catalog.PRIMITIVE_PROFILES) != tuple('hepta.hia.program.v'+str(i) for i in range(1,9))
+            or len(catalog.OPCODES) != 50 or catalog.LATEST_CORE_SCHEMA != 'hepta.hia.program.v8'):
+        raise ValueError('independent original catalog oracle domain differs')
+    return catalog
+
+
 def original_cli_source(name, normalized_current):
     """Admit only the exact reviewed feature bytes after undoing the five hooks."""
+    word = word_fixture()
+    expected_word = word['current_source_sha256'].get(name)
+    if expected_word is not None:
+        if sha256(normalized_current.encode()).hexdigest() != expected_word:
+            raise ValueError('CLI changes exceed the pinned word-memory feature: ' + name)
+        normalized_current = word_original_source(name).decode()
     value = fixture()
     expected = value['verified_build_source_sha256'].get(name)
     if expected is None:

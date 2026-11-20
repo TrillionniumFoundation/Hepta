@@ -28,7 +28,7 @@ def _magnitude(value):
 
 
 def sizes(mode, count, children=0, width=8):
-    if mode in (3, 4):
+    if mode in (3, 4, 5):
         return 32, 128
     metric = 2 * width + 8
     workspace = 128 + children * 48 + count * 64 + count * ((count + 7) // 8) + count * metric
@@ -77,8 +77,11 @@ def function_packet(fn, calculated):
     return b''.join(parts), width
 
 
-def profile_packet(document, schema, allow_chain):
-    parts = [struct.pack('<2Q', REQUEST_MAGIC, 3), _text(schema), _text(document.get('schema', '')),
+def profile_packet(document, schema, allow_chain, *, word_memory=False):
+    # Mode 3 retains the entire original packet and byte-only profile. Mode 5
+    # explicitly adds the four v9 opcodes without widening that old domain.
+    mode = 5 if word_memory else 3
+    parts = [struct.pack('<2Q', REQUEST_MAGIC, mode), _text(schema), _text(document.get('schema', '')),
              struct.pack('<2Q', bool(allow_chain), len(document['functions']))]
     for fn in document['functions']:
         declared = [p['type'] for p in fn['params']] + fn['returns']
@@ -168,9 +171,10 @@ class NativeStaticBudget(NativeHiaJsonImage):
             raise RuntimeError('invalid native resource policy refusal')
         return None if offender == len(rows) else (rows[offender]['function'], fields[field])
 
-    def audit_profile(self, document, *, schema, allow_chain):
+    def audit_profile(self, document, *, schema, allow_chain, word_memory=False):
         from .hia_static_budget import _reject
-        result = self._run(profile_packet(document, schema, allow_chain), 3, len(document['functions']))
+        raw = profile_packet(document, schema, allow_chain, word_memory=word_memory)
+        result = self._run(raw, 5 if word_memory else 3, len(document['functions']))
         reason, offender = struct.unpack_from('<2Q', result, 16)
         if reason > 4 or offender >= max(1, len(document['functions'])):
             raise RuntimeError('invalid native resource profile refusal')

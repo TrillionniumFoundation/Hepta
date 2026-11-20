@@ -16,6 +16,7 @@ if __package__ in (None, ""):
 from tests.hia_slot_operations_qualification_support import (
     canonical, regular_bytes, unique_pairs, write_json)
 from tools.read_hia_slot_mechanical_observations import mechanical_counters
+from tools.read_hia_slot_worker_terminal import admit_source_authority, verify_terminal
 
 
 def need(value, message):
@@ -189,7 +190,7 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
     report_path = evidence / "report.json"
     report = captured.json(report_path)
     started = captured.json(evidence / "started.json")
-    need(report["schema"] == started["schema"] == "hepta.slot.mechanical.installed-driver.v1",
+    need(report["schema"] == started["schema"] == "hepta.slot.mechanical.installed-driver.v2",
          "installed driver schema differs")
     need(report["status"] == "PASS" and report["failure"] is None and report["source_stable"] is True,
          "installed producer did not completely succeed")
@@ -208,13 +209,16 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
         need(not PurePosixPath(relative).is_absolute() and ".." not in PurePosixPath(relative).parts,
              "unsafe product input")
         captured.raw(product_root / relative, expected)
-    labels = ["wheel", "install", "ordinary-installed-identity", "installed-scenarios"]
+    source_authority = admit_source_authority(captured, product_root)
+    same(report["terminal_source_authority"], source_authority)
+    labels = ["wheel", "install", "ordinary-installed-identity",
+              "current-v1-scenarios", "installed-scenarios"]
     need([row["label"] for row in report["commands"]] == labels, "complete outer commands differ")
     outer = {}
     for row in report["commands"]:
         label = row["label"]
         outer[label] = owned(captured, evidence / label, row["result"],
-                             1800 if label == "installed-scenarios" else 60)
+                             1800 if label in ("current-v1-scenarios", "installed-scenarios") else 60)
     details = report["details"]
     wheel = details["wheel"]
     wheel_raw = captured.raw(wheel["path"], {k: wheel[k] for k in ("bytes", "sha256")})
@@ -252,13 +256,37 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
         {k: admin[k] for k in ("bytes", "sha256")}, installed)
     need(admin["authority"] == "OPERATOR_MUST_PIN_THIS_DIGEST"
          and admin["product_qualification_claimed"] is False, "fixture administrator pin differs")
-    rawpin = details["probe_report"]
+    base_path = Path(capsule["helpers_bundle"])
+    base_admin = {"path": str(base_path), **digest(captured.raw(base_path))}
+    current_v1 = verify_probe(captured, details["current_v1_probe_report"],
+        evidence / "current-v1-probe/report.json", base_admin, installed, identity,
+        product_root, None, "current-v1", source_authority)
+    current_v5 = verify_probe(captured, details["probe_report"],
+        evidence / "installed-probe/report.json", admin, installed, identity,
+        product_root, bridge, "current-v5", source_authority)
+    same(current_v1["comparison"], current_v5["comparison"])
+    return {"scope": "CURRENT_V1_AND_V5_INSTALLED_TERMINAL_V2",
+            "workers_per_lane": 7, "workers": 14,
+            "source_wheel_identity_equal": True, "admin_bundle": admin,
+            "terminal_source_authority": source_authority,
+            "lane_observations": [current_v1, current_v5],
+            "paired_comparison_equal": True,
+            "separate_authenticated_request_ids": True,
+            "original_Native6_replaced": False, "whole_native_stack_qualified": False}
+
+
+def verify_probe(captured, rawpin, expected_path, admin, installed, identity,
+                 product_root, bridge, lane, source_authority):
     probe_path = Path(rawpin["path"])
-    need(probe_path == evidence / "installed-probe/report.json", "actual probe report path differs")
+    need(probe_path == expected_path, "actual probe report path differs")
     probe = captured.json(probe_path, {k: rawpin[k] for k in ("bytes", "sha256")})
-    need(probe["schema"] == "hepta.slot.mechanical.installed-worker.v1" and probe["status"] == "PASS",
+    need(probe["schema"] == "hepta.slot.mechanical.installed-worker.v2" and probe["status"] == "PASS",
          "installed original-worker scenario incomplete")
     same(probe["capsule"], {k: admin[k] for k in ("path", "bytes", "sha256")})
+    need(probe["lane"] == lane, "complete paired worker lane differs")
+    same(probe["source_authority"], source_authority)
+    profile = source_authority["worker_profile"]
+    same(digest(captured.raw(installed / "hepta/hia_agent_worker.py")), profile["worker"])
     need(probe["installed"] == str(installed)
          and probe["actual_installed_same_capsule_setup"] is True
          and probe["actual_original_worker"] is True
@@ -274,7 +302,7 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
     rows = {}
     for row in probe["commands"]:
         label = row["label"]
-        code = 1 if label == "lost-SQL-ACK" else 2 if label in worker_labels[-2:] else 0
+        code = profile["lost_ack_exit"] if label == "lost-SQL-ACK" else 2 if label in worker_labels[-2:] else 0
         command, stdout, stderr = owned(captured, probe_path.parent / label, row["result"], 60, code)
         argv = command["argv"]
         need(argv[1:3] == ["-I", "-B"]
@@ -297,7 +325,9 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
             need("--request-json-stdin" in argv, "actual worker request transport differs")
         counts = tag(stderr, b"SLOT_OPERATIONS_INSTALLED=")
         mechanical = tag(stderr, b"SLOT_MECHANICAL_WORKER=")
-        mechanical_evidence(mechanical, command, bridge, label != "source-plus-LF")
+        mechanical_evidence(mechanical, command, bridge,
+                            lane == "current-v5" and label != "source-plus-LF")
+        verify_terminal(counts["terminal"], stderr, label, profile)
         need(counts["retained_calls"] == [], "selected worker called retained Slot method")
         if label in ("installation-manifest", "source-plus-LF", "extra-module"):
             need(sum(counts["startup"].values()) == sum(counts["request"].values()) == 0
@@ -306,10 +336,11 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
     observations = probe["observations"]
     same(probe["identity_child"], {"counts": rows["installation-manifest"][1],
                                   "mechanical": rows["installation-manifest"][2]})
-    for label in ("normal", "lost-SQL-ACK"):
-        counters = rows[label][2]["execution_counters"]
-        need(sum(counters["public_calls"]) > 0 and sum(counters["initialized"]) > 0,
-             "installed request never actually entered C and its HIA owner")
+    if lane == "current-v5":
+        for label in ("normal", "lost-SQL-ACK"):
+            counters = rows[label][2]["execution_counters"]
+            need(sum(counters["public_calls"]) > 0 and sum(counters["initialized"]) > 0,
+                 "installed request never actually entered C and its HIA owner")
     normal, replay = observations["normal"], observations["replay"]
     for label, value in (("normal", normal), ("replay", replay),
                          ("lost-SQL-ACK", observations["lost_SQL_ACK"]),
@@ -361,9 +392,33 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
             same({k: mutation[k] for k in ("bytes", "sha256")},
                  digest(b"# installed inventory drift control\n"))
             need(not Path(mutation["path"]).exists(), "extra installed module was not removed")
-    return {"scope": "SEPARATE_V5_INSTALLED_CONTROL", "workers": len(worker_labels),
-            "source_wheel_identity_equal": True, "admin_bundle": admin,
-            "original_Native6_replaced": False, "whole_native_stack_qualified": False}
+    # Each lane already checked its own full journal and replay equality.
+    # Fresh setup has a separate authenticated request key; only the declared
+    # request_id is kept as a per-lane identity, not treated as equal data.
+    responses, request_ids = {}, {}
+    for label in ("normal", "replay", "unknown_replay"):
+        response = observations[label]["response"]["response"]
+        need(set(response) == {"contract_version", "request_id", "status", "error"},
+             "paired Slot response has an undeclared field")
+        request_id = response["request_id"]
+        need(type(request_id) is str and request_id.startswith("r-")
+             and len(request_id) == 66 and all(c in "0123456789abcdef" for c in request_id[2:]),
+             "actual per-lane request identity differs")
+        request_ids[label] = request_id
+        responses[label] = {key: value for key, value in response.items() if key != "request_id"}
+    return {"lane": lane, "workers": len(worker_labels),
+            "request_ids": request_ids,
+            "comparison": {
+                "responses": responses, "counts": {label: row[1] for label, row in rows.items()},
+                "normal_request_state": normal["after"]["request"]["state"],
+                "lost_request_state": lost["after"]["request"]["state"],
+                "lost_response": lost["after"]["request"]["response"],
+                "lost_cost_delta": lost["after"]["costs"] - lost["before"]["costs"],
+                "unknown_cost_delta": unknown["after"]["costs"] - lost["after"]["costs"],
+                "source_restored": drift["source_restored"],
+                "extra_module_removed": drift["extra_module_removed"]}}
+
+
 
 
 def main():
@@ -382,7 +437,7 @@ def main():
     except Exception as error:
         result = {"status": "HOLD", "detail": None,
                   "failure": {"type": type(error).__name__, "message": str(error)}}
-    result.update({"schema": "hepta.slot.mechanical.installed-readback.v1",
+    result.update({"schema": "hepta.slot.mechanical.installed-readback.v2",
                    "actual_inputs": captured.pins(), "product_imported": False})
     # Pins are from the same bytes that were parsed; never refresh them to bless
     # a changed report/ledger. Even a refusal reports its originally seen bytes.

@@ -23,6 +23,8 @@ include examples/hia_bootstrap/execution_budget.hepta
 include examples/hia_bootstrap/candidate_budget.hepta
 include examples/hia_bootstrap/slot_ledger.hepta
 include examples/hia_bootstrap/slot_operations.hepta
+include tests/test_hia_slot_word_memory.py
+include tests/fixtures/slot_operations_word_memory_v8.json
 include examples/hia_bootstrap/agent_slice.hepta
 include examples/hia_bootstrap/agent_data_json.hepta
 include examples/hia_bootstrap/agent_binary64.hepta
@@ -122,6 +124,7 @@ include examples/hia_bootstrap/core_lowering_027.hepta
 include examples/hia_bootstrap/core_lowering_028.hepta
 include examples/hia_bootstrap/core_lowering_029.hepta
 include examples/hia_bootstrap/core_lowering_030.hepta
+include examples/hia_bootstrap/core_lowering_031.hepta
 include examples/hia_bootstrap/core_lowering_pool.hepta
 
 # Complete source-bound program Emitter resources.
@@ -320,3 +323,119 @@ include tests/hia_cold_native_transport_control_cases.py
 include tools/qualify_hia_cold_native_transport_controls.py
 include tools/read_hia_cold_native_transport_controls.py
 include tests/test_hia_cold_native_transport_controls.py
+
+# Exact current-source successors and their immutable authorities.
+include tests/hia_caller_diagnostics_admission.py
+include tests/fixtures/caller_deadline_diagnostics_v1.json
+include tests/test_hia_caller_diagnostics_admission.py
+include tests/fixtures/caller_terminal_diagnostics_dependency_v1.json
+include tests/test_hia_evaluation_caller_admission.py
+include tests/fixtures/slot_worker_terminal_v2.json
+include tests/hia_slot_worker_terminal.py
+include tests/test_hia_slot_worker_terminal.py
+include tools/read_hia_slot_worker_terminal.py
+include tests/fixtures/hia_cli_discovery_verified_build.json
+include tests/fixtures/hia_cli_discovery_word_memory.json
+include tests/fixtures/static_budget_word_memory_d998.py.txt
+include tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt
+include tests/hia_slot_operations_qualification_support.py
+include tests/hia_slot_operations_installed_observer.py
+include tests/test_hia_slot_operations_native.py
+include tools/build_hia_slot_operations.py
+include tools/read_hia_slot_definition_lifetime.py
+include tests/fixtures/evaluation_callers_19065.json
+include tools/qualify_hia_evaluation_callers.py
+include tools/run_hia_unittest_gate.py
+include tools/generate_hia_slot_operations.py
+include tools/generate_hia_service_context.py
+include tools/generate_hia_store_lifecycle.py
+include tools/hia_service_context_arithmetic.py
+include tests/test_hia_agent_buffer_lifecycle.py
+include tests/test_hia_agent_external_roots.py
+include tests/test_hia_agent_native_campaign.py
+include tests/test_hia_agent_native_lease_snapshot.py
+include tests/test_hia_agent_native_machine_validation.py
+include tests/test_hia_agent_native_tools.py
+include tests/test_hia_candidate_budget_native.py
+include tests/test_hia_cost_ledger_native.py
+include tests/test_hia_execution_budget_native.py
+include tests/test_hia_first_use.py
+include tests/test_hia_slot_ledger_native_integration.py
+include tests/test_hia_worker_native_helpers.py
+
+# Complete source-only Delivery diagnostic admission and original 64/89 read closure.
+include tests/fixtures/delivery_diagnostic_source_successors_v1.json
+include tests/test_hia_delivery_diagnostic_sources.py
+include tests/hia_store_delivery_successor.py
+include tests/fixtures/store_delivery_successor_provenance.json
+include docs/HIA_NATIVE_DELIVERY_CAUSALITY.md
+include tests/fixtures/AgentStore._ref.py.txt
+include tests/fixtures/AgentStore.check_profile.py.txt
+include tests/fixtures/AgentStore.get.py.txt
+include tests/fixtures/AgentStore.get_json.py.txt
+include tests/fixtures/AgentStore.json.py.txt
+include tests/fixtures/AgentStore.profile.py.txt
+include tests/fixtures/AgentStore.put.py.txt
+include tests/fixtures/AgentStore.resolve_uri.py.txt
+include tests/fixtures/cost_ledger_b569c210.py.txt
+include tests/fixtures/cost_ledger_callers_b569c210.json
+include tests/fixtures/hia_agent_store_73f1634.py.txt
+include tests/fixtures/hia_emission_original_73f1634/cases.json
+include tests/fixtures/hia_emission_original_73f1634/hia_emission_compile_73f1634.py.txt
+include tests/fixtures/hia_emission_original_73f1634/hia_emission_emit_73f1634.py.txt
+include tests/fixtures/hia_emission_original_73f1634/hia_emission_original_oracle.py
+include tests/fixtures/hia_evaluation_value_19065.py.txt
+include tests/fixtures/hia_native_build_dispatch_cases_aac7550.json
+include tests/fixtures/hia_native_build_inputs_aac7550.py.txt
+include tests/fixtures/hia_native_build_native_aac7550.py.txt
+include tests/fixtures/hia_native_build_receipt_aac7550.py.txt
+include tests/fixtures/hia_native_build_signatures_aac7550.py.txt
+include tests/fixtures/hia_store_artifact_profile_cases_73f1634.json
+include tests/fixtures/service_context_b569c21.py.txt
+include tests/fixtures/service_context_callers_b569c21.json
+include tests/fixtures/store_lifecycle_ad352ee.py.txt
+include tests/fixtures/store_lifecycle_callers_ad352ee.json
+include tests/hia_evaluation_oracle.py
+include tests/hia_evaluation_scenarios.py
+include tests/hia_native_build_admission_oracle.py
+include tests/hia_native_build_admission_scenarios.py
+include tests/hia_native_build_dispatch_oracle.py
+include tests/hia_native_delivery_cases.py
+include tests/hia_service_context_fixtures.py
+include tests/hia_store_artifact_profile_oracle.py
+include tests/hia_store_lifecycle_fixtures.py
+include tests/hia_store_limit_oracle.py
+include tests/hia_store_literal_call_oracle.py
+include tests/test_hia_agent_artifact_store_native.py
+include tests/test_hia_agent_journal_native.py
+include tests/test_hia_agent_native_machine_choices.py
+include tests/test_hia_agent_native_proof_contract.py
+include tests/test_hia_emission_native.py
+include tests/test_hia_execution_observation_native.py
+include tests/test_hia_native_build_admission_native.py
+include tests/test_hia_native_build_dispatch.py
+include tests/test_hia_service_context_native.py
+include tests/test_hia_store_artifact_profile_native.py
+include tests/test_hia_store_lifecycle_native.py
+include tools/build_hia_cost_ledger.py
+include tools/build_hia_emission.py
+include tools/build_hia_evaluation.py
+include tools/build_hia_native_build_admission.py
+include tools/build_hia_service_context.py
+include tools/build_hia_store_lifecycle.py
+include tools/generate_hia_store_artifact_profile.py
+include tools/qualify_hia_agent_journal_callers.py
+include tools/qualify_hia_cost_ledger_callers.py
+include tools/qualify_hia_native_delivery.py
+include tools/qualify_hia_service_context_callers.py
+include tools/qualify_hia_store_lifecycle_callers.py
+
+# Complete Bootstrap caller source admission and its fixed historical scope.
+include tests/test_hia_service_bootstrap_caller_admission.py
+include tools/qualify_hia_service_bootstrap_callers.py
+include tests/fixtures/hia_service_bootstrap_original_r12/caller-scopes.json
+
+# Independent Bootstrap caller readback and its Source4 input closure.
+include tools/read_hia_service_bootstrap.py
+include tests/hia_service_bootstrap_support.py
+include tests/test_hia_service_bootstrap_caller_readback.py

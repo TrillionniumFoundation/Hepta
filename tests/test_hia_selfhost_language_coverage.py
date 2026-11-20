@@ -33,6 +33,10 @@ if __package__ in {None, ""}:
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
 from tools.hia_selfhost_contract import PROFILE
+from tools.hia_selfhost_word_coverage import WORD_OPCODES
+from tools.hia_selfhost_word_coverage import positive_fixtures as word_positive_fixtures
+from tools.hia_selfhost_word_coverage import rejected_fixtures as word_rejected_fixtures
+from tools.hia_selfhost_word_coverage import trap_cases as word_trap_fixtures
 WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -45,7 +49,7 @@ INPUT_OPCODES = tuple(sorted(("const", *BINARY_INTEGER, *NEW_INTEGER, *SHIFTS, *
     "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load",
     "buffer.store", "buffer.swap", "buffer.fill", "buffer.fill_range", "buffer.copy",
     "buffer.copy_range", "buffer.move_within", "call", "select",
-    "borrow.read", "borrow.mut", "loan.end")))
+    "borrow.read", "borrow.mut", "loan.end", *WORD_OPCODES)))
 ELF_OWNED_OPCODES = ("buffer.new", "buffer.try_new", "owner.drop", "owner.move")
 ELF_CHAIN_OPCODES = ("chain.empty", "chain.head_mut", "chain.head_read", "chain.is_empty", "chain.pop", "chain.try_push")
 NATIVE = (platform.system() == "Linux"
@@ -354,7 +358,10 @@ def buffer_reference_source(fixture):
         a.effect("loan.end", [loan])
     for owner in owners:
         a.effect("owner.drop", [owner])
-    wrapper = ("hia-asm.v1 hepta.hia.program.v8 language_reference\n"
+    schema = fixture["source"].split(b" ", 2)[1].decode("ascii")
+    if schema not in {"hepta.hia.program.v8", "hepta.hia.program.v9"}:
+        raise AssertionError("unexpected fixture schema")
+    wrapper = ("hia-asm.v1 " + schema + " language_reference\n"
         "fn reference_entry() -> (" + ",".join(["u8"] * len(returned)) + ") effects(alloc,read,write,trap) entry(b0)\n"
         "block b0()\n" + a.text() + "  ret(" + ",".join(returned) + ")\nend\n")
     body = fixture["source"].decode().split("\n", 1)[1]
@@ -467,6 +474,7 @@ def positive_fixtures():
     fixtures += boolean_equality_input_fixtures()
     fixtures += select_input_fixtures()
     fixtures += u16_flow_fixtures()
+    fixtures += word_positive_fixtures(Assembly, HEADER)
     from tools.hia_selfhost_bulk import OPS, bulk_cases, fixture_source, oracle
     for op in OPS:
         case = dict(next(row for row in bulk_cases() if row['opcode'] == op))
@@ -571,6 +579,8 @@ def rejected_fixtures():
     def add(name, source, boundary, general_core=None):
         rows[name] = {"id": name, "source": source, "boundary": boundary,
                       "general_core_expected": general_core}
+    for row in word_rejected_fixtures(Assembly, HEADER):
+        add(row["id"], row["source"], row["boundary"], row["general_core_expected"])
     for name, source in invalid_sources(SAMPLE.read_bytes()).items():
         add("existing-" + name, source, "grammar, types, SSA, control and resource admission", "rejected")
     for name, source in call_graph_invalid_sources(SAMPLE.read_bytes()).items():
@@ -853,19 +863,22 @@ def independent_references():
                          {"source_sha256": digest(fixture["source"]), "source_bytes": len(fixture["source"]),
                           "reference_result": result})
     traps = []
-    for fixture in shift_trap_cases() + checked_arithmetic_trap_cases() + checked_cast_trap_cases():
+    for fixture in shift_trap_cases() + checked_arithmetic_trap_cases() + checked_cast_trap_cases() + word_trap_fixtures(Assembly, HEADER):
         checked = assemble_program(fixture["source"])
-        if fixture["kind"] in {"checked_arithmetic", "checked_cast"}:
+        if fixture["kind"] == "word_memory":
+            scalar_doc = assemble_program(buffer_reference_source(fixture)).as_dict()
+        elif fixture["kind"] in {"checked_arithmetic", "checked_cast"}:
             scalar_doc = assemble_program(fixture["reference_source"]).as_dict()
         else:
             scalar_doc = checked.as_dict()
             scalar_doc["functions"][0]["params"] = []
             scalar_doc["functions"][0]["blocks"][0]["params"] = []
         try:
-            result = execute_program(scalar_doc, "f0", [])
+            result = execute_program(scalar_doc, "reference_entry" if fixture["kind"] == "word_memory" else "f0", [])
         except HIAProgramTrap as exc:
             result = {"status": "trapped", "trap": exc.code, "message": str(exc)}
-        expected_trap = "division_by_zero" if fixture["opcode"] in {"int.div.checked", "int.rem.checked"} else "overflow"
+        expected_trap = ("bounds" if fixture["kind"] == "word_memory" else
+                         "division_by_zero" if fixture["opcode"] in {"int.div.checked", "int.rem.checked"} else "overflow")
         if result.get("status") != "trapped" or result.get("trap") != expected_trap:
             raise AssertionError({"case": fixture["id"], "reference": result})
         traps.append({key: value for key, value in fixture.items() if not isinstance(value, bytes)} |
@@ -896,10 +909,11 @@ def coverage_manifest():
     if supported != sorted(set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES)):
         raise AssertionError("coverage inventory differs from actual HIA keyword/opcode set")
     rules = {
+        "fixed_width_byte_memory": (["word_memory"], ["word-*"]),
         "scalar_types": (["read_type", "instruction", "normalize", "scalar_literal", "integer_width"], ["scalar-*", "boolean", "cast", "checked-cast"]),
         "resources": (["args", "edge", "operation", "bulk_buffer", "bulk_range_guard",
-                       "loan_operation", "loan_access", "loan_incoming", "loan_transfer"],
-                      ["borrowed-buffer-operations", "existing-readonly-*", "swap-*", "bulk-*", "loan-*"]),
+                       "loan_operation", "loan_access", "loan_incoming", "loan_transfer", "word_memory"],
+                      ["borrowed-buffer-operations", "existing-readonly-*", "swap-*", "bulk-*", "loan-*", "word-*"]),
         "integer_operations": (["instruction", "operation", "checked_integer", "signed_integer", "cast_integer", "select_scalar", "normalize"],
             ["scalar-*", "dynamic-integer-*", "boolean", "cast", "shift-trap-*", "checked-trap-*",
              "checked-cast*", "dynamic-cast-*", "bool-equality-input-*", "boolean-equality-*", "boolean-ordering-*",
@@ -923,6 +937,7 @@ def coverage_manifest():
         "general_object_linking": (["compile", "elf_finish"], []),
     }
     existing = {
+        "fixed_width_byte_memory": ["tools.qualify_hia_word_memory.qualify_raw", "tools.qualify_hia_word_memory.qualify_refusals", "tests.test_hia_word_memory"],
         "integer_operations": ["tools.hia_selfhost_select.qualify_select"],
         "resources": ["tools.hia_selfhost_resources.qualify_resources", "tools.hia_selfhost_bulk.qualify_bulk",
                       "tools.hia_selfhost_loans.qualify_loans",
@@ -965,6 +980,25 @@ def coverage_manifest():
         "input_opcodes": supported,
         "input_opcodes_by_output": {"selfhost": list(INPUT_OPCODES), "selfhost_elf": supported},
         "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer and chain operations require selfhost_elf; opcode-name coverage does not imply all Core types or result shapes",
+        "input_opcodes_by_schema": {
+            "hepta.hia.program.v8": [op for op in supported if op not in WORD_OPCODES],
+            "hepta.hia.program.v9": supported,
+        },
+        "word_memory_scope": {
+            "opcodes": list(WORD_OPCODES), "since_schema": "hepta.hia.program.v9",
+            "width_bytes": 8, "byte_orders": ["little", "big"], "unaligned": True,
+            "guard": "unsigned offset <= length and 8 <= length - offset before any access",
+            "source_kinds": ["readbuf", "mutbuf"], "destination_kind": "mutbuf",
+            "failed_store": "no bytes from the failed instruction are written; prior writes remain visible",
+            "positive_witnesses": len(word_positive_fixtures(Assembly, HEADER)),
+            "refusal_witnesses": len(word_rejected_fixtures(Assembly, HEADER)),
+            "bounds_traps": len(word_trap_fixtures(Assembly, HEADER)),
+            "coverage_in_this_run": "all four opcodes execute under both B3 and M3 with independent byte/VM oracles",
+            "additional_backend_qualification": "tools/qualify_hia_word_memory.py",
+            "native_frontend_profiles_upgraded": False,
+            "selected_native_core_v9_components": ["instruction_policy", "program_shape", "core_admission", "core_lowering"],
+            "all_input_correctness_proved": False,
+        },
         "general_core_opcode_count": len(OPCODES),
         "general_core_opcodes_outside_profile": sorted(set(OPCODES) - set(supported)),
         "input_types": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"],
@@ -1154,7 +1188,7 @@ def qualify_language(output):
         checks["source_bound_before_execution"] = contract["profile"] == PROFILE
         positive = positive_fixtures()
         negative = rejected_fixtures()
-        traps = shift_trap_cases() + checked_arithmetic_trap_cases() + checked_cast_trap_cases()
+        traps = shift_trap_cases() + checked_arithmetic_trap_cases() + checked_cast_trap_cases() + word_trap_fixtures(Assembly, HEADER)
         for label, compiler in (("B3", b3), ("M3", m3)):
             # Fresh per-generation fixture stages, never an existing snapshot.
             import secrets
@@ -1191,6 +1225,7 @@ def qualify_language(output):
             "rejections_per_compiler": len(negative), "shift_traps_per_compiler": len(shift_trap_cases()),
             "checked_arithmetic_traps_per_compiler": len(checked_arithmetic_trap_cases()),
             "checked_cast_traps_per_compiler": len(checked_cast_trap_cases()),
+            "word_memory_traps_per_compiler": len(word_trap_fixtures(Assembly, HEADER)),
             "traps_per_compiler": len(traps),
             "compilers": 2, "checks_total": len(checks), "checks_passed": sum(checks.values())}
         report["status"] = "SELFHOST_LANGUAGE_COVERAGE_PASS" if all(checks.values()) else "FAIL"
@@ -1207,17 +1242,43 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_inventory_matches_supported_features_actual_hia_and_source_closure(self):
         manifest = validate_inventory()
         self.assertEqual(manifest["profile"], PROFILE)
-        self.assertEqual(len(manifest["input_opcodes"]), 50)
+        self.assertEqual(len(manifest["input_opcodes"]), 54)
         self.assertEqual(manifest["input_opcodes_by_output"]["selfhost"], list(INPUT_OPCODES))
-        self.assertEqual(len(manifest["input_opcodes_by_output"]["selfhost"]), 40)
+        self.assertEqual(len(manifest["input_opcodes_by_output"]["selfhost"]), 44)
         self.assertEqual(set(manifest["input_opcodes_by_output"]["selfhost_elf"]),
                          set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES))
         self.assertNotIn("buffer", manifest["input_types_by_output"]["selfhost"])
         self.assertIn("buffer", manifest["input_types_by_output"]["selfhost_elf"])
         self.assertIn("select", manifest["input_opcodes"])
-        self.assertEqual(manifest["general_core_opcode_count"], 50)
+        self.assertEqual(manifest["general_core_opcode_count"], 54)
         self.assertFalse(manifest["claims"]["whole_HIA_language_self_hosted"])
         self.assertFalse(manifest["claims"]["compiler_correctness_formally_proved"])
+
+    def test_word_memory_has_dynamic_endian_unaligned_and_schema_witnesses(self):
+        fixtures = word_positive_fixtures(Assembly, HEADER)
+        self.assertEqual(len(fixtures), 100)
+        self.assertEqual({case for row in fixtures for case in row["case_ids"] if case in WORD_OPCODES}, set(WORD_OPCODES))
+        for load in ("le", "be"):
+            for store in ("le", "be"):
+                for offset in (0, 1, 7, 8, 9):
+                    rows = [row for row in fixtures if row["id"].startswith(f"word-{load}-{store}-offset-{offset}-")]
+                    self.assertEqual(len(rows), 5)
+                    self.assertEqual(len({row["source"] for row in rows}), 1)
+                    self.assertEqual(len({row["input"] for row in rows}), 5)
+                    self.assertEqual(len({row["expected_output"] for row in rows}), 5)
+        refused = word_rejected_fixtures(Assembly, HEADER)
+        self.assertEqual(len(refused), 18)
+        self.assertEqual(sum(row["id"].endswith("-v8") for row in refused), 4)
+        traps = word_trap_fixtures(Assembly, HEADER)
+        self.assertEqual(len(traps), 32)
+        for opcode in WORD_OPCODES:
+            rows = [row for row in traps if row["opcode"] == opcode]
+            self.assertEqual({row["prior_store"] for row in rows}, {False, True})
+            self.assertTrue(any("offset-4294967296-" in row["id"] for row in rows))
+            self.assertTrue(any("offset-18446744073709551615-" in row["id"] for row in rows))
+        manifest = coverage_manifest()
+        self.assertTrue(set(WORD_OPCODES).isdisjoint(manifest["input_opcodes_by_schema"]["hepta.hia.program.v8"]))
+        self.assertTrue(set(WORD_OPCODES) <= set(manifest["input_opcodes_by_schema"]["hepta.hia.program.v9"]))
 
     def test_every_supported_integer_opcode_and_width_has_independent_inputs(self):
         rows = scalar_cases()
@@ -1490,6 +1551,23 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
                     self.assertEqual(row["execution"]["input_bytes"], 2)
                     self.assertEqual(row["observed_output_sha256"], row["expected_output_sha256"])
 
+    def test_word_memory_runs_all_dynamic_bytes_refusals_and_atomic_traps(self):
+        for compiler in ("B3", "M3"):
+            rows = [row for row in self.report["positive"] if row["compiler"] == compiler and row["id"].startswith("word-")]
+            self.assertEqual(len(rows), 100)
+            for row in rows:
+                self.assertGreater(row["execution"]["input_bytes"], 0)
+                self.assertEqual(row["observed_output_sha256"], row["expected_output_sha256"])
+            refused = [row for row in self.report["negative"] if row["compiler"] == compiler and row["id"].startswith("word-")]
+            self.assertEqual(len(refused), 18)
+            self.assertTrue(all(row["transactional_rejection"] for row in refused))
+            traps = [row for row in self.report["traps"] if row["compiler"] == compiler and row["kind"] == "word_memory"]
+            self.assertEqual(len(traps), 32)
+            self.assertEqual({row["prior_store"] for row in traps}, {False, True})
+            for row in traps:
+                self.assertEqual(row["execution"]["returncode"], -4)
+                self.assertEqual(row["observed_output_hex"], row["expected_output_hex"])
+
     def test_all_generations_and_raw_evidence_are_retained(self):
         directory = self.output.with_suffix(".evidence")
         for generation in ("B1", "B2", "B3", "M1", "M2", "M3"):
@@ -1516,7 +1594,7 @@ def check_native_report_assertions(report, output):
 
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(CurrentInvocationAssertions)
     result = unittest.TextTestRunner(verbosity=2).run(suite)
-    complete = (result.testsRun == 10 and result.wasSuccessful() and not result.skipped
+    complete = (result.testsRun == 11 and result.wasSuccessful() and not result.skipped
                 and not result.expectedFailures and not result.unexpectedSuccesses)
     write_json(output.with_suffix(".assertions.json"), {
         "schema": "hepta.hia.selfhost-language-native-assertions.v1",

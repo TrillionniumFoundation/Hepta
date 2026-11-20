@@ -165,7 +165,7 @@ def execute(directory, name, executable, source, *, mode="ordinary", arguments=(
 
 
 def qualify(directory, compiler, compiler_source, checks, reference, label):
-    from tools.qualify_hia_selfhost import compile_stage, invoke, NO_SPACE
+    from tools.qualify_hia_selfhost import compile_stage, invoke, NO_SPACE, with_selfhost_module
     directory = Path(directory)
     observations = []
 
@@ -177,7 +177,7 @@ def qualify(directory, compiler, compiler_source, checks, reference, label):
         observations.append({"case": name, "native": receipt})
         return output
 
-    executable_source = compiler_source.replace(b"v8 selfhost\n", b"v8 selfhost_exec\n", 1)
+    executable_source = with_selfhost_module(compiler_source, b"selfhost_exec")
     if executable_source == compiler_source:
         raise ValueError("compiler executable source header was not replaced")
     executable, receipt = compile_stage(directory, label + "-cli-E1-build", compiler,
@@ -193,7 +193,7 @@ def qualify(directory, compiler, compiler_source, checks, reference, label):
         previous = following
     if label == "original":
         from tools.qualify_hia_selfhost import mutate_compiler
-        modified = mutate_compiler(compiler_source).replace(b"v8 selfhost\n", b"v8 selfhost_exec\n", 1)
+        modified = with_selfhost_module(mutate_compiler(compiler_source), b"selfhost_exec")
         modified_images = []
         predecessor = executable
         for generation in (1, 2, 3):

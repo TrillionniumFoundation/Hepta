@@ -132,13 +132,16 @@ def _queue_token(token):
 def _driver(directory, clang, *, on_release=None):
     compiler = Path(shutil.which(clang) or clang).resolve(strict=True)
     identity = digest_executable(compiler)
+    # A resolved LLVM multicall image needs its explicit driver selector.
+    # Invoke and rehash the same identified executable, never a second PATH lookup.
+    invocation = [str(compiler), *(["clang"] if compiler.name == "llvm" else [])]
     source, output = directory / "owned-driver.c", directory / "owned-driver.so"
     # The compiler reads our immutable source through stdin, never a producer-
     # writable source pathname. Its output is staged in a private directory;
     # the sealed snapshot is obtained before publishing audit copies.
     with tempfile.TemporaryDirectory(prefix=".owned-driver-", dir=directory) as private:
         staged = Path(private) / "driver.so"
-        argv = [str(compiler), "-std=c11", "-O3", "-fPIC", "-shared", "-x", "c", "-", "-o", str(staged)]
+        argv = [*invocation, "-std=c11", "-O3", "-fPIC", "-shared", "-x", "c", "-", "-o", str(staged)]
         built = subprocess.run(argv, input=_DRIVER_SOURCE, capture_output=True, text=True, timeout=30)
         if built.returncode:
             raise AdaptiveRejected("E_STATE_DRIVER: " + built.stderr[:2000])

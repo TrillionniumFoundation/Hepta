@@ -14,11 +14,11 @@ import re
 from .hia_json_preflight import preflight_hia_json
 from .hia_program import HIAProgramRejected, VerifiedProgram, verify_program
 from .hia_program_tools import HIAEditRejected, decode_json
-from .hia_schema import SCHEMA_V6, SCHEMA_V7, SCHEMA_V8
+from .hia_schema import SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, supports_feature
 
 ASSEMBLY_SCHEMA = "hepta.hia.agent-assembly.v1"
 WIRE_HEADER = "hia-asm.v1"
-CORE_SCHEMAS = frozenset({SCHEMA_V6, SCHEMA_V7, SCHEMA_V8})
+CORE_SCHEMAS = frozenset({SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9})
 MAX_SOURCE_BYTES = 1024 * 1024
 MAX_LINES = 16384
 MAX_LINE_BYTES = 16384
@@ -150,7 +150,7 @@ def _parse_assembly_document(source: str | bytes) -> dict:
         if document is None:
             match = _HEADER.fullmatch(line)
             if match is None or match[1] not in CORE_SCHEMAS:
-                _reject("expected hia-asm.v1, explicit primitive v6/v7/v8 schema, and module", line=number)
+                _reject("expected hia-asm.v1, explicit primitive v6/v7/v8/v9 schema, and module", line=number)
             document = {"schema": match[1], "module": match[2], "functions": []}
             continue
         if function is None:
@@ -169,8 +169,8 @@ def _parse_assembly_document(source: str | bytes) -> dict:
                         "returns": _names(match[3], number), "effects": _names(match[4], number),
                         "entry": match[5], "blocks": []}
             if match[6] is not None:
-                if document["schema"] != SCHEMA_V8:
-                    _reject("return_loans requires explicit Core v8", line=number)
+                if not supports_feature(document["schema"], "parameter_loan_returns"):
+                    _reject("return_loans requires explicit Core v8 or later", line=number)
                 try:
                     preflight_hia_json(match[6], max_nodes=MAX_LIST_ITEMS + 1, max_depth=2)
                     origins = decode_json(match[6])
@@ -293,7 +293,7 @@ def render_assembly(document) -> str:
     checked = verify_program(document)
     data = checked.as_dict()
     if checked.structured_bytes is not None or data["schema"] not in CORE_SCHEMAS:
-        raise HIAAssemblyRejected("render requires explicit primitive v6/v7/v8 Core; use the existing adapter first",
+        raise HIAAssemblyRejected("render requires explicit primitive v6/v7/v8/v9 Core; use the existing adapter first",
                                   "E_HIA_ASSEMBLY_PROFILE", phase="representation")
     rendered = _render_assembly_document(data)
     if assemble_program(rendered).canonical_bytes != checked.canonical_bytes:

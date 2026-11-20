@@ -659,8 +659,12 @@ def verify_external_native4(captured, binding, current_root, *, scopes, output):
     compiler_raw = captured.raw(fixture["compiler_path"])
     need(sha256(compiler_raw).hexdigest() == fixture["compiler_sha256"], "original fixture compiler differs")
     custody_report = captured.json(class_dir / "v5-component-custody.json")
-    need(custody_report["schema"] == "hepta.slot.mechanical.v5-component.v1"
-         and custody_report["original_Source3_Native6_unchanged"] is True
+    from tools.read_hia_slot_worker_terminal import admit_source_authority
+    terminal_authority = admit_source_authority(captured, root)
+    same(custody_report["terminal_source_authority"], terminal_authority)
+    need(custody_report["schema"] == "hepta.slot.mechanical.v5-component.v2"
+         and custody_report["original_Source3_Native6_denominators_retained"] is True
+         and custody_report["worker_terminal_version_is_source_admitted"] is True
          and custody_report["original_v1_method_not_replaced"] is True
          and custody_report["whole_native_stack_qualified"] is False, "original class custody differs")
     integer(custody_report["new_method_count"], 4)

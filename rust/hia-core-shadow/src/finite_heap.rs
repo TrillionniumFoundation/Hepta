@@ -336,8 +336,8 @@ pub fn analyze_finite_entry_heap(input:&[u8],function:&str,arguments:&[Value],he
     let static_budget=analyze_static_budget(input)?;
     let (document,canonical)=decode_hia(input)?;
     let version=name(&document["schema"])?;
-    if !matches!(version,"hepta.hia.program.v7"|"hepta.hia.program.v8") {
-        return failure("E_HIA_BUDGET_PROFILE","finite invocation heap profile requires primitive v7/v8");
+    if !matches!(version,"hepta.hia.program.v7"|"hepta.hia.program.v8"|"hepta.hia.program.v9") {
+        return failure("E_HIA_BUDGET_PROFILE","finite invocation heap profile requires primitive v7/v8/v9");
     }
     let mut functions=BTreeMap::new();
     for function in array(&document["functions"],"functions")? {
@@ -362,15 +362,16 @@ pub fn analyze_finite_entry_heap(input:&[u8],function:&str,arguments:&[Value],he
         return failure("E_HIA_INPUT","heap entry arguments are not exact typed scalars");
     }
     let mut analysis=Analysis {functions,cache:BTreeMap::new(),contexts:0,transfers:0,depth:0,
-        peak_depth:0,values:0,borrowed_extents:version=="hepta.hia.program.v8"};
+        peak_depth:0,values:0,borrowed_extents:version!="hepta.hia.program.v7"};
     analysis.values(arguments.len())?;
     let args:Vec<_>=arguments.iter().map(|v|Argument::Scalar(Fact::constant(v))).collect();
     let result=analysis.invoke(function,&args)?;
     if result.peak>limit {return failure("E_HIA_BUDGET_EXCEEDED","finite invocation live payload exceeds static policy");}
     let row=array(&static_budget["functions"],"static rows")?.iter().find(|r|r["function"].as_str()==Some(function)).unwrap();
     Ok(json!({
-        "schema":"hepta.hia.rust-finite-entry-heap.v1",
-        "profile":if analysis.borrowed_extents {"acyclic-byte-owner-transfer-caller-borrowed-extents-v8"} else {"acyclic-byte-owner-transfer-v7"},
+        "schema":if version=="hepta.hia.program.v9" {"hepta.hia.rust-finite-entry-heap.v2"} else {"hepta.hia.rust-finite-entry-heap.v1"},
+        "profile":if version=="hepta.hia.program.v9" {"acyclic-byte-owner-transfer-caller-borrowed-extents-word-memory-v9"}
+            else if analysis.borrowed_extents {"acyclic-byte-owner-transfer-caller-borrowed-extents-v8"} else {"acyclic-byte-owner-transfer-v7"},
         "status":"conservative_finite_invocation_payload_bound_not_authority",
         "program_sha256":format!("{:x}",Sha256::digest(&canonical)),"core_schema":version,
         "function":function,"arguments":arguments,"limit_bytes":limit,"peak_bound_bytes":result.peak,

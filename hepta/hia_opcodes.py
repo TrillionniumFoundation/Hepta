@@ -21,6 +21,9 @@ BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
 RESOURCES = BYTE_RESOURCES | OWNERS
 TYPES = SCALARS | RESOURCES
 EFFECTS = frozenset({"alloc", "read", "write", "trap"})
+WORD_LOADS = MappingProxyType({"buffer.load.u64.le": "little", "buffer.load.u64.be": "big"})
+WORD_STORES = MappingProxyType({"buffer.store.u64.le": "little", "buffer.store.u64.be": "big"})
+WORD_MEMORY = frozenset(WORD_LOADS) | frozenset(WORD_STORES)
 TRAP_CODES = frozenset({"user", "overflow", "division_by_zero", "bounds", "allocation"})
 EXECUTION_RESOURCE_FIELDS = frozenset({
     "allocations", "frees", "allocation_attempts", "owners_created", "owners_dropped",
@@ -193,6 +196,14 @@ def _table():
         OpcodeSpec("buffer.fill_range", ("mutbuf", "usize", "usize", "u8"), (), effects=("write", "trap"), traps=("bounds",), since=6, guards=("write:0",), semantic_rule="check_complete_range_before_fill"),
         OpcodeSpec("call", None, None, ("function",), guards=("callee_interface",), resource_transition="call", semantic_rule="checked_callee_and_parameter_loan_contract"),
     ]
+    for name, order in WORD_LOADS.items():
+        rows.append(OpcodeSpec(name, ("view", "usize"), ("u64",),
+            effects=("read", "trap"), traps=("bounds",), since=9,
+            guards=("read:0",), semantic_rule=f"checked_unaligned_u64_{order}_load"))
+    for name, order in WORD_STORES.items():
+        rows.append(OpcodeSpec(name, ("mutbuf", "usize", "u64"), (),
+            effects=("write", "trap"), traps=("bounds",), since=9,
+            guards=("write:0",), semantic_rule=f"check_complete_range_before_u64_{order}_store"))
     assert len({row.name for row in rows}) == len(rows)
     return MappingProxyType({row.name: row for row in rows})
 
@@ -287,6 +298,7 @@ def render_opcode_reference() -> str:
         fmt = lambda values: "callee interface" if values is None else ", ".join(values) or "—"
         rows.append(f"| `{spec.name}` | v{spec.since} | {fmt(spec.operands)} | {fmt(spec.results)} | {fmt(spec.attributes)} | {fmt(spec.effects)} | {fmt(spec.guards)} |")
     rows += ["", "`int.cast` additionally requires `trap` in checked mode. `call` propagates all callee effects. Traps abort; normal/error-as-value returns must balance ownership. VM fuel, call depth, native stack, payload and allocator overhead are separate budgets.", "",
-        "Core v8 adds explicit `return_loans` contracts; it does not invent new opcodes. Assembly v1 accepts explicit primitive v6/v7/v8 and preserves this field. Historical schemas are accepted only through their named adapters; no profile is guessed.", "",
-        "Query the complete version-specific JSON with `hia catalog --schema hepta.hia.program.v8`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.", ""]
+        "Core v8 adds explicit `return_loans` contracts. Core v9 adds four fixed-width `u64` buffer operations. Assembly v1 accepts explicit primitive v6/v7/v8/v9 and preserves return origins. Historical schemas retain their own opcode inventories; no profile is guessed.", "",
+        "The v9 word operations accept unaligned byte offsets and explicit little/big endian order. They check `offset <= length` and `8 <= length - offset` using the complete 64-bit unsigned offset before any byte access. A failing store writes no bytes. Borrow permissions and distinct mutable-root rules are unchanged; these operations do not create pointers, loans, or payload allocations.", "",
+        "Query the complete version-specific JSON with `hia catalog --schema hepta.hia.program.v9`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.", ""]
     return "\n".join(rows)

@@ -35,7 +35,10 @@ def build_fixture(output,clang,report,*,extra_sources=()):
     assert native['ok'] and not native['claims']['llvm_ir_used'] and not native['claims']['rust_codegen_used']
     report['hia_scalar_compilation']=native
     target=output/'bridge.so'
-    command=[str(clang),'-O2','-fPIC','-shared','-std=c11','-pthread',str(BRIDGE),
+    # Callers may already have resolved clang to the LLVM multicall ELF.
+    # Keep the original compiler identity and before/after digest checks.
+    invocation=[str(clang),*(['clang'] if clang.name=='llvm' else [])]
+    command=[*invocation,'-O2','-fPIC','-shared','-std=c11','-pthread',str(BRIDGE),
              *map(str,extra_sources),str(output/'scalars.o'),'-o',str(target)]
     capture=run_bounded(command,cwd=output,timeout=30,stdout_limit=65536,stderr_limit=65536)
     report.setdefault('build_commands',[]).append({'argv':command,'returncode':capture.returncode,

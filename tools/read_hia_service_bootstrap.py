@@ -1090,6 +1090,180 @@ def read_callers_original_administrator(directory,inner,ids,captured):
             if integer(count)<=0:raise ValueError("an original composed native owner did not execute")
     return expected
 
+_CALLER_SCOPE_AUTHORITY = 'tests/fixtures/hia_service_bootstrap_original_r12/caller-scopes.json'
+_CALLER_SCOPE_AUTHORITY_PIN = {
+    'bytes': 28102,
+    'sha256': 'b8056f8c056409952ff219d4e1b789d40d754de4718023c9fcb467c02c893af4',
+}
+_CALLER_DIAGNOSTICS_PATH = 'tests/test_hia_agent_native_tools.py'
+_CALLER_DIAGNOSTICS_HELPER = 'tests/hia_caller_diagnostics_admission.py'
+_CALLER_DIAGNOSTICS_HELPER_PIN = {
+    'bytes': 5185,
+    'sha256': '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578',
+}
+_CALLER_DIAGNOSTICS_FIXTURE = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_CALLER_DIAGNOSTICS_FIXTURE_PIN = {
+    'bytes': 3545,
+    'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c',
+}
+_CALLER_DIAGNOSTICS_OLD = {
+    'bytes': 45385,
+    'sha256': 'c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a',
+}
+_CALLER_DIAGNOSTICS_NEW = {
+    'bytes': 46518,
+    'sha256': 'b98c24327639363d266eb5e263c042e0a20d82a8f2e8cc08ffafb8f34f73f355',
+}
+
+
+def _restore_caller_diagnostic_source(raw, provenance):
+    """Independently reverse and replay the two reviewed diagnostic splices.
+
+    The producer and its admission helper are not imported or executed here.
+    Reconstructed historical bytes are evidence only, never executed callers.
+    """
+    if type(raw) is not bytes or type(provenance) is not bytes:
+        raise ValueError('caller diagnostics require complete raw bytes')
+    equal(s.bytes_pin(raw), _CALLER_DIAGNOSTICS_NEW,
+          'caller diagnostic current whole source differs')
+    equal(s.bytes_pin(provenance), _CALLER_DIAGNOSTICS_FIXTURE_PIN,
+          'caller diagnostic fixed provenance differs')
+    value = s.parse(provenance)
+    expected_fields = {
+        'schema': 'hepta.hia.caller-deadline-diagnostics-source.v1',
+        'state': 'FROZEN_EXACT_FAILURE_DIAGNOSTICS_SUCCESSOR',
+        'path': _CALLER_DIAGNOSTICS_PATH,
+        'original': _CALLER_DIAGNOSTICS_OLD,
+        'current': _CALLER_DIAGNOSTICS_NEW,
+        'definition': 'NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable',
+        'original_deadline_seconds': 5,
+        'original_native_budget_ms': 1,
+        'original_method_ids_unchanged': True,
+        'production_source_exception': False,
+    }
+    if type(value) is not dict or set(value) != set(expected_fields) | {'splices'}:
+        raise ValueError('caller diagnostic provenance fields differ')
+    equal({key: value[key] for key in expected_fields}, expected_fields,
+          'caller diagnostic provenance scope differs')
+    splices = value['splices']
+    if type(splices) is not list or len(splices) != 2:
+        raise ValueError('caller diagnostic splice count differs')
+    entries = []
+    old_end = new_end = displacement = 0
+    for item in splices:
+        if (type(item) is not dict
+                or set(item) != {'old_offset', 'new_offset', 'old_hex', 'new_hex'}):
+            raise ValueError('caller diagnostic splice fields differ')
+        old_at, new_at = item['old_offset'], item['new_offset']
+        if (type(old_at) is not int or type(new_at) is not int
+                or old_at < old_end or new_at < new_end
+                or old_at + displacement != new_at):
+            raise ValueError('caller diagnostic splice order differs')
+        segments = []
+        for name in ('old_hex', 'new_hex'):
+            text = item[name]
+            if type(text) is not str or not text:
+                raise ValueError('caller diagnostic splice is not exact hexadecimal')
+            try:
+                part = bytes.fromhex(text)
+            except ValueError as error:
+                raise ValueError('caller diagnostic splice is not hexadecimal') from error
+            if part.hex() != text:
+                raise ValueError('caller diagnostic splice is not canonical hexadecimal')
+            segments.append(part)
+        before, after = segments
+        if (before == after or new_at + len(after) > len(raw)
+                or raw[new_at:new_at + len(after)] != after):
+            raise ValueError('caller diagnostic current splice bytes differ')
+        entries.append((old_at, new_at, before, after))
+        old_end, new_end = old_at + len(before), new_at + len(after)
+        displacement += len(after) - len(before)
+    original = raw
+    for old_at, new_at, before, after in reversed(entries):
+        original = original[:new_at] + before + original[new_at + len(after):]
+    equal(s.bytes_pin(original), _CALLER_DIAGNOSTICS_OLD,
+          'caller diagnostics did not restore the complete original source')
+    replay = original
+    for old_at, new_at, before, after in reversed(entries):
+        if replay[old_at:old_at + len(before)] != before:
+            raise ValueError('caller diagnostic original splice bytes differ')
+        replay = replay[:old_at] + after + replay[old_at + len(before):]
+    if replay != raw:
+        raise ValueError('caller diagnostic forward replay differs')
+    return original
+
+
+def _read_caller_source_admission(scope_name, declaration, inner, captured):
+    """Recheck actual current callers and the optional exact successor proof."""
+    if type(scope_name) is not str or scope_name not in ('ordinary', 'journal', 'context'):
+        raise ValueError('undeclared caller source scope')
+    if (type(inner) is not dict or type(inner.get('source_before')) is not dict
+            or type(inner.get('source_after')) is not dict):
+        raise ValueError('caller source captures are not complete mappings')
+    consumed = {}
+
+    def take(name, expected=None):
+        if name in consumed:
+            raise ValueError('duplicate caller source admission input')
+        raw = captured_bytes(ROOT / name, expected, captured)
+        consumed[name] = s.bytes_pin(raw)
+        return raw
+
+    frozen = take(_CALLER_SCOPE_AUTHORITY, _CALLER_SCOPE_AUTHORITY_PIN)
+    scope = s.parse(frozen)['scopes'][scope_name]
+    equal(declaration, scope, 'caller source declaration differs from the fixed authority')
+    integer(len(scope['ordered_ids']), {'ordinary': 112, 'journal': 21, 'context': 15}[scope_name])
+    integer(scope['outer_seconds'], 1800)
+    adjustments = {}
+    for name, old_pin in scope['files'].items():
+        raw = take(name)
+        if s.same(s.bytes_pin(raw), old_pin):
+            continue
+        if name != _CALLER_DIAGNOSTICS_PATH:
+            raise ValueError('an original complete caller module changed: ' + name)
+        equal(old_pin, _CALLER_DIAGNOSTICS_OLD, 'caller diagnostic original authority differs')
+        take(_CALLER_DIAGNOSTICS_HELPER, _CALLER_DIAGNOSTICS_HELPER_PIN)
+        provenance = take(_CALLER_DIAGNOSTICS_FIXTURE, _CALLER_DIAGNOSTICS_FIXTURE_PIN)
+        _restore_caller_diagnostic_source(raw, provenance)
+        adjustments[name] = {
+            'path': name, 'original': dict(_CALLER_DIAGNOSTICS_OLD),
+            'current': dict(_CALLER_DIAGNOSTICS_NEW),
+            'provenance_path': _CALLER_DIAGNOSTICS_FIXTURE,
+            'provenance_sha256': _CALLER_DIAGNOSTICS_FIXTURE_PIN['sha256'],
+            'exact_splices': 2, 'complete_original_inverse_verified': True,
+            'complete_current_forward_replay_verified': True,
+            'original_deadline_seconds': 5, 'original_native_budget_ms': 1,
+            'production_source_exception': False,
+        }
+    proof = {
+        'schema': 'hepta.hia.service-bootstrap-caller-source-admission.v1',
+        'scope': scope_name,
+        'authority': {'path': _CALLER_SCOPE_AUTHORITY, **_CALLER_SCOPE_AUTHORITY_PIN},
+        'original_files': dict(scope['files']), 'original_modules': list(scope['modules']),
+        'original_ordered_ids': list(scope['ordered_ids']),
+        'original_outer_seconds': scope['outer_seconds'],
+        'reviewed_diagnostic_source_adjustments': adjustments,
+        'captured_files': consumed,
+        'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [], 'whole_native': False,
+    }
+    if 'caller_source_admission' in inner:
+        equal(inner['caller_source_admission'], proof,
+              'caller producer source proof differs from independent full-source readback')
+    elif adjustments:
+        raise ValueError('a current diagnostic successor requires its exact source proof')
+    # Original unmodified callers still admit the prior v2 report with no new
+    # proof field. A changed caller cannot obtain that legacy path.
+    equal(inner['source_before'], inner['source_after'], 'complete caller source changed')
+    for name, actual in consumed.items():
+        equal(inner['source_before'].get(name), actual['sha256'],
+              'caller source proof differs from its actual complete source capture')
+    # All raw inputs were appended to the outer reader's custody list. Its
+    # original unchanged(captured) seals them after the remaining native/cold
+    # and closed-administrator receipt checks; no early PASS is returned.
+    return proof
+
+
 def read_callers(directory,report_pin,*,require_cold):
     directory=Path(directory);captured=[]
     report=capture(directory/"report.json",report_pin,captured)
@@ -1130,8 +1304,7 @@ def read_callers(directory,report_pin,*,require_cold):
     if (inner["source_unchanged"] is not True or inner["old_admin_bundles_or_clear_environment_scopes_modified"] is not False
             or inner["whole_native"] is not False or report["whole_native_stack_qualified"] is not False):
         raise ValueError("caller scope/custody claims changed")
-    for name,pin in declaration["files"].items():
-        captured_bytes(ROOT/name,{"bytes":pin["bytes"],"sha256":pin["sha256"]},captured)
+    _read_caller_source_admission(scope,declaration,inner,captured)
     equal(inner["source_before"],inner["source_after"],"complete caller source changed")
     for name,digest in inner["source_before"].items():
         if Path(name).is_absolute() or ".." in Path(name).parts:raise ValueError("caller source leaves root")

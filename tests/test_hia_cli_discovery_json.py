@@ -34,7 +34,7 @@ ROLES = ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPIL
 class CliDiscoveryJsonSourceTests(unittest.TestCase):
     def test_portable_generation_is_exact_frozen_r5_with_original_limits(self):
         from tools import generate_hia_cli_discovery_json as generator
-        raw, report = generator.generation(capabilities=compat.fixture()['legacy_capabilities'])
+        raw, report = generator.generation(capabilities=compat.fixture()['legacy_capabilities'], schema_version=8)
         self.assertEqual(raw, compat.original_source(compat.R5_SOURCE_NAME))
         self.assertEqual(sha256(raw).hexdigest(), R5_SOURCE_SHA256)
         self.assertEqual(report['counts'], {'functions': 39, 'blocks': 256, 'operations': 5476, 'max_ssa': 540})
@@ -47,14 +47,30 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
         from hepta import cli
         from tools import generate_hia_cli_discovery_json as generator
         compatibility = compat.fixture()
-        self.assertEqual(cli.agent_capabilities(), compatibility['current_capabilities'])
+        self.assertEqual(cli.agent_capabilities(), compat.word_fixture()['current_capabilities'])
+        # Retain the previous verified-build/v8 generation independently of
+        # the new current v9 source and its separate source-input fixture.
+        # The original source also retains dict insertion order, which the
+        # value-equivalent compatibility JSON was not intended to preserve.
+        retained_capabilities = generator.capabilities_from_source(
+            compat.word_original_source('hepta/cli.py'))
+        self.assertEqual(retained_capabilities, compatibility['current_capabilities'])
+        retained, retained_report = generator.generation(
+            capabilities=retained_capabilities, schema_version=8)
+        old_expected = compatibility['current_generation']
+        self.assertEqual(sha256(retained).hexdigest(), old_expected['source_sha256'])
+        self.assertEqual(len(retained), old_expected['source_bytes'])
+        self.assertEqual(retained_report['counts'], old_expected['counts'])
+        self.assertEqual(retained_report['table_sha256'], old_expected['table_sha256'])
+        self.assertEqual((retained_report['schema_count'], retained_report['instruction_records']), (8, 50))
         raw, report = generator.generation()
-        expected = compatibility['current_generation']
+        expected = compat.word_fixture()['current_generation']
         self.assertEqual(raw, runtime.SOURCE.read_bytes())
         self.assertEqual(sha256(raw).hexdigest(), expected['source_sha256'])
         self.assertEqual(len(raw), expected['source_bytes'])
         self.assertEqual(report['counts'], expected['counts'])
         self.assertEqual(report['table_sha256'], expected['table_sha256'])
+        self.assertEqual((report['schema_count'], report['instruction_records']), (9, 54))
         self.assertEqual(report['metadata_domain'], 'current_cli')
         self.assertEqual(report['final_json_documents_stored'], 0)
         self.assertEqual(report['catalog_digests_stored'], 0)
@@ -70,19 +86,31 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
                 self.assertNotIn(value['catalog_sha256'].encode(), seed)
                 self.assertNotIn(bytes.fromhex(value['catalog_sha256']), seed)
         current = controls.current_cases()
-        self.assertEqual(len(current), 64)
+        self.assertEqual(len(current), 71)
         self.assertEqual([(x[0],x[1],x[2],x[3],x[7]) for x in current[:61]],
                          [(x[0],x[1],x[2],x[3],x[7]) for x in old])
+        self.assertTrue(all(row[0].startswith('verified-capabilities-') for row in current[61:64]))
+        self.assertTrue(all(row[0].startswith('v9-catalog-') for row in current[64:]))
+        # A previously unknown v9 request retains its original input frame;
+        # the admitted catalog now reports the original 512-byte capacity.
+        admitted = next(row for row in current if row[0] == 'unknown-schema-3')
+        self.assertEqual((admitted[2], admitted[4], admitted[6]), (512, 0xfffffffe, False))
 
     def test_structured_metadata_contains_no_final_json_or_catalog_digest(self):
         from tools import generate_hia_cli_discovery_json as generator
-        table, _cap, _cat = generator.structured_table(capabilities=compat.fixture()['legacy_capabilities'])
+        table, _cap, _cat = generator.structured_table(
+            capabilities=compat.fixture()['legacy_capabilities'], schema_version=8)
         seed = table.encode()
         self.assertEqual(len(table.nodes), 434)
         self.assertEqual(len(seed), 10851)
-        self.assertEqual(len(generator.original.OPCODES), 50)
-        self.assertEqual(len(generator.PRIMITIVE_PROFILES), 8)
-        for _label, _request, raw in controls.original_oracles():
+        profiles, opcodes = generator.metadata_domain(8)
+        self.assertEqual((len(profiles), len(opcodes)), (8, 50))
+        current_profiles, current_opcodes = generator.metadata_domain()
+        self.assertEqual((len(current_profiles), len(current_opcodes)), (9, 54))
+        for version in (True, 0, 7, 10, '9'):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                generator.metadata_domain(version)
+        for _label, _request, raw in controls.original_oracles(legacy=True):
             value = json.loads(raw)
             self.assertNotIn(raw, seed)
             canonical = json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
@@ -109,8 +137,8 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
 
     def test_original_cli_parser_outputs_and_both_old_assets_are_unchanged(self):
         # Keep the original fixture and all seven original file identities.
-        # The independent feature fixture admits only the exact #914 source
-        # delta, after removing the same five R29 opt-in hooks.
+        # Independent feature fixtures admit only the exact #914 and v9
+        # source deltas, after removing the same five R29 opt-in hooks.
         path = ROOT / 'tests/fixtures/hia_cli_discovery_0daf_baseline.json'
         self.assertEqual(sha256(path.read_bytes()).hexdigest(),
                          '2d6e4aed65731fd39b200f1ac94ae0e60e0e557e842699a9ce6db43186882d43')
@@ -356,8 +384,8 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
         self.assertEqual(result['actual_native_entries'], 61)
         current = controls.native_controls(self.folder / 'native', self.image, guard=self.guard)
         self.assertEqual(current['status'], 'PASS')
-        self.assertEqual(len(current['rows']), 64)
-        self.assertEqual(current['actual_native_entries'], 64)
+        self.assertEqual(len(current['rows']), 71)
+        self.assertEqual(current['actual_native_entries'], 71)
 
     def test_02_all_original_six_vm_full_buffers(self):
         result = controls.vm_controls(self.folder / 'vm-r5', self.folder / 'native-r5',
@@ -369,7 +397,7 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
                                       guard=self.guard, labels=labels)
         self.assertEqual(current['status'], 'PASS')
         self.assertEqual([row['label'] for row in current['rows']], labels)
-        self.assertEqual(len(current['rows']), 64)
+        self.assertEqual(len(current['rows']), 71)
 
     def test_03_public_byte_api_does_not_call_python_semantic_owners(self):
         from hepta import cli, hia_opcodes
@@ -389,7 +417,7 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
                 self.owner.catalog_json(b'unknown')
             self.assertEqual(refused.exception.status, 0xfffffffd)
         controls.save(self.folder / 'RUNTIME.json', {'status': 'PASS', 'scope': self.scope,
-            'actual_calls': 13, 'old_semantic_body_entries': 0, 'host_json_constructor_entries': 0,
+            'actual_calls': 14, 'old_semantic_body_entries': 0, 'host_json_constructor_entries': 0,
             'observations': observed, 'ordinary_cli_replaced': False})
 
     def test_04_real_portable_wheel_resource_and_fresh_binding(self):
@@ -444,7 +472,7 @@ from hepta import cli,hia_opcodes
 def forbidden(*a,**kw):raise AssertionError('retained JSON policy entered')
 cli.agent_capabilities=forbidden;hia_opcodes.opcode_catalog=forbidden
 observed={'capabilities':hashlib.sha256(owner.capabilities_json()).hexdigest()}
-for version in range(1,9):
+for version in range(1,10):
  observed['catalog-v'+str(version)]=hashlib.sha256(owner.catalog_json(('hepta.hia.program.v'+str(version)).encode())).hexdigest()
 observed['catalog-default']=hashlib.sha256(owner.catalog_json()).hexdigest()
 assert observed==expected
@@ -482,7 +510,7 @@ print(json.dumps({'status':'PASS','source':str(n.SOURCE),'source_sha256':hashlib
         self.assertEqual(observed['status'], 'PASS')
         self.assertEqual(observed['outputs'], expected)
         self.assertEqual(len(observed['refusals']), 3)
-        self.assertEqual(observed['source_sha256'], R5_SOURCE_SHA256)
+        self.assertEqual(observed['source_sha256'], compat.word_fixture()['current_generation']['source_sha256'])
         controls.save(case / 'REPORT.json', {'status': 'PASS', 'scope': self.scope,
             'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(), 'wheel_bytes': wheel.stat().st_size,
             'observations': observed, 'commands': records})

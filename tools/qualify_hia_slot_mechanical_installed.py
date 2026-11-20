@@ -1,6 +1,7 @@
 """Build a real wheel and run the separate explicit-v5 installed control.
 
-The original Native6 method and its v1 bundle remain unchanged and mandatory.
+All six original Native methods and their v1 bundle remain mandatory; their
+worker terminal expectation is bound to an exact, independently retained source.
 This driver gives the new ABI its own wheel, administrator digest, raw command
 records and complete original worker/journal scenarios.
 """
@@ -32,6 +33,8 @@ def main():
     parser.add_argument('--product-freeze-sha256', required=True)
     args = parser.parse_args()
     before = admit_product(ROOT, args.product_freeze, args.product_freeze_sha256)
+    from tests.hia_slot_worker_terminal import SourceAuthority
+    authority = SourceAuthority(ROOT)
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     environment = clean_environment()
     environment['PYTHONDONTWRITEBYTECODE'] = '1'
@@ -56,7 +59,8 @@ def main():
         target = staging / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, target)
-    started = {'schema': 'hepta.slot.mechanical.installed-driver.v1',
+    started = {'schema': 'hepta.slot.mechanical.installed-driver.v2',
+        'terminal_source_authority': authority.summary(),
         'product_freeze': pin(args.product_freeze), 'source_before': before,
         'original_scope_replaced': False, 'new_version': 5, 'source_identity': source_identity}
     write_json(args.evidence / 'started.json', started)
@@ -115,6 +119,18 @@ def main():
                                files['hepta/_slot_mechanical_build.json']['sha256'], capsule)
         # This test explicitly acts as the administrator of the just verified
         # wheel. Production never computes an expected digest for its caller.
+        reference_probe = args.evidence / 'current-v1-probe'
+        run('current-v1-scenarios', [sys.executable, '-I', '-B',
+            str(ROOT / 'tests/hia_slot_mechanical_installed_probe.py'),
+            '--root', str(ROOT), '--installed', str(installed), '--bundle', str(base),
+            '--expected-bundle-sha256', pin(base)['sha256'], '--lane', 'current-v1',
+            '--evidence', str(reference_probe)], 1800)
+        reference_raw = regular_bytes(reference_probe / 'report.json')
+        reference_value = json.loads(reference_raw)
+        if (reference_value['schema'] != 'hepta.slot.mechanical.installed-worker.v2'
+                or reference_value['lane'] != 'current-v1' or reference_value['status'] != 'PASS'
+                or reference_value['capsule']['sha256'] != pin(base)['sha256']):
+            raise AssertionError('current original-v1 helper controls did not complete')
         probe = args.evidence / 'installed-probe'
         run('installed-scenarios', [sys.executable, '-I', '-B',
             str(ROOT / 'tests/hia_slot_mechanical_installed_probe.py'),
@@ -122,15 +138,19 @@ def main():
             '--expected-bundle-sha256', administrator['sha256'], '--evidence', str(probe)], 1800)
         raw = regular_bytes(probe / 'report.json')
         value = json.loads(raw)
-        if (value['schema'] != 'hepta.slot.mechanical.installed-worker.v1'
+        if (value['schema'] != 'hepta.slot.mechanical.installed-worker.v2'
+                or value['lane'] != 'current-v5'
                 or value['status'] != 'PASS' or value['capsule']['sha256'] != administrator['sha256']):
             raise AssertionError('actual v5 installed controls did not complete')
-        if regular_bytes(wheel) != wheel_raw or regular_bytes(probe / 'report.json') != raw:
+        if (regular_bytes(wheel) != wheel_raw or regular_bytes(probe / 'report.json') != raw
+                or regular_bytes(reference_probe / 'report.json') != reference_raw):
             raise AssertionError('v5 installed evidence changed during readback')
         details = {'wheel': {'path': str(wheel), **pin(wheel)}, 'wheel_files': files,
             'installed': str(installed), 'wheel_record': record_name,
             'installed_record': pin(installed / record_name),
             'ordinary_installed_identity': installed_identity, 'administrator': administrator,
+            'current_v1_probe_report': {'path': str(reference_probe / 'report.json'),
+                'bytes': len(reference_raw), 'sha256': sha256(reference_raw).hexdigest()},
             'probe_report': {'path': str(probe / 'report.json'), 'bytes': len(raw),
                              'sha256': sha256(raw).hexdigest()}}
     except BaseException as error:
@@ -138,6 +158,7 @@ def main():
         failure = {'type': type(error).__module__ + '.' + type(error).__qualname__,
                    'message': str(error), 'traceback': traceback.format_exc()}
         details = {}
+    authority.finish()
     stable = admit_product(ROOT, args.product_freeze, args.product_freeze_sha256) == before
     report = {**started, 'status': 'PASS' if failure is None and stable else 'HOLD',
         'failure': failure, 'source_stable': stable, 'commands': commands, 'details': details,

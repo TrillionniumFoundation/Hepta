@@ -22,6 +22,16 @@ jobs:
       - run: python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
       - run: git diff --exit-code
         id: source_prerequisites
+      - name: v9 fixed-width memory independent source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python -B tools/generate_hia_catalog.py --check
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_word_memory.WordMemoryTests \
+            tests.test_hia_selfhost_immediates.ImmediateSourceTests \
+            tests.test_hia_static_budget_word_memory.StaticBudgetWordMemorySourceTests \
+            tests.test_hia_slot_word_memory.SlotWordMemorySourceTests
       - name: Slot fixed-word original and complete packet Source controls
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
@@ -258,6 +268,12 @@ jobs:
               'tests.test_hia_selfhost_cli',
               'tests.test_hia_selfhost_names',
               'tests.test_hia_reference_fixture_efficiency',
+              'tests.test_hia_caller_diagnostics_admission',
+              'tests.test_hia_evaluation_caller_admission',
+              'tests.test_hia_delivery_diagnostic_sources.DeliveryDiagnosticSourceTests',
+              'tests.test_hia_service_bootstrap_caller_admission.ServiceBootstrapCallerAdmissionTests',
+              'tests.test_hia_service_bootstrap_caller_readback.ServiceBootstrapCallerReadbackTests',
+              'tests.test_hia_slot_worker_terminal.SlotWorkerTerminalSourceTests',
               'tests.test_hia_selfhost_reference_program',
               'tests.test_hia_selfhost_returned_loans',
               'tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests',
@@ -836,6 +852,8 @@ jobs:
           path: ${{ runner.temp }}/hia-exec-release-source.log
   native:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/../rust-target
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -864,6 +882,60 @@ jobs:
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - id: worker_unknown_cold_authority
         run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: v9 fixed-width memory matching-cold cross-backend qualification
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B - <<'PY_WORD_MEMORY'
+          from hashlib import sha256
+          import json, os, subprocess, sys
+          from pathlib import Path
+          from tools.build_hia_json_preflight import admit_cold_build
+          cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
+          cold_bytes = cold.read_bytes()
+          nested = Path(json.loads(cold_bytes)['nested_report']).resolve(strict=True)
+          nested_bytes = nested.read_bytes()
+          compiler = Path(json.loads(nested_bytes)['generations'][-1]['produced_image']).resolve(strict=True)
+          compiler_bytes = compiler.read_bytes()
+          admit_cold_build(compiler_bytes, cold_bytes)
+          output = Path(os.environ['RUNNER_TEMP']) / 'hia-word-memory-v9'
+          subprocess.run([sys.executable, '-B', 'tools/qualify_hia_word_memory.py',
+                          '--compiler', str(compiler), '--clang', os.environ['HEPTA_CLANG'],
+                          '--output', str(output)], check=True)
+          report = json.loads((output / 'report.json').read_bytes())
+          if (report.get('complete') is not True
+                  or report.get('compiler_sha256') != sha256(compiler_bytes).hexdigest()
+                  or compiler.read_bytes() != compiler_bytes
+                  or cold.read_bytes() != cold_bytes or nested.read_bytes() != nested_bytes):
+              raise ValueError('v9 word-memory qualification or exact cold custody changed')
+          admit_cold_build(compiler_bytes, cold_bytes)
+          PY_WORD_MEMORY
+      - name: v9 scalar immediates and version-preserving native controls
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        env:
+          HEPTA_HIA_STATIC_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STATIC_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-static-budget-word-memory
+        run: >-
+          python -B tools/run_hia_unittest_gate.py
+          tests.test_hia_selfhost_immediates
+          tests.test_hia_selfhost_word_io.WordIONativeTests
+          tests.test_hia_core_json_frontend_native
+          tests.test_hia_static_budget_word_memory.StaticBudgetWordMemoryNativeTests
+      - name: v9 locked Rust shadow and resource controls
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        run: cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
+      - name: Preserve complete v9 word-memory raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-word-memory-v9-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-word-memory-v9/
+            ${{ runner.temp }}/hia-static-budget-word-memory/
       - name: Build matching-source HIA integer divrem
         id: vm_integer_divrem_build
         if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
@@ -3130,6 +3202,7 @@ jobs:
           git diff --exit-code
           python -B tools/generate_hia_selfhost_contract.py --check
           python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport.ColdNativeTransportSourceTests
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport.ColdNativeTransportLibraryPathTests
           python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport_controls.ColdNativeTransportControlsSourceTests
       - name: Complete fresh-source cold with explicit native parent lifecycle
         id: cold_transport_whole

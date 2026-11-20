@@ -1,7 +1,7 @@
 """Exact finite DAG, profile and arbitrary-width resource arithmetic in HIA."""
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_static_budget import _V8_BYTE_TYPES, _V8_BYTE_OPS, _V8_CHAIN_OPS
+from hepta.hia_static_budget import _V8_BYTE_TYPES, _V8_BYTE_OPS, _V8_CHAIN_OPS, _V9_WORD_OPS
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_patch_impact import POLICY as IMPACT_POLICY
 
@@ -16,10 +16,12 @@ POLICY = '''def budget(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, 8, 0)
     magic = number(s, w)
     mode = number(s, w)
-    if magic != REQUEST_MAGIC or mode > 4:
+    if magic != REQUEST_MAGIC or mode > 5:
         return 1
     if mode == 3:
-        return profile(s, o, w)
+        return profile(s, o, w, 0)
+    if mode == 5:
+        return profile(s, o, w, 1)
     if mode == 4:
         return limits(s, o, w)
     count = number(s, w)
@@ -430,7 +432,7 @@ def greater_source(s:readbuf, left:u64, right:u64) -> u64:
             return 0
     return 0
 
-def profile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+def profile(s:readbuf, o:mutbuf, w:mutbuf, word_memory:u64) -> u32:
     if length(o) != 32 or length(w) != 128:
         return 1
     expected = text(s, w)
@@ -453,7 +455,7 @@ def profile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             term = text(s, w)
             if get(w, 8) != 0:
                 return 1
-            if reason == 0 and listed(s, term, 0, 0) == 0:
+            if reason == 0 and listed(s, term, 0, 0, 0) == 0:
                 reason = 2
                 offender = i
             n = number(s, w)
@@ -464,7 +466,7 @@ def profile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 op = text(s, w)
                 if get(w, 8) != 0:
                     return 1
-                if reason == 0 and listed(s, op, 1, allow) == 0:
+                if reason == 0 and listed(s, op, 1, allow, word_memory) == 0:
                     reason = 3
                     offender = i
                 k = k + 1
@@ -477,7 +479,7 @@ def profile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             typ = text(s, w)
             if get(w, 8) != 0:
                 return 1
-            if reason == 0 and listed(s, typ, 2, allow) == 0:
+            if reason == 0 and listed(s, typ, 2, allow, 0) == 0:
                 reason = 4
                 offender = i
             j = j + 1
@@ -506,7 +508,7 @@ def constant_lookup(words):
 
 def profile_tables():
     groups = [('ret', 'trap', 'jump', 'branch'), sorted(_V8_BYTE_OPS), sorted(_V8_BYTE_TYPES),
-              sorted(_V8_CHAIN_OPS), ['chain']]
+              sorted(_V8_CHAIN_OPS), ['chain'], sorted(_V9_WORD_OPS)]
     words, bounds = [], []
     for group in groups:
         begin = len(words)
@@ -515,11 +517,14 @@ def profile_tables():
             words.append(len(raw))
             words.extend(int.from_bytes(raw[i:i+8].ljust(8, b'\0'), 'little') for i in range(0, len(raw), 8))
         bounds.append((begin, len(words)))
-    code = ['def listed(s:readbuf, at:u64, kind:u64, allow:u64) -> u64:',
+    code = ['def listed(s:readbuf, at:u64, kind:u64, allow:u64, word_memory:u64) -> u64:',
             f'    begin = {bounds[0][0]}', f'    end = {bounds[0][1]}']
     for kind in (1, 2):
         code += [f'    if kind == {kind}:', f'        begin = {bounds[kind][0]}', f'        end = {bounds[kind][1]}']
-    code += ['    if in_table(s, at, begin, end) != 0:', '        return 1', '    if allow != 0:']
+    code += ['    if in_table(s, at, begin, end) != 0:', '        return 1',
+             '    if kind == 1 and word_memory != 0:',
+             f'        if in_table(s, at, {bounds[5][0]}, {bounds[5][1]}) != 0:',
+             '            return 1', '    if allow != 0:']
     for kind in (1, 2):
         lo, hi = bounds[kind + 2]
         code += [f'        if kind == {kind}:', f'            return in_table(s, at, {lo}, {hi})']

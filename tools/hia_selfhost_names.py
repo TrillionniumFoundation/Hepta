@@ -750,7 +750,8 @@ def _verify_compilation_evidence(directory, observations, expected_count):
 
 def qualify(directory, compiler, checks, reference, label):
     from pathlib import Path
-    from tools.qualify_hia_selfhost import compile_stage, invoke, observe_native_tool, INVALID, inspect_selfhost_object
+    from tools.qualify_hia_selfhost import (compile_stage, invoke, observe_native_tool,
+        INVALID, inspect_selfhost_object, with_selfhost_module)
     from tools.qualify_hia_selfhost_cli import execute, inspect_executable
     directory = Path(directory)
     compilation = directory / 'compilation'
@@ -796,7 +797,7 @@ def qualify(directory, compiler, checks, reference, label):
         image, build = compile_stage(compilation, label + '-alpha-R' + str(generation), previous, alpha)
         checks[label + '-alpha-R' + str(generation)] = image.read_bytes() == compiler.read_bytes()
         observations.append(build); previous = image
-    executable_source = alpha.replace(b'v8 selfhost\n', b'v8 selfhost_exec\n', 1)
+    executable_source = with_selfhost_module(alpha, b'selfhost_exec')
     executable, build = compile_stage(compilation, label + '-alpha-E1', compiler,
         executable_source, output_extension='.elf')
     observations.append({**build, 'inspection': inspect_executable(executable.read_bytes())})
@@ -810,8 +811,7 @@ def qualify(directory, compiler, checks, reference, label):
     canonical = COMPILER.read_bytes()
     if label == 'modified':
         canonical = mutate_compiler(canonical)
-    module_source = canonical.replace(b'v8 selfhost\n',
-        b'v8 ' + ('Compiler_' + label).encode() + b'\n', 1)
+    module_source = with_selfhost_module(canonical, ('Compiler_' + label).encode())
     previous = compiler
     for generation in (1, 2):
         image, build = compile_stage(compilation, label + '-module-R' + str(generation),
@@ -839,7 +839,8 @@ def qualify_entry_layout(directory, compilers):
     from tools.hia_selfhost_capacity import count_nodes
     from tools.hia_selfhost_cfg_worklist import cases as cfg_cases, qualify as qualify_cfg
     from tools.hia_selfhost_loans import reference_source
-    from tools.qualify_hia_selfhost import SOURCE as COMPILER, compile_stage, mutate_compiler
+    from tools.qualify_hia_selfhost import (SOURCE as COMPILER, compile_stage,
+        mutate_compiler, with_selfhost_module)
     from tools.qualify_hia_selfhost_cli import execute, inspect_executable
     directory = Path(directory)
     prepared = []
@@ -880,7 +881,7 @@ def qualify_entry_layout(directory, compilers):
         restored, receipt = compile_stage(directory, name + '-canonical', second, canonical)
         observations.append(receipt)
         checks[name + '-canonical-reproduction'] = restored.read_bytes() == Path(compiler).read_bytes()
-        executable_source = source.replace(b'v8 selfhost\n', b'v8 selfhost_exec\n', 1)
+        executable_source = with_selfhost_module(source, b'selfhost_exec')
         executable, receipt = compile_stage(directory, name + '-E1', second,
                                            executable_source, output_extension='.elf')
         observations.append({**receipt, 'inspection': inspect_executable(executable.read_bytes())})

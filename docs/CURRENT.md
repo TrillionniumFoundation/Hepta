@@ -22,6 +22,7 @@ verified-kernel work:
 | --- | --- | --- |
 | Native product continuation | Frozen R29 tree `caa44fe5f5647eb24aac9d1daf724bf5fa6c2d53`, following [published `192be0c`](https://github.com/TrillionniumFoundation/Hepta/commit/192be0c277a6971dc956326372fe4e48a007ae26) in [PR #897](https://github.com/TrillionniumFoundation/Hepta/pull/897) | HIA component owners, native release construction, cold transport and original product callers |
 | Verified-kernel continuation | [`e9de97c`](https://github.com/TrillionniumFoundation/Hepta/commit/e9de97cee2a44cfbe044b245f2cf344c2cc3ef47), [PR #914](https://github.com/TrillionniumFoundation/Hepta/pull/914) | Register kernels, SSE2/AVX2/AVX-512 validation, CPU admission, immutable loading and ordinary shared-library builds |
+| Word-memory continuation | [`d998554`](https://github.com/TrillionniumFoundation/Hepta/commit/d99855451c8140899c85cf264b330a81a1c00362), [PR #903](https://github.com/TrillionniumFoundation/Hepta/pull/903) | Explicit v9 u64 word memory, matching compiler/frontend/resource profiles, preserved v8 semantics and cross-backend controls |
 
 The integration also corrects concrete source and execution defects:
 
@@ -42,10 +43,50 @@ The integration also corrects concrete source and execution defects:
   Escaped keys, duplicate-key identity, grammar and resource limits retain
   their original checks.
 
-**Qualification of this combined source tree is pending.** Earlier cold,
-component, installed or kernel results retain their own source identities.
-The final inventory and qualification records supply the current counts and
-outcomes; source counts are not a native-completion percentage.
+The published pre-v9 integration [`b7ed901`](https://github.com/TrillionniumFoundation/Hepta/commit/b7ed9013ccedbf0df5c254b9bd6d278a66884b36)
+completed the full fixed-Core cold replay on ROG: eleven outer checks, all 38
+original/modified phases and 5,052 nested checks passed in 65.424 seconds under
+the original 180+3-second qualification and 240-second outer limit. Its
+B1=B2=B3 image SHA256 is
+`a188fa30eaeada5d8ced8db63e7d7103cbdb73730c94249470a0abbd6641f7d2`.
+The same frozen checkpoint completed native executable Source3/Native5,
+44 managed commands, twelve installed executions, independent positive
+readback and all sixty original negative DATA controls. The DATA supervisor
+made 61 actual reader calls and verified 872 artifact files; it did not execute
+new product calls.
+
+**Those outcomes belong to the pre-v9 checkpoint.** The current v9 successor
+requires a fresh complete source freeze, cold fixed points and all affected
+native/installed gates. Current development Source controls establish the
+strict source relations; they do not transfer earlier execution results.
+The final inventory and qualification records supply counts and outcomes;
+source counts are not a native-completion percentage.
+
+The v9 development checks have completed the full verified-kernel workflow's
+298 tests, the 62-method source compatibility group, and the subsequent
+42-method Delivery source and packaging group. The Bootstrap caller-source
+repair also passed 36 source tests, including all original static checks and
+108 negative admission controls. Its independent reader then passed the
+37-method source group, including 136 additional refusal controls, and read
+actual producer proofs for all three complete original caller scopes. A real
+sdist was built and unpacked; all 673 declared source paths matched their
+input bytes, and its ten complete Delivery/Bootstrap source-control methods
+passed using only the extracted package. These are source and component
+results, not a full native product qualification.
+
+The earlier complete Core attempt reached its 1,800-second outer limit with
+715 successful method records, six error records and one unfinished method.
+The six errors were subsequently repaired and passed in their complete
+original targeted groups; the interrupted complete Core run remains HOLD.
+The full current inventory must finish again on the frozen successor.
+
+Original pre-v9 CI evidence also retains independent unresolved observations:
+Store Capture timed out at 1,800 seconds with 3,264 of 5,101 complete candidate
+records readable and four explicit-GC-count differences; Discovery's 56-case
+and Verification's 185-case domains also differed in explicit GC counts.
+Slot's separate automatic-GC/finalizer differences remain recorded. None of
+these fields, input domains or limits has been removed or normalized. Their
+current v9 outcomes require complete actual re-execution.
 
 ## Source format and actual entry points
 
@@ -65,6 +106,49 @@ bounded commands through HIA and mechanical syscall/ABI transport.
 Each entry retains its own admission and installed-resource requirements.
 
 ## Current implementation changes and required validation
+
+### Explicit v9 word memory
+
+The [v9 memory profile](HIA_WORD_MEMORY_V9.md) adds four unsigned 64-bit
+buffer operations: load and store, each with explicit little-endian or
+big-endian order. Unaligned offsets are permitted after checking the complete
+eight-byte range. VM, direct native, LLVM and selfhost qualification must
+retain the complete shared input domain. The generated compiler uses word
+access for its fixed records, while SHA, JSON wire and structured Core
+consumers retain their checked extents.
+
+Slot's `read_word`, `get` and `set` helpers use a little-endian word access only
+after proving the complete eight-byte extent. Their full original byte paths
+remain for short tails and high offsets, preserving the original trap and
+partial-store order. The retained generator reproduces the complete original
+v8 source; every other function is unchanged. The added controls compare
+890 helper inputs and 239 complete packet inputs against that source. The
+original 248/7,574 input groups, 4,000,000 VM steps, 16 MiB heap, call depth 128
+and 1,800-second owner remain required. A word operation costs one VM tick;
+identical interruptions under arbitrary smaller step budgets are not claimed.
+
+The optional Python VM preparation admits the exact v9 interpreter by a
+whole-source inverse to its fixed v8 predecessor. It derives the operation
+from the actual current source, keeps all word operations and binds its
+cache to that source digest. It remains a reference execution optimization,
+with the original fallback, semantic, stopped-storage and failure controls;
+it is not an HIA implementation or native qualification.
+
+The v8 catalog, original generated owners, frozen integer references and
+original CLI Discovery inputs remain independent regression authorities.
+Strict whole-source inverse/forward checks identify reviewed successor edits;
+they do not treat an old result as a current execution. Discovery now serves
+nine schemas and 54 instruction records, with 71 current native and VM
+frames plus the original R5 61 frames and six VM controls. Static resource
+admission preserves original modes 0–4 and adds explicit v9 mode 5; all
+original seven caller modules must exercise their complete current domain.
+
+The native transport selects the actual running Python library, including
+distribution multiarch and relocated-runtime layouts, and validates its
+resolved bytes under the existing ABI rules. Its current observer suite
+requires 47 methods in each full lane, including the original ordered 44 and
+three additional frame/workspace boundary controls. Historical 44-method
+reports cannot qualify the current 47-method scope.
 
 ### Explicit native integer profiles
 
@@ -120,8 +204,9 @@ have hosted tools.
 The complete release gate retains Source3, Native5, all 44 managed commands,
 nine original compile/pack API invocations, twelve installed executable runs,
 the independent DATA reader and all sixty negative DATA controls.
-The cold transport additionally retains both original44 lanes, selected44,
-HOF8, REF18, FD18 and CT36 with complete DATA consumption.
+The cold transport runs two complete current47 baseline lanes and selected47,
+retaining every original44 method in each lane, plus HOF8, REF18, FD18 and
+CT36 with complete DATA consumption.
 These gates run against the same frozen source and their declared compiler.
 
 ### Verified register and SIMD kernels

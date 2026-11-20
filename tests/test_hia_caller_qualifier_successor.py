@@ -37,7 +37,13 @@ DEPENDENCIES = ('tests/hia_caller_terminal_admission.py',
                 'tests/fixtures/hia_store_artifact_profile_callers_73f1634.json')
 CAPTURE_PATHS = (AUTHORITY, *ORIGINALS.values(), *DEPENDENCIES, PAIR, EVALUATION,
                  *PRIOR_NAMES, *QUALIFIERS)
-SOURCE_INPUTS = (*CAPTURE_PATHS, 'tests/hia_native_transport_worker_successor.py',
+DEPENDENCY_PATH = 'tests/hia_caller_terminal_admission.py'
+DEPENDENCY_AUTHORITY = 'tests/fixtures/caller_terminal_diagnostics_dependency_v1.json'
+DEPENDENCY_AUTHORITY_PIN = {'bytes': 5656, 'sha256': '98d2c3871079849eab5733234b848ba5fa0bff480cc29e2e20ca9d974c392c8a'}
+DEPENDENCY_ADDITIONS = (DEPENDENCY_AUTHORITY, 'tests/hia_caller_diagnostics_admission.py',
+                        'tests/fixtures/caller_deadline_diagnostics_v1.json')
+CURRENT_CAPTURE_PATHS = (*CAPTURE_PATHS, *DEPENDENCY_ADDITIONS)
+SOURCE_INPUTS = (*CAPTURE_PATHS, *DEPENDENCY_ADDITIONS, 'tests/hia_native_transport_worker_successor.py',
                  'tests/test_hia_caller_qualifier_successor.py',
                  'tests/test_hia_evaluation_worker_successor.py',
                  'tests/test_hia_store_native_delivery.py',
@@ -79,6 +85,19 @@ def planned_ids():
     return first, second
 
 
+def dependency_planned_ids():
+    first = ['CQ-DEPENDENCY-MATRIX-' + kind + '-' + str(prior) + '-' + str(mask)
+             for kind in ('native', 'store') for prior in VALID_PRIOR for mask in range(8)]
+    first += ['CQ-DEPENDENCY-ABSENT-' + kind + '-' + str(prior)
+              for kind in ('native', 'store') for prior in VALID_PRIOR]
+    second = ['CQ-DEPENDENCY-TAMPER-' + name for name in CURRENT_CAPTURE_PATHS]
+    second += ['CQ-DEPENDENCY-MISSING-' + name for name in CURRENT_CAPTURE_PATHS if name != AUTHORITY]
+    second += ['CQ-DEPENDENCY-REREAD-' + name for name in CURRENT_CAPTURE_PATHS]
+    second += ['CQ-DEPENDENCY-NO-CACHE-' + name for name in (DEPENDENCY_PATH, *DEPENDENCY_ADDITIONS)]
+    second += ['CQ-DEPENDENCY-REVERSE-' + variant for variant in REVERSE_BAD]
+    return first, second
+
+
 def independent_inverse(raw, record):
     result = raw
     for item in reversed(record['splices']):
@@ -108,6 +127,16 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             raise AssertionError('new fixed qualifier authority changed')
         cls.authority = json.loads(cls.corpus[AUTHORITY])
         cls.values = {kind: json.loads(cls.corpus[name]) for kind, name in ORIGINALS.items()}
+        dependency_raw = cls.source_raw[DEPENDENCY_AUTHORITY]
+        if pin(dependency_raw) != DEPENDENCY_AUTHORITY_PIN:
+            raise AssertionError('fixed caller diagnostic dependency authority changed')
+        cls.dependency = json.loads(dependency_raw)
+        if pin(cls.corpus[DEPENDENCY_PATH]) != cls.dependency['record']['new']:
+            raise AssertionError('control needs the exact complete current caller helper')
+        cls.original_dependency = independent_inverse(
+            cls.corpus[DEPENDENCY_PATH], cls.dependency['record'])
+        if pin(cls.original_dependency) != cls.authority['underlying_caller_runtime_and_authorities'][DEPENDENCY_PATH]:
+            raise AssertionError('dependency inverse must recover the unchanged qualifier authority pin')
         cls.old_qualifiers = {}
         for name in QUALIFIERS:
             record = cls.authority['files'][name]
@@ -137,13 +166,22 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
         if pin(cls.corpus[PRIOR_NAMES[2]]) != evaluation['new']:
             raise AssertionError('control needs the exact current Evaluation successor')
         cls.old_prior[PRIOR_NAMES[2]] = independent_inverse(cls.corpus[PRIOR_NAMES[2]], evaluation)
-        cls.first_ids, cls.second_ids = planned_ids()
+        cls.retained_first_ids, cls.retained_second_ids = planned_ids()
+        cls.retained_ids = cls.retained_first_ids + cls.retained_second_ids
+        if len(cls.retained_ids) != 152 or len(set(cls.retained_ids)) != 152:
+            raise AssertionError('complete original source control inventory differs')
+        dependency_first, dependency_second = dependency_planned_ids()
+        cls.first_ids = cls.retained_first_ids + dependency_first
+        cls.second_ids = cls.retained_second_ids + dependency_second
         cls.planned = cls.first_ids + cls.second_ids
-        if len(cls.planned) != 152 or len(set(cls.planned)) != 152:
-            raise AssertionError('complete new source control inventory differs')
+        if (len(cls.planned) != 278 or len(set(cls.planned)) != 278
+                or [name for name in cls.planned if not name.startswith('CQ-DEPENDENCY-')] != cls.retained_ids):
+            raise AssertionError('complete retained and diagnostic dependency control inventory differs')
         cls.results = []
         write(cls.output / 'plan.json', {
             'schema': 'hepta.hia.caller-qualifier-source-plan.v1', 'planned_ids': cls.planned,
+            'retained_original_ids': cls.retained_ids, 'retained_original_count': 152,
+            'additional_current_dependency_count': 126,
             'method_count': 2, 'source_before': {name: pin(raw) for name, raw in cls.source_raw.items()},
             'original_gates_replaced': False, 'production_source_exceptions': []})
 
@@ -157,6 +195,8 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             'schema': 'hepta.hia.caller-qualifier-source-controls.v1',
             'status': 'PASS_SOURCE_CONTROLS' if passed else 'HOLD',
             'planned_ids': cls.planned, 'results': cls.results, 'complete_ordered_ids': complete,
+            'retained_original_ids': cls.retained_ids, 'retained_original_count': 152,
+            'additional_current_dependency_count': 126,
             'source_before': {name: pin(raw) for name, raw in cls.source_raw.items()},
             'source_after': {name: pin(raw) for name, raw in after.items()},
             'raw_terminal_reread_identical': stable, 'original_gates_replaced': False,
@@ -183,10 +223,17 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             write(self.output / ('control-' + str(len(type(self).results)).zfill(3) + '.json'), row)
 
     @contextmanager
-    def tree(self, mask=7, *, prior=7, authority=True):
+    def tree(self, mask=7, *, prior=7, authority=True, current_dependency=False):
         with tempfile.TemporaryDirectory(prefix='caller-qualifier-admission-') as directory:
             root = Path(directory)
             files = dict(self.corpus)
+            if current_dependency:
+                files.update({name: self.source_raw[name] for name in DEPENDENCY_ADDITIONS})
+            else:
+                # Reconstruct the complete fixed original only inside this
+                # temporary source-control tree; actual current bytes remain
+                # captured separately and are tested below without substitution.
+                files[DEPENDENCY_PATH] = self.original_dependency
             for bit, name in enumerate(QUALIFIERS):
                 files[name] = self.corpus[name] if mask & (1 << bit) else self.old_qualifiers[name]
             for bit, name in enumerate(PRIOR_NAMES):
@@ -231,6 +278,7 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
                         self.assertEqual(proof['source_adjustment_count'], 2 if kind == 'native' and mask
                                          else 3 if mask else 0)
                         self.assertEqual(set(proof['actual_captured_files']), set(CAPTURE_PATHS))
+                        self.assertEqual(proof['reviewed_dependency_source_adjustments'], {})
                         self.assertEqual(proof['complete_old_source_pins'],
                                          {name: pin(raw) for name, raw in self.old_qualifiers.items()})
                         self.assertTrue(proof['terminal_reread_identical'])
@@ -252,6 +300,60 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
                                             self.values[kind]['unchanged_files'][name])
                     row['result'] = actual
                     row['new_qualifier_exception_granted'] = False
+
+        # Repeat the complete matrix on the actual current helper and all three
+        # additional captured authorities. The original 152 controls above and
+        # below still use the full restored original dependency, with no new
+        # authority present in their temporary trees.
+        for kind in ('native', 'store'):
+            for prior in VALID_PRIOR:
+                for mask in range(8):
+                    identity = 'CQ-DEPENDENCY-MATRIX-' + kind + '-' + str(prior) + '-' + str(mask)
+                    with self.subTest(id=identity), self.observe(identity) as row, self.tree(
+                            mask, prior=prior, current_dependency=True):
+                        if mask not in (0, 7):
+                            with self.assertRaises(ValueError):
+                                self.admit(kind)
+                            continue
+                        base = subject._admit_terminal_sources_before_qualifiers(
+                            deepcopy(self.values[kind]), original_kind=kind)
+                        result = self.admit(kind)
+                        proof = result['caller_qualifier_source_admission']
+                        expected = set(QUALIFIERS[:2] if kind == 'native' else QUALIFIERS) if mask else set()
+                        self.assertEqual(set(proof['source_adjustments']), expected)
+                        self.assertEqual(set(result['source_adjustments']), set(base['source_adjustments']) | expected)
+                        self.assertEqual({key: result[key] for key in base if key != 'source_adjustments'},
+                                         {key: base[key] for key in base if key != 'source_adjustments'})
+                        self.assertEqual(proof['state'], 'EXACT_REVIEWED_QUALIFIER_TRIPLE' if mask
+                                         else 'EXACT_ORIGINAL_QUALIFIER_TRIPLE')
+                        self.assertEqual(proof['complete_old_source_pins'],
+                                         {name: pin(raw) for name, raw in self.old_qualifiers.items()})
+                        self.assertEqual(set(proof['actual_captured_files']), set(CURRENT_CAPTURE_PATHS))
+                        self.assertEqual(set(proof['reviewed_dependency_source_adjustments']), {DEPENDENCY_PATH})
+                        reviewed = proof['reviewed_dependency_source_adjustments'][DEPENDENCY_PATH]
+                        self.assertEqual(reviewed['original'], pin(self.original_dependency))
+                        self.assertEqual(reviewed['current'], pin(self.corpus[DEPENDENCY_PATH]))
+                        self.assertEqual(reviewed['authority'], {'path': DEPENDENCY_AUTHORITY, **DEPENDENCY_AUTHORITY_PIN})
+                        self.assertEqual(reviewed['captured_dependencies'], self.dependency['dependencies'])
+                        self.assertEqual(reviewed['exact_splice_count'], 6)
+                        self.assertTrue(reviewed['complete_original_inverse_verified'])
+                        self.assertTrue(reviewed['complete_current_forward_replay_verified'])
+                        self.assertTrue(reviewed['original_qualifier_authority_unchanged'])
+                        self.assertFalse(reviewed['production_source_exception'])
+                        self.assertTrue(proof['terminal_reread_identical'])
+                        self.assertEqual(proof['production_source_exceptions'], [])
+                        self.assertEqual(proof['production_composition_source_count'], 13)
+                        row['admission'] = result
+        for kind in ('native', 'store'):
+            for prior in VALID_PRIOR:
+                identity = 'CQ-DEPENDENCY-ABSENT-' + kind + '-' + str(prior)
+                with self.subTest(id=identity), self.observe(identity) as row, self.tree(
+                        prior=prior, authority=False, current_dependency=True):
+                    expected = subject._admit_terminal_sources_before_qualifiers(
+                        deepcopy(self.values[kind]), original_kind=kind)
+                    self.assertEqual(self.admit(kind), expected)
+                    self.assertNotIn('caller_qualifier_source_admission', expected)
+                    row['new_dependency_exception_granted'] = False
 
     def test_02_whole_source_authorities_exact_splices_and_actual_terminal_rereads(self):
         for name in CAPTURE_PATHS:
@@ -354,6 +456,87 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 subject.reverse_qualifier(self.corpus[name], self.authority['files'][name],
                                           'tools/unlisted-qualifier.py')
+
+        for name in CURRENT_CAPTURE_PATHS:
+            identity = 'CQ-DEPENDENCY-TAMPER-' + name
+            with self.subTest(id=identity), self.observe(identity), self.tree(current_dependency=True) as root:
+                path = root / name
+                path.write_bytes(path.read_bytes() + b'\n')
+                with self.assertRaises(ValueError):
+                    self.admit('store')
+        for name in CURRENT_CAPTURE_PATHS:
+            if name == AUTHORITY:
+                continue
+            identity = 'CQ-DEPENDENCY-MISSING-' + name
+            with self.subTest(id=identity), self.observe(identity), self.tree(current_dependency=True) as root:
+                (root / name).unlink()
+                with self.assertRaises((ValueError, FileNotFoundError)):
+                    self.admit('store')
+        for name in CURRENT_CAPTURE_PATHS:
+            identity = 'CQ-DEPENDENCY-REREAD-' + name
+            with self.subTest(id=identity), self.observe(identity) as row, self.tree(current_dependency=True) as root:
+                target = root / name
+                fired = []
+                def read_then_change(path):
+                    raw = original_read(path)
+                    if path == target and not fired:
+                        path.write_bytes(raw + b'\n')
+                        fired.append(str(path))
+                    return raw
+                with patch.object(Path, 'read_bytes', read_then_change):
+                    with self.assertRaises(ValueError):
+                        self.admit('store')
+                self.assertEqual(fired, [str(target)])
+                row['actual_read_then_mutated'] = fired
+        for name in (DEPENDENCY_PATH, *DEPENDENCY_ADDITIONS):
+            identity = 'CQ-DEPENDENCY-NO-CACHE-' + name
+            with self.subTest(id=identity), self.observe(identity), self.tree(current_dependency=True) as root:
+                self.admit('store')
+                path = root / name
+                path.write_bytes(path.read_bytes() + b'\n')
+                with self.assertRaises(ValueError):
+                    self.admit('store')
+        for variant in REVERSE_BAD:
+            identity = 'CQ-DEPENDENCY-REVERSE-' + variant
+            with self.subTest(id=identity), self.observe(identity):
+                record = deepcopy(self.dependency['record'])
+                raw = self.corpus[DEPENDENCY_PATH]
+                if variant == 'scope':
+                    record['scope'] = 'unlisted'
+                elif variant == 'old-pin':
+                    record['old']['bytes'] = True
+                elif variant == 'new-pin':
+                    record['new']['sha256'] = '0' * 64
+                elif variant == 'tuple-splices':
+                    record['splices'] = tuple(record['splices'])
+                elif variant == 'missing-splice':
+                    record['splices'].pop()
+                elif variant == 'wrong-id':
+                    record['splices'][0]['id'] = 'unlisted'
+                elif variant == 'bool-offset':
+                    record['splices'][0]['old_offset'] = True
+                elif variant == 'shifted-offset':
+                    record['splices'][0]['new_offset'] += 1
+                elif variant == 'overlap':
+                    record['splices'][1] = deepcopy(record['splices'][0])
+                elif variant == 'noncanonical-hex':
+                    record['splices'][0]['new_hex'] = ' ' + record['splices'][0]['new_hex']
+                elif variant == 'old-byte':
+                    value = record['splices'][0]['old_hex']
+                    record['splices'][0]['old_hex'] = ('00' if value[:2] != '00' else '01') + value[2:]
+                elif variant == 'new-byte':
+                    value = record['splices'][0]['new_hex']
+                    record['splices'][0]['new_hex'] = ('00' if value[:2] != '00' else '01') + value[2:]
+                elif variant == 'extra-field':
+                    record['splices'][0]['unlisted'] = True
+                elif variant == 'raw-bytearray':
+                    raw = bytearray(raw)
+                elif variant == 'raw-unlisted-byte':
+                    raw = b'\0' + raw[1:]
+                else:
+                    raise AssertionError('unplanned dependency reverse control')
+                with self.assertRaises(ValueError):
+                    subject.reverse_qualifier_dependency(raw, record)
 
 
 if __name__ == '__main__':

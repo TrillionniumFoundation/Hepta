@@ -126,7 +126,7 @@ fn typed_integer(value: i128, ty: &str, wrapping: bool) -> Exec<Value> {
     }
 }
 fn boolean(v: &Value) -> Exec<bool> { v.as_bool().ok_or(Halt::Internal) }
-fn elem<'a>(a: &'a [Value], index: usize) -> Exec<&'a Value> {
+fn elem(a: &[Value], index: usize) -> Exec<&Value> {
     a.get(index).ok_or(Halt::Internal)
 }
 fn binary(a: &[Value]) -> Exec<(i128, i128)> {
@@ -449,7 +449,8 @@ pub fn execute_scalar(input: &[u8], function: &str, arguments: &[Value],
 
 /// Opt-in finite byte-owner execution in the SAME Machine as scalar execution.
 /// Verified CFG/loops and internal scalar/owner/loan calls share one ledger.
-/// Public entry/return remains scalar. v7/v8 chains, bulk operations and v8
+/// Public entry/return remains scalar. v7/v8 chains, bulk operations, v9 word
+/// accesses and v8
 /// parameter-bound loan returns share one ledger and one execution Machine.
 /// Static ownership admission still comes from the existing verify_owned.
 pub fn execute_owned(input: &[u8], function: &str, arguments: &[Value],
@@ -484,7 +485,7 @@ pub fn execute_owned_bound(input: &[u8], function: &str, arguments: &[Value],
 pub fn execute_owned_bound_v2(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8]) -> R<Value> {
     execute_owned_bound_policy(input, function, arguments, policy_input, 2,
-        MAX_STEPS, MAX_OWNED_HEAP_BYTES, MAX_CALL_DEPTH)
+        V2_POLICY_CEILINGS)
 }
 
 /// Opt-in production-sized evaluator budgets on the same explicit-frame
@@ -492,7 +493,7 @@ pub fn execute_owned_bound_v2(input: &[u8], function: &str, arguments: &[Value],
 pub fn execute_owned_bound_v3(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8]) -> R<Value> {
     execute_owned_bound_policy(input, function, arguments, policy_input, 3,
-        V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH)
+        V3_POLICY_CEILINGS)
 }
 
 /// Exact positive failure indices beyond u64, with the same bounded Machine.
@@ -501,7 +502,7 @@ pub fn execute_owned_bound_v3(input: &[u8], function: &str, arguments: &[Value],
 pub fn execute_owned_bound_v4(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8]) -> R<Value> {
     execute_owned_bound_policy(input, function, arguments, policy_input, 4,
-        V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH)
+        V3_POLICY_CEILINGS)
 }
 
 // Only the private admitted byte-DAG path supplies this precomputed bound.
@@ -509,26 +510,33 @@ pub fn execute_owned_bound_v4(input: &[u8], function: &str, arguments: &[Value],
 pub(crate) fn execute_owned_bound_v4_scoped(input: &[u8], function: &str,
     arguments: &[Value], policy_input: &[u8], cleanup_bound: u64) -> R<(Value, Value)> {
     let (runtime, cleanup) = execute_owned_bound_policy_inner(input, function, arguments,
-        policy_input, 4, V3_MAX_STEPS, V3_MAX_OWNED_HEAP_BYTES, V3_MAX_CALL_DEPTH,
-        Some(cleanup_bound))?;
+        policy_input, 4, V3_POLICY_CEILINGS, Some(cleanup_bound))?;
     let cleanup = cleanup.ok_or_else(|| super::VerifyError {
         code:"E_HIA_CLEANUP_INTERNAL",detail:"scoped Machine omitted cleanup observation".into(),
     })?;
     Ok((runtime, cleanup))
 }
 
+#[derive(Clone, Copy)]
+struct PolicyCeilings { steps: u64, heap: u64, depth: u32 }
+const V2_POLICY_CEILINGS: PolicyCeilings = PolicyCeilings {
+    steps: MAX_STEPS, heap: MAX_OWNED_HEAP_BYTES, depth: MAX_CALL_DEPTH,
+};
+const V3_POLICY_CEILINGS: PolicyCeilings = PolicyCeilings {
+    steps: V3_MAX_STEPS, heap: V3_MAX_OWNED_HEAP_BYTES, depth: V3_MAX_CALL_DEPTH,
+};
+
 fn execute_owned_bound_policy(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8], version: u8,
-                              step_ceiling: u64, heap_ceiling: u64,
-                              depth_ceiling: u32) -> R<Value> {
+                              ceilings: PolicyCeilings) -> R<Value> {
     execute_owned_bound_policy_inner(input,function,arguments,policy_input,version,
-        step_ceiling,heap_ceiling,depth_ceiling,None).map(|(runtime,_)|runtime)
+        ceilings,None).map(|(runtime,_)|runtime)
 }
 
 fn execute_owned_bound_policy_inner(input: &[u8], function: &str, arguments: &[Value],
                               policy_input: &[u8], version: u8,
-                              step_ceiling: u64, heap_ceiling: u64,
-                              depth_ceiling: u32, cleanup_bound: Option<u64>) -> R<(Value, Option<Value>)> {
+                              ceilings: PolicyCeilings, cleanup_bound: Option<u64>) -> R<(Value, Option<Value>)> {
+    let PolicyCeilings { steps: step_ceiling, heap: heap_ceiling, depth: depth_ceiling } = ceilings;
     const MAX_POLICY_BYTES: usize = 1024;
     if policy_input.len() > MAX_POLICY_BYTES {
         return failure("E_HIA_BUDGET_POLICY", format!("bound v{version} policy exceeds 1024 bytes"));
@@ -556,9 +564,9 @@ fn execute_owned_bound_policy_inner(input: &[u8], function: &str, arguments: &[V
         return failure("E_HIA_BUDGET_POLICY", format!("bound v{version} policy outside existing finite limits"));
     }
     check_bound_arguments(arguments)?;
-    let (mut execution, cleanup) = execute_inner(input, function, arguments, max_steps,
-        Some((max_heap_bytes, allocation_fail_at)), max_call_depth as u32, step_ceiling,
-        cleanup_bound)?;
+    let bounds = InvocationBounds { max_steps, max_call_depth: max_call_depth as u32, step_ceiling };
+    let (mut execution, cleanup) = execute_inner(input, function, arguments, bounds,
+        Some((max_heap_bytes, allocation_fail_at)), cleanup_bound)?;
     if version == 4 {
         // The versioned report makes the exact hexadecimal policy type
         // explicit; v1 report consumers are never silently upgraded.
@@ -660,13 +668,16 @@ fn owned_execution_profile(document: &Value) -> R<bool> {
 fn execute(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
            owned_policy: Option<(u64, Option<AllocationFailureIndex>)>, max_call_depth: u32,
            step_ceiling: u64) -> R<Value> {
-    execute_inner(input,function,arguments,max_steps,owned_policy,max_call_depth,
-        step_ceiling,None).map(|(runtime,_)|runtime)
+    let bounds = InvocationBounds { max_steps, max_call_depth, step_ceiling };
+    execute_inner(input,function,arguments,bounds,owned_policy,None).map(|(runtime,_)|runtime)
 }
 
-fn execute_inner(input: &[u8], function: &str, arguments: &[Value], max_steps: u64,
-           owned_policy: Option<(u64, Option<AllocationFailureIndex>)>, max_call_depth: u32,
-           step_ceiling: u64, cleanup_bound: Option<u64>) -> R<(Value, Option<Value>)> {
+struct InvocationBounds { max_steps: u64, max_call_depth: u32, step_ceiling: u64 }
+
+fn execute_inner(input: &[u8], function: &str, arguments: &[Value], bounds: InvocationBounds,
+           owned_policy: Option<(u64, Option<AllocationFailureIndex>)>,
+           cleanup_bound: Option<u64>) -> R<(Value, Option<Value>)> {
+    let InvocationBounds { max_steps, max_call_depth, step_ceiling } = bounds;
     if !(1..=step_ceiling).contains(&max_steps) {
         return failure("E_HIA_BUDGET_POLICY", "max_steps outside bounded Rust oracle profile");
     }
@@ -708,8 +719,8 @@ fn execute_inner(input: &[u8], function: &str, arguments: &[Value], max_steps: u
         return failure("E_HIA_INPUT", "entry arguments do not match exact scalar types");
     }
     if cleanup_bound.is_some() && (owned_policy.is_none() || chain
-        || !matches!(document["schema"].as_str(),Some("hepta.hia.program.v7"|"hepta.hia.program.v8"))) {
-        return failure("E_HIA_CLEANUP_PROFILE","cleanup requires admitted v7/v8 byte-owner DAG");
+        || !matches!(document["schema"].as_str(),Some("hepta.hia.program.v7"|"hepta.hia.program.v8"|"hepta.hia.program.v9"))) {
+        return failure("E_HIA_CLEANUP_PROFILE","cleanup requires admitted v7/v8/v9 byte-owner DAG");
     }
     // Reserve before Machine creation/invocation. A rejected reservation cannot
     // perform even an entry tick or language allocation.
@@ -737,8 +748,11 @@ fn execute_inner(input: &[u8], function: &str, arguments: &[Value], max_steps: u
     });
     if let Some(memory) = machine.memory.as_ref() {
         report["schema"] = json!("hepta.hia.rust-byte-owner-execution.v1");
-        let loan_returns = document["schema"] == "hepta.hia.program.v8";
-        report["profile"] = json!(if chain {
+        let word_memory = document["schema"] == "hepta.hia.program.v9";
+        let loan_returns = word_memory || document["schema"] == "hepta.hia.program.v8";
+        report["profile"] = json!(if word_memory {
+            "bounded-cfg-owned-word-memory-v6"
+        } else if chain {
             "bounded-cfg-owned-memory-v5"
         } else if loan_returns {
             "bounded-cfg-byte-owner-loan-returns-v4"

@@ -154,6 +154,7 @@ BACKEND_BUILD_FILES = (
     'examples/hia_bootstrap/core_lowering_028.hepta',
     'examples/hia_bootstrap/core_lowering_029.hepta',
     'examples/hia_bootstrap/core_lowering_030.hepta',
+    'examples/hia_bootstrap/core_lowering_031.hepta',
 )
 
 

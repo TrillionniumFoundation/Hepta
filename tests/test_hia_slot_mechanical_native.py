@@ -1,4 +1,4 @@
-"""New explicit-v5 qualification; all original Slot classes remain unchanged.
+"""Explicit-v5 qualification; original Slot scopes retain versioned authority.
 
 This module requires a separately built, exact source-bound CPython extension.
 It never compiles on import and never authorizes an installed worker implicitly.
@@ -94,7 +94,7 @@ class SlotMechanicalV5NativeTests(ComponentFixture, unittest.TestCase):
         value = verify(evidence, ROOT, self.product_freeze, self.product_freeze_sha256, captured)
         captured.stable()
         write_json(evidence / "independent-readback.json", {
-            "schema": "hepta.slot.mechanical.installed-readback.v1", "status": "PASS",
+            "schema": "hepta.slot.mechanical.installed-readback.v2", "status": "PASS",
             "detail": value, "actual_inputs": captured.pins(), "product_imported_by_reader": False})
 
     @classmethod
@@ -103,10 +103,15 @@ class SlotMechanicalV5NativeTests(ComponentFixture, unittest.TestCase):
             if hasattr(cls, "bundle_bytes"):
                 if regular_bytes(cls.bundle) != cls.bundle_bytes:
                     raise AssertionError("explicit administrator bundle changed")
+                from tests.hia_slot_worker_terminal import SourceAuthority
+                terminal_authority = SourceAuthority(ROOT)
+                terminal_authority.finish()
                 write_json(cls.folder / "v5-component-custody.json", {
-                    "schema": "hepta.slot.mechanical.v5-component.v1",
+                    "schema": "hepta.slot.mechanical.v5-component.v2",
+                    "terminal_source_authority": terminal_authority.summary(),
                     "bundle": cls.bundle_pin, "new_commands": cls.new_commands,
-                    "new_method_count": 4, "original_Source3_Native6_unchanged": True,
+                    "new_method_count": 4, "original_Source3_Native6_denominators_retained": True,
+                    "worker_terminal_version_is_source_admitted": True,
                     "original_v1_method_not_replaced": True, "whole_native_stack_qualified": False})
         finally:
             super().tearDownClass()

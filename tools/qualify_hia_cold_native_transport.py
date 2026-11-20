@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ""}:
     sys.path.insert(0, str(ROOT))
 from tools.hia_cold_native_transport_evidence import (Captures, canonical, data_pin,
-    parse, regular_bytes, run_owned, successful_exit, write_json)
+    parse, regular_bytes, run_owned, successful_exit, write_json, observer_source_profile)
 from tools.hia_cold_native_transport_bridge import SOURCE_INPUTS, SELECTOR, DEVELOPMENT
 
 GATES = ROOT / "tests/fixtures/cold_native_transport_original_gates_v3.json"
@@ -32,16 +32,17 @@ def _child_gates(output, selected, extra):
     output = Path(output)
     output.mkdir(mode=0o700)
     capture = Captures()
-    plan = capture.json(GATES)
+    plan, current_ids, source_profile = observer_source_profile(ROOT, capture)
     before = _scope_inputs(capture)
     expected = (["tests.test_hia_cold_native_transport.ColdNativeTransportHandoffTests.test_all_eight_actual_atomic_handoff_controls"]
-                if extra else plan["original_method_ids"])
+                if extra else current_ids)
     selectors = (["tests.test_hia_cold_native_transport.ColdNativeTransportHandoffTests"]
                  if extra else plan["original_modules"])
     started, stopped, problems, statuses = [], [], [], {}
     report = {"schema": "hepta.cold-native-transport.original-gate-child.r3",
               "status": "HOLD", "planned": expected, "selected": selected,
               "extra_handoff_controls": extra, "source_before": before,
+              "observer_source_profile": source_profile,
               "started": started, "stopped": stopped, "problems": problems}
     class Result(unittest.TextTestResult):
         def startTest(self, test):
@@ -80,7 +81,7 @@ def _child_gates(output, selected, extra):
             raise ValueError("gate child selection differs from its declared lane")
         suite, identities = load_declared_suite(selectors)
         if list(identities) != expected:
-            raise ValueError("complete original method identities/order differ")
+            raise ValueError("complete current47 and retained original44 method identities/order differ")
         from tools import hia_selfhost_native_observer as flat
         from tools import hia_selfhost_linked_observer as linked
         profiles = []
@@ -115,7 +116,7 @@ def _child_gates(output, selected, extra):
                          "message": str(error), "traceback": traceback.format_exc()})
         raise
     finally:
-        report["status"] = "COMPLETE_ORIGINAL_METHODS_PASS" if success else "HOLD"
+        report["status"] = "COMPLETE_CURRENT_METHODS_PASS_RETAINING_ORIGINALS" if success else "HOLD"
         report["consumed"] = capture.pins()
         report["whole_native"] = False
         report["qualification_complete"] = False
@@ -144,7 +145,8 @@ def qualify(output, *, scope, manifest=None, linked_cold_report=None, linked_dev
                 raise ValueError("regression requires one actual R3 manifest and one original linked build authority")
             manifest = Path(manifest).resolve(strict=True)
             capture.raw(manifest)
-            plan = capture.json(GATES)
+            plan, current_ids, source_profile = observer_source_profile(ROOT, capture)
+            report["observer_source_profile"] = source_profile
             if linked_cold_report is not None:
                 path = Path(linked_cold_report).resolve(strict=True);capture.raw(path)
                 environment["HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT"] = str(path)
@@ -173,12 +175,14 @@ def qualify(output, *, scope, manifest=None, linked_cold_report=None, linked_dev
                 row = None if raw is None else parse(raw)
                 lanes.append({"lane": lane, "directory": str(child_output),
                               "report": None if raw is None else data_pin(raw)})
-                if not successful_exit(result) or row is None or row["status"] != "COMPLETE_ORIGINAL_METHODS_PASS":
+                if not successful_exit(result) or row is None or row["status"] != "COMPLETE_CURRENT_METHODS_PASS_RETAINING_ORIGINALS":
                     raise ValueError("complete original/selected gate is not qualified: " + lane)
-                if not extra and (row["planned"] != plan["original_method_ids"]
-                                  or row["started"] != plan["original_method_ids"]
-                                  or row["stopped"] != plan["original_method_ids"]):
-                    raise ValueError("whole original 44 identities/order differ")
+                if row.get("observer_source_profile") != source_profile:
+                    raise ValueError("complete current/original source relation differs")
+                if not extra and (row["planned"] != current_ids
+                                  or row["started"] != current_ids
+                                  or row["stopped"] != current_ids):
+                    raise ValueError("whole current47 including original44 identities/order differ")
                 if lane == "original-2":
                     first = capture.json(output / "original-1/report.json")
                     if first["statuses"] != row["statuses"] or first["planned"] != row["planned"]:
@@ -188,12 +192,14 @@ def qualify(output, *, scope, manifest=None, linked_cold_report=None, linked_dev
                     write_json(output / "original-authority.json", {
                         "schema": "hepta.cold-native-transport.original-method-authority.r3",
                         "planned": plan["original_method_ids"],
+                        "current_planned": current_ids,
+                        "observer_source_profile": source_profile,
                         "reports": [data_pin(capture.raw(output / name / "report.json"))
                                     for name in ("original-1", "original-2")],
                         "source": source_before, "method_outcomes_only": True,
                         "all_gate_process_logs_retained_without_normalization": True,
                     })
-            report["status"] = "ORIGINAL44_SELECTED44_HANDOFF8_PASS_NOT_WHOLE_COLD"
+            report["status"] = "CURRENT47_RETAINED44_SELECTED47_HANDOFF8_PASS_NOT_WHOLE_COLD"
         elif scope == "cold":
             if manifest is not None or linked_cold_report is not None or linked_development_compiler is not None:
                 raise ValueError("fresh source cold cannot inherit any native transport/compiler image")

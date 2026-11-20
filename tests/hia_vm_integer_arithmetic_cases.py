@@ -73,10 +73,12 @@ def decode(raw):
 
 
 def source_capture():
+    from hepta.hia_vm_integer_divrem_runtime import _retained_runtime_source
     raw = {name: (ROOT / name).read_bytes() for name in SOURCE_PATHS}
-    if (sha256(raw["hepta/hia_program_runtime.py"]).hexdigest() != RUNTIME_SHA256
+    retained = _retained_runtime_source(raw["hepta/hia_program_runtime.py"])
+    if (sha256(retained).hexdigest() != RUNTIME_SHA256
             or raw["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"] !=
-               raw["hepta/hia_program_runtime.py"]
+               retained
             or sha256(raw["tests/test_hia_program.py"]).hexdigest() != TEST_SHA256):
         raise ValueError("retained complete runtime/test source identity differs")
     return raw

@@ -3,6 +3,8 @@
 Only metadata actually made by the existing ordinary preparation is eligible.
 No old VM source or entry limit changes. The one derived operation differs by
 one fixed SetComp -> literal Set AST replacement; all old globals stay live.
+The exact v9 source is admitted only by inverse to the complete fixed v8
+source; the executed derived body is always the actual current interpreter.
 Custom metadata and every failed admission use the original Machine/path.
 This is Python execution preparation, not native code or an HIA receipt.
 """
@@ -16,7 +18,65 @@ from types import CodeType, FunctionType, MappingProxyType
 from . import hia_program_runtime as _runtime
 from . import hia_program_runtime_prepared as _prepared
 
-_RUNTIME_SHA256 = 'ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56'
+_RUNTIME_SHA256 = "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56"
+_V9_RUNTIME_SHA256 = "db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0"
+_V9_IMPORT = "from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES, validate_execution_observation\n"
+_ORIGINAL_IMPORT = "from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation\n"
+_V9_WORD_BRANCH = """        elif op in WORD_LOADS or op in WORD_STORES:
+            owner, index = _underlying(args[0]), args[1]
+            if op in WORD_STORES and (not isinstance(args[0], _View) or not args[0].mutable):
+                raise HIAProgramRejected("word store through non-mutable view", "E_HIA_RUNTIME_INVARIANT")
+            extent = len(owner.data)
+            # The complete fixed-width range is checked before any memory
+            # access. In particular subtraction cannot underflow and no short
+            # store may modify a prefix before trapping.
+            if index > extent or 8 > extent - index:
+                raise HIAProgramTrap("bounds", "u64 word outside the borrowed buffer")
+            if op in WORD_LOADS:
+                result = [int.from_bytes(owner.data[index:index + 8], WORD_LOADS[op])]
+            else:
+                owner.data[index:index + 8] = args[2].to_bytes(8, WORD_STORES[op])
+"""
+
+def _retained_runtime_source(raw):
+    """Admit the exact original, or invert only the independently pinned v9 delta.
+
+    The inverse is an admission proof, never an executed replacement runtime.
+    Derivation below still compiles the actual current complete source, including
+    every word operation, and changes only the same arithmetic SetComp.
+    """
+    if type(raw) is not bytes:
+        raise ValueError("runtime source must be exact bytes")
+    digest = sha256(raw).hexdigest()
+    if digest == _RUNTIME_SHA256:
+        return raw
+    if digest != _V9_RUNTIME_SHA256:
+        raise ValueError("arithmetic preparation runtime exceeds the pinned original/v9 sources")
+    incoming, previous, branch = (_V9_IMPORT.encode(), _ORIGINAL_IMPORT.encode(),
+                                  _V9_WORD_BRANCH.encode())
+    if raw.count(incoming) != 1 or raw.count(branch) != 1:
+        raise ValueError("pinned v9 runtime delta is not unique")
+    restored = raw.replace(incoming, previous).replace(branch, b"")
+    if sha256(restored).hexdigest() != _RUNTIME_SHA256:
+        raise ValueError("v9 runtime inverse differs from the complete ce39 original")
+    return restored
+
+
+def _word_order_state(raw):
+    if sha256(raw).hexdigest() != _V9_RUNTIME_SHA256:
+        return ()
+    expected = (
+        ("WORD_LOADS", (("buffer.load.u64.le", "little"), ("buffer.load.u64.be", "big"))),
+        ("WORD_STORES", (("buffer.store.u64.le", "little"), ("buffer.store.u64.be", "big"))),
+    )
+    rows = []
+    for name, items in expected:
+        mapping = getattr(_runtime, name, None)
+        if type(mapping) is not MappingProxyType or tuple(mapping.items()) != items:
+            raise ValueError("live v9 runtime byte-order mapping differs: " + name)
+        rows.append((name, mapping, items))
+    return tuple(rows)
+
 _PREPARED_SHA256 = '21a5d3f8dd32949448f0d3f05633e11b75abf849ed125414a858aa0f85fd8188'
 _ARITHMETIC = ('int.add.checked', 'int.add.wrap', 'int.sub.checked',
                'int.sub.wrap', 'int.mul.checked', 'int.mul.wrap')
@@ -42,7 +102,8 @@ def _derived_current(function, stamp):
     # Capture the actual execution target once and compare it with the immutable
     # creation-time receipt. Source/old-method pins alone do not bind this new
     # FunctionType's mutable code/default attributes.
-    return (type(stamp) is tuple and len(stamp) == 6
+    return (type(stamp) is tuple and len(stamp) == 7
+            and type(stamp[6]) is str and stamp[6] in (_RUNTIME_SHA256, _V9_RUNTIME_SHA256)
             and stamp is _CACHE and function is stamp[0]
             and type(function) is FunctionType
             and function.__code__ is stamp[1]
@@ -125,12 +186,17 @@ def _derived_operation():
         prepared_raw = prepared_path.read_bytes()
     except OSError:
         return None
-    if (sha256(runtime_raw).hexdigest() != _RUNTIME_SHA256
-            or sha256(prepared_raw).hexdigest() != _PREPARED_SHA256):
+    if sha256(prepared_raw).hexdigest() != _PREPARED_SHA256:
         return None
+    try:
+        _retained_runtime_source(runtime_raw)
+        _word_order_state(runtime_raw)
+    except ValueError:
+        return None
+    runtime_digest = sha256(runtime_raw).hexdigest()
     stamp = _CACHE
     if stamp is not None:
-        if type(stamp) is not tuple or len(stamp) != 6:
+        if type(stamp) is not tuple or len(stamp) != 7 or stamp[6] != runtime_digest:
             return None
         function = stamp[0]
         return function if _derived_current(function, stamp) else None
@@ -195,7 +261,7 @@ def _derived_operation():
                             _OPERATION.__defaults__, _OPERATION.__closure__)
     function.__kwdefaults__ = _OPERATION.__kwdefaults__
     _CACHE = (function, function.__code__, function.__globals__,
-              function.__defaults__, function.__kwdefaults__, function.__closure__)
+              function.__defaults__, function.__kwdefaults__, function.__closure__, runtime_digest)
     return function
 
 
@@ -286,7 +352,8 @@ class _PreparedMachine(_MACHINE):
             target, stamp = authority.operation, authority.operation_stamp
             # Same ordered predicate as _derived_current, inlined only here.
             # Keep the actual target captured above through the final call.
-            if (type(stamp) is tuple and len(stamp) == 6
+            if (type(stamp) is tuple and len(stamp) == 7
+                    and type(stamp[6]) is str and stamp[6] in (_RUNTIME_SHA256, _V9_RUNTIME_SHA256)
                     and stamp is _CACHE and target is stamp[0]
                     and type(target) is FunctionType
                     and target.__code__ is stamp[1]

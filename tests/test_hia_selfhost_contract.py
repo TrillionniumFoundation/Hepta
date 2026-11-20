@@ -44,6 +44,7 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertEqual(contract["target"]["triple"], "x86_64-unknown-linux-gnu")
         self.assertEqual(contract["abi"]["entry"], "f0")
         files = contract["source_identity"]["files"]
+        self.assertIn("tools/generate_hia_catalog.py", files)
         for path in (ROOT / "hepta").rglob("*.py"):
             self.assertEqual(files[path.relative_to(ROOT).as_posix()], sha256(path.read_bytes()).hexdigest())
         self.assertFalse(contract["claims"]["whole_HIA_language_self_hosted"])

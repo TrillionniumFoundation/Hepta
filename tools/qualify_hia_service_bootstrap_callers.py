@@ -30,6 +30,93 @@ CLOSED_ADMINISTRATOR_IDS={
 def canonical(value):
     return json.dumps(value,ensure_ascii=True,sort_keys=True,separators=(',',':')).encode()
 
+_DIAGNOSTICS_SOURCE = 'tests/hia_caller_diagnostics_admission.py'
+_DIAGNOSTICS_SOURCE_PIN = {
+    'bytes': 5185,
+    'sha256': '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578',
+}
+_DIAGNOSTICS_FIXTURE = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_DIAGNOSTICS_FIXTURE_PIN = {
+    'bytes': 3545,
+    'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c',
+}
+_DIAGNOSTICS_CALLER = 'tests/test_hia_agent_native_tools.py'
+
+
+def _source_pin(raw):
+    return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+
+def admit_original_scope(root, scope_name):
+    """Read one complete fixed scope; only the reviewed diagnostic edit may differ.
+
+    The reconstructed historical test is data only. The caller still loads the
+    complete current modules, and the original ordered IDs and budgets remain
+    authoritative. Every consumed input is reread before admission returns.
+    """
+    if type(scope_name) is not str or scope_name not in ('ordinary', 'journal', 'context'):
+        raise ValueError('unknown original bootstrap caller scope')
+    root = Path(root)
+    captured = {}
+
+    def capture(name):
+        if name in captured:
+            raise ValueError('duplicate bootstrap caller source consumption: ' + name)
+        raw = (root / name).read_bytes()
+        captured[name] = raw
+        return raw
+
+    frozen = capture(FIXTURE)
+    if sha256(frozen).hexdigest() != FIXTURE_SHA256:
+        raise ValueError('caller scope bytes differ')
+    scope = json.loads(frozen)['scopes'][scope_name]
+    adjustments = {}
+    for name, expected in scope['files'].items():
+        raw = capture(name)
+        if _source_pin(raw) == expected:
+            continue
+        if name != _DIAGNOSTICS_CALLER:
+            raise ValueError('an original complete caller module changed: ' + name)
+        helper = capture(_DIAGNOSTICS_SOURCE)
+        provenance = capture(_DIAGNOSTICS_FIXTURE)
+        if (_source_pin(helper) != _DIAGNOSTICS_SOURCE_PIN
+                or _source_pin(provenance) != _DIAGNOSTICS_FIXTURE_PIN):
+            raise ValueError('bootstrap caller diagnostic authority changed')
+        from tests import hia_caller_diagnostics_admission as diagnostics
+        if Path(diagnostics.__file__).read_bytes() != helper:
+            raise ValueError('bootstrap caller imported a different diagnostic admission')
+        if expected != diagnostics.ORIGINAL:
+            raise ValueError('bootstrap caller diagnostic original identity differs')
+        adjustments[name] = diagnostics.admit(
+            name, raw, expected['sha256'], provenance)
+    for name, raw in captured.items():
+        if (root / name).read_bytes() != raw:
+            raise ValueError('bootstrap caller captured bytes changed: ' + name)
+    proof = {
+        'schema': 'hepta.hia.service-bootstrap-caller-source-admission.v1',
+        'scope': scope_name,
+        'authority': {'path': FIXTURE, **_source_pin(frozen)},
+        'original_files': dict(scope['files']),
+        'original_modules': list(scope['modules']),
+        'original_ordered_ids': list(scope['ordered_ids']),
+        'original_outer_seconds': scope['outer_seconds'],
+        'reviewed_diagnostic_source_adjustments': adjustments,
+        'captured_files': {name: _source_pin(raw) for name, raw in captured.items()},
+        'terminal_reread_identical': True,
+        'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [],
+        'whole_native': False,
+    }
+    return scope, proof
+
+
+def bind_scope_admission_to_source_capture(proof, source_digests):
+    """Close the interval between source admission and the whole-source seal."""
+    for name, expected in proof['captured_files'].items():
+        if source_digests.get(name) != expected['sha256']:
+            raise ValueError('bootstrap caller admission differs from source capture: ' + name)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scope',choices=('ordinary','journal','context'),required=True)
@@ -45,16 +132,16 @@ def main():
         raise ValueError('DEV caller scope requires its declared same-compiler image; cold is exclusive')
     raw=(ROOT/FIXTURE).read_bytes()
     if sha256(raw).hexdigest()!=FIXTURE_SHA256:raise ValueError('caller scope bytes differ')
-    fixture=json.loads(raw);scope=fixture['scopes'][args.scope]
-    for name,pin in scope['files'].items():
-        if sha256((ROOT/name).read_bytes()).hexdigest()!=pin['sha256']:
-            raise ValueError('an original complete caller module changed: '+name)
+    scope,source_admission=admit_original_scope(ROOT,args.scope)
+    if scope!=json.loads(raw)['scopes'][args.scope]:
+        raise ValueError('admitted Bootstrap scope differs from the original inventory')
     from tools.hia_selfhost_contract import file_digests
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.build_hia_service_bootstrap import build
     from hepta import hia_agent_service as api,hia_service_bootstrap_native as native
     # The explicit import below is kept separate from corpus discovery.
     before=file_digests()
+    bind_scope_admission_to_source_capture(source_admission,before)
     args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
     if args.cold_report is not None:
         outer=json.loads(args.cold_report.read_bytes());nested=json.loads(Path(outer['nested_report']).read_bytes())
@@ -204,6 +291,7 @@ def main():
         'selection_boundary_errors':boundary_errors,'closed_administrator_artifacts':administrator_artifacts,
         'old_administrator_bundle_enlarged':False,'all_original_methods_claimed_bootstrap_selected':False,
         'source_before':before,'source_after':after,'source_unchanged':stable,
+        'caller_source_admission':source_admission,
         'manifest_path':str(manifest),'manifest_sha256':sha256(manifest_raw).hexdigest(),
         'actual_image_sha256':image.image_sha256,'compiler_sha256':sha256(compiler_raw).hexdigest(),
         'elapsed_seconds':time.monotonic()-began,'outer_budget_seconds':scope['outer_seconds'],

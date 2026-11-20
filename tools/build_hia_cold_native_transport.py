@@ -22,6 +22,32 @@ from tools.hia_cold_native_transport_evidence import (Captures, canonical, data_
     regular_bytes, run_owned, successful_exit, write_json, parse)
 
 
+def current_python_library():
+    """Locate the declared shared library without loading or admitting it.
+
+    A relocated interpreter can retain its old build-time LIBDIR, so preserve
+    the library beside the resolved running executable as the first candidate.
+    Distribution interpreters can instead use an explicit multiarch LIBDIR.
+    The builder still captures and pins the selected file's complete bytes.
+    """
+    name = sysconfig.get_config_var("LDLIBRARY")
+    if (type(name) is not str or not name or name in {".", ".."}
+            or "/" in name or "\\" in name or "\0" in name):
+        raise ValueError("current runtime did not declare one shared Python library")
+    prefix_candidate = Path(sys.executable).resolve(strict=True).parent.parent / "lib" / name
+    if prefix_candidate.is_file():
+        return prefix_candidate.resolve(strict=True)
+    libdir = sysconfig.get_config_var("LIBDIR")
+    if (type(libdir) is not str or not libdir or "\0" in libdir
+            or not Path(libdir).is_absolute()):
+        raise ValueError("current runtime did not declare an absolute Python library directory")
+    configured_candidate = Path(libdir) / name
+    if configured_candidate.is_file():
+        return configured_candidate.resolve(strict=True)
+    raise ValueError("declared Python shared library is missing: "
+                     + str(prefix_candidate) + "; " + str(configured_candidate))
+
+
 def _compile_child(directory, compiler):
     if SELECTOR in os.environ or DEVELOPMENT in os.environ:
         raise ValueError("policy compiler child cannot select the policy it is building")

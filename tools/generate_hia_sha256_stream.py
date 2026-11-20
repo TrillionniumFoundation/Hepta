@@ -15,18 +15,16 @@ MAGIC = 0x3153484132353648
 
 
 def stream_helpers():
-    """Keep full-width state words and their original byte access order.
+    """Use a checked v9 word read and retain ordered full-width byte stores.
 
-    Each SHA block repeatedly reads and writes these fixed eight-byte words.
-    Expanding the eight accesses removes the per-byte HIA loop without changing
-    the persistent layout, arithmetic width, partial-write order or bounds
-    behavior. The round algebra and all input/phase checks stay unchanged.
+    The entry guard still requires all 1184 state bytes. A word read keeps the
+    eight-byte little-endian state layout; put retains the R29 unrolled store
+    sequence, including partial writes before a short-buffer bounds trap.
+    The round algebra and all input/phase checks stay unchanged.
     """
     source = HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')]
-    source += '\ndef get(w:mutbuf, index:u64) -> u64:\n    value = 0\n'
-    for i in range(8):
-        source += f'    value = value | (byte(w, index + {i}) << {i * 8})\n'
-    source += '    return value\n\ndef put(w:mutbuf, index:u64, value:u64) -> u64:\n'
+    source += '\ndef get(w:mutbuf, index:u64) -> u64:\n    return word_load(w, index)\n'
+    source += '\ndef put(w:mutbuf, index:u64, value:u64) -> u64:\n'
     for i in range(8):
         source += f'    store(w, index + {i}, (value >> {i * 8}) & 255)\n'
     return source + '    return 0\n'
@@ -134,7 +132,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'sha256_stream', 'functions': functions})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9', 'module': 'sha256_stream', 'functions': functions})
 
 
 def main():

@@ -81,6 +81,26 @@ class CoreLoweringSourceTests(unittest.TestCase):
         self.assertEqual(len(additions), 1)
         after.body = [n for n in after.body if n not in additions]
         self.assertEqual(len([n for n in before.body if isinstance(n, ast.FunctionDef)]), 22)
+        # Keep the original v8 fixture immutable and compare every retained
+        # method. The only added branch is the separately exercised v9 word path.
+        policy = ast.parse((ROOT / "tools/hia_core_lowering_policy.py").read_text())
+        policy_class = next(n for n in policy.body if isinstance(n, ast.ClassDef))
+        self.assertEqual(ast.dump(policy_class), ast.dump(after))
+        removed = []
+        for parent in ast.walk(after):
+            if isinstance(parent, ast.If) and len(parent.orelse) == 1:
+                branch = parent.orelse[0]
+                if (isinstance(branch, ast.If) and isinstance(branch.test, ast.Compare)
+                        and len(branch.test.comparators) == 1
+                        and isinstance(branch.test.comparators[0], ast.Name)
+                        and branch.test.comparators[0].id == "WORD_MEMORY"):
+                    self.assertEqual(ast.dump(branch.test), ast.dump(ast.parse("op in WORD_MEMORY", mode="eval").body))
+                    removed.append(branch)
+                    parent.orelse = branch.orelse
+        self.assertEqual(len(removed), 1)
+        self.assertEqual(backend.WORD_MEMORY, {
+            "buffer.load.u64.le", "buffer.load.u64.be",
+            "buffer.store.u64.le", "buffer.store.u64.be"})
         self.assertEqual(ast.dump(before), ast.dump(after))
         for name in HELPERS:
             wanted = next(n for n in original.body if isinstance(n, ast.FunctionDef) and n.name == name)
@@ -92,12 +112,12 @@ class CoreLoweringSourceTests(unittest.TestCase):
         imported = [n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
         self.assertFalse(any(name and name.startswith('tools') for name in imported))
 
-    def test_current_32_sources_keep_original_Core_caps_and_literal_VM(self):
+    def test_current_33_sources_keep_original_Core_caps_and_literal_VM(self):
         from hepta.hia_agent_assembly import assemble_program, render_assembly
         from hepta.hia_program_runtime import _Machine, _Owner, _View
         abi = checked_abi(_source_resource_path(ABI_SOURCE).read_bytes())
         names = source_names(abi)
-        self.assertEqual(len(names), 32)
+        self.assertEqual(len(names), 33)
         programs = []
         for name in names:
             raw = _source_resource_path(name).read_bytes()
@@ -225,6 +245,56 @@ class CoreLoweringNativeTests(unittest.TestCase):
             self.assertEqual(comparable(actual), comparable(wanted))
             self.assertNotEqual(actual.implementation_sha256, wanted.implementation_sha256)
 
+    def test_v9_word_lowering_matches_complete_machine_metadata_and_actual_bytes(self):
+        from hepta.hia_program import verify_program
+        from tools.hia_word_memory_cases import owned_program, foreign_program
+        from tools.qualify_hia_word_memory import bind, shared_buffer, raw_call, child_trap
+        import signal
+        for document, options in (
+                (owned_program(), {}),
+                (foreign_program(), {"foreign_buffer_exports": (("f0", 1 << 20),)})):
+            checked = verify_program(document)
+            with patch.dict(os.environ, {SELECTOR: ""}):
+                wanted = backend.emit_program_machine(checked, **options)
+            with selected_guard(self.manifest):
+                actual = backend.emit_program_machine(checked, **options)
+            self.assertEqual(comparable(actual), comparable(wanted))
+        library = self.folder / "v9-word-core-lowered.so"
+        with selected_guard(self.manifest):
+            backend.build_program_machine(foreign_program(), library, linker="ld",
+                foreign_buffer_exports=(("f0", 1 << 20),))
+        owner, function = bind(library, "f0", 6)
+        successes = failures = 0
+        for tag in range(4):
+            order = "little" if tag % 2 == 0 else "big"
+            for size in (8, 9, 16, 31, 4095, 4096, 4097):
+                for offset in sorted({0, min(1, size - 8), size - 8}):
+                    for value in (0, 1 << 63, (1 << 64) - 1):
+                        with shared_buffer(size + 32) as target, shared_buffer(40) as result:
+                            before = bytes((i * 17 + value) & 255 for i in range(size + 32))
+                            target[:] = before; result[:] = b"\xd7" * 40
+                            self.assertEqual(raw_call(function, tag, offset, value, target, result), 8)
+                            expected = bytearray(before)
+                            if tag < 2:
+                                observed = int.from_bytes(before[16 + offset:24 + offset], order)
+                                self.assertEqual(result[16:24], observed.to_bytes(8, "little"))
+                            else:
+                                expected[16 + offset:24 + offset] = value.to_bytes(8, order)
+                                self.assertEqual(result[:], b"\xd7" * 40)
+                            self.assertEqual(bytes(target), bytes(expected))
+                            self.assertEqual(result[:16], b"\xd7" * 16)
+                            self.assertEqual(result[24:], b"\xd7" * 16)
+                            successes += 1
+            for size, offset in ((0, 0), (7, 0), (8, 1), (31, 24),
+                                 (31, 1 << 32), (31, (1 << 64) - 1)):
+                with shared_buffer(size + 32) as target, shared_buffer(40) as result:
+                    target[:] = b"\xa5" * len(target); result[:] = b"\xd7" * 40
+                    before = bytes(target), bytes(result)
+                    child_trap(lambda: raw_call(function, tag, offset, 7, target, result), signal.SIGABRT)
+                    self.assertEqual((bytes(target), bytes(result)), before)
+                    failures += 1
+        self.assertEqual((successes, failures), (216, 24))
+
     def test_five_helpers_and_native_literal_owner_keep_errors_and_values(self):
         for typ in (*backend.WIDTHS, 'bool', 'unit', 'buffer', 'readbuf', 'mutbuf', 'chain', 'missing', None, []):
             for name in ('_words', '_bounds'):
@@ -303,20 +373,23 @@ class CoreLoweringNativeTests(unittest.TestCase):
             session.observe()
         with self.assertRaises(RuntimeError):
             session.step(ack)
-        for source_size, out_size, work_size in ((127, 320, 5120), (128, 319, 5120), (128, 320, 5119)):
+        self.assertEqual((self.owner.output_bytes, self.owner.workspace_bytes), (320, 5568))
+        output_size, workspace_size = self.owner.output_bytes, self.owner.workspace_bytes
+        for source_size, out_size, work_size in ((127, output_size, workspace_size),
+                (128, output_size - 1, workspace_size), (128, output_size, workspace_size - 1)):
             session = LoweringSession(self.owner, mode, ('mutbuf',))
             source = ctypes.create_string_buffer(session.initial)
-            output = ctypes.create_string_buffer(b'\xa5' * (320 + 32))
-            workspace = ctypes.create_string_buffer(b'\0' * (5120 + 32))
+            output = ctypes.create_string_buffer(b'\xa5' * (output_size + 32))
+            workspace = ctypes.create_string_buffer(b'\0' * (workspace_size + 32))
             before_source = bytes(source)
             result = self.owner.images[0]._entry(source, source_size,
                 ctypes.byref(output, 16), out_size, ctypes.byref(workspace, 16), work_size)
             self.assertEqual(result, ABI)
             self.assertEqual(bytes(source), before_source)
             self.assertEqual(bytes(output)[:16], b'\xa5' * 16)
-            self.assertEqual(bytes(output)[336:352], b'\xa5' * 16)
+            self.assertEqual(bytes(output)[16 + output_size:32 + output_size], b'\xa5' * 16)
             self.assertEqual(bytes(workspace)[:16], b'\0' * 16)
-            self.assertEqual(bytes(workspace)[5136:5152], b'\0' * 16)
+            self.assertEqual(bytes(workspace)[16 + workspace_size:32 + workspace_size], b'\0' * 16)
 
     def test_actual_native_return_then_foreign_failure_closes_every_continuation(self):
         mode = self.owner.modes['_words']['number']
@@ -456,7 +529,7 @@ class CoreLoweringNativeTests(unittest.TestCase):
                       str(self.manifest), str(request)], 'installed-execution', env)
         observed = json.loads(result.stdout)
         self.assertEqual(observed['status'], 'INSTALLED_CORE_LOWERING_PASS')
-        self.assertEqual(observed['units'], 32)
+        self.assertEqual(observed['units'], 33)
         (case / 'report.json').write_text(json.dumps(observed, indent=2, sort_keys=True) + '\n')
 
 

@@ -31,7 +31,7 @@ def agent_capabilities():
                                   "simd_abi": "direct synchronous borrowed pointer/length with u64 result",
                                   "outside_profile": "reject before publication"},
                   "native_shared": "ordinary linked native ABI; no final-image validation claim",
-                  "selfhost": {"input": "bounded primitive Core v8 with scalar exports",
+                  "selfhost": {"input": "bounded primitive Core v9 with scalar exports",
                                "selection": "explicit compiler manifest and SHA256",
                                "runtime": "Linux x86-64 sealed native executable",
                                "hosted_cli_and_publication": True}},

@@ -2,7 +2,7 @@
 
 This hosted driver has no development option. The original 61 machine cases,
 six independent full-buffer VM cases and their limits remain separate named
-observations. The current verified-build metadata adds 64 native and 64 full-buffer
+observations. The current verified-build/v9 metadata adds 71 native and 71 full-buffer
 VM cases while retaining every original input frame. Only a real current cold B3
 can prepare this fixture.
 """
@@ -227,7 +227,7 @@ def qualify(output, cold_report):
               'authority': authority, 'source_before': authority['source_manifest'],
               'expected_ids': list(EXPECTED_IDS), 'expected_count': 4, 'groups': [],
               'machine_cases': 61, 'vm_cases': 6, 'vm_steps': 10000000,
-              'current_machine_cases': 64, 'current_vm_cases': 64,
+              'current_machine_cases': 71, 'current_vm_cases': 71,
               'vm_heap_bytes': 8 << 20, 'vm_call_depth': 128, 'compile_seconds': 20,
               'buffer_capacity': 1048576, 'group_seconds': SECONDS, 'cleanup_seconds': CLEANUP_SECONDS,
               'ordinary_cli_activated': False, 'whole_cli_native': False,

@@ -249,6 +249,8 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
         self.assertTrue(report['class_and_instance_same_actual_selected_image'])
 
     def test_05_actual_installed_worker_new_helper_and_unconfirmed_SQL(self):
+        from tests.hia_slot_worker_terminal import SourceAuthority, assert_terminal, worker_profile
+        authority = SourceAuthority(ROOT)
         from tests.test_hia_agent_installed_resources import RESOURCES, SDIST_SUPPORT_FILES
         from tests.test_hia_agent_native_tools import AgentToolCase
         from tools.hia_agent_native_qualification import exhaustive_u8_workload
@@ -282,6 +284,8 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
             '--target', installed, wheel])
+        profile = worker_profile(regular_bytes(installed / 'hepta/hia_agent_worker.py'))
+        self.assertEqual(profile, authority.profile)
         checked = {}
         with zipfile.ZipFile(wheel) as archive:
             record_name, = [name for name in archive.namelist() if name.endswith('.dist-info/RECORD')]
@@ -355,6 +359,7 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
             rows = [json.loads(line[len(prefix):]) for line in stderr.splitlines() if line.startswith(prefix)]
             self.assertEqual(len(rows), 1, stderr)
             self.assertEqual(rows[0]['retained_calls'], [])
+            assert_terminal(self, rows[0]['terminal'], stderr, label, profile)
             return result, stdout, rows[0]
 
         observations = {}
@@ -384,7 +389,8 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
         case, request = prepare()
         try:
             before = state(case, request)
-            result, raw, counts = worker('lost-SQL-ACK', case, request, 'lost-execute-ack', 1)
+            result, raw, counts = worker('lost-SQL-ACK', case, request, 'lost-execute-ack',
+                                         authority.profile['lost_ack_exit'])
             after = state(case, request)
             self.assertEqual(raw, b'')
             self.assertTrue(counts['lost_ack_injected'])
@@ -409,7 +415,9 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
                                              'after': replay_after}
         finally:
             case.tearDown()
+        authority.finish()
         write_json(self.case / 'installation.json', {'wheel': str(wheel), 'wheel_pin': pin(wheel),
+            'terminal_source_authority': authority.summary(),
             'installed': str(installed), 'wheel_files_readback': checked,
             'installed_RECORD': pin(installed / record_name), 'bundle_sha256': bundle_sha,
             'controller_manifest': str(self.controller), 'decision_manifest': str(self.decision),

@@ -432,6 +432,46 @@ def terminal_source_admission(repository, captures, original):
     return allowed, proof
 
 
+
+_DIAGNOSTIC_PATH = 'tests/test_hia_agent_native_tools.py'
+_DIAGNOSTIC_FIXTURE = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_DIAGNOSTIC_SHA = '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c'
+_DIAGNOSTIC_OLD = {'bytes': 45385, 'sha256': 'c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a'}
+_DIAGNOSTIC_CURRENT = {'bytes': 46518, 'sha256': 'b98c24327639363d266eb5e263c042e0a20d82a8f2e8cc08ffafb8f34f73f355'}
+
+
+def diagnostic_source_admission(raw, expected, provenance):
+    """Independently reconstruct the frozen caller; import no producer/helper."""
+    require(expected == _DIAGNOSTIC_OLD['sha256']
+            and type(provenance) is bytes and digest(provenance) == _DIAGNOSTIC_SHA,
+            'deadline diagnostics original authority or provenance differs')
+    value = json.loads(provenance)
+    require(type(value) is dict and set(value) == {
+                'schema', 'state', 'path', 'original', 'current', 'definition',
+                'original_deadline_seconds', 'original_native_budget_ms',
+                'original_method_ids_unchanged', 'production_source_exception', 'splices'}
+            and value['schema'] == 'hepta.hia.caller-deadline-diagnostics-source.v1'
+            and value['state'] == 'FROZEN_EXACT_FAILURE_DIAGNOSTICS_SUCCESSOR'
+            and value['path'] == _DIAGNOSTIC_PATH
+            and canonical(value['original']) == canonical(_DIAGNOSTIC_OLD)
+            and canonical(value['current']) == canonical(_DIAGNOSTIC_CURRENT)
+            and value['definition'] == 'NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable'
+            and type(value['original_deadline_seconds']) is int and value['original_deadline_seconds'] == 5
+            and type(value['original_native_budget_ms']) is int and value['original_native_budget_ms'] == 1
+            and value['original_method_ids_unchanged'] is True
+            and value['production_source_exception'] is False
+            and type(value['splices']) is list and len(value['splices']) == 2,
+            'deadline diagnostics exact source scope differs')
+    terminal_inverse(raw, _DIAGNOSTIC_OLD, _DIAGNOSTIC_CURRENT, value['splices'])
+    return {'path': _DIAGNOSTIC_PATH, 'original': dict(_DIAGNOSTIC_OLD),
+            'current': dict(_DIAGNOSTIC_CURRENT), 'provenance_path': _DIAGNOSTIC_FIXTURE,
+            'provenance_sha256': _DIAGNOSTIC_SHA, 'exact_splices': 2,
+            'complete_original_inverse_verified': True,
+            'complete_current_forward_replay_verified': True,
+            'original_deadline_seconds': 5, 'original_native_budget_ms': 1,
+            'production_source_exception': False}
+
+
 def original_callers(repository, captures, *, terminal_evidence=None):
     require(terminal_evidence is None or type(terminal_evidence) is list,
             'terminal source evidence must be an explicit list')
@@ -458,12 +498,16 @@ def original_callers(repository, captures, *, terminal_evidence=None):
             'native helper registry keys differ')
     old_line = b'        self.assertEqual(len(HELPERS), 37)\n'
     current_line = ('        self.assertEqual(len(HELPERS), ' + str(len(keys)) + ')\n').encode('ascii')
-    adjustments, caller_sources = [], {}
+    adjustments, caller_sources, diagnostic_sources = [], {}, {}
     for record in original['callers'].values():
         name, expected = record['path'], record['sha256']
         raw = captures.take(relative(repository, name))
         caller_sources[name] = digest(raw)
         if digest(raw) == expected:
+            continue
+        if name == _DIAGNOSTIC_PATH:
+            diagnostic_sources[name] = diagnostic_source_admission(raw, expected,
+                captures.take(relative(repository, _DIAGNOSTIC_FIXTURE)))
             continue
         if name in terminal_sources:
             reviewed = terminal_sources[name]
@@ -485,6 +529,7 @@ def original_callers(repository, captures, *, terminal_evidence=None):
     require(admitted_terminal_sources == set(terminal_sources),
             'terminal complete reviewed test-source consumption differs')
     terminal_proof['actual_original_source_sha256'] = dict(caller_sources)
+    terminal_proof['reviewed_diagnostic_source_adjustments'] = diagnostic_sources
     if terminal_evidence is not None:
         terminal_evidence.append(terminal_proof)
     return original, planned, caller_sources, adjustments

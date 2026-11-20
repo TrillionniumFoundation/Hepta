@@ -365,6 +365,106 @@ def reverse_qualifier(raw, record, path):
     return restored
 
 
+# The qualifier's original authority remains byte-for-byte immutable. This
+# separate dependency authority only proves the exact diagnostic admission
+# helper successor and captures the two source authorities it now imports.
+QUALIFIER_DEPENDENCY_PATH = "tests/hia_caller_terminal_admission.py"
+QUALIFIER_DEPENDENCY_CURRENT = {"bytes":17372,"sha256":"66bc956f8a599195f57e25cceae4875bcc1c04b3ec866f6d386eae3fb9fc100f"}
+QUALIFIER_DEPENDENCY_FIXTURE = "tests/fixtures/caller_terminal_diagnostics_dependency_v1.json"
+QUALIFIER_DEPENDENCY_FIXTURE_PIN = {"bytes":5656,"sha256":"98d2c3871079849eab5733234b848ba5fa0bff480cc29e2e20ca9d974c392c8a"}
+QUALIFIER_DEPENDENCY_SCOPE = "exact deadline-diagnostic admission dependency; original qualifier authority, caller inventories, ordered methods and budgets unchanged"
+QUALIFIER_DEPENDENCY_SPLICE_IDS = ["capture-diagnostic-state","admit-diagnostics-after-terminal","exact-diagnostic-source-admission","consume-exact-diagnostic-source","require-complete-diagnostic-consumption","preserve-distinct-diagnostic-proof"]
+QUALIFIER_DIAGNOSTIC_DEPENDENCIES = {
+    "tests/hia_caller_diagnostics_admission.py": {
+        "bytes": 5185,
+        "sha256": "9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578"
+    },
+    "tests/fixtures/caller_deadline_diagnostics_v1.json": {
+        "bytes": 3545,
+        "sha256": "53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c"
+    }
+}
+
+
+def _qualifier_dependency_transform(raw, record, *, reverse):
+    original = QUALIFIER_DEPENDENCIES[QUALIFIER_DEPENDENCY_PATH]
+    if (type(raw) is not bytes or type(reverse) is not bool
+            or type(record) is not dict or set(record) != {'old', 'new', 'scope', 'splices'}
+            or _canonical(record['old']) != _canonical(original)
+            or _canonical(record['new']) != _canonical(QUALIFIER_DEPENDENCY_CURRENT)
+            or record['scope'] != QUALIFIER_DEPENDENCY_SCOPE
+            or type(record['splices']) is not list or len(record['splices']) != 6
+            or _pin(raw) != (QUALIFIER_DEPENDENCY_CURRENT if reverse else original)):
+        raise ValueError('qualifier dependency complete source authority differs')
+    entries = []
+    old_end = new_end = displacement = 0
+    for expected_id, item in zip(QUALIFIER_DEPENDENCY_SPLICE_IDS, record['splices']):
+        if (type(item) is not dict
+                or set(item) != {'id', 'old_offset', 'new_offset', 'old_hex', 'new_hex'}
+                or item['id'] != expected_id
+                or type(item['old_offset']) is not int or item['old_offset'] < old_end
+                or type(item['new_offset']) is not int or item['new_offset'] < new_end):
+            raise ValueError('qualifier dependency exact splice inventory differs')
+        at, target = item['old_offset'], item['new_offset']
+        before, after = _hex(item['old_hex']), _hex(item['new_hex'])
+        selected_at, selected = (target, after) if reverse else (at, before)
+        if (not before or not after or before == after or at + displacement != target
+                or selected_at + len(selected) > len(raw)
+                or raw[selected_at:selected_at + len(selected)] != selected):
+            raise ValueError('qualifier dependency exact splice bytes differ')
+        entries.append((at, target, before, after))
+        old_end, new_end = at + len(before), target + len(after)
+        displacement += len(after) - len(before)
+    result = raw
+    for at, target, before, after in reversed(entries):
+        selected_at, selected, replacement = ((target, after, before) if reverse
+                                               else (at, before, after))
+        result = result[:selected_at] + replacement + result[selected_at + len(selected):]
+    if _pin(result) != (original if reverse else QUALIFIER_DEPENDENCY_CURRENT):
+        raise ValueError('qualifier dependency transform does not restore the complete fixed source')
+    return result
+
+
+def reverse_qualifier_dependency(raw, record):
+    restored = _qualifier_dependency_transform(raw, record, reverse=True)
+    if _qualifier_dependency_transform(restored, record, reverse=False) != raw:
+        raise ValueError('qualifier dependency complete forward replay differs')
+    return restored
+
+
+def _admit_qualifier_dependency(raw, capture):
+    if _pin(raw) != QUALIFIER_DEPENDENCY_CURRENT:
+        raise ValueError('qualifier runtime dependency is neither fixed original nor exact successor')
+    frozen = capture(QUALIFIER_DEPENDENCY_FIXTURE)
+    if _pin(frozen) != QUALIFIER_DEPENDENCY_FIXTURE_PIN:
+        raise ValueError('qualifier dependency fixed provenance changed')
+    value = json.loads(frozen)
+    if (type(value) is not dict
+            or set(value) != {'schema', 'state', 'path', 'qualifier_authority', 'record',
+                             'dependencies', 'original_qualifier_authority_unchanged',
+                             'production_source_exception'}
+            or value['schema'] != 'hepta.hia.caller-terminal-diagnostics-dependency.v1'
+            or value['state'] != 'FROZEN_EXACT_CALLER_TERMINAL_DEPENDENCY_SUCCESSOR'
+            or value['path'] != QUALIFIER_DEPENDENCY_PATH
+            or _canonical(value['qualifier_authority'])
+                != _canonical({'path': QUALIFIER_FIXTURE, **QUALIFIER_FIXTURE_PIN})
+            or _canonical(value['dependencies']) != _canonical(QUALIFIER_DIAGNOSTIC_DEPENDENCIES)
+            or value['original_qualifier_authority_unchanged'] is not True
+            or value['production_source_exception'] is not False):
+        raise ValueError('qualifier dependency fixed provenance scope differs')
+    restored = reverse_qualifier_dependency(raw, value['record'])
+    for path, expected in QUALIFIER_DIAGNOSTIC_DEPENDENCIES.items():
+        if _pin(capture(path)) != expected:
+            raise ValueError('qualifier diagnostic dependency changed: ' + path)
+    return {'path': QUALIFIER_DEPENDENCY_PATH, 'original': _pin(restored),
+            'current': _pin(raw),
+            'authority': {'path': QUALIFIER_DEPENDENCY_FIXTURE, **QUALIFIER_DEPENDENCY_FIXTURE_PIN},
+            'captured_dependencies': dict(QUALIFIER_DIAGNOSTIC_DEPENDENCIES),
+            'exact_splice_count': 6, 'complete_original_inverse_verified': True,
+            'complete_current_forward_replay_verified': True,
+            'original_qualifier_authority_unchanged': True, 'production_source_exception': False}
+
+
 def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
     if _pin(frozen) != QUALIFIER_FIXTURE_PIN:
         raise ValueError('qualifier fixed provenance changed')
@@ -406,9 +506,13 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
             if (_canonical(authorities[kind]['unchanged_files'][path])
                     != _canonical(QUALIFIER_RECORDS[path]['old'])):
                 raise ValueError('qualifier expected old source is not an original fixture pin')
+    dependency_adjustments = {}
     for path, expected in QUALIFIER_DEPENDENCIES.items():
-        if _pin(capture(path)) != expected:
-            raise ValueError('qualifier runtime/authority dependency changed: ' + path)
+        raw = capture(path)
+        if _pin(raw) != expected:
+            if path != QUALIFIER_DEPENDENCY_PATH:
+                raise ValueError('qualifier runtime/authority dependency changed: ' + path)
+            dependency_adjustments[path] = _admit_qualifier_dependency(raw, capture)
     for authority in value['prior_terminal_authorities'].values():
         path = authority['path']
         if _pin(capture(path)) != {key: authority[key] for key in ('bytes', 'sha256')}:
@@ -467,6 +571,7 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
         'full_group_paths': list(QUALIFIER_PATHS), 'reviewed_group_source_count': 3,
         'source_adjustments': adjustments, 'source_adjustment_count': len(adjustments),
         'complete_old_source_pins': {path: _pin(raw) for path, raw in restored.items()},
+        'reviewed_dependency_source_adjustments': dependency_adjustments,
         'actual_captured_files': {path: _pin(raw) for path, raw in captured.items()},
         'terminal_reread_identical': True, 'production_composition_source_count': 13,
         'production_source_exceptions': [], 'original_inventories_unchanged': True,
@@ -475,16 +580,292 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
     return result
 
 
+# Independent source-only authority for the existing deadline diagnostics and
+# the two caller qualifiers that now consume that exact diagnostic admission.
+# The original Delivery test files, inventories and all earlier layers stay
+# fixed. A missing authority supplies no exception to either outer file loop.
+DIAGNOSTIC_FIXTURE = "tests/fixtures/delivery_diagnostic_source_successors_v1.json"
+DIAGNOSTIC_FIXTURE_PIN = {
+    "bytes": 29000,
+    "sha256": "725f18e0ff6a8f598176bac85383f19234938a0efce73259779357bf6a853778"
+}
+DIAGNOSTIC_RECORDS = {
+    "tests/test_hia_agent_native_tools.py": {
+        "old": {
+            "bytes": 45385,
+            "sha256": "c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a"
+        },
+        "new": {
+            "bytes": 46518,
+            "sha256": "b98c24327639363d266eb5e263c042e0a20d82a8f2e8cc08ffafb8f34f73f355"
+        },
+        "scope": "exact existing failure-only diagnostics; original five-second assertion, one-ms native budget and all method bodies outside the two fixed splices retained",
+        "splice_ids": [
+            "capture-failure-receipts",
+            "preserve-original-deadline-assertion"
+        ]
+    },
+    "tools/qualify_hia_evaluation_callers.py": {
+        "old": {
+            "bytes": 9948,
+            "sha256": "713200bc1c23691732e6d561d9f8ccc2c9626c3ff465bde8c8fd7e0393f285dd"
+        },
+        "new": {
+            "bytes": 12984,
+            "sha256": "63b9437fda07aa1d1e29eebf28f9306296a8bae6b694dccbd5702bf81d87037c"
+        },
+        "scope": "exact complete original evaluation source admission, captured diagnostic proof and terminal reread; original twelve modules, 183 method IDs, seven ordinary modules and 81 ordinary methods retained",
+        "splice_ids": [
+            "admit-complete-original-sources",
+            "capture-separate-diagnostic-proof",
+            "preserve-captured-source-inputs",
+            "close-admission-to-full-capture-gap",
+            "report-separate-diagnostic-proof"
+        ]
+    },
+    "tools/qualify_hia_store_lifecycle_callers.py": {
+        "old": {
+            "bytes": 7978,
+            "sha256": "c57517511cfb3356b80c5cededb33c20e0d7b052c3fde216c2cdc328620523ba"
+        },
+        "new": {
+            "bytes": 10143,
+            "sha256": "24b530be08ed7b237b22b6f8b66a07724bdb4ea6fc4f7963f9881791e64c59c9"
+        },
+        "scope": "exact complete original lifecycle source admission and captured diagnostic proof; original four modules, 50 method IDs, budgets and execution order retained",
+        "splice_ids": [
+            "admit-complete-original-sources",
+            "bind-original-caller-authority",
+            "capture-and-bind-diagnostic-inputs",
+            "report-separate-diagnostic-proof"
+        ]
+    }
+}
+DIAGNOSTIC_DEPENDENCIES = {
+    "tests/hia_caller_diagnostics_admission.py": {
+        "bytes": 5185,
+        "sha256": "9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578"
+    },
+    "tests/fixtures/caller_deadline_diagnostics_v1.json": {
+        "bytes": 3545,
+        "sha256": "53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c"
+    },
+    "tests/fixtures/evaluation_callers_19065.json": {
+        "bytes": 68867,
+        "sha256": "256e6c83a79fc2f237b4c12dd4bc2ae00d61bee03332b6adc794086b7e081395"
+    },
+    "tests/fixtures/store_lifecycle_callers_ad352ee.json": {
+        "bytes": 7502,
+        "sha256": "dda9b68253b30c351282417de1df488c7b213c5b19c0c2547dc95eace2622a2b"
+    }
+}
+DIAGNOSTIC_ALLOWED = {
+    "native": [
+        "tests/test_hia_agent_native_tools.py",
+        "tools/qualify_hia_evaluation_callers.py"
+    ],
+    "store": [
+        "tests/test_hia_agent_native_tools.py",
+        "tools/qualify_hia_evaluation_callers.py",
+        "tools/qualify_hia_store_lifecycle_callers.py"
+    ]
+}
+DIAGNOSTIC_SOURCE_COUNTS = {'native': 64, 'store': 89}
+DIAGNOSTIC_PATHS = tuple(DIAGNOSTIC_RECORDS)
+
+
+def _diagnostic_transform(raw, record, path, *, reverse):
+    if (type(path) is not str or path not in DIAGNOSTIC_RECORDS
+            or type(raw) is not bytes or type(reverse) is not bool
+            or type(record) is not dict or set(record) != {'old', 'new', 'scope', 'splices'}):
+        raise ValueError('delivery diagnostic complete source authority differs')
+    expected = DIAGNOSTIC_RECORDS[path]
+    if (_canonical(record['old']) != _canonical(expected['old'])
+            or _canonical(record['new']) != _canonical(expected['new'])
+            or record['scope'] != expected['scope']
+            or type(record['splices']) is not list
+            or len(record['splices']) != len(expected['splice_ids'])
+            or _pin(raw) != expected['new' if reverse else 'old']):
+        raise ValueError('delivery diagnostic full fixed source or scope differs')
+    entries = []
+    old_end = new_end = displacement = 0
+    for expected_id, item in zip(expected['splice_ids'], record['splices']):
+        if (type(item) is not dict
+                or set(item) != {'id', 'old_offset', 'new_offset', 'old_hex', 'new_hex'}
+                or item['id'] != expected_id
+                or type(item['old_offset']) is not int or item['old_offset'] < old_end
+                or type(item['new_offset']) is not int or item['new_offset'] < new_end):
+            raise ValueError('delivery diagnostic exact splice inventory differs')
+        at, target = item['old_offset'], item['new_offset']
+        before, after = _hex(item['old_hex']), _hex(item['new_hex'])
+        selected_at, selected = (target, after) if reverse else (at, before)
+        if (not before or not after or before == after or at + displacement != target
+                or selected_at + len(selected) > len(raw)
+                or raw[selected_at:selected_at + len(selected)] != selected):
+            raise ValueError('delivery diagnostic exact splice bytes differ')
+        entries.append((at, target, before, after))
+        old_end, new_end = at + len(before), target + len(after)
+        displacement += len(after) - len(before)
+    result = raw
+    for at, target, before, after in reversed(entries):
+        selected_at, selected, replacement = ((target, after, before) if reverse
+                                               else (at, before, after))
+        result = result[:selected_at] + replacement + result[selected_at + len(selected):]
+    if _pin(result) != expected['old' if reverse else 'new']:
+        raise ValueError('delivery diagnostic transform does not recover the complete fixed source')
+    return result
+
+
+def reverse_diagnostic_source(raw, record, path):
+    restored = _diagnostic_transform(raw, record, path, reverse=True)
+    if _diagnostic_transform(restored, record, path, reverse=False) != raw:
+        raise ValueError('delivery diagnostic complete forward replay differs')
+    return restored
+
+
+def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
+    if type(frozen) is not bytes or _pin(frozen) != DIAGNOSTIC_FIXTURE_PIN:
+        raise ValueError('delivery diagnostic fixed provenance changed')
+    value = json.loads(frozen)
+    if (type(value) is not dict
+            or set(value) != {'schema', 'state', 'source_count', 'source_kind',
+                'production_composition_source_count', 'original_inventories',
+                'original_source_counts', 'allowed_adjustments', 'dependencies', 'files',
+                'original_inventories_unchanged', 'original_methods_budgets_and_order_unchanged',
+                'production_source_exceptions'}
+            or value['schema'] != 'hepta.hia.delivery-diagnostic-source-successor.v1'
+            or value['state'] != 'FROZEN_EXACT_THREE_DIAGNOSTIC_SOURCE_SUCCESSORS'
+            or type(value['source_count']) is not int or value['source_count'] != 3
+            or value['source_kind'] != 'TEST_AND_QUALIFICATION_SOURCE_ONLY'
+            or type(value['production_composition_source_count']) is not int
+            or value['production_composition_source_count'] != 13
+            or _canonical(value['original_inventories']) != _canonical({
+                kind: {'path': item[0], **item[1]} for kind, item in ORIGINALS.items()})
+            or _canonical(value['original_source_counts']) != _canonical(DIAGNOSTIC_SOURCE_COUNTS)
+            or _canonical(value['allowed_adjustments']) != _canonical(DIAGNOSTIC_ALLOWED)
+            or _canonical(value['dependencies']) != _canonical(DIAGNOSTIC_DEPENDENCIES)
+            or type(value['files']) is not dict or set(value['files']) != set(DIAGNOSTIC_PATHS)
+            or value['original_inventories_unchanged'] is not True
+            or value['original_methods_budgets_and_order_unchanged'] is not True
+            or type(value['production_source_exceptions']) is not list
+            or value['production_source_exceptions']):
+        raise ValueError('delivery diagnostic fixed provenance scope differs')
+    prior_proof = prior.get('caller_qualifier_source_admission')
+    if (type(prior_proof) is not dict or prior_proof.get('original_kind') != original_kind
+            or prior_proof.get('terminal_reread_identical') is not True
+            or prior.get('production_composition_source_count') != 13
+            or type(prior_proof.get('actual_captured_files')) is not dict):
+        raise ValueError('delivery diagnostic admission requires the complete prior caller source review')
+    captured = {DIAGNOSTIC_FIXTURE: frozen}
+
+    def capture(path):
+        raw = (ROOT / path).read_bytes()
+        if path in captured and raw != captured[path]:
+            raise ValueError('delivery diagnostic source changed between captures: ' + path)
+        captured[path] = raw
+        return raw
+
+    # A later layer must consume the exact prior captures, not accept a second
+    # independently valid old/new version observed after that layer returned.
+    for path, expected in prior_proof['actual_captured_files'].items():
+        if _pin(capture(path)) != expected:
+            raise ValueError('delivery diagnostic prior source changed after admission: ' + path)
+    authorities = {}
+    for kind, (path, expected) in ORIGINALS.items():
+        raw = capture(path)
+        if _pin(raw) != expected:
+            raise ValueError('delivery diagnostic original inventory changed')
+        authorities[kind] = json.loads(raw)
+        if len(authorities[kind]['unchanged_files']) != DIAGNOSTIC_SOURCE_COUNTS[kind]:
+            raise ValueError('delivery diagnostic original complete file count differs')
+    if _canonical(original_value) != _canonical(authorities[original_kind]):
+        raise ValueError('delivery diagnostic caller did not supply its complete fixed original')
+    for kind, paths in DIAGNOSTIC_ALLOWED.items():
+        for path in paths:
+            if (_canonical(authorities[kind]['unchanged_files'][path])
+                    != _canonical(DIAGNOSTIC_RECORDS[path]['old'])):
+                raise ValueError('delivery diagnostic old source is not an original inventory pin')
+    for path, expected in DIAGNOSTIC_DEPENDENCIES.items():
+        if _pin(capture(path)) != expected:
+            raise ValueError('delivery diagnostic runtime or original authority changed: ' + path)
+    diagnostic = json.loads(captured['tests/fixtures/caller_deadline_diagnostics_v1.json'])
+    diagnostic_record = value['files'][DIAGNOSTIC_PATHS[0]]
+    if (diagnostic['path'] != DIAGNOSTIC_PATHS[0]
+            or _canonical(diagnostic['original']) != _canonical(diagnostic_record['old'])
+            or _canonical(diagnostic['current']) != _canonical(diagnostic_record['new'])
+            or _canonical(diagnostic['splices']) != _canonical([
+                {key: item[key] for key in ('old_offset', 'new_offset', 'old_hex', 'new_hex')}
+                for item in diagnostic_record['splices']])
+            or type(diagnostic['original_deadline_seconds']) is not int
+            or diagnostic['original_deadline_seconds'] != 5
+            or type(diagnostic['original_native_budget_ms']) is not int
+            or diagnostic['original_native_budget_ms'] != 1):
+        raise ValueError('delivery diagnostic existing deadline authority was not retained')
+    restored, states, adjustments = {}, {}, {}
+    for path in DIAGNOSTIC_PATHS:
+        raw, record = capture(path), value['files'][path]
+        expected = DIAGNOSTIC_RECORDS[path]
+        if _pin(raw) == expected['old']:
+            preview = _diagnostic_transform(raw, record, path, reverse=False)
+            restored[path] = reverse_diagnostic_source(preview, record, path)
+            if restored[path] != raw:
+                raise ValueError('delivery diagnostic original full replay differs')
+            states[path] = 'EXACT_ORIGINAL'
+        else:
+            restored[path] = reverse_diagnostic_source(raw, record, path)
+            states[path] = 'EXACT_REVIEWED_SUCCESSOR'
+            if path in DIAGNOSTIC_ALLOWED[original_kind]:
+                adjustments[path] = {
+                    'path': path, 'original_bytes': expected['old']['bytes'],
+                    'original_sha256': expected['old']['sha256'],
+                    'current_bytes': expected['new']['bytes'],
+                    'current_sha256': expected['new']['sha256'],
+                    'reversible_patch_fixture_sha256': DIAGNOSTIC_FIXTURE_PIN['sha256'],
+                    'scope': expected['scope'], 'exact_splice_count': len(expected['splice_ids']),
+                    'complete_original_inverse_verified': True,
+                    'complete_current_forward_replay_verified': True,
+                    'production_source_exception': False}
+    if (set(adjustments) - set(authorities[original_kind]['unchanged_files'])
+            or set(adjustments) & set(prior['source_adjustments'])):
+        raise ValueError('delivery diagnostic source adjustment escaped or overlapped its fixed scope')
+    for path, raw in captured.items():
+        if (ROOT / path).read_bytes() != raw:
+            raise ValueError('delivery diagnostic captured bytes changed at terminal reread: ' + path)
+    result = dict(prior)
+    result['source_adjustments'] = {**prior['source_adjustments'], **adjustments}
+    result['caller_diagnostic_source_admission'] = {
+        'schema': 'hepta.hia.delivery-diagnostic-source-admission.v1',
+        'authority': {'path': DIAGNOSTIC_FIXTURE, **DIAGNOSTIC_FIXTURE_PIN},
+        'original_kind': original_kind,
+        'original_source_count': DIAGNOSTIC_SOURCE_COUNTS[original_kind],
+        'full_group_paths': list(DIAGNOSTIC_PATHS), 'reviewed_group_source_count': 3,
+        'actual_source_states': states, 'source_adjustments': adjustments,
+        'source_adjustment_count': len(adjustments),
+        'complete_old_source_pins': {path: _pin(raw) for path, raw in restored.items()},
+        'actual_captured_files': {path: _pin(raw) for path, raw in captured.items()},
+        'terminal_reread_identical': True, 'prior_captures_consumed_without_refresh': True,
+        'production_composition_source_count': 13, 'production_source_exceptions': [],
+        'original_inventories_unchanged': True,
+        'prior_scope_counts_are_not_aggregate_counts': True,
+        'original_test_methods_budgets_and_order_unchanged': True}
+    return result
+
+
 def admit_terminal_sources(original_value, *, original_kind):
-    # Read the optional new authority before the original admission. If absent,
-    # the original admission's own terminal raw reread remains the final I/O.
-    # The two unchanged outer Delivery guards still refuse every unreviewed
-    # qualifier byte; missing authority cannot grant a new exception.
+    # Read optional new authorities before prior admission. Absence grants no
+    # exception; the unchanged outer Delivery loops still read every original
+    # file and reject any source not covered by a complete fixed proof.
+    try:
+        diagnostic_frozen = (ROOT / DIAGNOSTIC_FIXTURE).read_bytes()
+    except FileNotFoundError:
+        diagnostic_frozen = None
     try:
         frozen = (ROOT / QUALIFIER_FIXTURE).read_bytes()
     except FileNotFoundError:
         frozen = None
     prior = _admit_terminal_sources_before_qualifiers(original_value, original_kind=original_kind)
-    if frozen is None:
+    if frozen is not None:
+        prior = _admit_qualifier_sources(original_value, original_kind, prior, frozen)
+    if diagnostic_frozen is None:
         return prior
-    return _admit_qualifier_sources(original_value, original_kind, prior, frozen)
+    return _admit_diagnostic_sources(original_value, original_kind, prior, diagnostic_frozen)

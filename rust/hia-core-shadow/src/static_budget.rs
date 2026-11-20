@@ -1,7 +1,7 @@
 //! Independent structural upper bounds over the existing checked byte-owner Core.
 //!
 //! The complete module is checked before graph analysis. This optional profile
-//! accepts only audited primitive v1-v8 byte operations and acyclic call/CFG
+//! accepts only audited primitive v1-v9 byte operations and acyclic call/CFG
 //! graphs. Each metric is a separate conservative maximum; their maxima need
 //! not occur on one feasible execution. Ticks are VM events, never native time.
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -91,6 +91,8 @@ fn audit_module(functions: &[Value]) -> R<()> {
                     "int.div.checked" | "int.rem.checked" | "int.shl.checked" | "int.shr.checked" |
                     "buffer.new" | "buffer.try_new" | "buffer.len" | "borrow.read" | "borrow.mut" |
                     "loan.end" | "owner.move" | "owner.drop" | "buffer.load" | "buffer.store" |
+                    "buffer.load.u64.le" | "buffer.load.u64.be" |
+                    "buffer.store.u64.le" | "buffer.store.u64.be" |
                     "buffer.fill" | "buffer.copy" | "buffer.move_within" | "buffer.swap" |
                     "buffer.copy_range" | "buffer.fill_range" | "call") {
                     return failure("E_HIA_BUDGET_PROFILE", "unreviewed opcode in byte-only budget");
@@ -189,7 +191,12 @@ pub fn analyze_static_budget(input: &[u8]) -> R<Value> {
                          "max_vm_ticks": bound.ticks, "max_call_depth": bound.depth}));
     }
     Ok(json!({
-        "schema": "hepta.hia.rust-static-budget.v1", "profile": PROFILE,
+        "schema": if document["schema"] == "hepta.hia.program.v9" {
+            "hepta.hia.rust-static-budget.v2"
+        } else { "hepta.hia.rust-static-budget.v1" },
+        "profile": if document["schema"] == "hepta.hia.program.v9" {
+            "acyclic-byte-owner-v9-word-memory-u64-bounds"
+        } else { PROFILE },
         "status": "conservative_structural_upper_bounds_not_authority",
         "program_sha256": format!("{:x}", Sha256::digest(&canonical)),
         "core_schema": document["schema"], "functions": rows,

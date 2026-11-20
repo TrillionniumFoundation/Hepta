@@ -29,6 +29,8 @@ CURRENT = {
     EVALUATION: {'bytes': 49105, 'sha256': '673b1e330b48df5915a4a544188397e33055ac023986cb136e8b067e4574b9d3'},
 }
 FIXED = {
+    'tests/fixtures/caller_deadline_diagnostics_v1.json': {
+        'bytes': 3545, 'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c'},
     EMISSION_ORIGINAL: {'bytes': 59973, 'sha256': 'dec08c099ea1d262f1a3d32dc34801c816484bda6724fac60f5a8a1d5d8c4048'},
     NATIVE_ORIGINAL: {'bytes': 71708, 'sha256': 'a1f82e1c955ece21319cc49a0e3834658a2eeb0be7636d6f13690e1d6b83dea7'},
     STORE_ORIGINAL: {'bytes': 173802, 'sha256': '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'},
@@ -105,13 +107,13 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                        + ['refuse/' + name for name in BAD_ROOTS]
                        + ['late-drift/' + name for name in cls.late_paths]
                        + ['inverse-refusal/' + name for name in BAD_INVERSES])
-        if len(cls.seed) != 24 or len(cls.planned) != 62 or len(set(cls.planned)) != 62:
+        if len(cls.seed) != 25 or len(cls.planned) != 63 or len(set(cls.planned)) != 63:
             raise AssertionError('complete independent reader control inventory differs')
         cls.started, cls.stopped, cls.actual = [], [], []
         write_json(cls.evidence / 'planned.json', {
             'schema': 'hepta.hia.caller-terminal-readback-controls-plan.v1',
-            'ordered_ids': cls.planned, 'count': 62, 'source_methods': 2,
-            'positive': 3, 'bad_roots': 21, 'captured_file_drifts': 24, 'inverse_refusals': 14,
+            'ordered_ids': cls.planned, 'count': 63, 'source_methods': 2,
+            'positive': 3, 'bad_roots': 21, 'captured_file_drifts': 25, 'inverse_refusals': 14,
             'ordinary112_replaced': False, 'native_or_cold_result_inferred': False})
         # Construct complete old source data without calling the reader's inverse.
         cls.legacy = {}
@@ -245,6 +247,12 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                 self.assertEqual(value['production_composition_source_count'], 13)
                 self.assertEqual(value['production_source_exceptions'], [])
                 self.assertEqual(set(value['reviewed_test_source_adjustments']), set(changed))
+                diagnostic = value['reviewed_diagnostic_source_adjustments']
+                self.assertEqual(set(diagnostic), {'tests/test_hia_agent_native_tools.py'})
+                self.assertEqual(diagnostic['tests/test_hia_agent_native_tools.py']['original']['sha256'],
+                    self.records['tests/test_hia_agent_native_tools.py'])
+                self.assertEqual(diagnostic['tests/test_hia_agent_native_tools.py']['current'],
+                    pin(self.seed['tests/test_hia_agent_native_tools.py']))
                 self.assertIs(value['producer_or_test_helper_imported'], False)
                 self.assertIs(value['terminal_reread_deferred_to_outer_captures'], True)
                 self.assertNotIn('terminal_reread_identical', value)
@@ -342,7 +350,7 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                     self.private_root() as root:
                 captured, proof = reader.Captures(), []
                 reader.original_callers(root, captured, terminal_evidence=proof)
-                self.assertEqual(len(captured.raw), 24)
+                self.assertEqual(len(captured.raw), 25)
                 self.assertEqual(len(proof), 1)
                 self.assertIs(proof[0]['terminal_reread_deferred_to_outer_captures'], True)
                 self.assertNotIn('terminal_reread_identical', proof[0])
@@ -396,7 +404,7 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                 detail.update({'actual_raw': pin(raw), 'original_pin_argument': before,
                                'current_pin_argument': after, 'splices_argument': splices,
                                'refused': True, 'error': str(caught.exception)})
-        self.assertEqual(len(self.actual), 62)
+        self.assertEqual(len(self.actual), 63)
 
 
 if __name__ == '__main__':

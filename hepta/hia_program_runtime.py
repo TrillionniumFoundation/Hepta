@@ -13,7 +13,7 @@ from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
-from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation
+from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES, validate_execution_observation
 
 
 class HIAProgramTrap(ArithmeticError):
@@ -333,6 +333,20 @@ class _Machine:
             else:
                 self.drop(args[0])
             del env[names[0]]
+        elif op in WORD_LOADS or op in WORD_STORES:
+            owner, index = _underlying(args[0]), args[1]
+            if op in WORD_STORES and (not isinstance(args[0], _View) or not args[0].mutable):
+                raise HIAProgramRejected("word store through non-mutable view", "E_HIA_RUNTIME_INVARIANT")
+            extent = len(owner.data)
+            # The complete fixed-width range is checked before any memory
+            # access. In particular subtraction cannot underflow and no short
+            # store may modify a prefix before trapping.
+            if index > extent or 8 > extent - index:
+                raise HIAProgramTrap("bounds", "u64 word outside the borrowed buffer")
+            if op in WORD_LOADS:
+                result = [int.from_bytes(owner.data[index:index + 8], WORD_LOADS[op])]
+            else:
+                owner.data[index:index + 8] = args[2].to_bytes(8, WORD_STORES[op])
         elif op == "buffer.load":
             owner, index = _underlying(args[0]), args[1]
             if index >= len(owner.data):

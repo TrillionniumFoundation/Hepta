@@ -2,10 +2,10 @@
 
 The explicit discovery image owns the successful capabilities and opcode-catalog
 JSON algorithms for the immutable metadata compiled from this source revision.
-It selects one of all eight primitive schemas (or default v8), filters fields,
+It selects one of all nine primitive schemas (or default v9), filters fields,
 sorts object keys and type arrays, emits the original pretty JSON, constructs
 the original canonical form, and computes SHA-256 inside HIA. It stores one
-structured metadata table, not nine finished answers or catalog digests.
+structured metadata table without storing completed JSON documents or catalog digests.
 
 The ordinary `hia capabilities` and `hia catalog` commands can explicitly select
 this source-bound component with `HEPTA_HIA_CLI_DISCOVERY_JSON_MANIFEST`. Both the
@@ -77,7 +77,7 @@ The ordinary Core entry is `f0(readbuf, mutbuf, mutbuf) -> u32` with distinct
 physical owners. The request contains four little-endian u64 words followed by
 the schema bytes: magic `HCLJSON1`, operation (1 capabilities, 2 catalog), mode
 (0 absent, 1 explicit), and payload length. An explicit catalog schema is one
-of `hepta.hia.program.v1` through v8. Absent catalog schema selects v8.
+of `hepta.hia.program.v1` through v9. Absent catalog schema selects v9.
 
 Workspace is at least 131072 bytes. The public wrapper and original child keep
 the existing 1 MiB allocation ceiling. Successful output is the exact pretty
@@ -96,7 +96,7 @@ python tools/qualify_hia_cli_discovery_json.py --cold-report /absolute/cold.json
 
 The strict qualifier builds a fresh matching-cold fixture, then runs four
 independently supervised groups: all original 61 isolated native observations
-and all 64 current metadata observations; all original six and all 64 current
+and all 71 current metadata observations; all original six and all 71 current
 independent VM full-buffer comparisons; the public byte API
 with old Python semantic bodies and JSON construction poisoned; and a real
 wheel build/install with no checkout resources, no site packages, empty PATH,
@@ -107,7 +107,7 @@ heap and call depth 128. Failed groups remain recorded; later groups are still
 attempted. The JSON algorithm has not been granted more fuel.
 
 The additional ordinary-entry qualifier independently builds the CLI companion
-images from the same current cold compiler and runs all ten original successful
+images from the same current cold compiler and runs all eleven current successful
 outputs through both CLI routes, with Python capabilities/catalog bodies and
 JSON construction forbidden. It also compares parser errors/help and observes
 empty or missing manifest refusals, under a separate 180+3-second owned process.
@@ -172,11 +172,38 @@ R5 input again; archived execution results do not grant a current result.
 
 The current metadata is observed separately on every one of the original 61
 input frames, plus three capability output boundaries at the new document
-length. All 64 current native observations are compared with independent Core
-VM executions of the complete source/output/workspace buffers. The original
+length. The word-memory v9 integration adds four explicit v9 catalog boundaries
+and three new default catalog boundaries, for 71 current native observations.
+Every current observation is compared with an independent Core VM execution
+of the complete source/output/workspace buffers. The original
 four qualification method IDs and per-operation limits remain in force. A time
 limit or incomplete observation leaves the conjunction unqualified.
 
 The compatibility fixture is consumed only by authoring and qualification
 controls. The installed runtime selects the single current HIA discovery owner;
 the archived source is not an alternate runtime or a fallback.
+
+## Word-memory v9 metadata
+
+The current catalog includes all 54 instructions in primitive schemas v1-v9
+and selects v9 by default. The self-host compiler input description names v9.
+`tests/fixtures/hia_cli_discovery_word_memory.json` independently pins these
+current metadata inputs and the exact pre-v9 schema, instruction and CLI
+sources. The original R5 source and the verified-build/v8 source are regenerated
+under explicit v8 inputs and must retain their previous byte hashes, table
+hashes and operation counts. Existing fixtures are not rewritten.
+
+The independent original catalog oracle executes the complete archived v8
+schema and instruction sources in private test modules. It still rejects v9;
+the current catalog must match it for every v1-v8 schema. On the current image,
+the original v9-unknown request is now valid, but its unchanged 512-byte output
+frame reports insufficient capacity. On the separately recompiled original
+R5 image, that same frame still returns the original unknown-schema result
+and preserves every original output/workspace hash.
+
+The current public API and installed wheel exercise v9 as well as all earlier
+schemas. Both ordinary CLI routes make 22 actual native JSON calls, with all
+retained Python JSON and catalog constructors forbidden. The four qualification
+groups and their original process, instruction, heap and depth limits remain
+unchanged. These source identities describe the expected inputs and do not
+claim that a changed source tree has already passed qualification.
