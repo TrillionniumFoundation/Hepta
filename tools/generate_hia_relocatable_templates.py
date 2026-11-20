@@ -9,7 +9,7 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
 
 
-def render_objects(group, roles):
+def render_objects(group, roles, record_slice=slice(None)):
     selector = [
         'def materialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:',
         '    if length(s) != 8:',
@@ -25,7 +25,9 @@ def render_objects(group, roles):
             raw = assemble(folder, name, prefix + source)
             if not 0 < len(raw) <= STATIC_OBJECT_LIMIT:
                 raise ValueError('static adapter object exceeds the retained template extent')
-            record = STATIC_OBJECT_RECORD.pack(sha256(source).digest(), sha256(raw).digest(), len(raw)) + raw
+            record = (STATIC_OBJECT_RECORD.pack(sha256(source).digest(), sha256(raw).digest(), len(raw)) + raw)[record_slice]
+            if not record:
+                raise ValueError('static adapter has an empty template part')
             selector.extend((f'    if role == {role}:', f'        return adapter_{role}(o)'))
             functions.extend(('', f'def adapter_{role}(o:mutbuf) -> u32:',
                               f'    if length(o) < {len(record)}:', '        return 0'))

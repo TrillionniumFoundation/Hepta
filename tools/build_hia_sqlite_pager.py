@@ -68,15 +68,22 @@ def build_embedder(directory, compiler, source, *, label='elf-embed'):
     return NativeHiaJsonImage(image.read_bytes(), receipt['produced_sha256'])
 
 
-def load_static_object(template, role, source):
-    packet = struct.pack('<Q', role)
+def _read_static_object_part(template, packet):
     request = ctypes.create_string_buffer(packet, len(packet))
     result = ctypes.create_string_buffer(STATIC_OBJECT_RECORD.size + STATIC_OBJECT_LIMIT)
     count = template._entry(request, len(request), result, len(result), None, 0)
-    if not STATIC_OBJECT_RECORD.size < count <= len(result) or request.raw != packet or any(result.raw[count:]):
+    if not 0 < count <= len(result) or request.raw != packet or any(result.raw[count:]):
         raise ValueError('native static adapter refused or changed the transport')
-    source_sha, object_sha, size = STATIC_OBJECT_RECORD.unpack_from(result)
-    raw = result.raw[STATIC_OBJECT_RECORD.size:count]
+    return result.raw[:count]
+
+
+def load_static_object(template, role, source, *, continuations=()):
+    packet = struct.pack('<Q', role)
+    record = b''.join(_read_static_object_part(part, packet) for part in (template, *continuations))
+    if not STATIC_OBJECT_RECORD.size < len(record) <= STATIC_OBJECT_RECORD.size + STATIC_OBJECT_LIMIT:
+        raise ValueError('native static adapter exceeds the bounded record extent')
+    source_sha, object_sha, size = STATIC_OBJECT_RECORD.unpack_from(record)
+    raw = record[STATIC_OBJECT_RECORD.size:]
     if (source_sha != sha256(source).digest() or size != len(raw)
             or not raw.startswith(b'\x7fELF\x02\x01\x01') or sha256(raw).digest() != object_sha):
         raise ValueError('native static adapter differs from its admitted source or object')
