@@ -329,6 +329,12 @@ SDIST_SUPPORT_FILES=(
     'tests/test_hia_cost_context_caller_delivery_source.py',
     'tests/test_hia_ndu_bridge.py',
     'tools/qualify_hia_artifact_delivery_callers.py',
+    'tests/test_hia_linked_observer_build_custody.py',
+    'tests/test_hia_observer_stream_retention.py',
+    'tests/test_hia_selfhost_linked_observer.py',
+    'tests/test_hia_selfhost_native_observer.py',
+    'tools/hia_selfhost_linked_observer.py',
+    'tools/hia_selfhost_native_observer.py',
 )
 SDIST_SUPPORT_FILES=tuple(dict.fromkeys(SDIST_SUPPORT_FILES))
 WHEEL_PACKAGE_FILES=(

@@ -10,7 +10,6 @@ size-sealed shared output preserves real writes after native traps. No child is 
 from __future__ import annotations
 from contextlib import contextmanager
 import fcntl
-import gzip
 from hashlib import sha256
 import json
 import os
@@ -18,6 +17,7 @@ from pathlib import Path
 import struct
 import subprocess
 import time
+import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKER = ROOT/'examples/hia_bootstrap/native_observer_packer.hepta'
@@ -158,6 +158,44 @@ def read_capture(descriptor,capacity):
     return bytes(data)
 
 
+def retain_process_streams(directory, label, stdout, stderr, *, request, returncode, timed_out):
+    """Retain only the actual completed/partial binary process observations.
+
+    Compression is lossless evidence storage. It does not change the response,
+    child deadline, original receipt or byte-ABI framing. The unchanged archive
+    member cap also bounds each decoded original stream; an oversized stream or
+    failed write leaves the qualification incomplete instead of dropping bytes.
+    """
+    limit = 16 * 1024 * 1024
+    if (type(stdout) is not bytes or type(stderr) is not bytes
+            or type(timed_out) is not bool
+            or (timed_out and returncode is not None)
+            or (not timed_out and type(returncode) is not int)
+            or len(stdout) > limit or len(stderr) > limit):
+        raise ValueError('original process streams exceed the unchanged evidence domain')
+    directory = Path(directory)
+    request_raw = (json.dumps(request, sort_keys=True) + '\n').encode()
+    if (directory / (label + '.request.json')).read_bytes() != request_raw:
+        raise ValueError('original process request changed before stream retention')
+    rows = {}
+    for name, raw in (('stdout', stdout), ('stderr', stderr)):
+        stored = zlib.compress(raw, level=1)
+        if len(stored) > limit:
+            raise ValueError('compressed process stream exceeds the unchanged archive member cap')
+        path = directory / (label + '.process.' + name + '.zlib')
+        path.write_bytes(stored)
+        if path.read_bytes() != stored:
+            raise ValueError('original compressed process stream changed while retaining it')
+        rows[name] = {'file': path.name, 'encoding': 'zlib', 'compression_level': 1,
+            'raw_bytes': len(raw), 'raw_sha256': digest(raw),
+            'stored_bytes': len(stored), 'stored_sha256': digest(stored)}
+    record = {'schema': 'hepta.hia.observer-original-process-streams.v1',
+        'request_sha256': digest(request_raw), 'returncode': returncode, 'timed_out': timed_out,
+        'decoded_stream_limit_bytes': limit, 'streams': rows}
+    (directory / (label + '.process-streams.json')).write_text(
+        json.dumps(record, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n')
+
+
 def invoke(directory, label, observer, image, source, *, capacity, workspace_size, workspace_fill,
            output_initial=None, observe_trap_writes=False, image_format='flat-x86-64'):
     if image_format == 'linked-selfhost':
@@ -194,11 +232,15 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                 process = execute(executable,payload,cwd=directory,output_fd=capture_fd)
             except subprocess.TimeoutExpired as exc:
                 stderr = exc.stderr or b''
+                retain_process_streams(directory, label, exc.stdout or b'', stderr,
+                    request=request, returncode=None, timed_out=True)
                 if exc.stdout:
                     (directory/(label+'.failure-stdout.raw')).write_bytes(exc.stdout)
                 result = {'status':'timeout','wall_limit_seconds':20}
             else:
                 stderr = process.stderr
+                retain_process_streams(directory, label, process.stdout, stderr,
+                    request=request, returncode=process.returncode, timed_out=False)
                 if process.returncode:
                     if process.stdout:
                         (directory/(label+'.failure-stdout.raw')).write_bytes(process.stdout)
@@ -251,11 +293,6 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
             fresh_native_exec=True,successor_process_reuse=False)
         if observer.read_bytes()!=executable or image.read_bytes()!=image_bytes or input_path.read_bytes()!=source:
             raise AssertionError('native observer or immutable inputs changed')
-        if result['status'] == 'returned':
-            # Losslessly retain actual stdout; receipts are not binary frames.
-            raw_stdout = process.stdout
-            (directory / (label + '.stdout.raw.gz')).write_bytes(gzip.compress(raw_stdout, compresslevel=1, mtime=0))
-            result['raw_stdout'] = {'bytes': len(raw_stdout), 'sha256': digest(raw_stdout)}
         (directory/(label+'.stdout.log')).write_text(json.dumps(result,sort_keys=True)+'\n')
         (directory/(label+'.stderr.log')).write_bytes(stderr)
         (directory/(label+'.receipt.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
