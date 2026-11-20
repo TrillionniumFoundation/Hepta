@@ -428,14 +428,15 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
             'observations': observed, 'ordinary_cli_replaced': False})
 
     def test_04_real_portable_wheel_resource_and_fresh_binding(self):
-        from hepta import hia_agent_contract as contract
+        from tests.test_hia_agent_installed_resources import (
+            RESOURCES, EXECUTABLE_CAPTURE_RESOURCES, VM_INTEGER_DIVREM_RESOURCES,
+            VM_INTEGER_ARITHMETIC_RESOURCES, VM_INTEGER_SCALAR_RESOURCES)
         case = self.folder / 'installed'
         case.mkdir(mode=0o700)
         source, wheels, installed = case / 'source', case / 'wheels', case / 'installed'
         source.mkdir()
-        resources = tuple('docs/' + name for name in contract.DISCOVERY_FILES)
-        for role in ROLES[1:]:
-            resources += getattr(contract, role)
+        resources = (*RESOURCES, *EXECUTABLE_CAPTURE_RESOURCES, *VM_INTEGER_DIVREM_RESOURCES,
+                     *VM_INTEGER_ARITHMETIC_RESOURCES, *VM_INTEGER_SCALAR_RESOURCES)
         self.assertEqual(resources.count(runtime.SOURCE_NAME), 1)
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):

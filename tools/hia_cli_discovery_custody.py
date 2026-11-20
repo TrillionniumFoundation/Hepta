@@ -40,6 +40,7 @@ OWNER_FILES = (
     'tools/hia_cli_discovery_child.py',
     'tools/qualify_hia_cli_discovery_json.py',
     'tests/test_hia_cli_discovery_json.py',
+    'tests/test_hia_agent_installed_resources.py',
     'tests/fixtures/hia_cli_discovery_r5_cases.json',
     'docs/HIA_CLI_DISCOVERY_JSON.md',
     'examples/hia_bootstrap/cli_discovery_json.hepta',
