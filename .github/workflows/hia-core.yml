@@ -979,6 +979,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/elf-linker"
           python -B -m tools.build_hia_elf_linker --kind verified-shared --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/elf-verified-linker-cli"
+          python -B -m tools.build_hia_elf_linker --kind direct-shared --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/elf-direct-linker-cli"
           python -B -m tools.build_hia_core_workspace_pipeline --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/workspace-pipeline"
           python -B -m tools.build_hia_core_patch_result_cli --compiler "$compiler" \
@@ -1008,6 +1010,7 @@ jobs:
             "$RUNNER_TEMP/source-build/hia-source-build" \
             "$RUNNER_TEMP/elf-linker/hia-elf-link" \
             "$RUNNER_TEMP/elf-verified-linker-cli/hia-elf-link-shared" \
+            "$RUNNER_TEMP/elf-direct-linker-cli/hia-elf-link-direct-shared" \
             "$RUNNER_TEMP/workspace-pipeline/hia-workspace-compile" \
             "$RUNNER_TEMP/patch-result/hia-patch-result" \
             "$RUNNER_TEMP/worker-request/hia-worker-admit" \
@@ -1287,8 +1290,11 @@ jobs:
           python -B -m tests.test_hia_nominal_packet_runtime "$installed/hia-nominal-packet"
           HEPTA_HIA_VERIFIED_LINKER_EXECUTABLE="$installed/hia-elf-link-shared" \
             python -B -m unittest -v tests.test_hia_elf_verified_linker_native.StandaloneVerifiedLinkerTests
+          HEPTA_HIA_DIRECT_SHARED_LINKER_EXECUTABLE="$installed/hia-elf-link-direct-shared" \
+          HEPTA_HIA_DIRECT_SHARED_CORE_CLI="$installed/hia" \
+            python -B -m tools.run_hia_unittest_gate tests.test_hia_elf_linker.StandaloneDirectSharedLinkerTests
           python -B -m tests.test_hia_nominal_constructor_runtime "$installed/hia-nominal-constructor" \
-            --oracle-images "$RUNNER_TEMP/nominal-constructor" --ordinary "$installed/hia"
+            --oracle-images "$RUNNER_TEMP/core-edit/nominal-constructor" --ordinary "$installed/hia"
       - name: v9 fixed-width memory matching-cold cross-backend qualification
         if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
         timeout-minutes: 30

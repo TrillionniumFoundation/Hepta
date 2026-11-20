@@ -14,7 +14,7 @@ from hepta.hia_program import execute_program
 from hepta.hia_program_runtime import _Machine,_Owner,_View
 from tools.generate_hia_elf_linker import MAGIC,WORKSPACE_BYTES,document
 from tools.generate_hia_native_filter import (MAGIC as FILTER_MAGIC, LINK_FILTER_MAGIC,
-                                             document as filter_document)
+                                             direct_shared_linker_document, document as filter_document)
 from tools.qualify_hia_selfhost import build_seed,compile_stage,INVALID,NO_SPACE
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -40,7 +40,8 @@ class ElfLinkerSourceTests(unittest.TestCase):
         linker_filter = filter_document(magic=LINK_FILTER_MAGIC, module='elf_linker_filter_packer',
                                         object_files=True)
         for name,doc in (('elf_static_linker',document()),('native_filter_packer',filter_document()),
-                         ('elf_linker_filter_packer',linker_filter)):
+                         ('elf_linker_filter_packer',linker_filter),
+                         ('direct_shared_linker_filter_packer', direct_shared_linker_document())):
             source=render_assembly(doc)
             self.assertEqual((ROOT/f'examples/hia_bootstrap/{name}.hepta').read_text(),source)
             assemble_program(source)
@@ -89,6 +90,68 @@ class ElfLinkerSourceTests(unittest.TestCase):
         self.assertEqual(inspect_owned_shared_elf(data[:count], ('entry',))['unresolved_imports'], [])
         self.assertEqual(reference(program, obj[:4], capacity=16, workspace=1<<20),
                          (INVALID, b'\xa5'*16))
+
+
+DIRECT_SHARED_LINKER = os.environ.get('HEPTA_HIA_DIRECT_SHARED_LINKER_EXECUTABLE')
+
+
+@unittest.skipUnless(DIRECT_SHARED_LINKER, 'an admitted standalone direct HIA shared linker is required')
+class StandaloneDirectSharedLinkerTests(unittest.TestCase):
+    def link(self, value, *arguments):
+        return subprocess.run([DIRECT_SHARED_LINKER, *arguments], input=value, capture_output=True,
+                              timeout=30, env={'PATH': ''}, check=False)
+
+    def test_links_and_loads_v9_resources_and_all_word_orders(self):
+        from hepta.elf_shared_abi import inspect_owned_shared_elf
+        from hepta.hia_program import verify_program
+        from hepta.hia_program_native import emit_program_machine
+        from tools.hia_word_memory_cases import expected, owned_program
+
+        program = owned_program()
+        verified = verify_program(program)
+        obj = emit_program_machine(verified).object_bytes
+        with tempfile.TemporaryDirectory(prefix='hia-direct-shared-') as directory:
+            folder = Path(directory)
+            compiler = os.environ.get('HEPTA_HIA_DIRECT_SHARED_CORE_CLI')
+            if compiler is not None:
+                source, target = folder / 'word.hepta', folder / 'word.o'
+                source.write_bytes(verified.canonical_bytes)
+                emitted = subprocess.run([compiler, 'build', source, '-o', target], capture_output=True,
+                                         env={'PATH': ''}, timeout=30, check=False)
+                self.assertEqual((emitted.returncode, emitted.stderr), (0, b''))
+                self.assertEqual(target.read_bytes(), obj)
+                obj = target.read_bytes()
+            linked = self.link(obj)
+            self.assertEqual((linked.returncode, linked.stderr), (0, b''))
+            inventory = inspect_owned_shared_elf(linked.stdout, tuple(sorted(program['exports'])))
+            self.assertEqual(inventory['dynamic_exports'], sorted(program['exports']))
+            self.assertEqual(set(inventory['unresolved_imports']), {'abort', 'calloc', 'free'})
+            library_path = folder / 'word.so'
+            library_path.write_bytes(linked.stdout)
+            library = ctypes.CDLL(str(library_path), mode=os.RTLD_LOCAL | os.RTLD_NOW)
+            args = (17, 1, 0xFEDCBA9876543210, 2)
+            for export in program['exports']:
+                mode, order = export.split('_')
+                function = getattr(library, export)
+                function.argtypes = (ctypes.c_size_t, ctypes.c_size_t, ctypes.c_uint64, ctypes.c_size_t)
+                function.restype = ctypes.c_uint64
+                self.assertEqual(function(*args), expected(mode, order, *args), export)
+
+    def test_preserves_full_direct_profile_and_publishes_no_refused_bytes(self):
+        from hepta.elf_shared_abi import inspect_owned_shared_elf
+        from hepta.hia_elf_shared_linker_native import MAX_ELF_BYTES
+        from hepta.hia_machine_elf import write_elf_object
+
+        text = b'\xc3' + b'\x90' * ((16 << 20) - 1)
+        source = write_elf_object(text, [{'name': 'entry', 'offset': 0, 'size': 1, 'global': True}], [])
+        linked = self.link(source)
+        self.assertEqual((linked.returncode, linked.stderr), (0, b''))
+        self.assertGreater(len(linked.stdout), len(text))
+        self.assertEqual(inspect_owned_shared_elf(linked.stdout, ('entry',))['dynamic_exports'], ['entry'])
+        for value, arguments, status in ((b'', (), 2), (source[:64], (), 2),
+                                         (source, ('--extra',), 64), (bytes(MAX_ELF_BYTES + 1), (), 3)):
+            refused = self.link(value, *arguments)
+            self.assertEqual((refused.returncode, refused.stdout, refused.stderr), (status, b'', b''))
 
 
 class SharedElfLinkerNativeTests(unittest.TestCase):

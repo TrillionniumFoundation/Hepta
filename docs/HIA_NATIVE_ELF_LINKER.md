@@ -64,6 +64,16 @@ builds, or include it in the worker's pinned native-helper bundle. The build
 still checks the final shared ABI independently before publication. Without a
 selection, the existing external-linker route remains unchanged.
 
+The same direct linker also has a standalone Linux x86-64 form. Build it with
+`python -B -m tools.build_hia_elf_linker --kind direct-shared` and the same
+`--compiler`, `--cold-report`, and `--output` options as the static linker.
+`hia-elf-link-direct-shared` reads one direct HIA ET_REL object on stdin and
+writes ET_DYN on stdout. Input and output are each bounded to 64 MiB. A malformed
+or unsupported object produces no output, and no external linker or Python
+runtime is called. This form emits bytes, not a verified-kernel receipt; it is
+not a replacement for the independently checked `hia build --kind shared`
+publication route.
+
 ## Verification boundary
 
 Independent Core execution and a real foreign ld control precede native B0.

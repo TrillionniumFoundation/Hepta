@@ -19,7 +19,7 @@ if __package__ in {None, ''}:
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_application)
 from tools.build_hia_source_build import _check_pack_output
-from tools.generate_hia_native_filter import LINK_FILTER_MAGIC, MAGIC
+from tools.generate_hia_native_filter import DIRECT_LINK_FILTER_MAGIC, LINK_FILTER_MAGIC, MAGIC
 from tools.qualify_hia_selfhost import invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -29,6 +29,9 @@ LINKERS = {
                ('HIALNK01 on stdin', 'entry symbol and ordinary object file arguments')),
     'verified-shared': ('elf-verified-linker', 'native-filter', MAGIC, 'hia-elf-link-shared',
                         ('one admitted x86-64 ET_REL object on stdin; candidate ET_DYN on stdout',)),
+    'direct-shared': ('elf-shared-linker', 'elf-direct-shared-linker-filter', DIRECT_LINK_FILTER_MAGIC,
+                      'hia-elf-link-direct-shared',
+                      ('one direct HIA ET_REL object on stdin; ordinary native ET_DYN on stdout',)),
 }
 
 

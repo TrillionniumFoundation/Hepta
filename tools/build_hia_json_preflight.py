@@ -114,6 +114,7 @@ CANDIDATES = {
     'core-frontend': ('core_json_frontend', 'core-json-frontend'),
     'elf-linker': ('elf_static_linker', 'elf-linker'),
     'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
+    'elf-direct-shared-linker-filter': ('direct_shared_linker_filter_packer', 'elf-direct-shared-linker-filter'),
     'elf-verified-linker': ('elf_verified_linker', 'elf-verified-linker'),
     'scalar-reference': ('scalar_reference', 'scalar-reference'),
     'scalar-symbolic': ('scalar_symbolic', 'scalar-symbolic'),

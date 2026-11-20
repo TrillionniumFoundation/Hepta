@@ -1160,6 +1160,7 @@ SOURCE_FILES = (
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hepta',
     'examples/hia_bootstrap/native_filter_packer.hepta',
+    'examples/hia_bootstrap/direct_shared_linker_filter_packer.hepta',
     'tests/test_hia_elf_linker.py',
     'tools/build_hia_elf_linker.py',
     'tools/generate_hia_elf_linker.py',
