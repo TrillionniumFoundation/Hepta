@@ -3651,7 +3651,7 @@ def support_contract(root=ROOT):
             "command": "hia-agent-mcp-connection",
             "sources": ["examples/hia_bootstrap/mcp_connection.hepta",
                         "examples/hia_bootstrap/mcp_stdio_packer.hepta"],
-            "scope": "standalone MCP initialization, framing, notification phase and ping",
+            "scope": "standalone legacy MCP initialization and stateless 2026-07-28 discovery, framing and ping",
             "requires_host_runtime_or_sdk": False,
             "advertised_tool_effects": False,
             "production_endpoint_selected": False,

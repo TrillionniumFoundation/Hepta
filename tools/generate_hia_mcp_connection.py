@@ -1,4 +1,4 @@
-"""Author the stateful, capability-free HIA MCP stdio connection owner."""
+"""Author the capability-free HIA MCP owner for legacy and inline sessions."""
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
@@ -15,6 +15,7 @@ SOURCE = 'examples/hia_bootstrap/mcp_connection.hepta'
 STATE_OFFSET = 64 + 262144 * 72 + LIMIT
 WORKSPACE_BYTES = STATE_OFFSET + 8
 RESPONSE_BYTES = LIMIT + 256
+MODERN_VERSION = VERSIONS[-1]
 
 POLICY = r'''
 def connection(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -39,9 +40,28 @@ def connection(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     decision = get(o, 80)
     action = get(o, 88)
     version = get(o, 104)
+    params = lookup(w, 64, 4)
+    inline = inline_protocol(w, params)
     response = 5
     if decision == 2:
         response = 6
+    elif inline == 1:
+        response = 6
+    elif inline == 2:
+        response = 13
+    elif inline == 3:
+        if role == 10 and get(w, params + 32) == 1:
+            response = 10
+        elif role == 10:
+            response = 6
+        elif role == 3:
+            response = 11
+        elif role == 4 and get(w, params + 32) == 1:
+            response = 12
+        elif role == 4:
+            response = 6
+    elif role == 10:
+        response = 5
     elif role == 3:
         response = 2
     elif role == 1:
@@ -56,7 +76,7 @@ def connection(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         response = 9
     elif role == 4:
         response = 3
-    if start > length(s) or size > length(s) - start or size + 256 > length(o):
+    if start > length(s) or size > length(s) - start or size > length(o) - RESPONSE_OVERHEAD:
         return 4294967293
     offset = prefix(o)
     index = 0
@@ -64,6 +84,23 @@ def connection(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         store(o, offset + index, byte(s, start + index))
         index = index + 1
     return emit(o, offset + size, response, version)
+
+def inline_protocol(w:mutbuf, params:u64) -> u64:
+    if is_kind(w, params, 6) == 0:
+        return 0
+    meta = lookup(w, params, 11)
+    if is_kind(w, meta, 6) == 0:
+        return 0
+    version = lookup(w, meta, 12)
+    if version == NONE:
+        return 0
+    if is_kind(w, version, 4) == 0:
+        return 1
+    if version_of(w, version) != MODERN_ORDINAL:
+        return 2
+    if is_kind(w, lookup(w, meta, 13), 6) == 0:
+        return 1
+    return 3
 
 def emit(o:mutbuf, at:u64, response:u64, version:u64) -> u32:
     if response == 1:
@@ -82,6 +119,14 @@ def emit(o:mutbuf, at:u64, response:u64, version:u64) -> u32:
         return request_error(o, at)
     if response == 8:
         return parse_error(o, at)
+    if response == 10:
+        return modern_result(o, discover_result(o, at))
+    if response == 11:
+        return modern_ping(o, at)
+    if response == 12:
+        return modern_result(o, modern_tools(o, at))
+    if response == 13:
+        return protocol_error(o, at)
     return phase_error(o, at)
 '''
 
@@ -93,10 +138,10 @@ def _writer(name, value):
 
 
 def render():
-    policy = (POLICY.replace('WORKSPACE', str(WORKSPACE_BYTES))
-              .replace('RESPONSE_CAPACITY', str(RESPONSE_BYTES))
-              .replace('SESSION_OFFSET', str(STATE_OFFSET))
-              .replace('INVALID_REQUEST', str(INVALID_ENVELOPE)))
+    modern_discovery = (f',"result":{{"supportedVersions":["{MODERN_VERSION}"],'
+                        '"capabilities":{},"cacheScope":"private","ttlMs":0').encode('ascii')
+    modern_suffix = (b',"resultType":"complete","_meta":'
+                     b'{"io.modelcontextprotocol/serverInfo":{"name":"hepta-hia","version":"1"}}}}\n')
     # Prefix is needed before copying the exact request ID, including escaping.
     static_prefix = ('def prefix(o:mutbuf) -> u64:\n'
                      + literal_writes(PREFIX, offset='0') + f'\n    return {len(PREFIX)}\n')
@@ -111,8 +156,24 @@ def render():
         ('request_error', b',"error":{"code":-32600,"message":"Invalid Request"}}\n'),
         ('parse_error', b',"error":{"code":-32700,"message":"Parse error"}}\n'),
         ('phase_error', b',"error":{"code":-32002,"message":"Connection is not ready for this request"}}\n'),
+        ('discover_result', modern_discovery),
+        ('modern_ping', b',"result":{' + modern_suffix[1:]),
+        ('modern_tools', b',"result":{"tools":[],"cacheScope":"private","ttlMs":0'),
+        ('modern_result', modern_suffix),
+        ('protocol_error', b',"error":{"code":-32022,"message":"Unsupported protocol version"}}\n'),
     )
     helpers = [_writer(name, value) for name, value in writes]
+    response_overhead = len(PREFIX) + max(
+        max(len(payload) for _, payload in writes), len(modern_discovery) + len(modern_suffix))
+    if response_overhead > RESPONSE_BYTES - LIMIT:
+        raise ValueError('MCP response literals exceed the reserved wire extent')
+    policy = POLICY
+    for name, value in {
+        'WORKSPACE': WORKSPACE_BYTES, 'RESPONSE_CAPACITY': RESPONSE_BYTES,
+        'SESSION_OFFSET': STATE_OFFSET, 'INVALID_REQUEST': INVALID_ENVELOPE,
+        'RESPONSE_OVERHEAD': response_overhead, 'MODERN_ORDINAL': len(VERSIONS), 'NONE': NONE,
+    }.items():
+        policy = policy.replace(name, str(value))
     version = ['def version_text(o:mutbuf, at:u64, version:u64) -> u64:']
     for index, literal in enumerate(VERSIONS[:VERSIONS.index(LEGACY_FALLBACK)], 1):
         version.extend((f'    if version == {index}:', f'        return send_version_{index}(o, at)'))

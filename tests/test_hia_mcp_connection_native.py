@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import unittest
 
-from tools.generate_hia_mcp_connection import LIMIT, ROOT, SOURCE, render
+from tools.generate_hia_mcp_connection import LIMIT, MODERN_VERSION, ROOT, SOURCE, render
 
 
 class McpConnectionSourceTests(unittest.TestCase):
@@ -98,3 +98,33 @@ class McpConnectionExecutableTests(unittest.TestCase):
         parsed = [json.loads(row) for row in result.stdout.splitlines()]
         self.assertEqual([row['error']['code'] for row in parsed[:2]], [-32700, -32600])
         self.assertEqual(parsed[2]['result'], {})
+
+    def test_inline_discovery_does_not_consume_or_inherit_legacy_session_state(self):
+        version = 'io.modelcontextprotocol/protocolVersion'
+        capabilities = 'io.modelcontextprotocol/clientCapabilities'
+        modern = {'_meta': {version: MODERN_VERSION, capabilities: {}}}
+        wrong = {'_meta': {version: '2099-01-01', capabilities: {}}}
+        malformed = {'_meta': {version: MODERN_VERSION, capabilities: []}}
+        result = self.run_connection(b''.join((
+            message('server/discover', 1, modern), message('tools/list', 2, modern),
+            message('ping', 3, modern), message('tools/list', 4),
+            message('ping', 5, wrong), message('server/discover', 6, malformed),
+            message('initialize', 7, INITIALIZE), message('notifications/initialized'),
+            message('server/discover', 8, {**modern, 'unexpected': True}),
+            message('tools/call', 9, {**modern, 'name': 'hia_emit', 'arguments': {}}),
+            message('tools/list', 10),
+        )))
+        self.assertEqual((result.returncode, result.stderr), (0, b''))
+        replies = {row['id']: row for row in map(json.loads, result.stdout.splitlines())}
+        self.assertEqual(set(replies), set(range(1, 11)))
+        self.assertEqual(replies[1]['result']['supportedVersions'], [MODERN_VERSION])
+        self.assertEqual(replies[1]['result']['capabilities'], {})
+        self.assertEqual(replies[2]['result']['tools'], [])
+        for identifier in (1, 2, 3):
+            body = replies[identifier]['result']
+            self.assertEqual(body['resultType'], 'complete')
+            self.assertEqual(body['_meta']['io.modelcontextprotocol/serverInfo']['name'], 'hepta-hia')
+        self.assertEqual([replies[i]['error']['code'] for i in (4, 5, 6, 8, 9)],
+                         [-32002, -32022, -32602, -32602, -32601])
+        self.assertEqual(replies[7]['result']['protocolVersion'], INITIALIZE['protocolVersion'])
+        self.assertEqual(replies[10]['result'], {'tools': []})
