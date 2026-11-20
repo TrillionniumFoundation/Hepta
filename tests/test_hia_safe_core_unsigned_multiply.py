@@ -128,7 +128,7 @@ class UnsignedMultiplyProfileTests(unittest.TestCase):
         for typ in ("i8", "i16", "i32", "i64", "isize"):
             with self.subTest(signed=typ), self.assertRaises(SafeCoreRejected):
                 _profile(verify_program(arithmetic("int.mul.checked", typ)), profile_version=4)
-        for version in (True, False, "4", 4.0, 6):
+        for version in (True, False, "4", 4.0, 7):
             with self.subTest(version=version), self.assertRaises(SafeCoreRejected):
                 _profile(verify_program(constant_core(1)), profile_version=version)
 

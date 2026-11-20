@@ -159,7 +159,7 @@ class UnsignedDivisionProfileTests(unittest.TestCase):
             for typ in ("i8", "i16", "i32", "i64", "isize"):
                 with self.subTest(operation=operation, signed=typ), self.assertRaises(SafeCoreRejected):
                     _profile(verify_program(arithmetic(operation, typ)), profile_version=5)
-        for version in (True, False, None, "5", 5.0, 0, 6):
+        for version in (True, False, None, "5", 5.0, 0, 7):
             with self.subTest(version=version), self.assertRaises(SafeCoreRejected):
                 _profile(verify_program(multiply_legacy.constant_core(1)), profile_version=version)
         for operation, expected in (("int.add.checked", 2), ("int.shr.checked", 3), ("int.mul.checked", 4)):

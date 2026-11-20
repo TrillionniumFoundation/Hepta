@@ -68,3 +68,7 @@ def selected_canonical_wire(text: str, *, max_nodes: int, max_depth: int) -> byt
     if len(wire) > MAX_BYTES:
         return None
     return installed_canonicalizer(path).canonicalize(wire, max_nodes=max_nodes, max_depth=max_depth)
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

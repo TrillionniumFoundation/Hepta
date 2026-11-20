@@ -54,3 +54,7 @@ def selected_program_shape(data):
     functions={fn['name']:fn for fn in snapshot['functions']}
     blocks={fn['name']:{block['id']:block for block in fn['blocks']} for fn in snapshot['functions']}
     return functions,blocks
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

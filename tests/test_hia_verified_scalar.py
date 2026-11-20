@@ -41,9 +41,14 @@ class RegisterProducerTests(unittest.TestCase):
         self.assertEqual(image.hot_text_bytes, 11)
         self.assertEqual(image, emit_verified_scalar(multiply_add()))
 
-    def test_unmodeled_signed_checked_multiplication_is_explicitly_rejected(self):
-        with self.assertRaisesRegex(VerifiedScalarRejected, "exactly one scalar entry/return"):
-            emit_verified_scalar(arithmetic("int.mul.checked", "i64"))
+    def test_signed_checked_multiplication_selects_v6_without_broadening_old_profiles(self):
+        document = arithmetic("int.mul.checked", "i64")
+        image = emit_verified_scalar(document)
+        self.assertEqual(image.core_profile_version, 6)
+        self.assertEqual(image.profile, scalar.PROFILE_V6)
+        for version in range(1, 6):
+            with self.subTest(version=version), self.assertRaises(SafeCoreRejected):
+                scalar._profile(scalar.verify_program(document), profile_version=version)
 
     def test_pressure_refuses_instead_of_silently_spilling(self):
         params = [("a", "u64")]

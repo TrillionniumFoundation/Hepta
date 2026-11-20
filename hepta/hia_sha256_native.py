@@ -51,3 +51,7 @@ def payload_sha256(wire) -> bytes:
     if manifest and type(wire) is bytes and len(wire)<=MAX_BYTES:
         return installed_hasher(manifest).digest(wire)
     return _foreign_sha256(wire).digest()
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)
