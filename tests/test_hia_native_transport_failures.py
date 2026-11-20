@@ -30,15 +30,43 @@ from hepta import hia_agent_store as store_api
 from hepta import hia_service_context_native as context_native
 from hepta import hia_cost_ledger_native as ledger_native
 from hepta import hia_store_lifecycle_native as store_native
+from hepta.hia_native_delivery import request_rejections
 
 ROOT = Path(__file__).resolve().parents[1]
 COLD = 'HEPTA_HIA_NATIVE_TRANSPORT_COLD_REPORT'
 DEVELOPMENT = 'HEPTA_HIA_NATIVE_TRANSPORT_DEVELOPMENT_COMPILER'
 EVIDENCE = 'HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE'
 REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
-# Service Context and Cost Ledger are unchanged. Store Lifecycle binds the
-# reviewed native-Store composition from 9a55253, including its SQLite DDL check.
+# Store Lifecycle binds the reviewed native-Store/SQLite-DDL composition.
+# Cost Ledger also tests the canonical-byte publication added by be9adee;
+# reverse only that reviewed extension to authenticate its original controls.
 COMPONENT_TEST_SHA256 = {'tests/test_hia_service_context_native.py': 'db7651b17a26b2606cb4c8c556b222a89f9d42b1e21b9bc97380b6f1dfdb3f9c', 'tests/test_hia_store_lifecycle_native.py': 'fa3421d87409e47b079ce3ac84f3e29bef8fb4f60d6933eeb19e666293d9328b', 'tests/test_hia_cost_ledger_native.py': '3dfaf1397f66d8cc0c12b9af2a9c61ad9e017c4096ac90d06f73005cead005af'}
+
+
+def original_cost_ledger_controls(raw):
+    additions = (
+        (b"""                    self.assertEqual(service._cost_ledger(context, 1, 2),
+                                     api.wire(frozen()(service, context, 1, 2)))
+""",
+         b"""                    self.assertEqual(service._cost_ledger(context, 1, 2), frozen()(service, context, 1, 2))
+"""),
+        (b"""        original = self.service._cost_ledger(self.context, 3, 4)
+""", b''),
+        (b"""                selected = self.service._cost_ledger(self.context, 3, 4)
+                self.assertEqual(selected['context_tool_wall_ns_before_evaluation'], '-9')
+                self.assertEqual(api.wire(selected), original)
+                reference = api._retain_cost_ledger(self.service.store, selected)
+                self.assertEqual(self.service.store.get(reference)[0], original)
+                self.assertEqual(api._retain_cost_ledger(self.service.store, original), reference)
+""",
+         b"""                self.assertEqual(self.service._cost_ledger(self.context, 3, 4)['context_tool_wall_ns_before_evaluation'], '-9')
+"""),
+    )
+    for current, original in additions:
+        if raw.count(current) != 1:
+            raise AssertionError('reviewed cost ledger source amendment changed')
+        raw = raw.replace(current, original, 1)
+    return raw
 
 
 class MixedRejected(ValueError, RuntimeError):
@@ -117,10 +145,16 @@ class NativeTransportSourceTests(unittest.TestCase):
         self.assertTrue(issubclass(RecursionError, RuntimeError))
         self.assertTrue(issubclass(MixedRejected, RuntimeError))
         for module in (context_native, ledger_native, store_native):
-            self.assertEqual(module._REQUEST_REJECTIONS, caught)
+            self.assertIs(module.request_rejections, request_rejections)
+            self.assertEqual(module.request_rejections(), caught)
+        with patch.dict(sys.modules, {'_sqlite3': None}):
+            self.assertEqual(request_rejections(), caught[:-1])
         self.assertEqual(len(COMPONENT_TEST_SHA256), 3)
         for name, digest in COMPONENT_TEST_SHA256.items():
-            self.assertEqual(sha256((ROOT / name).read_bytes()).hexdigest(), digest)
+            raw = (ROOT / name).read_bytes()
+            if name.endswith('test_hia_cost_ledger_native.py'):
+                raw = original_cost_ledger_controls(raw)
+            self.assertEqual(sha256(raw).hexdigest(), digest)
 
 
 class NativeTransportNativeTests(unittest.TestCase):

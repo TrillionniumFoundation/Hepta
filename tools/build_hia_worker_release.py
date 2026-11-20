@@ -29,6 +29,7 @@ from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
 from tools.build_hia_sha256 import build as build_sha256
+from tools.build_hia_service_context import build as build_service_context
 from tools.build_hia_slot_ledger import build as build_slot_ledger
 from tools.build_hia_worker_report import bind_worker_bundle, build as build_report
 from tools.build_hia_worker_scheduling_bundle import bind_scheduling_bundle
@@ -44,7 +45,7 @@ ADDITIONAL_HELPERS = (
     'sha256-stream', 'cnf',
     'agent-data-json', 'agent-binary64', 'agent-binary64-format',
     'agent-describe-answer', 'agent-payload-schema', 'agent-plan-schema', 'machine-plan',
-    'safe-core-x64-decode', 'safe-core-elf-inventory', 'elf-verified-linker',
+    'safe-core-x64-decode', 'safe-core-elf-inventory', 'elf-verified-linker', 'service-context',
 )
 HELPER_BUILDERS = {
     'slot-ledger': build_slot_ledger,
@@ -52,6 +53,7 @@ HELPER_BUILDERS = {
     'agent-data-json': build_agent_data_json,
     'agent-binary64': build_binary64,
     'agent-binary64-format': build_binary64_format,
+    'service-context': build_service_context,
 }
 
 

@@ -10,15 +10,14 @@ claimed native here.
 """
 from __future__ import annotations
 import ctypes
-from .hia_native_delivery import DeliveryRecord, NativeCall
+from .hia_native_delivery import DeliveryRecord, NativeCall, request_rejections
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import sqlite3
-from .hia_agent_store import uses_native_store
+from .hia_agent_store import _native_agent_identity, uses_native_store
 import struct
 import threading
 
@@ -42,12 +41,6 @@ _CUSTODY_PID = os.getpid()
 
 class ServiceContextUnknown(RuntimeError):
     """An actual effect or acknowledgement is unconfirmed; never replay it."""
-
-
-# Keep existing RuntimeError identities unless the public request layer would
-# catch that exception too (RecursionError and multiple-inheritance cases).
-_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
-                       RecursionError, sqlite3.Error)
 
 
 def _after_fork_child():
@@ -105,7 +98,7 @@ class NativeServiceContextImage(NativeHiaJsonImage):
                 raise ServiceContextUnknown('context arithmetic representation differs')
             except Exception as error:
                 delivery.failed(error)
-                if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
+                if isinstance(error, RuntimeError) and not isinstance(error, request_rejections()):
                     raise
                 raise ServiceContextUnknown('context arithmetic transport is unconfirmed') from error
 
@@ -238,7 +231,7 @@ class ContextFrame:
             self._delivery.failed(error)
             self.fenced = self.unconfirmed = True
             if isinstance(error, Exception) and (
-                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                    not isinstance(error, RuntimeError) or isinstance(error, request_rejections())):
                 raise ServiceContextUnknown('context transport is unconfirmed') from error
             raise
 
@@ -259,7 +252,7 @@ class ContextFrame:
             self._delivery.failed(error)
             if self._delivery.loss is not None:
                 self.fenced = self.native_failed = self.unconfirmed = True
-                self._delivery.propagate(error, ServiceContextUnknown, _REQUEST_REJECTIONS)
+                self._delivery.propagate(error, ServiceContextUnknown, request_rejections())
             raise
         finally:
             self._delivery.retire()
@@ -276,7 +269,7 @@ class ContextFrame:
                     self.error = error
                     if self.native_failed or self._delivery.loss is not None:
                         self.unconfirmed = True
-                        self._delivery.propagate(error, ServiceContextUnknown, _REQUEST_REJECTIONS)
+                        self._delivery.propagate(error, ServiceContextUnknown, request_rejections())
                         raise
                     self.call(3)
                     if self.receipt.phase != 5:
@@ -324,7 +317,7 @@ class ContextFrame:
                 raise
             self.native_failed = True
             if isinstance(error, Exception) and (
-                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                    not isinstance(error, RuntimeError) or isinstance(error, request_rejections())):
                 raise ServiceContextUnknown('context arithmetic transport is unconfirmed') from error
             raise
         if value is not _INTEROP:
@@ -332,24 +325,46 @@ class ContextFrame:
             self.data.pop('math_right')
         return value
 
+    def _read_context_payload(self, name, reference):
+        store = self.service.store
+        if self.data['native_store']:
+            value, _, raw = store.get_json_with_wire(reference)
+            self.data[name + '_wire'] = raw
+        else:
+            value, self.data['_'] = store.get_json(reference)
+        self.data[name] = value
+
+    def _validate_context_payload(self, name, schema):
+        if self.data['native_store']:
+            from .hia_agent_payload_schema_native import COST_POLICY_ROLE, OBJECTIVE_ROLE, WORKLOAD_ROLE
+
+            roles = {'cost_policy': COST_POLICY_ROLE, 'objective': OBJECTIVE_ROLE, 'workload': WORKLOAD_ROLE}
+            self.service._validate_payload(self.data[name], self.data.pop(name + '_wire'),
+                                           schema, name, roles[name])
+        else:
+            self.namespace['validate'](self.data[name], schema, name)
+
     def effect(self, port):
         d, s, api = self.data, self.service, self.namespace
         if port == 1:
             from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
-            d.update(export_manifest=export_manifest, buffer_size=buffer_size,
-                     MAX_WORKLOAD_BUFFER_BYTES=MAX_WORKLOAD_BUFFER_BYTES)
+            native_store = uses_native_store(s.store)
+            identity = _native_agent_identity() if native_store else None
+            d.update(native_store=native_store, identity=identity,
+                     export_manifest=export_manifest if identity is None else identity.workload_exports,
+                     buffer_size=buffer_size, MAX_WORKLOAD_BUFFER_BYTES=MAX_WORKLOAD_BUFFER_BYTES)
         elif port == 2:
             s._profile(d['args']['compiler_profile'], 'compiler')
         elif port == 3:
             s._profile(d['args']['target_profile'], 'target')
         elif port == 4:
-            d['workload'], d['_'] = s.store.get_json(d['args']['workload'])
+            self._read_context_payload('workload', d['args']['workload'])
         elif port == 5:
-            d['objective'], d['_'] = s.store.get_json(d['args']['objective'])
+            self._read_context_payload('objective', d['args']['objective'])
         elif port == 6:
-            d['cost_policy'], d['_'] = s.store.get_json(d['args']['budget']['cost_policy'])
+            self._read_context_payload('cost_policy', d['args']['budget']['cost_policy'])
         elif port == 7:
-            api['validate'](d['workload'], api['WORKLOAD_SCHEMA'], 'workload')
+            self._validate_context_payload('workload', api['WORKLOAD_SCHEMA'])
         elif port == 8:
             d['foreign_buffer_exports'] = d['export_manifest'](d['workload'])
         elif port == 9:
@@ -376,9 +391,9 @@ class ContextFrame:
             value = self._math(5, d['snapshot_bytes'], d['MAX_WORKLOAD_BUFFER_BYTES'])
             return int(bool(d.pop('math_left') > d.pop('math_right'))) if value is _INTEROP else int(value)
         elif port == 18:
-            api['validate'](d['objective'], api['OBJECTIVE_SCHEMA'], 'objective')
+            self._validate_context_payload('objective', api['OBJECTIVE_SCHEMA'])
         elif port == 19:
-            api['validate'](d['cost_policy'], api['COST_POLICY_SCHEMA'], 'cost_policy')
+            self._validate_context_payload('cost_policy', api['COST_POLICY_SCHEMA'])
         elif port == 20:
             d['name'] = ('max_candidates', 'max_model_tokens', 'max_total_wall_ms', 'max_native_wall_ms')[self.receipt.index]
             d['args']['budget'][d['name']] = int(d['args']['budget'][d['name']])
@@ -429,20 +444,31 @@ class ContextFrame:
         elif port == 40:
             d['sampled'] = api['_now']()
         elif port == 41:
-            d['record'] = {'schema': 'hepta.hia.agent.context.v1', 'catalog_sha256': s.catalog_sha256,
-                'installation': s.identities, 'compiler_profile': d['args']['compiler_profile'],
-                'target_profile': d['args']['target_profile'], 'baseline_program': d['args']['baseline_program'],
-                'baseline_core_sha256': d['baseline_sha'], 'workload': d['args']['workload'],
-                'objective': d['args']['objective'],
-                'foreign_buffer_exports': [list(pair) for pair in d['foreign_buffer_exports']],
-                'budget': d['args']['budget'], 'sampled_at': d['sampled'],
-                'target_observation': {'system': api['platform'].system(), 'machine': api['platform'].machine(),
-                    'cpu_count': api['os'].cpu_count(), 'observation_only': True},
-                'resource_reservation_held': False, 'context_is_execution_authority': False}
+            if d['identity'] is not None:
+                target = api['platform'].system(), api['platform'].machine(), api['os'].cpu_count()
+                d['record'] = d['identity'].context_manifest(
+                    d['args'], s.catalog_sha256, s.identities, d['baseline_sha'],
+                    [list(pair) for pair in d['foreign_buffer_exports']], d['sampled'], target)
+            else:
+                d['record'] = {'schema': 'hepta.hia.agent.context.v1', 'catalog_sha256': s.catalog_sha256,
+                    'installation': s.identities, 'compiler_profile': d['args']['compiler_profile'],
+                    'target_profile': d['args']['target_profile'], 'baseline_program': d['args']['baseline_program'],
+                    'baseline_core_sha256': d['baseline_sha'], 'workload': d['args']['workload'],
+                    'objective': d['args']['objective'],
+                    'foreign_buffer_exports': [list(pair) for pair in d['foreign_buffer_exports']],
+                    'budget': d['args']['budget'], 'sampled_at': d['sampled'],
+                    'target_observation': {'system': api['platform'].system(), 'machine': api['platform'].machine(),
+                        'cpu_count': api['os'].cpu_count(), 'observation_only': True},
+                    'resource_reservation_held': False, 'context_is_execution_authority': False}
         elif port == 42:
-            d['manifest'] = s.store.json(d['record'], 'context')
+            if d['identity'] is None:
+                d['manifest'] = s.store.json(d['record'], 'context')
+            else:
+                d['manifest'] = s.store.put(d['record'], 'context')
         elif port == 43:
-            d['context'] = {'id': 'ctx-' + api['uuid'].uuid4().hex, 'sha256': d['manifest']['sha256']}
+            nonce = api['uuid'].uuid4()
+            name = 'ctx-' + nonce.hex if d['identity'] is None else d['identity'].context_id(nonce.bytes)
+            d['context'] = {'id': name, 'sha256': d['manifest']['sha256']}
         elif port == 44:
             store = s.store
             if uses_native_store(store):
@@ -458,9 +484,13 @@ class ContextFrame:
             else:
                 create(d['context']['id'])
         elif port == 46:
-            d['result'] = {'context': d['context'], 'manifest': d['manifest'], 'sampled_at': d['sampled'],
-                'compiler_profile': d['args']['compiler_profile'], 'target_profile': d['args']['target_profile'],
-                'resource_reservation_held': False, 'context_is_execution_authority': False}
+            if d['identity'] is not None:
+                d['result'] = d['identity'].context_receipt(
+                    d['args'], d['context'], d['manifest'], d['sampled'])
+            else:
+                d['result'] = {'context': d['context'], 'manifest': d['manifest'], 'sampled_at': d['sampled'],
+                    'compiler_profile': d['args']['compiler_profile'], 'target_profile': d['args']['target_profile'],
+                    'resource_reservation_held': False, 'context_is_execution_authority': False}
         elif port == 90:
             api['reject']('E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots', 'context')
         elif port == 91:
