@@ -30,6 +30,8 @@ INPUT_SOURCE_FILES = (
     "hia_capability_flow.py", "hia_capability_renaming_native.py", "hia_json_preflight_native.py",
     "hia_native_helpers.py", "hia_worker_bundle.py", "hia_worker_scheduling_bundle.py",
     "hia_opcodes.py", "hia_schema.py",
+    "hia_safe_core_x64_decode_native.py", "hia_safe_core_elf_inventory_native.py",
+    "hia_cnf_native.py",
 )
 SELECTORS = (
     "HEPTA_HIA_JSON_PREFLIGHT_MANIFEST", "HEPTA_HIA_JSON_DECODE_MANIFEST",
@@ -37,6 +39,8 @@ SELECTORS = (
     "HEPTA_HIA_SHA256_STREAM_MANIFEST", "HEPTA_HIA_CORE_ADMISSION_MANIFEST",
     "HEPTA_HIA_PROGRAM_SHAPE_MANIFEST", "HEPTA_HIA_FUNCTION_SHAPE_MANIFEST",
     "HEPTA_HIA_INSTRUCTION_POLICY_MANIFEST", "HEPTA_HIA_CAPABILITY_RENAMING_MANIFEST",
+    "HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST", "HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST",
+    "HEPTA_HIA_CNF_MANIFEST",
 )
 
 

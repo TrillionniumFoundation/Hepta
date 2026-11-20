@@ -57,7 +57,7 @@ MACHINE_FORMULA_IDS = {**OPERATION_IDS, **{
     name: index for index, name in enumerate(
         ('borrow_range', 'call_address', 'return_offset', 'return_stack',
          'memory_read_store', 'memory_read_join', 'memory_read_agrees',
-         'variable_shl', 'variable_shr', 'multiply_words', 'divide_words'), 64)
+         'variable_shl', 'variable_shr', 'multiply_words', 'divide_words', 'signed_flags'), 64)
 }}
 CALLER_ABI_REQUEST = struct.Struct('<Q')
 RECIPE_REQUEST = struct.Struct('<2Q')
@@ -108,6 +108,14 @@ RECIPE_PRIMITIVES = {
     'urem': ('rr', lambda z, ctx, a, b: z.URem(a, b)),
     'udiv_words': ('rrr', lambda z, ctx, high, low, by: _unsigned_words(z, high, low, by, z.UDiv)),
     'urem_words': ('rrr', lambda z, ctx, high, low, by: _unsigned_words(z, high, low, by, z.URem)),
+    'slt': ('rr', lambda z, ctx, a, b: a < b),
+    'sle': ('rr', lambda z, ctx, a, b: a <= b),
+    'sgt': ('rr', lambda z, ctx, a, b: a > b),
+    'sge': ('rr', lambda z, ctx, a, b: a >= b),
+    'sdiv': ('rr', lambda z, ctx, a, b: a / b),
+    'srem': ('rr', lambda z, ctx, a, b: z.SRem(a, b)),
+    'ashr_dynamic': ('rr', lambda z, ctx, a, bits: a >> bits),
+    'concat': ('rr', lambda z, ctx, a, b: z.Concat(a, b)),
 }
 RECIPE_LAYOUT = tuple(RECIPE_PRIMITIVES.values())
 RECIPE_IDS = {name: code for code, name in enumerate(RECIPE_PRIMITIVES, 1)}
@@ -245,6 +253,8 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             name, message = REFUSALS[status - 1]
             if name in ('opcode', 'opcode_0f'):
                 raise SafeCoreMachineRejected(message.format(detail))
+            if name == 'condition' and allow_signed:
+                message = 'condition lies outside the selected machine profile'
             require(False, message)
         if (detail or not 0 < count <= min(len(data), MAX_INSTRUCTIONS)
                 or size != HEADER.size + count * ROW.size):
@@ -349,9 +359,18 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                  zf=None, cf=None, arbitrary=None):
         return self._evaluate(z, ctx, self.recipe(operation, parameter), (left, right, zf, cf, arbitrary))
 
-    def word_pair(self, z, ctx, operation, low, high, operand, undefined_carry):
-        return self._evaluate(z, ctx, self.recipe(operation), (low, high, operand, None, undefined_carry),
+    def word_pair(self, z, ctx, operation, low, high, operand, undefined_carry, *, parameter=0):
+        return self._evaluate(z, ctx, self.recipe(operation, parameter), (low, high, operand, None, undefined_carry),
                               second_word=True)
+
+    def signed_flags(self, z, ctx, operation, left, right=None, *, count=0, sf=None, of=None, arbitrary=None):
+        parameter = MACHINE_FORMULA_IDS[operation] | (count << 8)
+        result, sign, overflow, branch = self.symbolic(
+            z, ctx, 'signed_flags', parameter, left=left, right=right, zf=sf, cf=of, arbitrary=arbitrary,
+        )
+        if result is not None or branch is not None or (sign is None) != (overflow is None):
+            raise RuntimeError('invalid native Safe Core signed flag effects')
+        return sign, overflow
 
     def borrow_predicate(self, z, ctx, address, pointer, length):
         _, _, _, allowed = self._evaluate(z, ctx, self.recipe('borrow_range'), (address, pointer, length))
@@ -375,8 +394,10 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         return z.And(restored, *(registers[index] == initial[index]
                                 for index in self.preserved_registers()))
 
-    def symbolic_core(self, z, ctx, operation, width, arguments, literal=0):
-        recipe = self.core_recipe(operation, width, literal)
+    def symbolic_core(self, z, ctx, operation, width, arguments, literal=0, *,
+                      signed_result=False, signed_input=False):
+        profile = width | (int(signed_result) << 7) | (int(signed_input) << 8)
+        recipe = self.core_recipe(operation, profile, literal)
         value, unused_zf, unused_cf, trap = self._evaluate(z, ctx, recipe, arguments)
         if value is None or unused_zf is not None or unused_cf is not None:
             raise RuntimeError('invalid native Safe Core reference formula roots')

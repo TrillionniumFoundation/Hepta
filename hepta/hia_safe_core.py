@@ -521,15 +521,19 @@ class _Theory:
             else:
                 self.inputs[name] = self.normalized(first, typ)
 
-    def scalar_operation(self, name, attrs, args, typ, input_type):
-        if self.core_model is None or (typ or "").startswith("i") or (input_type or "").startswith("i"):
+    def scalar_operation(self, name, attrs, args, typ, input_type=None):
+        if self.core_model is None:
             return self._reference_scalar_operation(name, attrs, args, typ, input_type)
         if name == "int.cast":
             name += "." + attrs["mode"]
         literal = int(attrs["value"]) & ((1 << 64) - 1) if name == "const" else 0
-        return self.core_model.symbolic_core(self.z, self.ctx, name, self.widths[typ], args, literal)
+        return self.core_model.symbolic_core(
+            self.z, self.ctx, name, self.widths[typ], args, literal,
+            signed_result=typ.startswith("i"), signed_input=(input_type or typ).startswith("i"),
+        )
 
-    def _reference_scalar_operation(self, name, attrs, args, typ, input_type):
+    def _reference_scalar_operation(self, name, attrs, args, typ, input_type=None):
+        input_type = input_type or typ
         z = self.z
         trap = None
         if name == "const":

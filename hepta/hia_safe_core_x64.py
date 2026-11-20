@@ -184,7 +184,8 @@ def _reference_decode(data, *, allow_variable_shifts=False, allow_unsigned_multi
         if instruction.op in ("jcc", "setcc"):
             allowed = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15) if allow_signed else (2, 3, 4, 5, 6, 7)
             require(instruction.args[0] in allowed,
-                    "condition lies outside the selected machine profile")
+                    "condition lies outside the selected machine profile" if allow_signed else
+                    "only reviewed unsigned/equality conditions are admitted")
     return result
 
 
@@ -262,6 +263,8 @@ def _signed_division(z, high, low, divisor):
 
 class Executor:
     """Symbolically execute exact decoded bytes under an explicit caller contract."""
+
+    signed_profile = False
 
     def __init__(self, theory, binding, words, loan, *, allow_variable_shifts=False,
                  allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
@@ -427,21 +430,24 @@ class Executor:
                           *(registers[r] == self.initial[r] for r in (3, 5, 12, 13, 14, 15)))
 
     def condition(self, state, code):
-        if self.native_model is None or self.signed_profile:
+        if self.native_model is None:
             return self._reference_condition(state, code)
         _, _, _, condition = self.native_model.symbolic(
             self.z, self.ctx, "jcc", code, zf=state.flags["zf"], cf=state.flags["cf"],
+            right=state.flags.get("sf"), arbitrary=state.flags.get("of"),
         )
         if condition is None:
             raise RuntimeError("missing native Safe Core condition")
         return condition
 
     def _reference_condition(self, state, code):
-        zf, cf, sf, of = (state.flags[flag] for flag in ("zf", "cf", "sf", "of"))
-        return {0: lambda: of, 1: lambda: self.z.Not(of),
-                2: lambda: cf, 3: lambda: self.z.Not(cf), 4: lambda: zf,
+        zf, cf = state.flags["zf"], state.flags["cf"]
+        if 2 <= code <= 7:
+            return {2: lambda: cf, 3: lambda: self.z.Not(cf), 4: lambda: zf,
                 5: lambda: self.z.Not(zf), 6: lambda: self.z.Or(cf, zf),
-                7: lambda: self.z.And(self.z.Not(cf), self.z.Not(zf)),
+                7: lambda: self.z.And(self.z.Not(cf), self.z.Not(zf))}[code]()
+        sf, of = state.flags["sf"], state.flags["of"]
+        return {0: lambda: of, 1: lambda: self.z.Not(of),
                 8: lambda: sf, 9: lambda: self.z.Not(sf),
                 12: lambda: sf != of, 13: lambda: sf == of,
                 14: lambda: self.z.Or(zf, sf != of),
@@ -454,13 +460,16 @@ class Executor:
         return self.z.Bool(operation + "_undefined_" + flag + "_step_" + str(self.steps), ctx=self.ctx)
 
     def alu(self, state, action, destination, right):
-        if self.native_model is None or self.signed_profile:
+        if self.native_model is None:
             self._reference_alu(state, action, destination, right)
             return
+        left = state.registers[destination]
         formula = self.native_model.symbolic(
-            self.z, self.ctx, action, left=state.registers[destination], right=right,
+            self.z, self.ctx, action, left=left, right=right,
         )
         self.apply_register_formula(state, destination, formula)
+        if self.signed_profile:
+            self.apply_signed_flags(state, action, left, right)
 
     @staticmethod
     def apply_register_formula(state, destination, formula):
@@ -470,7 +479,16 @@ class Executor:
         if value is not None:
             state.registers[destination] = value
         if zf is not None:
-            state.flags = {"zf": zf, "cf": cf}
+            state.flags.update(zf=zf, cf=cf)
+
+    def apply_signed_flags(self, state, operation, left, right=None, *, count=0):
+        recipe = {"shl_cl": "variable_shl", "shr_cl": "variable_shr"}.get(operation, operation)
+        sf, of = self.native_model.signed_flags(
+            self.z, self.ctx, recipe, left, right, count=count,
+            sf=state.flags["sf"], of=state.flags["of"], arbitrary=self.undefined_flag(operation, "of"),
+        )
+        if sf is not None:
+            state.flags.update(sf=sf, of=of)
 
     def _reference_alu(self, state, action, destination, right):
         left = state.registers[destination]
@@ -488,25 +506,31 @@ class Executor:
             state.registers[destination] = self.z.simplify(result)
 
     def register_formula(self, state, operation, args):
-        if self.native_model is None or self.signed_profile:
+        if self.native_model is None:
             self._reference_register_formula(state, operation, args)
             return
         parameter, right, arbitrary = 0, None, None
         if operation == "setcc":
             parameter, destination = args
+            right, arbitrary = state.flags.get("sf"), state.flags.get("of")
         else:
             destination = args[0]
         if operation in ("cmovne", "imul"):
             right = state.registers[args[1]]
-        elif operation in ("shl", "shr"):
+        elif operation in ("shl", "shr", "sar"):
             parameter = args[1]
         if operation == "imul":
             arbitrary = self.z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)
+        left = state.registers[destination]
         formula = self.native_model.symbolic(
-            self.z, self.ctx, operation, parameter, left=state.registers[destination], right=right,
+            self.z, self.ctx, operation, parameter, left=left, right=right,
             zf=state.flags["zf"], cf=state.flags["cf"], arbitrary=arbitrary,
         )
         self.apply_register_formula(state, destination, formula)
+        if self.signed_profile and operation in ("neg", "shl", "shr", "sar"):
+            self.apply_signed_flags(state, operation, left, count=parameter)
+        if self.signed_profile and operation == "imul":
+            state.flags.update(of=state.flags["cf"], sf=self.undefined_flag(operation, "sf"))
 
     def _reference_register_formula(self, state, op, args):
         z, regs = self.z, state.registers
@@ -556,27 +580,36 @@ class Executor:
                                        z.If(self._reference_condition(state, condition), self.value(1), self.value(0)))
 
     def extended_registers(self, state, op, args):
-        if self.native_model is None or self.signed_profile:
+        if self.native_model is None:
             self._reference_extended_registers(state, op, args)
             return
         z, regs = self.z, state.registers
         operand = args[0]
-        if op in ("shl_cl", "shr_cl"):
-            recipe = "variable_shl" if op == "shl_cl" else "variable_shr"
-            formula = self.native_model.symbolic(z, self.ctx, recipe, left=regs[operand], right=regs[1],
+        if op in ("shl_cl", "shr_cl", "sar_cl"):
+            recipe = {"shl_cl": "variable_shl", "shr_cl": "variable_shr", "sar_cl": "sar_cl"}[op]
+            old, count = regs[operand], regs[1]
+            formula = self.native_model.symbolic(z, self.ctx, recipe, left=old, right=count,
                                                  zf=state.flags["zf"], cf=state.flags["cf"])
             self.apply_register_formula(state, operand, formula)
+            if self.signed_profile:
+                self.apply_signed_flags(state, op, old, count)
             return
         # Fresh unknowns overapproximate the architecturally undefined flags;
         # the HIA recipe supplies the two words, carry and DIV admission.
-        recipe = "multiply_words" if op == "mul" else "divide_words"
-        carry = z.Bool(f"{op}_undefined_cf_step_{self.steps}", ctx=self.ctx)
+        recipe = {"mul": "multiply_words", "div": "divide_words", "imul_full": "imul_full", "idiv": "idiv"}[op]
+        carry = self.undefined_flag(op, "cf")
+        # The short formula is valid only when the actual pre-instruction
+        # high word is the HIA-computed sign extension of the low word.
+        narrow = op == "idiv" and z.eq(z.simplify(regs[2]), self.cqo(z.simplify(regs[0])))
         low, high, cf, admitted = self.native_model.word_pair(z, self.ctx, recipe, regs[0], regs[2],
-                                                              regs[operand], carry)
+                                                              regs[operand], carry, parameter=int(narrow))
         require(low is not None and high is not None and cf is not None and
-                (admitted is not None) == (op == "div"), "incomplete native two-word machine formula")
+                (admitted is not None) == (op in ("div", "idiv")), "incomplete native two-word machine formula")
         regs[0], regs[2] = low, high
-        state.flags = {"cf": cf, "zf": z.Bool(f"{op}_undefined_zf_step_{self.steps}", ctx=self.ctx)}
+        state.flags.update(cf=cf, zf=self.undefined_flag(op, "zf"))
+        if self.signed_profile:
+            state.flags.update(sf=self.undefined_flag(op, "sf"),
+                               of=cf if admitted is None else self.undefined_flag(op, "of"))
         if admitted is not None:
             state.path = z.simplify(z.And(state.path, admitted))
 
@@ -623,10 +656,19 @@ class Executor:
             one_bit_of = (self.sign(value) != (shifted_out == 1) if op == "shl_cl"
                           else self.sign(old) if op == "shr_cl" else z.BoolVal(False, ctx=self.ctx))
             shifted_of = z.If(count == 1, one_bit_of, self.undefined_flag(op, "of"))
-            state.flags = {"zf": z.If(count == 0, state.flags["zf"], value == 0),
-                           "cf": z.If(count == 0, state.flags["cf"], shifted_out == 1),
-                           "sf": z.If(count == 0, state.flags["sf"], self.sign(value)),
-                           "of": z.If(count == 0, state.flags["of"], shifted_of)}
+            state.flags.update(zf=z.If(count == 0, state.flags["zf"], value == 0),
+                               cf=z.If(count == 0, state.flags["cf"], shifted_out == 1))
+            if "sf" in state.flags:
+                state.flags.update(sf=z.If(count == 0, state.flags["sf"], self.sign(value)),
+                                   of=z.If(count == 0, state.flags["of"], shifted_of))
+
+    def cqo(self, low):
+        if self.native_model is None:
+            return self.z.simplify(low >> 63)
+        value, _, _, _ = self.native_model.symbolic(self.z, self.ctx, "cqo", left=low)
+        if value is None:
+            raise RuntimeError("missing native Safe Core CQO result")
+        return value
 
     def _initial_state(self):
         z = self.z
@@ -709,7 +751,7 @@ class Executor:
             regs[args[0]] = regs[args[1]]
         elif op == "cqo":
             # CQO sign-extends the old RAX and changes no flags.
-            regs[2] = z.simplify(regs[0] >> 63)
+            regs[2] = self.cqo(regs[0])
         elif op in ("cmovne", "imul", "not", "neg", "shl", "shr", "sar", "setcc"):
             self.register_formula(state, op, args)
         elif op in ("mul", "div", "imul_full", "idiv", "shl_cl", "shr_cl", "sar_cl"):

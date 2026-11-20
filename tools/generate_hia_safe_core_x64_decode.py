@@ -429,8 +429,12 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         bit = node(o, R_CHOOSE, condition, one, zero)
         result = node(o, R_OR, low, bit, 0)
         return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
-    if op == OP_SHL or op == OP_SHR:
+    if op == OP_SHL or op == OP_SHR or op == OP_SAR:
         return shift_formula(o, op, param)
+    if op == OP_SIGNED_FLAGS:
+        return signed_flag_formula(o, param & 255, param >> 8)
+    if op == OP_IDIV and param <= 1:
+        return signed_divide_formula(o, param == 1)
     if param != 0:
         return 4294967293
     if op == OP_LOAD or op == OP_LOAD8 or op == OP_STORE or op == OP_STORE8 or op == OP_LEA:
@@ -465,15 +469,20 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         return formula_done(o, 0, 0, 0, node(o, R_BOOL_OR, different, same_byte, 0))
     if op == OP_NOT:
         return formula_done(o, node(o, R_NOT, LEFT, 0, 0), 0, 0, 0)
+    if op == OP_CQO:
+        return formula_done(o, node(o, R_SIMPLIFY, node(o, R_SIGNEXT, node(o, R_EXTRACT, LEFT, 63, 63), 63, 0), 0, 0), 0, 0, 0)
+    if op == OP_NEG:
+        raw = node(o, R_SUB, node(o, R_LITERAL64, 0, 0, 0), LEFT, 0)
+        return formula_done(o, node(o, R_SIMPLIFY, raw, 0, 0), node(o, R_ZERO, raw, 0, 0), node(o, R_NONZERO, LEFT, 0, 0), 0)
     if op == OP_CMOVNE:
         take = node(o, R_BOOL_NOT, ZF, 0, 0)
         result = node(o, R_CHOOSE, take, RIGHT, LEFT)
         return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
     if op == OP_IMUL:
         return imul_formula(o)
-    if op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR:
-        return variable_shift_formula(o, op == OP_VARIABLE_SHL)
-    if op == OP_MULTIPLY_WORDS or op == OP_DIVIDE_WORDS:
+    if op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR or op == OP_SAR_CL:
+        return variable_shift_formula(o, op)
+    if op == OP_MULTIPLY_WORDS or op == OP_DIVIDE_WORDS or op == OP_IMUL_FULL:
         return pair_formula(o, op)
     return alu_formula(o, op)
 
@@ -507,6 +516,11 @@ def formula_done(o:mutbuf, value:u64, zf:u64, cf:u64, branch:u64) -> u64:
     return 40 + get(o, 0) * 32
 
 def condition_formula(o:mutbuf, condition:u64) -> u64:
+    # RIGHT and ARBITRARY carry the pre-instruction SF and OF for signed Jcc/SETcc.
+    if condition == 0:
+        return ARBITRARY
+    if condition == 1:
+        return node(o, R_BOOL_NOT, ARBITRARY, 0, 0)
     if condition == 2:
         return CF
     if condition == 3:
@@ -521,6 +535,16 @@ def condition_formula(o:mutbuf, condition:u64) -> u64:
         not_cf = node(o, R_BOOL_NOT, CF, 0, 0)
         not_zf = node(o, R_BOOL_NOT, ZF, 0, 0)
         return node(o, R_BOOL_AND, not_cf, not_zf, 0)
+    if condition == 8:
+        return RIGHT
+    if condition == 9:
+        return node(o, R_BOOL_NOT, RIGHT, 0, 0)
+    if condition == 12 or condition == 14:
+        different = node(o, R_NE, RIGHT, ARBITRARY, 0)
+        return choose(condition == 12, different, node(o, R_BOOL_OR, ZF, different, 0))
+    if condition == 13 or condition == 15:
+        equal = node(o, R_EQ, RIGHT, ARBITRARY, 0)
+        return choose(condition == 13, equal, node(o, R_BOOL_AND, node(o, R_BOOL_NOT, ZF, 0, 0), equal, 0))
     return 0
 
 def alu_formula(o:mutbuf, op:u64) -> u64:
@@ -554,7 +578,10 @@ def shift_formula(o:mutbuf, op:u64, count:u64) -> u64:
     if count == 0:
         return formula_done(o, 0, 0, 0, 0)
     left = op == OP_SHL
-    shifted = node(o, choose(left, R_SHL, R_LSHR), LEFT, count, 0)
+    if op == OP_SAR:
+        shifted = node(o, R_ASHR_DYNAMIC, LEFT, node(o, R_LITERAL64, count, 0, 0), 0)
+    else:
+        shifted = node(o, choose(left, R_SHL, R_LSHR), LEFT, count, 0)
     result = node(o, R_SIMPLIFY, shifted, 0, 0)
     zf = node(o, R_ZERO, result, 0, 0)
     carry_bit = choose(left, 64 - count, count - 1)
@@ -573,12 +600,14 @@ def imul_formula(o:mutbuf) -> u64:
     cf = node(o, R_NE, full, restored, 0)
     return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), ARBITRARY, cf, 0)
 
-def variable_shift_formula(o:mutbuf, left:bool) -> u64:
+def variable_shift_formula(o:mutbuf, op:u64) -> u64:
     # CL is captured from the pre-instruction state; the masked zero count
     # retains both flags and the old destination, including RCX aliases.
+    left = op == OP_VARIABLE_SHL
     count = node(o, R_AND, RIGHT, node(o, R_LITERAL64, 63, 0, 0), 0)
     zero = node(o, R_ZERO, count, 0, 0)
-    raw = node(o, choose(left, R_SHL_DYNAMIC, R_LSHR_DYNAMIC), LEFT, count, 0)
+    primitive = choose(left, R_SHL_DYNAMIC, choose(op == OP_SAR_CL, R_ASHR_DYNAMIC, R_LSHR_DYNAMIC))
+    raw = node(o, primitive, LEFT, count, 0)
     base = node(o, R_LITERAL64, choose(left, 64, 1), 0, 0)
     index = node(o, R_SUB, choose(left, base, count), choose(left, count, base), 0)
     shifted = node(o, R_LSHR_DYNAMIC, LEFT, index, 0)
@@ -597,17 +626,115 @@ def pair_formula(o:mutbuf, op:u64) -> u64:
         fits = node(o, R_ULT, RIGHT, THIRD, 0)
         admitted = node(o, R_BOOL_AND, nonzero, fits, 0)
         return formula_done(o, quotient, remainder, ARBITRARY, admitted)
-    a = node(o, R_ZEROEXT, LEFT, 64, 0)
-    b = node(o, R_ZEROEXT, THIRD, 64, 0)
+    extension = choose(op == OP_IMUL_FULL, R_SIGNEXT, R_ZEROEXT)
+    a = node(o, extension, LEFT, 64, 0)
+    b = node(o, extension, THIRD, 64, 0)
     product = node(o, R_IMUL, a, b, 0)
     low = node(o, R_EXTRACT, product, 63, 0)
     high = node(o, R_EXTRACT, product, 127, 64)
-    carry = node(o, R_NONZERO, high, 0, 0)
+    if op == OP_IMUL_FULL:
+        carry = node(o, R_NE, product, node(o, R_SIGNEXT, low, 64, 0), 0)
+    else:
+        carry = node(o, R_NONZERO, high, 0, 0)
     return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), node(o, R_SIMPLIFY, high, 0, 0), carry, 0)
 
-def core_scalar_formula(o:mutbuf, op:u64, width:u64, literal:u64) -> u64:
+def signed_divide_formula(o:mutbuf, narrow:bool) -> u64:
+    nonzero = node(o, R_NONZERO, THIRD, 0, 0)
+    if narrow:
+        quotient = node(o, R_SDIV, LEFT, THIRD, 0)
+        remainder = node(o, R_SREM, LEFT, THIRD, 0)
+        minword = node(o, R_LITERAL64, 9223372036854775808, 0, 0)
+        minusone = node(o, R_LITERAL64, 18446744073709551615, 0, 0)
+        minimum = node(o, R_EQ, LEFT, minword, 0)
+        negative_one = node(o, R_EQ, THIRD, minusone, 0)
+        bad = node(o, R_BOOL_AND, minimum, negative_one, 0)
+        fits = node(o, R_BOOL_NOT, bad, 0, 0)
+    else:
+        dividend = node(o, R_CONCAT, RIGHT, LEFT, 0)
+        divisor = node(o, R_SIGNEXT, THIRD, 64, 0)
+        full = node(o, R_SDIV, dividend, divisor, 0)
+        quotient = node(o, R_EXTRACT, full, 63, 0)
+        remainder = node(o, R_EXTRACT, node(o, R_SREM, dividend, divisor, 0), 63, 0)
+        fits = node(o, R_EQ, full, node(o, R_SIGNEXT, quotient, 64, 0), 0)
+    valid = node(o, R_BOOL_AND, nonzero, fits, 0)
+    return formula_done(o, node(o, R_SIMPLIFY, quotient, 0, 0), node(o, R_SIMPLIFY, remainder, 0, 0), ARBITRARY, valid)
+
+def machine_sign(o:mutbuf, value:u64) -> u64:
+    return node(o, R_ONE, node(o, R_EXTRACT, value, 63, 63), 0, 0)
+
+def signed_flag_formula(o:mutbuf, op:u64, count:u64) -> u64:
+    if op == OP_SHL or op == OP_SHR or op == OP_SAR or op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR or op == OP_SAR_CL:
+        return signed_shift_flags(o, op, count)
+    if count != 0:
+        return 4294967293
+    if op == OP_NEG:
+        zero = node(o, R_LITERAL64, 0, 0, 0)
+        raw = node(o, R_SUB, zero, LEFT, 0)
+        minimum = node(o, R_LITERAL64, 9223372036854775808, 0, 0)
+        return formula_done(o, 0, machine_sign(o, raw), node(o, R_EQ, LEFT, minimum, 0), 0)
+    if op == OP_ADD or op == OP_SUB or op == OP_CMP:
+        add = op == OP_ADD
+        raw = node(o, choose(add, R_ADD, R_SUB), LEFT, RIGHT, 0)
+        sign = machine_sign(o, raw)
+        a = machine_sign(o, LEFT)
+        b = machine_sign(o, RIGHT)
+        operand_signs = node(o, choose(add, R_EQ, R_NE), a, b, 0)
+        changed = node(o, R_NE, a, sign, 0)
+        return formula_done(o, 0, sign, node(o, R_BOOL_AND, operand_signs, changed, 0), 0)
+    primitive = 0
+    if op == OP_AND or op == OP_TEST:
+        primitive = R_AND
+    if op == OP_OR:
+        primitive = R_OR
+    if op == OP_XOR:
+        primitive = R_XOR
+    if primitive == 0:
+        return 4294967293
+    raw = node(o, primitive, LEFT, RIGHT, 0)
+    return formula_done(o, 0, machine_sign(o, raw), node(o, R_FALSE, 0, 0, 0), 0)
+
+def signed_shift_flags(o:mutbuf, op:u64, count:u64) -> u64:
+    variable = op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR or op == OP_SAR_CL
+    if count >= 64 or (variable and count != 0):
+        return 4294967293
+    if (variable == False) and count == 0:
+        return formula_done(o, 0, 0, 0, 0)
+    amount = 0
+    if variable:
+        amount = node(o, R_AND, RIGHT, node(o, R_LITERAL64, 63, 0, 0), 0)
+    else:
+        amount = node(o, R_LITERAL64, count, 0, 0)
+    left = op == OP_SHL or op == OP_VARIABLE_SHL
+    arithmetic = op == OP_SAR or op == OP_SAR_CL
+    primitive = choose(left, R_SHL_DYNAMIC, choose(arithmetic, R_ASHR_DYNAMIC, R_LSHR_DYNAMIC))
+    sign = machine_sign(o, node(o, primitive, LEFT, amount, 0))
+    single = 0
+    if arithmetic:
+        single = node(o, R_FALSE, 0, 0, 0)
+    else:
+        old_sign = machine_sign(o, LEFT)
+        single = old_sign
+        if left:
+            single = node(o, R_NE, sign, old_sign, 0)
+    overflow = ARBITRARY
+    if variable:
+        overflow = node(o, R_CHOOSE, node(o, R_ONE, amount, 0, 0), single, ARBITRARY)
+        zero = node(o, R_ZERO, amount, 0, 0)
+        sign = node(o, R_CHOOSE, zero, ZF, sign)
+        overflow = node(o, R_CHOOSE, zero, CF, overflow)
+    else:
+        if count == 1:
+            overflow = single
+    return formula_done(o, 0, sign, overflow, 0)
+
+def core_scalar_formula(o:mutbuf, op:u64, profile:u64, literal:u64) -> u64:
     if length(o) < 40 + MAX_RECIPE_NODES * 32:
         return 4294967294
+    width = profile & 127
+    signed_result = (profile & 128) != 0
+    signed_input = (profile & 256) != 0
+    if profile > 511 or (signed_result and width == 1):
+        return 4294967293
     if width != 1 and width != 8 and width != 16 and width != 32 and width != 64:
         return 4294967293
     put(o, 0, 0)
@@ -622,10 +749,16 @@ def core_scalar_formula(o:mutbuf, op:u64, width:u64, literal:u64) -> u64:
         outside = node(o, R_UGE, THIRD, RIGHT, 0)
         return formula_done(o, address, 0, 0, outside)
     if op >= C_COMPARE_EQ and op <= C_COMPARE_GE:
-        return core_compare_formula(o, op)
+        return core_compare_formula(o, op, signed_input)
     if op == C_SELECT:
         use_then = node(o, R_NONZERO, LEFT, 0, 0)
         return formula_done(o, node(o, R_CHOOSE, use_then, RIGHT, THIRD), 0, 0, 0)
+    if signed_input or signed_result:
+        if op == C_INT_CAST_WRAP or op == C_INT_CAST_CHECKED:
+            return core_signed_cast(o, op, width, signed_result, signed_input)
+        if signed_result:
+            return core_signed_arithmetic(o, op, width)
+        return 4294967293
     if op >= C_INT_ADD_WRAP and op <= C_INT_SUB_CHECKED:
         return core_numeric_formula(o, op, width)
     if op >= C_INT_MUL_CHECKED and op <= C_INT_SHR_CHECKED and width != 1:
@@ -692,22 +825,91 @@ def core_checked_formula(o:mutbuf, op:u64, width:u64) -> u64:
     value = node(o, choose(op == C_INT_SHL_CHECKED, R_SHL_DYNAMIC, R_LSHR_DYNAMIC), LEFT, RIGHT, 0)
     return formula_done(o, core_normalized(o, value, core_mask(o, width)), 0, 0, trap)
 
-def core_compare_formula(o:mutbuf, op:u64) -> u64:
+def core_compare_formula(o:mutbuf, op:u64, signed:bool) -> u64:
     primitive = R_EQ
     if op == C_COMPARE_NE:
         primitive = R_NE
     if op == C_COMPARE_LT:
-        primitive = R_ULT
+        primitive = choose(signed, R_SLT, R_ULT)
     if op == C_COMPARE_LE:
-        primitive = R_ULE
+        primitive = choose(signed, R_SLE, R_ULE)
     if op == C_COMPARE_GT:
-        primitive = R_UGT
+        primitive = choose(signed, R_SGT, R_UGT)
     if op == C_COMPARE_GE:
-        primitive = R_UGE
+        primitive = choose(signed, R_SGE, R_UGE)
     condition = node(o, primitive, LEFT, RIGHT, 0)
     one = node(o, R_LITERAL64, 1, 0, 0)
     zero = node(o, R_LITERAL64, 0, 0, 0)
     return formula_done(o, node(o, R_CHOOSE, condition, one, zero), 0, 0, 0)
+
+def core_signed_normalized(o:mutbuf, raw:u64, width:u64) -> u64:
+    if width != 64:
+        raw = node(o, R_EXTRACT, raw, width - 1, 0)
+        raw = node(o, R_SIGNEXT, raw, 64 - width, 0)
+    return node(o, R_SIMPLIFY, raw, 0, 0)
+
+def core_signed_cast(o:mutbuf, op:u64, width:u64, signed_result:bool, signed_input:bool) -> u64:
+    value = 0
+    if signed_result:
+        value = core_signed_normalized(o, LEFT, width)
+    else:
+        value = core_normalized(o, LEFT, core_mask(o, width))
+    if op == C_INT_CAST_WRAP:
+        return formula_done(o, value, 0, 0, 0)
+    # The 65-bit domain represents every signed and unsigned source.
+    exact = node(o, choose(signed_input, R_SIGNEXT, R_ZEROEXT), LEFT, 1, 0)
+    low = node(o, R_LITERAL64, choose(signed_result, 0 - (1 << (width - 1)), 0), 0, 0)
+    high = core_mask(o, width - choose(signed_result, 1, 0))
+    below = node(o, R_SLT, exact, node(o, R_SIGNEXT, low, 1, 0), 0)
+    above = node(o, R_SGT, exact, node(o, R_ZEROEXT, high, 1, 0), 0)
+    return formula_done(o, value, 0, 0, node(o, R_BOOL_OR, below, above, 0))
+
+def core_signed_arithmetic(o:mutbuf, op:u64, width:u64) -> u64:
+    if op >= C_INT_ADD_WRAP and op <= C_INT_SUB_CHECKED:
+        primitive = choose(op == C_INT_ADD_WRAP or op == C_INT_ADD_CHECKED, R_ADD, R_SUB)
+        if op == C_INT_MUL_WRAP:
+            primitive = R_IMUL
+        raw = node(o, primitive, LEFT, RIGHT, 0)
+        result = core_signed_normalized(o, raw, width)
+        if op < C_INT_ADD_CHECKED:
+            return formula_done(o, result, 0, 0, 0)
+        a = node(o, R_SIGNEXT, LEFT, 1, 0)
+        b = node(o, R_SIGNEXT, RIGHT, 1, 0)
+        exact = node(o, primitive, a, b, 0)
+        trap = node(o, R_NE, exact, node(o, R_SIGNEXT, result, 1, 0), 0)
+        return formula_done(o, result, 0, 0, trap)
+    if op == C_BIT_NOT:
+        return formula_done(o, core_signed_normalized(o, node(o, R_NOT, LEFT, 0, 0), width), 0, 0, 0)
+    if op == C_BIT_AND or op == C_BIT_OR or op == C_BIT_XOR:
+        primitive = choose(op == C_BIT_AND, R_AND, choose(op == C_BIT_OR, R_OR, R_XOR))
+        return formula_done(o, node(o, primitive, LEFT, RIGHT, 0), 0, 0, 0)
+    if op >= C_INT_MUL_CHECKED and op <= C_INT_SHR_CHECKED:
+        return core_signed_checked(o, op, width)
+    return 4294967293
+
+def core_signed_checked(o:mutbuf, op:u64, width:u64) -> u64:
+    if op == C_INT_MUL_CHECKED:
+        a = node(o, R_SIGNEXT, LEFT, 64, 0)
+        b = node(o, R_SIGNEXT, RIGHT, 64, 0)
+        product = node(o, R_IMUL, a, b, 0)
+        low = node(o, R_EXTRACT, product, 63, 0)
+        result = core_signed_normalized(o, low, width)
+        trap = node(o, R_NE, product, node(o, R_SIGNEXT, result, 64, 0), 0)
+        return formula_done(o, result, 0, 0, trap)
+    if op == C_INT_SHL_CHECKED or op == C_INT_SHR_CHECKED:
+        trap = node(o, R_UGE, RIGHT, node(o, R_LITERAL64, width, 0, 0), 0)
+        raw = node(o, choose(op == C_INT_SHL_CHECKED, R_SHL_DYNAMIC, R_ASHR_DYNAMIC), LEFT, RIGHT, 0)
+        return formula_done(o, core_signed_normalized(o, raw, width), 0, 0, trap)
+    minimum = node(o, R_LITERAL64, 0 - (1 << (width - 1)), 0, 0)
+    at_minimum = node(o, R_EQ, LEFT, minimum, 0)
+    if op == C_INT_NEG_CHECKED:
+        raw = node(o, R_SUB, node(o, R_LITERAL64, 0, 0, 0), LEFT, 0)
+        return formula_done(o, core_signed_normalized(o, raw, width), 0, 0, at_minimum)
+    minus_one = node(o, R_LITERAL64, 18446744073709551615, 0, 0)
+    overflow = node(o, R_BOOL_AND, at_minimum, node(o, R_EQ, RIGHT, minus_one, 0), 0)
+    trap = node(o, R_BOOL_OR, node(o, R_ZERO, RIGHT, 0, 0), overflow, 0)
+    raw = node(o, choose(op == C_INT_DIV_CHECKED, R_SDIV, R_SREM), LEFT, RIGHT, 0)
+    return formula_done(o, raw, 0, 0, trap)
 
 def core_borrow_formula(o:mutbuf, op:u64, literal:u64) -> u64:
     if op == C_BORROW_EXTENT:

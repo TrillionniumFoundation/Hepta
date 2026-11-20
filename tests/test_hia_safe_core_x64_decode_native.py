@@ -87,6 +87,64 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                     self.assertTrue(all(z3.eq(z3.simplify(a), z3.simplify(b))
                                         for a, b in zip(actual, expected, strict=True)))
 
+    def test_signed_admission_and_machine_effects_use_native_recipes(self):
+        import z3
+
+        ctx = z3.Context()
+        ref = Executor.__new__(Executor)
+        ref.__dict__.update(z=z3, ctx=ctx, steps=7, native_model=None, signed_profile=True)
+        native = Executor.__new__(Executor)
+        native.__dict__.update(vars(ref), native_model=self.native)
+        words = [z3.BitVec(f'signed_r{index}', 64, ctx=ctx) for index in range(3)]
+        flags = {name: z3.Bool(name, ctx=ctx) for name in ('zf', 'cf', 'sf', 'of')}
+        live = z3.BoolVal(True, ctx=ctx)
+
+        def state(values=words):
+            return SimpleNamespace(registers=dict(enumerate(values)), flags=flags.copy(), path=live)
+
+        def same(a, b):
+            if not z3.eq(z3.simplify(a), z3.simplify(b)):
+                solver = z3.Solver(ctx=ctx)
+                solver.set(timeout=5000)
+                solver.add(a != b)
+                self.assertEqual(solver.check(), z3.unsat)
+
+        def compare(method, operation, args, values=words):
+            with self.subTest(operation=operation, args=args):
+                before, after = state(values), state(values)
+                getattr(ref, method)(before, operation, *args)
+                getattr(native, method)(after, operation, *args)
+                for index in before.registers:
+                    same(before.registers[index], after.registers[index])
+                for name in flags:
+                    same(before.flags[name], after.flags[name])
+                same(before.path, after.path)
+
+        profiles = {'allow_signed': True, 'allow_variable_shifts': True}
+        new_encodings = ('4899', '48f7d8', '48c1f83f', '48d3f8', '48f7ea', '48f7fa', '7c0090', '400f9cc0')
+        for encoding in new_encodings:
+            code = bytes.fromhex(encoding)
+            with self.assertRaises(SafeCoreMachineRejected):
+                self.native.decode(code, allow_variable_shifts=True)
+            self.assertEqual(self.native.decode(code, **profiles), _reference_decode(code, **profiles))
+
+        for condition in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15):
+            same(ref.condition(state(), condition), native.condition(state(), condition))
+            compare('register_formula', 'setcc', ((condition, 0),))
+        for op in ('add', 'sub', 'cmp', 'and', 'or', 'xor', 'test'):
+            compare('alu', op, (0, words[1]))
+        compare('register_formula', 'neg', ((0,),))
+        compare('register_formula', 'imul', ((0, 1),))
+        for op in ('shl', 'shr', 'sar'):
+            for count in (0, 1, 2, 63):
+                compare('register_formula', op, ((0, count),))
+            compare('extended_registers', op + '_cl', ((1,),))
+        for register in (0, 2):
+            compare('extended_registers', 'imul_full', ((register,),))
+            compare('extended_registers', 'idiv', ((register,),))
+            compare('extended_registers', 'idiv', ((register,),), [*words[:2], ref.cqo(words[0])])
+        same(ref.cqo(words[0]), native.cqo(words[0]))
+
     def test_all_byte_pairs_and_complete_instruction_controls(self):
         def outcome(decode, raw):
             try:
