@@ -211,10 +211,7 @@ PROGRAMS = {
     )),
     'patch_core_json': ('hia-patch-core-json', tuple((path, ()) for path in PATCH_IMAGES)),
     'catalog': ('hia-catalog', (
-        (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
-        (CLI + 'catalog.hepta', ('catalog_call',)),
-        (CLI + 'verify_pretty.hepta', ('pretty_call',)),
-        (CLI + 'catalog_registry.json', ('data_lea',)),
+        (BOOTSTRAP + 'cli_discovery_json.hepta', ('catalog_call',)),
     )),
     'import_assembly': ('hia-import-assembly', (
         (CLI + 'assembly_syntax_diagnostics.hepta', ('syntax_call',)),

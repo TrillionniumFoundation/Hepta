@@ -358,6 +358,7 @@ jobs:
               'tests.test_hia_source_build.SourceBuilderSourceTests',
               'tests.test_hia_nominal_json_native.NominalJSONSourceTests',
               'tests.test_hia_agent_journal_native.JournalSourceTests',
+              'tests.test_hia_agent_journal_extensions.JournalExtensionSourceTests',
               'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
               'tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
               'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
@@ -2822,7 +2823,10 @@ jobs:
         run: |
           python -B - <<'PYJOURNAL'
           import unittest
-          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_agent_journal_native')
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'tests.test_hia_agent_journal_native',
+              'tests.test_hia_agent_journal_extensions',
+          ])
           expected = suite.countTestCases()
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           complete = result.testsRun == expected and expected > 0
@@ -2836,7 +2840,10 @@ jobs:
         run: |
           python -B - <<'PYBUDGET'
           import unittest
-          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_execution_budget_native')
+          suite = unittest.defaultTestLoader.loadTestsFromNames([
+              'tests.test_hia_execution_budget_native',
+              'tests.test_hia_execution_budget_extensions',
+          ])
           expected = suite.countTestCases()
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           complete = result.testsRun == expected and expected > 0

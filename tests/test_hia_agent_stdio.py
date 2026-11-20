@@ -182,7 +182,9 @@ class AgentStdioSourceTests(unittest.TestCase):
 
     def test_catalog_short_output_and_invalid_table_do_not_publish(self):
         workspace=struct.pack('<10Q',4,0,0,0,0,0,0,0,1,1)
-        header=struct.pack('<4I',108,0,1,3)+bytes(84)
+        # The synthetic v1 reply lives in the current v1–v9 table format.
+        header_size = 4 + 12 * 9
+        header = struct.pack('<4I', header_size + 8, 0, 1, 3) + bytes(header_size - 16)
         for table,capacity,status in (
             (header+struct.pack('<2I',0,3)+b'abc',4,3),
             (header+struct.pack('<2I',0,3)+b'abc',2,0xfffffffe),

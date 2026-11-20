@@ -245,6 +245,9 @@ class NativeExecutionBudgetStore:
                 _reject(2, 'execution budget path does not identify the official main database')
             # mode=rw is deliberate: a missing/replaced official database can never
             # silently become a newly created independent budget namespace.
+            # Retain the legacy connection binding without loading SQLite for
+            # callers taking the HIA Store route above.
+            global sqlite3
             import sqlite3
             connection = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True,
                                          isolation_level=None, timeout=10, check_same_thread=False)

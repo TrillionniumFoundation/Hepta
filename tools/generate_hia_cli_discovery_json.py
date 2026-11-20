@@ -18,6 +18,7 @@ BASE=ROOT
 if __package__ in {None, ''}:
     sys.path.insert(0,str(ROOT))
 TARGET=ROOT/'examples/hia_bootstrap/cli_discovery_json.hepta'
+STANDALONE_CAPABILITIES = ROOT / 'examples/hia_bootstrap/core_cli/capabilities.hepta'
 from hepta import cli
 from hepta import hia_opcodes as original
 from hepta.hia_schema import PRIMITIVE_PROFILES
@@ -654,7 +655,7 @@ class DiscoveryBuilder(Builder):
             return self.op(operation, [left, right], 'u64')
         return super().expr(node)
 
-def document(source):
+def document(source, *, module='cli_discovery_json'):
     nodes=ast.parse(source).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     signatures={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
@@ -663,7 +664,31 @@ def document(source):
         b=DiscoveryBuilder(node,names,signatures,total);b.statements(node.body)
         functions.append({'name':names[node.name],'params':[b.param(x) for x in b.params],
                           'returns':[b.returns],'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':'cli_discovery_json','functions':functions})
+    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':functions})
+
+
+def standalone_capabilities_source():
+    from tools.generate_hia_agent_stdio import writes
+
+    capabilities = capabilities_from_source((BASE / 'hepta/cli.py').read_text())
+    build = capabilities['build']
+    for hosted_only in ('available_kinds', 'auto_object', 'auto_shared', 'native_shared'):
+        del build[hosted_only]
+    build.update(backend='native', available_backends=['native', 'selfhost'])
+    wire = (json.dumps(capabilities, indent=2, ensure_ascii=False, sort_keys=True) + '\n').encode()
+    source = f'''def capabilities(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 0 or length(o) < {len(wire)} or length(w) < 128:
+        return 4294967293
+{writes(wire)}    return {len(wire)}
+
+def put_word(o:mutbuf, at:u64, value:u64) -> u64:
+    index = 0
+    while index < 8:
+        store(o, at + index, value >> (8 * index))
+        index = index + 1
+    return 0
+'''
+    return render_assembly(document(source, module='native_core_entry_capabilities')).encode()
 
 def identities():
     rows=[]
@@ -702,8 +727,17 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
     parser.add_argument('--output',type=Path,default=TARGET)
+    parser.add_argument('--standalone-capabilities', action='store_true')
     parser.add_argument('--report',type=Path)
     args=parser.parse_args(argv)
+    if args.standalone_capabilities:
+        target = STANDALONE_CAPABILITIES if args.output == TARGET else args.output
+        raw = standalone_capabilities_source()
+        if not args.check:
+            target.write_bytes(raw)
+        if target.read_bytes() != raw:
+            raise ValueError('standalone capabilities HIA differs from its authoring inputs')
+        return
     raw,report=generation()
     if args.check:
         if args.output.read_bytes()!=raw:

@@ -2,10 +2,9 @@
 from __future__ import annotations
 import ast
 from pathlib import Path
-import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
-from tools.generate_hia_sha256 import INITIAL, ROUND, BODY
+from tools.generate_hia_sha256 import INITIAL, ROUND, BODY, HELPERS
 
 # Bytes 0..1087 retain the one-shot schedule/chaining layout. The state then
 # holds total length, partial-block size, phase, 64 pending bytes and an ABI tag.
@@ -15,22 +14,20 @@ MAX_TOTAL = (1 << 61) - 1
 MAGIC = 0x3153484132353648
 
 
-def word_access_source():
-    # Entry admits all 1184 bytes before fixed-width state access. Keep the
-    # individual ordered stores while using the v9 little-endian word read.
-    lines = ['def get(w:mutbuf, offset:u64) -> u64:',
-             '    return word_load(w, offset)', '',
-             'def put(w:mutbuf, offset:u64, value:u64) -> u64:']
-    for index in range(8):
-        octet = 'value' if index == 0 else f'value >> {8 * index}'
-        lines.append(f'    store(w, offset + {index}, {octet})')
-    lines.append('    return 0')
-    return '\n'.join(lines) + '\n'
+def stream_helpers():
+    """Use a checked v9 word read and retain ordered full-width byte stores.
 
-
-def fixed_rotation(match):
-    word, shift = match[1], int(match[2])
-    return f'(({word} >> {shift}) | (({word} << {32 - shift}) & 4294967295))'
+    The entry guard still requires all 1184 state bytes. A word read keeps the
+    eight-byte little-endian state layout; put retains the R29 unrolled store
+    sequence, including partial writes before a short-buffer bounds trap.
+    The round algebra and all input/phase checks stay unchanged.
+    """
+    source = HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')]
+    source += '\ndef get(w:mutbuf, index:u64) -> u64:\n    return word_load(w, index)\n'
+    source += '\ndef put(w:mutbuf, index:u64, value:u64) -> u64:\n'
+    for i in range(8):
+        source += f'    store(w, index + {i}, (value >> {i * 8}) & 255)\n'
+    return source + '    return 0\n'
 
 
 def source_program():
@@ -116,14 +113,11 @@ def compress(w:mutbuf) -> u64:
     # Reuse exactly the independently qualified SHA schedule and round algebra;
     # only message delivery/padding and persistent state differ from one-shot.
     compression = BODY[BODY.index('        while i < 64:'):]
-    compression = re.sub(r'rotate\((\w+), (\d+)\)', fixed_rotation, compression)
-    if 'rotate(' in compression:
-        raise ValueError('streaming compression needs constant rotations')
     source += ''.join(line[4:] + '\n' for line in compression.splitlines())
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + '\n' + word_access_source()
+    return source + stream_helpers()
 
 
 def document():
