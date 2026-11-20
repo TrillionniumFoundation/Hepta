@@ -19,6 +19,7 @@ HEADER = struct.Struct('<3Q')
 ROW = struct.Struct('<6Q')
 CALL_COUNT = struct.Struct('<Q')
 CALL_BINDING = struct.Struct('<3Q')
+PROFILE_OFFSET = 96
 MEMORY_REQUEST = struct.Struct('<5Q')
 SCHEDULER_REQUEST = struct.Struct('<4Q')
 SCHEDULER_REPLY = struct.Struct('<3Q')
@@ -46,13 +47,15 @@ OPERATIONS = (
     ('add', ('u', 'u')), ('sub', ('u', 'u')), ('and', ('u', 'u')), ('or', ('u', 'u')),
     ('xor', ('u', 'u')), ('cmp', ('u', 'u')), ('test', ('u', 'u')),
     ('immediate_alu', ('a', 'u', 'i')), ('shl', ('u', 'u')), ('shr', ('u', 'u')),
-    ('not', ('u',)),
+    ('not', ('u',)), ('shl_cl', ('u',)), ('shr_cl', ('u',)),
+    ('mul', ('u',)), ('div', ('u',)),
 )
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
 MACHINE_FORMULA_IDS = {**OPERATION_IDS, **{
     name: index for index, name in enumerate(
         ('borrow_range', 'call_address', 'return_offset', 'return_stack',
-         'memory_read_store', 'memory_read_join', 'memory_read_agrees'), len(OPERATIONS) + 1)
+         'memory_read_store', 'memory_read_join', 'memory_read_agrees',
+         'variable_shl', 'variable_shr', 'multiply_words', 'divide_words'), 35)
 }}
 CALLER_ABI_REQUEST = struct.Struct('<Q')
 RECIPE_REQUEST = struct.Struct('<2Q')
@@ -63,7 +66,7 @@ MEMORY_GRAPH_ROWS = 63
 MEMORY_GRAPH_REQUEST = struct.Struct('<' + str(3 + 3 * MEMORY_GRAPH_ROWS) + 'Q')
 RECIPE_HEADER = struct.Struct('<5Q')
 RECIPE_NODE = struct.Struct('<4Q')
-MAX_RECIPE_NODES = 12
+MAX_RECIPE_NODES = 16
 RECIPE_INPUTS = 5
 # Only generic bit-vector/Boolean primitives cross this ABI. HIA supplies
 # their composition and selects which architectural observations change.
@@ -96,6 +99,13 @@ RECIPE_PRIMITIVES = {
     'literal64': ('i', lambda z, ctx, number: z.BitVecVal(number, 64, ctx=ctx)),
     'simplify': ('r', lambda z, ctx, a: z.simplify(a)),
     'bool_and3': ('rrr', lambda z, ctx, a, b, c: z.And(a, b, c)),
+    'zeroext': ('ri', lambda z, ctx, a, bits: z.ZeroExt(bits, a)),
+    'shl_dynamic': ('rr', lambda z, ctx, a, bits: a << bits),
+    'lshr_dynamic': ('rr', lambda z, ctx, a, bits: z.LShR(a, bits)),
+    'udiv': ('rr', lambda z, ctx, a, b: z.UDiv(a, b)),
+    'urem': ('rr', lambda z, ctx, a, b: z.URem(a, b)),
+    'udiv_words': ('rrr', lambda z, ctx, high, low, by: _unsigned_words(z, high, low, by, z.UDiv)),
+    'urem_words': ('rrr', lambda z, ctx, high, low, by: _unsigned_words(z, high, low, by, z.URem)),
 }
 RECIPE_LAYOUT = tuple(RECIPE_PRIMITIVES.values())
 RECIPE_IDS = {name: code for code, name in enumerate(RECIPE_PRIMITIVES, 1)}
@@ -104,6 +114,8 @@ CORE_FORMULA_IDS = {name: code for code, name in enumerate((
     'bit.and', 'bit.or', 'bit.xor', 'bit.not', 'bool.and', 'bool.or', 'bool.not',
     'int.cast.wrap', 'int.cast.checked', 'compare.eq', 'compare.ne', 'compare.lt', 'compare.le',
     'compare.gt', 'compare.ge', 'select', 'borrow.extent', 'borrow.null', 'borrow.wrap', 'buffer.address',
+    'int.mul.checked', 'int.div.checked', 'int.rem.checked', 'int.neg.checked',
+    'int.shl.checked', 'int.shr.checked',
 ), 1)}
 ALU_GROUPS = {0: 'add', 1: 'or', 4: 'and', 5: 'sub', 6: 'xor', 7: 'cmp'}
 REFUSALS = (
@@ -136,6 +148,10 @@ REFUSALS = (
     ('condition', 'only reviewed unsigned/equality conditions are admitted'),
     ('call_inventory', 'call instruction inventory differs from checked relocations'),
     ('call_target', 'call target is not an admitted function boundary'),
+    ('variable_shift_profile', 'variable shifts are outside the selected machine profile'),
+    ('variable_shift', 'only 64-bit register SHL/SHR by CL is admitted'),
+    ('unsigned_multiply_profile', 'unsigned MUL is outside the selected machine profile'),
+    ('unsigned_divide_profile', 'unsigned DIV is outside the selected machine profile'),
 )
 REFUSAL_IDS = {name: code for code, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -148,6 +164,14 @@ def _operand(kind, word):
     if kind == 'i' and word >= 1 << 63:
         return word - (1 << 64)
     return word
+
+
+def _unsigned_words(z, high, low, divisor, operation):
+    high = z.simplify(high)
+    if z.is_bv_value(high) and high.as_long() == 0:
+        return z.simplify(operation(low, divisor))
+    wide = operation(z.Concat(high, low), z.ZeroExt(64, divisor))
+    return z.simplify(z.Extract(63, 0, wide))
 
 
 class NativeMachineScheduler:
@@ -185,10 +209,13 @@ class NativeMachineScheduler:
 
 
 class NativeSafeCoreX64Decode(NativeHiaJsonImage):
-    def decode(self, data, calls=None):
+    def decode(self, data, calls=None, *, allow_variable_shifts=False,
+               allow_unsigned_multiply=False, allow_unsigned_divide=False):
         from .hia_safe_core_x64 import require
 
         require(type(data) is bytes and 0 < len(data) <= MAX_TEXT, REFUSALS[0][1])
+        admission = allow_variable_shifts, allow_unsigned_multiply, allow_unsigned_divide
+        require(all(type(flag) is bool for flag in admission), 'machine profile admission must be explicit boolean')
         source = ctypes.create_string_buffer(data, len(data))
         capacity = HEADER.size + min(len(data), MAX_INSTRUCTIONS) * ROW.size
         output = ctypes.create_string_buffer(capacity)
@@ -204,6 +231,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                 encoded_target = 0 if external else target if 0 <= target < 1 << 64 else (1 << 64) - 1
                 CALL_BINDING.pack_into(scratch, WORKSPACE + CALL_COUNT.size + index * CALL_BINDING.size,
                                        encoded_pc, int(external), encoded_target)
+        struct.pack_into('<Q', scratch, PROFILE_OFFSET, sum(flag << bit for bit, flag in enumerate(admission)))
         size = self._entry(source, len(data), output, capacity, scratch, len(scratch))
         if not HEADER.size <= size <= capacity:
             raise RuntimeError('invalid native Safe Core decoder response size')
@@ -318,6 +346,10 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                  zf=None, cf=None, arbitrary=None):
         return self._evaluate(z, ctx, self.recipe(operation, parameter), (left, right, zf, cf, arbitrary))
 
+    def word_pair(self, z, ctx, operation, low, high, operand, undefined_carry):
+        return self._evaluate(z, ctx, self.recipe(operation), (low, high, operand, None, undefined_carry),
+                              second_word=True)
+
     def borrow_predicate(self, z, ctx, address, pointer, length):
         _, _, _, allowed = self._evaluate(z, ctx, self.recipe('borrow_range'), (address, pointer, length))
         if allowed is None:
@@ -355,7 +387,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         return result
 
     @staticmethod
-    def _evaluate(z, ctx, recipe, inputs, *, word_width=64):
+    def _evaluate(z, ctx, recipe, inputs, *, word_width=64, second_word=False):
         roots, nodes = recipe
         values = [None, *inputs, *([None] * (RECIPE_INPUTS - len(inputs)))]
         for lower, sources in nodes:
@@ -365,7 +397,8 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             values.append(lower(z, ctx, *args))
         result = tuple(values[ref] for ref in roots)
         for index, (ref, value) in enumerate(zip(roots, result, strict=True)):
-            if ref and not ((z.is_bv(value) and value.size() == word_width) if index == 0 else z.is_bool(value)):
+            word = index == 0 or (index == 1 and second_word)
+            if ref and not ((z.is_bv(value) and value.size() == word_width) if word else z.is_bool(value)):
                 raise RuntimeError('invalid native Safe Core formula result sort')
         return result
 
@@ -377,3 +410,7 @@ def installed_safe_core_x64_decode(path):
 def selected_safe_core_x64_decode():
     selected = os.environ.get(SELECTOR)
     return None if selected is None else installed_safe_core_x64_decode(selected)
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

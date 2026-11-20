@@ -215,3 +215,7 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
             "claims": {"binary_abi_observed": True, "native_execution_proven": False,
                        "whole_language_memory_safety_proven": False,
                        "backend_refinement_proven": False}}
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

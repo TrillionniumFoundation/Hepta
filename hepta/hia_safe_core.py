@@ -9,6 +9,9 @@ this is not a Lean-kernel proof of a complete ISA or the whole HIA language.
 """
 from __future__ import annotations
 
+from .hia_loaded_source import loaded_source_identity
+from .hia_solver_identity import solver_identity as _loaded_solver_identity
+
 from hashlib import sha256
 import importlib
 from itertools import combinations
@@ -29,6 +32,12 @@ PROFILE = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v1"
 ARTIFACT_PROFILE = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1"
 PROFILE_V2 = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v2"
 ARTIFACT_PROFILE_V2 = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v2"
+PROFILE_V3 = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v3"
+ARTIFACT_PROFILE_V3 = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v3"
+PROFILE_V4 = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v4"
+ARTIFACT_PROFILE_V4 = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v4"
+PROFILE_V5 = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v5"
+ARTIFACT_PROFILE_V5 = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v5"
 ARTIFACT_PROPERTY = "all-input Core-to-final-image return/abort/caller-bytes refinement, memory bounds and SysV preservation"
 ARTIFACT_OBLIGATIONS = (
     ("caller_contract_nonvacuous", "sat"),
@@ -45,6 +54,9 @@ OPERATIONS = frozenset({"const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
                         "bit.and", "bit.or", "bit.xor", "bit.not", "bool.and", "bool.or", "bool.not",
                         "int.cast", "select", "buffer.len", "buffer.load", "buffer.store",
                         *["compare." + c for c in ("eq", "ne", "lt", "le", "gt", "ge")]})
+OPERATIONS_V3 = OPERATIONS | {"int.neg.checked", "int.shl.checked", "int.shr.checked"}
+OPERATIONS_V4 = OPERATIONS_V3 | {"int.mul.checked"}
+OPERATIONS_V5 = OPERATIONS_V4 | {"int.div.checked", "int.rem.checked"}
 LIMITS = {
     "functions": 1, "blocks": 16, "operations": 64, "abi_argument_words": 6,
     "borrowed_ranges": 1, "foreign_extent": 1 << 20, "machine_text_bytes": 65536,
@@ -89,7 +101,7 @@ UNPROVED_OBLIGATIONS = [
 CHECKER_SOURCE_FILES = (
     "hia_safe_core.py", "hia_safe_core_x64.py", "hia_safe_core_elf.py",
     "hia_program.py", "hia_opcodes.py", "hia_capability_flow.py", "hia_schema.py",
-    "hia_json_preflight.py", "elf_shared_abi.py",
+    "hia_json_preflight.py", "elf_shared_abi.py", "hia_solver_identity.py",
 )
 
 
@@ -99,18 +111,17 @@ def _checker_source_identity():
     from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
     from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
 
-    source = {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-              for name in CHECKER_SOURCE_FILES}
     helpers = (
         ('x64_decoder', 'hia_safe_core_x64_decode_native.py', selected_safe_core_x64_decode()),
         ('elf_inventory', 'hia_safe_core_elf_inventory_native.py', selected_safe_core_elf_inventory()),
         ('cnf', 'hia_cnf_native.py', selected_cnf()),
     )
-    for name, adapter, selected in helpers:
-        if selected is not None:
-            source[adapter] = sha256(Path(__file__).with_name(adapter).read_bytes()).hexdigest()
-            source[f'native_{name}_source_sha256'] = selected.admitted_source_sha256
-            source[f'native_{name}_image_sha256'] = selected.image_sha256
+    active = [(name, adapter, selected) for name, adapter, selected in helpers if selected is not None]
+    adapters = (*[adapter for _, adapter, _ in active], 'hia_json_preflight_native.py') if active else ()
+    source = loaded_source_identity(__name__, (*CHECKER_SOURCE_FILES, *adapters))
+    for name, _, selected in active:
+        source[f'native_{name}_source_sha256'] = selected.admitted_source_sha256
+        source[f'native_{name}_image_sha256'] = selected.image_sha256
     return source
 
 
@@ -131,22 +142,12 @@ def _source_identity():
              "hia_program.py", "hia_opcodes.py", "hia_capability_flow.py", "hia_schema.py",
              "hia_json_preflight.py", "hia_program_native.py", "hia_machine_x64.py",
              "hia_machine_elf.py", "hia_native_byte_abi.py", "elf_shared_abi.py",
-             "hia_verified_image.py")
-    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in names}
+             "hia_verified_image.py", "hia_solver_identity.py")
+    return loaded_source_identity(__name__, names)
 
 
 def _solver_identity(z):
-    require(z.get_version_string() == PINNED_Z3_VERSION, "the pinned Z3 version is required")
-    function = z.z3core.Z3_get_version.__defaults__[0].f
-    libraries = [item for item in function._objects.values() if hasattr(item, "_name")]
-    require(len(libraries) == 1, "ambiguous loaded solver library")
-    library = Path(libraries[0]._name).resolve(strict=True)
-    require(library.stat().st_size <= 128 * 1024 * 1024, "solver library size is outside the identity budget")
-    digest = sha256()
-    for path in sorted(Path(z.__file__).parent.glob("*.py")):
-        digest.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
-    return {"name": "Z3", "version": z.get_version_string(), "binding_sha256": digest.hexdigest(),
-            "library_sha256": sha256(library.read_bytes()).hexdigest()}
+    return _loaded_solver_identity(z, expected_version=PINNED_Z3_VERSION)
 
 
 class _MemoryReductionUnavailable(Exception):
@@ -358,14 +359,35 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
 
 
 def _profile_configuration(profile_version):
-    require(type(profile_version) is int and profile_version in (1, 2),
-            "Safe Core profile_version must be exactly 1 or 2")
+    require(type(profile_version) is int and profile_version in (1, 2, 3, 4, 5),
+            "Safe Core profile_version must be exactly 1, 2, 3, 4 or 5")
     return ((PROFILE, ARTIFACT_PROFILE, WIDTHS) if profile_version == 1
-            else (PROFILE_V2, ARTIFACT_PROFILE_V2, WIDTHS_V2))
+            else (PROFILE_V2, ARTIFACT_PROFILE_V2, WIDTHS_V2) if profile_version == 2
+            else (PROFILE_V3, ARTIFACT_PROFILE_V3, WIDTHS_V2) if profile_version == 3
+            else (PROFILE_V4, ARTIFACT_PROFILE_V4, WIDTHS_V2) if profile_version == 4
+            else (PROFILE_V5, ARTIFACT_PROFILE_V5, WIDTHS_V2))
+
+
+def _unsigned_profile_version(checked):
+    """Select v2/v3/v4/v5 from a checked snapshot; this grants no admission.
+
+    Producers, selectors and loaders must still apply the selected profile
+    and independently validate the final bytes. Existing Core keeps v2.
+    """
+    operations = {operation["op"] for function in checked.as_dict()["functions"]
+                  for block in function["blocks"] for operation in block["ops"]}
+    if operations & (OPERATIONS_V5 - OPERATIONS_V4):
+        return 5
+    if operations & (OPERATIONS_V4 - OPERATIONS_V3):
+        return 4
+    return 3 if operations & (OPERATIONS_V3 - OPERATIONS) else 2
 
 
 def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=1):
     _, _, widths = _profile_configuration(profile_version)
+    operations = (OPERATIONS_V5 if profile_version == 5 else OPERATIONS_V4
+                  if profile_version == 4 else OPERATIONS_V3
+                  if profile_version == 3 else OPERATIONS)
     require(checked.structured_bytes is None, "an explicit primitive Core is required")
     document = checked.as_dict()
     require(document["schema"] in {"hepta.hia.program.v" + str(i) for i in range(1, 9)} and
@@ -396,8 +418,8 @@ def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=
     for block in blocks.values():
         types.extend(p["type"] for p in block["params"])
         for op in block["ops"]:
-            require(op["op"] in OPERATIONS, "operation lies outside Safe Core: " + op["op"])
-            require(op["op"] != "int.cast" or op["attrs"]["mode"] == "wrap" or profile_version == 2,
+            require(op["op"] in operations, "operation lies outside Safe Core: " + op["op"])
+            require(op["op"] != "int.cast" or op["attrs"]["mode"] == "wrap" or profile_version >= 2,
                     "checked casts are outside Safe Core v1")
             types.extend(p["type"] for p in op["out"])
     require(all(t in widths or t in LOANS for t in types), "type lies outside Safe Core")
@@ -504,6 +526,32 @@ class _Theory:
                 trap = z.ULT(value, a) if name.startswith("int.add.") else z.ULT(a, b)
         elif name == "int.mul.wrap":
             value = self.normalized(args[0] * args[1], typ)
+        elif name == "int.mul.checked":
+            # Core operands already have their unsigned widths.
+            # Check the exact mathematical product before narrowing;
+            # the low 64 bits alone cannot detect a 64-bit overflow.
+            full = z.ZeroExt(64, args[0]) * z.ZeroExt(64, args[1])
+            value = self.normalized(z.Extract(63, 0, full), typ)
+            trap = z.Extract(127, self.widths[typ], full) != 0
+        elif name in ("int.div.checked", "int.rem.checked"):
+            # Unsigned quotient/remainder remain within the operands'
+            # type. Division by zero is the sole Core trap condition.
+            value = (z.UDiv(args[0], args[1]) if name == "int.div.checked"
+                     else z.URem(args[0], args[1]))
+            trap = args[1] == 0
+        elif name == "int.neg.checked":
+            # The admitted types are unsigned. Only zero has a
+            # representable arithmetic negative in the same type.
+            value = self.normalized(-args[0], typ)
+            trap = args[0] != 0
+        elif name in ("int.shl.checked", "int.shr.checked"):
+            left, count = args
+            # Core checks the normalized complete count before the
+            # ISA applies CL masking. Left shift truncates its result;
+            # discarded value bits are not an arithmetic overflow.
+            trap = z.UGE(count, self.bv(self.widths[typ]))
+            value = self.normalized(left << count if name == "int.shl.checked"
+                                    else z.LShR(left, count), typ)
         elif name in ("bit.and", "bool.and", "bit.or", "bool.or", "bit.xor"):
             a, b = args
             value = a & b if name.endswith("and") else a | b if name.endswith("or") and name != "bit.xor" else a ^ b
@@ -685,7 +733,10 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     t.arguments(fn)
     extent = None if not foreign_buffer_exports else foreign_buffer_exports[0][1]
     reference = t.reference(fn, blocks, extent)
-    machine = Executor(t, binding, t.words, t.loan)
+    machine = Executor(t, binding, t.words, t.loan,
+                       allow_variable_shifts=profile_version >= 3,
+                       allow_unsigned_multiply=profile_version >= 4,
+                       allow_unsigned_divide=profile_version >= 5)
     observed = machine.run()
     # The abstract stack is keyed by exact offsets.  Foreign data is a separate
     # array only under this explicit disjointness premise; numeric ABI guards
@@ -830,3 +881,7 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
             "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],
             "compilation": compilation, "validation": report,
             "status": "smt_validated_not_executed", "claims": dict(CLAIMS)}
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

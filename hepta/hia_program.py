@@ -1002,3 +1002,7 @@ def execute_program(program, function, arguments, **kwargs):
 
 # Public language-level spelling: verification of a program, not source replay.
 verify_core = verify_program
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

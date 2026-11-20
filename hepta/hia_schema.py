@@ -121,3 +121,7 @@ def schema_registry() -> dict:
                            "explicit_adapter": "import_legacy_composite_v2"},
         "schemas_are_not_safety_receipts": True,
     }
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

@@ -290,3 +290,7 @@ def render_opcode_reference() -> str:
         "Core v8 adds explicit `return_loans` contracts; it does not invent new opcodes. Assembly v1 accepts explicit primitive v6/v7/v8 and preserves this field. Historical schemas are accepted only through their named adapters; no profile is guessed.", "",
         "Query the complete version-specific JSON with `hia catalog --schema hepta.hia.program.v8`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.", ""]
     return "\n".join(rows)
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

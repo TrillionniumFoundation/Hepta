@@ -12,6 +12,8 @@ semantics here does not authorize execution on an unprobed host.
 """
 from __future__ import annotations
 
+from .hia_loaded_source import loaded_source_identity
+
 from dataclasses import dataclass
 from hashlib import sha256
 import importlib
@@ -45,15 +47,16 @@ WIDE_PROFILES = {256: "hia.closed-forward-byte-loops.avx2.direct-borrowed-u64.v1
 COPY_ENDPOINT_PROFILES = {bits:profile[:-1]+'2.copy-endpoints' for bits,profile in WIDE_PROFILES.items()}
 COPY_FAST_ENDPOINT_PROFILES = {bits:profile[:-1]+'3.copy-endpoints-fast' for bits,profile in WIDE_PROFILES.items()}
 BOUNDED_REDUCTION_PROFILES = {bits:profile[:-1]+'2.reduce-bounded' for bits,profile in WIDE_PROFILES.items()}
+BOUNDED_ONE_REDUCTION_PROFILES = {bits:profile[:-1]+'3.reduce-bounded-one' for bits,profile in WIDE_PROFILES.items()}
 CORE_RECOGNITION_PROFILE = "hia.closed-forward-byte-recurrence.alpha.v1"
 SOURCE_FILES = ("hia_verified_simd_check.py", "hia_safe_core.py", "hia_safe_core_elf.py",
                 "hia_verified_simd_wide_x64.py",
                 "elf_shared_abi.py", "hia_program.py", "hia_opcodes.py", "hia_schema.py",
-                "hia_capability_flow.py", "hia_json_preflight.py")
+                "hia_capability_flow.py", "hia_json_preflight.py", "hia_solver_identity.py")
 
 
 def _identity():
-    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in SOURCE_FILES}
+    return loaded_source_identity(__name__, SOURCE_FILES)
 
 
 def _signature(operation):
@@ -366,8 +369,16 @@ def decode_simd(data):
                     op,args = 'jcc',(ext&15,p+d)
                 elif ext == 0xb6:
                     mod,reg,rm,group = mr()
-                    require(rex&8 and mod == 2 and rm&7 != 4, 'unsupported byte load')
-                    op,args = 'load8',(reg,rm,struct.unpack('<i',take(4))[0])
+                    if mod == 0:
+                        # The short reduction entry uses one plain [RDI]
+                        # byte load into a low 64-bit GPR. No SIB, RIP-relative
+                        # address, register extension or implicit displacement.
+                        require(rex==0x48 and rm==7, 'unsupported direct byte load')
+                        displacement=0
+                    else:
+                        require(rex&8 and mod == 2 and rm&7 != 4, 'unsupported byte load')
+                        displacement=struct.unpack('<i',take(4))[0]
+                    op,args = 'load8',(reg,rm,displacement)
                 elif ext == 0x94:
                     mod,reg,rm,group = mr()
                     require(rex == 0x40 and mod == 3 and reg == 0, 'unsupported SETE')
@@ -527,6 +538,7 @@ def _structure_wide(rows, kind, binding):
     endpoint=copy and any(r.op in ('copy_load','copy_store') for r in rows)
     bounded=not copy and any(r.op=='copy_load' for r in rows)
     endpoint_fast=False
+    bounded_one=False
     require(widths<={128,256,512} if endpoint else widths=={128,bits} if bounded else widths=={bits},
             'unreviewed mixed vector memory width')
 
@@ -577,6 +589,9 @@ def _structure_wide(rows, kind, binding):
         take('mov',9,7); take('add',9,2); branch(2,'abort')
         take('mov',10,2)
         if bounded:
+            if pos<len(rows) and rows[pos].op=='alu_imm' and rows[pos].args==('cmp',10,1):
+                bounded_one=True
+                take('alu_imm','cmp',10,1); branch(4,'single_byte')
             take('alu_imm','cmp',10,width); branch(2,'short_initialize')
         parts['initialize']=[]
         for register in (0,2,3,4,5):
@@ -640,7 +655,12 @@ def _structure_wide(rows, kind, binding):
     label('done')
     if kind=='all_zero_u8':
         take('test',0,0); take('imm',0,0); take('sete',0)
-    take('ret'); label('abort'); take('alu_imm','sub',4,8)
+    take('ret')
+    if bounded_one:
+        label('single_byte'); capture('single_byte',1); jump('done')
+        require(parts['single_byte'][0].op=='load8' and parts['single_byte'][0].args[1:]==(7,0),
+                'single-byte reduction must read exactly the admitted source byte')
+    label('abort'); take('alu_imm','sub',4,8)
     call=next_row()
     require(call.op=='call' and binding['calls']=={call.pc:'abort'},'wide abort relocation differs')
     take('ud2'); require(pos==len(rows),'unreviewed trailing wide instructions')
@@ -728,7 +748,7 @@ def _structure_wide(rows, kind, binding):
                 parts['scalar'][1].args==(0,9),'wide tail accumulator frame differs')
     parts['_wide']={'bits':bits,'width':width,'target_isa':'avx512' if bits==512 else 'avx2',
                     'copy_tail':'endpoints-fast' if endpoint_fast else 'endpoints' if endpoint else 'byte' if copy else None,
-                    'reduce_tail':'bounded' if bounded else 'byte' if not copy else None}
+                    'reduce_tail':'bounded-one' if bounded_one else 'bounded' if bounded else 'byte' if not copy else None}
     return labels,parts
 
 
@@ -741,6 +761,8 @@ def _prefix(z, ctx, rows, labels):
     stops={labels.get('bulk',labels['vector']):'vector',labels['done']:'done',labels['abort']:'abort'}
     if 'short_initialize' in labels:
         stops[labels['narrow_vector']]='narrow'
+    if 'single_byte' in labels:
+        stops[labels['single_byte']]='single'
     while pending:
         pc,regs,path,cf,zf=pending.pop()
         if pc in stops:
@@ -966,7 +988,7 @@ def _prove_wide_blocks(z,ctx,parts,kind,check):
         prove('wide_accumulator_merge_and_frame',z.Or(mismatch,merged[2]!=0,
               *[merged[i]!=initial[i] for i in range(1,8)]))
 
-        if config.get('reduce_tail')!='bounded':
+        if config.get('reduce_tail') not in ('bounded','bounded-one'):
             initial=vector_state('wide_horizontal'); gpr=gpr_state('wide_horizontal')
             final,registers,stores=_wide_execute(z,ctx,parts['horizontal'],bits,initial,gpr)
             mismatch=(registers[0]!=lane_sum(initial[0]) if kind=='sum_u8' else
@@ -1155,7 +1177,8 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     wide=parts.get('_wide')
     endpoint=bool(wide and wide['copy_tail'] in ('endpoints','endpoints-fast'))
     endpoint_fast=bool(wide and wide['copy_tail']=='endpoints-fast')
-    bounded=bool(wide and wide.get('reduce_tail')=='bounded')
+    bounded=bool(wide and wide.get('reduce_tail') in ('bounded','bounded-one'))
+    bounded_one=bool(wide and wide.get('reduce_tail')=='bounded-one')
     parallel_zero='bulk_merge' in parts and wide is None
     vector_width=wide['width'] if wide else 16
     required_features=sorted({feature for row in rows for feature in row.cpu_features}) if wide else ['sse2']
@@ -1190,12 +1213,34 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     check('caller_contract_nonvacuous',valid,expected='sat')
     path=lambda name:z.Or(*[p for s,p,r in outcomes if s==name])
     admitted_path=z.Or(path('vector'),path('narrow')) if bounded else path('vector')
+    if bounded_one:
+        admitted_path=z.Or(admitted_path,path('single'))
     check('decoded_entry_guards',z.Or(path('abort')!=z.Not(valid),path('done')!=(valid&(n==0)),
                                      admitted_path!=(valid&(n!=0))))
     if bounded:
+        ordinary=z.And(n!=0,n!=1) if bounded_one else n!=0
         check('decoded_short_entry_partition',z.Or(
-            path('narrow')!=z.And(valid,n!=0,z.ULT(n,bv(vector_width))),
+            path('narrow')!=z.And(valid,ordinary,z.ULT(n,bv(vector_width))),
             path('vector')!=z.And(valid,n!=0,z.UGE(n,bv(vector_width)))))
+    if bounded_one:
+        check('decoded_single_byte_entry_partition',path('single')!=z.And(valid,n==1))
+        check('single_byte_access_bounds',z.Or(ptrs[0]==0,z.ULT(ptrs[0]+1,ptrs[0]),
+            z.UGT(ptrs[0]+1,ptrs[0]+n),z.ULT(extents[0],bv(1))),[path('single')])
+        # Use the actual prefix state, every decoded destination and all
+        # possible byte values. The final shared return normalizes only the
+        # all-zero predicate. This path never reads or writes a vector or
+        # memory location other than the one structurally admitted byte.
+        byte=z.BitVec('single_source_byte',8,ctx=ctx)
+        single_bad=[]
+        for stage,p,regs in outcomes:
+            if stage!='single': continue
+            final=dict(regs)
+            final[parts['single_byte'][0].args[0]]=z.ZeroExt(56,byte)
+            value=z.If(final[0]==0,bv(1),bv(0)) if kind=='all_zero_u8' else final[0]
+            expected=z.If(byte==0,bv(1),bv(0)) if kind=='all_zero_u8' else z.ZeroExt(56,byte)
+            single_bad.append(z.And(p,z.Or(value!=expected,
+                *[final[r]!=regs[r] for r in range(16) if r!=0])))
+        check('single_byte_result_and_register_frame',z.Or(*single_bad))
     bad=[]
     for stage,p,regs in outcomes:
         if stage in ('vector','narrow'):
@@ -1310,6 +1355,7 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         'schema':'hepta.hia.verified-simd-machine-validation.v1',
         'profile':COPY_FAST_ENDPOINT_PROFILES[wide['bits']] if endpoint_fast else
                   COPY_ENDPOINT_PROFILES[wide['bits']] if endpoint else
+                  BOUNDED_ONE_REDUCTION_PROFILES[wide['bits']] if bounded_one else
                   BOUNDED_REDUCTION_PROFILES[wide['bits']] if bounded else
                   WIDE_PROFILES[wide['bits']] if wide else PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
         'ok':True,'complete':True,'status':'smt_validated','kind':kind,
@@ -1333,6 +1379,7 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
                   'copy_source_preserved':copy,'whole_language_soundness_proved':False,
                   'overlapping_endpoint_copy_effects_checked':endpoint,
                   'bounded_reduction_tail_effects_checked':bounded,
+                  'single_byte_entry_effects_checked':bounded_one,
                   'machine_checked_isa_refinement_proved':False,'foreign_pointer_liveness_proved':False,
                   'timing_or_side_channels_proved':False,'serialized_receipt_authorizes_execution':False},
         'assumptions':[
@@ -1354,3 +1401,7 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         'elapsed_seconds':time.monotonic()-started}
     if output is not None: (output/'validation.json').write_text(json.dumps(report,indent=2)+'\n')
     return report
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

@@ -29,6 +29,64 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.skipTest('requires a bound HIA Safe Core x86 decoder')
         self.native = installed_safe_core_x64_decode(selected)
 
+    def test_unsigned_profiles_preserve_exact_decoding_and_state_effects(self):
+        import z3
+
+        ctx = z3.Context()
+        reference, native = Executor.__new__(Executor), Executor.__new__(Executor)
+        reference.__dict__.update(z=z3, ctx=ctx, steps=1, native_model=None)
+        native.__dict__.update(vars(reference), native_model=self.native)
+        inputs = {index: z3.BitVec(f'extended_r{index}', 64, ctx=ctx) for index in range(16)}
+        flags = {name: z3.Bool(name, ctx=ctx) for name in ('zf', 'cf')}
+        true = z3.BoolVal(True, ctx=ctx)
+
+        def equivalent(left, right):
+            if not z3.eq(z3.simplify(left), z3.simplify(right)):
+                solver = z3.Solver(ctx=ctx)
+                solver.set(timeout=5000)
+                solver.add(left != right)
+                self.assertEqual(solver.check(), z3.unsat)
+
+        for operation, opcode, group, profile in (
+                ('shl_cl', 0xd3, 4, 'allow_variable_shifts'),
+                ('shr_cl', 0xd3, 5, 'allow_variable_shifts'),
+                ('mul', 0xf7, 4, 'allow_unsigned_multiply'),
+                ('div', 0xf7, 6, 'allow_unsigned_divide')):
+            for register in range(16):
+                with self.subTest(operation=operation, register=register):
+                    code = bytes((0x48 | (register >> 3), opcode, 0xc0 | (group << 3) | (register & 7)))
+                    with self.assertRaises(SafeCoreMachineRejected):
+                        self.native.decode(code)
+                    self.assertEqual(self.native.decode(code, **{profile: True}),
+                                     _reference_decode(code, **{profile: True}))
+                    before = SimpleNamespace(registers=inputs.copy(), flags=flags.copy(), path=true)
+                    after = SimpleNamespace(registers=inputs.copy(), flags=flags.copy(), path=true)
+                    reference.extended_registers(before, operation, (register,))
+                    native.extended_registers(after, operation, (register,))
+                    for index in inputs:
+                        equivalent(before.registers[index], after.registers[index])
+                    for name in flags:
+                        equivalent(before.flags[name], after.flags[name])
+                    equivalent(before.path, after.path)
+
+    def test_new_core_unsigned_formulas_match_the_independent_theory(self):
+        import z3
+        from hepta.hia_safe_core import _Theory, WIDTHS_V2
+
+        theory = _Theory(z3, 5000, widths=WIDTHS_V2)
+        theory.core_model = self.native
+        for typ in ('u8', 'u16', 'u32', 'u64', 'usize'):
+            operands = tuple(theory.normalized(z3.BitVec(f'operand{index}', 64, ctx=theory.ctx), typ)
+                             for index in range(2))
+            for op in ('mul', 'div', 'rem', 'neg', 'shl', 'shr'):
+                with self.subTest(type=typ, operation=op):
+                    name = f'int.{op}.checked'
+                    arguments = operands[:1] if op == 'neg' else operands
+                    actual = theory.scalar_operation(name, {}, arguments, typ)
+                    expected = theory._reference_scalar_operation(name, {}, arguments, typ)
+                    self.assertTrue(all(z3.eq(z3.simplify(a), z3.simplify(b))
+                                        for a, b in zip(actual, expected, strict=True)))
+
     def test_all_byte_pairs_and_complete_instruction_controls(self):
         def outcome(decode, raw):
             try:

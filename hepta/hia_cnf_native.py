@@ -749,3 +749,7 @@ def bitblast_goal(z3, expression, *, timeout_ms):
                 return None
             clauses.append(tuple(tokens))
     return BooleanReduction(goal, tuple(atoms), tuple(clauses))
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

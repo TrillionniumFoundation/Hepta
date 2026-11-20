@@ -10,7 +10,7 @@ own semantics, machine-code validation and execution evidence.
 
 | Area | Implemented work | Remaining closure criterion | Existing verification source |
 | --- | --- | --- | --- |
-| Register scalars | Direct caller-saved register entry; unsigned checked add/sub/cast in addition to wrapping arithmetic; independent final ELF refinement | Extend the checked domain to the remaining scalar operations and signed types, preserving traps and ABI behavior | `tests/test_hia_safe_core*.py`, `tests/test_hia_verified_scalar*.py`, `ScalarExecutionTests` in `tests/test_hia_program.py` |
+| Register scalars | Direct caller-saved register entry; unsigned checked add/sub/cast, v3 negation/shifts, v4 multiplication and v5 division/remainder; independent final ELF refinement | Extend the checked domain to signed types, preserving traps and ABI behavior; measure new arithmetic against matched Rust semantics | `tests/test_hia_safe_core*.py`, `tests/test_hia_verified_scalar*.py`, `ScalarExecutionTests` in `tests/test_hia_program.py` |
 | Borrowed byte loops | Sum, all-zero detection and nonoverlapping copy; complete range admission; SSE2, AVX2 and AVX-512 candidates; reversible SSA/block renaming | Address every observed performance regression in the complete matrix; retain all earlier samples | `tests/test_hia_verified_simd*.py`, `benchmarks/hia_verified_kernels/PROTOCOL.json` |
 | Standard build entry | `hia build --kind shared` defaults to verified auto selection and host-native ISA; both CLI owners implement the same route; matching-source cold/native/wheel qualification recorded for `633feee` and `60409ea` | Requalify each later source extension and complete the separate broader native-component workflow | `tests/test_hia_agent_entry.py`, `tests/test_hia_verified_cli.py`, `tests/test_hia_cli_native.py` |
 | Actual loading | Fresh CPU/OS observations; independent proof rerun; sealed bytes bound to actual mapped code; no target dlsym | Preserve these invariants for each additional image/ABI profile | `tests/test_hia_verified_cpu.py`, `tests/test_hia_verified_kernel_load.py` |
@@ -66,7 +66,7 @@ again. Documentation-only result commits identify the measured code parent
 explicitly. Failed experiments and counterexamples remain in the record.
 Draft review is separate from merge or production adoption.
 
-All four recorded campaigns and their exact source identities remain in
+All five recorded campaigns and their exact source identities remain in
 `benchmarks/hia_verified_kernels/results/`. The initial 64 KiB zero-scan
 regression and its four-accumulator repair are preserved in
 `docs/HIA_VERIFIED_KERNELS.md`. The third complete campaign has 487 cases,
@@ -87,3 +87,18 @@ suffixes also regress against their byte-tail control. Every such row and
 all raw samples remain in `ai395-20261120-endpoints.json.gz` and its summary.
 These results motivate the fifth protocol's additional candidates; they do
 not establish their performance before that new campaign runs.
+
+The fifth campaign binds 671 cases, 14,091 samples and fourteen wide proof/CPU
+receipts to `e9de97cee2a44cfbe044b245f2cf344c2cc3ef47`. New AVX-512 defaults
+have 42 lower and 27 higher span medians against Rust; AVX2 has 40 lower and
+29 higher. Exact vector boundaries and 0/1-byte suffixes still expose guard
+chain overhead. The original driver also leaves absolute buffer alignment and
+source/destination distance uncontrolled after DSO loading. Stable large-copy
+differences therefore cannot be attributed solely to changed machine code.
+All observed samples remain in `ai395-20261120-bounded.json.gz`; a new protocol
+must separately fix and record those address conditions and both copy address
+orders. Protocol v6 first retains the original driver and all 671 controls,
+and adds 92 explicitly named one-byte reduction candidate cases. Its 763 cases
+and 16,023 samples therefore retain the original address-layout limitation.
+The address-controlled extension requires another complete campaign, without
+transferring old ratios or replacing the existing control samples.

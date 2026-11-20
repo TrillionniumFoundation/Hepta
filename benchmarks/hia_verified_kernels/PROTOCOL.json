@@ -1,5 +1,5 @@
 {
-  "schema": "hepta.hia.verified-kernel-microbench.v5",
+  "schema": "hepta.hia.verified-kernel-microbench.v6",
   "scope": "single-core, same-host, indirect-call, hot-cache kernels",
   "samples_per_case": 21,
   "warmup_batches": 3,
@@ -54,7 +54,7 @@
     65535,
     65536
   ],
-  "cases": 671,
+  "cases": 763,
   "simd_variants": {
     "verified-sse2-16": "one 16-byte vector loop and byte tail",
     "verified-sse2-64": "64-byte superloop, 16-byte cleanup loop and byte tail",
@@ -65,7 +65,9 @@
     "verified-avx2-bounded-tail": "128-byte superloop; short inputs bypass wide initialization; 16-byte cleanup and nonoverlapping 8/4/2/1-byte reduction tail",
     "verified-avx512-bounded-tail": "256-byte superloop; short inputs bypass wide initialization; 16-byte cleanup and nonoverlapping 8/4/2/1-byte reduction tail",
     "verified-avx2-copy-endpoints-fast": "128-byte copy superloop; endpoint tail with direct one-byte dispatch",
-    "verified-avx512-copy-endpoints-fast": "256-byte copy superloop; endpoint tail with direct one-byte dispatch"
+    "verified-avx512-copy-endpoints-fast": "256-byte copy superloop; endpoint tail with direct one-byte dispatch",
+    "verified-avx2-bounded-one": "separate 128-byte reduction candidate; complete range admission followed by direct one-byte entry, otherwise the bounded reduction",
+    "verified-avx512-bounded-one": "separate 256-byte reduction candidate; complete range admission followed by direct one-byte entry, otherwise the bounded reduction"
   },
   "data": "deterministic xorshift64* bytes; all-zero scan input with untimed nonzero controls",
   "address_offsets": "1 + (iteration & 15)",

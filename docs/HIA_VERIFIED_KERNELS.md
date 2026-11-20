@@ -66,6 +66,11 @@ zero scan default to `simd_reduce_tail="bounded"`; explicit `"byte"` retains
 the previous wide-reduction objects. These Python selectors preserve the old
 profiles for simultaneous controls. They do not change the SSE2 defaults.
 
+Explicit `simd_reduce_tail="bounded-one"` adds a single-byte entry to wide
+sum and zero scan. The default remains `"bounded"` while the complete extended
+benchmark matrix is evaluated. The new selection is separate from the old
+profiles and does not apply to SSE2 or copy.
+
 Independent consumers accept caller-supplied Core, object and final ELF bytes:
 
 ```python
@@ -75,6 +80,11 @@ from hepta.hia_verified_simd_check import validate_verified_simd_artifact
 scalar = validate_safe_core_artifact(core, object_bytes, final_bytes, profile_version=2)
 simd = validate_verified_simd_artifact(core, object_bytes, final_bytes)
 ```
+
+Unsigned checked negation and variable shifts require the explicit scalar
+`profile_version=3`; unsigned checked multiplication requires
+`profile_version=4`; checked unsigned division/remainder require
+`profile_version=5`. Each old profile keeps its operation and decoder domain.
 
 These consumer paths do not import the producers. They inspect the final code,
 symbol ranges, relocations, dynamic symbol lookup, load mappings and protection
@@ -111,6 +121,100 @@ four-instruction, 11-byte hot path. Final-byte negative controls remove guards,
 truncate before checking, invert carry, clobber a live scratch value and break
 abort alignment; each is rejected with a counterexample before publication.
 
+The register v3 profile adds unsigned checked negation and checked left/right
+shifts at u8/u16/u32/u64/usize widths. Negation returns zero only for a normalized
+zero input; every other unsigned value aborts. Shifts check the complete
+normalized count against the Core type width before x86 applies `CL & 63`.
+Left-shift result bits may wrap at the declared width; result-bit loss is not
+an additional shift trap. Dirty high ABI bits are normalized first: raw count
+256 becomes zero for u8, but is an invalid count for the larger widths.
+
+CL is an implicit machine operand. The allocator moves a still-live RCX value
+to a free caller-saved register before installing a different count, including
+when that value is the shift's own left operand. It does not overwrite RCX
+with the shift result while the count remains live. If no safe register is
+available, selection refuses before proof and auto may use checked Safe Core
+v3. Dead shift/negation results still perform their observable trap checks.
+
+The independent v3 decoder admits only the reviewed 64-bit register D3 /4 and
+/5 forms. Its model reads the original CL even when the destination is RCX,
+preserves the destination and CF/ZF when the effective count is zero, and
+models the final shifted-out bit and zero flag otherwise. The Core model
+checks the full type-width count separately. Final-byte controls remove or
+mask the count guard, change direction, add an incorrect result-overflow trap,
+omit result narrowing, corrupt live RCX and remove the negation guard. These
+produce SMT counterexamples. Fifteen ordinary backend wrappers and the direct
+register entries are covered, including a prior borrowed write followed by a
+shift abort. The v3 profile still excludes signed values and checked mul/div/rem.
+
+The register v4 profile adds checked unsigned multiplication at all five
+unsigned widths. Its independent Core model uses a full 128-bit product.
+The machine producer uses unsigned `MUL`, checks the high-half carry before
+any flag-clobbering instruction, then checks the complete low word against
+the declared width before narrowing. Dirty upper ABI bits are normalized
+before multiplication. A discarded checked result still retains its abort
+behavior, including products whose low 64 bits are zero.
+
+RAX and RDX are implicit outputs. Every still-live value in either register
+is moved to a free caller-saved register first; dying operands can remain in
+place because both operands are read before either output changes. This
+includes constants, repeated SSA operands and all six live ABI arguments.
+Exhausting the register budget refuses selection before proof, allowing auto
+to choose the ordinary checked v4 wrapper. Successful register paths retain
+zero hot stack use. A reachable overflow calls the existing aligned abort
+stub with 16 bytes of modeled maximum stack use; a constant multiplication
+that can never overflow has no reachable abort stack use.
+
+The v4 instruction model follows the
+[Intel SDM's unsigned MUL result and flag rules](https://cdrdv2-public.intel.com/782151/253667-sdm-vol-2b.pdf)
+(Volume 2B, order 253667-080US, pp. 4-146–4-147). The complete RDX:RAX product
+and CF are modeled independently of the emitter; undefined ZF becomes a fresh
+arbitrary Boolean. Old v1/v2/v3 decoders reject the new MUL form. The v4 decoder
+also retains v3 variable shifts, and the source chooses the lowest applicable
+profile. Existing wrapping multiply-add stays v2 with its original 11 bytes.
+
+Adversarial final-byte tests remove, invert or clobber the carry guard, truncate
+before the narrow range check, corrupt live RAX/RDX saves and break abort-stack
+alignment; these are refuted by counterexamples. Signed and wrong-operand
+MUL substitutions have separate constant-source counterexamples. Their full
+64-bit symbolic variants can reach the unchanged solver deadline; these
+attempts must reject as incomplete and publish no library, and are not counted
+as counterexample results. GNU assembler encodings, ordinary wrappers, native
+boundary execution and sealed-loader revalidation cover the additional form.
+The v4 profile still excludes checked division/remainder and signed arithmetic. This
+extension introduces no new measured Rust performance claim.
+
+The register v5 profile adds checked unsigned division and remainder at the
+same five widths. The producer checks the normalized divisor for zero, moves
+the dividend into RAX, explicitly clears RDX and executes unsigned `DIV`.
+Remainder uses the instruction's RDX output. It preserves live RAX/RDX values
+and also moves a dying divisor away from either implicit register before
+preparing the dividend. Constants, repeated operands and register pressure
+follow the same checked selection/fallback rules as multiplication.
+
+The independent model reads the actual 128-bit dividend and both preinstruction
+operands. A machine divide error is excluded from admitted terminal outcomes;
+the Core requires the existing aligned libc abort on a zero divisor. For a
+nonzero divisor D and words H/L, the quotient of `H*2**64+L` fits in one word
+exactly when `H < D`. When independently executed bytes establish H as the
+constant zero, exact 64-bit division/remainder expressions avoid an unnecessary
+128-bit SMT circuit. Every other state retains the full dividend. Missing or
+poisoned RDX clearing therefore yields a fault or a different proved result.
+The instruction's undefined CF and ZF are separate arbitrary Booleans, following
+the [Intel SDM DIV specification](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-2a-manual.pdf)
+(Volume 2A, order 253666-060US, pp. 3-285–3-287).
+
+Ten ordinary div/rem wrappers and the direct register entries pass the same
+five obligations. Negative controls target missing/inverted zero guards,
+the complete high dividend word, wrong divisors, wrong quotient/remainder
+outputs, live implicit registers and abort alignment. Separate native tests
+distinguish `SIGFPE` from the required `SIGABRT`; a machine fault never becomes
+a successful checked trap. GNU assembler encoding checks and all-integer
+division identities supplement the independent model. The unsigned integer
+operation names in the current primitive Core now have scalar semantics in
+v5; signed types, general calls/loops and wider language families still need
+their own validation. New arithmetic has no inherited Rust timing result.
+
 The three recognized Core recurrences also accept legal SSA and block
 renaming, and block declaration reordering. Recognition first validates the
 original typed Core, constructs bijections by CFG role and declaration
@@ -121,6 +225,54 @@ and traps. The `core_recognition` receipt records the original Core hash,
 normal-form hash and complete mapping separately; the artifact subject stays
 bound to the original Core. Renaming does not change machine bytes or any
 machine proof obligation.
+
+## Loaded checker and producer source identities
+
+Proof-source hashes now bind the modules that actually executed. Previously,
+a process could import a checker, replace its source file, then successfully
+validate with the old in-memory function while reporting the replacement
+file's hash. A retained local counterexample inserted an unconditional raise
+in the on-disk checker; the already imported checker still returned a complete
+successful proof attributed to those new bytes.
+
+`hia_loaded_source` closes that attribution gap for registered package
+modules. Ordinary module initialization passively captures the executing
+code object and a stable source snapshot using only the standard library.
+A proof's first identity request compares that code with an independent
+compilation of the snapshot, including nested code, constants, instruction
+bytes, flags and exception tables. The
+comparison uses the interpreter's actual optimization level and disables
+inheritance of the caller's compiler flags. Later identity requests bind the
+same module object and re-read its source through a bounded ordinary-file
+descriptor. Source drift, a replacement `sys.modules` object, missing source
+or a reload rejects validation, publication or loading. Reload attempts taint
+the old registration; installing changed verification code requires a fresh
+process. Every producer/consumer identity map also identifies this binding
+implementation. The native kernel hot path is unchanged.
+
+The regressions preserve timestamps and source sizes while changing both
+top-level constants and nested function bodies in valid timestamp caches.
+They also exercise actual scalar/SIMD proof calls, replaced decoder modules,
+and refusal before linker, CPU-probe or memfd effects. This package-loading
+contract trusts the running interpreter and bootstrap; it does not promise
+resistance to arbitrary in-process monkeypatches or authenticate an older
+process that predates the binding mechanism.
+
+Python's [module-cache contract](https://docs.python.org/3.12/reference/import.html#the-module-cache)
+explains why existing aliases can retain an older module.
+Its [bytecode-cache rules](https://docs.python.org/3.12/reference/import.html#cached-bytecode-invalidation)
+and [timestamp mode](https://docs.python.org/3.12/library/py_compile.html#py_compile.PycInvalidationMode.TIMESTAMP)
+compare modification time and size, so those metadata alone cannot establish
+executed-source equality. The independent compilation follows the documented
+[`compile` flags and optimization semantics](https://docs.python.org/3.12/library/functions.html#compile).
+
+The scalar and SIMD solver identities additionally bind a controlled first
+import of the complete Z3 Python package and the actual mapped native library.
+Pre-load descriptors, executed code comparison and repeated mapping/file checks
+reject source or library replacements even before the first proof. A process
+that imported Z3 before admission must start a new process. See
+[Loaded solver identity](HIA_LOADED_SOLVER_IDENTITY.md) for the receipt profile,
+loading contract, negative controls and explicit Python/OS trust boundary.
 
 ## CPU admission and immutable loading
 
@@ -149,7 +301,7 @@ native_function = kernel.function
 ```
 
 `load_verified_scalar_kernel(core, object_bytes, final_bytes)` supplies the
-same immutable-mapping admission for unsigned Safe Core v2 scalar direct
+same immutable-mapping admission for unsigned Safe Core v2/v3/v4/v5 scalar direct
 entries. It reruns the independent scalar consumer, rejects borrowed arguments
 and wrappers, and exposes zero to six raw uint64 SysV argument words with a
 canonical uint64 return. The proved machine body performs narrow-width input
@@ -167,7 +319,9 @@ binding the image, so a stale GNU IFUNC cannot execute during lookup.
 Mappings remain in a bounded process-lifetime registry (64 images and 64 MiB).
 Every load repeats validation and CPU admission and returns its own function
 ABI object; mutable old reports or ctypes attributes do not authorize another
-load. The native call itself has no solver, CPUID or dispatch wrapper. Callers
+load. The scalar profile version is chosen anew from verified Core and is part
+of the cache identity; a previous receipt cannot grant a later version admission. The native
+call itself has no solver, CPUID or dispatch wrapper. Callers
 retain live borrowed ranges and an ISA-compatible execution environment,
 including after any later thread migration or affinity change.
 
@@ -176,7 +330,8 @@ including after any later thread migration or affinity change.
 One straight-line Core function may use `bool`, `u8`, `u16`, `u32`, `u64` and
 `usize`, wrapping arithmetic, bitwise and Boolean operations, unsigned
 comparisons, `select`, wrapping casts and constants. The emitter uses only
-SysV caller-saved registers. Unsupported control flow, checked operations and
+SysV caller-saved registers. The v2/v3/v4/v5 additions above admit their explicit
+checked operations. Unsupported control flow, remaining checked operations and
 excess register pressure produce explicit selection refusals.
 
 The example `a * b + c` on `u64` emits this eleven-byte hot path:
@@ -222,9 +377,10 @@ The Core specification itself performs complete extent admission before its
 first byte operation, preserving early-trap memory effects.
 
 The scalar API from `simd_kernel_program(kind)` specifies the complete
-five-block recurrence. The first profile recognizes those blocks and their
-local SSA names exactly; module and export names may differ. It does not
-recognize arbitrary source loops merely because they resemble a reduction.
+five-block recurrence. The recognizer accepts reversible SSA and block
+renaming while preserving the original Core subject. Operations, effects,
+edge arguments and the complete recurrence still have to match the reviewed
+profile; module and export names may differ.
 
 ## What the independent SIMD model proves
 
@@ -300,6 +456,19 @@ polluting the zero register needed by the next stage; they produce concrete
 SMT counterexamples. All fourteen historical SSE2, wide-byte and endpoint
 objects retain their exact byte hashes.
 
+The explicit `reduce-bounded-one` profiles retain those 22 obligations and
+add three, for 25 per image: the decoded single-byte entry partition, its
+access bounds, and its result plus register frame. Only after the original
+extent, nonnull and nonwrapping-address checks does `count == 1` branch to
+one exact byte load and the common return. Zero scan retains the common
+Boolean result normalization. This path needs no vector initialization or
+horizontal reduction. Every other nonempty length follows the existing bounded
+reduction after the extra entry test; its performance must therefore be
+assessed across the whole matrix. The independent checker decodes the actual
+load address and destination, and changed destinations produce functional
+and register-frame counterexamples. The original `"bounded"` default and
+all previous wide object/text bytes remain unchanged.
+
 The induction connects the decoded backedges with the scalar Core recurrence.
 Its trust base is the stated Python Core/ISA/loop/ELF models, GNU/Linux loader
 contract and pinned Z3 implementation. A caller supplies live initialized
@@ -350,7 +519,7 @@ ISA. The ordinary HIA span baseline retains its checked packed-u32 wrapper;
 all measured counts and sums fit u32, so these valid-input results agree with
 the new u64 API. Invalid-input ABI behavior is not equated.
 
-The current v5 protocol preserves every v4 arm and its exact machine profile,
+The v5 protocol preserves every v4 arm and its exact machine profile,
 including both copy byte-tail controls. Six additional profiles cover the
 default bounded sum/zero tails and fast one-byte endpoint-copy dispatch at
 both wide ISAs. Their 138 additional cases produce 671 total cases and
@@ -359,6 +528,16 @@ labels remain fixed to their old reduction byte tails and old copy endpoints;
 the new defaults have explicit `bounded-tail` and `copy-endpoints-fast` arm
 names. The driver, reference code, lengths, iteration counts and compiler
 flags are unchanged.
+
+The current v6 protocol preserves all 671 v5 case bindings and adds 92 cases:
+wide sum and zero scan with `bounded-one`, at both ISAs and all 23 lengths.
+It contains 763 cases and 16,023 measured samples. The two new arms are named
+`verified-avx2-bounded-one` and `verified-avx512-bounded-one`; all fourteen
+previous wide objects are constructed with explicit original tail selections,
+including `"bounded"` and `"endpoints-fast"`. The full wide inventory is
+18 builds with 356 solver obligations. Driver, reference sources, lengths,
+iteration counts and compiler flags stay fixed. This protocol extension
+adds no completed-campaign or performance conclusion by itself.
 
 These measurements describe the declared hot-cache kernels on a shared host.
 Affinity does not make a core exclusive, and the raw samples remain available
@@ -539,3 +718,77 @@ The frozen `60409ea` implementation passes the full strict 272-test inventory
 locally and in both [PR CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44665015777)
 and [push CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44665008906),
 with no skips. New source changes require a new contract and applicable gates.
+
+### Complete bounded-tail campaign
+
+The [fifth campaign summary](../benchmarks/hia_verified_kernels/results/ai395-20261120-bounded-summary.json)
+and [complete record](../benchmarks/hia_verified_kernels/results/ai395-20261120-bounded.json.gz)
+bind **671 cases and 14,091 samples** to source
+`e9de97cee2a44cfbe044b245f2cf344c2cc3ef47`, tree
+`0cc7dafab1cf665d9df410cc14136e3f7374d6d3`. The complete run took 112.454
+seconds, with no selected-cell reruns. Its original RESULT SHA256 is
+`445bb5040ee83ba09f531f4fcf1bea065b9b5cd95f471b9fa0789a4be9adfc29`;
+the decompressed public SHA256 is
+`968dbe823b86968c21fbec3e218a55b8597a1fd6f0759b7dd77ac357f2623e30`.
+The independent readback checked all samples, 711 command receipts,
+29 binaries, fourteen wide builds and 256 SMT query identities. All previous
+533 library/symbol bindings and eight old wide object/text/final-image hashes
+match their fourth-campaign controls. A separate local readback recomputed
+the complete case order, checksums, timings, medians and Rust ratios.
+
+New-default median latency, in nanoseconds per call:
+
+| Workload | Verified AVX2 | Verified AVX-512 | Rust native |
+| --- | ---: | ---: | ---: |
+| Byte sum, 4 KiB | 18.913 | 12.930 | 67.402 |
+| All-zero scan, 4 KiB | 19.121 | 13.095 | 12.669 |
+| Copy, 4 KiB | 35.775 | 20.516 | 17.585 |
+| Byte sum, 64 KiB | 314.380 | 290.150 | 1139.131 |
+| All-zero scan, 64 KiB | 318.800 | 321.060 | 285.600 |
+| Copy, 64 KiB | 545.920 | 578.600 | 768.850 |
+
+AVX-512's new defaults have 42 lower and 27 higher medians across the 69
+span pairs; AVX2 has 40 lower and 29 higher. The descriptive minimum of both
+has 44 lower and 25 higher, without implying an implemented per-length
+dispatcher. The one-byte copy median improves from the simultaneous original
+endpoint control's 1.879 ns to 1.418 ns for AVX-512. Its 32-byte sum improves
+from the old byte-tail control's 7.422 ns to 2.004 ns. Remaining empty and
+one-byte paths, exact-vector boundaries, 4 KiB copy and 64 KiB zero scan remain
+visible. AVX2 4 KiB copy regresses from the old endpoint control's 28.597 ns
+to 35.775 ns; every sample is retained. Scalar multiply-add is 0.998354 ns
+versus Rust's 0.996595 ns, an unresolved small difference.
+
+**Allocation limitation in campaigns one through five:** the driver allocates
+buffers after loading each DSO, then varies offsets 1–16 relative to those
+allocations. It does not record or equalize the absolute cache-line/page
+phases or source/destination distance. The fifth-campaign AVX2 copy regression
+has separated sample ranges even though the long-copy bulk bytes did not
+change. Different allocator/loader layouts are a plausible confound; the old
+evidence cannot establish that cause. The observed timings remain intact,
+but do not isolate the effect of the code change. A later protocol must bind
+controlled address phases, distance and both copy address orders explicitly.
+
+The frozen `e9de97c` source also passes all 298 strict tests in both
+[PR CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44667378159)
+(84.516 seconds) and [push CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44667371850)
+(83.131 seconds), with no skips. These results do not qualify later source
+changes or the new scalar v3/v4/v5 extensions.
+
+### Complete matching-source caller qualification
+
+The [60409 qualification receipt](../benchmarks/hia_verified_kernels/results/qualification-60409-20261120.json),
+[exact source manifest](../benchmarks/hia_verified_kernels/results/source-manifest-60409-20261120.json)
+and [original evidence archive](../benchmarks/hia_verified_kernels/results/qualification-evidence-60409-20261120.zip)
+retain the new cold 11/11, native CLI 22, installed-wheel controls and the
+complete original selected-caller inventory: component 11, original-machine
+51 and original-Core 50, all passing with zero skips. The three caller groups
+took 49.624, 33.630 and 41.597 seconds, respectively. Their full ID lists,
+report/log hashes and source-stability checks are in the receipt. The route
+test that failed on `633feee` passes inside the unchanged original 50-test group.
+
+Two preceding local attempts exposed missing checkout files outside the cold
+source closure. Both failures and their original reports/logs are retained.
+The successful attempt followed complete tests/examples and recursive tool
+dependency staging from exact `60409ea` Git blobs; no gate or product code was
+changed to obtain the pass. The cold-source manifest stayed byte-identical.
+These receipts bind `60409ea`, not a later source revision.

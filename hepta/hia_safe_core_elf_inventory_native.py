@@ -230,3 +230,7 @@ def installed_safe_core_elf_inventory(path):
 def selected_safe_core_elf_inventory():
     selected = os.environ.get(SELECTOR)
     return None if selected is None else installed_safe_core_elf_inventory(selected)
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

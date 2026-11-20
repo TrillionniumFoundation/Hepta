@@ -487,3 +487,7 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
                         "function_shape": "direct_entry" if direct else "internal_with_wrapper",
                         "entry_symbol": export, "dynamic_binding": "NOW",
                         "external_semantics": "libc abort is nonreturning"}}
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

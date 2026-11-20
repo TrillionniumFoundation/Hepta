@@ -491,6 +491,16 @@ def check_release(release, directory):
             receipt['implementation_sha256'] = packed_implementation_sha256(release / 'hia-build-object')
             expected = wire(receipt, pretty=True)
             arguments += ['--output', str(build_target)]
+        elif action == 'capabilities':
+            # The installed static release has no linker or solver. Keep the
+            # complete hosted oracle for every shared field; require the exact
+            # standalone build inventory rather than advertising hosted modes.
+            capabilities = json.loads(reference_cli([action]))
+            build = capabilities['build']
+            build.update(backend='native', available_backends=['native', 'selfhost'])
+            for hosted_only in ('available_kinds', 'auto_object', 'auto_shared', 'native_shared'):
+                del build[hosted_only]
+            expected = wire(capabilities, pretty=True)
         else:
             expected = reference_cli([action, *arguments])
         normal = subprocess.run([release / 'hia', action, *arguments], input=b'ignored stdin',
@@ -499,6 +509,23 @@ def check_release(release, directory):
             action, normal.returncode, normal.stdout, normal.stderr)
         if action == 'build':
             assert build_target.read_bytes() == original.read_bytes()
+        checked_actions += 1
+    explicit_object = directory / 'explicit.o'
+    command = [release / 'hia', 'build', source, '--backend', 'auto', '--kind', 'object',
+               '--output', explicit_object]
+    result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+    explicit_receipt = json.loads(result.stdout)
+    assert explicit_receipt['output'] == str(explicit_object)
+    explicit_receipt['output'] = str(build_target)
+    assert (result.returncode, explicit_receipt, result.stderr) == (0, receipt, b'')
+    assert explicit_object.read_bytes() == original.read_bytes()
+    checked_actions += 1
+    for backend in ('auto', 'native'):
+        shared = directory / f'standalone-{backend}.so'
+        command = [release / 'hia', 'build', source, '--backend', backend, '--kind', 'shared',
+                   '--output', shared]
+        result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (64, b'', b'') and not shared.exists()
         checked_actions += 1
     for action in ('patch', 'impact'):
         arguments = [action, source, '--request', request_v2_file]

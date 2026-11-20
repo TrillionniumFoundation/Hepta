@@ -6,6 +6,8 @@ The ordinary language compiler and its runtime checks are unchanged.
 """
 from __future__ import annotations
 
+from .hia_loaded_source import loaded_source_identity
+
 from hashlib import sha256
 from pathlib import Path
 import json
@@ -19,7 +21,7 @@ from .artifact_publication import publish_verified, verify_published, withdraw_o
 from .clang_capture import run_bounded
 from .hia_machine_x64 import native_implementation_identity
 from .hia_program import verify_program
-from .hia_safe_core import build_safe_core, _profile
+from .hia_safe_core import build_safe_core, _profile, _unsigned_profile_version
 from .hia_verified_image import MAX_VERIFIED_IMAGE_BYTES, VerifiedImageRejected, read_bounded_elf_image
 from .native_tool_identity import digest_executable
 
@@ -40,8 +42,7 @@ def _require(condition, message):
 
 
 def _simd_producer_identity():
-    return {**{name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-               for name in SIMD_SOURCE_FILES},
+    return {**loaded_source_identity(__name__, SIMD_SOURCE_FILES),
             "selected_native_encoder": sha256(native_implementation_identity()).hexdigest()}
 
 
@@ -70,8 +71,8 @@ def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, si
                                       simd_copy_tail in ("byte", "endpoints", "endpoints-fast")),
              "SIMD copy tail must be byte, endpoints, endpoints-fast or None")
     _require(simd_reduce_tail is None or (type(simd_reduce_tail) is str and
-                                        simd_reduce_tail in ("byte", "bounded")),
-             "SIMD reduction tail must be byte, bounded or None")
+                                        simd_reduce_tail in ("byte", "bounded", "bounded-one")),
+             "SIMD reduction tail must be byte, bounded, bounded-one or None")
     checked = verify_program(document)
     refusals = []
     if strategy in {"auto", "scalar"} and foreign_extent is None:
@@ -97,7 +98,7 @@ def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, si
     if len(functions) != 1:
         raise VerifiedKernelRejected("one function is required")
     exports = () if foreign_extent is None else ((functions[0]["name"], foreign_extent),)
-    _profile(checked, foreign_buffer_exports=exports, profile_version=2)
+    _profile(checked, foreign_buffer_exports=exports, profile_version=_unsigned_profile_version(checked))
     return checked, "checked", None, refusals
 
 
@@ -121,6 +122,8 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                      "simd_isa": image.isa if selected == "simd" else None,
                      "simd_copy_tail": image.copy_tail if selected == "simd" else None,
                      "simd_reduce_tail": image.reduce_tail if selected == "simd" else None,
+                     "core_profile_version": (_unsigned_profile_version(checked)
+                                              if selected in {"scalar", "checked"} else None),
                      "object_sha256": sha256(image.object_bytes).hexdigest() if image is not None else None}
         with (directory / "selection.json").open("x") as stream:
             json.dump(selection, stream, sort_keys=True, indent=2)
@@ -136,7 +139,8 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
     elif selected == "checked":
         result = build_safe_core(checked, output, foreign_extent=foreign_extent,
                                 linker=linker, timeout_ms=timeout_ms,
-                                query_directory=query_directory, profile_version=2)
+                                query_directory=query_directory,
+                                profile_version=_unsigned_profile_version(checked))
     else:
         from .hia_verified_simd_check import validate_verified_simd_artifact
         _require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
@@ -184,9 +188,9 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                 _require(cpu_admission["affinity"] == sorted(os.sched_getaffinity(0)),
                          "CPU affinity changed during build")
                 identity = validation["checker"]["source_identity"]
-                for filename, expected in identity.items():
-                    if sha256(Path(__file__).with_name(filename).read_bytes()).hexdigest() != expected:
-                        raise VerifiedKernelRejected("checker changed before final publication")
+                current = loaded_source_identity(__package__ + ".hia_verified_simd_check", tuple(identity))
+                if current != identity:
+                    raise VerifiedKernelRejected("checker changed before final publication")
 
             recheck()
             publication = publish_verified(candidate, destination, data)
@@ -211,3 +215,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
         }
     return {**result, "selected_strategy": selected, "selection_refusals": refusals,
             "runtime_solver_calls": 0}
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

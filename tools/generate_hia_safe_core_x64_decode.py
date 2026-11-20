@@ -7,7 +7,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_x64_decode_native import (
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
-    MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, RECIPE_IDS, RECIPE_INPUTS,
+    MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE,
 )
@@ -17,6 +17,7 @@ SOURCE_PATH = 'examples/hia_bootstrap/safe_core_x64_decode.hepta'
 FIELDS = {
     'CURSOR': 0, 'ERROR': 8, 'MODE': 16, 'GROUP': 24, 'REG': 32, 'RM': 40, 'DISP': 48,
     'OP': 64, 'A': 72, 'B': 80, 'C': 88,
+    'PROFILE': PROFILE_OFFSET,
     'BOUNDARIES': 128, 'MAX_TEXT': MAX_TEXT, 'MAX_CODE': MAX_INSTRUCTIONS, 'WORKSPACE': WORKSPACE,
 }
 FIELDS.update({'OP_' + name.upper(): index for name, index in MACHINE_FORMULA_IDS.items()})
@@ -54,6 +55,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     if size == 0 or size > MAX_TEXT:
         return terminal(o, E_TEXT_BUDGET, 0, 0)
+    if get(w, PROFILE) > 7:
+        return 4294967293
     if length(o) < 24 + choose(size < MAX_CODE, size, MAX_CODE) * 48:
         return 4294967294
     put(w, CURSOR, 0)
@@ -309,7 +312,9 @@ def decode_extension(s:readbuf, w:mutbuf, rex:u64) -> u64:
 
 def decode_operands(s:readbuf, w:mutbuf, rex:u64, opcode:u64) -> u64:
     alu = alu_operation(opcode)
-    if alu == 0 and opcode != 0x89 and opcode != 0x8b and opcode != 0x8d and opcode != 0x88 and opcode != 0x81 and opcode != 0x83 and opcode != 0xc1 and opcode != 0xf7:
+    if opcode == 0xd3 and (get(w, PROFILE) & 1) == 0:
+        return fail(w, E_VARIABLE_SHIFT_PROFILE)
+    if alu == 0 and opcode != 0x89 and opcode != 0x8b and opcode != 0x8d and opcode != 0x88 and opcode != 0x81 and opcode != 0x83 and opcode != 0xc1 and opcode != 0xd3 and opcode != 0xf7:
         return fail(w, E_OPCODE)
     modrm(s, w, rex)
     wide = (rex & 8) != 0
@@ -347,8 +352,20 @@ def decode_operands(s:readbuf, w:mutbuf, rex:u64, opcode:u64) -> u64:
         if invalid_group or (group != 4 and group != 5) or count >= 64:
             return fail(w, E_SHIFT)
         return emit(w, choose(group == 4, OP_SHL, OP_SHR), rm, count, 0)
-    if invalid_group or group != 2:
+    if opcode == 0xd3:
+        if invalid_group or (group != 4 and group != 5):
+            return fail(w, E_VARIABLE_SHIFT)
+        return emit(w, choose(group == 4, OP_SHL_CL, OP_SHR_CL), rm, 0, 0)
+    if invalid_group or (group != 2 and group != 4 and group != 6):
         return fail(w, E_UNARY)
+    if group == 4:
+        if (get(w, PROFILE) & 2) == 0:
+            return fail(w, E_UNSIGNED_MULTIPLY_PROFILE)
+        return emit(w, OP_MUL, rm, 0, 0)
+    if group == 6:
+        if (get(w, PROFILE) & 4) == 0:
+            return fail(w, E_UNSIGNED_DIVIDE_PROFILE)
+        return emit(w, OP_DIV, rm, 0, 0)
     return emit(w, OP_NOT, rm, 0, 0)
 
 def decode_instruction(s:readbuf, w:mutbuf) -> u64:
@@ -442,6 +459,10 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
     if op == OP_IMUL:
         return imul_formula(o)
+    if op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR:
+        return variable_shift_formula(o, op == OP_VARIABLE_SHL)
+    if op == OP_MULTIPLY_WORDS or op == OP_DIVIDE_WORDS:
+        return pair_formula(o, op)
     return alu_formula(o, op)
 
 def stack_formula(o:mutbuf, op:u64) -> u64:
@@ -540,6 +561,38 @@ def imul_formula(o:mutbuf) -> u64:
     cf = node(o, R_NE, full, restored, 0)
     return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), ARBITRARY, cf, 0)
 
+def variable_shift_formula(o:mutbuf, left:bool) -> u64:
+    # CL is captured from the pre-instruction state; the masked zero count
+    # retains both flags and the old destination, including RCX aliases.
+    count = node(o, R_AND, RIGHT, node(o, R_LITERAL64, 63, 0, 0), 0)
+    zero = node(o, R_ZERO, count, 0, 0)
+    raw = node(o, choose(left, R_SHL_DYNAMIC, R_LSHR_DYNAMIC), LEFT, count, 0)
+    base = node(o, R_LITERAL64, choose(left, 64, 1), 0, 0)
+    index = node(o, R_SUB, choose(left, base, count), choose(left, count, base), 0)
+    shifted = node(o, R_LSHR_DYNAMIC, LEFT, index, 0)
+    bit = node(o, R_EXTRACT, shifted, 0, 0)
+    carry = node(o, R_ONE, bit, 0, 0)
+    result = node(o, R_CHOOSE, zero, LEFT, raw)
+    zf = node(o, R_CHOOSE, zero, ZF, node(o, R_ZERO, raw, 0, 0))
+    cf = node(o, R_CHOOSE, zero, CF, carry)
+    return formula_done(o, result, zf, cf, 0)
+
+def pair_formula(o:mutbuf, op:u64) -> u64:
+    if op == OP_DIVIDE_WORDS:
+        quotient = node(o, R_UDIV_WORDS, RIGHT, LEFT, THIRD)
+        remainder = node(o, R_UREM_WORDS, RIGHT, LEFT, THIRD)
+        nonzero = node(o, R_NONZERO, THIRD, 0, 0)
+        fits = node(o, R_ULT, RIGHT, THIRD, 0)
+        admitted = node(o, R_BOOL_AND, nonzero, fits, 0)
+        return formula_done(o, quotient, remainder, ARBITRARY, admitted)
+    a = node(o, R_ZEROEXT, LEFT, 64, 0)
+    b = node(o, R_ZEROEXT, THIRD, 64, 0)
+    product = node(o, R_IMUL, a, b, 0)
+    low = node(o, R_EXTRACT, product, 63, 0)
+    high = node(o, R_EXTRACT, product, 127, 64)
+    carry = node(o, R_NONZERO, high, 0, 0)
+    return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), node(o, R_SIMPLIFY, high, 0, 0), carry, 0)
+
 def core_scalar_formula(o:mutbuf, op:u64, width:u64, literal:u64) -> u64:
     if length(o) < 40 + MAX_RECIPE_NODES * 32:
         return 4294967294
@@ -563,6 +616,8 @@ def core_scalar_formula(o:mutbuf, op:u64, width:u64, literal:u64) -> u64:
         return formula_done(o, node(o, R_CHOOSE, use_then, RIGHT, THIRD), 0, 0, 0)
     if op >= C_INT_ADD_WRAP and op <= C_INT_SUB_CHECKED:
         return core_numeric_formula(o, op, width)
+    if op >= C_INT_MUL_CHECKED and op <= C_INT_SHR_CHECKED and width != 1:
+        return core_checked_formula(o, op, width)
     if op == C_INT_CAST_WRAP or op == C_INT_CAST_CHECKED:
         mask = core_mask(o, width)
         value = core_normalized(o, LEFT, mask)
@@ -605,6 +660,25 @@ def core_numeric_formula(o:mutbuf, op:u64, width:u64) -> u64:
     if op == C_INT_SUB_CHECKED:
         trap = node(o, R_ULT, LEFT, RIGHT, 0)
     return formula_done(o, value, 0, 0, trap)
+
+def core_checked_formula(o:mutbuf, op:u64, width:u64) -> u64:
+    if op == C_INT_MUL_CHECKED:
+        a = node(o, R_ZEROEXT, LEFT, 64, 0)
+        b = node(o, R_ZEROEXT, RIGHT, 64, 0)
+        product = node(o, R_IMUL, a, b, 0)
+        high = node(o, R_EXTRACT, product, 127, width)
+        trap = node(o, R_NONZERO, high, 0, 0)
+        low = node(o, R_EXTRACT, product, 63, 0)
+        return formula_done(o, core_normalized(o, low, core_mask(o, width)), 0, 0, trap)
+    if op == C_INT_DIV_CHECKED or op == C_INT_REM_CHECKED:
+        value = node(o, choose(op == C_INT_DIV_CHECKED, R_UDIV, R_UREM), LEFT, RIGHT, 0)
+        return formula_done(o, value, 0, 0, node(o, R_ZERO, RIGHT, 0, 0))
+    if op == C_INT_NEG_CHECKED:
+        raw = node(o, R_SUB, node(o, R_LITERAL64, 0, 0, 0), LEFT, 0)
+        return formula_done(o, core_normalized(o, raw, core_mask(o, width)), 0, 0, node(o, R_NONZERO, LEFT, 0, 0))
+    trap = node(o, R_UGE, RIGHT, node(o, R_LITERAL64, width, 0, 0), 0)
+    value = node(o, choose(op == C_INT_SHL_CHECKED, R_SHL_DYNAMIC, R_LSHR_DYNAMIC), LEFT, RIGHT, 0)
+    return formula_done(o, core_normalized(o, value, core_mask(o, width)), 0, 0, trap)
 
 def core_compare_formula(o:mutbuf, op:u64) -> u64:
     primitive = R_EQ

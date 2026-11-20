@@ -143,7 +143,7 @@ def _reduce_word_load(c, width):
     c.emit(prefix + opcode + bytes((0x0f,)))
 
 
-def _reduce_bounded(c, width, kind):
+def _reduce_bounded(c, width, kind, *, fast_one=False):
     """Preserve wide loops, then consume disjoint 16/8/4/2/1-byte ranges.
 
     Inputs smaller than one wide vector initialize only the two 128-bit
@@ -162,6 +162,12 @@ def _reduce_bounded(c, width, kind):
     c.add("r9", "rdx")
     c.jcc("b", "abort")
     c.mov_rr("r10", "rdx")
+    if fast_one:
+        # This path is reached only after the complete range/null/wrap
+        # admission. It reads exactly the sole requested byte and performs
+        # no vector instruction, initialization or suffix dispatch.
+        c.alu_imm("cmp", "r10", 1)
+        c.jcc("e", "single_byte")
     c.alu_imm("cmp", "r10", width)
     c.jcc("b", "short_init")
     for register in (0, 2, 3, 4, 5):
@@ -228,6 +234,10 @@ def _reduce_bounded(c, width, kind):
         c.test("rax", "rax")
         c.setcc("e", "rax")
     c.ret()
+    if fast_one:
+        c.label("single_byte")
+        c.emit(bytes.fromhex("480fb607"))  # movzx rax,byte ptr [rdi], no displacement
+        c.jmp("done")
 
 
 def _copy_byte_tail(c, width):
@@ -398,10 +408,17 @@ def emit_wide_simd(c, kind, isa, *, copy_tail="endpoints-fast", reduce_tail="bou
         else:
             _copy_endpoints(c, width, fast_one=copy_tail == "endpoints-fast")
     else:
-        if reduce_tail not in ("byte", "bounded"):
+        if reduce_tail not in ("byte", "bounded", "bounded-one"):
             raise ValueError("unsupported wide reduction tail strategy")
-        (_reduce_byte_tail if reduce_tail == "byte" else _reduce_bounded)(c, width, kind)
+        if reduce_tail == "byte":
+            _reduce_byte_tail(c, width, kind)
+        else:
+            _reduce_bounded(c, width, kind, fast_one=reduce_tail == "bounded-one")
     c.label("abort")
     c.alu_imm("sub", "rsp", 8)
     c.call("abort")
     c.ud2()
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

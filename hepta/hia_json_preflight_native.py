@@ -188,3 +188,7 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
 def installed_preflight(manifest_path: str) -> NativeJsonPreflight:
     """Only an operator-selected local artifact; never selected by JSON payload."""
     return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeJsonPreflight)
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

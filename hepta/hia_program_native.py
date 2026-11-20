@@ -1028,3 +1028,7 @@ def build_program_machine(document, output, *, kind="shared", linker="cc", targe
     if budget is not None:
         result["bounded_resources"] = budget
     return result
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)
