@@ -63,6 +63,19 @@ class ServiceArtifactWorkerTerminalSourceTests(unittest.TestCase):
             self.assertEqual(len(current), count)
             self.assertEqual(list(original), authority.value['scope']['original_classes_and_methods'][cls_name])
             for name in original:
+                if name == 'test_complete_fresh_originals_and_unselected_public_route':
+                    # Only the test double's binding changed. Recheck the two
+                    # exact class prefixes, then compare the full test body.
+                    new_service, = (node for node in current[name].body
+                                    if isinstance(node, ast.ClassDef) and node.name == 'Service')
+                    expected = ast.parse('class Service(api.HIAAgentService):\n'
+                                         '    def __init__(self):\n'
+                                         '        self.store = Store()\n').body[0]
+                    self.assertEqual(len(new_service.bases), 1)
+                    self.assertEqual(ast.dump(new_service.bases[0]), ast.dump(expected.bases[0]))
+                    self.assertEqual(ast.dump(new_service.body[0]), ast.dump(expected.body[0]))
+                    new_service.bases.clear()
+                    new_service.body[0] = ast.parse('store = Store()').body[0]
                 if name != 'test_actual_installed_worker_and_durable_parent_ACK_loss':
                     self.assertEqual(ast.dump(original[name]), ast.dump(current[name]))
                 else:
@@ -268,7 +281,7 @@ class ServiceArtifactWorkerTerminalSourceTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 observed.report()
         valid = self.valid('lost-put-ACK')
-        for field, bad in (('version', True), ('version', 3), ('lost_ack_exit', True),
+        for field, bad in (('version', True), ('version', 4), ('lost_ack_exit', True),
                            ('lost_ack_exit', 1), ('worker', dict(producer.WORKERS[1]))):
             changed = copy.deepcopy(valid)
             changed['profile'][field] = bad

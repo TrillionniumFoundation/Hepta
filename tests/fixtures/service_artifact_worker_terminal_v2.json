@@ -58,14 +58,19 @@
   "source_successors": {
     "tests/test_hia_service_artifact_native.py": {
       "current": {
-        "bytes": 45519,
-        "sha256": "931eb6a39f472cd09710af77303374a01e577fe32f9d8cbe1896ca8951840772"
+        "bytes": 45581,
+        "sha256": "6256cb22b961c0591f60fef6506e8e61338bc11ec45fdbfc9843ef8b2619be8e"
       },
       "original": {
         "bytes": 43544,
         "sha256": "f96df0eba2f71c3b282ad49b1ab28f49d4a51b3d89aec7c38e5a7b9996b536f3"
       },
       "splices": [
+        {
+          "after": "        class Service(api.HIAAgentService):\n            def __init__(self):\n                self.store = Store()\n",
+          "before": "        class Service:\n            store = Store()\n",
+          "offset": 7881
+        },
         {
           "after": "hia_service_artifact_worker_terminal import SourceAuthority, assert_terminal, worker_profile, process_record\n        from tools.read_hia_service_artifact_worker_terminal import Captures, admit_source_authority, verify_terminal, read_installation\n        authority = SourceAuthority(ROOT)\n        readback = Captures()\n        self.assertEqual(admit_source_authority(readback, ROOT), authority.summary())\n        self.addCleanup(authority.finish)\n        self.addCleanup(readback.stable)\n        from tests.",
           "before": "",
