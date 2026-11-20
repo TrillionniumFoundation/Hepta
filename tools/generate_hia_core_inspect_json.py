@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_core_admission_native import ERROR_CODES as CORE_ERRORS
 from hepta.hia_json_preflight_native import SYNTAX_REASONS
 from hepta.hia_composite_constructor_errors import ERRORS as CONSTRUCTOR_DIAGNOSTICS
 from hepta.hia_composite_functions_errors import ERRORS as FUNCTION_DIAGNOSTICS
@@ -31,8 +32,8 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967293
     mode = get(w, length(w) - 8)
     if CLI_DRIVER:
-        if mode == DRIVER_REPORT_MODE:
-            return driver_report(o, w, get(w, length(w) - 16))
+        if mode == DRIVER_REPORT_MODE or mode == CORE_DRIVER_REPORT_MODE:
+            return driver_report(s, o, w, get(w, length(w) - 16))
         if mode == EDIT_QUERY_SYNTAX_MODE:
             return edit_query_syntax(s, o, w)
     if NOMINAL:
@@ -110,12 +111,20 @@ def inspect_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     return size
 
-def driver_report(o:mutbuf, w:mutbuf, status:u64) -> u32:
+def driver_report(s:readbuf, o:mutbuf, w:mutbuf, status:u64) -> u32:
     # Keep admission's exact refusal site distinct from private protocol
     # errors and from the verified assembly profile decision.
     put(w, 56, 0)
     lit(o, w, '{\n  "diagnostics": [\n    {\n      "code": "E_DRIVER",\n      "message": "')
-    if status == 0:
+    if get(w, length(w) - 8) == CORE_DRIVER_REPORT_MODE:
+        if length(s) == 0 or length(s) > length(w) - 128 or core_driver_code(o, w, status) == 0:
+            return 4294967293
+        i = 0
+        while i < length(s):
+            store(w, 64 + i, byte(s, i))
+            i = i + 1
+        append_string_bytes(o, w, 64, length(s))
+    elif status == 0:
         lit(o, w, 'E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8/v9 Core; use the existing adapter first')
     elif status == 4294967294:
         lit(o, w, 'E_HIA_LIMIT: program exceeds structural budget before JSON allocation')
@@ -139,17 +148,17 @@ def edit_query_syntax(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         else:
             unit = decoded(s, index)
             if unit & 4294967295 > 1114111:
-                return driver_report(o, w, 65800)
+                return driver_report(s, o, w, 65800)
             index = unit >> 32
     put(w, 48, 262144)
     put(w, 56, 128)
     status = widen(preflight(s, o, w))
     if status == 1:
-        return driver_report(o, w, 65800 + get(w, 32))
+        return driver_report(s, o, w, 65800 + get(w, 32))
     if status == 2:
-        return driver_report(o, w, 65821)
+        return driver_report(s, o, w, 65821)
     if status == 4:
-        return driver_report(o, w, 65822)
+        return driver_report(s, o, w, 65822)
     if status != 0:
         return 4294967293
     # With valid grammar, a digit run outside a string is one integer token.
@@ -167,7 +176,7 @@ def edit_query_syntax(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         elif ch >= 48 and ch <= 57:
             end = atom(s, index)
             if end - index > 4300:
-                return driver_report(o, w, 100000000 + end - index)
+                return driver_report(s, o, w, 100000000 + end - index)
             index = end
         else:
             index = index + 1
@@ -477,7 +486,7 @@ def report_source():
     return ''.join(lines)
 
 
-def fragment_source():
+def fragment_source(*, core_diagnostics=False):
     pretty = core_pretty_source()
     nodes = ast.parse(pretty).body
     root = nodes[0]
@@ -497,6 +506,13 @@ def fragment_source():
     fragment = fragment.replace('newline(o, w, depth)', 'pretty_line(o, w, depth, pretty)')
     fragment = fragment.replace('append_byte(o, w, 32)', 'colon_space(o, w, pretty)')
     fragment = fragment[:fragment.rindex('    append_byte(o, w, 10)')] + '    return 0\n'
+    if core_diagnostics:
+        string = next(node for node in nodes[1:] if node.name == 'append_string')
+        quote_body = ast.parse(ast.unparse(string)).body[0]
+        quote_body.name = 'append_string_bytes'
+        quote_body.body = quote_body.body[1:-2] + quote_body.body[-1:]
+        string.body[1:-2] = ast.parse('append_string_bytes(o, w, start, size)').body
+        nodes.append(quote_body)
     helper = ast.unparse(ast.Module(body=nodes[1:], type_ignores=[]))
     return fragment + helper + '''
 def pretty_line(o:mutbuf, w:mutbuf, depth:u64, pretty:u64) -> u64:
@@ -540,6 +556,7 @@ def source_program(*, nominal=False, compact=False, entry=''):
         'SCHEMA_MODE': int.from_bytes(b'HIAOSC01', 'little'),
         'ASSEMBLY_SCHEMA_MODE': int.from_bytes(b'HIAOSC02', 'little'),
         'DRIVER_REPORT_MODE': int.from_bytes(b'HIAODR01', 'little'),
+        'CORE_DRIVER_REPORT_MODE': int.from_bytes(b'HIAODR02', 'little'),
         'EDIT_QUERY_SYNTAX_MODE': int.from_bytes(b'HIAOQS01', 'little'),
         'NORMALIZED_MODE': int.from_bytes(b'HIAONJ01', 'little'),
         'NOMINAL_HASH': int.from_bytes(b'HIAONH01', 'little'),
@@ -609,6 +626,10 @@ def source_program(*, nominal=False, compact=False, entry=''):
                 key, detail = table[code]
                 message = key + ': ' + detail
                 profile += f'    if status == {base + code}:\n        lit(o, w, {message!r})\n        return 1\n'
+        profile += '    return 0\n'
+        profile += 'def core_driver_code(o:mutbuf, w:mutbuf, status:u64) -> u64:\n'
+        for code, label in sorted(CORE_ERRORS.items()):
+            profile += f'    if status == {code}:\n        lit(o, w, {label + ": "!r})\n        return 1\n'
         profile += '    return 0\n'
         profile += '''
 def edit_query_digits(o:mutbuf, w:mutbuf, value:u64) -> u64:
@@ -703,7 +724,9 @@ def edit_query_digits(o:mutbuf, w:mutbuf, value:u64) -> u64:
                         for i in range(0, len(value), 24)]
             return self.generic_visit(node)
 
-    source = entry + POLICY + report_source() + profile + fragment_source() + helpers + match + key_fn + hash_source() + decoder()
+    source = (entry + POLICY + report_source() + profile
+              + fragment_source(core_diagnostics=constants['CLI_DRIVER'])
+              + helpers + match + key_fn + hash_source() + decoder())
     return ast.unparse(ast.fix_missing_locations(Expand().visit(ast.parse(source))))
 
 

@@ -770,6 +770,9 @@ def check_core_ingress(executable):
         'duplicate-function': dict(program, functions=[function, function]),
         'duplicate-export': dict(program, exports=[function['name'], function['name']]),
         'absent-export': dict(program, exports=['absent']),
+        'escaped-opcode': dict(program, functions=[dict(function, blocks=[dict(
+            function['blocks'][0], ops=[{'op': 'unrecognized-é"\\\n', 'args': [],
+                                         'attrs': {}, 'out': []}])])]),
     }
     inputs.update({name: json.dumps(value).encode() for name, value in primitive_refusals.items()})
     nominal = json.loads((source_root / 'examples/hia_program/cooperative_task.hepta').read_bytes())

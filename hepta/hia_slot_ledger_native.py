@@ -11,8 +11,8 @@ import ctypes
 from dataclasses import dataclass
 from hashlib import sha256
 import os
-import sqlite3
 import struct
+import sys
 import threading
 import uuid
 import weakref
@@ -35,7 +35,7 @@ class SlotLedgerUnknown(RuntimeError):
 
 
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
-                       RecursionError, sqlite3.Error)
+                       RecursionError)
 _WORKSPACE_IDENTITIES = {}
 _WORKSPACE_IDENTITY_LOCK = threading.RLock()
 
@@ -218,7 +218,13 @@ class NativeSlotLedger(NativeHiaJsonImage):
                 # Preserve RuntimeError, MemoryError and process-control
                 # identities. Only the original public rejection families
                 # must not turn a recorded native loss into a business result.
-                delivery.propagate(error, SlotLedgerUnknown, _REQUEST_REJECTIONS)
+                # An already-loaded compatibility store retains its original
+                # exception identity without loading SQLite into native Store.
+                sqlite = sys.modules.get('_sqlite3')
+                rejections = _REQUEST_REJECTIONS
+                if sqlite is not None:
+                    rejections += (sqlite.Error,)
+                delivery.propagate(error, SlotLedgerUnknown, rejections)
                 raise
 
 

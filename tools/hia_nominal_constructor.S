@@ -63,7 +63,8 @@
 .equ PUBLIC_CANONICAL, 16<<20
 .equ PUBLIC_CORE_ARENA, 32<<20
 .equ PUBLIC_CORE_STATE, 64<<20
-.equ CORE_REFUSAL_DETAIL, 120
+.equ CORE_DIAGNOSTIC_MAGIC, 0x3147414944484941
+.equ CORE_DIAGNOSTIC_TRAILER, PUBLIC_CORE_STATE-64
 .equ VERIFIED_FINAL, 0x3130464356414948
 .equ PRESENTATION_BYTES, 96<<20
 .equ PRESENTATION_CONTEXT, 0x3130434e4f414948
@@ -74,6 +75,7 @@
 .equ PRESENTATION_SCHEMA, 0x313043534f414948
 .equ PRESENTATION_ASSEMBLY_SCHEMA, 0x323043534f414948
 .equ PRESENTATION_DRIVER_ERROR, 0x313052444f414948
+.equ PRESENTATION_CORE_DRIVER_ERROR, 0x323052444f414948
 .equ PRESENTATION_EDIT_QUERY_SYNTAX, 0x313053514f414948
 .equ PRESENTATION_CONSTRUCTOR_DETAIL, 65568
 .equ PRESENTATION_TYPE_DETAIL, 65600
@@ -1358,12 +1360,35 @@ verify_primitive_stdin:
 primitive_stdin_refusal:
  cmp QWORD PTR [rip+handoff_role],6
  jbe verified_refusal
+ # Relay only the validated trailer of this Core call. HIA formats the JSON.
  mov rdx,[rip+public_core_state]
- mov edx,DWORD PTR [rdx+CORE_REFUSAL_DETAIL]
- test edx,edx
- jz verified_refusal
- mov eax,edx
- jmp public_driver_refusal
+ lea r8,[rdx+CORE_DIAGNOSTIC_TRAILER]
+ movabs r10,CORE_DIAGNOSTIC_MAGIC
+ cmp [r8+40],r10
+ jne io_failure
+ cmp [r8+32],rax
+ jne io_failure
+ mov r10,[r8+48]
+ or r10,[r8+56]
+ jnz io_failure
+ mov r9,[r8+8]
+ cmp r9,CORE_DIAGNOSTIC_TRAILER
+ jae io_failure
+ mov r10d,CORE_DIAGNOSTIC_TRAILER
+ sub r10,r9
+ cmp [r8+24],r10
+ jne io_failure
+ mov rsi,[r8+16]
+ test rsi,rsi
+ jz io_failure
+ cmp rsi,r10
+ ja io_failure
+ lea rdi,[rdx+r9]
+ mov r8,[rip+public_core_arena]
+ mov [r8+PUBLIC_CORE_ARENA-16],rax
+ movabs rax,PRESENTATION_CORE_DRIVER_ERROR
+ mov [r8+PUBLIC_CORE_ARENA-8],rax
+ jmp driver_render
 
 render_primitive_assembly:
  cmp QWORD PTR [rip+legacy_assembly_profile],0
@@ -1645,14 +1670,15 @@ public_driver_refusal:
 driver_work:
  lea rdi,[rip+verified_header]
  xor esi,esi
- mov rdx,[rip+presentation_output]
- mov ecx,PRESENTATION_BYTES
  mov r8,[rip+public_core_arena]
- mov r9d,PUBLIC_CORE_ARENA
  mov rax,[rip+driver_status]
  mov [r8+PUBLIC_CORE_ARENA-16],rax
  mov rax,PRESENTATION_DRIVER_ERROR
  mov [r8+PUBLIC_CORE_ARENA-8],rax
+driver_render:
+ mov rdx,[rip+presentation_output]
+ mov ecx,PRESENTATION_BYTES
+ mov r9d,PUBLIC_CORE_ARENA
  and rsp,-16
  call public_presentation_start
  test eax,eax

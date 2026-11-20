@@ -429,6 +429,7 @@ assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
                 'helpers': [{'selector': 'HEPTA_HIA_WORKER_REQUEST_MANIFEST',
                              'manifest_path': str(helper),
                              'manifest_sha256': sha256(helper.read_bytes()).hexdigest()}]}))
+            base.chmod(0o600)
             profile = path / 'worker-store.json'
             pin = bind_worker_store(profile, base, self.module_root)
             worker = [sys.executable, '-B', '-E', '-s', '-m', 'hepta.hia_agent_worker']
@@ -465,6 +466,7 @@ assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
             for field in ('base_bundle_sha256', 'store_sha256', 'artifact_sha256', 'capture_sha256'):
                 record = {**json.loads(profile.read_bytes()), field: '0' * 64}
                 malformed.write_bytes(wire(record))
+                malformed.chmod(0o600)
                 bad_pin = sha256(malformed.read_bytes()).hexdigest()
                 result = invoke(flags, manifest=malformed, profile_pin=bad_pin, data=discover)
                 self.assertEqual((result.returncode, result.stdout), (2, b''), result.stderr)
