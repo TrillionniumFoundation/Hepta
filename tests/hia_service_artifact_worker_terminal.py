@@ -45,7 +45,49 @@ def process_record(result, command_raw):
             'stderr': pin(result.stderr), 'command': pin(command_raw)}
 
 
+CARRIER_AUTHORITY = 'tests/fixtures/service_artifact_carrier_source_v1.json'
+CARRIER_AUTHORITY_SHA256 = '865e35c75392f4fb35c2eb6441d4240538e18773799596f3483acb91e31bdfb4'
+CARRIER_SOURCES = {'tools/build_hia_service_artifact.py': {'original': {'bytes': 6337, 'sha256': '694539372549a08c3ef33b9ca034d2cede9fedf51600c6cbb1224e7180f9181b'}, 'current': {'bytes': 6956, 'sha256': '8624485f0a4fba2af013ee03b11e5a154576a5f9d1a9989ea34b98055c136c20'}}, 'hepta/hia_service_artifact_native.py': {'original': {'bytes': 18549, 'sha256': '6e4a57398080eebb614711954baa79465a5d0b3e35c997aba98fdc63fd141495'}, 'current': {'bytes': 20483, 'sha256': '22eab136b0f1c7f58bfb58156d0c6b1979d4b1ae410c72845667878a38dec877'}}}
+
+def carrier_predecessor(raw, expected, *, read=None, path=None):
+    """Admit only a fixed whole v6 source, then recover its complete predecessor."""
+    observed = pin(raw)
+    if observed == expected:
+        return raw, None
+    choices = [name for name, row in CARRIER_SOURCES.items()
+               if row['original'] == expected and row['current'] == observed
+               and (path is None or path == name)]
+    if len(choices) != 1:
+        raise ValueError('undeclared complete artifact carrier source successor')
+    name, = choices
+    authority_raw = (regular_bytes(Path(__file__).resolve().parents[1] / CARRIER_AUTHORITY)
+                     if read is None else read(CARRIER_AUTHORITY))
+    if (type(authority_raw) is not bytes
+            or sha256(authority_raw).hexdigest() != CARRIER_AUTHORITY_SHA256):
+        raise ValueError('fixed artifact carrier source authority changed')
+    authority = json.loads(authority_raw, object_pairs_hook=unique_pairs)
+    if (authority['schema'] != 'hepta.service-artifact.carrier-source-successor.v1'
+            or authority['source_admission_only'] is not True
+            or authority['old_authority_or_tests_replaced'] is not False
+            or authority['old_pass_transferred'] is not False
+            or set(authority['source_successors']) != set(CARRIER_SOURCES)):
+        raise ValueError('artifact carrier source authority scope differs')
+    specification = authority['source_successors'][name]
+    if ({key: specification[key] for key in ('original', 'current')} != CARRIER_SOURCES[name]
+            or specification['original'] != expected):
+        raise ValueError('artifact carrier source relation is outside the retained authority')
+    # The nested call has this exact current pin, so it runs the unchanged
+    # splice algorithm directly and cannot recursively select another profile.
+    original = inverse(raw, specification)
+    if pin(original) != expected:
+        raise ValueError('complete artifact carrier predecessor differs')
+    return original, {'authority': pin(authority_raw),
+                      'original': dict(expected), 'current': observed,
+                      'inverse_sha256': sha256(original).hexdigest(), 'forward_replayed': True}
+
+
 def inverse(raw, specification):
+    raw, _ = carrier_predecessor(raw, specification['current'])
     if pin(raw) != specification['current']:
         raise ValueError('current Service artifact terminal caller differs')
     previous = -1
@@ -99,16 +141,24 @@ class SourceAuthority:
                 or self.value['current_lost_ack_exit'] != 2):
             raise ValueError('Service artifact terminal version contract differs')
         self.originals = {}
+        self.carrier_sources = {}
         for name, spec in self.value['source_successors'].items():
             if Path(name).is_absolute() or '..' in Path(name).parts:
                 raise ValueError('unsafe terminal source path')
-            self.originals[name] = inverse(self.read(name), spec)
+            prior, proof = carrier_predecessor(self.read(name), spec['current'], read=self.read, path=name)
+            if proof is not None:
+                self.carrier_sources[name] = proof
+            self.originals[name] = inverse(prior, spec)
         if pin(self.read(ORIGINAL_WORKER)) != WORKERS[1]:
             raise ValueError('complete original worker authority changed')
         self.profile = worker_profile(self.read('hepta/hia_agent_worker.py'))
         for name, expected in self.value['current_dependencies'].items():
-            if pin(self.read(name)) != expected:
+            prior, proof = carrier_predecessor(self.read(name), expected, read=self.read, path=name)
+            if proof is not None:
+                self.carrier_sources[name] = proof
+            if pin(prior) != expected:
                 raise ValueError('terminal observation dependency changed: ' + name)
+        self.finish()
 
     def read(self, name):
         raw = regular_bytes(self.root / name)
@@ -123,7 +173,7 @@ class SourceAuthority:
                 raise ValueError('terminal source changed during observations: ' + name)
 
     def summary(self):
-        return {'schema': self.value['schema'], 'authority': pin(self.captured[AUTHORITY]),
+        result = {'schema': self.value['schema'], 'authority': pin(self.captured[AUTHORITY]),
                 'worker_profile': self.profile,
                 'original_sources': {name: pin(raw) for name, raw in self.originals.items()},
                 'current_sources': {name: pin(self.captured[name]) for name in self.originals},
@@ -131,6 +181,11 @@ class SourceAuthority:
                     'tests/hia_service_artifact_worker_terminal.py',
                     'tools/read_hia_service_artifact_worker_terminal.py')},
                 'legacy_pass_transferred': False, 'original_Native8_replaced': False}
+        if self.carrier_sources:
+            result['carrier_source_admission'] = {'schema': 'hepta.service-artifact.carrier-source-admission.v1',
+                'authority_path': CARRIER_AUTHORITY, 'sources': dict(self.carrier_sources),
+                'original_authority_unchanged': True, 'qualification_transferred': False}
+        return result
 
 
 class TerminalObservation:

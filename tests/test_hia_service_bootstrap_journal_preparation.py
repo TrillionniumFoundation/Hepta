@@ -52,7 +52,9 @@ class ServiceBootstrapJournalPreparationTests(unittest.TestCase):
             ARCHIVE: {'bytes': 48482, 'sha256': 'a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077'},
             JOURNAL: {'bytes': 48798, 'sha256': '7d5cebde72523ade809346a30916a48611e18a157230b4f2f6129c0d16b8715c'},
         }
-        if any(pin(cls.inputs[name]) != expected for name, expected in fixed.items()):
+        if any(pin(reader._restore_caller_journal_packaging_helper(cls.inputs[name])
+                   if name == HELPER else cls.inputs[name]) != expected
+               for name, expected in fixed.items()):
             raise AssertionError('the complete fixed Journal source relation changed')
         cls.journal_original = cls.inputs[ARCHIVE]
         if reader._restore_caller_journal_source(cls.inputs[JOURNAL], cls.inputs[FIXTURE]) != cls.journal_original:

@@ -43,165 +43,283 @@ The integration also corrects concrete source and execution defects:
   Escaped keys, duplicate-key identity, grammar and resource limits retain
   their original checks.
 
-### Latest completed ROG checks of published source
+### Completed ROG checks of published source
 
-The completed R10 source is [`972ecbb`](https://github.com/TrillionniumFoundation/Hepta/commit/972ecbb9ae7535d7526f655eed87b75c563dec13),
-tree `d953b4ef8447fccdb67217dcfb0c7389fcc72f92`, with 2,985 tracked
-file byte/mode identities. ROG used CPython 3.14.4 and Clang 20.1.8.
-All eight scheduled stages reached terminal records. Six passed; the two
-Artifact stages failed. Each result belongs to that exact source and scope.
+The published qualification baseline is
+[`35882d5`](https://github.com/TrillionniumFoundation/Hepta/commit/35882d52059ca16d0654982edbe48588fe892ac0),
+tree `89135ef0778f73a15482ff7235b09990e778a9ec`, with all 2,986 tracked
+files and Git executable modes captured. ROG used CPython 3.14.4 and
+Clang 20.1.8. Its complete R11 ten-stage run passed:
 
-| Complete R10 scope | Actual outcome | Outer wall time |
-| --- | --- | --- |
-| Ordinary fresh-source cold producer | PASS under the original 180+3 and 240-second limits | 70.082 seconds |
-| Complete Core workflow inventory | PASS, all 786 methods; suite time 534.268 seconds | 535.413 seconds |
-| Context native module | PASS, all 15 methods | 5.875 seconds |
-| Complete original Context callers | PASS, all 50 methods; no skips or anomalies | 51.852 seconds |
-| Cost native module | PASS, all 12 methods | 13.788 seconds |
-| Complete original Cost callers | PASS, all 81 methods; no skips or anomalies | 67.133 seconds |
-| Complete original Artifact delivery callers | HOLD: all 132 planned methods started and stopped, with 19 NDU prerequisite skips and 2 original budget failures | 252.205 seconds |
-| Complete Artifact native module | HOLD: 14 of 15 methods passed; the complete 146-input comparison failed | 11.635 seconds |
+| Complete R11 scope | Outcome | Outer wall time |
+| --- | --- | ---: |
+| Ordinary fresh-source cold | PASS within the original bounds | 77.351 seconds |
+| Native transport Source controls | PASS | 1.266 seconds |
+| Fresh cold with explicit native parent transport | PASS | 102.938 seconds |
+| Actual source/native binding | PASS | 0.032 seconds |
+| Complete original47 twice, selected47 and Handoff8 regression | PASS | 25.494 seconds |
+| Transport terminal readback | PASS | 0.164 seconds |
+| Complete REF18 | PASS | 1.316 seconds |
+| Complete FD18 | PASS | 1.367 seconds |
+| Complete CT36 | PASS | 17.694 seconds |
+| Complete Core workflow inventory | PASS, all 792 methods | 560.344 seconds |
 
-The independent DATA reader consumed all eight outer process records,
-their raw stdout/stderr, complete ordered method logs, original caller
-fixtures and retained caller captures. All 2,985 source bytes and Git
-executable modes and each stage's matching cold inputs remained stable.
-Its 883,929-byte report has SHA256
-`d90727caf333847859de493c6980553b68475729b1fe1dbffd3b064e194184be`.
-This establishes outer-process, source and caller DATA integrity; it does
-not establish independent complete inner native/raw-cold acceptance.
-The original `runTest` observation is included in the 786-method total.
-Raw R10 evidence remains under
-`/home/qian-qi/hia-unified-v9-caller-evidence-20261120/`.
+These are executions of the published baseline. A later source or package
+change requires its own matching-source qualification. R11 raw evidence is
+retained under `/home/qian-qi/hia-unified-v9-retained-evidence-20261120/`.
+The independent Core DATA reader also checked the complete ordered 792
+methods, actual workflow/command, original 1,800-second owner, process cleanup
+and all 2,986 source byte/mode identities. Its 834,955-byte result has SHA256
+`2ae46a28e5376b749dd040cb380b33fdf40546d6d798bbbdf3c9fe7b3c47559c`.
+This does not substitute for every component's independent inner reader.
 
-The earlier [`0ab2a0a`](https://github.com/TrillionniumFoundation/Hepta/commit/0ab2a0aea2585e06ddcf0aa3a6931043b16959f6)
-R9 source, tree `a2476742bfce3db07992f46fea3b74e16764d198`, separately
-passed ordinary cold, Core767, complete Journal21 and its independent
-reader, explicit native-parent cold, original47 twice, selected47,
-Handoff8, REF18, FD18 and CT36. Its B3 was 637,172 bytes, SHA256
-`f81c42138a259286492e46f221010574d629a4eeea775815bd59ee7d71d66843`.
-Both cold producers retained all 38 phase reports and reported the original
-5,060 checks, with B1=B2=B3, M1!=M2, M2=M3 and M3!=B3. Those results
-remain attached to R9; they do not qualify subsequent source edits.
-The ordinary and native cold report hashes were respectively
-`5143509d42b6f9c2ceebee7ea52400edc275a4d101c09db46f6cc935b026cca9`
-and `eb0a7967639033f97458ac5b44cd8dfd0c0c7b4d3c4a83e3770a41eb14e66d1c`.
-Original R9 evidence remains under
-`/home/qian-qi/hia-unified-v9-journal-evidence-20261120/`.
+**Both current R11 cold lanes have complete retained-raw DATA acceptance.**
+For each lane the independent reader consumed all 38 phases and 5,850 actual
+stdout/stderr pairs, including 5,200 complete binary frames and 650 explicit
+empty streams. It decoded and checked 5,521,557,688 bytes of original stdout
+per lane, all associated requests, archives, source identities, actual owner
+terminals and final rereads. Its ordinary and native results respectively are:
 
-### Reviewed corrections and retained original streams
+| Complete retained-raw report | Bytes | SHA256 |
+| --- | ---: | --- |
+| Ordinary R11 | 1,417,045 | `7ca06f341e0c392668e906c4b1e545f6b4cba73b0f01bd9d724b42b353806c8d` |
+| Native-parent R11 | 1,533,542 | `280ac4c0a122d1002626f3d30eedd87794988f61a31b3c5a8eeb7a8c3282783b` |
 
-The R10 source includes the installed Artifact worker terminal correction,
-complete caller source admission and flat native-helper registry inspection.
-The actual installed worker scenario now passes, including the UNKNOWN
-lost-PUT-ACK terminal with exit 2, all three required stderr markers and
-unresolved custody. The four original workers retain their request/replay
-identities and return codes 0/0/2/0. The complete 146-input comparison and
-its separate GC difference remain required.
+The reader passed nine DATA controls. It establishes complete raw capture and
+custody, not independent reexecution of every one of the producer's 5,060
+semantic predicates. The original 16 MiB stream, 512 MiB archive, 32 MiB
+manifest, 180-second cold and three-second cleanup bounds remain unchanged.
+The older R9 missing-stream HOLD remains attached to R9; absent historical
+bytes were not reconstructed.
 
-Context50, Cost81 and Artifact132 retain their original fixtures, ordered
-methods, forbidden-owner assertions, every capture and original budgets.
-Their exact reviewed source successors are bound through whole-file inverse
-and forward proofs and actual terminal captures. The original Delivery126
-and278 Source control inventories remain unchanged. Flat literal helper
-registries are read directly from their AST; every other expression retains
-the previous fallback and rejection domain. No GC policy, retained root,
-cross-call cache or business deadline was changed.
+### Current GitHub baseline and original caller failures
 
-The composed R10 source/release verification passed all 53 Source methods,
-the 11 existing language Native methods selected by the complete module,
-and all 23 methods from the actual unpacked sdist. The 6,875,610-byte archive
-has SHA256 `9d4cb1fae38f4ad9a354b1ea3bde8b43f0ad5523a23250e1d84b996bf5714d57`.
-Independent DATA checked all 2,985 candidate byte/mode identities, 468
-declared resources, complete method logs and both original126/278 controls.
-Its 19,722-byte report has SHA256
-`c88b20711e056b6437c9a56b074f5643d07c4e255e1e45be4812151d78c35475`.
+The [358 workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44727101814)
+did not pass its complete Native or cold jobs. The fresh CI cold process was
+stopped at 180.281 seconds under its original 180-second limit: 32 of 38 phases
+completed, two had started without a terminal, and four had not started.
+Cleanup completed. ROG's successful run does not qualify that CI execution.
+All 1,859 declared source hashes match the ROG freeze; 1,857 actual exported
+files were independently read and matched. The two workflow files were not
+present as actual files in that archive, so this is not a whole Git merge-tree
+identity proof. GitHub's synthetic PR merge is not assumed to equal the ROG
+checkout without that proof.
 
-**Complete cold raw-data acceptance is still open.** The R9 and R10 native
-observer wrote a JSON receipt to successful `*.stdout.log` files instead
-of retaining the returned `HIAOBR02` binary stdout. Retained output buffers
-and stderr alone do not prove the full returned source/output/workspace
-frame. The strict audit of both R9 cold lanes found 5,200 missing successful
-stdout streams and 650 failed or explicitly empty streams in each lane.
-Missing historical bytes are not reconstructed or relabelled as captured.
+Current CI also retains complete Source failures for Slot, Capture,
+Discovery, Verification and Bootstrap, together with the Native failures and skipped
+later gates. Kernel and NDU workflow results have their own scopes. An earlier
+972 cold pass or a later successful independent component cannot erase a
+current failed or unexecuted scope.
 
-The current successor saves actual stdout and stderr before parsing, including
-failure and timeout partial bytes and explicit empties. It retains the
-original JSON receipt and failure-log behavior. Lossless zlib sidecars bind
-the request, return code, timeout, complete raw/stored lengths and SHA256.
-The reader rejects changed or truncated streams, trailing or concatenated
-streams, invalid metadata and decompression beyond the original 16 MiB
-stream bound. The original 512 MiB archive, 32 MiB manifest, 180-second cold
-and 3-second cleanup limits remain in force.
+The original Artifact132 callers remain unqualified. The two Store cases
+still exceed their unchanged three-second second-emission budget. A separate
+source-scanner candidate passed 22 Source controls, six unpacked-sdist controls
+and a fresh ROG cold, and reduced measured complete scanning time; the two
+original business-budget cases still failed. It has not qualified the complete
+132-method caller set. No hash cache, larger business budget or smaller input
+domain is used to turn that result into a pass.
 
-All 14 retention/transport Source methods passed, and all six new retention
-methods passed from a real unpacked sdist. Independent DATA read all 2,986
-source files before/after, all 1,858 contract source pins, all eight actual
-processes, complete ordered Source and release logs, all 1,278 regular tar
-members, 474 manifest entries and 298 support files. Its 9,752-byte report
-has SHA256 `c7388c5459be1f81edbc9c53289a78bf6ae495e0417d1d1ec53f8aa628b8f447`.
-The 8,467,739-byte sdist has SHA256
-`8d6982e61d8c4f234cc6038f5d0171a66bd7b80c9df20b090bf28351278915e8`.
-The six new Source methods are registered in ordinary Core, increasing its
-expected inventory from 786 to 792 without removing an existing method.
+The previously absent NDU prerequisite is now real: the fixed upstream commit
+`d3c2d760eca5065fc966820379c35c6e8d56e855`, actual Cargo build and executable
+were read and verified on ROG. All nineteen original NDU-dependent methods
+passed without skips. This separate 19-method result does not retroactively
+qualify the earlier skipped 132-method execution.
 
-The separate full-phase DATA reader passed its nine byte-level controls and
-still reports the original R9 missing-stream HOLD. It does not import the
-checkout or execute a compiler/native image. The new source still requires
-fresh ordinary and native-parent cold, complete original47 twice plus
-selected47, Handoff8, REF18, FD18 and CT36, followed by the full retained-raw
-reader on the exact new frozen source. Actual wall time and archive size
-must meet the unchanged bounds; Source/release results do not close them.
+The complete Bootstrap CI archive was independently consumed as DATA: all
+95 members, 1,688,720,333 logical bytes and the 99,473,402-byte ZIP were checked
+and finally reread. The ZIP SHA256 is
+`e887cc95eb3498a5295c2a9abe99c65474e404fd84712e061d109139f3aa6a78`.
+Its four fresh originals completed: two complete232 and two complete15,830
+streams, each pair byte-identical, with actual process terminals and cleanup.
+All 91 declared source pins match the published baseline; the archive does
+not contain an actual full source export or prove the whole synthetic merge tree.
 
-### Preserved semantic and prerequisite failures
+The candidate Source6 suite completed four methods and started a fifth before
+the original 1,800-second owner stopped at 1,800.017 seconds. Its full VM lane
+finished 2,478 cases and started 2,479: 2,477 equal and one differing case,
+with 134,326 entries in finished observations. The last started case is
+`__init__.root-not-directory.outer0.fault.94.ValueError`; the remaining cases
+and sixth method are not passed. In `generator_protocol.throw-instance.outer1`,
+the two iterator/root deletion events occur before sealing in the candidate
+and in the original late-event stream after sealing. The original exception
+type, identity, cause/context and three-frame traceback chain are preserved.
+This is an observed lifetime difference, not an accepted equivalence.
+The outer group has its own terminal, but the separately owned candidate child
+has no retained terminal or final source reread. Its cleanup remains unproved.
+The independent 261,642-byte DATA report has SHA256
+`5dbb837186710d635a1b19a40720ca06dda1b8b49c386177a0891cbe90bd05ac`.
 
-The current Artifact132 report is 4,626,089 bytes, SHA256
-`c6c1c24823b1d92732ae44bc818b834ffda81e9de3fa09910a3dd8599747dd41`.
-All original-direct63 methods passed. The generic37 scope skipped 19 NDU
-tests because the actual pinned upstream checkout, matching build workspace
-and native executable were unavailable. The Store32 scope failed the
-expired-evaluation and frozen-context-deadline methods during their
-original `build_pair`, at the second emission under the unchanged 3-second
-context budget. All 132 started/stopped IDs and every anomaly remain in
-the report. An old environment file pointing at missing executables or
-missing Git checkouts does not satisfy those prerequisites.
+### New explicit v6 carriers and actual package results
 
-The current complete Artifact146 comparison differs only at
-`$[143].trace[14].collected`: original 0, native 30. Both complete originals
-agree, and all other compared fields match. Original observations have
-SHA256 `c5e1dc35d9656d41afa19fced6b4ef1d87747a13714c802530e8f38a84caef6a`;
-actual observations have SHA256
-`2832d0954e5fe474455a7cdfcd495053a1baf66c615842532f1e8c6b8f2fa950`.
-Separate current preparation-only diagnostics locate six temporary type
-cycles from ctypes, signal and uuid. They establish that diagnostic's
-actual object graph, not object identity with the already-finished finite
-comparison. No count normalization, forced collection or extra strong root
-is accepted as a fix. The preceding native41 failure remains retained on
-its original source.
+The current source adds the [explicit v6 carrier contract](HIA_NATIVE_CARRIERS_V6.md).
+One carrier owns the native image and real exported buffers; another owns the
+actual cells of Verification's private recursive callback. HIA retains the
+business decisions and transitions. Source, binary, compiler receipt, exact
+CPython profile, actual loaded types and original live worker scope are bound
+before using either carrier. Old v1–v5 routes remain explicit and unchanged.
+Unused UUID/FFI dependencies are loaded only on their actual paths; the retained
+ID-producing method bodies and real provider replacement behavior are checked.
 
-The [`972ecbb` CI run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44720243874)
-passed the complete cold-native-transport job; kernel and NDU workflows
-also passed. Its Native job reached the Artifact comparison and failed;
-later evidence readers have additional failure records. Source and remaining
-Native work were still running when this state was written. GitHub uses
-its synthetic PR merge; ROG uses the exact published head. These are not
-assumed to be the same tree without independent verification.
+On desktop CPython 3.14.10, the frozen development source was compiled into
+three real extensions with three separate receipts. The original 134 packet
+records, mechanical buffer controls, six real-cell controls and 106 actual
+admission/refusal controls passed. The complete Artifact146 original replays
+and explicit-v6 candidate were byte-identical, with SHA256
+`c5e1dc35d9656d41afa19fced6b4ef1d87747a13714c802530e8f38a84caef6a`.
+Every original GC observation remains part of that comparison.
 
-Earlier full Slot Native4 and Slot/Capture complete VM comparisons reached
-their original deadlines. The earlier full `b2ba900` Slot comparison also
-retains semantic HOLD: original248 differed in 2 cases/14 leaves and
-derived7574 in 286 cases/1,804 leaves, with unchanged lifetime/event
-comparisons. Its other three Native methods passed. Current-source
-successors must complete their own full scopes within the existing bounds.
+The package continuation then passed all 29 selected Source controls and all
+13 selected controls from a real unpacked sdist. A real wheel was built and
+installed into a clean target. It contained the three separately built
+extensions and their source-bound receipts. The complete installed Artifact146
+comparison also matched both original replays. No source-tree extension was
+substituted for the installed binary. These are explicit development/package
+scopes; they do not replace the complete Artifact Native suite, all original
+callers, matching-source cold or ordinary default adoption.
 
-The earlier Discovery56 VM and unselected lanes each had four differences
-in `explicit_gc_collected`. Verification185 had four VM and three
-unselected differences in that same field. The complete raw archives have
-SHA256 `27287cc615c6d2241d1fd50245b48f45dcb02d9dd815a5d0f42dc2ca4efa8f66`
-and `b2be14f9bad32ee4a487af1092feacc76ca1910cc126d38c3878d58fd21979e0`.
-These are actual comparison failures. Full caller coverage, allocation and
-GC behavior, exception/traceback ownership, installed/default execution and
-durable adoption still need to close before old providers can be retired.
+The subsequent complete source compatibility candidate passed 82 Source
+methods. Its actual unpacked-sdist run completed all 66 declared methods,
+with 64 passes and two import errors caused by a missing builder dependency.
+That first source-closure package remains HOLD, with wheel and installation
+unexecuted. The frozen R2 successor includes the complete builder import
+closure and the unchanged normal command entries for 134 packet observations,
+six cell controls and all 146 Artifact cases. It completed all seventeen
+stages on desktop CPython 3.14.10: Source82 and real unpacked-sdist66 passed,
+a new wheel was built and installed, three fresh C extensions were compiled,
+all 106 admission controls, mechanical5/packet134 and Cell6 passed, and separate
+source and installed complete146 comparisons both passed. All 3,009 source
+files stayed unchanged after the two identical metadata generations.
+The six component stages retained their original 60-second limits and
+three-second cleanup; the existing installed146 retained its 120-second bound.
+The 21,640-byte actual terminal report has SHA256
+`ab628775de0c03bcaf37b3a124149310984998f7348dfb8ca0743c69d52dc21a`.
+An independent DATA reader consumed 11,760 actual retained files, repeated
+all five complete file inventories with their modes, and finally reread all
+captured bytes. It verified every ordered Source82/sdist66 method, all original
+63/126/278 compatibility controls, the complete packet/admission/cell controls,
+both full146 streams and the actual installed extension/receipt paths.
+The strict successor derives the exact original 25 source paths and two
+control-code files from fixed source definitions and original fixtures,
+then checks complete maps and both whole registry transformations. The prior
+reader and its narrower independent-domain boundary remain retained.
+The 163,657-byte independent report has SHA256
+`a98fb77fd293bca6ca896ce80fd44128eeaae7127902bfbf7ac837e9d3c30c87`.
+This new R2 result has its own source identity. It neither erases R1's import
+failure nor qualifies later workflow/source changes or the whole product.
+
+The ordinary Core workflow now declares the six new pure Source selectors
+while preserving every old selector's relative order. The Native workflow
+separately declares a fresh matching-cold Artifact build, three actual C
+extensions, mechanical5/packet134, Cell6, admission6/106 and complete146.
+Each original development stage retains its 60-second bound and three-second
+owned cleanup. Actual inputs, complete output streams, compiler/binary receipts
+and terminal source rereads are retained. These finite controls do not change
+the public Native8 or whole-stack acceptance boundary.
+
+Verification has separate results which must not be combined into one pass:
+
+| Exact development scope | Complete outcome |
+| --- | --- |
+| ROG CPython 3.14.4, direct real-cell carrier, complete original 185 plus 1,344 derived native cases | 1,529/1,529 equal, 126,294 actual HIA entries, zero retained-body calls |
+| Same ROG candidate, original twelve lazy-generator controls | 12/12 equal, 5,256 actual entries |
+| Same ROG candidate, complete original Source3 | All three passed; full 185 VM and 185 unselected observations equal; 354.180 seconds outer wall time |
+| Desktop CPython 3.14.10, fresh HIA build and source-bound explicit v6, complete native domain | All 1,529 executed; 126,294 entries; two exact GC-count differences, therefore HOLD |
+| Same desktop source, unchanged Source method03, unselected complete185 | Three GC-count differences, therefore HOLD |
+
+The published 358 CI on CPython 3.14.10 already had four VM and three
+unselected GC-count differences. All four fresh original185 streams were
+byte-identical; every other candidate observation field matched. The complete
+226,875-byte CI archive has SHA256
+`e8528a79a967ecd45309bd4950685063b784916f9feaf57c184159ba0ef78ef9`;
+all 81 members and all 29 captured source identities were independently read.
+This baseline prevents attributing every later GC difference to a new carrier;
+it does not waive a later candidate's own exact comparison.
+
+The explicit-v6 desktop differences are `verification.schema.outer0`
+(2,216 original versus 1,943 native) and `subject.temporary-store`
+(995 versus 1,057). The latter 62-object difference also occurs in the old CI
+unselected baseline. A separate diagnostic using only the existing explicit
+collections found that its 62-object delta consisted of one additional prior
+test `World` and its attached objects. That diagnostic added no collection or
+saved garbage and changed no threshold, but its metadata wrappers can affect
+allocation timing; its graph is not an identity proof for already-finished
+runs. Original failures and raw counts remain unchanged.
+
+CPython's [documented GC behavior](https://docs.python.org/3.14/library/gc.html)
+changed again in 3.14.5, restoring generation 1 and `threshold2`. A compiled
+3.11–3.14 mechanical ABI guard is not an all-patch semantic qualification.
+The local Python 3.12 full-source lifetime failure also remains retained.
+Neither runtime pin changes, count normalization nor extra strong roots are
+used to manufacture whole-product acceptance.
+
+### Discovery, Slot and the separate runtime repository
+
+The complete current ROG Discovery Source3/Native8 ran all eleven methods.
+Eight passed. The full native 11,016-input comparison executed 189,036 entries
+with four GC-count differences; the complete 56-input VM and unselected
+comparisons each had four GC-count differences. Other compared fields matched.
+Its real installed-worker controls passed within that same scope, while the
+three complete comparisons remain HOLD. All 2,986 source identities and
+matching cold inputs stayed unchanged. The complete 1,778,801-byte DATA report
+has SHA256 `adabe4a9f96f584c0964dca767ceca8bace89bee6d24aac890afbe7b1a226864`.
+
+The published Slot Source scope still runs its original v1 preparation. Its
+complete248 VM comparison had five semantic/lifetime differences; its original
+1,800-second supervisor ended after 2,970 of 7,574 derived observations, with
+82 differing completed cases. A separate explicit v5 preparation now uses a
+real built and admitted image and real C mechanical owner while executing only
+the independent VM controller. The original248/derived7574 domains, four fresh
+original children, step/heap/depth limits and 1,800-second total remain fixed.
+Its complete248 readback has 247 equal cases and one GC difference
+(0 versus 730). That complete lane used 12,072 actual VM entries and 1,426
+actual C frame initializations/calls/completions, with zero native-controller
+attempts and returns. The full derived lane stopped at the unchanged total
+bound after 3,475 of 7,574 finished observations and one started observation:
+3,465 equal and ten differing completed cases. Its final report and final
+C/native counters are absent; the earlier 248-case counters are not inherited
+by that partial lane. The third original method did not start. All four fresh
+original streams are complete and pairwise identical.
+
+The original supervisor ended at 1,800.011 seconds. All seven recorded command
+groups, the operator and the actual nested children were subsequently observed
+absent from `/proc`, without additional termination signals. All 2,986 baseline
+source byte/mode identities remained stable within the 2,993-file candidate.
+The complete retained DATA remains HOLD. A separate reader custody correction
+captures the actual command/result/stdout/stderr bytes before interpretation
+and finally rereads them. Its nine Source controls passed; a pure DATA reread
+of the actual complete248 leaves the same one GC difference. It correctly
+refuses a full-domain directory without its supervisor terminal.
+The original v1 failure and frozen v5 execution remain retained.
+
+The separate [hepta-runtime PR140](https://github.com/TrillionniumFoundation/hepta-runtime/pull/140)
+now has union commit `94c8b4a9af342e83d11981942ca2463019a7f4d1`, tree
+`ec3bdf3e6837d45c7ccb7470db3910876cb95136`, with sole parent
+`5b2ee6952acaf00262ca42ad31857012db4618e1`. Its complete selected Git source
+has 3,513 files; its execution-source closure has 543. Original reporting
+control groups of 64 and 70 passed. The normal successor CI is separate from
+PR139's completed 405 checks/81 recipes and private R4's original result.
+Neither prior result is inherited by the new head.
+
+The new-head CI independently completed the fresh compiler cold gate, all
+eleven native partitions and the native collector. The collector recorded 226
+actual native checks and prepared the 81 original recipes. Its complete native
+artifact is 754,482,162 bytes, SHA256
+`d2d9b871274a7c5441008e5771c43c3603aa3b889c58b920bcb9de10c9d011cf`.
+An uploaded artifact and successful producer job do not establish a completed
+independent read of every retained byte. The seven
+system/services/state/json/config/storage/batch original groups succeeded.
+The bytes group failed its original filesystem evidence control at the
+unchanged 180-second limit, with exit -9 and complete empty stdout/stderr.
+The failure archive completed and remains attached to that actual run;
+this is not a successful eight-group original acceptance.
+
+Runtime currently has 126 components, 119 physical containers, 71 runtime
+slots and thirteen public routes against the 136-route target. These counts
+are different inventories, not interchangeable measures of whole completion.
+The private binary-write composition has not become public route fourteen.
+Its additional allocation/partial-release fault task was stopped by automatic
+approval review; no such product tests were executed and that boundary stays
+unqualified. Production activation and whole-runtime replacement remain false.
 
 ## Source format and actual entry points
 
@@ -413,6 +531,8 @@ its directory name does not make it disposable evidence.
 ## Historical source-bound evidence
 
 Earlier narratives and exact outcomes are available at fixed revisions:
+
+- [Complete pre-v6 current state, R9/R10 failures and stream-retention successor at `35882d5`](https://github.com/TrillionniumFoundation/Hepta/blob/35882d52059ca16d0654982edbe48588fe892ac0/docs/CURRENT.md).
 
 - [Journal/linked source correction and preceding qualification records at `0ab2a0a`](https://github.com/TrillionniumFoundation/Hepta/blob/0ab2a0aea2585e06ddcf0aa3a6931043b16959f6/docs/CURRENT.md).
 - [Completed preceding v9 ROG scopes and Artifact preparation records at `b2ba900`](https://github.com/TrillionniumFoundation/Hepta/blob/b2ba90090929472d4a336a058aeb3e1e9c74ed8d/docs/CURRENT.md).

@@ -110,7 +110,6 @@ def run(manifest, output):
     original_late = list(oracle.LATE)
     # The independent expectation above is immutable before candidate imports,
     # mapping or execution. Do not synthesize or normalize an expectation.
-    import ctypes
     from tools.build_hia_json_preflight import current_sources
     from tools.build_hia_service_artifact import INPUTS
     before = current_sources()
@@ -126,7 +125,7 @@ def run(manifest, output):
     entry, reference = image._entry, api._NATIVE_SERVICE_ARTIFACT_REFERENCE
 
     def counted(source, size, out, capacity, state, extent):
-        magic, event = struct.unpack('<2Q', ctypes.string_at(source, 16))
+        magic, event = struct.unpack_from('<2Q', source, 0)
         code = entry(source, size, out, capacity, state, extent)
         if magic != native.REQUEST_MAGIC or code != native.OUTPUT_BYTES:
             raise AssertionError('actual candidate image returned another ABI')

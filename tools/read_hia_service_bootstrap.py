@@ -1137,6 +1137,48 @@ _CALLER_JOURNAL_NEW = {
 _CALLER_JOURNAL_PREPARATION = 'hepta.hia.journal-installed-resource-preparation.v2'
 
 
+def _restore_caller_journal_packaging_helper(raw):
+    """Read the exact whole helper relation; no old source is executed."""
+    if type(raw) is not bytes:
+        raise ValueError('Journal packaging helper requires immutable complete bytes')
+    actual = {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+    original_pin = {'bytes': 15935, 'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797'}
+    current_pin = {'bytes': 18544, 'sha256': 'c42cb2fd0a0a6040cda6bc203d284e4bd0d5f6c7c2e76f71c50ba2113ee37aa4'}
+    if actual == original_pin:
+        return raw
+    if actual != current_pin:
+        raise ValueError('Journal packaging helper is not an exact reviewed source')
+    pieces = (
+        (9689, 9689, b'\n\ndef prepare_resources(root, original_resources):\n', b'\n\ndef _admit_package_policy(name, raw, expected):\n    """Accept the original policy or the exact extension-only v6 successor.\n\n    The 176 Agent, 17 capture and three integer resources are unchanged.\n    This is a whole-source inverse and replay, never a policy pin refresh.\n    """\n    if encoded(pin(raw)) == encoded(expected):\n        return\n    if (name != \'setup.py\' or encoded(expected) != encoded({\'bytes\': 4839, \'sha256\': \'be518d19561790ca7c07f54c70a3d98899b460ff717ca3d93c381cdbb5a2c89f\'})\n            or pin(raw) != {\'bytes\': 5398, \'sha256\': \'dbd27976a0d5e411da4c3affee239f66af03fcde22651237987b7a64acf330a8\'}):\n        raise ValueError(\'Journal current package policy changed: \' + name)\n    pieces = (\n        (873, 873, b\'ROOT=Path(__file__).resolve().parent\\n\', b\'_image_spec = spec_from_file_location(\\n    \\\'_hepta_native_carrier_build\\\', Path(__file__).resolve().parent / \\\'hepta/native/native_carrier_build.py\\\')\\n_image_build = module_from_spec(_image_spec)\\n_image_spec.loader.exec_module(_image_build)\\n\\nclass AllMechanicalBuildExt(_image_build.NativeCarrierBuildExt, MechanicalBuildExt):\\n    """Independent exact receipts; each original builder handles only its ABI."""\\n    pass\\n\\nROOT=Path(__file__).resolve().parent\\n\'),\n        (4632, 5048, b"setup(cmdclass={\'build_py\':AgentResourceBuild, \'build_ext\':MechanicalBuildExt},\\n      ext_modules=extensions(),\\n      package_data={\'hepta\': [\'native/slot_mechanical.c\', \'native/slot_mechanical_build.py\']})\\n", b"setup(cmdclass={\'build_py\':AgentResourceBuild, \'build_ext\':AllMechanicalBuildExt},\\n      ext_modules=extensions() + _image_build.extensions(),\\n      package_data={\'hepta\': [\'native/slot_mechanical.c\', \'native/slot_mechanical_build.py\',\\n                              \'native/native_image.c\', \'native/cell_frame.c\', \'native/native_carrier_build.py\']})\\n"),\n    )\n    original = raw\n    for old_at, new_at, before, after in reversed(pieces):\n        if original[new_at:new_at + len(after)] != after:\n            raise ValueError(\'Journal native-carrier setup inverse differs\')\n        original = original[:new_at] + before + original[new_at + len(after):]\n    if encoded(pin(original)) != encoded(expected):\n        raise ValueError(\'Journal native-carrier setup whole original differs\')\n    replay = original\n    for old_at, new_at, before, after in reversed(pieces):\n        if replay[old_at:old_at + len(before)] != before:\n            raise ValueError(\'Journal native-carrier setup replay segment differs\')\n        replay = replay[:old_at] + after + replay[old_at + len(before):]\n    if replay != raw:\n        raise ValueError(\'Journal native-carrier setup whole replay differs\')\n\n\n\ndef prepare_resources(root, original_resources):\n'),
+        (10254, 12925, b"        if pin(_read(root, name, captured)) != expected:\n            raise ValueError('Journal current package policy changed: ' + name)\n", b'        _admit_package_policy(name, _read(root, name, captured), expected)\n'),
+    )
+    # Independently rebuild old/current streams from ordered segments.
+    previous_new = previous_old = 0
+    old_parts = []
+    for old_at, new_at, old, new in pieces:
+        if (old_at < previous_old or new_at < previous_new
+                or old_at - previous_old != new_at - previous_new
+                or raw[new_at:new_at + len(new)] != new):
+            raise ValueError('Journal packaging helper inverse segment differs')
+        old_parts.extend((raw[previous_new:new_at], old))
+        previous_old, previous_new = old_at + len(old), new_at + len(new)
+    old_parts.append(raw[previous_new:])
+    original = b''.join(old_parts)
+    if {'bytes': len(original), 'sha256': sha256(original).hexdigest()} != original_pin:
+        raise ValueError('Journal packaging helper did not restore its whole original')
+    replay, cursor = [], 0
+    for old_at, new_at, old, new in pieces:
+        if original[old_at:old_at + len(old)] != old:
+            raise ValueError('Journal packaging helper forward segment differs')
+        replay.extend((original[cursor:old_at], new))
+        cursor = old_at + len(old)
+    replay.append(original[cursor:])
+    if b''.join(replay) != raw:
+        raise ValueError('Journal packaging helper whole forward replay differs')
+    return original
+
+
+
 def _restore_caller_diagnostic_source(raw, provenance):
     """Independently reverse and replay the two reviewed diagnostic splices.
 
@@ -1328,7 +1370,9 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
                 raise ValueError('Journal preparation does not authorize another scope')
             equal(old_pin, _CALLER_JOURNAL_OLD, 'Journal original scope identity differs')
             equal(s.bytes_pin(raw), _CALLER_JOURNAL_NEW, 'current complete Journal source differs')
-            take(_CALLER_JOURNAL_HELPER, _CALLER_JOURNAL_HELPER_PIN)
+            helper = take(_CALLER_JOURNAL_HELPER)
+            equal(s.bytes_pin(_restore_caller_journal_packaging_helper(helper)),
+                  _CALLER_JOURNAL_HELPER_PIN, 'Journal helper original source differs')
             provenance = take(_CALLER_JOURNAL_FIXTURE, _CALLER_JOURNAL_FIXTURE_PIN)
             archive = take(_CALLER_JOURNAL_ARCHIVE, _CALLER_JOURNAL_OLD)
             if _restore_caller_journal_source(raw, provenance) != archive:

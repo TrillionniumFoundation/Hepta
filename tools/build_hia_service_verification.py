@@ -17,6 +17,13 @@ from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/service_verification.hepta'
 INPUTS = (
+    'hepta/native/cell_frame.c',
+    'hepta/native/native_carrier_build.py',
+    'hepta/hia_cell_frame.py',
+    'hepta/hia_native_helpers.py',
+    'hepta/hia_native_carrier_worker_bundle.py',
+    'tools/build_hia_native_carriers.py',
+    'tools/capture_hia_native_carrier_bundle.py',
     "examples/hia_bootstrap/service_verification.hepta",
     "tools/generate_hia_service_verification.py",
     "tools/hia_service_verification_graph.py",

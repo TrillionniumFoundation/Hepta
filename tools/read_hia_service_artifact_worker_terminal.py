@@ -38,7 +38,49 @@ def equal(left, right):
     require(canonical(left) == canonical(right), 'terminal typed value differs')
 
 
+CARRIER_AUTHORITY = 'tests/fixtures/service_artifact_carrier_source_v1.json'
+CARRIER_AUTHORITY_SHA256 = '865e35c75392f4fb35c2eb6441d4240538e18773799596f3483acb91e31bdfb4'
+CARRIER_SOURCES = {'tools/build_hia_service_artifact.py': {'original': {'bytes': 6337, 'sha256': '694539372549a08c3ef33b9ca034d2cede9fedf51600c6cbb1224e7180f9181b'}, 'current': {'bytes': 6956, 'sha256': '8624485f0a4fba2af013ee03b11e5a154576a5f9d1a9989ea34b98055c136c20'}}, 'hepta/hia_service_artifact_native.py': {'original': {'bytes': 18549, 'sha256': '6e4a57398080eebb614711954baa79465a5d0b3e35c997aba98fdc63fd141495'}, 'current': {'bytes': 20483, 'sha256': '22eab136b0f1c7f58bfb58156d0c6b1979d4b1ae410c72845667878a38dec877'}}}
+
+def carrier_predecessor(raw, expected, *, read=None, path=None):
+    """Admit only a fixed whole v6 source, then recover its complete predecessor."""
+    observed = digest(raw)
+    if observed == expected:
+        return raw, None
+    choices = [name for name, row in CARRIER_SOURCES.items()
+               if row['original'] == expected and row['current'] == observed
+               and (path is None or path == name)]
+    if len(choices) != 1:
+        raise ValueError('undeclared complete artifact carrier source successor')
+    name, = choices
+    authority_raw = (regular_bytes(Path(__file__).resolve().parents[1] / CARRIER_AUTHORITY)
+                     if read is None else read(CARRIER_AUTHORITY))
+    if (type(authority_raw) is not bytes
+            or sha256(authority_raw).hexdigest() != CARRIER_AUTHORITY_SHA256):
+        raise ValueError('fixed artifact carrier source authority changed')
+    authority = json.loads(authority_raw, object_pairs_hook=unique_pairs)
+    if (authority['schema'] != 'hepta.service-artifact.carrier-source-successor.v1'
+            or authority['source_admission_only'] is not True
+            or authority['old_authority_or_tests_replaced'] is not False
+            or authority['old_pass_transferred'] is not False
+            or set(authority['source_successors']) != set(CARRIER_SOURCES)):
+        raise ValueError('artifact carrier source authority scope differs')
+    specification = authority['source_successors'][name]
+    if ({key: specification[key] for key in ('original', 'current')} != CARRIER_SOURCES[name]
+            or specification['original'] != expected):
+        raise ValueError('artifact carrier source relation is outside the retained authority')
+    # The nested call has this exact current pin, so it runs the unchanged
+    # splice algorithm directly and cannot recursively select another profile.
+    original = original_source(raw, specification)
+    if digest(original) != expected:
+        raise ValueError('complete artifact carrier predecessor differs')
+    return original, {'authority': digest(authority_raw),
+                      'original': dict(expected), 'current': observed,
+                      'inverse_sha256': sha256(original).hexdigest(), 'forward_replayed': True}
+
+
 def original_source(current, specification):
+    current, _ = carrier_predecessor(current, specification['current'])
     equal(digest(current), specification['current'])
     parts = []
     cursor = 0
@@ -88,12 +130,15 @@ def admit_source_authority(captured, root):
             and type(value['legacy_lost_ack_exit']) is int and value['legacy_lost_ack_exit'] == 1
             and type(value['current_lost_ack_exit']) is int and value['current_lost_ack_exit'] == 2,
             'explicit terminal version contract differs')
-    originals, current = {}, {}
+    originals, current, carrier_sources = {}, {}, {}
     for name, specification in value['source_successors'].items():
         path = PurePosixPath(name)
         require(not path.is_absolute() and '..' not in path.parts, 'unsafe terminal source path')
         data = captured.raw(root / name)
-        originals[name] = digest(original_source(data, specification))
+        prior, proof = carrier_predecessor(data, specification['current'], read=lambda name: captured.raw(root / name), path=name)
+        if proof is not None:
+            carrier_sources[name] = proof
+        originals[name] = digest(original_source(prior, specification))
         current[name] = digest(data)
     equal(digest(captured.raw(root / 'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt')),
           WORKERS[1])
@@ -105,11 +150,20 @@ def admit_source_authority(captured, root):
     for name, expected in value['current_dependencies'].items():
         path = PurePosixPath(name)
         require(not path.is_absolute() and '..' not in path.parts, 'unsafe terminal dependency path')
-        equal(digest(captured.raw(root / name)), expected)
-    return {'schema': value['schema'], 'authority': digest(raw), 'worker_profile': profile,
+        prior, proof = carrier_predecessor(captured.raw(root / name), expected, read=lambda name: captured.raw(root / name), path=name)
+        if proof is not None:
+            carrier_sources[name] = proof
+        equal(digest(prior), expected)
+    captured.stable()
+    result = {'schema': value['schema'], 'authority': digest(raw), 'worker_profile': profile,
             'original_sources': originals, 'current_sources': current,
             'observation_sources': observation_sources,
             'legacy_pass_transferred': False, 'original_Native8_replaced': False}
+    if carrier_sources:
+        result['carrier_source_admission'] = {'schema': 'hepta.service-artifact.carrier-source-admission.v1',
+            'authority_path': CARRIER_AUTHORITY, 'sources': carrier_sources,
+            'original_authority_unchanged': True, 'qualification_transferred': False}
+    return result
 
 
 def verify_terminal(value, stderr, label, profile):

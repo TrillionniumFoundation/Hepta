@@ -15,7 +15,10 @@ def assigned(tree,name):
     raise AssertionError('missing fixed source declaration: '+name)
 class ServiceBootstrapStaticSourceTests(unittest.TestCase):
     def test_five_original_definitions_signatures_and_retained_prefix(self):
-        raw=(ROOT/'hepta/hia_agent_service.py').read_bytes()
+        from tests.test_hia_service_bootstrap_uuid_source import RetainedBootstrapService
+        prepared=RetainedBootstrapService(ROOT)
+        self.addCleanup(prepared.finish)
+        raw=prepared.original
         frozen=json.loads((FIXTURE/'source-identity.json').read_bytes())
         prefix=raw[:frozen['service']['bytes']]
         self.assertEqual(sha256(prefix).hexdigest(),frozen['service']['sha256'])

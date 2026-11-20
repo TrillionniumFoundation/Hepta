@@ -16,6 +16,15 @@ _mechanical_build = module_from_spec(_mechanical_spec)
 _mechanical_spec.loader.exec_module(_mechanical_build)
 MechanicalBuildExt, extensions = _mechanical_build.MechanicalBuildExt, _mechanical_build.extensions
 
+_image_spec = spec_from_file_location(
+    '_hepta_native_carrier_build', Path(__file__).resolve().parent / 'hepta/native/native_carrier_build.py')
+_image_build = module_from_spec(_image_spec)
+_image_spec.loader.exec_module(_image_build)
+
+class AllMechanicalBuildExt(_image_build.NativeCarrierBuildExt, MechanicalBuildExt):
+    """Independent exact receipts; each original builder handles only its ABI."""
+    pass
+
 ROOT=Path(__file__).resolve().parent
 
 # Explicit independent VM arithmetic resource; no helper registry/default switch.
@@ -73,6 +82,7 @@ class AgentResourceBuild(build_py):
     def get_outputs(self,include_bytecode=True):
         return super().get_outputs(include_bytecode)+getattr(self,'_agent_outputs',[])
 
-setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt},
-      ext_modules=extensions(),
-      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py']})
+setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':AllMechanicalBuildExt},
+      ext_modules=extensions() + _image_build.extensions(),
+      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py',
+                              'native/native_image.c', 'native/cell_frame.c', 'native/native_carrier_build.py']})

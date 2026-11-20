@@ -12,8 +12,6 @@ if __package__ in (None, ''):
     sys.path.insert(0, str(ROOT))
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
-from tools.build_hia_source_build import _check_pack_output
-from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/service_artifact.hepta'
 ORIGINAL_DIRECTORY = 'tests/fixtures/hia_service_artifact_original_5bf/'
@@ -22,6 +20,10 @@ INPUTS = (
     'tools/build_hia_service_artifact.py', 'tools/qualify_hia_service_artifact_callers.py',
     'tools/qualify_hia_emission_callers.py',
     'hepta/hia_service_artifact_native.py', 'hepta/hia_service_artifact_protocol.py',
+    'hepta/hia_service_artifact_bridge.py', 'hepta/hia_native_image.py',
+    'hepta/native/native_image.c', 'hepta/native/native_carrier_build.py',
+    'hepta/hia_native_carrier_worker_bundle.py', 'tools/build_hia_native_carriers.py',
+    'tools/capture_hia_native_carrier_bundle.py',
     'hepta/hia_native_delivery.py', 'hepta/hia_agent_service.py', 'hepta/hia_agent_store.py',
     'hepta/hia_store_lifecycle_selection.py', 'hepta/hia_store_lifecycle_native.py',
     'hepta/hia_store_artifact_profile_native.py', 'hepta/artifact_publication_native.py',
@@ -40,6 +42,8 @@ INPUTS = (
     'tools/read_hia_service_artifact_worker_terminal.py',
     'tests/test_hia_service_artifact_worker_terminal.py',
     'tests/fixtures/service_artifact_worker_terminal_v2.json',
+    'tests/fixtures/service_artifact_carrier_source_v1.json',
+    'tests/test_hia_service_artifact_carrier_source.py',
     'hepta/hia_agent_worker.py',
     'tests/hia_slot_operations_qualification_support.py',
     'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt',
@@ -47,6 +51,16 @@ INPUTS = (
     *(ORIGINAL_DIRECTORY + name for name in (
         'artifact.5bf.py.txt', 'profile.5bf.py.txt', 'source-identity.json', 'cases.json', 'freeze.json')),
 )
+
+
+def compile_stage(*arguments, **keywords):
+    from tools.qualify_hia_selfhost import compile_stage as selected
+    return selected(*arguments, **keywords)
+
+
+def _check_pack_output(*arguments, **keywords):
+    from tools.build_hia_source_build import _check_pack_output as selected
+    return selected(*arguments, **keywords)
 
 
 def build(output, compiler, cold_report=None, *, development=False):

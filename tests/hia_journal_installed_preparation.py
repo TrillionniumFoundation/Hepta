@@ -193,6 +193,38 @@ def _literal(raw, name):
     return value
 
 
+def _admit_package_policy(name, raw, expected):
+    """Accept the original policy or the exact extension-only v6 successor.
+
+    The 176 Agent, 17 capture and three integer resources are unchanged.
+    This is a whole-source inverse and replay, never a policy pin refresh.
+    """
+    if encoded(pin(raw)) == encoded(expected):
+        return
+    if (name != 'setup.py' or encoded(expected) != encoded({'bytes': 4839, 'sha256': 'be518d19561790ca7c07f54c70a3d98899b460ff717ca3d93c381cdbb5a2c89f'})
+            or pin(raw) != {'bytes': 5398, 'sha256': 'dbd27976a0d5e411da4c3affee239f66af03fcde22651237987b7a64acf330a8'}):
+        raise ValueError('Journal current package policy changed: ' + name)
+    pieces = (
+        (873, 873, b'ROOT=Path(__file__).resolve().parent\n', b'_image_spec = spec_from_file_location(\n    \'_hepta_native_carrier_build\', Path(__file__).resolve().parent / \'hepta/native/native_carrier_build.py\')\n_image_build = module_from_spec(_image_spec)\n_image_spec.loader.exec_module(_image_build)\n\nclass AllMechanicalBuildExt(_image_build.NativeCarrierBuildExt, MechanicalBuildExt):\n    """Independent exact receipts; each original builder handles only its ABI."""\n    pass\n\nROOT=Path(__file__).resolve().parent\n'),
+        (4632, 5048, b"setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt},\n      ext_modules=extensions(),\n      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py']})\n", b"setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':AllMechanicalBuildExt},\n      ext_modules=extensions() + _image_build.extensions(),\n      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py',\n                              'native/native_image.c', 'native/cell_frame.c', 'native/native_carrier_build.py']})\n"),
+    )
+    original = raw
+    for old_at, new_at, before, after in reversed(pieces):
+        if original[new_at:new_at + len(after)] != after:
+            raise ValueError('Journal native-carrier setup inverse differs')
+        original = original[:new_at] + before + original[new_at + len(after):]
+    if encoded(pin(original)) != encoded(expected):
+        raise ValueError('Journal native-carrier setup whole original differs')
+    replay = original
+    for old_at, new_at, before, after in reversed(pieces):
+        if replay[old_at:old_at + len(before)] != before:
+            raise ValueError('Journal native-carrier setup replay segment differs')
+        replay = replay[:old_at] + after + replay[old_at + len(before):]
+    if replay != raw:
+        raise ValueError('Journal native-carrier setup whole replay differs')
+
+
+
 def prepare_resources(root, original_resources):
     """Read the unchanged build policy as data and capture every required input."""
     root = Path(root)
@@ -203,8 +235,7 @@ def prepare_resources(root, original_resources):
             raise ValueError('Journal source changed after source admission: ' + name)
     value = _authority(root, captured)
     for name, expected in value['policy_sources'].items():
-        if pin(_read(root, name, captured)) != expected:
-            raise ValueError('Journal current package policy changed: ' + name)
+        _admit_package_policy(name, _read(root, name, captured), expected)
     contract = captured['hepta/hia_agent_contract.py']
     discovery = _literal(contract, AGENT_SYMBOLS[0])
     if any(PurePosixPath(name).name != name for name in discovery):

@@ -441,6 +441,9 @@ class ContextFrame:
         elif port == 42:
             d['manifest'] = s.store.json(d['record'], 'context')
         elif port == 43:
+            from . import hia_agent_service
+            if api is vars(hia_agent_service) and not hia_agent_service._UUID_PROVIDER_BOUND:
+                hia_agent_service._ensure_uuid()
             d['context'] = {'id': 'ctx-' + api['uuid'].uuid4().hex, 'sha256': d['manifest']['sha256']}
         elif port == 44:
             s.store.db.execute('INSERT INTO contexts VALUES (?,?,?,?,0)',

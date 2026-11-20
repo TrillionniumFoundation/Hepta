@@ -384,14 +384,23 @@ class ServiceVerificationFrame:
             self.namespace, self.global_builtins, self.import_capsules)
 
     def _make_acyclic(self):
-        image, namespace, captured = self.image, self.namespace, self.global_builtins
-        imports, cells = self.import_capsules, self._capture('blocks', 'visiting', 'done', 'acyclic')
-        def acyclic(name):
-            frame = ServiceVerificationFrame(image, ACYCLIC, {'name': name, 'cells': cells},
-                namespace=namespace, global_builtins=captured, import_capsules=imports)
-            del name
-            return frame.finish()
-        return acyclic
+        from .hia_cell_frame import selected_extension
+        carrier = selected_extension()
+        if carrier is None:
+            image, namespace, captured = self.image, self.namespace, self.global_builtins
+            imports, cells = self.import_capsules, self._capture('blocks', 'visiting', 'done', 'acyclic')
+            def acyclic(name):
+                frame = ServiceVerificationFrame(image, ACYCLIC, {'name': name, 'cells': cells},
+                    namespace=namespace, global_builtins=captured, import_capsules=imports)
+                del name
+                return frame.finish()
+            return acyclic
+
+        CellBindings, FrameCallback = carrier.CellBindings, carrier.FrameCallback
+        captured = self._capture('blocks', 'visiting', 'done', 'acyclic').cells
+        cells = CellBindings(tuple(captured), tuple(captured.values()), _read_empty_free_cell)
+        return FrameCallback(ServiceVerificationFrame, self.image, ACYCLIC, cells,
+            self.namespace, self.global_builtins, self.import_capsules)
 
     def _make_finish(self, evidence):
         image, namespace, captured = self.image, self.namespace, self.global_builtins

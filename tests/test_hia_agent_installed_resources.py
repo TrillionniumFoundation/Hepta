@@ -7,9 +7,43 @@ from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
 # Additional explicit sdist inputs stay separate from Agent RESOURCES.
-# The two declared native package files also belong in the actual wheel;
+# The declared native package files also belong in the actual wheel;
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
+    'tests/fixtures/service_artifact_carrier_source_v1.json',
+    'tests/test_hia_service_artifact_carrier_source.py',
+    'tests/fixtures/store_delivery_carrier_source_v1.json',
+    'tests/test_hia_store_delivery_carrier_source.py',
+    'tests/test_hia_service_bootstrap_uuid_source.py',
+    'tests/test_hia_service_bootstrap_sources.py',
+    'tools/build_hia_store_artifact_profile.py',
+    'tests/fixtures/hia_service_bootstrap_original_r12/source-identity.json',
+    'tests/fixtures/hia_service_bootstrap_original_r12/__init__.py.txt',
+    'tests/fixtures/hia_service_bootstrap_original_r12/close.py.txt',
+    'tests/fixtures/hia_service_bootstrap_original_r12/_profiles.py.txt',
+    'tests/fixtures/hia_service_bootstrap_original_r12/_profile.py.txt',
+    'tests/fixtures/hia_service_bootstrap_original_r12/_program.py.txt',
+    'tools/generate_hia_source_build.py',
+    'tools/hia_selfhost_contract.py',
+    'tools/hia_selfhost_cases.py',
+    'tools/qualify_hia_selfhost_cli.py',
+    'tests/hia_service_verification_cells.py',
+    'tests/hia_native_image_mechanical_controls.py',
+    'tests/hia_cell_frame_mechanical_controls.py',
+    'tools/qualify_hia_service_artifact_carrier_finite.py',
+    'hepta/native/native_image.c',
+    'hepta/native/cell_frame.c',
+    'hepta/native/native_carrier_build.py',
+    'tools/build_hia_native_carriers.py',
+    'tools/capture_hia_native_carrier_bundle.py',
+    'tests/test_hia_optional_ffi_imports.py',
+    'tests/test_hia_uuid_provider_imports.py',
+    'tests/hia_native_carrier_admission_controls.py',
+    'tests/fixtures/service_artifact_buffer_observer_v1.py.txt',
+    'tests/fixtures/uuid_provider_972_reference_bodies.json',
+    'docs/HIA_NATIVE_CARRIERS_V6.md',
+    'tests/test_hia_caller_terminal_readback.py',
+    'tools/read_hia_store_file_capture_callers.py',
     'tests/fixtures/hia_compiler_rename_reference.json.gz',
     'docs/HIA_SLOT_MECHANICAL_BOUNDARY.md',
     'docs/HIA_SLOT_MECHANICAL_V5.md',
@@ -318,6 +352,9 @@ SDIST_SUPPORT_FILES=(
     'tools/hia_selfhost_native_observer.py',
 )
 WHEEL_PACKAGE_FILES=(
+    'hepta/native/native_image.c',
+    'hepta/native/cell_frame.c',
+    'hepta/native/native_carrier_build.py',
     'hepta/native/slot_mechanical.c',
     'hepta/native/slot_mechanical_build.py',
 )
