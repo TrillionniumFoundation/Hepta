@@ -152,8 +152,9 @@ class ServiceArtifactSourceTests(unittest.TestCase):
             def put(self, data, kind):
                 events.append(('put', data, kind))
                 return 'issued'
-        class Service:
-            store = Store()
+        class Service(api.HIAAgentService):
+            def __init__(self):
+                self.store = Store()
             def _profile(self, value, kind):
                 events.append(('profile', value, kind))
         arguments = {'artifact_profile': 'profile', 'source': {'kind': 'utf8', 'text': '雪'}}

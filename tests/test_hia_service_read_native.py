@@ -179,8 +179,9 @@ class ServiceReadSourceTests(unittest.TestCase):
             def get(self, reference):
                 events.append(('get', reference))
                 return b'abc', {}
-        class Service:
-            store = Store()
+        class Service(api.HIAAgentService):
+            def __init__(self):
+                self.store = Store()
         reference = {'id': 'original', 'sha256': 'a' * 64}
         with patch.dict(os.environ, clean_environment(), clear=True), patch.object(native,
                 'installed_service_read', side_effect=AssertionError('absent selector mapped owner')):

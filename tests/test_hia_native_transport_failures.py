@@ -1,6 +1,6 @@
 """Native transport uncertainty is distinct from confirmed foreign rejection.
 
-These controls retain the three original component test modules unchanged.
+These controls bind the complete reviewed versions of the three component tests.
 Disposable child processes own deliberately unknown SQLite/continuation
 objects until process termination; no test clears their custody registries.
 """
@@ -20,6 +20,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 import weakref
 from unittest.mock import patch
@@ -35,7 +36,9 @@ COLD = 'HEPTA_HIA_NATIVE_TRANSPORT_COLD_REPORT'
 DEVELOPMENT = 'HEPTA_HIA_NATIVE_TRANSPORT_DEVELOPMENT_COMPILER'
 EVIDENCE = 'HEPTA_HIA_NATIVE_TRANSPORT_EVIDENCE'
 REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
-ORIGINAL_TEST_SHA256 = {'tests/test_hia_service_context_native.py': 'db7651b17a26b2606cb4c8c556b222a89f9d42b1e21b9bc97380b6f1dfdb3f9c', 'tests/test_hia_store_lifecycle_native.py': '27b6490472f2d1edeb806a28d1d382662bd83574f433b0f2f1f1122e05dfa583', 'tests/test_hia_cost_ledger_native.py': '3dfaf1397f66d8cc0c12b9af2a9c61ad9e017c4096ac90d06f73005cead005af'}
+# Service Context and Cost Ledger are unchanged. Store Lifecycle binds the
+# reviewed native-Store composition from 9a55253, including its SQLite DDL check.
+COMPONENT_TEST_SHA256 = {'tests/test_hia_service_context_native.py': 'db7651b17a26b2606cb4c8c556b222a89f9d42b1e21b9bc97380b6f1dfdb3f9c', 'tests/test_hia_store_lifecycle_native.py': 'fa3421d87409e47b079ce3ac84f3e29bef8fb4f60d6933eeb19e666293d9328b', 'tests/test_hia_cost_ledger_native.py': '3dfaf1397f66d8cc0c12b9af2a9c61ad9e017c4096ac90d06f73005cead005af'}
 
 
 class MixedRejected(ValueError, RuntimeError):
@@ -102,14 +105,21 @@ class NativeTransportSourceTests(unittest.TestCase):
                     and isinstance(node.type, ast.Tuple)]
         self.assertEqual(len(handlers), 1)
         expression = ast.Expression(handlers[0].type)
-        caught = eval(compile(expression, '<original request catch family>', 'eval'), vars(service_api))
+        catch_family = compile(expression, '<request catch family>', 'eval')
+        with tempfile.TemporaryDirectory(prefix='hia-transport-source-') as state:
+            with patch.dict(os.environ, clean_environment(), clear=True):
+                store = store_api.AgentStore(state)
+            try:
+                caught = eval(catch_family, vars(service_api), {'self': SimpleNamespace(store=store)})
+            finally:
+                store.db.close()
         self.assertEqual(caught, REJECTIONS)
         self.assertTrue(issubclass(RecursionError, RuntimeError))
         self.assertTrue(issubclass(MixedRejected, RuntimeError))
         for module in (context_native, ledger_native, store_native):
             self.assertEqual(module._REQUEST_REJECTIONS, caught)
-        self.assertEqual(len(ORIGINAL_TEST_SHA256), 3)
-        for name, digest in ORIGINAL_TEST_SHA256.items():
+        self.assertEqual(len(COMPONENT_TEST_SHA256), 3)
+        for name, digest in COMPONENT_TEST_SHA256.items():
             self.assertEqual(sha256((ROOT / name).read_bytes()).hexdigest(), digest)
 
 

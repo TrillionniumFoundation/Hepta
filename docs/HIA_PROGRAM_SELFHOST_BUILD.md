@@ -41,12 +41,10 @@ hia build /absolute/program.core.hepta \
   --output /absolute/existing-output-directory/program.o
 ```
 
-The selected backend accepts primitive Core v8 or v9, with scalar exports.
-The hosted entry point accepts assembly or Core JSON; the standalone native
-package currently takes Core JSON on this route. Use `hia import-assembly` for
-a native assembly-to-JSON conversion before selecting the backend.
-Native compilation receives canonical Core JSON with the exact chosen scalar
-export list. Output must be a new pathname under an
+The selected backend accepts primitive Core v8 or v9 JSON, with scalar
+exports. Use `hia import-assembly` to convert assembly source to Core JSON
+before building. Native compilation receives canonical Core JSON with the
+exact chosen scalar export list. Output must be a new pathname under an
 existing directory; existing files, dangling symlinks, and parent symlinks are
 refused. No compiler is selected from an environment variable, discovered
 through `PATH`, or substituted when this selection fails. Both manifest
