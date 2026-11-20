@@ -6,7 +6,8 @@ from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUI
                                   WORD_TABLE_REQUEST, WORD_TABLE_INPUT_BITS, WORD_TABLE_WORK_LIMIT,
                                   CIRCUIT_WORKSPACE, CLAUSE_LIMIT, REPLY, REQUEST, SOURCE, SPARSE_CLAUSES,
                                   CIRCUIT_DIVISION_TEMP, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_PRODUCT_EXCEEDS,
-                                  WORD_VARIABLE_SHL, WORD_VARIABLE_SHR,
+                                  CIRCUIT_SIGNED_MAGNITUDES, WORD_VARIABLE_SHL, WORD_VARIABLE_SHR,
+                                  WORD_ARITHMETIC_SHR, WORD_SIGNED_DIV, WORD_SIGNED_REM,
                                   PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR, PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM,
                                   PROJECT_CHECKED_CAST, PROJECT_CHECKED_MUL, PROJECT_DIRECT_CALL,
                                  LEARNED_CLAUSES, LEARNED_ENTRIES, LEARNING_BYTES, LEARNING_REASONS,
@@ -935,6 +936,8 @@ def evaluate_word_node(source:readbuf, scratch:mutbuf, operation:u64, width:u64,
         return (a * b) & word_mask(width)
     if operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
         return evaluate_word_division(a, b, width, operation)
+    if operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM:
+        return evaluate_signed_division(a, b, width, operation == WORD_SIGNED_DIV)
     if operation == WORD_PRODUCT_EXCEEDS:
         if b == 0:
             return 0
@@ -948,6 +951,13 @@ def evaluate_word_node(source:readbuf, scratch:mutbuf, operation:u64, width:u64,
         if immediate >= width:
             return 0
         return choose(operation == 28, (a << immediate) & word_mask(width), a >> immediate)
+    if operation == WORD_ARITHMETIC_SHR:
+        mask = word_mask(width)
+        negative = (a >> (width - 1)) != 0
+        if b >= width:
+            return choose(negative, mask, 0)
+        fill = choose(negative, mask ^ (mask >> b), 0)
+        return fill | (a >> b)
     if operation == WORD_VARIABLE_SHL or operation == WORD_VARIABLE_SHR:
         if b >= width:
             return 0
@@ -969,6 +979,19 @@ def evaluate_word_division(a:u64, b:u64, width:u64, operation:u64) -> u64:
             remainder = (remainder - b) & mask
             quotient = quotient | (1 << bit)
     return choose(operation == WORD_UNSIGNED_DIV, quotient, remainder)
+
+def evaluate_signed_division(a:u64, b:u64, width:u64, quotient:bool) -> u64:
+    mask = word_mask(width)
+    left_negative = (a >> (width - 1)) != 0
+    right_negative = (b >> (width - 1)) != 0
+    dividend = choose(left_negative, (0 - a) & mask, a)
+    divisor = choose(right_negative, (0 - b) & mask, b)
+    unsigned_operation = choose(quotient, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM)
+    magnitude = evaluate_word_division(dividend, divisor, width, unsigned_operation)
+    negative = choose(quotient, left_negative != right_negative, left_negative)
+    # Restoring division returns all ones or the original dividend for zero.
+    # Restoring the sign gives SMT-LIB's signed quotient/remainder zero case.
+    return choose(negative, (0 - magnitude) & mask, magnitude)
 
 def word_mask(width:u64) -> u64:
     if width == 64:
@@ -1004,7 +1027,7 @@ def evaluate_word_overflow(a:u64, b:u64, width:u64, operation:u64) -> u64:
 def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width == 0 or width > 64:
         return 0
-    if operation < 1 or operation > WORD_VARIABLE_SHR:
+    if operation < 1 or operation > WORD_SIGNED_REM:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -1050,9 +1073,9 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         return 1
     if right >= index or node_width(source, left) != node_width(source, right):
         return 0
-    if operation == 32 or operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
+    if operation == 32 or operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM or operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM:
         return choose(width > 1 and width == node_width(source, left), 1, 0)
-    if operation == WORD_VARIABLE_SHL or operation == WORD_VARIABLE_SHR:
+    if operation == WORD_VARIABLE_SHL or operation == WORD_VARIABLE_SHR or operation == WORD_ARITHMETIC_SHR:
         return choose(width == node_width(source, left), 1, 0)
     if operation >= 12:
         if width != 1 or node_width(source, left) == 1:
@@ -1130,10 +1153,14 @@ def encode_checked_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, nodes:
                 if encode_product_limit(output, scratch, node, left, right, immediate, node_width(source, left)) == 0:
                     return TOO_LARGE
             elif operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM:
-                if encode_division(output, scratch, node, left, right, width, operation) == 0:
+                if encode_division(output, scratch, 32 + 128 * node, 32 + 128 * left, 32 + 128 * right,
+                                   width, operation == WORD_UNSIGNED_DIV) == 0:
                     return TOO_LARGE
-            elif operation == WORD_VARIABLE_SHL or operation == WORD_VARIABLE_SHR:
-                if encode_variable_shift(output, scratch, node, left, right, width, operation == WORD_VARIABLE_SHL) == 0:
+            elif operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM:
+                if encode_signed_division(output, scratch, node, left, right, width, operation == WORD_SIGNED_DIV) == 0:
+                    return TOO_LARGE
+            elif operation == WORD_VARIABLE_SHL or operation == WORD_VARIABLE_SHR or operation == WORD_ARITHMETIC_SHR:
+                if encode_variable_shift(output, scratch, node, left, right, width, operation) == 0:
                     return TOO_LARGE
             elif operation == 32:
                 if encode_product(output, scratch, node, choose(left < right, left, right), choose(left < right, right, left), width) == 0:
@@ -1350,10 +1377,14 @@ def carry_after_digit(output:mutbuf, scratch:mutbuf, a:u64, b:u64, parity:u64, c
     return logic_or(output, scratch, generate, propagate)
 
 def encode_variable_shift(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64,
-                          width:u64, leftward:bool) -> u64:
+                          width:u64, operation:u64) -> u64:
     row = 32 + 128 * node
     value = 32 + 128 * left
     keys = 32 + 128 * right
+    leftward = operation == WORD_VARIABLE_SHL
+    fill = 3
+    if operation == WORD_ARITHMETIC_SHR:
+        fill = load_token(scratch, value + 2 * (width - 1))
     bit = 0
     while bit < width:
         put_token(scratch, row + 2 * bit, load_token(scratch, value + 2 * bit))
@@ -1362,12 +1393,12 @@ def encode_variable_shift(output:mutbuf, scratch:mutbuf, node:u64, left:u64, rig
     stage = 0
     while power < width:
         enabled = load_token(scratch, keys + 2 * stage)
-        if shift_stage(output, scratch, row, width, power, enabled, leftward) == 0:
+        if shift_stage(output, scratch, row, width, power, enabled, leftward, fill) == 0:
             return 0
         power = power * 2
         stage = stage + 1
-    # Combinations of lower bits that sum to width or more are already
-    # zero after the stages; any remaining high count bit also forces zero.
+    # In-range stages already implement the extended word. A remaining
+    # high count bit forces every result bit to the extension bit.
     high = 3
     while stage < width:
         high = logic_or(output, scratch, high, load_token(scratch, keys + 2 * stage))
@@ -1377,7 +1408,7 @@ def encode_variable_shift(output:mutbuf, scratch:mutbuf, node:u64, left:u64, rig
     bit = 0
     while bit < width:
         at = row + 2 * bit
-        token = logic_and(output, scratch, high ^ 1, load_token(scratch, at))
+        token = logic_select(output, scratch, high, fill, load_token(scratch, at))
         if token == 0:
             return 0
         put_token(scratch, at, token)
@@ -1385,13 +1416,13 @@ def encode_variable_shift(output:mutbuf, scratch:mutbuf, node:u64, left:u64, rig
     return 1
 
 def shift_stage(output:mutbuf, scratch:mutbuf, row:u64, width:u64, power:u64,
-                enabled:u64, leftward:bool) -> u64:
+                enabled:u64, leftward:bool, fill:u64) -> u64:
     # Visit opposite to displacement so an in-place stage never reads a
-    # token it already wrote. All vacated bits use the fixed false literal.
+    # token it already wrote. Vacated bits use the supplied word extension.
     position = 0
     while position < width:
         bit = choose(leftward, width - position - 1, position)
-        shifted = 3
+        shifted = fill
         if leftward:
             if bit >= power:
                 shifted = load_token(scratch, row + 2 * (bit - power))
@@ -1405,12 +1436,11 @@ def shift_stage(output:mutbuf, scratch:mutbuf, row:u64, width:u64, power:u64,
         position = position + 1
     return 1
 
-def encode_division(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64,
-                    width:u64, operation:u64) -> u64:
+def encode_division(output:mutbuf, scratch:mutbuf, result:u64, left:u64, right:u64,
+                    width:u64, quotient:bool) -> u64:
     # Unsigned restoring division. Keep the extra bit separately: a carry
     # from shifting the remainder makes subtraction unconditional.
     row = CIRCUIT_DIVISION_TEMP
-    result = 32 + 128 * node
     bit = 0
     while bit < width:
         put_token(scratch, row + 2 * bit, 3)
@@ -1419,26 +1449,25 @@ def encode_division(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64
     while incoming > 0:
         incoming = incoming - 1
         high = load_token(scratch, row + 2 * (width - 1))
-        digit = load_token(scratch, 32 + 128 * left + 2 * incoming)
+        digit = load_token(scratch, left + 2 * incoming)
         carry = division_trial(output, scratch, right, width, digit)
         if carry == 0:
             return 0
         subtract = logic_or(output, scratch, high, carry)
         if subtract == 0:
             return 0
-        if operation == WORD_UNSIGNED_DIV:
+        if quotient:
             put_token(scratch, result + 2 * incoming, subtract)
         if division_restore(output, scratch, width, subtract) == 0:
             return 0
-    if operation == WORD_UNSIGNED_REM:
+    if quotient == False:
         bit = 0
         while bit < width:
             put_token(scratch, result + 2 * bit, load_token(scratch, row + 2 * bit))
             bit = bit + 1
     return 1
 
-def division_trial(output:mutbuf, scratch:mutbuf, right:u64, width:u64, digit:u64) -> u64:
-    divisor_row = 32 + 128 * right
+def division_trial(output:mutbuf, scratch:mutbuf, divisor_row:u64, width:u64, digit:u64) -> u64:
     bit = 0
     carry = 2
     while bit < width:
@@ -1468,6 +1497,46 @@ def division_restore(output:mutbuf, scratch:mutbuf, width:u64, subtract:u64) -> 
         if remainder == 0:
             return 0
         put_token(scratch, at, remainder)
+        bit = bit + 1
+    return 1
+
+def encode_signed_division(output:mutbuf, scratch:mutbuf, node:u64, left:u64, right:u64,
+                           width:u64, quotient:bool) -> u64:
+    left_word = 32 + 128 * left
+    right_word = 32 + 128 * right
+    result = 32 + 128 * node
+    left_sign = load_token(scratch, left_word + 2 * (width - 1))
+    right_sign = load_token(scratch, right_word + 2 * (width - 1))
+    magnitude = CIRCUIT_SIGNED_MAGNITUDES
+    divisor = magnitude + 128
+    if conditional_negation(output, scratch, magnitude, left_word, width, left_sign) == 0:
+        return 0
+    if conditional_negation(output, scratch, divisor, right_word, width, right_sign) == 0:
+        return 0
+    if encode_division(output, scratch, result, magnitude, divisor, width, quotient) == 0:
+        return 0
+    negative = left_sign
+    if quotient:
+        negative = logic_xor(output, scratch, left_sign, right_sign)
+        if negative == 0:
+            return 0
+    return conditional_negation(output, scratch, result, result, width, negative)
+
+def conditional_negation(output:mutbuf, scratch:mutbuf, result:u64, source:u64, width:u64, negative:u64) -> u64:
+    # Conditional two's complement: flip all bits, then add the same sign bit.
+    carry = negative
+    bit = 0
+    while bit < width:
+        digit = logic_xor(output, scratch, load_token(scratch, source + 2 * bit), negative)
+        if digit == 0:
+            return 0
+        value = logic_xor(output, scratch, digit, carry)
+        if value == 0:
+            return 0
+        put_token(scratch, result + 2 * bit, value)
+        carry = logic_and(output, scratch, digit, carry)
+        if carry == 0:
+            return 0
         bit = bit + 1
     return 1
 
@@ -2517,7 +2586,9 @@ def source_program():
                      WORD_UNSIGNED_DIV=WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM=WORD_UNSIGNED_REM,
                      WORD_PRODUCT_EXCEEDS=WORD_PRODUCT_EXCEEDS,
                      WORD_VARIABLE_SHL=WORD_VARIABLE_SHL, WORD_VARIABLE_SHR=WORD_VARIABLE_SHR,
-                     CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,
+                     WORD_ARITHMETIC_SHR=WORD_ARITHMETIC_SHR, WORD_SIGNED_DIV=WORD_SIGNED_DIV,
+                     WORD_SIGNED_REM=WORD_SIGNED_REM, CIRCUIT_DIVISION_TEMP=CIRCUIT_DIVISION_TEMP,
+                     CIRCUIT_SIGNED_MAGNITUDES=CIRCUIT_SIGNED_MAGNITUDES,
                      CIRCUIT_GATES_OFFSET=CIRCUIT_GATES_OFFSET, CIRCUIT_GATE_SLOTS=CIRCUIT_GATE_SLOTS,
                      CIRCUIT_RETURNS=CIRCUIT_RETURNS, CIRCUIT_WORKSPACE=CIRCUIT_WORKSPACE,
                      WORD_WITNESS_REQUEST=WORD_WITNESS_REQUEST,

@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from hepta.hia_cnf_native import (REPLY, REQUEST, SAT, SOURCE, SPARSE_REPLY, SPARSE_REQUEST,
                                   SPARSE_WORKSPACE, UNKNOWN, UNSAT, WORKSPACE,
+                                  WORD_ARITHMETIC_SHR, WORD_SIGNED_DIV, WORD_SIGNED_REM,
                                   WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_VARIABLE_SHL, WORD_VARIABLE_SHR,
                                   bitblast_clauses, bitvector_circuit, selected_cnf)
 from tests.test_hia_core_workspace_facts_native import vm_run
@@ -86,6 +87,46 @@ class CnfInstalledTests(unittest.TestCase):
         cls.native = selected_cnf()
         if cls.native is None:
             raise unittest.SkipTest('a source-bound HIA Boolean image is required')
+
+    def test_signed_word_gates_and_concrete_witness_agree_with_z3(self):
+        import z3
+
+        operations = {
+            WORD_ARITHMETIC_SHR: lambda a, b: a >> b,
+            WORD_SIGNED_DIV: lambda a, b: a / b,
+            WORD_SIGNED_REM: z3.SRem,
+        }
+        for width in (3, 5, 8, 64):
+            mask = (1 << width) - 1
+            minimum = -(1 << (width - 1))
+            left, right = z3.BitVecs(f'signed_left_{width} signed_right_{width}', width)
+            cases = ((minimum, -1), (minimum, 0), (0, 0), (1, 0), (-3, 2), (3, -2),
+                     (-2, -2), (minimum, width), (minimum, width - 1), (-1, mask))
+            for operation, fn in operations.items():
+                for a, b in cases:
+                    with self.subTest(width=width, operation=operation, a=a, b=b):
+                        x, y = (z3.BitVecVal(value, width) for value in (a, b))
+                        expected = z3.simplify(fn(x, y)).as_long()
+                        # Width 64 exercises the concrete witness's complete domain;
+                        # nonlinear gate search remains subject to its published limit.
+                        typed = [(1, width, 0, 0, 0), (1, width, 0, 0, 0),
+                                 (operation, width, 0, 1, 0), (2, width, 0, 0, expected)]
+                        self.assertFalse(self.native.check_word_witness(typed, [(2, 3)], [a & mask, b & mask]))
+                        typed[-1] = (2, width, 0, 0, expected ^ 1)
+                        self.assertTrue(self.native.check_word_witness(typed, [(2, 3)], [a & mask, b & mask]))
+                        if width == 64 and operation != WORD_ARITHMETIC_SHR:
+                            continue
+                        for target, verdict in ((expected, SAT), (expected ^ 1, UNSAT)):
+                            goal = z3.And(left == x, right == y, fn(left, right) == target)
+                            circuit = bitvector_circuit(z3, goal)
+                            self.assertIsNotNone(circuit)
+                            self.assertIn(operation, {node[0] for node in circuit.nodes})
+                            result = self.native.solve_circuit(circuit.nodes, circuit.returns,
+                                                               steps=200000, batch=True, watched=True)
+                            self.assertIsNotNone(result)
+                            self.assertEqual(result[0], verdict)
+                            if verdict == SAT:
+                                self.assertIsNotNone(circuit.witness(z3, result[1], goal))
 
     def test_symbolic_shift_saturation_and_unsigned_division_total_semantics(self):
         import z3
