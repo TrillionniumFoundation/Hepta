@@ -932,6 +932,7 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
     toolchain = None
     linker_mode = None
     native_linker = None
+    native_linker_identity = None
     verified_linker = None
     verified_linker_identity = None
     flags = []
@@ -941,8 +942,10 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
         if verified_linker is not None:
             verified_linker_identity = verified_linker.identity()
     if kind == "shared" and verified_linker is None and not verified_shared:
-        from .hia_elf_shared_linker_native import selected_shared_linker
+        from .hia_elf_shared_linker_native import selected_shared_linker, shared_linker_matches
         native_linker = selected_shared_linker()
+        if native_linker is not None:
+            native_linker_identity = native_linker.identity()
     if verified_linker is not None:
         toolchain = verified_linker.toolchain(verified_linker_identity)
     elif native_linker is not None:
@@ -1007,6 +1010,13 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
         def recheck():
             if _implementation_hash() != image.implementation_sha256 or (tool is not None and digest_executable(tool) != tool_digest):
                 _reject("implementation or linker driver changed during build", "E_HIA_PROGRAM_STALE")
+            if native_linker is not None:
+                try:
+                    retained = shared_linker_matches(native_linker_identity)
+                except (OSError, ValueError):
+                    retained = False
+                if not retained:
+                    _reject("HIA shared linker changed during build", "E_HIA_PROGRAM_STALE")
             if verified_linker is not None and not verified_linker_matches(verified_linker_identity):
                 _reject("verified HIA linker changed during build", "E_HIA_PROGRAM_STALE")
         recheck()

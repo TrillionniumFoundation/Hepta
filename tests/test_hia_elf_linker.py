@@ -92,6 +92,52 @@ class ElfLinkerSourceTests(unittest.TestCase):
                          (INVALID, b'\xa5'*16))
 
 
+class SelectedDirectSharedLinkerTests(unittest.TestCase):
+    def test_publication_rejects_a_changed_selector_before_and_after_link_commit(self):
+        from hepta import hia_program_native as native
+        from hepta.hia_elf_shared_linker_native import SELECTOR, NativeSharedLinker
+        from hepta.hia_program import verify_program
+        from tests.test_hia_program_tools import scalar_program
+
+        configured = os.environ.get(SELECTOR)
+        if configured is None:
+            self.skipTest('an admitted direct HIA shared linker manifest is required')
+        manifest = Path(configured).resolve(strict=True)
+        program = verify_program(scalar_program())
+        emitted = native.emit_program_machine(program)
+        actual_link = NativeSharedLinker.link
+        actual_publish = native.publish_verified
+
+        with tempfile.TemporaryDirectory(prefix='hia-shared-linker-custody-') as directory:
+            folder = Path(directory)
+            result = native.compile_program_machine(emitted, program=program, output=folder / 'control.so')
+            self.assertEqual(result['toolchain']['mode'], 'hia')
+            self.assertFalse(result['claims']['external_linker_used'])
+
+            missing = str(folder / 'missing.json')
+
+            def changed_before_publish(linker, data):
+                artifact = actual_link(linker, data)
+                os.environ[SELECTOR] = missing
+                return artifact
+
+            def changed_after_publish(*args):
+                published = actual_publish(*args)
+                os.environ[SELECTOR] = missing
+                return published
+
+            for owner, method, inject in (
+                    (NativeSharedLinker, 'link', changed_before_publish),
+                    (native, 'publish_verified', changed_after_publish)):
+                target = folder / (method + '.so')
+                with (self.subTest(method=method), patch.dict(os.environ, {SELECTOR: str(manifest)}),
+                      patch.object(owner, method, inject)):
+                    with self.assertRaisesRegex(native.HIAProgramNativeRejected, 'E_HIA_PROGRAM_STALE'):
+                        native.compile_program_machine(emitted, program=program, output=target)
+                    self.assertFalse(target.exists())
+            self.assertEqual({path.name for path in folder.iterdir()}, {'control.so'})
+
+
 DIRECT_SHARED_LINKER = os.environ.get('HEPTA_HIA_DIRECT_SHARED_LINKER_EXECUTABLE')
 
 
