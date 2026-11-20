@@ -43,6 +43,8 @@ PARALLEL_ZERO_PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.
 WIDE_PROFILES = {256: "hia.closed-forward-byte-loops.avx2.direct-borrowed-u64.v1",
                  512: "hia.closed-forward-byte-loops.avx512.direct-borrowed-u64.v1"}
 COPY_ENDPOINT_PROFILES = {bits:profile[:-1]+'2.copy-endpoints' for bits,profile in WIDE_PROFILES.items()}
+COPY_FAST_ENDPOINT_PROFILES = {bits:profile[:-1]+'3.copy-endpoints-fast' for bits,profile in WIDE_PROFILES.items()}
+BOUNDED_REDUCTION_PROFILES = {bits:profile[:-1]+'2.reduce-bounded' for bits,profile in WIDE_PROFILES.items()}
 CORE_RECOGNITION_PROFILE = "hia.closed-forward-byte-recurrence.alpha.v1"
 SOURCE_FILES = ("hia_verified_simd_check.py", "hia_safe_core.py", "hia_safe_core_elf.py",
                 "hia_verified_simd_wide_x64.py",
@@ -523,7 +525,9 @@ def _structure_wide(rows, kind, binding):
     pos,labels,edges,parts=0,{},[],{}
     copy=kind=='copy_u8'
     endpoint=copy and any(r.op in ('copy_load','copy_store') for r in rows)
-    require(widths<={128,256,512} if endpoint else widths=={bits},
+    bounded=not copy and any(r.op=='copy_load' for r in rows)
+    endpoint_fast=False
+    require(widths<={128,256,512} if endpoint else widths=={128,bits} if bounded else widths=={bits},
             'unreviewed mixed vector memory width')
 
     def next_row():
@@ -572,6 +576,8 @@ def _structure_wide(rows, kind, binding):
         take('test',7,7); branch(4,'abort')
         take('mov',9,7); take('add',9,2); branch(2,'abort')
         take('mov',10,2)
+        if bounded:
+            take('alu_imm','cmp',10,width); branch(2,'short_initialize')
         parts['initialize']=[]
         for register in (0,2,3,4,5):
             parts['initialize'].append(take('vpxor',bits,register,register,register))
@@ -592,9 +598,23 @@ def _structure_wide(rows, kind, binding):
     if copy: take('alu_imm','add',2,width)
     take('alu_imm','sub',10,width); jump('vector')
     if not copy:
-        label('horizontal'); capture('horizontal',8 if bits==512 else 6)
+        label('horizontal')
+        if bounded:
+            capture('wide_fold',4 if bits==512 else 2); jump('narrow_vector')
+            label('short_initialize'); parts['short_initialize']=[]
+            for register in (0,2):
+                parts['short_initialize'].append(take('vpxor',128,register,register,register))
+            label('narrow_vector'); take('alu_imm','cmp',10,16); branch(2,'narrow_horizontal')
+            capture('narrow_vector',chunk_instructions)
+            take('alu_imm','add',7,16); take('alu_imm','sub',10,16); jump('narrow_vector')
+            label('narrow_horizontal'); capture('narrow_horizontal',4)
+        else:
+            capture('horizontal',8 if bits==512 else 6)
     if endpoint:
         label('tail_dispatch'); take('test',10,10); branch(4,'wide_cleanup')
+        if pos<len(rows) and rows[pos].op=='alu_imm' and rows[pos].args==('cmp',10,1):
+            endpoint_fast=True
+            take('alu_imm','cmp',10,1); branch(4,'endpoint_1')
         levels=[]; level=width//2
         while level>=2:
             levels.append(level); label('endpoint_'+str(level))
@@ -603,6 +623,13 @@ def _structure_wide(rows, kind, binding):
             level//=2
         levels.append(1); label('endpoint_1'); capture('endpoint_1',2)
         parts['_endpoint_levels']=levels
+        label('wide_cleanup'); take('vzeroupper')
+    elif bounded:
+        for level in (8,4,2):
+            label('word_'+str(level)); take('alu_imm','cmp',10,level); branch(2,'word_'+str(level//2))
+            capture('word_'+str(level),5 if kind=='sum_u8' else 2)
+            take('alu_imm','add',7,level); take('alu_imm','sub',10,level)
+        label('word_1'); take('test',10,10); branch(4,'wide_cleanup'); capture('word_1',2)
         label('wide_cleanup'); take('vzeroupper')
     else:
         label('wide_cleanup'); take('vzeroupper')
@@ -644,13 +671,34 @@ def _structure_wide(rows, kind, binding):
         require(all(r.op in packed-{'vpsadbw'} and r.args[0]==bits and r.args[1]==0 and
                     r.args[2] in (0,3,4,5) and r.args[3] in (0,3,4,5)
                     for r in parts['bulk_merge']), 'wide merge has unreviewed register effects')
-        for row in parts['horizontal']:
+        for row in parts.get('horizontal',parts.get('narrow_horizontal',[])):
             require(row.op in packed | {'vextract','vmovq','vpsrldq','add','sub','or','and','xor'},
                     'unreviewed wide horizontal instruction')
             if row.op=='vmovq':
                 require(row.args[0] in (0,9),'wide horizontal writes nonvolatile GPR state')
             elif row.op in ('add','sub','or','and','xor'):
                 require(row.args[0] in (0,9),'wide horizontal writes nonvolatile GPR state')
+    if bounded:
+        require(all(r.op in packed|{'vextract'} for r in parts['wide_fold']),
+                'wide-to-narrow fold has unreviewed effects')
+        first=parts['narrow_vector'][0]
+        require(first.op.endswith('_mem') and first.op[:-4] in packed and
+                first.args==(128,1 if kind=='sum_u8' else 0,2 if kind=='sum_u8' else 0,7,0),
+                'narrow cleanup must read exactly sixteen guarded bytes')
+        if kind=='sum_u8':
+            require(parts['narrow_vector'][1].op in packed and
+                    parts['narrow_vector'][1].args==(128,0,0,1),
+                    'narrow cleanup sum must preserve the accumulator frame')
+        for level in (8,4,2,1):
+            block=parts['word_'+str(level)]
+            require(block[0].op=='copy_load' and block[0].args==(level*8,9,7,0),
+                    'bounded reduction must read its exact guarded word')
+            require(block[-1].op in ('add','sub','or','and','xor') and block[-1].args==(0,9),
+                    'bounded reduction accumulator frame differs')
+            if kind=='sum_u8' and level!=1:
+                require(block[1].op=='vgpr_to_xmm' and block[2].op in packed and
+                        block[2].args[0]==128 and block[3].op=='vmovq',
+                        'bounded sum has unreviewed word-reduction effects')
     if endpoint:
         for level in parts['_endpoint_levels']:
             block=parts['endpoint_'+str(level)]
@@ -669,17 +717,18 @@ def _structure_wide(rows, kind, binding):
             require(all(r.op==writeop and r.args[:3]==(level*8,7,0) and
                         (level>=16 or r.args[3] in (9,11)) for r in stores),
                     'endpoint stores have unreviewed width/base/register effects')
-    else:
+    elif not bounded:
         require(parts['scalar'][0].op=='load8' and parts['scalar'][0].args==(9,2 if copy else 7,0),
                 'wide tail must read its exact guarded byte')
     if copy and not endpoint:
         require(parts['scalar'][1].op=='store8' and parts['scalar'][1].args[:2]==(7,0),
                 'wide tail must store its exact guarded byte')
-    elif not copy:
+    elif not copy and not bounded:
         require(parts['scalar'][1].op in ('add','sub','or','and','xor') and
                 parts['scalar'][1].args==(0,9),'wide tail accumulator frame differs')
     parts['_wide']={'bits':bits,'width':width,'target_isa':'avx512' if bits==512 else 'avx2',
-                    'copy_tail':'endpoints' if endpoint else 'byte' if copy else None}
+                    'copy_tail':'endpoints-fast' if endpoint_fast else 'endpoints' if endpoint else 'byte' if copy else None,
+                    'reduce_tail':'bounded' if bounded else 'byte' if not copy else None}
     return labels,parts
 
 
@@ -690,6 +739,8 @@ def _prefix(z, ctx, rows, labels):
     pending=[(0,initial,z.BoolVal(True,ctx=ctx),None,None)]
     outcomes=[]
     stops={labels.get('bulk',labels['vector']):'vector',labels['done']:'done',labels['abort']:'abort'}
+    if 'short_initialize' in labels:
+        stops[labels['narrow_vector']]='narrow'
     while pending:
         pc,regs,path,cf,zf=pending.pop()
         if pc in stops:
@@ -704,6 +755,9 @@ def _prefix(z, ctx, rows, labels):
             else:
                 regs[a[0]]=x+y; cf,zf=z.ULT(x+y,x),x+y==0
         elif op=='test': cf,zf=z.BoolVal(False,ctx=ctx),(regs[a[0]]&regs[a[1]])==0
+        elif op=='alu_imm':
+            require(a[0]=='cmp','unreviewed guard immediate effect')
+            cf,zf=z.ULT(regs[a[1]],bv(a[2])),regs[a[1]]==bv(a[2])
         elif op in ('pxor','vpxor'): pass
         elif op=='jcc':
             cond={2:cf,4:zf,6:z.Or(cf,zf),7:z.And(z.Not(cf),z.Not(zf))}[a[0]]
@@ -800,7 +854,7 @@ def _wide_packed(z,ctx,operation,left,right):
     raise VerifiedSIMDRejected('missing wide packed semantics')
 
 
-def _wide_execute(z,ctx,instructions,vector_bits,vectors,registers,blocks=()):
+def _wide_execute(z,ctx,instructions,vector_bits,vectors,registers,blocks=(),*,memory_bits=None):
     """Interpret VEX/EVEX operands, including zeroed upper destination bits."""
     x,g=dict(vectors),dict(registers)
     stored=[]
@@ -815,7 +869,8 @@ def _wide_execute(z,ctx,instructions,vector_bits,vectors,registers,blocks=()):
 
     def memory(bits,offset):
         width=bits//8
-        require(bits==vector_bits and offset>=0 and offset%width==0 and offset//width<len(blocks),
+        require(bits==(vector_bits if memory_bits is None else memory_bits) and
+                offset>=0 and offset%width==0 and offset//width<len(blocks),
                 'unreviewed wide symbolic memory projection')
         return blocks[offset//width]
 
@@ -844,6 +899,9 @@ def _wide_execute(z,ctx,instructions,vector_bits,vectors,registers,blocks=()):
         elif op=='vmovq':
             destination,source=a
             g[destination]=z.Extract(63,0,x[source])
+        elif op=='vgpr_to_xmm':
+            destination,source=a
+            write(destination,g[source])
         elif op in ('add','sub','or','and','xor'):
             g[a[0]]=_alu(op,g[a[0]],g[a[1]])
         else:
@@ -908,11 +966,107 @@ def _prove_wide_blocks(z,ctx,parts,kind,check):
         prove('wide_accumulator_merge_and_frame',z.Or(mismatch,merged[2]!=0,
               *[merged[i]!=initial[i] for i in range(1,8)]))
 
-        initial=vector_state('wide_horizontal'); gpr=gpr_state('wide_horizontal')
-        final,registers,stores=_wide_execute(z,ctx,parts['horizontal'],bits,initial,gpr)
-        mismatch=(registers[0]!=lane_sum(initial[0]) if kind=='sum_u8' else
-                  (registers[0]==0)!=(initial[0]==0))
-        prove('wide_horizontal_reduction',mismatch)
+        if config.get('reduce_tail')!='bounded':
+            initial=vector_state('wide_horizontal'); gpr=gpr_state('wide_horizontal')
+            final,registers,stores=_wide_execute(z,ctx,parts['horizontal'],bits,initial,gpr)
+            mismatch=(registers[0]!=lane_sum(initial[0]) if kind=='sum_u8' else
+                      (registers[0]==0)!=(initial[0]==0))
+            prove('wide_horizontal_reduction',mismatch)
+
+
+def _prove_bounded_reduction(z,ctx,parts,kind,check):
+    """Compose the wide invariant with a narrow loop and disjoint word cuts.
+
+    Every stage quantifies arbitrary prior accumulator and machine state.
+    The fold and horizontal proofs include the persistent zero register and
+    the frame needed by the next stage. The word partition is over arbitrary
+    natural remaining counts and byte indices, not a sample of short inputs.
+    """
+    bits=parts['_wide']['bits']
+    zero=z.BitVecVal(0,bits,ctx=ctx)
+    bv=lambda n:z.BitVecVal(n,64,ctx=ctx)
+    def state(prefix):
+        x={i:z.BitVec(prefix+'_v'+str(i),bits,ctx=ctx) for i in range(8)}
+        g={i:z.BitVec(prefix+'_r'+str(i),64,ctx=ctx) for i in range(16)}
+        return x,g
+    def lane_sum(value):
+        return sum([z.Extract(i+63,i,value) for i in range(0,value.size(),64)],bv(0))
+    def prove(name,violation,assumptions=()):
+        check(name,z.simplify(violation,bv_sort_ac=True),assumptions)
+    def frame(before,after,allowed):
+        return [after[i]!=before[i] for i in before if i not in allowed]
+
+    x,g=state('short_initialize')
+    final,registers,stores=_wide_execute(z,ctx,parts['short_initialize'],bits,x,g)
+    prove('short_accumulator_initiation_and_frame',z.Or(final[0]!=0,final[2]!=0,
+        *frame(x,final,{0,2}),*frame(g,registers,set())))
+
+    x,g=state('wide_to_narrow'); x[2]=zero
+    final,registers,stores=_wide_execute(z,ctx,parts['wide_fold'],bits,x,g)
+    low=z.Extract(127,0,final[0])
+    mismatch=(lane_sum(low)!=lane_sum(x[0]) if kind=='sum_u8' else
+              (low==0)!=(x[0]==0))
+    prove('wide_to_narrow_reduction_and_frame',z.Or(mismatch,
+        z.Extract(bits-1,128,final[0])!=0,final[2]!=0,
+        *frame(x,final,{0,1}),*frame(g,registers,set())))
+
+    x,g=state('narrow_vector'); x[2]=zero
+    accumulator=z.BitVec('narrow_prior_accumulator',128,ctx=ctx)
+    x[0]=z.ZeroExt(bits-128,accumulator)
+    block=z.BitVec('narrow_source_bytes',128,ctx=ctx)
+    final,registers,stores=_wide_execute(z,ctx,parts['narrow_vector'],bits,x,g,
+                                         (block,),memory_bits=128)
+    reference=sum([z.ZeroExt(56,z.Extract(j*8+7,j*8,block)) for j in range(16)],bv(0))
+    low=z.Extract(127,0,final[0])
+    mismatch=(lane_sum(low)!=lane_sum(accumulator)+reference if kind=='sum_u8' else
+              (low==0)!=z.And(accumulator==0,block==0))
+    prove('narrow_vector_induction_and_frame',z.Or(mismatch,
+        z.Extract(bits-1,128,final[0])!=0,final[2]!=0,
+        *frame(x,final,{0,1}),*frame(g,registers,set())))
+
+    x,g=state('narrow_horizontal'); x[2]=zero
+    accumulator=z.BitVec('narrow_horizontal_accumulator',128,ctx=ctx)
+    x[0]=z.ZeroExt(bits-128,accumulator)
+    final,registers,stores=_wide_execute(z,ctx,parts['narrow_horizontal'],bits,x,g)
+    mismatch=(registers[0]!=lane_sum(accumulator) if kind=='sum_u8' else
+              (registers[0]==0)!=(accumulator==0))
+    prove('narrow_horizontal_reduction_and_frame',z.Or(mismatch,final[2]!=0,
+        *frame(x,final,{0,1}),*frame(g,registers,{0,9})))
+
+    # At the 16-byte false guard, each subsequent accepted word consumes a
+    # fresh prefix. Quantify an arbitrary suffix byte j to prove exact union
+    # and multiplicity one, which is essential for modular byte summation.
+    remaining,count,index,base,extent,j=z.Ints(
+        'bounded_remaining bounded_count bounded_index bounded_base bounded_extent bounded_byte',ctx=ctx)
+    assumptions=[0<=remaining,remaining<16,0<=index,index<=count,count<=extent,
+                 extent<(1<<64),base>0,base+count<(1<<64),remaining==count-index]
+    cursor,rest=z.IntVal(0,ctx=ctx),remaining
+    hits=[]; faults=[]
+    for width in (8,4,2,1):
+        taken=rest>=width
+        address=base+index+cursor
+        faults.append(z.And(taken,z.Or(cursor<0,cursor+width>remaining,
+            address<base,address+width>base+count,address+width>=(1<<64))))
+        hits.append(z.And(taken,cursor<=j,j<cursor+width))
+        consumed=z.If(taken,width,0)
+        cursor,rest=cursor+consumed,rest-consumed
+        faults.append(z.Or(rest<0,rest>=width))
+    multiplicity=sum([z.If(hit,1,0) for hit in hits],z.IntVal(0,ctx=ctx))
+    prove('bounded_word_partition_bounds_and_no_overlap',z.Or(*faults,rest!=0,cursor!=remaining,
+        multiplicity!=z.If(z.And(0<=j,j<remaining),1,0)),assumptions)
+
+    for width in (8,4,2,1):
+        name='bounded_word_'+str(width)
+        x,g=state(name); x[2]=zero
+        old=g[0]
+        data=z.BitVec(name+'_loaded_bytes',width*8,ctx=ctx)
+        loaded=dict(g); loaded[9]=data if width==8 else z.ZeroExt(64-width*8,data)
+        final,registers,stores=_wide_execute(z,ctx,parts['word_'+str(width)][1:],bits,x,loaded)
+        reference=sum([z.ZeroExt(56,z.Extract(j*8+7,j*8,data)) for j in range(width)],bv(0))
+        mismatch=(registers[0]!=old+reference if kind=='sum_u8' else
+                  (registers[0]==0)!=z.And(old==0,data==0))
+        prove(name+'_semantics_and_frame',z.Or(mismatch,final[2]!=0,
+            *frame(x,final,{1}),*frame(g,registers,{0,9})))
 
 
 def _prove_endpoint_tails(z,ctx,parts,check):
@@ -999,7 +1153,9 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     rows=decode_simd(binding['text']); labels,parts=_structure(rows,kind,binding)
     unrolled='bulk' in parts
     wide=parts.get('_wide')
-    endpoint=bool(wide and wide['copy_tail']=='endpoints')
+    endpoint=bool(wide and wide['copy_tail'] in ('endpoints','endpoints-fast'))
+    endpoint_fast=bool(wide and wide['copy_tail']=='endpoints-fast')
+    bounded=bool(wide and wide.get('reduce_tail')=='bounded')
     parallel_zero='bulk_merge' in parts and wide is None
     vector_width=wide['width'] if wide else 16
     required_features=sorted({feature for row in rows for feature in row.cpu_features}) if wide else ['sse2']
@@ -1033,11 +1189,16 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         z.Or(z.ULE(ptrs[0]+n,ptrs[1]),z.ULE(ptrs[1]+n,ptrs[0])) if copy else z.BoolVal(True,ctx=ctx))))
     check('caller_contract_nonvacuous',valid,expected='sat')
     path=lambda name:z.Or(*[p for s,p,r in outcomes if s==name])
+    admitted_path=z.Or(path('vector'),path('narrow')) if bounded else path('vector')
     check('decoded_entry_guards',z.Or(path('abort')!=z.Not(valid),path('done')!=(valid&(n==0)),
-                                     path('vector')!=(valid&(n!=0))))
+                                     admitted_path!=(valid&(n!=0))))
+    if bounded:
+        check('decoded_short_entry_partition',z.Or(
+            path('narrow')!=z.And(valid,n!=0,z.ULT(n,bv(vector_width))),
+            path('vector')!=z.And(valid,n!=0,z.UGE(n,bv(vector_width)))))
     bad=[]
     for stage,p,regs in outcomes:
-        if stage=='vector':
+        if stage in ('vector','narrow'):
             bad.append(z.And(p,z.Or(regs[10]!=n,regs[7]!=initial[7],
                                    regs[2]!=initial[2],regs[0]!=(n if copy else bv(0)))))
     check('loop_initiation',z.Or(*bad))
@@ -1045,20 +1206,22 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     # Each decoded backedge is exactly the +w/-w transition checked below.
     ni,ii,pi,ei=z.Ints('count index base extent',ctx=ctx)
     invariant=[0<=ii,ii<=ni,ni<=ei,ei<(1<<64),pi>0,pi+ni<(1<<64)]
-    steps=((4*vector_width,vector_width) if endpoint else
+    steps=((4*vector_width,vector_width,16) if bounded else
+           (4*vector_width,vector_width) if endpoint else
            (4*vector_width,vector_width,1) if unrolled else (vector_width,1))
     for width in steps:
         guard=ni-ii>=width
         accesses=tuple(i*vector_width for i in range(4)) if width==4*vector_width else (0,)
-        access_width=vector_width if width>=vector_width else 1
+        access_width=vector_width if width>=vector_width else width
         violation=z.Or(ii+width>ni,pi+ii<pi,pi+ii+width>pi+ni,
                        ii+width>=(1<<64),ni-(ii+width)<0,ni-(ii+width)>=ni-ii,
                        *[z.Or(pi+ii+offset<pi,pi+ii+offset+access_width>pi+ni)
                          for offset in accesses])
         check('range_and_decreasing_variant_'+str(width),violation,invariant+[guard])
-    if endpoint:
-        q=z.Int('copy_prefix_suffix_byte',ctx=ctx)
-        check('copy_prefix_suffix_partition',z.And(0<=q,q<ni)!=z.Or(
+    if endpoint or bounded:
+        prefix_name='copy' if endpoint else 'reduction'
+        q=z.Int(prefix_name+'_prefix_suffix_byte',ctx=ctx)
+        check(prefix_name+'_prefix_suffix_partition',z.And(0<=q,q<ni)!=z.Or(
             z.And(0<=q,q<ii),z.And(ii<=q,q<ii+(ni-ii))),invariant)
     else:
         check('loop_exit_covers_exact_count',ii!=ni,invariant+[ni-ii==0])
@@ -1073,6 +1236,8 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
           z.UGT(rsp-bv(16),rsp),z.UGT((rsp-bv(16))+bv(8),rsp),z.ULT(rsp+bv(8),rsp)),stack_contract)
     if wide:
         _prove_wide_blocks(z,ctx,parts,kind,check)
+        if bounded:
+            _prove_bounded_reduction(z,ctx,parts,kind,check)
     legacy_blocks=() if wide else ((('bulk',4),('vector',1)) if unrolled else (('vector',1),))
     for name,chunks in legacy_blocks:
         blocks=[z.BitVec(name+'_source_bytes_'+str(j),128,ctx=ctx) for j in range(chunks)]
@@ -1128,7 +1293,7 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         check('horizontal_reduction',mismatch)
     if endpoint:
         _prove_endpoint_tails(z,ctx,parts,check)
-    else:
+    elif not bounded:
         old=z.BitVec('prior_scalar_accumulator',64,ctx=ctx); byte=z.BitVec('tail_byte',8,ctx=ctx)
         g={i:z.BitVec('tail_initial_r'+str(i),64,ctx=ctx) for i in range(16)}; g[0]=old; g[9]=z.ZeroExt(56,byte)
         tail=parts['scalar'][1]
@@ -1143,7 +1308,10 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     require(solver_identity==_solver_identity(z) and time.monotonic()<deadline,'solver changed or final deadline exhausted')
     report={
         'schema':'hepta.hia.verified-simd-machine-validation.v1',
-        'profile':COPY_ENDPOINT_PROFILES[wide['bits']] if endpoint else WIDE_PROFILES[wide['bits']] if wide else PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
+        'profile':COPY_FAST_ENDPOINT_PROFILES[wide['bits']] if endpoint_fast else
+                  COPY_ENDPOINT_PROFILES[wide['bits']] if endpoint else
+                  BOUNDED_REDUCTION_PROFILES[wide['bits']] if bounded else
+                  WIDE_PROFILES[wide['bits']] if wide else PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
         'ok':True,'complete':True,'status':'smt_validated','kind':kind,
         'target_isa':wide['target_isa'] if wide else 'sse2',
         'required_cpu_features':required_features,'required_xcr0_mask':required_xcr0_mask,
@@ -1164,6 +1332,7 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
                   'final_elf_bytes_bound':True,'vector_and_tail_memory_bounds_checked':True,
                   'copy_source_preserved':copy,'whole_language_soundness_proved':False,
                   'overlapping_endpoint_copy_effects_checked':endpoint,
+                  'bounded_reduction_tail_effects_checked':bounded,
                   'machine_checked_isa_refinement_proved':False,'foreign_pointer_liveness_proved':False,
                   'timing_or_side_channels_proved':False,'serialized_receipt_authorizes_execution':False},
         'assumptions':[
@@ -1173,11 +1342,14 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
             'Before executing a wide image, the builder/loader must freshly establish every decoded required_cpu_feature and required_xcr0_mask on every allowed CPU; this semantic receipt does not attest to host CPU or OS state.',
             'The existing ELF/loader model, these independent instruction/Core/loop semantics and pinned Z3 are trusted Python components, not a hardware ISA theorem.',
             'The loader maps inspected immutable bytes and immediately resolves libc abort as nonreturning; concurrency, signals, faults and side channels are outside this model.'],
-        'model_counts':{'decoded_instructions':len(rows),'vector_width':vector_width,'scalar_tail_width':1,
+        'model_counts':{'decoded_instructions':len(rows),'vector_width':vector_width,'scalar_tail_width':8 if bounded else 1,
                         'vector_unroll':4 if unrolled else 1,'superblock_width':4*vector_width if unrolled else vector_width,
                         'reduction_accumulators':0 if copy else 4 if parallel_zero or wide else 1,
                         'range_admission_sites':1,'guard_paths':len(outcomes),'loop_backedges':2 if endpoint else 3 if unrolled else 2,
-                        'copy_tail':'endpoints' if endpoint else 'byte' if copy else None,
+                        'copy_tail':wide['copy_tail'] if wide else 'byte' if copy else None,
+                        'reduce_tail':wide.get('reduce_tail') if wide else 'byte' if not copy else None,
+                        'narrow_cleanup_width':16 if bounded else None,
+                        'bounded_word_widths':[8,4,2,1] if bounded else [],
                         'endpoint_widths':parts.get('_endpoint_levels',[])},
         'elapsed_seconds':time.monotonic()-started}
     if output is not None: (output/'validation.json').write_text(json.dumps(report,indent=2)+'\n')

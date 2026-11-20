@@ -139,7 +139,7 @@ class EndpointCopyCheckerTests(unittest.TestCase):
             self.assertEqual(report["model_counts"]["loop_backedges"], 2)
             self.assertTrue(report["claims"]["overlapping_endpoint_copy_effects_checked"])
             self.assertEqual(report["required_cpu_features"], ["avx"] if isa == "avx2" else ["avx", "avx512f"])
-            self.assertEqual(emit_verified_simd(self.core, isa=isa).text_bytes, image.text_bytes)
+            self.assertEqual(emit_verified_simd(self.core, isa=isa, copy_tail="endpoints").text_bytes, image.text_bytes)
 
     def test_batched_bulk_store_of_the_wrong_chunk_is_refuted(self):
         for isa in ("avx2", "avx512"):

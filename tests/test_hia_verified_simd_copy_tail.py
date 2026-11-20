@@ -40,11 +40,12 @@ class VerifiedCopyEndpointNativeTests(unittest.TestCase):
         cls.cases, cls.refusals = {}, {}
         features = set(probe_host_isa()['common_features'])
         for isa, needed in (('avx2', {'avx'}), ('avx512', {'avx', 'avx512f'})):
-            image = emit_verified_simd(cls.core, isa=isa)
+            image = emit_verified_simd(cls.core, isa=isa, copy_tail='endpoints')
             path = cls.root / ('endpoint-' + isa + '.so')
             if not needed <= features:
                 try:
-                    build_verified_kernel(cls.core, path, strategy='simd', simd_isa=isa)
+                    build_verified_kernel(cls.core, path, strategy='simd', simd_isa=isa,
+                                          simd_copy_tail='endpoints')
                 except VerifiedCPURejected as exc:
                     if path.exists() or 'does not enable' not in str(exc):
                         raise AssertionError('unsupported endpoint ISA was not refused before publication') from exc
@@ -52,13 +53,14 @@ class VerifiedCopyEndpointNativeTests(unittest.TestCase):
                 else:
                     raise AssertionError('unsupported endpoint image was published')
                 continue
-            build = build_verified_kernel(cls.core, path, strategy='simd', simd_isa=isa)
+            build = build_verified_kernel(cls.core, path, strategy='simd', simd_isa=isa,
+                                          simd_copy_tail='endpoints')
             loaded = load_verified_simd_kernel(cls.core, image.object_bytes, path.read_bytes())
             cls.cases[isa] = (image, path, build, loaded)
         print('Endpoint native coverage: ' + str(len(cls.cases)) + ' proved/admitted images; ' +
               str(len(cls.refusals)) + ' unsupported images refused')
 
-    def test_default_wide_copy_is_proved_and_bound_before_native_execution(self):
+    def test_explicit_endpoint_copy_is_proved_and_bound_before_native_execution(self):
         self.assertEqual(set(self.cases) | set(self.refusals), {'avx2', 'avx512'})
         for isa, (image, path, build, loaded) in self.cases.items():
             with self.subTest(isa=isa):
@@ -168,7 +170,7 @@ int main(int argc,char**argv){
             self.assertEqual(image.copy_tail, 'byte')
             self.assertEqual(sha256(image.text_bytes).hexdigest(), text_hash)
             self.assertEqual(sha256(image.object_bytes).hexdigest(), object_hash)
-            self.assertNotEqual(image.text_bytes, emit_verified_simd(self.core, isa=isa).text_bytes)
+            self.assertNotEqual(image.text_bytes, emit_verified_simd(self.core, isa=isa, copy_tail='endpoints').text_bytes)
 
     def test_tail_selection_rejects_unreviewed_values_and_nonwide_targets(self):
         for value in (True, False, 0, 1, '', 'scalar', 'head', [], {}):

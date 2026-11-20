@@ -230,7 +230,7 @@ class SIMDAlphaFinalByteTests(unittest.TestCase):
             for kind in KINDS:
                 core = simd_kernel_program(kind)
                 changed = verify_program(renamed(core))
-                options = {"copy_tail": "byte"} if kind == "copy_u8" and isa != "sse2" else {}
+                options = ({"copy_tail": "byte"} if kind == "copy_u8" else {"reduce_tail": "byte"}) if isa != "sse2" else {}
                 image = emit_verified_simd(core, isa=isa, unroll=unroll, **options)
                 alpha_image = emit_verified_simd(changed, isa=isa, unroll=unroll, **options)
                 if image.object_bytes != alpha_image.object_bytes or image.text_bytes != alpha_image.text_bytes:

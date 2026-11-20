@@ -149,6 +149,8 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
                 artifacts.mkdir()
                 report["builds"][label] = build_verified_kernel(
                     core, library, strategy="simd", simd_isa=isa,
+                    simd_copy_tail="endpoints" if kind == "copy_u8" else None,
+                    simd_reduce_tail="byte" if kind != "copy_u8" else None,
                     query_directory=destination / (label + "-queries"), timeout_ms=60000,
                     artifact_directory=artifacts)
                 libraries[label] = (library, core.as_dict()["functions"][0]["name"])
@@ -168,6 +170,23 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
                 artifact_directory=artifacts)
             libraries[label] = (library, core.as_dict()["functions"][0]["name"])
             save()
+        # Preserve all v4 arms byte-for-byte and add the new defaults as
+        # separately named simultaneous candidates. Every original row and
+        # length remains in the deterministic complete campaign.
+        for isa, width in (("avx2", 128), ("avx512", 256)):
+            for kind in ("sum_u8", "all_zero_u8", "copy_u8"):
+                tail = "endpoints-fast" if kind == "copy_u8" else "bounded-tail"
+                label = kind + "-" + isa + "-" + str(width) + "-" + tail
+                core = sources[kind]
+                library = destination / (label + ".so")
+                artifacts = destination / (label + "-artifacts")
+                artifacts.mkdir()
+                report["builds"][label] = build_verified_kernel(
+                    core, library, strategy="simd", simd_isa=isa,
+                    query_directory=destination / (label + "-queries"), timeout_ms=60000,
+                    artifact_directory=artifacts)
+                libraries[label] = (library, core.as_dict()["functions"][0]["name"])
+                save()
         # The established direct foreign-buffer ABI returns packed u32. Keep
         # its original wrapper/checks and narrow only the final Core return.
         # All measured counts and sums are <2**32; invalid-input contracts
@@ -249,6 +268,11 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
                     for isa, width in (("avx2", 128), ("avx512", 256)):
                         label = kind + "-" + isa + "-" + str(width) + "-byte-tail"
                         cases.append((mode, "verified-" + isa + "-copy-byte-tail", *libraries[label], length))
+                for isa, width in (("avx2", 128), ("avx512", 256)):
+                    tail = "endpoints-fast" if mode == "copy" else "bounded-tail"
+                    label = kind + "-" + isa + "-" + str(width) + "-" + tail
+                    arm = "verified-" + isa + ("-copy-" if mode == "copy" else "-") + tail
+                    cases.append((mode, arm, *libraries[label], length))
                 cases.append((mode, "direct-packed-u32", *direct_spans[kind], length))
                 for arm, library in (("c", c_library), ("rust", rust_library)):
                     cases.append((mode, arm, library, "reference_" + mode, length))

@@ -112,9 +112,14 @@ def decode_wide_instruction(data, start):
         return result('vextract', (bits, bits//2, rm, register, index),
                       ('avx512f',) if evex else ('avx2',))
 
-    if opcode_map == 1 and opcode == 0x7e:
+    if opcode_map == 1 and opcode in (0x6e, 0x7e):
         _require(first == 0xc4 and bits == 128 and w == 1 and pp == 1 and
-                 encoded_v == 15 and mode == 3, "VMOVQ must transfer XMM to a 64-bit GPR")
+                 encoded_v == 15 and mode == 3, "VMOVQ must transfer between XMM and a 64-bit GPR")
+        if opcode == 0x6e:
+            # Intel SDM Vol. 2B MOVD/MOVQ: this register-only W1/L0 form
+            # copies the GPR into bits 63:0 and clears every higher vector
+            # destination bit. VEX.vvvv remains reserved, not a third input.
+            return result('vgpr_to_xmm', (register, rm + high_b), ('avx',))
         return result('vmovq', (rm + high_b, register), ('avx',))
 
     if opcode_map == 1 and opcode == 0x73:
@@ -128,7 +133,7 @@ def decode_wide_instruction(data, start):
 
 
 def decode_copy_tail_memory(data, start):
-    """Decode the finite mod00 scalar memory forms of the endpoint tail.
+    """Decode finite mod00 scalar accesses for copy/reduction bounded tails.
 
     None leaves unrelated legacy instructions to their existing decoder.
     MOV r32 zeroes its high word; MOVZX word/byte uses a 64-bit destination.

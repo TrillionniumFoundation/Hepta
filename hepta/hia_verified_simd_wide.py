@@ -26,8 +26,10 @@ def _prefix(width, opcode, source, *, move=False):
 
 
 def _register(c, width, opcode, destination, source, operand):
-    if opcode not in (0xd4, 0xeb, 0xef) or any(not 0 <= r < 8 for r in (destination, source, operand)):
+    if opcode not in (0xd4, 0xeb, 0xef, 0xf6) or any(not 0 <= r < 8 for r in (destination, source, operand)):
         raise ValueError("unsupported wide SIMD register operation")
+    if opcode == 0xf6 and width != 16:
+        raise ValueError("register PSADBW is restricted to bounded reduction words")
     c.emit(_prefix(width, opcode, source) + bytes((opcode, 0xc0 | (destination << 3) | operand)))
 
 
@@ -38,8 +40,8 @@ def _memory(c, width, opcode, vector, source, base, displacement=0):
             or not 0 <= vector < 8):
         raise ValueError("unsupported wide SIMD memory operation")
     move = opcode in (0x6f, 0x7f)
-    if width == 16 and (not move or displacement != 0):
-        raise ValueError("128-bit memory operations are restricted to endpoint copies")
+    if width == 16 and displacement != 0:
+        raise ValueError("128-bit memory operations require the current bounded pointer")
     if move and source != 0:
         raise ValueError("MOVDQU reserved vvvv must be all ones")
     address = (vector << 3) | (7 if base == "rdi" else 2)
@@ -82,7 +84,7 @@ def _horizontal(c, width, kind):
     (c.add if kind == "sum_u8" else c.or_)("rax", "r9")
 
 
-def _reduce(c, width, kind):
+def _reduce_byte_tail(c, width, kind):
     c.mov_imm("rax", 0)
     c.cmp("rdx", "rsi")
     c.jcc("a", "abort")
@@ -125,6 +127,102 @@ def _reduce(c, width, kind):
     c.alu_imm("add", "rdi", 1)
     c.alu_imm("sub", "r10", 1)
     c.jmp("tail")
+    c.label("done")
+    if kind == "all_zero_u8":
+        c.test("rax", "rax")
+        c.setcc("e", "rax")
+    c.ret()
+
+
+def _reduce_word_load(c, width):
+    """Read exactly one bounded 1/2/4/8-byte word from [rdi] into r9."""
+    if width not in (1, 2, 4, 8):
+        raise ValueError("unsupported bounded reduction word")
+    prefix = bytes((0x44 if width == 4 else 0x4c,))
+    opcode = bytes((0x8b,)) if width in (4, 8) else bytes((0x0f, 0xb6 if width == 1 else 0xb7))
+    c.emit(prefix + opcode + bytes((0x0f,)))
+
+
+def _reduce_bounded(c, width, kind):
+    """Preserve wide loops, then consume disjoint 16/8/4/2/1-byte ranges.
+
+    Inputs smaller than one wide vector initialize only the two 128-bit
+    registers needed by the narrow path. Every integer word load clears the
+    unused high bits before an optional PSADBW byte sum; no input byte is
+    counted twice and no load crosses the remaining range.
+    """
+    c.mov_imm("rax", 0)
+    c.cmp("rdx", "rsi")
+    c.jcc("a", "abort")
+    c.test("rdx", "rdx")
+    c.jcc("e", "done")
+    c.test("rdi", "rdi")
+    c.jcc("e", "abort")
+    c.mov_rr("r9", "rdi")
+    c.add("r9", "rdx")
+    c.jcc("b", "abort")
+    c.mov_rr("r10", "rdx")
+    c.alu_imm("cmp", "r10", width)
+    c.jcc("b", "short_init")
+    for register in (0, 2, 3, 4, 5):
+        _register(c, width, 0xef, register, register, register)
+    c.label("bulk")
+    c.alu_imm("cmp", "r10", 4 * width)
+    c.jcc("b", "bulk_merge")
+    for chunk, accumulator in enumerate(_ACCUMULATORS):
+        _chunk(c, width, kind, chunk * width, accumulator)
+    c.alu_imm("add", "rdi", 4 * width)
+    c.alu_imm("sub", "r10", 4 * width)
+    c.jmp("bulk")
+    c.label("bulk_merge")
+    for accumulator in _ACCUMULATORS[1:]:
+        _combine(c, width, kind, 0, accumulator)
+    c.label("vector")
+    c.alu_imm("cmp", "r10", width)
+    c.jcc("b", "wide_fold")
+    _chunk(c, width, kind)
+    c.alu_imm("add", "rdi", width)
+    c.alu_imm("sub", "r10", width)
+    c.jmp("vector")
+    c.label("wide_fold")
+    if width == 64:
+        c.emit(bytes.fromhex("62f3fd483bc101"))
+        _combine(c, 32, kind, 0, 1)
+    c.emit(bytes.fromhex("c4e37d39c101"))
+    _combine(c, 16, kind, 0, 1)
+    c.jmp("narrow_vector")
+    c.label("short_init")
+    for register in (0, 2):
+        _register(c, 16, 0xef, register, register, register)
+    c.label("narrow_vector")
+    c.alu_imm("cmp", "r10", 16)
+    c.jcc("b", "horizontal128")
+    _chunk(c, 16, kind)
+    c.alu_imm("add", "rdi", 16)
+    c.alu_imm("sub", "r10", 16)
+    c.jmp("narrow_vector")
+    c.label("horizontal128")
+    c.emit(bytes.fromhex("c4e1f97ec0c5f973d808c4c1f97ec1"))
+    (c.add if kind == "sum_u8" else c.or_)("rax", "r9")
+    for block, following in ((8, "word_4"), (4, "word_2"), (2, "byte_tail")):
+        c.label("word_" + str(block))
+        c.alu_imm("cmp", "r10", block)
+        c.jcc("b", following)
+        _reduce_word_load(c, block)
+        if kind == "sum_u8":
+            c.emit(bytes.fromhex("c4c1f96ec9"))  # vmovq xmm1,r9; upper bits zero
+            _register(c, 16, 0xf6, 1, 2, 1)
+            c.emit(bytes.fromhex("c4c1f97ec9"))  # vmovq r9,xmm1
+        (c.add if kind == "sum_u8" else c.or_)("rax", "r9")
+        c.alu_imm("add", "rdi", block)
+        c.alu_imm("sub", "r10", block)
+    c.label("byte_tail")
+    c.test("r10", "r10")
+    c.jcc("e", "vector_done")
+    _reduce_word_load(c, 1)
+    (c.add if kind == "sum_u8" else c.or_)("rax", "r9")
+    c.label("vector_done")
+    c.emit(bytes.fromhex("c5f877"))
     c.label("done")
     if kind == "all_zero_u8":
         c.test("rax", "rax")
@@ -201,7 +299,7 @@ def _copy_word(c, width, register, *, store=False):
     c.emit(prefix + opcode + bytes((modrm,)))
 
 
-def _copy_endpoints(c, width):
+def _copy_endpoints(c, width, *, fast_one=False):
     """Guarded wide loops followed by two bounded endpoint transfers.
 
     For a suffix with w <= remaining < 2w, the first and last w-byte blocks
@@ -251,6 +349,9 @@ def _copy_endpoints(c, width):
     c.label("tail_dispatch")
     c.test("r10", "r10")
     c.jcc("e", "vector_done")
+    if fast_one:
+        c.alu_imm("cmp", "r10", 1)
+        c.jcc("e", "tail_1")
     for block in (32, 16, 8, 4, 2):
         if block >= width:
             continue
@@ -284,17 +385,22 @@ def _copy_endpoints(c, width):
     c.ret()
 
 
-def emit_wide_simd(c, kind, isa, *, copy_tail="endpoints"):
+def emit_wide_simd(c, kind, isa, *, copy_tail="endpoints-fast", reduce_tail="bounded"):
     """Append the complete closed four-chunk CFG, including its abort suffix."""
     if isa not in ("avx2", "avx512") or kind not in ("sum_u8", "all_zero_u8", "copy_u8"):
         raise ValueError("unsupported explicit wide SIMD target")
     width = 32 if isa == "avx2" else 64
     if kind == "copy_u8":
-        if copy_tail not in ("byte", "endpoints"):
+        if copy_tail not in ("byte", "endpoints", "endpoints-fast"):
             raise ValueError("unsupported wide copy tail strategy")
-        (_copy_byte_tail if copy_tail == "byte" else _copy_endpoints)(c, width)
+        if copy_tail == "byte":
+            _copy_byte_tail(c, width)
+        else:
+            _copy_endpoints(c, width, fast_one=copy_tail == "endpoints-fast")
     else:
-        _reduce(c, width, kind)
+        if reduce_tail not in ("byte", "bounded"):
+            raise ValueError("unsupported wide reduction tail strategy")
+        (_reduce_byte_tail if reduce_tail == "byte" else _reduce_bounded)(c, width, kind)
     c.label("abort")
     c.alu_imm("sub", "rsp", 8)
     c.call("abort")

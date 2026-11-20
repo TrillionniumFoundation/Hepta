@@ -6,6 +6,7 @@ in registers. Three borrowed-byte loops perform one complete-range admission
 before processing 64, 128 or 256 bytes per main-loop iteration for SSE2, AVX2
 or AVX-512, respectively. Cleanup covers the requested range exactly; the wide
 copy profile uses bounded first/last transfers for its final short suffix.
+Wide reductions use a sixteen-byte cleanup and nonoverlapping word tails.
 The solver runs during the build; the native call contains no proof
 engine, interpreter or entry wrapper.
 
@@ -58,6 +59,12 @@ defaults. `simd_unroll=1` retains the original sixteen-byte loop. Explicit
 `"native"` selects from fresh host observations. All profiles use the same
 Core recurrence and borrowed-byte ABI. The standard verified shared command
 and retained-attempt tool default to the host-native selection.
+
+Wide copy defaults to `simd_copy_tail="endpoints-fast"`; explicit `"endpoints"`
+and `"byte"` retain the two previous complete machine profiles. Wide sum and
+zero scan default to `simd_reduce_tail="bounded"`; explicit `"byte"` retains
+the previous wide-reduction objects. These Python selectors preserve the old
+profiles for simultaneous controls. They do not change the SSE2 defaults.
 
 Independent consumers accept caller-supplied Core, object and final ELF bytes:
 
@@ -255,7 +262,7 @@ accumulator initialization. The original wide copy has twelve and remains
 available as `simd_copy_tail="byte"` in the Python builder for complete
 simultaneous controls. Those v1 paths retain their exact object/text bytes.
 
-The default wide copy uses the separate v2 endpoint profile. Its bulk block
+The wide copy's v2 endpoint profile has a bulk block that
 loads four vectors before storing them, and its guarded single-vector cleanup
 leaves fewer than 32/64 bytes. A descending width dispatch selects 16/32,
 8, 4, 2 or 1 bytes. For `w <= remaining < 2*w`, the first and last `w`-byte
@@ -267,8 +274,31 @@ outside the suffix. It also proves the dispatch partition and nonwrapping
 bounds. AVX2 requires 21 total obligations and AVX-512 requires 23.
 Changing the last store to reuse first-block data produces an SMT
 counterexample in the overlapping case. A one-byte suffix has one load/store.
-Every nonempty endpoint return passes through VZEROUPPER; the unchanged
-reduction profiles perform it before their scalar byte tails.
+Every nonempty endpoint return passes through VZEROUPPER. The default v3
+`copy-endpoints-fast` profile additionally sends `remaining == 1` directly
+to its exact one-byte transfer. The closed branch shape and the endpoint
+partition preserve the same 21/23 obligations. Both older copy profiles
+retain their original complete object and text bytes.
+
+The new `reduce-bounded` profiles use a short-input branch before wide
+accumulator initialization. Short inputs initialize only the two required
+128-bit registers. Long inputs use the existing wide bulk/vector loops and
+fold the complete wide accumulator into 128 bits. Both paths join at the
+same sixteen-byte cleanup loop and horizontal reduction. The final suffix
+uses at most one exact load of each size 8, 4, 2 and 1, advancing after every
+accepted word. Sum uses PSADBW against a preserved zero vector; zero scan
+combines the loaded words. No endpoint-overlap trick is used for summation.
+
+Each bounded reduction has 22 independent obligations. These include the
+actual short-entry partition, both accumulator initializations, wide-to-narrow
+and horizontal composition, the persistent zero register, and the complete
+GPR/vector frame. A symbolic suffix length and arbitrary byte index prove
+the word partition covers every requested byte exactly once and reads no
+outside byte. Each word's data operation is checked separately against its
+decoded operands. Negative controls preserve a stage's immediate result while
+polluting the zero register needed by the next stage; they produce concrete
+SMT counterexamples. All fourteen historical SSE2, wide-byte and endpoint
+objects retain their exact byte hashes.
 
 The induction connects the decoded backedges with the scalar Core recurrence.
 Its trust base is the stated Python Core/ISA/loop/ELF models, GNU/Linux loader
@@ -319,6 +349,16 @@ Rust use their native-target release optimizers; SSE2 remains the HIA baseline
 ISA. The ordinary HIA span baseline retains its checked packed-u32 wrapper;
 all measured counts and sums fit u32, so these valid-input results agree with
 the new u64 API. Invalid-input ABI behavior is not equated.
+
+The current v5 protocol preserves every v4 arm and its exact machine profile,
+including both copy byte-tail controls. Six additional profiles cover the
+default bounded sum/zero tails and fast one-byte endpoint-copy dispatch at
+both wide ISAs. Their 138 additional cases produce 671 total cases and
+14,091 measured samples. The v4 `verified-avx2-128`/`verified-avx512-256`
+labels remain fixed to their old reduction byte tails and old copy endpoints;
+the new defaults have explicit `bounded-tail` and `copy-endpoints-fast` arm
+names. The driver, reference code, lengths, iteration counts and compiler
+flags are unchanged.
 
 These measurements describe the declared hot-cache kernels on a shared host.
 Affinity does not make a core exclusive, and the raw samples remain available
@@ -448,3 +488,54 @@ asserts the actual object/native and shared/verified routes, including proof
 before publication and refusal after proof failure. It is also in the fast
 kernel gate. Fixing that assertion does not retroactively make the old native
 workflow successful; the changed source requires a complete rerun.
+
+### Complete endpoint-copy campaign
+
+The [fourth campaign summary](../benchmarks/hia_verified_kernels/results/ai395-20261120-endpoints-summary.json)
+and [complete compressed record](../benchmarks/hia_verified_kernels/results/ai395-20261120-endpoints.json.gz)
+bind **533 cases and 11,193 samples** to source
+`60409eacc6cda870d2be1d090f2c66b682c9466b`, tree
+`7bf431d26fe55e56082af92dd634aa515fa75ef7`. The original RESULT SHA256 is
+`7c7a3c20508f5823fdecf0c9fe9240e1ba8093de7420fea4f7a66d6bc9be0885`;
+the decompressed public record SHA256 is
+`fe6660ae4b288294f5aaffd4df84041617019431f0a90a530dfcfed409860e99`.
+The same CPU 15, tool binaries, runtime, driver and input protocol were used.
+One complete campaign retained all samples without selected-cell reruns.
+
+Remote readback checked 567 command-output receipts, 23 binaries, eight wide
+builds and 124 SMT query hashes against their original files. A separate
+local readback reconstructed all 533 cases and their deterministic order,
+recomputed 11,193 timing divisions and checksums, all medians and Rust ratios,
+matched the gzip content exactly, and checked 26 source hashes against the
+frozen `60409ea` tree. Its scalar checksum used the direct ten-million-step
+recurrence, independently of the remote projection's matrix implementation.
+
+Fourth-campaign median latency, in nanoseconds per call:
+
+| Workload | Verified AVX2 | Verified AVX-512 | Rust native |
+| --- | ---: | ---: | ---: |
+| Byte sum, 4 KiB | 19.329 | 12.972 | 67.451 |
+| All-zero scan, 4 KiB | 19.565 | 12.685 | 12.660 |
+| Copy, 4 KiB | 28.610 | 21.995 | 18.741 |
+| Byte sum, 64 KiB | 317.170 | 296.790 | 1135.661 |
+| All-zero scan, 64 KiB | 319.581 | 325.410 | 287.820 |
+| Copy, 64 KiB | 561.740 | 577.811 | 766.400 |
+
+The simultaneous old/new AVX-512 copy control is 14.871/1.420 ns at
+63 bytes and 14.890/1.688 ns at 127 bytes. AVX2's 31-byte control is
+8.448/1.461 ns. These endpoint improvements do not erase the slower one-byte
+suffixes: at length 1, AVX-512 is 1.877 ns versus its old byte-tail control's
+1.613 ns. At 65, 129 and 257 bytes, the one-byte suffix also regresses.
+
+AVX-512 has 32 lower and 37 higher medians across the complete 69 span
+workload/length pairs; AVX2 has 29 lower and 40 higher. The descriptive
+minimum of both has 35 lower and 34 higher; this is not an implemented
+dispatcher. Register multiply-add is 0.995402 ns versus Rust's 0.999111 ns,
+an unresolved small difference. Short reduction tails still dominate some
+losses: the AVX-512 32-byte sum is 7.574 ns versus Rust's 1.477 ns. The next
+candidate must be measured separately before any of these results change.
+
+The frozen `60409ea` implementation passes the full strict 272-test inventory
+locally and in both [PR CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44665015777)
+and [push CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44665008906),
+with no skips. New source changes require a new contract and applicable gates.

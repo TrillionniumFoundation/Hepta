@@ -90,7 +90,7 @@ class WideSIMDCheckerTests(unittest.TestCase):
         for isa in ("avx2", "avx512"):
             for kind in ("sum_u8", "all_zero_u8", "copy_u8"):
                 core = simd_kernel_program(kind)
-                image = emit_verified_simd(core, isa=isa, **({"copy_tail": "byte"} if kind == "copy_u8" else {}))
+                image = emit_verified_simd(core, isa=isa, **({"copy_tail": "byte"} if kind == "copy_u8" else {"reduce_tail": "byte"}))
                 obj, final = cls.root / (kind + isa + ".o"), cls.root / (kind + isa + ".so")
                 obj.write_bytes(image.object_bytes)
                 linked = subprocess.run([
