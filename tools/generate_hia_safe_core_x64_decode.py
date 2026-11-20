@@ -470,7 +470,9 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
     if op == OP_NOT:
         return formula_done(o, node(o, R_NOT, LEFT, 0, 0), 0, 0, 0)
     if op == OP_CQO:
-        return formula_done(o, node(o, R_SIMPLIFY, node(o, R_SIGNEXT, node(o, R_EXTRACT, LEFT, 63, 63), 63, 0), 0, 0), 0, 0, 0)
+        count = node(o, R_LITERAL64, 63, 0, 0)
+        high = node(o, R_ASHR_DYNAMIC, LEFT, count, 0)
+        return formula_done(o, node(o, R_SIMPLIFY, high, 0, 0), 0, 0, 0)
     if op == OP_NEG:
         raw = node(o, R_SUB, node(o, R_LITERAL64, 0, 0, 0), LEFT, 0)
         return formula_done(o, node(o, R_SIMPLIFY, raw, 0, 0), node(o, R_ZERO, raw, 0, 0), node(o, R_NONZERO, LEFT, 0, 0), 0)

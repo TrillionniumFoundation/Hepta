@@ -121,7 +121,7 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                 same(before.path, after.path)
 
         profiles = {'allow_signed': True, 'allow_variable_shifts': True}
-        new_encodings = ('4899', '48f7d8', '48c1f83f', '48d3f8', '48f7ea', '48f7fa', '7c0090', '400f9cc0')
+        new_encodings = ('4899', '48f7d8', '48c1f83f', '48d3f8', '48f7ea', '48f7fa', '0f8c0000000090', '400f9cc0')
         for encoding in new_encodings:
             code = bytes.fromhex(encoding)
             with self.assertRaises(SafeCoreMachineRejected):
