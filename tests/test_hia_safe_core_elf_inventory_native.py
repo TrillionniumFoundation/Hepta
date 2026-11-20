@@ -120,6 +120,12 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         self.assertEqual(expected[0], set(exports))
         self.assertIn('malloc', expected[1])
         self.assertEqual(self.native.owned_shared_symbols(raw), expected)
+        self.assertEqual(self.native.owned_shared_symbols(raw, exports), (*expected, True))
+        for changed in (exports[:-1], exports[:3] + ('Aad',) + exports[4:], tuple(reversed(exports)),
+                        exports[:5] + (exports[5] + 'x',) + exports[6:],
+                        tuple(sorted((*exports[:-1], 'malloc')))):
+            with self.subTest(expected_names=changed):
+                self.assertEqual(self.native.owned_shared_symbols(raw, changed), (*expected, False))
 
         def observed(reader, data):
             try:
@@ -139,6 +145,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
             report = elf_shared_abi.inspect_owned_shared_elf(raw, exports)
             self.assertEqual(report['dynamic_exports'], list(exports))
             self.assertEqual(report['unresolved_imports'], sorted(expected[1]))
+            with self.assertRaisesRegex(elf_shared_abi.ELFSharedABIRejected, 'public ABI symbols differ from source'):
+                elf_shared_abi.inspect_owned_shared_elf(raw, exports[:-1])
 
     def test_native_symbols_names_and_load_mappings_match_owned_elf(self):
         for kind, data in ((1, self.object_bytes), (3, self.final_bytes)):

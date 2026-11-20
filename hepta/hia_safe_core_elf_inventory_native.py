@@ -85,6 +85,9 @@ OWNED_SHARED_SYMBOL_HEAD = OWNED_SHARED_HEAD.size + 128 * OWNED_SHARED_SEGMENT.s
 OWNED_SHARED_SYMBOL_ROW = struct.Struct('<3Q')
 OWNED_SHARED_SYMBOL_CAPACITY = OWNED_SHARED_SYMBOL_HEAD + 65536 * OWNED_SHARED_SYMBOL_ROW.size
 OWNED_SHARED_SYMBOL_WORK = 16 + 65536 * 24
+OWNED_SHARED_EXPECTED_COUNT = 128
+OWNED_SHARED_EXPECTED_RECORD = 8 + 512
+OWNED_SHARED_EXPECTED_WORK = OWNED_SHARED_SYMBOL_WORK + 8 + OWNED_SHARED_EXPECTED_COUNT * OWNED_SHARED_EXPECTED_RECORD
 OWNED_SHARED_REFUSALS = (
     ('identity', 'not Linux/x86-64 ELF64 ET_DYN'),
     ('sections', 'missing or out-of-file ELF section table'),
@@ -122,12 +125,22 @@ OWNED_SHARED_NAMED_ERRORS = frozenset(('symbol_import', 'symbol_export', 'symbol
 
 
 class NativeSafeCoreElfInventory(NativeHiaJsonImage):
-    def owned_shared_symbols(self, data):
+    def owned_shared_symbols(self, data, expected=None):
         from .elf_shared_abi import _fail
 
         source = ctypes.create_string_buffer(data, len(data))
-        work = ctypes.create_string_buffer(OWNED_SHARED_SYMBOL_WORK)
+        work = ctypes.create_string_buffer(OWNED_SHARED_SYMBOL_WORK if expected is None else OWNED_SHARED_EXPECTED_WORK)
         struct.pack_into('<Q', work, 0, OWNED_SHARED_SYMBOL_MAGIC)
+        if expected is not None:
+            if len(expected) > OWNED_SHARED_EXPECTED_COUNT:
+                raise ValueError('outside native shared ELF source export profile')
+            struct.pack_into('<Q', work, OWNED_SHARED_SYMBOL_WORK, len(expected))
+            for index, symbol in enumerate(expected):
+                offset = OWNED_SHARED_SYMBOL_WORK + 8 + index * OWNED_SHARED_EXPECTED_RECORD
+                size = min(len(symbol), 513)
+                struct.pack_into('<Q', work, offset, size)
+                if size <= 512:
+                    ctypes.memmove(ctypes.addressof(work) + offset + 8, symbol.encode('ascii'), size)
         output = ctypes.create_string_buffer(OWNED_SHARED_SYMBOL_CAPACITY)
         size = self._entry(source, len(data), output, len(output), work, len(work))
         header = OWNED_SHARED_HEAD.size
@@ -145,7 +158,8 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             if any(remaining):
                 raise RuntimeError('unexpected native shared ELF symbol refusal data')
             _fail(message)
-        if (not 0 <= count <= 65536 or any((position, *remaining))
+        if (not 0 <= count <= 65536 or any(remaining)
+                or (position not in (1, 2) if expected is not None else position != 0)
                 or size != OWNED_SHARED_SYMBOL_HEAD + count * OWNED_SHARED_SYMBOL_ROW.size):
             raise RuntimeError('invalid native shared ELF symbol reply')
         exports, undefined = set(), set()
@@ -154,7 +168,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             if kind not in (0, 1):
                 raise RuntimeError('invalid native shared ELF symbol classification')
             (exports if kind else undefined).add(self._owned_symbol_name(data, offset, extent))
-        return exports, undefined
+        return (exports, undefined) if expected is None else (exports, undefined, position == 1)
 
     @staticmethod
     def _owned_symbol_name(data, offset, extent):

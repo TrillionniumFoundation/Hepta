@@ -219,12 +219,14 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
         _fail("invalid artifact or source export list")
     from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
 
-    native = selected_safe_core_elf_inventory() if type(data) is bytes else None
+    native = (selected_safe_core_elf_inventory()
+              if type(data) is bytes and all(type(symbol) is str for symbol in expected_exports) else None)
     if native is None:
         exports, undefined = _reference_owned_shared_symbols(data)
+        matches = exports == set(expected_exports)
     else:
-        exports, undefined = native.owned_shared_symbols(data)
-    if exports != set(expected_exports):
+        exports, undefined, matches = native.owned_shared_symbols(data, expected_exports)
+    if not matches:
         _fail("public ABI symbols differ from source: expected " + repr(expected_exports)
               + ", observed " + repr(tuple(sorted(exports))))
     return {"schema": "hepta.elf-shared-abi.v1", "format": "ELF64", "machine": 62,

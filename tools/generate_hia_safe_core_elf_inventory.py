@@ -9,7 +9,7 @@ from hepta.hia_safe_core_elf_inventory_native import (
     CAPACITY, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
     OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD, OWNED_SHARED_SYMBOL_CAPACITY,
-    OWNED_SHARED_SYMBOL_WORK,
+    OWNED_SHARED_SYMBOL_WORK, OWNED_SHARED_EXPECTED_COUNT, OWNED_SHARED_EXPECTED_RECORD, OWNED_SHARED_EXPECTED_WORK,
 )
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
@@ -22,6 +22,9 @@ FIELDS.update({'ABI_' + name.upper(): number for number, (name, _) in enumerate(
 FIELDS.update(OWNED_SHARED_MAGIC=OWNED_SHARED_MAGIC, OWNED_SHARED_MAX=OWNED_SHARED_MAX)
 FIELDS.update(OWNED_SHARED_SYMBOL_MAGIC=OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD=OWNED_SHARED_SYMBOL_HEAD,
               OWNED_SHARED_SYMBOL_CAPACITY=OWNED_SHARED_SYMBOL_CAPACITY, OWNED_SHARED_SYMBOL_WORK=OWNED_SHARED_SYMBOL_WORK)
+FIELDS.update(OWNED_SHARED_EXPECTED_COUNT=OWNED_SHARED_EXPECTED_COUNT,
+              OWNED_SHARED_EXPECTED_RECORD=OWNED_SHARED_EXPECTED_RECORD,
+              OWNED_SHARED_EXPECTED_WORK=OWNED_SHARED_EXPECTED_WORK)
 HELPER_NAME = b'__hia_native_fn_0\0'
 FIELDS.update(HELPER_HEAD=int.from_bytes(HELPER_NAME[:8], 'little'),
               HELPER_BODY=int.from_bytes(HELPER_NAME[8:16], 'little'),
@@ -36,7 +39,7 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     if length(w) == 8 and get(w, 0) == OWNED_SHARED_MAGIC:
         return owned_shared_layout(s, o)
-    if length(w) == OWNED_SHARED_SYMBOL_WORK and get(w, 0) == OWNED_SHARED_SYMBOL_MAGIC:
+    if (length(w) == OWNED_SHARED_SYMBOL_WORK or length(w) == OWNED_SHARED_EXPECTED_WORK) and get(w, 0) == OWNED_SHARED_SYMBOL_MAGIC:
         if length(o) < OWNED_SHARED_SYMBOL_CAPACITY:
             return 4294967294
         return owned_shared_symbols(s, o, w)
@@ -938,6 +941,7 @@ def owned_shared_symbols(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     # nodes are initialized on insertion, and the empty root is explicit.
     put(w, 8, 0)
     count = 0
+    exports = 0
     at = start
     while at < start + extent:
         index = word(s, at, 4)
@@ -972,10 +976,15 @@ def owned_shared_symbols(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                     if owned_shared_mapped(s, o, section, word(s, at + 8, 8), symbol_size) == 0:
                         return owned_shared_named_error(o, ABI_SYMBOL_MAPPING, name, size)
                     put(o, row + 16, 1)
+                    exports = exports + 1
                 count = count + 1
         at = at + 24
+    match = 0
+    if length(w) == OWNED_SHARED_EXPECTED_WORK:
+        match = owned_shared_exports_match(s, o, w, exports)
     owned_shared_refusal(o, 0)
     put(o, 8, count)
+    put(o, 16, match)
     return OWNED_SHARED_SYMBOL_HEAD + count * 24
 
 def owned_shared_named_error(o:mutbuf, code:u64, name:u64, size:u64) -> u64:
@@ -1052,6 +1061,61 @@ def owned_shared_first_bit(value:u64) -> u64:
             return index
         index = index + 1
     return 8
+
+def owned_shared_exports_match(s:readbuf, o:mutbuf, w:mutbuf, exports:u64) -> u64:
+    # The expected source names travel in fixed-size records after scratch.
+    # The ordinary caller still serializes the historical mismatch diagnostic,
+    # but only HIA decides whether the two export sets actually agree.
+    count = get(w, OWNED_SHARED_SYMBOL_WORK)
+    if count != exports or count > OWNED_SHARED_EXPECTED_COUNT:
+        return 2
+    ordinal = 0
+    at = OWNED_SHARED_SYMBOL_WORK + 8
+    while ordinal < count:
+        size = get(w, at)
+        if size == 0 or size > 512:
+            return 2
+        if ordinal > 0 and owned_shared_expected_order(w, at - OWNED_SHARED_EXPECTED_RECORD, at) == 0:
+            return 2
+        if owned_shared_find_export(s, o, w, at + 8, size) == 0:
+            return 2
+        ordinal = ordinal + 1
+        at = at + OWNED_SHARED_EXPECTED_RECORD
+    return 1
+
+def owned_shared_expected_order(w:mutbuf, previous:u64, current:u64) -> u64:
+    before = get(w, previous)
+    after = get(w, current)
+    index = 0
+    while index < before and index < after:
+        first = load(w, previous + 8 + index)
+        second = load(w, current + 8 + index)
+        if first != second:
+            return choose(first < second, 1, 0)
+        index = index + 1
+    return choose(before < after, 1, 0)
+
+def owned_shared_find_export(s:readbuf, o:mutbuf, w:mutbuf, name:u64, size:u64) -> u64:
+    current = get(w, 8)
+    if current == 0:
+        return 0
+    while current & 1 == 0:
+        row = current // 2
+        bit = get(w, row)
+        arm = 0
+        if bit // 8 < size:
+            arm = (load(w, name + bit // 8) >> (7 - bit % 8)) & 1
+        current = get(w, row + 8 + arm * 8)
+    leaf = current // 2
+    if get(o, leaf + 8) != size or get(o, leaf + 16) != 1:
+        return 0
+    start = get(o, leaf)
+    index = 0
+    while index < size:
+        if byte(s, start + index) != load(w, name + index):
+            return 0
+        index = index + 1
+    return 1
 
 def owned_shared_insert(s:readbuf, o:mutbuf, w:mutbuf, row:u64, branch:u64) -> u64:
     # Odd tokens locate output leaves. Even nonzero tokens locate
