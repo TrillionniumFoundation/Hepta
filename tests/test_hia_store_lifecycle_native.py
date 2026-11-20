@@ -54,11 +54,21 @@ class StoreLifecycleSourceTests(unittest.TestCase):
         original = ast.parse(FIXTURE.read_text()).body[0]
         actual = next(node for node in ast.parse((ROOT / 'hepta/hia_agent_store.py').read_text()).body
                       if isinstance(node, ast.ClassDef) and node.name == 'AgentStore')
-        for old_name, new_name in (('__init__', '_initialize_reference'), ('close', '_close_reference')):
-            old = next(node for node in original.body if isinstance(node, ast.FunctionDef) and node.name == old_name)
-            new = next(node for node in actual.body if isinstance(node, ast.FunctionDef) and node.name == new_name)
-            new.name = old_name
-            self.assertEqual(ast.dump(new), ast.dump(old))
+        # The frozen original remains the independent differential oracle.
+        # Construction now also arbitrates the separate native Store namespace.
+        # Its SQLite DDL, journal pragmas and exact atomic initialization must
+        # remain unchanged; lock/selection cleanup is exercised separately.
+        old = next(node for node in original.body if isinstance(node, ast.FunctionDef)
+                   and node.name == '__init__')
+        new = next(node for node in actual.body if isinstance(node, ast.FunctionDef)
+                   and node.name == '_initialize_reference')
+        def sqlite_statements(node):
+            return [n.args[0].value for n in ast.walk(node)
+                    if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                    and n.func.attr in ('execute', 'executescript')
+                    and n.args and isinstance(n.args[0], ast.Constant)]
+        self.assertEqual(sqlite_statements(new), sqlite_statements(old))
+        self.assertEqual(sqlite_statements(new)[2], native.SCHEMA_SQL)
         frozen()
 
     def test_absent_selector_retains_bodies_without_optional_native_import(self):
@@ -305,7 +315,7 @@ class StoreLifecycleNativeTests(unittest.TestCase):
         with (tempfile.TemporaryDirectory() as directory,
               patch.dict(native._FRAME_CUSTODY),
               patch.dict(os.environ, {native.SELECTOR: str(self.manifest)}),
-              patch.object(api.sqlite3, 'connect', connect), patch.object(self.image, '_entry', lost),
+              patch.object(sqlite3, 'connect', connect), patch.object(self.image, '_entry', lost),
               patch.object(api, '_NATIVE_STORE_INITIALIZE_REFERENCE', side_effect=AssertionError('fallback')),
               patch.object(api, '_NATIVE_STORE_CLOSE_REFERENCE', side_effect=AssertionError('fallback'))):
             before = native.unconfirmed_lifecycle_count()

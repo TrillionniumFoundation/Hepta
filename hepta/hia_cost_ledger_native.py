@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from .hia_agent_store import uses_native_store
 import stat
 import struct
 import threading
@@ -277,7 +278,11 @@ class CostLedgerFrame:
         """One fixed foreign operation; HIA supplies loop index and sum bank."""
         index, bank = self.receipt[3:5]
         if port == 1:
-            self.rows = self.service.store.db.execute(QUERY, (self.context['ref']['id'],)).fetchall()
+            store = self.service.store
+            if uses_native_store(store):
+                self.rows = store.context_costs(self.context['ref']['id'])
+            else:
+                self.rows = store.db.execute(QUERY, (self.context['ref']['id'],)).fetchall()
             return len(self.rows)
         elif port == 2:
             self.rows = self.rows[:self.retained_rows]

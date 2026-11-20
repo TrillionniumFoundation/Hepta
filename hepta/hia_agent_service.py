@@ -40,6 +40,14 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def _owns_context_state(service):
+    from .hia_agent_store import uses_native_store
+
+    return (uses_native_store(service.store)
+            or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ
+            or 'HEPTA_HIA_AGENT_PAYLOAD_SCHEMA_MANIFEST' in os.environ)
+
+
 def _reference_wall_window(created_ns, now_ns, total_ms):
     delta = created_ns + total_ms * 1_000_000 - now_ns
     return delta < 0, max(0, delta // 1_000_000)
@@ -516,6 +524,9 @@ class HIAAgentService:
 
     def _program(self, ref):
         data, _ = self.store.get(ref)
+        return self._admit_retained_program(data)
+
+    def _admit_retained_program(self, data):
         if self._native_candidate_import is None:
             return self._reference_import(data, 'core-json')
         program = self._native_candidate_import.retained_program(data)
@@ -528,10 +539,25 @@ class HIAAgentService:
         from .hia_service_context_selection import run_service_context, UNSELECTED
         result = run_service_context(2, self, ref)
         if result is UNSELECTED:
+            if _owns_context_state(self):
+                return self._context_owned(ref)
             return _NATIVE_SERVICE_CONTEXT_LOOKUP_REFERENCE(self, ref)
         return result
 
     def _context_reference(self, ref):
+        keys(ref, ("id", "sha256"), label="context reference")
+        row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (ref["id"],)).fetchone()
+        if row is None or row["sha256"] != ref["sha256"]:
+            reject("E_HIA_CONTEXT_IDENTITY", "context is not a retained server record", "context")
+        context, _ = self.store.get_json(decode_data(row["artifact"]), kind="context")
+        if context["installation"] != self.identities or context["catalog_sha256"] != self.catalog_sha256:
+            reject("E_HIA_CONTEXT_STALE", "context binds a different installed implementation", "context")
+        for name in ("compiler", "target"):
+            self._profile(context[name + "_profile"], name)
+        context["ref"] = ref
+        return context
+
+    def _context_owned(self, ref):
         keys(ref, ("id", "sha256"), label="context reference")
         row = self.store.context_lookup(ref["id"])
         stored = None if row is None else (row["id"], row["sha256"], "")
@@ -551,10 +577,20 @@ class HIAAgentService:
         from .hia_service_context_selection import run_service_context, UNSELECTED
         result = run_service_context(3, self, context, candidate=candidate)
         if result is UNSELECTED:
+            if _owns_context_state(self):
+                return self._budget_owned(context, candidate=candidate)
             return _NATIVE_SERVICE_CONTEXT_BUDGET_REFERENCE(self, context, candidate=candidate)
         return result
 
     def _budget_reference(self, context, *, candidate=False):
+        row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
+        limits = context["budget"]
+        if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
+            reject("E_HIA_BUDGET", "context total wall budget has expired", "context")
+        if candidate:
+            self._consume_attempt(context)
+
+    def _budget_owned(self, context, *, candidate=False):
         expired, _ = self._wall_window(context)
         if expired:
             reject("E_HIA_BUDGET", "context total wall budget has expired", "context")
@@ -576,10 +612,17 @@ class HIAAgentService:
         from .hia_service_context_selection import run_service_context, UNSELECTED
         result = run_service_context(4, self, context)
         if result is UNSELECTED:
+            if _owns_context_state(self):
+                return self._remaining_ms_owned(context)
             return _NATIVE_SERVICE_CONTEXT_REMAINING_REFERENCE(self, context)
         return result
 
     def _remaining_ms_reference(self, context):
+        row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
+        deadline = int(row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
+        return max(0, (deadline - time.time_ns()) // 1_000_000)
+
+    def _remaining_ms_owned(self, context):
         return self._wall_window(context)[1]
 
     def _wall_window(self, context, *, created_ns=None):
@@ -756,10 +799,65 @@ class HIAAgentService:
         from .hia_service_context_selection import run_service_context, UNSELECTED
         result = run_service_context(1, self, args)
         if result is UNSELECTED:
+            if _owns_context_state(self):
+                return self._hia_context_owned(args)
             return _NATIVE_SERVICE_CONTEXT_FREEZE_REFERENCE(self, args)
         return result
 
     def _hia_context_reference(self, args):
+        from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
+        self._profile(args["compiler_profile"], "compiler")
+        self._profile(args["target_profile"], "target")
+        workload, _ = self.store.get_json(args["workload"])
+        objective, _ = self.store.get_json(args["objective"])
+        cost_policy, _ = self.store.get_json(args["budget"]["cost_policy"])
+        validate(workload, WORKLOAD_SCHEMA, "workload")
+        foreign_buffer_exports = export_manifest(workload)
+        snapshot_bytes = sum(buffer_size(value) for case in workload["cases"]
+                             for value in case["arguments"] if type(value) is dict)
+        if snapshot_bytes > MAX_WORKLOAD_BUFFER_BYTES:
+            reject("E_HIA_BUFFER_BUDGET", "frozen workload exceeds 32 MiB of external byte snapshots", "context")
+        validate(objective, OBJECTIVE_SCHEMA, "objective")
+        validate(cost_policy, COST_POLICY_SCHEMA, "cost_policy")
+        for name in ("max_candidates", "max_model_tokens", "max_total_wall_ms", "max_native_wall_ms"):
+            args["budget"][name] = int(args["budget"][name])
+        uint64(cost_policy["expected_invocations"], "expected_invocations")
+        memory = uint64(args["budget"]["max_memory_bytes"], "max_memory_bytes")
+        if not 64 * 1024**2 <= memory <= 4 * 1024**3:
+            reject("E_HIA_BUDGET", "execution profile admits 64 MiB..4 GiB address-space budgets", "context")
+        if args["budget"]["max_native_wall_ms"] > args["budget"]["max_total_wall_ms"]:
+            reject("E_HIA_BUDGET", "native wall budget exceeds total wall budget", "context")
+        for name in ("model_wall_ns", "discovery_wall_ns"):
+            if cost_policy["external_costs"][name] is not None:
+                uint64(cost_policy["external_costs"][name], name)
+        tokens = cost_policy["external_costs"]["model_tokens"]
+        if tokens is not None and tokens > args["budget"]["max_model_tokens"]:
+            reject("E_HIA_BUDGET", "reported model tokens exceed the frozen budget", "context")
+        if cost_policy["external_costs_complete"] and any(v is None for v in cost_policy["external_costs"].values()):
+            reject("E_HIA_COST", "complete external cost report cannot contain unknown fields", "context")
+        baseline_sha = None
+        if args["baseline_program"] is not None:
+            baseline_sha = self._program(args["baseline_program"]).sha256
+        sampled = _now()
+        record = {"schema": "hepta.hia.agent.context.v1", "catalog_sha256": self.catalog_sha256,
+            "installation": self.identities, "compiler_profile": args["compiler_profile"],
+            "target_profile": args["target_profile"], "baseline_program": args["baseline_program"],
+            "baseline_core_sha256": baseline_sha, "workload": args["workload"], "objective": args["objective"],
+            "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
+            "budget": args["budget"], "sampled_at": sampled,
+            "target_observation": {"system": platform.system(), "machine": platform.machine(),
+                "cpu_count": os.cpu_count(), "observation_only": True},
+            "resource_reservation_held": False, "context_is_execution_authority": False}
+        manifest = self.store.json(record, "context")
+        context = {"id": "ctx-" + uuid.uuid4().hex, "sha256": manifest["sha256"]}
+        self.store.db.execute("INSERT INTO contexts VALUES (?,?,?,?,0)",
+            (context["id"], context["sha256"], wire(manifest).decode(), str(time.time_ns())))
+        self.store.execution_budgets.create(context["id"])
+        return {"context": context, "manifest": manifest, "sampled_at": sampled,
+            "compiler_profile": args["compiler_profile"], "target_profile": args["target_profile"],
+            "resource_reservation_held": False, "context_is_execution_authority": False}
+
+    def _hia_context_owned(self, args):
         from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
         from .hia_agent_payload_schema_native import COST_POLICY_ROLE, OBJECTIVE_ROLE, WORKLOAD_ROLE
         from .hia_agent_store import _native_agent_identity
@@ -2912,15 +3010,24 @@ _SERVICE_BOOTSTRAP_IMPORT_PORTS = {
     'generator_dir_value': _service_bootstrap_literal_generator_dir_value,
 }
 
-def _service_bootstrap_dispatch___init__(self, state_root, *, artifact_roots=()):
+def _service_bootstrap_dispatch___init__(self, state_root, *, artifact_roots=(), native_store=None,
+                                         native_edit_query=None, native_candidate_import=None):
     selected = _service_bootstrap_os.environ.get('HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST')
+    arguments = {'self': self, 'state_root': state_root, 'artifact_roots': artifact_roots}
+    native_options = {'native_store': native_store, 'native_edit_query': native_edit_query,
+                      'native_candidate_import': native_candidate_import}
     if selected is None:
-        arguments = {'callee': _SERVICE_BOOTSTRAP_REFERENCES[1], 'self': self, 'state_root': state_root, 'artifact_roots': artifact_roots}
-        del self, state_root, artifact_roots
-        return arguments.pop('callee')(arguments.pop('self'), arguments.pop('state_root'), artifact_roots=arguments.pop('artifact_roots'))
+        callee = _SERVICE_BOOTSTRAP_REFERENCES[1]
+        if any(value is not None for value in native_options.values()):
+            arguments.update(native_options)
+        del self, state_root, artifact_roots, native_store, native_edit_query, native_candidate_import, native_options
+        return callee(arguments.pop('self'), arguments.pop('state_root'), **arguments)
+    if not selected:
+        raise ValueError('service bootstrap selector must not be empty')
     adapter = _SERVICE_BOOTSTRAP_LOADER('hepta.hia_service_bootstrap_native')
-    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 1, {'self': self, 'state_root': state_root, 'artifact_roots': artifact_roots})
-    del self, state_root, artifact_roots
+    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 1, arguments,
+                                          service_options=native_options)
+    del self, state_root, artifact_roots, native_store, native_edit_query, native_candidate_import, native_options
     return frame.finish()
 
 HIAAgentService.__init__ = _service_bootstrap_dispatch___init__
@@ -2944,8 +3051,13 @@ def _service_bootstrap_dispatch__profiles(self):
         arguments = {'callee': _SERVICE_BOOTSTRAP_REFERENCES[3], 'self': self}
         del self
         return arguments.pop('callee')(arguments.pop('self'))
+    if not selected:
+        raise ValueError('service bootstrap selector must not be empty')
     adapter = _SERVICE_BOOTSTRAP_LOADER('hepta.hia_service_bootstrap_native')
-    frame = adapter.ServiceBootstrapFrame(adapter.installed_service_bootstrap(selected), 3, {'self': self})
+    image = adapter.installed_service_bootstrap(selected)
+    if 'HEPTA_HIA_AGENT_DISCOVERY_MANIFEST' in _service_bootstrap_os.environ:
+        return _SERVICE_BOOTSTRAP_REFERENCES[3](self)
+    frame = adapter.ServiceBootstrapFrame(image, 3, {'self': self})
     del self
     return frame.finish()
 

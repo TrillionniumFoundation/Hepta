@@ -18,6 +18,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from .hia_agent_store import uses_native_store
 import struct
 import threading
 
@@ -443,10 +444,19 @@ class ContextFrame:
         elif port == 43:
             d['context'] = {'id': 'ctx-' + api['uuid'].uuid4().hex, 'sha256': d['manifest']['sha256']}
         elif port == 44:
-            s.store.db.execute('INSERT INTO contexts VALUES (?,?,?,?,0)',
-                (d['context']['id'], d['context']['sha256'], api['wire'](d['manifest']).decode(), str(api['time'].time_ns())))
+            store = s.store
+            if uses_native_store(store):
+                d['context_record'] = (d['context']['sha256'], api['wire'](d['manifest']).decode(),
+                                       str(api['time'].time_ns()))
+            else:
+                store.db.execute('INSERT INTO contexts VALUES (?,?,?,?,0)',
+                    (d['context']['id'], d['context']['sha256'], api['wire'](d['manifest']).decode(), str(api['time'].time_ns())))
         elif port == 45:
-            s.store.execution_budgets.create(d['context']['id'])
+            create = s.store.execution_budgets.create
+            if 'context_record' in d:
+                create(d['context']['id'], context_record=d.pop('context_record'))
+            else:
+                create(d['context']['id'])
         elif port == 46:
             d['result'] = {'context': d['context'], 'manifest': d['manifest'], 'sampled_at': d['sampled'],
                 'compiler_profile': d['args']['compiler_profile'], 'target_profile': d['args']['target_profile'],
@@ -466,7 +476,11 @@ class ContextFrame:
         elif port == 101:
             api['keys'](d['ref'], ('id', 'sha256'), label='context reference')
         elif port == 102:
-            d['row'] = s.store.db.execute('SELECT * FROM contexts WHERE id=?', (d['ref']['id'],)).fetchone()
+            store = s.store
+            if uses_native_store(store):
+                d['row'] = store.context_lookup(d['ref']['id'])
+            else:
+                d['row'] = store.db.execute('SELECT * FROM contexts WHERE id=?', (d['ref']['id'],)).fetchone()
         elif port == 103:
             return int(d['row'] is None)
         elif port == 104:
@@ -490,7 +504,11 @@ class ContextFrame:
         elif port == 191:
             api['reject']('E_HIA_CONTEXT_STALE', 'context binds a different installed implementation', 'context')
         elif port == 201:
-            d['row'] = s.store.db.execute('SELECT * FROM contexts WHERE id=?', (d['context']['ref']['id'],)).fetchone()
+            store = s.store
+            if uses_native_store(store):
+                d['row'] = store.context_lookup(d['context']['ref']['id'])
+            else:
+                d['row'] = store.db.execute('SELECT * FROM contexts WHERE id=?', (d['context']['ref']['id'],)).fetchone()
         elif port == 202:
             d['limits'] = d['context']['budget']
         elif port == 203:
@@ -513,7 +531,11 @@ class ContextFrame:
         elif port == 290:
             api['reject']('E_HIA_BUDGET', 'context total wall budget has expired', 'context')
         elif port == 301:
-            d['row'] = s.store.db.execute('SELECT created_ns FROM contexts WHERE id=?', (d['context']['ref']['id'],)).fetchone()
+            store = s.store
+            if uses_native_store(store):
+                d['row'] = store.context_created(d['context']['ref']['id'])
+            else:
+                d['row'] = store.db.execute('SELECT created_ns FROM contexts WHERE id=?', (d['context']['ref']['id'],)).fetchone()
         elif port == 302:
             d['created'] = int(d['row']['created_ns'])
         elif port == 303:

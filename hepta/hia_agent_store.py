@@ -322,11 +322,11 @@ class AgentStore:
             arguments = {'callee': _NATIVE_STORE_INITIALIZE_REFERENCE, 'self': self, 'root': root,
                          'scope': _store_resource_scope(self)}
             if native_store is not None:
-                with arguments.pop('scope'):
-                    return _NATIVE_STORE_INITIALIZE_REFERENCE(self, root, native_store=native_store)
-            del self, root, owner
+                arguments['native_store'] = native_store
+            del self, root, owner, native_store
             with arguments.pop('scope'):
-                return arguments.pop('callee')(arguments.pop('self'), arguments.pop('root'))
+                initialize = arguments.pop('callee')
+                return initialize(arguments.pop('self'), arguments.pop('root'), **arguments)
         import sqlite3
         self.database_error = sqlite3.Error
         self._native_backend = False
@@ -507,12 +507,11 @@ class AgentStore:
             return self.db.context_lookup(context)
         return self.db.execute('SELECT * FROM contexts WHERE id=?', (context,)).fetchone()
 
+    def context_created(self, context):
+        return self._record('context_created', 'SELECT created_ns FROM contexts WHERE id=?', (context,))
+
     def context_created_ns(self, context):
-        if self._native_backend:
-            row = self.db.context_created(context)
-        else:
-            row = self.db.execute('SELECT created_ns FROM contexts WHERE id=?', (context,)).fetchone()
-        return int(row['created_ns'])
+        return int(self.context_created(context)['created_ns'])
 
     def context_costs(self, context):
         if self._native_backend:
@@ -825,6 +824,10 @@ class AgentStore:
         if row is None:
             reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
         return self.get_json(decode_data(row["artifact"]), kind="profile")[0]
+
+
+def uses_native_store(store):
+    return issubclass(type(store), AgentStore) and store._native_backend
 
 
 # Freeze the original no-selector lifecycle without dynamic Store attribute hooks.

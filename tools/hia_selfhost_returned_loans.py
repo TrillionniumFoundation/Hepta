@@ -10,7 +10,7 @@ def read_return_loans(s:readbuf, w:mutbuf) -> u64:
     formal = 0
     present = 0
     if get(w, 8) == @return_loans@:
-        if byte(w, 152) != 2:
+        if get(w, SCHEMA_STATE) < @hepta.hia.program.v8@:
             return fail(w, 62)
         present = 1
         separated(w)

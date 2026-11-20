@@ -174,7 +174,7 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
 
 
 def _execute_code(code, operation, stage, destination, expected, *, output=None, delivery=None):
-    result=_run_sealed_native(code, (operation, os.fspath(stage), os.fspath(destination)), expected,
+    result=_run_sealed_native(code, (operation, stage, destination), expected,
                               output=output, delivery=delivery)
     codes={10:'E_PUBLISH_IDENTITY',11:'E_PUBLISH_BYTES',12:'E_PUBLISH_RACE',
            14:'E_PUBLISH_LINK',15:'E_PUBLISH_IO',16:'E_PUBLISH_INPUT',17:'E_PUBLISH_LIMIT',64:'E_PUBLISH_INPUT'}
@@ -206,12 +206,13 @@ def _run_sealed_native(code, argv, input_bytes, *, output=None, delivery=None):
             raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: sealed executable snapshot unavailable') from exc
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
-        command=['/proc/self/fd/'+str(fd), *argv]
+        operation, stage, destination = argv
         if output is None:
-            return subprocess.run(command,input=_artifact_payload(delivery,input_bytes),
-                capture_output=True,pass_fds=(fd,),env=_artifact_handoff(delivery,{'PATH':''}))
-        return subprocess.run(command,input=input_bytes,stdout=output,stderr=subprocess.PIPE,
-            pass_fds=(fd,),env={'PATH':''})
+            return subprocess.run(['/proc/self/fd/'+str(fd), operation, os.fspath(stage), os.fspath(destination)],
+                input=_artifact_payload(delivery,input_bytes),capture_output=True,
+                pass_fds=(fd,),env=_artifact_handoff(delivery,{'PATH':''}))
+        return subprocess.run(['/proc/self/fd/'+str(fd), operation, os.fspath(stage), os.fspath(destination)],
+            input=input_bytes,stdout=output,stderr=subprocess.PIPE,pass_fds=(fd,),env={'PATH':''})
     except OSError as exc:
         raise PublicationRejected('E_PUBLISH_IO: native execution unavailable; no automatic replay') from exc
     finally:

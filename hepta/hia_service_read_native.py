@@ -19,6 +19,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+from .hia_agent_store import uses_native_store
 import struct
 import types
 
@@ -157,7 +158,10 @@ def _literal_cursor_select(service, arguments, activation):
     # user receiver, LOAD_METHOD, tuple and fetchone chain remain in place.
     borrow = activation.borrow_registered_resource
     call_arguments = activation.resource_call_arguments
-    return borrow(service.store).db.execute('SELECT * FROM cursors WHERE id=?',
+    store = borrow(service.store)
+    if uses_native_store(store):
+        return store.cursor_lookup(*call_arguments(guarded((arguments['cursor'],))))
+    return store.db.execute('SELECT * FROM cursors WHERE id=?',
         call_arguments(guarded((arguments['cursor'],)))).fetchone()
 
 
@@ -208,7 +212,12 @@ def _literal_end_test(offset, chunk, data, lookup):
 def _literal_cursor_insert(service, cursor, ref, offset, chunk, lookup, activation):
     borrow = activation.borrow_registered_resource
     call_arguments = activation.resource_call_arguments
-    borrow(service.store).db.execute('INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)',
+    store = borrow(service.store)
+    if uses_native_store(store):
+        store.cursor_retain(*call_arguments(guarded((cursor, ref['id'], ref['sha256'],
+                                                    offset + lookup('len')(chunk)))))
+        return
+    store.db.execute('INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)',
         call_arguments(guarded((cursor, ref['id'], ref['sha256'],
                                 offset + lookup('len')(chunk)))))
 

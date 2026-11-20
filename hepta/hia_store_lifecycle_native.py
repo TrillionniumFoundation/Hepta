@@ -143,9 +143,10 @@ class LifecycleFrame:
     def __init__(self, image, mode, store, root=None, *, namespace=None):
         if type(image) is not NativeStoreLifecycleImage or type(mode) is not int or mode not in (1, 2):
             raise StoreLifecycleUnknown('lifecycle image or public mode differs')
+        self.live_namespace = namespace is None
         if namespace is None:
             from . import hia_agent_store
-            namespace = dict(vars(hia_agent_store), sqlite3=sqlite3)
+            namespace = vars(hia_agent_store)
         self.image, self.mode, self.namespace = image, mode, namespace
         self.store, self.root_argument = store, root
         self.identity = struct.unpack('<2Q', os.urandom(16))
@@ -348,8 +349,8 @@ class LifecycleFrame:
         elif port == 20:
             return int(bool(ns['stat'].S_ISREG(self.info.st_mode)))
         elif port == 23:
-            connect = ns['sqlite3'].connect
-            claim = ns.get('_claim_state_directory')
+            connect = ns.get('sqlite3', sqlite3).connect
+            claim = ns['_claim_state_directory'] if self.live_namespace else None
             from contextlib import nullcontext
             with nullcontext() if claim is None else claim(self.store.root):
                 if claim is not None and ns['os'].path.lexists(self.store.root / 'store' / 'namespace.bin'):
@@ -366,7 +367,7 @@ class LifecycleFrame:
         elif port == 28:
             self.store.database_identity = (self.database_info.st_dev, self.database_info.st_ino)
         elif port == 29:
-            self.store.db.row_factory = ns['sqlite3'].Row
+            self.store.db.row_factory = ns.get('sqlite3', sqlite3).Row
         elif port == 30:
             self.store.db.execute('PRAGMA journal_mode=WAL')
         elif port == 31:

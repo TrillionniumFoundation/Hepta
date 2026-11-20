@@ -246,7 +246,7 @@ def _bootstrap_generator(image, mode, iterator, namespace, global_builtins, impo
 
 class ServiceBootstrapFrame:
     def __init__(self, image, mode, initial, *, namespace=None, global_builtins=None,
-                 import_ports=None, local_layouts=None):
+                 import_ports=None, local_layouts=None, service_options=None):
         if type(image) is not NativeServiceBootstrap:
             raise TypeError('service bootstrap requires its admitted image')
         if type(mode) is not int or mode not in MODE_RANGES:
@@ -289,6 +289,7 @@ class ServiceBootstrapFrame:
         else:
             self.data['.0'] = initial['iterator']
         self.result = None
+        self.service_options = service_options
         self.identity = struct.unpack('<2Q', os.urandom(16))
         self.buffer = ctypes.create_string_buffer(STATE_BYTES + 16)
         ctypes.memmove(ctypes.addressof(self.buffer) + STATE_BYTES, b'\xb7' * 16, 16)
@@ -706,7 +707,10 @@ class ServiceBootstrapFrame:
         return 0
 
     def _port_init_tools_store(self):
-        self.data['self'].tools=self.stack.pop('tools_result')
+        service = self.data['self']
+        service.tools = self.stack.pop('tools_result')
+        if self.service_options is not None:
+            service._tool_roles = {name: index for index, name in enumerate(service.tools, 1)}
         return 0
 
     def _port_init_identities(self):
@@ -715,7 +719,15 @@ class ServiceBootstrapFrame:
 
     def _port_init_store(self):
         d=self.data
-        self.import_ports['init_store'](d['self'],d['state_root'])
+        options = self.service_options
+        service = d['self']
+        if options is None or options['native_store'] is None:
+            self.import_ports['init_store'](service, d['state_root'])
+        else:
+            service.store = self.namespace['AgentStore'](d['state_root'], native_store=options['native_store'])
+        if options is not None:
+            service._native_edit_query = options['native_edit_query']
+            service._native_candidate_import = options['native_candidate_import']
         return 0
 
     def _port_init_budget_none(self):
@@ -1041,7 +1053,13 @@ class ServiceBootstrapFrame:
         return 0
 
     def _port_program_verify(self):
-        self.result=self.import_ports['program_verify'](self.data['data'])
+        service, data = self.data['self'], self.data['data']
+        from .hia_agent_service import HIAAgentService
+
+        if issubclass(type(service), HIAAgentService) and service._native_candidate_import is not None:
+            self.result = service._admit_retained_program(data)
+        else:
+            self.result = self.import_ports['program_verify'](data)
         return 0
 
     def _port_program_release(self):

@@ -459,7 +459,9 @@ def _run(root, manifests, cleanup):
                 'artifacts': db.execute('SELECT COUNT(*) FROM artifacts').fetchone()[0],
                 'costs': db.execute('SELECT COUNT(*) FROM costs').fetchone()[0]}
 
-    modes = (('normal', 0), ('ack', 1), ('peer-swallow', 1), ('peer-replace', 1), ('exit', 73))
+    # Unconfirmed native delivery has the dedicated Worker diagnostic/exit;
+    # a process interruption still supplies its original external exit.
+    modes = (('normal', 0), ('ack', 2), ('peer-swallow', 2), ('peer-replace', 2), ('exit', 73))
     # All six databases exist together when their inode identities are checked;
     # later deletion cannot turn inode reuse into a false independence claim.
     prepared = {mode: prepare(mode) for mode, _ in modes}
@@ -498,6 +500,7 @@ def _run(root, manifests, cleanup):
                     assert counts['pending_native_records'] > 0
                 else:
                     assert counts['lost_records'] > 0 and counts['Store_unknown_frames'] > 0
+                    assert first.stderr.splitlines()[0] == b'HIA_WORKER_DELIVERY_UNKNOWN'
             replay = worker(mode + '-replay', case, request)
             replay_report, replay_counts = json.loads(replay.stdout), read_counts(replay)
             replay_state = state(case, request)
