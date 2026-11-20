@@ -159,6 +159,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return direct_call_capture(s, o)
     if kind == 47:
         return read_window(s, o)
+    if kind == 48:
+        return required_claims(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -556,46 +558,12 @@ def claim_eligibility(s:readbuf, o:mutbuf) -> u32:
     kind = read_word(s, 24)
     planned = read_word(s, 32)
     count = read_word(s, 40)
-    if claim > 3 or kind > 2 or planned > 1 or count > 4 or count > length(s) - 48:
+    if claim > 3 or kind > 2 or planned > 1:
         return 4294967293
-    proved = 0
-    index = 0
-    while index < count:
-        check = byte(s, 48 + index)
-        if check > 7:
-            return 4294967293
-        if check == claim + 4:
-            proved = 1
-        index = index + 1
-    offset = 48 + count
-    field = 0
-    matched = 0
-    while field < 3:
-        if length(s) - offset < 16:
-            return 4294967293
-        left = read_word(s, offset)
-        right = read_word(s, offset + 8)
-        offset = offset + 16
-        if left > length(s) - offset:
-            return 4294967293
-        right_at = offset + left
-        if right > length(s) - right_at:
-            return 4294967293
-        if equal_pair(s, offset, left, right_at, right) != 0:
-            matched = matched | (1 << field)
-        field = field + 1
-        offset = right_at + right
-    if offset != length(s):
+    scope = claim_scope(s, 48, length(s), count)
+    if scope > 127:
         return 4294967293
-    # 0 = cannot satisfy, 1 = qualifies, 2 = requires build custody recheck.
-    decision = 0
-    if proved != 0:
-        if claim == 0 or (claim == 1 and (matched & 1) != 0):
-            decision = 1
-        elif kind == 1 and claim >= 2 and (matched & 2) != 0:
-            decision = 2
-        elif claim == 2 and kind == 2 and planned != 0 and (matched & 4) != 0:
-            decision = 1
+    decision = claim_decision(claim, kind, planned, scope)
     put(o, 0, @RESULT_MAGIC@)
     put(o, 8, 1)
     put(o, 16, decision)
@@ -1280,6 +1248,119 @@ def read_window(s:readbuf, o:mutbuf) -> u32:
     return 32
 '''
 
+REQUIRED_CLAIMS = r'''
+# Bits 0..3 are proved claims; bits 4..6 are the three exact subject matches.
+def claim_scope(s:readbuf, at:u64, end:u64, count:u64) -> u64:
+    if count > 4 or count > end - at:
+        return 128
+    scope = 0
+    stop = at + count
+    while at < stop:
+        check = byte(s, at)
+        if check > 7:
+            return 128
+        if check >= 4:
+            scope = scope | (1 << (check - 4))
+        at = at + 1
+    field = 0
+    while field < 3:
+        if end - at < 16:
+            return 128
+        left = read_word(s, at)
+        right = read_word(s, at + 8)
+        at = at + 16
+        if left > end - at:
+            return 128
+        right_at = at + left
+        if right > end - right_at:
+            return 128
+        if equal_pair(s, at, left, right_at, right) != 0:
+            scope = scope | (16 << field)
+        field = field + 1
+        at = right_at + right
+    return choose(at == end, scope, 128)
+
+def claim_decision(claim:u64, kind:u64, planned:u64, scope:u64) -> u64:
+    # 0 = cannot satisfy, 1 = qualifies, 2 = requires build custody recheck.
+    if (scope & (1 << claim)) == 0:
+        return 0
+    if claim == 0 or (claim == 1 and (scope & 16) != 0):
+        return 1
+    if kind == 1 and claim >= 2 and (scope & 32) != 0:
+        return 2
+    if claim == 2 and kind == 2 and planned != 0 and (scope & 64) != 0:
+        return 1
+    return 0
+
+def required_claims(s:readbuf, o:mutbuf) -> u32:
+    # One ordered claim list and up to 16 independently retained receipts.
+    # Return every custody recheck preceding the first unproved claim.
+    if length(s) < 40:
+        return 4294967293
+    claims = read_word(s, 16)
+    receipts = read_word(s, 24)
+    planned = read_word(s, 32)
+    if claims > 4 or receipts > 16 or planned > 1 or claims > length(s) - 40:
+        return 4294967293
+    if length(o) < 88:
+        return 4294967294
+    extent = 40 + claims
+    at = extent
+    receipt = 0
+    while receipt < receipts:
+        if length(s) - at < 24:
+            return 4294967293
+        size = read_word(s, at)
+        kind = read_word(s, at + 8)
+        count = read_word(s, at + 16)
+        at = at + 24
+        if kind > 2 or size > length(s) - at or claim_scope(s, at, at + size, count) > 127:
+            return 4294967293
+        at = at + size
+        receipt = receipt + 1
+    if at != length(s):
+        return 4294967293
+    claim_index = 0
+    while claim_index < claims:
+        if byte(s, 40 + claim_index) > 3:
+            return 4294967293
+        claim_index = claim_index + 1
+    at = 24
+    while at < 88:
+        put(o, at, 0)
+        at = at + 8
+    rechecks = 0
+    claim_index = 0
+    while claim_index < claims:
+        claim = byte(s, 40 + claim_index)
+        receipt = 0
+        at = extent
+        qualified = 0
+        while receipt < receipts:
+            stop = at + 24 + read_word(s, at)
+            kind = read_word(s, at + 8)
+            count = read_word(s, at + 16)
+            scope = claim_scope(s, at + 24, stop, count)
+            decision = claim_decision(claim, kind, planned, scope)
+            if decision == 2:
+                store(o, 24 + rechecks, receipt)
+                rechecks = rechecks + 1
+            if decision != 0:
+                qualified = 1
+            receipt = receipt + 1
+            at = stop
+        if qualified == 0:
+            return required_claims_reply(o, claim_index, rechecks)
+        claim_index = claim_index + 1
+    return required_claims_reply(o, claims, rechecks)
+
+def required_claims_reply(o:mutbuf, missing:u64, rechecks:u64) -> u32:
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, missing)
+    put(o, 16, rechecks)
+    return 88
+'''
+
 EVALUATION_SCHEDULE = r'''# The foreign runner supplies observations; this state machine owns arm order,
 # normal-batch vs single-trap dispatch and whether further effects are allowed.
 def evaluation_schedule(s:readbuf, o:mutbuf) -> u32:
@@ -1709,7 +1790,7 @@ def source_program():
             + receipt_template('evaluation_record', EVALUATION_RECORD)
             + receipt_template('evaluation_result', EVALUATION_RESULT)
             + receipt_template('artifact_key_material', ARTIFACT_KEY_MATERIAL, aggregate_suffix='')
-            + (EVALUATION_SCHEDULE + READ_WINDOW).replace('@RESULT_MAGIC@', str(RESULT_MAGIC)))
+            + (EVALUATION_SCHEDULE + READ_WINDOW + REQUIRED_CLAIMS).replace('@RESULT_MAGIC@', str(RESULT_MAGIC)))
 
 
 def document():

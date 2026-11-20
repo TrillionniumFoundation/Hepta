@@ -1618,11 +1618,19 @@ class HIAAgentService:
         objective, _ = self.store.get_json(context["objective"])
         receipts = [self._verification(ref, context["ref"], native["candidate"]) for ref in refs]
         policy = _native_agent_identity()
-        eligibility = self._reference_claim_eligibility if policy is None else policy.claim_eligibility
+        if policy is not None:
+            rechecks, missing = policy.required_claims(
+                objective["required_claims"], receipts, candidate_artifact, native, baseline_core_sha)
+            for index in rechecks:
+                self._build_receipt(receipts[index]["subject"]["build_receipt"], context["ref"], candidate_artifact)
+            if missing is not None:
+                reject("E_HIA_CLAIM_REQUIRED", "missing exact proved acceptance claim: " + missing, "verification")
+            return objective
         for claim in objective["required_claims"]:
             qualified = False
             for receipt in receipts:
-                decision = eligibility(claim, receipt, candidate_artifact, native, baseline_core_sha)
+                decision = self._reference_claim_eligibility(
+                    claim, receipt, candidate_artifact, native, baseline_core_sha)
                 if decision == CLAIM_BUILD_RECHECK:
                     self._build_receipt(receipt["subject"]["build_receipt"], context["ref"], candidate_artifact)
                 if decision:

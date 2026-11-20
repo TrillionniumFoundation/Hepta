@@ -91,6 +91,15 @@ def _paired_packet(header, left, right):
     return bytes(packet)
 
 
+def _claim_observations(receipt, expected):
+    subject = receipt['subject']
+    checks = bytes(_CLAIMS.index(check['claim']) + 4 * (check['status'] == 'proved')
+                   for check in receipt['checks'])
+    observed = (receipt['base_core_sha256'], subject.get('native_artifact'), subject.get('plan'))
+    scope = _paired_packet(checks, expected, map(wire, observed))
+    return _SUBJECT_KINDS.get(subject['kind'], 0), len(checks), scope
+
+
 def _record_fields(fields, kind):
     # Persisted namespace fields are strings. Any other supplied JSON type
     # cannot equal an issued string, regardless of its textual form.
@@ -390,19 +399,31 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         return bool(expired), (high << 64) | remaining
 
     def claim_eligibility(self, claim, receipt, candidate_artifact, native, baseline_core_sha):
-        subject = receipt['subject']
-        checks = bytes(_CLAIMS.index(check['claim']) + 4 * (check['status'] == 'proved')
-                       for check in receipt['checks'])
         planned = native['machine_plan'] is not None
-        header = struct.pack('<6Q', MAGIC, 10, _CLAIMS.index(claim),
-                             _SUBJECT_KINDS.get(subject['kind'], 0), int(planned), len(checks))
         expected = (baseline_core_sha, candidate_artifact, native['codegen'].get('plan') if planned else None)
-        observed = (receipt['base_core_sha256'], subject.get('native_artifact'), subject.get('plan'))
-        packet = _paired_packet(header + checks, map(wire, expected), map(wire, observed))
-        valid, decision = self._request(packet)
+        kind, count, scope = _claim_observations(receipt, map(wire, expected))
+        header = struct.pack('<6Q', MAGIC, 10, _CLAIMS.index(claim), kind, int(planned), count)
+        valid, decision = self._request(header + scope)
         if valid != 1 or decision not in (CLAIM_NOT_QUALIFIED, CLAIM_QUALIFIED, CLAIM_BUILD_RECHECK):
             raise RuntimeError('invalid HIA Agent claim eligibility decision')
         return decision
+
+    def required_claims(self, claims, receipts, candidate_artifact, native, baseline_core_sha):
+        """Return the ordered rechecks and first missing claim, if any."""
+        planned = native['machine_plan'] is not None
+        expected = tuple(map(wire, (baseline_core_sha, candidate_artifact,
+                                   native['codegen'].get('plan') if planned else None)))
+        framed = bytearray(struct.pack('<5Q', MAGIC, 48, len(claims), len(receipts), int(planned)))
+        framed.extend(_CLAIMS.index(claim) for claim in claims)
+        for receipt in receipts:
+            kind, count, scope = _claim_observations(receipt, expected)
+            framed.extend(struct.pack('<3Q', len(scope), kind, count))
+            framed.extend(scope)
+        missing, count, payload = self._response(bytes(framed), 88, '<3Q64s')
+        if (missing > len(claims) or count > len(payload) or any(payload[count:])
+                or any(index >= len(receipts) for index in payload[:count])):
+            raise RuntimeError('invalid HIA Agent acceptance claim schedule')
+        return payload[:count], claims[missing] if missing < len(claims) else None
 
     def proof_evidence(self, claim, status, subject, evidence, *, admission_checker):
         claim_id = _CLAIMS.index(claim) + 1 if type(claim) is str and claim in _CLAIMS else 0

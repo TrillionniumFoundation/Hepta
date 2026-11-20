@@ -390,6 +390,50 @@ class AgentIdentityNativeTests(unittest.TestCase):
         self.assertEqual(service._build_receipt.call_args_list,
                          [call('build-1', 'context', artifact), call('build-2', 'context', artifact)])
 
+    def test_required_claims_stop_at_first_missing_claim_without_discarding_prior_rechecks(self):
+        from itertools import permutations
+        from hepta.hia_agent_service import HIAAgentService
+
+        artifact, plan = {'id': 'selected'}, {'id': 'bound-plan'}
+        native = {'machine_plan': 'planned', 'codegen': {'plan': plan}}
+        claims = ('core_admission', 'encoding_check', 'lowering_refinement', 'behavior_equivalence')
+        receipts = [
+            {'subject': subject, 'base_core_sha256': base,
+             'checks': [{'claim': claim, 'status': status} for claim, status in checks]}
+            for subject, base, checks in (
+                ({'kind': 'native_artifact', 'native_artifact': artifact}, 'old-base',
+                 ((claims[0], 'proved'), (claims[1], 'proved'))),
+                ({'kind': 'agent_machine_plan', 'plan': plan}, 'old-base',
+                 ((claims[2], 'proved'), (claims[3], 'proved'))),
+                ({'kind': 'native_artifact', 'native_artifact': artifact}, 'current',
+                 ((claims[1], 'proved'), (claims[2], 'proved'), (claims[3], 'refuted'))),
+            )
+        ]
+        for order in permutations(claims):
+            with self.subTest(order=order):
+                expected, missing = [], None
+                for claim in order:
+                    qualified = False
+                    for index, receipt in enumerate(receipts):
+                        decision = HIAAgentService._reference_claim_eligibility(
+                            claim, receipt, artifact, native, 'current')
+                        if decision == CLAIM_BUILD_RECHECK:
+                            expected.append(index)
+                        qualified |= bool(decision)
+                    if not qualified:
+                        missing = claim
+                        break
+                self.assertEqual(self.native.required_claims(order, receipts, artifact, native, 'current'),
+                                 (bytes(expected), missing))
+        self.assertEqual(self.native.required_claims(claims, [], artifact, native, 'current'),
+                         (b'', claims[0]))
+        valid_empty = packet(48, struct.pack('<3Q', 0, 0, 0))
+        self.assertEqual(self.raw(valid_empty, 88),
+                         (88, struct.pack('<3Q64s', RESULT_MAGIC, 0, 0, b'')))
+        for invalid in (valid_empty[:-1], valid_empty + b'\x00',
+                        packet(48, struct.pack('<3Q', 1, 0, 0) + b'\x04')):
+            self.assertEqual(self.raw(invalid, 88)[0], 0xfffffffd)
+
     def test_native_observation_agreement_matches_host_policy_and_rejects_bad_framing(self):
         from hepta.hia_agent_service import HIAAgentService
 
