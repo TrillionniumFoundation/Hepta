@@ -57,7 +57,10 @@ MACHINE_FORMULA_IDS = {**OPERATION_IDS, **{
     name: index for index, name in enumerate(
         ('borrow_range', 'call_address', 'return_offset', 'return_stack',
          'memory_read_store', 'memory_read_join', 'memory_read_agrees',
-         'variable_shl', 'variable_shr', 'multiply_words', 'divide_words', 'signed_flags'), 64)
+         'variable_shl', 'variable_shr', 'multiply_words', 'divide_words', 'signed_flags',
+         'caller_stack_floor', 'caller_stack_ceiling', 'caller_stack_alignment',
+         'caller_loan_disjoint', 'terminal_coverage_error', 'caller_memory_difference',
+         'observable_refinement_error'), 64)
 }}
 CALLER_ABI_REQUEST = struct.Struct('<Q')
 RECIPE_REQUEST = struct.Struct('<2Q')
@@ -116,6 +119,8 @@ RECIPE_PRIMITIVES = {
     'srem': ('rr', lambda z, ctx, a, b: z.SRem(a, b)),
     'ashr_dynamic': ('rr', lambda z, ctx, a, bits: a >> bits),
     'concat': ('rr', lambda z, ctx, a, b: z.Concat(a, b)),
+    'implies': ('rr', lambda z, ctx, a, b: z.Implies(a, b)),
+    'bool_or3': ('rrr', lambda z, ctx, a, b, c: z.Or(a, b, c)),
 }
 RECIPE_LAYOUT = tuple(RECIPE_PRIMITIVES.values())
 RECIPE_IDS = {name: code for code, name in enumerate(RECIPE_PRIMITIVES, 1)}
@@ -420,6 +425,12 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if result is None:
             raise RuntimeError('missing native Safe Core memory formula')
         return result
+
+    def artifact_predicate(self, z, ctx, operation, *arguments):
+        value, zero, carry, predicate = self._evaluate(z, ctx, self.recipe(operation), arguments)
+        if value is not None or zero is not None or carry is not None or predicate is None:
+            raise RuntimeError('invalid native Safe Core artifact predicate')
+        return predicate
 
     @staticmethod
     def _evaluate(z, ctx, recipe, inputs, *, word_width=64, second_word=False):

@@ -27,7 +27,7 @@ FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in C
 FIELDS.update(CORE_GRAPH_LIMIT=CORE_GRAPH_LIMIT, CORE_GRAPH_SIZE=CORE_GRAPH_REQUEST.size)
 FIELDS.update(MEMORY_GRAPH_ROWS=MEMORY_GRAPH_ROWS, MEMORY_GRAPH_SIZE=MEMORY_GRAPH_REQUEST.size)
 FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
-              LEFT=1, RIGHT=2, THIRD=3, FOURTH=4, ZF=3, CF=4, ARBITRARY=5)
+              LEFT=1, RIGHT=2, THIRD=3, FOURTH=4, FIFTH=5, ZF=3, CF=4, ARBITRARY=5)
 FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHED_ACTIVE=32,
               SCHED_HEADER=SCHEDULER_HEADER, SCHED_VISITS=SCHEDULER_VISITS,
               SCHED_BITMAP=SCHEDULER_BITMAP, SCHED_FRAMES=SCHEDULER_FRAMES,
@@ -477,6 +477,8 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         different = node(o, R_NE, LEFT, RIGHT, 0)
         same_byte = node(o, R_EQ, THIRD, FOURTH, 0)
         return formula_done(o, 0, 0, 0, node(o, R_BOOL_OR, different, same_byte, 0))
+    if op >= OP_CALLER_STACK_FLOOR and op <= OP_OBSERVABLE_REFINEMENT_ERROR:
+        return artifact_formula(o, op)
     if op == OP_NOT:
         return formula_done(o, node(o, R_NOT, LEFT, 0, 0), 0, 0, 0)
     if op == OP_CQO:
@@ -1094,6 +1096,53 @@ def schedule_machine(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             put(w, SCHED_PHASE, 1)
             return schedule_reply(o, w, 1, get(w, SCHED_ACTIVE))
     return 4294967293
+def artifact_formula(o:mutbuf, op:u64) -> u64:
+    if op == OP_CALLER_STACK_FLOOR:
+        floor = node(o, R_LITERAL64, 16384, 0, 0)
+        predicate = node(o, R_UGE, LEFT, floor, 0)
+    elif op == OP_CALLER_STACK_CEILING:
+        ceiling = node(o, R_LITERAL64, 18446744073709551600, 0, 0)
+        predicate = node(o, R_ULE, LEFT, ceiling, 0)
+    elif op == OP_CALLER_STACK_ALIGNMENT:
+        mask = node(o, R_LITERAL64, 15, 0, 0)
+        bits = node(o, R_AND, LEFT, mask, 0)
+        alignment = node(o, R_LITERAL64, 8, 0, 0)
+        predicate = node(o, R_EQ, bits, alignment, 0)
+    elif op == OP_CALLER_LOAN_DISJOINT:
+        predicate = caller_disjoint_formula(o)
+    elif op == OP_TERMINAL_COVERAGE_ERROR:
+        incomplete_core = node(o, R_BOOL_NOT, LEFT, 0, 0)
+        incomplete_machine = node(o, R_BOOL_NOT, RIGHT, 0, 0)
+        predicate = node(o, R_BOOL_OR, incomplete_core, incomplete_machine, 0)
+    elif op == OP_CALLER_MEMORY_DIFFERENCE:
+        predicate = node(o, R_NE, LEFT, RIGHT, 0)
+    else:
+        different_exit = node(o, R_NE, LEFT, RIGHT, 0)
+        returned = node(o, R_BOOL_NOT, LEFT, 0, 0)
+        different_value = node(o, R_NE, THIRD, FOURTH, 0)
+        different_return = node(o, R_BOOL_AND, returned, different_value, 0)
+        predicate = node(o, R_BOOL_OR3, different_exit, different_return, FIFTH)
+    return formula_done(o, 0, 0, 0, predicate)
+
+def caller_disjoint_formula(o:mutbuf) -> u64:
+    # Inputs: entry stack pointer, loan pointer, loan extent, declared maximum.
+    end = node(o, R_ADD, RIGHT, THIRD, 0)
+    empty = node(o, R_ZERO, THIRD, 0, 0)
+    nonnull = node(o, R_NONZERO, RIGHT, 0, 0)
+    nonwrapping = node(o, R_UGE, end, RIGHT, 0)
+    valid = node(o, R_BOOL_AND, nonnull, nonwrapping, 0)
+    valid_or_empty = node(o, R_BOOL_OR, empty, valid, 0)
+    bounded = node(o, R_ULE, THIRD, FOURTH, 0)
+    admitted = node(o, R_BOOL_AND, bounded, valid_or_empty, 0)
+    floor = node(o, R_LITERAL64, 16384, 0, 0)
+    low = node(o, R_SUB, LEFT, floor, 0)
+    before_stack = node(o, R_ULE, end, low, 0)
+    word = node(o, R_LITERAL64, 8, 0, 0)
+    high = node(o, R_ADD, LEFT, word, 0)
+    after_stack = node(o, R_UGE, RIGHT, high, 0)
+    disjoint = node(o, R_BOOL_OR3, empty, before_stack, after_stack)
+    return node(o, R_IMPLIES, admitted, disjoint, 0)
+
 '''
 
 

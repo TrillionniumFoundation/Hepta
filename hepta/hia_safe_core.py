@@ -775,6 +775,26 @@ def validate_safe_core_image(document, image, final_bytes, *, timeout_ms=15000, 
     return report
 
 
+def _reference_artifact_assumptions(theory, stack, extent):
+    z = theory.z
+    assumptions = [z.UGE(stack, 16384), z.ULE(stack, (1 << 64) - 16),
+                   stack & theory.bv(15) == 8]
+    if theory.loan is not None:
+        pointer, length, _ = theory.loan
+        admitted = z.And(z.ULE(length, extent),
+                         z.Or(length == 0, z.And(pointer != 0, z.UGE(pointer + length, pointer))))
+        disjoint = z.Or(length == 0, z.ULE(pointer + length, stack - 16384), z.UGE(pointer, stack + 8))
+        assumptions.append(z.Implies(admitted, disjoint))
+    return assumptions
+
+
+def _reference_artifact_errors(z, core, machine):
+    rc, ra, rv, rm = core
+    mc, ma, mv, mm = machine
+    return (z.Or(z.Not(rc), z.Not(mc)),
+            z.Or(ra != ma, z.And(z.Not(ra), rv != mv), rm != mm))
+
+
 @bind_input_execution
 def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
                                 foreign_buffer_exports=(), timeout_ms=15000, query_directory=None,
@@ -821,23 +841,32 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     # The abstract stack is keyed by exact offsets.  Foreign data is a separate
     # array only under this explicit disjointness premise; numeric ABI guards
     # are still modelled and proved for every invalid pointer/length word pair.
-    assumptions = [z.UGE(machine.sp, 16384), z.ULE(machine.sp, (1 << 64) - 16),
-                   machine.sp & t.bv(15) == 8]
-    if t.loan is not None:
-        pointer, length, typ = t.loan
-        admitted = z.And(z.ULE(length, extent), z.Or(length == 0, z.And(pointer != 0, z.UGE(pointer + length, pointer))))
-        disjoint = z.Or(length == 0, z.ULE(pointer + length, machine.sp - 16384), z.UGE(pointer, machine.sp + 8))
-        assumptions.append(z.Implies(admitted, disjoint))
+    predicates = machine.native_model
+    if predicates is None:
+        assumptions = _reference_artifact_assumptions(t, machine.sp, extent)
+    else:
+        assumptions = [predicates.artifact_predicate(z, t.ctx, rule, machine.sp) for rule in
+                       ('caller_stack_floor', 'caller_stack_ceiling', 'caller_stack_alignment')]
+        if t.loan is not None:
+            pointer, length, _ = t.loan
+            assumptions.append(predicates.artifact_predicate(
+                z, t.ctx, 'caller_loan_disjoint', machine.sp, pointer, length, t.bv(extent)))
     rc, ra, rv, rm = t.merge(reference)
     mc, ma, mv, mm = t.merge(observed)
+    if predicates is None:
+        bad_coverage, different_behavior = _reference_artifact_errors(z, (rc, ra, rv, rm), (mc, ma, mv, mm))
+    else:
+        bad_coverage = predicates.artifact_predicate(z, t.ctx, 'terminal_coverage_error', rc, mc)
+        memory_difference = predicates.artifact_predicate(z, t.ctx, 'caller_memory_difference', rm, mm)
+        different_behavior = predicates.artifact_predicate(
+            z, t.ctx, 'observable_refinement_error', ra, ma, rv, mv, memory_difference)
     false = z.BoolVal(False, ctx=t.ctx)
     obligations = [
         ("caller_contract_nonvacuous", z.BoolVal(True, ctx=t.ctx), "sat"),
         ("machine_memory_access_bounds", z.Or(*machine.faults, false), "unsat"),
         ("sysv_stack_alignment_and_preservation", z.Or(*machine.abi_faults, false), "unsat"),
-        ("all_inputs_reach_a_terminal_model_outcome", z.Or(z.Not(rc), z.Not(mc)), "unsat"),
-        ("core_to_final_image_return_abort_and_caller_bytes",
-         z.Or(ra != ma, z.And(z.Not(ra), rv != mv), rm != mm), "unsat"),
+        ("all_inputs_reach_a_terminal_model_outcome", bad_coverage, "unsat"),
+        ("core_to_final_image_return_abort_and_caller_bytes", different_behavior, "unsat"),
     ]
     require(tuple((name, expected) for name, _, expected in obligations) == ARTIFACT_OBLIGATIONS,
             "the declared and executed obligation inventories differ")

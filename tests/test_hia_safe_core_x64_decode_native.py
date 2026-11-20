@@ -98,6 +98,41 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.assertTrue(z3.eq(theory.inputs[kind], theory.normalized(word, kind)), kind)
         self.assertEqual(self.native.argument_registers(), (7, 6, 2, 1, 8, 9))
 
+    def test_artifact_predicates_preserve_the_exact_retained_smt_expressions(self):
+        import z3
+        from hepta.hia_safe_core import _Theory, _reference_artifact_assumptions, _reference_artifact_errors
+
+        theory = _Theory(z3, 5000)
+        ctx = theory.ctx
+        stack, pointer, length, left, right = [
+            z3.BitVec(name, 64, ctx=ctx) for name in ('stack', 'pointer', 'length', 'left', 'right')]
+        theory.loan = pointer, length, 'mutbuf'
+        core_live, core_abort, machine_live, machine_abort = [
+            z3.Bool(name, ctx=ctx) for name in ('core_live', 'core_abort', 'machine_live', 'machine_abort')]
+        core_bytes, machine_bytes = [
+            z3.Array(name, z3.BitVecSort(64, ctx), z3.BitVecSort(8, ctx))
+            for name in ('core_bytes', 'machine_bytes')]
+
+        def native(operation, *args):
+            return self.native.artifact_predicate(z3, ctx, operation, *args)
+
+        def smt(expressions):
+            solver = z3.Solver(ctx=ctx)
+            solver.add(*expressions)
+            return solver.sexpr()
+
+        for extent in (0, 32, 4096):
+            actual = [native(rule, stack) for rule in
+                      ('caller_stack_floor', 'caller_stack_ceiling', 'caller_stack_alignment')]
+            actual.append(native('caller_loan_disjoint', stack, pointer, length, theory.bv(extent)))
+            self.assertEqual(smt(actual), smt(_reference_artifact_assumptions(theory, stack, extent)))
+        expected = _reference_artifact_errors(
+            z3, (core_live, core_abort, left, core_bytes), (machine_live, machine_abort, right, machine_bytes))
+        actual = (native('terminal_coverage_error', core_live, machine_live),
+                  native('observable_refinement_error', core_abort, machine_abort, left, right,
+                         native('caller_memory_difference', core_bytes, machine_bytes)))
+        self.assertEqual(smt(actual), smt(expected))
+
     def test_selected_signed_builds_prove_without_foreign_search(self):
         from pathlib import Path
         from tempfile import TemporaryDirectory
@@ -414,6 +449,10 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         with (tempfile.TemporaryDirectory(prefix='hia-safe-core-borrow-') as root,
               patch('hepta.hia_safe_core._reference_core_graph',
                     side_effect=AssertionError('host Core topology entered')),
+              patch('hepta.hia_safe_core._reference_artifact_assumptions',
+                    side_effect=AssertionError('host caller contract entered')),
+              patch('hepta.hia_safe_core._reference_artifact_errors',
+                    side_effect=AssertionError('host artifact obligations entered')),
               patch.multiple(Executor, **blocked_machine),
               patch.multiple(_Theory, **blocked),
               patch.object(_FiniteCallerMemory, 'reduce', observe_memory)):
