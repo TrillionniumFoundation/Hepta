@@ -9,7 +9,7 @@ only at explicit downstream resource/native boundaries during that actual call.
 from __future__ import annotations
 
 import builtins
-import ctypes
+import platform
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -20,10 +20,9 @@ import sqlite3
 import struct
 import types
 
-from .hia_emission_native import _global_value
+from .hia_service_artifact_bridge import _global_value, _regular_bytes
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
 from .hia_native_delivery import DeliveryRecord
-from .hia_store_lifecycle_native import _regular_bytes
 from .hia_service_artifact_protocol import (
     SELECTOR, SCHEMA, SOURCE_NAME, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC,
     REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES, INITIALIZE, CLAIM, SUCCEEDED,
@@ -33,14 +32,42 @@ from .hia_service_artifact_protocol import (
 SOURCE = _source_resource_path(SOURCE_NAME)
 _REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
 
-# ctypes keeps its dynamically constructed array types in a weak cache. These
-# three fixed ABI classes belong to the adapter, not to an invocation; retain
-# them so destroying private buffers does not leave new type cycles for a
-# caller's later GC. The buffers, user objects and per-call checks are unchanged.
-_REQUEST_BUFFER_TYPE = ctypes.c_char * (REQUEST_BYTES + 16)
-_OUTPUT_BUFFER_TYPE = ctypes.c_char * (OUTPUT_BYTES + 16)
-_STATE_BUFFER_TYPE = ctypes.c_char * (STATE_BYTES + 16)
+# Legacy v1/v5 selection retains the original foreign ABI and its three fixed
+# array types. An explicit new carrier capsule is the only route that uses C
+# Buffer/Image. Ordinary imports initialize neither foreign implementation.
+def _legacy_ctypes():
+    global ctypes, _REQUEST_BUFFER_TYPE, _OUTPUT_BUFFER_TYPE, _STATE_BUFFER_TYPE
+    if '_REQUEST_BUFFER_TYPE' not in globals():
+        import ctypes as layout
+        if getattr(getattr(layout, '__spec__', None), '_initializing', False):
+            raise RuntimeError('native ctypes import is still active')
+        _REQUEST_BUFFER_TYPE = layout.c_char * (REQUEST_BYTES + 16)
+        _OUTPUT_BUFFER_TYPE = layout.c_char * (OUTPUT_BYTES + 16)
+        _STATE_BUFFER_TYPE = layout.c_char * (STATE_BYTES + 16)
+        if 'ctypes' not in globals():
+            ctypes = layout
+    return ctypes
 
+
+def __getattr__(name):
+    if name == 'ctypes':
+        return _legacy_ctypes()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _frame_buffer(image, *arguments):
+    carrier = getattr(image, '_native_image_carrier', None)
+    if carrier is None:
+        return _legacy_ctypes().create_string_buffer(*arguments)
+    return carrier.Buffer(*arguments)
+
+
+def _buffer_canary(image, buffer, offset, raw):
+    if getattr(image, '_native_image_carrier', None) is None:
+        selected = _legacy_ctypes()
+        selected.memmove(selected.addressof(buffer) + offset, raw, len(raw))
+    else:
+        memoryview(buffer)[offset:offset + len(raw)] = raw
 
 class _LocalReleaseProbe:
     """One fixed private type; no user object participates in the probe."""
@@ -88,7 +115,22 @@ class ServiceArtifactUnknown(RuntimeError):
 
 
 class NativeServiceArtifact(NativeHiaJsonImage):
-    pass
+    def __init__(self, image, expected_sha256):
+        if platform.system() != 'Linux' or platform.machine() != 'x86_64':
+            raise ValueError('native HIA JSON image requires Linux x86-64 LP64')
+        if (type(image) is not bytes or not 0 < len(image) <= 1 << 20
+                or sha256(image).hexdigest() != expected_sha256):
+            raise ValueError('native HIA JSON executable identity mismatch')
+        from .hia_native_image import selected_extension
+        carrier = selected_extension()
+        self._native_image_carrier = carrier
+        if carrier is None:
+            _legacy_ctypes()
+            super().__init__(image, expected_sha256)
+        else:
+            self.image_sha256 = expected_sha256
+            self._mapping = carrier.Image(image)
+            self._entry = self._mapping
 
 
 @lru_cache(maxsize=3)
@@ -194,6 +236,9 @@ class ServiceArtifactFrame:
     def __init__(self, image, service, arguments, *, namespace=None):
         if type(image) is not NativeServiceArtifact:
             raise TypeError('native service artifact requires an admitted image')
+        if getattr(image, '_native_image_carrier', None) is not None:
+            from .hia_native_image import admit_runtime
+            admit_runtime()
         from . import hia_agent_service
         if namespace is None:
             namespace = vars(hia_agent_service)
@@ -212,8 +257,8 @@ class ServiceArtifactFrame:
         self.data['service'], self.data['arguments'] = service, arguments
         self.result = None
         self.identity = struct.unpack('<2Q', os.urandom(16))
-        self.buffer = ctypes.create_string_buffer(STATE_BYTES + 16)
-        ctypes.memmove(ctypes.addressof(self.buffer) + STATE_BYTES, b'\xb7' * 16, 16)
+        self.buffer = _frame_buffer(image, STATE_BYTES + 16)
+        _buffer_canary(image, self.buffer, STATE_BYTES, b'\xb7' * 16)
         self.receipt = None
         self.fenced = self.finished = self.native_failed = False
         self._pending_foreign = None
@@ -244,9 +289,9 @@ class ServiceArtifactFrame:
         try:
             port, sequence = (0, 0) if self.receipt is None else (self.receipt.port, self.receipt.sequence)
             raw = struct.pack('<10Q', REQUEST_MAGIC, event, sequence, port, observation, 1, *self.identity, 0, 0)
-            source = ctypes.create_string_buffer(raw + b'\xc9' * 16, REQUEST_BYTES + 16)
-            output = ctypes.create_string_buffer(OUTPUT_BYTES + 16)
-            ctypes.memmove(ctypes.addressof(output) + OUTPUT_BYTES, b'\xa5' * 16, 16)
+            source = _frame_buffer(self.image, raw + b'\xc9' * 16, REQUEST_BYTES + 16)
+            output = _frame_buffer(self.image, OUTPUT_BYTES + 16)
+            _buffer_canary(self.image, output, OUTPUT_BYTES, b'\xa5' * 16)
             record.enter_native()
             handed_off = True
             code = self.image._entry(source, REQUEST_BYTES, output, OUTPUT_BYTES, self.buffer, STATE_BYTES)

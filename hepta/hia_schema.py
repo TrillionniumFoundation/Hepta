@@ -18,6 +18,7 @@ SCHEMA_V5 = "hepta.hia.program.v5"
 SCHEMA_V6 = "hepta.hia.program.v6"
 SCHEMA_V7 = "hepta.hia.program.v7"
 SCHEMA_V8 = "hepta.hia.program.v8"
+SCHEMA_V9 = "hepta.hia.program.v9"
 PROFILE = "closed-ssa-integer-byte-resources-64-v1"
 PROFILE_V2 = "closed-ssa-integer-byte-resources-bulk-64-v2"
 PROFILE_V3 = "closed-ssa-integer-byte-resources-overlap-64-v3"
@@ -26,6 +27,7 @@ PROFILE_V5 = "closed-ssa-integer-byte-resources-offset-copy-64-v5"
 PROFILE_V6 = "closed-ssa-integer-byte-resources-range-fill-64-v6"
 PROFILE_V7 = "closed-ssa-integer-recursive-buffer-chain-64-v7"
 PROFILE_V8 = "closed-ssa-parameter-loan-returns-64-v8"
+PROFILE_V9 = "closed-ssa-fixed-width-byte-memory-64-v9"
 
 COMPOSITE_SCHEMA = "hepta.hia.composite.v1"
 COMPOSITE_PROFILE = "nominal-products-enums-cooperative-tasks-over-closed-ssa-v6"
@@ -45,7 +47,7 @@ COMPOSITE_SCHEMAS = frozenset(COMPOSITE_PROFILES)
 LEGACY_COMPOSITE_SCHEMA = SCHEMA_V2
 LEGACY_COMPOSITE_PROFILE = "nominal-products-enums-cooperative-tasks-over-closed-ssa-v2"
 CANONICAL_CORE_SCHEMA = SCHEMA_V6
-LATEST_CORE_SCHEMA = SCHEMA_V8
+LATEST_CORE_SCHEMA = SCHEMA_V9
 LEGACY_COMPOSITE_OPERATIONS = frozenset({
     "record.make", "record.unpack", "record.get", "enum.make", "enum.tag",
     "task.create", "task.state", "task.start", "task.poll", "task.cancel",
@@ -65,10 +67,10 @@ COMPOSITE_OPERATIONS_BY_SCHEMA = MappingProxyType({
 PRIMITIVE_PROFILES = MappingProxyType({
     SCHEMA: PROFILE, SCHEMA_V2: PROFILE_V2, SCHEMA_V3: PROFILE_V3,
     SCHEMA_V4: PROFILE_V4, SCHEMA_V5: PROFILE_V5, SCHEMA_V6: PROFILE_V6,
-    SCHEMA_V7: PROFILE_V7, SCHEMA_V8: PROFILE_V8,
+    SCHEMA_V7: PROFILE_V7, SCHEMA_V8: PROFILE_V8, SCHEMA_V9: PROFILE_V9,
 })
 PRIMITIVE_SCHEMAS = frozenset(PRIMITIVE_PROFILES)
-_FEATURE_ORDER = ("bulk_memory", "inplace_memory", "byte_swap", "offset_copy", "range_fill", "recursive_chain", "parameter_loan_returns")
+_FEATURE_ORDER = ("bulk_memory", "inplace_memory", "byte_swap", "offset_copy", "range_fill", "recursive_chain", "parameter_loan_returns", "fixed_width_byte_memory")
 PRIMITIVE_FEATURES = MappingProxyType({
     schema: frozenset(_FEATURE_ORDER[:index])
     for index, schema in enumerate(PRIMITIVE_PROFILES)

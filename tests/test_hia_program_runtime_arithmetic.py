@@ -13,7 +13,7 @@ import json
 import os
 from pathlib import Path
 import sys
-from types import FunctionType
+from types import FunctionType, MappingProxyType
 import unittest
 
 from hepta import hia_program_runtime as runtime
@@ -135,8 +135,9 @@ class ArithmeticPreparedRuntimeSourceTests(unittest.TestCase):
         self.selector_before = os.environ.pop(original._SELECTOR, original._MISSING)
         self.assertEqual(sha256(Path(original.__file__).read_bytes()).hexdigest(),
                          _ORIGINAL_TEST_SHA256)
-        self.assertEqual(sha256(Path(runtime.__file__).read_bytes()).hexdigest(),
-                         _RUNTIME_SHA256)
+        actual_runtime = Path(runtime.__file__).read_bytes()
+        retained_runtime = arithmetic_module._retained_runtime_source(actual_runtime)
+        self.assertEqual(sha256(retained_runtime).hexdigest(), _RUNTIME_SHA256)
         self.assertEqual(sha256(Path(prepared_module.__file__).read_bytes()).hexdigest(),
                          _PREPARED_SHA256)
 
@@ -450,6 +451,89 @@ class ArithmeticPreparedRuntimeSourceTests(unittest.TestCase):
                                         for code in calls))
                 self.assertTrue(arithmetic_module._derived_current(
                     authority.operation, authority.operation_stamp))
+
+
+    def test_exact_runtime_source_successor_and_populated_cache_refuse_unlisted_bytes(self):
+        raw = Path(runtime.__file__).read_bytes()
+        self.assertEqual(sha256(raw).hexdigest(),
+                         'db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0')
+        retained = arithmetic_module._retained_runtime_source(raw)
+        self.assertEqual(sha256(retained).hexdigest(), _RUNTIME_SHA256)
+        self.assertEqual(arithmetic_module._retained_runtime_source(retained), retained)
+        self.assertNotEqual(retained, raw)
+        checked = verify_program(original.arithmetic())
+        prepared, factory = arithmetic_module.prepare_arithmetic_runtime(checked)
+        self.assertIsNot(factory, runtime._Machine)
+        self.assertEqual(factory._authority.operation_stamp[6], sha256(raw).hexdigest())
+        self.assertEqual(len(factory._authority.operation_stamp), 7)
+        for invalid in (bytearray(raw), raw.decode(), raw + b'\n',
+                        raw.replace(b'8 > extent - index', b'7 > extent - index', 1)):
+            with self.subTest(invalid_type=type(invalid).__name__), self.assertRaises(ValueError):
+                arithmetic_module._retained_runtime_source(invalid)
+        target = Path(runtime.__file__)
+        original_read = Path.read_bytes
+        # The second exact source also requires its own compiled-code proof;
+        # an existing v9 cache cannot be reused for a purported old v8 file.
+        for substituted in (raw + b'\n', retained):
+            def read(path):
+                return substituted if path == target else original_read(path)
+            with original._Attribute(Path, 'read_bytes', read):
+                value, rejected = arithmetic_module.prepare_arithmetic_runtime(checked)
+                self.assertIs(value, checked)
+                self.assertIs(rejected, runtime._Machine)
+        stamp = arithmetic_module._CACHE
+        for digest in ('0' * 64, True, b'invalid'):
+            with original._Attribute(arithmetic_module, '_CACHE', (*stamp[:6], digest)):
+                value, rejected = arithmetic_module.prepare_arithmetic_runtime(checked)
+                self.assertIs(value, checked)
+                self.assertIs(rejected, runtime._Machine)
+                self.assertIs(type(factory(prepared, *_LIMITS)), runtime._Machine)
+        self.assertIs(arithmetic_module._CACHE, stamp)
+
+    def test_exact_v9_word_order_sources_and_changed_live_mappings_refuse_preparation(self):
+        raw = Path(runtime.__file__).read_bytes()
+        state = arithmetic_module._word_order_state(raw)
+        self.assertEqual(tuple(name for name, _, _ in state), ('WORD_LOADS', 'WORD_STORES'))
+        checked = verify_program(original.arithmetic())
+        for name, mapping, items in state:
+            self.assertIs(type(mapping), MappingProxyType)
+            self.assertEqual(tuple(mapping.items()), items)
+            changed = dict(items)
+            first = next(iter(changed))
+            changed[first] = 'big' if changed[first] == 'little' else 'little'
+            for replacement in (dict(items), MappingProxyType(changed),
+                                MappingProxyType(dict(reversed(items)))):
+                with self.subTest(binding=name, type=type(replacement).__name__):
+                    with original._Attribute(runtime, name, replacement):
+                        with self.assertRaises(ValueError):
+                            arithmetic_module._word_order_state(raw)
+                        value, rejected = arithmetic_module.prepare_arithmetic_runtime(checked)
+                        self.assertIs(value, checked)
+                        self.assertIs(rejected, runtime._Machine)
+        self.assertEqual(arithmetic_module._word_order_state(
+            arithmetic_module._retained_runtime_source(raw)), ())
+
+    def test_all_v9_word_operations_keep_full_original_reports_and_stopped_storage(self):
+        from tools.hia_word_memory_cases import owned_program
+        checked = verify_program(owned_program())
+        prepared, factory = arithmetic_module.prepare_arithmetic_runtime(checked)
+        self.assertIsNot(factory, runtime._Machine)
+        count = 0
+        for order in ('le', 'be'):
+            for mode in ('load', 'store'):
+                for length, offset in ((0, 0), (7, 0), (8, 0), (9, 1), (17, 9),
+                                       (17, 10), (17, (1 << 32) + 1), (17, (1 << 64) - 1)):
+                    for value in (0, 0x0123456789ABCDEF, (1 << 64) - 1):
+                        with self.subTest(order=order, mode=mode, length=length, offset=offset, value=value):
+                            arguments = (length, offset, value, 0)
+                            name = mode + '_' + order
+                            expected = original._observe(checked, name, arguments)
+                            self.assertEqual(_observe(factory, prepared, name, arguments), expected)
+                            machine = factory(prepared, *_LIMITS)
+                            self.assertIs(type(machine), arithmetic_module._PreparedMachine)
+                            self.assertTrue(machine._arithmetic_active)
+                            count += 1
+        self.assertEqual(count, 96)
 
 
 if __name__ == '__main__':

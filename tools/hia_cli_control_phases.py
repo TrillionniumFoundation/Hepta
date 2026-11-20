@@ -22,6 +22,7 @@ COMMANDS = {
     34: "print_formatted_error", 35: "import_common", 36: "import_assembly",
     37: "import_edit_query", 38: "import_edit_apply", 39: "import_batch_query",
     40: "import_batch_apply", 41: "import_impact", 42: "build_selfhost",
+    43: "build_verified_kernel",
 }
 # These remain foreign implementation boundaries and are not called HIA
 # implementations merely because the continuation selects their invocation.
@@ -231,6 +232,8 @@ def control_initial(w:mutbuf) -> u64:
         if action == 9:
             if get(w, C_BACKEND) == 1:
                 return control_ask(w, 42, 24, value, get(w, C_NS), 0, 0)
+            if get(w, C_BACKEND) == 2:
+                return control_ask(w, 43, 24, value, get(w, C_NS), 0, 0)
             return control_ask(w, 11, 24, value, get(w, C_NS), 3, 0)
         if action == 10:
             return control_ask(w, 3, 30, get(w, C_NS), 7, 8388608, 0)

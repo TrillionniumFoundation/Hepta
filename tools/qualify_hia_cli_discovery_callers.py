@@ -128,7 +128,7 @@ def qualify(output, *, cold_report=None, development_manifest=None, development_
                 and type(tests.get('actual_tests')) is int and tests['actual_tests'] == len(EXPECTED_IDS)
                 and tests.get('source_and_inputs_unchanged') is True
                 and all(type(tests.get(name)) is list and not tests[name] for name in original.ANOMALIES)
-                and native.get('status') == 'PASS' and native.get('actual_native_json_calls') == 20,
+                and native.get('status') == 'PASS' and native.get('actual_native_json_calls') == 22,
                 'complete ordinary CLI discovery caller observations required')
         check_bindings(bindings)
         require(before == owner_sources(), 'CLI discovery caller inputs changed')

@@ -95,7 +95,14 @@ def historical_refusals():
     }
 
 
-def reference(case):
+def reference(case, *, include_program=False):
+    """Execute the complete fresh VM oracle and optionally retain its input.
+
+    The returned immutable Core belongs to this one source/case only. Direct
+    backend consumers still independently reverify it before emission and
+    rederive the machine bytes before publication. No VM result, admission,
+    native image, or program is retained across calls.
+    """
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program_runtime import _Machine, _Owner, _View, HIAProgramTrap, HIAProgramBudgetExceeded
     checked = assemble_program(case["source"])
@@ -121,7 +128,7 @@ def reference(case):
     else:
         assert report["status"] == "returned" and report["result"] == case["expected_result"], report
     assert report["external_output_hex"] == case["expected_output_hex"], report
-    return report
+    return (checked, report) if include_program else report
 
 
 def expanded_name_cases():

@@ -1,0 +1,60 @@
+name: HIA verified kernels
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-machine-validation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install pinned independent solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Check source identity
+        run: python -B tools/generate_hia_selfhost_contract.py --check
+      - name: Final ELF, ABI, range, SIMD and negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_safe_core \
+            tests.test_hia_safe_core_artifact \
+            tests.test_hia_safe_core_cmovne \
+            tests.test_hia_safe_core_unsigned_casts \
+            tests.test_hia_safe_core_loader_contract \
+            tests.test_hia_verified_scalar \
+            tests.test_hia_verified_scalar_checked \
+            tests.test_hia_verified_image \
+            tests.test_hia_verified_simd \
+            tests.test_hia_verified_simd_alpha \
+            tests.test_hia_verified_simd_unroll_check \
+            tests.test_hia_verified_simd_unroll \
+            tests.test_hia_verified_simd_build_limits \
+            tests.test_hia_verified_simd_wide_check \
+            tests.test_hia_verified_simd_wide \
+            tests.test_hia_verified_simd_copy_tail_check \
+            tests.test_hia_verified_simd_copy_tail \
+            tests.test_hia_verified_simd_bounded_tail_check \
+            tests.test_hia_verified_simd_refined \
+            tests.test_hia_verified_cpu \
+            tests.test_hia_verified_kernel_load \
+            tests.test_hia_verified_scalar_load \
+            tests.test_hia_verified_cli \
+            tests.test_hia_agent_entry \
+            tests.test_hia_cli_native.CliSourceTests \
+            tests.test_hia_program_native.DirectObjectTests.test_route_inventory_names_explicit_direct_machine_selection \
+            tests.test_hia_verified_kernel 2>&1 | tee verified-kernel-tests.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verified-kernel-tests
+          path: verified-kernel-tests.log
+          if-no-files-found: warn

@@ -1,0 +1,368 @@
+{
+  "schema": "hepta.slot.worker-terminal-successor.v2",
+  "baseline_commit": "b7ed9013ccedbf0df5c254b9bd6d278a66884b36",
+  "legacy_lost_ack_exit": 1,
+  "current_lost_ack_exit": 2,
+  "source_successors": {
+    "tests/hia_slot_operations_installed_observer.py": {
+      "original": {
+        "bytes": 5513,
+        "sha256": "93c150ac84667f2e57271b3496db4ec703b2f11b34d50ca54e3e11ce2c9f611a"
+      },
+      "current": {
+        "bytes": 6069,
+        "sha256": "ad473deeb641eeb474bc595c855040abbba23712c40b03d5033e86a56d20c74a"
+      },
+      "splices": [
+        {
+          "offset": 396,
+          "before": "",
+          "after": "ROOT = Path(__file__).resolve().parents[1]\nsys.path.insert(0, str(ROOT))\nfrom tests.hia_slot_worker_terminal import SourceAuthority, TerminalObservation\n\n"
+        },
+        {
+          "offset": 907,
+          "before": "",
+          "after": "    authority = SourceAuthority(ROOT)\n"
+        },
+        {
+          "offset": 1314,
+          "before": "    from hepta.hia_agent_worker import main as worker_main\n",
+          "after": "    from hepta import hia_agent_worker as worker\n    worker_main = worker.main\n"
+        },
+        {
+          "offset": 2018,
+          "before": "",
+          "after": "    terminal = TerminalObservation(worker, service, delivery, controller)\n    assert terminal.profile == authority.profile\n"
+        },
+        {
+          "offset": 3934,
+          "before": "                raise ValueError('actual SQL execute returned; controller acknowledgement withheld')\n",
+          "after": "                error = ValueError('actual SQL execute returned; controller acknowledgement withheld')\n                terminal.injected(error)\n                try:\n                    raise error\n                finally:\n                    del error\n"
+        },
+        {
+          "offset": 4853,
+          "before": "",
+          "after": "        counts['terminal'] = terminal.report()\n"
+        },
+        {
+          "offset": 5437,
+          "before": "",
+          "after": "    authority.finish()\n"
+        }
+      ]
+    },
+    "tests/hia_slot_mechanical_installed_probe.py": {
+      "original": {
+        "bytes": 14162,
+        "sha256": "34b9b17e71d764cf8cf6358f0ccde4af256ddd0c2a9023552ee291d0434f3a8d"
+      },
+      "current": {
+        "bytes": 14929,
+        "sha256": "c9f2ae72ffc53f51ce9105ac44ae11c08640f1103aabcef5953a81b321da42e4"
+      },
+      "splices": [
+        {
+          "offset": 773,
+          "before": "",
+          "after": "    parser.add_argument(\"--lane\", choices=(\"current-v1\", \"current-v5\"), default=\"current-v5\")\n"
+        },
+        {
+          "offset": 1308,
+          "before": "",
+          "after": "    from tests.hia_slot_worker_terminal import SourceAuthority, worker_profile, assert_terminal\n    authority = SourceAuthority(root)\n    profile = worker_profile((installed / \"hepta/hia_agent_worker.py\").read_bytes())\n    assert profile == authority.profile\n"
+        },
+        {
+          "offset": 1908,
+          "before": "    assert capsule[\"schema\"] == \"hepta.hia.native-helpers.v5\"\n    bridge = capsule[\"bridges\"][0]\n",
+          "after": "    mechanical_lane = args.lane == \"current-v5\"\n    assert capsule[\"schema\"] == (\"hepta.hia.native-helpers.v5\" if mechanical_lane\n                                 else \"hepta.hia.native-helpers.v1\")\n    bridge = capsule[\"bridges\"][0] if mechanical_lane else None\n"
+        },
+        {
+          "offset": 4125,
+          "before": "",
+          "after": "        assert_terminal(test, counts[\"terminal\"], stderr, label, profile)\n        require_loaded = require_loaded and mechanical_lane\n"
+        },
+        {
+          "offset": 9565,
+          "before": "            case=case, request=request, code=1, identity=identities)\n",
+          "after": "            case=case, request=request, code=profile[\"lost_ack_exit\"], identity=identities)\n"
+        },
+        {
+          "offset": 13456,
+          "before": "",
+          "after": "    authority.finish()\n"
+        },
+        {
+          "offset": 13497,
+          "before": "        \"schema\": \"hepta.slot.mechanical.installed-worker.v1\", \"status\": \"PASS\",\n",
+          "after": "        \"schema\": \"hepta.slot.mechanical.installed-worker.v2\", \"status\": \"PASS\",\n        \"lane\": args.lane, \"source_authority\": authority.summary(),\n"
+        }
+      ]
+    },
+    "tests/test_hia_slot_operations_native.py": {
+      "original": {
+        "bytes": 24672,
+        "sha256": "d0b441aaeeb9d58d2f0510cb1d93671f7c0dea836faedfa82677102ca354156c"
+      },
+      "current": {
+        "bytes": 25198,
+        "sha256": "ee119140d957fa9b2f1736265680e35c143e089cce49e7c657c70a6d77b23da2"
+      },
+      "splices": [
+        {
+          "offset": 13887,
+          "before": "",
+          "after": "        from tests.hia_slot_worker_terminal import SourceAuthority, assert_terminal, worker_profile\n        authority = SourceAuthority(ROOT)\n"
+        },
+        {
+          "offset": 15998,
+          "before": "",
+          "after": "        profile = worker_profile(regular_bytes(installed / 'hepta/hia_agent_worker.py'))\n        self.assertEqual(profile, authority.profile)\n"
+        },
+        {
+          "offset": 20744,
+          "before": "",
+          "after": "            assert_terminal(self, rows[0]['terminal'], stderr, label, profile)\n"
+        },
+        {
+          "offset": 22342,
+          "before": "            result, raw, counts = worker('lost-SQL-ACK', case, request, 'lost-execute-ack', 1)\n",
+          "after": "            result, raw, counts = worker('lost-SQL-ACK', case, request, 'lost-execute-ack',\n                                         authority.profile['lost_ack_exit'])\n"
+        },
+        {
+          "offset": 23937,
+          "before": "",
+          "after": "        authority.finish()\n"
+        },
+        {
+          "offset": 24036,
+          "before": "",
+          "after": "            'terminal_source_authority': authority.summary(),\n"
+        }
+      ]
+    },
+    "tests/test_hia_slot_mechanical_native.py": {
+      "original": {
+        "bytes": 6488,
+        "sha256": "79401298493ed23e3d0035e035abff608f5677722df155f3cf536215bdf8aaf6"
+      },
+      "current": {
+        "bytes": 6830,
+        "sha256": "b0a737bc8c7967dfa66cc3c35f7d3aa2296a9af16d76e207a7791abb1a93afab"
+      },
+      "splices": [
+        {
+          "offset": 0,
+          "before": "\"\"\"New explicit-v5 qualification; all original Slot classes remain unchanged.\n",
+          "after": "\"\"\"Explicit-v5 qualification; original Slot scopes retain versioned authority.\n"
+        },
+        {
+          "offset": 5536,
+          "before": "            \"schema\": \"hepta.slot.mechanical.installed-readback.v1\", \"status\": \"PASS\",\n",
+          "after": "            \"schema\": \"hepta.slot.mechanical.installed-readback.v2\", \"status\": \"PASS\",\n"
+        },
+        {
+          "offset": 5976,
+          "before": "",
+          "after": "                from tests.hia_slot_worker_terminal import SourceAuthority\n                terminal_authority = SourceAuthority(ROOT)\n                terminal_authority.finish()\n"
+        },
+        {
+          "offset": 6047,
+          "before": "                    \"schema\": \"hepta.slot.mechanical.v5-component.v1\",\n",
+          "after": "                    \"schema\": \"hepta.slot.mechanical.v5-component.v2\",\n                    \"terminal_source_authority\": terminal_authority.summary(),\n"
+        },
+        {
+          "offset": 6198,
+          "before": "                    \"new_method_count\": 4, \"original_Source3_Native6_unchanged\": True,\n",
+          "after": "                    \"new_method_count\": 4, \"original_Source3_Native6_denominators_retained\": True,\n                    \"worker_terminal_version_is_source_admitted\": True,\n"
+        }
+      ]
+    },
+    "tools/qualify_hia_slot_mechanical_installed.py": {
+      "original": {
+        "bytes": 8867,
+        "sha256": "00bb25c86dd5bb2ef46d150e6abec6a49155a80cd3240eb8b80695a64540797e"
+      },
+      "current": {
+        "bytes": 10340,
+        "sha256": "089728081ccf7fc39f4d79e865e016e2ceb83cb42e0c8f3937ab56d44b64a644"
+      },
+      "splices": [
+        {
+          "offset": 75,
+          "before": "The original Native6 method and its v1 bundle remain unchanged and mandatory.\n",
+          "after": "All six original Native methods and their v1 bundle remain mandatory; their\nworker terminal expectation is bound to an exact, independently retained source.\n"
+        },
+        {
+          "offset": 1239,
+          "before": "",
+          "after": "    from tests.hia_slot_worker_terminal import SourceAuthority\n    authority = SourceAuthority(ROOT)\n"
+        },
+        {
+          "offset": 2626,
+          "before": "    started = {'schema': 'hepta.slot.mechanical.installed-driver.v1',\n",
+          "after": "    started = {'schema': 'hepta.slot.mechanical.installed-driver.v2',\n        'terminal_source_authority': authority.summary(),\n"
+        },
+        {
+          "offset": 6727,
+          "before": "",
+          "after": "        reference_probe = args.evidence / 'current-v1-probe'\n        run('current-v1-scenarios', [sys.executable, '-I', '-B',\n            str(ROOT / 'tests/hia_slot_mechanical_installed_probe.py'),\n            '--root', str(ROOT), '--installed', str(installed), '--bundle', str(base),\n            '--expected-bundle-sha256', pin(base)['sha256'], '--lane', 'current-v1',\n            '--evidence', str(reference_probe)], 1800)\n        reference_raw = regular_bytes(reference_probe / 'report.json')\n        reference_value = json.loads(reference_raw)\n        if (reference_value['schema'] != 'hepta.slot.mechanical.installed-worker.v2'\n                or reference_value['lane'] != 'current-v1' or reference_value['status'] != 'PASS'\n                or reference_value['capsule']['sha256'] != pin(base)['sha256']):\n            raise AssertionError('current original-v1 helper controls did not complete')\n"
+        },
+        {
+          "offset": 7184,
+          "before": "        if (value['schema'] != 'hepta.slot.mechanical.installed-worker.v1'\n",
+          "after": "        if (value['schema'] != 'hepta.slot.mechanical.installed-worker.v2'\n                or value['lane'] != 'current-v5'\n"
+        },
+        {
+          "offset": 7445,
+          "before": "        if regular_bytes(wheel) != wheel_raw or regular_bytes(probe / 'report.json') != raw:\n",
+          "after": "        if (regular_bytes(wheel) != wheel_raw or regular_bytes(probe / 'report.json') != raw\n                or regular_bytes(reference_probe / 'report.json') != reference_raw):\n"
+        },
+        {
+          "offset": 7933,
+          "before": "",
+          "after": "            'current_v1_probe_report': {'path': str(reference_probe / 'report.json'),\n                'bytes': len(reference_raw), 'sha256': sha256(reference_raw).hexdigest()},\n"
+        },
+        {
+          "offset": 8326,
+          "before": "",
+          "after": "    authority.finish()\n"
+        }
+      ]
+    },
+    "tools/read_hia_slot_mechanical_installed.py": {
+      "original": {
+        "bytes": 21950,
+        "sha256": "64fe6a8810490663c564759239acd83736ad86dacf047683eb47090c5b5cc201"
+      },
+      "current": {
+        "bytes": 25318,
+        "sha256": "1fc4039e06583d2e00135195af379655bfbfe05a46c4569887f976b6b74cae30"
+      },
+      "splices": [
+        {
+          "offset": 581,
+          "before": "",
+          "after": "from tools.read_hia_slot_worker_terminal import admit_source_authority, verify_terminal\n"
+        },
+        {
+          "offset": 9213,
+          "before": "    need(report[\"schema\"] == started[\"schema\"] == \"hepta.slot.mechanical.installed-driver.v1\",\n",
+          "after": "    need(report[\"schema\"] == started[\"schema\"] == \"hepta.slot.mechanical.installed-driver.v2\",\n"
+        },
+        {
+          "offset": 10463,
+          "before": "    labels = [\"wheel\", \"install\", \"ordinary-installed-identity\", \"installed-scenarios\"]\n",
+          "after": "    source_authority = admit_source_authority(captured, product_root)\n    same(report[\"terminal_source_authority\"], source_authority)\n    labels = [\"wheel\", \"install\", \"ordinary-installed-identity\",\n              \"current-v1-scenarios\", \"installed-scenarios\"]\n"
+        },
+        {
+          "offset": 10801,
+          "before": "                             1800 if label == \"installed-scenarios\" else 60)\n",
+          "after": "                             1800 if label in (\"current-v1-scenarios\", \"installed-scenarios\") else 60)\n"
+        },
+        {
+          "offset": 13251,
+          "before": "    rawpin = details[\"probe_report\"]\n",
+          "after": "    base_path = Path(capsule[\"helpers_bundle\"])\n    base_admin = {\"path\": str(base_path), **digest(captured.raw(base_path))}\n    current_v1 = verify_probe(captured, details[\"current_v1_probe_report\"],\n        evidence / \"current-v1-probe/report.json\", base_admin, installed, identity,\n        product_root, None, \"current-v1\", source_authority)\n    current_v5 = verify_probe(captured, details[\"probe_report\"],\n        evidence / \"installed-probe/report.json\", admin, installed, identity,\n        product_root, bridge, \"current-v5\", source_authority)\n    same(current_v1[\"comparison\"], current_v5[\"comparison\"])\n    return {\"scope\": \"CURRENT_V1_AND_V5_INSTALLED_TERMINAL_V2\",\n            \"workers_per_lane\": 7, \"workers\": 14,\n            \"source_wheel_identity_equal\": True, \"admin_bundle\": admin,\n            \"terminal_source_authority\": source_authority,\n            \"lane_observations\": [current_v1, current_v5],\n            \"paired_comparison_equal\": True,\n            \"separate_authenticated_request_ids\": True,\n            \"original_Native6_replaced\": False, \"whole_native_stack_qualified\": False}\n\n\ndef verify_probe(captured, rawpin, expected_path, admin, installed, identity,\n                 product_root, bridge, lane, source_authority):\n"
+        },
+        {
+          "offset": 13326,
+          "before": "    need(probe_path == evidence / \"installed-probe/report.json\", \"actual probe report path differs\")\n",
+          "after": "    need(probe_path == expected_path, \"actual probe report path differs\")\n"
+        },
+        {
+          "offset": 13510,
+          "before": "    need(probe[\"schema\"] == \"hepta.slot.mechanical.installed-worker.v1\" and probe[\"status\"] == \"PASS\",\n",
+          "after": "    need(probe[\"schema\"] == \"hepta.slot.mechanical.installed-worker.v2\" and probe[\"status\"] == \"PASS\",\n"
+        },
+        {
+          "offset": 13750,
+          "before": "",
+          "after": "    need(probe[\"lane\"] == lane, \"complete paired worker lane differs\")\n    same(probe[\"source_authority\"], source_authority)\n    profile = source_authority[\"worker_profile\"]\n    same(digest(captured.raw(installed / \"hepta/hia_agent_worker.py\")), profile[\"worker\"])\n"
+        },
+        {
+          "offset": 14640,
+          "before": "        code = 1 if label == \"lost-SQL-ACK\" else 2 if label in worker_labels[-2:] else 0\n",
+          "after": "        code = profile[\"lost_ack_exit\"] if label == \"lost-SQL-ACK\" else 2 if label in worker_labels[-2:] else 0\n"
+        },
+        {
+          "offset": 16160,
+          "before": "        mechanical_evidence(mechanical, command, bridge, label != \"source-plus-LF\")\n",
+          "after": "        mechanical_evidence(mechanical, command, bridge,\n                            lane == \"current-v5\" and label != \"source-plus-LF\")\n        verify_terminal(counts[\"terminal\"], stderr, label, profile)\n"
+        },
+        {
+          "offset": 16854,
+          "before": "    for label in (\"normal\", \"lost-SQL-ACK\"):\n        counters = rows[label][2][\"execution_counters\"]\n        need(sum(counters[\"public_calls\"]) > 0 and sum(counters[\"initialized\"]) > 0,\n             \"installed request never actually entered C and its HIA owner\")\n",
+          "after": "    if lane == \"current-v5\":\n        for label in (\"normal\", \"lost-SQL-ACK\"):\n            counters = rows[label][2][\"execution_counters\"]\n            need(sum(counters[\"public_calls\"]) > 0 and sum(counters[\"initialized\"]) > 0,\n                 \"installed request never actually entered C and its HIA owner\")\n"
+        },
+        {
+          "offset": 20369,
+          "before": "    return {\"scope\": \"SEPARATE_V5_INSTALLED_CONTROL\", \"workers\": len(worker_labels),\n            \"source_wheel_identity_equal\": True, \"admin_bundle\": admin,\n            \"original_Native6_replaced\": False, \"whole_native_stack_qualified\": False}\n",
+          "after": "    # Each lane already checked its own full journal and replay equality.\n    # Fresh setup has a separate authenticated request key; only the declared\n    # request_id is kept as a per-lane identity, not treated as equal data.\n    responses, request_ids = {}, {}\n    for label in (\"normal\", \"replay\", \"unknown_replay\"):\n        response = observations[label][\"response\"][\"response\"]\n        need(set(response) == {\"contract_version\", \"request_id\", \"status\", \"error\"},\n             \"paired Slot response has an undeclared field\")\n        request_id = response[\"request_id\"]\n        need(type(request_id) is str and request_id.startswith(\"r-\")\n             and len(request_id) == 66 and all(c in \"0123456789abcdef\" for c in request_id[2:]),\n             \"actual per-lane request identity differs\")\n        request_ids[label] = request_id\n        responses[label] = {key: value for key, value in response.items() if key != \"request_id\"}\n    return {\"lane\": lane, \"workers\": len(worker_labels),\n            \"request_ids\": request_ids,\n            \"comparison\": {\n                \"responses\": responses, \"counts\": {label: row[1] for label, row in rows.items()},\n                \"normal_request_state\": normal[\"after\"][\"request\"][\"state\"],\n                \"lost_request_state\": lost[\"after\"][\"request\"][\"state\"],\n                \"lost_response\": lost[\"after\"][\"request\"][\"response\"],\n                \"lost_cost_delta\": lost[\"after\"][\"costs\"] - lost[\"before\"][\"costs\"],\n                \"unknown_cost_delta\": unknown[\"after\"][\"costs\"] - lost[\"after\"][\"costs\"],\n                \"source_restored\": drift[\"source_restored\"],\n                \"extra_module_removed\": drift[\"extra_module_removed\"]}}\n\n\n"
+        },
+        {
+          "offset": 21469,
+          "before": "    result.update({\"schema\": \"hepta.slot.mechanical.installed-readback.v1\",\n",
+          "after": "    result.update({\"schema\": \"hepta.slot.mechanical.installed-readback.v2\",\n"
+        }
+      ]
+    },
+    "tools/build_hia_slot_operations.py": {
+      "original": {
+        "bytes": 11168,
+        "sha256": "80281e7e31d413e1cde321b8b35367b5abfb0b2ee7ffbec3f45204684ba22d47"
+      },
+      "current": {
+        "bytes": 11510,
+        "sha256": "d2b2860fbc8553fc441a6659e73efdaddb28f41d9f165de8567f3433517bf4bd"
+      },
+      "splices": [
+        {
+          "offset": 1551,
+          "before": "",
+          "after": "    'hepta/hia_agent_worker.py',\n    'tests/hia_slot_worker_terminal.py',\n    'tools/read_hia_slot_worker_terminal.py',\n    'tools/read_hia_slot_definition_lifetime.py',\n    'tests/test_hia_slot_worker_terminal.py',\n    'tests/fixtures/slot_worker_terminal_v2.json',\n    'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt',\n"
+        }
+      ]
+    },
+    "tools/read_hia_slot_definition_lifetime.py": {
+      "original": {
+        "bytes": 65333,
+        "sha256": "c253e83fa623e810d880d2ddf3aa9a0981c962c61a8e19ca4f5612914f80b52f"
+      },
+      "current": {
+        "bytes": 65640,
+        "sha256": "733503c5d35f6ab97295e17ff635ea5dd6a93d25c87171420be550a81997e456"
+      },
+      "splices": [
+        {
+          "offset": 37503,
+          "before": "    need(custody_report[\"schema\"] == \"hepta.slot.mechanical.v5-component.v1\"\n         and custody_report[\"original_Source3_Native6_unchanged\"] is True\n",
+          "after": "    from tools.read_hia_slot_worker_terminal import admit_source_authority\n    terminal_authority = admit_source_authority(captured, root)\n    same(custody_report[\"terminal_source_authority\"], terminal_authority)\n    need(custody_report[\"schema\"] == \"hepta.slot.mechanical.v5-component.v2\"\n         and custody_report[\"original_Source3_Native6_denominators_retained\"] is True\n         and custody_report[\"worker_terminal_version_is_source_admitted\"] is True\n"
+        }
+      ]
+    }
+  },
+  "current_dependencies": {
+    "hepta/hia_native_delivery.py": {
+      "bytes": 49737,
+      "sha256": "782770141e1b9294974dcdfadf8b51ffbe9ac2588392ffa1b78914ed4c81e0c3"
+    }
+  },
+  "scope": {
+    "native6_methods": 6,
+    "mechanical_native4_methods": 4,
+    "workers_per_current_lane": 7,
+    "worker_seconds": 60,
+    "current_lanes": [
+      "current-v1",
+      "current-v5"
+    ],
+    "original248": 248,
+    "derived7574": 7574,
+    "public84": 84,
+    "handled12": 12,
+    "admission25": 25,
+    "old_observation_expectations_changed": false,
+    "old_native6_replaced": false,
+    "whole_native_stack_qualified": false
+  }
+}

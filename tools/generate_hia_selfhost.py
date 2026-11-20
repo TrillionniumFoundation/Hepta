@@ -25,6 +25,7 @@ from tools.hia_selfhost_returned_loans import SOURCE as RETURNED_LOAN_SOURCE
 from tools.hia_selfhost_cli import SOURCE as CLI_SOURCE
 from tools.hia_selfhost_names import SOURCE as NAMES_SOURCE
 from tools.hia_selfhost_exports import SOURCE as EXPORTS_SOURCE
+from tools.hia_selfhost_word_memory import SOURCE as WORD_MEMORY_SOURCE, SCHEMA_STATE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -34,6 +35,8 @@ WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain
 WORDS += ["checked", "null"]
 WORDS += ["allocation", "bounds", "division_by_zero", "overflow", "user"]
 WORDS += ["return_loans", "selfhost_exec", "exports"]
+WORDS += ["buffer.load.u64.le", "buffer.load.u64.be",
+          "buffer.store.u64.le", "buffer.store.u64.be", "hepta.hia.program.v9"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -49,6 +52,9 @@ CAPBASE, KBASE, CAPTMP, QBASE = 875776, 924928, 926464, 926480
 # One-byte original formal identities; 0 means no external borrowed origin.
 # Separate from block identity and resource parent/root, including at CFG joins.
 ORIGINBASE, BLOCKORIGIN = 928528, 930576
+# v9 scalar constants: 2048 u64 payloads, then 2048 private presence bytes.
+# The table ends at 1035032 within the existing 1 MiB workspace.
+CONST_VALUES, CONST_FLAGS = 1016600, 1032984
 # BLOCKORIGIN ends at 955152; a per-function 2048-slot exact-name table
 # occupies [955152, 1004304); the 256-entry block-name map occupies
 # [1004304, 1010448), still within the unchanged 1 MiB workspace.
@@ -76,7 +82,12 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 48, phase)
         next_token(s, w)
         expect(s, w, @hia-asm.v1@)
-        expect(s, w, @hepta.hia.program.v8@)
+        if get(w, 8) == @hepta.hia.program.v9@:
+            put(w, SCHEMA_STATE, 9)
+            expect(s, w, @hepta.hia.program.v9@)
+        else:
+            put(w, SCHEMA_STATE, 8)
+            expect(s, w, @hepta.hia.program.v8@)
         if get(w, 32) != 0:
             fail(w, 67)
         identifier(s, w)
@@ -162,6 +173,8 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     # ordinary checked bulk operation emit two REP STOSB sequences.
     fill_range(w, 955152, 49152, 0)
     fill_range(w, VBASE, 32768, 0)
+    # Clear presence for every schema. Only v9 const instructions set it.
+    fill_range(w, CONST_FLAGS, 2048, 0)
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
         return 0
@@ -307,11 +320,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if variable(w, v) != 5:
                 fail(w, 14)
             load_var(o, w, 0, v, 0)
-            emit(o, w, 72)
-            emit(o, w, 133)
-            emit(o, w, 192)
-            emit(o, w, 15)
-            emit(o, w, 132)
+            emit_bytes(o, w, 567199958344, 5)
             at = get(w, 56)
             emit4(o, w, 0)
             edge(s, o, w, 0)
@@ -438,9 +447,13 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         expect(s, w, 125)
         if n != 0:
             fail(w, 22)
-        emit(o, w, 72)
-        emit(o, w, 184)
-        emit8(o, w, x)
+        if get(w, SCHEMA_STATE) == 9 and v < 2048:
+            put(w, CONST_VALUES + v * 8, x)
+            store(w, CONST_FLAGS + v, 1)
+        else:
+            emit(o, w, 72)
+            emit(o, w, 184)
+            emit8(o, w, x)
     else:
         if op == @call@:
             loan_call(w, n)
@@ -541,15 +554,18 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             store_var(o, w, v, 1)
             load_var(o, w, 0, a, 0)
         if get(w, 256) == 0:
-            store_var(o, w, v, 0)
+            if byte(w, CONST_FLAGS + v) == 0:
+                store_var(o, w, v, 0)
     else:
-        if op != @buffer.store@ and op != @buffer.swap@ and op != @loan.end@ and (op < @buffer.fill@ or op > @buffer.move_within@):
+        if op != @buffer.store@ and op != @buffer.swap@ and op != @loan.end@ and (op < @buffer.fill@ or op > @buffer.move_within@) and op != @buffer.store.u64.le@ and op != @buffer.store.u64.be@:
             fail(w, 27)
     expect(s, w, 10)
     if get(w, 256) != 0 and get(w, 8) != @ret@:
         fail(w, 59)
     return 0
 
+# Adjacent literal encoding bytes share emit_bytes; phase-1 sizing still
+# precedes all phase-2 output, and emitted machine bytes stay identical.
 def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
     if op == @select@:
         return select_scalar(o, w, n, a, b, at, bt, t)
@@ -574,46 +590,11 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         emit8(o, w, 13118921948371419464)
         emit8(o, w, 10382635531107731985)
         return 0
-    if op == @buffer.load@ or op == @buffer.store@:
-        loan_access(w, a)
-        if (at != 6 and at != 7) or bt != 2:
-            fail(w, 29)
-        if op == @buffer.load@:
-            if n != 2 or t != 4:
-                fail(w, 30)
-        else:
-            if n != 3 or t != 0 or at != 7 or variable(w, get(w, ARGS + 16)) != 4:
-                fail(w, 30)
-        load_var(o, w, 1, b, 0)
-        load_var(o, w, 2, a, 1)
-        emit(o, w, 72)
-        emit(o, w, 57)
-        emit(o, w, 209)
-        emit(o, w, 114)
-        emit(o, w, 2)
-        emit(o, w, 15)
-        emit(o, w, 11)
-        load_var(o, w, 0, a, 0)
-        emit(o, w, 72)
-        emit(o, w, 1)
-        emit(o, w, 200)
-        if op == @buffer.load@:
-            emit(o, w, 15)
-            emit(o, w, 182)
-            emit(o, w, 0)
-        else:
-            load_var(o, w, 2, get(w, ARGS + 16), 0)
-            emit(o, w, 136)
-            emit(o, w, 16)
-        return 0
     load_var(o, w, 0, a, 0)
     if op == @bool.not@:
         if n != 1 or at != 5 or t != 5:
             fail(w, 31)
-        emit(o, w, 72)
-        emit(o, w, 131)
-        emit(o, w, 240)
-        emit(o, w, 1)
+        emit_bytes(o, w, 32539464, 4)
         return 0
     if n != 2:
         fail(w, 32)
@@ -621,9 +602,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
     if op >= @compare.eq@ and op <= @compare.ge@:
         if (integer_type(at) != 1 and (at != 5 or (op != @compare.eq@ and op != @compare.ne@))) or at != bt or t != 5:
             fail(w, 33)
-        emit(o, w, 72)
-        emit(o, w, 57)
-        emit(o, w, 200)
+        emit_bytes(o, w, 13121864, 3)
         cond = 148
         if op == @compare.ne@:
             cond = 149
@@ -646,10 +625,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
                 cond = 157
         emit(o, w, 15)
         emit(o, w, cond)
-        emit(o, w, 192)
-        emit(o, w, 15)
-        emit(o, w, 182)
-        emit(o, w, 192)
+        emit_bytes(o, w, 3233157056, 4)
         return 0
     if at != bt or t != at or t == 0:
         fail(w, 34)
@@ -660,48 +636,28 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         if integer_type(t) != 1:
             fail(w, 35)
     if op == @int.add.wrap@:
-        emit(o, w, 72)
-        emit(o, w, 1)
-        emit(o, w, 200)
+        emit_bytes(o, w, 13107528, 3)
     else:
         if op == @int.sub.wrap@:
-            emit(o, w, 72)
-            emit(o, w, 41)
-            emit(o, w, 200)
+            emit_bytes(o, w, 13117768, 3)
         else:
             if op == @int.mul.wrap@:
-                emit(o, w, 72)
-                emit(o, w, 15)
-                emit(o, w, 175)
-                emit(o, w, 193)
+                emit_bytes(o, w, 3249475400, 4)
             else:
                 if op == @bit.and@ or op == @bool.and@:
-                    emit(o, w, 72)
-                    emit(o, w, 33)
-                    emit(o, w, 200)
+                    emit_bytes(o, w, 13115720, 3)
                 else:
                     if op == @bit.or@ or op == @bool.or@:
-                        emit(o, w, 72)
-                        emit(o, w, 9)
-                        emit(o, w, 200)
+                        emit_bytes(o, w, 13109576, 3)
                     else:
                         if op == @bit.xor@:
-                            emit(o, w, 72)
-                            emit(o, w, 49)
-                            emit(o, w, 200)
+                            emit_bytes(o, w, 13119816, 3)
                         else:
                             if op == @int.shl.checked@ or op == @int.shr.checked@:
                                 width = integer_width(t)
-                                emit(o, w, 72)
-                                emit(o, w, 131)
-                                emit(o, w, 249)
+                                emit_bytes(o, w, 16352072, 3)
                                 emit(o, w, width)
-                                emit(o, w, 114)
-                                emit(o, w, 2)
-                                emit(o, w, 15)
-                                emit(o, w, 11)
-                                emit(o, w, 72)
-                                emit(o, w, 211)
+                                emit_bytes(o, w, 232306376639090, 6)
                                 if op == @int.shl.checked@:
                                     emit(o, w, 224)
                                 else:
@@ -929,6 +885,12 @@ def copy_argument(o:mutbuf, w:mutbuf, v:u64, i:u64, t:u64) -> u64:
     return 0
 
 def load_var(o:mutbuf, w:mutbuf, reg:u64, v:u64, word:u64) -> u64:
+    if word == 0 and v < 2048:
+        if byte(w, CONST_FLAGS + v) == 1:
+            # source_program validates every internal caller uses a low GPR.
+            emit(o, w, 72)
+            emit(o, w, 184 + reg)
+            return emit8(o, w, get(w, CONST_VALUES + v * 8))
     return mem(o, w, 139, reg, 5, 0 - 32 - v * 16 + word * 8)
 
 def store_var(o:mutbuf, w:mutbuf, v:u64, word:u64) -> u64:
@@ -1188,15 +1150,10 @@ def put(w:mutbuf, at:u64, value:u64) -> u64:
     return 0
 
 def get(w:mutbuf, at:u64) -> u64:
-    value = byte(w, at)
-    value = value | (byte(w, at + 1) << 8)
-    value = value | (byte(w, at + 2) << 16)
-    value = value | (byte(w, at + 3) << 24)
-    value = value | (byte(w, at + 4) << 32)
-    value = value | (byte(w, at + 5) << 40)
-    value = value | (byte(w, at + 6) << 48)
-    value = value | (byte(w, at + 7) << 56)
-    return value
+    # A read has no prefix writes; the whole checked word preserves the same
+    # little-endian scalar and bounds failure. Generic put retains its exact
+    # original byte-prefix write/trap semantics.
+    return word_load(w, at)
 
 def state_put32(w:mutbuf, at:u64, value:u64) -> u64:
     store(w, at, value & 255)
@@ -1311,7 +1268,7 @@ def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
         return 0
     # Real short-capacity calls retain the exact per-byte prefix writes and
     # counter updates before the original buffer.store trap. No trap is hidden.
-    emit(o, w, x & 255)
+    emit(o, w, x)
     return emit_bytes(o, w, x >> 8, remaining - 1)
 # Kept in a separate HIA function so the per-function SSA ceiling stays 2047.
 # Appending this helper preserves all existing compiler function identities.
@@ -1498,6 +1455,8 @@ def bulk_buffer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64,
 
 # Keep dispatch outside the pre-existing operation function's SSA budget.
 def operation_dispatch(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if op == @buffer.load@ or op == @buffer.store@ or (op >= @buffer.load.u64.le@ and op <= @buffer.store.u64.be@):
+        return word_memory(o, w, op, n, a, b, at, bt, t)
     if op >= @buffer.fill@ and op <= @buffer.move_within@:
         return bulk_buffer(o, w, op, n, a, b, at, bt, t)
     return operation(o, w, op, n, a, b, at, bt, t)
@@ -1818,6 +1777,7 @@ def guard_failure(condition:bool, w:mutbuf, code:u64) -> u64:
 '''
 SOURCE += NAMES_SOURCE
 SOURCE += EXPORTS_SOURCE
+SOURCE += WORD_MEMORY_SOURCE
 
 
 def source_program():
@@ -1829,7 +1789,7 @@ def source_program():
     text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
-                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
+                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS', 'SCHEMA_STATE', 'CONST_VALUES', 'CONST_FLAGS']:
         text = text.replace(key, str(globals()[key]))
     # These private header words are cleared in full before each semantic
     # pass. Their only writes are quote0/1, phase0..2, function counts0..128,
@@ -1863,6 +1823,17 @@ def source_program():
                   rf'byte(w, {VBASE} + \1 * 16)', text)
     text = re.sub(rf'get\(w, {CAPBASE} \+ ([A-Za-z_][A-Za-z_0-9]*) \* 24 \+ 16\)',
                   rf'byte(w, {CAPBASE} + \1 * 24 + 16)', text)
+    # The private immediate loader emits the low-register REX.W form. All
+    # callers are authored here (including imported source fragments); reject
+    # a future dynamic/high-register use before any Core is generated.
+    for call in ast.walk(ast.parse(text)):
+        if (isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+                and call.func.id == 'load_var'):
+            if (len(call.args) != 5 or call.keywords
+                    or not isinstance(call.args[2], ast.Constant)
+                    or type(call.args[2].value) is not int
+                    or not 0 <= call.args[2].value < 8):
+                raise ValueError('load_var immediate register must be a literal low GPR')
     return text
 
 
@@ -1982,6 +1953,7 @@ class Builder:
             name=e.func.id; args=[self.expr(x) for x in e.args]
             if name=='length': return self.cast(self.op('buffer.len',args,'usize'),'u64')
             if name=='byte': return self.cast(self.op('buffer.load',[args[0],self.cast(args[1],'usize')],'u8'),'u64')
+            if name=='word_load': return self.op('buffer.load.u64.le',[args[0],self.cast(args[1],'usize')],'u64')
             if name=='store': return self.op('buffer.store',[args[0],self.cast(args[1],'usize'),self.cast(args[2],'u8')])
             if name=='fill_range': return self.op('buffer.fill_range',[args[0],self.cast(args[1],'usize'),self.cast(args[2],'usize'),self.cast(args[3],'u8')])
             if name=='choose':
@@ -2229,8 +2201,60 @@ def function_names():
     return _source_function_names(ast.parse(source_program()).body)
 
 
+def strip_redundant_store_masks(nodes):
+    # The intrinsic store already wraps its third operand to u8. Removing only
+    # an outer & 255 keeps the left operand's evaluation exactly once and in
+    # the same argument order. This runs solely on the selfhost authoring AST;
+    # neither other generators nor the runtime Core verifier are transformed.
+    removed = 0
+    for node in ast.walk(ast.Module(body=nodes, type_ignores=[])):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == 'store' and len(node.args) == 3 and not node.keywords):
+            value = node.args[2]
+            if (isinstance(value, ast.BinOp) and isinstance(value.op, ast.BitAnd)
+                    and isinstance(value.right, ast.Constant)
+                    and type(value.right.value) is int and value.right.value == 255):
+                node.args[2] = value.left
+                removed += 1
+    return removed
+
+
+def fold_authoring_literals(nodes):
+    # Fold only canonical u64 literals under total wrapping/bit operations.
+    # No memory access, call, checked operation, boolean or evaluation-order
+    # change is involved. This authors the compiler itself; supplied Core
+    # programs retain their original instructions and admission counters.
+    mask = (1 << 64) - 1
+    operations = {
+        ast.Add: lambda a, b: (a + b) & mask,
+        ast.Sub: lambda a, b: (a - b) & mask,
+        ast.Mult: lambda a, b: (a * b) & mask,
+        ast.BitAnd: lambda a, b: a & b,
+        ast.BitOr: lambda a, b: a | b,
+        ast.BitXor: lambda a, b: a ^ b,
+    }
+
+    class Fold(ast.NodeTransformer):
+        def visit_BinOp(self, node):
+            self.generic_visit(node)
+            if (type(node.op) in operations
+                    and isinstance(node.left, ast.Constant)
+                    and isinstance(node.right, ast.Constant)
+                    and type(node.left.value) is int
+                    and type(node.right.value) is int
+                    and 0 <= node.left.value <= mask
+                    and 0 <= node.right.value <= mask):
+                value = operations[type(node.op)](node.left.value, node.right.value)
+                return ast.copy_location(ast.Constant(value=value), node)
+            return node
+
+    Fold().visit(ast.Module(body=nodes, type_ignores=[]))
+
+
 def document(*, compact=True):
     nodes=ast.parse(source_program()).body
+    strip_redundant_store_masks(nodes)
+    fold_authoring_literals(nodes)
     # Source order deliberately contains backward direct calls. The HIA
     # compiler's call-graph checker, not author-time topological numbering,
     # admits its non-self DAG and checked direct tail self calls. General
@@ -2244,7 +2268,7 @@ def document(*, compact=True):
         b=Builder(n,names,sigs,total_calls)
         b.statements(n.body)
         functions.append({'name':names[n.name],'params':[b.param(x) for x in b.params],'returns':[b.returns], 'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
-    doc = {'schema':'hepta.hia.program.v8','module':'selfhost','functions':functions}
+    doc = {'schema':'hepta.hia.program.v9','module':'selfhost','functions':functions}
     return (compact_authoring_cfg(doc) if compact else doc), names
 
 

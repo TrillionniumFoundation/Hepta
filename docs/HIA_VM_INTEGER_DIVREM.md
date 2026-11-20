@@ -1,6 +1,6 @@
 # Explicit HIA div/rem VM slice
 
-This is an opt-in mathematical component, not a replacement interpreter. The ordinary `hepta.hia_program_runtime.execute_program`, `_Machine`, Prepared and Arithmetic files remain byte-for-byte unchanged. No CLI, route, worker helper registration or default selection changes.
+This is an opt-in mathematical component, not a replacement interpreter. This adapter leaves the ordinary `hepta.hia_program_runtime.execute_program`, `_Machine`, Prepared and Arithmetic implementation intact; the separately reviewed v9 source extension is admitted as described below. No CLI, route, worker helper registration or default selection changes.
 
 ## Public entry and actual execution
 
@@ -31,3 +31,9 @@ Three new hepta/*.py modules are automatically in the full source/installed Pyth
 First-use AST parsing, code compilation, FunctionType/type creation and extra Python frames are deliberate hosted operations of this experimental factory. Weak machine bookkeeping and delivery records can change allocation/GC topology. Float and complex code constants are compared through their IEEE byte representations, including signed zero. Live globals are an actual snapshot identity control domain: this does not prove source semantics for arbitrary imported-function globals replaced before admission. Raw traceback, arbitrary private reflection/global mutation histories, tracing, host MemoryError at all allocation points, and complete cross-version frame equivalence are not claimed. No traceback is cleared, no GC is forced and no allocation count is compensated. The existing interpreter still owns verification, its main loop, the remaining opcodes, resources, budgets, reports and ordinary public entry. Nothing here authorizes deleting it.
 
 This package was prepared by text/byte work only. No AST, product, test, compiler, VM, Native, SQL or GC execution was performed by its author.
+
+## Reviewed v9 runtime composition
+
+The v9 runtime from commit `d99855451c8140899c85cf264b330a81a1c00362` has SHA256 `db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0`. Admission removes exactly its single word-memory branch and the two added byte-order imports, then requires the complete resulting bytes to match the retained `ce39` original. The original fixture and its SHA256 remain unchanged. An unrelated edit, extra newline, altered word bound or changed byte-order mapping is rejected.
+
+This inverse is an admission proof. Execution derives from the complete actual current v9 source, preserving the four unselected word operations and every original loop, tick, resource and report statement; the selected integer-body inverses are still checked over that whole actual operation AST. The live byte-order dictionaries are checked at construction and at the existing per-invoke/per-operation guard. The native integer operation set, selector, wire extents, original case inventories and execution budgets do not change. All three component manifests and their complete original qualifications must be rebuilt against the final composed cold source; earlier results do not qualify this source change.

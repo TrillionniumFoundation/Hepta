@@ -3,7 +3,7 @@
 The emitter owns instruction selection, stack locations, control-flow fixups,
 the internal calling convention, C entry wrappers and relocatable ELF output.
 Only shared-library linkage invokes an external tool, on an already generated
-object. Core v1-v8 operations keep the existing verifier and abort semantics.
+object. Core v1-v9 operations keep the existing verifier and abort semantics.
 This finite backend is not self-hosted and makes no refinement/performance claim.
 """
 from __future__ import annotations
@@ -28,6 +28,7 @@ from .native_tool_identity import digest_executable
 from .object_symbols import inspect_object_symbols
 from .hia_machine_x64 import Code
 from .hia_machine_elf import write_elf_object
+from .hia_opcodes import WORD_LOADS, WORD_STORES, WORD_MEMORY
 
 
 TARGET = "x86_64-unknown-linux-gnu"
@@ -41,7 +42,7 @@ IMPORTS = frozenset({"abort", "calloc", "malloc", "free", "memset", "memcpy", "m
 # They may remain private Core function names, never external entrypoints.
 _LOADER_HOOKS = frozenset({"_init", "_fini", "__gmon_start__", "__cxa_finalize", "__dso_handle",
                           "_ITM_registerTMCloneTable", "_ITM_deregisterTMCloneTable"})
-CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 9))
+CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 10))
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
 BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
@@ -58,7 +59,7 @@ SUPPORTED_OPCODES = frozenset({
     "buffer.fill", "buffer.copy", "buffer.move_within", "buffer.swap",
     "buffer.copy_range", "buffer.fill_range", "call",
     "chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut",
-})
+}) | WORD_MEMORY
 _ARG_REGS = ("rdi", "rsi", "rdx", "rcx", "r8", "r9")
 
 
@@ -444,6 +445,23 @@ class _Function:
                 done = self.label("drop_done")
                 self.load(args[0], "rdi"); c.test("rdi", "rdi"); c.jcc("e", done)
                 c.call("free"); c.label(done)
+        elif op in WORD_MEMORY:
+            # Subtract only after the full-width offset check. Both guards
+            # precede address formation and the single unaligned word access.
+            self.load(args[0], "rdx", 1); self.load(args[1], "rcx")
+            c.cmp("rcx", "rdx"); self.fail_if("a")
+            c.sub("rdx", "rcx"); self.compare_imm("rdx", 8); self.fail_if("b")
+            self.load(args[0]); c.add("rax", "rcx")
+            if op in WORD_LOADS:
+                c.load("rax", "rax")
+                if WORD_LOADS[op] == "big":
+                    c.emit(bytes((0x48, 0x0f, 0xc8)))  # bswap rax
+                self.store(out[0])
+            else:
+                self.load(args[2], "rcx")
+                if WORD_STORES[op] == "big":
+                    c.emit(bytes((0x48, 0x0f, 0xc9)))  # bswap rcx
+                c.store("rax", 0, "rcx")
         elif op in {"buffer.load", "buffer.store"}:
             self.load(args[0], "rdx", 1); self.load(args[1], "rcx")
             c.cmp("rcx", "rdx"); self.fail_if("ae")

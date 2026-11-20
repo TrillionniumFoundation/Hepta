@@ -15,7 +15,10 @@ def assigned(tree,name):
     raise AssertionError('missing fixed source declaration: '+name)
 class ServiceBootstrapStaticSourceTests(unittest.TestCase):
     def test_five_original_definitions_signatures_and_retained_prefix(self):
-        raw=(ROOT/'hepta/hia_agent_service.py').read_bytes()
+        from tests.test_hia_service_bootstrap_uuid_source import RetainedBootstrapService
+        prepared=RetainedBootstrapService(ROOT)
+        self.addCleanup(prepared.finish)
+        raw=prepared.original
         frozen=json.loads((FIXTURE/'source-identity.json').read_bytes())
         prefix=raw[:frozen['service']['bytes']]
         self.assertEqual(sha256(prefix).hexdigest(),frozen['service']['sha256'])
@@ -72,8 +75,12 @@ class ServiceBootstrapStaticSourceTests(unittest.TestCase):
         for name,count in (('ordinary',112),('journal',21),('context',15)):
             self.assertEqual(len(scopes[name]['ordered_ids']),count)
             self.assertEqual(scopes[name]['outer_seconds'],1800)
-            for filename,identity in scopes[name]['files'].items():
-                current=(ROOT/filename).read_bytes()
-                self.assertEqual(sha256(current).hexdigest(),identity['sha256'])
+            from tools.qualify_hia_service_bootstrap_callers import admit_original_scope
+            admitted,proof=admit_original_scope(ROOT,name)
+            self.assertEqual(admitted,scopes[name])
+            self.assertEqual(proof['original_files'],scopes[name]['files'])
+            self.assertEqual(proof['original_ordered_ids'],scopes[name]['ordered_ids'])
+            self.assertTrue(proof['terminal_reread_identical'])
+            self.assertEqual(proof['production_source_exceptions'],[])
 if __name__=='__main__':
     unittest.main()

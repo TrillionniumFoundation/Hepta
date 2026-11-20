@@ -115,6 +115,113 @@ def _review_adapter(original, restored, current, records):
     return expected, {'_context_special': item}
 
 
+# This is a successor of the already frozen thirteen-source composition. The
+# separate Context dependency remains outside those thirteen production bits.
+CARRIER_FIXTURE = 'tests/fixtures/store_delivery_carrier_source_v1.json'
+CARRIER_FIXTURE_PIN = {'bytes': 11408, 'sha256': '8e3a784605cf9b78f7e1bbaba155f1cdcdfac7ad692edfc8234a93344f29513c'}
+CARRIER_PATHS = ('hepta/hia_agent_service.py', 'hepta/hia_agent_store.py', 'hepta/hia_store_artifact_profile_native.py')
+CARRIER_CONTEXT = 'hepta/hia_service_context_native.py'
+CARRIER_SOURCE_PINS = {'hepta/hia_agent_service.py': {'old': {'bytes': 161343, 'sha256': 'f73d14d6271044ef7d2232d926d18741d05ed199527337219ec3171f95adb328'}, 'new': {'bytes': 162342, 'sha256': '13ec7ac895c90bee39c8b1cab7dd70ba8630aaf833c1591e8ad8db558cf6dac8'}}, 'hepta/hia_agent_store.py': {'old': {'bytes': 34612, 'sha256': '5f2e12add864f5bd6f3431f41864117c281f589343ff5f8761de1fb4b8d7c068'}, 'new': {'bytes': 35535, 'sha256': 'f4c9a47b62a06b64c471dbf1ad6d13651c1cb3ed71535897aa15815992d50819'}}, 'hepta/hia_service_context_native.py': {'old': {'bytes': 27785, 'sha256': '0b030e5a33f4fc2e5d340776d2bddb7d54ed788f3541e6425aae711745da1621'}, 'new': {'bytes': 27972, 'sha256': '61131cfaad4d94acb6966e36162ab63eee077602a0589c713fe9cde8ff8e712c'}}, 'hepta/hia_store_artifact_profile_native.py': {'old': {'bytes': 33715, 'sha256': '21bd1b7695e62c3521128e99ffb244c273557c1567e375fd44de65568aa2880f'}, 'new': {'bytes': 33932, 'sha256': '3e17416e14ec657bfe414f851c03e48a80b643078be6994d041b74cb7f63b7fa'}}}
+
+
+def _pin(raw):
+    return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+
+def restore_carrier_source(raw, path, record):
+    """Recover one exact published source and replay all of its current bytes."""
+    if (type(raw) is not bytes or type(path) is not str or path not in CARRIER_SOURCE_PINS
+            or type(record) is not dict or set(record) != {'old', 'new', 'splices'}
+            or {name: record[name] for name in ('old', 'new')} != CARRIER_SOURCE_PINS[path]
+            or any(type(item) is not dict or set(item) != {'bytes', 'sha256'}
+                   or type(item['bytes']) is not int or item['bytes'] < 0
+                   or type(item['sha256']) is not str for item in (record['old'], record['new']))
+            or _pin(raw) != record['new'] or type(record['splices']) is not list
+            or not record['splices']):
+        raise ValueError('complete carrier source relation differs')
+    hunks = []
+    for index, item in enumerate(record['splices'], 1):
+        if (type(item) is not dict
+                or set(item) != {'id', 'old_offset', 'new_offset', 'old_hex', 'new_hex'}
+                or item['id'] != 'splice-' + str(index)
+                or type(item['old_offset']) is not int or item['old_offset'] < 0
+                or type(item['new_offset']) is not int or item['new_offset'] < 0):
+            raise ValueError('carrier source splice identity or typed coordinates differ')
+        hunks.append({name: item[name] for name in ('old_offset', 'new_offset', 'old_hex', 'new_hex')})
+    relation = {'old_sha256': record['old']['sha256'], 'new_sha256': record['new']['sha256'],
+                'old_bytes': record['old']['bytes'], 'new_bytes': record['new']['bytes'],
+                'hunks': hunks}
+    restored = reverse_exact(raw, relation, record['old'])
+    replay = restored
+    for item in reversed(hunks):
+        at = item['old_offset']
+        before, after = _bytes(item['old_hex']), _bytes(item['new_hex'])
+        if replay[at:at + len(before)] != before:
+            raise ValueError('carrier source forward splice differs')
+        replay = replay[:at] + after + replay[at + len(before):]
+    if replay != raw:
+        raise ValueError('carrier source forward replay differs')
+    return restored
+
+
+def carrier_authority(raw):
+    if type(raw) is not bytes or _pin(raw) != CARRIER_FIXTURE_PIN:
+        raise ValueError('fixed carrier source authority differs')
+    value = json.loads(raw)
+    if (value['schema'] != 'hepta.store-delivery.carrier-source-successor.v1'
+            or type(value['composition_source_count']) is not int or value['composition_source_count'] != 13
+            or set(value['prior_composition']) != set(PATHS)
+            or set(value['current_composition']) != set(PATHS)
+            or value['composition_changes'] != list(CARRIER_PATHS)
+            or value['separate_shared_dependency'] != CARRIER_CONTEXT
+            or set(value['source_relations']) != set(CARRIER_SOURCE_PINS)
+            or value['source_admission_only'] is not True
+            or value['original_inventory_changed'] is not False
+            or value['prior_qualification_transferred'] is not False):
+        raise ValueError('carrier source authority scope differs')
+    return value
+
+
+def _carrier_composition(captured, inventory, prior, prior_raw, original_raw):
+    expected_prior = {name: {'bytes': row['new_bytes'], 'sha256': row['new_sha256']}
+                      for name, row in prior['files'].items()}
+    if all(_pin(captured[name]) == expected_prior[name] for name in PATHS):
+        # The complete old composition keeps its original dependencies and
+        # does not require the new authority to exist.
+        return captured, expected_prior, None
+    frozen = (ROOT / CARRIER_FIXTURE).read_bytes()
+    value = carrier_authority(frozen)
+    if (value['prior_authority'] != {'path': str(FIXTURE.relative_to(ROOT)),
+            'bytes': len(prior_raw), 'sha256': FIXTURE_SHA256}
+            or value['original_inventory'] != {'path': str(ORIGINAL.relative_to(ROOT)),
+                'bytes': len(original_raw), 'sha256': ORIGINAL_SHA256}
+            or value['prior_composition'] != expected_prior
+            or any(_pin(captured[name]) != value['current_composition'][name] for name in PATHS)
+            or inventory['shared_dependency_review'][CARRIER_CONTEXT]
+                != value['source_relations'][CARRIER_CONTEXT]['old']):
+        raise ValueError('carrier source does not compose with the complete old Store authority')
+    context = (ROOT / CARRIER_CONTEXT).read_bytes()
+    restored_context = restore_carrier_source(context, CARRIER_CONTEXT, value['source_relations'][CARRIER_CONTEXT])
+    reviewed = dict(captured)
+    for name in CARRIER_PATHS:
+        reviewed[name] = restore_carrier_source(captured[name], name, value['source_relations'][name])
+    if any(_pin(reviewed[name]) != expected_prior[name] for name in PATHS):
+        raise ValueError('carrier source did not restore all thirteen prior files')
+    proof = {'schema': 'hepta.store-delivery.carrier-source-admission.v1',
+             'authority': CARRIER_FIXTURE_PIN, 'authority_path': CARRIER_FIXTURE,
+             'composition_source_count': 13, 'complete_current_composition': value['current_composition'],
+             'complete_prior_composition': expected_prior, 'source_relations': value['source_relations'],
+             'separate_shared_dependency': {'path': CARRIER_CONTEXT,
+                 'original': _pin(restored_context), 'current': _pin(context)},
+             'adapter_definition_successor': value['adapter_definition_successor'],
+             'prior_definition_successor': value['prior_definition_successor'],
+             'adapter_definition_count': 21, 'prior_qualification_transferred': False,
+             'captured_files': {**{name: _pin(captured[name]) for name in PATHS},
+                                CARRIER_CONTEXT: _pin(context), CARRIER_FIXTURE: _pin(frozen)},
+             'terminal_reread_identical': False}
+    return reviewed, value['current_composition'], (proof, frozen, context)
+
+
 def admit_composition(original_value):
     original_bytes = ORIGINAL.read_bytes()
     if sha256(original_bytes).hexdigest() != ORIGINAL_SHA256:
@@ -160,30 +267,54 @@ def admit_composition(original_value):
     # A successor belongs to one complete reviewed composition. A partially
     # reverted mixture cannot borrow admission from another changed file.
     # There is no process-global cache: every admission binds all thirteen complete files.
-    restored = {path: reverse_exact(captured[path], value['files'][path], originals[path])
+    reviewed, actual_pins, carrier = _carrier_composition(captured, inventory, value, frozen, original_bytes)
+    restored = {path: reverse_exact(reviewed[path], value['files'][path], originals[path])
                 for path in PATHS}
     definitions, definition_adjustments = _review_adapter(inventory, restored[ADAPTER_PATH],
-        captured[ADAPTER_PATH], value.get('adapter_definition_successors'))
+        reviewed[ADAPTER_PATH], value.get('adapter_definition_successors'))
+    if carrier is not None:
+        proof, carrier_raw, context_raw = carrier
+        if (proof['prior_definition_successor'] != definition_adjustments
+                or set(proof['adapter_definition_successor']) != {'StoreArtifactProfileFrame._global'}):
+            raise ValueError('carrier adapter changes its independent definition scope')
+        for name, record in proof['adapter_definition_successor'].items():
+            if record['old'] != definitions[name]:
+                raise ValueError('carrier adapter predecessor definition differs')
+            definitions[name] = record['new']
+            definition_adjustments[name] = record
+        if len(definitions) != 21 or _adapter_definitions(captured[ADAPTER_PATH]) != definitions:
+            raise ValueError('carrier adapter changes an unreviewed original definition')
     if (FIXTURE.read_bytes() != frozen or ORIGINAL.read_bytes() != original_bytes
-            or any((ROOT / path).read_bytes() != captured[path] for path in PATHS)):
+            or any((ROOT / path).read_bytes() != captured[path] for path in PATHS)
+            or (carrier is not None and ((ROOT / CARRIER_FIXTURE).read_bytes() != carrier_raw
+                or (ROOT / CARRIER_CONTEXT).read_bytes() != context_raw))):
         raise ValueError('successor composition changed during admission')
-    composition = {path: value['files'][path]['new_sha256'] for path in PATHS}
+    if carrier is not None:
+        proof['terminal_reread_identical'] = True
+    composition = {path: actual_pins[path]['sha256'] for path in PATHS}
     adjustments = {path: {'path': path, 'original_sha256': sha256(restored[path]).hexdigest(),
-        'current_sha256': value['files'][path]['new_sha256'],
-        'current_bytes': value['files'][path]['new_bytes'],
+        'current_sha256': actual_pins[path]['sha256'],
+        'current_bytes': actual_pins[path]['bytes'],
         'reversible_patch_fixture_sha256': FIXTURE_SHA256,
         'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL, context protocol, Bootstrap, Budget resource and worker unknown-terminal successor',
         'composition_sha256': composition} for path in PATHS}
+    if carrier is not None:
+        for path in CARRIER_PATHS:
+            adjustments[path]['carrier_source_admission'] = proof
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:
         # Return the fixed, independently reviewed literal pins only after
         # the complete composition matched; never derive expected from disk.
-        shared[path] = {'bytes': value['files'][path]['new_bytes'],
-                        'sha256': value['files'][path]['new_sha256']}
-    return {'source_adjustments': {path: adjustments[path] for path in SOURCE_PATHS},
+        shared[path] = dict(actual_pins[path])
+    if carrier is not None:
+        shared[CARRIER_CONTEXT] = dict(proof['separate_shared_dependency']['current'])
+    result = {'source_adjustments': {path: adjustments[path] for path in SOURCE_PATHS},
             'shared_adjustments': {path: adjustments[path] for path in SHARED_PATHS},
             'shared_dependency_review': shared,
             'adapter_source_adjustments': {ADAPTER_PATH: adjustments[ADAPTER_PATH]},
             'companion_source_adjustments': {path: adjustments[path] for path in COMPANION_ORIGINALS},
             'adapter_definition_adjustments': definition_adjustments,
             'adapter_definition_review': definitions}
+    if carrier is not None:
+        result['carrier_source_admission'] = proof
+    return result

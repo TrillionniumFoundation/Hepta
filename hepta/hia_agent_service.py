@@ -14,11 +14,9 @@ import json
 import os
 from pathlib import Path
 import platform
-import signal
 import sqlite3
 import tempfile
 import time
-import uuid
 
 from .hia_native_delivery import (DeliveryRecord, NativeDeliveryUnknown,
     check_current as _delivery_check, delivery_lost as _delivery_lost,
@@ -92,6 +90,32 @@ def _value_observation(observation):
         value["buffers"] = observation["buffers"]
     return value
 
+
+_UUID_PROVIDER_BOUND = False
+
+
+def _ensure_uuid():
+    """Bind the real identifier provider once, respecting explicit replacements."""
+    global uuid, _UUID_PROVIDER_BOUND
+    if not _UUID_PROVIDER_BOUND:
+        if 'uuid' not in globals():
+            import uuid as selected
+            if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+                raise RuntimeError('identifier uuid import is still active')
+            # Import hooks may have deliberately supplied a provider while the
+            # real import was in progress. Do not overwrite that actual binding.
+            if 'uuid' not in globals():
+                uuid = selected
+        _UUID_PROVIDER_BOUND = True
+    return uuid
+
+
+def __getattr__(name):
+    if name == 'uuid' and not _UUID_PROVIDER_BOUND:
+        return _ensure_uuid()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
         from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
@@ -113,6 +137,7 @@ class HIAAgentService:
             if any(not root.is_dir() for root in self.artifact_roots):
                 reject("E_HIA_PROFILE", "configured artifact roots must be directories")
             self._profiles()
+            _ensure_uuid()
         except BaseException as error:
             cleanups = ([self._candidate_budget.close] if self._candidate_budget is not None else [])
             for cleanup in [*cleanups, self.store.close]:
@@ -282,6 +307,7 @@ class HIAAgentService:
                     from .hia_agent_journal_native import call_with_native_journal
                     result = call_with_native_journal(self, tool, arguments, selected)
                 else:
+                    _ensure_uuid()
                     result = self._reference_call(tool, arguments)
                 delivery.check()
                 return result
@@ -534,6 +560,7 @@ class HIAAgentService:
         from .hia_service_context_selection import run_service_context, UNSELECTED
         result = run_service_context(1, self, args)
         if result is UNSELECTED:
+            _ensure_uuid()
             return _NATIVE_SERVICE_CONTEXT_FREEZE_REFERENCE(self, args)
         return result
 
@@ -1551,6 +1578,7 @@ class HIAAgentService:
         with self.store.transaction():
             if self._slot_ledger is not None:
                 return self._slot_ledger.acquire(target_slot, self._slot_snapshot, self._native)
+            _ensure_uuid()
             return self._reference_slot_acquire(target_slot)
 
     def _reference_slot_acquire(self, target_slot):

@@ -6,7 +6,6 @@ floating-number encoder, Python object serializer, semantic Core checker or
 runtime rewrite. UTF-8 wire, node and root-depth limits are explicit.
 """
 from __future__ import annotations
-import ctypes
 import os
 from pathlib import Path
 import struct
@@ -21,6 +20,25 @@ SOURCE = _source_resource_path('examples/hia_bootstrap/json_canonical.hepta')
 SCHEMA = 'hepta.hia.json-canonical-native.v1'
 
 
+def _ensure_ctypes():
+    """Bind the real FFI module only when native operations are requested."""
+    global ctypes
+    if 'ctypes' not in globals():
+        import ctypes as selected
+        if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+            raise RuntimeError('native ctypes import is still active')
+        # A failed or recursively incomplete import never becomes our binding.
+        # Existing explicit module-global replacements retain their old role.
+        ctypes = selected
+    return ctypes
+
+
+def __getattr__(name):
+    if name == 'ctypes':
+        return _ensure_ctypes()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 class NativeJsonCanonicalizer(NativeHiaJsonImage):
     def canonicalize(self, wire: bytes, *, max_nodes: int, max_depth: int) -> bytes:
         if (type(wire) is not bytes or len(wire) > MAX_BYTES
@@ -32,6 +50,7 @@ class NativeJsonCanonicalizer(NativeHiaJsonImage):
         # syntax whitespace/escape spellings can only shrink, key sorting does
         # not change size, and the only integer spelling change is -0 -> 0.
         output_size = max(len(wire), key_size)
+        _ensure_ctypes()
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
         output = ctypes.create_string_buffer(output_size)
         workspace = ctypes.create_string_buffer(arena_size)

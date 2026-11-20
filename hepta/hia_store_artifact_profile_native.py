@@ -404,6 +404,10 @@ causes a repeated close, unlink, or exit.
                 return self.data['result']
 
     def _global(self, name):
+        if name == 'uuid':
+            from . import hia_agent_store
+            if self.namespace is vars(hia_agent_store) and not hia_agent_store._UUID_PROVIDER_BOUND:
+                hia_agent_store._ensure_uuid()
         return _global_value(self.namespace, self.global_builtins, name)
 
     def argument(self, name):

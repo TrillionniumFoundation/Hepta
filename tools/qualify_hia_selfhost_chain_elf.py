@@ -39,7 +39,7 @@ def qualify(directory, compiler):
         for case in [*cases(), *flow_cases(), *parameter_cases(), *flow_name_cases(), *parameter_name_cases()]:
             label, source = case["id"], case["source"].encode()
             (directory / (label + ".hepta")).write_bytes(source)
-            ref = reference(case)
+            checked, ref = reference(case, include_program=True)
             obj, compilation = compile_stage(directory, label + "-object", compiler, source, output_extension=".o")
             inspection = inspect_owned_object(obj.read_bytes())
             tools = [observe_native_tool(directory, label + "-readelf", "readelf", ["-W", "-h", "-S", "-s", "-r", obj])]
@@ -50,7 +50,6 @@ def qualify(directory, compiler):
                 raise AssertionError(tools)
             observed, output = invoke(directory, label + "-run", linked, b"", image_format="linked-selfhost",
                 capacity=8, workspace_size=0, output_initial=bytes([0xa5] * 8), observe_trap_writes=True)
-            checked = assemble_program(source)
             direct_image = emit_program_machine(checked, foreign_buffer_exports=(("f0", 1 << 20),))
             direct = directory / (label + "-direct.so")
             direct_build = compile_program_machine(direct_image, program=checked, output=direct, linker="ld")

@@ -36,11 +36,31 @@ class VmIntegerDivRemSourceTests(unittest.TestCase):
                             for ins in block["ops"] for p in ins["out"]]
             self.assertEqual(len(definitions), len(set(definitions)))
             self.assertLessEqual(len(definitions), 2048)
-        self.assertEqual(captured["hepta/hia_program_runtime.py"],
-                         captured["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"])
+        from hepta import hia_vm_integer_divrem_runtime as selected
+        actual_runtime = captured["hepta/hia_program_runtime.py"]
+        retained = selected._retained_runtime_source(actual_runtime)
+        self.assertEqual(retained, captured["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"])
+        self.assertEqual(sha256(retained).hexdigest(), RUNTIME_SHA256)
+        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.V9_RUNTIME_SHA256)
+        self.assertEqual(selected._retained_runtime_source(retained), retained)
+        for changed in (actual_runtime + b"\n", retained + b"\n",
+                actual_runtime.replace(b"8 > extent - index", b"7 > extent - index", 1),
+                actual_runtime.replace(b'elif op == "bool.not":', b'elif op == "bool.or":', 1)):
+            with self.subTest(changed_sha256=sha256(changed).hexdigest()):
+                with self.assertRaises(ValueError):
+                    selected._retained_runtime_source(changed)
+        self.assertEqual(len(selected._word_order_state(actual_runtime)), 2)
+        from unittest.mock import patch
+        from types import MappingProxyType
+        for changed in (dict(selected.original.WORD_LOADS),
+                MappingProxyType({**selected.original.WORD_LOADS, "buffer.load.u64.le": "big"})):
+            with patch.object(selected.original, 'WORD_LOADS', changed):
+                with self.assertRaisesRegex(ValueError, 'byte-order mapping differs'):
+                    selected._word_order_state(actual_runtime)
         self.assertEqual(sha256(captured["tests/test_hia_program.py"]).hexdigest(), TEST_SHA256)
-        # Only the two original arithmetic bodies are selected. No opcode
-        # registry, old runtime, Prepared, or Arithmetic source is edited.
+        # The independently pinned v9 delta is inverted above. Only the two
+        # original integer bodies are replaced by this explicit native profile;
+        # Prepared and Arithmetic remain the original implementation.
         source = captured["hepta/hia_vm_integer_divrem_runtime.py"]
         tree = ast.parse(source)
         declarations = {target.id: node.value for node in tree.body if isinstance(node, ast.Assign)
@@ -158,7 +178,7 @@ class VmIntegerDivRemSourceTests(unittest.TestCase):
         self.assertIn("_hia_guard", invoke.__code__.co_freevars)
         self.assertIn("_hia_factory", public.__code__.co_freevars)
         self.assertEqual(public.__kwdefaults__, original.execute_program.__kwdefaults__)
-        self.assertEqual(sha256(original_raw).hexdigest(), RUNTIME_SHA256)
+        self.assertEqual(sha256(selected._retained_runtime_source(original_raw)).hexdigest(), RUNTIME_SHA256)
 
 
 class VmIntegerDivRemNativeTests(unittest.TestCase):

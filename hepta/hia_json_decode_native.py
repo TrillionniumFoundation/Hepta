@@ -7,7 +7,6 @@ an executable sandbox, a release promotion or an all-input refinement proof.
 """
 from __future__ import annotations
 
-import ctypes
 from pathlib import Path
 import struct
 
@@ -32,6 +31,25 @@ def arena_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:
     return output, max(keys, 128 + (depth + 1) * 48)
 
 
+def _ensure_ctypes():
+    """Bind the real FFI module only when native operations are requested."""
+    global ctypes
+    if 'ctypes' not in globals():
+        import ctypes as selected
+        if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+            raise RuntimeError('native ctypes import is still active')
+        # A failed or recursively incomplete import never becomes our binding.
+        # Existing explicit module-global replacements retain their old role.
+        ctypes = selected
+    return ctypes
+
+
+def __getattr__(name):
+    if name == 'ctypes':
+        return _ensure_ctypes()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 class NativeJsonDecoder(NativeHiaJsonImage):
     """Same three-buffer native ABI, distinct image and result protocol."""
 
@@ -41,6 +59,7 @@ class NativeJsonDecoder(NativeHiaJsonImage):
                 or type(max_depth) is not int or not 0 <= max_depth <= MAX_DEPTH):
             raise ValueError('outside native HIA JSON decoder profile')
         output_size, workspace_size = arena_sizes(len(wire), max_nodes, max_depth)
+        _ensure_ctypes()
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
         output = ctypes.create_string_buffer(output_size)
         workspace = ctypes.create_string_buffer(workspace_size)

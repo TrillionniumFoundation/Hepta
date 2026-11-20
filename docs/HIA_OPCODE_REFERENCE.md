@@ -58,9 +58,15 @@ This catalog generates local checking and agent discovery. The ownership/CFG che
 | `buffer.copy_range` | v5 | mutbuf, readbuf, usize, usize, usize | — | — | read, write, trap | write:0, read:1, distinct:0:1 |
 | `buffer.fill_range` | v6 | mutbuf, usize, usize, u8 | — | — | write, trap | write:0 |
 | `call` | v1 | callee interface | callee interface | function | — | callee_interface |
+| `buffer.load.u64.le` | v9 | view, usize | u64 | — | read, trap | read:0 |
+| `buffer.load.u64.be` | v9 | view, usize | u64 | — | read, trap | read:0 |
+| `buffer.store.u64.le` | v9 | mutbuf, usize, u64 | — | — | write, trap | write:0 |
+| `buffer.store.u64.be` | v9 | mutbuf, usize, u64 | — | — | write, trap | write:0 |
 
 `int.cast` additionally requires `trap` in checked mode. `call` propagates all callee effects. Traps abort; normal/error-as-value returns must balance ownership. VM fuel, call depth, native stack, payload and allocator overhead are separate budgets.
 
-Core v8 adds explicit `return_loans` contracts; it does not invent new opcodes. Assembly v1 accepts explicit primitive v6/v7/v8 and preserves this field. Historical schemas are accepted only through their named adapters; no profile is guessed.
+Core v8 adds explicit `return_loans` contracts. Core v9 adds four fixed-width `u64` buffer operations. Assembly v1 accepts explicit primitive v6/v7/v8/v9 and preserves return origins. Historical schemas retain their own opcode inventories; no profile is guessed.
 
-Query the complete version-specific JSON with `hia catalog --schema hepta.hia.program.v8`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.
+The v9 word operations accept unaligned byte offsets and explicit little/big endian order. They check `offset <= length` and `8 <= length - offset` using the complete 64-bit unsigned offset before any byte access. A failing store writes no bytes. Borrow permissions and distinct mutable-root rules are unchanged; these operations do not create pointers, loans, or payload allocations.
+
+Query the complete version-specific JSON with `hia catalog --schema hepta.hia.program.v9`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.

@@ -29,6 +29,8 @@ CURRENT = {
     EVALUATION: {'bytes': 49105, 'sha256': '673b1e330b48df5915a4a544188397e33055ac023986cb136e8b067e4574b9d3'},
 }
 FIXED = {
+    'tests/fixtures/caller_deadline_diagnostics_v1.json': {
+        'bytes': 3545, 'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c'},
     EMISSION_ORIGINAL: {'bytes': 59973, 'sha256': 'dec08c099ea1d262f1a3d32dc34801c816484bda6724fac60f5a8a1d5d8c4048'},
     NATIVE_ORIGINAL: {'bytes': 71708, 'sha256': 'a1f82e1c955ece21319cc49a0e3834658a2eeb0be7636d6f13690e1d6b83dea7'},
     STORE_ORIGINAL: {'bytes': 173802, 'sha256': '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'},
@@ -74,6 +76,25 @@ def write_json(path, value):
                                indent=2) + '\n', encoding='utf-8')
 
 
+REGISTRY_CURRENT = {'bytes': 24300, 'sha256': 'b3a84910ad6acc115b21955a727537ed45623512af1f7ca92e7a823fb8e570bc'}
+REGISTRY_OLD_BRANCH = b"        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v5':\n"
+REGISTRY_V6_BRANCH = b"        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v6':\n            _MECHANICAL_SELECTED = True\n            from .hia_native_carrier_worker_bundle import NativeCarrierWorkerBinding\n            binding = NativeCarrierWorkerBinding(captured, expected_sha256)\n            _MECHANICAL_SCOPE = binding\n        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v5':\n"
+
+def registry_control_source(raw):
+    """Stage the exact retained registry for the unchanged original63 domain."""
+    if type(raw) is not bytes:
+        raise ValueError('registry preparation requires complete immutable bytes')
+    if pin(raw) == FIXED[REGISTRY]:
+        return raw
+    if pin(raw) != REGISTRY_CURRENT or raw.count(REGISTRY_V6_BRANCH) != 1:
+        raise ValueError('unreviewed registry cannot seed original controls')
+    original = raw.replace(REGISTRY_V6_BRANCH, REGISTRY_OLD_BRANCH, 1)
+    if (pin(original) != FIXED[REGISTRY] or original.count(REGISTRY_OLD_BRANCH) != 1
+            or original.replace(REGISTRY_OLD_BRANCH, REGISTRY_V6_BRANCH, 1) != raw):
+        raise ValueError('complete registry inverse or forward replay differs')
+    return original
+
+
 class CallerTerminalReadbackSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -88,6 +109,8 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
             cls.evidence = Path(configured)
             cls.evidence.mkdir(parents=True, exist_ok=False)
         cls.seed = {name: (ROOT / name).read_bytes() for name in FIXED}
+        cls.actual_registry = cls.seed[REGISTRY]
+        cls.seed[REGISTRY] = registry_control_source(cls.actual_registry)
         for name, expected in FIXED.items():
             if pin(cls.seed[name]) != expected:
                 raise AssertionError('fixed reader control source differs: ' + name)
@@ -100,18 +123,19 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
         for name, expected in CURRENT.items():
             if pin(cls.seed[name]) != expected:
                 raise AssertionError('reviewed current reader source differs: ' + name)
+        cls.actual_sources = {**cls.seed, REGISTRY: cls.actual_registry}
         cls.late_paths = sorted(cls.seed)
         cls.planned = (['accept/' + row[0] for row in STATES]
                        + ['refuse/' + name for name in BAD_ROOTS]
                        + ['late-drift/' + name for name in cls.late_paths]
                        + ['inverse-refusal/' + name for name in BAD_INVERSES])
-        if len(cls.seed) != 24 or len(cls.planned) != 62 or len(set(cls.planned)) != 62:
+        if len(cls.seed) != 25 or len(cls.planned) != 63 or len(set(cls.planned)) != 63:
             raise AssertionError('complete independent reader control inventory differs')
         cls.started, cls.stopped, cls.actual = [], [], []
         write_json(cls.evidence / 'planned.json', {
             'schema': 'hepta.hia.caller-terminal-readback-controls-plan.v1',
-            'ordered_ids': cls.planned, 'count': 62, 'source_methods': 2,
-            'positive': 3, 'bad_roots': 21, 'captured_file_drifts': 24, 'inverse_refusals': 14,
+            'ordered_ids': cls.planned, 'count': 63, 'source_methods': 2,
+            'positive': 3, 'bad_roots': 21, 'captured_file_drifts': 25, 'inverse_refusals': 14,
             'ordinary112_replaced': False, 'native_or_cold_result_inferred': False})
         # Construct complete old source data without calling the reader's inverse.
         cls.legacy = {}
@@ -140,14 +164,16 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
             'tests/test_hia_caller_terminal_readback.py')}
         write_json(cls.evidence / 'inputs.json', {
             'schema': 'hepta.hia.caller-terminal-readback-controls-inputs.v1',
-            'source_root': str(ROOT), 'actual_sources': {n: pin(r) for n, r in cls.seed.items()},
+            'source_root': str(ROOT), 'actual_sources': {n: pin(r) for n, r in cls.actual_sources.items()},
+            'control_seed_sources': {n: pin(r) for n, r in cls.seed.items()},
+            'registry_control_preparation': 'EXACT_OLD_LITERAL_OR_SINGLE_V6_BRANCH_INVERSE',
             'control_code': {n: pin(r) for n, r in cls.code.items()},
             'restored_originals': OLD, 'copied_test_execution': False})
 
     @classmethod
     def tearDownClass(cls):
         drift = []
-        for name, raw in {**cls.seed, **cls.code}.items():
+        for name, raw in {**cls.actual_sources, **cls.code}.items():
             try:
                 same = (ROOT / name).read_bytes() == raw
             except OSError:
@@ -245,6 +271,12 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                 self.assertEqual(value['production_composition_source_count'], 13)
                 self.assertEqual(value['production_source_exceptions'], [])
                 self.assertEqual(set(value['reviewed_test_source_adjustments']), set(changed))
+                diagnostic = value['reviewed_diagnostic_source_adjustments']
+                self.assertEqual(set(diagnostic), {'tests/test_hia_agent_native_tools.py'})
+                self.assertEqual(diagnostic['tests/test_hia_agent_native_tools.py']['original']['sha256'],
+                    self.records['tests/test_hia_agent_native_tools.py'])
+                self.assertEqual(diagnostic['tests/test_hia_agent_native_tools.py']['current'],
+                    pin(self.seed['tests/test_hia_agent_native_tools.py']))
                 self.assertIs(value['producer_or_test_helper_imported'], False)
                 self.assertIs(value['terminal_reread_deferred_to_outer_captures'], True)
                 self.assertNotIn('terminal_reread_identical', value)
@@ -342,7 +374,7 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                     self.private_root() as root:
                 captured, proof = reader.Captures(), []
                 reader.original_callers(root, captured, terminal_evidence=proof)
-                self.assertEqual(len(captured.raw), 24)
+                self.assertEqual(len(captured.raw), 25)
                 self.assertEqual(len(proof), 1)
                 self.assertIs(proof[0]['terminal_reread_deferred_to_outer_captures'], True)
                 self.assertNotIn('terminal_reread_identical', proof[0])
@@ -396,7 +428,31 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                 detail.update({'actual_raw': pin(raw), 'original_pin_argument': before,
                                'current_pin_argument': after, 'splices_argument': splices,
                                'refused': True, 'error': str(caught.exception)})
-        self.assertEqual(len(self.actual), 62)
+        self.assertEqual(len(self.actual), 63)
+
+
+class NativeCarrierRegistryPreparationSourceTests(unittest.TestCase):
+    def test_exact_old_current_and_full_unmodified_helper_registry(self):
+        import ast
+        current = (ROOT / REGISTRY).read_bytes()
+        original = registry_control_source(current)
+        self.assertEqual(pin(original), FIXED[REGISTRY])
+        self.assertEqual(registry_control_source(original), original)
+        expected = original.replace(REGISTRY_OLD_BRANCH, REGISTRY_V6_BRANCH, 1)
+        self.assertEqual(pin(expected), REGISTRY_CURRENT)
+        self.assertEqual(registry_control_source(expected), original)
+        def declared(raw):
+            node = next(node.value for node in ast.parse(raw).body if isinstance(node, ast.Assign)
+                and any(isinstance(target, ast.Name) and target.id == 'HELPERS' for target in node.targets))
+            return ast.literal_eval(node.args[0] if isinstance(node, ast.Call) else node)
+        self.assertEqual(declared(expected), declared(original))
+        self.assertEqual(len(declared(expected)), 50)
+        for bad in (True, bytearray(expected), expected + b' ', expected[:-1],
+                    expected.replace(b'hepta.hia.native-helpers.v6', b'hepta.hia.native-helpers.v7'),
+                    expected.replace(REGISTRY_V6_BRANCH, REGISTRY_V6_BRANCH * 2, 1)):
+            with self.subTest(type=type(bad).__name__), self.assertRaises(ValueError):
+                registry_control_source(bad)
+        self.assertEqual((ROOT / REGISTRY).read_bytes(), current)
 
 
 if __name__ == '__main__':

@@ -20,7 +20,8 @@ GENERATOR = 'tools/generate_hia_slot_operations.py'
 SOURCE = 'examples/hia_bootstrap/slot_operations.hepta'
 FIXTURE = 'tests/hia_slot_fixed_word_cases.json'
 ORIGINAL_GENERATOR_SHA256 = '9dd4b7dd218c641a0f7f1d36641703356b6ce70587545b0512305206c2e4afaf'
-CURRENT_GENERATOR_SHA256 = '574517982242d18fd255b07db8f93b18e26c71d1a425ceae801e9f1cebef20ba'
+BYTE_GENERATOR_SHA256 = '574517982242d18fd255b07db8f93b18e26c71d1a425ceae801e9f1cebef20ba'
+CURRENT_GENERATOR_SHA256 = 'c3ce37889a33686be4fe89f2d23428b2556ed2f28172aa4b05ffdcdb3ff21909'
 ORIGINAL_HIA_SHA256 = '55ea9c4f07672f155d38411d9b4464257aad7177019da10b23ce6aa09d73e9b3'
 FIXTURE_SHA256 = '82a29e8a20eb3f32f63f35e465a4c2be68f946de8e9b35b9198c8a74d31476d3'
 LIMITS = (4_000_000, 16 << 20, None, 128)
@@ -69,6 +70,27 @@ def _restore_helpers(source):
             raise AssertionError('helper text is not unique: ' + name)
         source = source.replace(current, original)
     return source
+
+
+# This exact authoring tail reconstructs the complete reviewed v8 generator.
+# The historical loop, 270 helper cases, 41 shape cases and 360 packets stay
+# unchanged; every current comparison below executes the actual v9 program.
+BYTE_AUTHORING_TAIL = "def source_program():\n    values = {**PORT, 'REQUEST_MAGIC': REQUEST_MAGIC, 'RESULT_MAGIC': RESULT_MAGIC,\n              'STATE_MAGIC': STATE_MAGIC, 'MAX_PORT': len(PORTS)}\n    return re.sub(r'@([A-Za-z_][A-Za-z_0-9]*)@', lambda match: str(values[match[1]]), PROTOCOL)\n\n\ndef document():\n    nodes = ast.parse(source_program()).body\n    names = {node.name: 'f' + str(index) for index, node in enumerate(nodes)}\n    signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)\n                  for node in nodes}\n    total = total_scalar_functions(nodes)\n    functions = []\n    for node in nodes:\n        builder = ContextBuilder(node, names, signatures, total)\n        builder.statements(node.body)\n        functions.append({'name': names[node.name],\n                          'params': [builder.param(value) for value in builder.params],\n                          'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],\n                          'entry': 'b0', 'blocks': builder.blocks})\n    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8',\n                                  'module': 'slot_operations', 'functions': functions})\n"
+
+
+def _restore_word_generator(raw):
+    if (type(raw) is not bytes or len(raw) != 30910
+            or sha256(raw).hexdigest() != CURRENT_GENERATOR_SHA256):
+        raise AssertionError('complete current Slot word generator identity differs')
+    original_tail = BYTE_AUTHORING_TAIL.encode()
+    restored = raw[:27345] + original_tail + raw[30760:]
+    if (len(restored) != 28680
+            or sha256(restored).hexdigest() != BYTE_GENERATOR_SHA256):
+        raise AssertionError('Slot word successor does not reconstruct the full v8 generator')
+    replay = restored[:27345] + raw[27345:30760] + restored[28530:]
+    if replay != raw:
+        raise AssertionError('Slot word generator full forward relation differs')
+    return restored
 
 
 def _author(source):
@@ -126,7 +148,8 @@ class SlotFixedWordSourceTests(unittest.TestCase):
         self.sources = {name: (ROOT / name).read_bytes() for name in names}
         self.report['source_before'] = {name: _pin(raw) for name, raw in self.sources.items()}
         self.assertEqual(sha256(self.sources[GENERATOR]).hexdigest(), CURRENT_GENERATOR_SHA256)
-        self.assertEqual(sha256(_restore_helpers(self.sources[GENERATOR].decode()).encode()).hexdigest(),
+        byte_generator = _restore_word_generator(self.sources[GENERATOR])
+        self.assertEqual(sha256(_restore_helpers(byte_generator.decode()).encode()).hexdigest(),
                          ORIGINAL_GENERATOR_SHA256)
         self.assertEqual(sha256(self.sources[FIXTURE]).hexdigest(), FIXTURE_SHA256)
 
@@ -389,6 +412,20 @@ class SlotFixedWordSourceTests(unittest.TestCase):
         for label, buffers in cases:
             self.report['current'].append(self._packet('current', label, buffers))
         self._compare()
+
+
+    def test_04_complete_generator_relation_refuses_unregistered_whole_sources(self):
+        current = self.sources[GENERATOR]
+        original = _restore_word_generator(current)
+        self.assertEqual(sha256(original).hexdigest(), BYTE_GENERATOR_SHA256)
+        self.assertEqual(sha256(_restore_helpers(original.decode()).encode()).hexdigest(),
+                         ORIGINAL_GENERATOR_SHA256)
+        variants = (current + b'\n', current[:-1], original, bytearray(current), None,
+                    b'X' + current[1:], current.replace(b'return word_load', b'return byte', 1))
+        for index, changed in enumerate(variants):
+            with self.subTest(variant=index), self.assertRaises(AssertionError):
+                _restore_word_generator(changed)
+        self.report['status'] = 'PASS_EXACT_SOURCE_RELATION_CONTROL'
 
 
 if __name__ == '__main__':

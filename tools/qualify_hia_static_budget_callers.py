@@ -58,7 +58,9 @@ def main():
     from hepta.hia_static_budget_native import NativeStaticBudget, SELECTOR, installed_static_budget
     image = installed_static_budget(str(manifest))
     bundle = {str(path): sha256(path.read_bytes()).hexdigest() for path in sorted(manifest.parent.rglob('*')) if path.is_file()}
-    started, stopped, entries = [], [], [0] * 5
+    # The complete original modules now also exercise their explicit v9
+    # successor case. Keep every original mode and count mode 5 separately.
+    started, stopped, entries = [], [], [0] * 6
     class Result(unittest.TextTestResult):
         def startTest(self, test):
             started.append(test.id()); super().startTest(test)
@@ -68,6 +70,8 @@ def main():
     def observed(selected, raw, mode, *args, **kwargs):
         if selected.image_sha256 != image.image_sha256:
             raise AssertionError('selected static-budget image changed')
+        if type(mode) is not int or not 0 <= mode < len(entries):
+            raise AssertionError('unreviewed static-budget observation mode')
         entries[mode] += 1
         return invoke(selected, raw, mode, *args, **kwargs)
     start = time.monotonic()
@@ -92,6 +96,8 @@ def main():
         'unexpected_successes': [test.id() for test in result.unexpectedSuccesses],
         'native_topological_calls': entries[0], 'native_function_calls': entries[1],
         'native_frame_calls': entries[2], 'native_profile_calls': entries[3], 'native_policy_calls': entries[4],
+        'native_word_profile_calls': entries[5],
+        'required_original_modes': [0, 1, 2, 3, 4], 'required_word_memory_modes': [5],
         'native_image_sha256': image.image_sha256, 'all_original_modules_unfiltered': True,
         'retained_python_resource_bodies_forbidden': True, 'source_and_bundle_unchanged': stable,
         'source_pins': before, 'bundle_pins': bundle,

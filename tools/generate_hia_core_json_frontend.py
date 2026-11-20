@@ -35,7 +35,9 @@ def render_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967291
     if shape(w, 0, fields) == 0:
         return 4294967291
-    if text_is(w, field(w, 0, K_schema), L_hepta_hia_program_v8) == 0:
+    schema = field(w, 0, K_schema)
+    version9 = text_is(w, schema, L_hepta_hia_program_v9)
+    if text_is(w, schema, L_hepta_hia_program_v8) == 0 and version9 == 0:
         return 4294967291
     module = field(w, 0, K_module)
     # Require operator selection in addition to the legacy assembly label.
@@ -53,7 +55,10 @@ def render_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             if output_profile != 0:
                 return 4294967291
     emit(o, w, L_header)
-    emit(o, w, L_hepta_hia_program_v8)
+    if version9 == 0:
+        emit(o, w, L_hepta_hia_program_v8)
+    else:
+        emit(o, w, L_hepta_hia_program_v9)
     emit(o, w, L_space)
     token(o, w, module, 0)
     emit(o, w, L_lf)
@@ -318,6 +323,7 @@ def emit(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, c:u64) -> u64:
 '''
 
 LITERALS = {'hepta_hia_program_v8':'hepta.hia.program.v8',
+ 'hepta_hia_program_v9':'hepta.hia.program.v9',
  'selfhost_elf':'selfhost_elf','selfhost_exec':'selfhost_exec',
  'exports_open':'exports(', 'header':'hia-asm.v1 ','lf':'\n','fn':'fn ',
  'open':'(','returns':') -> (','effects':') effects(','entry':') entry(',

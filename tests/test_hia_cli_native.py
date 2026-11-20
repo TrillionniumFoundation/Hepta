@@ -285,6 +285,55 @@ class CliNativeTests(unittest.TestCase):
         self.observations.append({'test': self.id(), 'calls': calls,
                                   'native_build_semantics_qualified_by_this_control': False})
 
+    def test_verified_shared_options_and_cross_field_refusals_match_reference(self):
+        prefix = ['build', str(self.folder / 'missing-verified.core.hepta'),
+                  '-o', str(self.folder / 'not-published-verified.so')]
+        tails = [
+            ['--kind', 'shared'],
+            ['--kind', 'shared', '--backend', 'auto', '--target-isa', 'sse2'],
+            ['--target-isa', 'native'],
+            ['--backend', 'native', '--kind', 'shared', '--target-isa', 'sse2'],
+            ['--kind', 'shared', '--target-isa', 'invalid'],
+            ['--kind', 'shared', '--target'],
+            ['--backend', 'selfhost', '--kind', 'shared', '--selfhost-manifest', 'compiler.json',
+             '--selfhost-manifest-sha256', 'a' * 64],
+        ]
+        for tail in tails:
+            argv = prefix + tail
+            with self.subTest(argv=argv), patch.dict(os.environ, environment(), clear=True):
+                expected = entry_outcome(argv)
+                actual = entry_outcome(argv, self.manifest)
+                self.assertEqual(actual, expected)
+                self.observations.append({'test': self.id(), 'argv': argv,
+                                          'expected': expected, 'actual': actual})
+        self.assertFalse((self.folder / 'not-published-verified.so').exists())
+
+    def test_hia_continuation_routes_verified_shared_isa_without_direct_fallback(self):
+        from tests.test_hia_agent_entry import fixture
+        import hepta.hia_verified_kernel as verified
+        import hepta.hia_program_native as direct
+        source = self.folder / 'selected-verified.core.hepta'
+        source.write_text(json.dumps(fixture()))
+        for selected in (None, 'native', 'sse2', 'avx2', 'avx512'):
+            argv = ['build', str(source), '-o', str(self.folder / 'verified.so'), '--kind', 'shared']
+            if selected is not None:
+                argv += ['--target-isa', selected]
+            calls = []
+            def observe(program, output, **options):
+                calls.append((program.sha256, output, options))
+                return {'ok': True, 'scope': 'foreign-effect-transport-control'}
+            with self.subTest(isa=selected), patch.dict(os.environ, environment(), clear=True), \
+                    patch.object(verified, 'build_verified_kernel', side_effect=observe), \
+                    patch.object(direct, 'build_program_machine', side_effect=AssertionError('direct emitter fallback')):
+                expected = entry_outcome(argv)
+                actual = entry_outcome(argv, self.manifest)
+            self.assertEqual(actual, expected)
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(calls[0], calls[1])
+            self.assertEqual(calls[1][2], {'strategy': 'auto', 'simd_isa': selected or 'native'})
+            self.observations.append({'test': self.id(), 'calls': calls,
+                                      'native_build_semantics_qualified_by_this_control': False})
+
     def test_argparse_order_abbreviation_clusters_repetition_and_sentinel(self):
         cases = [
             [], ["--version"], ["--vers"], ["--version=x"], ["--help=x"], ["-hv"], ["-hh"],
@@ -304,6 +353,9 @@ class CliNativeTests(unittest.TestCase):
             ["catalog", "--schema"], ["catalog", "--schema", "bad"],
             ["catalog", "--sch=hepta.hia.program.v2"],
             ["catalog", "--schema", "hepta.hia.program.v1", "--schema", "hepta.hia.program.v8"],
+            ["catalog", "--schema", "hepta.hia.program.v8", "--schema", "hepta.hia.program.v9"],
+            ["catalog", "--schema", "hepta.hia.program.v9", "--schema", "hepta.hia.program.v8"],
+            ["catalog", "--schema", "hepta.hia.program.v10"],
             ["build", "x"], ["build", "--help", "--backend", "bad"],
             ["build", "--backend", "bad", "--help"], ["build", "x", "-o"],
             ["build", "x", "-oone", "--output=two"], ["build", "x", "-o=-leading"],
@@ -320,6 +372,37 @@ class CliNativeTests(unittest.TestCase):
         for argv in cases:
             with self.subTest(argv=argv):
                 self.assert_parse_same(argv)
+
+    def test_catalog_latest_and_each_old_schema_preserve_word_opcode_boundary(self):
+        word_ops = {"buffer.load.u64.le", "buffer.load.u64.be",
+                    "buffer.store.u64.le", "buffer.store.u64.be"}
+        cases = [(None, 9), *[("hepta.hia.program.v" + str(version), version)
+                             for version in range(1, 10)]]
+        for schema, version in cases:
+            argv = ["catalog"] + ([] if schema is None else ["--schema", schema])
+            with self.subTest(schema=schema), patch.dict(os.environ, environment(), clear=True):
+                parsed = self.assert_parse_same(argv)
+                self.assertEqual(parsed[0][0], "namespace")
+                self.assertEqual(parsed[0][1]["schema"], "hepta.hia.program.v" + str(version))
+                expected = entry_outcome(argv)
+                actual = entry_outcome(argv, self.manifest)
+                self.assertEqual(actual, expected)
+                self.assertEqual(actual[0], ("return", 0))
+                catalog = json.loads(actual[1])
+                self.assertEqual(catalog["core_schema"], "hepta.hia.program.v" + str(version))
+                present = {item["name"] for item in catalog["instructions"]} & word_ops
+                self.assertEqual(present, word_ops if version == 9 else set())
+                self.observations.append({"test": self.id(), "argv": argv,
+                                          "expected": expected, "actual": actual})
+        argv = ["catalog", "--schema", "hepta.hia.program.v10"]
+        with patch.dict(os.environ, environment(), clear=True):
+            expected = entry_outcome(argv)
+            actual = entry_outcome(argv, self.manifest)
+            self.assertEqual(actual, expected)
+            self.assertEqual(actual[0], ("exit", 2))
+            self.assertEqual(actual[1], "")
+            self.observations.append({"test": self.id(), "argv": argv,
+                                      "expected": expected, "actual": actual})
 
     def test_help_wrapping_columns_and_exact_unicode_repr(self):
         widths = ("1", "2", "3", "18", "20", "39", "40", "80", "120",
@@ -849,6 +932,21 @@ bad=call(["verify"])
 assert bad["kind"]=="exit" and bad["code"]==2 and "required: input" in bad["stderr"] and bad["stdout"]==""
 missing=call(["verify",str(input_path.with_suffix(".missing"))])
 assert missing["kind"]=="return" and missing["code"]==2 and json.loads(missing["stdout"])["diagnostics"][0]["code"]=="E_DRIVER"
+from unittest.mock import patch
+import hepta.hia_verified_kernel as verified_kernel
+import hepta.hia_program_native as direct_native
+shared_calls=[]
+def capture_shared(program,output,**options):
+ shared_calls.append({"core_sha256":program.sha256,"output":output,"options":options})
+ return {"ok":True,"scope":"installed-foreign-effect-transport-control"}
+with patch.object(verified_kernel,"build_verified_kernel",side_effect=capture_shared),patch.object(direct_native,"build_program_machine",side_effect=AssertionError("unverified shared fallback")):
+ for isa in (None,"sse2","avx2","avx512"):
+  argv=["build",str(input_path),"-o",str(input_path.with_suffix(".so")),"--kind","shared"]
+  if isa is not None:argv += ["--target-isa",isa]
+  shared=call(argv)
+  assert shared["kind"]=="return" and shared["code"]==0 and json.loads(shared["stdout"])["ok"]
+assert [item["options"] for item in shared_calls]==[{"strategy":"auto","simd_isa":isa} for isa in ("native","sse2","avx2","avx512")]
+assert not input_path.with_suffix(".so").exists()
 refusals=[]
 def refuse(label,expected):
  before={name:len(values) for name,values in native_returns.items()}
@@ -896,6 +994,7 @@ print(json.dumps({"schema":"hepta.hia.cli-installed-execution.v1",
  "bundle_sha256":sha256(bundle_original).hexdigest(),"native_returns":native_returns,
  "console_entry_point":entries[0].value,"isolated_without_site":True,"empty_PATH":True,
  "forbidden_entries":forbidden_entries,"calls":calls,"refusals":refusals,
+ "shared_build_transport":shared_calls,"shared_build_execution_qualified_by_this_control":False,
  "sources_and_bundle_restored":True,"whole_native_delivery_qualified":False},sort_keys=True))
 '''
         try:

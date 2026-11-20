@@ -22,6 +22,16 @@ jobs:
       - run: python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
       - run: git diff --exit-code
         id: source_prerequisites
+      - name: v9 fixed-width memory independent source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python -B tools/generate_hia_catalog.py --check
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_word_memory.WordMemoryTests \
+            tests.test_hia_selfhost_immediates.ImmediateSourceTests \
+            tests.test_hia_static_budget_word_memory.StaticBudgetWordMemorySourceTests \
+            tests.test_hia_slot_word_memory.SlotWordMemorySourceTests
       - name: Slot fixed-word original and complete packet Source controls
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
@@ -258,6 +268,28 @@ jobs:
               'tests.test_hia_selfhost_cli',
               'tests.test_hia_selfhost_names',
               'tests.test_hia_reference_fixture_efficiency',
+              'tests.test_hia_observer_stream_retention.ObserverStreamRetentionSourceTests',
+              'tests.test_hia_optional_ffi_imports.OptionalForeignABISourceTests',
+              'tests.test_hia_uuid_provider_imports.UUIDProviderSourceTests',
+              'tests.test_hia_caller_terminal_readback.NativeCarrierRegistryPreparationSourceTests',
+              'tests.test_hia_service_artifact_carrier_source.ServiceArtifactCarrierSourceTests',
+              'tests.test_hia_store_delivery_carrier_source.StoreDeliveryCarrierSourceTests',
+              'tests.test_hia_service_bootstrap_uuid_source.ServiceBootstrapUUIDSourceTests',
+              'tests.test_hia_caller_diagnostics_admission',
+              'tests.test_hia_evaluation_caller_admission',
+              'tests.test_hia_delivery_diagnostic_sources.DeliveryDiagnosticSourceTests',
+              'tests.test_hia_service_bootstrap_caller_admission.ServiceBootstrapCallerAdmissionTests',
+              'tests.test_hia_service_bootstrap_caller_readback.ServiceBootstrapCallerReadbackTests',
+              'tests.test_hia_journal_installed_preparation.JournalInstalledPreparationSourceTests',
+              'tests.test_hia_journal_caller_preparation.JournalCallerPreparationSourceTests',
+              'tests.test_hia_service_context_caller_admission.ServiceContextCallerAdmissionSourceTests',
+              'tests.test_hia_service_artifact_worker_terminal',
+              'tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests',
+              'tests.test_hia_cost_context_caller_delivery_source.CostContextCallerDeliverySourceTests',
+              'tests.test_hia_delivery_journal_preparation.DeliveryJournalPreparationSourceTests',
+              'tests.test_hia_service_bootstrap_journal_preparation.ServiceBootstrapJournalPreparationTests',
+              'tests.test_hia_slot_worker_terminal.SlotWorkerTerminalSourceTests',
+              'tests.test_hia_selfhost_reference_program',
               'tests.test_hia_selfhost_returned_loans',
               'tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests',
               'tests.test_hia_selfhost_keywords.SelfhostKeywordTests',
@@ -330,6 +362,7 @@ jobs:
               'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
               'tests.test_hia_service_artifact_native.ServiceArtifactSourceTests',
               'tests.test_hia_service_artifact_local_release',
+              'tests.test_hia_service_artifact_preparation',
               'tests.test_hia_service_read_native.ServiceReadSourceTests',
               'tests.test_hia_context_protocol',
           )
@@ -403,9 +436,13 @@ jobs:
               if key.startswith(('HEPTA_HIA_', 'PYTHON')):
                   os.environ.pop(key)
           from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          # Keep all original seven methods and execute the three added v9 controls.
           expected = (
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_all_six_arithmetic_members_and_actual_derived_operation',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_all_v9_word_operations_keep_full_original_reports_and_stopped_storage',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_changed_metadata_and_machine_bindings_preserve_real_fallback',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_exact_runtime_source_successor_and_populated_cache_refuse_unlisted_bytes',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_exact_v9_word_order_sources_and_changed_live_mappings_refuse_preparation',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_49_semantics_reports_and_stopped_storage',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_complete_dynamic_bytes_decoder_selector_fallback',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_readonly_snapshot_and_fresh_entry_state',
@@ -835,6 +872,8 @@ jobs:
           path: ${{ runner.temp }}/hia-exec-release-source.log
   native:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/../rust-target
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -863,6 +902,60 @@ jobs:
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - id: worker_unknown_cold_authority
         run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: v9 fixed-width memory matching-cold cross-backend qualification
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B - <<'PY_WORD_MEMORY'
+          from hashlib import sha256
+          import json, os, subprocess, sys
+          from pathlib import Path
+          from tools.build_hia_json_preflight import admit_cold_build
+          cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
+          cold_bytes = cold.read_bytes()
+          nested = Path(json.loads(cold_bytes)['nested_report']).resolve(strict=True)
+          nested_bytes = nested.read_bytes()
+          compiler = Path(json.loads(nested_bytes)['generations'][-1]['produced_image']).resolve(strict=True)
+          compiler_bytes = compiler.read_bytes()
+          admit_cold_build(compiler_bytes, cold_bytes)
+          output = Path(os.environ['RUNNER_TEMP']) / 'hia-word-memory-v9'
+          subprocess.run([sys.executable, '-B', 'tools/qualify_hia_word_memory.py',
+                          '--compiler', str(compiler), '--clang', os.environ['HEPTA_CLANG'],
+                          '--output', str(output)], check=True)
+          report = json.loads((output / 'report.json').read_bytes())
+          if (report.get('complete') is not True
+                  or report.get('compiler_sha256') != sha256(compiler_bytes).hexdigest()
+                  or compiler.read_bytes() != compiler_bytes
+                  or cold.read_bytes() != cold_bytes or nested.read_bytes() != nested_bytes):
+              raise ValueError('v9 word-memory qualification or exact cold custody changed')
+          admit_cold_build(compiler_bytes, cold_bytes)
+          PY_WORD_MEMORY
+      - name: v9 scalar immediates and version-preserving native controls
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        env:
+          HEPTA_HIA_STATIC_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STATIC_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-static-budget-word-memory
+        run: >-
+          python -B tools/run_hia_unittest_gate.py
+          tests.test_hia_selfhost_immediates
+          tests.test_hia_selfhost_word_io.WordIONativeTests
+          tests.test_hia_core_json_frontend_native
+          tests.test_hia_static_budget_word_memory.StaticBudgetWordMemoryNativeTests
+      - name: v9 locked Rust shadow and resource controls
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        run: cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
+      - name: Preserve complete v9 word-memory raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-word-memory-v9-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-word-memory-v9/
+            ${{ runner.temp }}/hia-static-budget-word-memory/
       - name: Build matching-source HIA integer divrem
         id: vm_integer_divrem_build
         if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
@@ -1409,6 +1502,7 @@ jobs:
           set -o pipefail
           python -B tools/run_hia_unittest_gate.py \
             tests.test_hia_service_artifact_native.ServiceArtifactSourceTests \
+            tests.test_hia_service_artifact_preparation \
             tests.test_hia_service_artifact_native.ServiceArtifactNativeTests \
             2>&1 | tee "$RUNNER_TEMP/hia-service-artifact.log"
       - name: Complete original service artifact ordinary callers
@@ -3106,3 +3200,390 @@ jobs:
             ${{ runner.temp }}/hia-exec-release-native.log
             ${{ runner.temp }}/hia-exec-release-independent/
             ${{ runner.temp }}/hia-exec-release-independent.log
+
+      - name: Complete explicit v6 carrier mechanical admission and finite controls
+        if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          python -B - <<'PYCARRIERV6' 2>&1 | tee "$RUNNER_TEMP/hia-native-carriers-v6.log"
+          from hashlib import sha1, sha256
+          import json
+          import os
+          from pathlib import Path
+          import stat
+          import subprocess
+          import sys
+          import traceback
+
+          from tools.build_hia_json_preflight import admit_cold_build
+          from tools.hia_selfhost_process_owner import run_owned
+
+          root = Path.cwd().resolve()
+          output = Path(os.environ['RUNNER_TEMP']).resolve() / 'hia-native-carriers-v6'
+          if output == root or root in output.parents:
+              raise ValueError('carrier evidence must be outside the complete source tree')
+          output.mkdir(mode=0o700)
+
+          def pin(raw):
+              return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+          def save(path, value):
+              with path.open('xb') as stream:
+                  stream.write((json.dumps(value, sort_keys=True, indent=2) + '\n').encode())
+
+          def git(*args):
+              return subprocess.run(['git', '-C', str(root), *args], check=True,
+                                    capture_output=True, timeout=10).stdout
+
+          index_raw = git('ls-files', '-s', '-z')
+          head_raw, tree_raw = git('rev-parse', 'HEAD'), git('rev-parse', 'HEAD^{tree}')
+          git('diff', '--cached', '--exit-code', 'HEAD', '--')
+          tracked = []
+          for record in index_raw.split(b'\0'):
+              if not record:
+                  continue
+              metadata, name = record.split(b'\t', 1)
+              mode, blob, stage = metadata.decode().split()
+              if stage != '0' or mode not in ('100644', '100755'):
+                  raise ValueError('carrier controls require unconflicted regular tracked inputs')
+              tracked.append((name.decode(), mode, blob))
+
+          def source_inventory():
+              result = {}
+              for name, mode, blob in tracked:
+                  path = root / name
+                  if not stat.S_ISREG(path.lstat().st_mode):
+                      raise ValueError('tracked input ceased to be a regular file: ' + name)
+                  raw = path.read_bytes()
+                  actual_blob = sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
+                  if actual_blob != blob or bool(path.stat().st_mode & 0o111) != (mode == '100755'):
+                      raise ValueError('current source differs from the declared Git input: ' + name)
+                  result[name] = {**pin(raw), 'git_mode': mode, 'git_blob': blob,
+                                  'mode': stat.S_IMODE(path.stat().st_mode)}
+              return result
+
+          before = source_inventory()
+          save(output / 'source-before.json', before)
+          (output / 'git-index.raw').write_bytes(index_raw)
+          save(output / 'source-identity.json', {
+              'head': head_raw.decode().strip(), 'tree': tree_raw.decode().strip(),
+              'tracked_files': len(tracked), 'index': pin(index_raw), 'runtime': sys.version})
+          environment = {key: value for key, value in os.environ.items()
+                         if not key.startswith(('HEPTA_HIA_', 'PYTHON'))}
+          environment.update(PYTHONDONTWRITEBYTECODE='1', LC_ALL='C', PATH='/usr/bin:/bin')
+          stages, captured, failures = [], {}, []
+
+          def capture(path):
+              path = path.resolve(strict=True)
+              raw = path.read_bytes()
+              if path in captured and captured[path] != raw:
+                  raise ValueError('previously captured input changed: ' + str(path))
+              captured[path] = raw
+              return raw
+
+          def run(label, arguments):
+              directory = output / label
+              directory.mkdir(mode=0o700)
+              command = [sys.executable, '-I', '-B', *map(str, arguments)]
+              save(directory / 'command.json', {
+                  'argv': command, 'cwd': str(root), 'qualification_seconds': 60,
+                  'cleanup_seconds': 3})
+              capture(directory / 'command.json')
+              result = run_owned(command, cwd=str(root), env=environment,
+                  stdout_path=directory / 'stdout.raw', stderr_path=directory / 'stderr.raw',
+                  receipt_path=directory / 'owner.json', qualification_seconds=60,
+                  cleanup_seconds=3)
+              passed = (result.get('status') == 'OWNED_PROCESS_COMPLETED'
+                        and result.get('returncode') == 0
+                        and result.get('supervisor_returncode') == 0
+                        and result.get('cleanup', {}).get('complete') is True
+                        and result.get('cleanup', {}).get('observed_echild') is True)
+              for path in sorted(directory.iterdir()):
+                  if not stat.S_ISREG(path.lstat().st_mode):
+                      raise ValueError('command custody contains a nonregular file')
+                  capture(path)
+              owner_path = directory / 'owner.json'
+              if (owner_path not in captured
+                      or sha256(captured[owner_path]).hexdigest() != result.get('receipt_sha256')):
+                  passed = False
+              stages.append({'label': label, 'passed': passed, 'result': result})
+              print('CARRIER_V6_STAGE', label, 'PASS' if passed else 'HOLD', flush=True)
+              return passed
+
+          def check_report(relative, expected):
+              report = json.loads(capture(output / relative))
+              if any(type(report.get(key)) is not type(value) or report.get(key) != value
+                     for key, value in expected.items()):
+                  raise ValueError('complete carrier control domain differs: ' + relative)
+
+          error = None
+          try:
+              cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
+              cold_raw = capture(cold)
+              nested = Path(json.loads(cold_raw)['nested_report'])
+              nested_raw = capture(nested)
+              compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image'])
+              compiler_raw = capture(compiler)
+              admit_cold_build(compiler_raw, cold_raw)
+              if not run('build-carriers', [root / 'tools/build_hia_native_carriers.py',
+                      '--output', output / 'built-carriers', '--in-place']):
+                  raise ValueError('fresh C carrier construction did not close')
+              for name in ('_native_image_build.json', '_cell_frame_build.json',
+                           '_slot_mechanical_build.json'):
+                  receipt = json.loads(capture(root / 'hepta' / name))
+                  binary = root / 'hepta' / receipt['binary']['name']
+                  if receipt['binary'] != {'name': binary.name, **pin(capture(binary))}:
+                      raise ValueError('actual in-place carrier differs from its fresh receipt')
+                  for relative, expected in receipt['sources'].items():
+                      if pin(capture(root / relative)) != expected:
+                          raise ValueError('fresh carrier source changed')
+                  for executable, expected in receipt['compiler_executables'].items():
+                      if {'path': executable, **pin(capture(Path(executable)))} != expected:
+                          raise ValueError('actual C compiler changed')
+              if not run('build-artifact', [root / 'tools/build_hia_service_artifact.py',
+                      '--compiler', compiler, '--cold-report', cold,
+                      '--output', output / 'built-artifact']):
+                  raise ValueError('matching-source Artifact construction did not close')
+              manifest = output / 'built-artifact/manifest.json'
+              manifest_raw = capture(manifest)
+              build = json.loads(capture(output / 'built-artifact/build.json'))
+              if (build['scope'] != 'MATCHING_SOURCE_COLD_COMPONENT'
+                      or build['cold_report_sha256'] != sha256(cold_raw).hexdigest()
+                      or build['manifest'] != json.loads(manifest_raw)):
+                  raise ValueError('Artifact build lost the current cold authority')
+              capture(manifest.parent / json.loads(manifest_raw)['image_path'])
+              base = output / 'artifact-v1.json'
+              save(base, {'schema': 'hepta.hia.native-helpers.v1', 'target': 'linux-x86_64-lp64',
+                  'abi': 'hia-byte-six-argument-v1', 'helpers': [{
+                      'selector': 'HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST',
+                      'manifest_path': str(manifest),
+                      'manifest_sha256': sha256(manifest_raw).hexdigest()}]})
+              from tools.capture_hia_native_carrier_bundle import create
+              capsule = create(root / 'hepta', base, sha256(capture(base)).hexdigest(),
+                  {'native-image': sha256(capture(root / 'hepta/_native_image_build.json')).hexdigest()},
+                  output / 'artifact-v6.json')
+              capture(Path(capsule['path']))
+              save(output / 'CAPSULE.json', capsule)
+              controls = (
+                  ('mechanical5-packets134', [root / 'tests/hia_native_image_mechanical_controls.py',
+                      root, manifest, output / 'mechanical5-data'], 'mechanical5-data/development.json',
+                      {'schema': 'hepta.development.three-buffer-carrier.v1',
+                       'status': 'PASS', 'tests': 5, 'skips': 0, 'actual_packet_records': 134}),
+                  ('cell6', [root / 'tests/hia_cell_frame_mechanical_controls.py',
+                      root, output / 'cell6-data'], 'cell6-data/mechanical-r1.json',
+                      {'schema': 'hepta.development.cell-frame-mechanical.v1',
+                       'status': 'PASS', 'tests': 6, 'skips': 0}),
+                  ('admission106', [root / 'tests/hia_native_carrier_admission_controls.py',
+                      '--source', root, '--manifest', manifest, '--output', output / 'admission106-data'],
+                      'admission106-data/report.json', {'schema': 'hepta.native-carrier-admission-controls.v1',
+                      'status': 'PASS', 'tests': 6,
+                      'control_count': 106, 'original_source_and_component_stable': True}),
+                  ('full146', [root / 'tools/qualify_hia_service_artifact_carrier_finite.py',
+                      root, output / 'full146-data', manifest, capsule['path'], capsule['sha256']],
+                      'full146-data/report.json', {'schema': 'hepta.development.artifact-native-carrier-v6-full146.v1',
+                      'status': 'DEVELOPMENT_MATCH', 'original_count': 146,
+                      'repeat_count': 146, 'actual_count': 146, 'frames': 146,
+                      'current_candidate_all_files_unchanged': True,
+                      'public_and_installed_qualification': False}),
+              )
+              for label, arguments, report_name, expected in controls:
+                  destination = (output / report_name).parent
+                  if destination.exists() or root in destination.resolve().parents:
+                      raise ValueError('each carrier control needs a fresh external evidence directory')
+                  if (manifest != manifest.resolve(strict=True)
+                          or Path(capsule['path']) != Path(capsule['path']).resolve(strict=True)):
+                      raise ValueError('carrier controls require canonical input paths')
+                  if run(label, arguments):
+                      check_report(report_name, expected)
+                  else:
+                      failures.append(label)
+          except BaseException:
+              error = traceback.format_exc()
+              print(error, flush=True)
+
+          after = source_inventory()
+          git('diff', '--cached', '--exit-code', 'HEAD', '--')
+          save(output / 'source-after.json', after)
+          stable = (before == after and git('ls-files', '-s', '-z') == index_raw
+                    and git('rev-parse', 'HEAD') == head_raw and git('rev-parse', 'HEAD^{tree}') == tree_raw
+                    and all(path.read_bytes() == raw for path, raw in captured.items()))
+          save(output / 'captured-inputs.json', {str(path): pin(raw) for path, raw in captured.items()})
+          retained = output / 'captured-by-sha256'
+          retained.mkdir(mode=0o700)
+          for raw in captured.values():
+              target = retained / sha256(raw).hexdigest()
+              if target.exists():
+                  if target.read_bytes() != raw:
+                      raise ValueError('captured byte identity collision')
+              else:
+                  with target.open('xb') as stream:
+                      stream.write(raw)
+          result = {'schema': 'hepta.native-carriers-ci-finite.v1',
+              'scope': 'MATCHING_SOURCE_COLD_BUILD_MECHANICAL_AND_FINITE_CONTROLS_NOT_NATIVE8_OR_WHOLE_STACK',
+              'status': 'PASS' if not error and not failures and stable and len(stages) == 6 else 'HOLD',
+              'runtime': sys.version, 'source_and_captured_inputs_stable': stable,
+              'stages': stages, 'failed_stages': failures, 'exception': error,
+              'qualification_seconds_per_stage': 60, 'cleanup_seconds_per_stage': 3,
+              'original_domains_or_GC_policy_changed': False,
+              'whole_native_stack_qualified': False, 'public_native8_qualified': False}
+          save(output / 'RUN.json', result)
+          print('CARRIER_V6_FINAL', result['status'], flush=True)
+          raise SystemExit(0 if result['status'] == 'PASS' else 1)
+          PYCARRIERV6
+      - name: Preserve complete explicit v6 carrier controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-native-carriers-v6-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/hia-native-carriers-v6/
+            ${{ runner.temp }}/hia-native-carriers-v6.log
+
+  cold-native-transport-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install explicit native lifecycle build prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc strace
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 jsonschema==4.26.0
+      - name: Check the exact new HIA policy and retained original Source scope
+        id: cold_transport_source
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B -m tools.generate_hia_cold_native_transport
+          git diff --exit-code
+          python -B tools/generate_hia_selfhost_contract.py --check
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport.ColdNativeTransportSourceTests
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport.ColdNativeTransportLibraryPathTests
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport_controls.ColdNativeTransportControlsSourceTests
+      - name: Complete fresh-source cold with explicit native parent lifecycle
+        id: cold_transport_whole
+        if: ${{ !cancelled() && steps.cold_transport_source.outcome == 'success' }}
+        timeout-minutes: 11
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-cold-native-r3"
+          python -B tools/qualify_hia_cold_native_transport.py \
+            --scope cold --output "$RUNNER_TEMP/hia-cold-native-r3/fresh"
+      - name: Freeze actual development build binding without promoting cold HOLD
+        id: cold_transport_binding
+        if: ${{ !cancelled() && steps.cold_transport_source.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          from hashlib import sha256
+          import json, os
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'hia-cold-native-r3'
+          cold_dir = directory / 'fresh/cold.cold'
+          manifest_path = cold_dir / 'qualification.evidence/native-transport-build/manifest.json'
+          raw = manifest_path.read_bytes()
+          manifest = json.loads(raw)
+          source = (cold_dir / 'source').resolve(strict=True)
+          if Path(manifest['source_root']).resolve(strict=True) != source:
+              raise ValueError('native transport build is not from this fresh cold export')
+          if manifest['whole_native'] is not False:
+              raise ValueError('native lifecycle build cannot claim whole-native')
+          compiler = Path(manifest['compiler']['path']).resolve(strict=True)
+          compiler_raw = compiler.read_bytes()
+          if {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()} != manifest['compiler']['pin']:
+              raise ValueError('actual fresh compiler differs')
+          binding = {'manifest': str(manifest_path.resolve()), 'bytes': len(raw),
+                     'sha256': sha256(raw).hexdigest(), 'source': str(source),
+                     'compiler': str(compiler), 'whole_native': False,
+                     'scope': 'EXPLICIT_DEVELOPMENT_REGRESSION_ONLY'}
+          (directory / 'regression-binding.json').write_text(json.dumps(binding, indent=2, sort_keys=True) + '\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              for key, value in (('HCT_R3_MANIFEST', binding['manifest']),
+                                 ('HCT_R3_SOURCE', binding['source']),
+                                 ('HCT_R3_COMPILER', binding['compiler'])):
+                  if '\n' in value or '\r' in value:
+                      raise ValueError('path cannot be exported as a workflow environment value')
+                  stream.write(key + '=' + value + '\n')
+          PY
+      - name: Complete originals twice then selected original 44 and actual eight handoff controls
+        id: cold_transport_originals
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 125
+        run: |
+          set -euo pipefail
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport.py" \
+            --scope regression --manifest "$HCT_R3_MANIFEST" \
+            --linked-development-compiler "$HCT_R3_COMPILER" \
+            --output "$RUNNER_TEMP/hia-cold-native-r3/regression"
+      - name: Independently read all original regression and real FD control bytes
+        if: ${{ !cancelled() && steps.cold_transport_originals.outcome == 'success' }}
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          from hashlib import sha256
+          import json, os, subprocess, sys
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'hia-cold-native-r3'
+          binding_raw = (directory / 'regression-binding.json').read_bytes()
+          binding = json.loads(binding_raw)
+          manifest = Path(binding['manifest'])
+          before = manifest.read_bytes()
+          if len(before) != binding['bytes'] or sha256(before).hexdigest() != binding['sha256']:
+              raise ValueError('prebound manifest changed before independent consumption')
+          subprocess.run([sys.executable, '-I', '-S', '-B',
+              str(Path(binding['source']) / 'tools/read_hia_cold_native_transport.py'),
+              '--evidence', str(directory / 'regression'), '--manifest', str(manifest),
+              '--manifest-bytes', str(binding['bytes']), '--manifest-sha256', binding['sha256'],
+              '--source-root', binding['source'], '--output', str(directory / 'regression-readback.json')],
+              check=True, timeout=600)
+          if manifest.read_bytes() != before or (directory / 'regression-binding.json').read_bytes() != binding_raw:
+              raise ValueError('exact prebound inputs changed after independent consumption')
+          PY
+      - name: Complete actual REF18 reference controls and full raw readback
+        id: cold_transport_references
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_references.py" \
+            --manifest "$HCT_R3_MANIFEST" --output "$RUNNER_TEMP/hia-cold-native-r3/references"
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_references.py" \
+            --readback-only --output "$RUNNER_TEMP/hia-cold-native-r3/references" \
+            > "$RUNNER_TEMP/hia-cold-native-r3/references-readback.json"
+      - name: Complete actual FD18 constructor and terminal ownership controls
+        id: cold_transport_fd_ownership
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_fds.py" \
+            --manifest "$HCT_R3_MANIFEST" --output "$RUNNER_TEMP/hia-cold-native-r3/fd-ownership"
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_fds.py" \
+            --readback-only --output "$RUNNER_TEMP/hia-cold-native-r3/fd-ownership" \
+            > "$RUNNER_TEMP/hia-cold-native-r3/fd-ownership-readback.json"
+      - name: Complete all original CT36 controls with two originals before selected execution
+        id: cold_transport_ct36
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          cd "$HCT_R3_SOURCE"
+          export HEPTA_HIA_COLD_NATIVE_TRANSPORT_MANIFEST="$HCT_R3_MANIFEST"
+          export HEPTA_HIA_COLD_NATIVE_TRANSPORT_ALLOW_DEVELOPMENT=1
+          export HEPTA_HIA_COLD_NATIVE_TRANSPORT_CT36_EVIDENCE="$RUNNER_TEMP/hia-cold-native-r3/ct36"
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport_controls.ColdNativeTransportControlsNativeTests
+      - name: Retain all explicit native lifecycle and whole-cold raw evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-cold-native-r3-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-cold-native-r3/

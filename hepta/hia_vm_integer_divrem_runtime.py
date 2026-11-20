@@ -1,7 +1,7 @@
-"""Explicit native-div/rem factory over the unchanged original interpreter.
+"""Explicit native integer factory over the exact original or reviewed v9 interpreter.
 
-Default execute_program, _Machine, Prepared and Arithmetic source stay intact.
-Only the selected operation's div/rem body is mechanically replaced. The loop,
+This adapter leaves default execute_program, _Machine, Prepared and Arithmetic intact.
+Only each selected integer operation body is mechanically replaced. The loop,
 all other operations, ticks, resource transitions, validation and report body
 are compiled from the admitted original source, not reimplemented here.
 
@@ -15,7 +15,7 @@ import copy
 from hashlib import sha256
 from struct import pack as _ieee_pack
 import sys
-from types import CodeType, FunctionType
+from types import CodeType, FunctionType, MappingProxyType
 import weakref
 
 from . import hia_program_runtime as original
@@ -25,6 +25,65 @@ from .hia_native_delivery import check_current
 from .hia_vm_integer_divrem_native import NativeDivRemBinding, NativeDivRemUnknown, _input_path
 
 RUNTIME_SHA256 = "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56"
+V9_RUNTIME_SHA256 = "db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0"
+_V9_IMPORT = "from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES, validate_execution_observation\n"
+_ORIGINAL_IMPORT = "from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation\n"
+_V9_WORD_BRANCH = """        elif op in WORD_LOADS or op in WORD_STORES:
+            owner, index = _underlying(args[0]), args[1]
+            if op in WORD_STORES and (not isinstance(args[0], _View) or not args[0].mutable):
+                raise HIAProgramRejected("word store through non-mutable view", "E_HIA_RUNTIME_INVARIANT")
+            extent = len(owner.data)
+            # The complete fixed-width range is checked before any memory
+            # access. In particular subtraction cannot underflow and no short
+            # store may modify a prefix before trapping.
+            if index > extent or 8 > extent - index:
+                raise HIAProgramTrap("bounds", "u64 word outside the borrowed buffer")
+            if op in WORD_LOADS:
+                result = [int.from_bytes(owner.data[index:index + 8], WORD_LOADS[op])]
+            else:
+                owner.data[index:index + 8] = args[2].to_bytes(8, WORD_STORES[op])
+"""
+
+def _retained_runtime_source(raw):
+    """Admit the exact original, or invert only the independently pinned v9 delta.
+
+    The inverse is an admission proof, never an executed replacement runtime.
+    Derivation below still compiles the actual current complete source, including
+    every unselected word operation, then proves all selected-body inverses.
+    """
+    if type(raw) is not bytes:
+        raise ValueError("runtime source must be exact bytes")
+    digest = sha256(raw).hexdigest()
+    if digest == RUNTIME_SHA256:
+        return raw
+    if digest != V9_RUNTIME_SHA256:
+        raise ValueError("native integer runtime exceeds the pinned original/v9 sources")
+    incoming, previous, branch = (_V9_IMPORT.encode(), _ORIGINAL_IMPORT.encode(),
+                                  _V9_WORD_BRANCH.encode())
+    if raw.count(incoming) != 1 or raw.count(branch) != 1:
+        raise ValueError("pinned v9 runtime delta is not unique")
+    restored = raw.replace(incoming, previous).replace(branch, b"")
+    if sha256(restored).hexdigest() != RUNTIME_SHA256:
+        raise ValueError("v9 runtime inverse differs from the complete ce39 original")
+    return restored
+
+
+def _word_order_state(raw):
+    if sha256(raw).hexdigest() != V9_RUNTIME_SHA256:
+        return ()
+    expected = (
+        ("WORD_LOADS", (("buffer.load.u64.le", "little"), ("buffer.load.u64.be", "big"))),
+        ("WORD_STORES", (("buffer.store.u64.le", "little"), ("buffer.store.u64.be", "big"))),
+    )
+    rows = []
+    for name, items in expected:
+        mapping = getattr(original, name, None)
+        if type(mapping) is not MappingProxyType or tuple(mapping.items()) != items:
+            raise ValueError("live v9 runtime byte-order mapping differs: " + name)
+        rows.append((name, mapping, items))
+    return tuple(rows)
+
+
 _DIV_TEST = 'op in {"int.div.checked", "int.rem.checked"}'
 _DIV_BODY = """a, b = args
 _native_status, _native_value = _hia_evaluate(self, op, typ, a, b)
@@ -155,6 +214,7 @@ def _derive(raw, factory, *, integer_arithmetic=False, integer_scalar=False):
         raise ValueError("derived integer arithmetic profile must be explicit")
     if type(integer_scalar) is not bool or integer_scalar and not integer_arithmetic:
         raise ValueError("derived scalar profile requires the complete integer arithmetic profile")
+    _retained_runtime_source(raw)
     tree = ast.parse(raw)
     machine = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "_Machine")
     operations = [n for n in machine.body if isinstance(n, ast.FunctionDef) and n.name == "operation"]
@@ -275,7 +335,7 @@ def _derive(raw, factory, *, integer_arithmetic=False, integer_scalar=False):
     outer.body = [container, execute]
     futures = [n for n in tree.body if isinstance(n, ast.ImportFrom) and n.module == "__future__"]
     unit = ast.fix_missing_locations(ast.Module(body=futures + [outer], type_ignores=[]))
-    compiled = compile(unit, "<hia-divrem-derived:" + RUNTIME_SHA256 + ">", "exec",
+    compiled = compile(unit, "<hia-divrem-derived:" + sha256(raw).hexdigest() + ">", "exec",
                        dont_inherit=True, optimize=sys.flags.optimize)
     environment = {"_hia_evaluate": factory.evaluate, "_hia_guard": factory.guard,
                    "_hia_factory": factory}
@@ -305,8 +365,8 @@ class _Factory:
         self._protocol_identity = binding._protocol
         self.source_path = _input_path("hepta/hia_program_runtime.py")
         raw = regular_bytes(self.source_path, 1 << 20)
-        if sha256(raw).hexdigest() != RUNTIME_SHA256:
-            raise ValueError("native div/rem requires the exact retained runtime source")
+        _retained_runtime_source(raw)
+        self.word_orders = _word_order_state(raw)
         self.raw = raw
         self.base_type = original._Machine
         self.base_namespace = tuple(vars(self.base_type).items())
@@ -359,6 +419,8 @@ class _Factory:
         if (self.binding is not self._binding_identity
                 or self.binding._protocol is not self._protocol_identity
                 or original._Machine is not self.base_type
+                or any(type(mapping) is not MappingProxyType or tuple(mapping.items()) != items
+                       for _name, mapping, items in self.word_orders)
                 or any(fn is not stamp[0] for fn, stamp in zip(
                     (self.operation, self.invoke, self.execute), self.derived_stamps))
                 or tuple(original.__dict__) != tuple(name for name, _ in self.namespace)

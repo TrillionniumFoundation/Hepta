@@ -16,7 +16,6 @@ from pathlib import Path
 import sqlite3
 import stat
 import threading
-import uuid
 import re
 
 from .hia_program_tools import bounded_json_wire
@@ -26,6 +25,31 @@ from .hia_native_delivery import (resource_scope as _store_resource_scope,
 
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
+
+
+_UUID_PROVIDER_BOUND = False
+
+
+def _ensure_uuid():
+    """Bind the real identifier provider once, respecting explicit replacements."""
+    global uuid, _UUID_PROVIDER_BOUND
+    if not _UUID_PROVIDER_BOUND:
+        if 'uuid' not in globals():
+            import uuid as selected
+            if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+                raise RuntimeError('identifier uuid import is still active')
+            # Import hooks may have deliberately supplied a provider while the
+            # real import was in progress. Do not overwrite that actual binding.
+            if 'uuid' not in globals():
+                uuid = selected
+        _UUID_PROVIDER_BOUND = True
+    return uuid
+
+
+def __getattr__(name):
+    if name == 'uuid' and not _UUID_PROVIDER_BOUND:
+        return _ensure_uuid()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class AgentRejected(ValueError):
@@ -419,6 +443,7 @@ class AgentStore:
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 1,
                                               self, (data, kind, metadata)).finish()
         with _store_resource_scope(self):
+            _ensure_uuid()
             return _STORE_ARTIFACT_PROFILE_REFERENCES['put'](self, data, kind, metadata)
 
     def _put_reference(self, data, kind, metadata=None):

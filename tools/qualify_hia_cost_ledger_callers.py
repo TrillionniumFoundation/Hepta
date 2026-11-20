@@ -24,6 +24,79 @@ FIXTURE_NAME = 'tests/fixtures/cost_ledger_callers_b569c210.json'
 FIXTURE_SHA256 = '18a7328a337344cc1f64c7df4d7487b7e94cb48d110fa4d70b5b947fcb538d1a'
 
 
+_DIAGNOSTICS_CALLER = 'tests/test_hia_agent_native_tools.py'
+_DIAGNOSTICS_HELPER = 'tests/hia_caller_diagnostics_admission.py'
+_DIAGNOSTICS_HELPER_PIN = {'bytes': 5185, 'sha256': '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578'}
+_DIAGNOSTICS_AUTHORITY = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_DIAGNOSTICS_AUTHORITY_PIN = {'bytes': 3545, 'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c'}
+
+
+def _source_pin(raw):
+    return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+
+def _admit_diagnostic_source(capture, name, raw, original_digest):
+    if name != _DIAGNOSTICS_CALLER:
+        raise ValueError('an original complete caller module changed: ' + name)
+    helper, authority = capture(_DIAGNOSTICS_HELPER), capture(_DIAGNOSTICS_AUTHORITY)
+    if (_source_pin(helper) != _DIAGNOSTICS_HELPER_PIN
+            or _source_pin(authority) != _DIAGNOSTICS_AUTHORITY_PIN):
+        raise ValueError('caller diagnostic source authority changed')
+    from tests import hia_caller_diagnostics_admission as diagnostic
+    if Path(diagnostic.__file__).read_bytes() != helper:
+        raise ValueError('caller imported a different diagnostic admission')
+    return diagnostic.admit(name, raw, original_digest, authority)
+
+
+def bind_admission_to_source_capture(proof, source_digests):
+    for name, expected in proof['captured_files'].items():
+        if source_digests.get(name) != expected['sha256']:
+            raise ValueError('caller admission differs from actual source capture: ' + name)
+
+
+
+def admit_original_callers(root):
+    """Keep the original seven modules/81 IDs with one exact diagnostic relation."""
+    root, captured = Path(root), {}
+
+    def capture(name):
+        raw = (root / name).read_bytes()
+        if name in captured and captured[name] != raw:
+            raise ValueError('cost caller source changed between captures: ' + name)
+        captured[name] = raw
+        return raw
+
+    fixture_bytes = capture(FIXTURE_NAME)
+    if sha256(fixture_bytes).hexdigest() != FIXTURE_SHA256:
+        raise ValueError('original cost-ledger caller inventory changed')
+    original = json.loads(fixture_bytes)
+    modules = original['modules']
+    caller_files = {name.replace('.', '/') + '.py' for name in modules}
+    if (original.get('schema') != 'hepta.hia.cost-ledger-original-callers.v1'
+            or len(modules) != 7 or len(original['ordered_ids']) != 81):
+        raise ValueError('the seven ordinary original caller modules differ')
+    diagnostics = {}
+    for name in sorted(caller_files):
+        raw = capture(name)
+        digest = original['original_source_sha256'][name]
+        if sha256(raw).hexdigest() != digest:
+            diagnostics[name] = _admit_diagnostic_source(capture, name, raw, digest)
+    for name, raw in captured.items():
+        if (root / name).read_bytes() != raw:
+            raise ValueError('cost caller captured bytes changed: ' + name)
+    return original, {
+        'schema': 'hepta.hia.cost-ledger-caller-source-admission.v1',
+        'authority': {'path': FIXTURE_NAME, **_source_pin(fixture_bytes)},
+        'original_files': {name: original['original_source_sha256'][name]
+                           for name in sorted(caller_files)},
+        'original_modules': list(modules), 'original_ordered_ids': list(original['ordered_ids']),
+        'reviewed_diagnostic_source_adjustments': diagnostics,
+        'captured_files': {name: _source_pin(raw) for name, raw in captured.items()},
+        'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [], 'whole_native': False,
+    }
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     choice=parser.add_mutually_exclusive_group(required=True)
@@ -34,22 +107,16 @@ def main():
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.hia_selfhost_contract import file_digests
     from tools.build_hia_cost_ledger import INPUTS
-    raw=(ROOT/FIXTURE_NAME).read_bytes()
-    if sha256(raw).hexdigest()!=FIXTURE_SHA256: raise ValueError('original cost-ledger caller inventory changed')
-    original=json.loads(raw)
+    original,source_admission=admit_original_callers(ROOT)
     modules=original['modules']
     caller_files={name.replace('.','/')+'.py' for name in modules}
-    if (original.get('schema')!='hepta.hia.cost-ledger-original-callers.v1' or len(modules)!=7
-            or len(original['ordered_ids'])!=81
-            or any(sha256((ROOT/name).read_bytes()).hexdigest()!=original['original_source_sha256'][name]
-                   for name in caller_files)):
-        raise ValueError('the seven ordinary original caller modules differ')
     suite,planned=load_declared_suite(modules);planned=list(planned)
     if planned!=original['ordered_ids']: raise ValueError('original complete 81-method caller inventory differs')
     def source_pins():
         return {**file_digests(),**{name:sha256((ROOT/name).read_bytes()).hexdigest()
-                                   for name in (*INPUTS,*sorted(caller_files))}}
+                                   for name in (*INPUTS,*sorted(caller_files),*source_admission['captured_files'])}}
     before=source_pins()
+    bind_admission_to_source_capture(source_admission,before)
     args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
     if args.cold_report is not None:
         from tools.build_hia_cost_ledger import build
@@ -89,7 +156,9 @@ def main():
         stack.enter_context(patch.object(image,'_entry',counted_entry))
         with (args.evidence/'tests.log').open('x') as stream:
             result=unittest.TextTestRunner(stream=stream,verbosity=2,resultclass=Result).run(suite)
-    stable=source_pins()==before and all(sha256(Path(name).read_bytes()).hexdigest()==digest for name,digest in bundle.items())
+    after=source_pins()
+    bind_admission_to_source_capture(source_admission,after)
+    stable=after==before and all(sha256(Path(name).read_bytes()).hexdigest()==digest for name,digest in bundle.items())
     anomalies=('errors','failures','skipped','expectedFailures','unexpectedSuccesses')
     clean=result.wasSuccessful() and all(not getattr(result,name) for name in anomalies)
     passed=clean and stable and started==stopped==planned and result.testsRun==81 and not reference_calls and frames[0]>0 and entries['10']>0 and entries['11']>0
@@ -103,7 +172,8 @@ def main():
         'reference_calls':reference_calls,'retained_ledger_body_forbidden':True,
         'reference_poison_scope':'test process; subprocesses inherit selector, not Python patches',
         'all_seven_ordinary_modules_unfiltered':True,'original_test_budgets_changed':False,
-        'source_and_bundle_unchanged':stable,'source_pins':before,'bundle_pins':bundle,
+        'source_and_bundle_unchanged':stable,'source_pins':before,'source_after':after,
+        'caller_source_admission':source_admission,'bundle_pins':bundle,
         'separate_original_administrator_scope_gates':original['explicit_scope_integration_modules'],
         'whole_project_dynamic_caller_closure_claimed':False,'whole_native_delivery_qualified':False}
     (args.evidence/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')

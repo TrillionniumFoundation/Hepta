@@ -30,7 +30,7 @@ def sources():
             builder=Builder(node,names,signatures);builder.statements(node.body)
             functions.append(dict(name=names[node.name],params=[builder.param(p) for p in builder.params],
                 returns=[builder.returns],effects=['read','write','trap'],entry='b0',blocks=builder.blocks))
-        doc=dict(schema='hepta.hia.program.v8',module='graph_probe',functions=functions)
+        doc=dict(schema='hepta.hia.program.v9',module='graph_probe',functions=functions)
         result[label]=render_assembly(compact_authoring_cfg(doc)).encode()
     return result
 

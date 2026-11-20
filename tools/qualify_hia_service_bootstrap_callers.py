@@ -30,6 +30,171 @@ CLOSED_ADMINISTRATOR_IDS={
 def canonical(value):
     return json.dumps(value,ensure_ascii=True,sort_keys=True,separators=(',',':')).encode()
 
+_DIAGNOSTICS_SOURCE = 'tests/hia_caller_diagnostics_admission.py'
+_DIAGNOSTICS_SOURCE_PIN = {
+    'bytes': 5185,
+    'sha256': '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578',
+}
+_DIAGNOSTICS_FIXTURE = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_DIAGNOSTICS_FIXTURE_PIN = {
+    'bytes': 3545,
+    'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c',
+}
+_DIAGNOSTICS_CALLER = 'tests/test_hia_agent_native_tools.py'
+_JOURNAL_CALLER = 'tests/test_hia_agent_journal_native.py'
+_JOURNAL_HELPER = 'tests/hia_journal_installed_preparation.py'
+_JOURNAL_HELPER_PIN = {
+    'bytes': 15935,
+    'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797',
+}
+_JOURNAL_FIXTURE = 'tests/fixtures/journal_installed_preparation_v2.json'
+_JOURNAL_FIXTURE_PIN = {
+    'bytes': 14729,
+    'sha256': '81914ecb2bef21e9c641282dc8530158146ecadd4b86e8e4e6b3f83e71b73e7b',
+}
+_JOURNAL_ARCHIVE = 'tests/fixtures/journal_installed_preparation_v1.py.txt'
+_JOURNAL_ORIGINAL = {
+    'bytes': 48482,
+    'sha256': 'a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077',
+}
+_JOURNAL_CURRENT = {
+    'bytes': 48798,
+    'sha256': '7d5cebde72523ade809346a30916a48611e18a157230b4f2f6129c0d16b8715c',
+}
+
+
+def _restore_journal_packaging_helper(raw):
+    """Read the exact whole helper relation; no old source is executed."""
+    if type(raw) is not bytes:
+        raise ValueError('Journal packaging helper requires immutable complete bytes')
+    actual = {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+    original_pin = {'bytes': 15935, 'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797'}
+    current_pin = {'bytes': 18544, 'sha256': 'c42cb2fd0a0a6040cda6bc203d284e4bd0d5f6c7c2e76f71c50ba2113ee37aa4'}
+    if actual == original_pin:
+        return raw
+    if actual != current_pin:
+        raise ValueError('Journal packaging helper is not an exact reviewed source')
+    pieces = (
+        (9689, 9689, b'\n\ndef prepare_resources(root, original_resources):\n', b'\n\ndef _admit_package_policy(name, raw, expected):\n    """Accept the original policy or the exact extension-only v6 successor.\n\n    The 176 Agent, 17 capture and three integer resources are unchanged.\n    This is a whole-source inverse and replay, never a policy pin refresh.\n    """\n    if encoded(pin(raw)) == encoded(expected):\n        return\n    if (name != \'setup.py\' or encoded(expected) != encoded({\'bytes\': 4839, \'sha256\': \'be518d19561790ca7c07f54c70a3d98899b460ff717ca3d93c381cdbb5a2c89f\'})\n            or pin(raw) != {\'bytes\': 5398, \'sha256\': \'dbd27976a0d5e411da4c3affee239f66af03fcde22651237987b7a64acf330a8\'}):\n        raise ValueError(\'Journal current package policy changed: \' + name)\n    pieces = (\n        (873, 873, b\'ROOT=Path(__file__).resolve().parent\\n\', b\'_image_spec = spec_from_file_location(\\n    \\\'_hepta_native_carrier_build\\\', Path(__file__).resolve().parent / \\\'hepta/native/native_carrier_build.py\\\')\\n_image_build = module_from_spec(_image_spec)\\n_image_spec.loader.exec_module(_image_build)\\n\\nclass AllMechanicalBuildExt(_image_build.NativeCarrierBuildExt, MechanicalBuildExt):\\n    """Independent exact receipts; each original builder handles only its ABI."""\\n    pass\\n\\nROOT=Path(__file__).resolve().parent\\n\'),\n        (4632, 5048, b"setup(cmdclass={\'build_py\':AgentResourceBuild, \'build_ext\':MechanicalBuildExt},\\n      ext_modules=extensions(),\\n      package_data={\'hepta\': [\'native/slot_mechanical.c\', \'native/slot_mechanical_build.py\']})\\n", b"setup(cmdclass={\'build_py\':AgentResourceBuild, \'build_ext\':AllMechanicalBuildExt},\\n      ext_modules=extensions() + _image_build.extensions(),\\n      package_data={\'hepta\': [\'native/slot_mechanical.c\', \'native/slot_mechanical_build.py\',\\n                              \'native/native_image.c\', \'native/cell_frame.c\', \'native/native_carrier_build.py\']})\\n"),\n    )\n    original = raw\n    for old_at, new_at, before, after in reversed(pieces):\n        if original[new_at:new_at + len(after)] != after:\n            raise ValueError(\'Journal native-carrier setup inverse differs\')\n        original = original[:new_at] + before + original[new_at + len(after):]\n    if encoded(pin(original)) != encoded(expected):\n        raise ValueError(\'Journal native-carrier setup whole original differs\')\n    replay = original\n    for old_at, new_at, before, after in reversed(pieces):\n        if replay[old_at:old_at + len(before)] != before:\n            raise ValueError(\'Journal native-carrier setup replay segment differs\')\n        replay = replay[:old_at] + after + replay[old_at + len(before):]\n    if replay != raw:\n        raise ValueError(\'Journal native-carrier setup whole replay differs\')\n\n\n\ndef prepare_resources(root, original_resources):\n'),
+        (10254, 12925, b"        if pin(_read(root, name, captured)) != expected:\n            raise ValueError('Journal current package policy changed: ' + name)\n", b'        _admit_package_policy(name, _read(root, name, captured), expected)\n'),
+    )
+    original = raw
+    for old_at, new_at, old, new in reversed(pieces):
+        if original[new_at:new_at + len(new)] != new:
+            raise ValueError('Journal packaging helper inverse splice differs')
+        original = original[:new_at] + old + original[new_at + len(new):]
+    if {'bytes': len(original), 'sha256': sha256(original).hexdigest()} != original_pin:
+        raise ValueError('Journal packaging helper did not restore its whole original')
+    replay = original
+    for old_at, new_at, old, new in reversed(pieces):
+        if replay[old_at:old_at + len(old)] != old:
+            raise ValueError('Journal packaging helper forward splice differs')
+        replay = replay[:old_at] + new + replay[old_at + len(old):]
+    if replay != raw:
+        raise ValueError('Journal packaging helper whole forward replay differs')
+    return original
+
+
+
+def _source_pin(raw):
+    return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+
+def admit_original_scope(root, scope_name):
+    """Read one complete fixed scope and its exact reviewed source successors.
+
+    The reconstructed historical test is data only. The caller still loads the
+    complete current modules, and the original ordered IDs and budgets remain
+    authoritative. Every consumed input is reread before admission returns.
+    """
+    if type(scope_name) is not str or scope_name not in ('ordinary', 'journal', 'context'):
+        raise ValueError('unknown original bootstrap caller scope')
+    root = Path(root)
+    captured = {}
+
+    def capture(name):
+        if name in captured:
+            raise ValueError('duplicate bootstrap caller source consumption: ' + name)
+        raw = (root / name).read_bytes()
+        captured[name] = raw
+        return raw
+
+    frozen = capture(FIXTURE)
+    if sha256(frozen).hexdigest() != FIXTURE_SHA256:
+        raise ValueError('caller scope bytes differ')
+    scope = json.loads(frozen)['scopes'][scope_name]
+    adjustments = {}
+    journal_adjustments = {}
+    for name, expected in scope['files'].items():
+        raw = capture(name)
+        if _source_pin(raw) == expected:
+            continue
+        if name == _JOURNAL_CALLER:
+            if (scope_name != 'journal' or expected != _JOURNAL_ORIGINAL
+                    or _source_pin(raw) != _JOURNAL_CURRENT):
+                raise ValueError('bootstrap Journal original scope differs')
+            helper = capture(_JOURNAL_HELPER)
+            provenance = capture(_JOURNAL_FIXTURE)
+            archive = capture(_JOURNAL_ARCHIVE)
+            if (_source_pin(_restore_journal_packaging_helper(helper)) != _JOURNAL_HELPER_PIN
+                    or _source_pin(provenance) != _JOURNAL_FIXTURE_PIN
+                    or _source_pin(archive) != _JOURNAL_ORIGINAL):
+                raise ValueError('bootstrap Journal preparation authority changed')
+            from tests import hia_journal_installed_preparation as preparation
+            if Path(preparation.__file__).read_bytes() != helper:
+                raise ValueError('bootstrap imported a different Journal preparation')
+            detail = preparation.admit_source(root, name, raw, expected)
+            actual = {item: _source_pin(captured[item]) for item in
+                      (_JOURNAL_CALLER, _JOURNAL_HELPER, _JOURNAL_FIXTURE, _JOURNAL_ARCHIVE)}
+            if (canonical(detail['captured_files']) != canonical(actual)
+                    or detail['original_method_ids'] != scope['ordered_ids']):
+                raise ValueError('bootstrap Journal source admission differs from captured scope')
+            journal_adjustments[name] = detail
+            continue
+        if name != _DIAGNOSTICS_CALLER:
+            raise ValueError('an original complete caller module changed: ' + name)
+        helper = capture(_DIAGNOSTICS_SOURCE)
+        provenance = capture(_DIAGNOSTICS_FIXTURE)
+        if (_source_pin(helper) != _DIAGNOSTICS_SOURCE_PIN
+                or _source_pin(provenance) != _DIAGNOSTICS_FIXTURE_PIN):
+            raise ValueError('bootstrap caller diagnostic authority changed')
+        from tests import hia_caller_diagnostics_admission as diagnostics
+        if Path(diagnostics.__file__).read_bytes() != helper:
+            raise ValueError('bootstrap caller imported a different diagnostic admission')
+        if expected != diagnostics.ORIGINAL:
+            raise ValueError('bootstrap caller diagnostic original identity differs')
+        adjustments[name] = diagnostics.admit(
+            name, raw, expected['sha256'], provenance)
+    for name, raw in captured.items():
+        if (root / name).read_bytes() != raw:
+            raise ValueError('bootstrap caller captured bytes changed: ' + name)
+    proof = {
+        'schema': 'hepta.hia.service-bootstrap-caller-source-admission.v1',
+        'scope': scope_name,
+        'authority': {'path': FIXTURE, **_source_pin(frozen)},
+        'original_files': dict(scope['files']),
+        'original_modules': list(scope['modules']),
+        'original_ordered_ids': list(scope['ordered_ids']),
+        'original_outer_seconds': scope['outer_seconds'],
+        'reviewed_diagnostic_source_adjustments': adjustments,
+        'captured_files': {name: _source_pin(raw) for name, raw in captured.items()},
+        'terminal_reread_identical': True,
+        'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [],
+        'whole_native': False,
+    }
+    if journal_adjustments:
+        proof['reviewed_journal_installed_preparation_source_adjustments'] = journal_adjustments
+    return scope, proof
+
+
+def bind_scope_admission_to_source_capture(proof, source_digests):
+    """Close the interval between source admission and the whole-source seal."""
+    for name, expected in proof['captured_files'].items():
+        if source_digests.get(name) != expected['sha256']:
+            raise ValueError('bootstrap caller admission differs from source capture: ' + name)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scope',choices=('ordinary','journal','context'),required=True)
@@ -45,16 +210,16 @@ def main():
         raise ValueError('DEV caller scope requires its declared same-compiler image; cold is exclusive')
     raw=(ROOT/FIXTURE).read_bytes()
     if sha256(raw).hexdigest()!=FIXTURE_SHA256:raise ValueError('caller scope bytes differ')
-    fixture=json.loads(raw);scope=fixture['scopes'][args.scope]
-    for name,pin in scope['files'].items():
-        if sha256((ROOT/name).read_bytes()).hexdigest()!=pin['sha256']:
-            raise ValueError('an original complete caller module changed: '+name)
+    scope,source_admission=admit_original_scope(ROOT,args.scope)
+    if scope!=json.loads(raw)['scopes'][args.scope]:
+        raise ValueError('admitted Bootstrap scope differs from the original inventory')
     from tools.hia_selfhost_contract import file_digests
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.build_hia_service_bootstrap import build
     from hepta import hia_agent_service as api,hia_service_bootstrap_native as native
     # The explicit import below is kept separate from corpus discovery.
     before=file_digests()
+    bind_scope_admission_to_source_capture(source_admission,before)
     args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
     if args.cold_report is not None:
         outer=json.loads(args.cold_report.read_bytes());nested=json.loads(Path(outer['nested_report']).read_bytes())
@@ -204,6 +369,7 @@ def main():
         'selection_boundary_errors':boundary_errors,'closed_administrator_artifacts':administrator_artifacts,
         'old_administrator_bundle_enlarged':False,'all_original_methods_claimed_bootstrap_selected':False,
         'source_before':before,'source_after':after,'source_unchanged':stable,
+        'caller_source_admission':source_admission,
         'manifest_path':str(manifest),'manifest_sha256':sha256(manifest_raw).hexdigest(),
         'actual_image_sha256':image.image_sha256,'compiler_sha256':sha256(compiler_raw).hexdigest(),
         'elapsed_seconds':time.monotonic()-began,'outer_budget_seconds':scope['outer_seconds'],

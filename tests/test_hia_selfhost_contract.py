@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+import ast
 import json
 from pathlib import Path
 import platform
@@ -12,6 +13,32 @@ import unittest
 from tools.hia_selfhost_contract import (CONTRACT_PATH, PROFILE, ROOT,
                                        validate_contract)
 from tools.replay_hia_selfhost_cold import cold_replay
+
+
+# Retained complete registry counter before the flat literal fast path.
+def _retained_native_worker_helper_count(root):
+    path = Path(root) / 'hepta/hia_native_helpers.py'
+    declarations = [
+        node for node in ast.parse(path.read_bytes(), filename=str(path)).body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == 'HELPERS'
+                for target in node.targets)
+    ]
+    if (len(declarations) != 1 or len(declarations[0].targets) != 1
+            or not isinstance(declarations[0].value, ast.Dict)):
+        raise ValueError('native helper registry must have one literal HELPERS declaration')
+    table = declarations[0].value
+    helpers = ast.literal_eval(table)
+    if (type(helpers) is not dict or len(helpers) != len(table.keys)
+            or any(type(selector) is not str
+                   or not selector.startswith('HEPTA_HIA_')
+                   or not selector.endswith('_MANIFEST')
+                   or type(contract) is not tuple or len(contract) != 2
+                   or any(type(name) is not str or not name.isidentifier()
+                          for name in contract)
+                   for selector, contract in helpers.items())):
+        raise ValueError('native helper registry has duplicate or invalid literal contracts')
+    return len(helpers)
 
 
 class SelfhostContractTests(unittest.TestCase):
@@ -44,6 +71,7 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertEqual(contract["target"]["triple"], "x86_64-unknown-linux-gnu")
         self.assertEqual(contract["abi"]["entry"], "f0")
         files = contract["source_identity"]["files"]
+        self.assertIn("tools/generate_hia_catalog.py", files)
         for path in (ROOT / "hepta").rglob("*.py"):
             self.assertEqual(files[path.relative_to(ROOT).as_posix()], sha256(path.read_bytes()).hexdigest())
         self.assertFalse(contract["claims"]["whole_HIA_language_self_hosted"])
@@ -78,6 +106,57 @@ class SelfhostContractTests(unittest.TestCase):
         for path in ("tools/hia_selfhost_owned_elf.py", "tools/hia_selfhost_owned_elf_cases.py",
                      "tools/qualify_hia_selfhost_owned_elf.py"):
             self.assertIn(path, files)
+
+    def test_matching_cold_builder_inputs_are_in_actual_source_identity(self):
+        import ast
+        import importlib
+
+        declared = validate_contract()["source_identity"]["files"]
+        covered = set()
+        for path in sorted((ROOT / "tools").glob("build_hia*.py")):
+            raw = path.read_bytes()
+            tree = ast.parse(raw, filename=str(path))
+            admission_names = {
+                alias.asname or alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom)
+                and node.module == "tools.build_hia_json_preflight"
+                for alias in node.names if alias.name == "admit_cold_build"
+            }
+            calls_cold_admission = any(
+                isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in admission_names for node in ast.walk(tree))
+            declares_inputs = any(
+                (isinstance(node, ast.Assign) and any(
+                    isinstance(target, ast.Name) and target.id == "INPUTS"
+                    for target in node.targets))
+                or (isinstance(node, ast.AnnAssign)
+                    and isinstance(node.target, ast.Name) and node.target.id == "INPUTS")
+                for node in tree.body)
+            if not calls_cold_admission or not declares_inputs:
+                continue
+            name = path.relative_to(ROOT).as_posix()
+            covered.add(name)
+            with self.subTest(builder=name):
+                self.assertEqual(declared.get(name), sha256(raw).hexdigest())
+                # Read the same complete tuple the builder uses, including
+                # imported component tuples and expanded fixture paths.
+                # Importing declarations does not call a builder or compiler.
+                module = importlib.import_module("tools." + path.stem)
+                self.assertEqual(Path(module.__file__).resolve(), path.resolve())
+                self.assertIs(type(module.INPUTS), tuple)
+                self.assertTrue(module.INPUTS)
+                for filename in module.INPUTS:
+                    with self.subTest(builder=name, input=filename):
+                        self.assertIs(type(filename), str)
+                        self.assertEqual(
+                            declared.get(filename),
+                            sha256((ROOT / filename).read_bytes()).hexdigest())
+        self.assertTrue({
+            "tools/build_hia_vm_integer_divrem.py",
+            "tools/build_hia_vm_integer_arithmetic.py",
+            "tools/build_hia_vm_integer_scalar.py",
+        }.issubset(covered), covered)
 
     def test_capacity_growth_preserves_workspace_and_core_byte_limits(self):
         from hepta.hia_program import MAX_BYTES, MAX_NODES
@@ -151,6 +230,89 @@ class SelfhostContractTests(unittest.TestCase):
             self.assertFalse((root / "absent.json").exists())
             self.assertEqual(list(actual.iterdir()), [])
             self.assertFalse((root / "missing").exists())
+
+
+    def test_flat_native_helper_registry_keeps_current_literals_without_recursive_eval(self):
+        from unittest.mock import patch
+        from tools.hia_selfhost_contract import _native_worker_helper_count
+        expected = _retained_native_worker_helper_count(ROOT)
+        self.assertGreater(expected, 0)
+        # Poison the old recursive evaluator only for the new actual path.
+        # The complete live registry, including all its current declarations,
+        # still must be read and admitted; no stored count substitutes for it.
+        with patch.object(ast, 'literal_eval', side_effect=AssertionError('recursive evaluator entered')):
+            self.assertEqual(_native_worker_helper_count(ROOT), expected)
+
+    def test_flat_native_helper_registry_preserves_original_literal_and_refusal_domain(self):
+        from tools.hia_selfhost_contract import _native_worker_helper_count
+        values = [
+            "{}", "{'HEPTA_HIA_X_MANIFEST': ('module', 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('mod' 'ule', 'Factory')}",
+            "{'HEPTA_HIA_Ω_MANIFEST': ('δοκιμή', '𐐷')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', 'Factory'), 'HEPTA_HIA_Y_MANIFEST': ('other', 'Type')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', 'Factory'), 'HEPTA_HIA_X_MANIFEST': ('other', 'Type')}",
+            "{'X': ('module', 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('not.a.name', 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', '')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', '9type')}",
+            "{'HEPTA_HIA_X_MANIFEST': ['module', 'Factory']}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module',)}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', 'Factory', 'extra')}",
+            "{'HEPTA_HIA_X_MANIFEST': (b'module', 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', b'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': (1, 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': (True, 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': (None, 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', 1+2j)}",
+            "{'HEPTA_HIA_X_MANIFEST': ('module', -1)}",
+            "{1: ('module', 'Factory')}", "{True: ('module', 'Factory')}",
+            "{b'HEPTA_HIA_X_MANIFEST': ('module', 'Factory')}",
+            "{[]: ('module', 'Factory')}", "{{}: ('module', 'Factory')}",
+            "{('tuple',): ('module', 'Factory')}",
+            "{**{'HEPTA_HIA_X_MANIFEST': ('module', 'Factory')}}",
+            "{'HEPTA_HIA_X_MANIFEST': tuple(('module', 'Factory'))}",
+            "{'HEPTA_HIA_X_MANIFEST': (unknown, 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': (f'module', 'Factory')}",
+            "{'HEPTA_HIA_X_MANIFEST': ('mod' + 'ule', 'Factory')}",
+            "dict(HEPTA_HIA_X_MANIFEST=('module', 'Factory'))", "[]", "None",
+        ]
+        sources = ['HELPERS = ' + value + '\n' for value in values]
+        sources += ["", "HELPERS = {}\nHELPERS = {}\n", "HELPERS = OTHER = {}\n",
+                    "HELPERS: dict = {}\n", "HELPERS += {}\n", "HELPERS = {\n"]
+        with tempfile.TemporaryDirectory(prefix='hia-flat-registry-domain-') as temporary:
+            root = Path(temporary)
+            path = root / 'hepta/hia_native_helpers.py'
+            path.parent.mkdir()
+            for source in sources:
+                path.write_text(source)
+                with self.subTest(source=source):
+                    try:
+                        expected = _retained_native_worker_helper_count(root)
+                    except Exception as original:
+                        with self.assertRaises(type(original)):
+                            _native_worker_helper_count(root)
+                    else:
+                        self.assertEqual(_native_worker_helper_count(root), expected)
+
+    def test_flat_native_helper_registry_reads_each_source_without_executing_it(self):
+        from unittest.mock import patch
+        from tools.hia_selfhost_contract import _native_worker_helper_count
+        with tempfile.TemporaryDirectory(prefix='hia-flat-registry-read-') as temporary:
+            root = Path(temporary)
+            path = root / 'hepta/hia_native_helpers.py'
+            path.parent.mkdir()
+            # Top-level provider code is parsed, just as before, never executed.
+            prefix = "raise RuntimeError('module must not execute')\n"
+            with patch.object(ast, 'literal_eval', side_effect=AssertionError('recursive evaluator entered')):
+                for count in (0, 1, 3, 2, 1, 0):
+                    entries = {f'HEPTA_HIA_{index}_MANIFEST': ('module', 'Factory')
+                               for index in range(count)}
+                    path.write_text(prefix + 'HELPERS = ' + repr(entries) + '\n')
+                    self.assertEqual(_native_worker_helper_count(root), count)
+            path.unlink()
+            with self.assertRaises(FileNotFoundError):
+                _native_worker_helper_count(root)
+
 
 
 def cold_failure_diagnostic(output, result):

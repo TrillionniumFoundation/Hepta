@@ -28,6 +28,40 @@ FIXTURE_NAME = 'tests/fixtures/store_lifecycle_callers_ad352ee.json'
 FIXTURE_SHA256 = 'dda9b68253b30c351282417de1df488c7b213c5b19c0c2547dc95eace2622a2b'
 
 
+
+def admit_original_sources(root, records):
+    """Admit the exact original four modules and reviewed failure diagnostics."""
+    from tests import hia_caller_diagnostics_admission as diagnostics
+    root = Path(root)
+    frozen = (root / FIXTURE_NAME).read_bytes()
+    if sha256(frozen).hexdigest() != FIXTURE_SHA256:
+        raise ValueError('frozen original Store caller inventory changed')
+    original = json.loads(frozen)
+    if (type(records) is not dict or records != original['source_sha256']
+            or len(records) != 4):
+        raise ValueError('complete original Store caller source authority differs')
+    captured = {name: (root / name).read_bytes() for name in records}
+    captured[FIXTURE_NAME] = frozen
+    adjustments = {}
+    for name, expected in records.items():
+        raw = captured[name]
+        if sha256(raw).hexdigest() == expected:
+            continue
+        if name != diagnostics.PATH:
+            raise ValueError('complete original Store caller source differs: ' + name)
+        proof = captured.setdefault(diagnostics.FIXTURE,
+                                    (root / diagnostics.FIXTURE).read_bytes())
+        adjustments[name] = diagnostics.admit(name, raw, expected, proof)
+    if any((root / name).read_bytes() != raw for name, raw in captured.items()):
+        raise ValueError('original Store caller admission bytes changed')
+    return {'original_source_sha256': dict(records),
+            'captured_source_sha256': {name: sha256(raw).hexdigest()
+                                      for name, raw in captured.items()},
+            'reviewed_diagnostic_source_adjustments': adjustments,
+            'original_inventory_bytes_unchanged': True,
+            'production_source_exceptions': []}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     selection = parser.add_mutually_exclusive_group(required=True)
@@ -43,10 +77,9 @@ def main():
         raise ValueError('frozen original Store caller inventory changed')
     expected = json.loads(fixture_bytes)
     if (expected.get('schema') != 'hepta.hia.store-lifecycle-original-callers.v1'
-            or len(expected['ordered_ids']) != 50
-            or any(sha256((ROOT / path).read_bytes()).hexdigest() != digest
-                   for path, digest in expected['source_sha256'].items())):
+            or len(expected['ordered_ids']) != 50):
         raise ValueError('complete original Store caller source or denominator differs')
+    source_admission = admit_original_sources(ROOT, expected['source_sha256'])
     suite, planned = load_declared_suite(tuple(expected['modules']))
     planned = list(planned)
     if planned != expected['ordered_ids']:
@@ -56,10 +89,16 @@ def main():
         return {**file_digests(ROOT),
                 'tools/qualify_hia_store_lifecycle_callers.py': sha256(Path(__file__).read_bytes()).hexdigest(),
                 FIXTURE_NAME: sha256((ROOT / FIXTURE_NAME).read_bytes()).hexdigest(),
+                **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in (
+                    'tests/hia_caller_diagnostics_admission.py',
+                    'tests/fixtures/caller_deadline_diagnostics_v1.json')},
                 **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in INPUTS},
                 **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in expected['source_sha256']}}
 
     before = source_pins()
+    if any(before.get(name) != digest
+           for name, digest in source_admission['captured_source_sha256'].items()):
+        raise ValueError('original Store source changed between admission and qualification')
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     if args.cold_report is not None:
         from tools.build_hia_store_lifecycle import build
@@ -138,6 +177,7 @@ def main():
         'reference_poison_scope': 'test process; subprocesses inherit selector, not Python patches',
         'all_original_modules_unfiltered': True, 'original_test_budgets_changed': False,
         'source_and_bundle_unchanged': stable, 'source_pins': before, 'bundle_pins': bundle,
+        'source_admission': source_admission,
         'foreign_path_sqlite_object_and_budget_effects_still_hosted': True,
         'whole_native_delivery_qualified': False}
     (args.evidence / 'report.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')

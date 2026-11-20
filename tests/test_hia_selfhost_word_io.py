@@ -33,7 +33,7 @@ def document():
         b = Builder(n,names,sigs,total_scalar_functions(nodes)); b.statements(n.body)
         functions.append({'name':names[n.name], 'params':[b.param(p) for p in b.params],
             'returns':[b.returns], 'effects':['read','write','trap'], 'entry':'b0','blocks':b.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':'word_io','functions':functions})
+    return compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':'word_io','functions':functions})
 
 
 def reference(command, capacity, workspace):

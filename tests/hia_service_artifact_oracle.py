@@ -24,6 +24,7 @@ PROFILE_SHA = '0adeac9e1bf6164386db92d0a24fef3a8e083b39e027fe3063926ba1e14aeb3c'
 DIGEST = 'd'*64
 LATE = []
 GLOBAL_PHASE = 'setup'
+PREPARATION_IDENTITY = 'hepta.hia.service-artifact-fixed-code-preparation.v2'
 
 
 def canonical(value):
@@ -46,9 +47,15 @@ def frozen_code(path, expected, name):
     raw = path.read_bytes()
     assert sha256(raw).hexdigest() == expected
     text = 'class Original:\n'+raw.decode()
-    ns = {}
-    exec(compile(text, str(path), 'exec', dont_inherit=True), ns)
-    return vars(ns['Original'])[name].__code__
+    module = compile(text, str(path), 'exec', dont_inherit=True)
+    classes = tuple(value for value in module.co_consts if type(value) is types.CodeType)
+    if len(classes) != 1 or classes[0].co_name != 'Original':
+        raise ValueError('fixed artifact wrapper has another code inventory')
+    methods = tuple(value for value in classes[0].co_consts if type(value) is types.CodeType)
+    if (len(methods) != 1 or methods[0].co_name != name
+            or methods[0].co_qualname != 'Original.' + name):
+        raise ValueError('fixed artifact method has another code identity')
+    return methods[0]
 
 
 ARTIFACT_CODE = frozen_code(ORIGINAL, ORIGINAL_SHA, '_hia_artifact')

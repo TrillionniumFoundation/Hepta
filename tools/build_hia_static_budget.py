@@ -19,7 +19,8 @@ SOURCE_NAME = 'examples/hia_bootstrap/static_budget.hepta'
 INPUTS = (SOURCE_NAME, 'tools/generate_hia_static_budget.py', 'tools/build_hia_static_budget.py',
           'tools/generate_hia_artifact_publication.py', 'hepta/hia_static_budget.py',
           'hepta/hia_static_budget_native.py', 'hepta/hia_json_preflight_native.py',
-          'tests/fixtures/static_budget_ad352ee.py.txt', 'tools/generate_hia_patch_impact.py')
+          'tests/fixtures/static_budget_ad352ee.py.txt',
+          'tests/fixtures/static_budget_word_memory_d998.py.txt', 'tools/generate_hia_patch_impact.py')
 
 
 def build(output, compiler, cold_report=None, *, development=False):

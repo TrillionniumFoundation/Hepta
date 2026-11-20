@@ -140,7 +140,8 @@ def check(root=ROOT):
     return {'schema':'hepta.hia.core-only-source-check.v1','status':'PASS',
             'hia_source_suffix':'.hepta','hia_source_files':len(hia_sources),
             'hia_source_manifest_sha256':sha256(json.dumps(hia_sources,sort_keys=True).encode()).hexdigest(),
-            'python_source_files':len(files),'package_python_files':len(list((root/'hepta').glob('*.py'))),
+            'python_source_files':len(files),
+            'package_python_files':sum(name.startswith('hepta/') for name in files),
             'source_manifest_sha256':sha256(json.dumps(files,sort_keys=True).encode()).hexdigest(),
             'high_level_source_language':'removed','whole_native_delivery_qualified':False}
 

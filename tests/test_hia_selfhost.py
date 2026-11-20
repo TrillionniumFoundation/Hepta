@@ -75,7 +75,7 @@ class SelfhostSourceTests(unittest.TestCase):
             b=Builder(n,names,signatures);b.statements(n.body)
             functions.append(dict(name=names[n.name],params=[b.param(v) for v in b.params],
                 returns=[b.returns],effects=['read','write','trap'],entry='b0',blocks=b.blocks))
-        tail=render_assembly(dict(schema='hepta.hia.program.v8',module='scanner_words',functions=functions)).split('\n',1)[1]
+        tail=render_assembly(dict(schema='hepta.hia.program.v9',module='scanner_words',functions=functions)).split('\n',1)[1]
         values=(0,1,255,256,65535,65536,(1<<20)-1,1<<20,1<<24,(1<<32)-1)
         for at in (0,8,24,40,56,80,88,96,104,112,120,136,224,240,248):
             for value in values:
@@ -88,7 +88,7 @@ class SelfhostSourceTests(unittest.TestCase):
                 wide=b.value('u64','call',[view,b.const('u64',at)],{'function':names['get']})
                 high=[b.value('u8','buffer.load',[view,b.const('usize',at+i)]) for i in range(4,8)]
                 b.effect('loan.end',[view]);b.effect('owner.drop',[owner])
-                source=('hia-asm.v1 hepta.hia.program.v8 scanner_words\n'
+                source=('hia-asm.v1 hepta.hia.program.v9 scanner_words\n'
                     'fn reference_entry() -> (u64,u64,u8,u8,u8,u8) effects(alloc,read,write,trap) entry(b0)\n'
                     'block b0()\n'+b.text()+'  ret('+','.join([narrow,wide,*high])+')\nend\n'+tail)
                 result=execute_program(assemble_program(source),'reference_entry',[])

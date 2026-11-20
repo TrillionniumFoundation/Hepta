@@ -31,30 +31,90 @@ STORE_SELECTOR = 'HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST'
 OPERATIONS = ('publish', 'verify', 'withdraw', 'store-put', 'store-get', 'store-hash')
 
 
-def admit_inventory():
-    raw = (ROOT / FIXTURE).read_bytes()
+_DIAGNOSTICS_CALLER = 'tests/test_hia_agent_native_tools.py'
+_DIAGNOSTICS_HELPER = 'tests/hia_caller_diagnostics_admission.py'
+_DIAGNOSTICS_HELPER_PIN = {'bytes': 5185, 'sha256': '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578'}
+_DIAGNOSTICS_AUTHORITY = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_DIAGNOSTICS_AUTHORITY_PIN = {'bytes': 3545, 'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c'}
+
+
+def _source_pin(raw):
+    return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+
+def _admit_diagnostic_source(capture, name, raw, original_digest):
+    if name != _DIAGNOSTICS_CALLER:
+        raise ValueError('an original complete caller module changed: ' + name)
+    helper, authority = capture(_DIAGNOSTICS_HELPER), capture(_DIAGNOSTICS_AUTHORITY)
+    if (_source_pin(helper) != _DIAGNOSTICS_HELPER_PIN
+            or _source_pin(authority) != _DIAGNOSTICS_AUTHORITY_PIN):
+        raise ValueError('caller diagnostic source authority changed')
+    from tests import hia_caller_diagnostics_admission as diagnostic
+    if Path(diagnostic.__file__).read_bytes() != helper:
+        raise ValueError('caller imported a different diagnostic admission')
+    return diagnostic.admit(name, raw, original_digest, authority)
+
+
+def bind_admission_to_source_capture(proof, source_digests):
+    for name, expected in proof['captured_files'].items():
+        if source_digests.get(name) != expected['sha256']:
+            raise ValueError('caller admission differs from actual source capture: ' + name)
+
+
+def admit_inventory(root=None, *, with_source_admission=False):
+    # The original no-argument API still returns the unchanged complete fixture.
+    root, captured = Path(ROOT if root is None else root), {}
+
+    def capture(name):
+        raw = (root / name).read_bytes()
+        if name in captured and captured[name] != raw:
+            raise ValueError('artifact caller source changed between captures: ' + name)
+        captured[name] = raw
+        return raw
+
+    raw = capture(FIXTURE)
     if sha256(raw).hexdigest() != FIXTURE_SHA256:
         raise ValueError('complete original artifact caller inventory changed')
     value = json.loads(raw)
     if ((value['direct_count'], value['additional_count'], value['total_count']) != (63, 69, 132)
             or len(value['modules']) != 7 or len(value['ordered_ids']) != 132):
         raise ValueError('original complete seven-module 132-method scope changed')
-    direct_raw = (ROOT / value['direct_original_fixture']).read_bytes()
+    direct_raw = capture(value['direct_original_fixture'])
     if sha256(direct_raw).hexdigest() != value['direct_original_fixture_sha256']:
         raise ValueError('independent original four-module artifact fixture changed')
     if json.loads(direct_raw)['declared_original_test_ids'] != value['direct_ordered_ids']:
         raise ValueError('independent original complete 63 IDs differ')
+    diagnostics = {}
     for record in value['modules']:
-        current = (ROOT / record['path']).read_bytes()
+        current = capture(record['path'])
         if len(current) != record['bytes'] or sha256(current).hexdigest() != record['sha256']:
-            raise ValueError('original caller source bytes changed: ' + record['path'])
+            relation = _admit_diagnostic_source(capture, record['path'], current, record['sha256'])
+            if relation['original']['bytes'] != record['bytes']:
+                raise ValueError('original caller source extent changed: ' + record['path'])
+            diagnostics[record['path']] = relation
     additional = value['additional_groups']
     if ([group['count'] for group in additional] != [37, 32]
             or [group['selector'] for group in additional] != [PUBLIC_SELECTOR, STORE_SELECTOR]
             or sum((group['ordered_ids'] for group in additional), []) != value['additional_ordered_ids']
             or value['direct_ordered_ids'] + value['additional_ordered_ids'] != value['ordered_ids']):
         raise ValueError('original complete module grouping or ordering changed')
-    return value
+    for name, data in captured.items():
+        if (root / name).read_bytes() != data:
+            raise ValueError('artifact caller captured bytes changed: ' + name)
+    proof = {
+        'schema': 'hepta.hia.artifact-delivery-caller-source-admission.v1',
+        'authority': {'path': FIXTURE, **_source_pin(raw)},
+        'original_files': {record['path']: record['sha256'] for record in value['modules']},
+        'original_modules': [record['module'] for record in value['modules']],
+        'original_ordered_ids': list(value['ordered_ids']),
+        'original_direct_ordered_ids': list(value['direct_ordered_ids']),
+        'original_additional_ordered_ids': list(value['additional_ordered_ids']),
+        'reviewed_diagnostic_source_adjustments': diagnostics,
+        'captured_files': {name: _source_pin(data) for name, data in captured.items()},
+        'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [], 'whole_native': False,
+    }
+    return (value, proof) if with_source_admission else value
 
 
 def main():
@@ -66,7 +126,7 @@ def main():
     args = parser.parse_args()
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.hia_selfhost_contract import file_digests
-    original = admit_inventory()
+    original, source_admission = admit_inventory(ROOT, with_source_admission=True)
     for selector in (PUBLIC_SELECTOR, STORE_SELECTOR):
         if selector in os.environ:
             raise ValueError('the original artifact caller gate owns selector presence: ' + selector)
@@ -91,10 +151,12 @@ def main():
     def source_pins():
         extras = [FIXTURE, original['direct_original_fixture'],
                   'tools/qualify_hia_artifact_delivery_callers.py',
-                  *(r['path'] for r in original['modules'])]
+                  *(r['path'] for r in original['modules']),
+                  *source_admission['captured_files']]
         return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest() for name in extras}}
 
     before = source_pins()
+    bind_admission_to_source_capture(source_admission, before)
     cold_pin = compiler_pin = None
     if cold_path is not None:
         cold_raw = cold_path.read_bytes()
@@ -212,6 +274,7 @@ def main():
                     selected.enter_context(patch.dict(os.environ, {group['selector']: str(manifest)}))
                 groups.append(run_group(group, suite))
     after = source_pins()
+    bind_admission_to_source_capture(source_admission, after)
     stable = after == before and all(sha256(Path(name).read_bytes()).hexdigest() == digest
                                     for name, digest in application.items())
     if cold_pin is not None:
@@ -234,6 +297,7 @@ def main():
         'actual_tests': sum(g['actual_tests'] for g in groups), 'groups': groups,
         'wall_seconds': time.monotonic() - begin,
         'source_before': before, 'source_after': after,
+        'caller_source_admission': source_admission,
         'source_and_application_unchanged': stable,
         'additional_manifest': str(manifest), 'additional_application_pins': application,
         'additional_fixed_private_sha256': sha256(admitted).hexdigest(),

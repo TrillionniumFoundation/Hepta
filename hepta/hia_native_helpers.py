@@ -322,7 +322,12 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v5':
+        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v6':
+            _MECHANICAL_SELECTED = True
+            from .hia_native_carrier_worker_bundle import NativeCarrierWorkerBinding
+            binding = NativeCarrierWorkerBinding(captured, expected_sha256)
+            _MECHANICAL_SCOPE = binding
+        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v5':
             _MECHANICAL_SELECTED = True
             from .hia_mechanical_worker_bundle import NativeMechanicalWorkerBinding
             binding = NativeMechanicalWorkerBinding(captured, expected_sha256)

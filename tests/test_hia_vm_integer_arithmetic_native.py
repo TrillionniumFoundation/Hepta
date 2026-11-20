@@ -44,9 +44,12 @@ class VmIntegerArithmeticSourceTests(unittest.TestCase):
                             for ins in block["ops"] for p in ins["out"]]
             self.assertEqual(len(definitions), len(set(definitions)))
             self.assertLessEqual(len(definitions), 2048)
+        from hepta import hia_vm_integer_divrem_runtime as selected
         raw = captured["hepta/hia_program_runtime.py"]
-        self.assertEqual(raw, captured["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"])
-        self.assertEqual(sha256(raw).hexdigest(), RUNTIME_SHA256)
+        retained = selected._retained_runtime_source(raw)
+        self.assertEqual(retained, captured["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"])
+        self.assertEqual(sha256(retained).hexdigest(), RUNTIME_SHA256)
+        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)
         self.assertEqual(sha256(captured["tests/test_hia_program.py"]).hexdigest(), TEST_SHA256)
         tree = ast.parse(captured["hepta/hia_vm_integer_divrem_runtime.py"])
         declarations = {target.id: node.value for node in tree.body if isinstance(node, ast.Assign)

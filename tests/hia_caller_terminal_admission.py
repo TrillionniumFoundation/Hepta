@@ -152,6 +152,8 @@ class _CapturedAdmission:
         self._consumed = []
         self._accepted = set()
         self._allowed = {}
+        self._diagnostics = {}
+        self._accepted_diagnostics = set()
         self._finished = False
         self._authority = authority
         rule = CALLER_AUTHORITIES[authority]
@@ -168,6 +170,7 @@ class _CapturedAdmission:
         for name in self._records:
             self._capture(name)
         self._admit_pair_and_evaluation()
+        self._admit_deadline_diagnostics()
 
     def _capture(self, name):
         if name not in self._captured:
@@ -245,6 +248,17 @@ class _CapturedAdmission:
         if set(self._allowed) - {TRANSPORT, EVALUATION}:
             raise ValueError('caller terminal source exception exceeds the reviewed two test paths')
 
+    def _admit_deadline_diagnostics(self):
+        from tests import hia_caller_diagnostics_admission as diagnostics
+        name = diagnostics.PATH
+        if name not in self._records:
+            return
+        raw = self._capture(name)
+        if _pin(raw) == diagnostics.ORIGINAL:
+            return
+        self._diagnostics[name] = diagnostics.admit(
+            name, raw, self._records[name], self._capture(diagnostics.FIXTURE))
+
     @staticmethod
     def _adjustment(name, before, after, fixture, digest, definition):
         return {'path': name, 'original': dict(before), 'current': dict(after),
@@ -264,6 +278,13 @@ class _CapturedAdmission:
                 or type(raw) is not bytes or raw != self._captured[name]
                 or expected_sha256 != self._records[name]):
             raise ValueError('caller terminal consumed bytes or expected old identity differ')
+        if name in self._diagnostics:
+            reviewed = self._diagnostics[name]
+            if (expected_sha256 != reviewed['original']['sha256']
+                    or _pin(raw) != reviewed['current'] or name in self._accepted_diagnostics):
+                raise ValueError('caller diagnostics exact current source differs')
+            self._accepted_diagnostics.add(name)
+            return True
         reviewed = self._allowed.get(name)
         if reviewed is None:
             return False
@@ -276,7 +297,8 @@ class _CapturedAdmission:
     def finish(self):
         if (self._finished or set(self._consumed) != set(self._records)
                 or len(self._consumed) != len(self._records)
-                or self._accepted != set(self._allowed)):
+                or self._accepted != set(self._allowed)
+                or self._accepted_diagnostics != set(self._diagnostics)):
             raise ValueError('caller terminal original source consumption is incomplete')
         for name, raw in self._captured.items():
             if (self._root / name).read_bytes() != raw:
@@ -287,6 +309,7 @@ class _CapturedAdmission:
                 'state': self._state, 'original_source_count': len(self._records),
                 'ordered_consumed_original_sources': list(self._consumed),
                 'reviewed_test_source_adjustments': dict(self._allowed),
+                'reviewed_diagnostic_source_adjustments': dict(self._diagnostics),
                 'captured_files': {name: _pin(raw) for name, raw in self._captured.items()},
                 'terminal_reread_identical': True,
                 'production_composition_source_count': 13,

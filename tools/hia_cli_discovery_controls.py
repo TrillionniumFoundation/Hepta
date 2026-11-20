@@ -39,18 +39,30 @@ def wire(operation=2, schema=None):
                        0 if schema is None else len(schema)) + (b'' if schema is None else schema)
 
 
-def original_oracles():
+def original_oracles(*, legacy=False):
     from hepta import cli
     from hepta.hia_opcodes import opcode_catalog
     from hepta.hia_schema import PRIMITIVE_PROFILES
-    if tuple(PRIMITIVE_PROFILES) != SCHEMAS:
-        raise ValueError('the original eight-schema oracle domain changed')
     def pretty(value):
         return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + '\n').encode()
-    rows = [('capabilities', wire(1), pretty(cli.agent_capabilities()))]
-    rows.extend(('catalog-v' + name[-1], wire(2, name.encode()), pretty(opcode_catalog(name)))
-                for name in PRIMITIVE_PROFILES)
-    rows.append(('catalog-default', wire(), pretty(opcode_catalog())))
+    from tools.hia_cli_discovery_compat import fixture, legacy_catalog_owner, word_fixture
+    compatibility = fixture()
+    frozen = legacy_catalog_owner()
+    profiles = frozen.PRIMITIVE_PROFILES if legacy else PRIMITIVE_PROFILES
+    catalog = frozen.opcode_catalog if legacy else opcode_catalog
+    if tuple(profiles) != (SCHEMAS if legacy else SCHEMAS+('hepta.hia.program.v9',)):
+        raise ValueError('the explicit original/current schema oracle domain changed')
+    if not legacy:
+        for schema in SCHEMAS:
+            if opcode_catalog(schema) != frozen.opcode_catalog(schema):
+                raise ValueError('v9 changed a retained v1-v8 catalog: '+schema)
+    capabilities = compatibility['legacy_capabilities'] if legacy else cli.agent_capabilities()
+    if not legacy and capabilities != word_fixture()['current_capabilities']:
+        raise ValueError('current capabilities differ from the independently pinned v9 input')
+    rows = [('capabilities', wire(1), pretty(capabilities))]
+    rows.extend(('catalog-v' + name[-1], wire(2, name.encode()), pretty(catalog(name)))
+                for name in profiles)
+    rows.append(('catalog-default', wire(), pretty(catalog())))
     return rows
 
 
@@ -82,15 +94,50 @@ def cases(oracles):
     return rows
 
 
-def native_controls(output, image, *, guard=lambda: None):
+def current_cases():
+    """Keep all R5/verified frames and add explicit v9/default size boundaries."""
+    legacy = cases(original_oracles(legacy=True))
+    current = original_oracles()
+    by_request = {request: data for _label, request, data in current}
+    rows = []
+    for label, request, extent, work, status, data, guard_all, fill in legacy:
+        if request in by_request and work >= WORK_BYTES:
+            data = by_request[request]
+            status = None if extent >= len(data) else 4294967294
+            # The old v9-unknown request is now admitted. Its old 512-byte
+            # output still cannot fit the catalog, after normal workspace use.
+            guard_all = False
+            if status is not None:
+                data = None
+        rows.append((label, request, extent, work, status, data, guard_all, fill))
+    original_frames = {(row[1], row[2], row[3], row[7]) for row in legacy}
+    for label, request, data in current:
+        boundaries = [(label+'-exact',request,len(data),WORK_BYTES,None,data,False,0x5a),
+                      (label+'-tail',request,len(data)+37,WORK_BYTES,None,data,False,0xc3)]
+        boundaries.extend((label+'-short-'+str(extent),request,extent,WORK_BYTES,
+                           4294967294,None,False,0x5a) for extent in (0,len(data)-1))
+        for row in boundaries:
+            identity = (row[1],row[2],row[3],row[7])
+            if identity not in original_frames:
+                prefix = 'verified-' if label=='capabilities' else 'v9-'
+                rows.append((prefix+row[0],*row[1:]))
+                original_frames.add(identity)
+    if len(rows) != 71 or len({row[0] for row in rows}) != 71:
+        raise AssertionError('61 original, three verified and seven v9/default frames are required')
+    return rows
+
+
+def native_controls(output, image, *, guard=lambda: None, legacy=False):
     output, image = Path(output), Path(image).resolve(strict=True)
     output.mkdir(mode=0o700)
     image_raw, child_raw = image.read_bytes(), CHILD.read_bytes()
-    oracles = original_oracles()
-    expected = cases(oracles)
+    oracles = original_oracles(legacy=legacy)
+    expected = cases(oracles) if legacy else current_cases()
+    expected_count = 61 if legacy else 71
     retained = json.loads((ROOT / 'tests/fixtures/hia_cli_discovery_r5_cases.json').read_bytes())
     retained_rows = {row['label']: row for row in retained['rows']}
-    assert list(retained_rows) == [row[0] for row in expected]
+    assert list(retained_rows) == [row[0] for row in expected[:61]]
+    assert len(expected) == expected_count
     oracle_dir = output / 'oracles'
     oracle_dir.mkdir()
     for label, _request, raw in oracles:
@@ -98,7 +145,8 @@ def native_controls(output, image, *, guard=lambda: None):
     report = {'schema': 'hepta.hia.cli-discovery-json-native-controls.v1',
               'scope': 'OBSERVATIONS_ONLY_NOT_COLD_AUTHORITY', 'status': 'FAIL',
               'image_sha256': digest(image_raw), 'child_sha256': digest(child_raw),
-              'expected_labels': [row[0] for row in expected], 'expected_count': 61,
+              'expected_labels': [row[0] for row in expected], 'expected_count': expected_count,
+              'input_domain': 'original_r5' if legacy else 'current_word_memory_v9',
               'child_seconds': 20, 'rows': [], 'failures': []}
     try:
         for label, request, outlen, worklen, expected_status, expected_bytes, guard_all, fill in expected:
@@ -145,12 +193,16 @@ def native_controls(output, image, *, guard=lambda: None):
                 assert child['image_sha256'] == digest(image_raw)
                 assert child['request_sha256'] == digest(request_path.read_bytes())
                 assert type(child['result']) is int
-                old = retained_rows[label]
-                assert old['request_hex'] == request.hex()
-                assert (old['output_extent'], old['workspace_extent'], old['fill']) == (outlen, worklen, fill)
-                assert old['result'] == child['result']
-                assert old['output_sha256'] == row['output_sha256']
-                assert old['workspace_sha256'] == row['workspace_sha256']
+                old = retained_rows.get(label)
+                if old is not None:
+                    assert old['request_hex'] == request.hex()
+                    assert (old['output_extent'], old['workspace_extent'], old['fill']) == (outlen, worklen, fill)
+                else:
+                    assert not legacy and label.startswith(('verified-capabilities-', 'v9-catalog-'))
+                if legacy:
+                    assert old['result'] == child['result']
+                    assert old['output_sha256'] == row['output_sha256']
+                    assert old['workspace_sha256'] == row['workspace_sha256']
                 if expected_status is not None:
                     assert child['result'] == expected_status, (child['result'], expected_status)
                 data = after[1][64:-64]
@@ -178,8 +230,13 @@ def native_controls(output, image, *, guard=lambda: None):
             save(folder / 'RESULT.json', row)
             save(output / 'REPORT.json', report)
         from hepta.hia_opcodes import opcode_catalog, OpcodeRejected
+        if legacy:
+            from tools.hia_cli_discovery_compat import legacy_catalog_owner
+            original = legacy_catalog_owner()
+            opcode_catalog, OpcodeRejected = original.opcode_catalog, original.OpcodeRejected
         errors = {}
-        for value in ('', 'bad', 'hepta.hia.program.v0', 'hepta.hia.program.v9', 'hepta.hia.composite.v1'):
+        future = 'hepta.hia.program.v9' if legacy else 'hepta.hia.program.v10'
+        for value in ('', 'bad', 'hepta.hia.program.v0', future, 'hepta.hia.composite.v1'):
             try:
                 opcode_catalog(value)
             except OpcodeRejected as error:
@@ -189,7 +246,7 @@ def native_controls(output, image, *, guard=lambda: None):
         report['original_unknown_schema_error'] = errors
         report['actual_native_entries'] = sum(row.get('child', {}).get('actual_native_entries', 0)
                                                for row in report['rows'])
-        assert len(report['rows']) == 61 and report['actual_native_entries'] == 61
+        assert len(report['rows']) == expected_count and report['actual_native_entries'] == expected_count
         assert not report['failures'], report['failures']
         report['status'] = 'PASS'
     finally:
@@ -205,21 +262,25 @@ def packed(raw):
             'data': base64.b64encode(zlib.compress(raw, 6)).decode()}
 
 
-def vm_controls(output, native, *, guard=lambda: None):
+def vm_controls(output, native, *, guard=lambda: None, source_path=None, labels=None):
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program_runtime import _Machine, _Owner, _View
     from hepta.hia_cli_discovery_json_native import SOURCE
     output, native = Path(output), Path(native)
     output.mkdir(mode=0o700)
-    source = SOURCE.read_bytes()
+    source_path = SOURCE if source_path is None else Path(source_path)
+    source = source_path.read_bytes()
+    labels = VM_LABELS if labels is None else tuple(labels)
+    if not labels or len(labels) != len(set(labels)):
+        raise ValueError('complete distinct VM observation labels required')
     program = assemble_program(source)
     report = {'schema': 'hepta.hia.cli-discovery-json-vm-controls.v1',
               'scope': 'INDEPENDENT_ORDINARY_CORE_VM_NOT_COLD_AUTHORITY', 'status': 'FAIL',
               'source_sha256': digest(source), 'max_steps': 10000000,
               'max_heap_bytes': 8 << 20, 'max_call_depth': 128,
-              'expected_labels': list(VM_LABELS), 'expected_count': 6, 'rows': []}
+              'expected_labels': list(labels), 'expected_count': len(labels), 'rows': []}
     try:
-        for label in VM_LABELS:
+        for label in labels:
             guard()
             folder = native / label
             expected = json.loads((folder / 'RESULT.json').read_bytes())
@@ -251,10 +312,10 @@ def vm_controls(output, native, *, guard=lambda: None):
             save(output / (label + '.json'), row)
             report['rows'].append({k: v for k, v in row.items() if k not in ('before', 'after')})
             save(output / 'REPORT.json', report)
-        assert len(report['rows']) == 6 and all(row['status'] == 'MATCH' for row in report['rows'])
+        assert len(report['rows']) == len(labels) and all(row['status'] == 'MATCH' for row in report['rows'])
         report['status'] = 'PASS'
     finally:
-        report['source_unchanged'] = SOURCE.read_bytes() == source
+        report['source_unchanged'] = source_path.read_bytes() == source
         if not report['source_unchanged']:
             report['status'] = 'FAIL'
         save(output / 'REPORT.json', report)

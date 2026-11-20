@@ -1,5 +1,32 @@
 # General Core function lowering: development work in progress
 
+## v9 word-memory successor
+
+The current generated bundle contains 33 sources: one literal pool and 32
+control units. Its typed ABI requires a 320-byte output and 5,568-byte workspace.
+Both the explicit `BACKEND_BUILD_FILES` role and `MANIFEST.in` include the last
+control unit. The installed-source checks compare those complete resource sets
+with the actual ABI; the source builder and compiler roles remain unchanged.
+
+The four v9 word operations are lowered by HIA's Function policy. The primary
+backend and this policy have equal current Function ASTs. A separate assertion
+removes only the uniquely identified new word-memory branch and compares every
+retained method with the unchanged 608 fixture. Big-endian byte swaps use the
+same three instruction bytes represented as a fixed tuple for the existing
+finite authoring protocol. No new bridge primitive is introduced.
+
+The source, native, installed-package and original-caller gates remain separate.
+The original machine/Core caller identity lists remain 51 and 50. The future-schema
+refusal witness now uses v10 because v9 has been explicitly admitted; its rejection
+assertion and the future opcode/type witnesses remain in place. The qualifier
+records that one fixture update and the separate 13-method component identity list.
+The selected native test requires complete machine metadata equality, 216
+actual endian/unaligned byte cases and 24 real no-write bounds traps. Historical
+32-source development observations below describe their original candidates;
+they do not qualify the additional v9 path or replace a matching-source cold
+report for this successor.
+
+
 This branch holds an unqualified authoring candidate for moving the complete
 `_Function` policy in `hepta.hia_program_native` into HIA. It is not integrated
 into the ordinary product entry. The first actual authoring run checked the

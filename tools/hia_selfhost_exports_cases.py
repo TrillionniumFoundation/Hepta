@@ -134,9 +134,9 @@ def compiler_word_cases():
     from tools.generate_hia_selfhost import document as compiler_document
     compiler,names=compiler_document()
     helpers=[copy.deepcopy(f) for f in compiler['functions'] if f['name'] in (names['get'],names['put'])]
-    helper_wire=assembly({'schema':'hepta.hia.program.v8','module':'selfhost','functions':helpers})
+    helper_wire=assembly({'schema':'hepta.hia.program.v9','module':'selfhost','functions':helpers})
     helper_wire=helper_wire[helper_wire.index(b'fn '):]
-    header=b'''hia-asm.v1 hepta.hia.program.v8 selfhost
+    header=b'''hia-asm.v1 hepta.hia.program.v9 selfhost
 fn f0(s:readbuf,o:mutbuf,w:mutbuf) -> (u32) effects(read,write,trap) entry(start)
 block start(s:readbuf,o:mutbuf,w:mutbuf)
 '''

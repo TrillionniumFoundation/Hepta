@@ -4,7 +4,6 @@ Code custody still uses the existing host trust root. Only selected payload
 hashing is native HIA; no Python/OpenSSL hash routine receives that payload.
 """
 from __future__ import annotations
-import ctypes
 from hashlib import sha256 as _foreign_sha256
 import os
 from pathlib import Path
@@ -18,11 +17,31 @@ MAX_BYTES=8<<20
 WORKSPACE_BYTES=1088
 
 
+def _ensure_ctypes():
+    """Bind the real FFI module only when native operations are requested."""
+    global ctypes
+    if 'ctypes' not in globals():
+        import ctypes as selected
+        if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+            raise RuntimeError('native ctypes import is still active')
+        # A failed or recursively incomplete import never becomes our binding.
+        # Existing explicit module-global replacements retain their old role.
+        ctypes = selected
+    return ctypes
+
+
+def __getattr__(name):
+    if name == 'ctypes':
+        return _ensure_ctypes()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 class NativeSha256(NativeHiaJsonImage):
     """Reuse only the existing disjoint six-argument immutable-code ABI loader."""
     def digest(self, wire: bytes) -> bytes:
         if type(wire) is not bytes or len(wire)>MAX_BYTES:
             raise ValueError('outside native HIA SHA-256 profile')
+        _ensure_ctypes()
         source=ctypes.create_string_buffer(wire,max(1,len(wire)))
         output=ctypes.create_string_buffer(32)
         workspace=ctypes.create_string_buffer(WORKSPACE_BYTES)

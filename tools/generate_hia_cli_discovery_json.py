@@ -120,9 +120,22 @@ class Table:
             headers.append(struct.pack('<BBHHH',kind,flags,value,n,extra))
         return b''.join(headers)+payload
 
-def structured_table():
-    # Read the literal capabilities data without executing the old policy.
-    source=(BASE/'hepta/cli.py').read_text()
+def metadata_domain(schema_version=None):
+    maximum=len(PRIMITIVE_PROFILES) if schema_version is None else schema_version
+    if (type(maximum) is not int or maximum not in (8,9)
+            or tuple(PRIMITIVE_PROFILES) != tuple('hepta.hia.program.v'+str(i)
+                                                 for i in range(1,len(PRIMITIVE_PROFILES)+1))
+            or maximum>len(PRIMITIVE_PROFILES)):
+        raise ValueError('explicit reviewed eight/nine-schema metadata domain required')
+    profiles={name:profile for i,(name,profile) in enumerate(PRIMITIVE_PROFILES.items(),1)
+              if i<=maximum}
+    opcodes=tuple(spec for spec in original.OPCODES.values() if spec.since<=maximum)
+    return profiles,opcodes
+
+def capabilities_from_source(source):
+    # Preserve the literal mapping order: metadata node numbering and the
+    # authored HIA bytes depend on it, even when public JSON values are equal.
+    # This reads literal data and never executes the old Python policy.
     tree=ast.parse(source)
     action=next(n.value for n in tree.body if isinstance(n,ast.Assign) and
                 any(isinstance(t,ast.Name) and t.id=='HIA_AGENT_ACTIONS' for t in n.targets))
@@ -134,14 +147,20 @@ def structured_table():
             assert isinstance(node.func,ast.Name) and node.func.id=='list'
             assert len(node.args)==1 and isinstance(node.args[0],ast.Name) and node.args[0].id=='HIA_AGENT_ACTIONS'
             return ast.List(elts=[ast.Constant(x) for x in actions],ctx=ast.Load())
-    capabilities=ast.literal_eval(LiteralActions().visit(value))
-    # Exactly one metadata table; eight profiles share all instruction records.
+    return ast.literal_eval(LiteralActions().visit(value))
+
+
+def structured_table(*, capabilities=None, schema_version=None):
+    profiles,opcodes=metadata_domain(schema_version)
+    if capabilities is None:
+        capabilities=capabilities_from_source((BASE/'hepta/cli.py').read_text())
+    # Exactly one metadata table; the selected profiles share instruction records.
     def visible(values):
         return Array([(x,7 if x=='chain' else 1) for x in reversed(sorted(values))],sort=True)
     catalog={
         'schema':'hepta.hia.opcode-catalog.v1',
-        'core_schema':Marker(6,tuple(PRIMITIVE_PROFILES)),
-        'profile':Marker(7,tuple(PRIMITIVE_PROFILES.values())),
+        'core_schema':Marker(6,tuple(profiles)),
+        'profile':Marker(7,tuple(profiles.values())),
         'word_bits':64,
         'types':visible(original.TYPES),
         'type_groups':{k:visible(v) for k,v in original._GROUPS.items()},
@@ -149,7 +168,7 @@ def structured_table():
             '=N':'same type as zero-based operand N',
             'declared:T':'explicit result type in group T',
             'null':'arity/types/effects determined by verified callee interface'},
-        'instructions':Array([(asdict(spec),spec.since) for spec in original.OPCODES.values()]),
+        'instructions':Array([(asdict(spec),spec.since) for spec in opcodes]),
         'terminators':[{'name':name,'fields':list(fields)} for name,fields in original.TERMINATORS.items()],
         'function_contract':{'return_loans':Marker(8,(
             'loan returns forbidden','explicit formal-name/null per return; parameter origin checked'))},
@@ -186,7 +205,7 @@ def discovery(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967295
     if operation == 1 and (mode != 0 or n != 0):
         return 4294967295
-    version = 8
+    version = SCHEMA_VERSION
     if operation == 2 and mode == 1:
         if n != 20:
             return 4294967293
@@ -196,7 +215,7 @@ def discovery(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 return 4294967293
             i = i + 1
         version = byte(s, 51) - 48
-        if version < 1 or version > 8:
+        if version < 1 or version > SCHEMA_VERSION:
             return 4294967293
     if length(w) < WORK_BYTES:
         return 4294967292
@@ -569,14 +588,16 @@ def sha_put32(w:mutbuf, index:u64, value:u64) -> u64:
     ast.fix_missing_locations(tree)
     return ast.unparse(tree)+'\n'
 
-def source_program():
-    table,cap,cat=structured_table()
+def source_program(*, capabilities=None, schema_version=None):
+    profiles,opcodes=metadata_domain(schema_version)
+    table,cap,cat=structured_table(capabilities=capabilities,schema_version=schema_version)
     raw=table.encode()
     assert TABLE_BASE+len(raw)<STACK_BASE
     source=SEMANTICS
     constants={'MAGIC':MAGIC,'WORK_BYTES':WORK_BYTES,'TABLE_BASE':TABLE_BASE,'STACK_BASE':STACK_BASE,
                'JSON_BASE':JSON_BASE,'JSON_BYTES':JSON_BYTES,'COUNT_AT':COUNT_AT,'RAW_HASH':RAW_HASH,
-               'HEX_HASH':HEX_HASH,'NODE_COUNT':len(table.nodes),'CAP_ROOT':cap,'CAT_ROOT':cat}
+               'HEX_HASH':HEX_HASH,'NODE_COUNT':len(table.nodes),'CAP_ROOT':cap,'CAT_ROOT':cat,
+               'SCHEMA_VERSION':len(profiles)}
     class Bind(ast.NodeTransformer):
         def visit_Name(self,n):
             if isinstance(n.ctx,ast.Load) and n.id in constants:return ast.copy_location(ast.Constant(constants[n.id]),n)
@@ -616,7 +637,7 @@ def source_program():
     source+='    return 0\n'+'\n'.join(pieces)
     metadata={'nodes':len(table.nodes),'seed_bytes':len(raw),'seed_word_initializers':len(chunks),
               'capabilities_root':cap,'catalog_root':cat,'table_sha256':hashlib.sha256(raw).hexdigest(),
-              'schema_count':len(PRIMITIVE_PROFILES),'instruction_records':len(original.OPCODES),
+              'schema_count':len(profiles),'instruction_records':len(opcodes),
               'final_json_documents_stored':0,'catalog_digests_stored':0,
               'sorting':'HIA insertion sort over every object and the explicitly marked type arrays',
               'structured_nodes':[{'kind':k,'flags':f,'data':d.decode('ascii') if type(d)is bytes else d} for k,f,d in table.nodes]}
@@ -652,9 +673,9 @@ def identities():
                      'git_blob':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()})
     return rows
 
-def generation():
+def generation(*, capabilities=None, schema_version=None):
     before=identities()
-    source,metadata=source_program()
+    source,metadata=source_program(capabilities=capabilities,schema_version=schema_version)
     data=document(source)
     raw=render_assembly(data).encode('utf-8')
     counts={'functions':len(data['functions']),'blocks':sum(len(f['blocks']) for f in data['functions']),
@@ -668,6 +689,8 @@ def generation():
         raise ValueError('discovery JSON authoring input changed')
     return raw, {'schema':'hepta.hia.cli-discovery-json-generation.v1',
                  'scope':'SOURCE_GENERATION_NOT_RUNTIME_OR_COLD_QUALIFICATION',
+                 'metadata_domain':'current_cli' if capabilities is None and schema_version is None else 'explicit_regression_input',
+                 'schema_count':metadata['schema_count'],'instruction_records':metadata['instruction_records'],
                  'sources':before,'counts':counts,'source_bytes':len(raw),
                  'source_sha256':hashlib.sha256(raw).hexdigest(),
                  'table_sha256':metadata['table_sha256'],

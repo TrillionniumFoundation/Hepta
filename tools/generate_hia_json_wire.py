@@ -46,7 +46,9 @@ SOURCE = r'''
 def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 32768 + 8192:
         return 199
-    if get(w, 0) == 0:
+    # Only invocation-local reuse: the next continuation rereads the header.
+    workspace_magic = get(w, 0)
+    if workspace_magic == 0:
         if length(s) != 104 and length(s) != 112:
             return 199
         if read64(s, 0) == MAGIC:
@@ -112,10 +114,10 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         push(w, read64(s, 24), 0, 0)
         put(w, PHASE, 1)
     else:
-        if (get(w, 0) != MAGIC and get(w, 0) != CACHED_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
+        if (workspace_magic != MAGIC and workspace_magic != CACHED_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
             return 199
         opcode = get(w, AWAIT)
-        if read64(s, 0) != get(w, 0) or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
+        if read64(s, 0) != workspace_magic or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
             return 199
         expected = 56
         if opcode == 3 or opcode == 4:
@@ -506,8 +508,8 @@ def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
             if mode == 0 or mode == 1:
                 if point >= 55296 and point <= 57343:
                     return 115
-                put(w, T_WIDTH, get(w, T_WIDTH) + width(point, get(w, ASCII)))
-                if get(w, T_WIDTH) > get(w, MAX):
+                put(w, T_WIDTH, get(w, T_WIDTH) + width(point, word_load(w, ASCII)))
+                if word_load(w, T_WIDTH) > word_load(w, MAX):
                     return 108
             if mode == 3:
                 result = escaped(o, w, point)
@@ -626,6 +628,12 @@ def literal(w:mutbuf, at:u64, kind:u64) -> u64:
     return 0
 
 def emit(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    if length(w) >= 120:
+        count = word_load(w, 112)
+        if count < word_load(w, 32):
+            store(o, count, value)
+        put(w, OUT, count + 1)
+        return 0
     count = get(w, OUT)
     if count < get(w, MAX):
         store(o, count, value)
@@ -657,34 +665,43 @@ def escaped(o:mutbuf, w:mutbuf, point:u64) -> u64:
     elif point == 34 or point == 92:
         emit(o, w, 92)
         emit(o, w, point)
-    elif get(w, ASCII) != 0 and point >= 127:
-        if point <= 65535:
-            emit(o, w, 92)
-            emit(o, w, 117)
-            hex4(o, w, point)
-        else:
-            emit(o, w, 92)
-            emit(o, w, 117)
-            hex4(o, w, 55296 + ((point - 65536) >> 10))
-            emit(o, w, 92)
-            emit(o, w, 117)
-            hex4(o, w, 56320 + ((point - 65536) & 1023))
     else:
-        if point >= 55296 and point <= 57343:
-            return 112
-        if point < 128:
-            emit(o, w, point)
+        if length(w) >= 56:
+            ascii_flag = word_load(w, 48)
         else:
-            if point < 2048:
-                emit(o, w, 192 | (point >> 6))
+            ascii_flag = get(w, ASCII)
+        if ascii_flag != 0:
+            escape_non_ascii = point >= 127
+        else:
+            escape_non_ascii = False
+        if escape_non_ascii:
+            if point <= 65535:
+                emit(o, w, 92)
+                emit(o, w, 117)
+                hex4(o, w, point)
             else:
-                if point < 65536:
-                    emit(o, w, 224 | (point >> 12))
+                emit(o, w, 92)
+                emit(o, w, 117)
+                hex4(o, w, 55296 + ((point - 65536) >> 10))
+                emit(o, w, 92)
+                emit(o, w, 117)
+                hex4(o, w, 56320 + ((point - 65536) & 1023))
+        else:
+            if point >= 55296 and point <= 57343:
+                return 112
+            if point < 128:
+                emit(o, w, point)
+            else:
+                if point < 2048:
+                    emit(o, w, 192 | (point >> 6))
                 else:
-                    emit(o, w, 240 | (point >> 18))
-                    emit(o, w, 128 | ((point >> 12) & 63))
-                emit(o, w, 128 | ((point >> 6) & 63))
-            emit(o, w, 128 | (point & 63))
+                    if point < 65536:
+                        emit(o, w, 224 | (point >> 12))
+                    else:
+                        emit(o, w, 240 | (point >> 18))
+                        emit(o, w, 128 | ((point >> 12) & 63))
+                    emit(o, w, 128 | ((point >> 6) & 63))
+                emit(o, w, 128 | (point & 63))
     return 0
 
 def hex4(o:mutbuf, w:mutbuf, value:u64) -> u64:
@@ -1207,14 +1224,17 @@ def source_program():
         """Expand hot buffer-name/literal-address reads in place.
 
         Dynamic addresses retain their helpers. No read moves out of its
-        expression or short-circuit branch, and bytes keep their original
-        low-to-high order and individual bounds traps. Restrict this to the
+        expression or short-circuit branch. Only the json_wire workspace
+        header fields use word loads, after its full minimum-length guard.
+        Other reads keep their original byte order and bounds traps,
+        including every directly callable private helper. Restrict this to the
         continuation receive/dispatch and observed string processing. Whole
         program expansion exceeds the unchanged assembly line budget, and
         expanding the one-time initialization as well exceeds the unchanged
         native compiler's per-function value-slot budget.
         """
         def visit_FunctionDef(self, node):
+            self.entry_header_reads = node.name == 'json_wire'
             if node.name in {'text_begin', 'text_byte', 'emit', 'commit_fragment', 'escaped'}:
                 return self.generic_visit(node)
             if node.name == 'normalize':
@@ -1236,7 +1256,7 @@ def source_program():
             for statement in node.body:
                 if (isinstance(statement, ast.If)
                         and ast.dump(statement.test, include_attributes=False) == ast.dump(
-                            ast.parse('get(w, 0) == 0', mode='eval').body, include_attributes=False)):
+                            ast.parse('workspace_magic == 0', mode='eval').body, include_attributes=False)):
                     if initialization is not None:
                         raise ValueError('ambiguous JSON wire initialization branch')
                     initialization = statement
@@ -1266,6 +1286,12 @@ def source_program():
             offset = node.args[1].value
             if not 0 <= offset <= (1 << 64) - width:
                 return node
+            if (self.entry_header_reads and node.func.id == 'get'
+                    and node.args[0].id == 'w' and offset in {0, 8, 16, 24, 216}):
+                # These six source sites are all after the 40960-byte
+                # entry guard. Keep each read at its original expression.
+                return ast.copy_location(
+                    ast.Call(ast.Name('word_load', ast.Load()), node.args, []), node)
             value = ast.Constant(0)
             for index in range(width):
                 address = ast.Constant(offset + index)
@@ -1335,7 +1361,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [b.param(v) for v in b.params],
                           'returns': [b.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': b.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'json_wire', 'functions': functions})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9', 'module': 'json_wire', 'functions': functions})
 
 
 if __name__ == '__main__':

@@ -29,7 +29,8 @@ import sys
 import time
 
 from tools.hia_selfhost_native_observer import (LIMIT, WORKSPACE_FIELDS, digest,
-                                               frame, shared_output, read_capture)
+                                               frame, shared_output, read_capture,
+                                               retain_process_streams)
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = ROOT / "examples/hia_bootstrap/linked_observer_policy.hepta"
@@ -323,11 +324,15 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                 process = execute(executable,payload,cwd=directory,output_fd=capture_fd,snapshot_fd=snapshot_fd)
             except subprocess.TimeoutExpired as exc:
                 stderr = exc.stderr or b''
+                retain_process_streams(directory, label, exc.stdout or b'', stderr,
+                    request=request, returncode=None, timed_out=True)
                 if exc.stdout:
                     (directory/(label+'.failure-stdout.raw')).write_bytes(exc.stdout)
                 result = {'status':'timeout','wall_limit_seconds':20}
             else:
                 stderr = process.stderr
+                retain_process_streams(directory, label, process.stdout, stderr,
+                    request=request, returncode=process.returncode, timed_out=False)
                 if process.returncode:
                     if process.stdout:
                         (directory/(label+'.failure-stdout.raw')).write_bytes(process.stdout)
@@ -409,3 +414,11 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
         (directory/(label+'.stderr.log')).write_bytes(stderr)
         (directory/(label+'.receipt.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
         return result, output
+
+
+# Explicit native lifecycle candidate. The complete original execute body above
+# remains the default; selected entry has a declared, different source identity.
+if os.environ.get("HEPTA_HIA_COLD_NATIVE_TRANSPORT_MANIFEST") is not None:
+    from tools.hia_cold_native_transport_bridge import bind_execute as _bind_cold_execute
+    execute = _bind_cold_execute("linked", globals())
+    del _bind_cold_execute

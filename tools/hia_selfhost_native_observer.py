@@ -17,6 +17,7 @@ from pathlib import Path
 import struct
 import subprocess
 import time
+import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKER = ROOT/'examples/hia_bootstrap/native_observer_packer.hepta'
@@ -91,7 +92,7 @@ def build(directory, compiler, reference):
     return executable, receipt
 
 
-def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+def _validate_frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
     if (not isinstance(image, bytes) or not 0 < len(image) <= 4*LIMIT
             or not isinstance(source, bytes) or len(source) > LIMIT
             or type(capacity) is not int or not 0 <= capacity <= LIMIT
@@ -99,6 +100,10 @@ def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=Non
             or type(workspace_fill) is not int or not 0 <= workspace_fill <= 255
             or (output_fd is not None and (type(output_fd) is not int or not 3 <= output_fd <= 2147483647))):
         raise ValueError('native observer frame exceeds the unchanged byte ABI limits')
+
+
+def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+    _validate_frame(image, source, capacity, workspace_size, workspace_fill, output_fd)
     return b'HIAOBS02'+struct.pack('<6Q',len(image),len(source),capacity,workspace_size,workspace_fill,
         (1<<64)-1 if output_fd is None else output_fd)+image+source
 
@@ -153,6 +158,44 @@ def read_capture(descriptor,capacity):
     return bytes(data)
 
 
+def retain_process_streams(directory, label, stdout, stderr, *, request, returncode, timed_out):
+    """Retain only the actual completed/partial binary process observations.
+
+    Compression is lossless evidence storage. It does not change the response,
+    child deadline, original receipt or byte-ABI framing. The unchanged archive
+    member cap also bounds each decoded original stream; an oversized stream or
+    failed write leaves the qualification incomplete instead of dropping bytes.
+    """
+    limit = 16 * 1024 * 1024
+    if (type(stdout) is not bytes or type(stderr) is not bytes
+            or type(timed_out) is not bool
+            or (timed_out and returncode is not None)
+            or (not timed_out and type(returncode) is not int)
+            or len(stdout) > limit or len(stderr) > limit):
+        raise ValueError('original process streams exceed the unchanged evidence domain')
+    directory = Path(directory)
+    request_raw = (json.dumps(request, sort_keys=True) + '\n').encode()
+    if (directory / (label + '.request.json')).read_bytes() != request_raw:
+        raise ValueError('original process request changed before stream retention')
+    rows = {}
+    for name, raw in (('stdout', stdout), ('stderr', stderr)):
+        stored = zlib.compress(raw, level=1)
+        if len(stored) > limit:
+            raise ValueError('compressed process stream exceeds the unchanged archive member cap')
+        path = directory / (label + '.process.' + name + '.zlib')
+        path.write_bytes(stored)
+        if path.read_bytes() != stored:
+            raise ValueError('original compressed process stream changed while retaining it')
+        rows[name] = {'file': path.name, 'encoding': 'zlib', 'compression_level': 1,
+            'raw_bytes': len(raw), 'raw_sha256': digest(raw),
+            'stored_bytes': len(stored), 'stored_sha256': digest(stored)}
+    record = {'schema': 'hepta.hia.observer-original-process-streams.v1',
+        'request_sha256': digest(request_raw), 'returncode': returncode, 'timed_out': timed_out,
+        'decoded_stream_limit_bytes': limit, 'streams': rows}
+    (directory / (label + '.process-streams.json')).write_text(
+        json.dumps(record, sort_keys=True, separators=(',', ':'), allow_nan=False) + '\n')
+
+
 def invoke(directory, label, observer, image, source, *, capacity, workspace_size, workspace_fill,
            output_initial=None, observe_trap_writes=False, image_format='flat-x86-64'):
     if image_format == 'linked-selfhost':
@@ -165,7 +208,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
     directory, image, observer = Path(directory), Path(image), Path(observer)
     image_bytes, executable = image.read_bytes(), observer.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.
-    frame(image_bytes,source,capacity,workspace_size,workspace_fill)
+    _validate_frame(image_bytes,source,capacity,workspace_size,workspace_fill)
     initial = b'\xa5'*capacity if output_initial is None else output_initial
     if not isinstance(initial,bytes) or len(initial)!=capacity:
         raise ValueError('output preimage must match the capacity')
@@ -189,11 +232,15 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                 process = execute(executable,payload,cwd=directory,output_fd=capture_fd)
             except subprocess.TimeoutExpired as exc:
                 stderr = exc.stderr or b''
+                retain_process_streams(directory, label, exc.stdout or b'', stderr,
+                    request=request, returncode=None, timed_out=True)
                 if exc.stdout:
                     (directory/(label+'.failure-stdout.raw')).write_bytes(exc.stdout)
                 result = {'status':'timeout','wall_limit_seconds':20}
             else:
                 stderr = process.stderr
+                retain_process_streams(directory, label, process.stdout, stderr,
+                    request=request, returncode=process.returncode, timed_out=False)
                 if process.returncode:
                     if process.stdout:
                         (directory/(label+'.failure-stdout.raw')).write_bytes(process.stdout)
@@ -210,7 +257,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                         returned, elapsed = struct.unpack_from('<2Q',raw,8)
                         actual_source = raw[24:24+len(source)]
                         output = raw[24+len(source):24+len(source)+capacity]
-                        workspace = raw[24+len(source)+capacity:]
+                        workspace_offset = 24+len(source)+capacity
                         output_path.write_bytes(output)
                         if actual_source != source:
                             (directory/(label+'.modified-source.bin')).write_bytes(actual_source)
@@ -219,7 +266,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                             'source_sha256':digest(source),'image_sha256':digest(image_bytes),
                             'output_sha256':digest(output),'source_unchanged':actual_source==source,
                             'output_unchanged':output==initial,
-                            'workspace_header':{str(at):int.from_bytes(workspace[at:at+8],'little')
+                            'workspace_header':{str(at):struct.unpack_from('<Q',raw,workspace_offset+at)[0]
                                 for at in WORKSPACE_FIELDS if workspace_size>=at+8},
                             'native_elapsed_ns':elapsed,'forbidden_compiler_modules_loaded':[],
                             'loader_operations':'HIA-emitted static ELF; sealed exec; RW-to-RX image; fixed ABI call',
@@ -250,3 +297,11 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
         (directory/(label+'.stderr.log')).write_bytes(stderr)
         (directory/(label+'.receipt.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
         return result, output
+
+
+# Explicit native lifecycle candidate. The complete original execute body above
+# remains the default; selected entry has a declared, different source identity.
+if os.environ.get("HEPTA_HIA_COLD_NATIVE_TRANSPORT_MANIFEST") is not None:
+    from tools.hia_cold_native_transport_bridge import bind_execute as _bind_cold_execute
+    execute = _bind_cold_execute("flat", globals())
+    del _bind_cold_execute

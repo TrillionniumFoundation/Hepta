@@ -39,6 +39,8 @@ CURRENT = {
     EVALUATION: {'bytes': 49105, 'sha256': '673b1e330b48df5915a4a544188397e33055ac023986cb136e8b067e4574b9d3'},
 }
 AUTHORITIES = {
+    'tests/fixtures/caller_deadline_diagnostics_v1.json': {
+        'bytes': 3545, 'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c'},
     BUILD_ORIGINAL: {'bytes': 124039, 'sha256': '262c3df1e051fe52797c91dd053f2d79c0704fe5b20a85f799d6d40c1c4bb2a9'},
     EMISSION_ORIGINAL: {'bytes': 59973, 'sha256': 'dec08c099ea1d262f1a3d32dc34801c816484bda6724fac60f5a8a1d5d8c4048'},
     PROFILE_ORIGINAL: {'bytes': 166078, 'sha256': 'acbb8c221d80788ef96eb4b596c24fc1c3eb410229e605b2f01ef77e5530b7d6'},
@@ -210,6 +212,7 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
         if {name: pin(raw) for name, raw in cls.legacy.items()} != OLD:
             raise AssertionError('complete original test bytes were not restored')
         code_paths = ['tests/hia_caller_terminal_admission.py',
+                      'tests/hia_caller_diagnostics_admission.py',
                       'tests/test_hia_caller_terminal_admission.py']
         code_paths += [module.replace('.', '/') + '.py' for _, module, _, _, _ in GATES]
         cls.code = {name: (ROOT / name).read_bytes() for name in code_paths}
@@ -321,6 +324,12 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
                     self.assertEqual(value['original_source_count'], count)
                     self.assertEqual(value['ordered_consumed_original_sources'], list(records))
                     self.assertEqual(set(value['reviewed_test_source_adjustments']), set(changed))
+                    diagnostic = value['reviewed_diagnostic_source_adjustments']
+                    self.assertEqual(set(diagnostic), {'tests/test_hia_agent_native_tools.py'})
+                    self.assertEqual(diagnostic['tests/test_hia_agent_native_tools.py']['original']['sha256'],
+                        records['tests/test_hia_agent_native_tools.py'])
+                    self.assertEqual(diagnostic['tests/test_hia_agent_native_tools.py']['current'],
+                        pin(self.seed['tests/test_hia_agent_native_tools.py']))
                     self.assertEqual(value['production_composition_source_count'], 13)
                     self.assertEqual(value['production_source_exceptions'], [])
                     self.assertIs(value['terminal_reread_identical'], True)

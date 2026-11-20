@@ -1090,6 +1090,360 @@ def read_callers_original_administrator(directory,inner,ids,captured):
             if integer(count)<=0:raise ValueError("an original composed native owner did not execute")
     return expected
 
+_CALLER_SCOPE_AUTHORITY = 'tests/fixtures/hia_service_bootstrap_original_r12/caller-scopes.json'
+_CALLER_SCOPE_AUTHORITY_PIN = {
+    'bytes': 28102,
+    'sha256': 'b8056f8c056409952ff219d4e1b789d40d754de4718023c9fcb467c02c893af4',
+}
+_CALLER_DIAGNOSTICS_PATH = 'tests/test_hia_agent_native_tools.py'
+_CALLER_DIAGNOSTICS_HELPER = 'tests/hia_caller_diagnostics_admission.py'
+_CALLER_DIAGNOSTICS_HELPER_PIN = {
+    'bytes': 5185,
+    'sha256': '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578',
+}
+_CALLER_DIAGNOSTICS_FIXTURE = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_CALLER_DIAGNOSTICS_FIXTURE_PIN = {
+    'bytes': 3545,
+    'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c',
+}
+_CALLER_DIAGNOSTICS_OLD = {
+    'bytes': 45385,
+    'sha256': 'c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a',
+}
+_CALLER_DIAGNOSTICS_NEW = {
+    'bytes': 46518,
+    'sha256': 'b98c24327639363d266eb5e263c042e0a20d82a8f2e8cc08ffafb8f34f73f355',
+}
+_CALLER_JOURNAL_PATH = 'tests/test_hia_agent_journal_native.py'
+_CALLER_JOURNAL_HELPER = 'tests/hia_journal_installed_preparation.py'
+_CALLER_JOURNAL_HELPER_PIN = {
+    'bytes': 15935,
+    'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797',
+}
+_CALLER_JOURNAL_FIXTURE = 'tests/fixtures/journal_installed_preparation_v2.json'
+_CALLER_JOURNAL_FIXTURE_PIN = {
+    'bytes': 14729,
+    'sha256': '81914ecb2bef21e9c641282dc8530158146ecadd4b86e8e4e6b3f83e71b73e7b',
+}
+_CALLER_JOURNAL_ARCHIVE = 'tests/fixtures/journal_installed_preparation_v1.py.txt'
+_CALLER_JOURNAL_OLD = {
+    'bytes': 48482,
+    'sha256': 'a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077',
+}
+_CALLER_JOURNAL_NEW = {
+    'bytes': 48798,
+    'sha256': '7d5cebde72523ade809346a30916a48611e18a157230b4f2f6129c0d16b8715c',
+}
+_CALLER_JOURNAL_PREPARATION = 'hepta.hia.journal-installed-resource-preparation.v2'
+
+
+def _restore_caller_journal_packaging_helper(raw):
+    """Read the exact whole helper relation; no old source is executed."""
+    if type(raw) is not bytes:
+        raise ValueError('Journal packaging helper requires immutable complete bytes')
+    actual = {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+    original_pin = {'bytes': 15935, 'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797'}
+    current_pin = {'bytes': 18544, 'sha256': 'c42cb2fd0a0a6040cda6bc203d284e4bd0d5f6c7c2e76f71c50ba2113ee37aa4'}
+    if actual == original_pin:
+        return raw
+    if actual != current_pin:
+        raise ValueError('Journal packaging helper is not an exact reviewed source')
+    pieces = (
+        (9689, 9689, b'\n\ndef prepare_resources(root, original_resources):\n', b'\n\ndef _admit_package_policy(name, raw, expected):\n    """Accept the original policy or the exact extension-only v6 successor.\n\n    The 176 Agent, 17 capture and three integer resources are unchanged.\n    This is a whole-source inverse and replay, never a policy pin refresh.\n    """\n    if encoded(pin(raw)) == encoded(expected):\n        return\n    if (name != \'setup.py\' or encoded(expected) != encoded({\'bytes\': 4839, \'sha256\': \'be518d19561790ca7c07f54c70a3d98899b460ff717ca3d93c381cdbb5a2c89f\'})\n            or pin(raw) != {\'bytes\': 5398, \'sha256\': \'dbd27976a0d5e411da4c3affee239f66af03fcde22651237987b7a64acf330a8\'}):\n        raise ValueError(\'Journal current package policy changed: \' + name)\n    pieces = (\n        (873, 873, b\'ROOT=Path(__file__).resolve().parent\\n\', b\'_image_spec = spec_from_file_location(\\n    \\\'_hepta_native_carrier_build\\\', Path(__file__).resolve().parent / \\\'hepta/native/native_carrier_build.py\\\')\\n_image_build = module_from_spec(_image_spec)\\n_image_spec.loader.exec_module(_image_build)\\n\\nclass AllMechanicalBuildExt(_image_build.NativeCarrierBuildExt, MechanicalBuildExt):\\n    """Independent exact receipts; each original builder handles only its ABI."""\\n    pass\\n\\nROOT=Path(__file__).resolve().parent\\n\'),\n        (4632, 5048, b"setup(cmdclass={\'build_py\':AgentResourceBuild, \'build_ext\':MechanicalBuildExt},\\n      ext_modules=extensions(),\\n      package_data={\'hepta\': [\'native/slot_mechanical.c\', \'native/slot_mechanical_build.py\']})\\n", b"setup(cmdclass={\'build_py\':AgentResourceBuild, \'build_ext\':AllMechanicalBuildExt},\\n      ext_modules=extensions() + _image_build.extensions(),\\n      package_data={\'hepta\': [\'native/slot_mechanical.c\', \'native/slot_mechanical_build.py\',\\n                              \'native/native_image.c\', \'native/cell_frame.c\', \'native/native_carrier_build.py\']})\\n"),\n    )\n    original = raw\n    for old_at, new_at, before, after in reversed(pieces):\n        if original[new_at:new_at + len(after)] != after:\n            raise ValueError(\'Journal native-carrier setup inverse differs\')\n        original = original[:new_at] + before + original[new_at + len(after):]\n    if encoded(pin(original)) != encoded(expected):\n        raise ValueError(\'Journal native-carrier setup whole original differs\')\n    replay = original\n    for old_at, new_at, before, after in reversed(pieces):\n        if replay[old_at:old_at + len(before)] != before:\n            raise ValueError(\'Journal native-carrier setup replay segment differs\')\n        replay = replay[:old_at] + after + replay[old_at + len(before):]\n    if replay != raw:\n        raise ValueError(\'Journal native-carrier setup whole replay differs\')\n\n\n\ndef prepare_resources(root, original_resources):\n'),
+        (10254, 12925, b"        if pin(_read(root, name, captured)) != expected:\n            raise ValueError('Journal current package policy changed: ' + name)\n", b'        _admit_package_policy(name, _read(root, name, captured), expected)\n'),
+    )
+    # Independently rebuild old/current streams from ordered segments.
+    previous_new = previous_old = 0
+    old_parts = []
+    for old_at, new_at, old, new in pieces:
+        if (old_at < previous_old or new_at < previous_new
+                or old_at - previous_old != new_at - previous_new
+                or raw[new_at:new_at + len(new)] != new):
+            raise ValueError('Journal packaging helper inverse segment differs')
+        old_parts.extend((raw[previous_new:new_at], old))
+        previous_old, previous_new = old_at + len(old), new_at + len(new)
+    old_parts.append(raw[previous_new:])
+    original = b''.join(old_parts)
+    if {'bytes': len(original), 'sha256': sha256(original).hexdigest()} != original_pin:
+        raise ValueError('Journal packaging helper did not restore its whole original')
+    replay, cursor = [], 0
+    for old_at, new_at, old, new in pieces:
+        if original[old_at:old_at + len(old)] != old:
+            raise ValueError('Journal packaging helper forward segment differs')
+        replay.extend((original[cursor:old_at], new))
+        cursor = old_at + len(old)
+    replay.append(original[cursor:])
+    if b''.join(replay) != raw:
+        raise ValueError('Journal packaging helper whole forward replay differs')
+    return original
+
+
+
+def _restore_caller_diagnostic_source(raw, provenance):
+    """Independently reverse and replay the two reviewed diagnostic splices.
+
+    The producer and its admission helper are not imported or executed here.
+    Reconstructed historical bytes are evidence only, never executed callers.
+    """
+    if type(raw) is not bytes or type(provenance) is not bytes:
+        raise ValueError('caller diagnostics require complete raw bytes')
+    equal(s.bytes_pin(raw), _CALLER_DIAGNOSTICS_NEW,
+          'caller diagnostic current whole source differs')
+    equal(s.bytes_pin(provenance), _CALLER_DIAGNOSTICS_FIXTURE_PIN,
+          'caller diagnostic fixed provenance differs')
+    value = s.parse(provenance)
+    expected_fields = {
+        'schema': 'hepta.hia.caller-deadline-diagnostics-source.v1',
+        'state': 'FROZEN_EXACT_FAILURE_DIAGNOSTICS_SUCCESSOR',
+        'path': _CALLER_DIAGNOSTICS_PATH,
+        'original': _CALLER_DIAGNOSTICS_OLD,
+        'current': _CALLER_DIAGNOSTICS_NEW,
+        'definition': 'NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable',
+        'original_deadline_seconds': 5,
+        'original_native_budget_ms': 1,
+        'original_method_ids_unchanged': True,
+        'production_source_exception': False,
+    }
+    if type(value) is not dict or set(value) != set(expected_fields) | {'splices'}:
+        raise ValueError('caller diagnostic provenance fields differ')
+    equal({key: value[key] for key in expected_fields}, expected_fields,
+          'caller diagnostic provenance scope differs')
+    splices = value['splices']
+    if type(splices) is not list or len(splices) != 2:
+        raise ValueError('caller diagnostic splice count differs')
+    entries = []
+    old_end = new_end = displacement = 0
+    for item in splices:
+        if (type(item) is not dict
+                or set(item) != {'old_offset', 'new_offset', 'old_hex', 'new_hex'}):
+            raise ValueError('caller diagnostic splice fields differ')
+        old_at, new_at = item['old_offset'], item['new_offset']
+        if (type(old_at) is not int or type(new_at) is not int
+                or old_at < old_end or new_at < new_end
+                or old_at + displacement != new_at):
+            raise ValueError('caller diagnostic splice order differs')
+        segments = []
+        for name in ('old_hex', 'new_hex'):
+            text = item[name]
+            if type(text) is not str or not text:
+                raise ValueError('caller diagnostic splice is not exact hexadecimal')
+            try:
+                part = bytes.fromhex(text)
+            except ValueError as error:
+                raise ValueError('caller diagnostic splice is not hexadecimal') from error
+            if part.hex() != text:
+                raise ValueError('caller diagnostic splice is not canonical hexadecimal')
+            segments.append(part)
+        before, after = segments
+        if (before == after or new_at + len(after) > len(raw)
+                or raw[new_at:new_at + len(after)] != after):
+            raise ValueError('caller diagnostic current splice bytes differ')
+        entries.append((old_at, new_at, before, after))
+        old_end, new_end = old_at + len(before), new_at + len(after)
+        displacement += len(after) - len(before)
+    original = raw
+    for old_at, new_at, before, after in reversed(entries):
+        original = original[:new_at] + before + original[new_at + len(after):]
+    equal(s.bytes_pin(original), _CALLER_DIAGNOSTICS_OLD,
+          'caller diagnostics did not restore the complete original source')
+    replay = original
+    for old_at, new_at, before, after in reversed(entries):
+        if replay[old_at:old_at + len(before)] != before:
+            raise ValueError('caller diagnostic original splice bytes differ')
+        replay = replay[:old_at] + after + replay[old_at + len(before):]
+    if replay != raw:
+        raise ValueError('caller diagnostic forward replay differs')
+    return original
+
+
+def _restore_caller_journal_source(raw, provenance):
+    """Read the complete pinned relation without importing any admission code."""
+    if type(raw) is not bytes or type(provenance) is not bytes:
+        raise ValueError('Journal preparation requires complete immutable source bytes')
+    equal(s.bytes_pin(raw), _CALLER_JOURNAL_NEW, 'current complete Journal source differs')
+    equal(s.bytes_pin(provenance), _CALLER_JOURNAL_FIXTURE_PIN,
+          'fixed Journal preparation authority differs')
+    value = s.parse(provenance)
+    fields = {
+        'schema': 'hepta.hia.journal-installed-resource-preparation-authority.v2',
+        'preparation_id': _CALLER_JOURNAL_PREPARATION,
+        'path': _CALLER_JOURNAL_PATH, 'original': _CALLER_JOURNAL_OLD,
+        'current': _CALLER_JOURNAL_NEW,
+        'original_archive': {'path': _CALLER_JOURNAL_ARCHIVE, **_CALLER_JOURNAL_OLD},
+        'retained_source_commit': '1a4f2202a6c7ffbad373329ddcd9451cc59c9401',
+        'original_method_count': 21,
+        'original_build_timeout_seconds': 120,
+        'original_install_timeout_seconds': 120,
+        'original_probe_timeout_seconds': 30,
+        'original_scope_budget_seconds': 1800,
+        'original_business_assertions_and_budgets_unchanged': True,
+        'setup_required_resources_unchanged': True,
+        'production_source_exceptions': [],
+    }
+    if type(value) is not dict:
+        raise ValueError('Journal preparation authority is not an object')
+    equal({name: value.get(name) for name in fields}, fields,
+          'Journal preparation original authority or budgets differ')
+    ids = value.get('original_method_ids')
+    if (type(ids) is not list or len(ids) != 21
+            or any(type(name) is not str for name in ids) or len(set(ids)) != 21):
+        raise ValueError('Journal preparation original complete method inventory differs')
+    splices = value.get('splices')
+    if type(splices) is not list or len(splices) != 2:
+        raise ValueError('Journal preparation exact splice count differs')
+    identifiers = ('complete-current-package-resources',
+                   'staged-byte-custody-before-original-wheel-build')
+    pieces = []
+    old_end = new_end = delta = 0
+    for index, item in enumerate(splices):
+        if (type(item) is not dict
+                or set(item) != {'id', 'old_offset', 'new_offset', 'old_hex', 'new_hex'}
+                or item['id'] != identifiers[index]):
+            raise ValueError('Journal preparation splice identity differs')
+        old_at, new_at = item['old_offset'], item['new_offset']
+        if (type(old_at) is not int or type(new_at) is not int
+                or old_at < old_end or new_at < new_end or old_at + delta != new_at):
+            raise ValueError('Journal preparation typed splice order differs')
+        data = []
+        for field in ('old_hex', 'new_hex'):
+            text = item[field]
+            if type(text) is not str or not text:
+                raise ValueError('Journal preparation splice is not hexadecimal')
+            try:
+                segment = bytes.fromhex(text)
+            except ValueError as error:
+                raise ValueError('Journal preparation splice is not hexadecimal') from error
+            if segment.hex() != text:
+                raise ValueError('Journal preparation splice is not canonical hexadecimal')
+            data.append(segment)
+        before, after = data
+        old_end, new_end = old_at + len(before), new_at + len(after)
+        if (before == after or old_end > _CALLER_JOURNAL_OLD['bytes']
+                or new_end > len(raw) or raw[new_at:new_end] != after):
+            raise ValueError('Journal preparation complete source splice bytes differ')
+        pieces.append((old_at, new_at, before, after))
+        delta += len(after) - len(before)
+    original = raw
+    for old_at, new_at, before, after in reversed(pieces):
+        original = original[:new_at] + before + original[new_at + len(after):]
+    equal(s.bytes_pin(original), _CALLER_JOURNAL_OLD,
+          'Journal preparation did not restore the entire original source')
+    replay = original
+    for old_at, new_at, before, after in reversed(pieces):
+        if replay[old_at:old_at + len(before)] != before:
+            raise ValueError('Journal preparation original splice bytes differ')
+        replay = replay[:old_at] + after + replay[old_at + len(before):]
+    if replay != raw:
+        raise ValueError('Journal preparation whole current replay differs')
+    return original
+
+
+def _read_caller_source_admission(scope_name, declaration, inner, captured):
+    """Recheck actual current callers and the optional exact successor proof."""
+    if type(scope_name) is not str or scope_name not in ('ordinary', 'journal', 'context'):
+        raise ValueError('undeclared caller source scope')
+    if (type(inner) is not dict or type(inner.get('source_before')) is not dict
+            or type(inner.get('source_after')) is not dict):
+        raise ValueError('caller source captures are not complete mappings')
+    consumed = {}
+
+    def take(name, expected=None):
+        if name in consumed:
+            raise ValueError('duplicate caller source admission input')
+        raw = captured_bytes(ROOT / name, expected, captured)
+        consumed[name] = s.bytes_pin(raw)
+        return raw
+
+    frozen = take(_CALLER_SCOPE_AUTHORITY, _CALLER_SCOPE_AUTHORITY_PIN)
+    scope = s.parse(frozen)['scopes'][scope_name]
+    equal(declaration, scope, 'caller source declaration differs from the fixed authority')
+    integer(len(scope['ordered_ids']), {'ordinary': 112, 'journal': 21, 'context': 15}[scope_name])
+    integer(scope['outer_seconds'], 1800)
+    adjustments = {}
+    journal_adjustments = {}
+    for name, old_pin in scope['files'].items():
+        raw = take(name)
+        if s.same(s.bytes_pin(raw), old_pin):
+            continue
+        if name == _CALLER_JOURNAL_PATH:
+            if scope_name != 'journal':
+                raise ValueError('Journal preparation does not authorize another scope')
+            equal(old_pin, _CALLER_JOURNAL_OLD, 'Journal original scope identity differs')
+            equal(s.bytes_pin(raw), _CALLER_JOURNAL_NEW, 'current complete Journal source differs')
+            helper = take(_CALLER_JOURNAL_HELPER)
+            equal(s.bytes_pin(_restore_caller_journal_packaging_helper(helper)),
+                  _CALLER_JOURNAL_HELPER_PIN, 'Journal helper original source differs')
+            provenance = take(_CALLER_JOURNAL_FIXTURE, _CALLER_JOURNAL_FIXTURE_PIN)
+            archive = take(_CALLER_JOURNAL_ARCHIVE, _CALLER_JOURNAL_OLD)
+            if _restore_caller_journal_source(raw, provenance) != archive:
+                raise ValueError('Journal preparation original archive differs')
+            authority = s.parse(provenance)
+            equal(authority['original_method_ids'], scope['ordered_ids'],
+                  'Journal preparation differs from the complete original scope')
+            journal_adjustments[name] = {
+                'schema': 'hepta.hia.journal-installed-resource-source-admission.v2',
+                'preparation_id': _CALLER_JOURNAL_PREPARATION, 'path': name,
+                'original': dict(_CALLER_JOURNAL_OLD), 'current': dict(_CALLER_JOURNAL_NEW),
+                'authority': {'path': _CALLER_JOURNAL_FIXTURE, **_CALLER_JOURNAL_FIXTURE_PIN},
+                'archive': {'path': _CALLER_JOURNAL_ARCHIVE, **_CALLER_JOURNAL_OLD},
+                'exact_splice_count': 2, 'complete_original_inverse_verified': True,
+                'complete_current_forward_replay_verified': True,
+                'original_method_count': 21, 'original_method_ids': list(scope['ordered_ids']),
+                'original_build_timeout_seconds': 120, 'original_install_timeout_seconds': 120,
+                'original_probe_timeout_seconds': 30, 'original_scope_budget_seconds': 1800,
+                'captured_files': {item: dict(consumed[item]) for item in
+                    (_CALLER_JOURNAL_PATH, _CALLER_JOURNAL_HELPER,
+                     _CALLER_JOURNAL_FIXTURE, _CALLER_JOURNAL_ARCHIVE)},
+                'terminal_reread_identical': True, 'production_source_exceptions': [],
+            }
+            continue
+        if name != _CALLER_DIAGNOSTICS_PATH:
+            raise ValueError('an original complete caller module changed: ' + name)
+        equal(old_pin, _CALLER_DIAGNOSTICS_OLD, 'caller diagnostic original authority differs')
+        take(_CALLER_DIAGNOSTICS_HELPER, _CALLER_DIAGNOSTICS_HELPER_PIN)
+        provenance = take(_CALLER_DIAGNOSTICS_FIXTURE, _CALLER_DIAGNOSTICS_FIXTURE_PIN)
+        _restore_caller_diagnostic_source(raw, provenance)
+        adjustments[name] = {
+            'path': name, 'original': dict(_CALLER_DIAGNOSTICS_OLD),
+            'current': dict(_CALLER_DIAGNOSTICS_NEW),
+            'provenance_path': _CALLER_DIAGNOSTICS_FIXTURE,
+            'provenance_sha256': _CALLER_DIAGNOSTICS_FIXTURE_PIN['sha256'],
+            'exact_splices': 2, 'complete_original_inverse_verified': True,
+            'complete_current_forward_replay_verified': True,
+            'original_deadline_seconds': 5, 'original_native_budget_ms': 1,
+            'production_source_exception': False,
+        }
+    proof = {
+        'schema': 'hepta.hia.service-bootstrap-caller-source-admission.v1',
+        'scope': scope_name,
+        'authority': {'path': _CALLER_SCOPE_AUTHORITY, **_CALLER_SCOPE_AUTHORITY_PIN},
+        'original_files': dict(scope['files']), 'original_modules': list(scope['modules']),
+        'original_ordered_ids': list(scope['ordered_ids']),
+        'original_outer_seconds': scope['outer_seconds'],
+        'reviewed_diagnostic_source_adjustments': adjustments,
+        'captured_files': consumed,
+        'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [], 'whole_native': False,
+    }
+    if journal_adjustments:
+        proof['reviewed_journal_installed_preparation_source_adjustments'] = journal_adjustments
+    if 'caller_source_admission' in inner:
+        equal(inner['caller_source_admission'], proof,
+              'caller producer source proof differs from independent full-source readback')
+    elif adjustments or journal_adjustments:
+        raise ValueError('a current caller successor requires its exact source proof')
+    # Original unmodified callers still admit the prior v2 report with no new
+    # proof field. A changed caller cannot obtain that legacy path.
+    equal(inner['source_before'], inner['source_after'], 'complete caller source changed')
+    for name, actual in consumed.items():
+        equal(inner['source_before'].get(name), actual['sha256'],
+              'caller source proof differs from its actual complete source capture')
+    # All raw inputs were appended to the outer reader's custody list. Its
+    # original unchanged(captured) seals them after the remaining native/cold
+    # and closed-administrator receipt checks; no early PASS is returned.
+    return proof
+
+
 def read_callers(directory,report_pin,*,require_cold):
     directory=Path(directory);captured=[]
     report=capture(directory/"report.json",report_pin,captured)
@@ -1130,8 +1484,7 @@ def read_callers(directory,report_pin,*,require_cold):
     if (inner["source_unchanged"] is not True or inner["old_admin_bundles_or_clear_environment_scopes_modified"] is not False
             or inner["whole_native"] is not False or report["whole_native_stack_qualified"] is not False):
         raise ValueError("caller scope/custody claims changed")
-    for name,pin in declaration["files"].items():
-        captured_bytes(ROOT/name,{"bytes":pin["bytes"],"sha256":pin["sha256"]},captured)
+    _read_caller_source_admission(scope,declaration,inner,captured)
     equal(inner["source_before"],inner["source_after"],"complete caller source changed")
     for name,digest in inner["source_before"].items():
         if Path(name).is_absolute() or ".." in Path(name).parts:raise ValueError("caller source leaves root")

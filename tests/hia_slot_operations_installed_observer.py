@@ -13,6 +13,10 @@ from pathlib import Path
 import struct
 import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from tests.hia_slot_worker_terminal import SourceAuthority, TerminalObservation
+
 
 class NoAuthoring(importlib.abc.MetaPathFinder):
     def find_spec(self, name, path=None, target=None):
@@ -25,6 +29,7 @@ def main():
     parser.add_argument('--installed', type=Path, required=True)
     parser.add_argument('--mode', choices=('normal', 'lost-execute-ack'), required=True)
     options, worker_arguments = parser.parse_known_args()
+    authority = SourceAuthority(ROOT)
     installed = options.installed.resolve(strict=True)
     sys.path.insert(0, str(installed))
     sys.meta_path.insert(0, NoAuthoring())
@@ -33,7 +38,8 @@ def main():
     from hepta import hia_agent_store as store
     from hepta import hia_agent_service as service
     from hepta import hia_native_delivery as delivery
-    from hepta.hia_agent_worker import main as worker_main
+    from hepta import hia_agent_worker as worker
+    worker_main = worker.main
     from hepta.hia_native_helpers import HELPERS
     for module in (controller, ledger, store, service, delivery):
         if not Path(module.__file__).resolve().is_relative_to(installed):
@@ -43,6 +49,8 @@ def main():
     counts = {'startup': {}, 'request': {}, 'request_modes': {}, 'decision_request': 0,
               'retained_calls': [], 'close_calls': 0, 'lost_ack_injected': False}
     active = False
+    terminal = TerminalObservation(worker, service, delivery, controller)
+    assert terminal.profile == authority.profile
 
     def forbidden(*arguments, **keywords):
         counts['retained_calls'].append('actual retained Slot method')
@@ -82,7 +90,12 @@ def main():
                     and words[3] == controller.PORT['execute_call']
                     and not counts['lost_ack_injected']):
                 counts['lost_ack_injected'] = True
-                raise ValueError('actual SQL execute returned; controller acknowledgement withheld')
+                error = ValueError('actual SQL execute returned; controller acknowledgement withheld')
+                terminal.injected(error)
+                try:
+                    raise error
+                finally:
+                    del error
             return code
         image._entry = observed
     controller.NativeSlotOperations.__init__ = initialize
@@ -107,6 +120,7 @@ def main():
     try:
         status = worker_main(worker_arguments)
     finally:
+        counts['terminal'] = terminal.report()
         counts['unknown_records'] = sum(row['lost'] for row in delivery.custody_snapshot())
         counts['unknown_resource_observations'] = len(delivery._RESOURCE_OBSERVATIONS)
         counts['installed_modules'] = {module.__name__: str(Path(module.__file__).resolve())
@@ -114,6 +128,7 @@ def main():
         counts['source_resource'] = str(controller.SOURCE.resolve())
         print('SLOT_OPERATIONS_INSTALLED=' + json.dumps(counts, ensure_ascii=True, sort_keys=True),
               file=sys.stderr, flush=True)
+    authority.finish()
     return status
 
 

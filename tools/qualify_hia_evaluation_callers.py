@@ -27,19 +27,51 @@ FIXTURE_NAME = 'tests/fixtures/evaluation_callers_19065.json'
 FIXTURE_SHA256 = '256e6c83a79fc2f237b4c12dd4bc2ae00d61bee03332b6adc794086b7e081395'
 
 
-def admit_original_sources(root, records):
-    """Allow only the registry's exact added-owner count in one old assertion."""
+def admit_original_sources(root, records, *, source_proof=None):
+    """Admit the fixed complete inventory and only its exact reviewed successors."""
     from hepta.hia_native_helpers import HELPERS
+    root = Path(root)
+    if source_proof is not None and (type(source_proof) is not dict or source_proof):
+        raise ValueError('caller source proof must be a new exact dictionary')
+    captured = {}
+
+    def capture(name):
+        raw = (root / name).read_bytes()
+        if name in captured and raw != captured[name]:
+            raise ValueError('evaluation caller source changed during admission: ' + name)
+        captured[name] = raw
+        return raw
+
+    frozen = capture(FIXTURE_NAME)
+    if sha256(frozen).hexdigest() != FIXTURE_SHA256:
+        raise ValueError('original evaluation caller inventory changed')
+    inventory = json.loads(frozen)
+    expected = {record['path']: record['sha256'] for record in inventory['modules'].values()}
+    if (type(records) is not dict or records != expected
+            or len(inventory['ordinary_modules']) != 7 or inventory['ordinary_count'] != 81
+            or len(inventory['ordinary_ordered_ids']) != 81
+            or len(inventory['modules']) != 12 or inventory['all_original_tests'] != 183):
+        raise ValueError('complete original evaluation source authority differs')
     count = len(HELPERS)
     if count < 35:
         raise ValueError('the original native helper registry lost an owner')
     original_line = b'        self.assertEqual(len(HELPERS), 35)\n'
     current_line = ('        self.assertEqual(len(HELPERS), ' + str(count) + ')\n').encode()
-    adjustments = []
+    adjustments, diagnostic_adjustments = [], {}
     for name, digest in records.items():
-        raw = (root / name).read_bytes()
+        raw = capture(name)
         actual = sha256(raw).hexdigest()
         if actual == digest:
+            continue
+        if name == 'tests/test_hia_agent_native_tools.py':
+            from tests import hia_caller_diagnostics_admission as diagnostics
+            helper_name = 'tests/hia_caller_diagnostics_admission.py'
+            helper = capture(helper_name)
+            if (len(helper) != 5185 or sha256(helper).hexdigest()
+                    != '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578'):
+                raise ValueError('exact caller diagnostics source changed')
+            diagnostic_adjustments[name] = diagnostics.admit(
+                name, raw, digest, capture(diagnostics.FIXTURE))
             continue
         if (name != 'tests/test_hia_worker_native_helpers.py'
                 or raw.count(current_line) != 1
@@ -49,6 +81,18 @@ def admit_original_sources(root, records):
             'original_helper_count': 35, 'current_helper_count': count,
             'sole_permitted_change': 'one exact registry-count assertion decimal literal',
             'all_other_source_bytes_unchanged': True})
+    if any((root / name).read_bytes() != raw for name, raw in captured.items()):
+        raise ValueError('evaluation caller sources changed at terminal reread')
+    if source_proof is not None:
+        source_proof.update({
+            'schema': 'hepta.hia.evaluation-caller-source-admission.v2',
+            'original_fixture': {'path': FIXTURE_NAME, 'bytes': len(frozen), 'sha256': FIXTURE_SHA256},
+            'original_source_sha256': dict(expected),
+            'captured_source_sha256': {name: sha256(raw).hexdigest()
+                                       for name, raw in sorted(captured.items())},
+            'registry_count_assertion_adjustments': list(adjustments),
+            'reviewed_diagnostic_source_adjustments': diagnostic_adjustments,
+            'terminal_reread_identical': True, 'production_source_exceptions': []})
     return adjustments
 
 
@@ -68,7 +112,8 @@ def main():
     original = json.loads(raw)
     modules = original['ordinary_modules']
     original_files = {record['path']: record['sha256'] for record in original['modules'].values()}
-    count_adjustments = admit_original_sources(ROOT, original_files)
+    source_admission = {}
+    count_adjustments = admit_original_sources(ROOT, original_files, source_proof=source_admission)
     if (len(modules) != 7 or original['ordinary_count'] != 81
             or len(original['ordinary_ordered_ids']) != 81
             or len(original['modules']) != 12 or original['all_original_tests'] != 183):
@@ -79,10 +124,14 @@ def main():
         raise ValueError('original complete 81-method caller inventory differs')
     def source_pins():
         paths = {*INPUTS, *original_files, FIXTURE_NAME,
-                 'tools/qualify_hia_evaluation_callers.py'}
+                 'tools/qualify_hia_evaluation_callers.py',
+                 *source_admission['captured_source_sha256']}
         return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
                                     for name in sorted(paths)}}
     before = source_pins()
+    if any(before.get(name) != digest
+           for name, digest in source_admission['captured_source_sha256'].items()):
+        raise ValueError('evaluation source changed between admission and complete capture')
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     if args.cold_report is not None:
         from tools.build_hia_evaluation import build
@@ -177,6 +226,7 @@ def main():
         'all_seven_ordinary_modules_unfiltered': True, 'original_test_budgets_changed': False,
         'source_and_bundle_unchanged': stable, 'source_pins': before, 'bundle_pins': bundle,
         'original_registry_count_assertion_adjustments': count_adjustments,
+        'caller_source_admission': source_admission,
         'separate_original_administrator_scope_gates': original['explicit_scope_modules'],
         'whole_project_dynamic_caller_closure_claimed': False,
         'whole_native_delivery_qualified': False,

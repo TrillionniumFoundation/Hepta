@@ -20,7 +20,7 @@ ACTIONS = (
 )
 FIELDS = ("help", "version", "schema", "output", "backend", "kind", "target",
           "request", "function", "block", "value", "fields", "selections",
-          "query", "response", "input", "hia_action", "selfhost_manifest", "selfhost_manifest_sha256")
+          "query", "response", "input", "hia_action", "selfhost_manifest", "selfhost_manifest_sha256", "target_isa")
 OUTPUT_ACTIONS = frozenset((3, 4, 8, 9, 10, 12, 13, 14, 15))
 TOKENS = (
     ("-h", 0), ("--help", 0), ("--version", 1), ("--schema", 2),
@@ -29,20 +29,23 @@ TOKENS = (
     ("--value", 10), ("--fields", 11), ("--selections", 12),
     ("--query", 13), ("--response", 14),
     ("--selfhost-manifest", 17), ("--selfhost-manifest-sha256", 18),
+    ("--target-isa", 19),
 )
-SCHEMAS = tuple("hepta.hia.program.v" + str(n) for n in range(1, 9))
-DEFAULTS = {2: SCHEMAS[-1], 4: "native", 5: "object",
+SCHEMAS = tuple("hepta.hia.program.v" + str(n) for n in range(1, 10))
+CHOICES = {2: SCHEMAS, 4: ("auto", "native", "selfhost"), 5: ("object", "shared"),
+           6: ("x86_64-unknown-linux-gnu",), 19: ("native", "sse2", "avx2", "avx512")}
+DEFAULTS = {2: SCHEMAS[-1], 4: "auto", 5: "object",
             6: "x86_64-unknown-linux-gnu"}
 LITERALS = tuple(dict.fromkeys(
     [text for text, _ in TOKENS] + list(ACTIONS) + list(FIELDS) +
-    list(SCHEMAS) + list(DEFAULTS.values()) + ["selfhost"]))
+    [text for values in CHOICES.values() for text in values] + list(DEFAULTS.values())))
 LITERAL_IDS = {text: i for i, text in enumerate(LITERALS)}
 SYMBOLS = {
     "ARGV_MAGIC": int.from_bytes(b"HCLIARG4", "little"),
     "RESULT_MAGIC": int.from_bytes(b"HCLIRES4", "little"),
     "STEP_MAGIC": int.from_bytes(b"HCLISTP4", "little"),
     "CONTROL_MAGIC": int.from_bytes(b"HCLICTL4", "little"),
-    "TOKEN_COUNT": len(TOKENS), "ACTION_COUNT": len(ACTIONS),
+    "TOKEN_COUNT": len(TOKENS), "ACTION_COUNT": len(ACTIONS), "FIELD_COUNT": len(FIELDS),
     "FIELD_BASE": 256, "FIELD_STRIDE": 32,
     "ARG_BASE": 32768, "ARG_STRIDE": 48, "EXTRA_STRIDE": 24,
     "LITERAL_BASE": 8192, "LITERAL_DATA": 16384,
@@ -108,7 +111,7 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, 128, profile)
     put(w, 120, 1)
     field = 0
-    while field < 19:
+    while field < FIELD_COUNT:
         put(w, FIELD_BASE + field * FIELD_STRIDE + 24, field_literal(field))
         field = field + 1
     copy_at = 65536 + argc * 80
@@ -129,6 +132,21 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 if get(w, FIELD_BASE + 17 * FIELD_STRIDE) > 1 or get(w, FIELD_BASE + 18 * FIELD_STRIDE) > 1:
                     put(w, 24, 0)
                     refusal(w, 9, 0, 0, 0, 0)
+            if get(w, 8) == 0:
+                shared = field_equal(s, w, 5, SHARED_LITERAL)
+                if backend == 1 and shared == 1:
+                    put(w, 24, 0)
+                    refusal(w, 10, 0, 0, 0, 0)
+                else:
+                    if shared == 1 and field_equal(s, w, 4, AUTO_LITERAL) == 1:
+                        backend = 2
+                    if backend == 2:
+                        if get(w, FIELD_BASE + 19 * FIELD_STRIDE) == 1:
+                            set_field(w, 19, 3, get(w, LITERAL_BASE + NATIVE_LITERAL * 16), 6, False)
+                    else:
+                        if get(w, FIELD_BASE + 19 * FIELD_STRIDE) > 1:
+                            put(w, 24, 0)
+                            refusal(w, 11, 0, 0, 0, 0)
         if get(w, 8) == 0:
             control_seed(w, get(w, 16), field_truth(w, 3), backend)
     index = 0
@@ -139,6 +157,9 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 
 def field_equal(s:readbuf, w:mutbuf, field:u64, literal:u64) -> u64:
     base = FIELD_BASE + field * FIELD_STRIDE
+    if get(w, base) == 3:
+        at = LITERAL_BASE + literal * 16
+        return choose(get(w, base + 8) == get(w, at) and get(w, base + 16) == get(w, at + 8), 1, 0)
     if get(w, base) != 2:
         return 0
     if literal_equal(s, w, get(w, base + 8), get(w, base + 16), literal):
@@ -526,7 +547,7 @@ def allowed_fields(scope):
     if scope in OUTPUT_ACTIONS:
         result.append(3)
     if scope == 9:
-        result += [4, 5, 6, 17, 18]
+        result += [4, 5, 6, 17, 18, 19]
     if scope in (10, 11):
         result.append(7)
     if scope == 12:
@@ -572,8 +593,7 @@ def _tables():
         lines += [f"    if literal_equal(s, w, begin, size, {LITERAL_IDS[text]}):", f"        return {index}"]
     pieces.append("\n".join(lines + ["    return 0", ""]))
     lines = ["def choice_ok(s:readbuf, w:mutbuf, field:u64, begin:u64, size:u64) -> u64:"]
-    for field in (2, 4, 5, 6):
-        values = SCHEMAS if field == 2 else ("native", "selfhost") if field == 4 else (DEFAULTS[field],)
+    for field, values in CHOICES.items():
         lines.append(f"    if field == {field}:")
         for value in values:
             lines += [f"        if literal_equal(s, w, begin, size, {LITERAL_IDS[value]}):", "            return 1"]
@@ -634,6 +654,9 @@ def source_program():
     from tools.hia_cli_control_phases import SOURCE as PHASE_SOURCE, SYMBOLS as PHASE_SYMBOLS
     values = dict(SYMBOLS)
     values["SELFHOST_LITERAL"] = LITERAL_IDS["selfhost"]
+    values["AUTO_LITERAL"] = LITERAL_IDS["auto"]
+    values["SHARED_LITERAL"] = LITERAL_IDS["shared"]
+    values["NATIVE_LITERAL"] = LITERAL_IDS["native"]
     values.update(PHASE_SYMBOLS)
     class Replace(ast.NodeTransformer):
         def visit_Name(self, node):
