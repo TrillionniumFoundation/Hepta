@@ -24,10 +24,13 @@ from tools.qualify_hia_selfhost import compile_stage
 PAGER = 'examples/hia_bootstrap/sqlite_pager_retained.hepta'
 STREAM = 'examples/hia_bootstrap/sqlite_pager_stream.hepta'
 LINKER = 'examples/hia_bootstrap/sqlite_pager_elf_linker.hepta'
-ADAPTERS = ('tools/hia_sqlite_pager_start.S', 'tools/hia_sqlite_pager_os.S',
-            'tools/hia_sqlite_pager_image.S')
+STATIC_LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
+ADAPTERS = ('tools/hia_sqlite_pager_start.S', 'tools/hia_sqlite_pager_os.S')
+TEMPLATES = 'examples/hia_bootstrap/sqlite_pager_adapters.hepta'
 DRIVER = 'tools/build_hia_sqlite_pager.py'
 OBJECT_LIMIT = 1 << 20
+STATIC_OBJECT_LIMIT = 65536
+STATIC_OBJECT_RECORD = struct.Struct('<32s32sQ')
 EXECUTABLE_LIMIT = 4 << 20
 LINK_OUTPUT = 8 << 20
 LINK_WORKSPACE = 16 << 20
@@ -64,6 +67,21 @@ def assemble(directory, name, source):
 def build_embedder(directory, compiler, source):
     image, receipt = compile_stage(directory, 'elf-embed', compiler, source)
     return NativeHiaJsonImage(image.read_bytes(), receipt['produced_sha256'])
+
+
+def load_static_object(template, role, source):
+    packet = struct.pack('<Q', role)
+    request = ctypes.create_string_buffer(packet, len(packet))
+    result = ctypes.create_string_buffer(STATIC_OBJECT_RECORD.size + STATIC_OBJECT_LIMIT)
+    count = template._entry(request, len(request), result, len(result), None, 0)
+    if not STATIC_OBJECT_RECORD.size < count <= len(result) or request.raw != packet or any(result.raw[count:]):
+        raise ValueError('native static adapter refused or changed the transport')
+    source_sha, object_sha, size = STATIC_OBJECT_RECORD.unpack_from(result)
+    raw = result.raw[STATIC_OBJECT_RECORD.size:count]
+    if (source_sha != sha256(source).digest() or size != len(raw)
+            or not raw.startswith(b'\x7fELF\x02\x01\x01') or sha256(raw).digest() != object_sha):
+        raise ValueError('native static adapter differs from its admitted source or object')
+    return raw
 
 
 def embed(output, label, name, raw, embedder):
@@ -136,30 +154,32 @@ def link(directory, linker, pager, objects, *, wire_magic=b'HIAPGLK2',
 def build(output, compiler, cold_report):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
-    sources = {name: (ROOT / name).read_bytes() for name in (PAGER, STREAM, LINKER, *ADAPTERS, DRIVER)}
+    sources = {name: (ROOT / name).read_bytes()
+               for name in (PAGER, STREAM, STATIC_LINKER, TEMPLATES, EMBED_SOURCE, *ADAPTERS, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('Pager build source differs from admitted cold source')
     output.mkdir(mode=0o700)
-    pager_path, pager_receipt = compile_stage(output, 'pager', compiler, sources[PAGER])
-    stream_path, stream_receipt = compile_stage(output, 'stream', compiler, sources[STREAM])
-    linker_path, linker_receipt = compile_stage(output, 'linker', compiler, sources[LINKER])
-    pager, stream, linker = pager_path.read_bytes(), stream_path.read_bytes(), linker_path.read_bytes()
-    for image, receipt in ((pager, pager_receipt), (stream, stream_receipt), (linker, linker_receipt)):
-        if digest(image) != receipt['produced_sha256']:
-            raise ValueError('compiled Pager, migration stream or linker image drift')
-    write_new(output / 'pager_read_owner.image.bin', pager)
-    write_new(output / 'pager_migration_stream.image.bin', stream)
-    objects = [assemble(output, name, sources[name]) for name in ADAPTERS]
-    for name, image in (('pager_read_owner', pager), ('pager_migration_stream', stream)):
-        if (output / (name + '.image.bin')).read_bytes() != image:
-            raise ValueError('Pager wrapper image changed during assembly')
-    binary, link_receipt = link(output, linker, pager, objects)
+    compiled = {}
+    for role, name in (('pager', PAGER), ('stream', STREAM), ('linker', STATIC_LINKER),
+                       ('adapters', TEMPLATES), ('elf-embed', EMBED_SOURCE)):
+        path, receipt = compile_stage(output, role, compiler, sources[name])
+        raw = path.read_bytes()
+        if digest(raw) != receipt['produced_sha256']:
+            raise ValueError('compiled Pager build image drift: ' + role)
+        compiled[role] = (path, raw)
+    pager, stream, linker = (compiled[role][1] for role in ('pager', 'stream', 'linker'))
+    templates, embedder = (NativeHiaJsonImage(raw, digest(raw))
+                           for _, raw in (compiled['adapters'], compiled['elf-embed']))
+    objects = [load_static_object(templates, role, sources[name]) for role, name in enumerate(ADAPTERS)]
+    objects.extend((embed(output, 'retained_pager', 'pager-owner', pager, embedder),
+                    embed(output, 'retained_pager_stream', 'migration-stream', stream, embedder)))
+    binary, link_receipt = link(output, linker, pager, objects, wire_magic=b'HIALNK01')
     verify_executable(binary, stream)
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
-            or cold_report.read_bytes() != cold_bytes or pager_path.read_bytes() != pager
-            or linker_path.read_bytes() != linker or stream_path.read_bytes() != stream
-            or any((output / Path(name).name).read_bytes() != sources[name] for name in ADAPTERS)):
-        raise ValueError('Pager build inputs changed during assembly or linking')
+            or cold_report.read_bytes() != cold_bytes
+            or any(path.read_bytes() != raw for path, raw in compiled.values())
+            or any((ROOT / name).read_bytes() != raw for name, raw in sources.items())):
+        raise ValueError('Pager build inputs changed before native publication')
     executable = output / 'hia-sqlite-pager'
     with executable.open('xb') as stream:
         stream.write(binary)
