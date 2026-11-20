@@ -176,6 +176,7 @@ CORE_EDIT_SDIST_FILES = (
     'examples/hia_bootstrap/core_edit/nominal_adapters_c.hepta',
     'examples/hia_bootstrap/core_edit/nominal_adapters_d.hepta',
     'examples/hia_bootstrap/core_edit/nominal_adapters_e.hepta',
+    'examples/hia_bootstrap/core_edit/nominal_constructor_adapter.hepta',
     'examples/hia_bootstrap/core_edit/patch_word_io.hepta',
     'examples/hia_bootstrap/core_edit/query.hepta',
     'examples/hia_bootstrap/core_edit/nominal_base_span.hepta',

@@ -1981,12 +1981,19 @@ stdio_render: .asciz "hia-render-assembly"
 .ifndef HIA_NOMINAL_BUILD
 stdio_input_refusal: .asciz "hia-report-input-refusal"
 .endif
+.ifdef HIA_NOMINAL_BUILD
+/* The HIA object writer supplies these independent read-only image spans. */
+.set owner, core_nominal_owner_start
+.set renderer, core_nominal_render_start
+.set codec, core_nominal_codec_start
+.else
 .balign 16
 owner: .incbin "owner.image.bin"
 .balign 16
 renderer: .incbin "render.image.bin"
 .balign 16
 codec: .incbin "nominal-json.image.bin"
+.endif
 .bss
 .balign 8
 request: .skip 64

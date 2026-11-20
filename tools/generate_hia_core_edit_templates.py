@@ -8,8 +8,9 @@ from tempfile import TemporaryDirectory
 from hepta.hia_agent_assembly import render_assembly
 from tools.build_hia_agent_batch_commit import assemble_adapter
 from tools.build_hia_core_edit import (
-    ADAPTER_RECORD, NOMINAL_ADAPTER_GROUPS, NOMINAL_ADAPTER_ROLES, NOMINAL_OBJECT_LIMIT,
-    NOMINAL_OBJECT_RECORD, ROOT, STATIC_ADAPTER_ROLES, STATIC_ADAPTERS, STATIC_RELOCATIONS,
+    ADAPTER_RECORD, NOMINAL_ADAPTER, NOMINAL_ADAPTER_GROUPS, NOMINAL_ADAPTER_ROLES, NOMINAL_CONSTRUCTOR_GROUP,
+    NOMINAL_OBJECT_LIMIT, NOMINAL_OBJECT_RECORD, ROOT, STATIC_ADAPTER_ROLES, STATIC_ADAPTERS,
+    STATIC_RELOCATIONS,
 )
 from tools.build_hia_sqlite_pager import assemble
 from tools.generate_hia_artifact_publication import document
@@ -64,7 +65,8 @@ def render_nominal(group):
             folder = Path(temporary) / str(role)
             folder.mkdir()
             source = (ROOT / name).read_bytes()
-            raw = assemble(folder, name, source)
+            assembler_input = b'.set HIA_NOMINAL_BUILD,1\n' + source if name == NOMINAL_ADAPTER else source
+            raw = assemble(folder, name, assembler_input)
             if not 0 < len(raw) <= NOMINAL_OBJECT_LIMIT:
                 raise ValueError('fixed nominal adapter object exceeds the retained template extent')
             record = NOMINAL_OBJECT_RECORD.pack(sha256(source).digest(), sha256(raw).digest(), len(raw)) + raw
@@ -90,5 +92,5 @@ def render_nominal(group):
 if __name__ == '__main__':
     for group in STATIC_ADAPTERS:
         (ROOT / group).write_text(render(group))
-    for group in NOMINAL_ADAPTER_GROUPS:
+    for group in (*NOMINAL_ADAPTER_GROUPS, NOMINAL_CONSTRUCTOR_GROUP):
         (ROOT / group).write_text(render_nominal(group))
