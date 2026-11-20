@@ -19,7 +19,8 @@ from hepta.hia_cnf_native import (BATCH_REQUEST, GUARDED_CIRCUIT_REQUEST, CIRCUI
 from hepta.hia_cnf_native import (
     FEEDBACK_BLOCK_LIMIT, FEEDBACK_LAYER_LIMIT, FEEDBACK_OP_LIMIT, FEEDBACK_REPLY,
     FEEDBACK_REQUEST, FEEDBACK_WORKSPACE,
-    GRAPH_PROJECTION_REQUEST, CALL_PROJECTION_REQUEST, SCALAR_SUMMARY, PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
+    ARTIFACT_PROJECTION_REQUEST, GRAPH_PROJECTION_REQUEST, CALL_PROJECTION_REQUEST, SCALAR_SUMMARY,
+    PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
     PROJECT_CALL_RESULT, PROJECT_UNIT_TYPE, PROJECTION_WORKSPACE, SUMMARIZED_CALL_INPUTS, TUPLE_SUMMARY, _CORE_TRAP_TAGS,
 )
 from tools.generate_hia_artifact_publication import document
@@ -39,6 +40,8 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
         return encode_circuit(source, result, stack, magic == GUARDED_CIRCUIT_REQUEST)
     if magic == GRAPH_PROJECTION_REQUEST or magic == CALL_PROJECTION_REQUEST:
         return project_graphs(source, result, stack, magic == CALL_PROJECTION_REQUEST)
+    if magic == ARTIFACT_PROJECTION_REQUEST:
+        return project_artifact_circuit(source, result, stack)
     if magic == WORD_WITNESS_REQUEST:
         return check_word_witness(source, stack)
     if magic == WORD_TABLE_REQUEST:
@@ -756,18 +759,23 @@ def encode_circuit(source:readbuf, output:mutbuf, scratch:mutbuf, guarded:bool) 
         return INVALID
     return encode_checked_circuit(source, output, scratch, nodes, returns, budget, guarded)
 
-def valid_circuit(source:readbuf, nodes:u64, returns:u64, guarded:bool) -> u64:
+def valid_word_graph(source:readbuf, rows:u64, nodes:u64) -> u64:
     index = 0
     while index < nodes:
-        origin = 32 + 40 * index
+        origin = rows + 40 * index
         operation = read64(source, origin)
         width = read64(source, origin + 8)
         left = read64(source, origin + 16)
         right = read64(source, origin + 24)
         immediate = read64(source, origin + 32)
-        if valid_node(source, index, operation, width, left, right, immediate) == 0:
+        if valid_node(source, rows, index, operation, width, left, right, immediate) == 0:
             return 0
         index = index + 1
+    return 1
+
+def valid_circuit(source:readbuf, nodes:u64, returns:u64, guarded:bool) -> u64:
+    if valid_word_graph(source, 32, nodes) == 0:
+        return 0
     return_offset = 32 + 40 * nodes
     index = 0
     while index < returns:
@@ -1024,7 +1032,7 @@ def evaluate_word_overflow(a:u64, b:u64, width:u64, operation:u64) -> u64:
     result = a - b
     return choose(((a ^ b) & (a ^ result) & sign) != 0, 1, 0)
 
-def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
+def valid_node(source:readbuf, rows:u64, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     if width == 0 or width > 64:
         return 0
     if operation < 1 or operation > WORD_SIGNED_REM:
@@ -1037,60 +1045,47 @@ def valid_node(source:readbuf, index:u64, operation:u64, width:u64, left:u64, ri
         return 1
     if left >= index:
         return 0
+    # The left operand is already known, so use it as the in-range
+    # placeholder for unused or out-of-range operands. Admission still
+    # rejects every invalid operand before accepting its type.
+    lw = word_graph_width(source, rows, left)
+    rw = word_graph_width(source, rows, choose(right < index, right, left))
+    iw = word_graph_width(source, rows, choose(immediate < index, immediate, left))
     if operation == 11:
-        if right >= index or immediate >= index or node_width(source, left) != 1:
-            return 0
-        if width != node_width(source, right) or width != node_width(source, immediate):
-            return 0
-        return 1
+        return choose(right < index and immediate < index and lw == 1 and width == rw and width == iw, 1, 0)
     if operation == WORD_PRODUCT_EXCEEDS:
-        if width != 1 or right >= index or immediate >= index:
-            return 0
-        word = node_width(source, left)
-        return choose(word > 1 and node_width(source, right) == word and node_width(source, immediate) == word, 1, 0)
+        return choose(width == 1 and right < index and immediate < index and lw > 1 and rw == lw and iw == lw, 1, 0)
     if operation == 26:
-        origin_width = node_width(source, left)
-        if right != 0 or immediate > origin_width:
-            return 0
-        return choose(width <= origin_width - immediate, 1, 0)
+        return choose(right == 0 and immediate <= lw and width <= lw - immediate, 1, 0)
     if operation == 27:
-        if right >= index or immediate != 0:
-            return 0
-        return choose(width == node_width(source, left) + node_width(source, right), 1, 0)
+        return choose(right < index and immediate == 0 and width == lw + rw, 1, 0)
     if operation == 28 or operation == 29:
-        return choose(right == 0 and width == node_width(source, left), 1, 0)
+        return choose(right == 0 and width == lw, 1, 0)
     if operation == 30 or operation == 31:
-        return choose(right == 0 and immediate == 0 and width >= node_width(source, left), 1, 0)
+        return choose(right == 0 and immediate == 0 and width >= lw, 1, 0)
     if immediate != 0:
         return 0
     if operation == 20 or operation == 21:
-        if right != 0 or width == 1 or node_width(source, left) == 1:
-            return 0
-        return 1
+        return choose(right == 0 and width != 1 and lw != 1, 1, 0)
     if operation == 6:
-        if right != 0 or width != node_width(source, left):
-            return 0
-        return 1
-    if right >= index or node_width(source, left) != node_width(source, right):
+        return choose(right == 0 and width == lw, 1, 0)
+    if right >= index or lw != rw:
         return 0
     if operation == 32 or operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM or operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM:
-        return choose(width > 1 and width == node_width(source, left), 1, 0)
+        return choose(width > 1 and width == lw, 1, 0)
     if operation == WORD_VARIABLE_SHL or operation == WORD_VARIABLE_SHR or operation == WORD_ARITHMETIC_SHR:
-        return choose(width == node_width(source, left), 1, 0)
+        return choose(width == lw, 1, 0)
     if operation >= 12:
-        if width != 1 or node_width(source, left) == 1:
-            return 0
+        return choose(width == 1 and lw != 1, 1, 0)
     elif operation == 7 or operation == 8:
-        if width != 1:
-            return 0
-    elif width != node_width(source, left):
-        return 0
-    if (operation == 9 or operation == 10) and width == 1:
-        return 0
-    return 1
+        return choose(width == 1, 1, 0)
+    return choose(width == lw and (width != 1 or (operation != 9 and operation != 10)), 1, 0)
 
 def node_width(source:readbuf, node:u64) -> u64:
-    return read64(source, 40 + 40 * node)
+    return word_graph_width(source, 32, node)
+
+def word_graph_width(source:readbuf, rows:u64, node:u64) -> u64:
+    return read64(source, rows + 8 + 40 * node)
 
 def word_arguments(operation:u64) -> u64:
     if operation <= 2:
@@ -1724,6 +1719,160 @@ def emit_clause(output:mutbuf, scratch:mutbuf, a:u64, b:u64, c:u64) -> u64:
 # at 512 and incoming guards at 1536. Local typed slots begin at 2560; incoming
 # parameter values use 128 disjoint 2 KiB rows from 4608.
 PROJECTION = '''
+def project_artifact_circuit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    size = length(s)
+    capacity = length(o)
+    workspace = length(w)
+    if size < 80 or capacity < PROJECTION_OUTPUT or workspace < PROJECTION_WORKSPACE:
+        return TOO_LARGE
+    inputs = read64(s, 8)
+    machine = read64(s, 16)
+    core = read64(s, 24)
+    if inputs > 6 or machine < inputs or core < inputs or machine > CIRCUIT_NODES or core > CIRCUIT_NODES:
+        return TOO_LARGE
+    base = 80 + 40 * machine
+    signed = read64(s, 72)
+    if signed > 1 or size != base + 40 * core:
+        return TOO_LARGE
+    machine_valid = valid_word_graph(s, 80, machine)
+    core_valid = valid_word_graph(s, base, core)
+    if machine_valid == 0 or core_valid == 0:
+        return TOO_LARGE
+    if p_artifact_graph(s, o, w, 80, machine, inputs, True) == 0:
+        return TOO_LARGE
+    actual = p_artifact_observation(s, w, 80, machine, 32, 64)
+    if actual == 65535:
+        return TOO_LARGE
+    if p_artifact_graph(s, o, w, base, core, inputs, False) == 0:
+        return TOO_LARGE
+    return p_artifact_observations(s, o, w, base, core, actual, signed == 1)
+
+def p_artifact_graph(s:readbuf, o:mutbuf, w:mutbuf, base:u64, count:u64, inputs:u64, machine:bool) -> u64:
+    index = 0
+    while index < inputs:
+        row = base + 40 * index
+        width = read64(s, row + 8)
+        if read64(s, row) != 1:
+            return 0
+        node = index
+        if machine:
+            if width != 64:
+                return 0
+            node = p_append_node(o, w, 1, width, 0, 0, 0)
+        elif width < 64:
+            node = p_node(o, w, 26, width, index, 0, 0)
+        write64(w, 270336 + 8 * index, node)
+        index = index + 1
+    # p_node folds constant Boolean relations into these protocol nodes.
+    if machine:
+        write64(w, 32, p_node(o, w, 2, 1, 0, 0, 1))
+        write64(w, 40, p_node(o, w, 2, 1, 0, 0, 0))
+    while index < count:
+        row = base + 40 * index
+        word_width = read64(s, row + 8)
+        if machine and word_width != 64:
+            return 0
+        # All source rows were validated with their own ABI and node base.
+        node = p_clone_bound_word(s, o, w, row, index, True)
+        if node >= CIRCUIT_NODES:
+            return 0
+        write64(w, 270336 + 8 * index, node)
+        index = index + 1
+    return 1
+
+def p_artifact_observation(s:readbuf, w:mutbuf, base:u64, count:u64, field:u64, width:u64) -> u64:
+    node = read64(s, field)
+    if node >= count:
+        return 65535
+    observed = word_graph_width(s, base, node)
+    if width != 0 and observed != width:
+        return 65535
+    return read_stack(w, 270336 + 8 * node)
+
+def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, actual:u64, signed:bool) -> u32:
+    known = p_artifact_observation(s, w, base, core, 40, 1)
+    expected = p_artifact_observation(s, w, base, core, 48, 1)
+    trap = p_artifact_observation(s, w, base, core, 56, 8)
+    value = p_artifact_observation(s, w, base, core, 64, 0)
+    if known == 65535 or expected == 65535 or trap == 65535 or value == 65535:
+        return TOO_LARGE
+    if read_stack(o, 40 + 40 * value) < 64:
+        value = p_node(o, w, choose(signed, 31, 30), 64, value, 0, 0)
+    no_trap = p_node(o, w, 2, 8, 0, 0, 0)
+    nodes = read_stack(w, 0)
+    if nodes > CIRCUIT_NODES:
+        return TOO_LARGE
+    at = 32 + 40 * nodes
+    write64(o, 0, CIRCUIT_REQUEST)
+    write64(o, 8, nodes)
+    write64(o, 16, 3)
+    write64(o, 24, 0)
+    write64(o, at, known)
+    write64(o, at + 8, expected)
+    write64(o, at + 16, trap)
+    write64(o, at + 24, no_trap)
+    write64(o, at + 32, value)
+    write64(o, at + 40, actual)
+    return at + 48
+
+def p_machine_low_word(o:mutbuf, w:mutbuf, node:u64, width:u64) -> u64:
+    # Each word operand points backward. Project the fixed prefix in order
+    # rather than using the machine stack to walk a shared expression DAG.
+    if width != 1 and width != 8 and width != 16 and width != 32:
+        return p_node(o, w, 26, width, node, 0, 0)
+    index = 0
+    while index <= node:
+        value = p_machine_low_node(o, w, index, width)
+        write64(w, 273408 + 8 * index, value)
+        index = index + 1
+    return read_stack(w, 273408 + 8 * node)
+
+def p_machine_low_node(o:mutbuf, w:mutbuf, node:u64, width:u64) -> u64:
+    row = 32 + 40 * node
+    original_width = read_stack(o, row + 8)
+    if width > original_width:
+        return 65535
+    if width == original_width:
+        return node
+    op = read_stack(o, row)
+    immediate = read_stack(o, row + 32)
+    if op == 2:
+        return p_node(o, w, 2, width, 0, 0, immediate & word_mask(width))
+    left = read_stack(w, 273408 + 8 * read_stack(o, row + 16))
+    if op == 30 or op == 31 or (op == 26 and immediate == 0):
+        if left != 65535:
+            return left
+    # Projection to low bits is a homomorphism for these operations only.
+    if op == 6:
+        return p_node(o, w, op, width, left, 0, 0)
+    if op == 3 or op == 4 or op == 5 or (width > 1 and (op == 9 or op == 10 or op == 32)):
+        right = read_stack(w, 273408 + 8 * read_stack(o, row + 24))
+        swap = op != 10 and left > right
+        return p_node(o, w, op, width, choose(swap, right, left), choose(swap, left, right), 0)
+    return p_node(o, w, 26, width, node, 0, 0)
+
+def p_artifact_word(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
+    if (op == 3 or op == 4 or op == 5 or op == 9 or op == 32) and a > b:
+        swap = a
+        a = b
+        b = swap
+    if op == WORD_VARIABLE_SHL or op == WORD_VARIABLE_SHR or op == WORD_ARITHMETIC_SHR:
+        right = 32 + 40 * b
+        if read_stack(o, right) == 2:
+            shift = read_stack(o, right + 32)
+            if shift == 0:
+                return a
+            left = 32 + 40 * a
+            previous = read_stack(o, left)
+            previous_shift = read_stack(o, left + 24)
+            if op != WORD_VARIABLE_SHL and shift < width and previous == WORD_VARIABLE_SHL and previous_shift == b:
+                low = p_machine_low_word(o, w, read_stack(o, left + 16), width - shift)
+                if low >= CIRCUIT_NODES:
+                    return CIRCUIT_NODES
+                ext = choose(op == WORD_ARITHMETIC_SHR, 31, 30)
+                return p_node(o, w, ext, width, low, 0, 0)
+    return p_node(o, w, op, width, a, b, c)
+
 def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
     if length(s) > PROJECTION_INPUT_LIMIT or length(o) < PROJECTION_OUTPUT or length(w) < PROJECTION_WORKSPACE:
         return TOO_LARGE
@@ -2220,17 +2369,18 @@ def p_rebind_summary(s:readbuf, o:mutbuf, w:mutbuf, summary:u64, arguments:u64, 
         write64(w, 270336 + 8 * index, value & 65535)
         index = index + 1
     while index < count:
-        node = p_clone_summary_node(s, o, w, summary + 32 + 40 * index, index)
+        node = p_clone_bound_word(s, o, w, summary + 32 + 40 * index, index, False)
         if node == 65535:
             return 0
         write64(w, 270336 + 8 * index, node)
         index = index + 1
     return 1
 
-def p_clone_summary_node(s:readbuf, o:mutbuf, w:mutbuf, at:u64, index:u64) -> u64:
+def p_clone_bound_word(s:readbuf, o:mutbuf, w:mutbuf, at:u64, index:u64, artifact:bool) -> u64:
     op = read64(s, at)
     width = read64(s, at + 8)
-    if op < 2 or op > WORD_PRODUCT_EXCEEDS or width == 0 or width > 64:
+    limit = choose(artifact, WORD_SIGNED_REM, WORD_PRODUCT_EXCEEDS)
+    if op < 2 or op > limit or width == 0 or width > 64:
         return 65535
     count = word_arguments(op)
     a = read64(s, at + 16)
@@ -2248,6 +2398,8 @@ def p_clone_summary_node(s:readbuf, o:mutbuf, w:mutbuf, at:u64, index:u64) -> u6
         if c >= index:
             return 65535
         c = read_stack(w, 270336 + 8 * c)
+    if artifact:
+        return p_artifact_word(o, w, op, width, a, b, c)
     return p_node(o, w, op, width, a, b, c)
 
 def p_var(w:mutbuf, index:u64) -> u64:
@@ -2618,6 +2770,7 @@ def source_program():
                      WORD_TABLE_REQUEST=WORD_TABLE_REQUEST, WORD_TABLE_INPUT_BITS=WORD_TABLE_INPUT_BITS,
                      WORD_TABLE_WORK_LIMIT=WORD_TABLE_WORK_LIMIT,
                      GRAPH_PROJECTION_REQUEST=GRAPH_PROJECTION_REQUEST,
+                     ARTIFACT_PROJECTION_REQUEST=ARTIFACT_PROJECTION_REQUEST,
                      CALL_PROJECTION_REQUEST=CALL_PROJECTION_REQUEST, SCALAR_SUMMARY=SCALAR_SUMMARY,
                      TUPLE_SUMMARY=TUPLE_SUMMARY, SUMMARIZED_CALL_INPUTS=SUMMARIZED_CALL_INPUTS,
                      FEEDBACK_REQUEST=FEEDBACK_REQUEST, FEEDBACK_REPLY=FEEDBACK_REPLY,

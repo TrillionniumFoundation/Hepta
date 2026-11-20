@@ -861,63 +861,12 @@ def _artifact_report(checked, fn, binding, profile, foreign_exports, identity, s
             "limits": dict(LIMITS), "elapsed_seconds": time.monotonic() - started}
 
 
-_UNARY_CIRCUIT_WORDS = frozenset({6, 20, 21, 26, 28, 29, 30, 31})
 MACHINE_CIRCUIT_SOLVER_VERSION = "machine-word-circuit-cnf.v1"
 MACHINE_CIRCUIT_ASSUMPTIONS = [
     *ASSUMPTIONS[:3],
     "The loaded Core verifier, ELF binding, HIA machine word projection and native HIA CNF solver are trusted; the model is not a kernel proof of x86 semantics.",
     *ASSUMPTIONS[4:],
 ]
-
-
-def _merge_scalar_observations(machine, core, arguments, return_type):
-    from .hia_cnf_native import CIRCUIT_NODES, WORD_PRODUCT_EXCEEDS
-
-    machine_nodes, machine_return, _ = machine
-    core_nodes, (coverage, traps, returned), _ = core
-    raw_inputs = ((1, 64, 0, 0, 0),) * arguments
-    if machine_nodes[:arguments] != raw_inputs or len(core_nodes) < arguments:
-        raise RuntimeError("invalid native machine circuit input order")
-    nodes = list(machine_nodes)
-    indexes = []
-    by_instruction = {node: index for index, node in enumerate(nodes) if node[0] != 1}
-
-    def append(operation, width, left=0, right=0, immediate=0):
-        node = (operation, width, left, right, immediate)
-        index = by_instruction.get(node)
-        if index is None:
-            index = len(nodes)
-            by_instruction[node] = index
-            nodes.append(node)
-        return index
-
-    for index, (operation, width, left, right, immediate) in enumerate(core_nodes[:arguments]):
-        if operation != 1 or left or right or immediate:
-            raise RuntimeError("invalid native Core circuit input order")
-        indexes.append(index if width == 64 else append(26, width, index))
-    for operation, width, left, right, immediate in core_nodes[arguments:]:
-        if operation == 1:
-            raise RuntimeError("native Core circuit introduced a second input scope")
-        if operation != 2:
-            left = indexes[left]
-            if operation not in _UNARY_CIRCUIT_WORDS:
-                right = indexes[right]
-            if operation in (11, WORD_PRODUCT_EXCEEDS):
-                immediate = indexes[immediate]
-        indexes.append(append(operation, width, left, right, immediate))
-    original_return = indexes[returned[0]]
-    if nodes[original_return][1] < 64:
-        extension = 31 if return_type.startswith('i') else 30
-        original_return = append(extension, 64, original_return)
-    no_trap = append(2, 8)
-    if len(nodes) > CIRCUIT_NODES:
-        return None
-    known, required = (indexes[index] for index in coverage)
-    outcomes = [(indexes[traps[0]], no_trap), (original_return, machine_return)]
-    # Identical DAG nodes cannot differ, including wide products that would
-    # otherwise spend the entire bit-blasting budget on a reflexive check.
-    return (nodes, [] if known == required else [(known, required)], None), (
-        nodes, [(left, right) for left, right in outcomes if left != right], None)
 
 
 def _machine_circuit_solver(pair):
@@ -988,7 +937,8 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     core = cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False)
     if core is None:
         return None
-    circuits = _merge_scalar_observations(machine, core, len(fn["params"]), fn["returns"][0])
+    circuits = cnf.bind_artifact_circuits(machine, core, len(fn["params"]),
+                                         signed_return=fn["returns"][0].startswith("i"))
     if circuits is None:
         return None
     solver = _machine_circuit_solver(pair)

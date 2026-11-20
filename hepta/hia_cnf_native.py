@@ -53,6 +53,7 @@ WORD_TABLE_INPUT_BITS = 16
 WORD_TABLE_WORK_LIMIT = 32 * 1024 * 1024
 GRAPH_PROJECTION_REQUEST = int.from_bytes(b'HIABVP01', 'little')
 CALL_PROJECTION_REQUEST = int.from_bytes(b'HIABVP02', 'little')
+ARTIFACT_PROJECTION_REQUEST = int.from_bytes(b'HIABVP03', 'little')
 SCALAR_SUMMARY = int.from_bytes(b'HIABVS01', 'little')
 TUPLE_SUMMARY = int.from_bytes(b'HIABVS02', 'little')
 FEEDBACK_REQUEST = int.from_bytes(b'HIABVF01', 'little')
@@ -262,6 +263,10 @@ class NativeCnf(NativeHiaJsonImage):
     def project_scalar_graphs(self, functions, graphs, *, totality, summaries=None, bound_marker=False):
         reply = self._run_projection(_graph_packet(functions, graphs, totality=totality, summaries=summaries,
                                                    bound_marker=bound_marker))
+        return self._decode_projection(reply)
+
+    @staticmethod
+    def _decode_projection(reply):
         if reply is None:
             return None
         magic, nodes, pairs, reserved = struct.unpack_from('<4Q', reply)
@@ -272,6 +277,25 @@ class NativeCnf(NativeHiaJsonImage):
         instructions = tuple(struct.iter_unpack('<5Q', reply[32:split]))
         observed = tuple(struct.iter_unpack('<2Q', reply[split:]))
         return instructions, observed, None
+
+    def bind_artifact_circuits(self, machine, core, arguments, *, signed_return):
+        machine_nodes, machine_value, _ = machine
+        core_nodes, (coverage, traps, values), _ = core
+        frame = struct.pack('<10Q', ARTIFACT_PROJECTION_REQUEST, arguments,
+                            len(machine_nodes), len(core_nodes), machine_value,
+                            *coverage, traps[0], values[0], int(signed_return))
+        frame += b''.join(struct.pack('<5Q', *row) for row in (*machine_nodes, *core_nodes))
+        projected = self._decode_projection(self._run_projection(frame))
+        if projected is None:
+            return None
+        nodes, observations, _ = projected
+        coverage, *outcomes = observations
+        if len(outcomes) != 2:
+            raise RuntimeError('invalid HIA artifact observation inventory')
+        # Reflexive comparisons need no gate. Keep every input word in the
+        # projection so a real counterexample still has exact ABI positions.
+        return ((nodes, [coverage] if coverage[0] != coverage[1] else [], None),
+                (nodes, [(left, right) for left, right in outcomes if left != right], None))
 
     def project_scalar_calls(self, name, closures, *, totality, expansion_limit):
         roots, graphs, bindings, expansions = [], [], [], []

@@ -142,13 +142,15 @@ class SafeCoreArtifactTests(unittest.TestCase):
 
         directory = self.newdir()
         for typ, op, version in (("u8", "int.mul.wrap", 1), ("u32", "int.sub.wrap", 1),
-                                 ("u64", "int.mul.wrap", 1), ("i32", "int.add.wrap", 6)):
+                                 ("u32", "int.mul.wrap", 1), ("u64", "int.mul.wrap", 1),
+                                 ("i32", "int.add.wrap", 6), ("i32", "int.mul.wrap", 6)):
             with self.subTest(type=typ, operation=op):
                 core = verify_program(arithmetic(op, typ))
                 image = emit_program_machine(core)
-                final = directory / (typ + ".so")
+                case = typ + "-" + op
+                final = directory / (case + ".so")
                 compile_program_machine(image, program=core, output=final, linker="ld")
-                queries = directory / (typ + "-queries")
+                queries = directory / (case + "-queries")
                 with patch("importlib.import_module", side_effect=no_host_solver):
                     proof = validate_safe_core_artifact(
                         core, image.object_bytes, final.read_bytes(), profile_version=version,
