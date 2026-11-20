@@ -99,6 +99,7 @@ class StaticBudgetSourceTests(unittest.TestCase):
         self.assertEqual(render_assembly(generator.document(generator.source(), 'static_budget')), native.SOURCE.read_text())
         data = assemble_program(native.SOURCE.read_bytes()).as_dict()
         self.assertLessEqual(len(data['functions']), 128)
+        self.assertLessEqual(max(len(fn['blocks']) for fn in data['functions']), 256)
         self.assertLessEqual(sum(len(fn['blocks']) for fn in data['functions']), 1536)
         self.assertLessEqual(sum(len(block['ops']) for fn in data['functions'] for block in fn['blocks']), 8192)
         self.assertLessEqual(max(len(block['params']) for fn in data['functions'] for block in fn['blocks']), 16)

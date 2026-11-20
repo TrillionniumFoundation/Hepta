@@ -786,24 +786,25 @@ def set(w:mutbuf, index:u64, value:u64) -> u64:
     return value
 '''
 
-# Private helpers retain their original byte path for every short-tail and
-# high-offset refusal. A v9 word access is used only after its complete extent
-# is proved; this also preserves the old partial-store prefix on a byte trap.
+# Keep the original first byte operation before each fast path. It preserves
+# the original argument evaluation, borrow checks and write-permission failure
+# before a whole-word access. Short tails continue with the same seven bytes,
+# retaining the original partial-store prefix and first failing operation.
 # Word operations cost their defined single VM tick. This implementation does
 # not claim identical interruptions under arbitrary smaller step budgets.
-WORD_PREFIXES = {
-    'def read_word(s:readbuf, index:u64) -> u64:\n': '''    if index <= length(s):
-        if length(s) - index >= 8:
-            return word_load(s, index)
+WORD_FAST_PATHS = {
+    '        value = value | (byte(s, index + 0) << (0 * 8))\n': '''        if index + 0 <= length(s):
+            if length(s) - (index + 0) >= 8:
+                return word_load(s, index + 0)
 ''',
-    'def get(w:mutbuf, index:u64) -> u64:\n': '''    if index * 8 <= length(w):
-        if length(w) - index * 8 >= 8:
-            return word_load(w, index * 8)
+    '        value = value | (byte(w, index * 8 + 0) << (0 * 8))\n': '''        if index * 8 + 0 <= length(w):
+            if length(w) - (index * 8 + 0) >= 8:
+                return word_load(w, index * 8 + 0)
 ''',
-    'def set(w:mutbuf, index:u64, value:u64) -> u64:\n': '''    if index * 8 <= length(w):
-        if length(w) - index * 8 >= 8:
-            word_store(w, index * 8, value)
-            return value
+    '        store(w, index * 8 + 0, value >> (0 * 8))\n': '''        if index * 8 + 0 <= length(w):
+            if length(w) - (index * 8 + 0) >= 8:
+                word_store(w, index * 8 + 0, value >> 0)
+                return value
 ''',
 }
 
@@ -813,10 +814,10 @@ def source_program(*, word_memory=True):
         raise ValueError('Slot word-memory authoring selection must be an exact bool')
     text = PROTOCOL
     if word_memory:
-        for signature, prefix in WORD_PREFIXES.items():
-            if text.count(signature) != 1:
-                raise ValueError('Slot fixed-word helper signature changed')
-            text = text.replace(signature, signature + prefix)
+        for first_byte, fast_path in WORD_FAST_PATHS.items():
+            if text.count(first_byte) != 1:
+                raise ValueError('Slot original first-byte operation changed')
+            text = text.replace(first_byte, first_byte + fast_path)
     values = {**PORT, 'REQUEST_MAGIC': REQUEST_MAGIC, 'RESULT_MAGIC': RESULT_MAGIC,
               'STATE_MAGIC': STATE_MAGIC, 'MAX_PORT': len(PORTS)}
     return re.sub(r'@([A-Za-z_][A-Za-z_0-9]*)@', lambda match: str(values[match[1]]), text)

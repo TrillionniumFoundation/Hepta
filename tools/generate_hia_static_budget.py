@@ -502,8 +502,21 @@ def constant_lookup(words):
         mid = (lo + hi) // 2
         return ([f'{space}if index < {mid}:'] + branch(lo, mid, depth + 1)
                 + [f'{space}else:'] + branch(mid, hi, depth + 1))
-    return '\n'.join(['def profile_word(index:u64) -> u64:',
-        f'    if index >= {len(words)}:', '        return 0', *branch(0, len(words), 1)]) + '\n'
+    # Keep each balanced lookup within the original 256-block compiler limit.
+    # The v9 table has 197 words; one tree compacts to 257 blocks. The public
+    # lookup retains its full extent and zero result outside it. Fixed helpers
+    # use the same global index and literal words, without a runtime table.
+    chunks = [(lo, min(lo + 128, len(words))) for lo in range(0, len(words), 128)]
+    code = ['def profile_word(index:u64) -> u64:',
+            f'    if index >= {len(words)}:', '        return 0']
+    for number, (lo, hi) in enumerate(chunks):
+        if number + 1 == len(chunks):
+            code.append(f'    return profile_word_{number}(index)')
+        else:
+            code += [f'    if index < {hi}:', f'        return profile_word_{number}(index)']
+    for number, (lo, hi) in enumerate(chunks):
+        code += ['', f'def profile_word_{number}(index:u64) -> u64:', *branch(lo, hi, 1)]
+    return '\n'.join(code) + '\n'
 
 
 def profile_tables():

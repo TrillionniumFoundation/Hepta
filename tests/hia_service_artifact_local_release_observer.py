@@ -1,9 +1,11 @@
-"""Fresh-process original146 then independent-VM146; no native mapping.
+"""Fresh-process preparation-v2 original146 twice, then independent-VM146.
 
 The parent owns a new 180-second Source-control deadline. This child remains
 in that parent's process group and cannot launch another process. It does not
 collect, reset or normalize garbage; only the immutable original observer's
-three declared GC cases perform collection.
+three declared GC cases perform collection in each complete replay.
+The v1 observation fields are retained; oracle_preparation identifies the
+separate v2 preparation authority, not a relabelled v1 qualification.
 """
 from __future__ import annotations
 
@@ -22,7 +24,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in (None, ''):
     sys.path.insert(0, str(ROOT))
 from tests import hia_service_artifact_oracle as oracle
-from tests.hia_service_artifact_observer import KNOWN_ORIGINALS, differences, original_inputs
+from tests.hia_service_artifact_observer import (KNOWN_ORIGINALS, differences,
+    observation_readback, original_inputs, preparation_sources)
+from tests.hia_service_artifact_preparation import SOURCE_PATHS as PREPARATION_PATHS
 
 SCHEMA = 'hepta.hia.service-artifact-local-release-observer.v1'
 SOURCE_PATHS = (
@@ -62,14 +66,14 @@ def source_snapshot():
     # This Source control can run before metadata regeneration. Bind actual
     # bytes directly; do not import a source-contract/current_sources checker.
     freeze = json.loads((oracle.ROOT / 'freeze.json').read_bytes())
-    names = sorted(set(SOURCE_PATHS) | set(freeze['inputs']))
+    names = sorted(set(SOURCE_PATHS) | set(PREPARATION_PATHS) | set(freeze['inputs']))
     return {name: pin((ROOT / name).read_bytes()) for name in names}
 
 
 def audit_event(event, arguments):
     blocked = event in {'subprocess.Popen', 'os.system', 'sqlite3.connect',
         'socket.__new__', 'os.fork', 'os.forkpty', 'os.posix_spawn', 'mmap.__new__'} or event.startswith('os.exec')
-    if PHASE in ('original', 'candidate-vm'):
+    if PHASE in ('original', 'original-repeat', 'candidate-vm'):
         blocked = blocked or event in ('ctypes.dlopen', 'ctypes.dlsym')
     if blocked:
         AUDIT_REFUSALS.append({'phase': PHASE, 'event': event})
@@ -99,6 +103,10 @@ def run(output):
     source_before = source_snapshot()
     write_new(output / 'source-before.json', source_before)
     cases = original_inputs()
+    preparation = preparation_sources()
+    if any(source_before.get(name) != item
+           for name, item in preparation['captured_files'].items()):
+        raise AssertionError('artifact preparation differs from the initial actual source capture')
     ordered = [case['id'] for case in cases]
     product_before = sorted(name for name in sys.modules
         if name == 'hepta' or name.startswith('hepta.') or name == 'tools' or name.startswith('tools.'))
@@ -118,11 +126,31 @@ def run(output):
     phase('original', product_modules=product_before)
     try:
         expected = [oracle.observe(case) for case in cases]
+        expected_raw = oracle.canonical(expected)
+        original_path = output / 'originals-146.json'
+        original_pin = write_new(original_path, expected_raw)
+        phase('original-repeat', original_file=original_pin)
+        repeated = [oracle.observe(case) for case in cases]
     finally:
         sys.meta_path.remove(finder)
-    expected_raw = oracle.canonical(expected)
-    original_path = output / 'originals-146.json'
-    original_pin = write_new(original_path, expected_raw)
+    repeated_raw = oracle.canonical(repeated)
+    repeated_pin = write_new(output / 'originals-repeat-146.json', repeated_raw)
+    replay_differences = differences(expected, repeated)
+    replay_difference_raw = oracle.canonical(replay_differences)
+    replay_difference_pin = write_new(output / 'original-replay-differences.json', replay_difference_raw)
+    baseline = {'schema': 'hepta.hia.service-artifact-preparation-baseline.v2',
+        'preparation': preparation, 'original_count': len(expected), 'repeat_count': len(repeated),
+        'originals': original_pin, 'repeated_originals': repeated_pin,
+        'differences': replay_difference_pin, 'same_runtime': sys.version,
+        'candidate_imported_or_executed': False, 'observation_normalization': False,
+        'status': 'PASS' if expected_raw == repeated_raw and not replay_differences else 'HOLD'}
+    baseline_raw = oracle.canonical(baseline)
+    write_new(output / 'preparation-baseline.json', baseline_raw)
+    sealed_replays = {'originals-repeat-146.json': repeated_raw,
+        'original-replay-differences.json': replay_difference_raw,
+        'preparation-baseline.json': baseline_raw}
+    if len(repeated) != 146 or repeated_raw != expected_raw or replay_differences:
+        raise AssertionError('preparation-v2 original146 replays differ before candidate imports')
     original_late = json.loads(oracle.canonical(oracle.LATE))
     phase('originals-written', original_file=original_pin, count=len(expected))
     # No candidate import, assembly or VM invocation precedes this frozen file.
@@ -183,14 +211,16 @@ def run(output):
     diff = differences(expected, actual)
     diff_pin = write_new(output / 'differences.json', diff)
     original_inputs()
+    preparation_after = preparation_sources()
     source_after = source_snapshot()
     write_new(output / 'source-after.json', source_after)
     original_after = pin(original_path.read_bytes())
+    replay_readback = observation_readback(output, sealed_replays)
     custody = list(delivery.custody_snapshot())
-    known = KNOWN_ORIGINALS.get(platform.python_version())
-    stable = source_before == source_after
+    known = preparation['current_known_originals'].get(platform.python_version())
+    stable = preparation_after == preparation and source_before == source_after
     unchanged = original_path.read_bytes() == expected_raw and oracle.canonical(expected) == expected_raw
-    passed = (exception is None and stable and unchanged and not diff
+    passed = (exception is None and stable and unchanged and replay_readback['unchanged'] and not diff
         and expected_raw == actual_raw and len(expected) == len(actual) == frames[0] == 146
         and (known is None or known == original_pin['sha256'])
         and not original_late and not oracle.LATE and not custody
@@ -209,6 +239,12 @@ def run(output):
         'originals_before': original_pin, 'originals_after': original_after,
         'actuals': actual_pin, 'complete_observations': complete_pin, 'differences': diff_pin,
         'known_same_runtime_original_sha256': known,
+        'oracle_preparation': preparation, 'oracle_preparation_after': preparation_after,
+        'original_repeat_count': len(repeated), 'repeated_originals': repeated_pin,
+        'original_replay_differences': replay_difference_pin,
+        'original_replay_files_after_candidate': replay_readback,
+        'original_replays_equal_before_candidate_imports': repeated_raw == expected_raw,
+        'legacy_v1_known_same_runtime_original_sha256': KNOWN_ORIGINALS.get(platform.python_version()),
         'product_modules_before_originals': product_before,
         'expected_file_unchanged_after_candidate': unchanged,
         'expected_written_before_candidate_imports': True,

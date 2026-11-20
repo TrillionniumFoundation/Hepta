@@ -12,7 +12,8 @@ FIXTURE = ROOT / "tests/fixtures/cold_native_transport_controls_v4.json"
 
 class ColdNativeTransportControlsSourceTests(unittest.TestCase):
     def test_all_original36_definitions_and_complete_executable_input_inventory(self):
-        from tools.hia_cold_native_transport_evidence import Captures, data_pin
+        from tools.hia_cold_native_transport_evidence import (
+            Captures, data_pin, restore_observer_source)
         from tools.read_hia_cold_native_transport_controls import CORE_PINS, FIXTURE_PIN, NEW_INPUTS
         captured = Captures()
         fixture = captured.json(FIXTURE, FIXTURE_PIN)
@@ -38,13 +39,17 @@ class ColdNativeTransportControlsSourceTests(unittest.TestCase):
         self.assertEqual(len(NEW_INPUTS), 7)
         for name in NEW_INPUTS:
             self.assertGreater(len(captured.raw(ROOT / name)), 0)
+        # Retain the immutable original44 files through the same exact whole-file
+        # inverse/forward proof used by the current47 original-first gate.
         for name, expected in gates["original_tests"].items():
-            self.assertEqual(data_pin(captured.raw(ROOT / name, expected)), expected)
+            original = restore_observer_source(name, captured.raw(ROOT / name), expected)
+            self.assertEqual(data_pin(original), expected)
         for row in gates["original_observers"]:
             current = captured.raw(ROOT / row["path"])
             tail = row["selection_tail"].encode()
             self.assertTrue(current.endswith(tail))
-            self.assertEqual(data_pin(current[:-len(tail)]), row["before"])
+            original = restore_observer_source(row["path"], current[:-len(tail)], row["before"])
+            self.assertEqual(data_pin(original), row["before"])
         captured.unchanged()
 
 

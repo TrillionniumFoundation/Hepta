@@ -347,6 +347,7 @@ jobs:
               'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
               'tests.test_hia_service_artifact_native.ServiceArtifactSourceTests',
               'tests.test_hia_service_artifact_local_release',
+              'tests.test_hia_service_artifact_preparation',
               'tests.test_hia_service_read_native.ServiceReadSourceTests',
               'tests.test_hia_context_protocol',
           )
@@ -420,9 +421,13 @@ jobs:
               if key.startswith(('HEPTA_HIA_', 'PYTHON')):
                   os.environ.pop(key)
           from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          # Keep all original seven methods and execute the three added v9 controls.
           expected = (
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_all_six_arithmetic_members_and_actual_derived_operation',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_all_v9_word_operations_keep_full_original_reports_and_stopped_storage',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_changed_metadata_and_machine_bindings_preserve_real_fallback',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_exact_runtime_source_successor_and_populated_cache_refuse_unlisted_bytes',
+              'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_exact_v9_word_order_sources_and_changed_live_mappings_refuse_preparation',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_49_semantics_reports_and_stopped_storage',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_complete_dynamic_bytes_decoder_selector_fallback',
               'tests.test_hia_program_runtime_arithmetic.ArithmeticPreparedRuntimeSourceTests.test_original_readonly_snapshot_and_fresh_entry_state',
@@ -1482,6 +1487,7 @@ jobs:
           set -o pipefail
           python -B tools/run_hia_unittest_gate.py \
             tests.test_hia_service_artifact_native.ServiceArtifactSourceTests \
+            tests.test_hia_service_artifact_preparation \
             tests.test_hia_service_artifact_native.ServiceArtifactNativeTests \
             2>&1 | tee "$RUNNER_TEMP/hia-service-artifact.log"
       - name: Complete original service artifact ordinary callers

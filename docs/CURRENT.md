@@ -43,50 +43,111 @@ The integration also corrects concrete source and execution defects:
   Escaped keys, duplicate-key identity, grammar and resource limits retain
   their original checks.
 
-The published pre-v9 integration [`b7ed901`](https://github.com/TrillionniumFoundation/Hepta/commit/b7ed9013ccedbf0df5c254b9bd6d278a66884b36)
-completed the full fixed-Core cold replay on ROG: eleven outer checks, all 38
-original/modified phases and 5,052 nested checks passed in 65.424 seconds under
-the original 180+3-second qualification and 240-second outer limit. Its
-B1=B2=B3 image SHA256 is
-`a188fa30eaeada5d8ced8db63e7d7103cbdb73730c94249470a0abbd6641f7d2`.
-The same frozen checkpoint completed native executable Source3/Native5,
-44 managed commands, twelve installed executions, independent positive
-readback and all sixty original negative DATA controls. The DATA supervisor
-made 61 actual reader calls and verified 872 artifact files; it did not execute
-new product calls.
+### Completed ROG qualification of the published v9 source
 
-**Those outcomes belong to the pre-v9 checkpoint.** The current v9 successor
-requires a fresh complete source freeze, cold fixed points and all affected
-native/installed gates. Current development Source controls establish the
-strict source relations; they do not transfer earlier execution results.
-The final inventory and qualification records supply counts and outcomes;
-source counts are not a native-completion percentage.
+The independently checked source is [`1a4f220`](https://github.com/TrillionniumFoundation/Hepta/commit/1a4f2202a6c7ffbad373329ddcd9451cc59c9401),
+tree `af73ce774cbb69fc6a799425a236b48fefd5fc29`, with 2,966 complete tracked
+file byte/mode identities. ROG ran CPython 3.14.4 and Clang 20.1.8. Every
+stage reread that full freeze and the actual matching cold inputs. The
+published CI merge commit `55c64f2a99a6cda956b74026a0ad54417fc9d1da`
+has this same tree.
 
-The v9 development checks have completed the full verified-kernel workflow's
-298 tests, the 62-method source compatibility group, and the subsequent
-42-method Delivery source and packaging group. The Bootstrap caller-source
-repair also passed 36 source tests, including all original static checks and
-108 negative admission controls. Its independent reader then passed the
-37-method source group, including 136 additional refusal controls, and read
-actual producer proofs for all three complete original caller scopes. A real
-sdist was built and unpacked; all 673 declared source paths matched their
-input bytes, and its ten complete Delivery/Bootstrap source-control methods
-passed using only the extracted package. These are source and component
-results, not a full native product qualification.
+| Complete scope on that source | Actual outcome |
+| --- | --- |
+| Fixed-Core cold replay | Eleven outer checks, all 38 original/modified phases and 5,060 nested checks passed; 64.014 seconds outer, 63.038 seconds nested under the original 180+3 and 240-second limits |
+| v9 word memory | All four backends, 1,824 scalar comparisons, two cross-target objects and nine refusals passed; direct and selfhost raw lanes each completed 576 valid inputs, 72 traps and eight guard pages |
+| Rust shadow reference | Complete locked, offline Cargo test command passed |
+| Native integer profiles | Full Native8 for each div/rem, arithmetic and scalar profile, including each profile's original full domain, generic/installed/resource controls, plus separate independent readers passed |
+| Worker UNKNOWN | Both complete installed v1 and actual v2 loss/cleanup/replacement methods passed |
+| Executable release | All five Native methods and the independent DATA reader passed; its report retains all 44 commands and the separate installed runs |
+| Service bootstrap | All eight Native and four resource methods, and the independent DATA reader passed |
+| Budget resource retirement | All four Native methods, 22 complete resource cases and the independent DATA reader passed |
+| Bootstrap ordinary callers | All 112 original methods and independent readback passed |
+| Bootstrap context callers | All 15 original methods and independent readback passed |
+| Core source/reference gate | All 750 methods finished in 553.819 seconds; 749 passed and one original preparation/VM comparison failed |
+| Bootstrap journal callers | All 21 original methods finished in 37.750 seconds; 20 passed and the installed-wheel preparation failed on a missing current package resource |
+| v9 scalar combined gate | Nineteen actual methods passed; static-budget class setup failed because one generated function contained 257 blocks, above the unchanged 256-block limit |
+| CI Slot mechanical Native4 | All four methods finished in 1,538.762 seconds. Complete public84/handled12, admission and installed-worker/UNKNOWN groups passed; full original248/derived7574 retained 2 cases/14 leaf differences and 286 cases/1,804 leaf differences respectively |
 
-The earlier complete Core attempt reached its 1,800-second outer limit with
-715 successful method records, six error records and one unfinished method.
-The six errors were subsequently repaired and passed in their complete
-original targeted groups; the interrupted complete Core run remains HOLD.
-The full current inventory must finish again on the frozen successor.
+Cold B1=B2=B3 are the same 637,172-byte image with SHA256
+`f81c42138a259286492e46f221010574d629a4eeea775815bd59ee7d71d66843`.
+The ROG stage aggregate is
+`/home/qian-qi/hia-unified-v9-evidence-20261120/operator-completed-stages-r6.json`
+(23,490 bytes, SHA256
+`008368061e754a1e72cfbf71fda94923d0e246894d0ed1960c7624d1696ecdc0`).
+Its 27 recorded stages include all failures and dependent-reader failures.
+The old source and raw observations remain unchanged.
 
-Original pre-v9 CI evidence also retains independent unresolved observations:
-Store Capture timed out at 1,800 seconds with 3,264 of 5,101 complete candidate
-records readable and four explicit-GC-count differences; Discovery's 56-case
-and Verification's 185-case domains also differed in explicit GC counts.
-Slot's separate automatic-GC/finalizer differences remain recorded. None of
-these fields, input domains or limits has been removed or normalized. Their
-current v9 outcomes require complete actual re-execution.
+### Reviewed successor fixes
+
+The current working successor corrects four concrete defects discovered by
+those complete runs and CI. Its source and sdist qualification do not
+transfer the preceding source's native results to these edited bytes.
+
+- Static budget retains all 197 original profile words and the zero result
+  outside the table. It splits the constant dispatcher into bounded helpers;
+  the generated owner has 30 functions and at most 127 blocks per function.
+  The compiler's 256-block limit and original modes remain unchanged. All
+  39 combined Source/contract/language/transport methods passed.
+- Slot executes the original first byte read or write before entering its
+  full-range word fast path. This preserves original argument lookup,
+  permission checks, shift errors, exception order and short-buffer partial
+  writes. All original 270 helper, 41 argument/borrow-shape and 360 packet
+  cases passed, with the complete original expectation bytes identical to
+  the failed attempt; the six actual shape differences are fixed. All eight
+  Source methods, including the additional 890/239 v9 domains and exact
+  generator-admission refusals, passed. Arbitrary smaller VM-tick budgets
+  and concurrent eight-byte atomicity remain outside this finite claim.
+- Cold-transport Source controls now apply the same existing exact
+  old-to-current observer-source admission as the complete native gate.
+  All 17 methods passed. Original44/current47 and CT36 domains are preserved.
+- Arithmetic CI loads all ten current Source methods while preserving the
+  original seven IDs and the three registered successor methods. The exact
+  corrected workflow block completed all ten.
+
+Artifact preparation is a separately versioned correction. The unchanged
+v1 oracle executed two temporary classes while extracting method code. On
+ROG 3.14.4, two complete original-only 146-case runs, without a candidate
+import, reproduced the same 14-versus-0 GC difference seen in Core. Actual
+object/lifetime diagnostics tied this to the two temporary seven-object
+class cycles. The historical failure therefore remains a v1 HOLD.
+
+Preparation v2 compiles the same fixed wrapper and extracts its one direct
+method CodeType without executing either temporary class. The old 16,362-byte
+oracle is archived verbatim and the new authority admits exactly two source
+splices. Independent disposable-child controls compare every recursive code
+attribute, line/position sequence and complete marshal bytes against actual
+v1 execution. Original business bodies, fixtures, the two original test
+modules, all 146 IDs and the 180+3-second child bound remain unchanged.
+Each observation now requires two complete byte-identical original replays
+before importing the candidate, and rereads both original files, comparison
+records and the preparation receipt at termination. No GC policy, raw field,
+exception or traceback is adjusted. Both complete ten-method development
+runs passed; the second finished in 99.586 seconds including its owner.
+
+Actual sdist validation then exposed missing original-test and transitive
+authoring inputs. Both import failures are retained; 17 existing files were
+added to the precise package staging and manifest inventories. The final
+6,751,456-byte sdist (SHA256
+`6d4438374f7a12ec75b2dac3fe820e30f64503a286a2d484dd0d9a2da087414a`)
+contains all 701 declared input paths byte-for-byte, with 261 support files.
+The complete original Source3, LocalRelease3 and new Preparation4 methods
+passed in 102.652 seconds using only the extracted package. Its sources and
+all archived input bytes remained unchanged.
+
+The journal failure is an independent packaging-preparation issue: the old
+installed test copies resource groups only through `CONTINUATION_BUILD_FILES`,
+whereas the current wheel also requires `executable_capture.hepta` and later
+registered groups. A versioned preparation successor and full original21
+rerun are required; neither a smaller resource contract nor a skipped test
+qualifies it.
+
+The complete current Core inventory, new matching-source cold, affected
+native/installed scopes and full regression gate still need to pass on one
+final source freeze. Earlier Store Capture, Discovery, Verification and
+Slot lifetime/GC observations remain unresolved unless their own complete
+current domains establish otherwise. These outcomes are not a native
+completion percentage, and old provider removal remains false.
 
 ## Source format and actual entry points
 
@@ -117,8 +178,9 @@ retain the complete shared input domain. The generated compiler uses word
 access for its fixed records, while SHA, JSON wire and structured Core
 consumers retain their checked extents.
 
-Slot's `read_word`, `get` and `set` helpers use a little-endian word access only
-after proving the complete eight-byte extent. Their full original byte paths
+Slot's `read_word`, `get` and `set` helpers preserve the original first byte
+operation, then use a little-endian word access after proving the complete
+eight-byte extent. Their full original byte paths
 remain for short tails and high offsets, preserving the original trap and
 partial-store order. The retained generator reproduces the complete original
 v8 source; every other function is unchanged. The added controls compare
@@ -298,6 +360,7 @@ its directory name does not make it disposable evidence.
 
 Earlier narratives and exact outcomes are available at fixed revisions:
 
+- [Published v9 integration and pre-v9 qualification records at `1a4f220`](https://github.com/TrillionniumFoundation/Hepta/blob/1a4f2202a6c7ffbad373329ddcd9451cc59c9401/docs/CURRENT.md).
 - [Published R24/R25-era status and preserved lifetime/resource failures at `192be0c`](https://github.com/TrillionniumFoundation/Hepta/blob/192be0c277a6971dc956326372fe4e48a007ae26/docs/CURRENT.md).
 - [v75–v77 status at `f33d8da`](https://github.com/TrillionniumFoundation/Hepta/blob/f33d8da316de8fdf27b504371f1a5310997ff548/docs/CURRENT.md).
 - [Original suffix failure and repair records at `f33d8da`](https://github.com/TrillionniumFoundation/Hepta/tree/f33d8da316de8fdf27b504371f1a5310997ff548/review-evidence/hia-native-rewrite-20261111/suffix-20838-r2).

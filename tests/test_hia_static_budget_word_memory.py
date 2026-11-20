@@ -63,6 +63,33 @@ def profile_documents():
 
 
 class StaticBudgetWordMemorySourceTests(unittest.TestCase):
+    def test_all_original_profile_words_and_outside_extent_in_actual_hia(self):
+        import ast
+        from hepta.hia_program_runtime import _Machine
+        from tools import generate_hia_static_budget as generator
+        frozen = original_word_owner()
+        groups = [('ret', 'trap', 'jump', 'branch'), sorted(frozen['_V8_BYTE_OPS']),
+                  sorted(frozen['_V8_BYTE_TYPES']), sorted(frozen['_V8_CHAIN_OPS']),
+                  ['chain'], sorted(frozen['_V9_WORD_OPS'])]
+        words = []
+        for group in groups:
+            for token in group:
+                raw = token.encode('ascii')
+                words.append(len(raw))
+                words.extend(int.from_bytes(raw[at:at + 8].ljust(8, b'\0'), 'little')
+                             for at in range(0, len(raw), 8))
+        self.assertEqual(len(words), 197)
+        names = [node.name for node in ast.parse(generator.source()).body]
+        entry = 'f' + str(names.index('profile_word'))
+        program = assemble_program(native.SOURCE.read_bytes())
+        machine = _Machine(program, 10_000_000, 8 << 20, None, 128)
+        for index, expected in enumerate(words):
+            with self.subTest(index=index):
+                self.assertEqual(machine.invoke(machine.functions[entry], [index]), [expected])
+        for index in (len(words), len(words) + 1, 1 << 32, 1 << 63, (1 << 64) - 1):
+            with self.subTest(outside=index):
+                self.assertEqual(machine.invoke(machine.functions[entry], [index]), [0])
+
     def test_v9_reports_match_independent_branch_original_without_selection(self):
         frozen = original_word_owner()
         with patch.dict(os.environ):
