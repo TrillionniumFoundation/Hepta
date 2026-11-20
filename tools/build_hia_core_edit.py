@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = 'examples/hia_bootstrap/'
 EDIT = BOOTSTRAP + 'core_edit/'
 CLI = BOOTSTRAP + 'core_cli/'
+CORE_ADMISSION = BOOTSTRAP + 'core_admission.hepta'
 PACKER = EDIT + 'packer.hepta'
 STATIC_ADAPTERS = (EDIT + 'adapter_templates_a.hepta', EDIT + 'adapter_templates_b.hepta')
 ADAPTER_RECORD = struct.Struct('<32s32s32sQQ')
@@ -74,27 +75,27 @@ NOMINAL_BUILD_SOURCES = {
     for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')
 }
 OBJECT_BUILD_IMAGES = {
-    BOOTSTRAP + 'core_admission.hepta': 'build_core',
+    CORE_ADMISSION: 'build_core',
     EDIT + 'publication_frontend.hepta': 'build_frontend',
     CLI + 'build_codegen.hepta': 'build_codegen',
     CLI + 'build_backend.hepta': 'build_backend',
 }
 EDIT_QUERY_IMAGES = {
     BOOTSTRAP + 'core_patch.hepta': 'edit_base_extract',
-    BOOTSTRAP + 'core_admission.hepta': 'edit_base_admission',
+    CORE_ADMISSION: 'edit_base_admission',
     EDIT + 'nominal_base_span.hepta': 'edit_base_span',
     EDIT + 'query.hepta': 'edit_query',
     BOOTSTRAP + 'agent_slice.hepta': 'edit_slice',
 }
 PUBLISHED_EDIT_QUERY_IMAGES = {
-    EDIT + 'admission_word_io.hepta': 'edit_base_admission',
+    CORE_ADMISSION: 'edit_base_admission',
     EDIT + 'patch_word_io.hepta': 'edit_base_extract',
     EDIT + 'nominal_base_span.hepta': 'edit_base_span',
     EDIT + 'query.hepta': 'edit_query',
     EDIT + 'publication_json_view.hepta': 'edit_publication',
 }
 BATCH_QUERY_IMAGES = {
-    EDIT + 'admission_word_io.hepta': 'edit_base_admission',
+    CORE_ADMISSION: 'edit_base_admission',
     EDIT + 'patch_word_io.hepta': 'edit_base_extract',
     EDIT + 'nominal_base_span.hepta': 'edit_base_span',
     EDIT + 'batch_query.hepta': 'edit_batch_query',
@@ -103,7 +104,7 @@ BATCH_QUERY_STDOUT_IMAGES = {**BATCH_QUERY_IMAGES, BOOTSTRAP + 'agent_slice.hept
 BATCH_QUERY_PUBLISH_IMAGES = {**BATCH_QUERY_IMAGES, EDIT + 'publication_json_view.hepta': 'edit_publication'}
 
 EDIT_APPLY_INPUT_IMAGES = {
-    EDIT + 'admission_word_io.hepta': 'edit_base_admission',
+    CORE_ADMISSION: 'edit_base_admission',
     EDIT + 'patch_word_io.hepta': 'edit_base_extract',
     EDIT + 'nominal_base_span.hepta': 'edit_base_span',
 }
@@ -124,21 +125,21 @@ BATCH_APPLY_INPUT_IMAGES = {
     EDIT + 'batch_apply.hepta': 'edit_batch_apply',
 }
 BATCH_APPLY_IMAGES = {
-    EDIT + 'admission_word_io.hepta': 'edit_base_admission',
+    CORE_ADMISSION: 'edit_base_admission',
     EDIT + 'batch_normalize.hepta': 'edit_batch_front',
     **BATCH_APPLY_INPUT_IMAGES,
     BOOTSTRAP + 'agent_slice.hepta': 'edit_slice',
 }
 PUBLISHED_BATCH_APPLY_IMAGES = {
     EDIT + 'batch_capture.hepta': 'edit_batch_capture',
-    EDIT + 'publication_batch_admission.hepta': 'edit_base_admission',
+    CORE_ADMISSION: 'edit_base_admission',
     EDIT + 'publication_batch_receipt.hepta': 'edit_batch_front',
     **BATCH_APPLY_INPUT_IMAGES,
     EDIT + 'publication_batch_policy.hepta': 'edit_publication',
 }
 
 PATCH_INPUT_IMAGES = {
-    EDIT + 'admission_word_io.hepta': 'edit_base_admission',
+    CORE_ADMISSION: 'edit_base_admission',
     EDIT + 'nominal_base_span.hepta': 'edit_base_span',
 }
 PATCH_IMAGES = {
@@ -193,18 +194,18 @@ PROGRAMS = {
         (CLI + 'selfhost_wire.hepta', ('emergency_call', 'canonical_wire_call', 'policy_call')),
     )),
     'normalize_core': ('hia-normalize-core', (
-        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (CORE_ADMISSION, ('core_call',)),
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
         (CLI + 'normalize_pretty.hepta', ('pretty_call',)),
     )),
     'verify_core_json': ('hia-verify-core-json', (
-        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (CORE_ADMISSION, ('core_call',)),
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
         (CLI + 'verify.hepta', ('report_call',)),
         (CLI + 'verify_pretty.hepta', ('pretty_call',)),
     )),
     'inspect_core_json': ('hia-inspect-core-json', (
-        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (CORE_ADMISSION, ('core_call',)),
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
         (CLI + 'inspect.hepta', ('report_call',)),
         (EDIT + 'publication_pretty.hepta', ('pretty_call',)),
@@ -215,12 +216,12 @@ PROGRAMS = {
     )),
     'import_assembly': ('hia-import-assembly', (
         (CLI + 'assembly_syntax_diagnostics.hepta', ('syntax_call',)),
-        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
+        (CORE_ADMISSION, ('core_call',)),
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
         (ASSEMBLY_PRESENTATION, ('presentation_images',)),
     )),
     'render_assembly': ('hia-render-assembly', (
-        (BOOTSTRAP + 'core_admission.hepta', ('original_core', 'roundtrip_core')),
+        (CORE_ADMISSION, ('original_core', 'roundtrip_core')),
         (BOOTSTRAP + 'json_canonical.hepta', ('original_canonical', 'roundtrip_canonical')),
         (CLI + 'assembly_render.hepta', ('render', 'finish')),
         (CLI + 'assembly_syntax.hepta', ('syntax',)),
@@ -229,20 +230,20 @@ PROGRAMS = {
         (CLI + 'capabilities.hepta', ('capabilities_call',)),
     )),
     'emit_object': ('hia-emit-object', (
-        (BOOTSTRAP + 'core_admission.hepta', ('core',)),
+        (CORE_ADMISSION, ('core',)),
         (EDIT + 'publication_frontend.hepta', ('frame', 'exports', 'expectations')),
         (CLI + 'build_codegen.hepta', ('codegen',)),
         (CLI + 'build_backend.hepta', ('byte_address',)),
     )),
     'build_object': ('hia-build-object', tuple((path, ()) for path in OBJECT_BUILD_IMAGES)),
     'publish_program': ('hia-publish-program', (
-        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (CORE_ADMISSION, ('core_address',)),
         (EDIT + 'publication_frontend.hepta', ('front_address',)),
         (EDIT + 'publication_program.hepta', ('owner_address',)),
         (EDIT + 'publication_policy.hepta', ('publication_address',)),
     )),
     'publish_assembly': ('hia-publish-assembly', (
-        (BOOTSTRAP + 'core_admission.hepta', ('core_address',)),
+        (CORE_ADMISSION, ('core_address',)),
         (EDIT + 'publication_frontend.hepta', ('front_address',)),
         (EDIT + 'publication_render.hepta', ('owner_address',)),
         (EDIT + 'publication_assembly.hepta', ('publication_address',)),

@@ -25,7 +25,7 @@ from tests.test_hia_core_edit_runtime import (
 from tests.test_hia_edit_batch import loans, selected, swaps
 from tests.test_hia_program_tools import add_two_patch, scalar_program
 from tests.test_hia_returned_loan_interfaces import choose_loan
-from tools.hia_word_memory_cases import owned_program
+from tools.hia_word_memory_cases import acyclic_program, owned_program
 
 
 def reference_cli(arguments):
@@ -129,6 +129,66 @@ def check_v9_build(release, directory):
         observed.returncode, observed.stdout, observed.stderr)
     assert actual_path.read_bytes() == expected_path.read_bytes()
     return 1
+
+
+def check_v9_edits(release, directory):
+    directory.mkdir()
+    program = acyclic_program()
+    base = verify_program(program)
+    selection = selected('offset', 'attrs', 'probe')
+    patch = {
+        'schema': 'hepta.hia.patch.v1', 'expected_sha256': base.sha256,
+        'edits': [{
+            'action': 'replace_operation', 'function': 'probe', 'block': 'entry', 'index': 1,
+            'operation': {**program['functions'][0]['blocks'][0]['ops'][1], 'attrs': {'value': 2}},
+        }],
+    }
+
+    def save(name, document):
+        path = directory / name
+        path.write_bytes(wire(document))
+        return str(path)
+
+    source = save('source.hepta', program)
+    request = save('patch.json', patch)
+    selections = save('sites.json', [selection])
+    query = save('query.json', prepare_edit(program, **selection))
+    edit = save('edit.json', {'attrs': {'value': 2}})
+    batch_query = save('batch-query.json', prepare_batch(program, [selection]))
+    batch_edit = save('batch-edit.json', {'edits': [{'site': 0, 'changes': {'attrs': {'value': 2}}}]})
+    cases = (
+        ('normalize', ()),
+        ('edit-query', ('--function', 'probe', '--block', 'entry', '--value', 'offset', '--fields', 'attrs')),
+        ('edit-batch-query', ('--selections', selections)),
+        ('patch', ('--request', request)),
+        ('impact', ('--request', request)),
+        ('edit-apply', ('--query', query, '--response', edit)),
+        ('edit-batch-apply', ('--query', batch_query, '--response', batch_edit)),
+    )
+    count = 0
+    for action, options in cases:
+        arguments = [action, source, *options]
+        result = subprocess.run([release / 'hia', *arguments], capture_output=True,
+                                env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (
+            0, reference_cli(arguments), b''), (action, result)
+        count += 1
+        if action == 'impact':
+            continue
+        reference = directory / 'reference' / action / 'result'
+        target = directory / 'native' / action / 'result'
+        arguments.append('--output')
+        expected = json.loads(reference_cli([*arguments, str(reference)]))
+        publication = expected if 'output' in expected else expected['publication']
+        publication['output'] = str(target)
+        result = subprocess.run([release / 'hia', *arguments, target], capture_output=True,
+                                env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (
+            0, wire(expected, pretty=True), b''), (action, result)
+        assert target.read_bytes() == reference.read_bytes(), action
+        count += 1
+    assert Path(source).read_bytes() == wire(program)
+    return count
 
 
 def check_import_existing_destinations(release, source, directory):
@@ -631,6 +691,7 @@ def check_release(release, directory):
     assert {name: (directory / name).read_bytes() for name in inputs} == inputs
     checked_v9 = check_v9_assembly(release, directory / 'v9-assembly')
     checked_v9 += check_v9_build(release, directory / 'v9-build')
+    checked_v9 += check_v9_edits(release, directory / 'v9-edits')
     diagnostics = directory / 'diagnostics'
     diagnostics.mkdir()
     selfhost = directory / 'selfhost'
