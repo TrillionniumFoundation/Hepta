@@ -69,3 +69,7 @@ def selected_instruction_policy(name,schema,operands,results,attributes):
     if not path:
         raise ValueError('instruction policy selector must not be empty')
     return installed_instruction_policy(path).check(name,schema,operands,results,attributes)
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

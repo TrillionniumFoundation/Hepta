@@ -1,4 +1,4 @@
-"""Unsigned scalar calls require fresh proof and the shared sealed-image loader."""
+"""Scalar calls require fresh proof and the shared sealed-image loader."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -158,20 +158,31 @@ class VerifiedScalarLoadTests(unittest.TestCase):
                          loaded.image_sha256)
         self.assertEqual(loaded.function(1234), 1234)
 
-    def test_borrowed_signed_many_word_and_multifunction_scopes_are_refused_before_proof(self):
+    def test_borrowed_many_word_and_multifunction_scopes_are_refused_before_proof(self):
         from tests.test_hia_safe_core import read_byte
         multiple = identity_core('u64')
         other = deepcopy(multiple['functions'][0])
         other['name'] = 'other'
         multiple['functions'].append(other)
         _, obj, final, _, _, _ = self.cases['u64']
-        cases = (read_byte(), identity_core('i64'), identity_core('u64', 7), multiple)
+        cases = (read_byte(), identity_core('u64', 7), multiple)
         for document in cases:
             with self.subTest(document=document['module']), \
                     patch.object(loader, 'validate_safe_core_artifact',
                                  side_effect=AssertionError('unadmitted ABI reached proof')), \
                     self.assertRaises(loader.VerifiedKernelLoadRejected):
                 loader.load_verified_scalar_kernel(document, obj, final)
+
+    def test_signed_identity_requires_fresh_v6_proof_and_raw_word_return(self):
+        # Full-width identity has the same machine bytes for u64 and i64. Its
+        # signed admission must nevertheless select a fresh versioned proof.
+        _, obj, final, _, _, _ = self.cases['u64']
+        with patch.object(loader, 'validate_safe_core_artifact',
+                          wraps=loader.validate_safe_core_artifact) as proved:
+            loaded = loader.load_verified_scalar_kernel(identity_core('i64'), obj, final)
+        self.assertEqual(proved.call_args.kwargs['profile_version'], 6)
+        for word in (0, 1, 1 << 63, (1 << 64) - 1):
+            self.assertEqual(loaded.function(word), word)
 
     def test_ordinary_safe_core_wrapper_is_not_loaded_as_a_direct_scalar_entry(self):
         from hepta.hia_program import verify_program

@@ -22,7 +22,8 @@ from .hia_verified_cpu import require_host_isa
 from .hia_verified_simd_check import _identity as _simd_checker_identity, validate_verified_simd_artifact
 from .hia_safe_core_elf import bind_final_artifact
 from .hia_safe_core import (ARTIFACT_PROFILE_V2, ARTIFACT_PROFILE_V3, ARTIFACT_PROFILE_V4, ARTIFACT_PROFILE_V5,
-                           _checker_source_identity, _unsigned_profile_version, validate_safe_core_artifact)
+                           ARTIFACT_PROFILE_V6, _checker_source_identity,
+                           _unsigned_profile_version, validate_safe_core_artifact)
 from .hia_program import verify_program
 
 
@@ -205,11 +206,13 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
 
 
 def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_ms=15000):
-    """Load one unsigned Safe Core v2/v3 scalar direct entry after fresh proof.
+    """Load one Safe Core integer scalar direct entry after fresh proof.
 
     The callable takes zero to six raw uint64 SysV argument words and returns
-    a canonical uint64 result. The independently proved machine body masks
-    narrow arguments to their declared Core widths, including bool's low bit.
+    a canonical uint64 result word. The independently proved machine body
+    normalizes narrow arguments to their declared Core widths; signed values
+    are sign-extended, and bool uses its low bit. Negative results are returned
+    as their 64-bit two's-complement words.
     Checked arithmetic may call the modeled nonreturning libc abort. No
     producer, serialized proof receipt or alternate profile grants admission.
     """
@@ -220,17 +223,19 @@ def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_
     identity = loaded_source_identity(__name__, (source.name, "hia_verified_cpu.py"))
     checked = verify_program(document)
     functions = checked.as_dict()['functions']
-    _require(len(functions) == 1, 'one unsigned scalar function is required')
+    _require(len(functions) == 1, 'one scalar function is required')
     function = functions[0]
     parameter_types = tuple(param['type'] for param in function['params'])
     returns = function['returns']
-    unsigned = frozenset(('bool', 'u8', 'u16', 'u32', 'u64', 'usize'))
-    _require(len(parameter_types) <= 6 and all(typ in unsigned for typ in parameter_types) and
-             len(returns) == 1 and returns[0] in unsigned,
-             'unsigned scalar arguments and one return within six ABI words are required; no borrowed ranges')
+    integers = frozenset(('bool', 'u8', 'u16', 'u32', 'u64', 'usize',
+                          'i8', 'i16', 'i32', 'i64', 'isize'))
+    _require(len(parameter_types) <= 6 and all(typ in integers for typ in parameter_types) and
+             len(returns) == 1 and returns[0] in integers,
+             'integer scalar arguments and one return within six ABI words are required; no borrowed ranges')
     profile_version = _unsigned_profile_version(checked)
     artifact_profile = {2: ARTIFACT_PROFILE_V2, 3: ARTIFACT_PROFILE_V3,
-                        4: ARTIFACT_PROFILE_V4, 5: ARTIFACT_PROFILE_V5}[profile_version]
+                        4: ARTIFACT_PROFILE_V4, 5: ARTIFACT_PROFILE_V5,
+                        6: ARTIFACT_PROFILE_V6}[profile_version]
     validation = validate_safe_core_artifact(checked, object_bytes, final_bytes,
                                              timeout_ms=timeout_ms, profile_version=profile_version)
     _require(validation.get('ok') is True and validation.get('complete') is True and

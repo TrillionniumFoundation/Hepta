@@ -7,6 +7,7 @@ The compiled HIA program only checks syntax/budgets: it builds no JSON values.
 """
 from __future__ import annotations
 import ctypes
+from contextvars import ContextVar
 from functools import lru_cache
 from hashlib import sha256
 import json
@@ -20,6 +21,9 @@ MAX_NODES = 1 << 20
 MAX_DEPTH = 128
 MAX_IMAGE_BYTES = 1 << 20
 SCHEMA = 'hepta.hia.json-preflight-native.v1'
+# Inactive ordinary/native compilation imports no proof implementation. A
+# consumer installs scoped observers only while validating its actual inputs.
+_INPUT_IMAGE_OBSERVERS = ContextVar('hia_native_input_image_observers', default=())
 
 # Text rendering only: the HIA scanner chooses a reason at the original
 # refusal point and returns it in private state offset 32. The last reason
@@ -91,6 +95,8 @@ class NativeHiaJsonImage:
             mapped.close()
             raise OSError(code, 'mprotect native HIA JSON preflight')
         self._mapping = mapped
+        self._image_address = address
+        self._image_size = len(image)
         self._entry = ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))(address)
 
 
@@ -176,13 +182,18 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
     from .hia_native_helpers import pinned_image
     selected = pinned_image(manifest_path, source, schema, factory)
     if selected is not None:
+        for observe in _INPUT_IMAGE_OBSERVERS.get():
+            observe(manifest_path, source, schema, factory, selected)
         return selected
     path = Path(manifest_path).resolve(strict=True)
     with path.open('rb') as handle:
         raw = handle.read(16385)
     if len(raw) > 16384:
         raise ValueError('native HIA JSON manifest exceeds size limit')
-    return _load_manifest(str(path), raw, sha256(source.read_bytes()).hexdigest(), schema, factory)
+    selected = _load_manifest(str(path), raw, sha256(source.read_bytes()).hexdigest(), schema, factory)
+    for observe in _INPUT_IMAGE_OBSERVERS.get():
+        observe(manifest_path, source, schema, factory, selected)
+    return selected
 
 
 def installed_preflight(manifest_path: str) -> NativeJsonPreflight:
@@ -190,5 +201,7 @@ def installed_preflight(manifest_path: str) -> NativeJsonPreflight:
     return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeJsonPreflight)
 
 
+
+# Bind this executing input adapter, including selectors and native custody.
 from .hia_loaded_source import register_loaded_module as _register_loaded_source
 _register_loaded_source(__name__)

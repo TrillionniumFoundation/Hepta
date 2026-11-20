@@ -49,13 +49,15 @@ OPERATIONS = (
     ('immediate_alu', ('a', 'u', 'i')), ('shl', ('u', 'u')), ('shr', ('u', 'u')),
     ('not', ('u',)), ('shl_cl', ('u',)), ('shr_cl', ('u',)),
     ('mul', ('u',)), ('div', ('u',)),
+    ('cqo', ()), ('neg', ('u',)), ('sar', ('u', 'u')), ('sar_cl', ('u',)),
+    ('imul_full', ('u',)), ('idiv', ('u',)),
 )
 OPERATION_IDS = {name: code for code, (name, _) in enumerate(OPERATIONS, 1)}
 MACHINE_FORMULA_IDS = {**OPERATION_IDS, **{
     name: index for index, name in enumerate(
         ('borrow_range', 'call_address', 'return_offset', 'return_stack',
          'memory_read_store', 'memory_read_join', 'memory_read_agrees',
-         'variable_shl', 'variable_shr', 'multiply_words', 'divide_words'), 35)
+         'variable_shl', 'variable_shr', 'multiply_words', 'divide_words'), 64)
 }}
 CALLER_ABI_REQUEST = struct.Struct('<Q')
 RECIPE_REQUEST = struct.Struct('<2Q')
@@ -152,6 +154,7 @@ REFUSALS = (
     ('variable_shift', 'only 64-bit register SHL/SHR by CL is admitted'),
     ('unsigned_multiply_profile', 'unsigned MUL is outside the selected machine profile'),
     ('unsigned_divide_profile', 'unsigned DIV is outside the selected machine profile'),
+    ('cqo', 'only explicitly admitted CQO is supported'),
 )
 REFUSAL_IDS = {name: code for code, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -210,11 +213,11 @@ class NativeMachineScheduler:
 
 class NativeSafeCoreX64Decode(NativeHiaJsonImage):
     def decode(self, data, calls=None, *, allow_variable_shifts=False,
-               allow_unsigned_multiply=False, allow_unsigned_divide=False):
+               allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
         from .hia_safe_core_x64 import require
 
         require(type(data) is bytes and 0 < len(data) <= MAX_TEXT, REFUSALS[0][1])
-        admission = allow_variable_shifts, allow_unsigned_multiply, allow_unsigned_divide
+        admission = allow_variable_shifts, allow_unsigned_multiply, allow_unsigned_divide, allow_signed
         require(all(type(flag) is bool for flag in admission), 'machine profile admission must be explicit boolean')
         source = ctypes.create_string_buffer(data, len(data))
         capacity = HEADER.size + min(len(data), MAX_INSTRUCTIONS) * ROW.size

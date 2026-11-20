@@ -73,3 +73,7 @@ def installed_stream_hasher(manifest_path: str) -> NativeSha256Stream:
 def selected_stream_hasher():
     manifest = os.environ.get('HEPTA_HIA_SHA256_STREAM_MANIFEST')
     return installed_stream_hasher(manifest) if manifest else None
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

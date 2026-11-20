@@ -81,3 +81,7 @@ def selected_function_shape(fn,*,recursive_chain=False,parameter_loan_returns=Fa
     image.admit(raw,recursive_chain=recursive_chain,parameter_loan_returns=parameter_loan_returns)
     # Materialize only after native admission. This is not a second resolver.
     return {block['id']:block for block in snapshot['blocks']}
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

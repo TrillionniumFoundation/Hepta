@@ -39,6 +39,7 @@ earlier version's Core operations or instruction decoder:
 | v3 | Checked unsigned negation and checked variable left/right shifts |
 | v4 | Checked unsigned multiplication at u8/u16/u32/u64/usize widths |
 | v5 | Checked unsigned division and remainder at those five widths |
+| v6 | Signed i8/i16/i32/i64/isize arithmetic, comparisons, shifts and mixed-sign casts |
 
 The v4 Core model multiplies zero-extended operands into a full 128-bit
 product and aborts when that product exceeds the declared unsigned type's
@@ -47,13 +48,14 @@ with raw word 256 therefore means zero. Narrowing the result before checking
 would discard an observable overflow and is rejected. All versions retain the
 same finite control-flow, storage, ABI, loader and resource boundaries above.
 The v5 Core model uses unsigned quotient/remainder and traps exactly when the
-normalized divisor is zero. Signed arithmetic remains outside these profiles.
+normalized divisor is zero. Signed arithmetic is admitted separately by v6,
+without widening any earlier profile.
 
 ## The chain being checked
 
 1. **Exact Core.** The existing canonical verifier rechecks the actual primitive
    operations and resource interfaces. A separate interpreter in
-   `hia_safe_core.py` encodes their unsigned bitvector and byte-array semantics.
+   `hia_safe_core.py` encodes their versioned integer bitvector and byte-array semantics.
    It does not call the production VM or copy a desired answer into the model.
 
 2. **Lowering and instruction templates.** The canonical build entry retains its
@@ -188,7 +190,7 @@ cases. Those finite tests are not the source of the all-input claim.
 `validate_safe_core_artifact(core, object_bytes, final_bytes, ...)` accepts exact
 immutable byte strings. Its default profile is
 `hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1`; explicit
-versions 2, 3, 4 and 5 select the matching versioned supplied-ELF profile.
+versions 2 through 6 select the matching versioned supplied-ELF profile.
 It uses the same Core operations, ABI, loader and resource limits above, but
 requires no producer object, emitter invocation or compiler correctness premise.
 The ELF reader derives `.text`, function extents, symbols and relocations from
@@ -357,3 +359,45 @@ The binaries named `candidate.rejected.*` are negative-control evidence and must
 not be loaded. `original-files.json` binds every retained file. The qualification
 does not move the default release, alter a production task, or establish that
 the complete HIA language is sound.
+
+## Signed integers in version 6
+
+`hia.safe-core.integer-acyclic-single-borrow.x86_64.v6` and its
+`supplied-elf` counterpart add `i8/i16/i32/i64/isize` to the preceding
+unsigned operation set. The original one-function, acyclic control-flow,
+borrowed-memory, ABI and resource bounds remain in force.
+
+The independent Core model represents signed arguments by exact low-width
+sign extension and checks arithmetic in a sufficiently wide domain before
+narrowing. Signed division truncates toward zero, and the remainder follows
+the dividend. Both operations abort on a zero divisor or `MIN/-1`. Checked
+casts compare the mathematical source value with the destination interval,
+including mixed signed/unsigned conversions through the full 64-bit range.
+Negative shift counts and counts at or above the value width abort before
+the machine masks CL.
+
+The v6 decoder adds 64-bit SAR, NEG, CQO, full IMUL, IDIV and signed/overflow
+conditions. CF, ZF, SF and OF follow each actual instruction: zero-count
+shifts preserve flags; one-bit shifts define OF; multi-bit shift OF and
+multiply/divide undefined flags remain arbitrary. The signed division model
+uses the actual old RDX:RAX and divisor, including aliases. Architectural
+#DE is an uncompleted machine path and cannot stand in for a Core abort.
+
+Register kernels use caller-saved registers and no stack on successful paths.
+Their abort stub retains the modeled 16-byte stack effect. Narrow checked
+multiplication retains the architectural overflow branch so that the
+full-product relation can be discharged within the unchanged default
+15-second proof deadline. Unsupported register pressure can select the
+ordinary checked route before proof; failed proof never triggers a fallback.
+
+`tests/test_hia_safe_core_signed.py` checks independent Core/ISA semantics,
+ordinary backend final images, signed borrowed-memory effects, GNU assembler
+encodings and noncanonical consumers with producer imports blocked.
+`tests/test_hia_verified_scalar_signed.py` checks direct native execution,
+raw argument normalization, live register aliases, sealed loading, all
+signed widths and deliberately incorrect final images. Neither test module
+turns solver UNKNOWN or a deadline into a passing result.
+
+Instruction semantics follow the [Intel instruction-set reference](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html).
+The separately measured Rust reference uses explicit [checked integer operations](https://doc.rust-lang.org/std/primitive.i64.html),
+with abort behavior matched at the raw-word foreign interface.

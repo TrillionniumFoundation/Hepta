@@ -13,6 +13,7 @@ semantics here does not authorize execution on an unprobed host.
 from __future__ import annotations
 
 from .hia_loaded_source import loaded_checker_identity
+from .hia_verified_input_identity import INPUT_SOURCE_FILES, bind_input_execution
 
 from dataclasses import dataclass
 from hashlib import sha256
@@ -52,7 +53,7 @@ CORE_RECOGNITION_PROFILE = "hia.closed-forward-byte-recurrence.alpha.v1"
 SOURCE_FILES = ("hia_verified_simd_check.py", "hia_safe_core.py", "hia_safe_core_elf.py",
                 "hia_verified_simd_wide_x64.py",
                 "elf_shared_abi.py", "hia_program.py", "hia_opcodes.py", "hia_schema.py",
-                "hia_capability_flow.py", "hia_json_preflight.py", "hia_solver_identity.py")
+                "hia_capability_flow.py", "hia_json_preflight.py", "hia_solver_identity.py") + INPUT_SOURCE_FILES
 
 
 def _identity():
@@ -1166,6 +1167,7 @@ def _prove_endpoint_tails(z,ctx,parts,check):
         check(prefix+'_byte_effects_and_frame',z.simplify(violation),path)
 
 
+@bind_input_execution
 def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, timeout_ms=15000, query_directory=None):
     require(type(object_bytes) is bytes and type(final_bytes) is bytes,'immutable ELF bytes required')
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000,'timeout must be 100..60000 milliseconds')

@@ -55,7 +55,7 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     if size == 0 or size > MAX_TEXT:
         return terminal(o, E_TEXT_BUDGET, 0, 0)
-    if get(w, PROFILE) > 7:
+    if get(w, PROFILE) > 15:
         return 4294967293
     if length(o) < 24 + choose(size < MAX_CODE, size, MAX_CODE) * 48:
         return 4294967294
@@ -98,7 +98,8 @@ def review_targets(o:mutbuf, w:mutbuf, size:u64, count:u64) -> u64:
                 return terminal(o, E_TARGET, get(o, row), 0)
         if op == OP_JCC or op == OP_SETCC:
             condition = get(o, row + 24)
-            if condition < 2 or condition > 7:
+            unsigned_profile = (get(w, PROFILE) & 8) == 0
+            if (condition < 2 or condition > 7) and (unsigned_profile or condition == 10 or condition == 11):
                 return terminal(o, E_CONDITION, get(o, row), 0)
         index = index + 1
     if length(w) != WORKSPACE:
@@ -312,6 +313,7 @@ def decode_extension(s:readbuf, w:mutbuf, rex:u64) -> u64:
 
 def decode_operands(s:readbuf, w:mutbuf, rex:u64, opcode:u64) -> u64:
     alu = alu_operation(opcode)
+    unsigned_profile = (get(w, PROFILE) & 8) == 0
     if opcode == 0xd3 and (get(w, PROFILE) & 1) == 0:
         return fail(w, E_VARIABLE_SHIFT_PROFILE)
     if alu == 0 and opcode != 0x89 and opcode != 0x8b and opcode != 0x8d and opcode != 0x88 and opcode != 0x81 and opcode != 0x83 and opcode != 0xc1 and opcode != 0xd3 and opcode != 0xf7:
@@ -349,14 +351,14 @@ def decode_operands(s:readbuf, w:mutbuf, rex:u64, opcode:u64) -> u64:
         return emit(w, OP_IMMEDIATE_ALU, group, rm, immediate)
     if opcode == 0xc1:
         count = take(s, w, 1)
-        if invalid_group or (group != 4 and group != 5) or count >= 64:
+        if invalid_group or (group != 4 and group != 5 and (unsigned_profile or group != 7)) or count >= 64:
             return fail(w, E_SHIFT)
-        return emit(w, choose(group == 4, OP_SHL, OP_SHR), rm, count, 0)
+        return emit(w, choose(group == 4, OP_SHL, choose(group == 5, OP_SHR, OP_SAR)), rm, count, 0)
     if opcode == 0xd3:
-        if invalid_group or (group != 4 and group != 5):
+        if invalid_group or (group != 4 and group != 5 and (unsigned_profile or group != 7)):
             return fail(w, E_VARIABLE_SHIFT)
-        return emit(w, choose(group == 4, OP_SHL_CL, OP_SHR_CL), rm, 0, 0)
-    if invalid_group or (group != 2 and group != 4 and group != 6):
+        return emit(w, choose(group == 4, OP_SHL_CL, choose(group == 5, OP_SHR_CL, OP_SAR_CL)), rm, 0, 0)
+    if invalid_group or group < 2 or (unsigned_profile and (group & 1) != 0):
         return fail(w, E_UNARY)
     if group == 4:
         if (get(w, PROFILE) & 2) == 0:
@@ -366,6 +368,12 @@ def decode_operands(s:readbuf, w:mutbuf, rex:u64, opcode:u64) -> u64:
         if (get(w, PROFILE) & 4) == 0:
             return fail(w, E_UNSIGNED_DIVIDE_PROFILE)
         return emit(w, OP_DIV, rm, 0, 0)
+    if group == 3:
+        return emit(w, OP_NEG, rm, 0, 0)
+    if group == 5:
+        return emit(w, OP_IMUL_FULL, rm, 0, 0)
+    if group == 7:
+        return emit(w, OP_IDIV, rm, 0, 0)
     return emit(w, OP_NOT, rm, 0, 0)
 
 def decode_instruction(s:readbuf, w:mutbuf) -> u64:
@@ -391,6 +399,10 @@ def decode_instruction(s:readbuf, w:mutbuf) -> u64:
             return fail(w, E_SINGLE_PREFIX)
         single = choose(opcode == 0xc3, OP_RET, choose(opcode == 0xc9, OP_LEAVE, OP_NOP))
         return emit(w, single, 0, 0, 0)
+    if opcode == 0x99:
+        if rex != 0x48 or (get(w, PROFILE) & 8) == 0:
+            return fail(w, E_CQO)
+        return emit(w, OP_CQO, 0, 0, 0)
     if opcode == 0xe8 or opcode == 0xe9:
         if rex != 0:
             return fail(w, E_BRANCH_PREFIX)

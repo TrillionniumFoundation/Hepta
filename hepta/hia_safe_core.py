@@ -10,6 +10,7 @@ this is not a Lean-kernel proof of a complete ISA or the whole HIA language.
 from __future__ import annotations
 
 from .hia_loaded_source import loaded_checker_identity, loaded_source_identity
+from .hia_verified_input_identity import INPUT_SOURCE_FILES, bind_input_execution
 from .hia_solver_identity import solver_identity as _loaded_solver_identity
 
 from hashlib import sha256
@@ -38,6 +39,8 @@ PROFILE_V4 = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v4"
 ARTIFACT_PROFILE_V4 = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v4"
 PROFILE_V5 = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v5"
 ARTIFACT_PROFILE_V5 = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v5"
+PROFILE_V6 = "hia.safe-core.integer-acyclic-single-borrow.x86_64.v6"
+ARTIFACT_PROFILE_V6 = "hia.safe-core.integer-acyclic-single-borrow.supplied-elf.x86_64.v6"
 ARTIFACT_PROPERTY = "all-input Core-to-final-image return/abort/caller-bytes refinement, memory bounds and SysV preservation"
 ARTIFACT_OBLIGATIONS = (
     ("caller_contract_nonvacuous", "sat"),
@@ -49,6 +52,7 @@ ARTIFACT_OBLIGATIONS = (
 PINNED_Z3_VERSION = "4.15.4"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64, "bool": 1}
 WIDTHS_V2 = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64, "bool": 1}
+WIDTHS_V6 = {**WIDTHS_V2, "i8": 8, "i16": 16, "i32": 32, "i64": 64, "isize": 64}
 LOANS = {"readbuf", "mutbuf"}
 OPERATIONS = frozenset({"const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "int.add.checked", "int.sub.checked",
                         "bit.and", "bit.or", "bit.xor", "bit.not", "bool.and", "bool.or", "bool.not",
@@ -57,6 +61,7 @@ OPERATIONS = frozenset({"const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap",
 OPERATIONS_V3 = OPERATIONS | {"int.neg.checked", "int.shl.checked", "int.shr.checked"}
 OPERATIONS_V4 = OPERATIONS_V3 | {"int.mul.checked"}
 OPERATIONS_V5 = OPERATIONS_V4 | {"int.div.checked", "int.rem.checked"}
+OPERATIONS_V6 = OPERATIONS_V5
 LIMITS = {
     "functions": 1, "blocks": 16, "operations": 64, "abi_argument_words": 6,
     "borrowed_ranges": 1, "foreign_extent": 1 << 20, "machine_text_bytes": 65536,
@@ -102,7 +107,7 @@ CHECKER_SOURCE_FILES = (
     "hia_safe_core.py", "hia_safe_core_x64.py", "hia_safe_core_elf.py",
     "hia_program.py", "hia_opcodes.py", "hia_capability_flow.py", "hia_schema.py",
     "hia_json_preflight.py", "elf_shared_abi.py", "hia_solver_identity.py",
-)
+) + INPUT_SOURCE_FILES
 
 
 def _checker_source_identity():
@@ -137,7 +142,7 @@ def _source_identity():
              "hia_json_preflight.py", "hia_program_native.py", "hia_machine_x64.py",
              "hia_machine_elf.py", "hia_native_byte_abi.py", "elf_shared_abi.py",
              "hia_verified_image.py", "hia_solver_identity.py")
-    return loaded_source_identity(__name__, names)
+    return loaded_source_identity(__name__, names + INPUT_SOURCE_FILES)
 
 
 def _solver_identity(z):
@@ -353,22 +358,34 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
 
 
 def _profile_configuration(profile_version):
-    require(type(profile_version) is int and profile_version in (1, 2, 3, 4, 5),
-            "Safe Core profile_version must be exactly 1, 2, 3, 4 or 5")
+    require(type(profile_version) is int and profile_version in (1, 2, 3, 4, 5, 6),
+            "Safe Core profile_version must be exactly 1, 2, 3, 4, 5 or 6")
     return ((PROFILE, ARTIFACT_PROFILE, WIDTHS) if profile_version == 1
             else (PROFILE_V2, ARTIFACT_PROFILE_V2, WIDTHS_V2) if profile_version == 2
             else (PROFILE_V3, ARTIFACT_PROFILE_V3, WIDTHS_V2) if profile_version == 3
             else (PROFILE_V4, ARTIFACT_PROFILE_V4, WIDTHS_V2) if profile_version == 4
-            else (PROFILE_V5, ARTIFACT_PROFILE_V5, WIDTHS_V2))
+            else (PROFILE_V5, ARTIFACT_PROFILE_V5, WIDTHS_V2) if profile_version == 5
+            else (PROFILE_V6, ARTIFACT_PROFILE_V6, WIDTHS_V6))
 
 
 def _unsigned_profile_version(checked):
-    """Select v2/v3/v4/v5 from a checked snapshot; this grants no admission.
+    """Select v2 through v6 from a checked snapshot; this grants no admission.
 
     Producers, selectors and loaders must still apply the selected profile
-    and independently validate the final bytes. Existing Core keeps v2.
+    and independently validate the final bytes. Existing unsigned Core keeps
+    its old profile; the historical helper name remains API-compatible.
     """
-    operations = {operation["op"] for function in checked.as_dict()["functions"]
+    document = checked.as_dict()
+    types = set()
+    for function in document["functions"]:
+        types.update(function["returns"])
+        types.update(parameter["type"] for parameter in function["params"])
+        for block in function["blocks"]:
+            types.update(parameter["type"] for parameter in block["params"])
+            types.update(output["type"] for operation in block["ops"] for output in operation["out"])
+    if types & {"i8", "i16", "i32", "i64", "isize"}:
+        return 6
+    operations = {operation["op"] for function in document["functions"]
                   for block in function["blocks"] for operation in block["ops"]}
     if operations & (OPERATIONS_V5 - OPERATIONS_V4):
         return 5
@@ -379,7 +396,8 @@ def _unsigned_profile_version(checked):
 
 def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=1):
     _, _, widths = _profile_configuration(profile_version)
-    operations = (OPERATIONS_V5 if profile_version == 5 else OPERATIONS_V4
+    operations = (OPERATIONS_V6 if profile_version == 6 else OPERATIONS_V5
+                  if profile_version == 5 else OPERATIONS_V4
                   if profile_version == 4 else OPERATIONS_V3
                   if profile_version == 3 else OPERATIONS)
     require(checked.structured_bytes is None, "an explicit primitive Core is required")
@@ -485,7 +503,10 @@ class _Theory:
         return self.z.BitVecVal(value & ((1 << 64) - 1), 64, ctx=self.ctx)
 
     def normalized(self, value, typ):
-        return self.z.simplify(value & self.bv((1 << self.widths[typ]) - 1))
+        width = self.widths[typ]
+        if typ.startswith("i") and width < 64:
+            return self.z.simplify(self.z.SignExt(64 - width, self.z.Extract(width - 1, 0, value)))
+        return self.z.simplify(value & self.bv((1 << width) - 1))
 
     def arguments(self, fn):
         for param in fn["params"]:
@@ -500,15 +521,15 @@ class _Theory:
             else:
                 self.inputs[name] = self.normalized(first, typ)
 
-    def scalar_operation(self, name, attrs, args, typ):
-        if self.core_model is None:
-            return self._reference_scalar_operation(name, attrs, args, typ)
+    def scalar_operation(self, name, attrs, args, typ, input_type):
+        if self.core_model is None or (typ or "").startswith("i") or (input_type or "").startswith("i"):
+            return self._reference_scalar_operation(name, attrs, args, typ, input_type)
         if name == "int.cast":
             name += "." + attrs["mode"]
         literal = int(attrs["value"]) & ((1 << 64) - 1) if name == "const" else 0
         return self.core_model.symbolic_core(self.z, self.ctx, name, self.widths[typ], args, literal)
 
-    def _reference_scalar_operation(self, name, attrs, args, typ):
+    def _reference_scalar_operation(self, name, attrs, args, typ, input_type):
         z = self.z
         trap = None
         if name == "const":
@@ -517,27 +538,42 @@ class _Theory:
             a, b = args
             value = self.normalized(a + b if name.startswith("int.add.") else a - b, typ)
             if name.endswith("checked"):
-                trap = z.ULT(value, a) if name.startswith("int.add.") else z.ULT(a, b)
+                if typ.startswith("i"):
+                    # One extra bit represents every exact signed sum
+                    # or difference. Compare against the independently
+                    # normalized result, including narrow-type overflow.
+                    full = (z.SignExt(1, a) + z.SignExt(1, b) if name.startswith("int.add.")
+                            else z.SignExt(1, a) - z.SignExt(1, b))
+                    trap = full != z.SignExt(1, value)
+                else:
+                    trap = z.ULT(value, a) if name.startswith("int.add.") else z.ULT(a, b)
         elif name == "int.mul.wrap":
             value = self.normalized(args[0] * args[1], typ)
         elif name == "int.mul.checked":
-            # Core operands already have their unsigned widths.
             # Check the exact mathematical product before narrowing;
             # the low 64 bits alone cannot detect a 64-bit overflow.
-            full = z.ZeroExt(64, args[0]) * z.ZeroExt(64, args[1])
+            extension = z.SignExt if typ.startswith("i") else z.ZeroExt
+            full = extension(64, args[0]) * extension(64, args[1])
             value = self.normalized(z.Extract(63, 0, full), typ)
-            trap = z.Extract(127, self.widths[typ], full) != 0
+            trap = (full != z.SignExt(64, value) if typ.startswith("i")
+                    else z.Extract(127, self.widths[typ], full) != 0)
         elif name in ("int.div.checked", "int.rem.checked"):
-            # Unsigned quotient/remainder remain within the operands'
-            # type. Division by zero is the sole Core trap condition.
-            value = (z.UDiv(args[0], args[1]) if name == "int.div.checked"
-                     else z.URem(args[0], args[1]))
-            trap = args[1] == 0
+            if typ.startswith("i"):
+                # Signed division truncates toward zero; SRem retains
+                # the dividend's sign. Core traps MIN/-1 for both
+                # operations, even when the mathematical remainder is 0.
+                value = (args[0] / args[1] if name == "int.div.checked"
+                         else z.SRem(args[0], args[1]))
+                minimum = self.bv(-(1 << (self.widths[typ] - 1)))
+                trap = z.Or(args[1] == 0, z.And(args[0] == minimum, args[1] == self.bv(-1)))
+            else:
+                value = (z.UDiv(args[0], args[1]) if name == "int.div.checked"
+                         else z.URem(args[0], args[1]))
+                trap = args[1] == 0
         elif name == "int.neg.checked":
-            # The admitted types are unsigned. Only zero has a
-            # representable arithmetic negative in the same type.
             value = self.normalized(-args[0], typ)
-            trap = args[0] != 0
+            trap = (args[0] == self.bv(-(1 << (self.widths[typ] - 1)))
+                    if typ.startswith("i") else args[0] != 0)
         elif name in ("int.shl.checked", "int.shr.checked"):
             left, count = args
             # Core checks the normalized complete count before the
@@ -545,6 +581,7 @@ class _Theory:
             # discarded value bits are not an arithmetic overflow.
             trap = z.UGE(count, self.bv(self.widths[typ]))
             value = self.normalized(left << count if name == "int.shl.checked"
+                                    else left >> count if typ.startswith("i")
                                     else z.LShR(left, count), typ)
         elif name in ("bit.and", "bool.and", "bit.or", "bool.or", "bit.xor"):
             a, b = args
@@ -554,13 +591,27 @@ class _Theory:
         elif name == "int.cast":
             value = self.normalized(args[0], typ)
             if attrs["mode"] == "checked":
-                # Normalized unsigned inputs must fit the target before
-                # narrowing. Equal-width and widening casts never fail.
-                trap = z.UGT(args[0], self.bv((1 << self.widths[typ]) - 1))
+                source_type = input_type
+                if source_type.startswith("i") or typ.startswith("i"):
+                    # A signed 65-bit domain contains every source
+                    # integer, including U64_MAX, without reinterpretation.
+                    exact = (z.SignExt(1, args[0]) if source_type.startswith("i")
+                             else z.ZeroExt(1, args[0]))
+                    width = self.widths[typ]
+                    low = -(1 << (width - 1)) if typ.startswith("i") else 0
+                    high = (1 << (width - 1)) - 1 if typ.startswith("i") else (1 << width) - 1
+                    trap = z.Or(exact < z.BitVecVal(low, 65, ctx=self.ctx),
+                                exact > z.BitVecVal(high, 65, ctx=self.ctx))
+                else:
+                    trap = z.UGT(args[0], self.bv((1 << self.widths[typ]) - 1))
         elif name.startswith("compare."):
             a, b = args
-            relation = {"eq": lambda: a == b, "ne": lambda: a != b, "lt": lambda: z.ULT(a, b),
-                        "le": lambda: z.ULE(a, b), "gt": lambda: z.UGT(a, b), "ge": lambda: z.UGE(a, b)}[name.split(".")[1]]()
+            signed = input_type.startswith("i")
+            relation = {"eq": lambda: a == b, "ne": lambda: a != b,
+                        "lt": lambda: a < b if signed else z.ULT(a, b),
+                        "le": lambda: a <= b if signed else z.ULE(a, b),
+                        "gt": lambda: a > b if signed else z.UGT(a, b),
+                        "ge": lambda: a >= b if signed else z.UGE(a, b)}[name.split(".")[1]]()
             value = z.If(relation, self.bv(1), self.bv(0))
         elif name == "select":
             value = z.If(args[0] != 0, args[1], args[2])
@@ -633,7 +684,8 @@ class _Theory:
                         require(permission == "mutbuf", "reference cannot write a read-only loan")
                         memory = z.Store(memory, address, z.Extract(7, 0, args[2]))
                 else:
-                    value, trap = self.scalar_operation(name, attrs, args, typ)
+                    input_type = types[operation["args"][0]] if args else None
+                    value, trap = self.scalar_operation(name, attrs, args, typ, input_type)
                 if trap is not None:
                     outcome("abort", z.And(path, trap), memory)
                     path = z.simplify(z.And(path, z.Not(trap)))
@@ -691,6 +743,7 @@ def validate_safe_core_image(document, image, final_bytes, *, timeout_ms=15000, 
     return report
 
 
+@bind_input_execution
 def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
                                 foreign_buffer_exports=(), timeout_ms=15000, query_directory=None,
                                 profile_version=1):
@@ -730,7 +783,8 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     machine = Executor(t, binding, t.words, t.loan,
                        allow_variable_shifts=profile_version >= 3,
                        allow_unsigned_multiply=profile_version >= 4,
-                       allow_unsigned_divide=profile_version >= 5)
+                       allow_unsigned_divide=profile_version >= 5,
+                       allow_signed=profile_version >= 6)
     observed = machine.run()
     # The abstract stack is keyed by exact offsets.  Foreign data is a separate
     # array only under this explicit disjointness premise; numeric ABI guards

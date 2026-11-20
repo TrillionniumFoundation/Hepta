@@ -47,3 +47,7 @@ def decode_internal_canonical(wire: bytes, *, max_nodes: int, max_depth: int):
         from .hia_json_decode_native import installed_decoder
         return installed_decoder(manifest).decode(wire, max_nodes=max_nodes, max_depth=max_depth)
     return json.loads(wire)
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

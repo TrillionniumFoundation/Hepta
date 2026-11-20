@@ -84,7 +84,8 @@ simd = validate_verified_simd_artifact(core, object_bytes, final_bytes)
 Unsigned checked negation and variable shifts require the explicit scalar
 `profile_version=3`; unsigned checked multiplication requires
 `profile_version=4`; checked unsigned division/remainder require
-`profile_version=5`. Each old profile keeps its operation and decoder domain.
+`profile_version=5`; signed values and mixed-sign casts require
+`profile_version=6`. Each old profile keeps its operation and decoder domain.
 
 These consumer paths do not import the producers. They inspect the final code,
 symbol ranges, relocations, dynamic symbol lookup, load mappings and protection
@@ -212,8 +213,26 @@ distinguish `SIGFPE` from the required `SIGABRT`; a machine fault never becomes
 a successful checked trap. GNU assembler encoding checks and all-integer
 division identities supplement the independent model. The unsigned integer
 operation names in the current primitive Core now have scalar semantics in
-v5; signed types, general calls/loops and wider language families still need
-their own validation. New arithmetic has no inherited Rust timing result.
+v5. The separately versioned v6 model adds signed integer types, while general
+calls/loops and wider language families retain separate validation obligations.
+New arithmetic has no inherited Rust timing result.
+
+The signed v6 producer emits direct register code for `i8/i16/i32/i64/isize`,
+including checked and wrapping arithmetic, signed comparisons, arithmetic
+right shifts, and conversions between signed and unsigned types. The
+independent consumer checks actual sign extension, SF/OF, CQO and IDIV from
+the final linked image. Zero divisors, `MIN/-1`, arithmetic overflow and
+invalid shift counts preserve Core abort behavior. All v6 proofs retain the
+existing 15-second default deadline. Its complete, separately measured Rust
+matrix is specified in `benchmarks/hia_verified_kernels/SIGNED_PROTOCOL.md`.
+
+Both consumers also bind the executing primitive input closure before
+decoding, record selected native helpers' actual RX mappings and source
+bindings, and recheck those identities after final report hashing. This
+rejects timestamp-valid stale decoder or hasher bytecode that could otherwise
+change the proved program or its reported hash. The helper receipt describes
+operator-selected trusted code; it explicitly does not claim independent
+semantic refinement of those input helpers.
 
 The three recognized Core recurrences also accept legal SSA and block
 renaming, and block declaration reordering. Recognition first validates the
@@ -301,11 +320,12 @@ native_function = kernel.function
 ```
 
 `load_verified_scalar_kernel(core, object_bytes, final_bytes)` supplies the
-same immutable-mapping admission for unsigned Safe Core v2/v3/v4/v5 scalar direct
+same immutable-mapping admission for Safe Core v2/v3/v4/v5/v6 scalar direct
 entries. It reruns the independent scalar consumer, rejects borrowed arguments
 and wrappers, and exposes zero to six raw uint64 SysV argument words with a
 canonical uint64 return. The proved machine body performs narrow-width input
-normalization. Scalar and SIMD cache identities remain distinct, and every
+normalization; signed values are sign-extended and negative results use raw
+64-bit two's-complement words. Scalar and SIMD cache identities remain distinct, and every
 load constructs a fresh callable with the admitted argument types.
 
 It copies the exact validated bytes into a Linux sealed memfd, verifies the
@@ -327,12 +347,12 @@ including after any later thread migration or affinity change.
 
 ## Scalar register ABI
 
-One straight-line Core function may use `bool`, `u8`, `u16`, `u32`, `u64` and
-`usize`, wrapping arithmetic, bitwise and Boolean operations, unsigned
-comparisons, `select`, wrapping casts and constants. The emitter uses only
-SysV caller-saved registers. The v2/v3/v4/v5 additions above admit their explicit
-checked operations. Unsupported control flow, remaining checked operations and
-excess register pressure produce explicit selection refusals.
+One straight-line Core function may use `bool`, all primitive signed and
+unsigned integer types, wrapping arithmetic, bitwise and Boolean operations,
+comparisons, `select`, casts and constants. The emitter uses only SysV
+caller-saved registers. The v2 through v6 additions above admit their explicit
+checked operations. Unsupported control flow and excess register pressure
+produce explicit selection refusals.
 
 The example `a * b + c` on `u64` emits this eleven-byte hot path:
 

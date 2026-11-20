@@ -128,3 +128,7 @@ class NativeWorkerBundleBinding:
         if authority._selectors() != self.selections:
             raise ValueError('native helper selection changed; observe the original operation')
         self.check_files()
+
+# Bind the actual selected native-input custody route.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

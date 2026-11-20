@@ -76,3 +76,7 @@ def selected_core_structure(data, raw):
     blocks = {name: {block['id']: block for block in fn['blocks']}
               for name, fn in functions.items()}
     return functions, blocks
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

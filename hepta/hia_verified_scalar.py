@@ -1,6 +1,6 @@
 """Opt-in register-only scalar kernels checked against their final ELF bytes.
 
-The producer accepts one straight-line unsigned Core function. It allocates
+The producer accepts one straight-line integer Core function. It allocates
 only SysV caller-saved registers and exports that function directly. The
 existing independent Safe Core consumer proves the linked bytes; it never
 imports this producer. Unsupported programs raise a typed refusal so callers
@@ -35,7 +35,9 @@ PROFILE = "hia.verified-scalar.register-leaf.x86_64.v2"
 PROFILE_V3 = "hia.verified-scalar.register-leaf.x86_64.v3"
 PROFILE_V4 = "hia.verified-scalar.register-leaf.x86_64.v4"
 PROFILE_V5 = "hia.verified-scalar.register-leaf.x86_64.v5"
-WIDTHS = {"bool": 1, "u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
+PROFILE_V6 = "hia.verified-scalar.register-leaf.x86_64.v6"
+WIDTHS = {"bool": 1, "u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64,
+          "i8": 8, "i16": 16, "i32": 32, "i64": 64, "isize": 64}
 ARGUMENTS = ("rdi", "rsi", "rdx", "rcx", "r8", "r9")
 REGISTERS = ("rax", "rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11")
 BINARY = {"int.add.wrap": "add", "int.sub.wrap": "sub", "int.mul.wrap": "imul",
@@ -44,6 +46,7 @@ BINARY = {"int.add.wrap": "add", "int.sub.wrap": "sub", "int.mul.wrap": "imul",
           "bool.and": "and_", "bool.or": "or_"}
 COMMUTATIVE = frozenset(BINARY) - {"int.sub.wrap", "int.sub.checked"}
 CONDITIONS = {"eq": "e", "ne": "ne", "lt": "b", "le": "be", "gt": "a", "ge": "ae"}
+SIGNED_CONDITIONS = {"eq": "e", "ne": "ne", "lt": "l", "le": "le", "gt": "g", "ge": "ge"}
 SHIFTS = frozenset(("int.shl.checked", "int.shr.checked"))
 DIVISIONS = frozenset(("int.div.checked", "int.rem.checked"))
 IMPLICIT_ARITHMETIC = DIVISIONS | {"int.mul.checked"}
@@ -109,7 +112,10 @@ def emit_verified_scalar(document):
 
     def normalize(reg, typ):
         width = WIDTHS[typ]
-        if width < 32:
+        if typ.startswith("i") and width < 64:
+            code.shl(reg, 64 - width)
+            code.sar(reg, 64 - width)
+        elif width < 32:
             code.alu_imm("and", reg, (1 << width) - 1)
         elif width == 32:
             # The independent decoder deliberately admits only wide ordinary
@@ -124,7 +130,14 @@ def emit_verified_scalar(document):
     def check_fits(reg, typ, dead):
         """Check the untruncated value; scratch may reuse only dead inputs."""
         width = WIDTHS[typ]
-        if width < 32:
+        if typ.startswith("i") and width < 64:
+            # Full-width signed arithmetic is checked before narrowing. Both
+            # endpoints through i32 are exactly representable by CMP imm32.
+            code.alu_imm("cmp", reg, -(1 << (width - 1)))
+            code.jcc("l", "abort")
+            code.alu_imm("cmp", reg, (1 << (width - 1)) - 1)
+            code.jcc("g", "abort")
+        elif width < 32:
             code.alu_imm("cmp", reg, (1 << width) - 1)
             code.jcc("a", "abort")
         elif width == 32:
@@ -139,11 +152,50 @@ def emit_verified_scalar(document):
             code.test(scratch, scratch)
             code.jcc("ne", "abort")
 
-    for op in block["ops"]:
+    def checked_cast(reg, source, target, dead):
+        if not source.startswith("i") and not target.startswith("i"):
+            # Keep the historical unsigned code and profile identities.
+            if WIDTHS[source] > WIDTHS[target]:
+                check_fits(reg, target, dead)
+            return
+
+        def bounds(typ):
+            width = WIDTHS[typ]
+            return ((-(1 << (width - 1)), (1 << (width - 1)) - 1)
+                    if typ.startswith("i") else (0, (1 << width) - 1))
+
+        def compare_bound(value, condition):
+            if -(1 << 31) <= value < (1 << 31):
+                code.alu_imm("cmp", reg, value)
+            else:
+                available = [r for r in REGISTERS if r != reg and r not in locations.values()]
+                dying = [locations[name] for name in sorted(dead) if locations[name] != reg]
+                _require(bool(available or dying), "checked cast needs a free caller-saved register budget")
+                scratch = (available or dying)[0]
+                code.mov_imm(scratch, value)
+                code.cmp(reg, scratch)
+            code.jcc(condition, "abort")
+
+        source_low, source_high = bounds(source)
+        target_low, target_high = bounds(target)
+        source_signed = source.startswith("i")
+        if target_low > source_low:
+            compare_bound(target_low, "l" if source_signed else "b")
+        if target_high < source_high:
+            if target_high == (1 << 63) - 1 and not source_signed:
+                code.test(reg, reg)
+                code.jcc("s", "abort")
+            else:
+                compare_bound(target_high, "g" if source_signed else "a")
+
+    for operation_index, op in enumerate(block["ops"]):
         names, operation = op["args"], op["op"]
         counts = Counter(names)
         dead = {name for name, count in counts.items() if uses[name] == count}
-        if operation in IMPLICIT_ARITHMETIC:
+        signed = op["out"][0]["type"].startswith("i")
+        signed_multiply = operation == "int.mul.checked" and signed
+        implicit_arithmetic = operation in IMPLICIT_ARITHMETIC and not signed_multiply
+        if implicit_arithmetic:
             # Unsigned MUL/DIV have two implicit output registers. Save every
             # still-live SSA occupant before overwriting either; dying input
             # operands may stay because MUL reads them before its writes.
@@ -186,9 +238,9 @@ def emit_verified_scalar(document):
         # A binary instruction may overwrite its dying left operand. Only
         # commutative operations may instead overwrite the right operand.
         reusable = []
-        if operation in BINARY:
+        if operation in BINARY or signed_multiply:
             reusable = names[:1]
-            if operation in COMMUTATIVE:
+            if operation in COMMUTATIVE or signed_multiply:
                 reusable += names[1:2]
         elif operation in SHIFTS or operation in {"int.neg.checked", "int.cast", "bit.not", "bool.not"}:
             reusable = names[:1]
@@ -203,7 +255,7 @@ def emit_verified_scalar(document):
             # even when both Core operands are the same SSA value.
             candidates = [reg for reg in candidates if reg != "rcx"]
             available = [reg for reg in available if reg != "rcx"]
-        if operation in IMPLICIT_ARITHMETIC:
+        if implicit_arithmetic:
             destination = "rax"
         else:
             _require(bool(candidates or available), "live values exceed the caller-saved register budget")
@@ -217,10 +269,42 @@ def emit_verified_scalar(document):
             code.jcc("e", "abort")
             if left != "rax":
                 code.mov_rr("rax", left)
-            code.xor("rdx", "rdx")
-            code.div(right)
+            if signed:
+                # Both quotient and remainder trap at MIN/-1 in Core, even
+                # for narrow types where 64-bit IDIV itself would succeed.
+                safe = "signed-division-" + str(operation_index)
+                code.alu_imm("cmp", right, -1)
+                code.jcc("ne", safe)
+                minimum = -(1 << (WIDTHS[output["type"]] - 1))
+                if WIDTHS[output["type"]] < 64:
+                    code.alu_imm("cmp", "rax", minimum)
+                else:
+                    # Every live RDX value was evacuated above. The divisor
+                    # has also been moved out before RDX is used as scratch.
+                    code.mov_imm("rdx", minimum)
+                    code.cmp("rax", "rdx")
+                code.jcc("e", "abort")
+                code.label(safe)
+                code.cqo()
+                code.idiv(right)
+            else:
+                code.xor("rdx", "rdx")
+                code.div(right)
             if operation == "int.rem.checked":
                 code.mov_rr("rax", "rdx")
+        elif signed_multiply:
+            left, right = args
+            if destination == right:
+                left, right = right, left
+            if destination != left:
+                code.mov_rr(destination, left)
+            code.imul(destination, right)
+            # Keep the architectural overflow guard even for narrow inputs.
+            # It exposes the exact full-product condition to the independent
+            # checker before the original-width bounds, within its fixed
+            # default proof deadline.
+            code.jcc("o", "abort")
+            check_fits(destination, output["type"], dead)
         elif operation == "int.mul.checked":
             left, right = args
             # Commutativity lets an existing RAX operand become the implicit
@@ -240,14 +324,19 @@ def emit_verified_scalar(document):
             # count overflow alone is the checked shift's trap condition.
             code.alu_imm("cmp", "rcx", WIDTHS[output["type"]])
             code.jcc("ae", "abort")
-            code.shift_cl("shl" if operation == "int.shl.checked" else "shr", destination)
+            code.shift_cl("shl" if operation == "int.shl.checked" else "sar" if signed else "shr", destination)
         elif operation == "int.neg.checked":
             if destination != args[0]:
                 code.mov_rr(destination, args[0])
-            # In the unsigned domain, zero is the only representable
-            # arithmetic negation. Its successful value is already zero.
-            code.test(destination, destination)
-            code.jcc("ne", "abort")
+            if signed:
+                code.neg(destination)
+                if WIDTHS[output["type"]] == 64:
+                    code.jcc("o", "abort")
+                check_fits(destination, output["type"], dead)
+            else:
+                # Zero is the only representable unsigned negation.
+                code.test(destination, destination)
+                code.jcc("ne", "abort")
         elif operation in BINARY:
             left, right = args
             if destination == right and operation in COMMUTATIVE:
@@ -255,7 +344,11 @@ def emit_verified_scalar(document):
             if destination != left:
                 code.mov_rr(destination, left)
             getattr(code, BINARY[operation])(destination, right)
-            if operation == "int.sub.checked" or (operation == "int.add.checked" and
+            if signed and operation in {"int.add.checked", "int.sub.checked"}:
+                if WIDTHS[output["type"]] == 64:
+                    code.jcc("o", "abort")
+                check_fits(destination, output["type"], dead)
+            elif operation == "int.sub.checked" or (operation == "int.add.checked" and
                                                   WIDTHS[output["type"]] == 64):
                 code.jcc("b", "abort")
             elif operation == "int.add.checked":
@@ -267,11 +360,12 @@ def emit_verified_scalar(document):
                 code.bitnot(destination)
             elif operation == "bool.not":
                 code.alu_imm("xor", destination, 1)
-            elif op["attrs"]["mode"] == "checked" and WIDTHS[types[names[0]]] > WIDTHS[output["type"]]:
-                check_fits(destination, output["type"], dead)
+            elif op["attrs"]["mode"] == "checked":
+                checked_cast(destination, types[names[0]], output["type"], dead)
         elif operation.startswith("compare."):
             code.cmp(*args)
-            code.setcc(CONDITIONS[operation.split(".")[1]], destination)
+            conditions = SIGNED_CONDITIONS if types[names[0]].startswith("i") else CONDITIONS
+            code.setcc(conditions[operation.split(".")[1]], destination)
         elif operation == "select":
             condition, yes, no = args
             code.test(condition, condition)
@@ -303,7 +397,7 @@ def emit_verified_scalar(document):
     obj = write_elf_object(text, [{"name": fn["name"], "offset": 0,
                                   "size": len(text), "global": True}], relocations)
     _require(identity == tuple(sorted(_producer_identity().items())), "producer changed during emission")
-    profile = {2: PROFILE, 3: PROFILE_V3, 4: PROFILE_V4, 5: PROFILE_V5}[profile_version]
+    profile = {2: PROFILE, 3: PROFILE_V3, 4: PROFILE_V4, 5: PROFILE_V5, 6: PROFILE_V6}[profile_version]
     return VerifiedScalarImage(obj, text, fn["name"], checked.sha256, profile,
                                hot_text_bytes, identity, profile_version)
 
@@ -314,7 +408,7 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
 
     checked = verify_program(document)
     profile_version = _unsigned_profile_version(checked)
-    profile = {2: PROFILE, 3: PROFILE_V3, 4: PROFILE_V4, 5: PROFILE_V5}[profile_version]
+    profile = {2: PROFILE, 3: PROFILE_V3, 4: PROFILE_V4, 5: PROFILE_V5, 6: PROFILE_V6}[profile_version]
     if image is None:
         image = emit_verified_scalar(checked)
     else:
