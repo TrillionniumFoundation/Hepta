@@ -203,8 +203,8 @@ class AgentReadPageNativeTests(unittest.TestCase):
                             from hepta.hia_agent_store_native import _parameters
 
                             def remaining_parameters(values, statement, magic=None):
-                                if statement == 6 and magic is None:
-                                    raise AssertionError('host encoded cursor query')
+                                if statement in (2, 6) and magic is None:
+                                    raise AssertionError('host encoded artifact or cursor query')
                                 return _parameters(values, statement, magic)
 
                             paging.enter_context(patch('hepta.hia_agent_store_native._parameters',
@@ -214,13 +214,19 @@ class AgentReadPageNativeTests(unittest.TestCase):
                             paging.enter_context(patch.object(
                                 service.store, 'cursor_retain', side_effect=AssertionError('host encoded cursor write')))
                             paging.enter_context(patch.object(
+                                service.store, '_artifact_record', side_effect=AssertionError('host admitted artifact row')))
+                            paging.enter_context(patch.object(
                                 HIAAgentService, '_read_window', side_effect=AssertionError('host chose page window')))
                         second = service.call('hia_read', {**args, 'cursor': cursor})
-                        missing = service.call('hia_read', {**args, 'cursor': '𐀀' * 512})
-                        self.assertEqual(missing['error']['code'], 'E_HIA_CURSOR')
+                        for unknown in ('x', '未知页', '𐀀' * 512):
+                            missing = service.call('hia_read', {**args, 'cursor': unknown})
+                            self.assertEqual(missing['error']['code'], 'E_HIA_CURSOR')
                         other = service.store.put(b'other bytes', 'input')
                         wrong = service.call('hia_read', {**args, 'artifact': other, 'cursor': cursor})
                         self.assertEqual(wrong['error']['code'], 'E_HIA_CURSOR')
+                        mismatched = {**ref, 'uri': other['uri']}
+                        unissued = service.call('hia_read', {**args, 'artifact': mismatched, 'cursor': 'x'})
+                        self.assertEqual(unissued['error']['code'], 'E_HIA_ARTIFACT_IDENTITY')
                     self.assertEqual(second['status'], 'completed', second)
                     self.assertEqual(second['result']['content'], b64encode(second_page).decode())
                     end = service.call('hia_read', {**args, 'cursor': second['result']['next_cursor']})

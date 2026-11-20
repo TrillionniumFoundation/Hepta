@@ -13,11 +13,13 @@ from tools.generate_hia_worker_request import hash_program, replace_once
 SOURCE = r'''
 def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
-    if size >= 8 and uint(s, 0) == LOOKUP_INPUT_TAG:
-        return lookup_cursor(s, o, size)
     if size < 24:
         return 4294967295
     mode = uint(s, 0)
+    if mode == LOOKUP_INPUT_TAG:
+        return lookup_cursor(s, o, size)
+    if mode == ARTIFACT_ADMISSION_TAG:
+        return artifact_admission(s, o, size)
     begin = 24
     reference = 0
     reference_at = 32
@@ -88,8 +90,8 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 
 def lookup_cursor(s:readbuf, o:mutbuf, size:u64) -> u64:
     # The admitted JSON string is at most 512 scalars, or 2048 UTF-8 bytes.
-    count = size - 8
-    if count > 2048 or is_utf8(s, 8, size) == 0:
+    count = uint(s, 8)
+    if count == 0 or count > 2048 or count != size - 24 or uint(s, 16) != 0 or is_utf8(s, 24, size) == 0:
         return 4294967295
     end = 56 + count
     if length(o) < end:
@@ -100,8 +102,71 @@ def lookup_cursor(s:readbuf, o:mutbuf, size:u64) -> u64:
     put(o, 16, 1)
     put(o, 24, end)
     retain_cell(o, 32, 3, 56, count)
-    copy_bytes(s, o, 8, 56, count)
+    copy_bytes(s, o, 24, 56, count)
     return end
+
+def artifact_admission(s:readbuf, o:mutbuf, size:u64) -> u64:
+    if size < 88 or length(o) < 24:
+        return 4294967295
+    identity = uint(s, 8)
+    uri = uint(s, 16)
+    if identity == 0 or identity > 192 or uri == 0 or uri > 208:
+        return 4294967295
+    row = 88 + identity + uri
+    if row > size:
+        return 4294967295
+    if row == size:
+        return artifact_admission_result(o, 1, 0, 0)
+    if size - row < 176 or uint(s, row) != CURSOR_ROW_TAG or uint(s, row + 8) != 1:
+        return 4294967295
+    if uint(s, row + 16) != 1 or uint(s, row + 24) != 6:
+        return 4294967295
+    return artifact_cells(s, o, row, size)
+
+def artifact_cells(s:readbuf, o:mutbuf, row:u64, size:u64) -> u64:
+    end = row + 176
+    field = 0
+    differs = 0
+    metadata = 0
+    extent = 0
+    while field < 6:
+        cell = row + 32 + 24 * field
+        count = uint(s, cell + 16)
+        if uint(s, cell) != 3 or uint(s, cell + 8) != end - row or count > size - end:
+            return 4294967295
+        if is_utf8(s, end, end + count) == 0:
+            return 4294967295
+        if field < 3 and artifact_match(s, field, end, count) == 0:
+            differs = 1
+        if field == 4:
+            metadata = end - row
+            extent = count
+        end = end + count
+        field = field + 1
+    if end != size:
+        return 4294967295
+    if differs != 0:
+        return artifact_admission_result(o, 1, 0, 0)
+    return artifact_admission_result(o, 0, metadata, extent)
+
+def artifact_match(s:readbuf, field:u64, start:u64, count:u64) -> u64:
+    bound = uint(s, 8)
+    at = 88
+    if field == 1:
+        at = 24
+        bound = 64
+    if field == 2:
+        at = 88 + bound
+        bound = uint(s, 16)
+    if bound != count:
+        return 0
+    return same(s, at, start, count)
+
+def artifact_admission_result(o:mutbuf, decision:u64, metadata:u64, extent:u64) -> u64:
+    put(o, 0, decision)
+    put(o, 8, metadata)
+    put(o, 16, extent)
+    return 24
 
 def finish_page(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64, count:u64,
                 next:u64, offset:u64, limit:u64, output_base:u64) -> u64:
@@ -415,6 +480,7 @@ def document():
         ('BOUND_OUTPUT_TAG', b'HIAARO04'), ('CURSOR_ROW_TAG', b'HIAROW01'),
         ('CURSOR_RETAIN_TAG', b'HIAINS01'),
         ('LOOKUP_INPUT_TAG', b'HIAARQ01'), ('LOOKUP_PARAMETER_TAG', b'HIAQPA01'),
+        ('ARTIFACT_ADMISSION_TAG', b'HIAARR01'),
         ('CURSOR_INPUT_TAG', b'HIAARC01'), ('CURSOR_OUTPUT_TAG', b'HIAARO02'),
         ('INPUT_TAG', b'HIAARP01'), ('OUTPUT_TAG', b'HIAARO01'),
         ('CURSOR_ARTIFACT_FIRST', b'{"artifa'), ('CURSOR_ARTIFACT_LAST', b'ct":'),

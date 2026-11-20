@@ -737,6 +737,7 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        from functools import partial
         from .hia_agent_store import _native_agent_identity, uses_native_store
         from .hia_agent_read_page_native import SELECTOR, capture_retained_page, installed_agent_read_page
         from .hia_native_helpers import pinned_agent_read_page_executable
@@ -746,8 +747,9 @@ class HIAAgentService:
         next_offset = None
         executable = pinned_agent_read_page_executable()
         if executable is not None and uses_native_store(self.store):
-            with capture_retained_page(self.store, ref, bound=True) as captured:
-                pager = installed_agent_read_page(os.environ[SELECTOR])
+            pager = installed_agent_read_page(os.environ[SELECTOR])
+            admit_record = partial(pager.admit_retained_artifact, executable=executable)
+            with capture_retained_page(self.store, ref, native_record=admit_record) as captured:
                 cursor, row = pager.lookup_captured_cursor(
                     self.store.db, args.get("cursor"), executable)
                 encoding, content, next_cursor, retained = pager.read_captured_bound_page(

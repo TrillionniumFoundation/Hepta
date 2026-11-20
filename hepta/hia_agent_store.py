@@ -739,17 +739,21 @@ class AgentStore:
                 reject("E_HIA_ARTIFACT_CORRUPT", "artifact bytes no longer match their recorded digest")
         return data, decode_data(row["metadata"])
 
-    def write_retained_artifact(self, ref, output):
+    def write_retained_artifact(self, ref, output, *, native_record=None):
         from .artifact_publication import PublicationRejected
         from .artifact_publication_native import capture_pinned_artifact
 
-        row = self._artifact_record(ref)
+        if native_record is None:
+            row = self._artifact_record(ref)
+            digest, metadata = row['sha256'], row['metadata']
+        else:
+            digest, metadata = native_record(self.db, ref)
         try:
-            capture_pinned_artifact(self._artifact_code, self.artifacts, row['sha256'], output)
+            capture_pinned_artifact(self._artifact_code, self.artifacts, digest, output)
         except PublicationRejected as exc:
             _native_artifact_rejection(exc)
         # Preserve rejection order for a corrupt retained metadata record.
-        decode_data(row['metadata'])
+        decode_data(metadata)
 
     def get_json(self, ref, *, kind=None):
         selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')

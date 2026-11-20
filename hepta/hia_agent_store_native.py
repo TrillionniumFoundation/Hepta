@@ -461,7 +461,7 @@ class NativeStoreConnection:
                     values = _row(pending, table_id, len(columns))
                     rows.append(_Row((value for i, value in enumerate(values) if mask & (1 << i)), names))
                 elif rows:
-                    raise StoreProtocolError('native Store returned two cursor records for one key')
+                    raise StoreProtocolError('native Store returned two records for one key')
                 else:
                     rows.append(bytes(pending))
                 pending = None
@@ -571,6 +571,9 @@ class NativeStoreConnection:
     def artifact_by_id(self, identity):
         return self._typed_operation(_ARTIFACT_BY_ID, (identity,)).fetchone()
 
+    def artifact_lookup_frame(self, payload):
+        return self._lookup_frame(_ARTIFACT_BY_ID, payload, 192, _MAX_VALUE)
+
     def artifact_by_uri(self, uri):
         return self._typed_operation(_ARTIFACT_BY_URI, (uri,)).fetchone()
 
@@ -587,13 +590,16 @@ class NativeStoreConnection:
         return self._typed_operation(_CURSOR_LOOKUP, (identity,)).fetchone()
 
     def cursor_lookup_frame(self, payload):
-        if (not 56 <= len(payload) <= 2104
+        return self._lookup_frame(_CURSOR_LOOKUP, payload, 2048, _CURSOR_ROW_LIMIT)
+
+    def _lookup_frame(self, specification, payload, key_limit, row_limit):
+        if (not 56 < len(payload) <= 56 + key_limit
                 or struct.unpack_from('<8s6Q', payload)
                 != (b'HIAQPA01', 1, 1, len(payload), 3, 56, len(payload) - 56)):
-            raise StoreProtocolError('invalid HIA Agent cursor lookup frame')
+            raise StoreProtocolError('invalid HIA Agent read lookup frame')
         with self.lock:
             self._check_live()
-            return self._perform(_CURSOR_LOOKUP, (), raw_row_limit=_CURSOR_ROW_LIMIT,
+            return self._perform(specification, (), raw_row_limit=row_limit,
                                  payload=payload).fetchone()
 
     def cursor_retain_frame(self, payload):

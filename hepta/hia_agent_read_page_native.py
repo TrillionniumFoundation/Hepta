@@ -7,7 +7,9 @@ import os
 import struct
 import subprocess
 
-from .hia_agent_store import MAX_ARTIFACT_BYTES, _agent_resource_path, canonical_digest, reject, wire
+from .hia_agent_store import (
+    MAX_ARTIFACT_BYTES, _agent_resource_path, canonical_digest, keys, reject, wire,
+)
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 
@@ -27,17 +29,17 @@ MAX_REFERENCE_BYTES = 512
 
 
 @contextmanager
-def capture_retained_page(store, reference, *, bound=False):
+def capture_retained_page(store, reference, *, native_record=None):
     """Transfer verified Store bytes directly to the pager's input file."""
     encoded = wire(reference)
     if not 0 < len(encoded) <= MAX_REFERENCE_BYTES:
         raise ValueError('outside native HIA Agent issued reference profile')
-    offset = (BOUND_METADATA_BYTES if bound else CURSOR_REQUEST.size) + len(encoded)
+    offset = (CURSOR_REQUEST.size if native_record is None else BOUND_METADATA_BYTES) + len(encoded)
     fd = os.memfd_create('hia-retained-artifact-page', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
     try:
         os.ftruncate(fd, offset)
         os.lseek(fd, offset, os.SEEK_SET)
-        store.write_retained_artifact(reference, fd)
+        store.write_retained_artifact(reference, fd, native_record=native_record)
         size = os.fstat(fd).st_size - offset
         if not 0 <= size <= MAX_ARTIFACT_BYTES:
             raise ValueError('outside native HIA Agent artifact page profile')
@@ -69,14 +71,41 @@ class NativeAgentReadPage(NativeHiaJsonImage):
         """Encode an admitted cursor for the Store with the pinned HIA page image."""
         if cursor is None:
             return None, None
+        key = cursor.encode('utf-8')
+        return key, store.cursor_lookup_frame(self._lookup_binding(key, executable))
+
+    def _lookup_binding(self, key, executable):
         from .hia_scalar_reference_native import sealed_reference_bytes
 
-        key = cursor.encode('utf-8')
-        with sealed_reference_bytes(b'HIAARQ01', key) as request:
+        header = REQUEST.pack(b'HIAARQ01', len(key), 0)
+        with sealed_reference_bytes(header, key) as request:
             output = self._standalone_page(executable, request)
         if len(output) != 56 + len(key):
-            raise ValueError('native HIA Agent cursor query rejected the input')
-        return key, store.cursor_lookup_frame(output)
+            raise ValueError('native HIA Agent read query rejected the input')
+        return output
+
+    def admit_retained_artifact(self, store, reference, executable):
+        """Validate the complete issued reference against the typed Store row."""
+        from .hia_scalar_reference_native import sealed_reference_bytes
+
+        keys(reference, ('id', 'sha256', 'uri'), label='artifact reference')
+        identity = reference['id'].encode('ascii')
+        digest = reference['sha256']
+        uri = reference['uri'].encode('ascii')
+        if not 0 < len(identity) <= 192 or not canonical_digest(digest) or not 0 < len(uri) <= 208:
+            reject('E_HIA_ARTIFACT_IDENTITY', 'artifact reference was not issued in this runtime namespace')
+        row = store.artifact_lookup_frame(self._lookup_binding(identity, executable))
+        header = REQUEST.pack(b'HIAARR01', len(identity), len(uri))
+        with sealed_reference_bytes(header, digest.encode('ascii'), identity, uri, row or b'') as request:
+            output = self._standalone_page(executable, request)
+        if len(output) != REQUEST.size:
+            raise ValueError('invalid HIA Agent retained artifact admission')
+        decision, offset, extent = struct.unpack('<3Q', output)
+        if (decision, offset, extent) == (1, 0, 0):
+            reject('E_HIA_ARTIFACT_IDENTITY', 'artifact reference was not issued in this runtime namespace')
+        if decision != 0 or row is None or not 176 <= offset <= len(row) or extent > len(row) - offset:
+            raise ValueError('invalid HIA Agent retained artifact metadata span')
+        return digest, row[offset:offset + extent]
 
     def read_captured_bound_page(self, capture, ref, cursor_key, row, max_bytes, executable):
         """Pass a retained typed Store row directly to the standalone page owner."""
