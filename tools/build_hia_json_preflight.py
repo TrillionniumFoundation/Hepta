@@ -239,6 +239,7 @@ def main():
                                  'sqlite-rowid-lookup', 'sqlite-record-layout', 'sqlite-agent-row-import',
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
+                                 'elf-verified-linker',
                                  'scalar-reference', 'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory'))
     args = parser.parse_args()
