@@ -194,6 +194,14 @@ class World:
         assert reference is self.context["workload"]
         return self.workload, {"fixture": "workload-metadata"}
 
+    def get_json_with_wire(self, reference):
+        value, metadata = self.get_json(reference)
+        return value, metadata, self.api.wire(value)
+
+    def context_created_ns(self, context_id):
+        row = self.execute("SELECT created_ns FROM contexts WHERE id=?", (context_id,)).fetchone()
+        return int(row["created_ns"])
+
     def execute(self, statement, parameters):
         self.record("execute", statement, parameters)
         assert statement == "SELECT created_ns FROM contexts WHERE id=?"
