@@ -31,6 +31,9 @@ VARIANTS = {
     'mcp-negotiation': ('mcp_negotiation', 'hepta.hia.mcp-negotiation-native.v1'),
     'mcp-catalog': ('mcp_catalog_wire', 'hepta.hia.mcp-catalog-native.v1'),
     'mcp-uri': ('mcp_resource_uri', 'hepta.hia.mcp-uri-native.v1'),
+    'mcp-input-schema': ('agent_schema', 'hepta.hia.agent-schema-native.v1'),
+    'mcp-response-schema': ('agent_response_schema', 'hepta.hia.agent-response-schema-native.v1'),
+    'mcp-proof-schema': ('agent_verify_response_schema', 'hepta.hia.agent-verify-response-schema-native.v1'),
 }
 IMAGE_LIMIT = 1 << 20
 

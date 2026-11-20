@@ -16,10 +16,15 @@ ARENA_BYTES = 64 + 262144 * 72 + INPUT_MAX
 DESCRIPTORS = (88, 0, 112, 24)
 PAGE_MODE = len(DESCRIPTORS)
 TERMINAL_MODE = PAGE_MODE + 1
+SCHEMA_MODE = TERMINAL_MODE + 1
+SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
+SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 PAGE_OUTPUT = 40 + 69 + 4 * ((65536 + 2) // 3)
 PAGE_WORKSPACE = 512 + 4128
 MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
-         'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE}
+         'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,
+         'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
+         'mcp-proof-schema': SCHEMA_MODE}
 
 
 def elf_prefix(code):
@@ -39,12 +44,13 @@ def template(mode):
     if mode == TERMINAL_MODE:
         return terminal_template()
     page = mode == PAGE_MODE
-    descriptor = None if page else DESCRIPTORS[mode]
-    scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor else INPUT_MAX + 32)
+    schema = mode == SCHEMA_MODE
+    descriptor = None if page or schema else DESCRIPTORS[mode]
+    scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if page else 8
-    workspace = PAGE_WORKSPACE if page else ARENA_BYTES
-    minimum = 24 if page else 2
-    maximum = ((64 << 20) + 32 + 512) if page else INPUT_MAX
+    workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
+    minimum = 24 if page else (SCHEMA_HEADER + 2 if schema else 2)
+    maximum = ((64 << 20) + 32 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -88,7 +94,16 @@ def template(mode):
     emit('b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff')
     branch('0f 83', 'io_error')
 
-    emit('49 89 c6 4c 89 e7 4c 89 ee')
+    emit('49 89 c6')                            # r14 = private mapping base
+    if schema:
+        # Copy the sealed role and catalog digest into the schema arena.
+        # The schema kernel, not the transport, validates those bytes.
+        emit('49 8d be')
+        word(prefix_bytes + scratch)
+        emit('4c 89 e6 b9 09 00 00 00 f3 48 a5')
+        emit('49 8d 7c 24 48 49 8d 75 b8')      # input pointer +72, bytes -72
+    else:
+        emit('4c 89 e7 4c 89 ee')
     emit('4c 89 f2' if page else '49 8d 56 08')   # payload or status-prefixed result
     emit('b9')
     word(scratch)
@@ -112,7 +127,7 @@ def template(mode):
             emit(f'83 f8 {descriptor:02x}')
             branch('0f 85', 'write_result')
             emit(f'83 c2 {descriptor:02x}')
-        else:
+        elif not schema:                        # schema exports only the policy status
             emit('83 f8 02')
             branch('0f 82', 'write_result')
             emit('3d')
@@ -386,10 +401,10 @@ def render():
         return 4294967295
     mode = read_word(s, 8)
 '''
-    for mode in range(TERMINAL_MODE + 1):
+    for mode in range(SCHEMA_MODE + 1):
         source += f'    if mode == {mode}:\n        return pack_{mode}(s, o)\n'
     source += '    return 4294967295\n'
-    for mode in range(TERMINAL_MODE + 1):
+    for mode in range(SCHEMA_MODE + 1):
         prefix, call = template(mode)
         source += f'''
 def pack_{mode}(s:readbuf, o:mutbuf) -> u32:

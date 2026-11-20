@@ -776,6 +776,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/json_decode.hepta',
     'tests/test_hia_mcp_reply_native.py',
     'tests/test_hia_mcp_terminal_native.py',
+    'tests/test_hia_mcp_schema_native.py',
     'tests/test_hia_mcp_negotiation_native.py',
     'tests/test_hia_mcp_catalog_native.py',
     'tests/test_hia_mcp_uri_native.py',
