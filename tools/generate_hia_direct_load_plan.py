@@ -4,10 +4,12 @@ This is the profile of elf_shared_linker.hepta, not a general dynamic loader.
 No callbacks are selected by ELF pointers or ELF-supplied addresses.
 """
 import ast
+from hashlib import sha256
 from pathlib import Path
+import struct
 from tempfile import TemporaryDirectory
 
-from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_assembly import assemble_program, render_assembly
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
 
@@ -17,6 +19,8 @@ PACKER_PATH = 'examples/hia_bootstrap/direct_call_packer.hepta'
 ADAPTER_PATH = 'tools/hia_direct_call_syscalls.S'
 PACKER_MAGIC = int.from_bytes(b'HIADPK01', 'little')
 CALL_SYMBOLS = {'plan': 'direct_plan_call_hole'}
+ADAPTER_BINDING = struct.Struct('<32s32sQQ')
+ADAPTER_WORDS = struct.Struct('<10Q')
 IMPORTS = ('abort', 'calloc', 'free', 'malloc', 'memcpy', 'memmove', 'memset')
 
 SOURCE = '''
@@ -288,16 +292,50 @@ def document():
                                   'functions': functions})
 
 
+def binding_declaration(words):
+    return {'name': 'adapter_binding', 'params': [], 'returns': [], 'effects': [], 'entry': 'entry',
+            'blocks': [{'id': 'entry', 'params': [],
+                        'ops': [{'op': 'const', 'args': [], 'attrs': {'value': value},
+                                 'out': [{'name': f'word{index}', 'type': 'u64'}]}
+                                for index, value in enumerate(words)],
+                        'term': {'op': 'ret', 'values': []}}]}
+
+
+def read_adapter_binding(packer, adapter_source):
+    """Read the immutably generated binding without invoking an assembler."""
+    document = assemble_program(packer).as_dict()
+    records = [fn for fn in document['functions'] if fn['name'] == 'adapter_binding']
+    if len(records) != 1:
+        raise ValueError('direct call packer does not bind one syscall adapter')
+    record = records[0]
+    ops = record['blocks'][0]['ops']
+    try:
+        words = tuple(op['attrs']['value'] for op in ops)
+        payload = ADAPTER_WORDS.pack(*words)
+    except (KeyError, struct.error) as exc:
+        raise ValueError('invalid direct call adapter binding declaration') from exc
+    if record != binding_declaration(words):
+        raise ValueError('invalid direct call adapter binding declaration')
+    source, adapter, size, hole = ADAPTER_BINDING.unpack(payload)
+    if source != sha256(adapter_source).digest() or not 0 < hole <= size - 4 or size >= (1 << 20):
+        raise ValueError('direct call packer adapter binding differs from its admitted source')
+    return adapter, size, hole
+
+
 def cli_document():
     from tools.build_hia_agent_batch_commit import adapter_layout
     from tools.generate_hia_native_filter import document as packer_document, elf_header
 
+    source = (ROOT / ADAPTER_PATH).read_bytes()
     with TemporaryDirectory(prefix='hia-direct-call-adapter-') as directory:
-        adapter, holes, _ = adapter_layout(Path(directory), ADAPTER_PATH,
-                                          (ROOT / ADAPTER_PATH).read_bytes(), CALL_SYMBOLS)
+        adapter, holes, _ = adapter_layout(Path(directory), ADAPTER_PATH, source, CALL_SYMBOLS)
     header = elf_header()
-    return packer_document(magic=PACKER_MAGIC, module='direct_call_packer',
-                           image_template=(header + adapter, tuple(len(header) + hole for hole in holes.values())))
+    hole = holes['plan']
+    packer = packer_document(magic=PACKER_MAGIC, module='direct_call_packer',
+                             image_template=(header + adapter, (len(header) + hole,)))
+    bound = ADAPTER_BINDING.pack(sha256(source).digest(), sha256(adapter).digest(), len(adapter), hole)
+    packer['functions'].append(binding_declaration(ADAPTER_WORDS.unpack(bound)))
+    return packer
 
 
 if __name__ == '__main__':

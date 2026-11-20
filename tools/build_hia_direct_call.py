@@ -7,10 +7,9 @@ import json
 from pathlib import Path
 import struct
 
-from tools.build_hia_agent_batch_commit import adapter_layout
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.generate_hia_direct_load_plan import (
-    ADAPTER_PATH, CALL_SYMBOLS, PACKER_MAGIC, PACKER_PATH, ROOT, SOURCE_PATH,
+    ADAPTER_PATH, PACKER_MAGIC, PACKER_PATH, ROOT, SOURCE_PATH, read_adapter_binding,
 )
 from tools.generate_hia_native_filter import elf_header
 from tools.qualify_hia_selfhost import compile_stage
@@ -23,7 +22,23 @@ def digest(raw):
     return sha256(raw).hexdigest()
 
 
-def assemble(output, compiler, sources):
+def verify_adapter(binary, code, binding):
+    adapter_digest, size, hole = binding
+    header = bytearray(elf_header())
+    end = len(header) + size
+    length = end + len(code)
+    struct.pack_into('<2Q', header, 96, length, length)
+    if len(binary) != length or binary[:len(header)] != header or binary[end:] != code:
+        raise ValueError('HIA packer changed the ELF envelope or direct load plan')
+    adapter = bytearray(binary[len(header):end])
+    if adapter[hole - 1:hole + 4] != b'\xe8' + struct.pack('<i', size - hole - 4):
+        raise ValueError('HIA packer changed the admitted direct call relocation')
+    adapter[hole:hole + 4] = bytes(4)
+    if sha256(adapter).digest() != adapter_digest:
+        raise ValueError('HIA packer changed the admitted direct call syscall adapter')
+
+
+def assemble(output, compiler, sources, binding):
     image, image_receipt = compile_stage(output, 'direct-load-plan', compiler, sources[SOURCE_PATH])
     packer, packer_receipt = compile_stage(output, 'direct-call-packer', compiler, sources[PACKER_PATH])
     code, packer_bytes = image.read_bytes(), packer.read_bytes()
@@ -32,16 +47,12 @@ def assemble(output, compiler, sources):
     request = struct.pack('<2Q', PACKER_MAGIC, len(code)) + code
     path, receipt = compile_stage(output, 'direct-call-executable', packer, request, output_extension='.elf')
     binary = path.read_bytes()
-    stub, holes, adapter_identity = adapter_layout(output, ADAPTER_PATH, sources[ADAPTER_PATH], CALL_SYMBOLS)
-    header = elf_header()
-    prefix = bytearray(header + stub)
-    struct.pack_into('<2Q', prefix, 96, len(binary), len(binary))
-    hole = len(header) + holes['plan']
-    struct.pack_into('<i', prefix, hole, len(prefix) - hole - 4)
-    if (digest(binary) != receipt['produced_sha256'] or binary != prefix + code
+    verify_adapter(binary, code, binding)
+    if (digest(binary) != receipt['produced_sha256']
             or image.read_bytes() != code or packer.read_bytes() != packer_bytes):
         raise ValueError('HIA packer changed the admitted direct load plan or syscall adapter')
-    return binary, {'executable': inspect_executable(binary), 'transport_object_sha256': adapter_identity,
+    return binary, {'executable': inspect_executable(binary), 'transport_adapter_sha256': binding[0].hex(),
+                    'transport_assembled_during_build': False,
                     'native_compile_receipt': image_receipt, 'native_packer_receipt': packer_receipt,
                     'native_pack_receipt': receipt}
 
@@ -53,8 +64,9 @@ def build(output, compiler, cold_report):
     sources = {name: (ROOT / name).read_bytes() for name in paths}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('standalone direct call needs matching cold source')
+    binding = read_adapter_binding(sources[PACKER_PATH], sources[ADAPTER_PATH])
     output.mkdir(mode=0o700)
-    binary, report = assemble(output, compiler, sources)
+    binary, report = assemble(output, compiler, sources, binding)
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes):
         raise ValueError('direct call inputs changed before publication')
