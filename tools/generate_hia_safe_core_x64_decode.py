@@ -445,6 +445,10 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         if param > 1 and param != 8 and param != 16 and param != 32:
             return 4294967293
         return signed_divide_formula(o, param)
+    if op == OP_IMUL:
+        return imul_formula(o, param)
+    if op == OP_IMUL_FULL:
+        return pair_formula(o, op, param)
     if param != 0:
         return 4294967293
     if op == OP_LOAD or op == OP_LOAD8 or op == OP_STORE or op == OP_STORE8 or op == OP_LEA:
@@ -492,11 +496,9 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         take = node(o, R_BOOL_NOT, ZF, 0, 0)
         result = node(o, R_CHOOSE, take, RIGHT, LEFT)
         return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
-    if op == OP_IMUL:
-        return imul_formula(o, param)
     if op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR or op == OP_SAR_CL:
         return variable_shift_formula(o, op)
-    if op == OP_MULTIPLY_WORDS or op == OP_DIVIDE_WORDS or op == OP_IMUL_FULL:
+    if op == OP_MULTIPLY_WORDS or op == OP_DIVIDE_WORDS:
         return pair_formula(o, op, param)
     return alu_formula(o, op)
 
@@ -932,6 +934,8 @@ def core_signed_cast(o:mutbuf, op:u64, width:u64, signed_result:bool, signed_inp
     return formula_done(o, value, 0, 0, above)
 
 def core_signed_arithmetic(o:mutbuf, op:u64, width:u64) -> u64:
+    if op == C_INT_MUL_WRAP and width < 64:
+        return formula_done(o, core_signed_normalized(o, signed_product(o, LEFT, RIGHT, width), width), 0, 0, 0)
     if op >= C_INT_ADD_WRAP and op <= C_INT_SUB_CHECKED:
         primitive = choose(op == C_INT_ADD_WRAP or op == C_INT_ADD_CHECKED, R_ADD, R_SUB)
         if op == C_INT_MUL_WRAP:
