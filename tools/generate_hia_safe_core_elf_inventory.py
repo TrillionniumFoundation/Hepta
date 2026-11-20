@@ -1088,8 +1088,8 @@ def owned_shared_expected_order(w:mutbuf, previous:u64, current:u64) -> u64:
     after = get(w, current)
     index = 0
     while index < before and index < after:
-        first = load(w, previous + 8 + index)
-        second = load(w, current + 8 + index)
+        first = byte(w, previous + 8 + index)
+        second = byte(w, current + 8 + index)
         if first != second:
             return choose(first < second, 1, 0)
         index = index + 1
@@ -1104,7 +1104,7 @@ def owned_shared_find_export(s:readbuf, o:mutbuf, w:mutbuf, name:u64, size:u64) 
         bit = get(w, row)
         arm = 0
         if bit // 8 < size:
-            arm = (load(w, name + bit // 8) >> (7 - bit % 8)) & 1
+            arm = (byte(w, name + bit // 8) >> (7 - bit % 8)) & 1
         current = get(w, row + 8 + arm * 8)
     leaf = current // 2
     if get(o, leaf + 8) != size or get(o, leaf + 16) != 1:
@@ -1112,7 +1112,7 @@ def owned_shared_find_export(s:readbuf, o:mutbuf, w:mutbuf, name:u64, size:u64) 
     start = get(o, leaf)
     index = 0
     while index < size:
-        if byte(s, start + index) != load(w, name + index):
+        if byte(s, start + index) != byte(w, name + index):
             return 0
         index = index + 1
     return 1
