@@ -77,13 +77,17 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             result = text_extent(s, start, count // 2)
             count = result >> 32
             cost = result & 4294967295
-        content = count
     else:
         count = wanted
-        content = 4 * ((count + 2) // 3)
     next = 18446744073709551615
     if offset < total and count < total - offset:
         next = offset + count
+    return finish_page(s, o, w, start, kind, count, next, offset, limit, output_base)
+
+def finish_page(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64, count:u64,
+                next:u64, offset:u64, limit:u64, output_base:u64) -> u64:
+    mode = uint(s, 0)
+    content = choose(kind == 0, count, 4 * ((count + 2) // 3))
     header = output_base + 40
     output_tag = OUTPUT_TAG
     cursor = mode != INPUT_TAG and next != 18446744073709551615
@@ -97,7 +101,8 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < header + content + retain_size:
         return 4294967294
     if cursor:
-        if cursor_digest(s, w, reference_at, reference, next) == 0:
+        reference_at = choose(output_base == 0, 32, 1024)
+        if cursor_digest(s, w, reference_at, uint(s, 24), next) == 0:
             return 4294967295
         emit_cursor(o, w, output_base + 40)
     if output_base != 0:
