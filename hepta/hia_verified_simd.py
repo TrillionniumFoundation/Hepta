@@ -151,12 +151,12 @@ def _vector_memory(c, opcode, base, displacement=0):
     c.emit(bytes([0xf3, 0x0f, opcode]) + address)
 
 
-def _reduction_chunk(c, kind, displacement=0):
+def _reduction_chunk(c, kind, displacement=0, accumulator=0):
     _vector_memory(c, 0x6f, "rdi", displacement)
     if kind == "sum_u8":
         c.emit(bytes.fromhex("660ff6ca660fd4c1"))  # psadbw xmm1,xmm2; paddq xmm0,xmm1
     else:
-        c.emit(bytes.fromhex("660febc1"))  # por xmm0,xmm1
+        c.emit(bytes([0x66, 0x0f, 0xeb, 0xc1 | (accumulator << 3)]))
 
 
 def _reduce(c, kind, unroll):
@@ -174,14 +174,22 @@ def _reduce(c, kind, unroll):
     c.emit(bytes.fromhex("660fefc0"))  # pxor xmm0,xmm0
     c.emit(bytes.fromhex("660fefd2"))  # pxor xmm2,xmm2
     if unroll == 4:
+        parallel_zero = kind == "all_zero_u8"
+        if parallel_zero:
+            # Four separate dependency chains: each accumulator owns one
+            # chunk position until the bulk loop merges them exactly once.
+            c.emit(bytes.fromhex("660fefdb660fefe4660fefed"))
         c.label("bulk")
         c.alu_imm("cmp", "r10", 64)
-        c.jcc("b", "vector")
-        for displacement in (0, 16, 32, 48):
-            _reduction_chunk(c, kind, displacement)
+        c.jcc("b", "bulk_merge" if parallel_zero else "vector")
+        for displacement, accumulator in zip((0, 16, 32, 48), (0, 3, 4, 5) if parallel_zero else (0, 0, 0, 0)):
+            _reduction_chunk(c, kind, displacement, accumulator)
         c.alu_imm("add", "rdi", 64)
         c.alu_imm("sub", "r10", 64)
         c.jmp("bulk")
+        if parallel_zero:
+            c.label("bulk_merge")
+            c.emit(bytes.fromhex("660febc3660febc4660febc5"))
     c.label("vector")
     c.alu_imm("cmp", "r10", 16)
     c.jcc("b", "horizontal")

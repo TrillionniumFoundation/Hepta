@@ -38,7 +38,10 @@ class VerifiedSIMDUnrolledNativeTests(unittest.TestCase):
                 self.assertEqual(proof['model_counts']['superblock_width'], 64)
                 self.assertEqual(proof['model_counts']['range_admission_sites'], 1)
                 self.assertEqual(result['runtime_solver_calls'], 0)
-                self.assertEqual([o['result'] for o in proof['obligations']], ['sat'] + ['unsat'] * 11)
+                obligations = 13 if kind == 'all_zero_u8' else 12
+                self.assertEqual([o['result'] for o in proof['obligations']], ['sat'] + ['unsat'] * (obligations - 1))
+                self.assertEqual(proof['model_counts']['reduction_accumulators'],
+                                 4 if kind == 'all_zero_u8' else (0 if kind == 'copy_u8' else 1))
 
     def test_explicit_legacy_build_remains_independently_checkable(self):
         for kind, (core, _, _, _) in self.cases.items():

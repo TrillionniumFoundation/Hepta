@@ -103,6 +103,9 @@ chunks at offsets 0, 16, 32 and 48. A single pointer/count update and backedge
 advance the complete group. A `remaining >= 16` cleanup loop handles the next
 zero to three chunks, and the tail consumes individual bytes. None repeats the full
 extent/null/overflow/overlap checks, and no load crosses the requested end.
+The zero scan carries four independent accumulators in its main loop, one for
+each chunk position, then combines them once before the cleanup loop. This
+removes the serial dependency across all four OR operations in each group.
 The Core specification itself performs complete extent admission before its
 first byte operation, preserving early-trap memory effects.
 
@@ -126,10 +129,14 @@ it can connect to the cleanup loop. The independently decoded signed
 displacements must match all four guarded offsets, with no extra reads or stores.
 
 The original loop profile retains its ten solver obligations. The 64-byte
-profile adds range/termination and complete four-chunk data obligations for a
-total of twelve; its report records three backedges, `vector_unroll=4` and
-`superblock_width=64`. The consumer continues to accept original sixteen-byte
-objects and final images without invoking either producer.
+sum/copy profile adds range/termination and complete four-chunk data obligations
+for a total of twelve. The parallel zero scan adds a thirteenth obligation for
+the four-accumulator merge and preserved register state. Its induction retains
+four arbitrary partial accumulators across iterations; it never resets their
+symbolic prior states to zero. Reports record three backedges,
+`vector_unroll=4`, `superblock_width=64` and the reduction-accumulator count.
+The consumer also accepts the original sixteen-byte and single-accumulator
+sixty-four-byte objects and final images without invoking either producer.
 
 The induction connects the decoded backedges with the scalar Core recurrence.
 Its trust base is the stated Python Core/ISA/loop/ELF models, GNU/Linux loader
@@ -181,3 +188,13 @@ These measurements describe the declared hot-cache kernels on a shared host.
 Affinity does not make a core exclusive, and the raw samples remain available
 for assessing interference. Build/proof time is reported separately from
 native call latency.
+
+## Recorded campaigns
+
+The [initial AI395 campaign](../benchmarks/hia_verified_kernels/results/ai395-20261119-initial.json)
+retains all 64 cases and 1,344 samples from source commit
+`8aa5a7959955b9191709fd650761d65d4be6ef46`. Its single-accumulator sixty-four-byte
+zero scan took 1,591.221 ns at 64 KiB, compared with 1,202.520 ns for the
+sixteen-byte control. This negative observation motivated the four independent
+accumulators above; it remains part of the record. The candidate with that
+change requires its own complete campaign with all comparison arms.
