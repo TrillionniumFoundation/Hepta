@@ -1634,6 +1634,7 @@ SOURCE_FILES = (
     'tests/test_hia_cost_artifact_caller_admission.py',
     'tests/test_hia_cost_context_caller_delivery_source.py',
     'tests/test_hia_ndu_bridge.py',
+    'tests/test_hia_observer_stream_retention.py',
 )
 
 

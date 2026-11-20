@@ -45,138 +45,163 @@ The integration also corrects concrete source and execution defects:
 
 ### Latest completed ROG checks of published source
 
-The completed source is [`0ab2a0a`](https://github.com/TrillionniumFoundation/Hepta/commit/0ab2a0aea2585e06ddcf0aa3a6931043b16959f6),
-tree `a2476742bfce3db07992f46fea3b74e16764d198`, with 2,977 tracked
+The completed R10 source is [`972ecbb`](https://github.com/TrillionniumFoundation/Hepta/commit/972ecbb9ae7535d7526f655eed87b75c563dec13),
+tree `d953b4ef8447fccdb67217dcfb0c7389fcc72f92`, with 2,985 tracked
 file byte/mode identities. ROG used CPython 3.14.4 and Clang 20.1.8.
-All eleven external R9 stages completed successfully and reread the entire
-frozen source and their matching cold inputs. Results qualify only that
-source and the exact declared scopes.
+All eight scheduled stages reached terminal records. Six passed; the two
+Artifact stages failed. Each result belongs to that exact source and scope.
 
-| Complete scope on that source | Actual outcome |
-| --- | --- |
-| Ordinary fresh-source cold producer | PASS: all eleven outer checks; 69.412 seconds producer wall time under the original 180+3 and 240-second limits |
-| Core workflow inventory | PASS: 767/767; 533.649 seconds outer process and 532.501 seconds suite time |
-| Complete Journal caller scope | PASS: all 21 original methods, including installed preparation; 38.030 seconds outer process |
-| Independent Journal caller readback | PASS: complete ordered 21 IDs, actual before/after captures, original body budgets and matching-source cold; 0.415 seconds outer process |
-| Explicit native-parent cold producer | PASS: 88.579 seconds producer wall time under the unchanged bounds |
-| Transport binding, regression and DATA | PASS: two full original47 lanes, selected47 and all eight handoff controls; 23.292 seconds regression and 0.164 seconds reader outer time |
-| REF18 and FD18 | PASS: all original controls and their independent readers; 1.267 seconds outer time each |
-| CT36 | PASS: both complete originals followed by the selected original controls and full DATA consumption; 13.809 seconds outer time |
+| Complete R10 scope | Actual outcome | Outer wall time |
+| --- | --- | --- |
+| Ordinary fresh-source cold producer | PASS under the original 180+3 and 240-second limits | 70.082 seconds |
+| Complete Core workflow inventory | PASS, all 786 methods; suite time 534.268 seconds | 535.413 seconds |
+| Context native module | PASS, all 15 methods | 5.875 seconds |
+| Complete original Context callers | PASS, all 50 methods; no skips or anomalies | 51.852 seconds |
+| Cost native module | PASS, all 12 methods | 13.788 seconds |
+| Complete original Cost callers | PASS, all 81 methods; no skips or anomalies | 67.133 seconds |
+| Complete original Artifact delivery callers | HOLD: all 132 planned methods started and stopped, with 19 NDU prerequisite skips and 2 original budget failures | 252.205 seconds |
+| Complete Artifact native module | HOLD: 14 of 15 methods passed; the complete 146-input comparison failed | 11.635 seconds |
 
-Both cold producers retain all 38 phase reports and report the original
-5,060 nested checks. The six images satisfy B1=B2=B3, M1!=M2, M2=M3 and
-M3!=B3. B3 is 637,172 bytes with SHA256
+The independent DATA reader consumed all eight outer process records,
+their raw stdout/stderr, complete ordered method logs, original caller
+fixtures and retained caller captures. All 2,985 source bytes and Git
+executable modes and each stage's matching cold inputs remained stable.
+Its 883,929-byte report has SHA256
+`d90727caf333847859de493c6980553b68475729b1fe1dbffd3b064e194184be`.
+This establishes outer-process, source and caller DATA integrity; it does
+not establish independent complete inner native/raw-cold acceptance.
+The original `runTest` observation is included in the 786-method total.
+Raw R10 evidence remains under
+`/home/qian-qi/hia-unified-v9-caller-evidence-20261120/`.
+
+The earlier [`0ab2a0a`](https://github.com/TrillionniumFoundation/Hepta/commit/0ab2a0aea2585e06ddcf0aa3a6931043b16959f6)
+R9 source, tree `a2476742bfce3db07992f46fea3b74e16764d198`, separately
+passed ordinary cold, Core767, complete Journal21 and its independent
+reader, explicit native-parent cold, original47 twice, selected47,
+Handoff8, REF18, FD18 and CT36. Its B3 was 637,172 bytes, SHA256
 `f81c42138a259286492e46f221010574d629a4eeea775815bd59ee7d71d66843`.
-The ordinary cold report SHA256 is
-`5143509d42b6f9c2ceebee7ea52400edc275a4d101c09db46f6cc935b026cca9`;
-the native-parent cold report SHA256 is
-`eb0a7967639033f97458ac5b44cd8dfd0c0c7b4d3c4a83e3770a41eb14e66d1c`.
-The independent Journal caller receipt is 2,928 bytes, SHA256
-`9beedcca19603da37cc8270045fcc3008a6c501ea55f9e7209cb4cd4d17c982d`.
-Raw R9 evidence remains under
+Both cold producers retained all 38 phase reports and reported the original
+5,060 checks, with B1=B2=B3, M1!=M2, M2=M3 and M3!=B3. Those results
+remain attached to R9; they do not qualify subsequent source edits.
+The ordinary and native cold report hashes were respectively
+`5143509d42b6f9c2ceebee7ea52400edc275a4d101c09db46f6cc935b026cca9`
+and `eb0a7967639033f97458ac5b44cd8dfd0c0c7b4d3c4a83e3770a41eb14e66d1c`.
+Original R9 evidence remains under
 `/home/qian-qi/hia-unified-v9-journal-evidence-20261120/`.
 
-**Complete cold raw-data acceptance remains open.** A separate audit found
-that successful native observer invocations write a JSON receipt to
-`*.stdout.log`, not the returned `HIAOBR02` binary stdout. The actual output
-buffer and stderr are retained, but those files alone cannot independently
-establish all returned source/output/workspace frame bytes. Existing data
-must not be reconstructed as if the missing original bytes were captured.
-Producer PASS, six-image readback and regression-reader PASS do not close
-this distinct full-phase/raw-data gate.
+### Reviewed corrections and retained original streams
 
-### Current reviewed source corrections
+The R10 source includes the installed Artifact worker terminal correction,
+complete caller source admission and flat native-helper registry inspection.
+The actual installed worker scenario now passes, including the UNKNOWN
+lost-PUT-ACK terminal with exit 2, all three required stderr markers and
+unresolved custody. The four original workers retain their request/replay
+identities and return codes 0/0/2/0. The complete 146-input comparison and
+its separate GC difference remain required.
 
-The preceding Journal preparation and linked-compiler header corrections
-now have the matching-source R9 results above. Journal still stages exactly
-the unchanged 176+17+3 required resources and retains all 21 original methods
-and 120/120/30/1,800-second bounds. The linked compiler method asserts the
-actual v9 header before selecting the original ET_REL test route. Original44
-and complete current47 remain independently admitted.
+Context50, Cost81 and Artifact132 retain their original fixtures, ordered
+methods, forbidden-owner assertions, every capture and original budgets.
+Their exact reviewed source successors are bound through whole-file inverse
+and forward proofs and actual terminal captures. The original Delivery126
+and278 Source control inventories remain unchanged. Flat literal helper
+registries are read directly from their AST; every other expression retains
+the previous fallback and rejection domain. No GC policy, retained root,
+cross-call cache or business deadline was changed.
 
-The current successor addresses additional concrete preparation and
-source-admission defects:
+The composed R10 source/release verification passed all 53 Source methods,
+the 11 existing language Native methods selected by the complete module,
+and all 23 methods from the actual unpacked sdist. The 6,875,610-byte archive
+has SHA256 `9d4cb1fae38f4ad9a354b1ea3bde8b43f0ad5523a23250e1d84b996bf5714d57`.
+Independent DATA checked all 2,985 candidate byte/mode identities, 468
+declared resources, complete method logs and both original126/278 controls.
+Its 19,722-byte report has SHA256
+`c88b20711e056b6437c9a56b074f5643d07c4e255e1e45be4812151d78c35475`.
 
-- **Installed Artifact worker terminal.** Preserve the complete original
-  worker scenario and admit its exact current UNKNOWN terminal: lost PUT ACK
-  exits 2 with three required stderr markers and real unresolved custody.
-  All four actual workers retain their original request/replay identities;
-  expected return codes are 0/0/2/0. A separate reader consumes their complete
-  raw records. The other ten test methods, all business assertions, Source3,
-  Native8 and the complete 146-input domain remain intact.
-- **Complete caller source admission.** Context50, Cost81 and Artifact132
-  retain their original fixed fixtures, ordered methods, forbidden-owner
-  assertions, every capture and original budgets. They accept the exact
-  reviewed NativeTools diagnostic successor through whole-file inverse and
-  forward proofs and recheck the actual source at terminal capture. The
-  Delivery authorities also verify the exact successors of their fixed
-  Context and Cost qualifier sources; the original 126/278 control
-  inventories remain.
-- **Flat registry inspection.** Read literal flat registry AST entries
-  directly, retaining the exact previous fallback and rejection behavior
-  for every other expression. This removes the discarded recursive
-  `ast.literal_eval` closure from that normal registry path, without a GC
-  call, policy change, cache or extra retained root.
+**Complete cold raw-data acceptance is still open.** The R9 and R10 native
+observer wrote a JSON receipt to successful `*.stdout.log` files instead
+of retaining the returned `HIAOBR02` binary stdout. Retained output buffers
+and stderr alone do not prove the full returned source/output/workspace
+frame. The strict audit of both R9 cold lanes found 5,200 missing successful
+stdout streams and 650 failed or explicitly empty streams in each lane.
+Missing historical bytes are not reconstructed or relabelled as captured.
 
-The complete worker/context/registry Source group passed 25/25, and all nine
-new worker/context controls passed from a real unpacked sdist. Its archive
-is 6,829,893 bytes, SHA256
-`3561fa8ede145744cf2defcd01f48b72352fca0b3916c2b6b4f20e23a6ec3808`.
-The independent reader checked all 2,982 candidate file byte/mode identities,
-all 457 declared archive resources and every actual successful method.
-Its receipt is 9,670 bytes, SHA256
-`47b5a50552fe2d1b8110dc3f6420fdd9af629fe3c95525bb6b503606e00a9441`.
-The preceding real-sdist missing-builder failure remains recorded.
+The current successor saves actual stdout and stderr before parsing, including
+failure and timeout partial bytes and explicit empties. It retains the
+original JSON receipt and failure-log behavior. Lossless zlib sidecars bind
+the request, return code, timeout, complete raw/stored lengths and SHA256.
+The reader rejects changed or truncated streams, trailing or concatenated
+streams, invalid metadata and decompression beyond the original 16 MiB
+stream bound. The original 512 MiB archive, 32 MiB manifest, 180-second cold
+and 3-second cleanup limits remain in force.
 
-A separate ROG registry diagnostic on CPython 3.14.4 observed 11 discarded
-objects on the old path and zero on the new path, with the same registry,
-GC thresholds and baseline. This is a preparation diagnostic. It does not
-establish that the earlier full Artifact difference has disappeared.
+All 14 retention/transport Source methods passed, and all six new retention
+methods passed from a real unpacked sdist. Independent DATA read all 2,986
+source files before/after, all 1,858 contract source pins, all eight actual
+processes, complete ordered Source and release logs, all 1,278 regular tar
+members, 474 manifest entries and 298 support files. Its 9,752-byte report
+has SHA256 `c7388c5459be1f81edbc9c53289a78bf6ae495e0417d1d1ec53f8aa628b8f447`.
+The 8,467,739-byte sdist has SHA256
+`8d6982e61d8c4f234cc6038f5d0171a66bd7b80c9df20b090bf28351278915e8`.
+The six new Source methods are registered in ordinary Core, increasing its
+expected inventory from 786 to 792 without removing an existing method.
 
-The composed successor requires its own fresh cold, complete Core and
-actual native/caller runs. None of these Source or development results
-transfers the preceding source's native qualification to new bytes.
+The separate full-phase DATA reader passed its nine byte-level controls and
+still reports the original R9 missing-stream HOLD. It does not import the
+checkout or execute a compiler/native image. The new source still requires
+fresh ordinary and native-parent cold, complete original47 twice plus
+selected47, Handoff8, REF18, FD18 and CT36, followed by the full retained-raw
+reader on the exact new frozen source. Actual wall time and archive size
+must meet the unchanged bounds; Source/release results do not close them.
 
-### Preserved current CI and semantic failures
+### Preserved semantic and prerequisite failures
 
-The [`0ab2a0a` CI run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44700444160)
-completed its cold-native-transport job, including original47 twice,
-selected47, Handoff8, REF18, FD18 and CT36. Kernel and NDU workflows passed.
-The Native job failed first at Context50's fixed old NativeTools source
-identity; dependent downstream steps did not run. Context's complete
-15-method native module passed immediately before that admission failure.
+The current Artifact132 report is 4,626,089 bytes, SHA256
+`c6c1c24823b1d92732ae44bc818b834ffda81e9de3fa09910a3dd8599747dd41`.
+All original-direct63 methods passed. The generic37 scope skipped 19 NDU
+tests because the actual pinned upstream checkout, matching build workspace
+and native executable were unavailable. The Store32 scope failed the
+expired-evaluation and frozen-context-deadline methods during their
+original `build_pair`, at the second emission under the unchanged 3-second
+context budget. All 132 started/stopped IDs and every anomaly remain in
+the report. An old environment file pointing at missing executables or
+missing Git checkouts does not satisfy those prerequisites.
 
-The same source's full Slot Native4 class reached its unchanged 1,800-second
-deadline in its first method; no completed full comparison or later three
-method results exist for that attempt. Slot Source's complete VM method and
-Capture's complete VM comparison also reached their original deadlines.
-They remain incomplete. The earlier full `b2ba900` Slot run remains a
-separate semantic HOLD: original248 differed in 2 cases/14 leaves and
-derived7574 in 286 cases/1,804 leaves, with unchanged lifetime and event
-comparisons. Its other three Native methods passed.
+The current complete Artifact146 comparison differs only at
+`$[143].trace[14].collected`: original 0, native 30. Both complete originals
+agree, and all other compared fields match. Original observations have
+SHA256 `c5e1dc35d9656d41afa19fced6b4ef1d87747a13714c802530e8f38a84caef6a`;
+actual observations have SHA256
+`2832d0954e5fe474455a7cdfcd495053a1baf66c615842532f1e8c6b8f2fa950`.
+Separate current preparation-only diagnostics locate six temporary type
+cycles from ctypes, signal and uuid. They establish that diagnostic's
+actual object graph, not object identity with the already-finished finite
+comparison. No count normalization, forced collection or extra strong root
+is accepted as a fix. The preceding native41 failure remains retained on
+its original source.
 
-Current Discovery completed both 56-input VM and unselected lanes, each
-with four differences in `explicit_gc_collected`. Verification completed
-both 185-input lanes, with four VM and three unselected differences in that
-same observed field. These are actual comparison failures, not source-pin
-errors or skipped domains. The raw archives have SHA256
-`27287cc615c6d2241d1fd50245b48f45dcb02d9dd815a5d0f42dc2ca4efa8f66`
+The [`972ecbb` CI run](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44720243874)
+passed the complete cold-native-transport job; kernel and NDU workflows
+also passed. Its Native job reached the Artifact comparison and failed;
+later evidence readers have additional failure records. Source and remaining
+Native work were still running when this state was written. GitHub uses
+its synthetic PR merge; ROG uses the exact published head. These are not
+assumed to be the same tree without independent verification.
+
+Earlier full Slot Native4 and Slot/Capture complete VM comparisons reached
+their original deadlines. The earlier full `b2ba900` Slot comparison also
+retains semantic HOLD: original248 differed in 2 cases/14 leaves and
+derived7574 in 286 cases/1,804 leaves, with unchanged lifetime/event
+comparisons. Its other three Native methods passed. Current-source
+successors must complete their own full scopes within the existing bounds.
+
+The earlier Discovery56 VM and unselected lanes each had four differences
+in `explicit_gc_collected`. Verification185 had four VM and three
+unselected differences in that same field. The complete raw archives have
+SHA256 `27287cc615c6d2241d1fd50245b48f45dcb02d9dd815a5d0f42dc2ca4efa8f66`
 and `b2be14f9bad32ee4a487af1092feacc76ca1910cc126d38c3878d58fd21979e0`.
-
-Artifact's complete preceding 146-input Native comparison differs only at
-`$[143].trace[14].collected`, original 0 versus native 41. All 146 actual
-records and all other compared fields were independently consumed. The
-report is 430,668 bytes, SHA256
-`23871f9c292b2a0487093ae70d43b22f99b5827be9f7b1af05284dfc9ec225f3`.
-Preparation-only diagnostics attribute the 41-object prefix to two
-overwritten ctypes classes, signal Enum preparation, literal-evaluation
-closures and uuid Enum preparation. They do not prove object identity with
-that already-completed failing process or authorize count normalization.
-
-Original failures and raw observations remain attached to their exact
-sources. Full caller coverage, allocation and GC behavior, exception and
-traceback ownership, installed/default execution and durable adoption still
-need to close before old providers can be retired.
+These are actual comparison failures. Full caller coverage, allocation and
+GC behavior, exception/traceback ownership, installed/default execution and
+durable adoption still need to close before old providers can be retired.
 
 ## Source format and actual entry points
 
