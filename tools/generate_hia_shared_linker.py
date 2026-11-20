@@ -384,8 +384,8 @@ def source_program():
             + '\ndef within(' + STATIC_SOURCE.split('\ndef within(', 1)[1])
 
 
-def document():
-    nodes = ast.parse(source_program()).body
+def document(source=None, module='elf_shared_linker'):
+    nodes = ast.parse(source_program() if source is None else source).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id) for node in nodes}
     total = total_scalar_functions(nodes)
@@ -396,7 +396,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'elf_shared_linker',
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
                                   'functions': functions})
 
 

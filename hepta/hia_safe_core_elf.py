@@ -1,7 +1,7 @@
 """Exact object-to-load-image binding for the narrow Safe Core checker.
 
 This is deliberately not a general ELF linker verifier.  It accepts the closed
-GNU-ld shared-library shapes used by Safe Core: a direct exported function or
+shared-library shapes used by Safe Core: a direct exported function or
 an internal function plus its entry wrapper, one ``abort`` PLT slot, immediate
 binding, no startup hooks, and no text relocations. The loader,
 libc's nonreturning abort and ELF parsing implementation remain trusted.

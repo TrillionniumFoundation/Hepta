@@ -310,6 +310,8 @@ def emit_verified_scalar(document):
 
 def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, query_directory=None, image=None):
     """Link privately, check all inputs on the final ELF, and publish on success."""
+    from .hia_elf_verified_linker_native import selected_verified_linker, verified_linker_matches
+
     checked = verify_program(document)
     profile_version = _unsigned_profile_version(checked)
     profile = {2: PROFILE, 3: PROFILE_V3, 4: PROFILE_V4, 5: PROFILE_V5}[profile_version]
@@ -330,20 +332,32 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
     destination = Path(os.path.abspath(output))
     _require(not destination.exists() and not destination.is_symlink() and destination.parent.is_dir(),
              "output must be a new path in an existing directory")
-    found = shutil.which(linker)
-    _require(found is not None, "GNU ld is required")
-    tool = Path(found).resolve()
-    tool_digest = digest_executable(tool)
-    version = run_bounded([str(tool), "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
-    _require(version.returncode == 0 and version.stdout.startswith("GNU ld "), "GNU ld is required")
-    flags = ["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack",
-             "-z", "relro", "-z", "now", "--hash-style=both", "--build-id=none"]
+    selected = selected_verified_linker()
+    if selected is None:
+        found = shutil.which(linker)
+        _require(found is not None, "GNU ld is required")
+        tool = Path(found).resolve()
+        tool_digest = digest_executable(tool)
+        version = run_bounded([str(tool), "--version"], timeout=10, stdout_limit=65536, stderr_limit=65536)
+        _require(version.returncode == 0 and version.stdout.startswith("GNU ld "), "GNU ld is required")
+        flags = ["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack",
+                 "-z", "relro", "-z", "now", "--hash-style=both", "--build-id=none"]
+        toolchain = {"path": str(tool), "sha256": tool_digest, "version": version.stdout.splitlines()[0], "flags": flags}
+    else:
+        linkage = selected.identity()
+        toolchain = selected.toolchain(linkage)
     with tempfile.TemporaryDirectory(prefix=".hia-verified-scalar-", dir=destination.parent) as temporary:
         obj, candidate = Path(temporary) / "kernel.o", Path(temporary) / "kernel.so"
-        obj.write_bytes(image.object_bytes)
-        result = run_bounded([str(tool), *flags, str(obj), "-lc", "-o", str(candidate)],
-                             timeout=30, stdout_limit=65536, stderr_limit=1048576)
-        _require(result.returncode == 0, "linker rejected kernel: " + result.stderr[:3000])
+        if selected is None:
+            obj.write_bytes(image.object_bytes)
+            result = run_bounded([str(tool), *flags, str(obj), "-lc", "-o", str(candidate)],
+                                 timeout=30, stdout_limit=65536, stderr_limit=1048576)
+            _require(result.returncode == 0, "linker rejected kernel: " + result.stderr[:3000])
+        else:
+            try:
+                selected.link(image.object_bytes, candidate)
+            except ValueError as error:
+                raise VerifiedScalarRejected("E_HIA_VERIFIED_SCALAR: " + str(error)) from error
         try:
             data = read_bounded_elf_image(candidate)
         except VerifiedImageRejected as exc:
@@ -354,8 +368,10 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
                  "final-image validation did not complete")
 
         def recheck():
+            linker_matches = (tool_digest == digest_executable(tool) if selected is None
+                              else verified_linker_matches(linkage))
             _require(image.source_identity == tuple(sorted(_producer_identity().items())) and
-                     tool_digest == digest_executable(tool), "producer or linker changed during build")
+                     linker_matches, "producer or linker changed during build")
             _require(validation["checker"]["source_identity"] == _checker_source_identity(),
                      "checker changed before final publication")
 
@@ -374,8 +390,7 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
             "object_sha256": sha256(image.object_bytes).hexdigest(), "core_sha256": checked.sha256,
             "machine_text_sha256": sha256(image.text_bytes).hexdigest(), "hot_text_bytes": image.hot_text_bytes,
             "source_identity": dict(image.source_identity), "export": image.export,
-            "toolchain": {"path": str(tool), "sha256": tool_digest,
-                          "version": version.stdout.splitlines()[0], "flags": flags},
+            "toolchain": toolchain,
             "validation": validation, "claims": dict(validation["claims"]),
             "register_abi": "SysV AMD64 direct entry; caller-saved registers only on return paths",
             "wrapper_calls": 0, "hot_stack_bytes": 0,

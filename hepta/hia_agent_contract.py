@@ -49,6 +49,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/worker_request.hepta',
     'examples/hia_bootstrap/agent_identity.hepta',
     'examples/hia_bootstrap/elf_shared_linker.hepta',
+    'examples/hia_bootstrap/elf_verified_linker.hepta',
     'examples/hia_bootstrap/scalar_reference.hepta',
     'examples/hia_bootstrap/owned_reference.hepta',
     'examples/hia_bootstrap/scalar_symbolic.hepta',

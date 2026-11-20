@@ -34,6 +34,7 @@ HELPERS = {
     "HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST": ("hia_safe_core_x64_decode_native", "NativeSafeCoreX64Decode"),
     "HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST": ("hia_safe_core_elf_inventory_native", "NativeSafeCoreElfInventory"),
     "HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST": ("hia_elf_shared_linker_native", "NativeSharedLinker"),
+    "HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST": ("hia_elf_verified_linker_native", "NativeVerifiedLinker"),
     "HEPTA_HIA_SCALAR_REFERENCE_MANIFEST": ("hia_scalar_reference_native", "NativeScalarReference"),
     "HEPTA_HIA_SCALAR_SYMBOLIC_MANIFEST": ("hia_scalar_symbolic_native", "NativeScalarSymbolic"),
     "HEPTA_HIA_CNF_MANIFEST": ("hia_cnf_native", "NativeCnf"),

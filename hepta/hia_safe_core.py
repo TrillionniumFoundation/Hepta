@@ -852,7 +852,11 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
             "output must be a new path in an existing directory")
     with tempfile.TemporaryDirectory(prefix=".hia-safe-core-", dir=destination.parent) as temporary:
         candidate = Path(temporary) / "candidate.so"
-        compilation = compile_program_machine(image, program=checked, output=candidate, linker=linker)
+        from .hia_elf_verified_linker_native import selected_verified_linker, verified_linker_matches
+        selected = selected_verified_linker()
+        linker_identity = None if selected is None else selected.identity()
+        compilation = compile_program_machine(image, program=checked, output=candidate, linker=linker,
+                                               verified_shared=True)
         try:
             data = read_bounded_elf_image(candidate)
         except VerifiedImageRejected as exc:
@@ -864,10 +868,16 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
                 "final-image validation did not complete")
         require(report["source_identity"] == source_identity == _source_identity(),
                 "producer or checker changed before final publication")
+        if linker_identity is not None:
+            require(verified_linker_matches(linker_identity) and
+                    compilation["toolchain"] == selected.toolchain(linker_identity),
+                    "verified HIA linker changed before final publication")
         published = publish_verified(candidate, destination, data)
         try:
             verify_published(candidate, destination, data)
             require(report["source_identity"] == _source_identity(), "checker changed before final publication")
+            if linker_identity is not None:
+                require(verified_linker_matches(linker_identity), "verified HIA linker changed during publication")
         except BaseException:
             withdraw_own_link(candidate, destination)
             raise

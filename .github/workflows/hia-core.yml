@@ -801,16 +801,20 @@ jobs:
           HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE: ${{ runner.temp }}/machine-plan-fixture
       - name: Actual original callers with HIA machine plans
         run: python -B tools/qualify_hia_machine_plan_native_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/machine-plan-callers.json" --evidence-dir "$RUNNER_TEMP/machine-plan-callers"
-      - name: Independent Safe Core HIA x86 and ELF readers
+      - name: HIA verified shared linkage and independent HIA x86 and ELF readers
         run: |
           compiler="$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)"
-          for candidate in safe-core-x64-decode safe-core-elf-inventory; do
+          for candidate in safe-core-x64-decode safe-core-elf-inventory elf-verified-linker; do
             python -B -m tools.build_hia_json_preflight --candidate "$candidate" \
               --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/$candidate"
           done
           HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST="$RUNNER_TEMP/safe-core-x64-decode/manifest.json" \
           HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST="$RUNNER_TEMP/safe-core-elf-inventory/manifest.json" \
             python -B -m unittest -v tests.test_hia_safe_core_x64_decode_native tests.test_hia_safe_core_elf_inventory_native
+          HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST="$RUNNER_TEMP/safe-core-x64-decode/manifest.json" \
+          HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST="$RUNNER_TEMP/safe-core-elf-inventory/manifest.json" \
+          HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST="$RUNNER_TEMP/elf-verified-linker/manifest.json" \
+            python -B -m unittest -v tests.test_hia_elf_verified_linker_native
       - name: Native machine encoding and actual source-bound installed controls
         run: |
           python -B - <<'PYMACHINE'

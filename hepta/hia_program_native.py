@@ -881,7 +881,8 @@ def _host():
 
 
 def compile_program_machine(image, *, program, output, kind="shared", linker="cc", command_log=None,
-                            machine_plan=None, parent_death_guard=False, timeout_seconds=None):
+                            machine_plan=None, parent_death_guard=False, timeout_seconds=None,
+                            verified_shared=False):
     """Publish a rederived object, or link and inspect a native shared library."""
     if command_log is not None and type(command_log) is not list:
         _reject("command log must be a plain list", "E_HIA_COMMAND_LOG")
@@ -913,11 +914,20 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
     toolchain = None
     linker_mode = None
     native_linker = None
+    verified_linker = None
+    verified_linker_identity = None
     flags = []
-    if kind == "shared":
+    if kind == "shared" and verified_shared:
+        from .hia_elf_verified_linker_native import selected_verified_linker, verified_linker_matches
+        verified_linker = selected_verified_linker()
+        if verified_linker is not None:
+            verified_linker_identity = verified_linker.identity()
+    if kind == "shared" and verified_linker is None and not verified_shared:
         from .hia_elf_shared_linker_native import selected_shared_linker
         native_linker = selected_shared_linker()
-    if native_linker is not None:
+    if verified_linker is not None:
+        toolchain = verified_linker.toolchain(verified_linker_identity)
+    elif native_linker is not None:
         toolchain = {"path": None, "sha256": native_linker.image_sha256, "version": "hia-elf-shared-linker.v1",
                      "default_target": "elf_x86_64", "mode": "hia", "role": "link_generated_object_only"}
     elif kind == "shared":
@@ -949,7 +959,14 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
         artifact = obj
         if kind == "shared":
             artifact = Path(directory) / "program.so"
-            if native_linker is not None:
+            if verified_linker is not None:
+                remaining(60)
+                try:
+                    verified_linker.link(image.object_bytes, artifact)
+                except ValueError as error:
+                    _reject(str(error))
+                remaining(60)
+            elif native_linker is not None:
                 remaining(60)
                 try:
                     artifact.write_bytes(native_linker.link(image.object_bytes))
@@ -972,6 +989,8 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
         def recheck():
             if _implementation_hash() != image.implementation_sha256 or (tool is not None and digest_executable(tool) != tool_digest):
                 _reject("implementation or linker driver changed during build", "E_HIA_PROGRAM_STALE")
+            if verified_linker is not None and not verified_linker_matches(verified_linker_identity):
+                _reject("verified HIA linker changed during build", "E_HIA_PROGRAM_STALE")
         recheck()
         published = publish_verified(artifact, destination, data)
         try:

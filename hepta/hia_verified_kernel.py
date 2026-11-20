@@ -142,6 +142,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                                 query_directory=query_directory,
                                 profile_version=_unsigned_profile_version(checked))
     else:
+        from .hia_elf_verified_linker_native import selected_verified_linker, verified_linker_matches
         from .hia_verified_simd_check import _identity as _simd_checker_identity, validate_verified_simd_artifact
         _require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
                  "shared linkage requires a Linux x86-64 host")
@@ -149,24 +150,36 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
         destination = Path(os.path.abspath(output))
         if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
             raise VerifiedKernelRejected("output must be a new file in an existing directory")
-        found = shutil.which(linker)
-        _require(found is not None, "GNU ld is required")
-        tool = Path(found).resolve()
-        tool_digest = digest_executable(tool)
-        version = run_bounded([str(tool), "--version"], timeout=10,
-                              stdout_limit=65536, stderr_limit=65536)
-        _require(version.returncode == 0 and version.stdout.startswith("GNU ld "), "GNU ld is required")
-        flags = ["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack",
-                 "-z", "relro", "-z", "now", "--hash-style=both", "--build-id=none"]
+        native = selected_verified_linker()
+        if native is None:
+            found = shutil.which(linker)
+            _require(found is not None, "GNU ld is required")
+            tool = Path(found).resolve()
+            tool_digest = digest_executable(tool)
+            version = run_bounded([str(tool), "--version"], timeout=10,
+                                  stdout_limit=65536, stderr_limit=65536)
+            _require(version.returncode == 0 and version.stdout.startswith("GNU ld "), "GNU ld is required")
+            flags = ["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack",
+                     "-z", "relro", "-z", "now", "--hash-style=both", "--build-id=none"]
+            toolchain = {"path": str(tool), "sha256": tool_digest, "version": version.stdout.splitlines()[0], "flags": flags}
+        else:
+            linkage = native.identity()
+            toolchain = native.toolchain(linkage)
         started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix=".hia-verified-simd-", dir=destination.parent) as name:
             root = Path(name)
             obj, candidate = root / "candidate.o", root / "candidate.so"
-            obj.write_bytes(image.object_bytes)
-            command = [str(tool), *flags, str(obj), "-lc", "-o", str(candidate)]
-            linked = run_bounded(command, timeout=30, stdout_limit=65536, stderr_limit=1048576)
-            if linked.returncode != 0:
-                raise VerifiedKernelRejected("link failed: " + linked.stderr[-8192:])
+            if native is None:
+                obj.write_bytes(image.object_bytes)
+                command = [str(tool), *flags, str(obj), "-lc", "-o", str(candidate)]
+                linked = run_bounded(command, timeout=30, stdout_limit=65536, stderr_limit=1048576)
+                if linked.returncode != 0:
+                    raise VerifiedKernelRejected("link failed: " + linked.stderr[-8192:])
+            else:
+                try:
+                    native.link(image.object_bytes, candidate)
+                except ValueError as error:
+                    raise VerifiedKernelRejected(str(error)) from error
             data = _read_simd_image(candidate)
             validation = validate_verified_simd_artifact(
                 checked, image.object_bytes, data,
@@ -182,8 +195,9 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                      "independent decoder did not provide ISA requirements")
             cpu_admission = require_host_isa(features, mask)
             def recheck():
-                _require(producer_identity == _simd_producer_identity() and
-                         tool_digest == digest_executable(tool),
+                linker_matches = (tool_digest == digest_executable(tool) if native is None
+                                  else verified_linker_matches(linkage))
+                _require(producer_identity == _simd_producer_identity() and linker_matches,
                          "producer or linker changed during build")
                 _require(cpu_admission["affinity"] == sorted(os.sched_getaffinity(0)),
                          "CPU affinity changed during build")
@@ -208,8 +222,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
             "source_identity": producer_identity, "simd_unroll": simd_unroll,
             "simd_isa": image.isa, "simd_copy_tail": image.copy_tail,
             "simd_reduce_tail": image.reduce_tail, "cpu_admission": cpu_admission,
-            "toolchain": {"path": str(tool), "sha256": tool_digest,
-                          "version": version.stdout.splitlines()[0], "flags": flags},
+            "toolchain": toolchain,
             "validation": validation, "elapsed_seconds": time.monotonic() - started,
         }
     return {**result, "selected_strategy": selected, "selection_refusals": refusals,

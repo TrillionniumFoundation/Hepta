@@ -126,6 +126,7 @@ CORE_NORMALIZE_SDIST_FILES = (
 NATIVE_LINKER_SDIST_FILES = (
     'examples/hia_bootstrap/elf_linker_filter_packer.hepta',
     'tools/generate_hia_shared_linker.py',
+    'tools/generate_hia_elf_verified_linker.py',
 )
 SCALAR_REFERENCE_SDIST_FILES = (
     'examples/hia_bootstrap/direct_load_plan.hepta',
@@ -456,6 +457,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/safe_core_elf_inventory.hepta',
     'tools/generate_hia_safe_core_elf_inventory.py',
     'tests/test_hia_safe_core_elf_inventory_native.py',
+    'tests/test_hia_elf_verified_linker_native.py',
     'tests/test_hia_machine_encoding_native.py',
     'tools/build_hia_machine_encoding.py',
     'tools/generate_hia_machine_encoding.py',
@@ -915,6 +917,7 @@ SOURCE_FILES = (
     'tests/test_hia_program_selfhost.py',
     'examples/hia_bootstrap/agent_identity.hepta',
     'examples/hia_bootstrap/elf_shared_linker.hepta',
+    'examples/hia_bootstrap/elf_verified_linker.hepta',
     'examples/hia_bootstrap/scalar_reference.hepta',
     'examples/hia_bootstrap/owned_reference.hepta',
     'examples/hia_bootstrap/scalar_symbolic.hepta',
