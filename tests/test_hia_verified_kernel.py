@@ -18,7 +18,7 @@ from hepta.hia_safe_core import SafeCoreRejected
 from hepta.hia_verified_kernel import build_verified_kernel, select_verified_kernel
 from hepta.hia_verified_scalar import emit_verified_scalar
 from hepta.hia_verified_simd import simd_kernel_program
-from tests.test_hia_program import arithmetic
+from tests.test_hia_program import arithmetic, b, jump, ret
 from tests.test_hia_verified_scalar import multiply_add
 from tools.build_hia_verified_kernel import build as build_attempt
 
@@ -34,8 +34,10 @@ class VerifiedKernelIntegrationTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
 
-    def test_checked_arithmetic_auto_fallback_occurs_before_linking_or_proof(self):
+    def test_multiblock_checked_arithmetic_auto_fallback_occurs_before_linking_or_proof(self):
         core = arithmetic("int.add.checked", "u64")
+        core["functions"][0]["blocks"][0]["term"] = jump("done", "r")
+        core["functions"][0]["blocks"].append(b("done", [("result", "u64")], [], ret("result")))
         with patch("hepta.hia_safe_core.validate_safe_core_artifact", side_effect=AssertionError("unexpected proof")):
             _, selected, image, refusals = select_verified_kernel(core)
         self.assertEqual(selected, "checked")
@@ -138,3 +140,33 @@ class VerifiedKernelIntegrationTests(unittest.TestCase):
         retained = sha256((directory / "candidate.o").read_bytes()).hexdigest()
         self.assertEqual(retained, report["result"]["object_sha256"])
         self.assertEqual(retained, report["result"]["validation"]["subject"]["object_sha256"])
+
+    def test_tail_selection_keeps_legacy_and_default_candidates_distinct(self):
+        for isa in ("avx2", "avx512"):
+            for kind in ("copy_u8", "sum_u8", "all_zero_u8"):
+                core = simd_kernel_program(kind)
+                _, selected, image, refusals = select_verified_kernel(
+                    core, strategy="simd", simd_isa=isa)
+                self.assertEqual((selected, refusals), ("simd", []))
+                if kind == "copy_u8":
+                    self.assertEqual((image.copy_tail, image.reduce_tail), ("endpoints-fast", None))
+                    old_options = ({"simd_copy_tail": "endpoints"}, {"simd_copy_tail": "byte"})
+                else:
+                    self.assertEqual((image.copy_tail, image.reduce_tail), (None, "bounded"))
+                    old_options = ({"simd_reduce_tail": "byte"},)
+                for options in old_options:
+                    with self.subTest(isa=isa, kind=kind, options=options):
+                        _, old_selected, old, _ = select_verified_kernel(
+                            core, strategy="simd", simd_isa=isa, **options)
+                        self.assertEqual(old_selected, "simd")
+                        self.assertEqual(old.core_sha256, image.core_sha256)
+                        self.assertNotEqual(old.text_bytes, image.text_bytes)
+
+    def test_invalid_tail_options_fail_before_selection_or_linking(self):
+        for options in ({"simd_reduce_tail": "endpoints"}, {"simd_reduce_tail": True},
+                        {"simd_copy_tail": "bounded"}, {"simd_copy_tail": 1}):
+            with self.subTest(options=options), \
+                    patch("hepta.hia_verified_scalar.emit_verified_scalar",
+                          side_effect=AssertionError("selection before option validation")), \
+                    self.assertRaisesRegex(ValueError, "tail must be"):
+                build_verified_kernel(multiply_add(), self.root / "invalid.so", **options)

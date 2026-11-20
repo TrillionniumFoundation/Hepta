@@ -1,15 +1,37 @@
-# Verified register and SSE2 kernels
+# Verified register and native SIMD kernels
 
-The opt-in kernel builder exports small x86-64 functions directly, then checks
+The kernel builder exports small x86-64 functions directly, then checks
 the **linked ELF bytes** before publishing the library. Scalar hot paths stay
 in registers. Three borrowed-byte loops perform one complete-range admission
-before processing sixty-four bytes per main-loop iteration, sixteen bytes per
-cleanup iteration and one byte per tail iteration. The solver runs during the build; the native call contains no proof
+before processing 64, 128 or 256 bytes per main-loop iteration for SSE2, AVX2
+or AVX-512, respectively. Cleanup covers the requested range exactly; the wide
+copy profile uses bounded first/last transfers for its final short suffix.
+Wide reductions use a sixteen-byte cleanup and nonoverlapping word tails.
+The solver runs during the build; the native call contains no proof
 engine, interpreter or entry wrapper.
 
 ## Build and independent checking
 
 Use Linux x86-64, GNU ld and `z3-solver==4.15.4.0`:
+
+```sh
+hia build examples/hia_verified_kernels/sum_u8.hepta \
+  --kind shared -o /tmp/hia-sum.so
+hia build examples/hia_verified_kernels/sum_u8.hepta \
+  --kind shared --target-isa sse2 -o /tmp/hia-sum-portable.so
+```
+
+The standard shared-library build defaults to `--backend auto`. Its scalar,
+SIMD or checked Safe Core selection is fixed before proof; a failed proof,
+timeout or unsupported source publishes no library. `--target-isa native`
+selects the widest supported profile after fresh CPU/OS observations.
+`sse2`, `avx2` and `avx512` request explicit targets. The ordinary object build
+retains its existing ABI and external-tool requirements. Explicit
+`--backend native --kind shared` retains the ordinary module ABI. The native
+HIA CLI control and formatter own the same choices and cross-field errors as
+the reference CLI, including the installed entry-point continuation.
+
+For an attempt directory retaining all proof inputs and queries:
 
 ```sh
 python tools/build_hia_verified_kernel.py \
@@ -31,11 +53,18 @@ checked Safe Core lowering when the source is outside the register profile.
 `hepta.hia_verified_kernel.build_verified_kernel` provides the same API in
 Python. Its optional `artifact_directory` retains the single selected object;
 the scalar builder consumes that immutable object without reemitting it.
-The default SIMD path uses `simd_unroll=4`; `simd_unroll=1` retains the original
-sixteen-byte loop for independently checked comparisons. Both use SSE2 and
-the same Core recurrence and borrowed-byte ABI.
-Production language defaults are unchanged, so programs outside these narrow
-profiles continue to use their existing checks and compiler entry points.
+The Python API preserves `simd_isa="sse2"` and `simd_unroll=4` as its compatible
+defaults. `simd_unroll=1` retains the original sixteen-byte loop. Explicit
+`simd_isa="avx2"` and `"avx512"` use four chunks and independent accumulators;
+`"native"` selects from fresh host observations. All profiles use the same
+Core recurrence and borrowed-byte ABI. The standard verified shared command
+and retained-attempt tool default to the host-native selection.
+
+Wide copy defaults to `simd_copy_tail="endpoints-fast"`; explicit `"endpoints"`
+and `"byte"` retain the two previous complete machine profiles. Wide sum and
+zero scan default to `simd_reduce_tail="bounded"`; explicit `"byte"` retains
+the previous wide-reduction objects. These Python selectors preserve the old
+profiles for simultaneous controls. They do not change the SSE2 defaults.
 
 Independent consumers accept caller-supplied Core, object and final ELF bytes:
 
@@ -52,12 +81,95 @@ symbol ranges, relocations, dynamic symbol lookup, load mappings and protection
 flags. The closed direct-entry ELF shape extends the existing two-function
 wrapper shape; both retain immediate binding of the sole libc `abort` import.
 
-The SIMD build records and rechecks the producer, native encoder and exact GNU
-linker identities around emission and publication. Linker output is bounded,
-and the candidate is read through a non-following, non-blocking descriptor that
+The SIMD and register builds record and recheck the producer, native encoder
+and exact GNU linker identities around emission and publication. Linker output is bounded,
+and the final candidate for all three verified build paths is captured by the
+same bounded reader through a non-following, non-blocking descriptor that
 accepts only a stable ordinary file of at most 8 MiB. An output overflow,
 changed tool or producer, FIFO, symlink or oversized candidate is a build
 failure. Publication-time failures withdraw only this build's own link.
+The ordinary checked compiler's earlier artifact capture has its separate
+64 MiB limit; the 8 MiB bound here describes the final validation capture.
+
+## Checked scalars and source names
+
+The register producer's v2 profile includes unsigned checked add, checked
+subtract and checked casts at u8/u16/u32/u64/usize widths, using the existing
+independent Safe Core v2 semantics. Add guards check carry at 64 bits and
+the complete untruncated result at narrower widths. Subtract guards inspect
+borrow before normalization. Narrowing casts check the source value before
+discarding high bits. Guard scratch registers follow the same liveness
+allocator; exhausting the caller-saved register budget is a selection refusal.
+The auto selector can then choose the ordinary checked lowering before proof.
+
+Successful register paths still use no stack memory. A reachable failure path
+aligns the stack and calls `abort`; the model accounts for both its alignment
+slot and CALL's return-address write, for 16 bytes in the current checked
+arithmetic kernels. Reports keep this maximum separate from
+`hot_stack_bytes=0`. The wrapping u64 multiply-add retains its original
+four-instruction, 11-byte hot path. Final-byte negative controls remove guards,
+truncate before checking, invert carry, clobber a live scratch value and break
+abort alignment; each is rejected with a counterexample before publication.
+
+The three recognized Core recurrences also accept legal SSA and block
+renaming, and block declaration reordering. Recognition first validates the
+original typed Core, constructs bijections by CFG role and declaration
+position, validates the renamed view, then requires exact inverse roundtrip
+equality. It changes only identifier fields. The strict recurrence comparison
+still checks operations, operand order, types, constants, attributes, effects
+and traps. The `core_recognition` receipt records the original Core hash,
+normal-form hash and complete mapping separately; the artifact subject stays
+bound to the original Core. Renaming does not change machine bytes or any
+machine proof obligation.
+
+## CPU admission and immutable loading
+
+The independent decoder reports the features used by the actual final
+instructions. A 256-bit copy needs AVX; its integer reductions also need AVX2.
+The 512-bit copy needs AVX-512F; its sum additionally uses AVX-512BW, and the
+wide reductions' horizontal stage uses AVX2. Features absent from an image are
+not imposed merely because its target profile is named AVX2 or AVX-512.
+
+`hia_verified_cpu` uses a fixed baseline-instruction CPUID/XGETBV probe in an
+isolated subprocess. It checks hardware XSAVE/OSXSAVE/AVX, the enabled XCR0
+state, and the precise extension bits on every CPU in the caller's allowed
+affinity. XGETBV is reached only when OSXSAVE permits it. A probe fault,
+missing feature, incomplete CPU inventory or changed affinity rejects the
+build. The parent thread's affinity is never modified. The probe uses a
+write-then-execute mapping; no writable/executable mapping is requested.
+
+The public loader accepts original inputs and rechecks both the final image
+and current CPU state:
+
+```python
+from hepta.hia_verified_kernel_load import load_verified_simd_kernel
+
+kernel = load_verified_simd_kernel(core, object_bytes, final_bytes)
+native_function = kernel.function
+```
+
+`load_verified_scalar_kernel(core, object_bytes, final_bytes)` supplies the
+same immutable-mapping admission for unsigned Safe Core v2 scalar direct
+entries. It reruns the independent scalar consumer, rejects borrowed arguments
+and wrappers, and exposes zero to six raw uint64 SysV argument words with a
+canonical uint64 return. The proved machine body performs narrow-width input
+normalization. Scalar and SIMD cache identities remain distinct, and every
+load constructs a fresh callable with the admitted argument types.
+
+It copies the exact validated bytes into a Linux sealed memfd, verifies the
+sealed byte readback, and rejects a pre-existing dynamic-loader pathname
+cache before immediate binding. It then uses the GNU loader's link-map
+information and `/proc/self/maps` to bind the actual RX mapping to the sealed
+device/inode, entry file offset and every machine text byte. Only that verified
+address becomes a callable. It does not resolve a target symbol before
+binding the image, so a stale GNU IFUNC cannot execute during lookup.
+
+Mappings remain in a bounded process-lifetime registry (64 images and 64 MiB).
+Every load repeats validation and CPU admission and returns its own function
+ABI object; mutable old reports or ctypes attributes do not authorize another
+load. The native call itself has no solver, CPUID or dispatch wrapper. Callers
+retain live borrowed ranges and an ISA-compatible execution environment,
+including after any later thread migration or affinity change.
 
 ## Scalar register ABI
 
@@ -138,6 +250,56 @@ symbolic prior states to zero. Reports record three backedges,
 The consumer also accepts the original sixteen-byte and single-accumulator
 sixty-four-byte objects and final images without invoking either producer.
 
+The wide profiles separately decode VEX and EVEX prefix fields, reserved bits,
+unmasked full-vector memory forms and signed displacements. In particular,
+EVEX disp8 is multiplied by the 64-byte tuple width; disp32 is not scaled.
+Sum uses folded-memory VPSADBW plus VPADDQ, zero scan uses folded-memory
+VPOR/VPORQ, and copy uses unaligned VMOVDQU/VMOVDQU64. Four arbitrary prior
+accumulators are retained in the induction and merged before cleanup.
+Narrow VEX writes zero their upper destination bits in the independent model.
+The wide sum and zero scan each have fourteen obligations, including explicit
+accumulator initialization. The original wide copy has twelve and remains
+available as `simd_copy_tail="byte"` in the Python builder for complete
+simultaneous controls. Those v1 paths retain their exact object/text bytes.
+
+The wide copy's v2 endpoint profile has a bulk block that
+loads four vectors before storing them, and its guarded single-vector cleanup
+leaves fewer than 32/64 bytes. A descending width dispatch selects 16/32,
+8, 4, 2 or 1 bytes. For `w <= remaining < 2*w`, the first and last `w`-byte
+blocks cover exactly the suffix. Both loads precede the two stores; repeated
+bytes receive the same source byte under the full-range disjointness contract.
+The independent model uses one symbolic source byte array, actual decoded
+offsets and an arbitrary destination-byte index to prove every byte inside and
+outside the suffix. It also proves the dispatch partition and nonwrapping
+bounds. AVX2 requires 21 total obligations and AVX-512 requires 23.
+Changing the last store to reuse first-block data produces an SMT
+counterexample in the overlapping case. A one-byte suffix has one load/store.
+Every nonempty endpoint return passes through VZEROUPPER. The default v3
+`copy-endpoints-fast` profile additionally sends `remaining == 1` directly
+to its exact one-byte transfer. The closed branch shape and the endpoint
+partition preserve the same 21/23 obligations. Both older copy profiles
+retain their original complete object and text bytes.
+
+The new `reduce-bounded` profiles use a short-input branch before wide
+accumulator initialization. Short inputs initialize only the two required
+128-bit registers. Long inputs use the existing wide bulk/vector loops and
+fold the complete wide accumulator into 128 bits. Both paths join at the
+same sixteen-byte cleanup loop and horizontal reduction. The final suffix
+uses at most one exact load of each size 8, 4, 2 and 1, advancing after every
+accepted word. Sum uses PSADBW against a preserved zero vector; zero scan
+combines the loaded words. No endpoint-overlap trick is used for summation.
+
+Each bounded reduction has 22 independent obligations. These include the
+actual short-entry partition, both accumulator initializations, wide-to-narrow
+and horizontal composition, the persistent zero register, and the complete
+GPR/vector frame. A symbolic suffix length and arbitrary byte index prove
+the word partition covers every requested byte exactly once and reads no
+outside byte. Each word's data operation is checked separately against its
+decoded operands. Negative controls preserve a stage's immediate result while
+polluting the zero register needed by the next stage; they produce concrete
+SMT counterexamples. All fourteen historical SSE2, wide-byte and endpoint
+objects retain their exact byte hashes.
+
 The induction connects the decoded backedges with the scalar Core recurrence.
 Its trust base is the stated Python Core/ISA/loop/ELF models, GNU/Linux loader
 contract and pinned Z3 implementation. A caller supplies live initialized
@@ -173,21 +335,44 @@ python tools/benchmark_hia_verified_kernels.py \
   --rustc rustc
 ```
 
-The v2 protocol records 64 cases, including simultaneous sixteen-byte and
-sixty-four-byte SSE2 arms with identical Core and ABI. It records 21 batches
+The v4 protocol records 533 cases, including simultaneous sixteen-byte and
+sixty-four-byte SSE2, 128-byte AVX2 and 256-byte AVX-512 arms with identical
+Core and ABI. It retains the complete 487-case v3 matrix and adds 46
+simultaneous original wide-copy byte-tail controls, covering both ISAs at all
+23 lengths. It records 21 batches
 after three warmups, all raw samples, checksums,
 disassemblies, final libraries and their proof inputs. Every arm uses the
 same indirect-call driver and CPU affinity. Workloads include scalar multiply
-add and 256/4096/4097/65536-byte spans with sixteen unaligned offsets. C and
+add and 23 span lengths from zero to 65536, covering both sides of the 16-,
+32-, 64-, 128-, 256- and page boundaries, with sixteen unaligned offsets. C and
 Rust use their native-target release optimizers; SSE2 remains the HIA baseline
 ISA. The ordinary HIA span baseline retains its checked packed-u32 wrapper;
 all measured counts and sums fit u32, so these valid-input results agree with
 the new u64 API. Invalid-input ABI behavior is not equated.
 
+The current v5 protocol preserves every v4 arm and its exact machine profile,
+including both copy byte-tail controls. Six additional profiles cover the
+default bounded sum/zero tails and fast one-byte endpoint-copy dispatch at
+both wide ISAs. Their 138 additional cases produce 671 total cases and
+14,091 measured samples. The v4 `verified-avx2-128`/`verified-avx512-256`
+labels remain fixed to their old reduction byte tails and old copy endpoints;
+the new defaults have explicit `bounded-tail` and `copy-endpoints-fast` arm
+names. The driver, reference code, lengths, iteration counts and compiler
+flags are unchanged.
+
 These measurements describe the declared hot-cache kernels on a shared host.
 Affinity does not make a core exclusive, and the raw samples remain available
 for assessing interference. Build/proof time is reported separately from
 native call latency.
+
+The current protocol also binds the actual glibc binary, its version and
+the resolved memcpy IFUNC offset with a baseline-ISA helper under the same
+affinity and environment. This dependency observation applies to new runs;
+the historical campaigns below retain their original identity inventories.
+
+The broader language and product work is tracked in
+[HIA_RUST_COMPARISON.md](HIA_RUST_COMPARISON.md), with independent closure
+criteria for each feature family and each performance workload.
 
 ## Recorded campaigns
 
@@ -228,3 +413,129 @@ The changed implementation passes the complete strict **139-test** kernel
 inventory locally and in [hosted CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44655567208),
 including the frozen old object, all negative controls, and exact-end guard
 pages. Its full-tree source-contract check covers 919 source identities.
+
+### Complete wide-ISA campaign
+
+The [third campaign summary](../benchmarks/hia_verified_kernels/results/ai395-20261119-wide-summary.json)
+binds **487 cases and 10,227 samples** to source
+`93bccb96c0ccb30f5e1fbe876a56e05953e5c83f`, tree
+`41a31011db48f9971c68594dc583098f25361db4`. All cases completed in one
+106.28-second campaign, with no selected-cell reruns or discarded samples.
+The [complete public record](../benchmarks/hia_verified_kernels/results/ai395-20261119-wide.json.gz)
+is gzip-compressed JSON and includes every sample, all six wide proofs and
+fresh CPU observations, source/binary identities, and the actual libc
+dependency. Its decompressed SHA256 is
+`b7bf4c02b828da64c51ce2fcc5852c889301e3611f8e1757c62202da605332f9`;
+the original remote RESULT SHA256 is
+`06df05fee18efa5b16b728e028ca43facc02fd08068032ed05a437dd6a51d095`.
+
+Independent readback checked the exact case inventory, all sample checksums
+and timing divisions, every median, 519 command receipts, 21 binaries, 80
+wide SMT query hashes and the before/after libc identity. This run used the
+same AI395 host and CPU 15, GCC 15.2, Rust 1.99.1 and Z3 4.15.4. The observed
+glibc 2.43 binary has SHA256
+`9941dc28e68bc5fd788d9cd024c69e68c791d63799e7538a97b6040dd9f50fb6`;
+its resolved memcpy offset is `0x1b0a40`.
+
+Third-campaign median latency, in nanoseconds per call:
+
+| Workload | Verified AVX2 | Verified AVX-512 | Rust native |
+| --- | ---: | ---: | ---: |
+| Byte sum, 4 KiB | 19.337 | 12.825 | 68.120 |
+| All-zero scan, 4 KiB | 19.243 | 12.511 | 12.576 |
+| Copy, 4 KiB | 33.200 | 29.953 | 17.555 |
+| Byte sum, 64 KiB | 317.540 | 298.120 | 1137.411 |
+| All-zero scan, 64 KiB | 319.360 | 336.430 | 287.560 |
+| Copy, 64 KiB | 638.570 | 593.241 | 759.571 |
+| Copy, 127 bytes | 9.052 | 14.980 | 1.818 |
+
+Register multiply-add was 0.996479 ns versus Rust's 0.996097 ns. This tiny
+difference is unresolved timing noise, not a demonstrated advantage. Wide
+sum is faster on the listed large inputs, but AVX-512 has a lower median in
+only 24 of the 69 span workload/length pairs and a higher one in 45. AVX2
+has 22 lower and 47 higher medians. The [complete 69-row comparison](../benchmarks/hia_verified_kernels/results/ai395-20261119-wide-comparison.json)
+retains the short-tail regressions. Even the descriptive minimum of both
+wide arms has 41 higher medians; that minimum is not an implemented dispatch
+policy. Short tails, 4 KiB copy and 64 KiB zero scan remain concrete work.
+
+### CLI and cold-source qualification for the wide implementation
+
+The [qualification receipt](../benchmarks/hia_verified_kernels/results/cli-current-qualification-633feee.json)
+and its [exact source manifest](../benchmarks/hia_verified_kernels/results/cli-current-source-manifest-633feee.json)
+bind the complete 923-file source closure plus its generated contract.
+The matching-source cold replay passed 11/11 checks in 172.748 seconds under
+the original deadline, including its B0/B1/B2/B3 and modified-source checks.
+The native CLI gate passed 22 tests with no skips, and the actual installed
+wheel passed isolated `-I -S`, empty-PATH, no-retained-parser controls. These
+receipts distinguish CLI argument transport from actual shared-kernel execution.
+
+Hosted strict gates on `633feee656f000e2a9b683b366e391b5eefe3ce1` passed
+201 tests in both [PR CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44661846561)
+and [push CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44661839320),
+with no skips. This commit changes only the workflow's Python pin from the
+measured `93bccb9` source. The earlier 168 failures on floating Python
+3.12.16 are retained; the gate now uses already-supported Python 3.12.14.
+These results qualify their recorded source identities. Later language or
+checker extensions require their own applicable gates.
+
+The broader `633feee` native workflow subsequently reached a separate
+[retained failure](../benchmarks/hia_verified_kernels/results/native-633feee-failure-summary.json):
+its original Core caller group ran all 50 tests and failed only the route
+inventory assertion that still required every build to be "fixed native".
+The original failure report and full group log are retained beside that
+summary. The current test keeps its original ID and group membership, and
+asserts the actual object/native and shared/verified routes, including proof
+before publication and refusal after proof failure. It is also in the fast
+kernel gate. Fixing that assertion does not retroactively make the old native
+workflow successful; the changed source requires a complete rerun.
+
+### Complete endpoint-copy campaign
+
+The [fourth campaign summary](../benchmarks/hia_verified_kernels/results/ai395-20261120-endpoints-summary.json)
+and [complete compressed record](../benchmarks/hia_verified_kernels/results/ai395-20261120-endpoints.json.gz)
+bind **533 cases and 11,193 samples** to source
+`60409eacc6cda870d2be1d090f2c66b682c9466b`, tree
+`7bf431d26fe55e56082af92dd634aa515fa75ef7`. The original RESULT SHA256 is
+`7c7a3c20508f5823fdecf0c9fe9240e1ba8093de7420fea4f7a66d6bc9be0885`;
+the decompressed public record SHA256 is
+`fe6660ae4b288294f5aaffd4df84041617019431f0a90a530dfcfed409860e99`.
+The same CPU 15, tool binaries, runtime, driver and input protocol were used.
+One complete campaign retained all samples without selected-cell reruns.
+
+Remote readback checked 567 command-output receipts, 23 binaries, eight wide
+builds and 124 SMT query hashes against their original files. A separate
+local readback reconstructed all 533 cases and their deterministic order,
+recomputed 11,193 timing divisions and checksums, all medians and Rust ratios,
+matched the gzip content exactly, and checked 26 source hashes against the
+frozen `60409ea` tree. Its scalar checksum used the direct ten-million-step
+recurrence, independently of the remote projection's matrix implementation.
+
+Fourth-campaign median latency, in nanoseconds per call:
+
+| Workload | Verified AVX2 | Verified AVX-512 | Rust native |
+| --- | ---: | ---: | ---: |
+| Byte sum, 4 KiB | 19.329 | 12.972 | 67.451 |
+| All-zero scan, 4 KiB | 19.565 | 12.685 | 12.660 |
+| Copy, 4 KiB | 28.610 | 21.995 | 18.741 |
+| Byte sum, 64 KiB | 317.170 | 296.790 | 1135.661 |
+| All-zero scan, 64 KiB | 319.581 | 325.410 | 287.820 |
+| Copy, 64 KiB | 561.740 | 577.811 | 766.400 |
+
+The simultaneous old/new AVX-512 copy control is 14.871/1.420 ns at
+63 bytes and 14.890/1.688 ns at 127 bytes. AVX2's 31-byte control is
+8.448/1.461 ns. These endpoint improvements do not erase the slower one-byte
+suffixes: at length 1, AVX-512 is 1.877 ns versus its old byte-tail control's
+1.613 ns. At 65, 129 and 257 bytes, the one-byte suffix also regresses.
+
+AVX-512 has 32 lower and 37 higher medians across the complete 69 span
+workload/length pairs; AVX2 has 29 lower and 40 higher. The descriptive
+minimum of both has 35 lower and 34 higher; this is not an implemented
+dispatcher. Register multiply-add is 0.995402 ns versus Rust's 0.999111 ns,
+an unresolved small difference. Short reduction tails still dominate some
+losses: the AVX-512 32-byte sum is 7.574 ns versus Rust's 1.477 ns. The next
+candidate must be measured separately before any of these results change.
+
+The frozen `60409ea` implementation passes the full strict 272-test inventory
+locally and in both [PR CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44665015777)
+and [push CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44665008906),
+with no skips. New source changes require a new contract and applicable gates.

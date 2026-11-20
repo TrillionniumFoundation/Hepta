@@ -1,4 +1,4 @@
-"""Build a register or SSE2 kernel and retain the exact final-image proof.
+"""Build a register or SIMD kernel and retain the exact final-image proof.
 
 No native candidate is executed by this command. All attempts retain their
 source, selected object and terminal report. Failed proofs publish no library.
@@ -22,13 +22,15 @@ from hepta.hia_verified_kernel import build_verified_kernel
 from tools.check_hia_safe_core import _snapshot
 
 
-def build(source, output, *, strategy="auto", foreign_extent=None, linker="ld", timeout_ms=15000):
+def build(source, output, *, strategy="auto", foreign_extent=None, linker="ld", timeout_ms=15000,
+          simd_isa="native"):
     destination = Path(output).absolute()
     destination.mkdir(parents=False, exist_ok=False)
     started = time.monotonic()
     report = {"schema": "hepta.hia.verified-kernel-attempt.v1", "ok": False, "status": "running",
               "started_utc": datetime.now(timezone.utc).isoformat(), "strategy": strategy,
               "foreign_extent": foreign_extent, "timeout_ms": timeout_ms,
+              "requested_simd_isa": simd_isa,
               "native_execution_observed": False, "adopted": False}
     report_path = destination / "attempt.json"
 
@@ -45,7 +47,7 @@ def build(source, output, *, strategy="auto", foreign_extent=None, linker="ld", 
         result = build_verified_kernel(
             checked, destination / "program.so", strategy=strategy, foreign_extent=foreign_extent,
             linker=linker, timeout_ms=timeout_ms, query_directory=destination / "queries",
-            artifact_directory=destination)
+            artifact_directory=destination, simd_isa=simd_isa)
         report.update(ok=True, status=result["status"], result=result,
                       selected_strategy=result["selected_strategy"],
                       selection_refusals=result["selection_refusals"])
@@ -76,9 +78,10 @@ def main(argv=None):
     parser.add_argument("--foreign-extent", type=int, help="existing checked packed-u32 foreign ABI only")
     parser.add_argument("--linker", default="ld")
     parser.add_argument("--timeout-ms", type=int, default=15000)
+    parser.add_argument("--target-isa", choices=("native", "sse2", "avx2", "avx512"), default="native")
     args = parser.parse_args(argv)
     report = build(args.source, args.output, strategy=args.strategy, foreign_extent=args.foreign_extent,
-                   linker=args.linker, timeout_ms=args.timeout_ms)
+                   linker=args.linker, timeout_ms=args.timeout_ms, simd_isa=args.target_isa)
     print(json.dumps({"ok": report["ok"], "status": report["status"],
                       "selected_strategy": report.get("selected_strategy"),
                       "output": str(Path(args.output).absolute()), "error": report.get("error"),
