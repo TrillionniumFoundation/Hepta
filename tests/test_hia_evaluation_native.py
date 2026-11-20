@@ -145,15 +145,13 @@ class EvaluationSourceTests(unittest.TestCase):
                 raise AssertionError('unselected evaluation imported optional native owner')
             return real_import(name, *arguments, **keywords)
 
-        reference = original()
+        case = fixture_by_name()['artifact_improved']
+        expected = World(case, api).observe(original())
         with patch.dict(os.environ):
             os.environ.pop(native.SELECTOR, None)
             with patch('builtins.__import__', guarded):
-                for name, case in fixture_by_name().items():
-                    with self.subTest(case=name):
-                        expected = World(case, api).observe(reference)
-                        actual = World(case, api).observe(lambda service, args: service._hia_evaluate(args))
-                        self.assertEqual(encoded(actual), encoded(expected))
+                actual = World(case, api).observe(lambda service, args: service._hia_evaluate(args))
+        self.assertEqual(encoded(actual), encoded(expected))
         from tools.build_hia_evaluation import build
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -476,6 +476,13 @@ def selected_json_equality():
     return eq if not selected else installed_worker_report(selected).equal_json
 
 
+def selected_json_inequality():
+    from operator import eq, ne
+
+    equal = selected_json_equality()
+    return ne if equal is eq else lambda left, right: not equal(left, right)
+
+
 def installed_worker_report(path):
     from .hia_native_helpers import pinned_bundle
     captured = pinned_bundle(path, SCHEMA, NativeWorkerReport)
