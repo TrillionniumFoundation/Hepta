@@ -36,6 +36,10 @@
 .equ AUDIT_MAGIC,0x3255414750414948
 
 _start:
+.ifdef HIA_PAGER_EMBEDDED_OBJECTS
+ /* The native static linker invokes _start through its SysV call stub. */
+ add rsp,8
+.endif
  mov r15,rsp
  cmp QWORD PTR [r15],2
  je driver_map
