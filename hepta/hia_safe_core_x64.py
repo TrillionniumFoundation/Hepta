@@ -602,9 +602,9 @@ class Executor:
         carry = self.undefined_flag(op, "cf")
         # The short formula is valid only when the actual pre-instruction
         # high word is the HIA-computed sign extension of the low word.
-        narrow = op == "idiv" and z.eq(z.simplify(regs[2]), self.cqo(z.simplify(regs[0])))
+        parameter = self.signed_dividend_profile(regs[2], regs[0], regs[operand]) if op == "idiv" else 0
         low, high, cf, admitted = self.native_model.word_pair(z, self.ctx, recipe, regs[0], regs[2],
-                                                              regs[operand], carry, parameter=int(narrow))
+                                                              regs[operand], carry, parameter=parameter)
         require(low is not None and high is not None and cf is not None and
                 (admitted is not None) == (op in ("div", "idiv")), "incomplete native two-word machine formula")
         regs[0], regs[2] = low, high
@@ -614,6 +614,19 @@ class Executor:
                                of=cf if admitted is None else self.undefined_flag(op, "of"))
         if admitted is not None:
             state.path = z.simplify(z.And(state.path, admitted))
+
+    def signed_dividend_profile(self, high, low, divisor):
+        z = self.z
+        low, divisor = map(z.simplify, (low, divisor))
+        if not z.eq(z.simplify(high), self.cqo(low)):
+            return 0
+        # Only a syntactic identity of the actual register expressions can
+        # justify the shorter circuit. Unknown identities keep the full words.
+        for width in (8, 16, 32):
+            if all(z.eq(word, z.simplify(z.SignExt(64 - width, z.Extract(width - 1, 0, word))))
+                   for word in (low, divisor)):
+                return width
+        return 1
 
     def _reference_extended_registers(self, state, op, args):
         z, regs = self.z, state.registers

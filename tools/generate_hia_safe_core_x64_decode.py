@@ -441,8 +441,10 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         return shift_formula(o, op, param)
     if op == OP_SIGNED_FLAGS:
         return signed_flag_formula(o, param & 255, param >> 8)
-    if op == OP_IDIV and param <= 1:
-        return signed_divide_formula(o, param == 1)
+    if op == OP_IDIV:
+        if param > 1 and param != 8 and param != 16 and param != 32:
+            return 4294967293
+        return signed_divide_formula(o, param)
     if param != 0:
         return 4294967293
     if op == OP_LOAD or op == OP_LOAD8 or op == OP_STORE or op == OP_STORE8 or op == OP_LEA:
@@ -589,7 +591,8 @@ def shift_formula(o:mutbuf, op:u64, count:u64) -> u64:
         return formula_done(o, 0, 0, 0, 0)
     left = op == OP_SHL
     if op == OP_SAR:
-        shifted = node(o, R_ASHR_DYNAMIC, LEFT, node(o, R_LITERAL64, count, 0, 0), 0)
+        surviving = node(o, R_EXTRACT, LEFT, 63, count)
+        shifted = node(o, R_SIGNEXT, surviving, count, 0)
     else:
         shifted = node(o, choose(left, R_SHL, R_LSHR), LEFT, count, 0)
     result = node(o, R_SIMPLIFY, shifted, 0, 0)
@@ -648,9 +651,26 @@ def pair_formula(o:mutbuf, op:u64) -> u64:
         carry = node(o, R_NONZERO, high, 0, 0)
     return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), node(o, R_SIMPLIFY, high, 0, 0), carry, 0)
 
-def signed_divide_formula(o:mutbuf, narrow:bool) -> u64:
+def signed_division_input(o:mutbuf, source:u64, width:u64) -> u64:
+    # One extra signed bit preserves the mathematical MIN/-1 quotient.
+    if width == 64:
+        return source
+    return node(o, R_SIGNEXT, node(o, R_EXTRACT, source, width - 1, 0), 1, 0)
+
+def signed_division_result(o:mutbuf, value:u64, width:u64) -> u64:
+    if width == 64:
+        return value
+    return node(o, R_SIGNEXT, value, 63 - width, 0)
+
+def signed_divide_formula(o:mutbuf, profile:u64) -> u64:
     nonzero = node(o, R_NONZERO, THIRD, 0, 0)
-    if narrow:
+    if profile > 1:
+        dividend = signed_division_input(o, LEFT, profile)
+        divisor = signed_division_input(o, THIRD, profile)
+        quotient = signed_division_result(o, node(o, R_SDIV, dividend, divisor, 0), profile)
+        remainder = signed_division_result(o, node(o, R_SREM, dividend, divisor, 0), profile)
+        return formula_done(o, node(o, R_SIMPLIFY, quotient, 0, 0), node(o, R_SIMPLIFY, remainder, 0, 0), ARBITRARY, nonzero)
+    if profile == 1:
         quotient = node(o, R_SDIV, LEFT, THIRD, 0)
         remainder = node(o, R_SREM, LEFT, THIRD, 0)
         minword = node(o, R_LITERAL64, 9223372036854775808, 0, 0)
@@ -929,8 +949,12 @@ def core_signed_checked(o:mutbuf, op:u64, width:u64) -> u64:
     minus_one = node(o, R_LITERAL64, 18446744073709551615, 0, 0)
     overflow = node(o, R_BOOL_AND, at_minimum, node(o, R_EQ, RIGHT, minus_one, 0), 0)
     trap = node(o, R_BOOL_OR, node(o, R_ZERO, RIGHT, 0, 0), overflow, 0)
-    raw = node(o, choose(op == C_INT_DIV_CHECKED, R_SDIV, R_SREM), LEFT, RIGHT, 0)
-    return formula_done(o, raw, 0, 0, trap)
+    dividend = signed_division_input(o, LEFT, width)
+    divisor = signed_division_input(o, RIGHT, width)
+    raw = node(o, choose(op == C_INT_DIV_CHECKED, R_SDIV, R_SREM), dividend, divisor, 0)
+    # The only out-of-width quotient already traps; normalize the admitted
+    # result just as the final machine ABI does.
+    return formula_done(o, core_signed_normalized(o, raw, width), 0, 0, trap)
 
 def core_borrow_formula(o:mutbuf, op:u64, literal:u64) -> u64:
     if op == C_BORROW_EXTENT:

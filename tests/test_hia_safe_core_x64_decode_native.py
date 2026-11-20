@@ -114,6 +114,8 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             ('int.neg.checked', 'i8', {}), ('int.shr.checked', 'i8', {}),
             ('int.add.checked', 'i8', {}),
             ('int.cast', 'i16', {'destination': 'u8', 'mode': 'checked'}),
+            ('int.div.checked', 'i8', {}), ('int.rem.checked', 'i8', {}),
+            ('int.div.checked', 'i16', {}),
         )
         with TemporaryDirectory(prefix='hia-native-signed-proof-') as root:
             for index, (operation, kind, attrs) in enumerate(cases):
