@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from hashlib import sha256
+import importlib
 import importlib.util
 import platform
 import shutil
@@ -95,6 +96,8 @@ class AgentNativeMachineValidationTests(AgentToolCase):
         path.write_bytes(original[:-1] + bytes([original[-1] ^ 1]))
 
     def test_shared_scalar_proof_binds_the_actual_core_object_final_and_solver(self):
+        from hepta.hia_safe_core import MACHINE_CIRCUIT_SOLVER_VERSION, _selected_machine_proof
+
         candidate, _admitted, built = self.prepare()
         build = self.session.read_json(built["build_receipt"])
         object_bytes, metadata = self.service.store.get(build["object_artifact"], kind="build-object")
@@ -105,8 +108,18 @@ class AgentNativeMachineValidationTests(AgentToolCase):
         self.assertEqual(build["object_sha256"], sha256(object_bytes).hexdigest())
         self.assertEqual(build["native_build"]["object_artifact"], build["object_artifact"])
 
-        result = self.native_verify(candidate, built)
-        record, evidence, _assumptions = self.read_proof(result)
+        native = all(component is not None for component in _selected_machine_proof())
+        real_import = importlib.import_module
+
+        def import_proof_module(name, *args, **kwargs):
+            if native and name == "z3":
+                raise AssertionError("the bounded machine receipt used a hosted solver")
+            return real_import(name, *args, **kwargs)
+
+        with patch("importlib.import_module", side_effect=import_proof_module):
+            result = self.native_verify(candidate, built)
+            record, evidence, _assumptions = self.read_proof(result)
+            self.service._verification(result["verification_receipt"], self.session.context, candidate)
         check = record["checks"][0]
         self.assertEqual(check["status"], "proved")
         self.assertEqual(check["checker"]["method"], METHOD)
@@ -136,9 +149,16 @@ class AgentNativeMachineValidationTests(AgentToolCase):
         self.assertFalse(validation["claims"]["machine_checked_isa_refinement_proved"])
         self.assertFalse(validation["claims"]["python_checker_soundness_proved"])
         self.assertFalse(validation["claims"]["whole_language_soundness_proved"])
-        self.assertEqual(check["checker"]["solver"], evidence["solver"])
+        solver_fields = ("name", "version", "binding_sha256", "library_sha256")
+        self.assertEqual(check["checker"]["solver"], {field: evidence["solver"][field] for field in solver_fields})
         self.assertEqual(evidence["solver"], validation["solver"])
-        self.assertEqual(evidence["solver"]["version"], "4.15.4")
+        self.assertEqual(evidence["solver"]["version"], MACHINE_CIRCUIT_SOLVER_VERSION if native else "4.15.4")
+        if native:
+            decoder, cnf = _selected_machine_proof()
+            self.assertEqual(evidence["source_identity"]["native_x64_decoder_image_sha256"], decoder.image_sha256)
+            self.assertEqual(evidence["solver"]["library_sha256"], cnf.image_sha256)
+        else:
+            self.assertTrue(evidence["solver"]["load_binding"]["binding_code_matches_source"])
         for key in ("binding_sha256", "library_sha256"):
             self.assertRegex(evidence["solver"][key], r"^[0-9a-f]{64}$")
         self.assertEqual(len(evidence["queries"]), 5)
@@ -308,6 +328,9 @@ class AgentNativeMachineValidationTests(AgentToolCase):
             lambda row: row["validation"]["subject"].update(final_image_sha256="0" * 64),
             lambda row: row["validation"]["image_binding"].update(final_image_sha256="0" * 64),
             lambda row: row["validation"]["subject"].update(entry_symbol="other"),
+            lambda row: row["validation"]["checker"].pop("input_execution"),
+            lambda row: row["validation"]["checker"]["input_execution"]["python_sources"].update(
+                {"hia_program.py": "0" * 64}),
         ]
         for index, mutate in enumerate(mutations):
             with self.subTest(mutation=index):

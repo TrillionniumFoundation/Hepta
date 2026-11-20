@@ -19,6 +19,7 @@ from itertools import combinations
 import json
 import os
 from pathlib import Path
+import struct
 import tempfile
 import time
 
@@ -861,6 +862,7 @@ def _artifact_report(checked, fn, binding, profile, foreign_exports, identity, s
 
 
 _UNARY_CIRCUIT_WORDS = frozenset({6, 20, 21, 26, 28, 29, 30, 31})
+MACHINE_CIRCUIT_SOLVER_VERSION = "machine-word-circuit-cnf.v1"
 MACHINE_CIRCUIT_ASSUMPTIONS = [
     *ASSUMPTIONS[:3],
     "The loaded Core verifier, ELF binding, HIA machine word projection and native HIA CNF solver are trusted; the model is not a kernel proof of x86 semantics.",
@@ -918,13 +920,61 @@ def _merge_scalar_observations(machine, core, arguments, return_type):
         nodes, [(left, right) for left, right in outcomes if left != right], None)
 
 
-def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
-                                pair, identity, started, deadline):
-    from .hia_cnf_native import SAT
-    from .hia_optimization import _native_circuit_decision, _native_solver_identity
+def _machine_circuit_solver(pair):
+    from .hia_optimization import _native_solver_identity
 
     decoder, cnf = pair
-    if decoder is None or cnf is None or len(blocks) != 1:
+    if decoder is None or cnf is None:
+        return None
+    return dict(_native_solver_identity(cnf), version=MACHINE_CIRCUIT_SOLVER_VERSION)
+
+
+def _scalar_caller_contract():
+    # The bounded machine model is parametric in an aligned, nonwrapping
+    # stack. Check that those same three ABI assumptions have a model.
+    nodes = [(1, 64, 0, 0, 0), (2, 64, 0, 0, 16384), (2, 64, 0, 0, (1 << 64) - 16),
+             (2, 64, 0, 0, 15), (2, 64, 0, 0, 8),
+             (15, 1, 0, 1, 0), (13, 1, 0, 2, 0), (3, 64, 0, 3, 0), (7, 1, 7, 4, 0),
+             (3, 1, 5, 6, 0), (3, 1, 9, 8, 0), (2, 1, 0, 0, 0)]
+    return nodes, [(10, 11)], None
+
+
+def _artifact_sparse_smt2(frame):
+    """Print the exact HIA-generated CNF as a replayable SMT-LIB query."""
+    from .hia_cnf_native import SPARSE_REQUEST
+
+    magic, variables, clauses, budget, entries = struct.unpack_from('<5Q', frame)
+    if magic != SPARSE_REQUEST or budget or len(frame) != 40 + entries * 2:
+        raise RuntimeError("invalid canonical HIA artifact formula")
+    lines = ['(set-logic QF_UF)']
+    lines.extend(f'(declare-fun v{index} () Bool)' for index in range(1, variables + 1))
+    literals = []
+    count = 0
+    for token, in struct.iter_unpack('<H', frame[40:]):
+        if token:
+            variable = token >> 1
+            if not 1 <= variable <= variables:
+                raise RuntimeError("invalid HIA artifact formula literal")
+            literals.append(f'(not v{variable})' if token & 1 else f'v{variable}')
+        else:
+            expression = literals[0] if len(literals) == 1 else (
+                '(or ' + ' '.join(literals) + ')' if literals else 'false')
+            lines.append('(assert ' + expression + ')')
+            literals.clear()
+            count += 1
+    if literals or count != clauses:
+        raise RuntimeError("invalid HIA artifact formula clauses")
+    lines.append('(check-sat)')
+    return ('\n'.join(lines) + '\n').encode()
+
+
+def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
+                                pair, identity, started, deadline, query_directory):
+    from .hia_cnf_native import SAT
+    from .hia_optimization import _native_circuit_decision
+
+    decoder, cnf = pair
+    if len(blocks) != 1:
         return None
     machine = decoder.project_scalar_values(
         binding, len(fn["params"]), allow_variable_shifts=profile_version >= 3,
@@ -941,35 +991,38 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     circuits = _merge_scalar_observations(machine, core, len(fn["params"]), fn["returns"][0])
     if circuits is None:
         return None
-    solver = dict(_native_solver_identity(cnf), version="machine-word-circuit-cnf.v1",
-                  decoder_sha256=decoder.image_sha256)
+    solver = _machine_circuit_solver(pair)
     counts = dict(machine[2], core_terminal_paths=1)
     reports = []
+    queries = []
     counterexample = None
-    for index, (name, expected) in enumerate(ARTIFACT_OBLIGATIONS):
+    # A successful projection structurally excludes memory and ABI faults
+    # for every admitted stack and word. Their reduced violation is false.
+    no_violation = ((), (), None)
+    queries_to_solve = (_scalar_caller_contract(), no_violation, no_violation, *circuits)
+    for index, ((name, expected), circuit) in enumerate(zip(ARTIFACT_OBLIGATIONS, queries_to_solve, strict=True)):
         before = time.monotonic()
-        if index < 3:
-            # Entry RSP = 0x10008 makes the caller contract nonvacuous.
-            # The HIA projector checked stack access and ABI for every
-            # caller stack and word satisfying the contract.
-            frame = json.dumps([name, solver, binding["binding"], counts],
-                               separators=(',', ':'), sort_keys=True).encode()
-            result, discharge = expected, {"method": "native_hia_bounded_machine_projection"}
-        else:
-            decision = _native_circuit_decision(cnf, circuits[index - 3], deadline)
-            if decision is None:
-                return None
-            verdict, model, discharge, frame = decision
-            result = "sat" if verdict == SAT else "unsat"
-            if verdict == SAT:
-                # The HIA solver has independently evaluated these ABI
-                # words against the original, un-bit-blasted circuit.
-                words = [(model >> (1 + 64 * word)) & ((1 << 64) - 1)
-                         for word in range(len(fn["params"]))]
-                counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
+        decision = _native_circuit_decision(cnf, circuit, deadline)
+        if decision is None:
+            return None
+        verdict, model, discharge, frame = decision
+        result = "sat" if verdict == SAT else "unsat"
+        discharge["method"] = "native_hia_circuit_cnf"
+        if index in (1, 2):
+            discharge["structural_reduction"] = "native_hia_bounded_machine_projection"
+        if result != expected:
+            if index < 3:
+                raise SafeCoreRejected("inconsistent native scalar caller or machine bound")
+            # The HIA solver has independently evaluated these ABI words
+            # against the original, un-bit-blasted circuit.
+            words = [(model >> (1 + 64 * word)) & ((1 << 64) - 1)
+                     for word in range(len(fn["params"]))]
+            counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
+        query = _artifact_sparse_smt2(frame)
         reports.append({"name": name, "result": result, "expected": expected,
-                        "query_sha256": sha256(frame).hexdigest(),
+                        "query_sha256": sha256(query).hexdigest(),
                         "elapsed_seconds": time.monotonic() - before, "native_cnf": discharge})
+        queries.append(query)
         if counterexample is not None:
             break
 
@@ -980,6 +1033,16 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
         pair = _selected_machine_proof()
     require(identity == _checker_source_identity(pair), "checker or solver source changed during validation")
     require(time.monotonic_ns() < deadline, "validation deadline expired; no completed proof")
+    if query_directory is not None:
+        retained = Path(query_directory).absolute()
+        retained.mkdir(parents=False, exist_ok=False)
+        for index, (row, query) in enumerate(zip(reports, queries, strict=True)):
+            filename = f"{index:02d}-{row['name']}.smt2"
+            with (retained / filename).open("xb") as stream:
+                stream.write(query)
+            row["query_file"] = filename
+            (retained / (filename + ".result.json")).write_text(json.dumps(row, indent=2) + "\n")
+        require(time.monotonic_ns() < deadline, "validation deadline expired; no completed proof")
     status = "smt_validated" if counterexample is None else "refuted"
     validation = _artifact_report(checked, fn, binding, profile, (), identity, solver,
                                   MACHINE_CIRCUIT_ASSUMPTIONS, counts, reports, started / 1_000_000_000,
@@ -1012,13 +1075,11 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     decoder, cnf = pair
     identity = _checker_source_identity(pair)
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
-    # Explicit query retention still uses the original replayable SMT-LIB
-    # format. Never synthesize legacy query files from a different proof.
-    if decoder is not None and cnf is not None and not foreign_buffer_exports and query_directory is None:
+    if decoder is not None and cnf is not None and not foreign_buffer_exports:
         started = time.monotonic_ns()
         deadline = started + timeout_ms * 1_000_000
         native = _try_native_scalar_artifact(checked, fn, blocks, binding, artifact_profile,
-                                             profile_version, pair, identity, started, deadline)
+                                             profile_version, pair, identity, started, deadline, query_directory)
         if native is not None:
             return native
         timeout_ms = (deadline - time.monotonic_ns()) // 1_000_000

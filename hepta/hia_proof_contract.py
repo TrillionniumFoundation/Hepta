@@ -65,11 +65,68 @@ def _require(condition, message):
         reject("E_HIA_PROOF_SCOPE", message, "verification")
 
 
+def _safe_core_input_report(record, identity):
+    from .hia_verified_input_identity import INPUT_SOURCE_FILES, PROFILE, SELECTORS
+
+    if type(record) is not dict or set(record) != {
+        "profile", "python_sources", "selectors", "native_bundle", "native_helpers", "native_helper_semantics"
+    }:
+        return False
+    selectors, bundle, helpers = record["selectors"], record["native_bundle"], record["native_helpers"]
+    if (record["profile"] != PROFILE
+            or record["python_sources"] != {
+                name: identity[name] for name in (*INPUT_SOURCE_FILES, "hia_loaded_source.py")}
+            or record["native_helper_semantics"] !=
+               "operator-selected trusted code; actual mappings identified, not independently refined"
+            or type(selectors) is not dict or set(selectors) != set(SELECTORS)
+            or any(value is not None and type(value) is not str for value in selectors.values())
+            or type(bundle) is not dict or set(bundle) - {"native_helpers_sha256"}
+            or type(helpers) is not list):
+        return False
+    bound_images = {
+        "hepta.hia_safe_core_x64_decode_native.NativeSafeCoreX64Decode": "x64_decoder",
+        "hepta.hia_safe_core_elf_inventory_native.NativeSafeCoreElfInventory": "elf_inventory",
+        "hepta.hia_cnf_native.NativeCnf": "cnf",
+    }
+    known = set()
+    for helper in helpers:
+        if type(helper) is not dict or set(helper) != {
+            "manifest_path", "schema", "factory", "source_path", "source_sha256", "mapped_image_sha256",
+            "image_bytes", "entry_address", "mapping", "native_semantic_refinement_proved"
+        }:
+            return False
+        factory, mapping, address, size = (helper[name] for name in ("factory", "mapping", "entry_address", "image_bytes"))
+        if (type(factory) is not str or not factory.startswith("hepta.")
+                or factory.split(".")[1] + ".py" not in INPUT_SOURCE_FILES
+                or type(address) is not int or address <= 0 or type(size) is not int or not 0 < size <= 1 << 20
+                or type(mapping) is not dict or set(mapping) != {"start", "end", "permissions"}
+                or mapping["start"] != address or mapping["end"] != address + size
+                or mapping["permissions"] not in ("r-xp", "r-xs")
+                or helper["native_semantic_refinement_proved"] is not False
+                or any(type(helper[name]) is not str for name in ("schema", "manifest_path", "source_path"))):
+            return False
+        role = bound_images.get(factory)
+        if role is not None:
+            if (helper["source_sha256"] != identity.get(f"native_{role}_source_sha256")
+                    or helper["mapped_image_sha256"] != identity.get(f"native_{role}_image_sha256")):
+                return False
+            known.add(role)
+        for field in ("source_sha256", "mapped_image_sha256"):
+            value = helper[field]
+            if type(value) is not str or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+                return False
+    # Package-owned ELF inventory may be bound directly by the ELF checker,
+    # not an input observer. The decoder and solver do report both routes.
+    return all(role in known for role in ("x64_decoder", "cnf")
+               if f"native_{role}_image_sha256" in identity)
+
+
 def _safe_core_method(status, subject, evidence):
     """Consume the independent checker's exact identity and ordered obligations."""
     from .hia_safe_core import (ARTIFACT_PROFILE, ARTIFACT_PROPERTY, ARTIFACT_OBLIGATIONS,
-        SCHEMA, CLAIMS, ASSUMPTIONS, LIMITS, UNPROVED_OBLIGATIONS, _checker_source_identity,
-        _solver_identity)
+        SCHEMA, CLAIMS, ASSUMPTIONS, LIMITS, UNPROVED_OBLIGATIONS, MACHINE_CIRCUIT_ASSUMPTIONS,
+        MACHINE_CIRCUIT_SOLVER_VERSION, _checker_source_identity, _machine_circuit_solver,
+        _selected_machine_proof, _solver_identity)
     _require(evidence.get("method") == SAFE_CORE_METHOD and evidence.get("outcome") == status
              and evidence.get("profile") == ARTIFACT_PROFILE
              and evidence.get("service_profile") == SAFE_CORE_SERVICE_PROFILE,
@@ -100,15 +157,30 @@ def _safe_core_method(status, subject, evidence):
         "object_sha256": binding["object_sha256"], "final_image_sha256": binding["final_image_sha256"],
         "entry_symbol": entry, "foreign_buffer_exports": []}
     solver = evidence.get("solver")
-    try:
-        import importlib
-        actual_solver = _solver_identity(importlib.import_module("z3"))
-    except Exception:
-        _require(False, "the retained machine solver identity cannot be re-established")
-    _require(solver == actual_solver and validation.get("solver") == solver,
+    native = type(solver) is dict and solver.get("version") == MACHINE_CIRCUIT_SOLVER_VERSION
+    if native:
+        actual_solver = _machine_circuit_solver(_selected_machine_proof())
+        assumptions = MACHINE_CIRCUIT_ASSUMPTIONS
+    else:
+        try:
+            import importlib
+            actual_solver = _solver_identity(importlib.import_module("z3"))
+        except Exception:
+            _require(False, "the retained machine solver identity cannot be re-established")
+        assumptions = ASSUMPTIONS
+    _require(actual_solver is not None and solver == actual_solver and validation.get("solver") == solver,
              "independent machine solver binding or native library differs")
     checker = {"name": _CHECKERS[SAFE_CORE_METHOD], "source_identity": identity,
                "solver": solver, "producer_reemission_used": False}
+    raw_checker = validation.get("checker")
+    _require(type(raw_checker) is dict, "raw machine checker is not an object")
+    checker_input = raw_checker.get("input_execution")
+    if validation.get("complete") is True:
+        _require(_safe_core_input_report(checker_input, identity),
+                 "raw machine primitive input execution identity differs")
+    else:
+        _require("input_execution" not in raw_checker, "partial machine result carries a completed input proof")
+    reported_checker = {name: value for name, value in raw_checker.items() if name != "input_execution"}
     _require(validation.get("schema") == SCHEMA and validation.get("profile") == ARTIFACT_PROFILE
              and validation.get("artifact_input_profile") == ARTIFACT_PROFILE
              and validation.get("validation_mode") == "independent_supplied_bytes"
@@ -118,8 +190,8 @@ def _safe_core_method(status, subject, evidence):
              and validation.get("input_sha256") == raw_subject["input_sha256"]
              and validation.get("function") == entry and validation.get("foreign_buffer_exports") == []
              and validation.get("backend_implementation_sha256") is None
-             and validation.get("source_identity") == identity and validation.get("checker") == checker
-             and validation.get("assumptions") == ASSUMPTIONS and validation.get("limits") == LIMITS
+             and validation.get("source_identity") == identity and reported_checker == checker
+             and validation.get("assumptions") == assumptions and validation.get("limits") == LIMITS
              and validation.get("unproved_obligations") == UNPROVED_OBLIGATIONS,
              "raw machine checker scope or exact input identity differs")
     image = validation.get("image_binding")
@@ -135,6 +207,16 @@ def _safe_core_method(status, subject, evidence):
     _require(all(type(row.get("query_sha256")) is str and len(row["query_sha256"]) == 64
                  and row.get("query_file") == f"{index:02d}-{row['name']}.smt2"
                  for index, row in enumerate(rows)), "machine proof lacks exact retained query identities")
+    if native:
+        for index, row in enumerate(rows):
+            discharge = row.get("native_cnf")
+            _require(type(discharge) is dict and discharge.get("method") == "native_hia_circuit_cnf"
+                     and discharge.get("image_sha256") == solver["library_sha256"]
+                     and type(discharge.get("formula_sha256")) is str
+                     and len(discharge["formula_sha256"]) == 64
+                     and (discharge.get("structural_reduction") == "native_hia_bounded_machine_projection"
+                          if index in (1, 2) else "structural_reduction" not in discharge),
+                     "native machine query lacks its bound HIA discharge")
     if status == "proved":
         _require(evidence.get("deadline_met") is True and "counterexample" not in evidence
                  and validation.get("ok") is True and validation.get("complete") is True

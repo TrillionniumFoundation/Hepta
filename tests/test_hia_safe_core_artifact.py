@@ -96,7 +96,9 @@ class SafeCoreArtifactTests(unittest.TestCase):
                 raise SafeCoreRejected("test clock crossed the frozen deadline")
             original_deadline(theory)
 
-        with patch.object(checker, "_solver_identity", side_effect=identify), patch.object(checker._Theory, "check_time", deadline):
+        with (patch.object(checker, "_try_native_scalar_artifact", return_value=None),
+              patch.object(checker, "_solver_identity", side_effect=identify),
+              patch.object(checker._Theory, "check_time", deadline)):
             with self.assertRaises(SafeCoreRejected) as caught:
                 validate_safe_core_artifact(self.core, self.image.object_bytes, self.data,
                                            query_directory=self.newdir() / "queries")
@@ -126,6 +128,7 @@ class SafeCoreArtifactTests(unittest.TestCase):
         return self.mutate_pair(self.image.object_bytes, self.data, at, b"\x48\x29\xc8")
 
     def test_selected_scalar_elf_proof_checks_actual_bytes_without_host_solver(self):
+        import z3
         from hepta.hia_safe_core import _selected_machine_proof
 
         if any(component is None for component in _selected_machine_proof()):
@@ -145,22 +148,35 @@ class SafeCoreArtifactTests(unittest.TestCase):
                 image = emit_program_machine(core)
                 final = directory / (typ + ".so")
                 compile_program_machine(image, program=core, output=final, linker="ld")
+                queries = directory / (typ + "-queries")
                 with patch("importlib.import_module", side_effect=no_host_solver):
                     proof = validate_safe_core_artifact(
-                        core, image.object_bytes, final.read_bytes(), profile_version=version)
+                        core, image.object_bytes, final.read_bytes(), profile_version=version,
+                        query_directory=queries)
                 self.assertTrue(proof["complete"])
                 self.assertEqual(proof["solver"]["version"], "machine-word-circuit-cnf.v1")
                 self.assertEqual([row["result"] for row in proof["obligations"]],
                                  ["sat", "unsat", "unsat", "unsat", "unsat"])
+                for row in proof["obligations"]:
+                    query = (queries / row["query_file"]).read_bytes()
+                    self.assertEqual(row["query_sha256"], sha256(query).hexdigest())
+                    independent = z3.Solver()
+                    independent.from_string(query.decode())
+                    self.assertEqual(str(independent.check()), row["result"])
         obj, final = self.wrong_addition()
+        queries = directory / "refuted-queries"
         with patch("importlib.import_module", side_effect=no_host_solver), self.assertRaises(SafeCoreRejected) as caught:
-            validate_safe_core_artifact(self.core, obj, final)
+            validate_safe_core_artifact(self.core, obj, final, query_directory=queries)
         error = caught.exception
         self.assertEqual(error.validation["status"], "refuted")
         self.assertFalse(error.validation["complete"])
         self.assertEqual(error.validation["subject"]["final_image_sha256"], sha256(final).hexdigest())
         left, right = error.counterexample["abi_words"]
         self.assertNotEqual((left + right) & 0xffffffff, (left - right) & 0xffffffff)
+        last = error.validation["obligations"][-1]
+        independent = z3.Solver()
+        independent.from_string((queries / last["query_file"]).read_text())
+        self.assertEqual(independent.check(), z3.sat)
 
     def custom_leaf(self, code, name="leaf"):
         # Retain the established two-function, two-relocation artifact shape.
