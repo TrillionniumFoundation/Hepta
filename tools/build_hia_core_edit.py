@@ -74,7 +74,7 @@ NOMINAL_BUILD_SOURCES = {
     for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')
 }
 OBJECT_BUILD_IMAGES = {
-    EDIT + 'admission_word_io.hepta': 'build_core',
+    BOOTSTRAP + 'core_admission.hepta': 'build_core',
     EDIT + 'publication_frontend.hepta': 'build_frontend',
     CLI + 'build_codegen.hepta': 'build_codegen',
     CLI + 'build_backend.hepta': 'build_backend',
@@ -229,7 +229,7 @@ PROGRAMS = {
         (CLI + 'capabilities.hepta', ('capabilities_call',)),
     )),
     'emit_object': ('hia-emit-object', (
-        (EDIT + 'admission_word_io.hepta', ('core',)),
+        (BOOTSTRAP + 'core_admission.hepta', ('core',)),
         (EDIT + 'publication_frontend.hepta', ('frame', 'exports', 'expectations')),
         (CLI + 'build_codegen.hepta', ('codegen',)),
         (CLI + 'build_backend.hepta', ('byte_address',)),
@@ -242,7 +242,7 @@ PROGRAMS = {
         (EDIT + 'publication_policy.hepta', ('publication_address',)),
     )),
     'publish_assembly': ('hia-publish-assembly', (
-        (EDIT + 'admission_word_io.hepta', ('core_address',)),
+        (BOOTSTRAP + 'core_admission.hepta', ('core_address',)),
         (EDIT + 'publication_frontend.hepta', ('front_address',)),
         (EDIT + 'publication_render.hepta', ('owner_address',)),
         (EDIT + 'publication_assembly.hepta', ('publication_address',)),

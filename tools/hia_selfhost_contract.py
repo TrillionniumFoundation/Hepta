@@ -229,8 +229,6 @@ CORE_EDIT_SDIST_FILES = (
     'examples/hia_bootstrap/core_cli/build_backend.hepta',
     'examples/hia_bootstrap/core_cli/build_codegen.hepta',
     'examples/hia_bootstrap/core_cli/capabilities.hepta',
-    'examples/hia_bootstrap/core_cli/catalog.hepta',
-    'examples/hia_bootstrap/core_cli/catalog_registry.json',
     'examples/hia_bootstrap/core_cli/argument_payload.hepta',
     'examples/hia_bootstrap/core_cli/arguments.hepta',
     'examples/hia_bootstrap/core_cli/dispatch.hepta',

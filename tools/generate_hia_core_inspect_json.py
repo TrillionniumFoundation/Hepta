@@ -116,7 +116,7 @@ def driver_report(o:mutbuf, w:mutbuf, status:u64) -> u32:
     put(w, 56, 0)
     lit(o, w, '{\n  "diagnostics": [\n    {\n      "code": "E_DRIVER",\n      "message": "')
     if status == 0:
-        lit(o, w, 'E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8 Core; use the existing adapter first')
+        lit(o, w, 'E_HIA_ASSEMBLY_PROFILE: render requires explicit primitive v6/v7/v8/v9 Core; use the existing adapter first')
     elif status == 4294967294:
         lit(o, w, 'E_HIA_LIMIT: program exceeds structural budget before JSON allocation')
     elif status == 4294967295 or status == 4294967292:

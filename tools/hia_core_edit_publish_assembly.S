@@ -34,7 +34,7 @@ nominal_render_assembly:
  mov [rbp+864],r13
  mov [rbp+872],r14
  mov [rbp+880],r12
- lea rax,[rip+assembly_core_start]
+ lea rax,[rip+public_core_start]
  mov [rbp+328],rax
  lea rax,[rip+publish_frontend_start]
  mov [rbp+320],rax

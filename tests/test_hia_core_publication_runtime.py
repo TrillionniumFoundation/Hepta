@@ -103,13 +103,32 @@ def check_v9_assembly(release, directory):
         assembly = directory / f'{name}.asm.hepta'
         source.write_bytes(wire(program))
         assembly.write_text(render_assembly(program))
-        for arguments in (['render-assembly', source], ['import-assembly', assembly],
-                          ['check-assembly', assembly]):
+        for arguments in (['render-assembly', str(source)], ['import-assembly', str(assembly)],
+                          ['check-assembly', str(assembly)]):
             observed = subprocess.run([release / 'hia', *arguments], capture_output=True,
                                       env={'PATH': ''}, timeout=20, check=False)
             assert (observed.returncode, observed.stdout, observed.stderr) == (
                 0, reference_cli(arguments), b''), (arguments, observed)
     return 6
+
+
+def check_v9_build(release, directory):
+    directory.mkdir()
+    program = owned_program()
+    source = directory / 'word-memory.hepta'
+    actual_path = directory / 'native.o'
+    expected_path = directory / 'reference.o'
+    source.write_bytes(wire(program))
+    expected = build_program_machine(program, expected_path, kind='object')
+    expected.update(output=str(actual_path),
+                    implementation_sha256=packed_implementation_sha256(release / 'hia-build-object'))
+    arguments = ['build', str(source), '--output', str(actual_path)]
+    observed = subprocess.run([release / 'hia', *arguments], capture_output=True,
+                              env={'PATH': ''}, timeout=20, check=False)
+    assert (observed.returncode, observed.stdout, observed.stderr) == (0, wire(expected, pretty=True), b''), (
+        observed.returncode, observed.stdout, observed.stderr)
+    assert actual_path.read_bytes() == expected_path.read_bytes()
+    return 1
 
 
 def check_import_existing_destinations(release, source, directory):
@@ -453,6 +472,7 @@ def check_nominal_patches(release, directory):
 
 def check_release(release, directory):
     checked_v9 = check_v9_assembly(release, directory / 'v9-assembly')
+    checked_v9 += check_v9_build(release, directory / 'v9-build')
     program = scalar_program()
     program['schema'] = 'hepta.hia.program.v8'
     program_wire = wire(program)

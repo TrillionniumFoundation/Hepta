@@ -48,7 +48,6 @@ COMPONENTS = {
     'publish-frontend': 'examples/hia_bootstrap/core_edit/publication_frontend.hepta',
     'publish-program': 'examples/hia_bootstrap/core_edit/publication_program.hepta',
     'publish-policy': 'examples/hia_bootstrap/core_edit/publication_policy.hepta',
-    'assembly-core': 'examples/hia_bootstrap/core_edit/admission_word_io.hepta',
     'assembly-roundtrip': 'examples/hia_bootstrap/core_edit/publication_render.hepta',
     'assembly-publication': 'examples/hia_bootstrap/core_edit/publication_assembly.hepta',
     'linker': 'examples/hia_bootstrap/elf_static_linker.hepta',
@@ -85,7 +84,7 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
                 'outer-render': 'outer_render', 'public-core': 'public_core',
                 'public-canonical': 'public_canonical', 'public-presentation': 'public_presentation',
                 'publish-frontend': 'publish_frontend', 'publish-program': 'publish_program',
-                'publish-policy': 'publish_policy', 'assembly-core': 'assembly_core',
+                'publish-policy': 'publish_policy',
                 'assembly-roundtrip': 'assembly_roundtrip',
                 'assembly-publication': 'assembly_publication'}
     for role, label in embedded.items():
