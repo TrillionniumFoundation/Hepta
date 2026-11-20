@@ -155,6 +155,8 @@ SCALAR_REFERENCE_SDIST_FILES = (
 WORKER_REQUEST_SDIST_FILES = (
     'tools/generate_hia_worker_prepare.py',
     'tools/build_hia_worker_prepare.py',
+    'tools/build_hia_native_filter.py',
+    'tools/build_hia_proof_cnf.py',
     'examples/hia_bootstrap/worker_prepare.hepta',
     'tests/test_hia_worker_prepare.py',
     'examples/hia_bootstrap/worker_request_filter_packer.hepta',

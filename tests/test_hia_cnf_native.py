@@ -4,8 +4,10 @@ import builtins
 from copy import deepcopy
 from hashlib import sha256
 from operator import ge, gt, le, lt
+import os
 import random
 import struct
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -79,6 +81,57 @@ class CnfSourceTests(unittest.TestCase):
         for malformed in (wire[:-1], wire + b'x', bytes(bad)):
             self.assertEqual(vm_run(SOURCE, malformed, PROJECTION_OUTPUT, PROJECTION_WORKSPACE)[0],
                              0xfffffffc)
+
+
+STANDALONE = os.environ.get('HEPTA_HIA_PROOF_CNF_EXECUTABLE')
+
+
+@unittest.skipUnless(STANDALONE, 'an installed standalone HIA solver is required')
+class CnfStandaloneTests(unittest.TestCase):
+    def invoke(self, wire, *arguments):
+        return subprocess.run([STANDALONE, *arguments], input=wire, capture_output=True,
+                              timeout=20, env={'PATH': ''})
+
+    def test_execution_does_not_need_python_and_retains_original_verdicts(self):
+        top = 1 << 63
+        for wire, decision, witness, cost in (
+                (packet(0, [], 0), UNKNOWN, 0, 0),
+                (packet(0, [], 1), SAT, 0, 1),
+                (packet(64, [(top, 0)], 10), SAT, top, 4),
+                (packet(64, [(top, 0), (0, top)], 10), UNSAT, 0, 5)):
+            completed = self.invoke(wire)
+            self.assertEqual((completed.returncode, completed.stdout, completed.stderr),
+                             (0, struct.pack('<4Q', REPLY, decision, witness, cost), b''))
+
+    def test_sparse_projection_and_solver_use_the_same_standalone_entry(self):
+        from hepta.hia_cnf_native import CIRCUIT_REQUEST
+
+        # One input bit must differ from zero. Compile the typed circuit, then
+        # verify the complete satisfying assignment from the same binary.
+        circuit = struct.pack('<16Q', CIRCUIT_REQUEST, 2, 1, 30,
+                              1, 1, 0, 0, 0, 2, 1, 0, 0, 0, 0, 1)
+        projected = self.invoke(circuit)
+        self.assertEqual((projected.returncode, projected.stderr), (0, b''))
+        # The input and the projection's reserved true variable both have
+        # unit clauses. Retain the actual sparse wire, not only the verdict.
+        self.assertEqual(projected.stdout, struct.pack('<5Q4H', SPARSE_REQUEST, 2, 2, 30, 4, 2, 0, 4, 0))
+        solved = self.invoke(projected.stdout)
+        self.assertEqual((solved.returncode, solved.stderr), (0, b''))
+        self.assertEqual(solved.stdout, struct.pack('<4Q', SPARSE_REPLY, SAT, 2, 13) + b'\x03')
+
+        same = self.invoke(circuit[:-8] + bytes(8))
+        self.assertEqual((same.returncode, same.stderr), (0, b''))
+        unsatisfiable = self.invoke(same.stdout)
+        self.assertEqual((unsatisfiable.returncode, unsatisfiable.stderr), (0, b''))
+        self.assertEqual(struct.unpack_from('<2Q', unsatisfiable.stdout), (SPARSE_REPLY, UNSAT))
+
+    def test_malformed_frames_and_options_never_return_proof_bytes(self):
+        normal = packet(1, [(1, 0)], 10)
+        for wire in (b'', normal[:-1], normal + b'\0', packet(65, [], 1)):
+            completed = self.invoke(wire)
+            self.assertEqual((completed.returncode, completed.stdout, completed.stderr), (2, b'', b''))
+        completed = self.invoke(normal, '--unrecognized')
+        self.assertEqual((completed.returncode, completed.stdout, completed.stderr), (64, b'', b''))
 
 
 class CnfInstalledTests(unittest.TestCase):

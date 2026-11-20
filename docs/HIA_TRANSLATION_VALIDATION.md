@@ -34,6 +34,14 @@ yields `disproved` only after the model's arguments are replayed in the
 canonical HIA interpreter and reproduce different observations. This replay
 validates counterexamples; it is **not** the basis of the all-input proof.
 
+The cold-built Linux x86-64 `hia-proof-cnf` executable accepts the existing
+bounded HIA proof frames on stdin and writes their binary replies on stdout.
+It uses the same HIA circuit projector and Boolean solver without Python or Z3
+at runtime. Build it with `python -m tools.build_hia_proof_cnf --compiler B3.image.bin
+--cold-report cold.json --output new-proof-dir`. This is a proof component: it
+does not turn arbitrary source or ELF inputs into independently verified
+programs, and an unknown or refused frame supplies no proof.
+
 Loops, calls, resources, foreign code, concurrency, and floating point are
 outside this profile. A function is limited to 128 blocks, 2048 operations,
 32 parameters, and 16 returns. Unsupported inputs, solver absence, solver
