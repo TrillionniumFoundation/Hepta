@@ -2840,10 +2840,7 @@ jobs:
         run: |
           python -B - <<'PYBUDGET'
           import unittest
-          suite = unittest.defaultTestLoader.loadTestsFromNames([
-              'tests.test_hia_execution_budget_native',
-              'tests.test_hia_execution_budget_extensions',
-          ])
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_execution_budget_native')
           expected = suite.countTestCases()
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           complete = result.testsRun == expected and expected > 0
@@ -2854,6 +2851,10 @@ jobs:
         env:
           HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-execution-budget
+      - name: Native execution-budget extensions
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_execution_budget_extensions
+        env:
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native candidate budgets and pinned state owner composition
         run: |
           python -B - <<'PYCANDIDATE'

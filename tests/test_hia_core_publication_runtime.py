@@ -510,6 +510,14 @@ def check_release(release, directory):
         if action == 'build':
             assert build_target.read_bytes() == original.read_bytes()
         checked_actions += 1
+        if action == 'catalog':
+            for version in range(1, 10):
+                selection = [action, '--schema', f'hepta.hia.program.v{version}']
+                output = subprocess.run([release / 'hia', *selection], capture_output=True,
+                                        env={'PATH': ''}, timeout=20, check=False)
+                assert (output.returncode, output.stdout, output.stderr) == (0, reference_cli(selection), b''), (
+                    selection, output.returncode, output.stdout, output.stderr)
+                checked_actions += 1
     explicit_object = directory / 'explicit.o'
     command = [release / 'hia', 'build', source, '--backend', 'auto', '--kind', 'object',
                '--output', explicit_object]
