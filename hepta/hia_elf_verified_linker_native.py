@@ -23,16 +23,28 @@ class NativeVerifiedLinker(NativeHiaJsonImage):
         """Emit private candidate bytes only; never certify or publish them."""
         if type(object_bytes) is not bytes or not 512 <= len(object_bytes) <= MAX_OBJECT_BYTES:
             raise ValueError('verified HIA linkage requires a bounded immutable ET_REL object')
+        if not self.try_link(object_bytes, destination):
+            raise ValueError('verified HIA linkage refused the one-abort object')
+
+    def try_link(self, object_bytes, destination):
+        """Return False only when the bounded one-abort profile does not apply."""
+        if type(object_bytes) is not bytes:
+            raise ValueError('verified HIA linkage requires a bounded immutable ET_REL object')
+        if not 512 <= len(object_bytes) <= MAX_OBJECT_BYTES:
+            return False
         source = ctypes.create_string_buffer(object_bytes, len(object_bytes))
         output = ctypes.create_string_buffer(MAX_OUTPUT_BYTES)
         workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
         size = self._checked_default_entry(source, len(source), output, len(output), workspace, len(workspace))
-        if size == 0xffffffff:
-            raise ValueError('verified HIA linkage refused the one-abort object')
-        if not 64 <= size <= len(output) or source.raw != object_bytes or any(output.raw[size:]):
+        if source.raw != object_bytes:
+            raise ValueError('verified HIA linkage changed its input bytes')
+        if size == 0xffffffff and not any(output.raw):
+            return False
+        if not 64 <= size <= len(output) or any(output.raw[size:]):
             raise ValueError('verified HIA linkage violated its bounded byte transport')
         with destination.open('xb') as stream:
             stream.write(output.raw[:size])
+        return True
 
     def identity(self):
         binding = getattr(self, '_default_package_binding', None)

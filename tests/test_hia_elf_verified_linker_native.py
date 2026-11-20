@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from hepta.hia_elf_verified_linker_native import SELECTOR, selected_verified_linker
 from hepta.hia_program import verify_program
-from hepta.hia_program_native import emit_program_machine
+from hepta.hia_program_native import compile_program_machine, emit_program_machine
 from hepta.hia_safe_core import build_safe_core
 from hepta.hia_safe_core_elf import bind_final_artifact
 from hepta.hia_verified_kernel import build_verified_kernel
@@ -45,6 +45,28 @@ class StandaloneVerifiedLinkerTests(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get(SELECTOR), 'a cold HIA verified linker is required')
 class VerifiedLinkerNativeTests(unittest.TestCase):
+    def test_ordinary_worker_linkage_retains_a_machine_provable_final_image(self):
+        core = verify_program(arithmetic('int.add.wrap', 'u32'))
+        image = emit_program_machine(core)
+        with TemporaryDirectory(prefix='hia-verified-linker-') as folder, patch.dict(os.environ, {'PATH': ''}):
+            output = Path(folder) / 'ordinary.so'
+            result = compile_program_machine(image, program=core, output=output, linker='ld')
+            self.assertEqual(result['toolchain']['sha256'], selected_verified_linker().image_sha256)
+            self.assertFalse(result['claims']['external_linker_used'])
+            self.assertFalse(result['claims']['backend_refinement_proved'])
+            binding = bind_final_artifact(image.object_bytes, output.read_bytes(), 'calculate')
+            self.assertEqual(binding['binding']['final_image_sha256'], result['artifact_sha256'])
+
+            def malformed(_object, path):
+                path.write_bytes(b'bad')
+                return True
+
+            invalid = Path(folder) / 'invalid.so'
+            with patch('hepta.hia_elf_verified_linker_native.NativeVerifiedLinker.try_link', side_effect=malformed):
+                with self.assertRaisesRegex(ValueError, 'E_HIA_SAFE_CORE_ELF'):
+                    compile_program_machine(image, program=core, output=invalid, linker='ld')
+            self.assertFalse(invalid.exists())
+
     def test_checked_scalar_and_simd_routes_publish_verified_dlopen_images(self):
         cases = (
             (build_safe_core, arithmetic('int.add.wrap', 'u32'), {}, 'calculate'),

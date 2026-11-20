@@ -936,22 +936,18 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
     verified_linker = None
     verified_linker_identity = None
     flags = []
-    if kind == "shared" and verified_shared:
+    if kind == "shared" and (verified_shared or linker == "ld"):
         from .hia_elf_verified_linker_native import selected_verified_linker, verified_linker_matches
         verified_linker = selected_verified_linker(package_default=linker == "ld")
         if verified_linker is not None:
             verified_linker_identity = verified_linker.identity()
-    if kind == "shared" and verified_linker is None and not verified_shared:
+    if kind == "shared" and not verified_shared:
         from .hia_elf_shared_linker_native import selected_shared_linker, shared_linker_matches
         native_linker = selected_shared_linker(package_default=linker == "cc")
         if native_linker is not None:
             native_linker_identity = native_linker.identity()
-    if verified_linker is not None:
-        toolchain = verified_linker.toolchain(verified_linker_identity)
-    elif native_linker is not None:
-        toolchain = {"path": None, "sha256": native_linker.image_sha256, "version": "hia-elf-shared-linker.v1",
-                     "default_target": "elf_x86_64", "mode": "hia", "role": "link_generated_object_only"}
-    elif kind == "shared":
+
+    def hosted_linker():
         found = shutil.which(linker)
         if found is None:
             _reject("GNU ld or a native C linker driver is required for shared linkage")
@@ -970,24 +966,34 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
                     {"x86_64-linux-gnu", "x86_64-pc-linux-gnu", "x86_64-unknown-linux-gnu"}):
                 _reject("linker driver must target x86_64 GNU/Linux")
             default_target = triple.stdout.strip()
-        toolchain = {"path": str(tool), "sha256": tool_digest,
-                     "version": version.stdout.splitlines()[0] if version.stdout else "",
-                     "default_target": default_target, "mode": linker_mode,
-                     "role": "link_generated_object_only"}
+        identity = {"path": str(tool), "sha256": tool_digest,
+                    "version": version.stdout.splitlines()[0] if version.stdout else "",
+                    "default_target": default_target, "mode": linker_mode,
+                    "role": "link_generated_object_only"}
+        return tool, tool_digest, linker_mode, identity
     with tempfile.TemporaryDirectory(prefix=".hia-direct-", dir=destination.parent) as directory:
         obj = Path(directory) / "program.o"
         obj.write_bytes(image.object_bytes)
         artifact = obj
+        used_verified_linker = False
         if kind == "shared":
             artifact = Path(directory) / "program.so"
             if verified_linker is not None:
                 remaining(60)
                 try:
-                    verified_linker.link(image.object_bytes, artifact)
+                    if verified_shared:
+                        verified_linker.link(image.object_bytes, artifact)
+                        used_verified_linker = True
+                    elif len(image.exports) == 1 and not image.foreign_buffer_exports:
+                        used_verified_linker = verified_linker.try_link(image.object_bytes, artifact)
                 except ValueError as error:
                     _reject(str(error))
                 remaining(60)
+            if used_verified_linker:
+                toolchain = verified_linker.toolchain(verified_linker_identity)
             elif native_linker is not None:
+                toolchain = {"path": None, "sha256": native_linker.image_sha256, "version": "hia-elf-shared-linker.v1",
+                             "default_target": "elf_x86_64", "mode": "hia", "role": "link_generated_object_only"}
                 remaining(60)
                 try:
                     artifact.write_bytes(native_linker.link(image.object_bytes))
@@ -995,6 +1001,7 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
                     _reject(str(error))
                 remaining(60)
             else:
+                tool, tool_digest, linker_mode, toolchain = hosted_linker()
                 # Freeze both loader lookup tables on the compatibility route.
                 flags = (["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack", "-z", "relro", "-z", "now", "--build-id=none", "--hash-style=both"]
                          if linker_mode == "gnu-ld" else
@@ -1006,11 +1013,16 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
                 if result.returncode:
                     _reject("linker rejected generated machine object: " + result.stderr[:3000])
         data = _read_artifact(artifact)
+        if used_verified_linker and not verified_shared:
+            # The optional linker only produces bytes. Independently check
+            # the claimed profile, without retrying an invalid candidate.
+            from .hia_safe_core_elf import bind_final_artifact
+            bind_final_artifact(image.object_bytes, data, image.exports[0])
         inventory = inspect_owned_shared_elf(data, image.exports) if kind == "shared" else _inspect_object(data, image.exports)
         def recheck():
             if _implementation_hash() != image.implementation_sha256 or (tool is not None and digest_executable(tool) != tool_digest):
                 _reject("implementation or linker driver changed during build", "E_HIA_PROGRAM_STALE")
-            if native_linker is not None:
+            if not used_verified_linker and native_linker is not None:
                 try:
                     retained = shared_linker_matches(native_linker_identity)
                 except (OSError, ValueError):
