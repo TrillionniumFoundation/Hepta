@@ -116,6 +116,8 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             ('int.cast', 'i16', {'destination': 'u8', 'mode': 'checked'}),
             ('int.div.checked', 'i8', {}), ('int.rem.checked', 'i8', {}),
             ('int.div.checked', 'i16', {}),
+            ('int.div.checked', 'i32', {}), ('int.rem.checked', 'i32', {}),
+            ('int.div.checked', 'i64', {}), ('int.rem.checked', 'i64', {}),
         )
         with TemporaryDirectory(prefix='hia-native-signed-proof-') as root:
             for index, (operation, kind, attrs) in enumerate(cases):
@@ -129,6 +131,28 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                     for row in report['validation']['obligations']:
                         self.assertEqual(row['native_cnf']['method'], 'native_hia_circuit_cnf')
                         self.assertEqual(row['native_cnf']['image_sha256'], solver.image_sha256)
+
+    def test_wide_arithmetic_abstraction_never_confirms_a_spurious_sat(self):
+        import time
+        import z3
+        from hepta.hia_cnf_native import SAT, abstract_wide_division, bitvector_circuit, selected_cnf
+        from hepta.hia_safe_core import _native_obligation
+
+        native = selected_cnf()
+        if native is None:
+            self.skipTest('requires the installed HIA Boolean solver')
+        left, right = z3.BitVecs('abstract_left abstract_right', 32)
+        expression = z3.And(left == 1, right == 1, left / right == 0)
+        foreign = z3.Solver()
+        foreign.add(expression)
+        self.assertEqual(foreign.check(), z3.unsat)
+        relaxed = abstract_wide_division(z3, z3.simplify(expression))
+        circuit = bitvector_circuit(z3, relaxed)
+        spurious = native.solve_circuit(circuit.nodes, circuit.returns, steps=200000, watched=True)
+        self.assertEqual(spurious[0], SAT)
+        with (patch.object(native, 'solve_circuit', side_effect=(None, spurious)),
+              patch('hepta.hia_cnf_native.bitblast_goal', return_value=None)):
+            self.assertIsNone(_native_obligation(z3, native, expression, time.monotonic() + 5))
 
     def test_signed_admission_and_machine_effects_use_native_recipes(self):
         import z3

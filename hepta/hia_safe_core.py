@@ -283,7 +283,7 @@ class _FiniteCallerMemory:
 
 def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     """Use HIA for a precise finite Boolean reduction when available."""
-    from .hia_cnf_native import SAT, UNSAT, WRAPPING_PRODUCT, bitblast_goal, bitvector_circuit
+    from .hia_cnf_native import SAT, UNSAT, WRAPPING_PRODUCT, abstract_wide_division, bitblast_goal, bitvector_circuit
 
     if cnf is None:
         return None
@@ -325,6 +325,24 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
                 if reduced_memory is not None:
                     receipt["caller_memory"] = "native_hia_finite_byte_array"
                 return ("sat" if result == SAT else "unsat"), witness, receipt
+    abstract = abstract_wide_division(z, candidate)
+    if abstract is not None:
+        # Arbitrary shared values include every concrete division. Only UNSAT
+        # survives this overapproximation; a SAT guess is not a counterexample.
+        circuit = bitvector_circuit(z, abstract)
+        remaining = int((deadline - time.monotonic()) * 1000)
+        if circuit is not None and remaining > 0:
+            solved = cnf.solve_circuit(circuit.nodes, circuit.returns,
+                                       steps=min(2_000_000, remaining * 800), restarts=True)
+            if solved is not None and solved[0] == UNSAT:
+                _, _, steps, variables, clauses, formula = solved
+                receipt = {"method": "native_hia_circuit_cnf", "image_sha256": cnf.image_sha256,
+                           "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
+                           "clauses": clauses, "steps": steps, "abstraction": "wide_division_unsat_only",
+                           "search": "native_hia_conflict_learning", "restarts": "bounded_geometric"}
+                if reduced_memory is not None:
+                    receipt["caller_memory"] = "native_hia_finite_byte_array"
+                return "unsat", None, receipt
     remaining = int((deadline - time.monotonic()) * 1000)
     if remaining < 4:
         return None

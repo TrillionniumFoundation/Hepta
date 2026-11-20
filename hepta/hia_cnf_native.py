@@ -724,6 +724,28 @@ def bitvector_circuit(z3, expression):
     return BitvectorCircuit(tuple(nodes), ((result, false),), tuple(variables))
 
 
+def abstract_wide_division(z3, expression):
+    """Replace exact recurring word divisions by shared unconstrained words."""
+    division_kinds = {z3.Z3_OP_BUDIV, z3.Z3_OP_BUDIV_I, z3.Z3_OP_BUREM, z3.Z3_OP_BUREM_I,
+                      z3.Z3_OP_BSDIV, z3.Z3_OP_BSDIV_I, z3.Z3_OP_BSREM, z3.Z3_OP_BSREM_I}
+    pending, visited, bindings = [expression], set(), []
+    while pending:
+        term = pending.pop()
+        key = term.get_id()
+        if key in visited:
+            continue
+        visited.add(key)
+        if len(visited) > CIRCUIT_NODES or not z3.is_app(term):
+            return None
+        if term.decl().kind() in division_kinds and 17 <= term.size() <= 64:
+            bindings.append((term, z3.FreshConst(term.sort(), prefix='hia_opaque_division')))
+        else:
+            pending.extend(term.children())
+    if not bindings:
+        return None
+    return z3.simplify(z3.substitute(expression, *bindings))
+
+
 @dataclass(frozen=True)
 class BooleanReduction:
     goal: object
