@@ -426,7 +426,7 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
     destination = Path(os.path.abspath(output))
     _require(not destination.exists() and not destination.is_symlink() and destination.parent.is_dir(),
              "output must be a new path in an existing directory")
-    selected = selected_verified_linker()
+    selected = selected_verified_linker(package_default=linker == "ld")
     if selected is None:
         found = shutil.which(linker)
         _require(found is not None, "GNU ld is required")

@@ -275,6 +275,72 @@ assert library.increment(41) == 42
         self.assertFalse(result['claims']['external_linker_used'])
         self.assertEqual(result['artifact_sha256'], sha256(output.read_bytes()).hexdigest())
 
+    def test_matching_cold_wheel_keeps_final_verification_with_no_external_linker(self):
+        from hepta.hia_verified_simd import simd_kernel_program
+        from tests.test_hia_program_tools import scalar_program
+        from tests.test_hia_safe_core import read_byte
+
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('only the matching-source cold wheel ships Core ELF defaults')
+        inputs = self.root / 'verified-shared-inputs'
+        inputs.mkdir()
+        for name, program in (
+            ('scalar', scalar_program()), ('checked', read_byte()),
+            ('simd', simd_kernel_program('copy_u8').as_dict()),
+        ):
+            (inputs / (name + '.hepta')).write_text(json.dumps(program))
+        body = r'''
+import ctypes
+from hashlib import sha256
+from hepta import cli, hia_program_native, hia_verified_kernel, hia_verified_scalar
+from hepta.hia_elf_verified_linker_native import NativeVerifiedLinker, selected_verified_linker
+from hepta.hia_safe_core import build_safe_core
+from hepta.hia_verified_image import VerifiedImageRejected
+
+inputs = Path(sys.argv[3])
+def read(name):
+    return json.loads((inputs / (name + '.hepta')).read_bytes())
+
+def check(report, output, export):
+    toolchain = report.get('toolchain') or report['compilation']['toolchain']
+    assert (toolchain['mode'], toolchain['path'], toolchain['sha256']) == ('hia', None, image.image_sha256)
+    assert report['validation']['complete'] and report['validation']['ok']
+    assert report['artifact_sha256'] == sha256(output.read_bytes()).hexdigest()
+    return getattr(ctypes.CDLL(str(output), mode=os.RTLD_NOW), export)
+
+image = selected_verified_linker()
+assert image._default_package_binding is not None
+os.environ['PATH'] = ''
+with patch.object(hia_program_native.shutil, 'which', forbidden):
+    output = inputs / 'scalar.so'
+    with patch.object(cli, 'output_json') as published:
+        assert cli.hia_main(['build', str(inputs / 'scalar.hepta'), '--backend', 'auto',
+                             '--kind', 'shared', '-o', str(output)]) == 0
+    increment = check(published.call_args.args[0], output, 'increment')
+    increment.argtypes = [ctypes.c_uint32]
+    increment.restype = ctypes.c_uint32
+    assert increment(41) == 42
+    checked = inputs / 'checked.so'
+    check(build_safe_core(read('checked'), checked, foreign_extent=8), checked, 'read_byte')
+    simd = inputs / 'simd.so'
+    check(hia_verified_kernel.build_verified_kernel(read('simd'), simd, strategy='simd',
+                                                    simd_unroll=1), simd, 'calculate')
+    refused = inputs / 'unverified.so'
+    def malformed(_self, _object, destination):
+        destination.write_bytes(b'bad')
+    with patch.object(NativeVerifiedLinker, 'link', malformed):
+        try:
+            hia_verified_scalar.build_verified_scalar(read('scalar'), refused)
+        except hia_verified_scalar.VerifiedScalarRejected as error:
+            assert isinstance(error.__cause__, VerifiedImageRejected), error
+        else:
+            raise AssertionError('malformed linked output was accepted without verification')
+    assert not refused.exists()
+print('PACKAGED_HIA_LINKAGE_STILL_REQUIRES_FINAL_PROOF')
+'''
+        self.assertEqual(self.child(body, inputs).stdout.strip(),
+                         'PACKAGED_HIA_LINKAGE_STILL_REQUIRES_FINAL_PROOF')
+
     def test_default_worker_scope_and_real_restarted_service_bind_packaged_bundle(self):
         body = r'''
 import contextlib, io

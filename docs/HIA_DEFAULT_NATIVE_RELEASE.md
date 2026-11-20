@@ -6,11 +6,15 @@ this Linux x86-64 candidate makes the ordinary `assess_full_cost` call use HIA
 without a native selector in the environment. The ordinary worker likewise
 captures that package-owned bundle before service effects.
 
-A strict matching-cold wheel also supplies the HIA shared ELF linker and
-independent ELF inventory by default for the ordinary
-`hia build --backend native --kind shared` entry. This selects the direct
-linker, not a new default proof policy for `--backend auto`. Development and
-portable wheels do not select these two entries by default.
+A strict matching-cold wheel supplies a HIA shared ELF linker and independent
+ELF inventory for `hia build --backend native --kind shared`. It also supplies
+the separate HIA verified linker for `hia build --backend auto --kind shared`
+and the checked, scalar and SIMD verification APIs. This replaces external
+linkage, not the machine proof policy: the existing independent verifier still
+validates the final bytes before publication. Development and portable wheels
+do not select these ELF owners by default. An explicitly different linker
+argument retains the existing API behavior unless an administrator already
+selected a pinned HIA linker.
 
 The standalone executable release also supports the explicit native shared
 command without Python, LLVM, or an external linker. It links the admitted

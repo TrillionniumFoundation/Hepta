@@ -938,12 +938,12 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
     flags = []
     if kind == "shared" and verified_shared:
         from .hia_elf_verified_linker_native import selected_verified_linker, verified_linker_matches
-        verified_linker = selected_verified_linker()
+        verified_linker = selected_verified_linker(package_default=linker == "ld")
         if verified_linker is not None:
             verified_linker_identity = verified_linker.identity()
     if kind == "shared" and verified_linker is None and not verified_shared:
         from .hia_elf_shared_linker_native import selected_shared_linker, shared_linker_matches
-        native_linker = selected_shared_linker()
+        native_linker = selected_shared_linker(package_default=linker == "cc")
         if native_linker is not None:
             native_linker_identity = native_linker.identity()
     if verified_linker is not None:
