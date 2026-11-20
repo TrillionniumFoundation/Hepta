@@ -28,11 +28,12 @@ class Instruction:
 
 
 def decode(data, *, allow_variable_shifts=False, allow_unsigned_multiply=False,
-           allow_unsigned_divide=False):
+           allow_unsigned_divide=False, allow_signed=False):
     """Decode complete bytes, including unreachable code, with exact boundaries."""
     require(type(allow_variable_shifts) is bool, "variable-shift admission must be explicit boolean")
     require(type(allow_unsigned_multiply) is bool, "unsigned-multiply admission must be explicit boolean")
     require(type(allow_unsigned_divide) is bool, "unsigned-divide admission must be explicit boolean")
+    require(type(allow_signed) is bool, "signed-integer admission must be explicit boolean")
     require(type(data) is bytes and 0 < len(data) <= 65536, "machine text budget exceeded")
     result, pc = {}, 0
     while pc < len(data):
@@ -76,6 +77,9 @@ def decode(data, *, allow_variable_shifts=False, allow_unsigned_multiply=False,
         elif opcode in (0xc3, 0xc9, 0x90):
             require(rex is None, "unreviewed single-byte prefix")
             op, args = {0xc3: "ret", 0xc9: "leave", 0x90: "nop"}[opcode], ()
+        elif opcode == 0x99:
+            require(allow_signed and rex == 0x48, "only explicitly admitted CQO is supported")
+            op, args = "cqo", ()
         elif opcode in (0xe8, 0xe9):
             require(rex is None, "unreviewed direct branch prefix")
             displacement = struct.unpack("<i", take(4))[0]
@@ -141,24 +145,24 @@ def decode(data, *, allow_variable_shifts=False, allow_unsigned_multiply=False,
         elif opcode == 0xc1:
             mode, reg, rm, disp, group = modrm()
             count = take(1)[0]
-            require(wide and mode == 3 and high_r == 0 and group in (4, 5) and count < 64,
+            require(wide and mode == 3 and high_r == 0 and group in ((4, 5, 7) if allow_signed else (4, 5)) and count < 64,
                     "unreviewed shift instruction")
-            op, args = ("shl" if group == 4 else "shr"), (rm, count)
+            op, args = {4: "shl", 5: "shr", 7: "sar"}[group], (rm, count)
         elif opcode == 0xd3:
             require(allow_variable_shifts, "variable shifts are outside the selected machine profile")
             mode, reg, rm, disp, group = modrm()
-            require(wide and mode == 3 and high_r == 0 and group in (4, 5),
-                    "only 64-bit register SHL/SHR by CL is admitted")
-            op, args = ("shl_cl" if group == 4 else "shr_cl"), (rm,)
+            require(wide and mode == 3 and high_r == 0 and group in ((4, 5, 7) if allow_signed else (4, 5)),
+                    "unreviewed 64-bit register shift by CL")
+            op, args = {4: "shl_cl", 5: "shr_cl", 7: "sar_cl"}[group], (rm,)
         elif opcode == 0xf7:
             mode, reg, rm, disp, group = modrm()
-            require(wide and mode == 3 and high_r == 0 and group in (2, 4, 6),
+            require(wide and mode == 3 and high_r == 0 and group in ((2, 3, 4, 5, 6, 7) if allow_signed else (2, 4, 6)),
                     "unreviewed unary instruction")
             require(group != 4 or allow_unsigned_multiply,
                     "unsigned MUL is outside the selected machine profile")
             require(group != 6 or allow_unsigned_divide,
                     "unsigned DIV is outside the selected machine profile")
-            op, args = {2: "not", 4: "mul", 6: "div"}[group], (rm,)
+            op, args = {2: "not", 3: "neg", 4: "mul", 5: "imul_full", 6: "div", 7: "idiv"}[group], (rm,)
         else:
             raise SafeCoreMachineRejected(f"unsupported machine opcode at byte {begin}")
         result[begin] = Instruction(op, args, pc - begin)
@@ -167,8 +171,9 @@ def decode(data, *, allow_variable_shifts=False, allow_unsigned_multiply=False,
         if instruction.op in ("jmp", "jcc"):
             require(instruction.args[-1] in result, "branch is not an exact instruction boundary")
         if instruction.op in ("jcc", "setcc"):
-            require(instruction.args[0] in (2, 3, 4, 5, 6, 7),
-                    "only reviewed unsigned/equality conditions are admitted")
+            allowed = (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15) if allow_signed else (2, 3, 4, 5, 6, 7)
+            require(instruction.args[0] in allowed,
+                    "condition lies outside the selected machine profile")
     return result
 
 
@@ -207,15 +212,37 @@ def _unsigned_division(z, high, low, divisor):
     return z.simplify(quotient), z.simplify(remainder), z.simplify(admitted)
 
 
+def _signed_division(z, high, low, divisor):
+    """Exact IDIV r64 semantics, including an arbitrary old RDX:RAX.
+
+    CQO commonly creates the sign-extension of RAX. When that identity is
+    present in the independently executed state, a 64-bit quotient is exact
+    except at MIN/-1. Otherwise compute the complete signed 128-bit dividend
+    and require the mathematical quotient to fit the architectural register.
+    No Core intent or producer declaration supplies the sign-extension premise.
+    """
+    high, low = z.simplify(high), z.simplify(low)
+    if z.eq(high, z.simplify(low >> 63)):
+        quotient, remainder = low / divisor, z.SRem(low, divisor)
+        admitted = z.And(divisor != 0, z.Not(z.And(low == -(1 << 63), divisor == -1)))
+    else:
+        dividend, extended = z.Concat(high, low), z.SignExt(64, divisor)
+        full_quotient = dividend / extended
+        quotient = z.Extract(63, 0, full_quotient)
+        remainder = z.Extract(63, 0, z.SRem(dividend, extended))
+        admitted = z.And(divisor != 0, full_quotient == z.SignExt(64, quotient))
+    return z.simplify(quotient), z.simplify(remainder), z.simplify(admitted)
+
+
 class Executor:
     """Symbolically execute exact decoded bytes under an explicit caller contract."""
 
     def __init__(self, theory, binding, words, loan, *, allow_variable_shifts=False,
-                 allow_unsigned_multiply=False, allow_unsigned_divide=False):
+                 allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
         self.t, self.z, self.ctx = theory, theory.z, theory.ctx
         self.code = decode(binding["text"], allow_variable_shifts=allow_variable_shifts,
                            allow_unsigned_multiply=allow_unsigned_multiply,
-                           allow_unsigned_divide=allow_unsigned_divide)
+                           allow_unsigned_divide=allow_unsigned_divide, allow_signed=allow_signed)
         self.calls, self.entry = binding["calls"], binding["entry"]
         require({pc for pc, op in self.code.items() if op.op == "call"} == set(self.calls),
                 "call instruction inventory differs from checked relocations")
@@ -299,20 +326,34 @@ class Executor:
         return self.z.Select(state.memory, address)
 
     def condition(self, state, code):
-        zf, cf = state.flags["zf"], state.flags["cf"]
-        return {2: lambda: cf, 3: lambda: self.z.Not(cf), 4: lambda: zf,
+        zf, cf, sf, of = (state.flags[flag] for flag in ("zf", "cf", "sf", "of"))
+        return {0: lambda: of, 1: lambda: self.z.Not(of),
+                2: lambda: cf, 3: lambda: self.z.Not(cf), 4: lambda: zf,
                 5: lambda: self.z.Not(zf), 6: lambda: self.z.Or(cf, zf),
-                7: lambda: self.z.And(self.z.Not(cf), self.z.Not(zf))}[code]()
+                7: lambda: self.z.And(self.z.Not(cf), self.z.Not(zf)),
+                8: lambda: sf, 9: lambda: self.z.Not(sf),
+                12: lambda: sf != of, 13: lambda: sf == of,
+                14: lambda: self.z.Or(zf, sf != of),
+                15: lambda: self.z.And(self.z.Not(zf), sf == of)}[code]()
+
+    def sign(self, value):
+        return self.z.Extract(63, 63, value) == 1
+
+    def undefined_flag(self, operation, flag):
+        return self.z.Bool(operation + "_undefined_" + flag + "_step_" + str(self.steps), ctx=self.ctx)
 
     def alu(self, state, action, destination, right):
         left = state.registers[destination]
         if action in ("add", "sub", "cmp"):
             result = left + right if action == "add" else left - right
             cf = self.z.ULT(result, left) if action == "add" else self.z.ULT(left, right)
+            of = self.z.And(self.sign(left) == self.sign(right) if action == "add"
+                            else self.sign(left) != self.sign(right), self.sign(result) != self.sign(left))
         else:
             result = left & right if action in ("and", "test") else left | right if action == "or" else left ^ right
             cf = self.z.BoolVal(False, ctx=self.ctx)
-        state.flags = {"zf": result == 0, "cf": cf}
+            of = self.z.BoolVal(False, ctx=self.ctx)
+        state.flags = {"zf": result == 0, "cf": cf, "sf": self.sign(result), "of": of}
         if action not in ("cmp", "test"):
             state.registers[destination] = self.z.simplify(result)
 
@@ -320,7 +361,7 @@ class Executor:
         z = self.z
         stack = {i: z.Extract(8 * i + 7, 8 * i, self.return_address) for i in range(8)}
         initial = State(self.entry, z.BoolVal(True, ctx=self.ctx), dict(self.initial),
-                        {f: z.Bool("initial_" + f, ctx=self.ctx) for f in ("zf", "cf")},
+                        {f: z.Bool("initial_" + f, ctx=self.ctx) for f in ("zf", "cf", "sf", "of")},
                         stack, {0: self.return_address}, self.t.memory)
         pending = [initial]
         states = 0
@@ -342,6 +383,9 @@ class Executor:
                     regs[args[0]] = self.value(args[1])
                 elif op == "mov":
                     regs[args[0]] = regs[args[1]]
+                elif op == "cqo":
+                    # CQO leaves arithmetic flags and RAX unchanged.
+                    regs[2] = z.simplify(regs[0] >> 63)
                 elif op == "cmovne":
                     destination, source = args
                     # Both operands and ZF belong to the pre-instruction state;
@@ -350,8 +394,7 @@ class Executor:
                         regs[source], regs[destination]))
                 elif op == "imul":
                     destination, source = args
-                    # Two-operand IMUL keeps the low product. CF (and OF,
-                    # outside this decoder's condition set) reports signed
+                    # Two-operand IMUL keeps the low product. CF and OF report signed
                     # truncation, not unsigned overflow. Read both operands
                     # before writing, including self-aliases.
                     full = z.SignExt(64, regs[destination]) * z.SignExt(64, regs[source])
@@ -360,24 +403,26 @@ class Executor:
                     # ZF is architecturally undefined. A fresh arbitrary value
                     # overapproximates every allowed result; preserving the old
                     # ZF or deriving it from the product could prove false code.
-                    state.flags = {"cf": full != z.SignExt(64, product),
-                        "zf": z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)}
-                elif op == "mul":
-                    # MUL r64 reads the old RAX and explicit source, then
-                    # writes their full unsigned product to RDX:RAX. Capture
+                    overflow = full != z.SignExt(64, product)
+                    state.flags = {"cf": overflow, "of": overflow,
+                        "zf": self.undefined_flag("imul", "zf"), "sf": self.undefined_flag("imul", "sf")}
+                elif op in ("mul", "imul_full"):
+                    # One-operand MUL/IMUL read old RAX and the explicit source,
+                    # then write their full product to RDX:RAX. Capture
                     # both first so RAX/RDX source aliases are also exact.
-                    full = z.ZeroExt(64, regs[0]) * z.ZeroExt(64, regs[args[0]])
+                    extension = z.SignExt if op == "imul_full" else z.ZeroExt
+                    full = extension(64, regs[0]) * extension(64, regs[args[0]])
                     low, high = z.Extract(63, 0, full), z.Extract(127, 64, full)
                     regs[0], regs[2] = z.simplify(low), z.simplify(high)
-                    # CF reports a nonzero high half; OF has the same value
-                    # but is not a decoded condition. ZF is undefined, so it
-                    # must not be inferred from either half or preserved.
-                    state.flags = {"cf": high != 0,
-                        "zf": z.Bool("mul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)}
-                elif op == "div":
+                    overflow = full != z.SignExt(64, low) if op == "imul_full" else high != 0
+                    # ZF and SF are undefined, not derived from either half.
+                    state.flags = {"cf": overflow, "of": overflow,
+                        "zf": self.undefined_flag(op, "zf"), "sf": self.undefined_flag(op, "sf")}
+                elif op in ("div", "idiv"):
                     # Read the old dividend and source before either output
                     # is updated, including DIV RAX and DIV RDX aliases.
-                    quotient, remainder, admitted = _unsigned_division(
+                    semantics = _signed_division if op == "idiv" else _unsigned_division
+                    quotient, remainder, admitted = semantics(
                         z, regs[2], regs[0], regs[args[0]])
                     # #DE is neither a conforming return nor the declared
                     # nonreturning libc abort. Its path therefore has no
@@ -385,10 +430,9 @@ class Executor:
                     # must refute if any valid caller state can reach it.
                     state.path = z.simplify(z.And(state.path, admitted))
                     regs[0], regs[2] = quotient, remainder
-                    # Every arithmetic flag is undefined. The decoder only
-                    # exposes CF/ZF, and each receives an independent value.
-                    state.flags = {flag: z.Bool("div_undefined_" + flag + "_step_" + str(self.steps),
-                                                ctx=self.ctx) for flag in ("cf", "zf")}
+                    # Every modeled arithmetic flag receives an independent
+                    # arbitrary value; no preceding comparison survives.
+                    state.flags = {flag: self.undefined_flag(op, flag) for flag in ("cf", "zf", "sf", "of")}
                 elif op in ("load", "load8", "lea"):
                     dst, base, disp = args
                     address = z.simplify(regs[base] + self.value(disp))
@@ -403,27 +447,42 @@ class Executor:
                     self.alu(state, args[0], args[1], self.value(args[2]))
                 elif op == "not":
                     regs[args[0]] = ~regs[args[0]]
-                elif op in ("shl", "shr"):
+                elif op == "neg":
+                    old = regs[args[0]]
+                    result = -old
+                    regs[args[0]] = z.simplify(result)
+                    state.flags = {"cf": old != 0, "zf": result == 0,
+                                   "sf": self.sign(result), "of": old == self.value(1 << 63)}
+                elif op in ("shl", "shr", "sar"):
                     register, count = args
                     if count:
                         old = regs[register]
-                        regs[register] = z.simplify(old << count if op == "shl" else z.LShR(old, count))
+                        regs[register] = z.simplify(old << count if op == "shl"
+                                                   else old >> count if op == "sar" else z.LShR(old, count))
+                        cf = z.Extract(64 - count if op == "shl" else count - 1,
+                                       64 - count if op == "shl" else count - 1, old) == 1
+                        of = (self.sign(regs[register]) != cf if op == "shl" else self.sign(old)
+                              if op == "shr" else z.BoolVal(False, ctx=self.ctx)) if count == 1 else self.undefined_flag(op, "of")
                         state.flags = {"zf": regs[register] == 0,
-                                       "cf": z.Extract(64 - count if op == "shl" else count - 1,
-                                                       64 - count if op == "shl" else count - 1, old) == 1}
-                elif op in ("shl_cl", "shr_cl"):
+                                       "cf": cf, "sf": self.sign(regs[register]), "of": of}
+                elif op in ("shl_cl", "shr_cl", "sar_cl"):
                     register = args[0]
                     # Intel SDM SAL/SAR/SHL/SHR: 64-bit operands mask CL to
                     # six bits. Capture CL before writing even when RCX is
                     # also the destination. Effective count zero preserves
                     # both destination and every modeled flag.
                     old, count = regs[register], regs[1] & self.value(63)
-                    value = old << count if op == "shl_cl" else z.LShR(old, count)
+                    value = old << count if op == "shl_cl" else old >> count if op == "sar_cl" else z.LShR(old, count)
                     shifted_out = z.LShR(old, self.value(64) - count if op == "shl_cl"
                                         else count - self.value(1)) & self.value(1)
                     regs[register] = z.simplify(z.If(count == 0, old, value))
+                    one_bit_of = (self.sign(value) != (shifted_out == 1) if op == "shl_cl"
+                                  else self.sign(old) if op == "shr_cl" else z.BoolVal(False, ctx=self.ctx))
+                    shifted_of = z.If(count == 1, one_bit_of, self.undefined_flag(op, "of"))
                     state.flags = {"zf": z.If(count == 0, state.flags["zf"], value == 0),
-                                   "cf": z.If(count == 0, state.flags["cf"], shifted_out == 1)}
+                                   "cf": z.If(count == 0, state.flags["cf"], shifted_out == 1),
+                                   "sf": z.If(count == 0, state.flags["sf"], self.sign(value)),
+                                   "of": z.If(count == 0, state.flags["of"], shifted_of)}
                 elif op == "setcc":
                     condition, register = args
                     regs[register] = z.simplify((regs[register] & self.value(~255)) |

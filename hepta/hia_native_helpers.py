@@ -240,6 +240,9 @@ class NativeHelpersBinding:
             # Both factories receive the same captured, hash-verified bytes.
             for key, view in zip(keys, factories):
                 self.images[key] = view(image.raw, record["image_sha256"])
+                from .hia_json_preflight_native import NativeHiaJsonImage
+                if issubclass(type(self.images[key]), NativeHiaJsonImage):
+                    self.images[key].admitted_source_sha256 = record["source_sha256"]
             self.selections[selector] = str(manifest_path)
             self.snapshots.extend(((manifest, MAX_MANIFEST_BYTES), (source, MAX_SOURCE_BYTES), (image, MAX_IMAGE_BYTES)))
         self.check_files()
@@ -349,3 +352,7 @@ def pinned_bundle(manifest_path, schema, factory):
         return getattr(_ACTIVE, 'bundles', {})[key]
     except KeyError as exc:
         raise ValueError("native helper bundle is outside the pinned worker bundle") from exc
+
+# Bind this executing input adapter, including selectors and native custody.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

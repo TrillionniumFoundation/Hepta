@@ -10,10 +10,11 @@ own semantics, machine-code validation and execution evidence.
 
 | Area | Implemented work | Remaining closure criterion | Existing verification source |
 | --- | --- | --- | --- |
-| Register scalars | Direct caller-saved register entry; unsigned checked add/sub/cast, v3 negation/shifts, v4 multiplication and v5 division/remainder; independent final ELF refinement | Extend the checked domain to signed types, preserving traps and ABI behavior; measure new arithmetic against matched Rust semantics | `tests/test_hia_safe_core*.py`, `tests/test_hia_verified_scalar*.py`, `ScalarExecutionTests` in `tests/test_hia_program.py` |
+| Register scalars | Direct caller-saved register entry; unsigned v2–v5 and signed integer v6 arithmetic, casts, comparisons and shifts; independent final ELF refinement | Complete the fixed signed/Rust performance matrix and extend independently checked general call and loop behavior | `tests/test_hia_safe_core*.py`, `tests/test_hia_verified_scalar*.py`, `ScalarExecutionTests` in `tests/test_hia_program.py` |
 | Borrowed byte loops | Sum, all-zero detection and nonoverlapping copy; complete range admission; SSE2, AVX2 and AVX-512 candidates; reversible SSA/block renaming | Address every observed performance regression in the complete matrix; retain all earlier samples | `tests/test_hia_verified_simd*.py`, `benchmarks/hia_verified_kernels/PROTOCOL.json` |
 | Standard build entry | `hia build --kind shared` defaults to verified auto selection and host-native ISA; both CLI owners implement the same route; matching-source cold/native/wheel qualification recorded for `633feee` and `60409ea` | Requalify each later source extension and complete the separate broader native-component workflow | `tests/test_hia_agent_entry.py`, `tests/test_hia_verified_cli.py`, `tests/test_hia_cli_native.py` |
 | Actual loading | Fresh CPU/OS observations; independent proof rerun; sealed bytes bound to actual mapped code; no target dlsym | Preserve these invariants for each additional image/ABI profile | `tests/test_hia_verified_cpu.py`, `tests/test_hia_verified_kernel_load.py` |
+| Proof input identity | Executing decoder, canonicalizer, hash and primitive admission modules bound before input admission and rechecked at proof completion; actual selected native helper mappings and source bindings recorded | Independently refine the selected native input helpers' semantics; preserve the input closure for each new language family | `tests/test_hia_verified_input_identity.py`, `tests/test_hia_verified_input_native.py` |
 | General calls and loops | Ordinary native lowering and execution tests exist | Independent call/return and loop-invariant validation for the supported general Core, including failure and resource effects | `DirectExecutionTests` in `tests/test_hia_program_native.py`, `tests/test_hia_program.py` |
 | Ownership and heap | Capability-flow admission, allocation/move/drop/loan rules and native effects are exercised | Connect static capabilities and runtime heap provenance, calls, returned loans, chains and lowering in one soundness argument | `formal/HiaCapabilityBorrow.lean`, `docs/HIA_CAPABILITY_BORROW_ACCESS.md`, `tests/test_hia_capability_flow.py` |
 | Concurrency and asynchronous work | Cooperative composite task protocol | Define and implement shared-memory ownership, synchronization, scheduler and cancellation semantics, then validate races and lifetime transitions | `tests/test_hia_program_composite.py`, `tests/test_hia_semantics_contract.py`, `hepta/hia_program.py` capability report |
@@ -22,9 +23,9 @@ own semantics, machine-code validation and execution evidence.
 | Product and project throughput | Standalone source, agent integration and native component entry points | Runtime/library, durable publication/recovery, native-only installation and clean-machine real-project workloads | `docs/HIA_PROGRAM.md`, `docs/HIA_CORE_ONLY_SCOPE.md`, existing component qualification tools |
 
 The current general Core/native operation inventory is broader than the Safe
-Core final-code model. Owner/chain/loan operations, arbitrary calls and loops,
-signed values and several checked operations are not admitted merely because
-the ordinary backend can execute their tests. The closed borrowed-byte
+Core final-code model. Owner/chain/loan operations and arbitrary calls and
+loops are not admitted merely because the ordinary backend can execute their
+tests. Signed integer arithmetic is covered by v6; the closed borrowed-byte
 recurrences are separately proved additions to that model.
 
 ## Performance comparison discipline
@@ -102,3 +103,44 @@ and adds 92 explicitly named one-byte reduction candidate cases. Its 763 cases
 and 16,023 samples therefore retain the original address-layout limitation.
 The address-controlled extension requires another complete campaign, without
 transferring old ratios or replacing the existing control samples.
+
+## Signed integers and input execution identity
+
+Safe Core v6 extends final-image validation to `i8`, `i16`, `i32`, `i64` and
+`isize`, together with the existing unsigned types. The register producer,
+ordinary checked fallback, build tools and sealed scalar loader select the
+same version. The supplied-ELF consumer independently interprets signed Core
+values, actual sign extension, arithmetic flags and signed division; it does
+not reproduce the producer. Previous profile domains remain unchanged.
+
+Signed values use raw SysV argument words. Narrow values are interpreted from
+their low bits and sign-extended; negative returns are 64-bit two's-complement
+words. Checked overflow, negative or oversized shift counts, zero divisors,
+and `MIN / -1` or `MIN % -1` retain the original Core abort behavior. The
+existing 15-second default proof deadline is unchanged.
+
+The signed comparison protocol is declared in
+[`PROTOCOL_SIGNED_V1.json`](../benchmarks/hia_verified_kernels/PROTOCOL_SIGNED_V1.json).
+It contains 33 semantic cells and 66 HIA/Rust arms, with 64 legal input triples
+per cell and separate invalid-input child-process checks. Every complete
+measurement retains three warmups and all 21 measured batches. Preparation
+and functional-only runs carry explicit non-performance status. Existing
+unsigned/SIMD campaigns remain separate records.
+
+The input audit reproduced a concrete false acceptance before the fix: an old,
+timestamp-valid decoder bytecode cache transformed an addition into a
+subtraction while retaining the addition's canonical source hash. The proof
+and final execution agreed on the wrong decoded program. A stale payload
+hasher could similarly falsify the reported Core identity. The corrected
+consumer binds the executing input modules before decoding, records actual
+selected native input mappings, and rechecks the identities before returning.
+The input module and native route inventory is part of the fresh proof, not
+a claim derived solely from a source filename or a previously saved report.
+
+These additions close the signed scalar and reproduced input-identity defects
+within their explicit contracts. General calls and loop invariants, heap and
+foreign allocation lifetimes, shared-memory concurrency, complete native
+bootstrap and real-project performance retain their own entries above.
+The native helper receipt identifies operator-selected trusted code; its
+`native_semantic_refinement_proved` field remains `false`. Identifying the
+helper that executed does not establish the helper's semantic correctness.

@@ -25,7 +25,7 @@ class UnsignedCastProfileTests(unittest.TestCase):
             with self.subTest(source=source, target=target), self.assertRaises(SafeCoreRejected):
                 _profile(verify_program(cast_document(source, target, mode=mode)))
         core = verify_program(cast_document("u64", "u8", mode="wrap"))
-        for version in (True, False, "2", 2.0, 0, 6, None):
+        for version in (True, False, "2", 2.0, 0, 7, None):
             with self.subTest(version=version), self.assertRaises(SafeCoreRejected):
                 _profile(core, profile_version=version)
         self.assertEqual(build_safe_core(core, self.root / "v1.so")["validation"]["profile"], PROFILE)

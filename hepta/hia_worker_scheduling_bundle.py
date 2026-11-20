@@ -282,3 +282,7 @@ class NativeWorkerSchedulingBinding:
                 or owner._continuation is not registration[2]
                 or (engine is not None and engine is not registration[2])):
             raise ValueError('native scheduling owner or engine is outside the pinned worker capsule')
+
+# Bind the actual selected native-input custody route.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

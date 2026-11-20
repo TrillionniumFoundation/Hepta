@@ -165,7 +165,7 @@ class UnsignedShiftProfileTests(unittest.TestCase):
                         _profile(checked, profile_version=version)
                 with self.assertRaises(SafeCoreRejected):
                     _profile(checked)
-        for version in (True, False, None, "3", 3.0, 0, 6):
+        for version in (True, False, None, "3", 3.0, 0, 7):
             with self.subTest(version=version), self.assertRaises(SafeCoreRejected):
                 _profile(verify_program(identity_core()), profile_version=version)
         with self.assertRaises(SafeCoreRejected):
