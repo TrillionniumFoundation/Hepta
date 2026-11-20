@@ -4,12 +4,14 @@ HIA owns branch/iteration order, correctness/completeness/budget flags, outcome
 precedence, exact-int deadlines and permission to perform each foreign effect.
 Python retains opaque objects, the original runner/Store/clock providers and
 object protocols. Integer true division to binary64 and binary64 comparison
-remain the original CPython interoperability boundary; they are not claimed
-as native arithmetic. No retained evaluation body is invoked by this adapter.
+use the pinned Agent identity image in the native Store profile. The hosted
+interoperability route preserves CPython behavior for its unrestricted operands.
+No retained evaluation body is invoked by this adapter.
 """
 from __future__ import annotations
 
 import ctypes
+from .hia_agent_identity_native import DECLARED_OBSERVATION, NATIVE_OBSERVATION, REFERENCE_OBSERVATION
 from .hia_agent_store import _native_agent_identity, uses_native_store
 from .hia_native_delivery import DeliveryRecord, request_rejections
 from dataclasses import dataclass
@@ -430,8 +432,14 @@ class EvaluationFrame:
             key, value = d['declared_item']
             d['declared_scope'][key] = value
         elif name == 'declared_equal':
+            if d['identity'] is not None:
+                return int(d['identity'].observation_agreement(
+                    d['expected'], d['case']['expected'], mode=DECLARED_OBSERVATION))
             return int(not bool(d['case']['expected'] != d['declared_scope']))
         elif name == 'observables_equal':
+            if d['identity'] is not None:
+                return int(d['identity'].observation_agreement(
+                    d['expected'], d['candidate_reference'], mode=REFERENCE_OBSERVATION))
             left = {'value': api['_value_observation'](d['expected']), 'first_trap': d['expected'].get('trap_code'),
                     'resources': d['expected']['ledger']['resources']}
             right = {'value': api['_value_observation'](d['candidate_reference']),
@@ -496,6 +504,9 @@ class EvaluationFrame:
         elif name == 'normal_mismatch':
             return int(bool(d['observed']['mismatch']))
         elif name == 'normal_value_equal':
+            if d['identity'] is not None:
+                return int(d['identity'].observation_agreement(
+                    d['observed'], d['normal_case']['expected'], mode=NATIVE_OBSERVATION))
             return int(not bool(d['value'] != d['normal_case']['expected']))
         elif name == 'traps_init':
             d['trap_iterator'] = iter(d['trapping'])
@@ -545,9 +556,15 @@ class EvaluationFrame:
         elif name == 'before_nonzero':
             return int(bool(self._math(7, d['before'], 0)))
         elif name == 'ratio':
-            # Preserve original arbitrary-int true division and its binary64
-            # rounding, signed zero, overflow and exceptions. Not HIA arithmetic.
-            d['ratio'] = self._math(2, d['before'], d['after']) / d['before']
+            if d['identity'] is not None:
+                # Get only the ratio and threshold observation. The enclosing
+                # HIA continuation still chooses the final evaluation outcome.
+                d['ratio'], decision = d['identity'].evaluation_measurement(
+                    d['before'], d['after'], d['objective']['min_improvement_ratio'],
+                    budget_exceeded=False, correct=True, complete=True, latency=False, trapping=False)
+                d['meets_threshold'] = decision == 'improved'
+            else:
+                d['ratio'] = self._math(2, d['before'], d['after']) / d['before']
         elif name == 'ratio_zero':
             d['ratio'] = 0.0
         elif name == 'metric_latency':
@@ -557,6 +574,8 @@ class EvaluationFrame:
         elif name == 'after_smaller':
             return int(bool(self._math(5, d['before'], d['after'])))
         elif name == 'ratio_threshold':
+            if d['identity'] is not None:
+                return int(d['meets_threshold'])
             return int(bool(d['ratio'] >= d['objective']['min_improvement_ratio']))
         elif name == 'after_greater':
             return int(bool(self._math(5, d['after'], d['before'])))

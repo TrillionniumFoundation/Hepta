@@ -57,7 +57,8 @@ def build(output, compiler, cold_report=None, *, development=False):
               'cold_report_sha256': None if cold_bytes is None else sha256(cold_bytes).hexdigest(),
               'evaluation_control_branches_and_ordered_effects_owned_by_hia': True,
               'exact_integer_arithmetic_owned_by_hia': True,
-              'binary64_true_division_and_comparison_hosted': True,
+              'native_store_binary64_ratio_and_threshold_owned_by_agent_identity_image': True,
+              'unselected_identity_binary64_interoperability_hosted': True,
               'foreign_object_protocols_and_providers_hosted': True,
               'retained_evaluation_body_invoked': False,
               'whole_stack_rewritten_in_hia': False, 'all_input_equivalence_proved': False}
