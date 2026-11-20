@@ -737,13 +737,20 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
-        from .hia_agent_store import _native_agent_identity
+        from .hia_agent_store import _native_agent_identity, uses_native_store
         from .hia_agent_read_page_native import SELECTOR, capture_retained_page, installed_agent_read_page
         from .hia_native_helpers import pinned_agent_read_page_executable
 
         ref = args["artifact"]
         executable = pinned_agent_read_page_executable()
-        if executable is not None and self.store._artifact_code is not None:
+        if executable is not None and uses_native_store(self.store):
+            with capture_retained_page(self.store, ref, bound=True) as captured:
+                cursor = args.get("cursor")
+                row = self.store.db.cursor_frame(cursor) if cursor is not None else None
+                encoding, content, next_offset, next_cursor = installed_agent_read_page(
+                    os.environ[SELECTOR]).read_captured_bound_page(
+                        captured, ref, cursor, row, args.get("max_bytes"), executable)
+        elif executable is not None and self.store._artifact_code is not None:
             with capture_retained_page(self.store, ref) as captured:
                 native = _native_agent_identity()
                 if native is None:

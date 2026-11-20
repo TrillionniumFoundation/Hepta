@@ -5,8 +5,8 @@
 .global _start
 .type _start,@function
 .equ MIN_INPUT,24
-.equ MAX_INPUT,(64<<20)+32+512
-.equ OUTPUT,40+69+4*((65536+2)/3)
+.equ MAX_INPUT,(64<<20)+1024+512
+.equ OUTPUT,24+40+69+4*((65536+2)/3)
 .equ WORKSPACE,512+4128
 
 _start:

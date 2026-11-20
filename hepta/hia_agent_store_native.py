@@ -117,6 +117,7 @@ _ARTIFACT_RETAIN = _write_plan(9, _INSERTS, b'HIAINS01')
 _PROFILE_LOOKUP = _query_plan(12)
 _PROFILE_RETAIN = _write_plan(11, _INSERTS, b'HIAINS01')
 _CURSOR_LOOKUP = _query_plan(6)
+_CURSOR_ROW_LIMIT = 512
 _CURSOR_RETAIN = _write_plan(10, _INSERTS, b'HIAINS01')
 _SLOT_LOOKUP = _query_plan(10)
 _VERSION_LOOKUP = _query_plan(13)
@@ -430,7 +431,7 @@ class NativeStoreConnection:
             raise StoreProtocolError('misordered native Store acknowledgement')
         return result
 
-    def _results(self, plan, table, mask, deadline):
+    def _results(self, plan, table, mask, deadline, *, raw_row_limit=None):
         table_id = _TABLE_IDS.index(table) + 1
         columns = _COLUMNS[table]
         names = tuple(name for i, name in enumerate(columns) if mask & (1 << i))
@@ -451,12 +452,18 @@ class NativeStoreConnection:
             if kind == 1 and pending is None and size == 128 and offset == 0:
                 pending, pending_id = bytearray(), rowid
             elif kind == 2 and pending is not None and rowid == pending_id and offset == len(pending):
-                if size == 0 or size > _MAX_VALUE - len(pending):
+                limit = _MAX_VALUE if raw_row_limit is None else raw_row_limit
+                if size == 0 or size > limit - len(pending):
                     raise StoreProtocolError('native Store row exceeds its extent')
                 pending.extend(data)
             elif kind == 3 and pending is not None and rowid == pending_id and offset == len(pending) and size == 0:
-                values = _row(pending, table_id, len(columns))
-                rows.append(_Row((value for i, value in enumerate(values) if mask & (1 << i)), names))
+                if raw_row_limit is None:
+                    values = _row(pending, table_id, len(columns))
+                    rows.append(_Row((value for i, value in enumerate(values) if mask & (1 << i)), names))
+                elif rows:
+                    raise StoreProtocolError('native Store returned two cursor records for one key')
+                else:
+                    rows.append(bytes(pending))
                 pending = None
             elif kind == 4 and pending is None and len(data) == 416:
                 observed_plan, observed_mask, total, delivered = struct.unpack_from('<4Q', data, 384)
@@ -579,6 +586,10 @@ class NativeStoreConnection:
     def cursor_lookup(self, identity):
         return self._typed_operation(_CURSOR_LOOKUP, (identity,)).fetchone()
 
+    def cursor_frame(self, identity):
+        return self._typed_operation(_CURSOR_LOOKUP, (identity,),
+                                     raw_row_limit=_CURSOR_ROW_LIMIT).fetchone()
+
     def cursor_retain(self, identity, artifact, digest, offset):
         self._typed_operation(_CURSOR_RETAIN, (identity, artifact, digest, offset))
 
@@ -612,10 +623,10 @@ class NativeStoreConnection:
     def lease_release(self, identity):
         self._typed_operation(_LEASE_RELEASE, (identity,))
 
-    def _typed_operation(self, specification, values):
+    def _typed_operation(self, specification, values, *, raw_row_limit=None):
         with self.lock:
             self._check_live()
-            return self._perform(specification, values)
+            return self._perform(specification, values, raw_row_limit=raw_row_limit)
 
     def begin_immediate(self):
         self._transaction_command(begin=True)
@@ -648,7 +659,7 @@ class NativeStoreConnection:
             raise StoreRefusal('not an Agent Store statement')
         return self._perform(specification, values)
 
-    def _perform(self, specification, values):
+    def _perform(self, specification, values, *, raw_row_limit=None):
         command, plan, arity, table, mask = specification
         if len(values) != arity:
             raise StoreRefusal('incorrect Agent Store bindings')
@@ -667,7 +678,8 @@ class NativeStoreConnection:
                     raise StoreProtocolError('native Agent Store refused write')
                 result = _Cursor(rowcount=1 - skipped)
             else:
-                result = _Cursor(self._results(plan, table, mask, deadline))
+                result = _Cursor(self._results(plan, table, mask, deadline,
+                                               raw_row_limit=raw_row_limit))
             if local:
                 self._finish(command == 1)
             return result

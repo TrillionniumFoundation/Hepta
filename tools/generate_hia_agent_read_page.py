@@ -18,23 +18,44 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     mode = uint(s, 0)
     begin = 24
     reference = 0
-    if mode == CURSOR_INPUT_TAG:
+    reference_at = 32
+    output_base = 0
+    offset = uint(s, 8)
+    limit = uint(s, 16)
+    if mode == BOUND_INPUT_TAG:
+        if size < 1024 or length(o) < 40 or length(w) < 16:
+            return 4294967295
+        reference = uint(s, 24)
+        reference_at = 1024
+        window = bound_window(s, w)
+        if window == 1:
+            put(o, 0, UNBOUND_OUTPUT_TAG)
+            put(o, 8, 0)
+            put(o, 16, 0)
+            put(o, 24, 0)
+            put(o, 32, 0)
+            return 40
+        if window != 0:
+            return 4294967295
+        offset = byte_word(w, 0)
+        limit = byte_word(w, 8)
+        output_base = 24
+    elif mode == CURSOR_INPUT_TAG:
         if size < 32:
             return 4294967295
         reference = uint(s, 24)
-        # The limit covers the full public ASCII reference format and LF escapes.
-        if reference == 0 or reference > 512 or reference > size - 32:
+    elif mode != INPUT_TAG:
+        return 4294967295
+    if mode != INPUT_TAG:
+        # The bound covers the full public reference including JSON escapes.
+        if reference == 0 or reference > 512 or reference > size - reference_at:
             return 4294967295
         if length(w) < 4128 + reference:
             return 4294967295
-        begin = 32 + reference
-    elif mode != INPUT_TAG:
-        return 4294967295
+        begin = reference_at + reference
     total = size - begin
     if total > 67108864:
         return 4294967295
-    offset = uint(s, 8)
-    limit = uint(s, 16)
     if limit == 0 or limit > 65536:
         return 4294967295
     start = begin + offset
@@ -63,33 +84,124 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     next = 18446744073709551615
     if offset < total and count < total - offset:
         next = offset + count
-    header = 40
+    header = output_base + 40
     output_tag = OUTPUT_TAG
-    if mode == CURSOR_INPUT_TAG:
+    cursor = mode != INPUT_TAG and next != 18446744073709551615
+    if mode != INPUT_TAG:
         output_tag = CURSOR_OUTPUT_TAG
-        if next != 18446744073709551615:
-            header = 109
+    if cursor:
+        header = header + 69
     if length(o) < header + content:
         return 4294967294
-    if header == 109:
-        if cursor_digest(s, w, reference, next) == 0:
+    if cursor:
+        if cursor_digest(s, w, reference_at, reference, next) == 0:
             return 4294967295
-        emit_cursor(o, w)
-    put(o, 0, output_tag)
-    put(o, 8, kind)
-    put(o, 16, count)
-    put(o, 24, next)
-    put(o, 32, content)
+        emit_cursor(o, w, output_base + 40)
+    if output_base != 0:
+        put(o, 0, BOUND_OUTPUT_TAG)
+        put(o, 8, offset)
+        put(o, 16, limit)
+    put(o, output_base, output_tag)
+    put(o, output_base + 8, kind)
+    put(o, output_base + 16, count)
+    put(o, output_base + 24, next)
+    put(o, output_base + 32, content)
     if kind == 0:
         copy_bytes(s, o, start, header, count)
     else:
         encode_binary(s, o, start, count, header)
     return header + content
 
-def cursor_digest(s:readbuf, w:mutbuf, reference:u64, next:u64) -> u64:
+def bound_window(s:readbuf, w:mutbuf) -> u64:
+    flags = uint(s, 8)
+    limit = uint(s, 16)
+    identity_size = uint(s, 32)
+    cursor_size = uint(s, 40)
+    row_size = uint(s, 48)
+    if flags > 3 or identity_size == 0 or identity_size > 256 or cursor_size > 128 or row_size > 512:
+        return 2
+    if flags & 1 == 0 and limit != 0:
+        return 2
+    if flags & 2 == 0 and (cursor_size != 0 or row_size != 0):
+        return 2
+    cursor_at = 120 + identity_size
+    row = cursor_at + cursor_size
+    if row + row_size > 1024:
+        return 2
+    offset = 0
+    if flags & 2 != 0:
+        if row_size == 0:
+            return 1
+        offset = bound_cursor(s, row, row_size, identity_size, cursor_at, cursor_size)
+        if offset == 18446744073709551615:
+            return 1
+    if offset >= 9223372036854775808 or (flags & 1 != 0 and (limit == 0 or limit > 65536)):
+        return 2
+    if flags & 1 == 0:
+        limit = 65536
+    put(w, 0, offset)
+    put(w, 8, limit)
+    return 0
+
+def bound_cursor(s:readbuf, row:u64, size:u64, identity_size:u64,
+                 cursor_at:u64, cursor_size:u64) -> u64:
+    invalid = 18446744073709551614
+    mismatch = 18446744073709551615
+    # HIAROW01 v1, cursor table (6), four cells: key, artifact ID, SHA, offset.
+    if size < 128 or uint(s, row) != CURSOR_ROW_TAG or uint(s, row + 8) != 1:
+        return invalid
+    if uint(s, row + 16) != 6 or uint(s, row + 24) != 4:
+        return invalid
+    at = 128
+    field = 0
+    matches = 1
+    while field < 4:
+        descriptor = row + 32 + field * 24
+        kind = uint(s, descriptor)
+        start = uint(s, descriptor + 8)
+        count = uint(s, descriptor + 16)
+        if start != at or count > size - at:
+            return invalid
+        if field < 3:
+            if kind != 3:
+                return invalid
+            want_at = choose(field == 0, cursor_at, choose(field == 1, 120, 56))
+            want_size = choose(field == 0, cursor_size, choose(field == 1, identity_size, 64))
+            if count != want_size or same(s, row + at, want_at, count) == 0:
+                matches = 0
+        else:
+            if kind != 1 or count != 8 or at + 8 != size:
+                return invalid
+            if matches == 0:
+                return mismatch
+            position = uint(s, row + at)
+            if position >= 9223372036854775808:
+                return invalid
+            return position
+        at = at + count
+        field = field + 1
+    return invalid
+
+def same(s:readbuf, l:u64, r:u64, count:u64) -> u64:
+    step = 0
+    while step < count:
+        if byte(s, l + step) != byte(s, r + step):
+            return 0
+        step = step + 1
+    return 1
+
+def byte_word(s:mutbuf, at:u64) -> u64:
+    word = 0
+    index = 0
+    while index < 8:
+        word = word | (byte(s, at + index) << (8 * index))
+        index = index + 1
+    return word
+
+def cursor_digest(s:readbuf, w:mutbuf, ref_at:u64, reference:u64, next:u64) -> u64:
     put(w, 0, CURSOR_ARTIFACT_FIRST)
     put(w, 8, CURSOR_ARTIFACT_LAST)
-    copy_bytes(s, w, 32, 12, reference)
+    copy_bytes(s, w, ref_at, 12, reference)
     end = 12 + reference
     put(w, end, CURSOR_OFFSET_FIRST)
     put(w, end + 8, CURSOR_OFFSET_LAST)
@@ -107,14 +219,14 @@ def cursor_digest(s:readbuf, w:mutbuf, reference:u64, next:u64) -> u64:
     store(w, end, 125)
     return choose(hash_sha256(w, end + 1) == 32, 1, 0)
 
-def emit_cursor(o:mutbuf, w:mutbuf) -> u64:
-    put(o, 40, CURSOR_PREFIX)
+def emit_cursor(o:mutbuf, w:mutbuf, at:u64) -> u64:
+    put(o, at, CURSOR_PREFIX)
     digest = length(w) - 4096 + 1088
     i = 0
     while i < 32:
         value = byte(w, digest + i)
-        store(o, 45 + i * 2, hex_digit(value >> 4))
-        store(o, 46 + i * 2, hex_digit(value & 15))
+        store(o, at + 5 + i * 2, hex_digit(value >> 4))
+        store(o, at + 6 + i * 2, hex_digit(value & 15))
         i = i + 1
     return 0
 
@@ -244,6 +356,8 @@ def put(o:mutbuf, index:u64, value:u64) -> u64:
 def document():
     source = SOURCE
     for symbol, raw in (
+        ('UNBOUND_OUTPUT_TAG', b'HIAARU03'), ('BOUND_INPUT_TAG', b'HIAARB01'),
+        ('BOUND_OUTPUT_TAG', b'HIAARO03'), ('CURSOR_ROW_TAG', b'HIAROW01'),
         ('CURSOR_INPUT_TAG', b'HIAARC01'), ('CURSOR_OUTPUT_TAG', b'HIAARO02'),
         ('INPUT_TAG', b'HIAARP01'), ('OUTPUT_TAG', b'HIAARO01'),
         ('CURSOR_ARTIFACT_FIRST', b'{"artifa'), ('CURSOR_ARTIFACT_LAST', b'ct":'),

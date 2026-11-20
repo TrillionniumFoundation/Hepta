@@ -21,7 +21,7 @@ SCHEMA_MODE = TERMINAL_MODE + 1
 CONNECTION_MODE = SCHEMA_MODE + 1
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
-PAGE_OUTPUT = 40 + 69 + 4 * ((65536 + 2) // 3)
+PAGE_OUTPUT = 24 + 40 + 69 + 4 * ((65536 + 2) // 3)
 PAGE_WORKSPACE = 512 + 4128
 MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,
@@ -54,7 +54,7 @@ def template(mode):
     prefix_bytes = 0 if page else 8
     workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
     minimum = 24 if page else (SCHEMA_HEADER + 2 if schema else 2)
-    maximum = ((64 << 20) + 32 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
+    maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):

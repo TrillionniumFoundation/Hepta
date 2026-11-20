@@ -7,7 +7,7 @@ import os
 import struct
 import subprocess
 
-from .hia_agent_store import MAX_ARTIFACT_BYTES, _agent_resource_path, canonical_digest, wire
+from .hia_agent_store import MAX_ARTIFACT_BYTES, _agent_resource_path, canonical_digest, reject, wire
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 
@@ -16,6 +16,9 @@ SCHEMA = 'hepta.hia.agent-read-page-native.v1'
 SELECTOR = 'HEPTA_HIA_AGENT_READ_PAGE_MANIFEST'
 REQUEST = struct.Struct('<8s2Q')
 CURSOR_REQUEST = struct.Struct('<8s3Q')
+BOUND_REQUEST = struct.Struct('<8s6Q64s')
+BOUND_RESPONSE = struct.Struct('<8s2Q')
+BOUND_METADATA_BYTES = 1024
 RESPONSE = struct.Struct('<8s4Q')
 END_OF_ARTIFACT = (1 << 64) - 1
 MAX_PAGE_BYTES = 65536
@@ -24,12 +27,12 @@ MAX_REFERENCE_BYTES = 512
 
 
 @contextmanager
-def capture_retained_page(store, reference):
+def capture_retained_page(store, reference, *, bound=False):
     """Transfer verified Store bytes directly to the pager's input file."""
     encoded = wire(reference)
     if not 0 < len(encoded) <= MAX_REFERENCE_BYTES:
         raise ValueError('outside native HIA Agent issued reference profile')
-    offset = CURSOR_REQUEST.size + len(encoded)
+    offset = (BOUND_METADATA_BYTES if bound else CURSOR_REQUEST.size) + len(encoded)
     fd = os.memfd_create('hia-retained-artifact-page', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
     try:
         os.ftruncate(fd, offset)
@@ -55,18 +58,48 @@ class NativeAgentReadPage(NativeHiaJsonImage):
         return self._read_page(artifact, offset, limit, reference=wire(reference))
 
     def read_captured_page(self, capture, offset, limit, executable):
-        import fcntl
-
         fd, size, reference = capture
         self._validate_window(size, offset, limit)
         header = CURSOR_REQUEST.pack(b'HIAARC01', offset, limit, len(reference)) + reference
+        output = self._captured_page(executable, fd, header)
+        return self._decode_page(output, len(output), size, offset, limit,
+                                 CURSOR_BYTES, b'HIAARO02')
+
+    def read_captured_bound_page(self, capture, ref, cursor, row, max_bytes, executable):
+        """Pass a retained typed Store row directly to the standalone page owner."""
+        fd, size, reference = capture
+        identity = ref['id'].encode('ascii')
+        requested = cursor.encode('utf8') if row is not None else b''
+        observed = row if row is not None else b''
+        flags = int(max_bytes is not None) | (2 * int(cursor is not None))
+        limit = 0 if max_bytes is None else max_bytes
+        if type(limit) is not int or not 0 <= limit < 1 << 64:
+            limit = (1 << 64) - 1
+        header = BOUND_REQUEST.pack(b'HIAARB01', flags, limit, len(reference), len(identity),
+                                    len(requested), len(observed), ref['sha256'].encode('ascii'))
+        header += identity + requested + observed
+        if len(header) > BOUND_METADATA_BYTES:
+            raise ValueError('outside native HIA Agent cursor frame profile')
+        output = self._captured_page(executable, fd, header.ljust(BOUND_METADATA_BYTES, b'\0') + reference)
+        if output == b'HIAARU03' + bytes(32):
+            reject('E_HIA_CURSOR', 'cursor is not bound to this exact artifact')
+        if len(output) < BOUND_RESPONSE.size + RESPONSE.size:
+            raise ValueError('invalid HIA Agent bounded page response')
+        tag, offset, limit = BOUND_RESPONSE.unpack_from(output)
+        if tag != b'HIAARO03':
+            raise ValueError('invalid HIA Agent bounded page response tag')
+        self._validate_window(size, offset, limit)
+        page = output[BOUND_RESPONSE.size:]
+        return self._decode_page(page, len(page), size, offset, limit, CURSOR_BYTES, b'HIAARO02')
+
+    def _captured_page(self, executable, fd, header):
+        import fcntl
+
         if os.pwrite(fd, header, 0) != len(header):
             raise OSError('short write of HIA retained page frame')
         fcntl.fcntl(fd, fcntl.F_ADD_SEALS, (fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW |
                     fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL))
-        output = self._standalone_page(executable, fd)
-        return self._decode_page(output, len(output), size, offset, limit,
-                                 CURSOR_BYTES, b'HIAARO02')
+        return self._standalone_page(executable, fd)
 
     @staticmethod
     def _validate_window(size, offset, limit):

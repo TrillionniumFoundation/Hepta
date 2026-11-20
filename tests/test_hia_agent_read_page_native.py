@@ -198,7 +198,18 @@ class AgentReadPageNativeTests(unittest.TestCase):
                     service.close()
                 service = HIAAgentService(directory, native_store=store)
                 try:
-                    second = service.call('hia_read', {**args, 'cursor': cursor})
+                    with ExitStack() as paging:
+                        if self.executable is not None:
+                            paging.enter_context(patch.object(
+                                service.store, 'cursor_lookup', side_effect=AssertionError('host decoded cursor')))
+                            paging.enter_context(patch.object(
+                                HIAAgentService, '_read_window', side_effect=AssertionError('host chose page window')))
+                        second = service.call('hia_read', {**args, 'cursor': cursor})
+                        missing = service.call('hia_read', {**args, 'cursor': '你' * 512})
+                        self.assertEqual(missing['error']['code'], 'E_HIA_CURSOR')
+                        other = service.store.put(b'other bytes', 'input')
+                        wrong = service.call('hia_read', {**args, 'artifact': other, 'cursor': cursor})
+                        self.assertEqual(wrong['error']['code'], 'E_HIA_CURSOR')
                     self.assertEqual(second['status'], 'completed', second)
                     self.assertEqual(second['result']['content'], b64encode(second_page).decode())
                     end = service.call('hia_read', {**args, 'cursor': second['result']['next_cursor']})
