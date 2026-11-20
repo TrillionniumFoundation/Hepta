@@ -110,23 +110,26 @@ class VerifiedSIMDMachine:
     text_bytes: bytes
     object_bytes: bytes
     abi: str
+    vector_unroll: int = 1
 
 
-def emit_verified_simd(document):
+def emit_verified_simd(document, *, unroll=4):
     """Emit a candidate only for an independently recognized Core recurrence."""
-    from .hia_verified_simd_check import recognize_simd_core
+    from .hia_verified_simd_check import recognize_simd_core, VerifiedSIMDRejected
+    if type(unroll) is not int or unroll not in (1, 4):
+        raise VerifiedSIMDRejected("SIMD unroll must be exactly 1 or 4")
     checked = verify_program(document)
     kind, export = recognize_simd_core(checked)
     code = Code(move_immediate="mov32_if_exact", alu_immediate="imm8_if_exact")
     if kind == "copy_u8":
-        _copy(code)
+        _copy(code, unroll)
     else:
-        _reduce(code, kind)
+        _reduce(code, kind, unroll)
     text, relocations = code.finalize()
     obj = write_elf_object(text, [{"name": export, "offset": 0, "size": len(text), "global": True}], relocations)
     abi = ("u64(dst, dst_extent, src, src_extent, count)" if kind == "copy_u8"
            else "u64(src, src_extent, count)")
-    return VerifiedSIMDMachine(kind, export, checked.sha256, text, obj, abi)
+    return VerifiedSIMDMachine(kind, export, checked.sha256, text, obj, abi, unroll)
 
 
 def _abort(code):
@@ -136,7 +139,27 @@ def _abort(code):
     code.ud2()
 
 
-def _reduce(c, kind):
+def _vector_memory(c, opcode, base, displacement=0):
+    """MOVDQU between xmm1 and a declared unaligned chunk of the span."""
+    # Only the forward kernel's two pointer registers are accepted.  Keeping
+    # the displacement explicit lets the independent decoder recover every
+    # accessed byte without trusting this encoder's account of the range.
+    if base not in ("rdi", "rdx") or displacement not in (0, 16, 32, 48):
+        raise ValueError("unsupported SIMD chunk address")
+    modrm = 8 + (7 if base == "rdi" else 2)
+    address = bytes([modrm]) if displacement == 0 else bytes([modrm | 0x40, displacement])
+    c.emit(bytes([0xf3, 0x0f, opcode]) + address)
+
+
+def _reduction_chunk(c, kind, displacement=0):
+    _vector_memory(c, 0x6f, "rdi", displacement)
+    if kind == "sum_u8":
+        c.emit(bytes.fromhex("660ff6ca660fd4c1"))  # psadbw xmm1,xmm2; paddq xmm0,xmm1
+    else:
+        c.emit(bytes.fromhex("660febc1"))  # por xmm0,xmm1
+
+
+def _reduce(c, kind, unroll):
     c.mov_imm("rax", 0)
     c.cmp("rdx", "rsi")
     c.jcc("a", "abort")
@@ -150,14 +173,19 @@ def _reduce(c, kind):
     c.mov_rr("r10", "rdx")
     c.emit(bytes.fromhex("660fefc0"))  # pxor xmm0,xmm0
     c.emit(bytes.fromhex("660fefd2"))  # pxor xmm2,xmm2
+    if unroll == 4:
+        c.label("bulk")
+        c.alu_imm("cmp", "r10", 64)
+        c.jcc("b", "vector")
+        for displacement in (0, 16, 32, 48):
+            _reduction_chunk(c, kind, displacement)
+        c.alu_imm("add", "rdi", 64)
+        c.alu_imm("sub", "r10", 64)
+        c.jmp("bulk")
     c.label("vector")
     c.alu_imm("cmp", "r10", 16)
     c.jcc("b", "horizontal")
-    c.emit(bytes.fromhex("f30f6f0f"))  # movdqu xmm1,[rdi]
-    if kind == "sum_u8":
-        c.emit(bytes.fromhex("660ff6ca660fd4c1"))  # psadbw xmm1,xmm2; paddq xmm0,xmm1
-    else:
-        c.emit(bytes.fromhex("660febc1"))  # por xmm0,xmm1
+    _reduction_chunk(c, kind)
     c.alu_imm("add", "rdi", 16)
     c.alu_imm("sub", "r10", 16)
     c.jmp("vector")
@@ -180,7 +208,7 @@ def _reduce(c, kind):
     _abort(c)
 
 
-def _copy(c):
+def _copy(c, unroll):
     c.mov_rr("rax", "r8")
     c.cmp("r8", "rsi")
     c.jcc("a", "abort")
@@ -200,10 +228,22 @@ def _copy(c):
     c.jcc("a", "abort")
     c.label("admitted")
     c.mov_rr("r10", "r8")
+    if unroll == 4:
+        c.label("bulk")
+        c.alu_imm("cmp", "r10", 64)
+        c.jcc("b", "vector")
+        for displacement in (0, 16, 32, 48):
+            _vector_memory(c, 0x6f, "rdx", displacement)
+            _vector_memory(c, 0x7f, "rdi", displacement)
+        c.alu_imm("add", "rdi", 64)
+        c.alu_imm("add", "rdx", 64)
+        c.alu_imm("sub", "r10", 64)
+        c.jmp("bulk")
     c.label("vector")
     c.alu_imm("cmp", "r10", 16)
     c.jcc("b", "tail")
-    c.emit(bytes.fromhex("f30f6f0af30f7f0f"))  # movdqu xmm1,[rdx]; movdqu [rdi],xmm1
+    _vector_memory(c, 0x6f, "rdx")
+    _vector_memory(c, 0x7f, "rdi")
     c.alu_imm("add", "rdi", 16)
     c.alu_imm("add", "rdx", 16)
     c.alu_imm("sub", "r10", 16)

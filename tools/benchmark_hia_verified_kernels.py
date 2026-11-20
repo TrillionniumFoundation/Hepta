@@ -122,6 +122,21 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
                 artifact_directory=artifacts)
             libraries[label] = (library, core.as_dict()["functions"][0]["name"])
             save()
+        # Retain the original 16-byte loop as a simultaneous control. Both
+        # images have the same Core and ABI and pass the same independent
+        # consumer before the unchanged driver measures their native calls.
+        for kind in ("sum_u8", "all_zero_u8", "copy_u8"):
+            label = kind + "-sse2-16"
+            core = sources[kind]
+            library = destination / (label + ".so")
+            artifacts = destination / (label + "-artifacts")
+            artifacts.mkdir()
+            report["builds"][label] = build_verified_kernel(
+                core, library, strategy="simd", simd_unroll=1,
+                query_directory=destination / (label + "-queries"), timeout_ms=60000,
+                artifact_directory=artifacts)
+            libraries[label] = (library, core.as_dict()["functions"][0]["name"])
+            save()
         # The established direct foreign-buffer ABI returns packed u32. Keep
         # its original wrapper/checks and narrow only the final Core return.
         # All measured counts and sums are <2**32; invalid-input contracts
@@ -185,7 +200,8 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
             cases.append(("scalar", arm, library, "reference_madd", 0))
         for kind, mode in (("sum_u8", "sum"), ("all_zero_u8", "zero"), ("copy_u8", "copy")):
             for length in protocol["lengths"]:
-                cases.append((mode, "verified-sse2", *libraries[kind], length))
+                cases.append((mode, "verified-sse2-64", *libraries[kind], length))
+                cases.append((mode, "verified-sse2-16", *libraries[kind + "-sse2-16"], length))
                 cases.append((mode, "direct-packed-u32", *direct_spans[kind], length))
                 for arm, library in (("c", c_library), ("rust", rust_library)):
                     cases.append((mode, arm, library, "reference_" + mode, length))

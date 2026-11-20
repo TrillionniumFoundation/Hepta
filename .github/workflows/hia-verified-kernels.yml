@@ -32,6 +32,9 @@ jobs:
             tests.test_hia_safe_core_loader_contract \
             tests.test_hia_verified_scalar \
             tests.test_hia_verified_simd \
+            tests.test_hia_verified_simd_unroll_check \
+            tests.test_hia_verified_simd_unroll \
+            tests.test_hia_verified_simd_build_limits \
             tests.test_hia_verified_kernel 2>&1 | tee verified-kernel-tests.log
       - uses: actions/upload-artifact@v4
         if: always()

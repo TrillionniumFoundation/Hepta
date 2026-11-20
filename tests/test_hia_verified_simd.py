@@ -36,7 +36,7 @@ class VerifiedSIMDTests(unittest.TestCase):
         cls.root=Path(cls.temporary.name)
         cls.cases={}
         for kind in ('sum_u8','all_zero_u8','copy_u8'):
-            core=simd_kernel_program(kind); image=emit_verified_simd(core)
+            core=simd_kernel_program(kind); image=emit_verified_simd(core, unroll=1)
             obj=cls.root/(kind+'.o'); final=obj.with_suffix('.so'); obj.write_bytes(image.object_bytes)
             result=subprocess.run(['ld','-m','elf_x86_64','-shared','-z','defs','-z','noexecstack',
                 '-z','relro','-z','now','--hash-style=both','--build-id=none',str(obj),'-lc','-o',str(final)],capture_output=True,text=True)
