@@ -194,6 +194,7 @@ SDIST_SUPPORT_FILES=(
     "tests/test_hia_worker_native_helpers.py",
     # Exact existing Delivery guards and their consumed original source data.
     "tests/fixtures/delivery_diagnostic_source_successors_v1.json",
+    "tests/fixtures/delivery_sqlite_boundary_source_v3.json",
     "tests/test_hia_delivery_diagnostic_sources.py",
     "tests/hia_store_delivery_successor.py",
     "tests/fixtures/store_delivery_successor_provenance.json",
