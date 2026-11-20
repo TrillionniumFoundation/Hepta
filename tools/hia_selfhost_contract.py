@@ -148,6 +148,7 @@ EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
 CORE_EDIT_SDIST_FILES = (
     'tools/build_hia_core_edit.py',
     'tools/generate_hia_core_edit_packer.py',
+    'tools/generate_hia_core_edit_templates.py',
     'tools/generate_hia_release_deflate.py',
     'examples/hia_bootstrap/core_cli/release_deflate.hepta',
     'tools/generate_hia_elf_embed.py',
@@ -168,6 +169,8 @@ CORE_EDIT_SDIST_FILES = (
     'examples/hia_bootstrap/core_edit/batch_capture.hepta',
     'examples/hia_bootstrap/core_edit/batch_query.hepta',
     'examples/hia_bootstrap/core_edit/packer.hepta',
+    'examples/hia_bootstrap/core_edit/adapter_templates_a.hepta',
+    'examples/hia_bootstrap/core_edit/adapter_templates_b.hepta',
     'examples/hia_bootstrap/core_edit/patch_word_io.hepta',
     'examples/hia_bootstrap/core_edit/query.hepta',
     'examples/hia_bootstrap/core_edit/nominal_base_span.hepta',

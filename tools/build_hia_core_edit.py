@@ -8,7 +8,7 @@ from pathlib import Path
 import struct
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
-from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE, assemble_adapter
+from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_constructor import (
     ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
@@ -24,6 +24,8 @@ BOOTSTRAP = 'examples/hia_bootstrap/'
 EDIT = BOOTSTRAP + 'core_edit/'
 CLI = BOOTSTRAP + 'core_cli/'
 PACKER = EDIT + 'packer.hepta'
+STATIC_ADAPTERS = (EDIT + 'adapter_templates_a.hepta', EDIT + 'adapter_templates_b.hepta')
+ADAPTER_RECORD = struct.Struct('<32s32s32sQQ')
 CAPACITY = 4 * (1 << 20) + 4096
 DISPATCH = CLI + 'dispatch.hepta'
 DISPATCH_ARCHIVE = '<public-dispatch-images>'
@@ -244,6 +246,19 @@ PROGRAMS = {
     'batch_apply': ('hia-apply-edit-batch', tuple((path, ()) for path in BATCH_APPLY_IMAGES)),
 }
 
+STATIC_RELOCATIONS = {
+    EXEC_LAUNCHER: (('decompress', 0), ('archive', 1)),
+    **{
+        'tools/hia_core_edit_' + kind + '.S': tuple(
+            (call, index) for index, (_path, calls) in enumerate(roles) for call in calls)
+        for kind, (_name, roles) in PROGRAMS.items() if kind not in NOMINAL_CLI_IMAGES
+    },
+}
+STATIC_ADAPTER_ROLES = {
+    name: (STATIC_ADAPTERS[role % len(STATIC_ADAPTERS)], role)
+    for role, name in enumerate(STATIC_RELOCATIONS)
+}
+
 
 def digest(raw):
     return sha256(raw).hexdigest()
@@ -335,7 +350,29 @@ def link_nominal_cli(folder, adapter, sources, images, roles, embedder, *, edit_
     return binary, {'link_receipt': receipt, 'adapter_object_sha256': digest(objects[0])}
 
 
-def pack_executable(folder, packer, launcher, inflater, executable, compressor):
+def load_static_adapter(templates, name, source):
+    group, role = STATIC_ADAPTER_ROLES[name]
+    relocations = STATIC_RELOCATIONS[name]
+    packet = struct.pack('<Q', role)
+    request = ctypes.create_string_buffer(packet, len(packet))
+    result = ctypes.create_string_buffer(ADAPTER_RECORD.size + 8 * 32 + 8016)
+    n = templates[group]._entry(request, len(request), result, len(result), None, 0)
+    if not ADAPTER_RECORD.size < n <= len(result) or request.raw != packet or any(result.raw[n:]):
+        raise ValueError('native Core adapter template refused or changed the transport')
+    source_sha, stub_sha, object_sha, size, count = ADAPTER_RECORD.unpack_from(result)
+    start = ADAPTER_RECORD.size + 8 * count
+    if (source_sha != sha256(source).digest() or not 5 <= size <= 8016
+            or count != len(relocations) or n != start + size):
+        raise ValueError('native Core adapter template differs from the admitted source')
+    stub = result.raw[start:n]
+    offsets = struct.unpack_from(f'<{count}Q', result, ADAPTER_RECORD.size)
+    if sha256(stub).digest() != stub_sha or len(set(offsets)) != count:
+        raise ValueError('native Core adapter template bytes or relocations changed')
+    holes = sorted((offset, target) for offset, (_call, target) in zip(offsets, relocations, strict=True))
+    return stub, holes, object_sha.hex()
+
+
+def pack_executable(packer, launcher, inflater, executable, compressor):
     if not 0 < len(executable) <= ORDINARY_CLI_IMAGE_CAPACITY:
         raise ValueError('packed CLI executable exceeds the admitted extent')
     parts = [struct.pack('<8sQ', EXEC_ARCHIVE_MAGIC, len(executable))]
@@ -343,9 +380,7 @@ def pack_executable(folder, packer, launcher, inflater, executable, compressor):
         block = executable[start:start + EXEC_CHUNK]
         encoded = compressor.compress(block, 1 << 20)
         parts.extend((struct.pack('<2Q', len(encoded), len(block)), encoded))
-    stub, symbols, adapter_hash = assemble_adapter(folder, EXEC_LAUNCHER, launcher)
-    holes = sorted((symbols[name + '_hole'], index)
-                   for index, name in enumerate(('decompress', 'archive')))
+    stub, holes, adapter_hash = launcher
     binary, details = pack(packer, stub, holes, [inflater, b''.join(parts)])
     if binary.count(EXEC_ARCHIVE_MAGIC) != 1:
         raise ValueError('packed CLI executable has ambiguous framing')
@@ -362,7 +397,7 @@ def build(output, compiler, cold_report, *, release_only=False):
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
-    source_files = {PACKER, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE, EMBED_SOURCE,
+    source_files = {PACKER, *STATIC_ADAPTERS, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE, EMBED_SOURCE,
                     *assembly_images, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
@@ -397,6 +432,9 @@ def build(output, compiler, cold_report, *, release_only=False):
     images[ASSEMBLY_PRESENTATION] = b''.join((*offsets, *payloads))
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
     embedder = NativeHiaJsonImage(images[EMBED_SOURCE], receipts[EMBED_SOURCE]['produced_sha256'])
+    templates = {path: NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
+                 for path in STATIC_ADAPTERS}
+    launcher = load_static_adapter(templates, EXEC_LAUNCHER, sources[EXEC_LAUNCHER])
     products = {}
     for kind, (name, roles) in programs.items():
         adapter = adapters[kind]
@@ -407,13 +445,11 @@ def build(output, compiler, cold_report, *, release_only=False):
                 folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind], embedder,
                 edit_envelope=kind in EDIT_ENVELOPE_ROLES,
                 edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'))
-            binary, packed = pack_executable(folder, packer, sources[EXEC_LAUNCHER],
+            binary, packed = pack_executable(packer, launcher,
                                              images[ARGUMENT_PAYLOAD], executable, compressor)
             products[name] = (binary, {**details, **packed})
             continue
-        stub, symbols, adapter_hash = assemble_adapter(folder, adapter, sources[adapter])
-        holes = sorted((symbols[call + '_hole'], index)
-                       for index, (_path, calls) in enumerate(roles) for call in calls)
+        stub, holes, adapter_hash = load_static_adapter(templates, adapter, sources[adapter])
         binary, details = pack(packer, stub, holes, [images[path] for path, _calls in roles])
         products[name] = (binary, {'elf': details, 'adapter_object_sha256': adapter_hash})
     if (current_sources() != admitted or compiler.read_bytes() != compiler_raw
