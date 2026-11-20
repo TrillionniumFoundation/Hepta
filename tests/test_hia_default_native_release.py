@@ -190,11 +190,23 @@ class DefaultReleaseNativeTests(unittest.TestCase):
         import io
         import base64
         from hepta.hia_default_native import render_pin
-        with zipfile.ZipFile(self.wheel) as archive:
+        from tools.build_hia_default_release import SLOT_RECEIPT, WHEEL_TAG
+        base, = (self.root / 'build/base-wheel').glob('*.whl')
+        with zipfile.ZipFile(self.wheel) as archive, zipfile.ZipFile(base) as original:
             names = archive.namelist()
             metadata, = [name for name in names if name.endswith('.dist-info/WHEEL')]
             self.assertIn(b'Root-Is-Purelib: false\n', archive.read(metadata))
-            self.assertIn(b'Tag: py3-none-linux_x86_64\n', archive.read(metadata))
+            if SLOT_RECEIPT in original.namelist():
+                tag = '-'.join(base.stem.rsplit('-', 3)[-3:])
+                receipt = original.read(SLOT_RECEIPT)
+                binary = 'hepta/' + json.loads(receipt)['binary']['name']
+                self.assertEqual(archive.read(SLOT_RECEIPT), receipt)
+                self.assertEqual(archive.read(binary), original.read(binary))
+                self.assertEqual((self.installed / binary).read_bytes(), original.read(binary))
+            else:
+                tag = WHEEL_TAG
+            self.assertIn(('Tag: ' + tag + '\n').encode(), archive.read(metadata))
+            self.assertEqual(self.report['wheel_tag'], tag)
             self.assertEqual(archive.read('hepta/hia_default_native_pin.py'), render_pin(tuple(self.report['pin'])))
             for name in names:
                 if name.startswith('hepta/') and name.endswith('.py') and '/_data/' not in name:

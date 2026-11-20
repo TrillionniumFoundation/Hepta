@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from tools.build_hia_default_release import SCHEMA, WHEEL_TAG, encoded
+from tools.build_hia_default_release import SCHEMA, _wheel_tag, encoded
 from tools.build_hia_json_preflight import current_sources
 from tools.qualify_hia_full_cost_callers import ORIGINAL_MODULES
 
@@ -94,7 +94,7 @@ def qualify(package_build, evidence):
     build_bytes = package_build.read_bytes()
     record = json.loads(build_bytes)
     sources = current_sources()
-    if (record.get('schema') != SCHEMA or record.get('wheel_tag') != WHEEL_TAG
+    if (record.get('schema') != SCHEMA
             or record.get('source_manifest') != sources
             or record.get('scope') not in ('MATCHING_SOURCE_COLD_COMPONENT', 'DEVELOPMENT_COMPONENT')):
         raise ValueError('current-source default wheel construction is required')
@@ -107,6 +107,9 @@ def qualify(package_build, evidence):
         if len(names) != len(set(names)) or {name: sha256(archive.read(name)).hexdigest()
                                            for name in names} != record['members']:
             raise ValueError('constructed default wheel member inventory changed')
+        metadata, = [name for name in names if name.endswith('.dist-info/WHEEL')]
+        if _wheel_tag(wheel, archive.read(metadata)) != record.get('wheel_tag'):
+            raise ValueError('constructed default wheel ABI differs from the build report')
         prefix = 'hepta/_data/native/default/full_cost/'
         manifest = json.loads(archive.read(prefix + 'manifest.json'))
     caller_pins = {name.replace('.', '/') + '.py': sha256(

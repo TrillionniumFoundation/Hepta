@@ -31,6 +31,16 @@ PIN_FILE = 'hepta/hia_default_native_pin.py'
 PACKAGE_DIRECTORY = 'hepta/' + str(Path(BUNDLE_RESOURCE).parent)
 SCHEMA = 'hepta.hia.default-native-wheel-build.v1'
 WHEEL_TAG = 'py3-none-linux_x86_64'
+SLOT_RECEIPT = 'hepta/_slot_mechanical_build.json'
+
+
+def _wheel_tag(path, metadata):
+    tag = '-'.join(path.stem.rsplit('-', 3)[-3:])
+    tags = [line.removeprefix('Tag: ') for line in metadata.decode().splitlines()
+            if line.startswith('Tag: ')]
+    if tags != [tag]:
+        raise ValueError('wheel filename and metadata disagree on ABI tag')
+    return tag
 
 
 def encoded(value):
@@ -81,6 +91,38 @@ def _base_wheel(stage, output, captured):
     return wheels[0], command
 
 
+def _slot_wheel_members(files, captured, tag):
+    if SLOT_RECEIPT not in files:
+        if tag != 'py3-none-any':
+            raise ValueError('unexpected ordinary wheel ABI without Slot transport')
+        return set(), WHEEL_TAG
+
+    from hepta.hia_slot_mechanical import ABI, SCHEMA, SOURCES, _pairs, _profile
+    profile = _profile()
+    binary = '_hia_slot_mechanical' + profile['extension_suffix']
+    path = 'hepta/' + binary
+    raw = files.get(path)
+    receipt = json.loads(files[SLOT_RECEIPT], object_pairs_hook=_pairs)
+    source_pins = {name: {'bytes': len(captured[name]), 'sha256': sha256(captured[name]).hexdigest()}
+                   for name in SOURCES}
+    receipt_keys = {'schema', 'abi', 'profile', 'binary', 'sources', 'compiler_commands',
+                    'compiler_executables', 'build_scope', 'product_qualification_claimed'}
+    if (not raw or not isinstance(receipt, dict)
+            or set(receipt) != receipt_keys
+            or receipt.get('schema') != SCHEMA or receipt.get('abi') != ABI
+            or receipt.get('profile') != profile or receipt.get('sources') != source_pins
+            or receipt.get('binary') != {'name': binary, 'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+            or not receipt.get('compiler_commands') or not receipt.get('compiler_executables')
+            or receipt.get('build_scope') != 'CPYTHON_MECHANICAL_EXTENSION_ONLY'
+            or receipt.get('product_qualification_claimed') is not False):
+        raise ValueError('ordinary wheel Slot transport differs from its exact build receipt')
+    python_tag = f'cp{sys.version_info.major}{sys.version_info.minor}'
+    abi_tag = 'cp' + profile['soabi'].split('-')[1]
+    if tag != f'{python_tag}-{abi_tag}-linux_x86_64':
+        raise ValueError('ordinary wheel Slot transport needs its exact CPython ABI tag')
+    return {path, SLOT_RECEIPT}, tag
+
+
 def _wheel_contents(path, sources, captured):
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
@@ -88,6 +130,12 @@ def _wheel_contents(path, sources, captured):
                 or any(Path(name).is_absolute() or '..' in Path(name).parts for name in names)):
             raise ValueError('invalid ordinary wheel member inventory')
         files = {name: archive.read(name) for name in names}
+    records = [name for name in files if name.endswith('.dist-info/RECORD')]
+    if len(records) != 1:
+        raise ValueError('one wheel distribution inventory is required')
+    distribution = records[0].removesuffix('/RECORD')
+    tag = _wheel_tag(path, files[distribution + '/WHEEL'])
+    slot_files, release_tag = _slot_wheel_members(files, captured, tag)
     for name, raw in captured.items():
         if name.startswith('hepta/') and name.endswith('.py') and files.get(name) != raw:
             raise ValueError('ordinary wheel changed or omitted a production Python input')
@@ -97,14 +145,11 @@ def _wheel_contents(path, sources, captured):
             if source not in sources or sha256(raw).hexdigest() != sources[source]:
                 raise ValueError('ordinary wheel resource is not bound by current source')
         elif name.startswith('hepta/'):
-            if captured.get(name) != raw:
+            if name not in slot_files and captured.get(name) != raw:
                 raise ValueError('ordinary wheel contains unbound production bytes')
         elif '.dist-info/' not in name:
             raise ValueError('unexpected ordinary wheel file')
-    records = [name for name in files if name.endswith('.dist-info/RECORD')]
-    if len(records) != 1:
-        raise ValueError('one wheel distribution inventory is required')
-    return files, records[0].removesuffix('/RECORD')
+    return files, distribution, release_tag
 
 
 def _write_wheel(path, files, distribution):
@@ -160,13 +205,13 @@ def build(output, compiler, cold_report=None, *, development=False):
     staging = output / 'source'
     staging.mkdir(mode=0o700)
     base_wheel, command = _base_wheel(staging, output / 'base-wheel', captured)
-    files, distribution = _wheel_contents(base_wheel, sources, captured)
+    files, distribution, wheel_tag = _wheel_contents(base_wheel, sources, captured)
     if (files.get('hepta/_data/examples/hia_bootstrap/full_cost.hepta')
             != captured['examples/hia_bootstrap/full_cost.hepta']):
         raise ValueError('native candidate wheel does not own its exact HIA source')
     build_tag = '1hiafullcostdev' if development else '1hiafullcostcold'
     wheel_meta = ('Wheel-Version: 1.0\nGenerator: hepta.default-native-candidate.v1\n'
-                  'Root-Is-Purelib: false\nBuild: ' + build_tag + '\nTag: ' + WHEEL_TAG + '\n').encode()
+                  'Root-Is-Purelib: false\nBuild: ' + build_tag + '\nTag: ' + wheel_tag + '\n').encode()
     provenance = encoded({'schema': 'hepta.hia.default-native-package-provenance.v1',
         'scope': scope, 'target': TARGET, 'source_identity_sha256': source_identity(sources),
         'source_manifest': sources, 'compiler_sha256': sha256(compiler_bytes).hexdigest(),
@@ -187,7 +232,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         derived[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes
     files.update(derived)
     prefix = base_wheel.name.removesuffix('.whl').rsplit('-', 3)[0]
-    wheel = output / (prefix + '-' + build_tag + '-' + WHEEL_TAG + '.whl')
+    wheel = output / (prefix + '-' + build_tag + '-' + wheel_tag + '.whl')
     if (current_sources() != sources or compiler.read_bytes() != compiler_bytes
             or (cold_bytes is not None and Path(cold_report).read_bytes() != cold_bytes)
             or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())
@@ -196,7 +241,7 @@ def build(output, compiler, cold_report=None, *, development=False):
             or (manifest_path.parent / 'build.json').read_bytes() != component_report):
         raise ValueError('default candidate inputs changed before wheel publication')
     members = _write_wheel(wheel, files, distribution)
-    report = {'schema': SCHEMA, 'scope': scope, 'target': TARGET, 'wheel_tag': WHEEL_TAG,
+    report = {'schema': SCHEMA, 'scope': scope, 'target': TARGET, 'wheel_tag': wheel_tag,
         'wheel': str(wheel), 'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(),
         'base_wheel_sha256': sha256(base_wheel.read_bytes()).hexdigest(),
         'ordinary_wheel_command': command, 'source_manifest': sources,

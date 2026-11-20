@@ -2911,7 +2911,7 @@ def support_contract(root=ROOT):
             'builder': 'tools/build_hia_default_release.py',
             'runtime': 'hepta/hia_default_native.py',
             'pin_template': 'hepta/hia_default_native_pin.py',
-            'wheel_tag': 'py3-none-linux_x86_64',
+            'wheel_tag': 'exact base CPython ABI for Slot transport; otherwise py3-none-linux_x86_64',
             'candidate_default_owner': 'HEPTA_HIA_FULL_COST_MANIFEST',
             'candidate_requires_selector_environment': False,
             'ordinary_source_and_portable_default_changed': False,
