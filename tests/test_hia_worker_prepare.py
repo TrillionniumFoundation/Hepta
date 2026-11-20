@@ -98,6 +98,20 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
         rejected = self.invoke(frame((excess, PROFILE, excess, tool, b'')))
         self.assertEqual((rejected.returncode, rejected.stdout, rejected.stderr), (3, b'', b''))
 
+    def test_job_identity_keeps_the_original_durable_binding_bytes(self):
+        binding = (b'{"args":["-B","-m","hepta.hia_agent_worker"],'
+                   b'"cpu_quota_percent":100,"cwd":"/workspace","env":{"LC_ALL":"C.UTF-8"},'
+                   b'"executable":"/python","host":"worker","memory_max_bytes":1073741824,'
+                   b'"nice":0,"stdin":"'
+                   + b'a' * (1 << 20) + b'","timeout_seconds":120}')
+        for body in (binding, binding.replace(b'"worker"', b'"other"'), b'{}'):
+            answer = self.invoke(b'HIAJID01' + body)
+            self.assertEqual((answer.returncode, answer.stderr), (0, b''))
+            self.assertEqual(answer.stdout, b'HIAJDO01' + text_digest(body))
+        for body in (b'', b'[]', b'{}\n'):
+            answer = self.invoke(b'HIAJID01' + body)
+            self.assertEqual((answer.returncode, answer.stdout, answer.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',

@@ -18,13 +18,18 @@ from tools.generate_hia_worker_request import WorkerRequestBuilder, worker_hash_
 SOURCE_PATH = 'examples/hia_bootstrap/worker_prepare.hepta'
 INPUT_MAGIC = b'HIAWPR01'
 OUTPUT_MAGIC = b'HIAWPO01'
+JOB_INPUT_MAGIC = b'HIAJID01'
+JOB_OUTPUT_MAGIC = b'HIAJDO01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     n = length(s)
-    if n < 112 or n > 8388608 or length(w) < 4432:
+    if n < 8 or n > 8388608 or length(w) < 4432:
         return 4294967293
-    if word_load(s, 0) != INPUT_MAGIC:
+    magic = word_load(s, 0)
+    if magic == JOB_INPUT_MAGIC:
+        return job_identity(s, o, w)
+    if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
         return 4294967294
@@ -90,6 +95,21 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     word_store(o, 0, OUTPUT_MAGIC)
     saved(w, o, 8, 0, 256)
     return count + 1
+
+def job_identity(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    n = length(s)
+    if n < 10:
+        return 4294967293
+    if byte(s, 8) != 123 or byte(s, n - 1) != 125:
+        return 4294967293
+    count = n - 8
+    if length(o) < count or length(o) < 72:
+        return 4294967294
+    external(s, o, 0, 8, count)
+    if digest(o, w, count, 0) == 0:
+        return 4294967293
+    word_store(o, 0, JOB_OUTPUT_MAGIC)
+    return saved(w, o, 8, 0, 64)
 
 def envelope_prefix(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
     at = arguments_member(o, at)
@@ -168,7 +188,9 @@ def source_program():
     envelope_fields = ('arguments_member', 'catalog_member', 'profile_member',
                        'request_member', 'schema_and_tool', 'close')
     fixed_bytes = sum(len(LITERALS[field]) for field in envelope_fields) + 3 * 64 + 1
-    source = (SOURCE.replace('INPUT_MAGIC', str(int.from_bytes(INPUT_MAGIC, 'little')))
+    source = (SOURCE.replace('JOB_INPUT_MAGIC', str(int.from_bytes(JOB_INPUT_MAGIC, 'little')))
+              .replace('JOB_OUTPUT_MAGIC', str(int.from_bytes(JOB_OUTPUT_MAGIC, 'little')))
+              .replace('INPUT_MAGIC', str(int.from_bytes(INPUT_MAGIC, 'little')))
               .replace('OUTPUT_MAGIC', str(int.from_bytes(OUTPUT_MAGIC, 'little')))
               .replace('MAX_FRAGMENTS', str(524288 - fixed_bytes)))
     for name, literal in LITERALS.items():
