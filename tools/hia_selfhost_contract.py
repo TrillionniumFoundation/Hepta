@@ -3389,7 +3389,7 @@ def support_contract(root=ROOT):
                 "command": "hia-totality-core < primitive-core.json",
                 "sources": ["examples/hia_bootstrap/core_totality_cli_packer.hepta",
                             "examples/hia_bootstrap/core_structural_totality.hepta"],
-                "profile": "one admitted v6-v9 scalar function; bounded acyclic nontrapping Core",
+                "profile": "admitted v6-v9 scalar module; bounded acyclic nontrapping control and direct calls",
                 "subject_identity": "SHA-256 of the exact input bytes",
                 "semantic_admission_precedes_proof": True,
                 "unsupported_valid_core": "unknown; not a negative or execution claim",
