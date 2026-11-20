@@ -6,8 +6,11 @@ import json
 import os
 from pathlib import Path
 
+from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
-from tools.build_hia_sqlite_pager import DRIVER, LINKER, ROOT, assemble, digest, link, write_new
+from tools.build_hia_sqlite_pager import (
+    DRIVER, EMBED_SOURCE, ROOT, STATIC_LINKER, digest, embed, link, load_static_object, verify_executable, write_new,
+)
 from tools.qualify_hia_selfhost import compile_stage
 
 
@@ -18,7 +21,7 @@ UNITS = (
 )
 START = 'tools/hia_sqlite_component_start.S'
 INPUT = 'tools/hia_sqlite_component_input.S'
-WRAPPER = 'tools/hia_sqlite_pager_image.S'
+CAPTURE_ADAPTERS = ('tools/hia_agent_artifact_capture_start.S', 'tools/hia_agent_artifact_capture_read.S')
 COMPONENT_DRIVER = 'tools/build_hia_sqlite_components.py'
 PROJECTION = 'sqlite-migration-projection'
 PROJECTION_ROLES = ('sqlite-agent-catalog', 'sqlite-table-walk', 'sqlite-rowid-lookup',
@@ -26,7 +29,23 @@ PROJECTION_ROLES = ('sqlite-agent-catalog', 'sqlite-table-walk', 'sqlite-rowid-l
                     'sqlite-migration-stage', 'sqlite-agent-import-batch',
                     'sqlite-agent-artifact-catalog', 'sqlite-agent-cost-sequence')
 PROJECTION_ADAPTER = 'tools/hia_sqlite_migration_projection.S'
-STATIC_LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
+COMPONENT_TEMPLATES = 'examples/hia_bootstrap/sqlite_component_adapters.hepta'
+ADAPTER_ROLES = {name: role for role, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER))}
+
+
+def compiled_images(directory, compiler, sources):
+    captured = {}
+    for role, source in sources.items():
+        image, receipt = compile_stage(directory, role, compiler, source)
+        raw = image.read_bytes()
+        if digest(raw) != receipt['produced_sha256']:
+            raise ValueError('SQLite build image changed: ' + role)
+        captured[role] = (image, raw)
+    return captured
+
+
+def native_image(raw):
+    return NativeHiaJsonImage(raw, digest(raw))
 
 
 def build_executables(output, compiler, cold_report, units, adapters, drivers):
@@ -36,17 +55,18 @@ def build_executables(output, compiler, cold_report, units, adapters, drivers):
     units = {name: 'examples/hia_bootstrap/' + name.replace('-', '_') + '.hepta'
              for name in units}
     sources = {name: (ROOT / name).read_bytes()
-               for name in (LINKER, WRAPPER, DRIVER, COMPONENT_DRIVER,
+               for name in (STATIC_LINKER, EMBED_SOURCE, COMPONENT_TEMPLATES, DRIVER, COMPONENT_DRIVER,
                             *drivers, *adapters, *units.values())}
     source_hashes = {name: digest(data) for name, data in sources.items()}
     if any(admitted.get(name) != value for name, value in source_hashes.items()):
         raise ValueError('native component source differs from admitted cold source')
     output.mkdir(mode=0o700)
-    linker_path, linker_receipt = compile_stage(output, 'linker', compiler, sources[LINKER])
-    linker = linker_path.read_bytes()
-    if digest(linker) != linker_receipt['produced_sha256']:
-        raise ValueError('native component linker identity changed')
-    adapters = tuple(assemble(output, name, sources[name]) for name in adapters)
+    tools = compiled_images(output, compiler, {role: sources[name] for role, name in (
+        ('linker', STATIC_LINKER), ('embedder', EMBED_SOURCE), ('adapter-templates', COMPONENT_TEMPLATES))})
+    linker = tools['linker'][1]
+    embedder = native_image(tools['embedder'][1])
+    templates = native_image(tools['adapter-templates'][1])
+    objects = tuple(load_static_object(templates, ADAPTER_ROLES[name], sources[name]) for name in adapters)
 
     products = {}
     for name, source in units.items():
@@ -56,16 +76,15 @@ def build_executables(output, compiler, cold_report, units, adapters, drivers):
         image = path.read_bytes()
         if digest(image) != receipt['produced_sha256']:
             raise ValueError('native component image identity changed')
-        included = directory / 'pager_read_owner.image.bin'
-        write_new(included, image)
-        component = assemble(directory, WRAPPER, sources[WRAPPER])
-        binary, _ = link(directory, linker, image, (*adapters, component))
-        if path.read_bytes() != image or included.read_bytes() != image:
+        component = embed(directory, 'component_image', name, image, embedder)
+        binary, _ = link(directory, linker, image, (*objects, component), wire_magic=b'HIALNK01')
+        if path.read_bytes() != image:
             raise ValueError('native component changed during executable link')
         products[name] = binary
 
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
-            or cold_report.read_bytes() != cold_bytes or linker_path.read_bytes() != linker
+            or cold_report.read_bytes() != cold_bytes
+            or any(path.read_bytes() != raw for path, raw in tools.values())
             or any((ROOT / name).read_bytes() != data for name, data in sources.items())):
         raise ValueError('native component build inputs changed before publication')
 
@@ -91,26 +110,26 @@ def build_projection(output, compiler, cold_report, admitted):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     names = (PROJECTION, *PROJECTION_ROLES)
     units = {name: 'examples/hia_bootstrap/' + name.replace('-', '_') + '.hepta' for name in names}
-    sources = {name: (ROOT / name).read_bytes() for name in (*units.values(), PROJECTION_ADAPTER, STATIC_LINKER)}
+    inputs = {**units, 'linker': STATIC_LINKER, 'embedder': EMBED_SOURCE, 'adapter-templates': COMPONENT_TEMPLATES}
+    sources = {name: (ROOT / name).read_bytes() for name in (*inputs.values(), PROJECTION_ADAPTER)}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('projection build source differs from admitted cold source')
     folder = output / PROJECTION
     folder.mkdir(mode=0o700)
-    images = {}
-    for name, path in [*units.items(), ('linker', STATIC_LINKER)]:
-        image, receipt = compile_stage(folder, name, compiler, sources[path])
-        body = image.read_bytes()
-        if digest(body) != receipt['produced_sha256']:
-            raise ValueError('projection dependency image changed')
-        images[name] = body
-    adapter = assemble(folder, PROJECTION_ADAPTER, sources[PROJECTION_ADAPTER])
-    binary, link_receipt = link(folder, images['linker'], images[PROJECTION], (adapter,), wire_magic=b'HIALNK01')
+    captured = compiled_images(folder, compiler, {name: sources[path] for name, path in inputs.items()})
+    images = {role: raw for role, (_, raw) in captured.items()}
+    embedder, templates = (native_image(images[role]) for role in ('embedder', 'adapter-templates'))
+    adapter = load_static_object(templates, ADAPTER_ROLES[PROJECTION_ADAPTER], sources[PROJECTION_ADAPTER])
+    objects = [embed(folder, name.removeprefix('sqlite-').replace('-', '_'), name, images[name], embedder)
+               for name in names]
+    binary, link_receipt = link(folder, images['linker'], images[PROJECTION], (adapter, *objects), wire_magic=b'HIALNK01')
+    for name in names:
+        verify_executable(binary, images[name])
     if (admit_cold_build(compiler_bytes, cold_bytes) != admitted
             or current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes
             or any((ROOT / name).read_bytes() != raw for name, raw in sources.items())
-            or any(binary.count(images[name]) != 1 for name in names)
-            or any((folder / (name + '.image.bin')).read_bytes() != raw for name, raw in images.items())):
+            or any(path.read_bytes() != raw for path, raw in captured.values())):
         raise ValueError('projection inputs or linked images changed before publication')
     executable = output / ('hia-' + PROJECTION)
     with executable.open('xb') as stream:

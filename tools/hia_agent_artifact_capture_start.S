@@ -8,7 +8,13 @@
 .equ MAX_READ, 0x800001
 .equ CAPTURE_TAG, 0x3130504143414948
 
+.ifdef HIA_COMPONENT_EMBEDDED_OBJECTS
+.set pager_hia_entry, component_image_start
+.endif
 _start:
+.ifdef HIA_COMPONENT_EMBEDDED_OBJECTS
+ add rsp,8                      /* Undo the static linker's entry call. */
+.endif
  mov r15,rsp
  cmp QWORD PTR [r15],4
  jne usage

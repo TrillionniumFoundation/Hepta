@@ -12,9 +12,9 @@ from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_constructor import (
     ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
-    ORDINARY_CLI_IMAGE_CAPACITY,
+    NOMINAL_IMAGE_LABELS, ORDINARY_CLI_IMAGE_CAPACITY,
 )
-from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, verify_executable
+from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, load_static_object, verify_executable
 from tools.generate_hia_core_edit_packer import MAGIC
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -26,8 +26,6 @@ CLI = BOOTSTRAP + 'core_cli/'
 PACKER = EDIT + 'packer.hepta'
 STATIC_ADAPTERS = (EDIT + 'adapter_templates_a.hepta', EDIT + 'adapter_templates_b.hepta')
 ADAPTER_RECORD = struct.Struct('<32s32s32sQQ')
-NOMINAL_OBJECT_RECORD = struct.Struct('<32s32sQ')
-NOMINAL_OBJECT_LIMIT = 65536
 NOMINAL_ADAPTER_GROUPS = tuple(EDIT + f'nominal_adapters_{group}.hepta' for group in 'abcde')
 NOMINAL_CONSTRUCTOR_GROUP = EDIT + 'nominal_constructor_adapter.hepta'
 CAPACITY = 4 * (1 << 20) + 4096
@@ -268,8 +266,6 @@ NOMINAL_ADAPTER_ROLES = {
                                  EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE))
 }
 NOMINAL_ADAPTER_ROLES[NOMINAL_ADAPTER] = (NOMINAL_CONSTRUCTOR_GROUP, len(NOMINAL_ADAPTER_ROLES))
-NOMINAL_IMAGE_LABELS = {'owner': 'core_nominal_owner', 'render': 'core_nominal_render',
-                        'nominal-json': 'core_nominal_codec'}
 
 
 def digest(raw):
@@ -380,22 +376,6 @@ def load_static_adapter(templates, name, source):
     return stub, holes, object_sha.hex()
 
 
-def load_nominal_adapter(templates, name, source):
-    group, role = NOMINAL_ADAPTER_ROLES[name]
-    packet = struct.pack('<Q', role)
-    request = ctypes.create_string_buffer(packet, len(packet))
-    result = ctypes.create_string_buffer(NOMINAL_OBJECT_RECORD.size + NOMINAL_OBJECT_LIMIT)
-    count = templates[group]._entry(request, len(request), result, len(result), None, 0)
-    if not NOMINAL_OBJECT_RECORD.size < count <= len(result) or request.raw != packet or any(result.raw[count:]):
-        raise ValueError('native nominal adapter refused or changed the transport')
-    source_sha, object_sha, size = NOMINAL_OBJECT_RECORD.unpack_from(result)
-    raw = result.raw[NOMINAL_OBJECT_RECORD.size:count]
-    if (source_sha != sha256(source).digest() or size != len(raw)
-            or not raw.startswith(b'\x7fELF\x02\x01\x01') or sha256(raw).digest() != object_sha):
-        raise ValueError('native nominal adapter differs from its admitted source or object')
-    return raw
-
-
 def pack_executable(packer, launcher, inflater, executable, compressor):
     if not 0 < len(executable) <= ORDINARY_CLI_IMAGE_CAPACITY:
         raise ValueError('packed CLI executable exceeds the admitted extent')
@@ -460,8 +440,8 @@ def build(output, compiler, cold_report, *, release_only=False):
     embedder = NativeHiaJsonImage(images[EMBED_SOURCE], receipts[EMBED_SOURCE]['produced_sha256'])
     templates = {path: NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
                  for path in adapter_groups}
-    nominal_objects = {name: load_nominal_adapter(templates, name, sources[name])
-                       for name in NOMINAL_ADAPTER_ROLES}
+    nominal_objects = {name: load_static_object(templates[group], role, sources[name])
+                       for name, (group, role) in NOMINAL_ADAPTER_ROLES.items()}
     launcher = load_static_adapter(templates, EXEC_LAUNCHER, sources[EXEC_LAUNCHER])
     products = {}
     for kind, (name, roles) in programs.items():

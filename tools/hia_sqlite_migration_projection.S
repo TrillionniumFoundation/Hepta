@@ -291,6 +291,19 @@ exit:
 .size _start,.-_start
 
 stage_option: .asciz "--stage"
+.ifdef HIA_COMPONENT_EMBEDDED_OBJECTS
+.set projection, migration_projection_start
+.set stager, migration_stage_start
+.set catalog, agent_catalog_start
+.set walker, table_walk_start
+.set lookup, rowid_lookup_start
+.set layout, record_layout_start
+.set importer, agent_row_import_start
+.set planner, migration_plan_start
+.set batch_importer, agent_import_batch_start
+.set artifact_catalog, agent_artifact_catalog_start
+.set cost_sequence, agent_cost_sequence_start
+.else
 .balign 16
 projection: .incbin "sqlite-migration-projection.image.bin"
 .balign 16
@@ -313,4 +326,5 @@ batch_importer: .incbin "sqlite-agent-import-batch.image.bin"
 artifact_catalog: .incbin "sqlite-agent-artifact-catalog.image.bin"
 .balign 16
 cost_sequence: .incbin "sqlite-agent-cost-sequence.image.bin"
+.endif
 .section .note.GNU-stack,"",@progbits

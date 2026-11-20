@@ -17,6 +17,10 @@
 .text
 .global _start
 .type _start,@function
+.ifdef HIA_PAGER_EMBEDDED_OBJECTS
+.set pager_hia_entry, retained_pager_start
+.set pager_stream_entry, retained_pager_stream_start
+.endif
 .extern pager_hia_entry
 .extern pager_os_once
 .equ EV,0
@@ -32,6 +36,10 @@
 .equ AUDIT_MAGIC,0x3255414750414948
 
 _start:
+.ifdef HIA_PAGER_EMBEDDED_OBJECTS
+ /* The native static linker invokes _start through its SysV call stub. */
+ add rsp,8
+.endif
  mov r15,rsp
  cmp QWORD PTR [r15],2
  je driver_map
@@ -528,9 +536,11 @@ driver_exit:
  ud2
 .size _start,.-_start
 
+.ifndef HIA_PAGER_EMBEDDED_OBJECTS
 .balign 16
 .type pager_stream_entry,@function
 pager_stream_entry:
 .incbin "pager_migration_stream.image.bin"
 .size pager_stream_entry,.-pager_stream_entry
+.endif
 .section .note.GNU-stack,"",@progbits

@@ -203,8 +203,12 @@ exit:
 .size _start,.-_start
 .balign 8
 sigpipe: .quad 1,0,0,0
+.ifdef HIA_NOMINAL_EXTERNAL_OBJECTS
+.set nominal_json, nominal_packet_body_start
+.else
 .balign 16
 nominal_json: .incbin "nominal-json.image.bin"
+.endif
 .bss
 .balign 8
 input_header: .skip 72

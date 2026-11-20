@@ -5,18 +5,16 @@ import argparse
 import json
 from pathlib import Path
 
-from tools.build_hia_sqlite_components import build_executables
+from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS, build_executables
 from tools.build_hia_sqlite_pager import write_new
 
 
 DRIVER = 'tools/build_hia_agent_artifact_capture.py'
-ADAPTERS = ('tools/hia_agent_artifact_capture_start.S',
-            'tools/hia_agent_artifact_capture_read.S')
 UNIT = 'agent-artifact-capture'
 
 
 def build(output, compiler, cold_report):
-    report, sources = build_executables(output, compiler, cold_report, (UNIT,), ADAPTERS, (DRIVER,))
+    report, sources = build_executables(output, compiler, cold_report, (UNIT,), CAPTURE_ADAPTERS, (DRIVER,))
     report.update(schema='hepta.hia.agent-artifact-capture-build.v1',
                   status='NATIVE_AGENT_ARTIFACT_CAPTURE_BUILT', source_manifest=sources)
     write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
