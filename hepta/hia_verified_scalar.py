@@ -8,6 +8,8 @@ can retain their ordinary checked lowering.
 """
 from __future__ import annotations
 
+from .hia_loaded_source import loaded_source_identity
+
 from collections import Counter
 from dataclasses import dataclass
 from hashlib import sha256
@@ -22,13 +24,17 @@ from .clang_capture import run_bounded
 from .hia_machine_elf import write_elf_object
 from .hia_machine_x64 import Code, native_implementation_identity
 from .hia_program import verify_program
-from .hia_safe_core import SafeCoreRejected, _checker_source_identity, _profile, validate_safe_core_artifact
+from .hia_safe_core import (SafeCoreRejected, _checker_source_identity, _profile,
+                           _unsigned_profile_version, validate_safe_core_artifact)
 from .hia_safe_core_elf import _ELF
 from .hia_verified_image import VerifiedImageRejected, read_bounded_elf_image
 from .native_tool_identity import digest_executable
 
 
 PROFILE = "hia.verified-scalar.register-leaf.x86_64.v2"
+PROFILE_V3 = "hia.verified-scalar.register-leaf.x86_64.v3"
+PROFILE_V4 = "hia.verified-scalar.register-leaf.x86_64.v4"
+PROFILE_V5 = "hia.verified-scalar.register-leaf.x86_64.v5"
 WIDTHS = {"bool": 1, "u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 ARGUMENTS = ("rdi", "rsi", "rdx", "rcx", "r8", "r9")
 REGISTERS = ("rax", "rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11")
@@ -38,7 +44,10 @@ BINARY = {"int.add.wrap": "add", "int.sub.wrap": "sub", "int.mul.wrap": "imul",
           "bool.and": "and_", "bool.or": "or_"}
 COMMUTATIVE = frozenset(BINARY) - {"int.sub.wrap", "int.sub.checked"}
 CONDITIONS = {"eq": "e", "ne": "ne", "lt": "b", "le": "be", "gt": "a", "ge": "ae"}
-OPERATIONS = frozenset(BINARY) | {"const", "int.cast", "bit.not", "bool.not", "select"} | {
+SHIFTS = frozenset(("int.shl.checked", "int.shr.checked"))
+DIVISIONS = frozenset(("int.div.checked", "int.rem.checked"))
+IMPLICIT_ARITHMETIC = DIVISIONS | {"int.mul.checked"}
+OPERATIONS = frozenset(BINARY) | SHIFTS | IMPLICIT_ARITHMETIC | {"int.neg.checked", "const", "int.cast", "bit.not", "bool.not", "select"} | {
     "compare." + relation for relation in CONDITIONS}
 SOURCE_FILES = ("hia_verified_scalar.py", "hia_machine_x64.py", "hia_machine_elf.py", "hia_verified_image.py")
 
@@ -53,8 +62,7 @@ def _require(condition, message):
 
 
 def _producer_identity():
-    root = Path(__file__).parent
-    return {**{name: sha256((root / name).read_bytes()).hexdigest() for name in SOURCE_FILES},
+    return {**loaded_source_identity(__name__, SOURCE_FILES),
             "selected_native_encoder": sha256(native_implementation_identity()).hexdigest()}
 
 
@@ -67,6 +75,7 @@ class VerifiedScalarImage:
     profile: str
     hot_text_bytes: int
     source_identity: tuple
+    core_profile_version: int = 2
 
 
 def emit_verified_scalar(document):
@@ -76,8 +85,9 @@ def emit_verified_scalar(document):
     ``validate_safe_core_artifact`` validates the actual linked machine code.
     """
     checked = verify_program(document)
+    profile_version = _unsigned_profile_version(checked)
     try:
-        fn, blocks = _profile(checked, profile_version=2)
+        fn, blocks = _profile(checked, profile_version=profile_version)
     except SafeCoreRejected as exc:
         raise VerifiedScalarRejected("E_HIA_VERIFIED_SCALAR: " + str(exc)) from exc
     _require(len(blocks) == 1, "only one straight-line block is supported")
@@ -131,9 +141,47 @@ def emit_verified_scalar(document):
 
     for op in block["ops"]:
         names, operation = op["args"], op["op"]
-        args = [locations[name] for name in names]
         counts = Counter(names)
         dead = {name for name, count in counts.items() if uses[name] == count}
+        if operation in IMPLICIT_ARITHMETIC:
+            # Unsigned MUL/DIV have two implicit output registers. Save every
+            # still-live SSA occupant before overwriting either; dying input
+            # operands may stay because MUL reads them before its writes.
+            for register in ("rax", "rdx"):
+                occupied = [name for name, location in locations.items()
+                            if location == register and name not in dead]
+                if occupied:
+                    free = [reg for reg in REGISTERS
+                            if reg not in ("rax", "rdx") and reg not in locations.values()]
+                    _require(bool(free), ("DIV" if operation in DIVISIONS else "MUL") +
+                             " needs a free caller-saved register budget")
+                    code.mov_rr(free[0], register)
+                    for name in occupied:
+                        locations[name] = free[0]
+            if operation in DIVISIONS and locations[names[1]] in ("rax", "rdx"):
+                # Unlike MUL, division is not commutative, and clearing the
+                # dividend high word must never erase a dying divisor. Move
+                # an implicit-register divisor even when it has no later use.
+                free = [reg for reg in REGISTERS
+                        if reg not in ("rax", "rdx") and reg not in locations.values()]
+                _require(bool(free), "DIV divisor needs a free caller-saved register budget")
+                code.mov_rr(free[0], locations[names[1]])
+                locations[names[1]] = free[0]
+        if operation in SHIFTS and locations[names[1]] != "rcx":
+            # CL is an implicit x86 operand. Preserve any still-live RCX
+            # value before installing the count, including a dying left
+            # operand needed by this very shift. A lack of scratch is a
+            # pre-proof selection refusal, never permission to clobber it.
+            occupied = [name for name, register in locations.items() if register == "rcx"]
+            if occupied:
+                free = [reg for reg in REGISTERS if reg not in locations.values()]
+                _require(bool(free), "CL shift needs a free caller-saved register budget")
+                code.mov_rr(free[0], "rcx")
+                for name in occupied:
+                    locations[name] = free[0]
+            code.mov_rr("rcx", locations[names[1]])
+            locations[names[1]] = "rcx"
+        args = [locations[name] for name in names]
         output = op["out"][0]
         # A binary instruction may overwrite its dying left operand. Only
         # commutative operations may instead overwrite the right operand.
@@ -142,7 +190,7 @@ def emit_verified_scalar(document):
             reusable = names[:1]
             if operation in COMMUTATIVE:
                 reusable += names[1:2]
-        elif operation in {"int.cast", "bit.not", "bool.not"}:
+        elif operation in SHIFTS or operation in {"int.neg.checked", "int.cast", "bit.not", "bool.not"}:
             reusable = names[:1]
         elif operation.startswith("compare."):
             reusable = names
@@ -150,11 +198,56 @@ def emit_verified_scalar(document):
             reusable = names[2:3]
         candidates = [locations[name] for name in reusable if name in dead]
         available = [reg for reg in REGISTERS if reg not in locations.values()]
-        _require(bool(candidates or available), "live values exceed the caller-saved register budget")
-        destination = (candidates or available)[0]
+        if operation in SHIFTS:
+            # Keep the count's logical location valid across the instruction,
+            # even when both Core operands are the same SSA value.
+            candidates = [reg for reg in candidates if reg != "rcx"]
+            available = [reg for reg in available if reg != "rcx"]
+        if operation in IMPLICIT_ARITHMETIC:
+            destination = "rax"
+        else:
+            _require(bool(candidates or available), "live values exceed the caller-saved register budget")
+            destination = (candidates or available)[0]
 
         if operation == "const":
             code.mov_imm(destination, int(op["attrs"]["value"]))
+        elif operation in DIVISIONS:
+            left, right = args
+            code.test(right, right)
+            code.jcc("e", "abort")
+            if left != "rax":
+                code.mov_rr("rax", left)
+            code.xor("rdx", "rdx")
+            code.div(right)
+            if operation == "int.rem.checked":
+                code.mov_rr("rax", "rdx")
+        elif operation == "int.mul.checked":
+            left, right = args
+            # Commutativity lets an existing RAX operand become the implicit
+            # left operand without overwriting the explicit right operand.
+            if right == "rax":
+                left, right = right, left
+            if left != "rax":
+                code.mov_rr("rax", left)
+            code.mul(right)
+            code.jcc("b", "abort")
+            check_fits("rax", output["type"], dead)
+        elif operation in SHIFTS:
+            if destination != args[0]:
+                code.mov_rr(destination, args[0])
+            # Core checks the complete normalized count, before x86 masks
+            # CL to six bits. A left shift may discard high result bits;
+            # count overflow alone is the checked shift's trap condition.
+            code.alu_imm("cmp", "rcx", WIDTHS[output["type"]])
+            code.jcc("ae", "abort")
+            code.shift_cl("shl" if operation == "int.shl.checked" else "shr", destination)
+        elif operation == "int.neg.checked":
+            if destination != args[0]:
+                code.mov_rr(destination, args[0])
+            # In the unsigned domain, zero is the only representable
+            # arithmetic negation. Its successful value is already zero.
+            code.test(destination, destination)
+            code.jcc("ne", "abort")
         elif operation in BINARY:
             left, right = args
             if destination == right and operation in COMMUTATIVE:
@@ -210,19 +303,24 @@ def emit_verified_scalar(document):
     obj = write_elf_object(text, [{"name": fn["name"], "offset": 0,
                                   "size": len(text), "global": True}], relocations)
     _require(identity == tuple(sorted(_producer_identity().items())), "producer changed during emission")
-    return VerifiedScalarImage(obj, text, fn["name"], checked.sha256, PROFILE,
-                               hot_text_bytes, identity)
+    profile = {2: PROFILE, 3: PROFILE_V3, 4: PROFILE_V4, 5: PROFILE_V5}[profile_version]
+    return VerifiedScalarImage(obj, text, fn["name"], checked.sha256, profile,
+                               hot_text_bytes, identity, profile_version)
 
 
 def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, query_directory=None, image=None):
     """Link privately, check all inputs on the final ELF, and publish on success."""
     checked = verify_program(document)
+    profile_version = _unsigned_profile_version(checked)
+    profile = {2: PROFILE, 3: PROFILE_V3, 4: PROFILE_V4, 5: PROFILE_V5}[profile_version]
     if image is None:
         image = emit_verified_scalar(checked)
     else:
         _require(type(image) is VerifiedScalarImage and type(image.object_bytes) is bytes and
                  type(image.text_bytes) is bytes and image.core_sha256 == checked.sha256 and
-                 image.profile == PROFILE and image.source_identity == tuple(sorted(_producer_identity().items())),
+                 image.profile == profile and type(image.core_profile_version) is int and
+                 image.core_profile_version == profile_version and
+                 image.source_identity == tuple(sorted(_producer_identity().items())),
                  "selected image does not match the current immutable source and producer")
         _require(image.export == checked.as_dict()["functions"][0]["name"] and
                  _ELF(image.object_bytes, 1).section(".text", 1)["data"] == image.text_bytes,
@@ -251,7 +349,7 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
         except VerifiedImageRejected as exc:
             raise VerifiedScalarRejected("E_HIA_VERIFIED_SCALAR: " + str(exc)) from exc
         validation = validate_safe_core_artifact(checked, image.object_bytes, data,
-            timeout_ms=timeout_ms, query_directory=query_directory, profile_version=2)
+            timeout_ms=timeout_ms, query_directory=query_directory, profile_version=profile_version)
         _require(validation.get("ok") is True and validation.get("complete") is True,
                  "final-image validation did not complete")
 
@@ -269,7 +367,8 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
         except BaseException:
             withdraw_own_link(candidate, destination)
             raise
-    return {"schema": "hepta.hia.verified-scalar-build.v1", "profile": PROFILE, "ok": True,
+    return {"schema": "hepta.hia.verified-scalar-build.v1", "profile": profile, "ok": True,
+            "core_profile_version": profile_version,
             "status": "smt_validated_not_executed", "output": str(destination),
             "artifact_sha256": published["sha256"], "artifact_bytes": published["bytes"],
             "object_sha256": sha256(image.object_bytes).hexdigest(), "core_sha256": checked.sha256,
@@ -281,3 +380,7 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
             "register_abi": "SysV AMD64 direct entry; caller-saved registers only on return paths",
             "wrapper_calls": 0, "hot_stack_bytes": 0,
             "maximum_observed_stack_bytes": validation["model_counts"]["maximum_observed_stack_bytes"]}
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

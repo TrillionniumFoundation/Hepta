@@ -1,0 +1,125 @@
+{
+  "schema": "hepta.hia.verified-kernel-microbench.v7.layout",
+  "scope": "single-core same-host indirect-call hot-cache kernels; complete original v6 phase then separately shuffled fixed-layout phase",
+  "legacy_protocol": {
+    "path": "benchmarks/hia_verified_kernels/PROTOCOL.json",
+    "schema": "hepta.hia.verified-kernel-microbench.v6",
+    "sha256": "08e0cfb3c5790120ad24dc22fe93e9426fe22a6432b4637bf1673da043b6be1f",
+    "cases": 763,
+    "samples": 16023,
+    "benchmark_sha256": "261fc80917b1fe109b1b424150806705b9e27c7f54eb1d1be19e331dfbd244b7",
+    "driver_sha256": "d3a19775fe32845e3cd2eeaee52a8346415835d4adb796b06ac8fe99006a6626"
+  },
+  "cases": 2281,
+  "samples": 47901,
+  "samples_per_case": 21,
+  "warmup_batches": 3,
+  "controlled_cases": 1518,
+  "controlled_samples": 31878,
+  "controlled_reduction_cases": 506,
+  "controlled_copy_cases": 1012,
+  "lengths": [
+    0,
+    1,
+    7,
+    15,
+    16,
+    17,
+    31,
+    32,
+    33,
+    63,
+    64,
+    65,
+    127,
+    128,
+    129,
+    255,
+    256,
+    257,
+    4095,
+    4096,
+    4097,
+    65535,
+    65536
+  ],
+  "span_iterations": {
+    "0": 100000,
+    "1": 100000,
+    "7": 100000,
+    "15": 100000,
+    "16": 100000,
+    "17": 100000,
+    "31": 100000,
+    "32": 100000,
+    "33": 100000,
+    "63": 100000,
+    "64": 100000,
+    "65": 100000,
+    "127": 100000,
+    "128": 100000,
+    "129": 100000,
+    "255": 100000,
+    "256": 100000,
+    "257": 100000,
+    "4095": 10000,
+    "4096": 10000,
+    "4097": 10000,
+    "65535": 1000,
+    "65536": 1000
+  },
+  "layout": {
+    "profile": "hia.kernel-layout.phase0.v1",
+    "arena_bytes": 262144,
+    "page_bytes": 4096,
+    "lower_offset": 4096,
+    "lower_base_phase": 0,
+    "copy_gaps": [
+      131072,
+      131136
+    ],
+    "copy_orders": [
+      "src-low",
+      "src-high"
+    ],
+    "reduction_gap": 131072,
+    "reduction_order": "src-low",
+    "relative_offsets": [
+      1,
+      16
+    ],
+    "offset_expression": "1 + (iteration & 15)",
+    "allocation": "single posix_memalign arena before dlopen; initialized and prefaulted before timing",
+    "coverage": "only lower-base phase 0 mod 4096 and its prescribed gap/order-derived upper phase; not every alignment or physical placement",
+    "addresses": "record full observed addresses and their mod64/mod4096 phases; do not require equal virtual addresses between processes or disable ASLR"
+  },
+  "controlled_driver": {
+    "path": "benchmarks/hia_verified_kernels/driver_layout.c",
+    "sha256": "f93e8d411b38bae2093d5a6e93c834adb2c7d97dc70dd1106f6affe7117af146",
+    "compiler_flags": [
+      "-O3",
+      "-std=c11"
+    ],
+    "link_flags": [
+      "-ldl"
+    ]
+  },
+  "order": {
+    "legacy": "unchanged complete v6 order, seed 20261119",
+    "controlled": "mode sum/zero/copy, ascending declared lengths, original ordered arms, then gap/order; one complete shuffle with seed 20261119",
+    "seed": 20261119
+  },
+  "proofs": "reuse the exact libraries built in this same complete v6 phase; no new codegen profile or inherited old campaign timing",
+  "correctness": "all original untimed offset checks, nonzero controls, independent timed checksums, copy-byte and outside-range canaries; layout metadata before dlopen and address stability in every measured batch",
+  "reruns": "no selected-cell reruns or discarded samples; --validate-only is a separate non-timing driver functional check",
+  "clock": "CLOCK_MONOTONIC_RAW",
+  "machine_sharing": "affinity is not exclusive CPU ownership",
+  "excluded_claims": [
+    "whole-language performance",
+    "cold-start parity",
+    "all alignments",
+    "same physical placement",
+    "cross-phase causal attribution without the full conditions",
+    "side-channel security"
+  ]
+}

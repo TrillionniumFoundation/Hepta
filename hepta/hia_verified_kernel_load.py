@@ -7,6 +7,8 @@ The returned ctypes function has no solver or CPU probe in its hot path.
 """
 from __future__ import annotations
 
+from .hia_loaded_source import loaded_source_identity
+
 import atexit
 import ctypes
 from dataclasses import dataclass
@@ -19,7 +21,8 @@ import threading
 from .hia_verified_cpu import require_host_isa
 from .hia_verified_simd_check import validate_verified_simd_artifact
 from .hia_safe_core_elf import bind_final_artifact
-from .hia_safe_core import ARTIFACT_PROFILE_V2, validate_safe_core_artifact
+from .hia_safe_core import (ARTIFACT_PROFILE_V2, ARTIFACT_PROFILE_V3, ARTIFACT_PROFILE_V4, ARTIFACT_PROFILE_V5,
+                           _unsigned_profile_version, validate_safe_core_artifact)
 from .hia_program import verify_program
 
 
@@ -168,7 +171,7 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
              64 <= len(object_bytes) <= MAX_IMAGE_BYTES and 64 <= len(final_bytes) <= MAX_IMAGE_BYTES,
              'bounded immutable object and final ELF bytes are required')
     source = Path(__file__).resolve()
-    identity = sha256(source.read_bytes()).hexdigest()
+    identity = loaded_source_identity(__name__, (source.name, "hia_verified_cpu.py"))
     validation = validate_verified_simd_artifact(document, object_bytes, final_bytes,
                                                  timeout_ms=timeout_ms)
     _require(validation.get('ok') is True and validation.get('complete') is True,
@@ -186,12 +189,16 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
     _require(kind in ('sum_u8', 'all_zero_u8', 'copy_u8'), 'unrecognized loaded ABI')
 
     def recheck():
-        _require(identity == sha256(source.read_bytes()).hexdigest(), 'loader source changed')
-        _require(admission['source_sha256'] == sha256(source.with_name('hia_verified_cpu.py').read_bytes()).hexdigest(),
+        current = loaded_source_identity(__name__, tuple(identity))
+        _require(identity == current, 'loader source changed')
+        _require(admission['source_sha256'] == current['hia_verified_cpu.py'],
                  'CPU admission source changed')
-        for filename, expected in validation['checker']['source_identity'].items():
-            _require(sha256(source.with_name(filename).read_bytes()).hexdigest() == expected,
-                     'independent checker source changed before loading')
+        checker_identity = validation['checker']['source_identity']
+        checker_owner = (__package__ + ".hia_verified_simd_check"
+                         if validation['schema'] == "hepta.hia.verified-simd-machine-validation.v1"
+                         else __package__ + ".hia_safe_core")
+        _require(loaded_source_identity(checker_owner, tuple(checker_identity)) == checker_identity,
+                 'independent checker source changed before loading')
         _require(admission['affinity'] == sorted(os.sched_getaffinity(0)),
                  'allowed CPU affinity changed before loading')
 
@@ -202,7 +209,7 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
 
 
 def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_ms=15000):
-    """Load one unsigned Safe Core v2 scalar direct entry after fresh proof.
+    """Load one unsigned Safe Core v2/v3 scalar direct entry after fresh proof.
 
     The callable takes zero to six raw uint64 SysV argument words and returns
     a canonical uint64 result. The independently proved machine body masks
@@ -214,7 +221,7 @@ def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_
              64 <= len(object_bytes) <= MAX_IMAGE_BYTES and 64 <= len(final_bytes) <= MAX_IMAGE_BYTES,
              'bounded immutable object and final ELF bytes are required')
     source = Path(__file__).resolve()
-    identity = sha256(source.read_bytes()).hexdigest()
+    identity = loaded_source_identity(__name__, (source.name, "hia_verified_cpu.py"))
     checked = verify_program(document)
     functions = checked.as_dict()['functions']
     _require(len(functions) == 1, 'one unsigned scalar function is required')
@@ -225,10 +232,13 @@ def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_
     _require(len(parameter_types) <= 6 and all(typ in unsigned for typ in parameter_types) and
              len(returns) == 1 and returns[0] in unsigned,
              'unsigned scalar arguments and one return within six ABI words are required; no borrowed ranges')
+    profile_version = _unsigned_profile_version(checked)
+    artifact_profile = {2: ARTIFACT_PROFILE_V2, 3: ARTIFACT_PROFILE_V3,
+                        4: ARTIFACT_PROFILE_V4, 5: ARTIFACT_PROFILE_V5}[profile_version]
     validation = validate_safe_core_artifact(checked, object_bytes, final_bytes,
-                                             timeout_ms=timeout_ms, profile_version=2)
+                                             timeout_ms=timeout_ms, profile_version=profile_version)
     _require(validation.get('ok') is True and validation.get('complete') is True and
-             validation.get('profile') == ARTIFACT_PROFILE_V2,
+             validation.get('profile') == artifact_profile,
              'independent scalar final-byte validation did not complete')
     export = function['name']
     binding = bind_final_artifact(object_bytes, final_bytes, export)
@@ -241,17 +251,21 @@ def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_
     digest = sha256(final_bytes).hexdigest()
 
     def recheck():
-        _require(identity == sha256(source.read_bytes()).hexdigest(), 'loader source changed')
-        _require(admission['source_sha256'] == sha256(source.with_name('hia_verified_cpu.py').read_bytes()).hexdigest(),
+        current = loaded_source_identity(__name__, tuple(identity))
+        _require(identity == current, 'loader source changed')
+        _require(admission['source_sha256'] == current['hia_verified_cpu.py'],
                  'CPU admission source changed')
-        for filename, expected in validation['checker']['source_identity'].items():
-            _require(sha256(source.with_name(filename).read_bytes()).hexdigest() == expected,
-                     'independent checker source changed before loading')
+        checker_identity = validation['checker']['source_identity']
+        checker_owner = (__package__ + ".hia_verified_simd_check"
+                         if validation['schema'] == "hepta.hia.verified-simd-machine-validation.v1"
+                         else __package__ + ".hia_safe_core")
+        _require(loaded_source_identity(checker_owner, tuple(checker_identity)) == checker_identity,
+                 'independent checker source changed before loading')
         _require(admission['affinity'] == sorted(os.sched_getaffinity(0)),
                  'allowed CPU affinity changed before loading')
 
     recheck()
-    key = (digest, export, ('scalar-safe-core-v2', parameter_types, returns[0]))
+    key = (digest, export, ('scalar-safe-core-v' + str(profile_version), parameter_types, returns[0]))
     callable_, mapping = _load_sealed_image(
         key, final_bytes, validation, binding, recheck,
         argument_types=[ctypes.c_uint64] * len(parameter_types))
@@ -309,3 +323,7 @@ def _load_sealed_image(key, final_bytes, validation, binding, recheck, *, argume
                                                   argument_types=argument_types)
         recheck()
         return function, mapping
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

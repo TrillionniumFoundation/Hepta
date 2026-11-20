@@ -48,3 +48,7 @@ def read_bounded_elf_image(path: str | Path) -> bytes:
             os.close(descriptor)
     except OSError as exc:
         raise VerifiedImageRejected("linked image is unavailable or not an ordinary file") from exc
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

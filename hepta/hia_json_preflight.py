@@ -235,3 +235,7 @@ def _preflight_hia_json_reference(text: str, *, max_nodes: int, max_depth: int) 
                     fail("expected object separator/end")
             else:
                 fail("invalid object preflight state")
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

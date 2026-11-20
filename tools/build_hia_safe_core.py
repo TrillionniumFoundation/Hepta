@@ -70,8 +70,8 @@ def main(argv=None):
     parser.add_argument("--foreign-extent", type=int)
     parser.add_argument("--linker", default="ld")
     parser.add_argument("--timeout-ms", type=int, default=15000)
-    parser.add_argument("--profile-version", type=int, choices=(1, 2), default=1,
-                        help="v1 preserves the original scope; v2 also admits u16 and checked unsigned casts")
+    parser.add_argument("--profile-version", type=int, choices=(1, 2, 3, 4, 5), default=1,
+                        help="v1 preserves the original scope; v2 adds u16/casts; v3 adds unsigned checked negation and shifts; v4 adds unsigned checked multiplication; v5 adds unsigned checked division and remainder")
     args = parser.parse_args(argv)
     report = build(args.source, args.output, foreign_extent=args.foreign_extent,
                    linker=args.linker, timeout_ms=args.timeout_ms, profile_version=args.profile_version)
