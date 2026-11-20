@@ -105,7 +105,10 @@ def symbols(s:readbuf, w:mutbuf) -> u64:
             return 0
         first = get(w, 56) + name
         end = get(w, 56) + get(w, 64)
-        if name_length(s, first, end) == 0:
+        count = name_length(s, first, end)
+        if count == 0:
+            return 0
+        if i >= get(w, 48) and repeated_external(s, w, i, first, count) != 0:
             return 0
         tag = uint(s, entry + 4, 4)
         value = uint(s, entry + 8, 8)
@@ -361,6 +364,23 @@ def zero(o:mutbuf, size:u64) -> u64:
     return 0
 '''
 
+EXTERNAL_NAME_CHECK = '''
+def repeated_external(s:readbuf, w:mutbuf, current:u64, first:u64, count:u64) -> u64:
+    strings = get(w, 56)
+    end = strings + get(w, 64)
+    index = get(w, 48)
+    while index < current:
+        previous = strings + uint(s, get(w, 32) + index * 24, 4)
+        if count < end - previous and byte(s, previous + count) == 0:
+            matched = 0
+            while matched < count and byte(s, previous + matched) == byte(s, first + matched):
+                matched = matched + 1
+            if matched == count:
+                return 1
+        index = index + 1
+    return 0
+'''
+
 
 def source_program():
     sections = bytearray(b'\0')
@@ -381,7 +401,8 @@ def source_program():
             .replace('@SECTION_NAME_WRITES@', '\n'.join(writes))
             .replace('@ALLOWED_IMPORTS@', '\n'.join(imports))
             .replace(' / ', ' // ')
-            + '\ndef within(' + STATIC_SOURCE.split('\ndef within(', 1)[1])
+            + '\ndef within(' + STATIC_SOURCE.split('\ndef within(', 1)[1]
+            + EXTERNAL_NAME_CHECK)
 
 
 def document(source=None, module='elf_shared_linker'):

@@ -153,6 +153,35 @@ class StandaloneDirectSharedLinkerTests(unittest.TestCase):
             refused = self.link(value, *arguments)
             self.assertEqual((refused.returncode, refused.stdout, refused.stderr), (status, b'', b''))
 
+    def test_repeated_external_names_refuse_before_output(self):
+        from hepta.elf_shared_abi import inspect_owned_shared_elf
+        from hepta.hia_machine_elf import write_elf_object
+
+        symbols = [{'name': 'entry', 'offset': 0, 'size': 6, 'global': True},
+                   {'name': 'other', 'offset': 6, 'size': 1, 'global': True},
+                   {'name': 'other_suffix', 'offset': 7, 'size': 1, 'global': True}]
+        relocations = [{'offset': 1, 'symbol': 'abort', 'type': 4, 'addend': -4}]
+        original = write_elf_object(b'\xe8\0\0\0\0\xc3\xc3\xc3', symbols, relocations)
+        linked = self.link(original)
+        self.assertEqual((linked.returncode, linked.stderr), (0, b''))
+        inventory = inspect_owned_shared_elf(linked.stdout, ('entry', 'other', 'other_suffix'))
+        self.assertEqual(inventory['unresolved_imports'], ['abort'])
+
+        symtab, strtab = (sections(original)[index][1][4] for index in (3, 4))
+        first_name = struct.unpack_from('<I', original, symtab + 2 * 24)[0]
+        second_name = struct.unpack_from('<I', original, symtab + 3 * 24)[0]
+        same_offset = bytearray(original)
+        struct.pack_into('<I', same_offset, symtab + 3 * 24, first_name)
+        separate_offsets = bytearray(original)
+        separate_offsets[strtab + second_name:strtab + second_name + 5] = b'entry'
+        import_collision = bytearray(original)
+        import_collision[strtab + first_name:strtab + first_name + 5] = b'abort'
+        for name, malformed in (('same offset', same_offset), ('same bytes', separate_offsets),
+                                ('export and import', import_collision)):
+            with self.subTest(name=name):
+                refused = self.link(malformed)
+                self.assertEqual((refused.returncode, refused.stdout, refused.stderr), (2, b'', b''))
+
 
 class SharedElfLinkerNativeTests(unittest.TestCase):
     @classmethod
