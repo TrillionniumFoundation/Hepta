@@ -13,6 +13,16 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = 'tests/fixtures/native_transport_worker_terminal_v2_provenance.json'
 FIXTURE_SHA256 = '15f48d98210006523a800be1a743a7f6ce8e427838fc24d157d9bf317d680957'
 TRANSPORT = 'tests/test_hia_native_transport_failures.py'
+SQLITE_BOUNDARY_FIXTURE = 'tests/fixtures/delivery_sqlite_boundary_source_v3.json'
+SQLITE_BOUNDARY_FIXTURE_PIN = {
+    'bytes': 14093, 'sha256': '8f691aeeb1fce7c18068e467f6109c3b0ffbd10d26b4a6a732d8b5205477010f',
+}
+SQLITE_BOUNDARY_SOURCES = {
+    TRANSPORT: {'bytes': 39786, 'sha256': '3b0510f0285f29d2dab2db4e27ea320484a4bc2f71d0c5debeeb9b9dfd329715'},
+    'tests/test_hia_agent_native_tools.py': {
+        'bytes': 47052, 'sha256': '64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70',
+    },
+}
 DELIVERY = 'tests/test_hia_native_delivery.py'
 PATHS = (TRANSPORT, DELIVERY)
 EVALUATION = 'tests/test_hia_evaluation_native.py'
@@ -118,6 +128,25 @@ def reverse_evaluation(raw, record):
     return restored
 
 
+def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, previous_pin):
+    """Restore a fixed test-only predecessor before replaying its own inverse."""
+    from tests.hia_store_delivery_successor import reverse_exact
+
+    if _pin(fixed) != SQLITE_BOUNDARY_FIXTURE_PIN:
+        raise ValueError('transport SQLite boundary provenance changed')
+    value = json.loads(fixed)
+    if (type(value) is not dict or set(value) != {'schema', 'files'}
+            or value['schema'] != 'hepta.hia.delivery-sqlite-boundary-source.v3'
+            or type(value['files']) is not dict or set(value['files']) != set(SQLITE_BOUNDARY_SOURCES)
+            or _pin(raw) != SQLITE_BOUNDARY_SOURCES.get(path)):
+        raise ValueError('transport SQLite boundary scope differs')
+    record = value['files'][path]
+    if (type(record) is not dict or set(record) != {'predecessor_fixture', 'record'}
+            or record['predecessor_fixture'] != {'path': predecessor, **_pin(previous_fixture)}):
+        raise ValueError('transport SQLite boundary predecessor differs')
+    return reverse_exact(raw, record['record'], previous_pin)
+
+
 def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
     if type(original_kind) is not str or original_kind not in ORIGINALS:
         raise ValueError('transport successor original authority differs')
@@ -137,6 +166,7 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
     captured = {name: (ROOT / name).read_bytes() for name in PATHS}
     unchanged = all(_pin(captured[name]) == OLD[name] for name in PATHS)
     frozen = None
+    boundary = None
     value = None
     if not unchanged:
         frozen = (ROOT / FIXTURE).read_bytes()
@@ -153,7 +183,12 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
                 or value['files'][DELIVERY]['definition'] != 'admit_originals'):
             raise ValueError('transport successor changes its exact reviewed scope')
         for name in PATHS:
-            reverse_one(captured[name], value['files'][name], OLD[name])
+            current = captured[name]
+            if name == TRANSPORT and _pin(current) == SQLITE_BOUNDARY_SOURCES[TRANSPORT]:
+                boundary = (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes()
+                current = _reverse_sqlite_boundary(
+                    name, current, boundary, FIXTURE, frozen, value['files'][name]['new'])
+            reverse_one(current, value['files'][name], OLD[name])
     evaluation_raw = (ROOT / EVALUATION).read_bytes()
     if any(_canonical(parsed[kind]['unchanged_files'][EVALUATION])
            != _canonical(EVALUATION_OLD) for kind in ORIGINALS):
@@ -192,6 +227,7 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
             for kind, item in ORIGINALS.items())
             or any((ROOT / name).read_bytes() != captured[name] for name in PATHS)
             or (frozen is not None and (ROOT / FIXTURE).read_bytes() != frozen)
+            or (boundary is not None and (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes() != boundary)
             or (ROOT / EVALUATION).read_bytes() != evaluation_raw
             or (evaluation_frozen is not None
                 and (ROOT / EVALUATION_FIXTURE).read_bytes() != evaluation_frozen)):
@@ -223,6 +259,19 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
             'c019_unchanged_originals_after_both_reviews': 84,
             'c019_unchanged_shared_after_both_reviews': 14,
             'original_inventories_unchanged': True}
+    if boundary is not None:
+        adjustments[TRANSPORT].update({
+            'current_bytes': len(captured[TRANSPORT]),
+            'current_sha256': sha256(captured[TRANSPORT]).hexdigest(),
+            'all_original_test_methods_unchanged': False,
+            'all_original_test_method_ids_preserved': True,
+            'scope': 'exact transport tests for locally imported SQLite and retained failure classes',
+            'sqlite_boundary_successor': {
+                'authority': {'path': SQLITE_BOUNDARY_FIXTURE, **SQLITE_BOUNDARY_FIXTURE_PIN},
+                'restores_v2_exactly': True,
+                'v2_source': dict(value['files'][TRANSPORT]['new']),
+            },
+        })
     if evaluation_value is not None:
         result['state'] = 'EXACT_TERMINAL_V2_PAIR_WITH_EVALUATION_V2'
         result['source_adjustments'][EVALUATION] = {
@@ -523,7 +572,11 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
         raise ValueError('qualifier prior terminal source set differs')
     for bit, path in enumerate(prior_names):
         expected = value['prior_terminal_sources'][path]['new' if state_mask & (1 << bit) else 'old']
-        if _pin(capture(path)) != expected:
+        raw = capture(path)
+        if path == TRANSPORT and 'sqlite_boundary_successor' in prior['source_adjustments'].get(path, {}):
+            raw = _reverse_sqlite_boundary(path, raw, capture(SQLITE_BOUNDARY_FIXTURE),
+                                           FIXTURE, capture(FIXTURE), expected)
+        if _pin(raw) != expected:
             raise ValueError('qualifier prior terminal source changed after its admission')
     raw_sources = {path: capture(path) for path in QUALIFIER_PATHS}
     all_old = all(_pin(raw_sources[path]) == QUALIFIER_RECORDS[path]['old'] for path in QUALIFIER_PATHS)
@@ -805,6 +858,11 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
     for path in DIAGNOSTIC_PATHS:
         raw, record = capture(path), value['files'][path]
         expected = DIAGNOSTIC_RECORDS[path]
+        reviewed = raw
+        boundary = _pin(raw) == SQLITE_BOUNDARY_SOURCES.get(path)
+        if boundary:
+            reviewed = _reverse_sqlite_boundary(path, raw, capture(SQLITE_BOUNDARY_FIXTURE),
+                                                DIAGNOSTIC_FIXTURE, frozen, expected['new'])
         if _pin(raw) == expected['old']:
             preview = _diagnostic_transform(raw, record, path, reverse=False)
             restored[path] = reverse_diagnostic_source(preview, record, path)
@@ -812,7 +870,7 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                 raise ValueError('delivery diagnostic original full replay differs')
             states[path] = 'EXACT_ORIGINAL'
         else:
-            restored[path] = reverse_diagnostic_source(raw, record, path)
+            restored[path] = reverse_diagnostic_source(reviewed, record, path)
             states[path] = 'EXACT_REVIEWED_SUCCESSOR'
             if path in DIAGNOSTIC_ALLOWED[original_kind]:
                 adjustments[path] = {
@@ -825,6 +883,14 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                     'complete_original_inverse_verified': True,
                     'complete_current_forward_replay_verified': True,
                     'production_source_exception': False}
+                if boundary:
+                    adjustments[path].update({
+                        'current_bytes': len(raw), 'current_sha256': sha256(raw).hexdigest(),
+                        'sqlite_boundary_successor': {
+                            'authority': {'path': SQLITE_BOUNDARY_FIXTURE, **SQLITE_BOUNDARY_FIXTURE_PIN},
+                            'restores_reviewed_diagnostic_source_exactly': True,
+                        },
+                    })
     if (set(adjustments) - set(authorities[original_kind]['unchanged_files'])
             or set(adjustments) & set(prior['source_adjustments'])):
         raise ValueError('delivery diagnostic source adjustment escaped or overlapped its fixed scope')

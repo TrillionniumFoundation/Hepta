@@ -98,6 +98,10 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
         for name in subject.PATHS:
             current = (ROOT / name).read_bytes()
             record = cls.pair['files'][name]
+            if name == subject.TRANSPORT and pin(current) == subject.SQLITE_BOUNDARY_SOURCES[name]:
+                current = subject._reverse_sqlite_boundary(name, current,
+                    (ROOT / subject.SQLITE_BOUNDARY_FIXTURE).read_bytes(),
+                    subject.FIXTURE, cls.pair_raw, record['new'])
             if pin(current) != record['new']:
                 raise AssertionError('control needs the exact reviewed current pair')
             cls.new_sources[name] = current
@@ -177,6 +181,38 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
                         self.assertNotIn('all_original_test_methods_unchanged', record)
                     else:
                         self.assertNotIn(subject.EVALUATION, result['source_adjustments'])
+
+    def test_sqlite_boundary_is_reversible_in_both_original_inventories(self):
+        boundary = (ROOT / subject.SQLITE_BOUNDARY_FIXTURE).read_bytes()
+        paths = (
+            (subject.TRANSPORT, subject.FIXTURE, self.new_sources[subject.TRANSPORT]),
+            (subject.DIAGNOSTIC_PATHS[0], subject.DIAGNOSTIC_FIXTURE, None),
+        )
+        for path, fixture, previous in paths:
+            raw = (ROOT / path).read_bytes()
+            authority = (ROOT / fixture).read_bytes()
+            record = json.loads(authority)['files'][path]
+            with self.subTest(path=path):
+                restored = subject._reverse_sqlite_boundary(
+                    path, raw, boundary, fixture, authority, record['new'])
+                self.assertEqual(pin(restored), record['new'])
+                if previous is not None:
+                    self.assertEqual(restored, previous)
+                else:
+                    self.assertEqual(pin(subject.reverse_diagnostic_source(restored, record, path)),
+                                     record['old'])
+                for current, fixed, prior in ((raw + b'\n', boundary, authority),
+                                               (raw, boundary + b'\n', authority),
+                                               (raw, boundary, authority + b'\n')):
+                    with self.assertRaises(ValueError):
+                        subject._reverse_sqlite_boundary(path, current, fixed, fixture, prior, record['new'])
+        for kind, original in self.authority_values.items():
+            adjusted = subject.admit_terminal_sources(deepcopy(original), original_kind=kind)
+            for path, _, _ in paths:
+                proof = adjusted['source_adjustments'][path]
+                self.assertIn('sqlite_boundary_successor', proof)
+                self.assertEqual(proof['current_sha256'], pin((ROOT / path).read_bytes())['sha256'])
+            self.assertEqual(adjusted['production_composition_source_count'], 13)
 
     def test_02_fixed_authorities_sources_and_exact_splices_reject_tampering(self):
         names = (*subject.PATHS, subject.EVALUATION, subject.FIXTURE,

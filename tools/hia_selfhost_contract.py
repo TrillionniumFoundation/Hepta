@@ -1817,6 +1817,7 @@ SOURCE_FILES = (
     'docs/HIA_WORKER_INSTALLED_JOURNAL.md',
     'tests/hia_native_transport_worker_successor.py',
     'tests/fixtures/native_transport_worker_terminal_v2_provenance.json',
+    'tests/fixtures/delivery_sqlite_boundary_source_v3.json',
     'examples/hia_bootstrap/executable_capture.hepta',
     'tools/generate_hia_executable_capture.py',
     'tools/hia_executable_capture_syscalls.S',

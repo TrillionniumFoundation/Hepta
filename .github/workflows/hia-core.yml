@@ -389,7 +389,7 @@ jobs:
           suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_evaluation_worker_successor.EvaluationWorkerSuccessorSourceTests')
           expected = suite.countTestCases()
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          complete = result.testsRun == expected and expected == 3
+          complete = result.testsRun == expected and expected == 4
           clean = not (result.errors or result.failures or result.skipped or
                        result.expectedFailures or result.unexpectedSuccesses)
           raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
