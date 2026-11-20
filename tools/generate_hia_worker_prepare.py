@@ -30,6 +30,8 @@ HTTP_AUTH_INPUT = b'HIAHAT01'
 HTTP_AUTH_OUTPUT = b'HIAHAO01'
 LAUNCH_ACK_INPUT = b'HIAJAK01'
 LAUNCH_ACK_OUTPUT = b'HIAJAO01'
+JOB_POLL_INPUT = b'HIAJPL01'
+JOB_POLL_OUTPUT = b'HIAJPO01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -49,6 +51,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return http_auth(s, o, w)
     if magic == LAUNCH_ACK_INPUT:
         return launch_ack(s, o)
+    if magic == JOB_POLL_INPUT:
+        return job_poll(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -115,6 +119,41 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     word_store(o, 0, OUTPUT_MAGIC)
     saved(w, o, 8, 0, 256)
     return count + 1
+
+def job_poll(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 72 or length(o) < 24:
+        return 4294967293
+    stage = word_load(s, 8)
+    wait_seconds = word_load(s, 16)
+    age_ns = word_load(s, 24)
+    size = word_load(s, 32)
+    publication_pending = word_load(s, 40)
+    state = word_load(s, 48)
+    tail = word_load(s, 56)
+    last = word_load(s, 64)
+    if stage == 0:
+        if age_ns != 0 or size != 0 or publication_pending != 0 or state != 0 or tail != 0 or last != 0:
+            return 4294967293
+        if wait_seconds > 30:
+            wait_seconds = 30
+        decision = wait_seconds
+    else:
+        if stage > 2 or wait_seconds > 30 or size > 24 or publication_pending > 1:
+            return 4294967293
+        running = size == 7 and state == RUNNING_WORD and tail == 0 and last == 0
+        activating = stage == 2 and size == 10 and state == ACTIVATING_HEAD and tail == NG_TAIL and last == 0
+        finalizing = stage == 2 and size == 10 and state == FINALIZING_HEAD and tail == NG_TAIL and last == 0
+        completed_unknown = stage == 2 and size == 17 and state == COMPLETED_HEAD and tail == UNKNOWN_MIDDLE and last == 110
+        expired = age_ns >= wait_seconds * 1000000000
+        decision = 0
+        if expired == False and (running or activating or finalizing or completed_unknown):
+            decision = 100
+        elif expired and publication_pending == 0 and (finalizing or completed_unknown):
+            decision = 101
+    word_store(o, 0, JOB_POLL_OUTPUT)
+    word_store(o, 8, stage)
+    word_store(o, 16, decision)
+    return 24
 
 def job_identity(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     n = length(s)
@@ -415,6 +454,13 @@ def source_program():
               .replace('HTTP_AUTH_OUTPUT', str(int.from_bytes(HTTP_AUTH_OUTPUT, 'little')))
               .replace('LAUNCH_ACK_INPUT', str(int.from_bytes(LAUNCH_ACK_INPUT, 'little')))
               .replace('LAUNCH_ACK_OUTPUT', str(int.from_bytes(LAUNCH_ACK_OUTPUT, 'little')))
+              .replace('JOB_POLL_INPUT', str(int.from_bytes(JOB_POLL_INPUT, 'little')))
+              .replace('JOB_POLL_OUTPUT', str(int.from_bytes(JOB_POLL_OUTPUT, 'little')))
+              .replace('RUNNING_WORD', str(int.from_bytes(b'running', 'little')))
+              .replace('ACTIVATING_HEAD', str(int.from_bytes(b'activati', 'little')))
+              .replace('FINALIZING_HEAD', str(int.from_bytes(b'finalizi', 'little')))
+              .replace('UNKNOWN_MIDDLE', str(int.from_bytes(b'd_unknow', 'little')))
+              .replace('NG_TAIL', str(int.from_bytes(b'ng', 'little')))
               .replace('SYSTEM_HEAD', str(int.from_bytes(b'systemd_', 'little')))
               .replace('SYSTEM_TAIL', str(int.from_bytes(b'system', 'little')))
               .replace('SYSTEMD_WORD', str(int.from_bytes(b'systemd', 'little')))

@@ -236,6 +236,57 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(invalid)
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_job_poll_obeys_the_original_monotonic_window_and_exact_state(self):
+        def poll(stage, wait, age=0, state=b'', size=None, unconfirmed=0):
+            extent = len(state) if size is None else size
+            return struct.pack('<8s5Q24s', b'HIAJPL01', stage, wait, age, extent, unconfirmed, state)
+
+        for wait in (0, 1, 29, 30, 31, (1 << 64) - 1):
+            answer = self.invoke(poll(0, wait))
+            self.assertEqual((answer.returncode, answer.stdout, answer.stderr),
+                             (0, struct.pack('<8s2Q', b'HIAJPO01', 0, min(wait, 30)), b''))
+        for wait, age, state, delay in (
+            (0, 0, b'running', 0),
+            (1, 0, b'running', 100),
+            (1, 999999999, b'running', 100),
+            (1, 1000000000, b'running', 0),
+            (30, 29999999999, b'running', 100),
+            (30, 30000000000, b'running', 0),
+            (30, (1 << 64) - 1, b'running', 0),
+            (1, 0, b'runningx', 0),
+            (1, 0, b'running\x00', 0),
+            (1, 0, b'RUNNING', 0),
+            (1, 0, b'exited', 0),
+            (1, 0, b'', 0),
+        ):
+            answer = self.invoke(poll(1, wait, age, state))
+            self.assertEqual((answer.returncode, answer.stdout, answer.stderr),
+                             (0, struct.pack('<8s2Q', b'HIAJPO01', 1, delay), b''))
+        for state, age, unconfirmed, decision in (
+            (b'activating', 0, 0, 100),
+            (b'activating', 1000000000, 0, 0),
+            (b'finalizing', 999999999, 0, 100),
+            (b'finalizing', 1000000000, 0, 101),
+            (b'finalizing', 1000000000, 1, 0),
+            (b'completed_unknown', 999999999, 1, 100),
+            (b'completed_unknown', 1000000000, 0, 101),
+            (b'completed_unknown', 1000000000, 1, 0),
+            (b'completed_unknownx', 1000000000, 0, 0),
+            (b'owner_unknown', 0, 0, 0),
+            (b'publication_pending', 0, 0, 0),
+        ):
+            answer = self.invoke(poll(2, 1, age, state, unconfirmed=unconfirmed))
+            self.assertEqual((answer.returncode, answer.stdout, answer.stderr),
+                             (0, struct.pack('<8s2Q', b'HIAJPO01', 2, decision), b''))
+        answer = self.invoke(poll(1, 1, 1000000000, b'finalizing'))
+        self.assertEqual((answer.returncode, answer.stdout, answer.stderr),
+                         (0, struct.pack('<8s2Q', b'HIAJPO01', 1, 0), b''))
+        for invalid in (poll(3, 1), poll(0, 1, 1), poll(0, 1, state=b'running'),
+                        poll(1, 31), poll(1, 30, size=25), poll(0, 1, unconfirmed=1),
+                        poll(2, 1, unconfirmed=2), poll(0, 1)[:-1]):
+            answer = self.invoke(invalid)
+            self.assertEqual((answer.returncode, answer.stdout, answer.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',
