@@ -28,6 +28,8 @@ TRANSITION_INPUT_MAGIC = b'HIAJTR01'
 TRANSITION_OUTPUT_MAGIC = b'HIAJTO01'
 HTTP_AUTH_INPUT = b'HIAHAT01'
 HTTP_AUTH_OUTPUT = b'HIAHAO01'
+LAUNCH_ACK_INPUT = b'HIAJAK01'
+LAUNCH_ACK_OUTPUT = b'HIAJAO01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -45,6 +47,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return durable_transition(s, o)
     if magic == HTTP_AUTH_INPUT:
         return http_auth(s, o, w)
+    if magic == LAUNCH_ACK_INPUT:
+        return launch_ack(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -283,6 +287,77 @@ def scope_digest(s:readbuf, at:u64) -> u64:
         index = index + 1
     return 1
 
+def launch_ack(s:readbuf, o:mutbuf) -> u64:
+    # Flags: literal true ACK, isolated system jobctl, literal true remote
+    # reuse, and presence (even null) of /status/job_id. Slots hold
+    # backend, actual/expected job ID, actual/expected unit and remote state.
+    if length(s) != 1608:
+        return 4294967293
+    if length(o) < 16:
+        return 4294967294
+    flags = word_load(s, 8)
+    if flags > 15:
+        return 4294967293
+    field = 24
+    while field < 1608:
+        if word_load(s, field) > 256:
+            return 4294967293
+        field = field + 264
+    if word_load(s, 552) == 0 or word_load(s, 1080) == 0:
+        return 4294967293
+    decision = launch_ack_state(s, flags, word_load(s, 24), word_load(s, 32))
+    word_store(o, 0, LAUNCH_ACK_OUTPUT)
+    word_store(o, 8, decision)
+    return 16
+
+def launch_ack_state(s:readbuf, flags:u64, size:u64, name:u64) -> u64:
+    if flags & 1 == 0:
+        return 0
+    if flags & 2 != 0:
+        if size != 14 or name != SYSTEM_HEAD or word_load(s, 40) & 0x0000ffffffffffff != SYSTEM_TAIL:
+            return 0
+        if flags & 8 != 0 and equal_launch_field(s, 288, 552) == 0:
+            return 0
+        if flags & 4 != 0:
+            return reused_launch_state(s)
+        return 1
+    if size == 7 and name & 0x00ffffffffffffff == SYSTEMD_WORD:
+        return equal_launch_field(s, 816, 1080)
+    if size == 8 and name == DETACHED_WORD:
+        pid = word_load(s, 16)
+        return choose(pid != 0 and pid <= 2147483647, 1, 0)
+    if flags & 4 != 0:
+        if size == 9 and name == COMPLETED_HEAD and byte(s, 40) == 100:
+            return 1
+        if size == 13 and name == FAILED_HEAD and word_load(s, 40) & 0x000000ffffffffff == FAILED_TAIL:
+            return 2
+    return 0
+
+def reused_launch_state(s:readbuf) -> u64:
+    size = word_load(s, 1344)
+    name = word_load(s, 1352)
+    if size == 8 and name == LAUNCHED_WORD:
+        return 1
+    if size == 13 and name == FAILED_HEAD and word_load(s, 1360) & 0x000000ffffffffff == FAILED_TAIL:
+        return 2
+    if size == 7 and name & 0x00ffffffffffffff == PENDING_WORD:
+        return 3
+    if size == 9 and name == CANCELLED_HEAD and byte(s, 1360) == 100:
+        return 4
+    # A trusted reused ACK does not prove its status is authoritative.
+    return 5
+
+def equal_launch_field(s:readbuf, left:u64, right:u64) -> u64:
+    size = word_load(s, left)
+    if size != word_load(s, right):
+        return 0
+    index = 0
+    while index < size:
+        if byte(s, left + 8 + index) != byte(s, right + 8 + index):
+            return 0
+        index = index + 1
+    return 1
+
 def durable_transition(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 80:
         return 4294967293
@@ -338,6 +413,14 @@ def source_program():
               .replace('TRANSITION_OUTPUT_MAGIC', str(int.from_bytes(TRANSITION_OUTPUT_MAGIC, 'little')))
               .replace('HTTP_AUTH_INPUT', str(int.from_bytes(HTTP_AUTH_INPUT, 'little')))
               .replace('HTTP_AUTH_OUTPUT', str(int.from_bytes(HTTP_AUTH_OUTPUT, 'little')))
+              .replace('LAUNCH_ACK_INPUT', str(int.from_bytes(LAUNCH_ACK_INPUT, 'little')))
+              .replace('LAUNCH_ACK_OUTPUT', str(int.from_bytes(LAUNCH_ACK_OUTPUT, 'little')))
+              .replace('SYSTEM_HEAD', str(int.from_bytes(b'systemd_', 'little')))
+              .replace('SYSTEM_TAIL', str(int.from_bytes(b'system', 'little')))
+              .replace('SYSTEMD_WORD', str(int.from_bytes(b'systemd', 'little')))
+              .replace('DETACHED_WORD', str(int.from_bytes(b'detached', 'little')))
+              .replace('COMPLETED_HEAD', str(int.from_bytes(b'complete', 'little')))
+              .replace('CANCELLED_HEAD', str(int.from_bytes(b'cancelle', 'little')))
               .replace('LAUNCHED_WORD', str(int.from_bytes(b'launched', 'little')))
               .replace('PENDING_WORD', str(int.from_bytes(b'pending', 'little')))
               .replace('FAILED_HEAD', str(int.from_bytes(b'launch_f', 'little')))

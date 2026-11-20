@@ -194,6 +194,48 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(b'HIAHAT01' + b'0' * 64 + invalid)
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_launch_ack_binds_whole_job_and_unit_and_distinguishes_unknowns(self):
+        job = b'job-' + b'7' * 64
+        unit = job + b'.service'
+
+        def frame(flags, backend, *, actual_job=b'', actual_unit=b'', state=b'', pid=0):
+            fields = (backend, actual_job, job, actual_unit, unit, state)
+            return struct.pack('<8s2Q', b'HIAJAK01', flags, pid) + b''.join(
+                struct.pack('<Q256s', len(field), field) for field in fields
+            )
+
+        for supplied, wanted in (
+            (frame(0, b'systemd', actual_unit=unit), 0),
+            (frame(1, b'systemd', actual_unit=unit), 1),
+            (frame(1, b'systemd', actual_unit=unit[:-1] + b'X'), 0),
+            (frame(1, b'systemd_system'), 0),
+            (frame(3, b'systemd_system'), 1),
+            (frame(11, b'systemd_system'), 0),
+            (frame(11, b'systemd_system', actual_job=job), 1),
+            (frame(11, b'systemd_system', actual_job=job[:-1] + b'X'), 0),
+            (frame(7, b'systemd_system', state=b'launched'), 1),
+            (frame(7, b'systemd_system', state=b'launch_failed'), 2),
+            (frame(7, b'systemd_system', state=b'pending'), 3),
+            (frame(7, b'systemd_system', state=b'cancelled'), 4),
+            (frame(7, b'systemd_system', state=b'cancelledX'), 5),
+            (frame(7, b'systemd_system'), 5),
+            (frame(1, b'detached', pid=0), 0),
+            (frame(1, b'detached', pid=1), 1),
+            (frame(1, b'detached', pid=(1 << 31) - 1), 1),
+            (frame(1, b'detached', pid=1 << 31), 0),
+            (frame(1, b'completed'), 0),
+            (frame(5, b'completed'), 1),
+            (frame(5, b'launch_failed'), 2),
+            (frame(5, b'launch_failedX'), 0),
+        ):
+            with self.subTest(flags=supplied[8], backend=supplied[32:48], wanted=wanted):
+                result = self.invoke(supplied)
+                self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                 (0, struct.pack('<8sQ', b'HIAJAO01', wanted), b''))
+        for invalid in (frame(16, b'systemd'), frame(1, b'x' * 257), frame(1, b'systemd')[:-1]):
+            result = self.invoke(invalid)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',
