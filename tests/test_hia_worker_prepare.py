@@ -310,6 +310,50 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(struct.pack('<8s6Q', b'HIAJTS01', *facts))
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_capture_path_keeps_component_boundaries_and_protected_precedence(self):
+        roots = ((b'/worker/in',), (b'/worker',), (b'/worker/in/private',))
+
+        def frame(path, groups=roots, *, same_host=1, explicit=0):
+            fields = [(role, value) for role, group in enumerate(groups, 1) for value in group]
+            return (struct.pack('<8s4Q', b'HIACPQ01', same_host, explicit, len(path), len(fields))
+                    + path + b''.join(struct.pack('<2Q', role, len(value)) + value
+                                      for role, value in fields))
+
+        for case, allowed in (
+            (frame(b'/worker/in'), True),
+            (frame(b'//worker///in//'), True),
+            (frame('/worker/in/雪'.encode()), True),
+            (frame(b'/worker/in/private2/x'), True),
+            (frame(b'/worker/in/' + b'a' * (4096 - len(b'/worker/in/'))), True),
+            (frame(b'/worker/in/' + b'a' * (4097 - len(b'/worker/in/'))), False),
+            (frame(b'/worker/in2'), False),
+            (frame(b'/worker/in/private'), False),
+            (frame(b'//worker/in//private/x'), False),
+            (frame(b'/worker/in/../in'), False),
+            (frame(b'/worker/./in'), False),
+            (frame(b'/worker/in/.hidden'), True),
+            (frame(b'worker/in'), False),
+            (frame(b'/worker/in/x\x00'), False),
+            (frame(b'/worker/in/x\r'), False),
+            (frame(b'/worker/in/x\n'), False),
+            (frame(b'/worker/in', same_host=0), False),
+            (frame(b'/worker/in', explicit=1), False),
+            (frame(b'/worker/in', (roots[0], (), ())), False),
+            (frame(b'/worker/in', (roots[0], roots[1], (b'',))), False),
+            (frame(b'/worker/in', (roots[0], (b'/',), (b'worker', b'/worker/../in'))), True),
+            (frame(b'/', ((b'/',), (b'',), ())), True),
+        ):
+            with self.subTest(path=case[40:65], allowed=allowed):
+                result = self.invoke(case)
+                self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                 (0, struct.pack('<8sQ', b'HIACPV01', allowed), b''))
+        normal = frame(b'/worker/in')
+        unknown_role = 40 + len(b'/worker/in')
+        for case in (normal[:-1], normal + b'x', frame(b'/worker/in', explicit=2),
+                     normal[:unknown_role] + struct.pack('<Q', 4) + normal[unknown_role + 8:]):
+            result = self.invoke(case)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',

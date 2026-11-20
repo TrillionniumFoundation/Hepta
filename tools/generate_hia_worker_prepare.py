@@ -34,6 +34,8 @@ JOB_POLL_INPUT = b'HIAJPL01'
 JOB_POLL_OUTPUT = b'HIAJPO01'
 JOB_TERMINAL_INPUT = b'HIAJTS01'
 JOB_TERMINAL_OUTPUT = b'HIAJTV01'
+CAPTURE_POLICY_INPUT = b'HIACPQ01'
+CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -57,6 +59,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_poll(s, o)
     if magic == JOB_TERMINAL_INPUT:
         return job_terminal_state(s, o)
+    if magic == CAPTURE_POLICY_INPUT:
+        return capture_policy(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -123,6 +127,84 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     word_store(o, 0, OUTPUT_MAGIC)
     saved(w, o, 8, 0, 256)
     return count + 1
+
+def capture_policy(s:readbuf, o:mutbuf) -> u64:
+    n = length(s)
+    if n < 40 or length(o) < 16:
+        return 4294967293
+    same_host = word_load(s, 8)
+    explicit_identity = word_load(s, 16)
+    path_size = word_load(s, 24)
+    count = word_load(s, 32)
+    if same_host > 1 or explicit_identity > 1 or path_size > n - 40:
+        return 4294967293
+    end = 40 + path_size
+    at = end
+    matched = 0
+    index = 0
+    valid_path = capture_normal_path(s, end)
+    while index < count:
+        if n - at < 16:
+            return 4294967293
+        role = word_load(s, at)
+        size = word_load(s, at + 8)
+        at = at + 16
+        if role < 1 or role > 3 or size > n - at:
+            return 4294967293
+        if valid_path and capture_under_root(s, end, at, size):
+            matched = matched | (1 << role)
+        at = at + size
+        index = index + 1
+    if at != n:
+        return 4294967293
+    decision = 0
+    if same_host == 1 and explicit_identity == 0 and valid_path and matched == 6:
+        decision = 1
+    word_store(o, 0, CAPTURE_POLICY_OUTPUT)
+    word_store(o, 8, decision)
+    return 16
+
+def capture_normal_path(s:readbuf, end:u64) -> bool:
+    if end == 40 or end > 4136 or byte(s, 40) != 47:
+        return False
+    first = 41
+    at = first
+    while at < end:
+        value = byte(s, at)
+        if value == 0 or value == 10 or value == 13:
+            return False
+        if value == 47:
+            if capture_dot_segment(s, first, at):
+                return False
+            first = at + 1
+        at = at + 1
+    return capture_dot_segment(s, first, end) == False
+
+def capture_dot_segment(s:readbuf, first:u64, end:u64) -> bool:
+    size = end - first
+    return (size == 1 and byte(s, first) == 46) or (size == 2 and byte(s, first) == 46 and byte(s, first + 1) == 46)
+
+def capture_under_root(s:readbuf, end:u64, root:u64, size:u64) -> bool:
+    if size == 0:
+        return True
+    if byte(s, root) != 47:
+        return False
+    if size == 1:
+        return True
+    at = 40
+    offset = 0
+    while offset < size:
+        if at == end:
+            return False
+        value = byte(s, root + offset)
+        if byte(s, at) != value:
+            return False
+        at = at + 1
+        if value == 47:
+            while at < end and byte(s, at) == 47:
+                at = at + 1
+        offset = offset + 1
+    return at == end or byte(s, at) == 47
 
 def job_terminal_state(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 56 or length(o) < 16:
@@ -488,6 +570,8 @@ def source_program():
               .replace('JOB_POLL_OUTPUT', str(int.from_bytes(JOB_POLL_OUTPUT, 'little')))
               .replace('JOB_TERMINAL_INPUT', str(int.from_bytes(JOB_TERMINAL_INPUT, 'little')))
               .replace('JOB_TERMINAL_OUTPUT', str(int.from_bytes(JOB_TERMINAL_OUTPUT, 'little')))
+              .replace('CAPTURE_POLICY_INPUT', str(int.from_bytes(CAPTURE_POLICY_INPUT, 'little')))
+              .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
               .replace('RUNNING_WORD', str(int.from_bytes(b'running', 'little')))
               .replace('ACTIVATING_HEAD', str(int.from_bytes(b'activati', 'little')))
               .replace('FINALIZING_HEAD', str(int.from_bytes(b'finalizi', 'little')))
