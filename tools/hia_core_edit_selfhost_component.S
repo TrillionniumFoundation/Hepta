@@ -1,6 +1,9 @@
 .intel_syntax noprefix
 .text
 .global _start
+.equ CORE_STATE_BYTES,67108864
+.equ CORE_ARENA_BYTES,33554432
+.equ ADMITTED_V9,0x314b4f3956414948
 _start:
  mov rbp,rsp
  mov rbx,[rbp]
@@ -258,18 +261,57 @@ canonical_wire_call_hole: .long 0
  mov eax,eax
  jmp capture_result
 call_full_Core:
+ # Validate current v9 Core with the shared HIA owner before applying the
+ # selected compiler's existing scalar export policy to that same input.
  call Core_arguments
- .byte 0xe8
-full_Core_call_hole: .long 0
+ .byte 0x4c,0x8d,0x1d
+current_Core_archive_hole: .long 0
+ mov rax,[r11]
+ add rax,r11
+ call rax
+ mov rbx,[rsp+128]
+ xor r11d,r11d
+ test eax,eax
+ jne reset_Core_scratch
+ cmp QWORD PTR [rbx+24],9
+ jne reset_Core_scratch
+ mov r11d,1
+reset_Core_scratch:
+ mov rdi,rbx
+ mov esi,CORE_STATE_BYTES
+ push r11
+ call discard_Core_scratch
+ mov rdi,[rsp+144]
+ mov esi,CORE_ARENA_BYTES
+ call discard_Core_scratch
+ pop r11
+ test r11d,r11d
+ jz call_selected_policy
+ movabs rax,ADMITTED_V9
+ mov [rbx+CORE_STATE_BYTES-8],rax
+call_selected_policy:
+ call Core_arguments
+ .byte 0x4c,0x8d,0x1d
+selected_Core_archive_hole: .long 0
+ mov rax,[r11+8]
+ add rax,r11
+ call rax
  mov eax,eax
  jmp capture_result
 Core_arguments:
  mov rdi,r12
  mov rsi,r15
  mov rdx,[rsp+136]
- mov ecx,67108864
+ mov ecx,CORE_STATE_BYTES
  mov r8,[rsp+144]
- mov r9d,33554432
+ mov r9d,CORE_ARENA_BYTES
+ ret
+discard_Core_scratch:
+ mov edx,4
+ mov eax,28
+ syscall
+ test rax,rax
+ jnz failure
  ret
 fixed_policy_call:
  cmp QWORD PTR [rsp+96],0

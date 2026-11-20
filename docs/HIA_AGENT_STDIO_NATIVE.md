@@ -32,7 +32,7 @@ HIA packer. It neither parses a payload nor substitutes a foreign compiler.
 The command string is selected by a HIA function, with exact length/byte
 matching. `capabilities` returns versioned JSON without reading stdin.
 `catalog` also leaves stdin unread. It returns the same JSON bytes as the
-hosted catalog for each declared primitive profile (v1–v8), defaulting to the
+hosted catalog for each declared primitive profile (v1–v9), defaulting to the
 latest profile. The table is generated at build time from the shared opcode
 declarations; at runtime HIA validates the schema arguments, bounds the selected
 table entries and emits the reply without reading external files.
@@ -52,9 +52,10 @@ output-profile check, then returns the verification JSON reply instead of any
 generated machine-code bytes. It neither bypasses resource checking nor executes
 the compiled program. The exact diagnostics of the ordinary hosted
 `hia check-assembly` action are outside this bounded native command contract.
-Both assembly and the JSON frontend preserve explicit primitive v6/v7/v8
-schemas. V6 cannot use chain types or operations, and only v8 can declare
-returned loans. The compiler does not relabel old programs as v8.
+Both assembly and the JSON frontend preserve explicit primitive v6/v7/v8/v9
+schemas. V6 cannot use chain types or operations; v8 and v9 can declare returned
+loans. V9 also admits fixed-width little- and big-endian word-memory operations.
+Older schemas retain their own semantics and are not relabeled.
 These are command-specific output contracts, not JSON-lines RPC.
 
 Fixed-profile builds choose `flat`, `elf` (ET_REL objects) or `exec` (the

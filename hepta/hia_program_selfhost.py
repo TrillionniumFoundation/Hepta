@@ -1,4 +1,4 @@
-"""Explicit, pinned native HIA compilation for bounded primitive Core v8.
+"""Explicit, pinned native HIA compilation for bounded primitive Core v8/v9.
 
 The selected syscall-only executable owns representation lowering, semantic
 checking, machine code and ELF emission. This Python adapter still owns public
@@ -374,7 +374,7 @@ def _run(fd, wire, timeout_seconds, cwd):
 def build_program_selfhost(document, output, *, manifest, manifest_sha256,
                            timeout_seconds=30, target=TARGET, kind="object",
                            machine_plan=None, foreign_buffer_exports=()):
-    """Compile an explicit bounded v8 scalar object without the Python emitter."""
+    """Compile an explicit bounded v8/v9 scalar object without the Python emitter."""
     if (target != TARGET or kind != "object" or machine_plan is not None
             or foreign_buffer_exports):
         _reject("E_HIA_SELFHOST_PROFILE", "selfhost supports canonical scalar ELF objects only")
@@ -388,7 +388,8 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
     from .hia_program import verify_program, SCALARS
     program = verify_program(document)
     value = program.as_dict()
-    if value["schema"] != "hepta.hia.program.v8" or program.structured_bytes is not None:
+    if (value["schema"] not in {"hepta.hia.program.v8", "hepta.hia.program.v9"}
+            or program.structured_bytes is not None):
         _reject("E_HIA_SELFHOST_PROFILE", "selfhost accepts explicit primitive Core v8, not nominal input")
     exports = sorted(program.scalar_entrypoints)
     functions = {function["name"]: function for function in value["functions"]}

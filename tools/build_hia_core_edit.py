@@ -26,6 +26,9 @@ BOOTSTRAP = 'examples/hia_bootstrap/'
 EDIT = BOOTSTRAP + 'core_edit/'
 CLI = BOOTSTRAP + 'core_cli/'
 CORE_ADMISSION = BOOTSTRAP + 'core_admission.hepta'
+SELFHOST_CORE_ARCHIVE = '<selfhost-core-images>'
+SELFHOST_CORE_SOURCES = (CORE_ADMISSION, CLI + 'selfhost_semantics.hepta')
+SELFHOST_ENTRY = CLI + 'selfhost_entry.hepta'
 PACKER = EDIT + 'packer.hepta'
 STATIC_ADAPTERS = (EDIT + 'adapter_templates_a.hepta', EDIT + 'adapter_templates_b.hepta')
 ADAPTER_RECORD = struct.Struct('<32s32s32sQQ')
@@ -57,6 +60,7 @@ DISPATCH_WORD = re.compile(
     rb'  (v\d+):u64 = const\(\) \{"value":(\d+)\}\n'
     rb'  (v\d+):u64 = const\(\) \{"value":(\d+)\}\n'
     rb'  v\d+:u64 = call\(v\d+,\1,\3\) \{"function":"f43"\}')
+SELFHOST_ENTRY_WORD = re.compile(DISPATCH_WORD.pattern.replace(b'f43', b'f7'))
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
 ASSEMBLY_PRESENTERS = tuple(CLI + name + '.hepta' for name in (
     'assembly_diagnostic_report', 'assembly_pretty', 'assembly_driver'))
@@ -183,14 +187,14 @@ EDIT_ENVELOPE_ROLES = ('query', 'publish_query', 'patch_core_json', 'publish_pat
 PROGRAMS = {
     'dispatch': ('hia', (
         (DISPATCH_ARCHIVE, ('dispatch_archive', 'query_syntax_archive')),
-        (CLI + 'selfhost_entry.hepta', ('selfhost_call',)),
+        (SELFHOST_ENTRY, ('selfhost_call',)),
         (ARGUMENT_PAYLOAD, ('argument_unpack', 'argument_frame', 'argument_encode', 'argument_command')),
         (ARGUMENT_ARCHIVE, ('argument_images',)),
     )),
     'selfhost_component': ('hia-selfhost-component', (
         (CLI + 'selfhost_controller.hepta', ('dispatch_call',)),
         (CLI + 'selfhost_selection.hepta', ('capsule_call',)),
-        (CLI + 'selfhost_semantics.hepta', ('full_Core_call',)),
+        (SELFHOST_CORE_ARCHIVE, ('current_Core_archive', 'selected_Core_archive')),
         (CLI + 'selfhost_wire.hepta', ('emergency_call', 'canonical_wire_call', 'policy_call')),
     )),
     'normalize_core': ('hia-normalize-core', (
@@ -404,6 +408,27 @@ def pack_executable(packer, launcher, inflater, executable, compressor):
                     'implementation_sha256': digest(executable), 'implementation_bytes': len(executable)}
 
 
+def bind_identity_words(block, slots, executable):
+    values = (len(executable), *struct.unpack('<4Q', sha256(executable).digest()))
+    fields = (slots[slot].span(4) for slot in DISPATCH_PIN_SLOTS)
+    for (start, end), value in sorted(zip(fields, values, strict=True), reverse=True):
+        block = block[:start] + str(value).encode('ascii') + block[end:]
+    return block
+
+
+def bind_selfhost_entry(template, executable):
+    match, = re.finditer(rb'^fn f6\([^\n]*\n.*?^end$', template, re.M | re.S)
+    block = match[0]
+    words = list(SELFHOST_ENTRY_WORD.finditer(block))
+    pin_words = [word for word in words if int(word[2]) in DISPATCH_PIN_SLOTS]
+    pins = {int(word[2]): word for word in pin_words}
+    if (len(pins) != len(DISPATCH_PIN_SLOTS) or len(pins) != len(pin_words)
+            or any(int(word[4]) != 0 for word in pins.values())
+            or not executable.startswith(b'\x7fELF') or len(executable) > CAPACITY):
+        raise ValueError('invalid native HIA selfhost entry identity template or component')
+    return template[:match.start()] + bind_identity_words(block, pins, executable) + template[match.end():]
+
+
 def bind_dispatch_roles(template, executables):
     """Fill only the release identity words in the admitted HIA dispatcher."""
     if executables.keys() != DISPATCH_ROLES:
@@ -427,11 +452,7 @@ def bind_dispatch_roles(template, executables):
         executable = executables[name]
         if not executable.startswith(b'\x7fELF') or len(executable) > ORDINARY_CLI_IMAGE_CAPACITY:
             raise ValueError('native HIA dispatcher role has an invalid executable extent: ' + name)
-        values = (len(executable), *struct.unpack('<4Q', sha256(executable).digest()))
-        replacements = [(slots[slot].span(4), value) for slot, value in zip(DISPATCH_PIN_SLOTS, values, strict=True)]
-        for (start, end), value in sorted(replacements, reverse=True):
-            block = block[:start] + str(value).encode('ascii') + block[end:]
-        blocks[index] = block
+        blocks[index] = bind_identity_words(block, slots, executable)
     if observed != DISPATCH_ROLES:
         raise ValueError('missing native HIA dispatcher pin templates')
     return b''.join(blocks)
@@ -449,10 +470,11 @@ def build(output, compiler, cold_report, *, release_only=False):
     adapter_groups = (*STATIC_ADAPTERS, *NOMINAL_ADAPTER_GROUPS, NOMINAL_CONSTRUCTOR_GROUP)
     source_files = {PACKER, *adapter_groups, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER,
                     RELEASE_DEFLATE, EMBED_SOURCE,
-                    *assembly_images, *adapters.values(),
+                    *assembly_images, *SELFHOST_CORE_SOURCES, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
-                      if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION))}
+                      if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION,
+                                      SELFHOST_CORE_ARCHIVE))}
     sources = {path: (ROOT / path).read_bytes() for path in sorted(source_files)}
     if any(admitted.get(path) != digest(raw) for path, raw in sources.items()):
         raise ValueError('native Core edit source differs from admitted cold source')
@@ -461,7 +483,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     for path, raw in sources.items():
         if path.endswith('.json'):
             images[path] = raw
-        if not path.endswith('.hepta') or path == DISPATCH:
+        if not path.endswith('.hepta') or path in (DISPATCH, SELFHOST_ENTRY):
             continue
         image, receipt = compile_stage(output, Path(path).stem, compiler, raw)
         images[path] = image.read_bytes()
@@ -471,6 +493,9 @@ def build(output, compiler, cold_report, *, release_only=False):
         for path in (RELEASE_DEFLATE, ARGUMENT_PAYLOAD)))
     images[ARGUMENT_ARCHIVE] = argument_images(
         images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER], compressor)
+    current_core, pinned_policy = (images[path] for path in SELFHOST_CORE_SOURCES)
+    images[SELFHOST_CORE_ARCHIVE] = (
+        struct.pack('<2Q', 16, 16 + len(current_core)) + current_core + pinned_policy)
     payloads = [images[path] for path in assembly_images]
     position = 8 * len(payloads)
     offsets = []
@@ -505,6 +530,10 @@ def build(output, compiler, cold_report, *, release_only=False):
         binary, details = pack(packer, stub, holes, [images[path] for path, _calls in roles])
         products[name] = (binary, {'elf': details, 'adapter_object_sha256': adapter_hash})
     constructor = build_nominal_constructor(output / 'nominal-constructor', compiler, cold_report)
+    selfhost_component = products['hia-selfhost-component'][0]
+    bound_selfhost = bind_selfhost_entry(sources[SELFHOST_ENTRY], selfhost_component)
+    image, receipts[SELFHOST_ENTRY] = compile_stage(output, Path(SELFHOST_ENTRY).stem, compiler, bound_selfhost)
+    images[SELFHOST_ENTRY] = image.read_bytes()
     bound_roles = {name: products[name][0] for name in DISPATCH_ROLES if name != constructor.name}
     bound_roles[constructor.name] = constructor.read_bytes()
     bound_dispatch = bind_dispatch_roles(sources[DISPATCH], bound_roles)

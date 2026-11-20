@@ -262,11 +262,41 @@ def check_selected_selfhost(release, directory):
         expected['capture']['wall_seconds'] = actual['capture']['wall_seconds']
         assert 0 <= expected['capture']['wall_seconds'] <= 30, label
         assert (len(actual), result.stdout) == (23, wire(expected, pretty=True)), label
-    wrong_schema = directory / 'not-v8.hepta'
+    word_program = owned_program()
+    v9_programs = {
+        'v9-scalar': {**program, 'schema': 'hepta.hia.program.v9'},
+        'v9-word': word_program,
+    }
+    for label, document in v9_programs.items():
+        content = wire(document)
+        path = directory / (label + '.hepta')
+        path.write_bytes(content)
+        reference = directory / (label + '.reference.o')
+        expected = build_program_selfhost(content, reference, manifest=manifest, manifest_sha256=manifest_pin)
+        target = directory / (label + '.o')
+        result = subprocess.run([release / 'hia', 'build', path, *switch, '-o', target],
+                                cwd=directory, capture_output=True, env={'PATH': ''}, timeout=35, check=False)
+        assert (result.returncode, result.stderr) == (0, b''), (label, result)
+        assert target.read_bytes() == reference.read_bytes(), label
+        actual = json.loads(result.stdout)
+        wall_seconds = actual['capture']['wall_seconds']
+        assert 0 <= wall_seconds <= 30, label
+        expected.update(output=str(target))
+        expected['claims']['hosted_cli_and_publication'] = False
+        expected['capture']['wall_seconds'] = wall_seconds
+        assert result.stdout == wire(expected, pretty=True), label
+        assert path.read_bytes() == content, label
+
+    wrong_schema = directory / 'not-supported.hepta'
     wrong_schema.write_bytes(wire({**program, 'schema': 'hepta.hia.program.v7'}))
+    wrong_v9 = directory / 'invalid-v9.hepta'
+    wrong_v9.write_bytes(wire(word_program).replace(b'buffer.store.u64.le', b'buffer.store.invalid', 1))
     negative = (
         ('pin', source, ['--backend=selfhost', *selector[:-1], '0' * 64], 'E_HIA_SELFHOST_PIN'),
         ('profile', wrong_schema, switch, 'E_HIA_SELFHOST_PROFILE'),
+        ('invalid-v9', wrong_v9, switch, 'E_HIA_OPCODE'),
+        ('pin-v9', directory / 'v9-word.hepta', ['--backend=selfhost', *selector[:-1], '0' * 64],
+         'E_HIA_SELFHOST_PIN'),
         ('missing-pin', source, ['--backend=selfhost', *selector[:2]], None),
         ('native-with-pin', source, ['--backend=native', *selector], None),
     )
@@ -291,9 +321,23 @@ def check_selected_selfhost(release, directory):
             assert (result.returncode, result.stdout, result.stderr) == (
                 reference.returncode, reference.stdout, reference.stderr), label
         assert not target.exists(), label
+    tampered_release = directory / 'tampered-release'
+    tampered_release.mkdir(mode=0o700)
+    hia = tampered_release / 'hia'
+    hia.write_bytes((release / 'hia').read_bytes())
+    hia.chmod(0o500)
+    component = tampered_release / 'hia-selfhost-component'
+    component_bytes = (release / component.name).read_bytes()
+    component.write_bytes(component_bytes[:-1] + bytes([component_bytes[-1] ^ 1]))
+    component.chmod(0o500)
+    target = directory / 'tampered.o'
+    result = subprocess.run([hia, 'build', directory / 'v9-word.hepta', *switch, '-o', target],
+                            cwd=directory, capture_output=True, env={'PATH': ''}, timeout=35, check=False)
+    assert (result.returncode, result.stdout, result.stderr) == (4, b'', b''), result
+    assert not target.exists()
     assert source.read_bytes() == dashed.read_bytes() == raw
     assert sha256(manifest.read_bytes()).hexdigest() == manifest_pin
-    return len(cases) + len(negative)
+    return len(cases) + len(v9_programs) + len(negative) + 1
 
 
 def check_batch_apply_refusals(release, directory):

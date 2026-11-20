@@ -7,13 +7,12 @@ emits the complete Linux x86-64 ELF relocatable object. This route does not
 import the Python machine emitter or Python ELF writer and does not invoke a
 host compiler, assembler, or linker.
 
-The public CLI, complete public Core verification, canonical JSON transport,
-compiler selection, process ownership, object inventory inspection and local
-publication remain hosted. This is one explicit ordinary build route. The
-default `--backend native` and `AgentService._compile` continue to use their
-existing direct backend and identity contracts. The new route does not change
-Agent durable state, evaluation, adoption, worker selection, or release
-activation. It does not justify removing those existing owners.
+The standalone native package runs this route without the Python CLI, using
+the source-matched HIA dispatcher and selected selfhost component together
+with Linux syscall adapters. The hosted entry point still supplies its own
+public verification, compiler selection, process ownership and publication
+orchestration. This route does not replace the default `--backend native`,
+`AgentService._compile`, or the Agent durable state and worker interfaces.
 
 ## Build and select a compiler
 
@@ -42,10 +41,12 @@ hia build /absolute/program.core.hepta \
   --output /absolute/existing-output-directory/program.o
 ```
 
-The CLI accepts explicit assembly or standalone Core JSON through its existing
-input path. The selected backend requires the resulting program to be
-primitive Core v8. Native compilation receives canonical Core JSON including
-the exact chosen scalar export list. Output must be a new pathname under an
+The selected backend accepts primitive Core v8 or v9, with scalar exports.
+The hosted entry point accepts assembly or Core JSON; the standalone native
+package currently takes Core JSON on this route. Use `hia import-assembly` for
+a native assembly-to-JSON conversion before selecting the backend.
+Native compilation receives canonical Core JSON with the exact chosen scalar
+export list. Output must be a new pathname under an
 existing directory; existing files, dangling symlinks, and parent symlinks are
 refused. No compiler is selected from an environment variable, discovered
 through `PATH`, or substituted when this selection fails. Both manifest
@@ -142,9 +143,9 @@ was not executed by `hia build`.
 
 Its claims keep `python_emitter_used`, `external_linker_used`, `fallback_used`,
 `generated_program_executed`, `whole_native_delivery_qualified` and
-`production_activated` false. `hosted_cli_and_publication` remains true even
-when the optional HIA publisher is selected, because hosted custody and
-publication orchestration are still present.
+`production_activated` false. `hosted_cli_and_publication` is false for the
+standalone native package. It remains true for the hosted entry point even
+when that entry point selects the optional HIA artifact publisher.
 
 `tests.test_hia_program_selfhost.SelfhostBuildSourceTests` checks CLI selection,
 profile refusal, actual kernel seals, actual deadline cleanup and actual output
