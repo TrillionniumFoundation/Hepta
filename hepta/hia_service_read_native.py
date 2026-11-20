@@ -18,14 +18,13 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import sqlite3
 from .hia_agent_store import uses_native_store
 import struct
 import types
 
 from .hia_emission_native import _global_value
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
-from .hia_native_delivery import DeliveryRecord, guarded
+from .hia_native_delivery import DeliveryRecord, guarded, request_rejections
 from .hia_store_lifecycle_native import _regular_bytes
 from .hia_service_read_protocol import (
     SELECTOR, SCHEMA, SOURCE_NAME, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC,
@@ -34,7 +33,6 @@ from .hia_service_read_protocol import (
 )
 
 SOURCE = _source_resource_path(SOURCE_NAME)
-_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
 
 # ctypes keeps its dynamically constructed array types in a weak cache. These
 # three fixed ABI classes belong to the adapter, not to an invocation; retain
@@ -364,7 +362,7 @@ class ServiceReadFrame:
             # retain their original identities; actual handoff failures use
             # the established continuation transport classification.
             if handed_off and not native_confirmed and isinstance(error, Exception) and (
-                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                    not isinstance(error, RuntimeError) or isinstance(error, request_rejections())):
                 raise ServiceReadUnknown('native service read observation failed') from error
             raise
 
@@ -382,7 +380,7 @@ class ServiceReadFrame:
                 pending.failed(error)
             if self._delivery.loss is not None:
                 self.fenced = self.native_failed = True
-                self._delivery.propagate(error, ServiceReadUnknown, _REQUEST_REJECTIONS)
+                self._delivery.propagate(error, ServiceReadUnknown, request_rejections())
             raise
         finally:
             self._delivery.retire()
@@ -409,7 +407,7 @@ class ServiceReadFrame:
                 if self.native_failed or self._delivery.loss is not None:
                     activation.failed(error)
                     self.fenced = True
-                    self._delivery.propagate(error, ServiceReadUnknown, _REQUEST_REJECTIONS)
+                    self._delivery.propagate(error, ServiceReadUnknown, request_rejections())
                     raise
                 self.call(RAISED)
                 if self.receipt.phase == PROPAGATE:
@@ -444,7 +442,7 @@ class ServiceReadFrame:
                 if self.native_failed or self._delivery.loss is not None:
                     activation.failed(error)
                     self.fenced = True
-                    self._delivery.propagate(error, ServiceReadUnknown, _REQUEST_REJECTIONS)
+                    self._delivery.propagate(error, ServiceReadUnknown, request_rejections())
                     raise
                 self.call(RAISED)
                 if self.receipt.phase == PROPAGATE:

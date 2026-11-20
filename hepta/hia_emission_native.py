@@ -6,14 +6,13 @@ opaque Python object protocols remain explicit foreign providers.
 """
 from __future__ import annotations
 import ctypes
-from .hia_native_delivery import DeliveryRecord
+from .hia_native_delivery import DeliveryRecord, request_rejections
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import sqlite3
 import struct
 import sys
 import threading
@@ -34,7 +33,6 @@ OUTPUT_BYTES = 96
 _FRAME_CUSTODY = {}
 _CUSTODY_LOCK = threading.Lock()
 _CUSTODY_PID = os.getpid()
-_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
 
 
 class EmissionUnknown(RuntimeError):
@@ -428,7 +426,7 @@ class EmissionFrame:
             # public request rejection wrapper (notably RecursionError) must
             # still be classified unknown, never a completed foreign refusal.
             if isinstance(error, Exception) and (
-                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                    not isinstance(error, RuntimeError) or isinstance(error, request_rejections())):
                 raise EmissionUnknown('native emission continuation observation failed') from error
             raise
 
@@ -455,7 +453,7 @@ The image alone chooses suppression, propagation, and the next effect.
             except BaseException as error:
                 if self.native_failed or self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
-                    self._delivery.propagate(error, EmissionUnknown, _REQUEST_REJECTIONS)
+                    self._delivery.propagate(error, EmissionUnknown, request_rejections())
                     raise
                 self.data['exception'] = sys.exc_info()
                 self.call(3)
@@ -485,7 +483,7 @@ The image alone chooses suppression, propagation, and the next effect.
             self._delivery.failed(error)
             if self._delivery.loss is not None:
                 self.fenced = self.native_failed = self.unconfirmed = True
-                self._delivery.propagate(error, EmissionUnknown, _REQUEST_REJECTIONS)
+                self._delivery.propagate(error, EmissionUnknown, request_rejections())
             raise
         finally:
             self._delivery.retire()
@@ -505,7 +503,7 @@ The image alone chooses suppression, propagation, and the next effect.
             except BaseException as error:
                 if self.native_failed or self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
-                    self._delivery.propagate(error, EmissionUnknown, _REQUEST_REJECTIONS)
+                    self._delivery.propagate(error, EmissionUnknown, request_rejections())
                     raise
                 self.data['exception'] = sys.exc_info()
                 self.call(3)

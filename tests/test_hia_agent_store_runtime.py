@@ -323,8 +323,9 @@ assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
 sys.meta_path.insert(0, NoSQLite())
 source, temporary, initializer, *selection = sys.argv[1:]
 sys.path.insert(0, source)
+from hepta import hia_service_artifact_native, hia_service_read_native
 from hepta.hia_agent_service import HIAAgentService
-from tests.test_hia_agent_native_tools import NativeLifecycleTests
+from tests.test_hia_agent_native_tools import ArtifactContractTests, NativeLifecycleTests
 
 def construct(path, **kwargs):
     path.mkdir(mode=0o700)
@@ -342,6 +343,9 @@ with patch('tempfile.tempdir', temporary), \\
         assert not (case.state_root / 'state.sqlite3').exists()
     finally:
         case.tearDown()
+    with patch('hepta.hia_agent_store.capture_path', side_effect=AssertionError('hosted artifact capture')):
+        case = ArtifactContractTests('test_file_capture_enforces_roots_regular_identity_and_expected_hash')
+        case.debug()
 assert not {'sqlite3', '_sqlite3'} & set(sys.modules)
 """
         source = Path(__file__).resolve().parents[1]

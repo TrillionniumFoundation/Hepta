@@ -8,14 +8,13 @@ foreign dependencies; this is not a native SQLite implementation.
 from __future__ import annotations
 
 import ctypes
-from .hia_native_delivery import DeliveryRecord, check_resource_retirement
+from .hia_native_delivery import DeliveryRecord, check_resource_retirement, request_rejections
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import sqlite3
 import stat
 import struct
 import threading
@@ -39,8 +38,11 @@ class StoreLifecycleUnknown(RuntimeError):
     """A claim or observation is unconfirmed; the frame cannot be replayed."""
 
 
-_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
-                       RecursionError, sqlite3.Error)
+def _sqlite_provider(namespace):
+    if 'sqlite3' in namespace:
+        return namespace['sqlite3']
+    import sqlite3
+    return sqlite3
 
 
 def _after_fork_child():
@@ -213,7 +215,7 @@ class LifecycleFrame:
             self.fenced = True
             self.unconfirmed = True
             if isinstance(error, Exception) and (
-                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                    not isinstance(error, RuntimeError) or isinstance(error, request_rejections())):
                 raise StoreLifecycleUnknown('lifecycle transport is unconfirmed') from error
             raise
 
@@ -240,7 +242,7 @@ class LifecycleFrame:
             except BaseException as error:
                 if self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
-                    self._delivery.propagate(error, StoreLifecycleUnknown, _REQUEST_REJECTIONS)
+                    self._delivery.propagate(error, StoreLifecycleUnknown, request_rejections())
                     raise
                 self.errors.append(error)
                 self.call(3)
@@ -275,7 +277,7 @@ class LifecycleFrame:
             self._delivery.failed(error)
             if self._delivery.loss is not None:
                 self.fenced = self.native_failed = self.unconfirmed = True
-                self._delivery.propagate(error, StoreLifecycleUnknown, _REQUEST_REJECTIONS)
+                self._delivery.propagate(error, StoreLifecycleUnknown, request_rejections())
             raise
         finally:
             self._delivery.retire()
@@ -349,7 +351,7 @@ class LifecycleFrame:
         elif port == 20:
             return int(bool(ns['stat'].S_ISREG(self.info.st_mode)))
         elif port == 23:
-            connect = ns.get('sqlite3', sqlite3).connect
+            connect = _sqlite_provider(ns).connect
             claim = ns['_claim_state_directory'] if self.live_namespace else None
             from contextlib import nullcontext
             with nullcontext() if claim is None else claim(self.store.root):
@@ -367,7 +369,7 @@ class LifecycleFrame:
         elif port == 28:
             self.store.database_identity = (self.database_info.st_dev, self.database_info.st_ino)
         elif port == 29:
-            self.store.db.row_factory = ns.get('sqlite3', sqlite3).Row
+            self.store.db.row_factory = _sqlite_provider(ns).Row
         elif port == 30:
             self.store.db.execute('PRAGMA journal_mode=WAL')
         elif port == 31:

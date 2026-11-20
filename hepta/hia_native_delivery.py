@@ -18,6 +18,15 @@ class NativeDeliveryUnknown(RuntimeError):
     """A real causal native delivery is unconfirmed; no ordinary terminal."""
 
 
+_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError)
+
+
+def request_rejections():
+    """Recognize legacy SQLite exceptions without loading SQLite to classify them."""
+    sqlite = sys.modules.get('_sqlite3')
+    return _REQUEST_REJECTIONS if sqlite is None else (*_REQUEST_REJECTIONS, sqlite.Error)
+
+
 _ACTIVE = ContextVar('hia_native_delivery_foreign_call', default=None)
 _PENDING_RESOURCE_CAPTURE = ContextVar('hia_native_delivery_pending_resources', default=None)
 _CUSTODY = {}
