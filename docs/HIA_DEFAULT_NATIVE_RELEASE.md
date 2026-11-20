@@ -19,10 +19,12 @@ requirement. Twenty-five original full-cost/holdout/wire methods have no OS gate
 thirteen real process-observation methods require Linux. The absence of a broader
 formal platform promise is not permission to narrow those portable APIs.
 
-The candidate uses `py3-none-linux_x86_64`, `Root-Is-Purelib: false` and a build
-tag distinguishing explicit development from matching-cold construction. It is
-not substituted for the portable artifact. An incompatible target refuses its
-native candidate; the portable source profile is still available unchanged.
+When the base wheel contains the CPython Slot extension, the candidate keeps
+that wheel's exact CPython ABI tag (for example, `cp314-cp314-linux_x86_64`).
+Without the extension it uses `py3-none-linux_x86_64`. Both variants declare
+`Root-Is-Purelib: false` and distinguish development from matching-cold builds.
+An incompatible target refuses the candidate; the portable source profile is
+still available unchanged.
 All original full-cost input domains, report fields and refusal ordering remain.
 
 ## Construction and bootstrap order
