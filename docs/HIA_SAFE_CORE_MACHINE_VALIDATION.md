@@ -138,7 +138,14 @@ normalized divisor is zero. Signed arithmetic remains outside these profiles.
    Direct shared-image linkage explicitly requests `--hash-style=both` (through
    `-Wl,` for a C driver), because distribution-specific GNU-ld defaults otherwise
    omit a lookup table required by this closed profile. The build receipt
-   records this flag. See [ELF gABI, Program Header / PT_LOAD](https://gabi.xinuos.com/elf/07-pheader.html).
+   records this flag. When `HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST` selects the
+   matching cold-built HIA image, Safe Core, verified scalar and verified SIMD
+   use HIA linkage instead. With this selection, a refusal does not fall back
+   to GNU ld. The separately packaged `hia-elf-link-shared` command reads one
+   generated ET_REL object on stdin and writes candidate ET_DYN bytes to stdout.
+   The command does not validate Core or authorize loading; the same independent
+   checks still gate publication in the verified build routes.
+   See [ELF gABI, Program Header / PT_LOAD](https://gabi.xinuos.com/elf/07-pheader.html).
    The single `PT_GNU_RELRO` must retain its reviewed read-only header shape and
    file/virtual mapping inside the GOT's writable load. Its effective protection
    is `[floor(start / 4096) * 4096, floor(end / 4096) * 4096)` and must cover the

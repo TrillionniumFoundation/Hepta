@@ -3,12 +3,16 @@ import ctypes
 from hashlib import sha256
 import os
 from pathlib import Path
+import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
 from hepta.hia_elf_verified_linker_native import SELECTOR, selected_verified_linker
+from hepta.hia_program import verify_program
+from hepta.hia_program_native import emit_program_machine
 from hepta.hia_safe_core import build_safe_core
+from hepta.hia_safe_core_elf import bind_final_artifact
 from hepta.hia_verified_kernel import build_verified_kernel
 from hepta.hia_verified_scalar import VerifiedScalarRejected, build_verified_scalar
 from hepta.hia_verified_simd import simd_kernel_program
@@ -16,6 +20,27 @@ from hepta.hia_verified_image import VerifiedImageRejected
 from tests.test_hia_program import arithmetic
 from tests.test_hia_safe_core import read_byte
 from tests.test_hia_verified_scalar import multiply_add
+
+
+STANDALONE = os.environ.get('HEPTA_HIA_VERIFIED_LINKER_EXECUTABLE')
+
+
+@unittest.skipUnless(STANDALONE, 'an installed standalone HIA verified linker is required')
+class StandaloneVerifiedLinkerTests(unittest.TestCase):
+    def test_one_object_links_without_host_runtime_and_invalid_wire_emits_nothing(self):
+        core = verify_program(arithmetic('int.add.wrap', 'u32'))
+        image = emit_program_machine(core)
+
+        def link(raw):
+            return subprocess.run([STANDALONE], input=raw, capture_output=True, timeout=20, env={'PATH': ''})
+
+        accepted = link(image.object_bytes)
+        self.assertEqual((accepted.returncode, accepted.stderr), (0, b''))
+        bound = bind_final_artifact(image.object_bytes, accepted.stdout, 'calculate')
+        self.assertEqual(bound['binding']['function_shape'], 'internal_with_wrapper')
+        for invalid in (b'', image.object_bytes[:64], image.object_bytes + b'\0'):
+            refused = link(invalid)
+            self.assertEqual((refused.returncode, refused.stdout, refused.stderr), (2, b'', b''))
 
 
 @unittest.skipUnless(os.environ.get(SELECTOR), 'a cold HIA verified linker is required')
