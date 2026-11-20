@@ -28,11 +28,10 @@ def totality_filter(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     functions = field(w, 0, K_functions)
     fn = choose(count(w, functions) == 1, child(w, functions), NONE)
     proved = 0
-    if fn != NONE:
-        version = field(w, 0, K_schema)
-        loc = get(w, 64 + version * 56 + 24)
-        if byte(w, loc + 19) >= 54:
-            proved = structural_proof(w, fn, decoded_size)
+    version = field(w, 0, K_schema)
+    loc = get(w, 64 + version * 56 + 24)
+    if byte(w, loc + 19) >= 54:
+        proved = totality_module(w, functions, decoded_size)
     i = 0
     while i < length(s):
         store(o, i, byte(s, i))
@@ -55,46 +54,89 @@ def totality_filter(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     lit(o, w, ',"native_backend_refinement_proved":false,"execution_authority":false}\n')
     return get(w, 56)
 
-def structural_proof(w:mutbuf, fn:u64, table:u64) -> u64:
+def totality_module(w:mutbuf, functions:u64, table:u64) -> u64:
+    size = count(w, functions)
+    if size < 1 or size > 32:
+        return 0
+    directory = table + 4096
+    fn = child(w, functions)
+    index = 0
+    while fn != NONE:
+        put(w, directory + index * 32, field(w, fn, K_name))
+        fn = next_node(w, fn)
+        index = index + 1
+    put(w, directory + 1024, 0)
+    fn = child(w, functions)
+    index = 0
+    while fn != NONE:
+        calls = structural_function(w, fn, table, directory, size)
+        if calls == NONE:
+            return 0
+        put(w, directory + index * 32 + 8, calls)
+        fn = next_node(w, fn)
+        index = index + 1
+    proved = 0
+    complete = (1 << size) - 1
+    while proved != complete:
+        previous = proved
+        index = 0
+        while index < size:
+            calls = get(w, directory + index * 32 + 8)
+            if (calls & proved) == calls:
+                proved = proved | (1 << index)
+            index = index + 1
+        if previous == proved:
+            return 0
+    return 1
+
+def structural_function(w:mutbuf, fn:u64, table:u64, directory:u64, function_count:u64) -> u64:
     effects = field(w, fn, K_effects)
     if count(w, effects) > 1:
-        return 0
+        return NONE
     if count(w, effects) == 1 and text_is(w, child(w, effects), TRAP_LITERAL) == 0:
-        return 0
+        return NONE
     if totality_values(w, field(w, fn, K_params)) == 0:
-        return 0
+        return NONE
     node = child(w, field(w, fn, K_returns))
     while node != NONE:
         if scalar_type(w, node) == 0:
-            return 0
+            return NONE
         node = next_node(w, node)
     blocks = field(w, fn, K_blocks)
     size = count(w, blocks)
     if size < 1 or size > 128:
-        return 0
+        return NONE
     node = child(w, blocks)
     index = 0
-    operations = 0
+    operations = get(w, directory + 1024)
+    calls = 0
     while node != NONE:
         record = table + index * 32
         put(w, record, field(w, node, K_id))
         put(w, record + 24, 0)
         if totality_values(w, field(w, node, K_params)) == 0:
-            return 0
+            return NONE
         ops = field(w, node, K_ops)
         operations = operations + count(w, ops)
-        if operations > 4096 or totality_operations(w, ops) == 0:
-            return 0
+        if operations > 4096:
+            return NONE
+        dependencies = totality_operations(w, ops, directory, function_count)
+        if dependencies == NONE:
+            return NONE
+        calls = calls | dependencies
         node = next_node(w, node)
         index = index + 1
     node = child(w, blocks)
     index = 0
     while node != NONE:
         if totality_edges(w, table, size, index, field(w, node, K_term)) == 0:
-            return 0
+            return NONE
         node = next_node(w, node)
         index = index + 1
-    return totality_order(w, table, size)
+    put(w, directory + 1024, operations)
+    if totality_order(w, table, size) == 0:
+        return NONE
+    return calls
 
 def totality_values(w:mutbuf, values:u64) -> u64:
     node = child(w, values)
@@ -104,15 +146,26 @@ def totality_values(w:mutbuf, values:u64) -> u64:
         node = next_node(w, node)
     return 1
 
-def totality_operations(w:mutbuf, values:u64) -> u64:
+def totality_operations(w:mutbuf, values:u64, directory:u64, function_count:u64) -> u64:
     node = child(w, values)
+    calls = 0
     while node != NONE:
-        if nontrapping(w, field(w, node, K_op)) == 0:
-            return 0
+        op = field(w, node, K_op)
+        if text_is(w, op, CALL_LITERAL) != 0:
+            # Core admission already authenticated the call's name, arity,
+            # argument and result types, and allowed effects.
+            name = child(w, field(w, node, K_attrs))
+            index = totality_target(w, directory, function_count, name)
+            if index == NONE:
+                return NONE
+            calls = calls | (1 << index)
+        else:
+            if nontrapping(w, op) == 0:
+                return NONE
         if totality_values(w, field(w, node, K_out)) == 0:
-            return 0
+            return NONE
         node = next_node(w, node)
-    return 1
+    return calls
 
 def totality_edges(w:mutbuf, table:u64, size:u64, index:u64, term:u64) -> u64:
     record = table + index * 32
@@ -168,7 +221,7 @@ def totality_done(w:mutbuf, table:u64, index:u64) -> bool:
 
 def proof_document():
     entry = PROOF
-    for name in ('trap', 'ret', 'jump', 'branch'):
+    for name in ('trap', 'ret', 'jump', 'branch', 'call'):
         entry = entry.replace(name.upper() + '_LITERAL', ', '.join(map(str, packed(name))))
     entry += '\n\ndef nontrapping(w:mutbuf, op:u64) -> u64:\n'
     for name in ('const', *NONTRAPPING_OPS):

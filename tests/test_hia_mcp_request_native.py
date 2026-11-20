@@ -102,14 +102,14 @@ class McpRequestSourceTests(RoutingCases, unittest.TestCase):
 
 
     def test_native_wire_packer_keeps_exact_image_and_rejects_before_writing(self):
-        from tools.generate_hia_mcp_stdio_packer import MAGIC, SCHEMA_MODE, SOURCE, render, template
+        from tools.generate_hia_mcp_stdio_packer import CONNECTION_MODE, MAGIC, SOURCE, render, template
         from tools.qualify_hia_selfhost_cli import inspect_executable
 
         source = (ROOT / SOURCE).read_text()
         self.assertEqual(source, render())
         checked = assemble_program(source)
         image = b'\x00\x01opaque-HIA-image'
-        for mode in range(SCHEMA_MODE + 1):
+        for mode in range(CONNECTION_MODE + 1):
             with self.subTest(mode=mode):
                 prefix, call = template(mode)
                 request = struct.pack('<2Q', MAGIC, mode) + image
@@ -123,7 +123,7 @@ class McpRequestSourceTests(RoutingCases, unittest.TestCase):
                 self.assertEqual(reference(checked, request, capacity=size-1, workspace=0),
                                  (0xfffffffe, b'\xa5' * (size-1)))
 
-        for request in (struct.pack('<2Q', MAGIC, SCHEMA_MODE + 1) + image,
+        for request in (struct.pack('<2Q', MAGIC, CONNECTION_MODE + 1) + image,
                         struct.pack('<2Q', MAGIC ^ 1, 0) + image,
                         struct.pack('<2Q', MAGIC, 0)):
             self.assertEqual(reference(checked, request, capacity=128, workspace=0),

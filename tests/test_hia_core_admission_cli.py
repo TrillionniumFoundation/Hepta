@@ -57,14 +57,42 @@ def totality_cases():
             {'op': opcode, 'args': ['zero', 'zero'], 'attrs': {},
              'out': [{'name': 'sum', 'type': 'u8'}]},
         ]
-    return ((acyclic, True), (wrap, True), (cyclic, False), (trap, False), (checked, False))
+    def leaf(name):
+        return {'name': name, 'params': [], 'returns': [], 'effects': [],
+                'entry': 'start', 'blocks': [{'id': 'start', 'params': [], 'ops': [],
+                                             'term': {'op': 'ret', 'values': []}}]}
+
+    def calls(function, callee):
+        function['blocks'][0]['ops'].append({
+            'op': 'call', 'args': [], 'attrs': {'function': callee}, 'out': [],
+        })
+
+    call_dag = {**acyclic, 'functions': [leaf(name) for name in ('f', 'g', 'h')]}
+    first, second, _third = call_dag['functions']
+    calls(first, 'g')
+    calls(first, 'h')
+    calls(second, 'h')
+    recursive = copy.deepcopy(call_dag)
+    calls(recursive['functions'][2], 'f')
+    self_recursive = {**acyclic, 'functions': [leaf('f')]}
+    calls(self_recursive['functions'][0], 'f')
+    trapping_callee = {**acyclic, 'functions': [leaf('f'), leaf('bad')]}
+    caller, bad = trapping_callee['functions']
+    caller['effects'] = ['trap']
+    bad['effects'] = ['trap']
+    bad['blocks'][0]['term'] = {'op': 'trap', 'code': 'division_by_zero'}
+    calls(caller, 'bad')
+    return ((acyclic, True), (wrap, True), (cyclic, False), (trap, False), (checked, False),
+            (call_dag, True), (recursive, False), (self_recursive, False), (trapping_callee, False))
 
 
 def assert_totality_report(test, raw, result, expected):
     report = json.loads(result)
+    functions = json.loads(raw)['functions']
+    function = functions[0]['name'] if len(functions) == 1 else None
     test.assertEqual(report, {
         'schema': 'hepta.hia.core-structural-totality.v1', 'input_sha256': sha256(raw).hexdigest(),
-        'function': 'f', 'status': 'proved' if expected else 'unknown',
+        'function': function, 'status': 'proved' if expected else 'unknown',
         'reason': 'acyclic_nontrapping_core' if expected else 'outside_structural_totality_profile',
         'all_inputs_return_normally_proved': expected,
         'native_backend_refinement_proved': False, 'execution_authority': False,
@@ -173,10 +201,11 @@ class CoreAdmissionCliSourceTests(unittest.TestCase):
         self.assertEqual(packer.read_text(), render_assembly(packer_document()))
         for case, expected in totality_cases():
             raw = b'  ' + wire(case) + b'\n'
-            self.assertEqual(interpreted(raw), 0)
-            size, response = vm_run(source, raw, 16384, 65536)
-            self.assertEqual(len(response), size)
-            assert_totality_report(self, raw, response, expected)
+            with self.subTest(functions=[fn['name'] for fn in case['functions']], expected=expected):
+                self.assertEqual(interpreted(raw), 0)
+                size, response = vm_run(source, raw, 16384, 65536)
+                self.assertEqual(len(response), size)
+                assert_totality_report(self, raw, response, expected)
 
 
 @unittest.skipUnless(os.environ.get('HIA_TEST_CORE_TOTALITY_EXE'), 'standalone totality checker required')
