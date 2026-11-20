@@ -157,9 +157,15 @@ def _literal_cursor_select(service, arguments, activation):
     borrow = activation.borrow_registered_resource
     call_arguments = activation.resource_call_arguments
     store = borrow(service.store)
-    if uses_native_store(store):
-        return store.cursor_lookup(*call_arguments(guarded((arguments['cursor'],))))
-    return store.db.execute('SELECT * FROM cursors WHERE id=?',
+    try:
+        native = uses_native_store(store)
+        receiver = [store if native else store.db]
+    finally:
+        # Release the temporary Store before looking up a legacy DB method.
+        del store
+    if native:
+        return receiver.pop().cursor_lookup(*call_arguments(guarded((arguments['cursor'],))))
+    return receiver.pop().execute('SELECT * FROM cursors WHERE id=?',
         call_arguments(guarded((arguments['cursor'],)))).fetchone()
 
 
@@ -211,11 +217,16 @@ def _literal_cursor_insert(service, cursor, ref, offset, chunk, lookup, activati
     borrow = activation.borrow_registered_resource
     call_arguments = activation.resource_call_arguments
     store = borrow(service.store)
-    if uses_native_store(store):
-        store.cursor_retain(*call_arguments(guarded((cursor, ref['id'], ref['sha256'],
-                                                    offset + lookup('len')(chunk)))))
+    try:
+        native = uses_native_store(store)
+        receiver = [store if native else store.db]
+    finally:
+        del store
+    if native:
+        receiver.pop().cursor_retain(*call_arguments(guarded((cursor, ref['id'], ref['sha256'],
+                                            offset + lookup('len')(chunk)))))
         return
-    store.db.execute('INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)',
+    receiver.pop().execute('INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)',
         call_arguments(guarded((cursor, ref['id'], ref['sha256'],
                                 offset + lookup('len')(chunk)))))
 

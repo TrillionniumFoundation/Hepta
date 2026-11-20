@@ -23,6 +23,7 @@ from hepta import hia_agent_service as api
 from hepta import hia_service_read_native as native
 from hepta import hia_store_artifact_profile_native as store_native
 from hepta.hia_native_helpers import native_helpers_scope
+from tests.hia_service_artifact_worker_terminal import worker_profile
 from tests.hia_service_read_fixture import canonical
 from tests.hia_service_read_controls import bundle
 from tests.test_hia_service_read_native import clean_environment, run_child
@@ -167,6 +168,7 @@ def run(args):
     assert all(type(value) is str and len(value) == 64
                and set(value) <= set('0123456789abcdef')
                for value in installed_identity.values())
+    profile = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())
     assert installed_identity['native_helpers_sha256'] == pin
     identity_counts = counts_from(identity_stderr)
     assert identity_counts == {'startup': {}, 'request': {}, 'store_startup': {},
@@ -204,7 +206,7 @@ def run(args):
         case, request = prepare()
         try:
             before = state(case)
-            code = 0 if mode == 'normal' else 1 if mode == 'lost_insert_ack' else 73
+            code = 0 if mode == 'normal' else profile['lost_ack_exit'] if mode == 'lost_insert_ack' else 73
             stdout, stderr = worker(mode + '-first', case, request, mode=mode, code=code)
             after = state(case)
             first_counts = None if mode == 'process_exit' else counts_from(stderr)
@@ -227,6 +229,13 @@ def run(args):
                 assert stdout == b''
                 assert after['costs'] == before['costs']
                 if mode == 'lost_insert_ack':
+                    if code == 2:
+                        lines = stderr.splitlines()
+                        assert lines[0] == b'HIA_WORKER_DELIVERY_UNKNOWN'
+                        primary = lines.index(b'REQUEST_PRIMARY_EXCEPTION')
+                        cleanup = lines.index(b'REQUEST_CLEANUP_EXCEPTION')
+                        assert 0 < primary < cleanup
+                        assert b'actual cursor INSERT acknowledgement lost' in stderr
                     assert first_counts['unknown_records'] > 0
                     assert first_counts['retained_resource_observations'] > 0
                     assert first_counts['original_close_body_entries'] == 0
