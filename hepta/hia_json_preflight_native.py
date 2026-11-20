@@ -165,6 +165,15 @@ class NativeHiaJsonImage:
         self._image_size = len(image)
         self._entry = ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))(address)
 
+    def _checked_default_entry(self, *arguments):
+        binding = getattr(self, '_default_package_binding', None)
+        if binding is None:
+            return self._entry(*arguments)
+        binding.check_files()
+        result = self._entry(*arguments)
+        binding.check_files()
+        return result
+
 
 class NativeJsonPreflight(NativeHiaJsonImage):
     """Syntax-only result protocol, separate from the JSON value-arena ABI."""

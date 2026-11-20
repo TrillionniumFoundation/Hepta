@@ -26,7 +26,7 @@ class NativeSharedLinker(NativeHiaJsonImage):
         source = ctypes.create_string_buffer(object_bytes, len(object_bytes))
         output = ctypes.create_string_buffer(capacity)
         workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
-        size = self._entry(source, len(object_bytes), output, capacity, workspace, len(workspace))
+        size = self._checked_default_entry(source, len(object_bytes), output, capacity, workspace, len(workspace))
         if size == 0xffffffff:
             raise ValueError('HIA shared linkage refused the direct object')
         if not 64 <= size <= capacity:
@@ -37,6 +37,9 @@ class NativeSharedLinker(NativeHiaJsonImage):
         return linked[:size]
 
     def identity(self):
+        binding = getattr(self, '_default_package_binding', None)
+        if binding is not None:
+            binding.check_files()
         adapter = loaded_source_identity(__name__, ('hia_elf_shared_linker_native.py',))
         source_digest = sha256(SOURCE.read_bytes()).hexdigest()
         if source_digest != self.admitted_source_sha256:
@@ -46,7 +49,10 @@ class NativeSharedLinker(NativeHiaJsonImage):
 
 def selected_shared_linker():
     path = os.environ.get(SELECTOR)
-    return None if not path else _installed_json_image(path, SOURCE, SCHEMA, NativeSharedLinker)
+    if path:
+        return _installed_json_image(path, SOURCE, SCHEMA, NativeSharedLinker)
+    from .hia_default_native import default_image
+    return default_image(SELECTOR)
 
 
 def shared_linker_matches(identity):

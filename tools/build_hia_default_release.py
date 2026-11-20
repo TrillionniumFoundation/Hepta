@@ -1,4 +1,4 @@
-"""Construct a platform-tagged wheel whose full-cost owner defaults to HIA.
+"""Construct a platform-tagged wheel with packaged HIA cost and Core ELF owners.
 
 This constructs a candidate artifact; ordinary source/portable builds remain
 unchanged. Strict mode requires the complete current cold source identity.
@@ -23,9 +23,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (BUNDLE_RESOURCE, PIN_SCHEMA, SCOPES,
+from hepta.hia_default_native import (BUNDLE_RESOURCE, CORE_ELF_OWNERS, PIN_SCHEMA, SCOPES,
                                      SELECTOR, TARGET, render_pin)
-from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.build_hia_json_preflight import admit_cold_build, build_batch, current_sources
 
 PIN_FILE = 'hepta/hia_default_native_pin.py'
 PACKAGE_DIRECTORY = 'hepta/' + str(Path(BUNDLE_RESOURCE).parent)
@@ -183,22 +183,39 @@ def build(output, compiler, cold_report=None, *, development=False):
         raise ValueError('native candidate construction requires Linux x86-64 LP64')
     output, compiler = Path(output).absolute(), Path(compiler).resolve(strict=True)
     compiler_bytes = compiler.read_bytes()
-    cold_bytes = None if development else Path(cold_report).read_bytes()
+    cold_report = None if development else Path(cold_report).resolve(strict=True)
+    cold_bytes = None if cold_report is None else cold_report.read_bytes()
     sources = current_sources() if development else admit_cold_build(compiler_bytes, cold_bytes)
     captured = _inputs(sources)
     output.mkdir(mode=0o700, parents=False, exist_ok=False)
     from tools.build_hia_full_cost import build as build_owner
     manifest_path = build_owner(output / 'component', compiler, cold_report, development=development)
-    manifest_raw = manifest_path.read_bytes()
-    manifest = json.loads(manifest_raw)
-    image_name = manifest['image_path']
-    image_raw = (manifest_path.parent / image_name).read_bytes()
-    component_report = (manifest_path.parent / 'build.json').read_bytes()
+    owners = [(SELECTOR, '', manifest_path)]
+    if not development:
+        native_manifests = build_batch(output / 'core-elf', compiler, cold_report,
+                                       candidates=[candidate for _, candidate in CORE_ELF_OWNERS])
+        owners.extend((selector, candidate + '/', native_manifests[candidate])
+                      for selector, candidate in CORE_ELF_OWNERS)
+    owner_members, manifests, owner_inputs = {}, [], {}
+    for selector, directory, path in owners:
+        manifest_raw = path.read_bytes()
+        manifest = json.loads(manifest_raw)
+        image_path = path.parent / manifest['image_path']
+        image_raw = image_path.read_bytes()
+        if sha256(image_raw).hexdigest() != manifest['image_sha256']:
+            raise ValueError('candidate native default image differs from its build manifest')
+        owner_inputs.update({path: manifest_raw, image_path: image_raw})
+        relative_path = directory + 'manifest.json'
+        owner_members[PACKAGE_DIRECTORY + '/' + relative_path] = manifest_raw
+        owner_members[PACKAGE_DIRECTORY + '/' + directory + image_path.name] = image_raw
+        manifests.append({'selector': selector, 'manifest_path': relative_path,
+                          'manifest_sha256': sha256(manifest_raw).hexdigest()})
+    component_path = manifest_path.parent / 'build.json'
+    component_report = component_path.read_bytes()
+    owner_inputs[component_path] = component_report
     scope = SCOPES[1] if development else SCOPES[0]
     bundle = encoded({'schema': 'hepta.hia.native-helpers.v1', 'target': TARGET,
-        'abi': 'hia-byte-six-argument-v1', 'helpers': [{
-            'selector': SELECTOR, 'manifest_path': 'manifest.json',
-            'manifest_sha256': sha256(manifest_raw).hexdigest()}]})
+                      'abi': 'hia-byte-six-argument-v1', 'helpers': manifests})
     pin = (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE, sha256(bundle).hexdigest(), scope,
            '-' if cold_bytes is None else sha256(cold_bytes).hexdigest(), source_identity(sources))
     pin_raw = render_pin(pin)
@@ -222,9 +239,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         'runtime_source_transformations': {PIN_FILE: 'data-only pin derived by the cold-bound builder'},
         'retained_reference_bodies_removed': False, 'whole_native_delivery_qualified': False,
         'production_activated': False})
-    derived = {PIN_FILE: pin_raw, PACKAGE_DIRECTORY + '/bundle.json': bundle,
-        PACKAGE_DIRECTORY + '/manifest.json': manifest_raw,
-        PACKAGE_DIRECTORY + '/' + image_name: image_raw,
+    derived = {**owner_members, PIN_FILE: pin_raw, PACKAGE_DIRECTORY + '/bundle.json': bundle,
         PACKAGE_DIRECTORY + '/component-build.json': component_report,
         PACKAGE_DIRECTORY + '/provenance.json': provenance,
         distribution + '/WHEEL': wheel_meta}
@@ -234,11 +249,9 @@ def build(output, compiler, cold_report=None, *, development=False):
     prefix = base_wheel.name.removesuffix('.whl').rsplit('-', 3)[0]
     wheel = output / (prefix + '-' + build_tag + '-' + wheel_tag + '.whl')
     if (current_sources() != sources or compiler.read_bytes() != compiler_bytes
-            or (cold_bytes is not None and Path(cold_report).read_bytes() != cold_bytes)
+            or (cold_bytes is not None and cold_report.read_bytes() != cold_bytes)
             or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())
-            or manifest_path.read_bytes() != manifest_raw
-            or (manifest_path.parent / image_name).read_bytes() != image_raw
-            or (manifest_path.parent / 'build.json').read_bytes() != component_report):
+            or any(path.read_bytes() != raw for path, raw in owner_inputs.items())):
         raise ValueError('default candidate inputs changed before wheel publication')
     members = _write_wheel(wheel, files, distribution)
     report = {'schema': SCHEMA, 'scope': scope, 'target': TARGET, 'wheel_tag': wheel_tag,
@@ -248,6 +261,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         'source_identity_sha256': source_identity(sources), 'compiler_sha256': sha256(compiler_bytes).hexdigest(),
         'cold_report_sha256': None if cold_bytes is None else sha256(cold_bytes).hexdigest(),
         'default_bundle_sha256': pin[3], 'pin': pin, 'members': members,
+        'default_selectors': [entry['selector'] for entry in manifests],
         'derived_package_members': sorted(derived),
         'ordinary_source_default_changed': False, 'retained_reference_bodies_removed': False,
         'matching_source_cold_component': not development,

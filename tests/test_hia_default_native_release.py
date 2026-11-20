@@ -244,6 +244,37 @@ print(json.dumps(answer, sort_keys=True))
 '''
         self.assertEqual(json.loads(self.child(body).stdout), self.expected)
 
+    def test_matching_cold_wheel_builds_direct_shared_without_manual_selectors(self):
+        from tests.test_hia_program_tools import scalar_program
+
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('only the matching-source cold wheel ships Core ELF defaults')
+        source = self.root / 'packaged-shared.hepta'
+        source.write_text(json.dumps(scalar_program()))
+        output = self.root / 'packaged-shared.so'
+        body = r'''
+import ctypes
+from hepta import cli
+from hepta import elf_shared_abi
+from hepta import hia_program_native
+assert not [key for key in os.environ
+            if key.startswith('HEPTA_HIA_') and key.endswith('_MANIFEST')]
+os.environ['PATH'] = ''
+source, output = sys.argv[3:5]
+with patch.object(elf_shared_abi, '_reference_owned_shared_symbols', forbidden), \
+     patch.object(hia_program_native.shutil, 'which', forbidden):
+    assert cli.hia_main(['build', source, '--backend', 'native', '--kind', 'shared', '-o', output]) == 0
+library = ctypes.CDLL(output)
+library.increment.argtypes = [ctypes.c_uint32]
+library.increment.restype = ctypes.c_uint32
+assert library.increment(41) == 42
+'''
+        result = json.loads(self.child(body, source, output).stdout)
+        self.assertEqual(result['toolchain']['mode'], 'hia')
+        self.assertEqual(result['binary_inventory']['dynamic_exports'], ['increment'])
+        self.assertFalse(result['claims']['external_linker_used'])
+        self.assertEqual(result['artifact_sha256'], sha256(output.read_bytes()).hexdigest())
+
     def test_default_worker_scope_and_real_restarted_service_bind_packaged_bundle(self):
         body = r'''
 import contextlib, io
@@ -288,11 +319,14 @@ print('DEFAULT_WORKER_AND_RESTARTED_SERVICE_BOUND')
 import shutil
 from hashlib import sha256
 bundle, expected, _ = defaults.capture_default_bundle()
-external = Path(sys.argv[3]); external.mkdir()
-for filename in ('bundle.json', 'manifest.json'):
-    shutil.copyfile(bundle.parent / filename, external / filename)
-manifest = json.loads((bundle.parent / 'manifest.json').read_bytes())
-shutil.copyfile(bundle.parent / manifest['image_path'], external / manifest['image_path'])
+external = Path(sys.argv[3]); external.mkdir(exist_ok=True)
+shutil.copyfile(bundle, external / 'bundle.json')
+for entry in json.loads(bundle.read_bytes())['helpers']:
+    name = Path(entry['manifest_path'])
+    (external / name).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(bundle.parent / name, external / name)
+    image = name.parent / json.loads((bundle.parent / name).read_bytes())['image_path']
+    shutil.copyfile(bundle.parent / image, external / image)
 saved = bundle.read_bytes()
 bundle.write_bytes(saved + b' ')
 try:

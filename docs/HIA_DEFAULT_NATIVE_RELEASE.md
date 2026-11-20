@@ -6,6 +6,12 @@ this Linux x86-64 candidate makes the ordinary `assess_full_cost` call use HIA
 without a native selector in the environment. The ordinary worker likewise
 captures that package-owned bundle before service effects.
 
+A strict matching-cold wheel also supplies the HIA shared ELF linker and
+independent ELF inventory by default for the ordinary
+`hia build --backend native --kind shared` entry. This selects the direct
+linker, not a new default proof policy for `--backend auto`. Development and
+portable wheels do not select these two entries by default.
+
 The checked-in pin is `None`. Source checkouts and ordinary portable wheels keep
 their existing defaults and the two retained Python arithmetic bodies. This
 change constructs and checks the next default artifact; it does not delete those
@@ -40,8 +46,8 @@ python -B tools/qualify_hia_default_release_callers.py \
 ```
 
 The strict builder validates the completed cold report against the full current
-source identity before creating its output. It compiles the existing HIA owner,
-checks the complete compiler output receipt, captures the ordinary package inputs,
+source identity before creating its output. It compiles the full-cost owner, direct
+linker and independent inventory, checks their compiler output receipts, captures the ordinary package inputs,
 and builds an actual ordinary wheel with the existing setup hook. Every production
 Python module and packaged source is checked against captured source bytes.
 

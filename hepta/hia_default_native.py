@@ -3,8 +3,8 @@
 The checked-in pin is None, so ordinary source and portable wheels retain
 their existing defaults. The explicit candidate wheel builder derives one
 data-only pin after compiling the HIA owner. A candidate installation uses
-that fixed bundle without environment configuration. It never supplements an
-active administrator scope with executable code outside its pinned bundle.
+that fixed bundle without environment configuration. A cold wheel may also
+bind Core ELF owners; an administrator scope is never supplemented.
 """
 from __future__ import annotations
 
@@ -14,6 +14,11 @@ PIN_SCHEMA = 'hepta.hia.default-native-package.v1'
 TARGET = 'linux-x86_64-lp64'
 BUNDLE_RESOURCE = '_data/native/default/full_cost/bundle.json'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
+CORE_ELF_OWNERS = (
+    ('HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST', 'elf-shared-linker'),
+    ('HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST', 'safe-core-elf-inventory'),
+)
+DEFAULT_OWNERS = frozenset((SELECTOR, *(selector for selector, _ in CORE_ELF_OWNERS)))
 SCOPES = ('MATCHING_SOURCE_COLD_COMPONENT', 'DEVELOPMENT_COMPONENT')
 MAX_PIN_BYTES = 4096
 MAX_RECORD_BYTES = 1 << 20
@@ -111,34 +116,31 @@ def capture_default_bundle():
 
 
 def default_image(selector):
-    """Capture the package's sole HIA owner outside a worker scope.
-
-    Workers receive their selections through native_helpers_scope instead.
-    An explicit worker bundle lacking this owner must refuse at this boundary.
-    """
-    captured = capture_default_bundle()
-    if captured is None:
-        return None
-    if selector != SELECTOR:
+    """Select a fixed package owner when no explicit scope owns the call."""
+    if selector not in DEFAULT_OWNERS:
         raise ValueError('unregistered package native-default selector')
     from . import hia_native_helpers as helpers
     helpers._check_scope_owner()
+    if helpers._SCOPE_OWNER is not None and selector != SELECTOR:
+        return None  # An explicit Worker scope never acquires extra ELF owners.
+    captured = capture_default_bundle()
+    if captured is None:
+        return None
     if helpers._SCOPE_OWNER is not None:
         raise ValueError('required package native owner is absent from the active worker bundle')
     bundle, expected, pins = captured
     binding = helpers.NativeHelpersBinding(str(bundle), expected)
     binding.snapshots.extend(pins)
-    if set(binding.selections) != {SELECTOR}:
-        raise ValueError('default native candidate must contain exactly its full-cost owner')
-    from .hia_full_cost_native import NativeFullCost, SOURCE, SCHEMA
-    key = (str(Path(binding.selections[SELECTOR]).resolve(strict=True)),
-           str(SOURCE.resolve(strict=True)), SCHEMA, NativeFullCost)
-    image = binding.images[key]
+    if set(binding.selections) not in ({SELECTOR}, DEFAULT_OWNERS):
+        raise ValueError('default native candidate does not match a registered owner set')
     binding.check_files()
-    # Only the image retains its custody. The construction index must not retain
-    # that same image and create a cycle requiring cyclic GC to release mappings.
+    if selector not in binding.selections:
+        return None
+    # One primary factory per package-owned selector; registered binding
+    # keys include the resolved manifest and the exact package source path.
+    selected_path = str(Path(binding.selections[selector]).resolve(strict=True))
+    image, = (image for key, image in binding.images.items() if key[0] == selected_path)
+    # Break the index back-edge; the selected image keeps the snapshots.
     binding.images.clear()
-    # The image retains its complete bundle/manifest/source/image/pin custody.
-    # NativeFullCost checks that custody before and after each actual entry.
     image._default_package_binding = binding
     return image

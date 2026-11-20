@@ -142,7 +142,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
                 if size <= 512:
                     ctypes.memmove(ctypes.addressof(work) + offset + 8, symbol.encode('ascii'), size)
         output = ctypes.create_string_buffer(OWNED_SHARED_SYMBOL_CAPACITY)
-        size = self._entry(source, len(data), output, len(output), work, len(work))
+        size = self._checked_default_entry(source, len(data), output, len(output), work, len(work))
         header = OWNED_SHARED_HEAD.size
         if not header <= size <= len(output):
             raise RuntimeError('invalid native shared ELF symbol extent')
@@ -182,7 +182,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         request = ctypes.create_string_buffer(struct.pack('<Q', OWNED_SHARED_MAGIC), 8)
         source = ctypes.create_string_buffer(data, len(data))
         output = ctypes.create_string_buffer(CAPACITY)
-        size = self._entry(source, len(data), output, len(output), request, len(request))
+        size = self._checked_default_entry(source, len(data), output, len(output), request, len(request))
         header = OWNED_SHARED_HEAD.size
         if not header <= size <= len(output):
             raise RuntimeError('invalid native shared ELF layout extent')
@@ -206,7 +206,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         output = ctypes.create_string_buffer(CAPACITY)
         packet = struct.pack(f'<{len(arguments)}Q', *arguments) + suffix
         scratch = ctypes.create_string_buffer(packet, len(packet))
-        size = self._entry(source, len(data), output, CAPACITY, scratch, len(scratch))
+        size = self._checked_default_entry(source, len(data), output, CAPACITY, scratch, len(scratch))
         if not HEADER.size <= size <= CAPACITY:
             raise RuntimeError('invalid native Safe Core ELF response extent')
         status, first, second = HEADER.unpack_from(output)
@@ -351,7 +351,10 @@ def installed_safe_core_elf_inventory(path):
 
 def selected_safe_core_elf_inventory():
     selected = os.environ.get(SELECTOR)
-    return None if selected is None else installed_safe_core_elf_inventory(selected)
+    if selected is not None:
+        return installed_safe_core_elf_inventory(selected)
+    from .hia_default_native import default_image
+    return default_image(SELECTOR)
 
 
 from .hia_loaded_source import register_loaded_module as _register_loaded_source
