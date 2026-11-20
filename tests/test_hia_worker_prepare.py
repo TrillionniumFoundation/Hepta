@@ -136,6 +136,29 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(invalid)
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_session_scope_never_substitutes_stdio_or_switches_existing_credentials(self):
+        owner = text_digest(b'trusted session owner')
+        replaced = owner[:-1] + (b'1' if owner.endswith(b'0') else b'0')
+        for mode, prior, current, incumbent, verdict in (
+            (0, 0, owner, b'', 0), (1, 0, owner, b'', 0),
+            (0, 1, owner, owner, 0), (1, 2, owner, owner, 0),
+            (0, 2, owner, owner, 3), (1, 1, owner, owner, 3),
+            (0, 1, replaced, owner, 3), (1, 2, replaced, owner, 3),
+            (1, 2, b'', owner, 1), (0, 1, b'', owner, 2),
+            (0, 0, b'G' * 64, b'', 2), (1, 0, b'a' * 65, b'', 1),
+        ):
+            frame = struct.pack('<8s3Q64s64s', b'HIASCO01', mode, len(current), prior, current, incumbent)
+            result = self.invoke(frame)
+            self.assertEqual((result.returncode, result.stdout, result.stderr),
+                             (0, struct.pack('<8sQ', b'HIASCR01', verdict), b''))
+        for invalid in (
+            struct.pack('<8s3Q64s64s', b'HIASCO01', 2, 64, 0, owner, b''),
+            struct.pack('<8s3Q64s64s', b'HIASCO01', 0, 64, 3, owner, owner),
+            struct.pack('<8s3Q64s64s', b'HIASCO01', 0, 64, 1, owner, b'X' * 64),
+        ):
+            result = self.invoke(invalid)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',

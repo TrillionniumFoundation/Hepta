@@ -22,6 +22,8 @@ JOB_INPUT_MAGIC = b'HIAJID01'
 JOB_OUTPUT_MAGIC = b'HIAJDO01'
 REUSE_INPUT_MAGIC = b'HIAJRE01'
 REUSE_OUTPUT_MAGIC = b'HIAJRO01'
+SCOPE_INPUT_MAGIC = b'HIASCO01'
+SCOPE_OUTPUT_MAGIC = b'HIASCR01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -33,6 +35,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_identity(s, o, w)
     if magic == REUSE_INPUT_MAGIC:
         return job_reuse(s, o)
+    if magic == SCOPE_INPUT_MAGIC:
+        return session_scope(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -208,6 +212,47 @@ def job_reuse(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 0, REUSE_OUTPUT_MAGIC)
     word_store(o, 8, decision)
     return 16
+
+def session_scope(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 160:
+        return 4294967293
+    if length(o) < 16:
+        return 4294967294
+    transport = word_load(s, 8)
+    candidate_size = word_load(s, 16)
+    prior_kind = word_load(s, 24)
+    if transport > 1 or prior_kind > 2:
+        return 4294967293
+    if prior_kind != 0 and scope_digest(s, 96) == 0:
+        return 4294967293
+    # HTTP uses only verified middleware evidence. The stdio fallback is
+    # never interpreted as a credential, even if every digest byte agrees.
+    decision = 0
+    if candidate_size != 64 or scope_digest(s, 32) == 0:
+        if transport == 1:
+            decision = 1
+        else:
+            decision = 2
+    elif prior_kind != 0:
+        different = prior_kind ^ (transport + 1)
+        index = 0
+        while index < 64:
+            different = different | (byte(s, 32 + index) ^ byte(s, 96 + index))
+            index = index + 1
+        if different != 0:
+            decision = 3
+    word_store(o, 0, SCOPE_OUTPUT_MAGIC)
+    word_store(o, 8, decision)
+    return 16
+
+def scope_digest(s:readbuf, at:u64) -> u64:
+    index = 0
+    while index < 64:
+        value = byte(s, at + index)
+        if value < 48 or (value > 57 and value < 97) or value > 102:
+            return 0
+        index = index + 1
+    return 1
 '''
 
 LITERALS = {
@@ -232,6 +277,8 @@ def source_program():
               .replace('JOB_OUTPUT_MAGIC', str(int.from_bytes(JOB_OUTPUT_MAGIC, 'little')))
               .replace('REUSE_INPUT_MAGIC', str(int.from_bytes(REUSE_INPUT_MAGIC, 'little')))
               .replace('REUSE_OUTPUT_MAGIC', str(int.from_bytes(REUSE_OUTPUT_MAGIC, 'little')))
+              .replace('SCOPE_INPUT_MAGIC', str(int.from_bytes(SCOPE_INPUT_MAGIC, 'little')))
+              .replace('SCOPE_OUTPUT_MAGIC', str(int.from_bytes(SCOPE_OUTPUT_MAGIC, 'little')))
               .replace('INPUT_MAGIC', str(int.from_bytes(INPUT_MAGIC, 'little')))
               .replace('OUTPUT_MAGIC', str(int.from_bytes(OUTPUT_MAGIC, 'little')))
               .replace('MAX_FRAGMENTS', str(524288 - fixed_bytes)))
