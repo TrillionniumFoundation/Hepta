@@ -26,6 +26,8 @@ SCOPE_INPUT_MAGIC = b'HIASCO01'
 SCOPE_OUTPUT_MAGIC = b'HIASCR01'
 TRANSITION_INPUT_MAGIC = b'HIAJTR01'
 TRANSITION_OUTPUT_MAGIC = b'HIAJTO01'
+HTTP_AUTH_INPUT = b'HIAHAT01'
+HTTP_AUTH_OUTPUT = b'HIAHAO01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -41,6 +43,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return session_scope(s, o)
     if magic == TRANSITION_INPUT_MAGIC:
         return durable_transition(s, o)
+    if magic == HTTP_AUTH_INPUT:
+        return http_auth(s, o, w)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -217,6 +221,27 @@ def job_reuse(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 8, decision)
     return 16
 
+def http_auth(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    n = length(s)
+    if n < 104 or n > 4168:
+        return 4294967293
+    count = n - 72
+    if length(o) < count:
+        return 4294967294
+    external(s, o, 0, 72, count)
+    if digest(o, w, count, 0) == 0:
+        return 4294967293
+    # Compare every digest byte, including the last. The candidate header
+    # length is public. Never return the candidate bytes or either digest.
+    difference = 0
+    index = 0
+    while index < 64:
+        difference = difference | (byte(s, 8 + index) ^ byte(w, index))
+        index = index + 1
+    word_store(o, 0, HTTP_AUTH_OUTPUT)
+    word_store(o, 8, choose(difference == 0, 1, 0))
+    return 16
+
 def session_scope(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 160:
         return 4294967293
@@ -311,6 +336,8 @@ def source_program():
               .replace('SCOPE_OUTPUT_MAGIC', str(int.from_bytes(SCOPE_OUTPUT_MAGIC, 'little')))
               .replace('TRANSITION_INPUT_MAGIC', str(int.from_bytes(TRANSITION_INPUT_MAGIC, 'little')))
               .replace('TRANSITION_OUTPUT_MAGIC', str(int.from_bytes(TRANSITION_OUTPUT_MAGIC, 'little')))
+              .replace('HTTP_AUTH_INPUT', str(int.from_bytes(HTTP_AUTH_INPUT, 'little')))
+              .replace('HTTP_AUTH_OUTPUT', str(int.from_bytes(HTTP_AUTH_OUTPUT, 'little')))
               .replace('LAUNCHED_WORD', str(int.from_bytes(b'launched', 'little')))
               .replace('PENDING_WORD', str(int.from_bytes(b'pending', 'little')))
               .replace('FAILED_HEAD', str(int.from_bytes(b'launch_f', 'little')))

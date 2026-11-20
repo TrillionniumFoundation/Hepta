@@ -177,6 +177,23 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(struct.pack('<8s2Q56s', b'HIAJTR01', flags, size, b''))
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_http_auth_returns_only_a_verdict_and_checks_the_entire_digest(self):
+        for size in (32, 55, 56, 63, 64, 65, 4096):
+            known = (b'isolated-private-header-credential-' * 132)[:size]
+            expected = text_digest(known)
+            different_digest = expected[:-1] + (b'1' if expected.endswith(b'0') else b'0')
+            different_token = known[:-1] + (b'+' if known.endswith(b'-') else b'-')
+            for digest, supplied, verdict in (
+                    (expected, known, 1), (different_digest, known, 0),
+                    (expected, different_token, 0)):
+                with self.subTest(length=size, verdict=verdict):
+                    result = self.invoke(b'HIAHAT01' + digest + supplied)
+                    self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                     (0, struct.pack('<8sQ', b'HIAHAO01', verdict), b''))
+        for invalid in (b'', b'x' * 31, b'x' * 4097):
+            result = self.invoke(b'HIAHAT01' + b'0' * 64 + invalid)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',
