@@ -8,16 +8,22 @@ bind Core ELF owners; an administrator scope is never supplemented.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 PIN_SCHEMA = 'hepta.hia.default-native-package.v1'
 TARGET = 'linux-x86_64-lp64'
 BUNDLE_RESOURCE = '_data/native/default/full_cost/bundle.json'
+PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
 CORE_ELF_OWNERS = (
     ('HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST', 'elf-shared-linker'),
     ('HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST', 'elf-verified-linker'),
     ('HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST', 'safe-core-elf-inventory'),
+)
+CORE_PROOF_OWNERS = (
+    ('HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST', 'safe-core-x64-decode'),
+    ('HEPTA_HIA_CNF_MANIFEST', 'cnf'),
 )
 DEFAULT_OWNERS = frozenset((SELECTOR, *(selector for selector, _ in CORE_ELF_OWNERS)))
 SCOPES = ('MATCHING_SOURCE_COLD_COMPONENT', 'DEVELOPMENT_COMPONENT')
@@ -70,7 +76,7 @@ def _record_pin(pin_path, raw):
     return record_path, record, has_default
 
 
-def capture_default_bundle():
+def _capture_package():
     """Return a fixed package bundle and captured pin, or the portable profile.
 
     The pin module is always shipped. Missing or changed pin bytes are errors,
@@ -87,12 +93,13 @@ def capture_default_bundle():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) != 7
+    if (type(value) is not tuple or len(value) not in (7, 8)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
             or any(len(value[index]) != 64 or any(c not in '0123456789abcdef' for c in value[index])
-                   for index in (3, 6))
+                   for index in ((3, 6, 7) if len(value) == 8 else (3, 6)))
+            or (len(value) == 8 and value[4] != SCOPES[0])
             or (value[4] == SCOPES[0] and (len(value[5]) != 64
                 or any(c not in '0123456789abcdef' for c in value[5])))
             or (value[4] == SCOPES[1] and value[5] != '-')
@@ -112,8 +119,15 @@ def capture_default_bundle():
     captured_record = _read(record[0], len(record[1]))
     if captured_record.raw != record[1]:
         raise ValueError('native-default wheel RECORD changed during capture')
-    bundle = pin_path.parent / BUNDLE_RESOURCE
-    return bundle, value[3], ((captured, MAX_PIN_BYTES), (captured_record, len(record[1])))
+    return pin_path.parent, value, ((captured, MAX_PIN_BYTES), (captured_record, len(record[1])))
+
+
+def capture_default_bundle():
+    captured = _capture_package()
+    if captured is None:
+        return None
+    directory, value, pins = captured
+    return directory / BUNDLE_RESOURCE, value[3], pins
 
 
 def default_image(selector):
@@ -145,3 +159,41 @@ def default_image(selector):
     binding.images.clear()
     image._default_package_binding = binding
     return image
+
+
+def default_safe_core_pair(*, observe=False):
+    """Bind a cold wheel's decoder and solver only for final Safe Core proof."""
+    from . import hia_native_helpers as helpers
+    from .hia_json_preflight_native import _INPUT_IMAGE_OBSERVERS
+
+    helpers._check_scope_owner()
+    selectors = [selector for selector, _ in CORE_PROOF_OWNERS]
+    if helpers._SCOPE_OWNER is not None or any(selector in os.environ for selector in selectors):
+        return None, None
+    captured = _capture_package()
+    if captured is None:
+        return None, None
+    directory, value, pins = captured
+    if len(value) != 8:
+        return None, None
+    binding = helpers.NativeHelpersBinding(str(directory / PROOF_BUNDLE_RESOURCE), value[7])
+    binding.snapshots.extend(pins)
+    if set(binding.selections) != set(selectors):
+        raise ValueError('package Safe Core proof bundle has the wrong owners')
+    binding.check_files()
+    images = []
+    for selector in selectors:
+        selected = str(Path(binding.selections[selector]).resolve(strict=True))
+        ((manifest, source, schema, factory), image), = (
+            (key, image) for key, image in binding.images.items() if key[0] == selected)
+        if observe:
+            for observer in _INPUT_IMAGE_OBSERVERS.get():
+                observer(manifest, Path(source), schema, factory, image)
+        image._default_package_binding = binding
+        images.append(image)
+    binding.images.clear()
+    return tuple(images)
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

@@ -341,6 +341,50 @@ print('PACKAGED_HIA_LINKAGE_STILL_REQUIRES_FINAL_PROOF')
         self.assertEqual(self.child(body, inputs).stdout.strip(),
                          'PACKAGED_HIA_LINKAGE_STILL_REQUIRES_FINAL_PROOF')
 
+    def test_cold_wheel_proves_signed_safe_core_with_its_scoped_hia_pair(self):
+        from tests.test_hia_safe_core_signed import core_operation
+
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('only the matching-source cold wheel ships the proof pair')
+        source = self.root / 'signed-checked-multiply.hepta'
+        source.write_text(json.dumps(core_operation('int.mul.checked', 'i8')))
+        output = self.root / 'signed-checked-multiply.so'
+        body = r'''
+from hepta.hia_cnf_native import selected_cnf
+from hepta.hia_default_native import PROOF_BUNDLE_RESOURCE, default_safe_core_pair
+from hepta.hia_safe_core import build_safe_core
+
+assert selected_cnf() is None
+os.environ['PATH'] = ''
+document = json.loads(Path(sys.argv[3]).read_bytes())
+destination = Path(sys.argv[4])
+report = build_safe_core(document, destination, profile_version=6)['validation']
+assert report['complete'] and report['ok']
+assert [row['result'] for row in report['obligations']] == ['sat'] + ['unsat'] * 4
+assert all('native_cnf' in row for row in report['obligations'])
+checker = report['checker']
+identity = checker['source_identity']
+mapped = {row['mapped_image_sha256'] for row in checker['input_execution']['native_helpers']}
+assert identity['native_x64_decoder_image_sha256'] in mapped
+assert identity['native_cnf_image_sha256'] in mapped
+assert selected_cnf() is None
+
+bundle = installed / 'hepta' / PROOF_BUNDLE_RESOURCE
+original = bundle.read_bytes()
+try:
+    bundle.write_bytes(original + b' ')
+    try:
+        default_safe_core_pair()
+    except ValueError as error:
+        assert 'bundle identity mismatch' in str(error)
+    else:
+        raise AssertionError('the scoped proof accepted changed package bytes')
+finally:
+    bundle.write_bytes(original)
+print('SCOPED_HIA_SAFE_CORE_PROOF')
+'''
+        self.assertEqual(self.child(body, source, output).stdout.strip(), 'SCOPED_HIA_SAFE_CORE_PROOF')
+
     def test_default_worker_scope_and_real_restarted_service_bind_packaged_bundle(self):
         body = r'''
 import contextlib, io

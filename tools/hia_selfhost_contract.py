@@ -2933,6 +2933,11 @@ def support_contract(root=ROOT):
             'ordinary_source_and_portable_default_changed': False,
             'worker_scope': 'fixed package bundle when administrator flags are absent',
             'explicit_administrator_bundle_supplemented': False,
+            'safe_core_final_proof': {
+                'selection': 'separately pinned cold-wheel decoder and CNF bundle',
+                'changes_generic_solver_default': False,
+                'host_symbolic_terms_and_unhandled_obligations_retained': True,
+            },
             'runtime_source_derivation': 'data-only pin; all other runtime Python bytes equal captured source',
             'generated_pin_is_cold_source_input': False,
             'custody': ['bundle', 'child manifest', 'source', 'image', 'pin', 'installed RECORD'],

@@ -26,6 +26,7 @@ from tools.build_hia_direct_call import build as build_direct_call
 from tools.build_hia_evaluation import build as build_evaluation
 from tools.build_hia_agent_read_page import build as build_agent_stdio
 from tools.build_hia_json_preflight import build_batch as build_helper_batch
+from tools.build_hia_native_build_admission import build as build_build_admission
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
@@ -48,6 +49,7 @@ ADDITIONAL_HELPERS = (
     'agent-data-json', 'agent-binary64', 'agent-binary64-format',
     'agent-describe-answer', 'agent-payload-schema', 'agent-plan-schema', 'machine-plan',
     'safe-core-x64-decode', 'safe-core-elf-inventory', 'elf-verified-linker', 'service-context', 'cost-ledger', 'evaluation',
+    'native-build-admission',
 )
 HELPER_BUILDERS = {
     'slot-ledger': build_slot_ledger,
@@ -58,6 +60,7 @@ HELPER_BUILDERS = {
     'service-context': build_service_context,
     'cost-ledger': build_cost_ledger,
     'evaluation': build_evaluation,
+    'native-build-admission': build_build_admission,
 }
 
 

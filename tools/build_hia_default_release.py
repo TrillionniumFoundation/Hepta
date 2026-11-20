@@ -23,8 +23,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (BUNDLE_RESOURCE, CORE_ELF_OWNERS, PIN_SCHEMA, SCOPES,
-                                     SELECTOR, TARGET, render_pin)
+from hepta.hia_default_native import (BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+                                     PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
+                                     TARGET, render_pin)
 from tools.build_hia_json_preflight import admit_cold_build, build_batch, current_sources
 
 PIN_FILE = 'hepta/hia_default_native_pin.py'
@@ -191,12 +192,14 @@ def build(output, compiler, cold_report=None, *, development=False):
     from tools.build_hia_full_cost import build as build_owner
     manifest_path = build_owner(output / 'component', compiler, cold_report, development=development)
     owners = [(SELECTOR, '', manifest_path)]
+    proof_selectors = {selector for selector, _ in CORE_PROOF_OWNERS}
     if not development:
+        cold_owners = CORE_ELF_OWNERS + CORE_PROOF_OWNERS
         native_manifests = build_batch(output / 'core-elf', compiler, cold_report,
-                                       candidates=[candidate for _, candidate in CORE_ELF_OWNERS])
+                                       candidates=[candidate for _, candidate in cold_owners])
         owners.extend((selector, candidate + '/', native_manifests[candidate])
-                      for selector, candidate in CORE_ELF_OWNERS)
-    owner_members, manifests, owner_inputs = {}, [], {}
+                      for selector, candidate in cold_owners)
+    owner_members, manifests, proof_manifests, owner_inputs = {}, [], [], {}
     for selector, directory, path in owners:
         manifest_raw = path.read_bytes()
         manifest = json.loads(manifest_raw)
@@ -208,16 +211,22 @@ def build(output, compiler, cold_report=None, *, development=False):
         relative_path = directory + 'manifest.json'
         owner_members[PACKAGE_DIRECTORY + '/' + relative_path] = manifest_raw
         owner_members[PACKAGE_DIRECTORY + '/' + directory + image_path.name] = image_raw
-        manifests.append({'selector': selector, 'manifest_path': relative_path,
+        inventory = proof_manifests if selector in proof_selectors else manifests
+        inventory.append({'selector': selector, 'manifest_path': relative_path,
                           'manifest_sha256': sha256(manifest_raw).hexdigest()})
     component_path = manifest_path.parent / 'build.json'
     component_report = component_path.read_bytes()
     owner_inputs[component_path] = component_report
     scope = SCOPES[1] if development else SCOPES[0]
-    bundle = encoded({'schema': 'hepta.hia.native-helpers.v1', 'target': TARGET,
-                      'abi': 'hia-byte-six-argument-v1', 'helpers': manifests})
+    bundle_header = {'schema': 'hepta.hia.native-helpers.v1', 'target': TARGET,
+                     'abi': 'hia-byte-six-argument-v1'}
+    bundle = encoded({**bundle_header, 'helpers': manifests})
     pin = (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE, sha256(bundle).hexdigest(), scope,
            '-' if cold_bytes is None else sha256(cold_bytes).hexdigest(), source_identity(sources))
+    if proof_manifests:
+        proof_bundle = encoded({**bundle_header, 'helpers': proof_manifests})
+        owner_members['hepta/' + PROOF_BUNDLE_RESOURCE] = proof_bundle
+        pin += (sha256(proof_bundle).hexdigest(),)
     pin_raw = render_pin(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)
@@ -262,6 +271,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         'cold_report_sha256': None if cold_bytes is None else sha256(cold_bytes).hexdigest(),
         'default_bundle_sha256': pin[3], 'pin': pin, 'members': members,
         'default_selectors': [entry['selector'] for entry in manifests],
+        'safe_core_proof_selectors': [entry['selector'] for entry in proof_manifests],
         'derived_package_members': sorted(derived),
         'ordinary_source_default_changed': False, 'retained_reference_bodies_removed': False,
         'matching_source_cold_component': not development,
