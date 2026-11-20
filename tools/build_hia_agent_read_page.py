@@ -29,6 +29,7 @@ VARIANTS = {
     'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
     'mcp-terminal': ('mcp_terminal_admission', 'hepta.hia.mcp-terminal-native.v1'),
     'mcp-negotiation': ('mcp_negotiation', 'hepta.hia.mcp-negotiation-native.v1'),
+    'mcp-connection': ('mcp_connection', 'hepta.hia.mcp-connection-native.v1'),
     'mcp-catalog': ('mcp_catalog_wire', 'hepta.hia.mcp-catalog-native.v1'),
     'mcp-uri': ('mcp_resource_uri', 'hepta.hia.mcp-uri-native.v1'),
     'mcp-input-schema': ('agent_schema', 'hepta.hia.agent-schema-native.v1'),

@@ -6,6 +6,7 @@ import struct
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_agent_stdio import ROOT, document, writes
 from tools.generate_hia_core_json_cli import LIMIT, source_program as core_packer_source
+from tools.generate_hia_mcp_connection import RESPONSE_BYTES, WORKSPACE_BYTES as CONNECTION_WORKSPACE
 from tools.generate_hia_native_filter import WORKER_PRIVATE_BYTES, WORKER_WORKSPACE_BYTES
 
 SOURCE = 'examples/hia_bootstrap/mcp_stdio_packer.hepta'
@@ -17,6 +18,7 @@ DESCRIPTORS = (88, 0, 112, 24)
 PAGE_MODE = len(DESCRIPTORS)
 TERMINAL_MODE = PAGE_MODE + 1
 SCHEMA_MODE = TERMINAL_MODE + 1
+CONNECTION_MODE = SCHEMA_MODE + 1
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 PAGE_OUTPUT = 40 + 69 + 4 * ((65536 + 2) // 3)
@@ -24,7 +26,7 @@ PAGE_WORKSPACE = 512 + 4128
 MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,
          'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
-         'mcp-proof-schema': SCHEMA_MODE}
+         'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE}
 
 
 def elf_prefix(code):
@@ -41,6 +43,8 @@ def resolve(code, labels, branches):
 
 
 def template(mode):
+    if mode == CONNECTION_MODE:
+        return connection_template()
     if mode == TERMINAL_MODE:
         return terminal_template()
     page = mode == PAGE_MODE
@@ -394,6 +398,111 @@ def terminal_template():
     return prefix, len(prefix) - len(code) + displacement
 
 
+def connection_template():
+    """Only Linux I/O stays in the adapter; the HIA kernel owns the session."""
+    chunk_bytes = 4096
+    code, labels, branches = bytearray(), {}, []
+
+    def emit(value):
+        code.extend(bytes.fromhex(value))
+
+    def word(value):
+        code.extend(struct.pack('<I', value))
+
+    def branch(opcode, target):
+        emit(opcode)
+        branches.append((len(code), target))
+        word(0)
+
+    def label(name):
+        labels[name] = len(code)
+
+    def map_private(size, register):
+        emit('be')
+        word(size)
+        branch('e8', 'map')
+        emit(register)
+
+    emit('48 83 3c 24 01')                     # argc == 1
+    branch('0f 85', 'bad_frame')
+    emit('48 83 ec 20 48 89 e5 fc')            # aligned local storage; clear DF
+    map_private(INPUT_MAX + chunk_bytes, '49 89 c4')
+    map_private(RESPONSE_BYTES, '49 89 c5')
+    map_private(CONNECTION_WORKSPACE, '49 89 c6')
+    emit('4d 8d bc 24')
+    word(INPUT_MAX)                           # r15 = chunk after the input
+    emit('31 db')                             # rbx = bytes in current frame
+
+    label('read')
+    emit('31 ff 4c 89 fe ba')
+    word(chunk_bytes)
+    emit('31 c0 0f 05 48 83 f8 fc')
+    branch('0f 84', 'read')                    # EINTR
+    emit('48 85 c0')
+    branch('0f 88', 'io_failure')
+    branch('0f 84', 'eof')
+    emit('48 89 45 00 48 c7 45 08 00 00 00 00')
+
+    label('next')
+    emit('4c 8b 45 08 4c 3b 45 00')
+    branch('0f 84', 'read')
+    emit('43 0f b6 14 07 48 ff 45 08 80 fa 0a')
+    branch('0f 84', 'frame')
+    emit('48 81 fb')
+    word(INPUT_MAX)
+    branch('0f 83', 'bad_frame')
+    emit('41 88 14 1c 48 ff c3')
+    branch('e9', 'next')
+
+    label('frame')
+    emit('4c 89 e7 48 89 de 4c 89 ea b9')     # s, bytes, o, o_capacity
+    word(RESPONSE_BYTES)
+    emit('4d 89 f0 41 b9')                    # workspace, w_capacity
+    word(CONNECTION_WORKSPACE)
+    emit('e8')
+    displacement = len(code)
+    word(0)
+    emit('31 db 89 c0 85 c0')                  # notification => zero output
+    branch('0f 84', 'next')
+    emit('3d')
+    word(RESPONSE_BYTES)
+    branch('0f 87', 'io_failure')
+    emit('41 80 7c 05 ff 0a')
+    branch('0f 85', 'io_failure')
+    emit('4c 89 ee 89 c2')
+
+    label('write')
+    emit('bf 01 00 00 00 b8 01 00 00 00 0f 05 48 83 f8 fc')
+    branch('0f 84', 'write')
+    emit('48 85 c0')
+    branch('0f 8e', 'io_failure')
+    emit('48 01 c6 48 29 c2')
+    branch('0f 85', 'write')
+    branch('e9', 'next')
+
+    label('map')
+    emit('31 ff ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff')
+    emit('45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff')
+    branch('0f 83', 'io_failure')
+    emit('c3')
+
+    label('eof')
+    emit('48 85 db')
+    branch('0f 85', 'bad_frame')
+    emit('31 ff')
+    branch('e9', 'exit')
+    for name, status in (('bad_frame', 64), ('io_failure', 4)):
+        label(name)
+        emit('bf')
+        word(status)
+        branch('e9', 'exit')
+    label('exit')
+    emit('b8 3c 00 00 00 0f 05 0f 0b')
+    resolve(code, labels, branches)
+    prefix = elf_prefix(code)
+    return prefix, len(prefix) - len(code) + displacement
+
+
 def render():
     source = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     count = length(s)
@@ -401,10 +510,10 @@ def render():
         return 4294967295
     mode = read_word(s, 8)
 '''
-    for mode in range(SCHEMA_MODE + 1):
+    for mode in range(CONNECTION_MODE + 1):
         source += f'    if mode == {mode}:\n        return pack_{mode}(s, o)\n'
     source += '    return 4294967295\n'
-    for mode in range(SCHEMA_MODE + 1):
+    for mode in range(CONNECTION_MODE + 1):
         prefix, call = template(mode)
         source += f'''
 def pack_{mode}(s:readbuf, o:mutbuf) -> u32:

@@ -227,6 +227,7 @@ jobs:
               'tests.test_hia_mcp_reply_native.McpReplySourceTests',
               'tests.test_hia_mcp_terminal_native.McpTerminalSourceTests',
               'tests.test_hia_mcp_negotiation_native.McpNegotiationSourceTests',
+              'tests.test_hia_mcp_connection_native.McpConnectionSourceTests',
               'tests.test_hia_mcp_catalog_native.McpCatalogSourceTests',
               'tests.test_hia_mcp_uri_native.McpUriSourceTests',
               'tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests',
@@ -1051,7 +1052,7 @@ jobs:
             examples/hia_bootstrap/core_json_frontend.hepta \
             examples/hia_bootstrap/core_json_cli_packer.hepta \
             docs/HIA_SELFHOST_CORE_SUPPORT.json "$package/stage"
-          for profile in mcp-request mcp-reply mcp-terminal mcp-negotiation mcp-catalog mcp-uri; do
+          for profile in mcp-request mcp-reply mcp-terminal mcp-negotiation mcp-catalog mcp-uri mcp-connection; do
             python -B -m tools.build_hia_json_preflight --candidate "$profile" \
               --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
               --output "$RUNNER_TEMP/$profile-image"
@@ -1279,6 +1280,11 @@ jobs:
             python -B -m unittest tests.test_hia_worker_prepare
           HIA_TEST_CORE_TOTALITY_EXE="$installed/hia-totality-core" \
             python -B -m unittest tests.test_hia_core_admission_cli.CoreTotalityExecutableTests
+          env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/mcp_connection.hepta \
+            > "$package/installed-mcp-connection.image.bin"
+          cmp "$RUNNER_TEMP/mcp-connection-image/mcp-connection.image.bin" "$package/installed-mcp-connection.image.bin"
+          HIA_TEST_MCP_CONNECTION_EXE="$installed/hia-agent-mcp-connection" \
+            python -B -m unittest -v tests.test_hia_mcp_connection_native
           HEPTA_HIA_PROOF_CNF_EXECUTABLE="$installed/hia-proof-cnf" \
             python -B -m unittest tests.test_hia_cnf_native.CnfStandaloneTests
           python -B -m tests.test_hia_worker_terminal_runtime "$installed/hia-worker-terminal"
