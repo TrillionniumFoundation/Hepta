@@ -281,7 +281,7 @@ class _FiniteCallerMemory:
         return model if z.is_true(model.eval(original, model_completion=True)) else None
 
 
-def _native_obligation(z, cnf, expression, deadline, *, memory=None):
+def _native_obligation(z, cnf, expression, deadline, *, memory=None, native_only=False):
     """Use HIA for a precise finite Boolean reduction when available."""
     from .hia_cnf_native import SAT, UNSAT, WRAPPING_PRODUCT, abstract_wide_division, bitblast_goal, bitvector_circuit
 
@@ -344,7 +344,7 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
                     receipt["caller_memory"] = "native_hia_finite_byte_array"
                 return "unsat", None, receipt
     remaining = int((deadline - time.monotonic()) * 1000)
-    if remaining < 4:
+    if native_only or remaining < 4:
         return None
     goal = expression if reduced_memory is None else candidate
     reduced = bitblast_goal(z, goal, timeout_ms=min(100, remaining // 4))
@@ -373,6 +373,34 @@ def _native_obligation(z, cnf, expression, deadline, *, memory=None):
     if reduced_memory is not None:
         receipt["caller_memory"] = "native_hia_finite_byte_array"
     return ("sat" if result == SAT else "unsat"), witness, receipt
+
+
+def _native_memory_faults(z, cnf, assumptions, faults, deadline, memory):
+    # A disjunction is unsatisfiable exactly when every arm is
+    # unsatisfiable under the same caller assumptions. Keep the retained
+    # SMT query intact; this partition only changes native search order.
+    arms = [fault for fault in faults if not z.is_false(fault)]
+    if cnf is None or memory is None or not 2 <= len(arms) <= 16:
+        return None
+    parts = []
+    for arm in arms:
+        arm_memory = _FiniteCallerMemory(z, memory.decoder, memory.initial, deadline)
+        result = _native_obligation(z, cnf, z.And(*assumptions, arm), deadline,
+                                    memory=arm_memory, native_only=True)
+        if result is None:
+            return None
+        verdict, witness, receipt = result
+        if verdict == "sat":
+            return verdict, witness, receipt
+        parts.append(receipt)
+    formulas = [part["formula_sha256"] for part in parts]
+    return "unsat", None, {
+        "method": "native_hia_circuit_cnf", "image_sha256": cnf.image_sha256,
+        "formula_sha256": sha256(b"".join(bytes.fromhex(formula) for formula in formulas)).hexdigest(),
+        "disjunct_formula_sha256": formulas,
+        **{key: sum(part[key] for part in parts) for key in ("variables", "clauses", "steps")},
+        "search": "native_hia_conflict_learning", "restarts": "bounded_geometric",
+    }
 
 
 def _profile_configuration(profile_version):
@@ -918,7 +946,11 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
         started = time.monotonic()
         memory = (_FiniteCallerMemory(z, machine.native_model, t.memory, t.deadline)
                   if t.loan is not None and machine.native_model is not None and cnf is not None else None)
-        native = _native_obligation(z, cnf, z.And(*assumptions, violation), t.deadline, memory=memory)
+        native = None
+        if name == "machine_memory_access_bounds":
+            native = _native_memory_faults(z, cnf, assumptions, machine.faults, t.deadline, memory)
+        if native is None:
+            native = _native_obligation(z, cnf, z.And(*assumptions, violation), t.deadline, memory=memory)
         if native is None:
             check_deadline()
             solver.set(timeout=max(1, int((t.deadline - time.monotonic()) * 1000)))

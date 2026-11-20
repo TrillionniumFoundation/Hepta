@@ -493,11 +493,11 @@ def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
         result = node(o, R_CHOOSE, take, RIGHT, LEFT)
         return formula_done(o, node(o, R_SIMPLIFY, result, 0, 0), 0, 0, 0)
     if op == OP_IMUL:
-        return imul_formula(o)
+        return imul_formula(o, param)
     if op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR or op == OP_SAR_CL:
         return variable_shift_formula(o, op)
     if op == OP_MULTIPLY_WORDS or op == OP_DIVIDE_WORDS or op == OP_IMUL_FULL:
-        return pair_formula(o, op)
+        return pair_formula(o, op, param)
     return alu_formula(o, op)
 
 def stack_formula(o:mutbuf, op:u64) -> u64:
@@ -604,9 +604,15 @@ def shift_formula(o:mutbuf, op:u64, count:u64) -> u64:
     cf = node(o, R_ONE, bit, 0, 0)
     return formula_done(o, result, zf, cf, 0)
 
-def imul_formula(o:mutbuf) -> u64:
+def imul_formula(o:mutbuf, width:u64) -> u64:
     # The low bits are written; carry reflects signed truncation. Undefined
     # ZF is a separate arbitrary input, never preserved or inferred.
+    if width == 8 or width == 16 or width == 32:
+        narrow = signed_product(o, LEFT, RIGHT, width)
+        exact = node(o, R_SIGNEXT, narrow, 64 - 2 * width, 0)
+        return formula_done(o, node(o, R_SIMPLIFY, exact, 0, 0), ARBITRARY, node(o, R_FALSE, 0, 0, 0), 0)
+    if width != 0:
+        return 4294967293
     left = node(o, R_SIGNEXT, LEFT, 64, 0)
     right = node(o, R_SIGNEXT, RIGHT, 64, 0)
     full = node(o, R_IMUL, left, right, 0)
@@ -633,7 +639,7 @@ def variable_shift_formula(o:mutbuf, op:u64) -> u64:
     cf = node(o, R_CHOOSE, zero, CF, carry)
     return formula_done(o, result, zf, cf, 0)
 
-def pair_formula(o:mutbuf, op:u64) -> u64:
+def pair_formula(o:mutbuf, op:u64, width:u64) -> u64:
     if op == OP_DIVIDE_WORDS:
         quotient = node(o, R_UDIV_WORDS, RIGHT, LEFT, THIRD)
         remainder = node(o, R_UREM_WORDS, RIGHT, LEFT, THIRD)
@@ -641,6 +647,15 @@ def pair_formula(o:mutbuf, op:u64) -> u64:
         fits = node(o, R_ULT, RIGHT, THIRD, 0)
         admitted = node(o, R_BOOL_AND, nonzero, fits, 0)
         return formula_done(o, quotient, remainder, ARBITRARY, admitted)
+    if op == OP_IMUL_FULL and (width == 8 or width == 16 or width == 32):
+        narrow = signed_product(o, LEFT, THIRD, width)
+        low = node(o, R_SIGNEXT, narrow, 64 - 2 * width, 0)
+        sign = node(o, R_EXTRACT, narrow, 2 * width - 1, 2 * width - 1)
+        high = node(o, R_SIGNEXT, sign, 63, 0)
+        return formula_done(o, node(o, R_SIMPLIFY, low, 0, 0), node(o, R_SIMPLIFY, high, 0, 0),
+                            node(o, R_FALSE, 0, 0, 0), 0)
+    if width != 0:
+        return 4294967293
     extension = choose(op == OP_IMUL_FULL, R_SIGNEXT, R_ZEROEXT)
     a = node(o, extension, LEFT, 64, 0)
     b = node(o, extension, THIRD, 64, 0)
@@ -663,6 +678,14 @@ def signed_division_result(o:mutbuf, value:u64, width:u64) -> u64:
     if width == 64:
         return value
     return node(o, R_SIGNEXT, value, 63 - width, 0)
+
+def signed_product(o:mutbuf, left:u64, right:u64, width:u64) -> u64:
+    # Each input is already normalized by its Core type or independently
+    # recognized as an exact sign extension of the actual machine word.
+    # Twice that width retains the mathematical product without overflow.
+    a = node(o, R_SIGNEXT, node(o, R_EXTRACT, left, width - 1, 0), width, 0)
+    b = node(o, R_SIGNEXT, node(o, R_EXTRACT, right, width - 1, 0), width, 0)
+    return node(o, R_IMUL, a, b, 0)
 
 def signed_divide_formula(o:mutbuf, profile:u64) -> u64:
     nonzero = node(o, R_NONZERO, THIRD, 0, 0)
@@ -932,6 +955,12 @@ def core_signed_arithmetic(o:mutbuf, op:u64, width:u64) -> u64:
 
 def core_signed_checked(o:mutbuf, op:u64, width:u64) -> u64:
     if op == C_INT_MUL_CHECKED:
+        if width < 64:
+            product = signed_product(o, LEFT, RIGHT, width)
+            low = node(o, R_EXTRACT, product, width - 1, 0)
+            value = node(o, R_SIGNEXT, low, 64 - width, 0)
+            trap = node(o, R_NE, product, node(o, R_SIGNEXT, low, width, 0), 0)
+            return formula_done(o, node(o, R_SIMPLIFY, value, 0, 0), 0, 0, trap)
         a = node(o, R_SIGNEXT, LEFT, 64, 0)
         b = node(o, R_SIGNEXT, RIGHT, 64, 0)
         product = node(o, R_IMUL, a, b, 0)

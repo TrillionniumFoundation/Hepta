@@ -524,6 +524,8 @@ class Executor:
         if operation == "imul":
             arbitrary = self.z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)
         left = state.registers[destination]
+        if operation == "imul":
+            parameter = self.narrow_signed_width(left, right)
         formula = self.native_model.symbolic(
             self.z, self.ctx, operation, parameter, left=left, right=right,
             zf=state.flags["zf"], cf=state.flags["cf"], arbitrary=arbitrary,
@@ -602,7 +604,11 @@ class Executor:
         carry = self.undefined_flag(op, "cf")
         # The short formula is valid only when the actual pre-instruction
         # high word is the HIA-computed sign extension of the low word.
-        parameter = self.signed_dividend_profile(regs[2], regs[0], regs[operand]) if op == "idiv" else 0
+        parameter = 0
+        if op == "idiv":
+            parameter = self.signed_dividend_profile(regs[2], regs[0], regs[operand])
+        elif op == "imul_full":
+            parameter = self.narrow_signed_width(regs[0], regs[operand])
         low, high, cf, admitted = self.native_model.word_pair(z, self.ctx, recipe, regs[0], regs[2],
                                                               regs[operand], carry, parameter=parameter)
         require(low is not None and high is not None and cf is not None and
@@ -617,16 +623,20 @@ class Executor:
 
     def signed_dividend_profile(self, high, low, divisor):
         z = self.z
-        low, divisor = map(z.simplify, (low, divisor))
-        if not z.eq(z.simplify(high), self.cqo(low)):
+        if not z.eq(z.simplify(high), self.cqo(z.simplify(low))):
             return 0
+        return self.narrow_signed_width(low, divisor) or 1
+
+    def narrow_signed_width(self, *words):
+        z = self.z
+        words = tuple(map(z.simplify, words))
         # Only a syntactic identity of the actual register expressions can
         # justify the shorter circuit. Unknown identities keep the full words.
         for width in (8, 16, 32):
             if all(z.eq(word, z.simplify(z.SignExt(64 - width, z.Extract(width - 1, 0, word))))
-                   for word in (low, divisor)):
+                   for word in words):
                 return width
-        return 1
+        return 0
 
     def _reference_extended_registers(self, state, op, args):
         z, regs = self.z, state.registers
