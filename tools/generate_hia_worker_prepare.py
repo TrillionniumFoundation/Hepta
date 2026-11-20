@@ -38,6 +38,7 @@ CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
 JOB_LIFECYCLE_OUTPUT = b'HIAJSV01'
+JOB_OPERATION_INPUT = b'HIAJOP01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -65,6 +66,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return capture_policy(s, o)
     if magic == JOB_LIFECYCLE_INPUT:
         return job_lifecycle(s, o)
+    if magic == JOB_OPERATION_INPUT:
+        return job_operation(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -329,6 +332,66 @@ def job_poll(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 8, stage)
     word_store(o, 16, decision)
     return 24
+
+def job_operation(s:readbuf, o:mutbuf) -> u64:
+    # Only the three trusted digests and admitted name bytes enter the reply.
+    if length(s) < 240 or length(o) < 512:
+        return 4294967293
+    id_size = word_load(s, 8)
+    host_size = word_load(s, 16)
+    observed_host_size = word_load(s, 24)
+    key_size = word_load(s, 32)
+    observed_key_size = word_load(s, 40)
+    if id_size == 0 or id_size > 128 or host_size == 0 or host_size > 128:
+        return 4294967293
+    if key_size == 0 or key_size > 256 or observed_host_size != host_size or observed_key_size != key_size:
+        return 4294967293
+    if length(s) != 240 + id_size + 2 * host_size + 2 * key_size:
+        return 4294967293
+    host = 240 + id_size
+    keys = host + 2 * host_size
+    if operation_name(s, 240, id_size) == 0 or operation_name(s, host, host_size) == 0:
+        return 4294967293
+    if operation_equal(s, host, host + host_size, host_size) == 0:
+        return 4294967293
+    if operation_equal(s, keys, keys + key_size, key_size) == 0:
+        return 4294967293
+    if operation_equal(s, 48, 112, 64) == 0 or operation_digest(s, 48) == 0 or operation_digest(s, 176) == 0:
+        return 4294967293
+    at = operation_host(o, 0)
+    at = external(s, o, at, host, host_size)
+    at = operation_id(o, at)
+    at = external(s, o, at, 240, id_size)
+    at = operation_request(o, at)
+    at = external(s, o, at, 176, 64)
+    return operation_end(o, at)
+
+def operation_name(s:readbuf, at:u64, size:u64) -> u64:
+    index = 0
+    while index < size:
+        point = byte(s, at + index)
+        if ((point < 48 or point > 57) and (point < 65 or point > 90)
+            and (point < 97 or point > 122) and point != 45 and point != 46 and point != 64 and point != 95):
+            return 0
+        index = index + 1
+    return 1
+
+def operation_digest(s:readbuf, at:u64) -> u64:
+    index = 0
+    while index < 64:
+        point = byte(s, at + index)
+        if (point < 48 or point > 57) and (point < 97 or point > 102):
+            return 0
+        index = index + 1
+    return 1
+
+def operation_equal(s:readbuf, left:u64, right:u64, size:u64) -> u64:
+    index = 0
+    while index < size:
+        if byte(s, left + index) != byte(s, right + index):
+            return 0
+        index = index + 1
+    return 1
 
 def job_identity(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     n = length(s)
@@ -610,6 +673,10 @@ LITERALS = {
     'readonly_tool': '","tool":',
     'mutation_start': '{"key":',
     'mutation_tool': ',"tool":',
+    'operation_host': '{"host":"',
+    'operation_id': '","job_id":"',
+    'operation_request': '","report_artifact":null,"request_sha256":"',
+    'operation_end': '"}',
 }
 
 
@@ -637,6 +704,7 @@ def source_program():
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
               .replace('JOB_LIFECYCLE_OUTPUT', str(int.from_bytes(JOB_LIFECYCLE_OUTPUT, 'little')))
+              .replace('JOB_OPERATION_INPUT', str(int.from_bytes(JOB_OPERATION_INPUT, 'little')))
               .replace('NOT_FOUND_HEAD', str(int.from_bytes(b'not-foun', 'little')))
               .replace('ACTIVE_WORD', str(int.from_bytes(b'active', 'little')))
               .replace('EXITED_WORD', str(int.from_bytes(b'exited', 'little')))

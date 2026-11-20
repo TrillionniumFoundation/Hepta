@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+import json
 import os
 from pathlib import Path
 import struct
@@ -111,6 +112,35 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
         for body in (b'', b'[]', b'{}\n'):
             answer = self.invoke(b'HIAJID01' + body)
             self.assertEqual((answer.returncode, answer.stdout, answer.stderr), (2, b'', b''))
+
+    def test_operation_receipt_keeps_only_the_exact_original_job(self):
+        binding = text_digest(b'original durable process binding')
+        request = text_digest(b'original Worker request')
+        names = [b'job-1@a.b_c', b'worker-1', b'worker-1', b'durable-key', b'durable-key']
+        digests = [binding, binding, request]
+
+        def packet(parts, hashes):
+            return struct.pack('<8s5Q', b'HIAJOP01', *map(len, parts)) + b''.join(hashes + parts)
+
+        for identifier in (names[0], b'x' * 128):
+            parts = [identifier, *names[1:]]
+            actual = self.invoke(packet(parts, digests))
+            expected = {'host': 'worker-1', 'job_id': identifier.decode(),
+                        'report_artifact': None, 'request_sha256': request.decode()}
+            self.assertEqual((actual.returncode, actual.stdout, actual.stderr),
+                             (0, json.dumps(expected, separators=(',', ':')).encode(), b''))
+        for invalid in (
+            packet([b'job/"bad', *names[1:]], digests),
+            packet([b'x' * 129, *names[1:]], digests),
+            packet([names[0], names[1], b'worker-2', *names[3:]], digests),
+            packet([*names[:4], b'wrong--key'], digests),
+            packet(names, [binding, binding[:-1] + bytes([binding[-1] ^ 1]), request]),
+            packet(names, [binding.upper(), binding.upper(), request]),
+            packet(names, [binding, binding, b'g' * 64]),
+            packet(names, digests) + b'\0',
+        ):
+            actual = self.invoke(invalid)
+            self.assertEqual((actual.returncode, actual.stdout, actual.stderr), (2, b'', b''))
 
     def test_job_reuse_requires_both_original_bindings_without_promoting_legacy_records(self):
         digest = text_digest(b'{"binding":"original"}')
