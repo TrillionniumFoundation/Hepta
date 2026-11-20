@@ -176,14 +176,21 @@ class ScalarProfileSourceTests(unittest.TestCase):
         start = original.index('    if program.structured_bytes')
         end = original.index('    totality = []\n', start)
         self.assertIn(original[start:end], current)
-        old = ast.parse(original).body[0]
         new = next(node for node in ast.parse(current).body if isinstance(node, ast.FunctionDef) and node.name == '_admit')
-        tail = next(index for index, node in enumerate(old.body) if isinstance(node, ast.Assign)
-                    and any(isinstance(target, ast.Name) and target.id == 'totality' for target in node.targets))
-        new_tail = next(index for index, node in enumerate(new.body) if isinstance(node, ast.Assign)
+        new_tail = next(node for node in new.body if isinstance(node, ast.Assign)
                         and any(isinstance(target, ast.Name) and target.id == 'totality' for target in node.targets))
-        self.assertEqual([ast.dump(node, include_attributes=False) for node in old.body[tail:]],
-                         [ast.dump(node, include_attributes=False) for node in new.body[new_tail:]])
+        active = ''.join(current.splitlines(keepends=True)[new_tail.lineno - 1:new.end_lineno])
+        # Allow only the reviewed result predicate for the structural and
+        # circuit HIA checkers. The complete frozen proof tail, including
+        # freshness, claims and evidence writeout, remains the oracle.
+        prior = '                    or proof["solver"].get("result") != "unsat"):\n'
+        current_predicate = (
+            '                    or (proof["solver"].get("name"), proof["solver"].get("result")) not in {\n'
+            '                        ("z3", "unsat"), (total.STRUCTURAL_TOTALITY_CHECKER, "established"),\n'
+            '                        (total.CIRCUIT_TOTALITY_CHECKER, "unsat")}):\n'
+        )
+        self.assertEqual(active.count(current_predicate), 1)
+        self.assertEqual(active.replace(current_predicate, prior, 1), original[end:])
 
     def test_independent_VM_matches_original_decision_and_ABI(self):
         checked = assemble_program(native.SOURCE.read_bytes())
