@@ -939,9 +939,10 @@ def owned_shared_symbols(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     names_extent = get(o, 56)
     # Mutable scratch holds a compressed binary name index. All branch
     # nodes are initialized on insertion, and the empty root is explicit.
+    # The operation tag is consumed; its slot now counts defined exports.
+    put(w, 0, 0)
     put(w, 8, 0)
     count = 0
-    exports = 0
     at = start
     while at < start + extent:
         index = word(s, at, 4)
@@ -976,12 +977,12 @@ def owned_shared_symbols(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                     if owned_shared_mapped(s, o, section, word(s, at + 8, 8), symbol_size) == 0:
                         return owned_shared_named_error(o, ABI_SYMBOL_MAPPING, name, size)
                     put(o, row + 16, 1)
-                    exports = exports + 1
+                    put(w, 0, get(w, 0) + 1)
                 count = count + 1
         at = at + 24
     match = 0
     if length(w) == OWNED_SHARED_EXPECTED_WORK:
-        match = owned_shared_exports_match(s, o, w, exports)
+        match = owned_shared_exports_match(s, o, w, get(w, 0))
     owned_shared_refusal(o, 0)
     put(o, 8, count)
     put(o, 16, match)
