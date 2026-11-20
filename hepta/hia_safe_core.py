@@ -9,7 +9,7 @@ this is not a Lean-kernel proof of a complete ISA or the whole HIA language.
 """
 from __future__ import annotations
 
-from .hia_loaded_source import loaded_source_identity
+from .hia_loaded_source import loaded_checker_identity, loaded_source_identity
 from .hia_solver_identity import solver_identity as _loaded_solver_identity
 
 from hashlib import sha256
@@ -116,13 +116,7 @@ def _checker_source_identity():
         ('elf_inventory', 'hia_safe_core_elf_inventory_native.py', selected_safe_core_elf_inventory()),
         ('cnf', 'hia_cnf_native.py', selected_cnf()),
     )
-    active = [(name, adapter, selected) for name, adapter, selected in helpers if selected is not None]
-    adapters = (*[adapter for _, adapter, _ in active], 'hia_json_preflight_native.py') if active else ()
-    source = loaded_source_identity(__name__, (*CHECKER_SOURCE_FILES, *adapters))
-    for name, _, selected in active:
-        source[f'native_{name}_source_sha256'] = selected.admitted_source_sha256
-        source[f'native_{name}_image_sha256'] = selected.image_sha256
-    return source
+    return loaded_checker_identity(__name__, CHECKER_SOURCE_FILES, helpers)
 
 
 class SafeCoreRejected(ValueError):

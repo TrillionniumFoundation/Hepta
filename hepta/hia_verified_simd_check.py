@@ -12,7 +12,7 @@ semantics here does not authorize execution on an unprobed host.
 """
 from __future__ import annotations
 
-from .hia_loaded_source import loaded_source_identity
+from .hia_loaded_source import loaded_checker_identity
 
 from dataclasses import dataclass
 from hashlib import sha256
@@ -56,7 +56,10 @@ SOURCE_FILES = ("hia_verified_simd_check.py", "hia_safe_core.py", "hia_safe_core
 
 
 def _identity():
-    return loaded_source_identity(__name__, SOURCE_FILES)
+    from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
+
+    inventory = ('elf_inventory', 'hia_safe_core_elf_inventory_native.py', selected_safe_core_elf_inventory())
+    return loaded_checker_identity(__name__, SOURCE_FILES, (inventory,))
 
 
 def _signature(operation):

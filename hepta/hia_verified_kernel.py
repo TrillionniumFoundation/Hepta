@@ -142,7 +142,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                                 query_directory=query_directory,
                                 profile_version=_unsigned_profile_version(checked))
     else:
-        from .hia_verified_simd_check import validate_verified_simd_artifact
+        from .hia_verified_simd_check import _identity as _simd_checker_identity, validate_verified_simd_artifact
         _require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
                  "shared linkage requires a Linux x86-64 host")
         _require(producer_identity == _simd_producer_identity(), "producer changed during emission")
@@ -188,8 +188,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                 _require(cpu_admission["affinity"] == sorted(os.sched_getaffinity(0)),
                          "CPU affinity changed during build")
                 identity = validation["checker"]["source_identity"]
-                current = loaded_source_identity(__package__ + ".hia_verified_simd_check", tuple(identity))
-                if current != identity:
+                if _simd_checker_identity() != identity:
                     raise VerifiedKernelRejected("checker changed before final publication")
 
             recheck()

@@ -171,4 +171,17 @@ def loaded_source_identity(owner, filenames):
     return result
 
 
+def loaded_checker_identity(owner, filenames, helpers):
+    """Bind executing bridge modules and the selected, admitted HIA images."""
+    active = [(name, module, image) for name, module, image in helpers if image is not None]
+    adapters = [module for _, module, _ in active]
+    if active:
+        adapters.append('hia_json_preflight_native.py')
+    result = loaded_source_identity(owner, (*filenames, *adapters))
+    for name, _, image in active:
+        result[f'native_{name}_source_sha256'] = image.admitted_source_sha256
+        result[f'native_{name}_image_sha256'] = image.image_sha256
+    return result
+
+
 register_loaded_module(__name__)

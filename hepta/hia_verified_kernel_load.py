@@ -19,10 +19,10 @@ from pathlib import Path
 import threading
 
 from .hia_verified_cpu import require_host_isa
-from .hia_verified_simd_check import validate_verified_simd_artifact
+from .hia_verified_simd_check import _identity as _simd_checker_identity, validate_verified_simd_artifact
 from .hia_safe_core_elf import bind_final_artifact
 from .hia_safe_core import (ARTIFACT_PROFILE_V2, ARTIFACT_PROFILE_V3, ARTIFACT_PROFILE_V4, ARTIFACT_PROFILE_V5,
-                           _unsigned_profile_version, validate_safe_core_artifact)
+                           _checker_source_identity, _unsigned_profile_version, validate_safe_core_artifact)
 from .hia_program import verify_program
 
 
@@ -193,11 +193,7 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
         _require(identity == current, 'loader source changed')
         _require(admission['source_sha256'] == current['hia_verified_cpu.py'],
                  'CPU admission source changed')
-        checker_identity = validation['checker']['source_identity']
-        checker_owner = (__package__ + ".hia_verified_simd_check"
-                         if validation['schema'] == "hepta.hia.verified-simd-machine-validation.v1"
-                         else __package__ + ".hia_safe_core")
-        _require(loaded_source_identity(checker_owner, tuple(checker_identity)) == checker_identity,
+        _require(_simd_checker_identity() == validation['checker']['source_identity'],
                  'independent checker source changed before loading')
         _require(admission['affinity'] == sorted(os.sched_getaffinity(0)),
                  'allowed CPU affinity changed before loading')
@@ -255,11 +251,7 @@ def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_
         _require(identity == current, 'loader source changed')
         _require(admission['source_sha256'] == current['hia_verified_cpu.py'],
                  'CPU admission source changed')
-        checker_identity = validation['checker']['source_identity']
-        checker_owner = (__package__ + ".hia_verified_simd_check"
-                         if validation['schema'] == "hepta.hia.verified-simd-machine-validation.v1"
-                         else __package__ + ".hia_safe_core")
-        _require(loaded_source_identity(checker_owner, tuple(checker_identity)) == checker_identity,
+        _require(_checker_source_identity() == validation['checker']['source_identity'],
                  'independent checker source changed before loading')
         _require(admission['affinity'] == sorted(os.sched_getaffinity(0)),
                  'allowed CPU affinity changed before loading')
