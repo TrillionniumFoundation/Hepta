@@ -64,6 +64,15 @@ HELPER_BUILDERS = {
 }
 
 
+CONTROLLER_MANIFEST = 'hia-controller.json'
+CONTROLLER_FILES = (
+    'HIA_AGENT_NATIVE_TOOL_CATALOG.json', 'hia-worker-prepare',
+    'hia-agent-mcp-request', 'hia-agent-mcp-reply', 'hia-agent-mcp-terminal',
+    'hia-agent-mcp-negotiation', 'hia-agent-mcp-catalog', 'hia-agent-mcp-uri',
+    'hia-agent-mcp-input-schema', 'hia-agent-mcp-response-schema', 'hia-agent-mcp-proof-schema',
+)
+
+
 def _copy_runtime_file(source, destination):
     # The build tree may contain source, proof logs and tool intermediates.
     # Only the explicitly referenced immutable runtime files are reproduced.
@@ -98,6 +107,45 @@ def _copy_scheduler(source, destination):
     return _copy_image_manifest(source, destination / 'inprocess-manifest.json')
 
 
+def _install_controller(output, scratch, release, installer):
+    # The earlier verified packages without a complete controller keep their
+    # original Worker-only contract. Never create a partially bound controller.
+    files = [release / name for name in CONTROLLER_FILES]
+    builder = release / 'hia-directory-package-build'
+    if not all(path.is_file() for path in (*files, builder)):
+        return
+    stage = scratch / 'controller-stage'
+    stage.mkdir(mode=0o700)
+    pins = {}
+    for source in files:
+        dest = _copy_runtime_file(source, stage / source.name)
+        if source.name.startswith('hia-'):
+            dest.chmod(0o500)
+        pins[source.name] = sha256(dest.read_bytes()).hexdigest()
+    manifest = stage / CONTROLLER_MANIFEST
+    with manifest.open('x') as stream:
+        json.dump({'schema':'hepta.hia.mcp.controller.v1', 'files':pins}, stream,
+                  sort_keys=True, separators=(',', ':'))
+        stream.write('\n')
+    manifest.chmod(0o400)
+    environment = {'PATH': ''}
+    package = subprocess.run([builder, stage], env=environment, check=True,
+                             capture_output=True, timeout=60)
+    digest = package.stderr.decode('ascii').strip()
+    if not authority._digest(digest):
+        raise ValueError('HIA controller packer did not publish an exact package digest')
+    depot = output / 'controller'
+    depot.mkdir(mode=0o700)
+    for action in ('install', 'verify'):
+        result = subprocess.run([installer, action, depot, digest], input=package.stdout,
+                                env=environment, check=True, capture_output=True, timeout=60)
+        receipt = json.loads(result.stdout)
+        if receipt['sha256'] != digest or receipt['files'] != len(files) + 1:
+            raise ValueError('HIA controller package receipt differs from its fixed role inventory')
+    if (depot / digest / CONTROLLER_MANIFEST).read_bytes() != manifest.read_bytes():
+        raise ValueError('installed HIA controller manifest differs from its verified role pins')
+
+
 def build(output, compiler, cold_report, package, package_sha256):
     if not authority._digest(package_sha256):
         raise ValueError('an exact Store release SHA-256 is required')
@@ -116,6 +164,7 @@ def build(output, compiler, cold_report, package, package_sha256):
         contract = 'HIA_SELFHOST_CORE_SUPPORT.json'
         if (release / contract).read_bytes() != _source_resource_path('docs/' + contract).read_bytes():
             raise ValueError('Store release source contract differs from the worker build')
+        _install_controller(output, scratch, release, installer)
         batched = build_helper_batch(scratch / 'generic-helpers', compiler, cold_report,
                                      candidates=tuple(candidate for candidate in ADDITIONAL_HELPERS
                                                       if candidate not in HELPER_BUILDERS))
@@ -183,8 +232,14 @@ def main():
     parser.add_argument('--package-sha256', required=True)
     args = parser.parse_args()
     profile, pin = build(args.output, args.compiler, args.cold_report, args.package, args.package_sha256)
-    print(json.dumps({'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
-                      'package_sha256': args.package_sha256, 'production_activated': False}))
+    result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
+              'package_sha256': args.package_sha256, 'production_activated': False}
+    controller = list(profile.parent.glob('controller/*/' + CONTROLLER_MANIFEST))
+    if controller:
+        manifest, = controller
+        result.update(hia_controller_manifest=str(manifest),
+                      hia_controller_sha256=sha256(manifest.read_bytes()).hexdigest())
+    print(json.dumps(result))
 
 
 if __name__ == '__main__':

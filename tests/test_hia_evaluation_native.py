@@ -145,12 +145,23 @@ class EvaluationSourceTests(unittest.TestCase):
                 raise AssertionError('unselected evaluation imported optional native owner')
             return real_import(name, *arguments, **keywords)
 
+        class TypedStoreWorld(World):
+            # The current caller requests the same data and metadata with its
+            # retained wire bytes, and a typed result from the same time query.
+            def get_json_with_wire(self, reference):
+                value, metadata = self.get_json(reference)
+                return value, metadata, api.wire(value)
+
+            def context_created_ns(self, identity):
+                row = self.execute("SELECT created_ns FROM contexts WHERE id=?", (identity,)).fetchone()
+                return int(row["created_ns"])
+
         case = fixture_by_name()['artifact_improved']
         expected = World(case, api).observe(original())
         with patch.dict(os.environ):
             os.environ.pop(native.SELECTOR, None)
             with patch('builtins.__import__', guarded):
-                actual = World(case, api).observe(lambda service, args: service._hia_evaluate(args))
+                actual = TypedStoreWorld(case, api).observe(lambda service, args: service._hia_evaluate(args))
         self.assertEqual(encoded(actual), encoded(expected))
         from tools.build_hia_evaluation import build
         with tempfile.TemporaryDirectory() as directory:
