@@ -28,6 +28,72 @@ FIXTURE_NAME = 'tests/fixtures/service_context_callers_b569c21.json'
 FIXTURE_SHA256 = '6d06a3319b6d15a64ff46f2b1991d023c0e7ecedec85d36bd9080b964a31d4bf'
 
 
+_DIAGNOSTICS_CALLER = 'tests/test_hia_agent_native_tools.py'
+_DIAGNOSTICS_HELPER = 'tests/hia_caller_diagnostics_admission.py'
+_DIAGNOSTICS_HELPER_PIN = {'bytes': 5185, 'sha256': '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578'}
+_DIAGNOSTICS_AUTHORITY = 'tests/fixtures/caller_deadline_diagnostics_v1.json'
+_DIAGNOSTICS_AUTHORITY_PIN = {'bytes': 3545, 'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c'}
+
+
+def _source_pin(raw):
+    return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+
+def admit_original_callers(root):
+    """Retain all fifty callers and admit only the fixed diagnostic successor."""
+    root, captured = Path(root), {}
+
+    def capture(name):
+        raw = (root / name).read_bytes()
+        if name in captured and captured[name] != raw:
+            raise ValueError('context caller source changed between captures: ' + name)
+        captured[name] = raw
+        return raw
+
+    fixture_bytes = capture(FIXTURE_NAME)
+    if sha256(fixture_bytes).hexdigest() != FIXTURE_SHA256:
+        raise ValueError('frozen original context caller inventory changed')
+    expected = json.loads(fixture_bytes)
+    if (expected.get('schema') != 'hepta.hia.service-context-original-callers.v1'
+            or len(expected['ordered_ids']) != 50):
+        raise ValueError('complete original context caller source or denominator differs')
+    diagnostics = {}
+    for name, digest in expected['source_sha256'].items():
+        raw = capture(name)
+        if sha256(raw).hexdigest() == digest:
+            continue
+        if name != _DIAGNOSTICS_CALLER:
+            raise ValueError('an original complete context caller module changed: ' + name)
+        helper, authority = capture(_DIAGNOSTICS_HELPER), capture(_DIAGNOSTICS_AUTHORITY)
+        if (_source_pin(helper) != _DIAGNOSTICS_HELPER_PIN
+                or _source_pin(authority) != _DIAGNOSTICS_AUTHORITY_PIN):
+            raise ValueError('context caller diagnostic authority changed')
+        from tests import hia_caller_diagnostics_admission as diagnostic
+        if Path(diagnostic.__file__).read_bytes() != helper:
+            raise ValueError('context caller imported a different diagnostic admission')
+        diagnostics[name] = diagnostic.admit(name, raw, digest, authority)
+    for name, raw in captured.items():
+        if (root / name).read_bytes() != raw:
+            raise ValueError('context caller captured bytes changed: ' + name)
+    return expected, {
+        'schema': 'hepta.hia.service-context-caller-source-admission.v1',
+        'authority': {'path': FIXTURE_NAME, **_source_pin(fixture_bytes)},
+        'original_files': dict(expected['source_sha256']),
+        'original_modules': list(expected['modules']),
+        'original_ordered_ids': list(expected['ordered_ids']),
+        'reviewed_diagnostic_source_adjustments': diagnostics,
+        'captured_files': {name: _source_pin(raw) for name, raw in captured.items()},
+        'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [], 'whole_native': False,
+    }
+
+
+def bind_admission_to_source_capture(proof, source_digests):
+    for name, expected in proof['captured_files'].items():
+        if source_digests.get(name) != expected['sha256']:
+            raise ValueError('context caller admission differs from source capture: ' + name)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     selection = parser.add_mutually_exclusive_group(required=True)
@@ -38,15 +104,7 @@ def main():
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.hia_selfhost_contract import file_digests
     from tools.build_hia_service_context import INPUTS
-    fixture_bytes = (ROOT / FIXTURE_NAME).read_bytes()
-    if sha256(fixture_bytes).hexdigest() != FIXTURE_SHA256:
-        raise ValueError('frozen original context caller inventory changed')
-    expected = json.loads(fixture_bytes)
-    if (expected.get('schema') != 'hepta.hia.service-context-original-callers.v1'
-            or len(expected['ordered_ids']) != 50
-            or any(sha256((ROOT / path).read_bytes()).hexdigest() != digest
-                   for path, digest in expected['source_sha256'].items())):
-        raise ValueError('complete original context caller source or denominator differs')
+    expected, source_admission = admit_original_callers(ROOT)
     suite, planned = load_declared_suite(tuple(expected['modules']))
     planned = list(planned)
     if planned != expected['ordered_ids']:
@@ -57,9 +115,12 @@ def main():
                 'tools/qualify_hia_service_context_callers.py': sha256(Path(__file__).read_bytes()).hexdigest(),
                 FIXTURE_NAME: sha256((ROOT / FIXTURE_NAME).read_bytes()).hexdigest(),
                 **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in INPUTS},
-                **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in expected['source_sha256']}}
+                **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in expected['source_sha256']},
+                **{path: sha256((ROOT / path).read_bytes()).hexdigest()
+                   for path in source_admission['captured_files']}}
 
     before = source_pins()
+    bind_admission_to_source_capture(source_admission, before)
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     if args.cold_report is not None:
         from tools.build_hia_service_context import build
@@ -127,7 +188,9 @@ def main():
         stack.enter_context(patch.object(image, '_entry', counted_entry))
         with (args.evidence / 'tests.log').open('x') as stream:
             result = unittest.TextTestRunner(stream=stream, verbosity=2, resultclass=Result).run(suite)
-    stable = source_pins() == before and all(sha256(Path(path).read_bytes()).hexdigest() == digest
+    after = source_pins()
+    bind_admission_to_source_capture(source_admission, after)
+    stable = after == before and all(sha256(Path(path).read_bytes()).hexdigest() == digest
                                            for path, digest in bundle.items())
     clean = result.wasSuccessful() and all(not getattr(result, name) for name in
         ('errors', 'failures', 'skipped', 'expectedFailures', 'unexpectedSuccesses'))
@@ -149,6 +212,7 @@ def main():
         'reference_poison_scope': 'test process; subprocesses inherit selector, not Python patches',
         'all_original_modules_unfiltered': True, 'original_test_budgets_changed': False,
         'source_and_bundle_unchanged': stable, 'source_pins': before, 'bundle_pins': bundle,
+        'source_admission': source_admission,
         'foreign_schema_profile_buffer_sqlite_clock_budget_effects_still_hosted': True,
         'whole_native_delivery_qualified': False}
     (args.evidence / 'report.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')

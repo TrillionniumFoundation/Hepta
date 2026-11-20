@@ -508,6 +508,13 @@ class ServiceArtifactNativeTests(unittest.TestCase):
             'scope_exit_inferred_as_terminal_attestation': False})
 
     def test_actual_installed_worker_and_durable_parent_ACK_loss(self):
+        from tests.hia_service_artifact_worker_terminal import SourceAuthority, assert_terminal, worker_profile, process_record
+        from tools.read_hia_service_artifact_worker_terminal import Captures, admit_source_authority, verify_terminal, read_installation
+        authority = SourceAuthority(ROOT)
+        readback = Captures()
+        self.assertEqual(admit_source_authority(readback, ROOT), authority.summary())
+        self.addCleanup(authority.finish)
+        self.addCleanup(readback.stable)
         from tests.test_hia_agent_installed_resources import RESOURCES, SDIST_SUPPORT_FILES
         from tests.test_hia_agent_native_tools import AgentToolCase
         from hepta.hia_native_helpers import native_helpers_scope
@@ -530,6 +537,8 @@ class ServiceArtifactNativeTests(unittest.TestCase):
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
                         '--target', installed, wheel])
+        profile = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())
+        self.assertEqual(profile, authority.profile)
         files = {}
         with zipfile.ZipFile(wheel) as archive:
             record_name, = [name for name in archive.namelist() if name.endswith('.dist-info/RECORD')]
@@ -554,7 +563,11 @@ class ServiceArtifactNativeTests(unittest.TestCase):
         pin = bundle(path, [(native.SELECTOR, self.manifest), (store_native.SELECTOR, self.store_manifest)])
         script = r'''import ctypes,importlib.abc,json,os,struct,sys
 from pathlib import Path
-installed=sys.argv.pop(1);mode=sys.argv.pop(1);sys.path.insert(0,installed)
+installed=sys.argv.pop(1);mode=sys.argv.pop(1);terminal_root=Path(sys.argv.pop(1))
+sys.path.insert(0,str(terminal_root))
+from tests.hia_service_artifact_worker_terminal import SourceAuthority,TerminalObservation
+terminal_authority=SourceAuthority(terminal_root)
+sys.path.insert(0,installed)
 class NoAuthoring(importlib.abc.MetaPathFinder):
     def find_spec(self,name,path=None,target=None):
         if name=='tools' or name.startswith('tools.'):raise AssertionError('installed runtime imported authoring')
@@ -563,8 +576,13 @@ from hepta import hia_agent_store as store
 from hepta import hia_service_artifact_native as native
 from hepta import hia_store_artifact_profile_native as child_native
 from hepta import hia_agent_service as service
-from hepta.hia_agent_worker import main
+from hepta import hia_agent_worker as worker_module
 from hepta import hia_native_delivery as delivery
+main=worker_module.main
+for module in (native,child_native,service,store,worker_module,delivery):
+    assert Path(module.__file__).resolve().is_relative_to(Path(installed).resolve())
+terminal=TerminalObservation(worker_module,service,delivery,native)
+assert terminal.profile==terminal_authority.profile
 assert native.SOURCE.resolve().is_relative_to(Path(installed).resolve()/'hepta'/'_data')
 counts={'startup':{},'request':{},'store_startup':{},'store_request':{},'close_calls':0};active=False
 def forbidden(*a,**k):raise AssertionError('installed retained service artifact handler executed')
@@ -592,7 +610,10 @@ def image_init(image,*a,**k):
         assert packet[0]==native.REQUEST_MAGIC and result==native.OUTPUT_BYTES
         bucket=counts['request' if active else 'startup'];key=str(packet[1]);bucket[key]=bucket.get(key,0)+1
         if active and mode=='lost_put_ack' and packet[1]==2 and packet[3]==native.PORT['put']:
-            raise ValueError('actual handler PUT acknowledgement lost after confirmed Store')
+            error=ValueError('actual handler PUT acknowledgement lost after confirmed Store')
+            terminal.injected(error)
+            try:raise error
+            finally:del error
         return result
     image._entry=observed
 native.NativeServiceArtifact.__init__=image_init
@@ -609,6 +630,8 @@ def child_image_init(image,*a,**k):
 child_native.NativeStoreArtifactProfile.__init__=child_image_init
 try:status=main(sys.argv[1:])
 finally:
+    counts['terminal']=terminal.report()
+    terminal_authority.finish()
     counts['unknown_records']=sum(row['lost'] for row in delivery.custody_snapshot())
     counts['store_unknown_frames']=len(child_native._FRAME_CUSTODY)
     counts['retained_resource_observations']=len(delivery._RESOURCE_OBSERVATIONS)
@@ -645,10 +668,16 @@ raise SystemExit(status)
                     'costs': db.execute('SELECT COUNT(*) FROM costs').fetchone()[0]}
 
         def worker(label, case, request, mode='normal', code=0):
-            return run(label, ['-I', '-c', script, installed, mode,
+            result = run(label, ['-I', '-c', script, installed, mode, ROOT,
                 '--state-root', case.state_root, '--artifact-root', case.files_root,
                 '--request-json-stdin', '--native-helpers-manifest', path,
                 '--expected-native-helpers-sha256', pin], body=encoded(request), expected_code=code)
+            self.write(label + '-terminal-process.json', process_record(
+                result, (self.case / (label + '-command.json')).read_bytes()))
+            terminal_value = read_counts(result)['terminal']
+            assert_terminal(self, terminal_value, result.stderr, label, profile)
+            verify_terminal(terminal_value, result.stderr, label, profile)
+            return result
 
         observations = {}
         case, request = prepare()
@@ -684,7 +713,7 @@ raise SystemExit(status)
         case, request = prepare()
         try:
             before = state(case, request)
-            lost = worker('lost-put-ACK', case, request, 'lost_put_ack', 1)
+            lost = worker('lost-put-ACK', case, request, 'lost_put_ack', profile['lost_ack_exit'])
             counts = read_counts(lost)
             after = state(case, request)
             self.assertEqual(lost.stdout, b'')
@@ -714,9 +743,13 @@ raise SystemExit(status)
                 'after': replay_state, 'original_running_request_not_replayed': True}
         finally:
             case.tearDown()
+        authority.finish()
+        readback.stable()
         self.write('installation.json', {'wheel': str(wheel), 'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(),
+            'terminal_source_authority': authority.summary(),
             'installed': str(installed), 'wheel_files_checked_against_installed': files,
             'installed_RECORD_sha256': sha256((installed / record_name).read_bytes()).hexdigest(),
             'bundle_sha256': pin, 'observations': observations,
             'scope': 'actual installed original worker; handler and Store selected; durable running intent after parent ACK loss',
             'whole_native_stack_qualified': False})
+        self.write('worker-terminal-readback.json', read_installation(ROOT, self.case))

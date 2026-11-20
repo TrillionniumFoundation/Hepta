@@ -312,6 +312,23 @@ SDIST_SUPPORT_FILES=(
     'tools/qualify_hia_service_discovery_callers.py',
     'tools/qualify_hia_service_verification_callers.py',
     'tools/qualify_hia_store_transaction.py',
+    'tests/hia_service_artifact_worker_terminal.py',
+    'tools/read_hia_service_artifact_worker_terminal.py',
+    'tests/test_hia_service_artifact_worker_terminal.py',
+    'tests/fixtures/service_artifact_worker_terminal_v2.json',
+    'tests/test_hia_service_context_caller_admission.py',
+    'tools/build_hia_service_artifact.py',
+    'tests/fixtures/cost_context_caller_source_successors_v1.json',
+    'tests/fixtures/hia_artifact_delivery_callers_5bf69586.json',
+    'tests/fixtures/hia_artifact_delivery_original_5da589f0.json',
+    'tests/test_artifact_publication.py',
+    'tests/test_hia_agent_assembly.py',
+    'tests/test_hia_artifact_publication_native.py',
+    'tests/test_hia_artifact_publication_route.py',
+    'tests/test_hia_cost_artifact_caller_admission.py',
+    'tests/test_hia_cost_context_caller_delivery_source.py',
+    'tests/test_hia_ndu_bridge.py',
+    'tools/qualify_hia_artifact_delivery_callers.py',
 )
 SDIST_SUPPORT_FILES=tuple(dict.fromkeys(SDIST_SUPPORT_FILES))
 WHEEL_PACKAGE_FILES=(
