@@ -76,8 +76,61 @@ REFUSALS = (
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
+OWNED_SHARED_MAGIC = int.from_bytes(b'HIAELFA1', 'little')
+OWNED_SHARED_MAX = 64 << 20
+OWNED_SHARED_HEAD = struct.Struct('<8Q')
+OWNED_SHARED_SEGMENT = struct.Struct('<2Q')
+OWNED_SHARED_REFUSALS = (
+    ('identity', 'not Linux/x86-64 ELF64 ET_DYN'),
+    ('sections', 'missing or out-of-file ELF section table'),
+    ('section_range', 'section points outside artifact'),
+    ('headers', 'missing or invalid program headers'),
+    ('interpreter', 'PT_INTERP or PT_TLS is outside the checked shared-library profile'),
+    ('stack_flags', 'PT_GNU_STACK requires reviewed non-executable RW permissions'),
+    ('dynamic_range', 'invalid loader dynamic table bounds'),
+    ('load_flags', 'PT_LOAD has unreviewed permissions or is writable-executable'),
+    ('load_range', 'invalid load segment range'),
+    ('stack_count', 'missing or duplicated explicit non-executable PT_GNU_STACK'),
+    ('exec_count', 'no executable load segment'),
+    ('dynamic_count', 'missing or duplicated PT_DYNAMIC loader table'),
+    ('sym_count', 'expected exactly one dynamic symbol table'),
+    ('symbols', 'invalid dynamic symbols or string table'),
+    ('dyn_bound', 'unbounded loader dynamic table'),
+    ('redirect', 'unreviewed dynamic loader redirect, audit, filter or text-relocation tag'),
+    ('flags', 'DT_FLAGS enables unreviewed origin, symbolic binding or text relocations'),
+    ('flags_one', 'DT_FLAGS_1 enables unreviewed loader side effects'),
+    ('duplicate', 'duplicate loader symbol metadata'),
+    ('dynamic_identity', 'loader dynamic symbol/string authority disagrees with ELF sections'),
+    ('dependency_range', 'unbounded loader dependency'),
+    ('dependency', 'unreviewed DT_NEEDED shared library dependency'),
+)
+
 
 class NativeSafeCoreElfInventory(NativeHiaJsonImage):
+    def owned_shared_layout(self, data):
+        from .elf_shared_abi import _fail
+
+        request = ctypes.create_string_buffer(struct.pack('<Q', OWNED_SHARED_MAGIC), 8)
+        source = ctypes.create_string_buffer(data, len(data))
+        output = ctypes.create_string_buffer(CAPACITY)
+        size = self._entry(source, len(data), output, len(output), request, len(request))
+        header = OWNED_SHARED_HEAD.size
+        if not header <= size <= len(output):
+            raise RuntimeError('invalid native shared ELF layout extent')
+        status, count, shoff, shnum, symoff, symsize, stroff, strsize = OWNED_SHARED_HEAD.unpack_from(output)
+        if status:
+            if status > len(OWNED_SHARED_REFUSALS) or size != header or any(output.raw[8:header]):
+                raise RuntimeError('invalid native shared ELF refusal')
+            _fail(OWNED_SHARED_REFUSALS[status - 1][1])
+        if (not 1 <= count <= 128 or not 1 <= shnum <= 4096
+                or size != header + count * OWNED_SHARED_SEGMENT.size
+                or not all(not extent or 0 <= offset <= len(data) and extent <= len(data) - offset
+                           for offset, extent in ((shoff, shnum * 64), (symoff, symsize), (stroff, strsize)))):
+            raise RuntimeError('invalid native shared ELF layout reply')
+        executable = [(address, address + length) for address, length in
+                      OWNED_SHARED_SEGMENT.iter_unpack(output.raw[header:size])]
+        return shoff, shnum, executable, symoff, symsize, stroff, strsize
+
     def _exchange(self, data, arguments, suffix=b''):
         require(type(data) is bytes and 64 <= len(data) <= MAX_ELF, REFUSALS[0][1])
         source = ctypes.create_string_buffer(data, len(data))

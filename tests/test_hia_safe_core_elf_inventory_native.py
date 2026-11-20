@@ -69,6 +69,39 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 self.assertEqual(capture(self.native.inventory, sample, kind), capture(old, sample, kind),
                                  (kind, index))
 
+    def test_owned_shared_layout_checks_loader_authority_before_publishing_symbols(self):
+        from hepta import elf_shared_abi
+
+        def observed(reader, raw):
+            try:
+                return reader(raw)
+            except elf_shared_abi.ELFSharedABIRejected as error:
+                return str(error)
+
+        final = self.final_bytes
+        phoff, shoff = struct.unpack_from('<2Q', final, 32)
+        phnum, shnum = struct.unpack_from('<H2xH', final, 56)
+        dynamic = next(phoff + i * 56 for i in range(phnum)
+                       if struct.unpack_from('<I', final, phoff + i * 56)[0] == 2)
+        dynoff = struct.unpack_from('<Q', final, dynamic + 8)[0]
+        dynsize = struct.unpack_from('<Q', final, dynamic + 32)[0]
+        offsets = (*range(64), *range(phoff, phoff + 56 * phnum),
+                   *range(shoff, shoff + 64 * shnum), *range(dynoff, dynoff + dynsize))
+        baseline = elf_shared_abi._reference_owned_shared_layout
+        self.assertEqual(self.native.owned_shared_layout(final), baseline(final))
+        for at in offsets:
+            for value in (0, 1, 127, 255):
+                if value == final[at]:
+                    continue
+                damaged = final[:at] + bytes((value,)) + final[at + 1:]
+                self.assertEqual(observed(self.native.owned_shared_layout, damaged),
+                                 observed(baseline, damaged), (at, value))
+        with patch.dict(os.environ, {SELECTOR: ''}):
+            expected = elf_shared_abi.inspect_owned_shared_elf(final, ('calculate',))
+        with patch.object(elf_shared_abi, '_reference_owned_shared_layout',
+                          side_effect=AssertionError('host publication layout entered')):
+            self.assertEqual(elf_shared_abi.inspect_owned_shared_elf(final, ('calculate',)), expected)
+
     def test_native_symbols_names_and_load_mappings_match_owned_elf(self):
         for kind, data in ((1, self.object_bytes), (3, self.final_bytes)):
             reference = _ELF.__new__(_ELF)

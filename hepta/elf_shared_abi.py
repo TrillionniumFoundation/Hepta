@@ -62,17 +62,7 @@ _UNREVIEWED_LOADER_TAGS = frozenset({
 })
 
 
-def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> dict:
-    """Fail closed if the dynamic ABI differs from the checked export surface.
-
-    Return deterministic bounded metadata; no success is a safety proof.
-    """
-    if (not isinstance(data, bytes) or not 64 <= len(data) <= 64 * 1024 * 1024
-            or not isinstance(expected_exports, tuple)
-            or len(expected_exports) > 128 or expected_exports != tuple(sorted(set(expected_exports)))
-            or any(not isinstance(x, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", x)
-                   for x in expected_exports)):
-        _fail("invalid artifact or source export list")
+def _reference_owned_shared_layout(data):
     if (data[:6] != b"\x7fELF\x02\x01" or data[6] != 1 or
             _u(data, 16, 2) != 3 or _u(data, 18, 2) != 62 or
             _u(data, 20, 4) != 1 or _u(data, 52, 2) != 64):
@@ -174,6 +164,25 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
         end = data.find(b"\0", stroff + offset, stroff + strsize)
         if end < 0 or data[stroff + offset:end] != b"libc.so.6":
             _fail("unreviewed DT_NEEDED shared library dependency")
+    return shoff, nsections, executable_segments, symoff, symsize, stroff, strsize
+
+
+def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> dict:
+    """Fail closed if the dynamic ABI differs from the checked export surface.
+
+    Return deterministic bounded metadata; no success is a safety proof.
+    """
+    if (not isinstance(data, bytes) or not 64 <= len(data) <= 64 * 1024 * 1024
+            or not isinstance(expected_exports, tuple)
+            or len(expected_exports) > 128 or expected_exports != tuple(sorted(set(expected_exports)))
+            or any(not isinstance(x, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", x)
+                   for x in expected_exports)):
+        _fail("invalid artifact or source export list")
+    from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
+
+    native = selected_safe_core_elf_inventory() if type(data) is bytes else None
+    layout = _reference_owned_shared_layout(data) if native is None else native.owned_shared_layout(data)
+    shoff, nsections, executable_segments, symoff, symsize, stroff, strsize = layout
     exports: set[str] = set()
     undefined: set[str] = set()
     for pos in range(symoff, symoff + symsize, 24):
@@ -197,10 +206,12 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
                 _fail("unreviewed external import: " + name)
             undefined.add(name)
             continue
-        if (shndx >= len(sections) or (other & 3) != 0 or kind != 2
+        if (shndx >= nsections or (other & 3) != 0 or kind != 2
                 or not size or name in exports or name in undefined):
             _fail("unknown, repeated, or invalid public function export: " + name)
-        typ, flags, addr, _off, section_size, _link, _entsize = sections[shndx]
+        section = shoff + 64 * shndx
+        typ, flags, addr, section_size = (_u(data, section + 4, 4), _u(data, section + 8, 8),
+                                          _u(data, section + 16, 8), _u(data, section + 32, 8))
         if (typ != 1 or not flags & 4 or value < addr or
                 size > section_size or value - addr > section_size - size or
                 not any(a <= value and size <= b - value for a, b in executable_segments)):

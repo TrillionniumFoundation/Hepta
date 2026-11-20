@@ -7,6 +7,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
     CAPACITY, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
+    OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
 )
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
@@ -15,6 +16,8 @@ SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
 FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
           'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
 FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
+FIELDS.update({'ABI_' + name.upper(): number for number, (name, _) in enumerate(OWNED_SHARED_REFUSALS, 1)})
+FIELDS.update(OWNED_SHARED_MAGIC=OWNED_SHARED_MAGIC, OWNED_SHARED_MAX=OWNED_SHARED_MAX)
 HELPER_NAME = b'__hia_native_fn_0\0'
 FIELDS.update(HELPER_HEAD=int.from_bytes(HELPER_NAME[:8], 'little'),
               HELPER_BODY=int.from_bytes(HELPER_NAME[8:16], 'little'),
@@ -27,6 +30,8 @@ SOURCE = r'''
 def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < CAPACITY:
         return 4294967294
+    if length(w) == 8 and get(w, 0) == OWNED_SHARED_MAGIC:
+        return owned_shared_layout(s, o)
     size = length(s)
     if size < 64 or size > MAX_ELF:
         return terminal(o, E_EXTENT, 0, 0)
@@ -754,6 +759,164 @@ def verify_relro(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if got < first_page * 4096 or got > protected_end or get(w, 48) > protected_end - got:
         return terminal(o, E_RELRO_GOT, 0, 0)
     return terminal(o, 0, 0, 0)
+
+def owned_shared_layout(s:readbuf, o:mutbuf) -> u64:
+    size = length(s)
+    if size < 64 or size > OWNED_SHARED_MAX:
+        return owned_shared_refusal(o, ABI_IDENTITY)
+    if word(s, 0, 7) != ELF_IDENT or word(s, 16, 2) != 3 or word(s, 18, 2) != 62:
+        return owned_shared_refusal(o, ABI_IDENTITY)
+    if word(s, 20, 4) != 1 or word(s, 52, 2) != 64:
+        return owned_shared_refusal(o, ABI_IDENTITY)
+    shoff = word(s, 40, 8)
+    sections = word(s, 60, 2)
+    if word(s, 58, 2) != 64 or sections == 0 or sections > 4096 or in_file(size, shoff, sections * 64) == 0:
+        return owned_shared_refusal(o, ABI_SECTIONS)
+    dyns = 0
+    sym = 0
+    index = 0
+    while index < sections:
+        entry = shoff + index * 64
+        kind = word(s, entry + 4, 4)
+        extent = word(s, entry + 32, 8)
+        if kind != 8 and extent != 0 and in_file(size, word(s, entry + 24, 8), extent) == 0:
+            return owned_shared_refusal(o, ABI_SECTION_RANGE)
+        if kind == 11:
+            dyns = dyns + 1
+            sym = entry
+        index = index + 1
+    if owned_shared_segments(s, o) != 0:
+        # Segment validation emits its own exact first refusal.
+        return 64
+    if dyns != 1:
+        return owned_shared_refusal(o, ABI_SYM_COUNT)
+    symbols = word(s, sym + 32, 8)
+    link = word(s, sym + 40, 4)
+    if link >= sections or word(s, sym + 56, 8) != 24 or symbols % 24 != 0 or symbols < 24 or symbols > 1572864:
+        return owned_shared_refusal(o, ABI_SYMBOLS)
+    strings = shoff + link * 64
+    if word(s, strings + 4, 4) != 3:
+        return owned_shared_refusal(o, ABI_SYMBOLS)
+    stroff = word(s, strings + 24, 8)
+    strsize = word(s, strings + 32, 8)
+    error = owned_shared_loader(s, get(o, 16), get(o, 24),
+        word(s, strings + 16, 8), word(s, sym + 16, 8), strsize, stroff)
+    if error != 0:
+        return owned_shared_refusal(o, error)
+    put(o, 0, 0)
+    put(o, 16, shoff)
+    put(o, 24, sections)
+    put(o, 32, word(s, sym + 24, 8))
+    put(o, 40, symbols)
+    put(o, 48, stroff)
+    put(o, 56, strsize)
+    return 64 + get(o, 8) * 16
+
+def owned_shared_segments(s:readbuf, o:mutbuf) -> u64:
+    count = word(s, 56, 2)
+    start = word(s, 32, 8)
+    if word(s, 54, 2) != 56 or count == 0 or count > 128 or in_file(length(s), start, count * 56) == 0:
+        return owned_shared_refusal(o, ABI_HEADERS)
+    executable = 0
+    stack = 0
+    dynamic = 0
+    index = 0
+    while index < count:
+        at = start + index * 56
+        kind = word(s, at, 4)
+        flags = word(s, at + 4, 4)
+        offset = word(s, at + 8, 8)
+        address = word(s, at + 16, 8)
+        size = word(s, at + 32, 8)
+        if kind == 3 or kind == 7:
+            return owned_shared_refusal(o, ABI_INTERPRETER)
+        if kind == 0x6474E551:
+            stack = stack + 1
+            if flags != 6:
+                return owned_shared_refusal(o, ABI_STACK_FLAGS)
+        if kind == 2:
+            if in_file(length(s), offset, size) == 0 or size % 16 != 0:
+                return owned_shared_refusal(o, ABI_DYNAMIC_RANGE)
+            dynamic = dynamic + 1
+            put(o, 16, offset)
+            put(o, 24, size)
+        if kind == 1:
+            if flags != 4 and flags != 5 and flags != 6:
+                return owned_shared_refusal(o, ABI_LOAD_FLAGS)
+            end = address + size
+            if in_file(length(s), offset, size) == 0 or (end < address and end != 0):
+                return owned_shared_refusal(o, ABI_LOAD_RANGE)
+            if flags == 5:
+                put(o, 64 + executable * 16, address)
+                put(o, 72 + executable * 16, size)
+                executable = executable + 1
+        index = index + 1
+    if stack != 1:
+        return owned_shared_refusal(o, ABI_STACK_COUNT)
+    if executable == 0:
+        return owned_shared_refusal(o, ABI_EXEC_COUNT)
+    if dynamic != 1:
+        return owned_shared_refusal(o, ABI_DYNAMIC_COUNT)
+    put(o, 8, executable)
+    return 0
+
+def owned_shared_loader(s:readbuf, start:u64, size:u64, straddr:u64, symaddr:u64, strsize:u64, stroff:u64) -> u64:
+    if size > 65536:
+        return ABI_DYN_BOUND
+    seen = 0
+    consistent = 1
+    terminated = 0
+    at = start
+    while at < start + size and terminated == 0:
+        tag = word(s, at, 8)
+        value = word(s, at + 8, 8)
+        if tag == 0:
+            terminated = 1
+        else:
+            if tag == 15 or tag == 16 or tag == 22 or tag == 29 or tag == 0x6FFFFEFA or tag == 0x6FFFFEFB or tag == 0x6FFFFEFC or tag == 0x7FFFFFFD or tag == 0x7FFFFFFF:
+                return ABI_REDIRECT
+            if tag == 30 and (value & 7) != 0:
+                return ABI_FLAGS
+            if tag == 0x6FFFFFFB and (value & (0x10 | 0x80 | 0x1000000)) != 0:
+                return ABI_FLAGS_ONE
+            bit = 0
+            if tag == 5:
+                bit = 1
+                consistent = consistent & choose(value == straddr, 1, 0)
+            if tag == 6:
+                bit = 2
+                consistent = consistent & choose(value == symaddr, 1, 0)
+            if tag == 10:
+                bit = 4
+                consistent = consistent & choose(value == strsize, 1, 0)
+            if tag == 11:
+                bit = 8
+                consistent = consistent & choose(value == 24, 1, 0)
+            if (seen & bit) != 0:
+                return ABI_DUPLICATE
+            seen = seen | bit
+            at = at + 16
+    if terminated == 0 or seen != 15 or consistent == 0:
+        return ABI_DYNAMIC_IDENTITY
+    while start < at:
+        if word(s, start, 8) == 1:
+            offset = word(s, start + 8, 8)
+            if offset >= strsize or in_file(length(s), stroff + offset, 1) == 0:
+                return ABI_DEPENDENCY_RANGE
+            if strsize - offset < 10 or word(s, stroff + offset, 8) != LIBC_HEAD:
+                return ABI_DEPENDENCY
+            if word(s, stroff + offset + 8, 2) != 54:
+                return ABI_DEPENDENCY
+        start = start + 16
+    return 0
+
+def owned_shared_refusal(o:mutbuf, code:u64) -> u64:
+    put(o, 0, code)
+    at = 8
+    while at < 64:
+        put(o, at, 0)
+        at = at + 8
+    return 64
 '''
 
 
