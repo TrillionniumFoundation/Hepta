@@ -121,6 +121,7 @@ RECIPE_PRIMITIVES = {
     'concat': ('rr', lambda z, ctx, a, b: z.Concat(a, b)),
     'implies': ('rr', lambda z, ctx, a, b: z.Implies(a, b)),
     'bool_or3': ('rrr', lambda z, ctx, a, b, c: z.Or(a, b, c)),
+    'equal_literal': ('ri', lambda z, ctx, a, value: a == value),
 }
 RECIPE_LAYOUT = tuple(RECIPE_PRIMITIVES.values())
 RECIPE_IDS = {name: code for code, name in enumerate(RECIPE_PRIMITIVES, 1)}

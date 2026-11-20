@@ -99,8 +99,8 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
         self.assertEqual(self.native.argument_registers(), (7, 6, 2, 1, 8, 9))
 
     def test_artifact_predicates_preserve_the_exact_retained_smt_expressions(self):
-        import z3
         from hepta.hia_safe_core import _Theory, _reference_artifact_assumptions, _reference_artifact_errors
+        import z3
 
         theory = _Theory(z3, 5000)
         ctx = theory.ctx

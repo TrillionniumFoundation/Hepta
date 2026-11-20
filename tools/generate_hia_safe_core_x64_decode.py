@@ -1106,8 +1106,7 @@ def artifact_formula(o:mutbuf, op:u64) -> u64:
     elif op == OP_CALLER_STACK_ALIGNMENT:
         mask = node(o, R_LITERAL64, 15, 0, 0)
         bits = node(o, R_AND, LEFT, mask, 0)
-        alignment = node(o, R_LITERAL64, 8, 0, 0)
-        predicate = node(o, R_EQ, bits, alignment, 0)
+        predicate = node(o, R_EQUAL_LITERAL, bits, 8, 0)
     elif op == OP_CALLER_LOAN_DISJOINT:
         predicate = caller_disjoint_formula(o)
     elif op == OP_TERMINAL_COVERAGE_ERROR:
@@ -1126,13 +1125,13 @@ def artifact_formula(o:mutbuf, op:u64) -> u64:
 
 def caller_disjoint_formula(o:mutbuf) -> u64:
     # Inputs: entry stack pointer, loan pointer, loan extent, declared maximum.
-    end = node(o, R_ADD, RIGHT, THIRD, 0)
+    bounded = node(o, R_ULE, THIRD, FOURTH, 0)
     empty = node(o, R_ZERO, THIRD, 0, 0)
     nonnull = node(o, R_NONZERO, RIGHT, 0, 0)
+    end = node(o, R_ADD, RIGHT, THIRD, 0)
     nonwrapping = node(o, R_UGE, end, RIGHT, 0)
     valid = node(o, R_BOOL_AND, nonnull, nonwrapping, 0)
     valid_or_empty = node(o, R_BOOL_OR, empty, valid, 0)
-    bounded = node(o, R_ULE, THIRD, FOURTH, 0)
     admitted = node(o, R_BOOL_AND, bounded, valid_or_empty, 0)
     floor = node(o, R_LITERAL64, 16384, 0, 0)
     low = node(o, R_SUB, LEFT, floor, 0)
