@@ -32,6 +32,8 @@ LAUNCH_ACK_INPUT = b'HIAJAK01'
 LAUNCH_ACK_OUTPUT = b'HIAJAO01'
 JOB_POLL_INPUT = b'HIAJPL01'
 JOB_POLL_OUTPUT = b'HIAJPO01'
+JOB_TERMINAL_INPUT = b'HIAJTS01'
+JOB_TERMINAL_OUTPUT = b'HIAJTV01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -53,6 +55,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return launch_ack(s, o)
     if magic == JOB_POLL_INPUT:
         return job_poll(s, o)
+    if magic == JOB_TERMINAL_INPUT:
+        return job_terminal_state(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -119,6 +123,32 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     word_store(o, 0, OUTPUT_MAGIC)
     saved(w, o, 8, 0, 256)
     return count + 1
+
+def job_terminal_state(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 56 or length(o) < 16:
+        return 4294967293
+    effect_unknown = word_load(s, 8)
+    timed_out = word_load(s, 16)
+    cancelled = word_load(s, 24)
+    exit_result = word_load(s, 32)
+    output_complete = word_load(s, 40)
+    output_durable = word_load(s, 48)
+    if effect_unknown > 1 or timed_out > 1 or cancelled > 1 or exit_result > 2 or output_complete > 2 or output_durable > 2:
+        return 4294967293
+    state = 0
+    if effect_unknown == 1:
+        state = 1
+    elif timed_out == 1:
+        state = 2
+    elif cancelled == 1:
+        state = 3
+    elif exit_result == 2 or (exit_result == 1 and (output_complete == 2 or output_durable == 2)):
+        state = 4
+    elif exit_result == 1:
+        state = 5
+    word_store(o, 0, JOB_TERMINAL_OUTPUT)
+    word_store(o, 8, state)
+    return 16
 
 def job_poll(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 72 or length(o) < 24:
@@ -456,6 +486,8 @@ def source_program():
               .replace('LAUNCH_ACK_OUTPUT', str(int.from_bytes(LAUNCH_ACK_OUTPUT, 'little')))
               .replace('JOB_POLL_INPUT', str(int.from_bytes(JOB_POLL_INPUT, 'little')))
               .replace('JOB_POLL_OUTPUT', str(int.from_bytes(JOB_POLL_OUTPUT, 'little')))
+              .replace('JOB_TERMINAL_INPUT', str(int.from_bytes(JOB_TERMINAL_INPUT, 'little')))
+              .replace('JOB_TERMINAL_OUTPUT', str(int.from_bytes(JOB_TERMINAL_OUTPUT, 'little')))
               .replace('RUNNING_WORD', str(int.from_bytes(b'running', 'little')))
               .replace('ACTIVATING_HEAD', str(int.from_bytes(b'activati', 'little')))
               .replace('FINALIZING_HEAD', str(int.from_bytes(b'finalizi', 'little')))

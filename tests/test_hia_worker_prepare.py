@@ -287,6 +287,29 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             answer = self.invoke(invalid)
             self.assertEqual((answer.returncode, answer.stdout, answer.stderr), (2, b'', b''))
 
+    def test_terminal_state_keeps_unknown_precedence_and_legacy_receipts(self):
+        for facts, state in (
+            ((1, 1, 1, 0, 0, 0), 1),
+            ((0, 1, 1, 0, 2, 2), 2),
+            ((0, 0, 1, 0, 2, 2), 3),
+            ((0, 0, 0, 0, 2, 2), 0),
+            ((0, 0, 0, 2, 0, 0), 4),
+            ((0, 0, 0, 1, 2, 1), 4),
+            ((0, 0, 0, 1, 1, 2), 4),
+            ((0, 0, 0, 1, 0, 0), 5),
+            ((0, 0, 0, 1, 1, 0), 5),
+            ((0, 0, 0, 1, 0, 1), 5),
+            ((0, 0, 0, 1, 1, 1), 5),
+        ):
+            result = self.invoke(struct.pack('<8s6Q', b'HIAJTS01', *facts))
+            self.assertEqual((result.returncode, result.stdout, result.stderr),
+                             (0, struct.pack('<8sQ', b'HIAJTV01', state), b''))
+        for index, upper in enumerate((1, 1, 1, 2, 2, 2)):
+            facts = [0, 0, 0, 1, 0, 0]
+            facts[index] = upper + 1
+            result = self.invoke(struct.pack('<8s6Q', b'HIAJTS01', *facts))
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',
