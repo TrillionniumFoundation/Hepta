@@ -184,5 +184,5 @@ def r5_regression_image(directory, compiler, *, guard):
         observed, _ = compile_stage(directory, label, compiler, source)
         custody.require(Path(observed) == image, 'unexpected original R5 image path')
     guard()
-    _receipt, inputs = custody.admit_compilation(directory, label, compiler, source_path, image)
+    _receipt, inputs = custody.admit_compilation(directory, label, compiler, source, image)
     return image, source_path, inputs + [custody.binding(source_path), custody.binding(compiler)]
