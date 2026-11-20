@@ -3,8 +3,8 @@
 The opt-in kernel builder exports small x86-64 functions directly, then checks
 the **linked ELF bytes** before publishing the library. Scalar hot paths stay
 in registers. Three borrowed-byte loops perform one complete-range admission
-before processing sixteen bytes per vector iteration and one byte per tail
-iteration. The solver runs during the build; the native call contains no proof
+before processing sixty-four bytes per main-loop iteration, sixteen bytes per
+cleanup iteration and one byte per tail iteration. The solver runs during the build; the native call contains no proof
 engine, interpreter or entry wrapper.
 
 ## Build and independent checking
@@ -31,6 +31,9 @@ checked Safe Core lowering when the source is outside the register profile.
 `hepta.hia_verified_kernel.build_verified_kernel` provides the same API in
 Python. Its optional `artifact_directory` retains the single selected object;
 the scalar builder consumes that immutable object without reemitting it.
+The default SIMD path uses `simd_unroll=4`; `simd_unroll=1` retains the original
+sixteen-byte loop for independently checked comparisons. Both use SSE2 and
+the same Core recurrence and borrowed-byte ABI.
 Production language defaults are unchanged, so programs outside these narrow
 profiles continue to use their existing checks and compiler entry points.
 
@@ -48,6 +51,13 @@ These consumer paths do not import the producers. They inspect the final code,
 symbol ranges, relocations, dynamic symbol lookup, load mappings and protection
 flags. The closed direct-entry ELF shape extends the existing two-function
 wrapper shape; both retain immediate binding of the sole libc `abort` import.
+
+The SIMD build records and rechecks the producer, native encoder and exact GNU
+linker identities around emission and publication. Linker output is bounded,
+and the candidate is read through a non-following, non-blocking descriptor that
+accepts only a stable ordinary file of at most 8 MiB. An output overflow,
+changed tool or producer, FIFO, symlink or oversized candidate is a build
+failure. Publication-time failures withdraw only this build's own link.
 
 ## Scalar register ABI
 
@@ -88,9 +98,14 @@ for copying, disjoint requested ranges. Invalid inputs abort before any byte
 effect. Copy remains a nonoverlapping operation; it is not `memmove`.
 
 Once admitted, the loop carries current pointers and a decreasing remaining
-count in registers. A `remaining >= 16` test selects an unaligned 16-byte load
-or store. The tail consumes individual bytes. Neither loop repeats the full
+count in registers. A `remaining >= 64` test admits four unaligned sixteen-byte
+chunks at offsets 0, 16, 32 and 48. A single pointer/count update and backedge
+advance the complete group. A `remaining >= 16` cleanup loop handles the next
+zero to three chunks, and the tail consumes individual bytes. None repeats the full
 extent/null/overflow/overlap checks, and no load crosses the requested end.
+The zero scan carries four independent accumulators in its main loop, one for
+each chunk position, then combines them once before the cleanup loop. This
+removes the serial dependency across all four OR operations in each group.
 The Core specification itself performs complete extent admission before its
 first byte operation, preserving early-trap memory effects.
 
@@ -103,11 +118,25 @@ recognize arbitrary source loops merely because they resemble a reduction.
 
 The checker separately decodes every text byte and closes the control-flow
 graph. It checks prefix guards against all 64-bit ABI argument words, then
-proves initiation, 16-byte and one-byte step bounds, a strictly decreasing
+proves initiation, 64-byte, 16-byte and one-byte step bounds, a strictly decreasing
 remaining count, exact exit coverage, vector/tail data semantics and saved
 state. Copy includes a disjointness obligation ensuring earlier destination
 writes cannot change a later source byte. Sum includes preservation of the
-zero vector across iterations, not just the value of one isolated chunk.
+zero vector across iterations, not just the value of one isolated chunk. Each
+chunk in the 64-byte step has independent symbolic bytes; the proof must
+preserve the accumulator and the zero register through all four chunks before
+it can connect to the cleanup loop. The independently decoded signed
+displacements must match all four guarded offsets, with no extra reads or stores.
+
+The original loop profile retains its ten solver obligations. The 64-byte
+sum/copy profile adds range/termination and complete four-chunk data obligations
+for a total of twelve. The parallel zero scan adds a thirteenth obligation for
+the four-accumulator merge and preserved register state. Its induction retains
+four arbitrary partial accumulators across iterations; it never resets their
+symbolic prior states to zero. Reports record three backedges,
+`vector_unroll=4`, `superblock_width=64` and the reduction-accumulator count.
+The consumer also accepts the original sixteen-byte and single-accumulator
+sixty-four-byte objects and final images without invoking either producer.
 
 The induction connects the decoded backedges with the scalar Core recurrence.
 Its trust base is the stated Python Core/ISA/loop/ELF models, GNU/Linux loader
@@ -129,6 +158,10 @@ and [Intel's architecture manual](https://cdrdv2-public.intel.com/843827/253665-
 artifact, loader, conditional-move and unsigned-cast tests. Its strict runner
 rejects skips and incomplete test inventories. Negative cases mutate arithmetic,
 register state, range conditions, branches, addresses and ELF metadata.
+The four-chunk controls also corrupt later chunks, duplicate or negate their
+displacements, change the 64-byte guard/stride/backedge, and poison the
+persistent zero register in the last chunk. Linker failure controls exercise
+bounded output, file types, candidate sizes and identity changes.
 Native subprocess controls exercise invalid-range aborts. Guard-page tests
 place buffers at exact protected-page boundaries and cover vector/tail sizes.
 
@@ -140,7 +173,9 @@ python tools/benchmark_hia_verified_kernels.py \
   --rustc rustc
 ```
 
-It records 21 batches after three warmups, all raw samples, checksums,
+The v2 protocol records 64 cases, including simultaneous sixteen-byte and
+sixty-four-byte SSE2 arms with identical Core and ABI. It records 21 batches
+after three warmups, all raw samples, checksums,
 disassemblies, final libraries and their proof inputs. Every arm uses the
 same indirect-call driver and CPU affinity. Workloads include scalar multiply
 add and 256/4096/4097/65536-byte spans with sixteen unaligned offsets. C and
@@ -153,3 +188,43 @@ These measurements describe the declared hot-cache kernels on a shared host.
 Affinity does not make a core exclusive, and the raw samples remain available
 for assessing interference. Build/proof time is reported separately from
 native call latency.
+
+## Recorded campaigns
+
+The [initial AI395 campaign](../benchmarks/hia_verified_kernels/results/ai395-20261119-initial.json)
+retains all 64 cases and 1,344 samples from source commit
+`8aa5a7959955b9191709fd650761d65d4be6ef46`. Its single-accumulator sixty-four-byte
+zero scan took 1,591.221 ns at 64 KiB, compared with 1,202.520 ns for the
+sixteen-byte control. This negative observation motivated the four independent
+accumulators above; it remains part of the record.
+
+The [complete second campaign](../benchmarks/hia_verified_kernels/results/ai395-20261119-parallel-zero.json)
+binds the changed implementation to
+`b5de6a98467e8c51198a3335d97c0bc5536af8d5`. Both campaigns use the same AMD
+Ryzen AI MAX+ 395 host, CPU 15, GCC 15.2, Rust 1.99.1 and pinned Z3 4.15.4.
+Compiler executable hashes and the protocol are unchanged. Each campaign
+retains all 64 cases, 21 samples per case, source/binary hashes and independently
+checked checksums. Host sharing and the hot-cache protocol remain explicit.
+
+Second-campaign median native-call latency, in nanoseconds:
+
+| Workload | Original HIA direct | Verified SSE2 16 B | Current verified kernel | Rust native |
+| --- | ---: | ---: | ---: | ---: |
+| Scalar multiply-add | 2.042 | n/a | 0.998 | 0.999 |
+| Byte sum, 4 KiB | 11990.799 | 84.550 | 69.331 | 67.712 |
+| All-zero scan, 4 KiB | 11993.636 | 73.733 | 31.755 | 12.728 |
+| Copy, 4 KiB | 13667.865 | 67.297 | 39.043 | 18.007 |
+| All-zero scan, 64 KiB | 192192.476 | 1189.961 | 602.570 | 288.950 |
+
+The current scalar entry is the register kernel; the span entries use the
+64-byte main loop. In the second campaign the zero scan improves over the
+simultaneous sixteen-byte control at all four measured lengths, including
+1.975x at 64 KiB. The 4 KiB sum is within 2.4% of the Rust reference, while
+zero scan and copy take 2.495x and 2.168x its time. The 64 KiB sum is effectively
+flat against the sixteen-byte control: 1624.601 versus 1620.231 ns. These are
+specific measurements, not a whole-language or universal speed claim.
+
+The changed implementation passes the complete strict **139-test** kernel
+inventory locally and in [hosted CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44655567208),
+including the frozen old object, all negative controls, and exact-end guard
+pages. Its full-tree source-contract check covers 919 source identities.

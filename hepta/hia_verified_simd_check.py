@@ -4,8 +4,9 @@ This consumer imports neither a machine encoder nor the SIMD producer.  It
 decodes every text byte, binds the complete linked ELF with the existing strict
 loader checker, recognizes a closed control-flow/ABI shape, and asks the pinned
 solver about initiation, vector/scalar transitions, bounds and termination.
-The induction over successive 16-byte/one-byte chunks is part of this explicit
-trusted Python model; this is not a general x86 or arbitrary-loop verifier.
+The induction over successive 64-byte, 16-byte and one-byte chunks is part of
+this explicit trusted Python model; this is not a general x86 or arbitrary-loop
+verifier. The original single-vector loop remains an admitted separate shape.
 """
 from __future__ import annotations
 
@@ -34,6 +35,8 @@ def require(condition, message):
 
 
 PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v1"
+UNROLLED_PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v2"
+PARALLEL_ZERO_PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v3"
 SOURCE_FILES = ("hia_verified_simd_check.py", "hia_safe_core.py", "hia_safe_core_elf.py",
                 "elf_shared_abi.py", "hia_program.py", "hia_opcodes.py", "hia_schema.py",
                 "hia_capability_flow.py", "hia_json_preflight.py")
@@ -156,9 +159,12 @@ def decode_simd(data):
             opcode, modrm = take(1)[0], take(1)[0]
             mod, reg, rm = modrm >> 6, (modrm >> 3)&7, modrm&7
             if first == 0xf3:
-                require(not rex and opcode in (0x6f,0x7f) and mod == 0 and rm in (2,7),
+                require(not rex and opcode in (0x6f,0x7f) and mod in (0,1,2) and rm in (2,7),
                         'unreviewed SIMD memory addressing')
-                op, args = ('load128',(reg,rm)) if opcode == 0x6f else ('store128',(rm,reg))
+                displacement = (0 if mod == 0 else
+                                int.from_bytes(take(1 if mod == 1 else 4),'little',signed=True))
+                op, args = (('load128',(reg,rm,displacement)) if opcode == 0x6f else
+                            ('store128',(rm,displacement,reg)))
             elif opcode == 0x7e:
                 require(rex in (0x48,0x49) and mod == 3, 'unreviewed MOVQ form')
                 op, args = 'xmm_to_gpr', (rm + (8 if rex&1 else 0),reg)
@@ -252,6 +258,7 @@ def _structure(rows, kind, binding):
         require(pos+n <= len(rows),'missing semantic block')
         parts[name]=rows[pos:pos+n]; pos+=n
     copy = kind=='copy_u8'
+    parallel_zero = False
     if copy:
         take('mov',0,8)
         for extent in (6,1): take('cmp',8,extent); branch(7,'abort')
@@ -264,8 +271,24 @@ def _structure(rows, kind, binding):
         take('imm',0,0); take('cmp',2,6); branch(7,'abort'); take('test',2,2); branch(4,'done')
         take('test',7,7); branch(4,'abort'); take('mov',9,7); take('add',9,2); branch(2,'abort')
         take('mov',10,2); take('pxor',0,0); take('pxor',2,2)
+        if kind=='all_zero_u8' and pos<len(rows) and rows[pos].op=='pxor':
+            for register in (3,4,5): take('pxor',register,register)
+            parallel_zero = True
+            require(pos<len(rows) and rows[pos].op=='alu_imm' and rows[pos].args==('cmp',10,64),
+                    'parallel zero accumulators require the complete guarded bulk loop')
+    chunk_instructions = 2 if copy or kind=='all_zero_u8' else 3
+    # A 64-byte guard dominates all four explicitly displaced 16-byte
+    # accesses. No pointer/count updates occur between those chunks.
+    if pos < len(rows) and rows[pos].op == 'alu_imm' and rows[pos].args == ('cmp',10,64):
+        label('bulk'); take('alu_imm','cmp',10,64); branch(2,'bulk_merge' if parallel_zero else 'vector')
+        capture('bulk',4*chunk_instructions)
+        take('alu_imm','add',7,64)
+        if copy: take('alu_imm','add',2,64)
+        take('alu_imm','sub',10,64); jump('bulk')
+        if parallel_zero:
+            label('bulk_merge'); capture('bulk_merge',3)
     label('vector'); take('alu_imm','cmp',10,16); branch(2,'tail' if copy else 'horizontal')
-    capture('vector',2 if copy or kind=='all_zero_u8' else 3)
+    capture('vector',chunk_instructions)
     take('alu_imm','add',7,16)
     if copy: take('alu_imm','add',2,16)
     take('alu_imm','sub',10,16); jump('vector')
@@ -284,18 +307,32 @@ def _structure(rows, kind, binding):
     take('ud2'); require(pos==len(rows),'unreviewed trailing instructions')
     require(all(target==labels[name] for target,name in edges),'branch target changes closed flow')
     # Semantic parts have no branches, stack effects or hidden register writes.
-    for r in parts['vector']:
-        require(r.op in ('load128','store128','psadbw','paddq','psubq','pxor','por','pand'),
-                'unreviewed vector semantic instruction')
-    require(parts['vector'][0].op=='load128' and parts['vector'][0].args==(1,2 if copy else 7),
-            'vector load must use the guarded source')
-    if copy:
-        require(parts['vector'][1].op=='store128' and parts['vector'][1].args[0]==7,
-                'vector store must use guarded destination')
-    else:
-        require(sum(r.op=='load128' for r in parts['vector'])==1 and
-                all(r.op!='store128' for r in parts['vector']),
-                'reduction must have exactly its single guarded vector read and no store')
+    for name,offsets in (('vector',(0,)),('bulk',(0,16,32,48))):
+        if name not in parts:
+            continue
+        for chunk,offset in enumerate(offsets):
+            instructions=parts[name][chunk*chunk_instructions:(chunk+1)*chunk_instructions]
+            for r in instructions:
+                require(r.op in ('load128','store128','psadbw','paddq','psubq','pxor','por','pand'),
+                        'unreviewed vector semantic instruction')
+            require(instructions[0].op=='load128' and
+                    instructions[0].args==(1,2 if copy else 7,offset),
+                    'vector load must use the exact guarded source offset')
+            if copy:
+                require(instructions[1].op=='store128' and instructions[1].args[:2]==(7,offset),
+                        'vector store must use the exact guarded destination offset')
+            else:
+                require(sum(r.op=='load128' for r in instructions)==1 and
+                        all(r.op!='store128' for r in instructions),
+                        'reduction chunk must have its single guarded vector read and no store')
+                if parallel_zero and name=='bulk':
+                    require(instructions[1].args==((0,3,4,5)[chunk],1),
+                            'parallel zero chunk must update its exact independent accumulator')
+    if parallel_zero:
+        require(all(r.op in ('por','pxor','pand') and r.args[0]==0 and r.args[1] in (0,3,4,5)
+                    for r in parts['bulk_merge']),
+                'parallel zero merge must preserve every register except its result')
+    if not copy:
         require(all(r.op in ('xmm_to_gpr','psrldq','add','sub','or','and','xor') for r in parts['horizontal']),
                 'unreviewed horizontal semantic instruction')
     require(parts['scalar'][0].op=='load8' and parts['scalar'][0].args==(9,2 if copy else 7,0),
@@ -318,7 +355,7 @@ def _prefix(z, ctx, rows, labels):
     positions={r.pc:i for i,r in enumerate(rows)}
     pending=[(0,initial,z.BoolVal(True,ctx=ctx),None,None)]
     outcomes=[]
-    stops={labels[n]:n for n in ('vector','done','abort')}
+    stops={labels.get('bulk',labels['vector']):'vector',labels['done']:'done',labels['abort']:'abort'}
     while pending:
         pc,regs,path,cf,zf=pending.pop()
         if pc in stops:
@@ -372,6 +409,33 @@ def _packed(z,ctx,op,a,b):
     raise VerifiedSIMDRejected('missing packed semantics')
 
 
+def _vector_transition(z,ctx,instructions,blocks,acc,prefix,*,copy,partial_accumulators=None):
+    """Interpret one complete decoded vector block in the induction state.
+
+    The structure check has already fixed every read/write displacement. Keep
+    the actual decoded displacement in this memory projection too, so four
+    successive chunks cannot silently reuse the first symbolic source block.
+    Only reduction entry states promise a zero register; copy's XMM inputs are
+    all arbitrary SysV caller state.
+    """
+    xmm={i:z.BitVec(prefix+'_initial_xmm'+str(i),128,ctx=ctx) for i in range(8)}
+    if not copy:
+        xmm[0],xmm[2]=acc,z.BitVecVal(0,128,ctx=ctx)
+        if partial_accumulators is not None:
+            xmm.update(partial_accumulators)
+    stored=[]
+    for r in instructions:
+        if r.op=='load128':
+            offset=r.args[2]
+            require(offset%16==0 and 0<=offset//16<len(blocks),'unreviewed symbolic read displacement')
+            xmm[r.args[0]]=blocks[offset//16]
+        elif r.op=='store128':
+            stored.append((r.args[1],xmm[r.args[2]]))
+        else:
+            xmm[r.args[0]]=_packed(z,ctx,r.op,xmm[r.args[0]],xmm[r.args[1]])
+    return xmm,stored
+
+
 def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, timeout_ms=15000, query_directory=None):
     require(type(object_bytes) is bytes and type(final_bytes) is bytes,'immutable ELF bytes required')
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000,'timeout must be 100..60000 milliseconds')
@@ -381,6 +445,8 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     require(binding['entry']==0 and binding['binding'].get('function_shape')=='direct_entry',
             'SIMD requires one directly exported function')
     rows=decode_simd(binding['text']); labels,parts=_structure(rows,kind,binding)
+    unrolled='bulk' in parts
+    parallel_zero='bulk_merge' in parts
     try: z=importlib.import_module('z3')
     except ImportError as exc: raise VerifiedSIMDRejected('pinned solver unavailable') from exc
     ctx=z.Context()
@@ -422,10 +488,14 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     # Each decoded backedge is exactly the +w/-w transition checked below.
     ni,ii,pi,ei=z.Ints('count index base extent',ctx=ctx)
     invariant=[0<=ii,ii<=ni,ni<=ei,ei<(1<<64),pi>0,pi+ni<(1<<64)]
-    for width in (16,1):
+    for width in ((64,16,1) if unrolled else (16,1)):
         guard=ni-ii>=width
+        accesses=(0,16,32,48) if width==64 else (0,)
+        access_width=16 if width>=16 else 1
         violation=z.Or(ii+width>ni,pi+ii<pi,pi+ii+width>pi+ni,
-                       ii+width>=(1<<64),ni-(ii+width)<0,ni-(ii+width)>=ni-ii)
+                       ii+width>=(1<<64),ni-(ii+width)<0,ni-(ii+width)>=ni-ii,
+                       *[z.Or(pi+ii+offset<pi,pi+ii+offset+access_width>pi+ni)
+                         for offset in accesses])
         check('range_and_decreasing_variant_'+str(width),violation,invariant+[guard])
     check('loop_exit_covers_exact_count',ii!=ni,invariant+[ni-ii==0])
     # Prefix guards and the fixed CFG never write saved registers or data.
@@ -437,16 +507,41 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     stack_contract=[(rsp&bv(15))==8,z.UGE(rsp,bv(16)),z.ULE(rsp,bv((1<<64)-9))]
     check('abort_call_stack_alignment_and_bounds',z.Or(((rsp-bv(8))&bv(15))!=0,
           z.UGT(rsp-bv(16),rsp),z.UGT((rsp-bv(16))+bv(8),rsp),z.ULT(rsp+bv(8),rsp)),stack_contract)
-    block=z.BitVec('sixteen_source_bytes',128,ctx=ctx); acc=z.BitVec('prior_vector_accumulator',128,ctx=ctx)
-    xmm={i:z.BitVec('initial_xmm'+str(i),128,ctx=ctx) for i in range(8)}
-    xmm[0],xmm[2]=acc,z.BitVecVal(0,128,ctx=ctx)
-    stored=None
-    for r in parts['vector']:
-        if r.op=='load128': xmm[r.args[0]]=block
-        elif r.op=='store128': stored=xmm[r.args[1]]
-        else: xmm[r.args[0]]=_packed(z,ctx,r.op,xmm[r.args[0]],xmm[r.args[1]])
+    for name,chunks in ((('bulk',4),('vector',1)) if unrolled else (('vector',1),)):
+        blocks=[z.BitVec(name+'_source_bytes_'+str(j),128,ctx=ctx) for j in range(chunks)]
+        acc=z.BitVec(name+'_prior_accumulator',128,ctx=ctx)
+        partials=({j:z.BitVec(name+'_prior_accumulator_'+str(j),128,ctx=ctx) for j in (3,4,5)}
+                  if parallel_zero and name=='bulk' else {})
+        xmm,stored=_vector_transition(z,ctx,parts[name],blocks,acc,name,copy=copy,
+                                      partial_accumulators=partials)
+        if copy:
+            require([offset for offset,value in stored]==[16*j for j in range(chunks)],
+                    'decoded stores do not cover the complete vector block')
+            check(name+'_copy_byte_semantics',z.Or(*[value!=blocks[offset//16] for offset,value in stored]))
+        elif kind=='sum_u8':
+            lane_sum=lambda x:z.Extract(63,0,x)+z.Extract(127,64,x)
+            reference=sum([z.ZeroExt(56,z.Extract(j*8+7,j*8,block))
+                           for block in blocks for j in range(16)],bv(0))
+            check(name+'_sum_induction',z.Or(lane_sum(xmm[0])!=lane_sum(acc)+reference,xmm[2]!=0))
+        else:
+            prior_zero=z.And(acc==0,*[value==0 for value in partials.values()])
+            next_zero=z.And(xmm[0]==0,*[xmm[register]==0 for register in partials])
+            check(name+'_zero_scan_induction',z.Or(next_zero!=z.And(prior_zero,*[block==0 for block in blocks]),xmm[2]!=0))
+    if parallel_zero:
+        # The bulk invariant retains all four independent accumulators. Its
+        # false guard must pass through this decoded merge, even when count
+        # was initially below 64. The existing 16-byte loop then receives
+        # exactly its scalar zero-predicate state and persistent zero vector.
+        initial_xmm={i:z.BitVec('merge_initial_xmm'+str(i),128,ctx=ctx) for i in range(8)}
+        initial_xmm[2]=z.BitVecVal(0,128,ctx=ctx)
+        merged=dict(initial_xmm)
+        for instruction in parts['bulk_merge']:
+            dst,src=instruction.args
+            merged[dst]=_packed(z,ctx,instruction.op,merged[dst],merged[src])
+        check('parallel_zero_merge_and_frame',z.Or(
+            (merged[0]==0)!=z.And(*[initial_xmm[i]==0 for i in (0,3,4,5)]),
+            merged[2]!=0,*[merged[i]!=initial_xmm[i] for i in range(1,8)]))
     if copy:
-        check('vector_copy_byte_semantics',stored!=block)
         # Under the full-range disjointness guard, writing each next prefix
         # cannot alter any byte of the complete source range, including bytes
         # that a later iteration has not loaded yet.
@@ -454,12 +549,6 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         disjoint=[dp>0,sp>0,nn>0,dp+nn<(1<<64),sp+nn<(1<<64),
                   z.Or(dp+nn<=sp,sp+nn<=dp),0<=j,j<nn,0<=k,k<nn]
         check('copy_source_preserved_between_iterations',dp+k==sp+j,disjoint)
-    elif kind=='sum_u8':
-        lane_sum=lambda x:z.Extract(63,0,x)+z.Extract(127,64,x)
-        reference=sum([z.ZeroExt(56,z.Extract(j*8+7,j*8,block)) for j in range(16)],bv(0))
-        check('vector_sum_induction',z.Or(lane_sum(xmm[0])!=lane_sum(acc)+reference,xmm[2]!=0))
-    else:
-        check('vector_zero_scan_induction',z.Or((xmm[0]==0)!=z.And(acc==0,block==0),xmm[2]!=0))
     if not copy:
         x={i:z.BitVec('horizontal_initial_xmm'+str(i),128,ctx=ctx) for i in range(8)}; x[0]=acc
         g={i:z.BitVec('horizontal_initial_r'+str(i),64,ctx=ctx) for i in range(16)}
@@ -483,7 +572,8 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     require(time.monotonic()<deadline and identity==_identity(),'checker changed or final deadline exhausted')
     require(solver_identity==_solver_identity(z) and time.monotonic()<deadline,'solver changed or final deadline exhausted')
     report={
-        'schema':'hepta.hia.verified-simd-machine-validation.v1','profile':PROFILE,
+        'schema':'hepta.hia.verified-simd-machine-validation.v1',
+        'profile':PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
         'ok':True,'complete':True,'status':'smt_validated','kind':kind,
         'validation_mode':'independent_supplied_bytes_closed_loop_induction',
         'subject':{'core_sha256':checked.sha256,'input_sha256':checked.input_sha256,
@@ -508,7 +598,9 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
             'The existing ELF/loader model, these independent instruction/Core/loop semantics and pinned Z3 are trusted Python components, not a hardware ISA theorem.',
             'The loader maps inspected immutable bytes and immediately resolves libc abort as nonreturning; concurrency, signals, faults and side channels are outside this model.'],
         'model_counts':{'decoded_instructions':len(rows),'vector_width':16,'scalar_tail_width':1,
-                        'range_admission_sites':1,'guard_paths':len(outcomes),'loop_backedges':2},
+                        'vector_unroll':4 if unrolled else 1,'superblock_width':64 if unrolled else 16,
+                        'reduction_accumulators':4 if parallel_zero else 0 if copy else 1,
+                        'range_admission_sites':1,'guard_paths':len(outcomes),'loop_backedges':3 if unrolled else 2},
         'elapsed_seconds':time.monotonic()-started}
     if output is not None: (output/'validation.json').write_text(json.dumps(report,indent=2)+'\n')
     return report
