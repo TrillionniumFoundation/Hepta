@@ -66,7 +66,7 @@ class WideDecoderTests(unittest.TestCase):
     def test_unreviewed_prefixes_masks_registers_and_addressing_fail_closed(self):
         bad = (
             "c5", "c4e3", "62f1fd", "62f1fe486f4a", "62f1fe486f8a400000",
-            "c57defc0", "c5bdefc0", "c5f66f0a", "c5fa6f0a", "c5fe6f0c",
+            "c57defc0", "c5bdefc0", "c5f66f0a", "c5fb6f0a", "c5fe6f0c",
             "c5fe6f0d00000000", "c5fe6f0b", "c5fe6fca", "f3c5fe6f0a",
             "62f1fe496f0a", "62f1fe586f0a", "62f1fec86f0a", "62f1fe286f0a",
             "62f1fa486f0a", "62e1fe486f0a", "62f1fe406f0a", "62f17e486f0a",
@@ -90,7 +90,7 @@ class WideSIMDCheckerTests(unittest.TestCase):
         for isa in ("avx2", "avx512"):
             for kind in ("sum_u8", "all_zero_u8", "copy_u8"):
                 core = simd_kernel_program(kind)
-                image = emit_verified_simd(core, isa=isa)
+                image = emit_verified_simd(core, isa=isa, **({"copy_tail": "byte"} if kind == "copy_u8" else {}))
                 obj, final = cls.root / (kind + isa + ".o"), cls.root / (kind + isa + ".so")
                 obj.write_bytes(image.object_bytes)
                 linked = subprocess.run([

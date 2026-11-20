@@ -36,11 +36,13 @@ class VerifiedWideNativeTests(unittest.TestCase):
         cls.variants, cls.refusals, cls.results = {}, {}, {}
         for (isa, kind), required in REQUIREMENTS.items():
             core = simd_kernel_program(kind)
-            image = emit_verified_simd(core, isa=isa)
+            tail = 'byte' if kind == 'copy_u8' else None
+            image = emit_verified_simd(core, isa=isa, copy_tail=tail)
             path = cls.root / (isa + '-' + kind + '.so')
             if not required <= available:
                 try:
-                    build_verified_kernel(core, path, strategy='simd', simd_isa=isa)
+                    build_verified_kernel(core, path, strategy='simd', simd_isa=isa,
+                                          simd_copy_tail=tail)
                 except VerifiedCPURejected as exc:
                     if path.exists() or 'does not enable' not in str(exc):
                         raise AssertionError('unsupported ISA did not fail before publication') from exc
@@ -48,7 +50,8 @@ class VerifiedWideNativeTests(unittest.TestCase):
                 else:
                     raise AssertionError('unsupported ISA was published')
                 continue
-            result = build_verified_kernel(core, path, strategy='simd', simd_isa=isa)
+            result = build_verified_kernel(core, path, strategy='simd', simd_isa=isa,
+                                           simd_copy_tail=tail)
             cls.results[isa, kind] = result
             cls.variants.setdefault(isa, {})[kind] = (core, image, path, result['validation'])
         print('Wide ISA native coverage: ' + str(len(cls.results)) + ' executed-capable images; ' +

@@ -23,7 +23,7 @@ import time
 from .hia_program import verify_program
 from .hia_safe_core import _solver_identity
 from .hia_safe_core_elf import bind_final_artifact
-from .hia_verified_simd_wide_x64 import decode_wide_instruction, WideMachineRejected
+from .hia_verified_simd_wide_x64 import decode_wide_instruction, decode_copy_tail_memory, WideMachineRejected
 
 
 class VerifiedSIMDRejected(ValueError):
@@ -42,6 +42,8 @@ UNROLLED_PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v2"
 PARALLEL_ZERO_PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v3"
 WIDE_PROFILES = {256: "hia.closed-forward-byte-loops.avx2.direct-borrowed-u64.v1",
                  512: "hia.closed-forward-byte-loops.avx512.direct-borrowed-u64.v1"}
+COPY_ENDPOINT_PROFILES = {bits:profile[:-1]+'2.copy-endpoints' for bits,profile in WIDE_PROFILES.items()}
+CORE_RECOGNITION_PROFILE = "hia.closed-forward-byte-recurrence.alpha.v1"
 SOURCE_FILES = ("hia_verified_simd_check.py", "hia_safe_core.py", "hia_safe_core_elf.py",
                 "hia_verified_simd_wide_x64.py",
                 "elf_shared_abi.py", "hia_program.py", "hia_opcodes.py", "hia_schema.py",
@@ -57,22 +59,150 @@ def _signature(operation):
             tuple((v["name"], v["type"]) for v in operation["out"]), operation["attrs"])
 
 
-def recognize_simd_core(document):
-    """Admit only the complete specified recurrence, including preflight effects.
+def _alpha_rewrite(document, values, blocks, block_order):
+    """Rename only identifier fields, simultaneously and without capture.
 
-    Version 1 intentionally fixes local SSA/block spellings; module and export
-    names remain arbitrary. Other Core shapes retain their existing lowering.
+    This helper does not synthesize instructions or change operand order,
+    types, attributes, effects, trap codes, module names or external symbols.
+    It is also used with inverse maps to check the complete input round trip.
     """
-    checked = verify_program(document)
+    def name(mapping, original):
+        require(original in mapping, 'alpha-renaming has an unmapped identifier')
+        return mapping[original]
+
+    def declaration(item):
+        return {**item, 'name':name(values,item['name'])}
+
+    def edge(item):
+        return {**item, 'target':name(blocks,item['target']),
+                'args':[name(values,arg) for arg in item['args']]}
+
+    function=document['functions'][0]
+    renamed={}
+    for block in function['blocks']:
+        term=block['term']
+        if term['op']=='branch':
+            term={**term, 'cond':name(values,term['cond']),
+                  'then':edge(term['then']), 'else':edge(term['else'])}
+        elif term['op']=='jump':
+            term=edge(term)
+        elif term['op']=='ret':
+            term={**term, 'values':[name(values,arg) for arg in term['values']]}
+        else:
+            require(term['op']=='trap','unreviewed alpha-renaming terminator')
+            term=dict(term)
+        ident=name(blocks,block['id'])
+        require(ident not in renamed,'alpha-renaming merged two blocks')
+        renamed[ident]={**block, 'id':ident,
+            'params':[declaration(item) for item in block['params']],
+            'ops':[{**op, 'args':[name(values,arg) for arg in op['args']],
+                    'out':[declaration(item) for item in op['out']]} for op in block['ops']],
+            'term':term}
+    require(len(block_order)==len(renamed) and set(block_order)==set(renamed),
+            'alpha-renaming lost or duplicated a block declaration')
+    return {**document, 'functions':[{**function,
+        'params':[declaration(item) for item in function['params']],
+        'entry':name(blocks,function['entry']),
+        'blocks':[renamed[ident] for ident in block_order]}]}
+
+
+def _alpha_normal_form(checked):
+    """Make a reversible identifier-only view of one already verified Core.
+
+    Block roles come only from the two required branch edges. Definition
+    positions choose names, never instructions or values. The original strict
+    recurrence recognizer still checks every resulting operation and edge.
+    """
     d = checked.as_dict()
     require(checked.structured_bytes is None and d["schema"] == "hepta.hia.program.v8" and
             len(d["functions"]) == 1, "one primitive v8 Core function required")
     f = d["functions"][0]
     require(set(f) == {"name", "params", "returns", "effects", "entry", "blocks"},
             "unreviewed Core function metadata")
-    types = [p["type"] for p in f["params"]]
-    copy = types == ["mutbuf", "readbuf", "usize"]
-    require(copy or types == ["readbuf", "usize"], "unrecognized borrowed loop parameters")
+    types=[p['type'] for p in f['params']]
+    copy=types==['mutbuf','readbuf','usize']
+    require(copy or types==['readbuf','usize'],'unrecognized borrowed loop parameters')
+    require(len(f['blocks'])==5,'complete closed five-block Core required')
+    by_id={block['id']:block for block in f['blocks']}
+    entry=by_id[f['entry']]
+    require(entry['term']['op']=='branch','closed recurrence requires an entry branch')
+    loop=by_id[entry['term']['then']['target']]
+    require(loop['term']['op']=='branch','closed recurrence requires a loop branch')
+    roles={'entry':f['entry'], 'loop':loop['id'],
+           'body':loop['term']['then']['target'], 'done':loop['term']['else']['target'],
+           'invalid':entry['term']['else']['target']}
+    require(len(set(roles.values()))==5 and set(roles.values())==set(by_id),
+            'closed recurrence roles must name five distinct complete blocks')
+    block_map={actual:role for role,actual in roles.items()}
+    body=by_id[roles['body']]
+    if copy:
+        kind='copy_u8'
+    else:
+        require(len(body['ops'])==5 and body['ops'][2]['op'] in ('int.add.wrap','bit.or'),
+                'Core reduction recurrence differs')
+        kind='sum_u8' if body['ops'][2]['op']=='int.add.wrap' else 'all_zero_u8'
+
+    params=(['destination'] if copy else [])+['source','count']
+    state=params+['index']+([] if copy else ['total'])
+    parameter_names={'entry':params, 'invalid':[],
+        **{role:[prefix+name for name in state] for role,prefix in
+           (('loop','l_'),('body','b_'),('done','d_'))}}
+    entry_outputs=['source_extent','source_fits']
+    if copy: entry_outputs+=['destination_extent','destination_fits','fits']
+    entry_outputs+=['zero']+([] if copy else ['initial'])
+    body_outputs=[['byte'],[],['one'],['next_index']] if copy else [
+        ['byte'],['wide'],['next_total'],['one'],['next_index']]
+    done_outputs=([['answer']] if copy else
+                  [[name] for name in ('done_zero','done_one','all_zero','answer')]
+                  if kind=='all_zero_u8' else [])
+    output_names={'entry':[[name] for name in entry_outputs], 'loop':[['more']],
+                  'body':body_outputs, 'done':done_outputs, 'invalid':[]}
+    value_map={}; inverse_values={}
+
+    def bind(actual, canonical):
+        require(actual not in value_map and canonical not in inverse_values,
+                'SSA alpha-renaming is not a bijection')
+        value_map[actual]=canonical; inverse_values[canonical]=actual
+
+    for role,ident in roles.items():
+        block=by_id[ident]
+        require(len(block['params'])==len(parameter_names[role]) and
+                len(block['ops'])==len(output_names[role]),
+                'closed recurrence declaration/operation inventory differs')
+        for parameter,canonical in zip(block['params'],parameter_names[role]):
+            bind(parameter['name'],canonical)
+        for op,expected in zip(block['ops'],output_names[role]):
+            require(len(op['out'])==len(expected),'closed recurrence output inventory differs')
+            for output,canonical in zip(op['out'],expected):
+                bind(output['name'],canonical)
+
+    order=list(roles)
+    original_order=[block['id'] for block in f['blocks']]
+    normalized=_alpha_rewrite(d,value_map,block_map,order)
+    # Recheck the transformed typed Core as well as the exact inverse. Neither
+    # an old report nor an emitter-provided map can authorize this operation.
+    normal_checked=verify_program(normalized)
+    normal=normal_checked.as_dict()
+    restored=_alpha_rewrite(normal,inverse_values,{role:actual for role,actual in roles.items()},
+                            original_order)
+    require(restored==d,'Core alpha-renaming inverse round trip differs from the original')
+    mapping={'ssa':dict(sorted(value_map.items())), 'blocks':dict(sorted(block_map.items())),
+             'original_block_order':original_order}
+    evidence={'profile':CORE_RECOGNITION_PROFILE, 'original_core_sha256':checked.sha256,
+        'normal_form_core_sha256':normal_checked.sha256,
+        'renaming_sha256':sha256(json.dumps(mapping,sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+        'renaming':mapping, 'bijections_checked':True, 'inverse_roundtrip_checked':True,
+        'renamed_ssa_definitions':sum(actual!=canonical for actual,canonical in value_map.items()),
+        'renamed_blocks':sum(actual!=canonical for actual,canonical in block_map.items()),
+        'block_declaration_order_changed':[block_map[ident] for ident in original_order]!=order}
+    return normal,evidence
+
+
+def _recognize_simd_core(document):
+    checked=verify_program(document)
+    d,evidence=_alpha_normal_form(checked)
+    f=d['functions'][0]
+    copy=[p['type'] for p in f['params']]==['mutbuf','readbuf','usize']
     params = ([('destination', 'mutbuf')] if copy else []) + [('source', 'readbuf'), ('count', 'usize')]
     pairs = lambda seq: [(p["name"], p["type"]) for p in seq]
     require(pairs(f["params"]) == params and f["returns"] == ["u64"] and f["entry"] == "entry" and
@@ -133,7 +263,18 @@ def recognize_simd_core(document):
             blocks['loop']['term'] == branch('more','body',carried,'done',carried) and
             blocks['body']['term'] == {'op':'jump','target':'loop','args':back},
             "Core edge/state transport differs")
-    return kind, f['name']
+    return kind, f['name'], evidence
+
+
+def recognize_simd_core(document):
+    """Admit the complete recurrence modulo a checked identifier bijection.
+
+    Local SSA and block spellings and block declaration order may differ.
+    Operations, types, ordered operands, effects and complete edge transport
+    retain the original strict shape; module and export names are preserved.
+    """
+    kind,export,_=_recognize_simd_core(document)
+    return kind,export
 
 
 @dataclass(frozen=True)
@@ -157,6 +298,13 @@ def decode_simd(data):
             b = data[p:p+n]; p += n
             return b
         first = take(1)[0]
+        try:
+            tail_memory=decode_copy_tail_memory(data,begin)
+        except WideMachineRejected as exc:
+            raise VerifiedSIMDRejected(str(exc)) from exc
+        if tail_memory is not None:
+            op,args,size=tail_memory
+            p=begin+size; rows.append(Instruction(begin,op,args,size)); continue
         if first in (0xc4, 0xc5, 0x62):
             try:
                 op,args,size,features = decode_wide_instruction(data,begin)
@@ -370,11 +518,13 @@ def _structure_wide(rows, kind, binding):
     """Close the independent AVX2/AVX-512 four-chunk machine profile."""
     memory_rows=[r for r in rows if r.op in ('vload','vstore') or r.op.endswith('_mem')]
     widths={r.args[0] for r in memory_rows}
-    require(len(widths)==1 and next(iter(widths)) in (256,512),
-            'one complete wide memory width is required')
-    bits=next(iter(widths)); width=bits//8
+    require(widths and max(widths) in (256,512),'one complete wide memory width is required')
+    bits=max(widths); width=bits//8
     pos,labels,edges,parts=0,{},[],{}
     copy=kind=='copy_u8'
+    endpoint=copy and any(r.op in ('copy_load','copy_store') for r in rows)
+    require(widths<={128,256,512} if endpoint else widths=={bits},
+            'unreviewed mixed vector memory width')
 
     def next_row():
         nonlocal pos
@@ -436,18 +586,30 @@ def _structure_wide(rows, kind, binding):
     if not copy:
         label('bulk_merge'); capture('bulk_merge',3)
     label('vector'); take('alu_imm','cmp',10,width)
-    branch(2,'wide_cleanup' if copy else 'horizontal')
+    branch(2,'tail_dispatch' if endpoint else 'wide_cleanup' if copy else 'horizontal')
     capture('vector',chunk_instructions)
     take('alu_imm','add',7,width)
     if copy: take('alu_imm','add',2,width)
     take('alu_imm','sub',10,width); jump('vector')
     if not copy:
         label('horizontal'); capture('horizontal',8 if bits==512 else 6)
-    label('wide_cleanup'); take('vzeroupper')
-    label('tail'); take('test',10,10); branch(4,'done'); capture('scalar',2)
-    take('alu_imm','add',7,1)
-    if copy: take('alu_imm','add',2,1)
-    take('alu_imm','sub',10,1); jump('tail')
+    if endpoint:
+        label('tail_dispatch'); take('test',10,10); branch(4,'wide_cleanup')
+        levels=[]; level=width//2
+        while level>=2:
+            levels.append(level); label('endpoint_'+str(level))
+            take('alu_imm','cmp',10,level); branch(2,'endpoint_'+str(level//2))
+            capture('endpoint_'+str(level),7); jump('wide_cleanup')
+            level//=2
+        levels.append(1); label('endpoint_1'); capture('endpoint_1',2)
+        parts['_endpoint_levels']=levels
+        label('wide_cleanup'); take('vzeroupper')
+    else:
+        label('wide_cleanup'); take('vzeroupper')
+        label('tail'); take('test',10,10); branch(4,'done'); capture('scalar',2)
+        take('alu_imm','add',7,1)
+        if copy: take('alu_imm','add',2,1)
+        take('alu_imm','sub',10,1); jump('tail')
     label('done')
     if kind=='all_zero_u8':
         take('test',0,0); take('imm',0,0); take('sete',0)
@@ -464,8 +626,10 @@ def _structure_wide(rows, kind, binding):
             group=parts[name][chunk*chunk_instructions:(chunk+1)*chunk_instructions]
             accumulator=(0,3,4,5)[chunk] if name=='bulk' else 0
             if copy:
-                require(group[0].op=='vload' and group[0].args==(bits,1,2,offset) and
-                        group[1].op=='vstore' and group[1].args[:3]==(bits,7,offset),
+                read,write=(parts[name][chunk],parts[name][4+chunk]) if endpoint and name=='bulk' else group
+                register=chunk+1 if endpoint and name=='bulk' else 1
+                require(read.op=='vload' and read.args==(bits,register,2,offset) and
+                        write.op=='vstore' and write.args[:3]==(bits,7,offset),
                         'wide copy must read/write its exact guarded chunk')
             else:
                 first=group[0]
@@ -487,15 +651,35 @@ def _structure_wide(rows, kind, binding):
                 require(row.args[0] in (0,9),'wide horizontal writes nonvolatile GPR state')
             elif row.op in ('add','sub','or','and','xor'):
                 require(row.args[0] in (0,9),'wide horizontal writes nonvolatile GPR state')
-    require(parts['scalar'][0].op=='load8' and parts['scalar'][0].args==(9,2 if copy else 7,0),
-            'wide tail must read its exact guarded byte')
-    if copy:
+    if endpoint:
+        for level in parts['_endpoint_levels']:
+            block=parts['endpoint_'+str(level)]
+            readop,writeop=('vload','vstore') if level>=16 else ('copy_load','copy_store')
+            first,last=(1,2) if level>=16 else (9,11)
+            require(block[0].op==readop and block[0].args==(level*8,first,2,0),
+                    'endpoint first load width/base/register differs')
+            if level==1:
+                stores=[block[1]]
+            else:
+                require([(r.op,r.args) for r in (block[1],block[2],block[5])]==[
+                        ('alu_imm',('sub',10,level)),('add',(2,10)),('add',(7,10))] and
+                        block[3].op==readop and block[3].args==(level*8,last,2,0),
+                        'endpoint delta or final source address differs')
+                stores=[block[4],block[6]]
+            require(all(r.op==writeop and r.args[:3]==(level*8,7,0) and
+                        (level>=16 or r.args[3] in (9,11)) for r in stores),
+                    'endpoint stores have unreviewed width/base/register effects')
+    else:
+        require(parts['scalar'][0].op=='load8' and parts['scalar'][0].args==(9,2 if copy else 7,0),
+                'wide tail must read its exact guarded byte')
+    if copy and not endpoint:
         require(parts['scalar'][1].op=='store8' and parts['scalar'][1].args[:2]==(7,0),
                 'wide tail must store its exact guarded byte')
-    else:
+    elif not copy:
         require(parts['scalar'][1].op in ('add','sub','or','and','xor') and
                 parts['scalar'][1].args==(0,9),'wide tail accumulator frame differs')
-    parts['_wide']={'bits':bits,'width':width,'target_isa':'avx512' if bits==512 else 'avx2'}
+    parts['_wide']={'bits':bits,'width':width,'target_isa':'avx512' if bits==512 else 'avx2',
+                    'copy_tail':'endpoints' if endpoint else 'byte' if copy else None}
     return labels,parts
 
 
@@ -731,17 +915,91 @@ def _prove_wide_blocks(z,ctx,parts,kind,check):
         prove('wide_horizontal_reduction',mismatch)
 
 
+def _prove_endpoint_tails(z,ctx,parts,check):
+    """Prove exact suffix effects, including repeated writes in the overlap.
+
+    Source reads share one byte array indexed by their actual relative offset;
+    first and last blocks are not independent symbolic values. The common
+    whole-range disjointness proof preserves this source across every store.
+    Natural offsets are related to actual u64 addresses by the nonwrapping
+    bounds obligation for each decoded tail. No tail-count samples are used.
+    """
+    width=parts['_wide']['width']; bits=parts['_wide']['bits']
+    remaining=z.Int('endpoint_remaining',ctx=ctx)
+    guards=[remaining==0]+[z.And(remaining>=w,remaining<2*w) for w in parts['_endpoint_levels']]
+    check('endpoint_dispatch_partition',z.Or(z.Not(z.Or(*guards)),
+        *[z.And(left,right) for i,left in enumerate(guards) for right in guards[i+1:]]),
+        [remaining>=0,remaining<width])
+    for w in parts['_endpoint_levels']:
+        prefix='endpoint_'+str(w)
+        base,n,index,j=z.Ints(prefix+'_base '+prefix+'_count '+prefix+'_index '+prefix+'_byte',ctx=ctx)
+        offsets=[z.IntVal(0,ctx)] if w==1 else [z.IntVal(0,ctx),remaining-w]
+        path=[remaining>=w,remaining<2*w]
+        span=[base>0,n>=0,index>=0,index<=n,remaining==n-index,base+n<(1<<64)]
+        coverage=z.Or(*[z.And(j>=offset,j<offset+w) for offset in offsets])
+        check(prefix+'_bounds_and_exact_coverage',z.Or(
+            coverage!=z.And(j>=0,j<remaining),
+            *[z.Or(offset<0,offset+w>remaining,base+index+offset<base,
+                   base+index+offset+w>base+n,base+index+offset>=(1<<64)) for offset in offsets]),
+            path+span)
+        source=z.Array(prefix+'_source',z.IntSort(ctx),z.BitVecSort(8,ctx))
+        before=z.Array(prefix+'_destination',z.IntSort(ctx),z.BitVecSort(8,ctx))
+        memory=before
+        initial={r:z.BitVec(prefix+'_gpr'+str(r),64,ctx=ctx) for r in range(16)}
+        initial.update({2:z.IntVal(0,ctx),7:z.IntVal(0,ctx),10:remaining})
+        registers=dict(initial)
+        vectors={r:z.BitVec(prefix+'_vector'+str(r),bits,ctx=ctx) for r in range(8)}
+        vector_initial=dict(vectors)
+        accesses=[]
+        for row in parts[prefix]:
+            op,a=row.op,row.args
+            if op in ('vload','copy_load'):
+                operand_bits,destination,pointer,disp=a
+                offset=registers[pointer]+disp; size=operand_bits//8
+                value=z.Concat(*[z.Select(source,offset+k) for k in reversed(range(size))]) if size>1 else z.Select(source,offset)
+                accesses.append(('read',offset,size))
+                if op=='vload':
+                    vectors[destination]=z.ZeroExt(bits-operand_bits,value)
+                else:
+                    registers[destination]=z.ZeroExt(64-operand_bits,value)
+            elif op in ('vstore','copy_store'):
+                operand_bits,pointer,disp,register=a
+                offset=registers[pointer]+disp; size=operand_bits//8
+                value=vectors[register] if op=='vstore' else registers[register]
+                accesses.append(('write',offset,size))
+                for k in range(size):
+                    memory=z.Store(memory,offset+k,z.Extract(k*8+7,k*8,value))
+            elif op=='alu_imm':
+                action,destination,amount=a
+                require(action=='sub' and destination==10,'unreviewed endpoint integer effect')
+                registers[destination]=registers[destination]-amount
+            elif op=='add':
+                registers[a[0]]=registers[a[0]]+registers[a[1]]
+            else:
+                raise VerifiedSIMDRejected('unreviewed endpoint data instruction')
+        expected=z.If(z.And(j>=0,j<remaining),z.Select(source,j),z.Select(before,j))
+        # A symbolic j proves every byte, including bytes outside the suffix.
+        # In the overlap both stores select source[j], so the second is exact.
+        violation=z.Or(z.Select(memory,j)!=expected,
+            *[z.Or(offset<0,offset+size>remaining) for _,offset,size in accesses],
+            *[registers[r]!=initial[r] for r in range(16) if r not in (2,7,9,10,11)],
+            *[vectors[r]!=vector_initial[r] for r in range(8) if r not in (1,2)])
+        check(prefix+'_byte_effects_and_frame',z.simplify(violation),path)
+
+
 def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, timeout_ms=15000, query_directory=None):
     require(type(object_bytes) is bytes and type(final_bytes) is bytes,'immutable ELF bytes required')
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000,'timeout must be 100..60000 milliseconds')
     started=time.monotonic(); deadline=started+timeout_ms/1000
-    checked=verify_program(document); kind,export=recognize_simd_core(checked)
-    identity=_identity(); binding=bind_final_artifact(object_bytes,final_bytes,export)
+    identity=_identity()
+    checked=verify_program(document); kind,export,recognition=_recognize_simd_core(checked)
+    binding=bind_final_artifact(object_bytes,final_bytes,export)
     require(binding['entry']==0 and binding['binding'].get('function_shape')=='direct_entry',
             'SIMD requires one directly exported function')
     rows=decode_simd(binding['text']); labels,parts=_structure(rows,kind,binding)
     unrolled='bulk' in parts
     wide=parts.get('_wide')
+    endpoint=bool(wide and wide['copy_tail']=='endpoints')
     parallel_zero='bulk_merge' in parts and wide is None
     vector_width=wide['width'] if wide else 16
     required_features=sorted({feature for row in rows for feature in row.cpu_features}) if wide else ['sse2']
@@ -787,7 +1045,9 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     # Each decoded backedge is exactly the +w/-w transition checked below.
     ni,ii,pi,ei=z.Ints('count index base extent',ctx=ctx)
     invariant=[0<=ii,ii<=ni,ni<=ei,ei<(1<<64),pi>0,pi+ni<(1<<64)]
-    for width in ((4*vector_width,vector_width,1) if unrolled else (vector_width,1)):
+    steps=((4*vector_width,vector_width) if endpoint else
+           (4*vector_width,vector_width,1) if unrolled else (vector_width,1))
+    for width in steps:
         guard=ni-ii>=width
         accesses=tuple(i*vector_width for i in range(4)) if width==4*vector_width else (0,)
         access_width=vector_width if width>=vector_width else 1
@@ -796,7 +1056,12 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
                        *[z.Or(pi+ii+offset<pi,pi+ii+offset+access_width>pi+ni)
                          for offset in accesses])
         check('range_and_decreasing_variant_'+str(width),violation,invariant+[guard])
-    check('loop_exit_covers_exact_count',ii!=ni,invariant+[ni-ii==0])
+    if endpoint:
+        q=z.Int('copy_prefix_suffix_byte',ctx=ctx)
+        check('copy_prefix_suffix_partition',z.And(0<=q,q<ni)!=z.Or(
+            z.And(0<=q,q<ii),z.And(ii<=q,q<ii+(ni-ii))),invariant)
+    else:
+        check('loop_exit_covers_exact_count',ii!=ni,invariant+[ni-ii==0])
     # Prefix guards and the fixed CFG never write saved registers or data.
     # The vector/tail instruction frame is closed by _structure. The sole
     # call is abort: sub rsp,8 aligns entry rsp == 8 (mod 16), and CALL
@@ -861,26 +1126,30 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         mismatch=(g[0]!=(z.Extract(63,0,acc)+z.Extract(127,64,acc)) if kind=='sum_u8'
                   else (g[0]==0)!=(acc==0))
         check('horizontal_reduction',mismatch)
-    old=z.BitVec('prior_scalar_accumulator',64,ctx=ctx); byte=z.BitVec('tail_byte',8,ctx=ctx)
-    g={i:z.BitVec('tail_initial_r'+str(i),64,ctx=ctx) for i in range(16)}; g[0]=old; g[9]=z.ZeroExt(56,byte)
-    tail=parts['scalar'][1]
-    if copy:
-        check('scalar_copy_byte_semantics',z.Extract(7,0,g[tail.args[2]])!=byte)
+    if endpoint:
+        _prove_endpoint_tails(z,ctx,parts,check)
     else:
-        value=_alu(tail.op,g[tail.args[0]],g[tail.args[1]])
-        mismatch=(value!=old+z.ZeroExt(56,byte) if kind=='sum_u8'
-                  else (value==0)!=z.And(old==0,byte==0))
-        check('scalar_tail_induction',mismatch)
+        old=z.BitVec('prior_scalar_accumulator',64,ctx=ctx); byte=z.BitVec('tail_byte',8,ctx=ctx)
+        g={i:z.BitVec('tail_initial_r'+str(i),64,ctx=ctx) for i in range(16)}; g[0]=old; g[9]=z.ZeroExt(56,byte)
+        tail=parts['scalar'][1]
+        if copy:
+            check('scalar_copy_byte_semantics',z.Extract(7,0,g[tail.args[2]])!=byte)
+        else:
+            value=_alu(tail.op,g[tail.args[0]],g[tail.args[1]])
+            mismatch=(value!=old+z.ZeroExt(56,byte) if kind=='sum_u8'
+                      else (value==0)!=z.And(old==0,byte==0))
+            check('scalar_tail_induction',mismatch)
     require(time.monotonic()<deadline and identity==_identity(),'checker changed or final deadline exhausted')
     require(solver_identity==_solver_identity(z) and time.monotonic()<deadline,'solver changed or final deadline exhausted')
     report={
         'schema':'hepta.hia.verified-simd-machine-validation.v1',
-        'profile':WIDE_PROFILES[wide['bits']] if wide else PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
+        'profile':COPY_ENDPOINT_PROFILES[wide['bits']] if endpoint else WIDE_PROFILES[wide['bits']] if wide else PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
         'ok':True,'complete':True,'status':'smt_validated','kind':kind,
         'target_isa':wide['target_isa'] if wide else 'sse2',
         'required_cpu_features':required_features,'required_xcr0_mask':required_xcr0_mask,
         'fresh_cpu_probe_required':bool(wide),
         'validation_mode':'independent_supplied_bytes_closed_loop_induction',
+        'core_recognition':recognition,
         'subject':{'core_sha256':checked.sha256,'input_sha256':checked.input_sha256,
                    'object_sha256':sha256(object_bytes).hexdigest(),'final_image_sha256':sha256(final_bytes).hexdigest(),
                    'entry_symbol':export},
@@ -894,6 +1163,7 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         'claims':{'all_input_refinement_in_independent_model':True,'inductive_loop_model_checked':True,
                   'final_elf_bytes_bound':True,'vector_and_tail_memory_bounds_checked':True,
                   'copy_source_preserved':copy,'whole_language_soundness_proved':False,
+                  'overlapping_endpoint_copy_effects_checked':endpoint,
                   'machine_checked_isa_refinement_proved':False,'foreign_pointer_liveness_proved':False,
                   'timing_or_side_channels_proved':False,'serialized_receipt_authorizes_execution':False},
         'assumptions':[
@@ -906,7 +1176,9 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         'model_counts':{'decoded_instructions':len(rows),'vector_width':vector_width,'scalar_tail_width':1,
                         'vector_unroll':4 if unrolled else 1,'superblock_width':4*vector_width if unrolled else vector_width,
                         'reduction_accumulators':0 if copy else 4 if parallel_zero or wide else 1,
-                        'range_admission_sites':1,'guard_paths':len(outcomes),'loop_backedges':3 if unrolled else 2},
+                        'range_admission_sites':1,'guard_paths':len(outcomes),'loop_backedges':2 if endpoint else 3 if unrolled else 2,
+                        'copy_tail':'endpoints' if endpoint else 'byte' if copy else None,
+                        'endpoint_widths':parts.get('_endpoint_levels',[])},
         'elapsed_seconds':time.monotonic()-started}
     if output is not None: (output/'validation.json').write_text(json.dumps(report,indent=2)+'\n')
     return report

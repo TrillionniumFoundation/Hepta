@@ -33,11 +33,13 @@ def _register(c, width, opcode, destination, source, operand):
 
 def _memory(c, width, opcode, vector, source, base, displacement=0):
     """Exactly one unaligned full-width access, at a declared chunk offset."""
-    if (width not in (32, 64) or opcode not in (0x6f, 0x7f, 0xeb, 0xf6)
+    if (width not in (16, 32, 64) or opcode not in (0x6f, 0x7f, 0xeb, 0xf6)
             or base not in ("rdi", "rdx") or displacement not in (0, width, 2 * width, 3 * width)
             or not 0 <= vector < 8):
         raise ValueError("unsupported wide SIMD memory operation")
     move = opcode in (0x6f, 0x7f)
+    if width == 16 and (not move or displacement != 0):
+        raise ValueError("128-bit memory operations are restricted to endpoint copies")
     if move and source != 0:
         raise ValueError("MOVDQU reserved vvvv must be all ones")
     address = (vector << 3) | (7 if base == "rdi" else 2)
@@ -130,7 +132,8 @@ def _reduce(c, width, kind):
     c.ret()
 
 
-def _copy(c, width):
+def _copy_byte_tail(c, width):
+    """Historical exact-byte control, including interleaved bulk transfers."""
     c.mov_rr("rax", "r8")
     c.cmp("r8", "rsi")
     c.jcc("a", "abort")
@@ -184,13 +187,112 @@ def _copy(c, width):
     c.ret()
 
 
-def emit_wide_simd(c, kind, isa):
+def _copy_word(c, width, register, *, store=False):
+    """One exact 1/2/4/8-byte unaligned transfer using r9 or r11, mod=0."""
+    if width not in (1, 2, 4, 8) or register not in (9, 11):
+        raise ValueError("unsupported endpoint integer transfer")
+    modrm = ((register & 7) << 3) | (7 if store else 2)
+    if store:
+        prefix = bytes.fromhex("6644") if width == 2 else bytes((0x4c if width == 8 else 0x44,))
+        opcode = bytes((0x88 if width == 1 else 0x89,))
+    else:
+        prefix = bytes((0x44 if width == 4 else 0x4c,))
+        opcode = bytes((0x8b,)) if width in (4, 8) else bytes((0x0f, 0xb6 if width == 1 else 0xb7))
+    c.emit(prefix + opcode + bytes((modrm,)))
+
+
+def _copy_endpoints(c, width):
+    """Guarded wide loops followed by two bounded endpoint transfers.
+
+    For a suffix with w <= remaining < 2w, the first and last w-byte blocks
+    cover exactly that suffix. Their stores may overlap; each repeated byte
+    receives the same source byte, and the admitted source/destination ranges
+    are disjoint. Both source blocks are read before either destination write.
+    """
+    c.mov_rr("rax", "r8")
+    c.cmp("r8", "rsi")
+    c.jcc("a", "abort")
+    c.cmp("r8", "rcx")
+    c.jcc("a", "abort")
+    c.test("r8", "r8")
+    c.jcc("e", "done")
+    for pointer, end in (("rdi", "r9"), ("rdx", "r10")):
+        c.test(pointer, pointer)
+        c.jcc("e", "abort")
+        c.mov_rr(end, pointer)
+        c.add(end, "r8")
+        c.jcc("b", "abort")
+    c.cmp("r9", "rdx")
+    c.jcc("be", "admitted")
+    c.cmp("r10", "rdi")
+    c.jcc("a", "abort")
+    c.label("admitted")
+    c.mov_rr("r10", "r8")
+    c.label("bulk")
+    c.alu_imm("cmp", "r10", 4 * width)
+    c.jcc("b", "vector")
+    for chunk in range(4):
+        _memory(c, width, 0x6f, 1 + chunk, 0, "rdx", chunk * width)
+    for chunk in range(4):
+        _memory(c, width, 0x7f, 1 + chunk, 0, "rdi", chunk * width)
+    c.alu_imm("add", "rdi", 4 * width)
+    c.alu_imm("add", "rdx", 4 * width)
+    c.alu_imm("sub", "r10", 4 * width)
+    c.jmp("bulk")
+    c.label("vector")
+    c.alu_imm("cmp", "r10", width)
+    c.jcc("b", "tail_dispatch")
+    _memory(c, width, 0x6f, 1, 0, "rdx")
+    _memory(c, width, 0x7f, 1, 0, "rdi")
+    c.alu_imm("add", "rdi", width)
+    c.alu_imm("add", "rdx", width)
+    c.alu_imm("sub", "r10", width)
+    c.jmp("vector")
+    c.label("tail_dispatch")
+    c.test("r10", "r10")
+    c.jcc("e", "vector_done")
+    for block in (32, 16, 8, 4, 2):
+        if block >= width:
+            continue
+        c.label("tail_" + str(block))
+        c.alu_imm("cmp", "r10", block)
+        c.jcc("b", "tail_" + str(block // 2))
+        if block >= 16:
+            _memory(c, block, 0x6f, 1, 0, "rdx")
+        else:
+            _copy_word(c, block, 9)
+        c.alu_imm("sub", "r10", block)
+        c.add("rdx", "r10")
+        if block >= 16:
+            _memory(c, block, 0x6f, 2, 0, "rdx")
+            _memory(c, block, 0x7f, 1, 0, "rdi")
+        else:
+            _copy_word(c, block, 11)
+            _copy_word(c, block, 9, store=True)
+        c.add("rdi", "r10")
+        if block >= 16:
+            _memory(c, block, 0x7f, 2, 0, "rdi")
+        else:
+            _copy_word(c, block, 11, store=True)
+        c.jmp("vector_done")
+    c.label("tail_1")
+    _copy_word(c, 1, 9)
+    _copy_word(c, 1, 9, store=True)
+    c.label("vector_done")
+    c.emit(bytes.fromhex("c5f877"))
+    c.label("done")
+    c.ret()
+
+
+def emit_wide_simd(c, kind, isa, *, copy_tail="endpoints"):
     """Append the complete closed four-chunk CFG, including its abort suffix."""
     if isa not in ("avx2", "avx512") or kind not in ("sum_u8", "all_zero_u8", "copy_u8"):
         raise ValueError("unsupported explicit wide SIMD target")
     width = 32 if isa == "avx2" else 64
     if kind == "copy_u8":
-        _copy(c, width)
+        if copy_tail not in ("byte", "endpoints"):
+            raise ValueError("unsupported wide copy tail strategy")
+        (_copy_byte_tail if copy_tail == "byte" else _copy_endpoints)(c, width)
     else:
         _reduce(c, width, kind)
     c.label("abort")

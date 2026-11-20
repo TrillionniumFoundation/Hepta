@@ -18,7 +18,7 @@ from hepta.hia_safe_core import SafeCoreRejected
 from hepta.hia_verified_kernel import build_verified_kernel, select_verified_kernel
 from hepta.hia_verified_scalar import emit_verified_scalar
 from hepta.hia_verified_simd import simd_kernel_program
-from tests.test_hia_program import arithmetic
+from tests.test_hia_program import arithmetic, b, jump, ret
 from tests.test_hia_verified_scalar import multiply_add
 from tools.build_hia_verified_kernel import build as build_attempt
 
@@ -34,8 +34,10 @@ class VerifiedKernelIntegrationTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
 
-    def test_checked_arithmetic_auto_fallback_occurs_before_linking_or_proof(self):
+    def test_multiblock_checked_arithmetic_auto_fallback_occurs_before_linking_or_proof(self):
         core = arithmetic("int.add.checked", "u64")
+        core["functions"][0]["blocks"][0]["term"] = jump("done", "r")
+        core["functions"][0]["blocks"].append(b("done", [("result", "u64")], [], ret("result")))
         with patch("hepta.hia_safe_core.validate_safe_core_artifact", side_effect=AssertionError("unexpected proof")):
             _, selected, image, refusals = select_verified_kernel(core)
         self.assertEqual(selected, "checked")

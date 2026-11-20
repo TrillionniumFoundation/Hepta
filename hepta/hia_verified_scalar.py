@@ -24,20 +24,23 @@ from .hia_machine_x64 import Code, native_implementation_identity
 from .hia_program import verify_program
 from .hia_safe_core import SafeCoreRejected, _checker_source_identity, _profile, validate_safe_core_artifact
 from .hia_safe_core_elf import _ELF
+from .hia_verified_image import VerifiedImageRejected, read_bounded_elf_image
 from .native_tool_identity import digest_executable
 
 
-PROFILE = "hia.verified-scalar.register-leaf.x86_64.v1"
+PROFILE = "hia.verified-scalar.register-leaf.x86_64.v2"
 WIDTHS = {"bool": 1, "u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 ARGUMENTS = ("rdi", "rsi", "rdx", "rcx", "r8", "r9")
 REGISTERS = ("rax", "rdi", "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11")
 BINARY = {"int.add.wrap": "add", "int.sub.wrap": "sub", "int.mul.wrap": "imul",
+          "int.add.checked": "add", "int.sub.checked": "sub",
           "bit.and": "and_", "bit.or": "or_", "bit.xor": "xor",
           "bool.and": "and_", "bool.or": "or_"}
+COMMUTATIVE = frozenset(BINARY) - {"int.sub.wrap", "int.sub.checked"}
 CONDITIONS = {"eq": "e", "ne": "ne", "lt": "b", "le": "be", "gt": "a", "ge": "ae"}
 OPERATIONS = frozenset(BINARY) | {"const", "int.cast", "bit.not", "bool.not", "select"} | {
     "compare." + relation for relation in CONDITIONS}
-SOURCE_FILES = ("hia_verified_scalar.py", "hia_machine_x64.py", "hia_machine_elf.py")
+SOURCE_FILES = ("hia_verified_scalar.py", "hia_machine_x64.py", "hia_machine_elf.py", "hia_verified_image.py")
 
 
 class VerifiedScalarRejected(ValueError):
@@ -85,14 +88,14 @@ def emit_verified_scalar(document):
     block = blocks[fn["entry"]]
     _require(block["term"]["op"] == "ret" and len(block["term"]["values"]) == 1,
              "a scalar return is required")
-    _require(all(op["op"] in OPERATIONS and
-                 (op["op"] != "int.cast" or op["attrs"]["mode"] == "wrap") for op in block["ops"]),
+    _require(all(op["op"] in OPERATIONS for op in block["ops"]),
              "operation requires the ordinary checked lowering")
     identity = tuple(sorted(_producer_identity().items()))
     code = Code(alu_immediate="imm8_if_exact")
     uses = Counter(name for op in block["ops"] for name in op["args"])
     uses.update(block["term"]["values"])
     locations = {p["name"]: reg for p, reg in zip(block["params"], ARGUMENTS) if uses[p["name"]]}
+    types = {p["name"]: p["type"] for p in block["params"]}
 
     def normalize(reg, typ):
         width = WIDTHS[typ]
@@ -108,6 +111,24 @@ def emit_verified_scalar(document):
         if parameter["name"] in locations:
             normalize(locations[parameter["name"]], parameter["type"])
 
+    def check_fits(reg, typ, dead):
+        """Check the untruncated value; scratch may reuse only dead inputs."""
+        width = WIDTHS[typ]
+        if width < 32:
+            code.alu_imm("cmp", reg, (1 << width) - 1)
+            code.jcc("a", "abort")
+        elif width == 32:
+            # CMP imm32 sign-extends, so 0xffffffff would compare against -1.
+            # Inspect the high word in a liveness-approved scratch instead.
+            available = [r for r in REGISTERS if r != reg and r not in locations.values()]
+            dying = [locations[name] for name in sorted(dead) if locations[name] != reg]
+            _require(bool(available or dying), "checked range needs a free caller-saved register budget")
+            scratch = (available or dying)[0]
+            code.mov_rr(scratch, reg)
+            code.shr(scratch, 32)
+            code.test(scratch, scratch)
+            code.jcc("ne", "abort")
+
     for op in block["ops"]:
         names, operation = op["args"], op["op"]
         args = [locations[name] for name in names]
@@ -119,7 +140,7 @@ def emit_verified_scalar(document):
         reusable = []
         if operation in BINARY:
             reusable = names[:1]
-            if operation != "int.sub.wrap":
+            if operation in COMMUTATIVE:
                 reusable += names[1:2]
         elif operation in {"int.cast", "bit.not", "bool.not"}:
             reusable = names[:1]
@@ -136,11 +157,16 @@ def emit_verified_scalar(document):
             code.mov_imm(destination, int(op["attrs"]["value"]))
         elif operation in BINARY:
             left, right = args
-            if destination == right and operation != "int.sub.wrap":
+            if destination == right and operation in COMMUTATIVE:
                 left, right = right, left
             if destination != left:
                 code.mov_rr(destination, left)
             getattr(code, BINARY[operation])(destination, right)
+            if operation == "int.sub.checked" or (operation == "int.add.checked" and
+                                                  WIDTHS[output["type"]] == 64):
+                code.jcc("b", "abort")
+            elif operation == "int.add.checked":
+                check_fits(destination, output["type"], dead)
         elif operation in {"int.cast", "bit.not", "bool.not"}:
             if destination != args[0]:
                 code.mov_rr(destination, args[0])
@@ -148,6 +174,8 @@ def emit_verified_scalar(document):
                 code.bitnot(destination)
             elif operation == "bool.not":
                 code.alu_imm("xor", destination, 1)
+            elif op["attrs"]["mode"] == "checked" and WIDTHS[types[names[0]]] > WIDTHS[output["type"]]:
+                check_fits(destination, output["type"], dead)
         elif operation.startswith("compare."):
             code.cmp(*args)
             code.setcc(CONDITIONS[operation.split(".")[1]], destination)
@@ -164,6 +192,7 @@ def emit_verified_scalar(document):
                 del locations[name]
         if uses[output["name"]]:
             locations[output["name"]] = destination
+        types[output["name"]] = output["type"]
 
     returned = locations[block["term"]["values"][0]]
     if returned != "rax":
@@ -171,7 +200,9 @@ def emit_verified_scalar(document):
     code.ret()
     hot_text_bytes = code.offset
     # Preserve the closed libc/loader contract checked by the ELF consumer.
-    # This stub is unreachable from every admitted straight-line return.
+    # Checked arithmetic may reach this stub. PUSH aligns the SysV entry
+    # stack before the nonreturning CALL, whose stack write is also modeled.
+    code.label("abort")
     code.push("rbp")
     code.call("abort")
     code.ud2()
@@ -215,8 +246,10 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
         result = run_bounded([str(tool), *flags, str(obj), "-lc", "-o", str(candidate)],
                              timeout=30, stdout_limit=65536, stderr_limit=1048576)
         _require(result.returncode == 0, "linker rejected kernel: " + result.stderr[:3000])
-        _require(candidate.stat().st_size <= 8 * 1024 * 1024, "linked image exceeds checker budget")
-        data = candidate.read_bytes()
+        try:
+            data = read_bounded_elf_image(candidate)
+        except VerifiedImageRejected as exc:
+            raise VerifiedScalarRejected("E_HIA_VERIFIED_SCALAR: " + str(exc)) from exc
         validation = validate_safe_core_artifact(checked, image.object_bytes, data,
             timeout_ms=timeout_ms, query_directory=query_directory, profile_version=2)
         _require(validation.get("ok") is True and validation.get("complete") is True,
@@ -245,5 +278,6 @@ def build_verified_scalar(document, output, *, linker="ld", timeout_ms=15000, qu
             "toolchain": {"path": str(tool), "sha256": tool_digest,
                           "version": version.stdout.splitlines()[0], "flags": flags},
             "validation": validation, "claims": dict(validation["claims"]),
-            "register_abi": "SysV AMD64 direct leaf; caller-saved registers only",
-            "wrapper_calls": 0, "hot_stack_bytes": 0}
+            "register_abi": "SysV AMD64 direct entry; caller-saved registers only on return paths",
+            "wrapper_calls": 0, "hot_stack_bytes": 0,
+            "maximum_observed_stack_bytes": validation["model_counts"]["maximum_observed_stack_bytes"]}

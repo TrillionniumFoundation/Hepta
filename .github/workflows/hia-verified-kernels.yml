@@ -31,17 +31,24 @@ jobs:
             tests.test_hia_safe_core_unsigned_casts \
             tests.test_hia_safe_core_loader_contract \
             tests.test_hia_verified_scalar \
+            tests.test_hia_verified_scalar_checked \
+            tests.test_hia_verified_image \
             tests.test_hia_verified_simd \
+            tests.test_hia_verified_simd_alpha \
             tests.test_hia_verified_simd_unroll_check \
             tests.test_hia_verified_simd_unroll \
             tests.test_hia_verified_simd_build_limits \
             tests.test_hia_verified_simd_wide_check \
             tests.test_hia_verified_simd_wide \
+            tests.test_hia_verified_simd_copy_tail_check \
+            tests.test_hia_verified_simd_copy_tail \
             tests.test_hia_verified_cpu \
             tests.test_hia_verified_kernel_load \
+            tests.test_hia_verified_scalar_load \
             tests.test_hia_verified_cli \
             tests.test_hia_agent_entry \
             tests.test_hia_cli_native.CliSourceTests \
+            tests.test_hia_program_native.DirectObjectTests.test_route_inventory_names_explicit_direct_machine_selection \
             tests.test_hia_verified_kernel 2>&1 | tee verified-kernel-tests.log
       - uses: actions/upload-artifact@v4
         if: always()

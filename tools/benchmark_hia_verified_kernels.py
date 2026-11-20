@@ -153,6 +153,21 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
                     artifact_directory=artifacts)
                 libraries[label] = (library, core.as_dict()["functions"][0]["name"])
                 save()
+        # Keep both previous wide copy images as simultaneous controls. The
+        # complete original matrix remains; endpoint changes cannot erase a
+        # slower row or be compared only with a selectively rerun baseline.
+        for isa, width in (("avx2", 128), ("avx512", 256)):
+            label = "copy_u8-" + isa + "-" + str(width) + "-byte-tail"
+            core = sources["copy_u8"]
+            library = destination / (label + ".so")
+            artifacts = destination / (label + "-artifacts")
+            artifacts.mkdir()
+            report["builds"][label] = build_verified_kernel(
+                core, library, strategy="simd", simd_isa=isa, simd_copy_tail="byte",
+                query_directory=destination / (label + "-queries"), timeout_ms=60000,
+                artifact_directory=artifacts)
+            libraries[label] = (library, core.as_dict()["functions"][0]["name"])
+            save()
         # The established direct foreign-buffer ABI returns packed u32. Keep
         # its original wrapper/checks and narrow only the final Core return.
         # All measured counts and sums are <2**32; invalid-input contracts
@@ -230,6 +245,10 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
                 cases.append((mode, "verified-sse2-16", *libraries[kind + "-sse2-16"], length))
                 cases.append((mode, "verified-avx2-128", *libraries[kind + "-avx2-128"], length))
                 cases.append((mode, "verified-avx512-256", *libraries[kind + "-avx512-256"], length))
+                if mode == "copy":
+                    for isa, width in (("avx2", 128), ("avx512", 256)):
+                        label = kind + "-" + isa + "-" + str(width) + "-byte-tail"
+                        cases.append((mode, "verified-" + isa + "-copy-byte-tail", *libraries[label], length))
                 cases.append((mode, "direct-packed-u32", *direct_spans[kind], length))
                 for arm, library in (("c", c_library), ("rust", rust_library)):
                     cases.append((mode, arm, library, "reference_" + mode, length))

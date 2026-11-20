@@ -103,11 +103,13 @@ raise SystemExit(hia_main(['build',sys.argv[1],'-o',sys.argv[2]]))
         self.assertEqual(function(3, 5, 7), 22)
         self.assertEqual(function(2**64 - 1, 2, 3), 1)
 
-    def test_standard_shared_build_selects_checked_arithmetic_before_proof(self):
+    def test_standard_shared_build_selects_register_checked_arithmetic_before_proof(self):
         source = self.source(arithmetic("int.add.checked", "u64"))
         result = self.accepted(["build", source, "-o", self.root / "checked.so", "--kind", "shared"])
-        self.assertEqual(result["selected_strategy"], "checked")
+        self.assertEqual(result["selected_strategy"], "scalar")
         self.assertTrue(result["validation"]["ok"] and result["validation"]["complete"])
+        self.assertEqual(result["hot_stack_bytes"], 0)
+        self.assertEqual(result["maximum_observed_stack_bytes"], 16)
         function = ctypes.CDLL(result["output"]).calculate
         function.argtypes, function.restype = [ctypes.c_uint64] * 2, ctypes.c_uint64
         self.assertEqual(function(17, 25), 42)

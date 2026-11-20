@@ -113,9 +113,10 @@ class VerifiedSIMDMachine:
     vector_unroll: int = 1
     isa: str = "sse2"
     vector_bytes: int = 16
+    copy_tail: str | None = None
 
 
-def emit_verified_simd(document, *, unroll=4, isa="sse2"):
+def emit_verified_simd(document, *, unroll=4, isa="sse2", copy_tail=None):
     """Emit a candidate only for an independently recognized Core recurrence."""
     from .hia_verified_simd_check import recognize_simd_core, VerifiedSIMDRejected
     if type(isa) is not str or isa not in ("sse2", "avx2", "avx512"):
@@ -124,12 +125,18 @@ def emit_verified_simd(document, *, unroll=4, isa="sse2"):
         raise VerifiedSIMDRejected("SIMD unroll must be exactly 1 or 4")
     if isa != "sse2" and unroll != 4:
         raise VerifiedSIMDRejected("AVX2 and AVX512 candidates require unroll 4")
+    if copy_tail is not None and (type(copy_tail) is not str or copy_tail not in ("byte", "endpoints")):
+        raise VerifiedSIMDRejected("copy tail must be byte, endpoints or unspecified")
     checked = verify_program(document)
     kind, export = recognize_simd_core(checked)
+    if copy_tail == "endpoints" and (kind != "copy_u8" or isa == "sse2"):
+        raise VerifiedSIMDRejected("endpoint copy tails require a wide copy candidate")
+    selected_tail = ((copy_tail or ("endpoints" if isa != "sse2" else "byte"))
+                     if kind == "copy_u8" else None)
     code = Code(move_immediate="mov32_if_exact", alu_immediate="imm8_if_exact")
     if isa != "sse2":
         from .hia_verified_simd_wide import emit_wide_simd
-        emit_wide_simd(code, kind, isa)
+        emit_wide_simd(code, kind, isa, copy_tail=selected_tail)
     elif kind == "copy_u8":
         _copy(code, unroll)
     else:
@@ -139,7 +146,7 @@ def emit_verified_simd(document, *, unroll=4, isa="sse2"):
     abi = ("u64(dst, dst_extent, src, src_extent, count)" if kind == "copy_u8"
            else "u64(src, src_extent, count)")
     return VerifiedSIMDMachine(kind, export, checked.sha256, text, obj, abi, unroll,
-                               isa, {"sse2": 16, "avx2": 32, "avx512": 64}[isa])
+                               isa, {"sse2": 16, "avx2": 32, "avx512": 64}[isa], selected_tail)
 
 
 def _abort(code):

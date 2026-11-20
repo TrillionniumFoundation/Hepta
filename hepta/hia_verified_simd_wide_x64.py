@@ -81,7 +81,7 @@ def decode_wide_instruction(data, start):
 
     if opcode_map == 1 and opcode in (0x6f, 0x7f):
         _require(pp == 2 and encoded_v == 15 and
-                 ((evex and w == 1) or (first == 0xc5 and bits == 256)),
+                 ((evex and w == 1) or (first == 0xc5 and bits in (128, 256))),
                  "VMOVDQU/VMOVDQU64 prefix or reserved vvvv")
         base, displacement = memory()
         features = ('avx512f',) if evex else ('avx',)
@@ -125,3 +125,33 @@ def decode_wide_instruction(data, start):
         return result('vpsrldq', (128, source1, rm, take(1)[0]), ('avx',))
 
     raise WideMachineRejected("unreviewed VEX/EVEX opcode or map")
+
+
+def decode_copy_tail_memory(data, start):
+    """Decode the finite mod00 scalar memory forms of the endpoint tail.
+
+    None leaves unrelated legacy instructions to their existing decoder.
+    MOV r32 zeroes its high word; MOVZX word/byte uses a 64-bit destination.
+    The 66-prefixed store writes exactly two bytes and has no REX.W override.
+    """
+    p=start
+    if data[p:p+3]==bytes.fromhex('664489'):
+        p+=3; operation,bits,load='copy_store',16,False
+    elif data[p:p+2] in (bytes.fromhex('4c8b'),bytes.fromhex('448b'),
+                         bytes.fromhex('4c89'),bytes.fromhex('4489'),bytes.fromhex('4488')):
+        prefix,opcode=data[p:p+2]; p+=2
+        operation,load=('copy_load',True) if opcode==0x8b else ('copy_store',False)
+        bits=8 if opcode==0x88 else 64 if prefix==0x4c else 32
+    elif data[p:p+3] in (bytes.fromhex('4c0fb7'),bytes.fromhex('4c0fb6')):
+        bits=16 if data[p+2]==0xb7 else 8
+        p+=3; operation,load='copy_load',True
+    else:
+        return None
+    _require(p<len(data),'truncated endpoint memory operand')
+    modrm=data[p]
+    if modrm>>6!=0:
+        return None
+    base=modrm&7; register=((modrm>>3)&7)+8
+    _require(base in (2,7),'endpoint memory must use RDX/RDI without displacement or SIB')
+    args=(bits,register,base,0) if load else (bits,base,0,register)
+    return operation,args,p+1-start

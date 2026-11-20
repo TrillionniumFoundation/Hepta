@@ -10,9 +10,9 @@ own semantics, machine-code validation and execution evidence.
 
 | Area | Implemented work | Remaining closure criterion | Existing verification source |
 | --- | --- | --- | --- |
-| Register scalars | Direct caller-saved register entry; independent final ELF refinement | Extend the checked domain to the remaining scalar operations and signed types, preserving traps and ABI behavior | `tests/test_hia_safe_core*.py`, `tests/test_hia_verified_scalar.py`, `ScalarExecutionTests` in `tests/test_hia_program.py` |
-| Borrowed byte loops | Sum, all-zero detection and nonoverlapping copy; complete range admission; SSE2, AVX2 and AVX-512 candidates | Complete the expanded same-host performance matrix and address every observed regression; retain all earlier samples | `tests/test_hia_verified_simd*.py`, `benchmarks/hia_verified_kernels/PROTOCOL.json` |
-| Standard build entry | `hia build --kind shared` defaults to verified auto selection and host-native ISA; both CLI owners implement the same route | Current-source cold compiler, native CLI, installed wheel and full hosted workflow results | `tests/test_hia_agent_entry.py`, `tests/test_hia_verified_cli.py`, `tests/test_hia_cli_native.py` |
+| Register scalars | Direct caller-saved register entry; unsigned checked add/sub/cast in addition to wrapping arithmetic; independent final ELF refinement | Extend the checked domain to the remaining scalar operations and signed types, preserving traps and ABI behavior | `tests/test_hia_safe_core*.py`, `tests/test_hia_verified_scalar*.py`, `ScalarExecutionTests` in `tests/test_hia_program.py` |
+| Borrowed byte loops | Sum, all-zero detection and nonoverlapping copy; complete range admission; SSE2, AVX2 and AVX-512 candidates; reversible SSA/block renaming | Address every observed performance regression in the complete matrix; retain all earlier samples | `tests/test_hia_verified_simd*.py`, `benchmarks/hia_verified_kernels/PROTOCOL.json` |
+| Standard build entry | `hia build --kind shared` defaults to verified auto selection and host-native ISA; both CLI owners implement the same route; matching-source cold/native/wheel qualification recorded for `633feee` | Requalify each later source extension and complete the separate broader native-component workflow | `tests/test_hia_agent_entry.py`, `tests/test_hia_verified_cli.py`, `tests/test_hia_cli_native.py` |
 | Actual loading | Fresh CPU/OS observations; independent proof rerun; sealed bytes bound to actual mapped code; no target dlsym | Preserve these invariants for each additional image/ABI profile | `tests/test_hia_verified_cpu.py`, `tests/test_hia_verified_kernel_load.py` |
 | General calls and loops | Ordinary native lowering and execution tests exist | Independent call/return and loop-invariant validation for the supported general Core, including failure and resource effects | `DirectExecutionTests` in `tests/test_hia_program_native.py`, `tests/test_hia_program.py` |
 | Ownership and heap | Capability-flow admission, allocation/move/drop/loan rules and native effects are exercised | Connect static capabilities and runtime heap provenance, calls, returned loans, chains and lowering in one soundness argument | `formal/HiaCapabilityBorrow.lean`, `docs/HIA_CAPABILITY_BORROW_ACCESS.md`, `tests/test_hia_capability_flow.py` |
@@ -29,9 +29,11 @@ recurrences are separately proved additions to that model.
 
 ## Performance comparison discipline
 
-The third protocol retains every previous comparison arm and original length,
-adds AVX2/AVX-512, and expands to 23 boundary-focused lengths. All 487 cases run
-21 measured batches after three warmups: 10,227 retained samples per campaign.
+The third protocol retained every previous comparison arm and original length,
+added AVX2/AVX-512, and expanded to 23 boundary-focused lengths. Its 487 cases
+ran 21 measured batches after three warmups: 10,227 retained samples. The fourth
+protocol retains that full matrix and adds both original wide-copy byte-tail
+arms at every length, totaling 533 cases and 11,193 samples per campaign.
 The Rust and C references, indirect-call driver, deterministic input generation,
 per-batch checksums and copy-effect controls remain common across the arms.
 The new runtime identity records libc and the selected memcpy implementation.
@@ -60,8 +62,12 @@ again. Documentation-only result commits identify the measured code parent
 explicitly. Failed experiments and counterexamples remain in the record.
 Draft review is separate from merge or production adoption.
 
-The first two recorded campaigns and their exact source identities remain in
+All three recorded campaigns and their exact source identities remain in
 `benchmarks/hia_verified_kernels/results/`. The initial 64 KiB zero-scan
 regression and its four-accumulator repair are preserved in
-`docs/HIA_VERIFIED_KERNELS.md`. New performance outcomes are recorded only
-after a complete campaign and independent checksum/inventory verification.
+`docs/HIA_VERIFIED_KERNELS.md`. The third complete campaign has 487 cases,
+10,227 samples and six wide proof/CPU receipts. AVX-512 sum is faster than
+Rust on the listed 4 KiB and 64 KiB inputs, but 45 of its 69 span medians are
+higher; the worst ratio is 8.241 at 127-byte copy. The complete comparison,
+including every slower row, remains in `ai395-20261119-wide-comparison.json`.
+Changes made after measured source `93bccb9` do not inherit these timings.

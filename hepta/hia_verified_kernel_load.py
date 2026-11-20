@@ -1,4 +1,4 @@
-"""Load independently checked SIMD images through immutable Linux memfds.
+"""Load independently checked kernel images through immutable Linux memfds.
 
 Every load validates the supplied bytes and freshly admits the decoded ISA.
 Successful mappings are kept in a bounded process-lifetime registry, avoiding
@@ -19,6 +19,8 @@ import threading
 from .hia_verified_cpu import require_host_isa
 from .hia_verified_simd_check import validate_verified_simd_artifact
 from .hia_safe_core_elf import bind_final_artifact
+from .hia_safe_core import ARTIFACT_PROFILE_V2, validate_safe_core_artifact
+from .hia_program import verify_program
 
 
 MAX_LOADED_IMAGES = 64
@@ -48,6 +50,17 @@ class LoadedVerifiedSIMD:
     cpu_admission: dict
     image_sha256: str
     mapping_admission: dict
+
+
+@dataclass(frozen=True)
+class LoadedVerifiedScalar:
+    function: object
+    validation: dict
+    cpu_admission: dict
+    image_sha256: str
+    mapping_admission: dict
+    parameter_types: tuple[str, ...]
+    return_type: str
 
 
 def _require(condition, message):
@@ -98,7 +111,7 @@ def _reject_cached_path(path):
         raise VerifiedKernelLoadRejected('loader pathname already refers to a cached object')
 
 
-def _checked_function(library, fd, validation, binding):
+def _checked_function(library, fd, validation, binding, *, argument_types=None):
     # Bind the loader handle before resolving or constructing a callable.
     # dlsym on an unbound handle could itself execute a GNU IFUNC resolver.
     info, _, _ = _loader_functions()
@@ -131,9 +144,10 @@ def _checked_function(library, fd, validation, binding):
              'loaded symbol does not come from the exact sealed ELF mapping')
     _require(ctypes.string_at(address, len(binding['text'])) == binding['text'],
              'mapped machine text differs from the independently checked final bytes')
-    argument_types = ([ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p,
-                       ctypes.c_uint64, ctypes.c_uint64] if validation['kind'] == 'copy_u8' else
-                      [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64])
+    if argument_types is None:
+        argument_types = ([ctypes.c_void_p, ctypes.c_uint64, ctypes.c_void_p,
+                           ctypes.c_uint64, ctypes.c_uint64] if validation['kind'] == 'copy_u8' else
+                          [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64])
     function = ctypes.CFUNCTYPE(ctypes.c_uint64, *argument_types)(address)
     function.restype = ctypes.c_uint64
     function.argtypes = argument_types
@@ -150,7 +164,6 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
     validation result. The CPU admission covers the current allowed affinity;
     callers must retain an ISA-compatible execution environment thereafter.
     """
-    global _TOTAL_BYTES
     _require(type(object_bytes) is bytes and type(final_bytes) is bytes and
              64 <= len(object_bytes) <= MAX_IMAGE_BYTES and 64 <= len(final_bytes) <= MAX_IMAGE_BYTES,
              'bounded immutable object and final ELF bytes are required')
@@ -184,6 +197,72 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
 
     recheck()
     key = (digest, export, kind)
+    function, mapping = _load_sealed_image(key, final_bytes, validation, binding, recheck)
+    return LoadedVerifiedSIMD(function, validation, admission, digest, mapping)
+
+
+def load_verified_scalar_kernel(document, object_bytes, final_bytes, *, timeout_ms=15000):
+    """Load one unsigned Safe Core v2 scalar direct entry after fresh proof.
+
+    The callable takes zero to six raw uint64 SysV argument words and returns
+    a canonical uint64 result. The independently proved machine body masks
+    narrow arguments to their declared Core widths, including bool's low bit.
+    Checked arithmetic may call the modeled nonreturning libc abort. No
+    producer, serialized proof receipt or alternate profile grants admission.
+    """
+    _require(type(object_bytes) is bytes and type(final_bytes) is bytes and
+             64 <= len(object_bytes) <= MAX_IMAGE_BYTES and 64 <= len(final_bytes) <= MAX_IMAGE_BYTES,
+             'bounded immutable object and final ELF bytes are required')
+    source = Path(__file__).resolve()
+    identity = sha256(source.read_bytes()).hexdigest()
+    checked = verify_program(document)
+    functions = checked.as_dict()['functions']
+    _require(len(functions) == 1, 'one unsigned scalar function is required')
+    function = functions[0]
+    parameter_types = tuple(param['type'] for param in function['params'])
+    returns = function['returns']
+    unsigned = frozenset(('bool', 'u8', 'u16', 'u32', 'u64', 'usize'))
+    _require(len(parameter_types) <= 6 and all(typ in unsigned for typ in parameter_types) and
+             len(returns) == 1 and returns[0] in unsigned,
+             'unsigned scalar arguments and one return within six ABI words are required; no borrowed ranges')
+    validation = validate_safe_core_artifact(checked, object_bytes, final_bytes,
+                                             timeout_ms=timeout_ms, profile_version=2)
+    _require(validation.get('ok') is True and validation.get('complete') is True and
+             validation.get('profile') == ARTIFACT_PROFILE_V2,
+             'independent scalar final-byte validation did not complete')
+    export = function['name']
+    binding = bind_final_artifact(object_bytes, final_bytes, export)
+    _require(binding['binding'] == validation['image_binding'], 'fresh ELF binding differs from validation')
+    _require(binding['entry'] == 0 and binding['binding']['function_shape'] == 'direct_entry',
+             'scalar loading requires a direct scalar entry, without a wrapper')
+    # Safe Core's independent decoder admits only baseline x86-64 integer
+    # instructions. No optional SIMD feature or XCR0 state is needed.
+    admission = require_host_isa([], 0)
+    digest = sha256(final_bytes).hexdigest()
+
+    def recheck():
+        _require(identity == sha256(source.read_bytes()).hexdigest(), 'loader source changed')
+        _require(admission['source_sha256'] == sha256(source.with_name('hia_verified_cpu.py').read_bytes()).hexdigest(),
+                 'CPU admission source changed')
+        for filename, expected in validation['checker']['source_identity'].items():
+            _require(sha256(source.with_name(filename).read_bytes()).hexdigest() == expected,
+                     'independent checker source changed before loading')
+        _require(admission['affinity'] == sorted(os.sched_getaffinity(0)),
+                 'allowed CPU affinity changed before loading')
+
+    recheck()
+    key = (digest, export, ('scalar-safe-core-v2', parameter_types, returns[0]))
+    callable_, mapping = _load_sealed_image(
+        key, final_bytes, validation, binding, recheck,
+        argument_types=[ctypes.c_uint64] * len(parameter_types))
+    return LoadedVerifiedScalar(callable_, validation, admission, digest, mapping,
+                                parameter_types, returns[0])
+
+
+def _load_sealed_image(key, final_bytes, validation, binding, recheck, *, argument_types=None):
+    """Share the same bounded registry and pre-dlopen binding for both APIs."""
+    global _TOTAL_BYTES
+    digest = key[0]
     with _LOCK:
         # Even a reused immutable mapping has just passed a new validation and
         # CPU probe above. A cached report never grants admission to a new CPU.
@@ -211,7 +290,8 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
                 path = '/proc/' + str(os.getpid()) + '/fd/' + str(fd)
                 _reject_cached_path(path)
                 library = ctypes.CDLL(path, mode=os.RTLD_LOCAL | os.RTLD_NOW)
-                function, mapping = _checked_function(library, fd, validation, binding)
+                function, mapping = _checked_function(library, fd, validation, binding,
+                                                      argument_types=argument_types)
                 recheck()
             except BaseException:
                 if library is not None:
@@ -225,6 +305,7 @@ def load_verified_simd_kernel(document, object_bytes, final_bytes, *, timeout_ms
         else:
             recheck()
             entry = _IMAGES[key]
-            function, mapping = _checked_function(entry['library'], entry['fd'], validation, binding)
+            function, mapping = _checked_function(entry['library'], entry['fd'], validation, binding,
+                                                  argument_types=argument_types)
         recheck()
-        return LoadedVerifiedSIMD(function, validation, admission, digest, mapping)
+        return function, mapping

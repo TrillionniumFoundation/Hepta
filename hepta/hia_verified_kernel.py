@@ -12,7 +12,6 @@ import json
 import os
 import platform
 import shutil
-import stat
 import tempfile
 import time
 
@@ -21,13 +20,14 @@ from .clang_capture import run_bounded
 from .hia_machine_x64 import native_implementation_identity
 from .hia_program import verify_program
 from .hia_safe_core import build_safe_core, _profile
+from .hia_verified_image import MAX_VERIFIED_IMAGE_BYTES, VerifiedImageRejected, read_bounded_elf_image
 from .native_tool_identity import digest_executable
 
 
-MAX_SIMD_IMAGE_BYTES = 8 * 1024 * 1024
+MAX_SIMD_IMAGE_BYTES = MAX_VERIFIED_IMAGE_BYTES
 SIMD_SOURCE_FILES = ("hia_verified_kernel.py", "hia_verified_simd.py",
                      "hia_verified_simd_wide.py", "hia_machine_x64.py", "hia_machine_elf.py",
-                     "hia_verified_cpu.py")
+                     "hia_verified_cpu.py", "hia_verified_image.py")
 
 
 class VerifiedKernelRejected(ValueError):
@@ -46,33 +46,15 @@ def _simd_producer_identity():
 
 
 def _read_simd_image(path):
-    """Read a stable regular image without an unbounded allocation or FIFO wait."""
-    def identity(st):
-        return (st.st_dev, st.st_ino, st.st_mode, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
-
-    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
+    """Keep the SIMD builder's public rejection type for shared file admission."""
     try:
-        fd = os.open(path, flags)
-        try:
-            stream = os.fdopen(fd, "rb")
-        except BaseException:
-            os.close(fd)
-            raise
-        with stream:
-            before = os.fstat(stream.fileno())
-            _require(stat.S_ISREG(before.st_mode) and 64 <= before.st_size <= MAX_SIMD_IMAGE_BYTES,
-                     "linked image must be a bounded regular ELF file")
-            data = stream.read(MAX_SIMD_IMAGE_BYTES + 1)
-            after = os.fstat(stream.fileno())
-        _require(len(data) == before.st_size and identity(before) == identity(after) == identity(path.lstat()),
-                 "linked image changed during bounded read")
-        return data
-    except OSError as exc:
-        raise VerifiedKernelRejected("linked image is unavailable or not an ordinary file") from exc
+        return read_bounded_elf_image(path)
+    except VerifiedImageRejected as exc:
+        raise VerifiedKernelRejected(str(exc)) from exc
 
 
 def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, simd_unroll=4,
-                           simd_isa="sse2"):
+                           simd_isa="sse2", simd_copy_tail=None):
     """Choose by admitted source shape, before linking or asking the solver."""
     from .hia_verified_scalar import emit_verified_scalar, VerifiedScalarRejected
     from .hia_verified_simd import emit_verified_simd
@@ -84,6 +66,9 @@ def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, si
     _require(type(simd_unroll) is int and simd_unroll in (1, 4), "SIMD unroll must be exactly 1 or 4")
     _require(type(simd_isa) is str and simd_isa in ("sse2", "avx2", "avx512", "native"),
              "SIMD ISA must be sse2, avx2, avx512 or native")
+    _require(simd_copy_tail is None or (type(simd_copy_tail) is str and
+                                      simd_copy_tail in ("byte", "endpoints")),
+             "SIMD copy tail must be byte, endpoints or None")
     checked = verify_program(document)
     refusals = []
     if strategy in {"auto", "scalar"} and foreign_extent is None:
@@ -96,7 +81,8 @@ def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, si
     if strategy in {"auto", "simd"} and foreign_extent is None:
         try:
             target = resolve_target_isa(simd_isa)
-            return checked, "simd", emit_verified_simd(checked, unroll=simd_unroll, isa=target), refusals
+            return checked, "simd", emit_verified_simd(checked, unroll=simd_unroll, isa=target,
+                                                       copy_tail=simd_copy_tail), refusals
         except VerifiedSIMDRejected as exc:
             if strategy == "simd":
                 raise
@@ -113,13 +99,14 @@ def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, si
 
 def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=None,
                           linker="ld", timeout_ms=15000, query_directory=None,
-                          artifact_directory=None, simd_unroll=4, simd_isa="sse2"):
+                          artifact_directory=None, simd_unroll=4, simd_isa="sse2",
+                          simd_copy_tail=None):
     """Build privately and publish exactly the successfully validated ELF bytes."""
     producer_identity = (_simd_producer_identity()
                          if strategy in {"auto", "simd"} and foreign_extent is None else None)
     checked, selected, image, refusals = select_verified_kernel(
         document, strategy=strategy, foreign_extent=foreign_extent, simd_unroll=simd_unroll,
-        simd_isa=simd_isa)
+        simd_isa=simd_isa, simd_copy_tail=simd_copy_tail)
     if artifact_directory is not None:
         directory = Path(artifact_directory)
         if not directory.is_dir() or directory.is_symlink():
@@ -128,6 +115,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                      "core_sha256": checked.sha256,
                      "simd_unroll": simd_unroll if selected == "simd" else None,
                      "simd_isa": image.isa if selected == "simd" else None,
+                     "simd_copy_tail": image.copy_tail if selected == "simd" else None,
                      "object_sha256": sha256(image.object_bytes).hexdigest() if image is not None else None}
         with (directory / "selection.json").open("x") as stream:
             json.dump(selection, stream, sort_keys=True, indent=2)
@@ -210,7 +198,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
             "object_sha256": sha256(image.object_bytes).hexdigest(),
             "text_sha256": sha256(image.text_bytes).hexdigest(),
             "source_identity": producer_identity, "simd_unroll": simd_unroll,
-            "simd_isa": image.isa, "cpu_admission": cpu_admission,
+            "simd_isa": image.isa, "simd_copy_tail": image.copy_tail, "cpu_admission": cpu_admission,
             "toolchain": {"path": str(tool), "sha256": tool_digest,
                           "version": version.stdout.splitlines()[0], "flags": flags},
             "validation": validation, "elapsed_seconds": time.monotonic() - started,
