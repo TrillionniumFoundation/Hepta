@@ -364,7 +364,7 @@ def format_program():
     return renamed(source, 'format_', scratch=8192)
 
 
-def hash_program():
+def _hash_source():
     source = hash_source()
     source = replace_once(source, 'def sha256(s:readbuf, o:mutbuf, w:mutbuf) -> u32:',
                           'def sha256(s:mutbuf, w:mutbuf, n:u64) -> u32:')
@@ -372,9 +372,18 @@ def hash_program():
     source = source.replace('length(s)', 'n')
     source = replace_once(source, 'padded_byte(s, block + i * 4 + j, padded)', 'padded_byte(s, block + i * 4 + j, padded, n)')
     source = replace_once(source, 'def padded_byte(s:readbuf, index:u64, total:u64)', 'def padded_byte(s:mutbuf, index:u64, total:u64, n:u64)')
-    source = replace_once(source, 'store(o, i * 4 + j,', 'store(w, 1088 + i * 4 + j,')
+    return replace_once(source, 'store(o, i * 4 + j,', 'store(w, 1088 + i * 4 + j,')
+
+
+def hash_program():
+    return renamed(_hash_source(), 'hash_', scratch=4096)
+
+
+def worker_hash_program():
     # SHA state and schedule occupy full little-endian cells within the final
-    # 4096 bytes. Every caller admits that whole reserved area before hashing.
+    # 4096 bytes. The Worker admits that whole area before hashing; its v9
+    # helpers are separate from the byte helpers reused by the pager and Journal.
+    source = _hash_source()
     source = source[:source.index('\ndef get(w:mutbuf, index:u64)')]
     source += """
 def get(w:mutbuf, index:u64) -> u64:
@@ -502,7 +511,7 @@ def frame_word(s:readbuf, at:u64) -> u64:
 
 def source_program():
     return '\n'.join((ENTRY, canonical_program(), key_program(), data_source(),
-                       decimal_program(), format_program(), hash_program(), terminal_frame_program()))
+                       decimal_program(), format_program(), worker_hash_program(), terminal_frame_program()))
 
 
 class WorkerRequestBuilder(Builder):
