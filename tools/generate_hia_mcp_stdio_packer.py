@@ -18,7 +18,7 @@ PAGE_MODE = len(DESCRIPTORS)
 TERMINAL_MODE = PAGE_MODE + 1
 PAGE_OUTPUT = 40 + 69 + 4 * ((65536 + 2) // 3)
 PAGE_WORKSPACE = 512 + 4128
-MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-catalog': 1,
+MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE}
 
 
