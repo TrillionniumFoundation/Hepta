@@ -120,21 +120,22 @@ class Table:
             headers.append(struct.pack('<BBHHH',kind,flags,value,n,extra))
         return b''.join(headers)+payload
 
-def structured_table():
-    # Read the literal capabilities data without executing the old policy.
-    source=(BASE/'hepta/cli.py').read_text()
-    tree=ast.parse(source)
-    action=next(n.value for n in tree.body if isinstance(n,ast.Assign) and
-                any(isinstance(t,ast.Name) and t.id=='HIA_AGENT_ACTIONS' for t in n.targets))
-    actions=ast.literal_eval(action)
-    capfn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='agent_capabilities')
-    value=next(n.value for n in capfn.body if isinstance(n,ast.Return))
-    class LiteralActions(ast.NodeTransformer):
-        def visit_Call(self,node):
-            assert isinstance(node.func,ast.Name) and node.func.id=='list'
-            assert len(node.args)==1 and isinstance(node.args[0],ast.Name) and node.args[0].id=='HIA_AGENT_ACTIONS'
-            return ast.List(elts=[ast.Constant(x) for x in actions],ctx=ast.Load())
-    capabilities=ast.literal_eval(LiteralActions().visit(value))
+def structured_table(*, capabilities=None):
+    if capabilities is None:
+        # Read the literal capabilities data without executing the old policy.
+        source=(BASE/'hepta/cli.py').read_text()
+        tree=ast.parse(source)
+        action=next(n.value for n in tree.body if isinstance(n,ast.Assign) and
+                    any(isinstance(t,ast.Name) and t.id=='HIA_AGENT_ACTIONS' for t in n.targets))
+        actions=ast.literal_eval(action)
+        capfn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='agent_capabilities')
+        value=next(n.value for n in capfn.body if isinstance(n,ast.Return))
+        class LiteralActions(ast.NodeTransformer):
+            def visit_Call(self,node):
+                assert isinstance(node.func,ast.Name) and node.func.id=='list'
+                assert len(node.args)==1 and isinstance(node.args[0],ast.Name) and node.args[0].id=='HIA_AGENT_ACTIONS'
+                return ast.List(elts=[ast.Constant(x) for x in actions],ctx=ast.Load())
+        capabilities=ast.literal_eval(LiteralActions().visit(value))
     # Exactly one metadata table; eight profiles share all instruction records.
     def visible(values):
         return Array([(x,7 if x=='chain' else 1) for x in reversed(sorted(values))],sort=True)
@@ -569,8 +570,8 @@ def sha_put32(w:mutbuf, index:u64, value:u64) -> u64:
     ast.fix_missing_locations(tree)
     return ast.unparse(tree)+'\n'
 
-def source_program():
-    table,cap,cat=structured_table()
+def source_program(*, capabilities=None):
+    table,cap,cat=structured_table(capabilities=capabilities)
     raw=table.encode()
     assert TABLE_BASE+len(raw)<STACK_BASE
     source=SEMANTICS
@@ -652,9 +653,9 @@ def identities():
                      'git_blob':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()})
     return rows
 
-def generation():
+def generation(*, capabilities=None):
     before=identities()
-    source,metadata=source_program()
+    source,metadata=source_program(capabilities=capabilities)
     data=document(source)
     raw=render_assembly(data).encode('utf-8')
     counts={'functions':len(data['functions']),'blocks':sum(len(f['blocks']) for f in data['functions']),
@@ -668,6 +669,7 @@ def generation():
         raise ValueError('discovery JSON authoring input changed')
     return raw, {'schema':'hepta.hia.cli-discovery-json-generation.v1',
                  'scope':'SOURCE_GENERATION_NOT_RUNTIME_OR_COLD_QUALIFICATION',
+                 'metadata_domain':'current_cli' if capabilities is None else 'explicit_regression_input',
                  'sources':before,'counts':counts,'source_bytes':len(raw),
                  'source_sha256':hashlib.sha256(raw).hexdigest(),
                  'table_sha256':metadata['table_sha256'],

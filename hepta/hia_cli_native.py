@@ -291,7 +291,7 @@ class CliSession:
 
     def _namespace(self):
         values = {}
-        for index in range(19):
+        for index in range(20):
             kind, begin, size, key = struct.unpack_from("<4Q", self.workspace, 256 + index * 32)
             if kind == 0:
                 continue
@@ -325,7 +325,7 @@ class CliSession:
         raise RuntimeError("unknown native CLI foreign or literal handle")
 
     def field(self, namespace, index):
-        if index >= 19:
+        if index >= 20:
             raise RuntimeError("native CLI field index outside namespace")
         name = self._literal(_q(self.workspace, 256 + index * 32 + 24))
         return getattr(self.value(namespace), name)
@@ -345,7 +345,7 @@ class CliSession:
                 raise RuntimeError("invalid native CLI command envelope")
             if code == 1:
                 operation, sequence, catching, a, b, c, d = command[1:8]
-                if not 1 <= operation <= 42 or sequence == 0 or catching not in (0, 1):
+                if not 1 <= operation <= 43 or sequence == 0 or catching not in (0, 1):
                     raise RuntimeError("invalid native CLI effect instruction")
                 self.command = (operation, sequence, catching, a, b, c, d)
                 self.pending = True
@@ -393,7 +393,7 @@ class CliSession:
             result = self.common["inspect_program"](value(a))
         elif operation == 11:
             from .hia_program_native import build_program_machine
-            result = build_program_machine(value(a), field(b, c), kind="object", linker="cc")
+            result = build_program_machine(value(a), field(b, c), kind=field(b, 5), linker="cc")
         elif operation == 42:
             from .hia_program_selfhost import build_program_selfhost
             arguments = value(b)
@@ -401,6 +401,10 @@ class CliSession:
                 manifest=arguments.selfhost_manifest,
                 manifest_sha256=arguments.selfhost_manifest_sha256,
                 kind=arguments.kind, target=arguments.target)
+        elif operation == 43:
+            from .hia_verified_kernel import build_verified_kernel
+            result = build_verified_kernel(value(a), field(b, 3), strategy="auto",
+                                           simd_isa=field(b, 19))
         elif operation == 12:
             result = self.common["decode_json"](value(a))
         elif operation == 13:

@@ -105,6 +105,55 @@ class HIAPreflightTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'isolated Unicode surrogate'):
             self.admit(wire, nodes=3, depth=1)
 
+    def test_plain_unicode_keys_need_no_second_decoder(self):
+        wire = '{"plain":0,"Ω":{"𐐷":true},"quote\\"key":null,"\\u0065scape":false}'
+        with patch('hepta.hia_json_preflight.json.loads',
+                   wraps=json.loads) as loads:
+            self.admit(wire)
+        self.assertEqual([call.args[0] for call in loads.call_args_list],
+                         ['"quote\\"key"', '"\\u0065scape"'])
+
+    def test_plain_and_escaped_keys_share_duplicate_identity_and_order(self):
+        spellings = (
+            ('a', r'\u0061'),
+            ('Ω', r'\u03a9'),
+            ('𐐷', r'\ud801\udc37'),
+            ('slash/', r'slash\/'),
+            ('quote"', r'quote\"'),
+            ('back\\slash', r'back\\slash'),
+        )
+        for plain, escaped in spellings:
+            literal = json.dumps(plain, ensure_ascii=False)
+            escaped = '"' + escaped + '"'
+            for first, second in ((literal, escaped), (escaped, literal)):
+                # The duplicate is earlier than the invalid second value and
+                # its hypothetical node-budget overflow.
+                wire = '{' + first + ':0,' + second + ':"\ud800"}'
+                with self.subTest(plain=plain, first=first):
+                    for admit in (_preflight_hia_json_reference, preflight_hia_json):
+                        with self.assertRaisesRegex(
+                                ValueError, '^HIA JSON preflight: duplicate decoded object key$'):
+                            admit(wire, max_nodes=2, max_depth=1)
+
+    def test_atom_dispatch_retains_literal_boundaries_and_diagnostics(self):
+        for token in ('true', 'false', 'null', '-0', '0', '-123', '123',
+                      '"true"', '"false"', '"null"', '"123"'):
+            with self.subTest(token=token):
+                self.admit(token, nodes=1, depth=0)
+        for token, reason in (
+            ('tru', 'expected JSON integer or literal'),
+            ('fal', 'expected JSON integer or literal'),
+            ('nul', 'expected JSON integer or literal'),
+            ('truex', 'extra JSON data'),
+            ('false0', 'extra JSON data'),
+            ('nulltrue', 'extra JSON data'),
+            ('-true', 'expected JSON integer or literal'),
+            ('-null', 'expected JSON integer or literal'),
+            ('-01', 'extra JSON data'),
+        ):
+            with self.subTest(token=token):
+                self.assert_syntax_refusal_routes(token, reason)
+
     def test_only_ascii_digits_and_json_whitespace_form_spans(self):
         space = ' \t\r\n' * 4096
         digits = '1234567890' * 4096

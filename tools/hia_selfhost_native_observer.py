@@ -91,7 +91,7 @@ def build(directory, compiler, reference):
     return executable, receipt
 
 
-def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+def _validate_frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
     if (not isinstance(image, bytes) or not 0 < len(image) <= 4*LIMIT
             or not isinstance(source, bytes) or len(source) > LIMIT
             or type(capacity) is not int or not 0 <= capacity <= LIMIT
@@ -99,6 +99,10 @@ def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=Non
             or type(workspace_fill) is not int or not 0 <= workspace_fill <= 255
             or (output_fd is not None and (type(output_fd) is not int or not 3 <= output_fd <= 2147483647))):
         raise ValueError('native observer frame exceeds the unchanged byte ABI limits')
+
+
+def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+    _validate_frame(image, source, capacity, workspace_size, workspace_fill, output_fd)
     return b'HIAOBS02'+struct.pack('<6Q',len(image),len(source),capacity,workspace_size,workspace_fill,
         (1<<64)-1 if output_fd is None else output_fd)+image+source
 
@@ -165,7 +169,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
     directory, image, observer = Path(directory), Path(image), Path(observer)
     image_bytes, executable = image.read_bytes(), observer.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.
-    frame(image_bytes,source,capacity,workspace_size,workspace_fill)
+    _validate_frame(image_bytes,source,capacity,workspace_size,workspace_fill)
     initial = b'\xa5'*capacity if output_initial is None else output_initial
     if not isinstance(initial,bytes) or len(initial)!=capacity:
         raise ValueError('output preimage must match the capacity')
@@ -210,7 +214,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                         returned, elapsed = struct.unpack_from('<2Q',raw,8)
                         actual_source = raw[24:24+len(source)]
                         output = raw[24+len(source):24+len(source)+capacity]
-                        workspace = raw[24+len(source)+capacity:]
+                        workspace_offset = 24+len(source)+capacity
                         output_path.write_bytes(output)
                         if actual_source != source:
                             (directory/(label+'.modified-source.bin')).write_bytes(actual_source)
@@ -219,7 +223,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                             'source_sha256':digest(source),'image_sha256':digest(image_bytes),
                             'output_sha256':digest(output),'source_unchanged':actual_source==source,
                             'output_unchanged':output==initial,
-                            'workspace_header':{str(at):int.from_bytes(workspace[at:at+8],'little')
+                            'workspace_header':{str(at):struct.unpack_from('<Q',raw,workspace_offset+at)[0]
                                 for at in WORKSPACE_FIELDS if workspace_size>=at+8},
                             'native_elapsed_ns':elapsed,'forbidden_compiler_modules_loaded':[],
                             'loader_operations':'HIA-emitted static ELF; sealed exec; RW-to-RX image; fixed ABI call',

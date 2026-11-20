@@ -22,6 +22,7 @@ SYMBOLS = {
     "RESULT_MAGIC": grammar.SYMBOLS["RESULT_MAGIC"],
     "OBSERVE_MAGIC": int.from_bytes(b"HCLIOBS4", "little"),
     "ERROR_MAGIC": int.from_bytes(b"HCLIERR4", "little"),
+    "FIELD_COUNT": len(grammar.FIELDS), "TOKEN_COUNT": len(grammar.TOKENS),
     "F_CURSOR": 1024, "F_SPLIT": 1032, "F_COLUMNS": 1040,
     "F_WIDTH": 1048, "F_NEGATIVE": 1056, "F_COLOR": 1064,
     "F_OVERFLOW": 1072, "F_HELP_POSITION": 1080, "F_UNICODE_COUNT": 1088,
@@ -72,7 +73,7 @@ def format_cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if cursor != length(s):
         return 199
     if get(w, 8) == 3:
-        if get(w, 32) < 1 or get(w, 32) > 9 or get(w, 40) > 18:
+        if get(w, 32) < 1 or get(w, 32) > 11 or get(w, 40) >= FIELD_COUNT:
             return 199
         if get(w, 48) > length(s) or get(w, 56) > (length(s) - get(w, 48)) >> 2:
             return 199
@@ -654,7 +655,7 @@ def required_error(o:mutbuf, w:mutbuf) -> u64:
         literal(o, w, error_label(15))
         wrote = True
     field = 0
-    while field < 19:
+    while field < FIELD_COUNT:
         if field != 15 and (mask & (1 << field)) != 0:
             if wrote:
                 literal(o, w, L_COMMA_SPACE)
@@ -672,6 +673,10 @@ def error_message(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return literal(o, w, L_SELFHOST_REQUIRED)
     if reason == 9:
         return literal(o, w, L_SELFHOST_BACKEND)
+    if reason == 10:
+        return literal(o, w, L_SELFHOST_OBJECT)
+    if reason == 11:
+        return literal(o, w, L_TARGET_ISA_SHARED)
     if reason == 1:
         return required_error(o, w)
     if reason == 7:
@@ -692,7 +697,7 @@ def error_message(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         literal(o, w, L_COULD_MATCH)
         token = 0
         wrote = False
-        while token < 19:
+        while token < TOKEN_COUNT:
             if (get(w, 64) & (1 << token)) != 0:
                 if wrote:
                     literal(o, w, L_COMMA_SPACE)
@@ -782,6 +787,8 @@ def _metadata():
         "L_INVALID": "invalid choice: ", "L_CHOOSE": " (choose from ",
         "L_SELFHOST_REQUIRED": "--backend selfhost requires --selfhost-manifest and --selfhost-manifest-sha256",
         "L_SELFHOST_BACKEND": "selfhost compiler options require --backend selfhost",
+        "L_SELFHOST_OBJECT": "--backend selfhost requires --kind object",
+        "L_TARGET_ISA_SHARED": "--target-isa requires --backend auto --kind shared",
         "L_RESET": "\x1b[0m", "L_GREEN": "\x1b[32m", "L_CYAN": "\x1b[36m",
         "L_YELLOW": "\x1b[33m", "L_BOLD_BLUE": "\x1b[1;34m",
         "L_BOLD_MAGENTA": "\x1b[1;35m", "L_BOLD_CYAN": "\x1b[1;36m",
@@ -792,9 +799,8 @@ def _metadata():
     }
     symbols = {name: intern(text) for name, text in fixed.items()}
     option_strings = {field: [text for text, number in grammar.TOKENS if number == field]
-                      for field in range(19) if field not in (15, 16)}
-    choice_values = {2: grammar.SCHEMAS, 4: ("native", "selfhost"), 5: ("object",),
-                     6: ("x86_64-unknown-linux-gnu",), 16: grammar.ACTIONS}
+                      for field in range(len(grammar.FIELDS)) if field not in (15, 16)}
+    choice_values = {**grammar.CHOICES, 16: grammar.ACTIONS}
     def metavar(field):
         if field in choice_values:
             return "{" + ",".join(choice_values[field]) + "}"
@@ -841,6 +847,8 @@ def _metadata():
                     help_text = "Operator-selected native compiler manifest"
                 elif field == 18:
                     help_text = "Exact operator pin for that manifest"
+                elif field == 19:
+                    help_text = "ISA for verified shared builds (default: native)"
                 elif field == 15:
                     help_text = "Explicit HIA assembly or standalone Core JSON"
                 if field == 15 or field == 16:
@@ -856,10 +864,10 @@ def _metadata():
     lookup.append(grammar._lookup("primary_literal", "field",
                                   ((field, intern(strings[0])) for field, strings in option_strings.items())))
     lookup.append(grammar._lookup("metavar_literal", "field",
-                                  ((field, intern(metavar(field))) for field in range(2, 19))))
+                                  ((field, intern(metavar(field))) for field in range(2, len(grammar.FIELDS)))))
     lookup.append(grammar._lookup("error_label", "field",
                                   ((field, intern("/".join(option_strings[field]) if field not in (15, 16)
-                                                  else grammar.FIELDS[field])) for field in range(19))))
+                                                  else grammar.FIELDS[field])) for field in range(len(grammar.FIELDS)))))
     lookup.append(grammar._lookup("token_text", "token",
                                   ((index, intern(text)) for index, (text, _) in enumerate(grammar.TOKENS))))
     lookup.append(grammar._lookup("choice_count", "field",

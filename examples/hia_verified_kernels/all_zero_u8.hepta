@@ -1,0 +1,369 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [
+                "source"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "source_extent",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "count",
+                "source_extent"
+              ],
+              "attrs": {},
+              "op": "compare.le",
+              "out": [
+                {
+                  "name": "source_fits",
+                  "type": "bool"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "initial",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "source",
+              "type": "readbuf"
+            },
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "cond": "source_fits",
+            "else": {
+              "args": [],
+              "target": "invalid"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "source",
+                "count",
+                "zero",
+                "initial"
+              ],
+              "target": "loop"
+            }
+          }
+        },
+        {
+          "id": "loop",
+          "ops": [
+            {
+              "args": [
+                "l_index",
+                "l_count"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "more",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "l_source",
+              "type": "readbuf"
+            },
+            {
+              "name": "l_count",
+              "type": "usize"
+            },
+            {
+              "name": "l_index",
+              "type": "usize"
+            },
+            {
+              "name": "l_total",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "cond": "more",
+            "else": {
+              "args": [
+                "l_source",
+                "l_count",
+                "l_index",
+                "l_total"
+              ],
+              "target": "done"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "l_source",
+                "l_count",
+                "l_index",
+                "l_total"
+              ],
+              "target": "body"
+            }
+          }
+        },
+        {
+          "id": "body",
+          "ops": [
+            {
+              "args": [
+                "b_source",
+                "b_index"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "byte"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "wide",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "b_total",
+                "wide"
+              ],
+              "attrs": {},
+              "op": "bit.or",
+              "out": [
+                {
+                  "name": "next_total",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "b_index",
+                "one"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "next_index",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "b_source",
+              "type": "readbuf"
+            },
+            {
+              "name": "b_count",
+              "type": "usize"
+            },
+            {
+              "name": "b_index",
+              "type": "usize"
+            },
+            {
+              "name": "b_total",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "args": [
+              "b_source",
+              "b_count",
+              "next_index",
+              "next_total"
+            ],
+            "op": "jump",
+            "target": "loop"
+          }
+        },
+        {
+          "id": "done",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "done_zero",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "done_one",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "d_total",
+                "done_zero"
+              ],
+              "attrs": {},
+              "op": "compare.eq",
+              "out": [
+                {
+                  "name": "all_zero",
+                  "type": "bool"
+                }
+              ]
+            },
+            {
+              "args": [
+                "all_zero",
+                "done_one",
+                "done_zero"
+              ],
+              "attrs": {},
+              "op": "select",
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "d_source",
+              "type": "readbuf"
+            },
+            {
+              "name": "d_count",
+              "type": "usize"
+            },
+            {
+              "name": "d_index",
+              "type": "usize"
+            },
+            {
+              "name": "d_total",
+              "type": "u64"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        },
+        {
+          "id": "invalid",
+          "ops": [],
+          "params": [],
+          "term": {
+            "code": "bounds",
+            "op": "trap"
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "trap"
+      ],
+      "entry": "entry",
+      "name": "calculate",
+      "params": [
+        {
+          "name": "source",
+          "type": "readbuf"
+        },
+        {
+          "name": "count",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    }
+  ],
+  "module": "verified_all_zero_u8",
+  "schema": "hepta.hia.program.v8"
+}

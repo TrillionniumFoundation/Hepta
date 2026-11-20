@@ -19,9 +19,18 @@ def agent_capabilities():
         "high_level_hepta": "removed",
         "high_level_source_required": False,
         "inputs": ["standalone-hia-json", "explicit-hia-assembly"],
-        "build": {"backend": "native", "kind": "object",
+        "build": {"backend": "auto", "kind": "object",
                   "target": "x86_64-unknown-linux-gnu", "fallback": False,
-                  "available_backends": ["native", "selfhost"],
+                  "available_backends": ["auto", "native", "selfhost"],
+                  "available_kinds": ["object", "shared"],
+                  "auto_object": "ordinary direct native object; no final-image validation claim",
+                  "auto_shared": {"selection": "admitted scalar, SIMD or checked Safe Core",
+                                  "final_image_validation_required": True,
+                                  "default_target_isa": "native",
+                                  "available_target_isas": ["native", "sse2", "avx2", "avx512"],
+                                  "simd_abi": "direct synchronous borrowed pointer/length with u64 result",
+                                  "outside_profile": "reject before publication"},
+                  "native_shared": "ordinary linked native ABI; no final-image validation claim",
                   "selfhost": {"input": "bounded primitive Core v8 with scalar exports",
                                "selection": "explicit compiler manifest and SHA256",
                                "runtime": "Linux x86-64 sealed native executable",
@@ -75,11 +84,13 @@ def _reference_hia_main(argv=None):
         if action in {"import-assembly", "render-assembly", "normalize", "build", "patch", "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply"}:
             command.add_argument("--output", "-o", required=action=="build")
         if action=="build":
-            command.add_argument("--backend", choices=["native", "selfhost"], default="native")
-            command.add_argument("--kind", choices=["object"], default="object")
+            command.add_argument("--backend", choices=["auto", "native", "selfhost"], default="auto")
+            command.add_argument("--kind", choices=["object", "shared"], default="object")
             command.add_argument("--target", choices=["x86_64-unknown-linux-gnu"], default="x86_64-unknown-linux-gnu")
             command.add_argument("--selfhost-manifest", help="Operator-selected native compiler manifest")
             command.add_argument("--selfhost-manifest-sha256", help="Exact operator pin for that manifest")
+            command.add_argument("--target-isa", choices=["native", "sse2", "avx2", "avx512"],
+                                 help="ISA for verified shared builds (default: native)")
         if action in {"patch", "impact"}: command.add_argument("--request", required=True)
         if action=="edit-query":
             command.add_argument("--function", required=True)
@@ -97,6 +108,13 @@ def _reference_hia_main(argv=None):
             parser.error("--backend selfhost requires --selfhost-manifest and --selfhost-manifest-sha256")
         if args.backend != "selfhost" and any(value is not None for value in selected):
             parser.error("selfhost compiler options require --backend selfhost")
+        if args.backend == "selfhost" and args.kind != "object":
+            parser.error("--backend selfhost requires --kind object")
+        if args.backend == "auto" and args.kind == "shared":
+            if args.target_isa is None:
+                args.target_isa = "native"
+        elif args.target_isa is not None:
+            parser.error("--target-isa requires --backend auto --kind shared")
     try:
         if args.hia_action=="capabilities":
             from .hia_cli_discovery_selection import selected_json
@@ -190,9 +208,13 @@ def _reference_hia_main(argv=None):
                 result = build_program_selfhost(program, args.output,
                     manifest=args.selfhost_manifest, manifest_sha256=args.selfhost_manifest_sha256,
                     kind=args.kind, target=args.target)
+            elif args.backend == 'auto' and args.kind == 'shared':
+                from .hia_verified_kernel import build_verified_kernel
+                result = build_verified_kernel(program, args.output, strategy='auto',
+                                               simd_isa=args.target_isa)
             else:
                 from .hia_program_native import build_program_machine
-                result = build_program_machine(program, args.output, kind='object', linker='cc')
+                result = build_program_machine(program, args.output, kind=args.kind, linker='cc')
             output_json(result)
             return 0 if result.get('ok') is True else 1
         if args.hia_action == 'impact':

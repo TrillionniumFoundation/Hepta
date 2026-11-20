@@ -18,6 +18,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 from tools import hia_cli_discovery_controls as controls
 from tools import hia_cli_discovery_custody as custody
+from tools import hia_cli_discovery_compat as compat
 from tools import qualify_hia_cli_discovery_json as qualifier
 from hepta import hia_cli_discovery_json_native as runtime
 
@@ -33,8 +34,8 @@ ROLES = ('DISCOVERY_FILES', 'NATIVE_SOURCE_FILES', 'SOURCE_BUILD_FILES', 'COMPIL
 class CliDiscoveryJsonSourceTests(unittest.TestCase):
     def test_portable_generation_is_exact_frozen_r5_with_original_limits(self):
         from tools import generate_hia_cli_discovery_json as generator
-        raw, report = generator.generation()
-        self.assertEqual(raw, runtime.SOURCE.read_bytes())
+        raw, report = generator.generation(capabilities=compat.fixture()['legacy_capabilities'])
+        self.assertEqual(raw, compat.original_source(compat.R5_SOURCE_NAME))
         self.assertEqual(sha256(raw).hexdigest(), R5_SOURCE_SHA256)
         self.assertEqual(report['counts'], {'functions': 39, 'blocks': 256, 'operations': 5476, 'max_ssa': 540})
         self.assertEqual(report['table_sha256'], '6acd153f66c909c9f39438d517e7a27abf0cb3e5b81b5b445f5123fbed633d07')
@@ -42,9 +43,40 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
         self.assertEqual(report['catalog_digests_stored'], 0)
         self.assertNotIn('/workspace/', (ROOT / 'tools/generate_hia_cli_discovery_json.py').read_text())
 
+    def test_current_verified_build_generation_is_exact_with_original_limits(self):
+        from hepta import cli
+        from tools import generate_hia_cli_discovery_json as generator
+        compatibility = compat.fixture()
+        self.assertEqual(cli.agent_capabilities(), compatibility['current_capabilities'])
+        raw, report = generator.generation()
+        expected = compatibility['current_generation']
+        self.assertEqual(raw, runtime.SOURCE.read_bytes())
+        self.assertEqual(sha256(raw).hexdigest(), expected['source_sha256'])
+        self.assertEqual(len(raw), expected['source_bytes'])
+        self.assertEqual(report['counts'], expected['counts'])
+        self.assertEqual(report['table_sha256'], expected['table_sha256'])
+        self.assertEqual(report['metadata_domain'], 'current_cli')
+        self.assertEqual(report['final_json_documents_stored'], 0)
+        self.assertEqual(report['catalog_digests_stored'], 0)
+        old = controls.cases(controls.original_oracles(legacy=True))
+        table, _cap, _cat = generator.structured_table()
+        seed = table.encode()
+        self.assertEqual(sha256(seed).hexdigest(), expected['table_sha256'])
+        for _label, _request, oracle in controls.original_oracles():
+            value = json.loads(oracle)
+            self.assertNotIn(oracle, seed)
+            self.assertNotIn(json.dumps(value, sort_keys=True, separators=(',', ':')).encode(), seed)
+            if 'catalog_sha256' in value:
+                self.assertNotIn(value['catalog_sha256'].encode(), seed)
+                self.assertNotIn(bytes.fromhex(value['catalog_sha256']), seed)
+        current = controls.current_cases()
+        self.assertEqual(len(current), 64)
+        self.assertEqual([(x[0],x[1],x[2],x[3],x[7]) for x in current[:61]],
+                         [(x[0],x[1],x[2],x[3],x[7]) for x in old])
+
     def test_structured_metadata_contains_no_final_json_or_catalog_digest(self):
         from tools import generate_hia_cli_discovery_json as generator
-        table, _cap, _cat = generator.structured_table()
+        table, _cap, _cat = generator.structured_table(capabilities=compat.fixture()['legacy_capabilities'])
         seed = table.encode()
         self.assertEqual(len(table.nodes), 434)
         self.assertEqual(len(seed), 10851)
@@ -63,7 +95,7 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
         path = ROOT / 'tests/fixtures/hia_cli_discovery_r5_cases.json'
         self.assertEqual(sha256(path.read_bytes()).hexdigest(), R5_CASES_SHA256)
         old = json.loads(path.read_bytes())
-        cases = controls.cases(controls.original_oracles())
+        cases = controls.cases(controls.original_oracles(legacy=True))
         self.assertEqual(len(cases), 61)
         self.assertEqual([row[0] for row in cases], [row['label'] for row in old['rows']])
         for case, row in zip(cases, old['rows']):
@@ -76,9 +108,9 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
             'catalog-v8-short-0', 'unknown-schema-8', 'short-work-131071'))
 
     def test_original_cli_parser_outputs_and_both_old_assets_are_unchanged(self):
-        # R20's other CLI continuation revision is not part of 0daf. Retain
-        # the actual integration baseline in full, permitting only the exact
-        # five opt-in hook edits recorded here; no original test is altered.
+        # Keep the original fixture and all seven original file identities.
+        # The independent feature fixture admits only the exact #914 source
+        # delta, after removing the same five R29 opt-in hooks.
         path = ROOT / 'tests/fixtures/hia_cli_discovery_0daf_baseline.json'
         self.assertEqual(sha256(path.read_bytes()).hexdigest(),
                          '2d6e4aed65731fd39b200f1ac94ae0e60e0e557e842699a9ce6db43186882d43')
@@ -90,6 +122,7 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
                 for edit in reversed(record['edits']):
                     self.assertEqual(actual.count(edit['new']), 1)
                     actual = actual.replace(edit['new'], edit['old'])
+                actual = compat.original_cli_source(name, actual)
                 self.assertEqual(sha256(actual.encode()).hexdigest(), record['baseline_sha256'])
 
     def test_unqualified_cold_rejects_before_directory_or_compiler(self):
@@ -279,6 +312,7 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
             fixture = qualifier.admit_fixture(cold)
             cls.manifest = Path(fixture['build']['manifest'])
             cls.scope = 'MATCHING_SOURCE_COLD_FIXTURE'
+            compiler = Path(fixture['authority']['compiler'])
         else:
             from tools.build_hia_cli_discovery_json import DEVELOPMENT_SCOPE
             cls.manifest = Path(development).resolve(strict=True)
@@ -289,11 +323,20 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
             custody.require(report['owner_sources_before'] == custody.owner_sources() == report['owner_sources_after'],
                             'development owner sources changed')
             cls.scope = 'DEVELOPMENT_ONLY_NOT_COLD'
+            manifest_value = custody.read_json(cls.manifest.read_bytes())
+            compiler_paths = [row['path'] for row in report['input_bindings']
+                              if row['sha256'] == manifest_value['compiler_sha256']]
+            custody.require(len(set(compiler_paths)) == 1, 'exact development compiler binding required')
+            compiler = Path(compiler_paths[0])
         value = custody.read_json(cls.manifest.read_bytes())
         cls.image = cls.manifest.parent / value['image_path']
         cls.inputs = [custody.binding(cls.manifest), custody.binding(cls.image)]
         cls.sources = custody.owner_sources()
         cls.owner = runtime.installed_cli_discovery_json(cls.manifest)
+        cls.r5_image, cls.r5_source, r5_inputs = compat.r5_regression_image(
+            cls.folder / 'r5-regression-build', compiler, guard=cls.guard)
+        cls.inputs = list({row['path']: row for row in cls.inputs + r5_inputs}.values())
+        cls.guard()
 
     @classmethod
     def guard(cls):
@@ -306,15 +349,27 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
         self.guard()
 
     def test_01_all_original_61_native_observations(self):
-        result = controls.native_controls(self.folder / 'native', self.image, guard=self.guard)
+        result = controls.native_controls(self.folder / 'native-r5', self.r5_image,
+                                         guard=self.guard, legacy=True)
         self.assertEqual(result['status'], 'PASS')
         self.assertEqual(len(result['rows']), 61)
         self.assertEqual(result['actual_native_entries'], 61)
+        current = controls.native_controls(self.folder / 'native', self.image, guard=self.guard)
+        self.assertEqual(current['status'], 'PASS')
+        self.assertEqual(len(current['rows']), 64)
+        self.assertEqual(current['actual_native_entries'], 64)
 
     def test_02_all_original_six_vm_full_buffers(self):
-        result = controls.vm_controls(self.folder / 'vm', self.folder / 'native', guard=self.guard)
+        result = controls.vm_controls(self.folder / 'vm-r5', self.folder / 'native-r5',
+                                     guard=self.guard, source_path=self.r5_source)
         self.assertEqual(result['status'], 'PASS')
         self.assertEqual([row['label'] for row in result['rows']], list(controls.VM_LABELS))
+        labels = [row[0] for row in controls.current_cases()]
+        current = controls.vm_controls(self.folder / 'vm', self.folder / 'native',
+                                      guard=self.guard, labels=labels)
+        self.assertEqual(current['status'], 'PASS')
+        self.assertEqual([row['label'] for row in current['rows']], labels)
+        self.assertEqual(len(current['rows']), 64)
 
     def test_03_public_byte_api_does_not_call_python_semantic_owners(self):
         from hepta import cli, hia_opcodes

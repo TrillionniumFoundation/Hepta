@@ -79,6 +79,57 @@ class SelfhostContractTests(unittest.TestCase):
                      "tools/qualify_hia_selfhost_owned_elf.py"):
             self.assertIn(path, files)
 
+    def test_matching_cold_builder_inputs_are_in_actual_source_identity(self):
+        import ast
+        import importlib
+
+        declared = validate_contract()["source_identity"]["files"]
+        covered = set()
+        for path in sorted((ROOT / "tools").glob("build_hia*.py")):
+            raw = path.read_bytes()
+            tree = ast.parse(raw, filename=str(path))
+            admission_names = {
+                alias.asname or alias.name
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom)
+                and node.module == "tools.build_hia_json_preflight"
+                for alias in node.names if alias.name == "admit_cold_build"
+            }
+            calls_cold_admission = any(
+                isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id in admission_names for node in ast.walk(tree))
+            declares_inputs = any(
+                (isinstance(node, ast.Assign) and any(
+                    isinstance(target, ast.Name) and target.id == "INPUTS"
+                    for target in node.targets))
+                or (isinstance(node, ast.AnnAssign)
+                    and isinstance(node.target, ast.Name) and node.target.id == "INPUTS")
+                for node in tree.body)
+            if not calls_cold_admission or not declares_inputs:
+                continue
+            name = path.relative_to(ROOT).as_posix()
+            covered.add(name)
+            with self.subTest(builder=name):
+                self.assertEqual(declared.get(name), sha256(raw).hexdigest())
+                # Read the same complete tuple the builder uses, including
+                # imported component tuples and expanded fixture paths.
+                # Importing declarations does not call a builder or compiler.
+                module = importlib.import_module("tools." + path.stem)
+                self.assertEqual(Path(module.__file__).resolve(), path.resolve())
+                self.assertIs(type(module.INPUTS), tuple)
+                self.assertTrue(module.INPUTS)
+                for filename in module.INPUTS:
+                    with self.subTest(builder=name, input=filename):
+                        self.assertIs(type(filename), str)
+                        self.assertEqual(
+                            declared.get(filename),
+                            sha256((ROOT / filename).read_bytes()).hexdigest())
+        self.assertTrue({
+            "tools/build_hia_vm_integer_divrem.py",
+            "tools/build_hia_vm_integer_arithmetic.py",
+            "tools/build_hia_vm_integer_scalar.py",
+        }.issubset(covered), covered)
+
     def test_capacity_growth_preserves_workspace_and_core_byte_limits(self):
         from hepta.hia_program import MAX_BYTES, MAX_NODES
         from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
