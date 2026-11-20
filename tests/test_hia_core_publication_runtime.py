@@ -289,12 +289,29 @@ def check_selected_selfhost(release, directory):
 
     wrong_schema = directory / 'not-supported.hepta'
     wrong_schema.write_bytes(wire({**program, 'schema': 'hepta.hia.program.v7'}))
-    wrong_v9 = directory / 'invalid-v9.hepta'
-    wrong_v9.write_bytes(wire(word_program).replace(b'buffer.store.u64.le', b'buffer.store.invalid', 1))
+    v9_invalid = {
+        'v9-invalid-word': wire(word_program).replace(b'buffer.store.u64.le', b'buffer.store.invalid', 1),
+        'v9-invalid-module': wire(dict(word_program, module='9invalid')),
+        'v9-extra-field': wire(dict(word_program, unexpected=True)),
+        'v9-escaped-opcode': wire(word_program).replace(
+            b'buffer.store.u64.le', json.dumps('unknown-é"\\\n', ensure_ascii=False).encode()[1:-1], 1),
+    }
+    for label, content in v9_invalid.items():
+        path = directory / (label + '.hepta')
+        path.write_bytes(content)
+        target = directory / (label + '.o')
+        arguments = ['build', str(path), *switch, '-o', str(target)]
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            status = _reference_hia_main(arguments)
+        result = subprocess.run([release / 'hia', *arguments], cwd=directory, capture_output=True,
+                                env={'PATH': ''}, timeout=35, check=False)
+        assert (status, result.returncode, result.stdout, result.stderr) == (
+            2, 2, stdout.getvalue().encode(), b''), (label, result)
+        assert not target.exists() and path.read_bytes() == content, label
     negative = (
         ('pin', source, ['--backend=selfhost', *selector[:-1], '0' * 64], 'E_HIA_SELFHOST_PIN'),
         ('profile', wrong_schema, switch, 'E_HIA_SELFHOST_PROFILE'),
-        ('invalid-v9', wrong_v9, switch, 'E_HIA_OPCODE'),
         ('pin-v9', directory / 'v9-word.hepta', ['--backend=selfhost', *selector[:-1], '0' * 64],
          'E_HIA_SELFHOST_PIN'),
         ('missing-pin', source, ['--backend=selfhost', *selector[:2]], None),
@@ -337,7 +354,7 @@ def check_selected_selfhost(release, directory):
     assert not target.exists()
     assert source.read_bytes() == dashed.read_bytes() == raw
     assert sha256(manifest.read_bytes()).hexdigest() == manifest_pin
-    return len(cases) + len(v9_programs) + len(negative) + 1
+    return len(cases) + len(v9_programs) + len(v9_invalid) + len(negative) + 1
 
 
 def check_batch_apply_refusals(release, directory):

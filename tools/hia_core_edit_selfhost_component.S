@@ -4,6 +4,11 @@
 .equ CORE_STATE_BYTES,67108864
 .equ CORE_ARENA_BYTES,33554432
 .equ ADMITTED_V9,0x314b4f3956414948
+.equ CORE_DIAGNOSTIC,CORE_STATE_BYTES-64
+.equ CORE_DIAGNOSTIC_MAGIC,0x3147414944484941
+.equ CORE_DRIVER_REPORT_MODE,0x323052444f414948
+.equ CORE_DRIVER_OUTPUT,96<<20
+.equ CORE_DECODED_SCHEMA,104
 _start:
  mov rbp,rsp
  mov rbx,[rbp]
@@ -271,10 +276,10 @@ current_Core_archive_hole: .long 0
  call rax
  mov rbx,[rsp+128]
  xor r11d,r11d
+ cmp QWORD PTR [rbx+CORE_DECODED_SCHEMA],9
+ jne reset_Core_scratch
  test eax,eax
- jne reset_Core_scratch
- cmp QWORD PTR [rbx+24],9
- jne reset_Core_scratch
+ jne report_Core_refusal
  mov r11d,1
 reset_Core_scratch:
  mov rdi,rbx
@@ -298,6 +303,71 @@ selected_Core_archive_hole: .long 0
  call rax
  mov eax,eax
  jmp capture_result
+report_Core_refusal:
+ # Admit the transport span, not the diagnostic reason. The ordinary public
+ # HIA presenter owns the exact phase, text, JSON escaping and exit receipt.
+ mov rbx,[rsp+128]
+ lea rdx,[rbx+CORE_DIAGNOSTIC]
+ movabs rcx,CORE_DIAGNOSTIC_MAGIC
+ cmp [rdx+40],rcx
+ jne failure
+ cmp [rdx+32],rax
+ jne failure
+ mov rcx,[rdx+48]
+ or rcx,[rdx+56]
+ jnz failure
+ mov r12,[rdx+8]
+ cmp r12,CORE_DIAGNOSTIC
+ jae failure
+ mov ecx,CORE_DIAGNOSTIC
+ sub rcx,r12
+ cmp [rdx+24],rcx
+ jne failure
+ mov r15,[rdx+16]
+ test r15,r15
+ jz failure
+ cmp r15,rcx
+ ja failure
+ add r12,rbx
+ mov r8,[rsp+136]
+ mov [r8+CORE_ARENA_BYTES-16],rax
+ movabs rax,CORE_DRIVER_REPORT_MODE
+ mov [r8+CORE_ARENA_BYTES-8],rax
+ mov esi,CORE_DRIVER_OUTPUT
+ call allocate
+ mov rbx,rax
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,rbx
+ mov ecx,CORE_DRIVER_OUTPUT
+ mov r8,[rsp+136]
+ mov r9d,CORE_ARENA_BYTES
+ .byte 0x4c,0x8d,0x1d
+Core_diagnostic_archive_hole: .long 0
+ mov rax,[r11+16]
+ add rax,r11
+ call rax
+ test eax,eax
+ jz failure
+ cmp eax,CORE_DRIVER_OUTPUT
+ ja failure
+ mov edx,eax
+ mov rsi,rbx
+write_Core_refusal:
+ mov edi,1
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je write_Core_refusal
+ test rax,rax
+ jle failure
+ cmp rax,rdx
+ ja failure
+ add rsi,rax
+ sub rdx,rax
+ jnz write_Core_refusal
+ mov edi,2
+ jmp exit
 Core_arguments:
  mov rdi,r12
  mov rsi,r15

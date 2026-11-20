@@ -27,7 +27,11 @@ EDIT = BOOTSTRAP + 'core_edit/'
 CLI = BOOTSTRAP + 'core_cli/'
 CORE_ADMISSION = BOOTSTRAP + 'core_admission.hepta'
 SELFHOST_CORE_ARCHIVE = '<selfhost-core-images>'
-SELFHOST_CORE_SOURCES = (CORE_ADMISSION, CLI + 'selfhost_semantics.hepta')
+SELFHOST_CORE_SOURCES = (
+    CORE_ADMISSION,
+    CLI + 'selfhost_semantics.hepta',
+    BOOTSTRAP + 'core_nominal_report_json.hepta',
+)
 SELFHOST_ENTRY = CLI + 'selfhost_entry.hepta'
 PACKER = EDIT + 'packer.hepta'
 STATIC_ADAPTERS = (EDIT + 'adapter_templates_a.hepta', EDIT + 'adapter_templates_b.hepta')
@@ -194,7 +198,7 @@ PROGRAMS = {
     'selfhost_component': ('hia-selfhost-component', (
         (CLI + 'selfhost_controller.hepta', ('dispatch_call',)),
         (CLI + 'selfhost_selection.hepta', ('capsule_call',)),
-        (SELFHOST_CORE_ARCHIVE, ('current_Core_archive', 'selected_Core_archive')),
+        (SELFHOST_CORE_ARCHIVE, ('current_Core_archive', 'selected_Core_archive', 'Core_diagnostic_archive')),
         (CLI + 'selfhost_wire.hepta', ('emergency_call', 'canonical_wire_call', 'policy_call')),
     )),
     'normalize_core': ('hia-normalize-core', (
@@ -493,9 +497,9 @@ def build(output, compiler, cold_report, *, release_only=False):
         for path in (RELEASE_DEFLATE, ARGUMENT_PAYLOAD)))
     images[ARGUMENT_ARCHIVE] = argument_images(
         images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER], compressor)
-    current_core, pinned_policy = (images[path] for path in SELFHOST_CORE_SOURCES)
-    images[SELFHOST_CORE_ARCHIVE] = (
-        struct.pack('<2Q', 16, 16 + len(current_core)) + current_core + pinned_policy)
+    core, policy, diagnostic = (images[path] for path in SELFHOST_CORE_SOURCES)
+    images[SELFHOST_CORE_ARCHIVE] = struct.pack(
+        '<3Q', 24, 24 + len(core), 24 + len(core) + len(policy)) + core + policy + diagnostic
     payloads = [images[path] for path in assembly_images]
     position = 8 * len(payloads)
     offsets = []

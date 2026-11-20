@@ -206,7 +206,14 @@ class DiagnosticAuthor:
         replacement = (f'diagnostic_fixed(o, FORMAT, choose(exports != NONE, '
                        f'{self.literal("program: expected exactly exports, functions, module, schema")}, '
                        f'{self.literal("program: expected exactly functions, module, schema")}))')
-        fs['program_shape'] = self.edit(program, basic, replacement)
+        program = self.edit(program, basic, replacement)
+        # The common Core result reports the decoded primitive version even
+        # when a later structural/semantic check refuses the program. Callers
+        # can preserve legacy profile diagnostics without decoding the input.
+        version = 'version = schema_version(w, field(w, 0, K_schema))'
+        program = self.edit(program, version + '\n    if version == 0:', 'if version == 0:')
+        fs['program_shape'] = self.edit(program, 'if shape(w, 0, fields) == 0:',
+            version + '\n    put(o, 104, version)\n    if shape(w, 0, fields) == 0:')
         return self.source(fs)
 
     def body_source(self, source):
@@ -352,6 +359,7 @@ def diagnostic_initialize(s:readbuf, o:mutbuf) -> u64:
         slots = slots * 2
     if table < 128 + slots * 24 + 4096 * 40 + nodes * 120:
         return 0
+    put(o, 104, 0)
     put(o, trailer, table)
     put(o, trailer + 8, table + {TABLE_CAPACITY})
     put(o, trailer + 16, 0)
