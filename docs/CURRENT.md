@@ -47,7 +47,30 @@ The integration also corrects concrete source and execution defects:
   Escaped keys, duplicate-key identity, grammar and resource limits retain
   their original checks.
 
-### Latest completed ROG checks of published source
+### Local consolidation candidate
+
+These results are scoped to their named commits; they are not evidence of a
+GitHub default-branch switch or a whole-product release.
+
+| Revision and scope | Actual result |
+| --- | --- |
+| `258e474`, current Store/Read and installed MCP | 86 exact SQL observations; 11 MCP tools, 69 terminal results (68 completed and one expected rejection), 2,106 request and 2,106 reply frames, durable replay after an actual SSH/systemd restart, and wrong-pin refusal without fallback |
+| `258e474`, full source regression | 825 test methods ran; 38 failures and 88 errors. Later targeted fixes do not supersede this result. |
+| `be9adee`, standalone Linux x86-64 package | 95 components repacked and reinstalled; 351 assembly sources compiled and 29 structured Core sources verified using the installed executables |
+| `be9adee`, cold raw-data readback | Eleven outer checks passed; 5,200 actual child stdout frames (5,521,607,112 uncompressed bytes) independently reread from 38 sealed phase archives |
+| `be9adee`, selected native evaluation | Seven native tests passed, including 111 frozen effect traces and an actual six-owner evaluation with retained policy bodies forbidden |
+| `52210ae`, installed Slot worker | Four source controls and the actual installed SQL lost-acknowledgement and replay scenario passed; this is not the full Slot regression |
+
+The independently reinstalled package at `be9adee` has SHA-256
+`0e02d6bc5d721e7cc755cde3818dc1fe3b8653c1520a3b490b60d235aeff468b`.
+The wheel is a separate artifact; it still includes 287 Python product
+modules. The MCP check still uses Rust transport and a Python worker. The
+standalone direct shared linker does not yet replace the checked shared-build
+and publication path. A retained Artifact parity comparison still disagrees
+on the explicit garbage-collection count (0 versus 30); no adjustment was
+made to those observations.
+
+### Earlier completed ROG checks of published source
 
 The completed source is [`0ab2a0a`](https://github.com/TrillionniumFoundation/Hepta/commit/0ab2a0aea2585e06ddcf0aa3a6931043b16959f6),
 tree `a2476742bfce3db07992f46fea3b74e16764d198`, with 2,977 tracked
@@ -80,14 +103,12 @@ The independent Journal caller receipt is 2,928 bytes, SHA256
 Raw R9 evidence remains under
 `/home/qian-qi/hia-unified-v9-journal-evidence-20261120/`.
 
-**Complete cold raw-data acceptance remains open.** A separate audit found
-that successful native observer invocations write a JSON receipt to
-`*.stdout.log`, not the returned `HIAOBR02` binary stdout. The actual output
-buffer and stderr are retained, but those files alone cannot independently
-establish all returned source/output/workspace frame bytes. Existing data
-must not be reconstructed as if the missing original bytes were captured.
-Producer PASS, six-image readback and regression-reader PASS do not close
-this distinct full-phase/raw-data gate.
+Those historical phase directories did not retain binary observer stdout;
+they cannot independently prove the returned source/output/workspace frames
+and have not been retroactively reconstructed. Subsequent runs retain the
+actual flat and linked binary stdout losslessly and bind its length and SHA-256
+to the receipt. The independent readback above applies only to its new
+matching-source run, not the historical R9 report.
 
 ### Current reviewed source corrections
 
@@ -367,8 +388,9 @@ determine whether its qualification passed.
 
 ### Repository cleanup
 
-The active tree keeps one current implementation, its component contracts,
-consumed original fixtures, independent references and recovery ledgers.
+The target tree should keep one current implementation, its component contracts,
+consumed original fixtures, independent references and recovery ledgers. The
+current tree still has compatibility providers used by ordinary published entry points.
 Numbered HIA units may compose one current program. Build output and isolated
 development attempts stay outside the product tree.
 
