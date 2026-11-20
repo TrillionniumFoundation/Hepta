@@ -26,7 +26,7 @@ class NativeVerifiedLinker(NativeHiaJsonImage):
         source = ctypes.create_string_buffer(object_bytes, len(object_bytes))
         output = ctypes.create_string_buffer(MAX_OUTPUT_BYTES)
         workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
-        size = self._entry(source, len(source), output, len(output), workspace, len(workspace))
+        size = self._checked_default_entry(source, len(source), output, len(output), workspace, len(workspace))
         if size == 0xffffffff:
             raise ValueError('verified HIA linkage refused the one-abort object')
         if not 64 <= size <= len(output) or source.raw != object_bytes or any(output.raw[size:]):
@@ -35,6 +35,9 @@ class NativeVerifiedLinker(NativeHiaJsonImage):
             stream.write(output.raw[:size])
 
     def identity(self):
+        binding = getattr(self, '_default_package_binding', None)
+        if binding is not None:
+            binding.check_files()
         adapter = loaded_source_identity(__name__, ('hia_elf_verified_linker_native.py',))
         source_digest = sha256(SOURCE.read_bytes()).hexdigest()
         if source_digest != self.admitted_source_sha256:
@@ -46,9 +49,14 @@ class NativeVerifiedLinker(NativeHiaJsonImage):
                 "version": "hia-elf-verified-linker.v1", "flags": [], "mode": "hia"}
 
 
-def selected_verified_linker():
+def selected_verified_linker(*, package_default=True):
     path = os.environ.get(SELECTOR)
-    return None if not path else _installed_json_image(path, SOURCE, SCHEMA, NativeVerifiedLinker)
+    if path:
+        return _installed_json_image(path, SOURCE, SCHEMA, NativeVerifiedLinker)
+    if not package_default:
+        return None
+    from .hia_default_native import default_image
+    return default_image(SELECTOR)
 
 
 def verified_linker_matches(identity):

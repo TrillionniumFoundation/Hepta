@@ -1000,7 +1000,7 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
     with tempfile.TemporaryDirectory(prefix=".hia-safe-core-", dir=destination.parent) as temporary:
         candidate = Path(temporary) / "candidate.so"
         from .hia_elf_verified_linker_native import selected_verified_linker, verified_linker_matches
-        selected = selected_verified_linker()
+        selected = selected_verified_linker(package_default=linker == "ld")
         linker_identity = None if selected is None else selected.identity()
         compilation = compile_program_machine(image, program=checked, output=candidate, linker=linker,
                                                verified_shared=True)

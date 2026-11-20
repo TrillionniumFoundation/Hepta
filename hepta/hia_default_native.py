@@ -16,6 +16,7 @@ BUNDLE_RESOURCE = '_data/native/default/full_cost/bundle.json'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
 CORE_ELF_OWNERS = (
     ('HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST', 'elf-shared-linker'),
+    ('HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST', 'elf-verified-linker'),
     ('HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST', 'safe-core-elf-inventory'),
 )
 DEFAULT_OWNERS = frozenset((SELECTOR, *(selector for selector, _ in CORE_ELF_OWNERS)))

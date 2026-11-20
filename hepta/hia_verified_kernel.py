@@ -150,7 +150,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
         destination = Path(os.path.abspath(output))
         if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
             raise VerifiedKernelRejected("output must be a new file in an existing directory")
-        native = selected_verified_linker()
+        native = selected_verified_linker(package_default=linker == "ld")
         if native is None:
             found = shutil.which(linker)
             _require(found is not None, "GNU ld is required")

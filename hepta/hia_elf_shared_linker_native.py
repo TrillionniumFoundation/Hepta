@@ -47,10 +47,12 @@ class NativeSharedLinker(NativeHiaJsonImage):
         return self.image_sha256, source_digest, adapter
 
 
-def selected_shared_linker():
+def selected_shared_linker(*, package_default=True):
     path = os.environ.get(SELECTOR)
     if path:
         return _installed_json_image(path, SOURCE, SCHEMA, NativeSharedLinker)
+    if not package_default:
+        return None
     from .hia_default_native import default_image
     return default_image(SELECTOR)
 
