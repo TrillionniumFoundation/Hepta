@@ -16,6 +16,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_sqlite_pager import assemble
+from tools.generate_hia_native_filter import read_adapter_binding, verify_adapter
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -87,15 +88,16 @@ def adapter_layout(output, adapter, source, call_symbols):
     return stub, holes, identity
 
 
-def verify_placement(binary, stub, holes, parts):
-    laid_out = bytearray(stub)
-    for name, image in parts.items():
-        laid_out.extend(bytes((-len(laid_out)) % 8))
-        hole = holes[name]
-        struct.pack_into('<i', laid_out, hole, len(laid_out) - (hole + 4))
-        laid_out.extend(image)
-    if binary[ELF_HEADER_SIZE:] != laid_out:
-        raise ValueError('native packer changed the admitted syscall adapter or HIA images')
+def verify_placement(binary, binding, parts):
+    _, adapter_size, _ = binding
+    images = bytearray()
+    entries = []
+    for image in parts.values():
+        padding = (-(adapter_size + len(images))) % 8
+        images.extend(bytes(padding))
+        entries.append(len(images))
+        images.extend(image)
+    verify_adapter(binary, images, binding, entries=entries)
 
 
 def build(output, compiler, cold_report, *, kind='batch'):
@@ -103,9 +105,11 @@ def build(output, compiler, cold_report, *, kind='batch'):
     source_units = {label: PARTS[label] for label in call_symbols}
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
-    sources = {name: (ROOT / name).read_bytes() for name in (*source_units.values(), packer, adapter, DRIVER)}
+    paths = (*source_units.values(), packer, adapter, DRIVER, 'tools/generate_hia_native_filter.py')
+    sources = {name: (ROOT / name).read_bytes() for name in paths}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('transaction commit build source differs from admitted cold source')
+    binding = read_adapter_binding(sources[packer], sources[adapter], calls=len(call_symbols))
     output.mkdir(mode=0o700)
     compiled = {}
     receipts = {}
@@ -123,12 +127,11 @@ def build(output, compiler, cold_report, *, kind='batch'):
     if digest(binary) != pack_receipt['produced_sha256']:
         raise ValueError('native transaction executable identity changed')
     inspection = inspect_executable(binary)
-    stub, holes, adapter_object = adapter_layout(output, adapter, sources[adapter], call_symbols)
-    verify_placement(binary, stub, holes, parts)
+    verify_placement(binary, binding, parts)
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes
             or any(path.read_bytes() != data for path, data in compiled.values())
-            or (output / Path(adapter).name).read_bytes() != sources[adapter]
+            or (ROOT / adapter).read_bytes() != sources[adapter]
             or native_path.read_bytes() != binary):
         raise ValueError('transaction commit build input changed before publication')
     executable = output / executable_name
@@ -145,8 +148,8 @@ def build(output, compiler, cold_report, *, kind='batch'):
         'source_sha256': {name: digest(raw) for name, raw in sources.items()},
         'compiler_sha256': digest(compiler_bytes),
         'cold_report_sha256': digest(cold_bytes),
-        'adapter_object_sha256': adapter_object,
-        'adapter_text_sha256': digest(stub),
+        'adapter_text_sha256': binding[0].hex(),
+        'adapter_assembled_during_build': False,
         'executable_sha256': digest(binary),
         'executable': inspection,
         'compile_receipts': receipts,
