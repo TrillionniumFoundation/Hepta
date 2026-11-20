@@ -41,6 +41,26 @@ _DIAGNOSTICS_FIXTURE_PIN = {
     'sha256': '53aff1f370ac337d6246a0179f8b6d5c346fcc44ffd7f2187c515c95c663f97c',
 }
 _DIAGNOSTICS_CALLER = 'tests/test_hia_agent_native_tools.py'
+_JOURNAL_CALLER = 'tests/test_hia_agent_journal_native.py'
+_JOURNAL_HELPER = 'tests/hia_journal_installed_preparation.py'
+_JOURNAL_HELPER_PIN = {
+    'bytes': 15935,
+    'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797',
+}
+_JOURNAL_FIXTURE = 'tests/fixtures/journal_installed_preparation_v2.json'
+_JOURNAL_FIXTURE_PIN = {
+    'bytes': 14729,
+    'sha256': '81914ecb2bef21e9c641282dc8530158146ecadd4b86e8e4e6b3f83e71b73e7b',
+}
+_JOURNAL_ARCHIVE = 'tests/fixtures/journal_installed_preparation_v1.py.txt'
+_JOURNAL_ORIGINAL = {
+    'bytes': 48482,
+    'sha256': 'a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077',
+}
+_JOURNAL_CURRENT = {
+    'bytes': 48798,
+    'sha256': '7d5cebde72523ade809346a30916a48611e18a157230b4f2f6129c0d16b8715c',
+}
 
 
 def _source_pin(raw):
@@ -48,7 +68,7 @@ def _source_pin(raw):
 
 
 def admit_original_scope(root, scope_name):
-    """Read one complete fixed scope; only the reviewed diagnostic edit may differ.
+    """Read one complete fixed scope and its exact reviewed source successors.
 
     The reconstructed historical test is data only. The caller still loads the
     complete current modules, and the original ordered IDs and budgets remain
@@ -71,9 +91,32 @@ def admit_original_scope(root, scope_name):
         raise ValueError('caller scope bytes differ')
     scope = json.loads(frozen)['scopes'][scope_name]
     adjustments = {}
+    journal_adjustments = {}
     for name, expected in scope['files'].items():
         raw = capture(name)
         if _source_pin(raw) == expected:
+            continue
+        if name == _JOURNAL_CALLER:
+            if (scope_name != 'journal' or expected != _JOURNAL_ORIGINAL
+                    or _source_pin(raw) != _JOURNAL_CURRENT):
+                raise ValueError('bootstrap Journal original scope differs')
+            helper = capture(_JOURNAL_HELPER)
+            provenance = capture(_JOURNAL_FIXTURE)
+            archive = capture(_JOURNAL_ARCHIVE)
+            if (_source_pin(helper) != _JOURNAL_HELPER_PIN
+                    or _source_pin(provenance) != _JOURNAL_FIXTURE_PIN
+                    or _source_pin(archive) != _JOURNAL_ORIGINAL):
+                raise ValueError('bootstrap Journal preparation authority changed')
+            from tests import hia_journal_installed_preparation as preparation
+            if Path(preparation.__file__).read_bytes() != helper:
+                raise ValueError('bootstrap imported a different Journal preparation')
+            detail = preparation.admit_source(root, name, raw, expected)
+            actual = {item: _source_pin(captured[item]) for item in
+                      (_JOURNAL_CALLER, _JOURNAL_HELPER, _JOURNAL_FIXTURE, _JOURNAL_ARCHIVE)}
+            if (canonical(detail['captured_files']) != canonical(actual)
+                    or detail['original_method_ids'] != scope['ordered_ids']):
+                raise ValueError('bootstrap Journal source admission differs from captured scope')
+            journal_adjustments[name] = detail
             continue
         if name != _DIAGNOSTICS_CALLER:
             raise ValueError('an original complete caller module changed: ' + name)
@@ -107,6 +150,8 @@ def admit_original_scope(root, scope_name):
         'production_source_exceptions': [],
         'whole_native': False,
     }
+    if journal_adjustments:
+        proof['reviewed_journal_installed_preparation_source_adjustments'] = journal_adjustments
     return scope, proof
 
 

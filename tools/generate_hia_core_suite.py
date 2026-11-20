@@ -2,11 +2,18 @@
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_artifact_publication import document as publication_document
 from tools.generate_hia_core_admission_cli import ARENA_BYTES, INSPECT_OUTPUT_BYTES
 from tools.generate_hia_native_filter import LINK_SOURCE, template
 
 SUITE_MAGIC = int.from_bytes(b'HIACS001', 'little')
+
+
+def document(source, module):
+    program = publication_document(source, module)
+    if module == 'core_suite_dispatch':
+        program['schema'] = 'hepta.hia.program.v9'
+    return program
 
 
 def dispatcher_source():

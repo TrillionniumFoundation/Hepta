@@ -1,4 +1,4 @@
-hia-asm.v1 hepta.hia.program.v8 core_inspect_json
+hia-asm.v1 hepta.hia.program.v9 core_inspect_json
 fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
   v3:usize = buffer.len(v1)
@@ -1290,8 +1290,8 @@ block b19(v140:mutbuf,v141:mutbuf,v142:u64)
 block b21(v159:mutbuf,v160:mutbuf,v161:u64)
   v162:u64 = const() {"value":56}
   v163:bool = compare.eq(v161,v162)
-  branch v163 b22(v159,v160) b24(v159,v160)
-block b22(v164:mutbuf,v165:mutbuf)
+  branch v163 b22(v159,v160,v161) b24(v159,v160,v161)
+block b22(v164:mutbuf,v165:mutbuf,v166:u64)
   v170:u64 = const() {"value":24}
   v171:u64 = const() {"value":3270850775842841378}
   v172:u64 = const() {"value":7021781903449617267}
@@ -1302,10 +1302,26 @@ block b22(v164:mutbuf,v165:mutbuf)
   v177:u64 = const() {"value":4068489015646319470}
   v178:u64 = const() {"value":34}
   v179:u64 = call(v164,v165,v175,v176,v177,v178) {"function":"f29"}
-  jump b24(v164,v165)
-block b24(v180:mutbuf,v181:mutbuf)
-  v183:u64 = const() {"value":0}
-  ret(v183)
+  jump b24(v164,v165,v166)
+block b24(v180:mutbuf,v181:mutbuf,v182:u64)
+  v183:u64 = const() {"value":57}
+  v184:bool = compare.eq(v182,v183)
+  branch v184 b25(v180,v181) b27(v180,v181)
+block b25(v185:mutbuf,v186:mutbuf)
+  v191:u64 = const() {"value":24}
+  v192:u64 = const() {"value":3270850775842841378}
+  v193:u64 = const() {"value":7311709882604942195}
+  v194:u64 = const() {"value":3271993103899635044}
+  v195:u64 = call(v185,v186,v191,v192,v193,v194) {"function":"f29"}
+  v196:u64 = const() {"value":18}
+  v197:u64 = const() {"value":7882826764525009250}
+  v198:u64 = const() {"value":8515519877723288175}
+  v199:u64 = const() {"value":8761}
+  v200:u64 = call(v185,v186,v196,v197,v198,v199) {"function":"f29"}
+  jump b27(v185,v186)
+block b27(v201:mutbuf,v202:mutbuf)
+  v204:u64 = const() {"value":0}
+  ret(v204)
 end
 fn f13(v0:readbuf,v1:mutbuf,v2:mutbuf,v3:u64,v4:u64,v5:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf,v3:u64,v4:u64,v5:u64)

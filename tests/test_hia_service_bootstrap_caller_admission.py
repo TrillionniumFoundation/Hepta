@@ -30,6 +30,14 @@ class ServiceBootstrapCallerAdmissionTests(unittest.TestCase):
         for scope in cls.scopes.values():
             names.update(scope['files'])
         cls.inputs = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        # Keep this original 6-positive/108-negative matrix on the complete
+        # retained Journal bytes. The independent preparation controls exercise
+        # both complete Journal versions and their new capture requirements.
+        journal_path = 'tests/test_hia_agent_journal_native.py'
+        journal_archive = (ROOT / 'tests/fixtures/journal_installed_preparation_v1.py.txt').read_bytes()
+        if {'bytes': len(journal_archive), 'sha256': sha256(journal_archive).hexdigest()} != cls.scopes['journal']['files'][journal_path]:
+            raise AssertionError('retained complete Journal source differs')
+        cls.inputs[journal_path] = journal_archive
         cls.original_caller = diagnostics.restore(
             cls.inputs[diagnostics.PATH], cls.inputs[diagnostics.FIXTURE])
 

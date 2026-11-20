@@ -297,6 +297,21 @@ SDIST_SUPPORT_FILES=(
     'tools/hia_selfhost_signed.py',
     'tools/hia_selfhost_traps.py',
     'tools/hia_selfhost_word_memory.py',
+    # Journal preparation Source controls and their fixed complete caller input closure.
+    'tests/fixtures/hia_service_discovery_original_r5/caller-scopes.json',
+    'tests/fixtures/hia_service_verification_original_r12/caller-scopes.json',
+    'tests/fixtures/hia_store_transaction_separate_5bf.json',
+    'tests/fixtures/journal_installed_preparation_v1.py.txt',
+    'tests/fixtures/journal_installed_preparation_v2.json',
+    'tests/hia_journal_installed_preparation.py',
+    'tests/test_hia_delivery_journal_preparation.py',
+    'tests/test_hia_journal_caller_preparation.py',
+    'tests/test_hia_journal_installed_preparation.py',
+    'tests/test_hia_service_bootstrap_journal_preparation.py',
+    'tests/test_hia_slot_ledger_native.py',
+    'tools/qualify_hia_service_discovery_callers.py',
+    'tools/qualify_hia_service_verification_callers.py',
+    'tools/qualify_hia_store_transaction.py',
 )
 SDIST_SUPPORT_FILES=tuple(dict.fromkeys(SDIST_SUPPORT_FILES))
 WHEEL_PACKAGE_FILES=(

@@ -507,7 +507,9 @@ class LinkedObserverNativeTests(unittest.TestCase):
 
     def test_full_linked_HIA_compiler_success_and_refusal_bytes_are_identical(self):
         folder=self.folder("linked-compiler")
-        source=original.SOURCE.read_bytes().replace(b"hepta.hia.program.v8 selfhost\n",b"hepta.hia.program.v8 selfhost_elf\n",1)
+        source=original.SOURCE.read_bytes()
+        self.assertTrue(source.startswith(b"hia-asm.v1 hepta.hia.program.v9 selfhost\n"))
+        source=source.replace(b"hepta.hia.program.v9 selfhost\n",b"hepta.hia.program.v9 selfhost_elf\n",1)
         obj,_=original.compile_stage(folder,"compiler",self.compiler,source,output_extension=".o")
         original.inspect_selfhost_object(obj.read_bytes())
         linked=folder/"compiler.so"

@@ -121,6 +121,7 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             *subject.PATHS, subject.EVALUATION,
             *subject.QUALIFIER_PATHS, *subject.QUALIFIER_DEPENDENCIES,
             *subject.QUALIFIER_DIAGNOSTIC_DEPENDENCIES, *composition.PATHS,
+            *subject.JOURNAL_PREPARATION_PATHS,
         }
         for kind, (name, expected) in subject.ORIGINALS.items():
             raw = (ROOT / name).read_bytes()

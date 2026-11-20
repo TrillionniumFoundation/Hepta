@@ -9,13 +9,20 @@ from hepta.hia_composite_constructor_errors import ERRORS as CONSTRUCTOR_DIAGNOS
 from hepta.hia_composite_functions_errors import ERRORS as FUNCTION_DIAGNOSTICS
 from hepta.hia_composite_types_native import ERRORS as TYPE_DIAGNOSTICS
 from hepta.hia_schema import COMPOSITE_PROFILES, PRIMITIVE_PROFILES
-from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_artifact_publication import document as publication_document
 from tools.generate_hia_core_json_frontend import KEYS, FRONTEND, packed
 from tools.generate_hia_json_canonical import core_pretty_source
 from tools.generate_hia_json_decode import source_program as decoder
 from tools.generate_hia_native_filter import CORE_REPORT_MODE
 from tools.generate_hia_program_shape import PUBLIC_DIAGNOSTICS
 from tools.generate_hia_sha256 import source_program as sha_source
+
+
+def document(source, module):
+    program = publication_document(source, module)
+    if module == 'core_inspect_json':
+        program['schema'] = 'hepta.hia.program.v9'
+    return program
 
 
 POLICY = r'''

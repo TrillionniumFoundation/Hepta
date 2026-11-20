@@ -235,7 +235,8 @@ def document(*, core_pretty=False):
         functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module, 'functions': functions})
+    schema = 'hepta.hia.program.v9' if core_pretty else 'hepta.hia.program.v8'
+    return compact_authoring_cfg({'schema': schema, 'module': module, 'functions': functions})
 
 
 def main():

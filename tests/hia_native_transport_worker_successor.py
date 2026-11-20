@@ -851,7 +851,7 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
     return result
 
 
-def admit_terminal_sources(original_value, *, original_kind):
+def _admit_terminal_sources_before_journal(original_value, *, original_kind):
     # Read optional new authorities before prior admission. Absence grants no
     # exception; the unchanged outer Delivery loops still read every original
     # file and reject any source not covered by a complete fixed proof.
@@ -869,3 +869,119 @@ def admit_terminal_sources(original_value, *, original_kind):
     if diagnostic_frozen is None:
         return prior
     return _admit_diagnostic_sources(original_value, original_kind, prior, diagnostic_frozen)
+
+
+# The Journal installed-wheel source successor is independent of the retained
+# terminal/qualifier/diagnostic authorities. No production file is excepted.
+JOURNAL_PREPARATION_PATH = 'tests/test_hia_agent_journal_native.py'
+JOURNAL_PREPARATION_HELPER = 'tests/hia_journal_installed_preparation.py'
+JOURNAL_PREPARATION_HELPER_PIN = {'bytes': 15935, 'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797'}
+JOURNAL_PREPARATION_FIXTURE = 'tests/fixtures/journal_installed_preparation_v2.json'
+JOURNAL_PREPARATION_FIXTURE_PIN = {'bytes': 14729, 'sha256': '81914ecb2bef21e9c641282dc8530158146ecadd4b86e8e4e6b3f83e71b73e7b'}
+JOURNAL_PREPARATION_ARCHIVE = 'tests/fixtures/journal_installed_preparation_v1.py.txt'
+JOURNAL_PREPARATION_OLD = {'bytes': 48482, 'sha256': 'a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077'}
+JOURNAL_PREPARATION_NEW = {'bytes': 48798, 'sha256': '7d5cebde72523ade809346a30916a48611e18a157230b4f2f6129c0d16b8715c'}
+JOURNAL_PREPARATION_PATHS = (JOURNAL_PREPARATION_PATH, JOURNAL_PREPARATION_HELPER,
+                             JOURNAL_PREPARATION_FIXTURE, JOURNAL_PREPARATION_ARCHIVE)
+
+
+def _admit_journal_preparation_sources(original_value, original_kind, prior, frozen):
+    if _pin(frozen) != JOURNAL_PREPARATION_FIXTURE_PIN:
+        raise ValueError('delivery Journal preparation authority changed')
+    captured = {JOURNAL_PREPARATION_FIXTURE: frozen}
+
+    def capture(name):
+        raw = (ROOT / name).read_bytes()
+        if name in captured and captured[name] != raw:
+            raise ValueError('delivery Journal source changed between captures: ' + name)
+        captured[name] = raw
+        return raw
+
+    source = capture(JOURNAL_PREPARATION_PATH)
+    if _pin(source) == JOURNAL_PREPARATION_OLD:
+        for name, raw in captured.items():
+            if (ROOT / name).read_bytes() != raw:
+                raise ValueError('delivery literal Journal changed at terminal reread: ' + name)
+        return prior
+    if _pin(source) != JOURNAL_PREPARATION_NEW:
+        raise ValueError('delivery Journal source is not the exact preparation successor')
+    # The latest available complete source proof subsumes all earlier captures.
+    # A new source exception cannot rely only on a prior top-level status string.
+    previous = prior.get('caller_diagnostic_source_admission',
+                         prior.get('caller_qualifier_source_admission'))
+    if (type(previous) is not dict or previous.get('original_kind') != original_kind
+            or previous.get('terminal_reread_identical') is not True
+            or type(previous.get('actual_captured_files')) is not dict
+            or prior.get('production_composition_source_count') != 13):
+        raise ValueError('delivery Journal preparation requires complete prior source custody')
+    for name, expected in previous['actual_captured_files'].items():
+        if _canonical(_pin(capture(name))) != _canonical(expected):
+            raise ValueError('delivery Journal prior source changed after admission: ' + name)
+    original_path, original_pin = ORIGINALS[original_kind]
+    original_raw = capture(original_path)
+    if _pin(original_raw) != original_pin:
+        raise ValueError('delivery Journal original inventory changed')
+    original = json.loads(original_raw)
+    if (_canonical(original_value) != _canonical(original)
+            or len(original['unchanged_files']) != (64 if original_kind == 'native' else 89)
+            or _canonical(original['unchanged_files'].get(JOURNAL_PREPARATION_PATH))
+                != _canonical(JOURNAL_PREPARATION_OLD)
+            or JOURNAL_PREPARATION_PATH in prior['source_adjustments']):
+        raise ValueError('delivery Journal preparation does not belong to its fixed original inventory')
+    helper = capture(JOURNAL_PREPARATION_HELPER)
+    if _pin(helper) != JOURNAL_PREPARATION_HELPER_PIN:
+        raise ValueError('delivery Journal preparation helper changed')
+    from tests import hia_journal_installed_preparation as journal
+    if Path(journal.__file__).read_bytes() != helper:
+        raise ValueError('delivery imported a different Journal preparation helper')
+    proof = journal.admit_source(ROOT, JOURNAL_PREPARATION_PATH, source,
+                                 original['unchanged_files'][JOURNAL_PREPARATION_PATH])
+    for name, expected in proof['captured_files'].items():
+        if _canonical(_pin(capture(name))) != _canonical(expected):
+            raise ValueError('delivery Journal capture changed after preparation admission: ' + name)
+    adjustment = {
+        'path': JOURNAL_PREPARATION_PATH,
+        'original_bytes': JOURNAL_PREPARATION_OLD['bytes'],
+        'original_sha256': JOURNAL_PREPARATION_OLD['sha256'],
+        'current_bytes': JOURNAL_PREPARATION_NEW['bytes'],
+        'current_sha256': JOURNAL_PREPARATION_NEW['sha256'],
+        'reversible_patch_fixture_sha256': JOURNAL_PREPARATION_FIXTURE_PIN['sha256'],
+        'scope': 'versioned installed-resource preparation; all original 21 methods, assertions and deadlines retained',
+        'exact_splice_count': 2, 'complete_original_inverse_verified': True,
+        'complete_current_forward_replay_verified': True,
+        'production_source_exception': False,
+    }
+    for name, raw in captured.items():
+        if (ROOT / name).read_bytes() != raw:
+            raise ValueError('delivery Journal captured source changed at terminal reread: ' + name)
+    result = dict(prior)
+    result['source_adjustments'] = {**prior['source_adjustments'], JOURNAL_PREPARATION_PATH: adjustment}
+    result['journal_installed_preparation_source_admission'] = {
+        'schema': 'hepta.hia.delivery-journal-installed-preparation-admission.v1',
+        'original_kind': original_kind,
+        'original_source_count': 64 if original_kind == 'native' else 89,
+        'authority': {'path': JOURNAL_PREPARATION_FIXTURE, **JOURNAL_PREPARATION_FIXTURE_PIN},
+        'reviewed_journal_installed_preparation': proof,
+        'source_adjustments': {JOURNAL_PREPARATION_PATH: adjustment},
+        'source_adjustment_count': 1,
+        'actual_captured_files': {name: _pin(raw) for name, raw in captured.items()},
+        'terminal_reread_identical': True, 'prior_captures_consumed_without_refresh': True,
+        'production_composition_source_count': 13, 'production_source_exceptions': [],
+        'original_inventories_unchanged': True,
+        'original_test_methods_budgets_and_order_unchanged': True,
+        'whole_native': False,
+    }
+    return result
+
+
+def admit_terminal_sources(original_value, *, original_kind):
+    # Missing new authority supplies no exception. In particular the unchanged
+    # complete outer file guards continue to reject an unsupported current test.
+    try:
+        frozen = (ROOT / JOURNAL_PREPARATION_FIXTURE).read_bytes()
+    except FileNotFoundError:
+        frozen = None
+    prior = _admit_terminal_sources_before_journal(original_value, original_kind=original_kind)
+    if frozen is None:
+        return prior
+    return _admit_journal_preparation_sources(original_value, original_kind, prior, frozen)

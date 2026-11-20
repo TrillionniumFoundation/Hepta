@@ -749,7 +749,7 @@ def document():
         b=Builder(node,names,signatures,total);b.statements(node.body)
         functions.append({'name':names[node.name],'params':[b.param(v) for v in b.params],
             'returns':[b.returns],'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':'core_admission','functions':functions})
+    return compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':'core_admission','functions':functions})
 
 
 if __name__=='__main__':
