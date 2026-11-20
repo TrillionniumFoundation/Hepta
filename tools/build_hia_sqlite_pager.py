@@ -63,8 +63,8 @@ def assemble(directory, name, source):
     return object_path.read_bytes()
 
 
-def build_embedder(directory, compiler, source):
-    image, receipt = compile_stage(directory, 'elf-embed', compiler, source)
+def build_embedder(directory, compiler, source, *, label='elf-embed'):
+    image, receipt = compile_stage(directory, label, compiler, source)
     return NativeHiaJsonImage(image.read_bytes(), receipt['produced_sha256'])
 
 

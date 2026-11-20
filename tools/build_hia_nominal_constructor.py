@@ -9,7 +9,7 @@ from pathlib import Path
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_json import admit_compile_receipt
 from tools.build_hia_sqlite_pager import (
-    EMBED_SOURCE, ROOT, assemble, build_embedder, digest, embed, link, verify_executable, write_new,
+    EMBED_SOURCE, ROOT, build_embedder, digest, embed, link, load_static_object, verify_executable, write_new,
 )
 from tools.qualify_hia_selfhost import compile_stage
 
@@ -18,6 +18,10 @@ ADAPTER = 'tools/hia_nominal_constructor.S'
 PUBLICATION_ADAPTER = 'tools/hia_core_edit_publish_program.S'
 ASSEMBLY_ADAPTER = 'tools/hia_core_edit_publish_assembly.S'
 DRIVER = 'tools/build_hia_nominal_constructor.py'
+TRANSPORT_TEMPLATES = 'examples/hia_bootstrap/nominal_constructor_transport_adapters.hepta'
+TRANSPORT_ROLES = (ADAPTER, PUBLICATION_ADAPTER, ASSEMBLY_ADAPTER)
+NOMINAL_IMAGE_LABELS = {'owner': 'core_nominal_owner', 'render': 'core_nominal_render',
+                        'nominal-json': 'core_nominal_codec'}
 # The ordinary CLI keeps its selected image at 1 MiB and starts its
 # independent input/output scratch at 7.5 MiB.
 ORDINARY_CLI_IMAGE_CAPACITY = 13 << 19
@@ -51,8 +55,7 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
     compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
     admitted = admit_cold_build(compiler_body, cold_body)
     inputs = {name: (ROOT / name).read_bytes()
-              for name in (*COMPONENTS.values(), EMBED_SOURCE, ADAPTER,
-                           PUBLICATION_ADAPTER, ASSEMBLY_ADAPTER, DRIVER)}
+              for name in (*COMPONENTS.values(), EMBED_SOURCE, TRANSPORT_TEMPLATES, *TRANSPORT_ROLES, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in inputs.items()):
         raise ValueError('constructor source differs from admitted cold build')
 
@@ -64,14 +67,11 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
         admit_compile_receipt(receipt, compiler_bytes=compiler_body,
                               source_bytes=inputs[filename], image_bytes=body)
         images[label], checks[path] = body, body
-    transport = assemble(output, ADAPTER, inputs[ADAPTER])
-    publisher = assemble(output, PUBLICATION_ADAPTER,
-                         b'.set HIA_VERIFIED_PUBLISH,1\n' + inputs[PUBLICATION_ADAPTER])
-    assembly = assemble(output, ASSEMBLY_ADAPTER,
-                        b'.set HIA_CONSTRUCTOR_ASSEMBLY,1\n' + inputs[ASSEMBLY_ADAPTER])
-    objects = [transport, publisher, assembly]
+    template = build_embedder(output, compiler, inputs[TRANSPORT_TEMPLATES], label='constructor-adapters')
+    objects = [load_static_object(template, role, inputs[adapter])
+               for role, adapter in enumerate(TRANSPORT_ROLES)]
     embedder = build_embedder(output, compiler, inputs[EMBED_SOURCE])
-    embedded = {'types': 'types_image', 'admit': 'function_admit',
+    embedded = {**NOMINAL_IMAGE_LABELS, 'types': 'types_image', 'admit': 'function_admit',
                 'records': 'function_records', 'terms': 'function_terms',
                 'advanced': 'function_advanced', 'function-render': 'function_render',
                 'helpers': 'function_helper', 'outer-owner': 'outer_owner',
@@ -87,7 +87,7 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
         checks[output / (stem + '.embedded.elf')] = images[role]
     binary, link_receipt = link(output, images['linker'], images['owner'], objects,
                                 wire_magic=b'HIALNK01', executable_limit=ORDINARY_CLI_IMAGE_CAPACITY)
-    for label in ('nominal-json', 'render', *embedded):
+    for label in embedded:
         verify_executable(binary, images[label])
     if (current_sources() != admitted or compiler.read_bytes() != compiler_body
             or cold.read_bytes() != cold_body

@@ -12,7 +12,7 @@ from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_constructor import (
     ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
-    ORDINARY_CLI_IMAGE_CAPACITY,
+    NOMINAL_IMAGE_LABELS, ORDINARY_CLI_IMAGE_CAPACITY,
 )
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, load_static_object, verify_executable
 from tools.generate_hia_core_edit_packer import MAGIC
@@ -266,8 +266,6 @@ NOMINAL_ADAPTER_ROLES = {
                                  EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE))
 }
 NOMINAL_ADAPTER_ROLES[NOMINAL_ADAPTER] = (NOMINAL_CONSTRUCTOR_GROUP, len(NOMINAL_ADAPTER_ROLES))
-NOMINAL_IMAGE_LABELS = {'owner': 'core_nominal_owner', 'render': 'core_nominal_render',
-                        'nominal-json': 'core_nominal_codec'}
 
 
 def digest(raw):

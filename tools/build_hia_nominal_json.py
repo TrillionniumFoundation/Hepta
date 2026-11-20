@@ -18,6 +18,7 @@ SOURCE_NAME = 'examples/hia_bootstrap/nominal_json.hepta'
 SCHEMA = 'hepta.hia.nominal-json-native.v1'
 STDIO = 'tools/hia_nominal_json_stdio.S'
 LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
+STDIO_TEMPLATE = 'examples/hia_bootstrap/nominal_packet_adapter.hepta'
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
@@ -50,6 +51,7 @@ def admit_compile_receipt(receipt, *, compiler_bytes: bytes,
 
 def build(output: Path, compiler: Path, cold_report: Path, *, standalone=False) -> Path:
     from tools.build_hia_json_preflight import admit_cold_build, current_sources
+    from tools.build_hia_sqlite_pager import EMBED_SOURCE
     from tools.hia_selfhost_contract import PROFILE
     from tools.qualify_hia_selfhost import compile_stage
 
@@ -60,7 +62,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, standalone=False) 
     source_bytes = source_path.read_bytes()
     if sources.get(SOURCE_NAME) != sha256(source_bytes).hexdigest():
         raise ValueError('nominal JSON source is not in the matching complete cold source contract')
-    extra = {name: (ROOT / name).read_bytes() for name in (STDIO, LINKER)} if standalone else {}
+    extra = {name: (ROOT / name).read_bytes()
+             for name in (STDIO, LINKER, STDIO_TEMPLATE, EMBED_SOURCE)} if standalone else {}
     if any(sources.get(name) != sha256(raw).hexdigest() for name, raw in extra.items()):
         raise ValueError('nominal JSON application source differs from the cold source contract')
     output.mkdir(mode=0o700)
@@ -74,13 +77,16 @@ def build(output: Path, compiler: Path, cold_report: Path, *, standalone=False) 
         raise ValueError('nominal JSON compile receipt readback differs')
     executable = None
     if standalone:
-        from tools.build_hia_sqlite_pager import assemble, link
+        from tools.build_hia_sqlite_pager import build_embedder, embed, link, load_static_object
         linker, linker_receipt = compile_stage(output, 'nominal-linker', compiler, extra[LINKER])
         linker_body = linker.read_bytes()
         if sha256(linker_body).hexdigest() != linker_receipt['produced_sha256']:
             raise ValueError('nominal JSON application linker changed')
-        adapter = assemble(output, STDIO, extra[STDIO])
-        executable, _ = link(output, linker_body, image_bytes, (adapter,), wire_magic=b'HIALNK01')
+        template = build_embedder(output, compiler, extra[STDIO_TEMPLATE], label='nominal-packet-adapter')
+        adapter = load_static_object(template, 0, extra[STDIO])
+        embedder = build_embedder(output, compiler, extra[EMBED_SOURCE])
+        component = embed(output, 'nominal_packet_body', 'nominal-packet', image_bytes, embedder)
+        executable, _ = link(output, linker_body, image_bytes, (adapter, component), wire_magic=b'HIALNK01')
         if linker.read_bytes() != linker_body or any((ROOT / name).read_bytes() != raw for name, raw in extra.items()):
             raise ValueError('nominal JSON application changed during linking')
     if (source_path.read_bytes() != source_bytes or compiler.read_bytes() != compiler_bytes
