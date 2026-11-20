@@ -17,10 +17,14 @@ import unittest
 from unittest.mock import patch
 
 from tests import hia_journal_installed_preparation as subject
+from tests.hia_store_delivery_successor import reverse_exact
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICIES = ('setup.py', 'hepta/hia_agent_contract.py', 'hepta/hia_executable_capture.py')
-INPUTS = (*subject.SOURCE_PATHS, *POLICIES, 'tests/test_hia_journal_installed_preparation.py')
+CONTRACT_POLICY = 'hepta/hia_agent_contract.py'
+POLICY_SUCCESSOR = 'tests/fixtures/journal_package_policy_successor.json'
+POLICY_SUCCESSOR_SHA256 = '194f45b213421d3592256cf5d9b752fe425ce9ba8add4bf3c43836c09e6f6c36'
+INPUTS = (*subject.SOURCE_PATHS, *POLICIES, POLICY_SUCCESSOR, 'tests/test_hia_journal_installed_preparation.py')
 
 
 def pin(raw):
@@ -38,6 +42,15 @@ class JournalInstalledPreparationSourceTests(unittest.TestCase):
     def setUpClass(cls):
         cls.sources = {name: (ROOT / name).read_bytes() for name in INPUTS}
         cls.authority = json.loads(cls.sources[subject.FIXTURE])
+        reviewed = cls.sources[POLICY_SUCCESSOR]
+        if sha256(reviewed).hexdigest() != POLICY_SUCCESSOR_SHA256:
+            raise AssertionError('Journal package policy successor evidence differs')
+        raw = cls.sources[CONTRACT_POLICY]
+        expected = cls.authority['policy_sources'][CONTRACT_POLICY]
+        # The preparation controls test the frozen 196-resource package. The
+        # current installed release is independently qualified at its normal
+        # packaging entry point and must not become this test's historical pin.
+        cls.policy = raw if pin(raw) == expected else reverse_exact(raw, json.loads(reviewed), expected)
         cls.agent = tuple(cls.authority['original_agent_resources'])
         cls.extra = tuple(cls.authority['current_executable_capture_resources']
                           + cls.authority['current_integer_resources'])
@@ -56,6 +69,7 @@ class JournalInstalledPreparationSourceTests(unittest.TestCase):
             store(self.root, name, ('SOURCE-ONLY-RESOURCE:' + name + '\n').encode())
         for name, raw in self.sources.items():
             store(self.root, name, raw)
+        store(self.root, CONTRACT_POLICY, self.policy)
 
     def admit(self):
         return subject.admit_source(self.root, subject.PATH,
