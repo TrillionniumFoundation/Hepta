@@ -195,6 +195,7 @@ class ServiceArtifactFrame:
         if type(image) is not NativeServiceArtifact:
             raise TypeError('native service artifact requires an admitted image')
         from . import hia_agent_service
+        self.runtime_namespace = namespace is None
         if namespace is None:
             namespace = vars(hia_agent_service)
             global_builtins = hia_agent_service._SERVICE_ARTIFACT_GLOBAL_BUILTINS
@@ -378,7 +379,12 @@ class ServiceArtifactFrame:
         elif name == 'utf8_data':
             d['data'] = _literal_utf8(d['source'])
         elif name == 'capture_data':
-            d['data'] = _literal_capture(self.service, d['source'], self._global)
+            source = d['source']
+            if self.runtime_namespace:
+                d['data'] = self.service.store._capture_input(
+                    source['path'], self.service.artifact_roots, self._global('int')(source['max_bytes']))
+            else:
+                d['data'] = _literal_capture(self.service, source, self._global)
         elif name == 'expected':
             d['expected'] = d['source']['expected_sha256']
         elif name == 'expected_is_not_none':

@@ -17,7 +17,7 @@ if __package__ in (None, ''):
 from tests.hia_slot_operations_qualification_support import canonical, regular_bytes, unique_pairs
 
 AUTHORITY = 'tests/fixtures/service_artifact_worker_terminal_v2.json'
-AUTHORITY_SHA256 = '9808c296e7be3a57546b02191aadf8339a87ad696c758527e7e62496ffebdbf4'
+AUTHORITY_SHA256 = 'dd5fe4672238cb592c0576631cdbf17066e3c8ade74de9e1979eb8f0c19a6c12'
 WORKERS = {
     1: {'bytes': 8496, 'sha256': '4e6a64b551e34805106fa1d4b888a48f9a2a138d2f82d4091b4412bf65862066'},
     2: {'bytes': 11444, 'sha256': '6352879dc0e58515a6af9b2a586a5efa27f4018fb19d49a379ab72425eebf45a'},

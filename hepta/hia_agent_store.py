@@ -594,14 +594,18 @@ class AgentStore:
         except PublicationRejected as exc:
             _native_artifact_rejection(exc)
 
-    def capture(self, path, roots, limit, expected):
+    def _capture_input(self, path, roots, limit):
         if self._capture_code is None:
-            data = capture_path(path, roots, limit)
+            return capture_path(path, roots, limit)
+        from .hia_agent_artifact_capture_native import capture_pinned
+        return capture_pinned(self._capture_code, path, roots, limit)
+
+    def capture(self, path, roots, limit, expected):
+        data = self._capture_input(path, roots, limit)
+        if self._capture_code is None:
             if expected is not None and expected != sha256(data).hexdigest():
                 reject("E_HIA_ARTIFACT_CHANGED", "captured bytes differ from the expected digest")
             return self.put(data, "input"), len(data)
-        from .hia_agent_artifact_capture_native import capture_pinned
-        data = capture_pinned(self._capture_code, path, roots, limit)
         return self.put(data, "input", expected_sha256=expected), len(data)
 
     def put(self, data, kind, metadata=None, *, expected_sha256=None):
