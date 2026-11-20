@@ -80,6 +80,11 @@ OWNED_SHARED_MAGIC = int.from_bytes(b'HIAELFA1', 'little')
 OWNED_SHARED_MAX = 64 << 20
 OWNED_SHARED_HEAD = struct.Struct('<8Q')
 OWNED_SHARED_SEGMENT = struct.Struct('<2Q')
+OWNED_SHARED_SYMBOL_MAGIC = int.from_bytes(b'HIAELFA2', 'little')
+OWNED_SHARED_SYMBOL_HEAD = OWNED_SHARED_HEAD.size + 128 * OWNED_SHARED_SEGMENT.size
+OWNED_SHARED_SYMBOL_ROW = struct.Struct('<3Q')
+OWNED_SHARED_SYMBOL_CAPACITY = OWNED_SHARED_SYMBOL_HEAD + 65536 * OWNED_SHARED_SYMBOL_ROW.size
+OWNED_SHARED_SYMBOL_WORK = 16 + 65536 * 24
 OWNED_SHARED_REFUSALS = (
     ('identity', 'not Linux/x86-64 ELF64 ET_DYN'),
     ('sections', 'missing or out-of-file ELF section table'),
@@ -103,10 +108,60 @@ OWNED_SHARED_REFUSALS = (
     ('dynamic_identity', 'loader dynamic symbol/string authority disagrees with ELF sections'),
     ('dependency_range', 'unbounded loader dependency'),
     ('dependency', 'unreviewed DT_NEEDED shared library dependency'),
+    ('symbol_name_offset', 'dynamic string name points outside table'),
+    ('symbol_name_termination', 'unterminated dynamic symbol name'),
+    ('symbol_name_ascii', 'non-ASCII dynamic symbol'),
+    ('symbol_name_spelling', 'unknown/empty dynamic symbol spelling'),
+    ('symbol_binding', 'unknown dynamic symbol binding'),
+    ('symbol_duplicate', 'duplicate external symbol identity'),
+    ('symbol_import', 'unreviewed external import: '),
+    ('symbol_export', 'unknown, repeated, or invalid public function export: '),
+    ('symbol_mapping', 'export not wholly inside executable file-backed code: '),
 )
+OWNED_SHARED_NAMED_ERRORS = frozenset(('symbol_import', 'symbol_export', 'symbol_mapping'))
 
 
 class NativeSafeCoreElfInventory(NativeHiaJsonImage):
+    def owned_shared_symbols(self, data):
+        from .elf_shared_abi import _fail
+
+        source = ctypes.create_string_buffer(data, len(data))
+        work = ctypes.create_string_buffer(OWNED_SHARED_SYMBOL_WORK)
+        struct.pack_into('<Q', work, 0, OWNED_SHARED_SYMBOL_MAGIC)
+        output = ctypes.create_string_buffer(OWNED_SHARED_SYMBOL_CAPACITY)
+        size = self._entry(source, len(data), output, len(output), work, len(work))
+        header = OWNED_SHARED_HEAD.size
+        if not header <= size <= len(output):
+            raise RuntimeError('invalid native shared ELF symbol extent')
+        status, count, position, *remaining = OWNED_SHARED_HEAD.unpack_from(output)
+        if status:
+            if status > len(OWNED_SHARED_REFUSALS) or size != header:
+                raise RuntimeError('invalid native shared ELF symbol refusal')
+            reason, message = OWNED_SHARED_REFUSALS[status - 1]
+            if reason in OWNED_SHARED_NAMED_ERRORS:
+                message += self._owned_symbol_name(data, count, position)
+            elif count or position:
+                raise RuntimeError('unexpected native shared ELF symbol refusal detail')
+            if any(remaining):
+                raise RuntimeError('unexpected native shared ELF symbol refusal data')
+            _fail(message)
+        if (not 0 <= count <= 65536 or any((position, *remaining))
+                or size != OWNED_SHARED_SYMBOL_HEAD + count * OWNED_SHARED_SYMBOL_ROW.size):
+            raise RuntimeError('invalid native shared ELF symbol reply')
+        exports, undefined = set(), set()
+        records = ctypes.string_at(ctypes.addressof(output) + OWNED_SHARED_SYMBOL_HEAD, size - OWNED_SHARED_SYMBOL_HEAD)
+        for offset, extent, kind in OWNED_SHARED_SYMBOL_ROW.iter_unpack(records):
+            if kind not in (0, 1):
+                raise RuntimeError('invalid native shared ELF symbol classification')
+            (exports if kind else undefined).add(self._owned_symbol_name(data, offset, extent))
+        return exports, undefined
+
+    @staticmethod
+    def _owned_symbol_name(data, offset, extent):
+        if not 0 < extent <= 512 or not 0 <= offset < len(data) or offset + extent >= len(data):
+            raise RuntimeError('invalid native shared ELF symbol name extent')
+        return data[offset:offset + extent].decode('ascii')
+
     def owned_shared_layout(self, data):
         from .elf_shared_abi import _fail
 

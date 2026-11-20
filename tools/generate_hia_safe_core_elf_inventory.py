@@ -8,6 +8,8 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
     CAPACITY, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
+    OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD, OWNED_SHARED_SYMBOL_CAPACITY,
+    OWNED_SHARED_SYMBOL_WORK,
 )
 from tools.generate_hia_elf_linker import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
@@ -18,6 +20,8 @@ FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS
 FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
 FIELDS.update({'ABI_' + name.upper(): number for number, (name, _) in enumerate(OWNED_SHARED_REFUSALS, 1)})
 FIELDS.update(OWNED_SHARED_MAGIC=OWNED_SHARED_MAGIC, OWNED_SHARED_MAX=OWNED_SHARED_MAX)
+FIELDS.update(OWNED_SHARED_SYMBOL_MAGIC=OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD=OWNED_SHARED_SYMBOL_HEAD,
+              OWNED_SHARED_SYMBOL_CAPACITY=OWNED_SHARED_SYMBOL_CAPACITY, OWNED_SHARED_SYMBOL_WORK=OWNED_SHARED_SYMBOL_WORK)
 HELPER_NAME = b'__hia_native_fn_0\0'
 FIELDS.update(HELPER_HEAD=int.from_bytes(HELPER_NAME[:8], 'little'),
               HELPER_BODY=int.from_bytes(HELPER_NAME[8:16], 'little'),
@@ -32,6 +36,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     if length(w) == 8 and get(w, 0) == OWNED_SHARED_MAGIC:
         return owned_shared_layout(s, o)
+    if length(w) == OWNED_SHARED_SYMBOL_WORK and get(w, 0) == OWNED_SHARED_SYMBOL_MAGIC:
+        if length(o) < OWNED_SHARED_SYMBOL_CAPACITY:
+            return 4294967294
+        return owned_shared_symbols(s, o, w)
     size = length(s)
     if size < 64 or size > MAX_ELF:
         return terminal(o, E_EXTENT, 0, 0)
@@ -917,7 +925,187 @@ def owned_shared_refusal(o:mutbuf, code:u64) -> u64:
         put(o, at, 0)
         at = at + 8
     return 64
+
+def owned_shared_symbols(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    layout_size = owned_shared_layout(s, o)
+    if get(o, 0) != 0:
+        return layout_size
+    start = get(o, 32)
+    extent = get(o, 40)
+    names = get(o, 48)
+    names_extent = get(o, 56)
+    # Mutable scratch holds a compressed binary name index. All branch
+    # nodes are initialized on insertion, and the empty root is explicit.
+    put(w, 8, 0)
+    count = 0
+    at = start
+    while at < start + extent:
+        index = word(s, at, 4)
+        if index != 0:
+            if index >= names_extent:
+                return owned_shared_refusal(o, ABI_SYMBOL_NAME_OFFSET)
+            name = names + index
+            size = owned_shared_name_size(s, name, names_extent - index)
+            if size > 512:
+                return owned_shared_refusal(o, size - 512)
+            info = byte(s, at + 4)
+            binding = info >> 4
+            if binding != 0:
+                if binding != 1 and binding != 2:
+                    return owned_shared_refusal(o, ABI_SYMBOL_BINDING)
+                row = OWNED_SHARED_SYMBOL_HEAD + count * 24
+                put(o, row, name)
+                put(o, row + 8, size)
+                final = word(s, at + 6, 2)
+                distinct = owned_shared_insert(s, o, w, row, 16 + count * 24)
+                if final == 0:
+                    if distinct == 0:
+                        return owned_shared_refusal(o, ABI_SYMBOL_DUPLICATE)
+                    if owned_shared_allowed_import(s, name, size) == 0:
+                        return owned_shared_named_error(o, ABI_SYMBOL_IMPORT, name, size)
+                    put(o, row + 16, 0)
+                else:
+                    symbol_size = word(s, at + 16, 8)
+                    if distinct == 0 or final >= get(o, 24) or byte(s, at + 5) & 3 != 0 or info & 15 != 2 or symbol_size == 0:
+                        return owned_shared_named_error(o, ABI_SYMBOL_EXPORT, name, size)
+                    section = get(o, 16) + final * 64
+                    if owned_shared_mapped(s, o, section, word(s, at + 8, 8), symbol_size) == 0:
+                        return owned_shared_named_error(o, ABI_SYMBOL_MAPPING, name, size)
+                    put(o, row + 16, 1)
+                count = count + 1
+        at = at + 24
+    owned_shared_refusal(o, 0)
+    put(o, 8, count)
+    return OWNED_SHARED_SYMBOL_HEAD + count * 24
+
+def owned_shared_named_error(o:mutbuf, code:u64, name:u64, size:u64) -> u64:
+    owned_shared_refusal(o, code)
+    put(o, 8, name)
+    put(o, 16, size)
+    return 64
+
+def owned_shared_name_size(s:readbuf, name:u64, extent:u64) -> u64:
+    at = 0
+    ascii = 1
+    spelling = 1
+    while at < extent:
+        letter = byte(s, name + at)
+        if letter == 0:
+            if ascii == 0:
+                return 512 + ABI_SYMBOL_NAME_ASCII
+            if at == 0 or at > 512 or spelling == 0:
+                return 512 + ABI_SYMBOL_NAME_SPELLING
+            return at
+        if letter > 127:
+            ascii = 0
+        permitted = choose(letter >= 65 and letter <= 90 or letter >= 97 and letter <= 122 or letter == 95 or
+                           at > 0 and letter >= 48 and letter <= 57, 1, 0)
+        if permitted == 0:
+            spelling = 0
+        at = at + 1
+    return 512 + ABI_SYMBOL_NAME_TERMINATION
+
+def owned_shared_mapped(s:readbuf, o:mutbuf, section:u64, value:u64, size:u64) -> u64:
+    flags = word(s, section + 8, 8)
+    address = word(s, section + 16, 8)
+    extent = word(s, section + 32, 8)
+    if word(s, section + 4, 4) != 1 or flags & 4 == 0 or value < address or size > extent:
+        return 0
+    if value - address > extent - size:
+        return 0
+    index = 0
+    count = get(o, 8)
+    while index < count:
+        row = 64 + index * 16
+        low = get(o, row)
+        extent = get(o, row + 8)
+        if value >= low and size <= extent and value - low <= extent - size:
+            return 1
+        index = index + 1
+    return 0
+
+def owned_shared_name_bit(s:readbuf, name:u64, size:u64, bit:u64) -> u64:
+    if bit // 8 >= size:
+        return 0
+    return (byte(s, name + bit // 8) >> (7 - bit % 8)) & 1
+
+def owned_shared_name_difference(s:readbuf, o:mutbuf, row:u64, other:u64) -> u64:
+    left = get(o, row)
+    right = get(o, other)
+    left_size = get(o, row + 8)
+    right_size = get(o, other + 8)
+    commons = choose(left_size < right_size, left_size, right_size)
+    index = 0
+    while index < commons:
+        if byte(s, left + index) != byte(s, right + index):
+            return index * 8 + owned_shared_first_bit(byte(s, left + index) ^ byte(s, right + index))
+        index = index + 1
+    if left_size == right_size:
+        return 4096
+    longer = choose(left_size > right_size, left, right)
+    return index * 8 + owned_shared_first_bit(byte(s, longer + index))
+
+def owned_shared_first_bit(value:u64) -> u64:
+    index = 0
+    while index < 8:
+        if (value << index) & 128 != 0:
+            return index
+        index = index + 1
+    return 8
+
+def owned_shared_insert(s:readbuf, o:mutbuf, w:mutbuf, row:u64, branch:u64) -> u64:
+    # Odd tokens locate output leaves. Even nonzero tokens locate
+    # scratch branches whose bit numbers always increase down the tree.
+    leaf = row * 2 + 1
+    root = get(w, 8)
+    if root == 0:
+        put(w, 8, leaf)
+        return 1
+    name = get(o, row)
+    size = get(o, row + 8)
+    current = root
+    while current & 1 == 0:
+        node = current // 2
+        arm = owned_shared_name_bit(s, name, size, get(w, node))
+        current = get(w, node + 8 + arm * 8)
+    different = owned_shared_name_difference(s, o, row, current // 2)
+    if different == 4096:
+        return 0
+    current = root
+    parent = 8
+    descending = 1
+    while current & 1 == 0 and descending == 1:
+        node = current // 2
+        bit = get(w, node)
+        if bit >= different:
+            descending = 0
+        else:
+            parent = node + 8 + owned_shared_name_bit(s, name, size, bit) * 8
+            current = get(w, parent)
+    arm = owned_shared_name_bit(s, name, size, different)
+    put(w, branch, different)
+    put(w, branch + 8 + arm * 8, leaf)
+    put(w, branch + 16 - arm * 8, current)
+    put(w, parent, branch * 2)
+    return 1
 '''
+
+
+REVIEWED_OWNED_IMPORTS = (
+    'malloc', 'calloc', 'free', 'abort', 'memset', 'memcpy', 'memmove', '__cxa_finalize',
+    '_ITM_registerTMCloneTable', '_ITM_deregisterTMCloneTable', '__gmon_start__',
+)
+
+
+def owned_import_authoring():
+    lines = ['def owned_shared_allowed_import(s:readbuf, name:u64, size:u64) -> u64:']
+    for name in REVIEWED_OWNED_IMPORTS:
+        words = [name[at:at + 8].encode('ascii') for at in range(0, len(name), 8)]
+        check = ' and '.join(f'word(s, name + {at * 8}, {len(word)}) == {int.from_bytes(word, "little")}'
+                             for at, word in enumerate(words))
+        lines.extend((f'    if size == {len(name)}:', f'        if {check}:', '            return 1'))
+    lines.append('    return 0')
+    return '\n'.join(lines)
 
 
 def document():
@@ -925,7 +1113,7 @@ def document():
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
-    nodes = ast.fix_missing_locations(Constants().visit(ast.parse(SOURCE))).body
+    nodes = ast.fix_missing_locations(Constants().visit(ast.parse(SOURCE + '\n' + owned_import_authoring()))).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}

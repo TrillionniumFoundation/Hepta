@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import random
 import struct
+import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -99,9 +100,45 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                                  observed(baseline, damaged), (at, value))
         with patch.object(hia_safe_core_elf_inventory_native, 'selected_safe_core_elf_inventory', return_value=None):
             expected = elf_shared_abi.inspect_owned_shared_elf(final, ('calculate',))
-        with patch.object(elf_shared_abi, '_reference_owned_shared_layout',
-                          side_effect=AssertionError('host publication layout entered')):
+        with patch.object(elf_shared_abi, '_reference_owned_shared_symbols',
+                          side_effect=AssertionError('host publication reader entered')):
             self.assertEqual(elf_shared_abi.inspect_owned_shared_elf(final, ('calculate',)), expected)
+
+    def test_owned_shared_symbol_policy_preserves_ordered_diagnostics_and_prefix_names(self):
+        from hepta import elf_shared_abi
+
+        exports = ('Aa', 'Aaa', 'Aab', 'Aac', '_x', 'long_' + 'x' * 507, 'run', 'z9')
+        source = '\n'.join(f'unsigned {name}(void) {{ return {index}; }}'
+                           for index, name in enumerate(exports) if name != 'run')
+        source += '\nextern void *malloc(unsigned long); void *run(void) { return malloc(32); }\n'
+        with tempfile.TemporaryDirectory(prefix='hia-owned-symbol-') as root:
+            output = Path(root) / 'candidate.so'
+            subprocess.run(['cc', '-x', 'c', '-fPIC', '-shared', '-Wl,-z,noexecstack', '-o', output, '-'],
+                           input=source.encode('ascii'), check=True)
+            raw = output.read_bytes()
+        expected = elf_shared_abi._reference_owned_shared_symbols(raw)
+        self.assertEqual(expected[0], set(exports))
+        self.assertIn('malloc', expected[1])
+        self.assertEqual(self.native.owned_shared_symbols(raw), expected)
+
+        def observed(reader, data):
+            try:
+                return reader(data)
+            except elf_shared_abi.ELFSharedABIRejected as error:
+                return str(error)
+
+        _, _, _, symoff, symsize, stroff, strsize = self.native.owned_shared_layout(raw)
+        for at in (*range(symoff, symoff + symsize), *range(stroff, stroff + strsize)):
+            for replacement in (0, 1, 127, 255):
+                if replacement != raw[at]:
+                    changed = raw[:at] + bytes((replacement,)) + raw[at + 1:]
+                    self.assertEqual(observed(self.native.owned_shared_symbols, changed),
+                                     observed(elf_shared_abi._reference_owned_shared_symbols, changed), (at, replacement))
+        with patch.object(elf_shared_abi, '_reference_owned_shared_symbols',
+                          side_effect=AssertionError('host shared ABI reader entered')):
+            report = elf_shared_abi.inspect_owned_shared_elf(raw, exports)
+            self.assertEqual(report['dynamic_exports'], list(exports))
+            self.assertEqual(report['unresolved_imports'], sorted(expected[1]))
 
     def test_native_symbols_names_and_load_mappings_match_owned_elf(self):
         for kind, data in ((1, self.object_bytes), (3, self.final_bytes)):

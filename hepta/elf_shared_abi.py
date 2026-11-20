@@ -167,22 +167,8 @@ def _reference_owned_shared_layout(data):
     return shoff, nsections, executable_segments, symoff, symsize, stroff, strsize
 
 
-def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> dict:
-    """Fail closed if the dynamic ABI differs from the checked export surface.
-
-    Return deterministic bounded metadata; no success is a safety proof.
-    """
-    if (not isinstance(data, bytes) or not 64 <= len(data) <= 64 * 1024 * 1024
-            or not isinstance(expected_exports, tuple)
-            or len(expected_exports) > 128 or expected_exports != tuple(sorted(set(expected_exports)))
-            or any(not isinstance(x, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", x)
-                   for x in expected_exports)):
-        _fail("invalid artifact or source export list")
-    from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
-
-    native = selected_safe_core_elf_inventory() if type(data) is bytes else None
-    layout = _reference_owned_shared_layout(data) if native is None else native.owned_shared_layout(data)
-    shoff, nsections, executable_segments, symoff, symsize, stroff, strsize = layout
+def _reference_owned_shared_symbols(data):
+    shoff, nsections, executable_segments, symoff, symsize, stroff, strsize = _reference_owned_shared_layout(data)
     exports: set[str] = set()
     undefined: set[str] = set()
     for pos in range(symoff, symoff + symsize, 24):
@@ -217,6 +203,27 @@ def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> 
                 not any(a <= value and size <= b - value for a, b in executable_segments)):
             _fail("export not wholly inside executable file-backed code: " + name)
         exports.add(name)
+    return exports, undefined
+
+
+def inspect_owned_shared_elf(data: bytes, expected_exports: tuple[str, ...]) -> dict:
+    """Fail closed if the dynamic ABI differs from the checked export surface.
+
+    Return deterministic bounded metadata; no success is a safety proof.
+    """
+    if (not isinstance(data, bytes) or not 64 <= len(data) <= 64 * 1024 * 1024
+            or not isinstance(expected_exports, tuple)
+            or len(expected_exports) > 128 or expected_exports != tuple(sorted(set(expected_exports)))
+            or any(not isinstance(x, str) or not re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", x)
+                   for x in expected_exports)):
+        _fail("invalid artifact or source export list")
+    from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
+
+    native = selected_safe_core_elf_inventory() if type(data) is bytes else None
+    if native is None:
+        exports, undefined = _reference_owned_shared_symbols(data)
+    else:
+        exports, undefined = native.owned_shared_symbols(data)
     if exports != set(expected_exports):
         _fail("public ABI symbols differ from source: expected " + repr(expected_exports)
               + ", observed " + repr(tuple(sorted(exports))))
