@@ -390,7 +390,7 @@ class CorePatchNativeTests(unittest.TestCase):
         source.mkdir()
         # Exercise the production packaging rules, not a snapshot of one
         # component's resource list. Installed imports are checked below.
-        for name in ('hepta', 'examples', 'docs', 'tools'):
+        for name in ('hepta', 'examples', 'docs', 'tools', 'tests'):
             shutil.copytree(root / name, source / name,
                             ignore=shutil.ignore_patterns('__pycache__'))
         for name in ('setup.py', 'pyproject.toml', 'MANIFEST.in'):
