@@ -159,6 +159,24 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(invalid)
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_durable_transition_never_relaunches_uncertain_operator_or_observation_paths(self):
+        states = (b'launched', b'pending', b'launch_failed', b'launch_unknown', b'cancelled', b'future')
+        for flags in range(8):
+            for state in states:
+                with self.subTest(flags=flags, state=state):
+                    wanted = 0
+                    if state == b'launched':
+                        wanted = 1
+                    elif flags == 7 and state in (b'pending', b'launch_failed'):
+                        wanted = 2
+                    frame = struct.pack('<8s2Q56s', b'HIAJTR01', flags, len(state), state)
+                    result = self.invoke(frame)
+                    self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                     (0, struct.pack('<8sQ', b'HIAJTO01', wanted), b''))
+        for flags, size in ((8, 0), (0, 57)):
+            result = self.invoke(struct.pack('<8s2Q56s', b'HIAJTR01', flags, size, b''))
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',

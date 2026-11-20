@@ -24,6 +24,8 @@ REUSE_INPUT_MAGIC = b'HIAJRE01'
 REUSE_OUTPUT_MAGIC = b'HIAJRO01'
 SCOPE_INPUT_MAGIC = b'HIASCO01'
 SCOPE_OUTPUT_MAGIC = b'HIASCR01'
+TRANSITION_INPUT_MAGIC = b'HIAJTR01'
+TRANSITION_OUTPUT_MAGIC = b'HIAJTO01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -37,6 +39,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_reuse(s, o)
     if magic == SCOPE_INPUT_MAGIC:
         return session_scope(s, o)
+    if magic == TRANSITION_INPUT_MAGIC:
+        return durable_transition(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -253,6 +257,32 @@ def scope_digest(s:readbuf, at:u64) -> u64:
             return 0
         index = index + 1
     return 1
+
+def durable_transition(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 80:
+        return 4294967293
+    if length(o) < 16:
+        return 4294967294
+    flags = word_load(s, 8)
+    size = word_load(s, 16)
+    if flags > 7 or size > 56:
+        return 4294967293
+    first = word_load(s, 24)
+    # Unknown state or incomplete outcomes remain serialized.
+    # Only an already confirmed launch releases the lane for observation.
+    decision = 0
+    if size == 8 and first == LAUNCHED_WORD:
+        decision = 1
+    elif flags == 7:
+        # All three authorities are required: caller route permits
+        # reconciliation, and the bound owner is isolated system jobctl.
+        if size == 7 and first & 0x00ffffffffffffff == PENDING_WORD:
+            decision = 2
+        elif size == 13 and first == FAILED_HEAD and word_load(s, 32) & 0x000000ffffffffff == FAILED_TAIL:
+            decision = 2
+    word_store(o, 0, TRANSITION_OUTPUT_MAGIC)
+    word_store(o, 8, decision)
+    return 16
 '''
 
 LITERALS = {
@@ -279,6 +309,12 @@ def source_program():
               .replace('REUSE_OUTPUT_MAGIC', str(int.from_bytes(REUSE_OUTPUT_MAGIC, 'little')))
               .replace('SCOPE_INPUT_MAGIC', str(int.from_bytes(SCOPE_INPUT_MAGIC, 'little')))
               .replace('SCOPE_OUTPUT_MAGIC', str(int.from_bytes(SCOPE_OUTPUT_MAGIC, 'little')))
+              .replace('TRANSITION_INPUT_MAGIC', str(int.from_bytes(TRANSITION_INPUT_MAGIC, 'little')))
+              .replace('TRANSITION_OUTPUT_MAGIC', str(int.from_bytes(TRANSITION_OUTPUT_MAGIC, 'little')))
+              .replace('LAUNCHED_WORD', str(int.from_bytes(b'launched', 'little')))
+              .replace('PENDING_WORD', str(int.from_bytes(b'pending', 'little')))
+              .replace('FAILED_HEAD', str(int.from_bytes(b'launch_f', 'little')))
+              .replace('FAILED_TAIL', str(int.from_bytes(b'ailed', 'little')))
               .replace('INPUT_MAGIC', str(int.from_bytes(INPUT_MAGIC, 'little')))
               .replace('OUTPUT_MAGIC', str(int.from_bytes(OUTPUT_MAGIC, 'little')))
               .replace('MAX_FRAGMENTS', str(524288 - fixed_bytes)))
