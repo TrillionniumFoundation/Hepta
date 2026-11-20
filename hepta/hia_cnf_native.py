@@ -75,6 +75,7 @@ UNKNOWN, SAT, UNSAT = range(3)
 WRAPPING_PRODUCT = 32
 WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM = 33, 34
 WORD_PRODUCT_EXCEEDS = 35
+WORD_VARIABLE_SHL, WORD_VARIABLE_SHR = 36, 37
 PROJECT_CHECKED_SHL, PROJECT_CHECKED_SHR = 34, 35
 PROJECT_CHECKED_DIV, PROJECT_CHECKED_REM = 36, 37
 PROJECT_CHECKED_CAST = 38
@@ -599,9 +600,17 @@ def _op_frame(z3, term, width, arguments, nodes, references):
     if kind in (z3.Z3_OP_SIGN_EXT, z3.Z3_OP_ZERO_EXT) and len(source) == 1:
         return (31 if kind == z3.Z3_OP_SIGN_EXT else 30), width, source[0], 0, 0
     if kind in (z3.Z3_OP_BSHL, z3.Z3_OP_BLSHR) and len(source) == 2:
-        if not z3.is_bv_value(arguments[1]):
-            return None
-        return (28 if kind == z3.Z3_OP_BSHL else 29), width, source[0], 0, arguments[1].as_long()
+        if z3.is_bv_value(arguments[1]):
+            return (28 if kind == z3.Z3_OP_BSHL else 29), width, source[0], 0, arguments[1].as_long()
+        operation = WORD_VARIABLE_SHL if kind == z3.Z3_OP_BSHL else WORD_VARIABLE_SHR
+        return operation, width, source[0], source[1], 0
+    # The pinned Z3 API specifies the same semantics for its simplified _I
+    # forms. The native word operators implement SMT's total zero case.
+    if width > 1 and len(source) == 2:
+        if kind in (z3.Z3_OP_BUDIV, z3.Z3_OP_BUDIV_I):
+            return WORD_UNSIGNED_DIV, width, source[0], source[1], 0
+        if kind in (z3.Z3_OP_BUREM, z3.Z3_OP_BUREM_I):
+            return WORD_UNSIGNED_REM, width, source[0], source[1], 0
     if kind in (z3.Z3_OP_NOT, z3.Z3_OP_BNOT) and len(source) == 1:
         return 6, width, source[0], 0, 0
     if kind == z3.Z3_OP_IMPLIES and len(source) == 2:

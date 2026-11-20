@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from hepta.hia_cnf_native import (REPLY, REQUEST, SAT, SOURCE, SPARSE_REPLY, SPARSE_REQUEST,
                                   SPARSE_WORKSPACE, UNKNOWN, UNSAT, WORKSPACE,
+                                  WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_VARIABLE_SHL, WORD_VARIABLE_SHR,
                                   bitblast_clauses, bitvector_circuit, selected_cnf)
 from tests.test_hia_core_workspace_facts_native import vm_run
 from tools.generate_hia_cnf import source_program
@@ -85,6 +86,42 @@ class CnfInstalledTests(unittest.TestCase):
         cls.native = selected_cnf()
         if cls.native is None:
             raise unittest.SkipTest('a source-bound HIA Boolean image is required')
+
+    def test_symbolic_shift_saturation_and_unsigned_division_total_semantics(self):
+        import z3
+
+        def compare(expression, premise, operation):
+            solver = z3.Solver()
+            solver.add(premise, expression)
+            expected = solver.check()
+            circuit = bitvector_circuit(z3, z3.And(premise, expression))
+            self.assertIsNotNone(circuit)
+            self.assertIn(operation, {node[0] for node in circuit.nodes})
+            actual = self.native.solve_circuit(circuit.nodes, circuit.returns,
+                                               steps=600000, restarts=True)
+            self.assertIsNotNone(actual)
+            self.assertEqual(actual[0], SAT if expected == z3.sat else UNSAT)
+            if actual[0] == SAT:
+                self.assertIsNotNone(circuit.witness(z3, actual[1], z3.And(premise, expression)))
+
+        for width in (1, 3, 5, 8, 64):
+            left, count = z3.BitVecs('value count', width)
+            for operation, shift in ((WORD_VARIABLE_SHL, lambda a, b: a << b),
+                                     (WORD_VARIABLE_SHR, z3.LShR)):
+                with self.subTest(width=width, operation=operation):
+                    compare(shift(left, count) != shift(left, width - 1), count == width - 1, operation)
+                    oversized = count == 1 if width == 1 else z3.UGE(count, width)
+                    compare(shift(left, count) != 0, oversized, operation)
+                    compare(shift(left, count) != 0, count == 0, operation)
+
+        for width in (3, 5, 8):
+            numerator, divisor = z3.BitVecs('numerator divisor', width)
+            for operation, calculate, default in ((WORD_UNSIGNED_DIV, z3.UDiv, (1 << width) - 1),
+                                                  (WORD_UNSIGNED_REM, z3.URem, numerator)):
+                with self.subTest(width=width, operation=operation):
+                    term = z3.simplify(calculate(numerator, divisor))
+                    compare(term != default, divisor == 0, operation)
+                    compare(term != 0, z3.And(divisor == 2, numerator == 6), operation)
 
     def test_word_table_requires_a_complete_domain_budget(self):
         # x differs from zero for the first time at x=1. Count all eight

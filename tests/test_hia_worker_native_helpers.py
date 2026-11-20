@@ -111,7 +111,9 @@ assert _read(Path(sys.argv[1]), limit).raw == b"pinned helper"
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 41)
+        self.assertEqual(len(HELPERS), 42)
+        self.assertEqual(HELPERS['HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST'],
+                         ('hia_elf_verified_linker_native', 'NativeVerifiedLinker'))
         self.assertEqual(HELPERS['HEPTA_HIA_AGENT_DESCRIBE_ANSWER_MANIFEST'],
                          ('hia_agent_describe_answer_native', 'NativeAgentDescribeAnswer'))
         self.assertEqual(HELPERS['HEPTA_HIA_AGENT_PAYLOAD_SCHEMA_MANIFEST'],
