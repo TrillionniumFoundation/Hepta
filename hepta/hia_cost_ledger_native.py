@@ -8,13 +8,12 @@ and is never replayed or replaced by the retained Python method.
 """
 from __future__ import annotations
 import ctypes
-from .hia_native_delivery import DeliveryRecord, NativeCall
+from .hia_native_delivery import DeliveryRecord, NativeCall, request_rejections
 from functools import lru_cache
 from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import sqlite3
 from .hia_agent_store import uses_native_store
 import stat
 import struct
@@ -33,10 +32,6 @@ QUERY = 'SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY s
 
 class CostLedgerUnknown(RuntimeError):
     """The current read-only frame has an unconfirmed native observation."""
-
-
-_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
-                       RecursionError, sqlite3.Error)
 
 
 def integer_bytes(value):
@@ -94,7 +89,7 @@ class NativeCostLedger(NativeHiaJsonImage):
                 return value
             except Exception as error:
                 delivery.failed(error)
-                if isinstance(error, RuntimeError) and not isinstance(error, _REQUEST_REJECTIONS):
+                if isinstance(error, RuntimeError) and not isinstance(error, request_rejections()):
                     raise
                 raise CostLedgerUnknown('cost-ledger binary transport is unconfirmed') from error
 
@@ -210,7 +205,7 @@ class CostLedgerFrame:
             self._delivery.failed(error)
             self.fenced = self.native_failed = True
             if isinstance(error, Exception) and (
-                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                    not isinstance(error, RuntimeError) or isinstance(error, request_rejections())):
                 raise CostLedgerUnknown('cost-ledger transport is unconfirmed') from error
             raise
 
@@ -231,7 +226,7 @@ class CostLedgerFrame:
             self._delivery.failed(error)
             if self._delivery.loss is not None:
                 self.fenced = self.native_failed = self.unconfirmed = True
-                self._delivery.propagate(error, CostLedgerUnknown, _REQUEST_REJECTIONS)
+                self._delivery.propagate(error, CostLedgerUnknown, request_rejections())
             raise
         finally:
             self._delivery.retire()
@@ -249,7 +244,7 @@ class CostLedgerFrame:
                 if self.native_failed or self._delivery.loss is not None:
                     # An uncertain image operation is not a confirmed foreign
                     # exception and must never receive a synthetic event 3.
-                    self._delivery.propagate(error, CostLedgerUnknown, _REQUEST_REJECTIONS)
+                    self._delivery.propagate(error, CostLedgerUnknown, request_rejections())
                     raise
                 self.call(3)
                 if self.receipt[2] != 5:
@@ -270,7 +265,7 @@ class CostLedgerFrame:
                 raise
             self.fenced = self.native_failed = True
             if isinstance(error, Exception) and (
-                    not isinstance(error, RuntimeError) or isinstance(error, _REQUEST_REJECTIONS)):
+                    not isinstance(error, RuntimeError) or isinstance(error, request_rejections())):
                 raise CostLedgerUnknown('cost-ledger arithmetic transport is unconfirmed') from error
             raise
 

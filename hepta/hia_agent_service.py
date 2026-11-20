@@ -40,6 +40,13 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def _retain_cost_ledger(store, ledger):
+    """Publish already-encoded native records without serializing them again."""
+    if type(ledger) is bytes:
+        return store.put(ledger, 'cost-ledger')
+    return store.json(ledger, 'cost-ledger')
+
+
 def _owns_context_state(service):
     from .hia_agent_store import uses_native_store
 
@@ -1903,7 +1910,7 @@ class HIAAgentService:
                 "measurement_scope": measurement_scope,
                 "outcome": outcome, "planned_workload_complete": complete}, "measurements")
         costs = self._cost_ledger(context, time.monotonic_ns() - started, native_ns)
-        ledger = self.store.put(costs, "cost-ledger")
+        ledger = _retain_cost_ledger(self.store, costs)
         if policy is not None:
             evaluation_record = policy.evaluation_record(args, baseline_program.sha256, candidate_program.sha256,
                 self.identities, measurements, ledger, outcome, complete)

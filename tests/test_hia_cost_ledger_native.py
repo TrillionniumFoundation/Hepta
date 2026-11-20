@@ -139,7 +139,8 @@ class CostLedgerSourceTests(unittest.TestCase):
                     'expected_invocations': '0'}, 'cost-policy')
                 context = {'ref': {'id': 'ctx'}, 'budget': {'cost_policy': policy}}
                 with patch('builtins.__import__', guarded):
-                    self.assertEqual(service._cost_ledger(context, 1, 2), frozen()(service, context, 1, 2))
+                    self.assertEqual(service._cost_ledger(context, 1, 2),
+                                     api.wire(frozen()(service, context, 1, 2)))
             finally:
                 service.close()
         from tools.build_hia_cost_ledger import build
@@ -294,9 +295,15 @@ class CostLedgerNativeTests(unittest.TestCase):
 
     def test_public_selection_never_uses_reference_and_rejects_changed_image(self):
         self.row('ctx', '-9')
+        original = self.service._cost_ledger(self.context, 3, 4)
         with patch.object(api.HIAAgentService, '_cost_ledger_reference', side_effect=AssertionError('reference entered')):
             with patch.dict(os.environ, {native.SELECTOR: str(self.manifest)}):
-                self.assertEqual(self.service._cost_ledger(self.context, 3, 4)['context_tool_wall_ns_before_evaluation'], '-9')
+                selected = self.service._cost_ledger(self.context, 3, 4)
+                self.assertEqual(selected['context_tool_wall_ns_before_evaluation'], '-9')
+                self.assertEqual(api.wire(selected), original)
+                reference = api._retain_cost_ledger(self.service.store, selected)
+                self.assertEqual(self.service.store.get(reference)[0], original)
+                self.assertEqual(api._retain_cost_ledger(self.service.store, original), reference)
             for value in ('', '/no/such/cost-ledger-manifest'):
                 with patch.dict(os.environ, {native.SELECTOR: value}), self.assertRaises((ValueError, OSError)):
                     self.service._cost_ledger(self.context, 3, 4)

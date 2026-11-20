@@ -561,7 +561,8 @@ class EvaluationFrame:
         elif name == 'costs':
             d['costs'] = s._cost_ledger(d['context'], self._math(2, api['time'].monotonic_ns(), d['started']), d['native_ns'])
         elif name == 'ledger':
-            d['ledger'] = s.store.json(d['costs'], 'cost-ledger')
+            from .hia_agent_service import _retain_cost_ledger
+            d['ledger'] = _retain_cost_ledger(s.store, d['costs'])
         elif name == 'receipt':
             d['evaluation_receipt'] = s.store.json({'schema': 'hepta.hia.agent.evaluation.v1', 'context': args['context'],
                 'installation': s.identities, 'baseline_artifact': args['baseline_artifact'],
