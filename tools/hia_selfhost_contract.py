@@ -219,7 +219,6 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_publish_patch.S',
     'tools/hia_core_edit_publish_program.S',
     'tools/hia_core_edit_publish_query.S',
-    'examples/hia_bootstrap/core_cli/assembly_core_diagnostics.hepta',
     'examples/hia_bootstrap/core_cli/assembly_diagnostic_report.hepta',
     'examples/hia_bootstrap/core_cli/assembly_driver.hepta',
     'examples/hia_bootstrap/core_cli/assembly_pretty.hepta',

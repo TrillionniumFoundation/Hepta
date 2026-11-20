@@ -7,11 +7,11 @@ The ordinary command enters `hepta.cli:hia_main`, the default release pin is
 and `production_activated` remain false.
 
 This is the single current-state entry. Component contracts describe their
-interfaces; the [source inventory](HIA_NATIVE_REWRITE_INVENTORY.json),
-[selfhost contract](HIA_SELFHOST_CORE_SUPPORT.json) and
-[language coverage](HIA_SELFHOST_LANGUAGE_COVERAGE.json) identify the actual
-inputs and supported domains. Execution results must identify the complete
-source tree on which they ran.
+interfaces; the [selfhost contract](HIA_SELFHOST_CORE_SUPPORT.json) and
+[language coverage](HIA_SELFHOST_LANGUAGE_COVERAGE.json) identify their inputs
+and supported domains. Generate a fresh source inventory with
+`python -m tools.audit_hia_native_rewrite --output /path/to/inventory.json`.
+Execution results must identify the complete source tree on which they ran.
 
 ## Unified source and qualification status
 
