@@ -6,7 +6,7 @@
 .type _start,@function
 .equ MIN_INPUT,24
 .equ MAX_INPUT,(64<<20)+1024+512
-.equ OUTPUT,24+40+69+4*((65536+2)/3)
+.equ OUTPUT,32+40+69+4*((65536+2)/3)+533
 .equ WORKSPACE,512+4128
 
 _start:

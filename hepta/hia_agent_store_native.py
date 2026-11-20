@@ -590,6 +590,14 @@ class NativeStoreConnection:
         return self._typed_operation(_CURSOR_LOOKUP, (identity,),
                                      raw_row_limit=_CURSOR_ROW_LIMIT).fetchone()
 
+    def cursor_retain_frame(self, payload):
+        if (not 278 <= len(payload) <= 533
+                or struct.unpack_from('<8s4Q', payload) != (b'HIAINS01', 1, 10, 0, 4)):
+            raise StoreProtocolError('invalid HIA Agent cursor retain frame')
+        with self.lock:
+            self._check_live()
+            self._perform(_CURSOR_RETAIN, (), payload=payload)
+
     def cursor_retain(self, identity, artifact, digest, offset):
         self._typed_operation(_CURSOR_RETAIN, (identity, artifact, digest, offset))
 
@@ -659,11 +667,12 @@ class NativeStoreConnection:
             raise StoreRefusal('not an Agent Store statement')
         return self._perform(specification, values)
 
-    def _perform(self, specification, values, *, raw_row_limit=None):
+    def _perform(self, specification, values, *, raw_row_limit=None, payload=None):
         command, plan, arity, table, mask = specification
-        if len(values) != arity:
-            raise StoreRefusal('incorrect Agent Store bindings')
-        payload = _parameters(values, plan, table if command == 1 else None)
+        if payload is None:
+            if len(values) != arity:
+                raise StoreRefusal('incorrect Agent Store bindings')
+            payload = _parameters(values, plan, table if command == 1 else None)
         local = not self.in_transaction
         try:
             if local:

@@ -203,6 +203,8 @@ class AgentReadPageNativeTests(unittest.TestCase):
                             paging.enter_context(patch.object(
                                 service.store, 'cursor_lookup', side_effect=AssertionError('host decoded cursor')))
                             paging.enter_context(patch.object(
+                                service.store, 'cursor_retain', side_effect=AssertionError('host encoded cursor write')))
+                            paging.enter_context(patch.object(
                                 HIAAgentService, '_read_window', side_effect=AssertionError('host chose page window')))
                         second = service.call('hia_read', {**args, 'cursor': cursor})
                         missing = service.call('hia_read', {**args, 'cursor': '你' * 512})

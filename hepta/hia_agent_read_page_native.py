@@ -17,7 +17,7 @@ SELECTOR = 'HEPTA_HIA_AGENT_READ_PAGE_MANIFEST'
 REQUEST = struct.Struct('<8s2Q')
 CURSOR_REQUEST = struct.Struct('<8s3Q')
 BOUND_REQUEST = struct.Struct('<8s6Q64s')
-BOUND_RESPONSE = struct.Struct('<8s2Q')
+BOUND_RESPONSE = struct.Struct('<8s3Q')
 BOUND_METADATA_BYTES = 1024
 RESPONSE = struct.Struct('<8s4Q')
 END_OF_ARTIFACT = (1 << 64) - 1
@@ -85,12 +85,17 @@ class NativeAgentReadPage(NativeHiaJsonImage):
             reject('E_HIA_CURSOR', 'cursor is not bound to this exact artifact')
         if len(output) < BOUND_RESPONSE.size + RESPONSE.size:
             raise ValueError('invalid HIA Agent bounded page response')
-        tag, offset, limit = BOUND_RESPONSE.unpack_from(output)
-        if tag != b'HIAARO03':
-            raise ValueError('invalid HIA Agent bounded page response tag')
+        tag, offset, limit, retain_size = BOUND_RESPONSE.unpack_from(output)
+        if tag != b'HIAARO04' or retain_size not in (0, 277 + len(identity)):
+            raise ValueError('invalid HIA Agent bounded page response tag or extent')
         self._validate_window(size, offset, limit)
-        page = output[BOUND_RESPONSE.size:]
-        return self._decode_page(page, len(page), size, offset, limit, CURSOR_BYTES, b'HIAARO02')
+        end = len(output) - retain_size
+        page = output[BOUND_RESPONSE.size:end]
+        encoding, content, next_offset, next_cursor = self._decode_page(
+            page, len(page), size, offset, limit, CURSOR_BYTES, b'HIAARO02')
+        if (next_offset is None) != (retain_size == 0):
+            raise ValueError('HIA Agent page omitted its durable cursor frame')
+        return encoding, content, next_cursor, output[end:]
 
     def _captured_page(self, executable, fd, header):
         import fcntl

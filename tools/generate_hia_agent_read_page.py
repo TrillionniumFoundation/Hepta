@@ -39,7 +39,7 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967295
         offset = byte_word(w, 0)
         limit = byte_word(w, 8)
-        output_base = 24
+        output_base = 32
     elif mode == CURSOR_INPUT_TAG:
         if size < 32:
             return 4294967295
@@ -91,7 +91,10 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         output_tag = CURSOR_OUTPUT_TAG
     if cursor:
         header = header + 69
-    if length(o) < header + content:
+    retain_size = 0
+    if output_base != 0 and cursor:
+        retain_size = 277 + uint(s, 32)
+    if length(o) < header + content + retain_size:
         return 4294967294
     if cursor:
         if cursor_digest(s, w, reference_at, reference, next) == 0:
@@ -101,6 +104,7 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(o, 0, BOUND_OUTPUT_TAG)
         put(o, 8, offset)
         put(o, 16, limit)
+        put(o, 24, retain_size)
     put(o, output_base, output_tag)
     put(o, output_base + 8, kind)
     put(o, output_base + 16, count)
@@ -110,7 +114,34 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         copy_bytes(s, o, start, header, count)
     else:
         encode_binary(s, o, start, count, header)
-    return header + content
+    if retain_size != 0:
+        retain_cursor(s, o, header + content, output_base + 40, next, uint(s, 32))
+    return header + content + retain_size
+
+def retain_cursor(s:readbuf, o:mutbuf, at:u64, cursor:u64,
+                  offset:u64, identity_size:u64) -> u64:
+    # HIAINS01 v1, fixed INSERT OR IGNORE cursor plan (10), four cells.
+    put(o, at, CURSOR_RETAIN_TAG)
+    put(o, at + 8, 1)
+    put(o, at + 16, 10)
+    put(o, at + 24, 0)
+    put(o, at + 32, 4)
+    retain_cell(o, at + 40, 3, 136, 69)
+    retain_cell(o, at + 64, 3, 205, identity_size)
+    retain_cell(o, at + 88, 3, 205 + identity_size, 64)
+    retain_cell(o, at + 112, 1, 269 + identity_size, 8)
+    index = 0
+    while index < 69:
+        store(o, at + 136 + index, byte(o, cursor + index))
+        index = index + 1
+    copy_bytes(s, o, 120, at + 205, identity_size)
+    copy_bytes(s, o, 56, at + 205 + identity_size, 64)
+    return put(o, at + 269 + identity_size, offset)
+
+def retain_cell(o:mutbuf, dir:u64, kind:u64, start:u64, size:u64) -> u64:
+    put(o, dir, kind)
+    put(o, dir + 8, start)
+    return put(o, dir + 16, size)
 
 def bound_window(s:readbuf, w:mutbuf) -> u64:
     flags = uint(s, 8)
@@ -357,7 +388,8 @@ def document():
     source = SOURCE
     for symbol, raw in (
         ('UNBOUND_OUTPUT_TAG', b'HIAARU03'), ('BOUND_INPUT_TAG', b'HIAARB01'),
-        ('BOUND_OUTPUT_TAG', b'HIAARO03'), ('CURSOR_ROW_TAG', b'HIAROW01'),
+        ('BOUND_OUTPUT_TAG', b'HIAARO04'), ('CURSOR_ROW_TAG', b'HIAROW01'),
+        ('CURSOR_RETAIN_TAG', b'HIAINS01'),
         ('CURSOR_INPUT_TAG', b'HIAARC01'), ('CURSOR_OUTPUT_TAG', b'HIAARO02'),
         ('INPUT_TAG', b'HIAARP01'), ('OUTPUT_TAG', b'HIAARO01'),
         ('CURSOR_ARTIFACT_FIRST', b'{"artifa'), ('CURSOR_ARTIFACT_LAST', b'ct":'),
