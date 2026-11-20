@@ -471,8 +471,6 @@ def check_nominal_patches(release, directory):
 
 
 def check_release(release, directory):
-    checked_v9 = check_v9_assembly(release, directory / 'v9-assembly')
-    checked_v9 += check_v9_build(release, directory / 'v9-build')
     program = scalar_program()
     program['schema'] = 'hepta.hia.program.v8'
     program_wire = wire(program)
@@ -631,6 +629,8 @@ def check_release(release, directory):
         assert actual_stat.st_ino == target.stat().st_ino and target.read_bytes() == reference.read_bytes()
         assert list(target.parent.iterdir()) == [target], action
     assert {name: (directory / name).read_bytes() for name in inputs} == inputs
+    checked_v9 = check_v9_assembly(release, directory / 'v9-assembly')
+    checked_v9 += check_v9_build(release, directory / 'v9-build')
     diagnostics = directory / 'diagnostics'
     diagnostics.mkdir()
     selfhost = directory / 'selfhost'
