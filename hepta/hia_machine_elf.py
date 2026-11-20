@@ -162,3 +162,7 @@ def write_elf_object(code, symbols, relocations, *, text_alignment=16):
 
 
 write_elf_object.__doc__ = _reference_write_elf_object.__doc__
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

@@ -129,13 +129,13 @@ def emit_verified_simd(document, *, unroll=4, isa="sse2", copy_tail=None, reduce
     if copy_tail is not None and (type(copy_tail) is not str or
                                  copy_tail not in ("byte", "endpoints", "endpoints-fast")):
         raise VerifiedSIMDRejected("copy tail must be byte, endpoints, endpoints-fast or unspecified")
-    if reduce_tail is not None and (type(reduce_tail) is not str or reduce_tail not in ("byte", "bounded")):
-        raise VerifiedSIMDRejected("reduction tail must be byte, bounded or unspecified")
+    if reduce_tail is not None and (type(reduce_tail) is not str or reduce_tail not in ("byte", "bounded", "bounded-one")):
+        raise VerifiedSIMDRejected("reduction tail must be byte, bounded, bounded-one or unspecified")
     checked = verify_program(document)
     kind, export = recognize_simd_core(checked)
     if copy_tail in ("endpoints", "endpoints-fast") and (kind != "copy_u8" or isa == "sse2"):
         raise VerifiedSIMDRejected("endpoint copy tails require a wide copy candidate")
-    if reduce_tail == "bounded" and (kind == "copy_u8" or isa == "sse2"):
+    if reduce_tail in ("bounded", "bounded-one") and (kind == "copy_u8" or isa == "sse2"):
         raise VerifiedSIMDRejected("bounded reduction tails require a wide reduction candidate")
     selected_tail = ((copy_tail or ("endpoints-fast" if isa != "sse2" else "byte"))
                      if kind == "copy_u8" else None)
@@ -294,3 +294,7 @@ def _copy(c, unroll):
     c.label("done")
     c.ret()
     _abort(c)
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

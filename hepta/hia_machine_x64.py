@@ -358,3 +358,7 @@ class Code:
                 raise MachineEncodingError("unresolved machine label: " + target)
             result[offset:offset + 4] = _s32(self.labels[target] - (offset + 4))
         return bytes(result), [dict(row) for row in self.relocations]
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

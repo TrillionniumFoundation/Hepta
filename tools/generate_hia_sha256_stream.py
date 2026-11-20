@@ -14,6 +14,25 @@ MAX_TOTAL = (1 << 61) - 1
 MAGIC = 0x3153484132353648
 
 
+def word_helpers():
+    """Keep each checked byte access; remove the fixed eight-iteration loops.
+
+    State words retain their original little-endian eight-byte layout. The
+    emitted HIA performs the same accesses in the same order, including bounds
+    traps, but does not execute a loop/backedge and variable shift per byte.
+    This matters for every schedule word and every compression round.
+    """
+    source = '\ndef get(w:mutbuf, index:u64) -> u64:\n'
+    source += '    value = byte(w, index)\n'
+    for i in range(1, 8):
+        source += f'    value = value | (byte(w, index + {i}) << {i * 8})\n'
+    source += '    return value\n\ndef put(w:mutbuf, index:u64, value:u64) -> u64:\n'
+    source += '    store(w, index, value & 255)\n'
+    for i in range(1, 8):
+        source += f'    store(w, index + {i}, (value >> {i * 8}) & 255)\n'
+    return source + '    return 0\n'
+
+
 def source_program():
     source = '''def stream(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 1 or length(s) > 8388609 or length(o) < 32 or length(w) < 1184:
@@ -101,7 +120,7 @@ def compress(w:mutbuf) -> u64:
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    return source + HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')] + word_helpers()
 
 
 def document():

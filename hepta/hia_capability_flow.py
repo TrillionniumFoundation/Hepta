@@ -66,3 +66,7 @@ The inputs are verifier-owned dictionaries, not an untrusted wire interface.
                                    remap[cap.parent] if cap.parent is not None else None,
                                    cap.external, cap.origin)
     return result
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

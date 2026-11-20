@@ -160,3 +160,7 @@ def decode_copy_tail_memory(data, start):
     _require(base in (2,7),'endpoint memory must use RDX/RDI without displacement or SIB')
     args=(bits,register,base,0) if load else (bits,base,0,register)
     return operation,args,p+1-start
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

@@ -27,8 +27,12 @@ class Instruction:
     size: int
 
 
-def decode(data):
+def decode(data, *, allow_variable_shifts=False, allow_unsigned_multiply=False,
+           allow_unsigned_divide=False):
     """Decode complete bytes, including unreachable code, with exact boundaries."""
+    require(type(allow_variable_shifts) is bool, "variable-shift admission must be explicit boolean")
+    require(type(allow_unsigned_multiply) is bool, "unsigned-multiply admission must be explicit boolean")
+    require(type(allow_unsigned_divide) is bool, "unsigned-divide admission must be explicit boolean")
     require(type(data) is bytes and 0 < len(data) <= 65536, "machine text budget exceeded")
     result, pc = {}, 0
     while pc < len(data):
@@ -140,11 +144,21 @@ def decode(data):
             require(wide and mode == 3 and high_r == 0 and group in (4, 5) and count < 64,
                     "unreviewed shift instruction")
             op, args = ("shl" if group == 4 else "shr"), (rm, count)
+        elif opcode == 0xd3:
+            require(allow_variable_shifts, "variable shifts are outside the selected machine profile")
+            mode, reg, rm, disp, group = modrm()
+            require(wide and mode == 3 and high_r == 0 and group in (4, 5),
+                    "only 64-bit register SHL/SHR by CL is admitted")
+            op, args = ("shl_cl" if group == 4 else "shr_cl"), (rm,)
         elif opcode == 0xf7:
             mode, reg, rm, disp, group = modrm()
-            require(wide and mode == 3 and high_r == 0 and group == 2,
+            require(wide and mode == 3 and high_r == 0 and group in (2, 4, 6),
                     "unreviewed unary instruction")
-            op, args = "not", (rm,)
+            require(group != 4 or allow_unsigned_multiply,
+                    "unsigned MUL is outside the selected machine profile")
+            require(group != 6 or allow_unsigned_divide,
+                    "unsigned DIV is outside the selected machine profile")
+            op, args = {2: "not", 4: "mul", 6: "div"}[group], (rm,)
         else:
             raise SafeCoreMachineRejected(f"unsupported machine opcode at byte {begin}")
         result[begin] = Instruction(op, args, pc - begin)
@@ -174,12 +188,34 @@ class State:
                      dict(self.stack_words), self.memory, self.visited)
 
 
+def _unsigned_division(z, high, low, divisor):
+    """Exact DIV r64 result and condition for avoiding architectural #DE.
+
+    For B=2**64, H*B+L has a quotient below B exactly when H<D, for D>0.
+    A constant-zero high word also reduces the exact quotient/remainder to
+    64-bit operations. Only the independently executed state can supply that
+    zero; producer intent or source arithmetic never supplies an assumption.
+    """
+    high = z.simplify(high)
+    admitted = z.And(divisor != 0, z.ULT(high, divisor))
+    if z.is_bv_value(high) and high.as_long() == 0:
+        quotient, remainder = z.UDiv(low, divisor), z.URem(low, divisor)
+    else:
+        dividend, extended = z.Concat(high, low), z.ZeroExt(64, divisor)
+        quotient = z.Extract(63, 0, z.UDiv(dividend, extended))
+        remainder = z.Extract(63, 0, z.URem(dividend, extended))
+    return z.simplify(quotient), z.simplify(remainder), z.simplify(admitted)
+
+
 class Executor:
     """Symbolically execute exact decoded bytes under an explicit caller contract."""
 
-    def __init__(self, theory, binding, words, loan):
+    def __init__(self, theory, binding, words, loan, *, allow_variable_shifts=False,
+                 allow_unsigned_multiply=False, allow_unsigned_divide=False):
         self.t, self.z, self.ctx = theory, theory.z, theory.ctx
-        self.code = decode(binding["text"])
+        self.code = decode(binding["text"], allow_variable_shifts=allow_variable_shifts,
+                           allow_unsigned_multiply=allow_unsigned_multiply,
+                           allow_unsigned_divide=allow_unsigned_divide)
         self.calls, self.entry = binding["calls"], binding["entry"]
         require({pc for pc, op in self.code.items() if op.op == "call"} == set(self.calls),
                 "call instruction inventory differs from checked relocations")
@@ -326,6 +362,33 @@ class Executor:
                     # ZF or deriving it from the product could prove false code.
                     state.flags = {"cf": full != z.SignExt(64, product),
                         "zf": z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)}
+                elif op == "mul":
+                    # MUL r64 reads the old RAX and explicit source, then
+                    # writes their full unsigned product to RDX:RAX. Capture
+                    # both first so RAX/RDX source aliases are also exact.
+                    full = z.ZeroExt(64, regs[0]) * z.ZeroExt(64, regs[args[0]])
+                    low, high = z.Extract(63, 0, full), z.Extract(127, 64, full)
+                    regs[0], regs[2] = z.simplify(low), z.simplify(high)
+                    # CF reports a nonzero high half; OF has the same value
+                    # but is not a decoded condition. ZF is undefined, so it
+                    # must not be inferred from either half or preserved.
+                    state.flags = {"cf": high != 0,
+                        "zf": z.Bool("mul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)}
+                elif op == "div":
+                    # Read the old dividend and source before either output
+                    # is updated, including DIV RAX and DIV RDX aliases.
+                    quotient, remainder, admitted = _unsigned_division(
+                        z, regs[2], regs[0], regs[args[0]])
+                    # #DE is neither a conforming return nor the declared
+                    # nonreturning libc abort. Its path therefore has no
+                    # admitted terminal outcome, which the totality obligation
+                    # must refute if any valid caller state can reach it.
+                    state.path = z.simplify(z.And(state.path, admitted))
+                    regs[0], regs[2] = quotient, remainder
+                    # Every arithmetic flag is undefined. The decoder only
+                    # exposes CF/ZF, and each receives an independent value.
+                    state.flags = {flag: z.Bool("div_undefined_" + flag + "_step_" + str(self.steps),
+                                                ctx=self.ctx) for flag in ("cf", "zf")}
                 elif op in ("load", "load8", "lea"):
                     dst, base, disp = args
                     address = z.simplify(regs[base] + self.value(disp))
@@ -348,6 +411,19 @@ class Executor:
                         state.flags = {"zf": regs[register] == 0,
                                        "cf": z.Extract(64 - count if op == "shl" else count - 1,
                                                        64 - count if op == "shl" else count - 1, old) == 1}
+                elif op in ("shl_cl", "shr_cl"):
+                    register = args[0]
+                    # Intel SDM SAL/SAR/SHL/SHR: 64-bit operands mask CL to
+                    # six bits. Capture CL before writing even when RCX is
+                    # also the destination. Effective count zero preserves
+                    # both destination and every modeled flag.
+                    old, count = regs[register], regs[1] & self.value(63)
+                    value = old << count if op == "shl_cl" else z.LShR(old, count)
+                    shifted_out = z.LShR(old, self.value(64) - count if op == "shl_cl"
+                                        else count - self.value(1)) & self.value(1)
+                    regs[register] = z.simplify(z.If(count == 0, old, value))
+                    state.flags = {"zf": z.If(count == 0, state.flags["zf"], value == 0),
+                                   "cf": z.If(count == 0, state.flags["cf"], shifted_out == 1)}
                 elif op == "setcc":
                     condition, register = args
                     regs[register] = z.simplify((regs[register] & self.value(~255)) |
@@ -405,3 +481,7 @@ class Executor:
                     raise SafeCoreMachineRejected("instruction has no reviewed semantics")
                 state.pc = nextpc
         return self.outcomes
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

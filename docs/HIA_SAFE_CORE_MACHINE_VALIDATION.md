@@ -29,6 +29,26 @@ Outside-profile programs, missing Z3, solver `unknown`, a deadline, incomplete
 paths, unsupported bytes or loader metadata all reject. There is no sampled
 execution fallback that can turn an unknown proof result into approval.
 
+The API and standalone tools select later versions explicitly with
+`profile_version` / `--profile-version`. A new version does not broaden an
+earlier version's Core operations or instruction decoder:
+
+| Version | Additional admitted scalar semantics |
+| --- | --- |
+| v2 | `u16` values and checked unsigned casts |
+| v3 | Checked unsigned negation and checked variable left/right shifts |
+| v4 | Checked unsigned multiplication at u8/u16/u32/u64/usize widths |
+| v5 | Checked unsigned division and remainder at those five widths |
+
+The v4 Core model multiplies zero-extended operands into a full 128-bit
+product and aborts when that product exceeds the declared unsigned type's
+maximum. ABI inputs are normalized to their declared widths first; a u8 input
+with raw word 256 therefore means zero. Narrowing the result before checking
+would discard an observable overflow and is rejected. All versions retain the
+same finite control-flow, storage, ABI, loader and resource boundaries above.
+The v5 Core model uses unsigned quotient/remainder and traps exactly when the
+normalized divisor is zero. Signed arithmetic remains outside these profiles.
+
 ## The chain being checked
 
 1. **Exact Core.** The existing canonical verifier rechecks the actual primitive
@@ -51,8 +71,43 @@ execution fallback that can turn an unknown proof result into approval.
    becomes a fresh arbitrary Boolean on each model execution. A candidate that
    relies on the prior zero flag surviving multiplication must therefore pass
    for both outcomes; the checker does not assign a convenient fixed value.
-   Checked multiplication and memory/narrow `IMUL` forms remain outside this
-   profile. This leaf extension does not prove refinement to the full ISA.
+   Checked multiplication remains outside v1/v2/v3. Memory/narrow `IMUL` forms
+   remain outside every version. These leaf extensions do not prove refinement
+   to the full ISA.
+
+   The v4 decoder additionally admits register-only `REX.W + F7 /4` unsigned
+   `MUL`. Both input words are read before updating RAX and RDX, including when
+   either implicit output is also the explicit source. RDX receives the high
+   64 bits and RAX the low 64 bits. CF and OF indicate whether the high word is
+   nonzero; SF/ZF/AF/PF are undefined. The model supports CF-consuming conditions
+   and assigns a fresh arbitrary value to ZF; conditions consuming OF/SF/PF are
+   still outside the decoder. It does not carry an old ZF through multiplication
+   or derive ZF from the product. These rules follow the
+   [Intel SDM Volume 2B, order 253667-080US, MUL, pp. 4-146–4-147](https://cdrdv2-public.intel.com/782151/253667-sdm-vol-2b.pdf).
+   Independent GNU assembler encodings and executed alias/flag boundary cases
+   supplement the all-input independent-model obligations.
+
+   The v5 decoder additionally admits register-only `REX.W + F7 /6` unsigned
+   `DIV`. It reads the old full RDX:RAX dividend and explicit divisor, then
+   writes the quotient to RAX and remainder to RDX. A zero divisor or an
+   unrepresentable quotient causes `#DE`; every arithmetic flag is undefined.
+   These rules follow the
+   [Intel SDM Volume 2A, order 253666-060US, DIV, pp. 3-285–3-287](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-2a-manual.pdf).
+   The modeled CF and ZF receive separate arbitrary values. `#DE` is outside
+   the admitted return/abort outcomes: any reachable fault makes terminal
+   coverage fail, or the existing no-terminal-outcome rule rejects the image.
+   It cannot implement the Core's explicit libc-abort behavior.
+
+   The division model retains the complete 128-bit dividend. For base
+   `B = 2**64`, unsigned words H/L and nonzero D, `(H*B+L)//D < B` exactly
+   when `H < D`. Only when independent execution has simplified H to the
+   exact constant zero does it reduce the result expressions to 64-bit
+   `UDiv`/`URem`. A source operation, profile label or saved receipt never
+   supplies this premise. The integer quotient bound, overflow criterion and
+   Euclidean uniqueness have separate all-integer UNSAT regression queries;
+   native nonzero-high and operand-alias cases check the complete path as well.
+   This exact simplification preserves the existing proof deadline. An unknown
+   result still rejects rather than granting a narrower sampled guarantee.
 
 3. **ABI.** The model starts with arbitrary raw argument-register words. Narrow
    types and Boolean normalization therefore cover dirty upper register bits.
@@ -124,8 +179,9 @@ cases. Those finite tests are not the source of the all-input claim.
 ## Independent consumer entry
 
 `validate_safe_core_artifact(core, object_bytes, final_bytes, ...)` accepts exact
-immutable byte strings. Its profile is
-`hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1`.
+immutable byte strings. Its default profile is
+`hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1`; explicit
+versions 2, 3, 4 and 5 select the matching versioned supplied-ELF profile.
 It uses the same Core operations, ABI, loader and resource limits above, but
 requires no producer object, emitter invocation or compiler correctness premise.
 The ELF reader derives `.text`, function extents, symbols and relocations from
@@ -253,7 +309,11 @@ operation/flag/memory/ABI obligations and negative controls before admission.
 
 Use Linux x86-64, GNU ld/glibc and the existing `z3-solver==4.15.4.0` optional
 verification dependency. The receipt records the actual loaded Z3 library and
-Python binding hashes, not only the package version.
+Python binding hashes, not only the package version. The
+[loaded solver identity contract](HIA_LOADED_SOLVER_IDENTITY.md) captures the
+executed bindings and native file before load, then rechecks them at proof
+completion. Start with a fresh process if Z3 was already imported before the
+HIA checker installed its controlled import monitor.
 
 ```sh
 python tools/build_hia_safe_core.py \

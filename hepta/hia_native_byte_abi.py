@@ -141,3 +141,7 @@ def emit_wrapper(emitter, fn, extent):
     if owner is not None:
         return owner.invoke('emit_wrapper', (emitter, fn, extent))
     return _reference_emit_wrapper(emitter, fn, extent)
+
+# Bind this executing module, including its top-level constants, to retained source.
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

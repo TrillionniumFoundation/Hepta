@@ -106,12 +106,14 @@ def probe_host_isa():
     _require(platform.system() == "Linux" and platform.machine().lower() in ("x86_64", "amd64"),
              "CPU admission requires Linux x86-64")
     source = Path(__file__).resolve()
-    source_hash = sha256(source.read_bytes()).hexdigest()
+    from .hia_loaded_source import loaded_source_identity
+    source_hash = loaded_source_identity(__name__, (source.name,))[source.name]
     affinity = sorted(os.sched_getaffinity(0))
     result = run_bounded([sys.executable, "-I", "-B", "-c", _WORKER, str(source)],
                          timeout=20, stdout_limit=1048576, stderr_limit=65536)
     _require(result.returncode == 0, "fresh CPU probe failed: " + result.stderr[-2000:])
-    _require(source_hash == sha256(source.read_bytes()).hexdigest(), "CPU probe source changed")
+    _require(source_hash == loaded_source_identity(__name__, (source.name,))[source.name],
+             "CPU probe source changed")
     try:
         observed = json.loads(result.stdout)
     except (TypeError, ValueError) as exc:
@@ -158,3 +160,8 @@ def resolve_target_isa(requested):
     if {"avx", "avx2", "avx512f", "avx512bw"} <= features:
         return "avx512"
     return "avx2" if {"avx", "avx2"} <= features else "sse2"
+
+# The isolated runpy worker compiles this source directly; package consumers bind it.
+if __package__:
+    from .hia_loaded_source import register_loaded_module as _register_loaded_source
+    _register_loaded_source(__name__)
