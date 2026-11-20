@@ -200,6 +200,15 @@ class AgentReadPageNativeTests(unittest.TestCase):
                 try:
                     with ExitStack() as paging:
                         if self.executable is not None:
+                            from hepta.hia_agent_store_native import _parameters
+
+                            def remaining_parameters(values, statement, magic=None):
+                                if statement == 6 and magic is None:
+                                    raise AssertionError('host encoded cursor query')
+                                return _parameters(values, statement, magic)
+
+                            paging.enter_context(patch('hepta.hia_agent_store_native._parameters',
+                                                       side_effect=remaining_parameters))
                             paging.enter_context(patch.object(
                                 service.store, 'cursor_lookup', side_effect=AssertionError('host decoded cursor')))
                             paging.enter_context(patch.object(
@@ -207,7 +216,7 @@ class AgentReadPageNativeTests(unittest.TestCase):
                             paging.enter_context(patch.object(
                                 HIAAgentService, '_read_window', side_effect=AssertionError('host chose page window')))
                         second = service.call('hia_read', {**args, 'cursor': cursor})
-                        missing = service.call('hia_read', {**args, 'cursor': '你' * 512})
+                        missing = service.call('hia_read', {**args, 'cursor': '𐀀' * 512})
                         self.assertEqual(missing['error']['code'], 'E_HIA_CURSOR')
                         other = service.store.put(b'other bytes', 'input')
                         wrong = service.call('hia_read', {**args, 'artifact': other, 'cursor': cursor})

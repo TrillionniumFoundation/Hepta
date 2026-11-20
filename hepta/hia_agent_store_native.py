@@ -586,9 +586,15 @@ class NativeStoreConnection:
     def cursor_lookup(self, identity):
         return self._typed_operation(_CURSOR_LOOKUP, (identity,)).fetchone()
 
-    def cursor_frame(self, identity):
-        return self._typed_operation(_CURSOR_LOOKUP, (identity,),
-                                     raw_row_limit=_CURSOR_ROW_LIMIT).fetchone()
+    def cursor_lookup_frame(self, payload):
+        if (not 56 <= len(payload) <= 2104
+                or struct.unpack_from('<8s6Q', payload)
+                != (b'HIAQPA01', 1, 1, len(payload), 3, 56, len(payload) - 56)):
+            raise StoreProtocolError('invalid HIA Agent cursor lookup frame')
+        with self.lock:
+            self._check_live()
+            return self._perform(_CURSOR_LOOKUP, (), raw_row_limit=_CURSOR_ROW_LIMIT,
+                                 payload=payload).fetchone()
 
     def cursor_retain_frame(self, payload):
         if (not 278 <= len(payload) <= 533

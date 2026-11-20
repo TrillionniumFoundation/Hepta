@@ -65,13 +65,26 @@ class NativeAgentReadPage(NativeHiaJsonImage):
         return self._decode_page(output, len(output), size, offset, limit,
                                  CURSOR_BYTES, b'HIAARO02')
 
-    def read_captured_bound_page(self, capture, ref, cursor, row, max_bytes, executable):
+    def lookup_captured_cursor(self, store, cursor, executable):
+        """Encode an admitted cursor for the Store with the pinned HIA page image."""
+        if cursor is None:
+            return None, None
+        from .hia_scalar_reference_native import sealed_reference_bytes
+
+        key = cursor.encode('utf-8')
+        with sealed_reference_bytes(b'HIAARQ01', key) as request:
+            output = self._standalone_page(executable, request)
+        if len(output) != 56 + len(key):
+            raise ValueError('native HIA Agent cursor query rejected the input')
+        return key, store.cursor_lookup_frame(output)
+
+    def read_captured_bound_page(self, capture, ref, cursor_key, row, max_bytes, executable):
         """Pass a retained typed Store row directly to the standalone page owner."""
         fd, size, reference = capture
         identity = ref['id'].encode('ascii')
-        requested = cursor.encode('utf8') if row is not None else b''
+        requested = cursor_key if row is not None else b''
         observed = row if row is not None else b''
-        flags = int(max_bytes is not None) | (2 * int(cursor is not None))
+        flags = int(max_bytes is not None) | (2 * int(cursor_key is not None))
         limit = 0 if max_bytes is None else max_bytes
         if type(limit) is not int or not 0 <= limit < 1 << 64:
             limit = (1 << 64) - 1

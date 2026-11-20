@@ -13,6 +13,8 @@ from tools.generate_hia_worker_request import hash_program, replace_once
 SOURCE = r'''
 def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
+    if size >= 8 and uint(s, 0) == LOOKUP_INPUT_TAG:
+        return lookup_cursor(s, o, size)
     if size < 24:
         return 4294967295
     mode = uint(s, 0)
@@ -83,6 +85,23 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if offset < total and count < total - offset:
         next = offset + count
     return finish_page(s, o, w, start, kind, count, next, offset, limit, output_base)
+
+def lookup_cursor(s:readbuf, o:mutbuf, size:u64) -> u64:
+    # The admitted JSON string is at most 512 scalars, or 2048 UTF-8 bytes.
+    count = size - 8
+    if count > 2048 or is_utf8(s, 8, size) == 0:
+        return 4294967295
+    end = 56 + count
+    if length(o) < end:
+        return 4294967294
+    # HIAQPA01 v1, one inline text predicate for the fixed cursor query.
+    put(o, 0, LOOKUP_PARAMETER_TAG)
+    put(o, 8, 1)
+    put(o, 16, 1)
+    put(o, 24, end)
+    retain_cell(o, 32, 3, 56, count)
+    copy_bytes(s, o, 8, 56, count)
+    return end
 
 def finish_page(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64, count:u64,
                 next:u64, offset:u64, limit:u64, output_base:u64) -> u64:
@@ -395,6 +414,7 @@ def document():
         ('UNBOUND_OUTPUT_TAG', b'HIAARU03'), ('BOUND_INPUT_TAG', b'HIAARB01'),
         ('BOUND_OUTPUT_TAG', b'HIAARO04'), ('CURSOR_ROW_TAG', b'HIAROW01'),
         ('CURSOR_RETAIN_TAG', b'HIAINS01'),
+        ('LOOKUP_INPUT_TAG', b'HIAARQ01'), ('LOOKUP_PARAMETER_TAG', b'HIAQPA01'),
         ('CURSOR_INPUT_TAG', b'HIAARC01'), ('CURSOR_OUTPUT_TAG', b'HIAARO02'),
         ('INPUT_TAG', b'HIAARP01'), ('OUTPUT_TAG', b'HIAARO01'),
         ('CURSOR_ARTIFACT_FIRST', b'{"artifa'), ('CURSOR_ARTIFACT_LAST', b'ct":'),

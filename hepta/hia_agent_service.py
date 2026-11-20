@@ -747,11 +747,11 @@ class HIAAgentService:
         executable = pinned_agent_read_page_executable()
         if executable is not None and uses_native_store(self.store):
             with capture_retained_page(self.store, ref, bound=True) as captured:
-                cursor = args.get("cursor")
-                row = self.store.db.cursor_frame(cursor) if cursor is not None else None
-                encoding, content, next_cursor, retained = installed_agent_read_page(
-                    os.environ[SELECTOR]).read_captured_bound_page(
-                        captured, ref, cursor, row, args.get("max_bytes"), executable)
+                pager = installed_agent_read_page(os.environ[SELECTOR])
+                cursor, row = pager.lookup_captured_cursor(
+                    self.store.db, args.get("cursor"), executable)
+                encoding, content, next_cursor, retained = pager.read_captured_bound_page(
+                    captured, ref, cursor, row, args.get("max_bytes"), executable)
         elif executable is not None and self.store._artifact_code is not None:
             with capture_retained_page(self.store, ref) as captured:
                 native = _native_agent_identity()
