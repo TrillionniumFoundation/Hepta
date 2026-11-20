@@ -200,3 +200,34 @@ class KernelCode(Code):
     def cpuid(self):
         """CPUID, with EAX/ECX input and EAX/EBX/ECX/EDX results."""
         self.emit(b"\x0f\xa2")
+
+    def syscall(self):
+        """SYSCALL: IA32_EFER.SCE, LSTAR/STAR/FMASK and RCX/R11 are unverified.
+
+        Only emission is staged. A kernel HIA verifier must prove the MSR
+        state, CPL transition, entry stack and non-returning failure path.
+        """
+        self.emit(b"\x0f\x05")
+
+    def sysretq(self):
+        """64-bit SYSRET with mandatory REX.W; never infer safe user RCX/R11.
+
+        Caller must prove canonical target RIP, masked RFLAGS, user selectors,
+        user RSP and no hostile interrupt window. Not host-executable.
+        """
+        self.emit(b"\x48\x0f\x07")
+
+    def stac(self):
+        """SMAP AC=1 for tightly delimited supervisor user-memory access.
+
+        No nesting/exception restoration or privilege state modeled here.
+        """
+        self.emit(b"\x0f\x01\xcb")
+
+    def clac(self):
+        """SMAP AC=0; paired use requires typed effect/exception analysis."""
+        self.emit(b"\x0f\x01\xca")
+
+    def hlt(self):
+        """HLT requires CPL0 and an interrupt/idle wakeup policy."""
+        self.emit(b"\xf4")

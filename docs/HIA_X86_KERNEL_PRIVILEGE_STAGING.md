@@ -184,3 +184,23 @@ hardware-updated Accessed/Dirty bits, page-table ownership, NMI/reentrant
 interrupt behavior, or another CPU. A legitimate hardware A/D change between
 writes needs a separately modeled observation transition rather than bypassing
 the equality guard. No privileged HIA source operation or backend is added.
+
+## Staged SYSCALL/SYSRETQ, SMAP AC and HLT encodings (dependent draft)
+
+The isolated `KernelCode` byte encoder now emits x86-64 `SYSCALL` (`0f05`),
+**64-bit** `SYSRETQ` (`48 0f07`, including the mandatory REX.W),
+`STAC` (`0f01cb`), `CLAC` (`0f01ca`) and `HLT` (`f4`).
+Literal expected bytes, full instruction boundaries and GNU objdump
+disassembly are independently tested. A non-partial-emission test checks
+invalid call shapes; ordinary `Code` and Core v8 opcode admission remain
+unchanged, and the kernel helper's SHA-256 is bound to the existing source
+closure manifest. **No privileged bytes are executed on the host.**
+
+This is **not** HIA grammar, authority/effect checking, the native
+selfhost_elf backend or a guest syscall/interrupt implementation.
+Before any kernel use, require validated IA32_EFER.SCE, STAR/LSTAR/FMASK,
+kernel entry-stack and GS/MSR contracts; on return prove canonical user
+RCX, sanitized R11/RFLAGS, segment selectors, user RSP, balanced SMAP AC
+state, exception unwind/interrupt windows and context ownership.
+`HLT` additionally requires CPL0 and a defined wakeup policy. Keep the
+HeptaKernel compiler lock unchanged and all 17 Linux gates HOLD.
