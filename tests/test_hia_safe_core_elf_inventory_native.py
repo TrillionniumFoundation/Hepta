@@ -71,6 +71,7 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
 
     def test_owned_shared_layout_checks_loader_authority_before_publishing_symbols(self):
         from hepta import elf_shared_abi
+        from hepta import hia_safe_core_elf_inventory_native
 
         def observed(reader, raw):
             try:
@@ -96,7 +97,7 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 damaged = final[:at] + bytes((value,)) + final[at + 1:]
                 self.assertEqual(observed(self.native.owned_shared_layout, damaged),
                                  observed(baseline, damaged), (at, value))
-        with patch.dict(os.environ, {SELECTOR: ''}):
+        with patch.object(hia_safe_core_elf_inventory_native, 'selected_safe_core_elf_inventory', return_value=None):
             expected = elf_shared_abi.inspect_owned_shared_elf(final, ('calculate',))
         with patch.object(elf_shared_abi, '_reference_owned_shared_layout',
                           side_effect=AssertionError('host publication layout entered')):
