@@ -698,8 +698,9 @@ def standalone_capabilities_source():
 
     capabilities = capabilities_from_source((BASE / 'hepta/cli.py').read_text())
     build = capabilities['build']
-    for hosted_only in ('available_kinds', 'auto_object', 'auto_shared', 'native_shared'):
+    for hosted_only in ('auto_object', 'auto_shared'):
         del build[hosted_only]
+    build['native_shared'] = 'ordinary linked native ABI; ABI inventory checked, no machine verification claim'
     build.update(backend='native', available_backends=['native', 'selfhost'])
     wire = (json.dumps(capabilities, indent=2, ensure_ascii=False, sort_keys=True) + '\n').encode()
     source = f'''def capabilities(s:readbuf, o:mutbuf, w:mutbuf) -> u32:

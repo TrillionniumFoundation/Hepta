@@ -15,6 +15,29 @@
 .equ NOMINAL_PRESENT,1832
 .equ LOWERED_CORE,1840
 .equ LOWERED_EXTENT,1848
+.equ SHARED_MODE,1856
+.equ SHARED_ARTIFACT,1864
+.equ SHARED_EXTENT,1872
+.equ SHARED_FRAME,1880
+.equ SHARED_FRAME_EXTENT,1888
+.equ SHARED_EXPORT_WORK,1896
+.equ SHARED_SYMBOLS,1904
+.equ SHARED_SYMBOL_EXTENT,1912
+.equ SHARED_HASH_INPUT,1920
+.equ SHARED_HASH_CHUNK,1928
+.equ SHARED_DIGEST,1936
+.equ REPORT_CAPACITY,1968
+.equ SHARED_LINK_WORK_BYTES,1048576
+.equ SHARED_FRAME_BYTES,266240
+.equ SHARED_EXPORT_WORK_BYTES,1639448
+.equ SHARED_SYMBOL_BYTES,1574976
+.equ SHARED_SYMBOL_HEAD,2112
+.equ SHARED_REPORT_BYTES,1048576
+.equ HASH_CHUNK_BYTES,8388608
+.equ HASH_INPUT_BYTES,HASH_CHUNK_BYTES+1
+.equ HASH_STATE_BYTES,1184
+.equ HASH_STATE,2048
+.equ REPORT_SCRATCH,3328
 .equ IMAGE_LIMIT,13<<19
 _start:
  # The static linker calls this entry. The adapter itself never returns.
@@ -32,6 +55,15 @@ output_arg_ready:
  mov esi,4096
  call allocate
  mov rbp,rax
+ mov QWORD PTR [rbp+REPORT_CAPACITY],262144
+ mov rsi,[rsp+8]
+ lea rdi,[rip+shared_build_mode]
+ mov ecx,17
+ cld
+ repe cmpsb
+ jne build_mode_captured
+ mov QWORD PTR [rbp+SHARED_MODE],1
+build_mode_captured:
  cmp QWORD PTR [rsp],3
  jne input_arg_saved
  mov rax,[rsp+16]
@@ -771,6 +803,10 @@ hashes_complete:
  mov rdi,[r15+96]
  mov esi,32768
  call release
+ cmp QWORD PTR [rbp+SHARED_MODE],0
+ je publish_artifact
+ call link_shared_artifact
+publish_artifact:
  # Native HIA owns filesystem state and all exact-byte/identity decisions.
  mov esi,1048576
  call allocate
@@ -888,13 +924,210 @@ publication_complete:
  mov esi,ART_N
  call release
  mov rdi,[r15+24]
- mov esi,262144
+ mov rsi,[rbp+REPORT_CAPACITY]
  call release
  mov rdi,rbp
  mov esi,4096
  call release
  xor edi,edi
  jmp exit
+
+link_shared_artifact:
+ # Keep the direct object immutable; do not publish until the independent
+ # inventory confirms that the linked ELF exposes exactly its admitted exports.
+ sub rsp,8
+ mov esi,ART_N
+ call allocate
+ mov [rbp+SHARED_ARTIFACT],rax
+ mov esi,SHARED_LINK_WORK_BYTES
+ call allocate
+ mov rdi,[rbp+48]
+ mov rsi,[rbp+56]
+ mov rdx,[rbp+SHARED_ARTIFACT]
+ mov ecx,ART_N
+ mov r8,rax
+ mov r9d,SHARED_LINK_WORK_BYTES
+ mov [rbp+SHARED_EXPORT_WORK],rax
+ call build_shared_linker_start
+ cmp rax,64
+ jb io_failure
+ cmp rax,ART_N
+ ja native_status
+ mov [rbp+SHARED_EXTENT],rax
+ mov rdi,[rbp+SHARED_ARTIFACT]
+ mov esi,ART_N
+ call protect_readonly
+ mov rdi,[rbp+SHARED_EXPORT_WORK]
+ mov esi,SHARED_LINK_WORK_BYTES
+ call release
+ mov esi,SHARED_FRAME_BYTES
+ call allocate
+ mov [rbp+SHARED_FRAME],rax
+ movabs rdx,0x3130584553414948  # HIASEX01
+ mov [rax],rdx
+ mov rcx,[r15+32]
+ lea rdx,[rcx+88]
+ mov [rbp+SHARED_FRAME_EXTENT],rdx
+ lea rdi,[rax+88]
+ mov rsi,[r15+24]
+ cld
+ rep movsb
+ mov rdi,[rbp+SHARED_FRAME]
+ mov esi,SHARED_FRAME_BYTES
+ call protect_readonly
+ mov esi,SHARED_EXPORT_WORK_BYTES
+ call allocate
+ mov [rbp+SHARED_EXPORT_WORK],rax
+ mov rdi,[rbp+SHARED_FRAME]
+ mov rsi,[rbp+SHARED_FRAME_EXTENT]
+ mov rdx,rax
+ mov ecx,SHARED_EXPORT_WORK_BYTES
+ lea r8,[rbp+REPORT_SCRATCH]
+ mov r9d,96
+ call build_shared_report_start
+ cmp rax,SHARED_EXPORT_WORK_BYTES
+ jne native_status
+ mov esi,SHARED_SYMBOL_BYTES
+ call allocate
+ mov [rbp+SHARED_SYMBOLS],rax
+ mov rdi,[rbp+SHARED_ARTIFACT]
+ mov rsi,[rbp+SHARED_EXTENT]
+ mov rdx,rax
+ mov ecx,SHARED_SYMBOL_BYTES
+ mov r8,[rbp+SHARED_EXPORT_WORK]
+ mov r9d,SHARED_EXPORT_WORK_BYTES
+ call build_shared_inventory_start
+ cmp rax,SHARED_SYMBOL_HEAD
+ jb io_failure
+ cmp rax,SHARED_SYMBOL_BYTES
+ ja native_status
+ mov [rbp+SHARED_SYMBOL_EXTENT],rax
+ mov rdi,[rbp+SHARED_EXPORT_WORK]
+ mov esi,SHARED_EXPORT_WORK_BYTES
+ call release
+ mov rdi,[rbp+SHARED_SYMBOLS]
+ mov esi,SHARED_SYMBOL_BYTES
+ call protect_readonly
+ mov rdi,[rbp+SHARED_ARTIFACT]
+ mov rsi,[rbp+SHARED_EXTENT]
+ lea rdx,[rbp+REPORT_SCRATCH]
+ xor ecx,ecx
+ mov r8,[rbp+SHARED_SYMBOLS]
+ mov r9,[rbp+SHARED_SYMBOL_EXTENT]
+ call build_shared_report_start
+ dec rax
+ cmp rax,2047
+ ja invalid
+ mov r12,rax
+ mov rdi,[rbp+SHARED_SYMBOLS]
+ mov esi,SHARED_SYMBOL_BYTES
+ call release
+ mov rdi,[rbp+SHARED_FRAME]
+ mov esi,SHARED_FRAME_BYTES
+ call protect_writable
+ mov rbx,[rbp+SHARED_FRAME]
+ movabs rax,0x3130524253414948  # HIASBR01
+ mov [rbx],rax
+ mov rax,[rbp+SHARED_EXTENT]
+ mov [rbx+8],rax
+ mov [rbx+16],r12
+ call hash_shared_artifact
+ lea rsi,[rbp+SHARED_DIGEST]
+ lea rdi,[rbx+24]
+ mov ecx,4
+ cld
+ rep movsq
+ lea rsi,[rip+build_shared_linker_identity_start]
+ mov ecx,4
+ rep movsq
+ mov rdi,rbx
+ mov esi,SHARED_FRAME_BYTES
+ call protect_readonly
+ mov rdi,[r15+24]
+ mov esi,262144
+ call release
+ mov esi,SHARED_REPORT_BYTES
+ call allocate
+ mov [r15+24],rax
+ mov QWORD PTR [rbp+REPORT_CAPACITY],SHARED_REPORT_BYTES
+ mov rdi,[rbp+SHARED_FRAME]
+ mov rsi,[rbp+SHARED_FRAME_EXTENT]
+ mov rdx,rax
+ mov ecx,SHARED_REPORT_BYTES
+ lea r8,[rbp+REPORT_SCRATCH]
+ mov r9d,96
+ call build_shared_report_start
+ test rax,rax
+ jz io_failure
+ cmp rax,SHARED_REPORT_BYTES
+ ja native_status
+ mov [r15+32],rax
+ mov rdi,[r15+24]
+ mov esi,SHARED_REPORT_BYTES
+ call protect_readonly
+ mov rdi,[rbp+SHARED_FRAME]
+ mov esi,SHARED_FRAME_BYTES
+ call release
+ mov rdi,[rbp+48]
+ mov esi,ART_N
+ call release
+ mov rax,[rbp+SHARED_ARTIFACT]
+ mov [rbp+48],rax
+ mov rax,[rbp+SHARED_EXTENT]
+ mov [rbp+56],rax
+ add rsp,8
+ ret
+
+hash_shared_artifact:
+ # This adapter moves bounded chunks only. The HIA stream image owns SHA-256.
+ sub rsp,8
+ mov esi,HASH_INPUT_BYTES
+ call allocate
+ mov [rbp+SHARED_HASH_INPUT],rax
+ mov esi,1
+ call shared_hash_transition
+ call require_native_zero
+ mov r12,[rbp+SHARED_ARTIFACT]
+ mov r13,[rbp+SHARED_EXTENT]
+shared_hash_chunk:
+ mov rdi,[rbp+SHARED_HASH_INPUT]
+ mov BYTE PTR [rdi],1
+ inc rdi
+ mov ecx,HASH_CHUNK_BYTES
+ cmp r13,rcx
+ cmovb rcx,r13
+ mov [rbp+SHARED_HASH_CHUNK],rcx
+ mov rsi,r12
+ cld
+ rep movsb
+ mov rsi,[rbp+SHARED_HASH_CHUNK]
+ inc rsi
+ call shared_hash_transition
+ call require_native_zero
+ mov rax,[rbp+SHARED_HASH_CHUNK]
+ add r12,rax
+ sub r13,rax
+ jnz shared_hash_chunk
+ mov rdi,[rbp+SHARED_HASH_INPUT]
+ mov BYTE PTR [rdi],2
+ mov esi,1
+ call shared_hash_transition
+ cmp rax,32
+ jne io_failure
+ mov rdi,[rbp+SHARED_HASH_INPUT]
+ mov esi,HASH_INPUT_BYTES
+ call release
+ add rsp,8
+ ret
+
+shared_hash_transition:
+ mov rdi,[rbp+SHARED_HASH_INPUT]
+ lea rdx,[rbp+SHARED_DIGEST]
+ mov ecx,32
+ lea r8,[rbp+HASH_STATE]
+ mov r9d,HASH_STATE_BYTES
+ jmp build_shared_hash_start
+
 write_owned:
  mov r12,rsi
  mov r13,rdx
@@ -921,6 +1154,8 @@ write_owned_loop:
  jmp write_owned_loop
 write_owned_done:
  ret
+shared_build_mode:
+ .asciz "hia-build-shared"
 lower_nominal:
  mov rdi,r12
  mov rsi,[rbp+88]

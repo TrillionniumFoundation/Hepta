@@ -38,6 +38,8 @@ STATIC_ADAPTERS = (EDIT + 'adapter_templates_a.hepta', EDIT + 'adapter_templates
 ADAPTER_RECORD = struct.Struct('<32s32s32sQQ')
 NOMINAL_ADAPTER_GROUPS = tuple(EDIT + f'nominal_adapters_{group}.hepta' for group in 'abcde')
 NOMINAL_CONSTRUCTOR_GROUP = EDIT + 'nominal_constructor_adapter.hepta'
+NOMINAL_BUILD_GROUP = EDIT + 'nominal_build_adapter.hepta'
+NOMINAL_TEMPLATE_GROUPS = (*NOMINAL_ADAPTER_GROUPS, NOMINAL_CONSTRUCTOR_GROUP, NOMINAL_BUILD_GROUP)
 CAPACITY = 4 * (1 << 20) + 4096
 DISPATCH = CLI + 'dispatch.hepta'
 DISPATCH_ARCHIVE = '<public-dispatch-images>'
@@ -87,6 +89,10 @@ OBJECT_BUILD_IMAGES = {
     EDIT + 'publication_frontend.hepta': 'build_frontend',
     CLI + 'build_codegen.hepta': 'build_codegen',
     CLI + 'build_backend.hepta': 'build_backend',
+    BOOTSTRAP + 'elf_shared_linker.hepta': 'build_shared_linker',
+    BOOTSTRAP + 'safe_core_elf_inventory.hepta': 'build_shared_inventory',
+    BOOTSTRAP + 'sha256_stream.hepta': 'build_shared_hash',
+    CLI + 'shared_build_report.hepta': 'build_shared_report',
 }
 EDIT_QUERY_IMAGES = {
     BOOTSTRAP + 'core_patch.hepta': 'edit_base_extract',
@@ -286,6 +292,8 @@ NOMINAL_ADAPTER_ROLES = {
                                  EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE))
 }
 NOMINAL_ADAPTER_ROLES[NOMINAL_ADAPTER] = (NOMINAL_CONSTRUCTOR_GROUP, len(NOMINAL_ADAPTER_ROLES))
+_BUILD_ADAPTER = 'tools/hia_core_edit_build_object.S'
+NOMINAL_ADAPTER_ROLES[_BUILD_ADAPTER] = (NOMINAL_BUILD_GROUP, NOMINAL_ADAPTER_ROLES[_BUILD_ADAPTER][1])
 
 
 def digest(raw):
@@ -362,6 +370,8 @@ def link_nominal_cli(folder, adapter, images, roles, embedder, adapters, *, edit
     payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
                 for key, label in {**NOMINAL_IMAGE_LABELS, **NOMINAL_BUILD_IMAGES}.items()}
     payloads.update({label: images[path] for path, label in roles.items()})
+    if 'build_shared_linker' in payloads:
+        payloads['build_shared_linker_identity'] = bytes.fromhex(digest(payloads['build_shared_linker']))
     objects.extend(embed(folder, label, label, raw, embedder) for label, raw in payloads.items())
     reference = next(iter(roles))
     binary, receipt = link(folder, images[NOMINAL_BUILD_SOURCES['linker']], images[reference], objects,
@@ -471,7 +481,7 @@ def build(output, compiler, cold_report, *, release_only=False):
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
-    adapter_groups = (*STATIC_ADAPTERS, *NOMINAL_ADAPTER_GROUPS, NOMINAL_CONSTRUCTOR_GROUP)
+    adapter_groups = (*STATIC_ADAPTERS, *NOMINAL_TEMPLATE_GROUPS)
     source_files = {PACKER, *adapter_groups, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER,
                     RELEASE_DEFLATE, EMBED_SOURCE,
                     *assembly_images, *SELFHOST_CORE_SOURCES, *adapters.values(),

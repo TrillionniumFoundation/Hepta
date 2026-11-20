@@ -2,6 +2,8 @@
 
 import argparse
 from contextlib import redirect_stderr, redirect_stdout
+from copy import deepcopy
+import ctypes
 from hashlib import sha256
 from io import StringIO
 import json
@@ -11,6 +13,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 from hepta.cli import HIA_AGENT_ACTIONS, _reference_hia_main
 from hepta.hia_agent_assembly import diagnose_assembly, render_assembly
@@ -129,6 +132,54 @@ def check_v9_build(release, directory):
         observed.returncode, observed.stdout, observed.stderr)
     assert actual_path.read_bytes() == expected_path.read_bytes()
     return 1
+
+
+def check_direct_shared_build(release, directory):
+    directory.mkdir()
+    program = scalar_program()
+    multiple = deepcopy(program)
+    multiple['functions'].append(deepcopy(multiple['functions'][0]))
+    multiple['functions'][-1]['name'] = 'alternate'
+    manifest = release / 'elf-shared-linker-manifest.json'
+    checked = 0
+    for label, source_program, exports in (
+        ('scalar', program, ('increment',)),
+        ('multiple', multiple, ('alternate', 'increment')),
+        ('word-memory', owned_program(), ('load_be', 'load_le', 'store_be', 'store_le')),
+    ):
+        source = directory / (label + '.hepta')
+        source.write_bytes(wire(source_program))
+        expected_file = directory / (label + '-reference.so')
+        output = directory / (label + '.so')
+        with patch.dict(os.environ, {'HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST': str(manifest)}):
+            expected = build_program_machine(source_program, expected_file, kind='shared')
+        expected.update(output=str(output),
+                        implementation_sha256=packed_implementation_sha256(release / 'hia-build-object'))
+        assert tuple(expected['exports']) == exports
+        command = [release / 'hia', 'build', source, '--backend', 'native', '--kind', 'shared', '-o', output]
+        result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert (result.returncode, result.stdout, result.stderr) == (0, wire(expected, pretty=True), b''), (
+            label, result.returncode, result.stdout, result.stderr)
+        retained = output.read_bytes()
+        inode = output.stat().st_ino
+        assert retained == expected_file.read_bytes()
+        assert sha256(retained).hexdigest() == expected['artifact_sha256']
+        loaded = ctypes.CDLL(str(output))
+        if 'increment' in exports:
+            loaded.increment.argtypes = [ctypes.c_uint32]
+            loaded.increment.restype = ctypes.c_uint32
+            assert loaded.increment(41) == 42
+        replay = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert replay.returncode > 0 and not replay.stdout and not replay.stderr
+        assert output.stat().st_ino == inode and output.read_bytes() == retained
+        checked += 2
+    symlink = directory / 'unowned.so'
+    symlink.symlink_to(directory / 'missing.so')
+    command[-1] = symlink
+    refused = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+    assert refused.returncode > 0 and not refused.stdout and not refused.stderr
+    assert symlink.is_symlink() and not symlink.exists()
+    return checked + 1
 
 
 def check_v9_edits(release, directory):
@@ -656,14 +707,13 @@ def check_release(release, directory):
             expected = wire(receipt, pretty=True)
             arguments += ['--output', str(build_target)]
         elif action == 'capabilities':
-            # The installed static release has no linker or solver. Keep the
-            # complete hosted oracle for every shared field; require the exact
-            # standalone build inventory rather than advertising hosted modes.
+            # The static release has direct HIA linkage, not the hosted solver.
             capabilities = json.loads(reference_cli([action]))
             build = capabilities['build']
             build.update(backend='native', available_backends=['native', 'selfhost'])
-            for hosted_only in ('available_kinds', 'auto_object', 'auto_shared', 'native_shared'):
+            for hosted_only in ('auto_object', 'auto_shared'):
                 del build[hosted_only]
+            build['native_shared'] = 'ordinary linked native ABI; ABI inventory checked, no machine verification claim'
             expected = wire(capabilities, pretty=True)
         else:
             expected = reference_cli([action, *arguments])
@@ -692,9 +742,9 @@ def check_release(release, directory):
     assert (result.returncode, explicit_receipt, result.stderr) == (0, receipt, b'')
     assert explicit_object.read_bytes() == original.read_bytes()
     checked_actions += 1
-    for backend in ('auto', 'native'):
-        shared = directory / f'standalone-{backend}.so'
-        command = [release / 'hia', 'build', source, '--backend', backend, '--kind', 'shared',
+    for backend in ([], ['--backend', 'auto']):
+        shared = directory / 'standalone-verified.so'
+        command = [release / 'hia', 'build', source, *backend, '--kind', 'shared',
                    '--output', shared]
         result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
         assert (result.returncode, result.stdout, result.stderr) == (64, b'', b'') and not shared.exists()
@@ -753,6 +803,7 @@ def check_release(release, directory):
     checked_v9 = check_v9_assembly(release, directory / 'v9-assembly')
     checked_v9 += check_v9_build(release, directory / 'v9-build')
     checked_v9 += check_v9_edits(release, directory / 'v9-edits')
+    checked_v9 += check_direct_shared_build(release, directory / 'direct-shared')
     diagnostics = directory / 'diagnostics'
     diagnostics.mkdir()
     selfhost = directory / 'selfhost'

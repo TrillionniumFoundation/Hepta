@@ -2776,7 +2776,10 @@ block b9(v55:readbuf,v56:u64,v57:u64,v58:u64)
 block b10(v66:readbuf,v67:u64,v68:u64)
   v74:u64 = const() {"value":33}
   v75:u64 = call(v66,v67,v68,v74) {"function":"f28"}
-  ret(v75)
+  v890:u64 = const() {"value":45}
+  v891:u64 = call(v66,v67,v68,v890) {"function":"f28"}
+  v892:u64 = bit.or(v75,v891)
+  ret(v892)
 block b11(v70:readbuf,v71:u64,v72:u64,v73:u64)
   v76:u64 = const() {"value":13}
   v77:bool = compare.eq(v73,v76)
@@ -2861,8 +2864,10 @@ block b19(v97:readbuf,v98:mutbuf)
   v106:u64 = call(v98,v105) {"function":"f42"}
   v107:u64 = const() {"value":33}
   v108:u64 = call(v97,v104,v106,v107) {"function":"f28"}
+  v900:u64 = call(v97,v98,v104,v106) {"function":"explicit_native_shared"}
+  v901:u64 = bit.or(v108,v900)
   v109:u64 = const() {"value":0}
-  v110:bool = compare.eq(v108,v109)
+  v110:bool = compare.eq(v901,v109)
   jump b20(v97,v98,v110)
 block b20(v100:readbuf,v101:mutbuf,v102:bool)
   branch v102 b21(v100,v101) b22(v100,v101)
@@ -4571,7 +4576,10 @@ block b88(v219:u64)
   v222:bool = compare.eq(v219,v221)
   v223:u64 = const() {"value":6}
   v224:u64 = const() {"value":0}
-  v225:u64 = select(v222,v223,v224)
+  v226:u64 = const() {"value":45}
+  v227:bool = compare.eq(v219,v226)
+  v228:bool = bool.or(v222,v227)
+  v225:u64 = select(v228,v223,v224)
   ret(v225)
 end
 fn f34(v0:u64,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
@@ -5330,7 +5338,7 @@ block b19(v80:u64)
 block b20(v81:u64,v82:u64)
   v95:u64 = const() {"value":44}
   v96:bool = compare.eq(v81,v95)
-  branch v96 b23(v82) b24()
+  branch v96 b23(v82) b25(v81,v82)
 block b21()
   v89:u64 = const() {"value":8028074745930329389}
   ret(v89)
@@ -5347,9 +5355,15 @@ block b23(v98:u64)
   v103:u64 = const() {"value":123610860105005}
   v104:u64 = select(v102,v103,v101)
   ret(v104)
-block b24()
-  v105:u64 = const() {"value":0}
-  ret(v105)
+block b25(v106:u64,v107:u64)
+  v108:u64 = const() {"value":45}
+  v109:bool = compare.eq(v106,v108)
+  v110:u64 = const() {"value":0}
+  v111:bool = compare.eq(v107,v110)
+  v112:bool = bool.and(v109,v111)
+  v113:u64 = const() {"value":110386873460851}
+  v114:u64 = select(v112,v113,v110)
+  ret(v114)
 end
 fn f41(v0:readbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64)
@@ -6521,6 +6535,7 @@ block b2(v11:readbuf,v12:mutbuf,v13:mutbuf,v14:u64)
 block b3(v15:readbuf,v16:mutbuf,v17:mutbuf)
   v9999:u64 = call(v16,v17) {"function":"nominal_report_argv"}
   v9998:u64 = call(v16,v17) {"function":"shared_assembly_argv"}
+  v9997:u64 = call(v15,v16,v17) {"function":"shared_build_argv"}
   v30:u64 = const() {"value":65824}
   v31:u64 = const() {"value":1}
   v32:u64 = call(v17,v30,v31) {"function":"f43"}
@@ -8952,6 +8967,57 @@ block b0(v0:mutbuf,v1:mutbuf)
   v31:u64 = call(v0,v29,v30) {"function":"f43"}
   v32:u64 = const() {"value":1}
   ret(v32)
+end
+fn explicit_native_shared(v0:readbuf,v1:mutbuf,v2:u64,v3:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(v0:readbuf,v1:mutbuf,v2:u64,v3:u64)
+  v4:u64 = const() {"value":45}
+  v5:u64 = call(v0,v2,v3,v4) {"function":"f28"}
+  v6:u64 = const() {"value":1}
+  v7:bool = compare.eq(v5,v6)
+  branch v7 backend(v0,v1) refused()
+block backend(v8:readbuf,v9:mutbuf)
+  v10:u64 = const() {"value":240}
+  v11:u64 = call(v9,v10) {"function":"f42"}
+  v12:u64 = const() {"value":248}
+  v13:u64 = call(v9,v12) {"function":"f42"}
+  v14:u64 = const() {"value":31}
+  v15:u64 = call(v8,v11,v13,v14) {"function":"f28"}
+  ret(v15)
+block refused()
+  v16:u64 = const() {"value":0}
+  ret(v16)
+end
+fn shared_build_argv(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u64) effects(read,write,trap) entry(entry)
+block entry(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:u64 = const() {"value":8208}
+  v4:u64 = call(v2,v3) {"function":"f42"}
+  v5:u64 = const() {"value":8}
+  v6:bool = compare.eq(v4,v5)
+  branch v6 kind(v0,v1,v2) done()
+block kind(v7:readbuf,v8:mutbuf,v9:mutbuf)
+  v10:u64 = const() {"value":8448}
+  v11:u64 = call(v9,v10) {"function":"f42"}
+  v12:u64 = const() {"value":8456}
+  v13:u64 = call(v9,v12) {"function":"f42"}
+  v14:u64 = const() {"value":45}
+  v15:u64 = call(v7,v11,v13,v14) {"function":"f28"}
+  v16:u64 = const() {"value":1}
+  v17:bool = compare.eq(v15,v16)
+  branch v17 emit(v8) done()
+block emit(v18:mutbuf)
+  v19:u64 = const() {"value":32768}
+  v20:u64 = const() {"value":7811904093179439464}
+  v21:u64 = call(v18,v19,v20) {"function":"f43"}
+  v22:u64 = const() {"value":32776}
+  v23:u64 = const() {"value":7234314139130342756}
+  v24:u64 = call(v18,v22,v23) {"function":"f43"}
+  v25:u64 = const() {"value":32784}
+  v26:u64 = const() {"value":0}
+  v27:u64 = call(v18,v25,v26) {"function":"f43"}
+  jump done()
+block done()
+  v28:u64 = const() {"value":0}
+  ret(v28)
 end
 fn shared_assembly_argv(v0:mutbuf,v1:mutbuf) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf)
