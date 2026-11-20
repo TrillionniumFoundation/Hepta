@@ -26,7 +26,29 @@ worker scope bind the installed image without selector environment variables.
 The source/portable package and the remaining worker/service owners are unchanged;
 this candidate is a step toward default native delivery, not whole-stack cutover.
 
-## Agent entry
+## Native Linux Core candidate
+
+After the native Core package checks pass, the Core workflow produces a
+`hia-native-linux-x86_64-<commit>-<attempt>` artifact. On Linux x86-64, extract
+the artifact from a trusted run, check `SOURCE_COMMIT` against that run's
+checkout, and install the exact package into a new, user-owned directory:
+
+```sh
+sha256sum --check SHA256SUMS
+chmod 500 hia-release
+mkdir -m 700 hia-install
+digest=$(sha256sum store.hiapack | cut -d ' ' -f 1)
+env -i PATH= ./hia-release install "$PWD/hia-install" "$digest" < store.hiapack
+env -i PATH= ./hia-release verify "$PWD/hia-install" "$digest" < store.hiapack
+env -i PATH= "$PWD/hia-install/$digest/hia" --version
+```
+
+This `hia` is a native executable, not the Python wheel entry point. It covers
+Core and selected Agent Store components; it does not replace the hosted MCP
+service or the verified shared-library build route. See
+[native release and source rebuild](docs/HIA_NATIVE_SOURCE_BUILD.md).
+
+## Hosted Agent entry
 
 ```sh
 python -m pip install .
@@ -35,7 +57,7 @@ hia check-assembly examples/hia_bootstrap/bytesum.hepta
 hia verify examples/hia_program/counter.hepta
 ```
 
-The `hia` entry is currently a Python-hosted bridge. An explicitly selected
+The wheel's `hia` entry is a Python-hosted bridge. An explicitly selected
 [HIA CLI ownership](docs/HIA_CLI_NATIVE.md)
 now controls all fifteen actions, argument/help/error presentation, sequencing
 and current selfhost-build selection. Semantic action bodies, file policy and
@@ -46,7 +68,7 @@ HIA-native stdio application supports `capabilities`, `verify`, `compile`,
 `render-assembly`, direct HIA-source `assemble` and `check-assembly` on
 Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
 The ordinary `hia build --backend selfhost` route can explicitly select an
-operator-pinned HIA compiler for bounded primitive Core v8 ELF objects. Its
+operator-pinned HIA compiler for bounded primitive Core v8/v9 ELF objects. Its
 native frontend and code generator execute without the Python emitter or an
 external linker; the CLI, admission and publication bridge remain hosted.
 See [native compiler selection and its supported profile](docs/HIA_PROGRAM_SELFHOST_BUILD.md).

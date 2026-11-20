@@ -1295,6 +1295,26 @@ jobs:
             python -B -m tools.run_hia_unittest_gate tests.test_hia_elf_linker.StandaloneDirectSharedLinkerTests
           python -B -m tests.test_hia_nominal_constructor_runtime "$installed/hia-nominal-constructor" \
             --oracle-images "$RUNNER_TEMP/core-edit/nominal-constructor" --ordinary "$installed/hia"
+      - name: Export the tested native Linux Core package
+        run: |
+          set -euo pipefail
+          package="$RUNNER_TEMP/agent-store-package"
+          bundle="$RUNNER_TEMP/hia-native-linux-x86_64"
+          digest=$(cat "$package/store.sha256")
+          [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+          mkdir -m 0700 "$bundle"
+          install -m 0500 "$package/installer/hia-release" "$bundle/hia-release"
+          install -m 0400 "$package/repacked.hiapack" "$bundle/store.hiapack"
+          git rev-parse HEAD > "$bundle/SOURCE_COMMIT"
+          cd "$bundle"
+          printf '%s  store.hiapack\n' "$digest" | sha256sum --check --strict
+          sha256sum hia-release store.hiapack SOURCE_COMMIT > SHA256SUMS
+      - name: Upload the native Linux Core candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-native-linux-x86_64-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-native-linux-x86_64/
+          if-no-files-found: error
       - name: v9 fixed-width memory matching-cold cross-backend qualification
         if: ${{ !cancelled() && steps.worker_unknown_cold_authority.outcome == 'success' }}
         timeout-minutes: 30
