@@ -23,7 +23,6 @@ from tools.qualify_hia_selfhost import compile_stage
 
 PAGER = 'examples/hia_bootstrap/sqlite_pager_retained.hepta'
 STREAM = 'examples/hia_bootstrap/sqlite_pager_stream.hepta'
-LINKER = 'examples/hia_bootstrap/sqlite_pager_elf_linker.hepta'
 STATIC_LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
 ADAPTERS = ('tools/hia_sqlite_pager_start.S', 'tools/hia_sqlite_pager_os.S')
 TEMPLATES = 'examples/hia_bootstrap/sqlite_pager_adapters.hepta'

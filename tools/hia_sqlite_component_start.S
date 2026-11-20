@@ -12,7 +12,13 @@
 .equ REQUEST_MAGIC,0x3130434353414948   /* HIASCC01 */
 .equ REPLY_MAGIC,  0x3130524353414948   /* HIASCR01 */
 
+.ifdef HIA_COMPONENT_EMBEDDED_OBJECTS
+.set pager_hia_entry, component_image_start
+.endif
 _start:
+.ifdef HIA_COMPONENT_EMBEDDED_OBJECTS
+ add rsp,8                      /* Undo the static linker's entry call. */
+.endif
  cmp QWORD PTR [rsp],1
  jne invalid
  sub rsp,48
