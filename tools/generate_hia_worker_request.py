@@ -322,7 +322,7 @@ def renamed(source, prefix, *, scratch=0):
             if isinstance(node.func, ast.Name):
                 if node.func.id in names:
                     node.func.id = prefix + node.func.id
-                elif (scratch and node.func.id in ('byte', 'store')
+                elif (scratch and node.func.id in ('byte', 'store', 'word_load', 'word_store')
                       and isinstance(node.args[0], ast.Name) and node.args[0].id == 'w'):
                     base = ast.parse(f'length(w) - {scratch}', mode='eval').body
                     node.args[1] = ast.BinOp(base, ast.Add(), node.args[1])
@@ -373,6 +373,17 @@ def hash_program():
     source = replace_once(source, 'padded_byte(s, block + i * 4 + j, padded)', 'padded_byte(s, block + i * 4 + j, padded, n)')
     source = replace_once(source, 'def padded_byte(s:readbuf, index:u64, total:u64)', 'def padded_byte(s:mutbuf, index:u64, total:u64, n:u64)')
     source = replace_once(source, 'store(o, i * 4 + j,', 'store(w, 1088 + i * 4 + j,')
+    # SHA state and schedule occupy full little-endian cells within the final
+    # 4096 bytes. Every caller admits that whole reserved area before hashing.
+    source = source[:source.index('\ndef get(w:mutbuf, index:u64)')]
+    source += """
+def get(w:mutbuf, index:u64) -> u64:
+    return word_load(w, index)
+
+def put(w:mutbuf, index:u64, value:u64) -> u64:
+    word_store(w, index, value)
+    return 0
+"""
     return renamed(source, 'hash_', scratch=4096)
 
 
@@ -483,12 +494,7 @@ def valid_digits(digits:u64) -> u64:
     return 0
 
 def frame_word(s:readbuf, at:u64) -> u64:
-    value = 0
-    index = 0
-    while index < 8:
-        value = value | (byte(s, at + index) << (index * 8))
-        index = index + 1
-    return value
+    return word_load(s, at)
 '''
     return (source.replace('ADMISSION_INPUT', str(int.from_bytes(b'HIAWRA02', 'little')))
                   .replace('REPORT_INPUT', str(int.from_bytes(b'HIATRP01', 'little'))))
@@ -497,6 +503,14 @@ def frame_word(s:readbuf, at:u64) -> u64:
 def source_program():
     return '\n'.join((ENTRY, canonical_program(), key_program(), data_source(),
                        decimal_program(), format_program(), hash_program(), terminal_frame_program()))
+
+
+class WorkerRequestBuilder(Builder):
+    def expr(self, node):
+        if isinstance(node, ast.Call) and node.func.id == 'word_store':
+            buffer, index, value = (self.expr(argument) for argument in node.args)
+            return self.op('buffer.store.u64.le', [buffer, self.cast(index, 'usize'), value])
+        return super().expr(node)
 
 
 def document():
@@ -524,12 +538,12 @@ def document():
     total = total_scalar_functions(nodes)
     functions = []
     for node in nodes:
-        builder = Builder(node, names, signatures, total)
+        builder = WorkerRequestBuilder(node, names, signatures, total)
         builder.statements(node.body)
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'worker_request', 'functions': functions})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9', 'module': 'worker_request', 'functions': functions})
 
 
 def main():

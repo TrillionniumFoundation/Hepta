@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS, build_executables
-from tools.build_hia_sqlite_pager import write_new
+from tools.build_hia_agent_store import write_new
 
 
 DRIVER = 'tools/build_hia_agent_artifact_capture.py'
@@ -17,6 +17,7 @@ def build(output, compiler, cold_report):
     report, sources = build_executables(output, compiler, cold_report, (UNIT,), CAPTURE_ADAPTERS, (DRIVER,))
     report.update(schema='hepta.hia.agent-artifact-capture-build.v1',
                   status='NATIVE_AGENT_ARTIFACT_CAPTURE_BUILT', source_manifest=sources)
+    # This record is later admitted as runtime authority, not just a log.
     write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
     return output / ('hia-' + UNIT)
 
