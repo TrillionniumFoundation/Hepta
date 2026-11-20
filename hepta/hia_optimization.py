@@ -85,7 +85,11 @@ def _native_circuit_decision(cnf, circuit, deadline):
     # ordered fault conditions survive projection into the observed circuit.
     nonlinear = any(operation in (WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_PRODUCT_EXCEEDS)
                     for operation, *_ in nodes)
-    result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps, learning=nonlinear)
+    # Restarting learned search avoids repeatedly traversing the same carry
+    # constraints in wide addition/subtraction. It uses the same hard budget.
+    wide_carries = any(operation in (9, 10) and width > 8 for operation, width, *_ in nodes)
+    result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps,
+                               learning=nonlinear, restarts=wide_carries)
     if result is None or result[0] not in (SAT, UNSAT):
         return None
     verdict, model, steps, variables, clauses, frame = result

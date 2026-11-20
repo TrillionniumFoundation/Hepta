@@ -1002,6 +1002,31 @@ class CnfInstalledTests(unittest.TestCase):
         self.assertNotEqual(values['counterexample']['before']['values'],
                             values['counterexample']['after']['values'])
 
+    def test_wide_wrapping_cancellation_and_real_counterexamples_do_not_import_z3(self):
+        from hepta import hia_translation_validation as semantics
+        from tests.test_hia_program import arithmetic, i, ret
+        from tests.test_hia_translation_validation import identity
+
+        with patch.object(semantics, '_z3_module', side_effect=AssertionError('hosted solver selected')):
+            for typ in ('i16', 'u16', 'i32', 'u32', 'i64', 'u64', 'isize', 'usize'):
+                with self.subTest(typ=typ):
+                    addition = arithmetic('int.add.wrap', typ)
+                    subtraction = arithmetic('int.sub.wrap', typ)
+                    for before, op, operands in (
+                            (addition, 'int.sub.wrap', ['r', 'z']),
+                            (subtraction, 'int.add.wrap', ['z', 'r'])):
+                        cancelled = deepcopy(before)
+                        block = cancelled['functions'][0]['blocks'][0]
+                        block['ops'].append(i(op, operands, [('cancelled', typ)]))
+                        block['term'] = ret('cancelled')
+                        proof = semantics.validate_translation(cancelled, identity(typ))
+                        self.assertEqual(proof['status'], 'proved', proof)
+                        self.assertEqual(proof['solver']['name'], 'hia-native-cnf-translation')
+                    witness = semantics.validate_translation(addition, subtraction)
+                    self.assertEqual(witness['status'], 'disproved', witness)
+                    self.assertNotEqual(witness['counterexample']['before'],
+                                        witness['counterexample']['after'])
+
     def test_actual_optimizer_discharge_and_legacy_counterexample(self):
         try:
             import z3

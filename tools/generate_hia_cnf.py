@@ -1869,6 +1869,10 @@ def p_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
                 a = 0
                 b = 0
                 op = 2
+        if op != 2 and read_stack(o, left + 8) == width and read_stack(o, right + 8) == width:
+            reduced = p_cancel_wrapping(o, op, a, b)
+            if reduced < index and read_stack(o, 40 + 40 * reduced) == width:
+                return reduced
     if op > 2 and index <= CIRCUIT_NODES:
         folded = p_fold(o, op, width, a, b, c, index)
         if folded < CIRCUIT_NODES:
@@ -1887,6 +1891,25 @@ def p_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
                     return previous
             previous = previous + 1
     return p_append_node(o, w, op, width, a, b, c)
+
+def p_cancel_wrapping(o:mutbuf, op:u64, a:u64, b:u64) -> u64:
+    # These identities are exact in the same bounded word ring. A checked
+    # operation has already recorded its separate ordered trap predicate.
+    left = 32 + 40 * a
+    right = 32 + 40 * b
+    if op == 10 and read_stack(o, left) == 9:
+        x = read_stack(o, left + 16)
+        y = read_stack(o, left + 24)
+        if x == b:
+            return y
+        if y == b:
+            return x
+    if op == 9:
+        if read_stack(o, left) == 10 and read_stack(o, left + 24) == b:
+            return read_stack(o, left + 16)
+        if read_stack(o, right) == 10 and read_stack(o, right + 24) == a:
+            return read_stack(o, right + 16)
+    return 65535
 
 def p_append_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
     index = read_stack(w, 0)
