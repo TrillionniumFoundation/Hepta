@@ -28,6 +28,7 @@ from hepta.hia_agent_contract import installation_manifest
 from hepta.hia_agent_store import wire
 from tools.hia_agent_native_qualification import Session, ToolClient
 from tools.qualify_hia_agent_buffer_lifecycle import PinnedWorker, PROGRAM, require
+from tools.qualify_hia_original_select_fragments import reconstruct_compiler_patch
 
 BASE_COMMIT = "d1c97d22d503b395ba9b0dfaa87e5a1c1b208fe6"
 BASE_SHA = "85288cfc4b649b2be13175675880f5372f16bf3d9c5d4b78ba21ffa2c90b6b44"
@@ -106,8 +107,7 @@ def run(original, candidate, patch, output):
     source_path = reconstruction / "examples/hia_bootstrap/selfhost.hiaasm"
     source_path.parent.mkdir(parents=True)
     source_path.write_bytes(frozen_bytes["original"])
-    command = ["git", "apply", "--include=examples/hia_bootstrap/selfhost.hiaasm", inputs["patch"]["path"]]
-    applied = subprocess.run(command, cwd=reconstruction, capture_output=True, timeout=30)
+    applied = reconstruct_compiler_patch(reconstruction, inputs["patch"]["path"])
     (output / "patch-apply.stdout.log").write_bytes(applied.stdout)
     (output / "patch-apply.stderr.log").write_bytes(applied.stderr)
     require(applied.returncode == 0 and source_path.read_bytes() == frozen_bytes["candidate"],

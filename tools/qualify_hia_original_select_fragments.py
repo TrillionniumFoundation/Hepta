@@ -207,6 +207,16 @@ def projection_object(site):
         "scaffolding_is_new": True, "scaffolding_proves_original_context": False}
 
 
+def reconstruct_compiler_patch(tree, patch):
+    # Apply to the disposable source tree, not an enclosing workspace's index
+    # or subdirectory prefix. The original patch path and bytes are unchanged.
+    env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    env['GIT_CEILING_DIRECTORIES'] = str(tree.resolve().parent)
+    command = ['git', 'apply', '--include=examples/hia_bootstrap/selfhost.hiaasm',
+               str(Path(patch).resolve())]
+    return subprocess.run(command, cwd=tree, env=env, capture_output=True, timeout=30, check=False)
+
+
 def freeze_inputs(paths, output):
     # These filenames and patch members belong to immutable historical evidence.
     # Keep .hiaasm in this external reconstruction; current sources use .hepta.
@@ -224,10 +234,8 @@ def freeze_inputs(paths, output):
     source = tree / "examples/hia_bootstrap/selfhost.hiaasm"
     source.parent.mkdir(parents=True)
     source.write_bytes(data["original"])
-    command = ["git", "apply", "--include=examples/hia_bootstrap/selfhost.hiaasm",
-               str(frozen / "patch.patch")]
-    process = subprocess.run(command, cwd=tree, capture_output=True, timeout=30, check=False)
-    save(output / "patch-apply.json", {"command": command, "returncode": process.returncode,
+    process = reconstruct_compiler_patch(tree, frozen / "patch.patch")
+    save(output / "patch-apply.json", {"command": process.args, "returncode": process.returncode,
         "stdout": process.stdout.decode(errors="replace"), "stderr": process.stderr.decode(errors="replace")})
     require(process.returncode == 0 and source.read_bytes() == data["candidate"],
             "exact original patch does not reconstruct the candidate")

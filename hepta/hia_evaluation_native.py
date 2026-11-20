@@ -10,7 +10,8 @@ as native arithmetic. No retained evaluation body is invoked by this adapter.
 from __future__ import annotations
 
 import ctypes
-from .hia_native_delivery import DeliveryRecord
+from .hia_agent_store import _native_agent_identity, uses_native_store
+from .hia_native_delivery import DeliveryRecord, request_rejections
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -19,7 +20,6 @@ import operator
 import os
 from pathlib import Path
 import struct
-import sqlite3
 import threading
 
 from .hia_evaluation_protocol import PORT, PORTS, OUTCOMES
@@ -37,7 +37,6 @@ OUTPUT_BYTES = 112
 _FRAME_CUSTODY = {}
 _CUSTODY_LOCK = threading.Lock()
 _CUSTODY_PID = os.getpid()
-_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError, RecursionError, sqlite3.Error)
 
 
 class EvaluationUnknown(RuntimeError):
@@ -223,7 +222,7 @@ class EvaluationFrame:
             self._delivery.failed(error)
             if self._delivery.loss is not None:
                 self.fenced = self.native_failed = self.unconfirmed = True
-                self._delivery.propagate(error, EvaluationUnknown, _REQUEST_REJECTIONS)
+                self._delivery.propagate(error, EvaluationUnknown, request_rejections())
             raise
         finally:
             self._delivery.retire()
@@ -243,7 +242,7 @@ class EvaluationFrame:
             except BaseException as error:
                 if self.native_failed or self._delivery.loss is not None:
                     self.fenced = self.unconfirmed = True
-                    self._delivery.propagate(error, EvaluationUnknown, _REQUEST_REJECTIONS)
+                    self._delivery.propagate(error, EvaluationUnknown, request_rejections())
                     raise
                 self.call(3)
                 if self.receipt.phase != 5:
@@ -311,6 +310,8 @@ class EvaluationFrame:
         index = self.receipt.index
         if name == 'start':
             d['started'] = api['time'].monotonic_ns()
+            d['native_store'] = uses_native_store(s.store)
+            d['identity'] = _native_agent_identity() if d['native_store'] else None
         elif name == 'context':
             d['context'] = s._context(args['context'])
         elif name == 'baseline':
@@ -333,9 +334,19 @@ class EvaluationFrame:
             d['objective'] = s._required_claims(d['context'], args['candidate_artifact'],
                                                 args['verification_receipts'], d['baseline_program'].sha256)
         elif name == 'workload':
-            d['workload'], d['workload_metadata'] = s.store.get_json(d['context']['workload'])
+            if d['native_store']:
+                d['workload'], d['workload_metadata'], d['workload_wire'] = s.store.get_json_with_wire(
+                    d['context']['workload'])
+            else:
+                d['workload'], d['workload_metadata'] = s.store.get_json(d['context']['workload'])
         elif name == 'validate_workload':
-            api['validate'](d['workload'], api['WORKLOAD_SCHEMA'], 'workload')
+            if d['native_store']:
+                from .hia_agent_payload_schema_native import WORKLOAD_ROLE
+
+                s._validate_payload(d['workload'], d.pop('workload_wire'), api['WORKLOAD_SCHEMA'],
+                                    'workload', WORKLOAD_ROLE)
+            else:
+                api['validate'](d['workload'], api['WORKLOAD_SCHEMA'], 'workload')
         elif name == 'validate_cases':
             self.validate_cases(d['baseline_meta']['signatures'], d['workload']['cases'])
         elif name == 'exports_init':
@@ -354,8 +365,11 @@ class EvaluationFrame:
         elif name == 'reference_started':
             d['reference_started'] = api['time'].monotonic_ns()
         elif name == 'deadline_row':
-            d['context_row'] = s.store.db.execute('SELECT created_ns FROM contexts WHERE id=?',
-                                                 (args['context']['id'],)).fetchone()
+            if d['native_store']:
+                d['context_row'] = s.store.context_created(args['context']['id'])
+            else:
+                d['context_row'] = s.store.db.execute('SELECT created_ns FROM contexts WHERE id=?',
+                                                     (args['context']['id'],)).fetchone()
         elif name == 'deadline':
             created = int(d['context_row']['created_ns'])
             budget = self._math(3, d['context']['budget']['max_total_wall_ms'], 1_000_000)
@@ -547,37 +561,57 @@ class EvaluationFrame:
         elif name == 'after_greater':
             return int(bool(self._math(5, d['after'], d['before'])))
         elif name == 'measurements':
-            d['measurements'] = s.store.json({'schema': 'hepta.hia.agent.measurements.v1', 'context': args['context'],
-                'workload': d['context']['workload'], 'objective': d['context']['objective'],
-                'baseline_artifact': args['baseline_artifact'], 'candidate_artifact': args['candidate_artifact'],
-                'metric': d['objective']['metric'], 'baseline_value': str(d['before']), 'candidate_value': str(d['after']),
-                'improvement_ratio': d['ratio'], 'reference_wall_ns': str(d['reference_ns']),
-                'planned_cases': len(d['workload']['cases']), 'observations': d['observations'], 'native_runs': d['runs'],
-                'reference_runs': d['references'],
-                'native_correctness_scope': 'frozen workload return/trap behavior and all external snapshot bytes; VM first-trap/resource observations recorded separately',
-                'universal_equivalence_or_native_refinement_proved': False,
-                'measurement_scope': 'same host and immutable workload, baseline then candidate; call latency includes ctypes FFI overhead; snapshot reset/hash outside call timing is included in subprocess wall cost',
-                'outcome': OUTCOMES[self.receipt.outcome], 'planned_workload_complete': bool(self.receipt.flags & 2)}, 'measurements')
+            if d['identity'] is None:
+                d['measurements'] = s.store.json({'schema': 'hepta.hia.agent.measurements.v1', 'context': args['context'],
+                    'workload': d['context']['workload'], 'objective': d['context']['objective'],
+                    'baseline_artifact': args['baseline_artifact'], 'candidate_artifact': args['candidate_artifact'],
+                    'metric': d['objective']['metric'], 'baseline_value': str(d['before']), 'candidate_value': str(d['after']),
+                    'improvement_ratio': d['ratio'], 'reference_wall_ns': str(d['reference_ns']),
+                    'planned_cases': len(d['workload']['cases']), 'observations': d['observations'], 'native_runs': d['runs'],
+                    'reference_runs': d['references'],
+                    'native_correctness_scope': 'frozen workload return/trap behavior and all external snapshot bytes; VM first-trap/resource observations recorded separately',
+                    'universal_equivalence_or_native_refinement_proved': False,
+                    'measurement_scope': 'same host and immutable workload, baseline then candidate; call latency includes ctypes FFI overhead; snapshot reset/hash outside call timing is included in subprocess wall cost',
+                    'outcome': OUTCOMES[self.receipt.outcome], 'planned_workload_complete': bool(self.receipt.flags & 2)}, 'measurements')
+            else:
+                raw = d['identity'].measurement_record(
+                    args, d['context'], before=d['before'], after=d['after'], ratio=d['ratio'],
+                    scope=self._measurement_scope(d['runs']), metric=d['objective']['metric'],
+                    native_runs=d['runs'], observations=d['observations'],
+                    outcome=OUTCOMES[self.receipt.outcome], planned_cases=len(d['workload']['cases']),
+                    complete=bool(self.receipt.flags & 2), reference_runs=d['references'],
+                    reference_ns=d['reference_ns'])
+                d['measurements'] = s.store.put(raw, 'measurements')
         elif name == 'costs':
             d['costs'] = s._cost_ledger(d['context'], self._math(2, api['time'].monotonic_ns(), d['started']), d['native_ns'])
         elif name == 'ledger':
             from .hia_agent_service import _retain_cost_ledger
             d['ledger'] = _retain_cost_ledger(s.store, d['costs'])
         elif name == 'receipt':
-            d['evaluation_receipt'] = s.store.json({'schema': 'hepta.hia.agent.evaluation.v1', 'context': args['context'],
-                'installation': s.identities, 'baseline_artifact': args['baseline_artifact'],
-                'candidate_artifact': args['candidate_artifact'], 'baseline_core_sha256': d['baseline_program'].sha256,
-                'candidate_core_sha256': d['candidate_program'].sha256, 'build_receipt': args['build_receipt'],
-                'verification_receipts': args['verification_receipts'], 'report_complete': True,
-                'planned_workload_complete': bool(self.receipt.flags & 2), 'termination_confirmed': True,
-                'outcome': OUTCOMES[self.receipt.outcome], 'measurements': d['measurements'], 'full_cost_ledger': d['ledger'],
-                'net_optimization_benefit_proved': False, 'adopted': False}, 'evaluation-receipt')
+            if d['identity'] is None:
+                d['evaluation_receipt'] = s.store.json({'schema': 'hepta.hia.agent.evaluation.v1', 'context': args['context'],
+                    'installation': s.identities, 'baseline_artifact': args['baseline_artifact'],
+                    'candidate_artifact': args['candidate_artifact'], 'baseline_core_sha256': d['baseline_program'].sha256,
+                    'candidate_core_sha256': d['candidate_program'].sha256, 'build_receipt': args['build_receipt'],
+                    'verification_receipts': args['verification_receipts'], 'report_complete': True,
+                    'planned_workload_complete': bool(self.receipt.flags & 2), 'termination_confirmed': True,
+                    'outcome': OUTCOMES[self.receipt.outcome], 'measurements': d['measurements'], 'full_cost_ledger': d['ledger'],
+                    'net_optimization_benefit_proved': False, 'adopted': False}, 'evaluation-receipt')
+            else:
+                raw = d['identity'].evaluation_record(args, d['baseline_program'].sha256,
+                    d['candidate_program'].sha256, s.identities, d['measurements'], d['ledger'],
+                    OUTCOMES[self.receipt.outcome], bool(self.receipt.flags & 2))
+                d['evaluation_receipt'] = s.store.put(raw, 'evaluation-receipt')
         elif name == 'result':
-            d['result'] = {'baseline_artifact': args['baseline_artifact'], 'candidate_artifact': args['candidate_artifact'],
-                'evaluation_receipt': d['evaluation_receipt'], 'report_complete': True,
-                'planned_workload_complete': bool(self.receipt.flags & 2), 'termination_confirmed': True,
-                'outcome': OUTCOMES[self.receipt.outcome], 'measurements': d['measurements'],
-                'full_cost_ledger': d['ledger'], 'adopted': False}
+            if d['identity'] is None:
+                d['result'] = {'baseline_artifact': args['baseline_artifact'], 'candidate_artifact': args['candidate_artifact'],
+                    'evaluation_receipt': d['evaluation_receipt'], 'report_complete': True,
+                    'planned_workload_complete': bool(self.receipt.flags & 2), 'termination_confirmed': True,
+                    'outcome': OUTCOMES[self.receipt.outcome], 'measurements': d['measurements'],
+                    'full_cost_ledger': d['ledger'], 'adopted': False}
+            else:
+                d['result'] = d['identity'].evaluation_result(args, d['evaluation_receipt'],
+                    d['measurements'], d['ledger'], OUTCOMES[self.receipt.outcome], bool(self.receipt.flags & 2))
         elif name == 'reject_profile':
             api['reject']('E_HIA_EXECUTION_PROFILE', 'evaluation requires retained direct shared images', 'execution')
         elif name == 'reject_abi':
@@ -592,6 +626,18 @@ class EvaluationFrame:
         else:
             raise EvaluationUnknown('evaluation object port is not implemented')
         return 0
+
+    @staticmethod
+    def _measurement_scope(runs):
+        outcomes = [result for run in runs.values() for result in (run['normal'], *run['traps'])
+                    if result is not None]
+        prefix = 'same host and immutable workload, baseline then candidate; '
+        snapshot = 'snapshot reset/hash outside call timing is included in subprocess wall cost'
+        if outcomes and all(result.get('direct_call_executable_sha256') for result in outcomes):
+            scopes = {run['normal']['report']['timing_scope'] for run in runs.values()
+                      if run['normal'] and run['normal']['report'] is not None}
+            return '; '.join((prefix + snapshot, *sorted(scopes)))
+        return prefix + 'call latency includes ctypes FFI overhead; ' + snapshot
 
 
 def unconfirmed_evaluation_count():

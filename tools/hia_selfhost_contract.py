@@ -153,6 +153,10 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
+    'tools/generate_hia_worker_prepare.py',
+    'tools/build_hia_worker_prepare.py',
+    'examples/hia_bootstrap/worker_prepare.hepta',
+    'tests/test_hia_worker_prepare.py',
     'examples/hia_bootstrap/worker_request_filter_packer.hepta',
     'tools/build_hia_worker_request_cli.py',
     'tools/hia_worker_terminal.S',
@@ -989,10 +993,6 @@ SOURCE_FILES = (
     'tests/test_hia_slot_ledger_native_integration.py',
     'docs/HIA_SLOT_LEDGER_NATIVE.md',
     'docs/HIA_JSON_PREFLIGHT_NATIVE.md',
-    'tools/generate_hia_worker_prepare.py',
-    'tools/build_hia_worker_prepare.py',
-    'examples/hia_bootstrap/worker_prepare.hepta',
-    'tests/test_hia_worker_prepare.py',
     'tools/generate_hia_worker_request.py',
     'examples/hia_bootstrap/worker_request.hepta',
     'tests/test_hia_worker_request_native.py',
