@@ -61,6 +61,7 @@ class CostContextCallerDeliverySourceTests(unittest.TestCase):
             'tests/hia_store_delivery_successor.py', 'hepta/hia_native_helpers.py',
             subject.FIXTURE, subject.EVALUATION_FIXTURE, subject.QUALIFIER_FIXTURE,
             subject.QUALIFIER_DEPENDENCY_FIXTURE, subject.DIAGNOSTIC_FIXTURE,
+            subject.SQLITE_BOUNDARY_FIXTURE,
             str(composition.FIXTURE.relative_to(ROOT)),
             *subject.PATHS, subject.EVALUATION, *subject.QUALIFIER_PATHS,
             *subject.QUALIFIER_DEPENDENCIES, *subject.QUALIFIER_DIAGNOSTIC_DEPENDENCIES,
@@ -224,7 +225,14 @@ class CostContextCallerDeliverySourceTests(unittest.TestCase):
                         outer.admit_originals()
         target_name = subject.DIAGNOSTIC_PATHS[0]
         diagnostic = json.loads(self.sources[subject.DIAGNOSTIC_FIXTURE])
-        old_native_tools = independent_inverse(self.sources[target_name], diagnostic['files'][target_name])
+        sqlite_fixture = self.sources[subject.SQLITE_BOUNDARY_FIXTURE]
+        self.assertEqual(pin(sqlite_fixture), subject.SQLITE_BOUNDARY_FIXTURE_PIN)
+        sqlite_record = json.loads(sqlite_fixture)['files'][target_name]
+        self.assertEqual(sqlite_record['predecessor_fixture'],
+                         {'path': subject.DIAGNOSTIC_FIXTURE, **pin(self.sources[subject.DIAGNOSTIC_FIXTURE])})
+        predecessor = composition.reverse_exact(
+            self.sources[target_name], sqlite_record['record'], diagnostic['files'][target_name]['new'])
+        old_native_tools = independent_inverse(predecessor, diagnostic['files'][target_name])
         for changed_raw in (self.sources[target_name] + b'\n', old_native_tools):
             real_prior, real_read, completed = subject._admit_terminal_sources_before_ordinary_callers, Path.read_bytes, []
             def prior(*args, **kwargs):

@@ -12,6 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
 FIXTURE_SHA256 = '29e30b81ef5f38646ed4bbec5df18db5043f989575bec00cab6a200e56874e42'
+COMPOSITION_SUCCESSOR = ROOT / 'tests/fixtures/store_delivery_composition_successor.json'
+COMPOSITION_SUCCESSOR_SHA256 = '82bf41363b4b84b57f70b3045c1325deba04e3aa86cd4858d268cb9e5f9e05df'
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
 ORIGINAL_SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
@@ -33,6 +35,8 @@ COMPANION_ORIGINALS = {'hepta/hia_worker_report_native.py': {
     'bytes': 20176, 'sha256': 'c8539747922892195722f72f9b763eb1d9503b4fe80318eee33ee88a812ed597'}}
 # Preserve the original eleven-bit order; append the worker and report bits.
 PATHS = ORIGINAL_SOURCE_PATHS + SHARED_PATHS + (ADAPTER_PATH, WORKER_PATH) + tuple(COMPANION_ORIGINALS)
+LATER_SHARED_PATHS = ('hepta/hia_cost_ledger_native.py', 'hepta/hia_evaluation_native.py',
+                      'hepta/hia_service_context_native.py', 'tools/build_hia_evaluation.py')
 
 
 def _bytes(value):
@@ -115,6 +119,38 @@ def _review_adapter(original, restored, current, records):
     return expected, {'_context_special': item}
 
 
+def _restore_composition_successor(captured, approved, shared):
+    """Admit only the complete later composition and invert it to the fixed predecessor."""
+    unchanged = {ADAPTER_PATH, 'hepta/hia_store_lifecycle_selection.py'}
+    changed = set(PATHS) - unchanged
+    fixture = COMPOSITION_SUCCESSOR.read_bytes()
+    if sha256(fixture).hexdigest() != COMPOSITION_SUCCESSOR_SHA256:
+        raise ValueError('reviewed later Store composition fixture changed')
+    value = json.loads(fixture)
+    if (type(value) is not dict
+            or set(value) != {'schema', 'prior_fixture_sha256', 'files', 'shared_dependencies'}
+            or value['schema'] != 'hepta.hia.store-delivery-composition-successor.v1'
+            or value['prior_fixture_sha256'] != FIXTURE_SHA256
+            or type(value['files']) is not dict or set(value['files']) != changed
+            or type(value['shared_dependencies']) is not dict
+            or set(value['shared_dependencies']) != set(LATER_SHARED_PATHS)):
+        raise ValueError('later Store composition changes its reviewed scope')
+    restored = dict(captured)
+    current = dict(approved)
+    for name in changed:
+        record = value['files'][name]
+        previous = approved[name]
+        restored[name] = reverse_exact(captured[name], record,
+                                       {'sha256': previous['new_sha256'], 'bytes': previous['new_bytes']})
+        current[name] = record
+    for name in LATER_SHARED_PATHS:
+        captured[name] = (ROOT / name).read_bytes()
+        record = value['shared_dependencies'][name]
+        reverse_exact(captured[name], record, shared[name])
+        current[name] = record
+    return restored, current, fixture
+
+
 def admit_composition(original_value):
     original_bytes = ORIGINAL.read_bytes()
     if sha256(original_bytes).hexdigest() != ORIGINAL_SHA256:
@@ -160,26 +196,37 @@ def admit_composition(original_value):
     # A successor belongs to one complete reviewed composition. A partially
     # reverted mixture cannot borrow admission from another changed file.
     # There is no process-global cache: every admission binds all thirteen complete files.
-    restored = {path: reverse_exact(captured[path], value['files'][path], originals[path])
+    approved = current = value['files']
+    predecessor = captured
+    later_fixture = None
+    if any((len(captured[path]), sha256(captured[path]).hexdigest()) !=
+           (approved[path]['new_bytes'], approved[path]['new_sha256']) for path in PATHS):
+        predecessor, current, later_fixture = _restore_composition_successor(
+            captured, approved, inventory['shared_dependency_review'])
+    restored = {path: reverse_exact(predecessor[path], approved[path], originals[path])
                 for path in PATHS}
     definitions, definition_adjustments = _review_adapter(inventory, restored[ADAPTER_PATH],
         captured[ADAPTER_PATH], value.get('adapter_definition_successors'))
     if (FIXTURE.read_bytes() != frozen or ORIGINAL.read_bytes() != original_bytes
-            or any((ROOT / path).read_bytes() != captured[path] for path in PATHS)):
+            or (later_fixture is not None and COMPOSITION_SUCCESSOR.read_bytes() != later_fixture)
+            or any((ROOT / path).read_bytes() != raw for path, raw in captured.items())):
         raise ValueError('successor composition changed during admission')
-    composition = {path: value['files'][path]['new_sha256'] for path in PATHS}
+    composition = {path: current[path]['new_sha256'] for path in PATHS}
     adjustments = {path: {'path': path, 'original_sha256': sha256(restored[path]).hexdigest(),
-        'current_sha256': value['files'][path]['new_sha256'],
-        'current_bytes': value['files'][path]['new_bytes'],
-        'reversible_patch_fixture_sha256': FIXTURE_SHA256,
+        'current_sha256': current[path]['new_sha256'],
+        'current_bytes': current[path]['new_bytes'],
+        'reversible_patch_fixture_sha256': (COMPOSITION_SUCCESSOR_SHA256
+                                           if later_fixture is not None else FIXTURE_SHA256),
         'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL, context protocol, Bootstrap, Budget resource and worker unknown-terminal successor',
         'composition_sha256': composition} for path in PATHS}
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:
         # Return the fixed, independently reviewed literal pins only after
         # the complete composition matched; never derive expected from disk.
-        shared[path] = {'bytes': value['files'][path]['new_bytes'],
-                        'sha256': value['files'][path]['new_sha256']}
+        shared[path] = {'bytes': current[path]['new_bytes'], 'sha256': current[path]['new_sha256']}
+    if later_fixture is not None:
+        for path in LATER_SHARED_PATHS:
+            shared[path] = {'bytes': current[path]['new_bytes'], 'sha256': current[path]['new_sha256']}
     return {'source_adjustments': {path: adjustments[path] for path in SOURCE_PATHS},
             'shared_adjustments': {path: adjustments[path] for path in SHARED_PATHS},
             'shared_dependency_review': shared,

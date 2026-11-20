@@ -1048,9 +1048,61 @@ def _admit_terminal_sources_before_ordinary_callers(original_value, *, original_
     except FileNotFoundError:
         frozen = None
     prior = _admit_terminal_sources_before_journal(original_value, original_kind=original_kind)
-    if frozen is None:
+    if frozen is not None:
+        prior = _admit_journal_preparation_sources(original_value, original_kind, prior, frozen)
+    return _admit_component_successors(original_value, prior)
+
+
+COMPONENT_FIXTURE = 'tests/fixtures/delivery_component_successor.json'
+COMPONENT_FIXTURE_SHA256 = '2ba3ca7c9e2f51226be812c9ffc716fc7081671412cd035e1e40852b113aadd3'
+COMPONENT_PATHS = (
+    'examples/hia_bootstrap/agent_journal.hepta',
+    'tests/test_hia_agent_native_proof_contract.py',
+    'tests/test_hia_cost_ledger_native.py',
+    'tests/test_hia_store_lifecycle_native.py',
+    'tests/test_hia_worker_native_helpers.py',
+)
+
+
+def _admit_component_successors(original, prior):
+    """Keep the original full-file controls across known integrated components."""
+    from tests.hia_store_delivery_successor import reverse_exact
+
+    captured = {path: (ROOT / path).read_bytes() for path in COMPONENT_PATHS}
+    prior_pins = {path: original['unchanged_files'][path] for path in COMPONENT_PATHS}
+    changed = {path for path, raw in captured.items() if _pin(raw) != prior_pins[path]}
+    if not changed:
         return prior
-    return _admit_journal_preparation_sources(original_value, original_kind, prior, frozen)
+    try:
+        frozen = (ROOT / COMPONENT_FIXTURE).read_bytes()
+    except FileNotFoundError:
+        return prior  # The original outer controls still refuse unknown changes.
+    if sha256(frozen).hexdigest() != COMPONENT_FIXTURE_SHA256:
+        raise ValueError('native Delivery component provenance changed')
+    value = json.loads(frozen)
+    if (type(value) is not dict or set(value) != {'schema', 'original_inventories', 'files'}
+            or value['schema'] != 'hepta.hia.delivery-component-successor.v1'
+            or value['original_inventories'] != {
+                kind: {'path': name, **pin} for kind, (name, pin) in ORIGINALS.items()}
+            or type(value['files']) is not dict or set(value['files']) != set(COMPONENT_PATHS)):
+        raise ValueError('native Delivery component provenance scope differs')
+    adjustments = {}
+    for name in sorted(changed):
+        old = prior_pins[name]
+        record = value['files'][name].get(old['sha256'])
+        reverse_exact(captured[name], record, old)
+        adjustments[name] = {
+            'path': name, 'original_bytes': old['bytes'], 'original_sha256': old['sha256'],
+            'current_bytes': record['new_bytes'], 'current_sha256': record['new_sha256'],
+            'reversible_patch_fixture_sha256': COMPONENT_FIXTURE_SHA256,
+            'scope': 'fixed integrated Journal, proof identity, ledger, Store or release custody successor',
+        }
+    if ((ROOT / COMPONENT_FIXTURE).read_bytes() != frozen
+            or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())):
+        raise ValueError('native Delivery component bytes changed during admission')
+    if set(adjustments) & set(prior['source_adjustments']):
+        raise ValueError('native Delivery component and earlier successor overlap')
+    return {**prior, 'source_adjustments': {**prior['source_adjustments'], **adjustments}}
 
 
 # These two qualification-source relations are fixed together. Neither original

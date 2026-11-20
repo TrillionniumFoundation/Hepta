@@ -435,6 +435,8 @@ SOURCE_FILES = (
     'tests/fixtures/hia_artifact_delivery_terminal_cases.json',
     'tests/hia_store_delivery_successor.py',
     'tests/fixtures/store_delivery_successor_provenance.json',
+    'tests/fixtures/store_delivery_composition_successor.json',
+    'tests/fixtures/delivery_component_successor.json',
     'docs/HIA_ARTIFACT_DELIVERY.md',
     'examples/hia_bootstrap/store_transaction.hepta',
     'tools/generate_hia_store_transaction.py',
