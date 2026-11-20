@@ -167,6 +167,18 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             else:
                 raise RuntimeError('invalid native call-argument instruction')
 
+    def workload_case(self, total, observed):
+        """Admit the current case or reject before inspecting later snapshots."""
+        size = WORD_MASK if observed is None else min(observed, WORD_MASK - 1)
+        status, updated = self._request(struct.pack('<4Q', MAGIC, 44, total, size))
+        if status == 0:
+            return updated
+        if status == 1:
+            reject('E_HIA_ABI', 'workload names an unavailable public entry')
+        if status == 2:
+            reject('E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots')
+        raise RuntimeError('invalid native workload case decision')
+
     def _request(self, wire):
         return self._response(wire, 24, '<3Q')
 

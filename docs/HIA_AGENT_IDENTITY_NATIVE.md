@@ -54,8 +54,16 @@ and verified SHA-256. HIA builds the canonical Store content-key object.
 When the selected Store also pins the HIA SHA-256 stream, that stream hashes
 the object; the resulting key is unchanged for previously retained records.
 
+Operation 44 admits one case of a frozen evaluation workload at a time.
+Its two input words are the accumulated external snapshot bytes and either
+the current case's validated snapshot size or an all-ones word for an
+unavailable entry. The response contains the magic, a decision (0 accepted,
+1 unavailable entry, or 2 aggregate budget exceeded), and the accumulated
+bytes. Exact 32 MiB is accepted. A refusal ends admission before any later
+case requests a snapshot observation.
+
 Malformed input packet returns 0xfffffffd. Insufficient output returns
-0xfffffffe without writing output. No scratch workspace is required or touched.
+0xfffffffe without writing output. Operation 44 does not use scratch workspace.
 
 Build with `python -B -m tools.build_hia_agent_identity --compiler B3.image.bin
 --cold-report cold.json --output NEW_DIRECTORY`. A complete matching cold

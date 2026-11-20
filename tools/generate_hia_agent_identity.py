@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_buffers import MAX_WORKLOAD_BUFFER_BYTES
 from hepta.hia_agent_identity_native import (
     ABI_SCALAR_IDS, EXACT_COMPARISON_CHUNK, PROOF_EFFECT_IDS, PROOF_OPCODE_IDS,
 )
@@ -150,6 +151,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return workload_exports(s, o, w)
     if kind == 43:
         return abi_arguments(s, o)
+    if kind == 44:
+        return workload_case(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -225,7 +228,7 @@ def context_policy(s:readbuf, o:mutbuf, kind:u64) -> u32:
                 return 4294967293
             total = total + size
             offset = offset + 8
-        if total > 33554432:
+        if total > @MAX_WORKLOAD_BUFFER_BYTES@:
             decision = 5
     else:
         return 4294967293
@@ -1127,6 +1130,27 @@ def abi_arguments(s:readbuf, o:mutbuf) -> u32:
         index = index + 1
     return abi_arguments_reply(o, 0, index, total)
 
+def workload_case(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 32:
+        return 4294967293
+    total = read_word(s, 16)
+    observed = read_word(s, 24)
+    if total > @MAX_WORKLOAD_BUFFER_BYTES@:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    status = 0
+    if observed == 18446744073709551615:
+        status = 1
+    elif observed > @MAX_WORKLOAD_BUFFER_BYTES@ - total:
+        status = 2
+    else:
+        total = total + observed
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, status)
+    put(o, 16, total)
+    return 24
+
 def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 32:
         return 4294967293
@@ -1550,6 +1574,7 @@ def source_program():
             .replace('@ARTIFACT_UTF8@', str(int.from_bytes(b'utf8', 'little')))
             .replace('@BOOL_ABI_ROLE@', str(ABI_SCALAR_IDS['bool']))
             .replace('@MAX_EXPORT_EXTENT@', str(MAX_EXTENT))
+            .replace('@MAX_WORKLOAD_BUFFER_BYTES@', str(MAX_WORKLOAD_BUFFER_BYTES))
             .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n'
             + cost_receipt_source() + artifact_receipt_source()
             + receipt_template('context_manifest', CONTEXT_MANIFEST)

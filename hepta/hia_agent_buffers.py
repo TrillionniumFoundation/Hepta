@@ -106,12 +106,28 @@ def _reference_validate_arguments(signature, arguments):
 
 
 def validate_cases(signatures, cases):
+    from .hia_agent_store import _native_agent_identity
+
+    policy = _native_agent_identity()
+    if policy is not None:
+        total = 0
+        for case in cases:
+            signature = signatures.get(case["function"])
+            observed = (None if signature is None
+                        else policy.call_arguments(signature, case["arguments"],
+                                                   snapshot_profile=PROFILE, snapshot_size=buffer_size))
+            total = policy.workload_case(total, observed)
+        return total
+    return _reference_validate_cases(signatures, cases)
+
+
+def _reference_validate_cases(signatures, cases):
     total = 0
     for case in cases:
         signature = signatures.get(case["function"])
         if signature is None:
             reject("E_HIA_ABI", "workload names an unavailable public entry")
-        total += validate_arguments(signature, case["arguments"])
+        total += _reference_validate_arguments(signature, case["arguments"])
         if total > MAX_WORKLOAD_BUFFER_BYTES:
             reject("E_HIA_BUFFER_BUDGET", "frozen workload exceeds 32 MiB of external byte snapshots")
     return total

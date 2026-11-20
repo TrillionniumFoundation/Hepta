@@ -61,6 +61,15 @@ class AgentIdentitySourceTests(unittest.TestCase):
         self.assertEqual(SOURCE.read_text(),render_assembly(document()))
         self.assertEqual(len(witnesses()),10)
 
+    def test_workload_case_wire_in_independent_vm(self):
+        maximum = 32 * 1024 * 1024
+        for total, size, status, updated in (
+            (maximum - 1, 1, 0, maximum), (maximum, 1, 2, maximum),
+            (maximum, (1 << 64) - 1, 1, maximum),
+        ):
+            framed = packet(44, struct.pack('<2Q', total, size))
+            self.assertEqual(vm(framed, 0), (24, expected(status, updated)))
+
     def test_observation_protocol_distinguishes_omission_and_reference_ledger(self):
         fields = [(b'returned', b'returned'), (b'[1]', b'[1]'), (b'[]', b''),
                   (b'null', b'null'), (b'{"live":0}', b'{"live":1}')]
@@ -761,6 +770,51 @@ class AgentIdentityNativeTests(unittest.TestCase):
         self.assertEqual(self.raw(empty, 32), (32, struct.pack('<4Q', RESULT_MAGIC, 0, 0, 0)))
         self.assertEqual(self.raw(empty, 31)[0], 0xfffffffe)
         self.assertEqual(self.raw(empty + b'x', 32)[0], 0xfffffffd)
+
+    def test_workload_case_budget_and_prioritized_refusals_use_native_decisions(self):
+        from hepta import hia_agent_buffers as buffers
+        from hepta.hia_native_byte_abi import MAX_EXTENT
+
+        maximum = buffers.MAX_WORKLOAD_BUFFER_BYTES
+        signature = {'params': ['readbuf'], 'abi': buffers.PROFILE, 'max_buffer_bytes': MAX_EXTENT}
+        signatures = {'read': signature}
+        missing = {'function': 'missing'}
+        invalid = {'function': 'read', 'arguments': [{}]}
+
+        def case(size):
+            return {'function': 'read', 'arguments': [{'byte_length': size, 'fill_byte': 0}]}
+
+        boundary = [case(MAX_EXTENT)] * (maximum // MAX_EXTENT)
+
+        def observe(validate, cases):
+            snapshots = []
+            original = buffers.buffer_size
+
+            def snapshot(value):
+                snapshots.append(value)
+                return original(value)
+
+            with patch.object(buffers, 'buffer_size', side_effect=snapshot):
+                try:
+                    return validate(signatures, iter(cases)), snapshots
+                except AgentRejected as error:
+                    return (error.code, error.phase, str(error)), snapshots
+
+        for cases in ([], [case(0)], boundary, boundary + [case(0)], boundary + [case(1), missing, invalid],
+                      boundary + [missing, case(1)], boundary + [invalid, case(1)]):
+            reference = observe(buffers._reference_validate_cases, cases)
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch.object(buffers, '_reference_validate_cases', side_effect=AssertionError('host cases'))):
+                self.assertEqual(observe(buffers.validate_cases, cases), reference)
+
+        framed = packet(44, struct.pack('<2Q', maximum - 1, 1))
+        self.assertEqual(self.raw(framed), (24, expected(0, maximum)))
+        self.assertEqual(self.raw(framed, 23)[0], 0xfffffffe)
+        self.assertEqual(self.raw(framed + b'\x00')[0], 0xfffffffd)
+        self.assertEqual(self.raw(packet(44, struct.pack('<2Q', maximum + 1, 0)))[0], 0xfffffffd)
+        self.assertEqual(self.raw(packet(44, struct.pack('<2Q', maximum, 1))), (24, expected(2, maximum)))
+        self.assertEqual(self.raw(packet(44, struct.pack('<2Q', maximum, (1 << 64) - 1))),
+                         (24, expected(1, maximum)))
 
     def test_public_context_limits_match_reference_and_use_native_decisions(self):
         from hepta.hia_agent_service import HIAAgentService
