@@ -16,7 +16,10 @@ AUTHORITY_SHA256 = '1808488c0fe6c66bf9424eb64f9fe7bef4a2ce6028b1ab41b7d3cefc7b5d
 WORKERS = {
     1: {'bytes': 8496, 'sha256': '4e6a64b551e34805106fa1d4b888a48f9a2a138d2f82d4091b4412bf65862066'},
     2: {'bytes': 11444, 'sha256': '6352879dc0e58515a6af9b2a586a5efa27f4018fb19d49a379ab72425eebf45a'},
+    3: {'bytes': 16086, 'sha256': 'd5f9f7ab7057e19c38aa263ae2acfa3494fec950f6f85299110f7522224dd172'},
 }
+DELIVERY_V3 = {'bytes': 50071, 'sha256': '08687e1997e8d4c7cc5f9807398f6fd765767af3b49d3b3b4b449383ce0167aa'}
+DELIVERY_PATH = 'hepta/hia_native_delivery.py'
 
 
 def require(value, message):
@@ -93,6 +96,8 @@ def admit_source_authority(captured, root):
     for name, expected in value['current_dependencies'].items():
         path = PurePosixPath(name)
         require(not path.is_absolute() and '..' not in path.parts, 'unsafe terminal dependency path')
+        if name == DELIVERY_PATH and version == 3:
+            expected = DELIVERY_V3
         equal(digest(captured.raw(root / name)), expected)
     return {'schema': value['schema'], 'authority': digest(raw), 'worker_profile': profile,
             'original_sources': originals, 'current_sources': current,

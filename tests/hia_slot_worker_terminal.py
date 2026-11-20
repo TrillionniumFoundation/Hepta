@@ -1,8 +1,8 @@
 """Version-pinned installed Slot terminal observations; no product substitution.
 
 The original source/assertions are recovered byte for byte by the fixed
-successor authority. Only the two reviewed complete worker sources select an
-exit contract. Observations retain integer identities, never extra exceptions
+successor authority. Only reviewed complete worker sources select an exit
+contract. Observations retain integer identities, never extra exceptions
 or resources, and call each real product boundary exactly once.
 """
 from __future__ import annotations
@@ -18,7 +18,10 @@ AUTHORITY_SHA256 = '1808488c0fe6c66bf9424eb64f9fe7bef4a2ce6028b1ab41b7d3cefc7b5d
 WORKERS = {
     1: {'bytes': 8496, 'sha256': '4e6a64b551e34805106fa1d4b888a48f9a2a138d2f82d4091b4412bf65862066'},
     2: {'bytes': 11444, 'sha256': '6352879dc0e58515a6af9b2a586a5efa27f4018fb19d49a379ab72425eebf45a'},
+    3: {'bytes': 16086, 'sha256': 'd5f9f7ab7057e19c38aa263ae2acfa3494fec950f6f85299110f7522224dd172'},
 }
+DELIVERY_V3 = {'bytes': 50071, 'sha256': '08687e1997e8d4c7cc5f9807398f6fd765767af3b49d3b3b4b449383ce0167aa'}
+DELIVERY_PATH = 'hepta/hia_native_delivery.py'
 ORIGINAL_WORKER = 'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt'
 
 
@@ -93,6 +96,8 @@ class SourceAuthority:
             raise ValueError('complete original worker authority changed')
         self.profile = worker_profile(self.read('hepta/hia_agent_worker.py'))
         for name, expected in self.value['current_dependencies'].items():
+            if name == DELIVERY_PATH and self.profile['version'] == 3:
+                expected = DELIVERY_V3
             if pin(self.read(name)) != expected:
                 raise ValueError('terminal observation dependency changed: ' + name)
 
@@ -124,7 +129,7 @@ class TerminalObservation:
         self.terminal_calls = 0
         self.facts = None
         self.originals = (worker.note_request_failure, worker._unknown_request_exit,
-                          service.HIAAgentService.close) if self.profile['version'] == 2 else None
+                          service.HIAAgentService.close) if self.profile['lost_ack_exit'] == 2 else None
         if self.originals is None:
             return
         original_note, original_terminal, original_close = self.originals
