@@ -28,6 +28,49 @@ def normalize_frame(admission, formatter):
     return struct.pack('<3Q', NORMALIZE_MAGIC, len(admission), len(formatter)) + admission + formatter
 
 
+def totality_cases():
+    def core(blocks, effects=()):
+        return {'schema': 'hepta.hia.program.v9', 'module': 'termination',
+                'functions': [{'name': 'f', 'params': [{'name': 'pick', 'type': 'bool'}],
+                               'returns': [], 'effects': list(effects), 'entry': 'start', 'blocks': blocks}]}
+
+    def block(name, term):
+        parameters = [{'name': 'pick', 'type': 'bool'}] if name == 'start' else []
+        return {'id': name, 'params': parameters, 'ops': [], 'term': term}
+
+    def branch(left, right):
+        return {'op': 'branch', 'cond': 'pick', 'then': {'target': left, 'args': []},
+                'else': {'target': right, 'args': []}}
+
+    returned = block('end', {'op': 'ret', 'values': []})
+    start = block('start', branch('end', 'middle'))
+    acyclic = core([start, block('middle', {'op': 'jump', 'target': 'end', 'args': []}), returned])
+    cyclic = core([block('start', branch('end', 'spin')), returned,
+                   block('spin', {'op': 'jump', 'target': 'spin', 'args': []})])
+    trap = core([start, returned, block('middle', {'op': 'trap', 'code': 'division_by_zero'})], ('trap',))
+    wrap, checked = copy.deepcopy(acyclic), copy.deepcopy(acyclic)
+    for program, opcode, effects in ((wrap, 'int.add.wrap', []), (checked, 'int.div.checked', ['trap'])):
+        function, = program['functions']
+        function['effects'] = effects
+        function['blocks'][0]['ops'] = [
+            {'op': 'const', 'args': [], 'attrs': {'value': 0}, 'out': [{'name': 'zero', 'type': 'u8'}]},
+            {'op': opcode, 'args': ['zero', 'zero'], 'attrs': {},
+             'out': [{'name': 'sum', 'type': 'u8'}]},
+        ]
+    return ((acyclic, True), (wrap, True), (cyclic, False), (trap, False), (checked, False))
+
+
+def assert_totality_report(test, raw, result, expected):
+    report = json.loads(result)
+    test.assertEqual(report, {
+        'schema': 'hepta.hia.core-structural-totality.v1', 'input_sha256': sha256(raw).hexdigest(),
+        'function': 'f', 'status': 'proved' if expected else 'unknown',
+        'reason': 'acyclic_nontrapping_core' if expected else 'outside_structural_totality_profile',
+        'all_inputs_return_normally_proved': expected,
+        'native_backend_refinement_proved': False, 'execution_authority': False,
+    })
+
+
 class CoreAdmissionCliSourceTests(unittest.TestCase):
     def test_actual_generated_source_and_full_Core_scratch_not_compiler_profile(self):
         from hepta.hia_agent_assembly import render_assembly, assemble_program
@@ -119,6 +162,42 @@ class CoreAdmissionCliSourceTests(unittest.TestCase):
         for packet in (request[1:], request[:-1], request+b' ', request[:16]+bytes(8)+request[24:]):
             self.assertEqual(vm_run(packer, packet, 4096, 1)[0], 0xffffffff)
         self.assertEqual(vm_run(packer, request, 64, 1)[0], 0xfffffffe)
+
+    def test_totality_sources_and_independent_VM_bind_the_exact_admitted_input(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_core_totality import packer_document, proof_document
+
+        source = SOURCE.with_name('core_structural_totality.hepta')
+        packer = SOURCE.with_name('core_totality_cli_packer.hepta')
+        self.assertEqual(source.read_text(), render_assembly(proof_document()))
+        self.assertEqual(packer.read_text(), render_assembly(packer_document()))
+        for case, expected in totality_cases():
+            raw = b'  ' + wire(case) + b'\n'
+            self.assertEqual(interpreted(raw), 0)
+            size, response = vm_run(source, raw, 16384, 65536)
+            self.assertEqual(len(response), size)
+            assert_totality_report(self, raw, response, expected)
+
+
+@unittest.skipUnless(os.environ.get('HIA_TEST_CORE_TOTALITY_EXE'), 'standalone totality checker required')
+class CoreTotalityExecutableTests(unittest.TestCase):
+    def test_only_proves_admitted_acyclic_nontrapping_programs_on_empty_path(self):
+        with tempfile.TemporaryDirectory(prefix='hia-totality-executable-') as parent:
+            executable = Path(parent) / 'hia-totality-core'
+            shutil.copyfile(os.environ['HIA_TEST_CORE_TOTALITY_EXE'], executable)
+            executable.chmod(0o500)
+            for case, expected in totality_cases():
+                raw = b'  ' + wire(case) + b'\n'
+                result = subprocess.run([executable], cwd=parent, input=raw, capture_output=True,
+                                        env={'PATH': ''}, timeout=10)
+                self.assertEqual((result.returncode, result.stderr), (0, b''))
+                assert_totality_report(self, raw, result.stdout, expected)
+            tampered = copy.deepcopy(totality_cases()[0][0])
+            tampered['functions'][0]['blocks'][0]['term']['then']['target'] = 'missing'
+            for invalid in (wire(tampered), b'{"functions":[]}'):
+                result = subprocess.run([executable], cwd=parent, input=invalid, capture_output=True,
+                                        env={'PATH': ''}, timeout=10)
+                self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
 
 class CoreAdmissionCliNativeTests(unittest.TestCase):

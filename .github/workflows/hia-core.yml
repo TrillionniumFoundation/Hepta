@@ -976,6 +976,10 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$package/selector"
           python -B -m tools.build_hia_core_admission_cli --suite --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-suite"
+          python -B -m tools.build_hia_core_admission_cli --totality --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/core-totality"
+          python -B -m tools.build_hia_proof_cnf --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/proof-cnf"
           python -B -m tools.build_hia_agent_stdio --output-profile portable --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/agent-stdio"
           python -B -m tools.build_hia_source_build --compiler "$compiler" \
@@ -1013,6 +1017,8 @@ jobs:
             "$package/packager/hia-directory-package-build" \
             "$package/selector/hia-select" \
             "$RUNNER_TEMP/core-suite/hia-core" \
+            "$RUNNER_TEMP/core-totality/hia-totality-core" \
+            "$RUNNER_TEMP/proof-cnf/hia-proof-cnf" \
             "$RUNNER_TEMP/agent-stdio/hia-native" \
             "$RUNNER_TEMP/source-build/hia-source-build" \
             "$RUNNER_TEMP/elf-linker/hia-elf-link" \
@@ -1107,6 +1113,9 @@ jobs:
           env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/core_inspect_json.hepta \
             > "$package/installed-core-inspector.image.bin"
           cmp "$RUNNER_TEMP/core-suite/core-inspect-json.image.bin" "$package/installed-core-inspector.image.bin"
+          env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/core_structural_totality.hepta \
+            > "$package/installed-core-totality.image.bin"
+          cmp "$RUNNER_TEMP/core-totality/core-structural-totality.image.bin" "$package/installed-core-totality.image.bin"
           env -i PATH= "$installed/hia-native" assemble < examples/hia_bootstrap/sqlite_migration_plan.hepta \
             > "$package/installed-migration-plan.image.bin"
           cmp "$RUNNER_TEMP/sqlite-components/sqlite-migration-plan/sqlite-migration-plan.image.bin" \
@@ -1268,6 +1277,10 @@ jobs:
           PYWR
           HIA_TEST_WORKER_PREPARE_EXE="$installed/hia-worker-prepare" \
             python -B -m unittest tests.test_hia_worker_prepare
+          HIA_TEST_CORE_TOTALITY_EXE="$installed/hia-totality-core" \
+            python -B -m unittest tests.test_hia_core_admission_cli.CoreTotalityExecutableTests
+          HEPTA_HIA_PROOF_CNF_EXECUTABLE="$installed/hia-proof-cnf" \
+            python -B -m unittest tests.test_hia_cnf_native.CnfStandaloneTests
           python -B -m tests.test_hia_worker_terminal_runtime "$installed/hia-worker-terminal"
           (
             cd "$RUNNER_TEMP/hia-cold.cold/source"

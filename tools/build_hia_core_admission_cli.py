@@ -20,6 +20,7 @@ from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_core_admission_cli import INSPECT_MAGIC, MAGIC, NORMALIZE_MAGIC
 from tools.generate_hia_core_suite import SUITE_MAGIC
+from tools.generate_hia_core_totality import MAGIC as TOTALITY_MAGIC
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -32,14 +33,15 @@ MODES = {
     'verify': (MAGIC, PACKER.name, ()),
     'normalize': (NORMALIZE_MAGIC, 'core_normalize_cli_packer.hepta', ('core_pretty_json.hepta',)),
     'inspect': (INSPECT_MAGIC, 'core_inspect_cli_packer.hepta', ('core_inspect_json.hepta',)),
+    'totality': (TOTALITY_MAGIC, 'core_totality_cli_packer.hepta', ('core_structural_totality.hepta',)),
     'suite': (SUITE_MAGIC, 'core_suite_packer.hepta',
               ('core_suite_dispatch.hepta', 'core_pretty_json.hepta', 'core_inspect_json.hepta')),
 }
 
 
-def build(output, compiler, cold_report, *, normalize=False, inspect=False, suite=False):
-    selected = [name for name, enabled in (('normalize', normalize), ('inspect', inspect), ('suite', suite))
-                if enabled]
+def build(output, compiler, cold_report, *, normalize=False, inspect=False, suite=False, totality=False):
+    selected = [name for name, enabled in (('normalize', normalize), ('inspect', inspect),
+        ('suite', suite), ('totality', totality)) if enabled]
     if len(selected) > 1:
         raise ValueError('select only one Core CLI output mode')
     action = selected[0] if selected else 'verify'
@@ -120,8 +122,9 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False, suit
                        native_component_compile_receipts=component_receipts)
     elif component_receipts:
         formatter_receipt, = component_receipts.values()
-        description = ('primitive Core inspection and canonical identity as UTF-8 JSON' if inspect
-                       else 'admitted primitive Core as sorted indented UTF-8 JSON')
+        description = {'inspect': 'primitive Core inspection and canonical identity as UTF-8 JSON',
+                       'normalize': 'admitted primitive Core as sorted indented UTF-8 JSON',
+                       'totality': 'exact-input structural totality or unknown, without execution authority'}[action]
         receipt.update(status=f'NATIVE_CORE_{action.upper()}_CLI_BUILT',
                        formatter_image_sha256=formatter_receipt['produced_sha256'],
                        native_formatter_compile_receipt=formatter_receipt,
@@ -139,5 +142,7 @@ if __name__ == '__main__':
     mode.add_argument('--normalize', action='store_true', help='build hia-normalize-core instead of hia-verify-core')
     mode.add_argument('--inspect', action='store_true', help='build hia-inspect-core instead of hia-verify-core')
     mode.add_argument('--suite', action='store_true', help='build hia-core with the verification and view commands')
+    mode.add_argument('--totality', action='store_true', help='build the standalone structural totality checker')
     a = p.parse_args()
-    print(build(a.output.resolve(), a.compiler.resolve(), a.cold_report.resolve(), normalize=a.normalize, inspect=a.inspect, suite=a.suite))
+    print(build(a.output.resolve(), a.compiler.resolve(), a.cold_report.resolve(),
+                normalize=a.normalize, inspect=a.inspect, suite=a.suite, totality=a.totality))

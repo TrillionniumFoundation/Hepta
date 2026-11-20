@@ -341,16 +341,18 @@ def structural_totality(s:readbuf, o:mutbuf) -> u32:
 '''
 
 
+NONTRAPPING_OPS = ('int.add.wrap', 'int.sub.wrap', 'int.mul.wrap', 'bit.and', 'bit.or', 'bit.xor',
+                   'bit.not', 'compare.eq', 'compare.ne', 'compare.lt', 'compare.le',
+                   'compare.gt', 'compare.ge', 'bool.not', 'bool.and', 'bool.or', 'select')
+
+
 def document():
-    total_ops = ('int.add.wrap', 'int.sub.wrap', 'int.mul.wrap', 'bit.and', 'bit.or', 'bit.xor',
-                 'bit.not', 'compare.eq', 'compare.ne', 'compare.lt', 'compare.le',
-                 'compare.gt', 'compare.ge', 'bool.not', 'bool.and', 'bool.or', 'select')
     constants = {'MAGIC': MAGIC, 'RESULT': RESULT, 'MAX_NODES': MAX_NODES, 'ORDER_MAGIC': ORDER_MAGIC,
                  'MAX_BLOCKS': MAX_BLOCKS, 'MAX_OPERATIONS': MAX_OPERATIONS,
                  'MAX_PARAMETERS': MAX_PARAMETERS, 'MAX_RETURNS': MAX_RETURNS,
                  'CONTROL_MAGIC': CONTROL_MAGIC, 'MAX_EDGES': MAX_EDGES, **OPCODES,
                  'TOTALITY_MAGIC': TOTALITY_MAGIC,
-                 'NONTRAPPING': 1 | sum(1 << OPCODES[name] for name in total_ops),
+                 'NONTRAPPING': 1 | sum(1 << OPCODES[name] for name in NONTRAPPING_OPS),
                  **{'t.' + name: code for name, code in TOTALITY_TERMINATORS.items()},
                  **{'c.' + name: code for name, code in CONTROL_KINDS.items()},
                  **{'n.' + name: code for name, code in OPERATIONS.items()}}
