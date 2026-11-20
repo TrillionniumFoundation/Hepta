@@ -10,6 +10,7 @@ size-sealed shared output preserves real writes after native traps. No child is 
 from __future__ import annotations
 from contextlib import contextmanager
 import fcntl
+import gzip
 from hashlib import sha256
 import json
 import os
@@ -250,6 +251,11 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
             fresh_native_exec=True,successor_process_reuse=False)
         if observer.read_bytes()!=executable or image.read_bytes()!=image_bytes or input_path.read_bytes()!=source:
             raise AssertionError('native observer or immutable inputs changed')
+        if result['status'] == 'returned':
+            # Losslessly retain actual stdout; receipts are not binary frames.
+            raw_stdout = process.stdout
+            (directory / (label + '.stdout.raw.gz')).write_bytes(gzip.compress(raw_stdout, compresslevel=1, mtime=0))
+            result['raw_stdout'] = {'bytes': len(raw_stdout), 'sha256': digest(raw_stdout)}
         (directory/(label+'.stdout.log')).write_text(json.dumps(result,sort_keys=True)+'\n')
         (directory/(label+'.stderr.log')).write_bytes(stderr)
         (directory/(label+'.receipt.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
