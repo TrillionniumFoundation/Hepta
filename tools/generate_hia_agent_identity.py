@@ -155,6 +155,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return workload_case(s, o)
     if kind == 45:
         return direct_call_receipt(s, o)
+    if kind == 46:
+        return direct_call_capture(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1203,6 +1205,25 @@ def direct_call_receipt(s:readbuf, o:mutbuf) -> u32:
     if (spec & 128) != 0 and value >= (1 << (width - 1)):
         return direct_receipt_reply(o, 0, duration, variation, 4, (0 - value) & mask, 0)
     return direct_receipt_reply(o, 0, duration, variation, 3, value, 0)
+
+def direct_call_capture(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 80:
+        return 4294967293
+    version = read_word(s, 16)
+    timeout = read_word(s, 32)
+    if (version != 1 and version != 2) or timeout > 1:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    if timeout != 0 or read_word(s, 24) != 0:
+        return finite_function_reply(o, 0)
+    if read_word(s, 40) > read_word(s, 56) or read_word(s, 48) > 65536:
+        return finite_function_reply(o, 0)
+    expected = choose(version == 1, 24, 32)
+    magic = choose(version == 1, @DIRECT_REPLY_V1@, @DIRECT_REPLY_V2@)
+    if read_word(s, 64) != expected or read_word(s, 72) != magic:
+        return finite_function_reply(o, 2)
+    return finite_function_reply(o, 1)
 
 def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 32:

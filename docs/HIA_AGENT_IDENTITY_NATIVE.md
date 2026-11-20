@@ -69,6 +69,12 @@ return word, including exact narrow signed values. The host still observes
 the actual child process and owned buffers and compares the complete result
 against the caller's expectation.
 
+Operation 46 checks whether to retain a direct receipt or stop a batch. It
+consumes the existing deadline observation, process return status, cumulative
+stdout and stderr sizes, and the child receipt's length and magic. A timeout,
+nonzero process status, or output overflow wins over a malformed receipt and
+does not become a framing error. Process and buffer custody remain external.
+
 Malformed input packet returns 0xfffffffd. Insufficient output returns
 0xfffffffe without writing output. Operation 44 does not use scratch workspace.
 

@@ -326,6 +326,8 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
                       memory_bytes, deadline, protocol, warmup, repetitions):
     from .hia_scalar_reference_native import sealed_reference_bytes
 
+    native = _native_agent_identity()
+    check_capture = _reference_direct_capture if native is None else native.direct_call_capture
     receipts, stdout, stderr = [], bytearray(), bytearray()
     returncode, timed_out = None, False
     with (sealed_reference_bytes(artifact_bytes) as artifact, sealed_reference_bytes(executable) as runner):
@@ -343,14 +345,20 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
                     timeout=max(0, (deadline - time.monotonic_ns()) / 1_000_000_000), **options)
             stdout.extend(out)
             stderr.extend(err)
-            if timed_out or returncode != 0 or len(stdout) > _REPORT_LIMIT or len(stderr) > 65536:
-                break
-            expect = (32, b'HIADRR02') if protocol >= 2 else (24, b'HIADRR01')
-            if (len(out), out[:8]) != expect:
-                returncode = _REPORT_TOO_LARGE
+            decision = check_capture(protocol, returncode, timed_out, len(stdout), len(stderr), _REPORT_LIMIT, out)
+            if decision != 1:
+                if decision == 2:
+                    returncode = _REPORT_TOO_LARGE
                 break
             receipts.append(out)
     return returncode, stdout, stderr, timed_out, receipts
+
+
+def _reference_direct_capture(protocol, returncode, timed_out, stdout_size, stderr_size, limit, raw):
+    if timed_out or returncode != 0 or stdout_size > limit or stderr_size > 65536:
+        return 0
+    expect = (32, b'HIADRR02') if protocol >= 2 else (24, b'HIADRR01')
+    return 1 if (len(raw), raw[:8]) == expect else 2
 
 
 def _direct_observation(raw, signature, case, external, protocol, decode_receipt):

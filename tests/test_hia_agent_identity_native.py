@@ -80,6 +80,14 @@ class AgentIdentitySourceTests(unittest.TestCase):
         self.assertEqual(vm(framed[:-1], 0, 56),
                          (56, struct.pack('<7Q', RESULT_MAGIC, 1, 0, 0, 0, 0, 0)))
 
+    def test_direct_batch_capture_preserves_stop_priority_in_vm(self):
+        for returncode, timeout, stdout, size, decision in (
+            (0, 0, 32, 32, 1), (0, 0, 31, 31, 2), (0, 0, 33, 31, 0),
+            ((1 << 64) - 6, 0, 32, 31, 0), (0, 1, 32, 31, 0),
+        ):
+            framed = packet(46, struct.pack('<7Q8s', 2, returncode, timeout, stdout, 65536, 32, size, b'HIADRR02'))
+            self.assertEqual(vm(framed, 0), (24, expected(1, decision)))
+
     def test_observation_protocol_distinguishes_omission_and_reference_ledger(self):
         fields = [(b'returned', b'returned'), (b'[1]', b'[1]'), (b'[]', b''),
                   (b'null', b'null'), (b'{"live":0}', b'{"live":1}')]
@@ -867,6 +875,20 @@ class AgentIdentityNativeTests(unittest.TestCase):
             case = {'expected': {'status': 'returned', 'values': [7], 'buffers': [snapshot]}}
             for unchanged in (False, True):
                 compare(raw, signature, case, [(snapshot, unchanged)], 3)
+
+    def test_direct_batch_capture_uses_exact_reference_precedence(self):
+        from hepta.hia_agent_runner import _reference_direct_capture
+
+        for protocol in (1, 2, 3):
+            good = (b'HIADRR01' + bytes(16)) if protocol == 1 else (b'HIADRR02' + bytes(24))
+            for raw in (good, good[:-1], good + bytes(1), b'WRONGKEY' + good[8:]):
+                for returncode, timeout, out_size, err_size in (
+                    (0, False, 100, 65536), (0, False, 101, 65536), (0, False, 100, 65537),
+                    (0, True, 100, 65536), (2, False, 100, 65536), (-6, False, 100, 65536),
+                    (None, False, 100, 65536),
+                ):
+                    fields = (protocol, returncode, timeout, out_size, err_size, 100, raw)
+                    self.assertEqual(self.native.direct_call_capture(*fields), _reference_direct_capture(*fields))
 
     def test_public_context_limits_match_reference_and_use_native_decisions(self):
         from hepta.hia_agent_service import HIAAgentService

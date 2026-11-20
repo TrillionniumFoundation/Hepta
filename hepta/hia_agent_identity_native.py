@@ -200,6 +200,16 @@ class NativeAgentIdentity(NativeHiaJsonImage):
         values = ([], [None], [bool(word)], [word], [-word])[kind]
         return {'status': 'returned', 'values': values}, duration, variation
 
+    def direct_call_capture(self, protocol, returncode, timed_out, stdout_size, stderr_size, limit, raw):
+        version = 2 if protocol >= 2 else 1
+        process_status = WORD_MASK if returncode is None else returncode & WORD_MASK
+        frame = struct.pack('<9Q8s', MAGIC, 46, version, process_status, int(timed_out),
+                            stdout_size, stderr_size, limit, len(raw), raw[:8])
+        valid, decision = self._request(frame)
+        if valid != 1 or decision not in (0, 1, 2):
+            raise RuntimeError('invalid native direct capture decision')
+        return decision
+
     def _request(self, wire):
         return self._response(wire, 24, '<3Q')
 

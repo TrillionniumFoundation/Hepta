@@ -609,6 +609,7 @@ jobs:
           HIA_TEST_DIRECT_CALL="$RUNNER_TEMP/direct-call/hia-direct-call" \
             HIA_TEST_DIRECT_LINKER="$native_store/elf-shared-linker-manifest.json" \
             HIA_TEST_REPORT_WIRE="$RUNNER_TEMP/direct-call-worker-report/wire/manifest.json" \
+            HEPTA_HIA_AGENT_IDENTITY_MANIFEST="$native_store/agent-identity-manifest.json" \
             python -B -m unittest tests.test_hia_direct_call -v
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
