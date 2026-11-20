@@ -20,6 +20,8 @@ INPUT_MAGIC = b'HIAWPR01'
 OUTPUT_MAGIC = b'HIAWPO01'
 JOB_INPUT_MAGIC = b'HIAJID01'
 JOB_OUTPUT_MAGIC = b'HIAJDO01'
+REUSE_INPUT_MAGIC = b'HIAJRE01'
+REUSE_OUTPUT_MAGIC = b'HIAJRO01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -29,6 +31,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     magic = word_load(s, 0)
     if magic == JOB_INPUT_MAGIC:
         return job_identity(s, o, w)
+    if magic == REUSE_INPUT_MAGIC:
+        return job_reuse(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -168,6 +172,42 @@ def hex(value:u64) -> u64:
     if value < 10:
         return 48 + value
     return 87 + value
+
+def job_reuse(s:readbuf, o:mutbuf) -> u64:
+    n = length(s)
+    if n < 88 or n > 152:
+        return 4294967293
+    fingerprint = word_load(s, 8)
+    present = word_load(s, 16)
+    if present > 1 or (present == 0 and n != 88):
+        return 4294967293
+    if length(o) < 16:
+        return 4294967294
+    prefix = 0
+    equal = 1
+    index = 0
+    while index < 64:
+        value = byte(s, 24 + index)
+        digit = 0
+        if value >= 48 and value <= 57:
+            digit = value - 48
+        elif value >= 97 and value <= 102:
+            digit = value - 87
+        else:
+            return 4294967293
+        if index < 16:
+            prefix = prefix * 16 + digit
+        if n == 152 and byte(s, 88 + index) != value:
+            equal = 0
+        index = index + 1
+    decision = 1
+    if present == 0:
+        decision = 2
+    elif n == 152 and equal != 0 and fingerprint == prefix:
+        decision = 0
+    word_store(o, 0, REUSE_OUTPUT_MAGIC)
+    word_store(o, 8, decision)
+    return 16
 '''
 
 LITERALS = {
@@ -190,6 +230,8 @@ def source_program():
     fixed_bytes = sum(len(LITERALS[field]) for field in envelope_fields) + 3 * 64 + 1
     source = (SOURCE.replace('JOB_INPUT_MAGIC', str(int.from_bytes(JOB_INPUT_MAGIC, 'little')))
               .replace('JOB_OUTPUT_MAGIC', str(int.from_bytes(JOB_OUTPUT_MAGIC, 'little')))
+              .replace('REUSE_INPUT_MAGIC', str(int.from_bytes(REUSE_INPUT_MAGIC, 'little')))
+              .replace('REUSE_OUTPUT_MAGIC', str(int.from_bytes(REUSE_OUTPUT_MAGIC, 'little')))
               .replace('INPUT_MAGIC', str(int.from_bytes(INPUT_MAGIC, 'little')))
               .replace('OUTPUT_MAGIC', str(int.from_bytes(OUTPUT_MAGIC, 'little')))
               .replace('MAX_FRAGMENTS', str(524288 - fixed_bytes)))

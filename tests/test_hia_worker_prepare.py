@@ -112,6 +112,30 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             answer = self.invoke(b'HIAJID01' + body)
             self.assertEqual((answer.returncode, answer.stdout, answer.stderr), (2, b'', b''))
 
+    def test_job_reuse_requires_both_original_bindings_without_promoting_legacy_records(self):
+        digest = text_digest(b'{"binding":"original"}')
+        fingerprint = int(digest[:16], 16)
+        different_tail = b'1' if digest.endswith(b'0') else b'0'
+        for prefix, present, observed, decision in (
+            (fingerprint, 1, digest, 0),
+            (fingerprint, 1, digest[:-1] + different_tail, 1),
+            (fingerprint ^ 1, 1, digest, 1),
+            (fingerprint, 1, digest[:-1], 1),
+            (fingerprint, 1, b'', 1),
+            (fingerprint, 0, b'', 2),
+        ):
+            with self.subTest(present=present, prefix=prefix, length=len(observed), decision=decision):
+                result = self.invoke(struct.pack('<8s2Q', b'HIAJRE01', prefix, present) + digest + observed)
+                self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                 (0, struct.pack('<8sQ', b'HIAJRO01', decision), b''))
+        for invalid in (
+            struct.pack('<8s2Q', b'HIAJRE01', fingerprint, 2) + digest,
+            struct.pack('<8s2Q', b'HIAJRE01', fingerprint, 0) + digest + b'x',
+            struct.pack('<8s2Q', b'HIAJRE01', fingerprint, 1) + b'Z' * 64 + digest,
+        ):
+            result = self.invoke(invalid)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',
