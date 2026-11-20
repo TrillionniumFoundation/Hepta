@@ -1,0 +1,1431 @@
+{
+  "schema": "hepta.executable-capture.original-domain.v1",
+  "scope": "Explicit CPython 3.14.10 syscall/audit/signal ABI model; not arbitrary monkeypatched os providers",
+  "original_source_sha256": "18e881fdd56e1d8a8f391b2e16060cd29420805cab33970873d018a65e26dddf",
+  "original_body_sha256": "410e94cded049e8b41176ce8deea3e34573053de9fd7c4219d2f2ebffde72754",
+  "cases": [
+    {
+      "id": "empty",
+      "raw_hex": ""
+    },
+    {
+      "id": "one-byte",
+      "raw_hex": "61"
+    },
+    {
+      "id": "ordinary",
+      "raw_hex": "616263"
+    },
+    {
+      "id": "partial-writes",
+      "raw_hex": "616263646566",
+      "write_counts": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "zero-first-write",
+      "raw_hex": "616263",
+      "write_counts": [
+        0
+      ]
+    },
+    {
+      "id": "zero-second-write",
+      "raw_hex": "616263",
+      "write_counts": [
+        1,
+        0
+      ]
+    },
+    {
+      "id": "seal-zero",
+      "raw_hex": "616263",
+      "seals": 0
+    },
+    {
+      "id": "seal-subset",
+      "raw_hex": "616263",
+      "seals": 7
+    },
+    {
+      "id": "seal-superset",
+      "raw_hex": "616263",
+      "seals": 31
+    },
+    {
+      "id": "pread-short",
+      "raw_hex": "616263",
+      "pread_hex": "6162"
+    },
+    {
+      "id": "pread-long",
+      "raw_hex": "616263",
+      "pread_hex": "61626364"
+    },
+    {
+      "id": "pread-different",
+      "raw_hex": "616263",
+      "pread_hex": "616264"
+    },
+    {
+      "id": "kernel-memfd-errno-4",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "MEMFD",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "kernel-memfd-errno-9",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "MEMFD",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "kernel-memfd-errno-12",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "MEMFD",
+        "occurrence": 1,
+        "errno": 12
+      }
+    },
+    {
+      "id": "kernel-write-errno-4",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "kernel-write-errno-9",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "kernel-write-errno-12",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 12
+      }
+    },
+    {
+      "id": "kernel-chmod-errno-4",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "kernel-chmod-errno-9",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "kernel-chmod-errno-12",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 12
+      }
+    },
+    {
+      "id": "kernel-add_seals-errno-4",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "kernel-add_seals-errno-9",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "kernel-add_seals-errno-12",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 12
+      }
+    },
+    {
+      "id": "kernel-get_seals-errno-4",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "kernel-get_seals-errno-9",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "kernel-get_seals-errno-12",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 12
+      }
+    },
+    {
+      "id": "kernel-pread-errno-4",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "kernel-pread-errno-9",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "kernel-pread-errno-12",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 12
+      }
+    },
+    {
+      "id": "second-write-errno",
+      "raw_hex": "616263",
+      "write_counts": [
+        1,
+        2
+      ],
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 2,
+        "errno": 5
+      }
+    },
+    {
+      "id": "close-replaces-capture-errno-4",
+      "raw_hex": "616263",
+      "write_counts": [
+        0
+      ],
+      "kernel_fault": {
+        "operation": "CLOSE",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "close-replaces-capture-errno-9",
+      "raw_hex": "616263",
+      "write_counts": [
+        0
+      ],
+      "kernel_fault": {
+        "operation": "CLOSE",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "close-replaces-capture-errno-12",
+      "raw_hex": "616263",
+      "write_counts": [
+        0
+      ],
+      "kernel_fault": {
+        "operation": "CLOSE",
+        "occurrence": 1,
+        "errno": 12
+      }
+    },
+    {
+      "id": "callback-audit_chmod-OSError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-ValueError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-AttributeError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-MemoryError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-RuntimeError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-SystemExit",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-GeneratorExit",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "callback-audit_chmod-StopIteration",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-OSError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-ValueError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-AttributeError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-MemoryError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-RuntimeError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-SystemExit",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-GeneratorExit",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "callback-audit_add_seals-StopIteration",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_ADD_SEALS",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-OSError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-ValueError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-AttributeError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-MemoryError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-RuntimeError",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-SystemExit",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-GeneratorExit",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "callback-audit_get_seals-StopIteration",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_GET_SEALS",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "signal-after-write-OSError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "signal-after-write-ValueError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "signal-after-write-AttributeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "signal-after-write-MemoryError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "signal-after-write-RuntimeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "signal-after-write-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "signal-after-write-SystemExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "signal-after-write-GeneratorExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "signal-after-write-StopIteration",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "WRITE",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "signal-after-chmod-OSError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "signal-after-chmod-ValueError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "signal-after-chmod-AttributeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "signal-after-chmod-MemoryError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "signal-after-chmod-RuntimeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "signal-after-chmod-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "signal-after-chmod-SystemExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "signal-after-chmod-GeneratorExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "signal-after-chmod-StopIteration",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "CHMOD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-OSError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-ValueError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-AttributeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-MemoryError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-RuntimeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-SystemExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-GeneratorExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "signal-after-add_seals-StopIteration",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "ADD_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-OSError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-ValueError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-AttributeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-MemoryError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-RuntimeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-SystemExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-GeneratorExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "signal-after-get_seals-StopIteration",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "GET_SEALS",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "signal-after-pread-OSError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "OSError"
+      }
+    },
+    {
+      "id": "signal-after-pread-ValueError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "ValueError"
+      }
+    },
+    {
+      "id": "signal-after-pread-AttributeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "AttributeError"
+      }
+    },
+    {
+      "id": "signal-after-pread-MemoryError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "MemoryError"
+      }
+    },
+    {
+      "id": "signal-after-pread-RuntimeError",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "RuntimeError"
+      }
+    },
+    {
+      "id": "signal-after-pread-KeyboardInterrupt",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "KeyboardInterrupt"
+      }
+    },
+    {
+      "id": "signal-after-pread-SystemExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "SystemExit"
+      }
+    },
+    {
+      "id": "signal-after-pread-GeneratorExit",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "GeneratorExit"
+      }
+    },
+    {
+      "id": "signal-after-pread-StopIteration",
+      "raw_hex": "616263",
+      "kernel_fault": {
+        "operation": "PREAD",
+        "occurrence": 1,
+        "errno": 4
+      },
+      "callback_fault": {
+        "point": "CHECK_SIGNALS",
+        "occurrence": 1,
+        "family": "StopIteration"
+      }
+    },
+    {
+      "id": "close-replaces-audit-errno-4",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "ValueError"
+      },
+      "kernel_fault": {
+        "operation": "CLOSE",
+        "occurrence": 1,
+        "errno": 4
+      }
+    },
+    {
+      "id": "close-replaces-audit-errno-9",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "ValueError"
+      },
+      "kernel_fault": {
+        "operation": "CLOSE",
+        "occurrence": 1,
+        "errno": 9
+      }
+    },
+    {
+      "id": "close-replaces-audit-errno-12",
+      "raw_hex": "616263",
+      "callback_fault": {
+        "point": "AUDIT_CHMOD",
+        "occurrence": 1,
+        "family": "ValueError"
+      },
+      "kernel_fault": {
+        "operation": "CLOSE",
+        "occurrence": 1,
+        "errno": 12
+      }
+    }
+  ],
+  "case_count": 109,
+  "original_first": true,
+  "expected_observations": null,
+  "original_old_tests_modified": false,
+  "whole_native_delivery_qualified": false,
+  "all_input_equivalence_proved": false,
+  "outer_states": [
+    false,
+    true
+  ],
+  "invocation_count": 218,
+  "ordered_ids": [
+    "empty.outer0",
+    "empty.outer1",
+    "one-byte.outer0",
+    "one-byte.outer1",
+    "ordinary.outer0",
+    "ordinary.outer1",
+    "partial-writes.outer0",
+    "partial-writes.outer1",
+    "zero-first-write.outer0",
+    "zero-first-write.outer1",
+    "zero-second-write.outer0",
+    "zero-second-write.outer1",
+    "seal-zero.outer0",
+    "seal-zero.outer1",
+    "seal-subset.outer0",
+    "seal-subset.outer1",
+    "seal-superset.outer0",
+    "seal-superset.outer1",
+    "pread-short.outer0",
+    "pread-short.outer1",
+    "pread-long.outer0",
+    "pread-long.outer1",
+    "pread-different.outer0",
+    "pread-different.outer1",
+    "kernel-memfd-errno-4.outer0",
+    "kernel-memfd-errno-4.outer1",
+    "kernel-memfd-errno-9.outer0",
+    "kernel-memfd-errno-9.outer1",
+    "kernel-memfd-errno-12.outer0",
+    "kernel-memfd-errno-12.outer1",
+    "kernel-write-errno-4.outer0",
+    "kernel-write-errno-4.outer1",
+    "kernel-write-errno-9.outer0",
+    "kernel-write-errno-9.outer1",
+    "kernel-write-errno-12.outer0",
+    "kernel-write-errno-12.outer1",
+    "kernel-chmod-errno-4.outer0",
+    "kernel-chmod-errno-4.outer1",
+    "kernel-chmod-errno-9.outer0",
+    "kernel-chmod-errno-9.outer1",
+    "kernel-chmod-errno-12.outer0",
+    "kernel-chmod-errno-12.outer1",
+    "kernel-add_seals-errno-4.outer0",
+    "kernel-add_seals-errno-4.outer1",
+    "kernel-add_seals-errno-9.outer0",
+    "kernel-add_seals-errno-9.outer1",
+    "kernel-add_seals-errno-12.outer0",
+    "kernel-add_seals-errno-12.outer1",
+    "kernel-get_seals-errno-4.outer0",
+    "kernel-get_seals-errno-4.outer1",
+    "kernel-get_seals-errno-9.outer0",
+    "kernel-get_seals-errno-9.outer1",
+    "kernel-get_seals-errno-12.outer0",
+    "kernel-get_seals-errno-12.outer1",
+    "kernel-pread-errno-4.outer0",
+    "kernel-pread-errno-4.outer1",
+    "kernel-pread-errno-9.outer0",
+    "kernel-pread-errno-9.outer1",
+    "kernel-pread-errno-12.outer0",
+    "kernel-pread-errno-12.outer1",
+    "second-write-errno.outer0",
+    "second-write-errno.outer1",
+    "close-replaces-capture-errno-4.outer0",
+    "close-replaces-capture-errno-4.outer1",
+    "close-replaces-capture-errno-9.outer0",
+    "close-replaces-capture-errno-9.outer1",
+    "close-replaces-capture-errno-12.outer0",
+    "close-replaces-capture-errno-12.outer1",
+    "callback-audit_chmod-OSError.outer0",
+    "callback-audit_chmod-OSError.outer1",
+    "callback-audit_chmod-ValueError.outer0",
+    "callback-audit_chmod-ValueError.outer1",
+    "callback-audit_chmod-AttributeError.outer0",
+    "callback-audit_chmod-AttributeError.outer1",
+    "callback-audit_chmod-MemoryError.outer0",
+    "callback-audit_chmod-MemoryError.outer1",
+    "callback-audit_chmod-RuntimeError.outer0",
+    "callback-audit_chmod-RuntimeError.outer1",
+    "callback-audit_chmod-KeyboardInterrupt.outer0",
+    "callback-audit_chmod-KeyboardInterrupt.outer1",
+    "callback-audit_chmod-SystemExit.outer0",
+    "callback-audit_chmod-SystemExit.outer1",
+    "callback-audit_chmod-GeneratorExit.outer0",
+    "callback-audit_chmod-GeneratorExit.outer1",
+    "callback-audit_chmod-StopIteration.outer0",
+    "callback-audit_chmod-StopIteration.outer1",
+    "callback-audit_add_seals-OSError.outer0",
+    "callback-audit_add_seals-OSError.outer1",
+    "callback-audit_add_seals-ValueError.outer0",
+    "callback-audit_add_seals-ValueError.outer1",
+    "callback-audit_add_seals-AttributeError.outer0",
+    "callback-audit_add_seals-AttributeError.outer1",
+    "callback-audit_add_seals-MemoryError.outer0",
+    "callback-audit_add_seals-MemoryError.outer1",
+    "callback-audit_add_seals-RuntimeError.outer0",
+    "callback-audit_add_seals-RuntimeError.outer1",
+    "callback-audit_add_seals-KeyboardInterrupt.outer0",
+    "callback-audit_add_seals-KeyboardInterrupt.outer1",
+    "callback-audit_add_seals-SystemExit.outer0",
+    "callback-audit_add_seals-SystemExit.outer1",
+    "callback-audit_add_seals-GeneratorExit.outer0",
+    "callback-audit_add_seals-GeneratorExit.outer1",
+    "callback-audit_add_seals-StopIteration.outer0",
+    "callback-audit_add_seals-StopIteration.outer1",
+    "callback-audit_get_seals-OSError.outer0",
+    "callback-audit_get_seals-OSError.outer1",
+    "callback-audit_get_seals-ValueError.outer0",
+    "callback-audit_get_seals-ValueError.outer1",
+    "callback-audit_get_seals-AttributeError.outer0",
+    "callback-audit_get_seals-AttributeError.outer1",
+    "callback-audit_get_seals-MemoryError.outer0",
+    "callback-audit_get_seals-MemoryError.outer1",
+    "callback-audit_get_seals-RuntimeError.outer0",
+    "callback-audit_get_seals-RuntimeError.outer1",
+    "callback-audit_get_seals-KeyboardInterrupt.outer0",
+    "callback-audit_get_seals-KeyboardInterrupt.outer1",
+    "callback-audit_get_seals-SystemExit.outer0",
+    "callback-audit_get_seals-SystemExit.outer1",
+    "callback-audit_get_seals-GeneratorExit.outer0",
+    "callback-audit_get_seals-GeneratorExit.outer1",
+    "callback-audit_get_seals-StopIteration.outer0",
+    "callback-audit_get_seals-StopIteration.outer1",
+    "signal-after-write-OSError.outer0",
+    "signal-after-write-OSError.outer1",
+    "signal-after-write-ValueError.outer0",
+    "signal-after-write-ValueError.outer1",
+    "signal-after-write-AttributeError.outer0",
+    "signal-after-write-AttributeError.outer1",
+    "signal-after-write-MemoryError.outer0",
+    "signal-after-write-MemoryError.outer1",
+    "signal-after-write-RuntimeError.outer0",
+    "signal-after-write-RuntimeError.outer1",
+    "signal-after-write-KeyboardInterrupt.outer0",
+    "signal-after-write-KeyboardInterrupt.outer1",
+    "signal-after-write-SystemExit.outer0",
+    "signal-after-write-SystemExit.outer1",
+    "signal-after-write-GeneratorExit.outer0",
+    "signal-after-write-GeneratorExit.outer1",
+    "signal-after-write-StopIteration.outer0",
+    "signal-after-write-StopIteration.outer1",
+    "signal-after-chmod-OSError.outer0",
+    "signal-after-chmod-OSError.outer1",
+    "signal-after-chmod-ValueError.outer0",
+    "signal-after-chmod-ValueError.outer1",
+    "signal-after-chmod-AttributeError.outer0",
+    "signal-after-chmod-AttributeError.outer1",
+    "signal-after-chmod-MemoryError.outer0",
+    "signal-after-chmod-MemoryError.outer1",
+    "signal-after-chmod-RuntimeError.outer0",
+    "signal-after-chmod-RuntimeError.outer1",
+    "signal-after-chmod-KeyboardInterrupt.outer0",
+    "signal-after-chmod-KeyboardInterrupt.outer1",
+    "signal-after-chmod-SystemExit.outer0",
+    "signal-after-chmod-SystemExit.outer1",
+    "signal-after-chmod-GeneratorExit.outer0",
+    "signal-after-chmod-GeneratorExit.outer1",
+    "signal-after-chmod-StopIteration.outer0",
+    "signal-after-chmod-StopIteration.outer1",
+    "signal-after-add_seals-OSError.outer0",
+    "signal-after-add_seals-OSError.outer1",
+    "signal-after-add_seals-ValueError.outer0",
+    "signal-after-add_seals-ValueError.outer1",
+    "signal-after-add_seals-AttributeError.outer0",
+    "signal-after-add_seals-AttributeError.outer1",
+    "signal-after-add_seals-MemoryError.outer0",
+    "signal-after-add_seals-MemoryError.outer1",
+    "signal-after-add_seals-RuntimeError.outer0",
+    "signal-after-add_seals-RuntimeError.outer1",
+    "signal-after-add_seals-KeyboardInterrupt.outer0",
+    "signal-after-add_seals-KeyboardInterrupt.outer1",
+    "signal-after-add_seals-SystemExit.outer0",
+    "signal-after-add_seals-SystemExit.outer1",
+    "signal-after-add_seals-GeneratorExit.outer0",
+    "signal-after-add_seals-GeneratorExit.outer1",
+    "signal-after-add_seals-StopIteration.outer0",
+    "signal-after-add_seals-StopIteration.outer1",
+    "signal-after-get_seals-OSError.outer0",
+    "signal-after-get_seals-OSError.outer1",
+    "signal-after-get_seals-ValueError.outer0",
+    "signal-after-get_seals-ValueError.outer1",
+    "signal-after-get_seals-AttributeError.outer0",
+    "signal-after-get_seals-AttributeError.outer1",
+    "signal-after-get_seals-MemoryError.outer0",
+    "signal-after-get_seals-MemoryError.outer1",
+    "signal-after-get_seals-RuntimeError.outer0",
+    "signal-after-get_seals-RuntimeError.outer1",
+    "signal-after-get_seals-KeyboardInterrupt.outer0",
+    "signal-after-get_seals-KeyboardInterrupt.outer1",
+    "signal-after-get_seals-SystemExit.outer0",
+    "signal-after-get_seals-SystemExit.outer1",
+    "signal-after-get_seals-GeneratorExit.outer0",
+    "signal-after-get_seals-GeneratorExit.outer1",
+    "signal-after-get_seals-StopIteration.outer0",
+    "signal-after-get_seals-StopIteration.outer1",
+    "signal-after-pread-OSError.outer0",
+    "signal-after-pread-OSError.outer1",
+    "signal-after-pread-ValueError.outer0",
+    "signal-after-pread-ValueError.outer1",
+    "signal-after-pread-AttributeError.outer0",
+    "signal-after-pread-AttributeError.outer1",
+    "signal-after-pread-MemoryError.outer0",
+    "signal-after-pread-MemoryError.outer1",
+    "signal-after-pread-RuntimeError.outer0",
+    "signal-after-pread-RuntimeError.outer1",
+    "signal-after-pread-KeyboardInterrupt.outer0",
+    "signal-after-pread-KeyboardInterrupt.outer1",
+    "signal-after-pread-SystemExit.outer0",
+    "signal-after-pread-SystemExit.outer1",
+    "signal-after-pread-GeneratorExit.outer0",
+    "signal-after-pread-GeneratorExit.outer1",
+    "signal-after-pread-StopIteration.outer0",
+    "signal-after-pread-StopIteration.outer1",
+    "close-replaces-audit-errno-4.outer0",
+    "close-replaces-audit-errno-4.outer1",
+    "close-replaces-audit-errno-9.outer0",
+    "close-replaces-audit-errno-9.outer1",
+    "close-replaces-audit-errno-12.outer0",
+    "close-replaces-audit-errno-12.outer1"
+  ]
+}

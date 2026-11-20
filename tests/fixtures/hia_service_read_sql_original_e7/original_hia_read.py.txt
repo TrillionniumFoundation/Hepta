@@ -1,0 +1,46 @@
+    def _hia_read(self, args):
+        ref = args["artifact"]
+        data, _ = self.store.get(ref)
+        offset = 0
+        if "cursor" in args:
+            row = self.store.db.execute("SELECT * FROM cursors WHERE id=?", (args["cursor"],)).fetchone()
+            if row is None or row["artifact_id"] != ref["id"] or row["sha256"] != ref["sha256"]:
+                reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
+            offset = row["offset"]
+        limit = int(args.get("max_bytes", 65536))
+        chunk = data[offset:offset + limit]
+        encoding = "utf8"
+        try:
+            # Decode the complete artifact once to decide binary vs UTF-8, then
+            # only trim a page boundary. Never silently discard invalid bytes.
+            data.decode("utf-8")
+            while True:
+                try:
+                    content = chunk.decode("utf-8")
+                    break
+                except UnicodeDecodeError:
+                    chunk = chunk[:-1]
+        except UnicodeDecodeError:
+            encoding, content = "base64", base64.b64encode(chunk).decode("ascii")
+        # MCP JSON escaping can expand control characters sixfold. Bound the
+        # serialized page independently from the raw-byte content budget.
+        # The runtime exposes both structuredContent and a text JSON rendering.
+        # The latter escapes quotes/backslashes a second time. Budget both
+        # representations, not merely the first escaped content string.
+        while len(wire(content)) + len(wire(wire(content).decode("utf-8"))) > 230000:
+            chunk = chunk[:max(1, len(chunk) // 2)]
+            if encoding == "base64":
+                content = base64.b64encode(chunk).decode("ascii")
+            else:
+                while True:
+                    try:
+                        content = chunk.decode("utf-8")
+                        break
+                    except UnicodeDecodeError:
+                        chunk = chunk[:-1]
+        next_cursor = None
+        if offset + len(chunk) < len(data):
+            next_cursor = "page-" + digest({"artifact": ref, "offset": offset + len(chunk)})
+            self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+                (next_cursor, ref["id"], ref["sha256"], offset + len(chunk)))
+        return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}

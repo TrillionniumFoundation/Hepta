@@ -5489,19 +5489,11 @@ block b2(v22:mutbuf,v24:u64,v25:u64)
   v35:u64 = int.add.wrap(v24,v25)
   v36:u64 = call(v22,v34,v35) {"function":"f91"}
   v37:u64 = const() {"value":0}
-  jump b3(v22,v24,v25,v37)
-block b3(v38:mutbuf,v40:u64,v41:u64,v42:u64)
-  v43:bool = compare.lt(v42,v41)
-  branch v43 b4(v38,v40,v41,v42) b5(v38,v40)
-block b4(v44:mutbuf,v46:u64,v47:u64,v48:u64)
-  v54:u64 = int.add.wrap(v46,v48)
-  v55:u64 = const() {"value":0}
-  v56:u64 = call(v44,v54,v55) {"function":"f91"}
-  v57:u64 = const() {"value":8}
-  v58:u64 = int.add.wrap(v48,v57)
-  jump b3(v44,v46,v47,v58)
-block b5(v49:mutbuf,v51:u64)
-  ret(v51)
+  v38:usize = int.cast(v24) {"mode":"wrap"}
+  v39:usize = int.cast(v25) {"mode":"wrap"}
+  v40:u8 = int.cast(v37) {"mode":"wrap"}
+  _ = buffer.fill_range(v22,v38,v39,v40)
+  ret(v24)
 end
 fn f94(v0:mutbuf,v1:u64,v2:u64,v3:u64,v4:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64,v2:u64,v3:u64,v4:u64)

@@ -11,6 +11,7 @@ if __package__ in {None, ''}:
 from tools.generate_hia_agent_snapshot_json_cli import MAGIC
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_kernel)
+from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
@@ -44,10 +45,8 @@ def build(output, compiler, cold_report):
     packer_raw = packer.read_bytes()
     frame = struct.pack('<QQ', MAGIC, len(application)) + application
     actual, packed = invoke(output, 'snapshot-json-pack', packer, frame)
-    size = actual['core_u32']
-    if not 0 < size <= 1 << 20:
-        raise ValueError('native snapshot JSON packer refused image frame')
-    executable = packed[:size]; inspection = inspect_executable(executable)
+    executable = _check_pack_output(actual, packed, artifact=packer_raw, source=frame)
+    inspection = inspect_executable(executable)
     if (any(p.read_bytes() != raw for p, raw in inputs.items()) or image.read_bytes() != application
             or packer.read_bytes() != packer_raw or manifest.read_bytes() != manifest_raw
             or current_sources() != admitted_sources):

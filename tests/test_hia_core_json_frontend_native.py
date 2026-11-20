@@ -87,10 +87,14 @@ class CoreJsonFrontendHiaSourceTests(unittest.TestCase):
         code, output = vm_render(program)
         self.assertEqual(code, len(expected))
         self.assertEqual(output, expected)
+        version9 = copy.deepcopy(program)
+        version9['schema'] = 'hepta.hia.program.v9'
+        expected9 = render_assembly(version9).encode()
+        self.assertEqual(vm_render(version9), (len(expected9), expected9))
         for value in (None, [], {}, {**program, 'exports': []},
                       {**program, 'module': 'selfhost_elf'},
                       {**program, 'module': 'selfhost_exec'},
-                      {**program, 'schema': 'hepta.hia.program.v9'},
+                      {**program, 'schema': 'hepta.hia.program.v10'},
                       {**program, 'functions': False}):
             with self.subTest(value=value):
                 self.assertEqual(vm_render(value)[0], 0xfffffffb)
@@ -134,11 +138,16 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
     def test_actual_native_frontend_does_not_parse_or_encode_payload_with_python(self):
         raw = wire(small_program())
         expected = render_assembly(small_program()).encode()
+        version9 = small_program()
+        version9['schema'] = 'hepta.hia.program.v9'
+        raw9 = wire(version9)
+        expected9 = render_assembly(version9).encode()
         installed_frontend(str(self.manifest))
         with (patch('json.loads', side_effect=AssertionError('host payload parser')),
               patch('json.dumps', side_effect=AssertionError('host payload encoder')),
               patch.object(json.JSONDecoder, 'decode', side_effect=AssertionError('host JSON decoder'))):
             self.assertEqual(self.native.render(raw), expected)
+            self.assertEqual(self.native.render(raw9), expected9)
         self.assertEqual(self.receipt['forbidden_compiler_modules_loaded'], [])
 
     def test_native_JSON_exports_compile_link_and_call_with_private_refusals(self):
@@ -232,6 +241,45 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             compile_core(wire(self.sample), self.manifest, wrong, self.folder/'wrong-driver')
 
+        # The representation preserves the selected schema. Word operations
+        # remain a v9 semantic decision of the native compiler, never an
+        # implicit upgrade performed by this frontend.
+        payload = bytes.fromhex('0123456789abcdef')
+        for load_order, store_order in (('le', 'be'), ('be', 'le')):
+            assembly = (
+                'hia-asm.v1 hepta.hia.program.v9 versioned_word\n'
+                'fn f0(r0:readbuf,r1:mutbuf,r2:mutbuf) -> (u32) '
+                'effects(read,write,trap) entry(b0)\n'
+                'block b0(r0:readbuf,r1:mutbuf,r2:mutbuf)\n'
+                '  zero:usize = const() {"value":0}\n'
+                f'  word:u64 = buffer.load.u64.{load_order}(r0,zero)\n'
+                f'  _ = buffer.store.u64.{store_order}(r1,zero,word)\n'
+                '  result:u32 = const() {"value":8}\n'
+                '  ret(result)\nend\n'
+            )
+            document = assemble_program(assembly).as_dict()
+            rendered = self.native.render(wire(document))
+            self.assertEqual(rendered, render_assembly(document).encode())
+            produced = compile_core(wire(document), self.manifest, self.compiler,
+                                    self.folder/('v9-word-'+load_order))
+            observed, output = invoke(self.folder, 'JSON-v9-word-'+load_order,
+                produced, payload, capacity=8, workspace_size=0)
+            self.assertEqual(observed['abi_status'], 0)
+            self.assertEqual(observed['core_u32'], 8)
+            self.assertEqual(output, payload[::-1])
+            self.assertTrue(observed['source_unchanged'])
+
+            previous = copy.deepcopy(document)
+            previous['schema'] = 'hepta.hia.program.v8'
+            previous_rendered = self.native.render(wire(previous))
+            self.assertEqual(previous_rendered, rendered.replace(
+                b'hepta.hia.program.v9', b'hepta.hia.program.v8', 1))
+            rejected, _ = invoke(self.folder, 'JSON-v8-word-refusal-'+load_order,
+                                 self.compiler, previous_rendered)
+            self.assertEqual(rejected['core_u32'], 0xffffffff)
+            self.assertTrue(rejected['output_unchanged'])
+            self.assertTrue(rejected['source_unchanged'])
+
     def test_returned_loans_and_general_names_are_not_dropped_in_representation(self):
         from tools.hia_selfhost_returned_loans import cases
         from tools.hia_selfhost_names import cases as name_cases
@@ -311,7 +359,7 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
             with self.subTest(module=module), self.assertRaises(ValueError):self.native.render(wire(value))
         for raw in (b'{"module":0,"module":1}', wire(small_program())+b'null', b'"\\ud800"'):
             with self.assertRaises(ValueError):self.native.render(raw)
-        for schema in ('hepta.hia.program.v1','hepta.hia.program.v5','hepta.hia.program.v9'):
+        for schema in ('hepta.hia.program.v1','hepta.hia.program.v7','hepta.hia.program.v10'):
             value=small_program();value['schema']=schema
             with self.assertRaises(ValueError):self.native.render(wire(value))
         for field,value in (('exports',[]),('exports',['main']),('unknown',None)):

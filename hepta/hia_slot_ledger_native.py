@@ -11,10 +11,14 @@ import ctypes
 from dataclasses import dataclass
 from hashlib import sha256
 import os
+import sqlite3
 import struct
+import threading
 import uuid
+import weakref
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
+from .hia_native_delivery import NativeCall
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/slot_ledger.hepta')
 SCHEMA = 'hepta.hia.slot-ledger-native.v1'
@@ -24,6 +28,61 @@ RESULT_MAGIC = int.from_bytes(b'HIASLRS1', 'little')
 STATE_MAGIC = int.from_bytes(b'HIASLST1', 'little')
 STATE_BYTES = 128
 MAX_U64 = (1 << 64) - 1
+
+
+class SlotLedgerUnknown(RuntimeError):
+    """An actual slot handoff has no completely validated native receipt."""
+
+
+_REQUEST_REJECTIONS = (ValueError, TypeError, OSError, OverflowError,
+                       RecursionError, sqlite3.Error)
+_WORKSPACE_IDENTITIES = {}
+_WORKSPACE_IDENTITY_LOCK = threading.RLock()
+
+
+class _WorkspaceIdentity:
+    """One exact memory extent, without retaining a healthy caller's array."""
+    __slots__ = ('address', 'extent', '__weakref__')
+
+    def __init__(self, address, extent):
+        self.address, self.extent = address, extent
+
+
+def _after_fork_child():
+    global _WORKSPACE_IDENTITY_LOCK
+    _WORKSPACE_IDENTITY_LOCK = threading.RLock()
+
+
+if hasattr(os, 'register_at_fork'):
+    os.register_at_fork(after_in_child=_after_fork_child)
+
+
+def _workspace_identity(workspace):
+    # An alternative ctypes view of the SAME 128-byte extent must not erase
+    # an actual loss. The unknown invocation retains both this identity and
+    # its original array. Healthy invocations leave only a weak cache entry;
+    # a later distinct allocation is not permanently tainted by an address.
+    key = (ctypes.addressof(workspace), STATE_BYTES)
+    with _WORKSPACE_IDENTITY_LOCK:
+        reference = _WORKSPACE_IDENTITIES.get(key)
+        identity = None if reference is None else reference()
+        if identity is None:
+            identity = _WorkspaceIdentity(*key)
+
+            def released(reference):
+                with _WORKSPACE_IDENTITY_LOCK:
+                    if _WORKSPACE_IDENTITIES.get(key) is reference:
+                        del _WORKSPACE_IDENTITIES[key]
+
+            _WORKSPACE_IDENTITIES[key] = weakref.ref(identity, released)
+        return identity
+
+
+def _handoff_extent(delivery, extent):
+    # Last-argument guard: preserve the original LOAD_METHOD lookup and every
+    # original argument before marking the actual call's handoff.
+    delivery.enter_native()
+    return extent
 
 
 def _custody(message):
@@ -62,85 +121,105 @@ class NativeSlotLedger(NativeHiaJsonImage):
         source = ctypes.create_string_buffer(request, len(request)) if request else ctypes.create_string_buffer(1)
         capacity = max(256, len(request) + 128)
         output = ctypes.create_string_buffer(capacity)
-        returned = self._entry(source, len(request), output, capacity, workspace, STATE_BYTES)
-        if not 64 <= returned <= capacity:
-            _custody('native slot image refused the byte protocol')
-        raw = bytes(output.raw[:returned])
-        magic, status, action, count, a, b, payload, echoed = struct.unpack('<8Q', raw[:64])
-        opcode = struct.unpack_from('<Q', request, 8)[0] if len(request) >= 16 else 0
-        if magic != RESULT_MAGIC or echoed != opcode or count > 4 or returned < 64 + count * 8:
-            _custody('native slot result header is invalid')
-        lengths = struct.unpack_from('<' + str(count) + 'Q', raw, 64)
-        at = 64 + count * 8
-        remaining = len(raw) - at
-        if payload != remaining:
-            _custody('native slot result payload extent is invalid')
-        fields = []
-        for length in lengths:
-            if length > remaining:
-                _custody('native slot field exceeds the remaining result')
-            fields.append(raw[at:at + length])
-            at += length
-            remaining -= length
-        if remaining:
-            _custody('native slot result contains unclaimed bytes')
-        allowed_errors = {1: {2}, 3: {3}, 4: {4}, 5: {5}, 6: {8, 9},
-            7: {2}, 8: {2}, 9: {6, 7}, 10: {10}, 11: {13},
-            13: {11}, 14: {11}, 15: {8}, 16: {11},
-            17: {14}, 18: {14, 16, 17}, 19: {15}}
-        if status:
-            if (status not in allowed_errors.get(opcode, set()) | {12} or action or count or b
-                    or (status == 2 and a not in {1, 2}) or (status != 2 and a)):
-                _custody('native slot refusal has an invalid operation shape')
-        else:
-            if opcode not in range(1, 20):
-                _custody('native slot result admits an unknown operation')
-            expected_action, expected_fields = 0, 0
-            if opcode == 2:
-                if action not in {0, 1}:
-                    _custody('native slot snapshot action is invalid')
-                expected_action, expected_fields = action, 4 if action else 0
-                if b or not action and a:
-                    _custody('native slot snapshot scalars are invalid')
-            elif opcode == 9:
-                expected_fields = 2
-                if tuple(fields) != (str(a).encode('ascii'), str(b).encode('ascii')):
-                    _custody('native generation bytes do not match native scalars')
-            elif opcode == 12:
-                if action not in {1, 2}:
-                    _custody('native slot adoption action is invalid')
-                expected_action = action
-            elif opcode in {13, 14, 15, 16}:
-                expected_action = {13: 1, 14: 2, 15: 3, 16: 1}[opcode]
-                expected_fields = 4
-            if action != expected_action or count != expected_fields:
-                _custody('native slot success has an invalid operation shape')
-            if opcode not in {1, 2, 9} and (a or b):
-                _custody('native slot success contains unclaimed scalars')
-        if opcode == 1 and status == 0:
-            request_count = struct.unpack_from('<Q', request, 16)[0]
-            if request_count == 1 and b:
-                _custody('single native u64 result contains a second value')
-        if opcode in {7, 8, 9} and (not status or status in {6, 7}):
-            words = struct.unpack('<16Q', bytes(workspace))
-            tokens = struct.unpack_from('<4Q', request, 64)
-            phase = 2 if opcode == 9 else 1
-            kind = words[2]
-            checksum = 1469598103934665603
-            for index, word in enumerate(words):
-                if index != 12:
-                    checksum = (((checksum << 7) & MAX_U64) | (checksum >> 57)) ^ word
-            if (words[0] != STATE_MAGIC or words[1] != phase or kind not in {1, 2}
-                    or tuple(words[8:12]) != tokens or words[12] != checksum
-                    or words[5] > 1 or any(words[i] for i in (7, 13, 14, 15))):
-                _custody('native slot receipt lost its private fold state')
-            if ((opcode == 7 and kind != struct.unpack_from('<Q', request, 24)[0])
-                    or (opcode == 8 and kind != 1)
-                    or (status == 6 and kind != 1) or (status == 7 and kind != 2)):
-                _custody('native slot receipt has the wrong fold operation')
-            if opcode == 9 and status == 0 and (a, b) != (words[6], words[3]):
-                _custody('native slot result differs from its frozen final state')
-        return SlotLedgerReceipt(status, action, (a, b), tuple(fields), raw)
+        # Original buffer preparation precedes reservation. The unchanged
+        # method-call expression below keeps lookup and argument refusals
+        # before the final-argument handoff, including AttributeError details.
+        with NativeCall((self, request, source, output, workspace)) as delivery:
+            try:
+                with delivery.foreign(observation=False):
+                    identity = _workspace_identity(workspace)
+                    delivery.associate(workspace, unknown=SlotLedgerUnknown)
+                    delivery.associate(identity, unknown=SlotLedgerUnknown)
+                    returned = self._entry(source, len(request), output, capacity, workspace,
+                                           _handoff_extent(delivery, STATE_BYTES))
+                    if not 64 <= returned <= capacity:
+                        _custody('native slot image refused the byte protocol')
+                    raw = bytes(output.raw[:returned])
+                    magic, status, action, count, a, b, payload, echoed = struct.unpack('<8Q', raw[:64])
+                    opcode = struct.unpack_from('<Q', request, 8)[0] if len(request) >= 16 else 0
+                    if magic != RESULT_MAGIC or echoed != opcode or count > 4 or returned < 64 + count * 8:
+                        _custody('native slot result header is invalid')
+                    lengths = struct.unpack_from('<' + str(count) + 'Q', raw, 64)
+                    at = 64 + count * 8
+                    remaining = len(raw) - at
+                    if payload != remaining:
+                        _custody('native slot result payload extent is invalid')
+                    fields = []
+                    for length in lengths:
+                        if length > remaining:
+                            _custody('native slot field exceeds the remaining result')
+                        fields.append(raw[at:at + length])
+                        at += length
+                        remaining -= length
+                    if remaining:
+                        _custody('native slot result contains unclaimed bytes')
+                    allowed_errors = {1: {2}, 3: {3}, 4: {4}, 5: {5}, 6: {8, 9},
+                        7: {2}, 8: {2}, 9: {6, 7}, 10: {10}, 11: {13},
+                        13: {11}, 14: {11}, 15: {8}, 16: {11},
+                        17: {14}, 18: {14, 16, 17}, 19: {15}}
+                    if status:
+                        if (status not in allowed_errors.get(opcode, set()) | {12} or action or count or b
+                                or (status == 2 and a not in {1, 2}) or (status != 2 and a)):
+                            _custody('native slot refusal has an invalid operation shape')
+                    else:
+                        if opcode not in range(1, 20):
+                            _custody('native slot result admits an unknown operation')
+                        expected_action, expected_fields = 0, 0
+                        if opcode == 2:
+                            if action not in {0, 1}:
+                                _custody('native slot snapshot action is invalid')
+                            expected_action, expected_fields = action, 4 if action else 0
+                            if b or not action and a:
+                                _custody('native slot snapshot scalars are invalid')
+                        elif opcode == 9:
+                            expected_fields = 2
+                            if tuple(fields) != (str(a).encode('ascii'), str(b).encode('ascii')):
+                                _custody('native generation bytes do not match native scalars')
+                        elif opcode == 12:
+                            if action not in {1, 2}:
+                                _custody('native slot adoption action is invalid')
+                            expected_action = action
+                        elif opcode in {13, 14, 15, 16}:
+                            expected_action = {13: 1, 14: 2, 15: 3, 16: 1}[opcode]
+                            expected_fields = 4
+                        if action != expected_action or count != expected_fields:
+                            _custody('native slot success has an invalid operation shape')
+                        if opcode not in {1, 2, 9} and (a or b):
+                            _custody('native slot success contains unclaimed scalars')
+                    if opcode == 1 and status == 0:
+                        request_count = struct.unpack_from('<Q', request, 16)[0]
+                        if request_count == 1 and b:
+                            _custody('single native u64 result contains a second value')
+                    if opcode in {7, 8, 9} and (not status or status in {6, 7}):
+                        words = struct.unpack('<16Q', bytes(workspace))
+                        tokens = struct.unpack_from('<4Q', request, 64)
+                        phase = 2 if opcode == 9 else 1
+                        kind = words[2]
+                        checksum = 1469598103934665603
+                        for index, word in enumerate(words):
+                            if index != 12:
+                                checksum = (((checksum << 7) & MAX_U64) | (checksum >> 57)) ^ word
+                        if (words[0] != STATE_MAGIC or words[1] != phase or kind not in {1, 2}
+                                or tuple(words[8:12]) != tokens or words[12] != checksum
+                                or words[5] > 1 or any(words[i] for i in (7, 13, 14, 15))):
+                            _custody('native slot receipt lost its private fold state')
+                        if ((opcode == 7 and kind != struct.unpack_from('<Q', request, 24)[0])
+                                or (opcode == 8 and kind != 1)
+                                or (status == 6 and kind != 1) or (status == 7 and kind != 2)):
+                            _custody('native slot receipt has the wrong fold operation')
+                        if opcode == 9 and status == 0 and (a, b) != (words[6], words[3]):
+                            _custody('native slot result differs from its frozen final state')
+                    receipt = SlotLedgerReceipt(status, action, (a, b), tuple(fields), raw)
+                    delivery.check(SlotLedgerUnknown)
+                    delivery.confirmed(terminal=True)
+                    return receipt
+            except BaseException as error:
+                delivery.failed(error)
+                # Preserve RuntimeError, MemoryError and process-control
+                # identities. Only the original public rejection families
+                # must not turn a recorded native loss into a business result.
+                delivery.propagate(error, SlotLedgerUnknown, _REQUEST_REJECTIONS)
+                raise
 
 
 def selected_slot_ledger():
@@ -457,3 +536,12 @@ class NativeSlotLedgerStore:
         frozen = self.lease(lease, release=True, connection=db)
         self._effect(db, 'lease_release', 'UPDATE leases SET active=0 WHERE id=?', (frozen['id'],))
         return {'released': True, 'generation': frozen['generation'], 'artifact_retained': True}
+
+
+# The fifteen original definitions above remain byte-exact retained source.
+# Actual runtime binding is explicit: no selector/scope returns the original
+# descriptor; a selected instance OR class call executes the HIA controller.
+# Qualifiers poison this declared reference table, not an unused alias.
+from .hia_slot_operations_selection import install_slot_control_methods as _install_slot_control_methods
+_install_slot_control_methods(NativeSlotLedgerStore)
+del _install_slot_control_methods

@@ -1,0 +1,18 @@
+    def _subject(self, args, program):
+        subject = args["subject"]
+        if subject["kind"] != "core":
+            self._profile(subject["backend_profile"], "backend")
+        if subject["kind"] == "canonical_lowering":
+            self._profile(subject["lowering_profile"], "lowering")
+        if subject["kind"] == "agent_machine_plan":
+            from .hia_program_native import validate_block_layout_plan
+            self._profile(subject["plan_profile"], "plan")
+            plan, _ = self.store.get_json(subject["plan"])
+            validate(plan, PLAN_SCHEMA, "machine_plan")
+            return validate_block_layout_plan(program, plan)
+        if subject["kind"] == "native_artifact":
+            receipt = self._build_receipt(subject["build_receipt"], args["context"],
+                                          subject["native_artifact"])
+            if receipt["candidate"] != args["candidate"]:
+                reject("E_HIA_SUBJECT", "native build receipt belongs to a different candidate", "verification")
+        return None

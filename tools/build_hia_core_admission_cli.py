@@ -17,6 +17,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_core_admission import build as build_kernel
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_core_admission_cli import INSPECT_MAGIC, MAGIC, NORMALIZE_MAGIC
 from tools.generate_hia_core_suite import SUITE_MAGIC
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
@@ -89,10 +90,7 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False, suit
     packer, compiled = compile_stage(output, packer_label, compiler, pins[packer_source])
     packer_raw = packer.read_bytes()
     packed, arena = invoke(output, 'core-admission-cli-pack', packer, frame)
-    size = packed['core_u32']
-    if not 0 < size <= 1 << 20:
-        raise ValueError('complete Core native CLI packer refused image')
-    executable = arena[:size]
+    executable = _check_pack_output(packed, arena, artifact=packer_raw, source=frame)
     inspection = inspect_executable(executable)
     if (any(p.read_bytes() != raw for p, raw in {**pins, **component_inputs}.items())
             or image.read_bytes() != application

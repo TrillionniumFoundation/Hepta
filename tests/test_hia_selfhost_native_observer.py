@@ -9,6 +9,41 @@ import unittest
 from tools.hia_selfhost_native_observer import frame, execute, invoke as native_invoke, independent_reference, build
 
 
+class NativeObserverFrameValidationTests(unittest.TestCase):
+    def test_frame_bytes_and_descriptor_domain_remain_exact(self):
+        for descriptor in (None,3,2147483647):
+            with self.subTest(output_fd=descriptor):
+                expected=b'HIAOBS02'+struct.pack('<6Q',2,3,1<<20,1<<20,255,
+                    (1<<64)-1 if descriptor is None else descriptor)+b'\xc3\x90A\0\xff'
+                self.assertEqual(frame(b'\xc3\x90',b'A\0\xff',1<<20,1<<20,255,descriptor),expected)
+        for descriptor in (False,True,-1,0,1,2,2147483648,3.0,'3'):
+            with self.subTest(output_fd=descriptor):
+                with self.assertRaises(ValueError):
+                    frame(b'\xc3',b'',0,0,0,descriptor)
+
+    def test_invalid_frame_is_refused_before_shared_output_allocation(self):
+        from unittest.mock import patch
+        invalid=[(None,0,0,0),(bytearray(),0,0,0)]
+        for capacity in (-1,True,1.0,1+(1<<20)):
+            invalid.append((b'',capacity,0,0))
+        for size in (-1,True,1.0,1+(1<<20)):
+            invalid.append((b'',0,size,0))
+        for fill in (-1,True,1.0,256):
+            invalid.append((b'',0,0,fill))
+        with tempfile.TemporaryDirectory(prefix='hia-native-frame-domain-') as directory:
+            root=Path(directory)
+            image=root/'image.bin';image.write_bytes(b'\xc3')
+            observer=root/'observer.elf';observer.write_bytes(b'not-executed')
+            with patch('tools.hia_selfhost_native_observer.shared_output') as shared:
+                for source,capacity,size,fill in invalid:
+                    with self.subTest(source=source,capacity=capacity,size=size,fill=fill):
+                        with self.assertRaises(ValueError):
+                            native_invoke(root,'invalid',observer,image,source,capacity=capacity,
+                                workspace_size=size,workspace_fill=fill,observe_trap_writes=True)
+                shared.assert_not_called()
+            self.assertEqual(sorted(path.name for path in root.iterdir()),['image.bin','observer.elf'])
+
+
 @unittest.skipUnless(platform.system()=='Linux' and platform.machine().lower() in ('x86_64','amd64')
     and shutil.which('ld'), 'Linux x86-64 bootstrap required')
 class NativeObserverTests(unittest.TestCase):
@@ -58,6 +93,23 @@ class NativeObserverTests(unittest.TestCase):
                     self.assertEqual(output,raw)
                     self.assertTrue(result['fresh_native_exec'])
                     self.assertFalse(result['successor_process_reuse'])
+
+    def test_workspace_fields_require_complete_words_at_every_boundary(self):
+        # Nonempty source/output make the workspace offset nonzero and unaligned.
+        fields=(0,8,16,24,40,48,56,64,72,80,88,96,104,112,224,248,1024)
+        sizes=sorted({0,*(at+delta for at in fields for delta in (7,8))})
+        source=b'A\0\xff'*13
+        for size in sizes:
+            with self.subTest(workspace_size=size):
+                result,output=self.call('workspace-boundary-'+str(size),
+                    bytes.fromhex('31 c0 c3'),source,13,size,199)
+                self.assertEqual(result['status'],'returned')
+                self.assertEqual(result['core_u32'],0)
+                self.assertTrue(result['source_unchanged'])
+                self.assertEqual(output,b'\xa5'*13)
+                self.assertEqual(result['workspace_header'],
+                    {str(at):0xc7c7c7c7c7c7c7c7 for at in fields if at+8<=size})
+                self.assertEqual(result['limits']['workspace_bytes'],size)
 
     def test_source_mutation_is_actually_observed_not_assumed(self):
         # Deliberately hostile image violates the read-only source obligation.

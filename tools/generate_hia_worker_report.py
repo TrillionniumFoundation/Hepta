@@ -188,8 +188,8 @@ def control(s:readbuf, w:mutbuf, phase:u64) -> u64:
         if get(w, MANIFEST_MODE) != 0:
             put(w, WIRE_ROOT, get(w, IDENTITIES))
             if get(w, REQUEST_MODE) != 0:
-                return ask(w, 22, L_MODE_ERROR, 0, 0, 0, 90)
-            put(w, PHASE, 90)
+                return ask(w, 22, L_MODE_ERROR, 0, 0, 0, 3)
+            put(w, PHASE, 3)
             return 0
         return ask(w, 1, get(w, STATE_ROOT), 0, 0, 0, 2)
     if phase == 2:
@@ -198,9 +198,13 @@ def control(s:readbuf, w:mutbuf, phase:u64) -> u64:
         put(w, PHASE, 3)
         return 0
     if phase == 3:
-        put(w, CATCH, 1)
+        if get(w, MANIFEST_MODE) == 0:
+            put(w, CATCH, 1)
         index = get(w, PIN_INDEX)
         if index == 3:
+            if get(w, MANIFEST_MODE) != 0:
+                put(w, PHASE, 90)
+                return 0
             return ask(w, 11, 8388609, 0, 0, 0, 10)
         expected = get(w, PIN_WORKER + index * 8)
         put(w, EXPECTED, expected)

@@ -30,6 +30,7 @@ from .elf_shared_abi import inspect_owned_shared_elf
 from .native_tool_identity import digest_executable
 from .object_symbols import inspect_object_symbols
 from .hia_schema import supports_feature
+from .hia_opcodes import WORD_LOADS, WORD_STORES, WORD_MEMORY
 
 
 PROFILE = "hepta.hia.program.llvm-linux-x86_64.v1"
@@ -38,7 +39,7 @@ TARGET_AARCH64 = "aarch64-unknown-linux-gnu"
 TARGET_RISCV64 = "riscv64-unknown-linux-gnu"
 # RV64GC, LP64D: only the integer scalar ABI and explicit allocator/runtime imports.
 _RISCV64_PROFILES = {version: f"hepta.hia.program.llvm-linux-riscv64-lp64d-object.v{version}"
-                     for version in range(1, 9)}
+                     for version in range(1, 10)}
 PROFILE_AARCH64 = "hepta.hia.program.llvm-linux-aarch64-object.v1"
 PROFILE_V2 = "hepta.hia.program.llvm-linux-x86_64-bulk.v2"
 PROFILE_AARCH64_V2 = "hepta.hia.program.llvm-linux-aarch64-bulk-object.v2"
@@ -54,6 +55,8 @@ PROFILE_V7 = "hepta.hia.program.llvm-linux-x86_64-recursive-chain.v7"
 PROFILE_AARCH64_V7 = "hepta.hia.program.llvm-linux-aarch64-recursive-chain-object.v7"
 PROFILE_V8 = "hepta.hia.program.llvm-linux-x86_64-parameter-loan-returns.v8"
 PROFILE_AARCH64_V8 = "hepta.hia.program.llvm-linux-aarch64-parameter-loan-returns-object.v8"
+PROFILE_V9 = "hepta.hia.program.llvm-linux-x86_64-word-memory.v9"
+PROFILE_AARCH64_V9 = "hepta.hia.program.llvm-linux-aarch64-word-memory-object.v9"
 MAX_LLVM_BYTES = 16 * 1024 * 1024
 MAX_ARTIFACT_BYTES = 64 * 1024 * 1024
 _WIDTHS = {**{f"{sign}{bits}": bits for sign in ("i", "u")
@@ -460,6 +463,25 @@ class _FunctionEmitter:
             self.line("call void @free(ptr " + ptr + ") nobuiltin")
             self.line("br label %" + after)
             self.lines.append(after + ":")
+        elif op in WORD_MEMORY:
+            pointer, length = self.buffer_parts(arguments[0][0])
+            index = arguments[1][0]
+            # The complete unsigned range check dominates pointer formation
+            # and the single unaligned access. Failure never partially stores.
+            self.guard(self.instruction("icmp ule i64 " + index + ", " + length))
+            remaining = self.instruction("sub i64 " + length + ", " + index)
+            self.guard(self.instruction("icmp uge i64 " + remaining + ", 8"))
+            address = self.instruction("getelementptr i8, ptr " + pointer + ", i64 " + index)
+            if op in WORD_LOADS:
+                value = self.instruction("load i64, ptr " + address + ", align 1")
+                if WORD_LOADS[op] == "big":
+                    value = self.instruction("call i64 @llvm.bswap.i64(i64 " + value + ")")
+                results = [value]
+            else:
+                value = arguments[2][0]
+                if WORD_STORES[op] == "big":
+                    value = self.instruction("call i64 @llvm.bswap.i64(i64 " + value + ")")
+                self.line("store i64 " + value + ", ptr " + address + ", align 1")
         elif op in {"buffer.load", "buffer.store"}:
             pointer, length = self.buffer_parts(arguments[0][0])
             index = arguments[1][0]
@@ -832,6 +854,8 @@ class _Emitter:
                         'declare noalias ptr @calloc(i64, i64) "no-builtins"',
                         'declare noalias ptr @malloc(i64) "no-builtins"',
                         'declare void @free(ptr) "no-builtins"']
+        if supports_feature(self.document["schema"], "fixed_width_byte_memory"):
+            declarations.append("declare i64 @llvm.bswap.i64(i64)")
         if "buffer.fill" in self.bulk_operations or "buffer.fill_range" in self.bulk_operations:
             declarations.append("declare void @llvm.memset.p0.i64(ptr, i8, i64, i1 immarg)")
         if "buffer.copy" in self.bulk_operations or "buffer.copy_range" in self.bulk_operations:
@@ -865,7 +889,7 @@ def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
         _reject("outlined entry layout currently requires x86_64 Linux", "E_HIA_PROGRAM_LAYOUT")
     before = _implementation_hash()
     verified = _verified(program)
-    from .hia_program import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8
+    from .hia_program import SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9
     document = verified.as_dict()
     emitter = _Emitter(document, target, verified.scalar_entrypoints, layout=layout)
     text = emitter.render()
@@ -877,8 +901,10 @@ def emit_program_llvm(program, *, target=TARGET, layout="canonical"):
         # The verifier has already selected a known primitive schema; never infer
         # a layout/ABI from an arbitrary version suffix before verification.
         versions = {SCHEMA: 1, SCHEMA_V2: 2, SCHEMA_V3: 3, SCHEMA_V4: 4,
-                    SCHEMA_V5: 5, SCHEMA_V6: 6, SCHEMA_V7: 7, SCHEMA_V8: 8}
+                    SCHEMA_V5: 5, SCHEMA_V6: 6, SCHEMA_V7: 7, SCHEMA_V8: 8, SCHEMA_V9: 9}
         profile = _RISCV64_PROFILES[versions[document["schema"]]]
+    elif document["schema"] == SCHEMA_V9:
+        profile = PROFILE_V9 if target == TARGET else PROFILE_AARCH64_V9
     elif document["schema"] == SCHEMA_V8:
         profile = PROFILE_V8 if target == TARGET else PROFILE_AARCH64_V8
     elif document["schema"] == SCHEMA_V7:
@@ -996,8 +1022,15 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
         _reject("actual Clang 20+ is required")
     compiler = Path(found).resolve()
     compiler_digest = digest_executable(compiler)
-    version = _run_logged([str(compiler), "--version"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
-    target = _run_logged([str(compiler), "-dumpmachine"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
+    # The LLVM multicall distribution exposes clang as a symlink to llvm.
+    # Execute the identified ELF directly with its explicit clang subcommand;
+    # resolving and then executing plain "llvm" loses the driver's argv[0].
+    # Version/host admission and both post-build image hashes remain required.
+    invocation = [str(compiler)]
+    if compiler.name == "llvm" and Path(found).name == "clang":
+        invocation.append("clang")
+    version = _run_logged([*invocation, "--version"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
+    target = _run_logged([*invocation, "-dumpmachine"], command_log=command_log, timeout=10, stdout_limit=65536, stderr_limit=65536)
     if (version.returncode or target.returncode
             or re.search(r"clang version (?:2[0-9]|[3-9][0-9])\.", version.stdout) is None
             or not native_driver_matches_host(target.stdout.strip(), host)):
@@ -1012,7 +1045,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
         flags = ["--target=" + ir.target, "-x", "ir", "-O3", "-fPIC", "-shared" if kind == "shared" else "-c"]
         if ir.target == TARGET_RISCV64:
             flags += ["-march=rv64gc", "-mabi=lp64d"]
-        command = [str(compiler), *flags, str(source), "-o", str(artifact)]
+        command = [*invocation, *flags, str(source), "-o", str(artifact)]
         compiled = _run_logged(command, command_log=command_log, timeout=60, stdout_limit=65536, stderr_limit=1048576)
         if compiled.returncode:
             _reject("Clang rejected independently verified HIA LLVM: " + compiled.stderr[:3000], "E_HIA_PROGRAM_NATIVE")
@@ -1055,7 +1088,7 @@ def compile_program_llvm(ir, *, program, output, clang="clang", kind="shared", c
                                     "C free accepts a live allocation from calloc or malloc, or null",
                                     "abort terminates execution; no cleanup after traps is promised",
                                     "native compiler, linker, loader, libc and host hardware are trusted"],
-            "toolchain": {"path": str(compiler), "sha256": compiler_digest,
+            "toolchain": {"path": str(compiler), "invocation": invocation, "sha256": compiler_digest,
                           "version": version.stdout.splitlines()[0], "default_target": target.stdout.strip()},
             "flags": flags,
             "claims": {"standalone_core_reverified": True, "source_ast_required": False,

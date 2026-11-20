@@ -1,0 +1,36 @@
+    def _hia_adopt(self, args):
+        context = self._context(args["context"])
+        evaluation, _ = self.store.get_json(args["evaluation_receipt"], kind="evaluation-receipt")
+        if (evaluation["context"] != args["context"] or evaluation["candidate_artifact"] != args["candidate_artifact"]
+                or evaluation["installation"] != self.identities):
+            reject("E_HIA_RECEIPT_BINDING", "evaluation does not authorize this candidate/context", "adoption")
+        self._build_receipt(evaluation["build_receipt"], args["context"], args["candidate_artifact"])
+        objective = self._required_claims(context, args["candidate_artifact"], args["verification_receipts"], evaluation["baseline_core_sha256"])
+        if self._slot_ledger is not None:
+            self._slot_ledger.admit_evaluation(evaluation, objective)
+        else:
+            self._reference_adoption_evaluation(evaluation, objective)
+        self.store.get(evaluation["measurements"], kind="measurements")
+        self.store.get(evaluation["full_cost_ledger"], kind="cost-ledger")
+        if self._slot_ledger is not None:
+            self._slot_ledger.admit_net_benefit(objective)
+        else:
+            self._reference_adoption_net_benefit(objective)
+        _data, metadata, _program = self._native(args["candidate_artifact"], args["context"])
+        _baseline_data, baseline, _baseline_program = self._native(evaluation["baseline_artifact"], args["context"])
+        if metadata["signatures"] != baseline["signatures"]:
+            reject("E_HIA_ABI", "candidate and baseline are not ABI compatible", "adoption")
+        snapshot = self._conditional_slot(args)
+        abi = digest(metadata["signatures"])
+        if self._slot_ledger is not None:
+            current = self._slot_ledger.adopt(args, snapshot, evaluation, abi, self._native)
+        else:
+            current = self._reference_slot_adopt(args, snapshot, evaluation, abi)
+        receipt = self.store.json({"schema": "hepta.hia.agent.adoption.v1", "context": args["context"],
+            "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+            "active_artifact": args["candidate_artifact"], "retained_baseline": evaluation["baseline_artifact"],
+            "evaluation_receipt": args["evaluation_receipt"], "verification_receipts": args["verification_receipts"],
+            "future_calls_only": True, "in_flight_versions_retained": True,
+            "consumer_api": "acquire_slot -> invoke_lease -> release_slot"}, "adoption-receipt")
+        return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+                "active_artifact": args["candidate_artifact"], "adoption_receipt": receipt, "future_calls_only": True}

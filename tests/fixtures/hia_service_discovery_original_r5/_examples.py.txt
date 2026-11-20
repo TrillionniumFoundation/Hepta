@@ -1,0 +1,23 @@
+    @staticmethod
+    def _examples():
+        from .hia_agent_assembly import assemble_program, render_assembly
+        params = [{"name": "value", "type": "u8"}]
+        document = {"schema": "hepta.hia.program.v6", "module": "discovery_identity",
+            "functions": [{"name": "identity", "params": params, "returns": ["u8"], "effects": [],
+                "entry": "entry", "blocks": [{"id": "entry", "params": params, "ops": [],
+                    "term": {"op": "ret", "values": ["value"]}}]}]}
+        program = verify_program(document)
+        assembly = render_assembly(program)
+        if assemble_program(assembly).sha256 != program.sha256:
+            raise RuntimeError("discovery example does not round-trip")
+        return {"schema": "hepta.hia.agent.examples.v1", "core": program.as_dict(),
+                "assembly": assembly, "wrong_reference": "Returning an undefined value fails whole-program admission.",
+                "workload": {"schema": "hepta.hia.agent.workload.v1", "cases": [
+                    {"function": "identity", "arguments": [23], "expected": {"status": "returned", "values": [23]}}],
+                    "warmup_iterations": 0, "repetitions": 1},
+                "objective": {"schema": "hepta.hia.agent.objective.v1", "metric": "artifact_bytes",
+                    "required_claims": ["core_admission", "encoding_check"], "allow_unchanged": True,
+                    "min_improvement_ratio": 0.0},
+                "cost_policy": {"schema": "hepta.hia.agent.cost-policy.v1", "external_costs": {
+                    "model_tokens": None, "model_wall_ns": None, "discovery_wall_ns": None},
+                    "external_costs_complete": False, "expected_invocations": "0"}}

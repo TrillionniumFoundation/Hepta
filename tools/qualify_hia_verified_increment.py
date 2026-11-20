@@ -10,7 +10,6 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
-import subprocess
 import sys
 import time
 import unittest
@@ -20,6 +19,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.qualify_hia_three_lane import _verified_receipt_destination
+from tools.run_hia_unittest_gate import load_declared_suite
+from tools.hia_core_source_identity import _git as _raw_git, _source_state
 
 MODULES = (
     'tests.test_hia_program',
@@ -139,7 +140,6 @@ MODULES = (
     'tests.test_hia_incremental_capability_policy',
     'tests.test_hia_incremental_interface_policy',
     'tests.test_hia_ndu_cost',
-    'tests.test_hia_release_parity_tail_gate',
     'tests.test_hia_scalar_boundary_conformance',
     'tests.test_hia_scalar_lowering_budget',
     'tests.test_hia_scalar_proof_identity',
@@ -151,6 +151,13 @@ MODULES = (
     'tests.test_hia_invocation_bank',
     'tests.test_hia_ndu_current_profile',
  )
+
+# The Core-only transition removed this old source-language performance gate.
+# Its empty helper module is historical source, not a passing regression group.
+# Keep the file bound by the complete inventory; never count it as executed.
+RETIRED_EMPTY_SELECTORS = (
+    'tests.test_hia_release_parity_tail_gate',
+)
 
 
 
@@ -211,48 +218,24 @@ def _ids_digest(ids) -> str:
                              separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
-def selector_source(selector):
-    """Bind the source module for a unittest module/class/method selector."""
-    parts = selector.split(".")
-    for end in range(len(parts), 0, -1):
-        path = ROOT.joinpath(*parts[:end]).with_suffix(".py")
-        if path.is_file():
-            return path
-    raise ValueError("unresolved integration test source: " + selector)
-
-
 def inventory():
-    paths = list((ROOT / "hepta").glob("*.py")) + [Path(__file__)]
-    paths += list((ROOT / "tools").rglob("*.py"))
-    for folder in ("experiments/hia_optimizer_eval/next_20261028",
-                   "experiments/hia_optimizer_eval/round3_20261028",
-                   "experiments/hia_ndu_graph_eval/round3_20261028",
-                   "experiments/hia_stateful_eval/round3_20261028"):
-        paths += [path for path in (ROOT / folder).iterdir()
-                  if path.is_file() and path.suffix in {".py", ".json", ".h", ".cpp", ".c"}
-                  and (not folder.startswith("experiments/") or
-                       path.suffix in {".py", ".c"} or path.name in {"PROTOCOL.json", "FIXTURES.json", "REGISTRATION.json",
-                                                            "ADMISSION_CONTROLS.json"})]
-    paths += [selector_source(name) for name in MODULES]
-    for folder in ("examples/hia_legacy_queue", "tests/fixtures/c_migration/ring_buffer",
-                   "tests/fixtures/c_migration/musl_compare", "experiments/hia_legacy_queue",
-                   "experiments/hia_ndu_activation", "experiments/hia_ndu_prepared_reuse",
-                   "experiments/hia_agent_factorial_v5_20261028",
-                   "experiments/hia_agent_factorial_v6_20261028",
-                   "experiments/hia_agent_structured_v7_20261029",
-                   "experiments/hia_agent_toolstudy_v8_20261029",
-                   "experiments/hia_agent_toolstudy_v9_20261029",
-                   "tests/fixtures/hia_payload_bound"):
-        paths += [path for path in (ROOT / folder).rglob("*") if path.is_file()
-                  and "__pycache__" not in path.parts]
-    paths += list((ROOT / "experiments/hia_guarded_opportunity").glob("*.json"))
-    paths += list((ROOT / "experiments/hia_crc_context").glob("*.json"))
-    return {str(path.relative_to(ROOT)): sha256(path.read_bytes()).hexdigest() for path in sorted(set(paths))}
+    """Bind every raw HEAD file, including native sources and Rust inputs.
+
+    Suffix/directory allowlists omitted real .hepta fixtures, native adapters
+    and Cargo sources used by this gate. The shared raw tree/blob/mode check
+    rejects source changes hidden by index hints, filters or core.fileMode.
+    Untracked build/cache output is not input; the surrounding clean-worktree
+    checks still refuse unignored output, index changes and source drift.
+    """
+    manifest = _source_state(root=ROOT)["files"]
+    if not manifest:
+        raise ValueError("integration source inventory is empty")
+    return manifest
 
 
 def _source_identity():
     def git(*arguments):
-        return subprocess.check_output(["git", *arguments], cwd=ROOT, text=True).strip()
+        return _raw_git(*arguments, root=ROOT).decode().strip()
     return {"commit": git("rev-parse", "HEAD"),
             "tree": git("rev-parse", "HEAD^{tree}"),
             "status": git("status", "--porcelain", "--untracked-files=all")}
@@ -269,10 +252,13 @@ def run(output):
     identity_before = _source_identity()
     if identity_before["status"]:
         raise ValueError("source checkout dirty before integration gate")
-    destination.mkdir(parents=True, exist_ok=False)
     before = inventory()
+    suite, planned = load_declared_suite(MODULES)
+    destination.mkdir(parents=True, exist_ok=False)
     plan = {"schema": "hepta.hia.core-only-verified-increment.tests.v1", "modules": list(MODULES),
             "source_sha256": before,
+            "source_inventory_scope": "complete raw HEAD tree; verified blob bytes and executable modes",
+            "retired_empty_selectors": list(RETIRED_EMPTY_SELECTORS),
             "git_base": identity_before["commit"], "git_tree": identity_before["tree"],
             "git_worktree_status": identity_before["status"],
             "python": sys.version, "python_executable": sys.executable,
@@ -280,8 +266,6 @@ def run(output):
                        "performance_or_agent_superiority_established": False,
                        "full_seven_deliverables_complete": False}}
     (destination / "plan.json").write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n")
-    suite = unittest.defaultTestLoader.loadTestsFromNames(MODULES)
-    planned = _planned_test_ids(suite)
     started = time.monotonic_ns()
     with (destination / "tests.log").open("w") as stream:
         result = unittest.TextTestRunner(

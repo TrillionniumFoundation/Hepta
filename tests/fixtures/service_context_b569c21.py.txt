@@ -1,0 +1,83 @@
+# Frozen from published b569c210a807af29a3ad816679f2b9437c5c6875.
+class FrozenContextService:
+    def _hia_context(self, args):
+        from .hia_agent_buffers import export_manifest, buffer_size, MAX_WORKLOAD_BUFFER_BYTES
+        self._profile(args["compiler_profile"], "compiler")
+        self._profile(args["target_profile"], "target")
+        workload, _ = self.store.get_json(args["workload"])
+        objective, _ = self.store.get_json(args["objective"])
+        cost_policy, _ = self.store.get_json(args["budget"]["cost_policy"])
+        validate(workload, WORKLOAD_SCHEMA, "workload")
+        foreign_buffer_exports = export_manifest(workload)
+        snapshot_bytes = sum(buffer_size(value) for case in workload["cases"]
+                             for value in case["arguments"] if type(value) is dict)
+        if snapshot_bytes > MAX_WORKLOAD_BUFFER_BYTES:
+            reject("E_HIA_BUFFER_BUDGET", "frozen workload exceeds 32 MiB of external byte snapshots", "context")
+        validate(objective, OBJECTIVE_SCHEMA, "objective")
+        validate(cost_policy, COST_POLICY_SCHEMA, "cost_policy")
+        for name in ("max_candidates", "max_model_tokens", "max_total_wall_ms", "max_native_wall_ms"):
+            args["budget"][name] = int(args["budget"][name])
+        uint64(cost_policy["expected_invocations"], "expected_invocations")
+        memory = uint64(args["budget"]["max_memory_bytes"], "max_memory_bytes")
+        if not 64 * 1024**2 <= memory <= 4 * 1024**3:
+            reject("E_HIA_BUDGET", "execution profile admits 64 MiB..4 GiB address-space budgets", "context")
+        if args["budget"]["max_native_wall_ms"] > args["budget"]["max_total_wall_ms"]:
+            reject("E_HIA_BUDGET", "native wall budget exceeds total wall budget", "context")
+        for name in ("model_wall_ns", "discovery_wall_ns"):
+            if cost_policy["external_costs"][name] is not None:
+                uint64(cost_policy["external_costs"][name], name)
+        tokens = cost_policy["external_costs"]["model_tokens"]
+        if tokens is not None and tokens > args["budget"]["max_model_tokens"]:
+            reject("E_HIA_BUDGET", "reported model tokens exceed the frozen budget", "context")
+        if cost_policy["external_costs_complete"] and any(v is None for v in cost_policy["external_costs"].values()):
+            reject("E_HIA_COST", "complete external cost report cannot contain unknown fields", "context")
+        baseline_sha = None
+        if args["baseline_program"] is not None:
+            baseline_sha = self._program(args["baseline_program"]).sha256
+        sampled = _now()
+        record = {"schema": "hepta.hia.agent.context.v1", "catalog_sha256": self.catalog_sha256,
+            "installation": self.identities, "compiler_profile": args["compiler_profile"],
+            "target_profile": args["target_profile"], "baseline_program": args["baseline_program"],
+            "baseline_core_sha256": baseline_sha, "workload": args["workload"], "objective": args["objective"],
+            "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
+            "budget": args["budget"], "sampled_at": sampled,
+            "target_observation": {"system": platform.system(), "machine": platform.machine(),
+                "cpu_count": os.cpu_count(), "observation_only": True},
+            "resource_reservation_held": False, "context_is_execution_authority": False}
+        manifest = self.store.json(record, "context")
+        context = {"id": "ctx-" + uuid.uuid4().hex, "sha256": manifest["sha256"]}
+        self.store.db.execute("INSERT INTO contexts VALUES (?,?,?,?,0)",
+            (context["id"], context["sha256"], wire(manifest).decode(), str(time.time_ns())))
+        self.store.execution_budgets.create(context["id"])
+        return {"context": context, "manifest": manifest, "sampled_at": sampled,
+            "compiler_profile": args["compiler_profile"], "target_profile": args["target_profile"],
+            "resource_reservation_held": False, "context_is_execution_authority": False}
+
+
+    def _context(self, ref):
+        keys(ref, ("id", "sha256"), label="context reference")
+        row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (ref["id"],)).fetchone()
+        if row is None or row["sha256"] != ref["sha256"]:
+            reject("E_HIA_CONTEXT_IDENTITY", "context is not a retained server record", "context")
+        context, _ = self.store.get_json(decode_data(row["artifact"]), kind="context")
+        if context["installation"] != self.identities or context["catalog_sha256"] != self.catalog_sha256:
+            reject("E_HIA_CONTEXT_STALE", "context binds a different installed implementation", "context")
+        for name in ("compiler", "target"):
+            self._profile(context[name + "_profile"], name)
+        context["ref"] = ref
+        return context
+
+
+    def _budget(self, context, *, candidate=False):
+        row = self.store.db.execute("SELECT * FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
+        limits = context["budget"]
+        if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
+            reject("E_HIA_BUDGET", "context total wall budget has expired", "context")
+        if candidate:
+            self._consume_attempt(context)
+
+
+    def _remaining_ms(self, context):
+        row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
+        deadline = int(row["created_ns"]) + context["budget"]["max_total_wall_ms"] * 1_000_000
+        return max(0, (deadline - time.time_ns()) // 1_000_000)

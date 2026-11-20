@@ -1,0 +1,310 @@
+{
+  "schema": "hepta.cold-native-transport.controls.r3",
+  "status": "STATIC_INPUTS_NOT_EXECUTED",
+  "original_CT36": [
+    {
+      "id": "CT-01",
+      "name": "flat-binary-complete",
+      "input_boundary": "Original flat observer, empty target arguments, complete source/output/workspace and binary stdout/stderr.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-02",
+      "name": "linked-binary-complete",
+      "input_boundary": "Original linked observer and actual return snapshot; full pre-finalizer and post-finalizer buffers remain separate.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-03",
+      "name": "flat-env",
+      "input_boundary": "Target emits its actual environment; original exact PATH/LANG/LC_ALL/TZ only.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-04",
+      "name": "linked-inherited-env",
+      "input_boundary": "Inherited environment with extra parent variable, actual exec, no flat sanitization.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-05",
+      "name": "argv",
+      "input_boundary": "Empty and nonempty arguments, exact argv[0] naming form and argument bytes; original first.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-06",
+      "name": "stdin-empty",
+      "input_boundary": "Real empty stdin closes before target read and preserves EOF.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-07",
+      "name": "stdin-many-pipe-windows",
+      "input_boundary": "Request larger than PIPE_BUF and pipe capacity; every byte consumed.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-08",
+      "name": "stdout-multiple-reads",
+      "input_boundary": "Binary output exceeds 32768 and includes NUL, invalid UTF-8, and frame magic in ordinary payload.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-09",
+      "name": "stderr-multiple-reads",
+      "input_boundary": "Independent binary stderr exceeds one read window.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-10",
+      "name": "both-streams-backpressure",
+      "input_boundary": "Target writes enough to both pipes while reading stdin; no deadlock or dropped bytes.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-11",
+      "name": "early-stdin-close",
+      "input_boundary": "Target closes fd0 before consuming input; EPIPE is not promoted to a target failure.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-12",
+      "name": "exit-nonzero",
+      "input_boundary": "Real nonzero exit, exact signed returncode and full raw streams.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-13",
+      "name": "sigill",
+      "input_boundary": "Actual SIGILL; raw wait status and shared output remain visible.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-14",
+      "name": "missing-cwd",
+      "input_boundary": "Real chdir failure, no exec-success claim, error stage/errno retained, child reaped.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-15",
+      "name": "invalid-executable",
+      "input_boundary": "Sealed non-ELF image produces actual exec error; no invented target return.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-16",
+      "name": "empty-executable",
+      "input_boundary": "Empty executable still creates/seals then fails at exec, with no preemptive content validator.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-17",
+      "name": "timeout-point-one",
+      "input_boundary": "Existing .1-second real pause target; PID disappears and all private fds close.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-18",
+      "name": "timeout-partial-raw",
+      "input_boundary": "Raw stdout/stderr emitted before timeout retained exactly; no cleanup drain appends post-timeout bytes.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-19",
+      "name": "timeout-before-first-read",
+      "input_boundary": "Preserve distinguishable read-count zero versus a genuine empty EOF read for later Python None/bytes conversion.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-20",
+      "name": "wait-timeout",
+      "input_boundary": "Target closes all stdio pipes but stays alive; classify wait timeout separately from communicate timeout.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-21",
+      "name": "timeout-zero",
+      "input_boundary": "Deadline begins after successful exec handshake; retain real partial/no-read facts.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-22",
+      "name": "borrowed-output-fd",
+      "input_boundary": "Exact passed output fd remains open in parent and is not renumbered or closed by transport.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-23",
+      "name": "borrowed-snapshot-fd",
+      "input_boundary": "Both distinct borrowed output and snapshot fds preserved through exec; original linked semantics.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-24",
+      "name": "unexpected-stdout",
+      "input_boundary": "Constructor/callback noise is preserved; unchanged invoke parser decides refusal.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-25",
+      "name": "no-extra-process",
+      "input_boundary": "Exactly one fresh target child, same process group/session as original; no worker reuse.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-26",
+      "name": "source-drift",
+      "input_boundary": "Every original invoke source/image/observer read and terminal reread remains active; no new cache.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-27",
+      "name": "policy-short-response",
+      "input_boundary": "Invalid policy return must take real emergency kill/reap/close and report POLICY_LOST.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-28",
+      "name": "nonce-sequence",
+      "input_boundary": "Wrong nonce/repeated sequence/ACK action or argument is rejected before dispatch.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-29",
+      "name": "request-canary",
+      "input_boundary": "Changed request/canary/output envelope rejected before any requested OS action.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-30",
+      "name": "resource-command-shape",
+      "input_boundary": "Invalid slot, duplicate close, second fork, or out-of-bounds write is rejected before syscall.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-31",
+      "name": "real-extent-and-seals",
+      "input_boundary": "Actual executable memfd bytes and seal bits; no boolean stand-in for fcntl observations.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-32",
+      "name": "fresh-state",
+      "input_boundary": "Each call has fresh HIA workspace, pipes, sealed memfd, process, captures, and nonce.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-33",
+      "name": "trace-overflow-is-hold",
+      "input_boundary": "Diagnostic trace overflow does not truncate raw output or change original domain, and cannot be reported complete.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-34",
+      "name": "closed-stdio-profile-refusal",
+      "input_boundary": "New typed profile explicitly refuses missing standard fds; never claim old Python all-input compatibility.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-35",
+      "name": "signal-profile-refusal",
+      "input_boundary": "New typed profile explicitly refuses incompatible SIGPIPE/SIGCHLD dispositions; no hidden mutation.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-36",
+      "name": "owner-lost",
+      "input_boundary": "A real competing wait/ECHILD, if exercised in an isolated control, must remain CUSTODY_LOST, never reaped=true.",
+      "expected_runtime_result": null
+    }
+  ],
+  "original_CT36_status": "Mandatory broader protocol/native matrix retained as declared; this package does not claim it executed or fully implemented by the eight atomic-handoff controls.",
+  "handoff_controls": [
+    {
+      "id": "HOF-01-raw-before-real-closed-stream",
+      "ordinal": 0,
+      "kind": "real descriptor validation",
+      "expected_return": -1,
+      "expected_pending": true,
+      "uses_actual_canonical_io": true,
+      "no_dispatch_or_child_spawn": true
+    },
+    {
+      "id": "HOF-02-raw-before-live-stream-fd-mismatch",
+      "ordinal": 1,
+      "kind": "real descriptor validation",
+      "expected_return": -1,
+      "expected_pending": true,
+      "uses_actual_canonical_io": true,
+      "no_dispatch_or_child_spawn": true
+    },
+    {
+      "id": "HOF-03-existing-raw-owner-conflict",
+      "ordinal": 2,
+      "kind": "real descriptor validation",
+      "expected_return": -1,
+      "expected_pending": true,
+      "uses_actual_canonical_io": false,
+      "no_dispatch_or_child_spawn": true
+    },
+    {
+      "id": "HOF-04-second-handoff-refused",
+      "ordinal": 3,
+      "kind": "real descriptor validation",
+      "expected_return": -1,
+      "expected_pending": true,
+      "uses_actual_canonical_io": false,
+      "no_dispatch_or_child_spawn": true
+    },
+    {
+      "id": "HOF-05-live-child-without-Popen-owner-refused",
+      "ordinal": 4,
+      "kind": "real descriptor validation",
+      "expected_return": -1,
+      "expected_pending": true,
+      "uses_actual_canonical_io": false,
+      "no_dispatch_or_child_spawn": true
+    },
+    {
+      "id": "HOF-06-owner-sync-error-before-adoption",
+      "ordinal": 5,
+      "kind": "real descriptor validation",
+      "expected_return": -1,
+      "expected_pending": true,
+      "uses_actual_canonical_io": false,
+      "no_dispatch_or_child_spawn": true
+    },
+    {
+      "id": "HOF-07-real-raw-and-canonical-stream-commit",
+      "ordinal": 6,
+      "kind": "real descriptor validation",
+      "expected_return": 0,
+      "expected_pending": false,
+      "uses_actual_canonical_io": true,
+      "no_dispatch_or_child_spawn": true
+    },
+    {
+      "id": "HOF-08-empty-commit",
+      "ordinal": 7,
+      "kind": "real descriptor validation",
+      "expected_return": 0,
+      "expected_pending": false,
+      "uses_actual_canonical_io": false,
+      "no_dispatch_or_child_spawn": true
+    }
+  ],
+  "additional_static_boundaries": [
+    "all validation precedes raw_fd assignments",
+    "handled state restored before integer-only commit",
+    "failed handoff retains no new raw descriptor",
+    "new resource at same retired integer stays live after rejected Session disposal",
+    "canonical _io aliases checked before module profile creation and every call",
+    "parent epoch initializer cannot publish in forked child",
+    "actual Popen remains visible only for genuine remaining resource ownership",
+    "stdlib Popen finalizer remains hosted"
+  ],
+  "default_changed": false,
+  "GC_or_TB_clearing": false,
+  "qualification_complete": false
+}

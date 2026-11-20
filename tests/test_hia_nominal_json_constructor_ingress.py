@@ -142,8 +142,10 @@ class NominalJSONConstructorIngressTests(unittest.TestCase):
         for containers, empty, public_ok, ingress_ok in cases:
             raw = b'[' * containers + (b'' if empty else b'0') + b']' * containers
             with self.subTest(containers=containers, empty=empty):
-                with patch.dict(os.environ, {'HEPTA_HIA_JSON_PREFLIGHT_MANIFEST': '',
-                        'HEPTA_HIA_JSON_DECODE_MANIFEST': '', 'HEPTA_HIA_JSON_CANONICAL_MANIFEST': ''}):
+                with patch.dict(os.environ):
+                    for selector in ('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST',
+                            'HEPTA_HIA_JSON_DECODE_MANIFEST', 'HEPTA_HIA_JSON_CANONICAL_MANIFEST'):
+                        os.environ.pop(selector, None)
                     if public_ok:
                         _decode(raw)
                     else:

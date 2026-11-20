@@ -1,0 +1,27 @@
+    def _compile(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
+        from .hia_program_native import emit_program_machine, compile_program_machine
+        if timeout_ms <= 0:
+            reject("E_HIA_BUDGET", "frozen context deadline expired before emission", "codegen")
+        deadline = time.monotonic() + timeout_ms / 1000
+        image = emit_program_machine(program, machine_plan=machine_plan, foreign_buffer_exports=foreign_buffer_exports)
+        object_bytes = image.object_bytes
+        if type(object_bytes) is not bytes:
+            reject("E_HIA_RECEIPT_BINDING", "emission did not produce immutable object bytes", "codegen")
+        commands = []
+        with tempfile.TemporaryDirectory(prefix="build-", dir=self.store.root) as directory:
+            output = Path(directory) / ("program.o" if kind == "object" else "program.so")
+            result = compile_program_machine(image, program=program, output=output, kind=kind,
+                linker="ld", command_log=commands, machine_plan=machine_plan, parent_death_guard=True,
+                timeout_seconds=min(3600, max(0, deadline - time.monotonic())))
+            data = output.read_bytes()
+        result.pop("output", None)
+        result["commands"] = commands
+        if (result.get("object_sha256") != sha256(object_bytes).hexdigest()
+                or result.get("core_sha256") != program.sha256
+                or result.get("artifact_sha256") != sha256(data).hexdigest()
+                or kind == "object" and data != object_bytes):
+            reject("E_HIA_RECEIPT_BINDING", "native build metadata differs from the actual emitted bytes", "codegen")
+        result["object_artifact"] = self.store.put(object_bytes, "build-object", {
+            "schema": "hepta.hia.agent.build-object.v1", "core_sha256": program.sha256,
+            "machine_plan_sha256": result["machine_plan_sha256"], "installation": self.identities})
+        return data, result

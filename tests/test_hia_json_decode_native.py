@@ -4,6 +4,7 @@ import ctypes
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import random
 import struct
@@ -75,7 +76,8 @@ class JsonDecodeHiaSourceTests(unittest.TestCase):
         self.assertEqual(vm_arena(b'"\\ud800"')[0], 0xffffffff)
 
     def test_default_reference_and_input_validation(self):
-        with patch.dict('os.environ', {'HEPTA_HIA_JSON_DECODE_MANIFEST': ''}):
+        with patch.dict(os.environ):
+            os.environ.pop('HEPTA_HIA_JSON_DECODE_MANIFEST', None)
             self.assertEqual(decode_hia_json('{"a":[1,true]}', max_nodes=8, max_depth=2), {'a': [1, True]})
             for options in ({'max_nodes': True, 'max_depth': 1}, {'max_nodes': 8, 'max_depth': -1}):
                 with self.assertRaises(ValueError):

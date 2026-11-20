@@ -118,7 +118,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         for profile in (0,1,2):independent_packer_reference(profile)  # BEFORE B0
-        from tools.qualify_hia_selfhost import build_seed, compile_stage, mutate_compiler
+        from tools.qualify_hia_selfhost import build_seed, compile_stage, mutate_compiler, with_selfhost_module
         cls.original = (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         cls.modified = mutate_compiler(cls.original)
         cls.wires = [json.dumps(assemble_program(s).as_dict(),separators=(',',':')).encode()
@@ -136,7 +136,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         echo['module']='selfhost_exec'
         echo_assembly=render_assembly(echo).encode()
         assert vm_export_render(echo,2)==(len(echo_assembly),echo_assembly)
-        cls.exec_sources = [s.replace(b'v8 selfhost\n',b'v8 selfhost_exec\n',1)
+        cls.exec_sources = [with_selfhost_module(s,b'selfhost_exec')
                             for s in (cls.original,cls.modified)]
         cls.exec_wires = [json.dumps(assemble_program(s).as_dict(),separators=(',',':')).encode()
                           for s in cls.exec_sources]

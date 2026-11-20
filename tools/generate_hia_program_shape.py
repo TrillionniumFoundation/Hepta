@@ -121,8 +121,8 @@ def program_shape(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 '''
 
 
-def source_program(*, diagnostics=False):
-    nodes=ast.parse(function_source(diagnostics=D_CODES if diagnostics else None)).body
+def source_program(*, diagnostics=None):
+    nodes=ast.parse(function_source(diagnostics=diagnostics)).body
     original=nodes[0]
     assert original.name=='function_shape'
     cut=next(i for i,n in enumerate(original.body) if isinstance(n,ast.Assign)
@@ -150,19 +150,17 @@ def source_program(*, diagnostics=False):
         def visit_Expr(self, node):
             if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
                     and node.value.func.id == 'detail'):
-                if not diagnostics:
-                    return None
-                node.value.func.id = 'put'
-                node.value.args.insert(1, ast.Constant(120))
+                return None
             return self.generic_visit(node)
 
         def visit_Name(self,node):
             return ast.copy_location(ast.Constant(constants[node.id]),node) if node.id in constants else node
-    root=Expand().visit(ast.parse(PROGRAM))
+    source = PROGRAM if diagnostics is None else diagnostics.program_source(PROGRAM)
+    root=Expand().visit(ast.parse(source))
     body=[*root.body,header,*nodes[1:]]
     text=ast.unparse(ast.fix_missing_locations(ast.Module(body=body,type_ignores=[])))+'\n'
     text+='def schema_version(w:mutbuf, node:u64) -> u64:\n'
-    for version in range(1,9):
+    for version in range(1,10):
         text+='    if text_is(w, node, '+', '.join(map(str,packed('hepta.hia.program.v'+str(version))))+') != 0:\n        return '+str(version)+'\n'
     return text+'    return 0\n'
 

@@ -45,7 +45,7 @@ def vm_stream(chunks):
         body.effect('loan.end', [view])
     for owner in owners:
         body.effect('owner.drop', [owner])
-    source = ('hia-asm.v1 hepta.hia.program.v8 stream_reference\n'
+    source = ('hia-asm.v1 hepta.hia.program.v9 stream_reference\n'
         'fn observe() -> (' + ','.join(['u32'] * len(results) + ['u8'] * 32) + ') '
         'effects(alloc,read,write,trap) entry(b0)\nblock b0()\n' + body.text()
         + '  ret(' + ','.join([*results, *observed]) + ')\nend\n'

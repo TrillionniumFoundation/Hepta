@@ -1,0 +1,16 @@
+    def _hia_rollback(self, args):
+        if self._slot_ledger is not None:
+            self._slot_ledger.validate_u64(args["retained_generation"], "retained_generation")
+        else:
+            uint64(args["retained_generation"], "retained_generation")
+        snapshot = self._conditional_slot(args)
+        if self._slot_ledger is not None:
+            current, artifact = self._slot_ledger.rollback(args, snapshot, self._native)
+        else:
+            current, artifact = self._reference_slot_rollback(args, snapshot)
+        receipt = self.store.json({"schema": "hepta.hia.agent.rollback.v1", "context": args["context"],
+            "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+            "active_artifact": artifact, "reason": args["reason"], "future_calls_only": True,
+            "past_effects_reversed": False, "in_flight_versions_retained": True}, "rollback-receipt")
+        return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
+                "active_artifact": artifact, "rollback_receipt": receipt, "future_calls_only": True, "past_effects_reversed": False}

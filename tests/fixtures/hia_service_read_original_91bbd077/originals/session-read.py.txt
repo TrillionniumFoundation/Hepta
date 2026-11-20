@@ -1,0 +1,21 @@
+    def read(self, artifact, *, max_bytes=65536):
+        output = bytearray()
+        cursor = None
+        while True:
+            args = {"catalog_sha256": self.catalog_sha256, "artifact": artifact,
+                    "max_bytes": max_bytes}
+            if cursor is not None:
+                args["cursor"] = cursor
+            page = self.client.result("hia_read", args)
+            if page["artifact"] != artifact:
+                raise QualificationFailure("artifact page identity changed")
+            output.extend(page["content"].encode("utf-8") if page["encoding"] == "utf8"
+                          else base64.b64decode(page["content"], validate=True))
+            cursor = page["next_cursor"]
+            if cursor is None:
+                break
+            if len(output) > 8 * 1024 * 1024:
+                raise QualificationFailure("artifact read exceeded declared maximum")
+        if sha256(output).hexdigest() != artifact["sha256"]:
+            raise QualificationFailure("artifact pages do not match the issued digest")
+        return bytes(output)

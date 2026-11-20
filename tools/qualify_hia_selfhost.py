@@ -35,6 +35,7 @@ CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 # Explicit per-phase transport; never enabled for seed or generation controls.
 NATIVE_OBSERVER = None
+NATIVE_LINKED_OBSERVER = None
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
                           "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli", "names", "exports")
@@ -60,6 +61,18 @@ PHASE_REFERENCE_FILES = {
 
 def digest(data):
     return sha256(data).hexdigest()
+
+
+def with_selfhost_module(source, module):
+    """Change only the first-line module; keep the schema and body bytes intact."""
+    header, newline, body = source.partition(b"\n")
+    schema, space, previous = header.rpartition(b" ")
+    if (not newline or previous != b"selfhost"
+            or not schema.startswith(b"hia-asm.v1 hepta.hia.program.v")
+            or not module or module == previous
+            or any(byte in b" \t\r\n" for byte in module)):
+        raise ValueError("selfhost source module header was not replaced")
+    return schema + space + module + newline + body
 
 
 def source_manifest():
@@ -134,6 +147,11 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
            output_initial=None, observe_trap_writes=False, compiler_function_offsets=()):
     """Copy private inputs and run one pinned artifact under fixed limits."""
+    if NATIVE_LINKED_OBSERVER is not None and image_format == 'linked-selfhost' and not compiler_function_offsets:
+        from tools.hia_selfhost_linked_observer import invoke as observe_linked_native
+        return observe_linked_native(directory, label, NATIVE_LINKED_OBSERVER, image, source,
+            capacity=capacity, workspace_size=workspace_size, workspace_fill=workspace_fill,
+            output_initial=output_initial, observe_trap_writes=observe_trap_writes)
     if NATIVE_OBSERVER is not None and image_format == 'flat-x86-64' and not compiler_function_offsets:
         from tools.hia_selfhost_native_observer import invoke as observe_native
         return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
@@ -424,8 +442,7 @@ def observe_native_tool(directory, label, tool_name, arguments):
 def qualify_elf_outputs(directory, compilers, sample, checks):
     observations = []
     def object_source(source):
-        return source.replace(b"hepta.hia.program.v8 selfhost\n",
-                              b"hepta.hia.program.v8 selfhost_elf\n", 1)
+        return with_selfhost_module(source, b"selfhost_elf")
     for label, compiler, own_source in compilers:
         for subject, source, flat in (("compiler", own_source, compiler),
                                      ("bytesum", sample, directory / (label + "-bytesum.image.bin"))):
@@ -477,6 +494,7 @@ def _phase_manifest_digest(manifest):
 
 def _phase_inputs(directory, family, compiler, label):
     paths = {"native_observer": directory / "native-observer.elf",
+             "linked_observer": directory / "linked-observer.elf",
              "compiler": compiler, "source": SOURCE, "sample": SAMPLE,
              "modified_source": directory / "modified-selfhost.hepta"}
     if family in PHASE_REFERENCE_FILES:
@@ -497,7 +515,7 @@ def _read_phase_inputs(inputs):
     return result
 
 
-def qualification_phase(request_path):
+def qualification_phase(request_path, *, native_transport=False):
     """Run one closed family in a fresh host-oracle process, never a successor."""
     request = json.loads(Path(request_path).read_text())
     if (set(request) != {"schema", "family", "compiler_label", "directory", "inputs", "source_manifest_sha256"}
@@ -506,11 +524,15 @@ def qualification_phase(request_path):
             or request["compiler_label"] not in {"original", "modified"}):
         raise ValueError("unknown qualification phase request")
     family, label = request["family"], request["compiler_label"]
-    expected_inputs = {"native_observer", "compiler", "source", "sample", "modified_source"}
+    expected_inputs = {"native_observer", "linked_observer", "compiler", "source", "sample", "modified_source"}
     if family in PHASE_REFERENCE_FILES:
         expected_inputs.add("reference")
     if family == "elf":
         expected_inputs.add("sample_image")
+    if type(native_transport) is not bool:
+        raise ValueError("native transport selection must be explicit boolean")
+    if native_transport:
+        expected_inputs.update(("native_transport_manifest", "native_transport_policy", "native_transport_extension"))
     if set(request["inputs"]) != expected_inputs:
         raise ValueError("qualification phase input inventory differs")
     validate_contract()
@@ -518,14 +540,20 @@ def qualification_phase(request_path):
     if _phase_manifest_digest(before) != request["source_manifest_sha256"]:
         raise ValueError("qualification phase source identity differs")
     data = _read_phase_inputs(request["inputs"])
+    transport_profile = None
+    if native_transport:
+        from tools.hia_cold_native_transport_bridge import bind_phase_inputs
+        transport_profile = bind_phase_inputs(data, request["inputs"])
     directory = Path(request["directory"])
     compiler = Path(request["inputs"]["compiler"]["path"])
     # This is a content-bound, freshly HIA-emitted adapter, not a cached child.
     # The module imported by family helpers must share this explicit binding.
     import tools.qualify_hia_selfhost as runtime
     runtime.NATIVE_OBSERVER = Path(request['inputs']['native_observer']['path'])
-    global NATIVE_OBSERVER
+    runtime.NATIVE_LINKED_OBSERVER = Path(request['inputs']['linked_observer']['path'])
+    global NATIVE_OBSERVER, NATIVE_LINKED_OBSERVER
     NATIVE_OBSERVER = runtime.NATIVE_OBSERVER
+    NATIVE_LINKED_OBSERVER = runtime.NATIVE_LINKED_OBSERVER
     compilers = ((label, compiler),)
     reference = json.loads(data["reference"]) if "reference" in data else None
     checks = {}
@@ -613,7 +641,7 @@ def qualification_phase(request_path):
     _read_phase_inputs(request["inputs"])
     if source_manifest() != before:
         raise ValueError("qualification phase source changed")
-    return {"schema": "hepta.hia.selfhost-phase.v1", "family": family, "compiler_label": label,
+    report = {"schema": "hepta.hia.selfhost-phase.v1", "family": family, "compiler_label": label,
             "source_manifest_sha256": request["source_manifest_sha256"],
             "input_sha256": {key: value["sha256"] for key, value in request["inputs"].items()},
             "checks": checks, "observations": observations,
@@ -623,6 +651,12 @@ def qualification_phase(request_path):
             "python": {"isolated": bool(sys.flags.isolated), "no_site": bool(sys.flags.no_site),
                        "dont_write_bytecode": bool(sys.flags.dont_write_bytecode)},
             "fresh_host_oracle_process": True, "successor_process_reuse": False}
+    if transport_profile is not None:
+        report["native_transport"] = {
+            "manifest_sha256": request["inputs"]["native_transport_manifest"]["sha256"],
+            "statistics": transport_profile.statistics(), "whole_native": False,
+            "hosted_owner": "real canonical subprocess.Popen finalizer"}
+    return report
 
 
 @dataclass(frozen=True)
@@ -668,7 +702,7 @@ def _seal_qualification_phase(phase_directory, archive_token, receipt_path, repo
     return report, receipt
 
 
-def _run_qualification_phase(directory, family, label, compiler, manifest_digest, archives=None):
+def _run_qualification_phase(directory, family, label, compiler, manifest_digest, archives=None, native_transport=None):
     stem = "phase-" + family + "-" + label
     phase_directory = directory / "phase-runs" / (family + "-" + label)
     phase_directory.mkdir(parents=True, exist_ok=False, mode=0o700)
@@ -682,10 +716,14 @@ def _run_qualification_phase(directory, family, label, compiler, manifest_digest
                "compiler_label": label, "directory": str(phase_directory),
                "inputs": _phase_inputs(directory, family, compiler, label),
                "source_manifest_sha256": manifest_digest}
+    if native_transport is not None:
+        request["inputs"].update(native_transport)
     request_path, report_path = directory / (stem + ".request.json"), directory / (stem + ".json")
     request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n")
     command = [sys.executable, "-I", "-S", "-B", str(Path(__file__).resolve()),
                "--phase-request", str(request_path), "--output", str(report_path)]
+    if native_transport is not None:
+        command.append("--native-transport")
     started = time.monotonic_ns()
     with (directory / (stem + ".stdout.log")).open("wb") as stdout, (directory / (stem + ".stderr.log")).open("wb") as stderr:
         # At most two host-oracle workers run concurrently. Their native calls
@@ -715,6 +753,20 @@ def _run_qualification_phase(directory, family, label, compiler, manifest_digest
             or report.get("fresh_host_oracle_process") is not True
             or report.get("successor_process_reuse") is not False):
         raise AssertionError("qualification phase receipt identity differs: " + stem)
+    if native_transport is not None:
+        transport = report.get("native_transport")
+        if (type(transport) is not dict or transport.get("whole_native") is not False
+                or transport.get("manifest_sha256") != native_transport["native_transport_manifest"]["sha256"]
+                or type(transport.get("statistics")) is not dict
+                or type(transport["statistics"].get("calls")) is not int
+                or transport["statistics"]["calls"] <= 0
+                or type(transport["statistics"].get("entries")) is not int
+                or transport["statistics"]["entries"] < transport["statistics"]["calls"]
+                or transport["statistics"].get("handed_off") != 0
+                or transport["statistics"].get("unknown") != 0):
+            raise AssertionError("native transport phase did not establish its actual selected entry receipts")
+    elif "native_transport" in report:
+        raise AssertionError("unselected phase unexpectedly reported native transport authority")
     arguments = (phase_directory, archive_token, directory / (stem + ".process.json"), report, receipt)
     if archives is not None:
         return archives.submit(_seal_qualification_phase, *arguments)
@@ -797,7 +849,9 @@ def _collect_qualification_phases(directory, scheduled):
     return [results[position] for position in range(len(scheduled))]
 
 
-def qualify(output):
+def qualify(output, *, native_transport=False):
+    if type(native_transport) is not bool:
+        raise ValueError("native transport selection must be explicit boolean")
     output = Path(output).resolve()
     if platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"} or not shutil.which("ld"):
         raise RuntimeError("the explicit B0 profile requires Linux x86-64 and GNU ld")
@@ -817,6 +871,10 @@ def qualify(output):
     native_observer_reference = observer_reference()
     (directory / 'independent-native-observer-reference.json').write_text(
         json.dumps(native_observer_reference,indent=2,sort_keys=True)+'\n')
+    from tools.hia_selfhost_linked_observer import independent_reference as linked_observer_reference, build as build_linked_observer
+    linked_observer_reference = linked_observer_reference(before_B0=True)
+    (directory / 'independent-linked-observer-reference.json').write_text(
+        json.dumps(linked_observer_reference,indent=2,sort_keys=True)+'\n')
     seed_started_monotonic_ns = time.monotonic_ns()
     seed, seed_receipt = build_seed(directory, source)
     stages = []
@@ -847,6 +905,43 @@ def qualify(output):
     checks['native_observer_independent_VM_reference_before_B0'] = native_observer_reference['before_B0']
     checks['native_observer_exact_HIA_emission'] = (
         digest(native_observer.read_bytes()) == native_observer_reference['expected_image_sha256'])
+    linked_observer, linked_observer_build = build_linked_observer(
+        directory, original, linked_observer_reference)
+    checks['linked_observer_independent_VM_reference_before_B0'] = (
+        linked_observer_reference['before_B0'])
+    checks['linked_observer_exact_HIA_object_emission'] = (
+        linked_observer_build['object_sha256']
+        == linked_observer_build['actual_policy_vm_packing']['output_sha256'])
+    checks['linked_observer_real_dynamic_linker'] = (
+        digest(linked_observer.read_bytes()) == linked_observer_build['executable_sha256']
+        and all(row['returncode'] == 0 for row in linked_observer_build['native_tool_observations']))
+    native_transport_inputs = None
+    native_transport_build = None
+    if native_transport:
+        # No inherited native transport image is admitted. This source-only
+        # replay first finishes the original references/B0/B1..M3/observers,
+        # then builds this policy and its mechanical bridge from this very B3.
+        from tools.build_hia_cold_native_transport import (
+            build as build_cold_transport, current_python_library)
+        library = current_python_library()
+        manifest_path = build_cold_transport(directory / "native-transport-build",
+            original, digest(original.read_bytes()), library,
+            cc=shutil.which("cc") or "cc", development=True)
+        manifest_raw = manifest_path.read_bytes()
+        manifest = json.loads(manifest_raw)
+        paths = {"native_transport_manifest": manifest_path,
+                 "native_transport_policy": Path(manifest["policy"]["path"]),
+                 "native_transport_extension": Path(manifest["extension"]["path"])}
+        native_transport_inputs = {
+            name: {"path": str(path.resolve()), "sha256": digest(path.read_bytes())}
+            for name, path in paths.items()}
+        if (native_transport_inputs["native_transport_manifest"]["sha256"] != digest(manifest_raw)
+                or native_transport_inputs["native_transport_policy"]["sha256"] != manifest["policy"]["pin"]["sha256"]
+                or native_transport_inputs["native_transport_extension"]["sha256"] != manifest["extension"]["pin"]["sha256"]):
+            raise ValueError("fresh cold native transport artifacts changed before phase binding")
+        native_transport_build = {"manifest": str(manifest_path),
+            "manifest_sha256": digest(manifest_raw), "created_after_original_B3": True,
+            "inherited_native_images": False, "whole_native": False}
     observations = []
     for label, compiler in (("original", original), ("modified", previous)):
         executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
@@ -908,7 +1003,7 @@ def qualify(output):
     phase_order = (*priority, *(family for family in QUALIFICATION_FAMILIES if family not in priority))
     with _PhaseArchivePool() as archives:
         with ThreadPoolExecutor(max_workers=QUALIFICATION_WORKERS) as pool:
-            scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest, archives))
+            scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest, archives, native_transport_inputs))
                          for family in phase_order
                          for label, compiler in (("original", original), ("modified", previous))]
             phase_results = _collect_qualification_phases(directory, scheduled)
@@ -940,7 +1035,10 @@ def qualify(output):
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
         "profile": contract["profile"],
         "native_observer_build": native_observer_build,
-        "native_observer_reference": native_observer_reference, "target": contract["target"], "abi": contract["abi"],
+        "native_observer_reference": native_observer_reference,
+        "linked_observer_build": linked_observer_build,
+        "linked_observer_reference": linked_observer_reference,
+        "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
         "checkout": checkout_identity(),
         "source_manifest": before, "source_bytes": len(source), "source_sha256": digest(source),
@@ -986,7 +1084,8 @@ def qualify(output):
             "reference_processes": reference_receipts,
             "native_child_processes_reused": False,
             "phase_flat_ABI_transport": "fresh sealed HIA-emitted syscall-only ELF",
-            "shared_ELF_and_generation_controls": "retained independent stdlib loader",
+            "phase_linked_ABI_transport": "fresh sealed HIA-policy-directed dynamic ELF; complete sealed target dlopen/dlsym",
+            "shared_ELF_and_generation_controls": "seed/shared direct references and generation controls retain the independent stdlib loader",
             "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
                                 for label in ("original", "modified")],
             "phases": [receipt for report, receipt in phase_results],
@@ -1002,18 +1101,26 @@ def qualify(output):
                    "host_native_fixture_compilation_after_B0": True,
                    "external_assembler_scope": "host allocator qualification witness C object only; no successor compilation",
                    "external_linker_after_B0": True, "external_linker_in_flat_bootstrap_chain": False,
-                   "external_linker_scope": "explicit successor ELF qualification, host allocator witness and independent host direct-backend references",
+                   "external_linker_scope": "HIA-emitted linked observer, explicit successor ELF qualification, host allocator witness and independent host direct-backend references",
                    "HIA_successor_ELF_writer_used": True, "Python_successor_ELF_writer_used": False,
                    "whole_HIA_language_self_hosted": False,
                    "compiler_correctness_formally_proved": False},
         "trusted_dependencies": ["B0 Python HIA assembler, Core verifier, direct x86 emitter and ELF writer",
             "B0 GNU ld, libc and dynamic loader", "fresh HIA-emitted static ELF observer and operating system for phase flat ABI calls",
-            "stdlib ctypes/mmap retained for generation controls and shared ELF",
+            "stdlib ctypes/mmap retained for generation controls and independent seed/shared direct references",
+            "fresh HIA-emitted dynamic ELF observer, libc startup/exit and complete sealed target dlopen/dlsym for phase linked HIA ABI calls",
             "owned ELF qualification uses GNU ld, the system dynamic loader and libc calloc/free",
             "host C compiler and assembler compile the separate allocator qualification witness only",
             "Linux x86-64 hardware, caller-owned exclusive buffers and resource limits"],
         "scope": "fixed canonical HIA v8 subset documented in docs/HIA_SELF_HOSTING_CORE.md",
     }
+    if native_transport_build is not None:
+        _read_phase_inputs(native_transport_inputs)
+        report["native_transport_build"] = native_transport_build
+        report["claims"]["external_assembler_scope"] += "; explicit source-built R3 parent lifecycle C dispatcher and canonical CPython bridge"
+        report["qualification_scheduling"]["parent_native_transport"] = "explicit HIA R3 policy with mechanical C effects; real Popen finalizer remains hosted"
+        report["trusted_dependencies"].append(
+            "explicit CPython 3.14 canonical Popen owner/finalizer, current headers and C compiler for the HIA lifecycle mechanical bridge")
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
 
@@ -1022,15 +1129,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--phase-request", type=Path)
+    parser.add_argument("--native-transport", action="store_true", help="explicit source-only R3 lifecycle candidate; no inherited native transport image")
     arguments = parser.parse_args()
     if arguments.phase_request is not None:
-        report = qualification_phase(arguments.phase_request)
+        report = qualification_phase(arguments.phase_request, native_transport=arguments.native_transport)
         arguments.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
         print(json.dumps({"status": report["status"], "family": report["family"],
                           "compiler_label": report["compiler_label"],
                           "checks_passed": sum(report["checks"].values()), "checks_total": len(report["checks"])}))
         return
-    report = qualify(arguments.output)
+    report = qualify(arguments.output, native_transport=arguments.native_transport)
     print(json.dumps({"status": report["status"], "output": str(arguments.output),
                       "checks_passed": sum(report["checks"].values()), "checks_total": len(report["checks"]),
                       "generation_sha256": [x["produced_sha256"] for x in report["generations"]],

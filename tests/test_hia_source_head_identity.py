@@ -21,7 +21,7 @@ class SourceHeadIdentityTests(unittest.TestCase):
                               input=payload, capture_output=True, check=True, timeout=10).stdout
 
     @contextmanager
-    def repository(self):
+    def repository(self, *, redirect=True):
         with tempfile.TemporaryDirectory(prefix="hepta-head-identity-") as directory:
             root = Path(directory)
             self.git(root, "init", "--quiet", "--object-format=sha1")
@@ -37,12 +37,39 @@ class SourceHeadIdentityTests(unittest.TestCase):
             (root / "executable.sh").chmod(0o755)
             self.git(root, "add", ".")
             self.git(root, "commit", "--quiet", "-m", "frozen source")
+            if not redirect:
+                yield root
+                return
             # Preserve the actual git implementation and its no-replace policy.
             # Only redirect its repository, like the original independent repro.
             raw_git = integrated._git
             with patch.object(integrated, "ROOT", root), \
                     patch.object(integrated, "_git", side_effect=lambda *args: raw_git(*args, root=root)):
                 yield root
+
+    def test_explicit_root_uses_its_own_tree_without_global_redirection(self):
+        configured_root = integrated.ROOT
+        with self.repository(redirect=False) as root:
+            state = integrated._source_state(root=root)
+            self.assertEqual(integrated.ROOT, configured_root)
+            self.assertEqual(state["head"], self.git(root, "rev-parse", "HEAD").decode().strip())
+            self.assertEqual(state["files"], integrated._inventory(state["tree"], root=root))
+            self.assertEqual(state["files"], {name: sha256((root / name).read_bytes()).hexdigest()
+                for name in ("sample.py", "nested/child.txt", "executable.sh")})
+            child = root / "export"
+            child.mkdir()
+            with self.assertRaisesRegex(ValueError, "worktree root"):
+                integrated._source_state(root=child)
+
+    def test_parent_directory_symlink_cannot_rebind_identical_head_bytes(self):
+        with self.repository() as root, tempfile.TemporaryDirectory() as external:
+            child = root / "nested/child.txt"
+            (Path(external) / "child.txt").write_bytes(child.read_bytes())
+            child.unlink()
+            child.parent.rmdir()
+            child.parent.symlink_to(external, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "source parent is a symlink"):
+                integrated._source_state()
 
     def set_hint(self, root, flag):
         self.git(root, "update-index", "--no-assume-unchanged", "--", "sample.py")

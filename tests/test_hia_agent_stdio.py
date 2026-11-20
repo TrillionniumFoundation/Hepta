@@ -22,7 +22,7 @@ from tools.build_hia_agent_stdio import DISPATCH, PACKER, build
 EXPECTED_CAPABILITY = {
     'schema':'hepta.hia.agent-stdio.v1','implementation':'hia-native',
     'operations':['capabilities','verify','compile','render-assembly','assemble','check-assembly','catalog'],'build_profile':0,
-    'input':'primitive-v6/v7/v8-Core-JSON','input_bytes_max':8388608,
+    'input':'primitive-v6/v7/v8/v9-Core-JSON','input_bytes_max':8388608,
     'assembly_input':'hia-asm.v1','assembly_input_bytes_max':1048576,
     'compiler_bytes_max':1048576,'program_nodes_max':1048576,'json_depth_max':128,
     'target':'linux-x86_64','runtime_python_required':False,
@@ -611,11 +611,11 @@ class AgentStdioNativeTests(unittest.TestCase):
             else:self.assertEqual(b2.read_bytes(),self.compiler.read_bytes())
 
     def test_raw_assembly_produces_original_and_modified_executable_selfhost_chains(self):
-        from tools.qualify_hia_selfhost import mutate_compiler
+        from tools.qualify_hia_selfhost import mutate_compiler, with_selfhost_module
         original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         fixed_points=[]
         for index,raw in enumerate((original,mutate_compiler(original))):
-            source=raw.replace(b'v8 selfhost\n',b'v8 selfhost_exec\n',1)
+            source=with_selfhost_module(raw,b'selfhost_exec')
             first=self.invoke(['assemble'],source,profile='exec')
             self.assertEqual((first.returncode,first.stderr),(0,b''))
             images=[first.stdout]

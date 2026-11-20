@@ -1,0 +1,8 @@
+    def resolve_uri(self, uri):
+        selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')
+        if selected is not None:
+            from .hia_store_artifact_profile_native import installed_store_artifact_profile, StoreArtifactProfileFrame
+            return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 6,
+                                              self, (uri,)).finish()
+        with _store_resource_scope(self):
+            return _STORE_ARTIFACT_PROFILE_REFERENCES['resolve_uri'](self, uri)

@@ -18,6 +18,8 @@ OPERATION_EFFECTS = {
     "buffer.load": 10, "buffer.store": 12, "buffer.fill": 4,
     "buffer.fill_range": 12, "buffer.copy": 14, "buffer.copy_range": 14,
     "buffer.move_within": 14, "buffer.swap": 14,
+    "buffer.load.u64.le": 10, "buffer.load.u64.be": 10,
+    "buffer.store.u64.le": 12, "buffer.store.u64.be": 12,
 }
 
 
@@ -56,9 +58,10 @@ def require_effects(w:mutbuf, required:u64) -> u64:
 
 def source(words):
     """Append a compact, explicit nibble lookup without increasing workspace."""
-    start, stop = words["const"], words["chain.head_mut"]
+    start = words["const"]
     if not set(OPERATION_EFFECTS) <= words.keys():
         raise AssertionError("effect inventory has an unknown native keyword")
+    stop = max(words["chain.head_mut"], *(words[name] for name in OPERATION_EFFECTS))
     masks = {words[name]: mask for name, mask in OPERATION_EFFECTS.items()}
     lines = ["def instruction_effects(op:u64) -> u64:"]
     for first in range(start, stop + 1, 16):

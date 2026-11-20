@@ -18,6 +18,10 @@ import sys
 from .hia_json_preflight_native import (
     NativeHiaJsonImage, _load_manifest, _source_resource_path, _unique_manifest_pairs,
 )
+from .hia_native_delivery import (
+    _current_request_observation, guard_request_output, note_request_failure,
+    release_healthy_request_failures,
+)
 from .hia_json_wire_native import (
     ForeignGraphObserver, NativeJsonWire, SOURCE as WIRE_SOURCE, SCHEMA as WIRE_SCHEMA,
 )
@@ -251,6 +255,10 @@ class WorkerSession:
         payload = b''
         recovered = 0
         error = 0
+        # These are the original HIA policy's actual call/finally regions.
+        # Capture before the provider; no service lookup or callable inference.
+        request_regions = (struct.unpack_from('<2Q', self.workspace, 120)
+                           if _current_request_observation() is not None else None)
         try:
             if opcode == 1:
                 x, y, z, t = self.observer.summary(a)
@@ -320,7 +328,8 @@ class WorkerSession:
                     ensure_ascii=False, sort_keys=True, float_renderer=formatter)
                 x = reg(raw)
             elif opcode == 25:
-                x = reg(self.worker.sys.stdout.buffer.write(value(a) + value(b).encode('utf-8')))
+                x = reg(self.worker.sys.stdout.buffer.write(
+                    guard_request_output(value(a) + value(b).encode('utf-8'))))
             elif opcode == 26:
                 x = reg(self.worker.sys.stderr.write(value(a)))
             elif opcode == 30:
@@ -364,6 +373,11 @@ class WorkerSession:
             else:
                 raise RuntimeError('unknown native worker foreign instruction')
         except BaseException as exc:
+            if request_regions is not None:
+                if request_regions[0] or opcode == 10:
+                    note_request_failure(exc)
+                elif request_regions[1]:
+                    note_request_failure(exc, cleanup=True)
             # Match exception classes from their real type, without invoking
             # an exception object's __class__/code/message/str properties.
             error = 1
@@ -374,20 +388,25 @@ class WorkerSession:
         return self.packet
 
     def run(self):
-        while True:
-            code = self.step()
-            if code == 1:
-                self.observe()
-            elif code == 2:
-                result, = struct.unpack_from('<Q', self.workspace, 192)
-                if result not in (0, 2):
-                    raise RuntimeError('invalid native worker exit code')
-                return result
-            elif code == 3:
-                handle, = struct.unpack_from('<Q', self.workspace, 32)
-                _reraise_foreign(self.observer.value(handle))
-            else:
-                raise RuntimeError('native worker continuation profile refused')
+        try:
+            while True:
+                code = self.step()
+                if code == 1:
+                    self.observe()
+                elif code == 2:
+                    result, = struct.unpack_from('<Q', self.workspace, 192)
+                    if result not in (0, 2):
+                        raise RuntimeError('invalid native worker exit code')
+                    return result
+                elif code == 3:
+                    handle, = struct.unpack_from('<Q', self.workspace, 32)
+                    _reraise_foreign(self.observer.value(handle))
+                else:
+                    raise RuntimeError('native worker continuation profile refused')
+        finally:
+            # The original graph still owns its foreign handles here. Drop
+            # only this observer's redundant healthy diagnostic references.
+            release_healthy_request_failures()
 
 
 class NativeWorkerReport:

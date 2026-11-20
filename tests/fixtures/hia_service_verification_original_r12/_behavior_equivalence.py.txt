@@ -1,0 +1,90 @@
+    def _behavior_equivalence(self, original, revised, timeout_ms):
+        """A conservative proof decision, separate from workload testing."""
+        from .hia_optimization import PURE, DEFAULT_POLICY, verify_optimization
+        from .hia_program import WIDTHS, integer_range
+        if timeout_ms <= 0:
+            return "unknown", "Verification cannot exceed the frozen context deadline", {
+                "method": "context_budget_exhausted", "reason": "context wall budget exhausted"}
+        if original.canonical_bytes == revised.canonical_bytes:
+            return "proved", "Reflexivity for the exact admitted canonical Core bytes, including resources and traps", {
+                "method": "canonical_core_identity", "base_sha256": original.sha256,
+                "candidate_sha256": revised.sha256, "all_inputs": True}
+        left, right = original.as_dict(), revised.as_dict()
+        signatures = _signatures(original)
+        finite = signatures == _signatures(revised) and bool(signatures)
+        # Only pure scalar functions without calls, allocation or ownership can
+        # use finite value enumeration as complete semantic evidence. The
+        # structural resource/effect checker is used for wider programs.
+        for document in (left, right):
+            for fn in document["functions"]:
+                if len(fn["blocks"]) > 128 or sum(len(b["ops"]) for b in fn["blocks"]) > 4096:
+                    finite = False
+                if set(fn["effects"]) - {"trap"} or any(op["op"] not in PURE for b in fn["blocks"] for op in b["ops"]):
+                    finite = False
+                blocks = {b["id"]: b for b in fn["blocks"]}
+                visiting, done = set(), set()
+
+                def acyclic(name):
+                    if name in visiting:
+                        return False
+                    if name in done:
+                        return True
+                    visiting.add(name)
+                    term = blocks[name]["term"]
+                    targets = ([term["target"]] if term["op"] == "jump" else
+                               [term["then"]["target"], term["else"]["target"]] if term["op"] == "branch" else [])
+                    if not all(acyclic(target) for target in targets):
+                        return False
+                    visiting.remove(name)
+                    done.add(name)
+                    return True
+                if not acyclic(fn["entry"]):
+                    finite = False
+        interface = lambda d: {fn["name"]: {k: fn[k] for k in ("params", "returns", "effects")} for fn in d["functions"]}
+        if interface(left) != interface(right):
+            finite = False
+        domains, total = {}, 0
+        if finite:
+            for name, signature in signatures.items():
+                bits = sum(1 if typ == "bool" else WIDTHS.get(typ, 1000000) for typ in signature["params"])
+                if bits > 12 or total + (1 << bits) > 4096:
+                    finite = False
+                    break
+                domains[name] = [[False, True] if typ == "bool" else range(integer_range(typ)[0], integer_range(typ)[1] + 1)
+                                 for typ in signature["params"]]
+                total += 1 << bits
+        if finite:
+            transcript = sha256()
+            checked = 0
+            deadline = time.monotonic_ns() + min(10000, timeout_ms) * 1_000_000
+            for name, input_domains in domains.items():
+                for arguments in itertools.product(*input_domains):
+                    if time.monotonic_ns() > deadline:
+                        return "unknown", "Pure acyclic scalar finite domain; exhaustive enumeration deadline expired", {
+                            "method": "finite_domain", "checked": checked, "required": total, "complete": False}
+                    case = {"function": name, "arguments": list(arguments)}
+                    before = _vm_observation(original, case, steps=10000)
+                    after = _vm_observation(revised, case, steps=10000)
+                    if "budget_exceeded" in {before["status"], after["status"]}:
+                        return "unknown", "Pure acyclic scalar finite domain; reference budget prevented completeness", {
+                            "method": "finite_domain", "checked": checked, "required": total, "complete": False}
+                    observables = lambda row: {"status": row["status"], "values": row.get("values"),
+                        "first_trap": row.get("trap_code"), "resources": row["ledger"]["resources"]}
+                    first, second = observables(before), observables(after)
+                    transcript.update(wire({"case": case, "before": first, "after": second}))
+                    checked += 1
+                    if first != second:
+                        return "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
+                            "method": "finite_domain", "counterexample": case, "before": first, "after": second,
+                            "checked": checked, "required": total, "complete": False}
+            if time.monotonic_ns() > deadline:
+                return "unknown", "Exhaustive scalar enumeration finished after its frozen verification deadline", {
+                    "method": "finite_domain", "checked": checked, "required": total,
+                    "complete": False, "deadline_met": False}
+            return "proved", "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger", {
+                "method": "finite_domain", "checked": checked, "required": total, "complete": True,
+                "all_inputs_in_declared_widths": True, "transcript_sha256": transcript.hexdigest(),
+                "base_sha256": original.sha256, "candidate_sha256": revised.sha256}
+        report = verify_optimization(original, revised, {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
+        status = {"verified": "proved", "rejected": "refuted", "unknown": "unknown", "timeout": "unknown"}[report["status"]]
+        return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report

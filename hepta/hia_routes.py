@@ -8,16 +8,16 @@ class RouteRejected(ValueError):
 def route_inventory():
     # Discovery is a detached description, never admission or a proof receipt.
     # Core schema support and proof support have different domains. Removing a
-    # source frontend must not erase the v8 admission / v1-v7 proof boundary.
+    # source frontend must not erase the v8/v9 admission / v1-v7 proof boundary.
     versions = schema_registry()
     versions.pop("legacy_nominal", None)
-    versions["admitted_primitive_schemas"] = ["hepta.hia.program.v" + str(v) for v in range(1, 9)]
+    versions["admitted_primitive_schemas"] = ["hepta.hia.program.v" + str(v) for v in range(1, 10)]
     latest = versions["latest_core_schema"].rsplit(".", 1)[-1]
     return {"schema":"hepta.hia.routes.v2", "inputs":[
                 {"route":"standalone-hia", "input":"primitive v1-" + latest + " / composite v1-v4",
                  "adapter":"hepta.hia_program.verify_program", "admission":"supported",
                  "origin_required":False},
-                {"route":"agent-assembly", "input":"hia-asm.v1 explicit primitive v6/v7/v8",
+                {"route":"agent-assembly", "input":"hia-asm.v1 explicit primitive v6/v7/v8/v9",
                  "adapter":"hepta.hia_agent_assembly.assemble_program", "admission":"supported",
                  "origin_required":False, "implicit_schema_guessing":False}],
             "versions":versions,

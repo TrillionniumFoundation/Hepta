@@ -1,0 +1,6 @@
+    def close(self):
+        try:
+            if self._candidate_budget is not None:
+                self._candidate_budget.close()
+        finally:
+            self.store.close()

@@ -1,0 +1,28 @@
+    def _required_claims(self, context, candidate_artifact, refs, baseline_core_sha=None):
+        _data, native, _program = self._native(candidate_artifact, context["ref"])
+        objective, _ = self.store.get_json(context["objective"])
+        receipts = [self._verification(ref, context["ref"], native["candidate"]) for ref in refs]
+        for claim in objective["required_claims"]:
+            qualified = False
+            for receipt in receipts:
+                if not any(c["claim"] == claim and c["status"] == "proved" for c in receipt["checks"]):
+                    continue
+                subject = receipt["subject"]
+                if claim == "encoding_check":
+                    if subject["kind"] != "native_artifact" or subject["native_artifact"] != candidate_artifact:
+                        continue
+                    self._build_receipt(subject["build_receipt"], context["ref"], candidate_artifact)
+                elif claim == "behavior_equivalence":
+                    if receipt["base_core_sha256"] != baseline_core_sha:
+                        continue
+                elif claim == "lowering_refinement":
+                    if subject["kind"] == "native_artifact":
+                        if subject["native_artifact"] != candidate_artifact:
+                            continue
+                        self._build_receipt(subject["build_receipt"], context["ref"], candidate_artifact)
+                    elif native["machine_plan"] is None or subject["kind"] != "agent_machine_plan" or subject["plan"] != native["codegen"]["plan"]:
+                        continue
+                qualified = True
+            if not qualified:
+                reject("E_HIA_CLAIM_REQUIRED", "missing exact proved acceptance claim: " + claim, "verification")
+        return objective

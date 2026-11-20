@@ -15,6 +15,8 @@ POLICY_SOURCE='''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 4096:
         return 16
     phase = get(w, 0)
+    if phase == 21:
+        return delivery_terminal(o, w)
     if phase == 0:
         if length(s) < 32 or length(o) < 1048576:
             return 16
@@ -249,6 +251,53 @@ POLICY_SOURCE='''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 20
     return 16
 
+def delivery_terminal(o:mutbuf, w:mutbuf) -> u32:
+    if length(o) < 128 or get(w, 3000) != 1:
+        return 16
+    facts = get(w, 3008)
+    phase = get(w, 3016)
+    status = get(w, 3024)
+    count = get(w, 3032)
+    failure = get(w, 3056)
+    cleanup = get(w, 3064)
+    op = get(w, 8)
+    if facts > 32767 or phase > 63 or failure > 63 or cleanup > 63 or status > 255 or op > 6:
+        return 16
+    outcome = 3
+    if status == 0:
+        if op != 0 and facts & 1024 != 0:
+            outcome = 1
+    else:
+        if status == 10 or status == 11 or status == 12 or status == 14 or status == 15 or status == 16 or status == 17 or status == 64:
+            outcome = 2
+        if count != 0 or facts & 512 != 0 or facts & 8328 != 0:
+            outcome = 3
+        if facts & 1 != 0 and facts & 4100 == 0:
+            outcome = 3
+        if facts & 16 != 0 and facts & 352 == 0:
+            outcome = 3
+    if facts & 16384 == 0:
+        outcome = 3
+    i = 0
+    while i < 128:
+        store(o, i, 0)
+        i = i + 1
+    put(o, 0, 3555112812143528264)
+    put(o, 8, 1)
+    put(o, 16, get(w, 3040))
+    put(o, 24, get(w, 3048))
+    put(o, 32, op)
+    put(o, 40, outcome)
+    put(o, 48, status)
+    put(o, 56, phase)
+    put(o, 64, get(w, 16))
+    put(o, 72, count)
+    put(o, 80, facts)
+    put(o, 88, failure)
+    put(o, 96, cleanup)
+    put(o, 120, 3550048465880959304)
+    return 128
+
 def normalize(s:readbuf, o:mutbuf, which:u64) -> u64:
     cmd = uint(s, 0, 8)
     stage = uint(s, 8, 8)
@@ -400,7 +449,86 @@ def document(source=POLICY_SOURCE, module='artifact_publication_policy'):
         fns.append({'name':names[n.name],'params':[b.param(p) for p in b.params],
                     'returns':[b.returns], 'effects':['read','write','trap'],
                     'entry':'b0','blocks':b.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':fns})
+    result = compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':fns})
+    if module == 'exec_release_policy':
+        return _compact_exec_release_external_loans(result)
+    return result
+
+
+def _compact_exec_release_external_loans(document):
+    """Drop only unused external-loan edge slots in this authoring profile.
+
+    Every operation, condition, return, call, function ABI and block remains.
+    No owner, local borrow, loan end or borrowed return is admitted here.
+    This is not a compiler optimization for user-supplied programs. The
+    original Core verifier checks both complete graphs. Python allocation,
+    reflection and asynchronous observation are not equivalence claims.
+    """
+    from copy import deepcopy
+    from hepta.hia_program import verify_program
+    from hepta.hia_opcodes import SCALARS, opcode_spec
+
+    verify_program(document)
+    if document['module'] != 'exec_release_policy':
+        raise ValueError('external-loan compaction requires the explicit exec-release authoring profile')
+    result = deepcopy(document)
+    borrowed = {'readbuf', 'mutbuf'}
+    admitted = SCALARS | borrowed
+
+    def edges(block):
+        term = block['term']
+        return ([term] if term['op'] == 'jump' else
+                [term['then'], term['else']] if term['op'] == 'branch' else [])
+
+    for function in result['functions']:
+        if (any(param['type'] not in admitted for param in function['params'])
+                or any(typ not in SCALARS for typ in function['returns'])
+                or any(origin is not None for origin in function.get('return_loans', ()))):
+            raise ValueError('exec-release compaction permits only external input loans and scalar returns')
+        blocks = {block['id']: block for block in function['blocks']}
+        for block in function['blocks']:
+            if any(param['type'] not in admitted for param in block['params']):
+                raise ValueError('exec-release compaction cannot discard owners or local loans')
+            for operation in block['ops']:
+                if (any(value['type'] not in SCALARS for value in operation['out'])
+                        or opcode_spec(operation['op'], result['schema']).resource_transition
+                        not in {'none', 'call'}):
+                    raise ValueError('exec-release compaction cannot create, end or return a local resource')
+
+        # An operation operand is always a root, even if its output is unused.
+        # Nonloan and entry parameters are preserved without exception.
+        live = set()
+        for block in function['blocks']:
+            used = {arg for operation in block['ops'] for arg in operation['args']}
+            term = block['term']
+            used.update(term['values'] if term['op'] == 'ret' else
+                        [term['cond']] if term['op'] == 'branch' else [])
+            for param in block['params']:
+                if (block['id'] == function['entry'] or param['type'] not in borrowed
+                        or param['name'] in used):
+                    live.add((block['id'], param['name']))
+        # Propagate all successor requirements to a fixed point, including
+        # backedges. Arguments are mapped by original position, simultaneously.
+        while True:
+            previous = set(live)
+            for block in function['blocks']:
+                params = {param['name'] for param in block['params']}
+                for edge in edges(block):
+                    for actual, formal in zip(edge['args'], blocks[edge['target']]['params'], strict=True):
+                        if (edge['target'], formal['name']) in live and actual in params:
+                            live.add((block['id'], actual))
+            if live == previous:
+                break
+        keep = {block['id']: [index for index, param in enumerate(block['params'])
+                              if (block['id'], param['name']) in live]
+                for block in function['blocks']}
+        for block in function['blocks']:
+            for edge in edges(block):
+                edge['args'] = [edge['args'][index] for index in keep[edge['target']]]
+            block['params'] = [block['params'][index] for index in keep[block['id']]]
+
+    verify_program(result)
+    return result
 
 
 MAGIC=int.from_bytes(b'HIAPUB01','little')
@@ -418,11 +546,21 @@ def template():
         relocations=subprocess.check_output(['objdump','-r',str(obj)],text=True)
         if 'R_X86_64' in relocations: raise ValueError('unresolved template relocation')
         code=raw.read_bytes()
-    head=(b'\x7fELF\x02\x01\x01'+bytes(9)+struct.pack('<HHIQQQIHHHHHH',2,62,1,0x4000b0,64,0,0,64,56,2,0,0,0)
+    from hepta.hia_artifact_delivery_protocol import (ELF_BASE, NOTE_OFFSET, NOTE_BYTES,
+        NOTE_NAME, DESCRIPTOR_MAGIC, DESCRIPTOR_BYTES, PUBLIC_CODE_OFFSET,
+        NONCE_BYTES, ACK_BYTES, ENTRY_WORD_OFFSET, VERSION, OPERATIONS_MASK)
+    assert symbols['_start'] == 0
+    public_entry=ELF_BASE+PUBLIC_CODE_OFFSET
+    private_entry=public_entry+symbols['_delivery_start']
+    head=(b'\x7fELF\x02\x01\x01'+bytes(9)+struct.pack('<HHIQQQIHHHHHH',2,62,1,public_entry,64,0,0,64,56,3,0,0,0)
         +struct.pack('<IIQQQQQQ',1,5,0,0x400000,0x400000,0,0,4096)
-        +struct.pack('<IIQQQQQQ',0x6474e551,6,0,0,0,0,0,16))
-    assert len(head)==176
-    holes={key:176+symbols[key] for key in ('policy_initial_hole','policy_hole','sha_hole')}
+        +struct.pack('<IIQQQQQQ',0x6474e551,6,0,0,0,0,0,16)
+        +struct.pack('<IIQQQQQQ',4,4,NOTE_OFFSET,ELF_BASE+NOTE_OFFSET,ELF_BASE+NOTE_OFFSET,NOTE_BYTES,NOTE_BYTES,4)
+        +struct.pack('<III',len(NOTE_NAME),DESCRIPTOR_BYTES,VERSION)+NOTE_NAME+bytes(3)
+        +struct.pack('<12Q',DESCRIPTOR_MAGIC,VERSION,public_entry,private_entry,
+                     NONCE_BYTES,ACK_BYTES,DESCRIPTOR_BYTES,ENTRY_WORD_OFFSET,0,0,OPERATIONS_MASK,0))
+    assert len(head)==PUBLIC_CODE_OFFSET
+    holes={key:PUBLIC_CODE_OFFSET+symbols[key] for key in ('policy_initial_hole','policy_hole','sha_hole')}
     return head+code,holes
 
 
@@ -444,8 +582,17 @@ def packer_source():
     if size > 1048576 or length(o) < size:
         return 4294967294
 '''
-    for at in range(0,len(prefix),8):
-        chunk=prefix[at:at+8];text+=f'    write(o, {at}, {int.from_bytes(chunk,"little")}, {len(chunk)})\n'
+    # Keep the fixed template's original byte order without exceeding the
+    # unchanged 2048-name compiler profile in one straight-line function.
+    # These HIA helpers only write literal template bytes; no policy is hosted.
+    template_functions=[]
+    for index,start in enumerate(range(0,len(prefix),2048)):
+        text+=f'    template_{index}(o)\n'
+        helper=f'\ndef template_{index}(o:mutbuf) -> u64:\n'
+        for at in range(start,min(start+2048,len(prefix)),8):
+            chunk=prefix[at:at+8]
+            helper+=f'    write(o, {at}, {int.from_bytes(chunk,"little")}, {len(chunk)})\n'
+        template_functions.append(helper+'    return 0\n')
     text+='    write(o, 96, size, 8)\n    write(o, 104, size, 8)\n'
     for key,offset in holes.items():
         target=str(len(prefix))+(' + policy' if key=='sha_hole' else '')
@@ -453,7 +600,7 @@ def packer_source():
     text+=f'''    copy_bytes(s, o, 24, {len(prefix)}, policy + sha)
     return size
 '''
-    return text+LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
+    return text+''.join(template_functions)+LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
 
 
 def main():

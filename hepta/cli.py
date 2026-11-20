@@ -31,7 +31,7 @@ def agent_capabilities():
                                   "simd_abi": "direct synchronous borrowed pointer/length with u64 result",
                                   "outside_profile": "reject before publication"},
                   "native_shared": "ordinary linked native ABI; no final-image validation claim",
-                  "selfhost": {"input": "bounded primitive Core v8 with scalar exports",
+                  "selfhost": {"input": "bounded primitive Core v6/v7/v8/v9 with scalar exports",
                                "selection": "explicit compiler manifest and SHA256",
                                "runtime": "Linux x86-64 sealed native executable",
                                "hosted_cli_and_publication": True}},
@@ -43,6 +43,10 @@ def agent_capabilities():
     }
 
 def output_json(value):
+    from .hia_cli_discovery_selection import DiscoveryJsonBytes
+    if type(value) is DiscoveryJsonBytes:
+        print(value.payload.decode("utf-8")[:-1])
+        return
     print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
 
 def publish_json_view(value, destination):
@@ -113,13 +117,17 @@ def _reference_hia_main(argv=None):
             parser.error("--target-isa requires --backend auto --kind shared")
     try:
         if args.hia_action=="capabilities":
-            output_json(agent_capabilities())
+            from .hia_cli_discovery_selection import selected_json
+            selected = selected_json(1)
+            output_json(agent_capabilities() if selected is None else selected)
             return 0
         from .hia_program import verify_program
         from .hia_program_tools import read_bounded, decode_json, inspect_program, apply_program_patch, publish_program
         if args.hia_action == 'catalog':
             from .hia_opcodes import opcode_catalog
-            output_json(opcode_catalog(args.schema))
+            from .hia_cli_discovery_selection import selected_json
+            selected = selected_json(2, args.schema)
+            output_json(opcode_catalog(args.schema) if selected is None else selected)
             return 0
         if args.hia_action in {'import-assembly', 'render-assembly', 'check-assembly'}:
             from .hia_agent_assembly import assemble_program, render_assembly, diagnose_assembly

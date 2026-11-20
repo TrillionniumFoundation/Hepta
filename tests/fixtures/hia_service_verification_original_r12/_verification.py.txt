@@ -1,0 +1,35 @@
+    def _verification(self, ref, context, candidate=None):
+        record, _ = self.store.get_json(ref, kind="verification-receipt")
+        if (record["context"] != context or record["installation"] != self.identities
+                or candidate is not None and record["candidate"] != candidate):
+            reject("E_HIA_RECEIPT_BINDING", "verification receipt belongs to a different context, candidate or implementation", "verification")
+        self._profile(record["validation_profile"], "validation")
+        program = self._program(record["candidate"])
+        if program.sha256 != record["candidate_core_sha256"]:
+            reject("E_HIA_RECEIPT_BINDING", "verification Core identity changed", "verification")
+        original = None if record["base_program"] is None else self._program(record["base_program"])
+        if record["base_core_sha256"] != (None if original is None else original.sha256):
+            reject("E_HIA_RECEIPT_BINDING", "verification base Core identity changed", "verification")
+        self._subject(record, program)
+        context_record = self._context(context)
+        subject = proof_subject(record, context_record["target_profile"])
+        checks_schema = self.tools["hia_verify"]["outputSchema"]["properties"]["result"]["properties"]["checks"]
+        try:
+            validate(record["checks"], checks_schema, "verification.checks")
+        except AgentRejected as exc:
+            reject("E_HIA_PROOF_SCOPE", "missing or invalid proof scope; rerun verification with a fresh request key: " + str(exc), "verification")
+        if len({check["claim"] for check in record["checks"]}) != len(record["checks"]):
+            reject("E_HIA_PROOF_SCOPE", "verification repeats a proof property", "verification")
+        for check in record["checks"]:
+            evidence, _ = self.store.get_json(check["evidence_artifact"], kind="verification-evidence")
+            assumptions, _ = self.store.get_json(check["assumptions_artifact"], kind="verification-assumptions")
+            if evidence.get("method") == SAFE_CORE_METHOD:
+                self._check_native_refinement_evidence(evidence, record["subject"], context, program)
+            expected = proof_result(claim=check["claim"], status=check["status"], domain=check["domain"],
+                subject=subject, profile=record["validation_profile"], installation=self.identities, evidence=evidence)
+            actual = {key: value for key, value in check.items()
+                      if key not in {"assumptions_artifact", "evidence_artifact"}}
+            if (actual != expected or evidence.get("proof_binding") != expected
+                    or assumptions != assumptions_document(expected)):
+                reject("E_HIA_PROOF_SCOPE", "proof scope or retained checker conclusion differs; rerun verification with a fresh request key", "verification")
+        return record

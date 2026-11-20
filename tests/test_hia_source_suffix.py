@@ -75,6 +75,36 @@ class HiaSourceSuffixTests(unittest.TestCase):
             self.assertEqual(result['status'], 'PASS')
             self.assertEqual(result['hia_source_files'], 12)
 
+    def test_package_python_count_matches_recursive_checked_sources(self):
+        with source_tree() as root:
+            package_sources = {
+                'hepta/__init__.py': '# package\n',
+                'hepta/native/__init__.py': '# native package\n',
+                'hepta/native/slot_mechanical_build.py': 'BUILD_INPUT = 1\n',
+                'hepta/native/deep/helper.py': 'HELPER = 2\n',
+            }
+            other_sources = {
+                'tools/build_helper.py': 'TOOL = 3\n',
+                'tests/test_helper.py': 'TEST_INPUT = 4\n',
+            }
+            for name, content in {**package_sources, **other_sources}.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+            # Stale cache entries are deliberately not valid Python. They
+            # must enter neither the parsed source manifest nor its counts.
+            for name in (
+                    'hepta/__pycache__/obsolete.py',
+                    'hepta/native/__pycache__/obsolete.py',
+                    'tools/__pycache__/obsolete.py'):
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('not valid Python !!!\n')
+            result = check(root)
+            self.assertEqual(result['status'], 'PASS')
+            self.assertEqual(result['package_python_files'], 4)
+            self.assertEqual(result['python_source_files'], 6)
+
     def test_legacy_and_noncanonical_case_suffixes_are_refused_as_real_files(self):
         with source_tree() as root:
             for suffix in ('.hia', '.HIA', '.hiaasm', '.HiaAsm', '.hia.json', '.HIA.JSON',

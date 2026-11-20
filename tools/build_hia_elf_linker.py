@@ -18,6 +18,7 @@ if __package__ in {None, ''}:
 
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_application)
+from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_native_filter import LINK_FILTER_MAGIC, MAGIC
 from tools.qualify_hia_selfhost import invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -53,10 +54,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, kind='static') -> 
     _, raw, _ = applications[linker]
     frame=struct.pack('<2Q',magic,len(raw))+raw
     receipt,packed=invoke(output,'native-pack',applications[packer][0],frame)
-    size=receipt['core_u32']
-    if not 0<size<=1048576 or size>len(packed):
-        raise ValueError('native filter packer refused the linker image')
-    executable_raw=packed[:size];inspection=inspect_executable(executable_raw)
+    executable_raw=_check_pack_output(receipt,packed,artifact=applications[packer][1],source=frame)
+    inspection=inspect_executable(executable_raw)
     if (any(p.read_bytes()!=before for p,before in pins.items())
             or any(p.read_bytes()!=before for p,before in manifest_inputs.items())
             or current_sources()!=admitted_sources):

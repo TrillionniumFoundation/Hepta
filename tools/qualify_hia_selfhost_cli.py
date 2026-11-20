@@ -44,11 +44,30 @@ def output_capacity_source():
     return source.encode()
 
 
+def _inspect_public_artifact_executable(raw):
+    # The artifact application has one explicit, versioned public ABI. Its
+    # complete original capability validator checks all three segment records,
+    # note/name/padding, descriptor fields, both entries and actual byte extent.
+    # This is not general ELF acceptance, and a private-entry image is refused.
+    from hepta.hia_artifact_delivery_protocol import control_descriptor, ACK_BYTES, NONCE_BYTES
+    descriptor = control_descriptor(raw)
+    return {"elf_type": "ET_EXEC", "machine": "EM_X86_64",
+        "entry": descriptor.public_entry,
+        "program_headers": ["PT_LOAD_RX", "PT_GNU_STACK_RW", "PT_NOTE_HIADELIV"],
+        "interpreter": None, "dynamic_loader": False, "libc": False,
+        "bytes": len(raw), "sha256": sha256(raw).hexdigest(),
+        "private_delivery_entry": descriptor.private_entry,
+        "private_delivery_ack_bytes": ACK_BYTES,
+        "private_delivery_prefix_bytes": NONCE_BYTES}
+
+
 def inspect_executable(raw):
     if len(raw) <= 176 or raw[:16] != b"\x7fELF\x02\x01\x01" + bytes(9):
         raise ValueError("not a canonical ELF64 executable")
     header = struct.unpack_from("<HHIQQQIHHHHHH", raw, 16)
     if header != (2, 62, 1, 0x4000b0, 64, 0, 0, 64, 56, 2, 0, 0, 0):
+        if header[9] == 3:
+            return _inspect_public_artifact_executable(raw)
         raise ValueError("unexpected executable entry/header")
     load = struct.unpack_from("<IIQQQQQQ", raw, 64)
     stack = struct.unpack_from("<IIQQQQQQ", raw, 120)
@@ -146,7 +165,7 @@ def execute(directory, name, executable, source, *, mode="ordinary", arguments=(
 
 
 def qualify(directory, compiler, compiler_source, checks, reference, label):
-    from tools.qualify_hia_selfhost import compile_stage, invoke, NO_SPACE
+    from tools.qualify_hia_selfhost import compile_stage, invoke, NO_SPACE, with_selfhost_module
     directory = Path(directory)
     observations = []
 
@@ -158,7 +177,7 @@ def qualify(directory, compiler, compiler_source, checks, reference, label):
         observations.append({"case": name, "native": receipt})
         return output
 
-    executable_source = compiler_source.replace(b"v8 selfhost\n", b"v8 selfhost_exec\n", 1)
+    executable_source = with_selfhost_module(compiler_source, b"selfhost_exec")
     if executable_source == compiler_source:
         raise ValueError("compiler executable source header was not replaced")
     executable, receipt = compile_stage(directory, label + "-cli-E1-build", compiler,
@@ -174,7 +193,7 @@ def qualify(directory, compiler, compiler_source, checks, reference, label):
         previous = following
     if label == "original":
         from tools.qualify_hia_selfhost import mutate_compiler
-        modified = mutate_compiler(compiler_source).replace(b"v8 selfhost\n", b"v8 selfhost_exec\n", 1)
+        modified = with_selfhost_module(mutate_compiler(compiler_source), b"selfhost_exec")
         modified_images = []
         predecessor = executable
         for generation in (1, 2, 3):

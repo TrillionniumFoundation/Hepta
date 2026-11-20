@@ -4499,7 +4499,19 @@ block b14(v83:mutbuf,v84:u64)
   v90:u64 = call(v83,v84,v86,v87,v88,v89) {"function":"f19"}
   v91:u64 = const() {"value":0}
   v92:bool = compare.ne(v90,v91)
-  v93:u64 = const() {"value":8}
-  v94:u64 = select(v92,v93,v91)
-  ret(v94)
+  branch v92 b15(v83) b16(v83,v84)
+block b15(v93:mutbuf)
+  v97:u64 = const() {"value":8}
+  ret(v97)
+block b16(v95:mutbuf,v96:u64)
+  v98:u64 = const() {"value":20}
+  v99:u64 = const() {"value":7595371767660569960}
+  v100:u64 = const() {"value":7021788497383009889}
+  v101:u64 = const() {"value":964046445}
+  v102:u64 = call(v95,v96,v98,v99,v100,v101) {"function":"f19"}
+  v103:u64 = const() {"value":0}
+  v104:bool = compare.ne(v102,v103)
+  v105:u64 = const() {"value":9}
+  v106:u64 = select(v104,v105,v103)
+  ret(v106)
 end

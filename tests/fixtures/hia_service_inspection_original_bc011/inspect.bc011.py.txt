@@ -1,0 +1,41 @@
+    def _hia_inspect(self, args):
+        from .hia_program_tools import inspect_program
+        from .hia_edit_query import prepare_edit
+        from .hia_program_native import emit_program_machine
+        program = self._program(args["program"])
+        selector = args.get("selector", {})
+        if "cursor" in args:
+            reject("E_HIA_CURSOR", "inspection returns an immutable artifact; paginate it through hia_read")
+        view, query = args["view"], None
+        if view == "summary":
+            result = inspect_program(program)
+        elif view == "lowering":
+            context = self._context(args["context"])
+            image = emit_program_machine(program,
+                foreign_buffer_exports=tuple(map(tuple, context.get("foreign_buffer_exports", []))))
+            result = {"schema": "hepta.hia.agent.lowering-view.v1", "core_sha256": program.sha256,
+                "text_sha256": sha256(image.text_bytes).hexdigest(), "object_sha256": image.sha256,
+                "text_bytes": str(len(image.text_bytes)), "frames": dict(image.function_frames),
+                "lowering_profile": self.profiles["lowering"], "optimizer_used": False,
+                "object": self.store.put(image.object_bytes, "lowering-object")}
+        elif view == "dependencies":
+            if not all(k in selector for k in ("function", "block", "output")):
+                reject("E_HIA_SELECTOR", "dependencies require function, block and output")
+            prepared = prepare_edit(program, function=selector["function"], block=selector["block"],
+                                    output=selector["output"], fields=["op", "args", "attrs"])
+            result = prepared
+            query = self.store.json(prepared, "edit-query")
+        else:
+            if "function" not in selector:
+                reject("E_HIA_SELECTOR", "function view requires an exact function")
+            functions = {fn["name"]: fn for fn in program.as_dict()["functions"]}
+            if selector["function"] not in functions:
+                reject("E_HIA_SELECTOR", "function is not in this program")
+            result = functions[selector["function"]]
+            if view == "block":
+                blocks = {b["id"]: b for b in result["blocks"]}
+                if selector.get("block") not in blocks:
+                    reject("E_HIA_SELECTOR", "block is not in this function")
+                result = blocks[selector["block"]]
+        return {"program": args["program"], "view_artifact": self.store.json(result, "inspection"),
+                "query_artifact": query, "next_cursor": None}

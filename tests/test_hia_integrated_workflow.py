@@ -93,6 +93,8 @@ class CoreWorkflowContractTests(unittest.TestCase):
         required.add('tests.test_hia_mcp_negotiation_native')
         required.add('tests.test_hia_mcp_catalog_native')
         required.add('tests.test_hia_mcp_uri_native')
+        required.add('tests.test_hia_mcp_terminal_native')
+        required.add('tests.test_hia_mcp_schema_native')
         required.add('tests.test_hia_json_preflight_native')
         required.add('tests.test_hia_agent_data_json_native')
         required.add('tests.test_hia_agent_binary64_native')

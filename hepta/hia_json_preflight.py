@@ -34,6 +34,8 @@ def preflight_hia_json(text: str, *, max_nodes: int, max_depth: int) -> None:
             or type(max_depth) is not int or max_depth < 0):
         raise ValueError("invalid HIA JSON preflight input/budgets")
     manifest = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
+    if manifest == '':
+        raise ValueError('JSON preflight selector must not be empty')
     if manifest and max_nodes <= 1048576 and max_depth <= 128:
         try:
             wire = text.encode('utf-8')
@@ -124,14 +126,18 @@ def _preflight_hia_json_reference(text: str, *, max_nodes: int, max_depth: int) 
         nonlocal index
         if index >= size:
             fail("missing JSON value")
-        for keyword in ("true", "false", "null"):
-            if text.startswith(keyword, index):
-                index += len(keyword)
-                return
-        if text[index] == '"':
+        # These token families have disjoint first characters. Keep every
+        # original grammar/refusal check, without probing three literal words
+        # before every ordinary string and integer in a large Core document.
+        first = text[index]
+        if first == '"':
             string_token()
             return
-        if text[index] == "-":
+        keyword = "true" if first == "t" else "false" if first == "f" else "null" if first == "n" else None
+        if keyword is not None and text.startswith(keyword, index):
+            index += len(keyword)
+            return
+        if first == "-":
             index += 1
         if index >= size or not text[index].isascii() or not text[index].isdigit():
             fail("expected JSON integer or literal")
@@ -208,7 +214,12 @@ def _preflight_hia_json_reference(text: str, *, max_nodes: int, max_depth: int) 
                     complete_value()
                 elif ch == '"':
                     token = string_token()
-                    key = json.loads(token)
+                    # string_token has already checked the complete token,
+                    # including controls and literal Unicode surrogates. With
+                    # no escape, decoding is exactly the quoted interior.
+                    # Escaped spellings still use the original stdlib decoder,
+                    # so duplicate keys compare the same decoded identities.
+                    key = json.loads(token) if "\\" in token else token[1:-1]
                     if key in frame["keys"]:
                         fail("duplicate decoded object key")
                     frame["keys"].add(key)

@@ -1,4 +1,4 @@
-"""Standalone HIA v1-v8: closed, typed SSA blocks with checked resource flow.
+"""Standalone HIA v1-v9: closed, typed SSA blocks with checked resource flow.
 
 The authority is this program's operations, not a source file, producer hash,
 claim, or source-checker receipt.  Blocks are closed: all incoming values are
@@ -32,8 +32,8 @@ from .hia_capability_flow import (Capability as _Capability,
                                   CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
     COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
-    PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, SCHEMA, SCHEMA_V2, SCHEMA_V3,
-    SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, profile_for_schema, supports_feature,
+    PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, PROFILE_V9, SCHEMA, SCHEMA_V2, SCHEMA_V3,
+    SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, profile_for_schema, supports_feature,
 )
 from .hia_opcodes import (
     BYTE_RESOURCES, EFFECTS, OWNERS, RESOURCES, SCALARS, TRAP_CODES, TYPES, WIDTHS,

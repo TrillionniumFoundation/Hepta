@@ -32,7 +32,7 @@ from hepta.hia_worker_report_native import (
 
 ROOT = Path(__file__).resolve().parents[1]
 COLD = 'HEPTA_HIA_WORKER_REPORT_COLD_REPORT'
-DEVELOPMENT = 'HEPTA_HIA_WORKER_REPORT_DEVELOPMENT_MANIFEST'
+DEVELOPMENT = 'HEPTA_HIA_WORKER_REPORT_DEVELOPMENT_BUNDLE'
 FIXTURE_EVIDENCE = 'HEPTA_HIA_WORKER_REPORT_FIXTURE_EVIDENCE'
 IDENTITIES = {'worker_sha256': 'a' * 64, 'backend_sha256': 'b' * 64, 'catalog_sha256': 'c' * 64}
 

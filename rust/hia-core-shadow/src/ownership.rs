@@ -1,4 +1,4 @@
-//! Conservative Rust shadow of HIA v1-v8 Owner/Loan control-flow semantics.
+//! Conservative Rust shadow of HIA v1-v9 Owner/Loan control-flow semantics.
 //! Python verify_program is the sole executable admission authority.
 //! This shadow checks finite byte/chain ownership and borrowed-head loans,
 //! not dynamic heap correctness, arbitrary pointer provenance, native LLVM,
@@ -175,6 +175,8 @@ impl Flow {
         if !matches!(op, "buffer.new" | "buffer.try_new" | "buffer.len" |
             "borrow.read" | "borrow.mut" | "loan.end" | "owner.move" |
             "owner.drop" | "buffer.load" | "buffer.store" |
+            "buffer.load.u64.le" | "buffer.load.u64.be" |
+            "buffer.store.u64.le" | "buffer.store.u64.be" |
             "chain.empty" | "chain.try_push" | "chain.pop" |
             "chain.is_empty" | "chain.head_read" | "chain.head_mut" |
             "buffer.fill" | "buffer.copy" | "buffer.move_within" |
@@ -194,7 +196,9 @@ impl Flow {
             || (op == "buffer.move_within" && version < 3)
             || (op == "buffer.swap" && version < 4)
             || (op == "buffer.copy_range" && version < 5)
-            || (op == "buffer.fill_range" && version < 6)) {
+            || (op == "buffer.fill_range" && version < 6)
+            || (matches!(op, "buffer.load.u64.le" | "buffer.load.u64.be" |
+                         "buffer.store.u64.le" | "buffer.store.u64.be") && version < 9)) {
             return failure("E_HIA_OPCODE", "opcode outside declared HIA ISA version");
         }
         let actual: Vec<String> = args.iter().map(|n| self.ty(n)).collect::<R<_>>()?;
@@ -277,16 +281,17 @@ impl Flow {
                     vec![]
                 } else { vec![actual[0]] }
             }
-            "buffer.load" => {
+            "buffer.load" | "buffer.load.u64.le" | "buffer.load.u64.be" => {
                 if actual.len() != 2 || actual[1] != "usize" {
                     return failure("E_HIA_TYPE", "load type/arity");
                 }
                 self.access(&args[0], false)?;
                 self.required.extend(["read".into(), "trap".into()]);
-                vec!["u8"]
+                vec![if op == "buffer.load" { "u8" } else { "u64" }]
             }
-            "buffer.store" => {
-                if actual.len() != 3 || actual[1] != "usize" || actual[2] != "u8" {
+            "buffer.store" | "buffer.store.u64.le" | "buffer.store.u64.be" => {
+                let value_type = if op == "buffer.store" { "u8" } else { "u64" };
+                if actual.len() != 3 || actual[1] != "usize" || actual[2] != value_type {
                     return failure("E_HIA_TYPE", "store type/arity");
                 }
                 self.access(&args[0], true)?;
@@ -666,7 +671,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
     if !matches!(schema, "hepta.hia.program.v1" | "hepta.hia.program.v2" |
         "hepta.hia.program.v3" | "hepta.hia.program.v4" |
         "hepta.hia.program.v5" | "hepta.hia.program.v6" |
-        "hepta.hia.program.v7" | "hepta.hia.program.v8") {
+        "hepta.hia.program.v7" | "hepta.hia.program.v8" | "hepta.hia.program.v9") {
         return failure("E_HIA_SCHEMA", "unsupported/ambiguous ISA version");
     }
     let version = match schema {
@@ -678,6 +683,7 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
         "hepta.hia.program.v6" => 6,
         "hepta.hia.program.v7" => 7,
         "hepta.hia.program.v8" => 8,
+        "hepta.hia.program.v9" => 9,
         _ => return failure("E_HIA_SCHEMA", "unsupported ISA version"),
     };
     ident(&top["module"])?;
@@ -725,7 +731,9 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
     }
     let digest = Sha256::digest(&canonical);
     let mut report = json!({
-        "schema": if version == 8 { "hepta.hia.rust-owner-shadow.v2" } else { "hepta.hia.rust-owner-shadow.v1" },
+        "schema": if version == 9 { "hepta.hia.rust-owner-shadow.v3" }
+                  else if version == 8 { "hepta.hia.rust-owner-shadow.v2" }
+                  else { "hepta.hia.rust-owner-shadow.v1" },
         "ok": true,
         "program_sha256": format!("{digest:x}"),
         "functions_checked": fs.len(), "blocks_checked": count,
@@ -745,8 +753,11 @@ pub(super) fn verify_owned(input: &[u8]) -> R<Value> {
             "rust_is_production_admission_authority": false
         }
     });
-    if version == 8 {
+    if version >= 8 {
         report["claims"]["v8_parameter_bound_loan_returns_checked"] = json!(true);
+    }
+    if version == 9 {
+        report["claims"]["v9_fixed_width_memory_types_effects_loans_checked"] = json!(true);
     }
     Ok(report)
 }

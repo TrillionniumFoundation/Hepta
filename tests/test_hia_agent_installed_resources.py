@@ -12,21 +12,321 @@ from tools.hia_selfhost_contract import (
 )
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
-# Source-distribution tools and test inputs are not installed Agent resources.
-SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',
-                     *ARTIFACT_CAPTURE_SDIST_FILES,
-                     *CORE_NORMALIZE_SDIST_FILES,
-                     *CORE_EDIT_SDIST_FILES,
-                     *MCP_WIRE_SDIST_FILES,
-                     *EXECUTION_LEDGER_SDIST_FILES,
-                     *NATIVE_LINKER_SDIST_FILES,
-                     *SCALAR_REFERENCE_SDIST_FILES,
-                     *WORKER_REQUEST_SDIST_FILES,
-                     *SQLITE_SNAPSHOT_SDIST_FILES,
-                     'tools/build_hia_nominal_json.py',
-                     'tools/hia_nominal_json_stdio.S',
-                     'tools/build_hia_nominal_constructor.py',
-                     'tools/hia_nominal_constructor.S')
+# Additional explicit sdist inputs stay separate from Agent RESOURCES.
+# The two declared native package files also belong in the actual wheel;
+# all other support paths remain absent from its package root.
+SDIST_SUPPORT_FILES=(
+    'tests/fixtures/hia_compiler_rename_reference.json.gz',
+    *ARTIFACT_CAPTURE_SDIST_FILES,
+    *CORE_NORMALIZE_SDIST_FILES,
+    *CORE_EDIT_SDIST_FILES,
+    *MCP_WIRE_SDIST_FILES,
+    *EXECUTION_LEDGER_SDIST_FILES,
+    *NATIVE_LINKER_SDIST_FILES,
+    *SCALAR_REFERENCE_SDIST_FILES,
+    *WORKER_REQUEST_SDIST_FILES,
+    *SQLITE_SNAPSHOT_SDIST_FILES,
+    'tools/build_hia_nominal_json.py',
+    'tools/hia_nominal_json_stdio.S',
+    'tools/build_hia_nominal_constructor.py',
+    'tools/hia_nominal_constructor.S',
+    'docs/HIA_SLOT_MECHANICAL_BOUNDARY.md',
+    'docs/HIA_SLOT_MECHANICAL_V5.md',
+    'hepta/native/slot_mechanical.c',
+    'hepta/native/slot_mechanical_build.py',
+    'tests/hia_slot_mechanical_admission_controls.py',
+    'tests/hia_slot_mechanical_capsule_observer.py',
+    'tests/hia_slot_mechanical_installed_probe.py',
+    'tests/hia_slot_mechanical_worker_probe.py',
+    'tests/test_hia_slot_mechanical_native.py',
+    'tools/build_hia_slot_mechanical.py',
+    'tools/build_hia_slot_mechanical_bundle.py',
+    'tools/qualify_hia_slot_mechanical_admission.py',
+    'tools/qualify_hia_slot_mechanical_installed.py',
+    'tools/qualify_hia_slot_mechanical_observations.py',
+    'tools/qualify_hia_slot_mechanical_public.py',
+    'tools/read_hia_slot_mechanical_admission.py',
+    'tools/read_hia_slot_mechanical_installed.py',
+    'tools/read_hia_slot_mechanical_observations.py',
+    'examples/hia_bootstrap/executable_capture.hepta',
+    'tools/hia_executable_capture_syscalls.S',
+    'tools/generate_hia_executable_capture.py',
+    'tools/build_hia_executable_capture.py',
+    'tools/qualify_hia_selfhost.py',
+    'tools/build_hia_source_build.py',
+    'tools/build_hia_json_preflight.py',
+    'tools/qualify_hia_store_file_capture_originals.py',
+    'tools/generate_hia_selfhost.py',
+    'tests/fixtures/executable_capture_r19_original.py.txt',
+    'tests/hia_executable_capture_originals.py',
+    'tests/fixtures/executable_capture_cases.json',
+    'tests/test_hia_executable_capture.py',
+    'docs/HIA_EXECUTABLE_CAPTURE.md',
+    'tests/hia_executable_capture_receipt_controls.py',
+    'tests/test_hia_executable_capture_receipt.py',
+    'tests/fixtures/executable_capture_receipt_controls_v2.json',
+    'examples/hia_bootstrap/vm_integer_divrem.hepta',
+    'tools/build_hia_vm_integer_divrem.py',
+    'tools/qualify_hia_vm_integer_divrem.py',
+    'tools/read_hia_vm_integer_divrem.py',
+    'tests/hia_vm_integer_divrem_cases.py',
+    'tests/hia_vm_integer_divrem_controls.py',
+    'tests/test_hia_vm_integer_divrem_native.py',
+    'tests/fixtures/vm_integer_divrem_inputs_v1.json',
+    'tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt',
+    'docs/HIA_VM_INTEGER_DIVREM.md',
+    'examples/hia_bootstrap/vm_integer_arithmetic.hepta',
+    'tools/build_hia_vm_integer_arithmetic.py',
+    'tools/qualify_hia_vm_integer_arithmetic.py',
+    'tools/read_hia_vm_integer_arithmetic.py',
+    'tests/hia_vm_integer_arithmetic_cases.py',
+    'tests/hia_vm_integer_arithmetic_controls.py',
+    'tests/test_hia_vm_integer_arithmetic_native.py',
+    'tests/fixtures/vm_integer_arithmetic_inputs_v1.json',
+    'docs/HIA_VM_INTEGER_ARITHMETIC.md',
+    'examples/hia_bootstrap/vm_integer_scalar.hepta',
+    'tools/build_hia_vm_integer_scalar.py',
+    'tools/qualify_hia_vm_integer_scalar.py',
+    'tools/read_hia_vm_integer_scalar.py',
+    'tests/hia_vm_integer_scalar_cases.py',
+    'tests/hia_vm_integer_scalar_controls.py',
+    'tests/test_hia_vm_integer_scalar_native.py',
+    'tests/fixtures/vm_integer_scalar_inputs_v1.json',
+    'docs/HIA_VM_INTEGER_SCALAR.md',
+    'tests/fixtures/caller_qualifier_successor_provenance_v1.json',
+    'tests/fixtures/native_delivery_original_9c46166.json',
+    'tests/fixtures/store_native_delivery_original_c019.json',
+    'tests/hia_caller_terminal_admission.py',
+    'tests/fixtures/hia_native_build_admission_callers_aac7550.json',
+    'tests/fixtures/hia_emission_original_73f1634/original-freeze.json',
+    'tests/fixtures/hia_store_artifact_profile_callers_73f1634.json',
+    'tests/fixtures/native_transport_worker_terminal_v2_provenance.json',
+    'tests/fixtures/evaluation_worker_terminal_v2_provenance.json',
+    'tests/test_hia_native_delivery.py',
+    'tests/test_hia_native_transport_failures.py',
+    'tests/test_hia_evaluation_native.py',
+    'tools/qualify_hia_native_build_admission_callers.py',
+    'tools/qualify_hia_emission_callers.py',
+    'tools/qualify_hia_store_artifact_profile_callers.py',
+    'tests/hia_native_transport_worker_successor.py',
+    'tests/test_hia_caller_qualifier_successor.py',
+    'tests/test_hia_evaluation_worker_successor.py',
+    'tests/test_hia_store_native_delivery.py',
+    'tests/__init__.py',
+    'examples/hia_bootstrap/exec_release_policy.hepta',
+    'examples/hia_bootstrap/exec_release_packer.hepta',
+    'tools/generate_hia_exec_release.py',
+    'tools/hia_exec_release_syscalls.S',
+    'tools/build_hia_exec_release.py',
+    'tools/hia_exec_release_child.py',
+    'tools/qualify_hia_exec_release.py',
+    'tools/read_hia_exec_release.py',
+    'tests/hia_exec_release_controls.py',
+    'tests/test_hia_exec_release.py',
+    'docs/HIA_EXEC_RELEASE_NATIVE.md',
+    "tools/hia_cold_native_transport.h",
+    "tools/hia_cold_native_transport.c",
+    "tools/hia_cold_native_transport_driver.c",
+    "tools/hia_cold_native_transport_python.c",
+    "tools/hia_cold_native_transport_handoff_controls.c",
+    "tools/hia_cold_native_transport_bridge.py",
+    "tools/generate_hia_cold_native_transport.py",
+    "tools/build_hia_cold_native_transport.py",
+    "tools/hia_cold_native_transport_evidence.py",
+    "tools/qualify_hia_cold_native_transport.py",
+    "tools/read_hia_cold_native_transport.py",
+    "tests/test_hia_cold_native_transport.py",
+    "tests/fixtures/cold_native_transport_original_gates_v3.json",
+    "tests/fixtures/cold_native_transport_controls_v3.json",
+    "docs/HIA_COLD_NATIVE_TRANSPORT.md",
+    "examples/hia_bootstrap/cold_native_transport.hepta",
+    "tools/hia_cold_native_transport_reference_controls.c",
+    "tools/qualify_hia_cold_native_transport_references.py",
+    "tools/hia_cold_native_transport_fd_controls.c",
+    "tools/qualify_hia_cold_native_transport_fds.py",
+    "tests/fixtures/cold_native_transport_fd_successor_v1.json",
+    "tests/fixtures/cold_native_transport_controls_v4.json",
+    "tools/hia_cold_native_transport_control_target.c",
+    "tools/hia_cold_native_transport_policy_controls.c",
+    "tests/hia_cold_native_transport_control_cases.py",
+    "tools/qualify_hia_cold_native_transport_controls.py",
+    "tools/read_hia_cold_native_transport_controls.py",
+    "tests/test_hia_cold_native_transport_controls.py",
+    # Current source successors and the exact inputs read by their new controls.
+    "tests/hia_caller_diagnostics_admission.py",
+    "tests/fixtures/caller_deadline_diagnostics_v1.json",
+    "tests/test_hia_caller_diagnostics_admission.py",
+    "tests/fixtures/caller_terminal_diagnostics_dependency_v1.json",
+    "tests/test_hia_evaluation_caller_admission.py",
+    "tests/fixtures/slot_worker_terminal_v2.json",
+    "tests/hia_slot_worker_terminal.py",
+    "tests/test_hia_slot_worker_terminal.py",
+    "tools/read_hia_slot_worker_terminal.py",
+    "tests/fixtures/hia_cli_discovery_verified_build.json",
+    "tests/fixtures/hia_cli_discovery_word_memory.json",
+    "tests/fixtures/static_budget_word_memory_d998.py.txt",
+    "tests/test_hia_slot_word_memory.py",
+    "tests/fixtures/slot_operations_word_memory_v8.json",
+    "tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt",
+    "tests/hia_slot_operations_qualification_support.py",
+    "tests/hia_slot_operations_installed_observer.py",
+    "tests/test_hia_slot_operations_native.py",
+    "tools/build_hia_slot_operations.py",
+    "tools/read_hia_slot_definition_lifetime.py",
+    "tests/fixtures/evaluation_callers_19065.json",
+    "tools/qualify_hia_evaluation_callers.py",
+    "tools/run_hia_unittest_gate.py",
+    "tools/generate_hia_slot_operations.py",
+    "tools/generate_hia_service_context.py",
+    "tools/generate_hia_store_lifecycle.py",
+    "tools/hia_service_context_arithmetic.py",
+    "tests/test_hia_agent_buffer_lifecycle.py",
+    "tests/test_hia_agent_external_roots.py",
+    "tests/test_hia_agent_native_campaign.py",
+    "tests/test_hia_agent_native_lease_snapshot.py",
+    "tests/test_hia_agent_native_machine_validation.py",
+    "tests/test_hia_agent_native_tools.py",
+    "tests/test_hia_candidate_budget_native.py",
+    "tests/test_hia_cost_ledger_native.py",
+    "tests/test_hia_execution_budget_native.py",
+    "tests/test_hia_first_use.py",
+    "tests/test_hia_slot_ledger_native_integration.py",
+    "tests/test_hia_worker_native_helpers.py",
+    # Exact existing Delivery guards and their consumed original source data.
+    "tests/fixtures/delivery_diagnostic_source_successors_v1.json",
+    "tests/test_hia_delivery_diagnostic_sources.py",
+    "tests/hia_store_delivery_successor.py",
+    "tests/fixtures/store_delivery_successor_provenance.json",
+    "docs/HIA_NATIVE_DELIVERY_CAUSALITY.md",
+    "tests/fixtures/AgentStore._ref.py.txt",
+    "tests/fixtures/AgentStore.check_profile.py.txt",
+    "tests/fixtures/AgentStore.get.py.txt",
+    "tests/fixtures/AgentStore.get_json.py.txt",
+    "tests/fixtures/AgentStore.json.py.txt",
+    "tests/fixtures/AgentStore.profile.py.txt",
+    "tests/fixtures/AgentStore.put.py.txt",
+    "tests/fixtures/AgentStore.resolve_uri.py.txt",
+    "tests/fixtures/cost_ledger_b569c210.py.txt",
+    "tests/fixtures/cost_ledger_callers_b569c210.json",
+    "tests/fixtures/hia_agent_store_73f1634.py.txt",
+    "tests/fixtures/hia_emission_original_73f1634/cases.json",
+    "tests/fixtures/hia_emission_original_73f1634/hia_emission_compile_73f1634.py.txt",
+    "tests/fixtures/hia_emission_original_73f1634/hia_emission_emit_73f1634.py.txt",
+    "tests/fixtures/hia_emission_original_73f1634/hia_emission_original_oracle.py",
+    "tests/fixtures/hia_evaluation_value_19065.py.txt",
+    "tests/fixtures/hia_native_build_dispatch_cases_aac7550.json",
+    "tests/fixtures/hia_native_build_inputs_aac7550.py.txt",
+    "tests/fixtures/hia_native_build_native_aac7550.py.txt",
+    "tests/fixtures/hia_native_build_receipt_aac7550.py.txt",
+    "tests/fixtures/hia_native_build_signatures_aac7550.py.txt",
+    "tests/fixtures/hia_store_artifact_profile_cases_73f1634.json",
+    "tests/fixtures/service_context_b569c21.py.txt",
+    "tests/fixtures/service_context_callers_b569c21.json",
+    "tests/fixtures/store_lifecycle_ad352ee.py.txt",
+    "tests/fixtures/store_lifecycle_callers_ad352ee.json",
+    "tests/hia_evaluation_oracle.py",
+    "tests/hia_evaluation_scenarios.py",
+    "tests/hia_native_build_admission_oracle.py",
+    "tests/hia_native_build_admission_scenarios.py",
+    "tests/hia_native_build_dispatch_oracle.py",
+    "tests/hia_native_delivery_cases.py",
+    "tests/hia_service_context_fixtures.py",
+    "tests/hia_store_artifact_profile_oracle.py",
+    "tests/hia_store_lifecycle_fixtures.py",
+    "tests/hia_store_limit_oracle.py",
+    "tests/hia_store_literal_call_oracle.py",
+    "tests/test_hia_agent_artifact_store_native.py",
+    "tests/test_hia_agent_journal_native.py",
+    "tests/test_hia_agent_native_machine_choices.py",
+    "tests/test_hia_agent_native_proof_contract.py",
+    "tests/test_hia_emission_native.py",
+    "tests/test_hia_execution_observation_native.py",
+    "tests/test_hia_native_build_admission_native.py",
+    "tests/test_hia_native_build_dispatch.py",
+    "tests/test_hia_service_context_native.py",
+    "tests/test_hia_store_artifact_profile_native.py",
+    "tests/test_hia_store_lifecycle_native.py",
+    "tools/build_hia_cost_ledger.py",
+    "tools/build_hia_emission.py",
+    "tools/build_hia_evaluation.py",
+    "tools/build_hia_native_build_admission.py",
+    "tools/build_hia_service_context.py",
+    "tools/build_hia_store_lifecycle.py",
+    "tools/generate_hia_store_artifact_profile.py",
+    "tools/qualify_hia_agent_journal_callers.py",
+    "tools/qualify_hia_cost_ledger_callers.py",
+    "tools/qualify_hia_native_delivery.py",
+    "tools/qualify_hia_service_context_callers.py",
+    "tools/qualify_hia_store_lifecycle_callers.py",
+    # Complete Bootstrap caller source admission; no native qualification claim.
+    "tests/test_hia_service_bootstrap_caller_admission.py",
+    "tools/qualify_hia_service_bootstrap_callers.py",
+    "tests/fixtures/hia_service_bootstrap_original_r12/caller-scopes.json",
+    # Independent Bootstrap caller readback and complete Source4 input closure.
+    "tools/read_hia_service_bootstrap.py",
+    "tests/hia_service_bootstrap_support.py",
+    "tests/test_hia_service_bootstrap_caller_readback.py",
+    # Versioned artifact preparation and the complete Source4 read closure.
+    'tests/hia_service_artifact_preparation.py',
+    'tests/test_hia_service_artifact_preparation.py',
+    'tests/fixtures/hia_service_artifact_preparation_v2.json',
+    'tests/fixtures/hia_service_artifact_original_5bf/oracle-preparation-v1.py.txt',
+    'tests/hia_service_artifact_oracle.py',
+    'tests/hia_service_artifact_observer.py',
+    'tests/fixtures/hia_service_artifact_original_5bf/artifact.5bf.py.txt',
+    'tests/fixtures/hia_service_artifact_original_5bf/profile.5bf.py.txt',
+    'tests/fixtures/hia_service_artifact_original_5bf/cases.json',
+    'tests/fixtures/hia_service_artifact_original_5bf/source-identity.json',
+    'tests/fixtures/hia_service_artifact_original_5bf/freeze.json',
+    # Complete original artifact Source3 and LocalRelease3.
+    'tests/test_hia_service_artifact_local_release.py',
+    'tests/hia_service_artifact_local_release_observer.py',
+    'tests/test_hia_service_artifact_native.py',
+    'tools/generate_hia_service_artifact.py',
+    # Actual transitive authoring imports required by the original generator.
+    'tools/hia_selfhost_chain_elf.py',
+    'tools/hia_selfhost_cli.py',
+    'tools/hia_selfhost_effects.py',
+    'tools/hia_selfhost_exports.py',
+    'tools/hia_selfhost_keywords.py',
+    'tools/hia_selfhost_limits.py',
+    'tools/hia_selfhost_multi_results.py',
+    'tools/hia_selfhost_names.py',
+    'tools/hia_selfhost_owned_elf.py',
+    'tools/hia_selfhost_returned_loans.py',
+    'tools/hia_selfhost_signed.py',
+    'tools/hia_selfhost_traps.py',
+    'tools/hia_selfhost_word_memory.py',
+)
+SDIST_SUPPORT_FILES=tuple(dict.fromkeys(SDIST_SUPPORT_FILES))
+WHEEL_PACKAGE_FILES=(
+    'hepta/native/slot_mechanical.c',
+    'hepta/native/slot_mechanical_build.py',
+)
+# Independently selected executable-capture data; not Agent identity inputs.
+EXECUTABLE_CAPTURE_RESOURCES=(
+    'examples/hia_bootstrap/executable_capture.hepta',
+    'tools/hia_executable_capture_syscalls.S',
+    'tools/generate_hia_executable_capture.py',
+    'tools/build_hia_executable_capture.py',
+    'tools/qualify_hia_selfhost.py',
+    'tools/build_hia_source_build.py',
+    'tools/build_hia_json_preflight.py',
+    'tools/qualify_hia_store_file_capture_originals.py',
+    'tools/generate_hia_selfhost.py',
+    'tests/fixtures/executable_capture_r19_original.py.txt',
+    'tests/hia_executable_capture_originals.py',
+    'tests/fixtures/executable_capture_cases.json',
+    'tests/test_hia_executable_capture.py',
+    'tests/hia_executable_capture_receipt_controls.py',
+    'tests/test_hia_executable_capture_receipt.py',
+    'tests/fixtures/executable_capture_receipt_controls_v2.json',
+    'docs/HIA_EXECUTABLE_CAPTURE.md',
+)
+# Independent explicit div/rem data; no Agent helper/default selection.
+VM_INTEGER_DIVREM_RESOURCES = ('examples/hia_bootstrap/vm_integer_divrem.hepta',)
+VM_INTEGER_ARITHMETIC_RESOURCES = ('examples/hia_bootstrap/vm_integer_arithmetic.hepta',)
+VM_INTEGER_SCALAR_RESOURCES = ('examples/hia_bootstrap/vm_integer_scalar.hepta',)
 BUNDLED_SOURCE_BINDINGS={
     'owned_reference':('hepta.hia_scalar_reference_native','owned'),
     'cli_control':('hepta.hia_cli_native','control'),
@@ -57,7 +357,7 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         from hepta.hia_core_lowering_selection import ABI_SOURCE, checked_abi, source_names
         backend_abi=checked_abi((ROOT/ABI_SOURCE).read_bytes())
         self.assertEqual(BACKEND_BUILD_FILES,(ABI_SOURCE,*source_names(backend_abi)))
-        self.assertEqual(len(source_names(backend_abi)),32)
+        self.assertEqual(len(source_names(backend_abi)),33)
         self.assertTrue(set(BACKEND_BUILD_FILES).isdisjoint(
             (*NATIVE_SOURCE_FILES,*SOURCE_BUILD_FILES,*COMPILER_BUILD_FILES,*PUBLICATION_BUILD_FILES)))
         self.assertLessEqual(set(BACKEND_BUILD_FILES),set(RESOURCES))
@@ -70,6 +370,15 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         namespace={'ast':ast,'Path':Path,'ROOT':ROOT}
         exec(compile(ast.Module(body=functions,type_ignores=[]),'setup.py','exec'),namespace)
         self.assertEqual(namespace['agent_resources'](),RESOURCES)
+        capture_functions=[n for n in source.body if isinstance(n,ast.FunctionDef) and n.name=='executable_capture_resources']
+        self.assertEqual(len(capture_functions),1)
+        exec(compile(ast.Module(body=capture_functions,type_ignores=[]),'setup.py','exec'),namespace)
+        self.assertEqual(namespace['executable_capture_resources'](RESOURCES),EXECUTABLE_CAPTURE_RESOURCES)
+        vm_resources=[node.value for node in source.body if isinstance(node,ast.Assign)
+                      and any(isinstance(target,ast.Name) and target.id=='VM_INTEGER_DIVREM_RESOURCES'
+                              for target in node.targets)]
+        self.assertEqual(len(vm_resources),1)
+        self.assertEqual(ast.literal_eval(vm_resources[0]),VM_INTEGER_DIVREM_RESOURCES)
 
     def test_sdist_manifest_explicitly_preserves_every_agent_resource(self):
         declared=[line.removeprefix('include ') for line in (ROOT/'MANIFEST.in').read_text().splitlines() if line.startswith('include ')]
@@ -93,6 +402,8 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
             if name in BUNDLED_SOURCE_BINDINGS:
                 module,key=BUNDLED_SOURCE_BINDINGS[name]
                 source=import_module(module).SOURCES[key]
+            elif name=='native_mapping':
+                source=import_module('hepta.native_mapping_native').SOURCE
             else:
                 source=import_module('hepta.hia_'+name+'_native').SOURCE
             self.assertEqual(source,ROOT/resource)
@@ -383,6 +694,8 @@ elif sys.argv[2]=='source-bindings':
         if name in BUNDLED_SOURCE_BINDINGS:
             module,key=BUNDLED_SOURCE_BINDINGS[name]
             source=import_module(module).SOURCES[key]
+        elif name=='native_mapping':
+            source=import_module('hepta.native_mapping_native').SOURCE
         else:
             source=import_module('hepta.hia_'+name+'_native').SOURCE
         assert Path(sys.argv[1]) in source.parents,source
@@ -635,13 +948,17 @@ assert not blocked.intersection(sys.modules)
         with zipfile.ZipFile(self.wheel) as z:
             bundled={name.removeprefix('hepta/_data/') for name in z.namelist()
                      if name.startswith('hepta/_data/') and not name.endswith('/')}
-            self.assertEqual(bundled,set(RESOURCES))
-            for name in RESOURCES:
+            self.assertEqual(bundled,set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES))
+            for name in (*RESOURCES,*EXECUTABLE_CAPTURE_RESOURCES,*VM_INTEGER_DIVREM_RESOURCES,*VM_INTEGER_ARITHMETIC_RESOURCES,*VM_INTEGER_SCALAR_RESOURCES):
                 self.assertEqual(z.read('hepta/_data/'+name),(ROOT/name).read_bytes())
                 self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
             for name in SDIST_SUPPORT_FILES:
-                self.assertNotIn(name,z.namelist())
-                self.assertFalse((self.installed/name).exists())
+                if name in WHEEL_PACKAGE_FILES:
+                    self.assertEqual(z.read(name),(ROOT/name).read_bytes())
+                    self.assertEqual((self.installed/name).read_bytes(),(ROOT/name).read_bytes())
+                else:
+                    self.assertNotIn(name,z.namelist())
+                    self.assertFalse((self.installed/name).exists())
         self.assertEqual(self.identity,installation_manifest())
 
     def test_real_installed_native_worker_without_checkout_or_reference_predicates(self):

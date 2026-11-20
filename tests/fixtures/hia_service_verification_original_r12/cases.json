@@ -1,0 +1,1890 @@
+{
+  "schema": "hepta.service-verification.finite-inputs.v1",
+  "methods": [
+    "_behavior_equivalence",
+    "_subject",
+    "_hia_verify",
+    "_verification",
+    "_replay_verification",
+    "_native_refinement_binding",
+    "_independent_native_refinement",
+    "_check_native_refinement_evidence",
+    "_required_claims"
+  ],
+  "base_cases": [
+    {
+      "id": "behavior.budget.outer0",
+      "mode": "behavior",
+      "scenario": "budget",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.budget.outer1",
+      "mode": "behavior",
+      "scenario": "budget",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.identity.outer0",
+      "mode": "behavior",
+      "scenario": "identity",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.identity.outer1",
+      "mode": "behavior",
+      "scenario": "identity",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.finite.outer0",
+      "mode": "behavior",
+      "scenario": "finite",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.finite.outer1",
+      "mode": "behavior",
+      "scenario": "finite",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.wide.outer0",
+      "mode": "behavior",
+      "scenario": "wide",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.wide.outer1",
+      "mode": "behavior",
+      "scenario": "wide",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.cycle.outer0",
+      "mode": "behavior",
+      "scenario": "cycle",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.cycle.outer1",
+      "mode": "behavior",
+      "scenario": "cycle",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.effect.outer0",
+      "mode": "behavior",
+      "scenario": "effect",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.effect.outer1",
+      "mode": "behavior",
+      "scenario": "effect",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.unknown-op.outer0",
+      "mode": "behavior",
+      "scenario": "unknown-op",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.unknown-op.outer1",
+      "mode": "behavior",
+      "scenario": "unknown-op",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.too-many-blocks.outer0",
+      "mode": "behavior",
+      "scenario": "too-many-blocks",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.too-many-blocks.outer1",
+      "mode": "behavior",
+      "scenario": "too-many-blocks",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.interface.outer0",
+      "mode": "behavior",
+      "scenario": "interface",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.interface.outer1",
+      "mode": "behavior",
+      "scenario": "interface",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.domains.outer0",
+      "mode": "behavior",
+      "scenario": "domains",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.domains.outer1",
+      "mode": "behavior",
+      "scenario": "domains",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.iteration-deadline.outer0",
+      "mode": "behavior",
+      "scenario": "iteration-deadline",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.iteration-deadline.outer1",
+      "mode": "behavior",
+      "scenario": "iteration-deadline",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.final-deadline.outer0",
+      "mode": "behavior",
+      "scenario": "final-deadline",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.final-deadline.outer1",
+      "mode": "behavior",
+      "scenario": "final-deadline",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.vm-budget.outer0",
+      "mode": "behavior",
+      "scenario": "vm-budget",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.vm-budget.outer1",
+      "mode": "behavior",
+      "scenario": "vm-budget",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.vm-refuted.outer0",
+      "mode": "behavior",
+      "scenario": "vm-refuted",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.vm-refuted.outer1",
+      "mode": "behavior",
+      "scenario": "vm-refuted",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-verified.outer0",
+      "mode": "behavior",
+      "scenario": "solver-verified",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-verified.outer1",
+      "mode": "behavior",
+      "scenario": "solver-verified",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-rejected.outer0",
+      "mode": "behavior",
+      "scenario": "solver-rejected",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-rejected.outer1",
+      "mode": "behavior",
+      "scenario": "solver-rejected",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-unknown.outer0",
+      "mode": "behavior",
+      "scenario": "solver-unknown",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-unknown.outer1",
+      "mode": "behavior",
+      "scenario": "solver-unknown",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-timeout.outer0",
+      "mode": "behavior",
+      "scenario": "solver-timeout",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "behavior.solver-timeout.outer1",
+      "mode": "behavior",
+      "scenario": "solver-timeout",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.core.outer0",
+      "mode": "subject",
+      "scenario": "core",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.core.outer1",
+      "mode": "subject",
+      "scenario": "core",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.canonical.outer0",
+      "mode": "subject",
+      "scenario": "canonical",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.canonical.outer1",
+      "mode": "subject",
+      "scenario": "canonical",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.plan.outer0",
+      "mode": "subject",
+      "scenario": "plan",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.plan.outer1",
+      "mode": "subject",
+      "scenario": "plan",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.native.outer0",
+      "mode": "subject",
+      "scenario": "native",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.native.outer1",
+      "mode": "subject",
+      "scenario": "native",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.native-mismatch.outer0",
+      "mode": "subject",
+      "scenario": "native-mismatch",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.native-mismatch.outer1",
+      "mode": "subject",
+      "scenario": "native-mismatch",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.plan-invalid.outer0",
+      "mode": "subject",
+      "scenario": "plan-invalid",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.plan-invalid.outer1",
+      "mode": "subject",
+      "scenario": "plan-invalid",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.core.outer0",
+      "mode": "verify",
+      "scenario": "core",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.core.outer1",
+      "mode": "verify",
+      "scenario": "core",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.behavior.outer0",
+      "mode": "verify",
+      "scenario": "behavior",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.behavior.outer1",
+      "mode": "verify",
+      "scenario": "behavior",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.behavior-no-base.outer0",
+      "mode": "verify",
+      "scenario": "behavior-no-base",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.behavior-no-base.outer1",
+      "mode": "verify",
+      "scenario": "behavior-no-base",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.native.outer0",
+      "mode": "verify",
+      "scenario": "native",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.native.outer1",
+      "mode": "verify",
+      "scenario": "native",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.unsupported.outer0",
+      "mode": "verify",
+      "scenario": "unsupported",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.unsupported.outer1",
+      "mode": "verify",
+      "scenario": "unsupported",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.plan.outer0",
+      "mode": "verify",
+      "scenario": "plan",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.plan.outer1",
+      "mode": "verify",
+      "scenario": "plan",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.plan-exports.outer0",
+      "mode": "verify",
+      "scenario": "plan-exports",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.plan-exports.outer1",
+      "mode": "verify",
+      "scenario": "plan-exports",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.encoding.outer0",
+      "mode": "verify",
+      "scenario": "encoding",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.encoding.outer1",
+      "mode": "verify",
+      "scenario": "encoding",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.encoding-bytes.outer0",
+      "mode": "verify",
+      "scenario": "encoding-bytes",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.encoding-bytes.outer1",
+      "mode": "verify",
+      "scenario": "encoding-bytes",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.encoding-object.outer0",
+      "mode": "verify",
+      "scenario": "encoding-object",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.encoding-object.outer1",
+      "mode": "verify",
+      "scenario": "encoding-object",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.unknown-claim.outer0",
+      "mode": "verify",
+      "scenario": "unknown-claim",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.unknown-claim.outer1",
+      "mode": "verify",
+      "scenario": "unknown-claim",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.empty.outer0",
+      "mode": "verify",
+      "scenario": "empty",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.empty.outer1",
+      "mode": "verify",
+      "scenario": "empty",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.mixed.outer0",
+      "mode": "verify",
+      "scenario": "mixed",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.mixed.outer1",
+      "mode": "verify",
+      "scenario": "mixed",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.publication-deadline.outer0",
+      "mode": "verify",
+      "scenario": "publication-deadline",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verify.publication-deadline.outer1",
+      "mode": "verify",
+      "scenario": "publication-deadline",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.valid.outer0",
+      "mode": "verification",
+      "scenario": "valid",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.valid.outer1",
+      "mode": "verification",
+      "scenario": "valid",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.context.outer0",
+      "mode": "verification",
+      "scenario": "context",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.context.outer1",
+      "mode": "verification",
+      "scenario": "context",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.installation.outer0",
+      "mode": "verification",
+      "scenario": "installation",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.installation.outer1",
+      "mode": "verification",
+      "scenario": "installation",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.candidate.outer0",
+      "mode": "verification",
+      "scenario": "candidate",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.candidate.outer1",
+      "mode": "verification",
+      "scenario": "candidate",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.core.outer0",
+      "mode": "verification",
+      "scenario": "core",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.core.outer1",
+      "mode": "verification",
+      "scenario": "core",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.base.outer0",
+      "mode": "verification",
+      "scenario": "base",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.base.outer1",
+      "mode": "verification",
+      "scenario": "base",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.schema.outer0",
+      "mode": "verification",
+      "scenario": "schema",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.schema.outer1",
+      "mode": "verification",
+      "scenario": "schema",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.schema-returns.outer0",
+      "mode": "verification",
+      "scenario": "schema-returns",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.schema-returns.outer1",
+      "mode": "verification",
+      "scenario": "schema-returns",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.duplicate.outer0",
+      "mode": "verification",
+      "scenario": "duplicate",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.duplicate.outer1",
+      "mode": "verification",
+      "scenario": "duplicate",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.safe.outer0",
+      "mode": "verification",
+      "scenario": "safe",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.safe.outer1",
+      "mode": "verification",
+      "scenario": "safe",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.binding.outer0",
+      "mode": "verification",
+      "scenario": "binding",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.binding.outer1",
+      "mode": "verification",
+      "scenario": "binding",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.assumptions.outer0",
+      "mode": "verification",
+      "scenario": "assumptions",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "verification.assumptions.outer1",
+      "mode": "verification",
+      "scenario": "assumptions",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.valid.outer0",
+      "mode": "replay",
+      "scenario": "valid",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.valid.outer1",
+      "mode": "replay",
+      "scenario": "valid",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.schema.outer0",
+      "mode": "replay",
+      "scenario": "schema",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.schema.outer1",
+      "mode": "replay",
+      "scenario": "schema",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.installation.outer0",
+      "mode": "replay",
+      "scenario": "installation",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.installation.outer1",
+      "mode": "replay",
+      "scenario": "installation",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.candidate.outer0",
+      "mode": "replay",
+      "scenario": "candidate",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.candidate.outer1",
+      "mode": "replay",
+      "scenario": "candidate",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.claims.outer0",
+      "mode": "replay",
+      "scenario": "claims",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "replay.claims.outer1",
+      "mode": "replay",
+      "scenario": "claims",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "binding.basic.outer0",
+      "mode": "binding",
+      "scenario": "basic",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "binding.basic.outer1",
+      "mode": "binding",
+      "scenario": "basic",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "binding.empty.outer0",
+      "mode": "binding",
+      "scenario": "empty",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "binding.empty.outer1",
+      "mode": "binding",
+      "scenario": "empty",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "binding.exports.outer0",
+      "mode": "binding",
+      "scenario": "exports",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "binding.exports.outer1",
+      "mode": "binding",
+      "scenario": "exports",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.proved.outer0",
+      "mode": "refinement",
+      "scenario": "proved",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.proved.outer1",
+      "mode": "refinement",
+      "scenario": "proved",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.output.outer0",
+      "mode": "refinement",
+      "scenario": "output",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.output.outer1",
+      "mode": "refinement",
+      "scenario": "output",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.exports.outer0",
+      "mode": "refinement",
+      "scenario": "exports",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.exports.outer1",
+      "mode": "refinement",
+      "scenario": "exports",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.profile.outer0",
+      "mode": "refinement",
+      "scenario": "profile",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.profile.outer1",
+      "mode": "refinement",
+      "scenario": "profile",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.minimum.outer0",
+      "mode": "refinement",
+      "scenario": "minimum",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.minimum.outer1",
+      "mode": "refinement",
+      "scenario": "minimum",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.refuted.outer0",
+      "mode": "refinement",
+      "scenario": "refuted",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.refuted.outer1",
+      "mode": "refinement",
+      "scenario": "refuted",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.unknown.outer0",
+      "mode": "refinement",
+      "scenario": "unknown",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.unknown.outer1",
+      "mode": "refinement",
+      "scenario": "unknown",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.value-error.outer0",
+      "mode": "refinement",
+      "scenario": "value-error",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.value-error.outer1",
+      "mode": "refinement",
+      "scenario": "value-error",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.queries.outer0",
+      "mode": "refinement",
+      "scenario": "queries",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.queries.outer1",
+      "mode": "refinement",
+      "scenario": "queries",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.suppress.outer0",
+      "mode": "refinement",
+      "scenario": "suppress",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.suppress.outer1",
+      "mode": "refinement",
+      "scenario": "suppress",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.deadline.outer0",
+      "mode": "refinement",
+      "scenario": "deadline",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.deadline.outer1",
+      "mode": "refinement",
+      "scenario": "deadline",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.exit-error.outer0",
+      "mode": "refinement",
+      "scenario": "exit-error",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "refinement.exit-error.outer1",
+      "mode": "refinement",
+      "scenario": "exit-error",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": false
+    },
+    {
+      "id": "check.valid.outer0",
+      "mode": "check",
+      "scenario": "valid",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.valid.outer1",
+      "mode": "check",
+      "scenario": "valid",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.subject.outer0",
+      "mode": "check",
+      "scenario": "subject",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.subject.outer1",
+      "mode": "check",
+      "scenario": "subject",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.core.outer0",
+      "mode": "check",
+      "scenario": "core",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.core.outer1",
+      "mode": "check",
+      "scenario": "core",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.binding.outer0",
+      "mode": "check",
+      "scenario": "binding",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.binding.outer1",
+      "mode": "check",
+      "scenario": "binding",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.validation.outer0",
+      "mode": "check",
+      "scenario": "validation",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.validation.outer1",
+      "mode": "check",
+      "scenario": "validation",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.queries.outer0",
+      "mode": "check",
+      "scenario": "queries",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.queries.outer1",
+      "mode": "check",
+      "scenario": "queries",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.count.outer0",
+      "mode": "check",
+      "scenario": "count",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.count.outer1",
+      "mode": "check",
+      "scenario": "count",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.shape.outer0",
+      "mode": "check",
+      "scenario": "shape",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.shape.outer1",
+      "mode": "check",
+      "scenario": "shape",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.bytes.outer0",
+      "mode": "check",
+      "scenario": "bytes",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.bytes.outer1",
+      "mode": "check",
+      "scenario": "bytes",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.report.outer0",
+      "mode": "check",
+      "scenario": "report",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "check.report.outer1",
+      "mode": "check",
+      "scenario": "report",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.empty.outer0",
+      "mode": "claims",
+      "scenario": "empty",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.empty.outer1",
+      "mode": "claims",
+      "scenario": "empty",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.encoding.outer0",
+      "mode": "claims",
+      "scenario": "encoding",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.encoding.outer1",
+      "mode": "claims",
+      "scenario": "encoding",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.behavior.outer0",
+      "mode": "claims",
+      "scenario": "behavior",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.behavior.outer1",
+      "mode": "claims",
+      "scenario": "behavior",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.native.outer0",
+      "mode": "claims",
+      "scenario": "native",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.native.outer1",
+      "mode": "claims",
+      "scenario": "native",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.plan.outer0",
+      "mode": "claims",
+      "scenario": "plan",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.plan.outer1",
+      "mode": "claims",
+      "scenario": "plan",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.missing.outer0",
+      "mode": "claims",
+      "scenario": "missing",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.missing.outer1",
+      "mode": "claims",
+      "scenario": "missing",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.artifact.outer0",
+      "mode": "claims",
+      "scenario": "artifact",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.artifact.outer1",
+      "mode": "claims",
+      "scenario": "artifact",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.baseline.outer0",
+      "mode": "claims",
+      "scenario": "baseline",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.baseline.outer1",
+      "mode": "claims",
+      "scenario": "baseline",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.mixed.outer0",
+      "mode": "claims",
+      "scenario": "mixed",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.mixed.outer1",
+      "mode": "claims",
+      "scenario": "mixed",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.all.outer0",
+      "mode": "claims",
+      "scenario": "all",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "claims.all.outer1",
+      "mode": "claims",
+      "scenario": "all",
+      "outer": true,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": false,
+      "temporary_store": false
+    },
+    {
+      "id": "subject.temporary-store",
+      "mode": "subject",
+      "scenario": "plan",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": true
+    },
+    {
+      "id": "verify.temporary-store",
+      "mode": "verify",
+      "scenario": "core",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": true
+    },
+    {
+      "id": "refinement.temporary-store",
+      "mode": "refinement",
+      "scenario": "queries",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": true
+    },
+    {
+      "id": "check.temporary-store",
+      "mode": "check",
+      "scenario": "valid",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": true
+    },
+    {
+      "id": "claims.temporary-store",
+      "mode": "claims",
+      "scenario": "encoding",
+      "outer": false,
+      "base_fault": null,
+      "retain_traceback": true,
+      "explicit_gc": true,
+      "temporary_store": true
+    }
+  ],
+  "fault_basis": [
+    "behavior.finite.outer0",
+    "subject.plan.outer0",
+    "verify.core.outer0",
+    "verification.valid.outer0",
+    "replay.valid.outer0",
+    "binding.basic.outer0",
+    "refinement.queries.outer0",
+    "check.valid.outer0",
+    "claims.encoding.outer0"
+  ],
+  "fault_families": [
+    "ValueError",
+    "TypeError",
+    "AttributeError",
+    "RuntimeError",
+    "OSError",
+    "MemoryError",
+    "StopIteration",
+    "KeyboardInterrupt"
+  ],
+  "fault_rule": "For every declared event in each complete original basis trace, inject each family once at that exact label/ordinal; preserve basis inputs and outer state. Freeze derived inputs before any candidate import. Original faults must hit exactly once, including swallowed StopIteration.",
+  "original_runtime_expected": "Fresh twice from immutable original code on the same exact runtime; no historical output hash is an expected result on another runtime.",
+  "scope": "Finite complete method observations, not universal object/solver/provider equivalence."
+}

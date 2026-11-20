@@ -266,7 +266,7 @@ def rules(values):
 
 
 def source_program():
-    dispatch=[]
+    cases=[]
     for spec in OPCODES.values():
         assert len(spec.attributes)<=1 and (spec.operands is None or len(spec.operands)<=5)
         a=rules(spec.operands) | ((1<<48) if spec.name in {'borrow.read','borrow.mut'} else 0)
@@ -276,11 +276,21 @@ def source_program():
         effects=sum(1<<('alloc','read','write','trap').index(v) for v in spec.effects)
         special=1 if spec.name=='const' else 2 if spec.name=='int.cast' else 0
         r|=attr<<40 | effects<<48 | special<<56
-        dispatch+=['    if text_is(s, op, '+packed(spec.name)+') != 0:',
-                   '        if version < '+str(spec.since)+':','            return OPCODE',
-                   '        return local_check(s, args, out, attrs, '+str(a)+', '+str(r)+')']
-    text=SOURCE.replace('    DISPATCH','\n'.join(dispatch))
-    for name,words in [('type_id',TYPES),('schema_version',tuple('hepta.hia.program.v'+str(v) for v in range(1,9))),
+        cases.append(['    if text_is(s, op, '+packed(spec.name)+') != 0:',
+                      '        if version < '+str(spec.since)+':','            return OPCODE',
+                      '        return local_check(s, args, out, attrs, '+str(a)+', '+str(r)+')'])
+    # Keep each generated function inside the unchanged native SSA/block caps.
+    # A matched opcode returns its complete original result; only unmatched
+    # names continue into the next HIA function, with the same borrowed input.
+    groups=[cases[i:i+16] for i in range(0,len(cases),16)]
+    dispatch=[]
+    for index,group in enumerate(groups):
+        dispatch.append('\ndef dispatch_'+str(index)+'(s:readbuf, op:u64, args:u64, out:u64, attrs:u64, version:u64) -> u64:')
+        dispatch.extend(line for case in group for line in case)
+        dispatch.append('    return '+('dispatch_'+str(index+1)+'(s, op, args, out, attrs, version)' if index+1<len(groups) else 'OPCODE'))
+    text=SOURCE.replace('    DISPATCH\n    return OPCODE',
+                        '    return dispatch_0(s, op, args, out, attrs, version)')+'\n'.join(dispatch)+'\n'
+    for name,words in [('type_id',TYPES),('schema_version',tuple('hepta.hia.program.v'+str(v) for v in range(1,10))),
                        ('attribute_name',('value','mode','function')),('cast_mode',('checked','wrap'))]:
         text+='\ndef '+name+'(s:readbuf, node:u64) -> u64:\n'
         for i,word in enumerate(words):text+='    if text_is(s, node, '+packed(word)+') != 0:\n        return '+str(i+1)+'\n'

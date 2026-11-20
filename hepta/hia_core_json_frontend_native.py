@@ -40,7 +40,7 @@ class NativeCoreJsonFrontend(NativeHiaJsonImage):
         if result == 0xfffffffa:
             raise OverflowError('HIA JSON Core assembly exceeds unchanged 1 MiB compiler input')
         if result in (0xffffffff, 0xfffffffc, 0xfffffffb):
-            raise ValueError('invalid JSON, duplicate key or outside primitive v6/v7/v8 Core representation')
+            raise ValueError('invalid JSON, duplicate key or outside primitive v6/v7/v8/v9 Core representation')
         if result == 0xfffffffd:
             raise RuntimeError('HIA JSON Core frontend rejected scratch profile')
         if not 0 < result <= OUTPUT_LIMIT:

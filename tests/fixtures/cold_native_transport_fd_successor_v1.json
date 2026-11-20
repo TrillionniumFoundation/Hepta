@@ -1,0 +1,300 @@
+{
+  "schema": "hepta.cold-native-transport.fd-successor.v3",
+  "allowed_source_modes": [
+    "exact-reference-r4",
+    "exact-fd-custody-v1",
+    "exact-timeout-generation-v2"
+  ],
+  "mixed_modes": false,
+  "whole_native": false,
+  "files": [
+    {
+      "path": "tools/hia_cold_native_transport.h",
+      "before": {
+        "bytes": 6111,
+        "sha256": "2b66359a4a0b65bac79690292418ba6ea2cc60b2c14c19da069d07099a8280bc"
+      },
+      "after": {
+        "bytes": 6603,
+        "sha256": "8b405748a310cf3c0b43341124a9ef1bc861b51f3fe9c68178be6e3042b730d4"
+      },
+      "edits": [
+        {
+          "before": "    void (*block_leave)(void *); /* Reacquire before any callback. */\n",
+          "after": "    void (*block_leave)(void *); /* Reacquire before any callback. */\n    /* Exact FileIO -> Buffered ownership receipt for the issued slot only.\n       Bit 0: its constructor-error close was issued once. Bit 1: the actual\n       canonical raw owner's closed state confirmed retirement. Only 0/1/3\n       are valid; nonzero requires an actual callback error. */\n    unsigned (*wrap)(void *, unsigned, int, unsigned *,\n                     const struct hia_cold_snapshot *);\n"
+        },
+        {
+          "before": "    uint64_t final_fd_mask;\n",
+          "after": "    uint64_t final_fd_mask;\n    int remaining_fds[9]; /* Exact terminal private slots, including failed handoff. */\n"
+        }
+      ]
+    },
+    {
+      "path": "tools/hia_cold_native_transport.c",
+      "before": {
+        "bytes": 52340,
+        "sha256": "e115c717b00d1d80e883f972ab9251e660ce168ef13cfc91683f37d2be2e1a08"
+      },
+      "after": {
+        "bytes": 53788,
+        "sha256": "8fbb818d2a96c773c11d90a8d6e84127115810c75a3a345bd1d26d6b4330b5f3"
+      },
+      "edits": [
+        {
+          "before": "            ||!c->host->block_enter||!c->host->block_leave))return 0;\n",
+          "after": "            ||!c->host->block_enter||!c->host->block_leave||!c->host->wrap))return 0;\n"
+        },
+        {
+          "before": "    if(get64(prior)!=HCT_STATE_MAGIC||get64(prior+8)!=c->nonce\n        ||get64(prior+16)!=s->seq||get64(prior+24)!=s->last_action\n        ||get64(prior+32)!=s->last_argument||get64(prior+216)!=s->issued_close_mask)\n        return 0;\n",
+          "after": "    uint64_t acknowledged_claims=get64(prior+216);\n    if(s->last_action==HCT_HOST_WRAP){\n        if(s->value1 || s->value0>3 || s->value0==2\n            ||(s->value0&&!s->error)\n            ||(s->last_argument!=2&&s->last_argument!=3&&s->last_argument!=5))return 0;\n        if(s->value0){\n            uint64_t bit=UINT64_C(1)<<s->last_argument;\n            if((s->value0==3&&(mask&bit))||(s->value0==1&&!(mask&bit)))return 0;\n            acknowledged_claims|=bit;\n            put64(expected+216,acknowledged_claims);\n        }\n    }\n    if(get64(prior)!=HCT_STATE_MAGIC||get64(prior+8)!=c->nonce\n        ||get64(prior+16)!=s->seq||get64(prior+24)!=s->last_action\n        ||get64(prior+32)!=s->last_argument||acknowledged_claims!=s->issued_close_mask)\n        return 0;\n"
+        },
+        {
+          "before": "        if(c->host){\n            struct hia_cold_snapshot facts=snapshot(s);\n            s->error=c->host->perform(c->host->context,(unsigned)action,(unsigned)arg,&facts);\n        }\n",
+          "after": "        if(c->host){\n            struct hia_cold_snapshot facts=snapshot(s);\n            if(action==HCT_HOST_WRAP){\n                unsigned ownership=0;\n                int descriptor=s->fd[arg];\n                if(descriptor<0)return -1;\n                s->error=c->host->wrap(c->host->context,(unsigned)arg,descriptor,&ownership,&facts);\n                if(ownership>3||ownership==2||(ownership&&!s->error))return -1;\n                s->value0=ownership;\n                if(ownership&1)s->issued_close_mask|=UINT64_C(1)<<arg;\n                if(ownership&2)s->fd[arg]=-1;\n            }else s->error=c->host->perform(c->host->context,(unsigned)action,(unsigned)arg,&facts);\n        }\n"
+        },
+        {
+          "before": "    memset(result, 0, sizeof *result);\n    result->returncode = INT_MIN;\n",
+          "after": "    memset(result, 0, sizeof *result);\n    for(unsigned slot=0;slot<HCT_FDS;++slot)result->remaining_fds[slot]=-1;\n    result->returncode = INT_MIN;\n"
+        },
+        {
+          "before": "    result->final_fd_mask = owned_mask(&s);\n",
+          "after": "    result->final_fd_mask = owned_mask(&s);\n    /* These are actual still-owned slots, not a zero-resource assertion. The\n       visible hosted Session adopts unwrapped residuals without callbacks\n       immediately on return, even if every fallible handoff was rejected. */\n    for(unsigned slot=0;slot<HCT_FDS;++slot)result->remaining_fds[slot]=s.fd[slot];\n"
+        }
+      ]
+    },
+    {
+      "path": "tools/hia_cold_native_transport_python.c",
+      "before": {
+        "bytes": 38967,
+        "sha256": "9ace634b913441b0c7d9736cf50223be40a72664dbb98a12729aee43b8cadb2a"
+      },
+      "after": {
+        "bytes": 44187,
+        "sha256": "b1b9156a1bd753e7e31d6f5f28815a27c2e3772fec98e515a51e2cbff0f175a7"
+      },
+      "edits": [
+        {
+          "before": "    PyObject *popen_class, *io_open, *buffered_reader, *buffered_writer;\n",
+          "after": "    PyObject *popen_class, *io_open, *fileio_class, *buffered_reader, *buffered_writer;\n"
+        },
+        {
+          "before": "    int borrowed[2], raw_fds[9];\n",
+          "after": "    int borrowed[2], raw_fds[9];\n    int stream_fds[3], residual_fds[9];\n    uint64_t residual_fd_mask;\n"
+        },
+        {
+          "before": "       ||!p->buffered_reader||!p->buffered_writer||!p->mapping||p->mapping==MAP_FAILED\n",
+          "after": "       ||!p->fileio_class||!p->buffered_reader||!p->buffered_writer||!p->mapping||p->mapping==MAP_FAILED\n"
+        },
+        {
+          "before": "        {p->builtins,\"open\",p->io_open},\n",
+          "after": "        {p->builtins,\"open\",p->io_open},\n        {p->io,\"FileIO\",p->fileio_class},{p->raw_io,\"FileIO\",p->fileio_class},\n"
+        },
+        {
+          "before": "    Py_VISIT(p->popen_class);Py_VISIT(p->io_open);\n",
+          "after": "    Py_VISIT(p->popen_class);Py_VISIT(p->io_open);Py_VISIT(p->fileio_class);\n"
+        },
+        {
+          "before": "    Py_CLEAR(p->popen_class);Py_CLEAR(p->io_open);\n",
+          "after": "    Py_CLEAR(p->popen_class);Py_CLEAR(p->io_open);Py_CLEAR(p->fileio_class);\n"
+        },
+        {
+          "before": "    p->io_open=get_module_attr(p->io,\"open\");\n",
+          "after": "    p->io_open=get_module_attr(p->io,\"open\");\n    p->fileio_class=get_module_attr(p->io,\"FileIO\");\n"
+        },
+        {
+          "before": "    if(!p->popen_class||!p->io_open||!p->buffered_reader||!p->buffered_writer)return -1;\n",
+          "after": "    if(!p->popen_class||!p->io_open||!p->fileio_class||!p->buffered_reader||!p->buffered_writer)return -1;\n"
+        },
+        {
+          "before": "    Py_CLEAR(s->pending);Py_CLEAR(s->caller);\n    for(unsigned i=0;i<3;++i)Py_CLEAR(s->streams[i]);\n",
+          "after": "    for(unsigned i=0;i<9;++i)if(s->residual_fd_mask&(UINT64_C(1)<<i)){\n        int fd=s->residual_fds[i];\n        s->residual_fd_mask&=~(UINT64_C(1)<<i);s->residual_fds[i]=-1;\n        if(close(fd)!=0){PyErr_SetFromErrno(PyExc_OSError);PyErr_WriteUnraisable(unraisable_context);}\n    }\n    Py_CLEAR(s->pending);Py_CLEAR(s->caller);\n    for(unsigned i=0;i<3;++i)Py_CLEAR(s->streams[i]);\n"
+        },
+        {
+          "before": "static int wrap_stream(Session *s,unsigned slot,const struct hia_cold_snapshot *f) {\n    unsigned index=slot==2?0:slot==3?1:2;\n    const char *mode=slot==2?\"wb\":\"rb\",*name=slot==2?\"stdin\":slot==3?\"stdout\":\"stderr\";\n    PyObject *file=PyObject_CallFunction(s->profile->io_open,\"isi\",f->fds[slot],mode,-1);\n    if(!file)return -1;\n    s->streams[index]=file;\n    PyObject *expected=slot==2?s->profile->buffered_writer:s->profile->buffered_reader;\n    if((PyObject *)Py_TYPE(file)!=expected){\n        PyErr_SetString(s->profile->unknown,\"native bridge requires the actual canonical binary stream owner\");\n        return -1;\n    }\n    return set_object(s->owner,name,file);\n}\n",
+          "after": "/* The admitted binary subset of CPython 3.14 _io.open is split at the\n * actual Raw FileIO success boundary. A supplied-fd FileIO init failure leaves\n * the caller's fd unclaimed; after success its real raw object owns the fd.\n * No fd-number probing or dup is used to guess which branch happened. */\nstatic void chain_raised(PyObject *prior) {\n    if(!prior)return;\n    PyObject *current=PyErr_GetRaisedException();\n    if(current){PyException_SetContext(current,prior);PyErr_SetRaisedException(current);}\n    else PyErr_SetRaisedException(prior);\n}\nstatic int wrap_stream(Session *s,unsigned slot,int descriptor,unsigned *ownership) {\n    unsigned index=slot==2?0:slot==3?1:2;\n    const char *rawmode=slot==2?\"w\":\"r\",*mode=slot==2?\"wb\":\"rb\";\n    const char *name=slot==2?\"stdin\":slot==3?\"stdout\":\"stderr\";\n    PyObject *raw=NULL,*modeobj=NULL,*value=NULL,*buffer=NULL;\n    *ownership=0;\n    if(s->streams[index]){\n        PyErr_SetString(s->profile->unknown,\"stream slot already has an actual owner\");\n        return -1;\n    }\n    raw=PyObject_CallFunction(s->profile->fileio_class,\"isOO\",descriptor,rawmode,Py_True,Py_None);\n    if(!raw)return -1; /* supplied-fd FileIO did not take ownership on failure */\n    if((PyObject *)Py_TYPE(raw)!=s->profile->fileio_class){\n        PyErr_SetString(s->profile->unknown,\"noncanonical raw owner returned by admitted FileIO\");\n        goto raw_error;\n    }\n    modeobj=PyUnicode_FromString(mode);if(!modeobj)goto raw_error;\n    value=PyObject_CallMethod(raw,\"_isatty_open_only\",NULL);\n    if(!value)goto raw_error;\n    int isatty=PyObject_IsTrue(value);Py_CLEAR(value);\n    if(isatty<0)goto raw_error;\n    value=get_module_attr(raw,\"_blksize\");if(!value)goto raw_error;\n    long buffering=PyLong_AsLong(value);Py_CLEAR(value);\n    if(buffering==-1&&PyErr_Occurred())goto raw_error;\n    if(buffering>8192*1024)buffering=8192*1024;\n    if(buffering<128*1024)buffering=128*1024; /* exact CPython 3.14 DEFAULT_BUFFER_SIZE */\n    PyObject *expected=slot==2?s->profile->buffered_writer:s->profile->buffered_reader;\n    buffer=PyObject_CallFunction(expected,\"Oi\",raw,(int)buffering);\n    if(!buffer)goto raw_error;\n    Py_CLEAR(raw);Py_CLEAR(modeobj);\n    s->streams[index]=buffer;s->stream_fds[index]=descriptor;\n    if((PyObject *)Py_TYPE(buffer)!=expected){\n        PyErr_SetString(s->profile->unknown,\"native bridge requires the actual canonical binary stream owner\");\n        return -1;\n    }\n    return set_object(s->owner,name,buffer);\nraw_error: {\n    /* Preserve the exact prior exception and real close-error context order,\n       just as _io.open's error path. The extra actual .closed query is an\n       explicit canonical-owner admission boundary, never fd-number inference. */\n    PyObject *prior=PyErr_GetRaisedException();\n    *ownership=1;\n    PyObject *closed_result=PyObject_CallMethod(raw,\"close\",NULL);\n    chain_raised(prior);Py_XDECREF(closed_result);\n    PyObject *primary=PyErr_GetRaisedException();\n    PyObject *closed=get_module_attr(raw,\"closed\");\n    if(closed==Py_True){\n        *ownership=3;\n        Py_CLEAR(raw);\n    }else{\n        /* An unconfirmed close remains owned by a visible GC-tracked Session.\n           It is not published as Popen.stdin/stdout/stderr, and the HIA close\n           claim prevents a retry by raw fd. A finalizer remains hosted. */\n        s->streams[index]=raw;s->stream_fds[index]=descriptor;raw=NULL;\n        if(closed&&closed!=Py_False){\n            PyErr_SetString(s->profile->unknown,\"raw close state is not an exact bool\");\n        }\n    }\n    Py_XDECREF(closed);Py_XDECREF(value);Py_XDECREF(modeobj);\n    chain_raised(primary);\n    return -1;\n}\n}\nstatic unsigned host_wrap(void *context,unsigned slot,int descriptor,unsigned *ownership,\n                          const struct hia_cold_snapshot *f) {\n    Session *s=context;PyObject *old=handled_enter(s);\n    *ownership=0;\n    int rc=wrap_stream(s,slot,descriptor,ownership);\n    unsigned error=rc<0?take_error(s):0;\n    handled_leave(old);(void)f;return error;\n}\n"
+        },
+        {
+          "before": "    else if(action==HCT_HOST_WRAP)rc=wrap_stream(s,arg,f);\n",
+          "after": "    else if(action==HCT_HOST_WRAP){\n        PyErr_SetString(s->profile->unknown,\"raw stream construction requires its explicit ownership-receipt capability\");rc=-1;\n    }\n"
+        },
+        {
+          "before": "static PyObject *session_run(Session *s,PyObject *unused) {\n",
+          "after": "/* Result slots are the dispatcher's actual still-owned resources. Preserve\n * them even if every fallible host_handoff was refused. This terminal adoption\n * performs no allocation, call, decref or syscall, never changes HIA success,\n * and does not replace an existing raw or canonical stream owner. */\nstatic void keep_terminal_fds(Session *s) {\n    for(unsigned slot=0;slot<9;++slot){\n        int fd=s->result.remaining_fds[slot];\n        if(fd<0)continue;\n        int already=0;\n        for(unsigned i=0;i<9;++i)\n            if(s->raw_fds[i]==fd || ((s->residual_fd_mask&(UINT64_C(1)<<i))&&s->residual_fds[i]==fd))\n                already=1;\n        for(unsigned i=0;i<3;++i)if(s->streams[i]&&s->stream_fds[i]==fd)already=1;\n        if(!already){\n            s->residual_fds[slot]=fd;s->residual_fd_mask|=UINT64_C(1)<<slot;\n        }\n    }\n}\nstatic PyObject *session_run(Session *s,PyObject *unused) {\n"
+        },
+        {
+          "before": "    int rc=hia_cold_transport_run(s->profile->policy,&s->config,&s->result,NULL,0);\n",
+          "after": "    int rc=hia_cold_transport_run(s->profile->policy,&s->config,&s->result,NULL,0);\n    keep_terminal_fds(s);\n"
+        },
+        {
+          "before": "                                  host_block_enter,host_block_leave};\n",
+          "after": "                                  host_block_enter,host_block_leave,host_wrap};\n"
+        },
+        {
+          "before": "    Session *s=context;PyObject *old=handled_enter(s);\n    *ownership=0;\n    int rc=wrap_stream(s,slot,descriptor,ownership);\n",
+          "after": "    Session *s=context;PyObject *old=handled_enter(s);\n    *ownership=0;\n    int rc;\n    if((slot!=2&&slot!=3&&slot!=5)||!f||!f->fds||descriptor<3||f->fds[slot]!=descriptor){\n        PyErr_SetString(s->profile->unknown,\"raw ownership request differs from its actual issued slot\");rc=-1;\n    }else rc=wrap_stream(s,slot,descriptor,ownership);\n"
+        },
+        {
+          "before": "    return Py_BuildValue(\"{s:O,s:O,s:K,s:K,s:i,s:i,s:i,s:i,s:K,s:K,s:L,s:O}\",\n",
+          "after": "    return Py_BuildValue(\"{s:O,s:O,s:K,s:K,s:i,s:i,s:i,s:i,s:K,s:K,s:L,s:O,s:K}\",\n"
+        },
+        {
+          "before": "        \"handoff_pid\",(long long)s->result.handoff_pid,\"handed_off\",s->result.handed_off?Py_True:Py_False);\n",
+          "after": "        \"handoff_pid\",(long long)s->result.handoff_pid,\"handed_off\",s->result.handed_off?Py_True:Py_False,\n        \"residual_fd_mask\",(unsigned long long)s->residual_fd_mask);\n"
+        }
+      ]
+    },
+    {
+      "path": "tools/generate_hia_cold_native_transport.py",
+      "before": {
+        "bytes": 23015,
+        "sha256": "d01105b8909d8345f95bf74a380c87800248e3f0c815f5b91fb3942e623533db"
+      },
+      "after": {
+        "bytes": 23611,
+        "sha256": "0d09cf49e8a1246b347ac8c553244b48fc2dc4ddc59d256e02374f1f4b47ba6e"
+      },
+      "edits": [
+        {
+          "before": "    error = read_word(s, 40)\n    if error != 0:\n        return fail(s, o, w, 2, error, read_word(s, 24))\n",
+          "after": "    error = read_word(s, 40)\n    if phase >= 23 and phase <= 25:\n        ownership = read_word(s, 48)\n        slot = read_word(s, 32)\n        if ownership > 3 or ownership == 2 or read_word(s, 56) != 0:\n            return 0\n        if slot != 2 and slot != 3 and slot != 5:\n            return 0\n        if ownership != 0:\n            if error == 0:\n                return 0\n            bit = 1 << slot\n            if ownership == 3 and (read_word(s, 96) & bit) != 0:\n                return 0\n            if ownership == 1 and (read_word(s, 96) & bit) == 0:\n                return 0\n            put(w, 216, get(w, 216) | bit)\n    if error != 0:\n        return fail(s, o, w, 2, error, read_word(s, 24))\n"
+        }
+      ]
+    },
+    {
+      "path": "tools/hia_cold_native_transport_bridge.py",
+      "before": {
+        "bytes": 17294,
+        "sha256": "c54b61d86612de0e9988b76b71c00da0ba9fb2aec3adde1a95798afd2b23fb60"
+      },
+      "after": {
+        "bytes": 17573,
+        "sha256": "96d312386b09edfc9b81158a3f5a3c5988b022443c47cec1bb618caf60082dd1"
+      },
+      "edits": [
+        {
+          "before": "            or io.BufferedReader is not _io.BufferedReader\n",
+          "after": "            or io.FileIO is not _io.FileIO\n            or io.BufferedReader is not _io.BufferedReader\n"
+        },
+        {
+          "before": "    for cls, name in ((io.BufferedReader, \"BufferedReader\"), (io.BufferedWriter, \"BufferedWriter\")):\n",
+          "after": "    for cls, name in ((io.FileIO, \"FileIO\"), (io.BufferedReader, \"BufferedReader\"), (io.BufferedWriter, \"BufferedWriter\")):\n"
+        },
+        {
+          "before": "        \"extra_queries\": [\"actual binary owner.closed after close\", \"actual owner.fileno before handoff\"],\n",
+          "after": "        \"extra_queries\": [\"actual binary owner.closed after close\", \"actual owner.fileno before handoff\",\n                          \"actual failed raw FileIO.closed after its original error-path close\"],\n        \"raw_buffer_boundary\": \"canonical CPython 3.14 supplied-fd FileIO then actual default-size Buffered owner\",\n"
+        }
+      ]
+    }
+  ],
+  "timeout_successor": {
+    "schema": "hepta.cold-native-transport.timeout-fields-and-generation-successor.v2",
+    "before_mode": "exact-fd-custody-v1",
+    "after_mode": "exact-timeout-generation-v2",
+    "files": [
+      {
+        "path": "tools/hia_cold_native_transport.h",
+        "before": {
+          "bytes": 6603,
+          "sha256": "8b405748a310cf3c0b43341124a9ef1bc861b51f3fe9c68178be6e3042b730d4"
+        },
+        "after": {
+          "bytes": 6835,
+          "sha256": "991a91662abe9f23f9c04ec27f12f263b6a7911e69e3ac9c48cc5b9cb5493355"
+        },
+        "edits": [
+          {
+            "before": "    size_t stdout_size, stderr_size, stdout_reads, stderr_reads;\n};\n",
+            "after": "    size_t stdout_size, stderr_size, stdout_reads, stderr_reads;\n    /* Same already-observed native clock receipts; no extra clock read.\n       wait_clock_observed is set only at the validated normal IO->wait edge. */\n    uint64_t clock_start_ns, wait_clock_ns;\n    unsigned wait_clock_observed;\n};\n"
+          }
+        ]
+      },
+      {
+        "path": "tools/hia_cold_native_transport.c",
+        "before": {
+          "bytes": 53788,
+          "sha256": "8fbb818d2a96c773c11d90a8d6e84127115810c75a3a345bd1d26d6b4330b5f3"
+        },
+        "after": {
+          "bytes": 54390,
+          "sha256": "d2b08b290bfad1634263dc4c0b4dfce300c0fd44ec0f1f5aeb3749a89b9836a3"
+        },
+        "edits": [
+          {
+            "before": "    uint64_t pre_signal_sequence;\n    pid_t pre_signal_pid;\n",
+            "after": "    uint64_t pre_signal_sequence;\n    pid_t pre_signal_pid;\n    uint64_t wait_clock_ns;\n    unsigned wait_clock_observed;\n"
+          },
+          {
+            "before": "        s->output[0].reads,s->output[1].reads\n    };\n",
+            "after": "        s->output[0].reads,s->output[1].reads,\n        s->result->start_ns,s->wait_clock_ns,s->wait_clock_observed\n    };\n"
+          },
+          {
+            "before": "        uint64_t amount = get64(reply.bytes + 40), auxiliary = get64(reply.bytes + 48);\n        ++s.seq;\n",
+            "after": "        uint64_t amount = get64(reply.bytes + 40), auxiliary = get64(reply.bytes + 48);\n        if(action==HCT_WAIT_NOHANG&&get64(s.state.bytes+40)==18&&get64(prior+40)==12){\n            /* issued_projection has already bound this issue to the actual\n               successful CLOCK receipt after the last IO slot retired. */\n            if(s.wait_clock_observed||get64(preserved+24)!=HCT_CLOCK\n               ||get64(preserved+40)!=0||get64(prior+184)!=1)break;\n            s.wait_clock_ns=get64(preserved+48);\n            s.wait_clock_observed=1;\n        }\n        ++s.seq;\n"
+          }
+        ]
+      },
+      {
+        "path": "tools/hia_cold_native_transport_python.c",
+        "before": {
+          "bytes": 44187,
+          "sha256": "b1b9156a1bd753e7e31d6f5f28815a27c2e3772fec98e515a51e2cbff0f175a7"
+        },
+        "after": {
+          "bytes": 47035,
+          "sha256": "acba9327eb529bda8058e954e3725ec81acf749b3067fbfa1e199438e9c71567"
+        },
+        "edits": [
+          {
+            "before": "    unsigned linked, started, finished, handoff;\n",
+            "after": "    unsigned linked, started, finished, handoff;\n    uint64_t wait_start_ns, wait_clock_ns;\n    double wait_timeout_seconds;\n    unsigned wait_timeout_observed;\n"
+          },
+          {
+            "before": "static int make_pending(Session *s,const struct hia_cold_snapshot *f) {\n    if(s->pending||f->outcome==HCT_RETURNED)return 0;\n    if(f->outcome==HCT_EXEC_ERROR&&!f->reaped&&!f->owner_lost)return 0;\n    if(f->outcome==HCT_TIMEOUT_IO||f->outcome==HCT_TIMEOUT_WAIT){\n        PyObject *kind=get_module_attr(s->profile->subprocess,\"TimeoutExpired\");\n        if(!kind)return -1;\n        PyObject *out=f->stdout_reads?PyBytes_FromStringAndSize((const char *)f->stdout_bytes,(Py_ssize_t)f->stdout_size):Py_NewRef(Py_None);\n        PyObject *err=f->stderr_reads?PyBytes_FromStringAndSize((const char *)f->stderr_bytes,(Py_ssize_t)f->stderr_size):Py_NewRef(Py_None);\n        PyObject *error=out&&err?PyObject_CallFunctionObjArgs(kind,s->args,s->timeout,out,err,NULL):NULL;\n        Py_DECREF(kind);Py_XDECREF(out);Py_XDECREF(err);\n        if(!error)return -1;\n        PyErr_SetObject((PyObject *)Py_TYPE(error),error);Py_DECREF(error);\n    }else if(f->outcome==HCT_EXEC_ERROR){\n        PyObject *filename=Py_None;\n        if(f->stage==2)filename=s->cwd;\n        else if(f->stage==6&&s->args)filename=PyList_GET_ITEM(s->args,0);\n        errno=(int)f->error;\n        PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,filename);\n    }else if(f->outcome==HCT_CUSTODY_LOST||f->outcome==HCT_POLICY_LOST){\n        PyErr_SetString(s->profile->unknown,\"native child custody or policy receipt is unknown\");\n    }else if(f->stage==HCT_IMAGE_WRITE&&f->error==EIO){\n        PyErr_SetString(PyExc_OSError,\"short observer image write\");\n    }else if(f->stage==HCT_SEAL_GET&&f->error==EIO){\n        PyErr_SetString(PyExc_OSError,\"observer image sealing failed\");\n    }else{\n        errno=f->error&&f->error<4096?(int)f->error:EIO;\n        PyErr_SetFromErrno(PyExc_OSError);\n    }\n    (void)take_error(s);return 0;\n}\n",
+            "after": "static int bind_wait_timeout(Session *s,const struct hia_cold_snapshot *f) {\n    if(!f->wait_clock_observed)return 0;\n    if(f->wait_clock_observed!=1||!f->clock_started\n       ||f->clock_start_ns>(uint64_t)PyTime_MAX||f->wait_clock_ns>(uint64_t)PyTime_MAX){\n        PyErr_SetString(PyExc_OverflowError,\"native wait clock facts exceed the admitted CPython monotonic range\");\n        return -1;\n    }\n    if(s->wait_timeout_observed){\n        if(s->wait_start_ns!=f->clock_start_ns||s->wait_clock_ns!=f->wait_clock_ns){\n            PyErr_SetString(s->profile->unknown,\"native wait clock receipt changed after its first issue\");\n            return -1;\n        }\n        return 0;\n    }\n    double timeout=PyFloat_AsDouble(s->timeout);\n    if(PyErr_Occurred())return -1;\n    /* Match the two floating operations in communicate/_remaining_time.\n       Converting one integer nanosecond difference is not equivalent. */\n    volatile double start=PyTime_AsSecondsDouble((PyTime_t)f->clock_start_ns);\n    volatile double end=start+timeout;\n    double now=PyTime_AsSecondsDouble((PyTime_t)f->wait_clock_ns);\n    s->wait_timeout_seconds=end-now;\n    s->wait_start_ns=f->clock_start_ns;s->wait_clock_ns=f->wait_clock_ns;\n    s->wait_timeout_observed=1;\n    return 0;\n}\nstatic int make_pending(Session *s,const struct hia_cold_snapshot *f) {\n    if(s->pending||f->outcome==HCT_RETURNED)return 0;\n    if(f->outcome==HCT_EXEC_ERROR&&!f->reaped&&!f->owner_lost)return 0;\n    if(f->outcome==HCT_TIMEOUT_WAIT){\n        if(!s->wait_timeout_observed||!f->wait_clock_observed){\n            PyErr_SetString(s->profile->unknown,\"wait timeout has no actual first-wait clock receipt\");\n            return -1;\n        }\n        PyObject *kind=get_module_attr(s->profile->subprocess,\"TimeoutExpired\");\n        if(!kind)return -1;\n        PyObject *remaining=PyFloat_FromDouble(s->wait_timeout_seconds);\n        PyObject *error=remaining?PyObject_CallFunctionObjArgs(kind,s->args,remaining,NULL):NULL;\n        Py_DECREF(kind);Py_XDECREF(remaining);\n        if(!error)return -1;\n        /* _wait raises with its actual remaining-time positional argument;\n           _communicate catches that same object and changes only .timeout.\n           Both stream attributes retain the constructor's default None. */\n        PyErr_SetObject((PyObject *)Py_TYPE(error),error);Py_DECREF(error);\n        (void)take_error(s);\n        PyObject *old=handled_enter(s);\n        int changed=set_object(s->pending,\"timeout\",s->timeout);\n        handled_leave(old);\n        /* A real setter error remains raised with the actual pending error as\n           context; host_before captures it through the unchanged error path. */\n        return changed;\n    }else if(f->outcome==HCT_TIMEOUT_IO){\n        PyObject *kind=get_module_attr(s->profile->subprocess,\"TimeoutExpired\");\n        if(!kind)return -1;\n        PyObject *out=f->stdout_reads?PyBytes_FromStringAndSize((const char *)f->stdout_bytes,(Py_ssize_t)f->stdout_size):Py_NewRef(Py_None);\n        PyObject *err=f->stderr_reads?PyBytes_FromStringAndSize((const char *)f->stderr_bytes,(Py_ssize_t)f->stderr_size):Py_NewRef(Py_None);\n        PyObject *arguments=out&&err?PyTuple_Pack(2,s->args,s->timeout):NULL;\n        PyObject *keywords=arguments?Py_BuildValue(\"{s:O,s:O}\",\"output\",out,\"stderr\",err):NULL;\n        PyObject *error=keywords?PyObject_Call(kind,arguments,keywords):NULL;\n        Py_DECREF(kind);Py_XDECREF(out);Py_XDECREF(err);\n        Py_XDECREF(arguments);Py_XDECREF(keywords);\n        if(!error)return -1;\n        PyErr_SetObject((PyObject *)Py_TYPE(error),error);Py_DECREF(error);\n    }else if(f->outcome==HCT_EXEC_ERROR){\n        PyObject *filename=Py_None;\n        if(f->stage==2)filename=s->cwd;\n        else if(f->stage==6&&s->args)filename=PyList_GET_ITEM(s->args,0);\n        errno=(int)f->error;\n        PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,filename);\n    }else if(f->outcome==HCT_CUSTODY_LOST||f->outcome==HCT_POLICY_LOST){\n        PyErr_SetString(s->profile->unknown,\"native child custody or policy receipt is unknown\");\n    }else if(f->stage==HCT_IMAGE_WRITE&&f->error==EIO){\n        PyErr_SetString(PyExc_OSError,\"short observer image write\");\n    }else if(f->stage==HCT_SEAL_GET&&f->error==EIO){\n        PyErr_SetString(PyExc_OSError,\"observer image sealing failed\");\n    }else{\n        errno=f->error&&f->error<4096?(int)f->error:EIO;\n        PyErr_SetFromErrno(PyExc_OSError);\n    }\n    (void)take_error(s);return 0;\n}\n"
+          },
+          {
+            "before": "    if(sync_owner(s,f)<0)error=take_error(s);\n    else if(make_pending(s,f)<0)error=take_error(s);\n",
+            "after": "    if(sync_owner(s,f)<0)error=take_error(s);\n    else if(bind_wait_timeout(s,f)<0)error=take_error(s);\n    else if(make_pending(s,f)<0)error=take_error(s);\n"
+          }
+        ]
+      },
+      {
+        "path": "tools/generate_hia_cold_native_transport.py",
+        "before": {
+          "bytes": 23611,
+          "sha256": "0d09cf49e8a1246b347ac8c553244b48fc2dc4ddc59d256e02374f1f4b47ba6e"
+        },
+        "after": {
+          "bytes": 23616,
+          "sha256": "566e7b7a7d6ce07f4d61463bf54107a21bbe54f0da2e6e9b253df2d8591dfb9d"
+        },
+        "edits": [
+          {
+            "before": "        if not suppress:\n",
+            "after": "        if suppress == False:\n"
+          },
+          {
+            "before": "        value = value | (load(s, at + i) << (i * 8))\n",
+            "after": "        value = value | (byte(s, at + i) << (i * 8))\n"
+          },
+          {
+            "before": "        value = value | (load(w, at + i) << (i * 8))\n",
+            "after": "        value = value | (byte(w, at + i) << (i * 8))\n"
+          }
+        ]
+      },
+      {
+        "path": "tools/hia_cold_native_transport_bridge.py",
+        "before": {
+          "bytes": 17573,
+          "sha256": "96d312386b09edfc9b81158a3f5a3c5988b022443c47cec1bb618caf60082dd1"
+        },
+        "after": {
+          "bytes": 17573,
+          "sha256": "96d312386b09edfc9b81158a3f5a3c5988b022443c47cec1bb618caf60082dd1"
+        },
+        "edits": []
+      }
+    ]
+  }
+}

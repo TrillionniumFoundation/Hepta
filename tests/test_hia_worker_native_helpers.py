@@ -111,7 +111,11 @@ assert _read(Path(sys.argv[1]), limit).raw == b"pinned helper"
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 42)
+        from tools.hia_selfhost_contract import support_contract
+        declared = support_contract()['native_worker_helper_bundle']
+        self.assertEqual(declared['supported_single_image_selectors'], len(HELPERS))
+        self.assertEqual(HELPERS['HEPTA_HIA_BOUNDED_MEMORY_MANIFEST'],
+                         ('hia_bounded_memory_native', 'NativeBoundedMemory'))
         self.assertEqual(HELPERS['HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST'],
                          ('hia_elf_verified_linker_native', 'NativeVerifiedLinker'))
         self.assertEqual(HELPERS['HEPTA_HIA_AGENT_DESCRIBE_ANSWER_MANIFEST'],

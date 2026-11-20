@@ -20,7 +20,9 @@ from tools.hia_selfhost_contract import CONTRACT_PATH, validate_contract
 from tools.hia_selfhost_process_owner import run_owned
 
 
-def cold_replay(output):
+def cold_replay(output, *, native_transport=False):
+    if type(native_transport) is not bool:
+        raise ValueError("native transport selection must be explicit boolean")
     contract = validate_contract()
     requested = Path(output)
     if not requested.is_absolute():
@@ -56,6 +58,8 @@ def cold_replay(output):
     command = [sys.executable, "-I", "-S", "-B",
                str(source_root / "tools/qualify_hia_selfhost.py"),
                "--output", str(nested_output)]
+    if native_transport:
+        command.append("--native-transport")
     environment = {"PATH": "/usr/bin:/bin", "HOME": str(home), "TMPDIR": str(temp),
                    "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8", "TZ": "UTC"}
     request = {"schema": "hepta.hia.selfhost-cold-request.v1", "command": command,
@@ -108,6 +112,12 @@ def cold_replay(output):
                             "virtual_machine": False, "security_sandbox": False,
                             "shared_host_dependencies": ["CPython executable and standard library",
                                                          "GNU ld", "libc", "kernel", "hardware"]}}
+    if native_transport:
+        result["isolation"]["shared_host_dependencies"].extend([
+            "current CPython headers and shared library", "current source-bound C compiler for the explicit R3 bridge"])
+        result["native_transport_selection"] = {
+            "mode": "fresh-source-export-build-after-B3", "inherited_native_images": False,
+            "whole_native": False}
     output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result
 
@@ -115,8 +125,9 @@ def cold_replay(output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--native-transport", action="store_true")
     args = parser.parse_args()
-    result = cold_replay(args.output)
+    result = cold_replay(args.output, native_transport=args.native_transport)
     print(json.dumps({"status": result["status"], "output": str(args.output),
                       "checks_passed": sum(result["checks"].values()),
                       "checks_total": len(result["checks"]),

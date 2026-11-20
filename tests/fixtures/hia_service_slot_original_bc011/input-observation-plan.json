@@ -1,0 +1,89 @@
+{
+  "fault_plan": {
+    "active_exception_states": [
+      "none",
+      "outer active exception"
+    ],
+    "derived_from": "Actual observed original-provider cutpoints, frozen before candidate execution; not guessed port counts.",
+    "families": [
+      "ValueError",
+      "TypeError",
+      "AttributeError",
+      "RuntimeError",
+      "StopIteration",
+      "KeyboardInterrupt",
+      "SystemExit",
+      "MemoryError"
+    ],
+    "observation_endpoint": "Deep-freeze the complete semantic record at the declared consumer boundary. Later GC is a separate explicit record, never retroactively mutates earlier observations.",
+    "occurrence": "One fault before/after each declared primitive/call/return boundary where meaningful, first-error order and exact injected-object identity retained.",
+    "traceback_policy": "Save full raw traceback separately from semantic observations; do not normalize exception fields, object lifetimes, GC counts or original runtime differences."
+  },
+  "handlers": [
+    "_hia_rollback",
+    "_hia_adopt"
+  ],
+  "normal_route_domains": [
+    {
+      "description": "All four combinations of the two independent _slot_ledger is-not-None observations, including dynamic attribute changes between predicate and method lookup.",
+      "id": "rollback.ledger_choices"
+    },
+    {
+      "description": "All eight combinations of the three independent ledger choices, with literal call lookup occurring again after each predicate.",
+      "id": "adopt.ledger_choices"
+    },
+    {
+      "description": "The three left-to-right receipt-binding comparisons: first true short-circuits later getters; false/false/false continues; comparison and truth may each raise or return opaque values.",
+      "id": "adopt.binding_first_error"
+    },
+    {
+      "description": "Candidate/baseline signatures comparison and truth; reject may raise or return, and a returned rejection must continue exactly as the original does.",
+      "id": "adopt.abi"
+    }
+  ],
+  "object_protocol_domains": [
+    "Instance overrides, subclass overrides, custom __getattribute__, descriptors, bound and detached callables for every original dynamic service/Store/Ledger method expression.",
+    "Temporary Ledger and Store receiver death at original LOAD_METHOD/call boundaries; retain only observer weakrefs/tokens, no accidental strong receiver retention.",
+    "Global uint64/digest/reject lookups and the original bound builtins fallback, missing names, runtime replacement between calls and original first error/cause/context.",
+    "Exact2-value rollback/get_json and3-value native result unpack: short/long sizes, iterator replacement/next exceptions, StopIteration identity and destruction of the returned container.",
+    "Discarded validation/Store.get/build-receipt results must be released at the original POP_TOP before the next provider or ACK.",
+    "Dictionary literal key/value evaluation, repeated args/snapshot reads, shared alias identity, opaque numeric/object types and arbitrary-size values remain unchanged.",
+    "Two adoption _native calls remain distinct sites; all ignored locals _, _data/_program/_baseline_data/_baseline_program remain live until the original frame releases them.",
+    "Cold and declared warm callsite history preserve unnormalized AttributeError name/obj and original runtime-specific metadata.",
+    "Normal return, nested outer except, unhandled provider error, held/released traceback and explicit consumer GC phases preserve locals ordering on each actual runtime separately."
+  ],
+  "oracle_rule": "Execute only the exact frozen original methods with independent fake providers before evaluating any candidate. Expected outputs must not be derived from the HIA ports or generated graph.",
+  "pending": [
+    "Original-only fake observations not yet executed or accepted.",
+    "No HIA generation/compilation/VM/Native/SQLite test has run.",
+    "New Source/Native test module, installed controls and complete caller qualifier will be designed after independent original observations; no absence presented as PASS."
+  ],
+  "preserved_original_scopes": {
+    "direct_literal_search_not_dynamic_closure": true,
+    "execution_budget_complete": 25,
+    "journal_complete": 21,
+    "no_original_method_or_budget_changed": true,
+    "ordinary_methods": 112,
+    "ordinary_modules": 9,
+    "original_fixture": "tests/fixtures/hia_emission_original_73f1634/original-freeze.json",
+    "original_fixture_sha256": "dec08c099ea1d262f1a3d32dc34801c816484bda6724fac60f5a8a1d5d8c4048",
+    "separate_methods": 128,
+    "separate_modules": 8,
+    "slot_complete": 15,
+    "transaction_separate_total": 61
+  },
+  "publication_or_qualification_claimed": false,
+  "resource_controls_separate_from_original_expectations": [
+    "Canonical selected child NativeBuildAdmission, Store artifact/profile and transaction images from the same attempt; plain fake provider behavior cannot prove resource custody.",
+    "Actual child native loss before/after entry, unconfirmed foreign ACK, ordinary confirmed provider failure, parent ACK loss after confirmed child and no unsafe retry.",
+    "Real Slot SQL operation before/after its native calls requires the independent Slot owner causal mechanism; no shared loss field injection and no inference solely from exception class.",
+    "Public service.call original atomic transaction: business receipt and request terminal update share the canonical Store connection, commit/rollback and original request/cost behavior; dynamic Store replacement remains the original domain.",
+    "Direct private handler calls add no transaction; no hidden BEGIN/COMMIT is inserted by the new dispatcher.",
+    "Healthy ACK release versus unknown resource retention, nested strong ancestors and read weak-policy compatibility, normal/held traceback finalization.",
+    "Full installed worker and exact replay with source identity drift, all original deadlines and original caller bodies retained."
+  ],
+  "schema": "hepta.hia.service-slot-original-input-observation-plan.v1",
+  "source_commit": "bc011d8daf7ae0c026953eea222ecafd525b2655",
+  "source_tree": "f44fef8ff1c38e4f5207b1622960c4b2e79eb05c",
+  "status": "FROZEN_ORIGINAL_ONLY_PLAN_NOT_EXECUTED"
+}

@@ -358,6 +358,9 @@ class CliNativeTests(unittest.TestCase):
             ["catalog", "--schema"], ["catalog", "--schema", "bad"],
             ["catalog", "--sch=hepta.hia.program.v2"],
             ["catalog", "--schema", "hepta.hia.program.v1", "--schema", "hepta.hia.program.v8"],
+            ["catalog", "--schema", "hepta.hia.program.v8", "--schema", "hepta.hia.program.v9"],
+            ["catalog", "--schema", "hepta.hia.program.v9", "--schema", "hepta.hia.program.v8"],
+            ["catalog", "--schema", "hepta.hia.program.v10"],
             ["build", "x"], ["build", "--help", "--backend", "bad"],
             ["build", "--backend", "bad", "--help"], ["build", "x", "-o"],
             ["build", "x", "-oone", "--output=two"], ["build", "x", "-o=-leading"],
@@ -374,6 +377,37 @@ class CliNativeTests(unittest.TestCase):
         for argv in cases:
             with self.subTest(argv=argv):
                 self.assert_parse_same(argv)
+
+    def test_catalog_latest_and_each_old_schema_preserve_word_opcode_boundary(self):
+        word_ops = {"buffer.load.u64.le", "buffer.load.u64.be",
+                    "buffer.store.u64.le", "buffer.store.u64.be"}
+        cases = [(None, 9), *[("hepta.hia.program.v" + str(version), version)
+                             for version in range(1, 10)]]
+        for schema, version in cases:
+            argv = ["catalog"] + ([] if schema is None else ["--schema", schema])
+            with self.subTest(schema=schema), patch.dict(os.environ, environment(), clear=True):
+                parsed = self.assert_parse_same(argv)
+                self.assertEqual(parsed[0][0], "namespace")
+                self.assertEqual(parsed[0][1]["schema"], "hepta.hia.program.v" + str(version))
+                expected = entry_outcome(argv)
+                actual = entry_outcome(argv, self.manifest)
+                self.assertEqual(actual, expected)
+                self.assertEqual(actual[0], ("return", 0))
+                catalog = json.loads(actual[1])
+                self.assertEqual(catalog["core_schema"], "hepta.hia.program.v" + str(version))
+                present = {item["name"] for item in catalog["instructions"]} & word_ops
+                self.assertEqual(present, word_ops if version == 9 else set())
+                self.observations.append({"test": self.id(), "argv": argv,
+                                          "expected": expected, "actual": actual})
+        argv = ["catalog", "--schema", "hepta.hia.program.v10"]
+        with patch.dict(os.environ, environment(), clear=True):
+            expected = entry_outcome(argv)
+            actual = entry_outcome(argv, self.manifest)
+            self.assertEqual(actual, expected)
+            self.assertEqual(actual[0], ("exit", 2))
+            self.assertEqual(actual[1], "")
+            self.observations.append({"test": self.id(), "argv": argv,
+                                      "expected": expected, "actual": actual})
 
     def test_help_wrapping_columns_and_exact_unicode_repr(self):
         widths = ("1", "2", "3", "18", "20", "39", "40", "80", "120",

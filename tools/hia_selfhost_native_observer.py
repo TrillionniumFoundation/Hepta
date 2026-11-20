@@ -2,7 +2,9 @@
 
 This is an explicit qualification transport, not a compiler, parser, production
 activation or security sandbox. Each call execs a new sealed immutable ELF and
-loads the supplied flat image RW-to-RX. Seed/shared-library loading retains the independent Python loader. Parent-owned
+loads the supplied flat image RW-to-RX. Seed loading retains the independent
+Python loader. The explicit linked format uses the separately built HIA policy
+and system dynamic-loader bridge. Parent-owned
 size-sealed shared output preserves real writes after native traps. No child is reused.
 """
 from __future__ import annotations
@@ -89,7 +91,7 @@ def build(directory, compiler, reference):
     return executable, receipt
 
 
-def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+def _validate_frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
     if (not isinstance(image, bytes) or not 0 < len(image) <= 4*LIMIT
             or not isinstance(source, bytes) or len(source) > LIMIT
             or type(capacity) is not int or not 0 <= capacity <= LIMIT
@@ -97,6 +99,10 @@ def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=Non
             or type(workspace_fill) is not int or not 0 <= workspace_fill <= 255
             or (output_fd is not None and (type(output_fd) is not int or not 3 <= output_fd <= 2147483647))):
         raise ValueError('native observer frame exceeds the unchanged byte ABI limits')
+
+
+def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+    _validate_frame(image, source, capacity, workspace_size, workspace_fill, output_fd)
     return b'HIAOBS02'+struct.pack('<6Q',len(image),len(source),capacity,workspace_size,workspace_fill,
         (1<<64)-1 if output_fd is None else output_fd)+image+source
 
@@ -152,11 +158,18 @@ def read_capture(descriptor,capacity):
 
 
 def invoke(directory, label, observer, image, source, *, capacity, workspace_size, workspace_fill,
-           output_initial=None, observe_trap_writes=False):
+           output_initial=None, observe_trap_writes=False, image_format='flat-x86-64'):
+    if image_format == 'linked-selfhost':
+        from tools.hia_selfhost_linked_observer import invoke as linked_invoke
+        return linked_invoke(directory,label,observer,image,source,capacity=capacity,
+            workspace_size=workspace_size,workspace_fill=workspace_fill,
+            output_initial=output_initial,observe_trap_writes=observe_trap_writes)
+    if image_format != 'flat-x86-64':
+        raise ValueError('unknown explicit native observer format')
     directory, image, observer = Path(directory), Path(image), Path(observer)
     image_bytes, executable = image.read_bytes(), observer.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.
-    frame(image_bytes,source,capacity,workspace_size,workspace_fill)
+    _validate_frame(image_bytes,source,capacity,workspace_size,workspace_fill)
     initial = b'\xa5'*capacity if output_initial is None else output_initial
     if not isinstance(initial,bytes) or len(initial)!=capacity:
         raise ValueError('output preimage must match the capacity')
@@ -201,7 +214,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                         returned, elapsed = struct.unpack_from('<2Q',raw,8)
                         actual_source = raw[24:24+len(source)]
                         output = raw[24+len(source):24+len(source)+capacity]
-                        workspace = raw[24+len(source)+capacity:]
+                        workspace_offset = 24+len(source)+capacity
                         output_path.write_bytes(output)
                         if actual_source != source:
                             (directory/(label+'.modified-source.bin')).write_bytes(actual_source)
@@ -210,7 +223,7 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                             'source_sha256':digest(source),'image_sha256':digest(image_bytes),
                             'output_sha256':digest(output),'source_unchanged':actual_source==source,
                             'output_unchanged':output==initial,
-                            'workspace_header':{str(at):int.from_bytes(workspace[at:at+8],'little')
+                            'workspace_header':{str(at):struct.unpack_from('<Q',raw,workspace_offset+at)[0]
                                 for at in WORKSPACE_FIELDS if workspace_size>=at+8},
                             'native_elapsed_ns':elapsed,'forbidden_compiler_modules_loaded':[],
                             'loader_operations':'HIA-emitted static ELF; sealed exec; RW-to-RX image; fixed ABI call',
@@ -241,3 +254,11 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
         (directory/(label+'.stderr.log')).write_bytes(stderr)
         (directory/(label+'.receipt.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
         return result, output
+
+
+# Explicit native lifecycle candidate. The complete original execute body above
+# remains the default; selected entry has a declared, different source identity.
+if os.environ.get("HEPTA_HIA_COLD_NATIVE_TRANSPORT_MANIFEST") is not None:
+    from tools.hia_cold_native_transport_bridge import bind_execute as _bind_cold_execute
+    execute = _bind_cold_execute("flat", globals())
+    del _bind_cold_execute

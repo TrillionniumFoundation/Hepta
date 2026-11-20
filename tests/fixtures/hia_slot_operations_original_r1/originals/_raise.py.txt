@@ -1,0 +1,30 @@
+def _raise(receipt, labels=()):
+    from .hia_agent_store import AgentRejected
+    status = receipt.status
+    if not status:
+        return receipt
+    if status == 2:
+        index = receipt.values[0] - 1
+        if not 0 <= index < len(labels):
+            _custody('native range refusal lacks its field label')
+        raise AgentRejected('E_HIA_RANGE', labels[index] + ' must be a canonical u64 decimal string')
+    messages = {
+        3: ('E_HIA_GENERATION_STALE', 'slot changed; read the retained current snapshot and choose a fresh conditional request', 'adoption'),
+        4: ('E_HIA_ABI', 'candidate changes the live slot ABI', 'adoption'),
+        5: ('E_HIA_BASELINE', 'evaluation baseline is not the currently active image', 'adoption'),
+        6: ('E_HIA_GENERATION_EXHAUSTED', 'u64 generation or epoch space is exhausted', 'adoption'),
+        7: ('E_HIA_GENERATION_EXHAUSTED', 'u64 epoch space is exhausted', 'adoption'),
+        8: ('E_HIA_SLOT', 'slot has no active generation', 'admission'),
+        9: ('E_HIA_SLOT', 'slot has no retained generation', 'adoption'),
+        10: ('E_HIA_GENERATION', 'requested generation is not retained', 'adoption'),
+        11: ('E_HIA_LEASE', 'lease is released, unknown or modified', 'admission'),
+        13: ('E_HIA_ABI', 'retained generation is not ABI compatible', 'adoption'),
+        14: ('E_HIA_EVALUATION_REQUIRED', 'evaluation did not meet the frozen correctness/performance acceptance', 'adoption'),
+        15: ('E_HIA_COST_INCOMPLETE', 'full model/discovery/adoption/future-use cost is not established by this prefix; net-benefit requirement cannot pass', 'adoption'),
+    }
+    if status not in messages:
+        _custody('native slot state or frame custody failed')
+    code, message, phase = messages[status]
+    if status == 3:
+        raise AgentRejected(code, message, phase, retry_action='refresh_context')
+    raise AgentRejected(code, message, phase)

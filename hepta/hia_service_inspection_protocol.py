@@ -1,0 +1,96 @@
+"""Complete inspect/candidate control ABI; provider objects remain opaque."""
+SELECTOR = "HEPTA_HIA_SERVICE_INSPECTION_MANIFEST"
+SCHEMA = "hepta.hia.service-inspection.v1"
+SOURCE_NAME = "examples/hia_bootstrap/service_inspection.hepta"
+REQUEST_MAGIC = int.from_bytes(b"HSIREQ01", "little")
+RESULT_MAGIC = int.from_bytes(b"HSIRSP01", "little")
+STATE_MAGIC = int.from_bytes(b"HSISTA01", "little")
+REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES = 128, 96, 192
+INITIALIZE, CLAIM, SUCCEEDED, RAISED, FINALIZE = 0, 1, 2, 3, 4
+ISSUED, CLAIMED, RETURNED, PROPAGATE = 1, 2, 4, 5
+READY_RETURN, READY_PROPAGATE, REFUSED = 6, 7, 8
+INSPECT, CANDIDATE = 1, 2
+PORTS = (
+    "inspect_import",
+    "inspect_prepare_import",
+    "inspect_emit_import",
+    "inspect_program",
+    "inspect_selector",
+    "inspect_has_cursor",
+    "inspect_reject_cursor",
+    "inspect_view_query",
+    "inspect_is_summary",
+    "inspect_summary",
+    "inspect_is_lowering",
+    "inspect_context",
+    "inspect_emit",
+    "inspect_lowering_result",
+    "inspect_is_dependencies",
+    "inspect_all_prepare",
+    "inspect_all_next",
+    "inspect_all_foreign",
+    "inspect_all_false_done",
+    "inspect_all_true_done",
+    "inspect_reject_dependencies",
+    "inspect_prepare_edit",
+    "inspect_prepared_result",
+    "inspect_query",
+    "inspect_has_function",
+    "inspect_reject_function_required",
+    "inspect_functions_open",
+    "inspect_functions_reiterate",
+    "inspect_functions_next",
+    "inspect_functions_put",
+    "inspect_functions_done",
+    "inspect_function_present",
+    "inspect_reject_function_missing",
+    "inspect_function_result",
+    "inspect_is_block",
+    "inspect_blocks_open",
+    "inspect_blocks_reiterate",
+    "inspect_blocks_next",
+    "inspect_blocks_put",
+    "inspect_blocks_done",
+    "inspect_block_present",
+    "inspect_reject_block_missing",
+    "inspect_block_result",
+    "inspect_result",
+    "inspect_release",
+    "inspect_comprehension_unwind",
+    "inspect_all_unwind",
+    "candidate_assemble_import",
+    "candidate_patch_import",
+    "candidate_change_base_payloads",
+    "candidate_is_import",
+    "candidate_import_data",
+    "candidate_is_assembly",
+    "candidate_assemble",
+    "candidate_verify",
+    "candidate_import_diagnostics",
+    "candidate_base",
+    "candidate_patch_selector",
+    "candidate_patch_selected",
+    "candidate_native_patch_import",
+    "candidate_original_bytes",
+    "candidate_patch_bytes",
+    "candidate_apply_native",
+    "candidate_original_program",
+    "candidate_patch_document",
+    "candidate_schema_differs",
+    "candidate_reject_schema",
+    "candidate_apply_program",
+    "candidate_put_open",
+    "candidate_payload_selected",
+    "candidate_put_native",
+    "candidate_put_program",
+    "candidate_diagnostics_selected",
+    "candidate_diagnostics_native",
+    "candidate_diagnostics_json",
+    "candidate_result",
+    "candidate_release",
+    "candidate_put_unwind",
+)
+PORT = {name: index + 1 for index, name in enumerate(PORTS)}
+MODE_RANGES = {INSPECT: (1, 47), CANDIDATE: (48, 78)}
+BOOLEAN_PORTS = frozenset(PORT[name] for name in ["inspect_has_cursor","inspect_is_summary","inspect_is_lowering","inspect_is_dependencies","inspect_all_prepare","inspect_all_foreign","inspect_has_function","inspect_functions_next","inspect_function_present","inspect_is_block","inspect_blocks_next","inspect_block_present","candidate_is_import","candidate_is_assembly","candidate_patch_selected","candidate_schema_differs","candidate_payload_selected","candidate_diagnostics_selected"])
+ERROR_PORTS = frozenset(PORT[name] for name in ["inspect_comprehension_unwind","inspect_all_unwind","candidate_put_unwind"])

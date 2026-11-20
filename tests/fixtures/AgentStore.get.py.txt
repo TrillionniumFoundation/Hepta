@@ -1,0 +1,13 @@
+    def get(self, ref, *, kind=None):
+        keys(ref, ("id", "sha256", "uri"), label="artifact reference")
+        row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
+        if row is None or self._ref(row) != ref:
+            reject("E_HIA_ARTIFACT_IDENTITY", "artifact reference was not issued in this runtime namespace")
+        if kind is not None and row["kind"] != kind:
+            reject("E_HIA_ARTIFACT_AUTHORITY", "input bytes cannot impersonate a retained " + kind)
+        data = _native_artifact_file('store-get',self.artifacts,content_hash=row['sha256'])
+        if data is None:
+            data = stable_read(self.artifacts / row["sha256"], MAX_ARTIFACT_BYTES)
+            if sha256(data).hexdigest() != row["sha256"]:
+                reject("E_HIA_ARTIFACT_CORRUPT", "artifact bytes no longer match their recorded digest")
+        return data, decode_data(row["metadata"])

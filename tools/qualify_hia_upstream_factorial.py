@@ -51,11 +51,16 @@ def protocol():
 
 
 def source_bindings():
+    # The removed C/source-language capture frontend authored these fixtures;
+    # it is not executed by either current HIA/native evaluator. Admit the
+    # retained .hepta bytes through their real consumer before freezing them,
+    # so a missing glob member or changed capture still refuses the study.
+    fixtures.make_fixtures()
     result = prior.source_bindings()
     for path in [*ROOT.glob("hepta/*.py"), Path(__file__), PROTOCOL,
                  *PROTOCOL.parent.glob("*.py"), *PROTOCOL.parent.glob("*.hepta"),
                  PROTOCOL.parent / "UPSTREAM_TASKS.json", PROTOCOL.parent / "UPSTREAM_FIX.json",
-                 ROOT / "tools/capture_hia_upstream_tasks.py", ROOT / "tools/qualify_hia_upstream_ports.py",
+                 ROOT / "tools/qualify_hia_upstream_ports.py",
                  ROOT / "tests/test_hia_upstream_factorial.py",
                  ROOT / "tools/provider_adapter/llama_cpp_engine.py",
                  ROOT / "tests/fixtures/c_migration/stb_divide/stb_divide.h",

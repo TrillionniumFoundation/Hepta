@@ -1,0 +1,6 @@
+    def acquire_slot(self, target_slot):
+        """Pin the observed active generation for a real future native call."""
+        with self.store.transaction():
+            if self._slot_ledger is not None:
+                return self._slot_ledger.acquire(target_slot, self._slot_snapshot, self._native)
+            return self._reference_slot_acquire(target_slot)

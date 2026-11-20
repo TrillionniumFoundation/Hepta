@@ -1,0 +1,170 @@
+"""Create explicit v5 administrator input; never load a bridge or grant itself trust.
+
+The operator must independently verify and supply the printed complete digest
+to the existing worker --expected-native-helpers-sha256 option.
+"""
+from __future__ import annotations
+import argparse
+from hashlib import sha256
+import json
+import os
+from pathlib import Path
+import stat
+
+SCHEMA = "hepta.hia.native-helpers.v5"
+ABI = "hia-worker-mechanical-bridges-v1"
+BRIDGE_ABI = "hepta.slot.mechanical.cpython-gil-linux.v1"
+SOURCES = (
+    "hepta/native/slot_mechanical.c",
+    "hepta/hia_slot_continuations.py",
+    "hepta/hia_slot_mechanical.py",
+    "hepta/hia_slot_operations_native.py",
+    "hepta/hia_slot_operations_selection.py",
+    "hepta/hia_slot_operations_protocol.py",
+    "hepta/hia_slot_operation_series.py",
+    "hepta/hia_native_delivery.py",
+    "hepta/hia_native_helpers.py",
+    "hepta/hia_mechanical_worker_bundle.py",
+    "hepta/native/slot_mechanical_build.py",
+)
+
+
+def pin(raw):
+    return {"bytes": len(raw), "sha256": sha256(raw).hexdigest()}
+
+
+def digest(value):
+    return type(value) is str and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+
+
+def read(path, maximum):
+    path = Path(path)
+    fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, "rb") as stream:
+        a = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(a.st_mode) or a.st_nlink != 1 or a.st_mode & 0o022
+                or a.st_uid not in (0, os.getuid()) or not 0 < a.st_size <= maximum):
+            raise ValueError("capsule input is not an owned bounded ordinary file")
+        raw = stream.read(maximum + 1)
+        b = os.fstat(stream.fileno())
+    fields = ("st_dev", "st_ino", "st_mode", "st_nlink", "st_uid", "st_size", "st_mtime_ns", "st_ctime_ns")
+    if len(raw) != a.st_size or any(getattr(a, name) != getattr(b, name) for name in fields):
+        raise ValueError("capsule input changed during capture")
+    return raw
+
+
+def decode(raw):
+    def pairs(values):
+        result = {}
+        for key, value in values:
+            if key in result:
+                raise ValueError("duplicate capsule field")
+            result[key] = value
+        return result
+    def constant(value):
+        raise ValueError("nonfinite capsule value")
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=constant)
+
+
+def canonical(value):
+    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+                      allow_nan=False).encode("ascii")
+
+
+def create(package, base_path, expected_base, expected_receipt, output):
+    package, base_path, output = Path(package), Path(base_path), Path(output)
+    if not digest(expected_base) or not digest(expected_receipt):
+        raise ValueError("two explicit preexisting administrator input pins are required")
+    if package != package.resolve(strict=True):
+        raise ValueError("administrator package path must be its exact canonical path")
+    base = read(base_path, 65536)
+    if sha256(base).hexdigest() != expected_base:
+        raise ValueError("base bundle differs from the supplied digest")
+    value = decode(base)
+    if (type(value) is not dict or set(value) != {"schema", "target", "abi", "helpers"}
+            or value["schema"] != "hepta.hia.native-helpers.v1"
+            or value["target"] != "linux-x86_64-lp64" or value["abi"] != "hia-byte-six-argument-v1"
+            or type(value["helpers"]) is not list
+            or not any(type(row) is dict and row.get("selector") == "HEPTA_HIA_SLOT_OPERATIONS_MANIFEST"
+                       for row in value["helpers"])):
+        raise ValueError("v5 needs its explicit original v1 Slot helper bundle")
+    receipt_path = package / "_slot_mechanical_build.json"
+    receipt = read(receipt_path, 8 << 20)
+    if sha256(receipt).hexdigest() != expected_receipt:
+        raise ValueError("build receipt differs from the supplied digest")
+    record = decode(receipt)
+    if (type(record) is not dict or set(record) != {
+            "schema", "abi", "profile", "binary", "sources", "compiler_commands",
+            "compiler_executables", "build_scope", "product_qualification_claimed"}
+            or record["schema"] != "hepta.slot.mechanical.build.v2"
+            or record["abi"] != BRIDGE_ABI
+            or record["build_scope"] != "CPYTHON_MECHANICAL_EXTENSION_ONLY"
+            or record["product_qualification_claimed"] is not False
+            or type(record["sources"]) is not dict or set(record["sources"]) != set(SOURCES)):
+        raise ValueError("mechanical compile receipt schema or source closure differs")
+    profile = record["profile"]
+    if (type(profile) is not dict or set(profile) != {"implementation", "python", "platform",
+            "machine", "soabi", "extension_suffix", "gil_disabled"}
+            or profile["implementation"] != "cpython" or profile["platform"] != "linux"
+            or profile["machine"] != "x86_64" or profile["gil_disabled"] is not False
+            or type(profile["python"]) is not list or len(profile["python"]) != 3
+            or any(type(v) is not int for v in profile["python"])
+            or profile["python"][0] != 3 or not 11 <= profile["python"][1] <= 14
+            or type(profile["soabi"]) is not str or not profile["soabi"]
+            or type(profile["extension_suffix"]) is not str
+            or not profile["extension_suffix"].startswith(".")
+            or "/" in profile["extension_suffix"] or "\\" in profile["extension_suffix"]):
+        raise ValueError("mechanical compile receipt profile differs")
+    binary = record["binary"]
+    name = "_hia_slot_mechanical" + profile["extension_suffix"]
+    if type(binary) is not dict or set(binary) != {"name", "bytes", "sha256"} or binary["name"] != name:
+        raise ValueError("mechanical binary name differs")
+    executable = read(package / name, 1 << 20)
+    if canonical(binary) != canonical({"name": name, **pin(executable)}):
+        raise ValueError("mechanical binary differs from the pinned receipt")
+    captured = {}
+    for source in SOURCES:
+        raw = read(package / source.removeprefix("hepta/"), 8 << 20)
+        if canonical(record["sources"][source]) != canonical(pin(raw)):
+            raise ValueError("mechanical source differs from the pinned receipt")
+        captured[source] = raw
+    bridge = {"name": "slot-mechanical", "abi": BRIDGE_ABI, "package_path": str(package), "profile": profile,
+              "build_receipt": {"path": str(receipt_path), **pin(receipt)},
+              "binary": {"name": name, "path": str(package / name), **pin(executable)},
+              "sources": {source: {"path": str(package / source.removeprefix("hepta/")), **pin(raw)}
+                          for source, raw in sorted(captured.items())}}
+    capsule = {"schema": SCHEMA, "target": "linux-x86_64-lp64", "abi": ABI,
+               "helpers_bundle": str(base_path.resolve(strict=True)),
+               "helpers_bundle_sha256": expected_base, "bridges": [bridge]}
+    raw = canonical(capsule) + b"\n"
+    if len(raw) > 65536:
+        raise ValueError("mechanical capsule exceeds original bundle limit")
+    if (read(base_path, 65536) != base or read(receipt_path, 8 << 20) != receipt
+            or read(package / name, 1 << 20) != executable
+            or any(read(package / source.removeprefix("hepta/"), 8 << 20) != data
+                   for source, data in captured.items())):
+        raise ValueError("mechanical capsule inputs changed before output")
+    with output.open("xb") as stream:
+        stream.write(raw)
+    if read(output, 65536) != raw:
+        raise ValueError("mechanical capsule output changed")
+    return {"path": str(output.resolve()), **pin(raw), "authority": "OPERATOR_MUST_PIN_THIS_DIGEST",
+            "product_qualification_claimed": False}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--package", type=Path, required=True)
+    parser.add_argument("--helpers-bundle", type=Path, required=True)
+    parser.add_argument("--expected-helpers-sha256", required=True)
+    parser.add_argument("--expected-receipt-sha256", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    result = create(args.package.resolve(strict=True), args.helpers_bundle.resolve(strict=True),
+                    args.expected_helpers_sha256, args.expected_receipt_sha256, args.output)
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

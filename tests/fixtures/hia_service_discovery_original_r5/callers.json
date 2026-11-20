@@ -1,0 +1,336 @@
+{
+  "TestLoader_not_executed": true,
+  "all_selected_modules_unfiltered": true,
+  "base_service": {
+    "bytes": 116840,
+    "sha256": "decd64e208881ba64bdcb48555142bc081cfe6877653d01a9cd07888fbf1d067"
+  },
+  "caller_files": {
+    "tests/test_hia_agent_buffer_lifecycle.py": {
+      "bytes": 16921,
+      "sha256": "b3f23d740436ae90c909b65a2fbca150459fe16807cf788f17825832964302bf"
+    },
+    "tests/test_hia_agent_external_roots.py": {
+      "bytes": 12136,
+      "sha256": "0874e921c742acddbc47c4495c82e044809156636f896384a263c4ca9da7c333"
+    },
+    "tests/test_hia_agent_journal_native.py": {
+      "bytes": 48482,
+      "sha256": "a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077"
+    },
+    "tests/test_hia_agent_native_campaign.py": {
+      "bytes": 9345,
+      "sha256": "472e3a0020c1532c217db21a9d087f128dcc0aec1902425698bd5c1d869b765b"
+    },
+    "tests/test_hia_agent_native_lease_snapshot.py": {
+      "bytes": 2785,
+      "sha256": "476e49225ad1b2215f08323079f3521b5b9dbcdb33edc8b619013f426643e823"
+    },
+    "tests/test_hia_agent_native_machine_choices.py": {
+      "bytes": 3840,
+      "sha256": "c35b13d6e94da9129456913ade57e362c901619e8b7d87a4a0fdfbb1d06681cc"
+    },
+    "tests/test_hia_agent_native_machine_validation.py": {
+      "bytes": 22171,
+      "sha256": "f8e60f923d5b462c3a98f11cb00b0e5a65fb9bc1db2a17a03d55933eb944aada"
+    },
+    "tests/test_hia_agent_native_proof_contract.py": {
+      "bytes": 23396,
+      "sha256": "0a9a3feb8444d33ec97afb4259a847cd6b738fc3a77cf07980b4772096c112a6"
+    },
+    "tests/test_hia_agent_native_tools.py": {
+      "bytes": 45385,
+      "sha256": "c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a"
+    },
+    "tests/test_hia_first_use.py": {
+      "bytes": 7139,
+      "sha256": "f09a5a1e2cff80bd2f50a1bcdaa8fba6e4d612ad1fdc2aa658566e72f48de2a8"
+    }
+  },
+  "direct_complete_modules": [
+    "tests.test_hia_agent_journal_native"
+  ],
+  "ordinary_complete_modules": [
+    "tests.test_hia_agent_native_tools",
+    "tests.test_hia_agent_native_campaign",
+    "tests.test_hia_agent_buffer_lifecycle",
+    "tests.test_hia_agent_native_lease_snapshot",
+    "tests.test_hia_agent_native_machine_validation",
+    "tests.test_hia_first_use",
+    "tests.test_hia_agent_external_roots",
+    "tests.test_hia_agent_native_proof_contract",
+    "tests.test_hia_agent_native_machine_choices"
+  ],
+  "ordinary_original_count": 112,
+  "references": [
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "36:TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context', 'hia_inspect',",
+        "506:        if tool != 'hia_describe' and arguments['catalog_sha256'] != service.catalog_sha256:"
+      ],
+      "path": "hepta/hia_agent_journal_native.py",
+      "source": {
+        "bytes": 30367,
+        "sha256": "b54bcfa2a632888e07cae6826a749b2231c0c2f4d832d69b90b6e6191a08a501"
+      }
+    },
+    {
+      "direct_calls": [
+        {
+          "end": 211,
+          "expression": "self._examples()",
+          "line": 211
+        }
+      ],
+      "matching_lines": [
+        "211:        self.resources[\"examples\"] = self.store.json(self._examples(), \"discovery\")",
+        "335:            if tool != \"hia_describe\" and arguments[\"catalog_sha256\"] != self.catalog_sha256:",
+        "445:    def _hia_describe(self, args):"
+      ],
+      "path": "hepta/hia_agent_service.py",
+      "source": {
+        "bytes": 116840,
+        "sha256": "decd64e208881ba64bdcb48555142bc081cfe6877653d01a9cd07888fbf1d067"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "324:            if name == \"hia_describe\" else {{\"artifact\":ref,\"encoding\":\"utf8\",\"content\":manifest,\"next_cursor\":None}})",
+        "345:        self.assertEqual(calls, [\"hia_describe\", \"hia_read\"])"
+      ],
+      "path": "tests/hia_candidate_preflight_integration.py",
+      "source": {
+        "bytes": 20999,
+        "sha256": "f20e8b58d8a8b0e7304caf3c8d040d0e0608e302f595511ad7793876955ac67a"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "173:            code,report,state=run('real-worker-valid','hia_describe')",
+        "176:            code,report,state=run('real-worker-invalid','hia_describe','F'*64)",
+        "186:            req={'schema':'hia-agent-worker-request-v1','tool':'hia_describe',"
+      ],
+      "path": "tests/test_hia_agent_identity_native.py",
+      "source": {
+        "bytes": 13819,
+        "sha256": "c1897d3aa30e86860453a8cd6e145fc1f2ac6e7576e78f53dce659110d5aa6da"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "410:        cls.request=dict(schema='hia-agent-worker-request-v1',tool='hia_describe',arguments={'section':'language'},profile_sha256='a'*64,catalog_sha256=cls.identity['catalog_sha256'])"
+      ],
+      "path": "tests/test_hia_agent_installed_resources.py",
+      "source": {
+        "bytes": 44132,
+        "sha256": "07b8516513d6d9aa9e3a292053e366986879988307b418489a7f7a887b0be595"
+      }
+    },
+    {
+      "direct_calls": [
+        {
+          "end": 680,
+          "expression": "service.call('hia_describe', {})",
+          "line": 680
+        },
+        {
+          "end": 687,
+          "expression": "service.call('hia_describe', {})",
+          "line": 687
+        }
+      ],
+      "matching_lines": [
+        "89:raw=b'{\"tool\":\"hia_describe\",\"arguments\":{}}'",
+        "97:expected=hashlib.sha256(b'{\"arguments\":{},\"tool\":\"hia_describe\"}').hexdigest()",
+        "181:        request = {'tool': 'hia_describe', 'arguments': {'values': values}}",
+        "253:            ('hia_describe', {'section': float('inf')}),",
+        "680:                rejected = service.call('hia_describe', {})",
+        "687:                rejected = service.call('hia_describe', {})",
+        "694:        session.prepare(b'{\"tool\":\"hia_describe\",\"arguments\":{}}')",
+        "737:                    self.image.session().prepare(b'{\"tool\":\"hia_describe\",\"arguments\":{}}')",
+        "775:first=service.call('hia_describe',{'section':'manifest'})",
+        "781:bad=service.call('hia_describe',{})",
+        "788:bad=service.call('hia_describe',{})"
+      ],
+      "path": "tests/test_hia_agent_journal_native.py",
+      "source": {
+        "bytes": 48482,
+        "sha256": "a0a6e63291eb76ee84787b432c56eaa32bd1181b762f9593532c059d4a665077"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "83:            result = self.client.result(\"hia_describe\", {\"section\": section})",
+        "95:        backend = self.client.result(\"hia_describe\", {\"section\": \"backend\"})",
+        "172:        self.reject(\"hia_describe\", {\"section\": \"manifest\", \"verified\": True})",
+        "173:        self.reject(\"hia_describe\", {\"section\": \"manifest\", \"max_bytes\": 10 ** 400})"
+      ],
+      "path": "tests/test_hia_agent_native_tools.py",
+      "source": {
+        "bytes": 45385,
+        "sha256": "c7a3b2b486e55a600ddd5e691729e8cddc6acd5935e5aad337e27c1f20be856a"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "220:        error = preflight.IncompleteProbe(\"hia_describe\", args, response)"
+      ],
+      "path": "tests/test_hia_candidate_preflight.py",
+      "source": {
+        "bytes": 13675,
+        "sha256": "8ca72b9c8e27498ac2f241d7e007e8b6dd5faddd6605aa21ef15abc998ae00dd"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "258:packet = {'schema': 'hia-agent-worker-request-v1', 'tool': 'hia_describe',"
+      ],
+      "path": "tests/test_hia_default_native_release.py",
+      "source": {
+        "bytes": 23590,
+        "sha256": "757c80da0d982557dbee4675500d0e3dfc4e98c5f331294b86fbe2afe1c6bbaf"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "574:                example=service._examples()"
+      ],
+      "path": "tests/test_hia_service_context_native.py",
+      "source": {
+        "bytes": 35307,
+        "sha256": "db7651b17a26b2606cb4c8c556b222a89f9d42b1e21b9bc97380b6f1dfdb3f9c"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "611:    envelope = {'schema': 'hia-agent-worker-request-v1', 'tool': 'hia_describe',"
+      ],
+      "path": "tests/test_hia_store_lifecycle_native.py",
+      "source": {
+        "bytes": 36266,
+        "sha256": "27b6490472f2d1edeb806a28d1d382662bd83574f433b0f2f1f1122e05dfa583"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "311:        describe = self.call(self.envelope(pins, \"hia_describe\", {\"section\": \"manifest\"}))"
+      ],
+      "path": "tests/test_hia_worker_native_helpers.py",
+      "source": {
+        "bytes": 66418,
+        "sha256": "6f851ee510358d4aa7bbb7f529c9dabdcba88a71d3fa5710587e8a0f692e9b24"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "40:def envelope(arguments=None, *, tool='hia_describe', catalog='c' * 64):",
+        "220:request={'schema':'hia-agent-worker-request-v1','tool':'hia_describe','arguments':{},'profile_sha256':'d'*64,'catalog_sha256':'c'*64}",
+        "874:request={'schema':'hia-agent-worker-request-v1','tool':'hia_describe','arguments':{'section':'manifest'},'profile_sha256':'d'*64,'catalog_sha256':identities['catalog_sha256']}"
+      ],
+      "path": "tests/test_hia_worker_report_native.py",
+      "source": {
+        "bytes": 57654,
+        "sha256": "6272697fab34eb207158751014398c904ee0be3305f55756ba4962a4390f2862"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "29:def request(arguments=None, *, tool='hia_describe', catalog='2' * 64):"
+      ],
+      "path": "tests/test_hia_worker_request_native.py",
+      "source": {
+        "bytes": 15086,
+        "sha256": "80ce73969b9f7bed471b1f68213b6678c3c3011e2a460c0640a963b63a22556f"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "33:def envelope(arguments=None, *, tool='hia_describe', catalog=CATALOG):"
+      ],
+      "path": "tests/test_hia_worker_request_review.py",
+      "source": {
+        "bytes": 16487,
+        "sha256": "3952145fdaf95c2368aab55a7a54ab1d403ff34b40f92612b63ffa82c88f7ff0"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "27:TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context',"
+      ],
+      "path": "tools/generate_hia_agent_journal.py",
+      "source": {
+        "bytes": 28964,
+        "sha256": "aca76591eec64170a18f334008ab4c33e01f28fd421b3275e160c06335c0abbd"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "106:tool('hia_describe',",
+        "385:    'hia_describe': {'section': 'manifest'},"
+      ],
+      "path": "tools/generate_hia_agent_native_contract.py",
+      "source": {
+        "bytes": 34595,
+        "sha256": "0ae079411b8f652d0c5cd2004054797ccaf82d1e2e7fd3ba25beb1bb3d8707ce"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "174:        self.discovery = client.result(\"hia_describe\", {\"section\": \"manifest\"})"
+      ],
+      "path": "tools/hia_agent_native_qualification.py",
+      "source": {
+        "bytes": 21980,
+        "sha256": "edd4f6c4347febb929b3f9f858da4eeb399a76e154418d08b1c3609c3a7c49f8"
+      }
+    },
+    {
+      "direct_calls": [
+        {
+          "end": 467,
+          "expression": "client.call(\"hia_describe\", args)",
+          "line": 467
+        }
+      ],
+      "matching_lines": [
+        "467:        described = client.call(\"hia_describe\", args)",
+        "469:            raise IncompleteProbe(\"hia_describe\", args, described)"
+      ],
+      "path": "tools/hia_candidate_preflight.py",
+      "source": {
+        "bytes": 34173,
+        "sha256": "ca2597a35f04bce129d6a96c4a56da0742cf3fd16d91edce06cad13d7d74e199"
+      }
+    },
+    {
+      "direct_calls": [],
+      "matching_lines": [
+        "221:    requests = [b'{\"tool\":\"hia_describe\",\"arguments\":{}}',",
+        "226:        b'{\"tool\":\"hia_describe\",\"arguments\":{\"x\":1,\"x\":2}}', b'{\"tool\":', b'\\xff']"
+      ],
+      "path": "tools/qualify_hia_fixed_word_access.py",
+      "source": {
+        "bytes": 18018,
+        "sha256": "027f385543191681bbb99abe135fa2048a9de10c24182d66c701a4095afe3752"
+      }
+    }
+  ],
+  "schema": "hepta.hia.service-discovery-callers.v1",
+  "static_reference_scope": "all matching Python lines; direct_call list is syntactic and does not claim all possible dynamic callers"
+}

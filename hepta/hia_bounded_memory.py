@@ -1,11 +1,14 @@
 """Bounded host scratch implementation of HIA's owned-byte VM memory writes.
 
-Verified HIA controls ownership and bounds. This host-only implementation
-preserves bytewise fill and memmove semantics without O(request_size) temporary
-bytearrays. It does not replace LLVM's native memset/memmove or prove a global
-process-memory budget (the Python VM and allocator still use memory).
+Verified HIA controls ownership and bounds. With an explicit native selection,
+HIA also owns exact-kind/range/value admission and every byte mutation here.
+The original bounded-scratch bodies remain independent qualification references;
+no selected native failure falls back to them. The complete VM and allocator
+remain hosted and this does not establish a global process-memory budget.
 """
 from __future__ import annotations
+
+from . import hia_bounded_memory_native
 
 _CHUNK = 4096
 
@@ -17,7 +20,7 @@ def _range(buffer: bytearray, offset: int, count: int) -> None:
         raise ValueError("E_HIA_VM_RANGE: invalid owned-byte extent")
 
 
-def fill_bytes(buffer: bytearray, offset: int, count: int, value: int) -> None:
+def _reference_fill_bytes(buffer: bytearray, offset: int, count: int, value: int) -> None:
     """Fill a validated byte range using at most one 4KiB byte pattern."""
     _range(buffer, offset, count)
     if type(value) is not int or not 0 <= value <= 255:
@@ -37,7 +40,7 @@ def fill_bytes(buffer: bytearray, offset: int, count: int, value: int) -> None:
         filled += width
 
 
-def move_bytes(buffer: bytearray, destination: int, source: int, count: int) -> None:
+def _reference_move_bytes(buffer: bytearray, destination: int, source: int, count: int) -> None:
     """Move overlapping ranges as-if via temporary, with <=4KiB scratch."""
     _range(buffer, destination, count)
     _range(buffer, source, count)
@@ -61,3 +64,19 @@ def move_bytes(buffer: bytearray, destination: int, source: int, count: int) -> 
             width = min(_CHUNK, count - start)
             view[destination + start:destination + start + width] = bytes(
                 view[source + start:source + start + width])
+
+
+def fill_bytes(buffer: bytearray, offset: int, count: int, value: int) -> None:
+    """Use the selected HIA owner, or the unchanged independent reference."""
+    native = hia_bounded_memory_native.selected_bounded_memory()
+    if native is None:
+        return _reference_fill_bytes(buffer, offset, count, value)
+    return native.fill_bytes(buffer, offset, count, value)
+
+
+def move_bytes(buffer: bytearray, destination: int, source: int, count: int) -> None:
+    """Use the selected HIA owner, with no selected fallback."""
+    native = hia_bounded_memory_native.selected_bounded_memory()
+    if native is None:
+        return _reference_move_bytes(buffer, destination, source, count)
+    return native.move_bytes(buffer, destination, source, count)

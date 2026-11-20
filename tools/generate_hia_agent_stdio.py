@@ -30,7 +30,7 @@ def capabilities_bytes():
     return (json.dumps({
         'schema': 'hepta.hia.agent-stdio.v1', 'implementation': 'hia-native',
         'operations': ['capabilities', 'verify', 'compile', 'render-assembly', 'assemble', 'check-assembly', 'catalog'], 'build_profile': 0,
-        'input': 'primitive-v6/v7/v8-Core-JSON', 'input_bytes_max': WIRE_LIMIT,
+        'input': 'primitive-v6/v7/v8/v9-Core-JSON', 'input_bytes_max': WIRE_LIMIT,
         'assembly_input': 'hia-asm.v1', 'assembly_input_bytes_max': LIMIT,
         'compiler_bytes_max': LIMIT, 'program_nodes_max': 1048576, 'json_depth_max': 128,
         'target': 'linux-x86_64', 'runtime_python_required': False,

@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 if __package__ in {None,''}:sys.path.insert(0,str(ROOT))
+from tools.run_hia_unittest_gate import load_declared_suite
 
 ORIGINAL_MODULES=(
     'tests.test_hia_program','tests.test_hia_bulk_memory',
@@ -26,12 +27,6 @@ ORIGINAL_MODULES=(
     'tests.test_hia_runtime_argument_snapshot','tests.test_hia_runtime_policy_predecode',
     'tests.test_hia_runtime_source_preflight',
 )
-
-
-def leaves(suite):
-    for test in suite:
-        if isinstance(test,unittest.TestSuite):yield from leaves(test)
-        else:yield test
 
 
 def main():
@@ -45,12 +40,14 @@ def main():
     if args.in_process and not args.native_continuation:parser.error('--in-process requires --native-continuation')
     if bool(args.cold_report)==bool(args.development_manifest):
         parser.error('exactly one matching cold or explicit development bundle is required')
+    from tools.hia_selfhost_contract import file_digests
+    before=file_digests(ROOT)
+    suite,planned=load_declared_suite(ORIGINAL_MODULES)
+    planned=list(planned)
     from hepta import hia_opcodes as policy
     from hepta.hia_core_lowering_native import LoweringSession
     from hepta.hia_execution_observation_selection import SELECTOR,installed_execution_observation
-    from tools.hia_selfhost_contract import file_digests
     args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
-    before=file_digests(ROOT)
     if args.cold_report:
         if args.native_continuation:
             from tools.build_hia_native_continuation import build
@@ -68,9 +65,6 @@ def main():
     bundle_pins={}
     for path in sorted(manifest.parent.rglob('*')):
         if path.is_file():bundle_pins[str(path)]=sha256(path.read_bytes()).hexdigest()
-    suite=unittest.defaultTestLoader.loadTestsFromNames(ORIGINAL_MODULES)
-    planned=[test.id() for test in leaves(suite)]
-    assert planned and len(set(planned))==len(planned)
     started=[];stopped=[];entries=Counter()
     class Result(unittest.TextTestResult):
         def startTest(self,test):

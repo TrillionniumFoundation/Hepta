@@ -1,0 +1,39 @@
+def capture_path(path, roots, limit):
+    """Resolve below an administrator root using no-follow directory handles.
+
+    No user-supplied host, shell, expansion, traversal or root is accepted. Each
+    component is opened relative to an already opened directory, so renaming a
+    component cannot redirect a later lookup through a replacement symlink.
+    """
+    if type(path) is not str or not os.path.isabs(path):
+        reject("E_HIA_PATH", "artifact paths must be absolute")
+    parts = Path(path).parts
+    if ".." in parts or "." in parts or "\x00" in path:
+        reject("E_HIA_PATH", "artifact traversal is not permitted")
+    lexical = Path(path)
+    chosen = None
+    for root in roots:
+        try:
+            relative = lexical.relative_to(root)
+        except ValueError:
+            continue
+        if relative.parts:
+            chosen = (root, relative.parts)
+            break
+    if chosen is None:
+        reject("E_HIA_PATH_AUTHORITY", "artifact path is outside configured roots")
+    root, relative = chosen
+    descriptors = []
+    try:
+        # Roots are resolved once from trusted administrator configuration.
+        fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        descriptors.append(fd)
+        for component in relative[:-1]:
+            fd = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=fd)
+            descriptors.append(fd)
+        return stable_read(relative[-1], limit, dir_fd=fd)
+    except OSError as exc:
+        raise AgentRejected("E_HIA_PATH", "artifact path contains an unavailable or unsafe component") from exc
+    finally:
+        for fd in reversed(descriptors):
+            os.close(fd)

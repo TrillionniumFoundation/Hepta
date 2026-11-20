@@ -269,7 +269,7 @@ class DirectNativeProfileReview(unittest.TestCase):
         # than silently miscompile through broad "int." or "bool." prefixes.
         future = []
         document = _document([function("entrypoint", [], ["u8"], [], [
-            block("entry", [], [constant("answer", "u8", 7)], ret("answer"))])], version=9)
+            block("entry", [], [constant("answer", "u8", 7)], ret("answer"))])], version=10)
         future.append(("schema", document))
         for opcode, typ in (("bool.nand", "bool"), ("int.add.saturating", "u8")):
             params = [("a", typ), ("b", typ)]

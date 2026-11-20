@@ -16,16 +16,14 @@ MAGIC = 0x3153484132353648
 
 
 def word_access_source():
-    # Expand each little-endian byte in order. The HIA access bounds and
-    # workspace layout stay unchanged; only the run-time loop is eliminated.
+    # Entry admits all 1184 bytes before fixed-width state access. Keep the
+    # individual ordered stores while using the v9 little-endian word read.
     lines = ['def get(w:mutbuf, offset:u64) -> u64:',
-             '    value = byte(w, offset)']
-    for index in range(1, 8):
-        lines.append(f'    value = value | (byte(w, offset + {index}) << {8 * index})')
-    lines.extend(('    return value', '', 'def put(w:mutbuf, offset:u64, value:u64) -> u64:'))
+             '    return word_load(w, offset)', '',
+             'def put(w:mutbuf, offset:u64, value:u64) -> u64:']
     for index in range(8):
-        byte = 'value' if index == 0 else f'value >> {8 * index}'
-        lines.append(f'    store(w, offset + {index}, {byte})')
+        octet = 'value' if index == 0 else f'value >> {8 * index}'
+        lines.append(f'    store(w, offset + {index}, {octet})')
     lines.append('    return 0')
     return '\n'.join(lines) + '\n'
 
@@ -140,7 +138,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'sha256_stream', 'functions': functions})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9', 'module': 'sha256_stream', 'functions': functions})
 
 
 def main():

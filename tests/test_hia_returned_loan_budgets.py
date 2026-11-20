@@ -343,7 +343,17 @@ class ReturnedLoanBudgetTests(unittest.TestCase):
         for bad in (True, False, 0, 257, "2", 2.0, None):
             with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_POLICY"):
                 qualify_vm_call_depth(source, max_call_depth=bad)
-        for field, value in (("schema", "hepta.hia.program.v9"), ("budget_receipt", {"bounded": True})):
+        current = deepcopy(source)
+        current["schema"] = "hepta.hia.program.v9"
+        proof = self.entry_heap(current, 8)
+        self.assertEqual(proof["peak_bound_bytes"], 8)
+        self.assert_digest(proof)
+        observed = execute_program(current, current["exports"][0], [37], max_heap_bytes=8)
+        self.assertEqual(observed["resources"]["peak_bytes"], 8)
+        self.assertEqual(observed["resources"]["live_bytes"], 0)
+        with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_EXCEEDED"):
+            self.entry_heap(current, 7)
+        for field, value in (("schema", "hepta.hia.program.v10"), ("budget_receipt", {"bounded": True})):
             changed = deepcopy(source)
             changed[field] = value
             with self.assertRaises(HIAProgramRejected):

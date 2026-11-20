@@ -12,9 +12,11 @@ from functools import lru_cache
 from hashlib import sha256
 import json
 import mmap
+import os
 from pathlib import Path
 import platform
 import struct
+import threading
 
 MAX_BYTES = 8 << 20
 MAX_NODES = 1 << 20
@@ -58,12 +60,30 @@ def _source_resource_path(name):
     The installed path remains package-owned even if an individual resource
     is missing; there is no source-tree fallback for selected native images.
     """
-    root = Path(__file__).resolve().parent.parent
-    resource_root = root if (root / "pyproject.toml").is_file() else root / "hepta" / "_data"
-    return resource_root / name
+    from .hia_native_admission_io import source_resource_path
+    return source_resource_path(__file__, name)
 
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hepta')
+
+
+def _ensure_ctypes():
+    """Bind the real FFI module only when native operations are requested."""
+    global ctypes
+    if 'ctypes' not in globals():
+        import ctypes as selected
+        if getattr(getattr(selected, '__spec__', None), '_initializing', False):
+            raise RuntimeError('native ctypes import is still active')
+        # A failed or recursively incomplete import never becomes our binding.
+        # Existing explicit module-global replacements retain their old role.
+        ctypes = selected
+    return ctypes
+
+
+def __getattr__(name):
+    if name == 'ctypes':
+        return _ensure_ctypes()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:
@@ -74,9 +94,58 @@ def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:
     return slots * 8, 128 + (depth + 1) * 32
 
 
+# One process-owned foreign ABI binding serves every immutable image.
+# Creating and discarding CDLL per mapping leaves private function/type cycles
+# for an unrelated caller's later GC. This owner retains no image or user data.
+_MAPPING_ABI = None
+_MAPPING_ABI_LOCK = threading.RLock()
+_MAPPING_ABI_BUILDING = False
+_MAPPING_ABI_EPOCH = object()
+
+
+def _reset_mapping_abi_lock():
+    global _MAPPING_ABI_LOCK, _MAPPING_ABI_BUILDING, _MAPPING_ABI_EPOCH
+    _MAPPING_ABI_LOCK = threading.RLock()
+    _MAPPING_ABI_BUILDING = False
+    _MAPPING_ABI_EPOCH = object()
+
+
+if hasattr(os, 'register_at_fork'):
+    os.register_at_fork(after_in_child=_reset_mapping_abi_lock)
+
+
+def _mapping_mprotect():
+    global _MAPPING_ABI, _MAPPING_ABI_BUILDING
+    _ensure_ctypes()
+    while True:
+        with _MAPPING_ABI_LOCK:
+            if _MAPPING_ABI is not None:
+                return _MAPPING_ABI[1]
+            if _MAPPING_ABI_BUILDING:
+                raise RuntimeError('native mapping ABI initialization is already active')
+            epoch = _MAPPING_ABI_EPOCH
+            _MAPPING_ABI_BUILDING = True
+            try:
+                library = ctypes.CDLL(None, use_errno=True)
+                protect = library.mprotect
+                protect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+                protect.restype = ctypes.c_int
+                # A fork callback may complete a child binding while this
+                # earlier initializer is suspended. Only its original epoch
+                # can publish or clear the corresponding in-progress flag.
+                if epoch is _MAPPING_ABI_EPOCH:
+                    _MAPPING_ABI = (library, protect)
+                    return protect
+            finally:
+                if epoch is _MAPPING_ABI_EPOCH:
+                    _MAPPING_ABI_BUILDING = False
+        # A child resumes through its new lock and already published binding.
+
+
 class NativeHiaJsonImage:
     """Pinned immutable code, private per-call scratch; concurrent calls allowed."""
     def __init__(self, image: bytes, expected_sha256: str):
+        _ensure_ctypes()
         if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
                 or ctypes.sizeof(ctypes.c_void_p) != 8):
             raise ValueError('native HIA JSON image requires Linux x86-64 LP64')
@@ -87,10 +156,7 @@ class NativeHiaJsonImage:
         mapped = mmap.mmap(-1, len(image), prot=mmap.PROT_READ | mmap.PROT_WRITE)
         mapped.write(image)
         address = ctypes.addressof(ctypes.c_char.from_buffer(mapped))
-        libc = ctypes.CDLL(None, use_errno=True)
-        libc.mprotect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
-        libc.mprotect.restype = ctypes.c_int
-        if libc.mprotect(address, len(image), mmap.PROT_READ | mmap.PROT_EXEC):
+        if _mapping_mprotect()(address, len(image), mmap.PROT_READ | mmap.PROT_EXEC):
             code = ctypes.get_errno()
             mapped.close()
             raise OSError(code, 'mprotect native HIA JSON preflight')
@@ -109,6 +175,7 @@ class NativeJsonPreflight(NativeHiaJsonImage):
                 or type(max_nodes) is not int or not 1 <= max_nodes <= MAX_NODES
                 or type(max_depth) is not int or not 0 <= max_depth <= MAX_DEPTH):
             raise ValueError('outside native HIA JSON preflight profile')
+        _ensure_ctypes()
         key_bytes, stack_bytes = scratch_sizes(len(wire), max_nodes, max_depth)
         source = ctypes.create_string_buffer(wire, max(1, len(wire)))
         keys = ctypes.create_string_buffer(key_bytes)
@@ -162,9 +229,14 @@ def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory)
     if source_sha != value['source_sha256']:
         raise ValueError('native HIA JSON source identity mismatch')
     image_path = Path(path).parent / value['image_path']
-    with image_path.open('rb') as handle:
-        image = handle.read(MAX_IMAGE_BYTES + 1)
-    selected = factory(image, value['image_sha256'])
+    image = bytearray()
+    with image_path.open('rb', buffering=8192) as handle:
+        while len(image) <= MAX_IMAGE_BYTES:
+            chunk = handle.read(min(8192, MAX_IMAGE_BYTES + 1 - len(image)))
+            if not chunk:
+                break
+            image.extend(chunk)
+    selected = factory(bytes(image), value['image_sha256'])
     # Bind the package source captured in this cache key to native image
     # identity. Exact type inspection must not observe a foreign __class__.
     if issubclass(type(selected), NativeHiaJsonImage):
@@ -186,7 +258,7 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
             observe(manifest_path, source, schema, factory, selected)
         return selected
     path = Path(manifest_path).resolve(strict=True)
-    with path.open('rb') as handle:
+    with path.open('rb', buffering=8192) as handle:
         raw = handle.read(16385)
     if len(raw) > 16384:
         raise ValueError('native HIA JSON manifest exceeds size limit')
