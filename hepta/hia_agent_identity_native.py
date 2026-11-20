@@ -179,6 +179,27 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             reject('E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots')
         raise RuntimeError('invalid native workload case decision')
 
+    def direct_call_receipt(self, raw, protocol, returns, *, borrowed):
+        version = 2 if protocol >= 2 else 1
+        role = 256 if borrowed else ABI_SCALAR_IDS[returns[0]] if returns else 0
+        header = struct.pack('<4Q', MAGIC, 45, version, role)
+        refusal, duration, variation, kind, word, status = self._response(header + raw, 56, '<7Q')
+        if refusal:
+            errors = (
+                'direct HIA call returned an invalid receipt extent',
+                'direct HIA call returned an invalid receipt identity',
+                'direct HIA call returned an invalid borrowed-byte ABI status',
+            )
+            if refusal > len(errors):
+                raise RuntimeError('invalid native direct-call receipt decision')
+            raise ValueError(errors[refusal - 1])
+        if variation > 1 or kind > 4 or status > 4 or status and not borrowed:
+            raise RuntimeError('invalid native direct-call receipt result')
+        if status:
+            return {'status': 'abi_rejected', 'abi_status': status}, duration, variation
+        values = ([], [None], [bool(word)], [word], [-word])[kind]
+        return {'status': 'returned', 'values': values}, duration, variation
+
     def _request(self, wire):
         return self._response(wire, 24, '<3Q')
 

@@ -23,7 +23,7 @@ import sys
 import tempfile
 import time
 
-from .hia_agent_store import AgentRejected, reject, stable_read, wire
+from .hia_agent_store import AgentRejected, _native_agent_identity, reject, stable_read, wire
 from .hia_agent_buffers import (PROFILE as BUFFER_PROFILE, buffer_bytes,
                                buffer_observation, validate_arguments, validate_cases)
 from .hia_native_byte_abi import LOANS
@@ -353,7 +353,17 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
     return returncode, stdout, stderr, timed_out, receipts
 
 
-def _direct_observation(raw, signature, case, external, protocol):
+def _direct_observation(raw, signature, case, external, protocol, decode_receipt):
+    borrowed = signature.get('abi') == BUFFER_PROFILE
+    observation, duration, variation = decode_receipt(raw, protocol, signature['returns'], borrowed=borrowed)
+    if borrowed:
+        observation['buffers'] = [row for row, _initial_unchanged in external]
+    changed_readonly = any(row['kind'] == 'readbuf' and not unchanged for row, unchanged in external)
+    mismatch = bool(variation) or changed_readonly or 'expected' in case and case['expected'] != observation
+    return {**observation, 'mismatch': mismatch, 'elapsed_ns': str(duration)}
+
+
+def _reference_direct_receipt(raw, protocol, returns, *, borrowed):
     from .hia_opcodes import WIDTHS
 
     if len(raw) != (32 if protocol >= 2 else 24):
@@ -362,15 +372,12 @@ def _direct_observation(raw, signature, case, external, protocol):
     variation = struct.unpack_from('<Q', raw, 24)[0] if protocol >= 2 else 0
     if magic != (b'HIADRR02' if protocol >= 2 else b'HIADRR01') or variation > 1:
         raise ValueError('direct HIA call returned an invalid receipt identity')
-    returns = signature['returns']
-    observations = [row for row, _initial_unchanged in external]
-    if signature.get('abi') == BUFFER_PROFILE:
+    if borrowed:
         status, value = value >> 32, value & 0xffffffff
         if status > 4:
             raise ValueError('direct HIA call returned an invalid borrowed-byte ABI status')
         observation = ({'status': 'abi_rejected', 'abi_status': status} if status else
                        {'status': 'returned', 'values': [value]})
-        observation['buffers'] = observations
     elif not returns or returns == ['unit']:
         observation = {'status': 'returned', 'values': [None] if returns else []}
     elif returns == ['bool']:
@@ -382,18 +389,19 @@ def _direct_observation(raw, signature, case, external, protocol):
         if typ.startswith('i') and value >= 1 << (width - 1):
             value -= 1 << width
         observation = {'status': 'returned', 'values': [value]}
-    changed_readonly = any(row['kind'] == 'readbuf' and not unchanged for row, unchanged in external)
-    mismatch = bool(variation) or changed_readonly or 'expected' in case and case['expected'] != observation
-    return {**observation, 'mismatch': mismatch, 'elapsed_ns': str(duration)}
+    return observation, duration, variation
 
 
 def _direct_call_report(receipts, signatures, submissions, snapshots, initial_digests,
                         artifact_hash, executable_hash, protocol, warmup, repetitions):
+    native = _native_agent_identity()
+    decode_receipt = _reference_direct_receipt if native is None else native.direct_call_receipt
     observations = []
     for index, (raw, case, snapshot) in enumerate(zip(receipts, submissions, snapshots, strict=True)):
         external = [(row, row['sha256'] == initial_digests.get((index, row['argument'])))
                     for row in snapshot['buffers']]
-        observations.append(_direct_observation(raw, signatures[case['function']], case, external, protocol))
+        observations.append(_direct_observation(raw, signatures[case['function']], case, external,
+                                                protocol, decode_receipt))
     cases = len(submissions)
     return {'schema': 'hepta.hia.agent.native-observation.v1', 'artifact_sha256': artifact_hash,
             'complete': True, 'planned_cases': cases, 'completed_cases': cases, 'warmup': warmup,

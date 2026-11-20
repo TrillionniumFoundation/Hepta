@@ -153,6 +153,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return abi_arguments(s, o)
     if kind == 44:
         return workload_case(s, o)
+    if kind == 45:
+        return direct_call_receipt(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1151,6 +1153,57 @@ def workload_case(s:readbuf, o:mutbuf) -> u32:
     put(o, 16, total)
     return 24
 
+def direct_receipt_reply(o:mutbuf, refusal:u64, duration:u64, variation:u64, kind:u64, value:u64, abi:u64) -> u32:
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, refusal)
+    put(o, 16, duration)
+    put(o, 24, variation)
+    put(o, 32, kind)
+    put(o, 40, value)
+    put(o, 48, abi)
+    return 56
+
+def direct_call_receipt(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 32:
+        return 4294967293
+    if length(o) < 56:
+        return 4294967294
+    version = read_word(s, 16)
+    role = read_word(s, 24)
+    if version != 1 and version != 2:
+        return 4294967293
+    expected = choose(version == 1, 24, 32)
+    if length(s) - 32 != expected:
+        return direct_receipt_reply(o, 1, 0, 0, 0, 0, 0)
+    magic = choose(version == 1, @DIRECT_REPLY_V1@, @DIRECT_REPLY_V2@)
+    variation = 0
+    if version == 2:
+        variation = read_word(s, 56)
+    if read_word(s, 32) != magic or variation > 1:
+        return direct_receipt_reply(o, 2, 0, 0, 0, 0, 0)
+    word = read_word(s, 40)
+    duration = read_word(s, 48)
+    if role == 256:
+        abi = word >> 32
+        if abi > 4:
+            return direct_receipt_reply(o, 3, 0, 0, 0, 0, 0)
+        return direct_receipt_reply(o, 0, duration, variation, 3, word & 4294967295, abi)
+    if role == 0 or role == @UNIT_ABI_ROLE@:
+        return direct_receipt_reply(o, 0, duration, variation, choose(role == 0, 0, 1), 0, 0)
+    if role == @BOOL_ABI_ROLE@:
+        return direct_receipt_reply(o, 0, duration, variation, 2, choose((word & 255) != 0, 1, 0), 0)
+    spec = scalar_abi_type(role)
+    width = spec & 127
+    if width == 0:
+        return 4294967293
+    mask = 18446744073709551615
+    if width < 64:
+        mask = (1 << width) - 1
+    value = word & mask
+    if (spec & 128) != 0 and value >= (1 << (width - 1)):
+        return direct_receipt_reply(o, 0, duration, variation, 4, (0 - value) & mask, 0)
+    return direct_receipt_reply(o, 0, duration, variation, 3, value, 0)
+
 def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 32:
         return 4294967293
@@ -1575,6 +1628,8 @@ def source_program():
             .replace('@BOOL_ABI_ROLE@', str(ABI_SCALAR_IDS['bool']))
             .replace('@MAX_EXPORT_EXTENT@', str(MAX_EXTENT))
             .replace('@MAX_WORKLOAD_BUFFER_BYTES@', str(MAX_WORKLOAD_BUFFER_BYTES))
+            .replace('@DIRECT_REPLY_V1@', str(int.from_bytes(b'HIADRR01', 'little')))
+            .replace('@DIRECT_REPLY_V2@', str(int.from_bytes(b'HIADRR02', 'little')))
             .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n'
             + cost_receipt_source() + artifact_receipt_source()
             + receipt_template('context_manifest', CONTEXT_MANIFEST)

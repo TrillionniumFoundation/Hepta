@@ -62,6 +62,13 @@ unavailable entry. The response contains the magic, a decision (0 accepted,
 bytes. Exact 32 MiB is accepted. A refusal ends admission before any later
 case requests a snapshot observation.
 
+Operation 45 admits a direct native call receipt. Its header adds the receipt
+version (1 or 2) and the frozen ABI result role. HIA checks the receipt extent,
+magic, replay-variation bit and borrowed-ABI status before decoding the typed
+return word, including exact narrow signed values. The host still observes
+the actual child process and owned buffers and compares the complete result
+against the caller's expectation.
+
 Malformed input packet returns 0xfffffffd. Insufficient output returns
 0xfffffffe without writing output. Operation 44 does not use scratch workspace.
 

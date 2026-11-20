@@ -70,6 +70,16 @@ class AgentIdentitySourceTests(unittest.TestCase):
             framed = packet(44, struct.pack('<2Q', total, size))
             self.assertEqual(vm(framed, 0), (24, expected(status, updated)))
 
+    def test_direct_receipt_wire_in_independent_vm(self):
+        from hepta.hia_agent_identity_native import ABI_SCALAR_IDS
+
+        raw = struct.pack('<8s3Q', b'HIADRR02', 0xffffffffffffff80, 27, 1)
+        framed = packet(45, struct.pack('<2Q', 2, ABI_SCALAR_IDS['i8']) + raw)
+        response = struct.pack('<7Q', RESULT_MAGIC, 0, 27, 1, 4, 128, 0)
+        self.assertEqual(vm(framed, 0, 56), (56, response))
+        self.assertEqual(vm(framed[:-1], 0, 56),
+                         (56, struct.pack('<7Q', RESULT_MAGIC, 1, 0, 0, 0, 0, 0)))
+
     def test_observation_protocol_distinguishes_omission_and_reference_ledger(self):
         fields = [(b'returned', b'returned'), (b'[1]', b'[1]'), (b'[]', b''),
                   (b'null', b'null'), (b'{"live":0}', b'{"live":1}')]
@@ -815,6 +825,48 @@ class AgentIdentityNativeTests(unittest.TestCase):
         self.assertEqual(self.raw(packet(44, struct.pack('<2Q', maximum, 1))), (24, expected(2, maximum)))
         self.assertEqual(self.raw(packet(44, struct.pack('<2Q', maximum, (1 << 64) - 1))),
                          (24, expected(1, maximum)))
+
+    def test_direct_call_receipt_preserves_typed_results_and_refusals(self):
+        from hepta.hia_agent_buffers import PROFILE, buffer_observation
+        from hepta.hia_agent_runner import _direct_call_report
+        from hepta.hia_opcodes import WIDTHS
+
+        def compare(raw, signature, case, snapshots, protocol):
+            buffers = [{'buffers': [row for row, unchanged in snapshots]}]
+            initial = {(0, row['argument']): row['sha256'] for row, unchanged in snapshots if unchanged}
+
+            def observe():
+                try:
+                    return _direct_call_report([raw], {'entry': signature}, [{'function': 'entry', **case}],
+                                               buffers, initial, 'artifact', 'executable', protocol, 0, 1)
+                except ValueError as error:
+                    return str(error)
+
+            reference = observe()
+            with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+                  patch('hepta.hia_agent_runner._reference_direct_receipt', side_effect=AssertionError('host receipt'))):
+                self.assertEqual(observe(), reference)
+
+        for protocol, magic in ((1, b'HIADRR01'), (2, b'HIADRR02'), (3, b'HIADRR02')):
+            for returns in ([], *([typ] for typ in (*WIDTHS, 'bool', 'unit'))):
+                for value in (0, 1, 128, 255, 256, 32768, 1 << 31, 1 << 63, (1 << 64) - 1):
+                    raw = struct.pack('<8s2Q', magic, value, (1 << 64) - 1)
+                    if protocol >= 2:
+                        raw += struct.pack('<Q', 1)
+                    compare(raw, {'returns': returns}, {}, [], protocol)
+            good = struct.pack('<8s2Q', magic, 0, 3) + (bytes(8) if protocol >= 2 else b'')
+            for raw in (good[:-1], good + bytes(1), b'WRONGKEY' + good[8:]):
+                compare(raw, {'returns': []}, {}, [], protocol)
+            if protocol >= 2:
+                compare(good[:-8] + struct.pack('<Q', 2), {'returns': []}, {}, [], protocol)
+
+        signature = {'returns': ['u32'], 'abi': PROFILE}
+        for status in range(6):
+            raw = struct.pack('<8s3Q', b'HIADRR02', (status << 32) | 7, 3, 0)
+            snapshot = buffer_observation(0, 'readbuf', b'original')
+            case = {'expected': {'status': 'returned', 'values': [7], 'buffers': [snapshot]}}
+            for unchanged in (False, True):
+                compare(raw, signature, case, [(snapshot, unchanged)], 3)
 
     def test_public_context_limits_match_reference_and_use_native_decisions(self):
         from hepta.hia_agent_service import HIAAgentService
