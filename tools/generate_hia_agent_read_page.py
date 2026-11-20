@@ -20,6 +20,8 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return lookup_cursor(s, o, size)
     if mode == ARTIFACT_ADMISSION_TAG:
         return artifact_admission(s, o, size)
+    if mode == RESOURCE_ADMISSION_TAG:
+        return resource_admission(s, o, size)
     begin = 24
     reference = 0
     reference_at = 32
@@ -119,37 +121,33 @@ def artifact_admission(s:readbuf, o:mutbuf, size:u64) -> u64:
         return 4294967295
     if row == size:
         return artifact_admission_result(o, 1, 0, 0)
-    if size - row < 176 or uint(s, row) != CURSOR_ROW_TAG or uint(s, row + 8) != 1:
+    if artifact_row_valid(s, row, size) == 0:
         return 4294967295
-    if uint(s, row + 16) != 1 or uint(s, row + 24) != 6:
-        return 4294967295
-    return artifact_cells(s, o, row, size)
+    field = 0
+    while field < 3:
+        cell = row + 32 + 24 * field
+        if artifact_match(s, field, row + uint(s, cell + 8), uint(s, cell + 16)) == 0:
+            return artifact_admission_result(o, 1, 0, 0)
+        field = field + 1
+    return artifact_admission_result(o, 0, uint(s, row + 136), uint(s, row + 144))
 
-def artifact_cells(s:readbuf, o:mutbuf, row:u64, size:u64) -> u64:
+def artifact_row_valid(s:readbuf, row:u64, size:u64) -> u64:
+    if size - row < 176 or uint(s, row) != CURSOR_ROW_TAG or uint(s, row + 8) != 1:
+        return 0
+    if uint(s, row + 16) != 1 or uint(s, row + 24) != 6:
+        return 0
     end = row + 176
     field = 0
-    differs = 0
-    metadata = 0
-    extent = 0
     while field < 6:
         cell = row + 32 + 24 * field
         count = uint(s, cell + 16)
         if uint(s, cell) != 3 or uint(s, cell + 8) != end - row or count > size - end:
-            return 4294967295
+            return 0
         if is_utf8(s, end, end + count) == 0:
-            return 4294967295
-        if field < 3 and artifact_match(s, field, end, count) == 0:
-            differs = 1
-        if field == 4:
-            metadata = end - row
-            extent = count
+            return 0
         end = end + count
         field = field + 1
-    if end != size:
-        return 4294967295
-    if differs != 0:
-        return artifact_admission_result(o, 1, 0, 0)
-    return artifact_admission_result(o, 0, metadata, extent)
+    return choose(end == size, 1, 0)
 
 def artifact_match(s:readbuf, field:u64, start:u64, count:u64) -> u64:
     bound = uint(s, 8)
@@ -170,6 +168,27 @@ def artifact_admission_result(o:mutbuf, decision:u64, metadata:u64, extent:u64) 
     put(o, 16, extent)
     put(o, 24, 0)
     put(o, 32, 0)
+    return 40
+
+def resource_admission(s:readbuf, o:mutbuf, size:u64) -> u64:
+    extent = uint(s, 8)
+    if extent == 0 or extent > 208 or extent > size - 24 or uint(s, 16) != 0 or length(o) < 40:
+        return 4294967295
+    row = 24 + extent
+    if row == size:
+        return artifact_admission_result(o, 1, 0, 0)
+    if artifact_row_valid(s, row, size) == 0:
+        return 4294967295
+    if uint(s, row + 96) != extent or same(s, 24, row + uint(s, row + 88), extent) == 0:
+        return artifact_admission_result(o, 1, 0, 0)
+    identity = uint(s, row + 48)
+    if identity == 0 or identity > 192 or uint(s, row + 72) != 64:
+        return 4294967295
+    put(o, 0, 0)
+    put(o, 8, uint(s, row + 40))
+    put(o, 16, identity)
+    put(o, 24, uint(s, row + 64))
+    put(o, 32, 64)
     return 40
 
 def finish_page(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64, count:u64, next:u64) -> u64:
@@ -585,6 +604,7 @@ def document():
         ('CURSOR_RETAIN_TAG', b'HIAINS01'),
         ('LOOKUP_INPUT_TAG', b'HIAARQ01'), ('LOOKUP_PARAMETER_TAG', b'HIAQPA01'),
         ('ARTIFACT_ADMISSION_TAG', b'HIAARR01'),
+        ('RESOURCE_ADMISSION_TAG', b'HIAARU01'),
         ('CURSOR_INPUT_TAG', b'HIAARC01'), ('CURSOR_OUTPUT_TAG', b'HIAARO02'),
         ('INPUT_TAG', b'HIAARP01'), ('OUTPUT_TAG', b'HIAARO01'),
         ('CURSOR_ARTIFACT_FIRST', b'{"artifa'), ('CURSOR_ARTIFACT_LAST', b'ct":'),

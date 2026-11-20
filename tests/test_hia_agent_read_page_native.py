@@ -157,6 +157,13 @@ class AgentReadPageNativeTests(unittest.TestCase):
                 service.close()
 
     def test_installed_store_reopens_native_cursor_without_sqlite(self):
+        from hepta.hia_agent_store_native import _parameters
+
+        def remaining_parameters(values, statement, magic=None):
+            if statement in (2, 3, 6) and magic is None:
+                raise AssertionError('host encoded artifact, resource or cursor query')
+            return _parameters(values, statement, magic)
+
         release = self.native_release
         if release is None:
             self.skipTest('provide the installed native Store to exercise persistent cursors')
@@ -189,8 +196,14 @@ class AgentReadPageNativeTests(unittest.TestCase):
                         if self.executable is not None:
                             page.enter_context(patch.object(
                                 service.store, 'get', side_effect=AssertionError('hosted Store payload read')))
+                            page.enter_context(patch('hepta.hia_agent_store_native._parameters',
+                                                     side_effect=remaining_parameters))
+                            page.enter_context(patch.object(
+                                service.store, '_artifact_record', side_effect=AssertionError('host admitted artifact row')))
                         first = service.call('hia_read', args)
                         alias = service.call('hia_resource_read', {'uri': ref['uri'], 'max_bytes': 512})
+                        unissued_uri = service.call('hia_resource_read', {'uri': 'hia://artifacts/not-issued'})
+                        self.assertEqual(unissued_uri['error']['code'], 'E_HIA_ARTIFACT_IDENTITY')
                     self.assertEqual(first['status'], 'completed', first)
                     self.assertEqual(alias['result'], first['result'])
                     self.assertEqual(first['result']['content'], b64encode(first_page).decode())
@@ -202,13 +215,6 @@ class AgentReadPageNativeTests(unittest.TestCase):
                 try:
                     with ExitStack() as paging:
                         if self.executable is not None:
-                            from hepta.hia_agent_store_native import _parameters
-
-                            def remaining_parameters(values, statement, magic=None):
-                                if statement in (2, 6) and magic is None:
-                                    raise AssertionError('host encoded artifact or cursor query')
-                                return _parameters(values, statement, magic)
-
                             paging.enter_context(patch('hepta.hia_agent_store_native._parameters',
                                                        side_effect=remaining_parameters))
                             paging.enter_context(patch.object(

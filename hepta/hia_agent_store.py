@@ -782,6 +782,20 @@ class AgentStore:
             return _STORE_ARTIFACT_PROFILE_REFERENCES['resolve_uri'](self, uri)
 
     def _resolve_uri_reference(self, uri):
+        if type(uri) is str and uses_native_store(self):
+            from .hia_native_helpers import pinned_agent_read_page_executable
+
+            executable = pinned_agent_read_page_executable()
+            if executable is not None:
+                from functools import partial
+                from subprocess import DEVNULL
+                from .hia_agent_read_page_native import SELECTOR, installed_agent_read_page
+
+                pager = installed_agent_read_page(os.environ[SELECTOR])
+                ref = pager.resolve_retained_uri(self.db, uri, executable)
+                admit_record = partial(pager.admit_retained_artifact, executable=executable)
+                self.write_retained_artifact(ref, DEVNULL, native_record=admit_record)
+                return ref
         row = self._record('artifact_by_uri', 'SELECT * FROM artifacts WHERE uri=?', (uri,))
         if row is None:
             reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")

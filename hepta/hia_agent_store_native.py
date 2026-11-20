@@ -577,6 +577,9 @@ class NativeStoreConnection:
     def artifact_by_uri(self, uri):
         return self._typed_operation(_ARTIFACT_BY_URI, (uri,)).fetchone()
 
+    def resource_lookup_frame(self, payload):
+        return self._lookup_frame(_ARTIFACT_BY_URI, payload, 208, _MAX_VALUE)
+
     def artifact_retain(self, identity, digest, uri, kind, metadata, key):
         self._typed_operation(_ARTIFACT_RETAIN, (identity, digest, uri, kind, metadata, key))
 

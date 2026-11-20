@@ -107,6 +107,27 @@ class NativeAgentReadPage(NativeHiaJsonImage):
             raise ValueError('invalid HIA Agent retained artifact metadata span')
         return digest, row[offset:offset + extent]
 
+    def resolve_retained_uri(self, store, uri, executable):
+        from .hia_scalar_reference_native import sealed_reference_bytes
+
+        raw = uri.encode('utf-8')
+        if not 0 < len(raw) <= 208:
+            reject('E_HIA_ARTIFACT_IDENTITY', 'resource URI was not issued in this runtime namespace')
+        row = store.resource_lookup_frame(self._lookup_binding(raw, executable))
+        header = REQUEST.pack(b'HIAARU01', len(raw), 0)
+        with sealed_reference_bytes(header, raw, row or b'') as request:
+            output = self._standalone_page(executable, request)
+        if len(output) != 40:
+            raise ValueError('invalid native HIA Agent resource admission')
+        decision, identity, identity_size, digest, digest_size = struct.unpack('<5Q', output)
+        if not any((identity, identity_size, digest, digest_size)) and decision == 1:
+            reject('E_HIA_ARTIFACT_IDENTITY', 'resource URI was not issued in this runtime namespace')
+        if (decision or row is None or not 176 <= identity <= len(row) or not 0 < identity_size <= 192
+                or digest != identity + identity_size or digest_size != 64 or digest + digest_size > len(row)):
+            raise ValueError('invalid native HIA Agent resource reference')
+        return {'id': row[identity:digest].decode('utf-8'),
+                'sha256': row[digest:digest + digest_size].decode('ascii'), 'uri': uri}
+
     def read_captured_bound_page(self, capture, ref, cursor_key, row, max_bytes, executable):
         """Pass a retained typed Store row directly to the standalone page owner."""
         fd, size, reference = capture
