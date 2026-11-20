@@ -21,7 +21,7 @@ from hepta.hia_program_native import build_program_machine
 from tests.test_hia_agent_buffer_lifecycle import byte_program, trap_program
 from tests.test_hia_program_native import minimal_document, scalar_document
 from tools.generate_hia_direct_load_plan import (
-    ADAPTER_PATH, CALL_SYMBOLS, PACKER_PATH, ROOT, SOURCE_PATH, cli_document, document, read_adapter_binding,
+    ADAPTER_PATH, CALL_SYMBOLS, PACKER_PATH, ROOT, SOURCE_PATH, cli_document, document,
 )
 from tools.qualify_hia_program import qualification_program
 
@@ -48,29 +48,28 @@ class DirectCallSourceTests(unittest.TestCase):
 
     def test_elf_adapter_verification_retains_the_independent_assembly_identity(self):
         from tools.build_hia_agent_batch_commit import adapter_layout
-        from tools.build_hia_direct_call import verify_adapter
-        from tools.generate_hia_native_filter import elf_header
+        from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
 
         source = (ROOT / ADAPTER_PATH).read_bytes()
         packer = (ROOT / PACKER_PATH).read_bytes()
-        binding = read_adapter_binding(packer, source)
+        binding = read_adapter_binding(packer, source, calls=1)
         with self.assertRaisesRegex(ValueError, 'binding differs'):
-            read_adapter_binding(packer, source + b'\n')
+            read_adapter_binding(packer, source + b'\n', calls=1)
         with tempfile.TemporaryDirectory(prefix='hia-direct-adapter-reference-') as directory:
             stub, holes, _ = adapter_layout(Path(directory), ADAPTER_PATH, source, CALL_SYMBOLS)
         hole = holes['plan']
-        self.assertEqual(binding, (sha256(stub).digest(), len(stub), hole))
+        self.assertEqual(binding, (sha256(stub).digest(), len(stub), (hole,)))
         header = elf_header()
         code = b'not-executed'
         image = bytearray(header + stub + code)
         struct.pack_into('<2Q', image, 96, len(image), len(image))
         struct.pack_into('<i', image, len(header) + hole, len(stub) - hole - 4)
-        verify_adapter(image, code, binding)
+        verify_adapter(image, code, binding, entries=(0,))
         for offset in (96, len(header), len(header) + hole, len(image) - 1):
             changed = bytearray(image)
             changed[offset] ^= 1
             with self.subTest(offset=offset), self.assertRaisesRegex(ValueError, 'HIA packer changed'):
-                verify_adapter(changed, code, binding)
+                verify_adapter(changed, code, binding, entries=(0,))
 
     def test_report_keeps_the_exact_canonical_wire_and_aggregate_limit(self):
         report = {'observations': [{'number': 2, 'text': 'λ'}, {'text': 'longer' * 3000}],

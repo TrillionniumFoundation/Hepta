@@ -245,7 +245,8 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         from hepta.hia_scalar_reference_wire import PROGRAM_MAGIC, PROGRAM_RESULT, program_wire
         from tests.test_hia_program import b, c, f, i, m, ret
         from tools.generate_hia_native_filter import (
-            REFERENCE_CLI_ADAPTER, REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, elf_header, reference_cli_document,
+            REFERENCE_CLI_ADAPTER, REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, elf_header,
+            read_adapter_binding, reference_cli_document, verify_adapter,
         )
         from tools.build_hia_agent_batch_commit import adapter_layout
         from tools.qualify_hia_selfhost import compile_stage
@@ -266,6 +267,9 @@ class ScalarReferenceNativeTests(unittest.TestCase):
                                         {'reference': 'reference_call_hole'})
         hole = holes['reference'] + len(elf_header())
         packed = executable.read_bytes()
+        binding = read_adapter_binding(source.read_bytes(), adapter.read_bytes(), calls=1)
+        self.assertEqual(binding, (sha256(stub).digest(), len(stub), (holes['reference'],)))
+        verify_adapter(packed, image, binding, entries=(0,))
         self.assertEqual(packed[len(elf_header()):hole], stub[:holes['reference']])
         self.assertEqual(packed[hole+4:len(elf_header()) + len(stub)], stub[holes['reference']+4:])
         self.assertEqual(packed[len(elf_header()) + len(stub):], image)
@@ -365,7 +369,9 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         from tests.test_hia_returned_chain_loans import chain_program
         from tests.test_hia_returned_loans import loan_program
         from tools.build_hia_owned_reference_cli import assemble
-        from tools.generate_hia_native_filter import REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER
+        from tools.generate_hia_native_filter import (
+            REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, elf_header, read_adapter_binding, verify_adapter,
+        )
         from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH, cli_document, document
         from tools.qualify_hia_selfhost import compile_stage
 
@@ -375,8 +381,16 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         self.assertEqual(sources[PACKER_PATH], render_assembly(cli_document()).encode())
         directory = self.compiler.parent / 'owned-standalone'
         directory.mkdir()
-        binary, report = assemble(directory, self.compiler, sources)
+        binding = read_adapter_binding(sources[PACKER_PATH], sources[ADAPTER_PATH], calls=2)
+        binary, report = assemble(directory, self.compiler, sources, binding)
         self.assertEqual(report['executable']['elf_type'], 'ET_EXEC')
+        _, adapter_size, (_, private_call) = binding
+        header_size = len(elf_header())
+        changed = bytearray(binary)
+        changed[header_size + private_call] ^= 1
+        with self.assertRaisesRegex(ValueError, 'call relocation'):
+            verify_adapter(changed, binary[header_size + adapter_size:], binding,
+                           entries=(0, report['private_entry_offset']))
         digest = sha256(binary).hexdigest()
         packer, _ = compile_stage(directory, 'scalar-isolation-packer', self.compiler,
                                   (root / REFERENCE_CLI_PACKER).read_bytes())

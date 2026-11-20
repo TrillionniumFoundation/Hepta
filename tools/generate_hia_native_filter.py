@@ -5,10 +5,11 @@ call displacement and image copying are performed by the checked-in HIA packer.
 """
 from __future__ import annotations
 import ast
+from hashlib import sha256
 from pathlib import Path
 import struct
 from tempfile import TemporaryDirectory
-from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_assembly import assemble_program, render_assembly
 from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scalar_functions
 from tools.generate_hia_elf_linker import MAGIC as LINK_WIRE_MAGIC, SOURCE as LINK_SOURCE
 MAGIC=int.from_bytes(b'HIAFLT01','little')
@@ -199,6 +200,61 @@ def elf_header():
         +struct.pack('<IIQQQQQQ',0x6474e551,6,0,0,0,0,0,16))
 
 
+def _binding_declaration(words):
+    return {'name': 'adapter_binding', 'params': [], 'returns': [], 'effects': [], 'entry': 'entry',
+            'blocks': [{'id': 'entry', 'params': [],
+                        'ops': [{'op': 'const', 'args': [], 'attrs': {'value': value},
+                                 'out': [{'name': f'word{index}', 'type': 'u64'}]}
+                                for index, value in enumerate(words)],
+                        'term': {'op': 'ret', 'values': []}}]}
+
+
+def bind_adapter(packer, source, adapter, holes):
+    """Attach ordinary HIA constants for independent build-time ELF checking."""
+    payload = struct.pack(f'<32s32s{1 + len(holes)}Q', sha256(source).digest(), sha256(adapter).digest(),
+                          len(adapter), *holes)
+    packer['functions'].append(_binding_declaration(struct.unpack(f'<{len(payload) // 8}Q', payload)))
+    return packer
+
+
+def read_adapter_binding(packer, adapter_source, *, calls):
+    """Read the generated source and transport binding without an assembler."""
+    document = assemble_program(packer).as_dict()
+    records = [fn for fn in document['functions'] if fn['name'] == 'adapter_binding']
+    if len(records) != 1:
+        raise ValueError('HIA packer does not bind one syscall adapter')
+    record = records[0]
+    try:
+        words = tuple(op['attrs']['value'] for op in record['blocks'][0]['ops'])
+        payload = struct.pack(f'<{9 + calls}Q', *words)
+    except (KeyError, struct.error) as exc:
+        raise ValueError('invalid HIA adapter binding declaration') from exc
+    if record != _binding_declaration(words):
+        raise ValueError('invalid HIA adapter binding declaration')
+    source, adapter, size, *holes = struct.unpack(f'<32s32s{1 + calls}Q', payload)
+    if (source != sha256(adapter_source).digest() or not 0 < size < 1 << 20
+            or len(set(holes)) != calls or any(not 0 < hole <= size - 4 for hole in holes)):
+        raise ValueError('HIA packer adapter binding differs from its admitted source')
+    return adapter, size, tuple(holes)
+
+
+def verify_adapter(binary, code, binding, *, entries):
+    adapter_digest, size, holes = binding
+    header = bytearray(elf_header())
+    end = len(header) + size
+    length = end + len(code)
+    struct.pack_into('<2Q', header, 96, length, length)
+    if len(binary) != length or binary[:len(header)] != header or binary[end:] != code:
+        raise ValueError('HIA packer changed the ELF envelope or application image')
+    adapter = bytearray(binary[len(header):end])
+    for hole, entry in zip(holes, entries, strict=True):
+        if adapter[hole - 1:hole + 4] != b'\xe8' + struct.pack('<i', size + entry - hole - 4):
+            raise ValueError('HIA packer changed an admitted application call relocation')
+        adapter[hole:hole + 4] = bytes(4)
+    if sha256(adapter).digest() != adapter_digest:
+        raise ValueError('HIA packer changed the admitted syscall adapter')
+
+
 REFERENCE_CLI_MAGIC = int.from_bytes(b'HIASPK01', 'little')
 REFERENCE_CLI_ADAPTER = 'tools/hia_scalar_reference_syscalls.S'
 REFERENCE_CLI_PACKER = 'examples/hia_bootstrap/scalar_reference_cli_packer.hepta'
@@ -208,12 +264,15 @@ def reference_cli_document():
     from tools.build_hia_agent_batch_commit import adapter_layout
 
     root = Path(__file__).resolve().parents[1]
+    source = (root / REFERENCE_CLI_ADAPTER).read_bytes()
     with TemporaryDirectory(prefix='hia-reference-cli-adapter-') as temporary:
         stub, holes, _ = adapter_layout(Path(temporary), REFERENCE_CLI_ADAPTER,
-            (root/REFERENCE_CLI_ADAPTER).read_bytes(), {'reference': 'reference_call_hole'})
+                                       source, {'reference': 'reference_call_hole'})
     header = elf_header()
-    return document(magic=REFERENCE_CLI_MAGIC, module='scalar_reference_cli_packer',
-                    image_template=(header + stub, (len(header) + holes['reference'],)))
+    hole = holes['reference']
+    packer = document(magic=REFERENCE_CLI_MAGIC, module='scalar_reference_cli_packer',
+                      image_template=(header + stub, (len(header) + hole,)))
+    return bind_adapter(packer, source, stub, (hole,))
 
 
 def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,

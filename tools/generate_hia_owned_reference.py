@@ -549,15 +549,17 @@ def document():
 
 def cli_document():
     from tools.build_hia_agent_batch_commit import adapter_layout
-    from tools.generate_hia_native_filter import document as packer_document, elf_header
+    from tools.generate_hia_native_filter import bind_adapter, document as packer_document, elf_header
 
+    source = (ROOT / ADAPTER_PATH).read_bytes()
     with TemporaryDirectory(prefix='hia-owned-reference-adapter-') as directory:
-        adapter, holes, _ = adapter_layout(Path(directory), ADAPTER_PATH,
-                                          (ROOT / ADAPTER_PATH).read_bytes(), ADAPTER_CALLS)
+        adapter, locations, _ = adapter_layout(Path(directory), ADAPTER_PATH, source, ADAPTER_CALLS)
+    holes = (locations['plan'], locations['run'])
     header = elf_header()
-    return packer_document(magic=PACKER_MAGIC, module='owned_reference_cli_packer',
-                           image_template=(header + adapter, tuple(len(header) + hole for hole in holes.values())),
-                           private_entry=True)
+    packer = packer_document(magic=PACKER_MAGIC, module='owned_reference_cli_packer',
+                             image_template=(header + adapter, tuple(len(header) + hole for hole in holes)),
+                             private_entry=True)
+    return bind_adapter(packer, source, adapter, holes)
 
 
 if __name__ == '__main__':

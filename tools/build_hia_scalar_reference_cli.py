@@ -7,10 +7,9 @@ import json
 from pathlib import Path
 import struct
 
-from tools.build_hia_agent_batch_commit import adapter_layout
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.generate_hia_native_filter import (
-    REFERENCE_CLI_ADAPTER, REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, elf_header,
+    REFERENCE_CLI_ADAPTER, REFERENCE_CLI_MAGIC, REFERENCE_CLI_PACKER, read_adapter_binding, verify_adapter,
 )
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -28,10 +27,12 @@ def digest(raw):
 def build(output, compiler, cold_report):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
-    sources = (REFERENCE_SOURCE, REFERENCE_CLI_ADAPTER, REFERENCE_CLI_PACKER, DRIVER)
+    sources = (REFERENCE_SOURCE, REFERENCE_CLI_ADAPTER, REFERENCE_CLI_PACKER, DRIVER,
+               'tools/generate_hia_native_filter.py')
     source_bytes = {name: (ROOT / name).read_bytes() for name in sources}
     if any(admitted.get(name) != digest(raw) for name, raw in source_bytes.items()):
         raise ValueError('standalone reference executable needs a matching cold source')
+    binding = read_adapter_binding(source_bytes[REFERENCE_CLI_PACKER], source_bytes[REFERENCE_CLI_ADAPTER], calls=1)
     output.mkdir(mode=0o700)
     image, image_receipt = compile_stage(output, 'scalar-reference', compiler, source_bytes[REFERENCE_SOURCE])
     packer, packer_receipt = compile_stage(output, 'scalar-reference-packer', compiler,
@@ -46,14 +47,7 @@ def build(output, compiler, cold_report):
     if digest(binary) != receipt['produced_sha256']:
         raise ValueError('compiled reference executable changed')
     inspected = inspect_executable(binary)
-    stub, holes, adapter_identity = adapter_layout(
-        output, REFERENCE_CLI_ADAPTER, source_bytes[REFERENCE_CLI_ADAPTER], {'reference': 'reference_call_hole'})
-    prefix = bytearray(elf_header() + stub)
-    struct.pack_into('<2Q', prefix, 96, len(binary), len(binary))
-    hole = len(elf_header()) + holes['reference']
-    struct.pack_into('<i', prefix, hole, len(prefix) - hole - 4)
-    if binary != prefix + image_bytes:
-        raise ValueError('native packer altered the admitted transport or reference image')
+    verify_adapter(binary, image_bytes, binding, entries=(0,))
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes or image.read_bytes() != image_bytes
             or packer.read_bytes() != packer_bytes or exe.read_bytes() != binary):
@@ -65,7 +59,8 @@ def build(output, compiler, cold_report):
     report = {'schema': 'hepta.hia.reference-wire-build.v1', 'executable_path': executable.name,
               'source_sha256': {name: digest(raw) for name, raw in source_bytes.items()},
               'compiler_sha256': digest(compiler_bytes), 'cold_report_sha256': digest(cold_bytes),
-              'transport_object_sha256': adapter_identity, 'executable_sha256': digest(binary),
+              'transport_adapter_sha256': binding[0].hex(), 'transport_assembled_during_build': False,
+              'executable_sha256': digest(binary),
               'executable': inspected, 'native_compile_receipt': image_receipt,
               'native_packer_receipt': packer_receipt, 'native_pack_receipt': receipt}
     with (output / 'build.json').open('x') as stream:
