@@ -40,6 +40,14 @@ class ServiceBootstrapCallerReadbackTests(unittest.TestCase):
         for scope in cls.scopes.values():
             names.update(scope['files'])
         cls.inputs = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        # Preserve every original 9-positive/136-negative readback control on
+        # the full original Journal source. New preparation controls separately
+        # admit and reject both exact complete Journal versions.
+        journal_path = 'tests/test_hia_agent_journal_native.py'
+        journal_archive = (ROOT / 'tests/fixtures/journal_installed_preparation_v1.py.txt').read_bytes()
+        if pin(journal_archive) != cls.scopes['journal']['files'][journal_path]:
+            raise AssertionError('retained complete Journal source differs')
+        cls.inputs[journal_path] = journal_archive
         raw = cls.inputs[CALLER]
         if pin(raw) != cls.diagnostics['current']:
             raise AssertionError('the current exact diagnostic successor is required')

@@ -1615,6 +1615,14 @@ SOURCE_FILES = (
     "tests/test_hia_delivery_diagnostic_sources.py",
     "tests/test_hia_service_bootstrap_caller_admission.py",
     "tests/test_hia_service_bootstrap_caller_readback.py",
+    # Exact versioned Journal installed-resource preparation and source controls.
+    'tests/hia_journal_installed_preparation.py',
+    'tests/fixtures/journal_installed_preparation_v2.json',
+    'tests/fixtures/journal_installed_preparation_v1.py.txt',
+    'tests/test_hia_journal_installed_preparation.py',
+    'tests/test_hia_journal_caller_preparation.py',
+    'tests/test_hia_delivery_journal_preparation.py',
+    'tests/test_hia_service_bootstrap_journal_preparation.py',
 )
 
 

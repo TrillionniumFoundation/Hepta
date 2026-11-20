@@ -35,11 +35,28 @@ def encoded(value):
                       separators=(',', ':'), allow_nan=False).encode()
 
 
-def admit_separate_inventory():
+_JOURNAL_CALLER = 'tests/test_hia_agent_journal_native.py'
+_JOURNAL_HELPER = 'tests/hia_journal_installed_preparation.py'
+_JOURNAL_HELPER_PIN = {'bytes': 15935, 'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797'}
+
+
+def _source_pin(raw):
+    return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+
+
+def _bind_source_admission(proof, digests):
+    for name, expected in proof['captured_files'].items():
+        if digests.get(name) != expected['sha256']:
+            raise ValueError('transaction Journal admission differs from source capture: ' + name)
+
+
+def admit_separate_inventory(*, with_source_admission=False):
     raw = (ROOT / FIXTURE).read_bytes()
     if sha256(raw).hexdigest() != FIXTURE_SHA256:
         raise ValueError('independent complete 61-method inventory changed')
+    captured = {FIXTURE: raw}
     value = json.loads(raw)
+    adjustments = {}
     names = ['tests.test_hia_agent_journal_native', 'tests.test_hia_execution_budget_native',
              'tests.test_hia_slot_ledger_native']
     if (value['base_commit'] != '5bf69586b890706290c5fbfe93065ec0d3af40b1'
@@ -50,12 +67,44 @@ def admit_separate_inventory():
         raise ValueError('complete separate original module identity differs')
     for record in value['modules']:
         raw = (ROOT / record['path']).read_bytes()
+        captured[record['path']] = raw
         if len(raw) != record['bytes'] or sha256(raw).hexdigest() != record['sha256']:
-            raise ValueError('complete original caller source differs: ' + record['path'])
+            if record['path'] != _JOURNAL_CALLER:
+                raise ValueError('complete original caller source differs: ' + record['path'])
+            helper = (ROOT / _JOURNAL_HELPER).read_bytes()
+            if _source_pin(helper) != _JOURNAL_HELPER_PIN:
+                raise ValueError('transaction Journal preparation helper changed')
+            from tests import hia_journal_installed_preparation as journal
+            if Path(journal.__file__).read_bytes() != helper:
+                raise ValueError('transaction imported a different Journal admission')
+            proof = journal.admit_source(ROOT, record['path'], raw,
+                                         {key: record[key] for key in ('bytes', 'sha256')})
+            for name, expected in proof['captured_files'].items():
+                consumed = (ROOT / name).read_bytes()
+                if (_source_pin(consumed) != expected
+                        or name in captured and captured[name] != consumed):
+                    raise ValueError('transaction Journal source changed after admission: ' + name)
+                captured[name] = consumed
+            if captured[_JOURNAL_HELPER] != helper:
+                raise ValueError('transaction Journal helper changed after import')
+            adjustments[record['path']] = proof
         identities = [name for name in value['ordered_ids'] if name.startswith(record['module'] + '.')]
         if len(identities) != record['test_count']:
             raise ValueError('complete original method list differs: ' + record['module'])
-    return value
+    for name, source in captured.items():
+        if (ROOT / name).read_bytes() != source:
+            raise ValueError('transaction caller captured source changed: ' + name)
+    proof = {
+        'schema': 'hepta.hia.transaction-journal-preparation-source-admission.v1',
+        'authority': {'path': FIXTURE, **_source_pin(captured[FIXTURE])},
+        'original_ordered_ids': list(value['ordered_ids']), 'original_count': 61,
+        'original_module_counts': [21, 25, 15], 'original_outer_seconds': DEADLINE_SECONDS,
+        'reviewed_journal_installed_preparation_source_adjustments': adjustments,
+        'captured_files': {name: _source_pin(source) for name, source in captured.items()},
+        'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
+        'production_source_exceptions': [], 'whole_native': False,
+    }
+    return (value, proof) if with_source_admission else value
 
 
 def source_pins():
@@ -71,7 +120,7 @@ def execute_module(selector, manifest, report_path):
     from tools.run_hia_unittest_gate import load_declared_suite
     from hepta import hia_agent_store as api
     from hepta import hia_store_transaction_native as native
-    original = admit_separate_inventory()
+    original, source_admission = admit_separate_inventory(with_source_admission=True)
     if selector not in original['modules_in_requested_order']:
         raise ValueError('only a complete original module can be selected')
     suite, planned = load_declared_suite([selector])
@@ -81,6 +130,7 @@ def execute_module(selector, manifest, report_path):
         raise ValueError('actual complete discovery differs from frozen static inventory')
     image = native.installed_store_transaction(str(manifest))
     before, started, stopped, outcomes = source_pins(), [], [], []
+    _bind_source_admission(source_admission, before)
     frames, events, references = Counter(), Counter(), []
     active = ['outside-test']
 
@@ -128,6 +178,7 @@ def execute_module(selector, manifest, report_path):
         scope.enter_context(patch.object(image, '_entry', counted_entry))
         result = unittest.TextTestRunner(stream=sys.stderr, verbosity=2, resultclass=Result).run(suite)
     after = source_pins()
+    _bind_source_admission(source_admission, after)
     anomalies = {name: [row[0].id() for row in getattr(result, name)]
                  for name in ('errors', 'failures', 'skipped', 'expectedFailures')}
     anomalies['unexpectedSuccesses'] = [test.id() for test in result.unexpectedSuccesses]
@@ -136,6 +187,7 @@ def execute_module(selector, manifest, report_path):
               and before == after and not references)
     record = {'schema': 'hepta.hia.transaction-separate-module.v1',
         'status': 'PASS' if passed else 'HOLD', 'selector': selector,
+        'caller_source_admission': source_admission,
         'planned': planned, 'started': started, 'stopped': stopped, 'outcomes': outcomes,
         'unstarted': [name for name in planned if name not in started],
         'unterminated': [name for name in started if name not in stopped],
@@ -189,7 +241,7 @@ def main():
     parser.add_argument('--manifest', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--stage-report', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
-    original = admit_separate_inventory()
+    original, source_admission = admit_separate_inventory(with_source_admission=True)
     if args.execute_module:
         return execute_module(args.execute_module, args.manifest, args.stage_report)
     if args.cold_report is not None:
@@ -208,6 +260,7 @@ def main():
         scope = 'EXPLICIT_DEVELOPMENT_THREE_COMPLETE_TRANSACTION_CALLER_MODULES'
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     before, compiler_raw, begin = source_pins(), compiler.read_bytes(), time.monotonic()
+    _bind_source_admission(source_admission, before)
     from tools.build_hia_store_transaction import build, INPUTS
     if args.development_manifest is None:
         manifest = build(args.evidence / 'transaction', compiler, args.cold_report,
@@ -282,6 +335,7 @@ def main():
             'stage_report': str(report) if value is not None else None,
             'stage_report_sha256': sha256(report.read_bytes()).hexdigest() if value is not None else None})
     after = source_pins()
+    _bind_source_admission(source_admission, after)
     stable = (before == after and compiler.read_bytes() == compiler_raw
               and all(sha256(Path(name).read_bytes()).hexdigest() == digest for name, digest in pins.items())
               and (cold_raw is None or args.cold_report.read_bytes() == cold_raw))
@@ -289,6 +343,7 @@ def main():
               and actual_frames > 0 and all(actual_events[str(event)] > 0 for event in (0, 1, 2, 4)))
     result = {'schema': 'hepta.hia.transaction-three-complete-callers.v1',
         'status': 'PASS' if passed else 'HOLD', 'scope': scope, 'stages': records,
+        'caller_source_admission': source_admission,
         'original_inventory_sha256': FIXTURE_SHA256, 'original_ordered_ids': original['ordered_ids'],
         'original_count': 61, 'source_before': before, 'source_after': after,
         'source_compiler_and_builds_unchanged': stable, 'build_pins': pins,

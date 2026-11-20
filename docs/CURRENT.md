@@ -43,111 +43,141 @@ The integration also corrects concrete source and execution defects:
   Escaped keys, duplicate-key identity, grammar and resource limits retain
   their original checks.
 
-### Completed ROG qualification of the published v9 source
+### Latest completed ROG checks of published source
 
-The independently checked source is [`1a4f220`](https://github.com/TrillionniumFoundation/Hepta/commit/1a4f2202a6c7ffbad373329ddcd9451cc59c9401),
-tree `af73ce774cbb69fc6a799425a236b48fefd5fc29`, with 2,966 complete tracked
-file byte/mode identities. ROG ran CPython 3.14.4 and Clang 20.1.8. Every
-stage reread that full freeze and the actual matching cold inputs. The
-published CI merge commit `55c64f2a99a6cda956b74026a0ad54417fc9d1da`
-has this same tree.
+The completed current source is [`b2ba900`](https://github.com/TrillionniumFoundation/Hepta/commit/b2ba90090929472d4a336a058aeb3e1e9c74ed8d),
+tree `a156df56ccd5053c05d166548293dc9a57444d27`, with 2,970 tracked
+file byte/mode identities. ROG used CPython 3.14.4 and Clang 20.1.8.
+Completed stages reread the complete frozen tree and matching cold inputs.
+The CI merge commit `73aa79b7f2a0e0961194aaa5356981a0198cce23` has
+that same tree. Its CI outcomes are recorded separately from ROG outcomes.
 
 | Complete scope on that source | Actual outcome |
 | --- | --- |
-| Fixed-Core cold replay | Eleven outer checks, all 38 original/modified phases and 5,060 nested checks passed; 64.014 seconds outer, 63.038 seconds nested under the original 180+3 and 240-second limits |
-| v9 word memory | All four backends, 1,824 scalar comparisons, two cross-target objects and nine refusals passed; direct and selfhost raw lanes each completed 576 valid inputs, 72 traps and eight guard pages |
-| Rust shadow reference | Complete locked, offline Cargo test command passed |
-| Native integer profiles | Full Native8 for each div/rem, arithmetic and scalar profile, including each profile's original full domain, generic/installed/resource controls, plus separate independent readers passed |
-| Worker UNKNOWN | Both complete installed v1 and actual v2 loss/cleanup/replacement methods passed |
-| Executable release | All five Native methods and the independent DATA reader passed; its report retains all 44 commands and the separate installed runs |
-| Service bootstrap | All eight Native and four resource methods, and the independent DATA reader passed |
-| Budget resource retirement | All four Native methods, 22 complete resource cases and the independent DATA reader passed |
-| Bootstrap ordinary callers | All 112 original methods and independent readback passed |
-| Bootstrap context callers | All 15 original methods and independent readback passed |
-| Core source/reference gate | All 750 methods finished in 553.819 seconds; 749 passed and one original preparation/VM comparison failed |
-| Bootstrap journal callers | All 21 original methods finished in 37.750 seconds; 20 passed and the installed-wheel preparation failed on a missing current package resource |
-| v9 scalar combined gate | Nineteen actual methods passed; static-budget class setup failed because one generated function contained 257 blocks, above the unchanged 256-block limit |
-| CI Slot mechanical Native4 | All four methods finished in 1,538.762 seconds. Complete public84/handled12, admission and installed-worker/UNKNOWN groups passed; full original248/derived7574 retained 2 cases/14 leaf differences and 286 cases/1,804 leaf differences respectively |
+| Ordinary fresh-source cold | PASS: 11 outer checks and all 5,060 nested checks; 70.078 seconds producer wall time under the original 180+3 and 240-second limits |
+| Complete cold image readback | All six images read; B1=B2=B3, M1!=M2, M2=M3 and M3!=B3 |
+| Complete Core workflow inventory | PASS: 754/754; 510.912 seconds outer process |
+| v9 scalar and word-memory group | PASS: 21/21; 77.558 seconds outer process |
+| Complete static-budget module | PASS: 13/13; 7.827 seconds outer process |
+| Artifact Source/preparation/Native group | All 15 methods ran; 13 PASS, two Native failures retained; 12.788 seconds outer process |
+| Explicit native-parent cold producer | PASS on ROG in 125.852 seconds; its separate complete phase/raw readback remains required |
+| Actual REF18, FD18 and CT36 | Complete original controls and their independent readers passed |
+| Native transport's first unselected observer lane | All 47 methods ran; 46 PASS and one linked-compiler preparation ERROR. No candidate-lane PASS was inferred |
+| Same-source CI | Kernel and NDU workflows PASS; native cold exceeded the original 180-second deadline; the same linked preparation failed. Full Slot Native4 and its dependent definition gate remain HOLD |
 
 Cold B1=B2=B3 are the same 637,172-byte image with SHA256
 `f81c42138a259286492e46f221010574d629a4eeea775815bd59ee7d71d66843`.
-The ROG stage aggregate is
-`/home/qian-qi/hia-unified-v9-evidence-20261120/operator-completed-stages-r6.json`
-(23,490 bytes, SHA256
-`008368061e754a1e72cfbf71fda94923d0e246894d0ed1960c7624d1696ecdc0`).
-Its 27 recorded stages include all failures and dependent-reader failures.
-The old source and raw observations remain unchanged.
+Raw ROG evidence remains under
+`/home/qian-qi/hia-unified-v9-fixed-evidence-20261120/`.
+The CI native-cold archive is 69,707,231 bytes, SHA256
+`5952fdfca46a0e8b009aa17e5a5d4c6744dd4a8ca36a053e79af86d22f6d2f00`.
+Its deadline owner killed and reaped the unfinished process at the original
+limit; 32 phase reports were complete PASS and six index entries remained
+pending. ROG PASS does not replace this CI HOLD.
 
-### Reviewed successor fixes
+The first external ROG regression supervisor rejected its own 125-minute
+workflow argument before spawning a product child because that archival
+wrapper accepts at most 120 minutes. Its failed attempt remains recorded.
+The successor operator uses the existing owned-process primitive for the
+workflow's original 7,500-second total and retains every original
+1,800-second lane bound. It completed the actual first original lane and
+recorded the linked preparation error above. No product limit was raised.
 
-The current working successor corrects four concrete defects discovered by
-those complete runs and CI. Its source and sdist qualification do not
-transfer the preceding source's native results to these edited bytes.
+### Current reviewed source corrections
 
-- Static budget retains all 197 original profile words and the zero result
-  outside the table. It splits the constant dispatcher into bounded helpers;
-  the generated owner has 30 functions and at most 127 blocks per function.
-  The compiler's 256-block limit and original modes remain unchanged. All
-  39 combined Source/contract/language/transport methods passed.
-- Slot executes the original first byte read or write before entering its
-  full-range word fast path. This preserves original argument lookup,
-  permission checks, shift errors, exception order and short-buffer partial
-  writes. All original 270 helper, 41 argument/borrow-shape and 360 packet
-  cases passed, with the complete original expectation bytes identical to
-  the failed attempt; the six actual shape differences are fixed. All eight
-  Source methods, including the additional 890/239 v9 domains and exact
-  generator-admission refusals, passed. Arbitrary smaller VM-tick budgets
-  and concurrent eight-byte atomicity remain outside this finite claim.
-- Cold-transport Source controls now apply the same existing exact
-  old-to-current observer-source admission as the complete native gate.
-  All 17 methods passed. Original44/current47 and CT36 domains are preserved.
-- Arithmetic CI loads all ten current Source methods while preserving the
-  original seven IDs and the three registered successor methods. The exact
-  corrected workflow block completed all ten.
+The current successor carries two additional corrections. Their complete
+Source and isolated development results do not transfer earlier cold
+qualification to newly edited source bytes.
 
-Artifact preparation is a separately versioned correction. The unchanged
-v1 oracle executed two temporary classes while extracting method code. On
-ROG 3.14.4, two complete original-only 146-case runs, without a candidate
-import, reproduced the same 14-versus-0 GC difference seen in Core. Actual
-object/lifetime diagnostics tied this to the two temporary seven-object
-class cycles. The historical failure therefore remains a v1 HOLD.
+**Journal installed preparation.** The original test copied 176 Agent
+resources while the unchanged package policy additionally requires 17
+executable-capture resources and three integer resources. Preparation v2
+retains the complete original 48,482-byte test and changes exactly two
+staging blocks. It reads the fixed policy as data, stages all 196 resources,
+and verifies every staged byte before the original wheel build. All 21
+original methods, business assertions, NoTools installed probes and
+120/120/30/1,800-second build/install/probe/scope bounds remain.
 
-Preparation v2 compiles the same fixed wrapper and extracts its one direct
-method CodeType without executing either temporary class. The old 16,362-byte
-oracle is archived verbatim and the new authority admits exactly two source
-splices. Independent disposable-child controls compare every recursive code
-attribute, line/position sequence and complete marshal bytes against actual
-v1 execution. Original business bodies, fixtures, the two original test
-modules, all 146 IDs and the 180+3-second child bound remain unchanged.
-Each observation now requires two complete byte-identical original replays
-before importing the candidate, and rereads both original files, comparison
-records and the preparation receipt at termination. No GC policy, raw field,
-exception or traceback is adjusted. Both complete ten-method development
-runs passed; the second finished in 99.586 seconds including its owner.
+Bootstrap's producer and independent reader, Discovery, Verification,
+StoreTransaction and both Delivery admission layers verify the complete
+old/current source relation. Old scope fixtures, literal predecessors,
+method order, original controls and terminal source rereads remain intact.
+The independent Bootstrap reader reconstructs the relation itself. All
+actual proof dependencies are included in source, builder and sdist inputs.
+Discovery/Verification also retain the already reviewed exact NativeTools
+diagnostic-source successor for their original ordinary caller scopes.
 
-Actual sdist validation then exposed missing original-test and transitive
-authoring inputs. Both import failures are retained; 17 existing files were
-added to the precise package staging and manifest inventories. The final
-6,751,456-byte sdist (SHA256
-`6d4438374f7a12ec75b2dac3fe820e30f64503a286a2d484dd0d9a2da087414a`)
-contains all 701 declared input paths byte-for-byte, with 261 support files.
-The complete original Source3, LocalRelease3 and new Preparation4 methods
-passed in 102.652 seconds using only the extracted package. Its sources and
-all archived input bytes remained unchanged.
+The isolated complete Source34 passed in 19.520 seconds. A real sdist build
+then staged 715 paths with 275 exact support files and all 451 declared
+resources; all thirteen new Source methods passed from its extracted source
+in 8.839 seconds. Its 6,810,639-byte archive SHA256 is
+`002f09dd21ef822028d139b42afab31569695e3e995b0aaa723a4919c71d2f6f`.
+The independent DATA receipt SHA256 is
+`629592ece2a6a5bcb90a6702d77bff7b6c96366327a15cf49f96990b0c328b87`.
+A fresh complete Journal21 Native/caller run and reader are still required.
 
-The journal failure is an independent packaging-preparation issue: the old
-installed test copies resource groups only through `CONTINUATION_BUILD_FILES`,
-whereas the current wheel also requires `executable_capture.hepta` and later
-registered groups. A versioned preparation successor and full original21
-rerun are required; neither a smaller resource contract nor a skipped test
-qualifies it.
+**Linked compiler preparation.** The existing full linked-compiler method
+silently tried to replace a v8 header in the actual v9 compiler source.
+Consequently the compiler emitted flat bytes and the unchanged ET_REL
+inspection correctly rejected them. The correction first asserts the exact
+current v9 flat header, then converts it to v9 `selfhost_elf`. Producer and
+independent reader each admit one exact whole-source inverse to the retained
+original test. All original44/current47 methods, complete success/refusal
+inputs, loader comparisons and budgets remain unchanged.
 
-The complete current Core inventory, new matching-source cold, affected
-native/installed scopes and full regression gate still need to pass on one
-final source freeze. Earlier Store Capture, Discovery, Verification and
-Slot lifetime/GC observations remain unresolved unless their own complete
-current domains establish otherwise. These outcomes are not a native
-completion percentage, and old provider removal remains false.
+An isolated ROG development build ran Source13, built the actual transport,
+then ran original47 twice, selected47 and all eight actual handoff controls.
+The complete regression passed in 26.053 seconds, and its separate DATA
+reader passed in 0.158 seconds. It used the explicitly declared development
+compiler; it is not a fresh-source cold qualification of this successor.
+The receipt is retained under
+`/home/qian-qi/hia-linked-profile-v9-20261120/evidence/`.
+
+After composing both corrections, all 69 complete Source/contract/language
+methods passed in 78.580 seconds. All 2,977 source file bytes and modes
+remained stable; two generations produced identical support and language
+inventories. The original Source34 controls and complete current transport
+Source groups were included. No Native Journal PASS is inferred.
+
+### Preserved Artifact Native failures
+
+The v2 original preparation removed the two discarded temporary classes
+without executing business or changing GC policy. On `b2ba900`, two complete
+original146 runs and the VM comparison now agree, and the full Core gate
+passes. The old original-only 14-versus-0 failure remains attached to v1.
+
+Native Artifact still has a separate complete-domain difference. All
+146 original/actual records were independently consumed and compared; the
+only leaf difference is `$[143].trace[14].collected`, original 0 versus native
+41. All other fields, including exception identity/context, event order,
+resource deletion and weak-reference observations, agree. The original
+report is 430,668 bytes, SHA256
+`23871f9c292b2a0487093ae70d43b22f99b5827be9f7b1af05284dfc9ec225f3`.
+The installed worker additionally still encounters an old exit-code-1
+expectation against the current UNKNOWN terminal's actual exit code 2.
+Both are retained Native failures until their own full successor runs pass.
+
+A separate preparation-only diagnostic on the same CPython 3.14.4 creates
+no Artifact Frame, invokes no HIA entry and does not run the original
+observer. Its five import prefixes collect 0/10/36/41/41 objects. The complete
+saved graphs attribute the 41 to two overwritten ctypes classes (10),
+signal Enum preparation (15), ast.literal_eval closures (11), and uuid Enum
+preparation (5). There were no automatic collections inside those diagnostic
+windows, and all original source/report/image bytes remained stable.
+This identifies a preparation source for the full count; it does not prove
+identity with already-collected objects in the earlier process or change
+that process's qualification. No extra collection, field normalization,
+candidate pre-import into the original authority, or hidden strong root is
+used as a product repair. Diagnostic receipt SHA256:
+`39a6f9eae9b7420f8c0e20ca86885b078e73cd1523db9a8898b0ad6c6fecfe94`.
+
+A single final source still needs fresh cold, complete Core, affected
+native/installed domains and full retained regression. Earlier Store Capture,
+Discovery, Verification and Slot raw lifetime/GC observations remain HOLD
+unless their own complete current domains establish otherwise. The complete
+preceding `1a4f220` qualification and source-correction records are preserved
+in the historical links below. No aggregate count is a native completion
+percentage; old provider removal remains false.
 
 ## Source format and actual entry points
 
@@ -360,6 +390,7 @@ its directory name does not make it disposable evidence.
 
 Earlier narratives and exact outcomes are available at fixed revisions:
 
+- [Completed preceding v9 ROG scopes and Artifact preparation records at `b2ba900`](https://github.com/TrillionniumFoundation/Hepta/blob/b2ba90090929472d4a336a058aeb3e1e9c74ed8d/docs/CURRENT.md).
 - [Published v9 integration and pre-v9 qualification records at `1a4f220`](https://github.com/TrillionniumFoundation/Hepta/blob/1a4f2202a6c7ffbad373329ddcd9451cc59c9401/docs/CURRENT.md).
 - [Published R24/R25-era status and preserved lifetime/resource failures at `192be0c`](https://github.com/TrillionniumFoundation/Hepta/blob/192be0c277a6971dc956326372fe4e48a007ae26/docs/CURRENT.md).
 - [v75–v77 status at `f33d8da`](https://github.com/TrillionniumFoundation/Hepta/blob/f33d8da316de8fdf27b504371f1a5310997ff548/docs/CURRENT.md).

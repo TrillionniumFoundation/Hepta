@@ -104,6 +104,11 @@ INPUTS = (
     'tools/qualify_hia_budget_resource_retirement.py',
     'tools/read_hia_budget_resource_retirement.py',
     'tests/test_hia_service_bootstrap_fixed_words.py',
+    # Exact Journal preparation source admission and independent readback controls.
+    'tests/hia_journal_installed_preparation.py',
+    'tests/fixtures/journal_installed_preparation_v2.json',
+    'tests/fixtures/journal_installed_preparation_v1.py.txt',
+    'tests/test_hia_service_bootstrap_journal_preparation.py',
 )
 
 
