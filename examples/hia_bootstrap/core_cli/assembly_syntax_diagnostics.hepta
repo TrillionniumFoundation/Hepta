@@ -561,7 +561,7 @@ block b1(v22:readbuf,v23:mutbuf,v24:mutbuf,v25:u64)
 block b3(v37:readbuf,v38:mutbuf,v39:mutbuf,v40:u64,v41:u64)
   v42:u64 = const() {"value":54}
   v43:bool = compare.lt(v41,v42)
-  v44:u64 = const() {"value":56}
+  v44:u64 = const() {"value":57}
   v45:bool = compare.gt(v41,v44)
   v46:bool = bool.or(v43,v45)
   branch v46 b4(v37,v38,v39) b5(v37,v38,v39,v40,v41)
@@ -727,7 +727,7 @@ block b9(v102:readbuf,v103:mutbuf,v104:mutbuf)
   v114:u64 = const() {"value":208}
   v115:u64 = call(v104,v114) {"function":"f25"}
   v116:u64 = const() {"value":8}
-  v117:bool = compare.ne(v115,v116)
+  v117:bool = compare.lt(v115,v116)
   branch v117 b11(v102,v103,v104) b12(v102,v103,v104)
 block b11(v118:readbuf,v119:mutbuf,v120:mutbuf)
   v124:u64 = const() {"value":14}

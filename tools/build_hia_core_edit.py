@@ -215,7 +215,7 @@ PROGRAMS = {
     )),
     'import_assembly': ('hia-import-assembly', (
         (CLI + 'assembly_syntax_diagnostics.hepta', ('syntax_call',)),
-        (CLI + 'assembly_core_diagnostics.hepta', ('core_call',)),
+        (BOOTSTRAP + 'core_admission.hepta', ('core_call',)),
         (BOOTSTRAP + 'json_canonical.hepta', ('canonical_call',)),
         (ASSEMBLY_PRESENTATION, ('presentation_images',)),
     )),

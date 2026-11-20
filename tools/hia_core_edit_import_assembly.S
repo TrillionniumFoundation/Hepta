@@ -14,6 +14,9 @@
 .equ CORE_AT,68177920
 .equ CORE_N,67108864
 .equ TOTAL_N,135286784
+.equ CORE_DIAGNOSTIC,CORE_AT+CORE_N-64
+.equ CORE_DIAGNOSTIC_MAGIC,0x3147414944484941
+.equ CORE_MESSAGE_N,4096
 .equ O,4096
 .equ S,8192
 .equ MODE,S+32
@@ -189,20 +192,11 @@ syntax_call_hole: .long 0
  mov r9d,ARENA_N
  .byte 0xe8
 core_call_hole: .long 0
- # Preserve the full actual Core decision. HIA owns classification.
+ # Preserve the full actual Core decision and transport its diagnostic bytes.
+ # The HIA presenter owns classification, message escaping and hashing.
  mov [rbp+112],rax
- mov rdx,[r12+CORE_AT+120]
- mov [rbp+160],rdx
- mov rdx,[r12+CORE_AT+80]
- mov [rbp+168],rdx
- mov rdx,[r12+CORE_AT+56]
- mov [rbp+176],rdx
- mov rdx,[r12+CORE_AT+72]
- mov [rbp+184],rdx
- # Canonical output is not needed when Core returned a nonzero raw result.
- # No status/message classification here: only native HIA can authorize JSON.
  test rax,rax
- jnz admission_skipped
+ jnz core_diagnostic
  mov QWORD PTR [r12+ARENA_AT+48],262144
  mov QWORD PTR [r12+ARENA_AT+56],64
  lea rdi,[r12+JSON_AT]
@@ -215,6 +209,37 @@ core_call_hole: .long 0
 canonical_call_hole: .long 0
  # The HIA presenter, not the adapter, classifies the raw CABI result.
  mov [rbp+96],rax
+ jmp admission_skipped
+core_diagnostic:
+ lea rdx,[r12+CORE_DIAGNOSTIC]
+ movabs r8,CORE_DIAGNOSTIC_MAGIC
+ cmp QWORD PTR [rdx+40],r8
+ jne io_failure
+ cmp QWORD PTR [rdx+32],rax
+ jne io_failure
+ mov r8,[rdx+48]
+ or r8,[rdx+56]
+ jnz io_failure
+ mov rsi,[rdx+8]
+ mov rcx,[rdx+16]
+ test rcx,rcx
+ jz io_failure
+ cmp rcx,CORE_MESSAGE_N
+ ja io_failure
+ mov r8,[rdx+24]
+ cmp rcx,r8
+ ja io_failure
+ cmp rsi,CORE_N-64
+ jae io_failure
+ mov r9d,CORE_N-64
+ sub r9,rsi
+ cmp r8,r9
+ jne io_failure
+ mov [rbp+160],rcx
+ lea rsi,[r12+CORE_AT+rsi]
+ lea rdi,[r12+CANON_AT]
+ cld
+ rep movsb
 admission_skipped:
  # All source ranges become immutable before either HIA hash is computed.
  mov rdi,r12

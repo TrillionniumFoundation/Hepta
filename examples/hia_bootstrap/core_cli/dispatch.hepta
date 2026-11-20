@@ -2797,31 +2797,15 @@ block b0(v0:readbuf,v1:mutbuf)
   v5:bool = compare.ne(v3,v4)
   branch v5 b1(v0,v1) b10(v0,v1)
 block b1(v6:readbuf,v7:mutbuf)
-  v10:u64 = const() {"value":35}
-  jump b3(v6,v7,v10)
-block b3(v11:readbuf,v12:mutbuf,v13:u64)
-  v14:u64 = const() {"value":43}
-  v15:bool = compare.lt(v13,v14)
-  branch v15 b4(v11,v12,v13) b5(v11,v12,v13,v15)
-block b4(v16:readbuf,v17:mutbuf,v18:u64)
   v24:u64 = const() {"value":96}
-  v25:u64 = call(v17,v24) {"function":"f42"}
+  v25:u64 = call(v7,v24) {"function":"f42"}
   v26:u64 = const() {"value":104}
-  v27:u64 = call(v17,v26) {"function":"f42"}
-  v28:u64 = call(v16,v25,v27,v18) {"function":"f28"}
+  v27:u64 = call(v7,v26) {"function":"f42"}
+  v18:u64 = const() {"value":2}
+  v28:u64 = call(v6,v25,v27,v18) {"function":"f18"}
   v29:u64 = const() {"value":0}
   v30:bool = compare.eq(v28,v29)
-  jump b5(v16,v17,v18,v30)
-block b5(v20:readbuf,v21:mutbuf,v22:u64,v23:bool)
-  branch v23 b6(v20,v21,v22) b7(v20,v21,v22)
-block b6(v31:readbuf,v32:mutbuf,v33:u64)
-  v37:u64 = const() {"value":1}
-  v38:u64 = int.add.wrap(v33,v37)
-  jump b3(v31,v32,v38)
-block b7(v34:readbuf,v35:mutbuf,v36:u64)
-  v39:u64 = const() {"value":43}
-  v40:bool = compare.eq(v36,v39)
-  branch v40 b8(v34,v35) b10(v34,v35)
+  branch v30 b8(v6,v7) b10(v6,v7)
 block b8(v41:readbuf,v42:mutbuf)
   v47:u64 = const() {"value":64}
   ret(v47)

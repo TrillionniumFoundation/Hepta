@@ -24,6 +24,8 @@ from tests.test_hia_core_edit_runtime import (
 )
 from tests.test_hia_edit_batch import loans, selected, swaps
 from tests.test_hia_program_tools import add_two_patch, scalar_program
+from tests.test_hia_returned_loan_interfaces import choose_loan
+from tools.hia_word_memory_cases import owned_program
 
 
 def reference_cli(arguments):
@@ -62,6 +64,9 @@ def check_assembly_rejections(release, directory):
         'constant-type': (body + 'y:bool = const() {"value":1}\nret()\nend\n').encode(),
         'node-budget': (body + large_body + 'ret()\nend\n').encode(),
     }
+    word_memory = render_assembly(owned_program()).encode()
+    cases['v8-word-memory'] = word_memory.replace(b'hepta.hia.program.v9', b'hepta.hia.program.v8', 1)
+    cases['v9-unknown-word-operation'] = word_memory.replace(b'buffer.store.u64.le', b'buffer.store.u64.invalid', 1)
     for label, raw in cases.items():
         path = directory / (label + '.hepta')
         path.write_bytes(raw)
@@ -86,6 +91,25 @@ def check_assembly_rejections(release, directory):
             assert not target.parent.exists(), label
         assert path.read_bytes() == raw, label
     return len(cases) * 3
+
+
+def check_v9_assembly(release, directory):
+    directory.mkdir()
+    word_program = owned_program()
+    loan_program = choose_loan()
+    loan_program['schema'] = 'hepta.hia.program.v9'
+    for name, program in (('word-memory', word_program), ('return-loans', loan_program)):
+        source = directory / f'{name}.hepta'
+        assembly = directory / f'{name}.asm.hepta'
+        source.write_bytes(wire(program))
+        assembly.write_text(render_assembly(program))
+        for arguments in (['render-assembly', source], ['import-assembly', assembly],
+                          ['check-assembly', assembly]):
+            observed = subprocess.run([release / 'hia', *arguments], capture_output=True,
+                                      env={'PATH': ''}, timeout=20, check=False)
+            assert (observed.returncode, observed.stdout, observed.stderr) == (
+                0, reference_cli(arguments), b''), (arguments, observed)
+    return 6
 
 
 def check_import_existing_destinations(release, source, directory):
@@ -428,6 +452,7 @@ def check_nominal_patches(release, directory):
 
 
 def check_release(release, directory):
+    checked_v9 = check_v9_assembly(release, directory / 'v9-assembly')
     program = scalar_program()
     program['schema'] = 'hepta.hia.program.v8'
     program_wire = wire(program)
@@ -604,7 +629,7 @@ def check_release(release, directory):
     batch_apply.mkdir()
     patches = directory / 'nominal-patches'
     patches.mkdir()
-    return (len(cases) * 3 + checked_actions + check_assembly_rejections(release, diagnostics)
+    return (len(cases) * 3 + checked_actions + checked_v9 + check_assembly_rejections(release, diagnostics)
             + check_nominal_queries(release, nominal) + check_nominal_patches(release, patches)
             + check_nominal_batch_queries(release, nominal_batch) + check_nominal_apply(release, apply)
             + check_nominal_apply(release, batch_apply, batch=True)
