@@ -106,6 +106,24 @@ class AgentIdentitySourceTests(unittest.TestCase):
         fields[2] = (b'uri', b'different')
         self.assertEqual(vm(comparison(1, fields, 8), 0), (24, expected(1, 1)))
 
+    def test_read_window_wire_binds_both_cursor_fields_before_admitting_limit(self):
+        for cursor, offset, limit, stored, result in (
+            (0, 0, 0, (b'', b''), (0, 0, 65536)),
+            (1, 0, 0, (b'', b''), (1, 0, 0)),
+            (2, 512, 2048, (b'id', b'sha'), (0, 512, 2048)),
+            (2, 512, 1, (b'other', b'sha'), (1, 0, 0)),
+            (2, 512, 65537, (b'id', b'other'), (1, 0, 0)),
+            (2, 512, 65537, (b'id', b'sha'), (2, 0, 0)),
+            (2, (1 << 64) - 1, 0, (b'id', b'sha'), (2, 0, 0)),
+        ):
+            with self.subTest(cursor=cursor, offset=offset, limit=limit, stored=stored):
+                frame = struct.pack('<4Q', cursor, offset, int(limit != 0), limit)
+                for wanted, observed in zip((b'id', b'sha'), stored, strict=True):
+                    frame += struct.pack('<2Q', len(wanted), len(observed)) + wanted + observed
+                wire = packet(47, frame)
+                self.assertEqual(vm(wire, 0, 32), (32, struct.pack('<4Q', RESULT_MAGIC, *result)))
+                self.assertEqual(vm(wire[:-1], 0, 32), (0xfffffffd, b'\0' * 32))
+
     def test_wall_clock_keeps_exact_expiration_and_remaining_in_vm(self):
         for now, expired, remaining in ((999_999, 0, 9), (2_000_001, 0, 7),
                                          (10_000_000, 0, 0), (10_000_001, 1, 0)):

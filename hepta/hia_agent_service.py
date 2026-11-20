@@ -738,7 +738,14 @@ class HIAAgentService:
         executable = pinned_agent_read_page_executable()
         if executable is not None and self.store._artifact_code is not None:
             with capture_retained_page(self.store, ref) as captured:
-                offset, limit = self._read_window(args, ref)
+                native = _native_agent_identity()
+                if native is None:
+                    offset, limit = self._read_window(args, ref)
+                else:
+                    cursor_requested = "cursor" in args
+                    row = self.store.cursor_lookup(args["cursor"]) if cursor_requested else None
+                    offset, limit = native.read_window(
+                        ref, cursor_requested=cursor_requested, row=row, max_bytes=args.get("max_bytes"))
                 encoding, content, next_offset, next_cursor = installed_agent_read_page(
                     os.environ[SELECTOR]).read_captured_page(captured, offset, limit, executable)
         else:

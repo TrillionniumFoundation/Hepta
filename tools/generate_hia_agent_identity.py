@@ -157,6 +157,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return direct_call_receipt(s, o)
     if kind == 46:
         return direct_call_capture(s, o)
+    if kind == 47:
+        return read_window(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -320,28 +322,8 @@ def record_authority(s:readbuf, o:mutbuf) -> u32:
         return 4294967293
     if length(o) < 24:
         return 4294967294
-    offset = 24
-    field = 0
-    decision = 1 - read_word(s, 16)
-    while field < 4:
-        if length(s) - offset < 16:
-            return 4294967293
-        left = read_word(s, offset)
-        right = read_word(s, offset + 8)
-        offset = offset + 16
-        if left > length(s) - offset:
-            return 4294967293
-        right_at = offset + left
-        if right > length(s) - right_at:
-            return 4294967293
-        if decision == 0 and (field < 3 or left != 0):
-            if equal_pair(s, offset, left, right_at, right) == 0:
-                decision = 1
-                if field == 3:
-                    decision = 2
-        field = field + 1
-        offset = right_at + right
-    if offset != length(s):
+    decision = record_decision(s, 24, 4, read_word(s, 16))
+    if decision > 2:
         return 4294967293
     put(o, 0, @RESULT_MAGIC@)
     put(o, 8, 1)
@@ -1240,6 +1222,64 @@ def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     return finite_function_reply(o, equal_pair(s, 32, left, right_at, right))
 '''
 
+READ_WINDOW = r'''
+# Three cursor states: omitted, lookup missed, and retained observation.
+def record_decision(s:readbuf, offset:u64, fields:u64, found:u64) -> u64:
+    field = 0
+    decision = 1 - found
+    while field < fields:
+        if length(s) - offset < 16:
+            return 3
+        left = read_word(s, offset)
+        right = read_word(s, offset + 8)
+        offset = offset + 16
+        if left > length(s) - offset:
+            return 3
+        right_at = offset + left
+        if right > length(s) - right_at:
+            return 3
+        if decision == 0 and (field < 3 or left != 0):
+            if equal_pair(s, offset, left, right_at, right) == 0:
+                decision = 1
+                if field == 3:
+                    decision = 2
+        field = field + 1
+        offset = right_at + right
+    if offset != length(s):
+        return 3
+    return decision
+
+def read_window(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 48:
+        return 4294967293
+    if length(o) < 32:
+        return 4294967294
+    cursor = read_word(s, 16)
+    offset = read_word(s, 24)
+    limited = read_word(s, 32)
+    limit = read_word(s, 40)
+    if cursor > 2 or limited > 1 or (cursor < 2 and offset != 0) or (limited == 0 and limit != 0):
+        return 4294967293
+    authority = record_decision(s, 48, 2, choose(cursor == 2, 1, 0))
+    if authority > 1:
+        return 4294967293
+    decision = 0
+    if cursor != 0 and authority != 0:
+        decision = 1
+    elif offset >= 9223372036854775808 or (limited == 1 and (limit == 0 or limit > 65536)):
+        decision = 2
+    if limited == 0:
+        limit = 65536
+    if decision != 0:
+        offset = 0
+        limit = 0
+    put(o, 0, @RESULT_MAGIC@)
+    put(o, 8, decision)
+    put(o, 16, offset)
+    put(o, 24, limit)
+    return 32
+'''
+
 EVALUATION_SCHEDULE = r'''# The foreign runner supplies observations; this state machine owns arm order,
 # normal-batch vs single-trap dispatch and whether further effects are allowed.
 def evaluation_schedule(s:readbuf, o:mutbuf) -> u32:
@@ -1669,7 +1709,7 @@ def source_program():
             + receipt_template('evaluation_record', EVALUATION_RECORD)
             + receipt_template('evaluation_result', EVALUATION_RESULT)
             + receipt_template('artifact_key_material', ARTIFACT_KEY_MATERIAL, aggregate_suffix='')
-            + EVALUATION_SCHEDULE.replace('@RESULT_MAGIC@', str(RESULT_MAGIC)))
+            + (EVALUATION_SCHEDULE + READ_WINDOW).replace('@RESULT_MAGIC@', str(RESULT_MAGIC)))
 
 
 def document():

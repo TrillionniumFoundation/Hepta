@@ -345,6 +345,29 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA Agent record authority decision')
         return decision
 
+    def read_window(self, ref, *, cursor_requested, row, max_bytes):
+        """Bound the page using a typed observation from the cursor Store."""
+        present = row is not None
+        stored = (row['artifact_id'], row['sha256']) if present else ()
+        offset = row['offset'] if present else 0
+        if present and (type(offset) is not int or not 0 <= offset <= WORD_MASK):
+            offset = WORD_MASK
+        limit = 0 if max_bytes is None else max_bytes
+        if type(limit) is not int or not 0 <= limit <= WORD_MASK:
+            limit = WORD_MASK
+        header = struct.pack('<6Q', MAGIC, 47, int(cursor_requested) + int(present),
+                             offset, int(max_bytes is not None), limit)
+        expected = _record_fields((ref['id'], ref['sha256']), None)[:2]
+        observed = _record_fields(stored, None)[:2] if present else (b'', b'')
+        decision, offset, limit = self._response(_paired_packet(header, expected, observed), 32, '<4Q')
+        if decision == 1 and offset == limit == 0:
+            reject('E_HIA_CURSOR', 'cursor is not bound to this exact artifact')
+        if decision == 2 and offset == limit == 0:
+            raise ValueError('outside native HIA Agent artifact page profile')
+        if decision != 0 or not (offset < 1 << 63 and 0 < limit <= 65536):
+            raise RuntimeError('invalid HIA Agent artifact read window')
+        return offset, limit
+
     def wall_window(self, created_ns, now_ns, total_ms):
         values = (created_ns, now_ns, total_ms)
         if not all(0 <= value < 1 << 64 for value in values):
