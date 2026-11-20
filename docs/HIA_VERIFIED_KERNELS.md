@@ -196,5 +196,35 @@ retains all 64 cases and 1,344 samples from source commit
 `8aa5a7959955b9191709fd650761d65d4be6ef46`. Its single-accumulator sixty-four-byte
 zero scan took 1,591.221 ns at 64 KiB, compared with 1,202.520 ns for the
 sixteen-byte control. This negative observation motivated the four independent
-accumulators above; it remains part of the record. The candidate with that
-change requires its own complete campaign with all comparison arms.
+accumulators above; it remains part of the record.
+
+The [complete second campaign](../benchmarks/hia_verified_kernels/results/ai395-20261119-parallel-zero.json)
+binds the changed implementation to
+`b5de6a98467e8c51198a3335d97c0bc5536af8d5`. Both campaigns use the same AMD
+Ryzen AI MAX+ 395 host, CPU 15, GCC 15.2, Rust 1.99.1 and pinned Z3 4.15.4.
+Compiler executable hashes and the protocol are unchanged. Each campaign
+retains all 64 cases, 21 samples per case, source/binary hashes and independently
+checked checksums. Host sharing and the hot-cache protocol remain explicit.
+
+Second-campaign median native-call latency, in nanoseconds:
+
+| Workload | Original HIA direct | Verified SSE2 16 B | Current verified kernel | Rust native |
+| --- | ---: | ---: | ---: | ---: |
+| Scalar multiply-add | 2.042 | n/a | 0.998 | 0.999 |
+| Byte sum, 4 KiB | 11990.799 | 84.550 | 69.331 | 67.712 |
+| All-zero scan, 4 KiB | 11993.636 | 73.733 | 31.755 | 12.728 |
+| Copy, 4 KiB | 13667.865 | 67.297 | 39.043 | 18.007 |
+| All-zero scan, 64 KiB | 192192.476 | 1189.961 | 602.570 | 288.950 |
+
+The current scalar entry is the register kernel; the span entries use the
+64-byte main loop. In the second campaign the zero scan improves over the
+simultaneous sixteen-byte control at all four measured lengths, including
+1.975x at 64 KiB. The 4 KiB sum is within 2.4% of the Rust reference, while
+zero scan and copy take 2.495x and 2.168x its time. The 64 KiB sum is effectively
+flat against the sixteen-byte control: 1624.601 versus 1620.231 ns. These are
+specific measurements, not a whole-language or universal speed claim.
+
+The changed implementation passes the complete strict **139-test** kernel
+inventory locally and in [hosted CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/44655567208),
+including the frozen old object, all negative controls, and exact-end guard
+pages. Its full-tree source-contract check covers 919 source identities.
