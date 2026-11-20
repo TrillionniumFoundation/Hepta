@@ -71,7 +71,7 @@ def _inputs(sources):
     return captured
 
 
-def _base_wheel(stage, output, captured):
+def _base_wheel(stage, output, captured, *, native_store_only):
     for name, raw in captured.items():
         path = stage / name
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -79,6 +79,8 @@ def _base_wheel(stage, output, captured):
     environment = {key: value for key, value in os.environ.items()
                    if key not in ('PYTHONPATH', 'PYTHONHOME') and not key.startswith('HEPTA_HIA_')}
     environment['PYTHONDONTWRITEBYTECODE'] = '1'
+    if native_store_only:
+        environment['HEPTA_HIA_STRICT_NATIVE_STORE_WHEEL'] = '1'
     command = [sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',
                '--no-index', '--wheel-dir', str(output), str(stage)]
     run = subprocess.run(command, cwd=stage, env=environment, capture_output=True, timeout=60)
@@ -230,7 +232,7 @@ def build(output, compiler, cold_report=None, *, development=False):
     pin_raw = render_pin(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)
-    base_wheel, command = _base_wheel(staging, output / 'base-wheel', captured)
+    base_wheel, command = _base_wheel(staging, output / 'base-wheel', captured, native_store_only=not development)
     files, distribution, wheel_tag = _wheel_contents(base_wheel, sources, captured)
     if (files.get('hepta/_data/examples/hia_bootstrap/full_cost.hepta')
             != captured['examples/hia_bootstrap/full_cost.hepta']):

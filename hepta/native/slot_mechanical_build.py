@@ -42,6 +42,8 @@ def supported_profile():
 
 
 def extensions():
+    if os.environ.get("HEPTA_HIA_STRICT_NATIVE_STORE_WHEEL") == "1":
+        return []
     # The package keeps its existing >=3.11 claim for unselected Python code.
     # This optional selected ABI has an explicit, independently qualified
     # CPython/GIL/Linux profile; unsupported profiles do not get a false .so.
