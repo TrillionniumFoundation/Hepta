@@ -19,7 +19,7 @@ import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
 from .hia_cnf_native import (
-    SAT, UNSAT, WORD_PRODUCT_EXCEEDS, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
+    SAT, SPARSE_REQUEST, UNSAT, WORD_PRODUCT_EXCEEDS, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
     bitblast_clauses, core_circuit, selected_cnf,
 )
 from .hia_opcodes import RESOURCES, TRAP_CODES
@@ -93,7 +93,8 @@ def _native_circuit_decision(cnf, circuit, deadline):
     if result is None or result[0] not in (SAT, UNSAT):
         return None
     verdict, model, steps, variables, clauses, frame = result
-    formula = frame[:24] + bytes(8) + frame[32:]
+    # Solver choice and execution budget are not part of the formula identity.
+    formula = SPARSE_REQUEST.to_bytes(8, "little") + frame[8:24] + bytes(8) + frame[32:]
     discharge = {"method": "native_hia_core_circuit", "image_sha256": cnf.image_sha256,
                  "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
                  "clauses": clauses, "steps": steps}
