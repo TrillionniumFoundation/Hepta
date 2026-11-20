@@ -5,6 +5,7 @@ import ctypes
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 import struct
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
@@ -13,6 +14,7 @@ from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_constructor import (
     ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
     NOMINAL_IMAGE_LABELS, ORDINARY_CLI_IMAGE_CAPACITY,
+    build as build_nominal_constructor,
 )
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, load_static_object, verify_executable
 from tools.generate_hia_core_edit_packer import MAGIC
@@ -42,6 +44,18 @@ EDIT_RESPONSE = 'tools/hia_core_edit_response.S'
 BATCH_CAPTURE = 'tools/hia_core_edit_batch_capture.S'
 EXEC_ARCHIVE_MAGIC = b'HIAECP01'
 EXEC_CHUNK = 1 << 19
+DISPATCH_ROLES = frozenset((
+    'hia-apply-edit', 'hia-apply-edit-batch', 'hia-build-object', 'hia-capabilities',
+    'hia-catalog', 'hia-impact-core-json', 'hia-import-assembly', 'hia-nominal-constructor',
+    'hia-patch-core-json', 'hia-prepare-edit-batch', 'hia-prepare-edit-query',
+    'hia-publish-batch', 'hia-publish-batch-query', 'hia-publish-edit', 'hia-publish-patch',
+    'hia-publish-query',
+))
+DISPATCH_PIN_SLOTS = (65728, 65744, 65752, 65760, 65768)
+DISPATCH_WORD = re.compile(
+    rb'  (v\d+):u64 = const\(\) \{"value":(\d+)\}\n'
+    rb'  (v\d+):u64 = const\(\) \{"value":(\d+)\}\n'
+    rb'  v\d+:u64 = call\(v\d+,\1,\3\) \{"function":"f43"\}')
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
 ASSEMBLY_PRESENTERS = tuple(CLI + name + '.hepta' for name in (
     'assembly_diagnostic_report', 'assembly_pretty', 'assembly_driver'))
@@ -392,6 +406,39 @@ def pack_executable(packer, launcher, inflater, executable, compressor):
                     'implementation_sha256': digest(executable), 'implementation_bytes': len(executable)}
 
 
+def bind_dispatch_roles(template, executables):
+    """Fill only the release identity words in the admitted HIA dispatcher."""
+    if executables.keys() != DISPATCH_ROLES:
+        raise ValueError('incomplete native HIA dispatcher release roles')
+    blocks = re.split(rb'(?=^block |^fn |^end$)', template, flags=re.M)
+    observed = set()
+    for index, block in enumerate(blocks):
+        words = list(DISPATCH_WORD.finditer(block))
+        if not any(int(word[2]) == DISPATCH_PIN_SLOTS[0] for word in words):
+            continue
+        slots = {int(word[2]): word for word in words}
+        required = {*DISPATCH_PIN_SLOTS, 65736, 65776, 8192, 8200}
+        if (len(slots) != len(words) or not required <= slots.keys()
+                or any(int(slots[slot][4]) != 0 for slot in DISPATCH_PIN_SLOTS)):
+            raise ValueError('malformed native HIA dispatcher pin template')
+        name_words = (int(slots[slot][4]) if slot in slots else 0 for slot in (8192, 8200, 8208))
+        name = struct.pack('<3Q', *name_words).rstrip(b'\0').decode('ascii')
+        if name in observed or name not in executables or len(name) != int(slots[65736][4]):
+            raise ValueError('unexpected or duplicate native HIA dispatcher release role: ' + name)
+        observed.add(name)
+        executable = executables[name]
+        if not executable.startswith(b'\x7fELF') or len(executable) > ORDINARY_CLI_IMAGE_CAPACITY:
+            raise ValueError('native HIA dispatcher role has an invalid executable extent: ' + name)
+        values = (len(executable), *struct.unpack('<4Q', sha256(executable).digest()))
+        replacements = [(slots[slot].span(4), value) for slot, value in zip(DISPATCH_PIN_SLOTS, values, strict=True)]
+        for (start, end), value in sorted(replacements, reverse=True):
+            block = block[:start] + str(value).encode('ascii') + block[end:]
+        blocks[index] = block
+    if observed != DISPATCH_ROLES:
+        raise ValueError('missing native HIA dispatcher pin templates')
+    return b''.join(blocks)
+
+
 def build(output, compiler, cold_report, *, release_only=False):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
@@ -416,7 +463,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     for path, raw in sources.items():
         if path.endswith('.json'):
             images[path] = raw
-        if not path.endswith('.hepta'):
+        if not path.endswith('.hepta') or path == DISPATCH:
             continue
         image, receipt = compile_stage(output, Path(path).stem, compiler, raw)
         images[path] = image.read_bytes()
@@ -426,9 +473,6 @@ def build(output, compiler, cold_report, *, release_only=False):
         for path in (RELEASE_DEFLATE, ARGUMENT_PAYLOAD)))
     images[ARGUMENT_ARCHIVE] = argument_images(
         images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER], compressor)
-    dispatch_image = images[DISPATCH]
-    query_image = images[NOMINAL_BUILD_SOURCES['public-presentation']]
-    images[DISPATCH_ARCHIVE] = struct.pack('<2Q', 16, 16 + len(dispatch_image)) + dispatch_image + query_image
     payloads = [images[path] for path in assembly_images]
     position = 8 * len(payloads)
     offsets = []
@@ -445,6 +489,8 @@ def build(output, compiler, cold_report, *, release_only=False):
     launcher = load_static_adapter(templates, EXEC_LAUNCHER, sources[EXEC_LAUNCHER])
     products = {}
     for kind, (name, roles) in programs.items():
+        if kind == 'dispatch':
+            continue
         adapter = adapters[kind]
         folder = output / kind
         folder.mkdir(mode=0o700)
@@ -460,8 +506,23 @@ def build(output, compiler, cold_report, *, release_only=False):
         stub, holes, adapter_hash = load_static_adapter(templates, adapter, sources[adapter])
         binary, details = pack(packer, stub, holes, [images[path] for path, _calls in roles])
         products[name] = (binary, {'elf': details, 'adapter_object_sha256': adapter_hash})
+    constructor = build_nominal_constructor(output / 'nominal-constructor', compiler, cold_report)
+    bound_roles = {name: products[name][0] for name in DISPATCH_ROLES if name != constructor.name}
+    bound_roles[constructor.name] = constructor.read_bytes()
+    bound_dispatch = bind_dispatch_roles(sources[DISPATCH], bound_roles)
+    image, receipts[DISPATCH] = compile_stage(output, Path(DISPATCH).stem, compiler, bound_dispatch)
+    dispatch_image = images[DISPATCH] = image.read_bytes()
+    query_image = images[NOMINAL_BUILD_SOURCES['public-presentation']]
+    images[DISPATCH_ARCHIVE] = struct.pack('<2Q', 16, 16 + len(dispatch_image)) + dispatch_image + query_image
+    name, roles = programs['dispatch']
+    adapter = adapters['dispatch']
+    stub, holes, adapter_hash = load_static_adapter(templates, adapter, sources[adapter])
+    binary, details = pack(packer, stub, holes, [images[path] for path, _calls in roles])
+    products[name] = (binary, {'elf': details, 'adapter_object_sha256': adapter_hash,
+                              'role_sha256': {role: digest(raw) for role, raw in bound_roles.items()}})
     if (current_sources() != admitted or compiler.read_bytes() != compiler_raw
             or cold_report.read_bytes() != report_raw
+            or constructor.read_bytes() != bound_roles[constructor.name]
             or any((ROOT / path).read_bytes() != raw for path, raw in sources.items())
             or any(digest(images[path]) != receipt['produced_sha256']
                    or Path(receipt['produced_image']).read_bytes() != images[path]

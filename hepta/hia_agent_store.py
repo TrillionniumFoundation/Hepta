@@ -541,24 +541,27 @@ class AgentStore:
     @contextmanager
     def transaction(self):
         with self.lock:
-            if self._native_backend:
-                self.db.begin_immediate()
+            self.db.execute("BEGIN IMMEDIATE")
+            try:
+                yield
+            except BaseException:
+                self.db.execute("ROLLBACK")
+                raise
             else:
-                self.db.execute("BEGIN IMMEDIATE")
+                self.db.execute("COMMIT")
+
+    @contextmanager
+    def _native_transaction(self):
+        with self.lock:
+            self.db.begin_immediate()
             try:
                 yield
             except BaseException:
                 if self.db.in_transaction:
-                    if self._native_backend:
-                        self.db.rollback()
-                    else:
-                        self.db.execute("ROLLBACK")
+                    self.db.rollback()
                 raise
             else:
-                if self._native_backend:
-                    self.db.commit()
-                else:
-                    self.db.execute("COMMIT")
+                self.db.commit()
 
     def close(self):
         from .hia_store_lifecycle_selection import store_lifecycle_owner
@@ -866,6 +869,11 @@ def _store_transaction_context(self, image=_STORE_TRANSACTION_SELECT, *, namespa
     # A single actual generator performs native suspension/resumption. In
     # particular no outer forwarding handler keeps a suppressed body exception
     # active while HIA completes its remaining continuation.
+    if uses_native_store(self):
+        if (image is not _STORE_TRANSACTION_SELECT or _STORE_TRANSACTION_OWNER.get() is not None
+                or 'HEPTA_HIA_STORE_TRANSACTION_MANIFEST' in _store_artifact_selection_os.environ):
+            reject('E_HIA_STORE', 'native Store cannot use SQLite Store control images')
+        return (yield from AgentStore._native_transaction.__wrapped__(self))
     if image is _STORE_TRANSACTION_SELECT:
         bound = _STORE_TRANSACTION_OWNER.get()
         if bound is not None:

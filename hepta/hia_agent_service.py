@@ -215,6 +215,8 @@ def _manifest_document(identities, catalog_sha256, profiles, profile_artifacts, 
 
 
 class HIAAgentService:
+    _native_candidate_import = None
+
     def __init__(self, state_root, *, artifact_roots=(), native_store=None,
                  native_edit_query=None, native_candidate_import=None):
         from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
@@ -364,11 +366,11 @@ class HIAAgentService:
     def call(self, tool, arguments):
         from .hia_program import native_verified_program_scope
 
-        importer = self._native_candidate_import
-        recheck = None if importer is None else importer.recheck_for_request()
         selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
         if selected == '':
             raise ValueError('Agent journal selector must not be empty')
+        importer = self._native_candidate_import
+        recheck = None if importer is None else importer.recheck_for_request()
         delivery = DeliveryRecord(self)
         try:
             with delivery.foreign(observation=False), native_verified_program_scope(recheck):

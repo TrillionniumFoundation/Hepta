@@ -990,8 +990,6 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/public-selfhost"
           python -B -m tools.build_hia_nominal_json --standalone --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-packet"
-          python -B -m tools.build_hia_nominal_constructor --compiler "$compiler" \
-            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/nominal-constructor"
           agent_helpers=(agent-schema agent-response-schema agent-verify-response-schema agent-discovery agent-inspection agent-identity elf-shared-linker scalar-reference)
           for profile in "${agent_helpers[@]}"; do
             python -B -m tools.build_hia_json_preflight --candidate "$profile" \
@@ -1024,7 +1022,7 @@ jobs:
             "$RUNNER_TEMP/sqlite-publisher/hia-sqlite-migration-publish" \
             "$RUNNER_TEMP/sqlite-migrate/hia-sqlite-migrate" \
             "$RUNNER_TEMP/nominal-packet/hia-nominal-packet" \
-            "$RUNNER_TEMP/nominal-constructor/hia-nominal-constructor" \
+            "$RUNNER_TEMP/core-edit/nominal-constructor/hia-nominal-constructor" \
             "$RUNNER_TEMP"/sqlite-components/hia-sqlite-* "$package/stage"
           install -m 0400 "$RUNNER_TEMP"/agent-store/module-root/module-*.bin "$package/stage"
           for role in "${source_roles[@]}"; do
