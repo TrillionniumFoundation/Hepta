@@ -21,7 +21,8 @@ SCHEMA_MODE = TERMINAL_MODE + 1
 CONNECTION_MODE = SCHEMA_MODE + 1
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
-PAGE_OUTPUT = 32 + 40 + 69 + 4 * ((65536 + 2) // 3) + 533
+# The installed pager returns its canonical JSON alongside the cursor insertion.
+PAGE_OUTPUT = 32 + 512 + 6 * 65536 + 132 + 533
 PAGE_WORKSPACE = 512 + 4128
 MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,

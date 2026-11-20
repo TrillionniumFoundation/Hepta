@@ -178,6 +178,8 @@ class AgentReadPageNativeTests(unittest.TestCase):
                                                           side_effect=AssertionError('mapped pager selected')))
                     invocation.enter_context(patch.object(self.native, 'read_issued_page',
                                                           side_effect=AssertionError('hosted artifact transfer')))
+                    invocation.enter_context(patch.object(self.native, '_decode_page',
+                                                          side_effect=AssertionError('hosted page rendering')))
                 service = HIAAgentService(directory, native_store=store)
                 try:
                     first_page, second_page = b'a' * 512, b'b' * 512
@@ -232,6 +234,11 @@ class AgentReadPageNativeTests(unittest.TestCase):
                     end = service.call('hia_read', {**args, 'cursor': second['result']['next_cursor']})
                     self.assertEqual(end['status'], 'completed', end)
                     self.assertEqual((end['result']['content'], end['result']['next_cursor']), ('/w==', None))
+                    escaped = ''.join(map(chr, range(32))) + '"\\𐀀é'
+                    text_ref = service.store.put(escaped.encode(), 'input')
+                    text = service.call('hia_read', {**args, 'artifact': text_ref})
+                    self.assertEqual(text['result'], {'artifact': text_ref, 'encoding': 'utf8',
+                                                     'next_cursor': None, 'content': escaped})
                 finally:
                     service.close()
             self.assertFalse(list(directory.glob('state.sqlite3*')))

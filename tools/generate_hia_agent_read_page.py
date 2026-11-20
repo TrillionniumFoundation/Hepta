@@ -86,7 +86,9 @@ def page(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     next = 18446744073709551615
     if offset < total and count < total - offset:
         next = offset + count
-    return finish_page(s, o, w, start, kind, count, next, offset, limit, output_base)
+    if output_base != 0:
+        return finish_bound_page(s, o, w, start, kind, count, next)
+    return finish_page(s, o, w, start, kind, count, next)
 
 def lookup_cursor(s:readbuf, o:mutbuf, size:u64) -> u64:
     # The admitted JSON string is at most 512 scalars, or 2048 UTF-8 bytes.
@@ -106,7 +108,7 @@ def lookup_cursor(s:readbuf, o:mutbuf, size:u64) -> u64:
     return end
 
 def artifact_admission(s:readbuf, o:mutbuf, size:u64) -> u64:
-    if size < 88 or length(o) < 24:
+    if size < 88 or length(o) < 40:
         return 4294967295
     identity = uint(s, 8)
     uri = uint(s, 16)
@@ -166,46 +168,148 @@ def artifact_admission_result(o:mutbuf, decision:u64, metadata:u64, extent:u64) 
     put(o, 0, decision)
     put(o, 8, metadata)
     put(o, 16, extent)
-    return 24
+    put(o, 24, 0)
+    put(o, 32, 0)
+    return 40
 
-def finish_page(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64, count:u64,
-                next:u64, offset:u64, limit:u64, output_base:u64) -> u64:
+def finish_page(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64, count:u64, next:u64) -> u64:
     mode = uint(s, 0)
     content = choose(kind == 0, count, 4 * ((count + 2) // 3))
-    header = output_base + 40
+    header = 40
     output_tag = OUTPUT_TAG
     cursor = mode != INPUT_TAG and next != 18446744073709551615
     if mode != INPUT_TAG:
         output_tag = CURSOR_OUTPUT_TAG
     if cursor:
         header = header + 69
-    retain_size = 0
-    if output_base != 0 and cursor:
-        retain_size = 277 + uint(s, 32)
-    if length(o) < header + content + retain_size:
+    if length(o) < header + content:
         return 4294967294
     if cursor:
-        reference_at = choose(output_base == 0, 32, 1024)
-        if cursor_digest(s, w, reference_at, uint(s, 24), next) == 0:
+        if cursor_digest(s, w, 32, uint(s, 24), next) == 0:
             return 4294967295
-        emit_cursor(o, w, output_base + 40)
-    if output_base != 0:
-        put(o, 0, BOUND_OUTPUT_TAG)
-        put(o, 8, offset)
-        put(o, 16, limit)
-        put(o, 24, retain_size)
-    put(o, output_base, output_tag)
-    put(o, output_base + 8, kind)
-    put(o, output_base + 16, count)
-    put(o, output_base + 24, next)
-    put(o, output_base + 32, content)
+        emit_cursor(o, w, 40)
+    put(o, 0, output_tag)
+    put(o, 8, kind)
+    put(o, 16, count)
+    put(o, 24, next)
+    put(o, 32, content)
     if kind == 0:
         copy_bytes(s, o, start, header, count)
     else:
         encode_binary(s, o, start, count, header)
+    return header + content
+
+def finish_bound_page(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64,
+                      count:u64, next:u64) -> u64:
+    reference = uint(s, 24)
+    cursor = next != 18446744073709551615
+    retain_size = 0
+    if cursor:
+        retain_size = 277 + uint(s, 32)
+    content = 4 * ((count + 2) // 3)
+    if kind == 0:
+        content = escaped_size(s, start, count)
+    receipt_size = 54 + reference + content + choose(kind == 0, 4, 6) + choose(cursor, 72, 5)
+    end = 32 + receipt_size
+    if length(o) < end + retain_size:
+        return 4294967294
+    if cursor and cursor_digest(s, w, 1024, reference, next) == 0:
+        return 4294967295
+    put(o, 0, BOUND_OUTPUT_TAG)
+    put(o, 8, next)
+    put(o, 16, receipt_size)
+    put(o, 24, retain_size)
+    return bound_page_receipt(s, o, w, start, kind, count, content, next, end, retain_size)
+
+def bound_page_receipt(s:readbuf, o:mutbuf, w:mutbuf, start:u64, kind:u64, count:u64,
+                       content:u64, next:u64, end:u64, retain_size:u64) -> u64:
+    reference = uint(s, 24)
+    put(o, 32, CURSOR_ARTIFACT_FIRST)
+    put(o, 40, CURSOR_ARTIFACT_LAST)
+    copy_bytes(s, o, 1024, 44, reference)
+    base = 44 + reference
+    put(o, base, CONTENT_FIRST)
+    put(o, base + 8, CONTENT_LAST)
+    if kind == 0:
+        emit_escaped(s, o, start, count, base + 12)
+    else:
+        encode_binary(s, o, start, count, base + 12)
+    at = base + 12 + content
+    put(o, at, ENCODING_FIRST)
+    put(o, at + 8, ENCODING_LAST)
+    at = at + 14
+    if kind == 0:
+        put(o, at, UTF8_LABEL)
+        at = at + 4
+    else:
+        put(o, at, BASE64_LABEL)
+        at = at + 6
+    put(o, at, NEXT_CURSOR_FIRST)
+    put(o, at + 8, NEXT_CURSOR_LAST)
+    at = at + 16
     if retain_size != 0:
-        retain_cursor(s, o, header + content, output_base + 40, next, uint(s, 32))
-    return header + content + retain_size
+        store(o, at, 34)
+        emit_cursor(o, w, at + 1)
+        store(o, at + 70, 34)
+        store(o, at + 71, 125)
+        retain_cursor(s, o, end, at + 1, next, uint(s, 32))
+    else:
+        store(o, at, 110)
+        store(o, at + 1, 117)
+        store(o, at + 2, 108)
+        store(o, at + 3, 108)
+        store(o, at + 4, 125)
+    return end + retain_size
+
+def short_escape(value:u64) -> u64:
+    if value == 8:
+        return 98
+    if value == 9:
+        return 116
+    if value == 10:
+        return 110
+    if value == 12:
+        return 102
+    if value == 13:
+        return 114
+    if value == 34 or value == 92:
+        return value
+    return 0
+
+def escaped_size(s:readbuf, start:u64, count:u64) -> u64:
+    size = count
+    at = start
+    while at < start + count:
+        value = byte(s, at)
+        if short_escape(value) != 0:
+            size = size + 1
+        elif value < 32:
+            size = size + 5
+        at = at + 1
+    return size
+
+def emit_escaped(s:readbuf, o:mutbuf, start:u64, count:u64, out:u64) -> u64:
+    at = start
+    while at < start + count:
+        value = byte(s, at)
+        escaped = short_escape(value)
+        if escaped != 0:
+            store(o, out, 92)
+            store(o, out + 1, escaped)
+            out = out + 2
+        elif value < 32:
+            store(o, out, 92)
+            store(o, out + 1, 117)
+            store(o, out + 2, 48)
+            store(o, out + 3, 48)
+            store(o, out + 4, hex_digit(value >> 4))
+            store(o, out + 5, hex_digit(value & 15))
+            out = out + 6
+        else:
+            store(o, out, value)
+            out = out + 1
+        at = at + 1
+    return out
 
 def retain_cursor(s:readbuf, o:mutbuf, at:u64, cursor:u64,
                   offset:u64, identity_size:u64) -> u64:
@@ -477,7 +581,7 @@ def document():
     source = SOURCE
     for symbol, raw in (
         ('UNBOUND_OUTPUT_TAG', b'HIAARU03'), ('BOUND_INPUT_TAG', b'HIAARB01'),
-        ('BOUND_OUTPUT_TAG', b'HIAARO04'), ('CURSOR_ROW_TAG', b'HIAROW01'),
+        ('BOUND_OUTPUT_TAG', b'HIAARO05'), ('CURSOR_ROW_TAG', b'HIAROW01'),
         ('CURSOR_RETAIN_TAG', b'HIAINS01'),
         ('LOOKUP_INPUT_TAG', b'HIAARQ01'), ('LOOKUP_PARAMETER_TAG', b'HIAQPA01'),
         ('ARTIFACT_ADMISSION_TAG', b'HIAARR01'),
@@ -486,6 +590,10 @@ def document():
         ('CURSOR_ARTIFACT_FIRST', b'{"artifa'), ('CURSOR_ARTIFACT_LAST', b'ct":'),
         ('CURSOR_OFFSET_FIRST', b',"offset'), ('CURSOR_OFFSET_LAST', b'":'),
         ('CURSOR_PREFIX', b'page-'),
+        ('CONTENT_FIRST', b',"conten'), ('CONTENT_LAST', b't":"'),
+        ('ENCODING_FIRST', b'","encod'), ('ENCODING_LAST', b'ing":"'),
+        ('NEXT_CURSOR_FIRST', b'","next_'), ('NEXT_CURSOR_LAST', b'cursor":'),
+        ('UTF8_LABEL', b'utf8'), ('BASE64_LABEL', b'base64'),
     ):
         source = source.replace(symbol, str(int.from_bytes(raw, 'little')))
     source += LINKER_SOURCE[LINKER_SOURCE.index('\ndef copy_bytes('):]

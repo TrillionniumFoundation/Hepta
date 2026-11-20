@@ -743,8 +743,6 @@ class HIAAgentService:
         from .hia_native_helpers import pinned_agent_read_page_executable
 
         ref = args["artifact"]
-        retained = b''
-        next_offset = None
         executable = pinned_agent_read_page_executable()
         if executable is not None and uses_native_store(self.store):
             pager = installed_agent_read_page(os.environ[SELECTOR])
@@ -752,8 +750,11 @@ class HIAAgentService:
             with capture_retained_page(self.store, ref, native_record=admit_record) as captured:
                 cursor, row = pager.lookup_captured_cursor(
                     self.store.db, args.get("cursor"), executable)
-                encoding, content, next_cursor, retained = pager.read_captured_bound_page(
+                result, retained = pager.read_captured_bound_page(
                     captured, ref, cursor, row, args.get("max_bytes"), executable)
+            if retained:
+                self.store.db.cursor_retain_frame(retained)
+            return result
         elif executable is not None and self.store._artifact_code is not None:
             with capture_retained_page(self.store, ref) as captured:
                 native = _native_agent_identity()
@@ -777,9 +778,7 @@ class HIAAgentService:
                 encoding, content, next_offset = self._reference_read_page(data, offset, limit)
                 next_cursor = ("page-" + digest({"artifact": ref, "offset": next_offset})
                                if next_offset is not None else None)
-        if retained:
-            self.store.db.cursor_retain_frame(retained)
-        elif next_offset is not None:
+        if next_offset is not None:
             self.store.cursor_retain(next_cursor, ref["id"], ref["sha256"], next_offset)
         native = _native_agent_identity()
         if native is not None:

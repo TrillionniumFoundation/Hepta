@@ -8,7 +8,7 @@ import struct
 import subprocess
 
 from .hia_agent_store import (
-    MAX_ARTIFACT_BYTES, _agent_resource_path, canonical_digest, keys, reject, wire,
+    MAX_ARTIFACT_BYTES, _agent_resource_path, canonical_digest, decode_data, keys, reject, wire,
 )
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
@@ -98,9 +98,9 @@ class NativeAgentReadPage(NativeHiaJsonImage):
         header = REQUEST.pack(b'HIAARR01', len(identity), len(uri))
         with sealed_reference_bytes(header, digest.encode('ascii'), identity, uri, row or b'') as request:
             output = self._standalone_page(executable, request)
-        if len(output) != REQUEST.size:
+        if len(output) != 40 or any(output[24:]):
             raise ValueError('invalid HIA Agent retained artifact admission')
-        decision, offset, extent = struct.unpack('<3Q', output)
+        decision, offset, extent = struct.unpack_from('<3Q', output)
         if (decision, offset, extent) == (1, 0, 0):
             reject('E_HIA_ARTIFACT_IDENTITY', 'artifact reference was not issued in this runtime namespace')
         if decision != 0 or row is None or not 176 <= offset <= len(row) or extent > len(row) - offset:
@@ -125,19 +125,26 @@ class NativeAgentReadPage(NativeHiaJsonImage):
         output = self._captured_page(executable, fd, header.ljust(BOUND_METADATA_BYTES, b'\0') + reference)
         if output == b'HIAARU03' + bytes(32):
             reject('E_HIA_CURSOR', 'cursor is not bound to this exact artifact')
-        if len(output) < BOUND_RESPONSE.size + RESPONSE.size:
+        if len(output) < BOUND_RESPONSE.size:
             raise ValueError('invalid HIA Agent bounded page response')
-        tag, offset, limit, retain_size = BOUND_RESPONSE.unpack_from(output)
-        if tag != b'HIAARO04' or retain_size not in (0, 277 + len(identity)):
+        tag, next_offset, receipt_size, retain_size = BOUND_RESPONSE.unpack_from(output)
+        end = BOUND_RESPONSE.size + receipt_size
+        if (tag != b'HIAARO05' or retain_size not in (0, 277 + len(identity))
+                or end + retain_size != len(output)):
             raise ValueError('invalid HIA Agent bounded page response tag or extent')
-        self._validate_window(size, offset, limit)
-        end = len(output) - retain_size
-        page = output[BOUND_RESPONSE.size:end]
-        encoding, content, next_offset, next_cursor = self._decode_page(
-            page, len(page), size, offset, limit, CURSOR_BYTES, b'HIAARO02')
-        if (next_offset is None) != (retain_size == 0):
+        result = decode_data(output[BOUND_RESPONSE.size:end])
+        keys(result, ('artifact', 'content', 'encoding', 'next_cursor'), label='native page result')
+        if (result['artifact'] != ref or result['encoding'] not in ('utf8', 'base64')
+                or type(result['content']) is not str):
+            raise ValueError('invalid HIA Agent bounded page receipt')
+        cursor = result['next_cursor']
+        if retain_size:
+            if (next_offset >= size or type(cursor) is not str or not cursor.startswith('page-')
+                    or not canonical_digest(cursor[5:])):
+                raise ValueError('invalid HIA Agent bounded page cursor')
+        elif next_offset != END_OF_ARTIFACT or cursor is not None:
             raise ValueError('HIA Agent page omitted its durable cursor frame')
-        return encoding, content, next_cursor, output[end:]
+        return result, output[end:]
 
     def _captured_page(self, executable, fd, header):
         import fcntl
