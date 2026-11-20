@@ -74,6 +74,8 @@ SQLITE_SNAPSHOT_SDIST_FILES = (
     'examples/hia_bootstrap/sqlite_pager_adapters.hepta',
     'examples/hia_bootstrap/nominal_packet_adapter.hepta',
     'examples/hia_bootstrap/nominal_constructor_transport_adapters.hepta',
+    'examples/hia_bootstrap/nominal_constructor_transport_tail.hepta',
+    'examples/hia_bootstrap/nominal_constructor_publication_adapters.hepta',
     'examples/hia_bootstrap/sqlite_component_adapters.hepta',
     'examples/hia_bootstrap/sqlite_migration_adapters.hepta',
     'examples/hia_bootstrap/sqlite_pager_stream.hepta',

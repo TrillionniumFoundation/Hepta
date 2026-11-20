@@ -18,7 +18,11 @@ ADAPTER = 'tools/hia_nominal_constructor.S'
 PUBLICATION_ADAPTER = 'tools/hia_core_edit_publish_program.S'
 ASSEMBLY_ADAPTER = 'tools/hia_core_edit_publish_assembly.S'
 DRIVER = 'tools/build_hia_nominal_constructor.py'
-TRANSPORT_TEMPLATES = 'examples/hia_bootstrap/nominal_constructor_transport_adapters.hepta'
+TRANSPORT_TEMPLATES = {
+    'constructor': 'examples/hia_bootstrap/nominal_constructor_transport_adapters.hepta',
+    'constructor-tail': 'examples/hia_bootstrap/nominal_constructor_transport_tail.hepta',
+    'publication': 'examples/hia_bootstrap/nominal_constructor_publication_adapters.hepta',
+}
 TRANSPORT_ROLES = (ADAPTER, PUBLICATION_ADAPTER, ASSEMBLY_ADAPTER)
 NOMINAL_IMAGE_LABELS = {'owner': 'core_nominal_owner', 'render': 'core_nominal_render',
                         'nominal-json': 'core_nominal_codec'}
@@ -55,7 +59,7 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
     compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
     admitted = admit_cold_build(compiler_body, cold_body)
     inputs = {name: (ROOT / name).read_bytes()
-              for name in (*COMPONENTS.values(), EMBED_SOURCE, TRANSPORT_TEMPLATES, *TRANSPORT_ROLES, DRIVER)}
+              for name in (*COMPONENTS.values(), EMBED_SOURCE, *TRANSPORT_TEMPLATES.values(), *TRANSPORT_ROLES, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in inputs.items()):
         raise ValueError('constructor source differs from admitted cold build')
 
@@ -67,9 +71,12 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
         admit_compile_receipt(receipt, compiler_bytes=compiler_body,
                               source_bytes=inputs[filename], image_bytes=body)
         images[label], checks[path] = body, body
-    template = build_embedder(output, compiler, inputs[TRANSPORT_TEMPLATES], label='constructor-adapters')
-    objects = [load_static_object(template, role, inputs[adapter])
-               for role, adapter in enumerate(TRANSPORT_ROLES)]
+    templates = {name: build_embedder(output, compiler, inputs[path], label=f'{name}-adapters')
+                 for name, path in TRANSPORT_TEMPLATES.items()}
+    objects = [load_static_object(templates['constructor'], 0, inputs[ADAPTER],
+                                  continuations=(templates['constructor-tail'],))]
+    objects.extend(load_static_object(templates['publication'], role, inputs[adapter])
+                   for role, adapter in enumerate(TRANSPORT_ROLES[1:], 1))
     embedder = build_embedder(output, compiler, inputs[EMBED_SOURCE])
     embedded = {**NOMINAL_IMAGE_LABELS, 'types': 'types_image', 'admit': 'function_admit',
                 'records': 'function_records', 'terms': 'function_terms',
