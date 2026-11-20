@@ -745,3 +745,7 @@ def build_optimized_native(base, candidate, output, *, policy=None, clang="clang
                                         "compiler": native["toolchain"]["sha256"], "target": native["target"]}),
             "claims": {"unverified_candidate_published": False, "final_artifact_bound": True,
                        "performance_qualified": False, "backend_refinement_proved": False}}
+
+
+from .hia_loaded_source import register_loaded_module as _register_loaded_source
+_register_loaded_source(__name__)

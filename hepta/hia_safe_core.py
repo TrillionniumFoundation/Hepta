@@ -1,11 +1,11 @@
 """All-input translation validation for a small, explicit direct-native profile.
 
 The checker independently interprets admitted Core and *final linked machine
-bytes*.  It asks Z3 whether any scalar inputs, caller bytes or ABI state can
+bytes*. It asks whether any scalar inputs, caller bytes or ABI state can
 change the return/abort outcome, caller memory, memory bounds or saved state.
-Only UNSAT for every violation obligation passes. The independent decoder,
-ELF parser, Core model, Z3 and libc/loader contract are a stated trust base;
-this is not a Lean-kernel proof of a complete ISA or the whole HIA language.
+Only UNSAT for every violation obligation passes. A bounded scalar lane uses
+the selected HIA decoder and word solver; the general model uses pinned Z3.
+These models and the loader contract are trusted, not a complete ISA proof.
 """
 from __future__ import annotations
 
@@ -132,6 +132,8 @@ def _checker_source_identity(pair=None):
         ('cnf', 'hia_cnf_native.py', cnf),
     )
     sources = CHECKER_SOURCE_FILES
+    if decoder is not None and cnf is not None:
+        sources += ('hia_optimization.py',)
     if getattr(cnf, '_default_package_binding', None) is not None:
         sources += ('hia_default_native.py',)
     return loaded_checker_identity(__name__, sources, helpers)
@@ -836,6 +838,158 @@ def _reference_artifact_errors(z, core, machine):
             z.Or(ra != ma, z.And(z.Not(ra), rv != mv), rm != mm))
 
 
+def _artifact_report(checked, fn, binding, profile, foreign_exports, identity, solver,
+                     assumptions, counts, reports, started, status, *, complete):
+    subject = {"core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
+               "object_sha256": binding["binding"]["object_sha256"],
+               "final_image_sha256": binding["binding"]["final_image_sha256"],
+               "entry_symbol": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_exports]}
+    checker = {"name": "hepta.hia_safe_core.validate_safe_core_artifact",
+               "source_identity": identity, "solver": solver, "producer_reemission_used": False}
+    return {"schema": SCHEMA, "profile": profile, "ok": status == "smt_validated",
+            "status": status, "complete": complete, "artifact_input_profile": profile,
+            "validation_mode": "independent_supplied_bytes", "subject": subject,
+            "property": ARTIFACT_PROPERTY, "checker": checker,
+            "unproved_obligations": [dict(row) for row in UNPROVED_OBLIGATIONS],
+            "core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
+            "core_schema": checked.as_dict()["schema"], "backend_implementation_sha256": None,
+            "source_identity": identity, "solver": solver, "image_binding": binding["binding"],
+            "function": fn["name"], "foreign_buffer_exports": subject["foreign_buffer_exports"],
+            "model_counts": counts, "obligations": list(reports),
+            "claims": dict(CLAIMS) if complete else {}, "assumptions": list(assumptions),
+            "limits": dict(LIMITS), "elapsed_seconds": time.monotonic() - started}
+
+
+_UNARY_CIRCUIT_WORDS = frozenset({6, 20, 21, 26, 28, 29, 30, 31})
+MACHINE_CIRCUIT_ASSUMPTIONS = [
+    *ASSUMPTIONS[:3],
+    "The loaded Core verifier, ELF binding, HIA machine word projection and native HIA CNF solver are trusted; the model is not a kernel proof of x86 semantics.",
+    *ASSUMPTIONS[4:],
+]
+
+
+def _merge_scalar_observations(machine, core, arguments, return_type):
+    from .hia_cnf_native import CIRCUIT_NODES, WORD_PRODUCT_EXCEEDS
+
+    machine_nodes, machine_return, _ = machine
+    core_nodes, (coverage, traps, returned), _ = core
+    raw_inputs = ((1, 64, 0, 0, 0),) * arguments
+    if machine_nodes[:arguments] != raw_inputs or len(core_nodes) < arguments:
+        raise RuntimeError("invalid native machine circuit input order")
+    nodes = list(machine_nodes)
+    indexes = []
+    by_instruction = {node: index for index, node in enumerate(nodes) if node[0] != 1}
+
+    def append(operation, width, left=0, right=0, immediate=0):
+        node = (operation, width, left, right, immediate)
+        index = by_instruction.get(node)
+        if index is None:
+            index = len(nodes)
+            by_instruction[node] = index
+            nodes.append(node)
+        return index
+
+    for index, (operation, width, left, right, immediate) in enumerate(core_nodes[:arguments]):
+        if operation != 1 or left or right or immediate:
+            raise RuntimeError("invalid native Core circuit input order")
+        indexes.append(index if width == 64 else append(26, width, index))
+    for operation, width, left, right, immediate in core_nodes[arguments:]:
+        if operation == 1:
+            raise RuntimeError("native Core circuit introduced a second input scope")
+        if operation != 2:
+            left = indexes[left]
+            if operation not in _UNARY_CIRCUIT_WORDS:
+                right = indexes[right]
+            if operation in (11, WORD_PRODUCT_EXCEEDS):
+                immediate = indexes[immediate]
+        indexes.append(append(operation, width, left, right, immediate))
+    original_return = indexes[returned[0]]
+    if nodes[original_return][1] < 64:
+        extension = 31 if return_type.startswith('i') else 30
+        original_return = append(extension, 64, original_return)
+    no_trap = append(2, 8)
+    if len(nodes) > CIRCUIT_NODES:
+        return None
+    known, required = (indexes[index] for index in coverage)
+    outcomes = [(indexes[traps[0]], no_trap), (original_return, machine_return)]
+    # Identical DAG nodes cannot differ, including wide products that would
+    # otherwise spend the entire bit-blasting budget on a reflexive check.
+    return (nodes, [] if known == required else [(known, required)], None), (
+        nodes, [(left, right) for left, right in outcomes if left != right], None)
+
+
+def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
+                                pair, identity, started, deadline):
+    from .hia_cnf_native import SAT
+    from .hia_optimization import _native_circuit_decision, _native_solver_identity
+
+    decoder, cnf = pair
+    if decoder is None or cnf is None or len(blocks) != 1:
+        return None
+    machine = decoder.project_scalar_values(
+        binding, len(fn["params"]), allow_variable_shifts=profile_version >= 3,
+        allow_unsigned_multiply=profile_version >= 4, allow_unsigned_divide=profile_version >= 5,
+        allow_signed=profile_version >= 6)
+    if machine is None:
+        return None
+    # The reference evaluates the separately verified Core input, never the
+    # producer's lowering or a second copy of the supplied machine circuit.
+    graph = (blocks, tuple(blocks))
+    core = cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False)
+    if core is None:
+        return None
+    circuits = _merge_scalar_observations(machine, core, len(fn["params"]), fn["returns"][0])
+    if circuits is None:
+        return None
+    solver = dict(_native_solver_identity(cnf), version="machine-word-circuit-cnf.v1",
+                  decoder_sha256=decoder.image_sha256)
+    counts = dict(machine[2], core_terminal_paths=1)
+    reports = []
+    counterexample = None
+    for index, (name, expected) in enumerate(ARTIFACT_OBLIGATIONS):
+        before = time.monotonic()
+        if index < 3:
+            # Entry RSP = 0x10008 makes the caller contract nonvacuous.
+            # The HIA projector checked stack access and ABI for every
+            # caller stack and word satisfying the contract.
+            frame = json.dumps([name, solver, binding["binding"], counts],
+                               separators=(',', ':'), sort_keys=True).encode()
+            result, discharge = expected, {"method": "native_hia_bounded_machine_projection"}
+        else:
+            decision = _native_circuit_decision(cnf, circuits[index - 3], deadline)
+            if decision is None:
+                return None
+            verdict, model, discharge, frame = decision
+            result = "sat" if verdict == SAT else "unsat"
+            if verdict == SAT:
+                # The HIA solver has independently evaluated these ABI
+                # words against the original, un-bit-blasted circuit.
+                words = [(model >> (1 + 64 * word)) & ((1 << 64) - 1)
+                         for word in range(len(fn["params"]))]
+                counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
+        reports.append({"name": name, "result": result, "expected": expected,
+                        "query_sha256": sha256(frame).hexdigest(),
+                        "elapsed_seconds": time.monotonic() - before, "native_cnf": discharge})
+        if counterexample is not None:
+            break
+
+    packaged = getattr(cnf, '_default_package_binding', None)
+    if packaged is not None:
+        packaged.check_files()
+    else:
+        pair = _selected_machine_proof()
+    require(identity == _checker_source_identity(pair), "checker or solver source changed during validation")
+    require(time.monotonic_ns() < deadline, "validation deadline expired; no completed proof")
+    status = "smt_validated" if counterexample is None else "refuted"
+    validation = _artifact_report(checked, fn, binding, profile, (), identity, solver,
+                                  MACHINE_CIRCUIT_ASSUMPTIONS, counts, reports, started / 1_000_000_000,
+                                  status, complete=counterexample is None)
+    if counterexample is not None:
+        raise SafeCoreRejected(counterexample["obligation"] + ": sat", counterexample=counterexample,
+                               validation=validation)
+    return validation
+
+
 @bind_input_execution
 def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
                                 foreign_buffer_exports=(), timeout_ms=15000, query_directory=None,
@@ -857,8 +1011,18 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     pair = _selected_machine_proof(observe=True)
     decoder, cnf = pair
     identity = _checker_source_identity(pair)
-    checker_identity = identity
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
+    # Explicit query retention still uses the original replayable SMT-LIB
+    # format. Never synthesize legacy query files from a different proof.
+    if decoder is not None and cnf is not None and not foreign_buffer_exports and query_directory is None:
+        started = time.monotonic_ns()
+        deadline = started + timeout_ms * 1_000_000
+        native = _try_native_scalar_artifact(checked, fn, blocks, binding, artifact_profile,
+                                             profile_version, pair, identity, started, deadline)
+        if native is not None:
+            return native
+        timeout_ms = (deadline - time.monotonic_ns()) // 1_000_000
+        require(timeout_ms > 0, "validation deadline expired; no completed proof")
     try:
         z = importlib.import_module("z3")
     except ImportError as exc:
@@ -913,29 +1077,12 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     reports = []
 
     def report(status, *, complete):
-        subject = {"core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
-                   "object_sha256": sha256(object_bytes).hexdigest(),
-                   "final_image_sha256": sha256(final_bytes).hexdigest(),
-                   "entry_symbol": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports]}
-        checker = {"name": "hepta.hia_safe_core.validate_safe_core_artifact",
-                   "source_identity": checker_identity, "solver": solver_identity,
-                   "producer_reemission_used": False}
-        return {"schema": SCHEMA, "profile": artifact_profile, "ok": status == "smt_validated",
-                "status": status, "complete": complete,
-                "artifact_input_profile": artifact_profile,
-                "validation_mode": "independent_supplied_bytes", "subject": subject,
-                "property": ARTIFACT_PROPERTY,
-                "checker": checker, "unproved_obligations": [dict(row) for row in UNPROVED_OBLIGATIONS],
-                "core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
-                "core_schema": checked.as_dict()["schema"], "backend_implementation_sha256": None,
-                "source_identity": identity, "solver": solver_identity, "image_binding": binding["binding"],
-                "function": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
-                "model_counts": {"decoded_instructions": len(machine.code), "symbolic_machine_steps": machine.steps,
-                                 "machine_terminal_paths": len(observed), "core_terminal_paths": len(reference),
-                                 "maximum_observed_stack_bytes": -machine.minimum_stack_offset},
-                "obligations": list(reports), "claims": dict(CLAIMS) if complete else {},
-                "assumptions": list(ASSUMPTIONS), "limits": dict(LIMITS),
-                "elapsed_seconds": time.monotonic() - t.started}
+        counts = {"decoded_instructions": len(machine.code), "symbolic_machine_steps": machine.steps,
+                  "machine_terminal_paths": len(observed), "core_terminal_paths": len(reference),
+                  "maximum_observed_stack_bytes": -machine.minimum_stack_offset}
+        return _artifact_report(checked, fn, binding, artifact_profile, foreign_buffer_exports,
+                                identity, solver_identity, ASSUMPTIONS, counts, reports, t.started,
+                                status, complete=complete)
 
     def check_deadline():
         try:

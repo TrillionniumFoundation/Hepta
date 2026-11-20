@@ -125,6 +125,43 @@ class SafeCoreArtifactTests(unittest.TestCase):
         self.assertEqual(self.image.text_bytes[at:at + 3], b"\x48\x01\xc8")
         return self.mutate_pair(self.image.object_bytes, self.data, at, b"\x48\x29\xc8")
 
+    def test_selected_scalar_elf_proof_checks_actual_bytes_without_host_solver(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the hosted checker must not run on this scalar lane")
+            return real_import(name, *args, **kwargs)
+
+        directory = self.newdir()
+        for typ, op, version in (("u8", "int.mul.wrap", 1), ("u32", "int.sub.wrap", 1),
+                                 ("u64", "int.mul.wrap", 1), ("i32", "int.add.wrap", 6)):
+            with self.subTest(type=typ, operation=op):
+                core = verify_program(arithmetic(op, typ))
+                image = emit_program_machine(core)
+                final = directory / (typ + ".so")
+                compile_program_machine(image, program=core, output=final, linker="ld")
+                with patch("importlib.import_module", side_effect=no_host_solver):
+                    proof = validate_safe_core_artifact(
+                        core, image.object_bytes, final.read_bytes(), profile_version=version)
+                self.assertTrue(proof["complete"])
+                self.assertEqual(proof["solver"]["version"], "machine-word-circuit-cnf.v1")
+                self.assertEqual([row["result"] for row in proof["obligations"]],
+                                 ["sat", "unsat", "unsat", "unsat", "unsat"])
+        obj, final = self.wrong_addition()
+        with patch("importlib.import_module", side_effect=no_host_solver), self.assertRaises(SafeCoreRejected) as caught:
+            validate_safe_core_artifact(self.core, obj, final)
+        error = caught.exception
+        self.assertEqual(error.validation["status"], "refuted")
+        self.assertFalse(error.validation["complete"])
+        self.assertEqual(error.validation["subject"]["final_image_sha256"], sha256(final).hexdigest())
+        left, right = error.counterexample["abi_words"]
+        self.assertNotEqual((left + right) & 0xffffffff, (left - right) & 0xffffffff)
+
     def custom_leaf(self, code, name="leaf"):
         # Retain the established two-function, two-relocation artifact shape.
         code.ret()
