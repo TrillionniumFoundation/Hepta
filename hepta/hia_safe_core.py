@@ -110,18 +110,31 @@ CHECKER_SOURCE_FILES = (
 ) + INPUT_SOURCE_FILES
 
 
-def _checker_source_identity():
-    """Identify the consumer models separately from producer provenance."""
+def _selected_machine_proof(*, observe=False):
     from .hia_cnf_native import selected_cnf
-    from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
+    from .hia_default_native import default_safe_core_pair
     from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
 
+    decoder, cnf = selected_safe_core_x64_decode(), selected_cnf()
+    if decoder is None and cnf is None:
+        return default_safe_core_pair(observe=observe)
+    return decoder, cnf
+
+
+def _checker_source_identity(pair=None):
+    """Identify the consumer models separately from producer provenance."""
+    from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
+
+    decoder, cnf = _selected_machine_proof() if pair is None else pair
     helpers = (
-        ('x64_decoder', 'hia_safe_core_x64_decode_native.py', selected_safe_core_x64_decode()),
+        ('x64_decoder', 'hia_safe_core_x64_decode_native.py', decoder),
         ('elf_inventory', 'hia_safe_core_elf_inventory_native.py', selected_safe_core_elf_inventory()),
-        ('cnf', 'hia_cnf_native.py', selected_cnf()),
+        ('cnf', 'hia_cnf_native.py', cnf),
     )
-    return loaded_checker_identity(__name__, CHECKER_SOURCE_FILES, helpers)
+    sources = CHECKER_SOURCE_FILES
+    if getattr(cnf, '_default_package_binding', None) is not None:
+        sources += ('hia_default_native.py',)
+    return loaded_checker_identity(__name__, sources, helpers)
 
 
 class SafeCoreRejected(ValueError):
@@ -531,10 +544,10 @@ def _reference_core_graph(blocks):
 
 
 class _Theory:
-    def __init__(self, z, timeout_ms, *, widths=WIDTHS):
+    def __init__(self, z, timeout_ms, *, widths=WIDTHS, core_model=None):
         from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
 
-        self.core_model = selected_safe_core_x64_decode()
+        self.core_model = selected_safe_core_x64_decode() if core_model is None else core_model
         self.z, self.ctx = z, z.Context()
         self.widths = dict(widths)
         self.started = time.monotonic()
@@ -834,8 +847,6 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     noncanonical encoding only when the independent model proves all obligations;
     producer receipts and matching hashes never substitute for that computation.
     """
-    from .hia_cnf_native import selected_cnf
-
     require(type(object_bytes) is bytes and type(final_bytes) is bytes,
             "object and final image must be immutable bytes, not mutable buffers or subclasses")
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000, "timeout must be 100..60000 milliseconds")
@@ -843,7 +854,9 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     _, artifact_profile, widths = _profile_configuration(profile_version)
     fn, blocks = _profile(checked, foreign_buffer_exports=foreign_buffer_exports,
                          profile_version=profile_version)
-    identity = _checker_source_identity()
+    pair = _selected_machine_proof(observe=True)
+    decoder, cnf = pair
+    identity = _checker_source_identity(pair)
     checker_identity = identity
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
     try:
@@ -851,12 +864,11 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     except ImportError as exc:
         raise SafeCoreRejected("pinned z3-solver is unavailable; no proof result") from exc
     solver_identity = _solver_identity(z)
-    cnf = selected_cnf()
     retained = None
     if query_directory is not None:
         retained = Path(query_directory).absolute()
         retained.mkdir(parents=False, exist_ok=False)
-    t = _Theory(z, timeout_ms, widths=widths)
+    t = _Theory(z, timeout_ms, widths=widths, core_model=decoder)
     t.arguments(fn)
     extent = None if not foreign_buffer_exports else foreign_buffer_exports[0][1]
     reference = t.reference(fn, blocks, extent)
@@ -864,7 +876,7 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
                        allow_variable_shifts=profile_version >= 3,
                        allow_unsigned_multiply=profile_version >= 4,
                        allow_unsigned_divide=profile_version >= 5,
-                       allow_signed=profile_version >= 6)
+                       allow_signed=profile_version >= 6, native_model=decoder)
     observed = machine.run()
     # The abstract stack is keyed by exact offsets.  Foreign data is a separate
     # array only under this explicit disjointness premise; numeric ABI guards
@@ -976,7 +988,13 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
             raise SafeCoreRejected(name + ": " + result + (" (" + solver.reason_unknown() + ")" if result == "unknown" else ""),
                                    counterexample=counterexample,
                                    validation=report("refuted" if counterexample is not None else "unknown", complete=False))
-    require(identity == _checker_source_identity() and solver_identity == _solver_identity(z),
+    packaged_proof = getattr(cnf, '_default_package_binding', None)
+    if packaged_proof is not None:
+        packaged_proof.check_files()
+    else:
+        pair = _selected_machine_proof()
+    require(identity == _checker_source_identity(pair)
+            and solver_identity == _solver_identity(z),
             "checker or solver source changed during validation")
     check_deadline()
     return report("smt_validated", complete=True)
@@ -1015,6 +1033,8 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
                 "final-image validation did not complete")
         require(report["source_identity"] == source_identity == _source_identity(),
                 "producer or checker changed before final publication")
+        require(report["checker"]["source_identity"] == _checker_source_identity(),
+                "checker changed before final publication")
         if linker_identity is not None:
             require(verified_linker_matches(linker_identity) and
                     compilation["toolchain"] == selected.toolchain(linker_identity),
@@ -1022,7 +1042,9 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
         published = publish_verified(candidate, destination, data)
         try:
             verify_published(candidate, destination, data)
-            require(report["source_identity"] == _source_identity(), "checker changed before final publication")
+            require(report["source_identity"] == _source_identity()
+                    and report["checker"]["source_identity"] == _checker_source_identity(),
+                    "checker changed during final publication")
             if linker_identity is not None:
                 require(verified_linker_matches(linker_identity), "verified HIA linker changed during publication")
         except BaseException:

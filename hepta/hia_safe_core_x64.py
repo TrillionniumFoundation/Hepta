@@ -267,12 +267,13 @@ class Executor:
     signed_profile = False
 
     def __init__(self, theory, binding, words, loan, *, allow_variable_shifts=False,
-                 allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
+                 allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False,
+                 native_model=None):
         self.t, self.z, self.ctx = theory, theory.z, theory.ctx
         from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
 
         self.signed_profile = allow_signed
-        self.native_model = selected_safe_core_x64_decode()
+        self.native_model = selected_safe_core_x64_decode() if native_model is None else native_model
         profile = dict(allow_variable_shifts=allow_variable_shifts,
                        allow_unsigned_multiply=allow_unsigned_multiply,
                        allow_unsigned_divide=allow_unsigned_divide, allow_signed=allow_signed)
