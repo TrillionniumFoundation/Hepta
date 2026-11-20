@@ -137,6 +137,22 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
                 artifact_directory=artifacts)
             libraries[label] = (library, core.as_dict()["functions"][0]["name"])
             save()
+        # Both explicit wide candidates retain the same Core/ABI. The builder
+        # derives required features from final instructions and freshly probes
+        # every CPU in the (already pinned) campaign affinity before publishing.
+        for isa, width in (("avx2", 128), ("avx512", 256)):
+            for kind in ("sum_u8", "all_zero_u8", "copy_u8"):
+                label = kind + "-" + isa + "-" + str(width)
+                core = sources[kind]
+                library = destination / (label + ".so")
+                artifacts = destination / (label + "-artifacts")
+                artifacts.mkdir()
+                report["builds"][label] = build_verified_kernel(
+                    core, library, strategy="simd", simd_isa=isa,
+                    query_directory=destination / (label + "-queries"), timeout_ms=60000,
+                    artifact_directory=artifacts)
+                libraries[label] = (library, core.as_dict()["functions"][0]["name"])
+                save()
         # The established direct foreign-buffer ABI returns packed u32. Keep
         # its original wrapper/checks and narrow only the final Core return.
         # All measured counts and sums are <2**32; invalid-input contracts
@@ -183,11 +199,21 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
             compiler_sha256=sha256(compiler.read_bytes()).hexdigest())
         driver = destination / "driver"
         run([tools["cc"], "-O3", "-std=c11", str(source / "driver.c"), "-ldl", "-o", str(driver)], "build-driver")
+        runtime_probe = destination / "runtime-identity"
+        run([tools["cc"], "-O2", "-march=x86-64", "-std=c11", str(source / "runtime_identity.c"),
+             "-ldl", "-o", str(runtime_probe)], "build-runtime-identity")
+        runtime = run([runtime_probe], "runtime-identity").splitlines()
+        if len(runtime) != 3 or not runtime[2].isdigit():
+            raise RuntimeError("incomplete runtime/IFUNC identity")
+        libc_path = Path(runtime[1]).resolve(strict=True)
+        report["runtime_dependency"] = {"glibc_version": runtime[0], "libc_path": str(libc_path),
+            "libc_sha256": sha256(libc_path.read_bytes()).hexdigest(),
+            "memcpy_ifunc_offset": int(runtime[2]), "binding": "same-affinity baseline-ISA subprocess"}
         c_library, rust_library = destination / "reference-c.so", destination / "reference-rust.so"
         run([tools["cc"], *protocol["compiler_flags_c"], str(source / "reference.c"), "-o", str(c_library)], "build-c")
         run([tools["rustc"], *protocol["compiler_flags_rust"], str(source / "reference.rs"), "-o", str(rust_library)], "build-rust")
         all_libraries = [v[0] for v in [*libraries.values(), *direct_spans.values()]]
-        for path in [driver, c_library, rust_library, *all_libraries]:
+        for path in [driver, runtime_probe, c_library, rust_library, *all_libraries]:
             report.setdefault("binaries", {})[path.name] = {"sha256": sha256(path.read_bytes()).hexdigest(),
                                                            "bytes": path.stat().st_size}
         if shutil.which("objdump"):
@@ -202,9 +228,13 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
             for length in protocol["lengths"]:
                 cases.append((mode, "verified-sse2-64", *libraries[kind], length))
                 cases.append((mode, "verified-sse2-16", *libraries[kind + "-sse2-16"], length))
+                cases.append((mode, "verified-avx2-128", *libraries[kind + "-avx2-128"], length))
+                cases.append((mode, "verified-avx512-256", *libraries[kind + "-avx512-256"], length))
                 cases.append((mode, "direct-packed-u32", *direct_spans[kind], length))
                 for arm, library in (("c", c_library), ("rust", rust_library)):
                     cases.append((mode, arm, library, "reference_" + mode, length))
+        if len(cases) != protocol["cases"]:
+            raise RuntimeError("complete benchmark inventory differs from the fixed protocol")
         random.Random(20261119).shuffle(cases)
         report["case_order"] = [{"mode": mode, "arm": arm, "length": length}
                                  for mode, arm, _, _, length in cases]
@@ -226,6 +256,10 @@ def benchmark(output, *, cpu, cc="gcc", rustc="rustc"):
         if run(["git", "rev-parse", "HEAD"], "source-commit-after", 10).strip() != report["source_commit"] or \
                 run(["git", "status", "--porcelain=v1", "--untracked-files=no"], "source-status-after", 10).strip():
             raise RuntimeError("tracked source changed during the campaign")
+        if sha256(libc_path.read_bytes()).hexdigest() != report["runtime_dependency"]["libc_sha256"]:
+            raise RuntimeError("runtime dependency changed during the campaign")
+        if run([runtime_probe], "runtime-identity-after").splitlines() != runtime:
+            raise RuntimeError("runtime IFUNC choice changed during the campaign")
         report.update(ok=True, status="completed")
     except Exception as exc:
         report.update(status="failed", error={"type": type(exc).__name__, "message": str(exc)})

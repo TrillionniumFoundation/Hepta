@@ -1,4 +1,4 @@
-"""Opt-in, directly encoded SSE2 implementations of three checked Core loops.
+"""Opt-in, directly encoded SIMD implementations of three checked Core loops.
 
 The independently implemented consumer is ``hia_verified_simd_check``.  An
 emitted object is deliberately not an execution approval: the final linked
@@ -111,17 +111,26 @@ class VerifiedSIMDMachine:
     object_bytes: bytes
     abi: str
     vector_unroll: int = 1
+    isa: str = "sse2"
+    vector_bytes: int = 16
 
 
-def emit_verified_simd(document, *, unroll=4):
+def emit_verified_simd(document, *, unroll=4, isa="sse2"):
     """Emit a candidate only for an independently recognized Core recurrence."""
     from .hia_verified_simd_check import recognize_simd_core, VerifiedSIMDRejected
+    if type(isa) is not str or isa not in ("sse2", "avx2", "avx512"):
+        raise VerifiedSIMDRejected("SIMD ISA must be exactly sse2, avx2 or avx512")
     if type(unroll) is not int or unroll not in (1, 4):
         raise VerifiedSIMDRejected("SIMD unroll must be exactly 1 or 4")
+    if isa != "sse2" and unroll != 4:
+        raise VerifiedSIMDRejected("AVX2 and AVX512 candidates require unroll 4")
     checked = verify_program(document)
     kind, export = recognize_simd_core(checked)
     code = Code(move_immediate="mov32_if_exact", alu_immediate="imm8_if_exact")
-    if kind == "copy_u8":
+    if isa != "sse2":
+        from .hia_verified_simd_wide import emit_wide_simd
+        emit_wide_simd(code, kind, isa)
+    elif kind == "copy_u8":
         _copy(code, unroll)
     else:
         _reduce(code, kind, unroll)
@@ -129,7 +138,8 @@ def emit_verified_simd(document, *, unroll=4):
     obj = write_elf_object(text, [{"name": export, "offset": 0, "size": len(text), "global": True}], relocations)
     abi = ("u64(dst, dst_extent, src, src_extent, count)" if kind == "copy_u8"
            else "u64(src, src_extent, count)")
-    return VerifiedSIMDMachine(kind, export, checked.sha256, text, obj, abi, unroll)
+    return VerifiedSIMDMachine(kind, export, checked.sha256, text, obj, abi, unroll,
+                               isa, {"sse2": 16, "avx2": 32, "avx512": 64}[isa])
 
 
 def _abort(code):

@@ -26,7 +26,8 @@ from .native_tool_identity import digest_executable
 
 MAX_SIMD_IMAGE_BYTES = 8 * 1024 * 1024
 SIMD_SOURCE_FILES = ("hia_verified_kernel.py", "hia_verified_simd.py",
-                     "hia_machine_x64.py", "hia_machine_elf.py")
+                     "hia_verified_simd_wide.py", "hia_machine_x64.py", "hia_machine_elf.py",
+                     "hia_verified_cpu.py")
 
 
 class VerifiedKernelRejected(ValueError):
@@ -70,15 +71,19 @@ def _read_simd_image(path):
         raise VerifiedKernelRejected("linked image is unavailable or not an ordinary file") from exc
 
 
-def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, simd_unroll=4):
+def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, simd_unroll=4,
+                           simd_isa="sse2"):
     """Choose by admitted source shape, before linking or asking the solver."""
     from .hia_verified_scalar import emit_verified_scalar, VerifiedScalarRejected
     from .hia_verified_simd import emit_verified_simd
     from .hia_verified_simd_check import VerifiedSIMDRejected
+    from .hia_verified_cpu import resolve_target_isa
 
     if strategy not in {"auto", "scalar", "simd", "checked"}:
         raise VerifiedKernelRejected("unknown kernel strategy")
     _require(type(simd_unroll) is int and simd_unroll in (1, 4), "SIMD unroll must be exactly 1 or 4")
+    _require(type(simd_isa) is str and simd_isa in ("sse2", "avx2", "avx512", "native"),
+             "SIMD ISA must be sse2, avx2, avx512 or native")
     checked = verify_program(document)
     refusals = []
     if strategy in {"auto", "scalar"} and foreign_extent is None:
@@ -90,7 +95,8 @@ def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, si
             refusals.append({"strategy": "scalar", "reason": str(exc)})
     if strategy in {"auto", "simd"} and foreign_extent is None:
         try:
-            return checked, "simd", emit_verified_simd(checked, unroll=simd_unroll), refusals
+            target = resolve_target_isa(simd_isa)
+            return checked, "simd", emit_verified_simd(checked, unroll=simd_unroll, isa=target), refusals
         except VerifiedSIMDRejected as exc:
             if strategy == "simd":
                 raise
@@ -107,12 +113,13 @@ def select_verified_kernel(document, *, strategy="auto", foreign_extent=None, si
 
 def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=None,
                           linker="ld", timeout_ms=15000, query_directory=None,
-                          artifact_directory=None, simd_unroll=4):
+                          artifact_directory=None, simd_unroll=4, simd_isa="sse2"):
     """Build privately and publish exactly the successfully validated ELF bytes."""
     producer_identity = (_simd_producer_identity()
                          if strategy in {"auto", "simd"} and foreign_extent is None else None)
     checked, selected, image, refusals = select_verified_kernel(
-        document, strategy=strategy, foreign_extent=foreign_extent, simd_unroll=simd_unroll)
+        document, strategy=strategy, foreign_extent=foreign_extent, simd_unroll=simd_unroll,
+        simd_isa=simd_isa)
     if artifact_directory is not None:
         directory = Path(artifact_directory)
         if not directory.is_dir() or directory.is_symlink():
@@ -120,6 +127,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
         selection = {"selected_strategy": selected, "selection_refusals": refusals,
                      "core_sha256": checked.sha256,
                      "simd_unroll": simd_unroll if selected == "simd" else None,
+                     "simd_isa": image.isa if selected == "simd" else None,
                      "object_sha256": sha256(image.object_bytes).hexdigest() if image is not None else None}
         with (directory / "selection.json").open("x") as stream:
             json.dump(selection, stream, sort_keys=True, indent=2)
@@ -168,10 +176,20 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
                 timeout_ms=timeout_ms, query_directory=query_directory)
             if validation.get("ok") is not True or validation.get("complete") is not True:
                 raise VerifiedKernelRejected("final-image validation did not complete")
+            from .hia_verified_cpu import require_host_isa
+            # The requirements come from independently decoded instructions,
+            # not the producer's requested ISA or a previous build receipt.
+            features = validation.get("required_cpu_features")
+            mask = validation.get("required_xcr0_mask")
+            _require(type(features) is list and type(mask) is int,
+                     "independent decoder did not provide ISA requirements")
+            cpu_admission = require_host_isa(features, mask)
             def recheck():
                 _require(producer_identity == _simd_producer_identity() and
                          tool_digest == digest_executable(tool),
                          "producer or linker changed during build")
+                _require(cpu_admission["affinity"] == sorted(os.sched_getaffinity(0)),
+                         "CPU affinity changed during build")
                 identity = validation["checker"]["source_identity"]
                 for filename, expected in identity.items():
                     if sha256(Path(__file__).with_name(filename).read_bytes()).hexdigest() != expected:
@@ -192,6 +210,7 @@ def build_verified_kernel(document, output, *, strategy="auto", foreign_extent=N
             "object_sha256": sha256(image.object_bytes).hexdigest(),
             "text_sha256": sha256(image.text_bytes).hexdigest(),
             "source_identity": producer_identity, "simd_unroll": simd_unroll,
+            "simd_isa": image.isa, "cpu_admission": cpu_admission,
             "toolchain": {"path": str(tool), "sha256": tool_digest,
                           "version": version.stdout.splitlines()[0], "flags": flags},
             "validation": validation, "elapsed_seconds": time.monotonic() - started,

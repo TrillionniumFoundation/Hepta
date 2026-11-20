@@ -1,12 +1,14 @@
-"""Independent final-byte checker for closed SSE2 forward byte recurrences.
+"""Independent final-byte checker for closed x86 SIMD byte recurrences.
 
 This consumer imports neither a machine encoder nor the SIMD producer.  It
 decodes every text byte, binds the complete linked ELF with the existing strict
 loader checker, recognizes a closed control-flow/ABI shape, and asks the pinned
 solver about initiation, vector/scalar transitions, bounds and termination.
-The induction over successive 64-byte, 16-byte and one-byte chunks is part of
-this explicit trusted Python model; this is not a general x86 or arbitrary-loop
-verifier. The original single-vector loop remains an admitted separate shape.
+The induction over successive four-vector, single-vector and one-byte chunks
+is part of this explicit trusted Python model; this is not a general x86 or
+arbitrary-loop verifier. SSE2, AVX2 and AVX-512 have separate closed profiles.
+Decoded wide instructions declare exact CPU/OS-state requirements; proving
+semantics here does not authorize execution on an unprobed host.
 """
 from __future__ import annotations
 
@@ -21,6 +23,7 @@ import time
 from .hia_program import verify_program
 from .hia_safe_core import _solver_identity
 from .hia_safe_core_elf import bind_final_artifact
+from .hia_verified_simd_wide_x64 import decode_wide_instruction, WideMachineRejected
 
 
 class VerifiedSIMDRejected(ValueError):
@@ -37,7 +40,10 @@ def require(condition, message):
 PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v1"
 UNROLLED_PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v2"
 PARALLEL_ZERO_PROFILE = "hia.closed-forward-byte-loops.sse2.direct-borrowed-u64.v3"
+WIDE_PROFILES = {256: "hia.closed-forward-byte-loops.avx2.direct-borrowed-u64.v1",
+                 512: "hia.closed-forward-byte-loops.avx512.direct-borrowed-u64.v1"}
 SOURCE_FILES = ("hia_verified_simd_check.py", "hia_safe_core.py", "hia_safe_core_elf.py",
+                "hia_verified_simd_wide_x64.py",
                 "elf_shared_abi.py", "hia_program.py", "hia_opcodes.py", "hia_schema.py",
                 "hia_capability_flow.py", "hia_json_preflight.py")
 
@@ -136,6 +142,7 @@ class Instruction:
     op: str
     args: tuple
     size: int
+    cpu_features: tuple = ()
 
 
 def decode_simd(data):
@@ -150,6 +157,14 @@ def decode_simd(data):
             b = data[p:p+n]; p += n
             return b
         first = take(1)[0]
+        if first in (0xc4, 0xc5, 0x62):
+            try:
+                op,args,size,features = decode_wide_instruction(data,begin)
+            except WideMachineRejected as exc:
+                raise VerifiedSIMDRejected(str(exc)) from exc
+            p = begin + size
+            rows.append(Instruction(begin,op,args,size,features))
+            continue
         if first in (0x66, 0xf3):
             rex = 0
             second = take(1)[0]
@@ -236,6 +251,8 @@ def decode_simd(data):
 
 def _structure(rows, kind, binding):
     """Close CFG and its frame condition while leaving data operators to SMT."""
+    if any(r.cpu_features for r in rows):
+        return _structure_wide(rows,kind,binding)
     pos, labels, edges, parts = 0, {}, [], {}
     def take(op, *args):
         nonlocal pos
@@ -349,6 +366,139 @@ def _structure(rows, kind, binding):
     return labels,parts
 
 
+def _structure_wide(rows, kind, binding):
+    """Close the independent AVX2/AVX-512 four-chunk machine profile."""
+    memory_rows=[r for r in rows if r.op in ('vload','vstore') or r.op.endswith('_mem')]
+    widths={r.args[0] for r in memory_rows}
+    require(len(widths)==1 and next(iter(widths)) in (256,512),
+            'one complete wide memory width is required')
+    bits=next(iter(widths)); width=bits//8
+    pos,labels,edges,parts=0,{},[],{}
+    copy=kind=='copy_u8'
+
+    def next_row():
+        nonlocal pos
+        require(pos<len(rows),'missing wide control-flow instruction')
+        row=rows[pos]; pos+=1
+        return row
+
+    def take(op,*args):
+        row=next_row()
+        require(row.op==op and row.args==args,
+                'closed wide control-flow/ABI shape differs at '+str(row.pc))
+        return row
+
+    def label(name):
+        require(pos<len(rows),'missing wide label')
+        labels[name]=rows[pos].pc
+
+    def branch(condition,name):
+        row=next_row()
+        require(row.op=='jcc' and row.args[0]==condition,'closed wide branch condition differs')
+        edges.append((row.args[1],name))
+
+    def jump(name):
+        row=next_row(); require(row.op=='jmp','missing wide backedge')
+        edges.append((row.args[0],name))
+
+    def capture(name,count):
+        nonlocal pos
+        require(pos+count<=len(rows),'missing wide semantic block')
+        parts[name]=rows[pos:pos+count]; pos+=count
+
+    if copy:
+        take('mov',0,8)
+        for extent in (6,1):
+            take('cmp',8,extent); branch(7,'abort')
+        take('test',8,8); branch(4,'done')
+        for pointer,end in ((7,9),(2,10)):
+            take('test',pointer,pointer); branch(4,'abort')
+            take('mov',end,pointer); take('add',end,8); branch(2,'abort')
+        take('cmp',9,2); branch(6,'admitted'); take('cmp',10,7); branch(7,'abort')
+        label('admitted'); take('mov',10,8)
+    else:
+        take('imm',0,0); take('cmp',2,6); branch(7,'abort')
+        take('test',2,2); branch(4,'done')
+        take('test',7,7); branch(4,'abort')
+        take('mov',9,7); take('add',9,2); branch(2,'abort')
+        take('mov',10,2)
+        parts['initialize']=[]
+        for register in (0,2,3,4,5):
+            parts['initialize'].append(take('vpxor',bits,register,register,register))
+
+    chunk_instructions=2 if copy or kind=='sum_u8' else 1
+    label('bulk'); take('alu_imm','cmp',10,width*4)
+    branch(2,'vector' if copy else 'bulk_merge')
+    capture('bulk',chunk_instructions*4)
+    take('alu_imm','add',7,width*4)
+    if copy: take('alu_imm','add',2,width*4)
+    take('alu_imm','sub',10,width*4); jump('bulk')
+    if not copy:
+        label('bulk_merge'); capture('bulk_merge',3)
+    label('vector'); take('alu_imm','cmp',10,width)
+    branch(2,'wide_cleanup' if copy else 'horizontal')
+    capture('vector',chunk_instructions)
+    take('alu_imm','add',7,width)
+    if copy: take('alu_imm','add',2,width)
+    take('alu_imm','sub',10,width); jump('vector')
+    if not copy:
+        label('horizontal'); capture('horizontal',8 if bits==512 else 6)
+    label('wide_cleanup'); take('vzeroupper')
+    label('tail'); take('test',10,10); branch(4,'done'); capture('scalar',2)
+    take('alu_imm','add',7,1)
+    if copy: take('alu_imm','add',2,1)
+    take('alu_imm','sub',10,1); jump('tail')
+    label('done')
+    if kind=='all_zero_u8':
+        take('test',0,0); take('imm',0,0); take('sete',0)
+    take('ret'); label('abort'); take('alu_imm','sub',4,8)
+    call=next_row()
+    require(call.op=='call' and binding['calls']=={call.pc:'abort'},'wide abort relocation differs')
+    take('ud2'); require(pos==len(rows),'unreviewed trailing wide instructions')
+    require(all(target==labels[name] for target,name in edges),'wide branch target changes closed flow')
+
+    packed={'vpxor','vpor','vpand','vpsadbw','vpaddq','vpsubq'}
+    for name,chunks in (('bulk',4),('vector',1)):
+        for chunk in range(chunks):
+            offset=chunk*width
+            group=parts[name][chunk*chunk_instructions:(chunk+1)*chunk_instructions]
+            accumulator=(0,3,4,5)[chunk] if name=='bulk' else 0
+            if copy:
+                require(group[0].op=='vload' and group[0].args==(bits,1,2,offset) and
+                        group[1].op=='vstore' and group[1].args[:3]==(bits,7,offset),
+                        'wide copy must read/write its exact guarded chunk')
+            else:
+                first=group[0]
+                require(first.op.endswith('_mem') and first.op[:-4] in packed and
+                        first.args==(bits,1 if kind=='sum_u8' else accumulator,
+                                    2 if kind=='sum_u8' else accumulator,7,offset),
+                        'folded reduction must read its exact guarded chunk')
+                if kind=='sum_u8':
+                    require(group[1].op in packed and group[1].args==(bits,accumulator,accumulator,1),
+                            'wide sum chunk must preserve the accumulator frame')
+    if not copy:
+        require(all(r.op in packed-{'vpsadbw'} and r.args[0]==bits and r.args[1]==0 and
+                    r.args[2] in (0,3,4,5) and r.args[3] in (0,3,4,5)
+                    for r in parts['bulk_merge']), 'wide merge has unreviewed register effects')
+        for row in parts['horizontal']:
+            require(row.op in packed | {'vextract','vmovq','vpsrldq','add','sub','or','and','xor'},
+                    'unreviewed wide horizontal instruction')
+            if row.op=='vmovq':
+                require(row.args[0] in (0,9),'wide horizontal writes nonvolatile GPR state')
+            elif row.op in ('add','sub','or','and','xor'):
+                require(row.args[0] in (0,9),'wide horizontal writes nonvolatile GPR state')
+    require(parts['scalar'][0].op=='load8' and parts['scalar'][0].args==(9,2 if copy else 7,0),
+            'wide tail must read its exact guarded byte')
+    if copy:
+        require(parts['scalar'][1].op=='store8' and parts['scalar'][1].args[:2]==(7,0),
+                'wide tail must store its exact guarded byte')
+    else:
+        require(parts['scalar'][1].op in ('add','sub','or','and','xor') and
+                parts['scalar'][1].args==(0,9),'wide tail accumulator frame differs')
+    parts['_wide']={'bits':bits,'width':width,'target_isa':'avx512' if bits==512 else 'avx2'}
+    return labels,parts
+
+
 def _prefix(z, ctx, rows, labels):
     bv=lambda n:z.BitVecVal(n%(1<<64),64,ctx=ctx)
     initial={i:z.BitVec('abi_r'+str(i),64,ctx=ctx) for i in range(16)}
@@ -370,7 +520,7 @@ def _prefix(z, ctx, rows, labels):
             else:
                 regs[a[0]]=x+y; cf,zf=z.ULT(x+y,x),x+y==0
         elif op=='test': cf,zf=z.BoolVal(False,ctx=ctx),(regs[a[0]]&regs[a[1]])==0
-        elif op=='pxor': pass
+        elif op in ('pxor','vpxor'): pass
         elif op=='jcc':
             cond={2:cf,4:zf,6:z.Or(cf,zf),7:z.And(z.Not(cf),z.Not(zf))}[a[0]]
             pending.append((a[1],dict(regs),z.And(path,cond),cf,zf))
@@ -436,6 +586,151 @@ def _vector_transition(z,ctx,instructions,blocks,acc,prefix,*,copy,partial_accum
     return xmm,stored
 
 
+def _wide_packed(z,ctx,operation,left,right):
+    """Bit-accurate packed semantics at the actual decoded vector width."""
+    bits=left.size()
+    require(bits in (128,256,512) and right.size()==bits,'wide operand width mismatch')
+    if operation=='vpxor': return left^right
+    if operation=='vpor': return left|right
+    if operation=='vpand': return left&right
+    if operation in ('vpaddq','vpsubq'):
+        lanes=[_alu('add' if operation=='vpaddq' else 'sub',
+                    z.Extract(k+63,k,left),z.Extract(k+63,k,right)) for k in range(0,bits,64)]
+        return z.Concat(*reversed(lanes))
+    if operation=='vpsadbw':
+        left_s,right_s=z.simplify(left),z.simplify(right)
+        left_zero=z.is_bv_value(left_s) and left_s.as_long()==0
+        right_zero=z.is_bv_value(right_s) and right_s.as_long()==0
+        lanes=[]
+        for start in range(0,bits//8,8):
+            values=[]
+            for j in range(start,start+8):
+                a=z.ZeroExt(56,z.Extract(j*8+7,j*8,left))
+                b=z.ZeroExt(56,z.Extract(j*8+7,j*8,right))
+                # The unsigned |0-byte| identity is exact. Folding an actual
+                # constant zero keeps the 256-byte obligation compact without
+                # assuming that a decoded instruction preserved its source.
+                values.append(b if left_zero else a if right_zero else z.If(z.UGE(a,b),a-b,b-a))
+            lanes.append(sum(values,z.BitVecVal(0,64,ctx=ctx)))
+        return z.Concat(*reversed(lanes))
+    raise VerifiedSIMDRejected('missing wide packed semantics')
+
+
+def _wide_execute(z,ctx,instructions,vector_bits,vectors,registers,blocks=()):
+    """Interpret VEX/EVEX operands, including zeroed upper destination bits."""
+    x,g=dict(vectors),dict(registers)
+    stored=[]
+
+    def low(value,bits):
+        require(0<bits<=vector_bits,'wide instruction exceeds the modeled register width')
+        return value if bits==vector_bits else z.Extract(bits-1,0,value)
+
+    def write(register,value):
+        require(value.size()<=vector_bits,'wide destination exceeds its register')
+        x[register]=value if value.size()==vector_bits else z.ZeroExt(vector_bits-value.size(),value)
+
+    def memory(bits,offset):
+        width=bits//8
+        require(bits==vector_bits and offset>=0 and offset%width==0 and offset//width<len(blocks),
+                'unreviewed wide symbolic memory projection')
+        return blocks[offset//width]
+
+    for row in instructions:
+        op,a=row.op,row.args
+        if op=='vload':
+            bits,destination,base,offset=a
+            write(destination,memory(bits,offset))
+        elif op=='vstore':
+            bits,base,offset,source=a
+            stored.append((offset,low(x[source],bits)))
+        elif op.endswith('_mem'):
+            bits,destination,source,base,offset=a
+            write(destination,_wide_packed(z,ctx,op[:-4],low(x[source],bits),memory(bits,offset)))
+        elif op in ('vpxor','vpor','vpand','vpsadbw','vpaddq','vpsubq'):
+            bits,destination,source1,source2=a
+            write(destination,_wide_packed(z,ctx,op,low(x[source1],bits),low(x[source2],bits)))
+        elif op=='vextract':
+            source_bits,destination_bits,destination,source,index=a
+            value=low(x[source],source_bits)
+            write(destination,z.Extract((index+1)*destination_bits-1,index*destination_bits,value))
+        elif op=='vpsrldq':
+            bits,destination,source,count=a
+            require(bits==128,'wide shift must use one complete 128-bit lane')
+            write(destination,z.LShR(low(x[source],bits),min(count,16)*8))
+        elif op=='vmovq':
+            destination,source=a
+            g[destination]=z.Extract(63,0,x[source])
+        elif op in ('add','sub','or','and','xor'):
+            g[a[0]]=_alu(op,g[a[0]],g[a[1]])
+        else:
+            raise VerifiedSIMDRejected('missing wide instruction semantics')
+    return x,g,stored
+
+
+def _prove_wide_blocks(z,ctx,parts,kind,check):
+    config=parts['_wide']; bits=config['bits']; width=config['width']
+    copy=kind=='copy_u8'
+    zero=z.BitVecVal(0,bits,ctx=ctx)
+    bv=lambda n:z.BitVecVal(n,64,ctx=ctx)
+    def vector_state(prefix):
+        return {i:z.BitVec(prefix+'_v'+str(i),bits,ctx=ctx) for i in range(8)}
+    def gpr_state(prefix):
+        return {i:z.BitVec(prefix+'_r'+str(i),64,ctx=ctx) for i in range(16)}
+    def lane_sum(value):
+        return sum([z.Extract(i+63,i,value) for i in range(0,bits,64)],bv(0))
+    def prove(name,violation):
+        # Canonicalize only the constructed ISA/Core formula. In particular,
+        # no source/object byte identity or producer statement discharges an
+        # arithmetic obligation. Modular additions are associative here.
+        check(name,z.simplify(violation,bv_sort_ac=True))
+
+    if not copy:
+        initial=vector_state('wide_initialize'); gpr=gpr_state('wide_initialize')
+        initialized,registers,stores=_wide_execute(z,ctx,parts['initialize'],bits,initial,gpr)
+        prove('wide_accumulator_initiation',z.Or(*[initialized[i]!=0 for i in (0,2,3,4,5)],
+              *[initialized[i]!=initial[i] for i in (1,6,7)]))
+
+    for name,chunks in (('bulk',4),('vector',1)):
+        initial=vector_state('wide_'+name); gpr=gpr_state('wide_'+name)
+        if not copy: initial[2]=zero
+        blocks=[z.BitVec('wide_'+name+'_source_'+str(i),bits,ctx=ctx) for i in range(chunks)]
+        final,registers,stores=_wide_execute(z,ctx,parts[name],bits,initial,gpr,blocks)
+        if copy:
+            require([offset for offset,value in stores]==[i*width for i in range(chunks)],
+                    'wide stores do not cover every requested chunk')
+            prove('wide_'+name+'_copy_byte_semantics',
+                  z.Or(*[value!=blocks[offset//width] for offset,value in stores]))
+        else:
+            accumulators=(0,3,4,5) if name=='bulk' else (0,)
+            if kind=='sum_u8':
+                prior=sum([lane_sum(initial[i]) for i in accumulators],bv(0))
+                after=sum([lane_sum(final[i]) for i in accumulators],bv(0))
+                reference=sum([z.ZeroExt(56,z.Extract(j*8+7,j*8,block))
+                               for block in blocks for j in range(width)],bv(0))
+                mismatch=after!=prior+reference
+            else:
+                before_zero=z.And(*[initial[i]==0 for i in accumulators])
+                after_zero=z.And(*[final[i]==0 for i in accumulators])
+                mismatch=after_zero!=z.And(before_zero,*[block==0 for block in blocks])
+            prove('wide_'+name+('_sum_induction' if kind=='sum_u8' else '_zero_scan_induction'),
+                  z.Or(mismatch,final[2]!=0))
+    if not copy:
+        initial=vector_state('wide_merge'); initial[2]=zero
+        gpr=gpr_state('wide_merge')
+        merged,registers,stores=_wide_execute(z,ctx,parts['bulk_merge'],bits,initial,gpr)
+        mismatch=(lane_sum(merged[0])!=sum([lane_sum(initial[i]) for i in (0,3,4,5)],bv(0))
+                  if kind=='sum_u8' else
+                  (merged[0]==0)!=z.And(*[initial[i]==0 for i in (0,3,4,5)]))
+        prove('wide_accumulator_merge_and_frame',z.Or(mismatch,merged[2]!=0,
+              *[merged[i]!=initial[i] for i in range(1,8)]))
+
+        initial=vector_state('wide_horizontal'); gpr=gpr_state('wide_horizontal')
+        final,registers,stores=_wide_execute(z,ctx,parts['horizontal'],bits,initial,gpr)
+        mismatch=(registers[0]!=lane_sum(initial[0]) if kind=='sum_u8' else
+                  (registers[0]==0)!=(initial[0]==0))
+        prove('wide_horizontal_reduction',mismatch)
+
+
 def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, timeout_ms=15000, query_directory=None):
     require(type(object_bytes) is bytes and type(final_bytes) is bytes,'immutable ELF bytes required')
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000,'timeout must be 100..60000 milliseconds')
@@ -446,7 +741,11 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
             'SIMD requires one directly exported function')
     rows=decode_simd(binding['text']); labels,parts=_structure(rows,kind,binding)
     unrolled='bulk' in parts
-    parallel_zero='bulk_merge' in parts
+    wide=parts.get('_wide')
+    parallel_zero='bulk_merge' in parts and wide is None
+    vector_width=wide['width'] if wide else 16
+    required_features=sorted({feature for row in rows for feature in row.cpu_features}) if wide else ['sse2']
+    required_xcr0_mask=230 if 'avx512f' in required_features else 6 if 'avx' in required_features else 0
     try: z=importlib.import_module('z3')
     except ImportError as exc: raise VerifiedSIMDRejected('pinned solver unavailable') from exc
     ctx=z.Context()
@@ -488,10 +787,10 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     # Each decoded backedge is exactly the +w/-w transition checked below.
     ni,ii,pi,ei=z.Ints('count index base extent',ctx=ctx)
     invariant=[0<=ii,ii<=ni,ni<=ei,ei<(1<<64),pi>0,pi+ni<(1<<64)]
-    for width in ((64,16,1) if unrolled else (16,1)):
+    for width in ((4*vector_width,vector_width,1) if unrolled else (vector_width,1)):
         guard=ni-ii>=width
-        accesses=(0,16,32,48) if width==64 else (0,)
-        access_width=16 if width>=16 else 1
+        accesses=tuple(i*vector_width for i in range(4)) if width==4*vector_width else (0,)
+        access_width=vector_width if width>=vector_width else 1
         violation=z.Or(ii+width>ni,pi+ii<pi,pi+ii+width>pi+ni,
                        ii+width>=(1<<64),ni-(ii+width)<0,ni-(ii+width)>=ni-ii,
                        *[z.Or(pi+ii+offset<pi,pi+ii+offset+access_width>pi+ni)
@@ -507,7 +806,10 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     stack_contract=[(rsp&bv(15))==8,z.UGE(rsp,bv(16)),z.ULE(rsp,bv((1<<64)-9))]
     check('abort_call_stack_alignment_and_bounds',z.Or(((rsp-bv(8))&bv(15))!=0,
           z.UGT(rsp-bv(16),rsp),z.UGT((rsp-bv(16))+bv(8),rsp),z.ULT(rsp+bv(8),rsp)),stack_contract)
-    for name,chunks in ((('bulk',4),('vector',1)) if unrolled else (('vector',1),)):
+    if wide:
+        _prove_wide_blocks(z,ctx,parts,kind,check)
+    legacy_blocks=() if wide else ((('bulk',4),('vector',1)) if unrolled else (('vector',1),))
+    for name,chunks in legacy_blocks:
         blocks=[z.BitVec(name+'_source_bytes_'+str(j),128,ctx=ctx) for j in range(chunks)]
         acc=z.BitVec(name+'_prior_accumulator',128,ctx=ctx)
         partials=({j:z.BitVec(name+'_prior_accumulator_'+str(j),128,ctx=ctx) for j in (3,4,5)}
@@ -549,7 +851,7 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
         disjoint=[dp>0,sp>0,nn>0,dp+nn<(1<<64),sp+nn<(1<<64),
                   z.Or(dp+nn<=sp,sp+nn<=dp),0<=j,j<nn,0<=k,k<nn]
         check('copy_source_preserved_between_iterations',dp+k==sp+j,disjoint)
-    if not copy:
+    if not copy and not wide:
         x={i:z.BitVec('horizontal_initial_xmm'+str(i),128,ctx=ctx) for i in range(8)}; x[0]=acc
         g={i:z.BitVec('horizontal_initial_r'+str(i),64,ctx=ctx) for i in range(16)}
         for r in parts['horizontal']:
@@ -573,8 +875,11 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
     require(solver_identity==_solver_identity(z) and time.monotonic()<deadline,'solver changed or final deadline exhausted')
     report={
         'schema':'hepta.hia.verified-simd-machine-validation.v1',
-        'profile':PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
+        'profile':WIDE_PROFILES[wide['bits']] if wide else PARALLEL_ZERO_PROFILE if parallel_zero else UNROLLED_PROFILE if unrolled else PROFILE,
         'ok':True,'complete':True,'status':'smt_validated','kind':kind,
+        'target_isa':wide['target_isa'] if wide else 'sse2',
+        'required_cpu_features':required_features,'required_xcr0_mask':required_xcr0_mask,
+        'fresh_cpu_probe_required':bool(wide),
         'validation_mode':'independent_supplied_bytes_closed_loop_induction',
         'subject':{'core_sha256':checked.sha256,'input_sha256':checked.input_sha256,
                    'object_sha256':sha256(object_bytes).hexdigest(),'final_image_sha256':sha256(final_bytes).hexdigest(),
@@ -595,11 +900,12 @@ def validate_verified_simd_artifact(document, object_bytes, final_bytes, *, time
             'SysV AMD64 x86-64 with SSE2; entry RSP is 8 modulo 16, at least 16, and at most 2^64-9; [RSP-16,RSP+8) is live stack with the caller return address in its final eight bytes.',
             'For each admitted nonempty range, the caller supplies a live initialized allocation covering its declared extent, disjoint from the active stack; destination is exclusive.',
             'Source/destination overlap is an invalid direct-copy ABI input; it is rejected before writes. Empty ranges permit null.',
+            'Before executing a wide image, the builder/loader must freshly establish every decoded required_cpu_feature and required_xcr0_mask on every allowed CPU; this semantic receipt does not attest to host CPU or OS state.',
             'The existing ELF/loader model, these independent instruction/Core/loop semantics and pinned Z3 are trusted Python components, not a hardware ISA theorem.',
             'The loader maps inspected immutable bytes and immediately resolves libc abort as nonreturning; concurrency, signals, faults and side channels are outside this model.'],
-        'model_counts':{'decoded_instructions':len(rows),'vector_width':16,'scalar_tail_width':1,
-                        'vector_unroll':4 if unrolled else 1,'superblock_width':64 if unrolled else 16,
-                        'reduction_accumulators':4 if parallel_zero else 0 if copy else 1,
+        'model_counts':{'decoded_instructions':len(rows),'vector_width':vector_width,'scalar_tail_width':1,
+                        'vector_unroll':4 if unrolled else 1,'superblock_width':4*vector_width if unrolled else vector_width,
+                        'reduction_accumulators':0 if copy else 4 if parallel_zero or wide else 1,
                         'range_admission_sites':1,'guard_paths':len(outcomes),'loop_backedges':3 if unrolled else 2},
         'elapsed_seconds':time.monotonic()-started}
     if output is not None: (output/'validation.json').write_text(json.dumps(report,indent=2)+'\n')

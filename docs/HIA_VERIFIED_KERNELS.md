@@ -1,15 +1,35 @@
-# Verified register and SSE2 kernels
+# Verified register and native SIMD kernels
 
-The opt-in kernel builder exports small x86-64 functions directly, then checks
+The kernel builder exports small x86-64 functions directly, then checks
 the **linked ELF bytes** before publishing the library. Scalar hot paths stay
 in registers. Three borrowed-byte loops perform one complete-range admission
-before processing sixty-four bytes per main-loop iteration, sixteen bytes per
-cleanup iteration and one byte per tail iteration. The solver runs during the build; the native call contains no proof
+before processing 64, 128 or 256 bytes per main-loop iteration for SSE2, AVX2
+or AVX-512, respectively. A single-vector cleanup loop and byte tail cover the
+requested range exactly. The solver runs during the build; the native call contains no proof
 engine, interpreter or entry wrapper.
 
 ## Build and independent checking
 
 Use Linux x86-64, GNU ld and `z3-solver==4.15.4.0`:
+
+```sh
+hia build examples/hia_verified_kernels/sum_u8.hepta \
+  --kind shared -o /tmp/hia-sum.so
+hia build examples/hia_verified_kernels/sum_u8.hepta \
+  --kind shared --target-isa sse2 -o /tmp/hia-sum-portable.so
+```
+
+The standard shared-library build defaults to `--backend auto`. Its scalar,
+SIMD or checked Safe Core selection is fixed before proof; a failed proof,
+timeout or unsupported source publishes no library. `--target-isa native`
+selects the widest supported profile after fresh CPU/OS observations.
+`sse2`, `avx2` and `avx512` request explicit targets. The ordinary object build
+retains its existing ABI and external-tool requirements. Explicit
+`--backend native --kind shared` retains the ordinary module ABI. The native
+HIA CLI control and formatter own the same choices and cross-field errors as
+the reference CLI, including the installed entry-point continuation.
+
+For an attempt directory retaining all proof inputs and queries:
 
 ```sh
 python tools/build_hia_verified_kernel.py \
@@ -31,11 +51,12 @@ checked Safe Core lowering when the source is outside the register profile.
 `hepta.hia_verified_kernel.build_verified_kernel` provides the same API in
 Python. Its optional `artifact_directory` retains the single selected object;
 the scalar builder consumes that immutable object without reemitting it.
-The default SIMD path uses `simd_unroll=4`; `simd_unroll=1` retains the original
-sixteen-byte loop for independently checked comparisons. Both use SSE2 and
-the same Core recurrence and borrowed-byte ABI.
-Production language defaults are unchanged, so programs outside these narrow
-profiles continue to use their existing checks and compiler entry points.
+The Python API preserves `simd_isa="sse2"` and `simd_unroll=4` as its compatible
+defaults. `simd_unroll=1` retains the original sixteen-byte loop. Explicit
+`simd_isa="avx2"` and `"avx512"` use four chunks and independent accumulators;
+`"native"` selects from fresh host observations. All profiles use the same
+Core recurrence and borrowed-byte ABI. The standard verified shared command
+and retained-attempt tool default to the host-native selection.
 
 Independent consumers accept caller-supplied Core, object and final ELF bytes:
 
@@ -58,6 +79,47 @@ and the candidate is read through a non-following, non-blocking descriptor that
 accepts only a stable ordinary file of at most 8 MiB. An output overflow,
 changed tool or producer, FIFO, symlink or oversized candidate is a build
 failure. Publication-time failures withdraw only this build's own link.
+
+## CPU admission and immutable loading
+
+The independent decoder reports the features used by the actual final
+instructions. A 256-bit copy needs AVX; its integer reductions also need AVX2.
+The 512-bit copy needs AVX-512F; its sum additionally uses AVX-512BW, and the
+wide reductions' horizontal stage uses AVX2. Features absent from an image are
+not imposed merely because its target profile is named AVX2 or AVX-512.
+
+`hia_verified_cpu` uses a fixed baseline-instruction CPUID/XGETBV probe in an
+isolated subprocess. It checks hardware XSAVE/OSXSAVE/AVX, the enabled XCR0
+state, and the precise extension bits on every CPU in the caller's allowed
+affinity. XGETBV is reached only when OSXSAVE permits it. A probe fault,
+missing feature, incomplete CPU inventory or changed affinity rejects the
+build. The parent thread's affinity is never modified. The probe uses a
+write-then-execute mapping; no writable/executable mapping is requested.
+
+The public loader accepts original inputs and rechecks both the final image
+and current CPU state:
+
+```python
+from hepta.hia_verified_kernel_load import load_verified_simd_kernel
+
+kernel = load_verified_simd_kernel(core, object_bytes, final_bytes)
+native_function = kernel.function
+```
+
+It copies the exact validated bytes into a Linux sealed memfd, verifies the
+sealed byte readback, and rejects a pre-existing dynamic-loader pathname
+cache before immediate binding. It then uses the GNU loader's link-map
+information and `/proc/self/maps` to bind the actual RX mapping to the sealed
+device/inode, entry file offset and every machine text byte. Only that verified
+address becomes a callable. It does not resolve a target symbol before
+binding the image, so a stale GNU IFUNC cannot execute during lookup.
+
+Mappings remain in a bounded process-lifetime registry (64 images and 64 MiB).
+Every load repeats validation and CPU admission and returns its own function
+ABI object; mutable old reports or ctypes attributes do not authorize another
+load. The native call itself has no solver, CPUID or dispatch wrapper. Callers
+retain live borrowed ranges and an ISA-compatible execution environment,
+including after any later thread migration or affinity change.
 
 ## Scalar register ABI
 
@@ -138,6 +200,17 @@ symbolic prior states to zero. Reports record three backedges,
 The consumer also accepts the original sixteen-byte and single-accumulator
 sixty-four-byte objects and final images without invoking either producer.
 
+The wide profiles separately decode VEX and EVEX prefix fields, reserved bits,
+unmasked full-vector memory forms and signed displacements. In particular,
+EVEX disp8 is multiplied by the 64-byte tuple width; disp32 is not scaled.
+Sum uses folded-memory VPSADBW plus VPADDQ, zero scan uses folded-memory
+VPOR/VPORQ, and copy uses unaligned VMOVDQU/VMOVDQU64. Four arbitrary prior
+accumulators are retained in the induction and merged before cleanup.
+Narrow VEX writes zero their upper destination bits in the independent model.
+The wide sum and zero scan each have fourteen obligations, including explicit
+accumulator initialization; copy has twelve. VZEROUPPER precedes the scalar
+tail of every nonempty wide path.
+
 The induction connects the decoded backedges with the scalar Core recurrence.
 Its trust base is the stated Python Core/ISA/loop/ELF models, GNU/Linux loader
 contract and pinned Z3 implementation. A caller supplies live initialized
@@ -173,12 +246,14 @@ python tools/benchmark_hia_verified_kernels.py \
   --rustc rustc
 ```
 
-The v2 protocol records 64 cases, including simultaneous sixteen-byte and
-sixty-four-byte SSE2 arms with identical Core and ABI. It records 21 batches
+The v3 protocol records 487 cases, including simultaneous sixteen-byte and
+sixty-four-byte SSE2, 128-byte AVX2 and 256-byte AVX-512 arms with identical
+Core and ABI. It records 21 batches
 after three warmups, all raw samples, checksums,
 disassemblies, final libraries and their proof inputs. Every arm uses the
 same indirect-call driver and CPU affinity. Workloads include scalar multiply
-add and 256/4096/4097/65536-byte spans with sixteen unaligned offsets. C and
+add and 23 span lengths from zero to 65536, covering both sides of the 16-,
+32-, 64-, 128-, 256- and page boundaries, with sixteen unaligned offsets. C and
 Rust use their native-target release optimizers; SSE2 remains the HIA baseline
 ISA. The ordinary HIA span baseline retains its checked packed-u32 wrapper;
 all measured counts and sums fit u32, so these valid-input results agree with
@@ -188,6 +263,15 @@ These measurements describe the declared hot-cache kernels on a shared host.
 Affinity does not make a core exclusive, and the raw samples remain available
 for assessing interference. Build/proof time is reported separately from
 native call latency.
+
+The current protocol also binds the actual glibc binary, its version and
+the resolved memcpy IFUNC offset with a baseline-ISA helper under the same
+affinity and environment. This dependency observation applies to new runs;
+the historical campaigns below retain their original identity inventories.
+
+The broader language and product work is tracked in
+[HIA_RUST_COMPARISON.md](HIA_RUST_COMPARISON.md), with independent closure
+criteria for each feature family and each performance workload.
 
 ## Recorded campaigns
 
