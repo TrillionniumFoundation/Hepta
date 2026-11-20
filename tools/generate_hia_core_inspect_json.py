@@ -434,7 +434,7 @@ def report_source():
         "linear_resources_and_loan_provenance_checked": "true",
         "local_stored_loan_identity_checked": "nominal_profile(w) != 0",
         "nominal_products_and_enums_checked": "nominal_profile(w) != 0",
-        "parameter_bound_loan_returns_supported": "version == 56",
+        "parameter_bound_loan_returns_supported": "version == 56 or version == 57",
         "preemptive_or_async_cancellation_supported": "false",
         "record_field_borrow_provenance_checked": "nominal_profile(w) != 0",
         "recursive_buffer_chains_supported": "version >= 55",
