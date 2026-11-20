@@ -1,0 +1,189 @@
+{
+  "baseline_native_test_source": {
+    "bytes": 43544,
+    "sha256": "f96df0eba2f71c3b282ad49b1ab28f49d4a51b3d89aec7c38e5a7b9996b536f3"
+  },
+  "current_dependencies": {
+    "hepta/hia_native_delivery.py": {
+      "bytes": 49737,
+      "sha256": "782770141e1b9294974dcdfadf8b51ffbe9ac2588392ffa1b78914ed4c81e0c3"
+    },
+    "hepta/hia_service_artifact_native.py": {
+      "bytes": 18549,
+      "sha256": "6e4a57398080eebb614711954baa79465a5d0b3e35c997aba98fdc63fd141495"
+    },
+    "tests/hia_slot_operations_qualification_support.py": {
+      "bytes": 11125,
+      "sha256": "e951f753df0ddfae9906c5870cd9cf8e71f1ab7cdde8344aa4a480f7a908d372"
+    }
+  },
+  "current_lost_ack_exit": 2,
+  "legacy_lost_ack_exit": 1,
+  "schema": "hepta.service_artifact.worker-terminal-successor.v2",
+  "scope": {
+    "all_original_business_assertions_retained": true,
+    "install_seconds": 60,
+    "native8_methods": 8,
+    "old_pass_transferred": false,
+    "original_Native8_replaced": false,
+    "original_classes_and_methods": {
+      "ServiceArtifactNativeTests": [
+        "test_complete_frozen_146_against_actual_image_in_fresh_process",
+        "test_actual_confirmed_child_parent_ACK_loss_and_actual_resource_identity",
+        "test_actual_safe_preentry_confirmed_foreign_failure_and_healthy_release",
+        "test_actual_pending_cutpoints_gc_reentry_and_ACK_retirement",
+        "test_actual_stale_Context_thread_fork_and_inherited_unknown_resource",
+        "test_native_complete_packets_buffers_and_protocol_rejections",
+        "test_actual_public_routes_pinned_bundle_restoration_and_source_drift",
+        "test_actual_installed_worker_and_durable_parent_ACK_loss"
+      ],
+      "ServiceArtifactSourceTests": [
+        "test_original_body_public_binding_and_generated_profile",
+        "test_independent_VM_complete_branches_and_detached_receiver",
+        "test_complete_fresh_originals_and_unselected_public_route"
+      ]
+    },
+    "original_finite146_unchanged": true,
+    "source3_methods": 3,
+    "wheel_seconds": 60,
+    "whole_native_stack_qualified": false,
+    "worker_labels": [
+      "first",
+      "replay",
+      "lost-put-ACK",
+      "unknown-replay"
+    ],
+    "worker_seconds": 60
+  },
+  "source_successors": {
+    "tests/test_hia_service_artifact_native.py": {
+      "current": {
+        "bytes": 45519,
+        "sha256": "931eb6a39f472cd09710af77303374a01e577fe32f9d8cbe1896ca8951840772"
+      },
+      "original": {
+        "bytes": 43544,
+        "sha256": "f96df0eba2f71c3b282ad49b1ab28f49d4a51b3d89aec7c38e5a7b9996b536f3"
+      },
+      "splices": [
+        {
+          "after": "hia_service_artifact_worker_terminal import SourceAuthority, assert_terminal, worker_profile, process_record\n        from tools.read_hia_service_artifact_worker_terminal import Captures, admit_source_authority, verify_terminal, read_installation\n        authority = SourceAuthority(ROOT)\n        readback = Captures()\n        self.assertEqual(admit_source_authority(readback, ROOT), authority.summary())\n        self.addCleanup(authority.finish)\n        self.addCleanup(readback.stable)\n        from tests.",
+          "before": "",
+          "offset": 30254
+        },
+        {
+          "after": ")\n        profile = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())\n        self.assertEqual(profile, authority.profile",
+          "before": "",
+          "offset": 31656
+        },
+        {
+          "after": "terminal_root=Path(sys.argv.pop(1))\nsys.path.insert(0,str(terminal_root))\nfrom tests.hia_service_artifact_worker_terminal import SourceAuthority,TerminalObservation\nterminal_authority=SourceAuthority(terminal_root)\n",
+          "before": "",
+          "offset": 33439
+        },
+        {
+          "after": " import ",
+          "before": ".",
+          "offset": 33946
+        },
+        {
+          "after": "as w",
+          "before": "imp",
+          "offset": 33964
+        },
+        {
+          "after": "ker_",
+          "before": "t ",
+          "offset": 33969
+        },
+        {
+          "after": "odule",
+          "before": "ain",
+          "offset": 33972
+        },
+        {
+          "after": "\nmain=worker_module.main\nfor module in (native,child_native,service,store,worker_module,delivery):\n    assert Path(module.__file__).resolve().is_relative_to(Path(installed).resolve())\nterminal=TerminalObservation(worker_module,service,delivery,native)\nassert terminal.profile==terminal_authority.profile",
+          "before": "",
+          "offset": 34025
+        },
+        {
+          "after": "e",
+          "before": "",
+          "offset": 35603
+        },
+        {
+          "after": "ror=",
+          "before": "aise ",
+          "offset": 35604
+        },
+        {
+          "after": "\n            terminal.injected(error)\n            try:raise error\n            finally:del error",
+          "before": "",
+          "offset": 35684
+        },
+        {
+          "after": "\n    counts['terminal']=terminal.report()\n    terminal_authority.finish()",
+          "before": "",
+          "offset": 36492
+        },
+        {
+          "after": "sul",
+          "before": "",
+          "offset": 38582
+        },
+        {
+          "after": " =",
+          "before": "urn",
+          "offset": 38583
+        },
+        {
+          "after": ", ROOT",
+          "before": "",
+          "offset": 38634
+        },
+        {
+          "after": "\n            self.write(label + '-terminal-process.json', process_record(\n                result, (self.case / (label + '-command.json')).read_bytes()))\n            terminal_value = read_counts(result)['terminal']\n            assert_terminal(self, terminal_value, result.stderr, label, profile)\n            verify_terminal(terminal_value, result.stderr, label, profile)\n            return result",
+          "before": "",
+          "offset": 38896
+        },
+        {
+          "after": "profile['lost_ack_exit']",
+          "before": "1",
+          "offset": 41017
+        },
+        {
+          "after": "authority.finish()\n        readback.stable()\n        ",
+          "before": "",
+          "offset": 42999
+        },
+        {
+          "after": "(),\n            'terminal_source_authority': authority.summary",
+          "before": "",
+          "offset": 43105
+        },
+        {
+          "after": "        self.write('worker-terminal-readback.json', read_installation(ROOT, self.case))\n",
+          "before": "",
+          "offset": 43544
+        }
+      ]
+    },
+    "tools/build_hia_service_artifact.py": {
+      "current": {
+        "bytes": 6337,
+        "sha256": "694539372549a08c3ef33b9ca034d2cede9fedf51600c6cbb1224e7180f9181b"
+      },
+      "original": {
+        "bytes": 5939,
+        "sha256": "291f00bf42921b14f06c9f67181800ed124ae2d1ca28acd5a2e439267ffe5483"
+      },
+      "splices": [
+        {
+          "after": "',\n    'tests/hia_service_artifact_worker_terminal.py',\n    'tools/read_hia_service_artifact_worker_terminal.py',\n    'tests/test_hia_service_artifact_worker_terminal.py',\n    'tests/fixtures/service_artifact_worker_terminal_v2.json',\n    'hepta/hia_agent_worker.py',\n    'tests/hia_slot_operations_qualification_support.py',\n    'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt",
+          "before": "",
+          "offset": 1924
+        }
+      ]
+    }
+  }
+}

@@ -36,6 +36,13 @@ INPUTS = (
     'tests/fixtures/hia_service_artifact_original_5bf/oracle-preparation-v1.py.txt',
     'tests/hia_service_artifact_oracle.py', 'tests/hia_service_artifact_observer.py',
     'tests/hia_service_artifact_faults.py',
+    'tests/hia_service_artifact_worker_terminal.py',
+    'tools/read_hia_service_artifact_worker_terminal.py',
+    'tests/test_hia_service_artifact_worker_terminal.py',
+    'tests/fixtures/service_artifact_worker_terminal_v2.json',
+    'hepta/hia_agent_worker.py',
+    'tests/hia_slot_operations_qualification_support.py',
+    'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt',
     'tests/fixtures/hia_emission_original_73f1634/original-freeze.json',
     *(ORIGINAL_DIRECTORY + name for name in (
         'artifact.5bf.py.txt', 'profile.5bf.py.txt', 'source-identity.json', 'cases.json', 'freeze.json')),

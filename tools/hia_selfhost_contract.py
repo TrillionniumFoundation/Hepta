@@ -1623,6 +1623,17 @@ SOURCE_FILES = (
     'tests/test_hia_journal_caller_preparation.py',
     'tests/test_hia_delivery_journal_preparation.py',
     'tests/test_hia_service_bootstrap_journal_preparation.py',
+    'tests/hia_service_artifact_worker_terminal.py',
+    'tools/read_hia_service_artifact_worker_terminal.py',
+    'tests/test_hia_service_artifact_worker_terminal.py',
+    'tests/fixtures/service_artifact_worker_terminal_v2.json',
+    'tests/test_hia_service_context_caller_admission.py',
+    'tests/fixtures/cost_context_caller_source_successors_v1.json',
+    'tests/test_artifact_publication.py',
+    'tests/test_hia_agent_assembly.py',
+    'tests/test_hia_cost_artifact_caller_admission.py',
+    'tests/test_hia_cost_context_caller_delivery_source.py',
+    'tests/test_hia_ndu_bridge.py',
 )
 
 
@@ -1656,7 +1667,21 @@ def _native_worker_helper_count(root):
             or not isinstance(declarations[0].value, ast.Dict)):
         raise ValueError('native helper registry must have one literal HELPERS declaration')
     table = declarations[0].value
-    helpers = ast.literal_eval(table)
+    # The admitted registry is a flat string-to-two-strings table. Reading
+    # those AST constants directly avoids ast.literal_eval's recursive local
+    # function/cell cycles on every ordinary source-contract validation.
+    # All other syntax retains the original evaluator and rejection behavior.
+    helpers = {}
+    for key, value in zip(table.keys, table.values):
+        if (not isinstance(key, ast.Constant) or type(key.value) is not str
+                or not isinstance(value, ast.Tuple) or len(value.elts) != 2
+                or not isinstance(value.elts[0], ast.Constant)
+                or type(value.elts[0].value) is not str
+                or not isinstance(value.elts[1], ast.Constant)
+                or type(value.elts[1].value) is not str):
+            helpers = ast.literal_eval(table)
+            break
+        helpers[key.value] = (value.elts[0].value, value.elts[1].value)
     if (type(helpers) is not dict or len(helpers) != len(table.keys)
             or any(type(selector) is not str
                    or not selector.startswith('HEPTA_HIA_')
