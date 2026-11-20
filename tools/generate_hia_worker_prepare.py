@@ -1,0 +1,203 @@
+"""Author the native provider's byte-preserving Worker request encoder.
+
+The transport supplies canonical JSON fragments after schema, catalog and host
+policy checks. HIA owns the envelope, hashes and durable job key. It must not
+parse and reprint numbers: the existing transport's exact bytes are stored
+as part of the durable job identity.
+"""
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+from hepta.hia_agent_assembly import render_assembly
+from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
+from tools.generate_hia_worker_request import WorkerRequestBuilder, worker_hash_program
+
+
+SOURCE_PATH = 'examples/hia_bootstrap/worker_prepare.hepta'
+INPUT_MAGIC = b'HIAWPR01'
+OUTPUT_MAGIC = b'HIAWPO01'
+
+SOURCE = '''
+def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    n = length(s)
+    if n < 112 or n > 8388608 or length(w) < 4432:
+        return 4294967293
+    if word_load(s, 0) != INPUT_MAGIC:
+        return 4294967293
+    if length(o) < 524552:
+        return 4294967294
+    start = 112
+    field = 0
+    while field < 5:
+        size = word_load(s, 8 + field * 8)
+        if size > 524288 or size > n - start:
+            return 4294967293
+        if field < 3:
+            if size < 2:
+                return 4294967293
+            if byte(s, start) != 123 or byte(s, start + size - 1) != 125:
+                return 4294967293
+        elif field == 3 or size != 0:
+            if size < 2:
+                return 4294967293
+            if byte(s, start) != 34 or byte(s, start + size - 1) != 34:
+                return 4294967293
+        word_store(w, 256 + field * 16, start)
+        word_store(w, 264 + field * 16, size)
+        start = start + size
+        field = field + 1
+    if start != n:
+        return 4294967293
+    index = 48
+    while index < 112:
+        value = byte(s, index)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return 4294967293
+        index = index + 1
+    # Bound both the final envelope and the temporary key preimage.
+    size = word_load(w, 296) + word_load(w, 312)
+    if size > MAX_FRAGMENTS or word_load(w, 312) + word_load(w, 328) > 524288:
+        return 4294967294
+    count = append_field(s, o, w, 0, 0)
+    if digest(o, w, count, 0) == 0:
+        return 4294967293
+    count = append_field(s, o, w, 0, 1)
+    if digest(o, w, count, 64) == 0:
+        return 4294967293
+    count = envelope_prefix(s, o, w, 0)
+    count = envelope_tail(s, o, w, count)
+    if digest(o, w, count, 128) == 0:
+        return 4294967293
+    if word_load(w, 328) == 0:
+        count = readonly_start(o, 0)
+        count = saved(w, o, count, 128, 64)
+        count = readonly_tool(o, count)
+    else:
+        count = mutation_start(o, 0)
+        count = append_field(s, o, w, count, 4)
+        count = mutation_tool(o, count)
+    count = append_field(s, o, w, count, 3)
+    count = close(o, count)
+    if digest(o, w, count, 192) == 0:
+        return 4294967293
+    count = envelope_prefix(s, o, w, 264)
+    count = request_member(o, count)
+    count = saved(w, o, count, 128, 64)
+    count = envelope_tail(s, o, w, count)
+    store(o, count, 10)
+    word_store(o, 0, OUTPUT_MAGIC)
+    saved(w, o, 8, 0, 256)
+    return count + 1
+
+def envelope_prefix(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
+    at = arguments_member(o, at)
+    at = append_field(s, o, w, at, 2)
+    at = catalog_member(o, at)
+    at = external(s, o, at, 48, 64)
+    at = profile_member(o, at)
+    return saved(w, o, at, 64, 64)
+
+def envelope_tail(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
+    at = schema_and_tool(o, at)
+    at = append_field(s, o, w, at, 3)
+    return close(o, at)
+
+def append_field(s:readbuf, o:mutbuf, w:mutbuf, at:u64, field:u64) -> u64:
+    record = 256 + field * 16
+    return external(s, o, at, word_load(w, record), word_load(w, record + 8))
+
+def external(s:readbuf, o:mutbuf, at:u64, start:u64, size:u64) -> u64:
+    i = 0
+    while i < size:
+        store(o, at + i, byte(s, start + i))
+        i = i + 1
+    return at + size
+
+def saved(w:mutbuf, o:mutbuf, at:u64, start:u64, size:u64) -> u64:
+    i = 0
+    while i < size:
+        store(o, at + i, byte(w, start + i))
+        i = i + 1
+    return at + size
+
+def append_word(o:mutbuf, at:u64, word:u64, size:u64) -> u64:
+    i = 0
+    while i < size:
+        store(o, at + i, (word >> (i * 8)) & 255)
+        i = i + 1
+    return at + size
+
+def digest(o:mutbuf, w:mutbuf, size:u64, at:u64) -> u64:
+    if widen(hash_sha256(o, w, size)) != 32:
+        return 0
+    start = length(w) - 4096 + 1088
+    i = 0
+    while i < 32:
+        value = byte(w, start + i)
+        store(w, at + 2 * i, hex(value >> 4))
+        store(w, at + 2 * i + 1, hex(value & 15))
+        i = i + 1
+    return 1
+
+def widen(value:u32) -> u64:
+    return value
+
+def hex(value:u64) -> u64:
+    if value < 10:
+        return 48 + value
+    return 87 + value
+'''
+
+LITERALS = {
+    'arguments_member': '{"arguments":',
+    'catalog_member': ',"catalog_sha256":"',
+    'profile_member': '","profile_sha256":"',
+    'request_member': '","request_sha256":"',
+    'schema_and_tool': '","schema":"hia-agent-worker-request-v1","tool":',
+    'close': '}',
+    'readonly_start': '{"readonly_request_sha256":"',
+    'readonly_tool': '","tool":',
+    'mutation_start': '{"key":',
+    'mutation_tool': ',"tool":',
+}
+
+
+def source_program():
+    envelope_fields = ('arguments_member', 'catalog_member', 'profile_member',
+                       'request_member', 'schema_and_tool', 'close')
+    fixed_bytes = sum(len(LITERALS[field]) for field in envelope_fields) + 3 * 64 + 1
+    source = (SOURCE.replace('INPUT_MAGIC', str(int.from_bytes(INPUT_MAGIC, 'little')))
+              .replace('OUTPUT_MAGIC', str(int.from_bytes(OUTPUT_MAGIC, 'little')))
+              .replace('MAX_FRAGMENTS', str(524288 - fixed_bytes)))
+    for name, literal in LITERALS.items():
+        source += f'\ndef {name}(o:mutbuf, at:u64) -> u64:\n'
+        raw = literal.encode('ascii')
+        for start in range(0, len(raw), 8):
+            part = raw[start:start + 8]
+            source += f'    at = append_word(o, at, {int.from_bytes(part, "little")}, {len(part)})\n'
+        source += '    return at\n'
+    return source + worker_hash_program()
+
+
+def document():
+    nodes = ast.parse(source_program()).body
+    names = {node.name: f'f{i}' for i, node in enumerate(nodes)}
+    signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
+                  for node in nodes}
+    total = total_scalar_functions(nodes)
+    functions = []
+    for node in nodes:
+        builder = WorkerRequestBuilder(node, names, signatures, total)
+        builder.statements(node.body)
+        functions.append({'name': names[node.name],
+                          'params': [builder.param(value) for value in builder.params],
+                          'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
+                          'entry': 'b0', 'blocks': builder.blocks})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9',
+                                 'module': 'worker_prepare', 'functions': functions})
+
+
+if __name__ == '__main__':
+    (Path(__file__).resolve().parents[1] / SOURCE_PATH).write_text(render_assembly(document()))

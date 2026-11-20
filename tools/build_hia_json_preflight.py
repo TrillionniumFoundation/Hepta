@@ -75,6 +75,7 @@ CANDIDATES = {
     'execution-budget': ('execution_budget', 'execution-budget'),
     'execution-ledger': ('execution_ledger', 'execution-ledger'),
     'retirement-state': ('retirement_state', 'retirement-state'),
+    'worker-prepare': ('worker_prepare', 'worker-prepare'),
     'worker-request': ('worker_request', 'worker-request'),
     'worker-request-filter': ('worker_request_filter_packer', 'worker-request-filter'),
     'core-admission': ('core_admission', 'core-admission'),
@@ -249,7 +250,7 @@ def main():
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
                                  'scalar-reference', 'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
-                                 'safe-core-elf-inventory'))
+                                 'safe-core-elf-inventory', 'worker-prepare'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

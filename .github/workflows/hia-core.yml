@@ -13,7 +13,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice scalar_symbolic agent_read_page mcp_stdio_packer mcp_terminal agent_schema agent_discovery agent_inspection agent_artifact_capture elf_linker shared_linker elf_verified_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_suite core_inspect_json core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli core_edit_packer core_edit_templates composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection retirement_state agent_journal agent_journal_transport journal_stdio_packer execution_budget candidate_budget source_build nominal_json nominal_transport_adapters slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation execution_ledger continuation sqlite_agent_catalog sqlite_table_walk sqlite_pager_adapters sqlite_component_adapters sqlite_migration_adapters sqlite_migration_plan sqlite_migration_projection sqlite_pager_stream sqlite_migration_stage sqlite_migration_publish sqlite_migrate linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json slot_operations service_artifact service_read service_slot service_inspection service_lease store_file_capture service_discovery service_verification service_bootstrap executable_capture exec_release; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice scalar_symbolic agent_read_page mcp_stdio_packer mcp_terminal agent_schema agent_discovery agent_inspection agent_artifact_capture elf_linker shared_linker elf_verified_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_suite core_inspect_json core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli core_edit_packer core_edit_templates composite_types task_helpers composite_functions composite_constructor composite_outer worker_prepare worker_request release_install release_selection retirement_state agent_journal agent_journal_transport journal_stdio_packer execution_budget candidate_budget source_build nominal_json nominal_transport_adapters slot_ledger cli_control cli_format json_wire worker_report machine_encoding machine_state machine_instructions machine_plan core_lowering core_emitter byte_wrapper machine_object execution_observation execution_ledger continuation sqlite_agent_catalog sqlite_table_walk sqlite_pager_adapters sqlite_component_adapters sqlite_migration_adapters sqlite_migration_plan sqlite_migration_projection sqlite_pager_stream sqlite_migration_stage sqlite_migration_publish sqlite_migrate linked_observer native_mapping publication_measurement scalar_profile generation_retention bounded_memory full_cost patch_impact static_budget store_lifecycle store_transaction service_context cost_ledger evaluation native_build_admission emission store_artifact_profile cli_discovery_json slot_operations service_artifact service_read service_slot service_inspection service_lease store_file_capture service_discovery service_verification service_bootstrap executable_capture exec_release; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -990,6 +990,8 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/workspace-pipeline"
           python -B -m tools.build_hia_core_patch_result_cli --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/patch-result"
+          python -B -m tools.build_hia_worker_prepare --compiler "$compiler" \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/worker-prepare"
           python -B -m tools.build_hia_worker_request_cli --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/worker-request"
           python -B -m tools.build_hia_core_edit --release-only --compiler "$compiler" \
@@ -1018,6 +1020,7 @@ jobs:
             "$RUNNER_TEMP/elf-direct-linker-cli/hia-elf-link-direct-shared" \
             "$RUNNER_TEMP/workspace-pipeline/hia-workspace-compile" \
             "$RUNNER_TEMP/patch-result/hia-patch-result" \
+            "$RUNNER_TEMP/worker-prepare/hia-worker-prepare" \
             "$RUNNER_TEMP/worker-request/hia-worker-admit" \
             "$RUNNER_TEMP/worker-request/hia-worker-terminal" \
             "$RUNNER_TEMP/core-edit"/hia* \
@@ -1263,6 +1266,8 @@ jobs:
               assert (refused.returncode, refused.stdout, refused.stderr) == (status, b'', b'')
           print('installed worker admission: exact digest input, full 8 MiB, invalid inputs suppressed')
           PYWR
+          HIA_TEST_WORKER_PREPARE_EXE="$installed/hia-worker-prepare" \
+            python -B -m unittest tests.test_hia_worker_prepare
           python -B -m tests.test_hia_worker_terminal_runtime "$installed/hia-worker-terminal"
           (
             cd "$RUNNER_TEMP/hia-cold.cold/source"
@@ -3304,6 +3309,7 @@ jobs:
             ${{ runner.temp }}/hia-source-build/
             ${{ runner.temp }}/workspace-pipeline/
             ${{ runner.temp }}/patch-result/
+            ${{ runner.temp }}/worker-prepare/
             ${{ runner.temp }}/worker-request/
             ${{ runner.temp }}/json-wire-cache-fixture/
             ${{ runner.temp }}/json-wire-entry-fixture/
