@@ -39,8 +39,7 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if size == 32 and length(w) == SCHED_WORKSPACE:
         return schedule_machine(s, o, w)
     if size == 0 and length(w) == 8:
-        # System V AMD64: RBX, RBP, R12–R15; RSP is checked separately.
-        return choose(get(w, 0) == 1, 61480, 4294967293)
+        return caller_abi_rule(get(w, 0))
     if size == 0 and length(w) == 16:
         return machine_formula(o, get(w, 0), get(w, 8))
     if size == 0 and length(w) == 24:
@@ -412,6 +411,15 @@ def decode_instruction(s:readbuf, w:mutbuf) -> u64:
         return decode_extension(s, w, rex)
     return decode_operands(s, w, rex, opcode)
 
+def caller_abi_rule(role:u64) -> u64:
+    if role == 1:
+        # System V AMD64 preserves RBX, RBP and R12–R15; RSP is checked separately.
+        return 61480
+    if role == 2:
+        # The six integer argument registers are RDI, RSI, RDX, RCX, R8, R9.
+        return 7 | (6 << 4) | (2 << 8) | (1 << 12) | (8 << 16) | (9 << 20)
+    return 4294967293
+
 def machine_formula(o:mutbuf, op:u64, param:u64) -> u64:
     if length(o) < 40 + MAX_RECIPE_NODES * 32:
         return 4294967294
@@ -746,6 +754,12 @@ def core_scalar_formula(o:mutbuf, op:u64, profile:u64, literal:u64) -> u64:
         return core_borrow_formula(o, op, literal)
     if literal != 0:
         return 4294967293
+    if op == C_PARAMETER:
+        if signed_result:
+            value = core_signed_normalized(o, LEFT, width)
+        else:
+            value = core_normalized(o, LEFT, core_mask(o, width))
+        return formula_done(o, value, 0, 0, 0)
     if op == C_BUFFER_ADDRESS and width == 64:
         address = node(o, R_ADD, LEFT, THIRD, 0)
         outside = node(o, R_UGE, THIRD, RIGHT, 0)

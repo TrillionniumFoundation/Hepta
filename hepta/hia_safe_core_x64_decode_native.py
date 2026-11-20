@@ -125,7 +125,7 @@ CORE_FORMULA_IDS = {name: code for code, name in enumerate((
     'int.cast.wrap', 'int.cast.checked', 'compare.eq', 'compare.ne', 'compare.lt', 'compare.le',
     'compare.gt', 'compare.ge', 'select', 'borrow.extent', 'borrow.null', 'borrow.wrap', 'buffer.address',
     'int.mul.checked', 'int.div.checked', 'int.rem.checked', 'int.neg.checked',
-    'int.shl.checked', 'int.shr.checked',
+    'int.shl.checked', 'int.shr.checked', 'parameter',
 ), 1)}
 ALU_GROUPS = {0: 'add', 1: 'or', 4: 'and', 5: 'sub', 6: 'xor', 7: 'cmp'}
 REFUSALS = (
@@ -380,12 +380,23 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
 
     @lru_cache(maxsize=1)
     def preserved_registers(self):
-        packet = CALLER_ABI_REQUEST.pack(1)
-        request = ctypes.create_string_buffer(packet, len(packet))
-        mask = self._entry(None, 0, None, 0, request, len(packet))
+        mask = self._caller_rule(1)
         if not 0 < mask < 1 << 16 or mask & (1 << 4):
             raise RuntimeError('invalid native Safe Core caller preservation mask')
         return tuple(index for index in range(16) if mask & (1 << index))
+
+    @lru_cache(maxsize=1)
+    def argument_registers(self):
+        rule = self._caller_rule(2)
+        registers = tuple((rule >> (4 * number)) & 15 for number in range(6))
+        if rule >> 24 or len(set(registers)) != len(registers) or 4 in registers:
+            raise RuntimeError('invalid native Safe Core argument register order')
+        return registers
+
+    def _caller_rule(self, role):
+        packet = CALLER_ABI_REQUEST.pack(role)
+        request = ctypes.create_string_buffer(packet, len(packet))
+        return self._entry(None, 0, None, 0, request, len(packet))
 
     def caller_restored(self, z, ctx, registers, initial, stack):
         _, _, _, restored = self.symbolic(z, ctx, 'return_stack', left=registers[4], right=stack)

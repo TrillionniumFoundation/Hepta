@@ -289,7 +289,9 @@ class Executor:
         self.codebase = self.z.BitVec("loaded_text_base", 64, ctx=self.ctx)
         self.return_address = self.z.BitVec("caller_return_address", 64, ctx=self.ctx)
         self.initial[4] = self.sp
-        for reg, value in zip((7, 6, 2, 1, 8, 9), words):
+        registers = ((7, 6, 2, 1, 8, 9) if self.native_model is None
+                     else self.native_model.argument_registers())
+        for reg, value in zip(registers, words):
             self.initial[reg] = value
         self.unknown_stack = {}
         self.outcomes, self.faults, self.abi_faults = [], [], []

@@ -87,6 +87,17 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                     self.assertTrue(all(z3.eq(z3.simplify(a), z3.simplify(b))
                                         for a, b in zip(actual, expected, strict=True)))
 
+    def test_parameter_words_match_independent_type_normalization(self):
+        import z3
+        from hepta.hia_safe_core import _Theory, WIDTHS_V6
+
+        theory = _Theory(z3, 5000, widths=WIDTHS_V6)
+        theory.core_model = self.native
+        theory.arguments({'params': [{'name': kind, 'type': kind} for kind in WIDTHS_V6]})
+        for kind, word in zip(WIDTHS_V6, theory.words, strict=True):
+            self.assertTrue(z3.eq(theory.inputs[kind], theory.normalized(word, kind)), kind)
+        self.assertEqual(self.native.argument_registers(), (7, 6, 2, 1, 8, 9))
+
     def test_signed_admission_and_machine_effects_use_native_recipes(self):
         import z3
 
@@ -486,6 +497,8 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                         side_effect=AssertionError('host access policy entered the Safe Core checker')),
                   patch.object(_Theory, '_reference_scalar_operation',
                                side_effect=AssertionError('host Core scalar semantics entered')),
+                  patch.object(_Theory, 'normalized',
+                               side_effect=AssertionError('host Core parameter normalization entered')),
                   patch.multiple(Executor, **blocked)):
                 proof = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes())
         self.assertTrue(proof['ok'], proof)

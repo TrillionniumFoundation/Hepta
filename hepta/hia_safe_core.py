@@ -519,7 +519,17 @@ class _Theory:
                 self.loan = (first, length, typ)
                 self.inputs[name] = self.loan
             else:
-                self.inputs[name] = self.normalized(first, typ)
+                self.inputs[name] = self.parameter_word(first, typ)
+
+    def parameter_word(self, word, typ):
+        if self.core_model is None:
+            return self.normalized(word, typ)
+        value, trap = self.core_model.symbolic_core(
+            self.z, self.ctx, 'parameter', self.widths[typ], (word,), signed_result=typ.startswith('i'),
+        )
+        if trap is not None:
+            raise RuntimeError('invalid native Safe Core parameter formula')
+        return value
 
     def scalar_operation(self, name, attrs, args, typ, input_type=None):
         if self.core_model is None:
