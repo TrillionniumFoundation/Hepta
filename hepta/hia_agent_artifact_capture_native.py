@@ -38,7 +38,7 @@ def _admit(manifest):
         path = Path(manifest)
         snapshot = _read(path, 1 << 20)
         record = _decode(snapshot.raw)
-        _, sources = _binding_sources()
+        _, _, sources = _binding_sources()
         if (type(record) is not dict or record.get('schema') != SCHEMA
                 or record.get('status') != 'NATIVE_AGENT_ARTIFACT_CAPTURE_BUILT'
                 or record.get('source_manifest') != sources
