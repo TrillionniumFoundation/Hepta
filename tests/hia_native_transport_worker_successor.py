@@ -31,6 +31,8 @@ EVALUATION_FIXTURE = 'tests/fixtures/evaluation_worker_terminal_v2_provenance.js
 EVALUATION_FIXTURE_SHA256 = '49aadebc293d7051b281db3e5a589f00d86098a13a313b9c7b50f76373a2b2c9'
 EVALUATION_OLD = {'bytes': 43338, 'sha256': '22433d0de525210953c8ab23559b1cc7b3bd3575cfaa80fe2618415f03623ede'}
 EVALUATION_NEW = {'bytes': 49105, 'sha256': '673b1e330b48df5915a4a544188397e33055ac023986cb136e8b067e4574b9d3'}
+EVALUATION_STORE_FIXTURE = 'tests/fixtures/evaluation_typed_store_successor.json'
+EVALUATION_STORE_FIXTURE_SHA256 = '4cc1286abb293e5d4536a42ec424282b9bfbe500daeefaa6a29496c8e8774bb4'
 ORIGINALS = {
     'native': ('tests/fixtures/native_delivery_original_9c46166.json', {
         'bytes': 71708, 'sha256': 'a1f82e1c955ece21319cc49a0e3834658a2eeb0be7636d6f13690e1d6b83dea7'}),
@@ -147,6 +149,14 @@ def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, pr
     return reverse_exact(raw, record['record'], previous_pin)
 
 
+def restore_evaluation_store(raw, fixture):
+    from tests.hia_store_delivery_successor import reverse_exact
+
+    if sha256(fixture).hexdigest() != EVALUATION_STORE_FIXTURE_SHA256:
+        raise ValueError('evaluation typed Store test provenance changed')
+    return reverse_exact(raw, json.loads(fixture), EVALUATION_NEW)
+
+
 def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
     if type(original_kind) is not str or original_kind not in ORIGINALS:
         raise ValueError('transport successor original authority differs')
@@ -194,6 +204,7 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
            != _canonical(EVALUATION_OLD) for kind in ORIGINALS):
         raise ValueError('evaluation successor independent original pins differ')
     evaluation_frozen = None
+    evaluation_store_frozen = None
     evaluation_value = None
     if _pin(evaluation_raw) != EVALUATION_OLD:
         if unchanged:
@@ -220,7 +231,11 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
                 or _canonical(evaluation_value['required_pair']) != _canonical({
                     name: value['files'][name]['new'] for name in PATHS})):
             raise ValueError('evaluation successor changes its exact reviewed scope')
-        reverse_evaluation(evaluation_raw, evaluation_value['record'])
+        reviewed = evaluation_raw
+        if _pin(reviewed) != EVALUATION_NEW:
+            evaluation_store_frozen = (ROOT / EVALUATION_STORE_FIXTURE).read_bytes()
+            reviewed = restore_evaluation_store(reviewed, evaluation_store_frozen)
+        reverse_evaluation(reviewed, evaluation_value['record'])
     # Never refresh a prior pin from a later read. This closes the exact raw
     # consumption and terminal reread for every source and both old authorities.
     if (any((ROOT / item[0]).read_bytes() != authorities[kind]
@@ -229,6 +244,8 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
             or (frozen is not None and (ROOT / FIXTURE).read_bytes() != frozen)
             or (boundary is not None and (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes() != boundary)
             or (ROOT / EVALUATION).read_bytes() != evaluation_raw
+            or (evaluation_store_frozen is not None
+                and (ROOT / EVALUATION_STORE_FIXTURE).read_bytes() != evaluation_store_frozen)
             or (evaluation_frozen is not None
                 and (ROOT / EVALUATION_FIXTURE).read_bytes() != evaluation_frozen)):
         raise ValueError('transport successor bytes changed during admission')
@@ -287,6 +304,17 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
             'all_other_nine_test_methods_unchanged': True,
             'original_method_count': 10,
         }
+        if evaluation_store_frozen is not None:
+            result['source_adjustments'][EVALUATION].update({
+                'current_bytes': len(evaluation_raw),
+                'current_sha256': sha256(evaluation_raw).hexdigest(),
+                'all_other_nine_test_methods_unchanged': False,
+                'typed_store_test_successor': {
+                    'path': EVALUATION_STORE_FIXTURE,
+                    'sha256': EVALUATION_STORE_FIXTURE_SHA256,
+                    'restores_v2_exactly': True,
+                },
+            })
         result['separate_test_successor_count'] = 3
         result['c019_unchanged_originals_after_both_reviews'] = 83
     return result
@@ -576,6 +604,8 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
         if path == TRANSPORT and 'sqlite_boundary_successor' in prior['source_adjustments'].get(path, {}):
             raw = _reverse_sqlite_boundary(path, raw, capture(SQLITE_BOUNDARY_FIXTURE),
                                            FIXTURE, capture(FIXTURE), expected)
+        if path == EVALUATION and 'typed_store_test_successor' in prior['source_adjustments'].get(path, {}):
+            raw = restore_evaluation_store(raw, capture(EVALUATION_STORE_FIXTURE))
         if _pin(raw) != expected:
             raise ValueError('qualifier prior terminal source changed after its admission')
     raw_sources = {path: capture(path) for path in QUALIFIER_PATHS}

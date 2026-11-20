@@ -107,6 +107,9 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
             cls.new_sources[name] = current
             cls.old_sources[name] = restore_pair(current, record)
         raw = (ROOT / subject.EVALUATION).read_bytes()
+        if pin(raw) not in (REVIEWED_EVALUATION_PIN, ORIGINAL_EVALUATION_PIN):
+            raw = subject.restore_evaluation_store(
+                raw, (ROOT / subject.EVALUATION_STORE_FIXTURE).read_bytes())
         record = cls.evaluation['record']
         if pin(raw) == REVIEWED_EVALUATION_PIN:
             new = raw
