@@ -354,6 +354,43 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(case)
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_native_live_lifecycle_preserves_incarnation_and_witness_precedence(self):
+        def frame(facts, properties):
+            return struct.pack('<8s9Q', b'HIAJSS01', *facts, *map(len, properties)) + b''.join(properties)
+
+        for facts, properties, expected in (
+            ((0, 1, 1, 1, 1, 1), (b'loaded', b'active', b'running'), 1),
+            ((1, 0, 0, 1, 1, 1), (b'loaded', b'active', b'running'), 2),
+            ((1, 0, 0, 2, 1, 1), (b'not-foundx', b'active', b'running'), 2),
+            ((1, 1, 0, 2, 0, 0), (b'loaded', b'active', b'running'), 3),
+            ((1, 1, 0, 0, 0, 0), (b'loaded', b'active', b'running'), 3),
+            ((1, 1, 1, 1, 0, 0), (b'loaded', b'active', b'running'), 4),
+            ((1, 0, 1, 1, 0, 0), (b'not-found', b'activating', b'start'), 4),
+            ((1, 1, 1, 0, 0, 0), (b'loaded', b'failed', b'dead'), 5),
+            ((1, 1, 1, 0, 1, 1), (b'loaded', b'active', b'exited'), 5),
+            ((1, 1, 0, 0, 0, 0), (b'loaded', b'failed', b'dead'), 6),
+            ((1, 1, 0, 0, 1, 1), (b'loaded', b'active', b'exited'), 7),
+            ((1, 1, 0, 0, 1, 0), (b'loaded', b'active', b'exited'), 8),
+            ((1, 1, 0, 0, 0, 0), (b'loaded', b'active', b'exited'), 9),
+            ((1, 0, 1, 0, 0, 0), (b'not-found', b'inactive', b'dead'), 10),
+            ((1, 0, 0, 0, 0, 0), (b'not-found', b'inactive', b'dead'), 11),
+            ((1, 1, 1, 0, 0, 0), (b'loaded', b'deactivating', b'dead'), 12),
+            ((1, 1, 1, 1, 0, 0), (b'loaded', b'active', b'dead'), 12),
+            ((1, 1, 0, 0, 0, 0), (b'loaded', b'deactivating', b'dead'), 13),
+            ((1, 1, 0, 0, 0, 0), (b'loaded', b'', b''), 13),
+        ):
+            with self.subTest(facts=facts, properties=properties):
+                result = self.invoke(frame(facts, properties))
+                self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                 (0, struct.pack('<8sQ', b'HIAJSV01', expected), b''))
+        ordinary = frame((1, 1, 0, 1, 0, 0), (b'loaded', b'active', b'running'))
+        for invalid in (ordinary[:-1], ordinary + b'x',
+                        frame((2, 1, 0, 1, 0, 0), (b'loaded', b'active', b'running')),
+                        frame((1, 1, 0, 3, 0, 0), (b'loaded', b'active', b'running')),
+                        frame((1, 1, 0, 1, 0, 0), (b'loaded', b'a' * 129, b''))):
+            result = self.invoke(invalid)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',

@@ -36,6 +36,8 @@ JOB_TERMINAL_INPUT = b'HIAJTS01'
 JOB_TERMINAL_OUTPUT = b'HIAJTV01'
 CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
+JOB_LIFECYCLE_INPUT = b'HIAJSS01'
+JOB_LIFECYCLE_OUTPUT = b'HIAJSV01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -61,6 +63,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_terminal_state(s, o)
     if magic == CAPTURE_POLICY_INPUT:
         return capture_policy(s, o)
+    if magic == JOB_LIFECYCLE_INPUT:
+        return job_lifecycle(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -127,6 +131,65 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     word_store(o, 0, OUTPUT_MAGIC)
     saved(w, o, 8, 0, 256)
     return count + 1
+
+def job_lifecycle(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 80 or length(o) < 16:
+        return 4294967293
+    owner = word_load(s, 8)
+    incarnation = word_load(s, 16)
+    witness = word_load(s, 24)
+    process = word_load(s, 32)
+    exited = word_load(s, 40)
+    success = word_load(s, 48)
+    loaded_size = word_load(s, 56)
+    active_size = word_load(s, 64)
+    sub_size = word_load(s, 72)
+    if owner > 1 or incarnation > 1 or witness > 1 or process > 2 or exited > 1 or success > 1:
+        return 4294967293
+    if loaded_size > 128 or active_size > 128 or sub_size > 128:
+        return 4294967293
+    if length(s) != 80 + loaded_size + active_size + sub_size:
+        return 4294967293
+    state = lifecycle_state(s, owner, incarnation, witness, process, exited, success,
+                            loaded_size, active_size, sub_size)
+    word_store(o, 0, JOB_LIFECYCLE_OUTPUT)
+    word_store(o, 8, state)
+    return 16
+
+def lifecycle_state(s:readbuf, owner:u64, incarnation:u64, witness:u64, process:u64,
+                    exited:u64, success:u64, loaded_size:u64, active_size:u64, sub_size:u64) -> u64:
+    if owner == 0:
+        return 1
+    missing = loaded_size == 9 and word_load(s, 80) == NOT_FOUND_HEAD and byte(s, 88) == 100
+    if missing == False and incarnation == 0:
+        return 2
+    active_at = 80 + loaded_size
+    sub_at = active_at + active_size
+    active = active_size == 6 and lifecycle_text(s, active_at, 6, ACTIVE_WORD)
+    activating = active_size == 10 and word_load(s, active_at) == ACTIVATING_HEAD and lifecycle_text(s, active_at + 8, 2, NG_TAIL)
+    inactive_sub = sub_size == 6 and lifecycle_text(s, sub_at, 6, EXITED_WORD)
+    dead = sub_size == 4 and lifecycle_text(s, sub_at, 4, DEAD_WORD)
+    if (active or activating) and inactive_sub == False and dead == False:
+        return choose(process == 1, 4, 3)
+    if active_size == 6 and lifecycle_text(s, active_at, 6, FAILED_WORD):
+        return choose(witness != 0, 5, 6)
+    if active and inactive_sub:
+        if witness != 0:
+            return 5
+        if exited != 0:
+            return choose(success != 0, 7, 8)
+        return 9
+    if missing:
+        return choose(witness != 0, 10, 11)
+    return choose(witness != 0, 12, 13)
+
+def lifecycle_text(s:readbuf, at:u64, size:u64, word:u64) -> bool:
+    index = 0
+    while index < size:
+        if byte(s, at + index) != ((word >> (index * 8)) & 255):
+            return False
+        index = index + 1
+    return True
 
 def capture_policy(s:readbuf, o:mutbuf) -> u64:
     n = length(s)
@@ -572,6 +635,13 @@ def source_program():
               .replace('JOB_TERMINAL_OUTPUT', str(int.from_bytes(JOB_TERMINAL_OUTPUT, 'little')))
               .replace('CAPTURE_POLICY_INPUT', str(int.from_bytes(CAPTURE_POLICY_INPUT, 'little')))
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
+              .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
+              .replace('JOB_LIFECYCLE_OUTPUT', str(int.from_bytes(JOB_LIFECYCLE_OUTPUT, 'little')))
+              .replace('NOT_FOUND_HEAD', str(int.from_bytes(b'not-foun', 'little')))
+              .replace('ACTIVE_WORD', str(int.from_bytes(b'active', 'little')))
+              .replace('EXITED_WORD', str(int.from_bytes(b'exited', 'little')))
+              .replace('DEAD_WORD', str(int.from_bytes(b'dead', 'little')))
+              .replace('FAILED_WORD', str(int.from_bytes(b'failed', 'little')))
               .replace('RUNNING_WORD', str(int.from_bytes(b'running', 'little')))
               .replace('ACTIVATING_HEAD', str(int.from_bytes(b'activati', 'little')))
               .replace('FINALIZING_HEAD', str(int.from_bytes(b'finalizi', 'little')))
