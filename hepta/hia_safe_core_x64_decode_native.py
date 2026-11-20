@@ -6,6 +6,7 @@ from functools import lru_cache
 import os
 import struct
 
+from .hia_cnf_native import CIRCUIT_NODES
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 from .hia_safe_core_x64 import Instruction, SafeCoreMachineRejected
 
@@ -20,6 +21,13 @@ ROW = struct.Struct('<6Q')
 CALL_COUNT = struct.Struct('<Q')
 CALL_BINDING = struct.Struct('<3Q')
 PROFILE_OFFSET = 96
+MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
+MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR01', 'little')
+MACHINE_VALUES_STACK_BYTES = 16384
+MACHINE_VALUES_INDEX = 192 + MACHINE_VALUES_STACK_BYTES + 8
+MACHINE_VALUES_WORKSPACE = MACHINE_VALUES_INDEX + MAX_TEXT * 8
+MACHINE_VALUES_HEADER = struct.Struct('<5Q')
+MACHINE_VALUES_NODE = struct.Struct('<5Q')
 MEMORY_REQUEST = struct.Struct('<5Q')
 SCHEDULER_REQUEST = struct.Struct('<4Q')
 SCHEDULER_REPLY = struct.Struct('<3Q')
@@ -277,6 +285,42 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if pc != len(data):
             raise RuntimeError('native Safe Core decoder left unconsumed machine bytes')
         return result
+
+    def project_scalar_values(self, binding, argument_words, **profile):
+        """Project a final bound image, not the producer's instruction plan."""
+        if type(argument_words) is not int or not 0 <= argument_words <= 6:
+            raise ValueError('invalid scalar machine argument count')
+        calls = binding['calls']
+        code = self.decode(binding['text'], calls, **profile)
+        frame = bytearray(struct.pack('<4Q', MACHINE_VALUES_REQUEST, binding['entry'],
+                                      argument_words, len(code)))
+        for pc, instruction in code.items():
+            if instruction.op == 'immediate_alu':
+                op, *rest = instruction.args
+                args = (next(group for group, name in ALU_GROUPS.items() if name == op), *rest)
+            elif instruction.op == 'call' and calls[pc] == 'abort':
+                args = (-1,)
+            else:
+                args = instruction.args
+            words = [word & ((1 << 64) - 1) for word in args]
+            words.extend([0] * (3 - len(words)))
+            frame.extend(ROW.pack(pc, OPERATION_IDS[instruction.op], instruction.size, *words))
+        source = ctypes.create_string_buffer(bytes(frame), len(frame))
+        output = ctypes.create_string_buffer(MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * CIRCUIT_NODES)
+        scratch = ctypes.create_string_buffer(MACHINE_VALUES_WORKSPACE)
+        size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
+        if size == 0:
+            return None
+        if not MACHINE_VALUES_HEADER.size <= size <= len(output):
+            raise RuntimeError('invalid HIA machine scalar projection extent')
+        magic, count, value, steps, depth = MACHINE_VALUES_HEADER.unpack_from(output)
+        if (magic != MACHINE_VALUES_REPLY or not 0 <= value < count <= CIRCUIT_NODES
+                or not 0 < steps <= MAX_INSTRUCTIONS or depth > MACHINE_VALUES_STACK_BYTES
+                or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count):
+            raise RuntimeError('invalid HIA machine scalar projection')
+        nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size]))
+        return nodes, value, {'decoded_instructions': len(code), 'symbolic_machine_steps': steps,
+                              'machine_terminal_paths': 1, 'maximum_observed_stack_bytes': depth}
 
     def scheduler(self):
         return NativeMachineScheduler(self._entry)

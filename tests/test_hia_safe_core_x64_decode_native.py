@@ -29,6 +29,45 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.skipTest('requires a bound HIA Safe Core x86 decoder')
         self.native = installed_safe_core_x64_decode(selected)
 
+    def test_word_projection_uses_the_bound_elf_and_checks_stack_and_sysv(self):
+        from pathlib import Path
+        import tempfile
+        from hepta.hia_program import verify_program
+        from hepta.hia_program_native import compile_program_machine, emit_program_machine
+        from hepta.hia_safe_core_elf import bind_final_artifact
+        from tests.test_hia_program import arithmetic
+
+        for name, operation in (('int.add.wrap', 9), ('int.sub.wrap', 10), ('int.mul.wrap', 32)):
+            with self.subTest(operation=name), tempfile.TemporaryDirectory() as directory:
+                core = verify_program(arithmetic(name, 'u64'))
+                emitted = emit_program_machine(core)
+                final = Path(directory) / 'scalar.so'
+                compile_program_machine(emitted, program=core, output=final, linker='ld')
+                function, = core.as_dict()['functions']
+                binding = bind_final_artifact(emitted.object_bytes, final.read_bytes(), function['name'])
+                nodes, value, counts = self.native.project_scalar_values(binding, 2)
+                self.assertEqual(nodes, ((1, 64, 0, 0, 0), (1, 64, 0, 0, 0), (operation, 64, 0, 1, 0)))
+                self.assertEqual(value, 2)
+                self.assertGreater(counts['maximum_observed_stack_bytes'], 0)
+                self.assertEqual(counts['machine_terminal_paths'], 1)
+
+        def project(code, calls=None):
+            return self.native.project_scalar_values({'text': bytes.fromhex(code), 'entry': 0,
+                                                      'calls': calls or {}}, 1)
+
+        # A returning leaf with a valid stack. The value is the first ABI word.
+        self.assertEqual(project('4889f8c3')[1], 0)
+        for name, raw, calls in (
+                ('callee-saved register clobbered', '4889fb4889f8c3', {}),
+                ('unknown input register used as RAX', '4889d8c3', {}),
+                ('write to caller return word', '4889bc24000000004889f8c3', {}),
+                ('out-of-window load', '488b8424f8ffffffc3', {}),
+                ('misaligned local call', 'e8000000004889f8c3', {0: 5}),
+                ('repeated instruction', 'e9fbffffff', {}),
+                ('abort path is outside this projection', 'e8000000000f0b', {0: 'abort'})):
+            with self.subTest(case=name):
+                self.assertIsNone(project(raw, calls))
+
     def test_unsigned_profiles_preserve_exact_decoding_and_state_effects(self):
         import z3
 

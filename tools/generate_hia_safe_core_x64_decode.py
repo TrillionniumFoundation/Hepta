@@ -5,11 +5,14 @@ import ast
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_cnf_native import (CIRCUIT_NODES, WORD_ARITHMETIC_SHR, WORD_VARIABLE_SHL,
+                                 WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
 from hepta.hia_safe_core_x64_decode_native import (
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
-    SCHEDULER_WORKSPACE, WORKSPACE,
+    SCHEDULER_WORKSPACE, WORKSPACE, MACHINE_VALUES_INDEX, MACHINE_VALUES_REPLY,
+    MACHINE_VALUES_REQUEST, MACHINE_VALUES_STACK_BYTES, MACHINE_VALUES_WORKSPACE,
 )
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
@@ -32,10 +35,19 @@ FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHE
               SCHED_HEADER=SCHEDULER_HEADER, SCHED_VISITS=SCHEDULER_VISITS,
               SCHED_BITMAP=SCHEDULER_BITMAP, SCHED_FRAMES=SCHEDULER_FRAMES,
               SCHED_WORKSPACE=SCHEDULER_WORKSPACE)
+FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
+              MV_WORKSPACE=MACHINE_VALUES_WORKSPACE, MV_INDEX=MACHINE_VALUES_INDEX,
+              MV_STACK=192, MV_STACK_BASE=20000, MV_STACK_TOP=20000 + MACHINE_VALUES_STACK_BYTES,
+              MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
+              MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
+              MV_PRODUCT=WRAPPING_PRODUCT, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
+              MV_SHIFT_RIGHT=WORD_VARIABLE_SHR, MV_SHIFT_ARITHMETIC=WORD_ARITHMETIC_SHR)
 
 SOURCE = r'''
 def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
+    if length(w) == MV_WORKSPACE:
+        return project_machine_values(s, o, w)
     if size == 32 and length(w) == SCHED_WORKSPACE:
         return schedule_machine(s, o, w)
     if size == 0 and length(w) == 8:
@@ -1174,6 +1186,252 @@ def caller_disjoint_formula(o:mutbuf) -> u64:
     after_stack = node(o, R_UGE, RIGHT, high, 0)
     disjoint = node(o, R_BOOL_OR3, empty, before_stack, after_stack)
     return node(o, R_IMPLIES, admitted, disjoint, 0)
+
+# Finite symbolic semantics for straight-line, word-only scalar images.
+# Abstract register/stack values are either circuit nodes, stack positions,
+# opaque caller registers or return sites. An unknown value is never a circuit
+# input and cannot determine memory, control flow or the observed return.
+def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(s) < 32 or length(o) < 40 + MV_COUNT * 40 or schedule_request(s, 0) != MV_REQUEST:
+        return 4294967293
+    words = schedule_request(s, 16)
+    count = schedule_request(s, 24)
+    if words > 6 or count == 0 or count > MAX_CODE or length(s) != 32 + count * 48:
+        return 4294967293
+    position = 0
+    while position < 128:
+        put(w, position, MV_SAVED + (position >> 3))
+        position = position + 8
+    # The input's instruction offsets have already been decoded and checked
+    # against the final ELF and its call relocations. Build a bounded PC index.
+    index = 0
+    pc = 0
+    while index < count:
+        row = 32 + index * 48
+        size = schedule_request(s, row + 16)
+        if schedule_request(s, row) != pc or size == 0 or size > MAX_TEXT - pc:
+            return 4294967293
+        put(w, MV_INDEX + pc * 8, row)
+        pc = pc + size
+        index = index + 1
+    put(w, 32, MV_STACK_TOP)
+    put(w, MV_STACK + MV_STACK_TOP - MV_STACK_BASE, MV_CALLER)
+    put(w, MV_LOW, MV_STACK_TOP)
+    put(w, MV_PC, schedule_request(s, 8))
+    index = 0
+    while index < words:
+        register = (caller_abi_rule(2) >> (4 * index)) & 15
+        put(w, register * 8, mv_node(o, w, 1, 0, 0, 0))
+        index = index + 1
+    while get(w, MV_STEPS) < MAX_CODE:
+        pc = get(w, MV_PC)
+        if pc >= MAX_TEXT:
+            return 0
+        row = get(w, MV_INDEX + pc * 8)
+        sp = get(w, 32)
+        if row == 0 or mv_stack_position(sp) == False:
+            return 0
+        # The Safe Core profile does not admit cycles or repeated calls to
+        # an already visited machine instruction on this path.
+        put(w, MV_INDEX + pc * 8, 0)
+        if sp < get(w, MV_LOW):
+            put(w, MV_LOW, sp)
+        put(w, MV_PC, pc + schedule_request(s, row + 16))
+        put(w, MV_STEPS, get(w, MV_STEPS) + 1)
+        action = mv_step(s, o, w, row, sp)
+        if action == 0:
+            return 0
+        if action == 2:
+            nodes = get(w, MV_NODES)
+            value = get(w, 0)
+            if value == 0 or value > nodes or mv_caller_preserved(w) == False:
+                return 0
+            put(o, 0, MV_REPLY)
+            put(o, 8, nodes)
+            put(o, 16, value - 1)
+            put(o, 24, get(w, MV_STEPS))
+            put(o, 32, MV_STACK_TOP - get(w, MV_LOW))
+            return 40 + nodes * 40
+    return 0
+
+def mv_node(o:mutbuf, w:mutbuf, op:u64, left:u64, right:u64, immediate:u64) -> u64:
+    index = get(w, MV_NODES)
+    if index == MV_COUNT:
+        return 0
+    row = 40 + index * 40
+    put(o, row, op)
+    put(o, row + 8, 64)
+    put(o, row + 16, left)
+    put(o, row + 24, right)
+    put(o, row + 32, immediate)
+    put(w, MV_NODES, index + 1)
+    return index + 1
+
+def mv_stack_position(address:u64) -> bool:
+    return address >= MV_STACK_BASE and address <= MV_STACK_TOP and (address & 7) == 0
+
+def mv_stack_access(sp:u64, address:u64, writing:bool) -> bool:
+    return mv_stack_position(address) and address >= sp and (writing == False or address < MV_STACK_TOP)
+
+def mv_stack_slot(address:u64) -> u64:
+    return MV_STACK + address - MV_STACK_BASE
+
+def mv_caller_preserved(w:mutbuf) -> bool:
+    if get(w, 32) != MV_STACK_TOP + 8:
+        return False
+    register = 0
+    while register < 16:
+        if ((caller_abi_rule(1) >> register) & 1) != 0:
+            if get(w, register * 8) != MV_SAVED + register:
+                return False
+        register = register + 1
+    return True
+
+def mv_step(s:readbuf, o:mutbuf, w:mutbuf, row:u64, sp:u64) -> u64:
+    op = schedule_request(s, row + 8)
+    a = schedule_request(s, row + 24)
+    b = schedule_request(s, row + 32)
+    c = schedule_request(s, row + 40)
+    if op == OP_JMP:
+        put(w, MV_PC, a)
+        return 1
+    if op == OP_PUSH or op == OP_POP or op == OP_LEAVE or op == OP_CALL or op == OP_RET:
+        return mv_control(w, op, a, sp)
+    if op == OP_NOP or op == OP_CMP or op == OP_TEST:
+        # No instruction in this subset reads arithmetic flags.
+        return 1
+    if a >= 16:
+        return 0
+    if op == OP_IMM:
+        value = mv_node(o, w, 2, 0, 0, b)
+        if value == 0:
+            return 0
+        put(w, a * 8, value)
+        return 1
+    if op == OP_LOAD or op == OP_STORE or op == OP_LEA:
+        return mv_memory(w, op, a, b, c, sp)
+    if op == OP_IMMEDIATE_ALU:
+        return mv_immediate(o, w, a, b, c)
+    if op == OP_SHL or op == OP_SHR or op == OP_SAR or op == OP_NOT:
+        return mv_unary(o, w, op, a, b)
+    if b >= 16:
+        return 0
+    if op == OP_MOV:
+        put(w, a * 8, get(w, b * 8))
+        return 1
+    return mv_arithmetic(o, w, op, a, get(w, b * 8))
+
+def mv_control(w:mutbuf, op:u64, argument:u64, sp:u64) -> u64:
+    if op == OP_PUSH or op == OP_CALL:
+        if sp == MV_STACK_BASE:
+            return 0
+        if op == OP_CALL:
+            # Entry RSP is 8 mod 16. A local CALL must execute with
+            # RSP 16-aligned and use only a checked internal target.
+            if argument >= MAX_TEXT or (sp & 15) != 8:
+                return 0
+            value = MV_LOCAL_RETURN + get(w, MV_PC)
+            put(w, MV_PC, argument)
+        else:
+            if argument >= 16:
+                return 0
+            value = get(w, argument * 8)
+        put(w, 32, sp - 8)
+        put(w, mv_stack_slot(sp - 8), value)
+        return 1
+    register = argument
+    if op == OP_LEAVE:
+        register = 5
+        sp = get(w, 40)
+    if mv_stack_position(sp) == False:
+        return 0
+    value = get(w, mv_stack_slot(sp))
+    put(w, 32, sp + 8)
+    if op == OP_RET:
+        if value == MV_CALLER:
+            return 2
+        if value < MV_LOCAL_RETURN:
+            return 0
+        put(w, MV_PC, value - MV_LOCAL_RETURN)
+    else:
+        if register >= 16 or register == 4:
+            return 0
+        put(w, register * 8, value)
+    return 1
+
+def mv_memory(w:mutbuf, op:u64, a:u64, b:u64, c:u64, sp:u64) -> u64:
+    if op == OP_STORE:
+        base = a
+        displacement = b
+        register = c
+    else:
+        base = b
+        displacement = c
+        register = a
+    if base >= 16 or register >= 16:
+        return 0
+    origin = get(w, base * 8)
+    address = origin + displacement
+    if mv_stack_position(origin) == False or mv_stack_access(sp, address, op == OP_STORE) == False:
+        return 0
+    if op == OP_STORE:
+        put(w, mv_stack_slot(address), get(w, register * 8))
+    elif op == OP_LOAD:
+        put(w, register * 8, get(w, mv_stack_slot(address)))
+    else:
+        put(w, register * 8, address)
+    return 1
+
+def mv_immediate(o:mutbuf, w:mutbuf, group:u64, register:u64, immediate:u64) -> u64:
+    if register >= 16:
+        return 0
+    if group == 7:
+        return 1
+    op = choose(group == 0, OP_ADD, choose(group == 1, OP_OR, choose(group == 4, OP_AND,
+                choose(group == 5, OP_SUB, choose(group == 6, OP_XOR, 0)))))
+    left = get(w, register * 8)
+    if mv_stack_position(left):
+        if op != OP_ADD and op != OP_SUB:
+            return 0
+        value = choose(op == OP_ADD, left + immediate, left - immediate)
+        if mv_stack_position(value) == False:
+            return 0
+        put(w, register * 8, value)
+        return 1
+    right = mv_node(o, w, 2, 0, 0, immediate)
+    return mv_arithmetic(o, w, op, register, right)
+
+def mv_arithmetic(o:mutbuf, w:mutbuf, op:u64, register:u64, right:u64) -> u64:
+    left = get(w, register * 8)
+    nodes = get(w, MV_NODES)
+    if left == 0 or left > nodes or right == 0 or right > nodes:
+        return 0
+    word = choose(op == OP_ADD, 9, choose(op == OP_SUB, 10, choose(op == OP_AND, 3,
+           choose(op == OP_OR, 4, choose(op == OP_XOR, 5, choose(op == OP_IMUL, MV_PRODUCT, 0))))))
+    if word == 0:
+        return 0
+    value = mv_node(o, w, word, left - 1, right - 1, 0)
+    if value == 0:
+        return 0
+    put(w, register * 8, value)
+    return 1
+
+def mv_unary(o:mutbuf, w:mutbuf, op:u64, register:u64, count:u64) -> u64:
+    left = get(w, register * 8)
+    if left == 0 or left > get(w, MV_NODES):
+        return 0
+    if op == OP_NOT:
+        value = mv_node(o, w, 6, left - 1, 0, 0)
+    else:
+        right = mv_node(o, w, 2, 0, 0, count & 63)
+        if right == 0:
+            return 0
+        word = choose(op == OP_SHL, MV_SHIFT_LEFT, choose(op == OP_SHR, MV_SHIFT_RIGHT, MV_SHIFT_ARITHMETIC))
+        value = mv_node(o, w, word, left - 1, right - 1, 0)
+    if value == 0:
+        return 0
+    put(w, register * 8, value)
+    return 1
 
 '''
 
