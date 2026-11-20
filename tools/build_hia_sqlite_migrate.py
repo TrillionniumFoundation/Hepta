@@ -7,14 +7,14 @@ import os
 from pathlib import Path
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.build_hia_sqlite_components import compiled_images, native_image
+from tools.build_hia_sqlite_migration_publish import MIGRATE_ROLE, MIGRATION_TEMPLATES
 from tools.build_hia_sqlite_pager import (
-    EMBED_SOURCE, ROOT, assemble, build_embedder, digest, embed, link, write_new,
+    EMBED_SOURCE, ROOT, STATIC_LINKER, digest, embed, link, load_static_object, verify_executable, write_new,
 )
-from tools.qualify_hia_selfhost import compile_stage
 
 
 COORDINATOR = 'examples/hia_bootstrap/sqlite_migrate.hepta'
-LINKER = 'examples/hia_bootstrap/elf_static_linker.hepta'
 ADAPTER = 'tools/hia_sqlite_migrate.S'
 DRIVER = 'tools/build_hia_sqlite_migrate.py'
 COMPONENTS = (
@@ -48,8 +48,10 @@ def read_component(folder, label, name, schema, compiler_pin, cold_pin, admitted
 def build(output, compiler, cold, folders):
     compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
     admitted = admit_cold_build(compiler_body, cold_body)
+    units = {'owner': COORDINATOR, 'linker': STATIC_LINKER, 'embedder': EMBED_SOURCE,
+             'templates': MIGRATION_TEMPLATES}
     sources = {name: (ROOT / name).read_bytes() for name in
-               (COORDINATOR, LINKER, EMBED_SOURCE, ADAPTER, DRIVER)}
+               (*units.values(), ADAPTER, DRIVER)}
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('migration coordinator source differs from admitted cold source')
 
@@ -62,24 +64,21 @@ def build(output, compiler, cold, folders):
         inputs.extend(paths)
 
     output.mkdir(mode=0o700)
-    images = {}
-    for label, source in (('sqlite-migrate', COORDINATOR), ('linker', LINKER)):
-        image, report = compile_stage(output, label, compiler, sources[source])
-        body = image.read_bytes()
-        if digest(body) != report['produced_sha256']:
-            raise ValueError('migration controller image changed')
-        images[label] = body
-        inputs.append((image, body))
-    embedder = build_embedder(output, compiler, sources[EMBED_SOURCE])
-    adapters = [assemble(output, ADAPTER, sources[ADAPTER])]
+    captured = compiled_images(output, compiler, {name: sources[path] for name, path in units.items()})
+    inputs.extend(captured.values())
+    images = {name: raw for name, (_, raw) in captured.items()}
+    embedder, templates = (native_image(images[role]) for role in ('embedder', 'templates'))
+    adapters = [load_static_object(templates, MIGRATE_ROLE, sources[ADAPTER]),
+                embed(output, 'migration_coordinator', 'sqlite-migrate', images['owner'], embedder)]
     for label, name, _ in COMPONENTS:
         raw = bodies[label]
         adapters.append(embed(output, label, name, raw, embedder))
         inputs.append((output / (name + '.embedded.elf'), raw))
-    binary, receipt = link(output, images['linker'], images['sqlite-migrate'], adapters, wire_magic=b'HIALNK01')
+    binary, receipt = link(output, images['linker'], images['owner'], adapters, wire_magic=b'HIALNK01')
+    for raw in bodies.values():
+        verify_executable(binary, raw)
     if (current_sources() != admitted or any(path.read_bytes() != raw for path, raw in inputs)
-            or any((ROOT / path).read_bytes() != raw for path, raw in sources.items())
-            or any(binary.count(raw) != 1 for raw in bodies.values())):
+            or any((ROOT / path).read_bytes() != raw for path, raw in sources.items())):
         raise ValueError('migration link changed a source or sealed executable')
     executable = output / 'hia-sqlite-migrate'
     with executable.open('xb') as stream:

@@ -627,8 +627,12 @@ store_name: .asciz "store"
 empty_name: .byte 0
 .balign 8
 sigpipe: .quad 1,0,0,0
+.ifdef HIA_MIGRATION_EMBEDDED_OBJECTS
+.set owner, migration_coordinator_start
+.else
 .balign 16
 owner: .incbin "sqlite-migrate.image.bin"
+.endif
 
 .bss
 .balign 8

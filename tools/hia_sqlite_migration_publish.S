@@ -389,12 +389,22 @@ prepare_helpers:
  mov [rip+null_fd],eax
  lea rdi,[rip+artifact_name]
  lea rsi,[rip+artifact_elf]
+.ifdef HIA_MIGRATION_EMBEDDED_OBJECTS
+ lea rdx,[rip+artifact_end]
+ sub rdx,rsi
+.else
  mov edx,artifact_end-artifact_elf
+.endif
  call executable_memfd
  mov [rip+artifact_fd],eax
  lea rdi,[rip+writer_name]
  lea rsi,[rip+writer_elf]
+.ifdef HIA_MIGRATION_EMBEDDED_OBJECTS
+ lea rdx,[rip+writer_end]
+ sub rdx,rsi
+.else
  mov edx,writer_end-writer_elf
+.endif
  call executable_memfd
  mov [rip+writer_fd],eax
 helpers_ready:
@@ -544,6 +554,14 @@ wal_name: .asciz "wal.data"
 empty_name: .byte 0
 .balign 8
 sigpipe: .quad 1,0,0,0
+.ifdef HIA_MIGRATION_EMBEDDED_OBJECTS
+.set owner, migration_publish_start
+.set artifact_catalog, migration_artifact_catalog_start
+.set artifact_elf, migration_artifact_start
+.set artifact_end, migration_artifact_end
+.set writer_elf, migration_writer_start
+.set writer_end, migration_writer_end
+.else
 .balign 16
 owner: .incbin "sqlite-migration-publish.image.bin"
 .balign 16
@@ -554,6 +572,7 @@ artifact_end:
 .balign 16
 writer_elf: .incbin "hia-agent-batch-commit.embedded.elf"
 writer_end:
+.endif
 
 .bss
 .balign 8
