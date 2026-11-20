@@ -174,9 +174,12 @@ def build_batch(output, compiler, cold_report, *, candidates):
         manifest = _image_manifest(candidate, protocol, source, image, protocol + '.image.bin', compiler_sha)
         directory = output / candidate
         directory.mkdir(mode=0o700)
-        (directory / manifest['image_path']).write_bytes(image)
+        image_path = directory / manifest['image_path']
+        image_path.write_bytes(image)
+        image_path.chmod(0o600)
         path = directory / 'manifest.json'
         path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+        path.chmod(0o600)
         manifests[candidate] = path
     return manifests
 
@@ -206,7 +209,9 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         raise ValueError('native candidate build inputs changed')
     manifest = _image_manifest(candidate, protocol, source, image_bytes, image.name, compiler_sha)
     path = output / 'manifest.json'
+    image.chmod(0o600)
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+    path.chmod(0o600)
     (output / 'build.json').write_text(json.dumps({
         'schema': 'hepta.hia.' + protocol + '-build.v1', 'status': 'NATIVE_CANDIDATE_BUILT',
         'profile': PROFILE, 'source_manifest': sources,

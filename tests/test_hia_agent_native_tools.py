@@ -12,7 +12,6 @@ from hashlib import sha256
 import builtins
 import json
 from pathlib import Path
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -751,6 +750,8 @@ class NativeLifecycleTests(AgentToolCase):
 
 class AgentStoreInitializationTests(unittest.TestCase):
     def test_malformed_database_closes_connection_and_preserves_input(self):
+        import sqlite3
+
         with tempfile.TemporaryDirectory(prefix="hia-store-malformed-") as directory:
             root = Path(directory)
             database = root / "state.sqlite3"
@@ -778,6 +779,8 @@ class AgentStoreInitializationTests(unittest.TestCase):
                              (identity.st_dev, identity.st_ino))
 
     def test_normal_store_retains_wal_durability_and_artifact_across_reopen(self):
+        import sqlite3
+
         with tempfile.TemporaryDirectory(prefix="hia-store-reopen-") as directory:
             store = AgentStore(directory)
             try:
