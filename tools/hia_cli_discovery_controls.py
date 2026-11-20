@@ -45,7 +45,7 @@ def original_oracles(*, legacy=False):
     from hepta.hia_schema import PRIMITIVE_PROFILES
     def pretty(value):
         return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + '\n').encode()
-    from tools.hia_cli_discovery_compat import fixture, legacy_catalog_owner, word_fixture
+    from tools.hia_cli_discovery_compat import dual_version_capabilities, fixture, legacy_catalog_owner
     compatibility = fixture()
     frozen = legacy_catalog_owner()
     profiles = frozen.PRIMITIVE_PROFILES if legacy else PRIMITIVE_PROFILES
@@ -57,8 +57,8 @@ def original_oracles(*, legacy=False):
             if opcode_catalog(schema) != frozen.opcode_catalog(schema):
                 raise ValueError('v9 changed a retained v1-v8 catalog: '+schema)
     capabilities = compatibility['legacy_capabilities'] if legacy else cli.agent_capabilities()
-    if not legacy and capabilities != word_fixture()['current_capabilities']:
-        raise ValueError('current capabilities differ from the independently pinned v9 input')
+    if not legacy and capabilities != dual_version_capabilities():
+        raise ValueError('current capabilities differ from the independently pinned v8/v9 input')
     rows = [('capabilities', wire(1), pretty(capabilities))]
     rows.extend(('catalog-v' + name[-1], wire(2, name.encode()), pretty(catalog(name)))
                 for name in profiles)

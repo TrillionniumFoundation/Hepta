@@ -57,6 +57,46 @@ def word_fixture():
     return value
 
 
+_WORD_MEMORY_DESCRIPTION = 'bounded primitive Core v9 with scalar exports'
+_DUAL_VERSION_DESCRIPTION = 'bounded primitive Core v8/v9 with scalar exports'
+_LOADED_SOURCE_TAIL = (
+    '\n# Bind this executing module, including its top-level constants, to retained source.\n'
+    'from .hia_loaded_source import register_loaded_module as _register_loaded_source\n'
+    '_register_loaded_source(__name__)\n'
+)
+_ASSEMBLY_REGENERATION_CHECK = (
+    '    def test_assembly_driver_source_regenerates(self):\n'
+    '        from tools.generate_hia_assembly_driver import SOURCE, document, render_assembly, source_program\n'
+    '\n'
+    '        self.assertEqual(SOURCE.read_text(), render_assembly(document(source_program(), "assembly_driver")))\n'
+    '\n'
+)
+_WORD_MEMORY_SUCCESSOR_EDITS = {
+    'hepta/cli.py': (_DUAL_VERSION_DESCRIPTION, _WORD_MEMORY_DESCRIPTION),
+    'hepta/hia_opcodes.py': (_LOADED_SOURCE_TAIL, ''),
+    'hepta/hia_schema.py': (_LOADED_SOURCE_TAIL, ''),
+    'tests/test_hia_cli_native.py': (_ASSEMBLY_REGENERATION_CHECK, ''),
+}
+
+
+CURRENT_DISCOVERY_GENERATION = {
+    'source_sha256': '8958fae49aee88ae3f4b472511e2b7d5e7753ef6ea5f8951903c2dedfe8d75e6',
+    'source_bytes': 278998,
+    'counts': {'functions': 40, 'blocks': 257, 'operations': 5945, 'max_ssa': 540},
+    'table_sha256': 'afe3dfd94966e954f311f2a756528846e871fe4da86bd3fb29dd4558242dcdb3',
+}
+
+
+def dual_version_capabilities():
+    """The reviewed v8/v9 route adds back v8 without altering other capabilities."""
+    expected = word_fixture()['current_capabilities']
+    selfhost = expected['build']['selfhost']
+    if selfhost['input'] != _WORD_MEMORY_DESCRIPTION:
+        raise ValueError('original word-memory capability source differs')
+    selfhost['input'] = _DUAL_VERSION_DESCRIPTION
+    return expected
+
+
 def word_original_source(name):
     row = word_fixture()['pre_v9_sources'][name]
     raw = zlib.decompress(base64.b64decode(row['data'], validate=True))
@@ -105,6 +145,12 @@ def original_cli_source(name, normalized_current):
     word = word_fixture()
     expected_word = word['current_source_sha256'].get(name)
     if expected_word is not None:
+        change = _WORD_MEMORY_SUCCESSOR_EDITS.get(name)
+        if change is not None:
+            new, old = change
+            if normalized_current.count(new) == 1:
+                # The full pinned original digest below admits exactly one splice.
+                normalized_current = normalized_current.replace(new, old, 1)
         if sha256(normalized_current.encode()).hexdigest() != expected_word:
             raise ValueError('CLI changes exceed the pinned word-memory feature: ' + name)
         normalized_current = word_original_source(name).decode()

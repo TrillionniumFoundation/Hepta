@@ -47,7 +47,7 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
         from hepta import cli
         from tools import generate_hia_cli_discovery_json as generator
         compatibility = compat.fixture()
-        self.assertEqual(cli.agent_capabilities(), compat.word_fixture()['current_capabilities'])
+        self.assertEqual(cli.agent_capabilities(), compat.dual_version_capabilities())
         # Retain the previous verified-build/v8 generation independently of
         # the new current v9 source and its separate source-input fixture.
         # The original source also retains dict insertion order, which the
@@ -63,8 +63,15 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
         self.assertEqual(retained_report['counts'], old_expected['counts'])
         self.assertEqual(retained_report['table_sha256'], old_expected['table_sha256'])
         self.assertEqual((retained_report['schema_count'], retained_report['instruction_records']), (8, 50))
+        original_word = compat.word_fixture()
+        word_capabilities = generator.capabilities_from_source((ROOT / 'hepta/cli.py').read_text())
+        word_capabilities['build']['selfhost']['input'] = original_word['current_capabilities']['build']['selfhost']['input']
+        self.assertEqual(word_capabilities, original_word['current_capabilities'])
+        word_raw, word_report = generator.generation(capabilities=word_capabilities, schema_version=9)
+        self.assertEqual(sha256(word_raw).hexdigest(), original_word['current_generation']['source_sha256'])
+        self.assertEqual(word_report['table_sha256'], original_word['current_generation']['table_sha256'])
         raw, report = generator.generation()
-        expected = compat.word_fixture()['current_generation']
+        expected = compat.CURRENT_DISCOVERY_GENERATION
         self.assertEqual(raw, runtime.SOURCE.read_bytes())
         self.assertEqual(sha256(raw).hexdigest(), expected['source_sha256'])
         self.assertEqual(len(raw), expected['source_bytes'])
@@ -137,8 +144,8 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
 
     def test_original_cli_parser_outputs_and_both_old_assets_are_unchanged(self):
         # Keep the original fixture and all seven original file identities.
-        # Independent feature fixtures admit only the exact #914 and v9
-        # source deltas, after removing the same five R29 opt-in hooks.
+        # Exact feature deltas admit #914, v9, and their reviewed successor
+        # after removing the same five R29 opt-in hooks.
         path = ROOT / 'tests/fixtures/hia_cli_discovery_0daf_baseline.json'
         self.assertEqual(sha256(path.read_bytes()).hexdigest(),
                          '2d6e4aed65731fd39b200f1ac94ae0e60e0e557e842699a9ce6db43186882d43')
@@ -510,7 +517,7 @@ print(json.dumps({'status':'PASS','source':str(n.SOURCE),'source_sha256':hashlib
         self.assertEqual(observed['status'], 'PASS')
         self.assertEqual(observed['outputs'], expected)
         self.assertEqual(len(observed['refusals']), 3)
-        self.assertEqual(observed['source_sha256'], compat.word_fixture()['current_generation']['source_sha256'])
+        self.assertEqual(observed['source_sha256'], compat.CURRENT_DISCOVERY_GENERATION['source_sha256'])
         controls.save(case / 'REPORT.json', {'status': 'PASS', 'scope': self.scope,
             'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(), 'wheel_bytes': wheel.stat().st_size,
             'observations': observed, 'commands': records})
