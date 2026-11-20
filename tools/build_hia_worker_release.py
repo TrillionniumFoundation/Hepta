@@ -20,6 +20,7 @@ from hepta.hia_worker_scheduling_bundle import FAMILIES
 from tools.bind_hia_worker_store import bind_worker_store
 from tools.build_hia_agent_binary64 import build as build_binary64
 from tools.build_hia_agent_binary64_format import build as build_binary64_format
+from tools.build_hia_cost_ledger import build as build_cost_ledger
 from tools.build_hia_agent_data_json import build as build_agent_data_json
 from tools.build_hia_direct_call import build as build_direct_call
 from tools.build_hia_agent_read_page import build as build_agent_stdio
@@ -45,7 +46,7 @@ ADDITIONAL_HELPERS = (
     'sha256-stream', 'cnf',
     'agent-data-json', 'agent-binary64', 'agent-binary64-format',
     'agent-describe-answer', 'agent-payload-schema', 'agent-plan-schema', 'machine-plan',
-    'safe-core-x64-decode', 'safe-core-elf-inventory', 'elf-verified-linker', 'service-context',
+    'safe-core-x64-decode', 'safe-core-elf-inventory', 'elf-verified-linker', 'service-context', 'cost-ledger',
 )
 HELPER_BUILDERS = {
     'slot-ledger': build_slot_ledger,
@@ -54,6 +55,7 @@ HELPER_BUILDERS = {
     'agent-binary64': build_binary64,
     'agent-binary64-format': build_binary64_format,
     'service-context': build_service_context,
+    'cost-ledger': build_cost_ledger,
 }
 
 

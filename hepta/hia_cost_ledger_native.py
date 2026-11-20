@@ -14,7 +14,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
-from .hia_agent_store import uses_native_store
+from .hia_agent_store import _native_agent_identity, uses_native_store
 import stat
 import struct
 import threading
@@ -274,11 +274,14 @@ class CostLedgerFrame:
         index, bank = self.receipt[3:5]
         if port == 1:
             store = self.service.store
-            if uses_native_store(store):
+            native_store = uses_native_store(store)
+            self.identity_image = _native_agent_identity() if native_store else None
+            if native_store:
                 self.rows = store.context_costs(self.context['ref']['id'])
             else:
                 self.rows = store.db.execute(QUERY, (self.context['ref']['id'],)).fetchall()
-            return len(self.rows)
+            self.observed_count = len(self.rows)
+            return self.observed_count
         elif port == 2:
             self.rows = self.rows[:self.retained_rows]
             self.entries = []
@@ -319,18 +322,28 @@ class CostLedgerFrame:
             left, right = identity_bytes(left), identity_bytes(right)
             return self._native_arithmetic(self.image.binary, 11, left, right)
         elif port == 15:
-            self.result = {'schema': 'hepta.hia.agent.cost-ledger.v1', 'context': self.context['ref'],
-                'entries': self.entries, 'entries_truncated': bool(self.receipt[5]),
-                'context_tool_wall_ns_before_evaluation': str(int.from_bytes(self.totals[0], 'little', signed=True)),
-                'unattributed_discovery_artifact_read_wall_ns': str(int.from_bytes(self.totals[1], 'little', signed=True)),
-                'evaluation_wall_ns_through_report': str(self.evaluation_wall_ns),
-                'native_child_wall_ns': str(self.native_wall_ns),
-                'external_costs': self.external, 'external_cost_source': 'caller-supplied report, independently unmeasured',
-                'external_costs_complete': self.policy['external_costs_complete'],
-                'adoption_wall_ns': None, 'future_execution_count': self.policy['expected_invocations'],
-                'failed_attempts_retained': True, 'full_search_cost_complete': False,
-                'net_optimization_benefit_proved': False,
-                'scope': 'observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown'}
+            self.result = self._render()
         else:
             raise CostLedgerUnknown('cost-ledger issued an unknown foreign port')
         return 0
+
+    def _render(self):
+        totals = tuple(int.from_bytes(total, 'little', signed=True) for total in self.totals)
+        if self.identity_image is not None:
+            fields = ('context_id', 'details', 'request_id', 'sequence', 'status', 'tool', 'wall_ns')
+            rows = [tuple(entry[key] for key in fields) for entry in self.entries]
+            return self.identity_image.cost_ledger_record(
+                self.context['ref'], self.observed_count, self.policy, totals,
+                self.evaluation_wall_ns, self.native_wall_ns, rows)
+        return {'schema': 'hepta.hia.agent.cost-ledger.v1', 'context': self.context['ref'],
+            'entries': self.entries, 'entries_truncated': bool(self.receipt[5]),
+            'context_tool_wall_ns_before_evaluation': str(totals[0]),
+            'unattributed_discovery_artifact_read_wall_ns': str(totals[1]),
+            'evaluation_wall_ns_through_report': str(self.evaluation_wall_ns),
+            'native_child_wall_ns': str(self.native_wall_ns),
+            'external_costs': self.external, 'external_cost_source': 'caller-supplied report, independently unmeasured',
+            'external_costs_complete': self.policy['external_costs_complete'],
+            'adoption_wall_ns': None, 'future_execution_count': self.policy['expected_invocations'],
+            'failed_attempts_retained': True, 'full_search_cost_complete': False,
+            'net_optimization_benefit_proved': False,
+            'scope': 'observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown'}
