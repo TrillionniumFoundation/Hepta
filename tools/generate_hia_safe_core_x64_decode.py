@@ -672,6 +672,11 @@ def signed_divide_formula(o:mutbuf, narrow:bool) -> u64:
 def machine_sign(o:mutbuf, value:u64) -> u64:
     return node(o, R_ONE, node(o, R_EXTRACT, value, 63, 63), 0, 0)
 
+def signed_sum_overflow(o:mutbuf, a:u64, b:u64, result:u64, add:bool) -> u64:
+    operand_signs = node(o, choose(add, R_EQ, R_NE), a, b, 0)
+    changed = node(o, R_NE, a, result, 0)
+    return node(o, R_BOOL_AND, operand_signs, changed, 0)
+
 def signed_flag_formula(o:mutbuf, op:u64, count:u64) -> u64:
     if op == OP_SHL or op == OP_SHR or op == OP_SAR or op == OP_VARIABLE_SHL or op == OP_VARIABLE_SHR or op == OP_SAR_CL:
         return signed_shift_flags(o, op, count)
@@ -688,9 +693,7 @@ def signed_flag_formula(o:mutbuf, op:u64, count:u64) -> u64:
         sign = machine_sign(o, raw)
         a = machine_sign(o, LEFT)
         b = machine_sign(o, RIGHT)
-        operand_signs = node(o, choose(add, R_EQ, R_NE), a, b, 0)
-        changed = node(o, R_NE, a, sign, 0)
-        return formula_done(o, 0, sign, node(o, R_BOOL_AND, operand_signs, changed, 0), 0)
+        return formula_done(o, 0, sign, signed_sum_overflow(o, a, b, sign, add), 0)
     primitive = 0
     if op == OP_AND or op == OP_TEST:
         primitive = R_AND
@@ -872,13 +875,16 @@ def core_signed_cast(o:mutbuf, op:u64, width:u64, signed_result:bool, signed_inp
         value = core_normalized(o, LEFT, core_mask(o, width))
     if op == C_INT_CAST_WRAP:
         return formula_done(o, value, 0, 0, 0)
-    # The 65-bit domain represents every signed and unsigned source.
-    exact = node(o, choose(signed_input, R_SIGNEXT, R_ZEROEXT), LEFT, 1, 0)
-    low = node(o, R_LITERAL64, choose(signed_result, 0 - (1 << (width - 1)), 0), 0, 0)
+    # Use the source value's ordering. Unsigned values cannot fall below
+    # either lower bound; signed-to-unsigned also checks negativity.
     high = core_mask(o, width - choose(signed_result, 1, 0))
-    below = node(o, R_SLT, exact, node(o, R_SIGNEXT, low, 1, 0), 0)
-    above = node(o, R_SGT, exact, node(o, R_ZEROEXT, high, 1, 0), 0)
-    return formula_done(o, value, 0, 0, node(o, R_BOOL_OR, below, above, 0))
+    upper_order = choose(signed_input and signed_result, R_SGT, R_UGT)
+    above = node(o, upper_order, LEFT, high, 0)
+    if signed_input:
+        low = node(o, R_LITERAL64, choose(signed_result, 0 - (1 << (width - 1)), 0), 0, 0)
+        below = node(o, R_SLT, LEFT, low, 0)
+        above = node(o, R_BOOL_OR, below, above, 0)
+    return formula_done(o, value, 0, 0, above)
 
 def core_signed_arithmetic(o:mutbuf, op:u64, width:u64) -> u64:
     if op >= C_INT_ADD_WRAP and op <= C_INT_SUB_CHECKED:
@@ -889,10 +895,9 @@ def core_signed_arithmetic(o:mutbuf, op:u64, width:u64) -> u64:
         result = core_signed_normalized(o, raw, width)
         if op < C_INT_ADD_CHECKED:
             return formula_done(o, result, 0, 0, 0)
-        a = node(o, R_SIGNEXT, LEFT, 1, 0)
-        b = node(o, R_SIGNEXT, RIGHT, 1, 0)
-        exact = node(o, primitive, a, b, 0)
-        trap = node(o, R_NE, exact, node(o, R_SIGNEXT, result, 1, 0), 0)
+        a = machine_sign(o, LEFT)
+        b = machine_sign(o, RIGHT)
+        trap = signed_sum_overflow(o, a, b, machine_sign(o, result), op == C_INT_ADD_CHECKED)
         return formula_done(o, result, 0, 0, trap)
     if op == C_BIT_NOT:
         return formula_done(o, core_signed_normalized(o, node(o, R_NOT, LEFT, 0, 0), width), 0, 0, 0)

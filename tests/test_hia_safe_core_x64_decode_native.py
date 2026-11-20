@@ -98,6 +98,36 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.assertTrue(z3.eq(theory.inputs[kind], theory.normalized(word, kind)), kind)
         self.assertEqual(self.native.argument_registers(), (7, 6, 2, 1, 8, 9))
 
+    def test_selected_signed_builds_prove_without_foreign_search(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        import z3
+        from hepta.hia_cnf_native import selected_cnf
+        from hepta.hia_safe_core import build_safe_core
+        from tests.test_hia_safe_core_signed import core_operation
+
+        solver = selected_cnf()
+        if solver is None:
+            self.skipTest('requires the installed HIA Boolean solver')
+        cases = (
+            ('int.add.wrap', 'i8', {}), ('int.sub.wrap', 'i32', {}),
+            ('int.neg.checked', 'i8', {}), ('int.shr.checked', 'i8', {}),
+            ('int.add.checked', 'i8', {}),
+            ('int.cast', 'i16', {'destination': 'u8', 'mode': 'checked'}),
+        )
+        with TemporaryDirectory(prefix='hia-native-signed-proof-') as root:
+            for index, (operation, kind, attrs) in enumerate(cases):
+                with (self.subTest(operation=operation, type=kind),
+                      patch('hepta.hia_cnf_native.bitblast_goal', side_effect=AssertionError('host bitblaster')),
+                      patch.object(z3.Solver, 'check', side_effect=AssertionError('host solver'))):
+                    output = Path(root) / f'{index}.so'
+                    report = build_safe_core(core_operation(operation, kind, **attrs), output, profile_version=6)
+                    self.assertTrue(report['ok'])
+                    self.assertTrue(output.is_file())
+                    for row in report['validation']['obligations']:
+                        self.assertEqual(row['native_cnf']['method'], 'native_hia_circuit_cnf')
+                        self.assertEqual(row['native_cnf']['image_sha256'], solver.image_sha256)
+
     def test_signed_admission_and_machine_effects_use_native_recipes(self):
         import z3
 

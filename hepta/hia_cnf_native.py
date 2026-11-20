@@ -4,6 +4,7 @@ from __future__ import annotations
 import ctypes
 from array import array
 from dataclasses import dataclass
+from itertools import groupby
 import os
 import struct
 from sys import byteorder
@@ -587,6 +588,30 @@ class BitvectorCircuit:
         return model if z3.is_true(model.eval(expression, model_completion=True)) else None
 
 
+def _concat_frame(source, width, nodes):
+    if len(source) < 2:
+        return None
+    # Simplified sign extensions often arrive as a single large CONCAT with
+    # the same one-bit operand repeated. Keep those runs as one native node.
+    if nodes[source[0]][1] == 1 and all(index == source[0] for index in source):
+        return 31, width, source[0], 0, 0
+    portions = []
+    for index, run in groupby(source):
+        repeat = sum(1 for _ in run)
+        if repeat > 1 and nodes[index][1] == 1:
+            nodes.append((31, repeat, index, 0, 0))
+            portions.append(len(nodes) - 1)
+        else:
+            portions.extend([index] * repeat)
+    left = portions[0]
+    extent = nodes[left][1]
+    for right in portions[1:-1]:
+        extent += nodes[right][1]
+        nodes.append((27, extent, left, right, 0))
+        left = len(nodes) - 1
+    return 27, width, left, portions[-1], 0
+
+
 def _op_frame(z3, term, width, arguments, nodes, references):
     kind = term.decl().kind()
     if z3.is_true(term) or z3.is_false(term):
@@ -594,6 +619,8 @@ def _op_frame(z3, term, width, arguments, nodes, references):
     if z3.is_bv_value(term):
         return 2, width, 0, 0, term.as_long()
     source = tuple(references[item.get_id()] for item in arguments)
+    if kind == z3.Z3_OP_CONCAT:
+        return _concat_frame(source, width, nodes)
     if kind == z3.Z3_OP_ITE and len(source) == 3:
         return (11, width, *source)
     if kind == z3.Z3_OP_EXTRACT and len(source) == 1:
@@ -643,10 +670,9 @@ def _op_frame(z3, term, width, arguments, nodes, references):
         z3.Z3_OP_EQ: 7, z3.Z3_OP_DISTINCT: 8, z3.Z3_OP_BADD: 9, z3.Z3_OP_BSUB: 10,
         z3.Z3_OP_ULT: 12, z3.Z3_OP_ULEQ: 13, z3.Z3_OP_UGT: 14, z3.Z3_OP_UGEQ: 15,
         z3.Z3_OP_SLT: 16, z3.Z3_OP_SLEQ: 17, z3.Z3_OP_SGT: 18, z3.Z3_OP_SGEQ: 19,
-        z3.Z3_OP_CONCAT: 27,
     }
     op = binary.get(kind)
-    if op is None or len(source) < 2 or len(source) > 2 and op not in (3, 4, 5):
+    if op is None or len(source) < 2 or len(source) > 2 and op not in (3, 4, 5, 9):
         return None
     if width == 1 and op in (9, 10) or 12 <= op <= 19 and nodes[source[0]][1] == 1:
         return None
