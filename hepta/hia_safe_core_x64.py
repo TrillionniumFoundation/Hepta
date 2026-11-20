@@ -673,8 +673,9 @@ class Executor:
     def _initial_state(self):
         z = self.z
         stack = {i: z.Extract(8 * i + 7, 8 * i, self.return_address) for i in range(8)}
+        flags = ("zf", "cf", "sf", "of") if self.signed_profile else ("zf", "cf")
         return State(self.entry, z.BoolVal(True, ctx=self.ctx), dict(self.initial),
-                     {f: z.Bool("initial_" + f, ctx=self.ctx) for f in ("zf", "cf", "sf", "of")},
+                     {f: z.Bool("initial_" + f, ctx=self.ctx) for f in flags},
                      stack, {0: self.return_address}, self.t.memory)
 
     def _path_live(self, state):
