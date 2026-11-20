@@ -26,6 +26,9 @@ CLI = BOOTSTRAP + 'core_cli/'
 PACKER = EDIT + 'packer.hepta'
 STATIC_ADAPTERS = (EDIT + 'adapter_templates_a.hepta', EDIT + 'adapter_templates_b.hepta')
 ADAPTER_RECORD = struct.Struct('<32s32s32sQQ')
+NOMINAL_OBJECT_RECORD = struct.Struct('<32s32sQ')
+NOMINAL_OBJECT_LIMIT = 16384
+NOMINAL_ADAPTER_GROUPS = tuple(EDIT + f'nominal_adapters_{group}.hepta' for group in 'abcde')
 CAPACITY = 4 * (1 << 20) + 4096
 DISPATCH = CLI + 'dispatch.hepta'
 DISPATCH_ARCHIVE = '<public-dispatch-images>'
@@ -258,6 +261,11 @@ STATIC_ADAPTER_ROLES = {
     name: (STATIC_ADAPTERS[role % len(STATIC_ADAPTERS)], role)
     for role, name in enumerate(STATIC_RELOCATIONS)
 }
+NOMINAL_ADAPTER_ROLES = {
+    name: (NOMINAL_ADAPTER_GROUPS[role % len(NOMINAL_ADAPTER_GROUPS)], role)
+    for role, name in enumerate((*(f'tools/hia_core_edit_{kind}.S' for kind in NOMINAL_CLI_IMAGES),
+                                 EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE))
+}
 
 
 def digest(raw):
@@ -322,18 +330,18 @@ def pack(packer, stub, holes, images):
     return binary, inspect_executable(binary)
 
 
-def link_nominal_cli(folder, adapter, sources, images, roles, embedder, *, edit_envelope=False,
+def link_nominal_cli(folder, adapter, sources, images, roles, embedder, adapters, *, edit_envelope=False,
                      edit_response=False, batch_capture=False):
     for key in ('owner', 'render', 'nominal-json'):
         (folder / (key + '.image.bin')).write_bytes(images[NOMINAL_BUILD_SOURCES[key]])
-    objects = [assemble(folder, adapter, sources[adapter]), assemble(
+    objects = [adapters[adapter], assemble(
         folder, NOMINAL_ADAPTER, b'.set HIA_NOMINAL_BUILD,1\n' + sources[NOMINAL_ADAPTER])]
     if edit_envelope:
-        objects.append(assemble(folder, EDIT_ENVELOPE, sources[EDIT_ENVELOPE]))
+        objects.append(adapters[EDIT_ENVELOPE])
     if edit_response:
-        objects.append(assemble(folder, EDIT_RESPONSE, sources[EDIT_RESPONSE]))
+        objects.append(adapters[EDIT_RESPONSE])
     if batch_capture:
-        objects.append(assemble(folder, BATCH_CAPTURE, sources[BATCH_CAPTURE]))
+        objects.append(adapters[BATCH_CAPTURE])
     payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
                 for key, label in NOMINAL_BUILD_IMAGES.items()}
     payloads.update({label: images[path] for path, label in roles.items()})
@@ -372,6 +380,22 @@ def load_static_adapter(templates, name, source):
     return stub, holes, object_sha.hex()
 
 
+def load_nominal_adapter(templates, name, source):
+    group, role = NOMINAL_ADAPTER_ROLES[name]
+    packet = struct.pack('<Q', role)
+    request = ctypes.create_string_buffer(packet, len(packet))
+    result = ctypes.create_string_buffer(NOMINAL_OBJECT_RECORD.size + NOMINAL_OBJECT_LIMIT)
+    count = templates[group]._entry(request, len(request), result, len(result), None, 0)
+    if not NOMINAL_OBJECT_RECORD.size < count <= len(result) or request.raw != packet or any(result.raw[count:]):
+        raise ValueError('native nominal adapter refused or changed the transport')
+    source_sha, object_sha, size = NOMINAL_OBJECT_RECORD.unpack_from(result)
+    raw = result.raw[NOMINAL_OBJECT_RECORD.size:count]
+    if (source_sha != sha256(source).digest() or size != len(raw)
+            or not raw.startswith(b'\x7fELF\x02\x01\x01') or sha256(raw).digest() != object_sha):
+        raise ValueError('native nominal adapter differs from its admitted source or object')
+    return raw
+
+
 def pack_executable(packer, launcher, inflater, executable, compressor):
     if not 0 < len(executable) <= ORDINARY_CLI_IMAGE_CAPACITY:
         raise ValueError('packed CLI executable exceeds the admitted extent')
@@ -397,7 +421,8 @@ def build(output, compiler, cold_report, *, release_only=False):
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
-    source_files = {PACKER, *STATIC_ADAPTERS, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE, EMBED_SOURCE,
+    source_files = {PACKER, *STATIC_ADAPTERS, *NOMINAL_ADAPTER_GROUPS, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER,
+                    RELEASE_DEFLATE, EMBED_SOURCE,
                     *assembly_images, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
@@ -433,7 +458,9 @@ def build(output, compiler, cold_report, *, release_only=False):
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
     embedder = NativeHiaJsonImage(images[EMBED_SOURCE], receipts[EMBED_SOURCE]['produced_sha256'])
     templates = {path: NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
-                 for path in STATIC_ADAPTERS}
+                 for path in (*STATIC_ADAPTERS, *NOMINAL_ADAPTER_GROUPS)}
+    nominal_objects = {name: load_nominal_adapter(templates, name, sources[name])
+                       for name in NOMINAL_ADAPTER_ROLES}
     launcher = load_static_adapter(templates, EXEC_LAUNCHER, sources[EXEC_LAUNCHER])
     products = {}
     for kind, (name, roles) in programs.items():
@@ -442,7 +469,7 @@ def build(output, compiler, cold_report, *, release_only=False):
         folder.mkdir(mode=0o700)
         if kind in NOMINAL_CLI_IMAGES:
             executable, details = link_nominal_cli(
-                folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind], embedder,
+                folder, adapter, sources, images, NOMINAL_CLI_IMAGES[kind], embedder, nominal_objects,
                 edit_envelope=kind in EDIT_ENVELOPE_ROLES,
                 edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'))
             binary, packed = pack_executable(packer, launcher,
@@ -467,6 +494,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     (output / 'build.json').write_text(json.dumps({
         'schema': 'hepta.hia.core-edit-build.v1',
         'compiler_sha256': digest(compiler_raw), 'cold_report_sha256': digest(report_raw),
+        'native_nominal_adapter_object_sha256': {name: digest(raw) for name, raw in nominal_objects.items()},
         'source_sha256': {path: digest(raw) for path, raw in sources.items()},
         'compile_receipts': receipts, 'executables': {name: details for name, (_, details) in products.items()},
     }, indent=2, sort_keys=True) + '\n')
