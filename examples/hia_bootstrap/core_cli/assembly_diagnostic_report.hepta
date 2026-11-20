@@ -9853,7 +9853,21 @@ block b28(v287:readbuf,v288:mutbuf,v289:mutbuf,v291:u64,v292:u64)
   v3102:u64 = const() {"value":2}
   v3103:u64 = const() {"value":8250}
   v3104:u64 = call(v288,v289,v3102,v3103,v307,v307) {"function":"f2"}
-  jump b29(v287,v288,v289,v291,v292,v307)
+  limit_status:u64 = const() {"value":4294967294}
+  is_node_limit:bool = compare.eq(v3100,limit_status)
+  branch is_node_limit assembly_node_limit(v287,v288,v289,v291) b29(v287,v288,v289,v291,v292,v307)
+block assembly_node_limit(raw:readbuf,report:mutbuf,state:mutbuf,source_size:u64)
+  chunk_size0:u64 = const() {"value":24}
+  word0_0:u64 = const() {"value":8011185092098285923}
+  word0_1:u64 = const() {"value":7310032827647880823}
+  word0_2:u64 = const() {"value":7234299854336630885}
+  emit0:u64 = call(report,state,chunk_size0,word0_0,word0_1,word0_2) {"function":"f2"}
+  chunk_size1:u64 = const() {"value":20}
+  word1_0:u64 = const() {"value":7234317455063064691}
+  word1_1:u64 = const() {"value":8458358670004022829}
+  word1_2:u64 = const() {"value":1952802660}
+  emit1:u64 = call(report,state,chunk_size1,word1_0,word1_1,word1_2) {"function":"f2"}
+  jump b31(raw,report,state,source_size)
 block b29(v309:readbuf,v310:mutbuf,v311:mutbuf,v313:u64,v314:u64,v315:u64)
   v316:bool = compare.lt(v315,v314)
   branch v316 b30(v309,v310,v311,v313,v314,v315) b31(v309,v310,v311,v313)
