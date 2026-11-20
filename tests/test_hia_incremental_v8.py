@@ -182,7 +182,7 @@ class V8IncrementalInterfaces(unittest.TestCase):
 
     def test_unknown_schema_or_resource_export_never_uses_cached_bodies(self):
         source = choose_loan()
-        for changed in (dict(source, schema="hepta.hia.program.v9"),
+        for changed in (dict(source, schema="hepta.hia.program.unknown"),
                         dict(source, exports=["entrypoint", "pick"])):
             session = IncrementalVerifier(source)
             expected = outcome(core.verify_program, changed)
