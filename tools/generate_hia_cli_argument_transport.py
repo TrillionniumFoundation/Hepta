@@ -554,6 +554,19 @@ def command_word(s:readbuf, o:mutbuf, w:mutbuf, field:u64, entry:u64, target:u64
     write_word(o, entry + 8, 8, cursor - target)
     return cursor
 
+def command_option(s:readbuf, w:mutbuf, field:u64) -> bool:
+    at = 256 + field * 32
+    if field == 15 or field == 16 or read_workspace(w, at, 8) != 2:
+        return False
+    # The independent executable's existing default is the object backend.
+    # An explicit public auto selector does not need to override that default.
+    if field == 4 and read_workspace(w, at + 16, 8) == 4:
+        begin = read_workspace(w, at + 8, 8)
+        if begin <= length(s) and length(s) - begin >= 16:
+            if read_word(s, begin, 8) == AUTO_FIRST and read_word(s, begin + 8, 8) == AUTO_LAST:
+                return False
+    return True
+
 def command_frame(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if read_workspace(w, 8, 8) != 0 or read_workspace(w, 104, 8) != length(s):
         return BAD
@@ -564,8 +577,8 @@ def command_frame(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if scope > 2:
         count = count + 2
     field = 2
-    while field < 19:
-        if field != 15 and field != 16 and read_workspace(w, 256 + field * 32, 8) == 2:
+    while field < FIELD_COUNT:
+        if command_option(s, w, field):
             count = count + 2
         field = field + 1
     target = 32 + count * 16
@@ -580,8 +593,8 @@ def command_frame(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return BAD
     entry = 48
     field = 2
-    while field < 19:
-        if field != 15 and field != 16 and read_workspace(w, 256 + field * 32, 8) == 2:
+    while field < FIELD_COUNT:
+        if command_option(s, w, field):
             size = option_size(field)
             if size == 0 or size > length(o) - target:
                 return BAD
@@ -624,7 +637,7 @@ SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_cli/
 
 def source_program():
     from hepta import __version__
-    from tools.generate_hia_cli_control import TOKENS, _lookup
+    from tools.generate_hia_cli_control import FIELDS, TOKENS, _lookup
 
     version = 'hia ' + __version__
     source = PAYLOAD.replace('VERSION_LENGTH', str(len(version))).replace(
@@ -635,6 +648,9 @@ def source_program():
     )
     constants = {
         'BAD': 4294967293,
+        'FIELD_COUNT': len(FIELDS),
+        'AUTO_FIRST': int.from_bytes('au'.encode('utf-32-le'), 'little'),
+        'AUTO_LAST': int.from_bytes('to'.encode('utf-32-le'), 'little'),
         'ORDER_FIRST': sum(value << (i * 4) for i, value in enumerate(
             (0, 0, 0, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2))),
         'ORDER_LAST': 14 | (1 << 4) | (15 << 8),

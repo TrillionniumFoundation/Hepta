@@ -1,0 +1,347 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "entry",
+          "ops": [
+            {
+              "args": [
+                "source"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "source_extent",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "count",
+                "source_extent"
+              ],
+              "attrs": {},
+              "op": "compare.le",
+              "out": [
+                {
+                  "name": "source_fits",
+                  "type": "bool"
+                }
+              ]
+            },
+            {
+              "args": [
+                "destination"
+              ],
+              "attrs": {},
+              "op": "buffer.len",
+              "out": [
+                {
+                  "name": "destination_extent",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "count",
+                "destination_extent"
+              ],
+              "attrs": {},
+              "op": "compare.le",
+              "out": [
+                {
+                  "name": "destination_fits",
+                  "type": "bool"
+                }
+              ]
+            },
+            {
+              "args": [
+                "source_fits",
+                "destination_fits"
+              ],
+              "attrs": {},
+              "op": "bool.and",
+              "out": [
+                {
+                  "name": "fits",
+                  "type": "bool"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "zero",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "destination",
+              "type": "mutbuf"
+            },
+            {
+              "name": "source",
+              "type": "readbuf"
+            },
+            {
+              "name": "count",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "cond": "fits",
+            "else": {
+              "args": [],
+              "target": "invalid"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "destination",
+                "source",
+                "count",
+                "zero"
+              ],
+              "target": "loop"
+            }
+          }
+        },
+        {
+          "id": "loop",
+          "ops": [
+            {
+              "args": [
+                "l_index",
+                "l_count"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "more",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "l_destination",
+              "type": "mutbuf"
+            },
+            {
+              "name": "l_source",
+              "type": "readbuf"
+            },
+            {
+              "name": "l_count",
+              "type": "usize"
+            },
+            {
+              "name": "l_index",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "cond": "more",
+            "else": {
+              "args": [
+                "l_destination",
+                "l_source",
+                "l_count",
+                "l_index"
+              ],
+              "target": "done"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "l_destination",
+                "l_source",
+                "l_count",
+                "l_index"
+              ],
+              "target": "body"
+            }
+          }
+        },
+        {
+          "id": "body",
+          "ops": [
+            {
+              "args": [
+                "b_source",
+                "b_index"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "byte",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "b_destination",
+                "b_index",
+                "byte"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "one",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "b_index",
+                "one"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "next_index",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "b_destination",
+              "type": "mutbuf"
+            },
+            {
+              "name": "b_source",
+              "type": "readbuf"
+            },
+            {
+              "name": "b_count",
+              "type": "usize"
+            },
+            {
+              "name": "b_index",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "args": [
+              "b_destination",
+              "b_source",
+              "b_count",
+              "next_index"
+            ],
+            "op": "jump",
+            "target": "loop"
+          }
+        },
+        {
+          "id": "done",
+          "ops": [
+            {
+              "args": [
+                "d_count"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "answer",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "d_destination",
+              "type": "mutbuf"
+            },
+            {
+              "name": "d_source",
+              "type": "readbuf"
+            },
+            {
+              "name": "d_count",
+              "type": "usize"
+            },
+            {
+              "name": "d_index",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "answer"
+            ]
+          }
+        },
+        {
+          "id": "invalid",
+          "ops": [],
+          "params": [],
+          "term": {
+            "code": "bounds",
+            "op": "trap"
+          }
+        }
+      ],
+      "effects": [
+        "read",
+        "trap",
+        "write"
+      ],
+      "entry": "entry",
+      "name": "calculate",
+      "params": [
+        {
+          "name": "destination",
+          "type": "mutbuf"
+        },
+        {
+          "name": "source",
+          "type": "readbuf"
+        },
+        {
+          "name": "count",
+          "type": "usize"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    }
+  ],
+  "module": "verified_copy_u8",
+  "schema": "hepta.hia.program.v8"
+}

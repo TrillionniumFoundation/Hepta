@@ -28,6 +28,22 @@ from tools.hia_agent_native_qualification import (
 )
 
 
+def _evaluation_deadline_details(store, evaluation, call_ns):
+    """Read only existing timing receipts, after the caller timer stops."""
+    measurement, _ = store.get_json(evaluation["measurements"])
+    ledger, _ = store.get_json(evaluation["full_cost_ledger"])
+    ref_runs = measurement["reference_runs"]
+    return json.dumps({
+        "client_dispatch_ns": call_ns,
+        "evaluation_through_report_ns": ledger["evaluation_wall_ns_through_report"],
+        "reference_parent_span_ns": measurement["reference_wall_ns"],
+        "reference_batch_wall_ns": {
+            label: outcome.get("wall_ns") for label, outcome in ref_runs.items()
+        },
+        "native_claim_wall_ns": ledger["native_child_wall_ns"],
+    }, sort_keys=True)
+
+
 class AgentToolCase(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="hia-agent-test-")
@@ -569,7 +585,15 @@ class NativeLifecycleTests(AgentToolCase):
             budget={"max_native_wall_ms": 1})
         started = time.monotonic()
         evaluation = self.session.evaluate(baseline, build, receipts=receipts)
-        self.assertLess(time.monotonic() - started, 5)
+        elapsed = time.monotonic() - started
+        details = None
+        if elapsed >= 5:
+            try:
+                details = _evaluation_deadline_details(
+                    self.service.store, evaluation, self.client.records[-1]["elapsed_ns"])
+            except (KeyError, TypeError, ValueError) as exc:
+                details = f"timing receipts unavailable: {type(exc).__name__}"
+        self.assertLess(elapsed, 5, details)
         self.assertEqual(evaluation["outcome"], "budget_exceeded")
         self.assertTrue(evaluation["report_complete"])
         self.assertTrue(evaluation["termination_confirmed"])

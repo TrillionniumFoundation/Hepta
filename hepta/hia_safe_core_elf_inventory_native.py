@@ -186,12 +186,13 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         arguments = (2, relocations['offset'], source['offset'], source['size'],
                      linked['addr'], plt['addr'] + 16, helper, relocations['link'])
         output, size, count, reserved = self._exchange(data, arguments, linked['data'])
-        if reserved or count != 2 or size != HEADER.size + count * RELOCATION.size:
+        expected = 2 if helper else 1
+        if reserved or count != expected or size != HEADER.size + count * RELOCATION.size:
             raise RuntimeError('invalid native Safe Core call relocation response')
         calls, records = {}, []
         for at in range(HEADER.size, size, RELOCATION.size):
             offset, symbol, target, displacement = RELOCATION.unpack_from(output, at)
-            if symbol not in (1, 2) or not 0 < offset <= source['size'] - 4 or offset - 1 in calls:
+            if not 1 <= symbol <= expected or not 0 < offset <= source['size'] - 4 or offset - 1 in calls:
                 raise RuntimeError('invalid native Safe Core call relocation')
             name = 'abort' if symbol == 1 else '__hia_native_fn_0'
             calls[offset - 1] = 'abort' if symbol == 1 else target - linked['addr']

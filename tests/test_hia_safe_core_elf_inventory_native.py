@@ -192,6 +192,27 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                                         source['data'], link, plt, functions),
                                  (table['name'], index))
 
+    def test_direct_kernel_final_binding_uses_native_relocation_owner(self):
+        from hepta.hia_verified_scalar import build_verified_scalar, emit_verified_scalar
+        from tests.test_hia_program import arithmetic
+
+        document = arithmetic('int.add.checked', 'u64')
+        image = emit_verified_scalar(document)
+        with tempfile.TemporaryDirectory(prefix='hia-direct-kernel-elf-') as temporary:
+            output = Path(temporary) / 'direct.so'
+            with patch.object(elf_reader, '_reference_object_relocations',
+                              side_effect=AssertionError('host relocation owner entered')):
+                report = build_verified_scalar(document, output, image=image)
+                linked = output.read_bytes()
+                binding = elf_reader.bind_final_artifact(image.object_bytes, linked, image.export)
+        self.assertTrue(report['validation']['complete'])
+        self.assertEqual(binding['binding']['function_shape'], 'direct_entry')
+        self.assertEqual([row['symbol'] for row in binding['binding']['relocations']], ['abort'])
+        with patch.dict(os.environ, {SELECTOR: ''}):
+            del os.environ[SELECTOR]
+            reference = elf_reader.bind_final_artifact(image.object_bytes, linked, image.export)
+        self.assertEqual(binding, reference)
+
     def test_native_version_and_relro_rules_match_reference(self):
         final = _ELF(self.final_bytes, 3)
         dynamic, got, rela = (final.section(name) for name in ('.dynamic', '.got', '.rela.plt'))

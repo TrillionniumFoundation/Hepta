@@ -1,8 +1,9 @@
 """Exact object-to-load-image binding for the narrow Safe Core checker.
 
 This is deliberately not a general ELF linker verifier.  It accepts the closed
-GNU-ld shared-library shape used by Safe Core: two functions, one ``abort`` PLT
-slot, immediate binding, no startup hooks, and no text relocations.  The loader,
+GNU-ld shared-library shapes used by Safe Core: a direct exported function or
+an internal function plus its entry wrapper, one ``abort`` PLT slot, immediate
+binding, no startup hooks, and no text relocations. The loader,
 libc's nonreturning abort and ELF parsing implementation remain trusted.
 """
 from __future__ import annotations
@@ -338,6 +339,9 @@ def _reference_plt_slot(plt, got, rela, dynsymbols):
 
 def _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc):
     objectsymbols = obj.symbols(".symtab")
+    expected_calls = {"abort"}
+    if len(dstfunc) == 2:
+        expected_calls.add("__hia_native_fn_0")
     expected_text = bytearray(text_bytes)
     calls, records = {}, []
     for at in range(0, relsec["size"], 24):
@@ -347,7 +351,7 @@ def _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
                 text_bytes[offset - 1:offset + 4] == b"\xe8\0\0\0\0",
                 "object relocation does not name an E8 rel32 operand")
         name = objectsymbols[info >> 32]["name"]
-        require(name in {"abort", "__hia_native_fn_0"} and offset - 1 not in calls,
+        require(name in expected_calls and offset - 1 not in calls,
                 "unreviewed or duplicate call relocation")
         target = plt["addr"] + 16 if name == "abort" else dstfunc[name]["value"]
         displacement = target - (linked["addr"] + offset + 4)
@@ -356,7 +360,7 @@ def _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
         calls[offset - 1] = "abort" if name == "abort" else target - linked["addr"]
         records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
                             linked_target=target, displacement=displacement))
-    require({r["symbol"] for r in records} == {"abort", "__hia_native_fn_0"} and
+    require({r["symbol"] for r in records} == expected_calls and
             bytes(expected_text) == linked["data"],
             "final text differs outside exact resolved call fields")
     return calls, records
@@ -401,11 +405,14 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     require(linked["size"] <= 64 * 1024, "Safe Core text budget exceeded")
     srcfunc = _functions(obj, source, ".symtab")
     dstfunc = _functions(final, linked, ".symtab")
-    expected = {export, "__hia_native_fn_0"}
-    require(set(srcfunc) == set(dstfunc) == expected, "closed function inventory differs")
+    direct = set(srcfunc) == {export}
+    expected = {export} if direct else {export, "__hia_native_fn_0"}
+    require(set(srcfunc) == set(dstfunc) == expected and (direct or len(expected) == 2),
+            "closed function inventory differs")
     spans = sorted((row["value"], row["value"] + row["size"]) for row in srcfunc.values())
-    require(spans[0][0] == 0 and spans[0][1] == spans[1][0] and
-            spans[1][1] == source["size"], "function ranges do not exactly partition text")
+    require(spans[0][0] == 0 and spans[-1][1] == source["size"] and
+            all(left[1] == right[0] for left, right in zip(spans, spans[1:])),
+            "function ranges do not exactly partition text")
     for name, row in srcfunc.items():
         dest = dstfunc[name]
         require(dest["value"] == linked["addr"] + row["value"] and
@@ -456,7 +463,8 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     _lookup_tables(final, tags, dynsymbols, export)
 
     relsec = obj.section(".rela.text", 4)
-    require(relsec["entsize"] == 24 and relsec["size"] == 48 and
+    expected_calls = {"abort"} if direct else {"abort", "__hia_native_fn_0"}
+    require(relsec["entsize"] == 24 and relsec["size"] == 24 * len(expected_calls) and
             relsec["info"] == source["index"] and relsec["link"] == obj.section(".symtab")["index"],
             "object relocation inventory is outside the one-function profile")
     if obj._native_inventory is None:
@@ -466,7 +474,7 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         # before interpreting relocations, as in the retained checker.
         obj.symbols(".symtab")
         calls, records = obj._native_inventory.object_relocations(
-            obj.data, relsec, source, linked, plt, dstfunc["__hia_native_fn_0"]["value"],
+            obj.data, relsec, source, linked, plt, 0 if direct else dstfunc["__hia_native_fn_0"]["value"],
         )
     return {"text": linked["data"], "text_vaddr": linked["addr"],
             "entry": srcfunc[export]["value"], "calls": calls,
@@ -476,5 +484,6 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
                         "linked_text_file_offset": linked["offset"],
                         "linked_text_vaddr": linked["addr"], "relocations": records,
                         "entry_offset": srcfunc[export]["value"],
+                        "function_shape": "direct_entry" if direct else "internal_with_wrapper",
                         "entry_symbol": export, "dynamic_binding": "NOW",
                         "external_semantics": "libc abort is nonreturning"}}

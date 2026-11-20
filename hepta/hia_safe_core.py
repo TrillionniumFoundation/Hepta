@@ -21,6 +21,7 @@ import time
 from .hia_program import verify_program
 from .hia_safe_core_elf import bind_final_artifact
 from .hia_safe_core_x64 import Executor
+from .hia_verified_image import VerifiedImageRejected, read_bounded_elf_image
 
 
 SCHEMA = "hepta.hia.safe-core-machine-validation.v1"
@@ -129,7 +130,8 @@ def _source_identity():
     names = ("hia_safe_core.py", "hia_safe_core_x64.py", "hia_safe_core_elf.py",
              "hia_program.py", "hia_opcodes.py", "hia_capability_flow.py", "hia_schema.py",
              "hia_json_preflight.py", "hia_program_native.py", "hia_machine_x64.py",
-             "hia_machine_elf.py", "hia_native_byte_abi.py", "elf_shared_abi.py")
+             "hia_machine_elf.py", "hia_native_byte_abi.py", "elf_shared_abi.py",
+             "hia_verified_image.py")
     return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in names}
 
 
@@ -793,6 +795,7 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
     """Build privately, validate final bytes, then atomically publish those bytes."""
     from .artifact_publication import publish_verified, verify_published, withdraw_own_link
     from .hia_program_native import emit_program_machine, compile_program_machine
+    source_identity = _source_identity()
     checked = verify_program(document)
     functions = checked.as_dict()["functions"]
     require(len(functions) == 1, "Safe Core requires one function")
@@ -805,9 +808,17 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
     with tempfile.TemporaryDirectory(prefix=".hia-safe-core-", dir=destination.parent) as temporary:
         candidate = Path(temporary) / "candidate.so"
         compilation = compile_program_machine(image, program=checked, output=candidate, linker=linker)
-        data = candidate.read_bytes()
+        try:
+            data = read_bounded_elf_image(candidate)
+        except VerifiedImageRejected as exc:
+            raise SafeCoreRejected(str(exc)) from exc
+        require(source_identity == _source_identity(), "producer source changed before final-image validation")
         report = validate_safe_core_image(checked, image, data, timeout_ms=timeout_ms,
                                           query_directory=query_directory, profile_version=profile_version)
+        require(report.get("ok") is True and report.get("complete") is True,
+                "final-image validation did not complete")
+        require(report["source_identity"] == source_identity == _source_identity(),
+                "producer or checker changed before final publication")
         published = publish_verified(candidate, destination, data)
         try:
             verify_published(candidate, destination, data)

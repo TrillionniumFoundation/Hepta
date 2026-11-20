@@ -85,6 +85,9 @@ class AgentEntryTests(unittest.TestCase):
         self.assertFalse(result["native_only_delivery_qualified"])
         self.assertFalse(result["high_level_source_required"])
         self.assertEqual(result["implementation"], "python_host_bridge")
+        self.assertEqual(result["build"]["backend"], "auto")
+        self.assertEqual(result["build"]["kind"], "object")
+        self.assertTrue(result["build"]["auto_shared"]["final_image_validation_required"])
         help_result = self.invoke("--help")
         self.assertEqual(help_result.returncode, 0, help_result.stderr)
         self.assertNotIn("import-executable", help_result.stdout)
@@ -155,7 +158,7 @@ class AgentEntryTests(unittest.TestCase):
         target = self.root / "forbidden.o"
         for args in (("lower", self.source), ("run", self.source),
                      ("build", self.source, "--backend", "llvm", "-o", target),
-                     ("build", self.source, "--kind", "shared", "-o", target),
+                     ("build", self.source, "--kind", "executable", "-o", target),
                      ("verify", self.source, "--rust-shadow-bin", "/absent")):
             with self.subTest(args=args):
                 self.assertEqual(self.invoke(*args).returncode, 2)

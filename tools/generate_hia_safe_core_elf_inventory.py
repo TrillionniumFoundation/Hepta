@@ -591,14 +591,16 @@ def object_relocations(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     size = get(w, 24)
     addr = get(w, 32)
     table = get(w, 56)
+    helper = get(w, 48)
+    count = choose(helper == 0, 1, 2)
     if size != length(w) - 64 or size > 65536:
         return 4294967293
-    if in_file(length(s), text, size) == 0 or in_file(length(s), rela, 48) == 0:
+    if in_file(length(s), text, size) == 0 or in_file(length(s), rela, count * 24) == 0:
         return terminal(o, E_RANGE, 0, 0)
     columns = 0
     seen = 0
     first = 0
-    while columns < 2:
+    while columns < count:
         at = rela + columns * 24
         offset = word(s, at, 8)
         info = word(s, at + 8, 8)
@@ -611,9 +613,9 @@ def object_relocations(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         symbol = ordinary_call_symbol(s, table, info >> 32)
         if symbol == 0:
             return terminal(o, E_OBJECT_OPERAND, 0, 0)
-        if symbol == 3 or offset == first:
+        if symbol > count or offset == first:
             return terminal(o, E_OBJECT_CALL, 0, 0)
-        target = choose(symbol == 1, get(w, 40), get(w, 48))
+        target = choose(symbol == 1, get(w, 40), helper)
         end = addr + offset + 4
         if target < end:
             if end - target > 2147483648:
@@ -629,16 +631,16 @@ def object_relocations(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         seen = seen | (1 << symbol)
         first = offset
         columns = columns + 1
-    if seen != 6:
+    if seen != choose(count == 1, 2, 6):
         return terminal(o, E_OBJECT_TEXT, 0, 0)
-    if linked_text_matches(s, o, w, text, size) == 0:
+    if linked_text_matches(s, o, w, text, size, count) == 0:
         return terminal(o, E_OBJECT_TEXT, 0, 0)
-    return reply(o, 0, 2, 0, 88)
+    return reply(o, 0, count, 0, 24 + count * 32)
 
-def linked_text_matches(s:readbuf, o:mutbuf, w:mutbuf, text:u64, size:u64) -> u64:
+def linked_text_matches(s:readbuf, o:mutbuf, w:mutbuf, text:u64, size:u64, count:u64) -> u64:
     first = get(o, 24)
     first_value = get(o, 48)
-    second = get(o, 56)
+    second = choose(count == 1, size, get(o, 56))
     second_value = get(o, 80)
     index = 0
     while index < size:
