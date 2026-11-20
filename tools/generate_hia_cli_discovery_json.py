@@ -51,6 +51,24 @@ def put(w:mutbuf, index:u64, value:u64) -> u64:
     return 0
 '''
 
+# Current discovery owns its complete fixed workspace before invoking these
+# helpers. All eight-byte cells are in-bounds, including their high bytes.
+DISCOVERY_WORD_HELPERS = r'''
+def get(w:mutbuf, index:u64) -> u64:
+    return word_load(w, index)
+
+def put(w:mutbuf, index:u64, value:u64) -> u64:
+    word_store(w, index, value)
+    return 0
+
+def sha_get32(w:mutbuf, index:u64) -> u64:
+    return word_load(w, index) & 4294967295
+
+def sha_put32(w:mutbuf, index:u64, value:u64) -> u64:
+    word_store(w, index, value & 4294967295)
+    return 0
+'''
+
 MAGIC=int.from_bytes(b'HCLJSON1','little')
 WORK_BYTES=131072
 TABLE_BASE=4096
@@ -528,7 +546,7 @@ def render(w:mutbuf, root:u64, version:u64, pretty:u64, include_hash:u64) -> u64
     return get(w, COUNT_AT)
 '''
 
-def hash_functions():
+def hash_functions(*, word_memory=False):
     tree=ast.parse(sha_source())
     primary=tree.body[0]
     primary.name='hash_json'
@@ -586,6 +604,9 @@ def sha_put32(w:mutbuf, index:u64, value:u64) -> u64:
     store(w, index + 7, 0)
     return 0
 ''').body)
+    if word_memory:
+        native_words = {node.name: node for node in ast.parse(DISCOVERY_WORD_HELPERS).body}
+        tree.body = [native_words.get(node.name, node) for node in tree.body]
     ast.fix_missing_locations(tree)
     return ast.unparse(tree)+'\n'
 
@@ -622,7 +643,8 @@ def source_program(*, capabilities=None, schema_version=None):
                                   body=[ast.Return(ast.Constant(value))],orelse=[]))
     prefix.body.append(ast.Return(ast.Constant(0)))
     ast.fix_missing_locations(tree)
-    source=ast.unparse(tree)+'\n'+hash_functions()
+    word_memory = capabilities is None and schema_version is None
+    source=ast.unparse(tree)+'\n'+hash_functions(word_memory=word_memory)
     seed=bytearray(raw)
     seed.extend(bytes((-len(seed))%8))
     chunks=[]
@@ -646,6 +668,9 @@ def source_program(*, capabilities=None, schema_version=None):
 
 class DiscoveryBuilder(Builder):
     def expr(self, node):
+        if isinstance(node, ast.Call) and node.func.id == 'word_store':
+            buffer, index, value = (self.expr(argument) for argument in node.args)
+            return self.op('buffer.store.u64.le', [buffer, self.cast(index, 'usize'), value])
         if isinstance(node, ast.BinOp) and type(node.op) in (ast.Mod, ast.FloorDiv):
             assert isinstance(node.right, ast.Constant) and node.right.value == 10
             left = self.expr(node.left)
@@ -655,7 +680,7 @@ class DiscoveryBuilder(Builder):
             return self.op(operation, [left, right], 'u64')
         return super().expr(node)
 
-def document(source, *, module='cli_discovery_json'):
+def document(source, *, module='cli_discovery_json', word_memory=False):
     nodes=ast.parse(source).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     signatures={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
@@ -664,7 +689,8 @@ def document(source, *, module='cli_discovery_json'):
         b=DiscoveryBuilder(node,names,signatures,total);b.statements(node.body)
         functions.append({'name':names[node.name],'params':[b.param(x) for x in b.params],
                           'returns':[b.returns],'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':functions})
+    schema = 'hepta.hia.program.v9' if word_memory else 'hepta.hia.program.v8'
+    return compact_authoring_cfg({'schema':schema,'module':module,'functions':functions})
 
 
 def standalone_capabilities_source():
@@ -701,7 +727,7 @@ def identities():
 def generation(*, capabilities=None, schema_version=None):
     before=identities()
     source,metadata=source_program(capabilities=capabilities,schema_version=schema_version)
-    data=document(source)
+    data=document(source, word_memory=capabilities is None and schema_version is None)
     raw=render_assembly(data).encode('utf-8')
     counts={'functions':len(data['functions']),'blocks':sum(len(f['blocks']) for f in data['functions']),
             'operations':sum(len(b['ops']) for f in data['functions'] for b in f['blocks']),

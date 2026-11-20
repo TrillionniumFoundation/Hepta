@@ -70,8 +70,15 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
         word_raw, word_report = generator.generation(capabilities=word_capabilities, schema_version=9)
         self.assertEqual(sha256(word_raw).hexdigest(), original_word['current_generation']['source_sha256'])
         self.assertEqual(word_report['table_sha256'], original_word['current_generation']['table_sha256'])
+        byte_capabilities = generator.capabilities_from_source((ROOT / 'hepta/cli.py').read_text())
+        self.assertEqual(byte_capabilities, compat.dual_version_capabilities())
+        _byte_raw, byte_report = generator.generation(capabilities=byte_capabilities, schema_version=9)
+        self.assertEqual({name: byte_report[name] for name in compat.BYTE_DISCOVERY_GENERATION},
+                         compat.BYTE_DISCOVERY_GENERATION)
+
         raw, report = generator.generation()
         expected = compat.CURRENT_DISCOVERY_GENERATION
+        self.assertTrue(raw.startswith(b'hia-asm.v1 hepta.hia.program.v9 '))
         self.assertEqual(raw, runtime.SOURCE.read_bytes())
         self.assertEqual(sha256(raw).hexdigest(), expected['source_sha256'])
         self.assertEqual(len(raw), expected['source_bytes'])

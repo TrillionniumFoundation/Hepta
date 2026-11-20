@@ -193,6 +193,12 @@ sources. The original R5 source and the verified-build/v8 source are regenerated
 under explicit v8 inputs and must retain their previous byte hashes, table
 hashes and operation counts. Existing fixtures are not rewritten.
 
+The current HIA program uses v9 little-endian word accesses for its fixed,
+fully admitted workspace cells. SHA and JSON counters still preserve the
+original eight-byte layout and zero high halves on 32-bit writes. The
+preceding byte-based v9 catalog is regenerated separately and the VM gate
+retains its original ten-million-step limit.
+
 The independent original catalog oracle executes the complete archived v8
 schema and instruction sources in private test modules. It still rejects v9;
 the current catalog must match it for every v1-v8 schema. On the current image,

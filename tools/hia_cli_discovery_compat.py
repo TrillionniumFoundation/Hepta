@@ -79,11 +79,18 @@ _WORD_MEMORY_SUCCESSOR_EDITS = {
 }
 
 
-CURRENT_DISCOVERY_GENERATION = {
+BYTE_DISCOVERY_GENERATION = {
     'source_sha256': '8958fae49aee88ae3f4b472511e2b7d5e7753ef6ea5f8951903c2dedfe8d75e6',
     'source_bytes': 278998,
     'counts': {'functions': 40, 'blocks': 257, 'operations': 5945, 'max_ssa': 540},
     'table_sha256': 'afe3dfd94966e954f311f2a756528846e871fe4da86bd3fb29dd4558242dcdb3',
+}
+
+CURRENT_DISCOVERY_GENERATION = {
+    'source_sha256': 'f8b22394340c55293304cda3678ce70c6171cad296dd99c785650ef00785741a',
+    'source_bytes': 272735,
+    'counts': {'functions': 40, 'blocks': 257, 'operations': 5764, 'max_ssa': 540},
+    'table_sha256': BYTE_DISCOVERY_GENERATION['table_sha256'],
 }
 
 
