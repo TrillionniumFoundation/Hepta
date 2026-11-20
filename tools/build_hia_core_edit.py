@@ -532,7 +532,12 @@ def build(output, compiler, cold_report, *, release_only=False):
             continue
         stub, holes, adapter_hash = load_static_adapter(templates, adapter, sources[adapter])
         binary, details = pack(packer, stub, holes, [images[path] for path, _calls in roles])
-        products[name] = (binary, {'elf': details, 'adapter_object_sha256': adapter_hash})
+        details = {'elf': details, 'adapter_object_sha256': adapter_hash}
+        if kind == 'selfhost_component':
+            binary, packed = pack_executable(packer, launcher,
+                                             images[ARGUMENT_PAYLOAD], binary, compressor)
+            details.update(packed)
+        products[name] = (binary, details)
     constructor = build_nominal_constructor(output / 'nominal-constructor', compiler, cold_report)
     selfhost_component = products['hia-selfhost-component'][0]
     bound_selfhost = bind_selfhost_entry(sources[SELFHOST_ENTRY], selfhost_component)
