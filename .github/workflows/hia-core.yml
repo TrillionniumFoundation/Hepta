@@ -3106,3 +3106,147 @@ jobs:
             ${{ runner.temp }}/hia-exec-release-native.log
             ${{ runner.temp }}/hia-exec-release-independent/
             ${{ runner.temp }}/hia-exec-release-independent.log
+
+  cold-native-transport-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install explicit native lifecycle build prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc strace
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 jsonschema==4.26.0
+      - name: Check the exact new HIA policy and retained original Source scope
+        id: cold_transport_source
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          python -B -m tools.generate_hia_cold_native_transport
+          git diff --exit-code
+          python -B tools/generate_hia_selfhost_contract.py --check
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport.ColdNativeTransportSourceTests
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport_controls.ColdNativeTransportControlsSourceTests
+      - name: Complete fresh-source cold with explicit native parent lifecycle
+        id: cold_transport_whole
+        if: ${{ !cancelled() && steps.cold_transport_source.outcome == 'success' }}
+        timeout-minutes: 11
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/hia-cold-native-r3"
+          python -B tools/qualify_hia_cold_native_transport.py \
+            --scope cold --output "$RUNNER_TEMP/hia-cold-native-r3/fresh"
+      - name: Freeze actual development build binding without promoting cold HOLD
+        id: cold_transport_binding
+        if: ${{ !cancelled() && steps.cold_transport_source.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          from hashlib import sha256
+          import json, os
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'hia-cold-native-r3'
+          cold_dir = directory / 'fresh/cold.cold'
+          manifest_path = cold_dir / 'qualification.evidence/native-transport-build/manifest.json'
+          raw = manifest_path.read_bytes()
+          manifest = json.loads(raw)
+          source = (cold_dir / 'source').resolve(strict=True)
+          if Path(manifest['source_root']).resolve(strict=True) != source:
+              raise ValueError('native transport build is not from this fresh cold export')
+          if manifest['whole_native'] is not False:
+              raise ValueError('native lifecycle build cannot claim whole-native')
+          compiler = Path(manifest['compiler']['path']).resolve(strict=True)
+          compiler_raw = compiler.read_bytes()
+          if {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()} != manifest['compiler']['pin']:
+              raise ValueError('actual fresh compiler differs')
+          binding = {'manifest': str(manifest_path.resolve()), 'bytes': len(raw),
+                     'sha256': sha256(raw).hexdigest(), 'source': str(source),
+                     'compiler': str(compiler), 'whole_native': False,
+                     'scope': 'EXPLICIT_DEVELOPMENT_REGRESSION_ONLY'}
+          (directory / 'regression-binding.json').write_text(json.dumps(binding, indent=2, sort_keys=True) + '\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as stream:
+              for key, value in (('HCT_R3_MANIFEST', binding['manifest']),
+                                 ('HCT_R3_SOURCE', binding['source']),
+                                 ('HCT_R3_COMPILER', binding['compiler'])):
+                  if '\n' in value or '\r' in value:
+                      raise ValueError('path cannot be exported as a workflow environment value')
+                  stream.write(key + '=' + value + '\n')
+          PY
+      - name: Complete originals twice then selected original 44 and actual eight handoff controls
+        id: cold_transport_originals
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 125
+        run: |
+          set -euo pipefail
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport.py" \
+            --scope regression --manifest "$HCT_R3_MANIFEST" \
+            --linked-development-compiler "$HCT_R3_COMPILER" \
+            --output "$RUNNER_TEMP/hia-cold-native-r3/regression"
+      - name: Independently read all original regression and real FD control bytes
+        if: ${{ !cancelled() && steps.cold_transport_originals.outcome == 'success' }}
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          from hashlib import sha256
+          import json, os, subprocess, sys
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'hia-cold-native-r3'
+          binding_raw = (directory / 'regression-binding.json').read_bytes()
+          binding = json.loads(binding_raw)
+          manifest = Path(binding['manifest'])
+          before = manifest.read_bytes()
+          if len(before) != binding['bytes'] or sha256(before).hexdigest() != binding['sha256']:
+              raise ValueError('prebound manifest changed before independent consumption')
+          subprocess.run([sys.executable, '-I', '-S', '-B',
+              str(Path(binding['source']) / 'tools/read_hia_cold_native_transport.py'),
+              '--evidence', str(directory / 'regression'), '--manifest', str(manifest),
+              '--manifest-bytes', str(binding['bytes']), '--manifest-sha256', binding['sha256'],
+              '--source-root', binding['source'], '--output', str(directory / 'regression-readback.json')],
+              check=True, timeout=600)
+          if manifest.read_bytes() != before or (directory / 'regression-binding.json').read_bytes() != binding_raw:
+              raise ValueError('exact prebound inputs changed after independent consumption')
+          PY
+      - name: Complete actual REF18 reference controls and full raw readback
+        id: cold_transport_references
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_references.py" \
+            --manifest "$HCT_R3_MANIFEST" --output "$RUNNER_TEMP/hia-cold-native-r3/references"
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_references.py" \
+            --readback-only --output "$RUNNER_TEMP/hia-cold-native-r3/references" \
+            > "$RUNNER_TEMP/hia-cold-native-r3/references-readback.json"
+      - name: Complete actual FD18 constructor and terminal ownership controls
+        id: cold_transport_fd_ownership
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_fds.py" \
+            --manifest "$HCT_R3_MANIFEST" --output "$RUNNER_TEMP/hia-cold-native-r3/fd-ownership"
+          python -B "$HCT_R3_SOURCE/tools/qualify_hia_cold_native_transport_fds.py" \
+            --readback-only --output "$RUNNER_TEMP/hia-cold-native-r3/fd-ownership" \
+            > "$RUNNER_TEMP/hia-cold-native-r3/fd-ownership-readback.json"
+      - name: Complete all original CT36 controls with two originals before selected execution
+        id: cold_transport_ct36
+        if: ${{ !cancelled() && steps.cold_transport_binding.outcome == 'success' }}
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          cd "$HCT_R3_SOURCE"
+          export HEPTA_HIA_COLD_NATIVE_TRANSPORT_MANIFEST="$HCT_R3_MANIFEST"
+          export HEPTA_HIA_COLD_NATIVE_TRANSPORT_ALLOW_DEVELOPMENT=1
+          export HEPTA_HIA_COLD_NATIVE_TRANSPORT_CT36_EVIDENCE="$RUNNER_TEMP/hia-cold-native-r3/ct36"
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport_controls.ColdNativeTransportControlsNativeTests
+      - name: Retain all explicit native lifecycle and whole-cold raw evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-cold-native-r3-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/hia-cold-native-r3/

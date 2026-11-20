@@ -250,3 +250,11 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
         (directory/(label+'.stderr.log')).write_bytes(stderr)
         (directory/(label+'.receipt.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
         return result, output
+
+
+# Explicit native lifecycle candidate. The complete original execute body above
+# remains the default; selected entry has a declared, different source identity.
+if os.environ.get("HEPTA_HIA_COLD_NATIVE_TRANSPORT_MANIFEST") is not None:
+    from tools.hia_cold_native_transport_bridge import bind_execute as _bind_cold_execute
+    execute = _bind_cold_execute("flat", globals())
+    del _bind_cold_execute

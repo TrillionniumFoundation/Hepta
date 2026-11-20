@@ -1,0 +1,1411 @@
+{
+  "schema": "hepta.cold-native-transport.ct36-inputs.v4",
+  "status": "INPUT_AUTHORITY_ONLY",
+  "original_CT36": [
+    {
+      "id": "CT-01",
+      "name": "flat-binary-complete",
+      "input_boundary": "Original flat observer, empty target arguments, complete source/output/workspace and binary stdout/stderr.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-02",
+      "name": "linked-binary-complete",
+      "input_boundary": "Original linked observer and actual return snapshot; full pre-finalizer and post-finalizer buffers remain separate.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-03",
+      "name": "flat-env",
+      "input_boundary": "Target emits its actual environment; original exact PATH/LANG/LC_ALL/TZ only.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-04",
+      "name": "linked-inherited-env",
+      "input_boundary": "Inherited environment with extra parent variable, actual exec, no flat sanitization.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-05",
+      "name": "argv",
+      "input_boundary": "Empty and nonempty arguments, exact argv[0] naming form and argument bytes; original first.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-06",
+      "name": "stdin-empty",
+      "input_boundary": "Real empty stdin closes before target read and preserves EOF.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-07",
+      "name": "stdin-many-pipe-windows",
+      "input_boundary": "Request larger than PIPE_BUF and pipe capacity; every byte consumed.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-08",
+      "name": "stdout-multiple-reads",
+      "input_boundary": "Binary output exceeds 32768 and includes NUL, invalid UTF-8, and frame magic in ordinary payload.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-09",
+      "name": "stderr-multiple-reads",
+      "input_boundary": "Independent binary stderr exceeds one read window.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-10",
+      "name": "both-streams-backpressure",
+      "input_boundary": "Target writes enough to both pipes while reading stdin; no deadlock or dropped bytes.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-11",
+      "name": "early-stdin-close",
+      "input_boundary": "Target closes fd0 before consuming input; EPIPE is not promoted to a target failure.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-12",
+      "name": "exit-nonzero",
+      "input_boundary": "Real nonzero exit, exact signed returncode and full raw streams.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-13",
+      "name": "sigill",
+      "input_boundary": "Actual SIGILL; raw wait status and shared output remain visible.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-14",
+      "name": "missing-cwd",
+      "input_boundary": "Real chdir failure, no exec-success claim, error stage/errno retained, child reaped.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-15",
+      "name": "invalid-executable",
+      "input_boundary": "Sealed non-ELF image produces actual exec error; no invented target return.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-16",
+      "name": "empty-executable",
+      "input_boundary": "Empty executable still creates/seals then fails at exec, with no preemptive content validator.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-17",
+      "name": "timeout-point-one",
+      "input_boundary": "Existing .1-second real pause target; PID disappears and all private fds close.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-18",
+      "name": "timeout-partial-raw",
+      "input_boundary": "Raw stdout/stderr emitted before timeout retained exactly; no cleanup drain appends post-timeout bytes.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-19",
+      "name": "timeout-before-first-read",
+      "input_boundary": "Preserve distinguishable read-count zero versus a genuine empty EOF read for later Python None/bytes conversion.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-20",
+      "name": "wait-timeout",
+      "input_boundary": "Target closes all stdio pipes but stays alive; classify wait timeout separately from communicate timeout.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-21",
+      "name": "timeout-zero",
+      "input_boundary": "Deadline begins after successful exec handshake; retain real partial/no-read facts.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-22",
+      "name": "borrowed-output-fd",
+      "input_boundary": "Exact passed output fd remains open in parent and is not renumbered or closed by transport.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-23",
+      "name": "borrowed-snapshot-fd",
+      "input_boundary": "Both distinct borrowed output and snapshot fds preserved through exec; original linked semantics.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-24",
+      "name": "unexpected-stdout",
+      "input_boundary": "Constructor/callback noise is preserved; unchanged invoke parser decides refusal.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-25",
+      "name": "no-extra-process",
+      "input_boundary": "Exactly one fresh target child, same process group/session as original; no worker reuse.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-26",
+      "name": "source-drift",
+      "input_boundary": "Every original invoke source/image/observer read and terminal reread remains active; no new cache.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-27",
+      "name": "policy-short-response",
+      "input_boundary": "Invalid policy return must take real emergency kill/reap/close and report POLICY_LOST.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-28",
+      "name": "nonce-sequence",
+      "input_boundary": "Wrong nonce/repeated sequence/ACK action or argument is rejected before dispatch.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-29",
+      "name": "request-canary",
+      "input_boundary": "Changed request/canary/output envelope rejected before any requested OS action.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-30",
+      "name": "resource-command-shape",
+      "input_boundary": "Invalid slot, duplicate close, second fork, or out-of-bounds write is rejected before syscall.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-31",
+      "name": "real-extent-and-seals",
+      "input_boundary": "Actual executable memfd bytes and seal bits; no boolean stand-in for fcntl observations.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-32",
+      "name": "fresh-state",
+      "input_boundary": "Each call has fresh HIA workspace, pipes, sealed memfd, process, captures, and nonce.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-33",
+      "name": "trace-overflow-is-hold",
+      "input_boundary": "Diagnostic trace overflow does not truncate raw output or change original domain, and cannot be reported complete.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-34",
+      "name": "closed-stdio-profile-refusal",
+      "input_boundary": "New typed profile explicitly refuses missing standard fds; never claim old Python all-input compatibility.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-35",
+      "name": "signal-profile-refusal",
+      "input_boundary": "New typed profile explicitly refuses incompatible SIGPIPE/SIGCHLD dispositions; no hidden mutation.",
+      "expected_runtime_result": null
+    },
+    {
+      "id": "CT-36",
+      "name": "owner-lost",
+      "input_boundary": "A real competing wait/ECHILD, if exercised in an isolated control, must remain CUSTODY_LOST, never reaped=true.",
+      "expected_runtime_result": null
+    }
+  ],
+  "ordered_ids": [
+    "CT-01",
+    "CT-02",
+    "CT-03",
+    "CT-04",
+    "CT-05",
+    "CT-06",
+    "CT-07",
+    "CT-08",
+    "CT-09",
+    "CT-10",
+    "CT-11",
+    "CT-12",
+    "CT-13",
+    "CT-14",
+    "CT-15",
+    "CT-16",
+    "CT-17",
+    "CT-18",
+    "CT-19",
+    "CT-20",
+    "CT-21",
+    "CT-22",
+    "CT-23",
+    "CT-24",
+    "CT-25",
+    "CT-26",
+    "CT-27",
+    "CT-28",
+    "CT-29",
+    "CT-30",
+    "CT-31",
+    "CT-32",
+    "CT-33",
+    "CT-34",
+    "CT-35",
+    "CT-36"
+  ],
+  "public_cases": [
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-0-0",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-0-0",
+      "source_hex": "",
+      "capacity": 0,
+      "workspace_size": 1032,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-0-90",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-0-90",
+      "source_hex": "",
+      "capacity": 0,
+      "workspace_size": 1032,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-0-255",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-0-255",
+      "source_hex": "",
+      "capacity": 0,
+      "workspace_size": 1032,
+      "workspace_fill": 255,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-1-0",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-1-0",
+      "source_hex": "",
+      "capacity": 1,
+      "workspace_size": 1032,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-1-90",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-1-90",
+      "source_hex": "",
+      "capacity": 1,
+      "workspace_size": 1032,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-1-255",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-1-255",
+      "source_hex": "",
+      "capacity": 1,
+      "workspace_size": 1032,
+      "workspace_fill": 255,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-257-0",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-257-0",
+      "source_hex": "",
+      "capacity": 257,
+      "workspace_size": 1032,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-257-90",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-257-90",
+      "source_hex": "",
+      "capacity": 257,
+      "workspace_size": 1032,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.0-257-255",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "0-257-255",
+      "source_hex": "",
+      "capacity": 257,
+      "workspace_size": 1032,
+      "workspace_fill": 255,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-0-0",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-0-0",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 0,
+      "workspace_size": 1032,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-0-90",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-0-90",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 0,
+      "workspace_size": 1032,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-0-255",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-0-255",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 0,
+      "workspace_size": 1032,
+      "workspace_fill": 255,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-1-0",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-1-0",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 1,
+      "workspace_size": 1032,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-1-90",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-1-90",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 1,
+      "workspace_size": 1032,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-1-255",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-1-255",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 1,
+      "workspace_size": 1032,
+      "workspace_fill": 255,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-257-0",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-257-0",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 257,
+      "workspace_size": 1032,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-257-90",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-257-90",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 257,
+      "workspace_size": 1032,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-01",
+      "subcase": "CT-01.flat.1-257-255",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "1-257-255",
+      "source_hex": "4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff4100ff",
+      "capacity": 257,
+      "workspace_size": 1032,
+      "workspace_fill": 255,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word"
+    },
+    {
+      "id": "CT-02",
+      "subcase": "CT-02.linked.0",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "0",
+      "source_hex": "",
+      "capacity": 4096,
+      "workspace_size": 0,
+      "workspace_fill": 0,
+      "output_fill_hex": null,
+      "observe_trap_writes": false,
+      "image": "linked-lifetime"
+    },
+    {
+      "id": "CT-02",
+      "subcase": "CT-02.linked.1",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "1",
+      "source_hex": "",
+      "capacity": 4096,
+      "workspace_size": 0,
+      "workspace_fill": 0,
+      "output_fill_hex": "5a",
+      "observe_trap_writes": false,
+      "image": "linked-lifetime"
+    },
+    {
+      "id": "CT-02",
+      "subcase": "CT-02.linked.2",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "2",
+      "source_hex": "",
+      "capacity": 4096,
+      "workspace_size": 0,
+      "workspace_fill": 0,
+      "output_fill_hex": null,
+      "observe_trap_writes": true,
+      "image": "linked-lifetime"
+    },
+    {
+      "id": "CT-02",
+      "subcase": "CT-02.linked.3",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "3",
+      "source_hex": "",
+      "capacity": 4096,
+      "workspace_size": 0,
+      "workspace_fill": 0,
+      "output_fill_hex": "5a",
+      "observe_trap_writes": true,
+      "image": "linked-lifetime"
+    },
+    {
+      "id": "CT-03",
+      "subcase": "CT-03.flat.environment",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "environment",
+      "target_mode": "env",
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-04",
+      "subcase": "CT-04.linked.environment",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "environment",
+      "target_mode": "env",
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-05",
+      "subcase": "CT-05.flat.0",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "0",
+      "arguments": [],
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-05",
+      "subcase": "CT-05.flat.1",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "1",
+      "arguments": [
+        "alpha",
+        "",
+        "nul-is-not-an-argv-byte-λ"
+      ],
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-05",
+      "subcase": "CT-05.linked.0",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "0",
+      "arguments": [],
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-05",
+      "subcase": "CT-05.linked.1",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "1",
+      "arguments": [
+        "alpha",
+        "",
+        "nul-is-not-an-argv-byte-λ"
+      ],
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-06",
+      "subcase": "CT-06.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "eof",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-06",
+      "subcase": "CT-06.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "eof",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-07",
+      "subcase": "CT-07.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "echo",
+      "request": "many",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-07",
+      "subcase": "CT-07.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "echo",
+      "request": "many",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-08",
+      "subcase": "CT-08.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "stdout",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-08",
+      "subcase": "CT-08.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "stdout",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-09",
+      "subcase": "CT-09.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "stderr",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-09",
+      "subcase": "CT-09.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "stderr",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-10",
+      "subcase": "CT-10.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "both",
+      "request": "many",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-10",
+      "subcase": "CT-10.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "both",
+      "request": "many",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-11",
+      "subcase": "CT-11.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "early-close",
+      "request": "many",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-11",
+      "subcase": "CT-11.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "early-close",
+      "request": "many",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-12",
+      "subcase": "CT-12.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "nonzero",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-12",
+      "subcase": "CT-12.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "nonzero",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-13",
+      "subcase": "CT-13.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "sigill",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-13",
+      "subcase": "CT-13.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "sigill",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-14",
+      "subcase": "CT-14.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": true
+    },
+    {
+      "id": "CT-14",
+      "subcase": "CT-14.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "target",
+      "missing_cwd": true
+    },
+    {
+      "id": "CT-15",
+      "subcase": "CT-15.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "invalid",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-15",
+      "subcase": "CT-15.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "invalid",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-16",
+      "subcase": "CT-16.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "empty",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-16",
+      "subcase": "CT-16.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20,
+      "executable": "empty",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-17",
+      "subcase": "CT-17.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "pause",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-17",
+      "subcase": "CT-17.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "pause",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-18",
+      "subcase": "CT-18.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "partial",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-18",
+      "subcase": "CT-18.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "partial",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-19",
+      "subcase": "CT-19.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "pause",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-19",
+      "subcase": "CT-19.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "pause",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-20",
+      "subcase": "CT-20.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "wait-close",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-20",
+      "subcase": "CT-20.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "wait-close",
+      "request": "empty",
+      "timeout": 0.1,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-21",
+      "subcase": "CT-21.flat.ordinary",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "pause",
+      "request": "empty",
+      "timeout": 0,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-21",
+      "subcase": "CT-21.linked.ordinary",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "ordinary",
+      "target_mode": "pause",
+      "request": "empty",
+      "timeout": 0,
+      "executable": "target",
+      "missing_cwd": false
+    },
+    {
+      "id": "CT-22",
+      "subcase": "CT-22.flat.one-borrowed",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "one-borrowed",
+      "target_mode": "borrowed",
+      "borrowed": 1,
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-23",
+      "subcase": "CT-23.linked.two-borrowed",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "two-borrowed",
+      "target_mode": "borrowed",
+      "borrowed": 2,
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-24",
+      "subcase": "CT-24.linked.noise-1",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "noise-1",
+      "source_hex": "",
+      "capacity": 4096,
+      "workspace_size": 0,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "linked-noise-1"
+    },
+    {
+      "id": "CT-24",
+      "subcase": "CT-24.linked.noise-2",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "noise-2",
+      "source_hex": "",
+      "capacity": 4096,
+      "workspace_size": 0,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "linked-noise-2"
+    },
+    {
+      "id": "CT-24",
+      "subcase": "CT-24.linked.noise-3",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "noise-3",
+      "source_hex": "",
+      "capacity": 4096,
+      "workspace_size": 0,
+      "workspace_fill": 0,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "linked-noise-3"
+    },
+    {
+      "id": "CT-25",
+      "subcase": "CT-25.flat.0",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "0",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-25",
+      "subcase": "CT-25.flat.1",
+      "route": "flat",
+      "kind": "execute",
+      "variant": "1",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-25",
+      "subcase": "CT-25.linked.0",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "0",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-25",
+      "subcase": "CT-25.linked.1",
+      "route": "linked",
+      "kind": "execute",
+      "variant": "1",
+      "target_mode": "identity",
+      "request": "empty",
+      "timeout": 20
+    },
+    {
+      "id": "CT-26",
+      "subcase": "CT-26.flat.drift-image",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "drift-image",
+      "source_hex": "4100ff",
+      "capacity": 17,
+      "workspace_size": 40,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word",
+      "drift": "image"
+    },
+    {
+      "id": "CT-26",
+      "subcase": "CT-26.flat.drift-observer",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "drift-observer",
+      "source_hex": "4100ff",
+      "capacity": 17,
+      "workspace_size": 40,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word",
+      "drift": "observer"
+    },
+    {
+      "id": "CT-26",
+      "subcase": "CT-26.flat.drift-source",
+      "route": "flat",
+      "kind": "invoke",
+      "variant": "drift-source",
+      "source_hex": "4100ff",
+      "capacity": 17,
+      "workspace_size": 40,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "flat-word",
+      "drift": "source"
+    },
+    {
+      "id": "CT-26",
+      "subcase": "CT-26.linked.drift-image",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "drift-image",
+      "source_hex": "4100ff",
+      "capacity": 17,
+      "workspace_size": 40,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "linked-word",
+      "drift": "image"
+    },
+    {
+      "id": "CT-26",
+      "subcase": "CT-26.linked.drift-observer",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "drift-observer",
+      "source_hex": "4100ff",
+      "capacity": 17,
+      "workspace_size": 40,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "linked-word",
+      "drift": "observer"
+    },
+    {
+      "id": "CT-26",
+      "subcase": "CT-26.linked.drift-source",
+      "route": "linked",
+      "kind": "invoke",
+      "variant": "drift-source",
+      "source_hex": "4100ff",
+      "capacity": 17,
+      "workspace_size": 40,
+      "workspace_fill": 90,
+      "output_initial_hex": null,
+      "observe_trap_writes": false,
+      "image": "linked-word",
+      "drift": "source"
+    }
+  ],
+  "policy_cases": [
+    {
+      "id": "CT-27",
+      "variant": "short-initial",
+      "subcase": "CT-27.policy.short-initial"
+    },
+    {
+      "id": "CT-27",
+      "variant": "short-live",
+      "subcase": "CT-27.policy.short-live"
+    },
+    {
+      "id": "CT-28",
+      "variant": "nonce",
+      "subcase": "CT-28.policy.nonce"
+    },
+    {
+      "id": "CT-28",
+      "variant": "sequence",
+      "subcase": "CT-28.policy.sequence"
+    },
+    {
+      "id": "CT-28",
+      "variant": "repeat-sequence",
+      "subcase": "CT-28.policy.repeat-sequence"
+    },
+    {
+      "id": "CT-28",
+      "variant": "action",
+      "subcase": "CT-28.policy.action"
+    },
+    {
+      "id": "CT-28",
+      "variant": "argument",
+      "subcase": "CT-28.policy.argument"
+    },
+    {
+      "id": "CT-28",
+      "variant": "amount",
+      "subcase": "CT-28.policy.amount"
+    },
+    {
+      "id": "CT-28",
+      "variant": "auxiliary",
+      "subcase": "CT-28.policy.auxiliary"
+    },
+    {
+      "id": "CT-28",
+      "variant": "ack-action",
+      "subcase": "CT-28.policy.ack-action"
+    },
+    {
+      "id": "CT-28",
+      "variant": "ack-argument",
+      "subcase": "CT-28.policy.ack-argument"
+    },
+    {
+      "id": "CT-28",
+      "variant": "workspace-magic",
+      "subcase": "CT-28.policy.workspace-magic"
+    },
+    {
+      "id": "CT-28",
+      "variant": "workspace-issued-action",
+      "subcase": "CT-28.policy.workspace-issued-action"
+    },
+    {
+      "id": "CT-29",
+      "variant": "request-byte",
+      "subcase": "CT-29.policy.request-byte"
+    },
+    {
+      "id": "CT-29",
+      "variant": "request-canary",
+      "subcase": "CT-29.policy.request-canary"
+    },
+    {
+      "id": "CT-29",
+      "variant": "reply-checksum",
+      "subcase": "CT-29.policy.reply-checksum"
+    },
+    {
+      "id": "CT-29",
+      "variant": "workspace-canary",
+      "subcase": "CT-29.policy.workspace-canary"
+    },
+    {
+      "id": "CT-30",
+      "variant": "bad-slot",
+      "subcase": "CT-30.policy.bad-slot"
+    },
+    {
+      "id": "CT-30",
+      "variant": "duplicate-close",
+      "subcase": "CT-30.policy.duplicate-close"
+    },
+    {
+      "id": "CT-30",
+      "variant": "second-fork",
+      "subcase": "CT-30.policy.second-fork"
+    },
+    {
+      "id": "CT-30",
+      "variant": "oob-image",
+      "subcase": "CT-30.policy.oob-image"
+    },
+    {
+      "id": "CT-30",
+      "variant": "oob-stdin",
+      "subcase": "CT-30.policy.oob-stdin"
+    },
+    {
+      "id": "CT-31",
+      "variant": "seals",
+      "subcase": "CT-31.policy.seals"
+    },
+    {
+      "id": "CT-32",
+      "variant": "fresh",
+      "subcase": "CT-32.policy.fresh"
+    },
+    {
+      "id": "CT-33",
+      "variant": "overflow",
+      "subcase": "CT-33.policy.overflow"
+    },
+    {
+      "id": "CT-34",
+      "variant": "closed-0",
+      "subcase": "CT-34.policy.closed-0"
+    },
+    {
+      "id": "CT-34",
+      "variant": "closed-1",
+      "subcase": "CT-34.policy.closed-1"
+    },
+    {
+      "id": "CT-34",
+      "variant": "closed-2",
+      "subcase": "CT-34.policy.closed-2"
+    },
+    {
+      "id": "CT-35",
+      "variant": "sigpipe-default",
+      "subcase": "CT-35.policy.sigpipe-default"
+    },
+    {
+      "id": "CT-35",
+      "variant": "sigchld-ignore",
+      "subcase": "CT-35.policy.sigchld-ignore"
+    },
+    {
+      "id": "CT-35",
+      "variant": "sigchld-no-cldwait",
+      "subcase": "CT-35.policy.sigchld-no-cldwait"
+    },
+    {
+      "id": "CT-36",
+      "variant": "owner-lost",
+      "subcase": "CT-36.policy.owner-lost"
+    }
+  ],
+  "input_bytes": {
+    "many": {
+      "generator": "bytes(range(256))*1024 + b'\\x00\\xffend'",
+      "bytes": 262149
+    },
+    "invalid_executable_hex": "6e6f742d454c4600ff",
+    "empty_executable_hex": "",
+    "flat_word_hex": "48b82a000000efbeaddec3"
+  },
+  "scope": {
+    "product_default_changed": false,
+    "old_originals_first": "two complete fresh public lanes before any selected public or policy control",
+    "raw": "Every actual byte and object/traceback field retained; separate relational checks never rewrite captured records.",
+    "original_44_required": true,
+    "HOF8_required": true,
+    "REF18_required": true,
+    "FD18_required": true,
+    "whole_native": false
+  },
+  "budgets": {
+    "cold_inner_seconds": 180,
+    "cold_cleanup_seconds": 3,
+    "cold_outer_seconds": 240,
+    "original_execute_seconds": 20,
+    "timeout_control_seconds": 0.1,
+    "ct36_owner_seconds": 1800,
+    "owned_cleanup_seconds": 3,
+    "build_seconds": 600,
+    "mechanical_compile_seconds": 20,
+    "public_lane_seconds": 600,
+    "policy_case_seconds": 60
+  },
+  "expected_runtime_results": null
+}
