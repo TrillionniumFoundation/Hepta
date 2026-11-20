@@ -39,6 +39,7 @@ CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
 JOB_LIFECYCLE_OUTPUT = b'HIAJSV01'
 JOB_OPERATION_INPUT = b'HIAJOP01'
+JOB_PENDING_INPUT = b'HIAJPN01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -68,6 +69,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_lifecycle(s, o)
     if magic == JOB_OPERATION_INPUT:
         return job_operation(s, o)
+    if magic == JOB_PENDING_INPUT:
+        return job_pending(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -358,13 +361,72 @@ def job_operation(s:readbuf, o:mutbuf) -> u64:
         return 4294967293
     if operation_equal(s, 48, 112, 64) == 0 or operation_digest(s, 48) == 0 or operation_digest(s, 176) == 0:
         return 4294967293
-    at = operation_host(o, 0)
+    return render_operation(s, o, 0, 240, id_size, host, host_size, 176)
+
+def render_operation(s:readbuf, o:mutbuf, at:u64, job:u64, id_size:u64,
+                     host:u64, host_size:u64, digest_at:u64) -> u64:
+    at = operation_host(o, at)
     at = external(s, o, at, host, host_size)
     at = operation_id(o, at)
-    at = external(s, o, at, 240, id_size)
+    at = external(s, o, at, job, id_size)
     at = operation_request(o, at)
-    at = external(s, o, at, 176, 64)
+    at = external(s, o, at, digest_at, 64)
     return operation_end(o, at)
+
+def job_pending(s:readbuf, o:mutbuf) -> u64:
+    # The owner supplies observations of the already admitted job, not a new plan.
+    if length(s) < 112 or length(o) < 4096:
+        return 4294967293
+    reason = word_load(s, 8)
+    unknown = word_load(s, 16)
+    id_size = word_load(s, 24)
+    host_size = word_load(s, 32)
+    diagnostic_size = word_load(s, 40)
+    if reason > 5 or unknown > 7 or id_size == 0 or id_size > 128 or host_size == 0 or host_size > 128:
+        return 4294967293
+    if (reason != 0 and unknown != 0) or (reason == 5) != (diagnostic_size != 0):
+        return 4294967293
+    if diagnostic_size > 3072 or length(s) != 112 + id_size + host_size + diagnostic_size:
+        return 4294967293
+    host = 112 + id_size
+    diagnostic = host + host_size
+    if operation_digest(s, 48) == 0 or operation_name(s, 112, id_size) == 0 or operation_name(s, host, host_size) == 0:
+        return 4294967293
+    index = 0
+    while index < diagnostic_size:
+        point = byte(s, diagnostic + index)
+        if point < 32 or point > 126 or point == 34 or point == 92:
+            return 4294967293
+        index = index + 1
+    at = pending_header(o, 0)
+    if reason != 0 or unknown != 0:
+        at = pending_error(o, at, reason, s, diagnostic, diagnostic_size)
+    at = pending_operation(o, at)
+    at = render_operation(s, o, at, 112, id_size, host, host_size, 48)
+    at = pending_request(o, at)
+    at = external(s, o, at, 48, 64)
+    if reason != 0 or unknown != 0:
+        return pending_unknown(o, at)
+    return pending_accepted(o, at)
+
+def pending_error(o:mutbuf, at:u64, reason:u64, s:readbuf, diagnostic:u64,
+                  diagnostic_size:u64) -> u64:
+    at = pending_error_prefix(o, at)
+    if reason == 0:
+        at = pending_owner_unknown(o, at)
+    elif reason == 1:
+        at = pending_binding_mismatch(o, at)
+    elif reason == 2:
+        at = pending_worker_terminated(o, at)
+    elif reason == 3:
+        at = pending_request_unknown(o, at)
+    elif reason == 4:
+        at = pending_report_invalid(o, at)
+    else:
+        at = pending_observation(o, at)
+        at = external(s, o, at, diagnostic, diagnostic_size)
+        at = pending_observation_tail(o, at)
+    return pending_error_suffix(o, at)
 
 def operation_name(s:readbuf, at:u64, size:u64) -> u64:
     index = 0
@@ -677,6 +739,31 @@ LITERALS = {
     'operation_id': '","job_id":"',
     'operation_request': '","report_artifact":null,"request_sha256":"',
     'operation_end': '"}',
+    'pending_header': '{"contract_version":"hepta.hia.agent-native.v1"',
+    'pending_error_prefix': ',"error":{"code":"',
+    'pending_error_suffix': '","phase":"runtime_observation","retry_action":"observe_original"}',
+    'pending_operation': ',"operation":',
+    'pending_request': ',"request_id":"hia_',
+    'pending_unknown': '","status":"unknown"}',
+    'pending_accepted': '","status":"accepted"}',
+    'pending_owner_unknown': ('HIA_OPERATION_UNKNOWN","details_artifact":null,"message":"'
+                              'The original job has no confirmed terminal outcome. Observe this same tool '
+                              'and request key; do not allocate a replacement.'),
+    'pending_binding_mismatch': ('HIA_OWNER_BINDING_MISMATCH","details_artifact":null,"message":"'
+                                 'Original native output binding changed; keep this request unchanged and observe it.'),
+    'pending_worker_terminated': ('HIA_WORKER_TERMINATED","details_artifact":null,"message":"'
+                                  'Original worker terminated without a successful bound domain report. Its operation '
+                                  'remains available through process_status/read; do not relaunch it.'),
+    'pending_request_unknown': ('HIA_REQUEST_UNKNOWN","details_artifact":null,"message":"'
+                                'The worker retained an uncertain durable intent or could not confirm native-child '
+                                'termination. Its original operation is preserved; do not repeat the effect with a new key.'),
+    'pending_report_invalid': ('HIA_REPORT_INVALID","details_artifact":null,"message":"'
+                               'Original worker report is incomplete, mismatched or outside the declared schema. '
+                               'No domain success is admitted; retain and inspect this original job.'),
+    'pending_observation': ('HIA_OBSERVATION_UNAVAILABLE","details_artifact":null,"message":"'
+                            'Complete terminal output could not be authenticated. '),
+    'pending_observation_tail': ('. Observe this exact original request; a disconnected observation '
+                                 'does not establish termination.'),
 }
 
 
@@ -705,6 +792,7 @@ def source_program():
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
               .replace('JOB_LIFECYCLE_OUTPUT', str(int.from_bytes(JOB_LIFECYCLE_OUTPUT, 'little')))
               .replace('JOB_OPERATION_INPUT', str(int.from_bytes(JOB_OPERATION_INPUT, 'little')))
+              .replace('JOB_PENDING_INPUT', str(int.from_bytes(JOB_PENDING_INPUT, 'little')))
               .replace('NOT_FOUND_HEAD', str(int.from_bytes(b'not-foun', 'little')))
               .replace('ACTIVE_WORD', str(int.from_bytes(b'active', 'little')))
               .replace('EXITED_WORD', str(int.from_bytes(b'exited', 'little')))

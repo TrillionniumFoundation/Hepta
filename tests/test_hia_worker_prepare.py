@@ -142,6 +142,58 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             actual = self.invoke(invalid)
             self.assertEqual((actual.returncode, actual.stdout, actual.stderr), (2, b'', b''))
 
+    def test_nonterminal_receipts_have_only_the_original_operation(self):
+        request = text_digest(b'original request')
+        job, host = b'job-1', b'worker'
+        operation = {'host': host.decode(), 'job_id': job.decode(), 'report_artifact': None,
+                     'request_sha256': request.decode()}
+        diagnostic = b'stage=admission cause=invalid_request'
+        reasons = (
+            ('HIA_OPERATION_UNKNOWN', 'The original job has no confirmed terminal outcome. '
+             'Observe this same tool and request key; do not allocate a replacement.'),
+            ('HIA_OWNER_BINDING_MISMATCH', 'Original native output binding changed; '
+             'keep this request unchanged and observe it.'),
+            ('HIA_WORKER_TERMINATED', 'Original worker terminated without a successful bound '
+             'domain report. Its operation remains available through process_status/read; '
+             'do not relaunch it.'),
+            ('HIA_REQUEST_UNKNOWN', 'The worker retained an uncertain durable intent or could '
+             'not confirm native-child termination. Its original operation is preserved; '
+             'do not repeat the effect with a new key.'),
+            ('HIA_REPORT_INVALID', 'Original worker report is incomplete, mismatched or outside '
+             'the declared schema. No domain success is admitted; retain and inspect this original job.'),
+            ('HIA_OBSERVATION_UNAVAILABLE', 'Complete terminal output could not be authenticated. '
+             + diagnostic.decode() + '. Observe this exact original request; a disconnected '
+             'observation does not establish termination.'),
+        )
+
+        def packet(reason, unknown, details=b'', *, digest=request, identity=job, owner=host):
+            return (struct.pack('<8s5Q', b'HIAJPN01', reason, unknown, len(identity), len(owner),
+                                len(details)) + digest + identity + owner + details)
+
+        accepted = {'contract_version': 'hepta.hia.agent-native.v1', 'operation': operation,
+                    'request_id': 'hia_' + request.decode(), 'status': 'accepted'}
+        cases = [(packet(0, 0), accepted)]
+        for reason, (code, message) in enumerate(reasons):
+            flags = range(1, 8) if reason == 0 else (0,)
+            for flag in flags:
+                body = dict(accepted, status='unknown', error={
+                    'code': code, 'details_artifact': None, 'message': message,
+                    'phase': 'runtime_observation', 'retry_action': 'observe_original',
+                })
+                cases.append((packet(reason, flag, diagnostic if reason == 5 else b''), body))
+        for raw, expected in cases:
+            result = self.invoke(raw)
+            encoded = json.dumps(expected, sort_keys=True, separators=(',', ':')).encode()
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (0, encoded, b''))
+
+        for raw in (packet(6, 0), packet(0, 8), packet(1, 1), packet(4, 0, b'unexpected'),
+                    packet(5, 0), packet(5, 0, b'invalid"json'), packet(5, 0, b'a' * 3073),
+                    packet(5, 0, bytes([10])), packet(5, 0, bytes([92])),
+                    packet(0, 0, digest=b'Z' * 64), packet(0, 0, identity=b''),
+                    packet(0, 0, owner=b'host/path'), packet(0, 0) + b'x'):
+            result = self.invoke(raw)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_job_reuse_requires_both_original_bindings_without_promoting_legacy_records(self):
         digest = text_digest(b'{"binding":"original"}')
         fingerprint = int(digest[:16], 16)
