@@ -182,12 +182,16 @@ def finish_scalar_proof(result, scope, *, started_ns=None, deadline_ms=None):
     method = "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples"
     meaning = PROVED_MEANING
     checker_name = result.get("bound_solver", result.get("solver", {})).get("name")
-    if name == "validate_scalar_totality" and checker_name == STRUCTURAL_TOTALITY_CHECKER:
+    if totality and checker_name == STRUCTURAL_TOTALITY_CHECKER:
         kind = "trusted_executable_structural_checker"
         method = "Typed scalar DAG, nontrapping operations and return-only sinks; no SMT"
+        if name == "validate_scalar_call_totality":
+            method = "Typed scalar DAGs and acyclic nontrapping direct-call closure; no SMT"
         meaning = PROVED_MEANING.replace("SMT checker", "HIA structural checker")
         assumptions[2] = _item("trusted_implementation", "The canonical verifier and selected HIA graph and nontrapping-instruction checks are trusted, not machine-proved.")
         assumptions[4] = _item("termination_rule", "Every transition in the verified finite DAG leads to a successor or to a normal return; its admitted fixed-width scalar operations cannot trap.")
+        if name == "validate_scalar_call_totality":
+            assumptions[4] = _item("termination_rule", "Every admitted CFG and the direct-call graph are acyclic; each scalar operation or already resolved call returns without trapping.")
         obligations[0] = _item("checker_soundness", "A machine-checked correctness theorem for the canonical verifier and HIA structural checker remains open.")
     elif name == "validate_bounded_translation" and checker_name == CIRCUIT_BOUND_CHECKER:
         kind = "trusted_executable_hia_circuit_checker"

@@ -19,6 +19,8 @@ RESULT = int.from_bytes(b'HIASMR01', 'little')
 ORDER_MAGIC = int.from_bytes(b'HIASMO01', 'little')
 CONTROL_MAGIC = int.from_bytes(b'HIASMC01', 'little')
 TOTALITY_MAGIC = int.from_bytes(b'HIASTO01', 'little')
+CALL_TOTALITY_MAGIC = int.from_bytes(b'HIASTC01', 'little')
+CALL_TAG = 128
 TOTALITY_TERMINATORS = {'ret': 1, 'jump': 2, 'branch': 3, 'trap': 4}
 MAX_BLOCKS, MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS = 128, 2048, 32, 16
 PROFILE_REFUSALS = ('symbolic_program_budget_exceeded', 'symbolic_signature_budget_exceeded',
@@ -102,6 +104,35 @@ class NativeScalarSymbolic(NativeHiaJsonImage):
         if mark != RESULT or size != len(output) or established not in (0, 1):
             raise SymbolicRecipeRejected('invalid HIA structural totality reply')
         return bool(established), sha256(wire).hexdigest()
+
+    def structural_call_totality(self, root, graphs):
+        from .hia_scalar_call_validation import MAX_CALL_EXPANSIONS, MAX_FUNCTIONS
+
+        names = sorted(graphs)
+        ordinal = {name: index for index, name in enumerate(names)}
+        sections = [struct.pack('<3Q', CALL_TOTALITY_MAGIC, len(names), ordinal[root])]
+        for name in names:
+            blocks, order = graphs[name]
+            terminals = bytes(TOTALITY_TERMINATORS.get(blocks[label]['term']['op'], 255)
+                              for label in order)
+            operations = []
+            for label in order:
+                for op in blocks[label]['ops']:
+                    if op['op'] == 'call':
+                        operations.append(CALL_TAG + ordinal[op['attrs']['function']])
+                    else:
+                        operations.append(0 if op['op'] == 'const' else OPCODES.get(op['op'], 255))
+            sections.extend((struct.pack('<2Q', len(terminals), len(operations)),
+                             terminals, bytes(operations)))
+        wire = b''.join(sections)
+        request = ctypes.create_string_buffer(wire)
+        output = ctypes.create_string_buffer(16)
+        scratch = ctypes.create_string_buffer(24 * MAX_FUNCTIONS)
+        size = self._entry(request, len(wire), output, len(output), scratch, len(scratch))
+        mark, expansions = struct.unpack('<2Q', output)
+        if mark != RESULT or size != len(output) or expansions > MAX_CALL_EXPANSIONS:
+            raise SymbolicRecipeRejected('invalid HIA structural call totality reply')
+        return expansions, sha256(wire).hexdigest()
 
     def operation(self, z3, context, name, attrs, result, source, operands, *, translation=False):
         if translation and result == 'unit':

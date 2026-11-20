@@ -4,8 +4,9 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_scalar_reference_native import OPCODES
+from hepta import hia_scalar_call_validation as calls
 from hepta.hia_scalar_symbolic_native import (
-    CONTROL_KINDS, CONTROL_MAGIC, MAGIC, MAX_BLOCKS, MAX_EDGES, MAX_NODES,
+    CALL_TAG, CALL_TOTALITY_MAGIC, CONTROL_KINDS, CONTROL_MAGIC, MAGIC, MAX_BLOCKS, MAX_EDGES, MAX_NODES,
     MAX_OPERATIONS, MAX_PARAMETERS, MAX_RETURNS,
     OPERATIONS, ORDER_MAGIC, RESULT, TOTALITY_MAGIC, TOTALITY_TERMINATORS,
 )
@@ -22,6 +23,8 @@ def recipe(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return control(s, o)
     if length(s) >= 8 and uint(s, 0, 8) == @TOTALITY_MAGIC@:
         return structural_totality(s, o)
+    if length(s) >= 8 and uint(s, 0, 8) == @CALL_TOTALITY_MAGIC@:
+        return structural_call_totality(s, o, w)
     if length(s) != 64 or length(o) < 64 + 32 * @MAX_NODES@:
         return 4294967295
     if uint(s, 0, 8) != @MAGIC@:
@@ -338,6 +341,97 @@ def structural_totality(s:readbuf, o:mutbuf) -> u32:
     put(o, 8, 1)
     return 16
 
+def structural_call_totality(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 24 or length(o) < 16 or length(w) < 24 * @CALL_FUNCTIONS@:
+        return 4294967295
+    count = uint(s, 8, 8)
+    root = uint(s, 16, 8)
+    if count == 0 or count > @CALL_FUNCTIONS@ or root >= count:
+        return 4294967295
+    put(o, 0, @RESULT@)
+    put(o, 8, 0)
+    at = 24
+    fn = 0
+    total_blocks = 0
+    total_ops = 0
+    while fn < count:
+        if length(s) - at < 16:
+            return 4294967295
+        blocks = uint(s, at, 8)
+        ops = uint(s, at + 8, 8)
+        at = at + 16
+        if blocks == 0 or blocks > @CALL_BLOCKS@ - total_blocks or blocks > length(s) - at:
+            return 4294967295
+        if ops > @CALL_OPERATIONS@ - total_ops or ops > length(s) - at - blocks:
+            return 4294967295
+        total_blocks = total_blocks + blocks
+        total_ops = total_ops + ops
+        end = at + blocks
+        while at < end:
+            term = byte(s, at)
+            if term != @t.ret@ and term != @t.jump@ and term != @t.branch@:
+                return 16
+            at = at + 1
+        end = at + ops
+        put(w, fn * 24, at)
+        put(w, fn * 24 + 8, end)
+        put(w, fn * 24 + 16, 0)
+        while at < end:
+            op = byte(s, at)
+            if op < 64:
+                if ((@NONTRAPPING@ >> op) & 1) == 0:
+                    return 16
+            elif op < @CALL_TAG@ or op - @CALL_TAG@ >= count:
+                return 16
+            at = at + 1
+        fn = fn + 1
+    if at != length(s):
+        return 4294967295
+    expansions = structural_call_expansions(s, w, count, root)
+    if expansions <= @CALL_EXPANSIONS@:
+        put(o, 8, expansions)
+    return 16
+
+def structural_call_expansions(s:readbuf, w:mutbuf, count:u64, root:u64) -> u64:
+    ready = 0
+    while ready < count:
+        previous = ready
+        fn = 0
+        while fn < count:
+            if call_word(w, fn * 24 + 16) == 0:
+                cost = structural_function_cost(s, w, fn * 24)
+                if cost != 0:
+                    put(w, fn * 24 + 16, cost)
+                    ready = ready + 1
+            fn = fn + 1
+        if ready == previous:
+            return 0
+    return call_word(w, root * 24 + 16)
+
+def structural_function_cost(s:readbuf, w:mutbuf, record:u64) -> u64:
+    at = call_word(w, record)
+    end = call_word(w, record + 8)
+    cost = 1
+    while at < end:
+        op = byte(s, at)
+        if op >= @CALL_TAG@:
+            child = call_word(w, (op - @CALL_TAG@) * 24 + 16)
+            if child == 0:
+                return 0
+            cost = cost + child
+            if cost > @CALL_EXPANSIONS@:
+                cost = @CALL_EXPANSIONS@ + 1
+        at = at + 1
+    return cost
+
+def call_word(w:mutbuf, at:u64) -> u64:
+    value = 0
+    i = 0
+    while i < 8:
+        value = value | (byte(w, at + i) << (i * 8))
+        i = i + 1
+    return value
+
 '''
 
 
@@ -351,7 +445,10 @@ def document():
                  'MAX_BLOCKS': MAX_BLOCKS, 'MAX_OPERATIONS': MAX_OPERATIONS,
                  'MAX_PARAMETERS': MAX_PARAMETERS, 'MAX_RETURNS': MAX_RETURNS,
                  'CONTROL_MAGIC': CONTROL_MAGIC, 'MAX_EDGES': MAX_EDGES, **OPCODES,
-                 'TOTALITY_MAGIC': TOTALITY_MAGIC,
+                 'TOTALITY_MAGIC': TOTALITY_MAGIC, 'CALL_TOTALITY_MAGIC': CALL_TOTALITY_MAGIC,
+                 'CALL_TAG': CALL_TAG, 'CALL_FUNCTIONS': calls.MAX_FUNCTIONS,
+                 'CALL_BLOCKS': calls.MAX_BLOCKS, 'CALL_OPERATIONS': calls.MAX_OPERATIONS,
+                 'CALL_EXPANSIONS': calls.MAX_CALL_EXPANSIONS,
                  'NONTRAPPING': 1 | sum(1 << OPCODES[name] for name in NONTRAPPING_OPS),
                  **{'t.' + name: code for name, code in TOTALITY_TERMINATORS.items()},
                  **{'c.' + name: code for name, code in CONTROL_KINDS.items()},

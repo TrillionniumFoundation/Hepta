@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha256
 import importlib.util
+import os
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -274,6 +275,32 @@ class ScalarTotalityBoundaryTests(unittest.TestCase):
         result = validate_scalar_totality(source)
         self.assertEqual(result["status"], "unknown")
         self.assertEqual(result["reason"], "core_schema_outside_qualified_v1_v7_profile")
+
+
+@unittest.skipUnless(os.environ.get("HIA_TEST_NATIVE_SYMBOLIC"), "qualified HIA symbolic image required")
+class StructuralCallTotalityTests(unittest.TestCase):
+    def test_nontrapping_closure_proves_total_without_either_solver(self):
+        source = guarded_call_division()
+        for block in source["functions"][1]["blocks"]:
+            for op in block["ops"]:
+                if op["op"] == "int.div.checked":
+                    op["op"] = "int.add.wrap"
+        native_path = os.environ["HIA_TEST_NATIVE_SYMBOLIC"]
+        from hepta import hia_scalar_call_validation as calls
+        from hepta import hia_translation_validation as semantics
+        from hepta.hia_scalar_symbolic_native import SELECTOR
+
+        with (patch.dict(os.environ, {SELECTOR: native_path}),
+              patch.object(calls, "_native_call_query", side_effect=AssertionError("CNF invoked")),
+              patch.object(semantics, "_z3_module", side_effect=AssertionError("Z3 invoked"))):
+            result = validate_scalar_call_totality(source, function="calculate")
+        self.assertEqual(result["status"], "proved", result)
+        self.assertEqual(result["reason"], "nontrapping_operations_and_acyclic_direct_calls")
+        self.assertEqual(result["call_expansions"], 2)
+        self.assertEqual(result["call_closure"], ["calculate", "divide"])
+        self.assertEqual(result["checker"]["kind"], "trusted_executable_structural_checker")
+        self.assertFalse(result["execution_authority"])
+        self.assertFalse(result["claims"]["native_backend_refinement_proved"])
 
 
 @unittest.skipUnless(importlib.util.find_spec("z3"), "actual Z3 is required")

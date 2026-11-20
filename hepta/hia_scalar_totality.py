@@ -329,6 +329,20 @@ def validate_scalar_call_totality(document, *, function, timeout_ms=10000):
         functions, graphs = calls._closure(program.as_dict(), function)
         fn = functions[function]
         result["call_closure"] = sorted(graphs)
+        native = selected_scalar_symbolic()
+        if native is not None:
+            expansions, predicate = native.structural_call_totality(function, graphs)
+            if expansions:
+                if (scope["source_identity"] or {}).get("scalar_symbolic.image.bin") != native.image_sha256:
+                    raise semantics._OutsideProfile("native_totality_identity_changed")
+                result.update(status="proved", reason="nontrapping_operations_and_acyclic_direct_calls",
+                              call_expansions=expansions)
+                result["solver"].update(name=STRUCTURAL_TOTALITY_CHECKER, version="1",
+                    result="established", identity={"image_sha256": native.image_sha256},
+                    predicate_sha256=predicate)
+                result["trusted_components"] = ["canonical Core checker",
+                                                "HIA acyclic and nontrapping call-closure checker"]
+                return result
         if _native_call_totality(result, scope, program, fn, ((functions, graphs),),
                                  started + timeout_ms * 1_000_000):
             return result
