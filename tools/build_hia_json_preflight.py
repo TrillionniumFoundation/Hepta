@@ -114,6 +114,7 @@ CANDIDATES = {
     'artifact-authority': ('worker_artifact_authority', 'artifact-authority'),
     'artifact-diagnostic': ('worker_artifact_diagnostic', 'artifact-diagnostic'),
     'context-store': ('worker_context_store', 'context-store'),
+    'context-record': ('worker_context_record', 'context-record'),
     'artifact-journal': ('worker_artifact_journal', 'artifact-journal'),
     'discovery-artifact': ('discovery_artifact', 'discovery-artifact'),
     'discovery-effect': ('discovery_effect', 'discovery-effect'),

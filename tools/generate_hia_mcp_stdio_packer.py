@@ -64,6 +64,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'journal-records': JOURNAL_RECORD_MODE,
          'journal-observation': JOURNAL_RECORD_MODE,
          'context-store': DISCOVERY_MODE,
+         'context-record': JOURNAL_RECORD_MODE,
          'artifact-authority': DISCOVERY_MODE,
          'artifact-diagnostic': ARTIFACT_DIAGNOSTIC_MODE,
          'artifact-journal': JOURNAL_READ_WORKFLOW_MODE}
