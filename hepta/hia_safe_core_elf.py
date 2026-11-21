@@ -479,12 +479,13 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         srcfunc = _owned_functions(obj, source, 1)
         dstfunc = _owned_functions(final, linked, 3)
         direct = _reference_function_link(srcfunc, dstfunc, export, source["size"], linked["addr"])
+        entry = srcfunc[export]["value"]
     else:
         obj_receipt = obj._native_inventory.owned_function_receipt(obj.data, 1)
         final_receipt = final._native_inventory.owned_function_receipt(final.data, 3)
-        direct = obj._native_inventory.verify_owned_function_link(obj_receipt, final_receipt, export)
-        srcfunc, _ = obj_receipt
-        dstfunc, _ = final_receipt
+        direct, entry, _, helper = obj._native_inventory.verify_owned_function_link(
+            obj_receipt, final_receipt, export, receipt=True,
+        )
     if final._native_inventory is None:
         dynsymbols = _reference_dynamic_symbols(final, linked, dstfunc[export])
         plt, got, rela = (final.section(".plt", 1), final.section(".got", 1),
@@ -498,9 +499,12 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         final.load_binding(dynamic, 6)
         tags = _reference_dynamic_tags(final, dynamic, got, rela)
         _lookup_tables(final, tags, dynsymbols, export)
+        offset, address, mapped_text = linked["offset"], linked["addr"], linked["data"]
     else:
-        final._native_inventory.verify_final_loader(final.data, export)
-        plt = final.section(".plt", 1)
+        offset, address, extent, abort = final._native_inventory.verify_final_loader(
+            final.data, export, receipt=True,
+        )
+        mapped_text = final.data[offset:offset + extent]
 
     relsec = obj.section(".rela.text", 4)
     if obj._native_inventory is None:
@@ -511,23 +515,23 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         # Check all names in table order (including unreferenced entries)
         # before interpreting relocations, as in the retained checker.
         obj.symbols(".symtab")
-        calls, records = obj._native_inventory.object_relocations(
-            obj.data, relsec, source, linked, plt, 0 if direct else dstfunc["__hia_native_fn_0"]["value"],
+        calls, records = obj._native_inventory.object_relocations_owned(
+            obj.data, relsec, source, mapped_text, address, abort, helper,
         )
     from .hia_sha256_stream_native import selected_stream_hasher
 
     hasher = selected_stream_hasher()
     digest = sha256 if hasher is None else hasher.new
     object_digest, image_digest, text_digest = (
-        digest(data).hexdigest() for data in (object_bytes, final_bytes, linked["data"])
+        digest(data).hexdigest() for data in (object_bytes, final_bytes, mapped_text)
     )
-    return {"text": linked["data"], "text_vaddr": linked["addr"],
-            "entry": srcfunc[export]["value"], "calls": calls,
+    return {"text": mapped_text, "text_vaddr": address,
+            "entry": entry, "calls": calls,
             "binding": {"object_sha256": object_digest, "final_image_sha256": image_digest,
                         "linked_text_sha256": text_digest,
-                        "linked_text_file_offset": linked["offset"],
-                        "linked_text_vaddr": linked["addr"], "relocations": records,
-                        "entry_offset": srcfunc[export]["value"],
+                        "linked_text_file_offset": offset,
+                        "linked_text_vaddr": address, "relocations": records,
+                        "entry_offset": entry,
                         "function_shape": "direct_entry" if direct else "internal_with_wrapper",
                         "entry_symbol": export, "dynamic_binding": "NOW",
                         "external_semantics": "libc abort is nonreturning"}}

@@ -224,7 +224,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                           for name in loader_boundaries}
         bridge_boundaries = ('verify_function_link', 'verify_executable_layout',
                              'verify_relro', 'verify_dynamic_relocations', 'verify_plt_slot',
-                             'verify_dynamic_symbols', 'verify_loader_executable', 'verify_loader_lookup')
+                             'verify_dynamic_symbols', 'verify_loader_executable', 'verify_loader_lookup',
+                             'object_relocations')
         bridge_blocked = {name: Mock(side_effect=AssertionError('host encoded ELF authority: ' + name))
                           for name in bridge_boundaries}
         with (
@@ -279,6 +280,10 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                           source[0], target[0], export,
                           raw_object.section('.text')['size'], raw_final.section('.text')['addr'],
                       ))
+        helper = target[0].get('__hia_native_fn_0')
+        self.assertEqual(self.native.verify_owned_function_link(source, target, export, receipt=True),
+                         (helper is None, source[0][export]['value'], target[0][export]['value'],
+                          0 if helper is None else helper['value']))
 
     def test_dynamic_symbol_authority_matches_original_checks(self):
         original = _ELF.__new__(_ELF)
@@ -510,6 +515,9 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
 
         self.native.verify_loader_lookup(self.final_bytes, export)
         self.native.verify_final_loader(self.final_bytes, export)
+        text, plt = (final.section(name, 1) for name in ('.text', '.plt'))
+        self.assertEqual(self.native.verify_final_loader(self.final_bytes, export, receipt=True),
+                         (text['offset'], text['addr'], text['size'], plt['addr'] + 16))
         for name in (export + 'x', '', export[:-1], 'abort'):
             self.assertEqual(result(self.native.verify_loader_lookup, self.final_bytes, name),
                              result(reference_lookup, self.final_bytes, name))

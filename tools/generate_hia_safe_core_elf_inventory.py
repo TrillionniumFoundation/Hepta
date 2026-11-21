@@ -9,12 +9,13 @@ from hepta.hia_safe_core_elf_inventory_native import (
     AUTHORITY_BYTES, AUTHORITY_MAGIC, CAPACITY, LOADER_AUTHORITIES, SECTION_AUTHORITIES,
     LOOKUP_MAGIC, LOOKUP_REQUIRED, LOOKUP_ROLES, LOOKUP_TYPED, LOOKUP_WORK,
     LOADER_EXECUTABLE_MAGIC, LOADER_EXECUTABLE_WORK,
-    FINAL_LOADER_MAGIC, FINAL_LOADER_NAME, FINAL_LOADER_WORK,
+    FINAL_LOADER_MAGIC, FINAL_LOADER_NAME, FINAL_LOADER_RECEIPT_MAGIC, FINAL_LOADER_WORK,
     DYNAMIC_ORDER_MAGIC, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
     EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC, OBJECT_INVENTORY_MAGIC,
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC,
-    FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
+    FUNCTION_LINK_MAGIC, FUNCTION_LINK_RECEIPT_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES,
+    FUNCTION_LINK_ROW_BYTES,
     FUNCTION_RECEIPT_MAGIC, FUNCTION_RECEIPT_BYTES, OWNED_FUNCTION_MAGIC,
     FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
@@ -44,7 +45,7 @@ FIELDS.update(LOOKUP_MAGIC=LOOKUP_MAGIC, LOOKUP_ROLES=LOOKUP_ROLES, LOOKUP_WORK=
 FIELDS.update(LOADER_EXECUTABLE_MAGIC=LOADER_EXECUTABLE_MAGIC, LOADER_EXECUTABLE_WORK=LOADER_EXECUTABLE_WORK,
               ROLE_PLT=SECTION_AUTHORITIES.index('.plt'))
 FIELDS.update(FINAL_LOADER_MAGIC=FINAL_LOADER_MAGIC, FINAL_LOADER_NAME=FINAL_LOADER_NAME,
-              FINAL_LOADER_WORK=FINAL_LOADER_WORK)
+              FINAL_LOADER_RECEIPT_MAGIC=FINAL_LOADER_RECEIPT_MAGIC, FINAL_LOADER_WORK=FINAL_LOADER_WORK)
 for section in LOOKUP_REQUIRED:
     label = section.strip('.').replace('.', '_').upper()
     FIELDS['ROLE_' + label] = SECTION_AUTHORITIES.index(section)
@@ -52,6 +53,7 @@ for section in LOOKUP_REQUIRED:
     if section in LOOKUP_TYPED:
         FIELDS['KIND_' + label] = REFUSAL_IDS['lookup_kind_' + section]
 FIELDS.update(FUNCTION_LINK_MAGIC=FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES=FUNCTION_LINK_BYTES,
+              FUNCTION_LINK_RECEIPT_MAGIC=FUNCTION_LINK_RECEIPT_MAGIC,
               FUNCTION_LINK_NAME_BYTES=FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES=FUNCTION_LINK_ROW_BYTES,
               FUNCTION_LINK_SOURCE_OFFSET=FUNCTION_LINK_SOURCE_OFFSET,
               FUNCTION_LINK_TARGET_OFFSET=FUNCTION_LINK_TARGET_OFFSET)
@@ -78,8 +80,8 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     if length(w) == 8 and get(w, 0) == OWNED_SHARED_MAGIC:
         return owned_shared_layout(s, o)
-    if length(w) == 8 and get(w, 0) == FUNCTION_LINK_MAGIC:
-        return verify_function_link(s, o)
+    if length(w) == 8 and (get(w, 0) == FUNCTION_LINK_MAGIC or get(w, 0) == FUNCTION_LINK_RECEIPT_MAGIC):
+        return verify_function_link(s, o, get(w, 0) == FUNCTION_LINK_RECEIPT_MAGIC)
     if (length(w) == OWNED_SHARED_SYMBOL_WORK or length(w) == OWNED_SHARED_EXPECTED_WORK) and get(w, 0) == OWNED_SHARED_SYMBOL_MAGIC:
         if length(o) < OWNED_SHARED_SYMBOL_CAPACITY:
             return 4294967294
@@ -105,10 +107,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if length(o) < CAPACITY + AUTHORITY_BYTES:
             return 4294967294
         return loader_executable(s, o, w)
-    if length(w) == FINAL_LOADER_WORK and get(w, 0) == FINAL_LOADER_MAGIC:
+    if length(w) == FINAL_LOADER_WORK and (get(w, 0) == FINAL_LOADER_MAGIC or get(w, 0) == FINAL_LOADER_RECEIPT_MAGIC):
         if length(o) < CAPACITY + AUTHORITY_BYTES:
             return 4294967294
-        return final_loader(s, o, w)
+        return final_loader(s, o, w, get(w, 0) == FINAL_LOADER_RECEIPT_MAGIC)
     if length(w) == 16 and get(w, 8) == 0:
         return symbol_table(s, o, get(w, 0))
     if length(w) == 24:
@@ -621,7 +623,7 @@ def copy_symbol_row(o:mutbuf, target:u64, source:u64) -> u64:
         byte_index = byte_index + 1
     return 0
 
-def verify_function_link(s:readbuf, o:mutbuf) -> u64:
+def verify_function_link(s:readbuf, o:mutbuf, receipt:bool) -> u64:
     if length(s) != FUNCTION_LINK_BYTES:
         return 4294967293
     if word(s, 40, 8) != 0 or word(s, 48, 8) != 0 or word(s, 56, 8) != 0:
@@ -640,11 +642,18 @@ def verify_function_link(s:readbuf, o:mutbuf) -> u64:
     entry_after = FUNCTION_LINK_TARGET_OFFSET + (target - 1) * FUNCTION_LINK_ROW_BYTES
     if same_function_geometry(s, entry_before, entry_after, word(s, 0, 8)) == 0:
         return terminal(o, E_FUNCTION_LINK, 0, 0)
+    helper = 0
     if count == 2:
         helper_before = FUNCTION_LINK_SOURCE_OFFSET + (2 - source) * FUNCTION_LINK_ROW_BYTES
         helper_after = FUNCTION_LINK_TARGET_OFFSET + (2 - target) * FUNCTION_LINK_ROW_BYTES
         if same_function_geometry(s, helper_before, helper_after, word(s, 0, 8)) == 0:
             return terminal(o, E_FUNCTION_LINK, 0, 0)
+        helper = word(s, helper_after + 8, 8)
+    if receipt:
+        put(o, 24, word(s, entry_before + 8, 8))
+        put(o, 32, word(s, entry_after + 8, 8))
+        put(o, 40, helper)
+        return reply(o, 0, choose(count == 1, 1, 0), 0, 48)
     return reply(o, 0, choose(count == 1, 1, 0), 0, 24)
 
 def function_export_slot(s:readbuf, start:u64, count:u64, export_size:u64) -> u64:
@@ -1013,7 +1022,7 @@ def checked_executable_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return result
     return relocations_from_roles(s, o, w)
 
-def final_loader(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+def final_loader(s:readbuf, o:mutbuf, w:mutbuf, receipt:bool) -> u64:
     name_size = get(w, 8)
     if name_size > 256:
         return 4294967293
@@ -1028,7 +1037,15 @@ def final_loader(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     result = checked_executable_roles(s, o, w)
     if get(o, 0) != 0:
         return result
-    return checked_final_lookup(s, o, w, name_size)
+    result = checked_final_lookup(s, o, w, name_size)
+    if get(o, 0) != 0 or receipt == False:
+        return result
+    text = lookup_row(w, OWNED_TEXT_ROLE)
+    put(o, 24, word(s, text + 24, 8))
+    put(o, 32, word(s, text + 16, 8))
+    put(o, 40, word(s, text + 32, 8))
+    put(o, 48, word(s, lookup_row(w, ROLE_PLT) + 16, 8) + 16)
+    return reply(o, 0, 0, 0, 56)
 
 def loader_export_from_symbol_table(s:readbuf, o:mutbuf, w:mutbuf, name_size:u64) -> u64:
     dynsym = lookup_row(w, ROLE_DYNSYM)

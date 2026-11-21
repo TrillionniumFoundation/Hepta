@@ -29,6 +29,8 @@ FUNCTION_SYMBOL_MAGIC = int.from_bytes(b'HIAELFF1', 'little')
 OWNED_FUNCTION_MAGIC = int.from_bytes(b'HIAELFG1', 'little')
 FUNCTION_RECEIPT_MAGIC = int.from_bytes(b'HIAELFN1', 'little')
 FUNCTION_LINK_MAGIC = int.from_bytes(b'HIAELFL1', 'little')
+FUNCTION_LINK_RECEIPT_MAGIC = int.from_bytes(b'HIAELFL2', 'little')
+FUNCTION_LINK_COORDINATES = struct.Struct('<3Q')
 FUNCTION_LINK_NAME_BYTES = 256
 FUNCTION_LINK_ROW_BYTES = 5 * 8 + FUNCTION_LINK_NAME_BYTES
 FUNCTION_LINK_SOURCE_OFFSET = 64 + FUNCTION_LINK_NAME_BYTES
@@ -59,6 +61,8 @@ LOOKUP_WORK = LOOKUP_ROLES + AUTHORITY_BYTES
 LOADER_EXECUTABLE_MAGIC = int.from_bytes(b'HIAELFP1', 'little')
 LOADER_EXECUTABLE_WORK = LOOKUP_WORK + 8
 FINAL_LOADER_MAGIC = int.from_bytes(b'HIAELFQ1', 'little')
+FINAL_LOADER_RECEIPT_MAGIC = int.from_bytes(b'HIAELFQ2', 'little')
+FINAL_LOADER_COORDINATES = struct.Struct('<4Q')
 FINAL_LOADER_NAME = LOADER_EXECUTABLE_WORK + 8
 FINAL_LOADER_WORK = FINAL_LOADER_NAME + 256
 LOOKUP_TYPED = ('.dynamic', '.got', '.rela.plt', '.hash', '.gnu.hash',
@@ -350,7 +354,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         rows = self._read_symbol_rows(data, output, begin, count)
         return {row['name']: row for row in rows}, output.raw[begin:size]
 
-    def verify_owned_function_link(self, source, target, export):
+    def verify_owned_function_link(self, source, target, export, *, receipt=False):
         source_symbols, source_receipt = source
         target_symbols, target_receipt = target
         _, extent = FUNCTION_RECEIPT_GEOMETRY.unpack_from(source_receipt)
@@ -359,7 +363,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         geometry_size = FUNCTION_RECEIPT_GEOMETRY.size
         packet[FUNCTION_LINK_SOURCE_OFFSET:FUNCTION_LINK_TARGET_OFFSET] = source_receipt[geometry_size:]
         packet[FUNCTION_LINK_TARGET_OFFSET:] = target_receipt[geometry_size:]
-        return self._function_link_result(packet)
+        return self._function_link_result(packet, receipt=receipt)
 
     def verify_function_link(self, source, target, export, size, address):
         packet = self._function_link_header(export, size, address, len(source), len(target))
@@ -384,10 +388,14 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         packet[64:64 + len(name)] = name
         return packet
 
-    def _function_link_result(self, packet):
-        _, extent, direct, reserved = self._exchange(bytes(packet), (FUNCTION_LINK_MAGIC,))
-        if extent != HEADER.size or direct not in (0, 1) or reserved:
+    def _function_link_result(self, packet, *, receipt=False):
+        magic = FUNCTION_LINK_RECEIPT_MAGIC if receipt else FUNCTION_LINK_MAGIC
+        output, extent, direct, reserved = self._exchange(bytes(packet), (magic,))
+        expected = HEADER.size + (FUNCTION_LINK_COORDINATES.size if receipt else 0)
+        if extent != expected or direct not in (0, 1) or reserved:
             raise RuntimeError('invalid native Safe Core function linkage')
+        if receipt:
+            return bool(direct), *FUNCTION_LINK_COORDINATES.unpack_from(output, HEADER.size)
         return bool(direct)
 
     def _symbol_rows(self, data, fields, *, capacity=CAPACITY):
@@ -430,12 +438,19 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         self._verify_terminal(data, arguments, bytes(LOADER_EXECUTABLE_WORK - 16),
                               capacity=CAPACITY + AUTHORITY_BYTES)
 
-    def verify_final_loader(self, data, export):
+    def verify_final_loader(self, data, export, *, receipt=False):
         name = export.encode('utf-8')
         require(len(name) <= 256, REFUSALS[REFUSAL_IDS['dynamic_order'] - 1][1])
         packet = bytes(FINAL_LOADER_NAME - 16) + name.ljust(256, b'\0')
-        self._verify_terminal(data, (FINAL_LOADER_MAGIC, len(name)), packet,
-                              capacity=CAPACITY + AUTHORITY_BYTES)
+        magic = FINAL_LOADER_RECEIPT_MAGIC if receipt else FINAL_LOADER_MAGIC
+        output, size, first, second = self._exchange(
+            data, (magic, len(name)), packet, capacity=CAPACITY + AUTHORITY_BYTES,
+        )
+        expected = HEADER.size + (FINAL_LOADER_COORDINATES.size if receipt else 0)
+        if size != expected or first or second:
+            raise RuntimeError('invalid native Safe Core final loader response')
+        if receipt:
+            return FINAL_LOADER_COORDINATES.unpack_from(output, HEADER.size)
 
     def verify_object_inventory(self, data, rela, text, symbols, *, direct):
         fields = (OBJECT_INVENTORY_MAGIC, rela['index'], text['index'], symbols['index'], int(direct), 0, 0, 0, 0)
@@ -504,9 +519,14 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         self._require_empty_response(data, arguments)
 
     def object_relocations(self, data, relocations, source, linked, plt, helper):
+        return self.object_relocations_owned(
+            data, relocations, source, linked['data'], linked['addr'], plt['addr'] + 16, helper,
+        )
+
+    def object_relocations_owned(self, data, relocations, source, final_text, address, abort, helper):
         arguments = (2, relocations['offset'], source['offset'], source['size'],
-                     linked['addr'], plt['addr'] + 16, helper, relocations['link'])
-        output, size, count, reserved = self._exchange(data, arguments, linked['data'])
+                     address, abort, helper, relocations['link'])
+        output, size, count, reserved = self._exchange(data, arguments, final_text)
         expected = 2 if helper else 1
         if reserved or count != expected or size != HEADER.size + count * RELOCATION.size:
             raise RuntimeError('invalid native Safe Core call relocation response')
@@ -516,7 +536,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             if not 1 <= symbol <= expected or not 0 < offset <= source['size'] - 4 or offset - 1 in calls:
                 raise RuntimeError('invalid native Safe Core call relocation')
             name = 'abort' if symbol == 1 else '__hia_native_fn_0'
-            calls[offset - 1] = 'abort' if symbol == 1 else target - linked['addr']
+            calls[offset - 1] = 'abort' if symbol == 1 else target - address
             records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
                                 linked_target=target, displacement=displacement))
         return calls, records
