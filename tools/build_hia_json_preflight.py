@@ -111,6 +111,7 @@ CANDIDATES = {
     'discovery-artifact': ('discovery_artifact', 'discovery-artifact'),
     'discovery-effect': ('discovery_effect', 'discovery-effect'),
     'describe-bind': ('describe_bind', 'describe-bind'),
+    'discovery-bootstrap-assemble': ('discovery_bootstrap_assemble', 'discovery-bootstrap-assemble'),
     'discovery-bootstrap-plan': ('discovery_bootstrap_plan', 'discovery-bootstrap-plan'),
     'agent-read-page': ('agent_read_page', 'agent-read-page'),
     'agent-read-request': ('agent_read_request', 'agent-read-request'),
