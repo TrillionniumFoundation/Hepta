@@ -136,6 +136,7 @@ def _install_controller(output, scratch, release, installer):
     if not all(path.is_file() for path in (*files, builder)):
         return
     receipt_writer = release / CONTROLLER_JOB_RECEIPT
+    terminal_receipt = release / 'hia-agent-job-terminal-receipt'
     schema = 'hepta.hia.mcp.controller.v1'
     if receipt_writer.is_file():
         files.append(receipt_writer)
@@ -143,6 +144,11 @@ def _install_controller(output, scratch, release, installer):
             schema = 'hepta.hia.mcp.controller.v3'
         else:
             schema = 'hepta.hia.mcp.controller.v2'
+    if terminal_receipt.is_file():
+        if schema != 'hepta.hia.mcp.controller.v3':
+            raise ValueError('native terminal receipt requires the pinned witness controller')
+        files.append(terminal_receipt)
+        schema = 'hepta.hia.mcp.controller.v4'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

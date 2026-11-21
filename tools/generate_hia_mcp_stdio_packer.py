@@ -25,6 +25,7 @@ SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 PAGE_OUTPUT = 32 + 512 + 6 * 65536 + 132 + 533
 PAGE_WORKSPACE = 512 + 4128
 MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
+         'job-terminal-receipt': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,
          'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
          'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE}

@@ -27,6 +27,7 @@ VARIANTS = {
     'journal': ('agent_journal', 'hepta.hia.agent-journal-native.v2'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),
     'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
+    'job-terminal-receipt': ('job_terminal_receipt', 'hepta.hia.job-terminal-receipt-native.v1'),
     'mcp-terminal': ('mcp_terminal_admission', 'hepta.hia.mcp-terminal-native.v1'),
     'mcp-negotiation': ('mcp_negotiation', 'hepta.hia.mcp-negotiation-native.v1'),
     'mcp-connection': ('mcp_connection', 'hepta.hia.mcp-connection-native.v1'),
