@@ -265,3 +265,72 @@ exit:
  mov eax,231
  syscall
  ud2
+
+ /* Copied from the sealed writer into its caller's RX mapping. These effects
+  * must execute in the original supervisor, never in the receipt subprocess.
+  * Positive PID only; observe holds custody and reap returns the raw status. */
+ .ascii "HIAWABI1"
+child_wait:
+ mov rax,-22                  /* EINVAL */
+ cmp rdi,2147483647
+ ja .return_wait
+ test edi,edi
+ jz .return_wait
+ cmp rsi,1
+ ja .return_wait
+ mov r9d,edi
+ test esi,esi
+ jnz .reap_child
+
+ sub rsp,128                 /* zero Linux siginfo_t before the nonblocking wait */
+ mov rdi,rsp
+ xor eax,eax
+ mov ecx,16
+ cld
+ rep stosq
+ mov edi,1                   /* P_PID */
+ mov esi,r9d
+ mov rdx,rsp
+ mov r10d,0x01000005          /* WEXITED | WNOHANG | WNOWAIT */
+ xor r8d,r8d
+.observe_again:
+ mov eax,247                  /* waitid */
+ syscall
+ cmp rax,-4
+ je .observe_again
+ test rax,rax
+ js .observed_wait
+ mov ecx,[rsp+16]             /* siginfo_t.si_pid (Linux x86-64) */
+ test ecx,ecx
+ jz .observed_wait
+ mov rax,-71                  /* EPROTO: a different PID was returned */
+ cmp ecx,r9d
+ jne .observed_wait
+ mov eax,1
+.observed_wait:
+ add rsp,128
+ ret
+
+.reap_child:
+ sub rsp,8
+ mov qword ptr [rsp],0
+ mov rsi,rsp
+ mov edx,1                   /* WNOHANG */
+ xor r10d,r10d                /* no resource accounting */
+.reap_again:
+ mov eax,61                  /* wait4 */
+ syscall
+ cmp rax,-4
+ je .reap_again
+ test rax,rax
+ jle .reaped_wait
+ cmp rax,r9
+ mov rax,-71
+ jne .reaped_wait
+ mov eax,[rsp]
+ bts rax,32                  /* distinguishes status zero from no progress */
+.reaped_wait:
+ add rsp,8
+.return_wait:
+ ret
+ .ascii "HIAWEND1"

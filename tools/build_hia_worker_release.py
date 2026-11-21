@@ -272,6 +272,17 @@ def _job_writer_has_child_publication(writer, scratch):
         return True
 
 
+def _job_writer_has_original_wait(writer):
+    raw = writer.read_bytes()
+    entry, end = b'HIAWABI1', b'HIAWEND1'
+    occurrences = raw.count(entry), raw.count(end)
+    if occurrences == (0, 0):
+        return False
+    if occurrences != (1, 1) or not 32 <= raw.index(end) - raw.index(entry) - len(entry) <= 256:
+        raise ValueError('installed HIA job writer has an invalid original-child wait entry')
+    return True
+
+
 def _worker_prepare_has_workdir_authority(prepare):
     root = b'/workdir/probe'
     for path, allowed in ((root + b'/nested', True), (root + b'-sibling', False)):
@@ -388,6 +399,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v14'
     if schema == 'hepta.hia.mcp.controller.v14' and _job_writer_has_child_publication(receipt_writer, scratch):
         schema = 'hepta.hia.mcp.controller.v15'
+    if schema == 'hepta.hia.mcp.controller.v15' and _job_writer_has_original_wait(receipt_writer):
+        schema = 'hepta.hia.mcp.controller.v16'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

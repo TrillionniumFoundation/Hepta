@@ -191,6 +191,44 @@ class JobReceiptExecutableTests(unittest.TestCase):
         self.check_receipt(self.request(**kwargs), 1, -errno.EEXIST)
         self.assertEqual(intent.stat().st_ino, previous)
 
+    def test_original_wait_holds_custody_and_returns_real_wait_status(self):
+        import ctypes
+        import mmap
+        import time
+
+        _, marker, remainder = self.executable.read_bytes().partition(b'HIAWABI1')
+        code, end, _ = remainder.partition(b'HIAWEND1')
+        self.assertTrue(marker and end and 32 <= len(code) <= 256)
+        with mmap.mmap(-1, len(code), prot=mmap.PROT_READ | mmap.PROT_WRITE) as mapping:
+            mapping.write(code)
+            address = ctypes.addressof(ctypes.c_char.from_buffer(mapping))
+            protect = ctypes.CDLL(None, use_errno=True).mprotect
+            protect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+            protect.restype = ctypes.c_int
+            self.assertEqual(protect(address, len(code), mmap.PROT_READ | mmap.PROT_EXEC), 0)
+            wait = ctypes.CFUNCTYPE(ctypes.c_int64, ctypes.c_uint64, ctypes.c_uint64)(address)
+            for pid, mode in ((0, 0), (0, 1), (2**31, 0), (os.getpid(), 2)):
+                self.assertEqual(wait(pid, mode), -errno.EINVAL)
+            self.assertEqual(wait(os.getpid(), 0), -errno.ECHILD)
+            for exit_code in (0, 37):
+                with self.subTest(exit_code=exit_code), subprocess.Popen(
+                        [sys.executable, '-c', f'import sys; sys.stdin.buffer.read(); sys.exit({exit_code})'],
+                        stdin=subprocess.PIPE) as child:
+                    self.assertEqual(wait(child.pid, 0), 0)
+                    self.assertEqual(wait(child.pid, 1), 0)
+                    child.stdin.close()
+                    deadline = time.monotonic() + 4
+                    while wait(child.pid, 0) == 0 and time.monotonic() < deadline:
+                        time.sleep(.01)
+                    self.assertEqual(wait(child.pid, 0), 1)
+                    self.assertEqual(wait(child.pid, 0), 1)
+                    status = wait(child.pid, 1)
+                    self.assertEqual(status >> 32, 1)
+                    child.returncode = os.waitstatus_to_exitcode(status & 0xffffffff)
+                    self.assertEqual(child.returncode, exit_code)
+                    self.assertEqual(wait(child.pid, 0), -errno.ECHILD)
+                    self.assertEqual(wait(child.pid, 1), -errno.ECHILD)
+
     def test_owner_wire_requires_seals_exact_parent_and_no_caller_names(self):
         request = {'name':b'', 'payload':b'{"supervisor_pid": 13}', 'magic':b'HIAJRO01'}
         for patch in ({'name':b'started'}, {'sealed':False}, {'parent':os.getpid()+1},
