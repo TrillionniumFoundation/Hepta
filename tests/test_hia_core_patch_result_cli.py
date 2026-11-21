@@ -218,6 +218,19 @@ class CorePatchResultCliAdapterTests(unittest.TestCase):
         success = self.invoke(result, argv=('v1', '--agent-status'))
         self.assertEqual((success.returncode, success.stdout, success.stderr), (0, result, b''))
 
+    def test_private_core_refusal_transports_only_the_rejected_program_span(self):
+        result = struct.pack('<4Q', RESULT_MAGIC, 2, 2, 0) + b'C0{}'
+        for parameters, body in (({'base': 0xffffffef}, b'B0'), ({'candidate': 0xfffffff0}, b'C0')):
+            with self.subTest(parameters=parameters):
+                public = self.invoke(result, **parameters)
+                self.assertEqual((public.returncode, public.stdout), (2, b''))
+                private = self.invoke(result, argv=('v1', '--agent-status'), **parameters)
+                self.assertEqual((private.returncode, private.stdout, private.stderr),
+                                 (0, b'HIAPCR01' + body, b''))
+        for parameters in ({'base': 0xfffffffd}, {'candidate': 0xfffffffd}):
+            private = self.invoke(result, argv=('v1', '--agent-status'), **parameters)
+            self.assertEqual((private.returncode, private.stdout), (4, b''))
+
     def test_argument_guard_requires_one_exact_declared_schema(self):
         result = struct.pack('<4Q', RESULT_MAGIC, 2, 2, 0) + b'C0{}'
         for argv in ((), ('',), ('v',), ('v0',), ('v3',), ('1',), ('v1x',),

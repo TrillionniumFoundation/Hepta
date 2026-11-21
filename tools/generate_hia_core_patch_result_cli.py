@@ -15,6 +15,7 @@ MAGIC = int.from_bytes(b'HIARCLI1', 'little')
 EXTRACT_MAGIC = int.from_bytes(b'HIAPAT01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAPAR01', 'little')
 REFUSAL_MAGIC = int.from_bytes(b'HIAPRF01', 'little')
+CORE_REFUSAL_MAGIC = int.from_bytes(b'HIAPCR01', 'little')
 REFUSAL_MODE = b'--agent-status'
 IMAGE_LIMIT = 1 << 20
 BUNDLE_LIMIT = 2 * IMAGE_LIMIT + 4096
@@ -87,8 +88,8 @@ def template():
         pointer('49 8d 94 24', SCRATCH_OFFSET); emit('b9'); word(CORE_STATE)
         pointer('4d 8d 84 24', SCRATCH_OFFSET + CORE_STATE)
         emit('41 b9'); word(CORE_ARENA); call(name)
-        refuse(0xfffffffe, 'space'); refuse(0xfffffffd, 'io')
-        emit('85 c0'); branch('0f 85', 'invalid')
+        refuse(0xfffffffd, 'io')
+        emit('85 c0'); branch('0f 85', 'core_refusal')
 
     # The ordinary command still accepts one schema argument. Only the exact
     # second private argument enables an opaque rejection receipt for Worker.
@@ -125,6 +126,15 @@ def template():
     emit('48 ba'); code.extend(struct.pack('<Q', REFUSAL_MAGIC))
     emit('49 89 17 89 c0 49 89 47 08 41 be 10 00 00 00')
     branch('e9', 'write')  # transport succeeded; the kernel refused the candidate
+    label('core_refusal')
+    emit('85 db'); branch('0f 84', 'public_refusal')
+    # Carry only the rejected input span to the pinned diagnostic authority.
+    # The separate tag can never be mistaken for an admitted patch result;
+    # successful diagnostic replay must independently confirm rejection.
+    pointer('4d 8d bc 24', OUTPUT_OFFSET + 24)
+    emit('48 ba'); code.extend(struct.pack('<Q', CORE_REFUSAL_MAGIC))
+    emit('49 89 17 49 83 c6 08')
+    branch('e9', 'write')
     label('public_refusal')
     refuse(0xfffffffe, 'space')
     branch('e9', 'invalid')

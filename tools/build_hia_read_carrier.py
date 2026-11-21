@@ -83,8 +83,8 @@ CARRIERS = {
         compressed=True),
     'inspection-worker': CarrierImage(
         'examples/hia_bootstrap/agent_inspection_worker_carrier_packer.hepta', b'HIAIWK01',
-        'c7456d83d70132e558e50dc329c9e45949a7a9ba8f1ad7a4396bad0ac7945e01', 51440,
-        (('program_descriptor_effect_relay', 0, 51440),), compressed=True,
+        'c716eb86454b4093e98d4e922543646535eb6043b7a8113b6950a49bc8f51d3b', 51568,
+        (('program_descriptor_effect_relay', 0, 51568),), compressed=True,
         tail_source='examples/hia_bootstrap/agent_inspection_worker_carrier_tail.hepta'),
     'describe-worker': CarrierImage(
         'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
