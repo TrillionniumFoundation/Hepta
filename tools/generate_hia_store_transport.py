@@ -49,6 +49,7 @@ WIRE = {
     'INSPECTION_TOOL_TAIL': b'ect',
     'ROLLBACK_TOOL_HEAD': b'hia_roll',
     'ROLLBACK_TOOL_TAIL': b'back',
+    'SLOT_LEASE_COUNT': b'HIASTLC1',
     'RUNNING_STATE': b'running',
 }
 
@@ -843,6 +844,20 @@ def stream_payload(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if read_word(s, 416) != read_state(w, 80):
             return 0
         write_word(w, 56, 1)
+        if read_state(w, 16) == 30:
+            if read_state(w, 80) != 0 or read_state(w, 48) != 0:
+                return 0
+            # COUNT has no physical row; carry only the authenticated
+            # summary count as a typed observation, not as a Store row.
+            write_word(w, 0, 1)
+            write_word(w, 48, 16)
+            write_word(w, 80, 1)
+            write_word(o, 0, 2)
+            write_word(o, 8, 16)
+            write_word(o, 16, 0)
+            write_word(o, 32, SLOT_LEASE_COUNT)
+            write_word(o, 40, read_word(s, 408))
+            return 48
     else:
         return 0
     return stream_read(o, w, 1, 8)
