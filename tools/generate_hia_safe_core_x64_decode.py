@@ -82,6 +82,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if size == 0 and length(w) == 40:
         return memory_admission(w)
     if size == 0 and length(w) == CORE_GRAPH_SIZE:
+        if length(o) != 0:
+            return ordered_core_graph(w, o)
         return review_core_graph(w)
     if size == 0 and length(w) == MEMORY_GRAPH_SIZE:
         return memory_write_inventory(o, w)
@@ -1076,6 +1078,35 @@ def review_core_graph(w:mutbuf) -> u64:
             return 0
         index = index + 1
     return 1
+
+def ordered_core_graph(w:mutbuf, o:mutbuf) -> u64:
+    count = get(w, 0)
+    if count == 0 or count > CORE_GRAPH_LIMIT or length(o) != count * 8:
+        return 0
+    if review_core_graph(w) == 0:
+        return 0
+    # Only emit a node once no unconsumed node precedes it. The existing
+    # acyclicity check has established this will consume every vertex.
+    limit = (1 << count) - 1
+    pending = limit
+    index = 0
+    while pending != 0:
+        incoming = 0
+        scan = 0
+        while scan < count:
+            if (pending & (1 << scan)) != 0:
+                incoming = incoming | get(w, 8 + 8 * scan)
+            scan = scan + 1
+        options = pending & (limit ^ incoming)
+        if options == 0:
+            return 0
+        node = 0
+        while (options & (1 << node)) == 0:
+            node = node + 1
+        put(o, index * 8, node)
+        pending = pending ^ (1 << node)
+        index = index + 1
+    return index * 8
 
 def schedule_request(s:readbuf, offset:u64) -> u64:
     value = 0

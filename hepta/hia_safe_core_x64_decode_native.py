@@ -369,16 +369,31 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             raise RuntimeError('invalid native Safe Core memory admission')
         return result == 1
 
-    def acyclic_core_graph(self, successors):
+    @staticmethod
+    def _core_graph_input(successors):
         count = len(successors)
         if not 1 <= count <= CORE_GRAPH_LIMIT:
             raise ValueError('outside the Safe Core graph budget')
         packet = CORE_GRAPH_REQUEST.pack(count, *successors, *([0] * (CORE_GRAPH_LIMIT - count)))
-        request = ctypes.create_string_buffer(packet, len(packet))
-        result = self._entry(None, 0, None, 0, request, len(packet))
+        return ctypes.create_string_buffer(packet, len(packet))
+
+    def acyclic_core_graph(self, successors):
+        request = self._core_graph_input(successors)
+        result = self._entry(None, 0, None, 0, request, len(request))
         if result not in (0, 1):
             raise RuntimeError('invalid native Safe Core graph')
         return result == 1
+
+    def core_graph_order(self, successors):
+        request = self._core_graph_input(successors)
+        output = ctypes.create_string_buffer(8 * len(successors))
+        size = self._checked_default_entry(None, 0, output, len(output), request, len(request))
+        if size == 0:
+            return None
+        order = struct.unpack(f'<{len(successors)}Q', output)
+        if size != len(output) or set(order) != set(range(len(successors))):
+            raise RuntimeError('invalid native Safe Core graph ordering')
+        return order
 
     def possible_memory_writes(self, rows, first, second):
         count = len(rows)

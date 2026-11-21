@@ -24,7 +24,7 @@ from hepta.hia_safe_core_x64 import decode, SafeCoreMachineRejected
 from hepta.hia_machine_x64 import Code
 from hepta.hia_machine_elf import write_elf_object
 from tools.check_hia_safe_core import check
-from tests.test_hia_program import arithmetic, b, c, f, i, m, ret
+from tests.test_hia_program import arithmetic, b, branch, c, f, i, jump, m, ret
 
 ROOT = Path(__file__).resolve().parents[1]
 AVAILABLE = (platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"}
@@ -201,6 +201,38 @@ class SafeCoreArtifactTests(unittest.TestCase):
                         with self.assertRaises(SafeCoreRejected) as caught:
                             validate_safe_core_artifact(core, obj, supplied, profile_version=version)
                         self.assertEqual(caught.exception.validation["status"], "refuted")
+
+    def test_native_machine_proof_follows_a_core_diamond_and_exact_join_parameters(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("a finite Core diamond entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        arguments = [("left", "u32"), ("right", "u32")]
+        blocks = [
+            b("entry", arguments, [i("compare.lt", ("left", "right"), (("condition", "bool"),))],
+              branch("condition", ("choose_left", "left"), ("choose_right", "right"))),
+            b("join", [("chosen", "u32")], [], ret("chosen")),
+            b("choose_left", [("first", "u32")], [], jump("join", "first")),
+            b("choose_right", [("second", "u32")], [], jump("join", "second")),
+        ]
+        core = verify_program(m(f("minimum", arguments, ["u32"], [], blocks)))
+        image = emit_program_machine(core)
+        final = self.newdir() / "minimum.so"
+        compile_program_machine(image, program=core, output=final, linker="ld")
+        supplied = final.read_bytes()
+        with patch("importlib.import_module", side_effect=no_host_solver):
+            report = validate_safe_core_artifact(core, image.object_bytes, supplied)
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+        self.assertEqual(report["model_counts"]["core_terminal_paths"], 2)
+        self.assertEqual(report["model_counts"]["machine_terminal_paths"], 2)
 
     def test_selected_scalar_elf_proof_checks_actual_bytes_without_host_solver(self):
         import z3

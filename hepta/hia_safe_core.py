@@ -509,7 +509,13 @@ def _review_core_graph(blocks):
         # Preserve the original rejection order for out-of-profile terminators.
         _reference_core_graph(blocks)
         return
+    _, adjacency = _core_graph_edges(blocks)
+    require(native.acyclic_core_graph(adjacency), "loops or recursion lie outside Safe Core")
+
+
+def _core_graph_edges(blocks):
     indices = {name: index for index, name in enumerate(blocks)}
+    edges = []
     adjacency = []
     for block in blocks.values():
         term = block["term"]
@@ -519,11 +525,13 @@ def _review_core_graph(blocks):
             targets = (term["then"]["target"], term["else"]["target"])
         else:
             targets = ()
+        outgoing = tuple(indices[target] for target in targets)
+        edges.append(outgoing)
         bits = 0
-        for target in targets:
-            bits |= 1 << indices[target]
+        for index in outgoing:
+            bits |= 1 << index
         adjacency.append(bits)
-    require(native.acyclic_core_graph(adjacency), "loops or recursion lie outside Safe Core")
+    return edges, adjacency
 
 
 def _reference_core_graph(blocks):
@@ -893,8 +901,6 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     from .hia_optimization import _native_circuit_decision
 
     decoder, cnf = pair
-    if len(blocks) != 1:
-        return None
     machine = decoder.project_scalar_values(
         binding, len(fn["params"]), allow_variable_shifts=profile_version >= 3,
         allow_unsigned_multiply=profile_version >= 4, allow_unsigned_divide=profile_version >= 5,
@@ -903,7 +909,26 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
         return None
     # The reference evaluates the separately verified Core input, never the
     # producer's lowering or a second copy of the supplied machine circuit.
-    graph = (blocks, tuple(blocks))
+    names = tuple(blocks)
+    paths = 1
+    if len(names) > 1:
+        edges, adjacency = _core_graph_edges(blocks)
+        order = decoder.core_graph_order(adjacency)
+        if order is None:
+            return None
+        incoming = [0] * len(names)
+        incoming[names.index(fn['entry'])] = 1
+        paths = 0
+        for index in order:
+            if edges[index]:
+                for target in edges[index]:
+                    incoming[target] += incoming[index]
+            else:
+                paths += incoming[index]
+        if not 0 < paths <= LIMITS['core_paths']:
+            return None
+        names = tuple(names[index] for index in order)
+    graph = (blocks, names)
     core = cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False)
     if core is None:
         return None
@@ -912,7 +937,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     if circuits is None:
         return None
     solver = _machine_circuit_solver(pair)
-    counts = dict(machine[2], core_terminal_paths=1)
+    counts = dict(machine[2], core_terminal_paths=paths)
     reports = []
     queries = []
     counterexample = None
