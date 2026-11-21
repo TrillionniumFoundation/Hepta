@@ -16,7 +16,7 @@ from tools.generate_hia_artifact_publication import document
 ROOT = Path(__file__).resolve().parents[1]
 MAGIC = int.from_bytes(b'HIAINS01', 'little')
 BUNDLE_MAGIC = int.from_bytes(b'HIAREL01', 'little')
-WIRE_LIMIT = 80 << 20
+WIRE_LIMIT = 96 << 20
 WORK_BYTES = 65536
 
 POLICY_SOURCE = '''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
