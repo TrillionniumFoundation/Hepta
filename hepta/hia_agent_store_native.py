@@ -509,47 +509,54 @@ class NativeStoreConnection:
             return 4, total
         return 104, 0
 
-    def _descriptor_unique_row(self, plan, deadline, row_limit):
+    def _descriptor_unique_transaction(self, plan, payload, row_limit):
         from .hia_scalar_reference_native import sealed_reference_bytes
 
-        frame = struct.pack('<8s2Q', b'HIASTUR1', self.request, plan)
-        channel = self.process.stdout.fileno()
+        mode = 0
+        if not self.in_transaction:
+            self.check_custody()
+            if self.process is None:
+                self._open()
+                mode = 2
+            else:
+                mode = 1
+        expected_commands = (1, 3, 2)[mode]
+        frame = struct.pack('<8s5Q', b'HIASTUP1', self.request, plan, mode,
+                            self.generation, len(payload)) + payload
+        replies = self.process.stdout.fileno()
+        commands = self.process.stdin.fileno()
         sink = os.memfd_create('hia-store-unique-result', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
         try:
             with _sealed_image(self.unique_code) as program, sealed_reference_bytes(frame) as control:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    raise StoreProtocolError('native Store transport deadline exceeded')
                 try:
                     result = subprocess.run(
-                        (f'/proc/self/fd/{program}', str(channel)), pass_fds=(program, channel),
-                        stdin=control, stdout=sink, stderr=subprocess.PIPE, env={'PATH': ''},
-                        timeout=remaining)
+                        (f'/proc/self/fd/{program}', str(replies), str(commands)),
+                        pass_fds=(program, replies, commands), stdin=control, stdout=sink,
+                        stderr=subprocess.PIPE, env={'PATH': ''}, timeout=_TIMEOUT * expected_commands)
                 except subprocess.TimeoutExpired as error:
                     raise StoreProtocolError('native Store transport deadline exceeded') from error
             seals = fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE
-            size = os.fstat(sink).st_size - 32
+            size = os.fstat(sink).st_size - 48
             if (result.returncode or result.stderr or not 0 <= size <= row_limit
                     or fcntl.fcntl(sink, fcntl.F_GET_SEALS) != seals):
-                raise StoreProtocolError('native Store descriptor did not confirm the query')
-            footer = os.pread(sink, 32, size)
-            if len(footer) != 32:
-                raise StoreProtocolError('native Store descriptor returned an incomplete query footer')
-            action, extent, found, reserved = struct.unpack('<4Q', footer)
-            if action != 3 or extent != size or found not in (0, 1) or reserved or (not found and size):
-                raise StoreProtocolError('native Store descriptor returned an invalid query footer')
-            if not found:
-                return []
-            row = os.pread(sink, size, 0)
-            if len(row) != size:
+                raise StoreProtocolError('native Store descriptor did not confirm the transaction')
+            footer = os.pread(sink, 48, size)
+            if len(footer) != 48:
+                raise StoreProtocolError('native Store descriptor returned an incomplete transaction footer')
+            action, extent, found, reserved, request, generation = struct.unpack('<6Q', footer)
+            if (action != 5 or extent != size or found not in (0, 1) or reserved or (not found and size)
+                    or request != self.request + expected_commands or generation < self.generation
+                    or (mode != 1 and generation != self.generation)):
+                raise StoreProtocolError('native Store descriptor returned an invalid transaction footer')
+            row = os.pread(sink, size, 0) if found else None
+            if row is not None and len(row) != size:
                 raise StoreProtocolError('native Store descriptor returned a short sealed row')
-            return [row]
+            self.request, self.generation = request, generation
+            return row
         finally:
             os.close(sink)
 
     def _results(self, plan, table, mask, deadline, *, raw_row_limit=None):
-        if raw_row_limit is not None and self.unique_code is not None:
-            return self._descriptor_unique_row(plan, deadline, raw_row_limit)
         if raw_row_limit is not None and self.codec is not None:
             rows = self.codec.unique_row(self.request, plan, lambda extent: self._exact(extent, deadline))
             if rows is None:
@@ -753,6 +760,12 @@ class NativeStoreConnection:
             raise StoreProtocolError('invalid HIA Agent read lookup frame')
         with self.lock:
             self._check_live()
+            if self.unique_code is not None:
+                try:
+                    return self._descriptor_unique_transaction(specification[1], payload, row_limit)
+                except OSError:
+                    self._abort()
+                    raise
             return self._perform(specification, (), raw_row_limit=row_limit,
                                  payload=payload).fetchone()
 
