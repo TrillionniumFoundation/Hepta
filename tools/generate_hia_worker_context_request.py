@@ -10,7 +10,8 @@ from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 SOURCE = Path('examples/hia_bootstrap/worker_context_request.hepta')
 FIELDS = ('compiler_profile', 'target_profile', 'baseline_program', 'workload', 'objective',
           'budget', 'cost_policy', 'max_candidates', 'max_model_tokens', 'max_total_wall_ms',
-          'max_native_wall_ms', 'max_memory_bytes', 'catalog_sha256')
+          'max_native_wall_ms', 'max_memory_bytes', 'catalog_sha256', 'profiles',
+          'compiler', 'target', 'id', 'sha256', 'schema')
 NONE = '18446744073709551615'
 
 POLICY = r'''
@@ -84,7 +85,12 @@ def catalog_observation(s:readbuf, w:mutbuf, o:mutbuf, root:u64) -> u64:
     if digest_text(w, pinned, False) == False:
         return 4294967293
     args = 64 + get(w, pinned + 16) * 72
-    if get(w, args) != 6 or get(w, args + 32) != 8:
+    if get(w, args) != 6:
+        return 4294967293
+    profiles = lookup(w, args, 14)
+    if profiles != NONE:
+        return installed_profiles(w, o, args, profiles, pinned)
+    if get(w, args + 32) != 8:
         return 4294967293
     supplied = lookup(w, args, 13)
     if digest_text(w, supplied, True) == False:
@@ -95,6 +101,43 @@ def catalog_observation(s:readbuf, w:mutbuf, o:mutbuf, root:u64) -> u64:
     put(o, 8, total - end)
     put(o, 16, 0)
     return total
+
+def installed_profiles(w:mutbuf, o:mutbuf, manifest:u64, profiles:u64, pinned:u64) -> u64:
+    if get(w, profiles) != 6 or get(w, profiles + 32) != 7:
+        return 4294967293
+    if manifest_schema(w, lookup(w, manifest, 19)) == False:
+        return 4294967293
+    catalog = lookup(w, manifest, 13)
+    if digest_text(w, catalog, False) == False:
+        return 4294967293
+    left = get(w, catalog + 24)
+    right = get(w, pinned + 24)
+    index = 0
+    while index < 64:
+        if byte(w, left + index) != byte(w, right + index):
+            return 4294967293
+        index = index + 1
+    if profile_pin(w, o, lookup(w, profiles, 15), 0) == False:
+        return 4294967293
+    if profile_pin(w, o, lookup(w, profiles, 16), 64) == False:
+        return 4294967293
+    return 128
+
+def profile_pin(w:mutbuf, o:mutbuf, profile:u64, target:u64) -> bool:
+    if profile == NONE or get(w, profile) != 6 or get(w, profile + 32) != 2:
+        return False
+    identifier = lookup(w, profile, 17)
+    if (target == 0 and compiler_id(w, identifier) == False) or (target == 64 and target_id(w, identifier) == False):
+        return False
+    sha = lookup(w, profile, 18)
+    if digest_text(w, sha, False) == False:
+        return False
+    start = get(w, sha + 24)
+    index = 0
+    while index < 64:
+        store(o, target + index, byte(w, start + index))
+        index = index + 1
+    return True
 
 def digest_text(w:mutbuf, node:u64, allow_line_feed:bool) -> bool:
     if node == NONE or get(w, node) != 4:
@@ -163,6 +206,16 @@ def literal(name, value):
     return '\n'.join(lines)
 
 
+def literal_match(name, value):
+    tests = ' and '.join(f'byte(w, at + {index}) == {unit}'
+                         for index, unit in enumerate(value.encode('ascii')))
+    return (f'def {name}(w:mutbuf, node:u64) -> bool:\n'
+            f'    if node == {NONE} or get(w, node) != 4 or get(w, node + 32) != {len(value)}:\n'
+            '        return False\n'
+            '    at = get(w, node + 24)\n'
+            f'    return {tests}')
+
+
 def program():
     policy = (POLICY.replace('NONE', NONE)
               .replace('PLAN', str(int.from_bytes(b'HIACTP01', 'little'))))
@@ -170,10 +223,13 @@ def program():
                 'budget_memory': ',"max_memory_bytes":', 'budget_tokens': ',"max_model_tokens":',
                 'budget_native_wall': ',"max_native_wall_ms":',
                 'budget_total_wall': ',"max_total_wall_ms":'}
+    matches = {'manifest_schema': 'hepta.hia.agent.manifest.v1',
+               'compiler_id': 'hia-compiler-v1', 'target_id': 'hia-target-v1'}
     return '\n'.join((policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),
                      comparison_table('key_id', FIELDS),
                      RELEASE_POLICY[RELEASE_POLICY.index('\ndef decimal('):RELEASE_POLICY.index('\ndef hex(')],
                      *(literal(name, value) for name, value in literals.items()),
+                     *(literal_match(name, value) for name, value in matches.items()),
                      json_decoder(wire_spans=True)))
 
 

@@ -5,6 +5,7 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_discovery_effect import source_program as document_effect
+from tools.generate_hia_describe_bind import METADATA_FIELDS
 from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE_POLICY
 
 SOURCE = 'examples/hia_bootstrap/worker_artifact_authority.hepta'
@@ -34,6 +35,8 @@ def artifact_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return retained_query(s, o)
     if mode == CONTEXT_RETAINED_QUERY:
         return contextual_retained_query(s, o)
+    if mode == CONTEXT_MANIFEST_REF:
+        return contextual_manifest_reference(s, o)
     if mode == RETAINED_OBSERVE:
         return retained_observation(s, o)
     if mode == INPUT_RESULT:
@@ -147,6 +150,20 @@ def retained_parameters(s:readbuf, o:mutbuf) -> u64:
     query_header(o, 0, 1, 90)
     query_field(o, 32, 56, 34)
     return copy_input(s, o, 23, 56, 34)
+
+def contextual_manifest_reference(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < CONTEXT_METADATA_FIELDS + 184 or length(s) > 32776:
+        return 4294967293
+    if input_word(s, 8) != CONTEXT_METADATA or input_word(s, 32) != 66 or input_word(s, 40) != 0 or input_word(s, 48) != 176:
+        return 4294967293
+    artifact = input_word(s, 16)
+    backend = input_word(s, 24)
+    if artifact != 100 or backend != 99:
+        return 4294967293
+    at = 8 + CONTEXT_METADATA_FIELDS + artifact + backend + 66
+    if at + 176 > length(s) or artifact_reference(s, at) == False:
+        return 4294967293
+    return copy_input(s, o, at, 0, 176)
 
 def artifact_observation(s:readbuf, o:mutbuf) -> u64:
     # The artifact profile route keeps its original seal and reply shape.
@@ -267,11 +284,13 @@ def source_program():
         'RETAINED_READ': b'HIARFO02', 'CONTEXT_PROFILE_QUERY': b'HIARFP01',
         'CONTEXT_PROFILE_OBSERVE': b'HIARFP02', 'CONTEXT_PROFILE_ADMIT': b'HIARFP03',
         'CONTEXT_RETAINED_QUERY': b'HIARFG03',
+        'CONTEXT_MANIFEST_REF': b'HIARFM01', 'CONTEXT_METADATA': b'HIADMT01',
         'QUERY': b'HIAQPA01', 'ROW': b'HIAROW01', 'DOCUMENT': b'HIADOC01',
         'PROFILE_HEAD': b'hia-arti', 'PROFILE_END': b'fact-v1',
     }
     program = re.sub(r'\b(' + '|'.join(tags) + r')\b',
                      lambda match: str(int.from_bytes(tags[match.group()], 'little')), POLICY)
+    program = program.replace('CONTEXT_METADATA_FIELDS', str(METADATA_FIELDS))
     shared = document_effect()
     for name in ('copy_input', 'valid_hex', 'input_word', 'state_put', 'profile_text', 'input_text'):
         definition = '\ndef ' + name + '('
