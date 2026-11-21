@@ -304,6 +304,8 @@ CORE_EDIT_SDIST_FILES = (
 MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_agent_read_request.py',
     'tools/build_hia_read_carrier.py',
+    'examples/hia_bootstrap/agent_read_launcher_packer.hepta',
+    'tools/build_hia_read_launcher.py',
     'examples/hia_bootstrap/worker_read_capsule.hepta',
     'tools/generate_hia_read_capsule.py',
     'examples/hia_bootstrap/agent_read_carrier_packer.hepta',
