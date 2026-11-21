@@ -475,13 +475,16 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         _reference_text_geometry(source, linked, text_bytes)
     else:
         obj._native_inventory.verify_text_geometry(obj.data, source, linked, text_bytes)
-    srcfunc = _owned_functions(obj, source, 1)
-    dstfunc = _owned_functions(final, linked, 3)
     if obj._native_inventory is None:
+        srcfunc = _owned_functions(obj, source, 1)
+        dstfunc = _owned_functions(final, linked, 3)
         direct = _reference_function_link(srcfunc, dstfunc, export, source["size"], linked["addr"])
     else:
-        direct = obj._native_inventory.verify_function_link(srcfunc, dstfunc, export,
-                                                            source["size"], linked["addr"])
+        obj_receipt = obj._native_inventory.owned_function_receipt(obj.data, 1)
+        final_receipt = final._native_inventory.owned_function_receipt(final.data, 3)
+        direct = obj._native_inventory.verify_owned_function_link(obj_receipt, final_receipt, export)
+        srcfunc, _ = obj_receipt
+        dstfunc, _ = final_receipt
     if final._native_inventory is None:
         dynsymbols = _reference_dynamic_symbols(final, linked, dstfunc[export])
     else:

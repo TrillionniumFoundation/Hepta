@@ -13,7 +13,7 @@ from hepta.hia_safe_core_elf_inventory_native import (
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC,
     FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
-    OWNED_FUNCTION_MAGIC,
+    FUNCTION_RECEIPT_MAGIC, FUNCTION_RECEIPT_BYTES, OWNED_FUNCTION_MAGIC,
     FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
     OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD, OWNED_SHARED_SYMBOL_CAPACITY,
@@ -27,6 +27,7 @@ FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS
           'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
 FIELDS['FUNCTION_SYMBOL_MAGIC'] = FUNCTION_SYMBOL_MAGIC
 FIELDS.update(OWNED_FUNCTION_MAGIC=OWNED_FUNCTION_MAGIC,
+              FUNCTION_RECEIPT_MAGIC=FUNCTION_RECEIPT_MAGIC, FUNCTION_RECEIPT_BYTES=FUNCTION_RECEIPT_BYTES,
               OWNED_TEXT_ROLE=SECTION_AUTHORITIES.index('.text'),
               OWNED_SYMBOLS_ROLE=SECTION_AUTHORITIES.index('.symtab'))
 FIELDS.update(DYNAMIC_SYMBOL_MAGIC=DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET=DYNAMIC_SYMBOL_NAME_OFFSET,
@@ -84,10 +85,12 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return verify_loader_sections(s, o)
     if length(w) == 16 and get(w, 0) == AUTHORITY_MAGIC:
         return inventory_authorities(s, o, get(w, 8))
-    if length(w) == 16 and get(w, 0) == OWNED_FUNCTION_MAGIC:
-        if length(o) < CAPACITY + AUTHORITY_BYTES:
+    if length(w) == 16 and (get(w, 0) == OWNED_FUNCTION_MAGIC or get(w, 0) == FUNCTION_RECEIPT_MAGIC):
+        operation = get(w, 0)
+        extra = choose(operation == FUNCTION_RECEIPT_MAGIC, FUNCTION_RECEIPT_BYTES, 0)
+        if length(o) < CAPACITY + AUTHORITY_BYTES + extra:
             return 4294967294
-        return owned_functions(s, o, get(w, 8))
+        return owned_functions(s, o, get(w, 8), operation)
     if length(w) == LOOKUP_WORK and get(w, 0) == LOOKUP_MAGIC:
         if length(o) < CAPACITY + AUTHORITY_BYTES:
             return 4294967294
@@ -420,7 +423,7 @@ def exact_functions(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return 4294967293
     return function_extents(s, o, get(w, 8), get(w, 16), get(w, 24), get(w, 32))
 
-def owned_functions(s:readbuf, o:mutbuf, kind:u64) -> u64:
+def owned_functions(s:readbuf, o:mutbuf, kind:u64, operation:u64) -> u64:
     if kind != 1 and kind != 3:
         return terminal(o, E_IDENTITY, 0, 0)
     extent = inventory_authorities(s, o, kind)
@@ -436,7 +439,41 @@ def owned_functions(s:readbuf, o:mutbuf, kind:u64) -> u64:
         return terminal(o, E_OWNED_TEXT_KIND, 0, 0)
     if symbols == 0:
         return terminal(o, E_OWNED_MISSING_SYMBOLS, 0, 0)
-    return function_extents(s, o, symbols - 1, text - 1, word(s, row + 16, 8), word(s, row + 32, 8))
+    first = word(s, row + 16, 8)
+    text_size = word(s, row + 32, 8)
+    end = function_extents(s, o, symbols - 1, text - 1, first, text_size)
+    if get(o, 0) != 0 or operation != FUNCTION_RECEIPT_MAGIC:
+        return end
+    return write_function_receipt(s, o, end, first, text_size)
+
+def write_function_receipt(s:readbuf, o:mutbuf, end:u64, first:u64, text_size:u64) -> u64:
+    index = 0
+    while index < FUNCTION_RECEIPT_BYTES:
+        put(o, end + index, 0)
+        index = index + 8
+    put(o, end, first)
+    put(o, end + 8, text_size)
+    count = get(o, 8)
+    if count <= 2:
+        index = 0
+        while index < count:
+            write_function_link_row(s, o, 24 + index * 56, end + 16 + index * FUNCTION_LINK_ROW_BYTES)
+            index = index + 1
+    return end + FUNCTION_RECEIPT_BYTES
+
+def write_function_link_row(s:readbuf, o:mutbuf, row:u64, out:u64) -> u64:
+    name = get(o, row)
+    size = get(o, row + 8)
+    put(o, out, size)
+    put(o, out + 8, get(o, row + 40))
+    put(o, out + 16, get(o, row + 48))
+    put(o, out + 24, get(o, row + 16))
+    put(o, out + 32, get(o, row + 24))
+    index = 0
+    while index < size:
+        store(o, out + 40 + index, byte(s, name + index))
+        index = index + 1
+    return 0
 
 def function_extents(s:readbuf, o:mutbuf, table:u64, text:u64, first:u64, length_of_text:u64) -> u64:
     extent = symbol_table(s, o, table)

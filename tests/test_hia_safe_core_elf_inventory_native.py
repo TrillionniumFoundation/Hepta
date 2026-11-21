@@ -222,7 +222,12 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                              '_reference_object_inventory')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
-        with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
+        with (
+            patch.multiple(_ELF, **blocked),
+            patch.multiple(elf_reader, **loader_blocked),
+            patch.object(type(self.native), 'verify_function_link',
+                         side_effect=AssertionError('host encoded the function link')),
+        ):
             result = validate_safe_core_artifact(self.core, self.object_bytes, self.final_bytes)
         self.assertTrue(result['ok'], result)
         closure = result['source_identity']
@@ -258,6 +263,18 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
             with self.subTest(source=args[0], target=args[1], export=args[2]):
                 self.assertEqual(observed(self.native.verify_function_link, args),
                                  observed(elf_reader._reference_function_link, args))
+
+        source = self.native.owned_function_receipt(self.object_bytes, 1)
+        target = self.native.owned_function_receipt(self.final_bytes, 3)
+        self.assertEqual(source[0], self.native.owned_functions(self.object_bytes, 1))
+        self.assertEqual(target[0], self.native.owned_functions(self.final_bytes, 3))
+        raw_object, raw_final = (_ELF(self.object_bytes, 1), _ELF(self.final_bytes, 3))
+        export, = self.core.scalar_entrypoints
+        self.assertIs(self.native.verify_owned_function_link(source, target, export),
+                      elf_reader._reference_function_link(
+                          source[0], target[0], export,
+                          raw_object.section('.text')['size'], raw_final.section('.text')['addr'],
+                      ))
 
     def test_dynamic_symbol_authority_matches_original_checks(self):
         original = _ELF.__new__(_ELF)

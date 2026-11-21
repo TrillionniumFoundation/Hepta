@@ -27,12 +27,15 @@ SYMBOL_FIELDS = ('info', 'other', 'shndx', 'value', 'size')
 MAX_SYMBOLS = 32
 FUNCTION_SYMBOL_MAGIC = int.from_bytes(b'HIAELFF1', 'little')
 OWNED_FUNCTION_MAGIC = int.from_bytes(b'HIAELFG1', 'little')
+FUNCTION_RECEIPT_MAGIC = int.from_bytes(b'HIAELFN1', 'little')
 FUNCTION_LINK_MAGIC = int.from_bytes(b'HIAELFL1', 'little')
 FUNCTION_LINK_NAME_BYTES = 256
 FUNCTION_LINK_ROW_BYTES = 5 * 8 + FUNCTION_LINK_NAME_BYTES
 FUNCTION_LINK_SOURCE_OFFSET = 64 + FUNCTION_LINK_NAME_BYTES
 FUNCTION_LINK_TARGET_OFFSET = FUNCTION_LINK_SOURCE_OFFSET + 2 * FUNCTION_LINK_ROW_BYTES
 FUNCTION_LINK_BYTES = FUNCTION_LINK_TARGET_OFFSET + 2 * FUNCTION_LINK_ROW_BYTES
+FUNCTION_RECEIPT_GEOMETRY = struct.Struct('<2Q')
+FUNCTION_RECEIPT_BYTES = FUNCTION_RECEIPT_GEOMETRY.size + 2 * FUNCTION_LINK_ROW_BYTES
 DYNAMIC_SYMBOL_MAGIC = int.from_bytes(b'HIAELFD1', 'little')
 DYNAMIC_SYMBOL_NAME_OFFSET = 104
 LOADER_SECTION_MAGIC = int.from_bytes(b'HIAELFS1', 'little')
@@ -329,13 +332,30 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         rows = self._symbol_rows(data, (OWNED_FUNCTION_MAGIC, kind), capacity=CAPACITY + AUTHORITY_BYTES)
         return {row['name']: row for row in rows}
 
+    def owned_function_receipt(self, data, kind):
+        output, size, count, reserved = self._exchange(
+            data, (FUNCTION_RECEIPT_MAGIC, kind),
+            capacity=CAPACITY + AUTHORITY_BYTES + FUNCTION_RECEIPT_BYTES,
+        )
+        begin = HEADER.size + count * SYMBOL.size
+        if reserved or count > MAX_SYMBOLS or size != begin + FUNCTION_RECEIPT_BYTES:
+            raise RuntimeError('invalid native Safe Core function receipt')
+        rows = self._read_symbol_rows(data, output, begin, count)
+        return {row['name']: row for row in rows}, output.raw[begin:size]
+
+    def verify_owned_function_link(self, source, target, export):
+        source_symbols, source_receipt = source
+        target_symbols, target_receipt = target
+        _, extent = FUNCTION_RECEIPT_GEOMETRY.unpack_from(source_receipt)
+        address, _ = FUNCTION_RECEIPT_GEOMETRY.unpack_from(target_receipt)
+        packet = self._function_link_header(export, extent, address, len(source_symbols), len(target_symbols))
+        geometry_size = FUNCTION_RECEIPT_GEOMETRY.size
+        packet[FUNCTION_LINK_SOURCE_OFFSET:FUNCTION_LINK_TARGET_OFFSET] = source_receipt[geometry_size:]
+        packet[FUNCTION_LINK_TARGET_OFFSET:] = target_receipt[geometry_size:]
+        return self._function_link_result(packet)
+
     def verify_function_link(self, source, target, export, size, address):
-        name = export.encode('utf-8')
-        if len(name) > FUNCTION_LINK_NAME_BYTES:
-            require(False, REFUSALS[REFUSAL_IDS['function_inventory'] - 1][1])
-        packet = bytearray(FUNCTION_LINK_BYTES)
-        struct.pack_into('<5Q', packet, 0, address, size, len(source), len(target), len(name))
-        packet[64:64 + len(name)] = name
+        packet = self._function_link_header(export, size, address, len(source), len(target))
         for start, functions in ((FUNCTION_LINK_SOURCE_OFFSET, source),
                                  (FUNCTION_LINK_TARGET_OFFSET, target)):
             if len(functions) > 2:
@@ -345,6 +365,19 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
                 raw = row['name'].encode('ascii')
                 struct.pack_into('<5Q', packet, at, len(raw), row['value'], row['size'], row['info'], row['other'])
                 packet[at + 40:at + 40 + len(raw)] = raw
+        return self._function_link_result(packet)
+
+    @staticmethod
+    def _function_link_header(export, size, address, source_count, target_count):
+        name = export.encode('utf-8')
+        if len(name) > FUNCTION_LINK_NAME_BYTES:
+            require(False, REFUSALS[REFUSAL_IDS['function_inventory'] - 1][1])
+        packet = bytearray(FUNCTION_LINK_BYTES)
+        struct.pack_into('<5Q', packet, 0, address, size, source_count, target_count, len(name))
+        packet[64:64 + len(name)] = name
+        return packet
+
+    def _function_link_result(self, packet):
         _, extent, direct, reserved = self._exchange(bytes(packet), (FUNCTION_LINK_MAGIC,))
         if extent != HEADER.size or direct not in (0, 1) or reserved:
             raise RuntimeError('invalid native Safe Core function linkage')
