@@ -13,6 +13,8 @@ POLICY = r'''
 def read_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) > 16384 or length(o) < 8192 or length(w) < 32768:
         return 4294967294
+    if length(s) >= 40 and input_word(s, 0) == FLOW_EVENT:
+        return advance_read_effect(s, o, w)
     if length(s) >= 24 and input_word(s, 0) == BIND_PAGE:
         return bind_page(s, o)
     put(o, 48, 64)
@@ -330,6 +332,184 @@ def next_node(w:mutbuf, node:u64) -> u64:
     return get(w, 64 + node * 56 + 16)
 '''
 
+
+# The owner reads observations from exact sealed descriptors supplied by
+# the session carrier. It emits a next action and immutable operand spans,
+# not an executable path. The carrier cannot select the continuation phase.
+READ_EFFECT = r"""
+def advance_read_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    event = input_word(s, 8)
+    sequence = input_word(s, 16)
+    extent = input_word(s, 24)
+    body = input_word(s, 32)
+    if body != length(s) - 40 or sequence != get(w, FLOW_STATE + 8) + 1:
+        return 4294967295
+    phase = get(w, FLOW_STATE)
+    if phase == 0:
+        if event != 1 or extent != 0:
+            return 4294967295
+        return begin_read_effect(s, o, w, body)
+    if phase != event:
+        return 4294967295
+    if event == 2:
+        return read_observe_artifact_row(o, w, body, extent)
+    if event == 3:
+        return read_observe_artifact_policy(s, o, w, body, extent)
+    if event == 4:
+        return read_observe_capture(o, w, body, extent)
+    if event == 5:
+        return read_observe_metadata(o, w, body, extent)
+    if event == 6:
+        if body != 0 or extent > 512:
+            return 4294967295
+        return read_bind_action(o, w, extent)
+    if event == 7:
+        if body != 0 or extent != 1024 + get(w, FLOW_PLAN + 24):
+            return 4294967295
+        return read_flow_action(o, w, 7, 8, 0, extent, get(w, FLOW_STATE + 48), 0)
+    if event == 8:
+        return read_observe_page(s, o, w, body, extent)
+    if event == 9:
+        return read_observe_cursor_commit(s, o, w, body, extent)
+    return 4294967295
+
+def begin_read_effect(s:readbuf, o:mutbuf, w:mutbuf, plan:u64) -> u64:
+    if plan < 128 or plan > 8192 or input_word(s, 40) != READ_PLAN or input_word(s, 96) != plan:
+        return 4294967295
+    flags = input_word(s, 48)
+    reference = input_word(s, 64)
+    lookup = input_word(s, 72)
+    cursor = input_word(s, 80)
+    admission = input_word(s, 88)
+    if flags > 3 or reference == 0 or reference > 512 or lookup < 57 or lookup > 248:
+        return 4294967295
+    if cursor > 2104 or admission < 90 or admission > 488:
+        return 4294967295
+    if (cursor == 0 and flags & 2 != 0) or (cursor != 0 and flags & 2 == 0):
+        return 4294967295
+    if 128 + reference + lookup + cursor + admission != plan:
+        return 4294967295
+    artifact_at = 168 + reference
+    if canonical_lookup(s, artifact_at, lookup) == False:
+        return 4294967295
+    if cursor > 0 and (cursor < 57 or canonical_lookup(s, artifact_at + lookup, cursor) == False):
+        return 4294967295
+    if input_word(s, artifact_at + lookup + cursor) != ARTIFACT_ADMISSION:
+        return 4294967295
+    copy_input(s, w, 40, FLOW_PLAN, plan)
+    put(w, FLOW_STATE + 16, plan)
+    size = read_flow_action(o, w, 1, 2, 0, 0, 2, lookup)
+    copy_input(s, o, artifact_at, 48, lookup)
+    return size
+
+def read_observe_artifact_row(o:mutbuf, w:mutbuf, body:u64, row:u64) -> u64:
+    if body != 0 or row > 1000000032 or (row > 0 and row < 176):
+        return 4294967295
+    put(w, FLOW_STATE + 24, row)
+    extent = get(w, FLOW_PLAN + 48)
+    source = FLOW_PLAN + get(w, FLOW_STATE + 16) - extent
+    size = read_flow_action(o, w, 2, 3, 0, row, 0, extent)
+    copy_flow_output(w, o, source, 48, extent)
+    return size
+
+def read_observe_artifact_policy(s:readbuf, o:mutbuf, w:mutbuf, body:u64, extent:u64) -> u64:
+    if body != 40 or extent != 0 or input_word(s, 64) != 0 or input_word(s, 72) != 0:
+        return 4294967295
+    decision = input_word(s, 40)
+    metadata = input_word(s, 48)
+    count = input_word(s, 56)
+    if decision == 1 and metadata == 0 and count == 0:
+        return read_flow_action(o, w, 10, 255, 0, 0, 1, 0)
+    row = get(w, FLOW_STATE + 24)
+    if decision != 0 or metadata < 176 or metadata > row or count > row - metadata:
+        return 4294967295
+    put(w, FLOW_STATE + 32, metadata)
+    put(w, FLOW_STATE + 40, count)
+    source = FLOW_PLAN + get(w, FLOW_STATE + 16) - get(w, FLOW_PLAN + 48)
+    size = read_flow_action(o, w, 3, 4, 0, 0, 1024 + get(w, FLOW_PLAN + 24), 64)
+    copy_flow_output(w, o, source + 24, 48, 64)
+    return size
+
+def read_observe_capture(o:mutbuf, w:mutbuf, body:u64, extent:u64) -> u64:
+    if body != 0 or extent > 67108864:
+        return 4294967295
+    put(w, FLOW_STATE + 48, extent)
+    return read_flow_action(o, w, 4, 5, get(w, FLOW_STATE + 32), get(w, FLOW_STATE + 40), 0, 0)
+
+def read_observe_metadata(o:mutbuf, w:mutbuf, body:u64, status:u64) -> u64:
+    if body != 0:
+        return 4294967295
+    if status != 1:
+        if status == 4294967295 or status == 4294967294 or status == 4294967292 or status == 4294967280:
+            return read_flow_action(o, w, 10, 255, 0, 0, status, 0)
+        return 4294967295
+    cursor = get(w, FLOW_PLAN + 40)
+    if cursor == 0:
+        return read_bind_action(o, w, 0)
+    at = FLOW_PLAN + 128 + get(w, FLOW_PLAN + 24) + get(w, FLOW_PLAN + 32)
+    size = read_flow_action(o, w, 5, 6, 0, 0, 6, cursor)
+    copy_flow_output(w, o, at, 48, cursor)
+    return size
+
+def read_bind_action(o:mutbuf, w:mutbuf, row:u64) -> u64:
+    plan = get(w, FLOW_STATE + 16)
+    if plan > 8192 - 72:
+        return 4294967295
+    size = read_flow_action(o, w, 6, 7, 0, row, 0, 24 + plan)
+    put(o, 48, BIND_PAGE)
+    put(o, 56, plan)
+    put(o, 64, row)
+    copy_flow_output(w, o, FLOW_PLAN, 72, plan)
+    return size
+
+def read_observe_page(s:readbuf, o:mutbuf, w:mutbuf, body:u64, extent:u64) -> u64:
+    if body == 40 and extent == 40 and input_word(s, 40) == CURSOR_REFUSAL:
+        if input_word(s, 48) == 0 and input_word(s, 56) == 0 and input_word(s, 64) == 0 and input_word(s, 72) == 0:
+            return read_flow_action(o, w, 10, 255, 0, 0, 2, 0)
+        return 4294967295
+    if body != 32 or input_word(s, 40) != PAGE_RESULT:
+        return 4294967295
+    next = input_word(s, 48)
+    result = input_word(s, 56)
+    retained = input_word(s, 64)
+    if result < 2 or result > 394500 or retained > 533 or extent != 32 + result + retained:
+        return 4294967295
+    if retained == 0:
+        if next != NONE:
+            return 4294967295
+        return read_flow_action(o, w, 9, 255, 32, result, 0, 0)
+    if retained < 278 or next >= get(w, FLOW_STATE + 48):
+        return 4294967295
+    put(w, FLOW_STATE + 56, result)
+    return read_flow_action(o, w, 8, 9, 32 + result, retained, 10, 0)
+
+def read_observe_cursor_commit(s:readbuf, o:mutbuf, w:mutbuf, body:u64, extent:u64) -> u64:
+    if body != 56 or extent != 0 or input_word(s, 40) != STORE_INTENT:
+        return 4294967295
+    if input_word(s, 48) != 5 or input_word(s, 56) != 8 or input_word(s, 64) > 1 or input_word(s, 72) != 0:
+        return 4294967295
+    return read_flow_action(o, w, 9, 255, 32, get(w, FLOW_STATE + 56), 0, 0)
+
+def read_flow_action(o:mutbuf, w:mutbuf, role:u64, phase:u64, offset:u64, bytes:u64, auxiliary:u64, tail:u64) -> u64:
+    sequence = get(w, FLOW_STATE + 8) + 1
+    put(w, FLOW_STATE, phase)
+    put(w, FLOW_STATE + 8, sequence)
+    put(o, 0, FLOW_ACTION)
+    put(o, 8, role)
+    put(o, 16, sequence)
+    put(o, 24, offset)
+    put(o, 32, bytes)
+    put(o, 40, auxiliary)
+    return 48 + tail
+
+def copy_flow_output(w:mutbuf, o:mutbuf, at:u64, destination:u64, size:u64) -> u64:
+    i = 0
+    while i < size:
+        store(o, destination + i, byte(w, at + i))
+        i = i + 1
+    return 0
+"""
+
 VALUES = {
     'NONE': (1 << 64) - 1,
     'READ_PLAN': b'HIAARD01',
@@ -345,6 +525,13 @@ VALUES = {
     'REF_URI_FIRST': b'","uri":',
     'REF_URI_LAST': b'"',
     'REF_END': b'"}',
+    'FLOW_EVENT': b'HIAFDE01',
+    'FLOW_ACTION': b'HIAFDA01',
+    'FLOW_STATE': 23808,
+    'FLOW_PLAN': 24576,
+    'CURSOR_REFUSAL': b'HIAARU03',
+    'PAGE_RESULT': b'HIAARO05',
+    'STORE_INTENT': b'HIASTCP1',
 }
 KEYS = ('artifact', 'catalog_sha256', 'cursor', 'max_bytes', 'id', 'sha256', 'uri',
         'arguments', 'profile_sha256', 'schema', 'tool')
@@ -360,7 +547,7 @@ WORKER_LITERALS = {
 def source_program():
     import re
 
-    source = POLICY
+    source = POLICY + READ_EFFECT
     for name, value in VALUES.items():
         if isinstance(value, bytes):
             value = int.from_bytes(value, 'little')
