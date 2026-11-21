@@ -71,9 +71,12 @@ class MechanicalBuildExt(build_ext):
             raise RuntimeError("unsupported selected Slot mechanical build profile")
         before = {name: (ROOT / name).read_bytes() for name in SOURCES}
         commands, binaries = [], {}
-        prior_spawn = self.compiler.spawn
+        # New setuptools Unix compilers use call() instead of spawn().
+        # Capture the actual compiler/linker commands on either version.
+        method = "call" if callable(getattr(self.compiler, "call", None)) else "spawn"
+        original = getattr(self.compiler, method)
 
-        def observed_spawn(command, **keywords):
+        def observed_command(command, **keywords):
             argv = [str(value) for value in command]
             if not argv or not argv[0]:
                 raise ValueError("empty mechanical compiler command")
@@ -88,18 +91,18 @@ class MechanicalBuildExt(build_ext):
                 raise ValueError("mechanical compiler changed between commands")
             binaries[executable] = observed
             commands.append(argv)
-            result = prior_spawn(command, **keywords)
+            result = original(command, **keywords)
             if Path(executable).read_bytes() != raw:
                 raise ValueError("mechanical compiler changed during execution")
             return result
 
-        self.compiler.spawn = observed_spawn
+        setattr(self.compiler, method, observed_command)
         prior_force, prior_compiler_force = self.force, self.compiler.force
         self.force = self.compiler.force = True
         try:
             super().build_extension(extension)
         finally:
-            self.compiler.spawn = prior_spawn
+            setattr(self.compiler, method, original)
             self.force, self.compiler.force = prior_force, prior_compiler_force
         if not commands:
             raise ValueError("mechanical extension was not actually compiled; force a fresh build")
