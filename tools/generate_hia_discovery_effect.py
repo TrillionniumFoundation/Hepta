@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_discovery_native import PROFILE_NAMES, VERSIONS
 from tools.generate_hia_artifact_publication import document
 
 SOURCE = 'examples/hia_bootstrap/discovery_effect.hepta'
@@ -59,7 +60,7 @@ def start_document(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
     kind = input_word(s, 40)
     version = input_word(s, 48)
     if kind == 1:
-        if version == 0 or version > 9:
+        if version == 0 or version > MAX_PROFILE:
             return 4294967295
     elif kind != 2 or version != 0:
         return 4294967295
@@ -238,7 +239,7 @@ def source_program():
         'EVENT': b'HIAFDE01', 'ACTION': b'HIAFDA01', 'LOOKUP': b'HIADAL01', 'ISSUE': b'HIADAI01',
         'ROW': b'HIAROW01', 'COMMIT': b'HIASTCP1', 'PROFILE_PLAN': b'HIADPR01',
     }
-    source = POLICY
+    source = POLICY.replace('MAX_PROFILE', str(len(VERSIONS) + len(PROFILE_NAMES)))
     for name, tag in tags.items():
         source = source.replace(name, str(int.from_bytes(tag, 'little')))
     for name, raw in (

@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_discovery_native import PROFILE_NAMES
 from hepta.hia_schema import PRIMITIVE_PROFILES
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_sha256 import source_program as sha256_program
@@ -103,8 +104,9 @@ def profile_record(s:readbuf, o:mutbuf) -> u64:
     if valid_digest(s, 25, 32) == False or valid_digest(s, 69, 64) == False or valid_digest(s, 158, 32) == False:
         return 4294967293
     put(o, 0, PROFILE_RESULT)
-    put(o, 8, 372)
-    put(o, 16, 105)
+    name = profile_id_bytes(version)
+    put(o, 8, 352 + name)
+    put(o, 16, 85 + name)
     put(o, 24, INSERT)
     put(o, 32, 1)
     put(o, 40, 11)
@@ -112,21 +114,19 @@ def profile_record(s:readbuf, o:mutbuf) -> u64:
     put(o, 56, 3)
     put(o, 64, 3)
     put(o, 72, 112)
-    put(o, 80, 20)
+    put(o, 80, name)
     put(o, 88, 3)
-    put(o, 96, 132)
+    put(o, 96, 112 + name)
     put(o, 104, 64)
     put(o, 112, 3)
-    put(o, 120, 196)
+    put(o, 120, 176 + name)
     put(o, 128, 176)
-    at = schema_version(o, 136)
-    store(o, at, 48 + version)
-    at = copy_input(s, o, 69, at + 1, 64)
+    at = profile_id(o, 136, version)
+    at = copy_input(s, o, 69, at, 64)
     at = copy_input(s, o, 16, at, 176)
     at = ref_open(o, at)
-    at = schema_version(o, at)
-    store(o, at, 48 + version)
-    at = ref_sha(o, at + 1)
+    at = profile_id(o, at, version)
+    at = ref_sha(o, at)
     at = copy_input(s, o, 69, at, 64)
     return json_close(o, at)
 
@@ -203,8 +203,21 @@ def source_program():
     source = POLICY
     for name, value in tags.items():
         source = re.sub(rf'\b{name}\b', str(int.from_bytes(value, 'little')), source)
-    source = source.replace('VERSIONS', str(len(PRIMITIVE_PROFILES)))
-    for name, raw in LITERALS.items():
+    qualified = {key: ('hia-' + key + '-v1').encode('ascii') for key in PROFILE_NAMES}
+    source = source.replace('VERSIONS', str(len(PRIMITIVE_PROFILES) + len(qualified)))
+    source += '\ndef profile_id(o:mutbuf, at:u64, version:u64) -> u64:\n'
+    source += '    if version <= 9:\n        at = schema_version(o, at)\n'
+    source += '        store(o, at, 48 + version)\n        return at + 1\n'
+    for ordinal, name in enumerate(qualified, 10):
+        source += f'    if version == {ordinal}:\n        return installed_{name}(o, at)\n'
+    source += '    return at\n'
+    source += '\ndef profile_id_bytes(version:u64) -> u64:\n    if version <= 9:\n        return 20\n'
+    for ordinal, raw in enumerate(qualified.values(), 10):
+        source += f'    if version == {ordinal}:\n        return {len(raw)}\n'
+    source += '    return 0\n'
+    names = {name: raw for name, raw in LITERALS.items()}
+    names.update((f'installed_{name}', raw) for name, raw in qualified.items())
+    for name, raw in names.items():
         source += f'\ndef {name}(o:mutbuf, at:u64) -> u64:\n'
         for index, value in enumerate(raw):
             source += f'    store(o, at + {index}, {value})\n'
