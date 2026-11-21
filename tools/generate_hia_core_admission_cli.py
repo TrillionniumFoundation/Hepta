@@ -10,6 +10,7 @@ from tools.generate_hia_native_filter import document as filter_document
 
 MAGIC = int.from_bytes(b'HIACV001', 'little')
 PROOF_WIRE_MAGIC = int.from_bytes(b'HIACP001', 'little')
+PROOF_SUBJECT_MAGIC = int.from_bytes(b'HIACPS01', 'little')
 NORMALIZE_MAGIC = int.from_bytes(b'HIACN001', 'little')
 INSPECT_MAGIC = int.from_bytes(b'HIACI001', 'little')
 # Full Core maximum: 2^20 hash slots * 24, 4096 blocks * 40,
@@ -26,7 +27,11 @@ NORMALIZE_OUTPUT_BYTES = 80 << 20
 INSPECT_OUTPUT_BYTES = 96 << 20
 
 
-def document(*, normalize=False, inspect=False, proof_wire=False):
+def document(*, normalize=False, inspect=False, proof_wire=False, proof_subject=False):
+    if proof_subject:
+        return filter_document(output_bytes=STATE_BYTES, workspace_bytes=ARENA_BYTES,
+                               magic=PROOF_SUBJECT_MAGIC, module='core_proof_subject_cli_packer',
+                               formatter=True)
     if proof_wire:
         return filter_document(output_bytes=STATE_BYTES, workspace_bytes=ARENA_BYTES,
                                magic=PROOF_WIRE_MAGIC, module='core_proof_wire_cli_packer',
@@ -48,7 +53,8 @@ if __name__ == '__main__':
     for name, options in (('core_admission_cli_packer', {}),
                           ('core_normalize_cli_packer', {'normalize': True}),
                           ('core_inspect_cli_packer', {'inspect': True}),
-                          ('core_proof_wire_cli_packer', {'proof_wire': True})):
+                          ('core_proof_wire_cli_packer', {'proof_wire': True}),
+                          ('core_proof_subject_cli_packer', {'proof_subject': True})):
         path = folder / f'{name}.hepta'
         path.write_text(render_assembly(document(**options)))
         print(path.name, path.stat().st_size)

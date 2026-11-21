@@ -1117,10 +1117,142 @@ def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 """
 
 
-def program(*, elf_only=False, solver_only=False):
-    if elf_only and solver_only:
+SUBJECT_MAGIC = int.from_bytes(b'HIAPSU01', 'little')
+SUBJECT_HEADER = 320
+SUBJECT_POLICY = '''
+def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    graph = widen(scalar_graph(s, o, w))
+    if graph >= 4294967292 or graph < 40 or length(o) < SUBJECT_HEADER + graph:
+        return REFUSED
+    functions = field(w, 0, K_functions)
+    fn = child(w, functions)
+    name = field(w, fn, K_name)
+    profile = subject_profile(w, fn)
+    if profile == 0 or kind(w, name) != 4:
+        return REFUSED
+    row = 64 + name * 56
+    offset = get(w, row + 24)
+    size = get(w, row + 32)
+    if size == 0 or size > 256 or subject_export(w, offset, size) == 0:
+        return REFUSED
+    inputs = get(o, 16)
+    i = graph
+    while i != 0:
+        i = i - 1
+        store(o, SUBJECT_HEADER + i, byte(o, i))
+    put(o, 0, SUBJECT_MAGIC)
+    put(o, 8, inputs)
+    put(o, 16, profile)
+    put(o, 24, get(w, 40))
+    put(o, 32, graph)
+    put(o, 40, size)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    i = 0
+    while i < 256:
+        value = 0
+        if i < size:
+            value = byte(w, offset + i)
+        store(o, 64 + i, value)
+        i = i + 1
+    return SUBJECT_HEADER + graph
+
+def subject_export(w:mutbuf, at:u64, size:u64) -> u64:
+    i = 0
+    while i < size:
+        c = byte(w, at + i)
+        letter = (c >= 65 and c <= 90) or (c >= 97 and c <= 122)
+        digit = i != 0 and c >= 48 and c <= 57
+        if c != 95 and letter == False and digit == False:
+            return 0
+        i = i + 1
+    return 1
+
+def subject_profile(w:mutbuf, fn:u64) -> u64:
+    effect = child(w, field(w, fn, K_effects))
+    while effect != NONE:
+        if proof_effect(w, effect) == 0:
+            return 0
+        effect = next_node(w, effect)
+    returns = child(w, field(w, fn, K_returns))
+    profile = minimum_type_profile(proof_type(w, returns))
+    params = params_profile(w, field(w, fn, K_params))
+    if profile == 0 or params == 0:
+        return 0
+    profile = choose(profile >= params, profile, params)
+    block = child(w, field(w, fn, K_blocks))
+    while block != NONE:
+        value = block_profile(w, block)
+        if value == 0:
+            return 0
+        profile = choose(value > profile, value, profile)
+        block = next_node(w, block)
+    return profile
+
+def params_profile(w:mutbuf, sequence:u64) -> u64:
+    node = child(w, sequence)
+    profile = 1
+    while node != NONE:
+        typ = minimum_type_profile(proof_type(w, field(w, node, K_type)))
+        if typ == 0:
+            return 0
+        profile = choose(typ > profile, typ, profile)
+        node = next_node(w, node)
+    return profile
+
+def block_profile(w:mutbuf, block:u64) -> u64:
+    profile = params_profile(w, field(w, block, K_params))
+    if profile == 0:
+        return 0
+    node = child(w, field(w, block, K_ops))
+    while node != NONE:
+        typ = params_profile(w, field(w, node, K_out))
+        op = operation_profile(w, node)
+        if typ == 0 or op == 0:
+            return 0
+        profile = choose(typ > profile, typ, profile)
+        profile = choose(op > profile, op, profile)
+        node = next_node(w, node)
+    return profile
+
+def operation_profile(w:mutbuf, node:u64) -> u64:
+    operation = proof_op(w, field(w, node, K_op))
+    if operation == 0:
+        return 0
+    if operation == DIV or operation == REM:
+        return 5
+    if operation == MUL:
+        return 4
+    if operation == NEG or operation == SHL or operation == SHR:
+        return 3
+    if operation == 20 and proof_checked(w, attr(w, field(w, node, K_attrs), True)) != 0:
+        return 2
+    return 1
+
+def minimum_type_profile(typ:u64) -> u64:
+    if typ == 0:
+        return 0
+    if (typ & 128) != 0:
+        return 6
+    return choose(typ == 16, 2, 1)
+'''
+
+
+def subject_source():
+    source = SUBJECT_POLICY + '\ndef scalar_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n'
+    source += POLICY[POLICY.index('    if length(o) < 32768'):]
+    operations = {name: _GRAPH_OPERATIONS['int.' + name.lower() + '.checked']
+                  for name in ('DIV', 'REM', 'MUL', 'NEG', 'SHL', 'SHR')}
+    constants = {'SUBJECT_MAGIC': SUBJECT_MAGIC, 'SUBJECT_HEADER': SUBJECT_HEADER, **operations}
+    for name, value in constants.items():
+        source = re.sub(rf'\b{name}\b', str(value), source)
+    return source + '\n' + match('effect', {'read': 1, 'write': 1, 'trap': 1})
+
+
+def program(*, elf_only=False, solver_only=False, subject=False):
+    if sum((elf_only, solver_only, subject)) > 1:
         raise ValueError('choose one proof-wire specialization')
-    entry = ELF_POLICY if elf_only else SOLVER_POLICY if solver_only else POLICY
+    entry = subject_source() if subject else ELF_POLICY if elf_only else SOLVER_POLICY if solver_only else POLICY
     constants = dict(REFUSED=REFUSED, REQUEST=GRAPH_PROJECTION_REQUEST,
                      OBLIGATION_REQUEST=OBLIGATION_REQUEST,
                      OBLIGATION_SOLVER_REQUEST=OBLIGATION_SOLVER_REQUEST,
@@ -1151,7 +1283,9 @@ def program(*, elf_only=False, solver_only=False):
             break
         retained.update(called)
     source = ast.unparse(ast.Module(body=[node for node in nodes if node.name in retained], type_ignores=[]))
-    module = 'core_elf_binding_wire' if elf_only else 'core_obligation_wire' if solver_only else 'core_proof_wire'
+    modules = ((elf_only, 'core_elf_binding_wire'), (solver_only, 'core_obligation_wire'),
+               (subject, 'core_proof_subject'))
+    module = next((name for selected, name in modules if selected), 'core_proof_wire')
     return document(source, module)
 
 
@@ -1159,3 +1293,4 @@ if __name__ == '__main__':
     SOURCE.write_text(render_assembly(program()))
     SOURCE.with_name('core_elf_binding_wire.hepta').write_text(render_assembly(program(elf_only=True)))
     SOURCE.with_name('core_obligation_wire.hepta').write_text(render_assembly(program(solver_only=True)))
+    SOURCE.with_name('core_proof_subject.hepta').write_text(render_assembly(program(subject=True)))

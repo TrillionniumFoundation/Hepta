@@ -125,6 +125,8 @@ CORE_NORMALIZE_SDIST_FILES = (
     'examples/hia_bootstrap/core_structural_totality.hepta',
     'examples/hia_bootstrap/core_totality_cli_packer.hepta',
     'examples/hia_bootstrap/core_proof_wire_cli_packer.hepta',
+    'examples/hia_bootstrap/core_proof_subject.hepta',
+    'examples/hia_bootstrap/core_proof_subject_cli_packer.hepta',
     'tools/generate_hia_core_totality.py',
     'tools/generate_hia_core_proof_wire.py',
     'tools/generate_hia_core_suite.py',
