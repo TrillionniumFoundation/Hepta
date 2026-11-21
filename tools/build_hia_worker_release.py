@@ -65,6 +65,7 @@ HELPER_BUILDERS = {
 
 
 CONTROLLER_MANIFEST = 'hia-controller.json'
+CONTROLLER_JOB_RECEIPT = 'hia-job-receipt'
 CONTROLLER_FILES = (
     'HIA_AGENT_NATIVE_TOOL_CATALOG.json', 'hia-worker-prepare',
     'hia-agent-mcp-request', 'hia-agent-mcp-reply', 'hia-agent-mcp-terminal',
@@ -114,6 +115,11 @@ def _install_controller(output, scratch, release, installer):
     builder = release / 'hia-directory-package-build'
     if not all(path.is_file() for path in (*files, builder)):
         return
+    receipt_writer = release / CONTROLLER_JOB_RECEIPT
+    schema = 'hepta.hia.mcp.controller.v1'
+    if receipt_writer.is_file():
+        files.append(receipt_writer)
+        schema = 'hepta.hia.mcp.controller.v2'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}
@@ -124,7 +130,7 @@ def _install_controller(output, scratch, release, installer):
         pins[source.name] = sha256(dest.read_bytes()).hexdigest()
     manifest = stage / CONTROLLER_MANIFEST
     with manifest.open('x') as stream:
-        json.dump({'schema':'hepta.hia.mcp.controller.v1', 'files':pins}, stream,
+        json.dump({'schema':schema, 'files':pins}, stream,
                   sort_keys=True, separators=(',', ':'))
         stream.write('\n')
     manifest.chmod(0o400)
