@@ -24,6 +24,9 @@ RESULT = {
     'result_open': '{"adopted":false,"base_program":',
     'result_candidate': ',"behavior_equivalence_proved":false,"candidate":',
     'result_diagnostic': ',"core_admitted":true,"diagnostics":',
+    'diagnostic_open': '{"core_sha256":"',
+    'diagnostic_original': '","input_sha256":"',
+    'diagnostic_end': '","schema":"hepta.hia.agent.candidate-diagnostics.v1","whole_program_checked":true}',
 }
 
 POLICY = r'''
@@ -41,6 +44,8 @@ def candidate_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return decide_attempt(s, o)
         if tag == ADMISSION_TAG:
             return admitted_extent(s, o)
+        if tag == DIAGNOSTIC_TAG:
+            return import_diagnostic(s, o)
     put(o, 48, 4096)
     put(o, 56, 32)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -251,6 +256,67 @@ def admission_plan(o:mutbuf, profile:u64, core_at:u64, core_size:u64,
     put(o, 48, diagnosis_at)
     put(o, 56, diagnosis_size)
     return 64
+
+# Installed retention emits one canonical hash receipt per exact sealed span.
+# Primitive and assembly admission must attest the same input/Core identity.
+def import_diagnostic(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 48 or length(s) > 248:
+        return 4294967293
+    profile = input_word(s, 8)
+    core = input_word(s, 16)
+    original = input_word(s, 24)
+    first = input_word(s, 32)
+    second = input_word(s, 40)
+    if profile > 4 or core_extent(core) == False or core_extent(original) == False:
+        return 4294967293
+    if first > 100 or second > 100 or length(s) != 48 + first + second:
+        return 4294967293
+    if hash_receipt(s, 48, first, core) == False or hash_receipt(s, 48 + first, second, original) == False:
+        return 4294967293
+    if profile == 0 and (core != original or equal_hashes(s, first) == False):
+        return 4294967293
+    at = diagnostic_open(o, 0)
+    at = append_hash(s, o, 59, at)
+    at = diagnostic_original(o, at)
+    at = append_hash(s, o, 59 + first, at)
+    return diagnostic_end(o, at)
+
+def hash_receipt(s:readbuf, at:u64, count:u64, expected:u64) -> bool:
+    if count < 88 or hash_receipt_open(s, at) == False or hash_receipt_bytes(s, at + 75) == False:
+        return False
+    end = at + count - 2
+    if byte(s, end) != 125 or byte(s, end + 1) != 10 or byte(s, at + 85) == 48:
+        return False
+    index = at + 11
+    while index < at + 75:
+        digit = byte(s, index)
+        if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
+            return False
+        index = index + 1
+    index = at + 85
+    value = 0
+    while index < end:
+        digit = byte(s, index)
+        if digit < 48 or digit > 57:
+            return False
+        value = value * 10 + digit - 48
+        index = index + 1
+    return value == expected
+
+def equal_hashes(s:readbuf, distance:u64) -> bool:
+    at = 59
+    while at < 123:
+        if byte(s, at) != byte(s, at + distance):
+            return False
+        at = at + 1
+    return True
+
+def append_hash(s:readbuf, o:mutbuf, at:u64, cursor:u64) -> u64:
+    index = 0
+    while index < 64:
+        store(o, cursor + index, byte(s, at + index))
+        index = index + 1
+    return cursor + 64
 '''
 
 
@@ -266,14 +332,21 @@ def program():
         'ADMISSION_RESULT': int.from_bytes(b'HIACAE01', 'little'),
         'JSON_TAG': int.from_bytes(b'HIAVCF01', 'little'),
         'PATCH_TAG': int.from_bytes(b'HIAPAR01', 'little'),
+        'DIAGNOSTIC_TAG': int.from_bytes(b'HIACDM01', 'little'),
         **{f'K_{key}': index for index, key in enumerate(FIELDS, 1)},
     }
     span = CONTEXT_POLICY[CONTEXT_POLICY.index('\ndef equal_span('):
                           CONTEXT_POLICY.index('\ndef profile_pin(')]
     digest = CONTEXT_POLICY[CONTEXT_POLICY.index('\ndef digest_text('):]
     helpers = WIRE_HELPERS.split('\ndef signed_id', 1)[0]
+    receipt_parts = {'hash_receipt_open': '{"sha256":"', 'hash_receipt_bytes': '","bytes":'}
+    receipt_checks = []
+    for name, raw in receipt_parts.items():
+        checks = ' and '.join(f'byte(s, at + {i}) == {value}'
+                              for i, value in enumerate(raw.encode('ascii')))
+        receipt_checks.append(f'def {name}(s:readbuf, at:u64) -> bool:\n    return {checks}\n')
     source = '\n'.join((POLICY, span, digest, helpers, function(INSPECTION_POLICY, 'input_word'),
-                       comparison_table('key_id', FIELDS),
+                       comparison_table('key_id', FIELDS), *receipt_checks,
                        *(literal_match(name, value) for name, value in CHOICES.items()),
                        *(literal(name, value) for name, value in RESULT.items()),
                        json_decoder(wire_spans=True)))
