@@ -309,6 +309,17 @@ def _job_writer_has_spawn_plan(writer):
     return True
 
 
+def _job_writer_has_supervisor_identity(writer):
+    raw = writer.read_bytes()
+    marker = b'HIAOWNID'
+    count = raw.count(marker)
+    if not count:
+        return False
+    if count != 1 or marker + b'HIAWABI1' not in raw:
+        raise ValueError('installed HIA job writer has an invalid supervisor identity entry')
+    return True
+
+
 def _worker_prepare_has_workdir_authority(prepare):
     root = b'/workdir/probe'
     for path, allowed in ((root + b'/nested', True), (root + b'-sibling', False)):
@@ -431,6 +442,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v17'
     if schema == 'hepta.hia.mcp.controller.v17' and _job_writer_has_spawn_plan(receipt_writer):
         schema = 'hepta.hia.mcp.controller.v18'
+    if schema == 'hepta.hia.mcp.controller.v18' and _job_writer_has_supervisor_identity(receipt_writer):
+        schema = 'hepta.hia.mcp.controller.v19'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

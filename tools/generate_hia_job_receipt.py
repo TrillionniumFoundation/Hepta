@@ -24,6 +24,7 @@ CHILD_MAGIC = int.from_bytes(b'HIAJCH01', 'little')
 CHILD_PROBE = int.from_bytes(b'{}\n', 'little')
 CAPTURE_MAGIC = int.from_bytes(b'HIAJLG01', 'little')
 LAUNCH_MAGIC = int.from_bytes(b'HIAJSP01', 'little')
+PROCESS_IDENTITY_MAGIC = int.from_bytes(b'HIAJPI01', 'little')
 CAPTURE_CHUNK_BYTES = 65536
 ISOLATED_OUTPUT_BYTES = 16 * 1024 * 1024
 CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
@@ -32,6 +33,8 @@ RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
 SOURCE = f'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 61 and uint(s, 0, 8) == {PROCESS_IDENTITY_MAGIC}:
+        return supervisor_identity(s, o)
     if length(s) == 48 and uint(s, 0, 8) == {LAUNCH_MAGIC}:
         return workload_spawn_plan(s, o)
     if length(s) == 48 and uint(s, 0, 8) == {CAPTURE_MAGIC}:
@@ -100,6 +103,85 @@ def workload_spawn_plan(s:readbuf, o:mutbuf) -> u64:
     # New session; restore the default SIGPIPE and SIGXFSZ actions.
     put(o, 56, 7, 8)
     return 64
+
+def supervisor_identity(s:readbuf, o:mutbuf) -> u64:
+    size = length(s)
+    pid = uint(s, 8, 8)
+    if size <= 61 or size >= 4157 or uint(s, 16, 8) != size - 61:
+        return 0
+    if length(o) != 57 or pid < 2 or pid > 2147483647 or byte(s, 60) != 10:
+        return 0
+    if valid_boot_id(s) == 0:
+        return 0
+    at = 61
+    seen_pid = 0
+    while at < size and byte(s, at) != 32:
+        ch = byte(s, at)
+        if ch < 48 or ch > 57 or at - 61 >= 10:
+            return 0
+        seen_pid = seen_pid * 10 + ch - 48
+        at = at + 1
+    if seen_pid != pid or at + 3 >= size or byte(s, at + 1) != 40:
+        return 0
+    return supervisor_stat_ticks(s, o, at + 2)
+
+def valid_boot_id(s:readbuf) -> u64:
+    index = 0
+    while index < 36:
+        ch = byte(s, 24 + index)
+        hyphen = index == 8 or index == 13 or index == 18 or index == 23
+        if hyphen:
+            if ch != 45:
+                return 0
+        elif (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
+            return 0
+        index = index + 1
+    return 1
+
+def supervisor_stat_ticks(s:readbuf, o:mutbuf, floor:u64) -> u64:
+    size = length(s)
+    marker = size - 1
+    while marker > floor and byte(s, marker) != 41:
+        marker = marker - 1
+    if byte(s, marker) != 41 or marker + 4 >= size or byte(s, marker + 1) != 32 or byte(s, marker + 3) != 32:
+        return 0
+    at = marker + 4
+    field = 4
+    while field < 22:
+        base = at
+        while at < size and byte(s, at) != 32:
+            at = at + 1
+        if at == base or at + 1 >= size:
+            return 0
+        at = at + 1
+        field = field + 1
+    return encode_supervisor_identity(s, o, at)
+
+def encode_supervisor_identity(s:readbuf, o:mutbuf, start:u64) -> u64:
+    size = length(s)
+    at = start
+    value = 0
+    while at < size and byte(s, at) != 32:
+        ch = byte(s, at)
+        if ch < 48 or ch > 57 or at - start >= 20:
+            return 0
+        digit = ch - 48
+        if value > 1844674407370955161 or (value == 1844674407370955161 and digit > 5):
+            return 0
+        value = value * 10 + digit
+        at = at + 1
+    if at == start or at + 1 >= size or (at - start > 1 and byte(s, start) == 48):
+        return 0
+    index = 0
+    while index < 36:
+        put(o, index, byte(s, 24 + index), 1)
+        index = index + 1
+    put(o, 36, 58, 1)
+    index = 0
+    while index < at - start:
+        put(o, 37 + index, byte(s, start + index), 1)
+        index = index + 1
+    return 37 + at - start
 
 def acknowledge(o:mutbuf, phase:u64, result:u64) -> u64:
     put(o, 0, {RESULT_MAGIC}, 8)

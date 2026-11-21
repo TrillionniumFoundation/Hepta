@@ -266,6 +266,8 @@ exit:
  syscall
  ud2
 
+ .ascii "HIAOWNID"
+
  /* Copied from the sealed writer into its caller's RX mapping. These effects
   * must execute in the original supervisor, never in the receipt subprocess.
   * Positive PID only; observe holds custody and reap returns the raw status. */

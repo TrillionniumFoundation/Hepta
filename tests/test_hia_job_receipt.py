@@ -19,6 +19,21 @@ CAPACITY = 4 << 20
 SEALS = fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE
 
 
+def native_entry(resources, code, prototype):
+    import ctypes
+    import mmap
+
+    protect = ctypes.CDLL(None, use_errno=True).mprotect
+    protect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+    protect.restype = ctypes.c_int
+    region = resources.enter_context(mmap.mmap(-1, len(code), prot=mmap.PROT_READ | mmap.PROT_WRITE))
+    region.write(code)
+    address = ctypes.addressof(ctypes.c_char.from_buffer(region))
+    if protect(address, len(code), mmap.PROT_READ | mmap.PROT_EXEC):
+        raise OSError(ctypes.get_errno(), 'test mapping could not become executable')
+    return prototype(address)
+
+
 @unittest.skipUnless(os.environ.get('HIA_TEST_JOB_RECEIPT_EXE'), 'requires the installed HIA receipt writer')
 class JobReceiptExecutableTests(unittest.TestCase):
     def setUp(self):
@@ -238,30 +253,51 @@ class JobReceiptExecutableTests(unittest.TestCase):
             self.assertEqual((refused.returncode, refused.stderr), (65, b''))
             self.assertEqual(list(self.root.iterdir()), [])
 
+    def test_native_owner_identity_uses_the_original_pid_boot_and_start_ticks(self):
+        from contextlib import ExitStack
+        import ctypes
+
+        raw = self.executable.read_bytes()
+        self.assertIn(b'HIAOWNIDHIAWABI1', raw)
+        policy = raw.split(b'HIAJPOL1', 1)[1]
+        pid = os.getpid()
+        boot = Path('/proc/sys/kernel/random/boot_id').read_bytes()
+        record = Path('/proc/self/stat').read_bytes()
+        fields = record.rsplit(b') ', 1)[1].split()
+        expected = boot.strip() + b':' + fields[19]
+        unusual = str(pid).encode() + b' (own) name\n)) ' + b' '.join(fields) + b'\n'
+        with ExitStack() as stack:
+            call = native_entry(stack, policy, ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3)))
+
+            def observe(snapshot=record, boot_id=boot, owner=pid):
+                request = struct.pack('<8s2Q', b'HIAJPI01', owner, len(snapshot)) + boot_id + snapshot
+                output = ctypes.create_string_buffer(57)
+                used = call(request, len(request), output, len(output), None, 0)
+                self.assertLessEqual(used, len(output))
+                return output.raw[:used]
+
+            self.assertEqual(observe(), expected)
+            self.assertEqual(observe(unusual), expected)
+            self.assertEqual(observe(owner=pid + 1), b'')
+            self.assertEqual(observe(boot_id=b'x' + boot[1:]), b'')
+            self.assertEqual(observe(record[:record.rfind(b') ')]), b'')
+            for value in (b'18446744073709551616', b'0001', b'-1'):
+                changed = fields[:19] + [value] + fields[20:]
+                invalid = str(pid).encode() + b' (own) ' + b' '.join(changed) + b'\n'
+                self.assertEqual(observe(invalid), b'')
+
     def test_native_capture_preserves_isolated_extent_and_actual_io(self):
         from contextlib import ExitStack
         import ctypes
-        import mmap
 
         raw = self.executable.read_bytes()
         capture = raw.split(b'HIAKABI1', 1)[1].split(b'HIAKEND1', 1)[0]
         policy = raw.split(b'HIAJPOL1', 1)[1]
         limit = 16 << 20
         with ExitStack() as stack:
-            protect = ctypes.CDLL(None, use_errno=True).mprotect
-            protect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
-            protect.restype = ctypes.c_int
-
-            def bind(code, prototype):
-                region = stack.enter_context(mmap.mmap(-1, len(code), prot=mmap.PROT_READ | mmap.PROT_WRITE))
-                region.write(code)
-                address = ctypes.addressof(ctypes.c_char.from_buffer(region))
-                self.assertEqual(protect(address, len(code), mmap.PROT_READ | mmap.PROT_EXEC), 0)
-                return prototype(address)
-
-            plan = bind(policy, ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3)))
-            perform = bind(capture, ctypes.CFUNCTYPE(ctypes.c_uint64, ctypes.c_int64, ctypes.c_void_p,
-                                                   ctypes.c_uint64, ctypes.c_uint64))
+            plan = native_entry(stack, policy, ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3)))
+            perform = native_entry(stack, capture, ctypes.CFUNCTYPE(ctypes.c_uint64, ctypes.c_int64,
+                                                                 ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64))
             cases = ((0, limit, 65536, 0, (65536, 0)),
                      (1, limit - 3, 65536, 0, (3, 1)),
                      (1, limit - 3, 65536, 1, (0, 1)),
