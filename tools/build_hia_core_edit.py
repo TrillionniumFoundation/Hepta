@@ -18,7 +18,7 @@ from tools.build_hia_nominal_constructor import (
 )
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, load_static_object, verify_executable
 from tools.build_hia_supplied_safe_core_proof import build as build_supplied_proof
-from tools.generate_hia_core_edit_packer import MAGIC
+from tools.generate_hia_core_edit_packer import EXTENDED_MAGIC, MAGIC
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -250,6 +250,8 @@ PROGRAMS = {
         (EDIT + 'publication_frontend.hepta', ('frame', 'exports', 'expectations')),
         (CLI + 'build_codegen.hepta', ('codegen',)),
         (CLI + 'build_backend.hepta', ('byte_address',)),
+        (BOOTSTRAP + 'borrowed_export_wire.hepta', ('borrowed_export',)),
+        (BOOTSTRAP + 'borrowed_wrapper.hepta', ('borrowed_wrapper',)),
     )),
     'build_object': ('hia-build-object', tuple((path, ()) for path in OBJECT_BUILD_IMAGES)),
     'publish_program': ('hia-publish-program', (
@@ -337,8 +339,13 @@ def argument_images(control, formatter, compressor):
 
 def pack(packer, stub, holes, images):
     lengths = list(map(len, images))
-    frame = struct.pack('<8Q', MAGIC, len(stub), len(holes), len(lengths),
-                        *lengths, *([0] * (4 - len(lengths))))
+    if not 1 <= len(lengths) <= 6:
+        raise ValueError('Core edit packer requires between one and six image roles')
+    extended = len(lengths) > 4
+    slots = 6 if extended else 4
+    frame = struct.pack(f'<{4 + slots}Q', EXTENDED_MAGIC if extended else MAGIC,
+                        len(stub), len(holes), len(lengths),
+                        *lengths, *([0] * (slots - len(lengths))))
     frame += b''.join(struct.pack('<2Q', offset, index) for offset, index in holes)
     frame += stub + b''.join(images)
     source = ctypes.create_string_buffer(frame)

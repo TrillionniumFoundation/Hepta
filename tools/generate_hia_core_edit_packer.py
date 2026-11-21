@@ -7,16 +7,25 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
 
 MAGIC = int.from_bytes(b'HIACED02', 'little')
+EXTENDED_MAGIC = int.from_bytes(b'HIACED03', 'little')
 SOURCE = r'''
 def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 64 or uint(s, 0, 8) != PACK_MAGIC:
+    if length(s) < 64:
+        return 16
+    tag = uint(s, 0, 8)
+    if tag != PACK_MAGIC and tag != EXTENDED_PACK_MAGIC:
         return 16
     stub = uint(s, 8, 8)
     calls = uint(s, 16, 8)
     parts = uint(s, 24, 8)
-    if stub < 5 or stub > 8016 or calls == 0 or calls > 32 or parts == 0 or parts > 4:
+    extended = tag == EXTENDED_PACK_MAGIC
+    slots = choose(extended, 6, 4)
+    prefix = 32 + slots * 8
+    if length(s) < prefix or (extended and parts < 5):
         return 16
-    stub_at = 64 + 16 * calls
+    if stub < 5 or stub > 8016 or calls == 0 or calls > 32 or parts == 0 or parts > slots:
+        return 16
+    stub_at = prefix + 16 * calls
     image_at = stub_at + stub
     if image_at > length(s):
         return 16
@@ -37,7 +46,7 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     last = 0
     i = 0
     while i < calls:
-        row = 64 + 16 * i
+        row = prefix + 16 * i
         hole = uint(s, row, 8)
         image = uint(s, row + 8, 8)
         if hole <= last or hole > stub - 4 or image >= parts:
@@ -70,7 +79,7 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         index = index + 1
     i = 0
     while i < calls:
-        row = 64 + 16 * i
+        row = prefix + 16 * i
         hole = 176 + uint(s, row, 8)
         image = uint(s, row + 8, 8)
         write(o, hole, align(position(s, 176 + stub, image)) - hole - 4, 4)
@@ -117,8 +126,8 @@ def header(o:mutbuf, size:u64) -> u64:
 
 def render():
     helpers = LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
-    return render_assembly(document(SOURCE.replace('PACK_MAGIC', str(MAGIC)) + helpers,
-                                    'core_edit_packer'))
+    policy = SOURCE.replace('EXTENDED_PACK_MAGIC', str(EXTENDED_MAGIC)).replace('PACK_MAGIC', str(MAGIC))
+    return render_assembly(document(policy + helpers, 'core_edit_packer'))
 
 
 if __name__ == '__main__':

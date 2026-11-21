@@ -10,6 +10,20 @@
 .equ ART_N,67108864
 .equ WRITE_W,33554432
 .equ C,67092480
+.equ BORROW_INPUT_N,8454144
+.equ BORROW_PLAN_N,8388608
+.equ BORROW_TABLE_N,32768
+.equ BORROW_TEXT_N,262144
+.equ BORROW_PACKET_N,266240
+.equ borrow_plan,184
+.equ borrow_table,192
+.equ borrow_text,200
+.equ borrow_scratch,208
+.equ borrow_packet,216
+.equ borrow_pending,224
+.equ borrow_call,232
+.equ borrow_width,240
+.equ borrow_end,248
 _start:
  cmp QWORD PTR [rsp],1
  jne usage
@@ -34,6 +48,10 @@ read_input:
  mov rax,[rbp+88]
  lea rsi,[r12+rax]
  mov edx,RAW_N+1
+ cmp BYTE PTR [r12],91
+ jne input_read_extent
+ mov edx,BORROW_INPUT_N+1
+input_read_extent:
  sub rdx,rax
  xor eax,eax
  syscall
@@ -43,10 +61,20 @@ read_input:
  js io_failure
  jz input_complete
  add [rbp+88],rax
+ cmp BYTE PTR [r12],91
+ je input_borrow_extent
  cmp QWORD PTR [rbp+88],RAW_N
  ja capacity
  jmp read_input
+input_borrow_extent:
+ cmp QWORD PTR [rbp+88],BORROW_INPUT_N
+ ja capacity
+ jmp read_input
 input_complete:
+ cmp BYTE PTR [r12],91
+ jne admit_core_input
+ call bind_borrowed_input
+admit_core_input:
  mov rdi,r12
  mov esi,RAW_N
  mov edx,1
@@ -75,6 +103,22 @@ core_hole: .long 0
 frame_hole: .long 0
  test rax,rax
  jnz native_status
+ cmp QWORD PTR [rbp+borrow_table],0
+ je bind_public_exports
+ mov rbx,[rbp+16]
+ movabs rax,0x3130425842414948  # HIABXB01
+ mov [rbx+16384],rax
+ mov rsi,[rbp+borrow_table]
+ lea rdi,[rbx+16408]
+ mov ecx,1024
+copy_borrow_extents:
+ mov rax,[rsi]
+ mov [rdi],rax
+ add rsi,32
+ add rdi,8
+ dec ecx
+ jnz copy_borrow_extents
+bind_public_exports:
  mov rdi,r12
  mov esi,SOURCE_N
  mov rdx,[rbp+16]
@@ -130,6 +174,8 @@ next_event:
  mov rbx,[rbp+96]
  cmp QWORD PTR [rbx],1
  je numeric_event
+ cmp QWORD PTR [rbx],3
+ je borrowed_event
  cmp QWORD PTR [rbx],2
  jne io_failure
  lea rdi,[rbx+8]
@@ -246,6 +292,26 @@ capture_batch:
 codegen_complete:
  cmp QWORD PTR [rbp+112],0
  jne io_failure
+ cmp QWORD PTR [rbp+borrow_pending],0
+ jne io_failure
+ cmp QWORD PTR [rbp+borrow_table],0
+ je codegen_state_complete
+ mov rdi,[rbp+borrow_plan]
+ mov esi,BORROW_PLAN_N
+ call release
+ mov rdi,[rbp+borrow_table]
+ mov esi,BORROW_TABLE_N
+ call release
+ mov rdi,[rbp+borrow_text]
+ mov esi,BORROW_TEXT_N
+ call release
+ mov rdi,[rbp+borrow_scratch]
+ mov esi,4096
+ call release
+ mov rdi,[rbp+borrow_packet]
+ mov esi,BORROW_PACKET_N
+ call release
+codegen_state_complete:
  mov rbx,[rbp+24]
  test rbx,rbx
  jz io_failure
@@ -499,3 +565,243 @@ exit:
  mov eax,60
  syscall
  ud2
+
+# The pinned HIA binder returns the span of the *same* Core and a bounded
+# per-ordinal wrapper request. This port moves only checked spans.
+bind_borrowed_input:
+ sub rsp,8
+ mov esi,BORROW_PLAN_N
+ call allocate
+ mov [rbp+borrow_plan],rax
+ mov esi,WRITE_W
+ call allocate
+ mov [rbp+borrow_scratch],rax
+ mov rdi,r12
+ mov rsi,[rbp+88]
+ mov rdx,[rbp+borrow_plan]
+ mov ecx,BORROW_PLAN_N
+ mov r8,rax
+ mov r9d,WRITE_W
+ .byte 0xe8
+borrowed_export_hole: .long 0
+ cmp rax,32
+ jb invalid
+ cmp rax,BORROW_PLAN_N
+ ja native_status
+ mov rbx,[rbp+borrow_plan]
+ lea rcx,[rbx+rax]
+ mov [rbp+borrow_end],rcx
+ movabs rcx,0x3330584542414948  # HIABEX03
+ cmp [rbx],rcx
+ jne invalid
+ mov rax,[rbx+8]
+ test rax,rax
+ jz invalid
+ cmp rax,128
+ ja invalid
+ mov [rbp+borrow_pending],rax
+ mov rsi,[rbx+16]
+ mov rcx,[rbx+24]
+ test rcx,rcx
+ jz invalid
+ cmp rcx,RAW_N
+ ja capacity
+ mov rax,[rbp+88]
+ cmp rsi,rax
+ ja invalid
+ sub rax,rsi
+ cmp rcx,rax
+ ja invalid
+ mov [rbp+88],rcx
+ add rsi,r12
+ mov rdi,r12
+ cld
+ rep movsb
+ mov rdi,[rbp+borrow_scratch]
+ mov esi,WRITE_W
+ call release
+ mov esi,BORROW_TABLE_N
+ call allocate
+ mov [rbp+borrow_table],rax
+ mov r11,rax
+ mov r10,[rbp+borrow_end]
+ lea rsi,[rbx+32]
+ mov rcx,[rbp+borrow_pending]
+bind_borrowed_row:
+ mov rax,r10
+ sub rax,rsi
+ cmp rax,40
+ jb invalid
+ mov rdi,[rsi]
+ cmp rdi,1024
+ jae invalid
+ shl rdi,5
+ add rdi,r11
+ cmp QWORD PTR [rdi],0
+ jne invalid
+ mov rdx,[rsi+8]
+ cmp rdx,24
+ jb invalid
+ sub rax,16
+ cmp rdx,rax
+ ja invalid
+ test dl,7
+ jnz invalid
+ movabs rax,0x3130525742414948 # HIABWR01
+ cmp [rsi+16],rax
+ jne invalid
+ mov rax,[rsi+24]
+ test rax,rax
+ jz invalid
+ cmp rax,1048576
+ ja invalid
+ mov [rdi],rax
+ lea rsi,[rsi+16]
+ mov [rdi+8],rsi
+ mov [rdi+16],rdx
+ add rsi,rdx
+ dec rcx
+ jnz bind_borrowed_row
+ cmp rsi,r10
+ jne invalid
+ mov rdi,rbx
+ mov esi,BORROW_PLAN_N
+ mov edx,1
+ call protect
+ mov esi,4096
+ call allocate
+ mov [rbp+borrow_scratch],rax
+ mov esi,BORROW_TEXT_N
+ call allocate
+ mov [rbp+borrow_text],rax
+ mov esi,BORROW_PACKET_N
+ call allocate
+ mov [rbp+borrow_packet],rax
+ add rsp,8
+ ret
+
+# The admitted event names an original Core ordinal. The HIA wrapper role
+# returns text with one reserved call, which the existing native writer owns.
+borrowed_event:
+ cmp QWORD PTR [rbp+24],0
+ je io_failure
+ mov r15,[rbp+borrow_table]
+ test r15,r15
+ jz io_failure
+ movabs rax,0x3130564542414948  # HIABEV01
+ cmp [rbx+8],rax
+ jne io_failure
+ cmp QWORD PTR [rbx+16],1
+ jne io_failure
+ mov rax,[rbx+24]
+ cmp rax,1024
+ jae io_failure
+ shl rax,5
+ add r15,rax
+ mov rax,[rbx+32]
+ test rax,rax
+ jz io_failure
+ cmp [r15],rax
+ jne io_failure
+ cmp QWORD PTR [r15+24],0
+ jne io_failure
+ mov QWORD PTR [r15+24],1
+ dec QWORD PTR [rbp+borrow_pending]
+ mov rdi,[r15+8]
+ mov rsi,[r15+16]
+ mov rdx,[rbp+borrow_text]
+ mov ecx,BORROW_TEXT_N
+ mov r8,[rbp+borrow_scratch]
+ mov r9d,4096
+ .byte 0xe8
+borrowed_wrapper_hole: .long 0
+ cmp rax,32
+ jb io_failure
+ cmp rax,BORROW_TEXT_N
+ ja native_status
+ mov r15,[rbp+borrow_text]
+ movabs rcx,0x31304f5742414948  # HIABWO01
+ cmp [r15],rcx
+ jne io_failure
+ sub rax,32
+ cmp [r15+8],rax
+ jne io_failure
+ mov [rbp+borrow_width],rax
+ mov rcx,[r15+16]
+ test rcx,rcx
+ jz io_failure
+ cmp rcx,rax
+ ja io_failure
+ mov [rbp+borrow_call],rcx
+ add rcx,4
+ cmp rcx,rax
+ ja io_failure
+ lea rsi,[r15+32]
+ mov rcx,[rbp+borrow_call]
+ dec rcx
+ cmp BYTE PTR [rsi+rcx],0xe8
+ jne io_failure
+ cmp DWORD PTR [rsi+rcx+1],0
+ jne io_failure
+ call append_borrowed_bytes
+
+ # Encode only the fixed internal prefix and the already bounded ordinal.
+ mov rdi,[rbp+borrow_packet]
+ lea rsi,[rip+borrowed_function_prefix]
+ add rdi,64
+ mov ecx,16
+ rep movsb
+ mov rax,[rbx+24]
+ mov r10d,10
+ xor ecx,ecx
+ lea rsi,[rbp+256]
+borrow_decimal:
+ xor edx,edx
+ div r10
+ add dl,48
+ mov [rsi+rcx],dl
+ inc ecx
+ test rax,rax
+ jnz borrow_decimal
+ lea rax,[rcx+16]
+ mov rdi,[rbp+borrow_packet]
+ mov QWORD PTR [rdi+8],4
+ mov [rdi+16],rax
+ add rdi,80
+borrow_decimal_copy:
+ dec ecx
+ mov dl,[rsi+rcx]
+ mov [rdi],dl
+ inc rdi
+ test ecx,ecx
+ jnz borrow_decimal_copy
+ mov rdi,[rbp+borrow_packet]
+ lea rsi,[rax+64]
+ call byte_state
+ mov rsi,[rbp+borrow_text]
+ mov rax,[rbp+borrow_call]
+ add rax,4
+ mov rcx,[rbp+borrow_width]
+ sub rcx,rax
+ lea rsi,[rsi+rax+32]
+ call append_borrowed_bytes
+ jmp event_complete
+
+append_borrowed_bytes:
+ test rcx,rcx
+ jz append_borrowed_empty
+ mov rdi,[rbp+borrow_packet]
+ movabs rax,3616483217365879112  # HIACST02
+ mov [rdi],rax
+ mov QWORD PTR [rdi+8],1
+ mov [rdi+16],rcx
+ add rdi,64
+ rep movsb
+ mov rdi,[rbp+borrow_packet]
+ mov rsi,[rdi+16]
+ add rsi,64
+ jmp byte_state
+append_borrowed_empty:
+ ret
+borrowed_function_prefix:
+ .ascii "__hia_native_fn_"
