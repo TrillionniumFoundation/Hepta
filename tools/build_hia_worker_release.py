@@ -211,6 +211,20 @@ def _worker_prepare_has_supervisor_outcome(prepare):
     return True
 
 
+def _worker_prepare_has_workdir_authority(prepare):
+    root = b'/workdir/probe'
+    for path, allowed in ((root + b'/nested', True), (root + b'-sibling', False)):
+        frame = (struct.pack('<8s4Q', b'HIAJCQ01', len(path), 1, 0, 0) + path +
+                 struct.pack('<Q', len(root)) + root)
+        result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+        observed = result.returncode, result.stdout, result.stderr
+        if allowed and observed == (2, b'', b''):
+            return False
+        if observed != (0, struct.pack('<8sQ', b'HIAJCO01', allowed), b''):
+            raise ValueError('installed HIA workdir authority does not preserve the workspace boundary')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -241,6 +255,8 @@ def _install_controller(output, scratch, release, installer):
                     schema = 'hepta.hia.mcp.controller.v7'
                     if _job_writer_has_owner_publication(receipt_writer, scratch):
                         schema = 'hepta.hia.mcp.controller.v8'
+                        if _worker_prepare_has_workdir_authority(release / 'hia-worker-prepare'):
+                            schema = 'hepta.hia.mcp.controller.v9'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

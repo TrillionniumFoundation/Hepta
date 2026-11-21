@@ -509,6 +509,33 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(case)
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_native_workspace_policy_checks_real_path_components_not_prefixes(self):
+        def request(path, roots):
+            return (struct.pack('<8s4Q', b'HIAJCQ01', len(path), len(roots), 0, 0) + path +
+                    b''.join(struct.pack('<Q', len(root)) + root for root in roots))
+
+        for path, roots, admitted in (
+            (b'/allowed', (b'/allowed',), True),
+            (b'/allowed/subdir', (b'/other', b'/allowed'), True),
+            (b'/allowedX', (b'/allowed',), False),
+            (b'/allowed/../escape', (b'/allowed',), False),
+            (b'/allowed/./nested', (b'/allowed',), False),
+            (b'/allowed/\xfe\n', (b'/allowed',), True),
+            (b'/allowed/bad\0name', (b'/allowed',), False),
+            (b'/ordinary', (), True),
+            (b'/ordinary', (b'/',), True),
+            (b'ordinary', (), False),
+        ):
+            with self.subTest(path=path, roots=roots):
+                result = self.invoke(request(path, roots))
+                self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                 (0, struct.pack('<8sQ', b'HIAJCO01', admitted), b''))
+        valid = request(b'/allowed', (b'/allowed',))
+        for malformed in (valid[:-1], valid + b'x', request(b'/allowed', (b'relative',)),
+                          request(b'/allowed', (b'',)), request(b'/allowed', (b'/allowed/..',))):
+            result = self.invoke(malformed)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_native_live_lifecycle_preserves_incarnation_and_witness_precedence(self):
         def frame(facts, properties):
             return struct.pack('<8s9Q', b'HIAJSS01', *facts, *map(len, properties)) + b''.join(properties)

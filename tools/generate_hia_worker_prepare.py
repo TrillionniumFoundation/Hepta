@@ -41,6 +41,8 @@ SUPERVISOR_INPUT = b'HIAJSQ01'
 SUPERVISOR_OUTPUT = b'HIAJSO01'
 CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
+WORKDIR_INPUT = b'HIAJCQ01'
+WORKDIR_OUTPUT = b'HIAJCO01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
 JOB_LIFECYCLE_OUTPUT = b'HIAJSV01'
 JOB_OWNER_INPUT = b'HIAJOQ01'
@@ -78,6 +80,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return supervisor_outcome(s, o)
     if magic == CAPTURE_POLICY_INPUT:
         return capture_policy(s, o)
+    if magic == WORKDIR_INPUT:
+        return workdir_policy(s, o)
     if magic == JOB_LIFECYCLE_INPUT:
         return job_lifecycle(s, o)
     if magic == JOB_OWNER_INPUT:
@@ -325,14 +329,44 @@ def capture_policy(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 8, decision)
     return 16
 
-def capture_normal_path(s:readbuf, end:u64) -> bool:
-    if end == 40 or end > 4136 or byte(s, 40) != 47:
+def workdir_policy(s:readbuf, o:mutbuf) -> u64:
+    n = length(s)
+    if n < 40 or length(o) < 16 or word_load(s, 24) != 0 or word_load(s, 32) != 0:
+        return 4294967293
+    path_size = word_load(s, 8)
+    count = word_load(s, 16)
+    if path_size > n - 40:
+        return 4294967293
+    end = 40 + path_size
+    valid_path = absolute_fs_path(s, 40, end, False)
+    admitted = count == 0
+    at = end
+    index = 0
+    while index < count:
+        if n - at < 8:
+            return 4294967293
+        extent = word_load(s, at)
+        at = at + 8
+        if extent > n - at or absolute_fs_path(s, at, at + extent, False) == False:
+            return 4294967293
+        if valid_path and capture_under_root(s, end, at, extent):
+            admitted = True
+        at = at + extent
+        index = index + 1
+    if at != n:
+        return 4294967293
+    word_store(o, 0, WORKDIR_OUTPUT)
+    word_store(o, 8, choose(valid_path and admitted, 1, 0))
+    return 16
+
+def absolute_fs_path(s:readbuf, start:u64, end:u64, capture:bool) -> bool:
+    if start == end or byte(s, start) != 47:
         return False
-    first = 41
+    first = start + 1
     at = first
     while at < end:
         value = byte(s, at)
-        if value == 0 or value == 10 or value == 13:
+        if value == 0 or (capture and (value == 10 or value == 13)):
             return False
         if value == 47:
             if capture_dot_segment(s, first, at):
@@ -340,6 +374,9 @@ def capture_normal_path(s:readbuf, end:u64) -> bool:
             first = at + 1
         at = at + 1
     return capture_dot_segment(s, first, end) == False
+
+def capture_normal_path(s:readbuf, end:u64) -> bool:
+    return end <= 4136 and absolute_fs_path(s, 40, end, True)
 
 def capture_dot_segment(s:readbuf, first:u64, end:u64) -> bool:
     size = end - first
@@ -1031,6 +1068,8 @@ def source_program():
               .replace('SUPERVISOR_OUTPUT', str(int.from_bytes(SUPERVISOR_OUTPUT, 'little')))
               .replace('CAPTURE_POLICY_INPUT', str(int.from_bytes(CAPTURE_POLICY_INPUT, 'little')))
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
+              .replace('WORKDIR_INPUT', str(int.from_bytes(WORKDIR_INPUT, 'little')))
+              .replace('WORKDIR_OUTPUT', str(int.from_bytes(WORKDIR_OUTPUT, 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
               .replace('JOB_LIFECYCLE_OUTPUT', str(int.from_bytes(JOB_LIFECYCLE_OUTPUT, 'little')))
               .replace('JOB_OWNER_INPUT', str(int.from_bytes(JOB_OWNER_INPUT, 'little')))
