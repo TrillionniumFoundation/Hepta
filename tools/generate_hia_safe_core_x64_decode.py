@@ -6,13 +6,16 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (
-    CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSES, _CORE_TRAP_TAGS,
-                                 SPARSE_REQUEST, SPARSE_VARIABLES, WORD_ARITHMETIC_SHR, WORD_PRODUCT_EXCEEDS,
-                                 WORD_VARIABLE_SHL, WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
+    ARTIFACT_PROJECTION_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_NODES, CIRCUIT_REQUEST,
+    GRAPH_PROJECTION_REQUEST, SPARSE_CLAUSES, SPARSE_REQUEST, SPARSE_VARIABLES,
+    WORD_ARITHMETIC_SHR, WORD_PRODUCT_EXCEEDS, WORD_VARIABLE_SHL, WORD_VARIABLE_SHR,
+    WRAPPING_PRODUCT, _CORE_TRAP_TAGS,
+)
 from hepta.hia_safe_core import (
     LOANS, OPERATIONS, OPERATIONS_V3, OPERATIONS_V4, OPERATIONS_V5, WIDTHS, WIDTHS_V2, WIDTHS_V6,
 )
 from hepta.hia_safe_core_x64_decode_native import (
+    ARTIFACT_WIRE_REQUEST, ARTIFACT_WIRE_WORKSPACE,
     BORROWED_INDEX_ARGUMENT, BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
     BORROWED_PAIR_REVERSE_SUB,
     BORROWED_WRITE_REPLY, BORROWED_WRITE_REQUEST,
@@ -40,6 +43,9 @@ FIELDS = {
     'BOUNDARIES': 128, 'MAX_TEXT': MAX_TEXT, 'MAX_CODE': MAX_INSTRUCTIONS, 'WORKSPACE': WORKSPACE,
 }
 FIELDS.update({'OP_' + name.upper(): index for name, index in MACHINE_FORMULA_IDS.items()})
+FIELDS.update(ARTIFACT_WIRE_REQUEST=ARTIFACT_WIRE_REQUEST, ARTIFACT_WIRE_WORKSPACE=ARTIFACT_WIRE_WORKSPACE,
+              ARTIFACT_PROJECTION_REQUEST=ARTIFACT_PROJECTION_REQUEST, CIRCUIT_REQUEST=CIRCUIT_REQUEST,
+              GRAPH_PROJECTION_REQUEST=GRAPH_PROJECTION_REQUEST, TOO_LARGE=0xfffffffc)
 FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()})
 FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
 FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in CORE_FORMULA_IDS.items()})
@@ -121,6 +127,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
     if length(w) == QUERY_WORKSPACE:
         return format_proof_query(s, o)
+    if length(w) == ARTIFACT_WIRE_WORKSPACE:
+        return artifact_projection_wire(s, o)
     if length(w) == MV_WORKSPACE or length(w) == MV_BORROW_WORKSPACE or mv_has_writable_loan(w):
         return project_machine_values(s, o, w)
     if length(w) == LOAN_LENGTH_WORKSPACE:
@@ -1579,6 +1587,76 @@ def mv_borrow_reference_trap(o:mutbuf, w:mutbuf, too_large:u64, empty:u64, null:
 # Abstract register/stack values are either circuit nodes, stack positions,
 # opaque caller registers or return sites. An unknown value is never a circuit
 # input and cannot determine memory, control flow or the observed return.
+def artifact_projection_wire(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 32 or schedule_request(s, 0) != ARTIFACT_WIRE_REQUEST:
+        return TOO_LARGE
+    available = length(s) - 32
+    graph = schedule_request(s, 8)
+    machine_size = schedule_request(s, 16)
+    core_size = schedule_request(s, 24)
+    if graph < 40 or graph > available or machine_size < 96 or machine_size > available - graph:
+        return TOO_LARGE
+    if core_size < 120 or core_size != available - graph - machine_size:
+        return TOO_LARGE
+    machine_at = 32 + graph
+    core_at = machine_at + machine_size
+    inputs = schedule_request(s, 48)
+    if schedule_request(s, 32) != GRAPH_PROJECTION_REQUEST or schedule_request(s, 40) != 2 or schedule_request(s, 56) != 1 or inputs > 6:
+        return TOO_LARGE
+    if graph < 40 + inputs * 8:
+        return TOO_LARGE
+    result_type = schedule_request(s, 64 + inputs * 8)
+    width = result_type & 127
+    if result_type != 1 and (result_type >= 256 or (width != 8 and width != 16 and width != 32 and width != 64)):
+        return TOO_LARGE
+    if schedule_request(s, machine_at) != MV_REPLY or schedule_request(s, core_at) != CIRCUIT_REQUEST:
+        return TOO_LARGE
+    return pack_artifact_observations(s, o, machine_at, core_at, inputs, result_type >> 7)
+
+def pack_artifact_observations(s:readbuf, o:mutbuf, machine_at:u64, core_at:u64, inputs:u64, signed:u64) -> u32:
+    machine = schedule_request(s, machine_at + 8)
+    core = schedule_request(s, core_at + 8)
+    if machine == 0 or machine < inputs or machine > MV_COUNT or core == 0 or core < inputs or core > MV_COUNT:
+        return TOO_LARGE
+    if core_at - machine_at != 56 + 40 * machine or length(s) - core_at != 80 + 40 * core:
+        return TOO_LARGE
+    if schedule_request(s, core_at + 16) != 3 or schedule_request(s, core_at + 24) != 0:
+        return TOO_LARGE
+    end = 88 + 40 * (machine + core)
+    if length(o) < end:
+        return TOO_LARGE
+    pairs = core_at + 32 + 40 * core
+    coverage = schedule_request(s, pairs)
+    other_coverage = schedule_request(s, pairs + 8)
+    trapped = schedule_request(s, pairs + 16)
+    returned = schedule_request(s, pairs + 32)
+    if coverage >= core or other_coverage >= core or trapped >= core or returned >= core:
+        return TOO_LARGE
+    if schedule_request(s, pairs + 24) >= core or schedule_request(s, pairs + 40) >= core:
+        return TOO_LARGE
+    actual = schedule_request(s, machine_at + 16)
+    stopped = schedule_request(s, machine_at + 48)
+    if actual >= machine or stopped >= machine:
+        return TOO_LARGE
+    put(o, 0, ARTIFACT_PROJECTION_REQUEST)
+    put(o, 8, inputs)
+    put(o, 16, machine)
+    put(o, 24, core)
+    put(o, 32, actual)
+    put(o, 40, coverage)
+    put(o, 48, other_coverage)
+    put(o, 56, trapped)
+    put(o, 64, returned)
+    put(o, 72, signed)
+    put(o, 80, stopped)
+    boundary = machine * 40
+    offset = 0
+    while offset < end - 88:
+        address = choose(offset < boundary, machine_at + 56 + offset, core_at + 32 + offset - boundary)
+        put(o, 88 + offset, schedule_request(s, address))
+        offset = offset + 8
+    return end
+
 def mv_has_writable_loan(w:mutbuf) -> bool:
     return length(w) == MV_WRITE_WORKSPACE or length(w) == MV_WRITE_READ_WORKSPACE
 

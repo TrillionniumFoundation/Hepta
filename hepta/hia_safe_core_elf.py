@@ -171,6 +171,12 @@ def _functions(elf, section, table):
     return _reference_functions(elf, section, table)
 
 
+def _owned_functions(elf, section, kind):
+    if elf._native_inventory is None:
+        return _reference_functions(elf, section, ".symtab")
+    return elf._native_inventory.owned_functions(elf.data, kind)
+
+
 def _reference_functions(elf, section, table):
     rows = elf.symbols(table)
     result = {}
@@ -469,8 +475,8 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         _reference_text_geometry(source, linked, text_bytes)
     else:
         obj._native_inventory.verify_text_geometry(obj.data, source, linked, text_bytes)
-    srcfunc = _functions(obj, source, ".symtab")
-    dstfunc = _functions(final, linked, ".symtab")
+    srcfunc = _owned_functions(obj, source, 1)
+    dstfunc = _owned_functions(final, linked, 3)
     if obj._native_inventory is None:
         direct = _reference_function_link(srcfunc, dstfunc, export, source["size"], linked["addr"])
     else:

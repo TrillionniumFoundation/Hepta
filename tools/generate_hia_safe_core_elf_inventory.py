@@ -13,6 +13,7 @@ from hepta.hia_safe_core_elf_inventory_native import (
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC,
     FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
+    OWNED_FUNCTION_MAGIC,
     FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
     OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD, OWNED_SHARED_SYMBOL_CAPACITY,
@@ -25,6 +26,9 @@ SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
 FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
           'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
 FIELDS['FUNCTION_SYMBOL_MAGIC'] = FUNCTION_SYMBOL_MAGIC
+FIELDS.update(OWNED_FUNCTION_MAGIC=OWNED_FUNCTION_MAGIC,
+              OWNED_TEXT_ROLE=SECTION_AUTHORITIES.index('.text'),
+              OWNED_SYMBOLS_ROLE=SECTION_AUTHORITIES.index('.symtab'))
 FIELDS.update(DYNAMIC_SYMBOL_MAGIC=DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET=DYNAMIC_SYMBOL_NAME_OFFSET,
               ABORT_BYTES=int.from_bytes(b'abort', 'little'))
 FIELDS.update(LOADER_SECTION_MAGIC=LOADER_SECTION_MAGIC, EXECUTABLE_LAYOUT_MAGIC=EXECUTABLE_LAYOUT_MAGIC,
@@ -80,6 +84,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return verify_loader_sections(s, o)
     if length(w) == 16 and get(w, 0) == AUTHORITY_MAGIC:
         return inventory_authorities(s, o, get(w, 8))
+    if length(w) == 16 and get(w, 0) == OWNED_FUNCTION_MAGIC:
+        if length(o) < CAPACITY + AUTHORITY_BYTES:
+            return 4294967294
+        return owned_functions(s, o, get(w, 8))
     if length(w) == LOOKUP_WORK and get(w, 0) == LOOKUP_MAGIC:
         if length(o) < CAPACITY + AUTHORITY_BYTES:
             return 4294967294
@@ -410,7 +418,28 @@ def symbol_rows(s:readbuf, o:mutbuf, start:u64, count:u64, names_at:u64, names_s
 def exact_functions(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if get(w, 40) != 0 or get(w, 48) != 0:
         return 4294967293
-    extent = symbol_table(s, o, get(w, 8))
+    return function_extents(s, o, get(w, 8), get(w, 16), get(w, 24), get(w, 32))
+
+def owned_functions(s:readbuf, o:mutbuf, kind:u64) -> u64:
+    if kind != 1 and kind != 3:
+        return terminal(o, E_IDENTITY, 0, 0)
+    extent = inventory_authorities(s, o, kind)
+    if get(o, 0) != 0:
+        return extent
+    roles = extent - AUTHORITY_BYTES
+    text = get(o, roles + 8 * OWNED_TEXT_ROLE)
+    symbols = get(o, roles + 8 * OWNED_SYMBOLS_ROLE)
+    if text == 0:
+        return terminal(o, E_OWNED_MISSING_TEXT, 0, 0)
+    row = word(s, 40, 8) + (text - 1) * 64
+    if word(s, row + 4, 4) != 1:
+        return terminal(o, E_OWNED_TEXT_KIND, 0, 0)
+    if symbols == 0:
+        return terminal(o, E_OWNED_MISSING_SYMBOLS, 0, 0)
+    return function_extents(s, o, symbols - 1, text - 1, word(s, row + 16, 8), word(s, row + 32, 8))
+
+def function_extents(s:readbuf, o:mutbuf, table:u64, text:u64, first:u64, length_of_text:u64) -> u64:
+    extent = symbol_table(s, o, table)
     if get(o, 0) != 0:
         return extent
     count = get(o, 8)
@@ -419,7 +448,7 @@ def exact_functions(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     while index < count:
         row = 24 + index * 56
         if (get(o, row + 16) & 15) == 2 and get(o, row + 32) != 0:
-            if exact_function_extent(o, w, row) == 0 or unique_function(s, o, row, selected) == 0:
+            if exact_function_extent(o, row, text, first, length_of_text) == 0 or unique_function(s, o, row, selected) == 0:
                 return terminal(o, E_FUNCTION_EXTENT, 0, 0)
             target = 24 + selected * 56
             if target != row:
@@ -428,12 +457,10 @@ def exact_functions(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         index = index + 1
     return reply(o, 0, selected, 0, 24 + selected * 56)
 
-def exact_function_extent(o:mutbuf, w:mutbuf, row:u64) -> u64:
-    first = get(w, 24)
-    extent = get(w, 32)
+def exact_function_extent(o:mutbuf, row:u64, text:u64, first:u64, extent:u64) -> u64:
     value = get(o, row + 40)
     size = get(o, row + 48)
-    if get(o, row + 32) != get(w, 16) or size == 0 or size > extent or value < first:
+    if get(o, row + 32) != text or size == 0 or size > extent or value < first:
         return 0
     return choose(value - first <= extent - size, 1, 0)
 

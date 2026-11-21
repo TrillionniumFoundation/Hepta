@@ -281,7 +281,14 @@ class NativeCnf(NativeHiaJsonImage):
                                                        bound_marker=bound_marker))
 
     def project_scalar_wire(self, frame):
-        return self._decode_projection(self._run_projection(frame))
+        return self._decode_projection(self.project_scalar_observation(frame))
+
+    def project_scalar_observation(self, frame):
+        """Return the native observation bytes for a preadmitted scalar graph."""
+        return self._run_projection(frame)
+
+    def bind_scalar_artifact_wire(self, frame):
+        return self._bind_artifact_projection(frame, caller_byte=False)
 
     @staticmethod
     def _decode_projection(reply):
@@ -305,12 +312,15 @@ class NativeCnf(NativeHiaJsonImage):
         frame += b''.join(struct.pack('<5Q', *row) for row in (*machine_nodes, *core_nodes))
         if caller_byte is not None:
             frame += struct.pack('<2Q', *caller_byte)
+        return self._bind_artifact_projection(frame, caller_byte=caller_byte is not None)
+
+    def _bind_artifact_projection(self, frame, *, caller_byte):
         projected = self._decode_projection(self._run_projection(frame))
         if projected is None:
             return None
         nodes, observations, _ = projected
         coverage, *outcomes = observations
-        if len(outcomes) != 2 + int(caller_byte is not None):
+        if len(outcomes) != 2 + int(caller_byte):
             raise RuntimeError('invalid HIA artifact observation inventory')
         # Reflexive comparisons need no gate. Keep every input word in the
         # projection so a real counterexample still has exact ABI positions.

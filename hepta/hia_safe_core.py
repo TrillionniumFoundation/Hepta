@@ -1030,14 +1030,14 @@ def _native_core_projection(decoder, cnf, checked, fn, blocks, borrowed, loan_in
         paths = 4 if loan_index is None else 6 if type(loan_index) is tuple else 5
         return decoder.project_borrowed_reference(borrowed[0][1], loan_index,
                                                   write_result=write_result,
-                                                  pair_operation=pair_operation), paths
+                                                  pair_operation=pair_operation), paths, None
     projector = _core_proof_wire(cnf)
     if projector is not None:
         projection = projector.project(checked.canonical_bytes)
         if projection is None:
             return None
         frame, paths = projection
-        return cnf.project_scalar_wire(frame), paths
+        return cnf.project_scalar_observation(frame), paths, frame
     names = tuple(blocks)
     edges, _ = _core_graph_edges(blocks)
     plan = decoder.core_graph_plan(edges, names.index(fn['entry']), LIMITS['core_paths'])
@@ -1046,7 +1046,7 @@ def _native_core_projection(decoder, cnf, checked, fn, blocks, borrowed, loan_in
     order, paths = plan
     names = tuple(names[index] for index in order)
     graph = (blocks, names)
-    return cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False), paths
+    return cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False), paths, None
 
 
 def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
@@ -1062,7 +1062,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
                                          write_result=write_result, pair_operation=pair_operation)
     if projection is None or projection[0] is None:
         return None
-    core, paths = projection
+    core, paths, core_frame = projection
     arguments = len(fn["params"]) + len(foreign_buffer_exports)
     instruction_profile = dict(allow_variable_shifts=profile_version >= 3,
                                allow_unsigned_multiply=profile_version >= 4,
@@ -1071,7 +1071,14 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     no_violation = ((), (), None)
     memory_check = no_violation
     caller_byte = None
-    if write_result is not None:
+    if core_frame is not None:
+        observation = decoder.project_scalar_observation(binding, arguments, **instruction_profile)
+        if observation is None:
+            return None
+        native_machine, machine_counts = observation
+        circuits = cnf.bind_scalar_artifact_wire(
+            decoder.pack_scalar_artifact_wire(core_frame, native_machine, core))
+    elif write_result is not None:
         core, expected_byte = core
         projection = decoder.project_borrowed_write(binding, foreign_buffer_exports[0][1], loan_index,
                                                     read_back=write_result in (1, 3), **instruction_profile)
@@ -1091,14 +1098,15 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
         machine, memory_check = projection
     # Distinct bytes are shared by both models, not additional ABI words.
     offsets = loan_index if type(loan_index) is tuple else (() if loan_index is None else (loan_index,))
-    circuit_inputs = arguments + len(offsets)
-    circuits = cnf.bind_artifact_circuits(machine, core, circuit_inputs,
-                                         signed_return=fn["returns"][0].startswith("i"),
-                                         caller_byte=caller_byte)
+    if core_frame is None:
+        machine_counts = machine[3]
+        circuits = cnf.bind_artifact_circuits(machine, core, arguments + len(offsets),
+                                             signed_return=fn["returns"][0].startswith("i"),
+                                             caller_byte=caller_byte)
     if circuits is None:
         return None
     solver = _machine_circuit_solver(pair)
-    counts = dict(machine[3], core_terminal_paths=paths)
+    counts = dict(machine_counts, core_terminal_paths=paths)
     reports = []
     queries = []
     counterexample = None

@@ -6,7 +6,8 @@ from functools import lru_cache
 import os
 import struct
 
-from .hia_cnf_native import (CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSES,
+from .hia_cnf_native import (ARTIFACT_PROJECTION_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_NODES,
+                             PROJECTION_INPUT_LIMIT, SPARSE_CLAUSES,
                              SPARSE_ENTRIES, SPARSE_REQUEST, SPARSE_VARIABLES)
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 from .hia_opcodes import OPCODES, TYPES
@@ -25,6 +26,9 @@ CALL_BINDING = struct.Struct('<3Q')
 PROFILE_OFFSET = 96
 DECODE_FRAME_OFFSET = 104
 QUERY_FORMAT_WORKSPACE = 1
+ARTIFACT_WIRE_WORKSPACE = 2
+ARTIFACT_WIRE_REQUEST = int.from_bytes(b'HIABVP05', 'little')
+ARTIFACT_WIRE_OUTPUT = 88 + 80 * CIRCUIT_NODES
 BORROWED_LENGTH_REQUEST = int.from_bytes(b'HIALBQ01', 'little')
 BORROWED_LENGTH_REPLY = int.from_bytes(b'HIALBG01', 'little')
 BORROWED_LENGTH_WORKSPACE = 192
@@ -263,6 +267,24 @@ class NativeMachineScheduler:
 
 
 class NativeSafeCoreX64Decode(NativeHiaJsonImage):
+    def pack_scalar_artifact_wire(self, graph, machine, core):
+        """Join internal projector replies without replaying their node tables in Python."""
+        if len(graph) > PROJECTION_INPUT_LIMIT or len(machine) > 56 + CIRCUIT_NODES * 40:
+            return None
+        if len(core) > 80 + CIRCUIT_NODES * 40:
+            return None
+        frame = struct.pack('<4Q', ARTIFACT_WIRE_REQUEST, len(graph), len(machine), len(core))
+        source = frame + graph + machine + core
+        reply = ctypes.create_string_buffer(ARTIFACT_WIRE_OUTPUT)
+        scratch = ctypes.create_string_buffer(ARTIFACT_WIRE_WORKSPACE)
+        size = self._checked_default_entry(source, len(source), reply, len(reply), scratch, len(scratch))
+        if size == 0xfffffffc:
+            return None
+        if (not 88 <= size <= len(reply)
+                or struct.unpack_from('<Q', reply)[0] != ARTIFACT_PROJECTION_REQUEST):
+            raise RuntimeError('invalid HIA artifact circuit wire')
+        return reply.raw[:size]
+
     def format_proof_query(self, frame):
         """Render a canonical unspecialized HIA formula for independent replay."""
         if type(frame) is not bytes or not 40 <= len(frame) <= CIRCUIT_CAPACITY:
@@ -365,6 +387,10 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         result = self._project_machine_values(binding, argument_words, None, **profile)
         return None if result is None else result[0]
 
+    def project_scalar_observation(self, binding, argument_words, **profile):
+        """Return the independently decoded native machine observation and counters."""
+        return self._project_machine_values(binding, argument_words, None, raw=True, **profile)
+
     def project_borrowed_read(self, binding, extent, index, **profile):
         """Project exact bounded loan reads and their reachable memory violations."""
         words = 3 if index == BORROWED_INDEX_ARGUMENT else 2
@@ -377,7 +403,8 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         return self._project_machine_values(binding, words, (extent, index), write=True,
                                             read_back=read_back, **profile)
 
-    def _project_machine_values(self, binding, argument_words, loan, *, write=False, read_back=False, **profile):
+    def _project_machine_values(self, binding, argument_words, loan, *, write=False, read_back=False,
+                                raw=False, **profile):
         if type(argument_words) is not int or not 0 <= argument_words <= 6:
             raise ValueError('invalid scalar machine argument count')
         if loan is None:
@@ -425,9 +452,12 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                 or depth > MACHINE_VALUES_STACK_BYTES
                 or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count + trailer):
             raise RuntimeError('invalid HIA machine scalar projection')
+        counts = {'decoded_instructions': decoded, 'symbolic_machine_steps': steps,
+                  'machine_terminal_paths': paths, 'maximum_observed_stack_bytes': depth}
+        if raw:
+            return output.raw[:size], counts
         nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size-trailer]))
-        machine = nodes, value, abort, {'decoded_instructions': decoded, 'symbolic_machine_steps': steps,
-                              'machine_terminal_paths': paths, 'maximum_observed_stack_bytes': depth}
+        machine = nodes, value, abort, counts
         if loan is None:
             return machine, None
         fault, never = struct.unpack_from('<2Q', output, size - trailer)

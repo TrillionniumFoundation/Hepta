@@ -166,6 +166,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                     with self.assertRaisesRegex(SafeCoreELFRejected, 'missing section'):
                         selected.section(name)
             text = reference.section('.text')
+            self.assertEqual(self.native.owned_functions(data, kind),
+                             elf_reader._reference_functions(reference, text, '.symtab'))
             for name in ('.symtab', '.dynsym') if kind == 3 else ('.symtab',):
                 rows = reference.symbols(name)
                 self.assertEqual(selected.symbols(name), rows)

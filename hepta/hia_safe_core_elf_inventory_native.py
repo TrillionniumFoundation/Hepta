@@ -26,6 +26,7 @@ SEGMENT_FIELDS = ('type', 'flags', 'offset', 'addr', 'filesz', 'memsz', 'align')
 SYMBOL_FIELDS = ('info', 'other', 'shndx', 'value', 'size')
 MAX_SYMBOLS = 32
 FUNCTION_SYMBOL_MAGIC = int.from_bytes(b'HIAELFF1', 'little')
+OWNED_FUNCTION_MAGIC = int.from_bytes(b'HIAELFG1', 'little')
 FUNCTION_LINK_MAGIC = int.from_bytes(b'HIAELFL1', 'little')
 FUNCTION_LINK_NAME_BYTES = 256
 FUNCTION_LINK_ROW_BYTES = 5 * 8 + FUNCTION_LINK_NAME_BYTES
@@ -123,6 +124,9 @@ REFUSALS = (
     ('text_budget', 'Safe Core text budget exceeded'),
     *((f'lookup_missing_{name}', 'missing section ' + name) for name in LOOKUP_REQUIRED),
     *((f'lookup_kind_{name}', 'section kind differs: ' + name) for name in LOOKUP_TYPED),
+    ('owned_missing_text', 'missing section .text'),
+    ('owned_missing_symbols', 'missing section .symtab'),
+    ('owned_text_kind', 'section kind differs: .text'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -321,6 +325,10 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         fields = (FUNCTION_SYMBOL_MAGIC, table, section['index'], section['addr'], section['size'], 0, 0)
         return {row['name']: row for row in self._symbol_rows(data, fields)}
 
+    def owned_functions(self, data, kind):
+        rows = self._symbol_rows(data, (OWNED_FUNCTION_MAGIC, kind), capacity=CAPACITY + AUTHORITY_BYTES)
+        return {row['name']: row for row in rows}
+
     def verify_function_link(self, source, target, export, size, address):
         name = export.encode('utf-8')
         if len(name) > FUNCTION_LINK_NAME_BYTES:
@@ -342,8 +350,8 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             raise RuntimeError('invalid native Safe Core function linkage')
         return bool(direct)
 
-    def _symbol_rows(self, data, fields):
-        output, size, count, reserved = self._exchange(data, fields)
+    def _symbol_rows(self, data, fields, *, capacity=CAPACITY):
+        output, size, count, reserved = self._exchange(data, fields, capacity=capacity)
         if reserved:
             raise RuntimeError('invalid native Safe Core ELF symbol inventory')
         return self._read_symbol_rows(data, output, size, count)
