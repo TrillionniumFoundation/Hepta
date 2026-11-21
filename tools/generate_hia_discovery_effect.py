@@ -1,4 +1,4 @@
-"""Author the native observation/commit reactor for bounded discovery documents."""
+"""Author the native observation/commit reactor for immutable Agent artifacts."""
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
@@ -19,7 +19,7 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     extent = input_word(s, 24)
     phase = state_word(w, 0)
     if phase == 0:
-        if event != 1 or body != 16 or extent > 1048576:
+        if event != 1 or body != 16:
             return 4294967295
         return start_document(s, o, w, extent)
     if phase != event:
@@ -47,7 +47,7 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if event == 6:
         if body != 0 or extent != state_word(w, 24):
             return 4294967295
-        if state_word(w, 16) == 2:
+        if state_word(w, 16) != 1:
             return finish_document(o, w)
         next_action(o, w, 6, 7, 0, 192)
         state_put(o, 48, PROFILE_PLAN)
@@ -59,10 +59,12 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def start_document(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
     kind = input_word(s, 40)
     version = input_word(s, 48)
+    if kind < 1 or kind > 3 or extent > choose(kind == 3, 8388608, 1048576):
+        return 4294967295
     if kind == 1:
         if version == 0 or version > MAX_PROFILE:
             return 4294967295
-    elif kind != 2 or version != 0:
+    elif version != 0:
         return 4294967295
     state_put(w, 16, kind)
     state_put(w, 24, extent)
@@ -120,7 +122,7 @@ def observe_lookup(s:readbuf, o:mutbuf, w:mutbuf, body:u64) -> u64:
     return 112
 
 def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
-    name = choose(kind == 1, 7, 9)
+    name = choose(kind == 1, 7, choose(kind == 2, 9, 5))
     if size != 388 + name or input_word(s, 40) != ROW:
         return False
     if input_word(s, 48) != 1 or input_word(s, 56) != 1 or input_word(s, 64) != 6:
@@ -143,7 +145,10 @@ def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
     if kind == 1:
         if profile_text(s, 362) == False:
             return False
-    elif discovery_text(s, 362) == False:
+    elif kind == 2:
+        if discovery_text(s, 362) == False:
+            return False
+    elif input_text(s, 362) == False:
         return False
     if byte(s, 362 + name) != 123 or byte(s, 363 + name) != 125:
         return False
@@ -245,7 +250,7 @@ def source_program():
     for name, raw in (
             ('hash_prefix', b'{"sha256":"'), ('hash_count', b'","bytes":'),
             ('uri_prefix', b'hia://artifacts/'), ('profile_text', b'profile'),
-            ('discovery_text', b'discovery')):
+            ('discovery_text', b'discovery'), ('input_text', b'input')):
         source += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'
         source += '    return ' + ' and '.join(
             f'byte(s, at + {index}) == {value}' for index, value in enumerate(raw)) + '\n'

@@ -1,4 +1,4 @@
-"""Author native key derivation and immutable Store rows for discovery."""
+"""Author native key derivation and immutable Store rows for Agent artifacts."""
 from pathlib import Path
 import re
 
@@ -24,7 +24,7 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if (lookup and operation != LOOKUP) or (lookup == False and operation != ISSUE):
         return 4294967293
     kind = word(s, 8)
-    if kind != 1 and kind != 2:
+    if kind < 1 or kind > 3:
         return 4294967293
     if valid_digest(s, 16, 64) == False:
         return 4294967293
@@ -53,7 +53,7 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return artifact_record(s, o, w, kind)
 
 def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64) -> u64:
-    name = choose(kind == 1, 7, 9)
+    name = choose(kind == 1, 7, choose(kind == 2, 9, 5))
     typed = 396 + name
     put(o, 0, RESULT)
     put(o, 8, typed)
@@ -165,7 +165,9 @@ def nonce_hex(s:readbuf, o:mutbuf, source:u64, at:u64) -> u64:
 def kind_text(o:mutbuf, at:u64, kind:u64) -> u64:
     if kind == 1:
         return profile_name(o, at)
-    return discovery_name(o, at)
+    if kind == 2:
+        return discovery_name(o, at)
+    return input_name(o, at)
 
 def copy_input(s:readbuf, o:mutbuf, source:u64, at:u64, extent:u64) -> u64:
     index = 0
@@ -189,7 +191,7 @@ def widen(value:u32) -> u64:
 LITERALS = {
     'key_open': b'{"kind":"', 'key_middle': b'","metadata":{},"sha256":"',
     'json_close': b'"}', 'artifact_id': b'a-', 'artifact_uri': b'hia://artifacts/',
-    'empty_metadata': b'{}', 'ref_open': b'{"id":"', 'ref_sha': b'","sha256":"',
+    'input_name': b'input', 'empty_metadata': b'{}', 'ref_open': b'{"id":"', 'ref_sha': b'","sha256":"',
     'ref_uri': b'","uri":"', 'profile_name': b'profile', 'discovery_name': b'discovery',
     'schema_version': b'hepta.hia.program.v',
 }
