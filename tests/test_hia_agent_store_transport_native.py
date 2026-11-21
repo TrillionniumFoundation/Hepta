@@ -93,3 +93,27 @@ class StoreTransportTests(unittest.TestCase):
                 with self.assertRaises(type(reference.exception)) as native:
                     _native_row(self.codec, data, table, columns)
                 self.assertEqual(str(native.exception), str(reference.exception))
+
+    def test_transaction_requires_exact_durable_generation_and_matching_anchor(self):
+        transaction = self.codec.transaction
+        generation = (1 << 40) + 5
+        receipt = (b'HIAWTA01' + bytes(120) +
+                   struct.pack('<8s2Q', b'HIAWAK01', 1, generation) + bytes(104))
+        self.assertEqual(len(receipt), 256)
+        self.assertEqual(transaction(0, 0, 0, 0, generation), (1, generation))
+        self.assertEqual(transaction(21, 0, 0, generation - 1, generation), (1, generation))
+        self.assertEqual(transaction(21, 0, 0, generation + 1, generation), (2, 0))
+        self.assertEqual(transaction(2, 0, 17, generation - 1, generation, receipt), (1, generation))
+        self.assertEqual(transaction(2, 0, 0, generation, generation), (1, generation))
+        self.assertEqual(transaction(3, 0, 17, generation, generation), (1, generation))
+        for kind, count, previous, observed, wire in [
+                (2, 1, generation - 1, generation, b''),
+                (2, 0, generation, generation, receipt),
+                (2, 9, generation - 2, generation, receipt),
+                (2, 1, (1 << 64) - 1, 0, receipt),
+                (3, 9, generation - 1, generation, receipt)]:
+            with self.subTest(kind=kind, previous=previous, observed=observed):
+                self.assertEqual(transaction(kind, 0, count, previous, observed, wire), (3, 0))
+        self.assertEqual(transaction(2, 9, 17, generation - 1, generation, receipt), (3, 0))
+        invalid_anchor = receipt[:128] + b'badmagic' + receipt[136:]
+        self.assertEqual(transaction(2, 0, 1, generation - 1, generation, invalid_anchor), (4, 0))

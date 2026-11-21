@@ -412,8 +412,12 @@ class NativeStoreConnection:
         self.request = 0
         os.set_blocking(self.process.stdin.fileno(), False)
         os.set_blocking(self.process.stdout.fileno(), False)
-        status, _, self.generation, *_ = self._ack(0, 0, self._deadline())
-        if status != 0:
+        status, count, self.generation, *_ = self._ack(0, 0, self._deadline())
+        if self.codec is None:
+            admitted = status == 0
+        else:
+            admitted = self.codec.transaction(0, status, count, 0, self.generation) == (1, self.generation)
+        if not admitted:
             raise StoreProtocolError('native Store rejected connection readiness')
 
     @staticmethod
@@ -569,8 +573,12 @@ class NativeStoreConnection:
         else:
             deadline = self._deadline()
             self._send(21, deadline)
-            status, _, generation, *_ = self._ack(self.request, 21, deadline)
-            if status or generation < self.generation:
+            status, count, generation, *_ = self._ack(self.request, 21, deadline)
+            if self.codec is None:
+                admitted = status == 0 and generation >= self.generation
+            else:
+                admitted = self.codec.transaction(21, status, count, self.generation, generation) == (1, generation)
+            if not admitted:
                 raise StoreProtocolError('native Store rejected transaction readiness')
             self.generation = generation
         self.in_transaction = True
@@ -583,16 +591,23 @@ class NativeStoreConnection:
         try:
             self._send(command, deadline)
             magic = self._exact(8, deadline)
-            receipt = None
+            receipt = b''
             if magic == b'HIAWTA01' and commit:
-                receipt = self._exact(248, deadline)
+                receipt = magic + self._exact(248, deadline)
                 magic = self._exact(8, deadline)
             status, count, generation, *_ = self._ack(self.request, command, deadline, magic)
-            expected_generation = self.generation + int(commit and count != 0)
-            if status or generation != expected_generation or bool(receipt) != (generation != self.generation):
-                raise StoreProtocolError('native Store transaction confirmation differs')
-            if receipt and struct.unpack_from('<8s2Q', receipt, 120) != (b'HIAWAK01', 1, generation):
-                raise StoreProtocolError('native Store receipt names a different anchor')
+            if self.codec is None:
+                expected_generation = self.generation + int(commit and count != 0)
+                if status or generation != expected_generation or bool(receipt) != (generation != self.generation):
+                    raise StoreProtocolError('native Store transaction confirmation differs')
+                if receipt and struct.unpack_from('<8s2Q', receipt, 128) != (b'HIAWAK01', 1, generation):
+                    raise StoreProtocolError('native Store receipt names a different anchor')
+            else:
+                decision = self.codec.transaction(command, status, count, self.generation, generation, receipt)
+                if decision == (4, 0):
+                    raise StoreProtocolError('native Store receipt names a different anchor')
+                if decision != (1, generation):
+                    raise StoreProtocolError('native Store transaction confirmation differs')
         except OSError as error:
             if commit:
                 raise StoreCommitUnknown('native Store commit result is unknown; reopen before observing it') from error
