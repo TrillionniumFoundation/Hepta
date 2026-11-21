@@ -4,7 +4,9 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_discovery_native import PROFILE_NAMES, VERSIONS
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_discovery_artifact import kind_match_source, kind_width_source
+from tools.generate_hia_discovery_artifact import (
+    candidate_context_source, kind_match_source, kind_width_source,
+)
 
 SOURCE = 'examples/hia_bootstrap/discovery_effect.hepta'
 POLICY = r'''
@@ -20,7 +22,7 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     extent = input_word(s, 24)
     phase = state_word(w, 0)
     if phase == 0:
-        if event != 1 or (body != 16 and body != 80):
+        if event != 1 or (body != 16 and body != 80 and body != 137):
             return 4294967295
         return start_document(s, o, w, extent)
     if phase != event:
@@ -63,12 +65,18 @@ def start_document(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
     kind = input_word(s, 40)
     version = input_word(s, 48)
     limit = choose(kind == 7, 67108864, choose(kind >= 3, 8388608, 1048576))
-    if document_kind_width(kind) == 0 or extent > limit:
+    if document_kind_width(kind) == 0 or extent > limit or (kind >= 8 and extent < 2):
         return 4294967295
     if kind == 1:
         if version == 0 or version > MAX_PROFILE:
             return 4294967295
     elif version != 0:
+        return 4294967295
+    if kind == 8:
+        if length(s) != 177 or candidate_context(s, 56) == False:
+            return 4294967295
+        copy_input(s, w, 56, 384, 121)
+    elif length(s) == 177:
         return 4294967295
     # An input pin is applied to the authenticated hash before any Store lookup,
     # publication, or issuance. Existing discovery/profile frames remain unchanged.
@@ -134,14 +142,15 @@ def observe_lookup(s:readbuf, o:mutbuf, w:mutbuf, body:u64) -> u64:
 
 def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
     name = document_kind_width(kind)
-    if size != 388 + name or input_word(s, 40) != ROW:
+    metadata = choose(kind == 8, 133, 2)
+    if size != 386 + name + metadata or input_word(s, 40) != ROW:
         return False
     if input_word(s, 48) != 1 or input_word(s, 56) != 1 or input_word(s, 64) != 6:
         return False
     offset = 176
     field = 0
     while field < 6:
-        extent = choose(field == 0, 34, choose(field == 2, 48, choose(field == 3, name, choose(field == 4, 2, 64))))
+        extent = choose(field == 0, 34, choose(field == 2, 48, choose(field == 3, name, choose(field == 4, metadata, 64))))
         at = 72 + field * 24
         if input_word(s, at) != 3 or input_word(s, at + 8) != offset or input_word(s, at + 16) != extent:
             return False
@@ -155,9 +164,21 @@ def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
         return False
     if document_kind_matches(s, 362, kind) == False:
         return False
-    if byte(s, 362 + name) != 123 or byte(s, 363 + name) != 125:
+    if matches_metadata(s, w, 362 + name, kind) == False:
         return False
-    return valid_hex(s, 364 + name, 64)
+    return valid_hex(s, 362 + name + metadata, 64)
+
+def matches_metadata(s:readbuf, w:mutbuf, at:u64, kind:u64) -> bool:
+    if kind != 8:
+        return byte(s, at) == 123 and byte(s, at + 1) == 125
+    if candidate_context_metadata(s, at) == False or byte(s, at + 132) != 125:
+        return False
+    index = 0
+    while index < 121:
+        if byte(s, at + 11 + index) != byte(w, 384 + index):
+            return False
+        index = index + 1
+    return True
 
 def valid_commit(s:readbuf, size:u64) -> bool:
     if size != 56 or input_word(s, 40) != COMMIT:
@@ -171,10 +192,14 @@ def finish_document(o:mutbuf, w:mutbuf) -> u64:
     return copy_state(w, o, 128, 48, 176)
 
 def artifact_operation(o:mutbuf, w:mutbuf, role:u64, phase:u64, tag:u64) -> u64:
-    next_action(o, w, role, phase, 0, 80)
+    kind = state_word(w, 16)
+    next_action(o, w, role, phase, 0, choose(kind == 8, 201, 80))
     state_put(o, 48, tag)
-    state_put(o, 56, state_word(w, 16))
-    return copy_state(w, o, 64, 64, 64)
+    state_put(o, 56, kind)
+    at = copy_state(w, o, 64, 64, 64)
+    if kind == 8:
+        return copy_state(w, o, 384, at, 121)
+    return at
 
 def next_action(o:mutbuf, w:mutbuf, role:u64, phase:u64, extent:u64, tail:u64) -> u64:
     sequence = state_word(w, 8) + 1
@@ -274,7 +299,7 @@ def source_program():
         for index, value in enumerate(raw):
             source += f'    store(o, at + {index}, {value})\n'
         source += f'    return at + {len(raw)}\n'
-    return source + kind_width_source() + kind_match_source()
+    return source + kind_width_source() + kind_match_source() + candidate_context_source()
 
 
 if __name__ == '__main__':

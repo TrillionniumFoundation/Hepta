@@ -10,7 +10,36 @@ from tools.generate_hia_sha256 import source_program as sha256_program
 
 SOURCE = 'examples/hia_bootstrap/discovery_artifact.hepta'
 DOCUMENT_KINDS = (b'profile', b'discovery', b'input', b'context',
-                  b'inspection', b'edit-query', b'lowering-object')
+                  b'inspection', b'edit-query', b'lowering-object',
+                  b'core', b'candidate-diagnostics')
+
+CANDIDATE_CONTEXT = '''
+def candidate_context(s:readbuf, at:u64) -> bool:
+    if at > length(s) or length(s) - at < 121:
+        return False
+    if candidate_context_open(s, at) == False or candidate_context_sha(s, at + 43) == False:
+        return False
+    if byte(s, at + 119) != 34 or byte(s, at + 120) != 125:
+        return False
+    index = 11
+    while index < 119:
+        if index == 43:
+            index = 55
+        ch = byte(s, at + index)
+        if (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
+            return False
+        index = index + 1
+    return True
+'''
+
+
+def candidate_context_source():
+    parts = (('open', b'{"id":"ctx-'), ('sha', b'","sha256":"'), ('metadata', b'{"context":'))
+    source = CANDIDATE_CONTEXT
+    for name, raw in parts:
+        tests = ' and '.join(f'byte(s, at + {index}) == {value}' for index, value in enumerate(raw))
+        source += f'\ndef candidate_context_{name}(s:readbuf, at:u64) -> bool:\n    return {tests}\n'
+    return source
 
 
 def kind_width_source():
@@ -30,7 +59,7 @@ def kind_match_source():
 
 POLICY = r'''
 def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) != 80 and length(s) != 112 and length(s) != 192:
+    if length(s) < 80:
         return 4294967293
     if length(o) < 1024 or length(w) < 1152:
         return 4294967294
@@ -39,17 +68,24 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if operation != PROFILE:
             return 4294967293
         return profile_record(s, o)
-    lookup = length(s) == 80
-    if (lookup and operation != LOOKUP) or (lookup == False and operation != ISSUE):
+    lookup = operation == LOOKUP
+    if lookup == False and operation != ISSUE:
         return 4294967293
     kind = word(s, 8)
     if document_kind_width(kind) == 0:
+        return 4294967293
+    context_bytes = choose(kind == 8, 121, 0)
+    if length(s) != 80 + context_bytes + choose(lookup, 0, 32):
+        return 4294967293
+    if kind == 8 and candidate_context(s, 80) == False:
         return 4294967293
     if valid_digest(s, 16, 64) == False:
         return 4294967293
     at = key_open(o, 0)
     at = kind_text(o, at, kind)
-    at = key_middle(o, at)
+    at = key_metadata(o, at)
+    at = metadata(s, o, at, context_bytes)
+    at = key_sha(o, at)
     at = copy_input(s, o, 16, at, 64)
     at = json_close(o, at)
     if widen(sha256_in_place(o, at, w)) != 32:
@@ -69,11 +105,12 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(o, 40, 56)
         put(o, 48, 64)
         return key_bytes(o, w, 56)
-    return artifact_record(s, o, w, kind)
+    return artifact_record(s, o, w, kind, context_bytes)
 
-def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64) -> u64:
+def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64, context_bytes:u64) -> u64:
     name = document_kind_width(kind)
-    typed = 396 + name
+    meta_size = choose(context_bytes == 0, 2, 133)
+    typed = 394 + name + meta_size
     put(o, 0, RESULT)
     put(o, 8, typed)
     put(o, 16, 176)
@@ -85,7 +122,7 @@ def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64) -> u64:
     offset = 184
     field = 0
     while field < 6:
-        size = choose(field == 0, 34, choose(field == 2, 48, choose(field == 3, name, choose(field == 4, 2, 64))))
+        size = choose(field == 0, 34, choose(field == 2, 48, choose(field == 3, name, choose(field == 4, meta_size, 64))))
         at = 64 + field * 24
         put(o, at, 3)
         put(o, at + 8, offset)
@@ -93,22 +130,30 @@ def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64) -> u64:
         offset = offset + size
         field = field + 1
     at = artifact_id(o, 208)
-    at = nonce_hex(s, o, 80, at)
+    at = nonce_hex(s, o, 80 + context_bytes, at)
     at = copy_input(s, o, 16, at, 64)
     at = artifact_uri(o, at)
-    at = nonce_hex(s, o, 96, at)
+    at = nonce_hex(s, o, 96 + context_bytes, at)
     at = kind_text(o, at, kind)
-    at = empty_metadata(o, at)
+    at = metadata(s, o, at, context_bytes)
     at = key_bytes(o, w, at)
     at = ref_open(o, at)
     at = artifact_id(o, at)
-    at = nonce_hex(s, o, 80, at)
+    at = nonce_hex(s, o, 80 + context_bytes, at)
     at = ref_sha(o, at)
     at = copy_input(s, o, 16, at, 64)
     at = ref_uri(o, at)
     at = artifact_uri(o, at)
-    at = nonce_hex(s, o, 96, at)
+    at = nonce_hex(s, o, 96 + context_bytes, at)
     return json_close(o, at)
+
+def metadata(s:readbuf, o:mutbuf, at:u64, context_bytes:u64) -> u64:
+    if context_bytes == 0:
+        return empty_metadata(o, at)
+    at = metadata_context(o, at)
+    at = copy_input(s, o, 80, at, context_bytes)
+    store(o, at, 125)
+    return at + 1
 
 # The selected version is the native discovery receipt ordinal, not a
 # caller-supplied profile ID. Retain the exact canonical issued reference.
@@ -194,7 +239,11 @@ def kind_text(o:mutbuf, at:u64, kind:u64) -> u64:
         return inspection_name(o, at)
     if kind == 6:
         return edit_query_name(o, at)
-    return lowering_object_name(o, at)
+    if kind == 7:
+        return lowering_object_name(o, at)
+    if kind == 8:
+        return core_name(o, at)
+    return candidate_diagnostics_name(o, at)
 
 def copy_input(s:readbuf, o:mutbuf, source:u64, at:u64, extent:u64) -> u64:
     index = 0
@@ -216,13 +265,15 @@ def widen(value:u32) -> u64:
 '''
 
 LITERALS = {
-    'key_open': b'{"kind":"', 'key_middle': b'","metadata":{},"sha256":"',
+    'key_open': b'{"kind":"', 'key_metadata': b'","metadata":', 'key_sha': b',"sha256":"',
     'json_close': b'"}', 'artifact_id': b'a-', 'artifact_uri': b'hia://artifacts/',
     'input_name': b'input', 'context_name': b'context', 'empty_metadata': b'{}', 'ref_open': b'{"id":"', 'ref_sha': b'","sha256":"',
     'ref_uri': b'","uri":"', 'profile_name': b'profile', 'discovery_name': b'discovery',
     'schema_version': b'hepta.hia.program.v',
     'inspection_name': b'inspection', 'edit_query_name': b'edit-query',
     'lowering_object_name': b'lowering-object',
+    'core_name': b'core', 'candidate_diagnostics_name': b'candidate-diagnostics',
+    'metadata_context': b'{"context":',
 }
 
 
@@ -231,7 +282,7 @@ def source_program():
             'PROFILE': b'HIADPR01', 'PROFILE_RESULT': b'HIADPS01',
             'QUERY': b'HIAQPA01', 'INSERT': b'HIAINS01'}
     assert tuple(PRIMITIVE_PROFILES) == tuple(f'hepta.hia.program.v{n}' for n in range(1, 10))
-    source = POLICY + kind_width_source()
+    source = POLICY + kind_width_source() + candidate_context_source()
     for name, value in tags.items():
         source = re.sub(rf'\b{name}\b', str(int.from_bytes(value, 'little')), source)
     qualified = {key: ('hia-' + key + '-v1').encode('ascii') for key in PROFILE_NAMES}

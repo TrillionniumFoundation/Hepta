@@ -3,7 +3,7 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_discovery_artifact import DOCUMENT_KINDS, kind_match_source
+from tools.generate_hia_discovery_artifact import DOCUMENT_KINDS, candidate_context_source, kind_match_source
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'examples/hia_bootstrap/agent_store_transport.hepta'
@@ -404,18 +404,23 @@ def valid_hex(s:readbuf, at:u64, count:u64) -> bool:
         at = at + 1
     return True
 
-# Narrow immutable Agent artifact insert. Metadata is the original empty
-# object; data custody and content verification occur before request delivery.
+# Narrow immutable Agent artifact insert. Candidate Core is the only member
+# with metadata and it may carry only the exact retained Context reference.
 def valid_discovery_insert(s:readbuf, size:u64) -> bool:
-    if (size != 401 and size != 403 and size != 405 and size != 406 and size != 411) or read_word(s, 48) != INSERT_PARAMETERS:
+    if size < 400 or size > 531 or read_word(s, 48) != INSERT_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 9 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
         return False
-    kind = size - 396
+    kind = read_word(s, 176)
+    if kind < 4 or kind > 21:
+        return False
+    meta_size = choose(kind == 4, 133, 2)
+    if size != 394 + kind + meta_size:
+        return False
     offset = 184
     field = 0
     while field < 6:
-        extent = choose(field == 0, 34, choose(field == 2, 48, choose(field == 3, kind, choose(field == 4, 2, 64))))
+        extent = choose(field == 0, 34, choose(field == 2, 48, choose(field == 3, kind, choose(field == 4, meta_size, 64))))
         at = 88 + field * 24
         if read_word(s, at) != 3 or read_word(s, at + 8) != offset or read_word(s, at + 16) != extent:
             return False
@@ -427,9 +432,14 @@ def valid_discovery_insert(s:readbuf, size:u64) -> bool:
         return False
     if document_kind_allowed(s, 378, kind) == False:
         return False
-    if byte(s, 378 + kind) != 123 or byte(s, 379 + kind) != 125:
+    if document_metadata(s, 378 + kind, meta_size) == False:
         return False
-    return valid_hex(s, 234, 32) and valid_hex(s, 266, 64) and valid_hex(s, 346, 32) and valid_hex(s, 380 + kind, 64)
+    return valid_hex(s, 234, 32) and valid_hex(s, 266, 64) and valid_hex(s, 346, 32) and valid_hex(s, 378 + kind + meta_size, 64)
+
+def document_metadata(s:readbuf, at:u64, size:u64) -> bool:
+    if size == 2:
+        return byte(s, at) == 123 and byte(s, at + 1) == 125
+    return candidate_context_metadata(s, at) and candidate_context(s, at + 11) and byte(s, at + 132) == 125
 
 # Reserve binds the original request and compatibility tool identity, not
 # a setter for arbitrary request-state rows.
@@ -939,7 +949,7 @@ def source_program():
     kinds += '    return False\n'
     return re.sub(r'\b(' + '|'.join(WIRE) + r')\b',
         lambda name: str(int.from_bytes(WIRE[name.group()], 'little')),
-        POLICY + profile_gate + kinds + kind_match_source())
+        POLICY + profile_gate + kinds + kind_match_source() + candidate_context_source())
 
 
 if __name__ == '__main__':
