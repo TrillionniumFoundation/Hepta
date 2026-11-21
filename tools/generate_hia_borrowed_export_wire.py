@@ -5,7 +5,7 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_native_byte_abi import MAX_EXTENT, MAX_RANGES
 from hepta.hia_program import SCALARS, MAX_FUNCTIONS
-from hepta.hia_program_native import IMPORTS, _LOADER_HOOKS
+from hepta.hia_program_native import IMPORTS, MAX_FRAME_BYTES, _LOADER_HOOKS
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
@@ -16,12 +16,14 @@ FIELDS = ('functions', 'name', 'params', 'returns', 'type', 'exports')
 KINDS = ('readbuf', 'mutbuf', 'u32', *sorted(SCALARS - {'u32', 'unit'}))
 BLOCKED = tuple(sorted(IMPORTS | _LOADER_HOOKS))
 TAG = int.from_bytes(b'HIABEX01', 'little')
+WRAPPER_REQUEST = int.from_bytes(b'HIABWR01', 'little')
 CORE_WITH_EXPORTS_BYTES = (8 << 20) + 65536
 CORE_WITH_EXPORTS_NODES = 262144 + 512
 ARENA_BYTES = 64 + CORE_WITH_EXPORTS_NODES * 72 + CORE_WITH_EXPORTS_BYTES
 # Preflight reserves a power-of-two table of 64-bit cells for twice the
 # maximum key count. Crossing the original node cap doubles that table.
 PREFLIGHT_BYTES = 8 << (CORE_WITH_EXPORTS_NODES * 2 - 1).bit_length()
+ORDERED_AT = PREFLIGHT_BYTES - 4096
 
 POLICY = r'''
 # Input [admitted canonical Core, exact retained [[name,extent],...],
@@ -35,7 +37,8 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292:
         return INVALID
     root = 64
-    if get(w, root) != 5 or get(w, root + 32) != 3:
+    width = get(w, root + 32)
+    if get(w, root) != 5 or (width != 3 and width != 4):
         return INVALID
     core = 64 + get(w, root + 24) * 72
     manifest = 64 + get(w, core + 16) * 72
@@ -45,10 +48,15 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     level = byte(s, get(w, nominal + 24))
     if level < 48 or level > 52:
         return INVALID
+    bind = width == 4
+    if bind:
+        mode = 64 + get(w, nominal + 16) * 72
+        if get(w, mode) != 3 or get(w, mode + 32) != 1 or byte(s, get(w, mode + 24)) != 49:
+            return INVALID
     if get(w, manifest) != 5 or get(w, manifest + 32) > 128:
         return BAD_TUPLE
     count = get(w, manifest + 32)
-    put(o, 0, TAG)
+    put(o, 0, choose(bind, BOUND, TAG))
     put(o, 8, count)
     if count == 0:
         return 16
@@ -86,13 +94,53 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return BAD_ENTRY
         index = index + 1
         child = get(w, pair + 16)
+    if bind:
+        return wrapper_requests(w, o, fns, count)
     index = 0
     while index < count:
-        at = 4096 + index * 24
+        at = ORDERED_AT + index * 24
         put(o, 16 + index * 16, get(o, at + 8))
         put(o, 24 + index * 16, get(o, at + 16))
         index = index + 1
     return 16 + count * 16
+
+# Same name-ordered exports, followed by the actual checked public
+# signature of each function. The wrapper sees only this bounded packet.
+def wrapper_requests(w:mutbuf, o:mutbuf, fns:u64, count:u64) -> u64:
+    end = 16
+    index = 0
+    while index < count:
+        row = ORDERED_AT + index * 24
+        ordinal = get(o, row + 8)
+        extent = get(o, row + 16)
+        child = get(w, fns + 24)
+        skip = 0
+        while skip < ordinal:
+            child = get(w, 64 + child * 72 + 16)
+            skip = skip + 1
+        params = lookup(w, 64 + child * 72, 3)
+        n = get(w, params + 32)
+        if n > (FRAME_CAP >> 3) or end + 40 + n * 8 > ORDERED_AT:
+            return BAD_FRAME
+        put(o, end, ordinal)
+        put(o, end + 8, 24 + n * 8)
+        put(o, end + 16, WRAPPER)
+        put(o, end + 24, extent)
+        put(o, end + 32, n)
+        end = end + 40
+        param = get(w, params + 24)
+        words = n
+        while param != NONE:
+            node = 64 + param * 72
+            kind = type_id(w, lookup(w, node, 5))
+            put(o, end, kind)
+            words = words + choose(kind <= 2, 1, 0)
+            end = end + 8
+            param = get(w, node + 16)
+        if ((words + 1) * 8 + 15) & 18446744073709551600 > FRAME_CAP:
+            return BAD_FRAME
+        index = index + 1
+    return end
 
 def bounded_extent(s:readbuf, w:mutbuf, node:u64) -> u64:
     if get(w, node) != 3:
@@ -141,8 +189,8 @@ def name_order(w:mutbuf, left:u64, right:u64) -> u64:
     return choose(na < nb, 1, 2)
 
 def insert_ordered(o:mutbuf, w:mutbuf, name:u64, ordinal:u64, amount:u64, count:u64) -> bool:
-    at = 4096 + count * 24
-    while at > 4096:
+    at = ORDERED_AT + count * 24
+    while at > ORDERED_AT:
         previous = get(o, at - 24)
         order = name_order(w, previous, name)
         if order == 0:
@@ -192,10 +240,12 @@ def type_id(w:mutbuf, node:u64) -> u64:
 
 def source_program():
     constants = {
-        'TAG': TAG, 'RESERVED_HEAD': int.from_bytes(b'__hia_', 'little'),
+        'TAG': TAG, 'BOUND': int.from_bytes(b'HIABEX02', 'little'), 'WRAPPER': WRAPPER_REQUEST,
+        'RESERVED_HEAD': int.from_bytes(b'__hia_', 'little'),
         'FN_LIMIT': MAX_FUNCTIONS, 'LOAN_LIMIT': MAX_RANGES, 'EXTENT_LIMIT': MAX_EXTENT,
         'MAX_PACKET': CORE_WITH_EXPORTS_BYTES, 'MAX_NODES': CORE_WITH_EXPORTS_NODES, 'ARENA_MIN': ARENA_BYTES,
-        'OUTPUT_MIN': PREFLIGHT_BYTES,
+        'OUTPUT_MIN': PREFLIGHT_BYTES, 'ORDERED_AT': ORDERED_AT, 'FRAME_CAP': MAX_FRAME_BYTES,
+        'BAD_FRAME': 4294967286,
         'NONE': NONE, 'INVALID': 4294967293, 'BAD_TUPLE': 4294967280, 'NOMINAL_CONFLICT': 4294967281,
         'BAD_ENTRY': 4294967282, 'RESERVED': 4294967283, 'MISSING': 4294967284, 'SIGNATURE': 4294967285,
     }

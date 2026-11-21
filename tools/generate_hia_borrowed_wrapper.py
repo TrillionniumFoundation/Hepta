@@ -6,11 +6,11 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_native_byte_abi import MAX_EXTENT, MAX_RANGES
 from hepta.hia_program_native import MAX_FRAME_BYTES, WIDTHS
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_borrowed_export_wire import KINDS
+from tools.generate_hia_borrowed_export_wire import KINDS, WRAPPER_REQUEST
 from tools.generate_hia_machine_encoding import SOURCE as ENCODING
 
 SOURCE = Path('examples/hia_bootstrap/borrowed_wrapper.hepta')
-INPUT = int.from_bytes(b'HIABWR01', 'little')
+INPUT = WRAPPER_REQUEST
 OUTPUT = int.from_bytes(b'HIABWO01', 'little')
 OUTPUT_BYTES = 256 << 10
 WORKSPACE_BYTES = 2048
