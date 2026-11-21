@@ -38,14 +38,20 @@ ARTIFACT_REQUEST_MODE = 31
 JOURNAL_RECORD_MODE = 32
 ARTIFACT_DIAGNOSTIC_MODE = 33
 CONTEXT_WORKLOAD_MODE = 34
+INSPECTION_MODE = 35
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
-              DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE, ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE, CONTEXT_WORKLOAD_MODE)
+              DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE,
+              ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
+              CONTEXT_WORKLOAD_MODE, INSPECTION_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
+INSPECTION_HEADER = 9472
+INSPECTION_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + INSPECTION_HEADER
+INSPECTION_MAX = (24 << 20) + 2200
 # The installed pager returns its canonical JSON alongside the cursor insertion.
 PAGE_OUTPUT = 32 + 512 + 6 * 65536 + 132 + 533
 PAGE_WORKSPACE = 512 + 4128
@@ -75,6 +81,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'context-journal': JOURNAL_READ_WORKFLOW_MODE,
          'context-journal-records': JOURNAL_RECORD_MODE,
          'context-journal-observation': JOURNAL_RECORD_MODE,
+         'inspection-wire': INSPECTION_MODE,
          'artifact-authority': DISCOVERY_MODE,
          'artifact-diagnostic': ARTIFACT_DIAGNOSTIC_MODE,
          'artifact-journal': JOURNAL_READ_WORKFLOW_MODE}
@@ -106,6 +113,7 @@ def template(mode):
     schema = mode == SCHEMA_MODE
     diagnostic = mode == ARTIFACT_DIAGNOSTIC_MODE
     context_workload = mode == CONTEXT_WORKLOAD_MODE
+    inspection = mode == INSPECTION_MODE
     read_request = mode == READ_REQUEST_MODE
     worker_data = mode == WORKER_DATA_MODE
     worker_response = mode == WORKER_RESPONSE_MODE
@@ -124,7 +132,7 @@ def template(mode):
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
     direct = page or read_request or store_ready or journal_read
     descriptor = None if (direct or schema or diagnostic or worker or describe_request or discovery
-                          or describe_answer or discovery_artifact or context_workload) else (
+                          or describe_answer or discovery_artifact or context_workload or inspection) else (
         0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
@@ -136,6 +144,9 @@ def template(mode):
     if context_workload:
         # The decoder also uses this mapping for its original duplicate-key table.
         scratch, workspace = 4 << 20, ARENA_BYTES + 8192
+    if inspection:
+        scratch, workspace = 16 << 20, INSPECTION_ARENA_BYTES
+        minimum, maximum = INSPECTION_HEADER + 1, INSPECTION_HEADER + INSPECTION_MAX
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if describe_request:
@@ -223,6 +234,17 @@ def template(mode):
         word(prefix_bytes + scratch)
         emit('4c 89 e6 b9 09 00 00 00 f3 48 a5')
         emit('49 8d 7c 24 48 49 8d 75 b8')      # input pointer +72, bytes -72
+    elif inspection:
+        # The owner constructs the fixed native control area (view selectors,
+        # nominal identity or lowering mode). Relay it without interpretation.
+        emit('49 8d be')
+        word(prefix_bytes + scratch + workspace - INSPECTION_HEADER)
+        emit('4c 89 e6 b9')
+        word(INSPECTION_HEADER // 8)
+        emit('f3 48 a5 49 8d bc 24')
+        word(INSPECTION_HEADER)
+        emit('49 8d b5')
+        word((1 << 32) - INSPECTION_HEADER)
     elif worker:
         # Forward the digit policy and any closed Journal recipe without
         # interpreting them. Only the HIA application admits the data.

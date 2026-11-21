@@ -49,6 +49,7 @@ VARIANTS = {
     'context-journal-records': ('worker_context_journal_records', 'hepta.hia.context-journal-records-native.v1'),
     'context-journal-observation': ('worker_context_journal_observation', 'hepta.hia.context-journal-observation-native.v1'),
     'context-payload': ('agent_payload_schema', 'hepta.hia.agent-payload-schema-native.v1'),
+    'inspection-wire': ('agent_inspection', 'hepta.hia.agent-inspection-native.v1'),
     'artifact-journal': ('worker_artifact_journal', 'hepta.hia.artifact-journal-native.v1'),
     'discovery': ('agent_discovery', 'hepta.hia.agent-discovery-native.v1'),
     'describe-answer': ('agent_describe_answer', 'hepta.hia.agent-describe-answer-native.v1'),

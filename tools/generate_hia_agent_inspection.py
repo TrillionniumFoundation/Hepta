@@ -22,6 +22,8 @@ def inspect_agent(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 8:
         return 4294967293
     mode = get(w, length(w) - 8)
+    if mode != LOWERING_MODE and length(s) > 8388608:
+        return 4294967293
     if mode == VIEW_MODE:
         return inspect_part(s, o, w)
     if mode == IMPORT_MODE:

@@ -16,29 +16,45 @@ block b2(v10:readbuf,v11:mutbuf,v12:mutbuf)
   v17:u64 = const() {"value":8}
   v18:u64 = int.sub.wrap(v16,v17)
   v19:u64 = call(v12,v18) {"function":"f62"}
-  v20:u64 = const() {"value":3555386612114344264}
-  v21:bool = compare.eq(v19,v20)
-  branch v21 b3(v10,v11,v12) b4(v10,v11,v12,v19)
-block b3(v22:readbuf,v23:mutbuf,v24:mutbuf)
-  v30:u32 = call(v22,v23,v24) {"function":"f7"}
-  ret(v30)
-block b4(v26:readbuf,v27:mutbuf,v28:mutbuf,v29:u64)
-  v31:u64 = const() {"value":3544411265218726216}
-  v32:bool = compare.eq(v29,v31)
-  branch v32 b5(v26,v27,v28) b6(v26,v27,v28,v29)
-block b5(v33:readbuf,v34:mutbuf,v35:mutbuf)
-  v41:u32 = call(v33,v34,v35) {"function":"f6"}
-  ret(v41)
-block b6(v37:readbuf,v38:mutbuf,v39:mutbuf,v40:u64)
-  v42:u64 = const() {"value":3555397620115523912}
-  v43:bool = compare.eq(v40,v42)
-  branch v43 b7(v37,v38,v39) b8(v37,v38,v39)
-block b7(v44:readbuf,v45:mutbuf,v46:mutbuf)
-  v52:u32 = call(v44,v45,v46) {"function":"f1"}
-  ret(v52)
-block b8(v48:readbuf,v49:mutbuf,v50:mutbuf)
-  v53:u32 = call(v48,v49,v50) {"function":"f10"}
-  ret(v53)
+  v20:u64 = const() {"value":3555397620115523912}
+  v21:bool = compare.ne(v19,v20)
+  branch v21 b3(v10,v11,v12,v19) b4(v10,v11,v12,v19,v21)
+block b3(v22:readbuf,v23:mutbuf,v24:mutbuf,v25:u64)
+  v32:usize = buffer.len(v22)
+  v33:u64 = int.cast(v32) {"mode":"wrap"}
+  v34:u64 = const() {"value":8388608}
+  v35:bool = compare.gt(v33,v34)
+  jump b4(v22,v23,v24,v25,v35)
+block b4(v27:readbuf,v28:mutbuf,v29:mutbuf,v30:u64,v31:bool)
+  branch v31 b5(v27,v28,v29) b6(v27,v28,v29,v30)
+block b5(v36:readbuf,v37:mutbuf,v38:mutbuf)
+  v44:u64 = const() {"value":4294967293}
+  v45:u32 = int.cast(v44) {"mode":"wrap"}
+  ret(v45)
+block b6(v40:readbuf,v41:mutbuf,v42:mutbuf,v43:u64)
+  v46:u64 = const() {"value":3555386612114344264}
+  v47:bool = compare.eq(v43,v46)
+  branch v47 b7(v40,v41,v42) b8(v40,v41,v42,v43)
+block b7(v48:readbuf,v49:mutbuf,v50:mutbuf)
+  v56:u32 = call(v48,v49,v50) {"function":"f7"}
+  ret(v56)
+block b8(v52:readbuf,v53:mutbuf,v54:mutbuf,v55:u64)
+  v57:u64 = const() {"value":3544411265218726216}
+  v58:bool = compare.eq(v55,v57)
+  branch v58 b9(v52,v53,v54) b10(v52,v53,v54,v55)
+block b9(v59:readbuf,v60:mutbuf,v61:mutbuf)
+  v67:u32 = call(v59,v60,v61) {"function":"f6"}
+  ret(v67)
+block b10(v63:readbuf,v64:mutbuf,v65:mutbuf,v66:u64)
+  v68:u64 = const() {"value":3555397620115523912}
+  v69:bool = compare.eq(v66,v68)
+  branch v69 b11(v63,v64,v65) b12(v63,v64,v65)
+block b11(v70:readbuf,v71:mutbuf,v72:mutbuf)
+  v78:u32 = call(v70,v71,v72) {"function":"f1"}
+  ret(v78)
+block b12(v74:readbuf,v75:mutbuf,v76:mutbuf)
+  v79:u32 = call(v74,v75,v76) {"function":"f10"}
+  ret(v79)
 end
 fn f1(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
