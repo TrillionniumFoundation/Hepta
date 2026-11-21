@@ -45,6 +45,7 @@ VARIANTS = {
     'inspection-request': ('worker_inspection_request', 'hepta.hia.inspection-request-native.v1'),
     'inspection-effect': ('worker_inspection_effect', 'hepta.hia.inspection-effect-native.v1'),
     'borrowed-export-wire': ('borrowed_export_wire', 'hepta.hia.borrowed-export-wire-native.v1'),
+    'borrowed-wrapper': ('borrowed_wrapper', 'hepta.hia.borrowed-wrapper-native.v1'),
     'inspection-journal': ('worker_inspection_journal', 'hepta.hia.inspection-journal-native.v1'),
     'inspection-journal-observation': ('worker_inspection_journal_observation', 'hepta.hia.inspection-journal-observation-native.v1'),
     'inspection-journal-records': ('worker_inspection_journal_records', 'hepta.hia.inspection-journal-records-native.v1'),
