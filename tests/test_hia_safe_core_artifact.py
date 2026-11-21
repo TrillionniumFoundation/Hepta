@@ -234,6 +234,44 @@ class SafeCoreArtifactTests(unittest.TestCase):
         self.assertEqual(report["model_counts"]["core_terminal_paths"], 2)
         self.assertEqual(report["model_counts"]["machine_terminal_paths"], 2)
 
+    def test_native_machine_partition_replays_distinct_nested_prefixes(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the machine partition entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        arguments = [("left", "u8"), ("right", "u8"), ("middle", "u8")]
+        blocks = [
+            b("entry", arguments, [i("compare.lt", ("left", "right"), (("first", "bool"),))],
+              branch("first", ("less", "left", "middle"), ("more", "right", "middle"))),
+            b("less", [("low", "u8"), ("less_middle", "u8")],
+              [i("compare.lt", ("low", "less_middle"), (("second", "bool"),))],
+              branch("second", ("small", "low"), ("small", "less_middle"))),
+            b("more", [("high", "u8"), ("more_middle", "u8")],
+              [i("compare.le", ("high", "more_middle"), (("third", "bool"),))],
+              branch("third", ("large", "more_middle"), ("large", "high"))),
+            b("small", [("minimum", "u8")], [], jump("join", "minimum")),
+            b("large", [("maximum", "u8")], [], jump("join", "maximum")),
+            b("join", [("chosen", "u8")], [], ret("chosen")),
+        ]
+        core = verify_program(m(f("partition", arguments, ["u8"], [], blocks)))
+        image = emit_program_machine(core)
+        final = self.newdir() / "partition.so"
+        compile_program_machine(image, program=core, output=final, linker="ld")
+        supplied = final.read_bytes()
+        with patch("importlib.import_module", side_effect=no_host_solver):
+            report = validate_safe_core_artifact(core, image.object_bytes, supplied)
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+        self.assertEqual(report["model_counts"]["core_terminal_paths"], 4)
+        self.assertEqual(report["model_counts"]["machine_terminal_paths"], 4)
+
     def test_selected_scalar_elf_proof_checks_actual_bytes_without_host_solver(self):
         import z3
         from hepta.hia_safe_core import _selected_machine_proof

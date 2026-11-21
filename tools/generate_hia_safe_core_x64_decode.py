@@ -12,7 +12,8 @@ from hepta.hia_safe_core_x64_decode_native import (
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
-    SCHEDULER_WORKSPACE, WORKSPACE, MACHINE_VALUES_INDEX, MACHINE_VALUES_REPLY,
+    SCHEDULER_WORKSPACE, WORKSPACE, MACHINE_VALUES_BRANCH_DEPTH, MACHINE_VALUES_BRANCHES,
+    MACHINE_VALUES_INDEX, MACHINE_VALUES_REPLY,
     MACHINE_VALUES_HEADER, MACHINE_VALUES_REQUEST, MACHINE_VALUES_STACK_BYTES, MACHINE_VALUES_WORKSPACE,
     QUERY_FORMAT_WORKSPACE,
 )
@@ -44,8 +45,9 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
               MV_FLAGS=160, MV_LEFT=168, MV_RIGHT=176,
-              MV_PATH_MODE=MACHINE_VALUES_INDEX - 56, MV_BRANCH_PC=MACHINE_VALUES_INDEX - 48,
-              MV_BRANCH_PRED=MACHINE_VALUES_INDEX - 40, MV_BRANCH_SEEN=MACHINE_VALUES_INDEX - 32,
+              MV_BRANCH_SEEN=MACHINE_VALUES_BRANCHES - 16,
+              MV_PREFIX=MACHINE_VALUES_BRANCHES - 8, MV_BRANCHES=MACHINE_VALUES_BRANCHES,
+              MV_BRANCH_DEPTH=MACHINE_VALUES_BRANCH_DEPTH, MV_TERMINALS=1 << MACHINE_VALUES_BRANCH_DEPTH,
               MV_PRODUCT=WRAPPING_PRODUCT, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
               MV_SHIFT_RIGHT=WORD_VARIABLE_SHR, MV_SHIFT_ARITHMETIC=WORD_ARITHMETIC_SHR)
 FIELDS.update(QUERY_WORKSPACE=QUERY_FORMAT_WORKSPACE, QUERY_REQUEST=SPARSE_REQUEST,
@@ -1241,7 +1243,7 @@ def caller_disjoint_formula(o:mutbuf) -> u64:
     disjoint = node(o, R_BOOL_OR3, empty, before_stack, after_stack)
     return node(o, R_IMPLIES, admitted, disjoint, 0)
 
-# Finite symbolic semantics for straight-line, word-only scalar images.
+# Finite symbolic semantics for acyclic, word-only scalar images.
 # Abstract register/stack values are either circuit nodes, stack positions,
 # opaque caller registers or return sites. An unknown value is never a circuit
 # input and cannot determine memory, control flow or the observed return.
@@ -1257,34 +1259,57 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     while index < words:
         mv_node(o, w, 1, 0, 0, 0)
         index = index + 1
-    put(w, MV_PATH_MODE, 0)
-    put(w, MV_BRANCH_PRED, 0)
-    if mv_prime_path(s, w, words, count) == 0:
-        return 4294967293
-    value = mv_run_path(s, o, w)
-    if value == 0:
-        return 0
-    steps = get(w, MV_STEPS)
-    depth = MV_STACK_TOP - get(w, MV_LOW)
-    paths = 1
-    predicate = get(w, MV_BRANCH_PRED)
-    if predicate != 0:
-        # Re-execute the same verified prefix with the same raw ABI words.
-        # The first path took the fall-through; this path must observe the
-        # same single branch and then take its checked destination.
-        put(w, MV_PATH_MODE, 1)
-        if mv_prime_path(s, w, words, count) == 0:
-            return 0
-        taken = mv_run_path(s, o, w)
-        if taken == 0 or get(w, MV_BRANCH_SEEN) != 1:
-            return 0
-        value = mv_node(o, w, 11, predicate - 1, taken - 1, value - 1)
+    put(w, MV_PREFIX, 0)
+    return mv_tree(s, o, w, words, count)
+
+def mv_tree(s:readbuf, o:mutbuf, w:mutbuf, words:u64, count:u64) -> u64:
+    steps = 0
+    depth = 0
+    paths = 0
+    while paths < MV_TERMINALS:
+        value = mv_next_terminal(s, o, w, words, count)
         if value == 0:
             return 0
         steps = steps + get(w, MV_STEPS)
-        other_depth = MV_STACK_TOP - get(w, MV_LOW)
-        depth = choose(other_depth > depth, other_depth, depth)
-        paths = 2
+        path_depth = MV_STACK_TOP - get(w, MV_LOW)
+        depth = choose(path_depth > depth, path_depth, depth)
+        paths = paths + 1
+        value = mv_fold_path(o, w, value)
+        if value == 0:
+            return 0
+        if get(w, MV_PREFIX) == 0:
+            return mv_finish_tree(o, w, value, steps, depth, paths)
+    return 0
+
+def mv_next_terminal(s:readbuf, o:mutbuf, w:mutbuf, words:u64, count:u64) -> u64:
+    if mv_prime_path(s, w, words, count) == 0:
+        return 0
+    value = mv_run_path(s, o, w)
+    if get(w, MV_BRANCH_SEEN) < get(w, MV_PREFIX):
+        return 0
+    return value
+
+def mv_fold_path(o:mutbuf, w:mutbuf, terminal:u64) -> u64:
+    # Each frame describes an exact prefix. Save a completed fall-through
+    # subtree, or join it with its checked taken subtree and continue upwards.
+    depth = get(w, MV_BRANCH_SEEN)
+    value = terminal
+    while depth != 0:
+        frame = MV_BRANCHES + (depth - 1) * 24
+        not_taken = get(w, frame + 16)
+        if not_taken == 0:
+            put(w, frame + 16, value)
+            put(w, MV_PREFIX, depth)
+            return value
+        predicate = get(w, frame + 8)
+        value = mv_node(o, w, 11, predicate - 1, value - 1, not_taken - 1)
+        if value == 0:
+            return 0
+        depth = depth - 1
+    put(w, MV_PREFIX, 0)
+    return value
+
+def mv_finish_tree(o:mutbuf, w:mutbuf, value:u64, steps:u64, depth:u64, paths:u64) -> u64:
     nodes = get(w, MV_NODES)
     put(o, 0, MV_REPLY)
     put(o, 8, nodes)
@@ -1636,19 +1661,25 @@ def mv_cmovne(o:mutbuf, w:mutbuf, register:u64, source:u64) -> u64:
     return 1
 
 def mv_branch(o:mutbuf, w:mutbuf, pc:u64, condition:u64, target:u64) -> u64:
-    if get(w, MV_BRANCH_SEEN) != 0 or target >= MAX_TEXT:
+    depth = get(w, MV_BRANCH_SEEN)
+    if depth >= MV_BRANCH_DEPTH or target >= MAX_TEXT:
         return 0
-    put(w, MV_BRANCH_SEEN, 1)
-    if get(w, MV_PATH_MODE) == 1:
-        if pc != get(w, MV_BRANCH_PC):
+    frame = MV_BRANCHES + depth * 24
+    put(w, MV_BRANCH_SEEN, depth + 1)
+    if depth < get(w, MV_PREFIX):
+        # Nothing from an alternative prefix is reused. Replay starts from
+        # the fixed ABI state, chasing precisely the prior branch decisions.
+        if pc != get(w, frame):
             return 0
-        put(w, MV_PC, target)
+        if get(w, frame + 16) != 0:
+            put(w, MV_PC, target)
         return 1
     predicate = mv_condition(o, w, condition)
     if predicate == 0:
         return 0
-    put(w, MV_BRANCH_PRED, predicate)
-    put(w, MV_BRANCH_PC, pc)
+    put(w, frame, pc)
+    put(w, frame + 8, predicate)
+    put(w, frame + 16, 0)
     return 1
 
 '''

@@ -26,7 +26,9 @@ QUERY_FORMAT_WORKSPACE = 1
 MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
 MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR02', 'little')
 MACHINE_VALUES_STACK_BYTES = 16384
-MACHINE_VALUES_INDEX = 192 + MACHINE_VALUES_STACK_BYTES + 64
+MACHINE_VALUES_BRANCH_DEPTH = 4
+MACHINE_VALUES_BRANCHES = 192 + MACHINE_VALUES_STACK_BYTES + 24
+MACHINE_VALUES_INDEX = MACHINE_VALUES_BRANCHES + MACHINE_VALUES_BRANCH_DEPTH * 24
 MACHINE_VALUES_WORKSPACE = MACHINE_VALUES_INDEX + MAX_TEXT * 8
 MACHINE_VALUES_HEADER = struct.Struct('<6Q')
 MACHINE_VALUES_NODE = struct.Struct('<5Q')
@@ -336,7 +338,8 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA machine scalar projection extent')
         magic, count, value, steps, depth, paths = MACHINE_VALUES_HEADER.unpack_from(output)
         if (magic != MACHINE_VALUES_REPLY or not 0 <= value < count <= CIRCUIT_NODES
-                or paths not in (1, 2) or not 0 < steps <= paths * MAX_INSTRUCTIONS
+                or not 1 <= paths <= 1 << MACHINE_VALUES_BRANCH_DEPTH
+                or not 0 < steps <= paths * MAX_INSTRUCTIONS
                 or depth > MACHINE_VALUES_STACK_BYTES
                 or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count):
             raise RuntimeError('invalid HIA machine scalar projection')

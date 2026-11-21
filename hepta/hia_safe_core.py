@@ -947,10 +947,10 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     queries_to_solve = (_scalar_caller_contract(), no_violation, no_violation, *circuits)
     for index, ((name, expected), circuit) in enumerate(zip(ARTIFACT_OBLIGATIONS, queries_to_solve, strict=True)):
         before = time.monotonic()
-        # The cross-model comparison can contain reconverging 64-bit flag
-        # and conditional-move terms. Use the same exact formula and bounded
-        # work lease with learned restarts for that final obligation.
-        decision = _native_circuit_decision(cnf, circuit, deadline, restart_search=index == 4)
+        # Terminal coverage and the cross-model comparison both contain
+        # reconverging flag predicates. Keep the exact formulas and the same
+        # work lease, using learned restarts for these two obligations.
+        decision = _native_circuit_decision(cnf, circuit, deadline, restart_search=index >= 3)
         if decision is None:
             return None
         verdict, model, discharge, frame = decision
