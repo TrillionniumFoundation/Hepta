@@ -17,7 +17,8 @@ KINDS = ('readbuf', 'mutbuf', 'u32', *sorted(SCALARS - {'u32', 'unit'}))
 BLOCKED = tuple(sorted(IMPORTS | _LOADER_HOOKS))
 TAG = int.from_bytes(b'HIABEX01', 'little')
 WRAPPER_REQUEST = int.from_bytes(b'HIABWR01', 'little')
-CORE_WITH_EXPORTS_BYTES = (8 << 20) + 65536
+CORE_BYTES = 8 << 20
+CORE_WITH_EXPORTS_BYTES = CORE_BYTES + 65536
 CORE_WITH_EXPORTS_NODES = 262144 + 512
 ARENA_BYTES = 64 + CORE_WITH_EXPORTS_NODES * 72 + CORE_WITH_EXPORTS_BYTES
 # Preflight reserves a power-of-two table of 64-bit cells for twice the
@@ -48,16 +49,31 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     level = byte(s, get(w, nominal + 24))
     if level < 48 or level > 52:
         return INVALID
-    bind = width == 4
-    if bind:
+    binding = 0
+    if width == 4:
         mode = 64 + get(w, nominal + 16) * 72
-        if get(w, mode) != 3 or get(w, mode + 32) != 1 or byte(s, get(w, mode + 24)) != 49:
+        if get(w, mode) != 3 or get(w, mode + 32) != 1:
+            return INVALID
+        binding = byte(s, get(w, mode + 24)) - 48
+        if binding != 1 and binding != 2:
             return INVALID
     if get(w, manifest) != 5 or get(w, manifest + 32) > 128:
         return BAD_TUPLE
     count = get(w, manifest + 32)
-    put(o, 0, choose(bind, BOUND, TAG))
+    at = 16
+    put(o, 0, choose(binding == 1, BOUND, TAG))
     put(o, 8, count)
+    if binding == 2:
+        # This span is of the same Core consumed by the admission above.
+        # The builder must not accept a second candidate from the caller.
+        start = get(w, core + 56)
+        extent = get(w, core + 64)
+        if count == 0 or extent == 0 or extent > CORE_LIMIT or start > length(s) or extent > length(s) - start:
+            return INVALID
+        put(o, 0, BOUND_CORE)
+        put(o, 16, start)
+        put(o, 24, extent)
+        at = 32
     if count == 0:
         return 16
     if level != 48 or lookup(w, core, 6) != NONE:
@@ -94,8 +110,8 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return BAD_ENTRY
         index = index + 1
         child = get(w, pair + 16)
-    if bind:
-        return wrapper_requests(w, o, fns, count)
+    if binding != 0:
+        return wrapper_requests(w, o, fns, count, at)
     index = 0
     while index < count:
         at = ORDERED_AT + index * 24
@@ -106,8 +122,8 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 
 # Same name-ordered exports, followed by the actual checked public
 # signature of each function. The wrapper sees only this bounded packet.
-def wrapper_requests(w:mutbuf, o:mutbuf, fns:u64, count:u64) -> u64:
-    end = 16
+def wrapper_requests(w:mutbuf, o:mutbuf, fns:u64, count:u64, start:u64) -> u64:
+    end = start
     index = 0
     while index < count:
         row = ORDERED_AT + index * 24
@@ -240,11 +256,13 @@ def type_id(w:mutbuf, node:u64) -> u64:
 
 def source_program():
     constants = {
-        'TAG': TAG, 'BOUND': int.from_bytes(b'HIABEX02', 'little'), 'WRAPPER': WRAPPER_REQUEST,
+        'TAG': TAG, 'BOUND': int.from_bytes(b'HIABEX02', 'little'),
+        'BOUND_CORE': int.from_bytes(b'HIABEX03', 'little'), 'WRAPPER': WRAPPER_REQUEST,
         'RESERVED_HEAD': int.from_bytes(b'__hia_', 'little'),
         'FN_LIMIT': MAX_FUNCTIONS, 'LOAN_LIMIT': MAX_RANGES, 'EXTENT_LIMIT': MAX_EXTENT,
         'MAX_PACKET': CORE_WITH_EXPORTS_BYTES, 'MAX_NODES': CORE_WITH_EXPORTS_NODES, 'ARENA_MIN': ARENA_BYTES,
         'OUTPUT_MIN': PREFLIGHT_BYTES, 'ORDERED_AT': ORDERED_AT, 'FRAME_CAP': MAX_FRAME_BYTES,
+        'CORE_LIMIT': CORE_BYTES,
         'BAD_FRAME': 4294967286,
         'NONE': NONE, 'INVALID': 4294967293, 'BAD_TUPLE': 4294967280, 'NOMINAL_CONFLICT': 4294967281,
         'BAD_ENTRY': 4294967282, 'RESERVED': 4294967283, 'MISSING': 4294967284, 'SIGNATURE': 4294967285,
