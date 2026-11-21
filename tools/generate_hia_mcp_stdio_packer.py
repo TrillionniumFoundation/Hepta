@@ -127,7 +127,7 @@ def template(mode):
     if describe_answer:
         scratch, workspace, minimum, maximum = 65536, 8, 16, 1 << 20
     if discovery_artifact:
-        scratch, workspace, minimum, maximum = 1024, 1152, 80, 112
+        scratch, workspace, minimum, maximum = 1024, 1152, 80, 192
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
