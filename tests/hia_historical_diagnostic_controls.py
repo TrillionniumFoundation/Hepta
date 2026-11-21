@@ -1,0 +1,42 @@
+"""Recover the former diagnostic test fixture as data for its historical controls."""
+from hashlib import sha256
+import json
+
+from tests import hia_caller_diagnostics_admission as diagnostics
+from tests import hia_native_transport_worker_successor as delivery
+
+
+def diagnostic_predecessor(root, raw):
+    """Check the actual inherited source, then restore its reviewed predecessor."""
+    if diagnostics.pin(raw) == diagnostics.CURRENT:
+        return raw
+    return delivery._reverse_sqlite_boundary(diagnostics.PATH, raw,
+        (root / delivery.SQLITE_BOUNDARY_FIXTURE).read_bytes(),
+        delivery.DIAGNOSTIC_FIXTURE, (root / delivery.DIAGNOSTIC_FIXTURE).read_bytes(), diagnostics.CURRENT)
+
+
+def historical_caller_dependencies(root, sources, expected):
+    """Recover only the reviewed Machine and Proof fixture versions as data."""
+    from tests.hia_store_delivery_successor import reverse_exact
+
+    machine = delivery.MACHINE_RECEIPT_CALLER
+    if machine in expected and diagnostics.pin(sources[machine])['sha256'] != expected[machine]:
+        authority = (root / delivery.MACHINE_RECEIPT_FIXTURE).read_bytes()
+        if diagnostics.pin(authority) != delivery.MACHINE_RECEIPT_FIXTURE_PIN:
+            raise ValueError('the retained machine source authority changed')
+        record = json.loads(authority)['record']
+        sources[machine] = delivery.restore_machine_receipt_caller(root, sources[machine],
+            {'bytes': record['old_bytes'], 'sha256': expected[machine]})
+    proof = 'tests/test_hia_agent_native_proof_contract.py'
+    if proof in expected and diagnostics.pin(sources[proof])['sha256'] != expected[proof]:
+        authority = (root / delivery.COMPONENT_FIXTURE).read_bytes()
+        if sha256(authority).hexdigest() != delivery.COMPONENT_FIXTURE_SHA256:
+            raise ValueError('the retained proof source authority changed')
+        record = json.loads(authority)['files'][proof][expected[proof]]
+        sources[proof] = reverse_exact(sources[proof], record,
+            {'bytes': record['old_bytes'], 'sha256': expected[proof]})
+
+
+def historical_bootstrap_dependencies(root, sources, scopes):
+    historical_caller_dependencies(root, sources, {
+        name: record['sha256'] for name, record in scopes['ordinary']['files'].items()})

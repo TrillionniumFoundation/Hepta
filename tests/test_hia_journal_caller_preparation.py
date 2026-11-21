@@ -8,6 +8,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from copy import deepcopy
 from hashlib import sha256
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor, historical_caller_dependencies
 import json
 from pathlib import Path
 import tempfile
@@ -80,6 +81,11 @@ class JournalCallerPreparationSourceTests(unittest.TestCase):
         cls.transaction = json.loads(frozen)
         names.update(row['path'] for row in cls.transaction['modules'])
         cls.sources = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        cls.live_sources = dict(cls.sources)
+        historical_caller_dependencies(ROOT, cls.sources, {
+            name: pin['sha256'] for name, pin in cls.scopes[discovery.FIXTURE]['ordinary']['files'].items()})
+        cls.actual_diagnostic = cls.sources[DIAGNOSTIC]
+        cls.sources[DIAGNOSTIC] = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
         cls.old_diagnostic = inverse(cls.sources[DIAGNOSTIC], json.loads(cls.sources[DIAGNOSTIC_AUTHORITY]))
         restored = inverse(cls.sources[journal.PATH], json.loads(cls.sources[journal.FIXTURE]))
         if restored != cls.sources[journal.ARCHIVE]:
@@ -87,7 +93,8 @@ class JournalCallerPreparationSourceTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if cls.sources != {name: (ROOT / name).read_bytes() for name in cls.sources}:
+        pinned = cls.live_sources
+        if pinned != {name: (ROOT / name).read_bytes() for name in pinned}:
             raise AssertionError('Journal caller Source inputs changed')
 
     def setUp(self):

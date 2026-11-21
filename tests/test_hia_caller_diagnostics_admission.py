@@ -1,5 +1,6 @@
 """Pure source controls: retain the old caller and admit only reviewed diagnostics."""
 from hashlib import sha256
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor
 import json
 from pathlib import Path
 import tempfile
@@ -16,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class CallerDiagnosticsSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.current = (ROOT / producer.PATH).read_bytes()
+        cls.actual_current = (ROOT / producer.PATH).read_bytes()
+        cls.current = diagnostic_predecessor(ROOT, cls.actual_current)
         cls.provenance = (ROOT / producer.FIXTURE).read_bytes()
         if producer.pin(cls.current) != producer.CURRENT:
             raise AssertionError('exact current diagnostic caller differs')
@@ -43,7 +45,7 @@ class CallerDiagnosticsSourceTests(unittest.TestCase):
         self.assertEqual(admitted['original_deadline_seconds'], 5)
         self.assertEqual(admitted['original_native_budget_ms'], 1)
         self.assertIs(admitted['production_source_exception'], False)
-        self.assertEqual((ROOT / producer.PATH).read_bytes(), self.current)
+        self.assertEqual((ROOT / producer.PATH).read_bytes(), self.actual_current)
         self.assertEqual((ROOT / producer.FIXTURE).read_bytes(), self.provenance)
 
     def test_unreviewed_source_provenance_and_expected_pin_are_refused(self):

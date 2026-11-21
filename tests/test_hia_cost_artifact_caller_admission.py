@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from hashlib import sha256
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor, historical_caller_dependencies
 import json
 from pathlib import Path
 import tempfile
@@ -71,12 +72,18 @@ class CostArtifactCallerAdmissionSourceTests(unittest.TestCase):
             names.update(cls.original_files[label])
             names.add(fixture)
         cls.sources = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        cls.live_sources = dict(cls.sources)
+        for pins in cls.original_files.values():
+            historical_caller_dependencies(ROOT, cls.sources, pins)
+        cls.actual_diagnostic = cls.sources[cost._DIAGNOSTICS_CALLER]
+        cls.sources[cost._DIAGNOSTICS_CALLER] = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
         cls.original = inverse(cls.sources[cost._DIAGNOSTICS_CALLER],
                                json.loads(cls.sources[cost._DIAGNOSTICS_AUTHORITY]))
 
     @classmethod
     def tearDownClass(cls):
-        if cls.sources != {name: (ROOT / name).read_bytes() for name in cls.sources}:
+        pinned = cls.live_sources
+        if pinned != {name: (ROOT / name).read_bytes() for name in pinned}:
             raise AssertionError('caller Source input bytes changed')
 
     def setUp(self):

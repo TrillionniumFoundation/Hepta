@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor, historical_bootstrap_dependencies
 import json
 from pathlib import Path
 import tempfile
@@ -38,6 +39,9 @@ class ServiceBootstrapCallerAdmissionTests(unittest.TestCase):
         if {'bytes': len(journal_archive), 'sha256': sha256(journal_archive).hexdigest()} != cls.scopes['journal']['files'][journal_path]:
             raise AssertionError('retained complete Journal source differs')
         cls.inputs[journal_path] = journal_archive
+        historical_bootstrap_dependencies(ROOT, cls.inputs, cls.scopes)
+        cls.actual_diagnostic = cls.inputs[diagnostics.PATH]
+        cls.inputs[diagnostics.PATH] = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
         cls.original_caller = diagnostics.restore(
             cls.inputs[diagnostics.PATH], cls.inputs[diagnostics.FIXTURE])
 
