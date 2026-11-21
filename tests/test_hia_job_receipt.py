@@ -101,3 +101,38 @@ class JobReceiptExecutableTests(unittest.TestCase):
             destination = self.root / (name.decode('ascii') + '.json')
             self.assertEqual(destination.read_bytes(), payload)
             self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
+
+    def test_owner_wire_creates_both_exact_records_and_never_replaces_previous_intent(self):
+        def owner(**kwargs):
+            return self.request(name=b'', payload=b'{"supervisor_pid": 13}', magic=b'HIAJRO01', **kwargs)
+        self.check_receipt(owner(), 6, 0)
+        names = ('owner-intent.json', 'started.json')
+        records = {name: (self.root / name).stat().st_ino for name in names}
+        self.assertEqual(set(path.name for path in self.root.iterdir()), set(names))
+        for name in names:
+            record = self.root / name
+            self.assertEqual(record.read_bytes(), b'{"supervisor_pid": 13}')
+            self.assertEqual(stat.S_IMODE(record.stat().st_mode), 0o600)
+        self.check_receipt(owner(), 1, -errno.EEXIST)
+        self.assertEqual({name: (self.root / name).stat().st_ino for name in names}, records)
+
+    def test_owner_wire_stops_at_partial_publication_without_retry(self):
+        started = self.root / 'started.json'
+        started.write_bytes(b'prior receipt')
+        kwargs = {'name':b'', 'payload':b'{"supervisor_pid": 13}', 'magic':b'HIAJRO01'}
+        self.check_receipt(self.request(**kwargs), 5, -errno.EEXIST)
+        self.assertEqual(started.read_bytes(), b'prior receipt')
+        intent = self.root / 'owner-intent.json'
+        self.assertEqual(intent.read_bytes(), kwargs['payload'])
+        previous = intent.stat().st_ino
+        self.check_receipt(self.request(**kwargs), 1, -errno.EEXIST)
+        self.assertEqual(intent.stat().st_ino, previous)
+
+    def test_owner_wire_requires_seals_exact_parent_and_no_caller_names(self):
+        request = {'name':b'', 'payload':b'{"supervisor_pid": 13}', 'magic':b'HIAJRO01'}
+        for patch in ({'name':b'started'}, {'sealed':False}, {'parent':os.getpid()+1},
+                      {'payload':b'{"supervisor_pid": 13}\n'}, {'suffix':b'x'},
+                      {'payload':b'{'+b'x'*65535+b'}'}):
+            refused = self.request(**(request | patch))
+            self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+            self.assertEqual(list(self.root.iterdir()), [])

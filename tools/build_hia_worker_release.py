@@ -157,27 +157,46 @@ def _worker_prepare_has_witness_publisher(prepare):
     return True
 
 
-def _verify_terminal_publisher(writer, scratch):
+def _run_job_writer(writer, frame, directory):
     import fcntl
 
+    output = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        with os.fdopen(os.memfd_create('job-writer-frame', os.MFD_ALLOW_SEALING), 'w+b') as source:
+            source.write(frame)
+            source.flush()
+            fcntl.fcntl(source, fcntl.F_ADD_SEALS, fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK |
+                        fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE)
+            source.seek(0)
+            return subprocess.run([writer], stdin=source, stdout=output, stderr=subprocess.PIPE,
+                                  env={'PATH': ''}, timeout=5)
+    finally:
+        os.close(output)
+
+
+def _verify_terminal_publisher(writer, scratch):
     name, raw = b'exit.witness', b'{}\n'
     frame = struct.pack('<8s3Q', b'HIAJRQ02', len(raw), os.getpid(), len(name)) + name + raw
     with TemporaryDirectory(prefix='terminal-writer-', dir=scratch) as directory:
-        output = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
-        try:
-            with os.fdopen(os.memfd_create('terminal-writer-frame', os.MFD_ALLOW_SEALING), 'w+b') as source:
-                source.write(frame)
-                source.flush()
-                fcntl.fcntl(source, fcntl.F_ADD_SEALS, fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK |
-                            fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE)
-                source.seek(0)
-                result = subprocess.run([writer], stdin=source, stdout=output, stderr=subprocess.PIPE,
-                                        env={'PATH': ''}, timeout=5)
-        finally:
-            os.close(output)
+        result = _run_job_writer(writer, frame, directory)
         if (result.returncode != 0 or result.stderr != struct.pack('<8sQq', b'HIAJRW01', 6, 0)
                 or (Path(directory) / 'exit.witness.json').read_bytes() != raw):
             raise ValueError('installed HIA terminal publisher did not preserve the complete witness bytes')
+
+
+def _job_writer_has_owner_publication(writer, scratch):
+    raw = b'{"supervisor_pid": 17}'
+    frame = struct.pack('<8s3Q', b'HIAJRO01', len(raw), os.getpid(), 0) + raw
+    with TemporaryDirectory(prefix='owner-writer-', dir=scratch) as directory:
+        result = _run_job_writer(writer, frame, directory)
+        flags = result.returncode, result.stderr
+        records = {path.name: path.read_bytes() for path in Path(directory).iterdir()}
+        if flags == (65, b'') and not records:
+            return False
+        if flags != (0, struct.pack('<8sQq', b'HIAJRW01', 6, 0)) or records != {
+                'owner-intent.json': raw, 'started.json': raw}:
+            raise ValueError('installed HIA owner publisher did not preserve both bound receipts')
+        return True
 
 
 def _worker_prepare_has_supervisor_outcome(prepare):
@@ -220,6 +239,8 @@ def _install_controller(output, scratch, release, installer):
                 schema = 'hepta.hia.mcp.controller.v6'
                 if _worker_prepare_has_supervisor_outcome(release / 'hia-worker-prepare'):
                     schema = 'hepta.hia.mcp.controller.v7'
+                    if _job_writer_has_owner_publication(receipt_writer, scratch):
+                        schema = 'hepta.hia.mcp.controller.v8'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

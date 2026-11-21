@@ -82,6 +82,8 @@ policy_call_hole:
  je sync_directory
  cmp eax,7
  je emit
+ cmp eax,8
+ je close_checked
  jmp refusal
 
 stage:
@@ -132,6 +134,12 @@ close_file:
  syscall
  /* The original owner closes only after fsync, and does not retry close. */
  xor eax,eax
+ jmp observed
+
+close_checked:
+ mov rdi,r14
+ mov eax,3
+ syscall
  jmp observed
 
 publish:

@@ -19,23 +19,65 @@ ADAPTER_PATH = 'tools/hia_job_receipt_syscalls.S'
 PACKER_MAGIC = int.from_bytes(b'HIAJPK01', 'little')
 REQUEST_MAGIC = int.from_bytes(b'HIAJRQ01', 'little')
 TERMINAL_MAGIC = int.from_bytes(b'HIAJRQ02', 'little')
+OWNER_MAGIC = int.from_bytes(b'HIAJRO01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
 SOURCE = f'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 35 and uint(s, 0, 8) == {OWNER_MAGIC}:
+        return advance_owner(s, o, w)
     phase = observed(w, 0)
     result = observed(w, 8)
     if phase == 0:
         if prepare(s, o, observed(w, 16)) == 0:
             return 0
     elif result >> 63 != 0 or phase == 6:
-        put(o, 0, {RESULT_MAGIC}, 8)
-        put(o, 8, phase, 8)
-        put(o, 16, result, 8)
-        return 7
+        return acknowledge(o, phase, result)
     phase = phase + 1
     put(w, 0, phase, 8)
     return phase
+
+def acknowledge(o:mutbuf, phase:u64, result:u64) -> u64:
+    put(o, 0, {RESULT_MAGIC}, 8)
+    put(o, 8, phase, 8)
+    put(o, 16, result, 8)
+    return 7
+
+def advance_owner(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    phase = observed(w, 0)
+    result = observed(w, 8)
+    if phase == 0:
+        size = length(s)
+        if size > 65568 or length(o) < 352 or uint(s, 8, 8) != size - 32:
+            return 0
+        pid = uint(s, 16, 8)
+        if pid == 0 or pid > 2147483647 or pid != observed(w, 16) or uint(s, 24, 8) != 0:
+            return 0
+        if byte(s, 32) != 123 or byte(s, size - 1) != 125:
+            return 0
+        put(o, 24, 32, 8)
+        put(o, 192, {int.from_bytes(b'owner-in', 'little')}, 8)
+        put(o, 200, {int.from_bytes(b'tent.jso', 'little')}, 8)
+        put(o, 208, 110, 2)
+    elif phase > 9:
+        return 0
+    elif result >> 63 != 0:
+        return acknowledge(o, phase, result)
+    elif phase == 9:
+        return acknowledge(o, 6, result)
+    elif phase == 4:
+        # O_EXCL on each original name. The one directory barrier follows
+        # both independently synced and closed records.
+        put(o, 192, {int.from_bytes(b'started.', 'little')}, 8)
+        put(o, 200, {int.from_bytes(b'json', 'little')}, 5)
+    put(w, 0, phase + 1, 8)
+    if phase < 3:
+        return phase + 1
+    if phase == 3 or phase == 7:
+        return 8
+    if phase < 7:
+        return phase - 3
+    return 6
 
 def prepare(s:readbuf, o:mutbuf, parent:u64) -> u64:
     size = length(s)
