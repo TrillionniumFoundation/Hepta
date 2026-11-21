@@ -103,7 +103,7 @@ def template(mode):
     if store_ready:
         scratch, workspace, minimum, maximum = 16, 8, 80, 80
     if journal_read:
-        scratch, workspace, minimum, maximum = INPUT_MAX + 576, 24, 40, 2 * INPUT_MAX + 584
+        scratch, workspace, minimum, maximum = INPUT_MAX + 576, 24, 40, 2 * INPUT_MAX + 1112
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):

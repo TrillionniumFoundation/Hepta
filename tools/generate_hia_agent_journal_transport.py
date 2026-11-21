@@ -6,6 +6,7 @@ the bounded journal transition compiler's function and block limits intact.
 from __future__ import annotations
 
 import json
+import re
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_agent_stdio import ROOT, document
@@ -38,7 +39,117 @@ def read_workflow(s:readbuf, o:mutbuf) -> u64:
         return read_effect_error(s, o)
     if mode == READ_COST_MAGIC:
         return read_closeout_cost(s, o)
+    if mode == READ_REPLY_MAGIC:
+        return read_workflow_reply(s, o)
+    if mode == COST_COMMIT_MAGIC:
+        return attest_cost_commit(s, o)
     return 0
+
+def attest_cost_commit(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 64 or length(o) < 40 or input_word(s, 8) != COST_INTENT_MAGIC:
+        return 0
+    if input_word(s, 16) != 5 or input_word(s, 24) != 8 or input_word(s, 32) != 1:
+        return 0
+    if input_word(s, 40) != 0 or input_word(s, 48) != 2 or input_word(s, 56) == 0:
+        return 0
+    put(o, 0, COST_COMMITTED_MAGIC)
+    put(o, 8, 1)
+    put(o, 16, input_word(s, 48))
+    put(o, 24, input_word(s, 56))
+    put(o, 32, 0)
+    return 40
+
+def read_workflow_reply(s:readbuf, o:mutbuf) -> u64:
+    stage = input_word(s, 8)
+    previous = input_word(s, 16)
+    reply = input_word(s, 24)
+    if previous > 512 or reply < 48 or length(o) < 64 or input_word(s, 32) != 0:
+        return 0
+    at = 40 + previous
+    if at > length(s) or reply != length(s) - at or input_word(s, at) != REPLY_MAGIC:
+        return 0
+    action = input_word(s, at + 8)
+    response = input_word(s, at + 16)
+    cost = input_word(s, at + 24)
+    fixed = input_word(s, at + 32)
+    if response > 8388608 or cost > 8388608 or fixed > 512 or input_word(s, at + 40) != 0:
+        return 0
+    if reply != 48 + response + cost + fixed:
+        return 0
+    state = at + 48 + response + cost
+    status = 0
+    if stage == 13 or stage == 14:
+        if previous != 512 or fixed != 0 or cost != 0 or action != response:
+            return 0
+        if read_workflow_transition(s, stage, 0) == False:
+            return 0
+        if response > 192 or response < RECIPE_ID_OFFSET + 66:
+            return 0
+        if same_fields(s, 40 + 192, at + 48 + RECIPE_ID_OFFSET, 66) == False:
+            return 0
+        next = 17
+    else:
+        if fixed != 512 or input_word(s, state) != STATE_MAGIC or input_word(s, state + 48) != action:
+            return 0
+        if stage == 9:
+            if previous != 0 or action != 12 or input_word(s, state + 8) != 0 or input_word(s, state + 16) != 0:
+                return 0
+        else:
+            if previous != 512 or input_word(s, 40) != STATE_MAGIC:
+                return 0
+            if input_word(s, state + 16) != 3 or admitted_read_identity(s, state) == False:
+                return 0
+            if stage != 0 and same_fields(s, 40 + 64, state + 64, 194) == False:
+                return 0
+        if stage == 8:
+            status = read_terminal_status(s, state, response, cost)
+            if status == 0:
+                return 0
+            next = 18
+        else:
+            if response != 0 or cost != 0 or input_word(s, state + 56) != 0:
+                return 0
+            next = read_follow_journal(s, stage, state, action)
+            if next == 255:
+                return 0
+    put(o, 0, READ_VERIFIED_MAGIC)
+    put(o, 8, stage)
+    put(o, 16, next)
+    put(o, 24, status)
+    put(o, 32, 48)
+    put(o, 40, response)
+    put(o, 48, choose(fixed != 0, state - at, 0))
+    put(o, 56, fixed)
+    return 64
+
+def read_follow_journal(s:readbuf, stage:u64, state:u64, action:u64) -> u64:
+    if stage == 9:
+        return 0
+    if action != 1 or input_word(s, state + 24) != 0 or input_word(s, state + 32) != 0 or input_word(s, state + 40) != 0:
+        return 255
+    if input_word(s, state + 320) != 0:
+        return 255
+    phase = input_word(s, state + 8)
+    role = input_word(s, state + 328)
+    if stage == 5 and phase == 10 and role == 3:
+        return 16
+    if phase != 4 or role != 0:
+        return 255
+    if stage == 0:
+        return 11
+    if stage == 11:
+        return 12
+    if stage == 12:
+        return 5
+    return 255
+
+def same_fields(s:readbuf, left:u64, right:u64, extent:u64) -> bool:
+    index = 0
+    while index < extent:
+        if byte(s, left + index) != byte(s, right + index):
+            return False
+        index = index + 1
+    return True
 
 def read_effect_error(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 56 or length(o) < 256:
@@ -71,16 +182,8 @@ def read_closeout_cost(s:readbuf, o:mutbuf) -> u64:
     state = 72 + response + cost
     if length(s) != state + 512 or length(o) < 130 + cost:
         return 0
-    if input_word(s, state) != STATE_MAGIC or input_word(s, state + 8) != 11:
-        return 0
-    if input_word(s, state + 16) != 3 or input_word(s, state + 48) != 10:
-        return 0
-    if input_word(s, state + 24) != 0 or input_word(s, state + 32) != 0 or input_word(s, state + 40) != 0:
-        return 0
-    if input_word(s, state + 272) != response or input_word(s, state + 280) != cost or input_word(s, state + 288) != 1:
-        return 0
-    status = input_word(s, state + 264)
-    if status < 1 or status > 2 or admitted_read_identity(s, state) == False:
+    status = read_terminal_status(s, state, response, cost)
+    if status == 0:
         return 0
     put(o, 0, COST_MAGIC)
     put(o, 8, input_word(s, 8))
@@ -93,6 +196,22 @@ def read_closeout_cost(s:readbuf, o:mutbuf) -> u64:
     copy_cost_bytes(s, o, state + 192, 66, 64)
     copy_cost_bytes(s, o, 72 + response, cost, 130)
     return 130 + cost
+
+def read_terminal_status(s:readbuf, state:u64, response:u64, cost:u64) -> u64:
+    if response < 2 or cost < MIN_DETAILS:
+        return 0
+    if input_word(s, state) != STATE_MAGIC or input_word(s, state + 8) != 11:
+        return 0
+    if input_word(s, state + 16) != 3 or input_word(s, state + 48) != 10:
+        return 0
+    if input_word(s, state + 24) != 0 or input_word(s, state + 32) != 0 or input_word(s, state + 40) != 0:
+        return 0
+    if input_word(s, state + 272) != response or input_word(s, state + 280) != cost or input_word(s, state + 288) != 1:
+        return 0
+    status = input_word(s, state + 264)
+    if status < 1 or status > 2 or admitted_read_identity(s, state) == False:
+        return 0
+    return status
 
 def read_workflow_request(s:readbuf, o:mutbuf) -> u64:
     stage = input_word(s, 8)
@@ -401,16 +520,21 @@ def put(o:mutbuf, at:u64, value:u64) -> u64:
         'SINGLE_MAGIC': b'HIAJIN01', 'SESSION_MAGIC': b'HIAJIN02', 'REPLY_MAGIC': b'HIAJOU01',
         'READ_WORKFLOW_MAGIC': b'HIAJWP01', 'STATE_MAGIC': b'HIAJRN02',
         'READ_ERROR_MAGIC': b'HIAJWE01', 'READ_COST_MAGIC': b'HIAJWC01',
+        'READ_REPLY_MAGIC': b'HIAJWV01', 'READ_VERIFIED_MAGIC': b'HIAJWO01',
+        'COST_COMMIT_MAGIC': b'HIAJWZ01', 'COST_COMMITTED_MAGIC': b'HIAJWG01',
+        'COST_INTENT_MAGIC': b'HIASTCP1',
         'EFFECT_CLOSEOUT': b'HIAFDO01', 'READ_TOOL': b'hia_read',
         'COST_MAGIC': b'HIAJCF01', 'INSERT_MAGIC': b'HIAINS01', 'DETAILS_PREFIX': b'{"error"',
         'DETAILS_SUFFIX_FIRST': suffix[:8], 'DETAILS_SUFFIX_SECOND': suffix[8:16],
         'UNADMITTED_INITIAL': b'unadmitt', 'COMPLETED_INITIAL': b'complete',
         'REJECTED_LITERAL': b'rejected',
     }
-    for name, value in literals.items():
-        source = source.replace(name, str(int.from_bytes(value, 'little')))
+    source = re.sub(r'\b(' + '|'.join(literals) + r')\b',
+                    lambda match: str(int.from_bytes(literals[match[0]], 'little')), source)
     source = source.replace('DETAILS_SUFFIX_SIZE', str(len(suffix)))
     source = source.replace('MIN_DETAILS', str(9 + 4 + len(suffix)))
+    from tools.generate_hia_agent_journal import response_recipe
+    source = source.replace('RECIPE_ID_OFFSET', str(response_recipe()[0]))
     places = '\n'.join(f'    if position == {i}:\n        return {10 ** i}' for i in range(1, 20))
     source = source.replace('PLACE_TABLE', places)
     return source + read_error_program()
