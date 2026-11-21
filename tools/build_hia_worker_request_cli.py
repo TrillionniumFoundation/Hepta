@@ -8,10 +8,11 @@ import json
 from pathlib import Path
 import struct
 
-from tools.build_hia_agent_read_page import pack_stdio
+from tools.build_hia_agent_read_page import pack_elf, pack_stdio
 from tools.build_hia_json_preflight import admit_cold_build, build as build_image, current_sources
 from tools.generate_hia_mcp_stdio_packer import (
-    SOURCE as STDIO_PACKER, TERMINAL_MODE, WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE,
+    MAGIC as STDIO_MAGIC, SOURCE as STDIO_PACKER, TERMINAL_MODE, WORKER_DATA_MODE,
+    WORKER_JOURNAL_MODE, WORKER_PORT_MODE, WORKER_RESPONSE_MODE, worker_port_prefix,
 )
 from tools.generate_hia_native_filter import WORKER_FILTER_MAGIC
 from tools.qualify_hia_selfhost import invoke
@@ -69,6 +70,11 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     journal_build.mkdir(mode=0o700)
     journal_raw, journal_pack = pack_stdio(
         journal_build, compiler, {STDIO_PACKER: pins[ROOT / STDIO_PACKER]}, WORKER_JOURNAL_MODE, raw, pins)
+    port_build = output / 'port'
+    port_build.mkdir(mode=0o700)
+    port_raw, port_pack = pack_elf(
+        port_build, compiler, pins[ROOT / STDIO_PACKER], struct.pack('<2Q', STDIO_MAGIC, WORKER_PORT_MODE),
+        worker_port_prefix(), (), (), pins)
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:
         raise ValueError('worker request build input changed')
 
@@ -77,8 +83,9 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     data_validator = output / 'hia-worker-data'
     response = output / 'hia-worker-response'
     journal = output / 'hia-worker-journal-call'
+    port = output / 'hia-worker-port'
     for target, data in ((executable, executable_raw), (terminal, terminal_raw),
-                         (data_validator, data_raw), (response, response_raw), (journal, journal_raw)):
+                         (data_validator, data_raw), (response, response_raw), (journal, journal_raw), (port, port_raw)):
         with target.open('xb') as stream:
             stream.write(data)
         target.chmod(0o700)
@@ -89,6 +96,12 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
         'executable': inspection,
         'images': receipts,
         'packing': receipt,
+        'port': {
+            'schema': 'hepta.hia.worker-sealed-port.v1',
+            'executable_sha256': sha256(port_raw).hexdigest(),
+            'executable_bytes': len(port_raw),
+            'native_packing': port_pack,
+        },
         'journal_projection': {
             'schema': 'hepta.hia.worker-journal-call.v1',
             'executable_sha256': sha256(journal_raw).hexdigest(),

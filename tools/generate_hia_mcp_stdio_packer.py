@@ -25,6 +25,7 @@ WORKER_DATA_MODE = 18
 WORKER_RESPONSE_MODE = 19
 WORKER_JOURNAL_MODE = 20
 JOURNAL_COST_MODE = 21
+WORKER_PORT_MODE = 22
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE)
 WORKER_DATA_HEADER = 16
@@ -712,12 +713,77 @@ def store_unique_template():
     return elf_prefix(code), len(elf_prefix(b"")) + 439
 
 
+def worker_port_prefix():
+    """Fixed Linux child I/O; all Worker role selection stays in HIA policy."""
+    code = bytes.fromhex(
+        # Admit the inherited sealed program and input, and the fresh output descriptor.
+        '48 83 3c 24 02 0f 85 d9 03 00 00 48 8b 74 24 10 e8 98 03 00 00 41 89 c4 '
+        '48 81 ec 80 00 00 00 48 89 e5 44 89 e7 be 0a 04 00 00 b8 48 00 00 00 0f '
+        '05 83 f8 0f 0f 85 aa 03 00 00 44 89 e7 48 89 ee ba 04 00 00 00 45 31 d2 '
+        'b8 11 00 00 00 0f 05 48 83 f8 04 0f 85 8b 03 00 00 81 7d 00 7f 45 4c 46 '
+        '0f 85 7e 03 00 00 31 ff be 0a 04 00 00 b8 48 00 00 00 0f 05 83 f8 0f 0f '
+        '85 67 03 00 00 31 ff 31 f6 31 d2 b8 08 00 00 00 0f 05 48 85 c0 0f 85 51 '
+        '03 00 00 bf 01 00 00 00 be 0a 04 00 00 b8 48 00 00 00 0f 05 85 c0 0f 85 '
+        '38 03 00 00 bf 01 00 00 00 31 f6 ba 02 00 00 00 b8 08 00 00 00 0f 05 48 '
+        '85 c0 0f 85 1c 03 00 00 48 8d 3d 2a 03 00 00 be 01 00 00 00 b8 3f 01 00 '
+        '00 0f 05 48 85 c0 0f 88 07 03 00 00 41 89 c7 48 8d 3d 0b 03 00 00 be 01 '
+        '00 00 00 b8 3f 01 00 00 0f 05 48 85 c0 0f 88 e8 02 00 00 41 89 c6 48 c7 '
+        '45 60 00 00 00 00 48 c7 45 68 00 00 00 00 48 c7 45 70 00 00 00 00 48 c7 '
+        '45 78 00 00 00 00 bf 11 00 00 00 48 8d 75 60 31 d2 41 ba 08 00 00 00 b8 '
+        '0d 00 00 00 0f 05 48 85 c0 0f 85 a4 02 00 00 b8 27 00 00 00 0f 05 89 45 '
+        '08 b8 39 00 00 00 0f 05 48 85 c0 0f 88 8a 02 00 00 0f 84 62 01 00 00 41 '
+        '89 c5 44 89 ef 31 f6 b8 b2 01 00 00 0f 05 48 85 c0 0f 88 0e 01 00 00 89 '
+        '45 10 c7 45 14 01 00 00 00 48 c7 45 18 0a 00 00 00 48 c7 45 20 00 00 00 '
+        '00 '
+        # Wait against one bounded pidfd lease without consuming stdout.
+        '48 8d 7d 10 be 01 00 00 00 48 8d 55 18 45 31 d2 45 31 c0 b8 0f 01 00 00 '
+        '0f 05 48 83 f8 fc 74 e0 48 85 c0 0f 8e cb 00 00 00 e8 df 00 00 00 8b 45 '
+        '28 a9 7f 00 00 00 0f 85 16 02 00 00 89 c7 c1 ef 08 81 e7 ff 00 00 00 0f '
+        '85 0a 02 00 00 44 89 ff 31 f6 ba 02 00 00 00 b8 08 00 00 00 0f 05 48 85 '
+        'c0 0f 85 eb 01 00 00 44 89 f7 31 f6 ba 02 00 00 00 b8 08 00 00 00 0f 05 '
+        '48 3d 00 04 00 04 0f 87 ce 01 00 00 48 89 45 58 44 89 f7 31 f6 31 d2 b8 '
+        '08 00 00 00 0f 05 48 85 c0 0f 85 b3 01 00 00 '
+        # Transfer complete staged output and seal the separate destination.
+        '4c 8b 55 58 4d 85 d2 74 26 bf 01 00 00 00 44 89 f6 31 d2 b8 28 00 00 00 '
+        '0f 05 48 83 f8 fc 74 e0 48 85 c0 0f 8e 8a 01 00 00 48 29 45 58 eb d1 bf '
+        '01 00 00 00 be 09 04 00 00 ba 0f 00 00 00 b8 48 00 00 00 0f 05 48 85 c0 '
+        '0f 85 65 01 00 00 31 ff e9 63 01 00 00 '
+        # Terminate and reap only the unreaped owned child.
+        '44 89 ef be 09 00 00 00 b8 3e 00 00 00 0f 05 e8 05 00 00 00 e9 45 01 00 '
+        '00 44 89 ef 48 8d 75 28 31 d2 45 31 d2 b8 3d 00 00 00 0f 05 48 83 f8 fc '
+        '74 e7 44 39 e8 0f 85 23 01 00 00 c3 '
+        # Apply the parent lease, descriptor custody and fixed execveat transport.
+        'bf 01 00 00 00 be 09 00 00 00 31 d2 45 31 d2 45 31 c0 b8 9d 00 00 00 0f '
+        '05 48 85 c0 0f 85 00 01 00 00 b8 6e 00 00 00 0f 05 3b 45 08 0f 85 f0 00 '
+        '00 00 44 89 f7 be 01 00 00 00 b8 21 00 00 00 0f 05 48 83 f8 01 0f 85 d7 '
+        '00 00 00 44 89 ff be 02 00 00 00 b8 21 00 00 00 0f 05 48 83 f8 02 0f 85 '
+        'be 00 00 00 48 c7 45 30 00 04 00 04 48 c7 45 38 00 04 00 04 bf 01 00 00 '
+        '00 48 8d 75 30 b8 a0 00 00 00 0f 05 48 85 c0 0f 85 95 00 00 00 bf 03 00 '
+        '00 00 be ff ff ff ff ba 04 00 00 00 b8 b4 01 00 00 0f 05 48 85 c0 75 7a '
+        '48 8d 05 81 00 00 00 48 89 45 40 48 c7 45 48 00 00 00 00 48 c7 45 50 00 '
+        '00 00 00 44 89 e7 48 8d 35 74 00 00 00 48 8d 55 40 4c 8d 55 50 41 b8 00 '
+        '10 00 00 b8 42 01 00 00 0f 05 eb 3e '
+        # Decode only inherited decimal descriptor numbers.
+        '31 d2 31 c9 0f b6 06 85 c0 74 24 83 f9 0a 73 27 83 e8 30 83 f8 09 77 1f '
+        '48 6b d2 0a 48 01 c2 48 81 fa ff ff ff 7f 77 0f 48 ff c6 ff c1 eb d5 83 '
+        'fa 03 72 03 89 d0 c3 bf 02 00 00 00 eb 05 bf 04 00 00 00 b8 3c 00 00 00 '
+        '0f 05 0f 0b 68 69 61 2d 77 6f 72 6b 65 72 2d 63 68 69 6c 64 00 00 '
+    )
+    return elf_prefix(code)
+
+
 def render():
     source = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     count = length(s)
-    if count < 17 or count > {16 + LIMIT} or read_word(s, 0) != {MAGIC}:
+    if count < 16 or count > {16 + LIMIT} or read_word(s, 0) != {MAGIC}:
         return 4294967295
     mode = read_word(s, 8)
+    if mode == {WORKER_PORT_MODE}:
+        if count != 16:
+            return 4294967295
+        return pack_worker_port(o)
+    if count == 16:
+        return 4294967295
 '''
     for mode in PACK_MODES:
         source += f'    if mode == {mode}:\n        return pack_{mode}(s, o)\n'
@@ -738,6 +804,18 @@ def pack_{mode}(s:readbuf, o:mutbuf) -> u32:
     while i < length(s):
         store(o, {len(prefix)} + i - 16, byte(s, i))
         i = i + 1
+    return size
+'''
+    prefix = worker_port_prefix()
+    source += f'''
+def pack_worker_port(o:mutbuf) -> u32:
+    size = {len(prefix)}
+    if length(o) < size:
+        return 4294967294
+'''
+    source += writes(prefix)
+    source += '''    put_word(o, 96, size)
+    put_word(o, 104, size)
     return size
 '''
     helpers = core_packer_source()
