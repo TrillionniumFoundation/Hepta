@@ -19,6 +19,7 @@ WIRE = {
     'UNIQUE_REQUEST': b'HIASTUP1',
     'COMMIT_INTENT': b'HIASTCP1',
     'ARTIFACT_JOURNAL_ACK': b'HIAJMO01',
+    'CONTEXT_CLAIM': b'HCTXRSP1',
     'UNIQUE_CONSUME': b'HIASTUC1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
@@ -128,6 +129,15 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if plan == 23:
         if mode != 0 or valid_reservation_ack(s, size) == False:
             return 0
+    elif plan == 24:
+        if mode != 0 or valid_context_record(s, size) == False:
+            return 0
+    elif plan == 25:
+        if mode != 0 or valid_context_budget(s, size) == False:
+            return 0
+    elif plan == 26:
+        if mode != 0 or valid_context_claim(s, size) == False:
+            return 0
     elif plan == 12:
         if valid_worker_profile_lookup(s, size) == False:
             return 0
@@ -166,8 +176,8 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     write_word(w, 120, generation)
     write_word(w, 128, size)
     write_word(w, 136, 1)
-    if plan == 23:
-        write_word(w, 152, 1)
+    if plan == 23 or plan == 26:
+        write_word(w, 152, choose(plan == 23, 1, 2))
         return begin_unique_commit(o, w)
     if plan != 18 and plan != 22:
         copy_fields(s, w, 48, 192, size)
@@ -198,6 +208,53 @@ def valid_worker_profile_lookup(s:readbuf, size:u64) -> bool:
     if worker_profile_id(s, 128, width) == False:
         return False
     return valid_hex(s, 128 + width, 64)
+
+def valid_context_claim(s:readbuf, size:u64) -> bool:
+    if size != 80 or read_word(s, 48) != CONTEXT_CLAIM or read_word(s, 56) != 0:
+        return False
+    if read_word(s, 64) != 45 or read_word(s, 72) == 0 or read_word(s, 80) != 2 or read_word(s, 88) != 1:
+        return False
+    if read_word(s, 96) != 0 or read_word(s, 104) != 0:
+        return False
+    return (read_word(s, 112) | read_word(s, 120)) != 0
+
+def context_id(s:readbuf, at:u64) -> bool:
+    return byte(s, at) == 99 and byte(s, at + 1) == 116 and byte(s, at + 2) == 120 and byte(s, at + 3) == 45 and valid_hex(s, at + 4, 32)
+
+def valid_context_record(s:readbuf, size:u64) -> bool:
+    if size <= 412 or size > 432 or read_word(s, 48) != INSERT_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != 0 or read_word(s, 80) != 4:
+        return False
+    if valid_cell(s, 88, 3, 136, 36) == False or valid_cell(s, 112, 3, 172, 64) == False:
+        return False
+    if valid_cell(s, 136, 3, 236, 176) == False or valid_cell(s, 160, 3, 412, size - 412) == False:
+        return False
+    if context_id(s, 184) == False or valid_hex(s, 220, 64) == False:
+        return False
+    if read_word(s, 284) != PROFILE_ID_PREFIX or byte(s, 292) != 45 or valid_hex(s, 293, 32) == False:
+        return False
+    if read_word(s, 325) != PROFILE_DIGEST_PREFIX or (read_word(s, 333) & 4294967295) != PROFILE_DIGEST_TAIL:
+        return False
+    if read_word(s, 401) != PROFILE_URI_PREFIX or read_word(s, 409) != PROFILE_URI_MIDDLE:
+        return False
+    if read_word(s, 417) != PROFILE_URI_TAIL or byte(s, 425) != 47 or valid_hex(s, 426, 32) == False:
+        return False
+    if byte(s, 458) != 34 or byte(s, 459) != 125:
+        return False
+    index = 0
+    while index < 64:
+        if byte(s, 220 + index) != byte(s, 337 + index):
+            return False
+        index = index + 1
+    return canonical_timestamp(s, 460, size - 412)
+
+def valid_context_budget(s:readbuf, size:u64) -> bool:
+    if size != 100 or read_word(s, 48) != INSERT_PARAMETERS or read_word(s, 56) != 1:
+        return False
+    if read_word(s, 64) != 3 or read_word(s, 72) != 0 or read_word(s, 80) != 1:
+        return False
+    return valid_cell(s, 88, 3, 64, 36) and context_id(s, 112)
 
 # One previously issued page cursor, with its exact artifact digest and offset.
 def valid_cursor_retain(s:readbuf, size:u64) -> bool:
@@ -405,7 +462,7 @@ def valid_cell(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> bool:
     return read_word(s, at) == kind and read_word(s, at + 8) == offset and read_word(s, at + 16) == size
 
 def durable_write(plan:u64) -> bool:
-    return plan == 10 or (plan >= 18 and plan <= 23)
+    return plan == 10 or (plan >= 18 and plan <= 26)
 
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
@@ -502,7 +559,7 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase != 15 or read_word(s, 24) != 2 or read_word(s, 32) != 0:
         return 0
     count = read_word(s, 40)
-    if plan == 23 and count != 1:
+    if (plan == 23 and count != 1) or (plan == 26 and count != 2):
         return 0
     advanced = choose(count == 0, 0, 1)
     prior = read_state(w, 120)
@@ -512,6 +569,9 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         return 0
     write_word(w, 120, prior + advanced)
     return finish_unique(o, w)
+
+def must_write(plan:u64) -> bool:
+    return plan == 18 or plan == 24 or plan == 25
 
 def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if read_word(s, 24) != 27:
@@ -524,7 +584,7 @@ def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if mode == 0:
             return finish_unique(o, w)
         return send_unique(o, w, 3, 0, 0, 8)
-    if status != 0 or skipped > 1 or (read_state(w, 16) == 18 and skipped != 0):
+    if status != 0 or skipped > 1 or (must_write(read_state(w, 16)) and skipped != 0):
         return 0
     write_word(w, 152, 1 - skipped)
     if mode == 0:

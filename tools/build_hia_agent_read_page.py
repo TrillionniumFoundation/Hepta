@@ -38,6 +38,7 @@ VARIANTS = {
     'journal-observation': ('worker_journal_observation', 'hepta.hia.journal-observation-native.v1'),
     'artifact-authority': ('worker_artifact_authority', 'hepta.hia.artifact-authority-native.v1'),
     'artifact-diagnostic': ('worker_artifact_diagnostic', 'hepta.hia.artifact-diagnostic-native.v1'),
+    'context-store': ('worker_context_store', 'hepta.hia.context-store-native.v1'),
     'artifact-journal': ('worker_artifact_journal', 'hepta.hia.artifact-journal-native.v1'),
     'discovery': ('agent_discovery', 'hepta.hia.agent-discovery-native.v1'),
     'describe-answer': ('agent_describe_answer', 'hepta.hia.agent-describe-answer-native.v1'),

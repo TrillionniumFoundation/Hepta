@@ -113,6 +113,7 @@ CANDIDATES = {
     'journal-observation': ('worker_journal_observation', 'journal-observation'),
     'artifact-authority': ('worker_artifact_authority', 'artifact-authority'),
     'artifact-diagnostic': ('worker_artifact_diagnostic', 'artifact-diagnostic'),
+    'context-store': ('worker_context_store', 'context-store'),
     'artifact-journal': ('worker_artifact_journal', 'artifact-journal'),
     'discovery-artifact': ('discovery_artifact', 'discovery-artifact'),
     'discovery-effect': ('discovery_effect', 'discovery-effect'),
