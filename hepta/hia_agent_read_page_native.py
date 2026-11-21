@@ -97,7 +97,7 @@ class NativeAgentReadPage(NativeHiaJsonImage):
         prefix = REQUEST.pack(b'HIAARR01', len(identity), len(uri)) + digest.encode('ascii') + identity + uri
         return self._admit_retained_bytes(executable, row, prefix, digest)
 
-    def admit_planned_artifact(self, store, reference, *, executable, plan):
+    def admit_planned_artifact(self, store, _reference, *, executable, plan):
         row = store.artifact_lookup_frame(plan.artifact_query)
         return self._admit_retained_bytes(executable, row, plan.admission, plan.digest)
 
@@ -136,22 +136,24 @@ class NativeAgentReadPage(NativeHiaJsonImage):
         return {'id': row[identity:digest].decode('utf-8'),
                 'sha256': row[digest:digest + digest_size].decode('ascii'), 'uri': uri}
 
-    def read_captured_bound_page(self, capture, ref, cursor_key, row, max_bytes, executable):
+    def read_captured_bound_page(self, capture, ref, cursor_key, row, max_bytes, executable, *, prelude=None):
         """Pass a retained typed Store row directly to the standalone page owner."""
         fd, size, reference = capture
         identity = ref['id'].encode('ascii')
-        requested = cursor_key if row is not None else b''
-        observed = row if row is not None else b''
-        flags = int(max_bytes is not None) | (2 * int(cursor_key is not None))
-        limit = 0 if max_bytes is None else max_bytes
-        if type(limit) is not int or not 0 <= limit < 1 << 64:
-            limit = (1 << 64) - 1
-        header = BOUND_REQUEST.pack(b'HIAARB01', flags, limit, len(reference), len(identity),
-                                    len(requested), len(observed), ref['sha256'].encode('ascii'))
-        header += identity + requested + observed
-        if len(header) > BOUND_METADATA_BYTES:
-            raise ValueError('outside native HIA Agent cursor frame profile')
-        output = self._captured_page(executable, fd, header.ljust(BOUND_METADATA_BYTES, b'\0') + reference)
+        if prelude is None:
+            requested = cursor_key if row is not None else b''
+            observed = row if row is not None else b''
+            flags = int(max_bytes is not None) | (2 * int(cursor_key is not None))
+            limit = 0 if max_bytes is None else max_bytes
+            if type(limit) is not int or not 0 <= limit < 1 << 64:
+                limit = (1 << 64) - 1
+            header = BOUND_REQUEST.pack(b'HIAARB01', flags, limit, len(reference), len(identity),
+                                        len(requested), len(observed), ref['sha256'].encode('ascii'))
+            header += identity + requested + observed
+            if len(header) > BOUND_METADATA_BYTES:
+                raise ValueError('outside native HIA Agent cursor frame profile')
+            prelude = header.ljust(BOUND_METADATA_BYTES, b'\0') + reference
+        output = self._captured_page(executable, fd, prelude)
         if output == b'HIAARU03' + bytes(32):
             reject('E_HIA_CURSOR', 'cursor is not bound to this exact artifact')
         if len(output) < BOUND_RESPONSE.size:

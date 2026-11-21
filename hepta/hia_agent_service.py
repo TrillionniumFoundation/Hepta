@@ -748,8 +748,8 @@ class HIAAgentService:
             pager = installed_agent_read_page(os.environ[SELECTOR])
             from .hia_agent_read_request_native import SELECTOR as PLAN_SELECTOR, installed_agent_read_request
             selected_plan = os.environ.get(PLAN_SELECTOR)
-            plan = (installed_agent_read_request(selected_plan).prepare(args, self.catalog_sha256)
-                    if selected_plan is not None else None)
+            planner = installed_agent_read_request(selected_plan) if selected_plan is not None else None
+            plan = planner.prepare(args, self.catalog_sha256) if planner is not None else None
             if plan is None:
                 admit_record = partial(pager.admit_retained_artifact, executable=executable)
             else:
@@ -762,8 +762,9 @@ class HIAAgentService:
                 else:
                     cursor = plan.cursor
                     row = self.store.db.cursor_lookup_frame(plan.cursor_query) if cursor is not None else None
+                prelude = planner.page_prelude(plan, row) if planner is not None else None
                 result, retained = pager.read_captured_bound_page(
-                    captured, ref, cursor, row, args.get("max_bytes"), executable)
+                    captured, ref, cursor, row, args.get("max_bytes"), executable, prelude=prelude)
             if retained:
                 self.store.db.cursor_retain_frame(retained)
             return result

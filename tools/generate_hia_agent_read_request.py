@@ -13,6 +13,8 @@ POLICY = r'''
 def read_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) > 16384 or length(o) < 8192 or length(w) < 32768:
         return 4294967294
+    if length(s) >= 24 and input_word(s, 0) == BIND_PAGE:
+        return bind_page(s, o)
     put(o, 48, 64)
     put(o, 56, 8)
     size = widen(decode_json(s, w, o))
@@ -57,6 +59,101 @@ def read_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 16, limit)
     copy_text(w, o, catalog, 64)
     return encode_read_plan(w, o, identity, digest, uri, cursor)
+
+# A Store result may only supply the cursor row. Keep the limit, identity,
+# canonical reference and cursor key in the plan that admitted the request.
+def bind_page(s:readbuf, o:mutbuf) -> u64:
+    plan = input_word(s, 8)
+    row = input_word(s, 16)
+    if plan < 128 or plan > 8192 or row > 512 or length(s) != 24 + plan + row:
+        return 4294967295
+    if input_word(s, 24) != READ_PLAN or input_word(s, 80) != plan:
+        return 4294967295
+    flags = input_word(s, 32)
+    limit = input_word(s, 40)
+    ref_size = input_word(s, 48)
+    lookup_size = input_word(s, 56)
+    query_size = input_word(s, 64)
+    admission_size = input_word(s, 72)
+    if flags > 3 or ref_size == 0 or ref_size > 512:
+        return 4294967295
+    if lookup_size < 57 or lookup_size > 248 or query_size > 2104:
+        return 4294967295
+    if admission_size < 90 or admission_size > 488:
+        return 4294967295
+    if 128 + ref_size + lookup_size + query_size + admission_size != plan:
+        return 4294967295
+    if flags & 1 == 0:
+        if limit != 0:
+            return 4294967295
+    elif limit < 512 or limit > 65536:
+        return 4294967295
+    lookup_at = 152 + ref_size
+    query_at = lookup_at + lookup_size
+    cursor = 0
+    if flags & 2 != 0:
+        if query_size < 57 or canonical_lookup(s, query_at, query_size) == False:
+            return 4294967295
+        if row != 0:
+            cursor = query_size - 56
+    elif query_size != 0 or row != 0:
+        return 4294967295
+    admission_at = query_at + query_size
+    if input_word(s, admission_at) != ARTIFACT_ADMISSION or canonical_lookup(s, lookup_at, lookup_size) == False:
+        return 4294967295
+    identity = input_word(s, admission_at + 8)
+    uri = input_word(s, admission_at + 16)
+    if identity != lookup_size - 56 or uri == 0 or uri > 208:
+        return 4294967295
+    if 88 + identity + uri != admission_size or cursor > 128 or 120 + identity + cursor + row > 1024:
+        return 4294967295
+    identity_at = admission_at + 88
+    if bound_identity(s, identity_at, lookup_at + 56, identity) == False:
+        return 4294967295
+    put(o, 0, BOUND_PAGE)
+    put(o, 8, flags)
+    put(o, 16, limit)
+    put(o, 24, ref_size)
+    put(o, 32, identity)
+    put(o, 40, cursor)
+    put(o, 48, row)
+    copy_input(s, o, admission_at + 24, 56, 64)
+    copy_input(s, o, identity_at, 120, identity)
+    cursor_at = 120 + identity
+    copy_input(s, o, query_at + 56, cursor_at, cursor)
+    copy_input(s, o, 24 + plan, cursor_at + cursor, row)
+    at = cursor_at + cursor + row
+    while at < 1024:
+        store(o, at, 0)
+        at = at + 1
+    copy_input(s, o, 152, 1024, ref_size)
+    return 1024 + ref_size
+
+def canonical_lookup(s:readbuf, at:u64, size:u64) -> bool:
+    return input_word(s, at) == STORE_LOOKUP and input_word(s, at + 8) == 1 and input_word(s, at + 16) == 1 and input_word(s, at + 24) == size and input_word(s, at + 32) == 3 and input_word(s, at + 40) == 56 and input_word(s, at + 48) == size - 56
+
+def bound_identity(s:readbuf, first:u64, second:u64, extent:u64) -> bool:
+    at = 0
+    while at < extent:
+        if byte(s, first + at) != byte(s, second + at):
+            return False
+        at = at + 1
+    return True
+
+def copy_input(s:readbuf, o:mutbuf, source:u64, destination:u64, extent:u64) -> u64:
+    at = 0
+    while at < extent:
+        store(o, destination + at, byte(s, source + at))
+        at = at + 1
+    return at
+
+def input_word(s:readbuf, at:u64) -> u64:
+    value = 0
+    i = 0
+    while i < 8:
+        value = value | (byte(s, at + i) << (8 * i))
+        i = i + 1
+    return value
 
 def read_digest(w:mutbuf, node:u64) -> bool:
     if kind(w, node) != 4 or count(w, node) != 64:
@@ -195,6 +292,8 @@ def next_node(w:mutbuf, node:u64) -> u64:
 VALUES = {
     'NONE': (1 << 64) - 1,
     'READ_PLAN': b'HIAARD01',
+    'BIND_PAGE': b'HIAARP02',
+    'BOUND_PAGE': b'HIAARB01',
     'STORE_LOOKUP': b'HIAQPA01',
     'ARTIFACT_ADMISSION': b'HIAARR01',
     'URI_0': b'hia://ar',
