@@ -3,6 +3,7 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_discovery_artifact import DOCUMENT_KINDS, kind_match_source
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'examples/hia_bootstrap/agent_store_transport.hepta'
@@ -38,15 +39,11 @@ WIRE = {
     'PROFILE_URI_TAIL': b'rtifacts',
     'ARTIFACT_URI_HEAD': b'hia://ar',
     'ARTIFACT_URI_TAIL': b'tifacts/',
-    'ARTIFACT_PROFILE': b'profile',
-    'ARTIFACT_CONTEXT': b'context',
-    'ARTIFACT_INPUT': b'input',
     'ARTIFACT_TOOL_HEAD': b'hia_arti',
     'ARTIFACT_TOOL_TAIL': b'fact',
     'CONTEXT_TOOL_HEAD': b'hia_cont',
     'CONTEXT_TOOL_TAIL': b'ext',
     'RUNNING_STATE': b'running',
-    'ARTIFACT_DISCOVERY_HEAD': b'discover',
 }
 
 POLICY = '''
@@ -393,7 +390,7 @@ def valid_hex(s:readbuf, at:u64, count:u64) -> bool:
 # Narrow immutable Agent artifact insert. Metadata is the original empty
 # object; data custody and content verification occur before request delivery.
 def valid_discovery_insert(s:readbuf, size:u64) -> bool:
-    if (size != 401 and size != 403 and size != 405) or read_word(s, 48) != INSERT_PARAMETERS:
+    if (size != 401 and size != 403 and size != 405 and size != 406 and size != 411) or read_word(s, 48) != INSERT_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 9 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
         return False
@@ -411,14 +408,7 @@ def valid_discovery_insert(s:readbuf, size:u64) -> bool:
         return False
     if read_word(s, 330) != ARTIFACT_URI_HEAD or read_word(s, 338) != ARTIFACT_URI_TAIL:
         return False
-    if kind == 7:
-        artifact_kind = read_word(s, 378) & 72057594037927935
-        if artifact_kind != ARTIFACT_PROFILE and artifact_kind != ARTIFACT_CONTEXT:
-            return False
-    elif kind == 9:
-        if read_word(s, 378) != ARTIFACT_DISCOVERY_HEAD or byte(s, 386) != 121:
-            return False
-    elif read_word(s, 378) & 1099511627775 != ARTIFACT_INPUT:
+    if document_kind_allowed(s, 378, kind) == False:
         return False
     if byte(s, 378 + kind) != 123 or byte(s, 379 + kind) != 125:
         return False
@@ -921,8 +911,14 @@ def source_program():
         profiles.append(f'    if length == {len(name)} and {predicate}:\n        return True')
     profile_gate = '\ndef worker_profile_id(s:readbuf, at:u64, length:u64) -> bool:\n'
     profile_gate += '\n'.join(profiles) + '\n    return False\n'
+    kinds = '\ndef document_kind_allowed(s:readbuf, at:u64, length:u64) -> bool:\n'
+    for index, raw in enumerate(DOCUMENT_KINDS, 1):
+        kinds += (f'    if length == {len(raw)} and document_kind_matches(s, at, {index}):\n'
+                  '        return True\n')
+    kinds += '    return False\n'
     return re.sub(r'\b(' + '|'.join(WIRE) + r')\b',
-        lambda name: str(int.from_bytes(WIRE[name.group()], 'little')), POLICY + profile_gate)
+        lambda name: str(int.from_bytes(WIRE[name.group()], 'little')),
+        POLICY + profile_gate + kinds + kind_match_source())
 
 
 if __name__ == '__main__':

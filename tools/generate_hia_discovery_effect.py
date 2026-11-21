@@ -4,6 +4,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_discovery_native import PROFILE_NAMES, VERSIONS
 from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_discovery_artifact import kind_match_source, kind_width_source
 
 SOURCE = 'examples/hia_bootstrap/discovery_effect.hepta'
 POLICY = r'''
@@ -61,7 +62,8 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def start_document(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
     kind = input_word(s, 40)
     version = input_word(s, 48)
-    if kind < 1 or kind > 4 or extent > choose(kind >= 3, 8388608, 1048576):
+    limit = choose(kind == 7, 67108864, choose(kind >= 3, 8388608, 1048576))
+    if document_kind_width(kind) == 0 or extent > limit:
         return 4294967295
     if kind == 1:
         if version == 0 or version > MAX_PROFILE:
@@ -81,7 +83,7 @@ def start_document(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
     return next_action(o, w, 1, 2, extent, 0)
 
 def valid_hash_receipt(s:readbuf, extent:u64) -> bool:
-    if length(s) < 128 or length(s) > 134:
+    if length(s) < 128 or length(s) > 135:
         return False
     if hash_prefix(s, 40) == False or hash_count(s, 115) == False:
         return False
@@ -131,7 +133,7 @@ def observe_lookup(s:readbuf, o:mutbuf, w:mutbuf, body:u64) -> u64:
     return 112
 
 def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
-    name = choose(kind == 2, 9, choose(kind == 3, 5, 7))
+    name = document_kind_width(kind)
     if size != 388 + name or input_word(s, 40) != ROW:
         return False
     if input_word(s, 48) != 1 or input_word(s, 56) != 1 or input_word(s, 64) != 6:
@@ -151,16 +153,7 @@ def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
         return False
     if uri_prefix(s, 314) == False or valid_hex(s, 330, 32) == False:
         return False
-    if kind == 1:
-        if profile_text(s, 362) == False:
-            return False
-    elif kind == 2:
-        if discovery_text(s, 362) == False:
-            return False
-    elif kind == 3:
-        if input_text(s, 362) == False:
-            return False
-    elif context_text(s, 362) == False:
+    if document_kind_matches(s, 362, kind) == False:
         return False
     if byte(s, 362 + name) != 123 or byte(s, 363 + name) != 125:
         return False
@@ -281,7 +274,7 @@ def source_program():
         for index, value in enumerate(raw):
             source += f'    store(o, at + {index}, {value})\n'
         source += f'    return at + {len(raw)}\n'
-    return source
+    return source + kind_width_source() + kind_match_source()
 
 
 if __name__ == '__main__':

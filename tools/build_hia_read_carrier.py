@@ -54,9 +54,9 @@ CARRIERS = {
     'read': CarrierImage(SOURCE, MAGIC, CODE_DIGEST, CODE_SIZE, CARRIER_SECTIONS),
     'discovery': CarrierImage(
         'examples/hia_bootstrap/agent_discovery_carrier_packer.hepta', b'HIADCK01',
-        '7bf8536a748da8c6b30c443948d43504979fdb2e6787950e35a54528e27ac3f0', 8384,
-        (('process_descriptors', 0, 1119), ('sealed_child_delivery', 1119, 2751),
-         ('publication_and_store_transport', 2751, 4074), ('discovery_relay', 4074, 8384))),
+        '68b5f3b28a9f4bc8233d926d9fb7622924f257cb596f4afd6ec222f833677eab', 8368,
+        (('process_descriptors', 0, 2276), ('sealed_child_delivery', 2276, 3378),
+         ('publication_and_store_transport', 3378, 4055), ('discovery_relay', 4055, 8368))),
     'input': CarrierImage(
         'examples/hia_bootstrap/agent_input_carrier_packer.hepta', b'HIAICK01',
         '822069b4538ff3a9c646f595737c4db62c505cc55cd0491db60b502e7765c583', 7984,

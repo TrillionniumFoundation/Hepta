@@ -9,6 +9,25 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_sha256 import source_program as sha256_program
 
 SOURCE = 'examples/hia_bootstrap/discovery_artifact.hepta'
+DOCUMENT_KINDS = (b'profile', b'discovery', b'input', b'context',
+                  b'inspection', b'edit-query', b'lowering-object')
+
+
+def kind_width_source():
+    source = '\ndef document_kind_width(kind:u64) -> u64:\n'
+    for index, name in enumerate(DOCUMENT_KINDS, 1):
+        source += f'    if kind == {index}:\n        return {len(name)}\n'
+    return source + '    return 0\n'
+
+
+def kind_match_source():
+    source = '\ndef document_kind_matches(s:readbuf, at:u64, kind:u64) -> bool:\n'
+    for index, name in enumerate(DOCUMENT_KINDS, 1):
+        match = ' and '.join(f'byte(s, at + {i}) == {unit}' for i, unit in enumerate(name))
+        source += f'    if kind == {index}:\n        return {match}\n'
+    return source + '    return False\n'
+
+
 POLICY = r'''
 def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) != 80 and length(s) != 112 and length(s) != 192:
@@ -24,7 +43,7 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if (lookup and operation != LOOKUP) or (lookup == False and operation != ISSUE):
         return 4294967293
     kind = word(s, 8)
-    if kind < 1 or kind > 4:
+    if document_kind_width(kind) == 0:
         return 4294967293
     if valid_digest(s, 16, 64) == False:
         return 4294967293
@@ -53,7 +72,7 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return artifact_record(s, o, w, kind)
 
 def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64) -> u64:
-    name = choose(kind == 2, 9, choose(kind == 3, 5, 7))
+    name = document_kind_width(kind)
     typed = 396 + name
     put(o, 0, RESULT)
     put(o, 8, typed)
@@ -169,7 +188,13 @@ def kind_text(o:mutbuf, at:u64, kind:u64) -> u64:
         return discovery_name(o, at)
     if kind == 3:
         return input_name(o, at)
-    return context_name(o, at)
+    if kind == 4:
+        return context_name(o, at)
+    if kind == 5:
+        return inspection_name(o, at)
+    if kind == 6:
+        return edit_query_name(o, at)
+    return lowering_object_name(o, at)
 
 def copy_input(s:readbuf, o:mutbuf, source:u64, at:u64, extent:u64) -> u64:
     index = 0
@@ -196,6 +221,8 @@ LITERALS = {
     'input_name': b'input', 'context_name': b'context', 'empty_metadata': b'{}', 'ref_open': b'{"id":"', 'ref_sha': b'","sha256":"',
     'ref_uri': b'","uri":"', 'profile_name': b'profile', 'discovery_name': b'discovery',
     'schema_version': b'hepta.hia.program.v',
+    'inspection_name': b'inspection', 'edit_query_name': b'edit-query',
+    'lowering_object_name': b'lowering-object',
 }
 
 
@@ -204,7 +231,7 @@ def source_program():
             'PROFILE': b'HIADPR01', 'PROFILE_RESULT': b'HIADPS01',
             'QUERY': b'HIAQPA01', 'INSERT': b'HIAINS01'}
     assert tuple(PRIMITIVE_PROFILES) == tuple(f'hepta.hia.program.v{n}' for n in range(1, 10))
-    source = POLICY
+    source = POLICY + kind_width_source()
     for name, value in tags.items():
         source = re.sub(rf'\b{name}\b', str(int.from_bytes(value, 'little')), source)
     qualified = {key: ('hia-' + key + '-v1').encode('ascii') for key in PROFILE_NAMES}
