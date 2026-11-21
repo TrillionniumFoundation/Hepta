@@ -8,6 +8,7 @@ from tools.generate_hia_agent_identity import (
     ROLLBACK_RECORD, ROLLBACK_RESULT, receipt_template, source_program as identity_source,
 )
 from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_discovery_artifact import kind_width_source, kind_match_source
 from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
@@ -24,7 +25,8 @@ TAGS = {'REQUEST': b'HIARLQ01', 'DECISION': b'HIARLD01',
         'ANSWER': b'HIARLA01', 'RECEIPT': b'HIARLR01', 'STORE_QUERY': b'HIARLS01',
         'STORE_OBSERVE': b'HIARLO01', 'STORE_ROW': b'HIARLB01', 'COUNT': b'HIASTLC1',
         'QUERY': b'HIAQPA01', 'UPDATE': b'HIAUPB01', 'GENERATION': b'HIARLF01',
-        'PUBLIC_ERROR': b'HIARLE01'}
+        'PUBLIC_ERROR': b'HIARLE01', 'DOCUMENT_OBSERVE': b'HIARLP01',
+        'DOCUMENT_RESULT': b'HIARLP02', 'OUTCOME_REQUEST': b'HIARLT01', 'OUTCOME': b'HIAIND01'}
 SNAPSHOT = ('{"active_artifact":{},"context":{},"current":{},"in_flight_leases":{},'
             '"snapshot_is_adoption_authority":false,"target_slot":{}}')
 STALE = 'slot changed; read the retained current snapshot and choose a fresh conditional request'
@@ -46,6 +48,10 @@ def rollback_worker(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return generation_json(s, o)
         if tag == PUBLIC_ERROR:
             return rollback_error(s, o)
+        if tag == DOCUMENT_OBSERVE:
+            return observe_document(s, o)
+        if tag == OUTCOME_REQUEST:
+            return rollback_outcome(s, o)
     return rollback_project(s, o, w)
 
 def rollback_project(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -356,6 +362,76 @@ def rollback_error(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 16:
         return INVALID
     return static_error(o, code)
+
+# An exact content-key query may find a receipt published by an earlier
+# equivalent effect. Never issue a new public reference for that same row.
+def observe_document(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 216 or length(s) > 1024:
+        return INVALID
+    extent = input_word(s, 8)
+    kind = input_word(s, 32)
+    if kind != 10 and kind != 11:
+        return INVALID
+    if length(s) != 216 + extent or unique_summary(s, 168 + extent, extent) == False:
+        return INVALID
+    if valid_hex(s, 40, 128) == False:
+        return INVALID
+    put(o, 0, DOCUMENT_RESULT)
+    put(o, 8, choose(extent == 0, 0, 1))
+    if extent == 0:
+        return 16
+    name = document_kind_width(kind)
+    row = 168
+    if extent != 388 + name or row_header(s, row, 1, 6) == False:
+        return INVALID
+    if row_text(s, row + 32, 176, 34) == False or row_text(s, row + 56, 210, 64) == False:
+        return INVALID
+    if row_text(s, row + 80, 274, 48) == False or row_text(s, row + 104, 322, name) == False:
+        return INVALID
+    if row_text(s, row + 128, 322 + name, 2) == False or row_text(s, row + 152, 324 + name, 64) == False:
+        return INVALID
+    if matches(s, row + 210, 40, 64) == False or matches(s, row + 324 + name, 104, 64) == False:
+        return INVALID
+    if document_kind_matches(s, row + 322, kind) == False:
+        return INVALID
+    if byte(s, row + 322 + name) != 123 or byte(s, row + 323 + name) != 125:
+        return INVALID
+    if byte(s, row + 176) != 97 or byte(s, row + 177) != 45 or valid_hex(s, row + 178, 32) == False:
+        return INVALID
+    if native_uri(s, row + 274) == False or valid_hex(s, row + 290, 32) == False:
+        return INVALID
+    at = ref_open(o, 16)
+    at = copy_input(s, o, row + 176, at, 34)
+    at = ref_sha(o, at)
+    at = copy_input(s, o, row + 210, at, 64)
+    at = ref_uri(o, at)
+    at = copy_input(s, o, row + 274, at, 48)
+    return generation_close(o, at)
+
+def rollback_outcome(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 34:
+        return INVALID
+    status = input_word(s, 8)
+    context = input_word(s, 16)
+    extent = input_word(s, 24)
+    if (status != 1 and status != 2) or (context != 0 and context != 36) or extent < 2:
+        return INVALID
+    if length(s) != 32 + context + extent or (context == 36 and context_id(s, 32) == False):
+        return INVALID
+    if status == 1 and context != 36:
+        return INVALID
+    if byte(s, 32 + context) != 123 or byte(s, length(s) - 1) != 125:
+        return INVALID
+    put(o, 0, OUTCOME)
+    put(o, 8, status)
+    put(o, 16, context)
+    put(o, 24, extent)
+    at = 0
+    while at < 36:
+        store(o, 32 + at, 0)
+        at = at + 1
+    copy_input(s, o, 32, 32, context)
+    return copy_input(s, o, 32 + context, 68, extent)
 '''
 
 
@@ -380,6 +456,12 @@ def errors():
         code.append(literal(f'error_{status}', body))
     dispatch.append('    return 4294967293')
     return '\n'.join((*code, '\n'.join(dispatch)))
+
+
+def native_uri():
+    prefix = 'hia://artifacts/'.encode('ascii')
+    checks = ' and '.join(f'byte(s, at + {offset}) == {value}' for offset,value in enumerate(prefix))
+    return 'def native_uri(s:readbuf, at:u64) -> bool:\n    return ' + checks
 
 
 def program():
@@ -413,6 +495,9 @@ def program():
         literal('generation_close', '"}'), literal('stale_open', stale_open),
         literal('stale_close', ',"message":"' + STALE +
             '","phase":"adoption","retry_action":"refresh_context"}'),
+        literal('ref_open', '{"id":"'), literal('ref_sha', '","sha256":"'),
+        literal('ref_uri', '","uri":"'), native_uri(),
+        kind_width_source(), kind_match_source(),
         errors(), json_decoder(wire_spans=True),
     ))
 
