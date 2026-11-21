@@ -585,13 +585,20 @@ class SafeCoreArtifactTests(unittest.TestCase):
         for indexed in (False, True):
             with self.subTest(indexed=indexed):
                 core, obj, supplied = build(indexed)
-                _, wrong_obj, wrong = build(indexed, load_first=True)
+                exchange, wrong_obj, wrong = build(indexed, load_first=True)
                 with patch("importlib.import_module", side_effect=no_host_solver):
                     report = validate_safe_core_artifact(core, obj, supplied, foreign_buffer_exports=exports)
                     with self.assertRaises(SafeCoreRejected) as stale:
                         validate_safe_core_artifact(core, wrong_obj, wrong, foreign_buffer_exports=exports)
-                self.assertTrue(report["complete"])
-                self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+                    exchange_report = validate_safe_core_artifact(
+                        exchange, wrong_obj, wrong, foreign_buffer_exports=exports)
+                    with self.assertRaises(SafeCoreRejected) as invented_prior:
+                        validate_safe_core_artifact(exchange, obj, supplied, foreign_buffer_exports=exports)
+                for checked in (report, exchange_report):
+                    self.assertTrue(checked["complete"])
+                    self.assertEqual(checked["solver"]["version"], "machine-word-circuit-cnf.v1")
+                self.assertEqual(invented_prior.exception.counterexample["obligation"],
+                                 "core_to_final_image_return_abort_and_caller_bytes")
                 witness = stale.exception.counterexample
                 words = witness["abi_words"]
                 self.assertEqual(witness["obligation"], "core_to_final_image_return_abort_and_caller_bytes")
