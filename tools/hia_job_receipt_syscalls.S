@@ -334,6 +334,7 @@ child_wait:
 .return_wait:
  ret
  .ascii "HIAWEND1"
+ .ascii "HIASPAWN"
 
  /* One original capture pipe / append-log descriptor, never a path. Result:
   * errno in the high word, monotonically transferred bytes in the low word. */

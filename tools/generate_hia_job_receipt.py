@@ -23,6 +23,7 @@ OWNER_MAGIC = int.from_bytes(b'HIAJRO01', 'little')
 CHILD_MAGIC = int.from_bytes(b'HIAJCH01', 'little')
 CHILD_PROBE = int.from_bytes(b'{}\n', 'little')
 CAPTURE_MAGIC = int.from_bytes(b'HIAJLG01', 'little')
+LAUNCH_MAGIC = int.from_bytes(b'HIAJSP01', 'little')
 CAPTURE_CHUNK_BYTES = 65536
 ISOLATED_OUTPUT_BYTES = 16 * 1024 * 1024
 CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
@@ -31,6 +32,8 @@ RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
 SOURCE = f'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) == 48 and uint(s, 0, 8) == {LAUNCH_MAGIC}:
+        return workload_spawn_plan(s, o)
     if length(s) == 48 and uint(s, 0, 8) == {CAPTURE_MAGIC}:
         return capture_output_chunk(s, o)
     if length(s) == 40 and uint(s, 0, 8) == {GROUP_SIGNAL_MAGIC}:
@@ -72,6 +75,31 @@ def capture_output_chunk(s:readbuf, o:mutbuf) -> u64:
     put(o, 0, choose(failed == 0, kept, 0), 8)
     put(o, 8, choose(kept != received, 1, 0), 8)
     return 16
+
+def workload_spawn_plan(s:readbuf, o:mutbuf) -> u64:
+    if length(o) != 64 or uint(s, 40, 8) != 0:
+        return 0
+    current = 8
+    while current < 40:
+        descriptor = uint(s, current, 8)
+        if descriptor < 3 or descriptor > 2147483647:
+            return 0
+        previous = 8
+        while previous < current:
+            if uint(s, previous, 8) == descriptor:
+                return 0
+            previous = previous + 8
+        current = current + 8
+    put(o, 0, uint(s, 16, 8), 8)
+    put(o, 8, 0, 8)
+    put(o, 16, uint(s, 24, 8), 8)
+    put(o, 24, 1, 8)
+    put(o, 32, uint(s, 32, 8), 8)
+    put(o, 40, 2, 8)
+    put(o, 48, 3, 8)
+    # New session; restore the default SIGPIPE and SIGXFSZ actions.
+    put(o, 56, 7, 8)
+    return 64
 
 def acknowledge(o:mutbuf, phase:u64, result:u64) -> u64:
     put(o, 0, {RESULT_MAGIC}, 8)

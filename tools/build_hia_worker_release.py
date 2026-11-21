@@ -298,6 +298,17 @@ def _job_writer_has_output_capture(writer):
     return True
 
 
+def _job_writer_has_spawn_plan(writer):
+    raw = writer.read_bytes()
+    marker = b'HIASPAWN'
+    count = raw.count(marker)
+    if not count:
+        return False
+    if count != 1 or b'HIAWEND1' + marker + b'HIAKABI1' not in raw:
+        raise ValueError('installed HIA job writer has an invalid workload spawn entry')
+    return True
+
+
 def _worker_prepare_has_workdir_authority(prepare):
     root = b'/workdir/probe'
     for path, allowed in ((root + b'/nested', True), (root + b'-sibling', False)):
@@ -418,6 +429,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v16'
     if schema == 'hepta.hia.mcp.controller.v16' and _job_writer_has_output_capture(receipt_writer):
         schema = 'hepta.hia.mcp.controller.v17'
+    if schema == 'hepta.hia.mcp.controller.v17' and _job_writer_has_spawn_plan(receipt_writer):
+        schema = 'hepta.hia.mcp.controller.v18'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

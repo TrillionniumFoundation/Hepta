@@ -282,6 +282,20 @@ class JobReceiptExecutableTests(unittest.TestCase):
                         self.assertEqual(result, 16)
                         self.assertEqual(struct.unpack('<2Q', reply.raw), expected)
 
+            for descriptor_tuple, expected in (
+                    ((9, 3, 11, 7, 0), (3, 0, 11, 1, 7, 2, 3, 7)),
+                    ((3, 4, 5, 3, 0), None),
+                    ((3, 4, 1, 5, 0), None),
+                    ((3, 4, 2**31, 5, 0), None),
+                    ((3, 4, 5, 6, 1), None)):
+                request = struct.pack('<8s5Q', b'HIAJSP01', *descriptor_tuple)
+                reply = ctypes.create_string_buffer(64)
+                result = plan(request, len(request), reply, len(reply), None, 0)
+                if expected is None:
+                    self.assertEqual((result, reply.raw), (0, bytes(64)), descriptor_tuple)
+                else:
+                    self.assertEqual((result, struct.unpack('<8Q', reply.raw)), (64, expected))
+
             reader, writer = os.pipe()
             stack.callback(os.close, reader)
             with os.fdopen(writer, 'wb', buffering=0) as pipe:
