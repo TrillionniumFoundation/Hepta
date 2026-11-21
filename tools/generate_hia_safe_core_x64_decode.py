@@ -45,7 +45,7 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
               MV_FLAGS=160, MV_LEFT=168, MV_RIGHT=176,
-              MV_BRANCH_SEEN=MACHINE_VALUES_BRANCHES - 16,
+              MV_ABORT=MACHINE_VALUES_BRANCHES - 24, MV_BRANCH_SEEN=MACHINE_VALUES_BRANCHES - 16,
               MV_PREFIX=MACHINE_VALUES_BRANCHES - 8, MV_BRANCHES=MACHINE_VALUES_BRANCHES,
               MV_BRANCH_DEPTH=MACHINE_VALUES_BRANCH_DEPTH, MV_TERMINALS=1 << MACHINE_VALUES_BRANCH_DEPTH,
               MV_PRODUCT=WRAPPING_PRODUCT, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
@@ -1295,16 +1295,21 @@ def mv_fold_path(o:mutbuf, w:mutbuf, terminal:u64) -> u64:
     depth = get(w, MV_BRANCH_SEEN)
     value = terminal
     while depth != 0:
-        frame = MV_BRANCHES + (depth - 1) * 24
+        frame = MV_BRANCHES + (depth - 1) * 32
         not_taken = get(w, frame + 16)
         if not_taken == 0:
             put(w, frame + 16, value)
+            put(w, frame + 24, get(w, MV_ABORT))
             put(w, MV_PREFIX, depth)
             return value
         predicate = get(w, frame + 8)
         value = mv_node(o, w, 11, predicate - 1, value - 1, not_taken - 1)
         if value == 0:
             return 0
+        stopped = mv_word(o, w, 11, 1, predicate - 1, get(w, MV_ABORT) - 1, get(w, frame + 24) - 1)
+        if stopped == 0:
+            return 0
+        put(w, MV_ABORT, stopped)
         depth = depth - 1
     put(w, MV_PREFIX, 0)
     return value
@@ -1317,6 +1322,7 @@ def mv_finish_tree(o:mutbuf, w:mutbuf, value:u64, steps:u64, depth:u64, paths:u6
     put(o, 24, steps)
     put(o, 32, depth)
     put(o, 40, paths)
+    put(o, 48, get(w, MV_ABORT) - 1)
     return MV_HEADER + nodes * 40
 
 def mv_prime_path(s:readbuf, w:mutbuf, words:u64, count:u64) -> u64:
@@ -1377,7 +1383,17 @@ def mv_run_path(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             value = get(w, 0)
             if value == 0 or value > nodes or mv_caller_preserved(w) == False:
                 return 0
+            stopped = mv_word(o, w, 2, 1, 0, 0, 0)
+            if stopped == 0:
+                return 0
+            put(w, MV_ABORT, stopped)
             return value
+        if action == 3:
+            stopped = mv_word(o, w, 2, 1, 0, 0, 1)
+            if stopped == 0:
+                return 0
+            put(w, MV_ABORT, stopped)
+            return mv_node(o, w, 2, 0, 0, 0)
     return 0
 
 def mv_node(o:mutbuf, w:mutbuf, op:u64, left:u64, right:u64, immediate:u64) -> u64:
@@ -1467,7 +1483,15 @@ def mv_control(w:mutbuf, op:u64, argument:u64, sp:u64) -> u64:
         if op == OP_CALL:
             # Entry RSP is 8 mod 16. A local CALL must execute with
             # RSP 16-aligned and use only a checked internal target.
-            if argument >= MAX_TEXT or (sp & 15) != 8:
+            if (sp & 15) != 8:
+                return 0
+            # The independently bound relocation names only libc abort.
+            # Its return-address push is the one terminal stack effect.
+            if argument == 18446744073709551615:
+                if sp - 8 < get(w, MV_LOW):
+                    put(w, MV_LOW, sp - 8)
+                return 3
+            if argument >= MAX_TEXT:
                 return 0
             value = MV_LOCAL_RETURN + get(w, MV_PC)
             put(w, MV_PC, argument)
@@ -1664,7 +1688,7 @@ def mv_branch(o:mutbuf, w:mutbuf, pc:u64, condition:u64, target:u64) -> u64:
     depth = get(w, MV_BRANCH_SEEN)
     if depth >= MV_BRANCH_DEPTH or target >= MAX_TEXT:
         return 0
-    frame = MV_BRANCHES + depth * 24
+    frame = MV_BRANCHES + depth * 32
     put(w, MV_BRANCH_SEEN, depth + 1)
     if depth < get(w, MV_PREFIX):
         # Nothing from an alternative prefix is reused. Replay starts from

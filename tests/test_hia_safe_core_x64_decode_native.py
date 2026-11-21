@@ -45,8 +45,10 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                 compile_program_machine(emitted, program=core, output=final, linker='ld')
                 function, = core.as_dict()['functions']
                 binding = bind_final_artifact(emitted.object_bytes, final.read_bytes(), function['name'])
-                nodes, value, counts = self.native.project_scalar_values(binding, 2)
-                self.assertEqual(nodes, ((1, 64, 0, 0, 0), (1, 64, 0, 0, 0), (operation, 64, 0, 1, 0)))
+                nodes, value, abort, counts = self.native.project_scalar_values(binding, 2)
+                self.assertEqual(abort, 3)
+                self.assertEqual(nodes, ((1, 64, 0, 0, 0), (1, 64, 0, 0, 0),
+                                         (operation, 64, 0, 1, 0), (2, 1, 0, 0, 0)))
                 self.assertEqual(value, 2)
                 self.assertGreater(counts['maximum_observed_stack_bytes'], 0)
                 self.assertEqual(counts['machine_terminal_paths'], 1)

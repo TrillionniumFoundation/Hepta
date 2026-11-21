@@ -937,7 +937,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     if circuits is None:
         return None
     solver = _machine_circuit_solver(pair)
-    counts = dict(machine[2], core_terminal_paths=paths)
+    counts = dict(machine[3], core_terminal_paths=paths)
     reports = []
     queries = []
     counterexample = None

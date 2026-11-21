@@ -272,6 +272,43 @@ class SafeCoreArtifactTests(unittest.TestCase):
         self.assertEqual(report["model_counts"]["core_terminal_paths"], 4)
         self.assertEqual(report["model_counts"]["machine_terminal_paths"], 4)
 
+    def test_native_machine_proof_joins_abort_and_return_without_a_host_solver(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the abort partition entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        arguments = [("left", "u8"), ("right", "u8")]
+
+        def source(comparison):
+            blocks = [
+                b("entry", arguments, [i(comparison, ("left", "right"), (("condition", "bool"),))],
+                  branch("condition", ("failure",), ("success", "right"))),
+                b("success", [("result", "u8")], [], ret("result")),
+                b("failure", [], [], {"op": "trap", "code": "user"}),
+            ]
+            return verify_program(m(f("check", arguments, ["u8"], ["trap"], blocks)))
+
+        core = source("compare.lt")
+        image = emit_program_machine(core)
+        final = self.newdir() / "conditional-abort.so"
+        compile_program_machine(image, program=core, output=final, linker="ld")
+        supplied = final.read_bytes()
+        with patch("importlib.import_module", side_effect=no_host_solver):
+            report = validate_safe_core_artifact(core, image.object_bytes, supplied)
+            with self.assertRaises(SafeCoreRejected) as refused:
+                validate_safe_core_artifact(source("compare.eq"), image.object_bytes, supplied)
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+        self.assertEqual(report["model_counts"]["machine_terminal_paths"], 2)
+        self.assertEqual(refused.exception.validation["status"], "refuted")
+
     def test_selected_scalar_elf_proof_checks_actual_bytes_without_host_solver(self):
         import z3
         from hepta.hia_safe_core import _selected_machine_proof

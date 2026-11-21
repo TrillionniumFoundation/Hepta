@@ -1723,29 +1723,30 @@ def project_artifact_circuit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
     capacity = length(o)
     workspace = length(w)
-    if size < 80 or capacity < PROJECTION_OUTPUT or workspace < PROJECTION_WORKSPACE:
+    if size < 88 or capacity < PROJECTION_OUTPUT or workspace < PROJECTION_WORKSPACE:
         return TOO_LARGE
     inputs = read64(s, 8)
     machine = read64(s, 16)
     core = read64(s, 24)
     if inputs > 6 or machine < inputs or core < inputs or machine > CIRCUIT_NODES or core > CIRCUIT_NODES:
         return TOO_LARGE
-    base = 80 + 40 * machine
+    base = 88 + 40 * machine
     signed = read64(s, 72)
     if signed > 1 or size != base + 40 * core:
         return TOO_LARGE
-    machine_valid = valid_word_graph(s, 80, machine)
+    machine_valid = valid_word_graph(s, 88, machine)
     core_valid = valid_word_graph(s, base, core)
     if machine_valid == 0 or core_valid == 0:
         return TOO_LARGE
-    if p_artifact_graph(s, o, w, 80, machine, inputs, True) == 0:
+    if p_artifact_graph(s, o, w, 88, machine, inputs, True) == 0:
         return TOO_LARGE
-    actual = p_artifact_observation(s, w, 80, machine, 32, 64)
-    if actual == 65535:
+    actual = p_artifact_observation(s, w, 88, machine, 32, 64)
+    machine_abort = p_artifact_observation(s, w, 88, machine, 80, 1)
+    if actual == 65535 or machine_abort == 65535:
         return TOO_LARGE
     if p_artifact_graph(s, o, w, base, core, inputs, False) == 0:
         return TOO_LARGE
-    return p_artifact_observations(s, o, w, base, core, actual, signed == 1)
+    return p_artifact_observations(s, o, w, base, core, actual, signed == 1, machine_abort)
 
 def p_artifact_graph(s:readbuf, o:mutbuf, w:mutbuf, base:u64, count:u64, inputs:u64, machine:bool) -> u64:
     index = 0
@@ -1786,7 +1787,7 @@ def p_artifact_observation(s:readbuf, w:mutbuf, base:u64, count:u64, field:u64, 
         return 65535
     return read_stack(w, 270336 + 8 * node)
 
-def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, actual:u64, signed:bool) -> u32:
+def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, actual:u64, signed:bool, machine_abort:u64) -> u32:
     known = p_artifact_observation(s, w, base, core, 40, 1)
     expected = p_artifact_observation(s, w, base, core, 48, 1)
     trap = p_artifact_observation(s, w, base, core, 56, 8)
@@ -1796,6 +1797,14 @@ def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, a
     if read_stack(o, 40 + 40 * value) < 64:
         value = p_node(o, w, choose(signed, 31, 30), 64, value, 0, 0)
     no_trap = p_node(o, w, 2, 8, 0, 0, 0)
+    if machine_abort != read_stack(w, 40):
+        # Core retains its detailed trap code in its own proof. An ELF call
+        # to abort observes only whether there was a normal return.
+        trap = p_node(o, w, 8, 1, trap, no_trap, 0)
+        no_trap = machine_abort
+        zero = p_node(o, w, 2, 64, 0, 0, 0)
+        value = p_node(o, w, 11, 64, trap, zero, value)
+        actual = p_node(o, w, 11, 64, machine_abort, zero, actual)
     nodes = read_stack(w, 0)
     if nodes > CIRCUIT_NODES:
         return TOO_LARGE

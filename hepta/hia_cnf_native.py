@@ -53,7 +53,7 @@ WORD_TABLE_INPUT_BITS = 16
 WORD_TABLE_WORK_LIMIT = 32 * 1024 * 1024
 GRAPH_PROJECTION_REQUEST = int.from_bytes(b'HIABVP01', 'little')
 CALL_PROJECTION_REQUEST = int.from_bytes(b'HIABVP02', 'little')
-ARTIFACT_PROJECTION_REQUEST = int.from_bytes(b'HIABVP03', 'little')
+ARTIFACT_PROJECTION_REQUEST = int.from_bytes(b'HIABVP04', 'little')
 SCALAR_SUMMARY = int.from_bytes(b'HIABVS01', 'little')
 TUPLE_SUMMARY = int.from_bytes(b'HIABVS02', 'little')
 FEEDBACK_REQUEST = int.from_bytes(b'HIABVF01', 'little')
@@ -279,11 +279,11 @@ class NativeCnf(NativeHiaJsonImage):
         return instructions, observed, None
 
     def bind_artifact_circuits(self, machine, core, arguments, *, signed_return):
-        machine_nodes, machine_value, _ = machine
+        machine_nodes, machine_value, machine_abort, _ = machine
         core_nodes, (coverage, traps, values), _ = core
-        frame = struct.pack('<10Q', ARTIFACT_PROJECTION_REQUEST, arguments,
+        frame = struct.pack('<11Q', ARTIFACT_PROJECTION_REQUEST, arguments,
                             len(machine_nodes), len(core_nodes), machine_value,
-                            *coverage, traps[0], values[0], int(signed_return))
+                            *coverage, traps[0], values[0], int(signed_return), machine_abort)
         frame += b''.join(struct.pack('<5Q', *row) for row in (*machine_nodes, *core_nodes))
         projected = self._decode_projection(self._run_projection(frame))
         if projected is None:
