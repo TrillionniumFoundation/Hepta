@@ -238,6 +238,66 @@ class JobReceiptExecutableTests(unittest.TestCase):
             self.assertEqual((refused.returncode, refused.stderr), (65, b''))
             self.assertEqual(list(self.root.iterdir()), [])
 
+    def test_native_capture_preserves_isolated_extent_and_actual_io(self):
+        from contextlib import ExitStack
+        import ctypes
+        import mmap
+
+        raw = self.executable.read_bytes()
+        capture = raw.split(b'HIAKABI1', 1)[1].split(b'HIAKEND1', 1)[0]
+        policy = raw.split(b'HIAJPOL1', 1)[1]
+        limit = 16 << 20
+        with ExitStack() as stack:
+            protect = ctypes.CDLL(None, use_errno=True).mprotect
+            protect.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+            protect.restype = ctypes.c_int
+
+            def bind(code, prototype):
+                region = stack.enter_context(mmap.mmap(-1, len(code), prot=mmap.PROT_READ | mmap.PROT_WRITE))
+                region.write(code)
+                address = ctypes.addressof(ctypes.c_char.from_buffer(region))
+                self.assertEqual(protect(address, len(code), mmap.PROT_READ | mmap.PROT_EXEC), 0)
+                return prototype(address)
+
+            plan = bind(policy, ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3)))
+            perform = bind(capture, ctypes.CFUNCTYPE(ctypes.c_uint64, ctypes.c_int64, ctypes.c_void_p,
+                                                   ctypes.c_uint64, ctypes.c_uint64))
+            cases = ((0, limit, 65536, 0, (65536, 0)),
+                     (1, limit - 3, 65536, 0, (3, 1)),
+                     (1, limit - 3, 65536, 1, (0, 1)),
+                     (1, limit, 0, 0, (0, 0)),
+                     (1, limit, 1, 0, (0, 1)),
+                     (1, limit + 1, 1, 0, None),
+                     (0, 0, 65537, 0, None),
+                     (0, 0, 1, 2, None))
+            for mode, stored, size, failed, expected in cases:
+                with self.subTest(mode=mode, stored=stored, size=size, failed=failed):
+                    request = struct.pack('<8s5Q', b'HIAJLG01', mode, stored, size, failed, 0)
+                    reply = ctypes.create_string_buffer(16)
+                    result = plan(request, len(request), reply, 16, None, 0)
+                    if expected is None:
+                        self.assertEqual(result, 0)
+                        self.assertEqual(reply.raw, bytes(16))
+                    else:
+                        self.assertEqual(result, 16)
+                        self.assertEqual(struct.unpack('<2Q', reply.raw), expected)
+
+            reader, writer = os.pipe()
+            stack.callback(os.close, reader)
+            with os.fdopen(writer, 'wb', buffering=0) as pipe:
+                pipe.write(b'native-log')
+            buffer = ctypes.create_string_buffer(65536)
+            self.assertEqual(perform(reader, buffer, len(buffer), 2), 10)
+            log = self.root / 'captured'
+            with log.open('xb', buffering=0) as sink:
+                self.assertEqual(perform(sink.fileno(), buffer, 6, 0), 6)
+                self.assertEqual(perform(sink.fileno(), None, 0, 1), 0)
+            self.assertEqual(log.read_bytes(), b'native')
+            self.assertEqual(perform(reader, buffer, len(buffer), 2), 0)
+            with open('/dev/full', 'wb', buffering=0) as sink:
+                self.assertEqual(perform(sink.fileno(), buffer, 6, 0), errno.ENOSPC << 32)
+            self.assertEqual(perform(-1, None, 0, 1), errno.EINVAL << 32)
+
     def test_cancellation_publishes_before_signalling_only_the_original_pidfd(self):
         nonce = b'0123456789abcdef' * 2
         job = b'original-cancel'

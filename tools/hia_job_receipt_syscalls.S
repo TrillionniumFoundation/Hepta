@@ -334,3 +334,80 @@ child_wait:
 .return_wait:
  ret
  .ascii "HIAWEND1"
+
+ /* One original capture pipe / append-log descriptor, never a path. Result:
+  * errno in the high word, monotonically transferred bytes in the low word. */
+ .ascii "HIAKABI1"
+capture_io:
+ xor r9d,r9d
+ cmp rdi,2147483647
+ ja .capture_invalid
+ cmp rdx,65536
+ ja .capture_invalid
+ cmp rcx,1
+ je .capture_sync
+ test rsi,rsi
+ jz .capture_invalid
+ test rdx,rdx
+ jz .capture_invalid
+ cmp rcx,2
+ je .capture_read
+ test rcx,rcx
+ jnz .capture_invalid
+
+.capture_write:
+ mov eax,1                  /* write */
+ syscall
+ cmp rax,-4
+ je .capture_write
+ test rax,rax
+ js .capture_error
+ jz .capture_progress
+ cmp rax,rdx
+ ja .capture_progress
+ add r9,rax
+ add rsi,rax
+ sub rdx,rax
+ jnz .capture_write
+ mov rax,r9
+ ret
+
+.capture_read:
+ xor eax,eax                /* read */
+ syscall
+ cmp rax,-4
+ je .capture_read
+ test rax,rax
+ js .capture_error
+ cmp rax,rdx
+ ja .capture_progress
+ ret
+
+.capture_sync:
+ or rsi,rdx
+ jnz .capture_invalid
+.capture_sync_again:
+ mov eax,74                 /* fsync */
+ syscall
+ cmp rax,-4
+ je .capture_sync_again
+ test rax,rax
+ js .capture_error
+ ret
+
+.capture_progress:
+ mov eax,8192               /* original "invalid progress" diagnostic */
+ jmp .capture_status
+.capture_invalid:
+ mov eax,22
+ jmp .capture_status
+.capture_error:
+ neg eax
+.capture_status:
+ shl rax,32
+ or rax,r9
+ ret
+ .ascii "HIAKEND1"
+
+ /* The HIA packer appends f0 and its related functions immediately here. */
+ .ascii "HIAJPOL1"

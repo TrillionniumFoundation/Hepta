@@ -22,12 +22,17 @@ TERMINAL_MAGIC = int.from_bytes(b'HIAJRQ02', 'little')
 OWNER_MAGIC = int.from_bytes(b'HIAJRO01', 'little')
 CHILD_MAGIC = int.from_bytes(b'HIAJCH01', 'little')
 CHILD_PROBE = int.from_bytes(b'{}\n', 'little')
+CAPTURE_MAGIC = int.from_bytes(b'HIAJLG01', 'little')
+CAPTURE_CHUNK_BYTES = 65536
+ISOLATED_OUTPUT_BYTES = 16 * 1024 * 1024
 CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
 GROUP_SIGNAL_MAGIC = int.from_bytes(b'HIASGQ01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
 SOURCE = f'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) == 48 and uint(s, 0, 8) == {CAPTURE_MAGIC}:
+        return capture_output_chunk(s, o)
     if length(s) == 40 and uint(s, 0, 8) == {GROUP_SIGNAL_MAGIC}:
         return advance_group_signal(s, o, w)
     if length(s) >= 35 and uint(s, 0, 8) == {OWNER_MAGIC}:
@@ -50,6 +55,23 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = phase + 1
     put(w, 0, phase, 8)
     return phase
+
+def capture_output_chunk(s:readbuf, o:mutbuf) -> u64:
+    mode = uint(s, 8, 8)
+    stored = uint(s, 16, 8)
+    received = uint(s, 24, 8)
+    failed = uint(s, 32, 8)
+    if length(o) != 16 or mode > 1 or received > {CAPTURE_CHUNK_BYTES} or failed > 1 or uint(s, 40, 8) != 0:
+        return 0
+    kept = received
+    if mode == 1:
+        if stored > {ISOLATED_OUTPUT_BYTES}:
+            return 0
+        remaining = {ISOLATED_OUTPUT_BYTES} - stored
+        kept = choose(received <= remaining, received, remaining)
+    put(o, 0, choose(failed == 0, kept, 0), 8)
+    put(o, 8, choose(kept != received, 1, 0), 8)
+    return 16
 
 def acknowledge(o:mutbuf, phase:u64, result:u64) -> u64:
     put(o, 0, {RESULT_MAGIC}, 8)

@@ -283,6 +283,21 @@ def _job_writer_has_original_wait(writer):
     return True
 
 
+def _job_writer_has_output_capture(writer):
+    raw = writer.read_bytes()
+    begin, end, policy = b'HIAKABI1', b'HIAKEND1', b'HIAJPOL1'
+    occurrences = tuple(raw.count(marker) for marker in (begin, end, policy))
+    if occurrences == (0, 0, 0):
+        return False
+    if occurrences != (1, 1, 1):
+        raise ValueError('installed HIA job writer has an invalid output capture entry')
+    first, last, linked = (raw.index(marker) for marker in (begin, end, policy))
+    if (not 32 <= last - first - len(begin) <= 256 or linked != last + len(end)
+            or not 32 <= len(raw) - linked - len(policy) <= 1 << 20):
+        raise ValueError('installed HIA job writer has an invalid output capture extent')
+    return True
+
+
 def _worker_prepare_has_workdir_authority(prepare):
     root = b'/workdir/probe'
     for path, allowed in ((root + b'/nested', True), (root + b'-sibling', False)):
@@ -401,6 +416,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v15'
     if schema == 'hepta.hia.mcp.controller.v15' and _job_writer_has_original_wait(receipt_writer):
         schema = 'hepta.hia.mcp.controller.v16'
+    if schema == 'hepta.hia.mcp.controller.v16' and _job_writer_has_output_capture(receipt_writer):
+        schema = 'hepta.hia.mcp.controller.v17'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}
