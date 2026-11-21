@@ -17,6 +17,7 @@ WIRE = {
     'BUILD_PARAMETERS': b'HIASTPA1',
     'UNIQUE_START': b'HIASTUR1',
     'UNIQUE_REQUEST': b'HIASTUP1',
+    'COMMIT_INTENT': b'HIASTCP1',
     'UNIQUE_CONSUME': b'HIASTUC1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
@@ -92,15 +93,19 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     size = read_word(s, 40)
     if request > 18446744073709551612 or mode > 2 or size != length(s) - 48:
         return 0
-    if plan != 2 and plan != 3 and plan != 6:
-        return 0
-    cap = choose(plan == 2, 192, choose(plan == 3, 208, 2048))
-    if size > 56 + cap or read_word(s, 48) != QUERY_PARAMETERS:
-        return 0
-    if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != size:
-        return 0
-    if read_word(s, 80) != 3 or read_word(s, 88) != 56 or read_word(s, 96) != size - 56:
-        return 0
+    if plan == 10:
+        if valid_cursor_retain(s, size) == False:
+            return 0
+    else:
+        if plan != 2 and plan != 3 and plan != 6:
+            return 0
+        cap = choose(plan == 2, 192, choose(plan == 3, 208, 2048))
+        if size > 56 + cap or read_word(s, 48) != QUERY_PARAMETERS:
+            return 0
+        if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != size:
+            return 0
+        if read_word(s, 80) != 3 or read_word(s, 88) != 56 or read_word(s, 96) != size - 56:
+            return 0
     configure_unique(w, request, plan)
     write_word(w, 112, mode)
     write_word(w, 120, generation)
@@ -111,6 +116,34 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return send_unique(o, w, 21, 0, 0, 6)
     return issue_unique_query(o, w)
 
+# One previously issued page cursor, with its exact artifact digest and offset.
+def valid_cursor_retain(s:readbuf, size:u64) -> bool:
+    if size < 278 or size > 533 or read_word(s, 48) != INSERT_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 10 or read_word(s, 72) != 0 or read_word(s, 80) != 4:
+        return False
+    offset = 136
+    field = 0
+    while field < 4:
+        at = 88 + 24 * field
+        kind = read_word(s, at)
+        extent = read_word(s, at + 16)
+        if read_word(s, at + 8) != offset or extent > size - offset:
+            return False
+        if kind != choose(field == 3, 1, 3):
+            return False
+        if field == 0 and extent != 69:
+            return False
+        if field == 1 and (extent == 0 or extent > 256):
+            return False
+        if field == 2 and extent != 64:
+            return False
+        if field == 3 and extent != 8:
+            return False
+        offset = offset + extent
+        field = field + 1
+    return offset == size
+
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
@@ -119,7 +152,10 @@ def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     return write_word(w, 40, choose(plan == 6, 512, 1000000032))
 
 def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
-    return send_unique(o, w, 27, read_state(w, 16) + 3, read_state(w, 128), 1)
+    plan = read_state(w, 16)
+    if plan == 10:
+        return send_unique(o, w, 27, 1, read_state(w, 128), 10)
+    return send_unique(o, w, 27, plan + 3, read_state(w, 128), 1)
 
 def send_unique(o:mutbuf, w:mutbuf, kind:u64, target:u64, extent:u64, phase:u64) -> u64:
     request = read_state(w, 8) + 1
@@ -143,6 +179,8 @@ def send_unique(o:mutbuf, w:mutbuf, kind:u64, target:u64, extent:u64, phase:u64)
 def unique_transaction(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if length(w) != 2304:
         return 0
+    if phase >= 10:
+        return cursor_write_result(s, o, w, phase)
     if phase == 6 or phase == 8:
         if length(s) != 16 or read_word(s, 8) != ACK:
             return 0
@@ -161,11 +199,77 @@ def unique_transaction(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         return 0
     return finish_unique(o, w)
 
+# Write acknowledgements, WAL transition receipts and source correlation are
+# authenticated before a cursor transaction may return a usable receipt.
+def cursor_write_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
+    if read_state(w, 16) != 10:
+        return 0
+    if phase == 10 or phase == 12 or phase == 14:
+        if length(s) != 16:
+            return 0
+        magic = read_word(s, 8)
+        if phase == 12 and magic == WAL_TRANSACTION:
+            return stream_read(o, w, 13, 248)
+        if magic != ACK:
+            return 0
+        return stream_read(o, w, choose(phase == 10, 11, 15), 72)
+    if phase == 13:
+        if length(s) != 256 or read_word(s, 128) != WAL_ANCHOR or read_word(s, 136) != 1:
+            return 0
+        prior = read_state(w, 120)
+        if prior == 18446744073709551615 or read_word(s, 144) != prior + 1:
+            return 0
+        write_word(w, 160, 1)
+        return stream_read(o, w, 14, 8)
+    if length(s) != 80 or read_word(s, 8) != 1 or read_word(s, 16) != read_state(w, 8):
+        return 0
+    if phase == 11:
+        return cursor_insert_ack(s, o, w)
+    if phase != 15 or read_word(s, 24) != 2 or read_word(s, 32) != 0:
+        return 0
+    advanced = choose(read_word(s, 40) == 0, 0, 1)
+    prior = read_state(w, 120)
+    if advanced != read_state(w, 160) or advanced > 18446744073709551615 - prior:
+        return 0
+    if read_word(s, 48) != prior + advanced:
+        return 0
+    write_word(w, 120, prior + advanced)
+    return finish_unique(o, w)
+
+def cursor_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if read_word(s, 24) != 27:
+        return 0
+    status = read_word(s, 32)
+    skipped = read_word(s, 56)
+    mode = read_state(w, 112)
+    if status == 5 or status == 22:
+        write_word(w, 144, 1)
+        if mode == 0:
+            return finish_unique(o, w)
+        return send_unique(o, w, 3, 0, 0, 8)
+    if status != 0 or skipped > 1:
+        return 0
+    write_word(w, 152, 1 - skipped)
+    if mode == 0:
+        return finish_unique(o, w)
+    send_unique(o, w, 2, 0, 0, 12)
+    # Publish intent into the private, unsealed sink before sending COMMIT.
+    # Losing the final receipt after that point cannot become a clean refusal.
+    write_word(w, 168, 1)
+    write_word(o, 0, 6)
+    write_word(o, 80, COMMIT_INTENT)
+    return 88
+
 def finish_unique(o:mutbuf, w:mutbuf) -> u64:
     write_word(w, 0, 5)
     write_word(o, 0, 5)
-    write_word(o, 8, read_state(w, 48))
-    write_word(o, 16, read_state(w, 80))
+    if read_state(w, 16) == 10:
+        write_word(o, 8, read_state(w, 168) * 8)
+        write_word(o, 16, read_state(w, 152))
+        write_word(o, 24, read_state(w, 144))
+    else:
+        write_word(o, 8, read_state(w, 48))
+        write_word(o, 16, read_state(w, 80))
     write_word(o, 32, read_state(w, 8))
     write_word(o, 40, read_state(w, 120))
     return 48
