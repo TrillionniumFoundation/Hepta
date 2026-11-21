@@ -63,7 +63,7 @@ def begin(s:readbuf, o:mutbuf, w:mutbuf, body:u64) -> u64:
         return INVALID
     program_size_at = 72 + context_bytes
     program_bytes = input_word(s, program_size_at)
-    if program_bytes < 2 or program_bytes > 464 or 40 + context_bytes + program_bytes > body:
+    if program_bytes < 2 or program_bytes > 512 or 40 + context_bytes + program_bytes > body:
         return INVALID
     selectors_at = program_size_at + 8 + program_bytes
     selector_bytes = length(s) - selectors_at
