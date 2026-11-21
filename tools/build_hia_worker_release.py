@@ -251,6 +251,27 @@ def _worker_prepare_has_supervisor_outcome(prepare):
     return True
 
 
+def _job_writer_has_child_publication(writer, scratch):
+    name, raw = b'child', b'{"identity": null, "pid": 17}\n'
+    probe = struct.pack('<8s3Q', b'HIAJCH01', 3, os.getpid(), 0) + b'{}\n'
+    frame = struct.pack('<8s3Q', b'HIAJCH01', len(raw), os.getpid(), len(name)) + name + raw
+    with TemporaryDirectory(prefix='child-writer-', dir=scratch) as directory:
+        result = _run_job_writer(writer, probe, directory)
+        observed = result.returncode, result.stderr
+        if list(Path(directory).iterdir()):
+            raise ValueError('HIA child publication probe created unexpected durable state')
+        if observed == (65, b''):
+            return False
+        if observed != (0, struct.pack('<8sQq', b'HIAJRW01', 0, 0)):
+            raise ValueError('installed HIA job writer has an invalid child publication protocol')
+        result = _run_job_writer(writer, frame, directory)
+        records = {path.name: path.read_bytes() for path in Path(directory).iterdir()}
+        if ((result.returncode, result.stderr) != (0, struct.pack('<8sQq', b'HIAJRW01', 6, 0))
+                or records != {'child.json': raw}):
+            raise ValueError('installed HIA job writer changed the original child receipt')
+        return True
+
+
 def _worker_prepare_has_workdir_authority(prepare):
     root = b'/workdir/probe'
     for path, allowed in ((root + b'/nested', True), (root + b'-sibling', False)):
@@ -365,6 +386,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v13'
     if schema == 'hepta.hia.mcp.controller.v13' and _job_writer_has_group_authority(receipt_writer, scratch):
         schema = 'hepta.hia.mcp.controller.v14'
+    if schema == 'hepta.hia.mcp.controller.v14' and _job_writer_has_child_publication(receipt_writer, scratch):
+        schema = 'hepta.hia.mcp.controller.v15'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

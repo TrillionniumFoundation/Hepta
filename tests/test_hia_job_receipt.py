@@ -157,6 +157,28 @@ class JobReceiptExecutableTests(unittest.TestCase):
         self.check_receipt(owner(), 1, -errno.EEXIST)
         self.assertEqual({name: (self.root / name).stat().st_ino for name in names}, records)
 
+    def test_child_receipt_probe_and_exact_publication_are_distinct(self):
+        magic = b'HIAJCH01'
+        payload = b'{"identity": null, "pid": 13}\n'
+        self.check_receipt(self.request(name=b'', payload=b'{}\n', magic=magic), 0, 0)
+        for fields in ({'name': b''}, {'name': b'exit'}, {'payload': payload[:-1]},
+                       {'parent': os.getppid()}, {'sealed': False}, {'suffix': b'x'},
+                       {'payload': b'{' + b'x' * 65535 + b'}\n'}):
+            result = self.request(**({'name': b'child', 'payload': payload, 'magic': magic} | fields))
+            self.assertEqual((result.returncode, result.stderr), (65, b''))
+            self.assertEqual(list(self.root.iterdir()), [])
+        child = self.root / 'child.json'
+        staging = self.root / f'child.json.tmp.{os.getpid()}'
+        staging.write_bytes(b'unchanged')
+        self.check_receipt(self.request(name=b'child', payload=payload, magic=magic), 1, -errno.EEXIST)
+        self.assertFalse(child.exists())
+        self.assertEqual(staging.read_bytes(), b'unchanged')
+        staging.unlink()
+        self.check_receipt(self.request(name=b'child', payload=payload, magic=magic), 6, 0)
+        self.assertEqual(list(self.root.iterdir()), [child])
+        self.assertEqual(child.read_bytes(), payload)
+        self.assertEqual(stat.S_IMODE(child.stat().st_mode), 0o600)
+
     def test_owner_wire_stops_at_partial_publication_without_retry(self):
         started = self.root / 'started.json'
         started.write_bytes(b'prior receipt')

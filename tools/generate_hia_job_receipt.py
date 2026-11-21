@@ -20,6 +20,8 @@ PACKER_MAGIC = int.from_bytes(b'HIAJPK01', 'little')
 REQUEST_MAGIC = int.from_bytes(b'HIAJRQ01', 'little')
 TERMINAL_MAGIC = int.from_bytes(b'HIAJRQ02', 'little')
 OWNER_MAGIC = int.from_bytes(b'HIAJRO01', 'little')
+CHILD_MAGIC = int.from_bytes(b'HIAJCH01', 'little')
+CHILD_PROBE = int.from_bytes(b'{}\n', 'little')
 CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
 GROUP_SIGNAL_MAGIC = int.from_bytes(b'HIASGQ01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
@@ -35,6 +37,12 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = observed(w, 0)
     result = observed(w, 8)
     if phase == 0:
+        if length(s) == 35 and uint(s, 0, 8) == {CHILD_MAGIC}:
+            parent = uint(s, 16, 8)
+            if 0 < parent and parent <= 2147483647 and parent == observed(w, 16) and uint(s, 8, 8) == 3 and uint(s, 24, 8) == 0:
+                if uint(s, 32, 3) == {CHILD_PROBE}:
+                    return acknowledge(o, 0, 0)
+            return 0
         if prepare(s, o, observed(w, 16)) == 0:
             return 0
     elif result >> 63 != 0 or phase == 6:
@@ -250,7 +258,7 @@ def prepare(s:readbuf, o:mutbuf, parent:u64) -> u64:
     if size < 35 or size > 4194464 or length(o) < 352:
         return 0
     magic = uint(s, 0, 8)
-    if magic != {REQUEST_MAGIC} and magic != {TERMINAL_MAGIC}:
+    if magic != {REQUEST_MAGIC} and magic != {TERMINAL_MAGIC} and magic != {CHILD_MAGIC}:
         return 0
     extent = uint(s, 8, 8)
     pid = uint(s, 16, 8)
@@ -264,15 +272,19 @@ def prepare(s:readbuf, o:mutbuf, parent:u64) -> u64:
         return 0
     if byte(s, start) != 123:
         return 0
-    if magic == {TERMINAL_MAGIC}:
+    if magic == {TERMINAL_MAGIC} or magic == {CHILD_MAGIC}:
         if extent < 3 or extent > 1048576 or byte(s, size - 2) != 125 or byte(s, size - 1) != 10:
             return 0
-        if name_bytes != 4 and name_bytes != 12:
-            return 0
-        if uint(s, 32, 4) != {int.from_bytes(b'exit', 'little')}:
-            return 0
-        if name_bytes == 12 and uint(s, 36, 8) != {int.from_bytes(b'.witness', 'little')}:
-            return 0
+        if magic == {CHILD_MAGIC}:
+            if extent > 65536 or name_bytes != 5 or uint(s, 32, 5) != {int.from_bytes(b'child', 'little')}:
+                return 0
+        else:
+            if name_bytes != 4 and name_bytes != 12:
+                return 0
+            if uint(s, 32, 4) != {int.from_bytes(b'exit', 'little')}:
+                return 0
+            if name_bytes == 12 and uint(s, 36, 8) != {int.from_bytes(b'.witness', 'little')}:
+                return 0
     elif byte(s, size - 1) != 125:
         return 0
     at = 0
