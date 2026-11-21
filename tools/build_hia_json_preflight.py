@@ -116,6 +116,7 @@ CANDIDATES = {
     'context-store': ('worker_context_store', 'context-store'),
     'context-record': ('worker_context_record', 'context-record'),
     'context-request': ('worker_context_request', 'context-request'),
+    'inspection-request': ('worker_inspection_request', 'inspection-request'),
     'context-workload': ('worker_context_workload', 'context-workload'),
     'context-cost': ('worker_context_cost', 'context-cost'),
     'context-cost-diagnostic': ('worker_context_cost_diagnostic', 'context-cost-diagnostic'),

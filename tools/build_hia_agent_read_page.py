@@ -42,6 +42,7 @@ VARIANTS = {
     'context-store': ('worker_context_store', 'hepta.hia.context-store-native.v1'),
     'context-record': ('worker_context_record', 'hepta.hia.context-record-native.v1'),
     'context-request': ('worker_context_request', 'hepta.hia.context-request-native.v1'),
+    'inspection-request': ('worker_inspection_request', 'hepta.hia.inspection-request-native.v1'),
     'context-workload': ('worker_context_workload', 'hepta.hia.context-workload-native.v1'),
     'context-cost': ('worker_context_cost', 'hepta.hia.context-cost-native.v1'),
     'context-cost-diagnostic': ('worker_context_cost_diagnostic', 'hepta.hia.context-cost-diagnostic-native.v1'),

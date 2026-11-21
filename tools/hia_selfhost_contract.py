@@ -327,6 +327,8 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/worker_context_store.hepta',
     'examples/hia_bootstrap/worker_context_record.hepta',
     'examples/hia_bootstrap/worker_context_request.hepta',
+    'examples/hia_bootstrap/worker_inspection_request.hepta',
+    'tools/generate_hia_worker_inspection_request.py',
     'examples/hia_bootstrap/worker_context_workload.hepta',
     'examples/hia_bootstrap/worker_context_cost.hepta',
     'examples/hia_bootstrap/worker_context_cost_diagnostic.hepta',
