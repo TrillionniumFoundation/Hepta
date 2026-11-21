@@ -26,6 +26,8 @@ POLICY_SUCCESSOR = 'tests/fixtures/journal_package_policy_successor.json'
 POLICY_SUCCESSOR_SHA256 = '194f45b213421d3592256cf5d9b752fe425ce9ba8add4bf3c43836c09e6f6c36'
 PROOF_WIRE_POLICY_SHA256 = '771e093a1bbfccc01010d566e1dff98e97c680a4d89eb509ffbb36791afb683a'
 PROOF_WIRE_POLICY_PREDECESSOR_SHA256 = '08c9b79f4ea7e186d92b5e4e905046a5c1d34df9748ebc83c11bdd412d1f9b9b'
+READ_REQUEST_POLICY_SHA256 = '7fe7b92ef191befdfd53cdb93b4fd946bc5a4cb145171243f8c5cd181ad2fe1f'
+READ_REQUEST_RESOURCE = b"    'examples/hia_bootstrap/agent_read_request.hepta',\n"
 PROOF_WIRE_RESOURCE = b"    'examples/hia_bootstrap/core_proof_wire.hepta',\n"
 STORE_TRANSPORT_RESOURCE = (
     b"    'examples/hia_bootstrap/agent_read_page.hepta',\n",
@@ -55,6 +57,11 @@ class JournalInstalledPreparationSourceTests(unittest.TestCase):
             raise AssertionError('Journal package policy successor evidence differs')
         raw = cls.sources[CONTRACT_POLICY]
         expected = cls.authority['policy_sources'][CONTRACT_POLICY]
+        if sha256(raw).hexdigest() == READ_REQUEST_POLICY_SHA256:
+            predecessor = raw.replace(READ_REQUEST_RESOURCE, b'', 1)
+            if sha256(predecessor).hexdigest() != PROOF_WIRE_POLICY_SHA256:
+                raise AssertionError('exact retained read request package composition differs')
+            raw = predecessor
         if sha256(raw).hexdigest() == PROOF_WIRE_POLICY_SHA256:
             predecessor = raw.replace(PROOF_WIRE_RESOURCE, b'', 1)
             if sha256(predecessor).hexdigest() != PROOF_WIRE_POLICY_PREDECESSOR_SHA256:

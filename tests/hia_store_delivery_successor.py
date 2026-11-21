@@ -20,7 +20,11 @@ WORKER_REPORT_PATH = 'hepta/hia_worker_report_native.py'
 LEGACY_PROVIDER = ROOT / 'tests/fixtures/store_legacy_provider_successor.json'
 LEGACY_PROVIDER_SHA256 = 'b2cfbaab09cc1204cd1aa97973e30b57c793f13843e1532b5a6469905887044c'
 STORE_PATH = 'hepta/hia_agent_store.py'
+RETAINED_READ = ROOT / 'tests/fixtures/store_retained_read_successor.json'
+RETAINED_READ_SHA256 = '55067c36abaae147d7eebf4932df4df99d8ebf0cb4e9a851c79ab4e4f1dbab9e'
+SERVICE_PATH = 'hepta/hia_agent_service.py'
 COMPOSITION_EXTENSIONS = {
+    SERVICE_PATH: (RETAINED_READ, RETAINED_READ_SHA256, 'hepta.hia.store-retained-read-successor.v1'),
     WORKER_REPORT_PATH: (WORKER_TRANSPORT_SUCCESSOR, WORKER_TRANSPORT_SHA256,
                          'hepta.hia.worker-report-stream-successor.v1'),
     STORE_PATH: (LEGACY_PROVIDER, LEGACY_PROVIDER_SHA256, 'hepta.hia.store-legacy-provider-successor.v1'),

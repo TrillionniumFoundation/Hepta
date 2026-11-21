@@ -422,6 +422,14 @@ def pinned_direct_call_protocol():
     return getattr(_ACTIVE, 'native_direct_call_protocol', 1)
 
 
+def pinned_agent_store_unique_executable(selection):
+    _check_scope_owner()
+    executable = getattr(_ACTIVE, 'native_agent_store_unique_executable', None)
+    if executable is not None and selection != _ACTIVE.native_store:
+        raise ValueError('native Store read must use its own pinned release')
+    return executable
+
+
 def pinned_agent_read_page_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_agent_read_page_executable', None)

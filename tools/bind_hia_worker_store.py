@@ -11,7 +11,7 @@ from hepta.hia_worker_store_profile import (
     ADMISSION_SCHEMA, DIRECT_BATCH_SCHEMA, DIRECT_CALL_SCHEMA, DIRECT_OWNER_SCHEMA, DIRECT_REPEAT_SCHEMA,
     EDIT_QUERY_SCHEMA, IMPORT_SCHEMA,
     JOURNAL_SCHEMA, OWNED_REFERENCE_SCHEMA, REFERENCE_OWNER_SCHEMA, REFERENCE_SCHEMA, SCHEMA,
-    SEALED_PAGE_SCHEMA, STARTUP_SCHEMA, TERMINAL_SCHEMA,
+    SEALED_PAGE_SCHEMA, STARTUP_SCHEMA, STORE_UNIQUE_SCHEMA, TERMINAL_SCHEMA,
     profile_images,
 )
 from tools.build_hia_worker_report import custody_path
@@ -21,7 +21,7 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
                       portable=False, reference_executable=None, owned_reference_executable=None,
                       direct_call_executable=None, direct_call_protocol=1, read_page_executable=None,
                       standalone_terminal=False, standalone_admission=False, initialize_fresh=False,
-                      journal_executable=None):
+                      journal_executable=None, store_unique_executable=None):
     base = authority._read(authority._path(str(Path(base_bundle).absolute())), authority.MAX_BUNDLE_BYTES)
     record = authority._decode(base.raw)
     if type(record) is not dict or record.get('schema') not in (
@@ -49,11 +49,14 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
         raise ValueError('standalone worker transport requires the complete sealed page profile')
     if journal_executable is not None and not initialize_fresh:
         raise ValueError('standalone journal requires the complete fresh initialization profile')
+    if store_unique_executable is not None and (journal_executable is None or direct_call_protocol != 5):
+        raise ValueError('standalone Store reads require the complete v18 worker profile')
     for name, executable, profile in (('reference', reference_executable, REFERENCE_SCHEMA),
                                       ('owned_reference', owned_reference_executable, OWNED_REFERENCE_SCHEMA),
                                       ('direct_call', direct_call_executable, direct_schema),
                                       ('read_page', read_page_executable, SEALED_PAGE_SCHEMA),
-                                      ('journal', journal_executable, JOURNAL_SCHEMA)):
+                                      ('journal', journal_executable, JOURNAL_SCHEMA),
+                                      ('store_unique', store_unique_executable, STORE_UNIQUE_SCHEMA)):
         if executable is None:
             continue
         if not candidate_import:
@@ -65,7 +68,9 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
         reference_fields[name + '_path'] = custody_path(output, captured.path, portable=portable)
         reference_fields[name + '_sha256'] = digest
         schema = profile
-    if journal_executable is not None:
+    if store_unique_executable is not None:
+        schema = STORE_UNIQUE_SCHEMA
+    elif journal_executable is not None:
         schema = direct_schema if direct_call_protocol >= 4 else JOURNAL_SCHEMA
     elif initialize_fresh:
         schema = STARTUP_SCHEMA
@@ -109,6 +114,7 @@ def main():
     parser.add_argument('--standalone-admission', action='store_true')
     parser.add_argument('--initialize-fresh', action='store_true')
     parser.add_argument('--journal-executable', type=Path)
+    parser.add_argument('--store-unique-executable', type=Path)
     parser.add_argument('--portable', action='store_true',
                         help='require relative base/installation paths within the output directory')
     args = parser.parse_args()
@@ -120,7 +126,8 @@ def main():
                             direct_call_protocol=args.direct_call_protocol,
                             read_page_executable=args.read_page_executable, standalone_terminal=args.standalone_terminal,
                             standalone_admission=args.standalone_admission, initialize_fresh=args.initialize_fresh,
-                            journal_executable=args.journal_executable)
+                            journal_executable=args.journal_executable,
+                            store_unique_executable=args.store_unique_executable)
     print(json.dumps({'manifest': str(args.output.absolute()), 'sha256': pin}))
 
 

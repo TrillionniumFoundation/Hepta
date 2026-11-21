@@ -14,6 +14,9 @@ UNIQUE_WORKSPACE = 128
 
 
 class NativeAgentStoreTransport(NativeHiaJsonImage):
+    def matches_standalone(self, executable):
+        return executable.startswith(b'\x7fELF') and executable.count(self._mapping[:]) == 1
+
     def _project(self, frame, extent):
         source = ctypes.create_string_buffer(frame, len(frame))
         output = ctypes.create_string_buffer(extent)

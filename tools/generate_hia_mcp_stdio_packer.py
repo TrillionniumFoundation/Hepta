@@ -19,8 +19,9 @@ PAGE_MODE = len(DESCRIPTORS)
 TERMINAL_MODE = PAGE_MODE + 1
 SCHEMA_MODE = TERMINAL_MODE + 1
 CONNECTION_MODE = SCHEMA_MODE + 1
-READ_REQUEST_MODE = CONNECTION_MODE + 1
-STORE_UNIQUE_MODE = READ_REQUEST_MODE + 1
+READ_REQUEST_MODE = 16
+STORE_UNIQUE_MODE = 17
+PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE)
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 # The installed pager returns its canonical JSON alongside the cursor insertion.
@@ -662,10 +663,10 @@ def render():
         return 4294967295
     mode = read_word(s, 8)
 '''
-    for mode in range(STORE_UNIQUE_MODE + 1):
+    for mode in PACK_MODES:
         source += f'    if mode == {mode}:\n        return pack_{mode}(s, o)\n'
     source += '    return 4294967295\n'
-    for mode in range(STORE_UNIQUE_MODE + 1):
+    for mode in PACK_MODES:
         prefix, call = template(mode)
         source += f'''
 def pack_{mode}(s:readbuf, o:mutbuf) -> u32:

@@ -21,7 +21,8 @@ STARTUP_SCHEMA = 'hepta.hia.native-helpers.v15'
 JOURNAL_SCHEMA = 'hepta.hia.native-helpers.v16'
 DIRECT_OWNER_SCHEMA = 'hepta.hia.native-helpers.v17'
 REFERENCE_OWNER_SCHEMA = 'hepta.hia.native-helpers.v18'
-JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA)
+STORE_UNIQUE_SCHEMA = 'hepta.hia.native-helpers.v19'
+JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA, STORE_UNIQUE_SCHEMA)
 STARTUP_SCHEMAS = (STARTUP_SCHEMA, *JOURNAL_SCHEMAS)
 ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, *STARTUP_SCHEMAS)
 TERMINAL_SCHEMAS = (TERMINAL_SCHEMA, *ADMISSION_SCHEMAS)
@@ -63,6 +64,8 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'read_page_path', 'read_page_sha256'})
         if schema in JOURNAL_SCHEMAS:
             reference_fields.update({'journal_path', 'journal_sha256'})
+        if schema == STORE_UNIQUE_SCHEMA:
+            reference_fields.update({'store_unique_path', 'store_unique_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
                 or record['target'] != authority.TARGET
@@ -133,7 +136,7 @@ class NativeWorkerStoreBinding:
         self.native_direct_call_protocol = {
             DIRECT_REPEAT_SCHEMA: 2, **dict.fromkeys((DIRECT_BATCH_SCHEMA, *PAGE_SCHEMAS), 3),
             DIRECT_OWNER_SCHEMA: 4,
-            REFERENCE_OWNER_SCHEMA: 5,
+            REFERENCE_OWNER_SCHEMA: 5, STORE_UNIQUE_SCHEMA: 5,
         }.get(schema, 1)
         if schema in DIRECT_CALL_SCHEMAS:
             from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR
@@ -161,6 +164,22 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone read page omits its exact pinned HIA image')
             self.snapshots.append((page, MAX_IMAGE_BYTES))
             self.native_agent_read_page_executable = page.raw
+        self.native_agent_store_unique_executable = None
+        if schema == STORE_UNIQUE_SCHEMA:
+            from .hia_agent_store_transport_native import NativeAgentStoreTransport, SELECTOR
+
+            pin = record['store_unique_sha256']
+            if SELECTOR not in self.selections or not authority._digest(pin):
+                raise ValueError('standalone Store reads require their pinned HIA transport')
+            selected = authority._path(record['store_unique_path'], snapshot.path.parent)
+            descriptor = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, pin)
+            manifest = str(Path(self.selections[SELECTOR]).resolve(strict=True))
+            owners = [image for key, image in self.images.items()
+                      if key[0] == manifest and key[3] is NativeAgentStoreTransport]
+            if len(owners) != 1 or not owners[0].matches_standalone(descriptor.raw):
+                raise ValueError('standalone Store read omits its exact pinned HIA transport')
+            self.snapshots.append((descriptor, MAX_IMAGE_BYTES))
+            self.native_agent_store_unique_executable = descriptor.raw
         self.native_agent_journal_executable = None
         if schema in JOURNAL_SCHEMAS:
             from .hia_agent_journal_native import NativeAgentJournal, SELECTOR
