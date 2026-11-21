@@ -223,11 +223,12 @@ def routes_source():
     return '\n'.join((*lines, '    return route', ''))
 
 
-def pack_seed(data):
+def pack_seed(data, *, history=1):
     """Encode literals and overlapping u16-distance copies for the HIA loader."""
     packed = bytearray()
     literals = bytearray()
     seen = {}
+    links = {}
 
     def flush_literals():
         if literals:
@@ -238,13 +239,23 @@ def pack_seed(data):
     index = 0
     while index < len(data):
         key = data[index:index + 3]
-        before = seen.get(key, -1)
+        candidate = seen.get(key, -1)
+        before = candidate
         # A copy costs three bytes. Short matches can remain in a literal run.
         width = 0
-        if len(key) == 3 and 0 <= before < index and index - before <= 65535:
-            limit = min(130, len(data) - index)
-            while width < limit and data[before + width] == data[index + width]:
-                width += 1
+        limit = min(130, len(data) - index)
+        if len(key) == 3:
+            for _ in range(history):
+                if candidate < 0 or index - candidate > 65535:
+                    break
+                extent = 3
+                while extent < limit and data[candidate + extent] == data[index + extent]:
+                    extent += 1
+                if extent > width:
+                    before, width = candidate, extent
+                    if width == limit:
+                        break
+                candidate = links.get(candidate, -1)
         if width >= 4:
             flush_literals()
             packed.append(128 | (width - 3))
@@ -255,7 +266,10 @@ def pack_seed(data):
             if len(literals) == 128:
                 flush_literals()
         for position in range(index, index + width):
-            seen[data[position:position + 3]] = position
+            block = data[position:position + 3]
+            if history > 1 and block in seen:
+                links[position] = seen[block]
+            seen[block] = position
         index += width
     flush_literals()
     return bytes(packed)

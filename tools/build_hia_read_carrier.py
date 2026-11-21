@@ -16,6 +16,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import ROOT, admit_cold_build, current_sources
+from tools.generate_hia_agent_discovery import ENTRY as DISCOVERY_POLICY, pack_seed, seed_source
 from tools.generate_hia_agent_stdio import document, writes
 from tools.generate_hia_core_json_cli import source_program
 from tools.generate_hia_mcp_stdio_packer import elf_prefix
@@ -46,6 +47,7 @@ class CarrierImage:
     digest: str
     size: int
     sections: tuple
+    compressed: bool = False
 
 
 CARRIERS = {
@@ -76,7 +78,8 @@ CARRIERS = {
         'examples/hia_bootstrap/agent_context_worker_carrier_packer.hepta', b'HIACTK01',
         '4462cca8fdaf7ccfeece9179e3991929960792bfd78100aedefc5ad82cebed41', 27928,
         (('platform_io_and_custody', 0, 3572), ('sealed_children_and_store', 3572, 6564),
-         ('receipt_and_artifact_transfer', 6564, 9590), ('context_effect_delivery', 9590, 27928))),
+         ('receipt_and_artifact_transfer', 6564, 9590), ('context_effect_delivery', 9590, 27928)),
+        compressed=True),
     'describe-worker': CarrierImage(
         'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
         'd3b3b68645a247e27e7081e475e38e0333186bd0983199bbe2a123fa3454fec1', 11258,
@@ -93,6 +96,8 @@ def author(platform_code, *, kind='read'):
         raise ValueError('unrecognized Agent carrier ISA profile')
     prefix = elf_prefix(platform_code)
     size = len(prefix)
+    if carrier.compressed:
+        return compressed_carrier(prefix, carrier)
     source = f"""def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) != 8 or read_word(s, 0) != {int.from_bytes(carrier.magic, 'little')}:
         return 4294967295
@@ -119,6 +124,35 @@ def author(platform_code, *, kind='read'):
     return render_assembly(document(source, Path(carrier.source).stem))
 
 
+def compressed_carrier(prefix, carrier):
+    packed = pack_seed(prefix, history=128)
+    extent = len(prefix)
+    workspace = extent + len(packed)
+    source = f"""def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 8 or read_word(s, 0) != {int.from_bytes(carrier.magic, 'little')}:
+        return 4294967295
+    if length(o) < {extent} or length(w) < {workspace}:
+        return 4294967294
+    seed(w)
+    if unpack_table(w) == 0:
+        return 4294967295
+    index = 0
+    while index < {extent}:
+        store(o, index, byte(w, index))
+        index = index + 1
+    put_word(o, 96, {extent})
+    put_word(o, 104, {extent})
+    return {extent}
+"""
+    unpack = DISCOVERY_POLICY[DISCOVERY_POLICY.index('\ndef unpack_table('):
+                              DISCOVERY_POLICY.index('\ndef same_backend(')]
+    source += unpack.replace('PACK_START', str(extent)).replace('PACK_END', str(workspace))
+    source += seed_source(packed, offset=extent)
+    words = source_program()
+    source += words[words.index('\ndef read_word('):words.index('\ndef put_four(')]
+    return render_assembly(document(source, Path(carrier.source).stem))
+
+
 def build(output, compiler, cold_report, *, kind='read'):
     """Use the cold compiler to pack the exact admitted native carrier ELF."""
     carrier = CARRIERS[kind]
@@ -134,7 +168,9 @@ def build(output, compiler, cold_report, *, kind='read'):
     size = HEADER_SIZE + carrier.size
     request = ctypes.create_string_buffer(carrier.magic)
     result = ctypes.create_string_buffer(size)
-    count = program._entry(request, len(carrier.magic), result, size, None, 0)
+    workspace = ctypes.create_string_buffer(2 * size) if carrier.compressed else None
+    count = program._entry(request, len(carrier.magic), result, size, workspace,
+                           len(workspace) if workspace is not None else 0)
     executable = result.raw
     if (count != size or request.raw != carrier.magic + b'\0'
             or sha256(executable[HEADER_SIZE:]).hexdigest() != carrier.digest):
