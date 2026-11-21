@@ -22,8 +22,11 @@ CONNECTION_MODE = SCHEMA_MODE + 1
 READ_REQUEST_MODE = 16
 STORE_UNIQUE_MODE = 17
 WORKER_DATA_MODE = 18
-PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE, WORKER_DATA_MODE)
+WORKER_RESPONSE_MODE = 19
+PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
+              WORKER_DATA_MODE, WORKER_RESPONSE_MODE)
 WORKER_DATA_HEADER = 16
+WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 # The installed pager returns its canonical JSON alongside the cursor insertion.
@@ -61,8 +64,10 @@ def template(mode):
     schema = mode == SCHEMA_MODE
     read_request = mode == READ_REQUEST_MODE
     worker_data = mode == WORKER_DATA_MODE
+    worker_response = mode == WORKER_RESPONSE_MODE
+    worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
     direct = page or read_request
-    descriptor = None if direct or schema or worker_data else DESCRIPTORS[mode]
+    descriptor = None if direct or schema or worker_data or worker_response else DESCRIPTORS[mode]
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
     workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
@@ -70,9 +75,10 @@ def template(mode):
     maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
-    if worker_data:
-        scratch, workspace = 128, WORKER_WORKSPACE_BYTES
-        minimum, maximum = WORKER_DATA_HEADER + 1, WORKER_DATA_HEADER + INPUT_MAX
+    if worker_data or worker_response:
+        scratch = INPUT_MAX if worker_response else 128
+        workspace = WORKER_WORKSPACE_BYTES
+        minimum, maximum = worker_header + 1, worker_header + INPUT_MAX
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -100,7 +106,12 @@ def template(mode):
     emit('31 ff 48 89 e6 b8 05 00 00 00 0f 05')  # fstat(STDIN, &stat)
     emit('48 85 c0')
     branch('0f 85', 'io_error')
-    emit(f'4c 8b 6c 24 30 49 83 fd {minimum:02x}')  # r13 = stat.st_size
+    emit('4c 8b 6c 24 30')                     # r13 = stat.st_size
+    if minimum < 128:
+        emit(f'49 83 fd {minimum:02x}')
+    else:
+        emit('49 81 fd')
+        word(minimum)
     branch('0f 82', 'bad_frame')
     emit('49 81 fd')
     word(maximum)
@@ -124,14 +135,18 @@ def template(mode):
         word(prefix_bytes + scratch)
         emit('4c 89 e6 b9 09 00 00 00 f3 48 a5')
         emit('49 8d 7c 24 48 49 8d 75 b8')      # input pointer +72, bytes -72
-    elif worker_data:
-        # Forward the two little-endian header words (digit policy, magic)
-        # without interpreting them. Only the HIA application admits the data.
+    elif worker_data or worker_response:
+        # Forward the digit policy and any closed Journal recipe without
+        # interpreting them. Only the HIA application admits the data.
         emit('49 8d be')
         word(prefix_bytes + scratch)
-        emit('48 c7 07 05 00 00 00 48 83 c7 08')
-        emit('4c 89 e6 b9 02 00 00 00 f3 48 a5')
-        emit('49 8d 7c 24 10 49 8d 75 f0')
+        emit(f'48 c7 07 {6 if worker_response else 5:02x} 00 00 00 48 83 c7 08')
+        emit('4c 89 e6 b9')
+        word(worker_header // 8)
+        emit('f3 48 a5 49 8d bc 24')
+        word(worker_header)
+        emit('49 8d b5')
+        word((1 << 32) - worker_header)
     else:
         emit('4c 89 e7 4c 89 ee')
     emit('4c 89 f2' if direct else '49 8d 56 08')   # payload or status-prefixed result

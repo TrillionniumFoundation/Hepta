@@ -11,7 +11,7 @@ import struct
 from tools.build_hia_agent_read_page import pack_stdio
 from tools.build_hia_json_preflight import admit_cold_build, build as build_image, current_sources
 from tools.generate_hia_mcp_stdio_packer import (
-    SOURCE as STDIO_PACKER, TERMINAL_MODE, WORKER_DATA_MODE,
+    SOURCE as STDIO_PACKER, TERMINAL_MODE, WORKER_DATA_MODE, WORKER_RESPONSE_MODE,
 )
 from tools.generate_hia_native_filter import WORKER_FILTER_MAGIC
 from tools.qualify_hia_selfhost import invoke
@@ -61,13 +61,19 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     data_build.mkdir(mode=0o700)
     data_raw, data_pack = pack_stdio(
         data_build, compiler, {STDIO_PACKER: pins[ROOT / STDIO_PACKER]}, WORKER_DATA_MODE, raw, pins)
+    response_build = output / 'response'
+    response_build.mkdir(mode=0o700)
+    response_raw, response_pack = pack_stdio(
+        response_build, compiler, {STDIO_PACKER: pins[ROOT / STDIO_PACKER]}, WORKER_RESPONSE_MODE, raw, pins)
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:
         raise ValueError('worker request build input changed')
 
     executable = output / 'hia-worker-admit'
     terminal = output / 'hia-worker-terminal'
     data_validator = output / 'hia-worker-data'
-    for target, data in ((executable, executable_raw), (terminal, terminal_raw), (data_validator, data_raw)):
+    response = output / 'hia-worker-response'
+    for target, data in ((executable, executable_raw), (terminal, terminal_raw),
+                         (data_validator, data_raw), (response, response_raw)):
         with target.open('xb') as stream:
             stream.write(data)
         target.chmod(0o700)
@@ -78,6 +84,12 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
         'executable': inspection,
         'images': receipts,
         'packing': receipt,
+        'response': {
+            'schema': 'hepta.hia.worker-response-stdio.v1',
+            'executable_sha256': sha256(response_raw).hexdigest(),
+            'executable_bytes': len(response_raw),
+            'native_packing': response_pack,
+        },
         'data_validation': {
             'schema': 'hepta.hia.worker-data-stdio.v1',
             'executable_sha256': sha256(data_raw).hexdigest(),

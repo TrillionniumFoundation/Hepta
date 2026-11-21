@@ -21,6 +21,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 
 PRIVATE_BYTES = 16384
 DATA_VALIDATION_MAGIC = int.from_bytes(b'HIAWDV01', 'little')
+RESPONSE_MAGIC = int.from_bytes(b'HIAWRC01', 'little')
 SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hepta'
 
 ENTRY = r'''
@@ -41,9 +42,13 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 64 + bound * 56 + length(s) + 16384:
         return 4294967293
     digits = get(w, 8)
-    if mode > 5 or (mode == 5 and get(w, 16) != DATA_VALIDATION_MAGIC):
+    if mode > 6 or (mode >= 5 and valid_digits(digits) == 0):
         return 4294967293
     private = length(w) - 16384
+    if mode == 5 and get(w, 16) != DATA_VALIDATION_MAGIC:
+        return 4294967293
+    if mode == 6 and admit_response_recipe(w, private + 1024) == 0:
+        return 4294967293
     put(w, private + 512, 0)
     put(w, private, digits)
     put(o, 48, 262144)
@@ -70,6 +75,8 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         index = index + 1
     if mode == 5:
         return 1
+    if mode == 6:
+        return render_response(s, o, w, private + 1024)
     status = finish_request(s, o, w, mode)
     restore_order(w)
     put(w, 56, 0)
@@ -512,10 +519,165 @@ def frame_word(s:readbuf, at:u64) -> u64:
                   .replace('REPORT_INPUT', str(int.from_bytes(b'HIATRP01', 'little'))))
 
 
+RESPONSE = r'''
+
+# The sealed frame contains a Journal recipe and a separate ordinary JSON
+# payload. The recipe is a closed template, not executable formatting data.
+def admit_response_recipe(w:mutbuf, state:u64) -> u64:
+    if get(w, 16) != RESPONSE_MAGIC or get(w, 32) != 0:
+        return 0
+    size = get(w, 24)
+    if size > 192 or response_recipe_prefix(w) == 0 or response_recipe_key(w) == 0:
+        return 0
+    width = byte(w, RESPONSE_ID_WIDTH)
+    identity = RESPONSE_ID_AT
+    suffix = identity + width
+    if width == 66:
+        if byte(w, identity) != 114 or byte(w, identity + 1) != 45:
+            return 0
+        hex_at = 2
+    else:
+        if width != 43 or unadmitted_id_prefix(w) == 0:
+            return 0
+        hex_at = 11
+    index = hex_at
+    while index < width:
+        digit = byte(w, identity + index)
+        if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
+            return 0
+        index = index + 1
+    completed = width == 66 and size == suffix - 40 + COMPLETED_BYTES
+    rejected = size == suffix - 40 + REJECTED_BYTES
+    if completed:
+        if completed_recipe(w, suffix) == 0:
+            return 0
+    else:
+        if rejected == False or rejected_recipe(w, suffix) == 0:
+            return 0
+    index = 40 + size
+    while index < 232:
+        if byte(w, index) != 0:
+            return 0
+        index = index + 1
+    put(w, state, width)
+    put(w, state + 8, choose(completed, 1, 0))
+    index = 0
+    while index < width:
+        store(w, state + 16 + index, byte(w, identity + index))
+        index = index + 1
+    return 1
+
+def emit_response_id(o:mutbuf, w:mutbuf, state:u64) -> u64:
+    index = 0
+    while index < get(w, state):
+        append_byte(o, w, byte(w, state + 16 + index))
+        index = index + 1
+    return 0
+
+def render_response(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if get(w, 64) != 6:
+        return 4294967295
+    body = serialize(s, o, w)
+    if body >= 4294967000:
+        return body
+    width = get(w, state)
+    completed = get(w, state + 8) == 1
+    prefix = REJECTED_PREFIX_SIZE
+    suffix = REJECTED_SUFFIX_SIZE + width
+    if completed:
+        prefix = COMPLETED_PREFIX_SIZE + width
+        suffix = COMPLETED_SUFFIX_SIZE
+    total = body + prefix + suffix
+    if total > length(o) or total > 8388608:
+        return 4294967274
+    index = body
+    while index > 0:
+        index = index - 1
+        store(o, prefix + index, byte(o, index))
+    put(w, 56, 0)
+    if completed:
+        text(o, w, COMPLETED_PREFIX)
+        emit_response_id(o, w, state)
+        text(o, w, COMPLETED_MIDDLE)
+        put(w, 56, prefix + body)
+        text(o, w, COMPLETED_SUFFIX)
+    else:
+        text(o, w, REJECTED_PREFIX)
+        put(w, 56, prefix + body)
+        text(o, w, REJECTED_MIDDLE)
+        emit_response_id(o, w, state)
+        text(o, w, REJECTED_SUFFIX)
+    return total
+'''
+
+
+def response_program():
+    def field(key, value=None, *, width=0):
+        name = key.encode('ascii')
+        if value is not None:
+            text = value.encode('ascii')
+            return bytes((0, len(name), len(text))) + name + text
+        if width:
+            return bytes((0, len(name), width)) + name
+        return bytes((1, len(name), 0)) + name
+
+    def check(name, data, offset):
+        # The recipe template words are read only from the fixed header.
+        array = []
+        for at in range(0, len(data), 8):
+            word = data[at:at + 8]
+            base = f'at + {at}'
+            if len(word) == 8:
+                array.append(f'get(w, {base}) == {int.from_bytes(word, "little")}')
+            else:
+                array.extend(f'byte(w, at + {at + index}) == {value}'
+                             for index, value in enumerate(word))
+        signature = ', at:u64' if offset is None else ''
+        initialize = '' if offset is None else f'    at = {offset}\n'
+        condition = ' and '.join(array)
+        return f'\ndef {name}(w:mutbuf{signature}) -> u64:\n{initialize}    return choose({condition}, 1, 0)\n'
+
+    version_field = field('contract_version', VERSION)
+    id_header = field('request_id', width=66)
+    id_at = 40 + len(version_field) + len(id_header)
+    width_at = 42 + len(version_field)
+    completed = field('status', 'completed') + field('result')
+    rejected = field('status', 'rejected') + field('error')
+    prefix = '{"contract_version":"' + VERSION + '",'
+    fragments = {
+        'COMPLETED_PREFIX': prefix + '"request_id":"',
+        'COMPLETED_MIDDLE': '","result":',
+        'COMPLETED_SUFFIX': ',"status":"completed"}',
+        'REJECTED_PREFIX': prefix + '"error":',
+        'REJECTED_MIDDLE': ',"request_id":"',
+        'REJECTED_SUFFIX': '","status":"rejected"}',
+    }
+    values = {
+        'RESPONSE_MAGIC': RESPONSE_MAGIC, 'RESPONSE_ID_AT': id_at, 'RESPONSE_ID_WIDTH': width_at,
+        'COMPLETED_BYTES': len(completed), 'REJECTED_BYTES': len(rejected),
+        'COMPLETED_PREFIX_SIZE': len(fragments['COMPLETED_PREFIX'] + fragments['COMPLETED_MIDDLE']),
+        'COMPLETED_SUFFIX_SIZE': len(fragments['COMPLETED_SUFFIX']),
+        'REJECTED_PREFIX_SIZE': len(fragments['REJECTED_PREFIX']),
+        'REJECTED_SUFFIX_SIZE': len(fragments['REJECTED_MIDDLE'] + fragments['REJECTED_SUFFIX']),
+        **fragments,
+    }
+    source = RESPONSE
+    for name, value in values.items():
+        source = source.replace(name, repr(value))
+    return source + ''.join((
+        check('response_recipe_prefix', version_field + id_header[:2], 40),
+        check('response_recipe_key', id_header[3:], width_at + 1),
+        check('unadmitted_id_prefix', b'unadmitted-', id_at),
+        check('completed_recipe', completed, None),
+        check('rejected_recipe', rejected, None),
+    ))
+
+
 def source_program():
     entry = ENTRY.replace('DATA_VALIDATION_MAGIC', str(DATA_VALIDATION_MAGIC))
     return '\n'.join((entry, canonical_program(), key_program(), data_source(),
-                       decimal_program(), format_program(), worker_hash_program(), terminal_frame_program()))
+                       decimal_program(), format_program(), worker_hash_program(), terminal_frame_program(),
+                       response_program()))
 
 
 class WorkerRequestBuilder(Builder):
