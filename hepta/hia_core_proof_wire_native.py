@@ -18,6 +18,7 @@ OBLIGATION_SOLVER_REQUEST = int.from_bytes(b'HIAOBP01', 'little')
 OBLIGATION_WITNESS_REQUEST = int.from_bytes(b'HIAOBW01', 'little')
 MACHINE_RELOCATION_REQUEST = int.from_bytes(b'HIAELFX1', 'little')
 ELF_FUNCTION_LINK_REQUEST = int.from_bytes(b'HIAELFX2', 'little')
+ELF_OBJECT_RELOCATION_REQUEST = int.from_bytes(b'HIAELFX3', 'little')
 
 
 class NativeCoreProofWire(NativeHiaJsonImage):
@@ -54,6 +55,10 @@ class NativeCoreProofWire(NativeHiaJsonImage):
             return None
         head = struct.pack('<4Q256s', ELF_FUNCTION_LINK_REQUEST, len(source), len(target), len(name), name)
         return self._proof_wire_exchange(head + source + target, CIRCUIT_CAPACITY)
+
+    def elf_object_relocation_frame(self, layout, text, address, abort, helper):
+        header = struct.pack('<5Q', ELF_OBJECT_RELOCATION_REQUEST, len(layout), address, abort, helper)
+        return self._proof_wire_exchange(header + layout + text, CIRCUIT_CAPACITY)
 
     def _proof_wire_exchange(self, source, capacity):
         output = ctypes.create_string_buffer(capacity)

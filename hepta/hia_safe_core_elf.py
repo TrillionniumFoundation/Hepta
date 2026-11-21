@@ -517,6 +517,10 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export, *, native_wi
     if obj._native_inventory is None:
         _reference_object_inventory(obj, relsec, source, direct)
         calls, records = _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
+    elif projector is not None:
+        calls, records, relocation_wire = obj._native_inventory.object_relocation_wire(
+            obj.data, mapped_text, address, abort, helper, projector, wire=native_wire,
+        )
     else:
         obj._native_inventory.verify_object_inventory(obj.data, relsec, source, obj.section(".symtab"), direct=direct)
         # Check all names in table order (including unreferenced entries)

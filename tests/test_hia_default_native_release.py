@@ -417,6 +417,8 @@ with (patch('hepta.hia_cnf_native._graph_packet', side_effect=AssertionError('ho
             side_effect=AssertionError('host relocation projection entered')),
       patch('hepta.hia_safe_core_elf_inventory_native.NativeSafeCoreElfInventory._function_link_header',
             side_effect=AssertionError('host function link framing entered')),
+      patch('hepta.hia_safe_core_elf_inventory_native.NativeSafeCoreElfInventory.verify_object_inventory',
+            side_effect=AssertionError('host object relocation framing entered')),
       patch('hepta.hia_cnf_native.NativeCnf.solve_circuit', side_effect=AssertionError('host circuit added'))):
     report = build_safe_core(document, destination, profile_version=6)['validation']
 assert report['complete'] and report['ok']

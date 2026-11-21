@@ -15,14 +15,15 @@ from hepta.hia_cnf_native import (
     _CORE_TRAP_TAGS, _GRAPH_OPERATIONS, _word_type,
 )
 from hepta.hia_core_proof_wire_native import (
-    ELF_FUNCTION_LINK_REQUEST, MACHINE_RELOCATION_REQUEST, OBLIGATION_REQUEST,
+    ELF_FUNCTION_LINK_REQUEST, ELF_OBJECT_RELOCATION_REQUEST, MACHINE_RELOCATION_REQUEST, OBLIGATION_REQUEST,
     OBLIGATION_SOLVER_REQUEST, OBLIGATION_WITNESS_REQUEST,
 )
 from hepta.hia_safe_core import LIMITS, WIDTHS_V6, _scalar_caller_contract
 from hepta.hia_safe_core_elf_inventory_native import (
-    FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_SOURCE_OFFSET,
+    AUTHORITY_BYTES, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_SOURCE_OFFSET,
     FUNCTION_LINK_TARGET_OFFSET, FUNCTION_RECEIPT_BYTES, FUNCTION_RECEIPT_GEOMETRY,
-    HEADER as ELF_RECEIPT_HEADER, SYMBOL as ELF_SYMBOL,
+    HEADER as ELF_RECEIPT_HEADER, MAX_SECTIONS, OBJECT_INVENTORY_CONTROL_BYTES, OBJECT_INVENTORY_MAGIC,
+    OBJECT_RELOCATION_CONTROL_BYTES, SECTION as ELF_SECTION, SECTION_AUTHORITIES, SYMBOL as ELF_SYMBOL,
 )
 from hepta.hia_safe_core_x64_decode_native import (
     DECODE_FRAME_OFFSET, MACHINE_VALUES_REQUEST, MAX_TEXT, PROFILE_OFFSET, WORKSPACE,
@@ -46,6 +47,8 @@ def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return machine_relocation_wire(s, o)
     if length(s) >= 32 and obligation_word(s, 0) == ELF_FUNCTION_LINK_REQUEST:
         return elf_function_link_wire(s, o)
+    if length(s) >= 40 and obligation_word(s, 0) == ELF_OBJECT_RELOCATION_REQUEST:
+        return elf_object_relocation_wire(s, o)
     if length(o) < 32768 or length(o) < length(s) or length(w) < 4096:
         return REFUSED
     put(o, 48, 262144)
@@ -1017,6 +1020,66 @@ def function_receipt_count(s:readbuf, at:u64, size:u64) -> u64:
     if n > 2 or size != {ELF_RECEIPT_HEADER.size + FUNCTION_RECEIPT_BYTES} + {ELF_SYMBOL.size} * n:
         return 0
     return n
+
+def elf_object_relocation_wire(s:readbuf, o:mutbuf) -> u64:
+    extent = obligation_word(s, 8)
+    if extent < {ELF_RECEIPT_HEADER.size + AUTHORITY_BYTES} or extent > length(s) - 40:
+        return {REFUSED}
+    count = obligation_word(s, 48)
+    if count == 0 or count > {MAX_SECTIONS} or obligation_word(s, 40) != 0 or obligation_word(s, 56) != 0:
+        return {REFUSED}
+    if extent != {ELF_RECEIPT_HEADER.size + AUTHORITY_BYTES} + {ELF_SECTION.size} * count:
+        return {REFUSED}
+    roles = 40 + extent - {AUTHORITY_BYTES}
+    text = obligation_word(s, roles + {8 * SECTION_AUTHORITIES.index('.text')})
+    rela = obligation_word(s, roles + {8 * SECTION_AUTHORITIES.index('.rela.text')})
+    symbols = obligation_word(s, roles + {8 * SECTION_AUTHORITIES.index('.symtab')})
+    if text == 0 or rela == 0 or symbols == 0 or text > count or rela > count or symbols > count:
+        return {REFUSED}
+    source = 40 + extent
+    span = length(s) - source
+    size = {OBJECT_INVENTORY_CONTROL_BYTES + OBJECT_RELOCATION_CONTROL_BYTES} + span
+    if span > {MAX_TEXT} or length(o) < size:
+        return {REFUSED}
+    if write_object_relocation_control(s, o, text - 1, rela - 1, symbols - 1, span) == 0:
+        return {REFUSED}
+    index = 0
+    while index < span:
+        store(o, {OBJECT_INVENTORY_CONTROL_BYTES + OBJECT_RELOCATION_CONTROL_BYTES} + index, byte(s, source + index))
+        index = index + 1
+    return size
+
+def write_object_relocation_control(s:readbuf, o:mutbuf, text:u64, rela:u64, symbols:u64, span:u64) -> u64:
+    text_row = {40 + ELF_RECEIPT_HEADER.size} + text * {ELF_SECTION.size}
+    rela_row = {40 + ELF_RECEIPT_HEADER.size} + rela * {ELF_SECTION.size}
+    if obligation_word(s, text_row) != text or obligation_word(s, rela_row) != rela:
+        return 0
+    if obligation_word(s, text_row + 24) != 1 or obligation_word(s, rela_row + 24) != 4:
+        return 0
+    if obligation_word(s, text_row + 32) != 6 or obligation_word(s, text_row + 40) != 0:
+        return 0
+    if span != obligation_word(s, text_row + 56):
+        return 0
+    helper = obligation_word(s, 32)
+    put(o, 0, {OBJECT_INVENTORY_MAGIC})
+    put(o, 8, rela)
+    put(o, 16, text)
+    put(o, 24, symbols)
+    put(o, 32, choose(helper == 0, 1, 0))
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    put(o, 64, 0)
+    first = {OBJECT_INVENTORY_CONTROL_BYTES}
+    put(o, first, 2)
+    put(o, first + 8, obligation_word(s, rela_row + 48))
+    put(o, first + 16, obligation_word(s, text_row + 48))
+    put(o, first + 24, span)
+    put(o, first + 32, obligation_word(s, 16))
+    put(o, first + 40, obligation_word(s, 24))
+    put(o, first + 48, helper)
+    put(o, first + 56, obligation_word(s, rela_row + 64))
+    return 1
 '''
 
 
@@ -1038,6 +1101,7 @@ def program():
                      OBLIGATION_WITNESS_REQUEST=OBLIGATION_WITNESS_REQUEST,
                      MACHINE_RELOCATION_REQUEST=MACHINE_RELOCATION_REQUEST,
                      ELF_FUNCTION_LINK_REQUEST=ELF_FUNCTION_LINK_REQUEST,
+                     ELF_OBJECT_RELOCATION_REQUEST=ELF_OBJECT_RELOCATION_REQUEST,
                      BLOCKS=LIMITS['blocks'], PATHS=LIMITS['core_paths'], OP_BUDGET=LIMITS['operations'],
                      ABI_WORDS=LIMITS['abi_argument_words'], NODE_BUDGET=CIRCUIT_NODES,
                      WIRE_LIMIT=PROJECTION_INPUT_LIMIT, CHECKED_CAST=PROJECT_CHECKED_CAST)

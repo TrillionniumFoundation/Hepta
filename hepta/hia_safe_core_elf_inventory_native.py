@@ -20,6 +20,8 @@ SEGMENT = struct.Struct('<7Q')
 SYMBOL = struct.Struct('<7Q')
 DYNAMIC_TAG = struct.Struct('<2Q')
 RELOCATION = struct.Struct('<3Qq')
+OBJECT_INVENTORY_CONTROL_BYTES = 9 * 8
+OBJECT_RELOCATION_CONTROL_BYTES = 8 * 8
 CAPACITY = HEADER.size + MAX_SECTIONS * SECTION.size + MAX_SEGMENTS * SEGMENT.size
 SECTION_FIELDS = ('type', 'flags', 'addr', 'offset', 'size', 'link', 'info', 'align', 'entsize')
 SEGMENT_FIELDS = ('type', 'flags', 'offset', 'addr', 'filesz', 'memsz', 'align')
@@ -269,10 +271,13 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         return shoff, shnum, executable, symoff, symsize, stroff, strsize
 
     def _exchange(self, data, arguments, suffix=b'', *, capacity=CAPACITY):
+        packet = struct.pack(f'<{len(arguments)}Q', *arguments) + suffix
+        return self._exchange_packet(data, packet, capacity=capacity)
+
+    def _exchange_packet(self, data, packet, *, capacity=CAPACITY):
         require(type(data) is bytes and 64 <= len(data) <= MAX_ELF, REFUSALS[0][1])
         source = ctypes.create_string_buffer(data, len(data))
         output = ctypes.create_string_buffer(capacity)
-        packet = struct.pack(f'<{len(arguments)}Q', *arguments) + suffix
         scratch = ctypes.create_string_buffer(packet, len(packet))
         size = self._checked_default_entry(source, len(data), output, capacity, scratch, len(scratch))
         if not HEADER.size <= size <= capacity:
@@ -297,15 +302,18 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             raise RuntimeError('invalid native Safe Core ELF name extent')
         return data[offset:offset + count].decode('ascii')
 
-    def inventory(self, data, kind, *, authorities=False):
+    def inventory(self, data, kind, *, authorities=False, raw=False):
         if type(kind) is not int or not 0 <= kind <= 65535:
             require(False, REFUSALS[1][1])
+        authorities = authorities or raw
         arguments = (AUTHORITY_MAGIC, kind) if authorities else (kind,)
         extra = AUTHORITY_BYTES if authorities else 0
         output, size, section_count, segment_count = self._exchange(data, arguments, capacity=CAPACITY + extra)
         if (not 1 <= section_count <= MAX_SECTIONS or segment_count > MAX_SEGMENTS
                 or size != HEADER.size + section_count * SECTION.size + segment_count * SEGMENT.size + extra):
             raise RuntimeError('invalid native Safe Core ELF inventory counts')
+        if raw:
+            return output.raw[:size]
         cursor = HEADER.size
         sections = []
         for ordinal in range(section_count):
@@ -473,7 +481,11 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         self._verify_terminal(data, fields, text)
 
     def _verify_terminal(self, data, fields, suffix=b'', *, capacity=CAPACITY):
-        _, size, first, second = self._exchange(data, fields, suffix, capacity=capacity)
+        self._require_terminal_response(self._exchange(data, fields, suffix, capacity=capacity))
+
+    @staticmethod
+    def _require_terminal_response(result):
+        _, size, first, second = result
         if size != HEADER.size or first or second:
             raise RuntimeError('invalid native Safe Core layout response')
 
@@ -536,14 +548,33 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
     def object_relocations_owned(self, data, relocations, source, final_text, address, abort, helper, *, wire=False):
         arguments = (2, relocations['offset'], source['offset'], source['size'],
                      address, abort, helper, relocations['link'])
-        output, size, count, reserved = self._exchange(data, arguments, final_text)
+        result = self._exchange(data, arguments, final_text)
+        return self._decode_object_relocations(result, source['size'], address, helper, wire)
+
+    def object_relocation_wire(self, data, final_text, address, abort, helper, projector, *, wire=False):
+        layout = self.inventory(data, 1, raw=True)
+        packet = projector.elf_object_relocation_frame(layout, final_text, address, abort, helper)
+        require(packet is not None, REFUSALS[REFUSAL_IDS['object_inventory'] - 1][1])
+        head = OBJECT_INVENTORY_CONTROL_BYTES
+        if len(packet) != head + OBJECT_RELOCATION_CONTROL_BYTES + len(final_text):
+            raise RuntimeError('invalid native Safe Core relocation control extent')
+        self._require_terminal_response(self._exchange_packet(data, packet[:head]))
+        # All original symbol names are checked before resolving a call.
+        symbols, = struct.unpack_from('<Q', packet, 24)
+        self.symbols(data, symbols)
+        result = self._exchange_packet(data, packet[head:])
+        return self._decode_object_relocations(result, len(final_text), address, helper, wire)
+
+    @staticmethod
+    def _decode_object_relocations(result, text_size, address, helper, wire):
+        output, size, count, reserved = result
         expected = 2 if helper else 1
         if reserved or count != expected or size != HEADER.size + count * RELOCATION.size:
             raise RuntimeError('invalid native Safe Core call relocation response')
         calls, records = {}, []
         for at in range(HEADER.size, size, RELOCATION.size):
             offset, symbol, target, displacement = RELOCATION.unpack_from(output, at)
-            if not 1 <= symbol <= expected or not 0 < offset <= source['size'] - 4 or offset - 1 in calls:
+            if not 1 <= symbol <= expected or not 0 < offset <= text_size - 4 or offset - 1 in calls:
                 raise RuntimeError('invalid native Safe Core call relocation')
             name = 'abort' if symbol == 1 else '__hia_native_fn_0'
             calls[offset - 1] = 'abort' if symbol == 1 else target - address
