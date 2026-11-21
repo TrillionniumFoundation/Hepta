@@ -26,6 +26,12 @@ SEGMENT_FIELDS = ('type', 'flags', 'offset', 'addr', 'filesz', 'memsz', 'align')
 SYMBOL_FIELDS = ('info', 'other', 'shndx', 'value', 'size')
 MAX_SYMBOLS = 32
 FUNCTION_SYMBOL_MAGIC = int.from_bytes(b'HIAELFF1', 'little')
+FUNCTION_LINK_MAGIC = int.from_bytes(b'HIAELFL1', 'little')
+FUNCTION_LINK_NAME_BYTES = 256
+FUNCTION_LINK_ROW_BYTES = 5 * 8 + FUNCTION_LINK_NAME_BYTES
+FUNCTION_LINK_SOURCE_OFFSET = 64 + FUNCTION_LINK_NAME_BYTES
+FUNCTION_LINK_TARGET_OFFSET = FUNCTION_LINK_SOURCE_OFFSET + 2 * FUNCTION_LINK_ROW_BYTES
+FUNCTION_LINK_BYTES = FUNCTION_LINK_TARGET_OFFSET + 2 * FUNCTION_LINK_ROW_BYTES
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -75,6 +81,9 @@ REFUSALS = (
     ('relro_mapping', 'RELRO differs from the reviewed writable load mapping'),
     ('relro_got', 'GOT is outside the effective RELRO page protection'),
     ('function_extent', 'function is repeated or lies outside exact text'),
+    ('function_inventory', 'closed function inventory differs'),
+    ('function_partition', 'function ranges do not exactly partition text'),
+    ('function_link', 'linker changed a function identity or extent'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -261,6 +270,27 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
     def functions(self, data, table, section):
         fields = (FUNCTION_SYMBOL_MAGIC, table, section['index'], section['addr'], section['size'], 0, 0)
         return {row['name']: row for row in self._symbol_rows(data, fields)}
+
+    def verify_function_link(self, source, target, export, size, address):
+        name = export.encode('utf-8')
+        if len(name) > FUNCTION_LINK_NAME_BYTES:
+            require(False, REFUSALS[REFUSAL_IDS['function_inventory'] - 1][1])
+        packet = bytearray(FUNCTION_LINK_BYTES)
+        struct.pack_into('<5Q', packet, 0, address, size, len(source), len(target), len(name))
+        packet[64:64 + len(name)] = name
+        for start, functions in ((FUNCTION_LINK_SOURCE_OFFSET, source),
+                                 (FUNCTION_LINK_TARGET_OFFSET, target)):
+            if len(functions) > 2:
+                continue
+            for index, row in enumerate(functions.values()):
+                at = start + index * FUNCTION_LINK_ROW_BYTES
+                raw = row['name'].encode('ascii')
+                struct.pack_into('<5Q', packet, at, len(raw), row['value'], row['size'], row['info'], row['other'])
+                packet[at + 40:at + 40 + len(raw)] = raw
+        _, extent, direct, reserved = self._exchange(bytes(packet), (FUNCTION_LINK_MAGIC,))
+        if extent != HEADER.size or direct not in (0, 1) or reserved:
+            raise RuntimeError('invalid native Safe Core function linkage')
+        return bool(direct)
 
     def _symbol_rows(self, data, fields):
         output, size, count, reserved = self._exchange(data, fields)

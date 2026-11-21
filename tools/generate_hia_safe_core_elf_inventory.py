@@ -7,6 +7,8 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
     CAPACITY, FUNCTION_SYMBOL_MAGIC, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
+    FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
+    FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
     OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD, OWNED_SHARED_SYMBOL_CAPACITY,
     OWNED_SHARED_SYMBOL_WORK, OWNED_SHARED_EXPECTED_COUNT, OWNED_SHARED_EXPECTED_RECORD, OWNED_SHARED_EXPECTED_WORK,
@@ -18,6 +20,10 @@ SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
 FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
           'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
 FIELDS['FUNCTION_SYMBOL_MAGIC'] = FUNCTION_SYMBOL_MAGIC
+FIELDS.update(FUNCTION_LINK_MAGIC=FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES=FUNCTION_LINK_BYTES,
+              FUNCTION_LINK_NAME_BYTES=FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES=FUNCTION_LINK_ROW_BYTES,
+              FUNCTION_LINK_SOURCE_OFFSET=FUNCTION_LINK_SOURCE_OFFSET,
+              FUNCTION_LINK_TARGET_OFFSET=FUNCTION_LINK_TARGET_OFFSET)
 FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
 FIELDS.update({'ABI_' + name.upper(): number for number, (name, _) in enumerate(OWNED_SHARED_REFUSALS, 1)})
 FIELDS.update(OWNED_SHARED_MAGIC=OWNED_SHARED_MAGIC, OWNED_SHARED_MAX=OWNED_SHARED_MAX)
@@ -29,7 +35,7 @@ FIELDS.update(OWNED_SHARED_EXPECTED_COUNT=OWNED_SHARED_EXPECTED_COUNT,
 HELPER_NAME = b'__hia_native_fn_0\0'
 FIELDS.update(HELPER_HEAD=int.from_bytes(HELPER_NAME[:8], 'little'),
               HELPER_BODY=int.from_bytes(HELPER_NAME[8:16], 'little'),
-              HELPER_TAIL=int.from_bytes(HELPER_NAME[16:], 'little'))
+              HELPER_TAIL=int.from_bytes(HELPER_NAME[16:], 'little'), HELPER_SIZE=len(HELPER_NAME) - 1)
 FIELDS.update(LIBC_HEAD=int.from_bytes(b'libc.so.', 'little'),
               VERSION_HEAD=int.from_bytes(b'GLIBC_2.', 'little'),
               VERSION_TAIL=int.from_bytes(b'2.5', 'little'))
@@ -40,6 +46,8 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     if length(w) == 8 and get(w, 0) == OWNED_SHARED_MAGIC:
         return owned_shared_layout(s, o)
+    if length(w) == 8 and get(w, 0) == FUNCTION_LINK_MAGIC:
+        return verify_function_link(s, o)
     if (length(w) == OWNED_SHARED_SYMBOL_WORK or length(w) == OWNED_SHARED_EXPECTED_WORK) and get(w, 0) == OWNED_SHARED_SYMBOL_MAGIC:
         if length(o) < OWNED_SHARED_SYMBOL_CAPACITY:
             return 4294967294
@@ -384,6 +392,72 @@ def copy_symbol_row(o:mutbuf, target:u64, source:u64) -> u64:
         store(o, target + byte_index, byte(o, source + byte_index))
         byte_index = byte_index + 1
     return 0
+
+def verify_function_link(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != FUNCTION_LINK_BYTES:
+        return 4294967293
+    if word(s, 40, 8) != 0 or word(s, 48, 8) != 0 or word(s, 56, 8) != 0:
+        return 4294967293
+    count = word(s, 16, 8)
+    export_size = word(s, 32, 8)
+    if count == 0 or count > 2 or word(s, 24, 8) != count or export_size > FUNCTION_LINK_NAME_BYTES:
+        return terminal(o, E_FUNCTION_INVENTORY, 0, 0)
+    source = function_export_slot(s, FUNCTION_LINK_SOURCE_OFFSET, count, export_size)
+    target = function_export_slot(s, FUNCTION_LINK_TARGET_OFFSET, count, export_size)
+    if source == 0 or target == 0:
+        return terminal(o, E_FUNCTION_INVENTORY, 0, 0)
+    if exact_function_partition(s, count, word(s, 8, 8)) == 0:
+        return terminal(o, E_FUNCTION_PARTITION, 0, 0)
+    entry_before = FUNCTION_LINK_SOURCE_OFFSET + (source - 1) * FUNCTION_LINK_ROW_BYTES
+    entry_after = FUNCTION_LINK_TARGET_OFFSET + (target - 1) * FUNCTION_LINK_ROW_BYTES
+    if same_function_geometry(s, entry_before, entry_after, word(s, 0, 8)) == 0:
+        return terminal(o, E_FUNCTION_LINK, 0, 0)
+    if count == 2:
+        helper_before = FUNCTION_LINK_SOURCE_OFFSET + (2 - source) * FUNCTION_LINK_ROW_BYTES
+        helper_after = FUNCTION_LINK_TARGET_OFFSET + (2 - target) * FUNCTION_LINK_ROW_BYTES
+        if same_function_geometry(s, helper_before, helper_after, word(s, 0, 8)) == 0:
+            return terminal(o, E_FUNCTION_LINK, 0, 0)
+    return reply(o, 0, choose(count == 1, 1, 0), 0, 24)
+
+def function_export_slot(s:readbuf, start:u64, count:u64, export_size:u64) -> u64:
+    first = function_binding_role(s, start, export_size)
+    if count == 1:
+        return choose(first == 1, 1, 0)
+    other = function_binding_role(s, start + FUNCTION_LINK_ROW_BYTES, export_size)
+    if first == 1 and other == 2:
+        return 1
+    if first == 2 and other == 1:
+        return 2
+    return 0
+
+def function_binding_role(s:readbuf, row:u64, export_size:u64) -> u64:
+    name_size = word(s, row, 8)
+    name = row + 40
+    if name_size == export_size and same_name(s, name, 64, name_size) != 0:
+        return 1
+    if name_size == HELPER_SIZE and word(s, name, 8) == HELPER_HEAD and word(s, name + 8, 8) == HELPER_BODY:
+        if word(s, name + 16, 2) == HELPER_TAIL:
+            return 2
+    return 0
+
+def exact_function_partition(s:readbuf, count:u64, extent:u64) -> u64:
+    first = FUNCTION_LINK_SOURCE_OFFSET
+    second = first + FUNCTION_LINK_ROW_BYTES
+    if count == 1:
+        return choose(word(s, first + 8, 8) == 0 and word(s, first + 16, 8) == extent, 1, 0)
+    if word(s, first + 8, 8) != 0:
+        first = second
+        second = FUNCTION_LINK_SOURCE_OFFSET
+    distance = word(s, second + 8, 8)
+    if word(s, first + 8, 8) != 0 or distance > extent or word(s, first + 16, 8) != distance:
+        return 0
+    return choose(word(s, second + 16, 8) == extent - distance, 1, 0)
+
+def same_function_geometry(s:readbuf, source:u64, target:u64, address:u64) -> u64:
+    destination = word(s, target + 8, 8)
+    if destination < address or destination - address != word(s, source + 8, 8):
+        return 0
+    return same_name(s, source + 16, target + 16, 24)
 
 def load_binding(s:readbuf, o:mutbuf, section_addr:u64, section_size:u64, section_offset:u64, permissions:u64) -> u64:
     phoff = word(s, 32, 8)

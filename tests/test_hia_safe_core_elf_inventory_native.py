@@ -199,7 +199,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                    for name in boundaries}
         loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup',
                              '_reference_plt_slot', '_reference_object_relocations',
-                             '_reference_symbol_versions', '_reference_relro', '_reference_functions')
+                             '_reference_symbol_versions', '_reference_relro', '_reference_functions',
+                             '_reference_function_link')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
@@ -209,6 +210,35 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         self.assertEqual(closure['native_elf_inventory_image_sha256'], self.native.image_sha256)
         self.assertEqual(closure['native_elf_inventory_source_sha256'], sha256(SOURCE.read_bytes()).hexdigest())
         self.assertFalse(result['checker']['producer_reemission_used'])
+
+    def test_native_cross_image_bindings_match_direct_and_wrapper_geometry(self):
+        def observed(check, args):
+            try:
+                return check(*args)
+            except SafeCoreELFRejected as error:
+                return str(error)
+
+        name, helper = 'entry_impl', '__hia_native_fn_0'
+        address = 0x1020
+        original = {
+            name: dict(name=name, value=8, size=4, info=18, other=0),
+            helper: dict(name=helper, value=0, size=8, info=2, other=0),
+        }
+        linked = {key: {**row, 'value': address + row['value']}
+                  for key, row in reversed(tuple(original.items()))}
+        cases = [
+            (original, linked, name, 12, address),
+            ({helper: original[helper]}, {helper: linked[helper]}, helper, 8, address),
+            ({name: original[name]}, linked, name, 12, address),
+            (original, linked, helper, 12, address),
+            ({**original, helper: {**original[helper], 'size': 7}}, linked, name, 12, address),
+            (original, {**linked, name: {**linked[name], 'value': address + 9}}, name, 12, address),
+            (original, {**linked, helper: {**linked[helper], 'other': 1}}, name, 12, address),
+        ]
+        for args in cases:
+            with self.subTest(source=args[0], target=args[1], export=args[2]):
+                self.assertEqual(observed(self.native.verify_function_link, args),
+                                 observed(elf_reader._reference_function_link, args))
 
     def test_dynamic_and_lookup_bytes_match_retained_checker(self):
         def result(check, *args, **kwargs):

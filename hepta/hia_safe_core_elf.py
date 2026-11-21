@@ -184,6 +184,24 @@ def _reference_functions(elf, section, table):
     return result
 
 
+def _reference_function_link(srcfunc, dstfunc, export, size, address):
+    direct = set(srcfunc) == {export}
+    expected = {export} if direct else {export, "__hia_native_fn_0"}
+    require(set(srcfunc) == set(dstfunc) == expected and (direct or len(expected) == 2),
+            "closed function inventory differs")
+    spans = sorted((row["value"], row["value"] + row["size"]) for row in srcfunc.values())
+    require(spans[0][0] == 0 and spans[-1][1] == size and
+            all(left[1] == right[0] for left, right in zip(spans, spans[1:])),
+            "function ranges do not exactly partition text")
+    for name, row in srcfunc.items():
+        dest = dstfunc[name]
+        require(dest["value"] == address + row["value"] and
+                dest["size"] == row["size"] and
+                (dest["info"], dest["other"]) == (row["info"], row["other"]),
+                "linker changed a function identity or extent")
+    return direct
+
+
 def _elf_hash(name):
     value = 0
     for byte in name.encode("ascii"):
@@ -412,20 +430,11 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     require(linked["size"] <= 64 * 1024, "Safe Core text budget exceeded")
     srcfunc = _functions(obj, source, ".symtab")
     dstfunc = _functions(final, linked, ".symtab")
-    direct = set(srcfunc) == {export}
-    expected = {export} if direct else {export, "__hia_native_fn_0"}
-    require(set(srcfunc) == set(dstfunc) == expected and (direct or len(expected) == 2),
-            "closed function inventory differs")
-    spans = sorted((row["value"], row["value"] + row["size"]) for row in srcfunc.values())
-    require(spans[0][0] == 0 and spans[-1][1] == source["size"] and
-            all(left[1] == right[0] for left, right in zip(spans, spans[1:])),
-            "function ranges do not exactly partition text")
-    for name, row in srcfunc.items():
-        dest = dstfunc[name]
-        require(dest["value"] == linked["addr"] + row["value"] and
-                dest["size"] == row["size"] and
-                (dest["info"], dest["other"]) == (row["info"], row["other"]),
-                "linker changed a function identity or extent")
+    if obj._native_inventory is None:
+        direct = _reference_function_link(srcfunc, dstfunc, export, source["size"], linked["addr"])
+    else:
+        direct = obj._native_inventory.verify_function_link(srcfunc, dstfunc, export,
+                                                            source["size"], linked["addr"])
     dynamic_exports = _functions(final, linked, ".dynsym")
     require(set(dynamic_exports) == {export} and
             dynamic_exports[export] == dstfunc[export], "loader export identity differs")
