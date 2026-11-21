@@ -6,7 +6,7 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSES,
-                                 SPARSE_REQUEST, SPARSE_VARIABLES, WORD_ARITHMETIC_SHR,
+                                 SPARSE_REQUEST, SPARSE_VARIABLES, WORD_ARITHMETIC_SHR, WORD_PRODUCT_EXCEEDS,
                                  WORD_VARIABLE_SHL, WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
 from hepta.hia_safe_core_x64_decode_native import (
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
@@ -43,13 +43,14 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_HEADER=MACHINE_VALUES_HEADER.size,
               MV_STACK=192, MV_STACK_BASE=20000, MV_STACK_TOP=20000 + MACHINE_VALUES_STACK_BYTES,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
+              MV_MUL_HIGH_TOKEN=200000, MV_MUL_HIGH_TEST=1000,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
               MV_FLAGS=160, MV_LEFT=168, MV_RIGHT=176,
               MV_FLAG_RESULT=MACHINE_VALUES_BRANCHES - 32,
               MV_ABORT=MACHINE_VALUES_BRANCHES - 24, MV_BRANCH_SEEN=MACHINE_VALUES_BRANCHES - 16,
               MV_PREFIX=MACHINE_VALUES_BRANCHES - 8, MV_BRANCHES=MACHINE_VALUES_BRANCHES,
               MV_BRANCH_DEPTH=MACHINE_VALUES_BRANCH_DEPTH, MV_TERMINALS=1 << MACHINE_VALUES_BRANCH_DEPTH,
-              MV_PRODUCT=WRAPPING_PRODUCT, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
+              MV_PRODUCT=WRAPPING_PRODUCT, MV_PRODUCT_LIMIT=WORD_PRODUCT_EXCEEDS, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
               MV_SHIFT_RIGHT=WORD_VARIABLE_SHR, MV_SHIFT_ARITHMETIC=WORD_ARITHMETIC_SHR)
 FIELDS.update(QUERY_WORKSPACE=QUERY_FORMAT_WORKSPACE, QUERY_REQUEST=SPARSE_REQUEST,
               QUERY_BYTES=CIRCUIT_CAPACITY, QUERY_VARIABLES=SPARSE_VARIABLES,
@@ -1463,10 +1464,21 @@ def mv_step(s:readbuf, o:mutbuf, w:mutbuf, row:u64, sp:u64) -> u64:
         return mv_control(w, op, a, sp)
     if op == OP_NOP:
         return 1
+    if op == OP_MUL:
+        return mv_unsigned_multiply(o, w, a)
     if op == OP_CMP or op == OP_TEST:
         if a >= 16 or b >= 16:
             return 0
-        mv_remember_flags(w, op, get(w, a * 8), get(w, b * 8))
+        left = get(w, a * 8)
+        right = get(w, b * 8)
+        if op == OP_TEST and left == right and left > MV_MUL_HIGH_TOKEN:
+            tested = left - MV_MUL_HIGH_TOKEN
+            if tested > get(w, MV_NODES):
+                return 0
+            put(w, MV_FLAGS, MV_MUL_HIGH_TEST)
+            put(w, MV_FLAG_RESULT, tested)
+        else:
+            mv_remember_flags(w, op, left, right)
         return 1
     if op == OP_SETCC:
         return mv_setcc(o, w, a, b)
@@ -1600,10 +1612,72 @@ def mv_arithmetic(o:mutbuf, w:mutbuf, op:u64, register:u64, right:u64) -> u64:
     if value == 0:
         return 0
     put(w, register * 8, value)
-    if op != OP_IMUL:
-        mv_remember_flags(w, op, left, right)
-        put(w, MV_FLAG_RESULT, value)
+    mv_remember_flags(w, op, left, right)
+    put(w, MV_FLAG_RESULT, value)
     return 1
+
+def mv_unsigned_multiply(o:mutbuf, w:mutbuf, source:u64) -> u64:
+    if source >= 16:
+        return 0
+    left = get(w, 0)
+    right = get(w, source * 8)
+    nodes = get(w, MV_NODES)
+    if left == 0 or left > nodes or right == 0 or right > nodes:
+        return 0
+    value = mv_node(o, w, MV_PRODUCT, left - 1, right - 1, 0)
+    high_nonzero = mv_unsigned_product_flag(o, w, left - 1, right - 1)
+    if value == 0 or high_nonzero == 0:
+        return 0
+    put(w, 0, value)
+    # The high word is represented only by its exact nonzero predicate.
+    # A later TEST of the same value is meaningful; generic reads refuse.
+    put(w, 16, MV_MUL_HIGH_TOKEN + high_nonzero)
+    mv_remember_flags(w, OP_MUL, left, right)
+    put(w, MV_FLAG_RESULT, high_nonzero)
+    return 1
+
+def mv_unsigned_product_flag(o:mutbuf, w:mutbuf, left:u64, right:u64) -> u64:
+    limit = mv_node(o, w, 2, 0, 0, 18446744073709551615)
+    if limit == 0:
+        return 0
+    return mv_word(o, w, MV_PRODUCT_LIMIT, 1, left, right, limit - 1)
+
+def mv_product_flag(o:mutbuf, w:mutbuf, operation:u64, condition:u64, left:u64, right:u64) -> u64:
+    # MUL and two-operand IMUL define OF and CF identically. Other status
+    # flags are undefined; no conditional read may silently use old flags.
+    if (condition & 14) > 2:
+        return 0
+    if operation == OP_IMUL:
+        flag = mv_signed_product_flag(o, w, left, right)
+    else:
+        flag = get(w, MV_FLAG_RESULT)
+    if flag == 0 or (condition & 1) == 0:
+        return flag
+    return mv_word(o, w, 6, 1, flag - 1, 0, 0)
+
+def mv_signed_product_flag(o:mutbuf, w:mutbuf, left:u64, right:u64) -> u64:
+    # Unsigned magnitudes are exact, even for the signed minimum. The
+    # independently checked product can be one larger on the negative side.
+    zero = mv_node(o, w, 2, 0, 0, 0)
+    sign_a = mv_word(o, w, 26, 1, left, 0, 63)
+    sign_b = mv_word(o, w, 26, 1, right, 0, 63)
+    if zero == 0 or sign_a == 0 or sign_b == 0:
+        return 0
+    negative_a = mv_node(o, w, 10, zero - 1, left, 0)
+    negative_b = mv_node(o, w, 10, zero - 1, right, 0)
+    if negative_a == 0 or negative_b == 0:
+        return 0
+    a = mv_node(o, w, 11, sign_a - 1, negative_a - 1, left)
+    b = mv_node(o, w, 11, sign_b - 1, negative_b - 1, right)
+    lower = mv_node(o, w, 2, 0, 0, 9223372036854775808)
+    upper = mv_node(o, w, 2, 0, 0, 9223372036854775807)
+    sign = mv_word(o, w, 5, 1, sign_a - 1, sign_b - 1, 0)
+    if a == 0 or b == 0 or lower == 0 or upper == 0 or sign == 0:
+        return 0
+    limit = mv_node(o, w, 11, sign - 1, lower - 1, upper - 1)
+    if limit == 0:
+        return 0
+    return mv_word(o, w, MV_PRODUCT_LIMIT, 1, a - 1, b - 1, limit - 1)
 
 def mv_unary(o:mutbuf, w:mutbuf, op:u64, register:u64, count:u64) -> u64:
     left = get(w, register * 8)
@@ -1638,6 +1712,15 @@ def mv_condition(o:mutbuf, w:mutbuf, condition:u64) -> u64:
         return 0
     left = get(w, MV_LEFT) - 1
     right = get(w, MV_RIGHT) - 1
+    if operation == OP_IMUL or operation == OP_MUL:
+        return mv_product_flag(o, w, operation, condition, left, right)
+    if operation == MV_MUL_HIGH_TEST:
+        high_nonzero = get(w, MV_FLAG_RESULT)
+        if condition == 5:
+            return high_nonzero
+        if condition == 4 and high_nonzero != 0:
+            return mv_word(o, w, 6, 1, high_nonzero - 1, 0, 0)
+        return 0
     if operation == OP_TEST:
         both = left + 1
         if left != right:

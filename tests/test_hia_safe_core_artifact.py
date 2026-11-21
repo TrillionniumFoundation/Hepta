@@ -336,6 +336,34 @@ class SafeCoreArtifactTests(unittest.TestCase):
                     self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
                     self.assertEqual(report["model_counts"]["machine_terminal_paths"], 2)
 
+    def test_native_machine_proves_checked_product_overflow_at_full_width(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("checked multiplication entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        directory = self.newdir()
+        for typ, profile in (("u64", 4), ("i64", 6)):
+            with self.subTest(typ=typ):
+                core = verify_program(arithmetic("int.mul.checked", typ))
+                image = emit_program_machine(core)
+                final = directory / (typ + "-checked-product.so")
+                compile_program_machine(image, program=core, output=final, linker="ld")
+                with patch("importlib.import_module", side_effect=no_host_solver):
+                    report = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes(),
+                                                         profile_version=profile)
+                self.assertTrue(report["complete"])
+                self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+                self.assertEqual(report["model_counts"]["machine_terminal_paths"], 2)
+                self.assertEqual([row["result"] for row in report["obligations"]],
+                                 ["sat", "unsat", "unsat", "unsat", "unsat"])
+
     def test_selected_scalar_elf_proof_checks_actual_bytes_without_host_solver(self):
         import z3
         from hepta.hia_safe_core import _selected_machine_proof

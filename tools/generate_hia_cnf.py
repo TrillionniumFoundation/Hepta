@@ -1867,7 +1867,7 @@ def p_artifact_word(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) 
         predicate = 32 + 40 * a
         if read_stack(o, predicate) == 6:
             return p_node(o, w, 11, width, read_stack(o, predicate + 16), c, b)
-    if (op == 3 or op == 4 or op == 5 or op == 9 or op == 32) and a > b:
+    if (op == 3 or op == 4 or op == 5 or op == 9 or op == 32 or op == WORD_PRODUCT_EXCEEDS) and a > b:
         swap = a
         a = b
         b = swap
@@ -2112,16 +2112,16 @@ def p_fold(o:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64, nodes:u64) -> u64:
                 return choose(av == 1, b, c)
     if width != 1 or left_width != right_width:
         return 65535
-    if op == 3 and left_width == 1:
+    if (op == 3 or op == 4) and left_width == 1:
+        literal = op - 3
+        if a == b:
+            return a
         if left_known:
-            return choose(av == 0, a, b)
+            return choose(av == literal, a, b)
         if right_known:
-            return choose(bv == 0, b, a)
-    if op == 4 and left_width == 1:
-        if left_known:
-            return choose(av == 1, a, b)
-        if right_known:
-            return choose(bv == 1, b, a)
+            return choose(bv == literal, b, a)
+        if (read_stack(o, left) == 6 and read_stack(o, left + 16) == b) or (read_stack(o, right) == 6 and read_stack(o, right + 16) == a):
+            return 65536 + literal
     if op == 7 or op == 8:
         if a == b or (left_known and right_known):
             return 65536 + choose((a == b or av == bv) == (op == 7), 1, 0)
