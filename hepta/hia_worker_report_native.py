@@ -32,6 +32,7 @@ SCHEMA = 'hepta.hia.worker-report-bundle.v1'
 SELECTOR = 'HEPTA_HIA_WORKER_REPORT_MANIFEST'
 MAGIC = int.from_bytes(b'HIAWKR02', 'little')
 STANDALONE_MAGIC = int.from_bytes(b'HIAWKR03', 'little')
+STREAM_MAGIC = int.from_bytes(b'HIAWKR04', 'little')
 ARGV_REQUEST, ARGV_REPLY = b'HIAWAV01', b'HIAWVO01'
 HIGH = 1 << 63
 NODE_BASE = 32768
@@ -226,10 +227,17 @@ class WorkerSession:
             from .hia_native_helpers import (
                 pinned_worker_admission_executable, pinned_worker_terminal_executable,
             )
+            from .hia_worker_request_native import STREAM_ADMISSION_MAGIC
 
-            standalone = (pinned_worker_admission_executable() is not None
-                          and pinned_worker_terminal_executable() is not None)
+            admission = pinned_worker_admission_executable()
+            standalone = admission is not None and pinned_worker_terminal_executable() is not None
             start_magic = STANDALONE_MAGIC if standalone else MAGIC
+            if (standalone and STREAM_ADMISSION_MAGIC in admission
+                    and getattr(worker, '__name__', None) == '__main__'
+                    and worker.sys.stdin is worker.sys.__stdin__ and worker.sys.stdin is not None):
+                # Only the actual process entry can hand off an unread fd.
+                # Embedded callers may already have Python-buffered bytes.
+                start_magic = STREAM_MAGIC
             reg = self.observer.register
             self.packet = struct.pack('<14Q', start_magic, 0, 0, int(args.installation_manifest),
                 int(args.request_json_stdin), reg(args.state_root), reg(args.artifact_root),
@@ -343,7 +351,8 @@ class WorkerSession:
             elif opcode == 30:
                 from .hia_worker_request_native import NativeRequestRejected
                 try:
-                    admitted = value(a)(value(b), value(c))
+                    source = self.worker.sys.stdin if d == 2 else value(b)
+                    admitted = value(a)(source, value(c))
                     if d:
                         request, terminal = admitted
                         x, y = reg(request), reg(terminal)

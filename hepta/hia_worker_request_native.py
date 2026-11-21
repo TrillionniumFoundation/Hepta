@@ -27,8 +27,10 @@ PRIVATE_BYTES = 16384
 TERMINAL_FRAME = struct.Struct('<8s4Q')
 ADMISSION_FRAME = struct.Struct('<8s2Q64s')
 ADMISSION_REPLY = struct.Struct('<8s2Q')
+STREAM_ADMISSION_REPLY = struct.Struct('<8s3Q')
 ADMISSION_INPUT_MAGIC = b'HIAWRA02'
 ADMISSION_OUTPUT_MAGIC = b'HIAWRO02'
+STREAM_ADMISSION_MAGIC = b'HIAWSO01'
 
 ERRORS = {
     0xffffffef: ('E_HIA_FIELDS', 'worker request has missing or unknown fields'),
@@ -121,6 +123,43 @@ class NativeWorkerRequest(NativeHiaJsonImage):
             raise ValueError('trusted catalog pin must be canonical SHA-256')
         return self._run(raw, catalog, terminal=True)
 
+    @staticmethod
+    def admit_stdin_for_terminal(stream, catalog):
+        from .hia_native_helpers import pinned_worker_admission_executable
+        from .hia_scalar_reference_native import sealed_reference_bytes
+
+        executable = pinned_worker_admission_executable()
+        if executable is None or STREAM_ADMISSION_MAGIC not in executable:
+            raise ValueError('standalone HIA worker stream admission is not pinned')
+        if (type(catalog) is not str or len(catalog) != 64
+                or any(ch not in '0123456789abcdef' for ch in catalog)):
+            raise ValueError('trusted catalog pin must be canonical SHA-256')
+        max_digits = sys.get_int_max_str_digits()
+        header = ADMISSION_FRAME.pack(ADMISSION_INPUT_MAGIC, 0, max_digits, catalog.encode('ascii'))
+        with (sealed_reference_bytes(executable) as program,
+              sealed_reference_bytes(header) as metadata):
+            os.lseek(metadata, 0, os.SEEK_SET)
+            source = os.dup(stream.fileno())
+            try:
+                child = subprocess.run(['/proc/self/fd/' + str(program), str(source)],
+                                       stdin=metadata, pass_fds=(program, source),
+                                       capture_output=True, env={'PATH': ''})
+            finally:
+                os.close(source)
+        if child.returncode == 3 and not child.stdout and not child.stderr:
+            raise ValueError('worker JSON must be bytes within 8 MiB')
+        packet = child.stdout
+        if child.returncode or child.stderr or len(packet) < STREAM_ADMISSION_REPLY.size:
+            raise ValueError('standalone HIA worker admission did not return a complete arena')
+        magic, status, extent, size = STREAM_ADMISSION_REPLY.unpack_from(packet)
+        offset = STREAM_ADMISSION_REPLY.size + extent
+        if magic != STREAM_ADMISSION_MAGIC or size > MAX_BYTES or len(packet) != offset + size:
+            raise ValueError('invalid standalone HIA worker admission frame')
+        _validate_admission_arena(status, extent, size)
+        raw = packet[offset:]
+        request = _materialize_request(status, packet[STREAM_ADMISSION_REPLY.size:offset], raw)
+        return request, _terminal_callback(executable, raw, catalog, max_digits)
+
     def _terminal(self, scratch, identities, body):
         _validate_terminal_body(body)
         pins = _terminal_pins(identities)
@@ -168,11 +207,15 @@ def _standalone_admit(executable, request, catalog, max_digits):
     magic, status, extent = ADMISSION_REPLY.unpack_from(child.stdout)
     if magic != ADMISSION_OUTPUT_MAGIC or len(child.stdout) != ADMISSION_REPLY.size + extent:
         raise ValueError('invalid standalone HIA worker admission frame')
+    _validate_admission_arena(status, extent, len(request))
+    return status, child.stdout[ADMISSION_REPLY.size:]
+
+
+def _validate_admission_arena(status, extent, source_size):
     _validate_admission_status(status)
-    _, workspace = buffer_sizes(len(request))
+    _, workspace = buffer_sizes(source_size)
     if not 64 <= extent <= workspace - PRIVATE_BYTES:
         raise RuntimeError('invalid native worker request arena extent')
-    return status, child.stdout[ADMISSION_REPLY.size:]
 
 
 def _terminal_callback(executable, raw, catalog, max_digits):

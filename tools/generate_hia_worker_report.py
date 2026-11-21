@@ -14,6 +14,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 SOURCE_PATH = 'examples/hia_bootstrap/worker_report.hepta'
 MAGIC = int.from_bytes(b'HIAWKR02', 'little')
 STANDALONE_MAGIC = int.from_bytes(b'HIAWKR03', 'little')
+STREAM_MAGIC = int.from_bytes(b'HIAWKR04', 'little')
 HIGH = 1 << 63
 LITERALS = {
     'SCHEMA_KEY': 'schema', 'REPORT_SCHEMA': 'hia-agent-worker-report-v1',
@@ -36,10 +37,11 @@ LITERALS = {
     'ARG_ERROR': 'request execution requires --state-root and --request-json-stdin',
     'NATIVE_HELPERS_SHA': 'native_helpers_sha256',
     'ADMIT_TERMINAL': 'admit_for_terminal',
+    'ADMIT_STREAM': 'admit_stdin_for_terminal',
 }
 CONSTANTS = {name: HIGH + i for i, name in enumerate(LITERALS, 1)}
 FIELDS = {
-    'MAGIC': MAGIC, 'STANDALONE_MAGIC': STANDALONE_MAGIC, 'HIGH': HIGH,
+    'MAGIC': MAGIC, 'STANDALONE_MAGIC': STANDALONE_MAGIC, 'STREAM_MAGIC': STREAM_MAGIC, 'HIGH': HIGH,
     'ARGV_REQUEST': int.from_bytes(b'HIAWAV01', 'little'),
     'ARGV_REPLY': int.from_bytes(b'HIAWVO01', 'little'),
     'AWAIT': 8, 'SEQ': 16, 'PHASE': 24, 'EXC': 32, 'EXC_DOMAIN': 40,
@@ -90,9 +92,9 @@ def worker_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if length(s) != 112 or read64(s, 8) != 0 or read64(s, 16) != 0:
             return 199
         profile = read64(s, 0)
-        if profile != MAGIC and profile != STANDALONE_MAGIC:
+        if profile != MAGIC and profile != STANDALONE_MAGIC and profile != STREAM_MAGIC:
             return 199
-        put(w, STANDALONE, choose(profile == STANDALONE_MAGIC, 1, 0))
+        put(w, STANDALONE, choose(profile == STREAM_MAGIC, 2, choose(profile == STANDALONE_MAGIC, 1, 0)))
         if read64(s, 24) > 1 or read64(s, 32) > 1 or read64(s, 104) != 0:
             return 199
         put(w, 0, MAGIC)
@@ -212,6 +214,8 @@ def control(s:readbuf, w:mutbuf, phase:u64) -> u64:
             if get(w, MANIFEST_MODE) != 0:
                 put(w, PHASE, 90)
                 return 0
+            if get(w, STANDALONE) == 2:
+                return ask(w, 13, L_REQUEST_SELECTOR, 0, 0, 0, 11)
             return ask(w, 11, 8388609, 0, 0, 0, 10)
         expected = get(w, PIN_WORKER + index * 8)
         put(w, EXPECTED, expected)
@@ -237,11 +241,15 @@ def control(s:readbuf, w:mutbuf, phase:u64) -> u64:
         put(w, SELECTED, read64(s, 32))
         return ask(w, 1, read64(s, 32), 0, 0, 0, 12)
     if phase == 12:
+        if get(w, STANDALONE) == 2:
+            return ask(w, 14, get(w, SELECTED), 0, 0, 0, 13)
         if read64(s, 32) == 0 or (read64(s, 32) == 4 and read64(s, 40) == 0):
             return ask(w, 15, get(w, RAW), get(w, IDENTITIES), 0, 0, 17)
         return ask(w, 14, get(w, SELECTED), 0, 0, 0, 13)
     if phase == 13:
         method = choose(get(w, STANDALONE) != 0, L_ADMIT_TERMINAL, L_ADMIT)
+        if get(w, STANDALONE) == 2:
+            method = L_ADMIT_STREAM
         return ask(w, 7, read64(s, 32), method, 0, 0, 14)
     if phase == 14:
         put(w, CALLABLE, read64(s, 32))

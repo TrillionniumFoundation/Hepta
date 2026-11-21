@@ -53,8 +53,13 @@ It refuses other key types without invoking an additional foreign `__hash__`.
 Neither observation decides manifest equality. Stateful foreign
 callbacks remain foreign effects and their order is controlled by HIA.
 
-Request admission retains its existing independent selection point after stdin.
-`HEPTA_HIA_WORKER_REQUEST_MANIFEST` selects the existing native request owner.
+The actual process entry can hand off its original, unread stdin descriptor to
+the pinned HIA executable. Administrator pins are checked before the handoff;
+the executable reads up to the wire ceiling, admits the request, and returns its
+exact bytes and admission arena. The same bytes bind the terminal. The
+catalog pin and integer limit come from a separate sealed descriptor. Embedded
+callers with potentially buffered input keep the legacy acquisition path.
+`HEPTA_HIA_WORKER_REQUEST_MANIFEST` selects the native request owner.
 When that selector is absent, `_reference_admission` is an explicitly retained
 request validator. Installation IO and hashing, service methods, SQLite journal
 durability and the external runtime process owner remain outside this candidate.
@@ -74,9 +79,10 @@ query and request execution retains its earlier mode error. This is an explicit
 source successor: historical controls and failure records are retained, and
 newly generated policy images require fresh source-bound build receipts.
 
-The policy entry uses `HIAWKR02` for older scopes and `HIAWKR03` when the
-administrator's bound release supplies both standalone transport modes. Both
-use a 112-byte initialization packet and sequenced continuation replies. Replies have eight unsigned 64-bit header slots, followed
+The policy entry uses `HIAWKR02` for older scopes, `HIAWKR03` for standalone
+admission from bytes that have already been read, and `HIAWKR04` for standalone
+admission from the real process descriptor. All use a 112-byte initialization
+packet and sequenced continuation replies. Replies have eight unsigned 64-bit header slots, followed
 only by the requested codepoint/magnitude chunk or stored dictionary hash. The
 program checks opcode, sequence, error tag and exact packet extent before
 consumption. Each string/magnitude observation is at most 1024 words. The
