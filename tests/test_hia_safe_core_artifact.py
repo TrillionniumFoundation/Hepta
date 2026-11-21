@@ -336,6 +336,40 @@ class SafeCoreArtifactTests(unittest.TestCase):
                     self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
                     self.assertEqual(report["model_counts"]["machine_terminal_paths"], 2)
 
+    def test_native_borrowed_length_proves_the_exact_packed_extent_guard(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the borrowed length proof entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        params = [("loan", "readbuf")]
+        ops = [i("buffer.len", ("loan",), (("extent", "usize"),)),
+               i("int.cast", ("extent",), (("answer", "u32"),), mode="wrap")]
+        core = verify_program(m(f("loan_length", params, ["u32"], ["read", "trap"],
+                                  [b("entry", params, ops, ret("answer"))])))
+        exports = (("loan_length", 64),)
+        image = emit_program_machine(core, foreign_buffer_exports=exports)
+        final = self.newdir() / "loan-length.so"
+        compile_program_machine(image, program=core, output=final, linker="ld")
+        supplied = final.read_bytes()
+        with patch("importlib.import_module", side_effect=no_host_solver):
+            report = validate_safe_core_artifact(core, image.object_bytes, supplied,
+                                                 foreign_buffer_exports=exports)
+            with self.assertRaises(SafeCoreRejected) as refused:
+                validate_safe_core_artifact(core, image.object_bytes, supplied,
+                                            foreign_buffer_exports=(("loan_length", 63),))
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+        self.assertEqual(report["foreign_buffer_exports"], [["loan_length", 64]])
+        self.assertEqual(refused.exception.validation["status"], "refuted")
+        self.assertEqual(refused.exception.counterexample["abi_words"][1], 64)
+
     def test_native_machine_proves_checked_product_overflow_at_full_width(self):
         from hepta.hia_safe_core import _selected_machine_proof
 

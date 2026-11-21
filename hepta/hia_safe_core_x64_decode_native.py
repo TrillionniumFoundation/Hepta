@@ -23,6 +23,9 @@ CALL_COUNT = struct.Struct('<Q')
 CALL_BINDING = struct.Struct('<3Q')
 PROFILE_OFFSET = 96
 QUERY_FORMAT_WORKSPACE = 1
+BORROWED_LENGTH_REQUEST = int.from_bytes(b'HIALBQ01', 'little')
+BORROWED_LENGTH_REPLY = int.from_bytes(b'HIALBG01', 'little')
+BORROWED_LENGTH_WORKSPACE = 192
 MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
 MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR03', 'little')
 MACHINE_VALUES_STACK_BYTES = 16384
@@ -347,6 +350,26 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size]))
         return nodes, value, abort, {'decoded_instructions': len(code), 'symbolic_machine_steps': steps,
                               'machine_terminal_paths': paths, 'maximum_observed_stack_bytes': depth}
+
+    def project_borrowed_length(self, extent):
+        """Project ordered packed loan guards and a u32 length-only return."""
+        frame = struct.pack('<2Q', BORROWED_LENGTH_REQUEST, extent)
+        source = ctypes.create_string_buffer(frame, len(frame))
+        capacity = MACHINE_VALUES_HEADER.size + 26 * MACHINE_VALUES_NODE.size
+        output = ctypes.create_string_buffer(capacity)
+        scratch = ctypes.create_string_buffer(BORROWED_LENGTH_WORKSPACE)
+        size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
+        if size == 0:
+            return None
+        if not MACHINE_VALUES_HEADER.size <= size <= capacity:
+            raise RuntimeError('invalid HIA borrowed length projection extent')
+        magic, count, value, known, trap, reserved, tail = MACHINE_VALUES_HEADER.unpack_from(output)
+        if (magic != BORROWED_LENGTH_REPLY or reserved or tail or not 2 <= count <= 26
+                or max(value, known, trap) >= count
+                or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count):
+            raise RuntimeError('invalid HIA borrowed length projection')
+        nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size]))
+        return nodes, ((known, known), (trap, trap), (value, value)), None
 
     def scheduler(self):
         return NativeMachineScheduler(self._entry)

@@ -9,6 +9,7 @@ from hepta.hia_cnf_native import (CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSE
                                  SPARSE_REQUEST, SPARSE_VARIABLES, WORD_ARITHMETIC_SHR, WORD_PRODUCT_EXCEEDS,
                                  WORD_VARIABLE_SHL, WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
 from hepta.hia_safe_core_x64_decode_native import (
+    BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
@@ -38,6 +39,8 @@ FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHE
               SCHED_HEADER=SCHEDULER_HEADER, SCHED_VISITS=SCHEDULER_VISITS,
               SCHED_BITMAP=SCHEDULER_BITMAP, SCHED_FRAMES=SCHEDULER_FRAMES,
               SCHED_WORKSPACE=SCHEDULER_WORKSPACE)
+FIELDS.update(LOAN_LENGTH_REQUEST=BORROWED_LENGTH_REQUEST, LOAN_LENGTH_REPLY=BORROWED_LENGTH_REPLY,
+              LOAN_LENGTH_WORKSPACE=BORROWED_LENGTH_WORKSPACE)
 FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_WORKSPACE=MACHINE_VALUES_WORKSPACE, MV_INDEX=MACHINE_VALUES_INDEX,
               MV_HEADER=MACHINE_VALUES_HEADER.size,
@@ -75,6 +78,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return format_proof_query(s, o)
     if length(w) == MV_WORKSPACE:
         return project_machine_values(s, o, w)
+    if length(w) == LOAN_LENGTH_WORKSPACE:
+        return project_borrowed_length(s, o, w)
     if size == 32 and length(w) == SCHED_WORKSPACE:
         return schedule_machine(s, o, w)
     if size == 0 and length(w) == 8:
@@ -1244,6 +1249,42 @@ def caller_disjoint_formula(o:mutbuf) -> u64:
     after_stack = node(o, R_UGE, RIGHT, high, 0)
     disjoint = node(o, R_BOOL_OR3, empty, before_stack, after_stack)
     return node(o, R_IMPLIES, admitted, disjoint, 0)
+
+def project_borrowed_length(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(s) != 16 or length(o) < MV_HEADER + 26 * 40 or schedule_request(s, 0) != LOAN_LENGTH_REQUEST:
+        return 4294967293
+    extent = schedule_request(s, 8)
+    if extent == 0 or extent > 65536:
+        return 0
+    put(w, MV_NODES, 0)
+    mv_node(o, w, 1, 0, 0, 0)  # Raw pointer word.
+    mv_node(o, w, 1, 0, 0, 0)  # Raw length word.
+    zero = mv_node(o, w, 2, 0, 0, 0) - 1
+    limit = mv_node(o, w, 2, 0, 0, extent) - 1
+    too_large = mv_word(o, w, 14, 1, 1, limit, 0) - 1
+    empty = mv_word(o, w, 7, 1, 1, zero, 0) - 1
+    null = mv_word(o, w, 7, 1, 0, zero, 0) - 1
+    wrapping = mv_word(o, w, 22, 1, 0, 1, 0) - 1
+    refused_extent = mv_node(o, w, 2, 0, 0, 4294967296) - 1
+    refused_null = mv_node(o, w, 2, 0, 0, 8589934592) - 1
+    refused_wrap = mv_node(o, w, 2, 0, 0, 12884901888) - 1
+    narrow = mv_word(o, w, 26, 32, 1, 0, 0) - 1
+    normal = mv_node(o, w, 30, narrow, 0, 0) - 1
+    wrapped = mv_node(o, w, 11, wrapping, refused_wrap, normal) - 1
+    offered = mv_node(o, w, 11, null, refused_null, wrapped) - 1
+    borrowing = mv_node(o, w, 11, empty, normal, offered) - 1
+    value = mv_node(o, w, 11, too_large, refused_extent, borrowing) - 1
+    known = mv_word(o, w, 2, 1, 0, 0, 1) - 1
+    trap = mv_word(o, w, 2, 8, 0, 0, 0) - 1
+    nodes = get(w, MV_NODES)
+    put(o, 0, LOAN_LENGTH_REPLY)
+    put(o, 8, nodes)
+    put(o, 16, value)
+    put(o, 24, known)
+    put(o, 32, trap)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    return MV_HEADER + 40 * nodes
 
 # Finite symbolic semantics for acyclic, word-only scalar images.
 # Abstract register/stack values are either circuit nodes, stack positions,

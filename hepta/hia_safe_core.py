@@ -895,20 +895,28 @@ def _scalar_caller_contract():
     return nodes, [(10, 11)], None
 
 
-def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
-                                pair, identity, started, deadline, query_directory):
-    from .hia_cnf_native import SAT
-    from .hia_optimization import _native_circuit_decision
+def _borrowed_length_only(fn, blocks):
+    # Admit a verified Core body with no possible allocation read or write.
+    # The native projector, not the caller's emitter, supplies ABI semantics.
+    params = fn["params"]
+    if len(params) != 1 or params[0]["type"] != "readbuf" or len(blocks) != 1:
+        return False
+    block = blocks[fn["entry"]]
+    ops, term = block["ops"], block["term"]
+    if len(ops) != 2 or term["op"] != "ret":
+        return False
+    length, result = ops
+    return (length["op"] == "buffer.len" and length["args"] == [params[0]["name"]]
+            and result["op"] == "int.cast" and result["attrs"] == {"mode": "wrap"}
+            and result["args"] == [length["out"][0]["name"]]
+            and term["values"] == [result["out"][0]["name"]])
 
-    decoder, cnf = pair
-    machine = decoder.project_scalar_values(
-        binding, len(fn["params"]), allow_variable_shifts=profile_version >= 3,
-        allow_unsigned_multiply=profile_version >= 4, allow_unsigned_divide=profile_version >= 5,
-        allow_signed=profile_version >= 6)
-    if machine is None:
-        return None
-    # The reference evaluates the separately verified Core input, never the
-    # producer's lowering or a second copy of the supplied machine circuit.
+
+def _native_core_projection(decoder, cnf, fn, blocks, borrowed):
+    if borrowed:
+        if not _borrowed_length_only(fn, blocks):
+            return None
+        return decoder.project_borrowed_length(borrowed[0][1]), 4
     names = tuple(blocks)
     paths = 1
     if len(names) > 1:
@@ -929,10 +937,30 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
             return None
         names = tuple(names[index] for index in order)
     graph = (blocks, names)
-    core = cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False)
-    if core is None:
+    return cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False), paths
+
+
+def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
+                                pair, identity, started, deadline, query_directory,
+                                foreign_buffer_exports=()):
+    from .hia_cnf_native import SAT
+    from .hia_optimization import _native_circuit_decision
+
+    decoder, cnf = pair
+    # Reject unsupported Core loan bodies before interpreting the ELF.
+    # The accepted machine projection resolves only its own stack accesses.
+    projection = _native_core_projection(decoder, cnf, fn, blocks, foreign_buffer_exports)
+    if projection is None or projection[0] is None:
         return None
-    circuits = cnf.bind_artifact_circuits(machine, core, len(fn["params"]),
+    core, paths = projection
+    arguments = len(fn["params"]) + len(foreign_buffer_exports)
+    machine = decoder.project_scalar_values(
+        binding, arguments, allow_variable_shifts=profile_version >= 3,
+        allow_unsigned_multiply=profile_version >= 4, allow_unsigned_divide=profile_version >= 5,
+        allow_signed=profile_version >= 6)
+    if machine is None:
+        return None
+    circuits = cnf.bind_artifact_circuits(machine, core, arguments,
                                          signed_return=fn["returns"][0].startswith("i"))
     if circuits is None:
         return None
@@ -964,7 +992,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
             # The HIA solver has independently evaluated these ABI words
             # against the original, un-bit-blasted circuit.
             words = [(model >> (1 + 64 * word)) & ((1 << 64) - 1)
-                     for word in range(len(fn["params"]))]
+                     for word in range(arguments)]
             counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
         query = decoder.format_proof_query(frame)
         reports.append({"name": name, "result": result, "expected": expected,
@@ -992,7 +1020,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
             (retained / (filename + ".result.json")).write_text(json.dumps(row, indent=2) + "\n")
         require(time.monotonic_ns() < deadline, "validation deadline expired; no completed proof")
     status = "smt_validated" if counterexample is None else "refuted"
-    validation = _artifact_report(checked, fn, binding, profile, (), identity, solver,
+    validation = _artifact_report(checked, fn, binding, profile, foreign_buffer_exports, identity, solver,
                                   MACHINE_CIRCUIT_ASSUMPTIONS, counts, reports, started / 1_000_000_000,
                                   status, complete=counterexample is None)
     if counterexample is not None:
@@ -1023,11 +1051,13 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     decoder, cnf = pair
     identity = _checker_source_identity(pair)
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
-    if decoder is not None and cnf is not None and not foreign_buffer_exports:
+    if (decoder is not None and cnf is not None and
+            (not foreign_buffer_exports or _borrowed_length_only(fn, blocks))):
         started = time.monotonic_ns()
         deadline = started + timeout_ms * 1_000_000
         native = _try_native_scalar_artifact(checked, fn, blocks, binding, artifact_profile,
-                                             profile_version, pair, identity, started, deadline, query_directory)
+                                             profile_version, pair, identity, started, deadline, query_directory,
+                                             foreign_buffer_exports)
         if native is not None:
             return native
         timeout_ms = (deadline - time.monotonic_ns()) // 1_000_000
