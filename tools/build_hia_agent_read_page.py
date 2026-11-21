@@ -40,6 +40,7 @@ VARIANTS = {
     'artifact-diagnostic': ('worker_artifact_diagnostic', 'hepta.hia.artifact-diagnostic-native.v1'),
     'context-store': ('worker_context_store', 'hepta.hia.context-store-native.v1'),
     'context-record': ('worker_context_record', 'hepta.hia.context-record-native.v1'),
+    'context-request': ('worker_context_request', 'hepta.hia.context-request-native.v1'),
     'artifact-journal': ('worker_artifact_journal', 'hepta.hia.artifact-journal-native.v1'),
     'discovery': ('agent_discovery', 'hepta.hia.agent-discovery-native.v1'),
     'describe-answer': ('agent_describe_answer', 'hepta.hia.agent-describe-answer-native.v1'),
