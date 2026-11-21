@@ -412,7 +412,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             offsets = index if type(index) is tuple else (index,)
             frame += struct.pack('<' + 'Q' * len(offsets), *offsets)
         if write:
-            if type(index) is not int or type(write_result) is not int or write_result not in (0, 1, 2):
+            if type(index) is not int or type(write_result) is not int or write_result not in (0, 1, 2, 3):
                 raise ValueError('invalid mutable-loan result protocol')
             if write_result:
                 frame += struct.pack('<Q', write_result)
@@ -421,7 +421,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         output = ctypes.create_string_buffer(capacity)
         scratch = ctypes.create_string_buffer(BORROWED_LENGTH_WORKSPACE)
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
-        if size == 0 or (write_result in (1, 2) and size == 0xfffffffd):
+        if size == 0 or (write_result in (1, 2, 3) and size == 0xfffffffd):
             return None
         if not MACHINE_VALUES_HEADER.size <= size <= capacity:
             raise RuntimeError('invalid HIA borrowed reference projection extent')

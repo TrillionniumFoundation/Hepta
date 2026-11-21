@@ -908,7 +908,7 @@ def _native_borrowed_shape(fn, blocks, extent):
         return None
     if types == ["mutbuf", "u8"] or types == ["mutbuf", "usize", "u8"]:
         if types == ["mutbuf", "u8"] and len(ops) in (3, 4):
-            offset, store, *outputs = ops
+            offset, *body = ops
             if offset["op"] != "const" or offset["out"][0]["type"] != "usize":
                 return None
             index = offset["attrs"]["value"]
@@ -916,10 +916,16 @@ def _native_borrowed_shape(fn, blocks, extent):
                 return None
             index_arg = offset["out"][0]["name"]
         elif types == ["mutbuf", "usize", "u8"] and len(ops) in (2, 3):
-            store, *outputs = ops
+            body = ops
             index, index_arg = BORROWED_INDEX_ARGUMENT, params[1]["name"]
         else:
             return None
+        read_before_write = len(body) == 3 and body[0]["op"] == "buffer.load"
+        if read_before_write:
+            observation, store, result = body
+            outputs = (observation, result)
+        else:
+            store, *outputs = body
         address = [params[0]["name"], index_arg]
         if store["op"] != "buffer.store" or store["args"] != [*address, params[-1]["name"]]:
             return None
@@ -936,7 +942,7 @@ def _native_borrowed_shape(fn, blocks, extent):
             return None
         if (observation["op"] == "buffer.load" and observation["args"] == address
                 and observation["out"][0]["type"] == "u8"):
-            return "write_read", index
+            return ("write_exchange" if read_before_write else "write_read"), index
         if (observation["op"] == "buffer.len" and observation["args"] == address[:1]
                 and observation["out"][0]["type"] == "usize"):
             return "write_length", index
@@ -1033,7 +1039,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     if write_result is not None:
         core, expected_byte = core
         projection = decoder.project_borrowed_write(binding, foreign_buffer_exports[0][1], loan_index,
-                                                    read_back=write_result == 1, **instruction_profile)
+                                                    read_back=write_result in (1, 3), **instruction_profile)
         if projection is None:
             return None
         machine, memory_check, actual_byte = projection
@@ -1157,7 +1163,7 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
         loan_shape = _native_borrowed_shape(fn, blocks, foreign_buffer_exports[0][1])
     if decoder is not None and cnf is not None and (not foreign_buffer_exports or loan_shape is not None):
         loan_kind, loan_index = (None, None) if loan_shape is None else loan_shape
-        write_result = {"write": 0, "write_read": 1, "write_length": 2}.get(loan_kind)
+        write_result = {"write": 0, "write_read": 1, "write_length": 2, "write_exchange": 3}.get(loan_kind)
         started = time.monotonic_ns()
         deadline = started + timeout_ms * 1_000_000
         native = _try_native_scalar_artifact(checked, fn, blocks, binding, artifact_profile,

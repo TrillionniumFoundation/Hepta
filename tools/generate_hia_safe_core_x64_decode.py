@@ -1277,7 +1277,7 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return project_borrowed_write_reference(s, o, w, 0)
         if length(s) == 32:
             result_mode = schedule_request(s, 24)
-            if result_mode == 1 or result_mode == 2:
+            if 1 <= result_mode and result_mode <= 3:
                 return project_borrowed_write_reference(s, o, w, result_mode)
         return 4294967293
     paired = length(s) == 32
@@ -1376,8 +1376,9 @@ def project_borrowed_write_reference(s:readbuf, o:mutbuf, w:mutbuf, result_mode:
     before = mv_word(o, w, 26, 8, payload + 1, 0, 0) - 1
     after = mv_core_written_byte(o, w, too_large, null, wrapping, out_of_bounds, value, before)
     normal = zero
-    if result_mode == 1:
-        widened = mv_node(o, w, 30, value, 0, 0) - 1
+    if result_mode == 1 or result_mode == 3:
+        observed = choose(result_mode == 3, before, value)
+        widened = mv_node(o, w, 30, observed, 0, 0) - 1
         normal = mv_node(o, w, 11, out_of_bounds, zero, widened) - 1
     if result_mode == 2:
         narrow = mv_word(o, w, 26, 32, 1, 0, 0) - 1
