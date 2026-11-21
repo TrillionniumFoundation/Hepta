@@ -21,6 +21,8 @@ IMPORTS = ('abort', 'calloc', 'free', 'malloc', 'memcpy', 'memmove', 'memset')
 
 SOURCE = '''
 def plan(s:readbuf, o:mutbuf, request:mutbuf) -> u32:
+    if length(request) == 0:
+        return supervise(s, o)
     extent = length(s)
     name_length = length(request)
     if extent < 4096 or extent > 67108864 or name_length == 0 or name_length > 512:
@@ -67,6 +69,46 @@ def plan(s:readbuf, o:mutbuf, request:mutbuf) -> u32:
     if imports > 7:
         return 4294967295
     return publish_plan(s, o, request, text, code_bytes, got_page, dynamic_bytes, program_bytes, count, imports)
+
+def supervise(s:readbuf, o:mutbuf) -> u32:
+    # These four observations come only from the fixed Linux adapter.
+    if length(s) < 8 or length(o) != 24:
+        return 0
+    phase = read(s, 0, 8)
+    if phase == 0 and length(s) == 56:
+        if read(s, 16, 8) != @SUPERVISE@ or read(s, 8, 8) != read(s, 24, 8):
+            return 0
+        if read(s, 32, 8) == 0 or read(s, 40, 8) < 3 or read(s, 40, 8) > 2147483647:
+            return 0
+        if read(s, 48, 8) >= read(s, 32, 8):
+            return 2
+        return 1
+    if phase == 1 and length(s) == 32:
+        terminal = read(s, 8, 8)
+        expired = read(s, 16, 8)
+        cancelled = read(s, 24, 8)
+        if terminal > 1 or expired > 1 or cancelled > 1:
+            return 0
+        if expired != 0 or cancelled != 0:
+            return 2
+        if terminal != 0:
+            return 3
+        return 0
+    if phase == 2 and length(s) == 24:
+        return supervise_status(o, read(s, 8, 8), read(s, 16, 8))
+    return 0
+
+def supervise_status(o:mutbuf, status:u64, stopped:u64) -> u32:
+    if status > 65535 or stopped > 2 or (stopped == 2 and status != 0):
+        return 0
+    signal = status & 127
+    if signal == 127 or (signal != 0 and status >= 256):
+        return 0
+    code = choose(stopped == 2, 0 - 256, choose(signal == 0, status >> 8, 0 - signal))
+    save(o, 0, @SUPERVISED@, 8)
+    save(o, 8, code, 8)
+    save(o, 16, choose(stopped == 0, 0, 1), 8)
+    return 24
 
 def plan_single_abort(s:readbuf, o:mutbuf, request:mutbuf) -> u32:
     extent = length(s)
@@ -420,7 +462,9 @@ def document():
         imports.append(f'    if available >= {len(raw)} and read(s, start, {len(raw)}) == {int.from_bytes(raw, "little")}:'
                        f'\n        return {number}')
     source = SOURCE.replace('@IMPORTS@', '\n'.join(imports)).replace(
-        '@LIBC@', str(int.from_bytes(b'libc.so.', 'little')))
+        '@LIBC@', str(int.from_bytes(b'libc.so.', 'little'))).replace(
+        '@SUPERVISE@', str(int.from_bytes(b'HIADRS01', 'little'))).replace(
+        '@SUPERVISED@', str(int.from_bytes(b'HIADRT01', 'little')))
     nodes = ast.parse(source).body
     names = {node.name: 'f' + str(i) for i, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id) for node in nodes}

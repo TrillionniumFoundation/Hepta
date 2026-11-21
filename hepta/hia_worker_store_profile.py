@@ -19,7 +19,9 @@ TERMINAL_SCHEMA = 'hepta.hia.native-helpers.v13'
 ADMISSION_SCHEMA = 'hepta.hia.native-helpers.v14'
 STARTUP_SCHEMA = 'hepta.hia.native-helpers.v15'
 JOURNAL_SCHEMA = 'hepta.hia.native-helpers.v16'
-STARTUP_SCHEMAS = (STARTUP_SCHEMA, JOURNAL_SCHEMA)
+DIRECT_OWNER_SCHEMA = 'hepta.hia.native-helpers.v17'
+JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA)
+STARTUP_SCHEMAS = (STARTUP_SCHEMA, *JOURNAL_SCHEMAS)
 ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, *STARTUP_SCHEMAS)
 TERMINAL_SCHEMAS = (TERMINAL_SCHEMA, *ADMISSION_SCHEMAS)
 PAGE_SCHEMAS = (SEALED_PAGE_SCHEMA, *TERMINAL_SCHEMAS)
@@ -58,7 +60,7 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'direct_call_path', 'direct_call_sha256'})
         if schema in PAGE_SCHEMAS:
             reference_fields.update({'read_page_path', 'read_page_sha256'})
-        if schema == JOURNAL_SCHEMA:
+        if schema in JOURNAL_SCHEMAS:
             reference_fields.update({'journal_path', 'journal_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
@@ -129,6 +131,7 @@ class NativeWorkerStoreBinding:
         self.native_direct_call_executable = None
         self.native_direct_call_protocol = {
             DIRECT_REPEAT_SCHEMA: 2, **dict.fromkeys((DIRECT_BATCH_SCHEMA, *PAGE_SCHEMAS), 3),
+            DIRECT_OWNER_SCHEMA: 4,
         }.get(schema, 1)
         if schema in DIRECT_CALL_SCHEMAS:
             from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR
@@ -157,7 +160,7 @@ class NativeWorkerStoreBinding:
             self.snapshots.append((page, MAX_IMAGE_BYTES))
             self.native_agent_read_page_executable = page.raw
         self.native_agent_journal_executable = None
-        if schema == JOURNAL_SCHEMA:
+        if schema in JOURNAL_SCHEMAS:
             from .hia_agent_journal_native import NativeAgentJournal, SELECTOR
 
             pin = record['journal_sha256']

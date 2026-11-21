@@ -208,6 +208,14 @@ selected, the journal's lookup, reservation, completion and cost writes use
 its typed Store protocol without SQL dispatch. The retained SQLite backend
 still receives its original statements; v16 is not a fully native service.
 
+The v17 profile also selects native ownership of direct ELF calls. The pinned
+runner starts one child with the same immutable loader, observes its pidfd, and
+uses a kernel monotonic timer and parent-death notification. HIA admits the
+request and issues the stop or reap decision. The worker accepts the separate
+wait receipt only after the owner returns; a lost receipt is not grounds to
+re-execute the call. Native batch order and writes before a trap are unchanged.
+This does not replace the worker's other process and service routes.
+
 ## Build the isolated MCP wire executables
 
 The five sealed MCP filters (request, reply, negotiation, catalog, and artifact

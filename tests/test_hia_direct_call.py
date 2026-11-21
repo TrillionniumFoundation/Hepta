@@ -7,12 +7,16 @@ import signal
 import struct
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_agent_buffers import buffer_observation
-from hepta.hia_agent_runner import _REPORT_TOO_LARGE, _write_child_report, run_native_batch, run_reference_batch
+from hepta.hia_agent_runner import (
+    _REPORT_TOO_LARGE, _observe_native_direct_owner, _reference_direct_call_request,
+    _write_child_report, run_native_batch, run_reference_batch,
+)
 from hepta.hia_agent_service import _signatures
 from hepta.hia_agent_store import wire
 from hepta.hia_elf_shared_linker_native import SELECTOR
@@ -170,6 +174,44 @@ class DirectCallRuntimeTests(unittest.TestCase):
         self.assertEqual(result['report']['measured_calls'], 10000)
         self.assertEqual(result['report']['observations'][0]['values'], [10])
 
+    def test_native_process_owner_returns_exact_child_status_and_partial_writes(self):
+        result = self.run_case('simple', 'answer', [3], protocol=4, repetitions=3)
+        self.assertEqual((result['returncode'], result['status']), (0, 'returned'))
+        self.assertEqual(result['report']['observations'][0]['values'], [10])
+        result = self.run_case('trap', 'write_then_trap', [{'bytes_hex': '010203'}], protocol=4)
+        self.assertEqual((result['returncode'], result['status']), (-signal.SIGABRT, 'trapped'))
+        self.assertEqual(result['captured_buffers'][0]['data'].hex(), '5b0203')
+
+    def test_native_process_owner_refuses_to_start_an_already_expired_child(self):
+        from hepta.hia_scalar_reference_native import sealed_reference_bytes
+
+        image, _ = self.inputs['simple']
+        with (sealed_reference_bytes(image) as artifact,
+              sealed_reference_bytes(self.raw) as runner):
+            request = _reference_direct_call_request(4, b'answer', [(0, 35, 0)],
+                parent=os.getpid(), memory=64 << 20, cpu=1, artifact=artifact,
+                artifact_bytes=len(image), borrowed=False, returns=['u64'],
+                expected=False, warmup=0, repetitions=1)
+            result = _observe_native_direct_owner(['/proc/self/fd/' + str(runner)], request,
+                cwd=ROOT, deadline=time.monotonic_ns() - 1, pass_fds=(artifact, runner), env={'PATH':''})
+        self.assertEqual(result, (None, b'', b'', True))
+
+    def test_native_process_owner_cancels_and_reaps_an_active_child(self):
+        from hepta.hia_scalar_reference_native import sealed_reference_bytes
+
+        image, _ = self.inputs['scalar']
+        with (sealed_reference_bytes(image) as artifact,
+              sealed_reference_bytes(self.raw) as runner):
+            request = _reference_direct_call_request(4, b'fill_sum', [(0, 1 << 24, 0), (0, 7, 0)],
+                parent=os.getpid(), memory=64 << 20, cpu=1, artifact=artifact,
+                artifact_bytes=len(image), borrowed=False, returns=['u64'],
+                expected=False, warmup=0, repetitions=10000)
+            expires = time.monotonic_ns() + 300_000_000
+            result = _observe_native_direct_owner(['/proc/self/fd/' + str(runner)], request,
+                cwd=ROOT, deadline=expires, pass_fds=(artifact, runner), env={'PATH':''})
+        self.assertGreaterEqual(time.monotonic_ns(), expires)
+        self.assertEqual(result, (-signal.SIGKILL, b'', b'', True))
+
     def test_all_512_cases_are_observed_under_one_batch_budget(self):
         image, signatures = self.inputs['simple']
         cases = [{'function': 'answer', 'arguments': [i],
@@ -197,16 +239,18 @@ class DirectCallRuntimeTests(unittest.TestCase):
         image, signatures = self.inputs['trap']
         cases = [{'function': 'write_then_trap', 'arguments': [{'bytes_hex': data}]}
                  for data in ('010203', '11aa55')]
-        with (patch('hepta.hia_native_helpers.pinned_direct_call_executable',
-                    return_value=(self.raw, self.sha)),
-              patch('hepta.hia_native_helpers.pinned_direct_call_protocol', return_value=3)):
-            result = run_native_batch(image, signatures, cases, timeout_ms=3000, memory_bytes=64 << 20)
-        self.assertEqual(result['status'], 'trapped', result)
-        self.assertTrue(result['termination_confirmed'])
-        self.assertIsNone(result['report'])
-        self.assertEqual(result['buffer_snapshots'],
-            [{'case': 0, 'buffers': [buffer_observation(0, 'mutbuf', bytes.fromhex('5b0203'))]},
-             {'case': 1, 'buffers': [buffer_observation(0, 'mutbuf', bytes.fromhex('11aa55'))]}])
+        for protocol in (3, 4):
+            with (self.subTest(protocol=protocol),
+                  patch('hepta.hia_native_helpers.pinned_direct_call_executable',
+                        return_value=(self.raw, self.sha)),
+                  patch('hepta.hia_native_helpers.pinned_direct_call_protocol', return_value=protocol)):
+                result = run_native_batch(image, signatures, cases, timeout_ms=3000, memory_bytes=64 << 20)
+                self.assertEqual(result['status'], 'trapped', result)
+                self.assertTrue(result['termination_confirmed'])
+                self.assertIsNone(result['report'])
+                self.assertEqual(result['buffer_snapshots'],
+                    [{'case': 0, 'buffers': [buffer_observation(0, 'mutbuf', bytes.fromhex('5b0203'))]},
+                     {'case': 1, 'buffers': [buffer_observation(0, 'mutbuf', bytes.fromhex('11aa55'))]}])
 
     @unittest.skipUnless(os.environ.get('HIA_TEST_REPORT_WIRE'), 'cold-built HIA report wire is required')
     def test_selected_report_wire_fits_actual_minimum_agent_budget(self):

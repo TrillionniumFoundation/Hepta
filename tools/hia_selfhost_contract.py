@@ -2424,7 +2424,7 @@ def support_contract(root=ROOT):
             'cached_codec_profile_selection': 'snapshot at cache consumption; explicit image admission after original codec/size guards',
             'cached_selected_image_custody': 'warm immutable mappings retain their original pin; new image paths require fresh admission',
             'foreign_unhashable_tool_diagnostics': 'HIA distinguishes direct and tuple-nested kinds; bridge renders actual interpreter wording',
-            'standalone_worker_transport': 'v16 pins the standalone ELF and exact HIA journal image; no in-process journal execution',
+            'standalone_worker_transport': 'v16 pins the standalone journal ELF; v17 adds native direct-call process ownership',
             'hosted_owners': ['SQLite transaction and durability', 'foreign object custody',
                 'schemas, service operations, context and proof authority',
                 'clock observations, installation and deployment'],

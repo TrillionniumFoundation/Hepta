@@ -30,21 +30,62 @@
 .equ COMPARISON, 70096
 .equ LOAN_STATE, 70104
 .equ LOAN_RECORD, 40   /* mapped, initial, first, extent, readonly */
-.equ FRAME_BYTES, 70448
+.equ OWNER, 70448
+.equ OWNER_PID, 70456
+.equ OWNER_CHILD, 70464
+.equ OWNER_STOPPED, 70472
+.equ OWNER_STATUS_FD, 70480
+.equ OWNER_OLD_MASK, 70488
+.equ OWNER_MASK, 70496
+.equ OWNER_TIMER, 70504
+.equ OWNER_POLL, 70536
+.equ OWNER_OBSERVATION, 70560
+.equ FRAME_BYTES, 70624
 .equ MAGIC, 0x3130585244414948     /* HIADRX01 */
 .equ RESULT, 0x3130525244414948    /* HIADRR01 */
 .equ REPEAT_MAGIC, 0x3230585244414948
 .equ REPEAT_RESULT, 0x3230525244414948
 
 _start:
+    xor r10d,r10d
     cmp QWORD PTR [rsp],1
+    je mode_ready
+    cmp QWORD PTR [rsp],2
     jne usage
+    mov rsi,[rsp+16]
+    lea rdi,[rip+owner_option]
+    mov ecx,12
+    cld
+    repe cmpsb
+    jne usage
+    mov r10d,1
+mode_ready:
     sub rsp,FRAME_BYTES
     mov rbp,rsp
+    mov [rbp+OWNER],r10
+    test r10d,r10d
+    jz parent_death
 
+    /* Block SIGTERM before subscribing to parent death. The disposable
+     * owner observes cancellation and reaps its own child before exit. */
+    mov QWORD PTR [rbp+OWNER_MASK],16384
+    xor edi,edi
+    lea rsi,[rbp+OWNER_MASK]
+    lea rdx,[rbp+OWNER_OLD_MASK]
+    mov r10d,8
+    mov eax,14
+    syscall
+    test rax,rax
+    js io
+
+parent_death:
     /* Limit orphan custody while the request is read, then bind the PPID. */
     mov edi,1
     mov esi,9
+    cmp QWORD PTR [rbp+OWNER],0
+    je set_parent_death
+    mov esi,15
+set_parent_death:
     mov eax,157
     syscall
     test rax,rax
@@ -68,12 +109,15 @@ read_input:
     je read_input
     test rax,rax
     js io
-    jz validate
+    jz input_complete
     add rbx,rax
     cmp rbx,INPUT_LIMIT
     jae invalid
     jmp read_input
 
+input_complete:
+    cmp QWORD PTR [rbp+OWNER],0
+    jne supervise_input
 validate:
     cmp rbx,72
     jb invalid
@@ -202,8 +246,7 @@ check_parent:
     lea rdx,[rbp+PLAN]
     mov ecx,88
     mov r9,r15
-    .byte 0xe8
-direct_plan_call_hole: .long 0
+    call direct_policy
     cmp eax,88
     jne invalid
 
@@ -531,6 +574,223 @@ clock_read:
     test rax,rax
     js io
     ret
+
+direct_policy:
+    sub rsp,8
+    .byte 0xe8
+direct_plan_call_hole: .long 0
+    add rsp,8
+    ret
+
+/* Only the HIA policy admits the request and classifies readiness and
+ * wait status. This transport owns one fork of the admitted executable,
+ * three kernel event descriptors and one waitable child identity. */
+supervise_input:
+    cmp rbx,104
+    jb invalid
+    mov QWORD PTR [rbp+OWNER_OBSERVATION],0
+    mov eax,110
+    syscall
+    mov [rbp+OWNER_OBSERVATION+8],rax
+    lea rsi,[rbp+INPUT]
+    lea rdi,[rbp+OWNER_OBSERVATION+16]
+    mov ecx,4
+    cld
+    rep movsq
+    lea rsi,[rbp+OWNER_TIMER]
+    call clock_read
+    imul rax,[rbp+OWNER_TIMER],1000000000
+    add rax,[rbp+OWNER_TIMER+8]
+    mov [rbp+OWNER_OBSERVATION+48],rax
+    mov esi,56
+    call owner_policy
+    cmp eax,2
+    je owner_expired
+    cmp eax,1
+    jne invalid
+    mov rax,[rbp+INPUT+24]
+    mov [rbp+OWNER_STATUS_FD],rax
+    xor edx,edx
+    mov rax,[rbp+INPUT+16]
+    mov ecx,1000000000
+    div rcx
+    mov QWORD PTR [rbp+OWNER_TIMER],0
+    mov QWORD PTR [rbp+OWNER_TIMER+8],0
+    mov [rbp+OWNER_TIMER+16],rax
+    mov [rbp+OWNER_TIMER+24],rdx
+
+    mov edi,1                 /* timerfd_create(CLOCK_MONOTONIC, 0) */
+    xor esi,esi
+    mov eax,283
+    syscall
+    test rax,rax
+    js io
+    mov DWORD PTR [rbp+OWNER_POLL+8],eax
+    mov edi,eax
+    mov esi,1                 /* TFD_TIMER_ABSTIME */
+    lea rdx,[rbp+OWNER_TIMER]
+    xor r10d,r10d
+    mov eax,286
+    syscall
+    test rax,rax
+    js io
+    mov edi,-1
+    lea rsi,[rbp+OWNER_MASK]
+    mov edx,8
+    xor r10d,r10d
+    mov eax,289               /* signalfd4 */
+    syscall
+    test rax,rax
+    js io
+    mov DWORD PTR [rbp+OWNER_POLL+16],eax
+
+    mov eax,39
+    syscall
+    mov [rbp+OWNER_PID],rax
+    mov eax,57                /* fork exactly this immutable image */
+    syscall
+    test rax,rax
+    js io
+    jz supervised_child
+    mov [rbp+OWNER_CHILD],rax
+    mov edi,eax
+    xor esi,esi
+    mov eax,434               /* pidfd_open on the unreaped direct child */
+    syscall
+    test rax,rax
+    js owner_cleanup_error
+    mov DWORD PTR [rbp+OWNER_POLL],eax
+    mov WORD PTR [rbp+OWNER_POLL+4],1
+    mov WORD PTR [rbp+OWNER_POLL+12],1
+    mov WORD PTR [rbp+OWNER_POLL+20],1
+owner_poll:
+    lea rdi,[rbp+OWNER_POLL]
+    mov esi,3
+    mov edx,-1
+    mov eax,7
+    syscall
+    cmp rax,-4
+    je owner_poll
+    test rax,rax
+    jle owner_cleanup_error
+    movzx eax,WORD PTR [rbp+OWNER_POLL+6]
+    movzx ecx,WORD PTR [rbp+OWNER_POLL+14]
+    movzx edx,WORD PTR [rbp+OWNER_POLL+22]
+    mov QWORD PTR [rbp+OWNER_OBSERVATION],1
+    mov [rbp+OWNER_OBSERVATION+8],rax
+    mov [rbp+OWNER_OBSERVATION+16],rcx
+    mov [rbp+OWNER_OBSERVATION+24],rdx
+    mov esi,32
+    call owner_policy
+    cmp eax,2
+    je owner_stop
+    cmp eax,3
+    jne owner_cleanup_error
+    mov QWORD PTR [rbp+OWNER_STOPPED],0
+    jmp owner_reap
+owner_stop:
+    mov QWORD PTR [rbp+OWNER_STOPPED],1
+    call owner_signal
+owner_reap:
+    call owner_wait
+    cmp rax,[rbp+OWNER_CHILD]
+    jne io
+    mov eax,DWORD PTR [rbp+OWNER_TIMER]
+    jmp owner_receipt
+owner_expired:
+    mov rax,[rbp+INPUT+24]
+    mov [rbp+OWNER_STATUS_FD],rax
+    mov QWORD PTR [rbp+OWNER_STOPPED],2
+    xor eax,eax
+owner_receipt:
+    mov QWORD PTR [rbp+OWNER_OBSERVATION],2
+    mov [rbp+OWNER_OBSERVATION+8],rax
+    mov rax,[rbp+OWNER_STOPPED]
+    mov [rbp+OWNER_OBSERVATION+16],rax
+    mov esi,24
+    call owner_policy
+    cmp eax,24
+    jne io
+    mov edi,DWORD PTR [rbp+OWNER_STATUS_FD]
+    lea rsi,[rbp+PLAN]
+    mov edx,24
+owner_write:
+    mov eax,1
+    syscall
+    cmp rax,-4
+    je owner_write
+    cmp rax,24
+    jne io
+    xor edi,edi
+    jmp finish
+
+owner_policy:
+    lea rdi,[rbp+OWNER_OBSERVATION]
+    lea rdx,[rbp+PLAN]
+    mov ecx,24
+    lea r8,[rbp+OWNER_OBSERVATION]
+    xor r9d,r9d
+    jmp direct_policy
+owner_cleanup_error:
+    call owner_signal
+    call owner_wait
+    jmp io
+owner_signal:
+    /* This PID cannot be reused before this process reaps its child. */
+    mov edi,DWORD PTR [rbp+OWNER_CHILD]
+    mov esi,9
+    mov eax,62
+    syscall
+    ret
+owner_wait:
+    mov edi,DWORD PTR [rbp+OWNER_CHILD]
+    lea rsi,[rbp+OWNER_TIMER]
+    xor edx,edx
+    xor r10d,r10d
+    mov eax,61
+    syscall
+    cmp rax,-4
+    je owner_wait
+    ret
+
+supervised_child:
+    mov edi,1
+    mov esi,9
+    mov eax,157
+    syscall
+    test rax,rax
+    js io
+    mov edi,2
+    lea rsi,[rbp+OWNER_OLD_MASK]
+    xor edx,edx
+    mov r10d,8
+    mov eax,14
+    syscall
+    test rax,rax
+    js io
+    mov edi,DWORD PTR [rbp+OWNER_STATUS_FD]
+    call owner_close
+    mov edi,DWORD PTR [rbp+OWNER_POLL+8]
+    call owner_close
+    mov edi,DWORD PTR [rbp+OWNER_POLL+16]
+    call owner_close
+    sub rbx,32
+    lea rsi,[rbp+INPUT+32]
+    lea rdi,[rbp+INPUT]
+    mov rcx,rbx
+    cld
+    rep movsb
+    mov rax,[rbp+OWNER_PID]
+    mov [rbp+INPUT+8],rax
+    jmp validate
+owner_close:
+    mov eax,3
+    syscall
+    test rax,rax
+    js io
+    ret
+owner_option:
+    .asciz "--supervise"
 
 runtime_offsets:
     .long core_abort-runtime_offsets, core_calloc-runtime_offsets

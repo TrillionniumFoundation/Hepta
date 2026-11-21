@@ -353,8 +353,14 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
                 command, payload, options = _direct_call_transport(signatures[case['function']], case, files,
                     artifact, len(artifact_bytes), runner, descriptors, memory_bytes, cpu_seconds,
                     protocol, warmup, repetitions, prepare)
-                returncode, out, err, timed_out = _run_owned_process(command, payload, cwd=cwd,
-                    timeout=max(0, (deadline - time.monotonic_ns()) / 1_000_000_000), **options)
+                if protocol >= 4:
+                    child_code, out, err, timed_out = _observe_native_direct_owner(
+                        command, payload, cwd=cwd, deadline=deadline, **options)
+                    if child_code is not None:
+                        returncode = child_code
+                else:
+                    returncode, out, err, timed_out = _run_owned_process(command, payload, cwd=cwd,
+                        timeout=max(0, (deadline - time.monotonic_ns()) / 1_000_000_000), **options)
             stdout.extend(out)
             stderr.extend(err)
             decision = check_capture(protocol, returncode, timed_out, len(stdout), len(stderr), _REPORT_LIMIT, out)
@@ -364,6 +370,34 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
                 break
             receipts.append(out)
     return returncode, stdout, stderr, timed_out, receipts
+
+
+def _observe_native_direct_owner(command, payload, *, cwd, deadline, pass_fds, env):
+    read_status, write_status = os.pipe2(os.O_CLOEXEC)
+    try:
+        try:
+            request = struct.pack('<8s3Q', b'HIADRS01', os.getpid(), deadline, write_status)
+            # The native owner enforces the exact absolute deadline. The
+            # transport grace is only for delivering its already reaped status.
+            timeout = max(0, (deadline - time.monotonic_ns()) / 1_000_000_000) + 1
+            owner_code, stdout, stderr, timed_out = _run_owned_process(
+                [*command, '--supervise'], request + payload, cwd=cwd, timeout=timeout,
+                pass_fds=(*pass_fds, write_status), env=env, has_reference_child=True)
+        finally:
+            os.close(write_status)
+        receipt = os.read(read_status, 25)
+    finally:
+        os.close(read_status)
+    if owner_code != 0 or timed_out or len(receipt) != 24:
+        reject("E_HIA_TERMINATION_UNKNOWN", "native direct process ownership is not confirmed",
+               "execution", retry_action="observe_original")
+    magic, code, stopped = struct.unpack('<8sqQ', receipt)
+    if magic == b'HIADRT01' and code == -256 and stopped == 1 and not stdout and not stderr:
+        return None, b'', b'', True
+    if magic != b'HIADRT01' or not -64 <= code <= 255 or stopped not in (0, 1):
+        reject("E_HIA_TERMINATION_UNKNOWN", "invalid native direct process receipt",
+               "execution", retry_action="observe_original")
+    return code, stdout, stderr, bool(stopped)
 
 
 def _reference_direct_capture(protocol, returncode, timed_out, stdout_size, stderr_size, limit, raw):
@@ -471,7 +505,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
     direct_protocol = pinned_direct_call_protocol() if _mode == 'native' else 1
     one_call = warmup == 0 and repetitions == 1
     supported_repeat = direct_protocol >= 2 and 0 <= warmup <= 100 and 1 <= repetitions <= 10000
-    supported_cases = len(cases) == 1 or direct_protocol == 3 and 1 <= len(cases) <= 512
+    supported_cases = len(cases) == 1 or direct_protocol >= 3 and 1 <= len(cases) <= 512
     direct_call = (pinned_direct_call_executable()
                    if _mode == 'native' and supported_cases and (one_call or supported_repeat) else None)
     has_reference_child = any(executable is not None for _, _, executable in executables)
