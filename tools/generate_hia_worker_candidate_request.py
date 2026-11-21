@@ -42,6 +42,8 @@ def candidate_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         tag = input_word(s, 0)
         if tag == ATTEMPT_TAG:
             return decide_attempt(s, o)
+        if tag == ATTEMPT_ROW:
+            return decide_attempt_row(s, o)
         if tag == ADMISSION_TAG:
             return admitted_extent(s, o)
         if tag == DIAGNOSTIC_TAG:
@@ -153,14 +155,37 @@ def candidate_result(s:readbuf, w:mutbuf, o:mutbuf, base:u64, candidate:u64, dia
 def decide_attempt(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 84:
         return 4294967293
-    maximum = input_word(s, 8)
-    current = input_word(s, 16)
-    created = input_word(s, 24)
-    now = input_word(s, 32)
-    total = input_word(s, 40)
+    return attempt_window(s, o, input_word(s, 8), input_word(s, 16), input_word(s, 24),
+                          input_word(s, 32), input_word(s, 40), 48)
+
+# HIA has already authenticated the public reference and the Context manifest.
+# Read time from the same Store observation that supplied the CAS predecessor.
+def decide_attempt_row(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 277 or length(s) > 296:
+        return 4294967293
+    if input_word(s, 68) != CONTEXT_ROW or input_word(s, 76) != 0:
+        return 4294967293
+    count = input_word(s, 92)
+    if count != length(s) - 276 or (count > 1 and byte(s, 276) == 48):
+        return 4294967293
+    index = 276
+    created = 0
+    while index < length(s):
+        digit = byte(s, index)
+        if digit < 48 or digit > 57:
+            return 4294967293
+        if created > 1844674407370955161 or (created == 1844674407370955161 and digit > 53):
+            return 4294967293
+        created = created * 10 + (digit - 48)
+        index = index + 1
+    return attempt_window(s, o, input_word(s, 8), input_word(s, 84), created,
+                          input_word(s, 24), input_word(s, 16), 32)
+
+def attempt_window(s:readbuf, o:mutbuf, maximum:u64, current:u64, created:u64,
+                   now:u64, total:u64, identity:u64) -> u64:
     if maximum == 0 or maximum > 4096 or total == 0 or total > 86400000:
         return 4294967293
-    if current > 9223372036854775807 or valid_context_id(s) == False:
+    if current > 9223372036854775807 or valid_context_id(s, identity) == False:
         return 4294967293
     if now >= created and now - created > total * 1000000:
         return 4294967288
@@ -177,7 +202,7 @@ def decide_attempt(s:readbuf, o:mutbuf) -> u64:
     put(o, 112, current + 1)
     index = 0
     while index < 36:
-        store(o, 120 + index, byte(s, 48 + index))
+        store(o, 120 + index, byte(s, identity + index))
         index = index + 1
     put(o, 156, current)
     return 164
@@ -187,11 +212,11 @@ def cell(o:mutbuf, at:u64, kind:u64, offset:u64, size:u64) -> u64:
     put(o, at + 8, offset)
     return put(o, at + 16, size)
 
-def valid_context_id(s:readbuf) -> bool:
-    if input_word(s, 48) & 4294967295 != CONTEXT_PREFIX:
+def valid_context_id(s:readbuf, identity:u64) -> bool:
+    if input_word(s, identity) & 4294967295 != CONTEXT_PREFIX:
         return False
-    index = 52
-    while index < 84:
+    index = identity + 4
+    while index < identity + 36:
         ch = byte(s, index)
         if (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
             return False
@@ -326,6 +351,8 @@ def program():
         'REQUEST_TAG': int.from_bytes(b'HIACAN01', 'little'),
         'BUDGET_TAG': int.from_bytes(b'HIACAB01', 'little'),
         'ATTEMPT_TAG': int.from_bytes(b'HIACAP01', 'little'),
+        'ATTEMPT_ROW': int.from_bytes(b'HIACAP02', 'little'),
+        'CONTEXT_ROW': int.from_bytes(b'HIACTO02', 'little'),
         'UPDATE_TAG': int.from_bytes(b'HIAUPB01', 'little'),
         'CONTEXT_PREFIX': int.from_bytes(b'ctx-', 'little'),
         'ADMISSION_TAG': int.from_bytes(b'HIACAF01', 'little'),
