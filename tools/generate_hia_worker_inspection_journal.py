@@ -41,7 +41,10 @@ INSPECTION_COST = r"""
 INSPECTION_RESPONSE_MATCH = r"""
     # Both the typed Journal owner and the private inspection continuation
     # must have reached the same outcome for this exact response payload.
-    if end != length(s):
+    dispatched = input_word(s, state + 328) == 5
+    if dispatched != (end != length(s)):
+        return 0
+    if dispatched:
         if input_word(s, end + 8) != status:
             return 0
         payload = input_word(s, end + 24)
@@ -55,6 +58,17 @@ def inspection_flow():
     program = flow(TOOL, 5)
     start = program.index('def artifact_cost(')
     before, cost = program[:start], program[start:]
+    # Unlike Context creation, this tool admits a retained Context and selects
+    # the existing lookup-only route, which must not select a budget effect.
+    route = {
+        'input_word(s, 568) == 0 and actual != 0':
+            'input_word(s, 568) == choose(stage == 12, 1, 0) and actual != 0',
+        'phase == 4) and input_word(s, state + 320) == 0':
+            'phase == 4) and input_word(s, state + 320) == 1',
+    }
+    for old, new in route.items():
+        assert before.count(old) == 1, old
+        before = before.replace(old, new)
     opening = """    if length(s) < 584 or input_word(s, 16) != length(s) - 24:
         return 0"""
     assert cost.count(opening) == 1
