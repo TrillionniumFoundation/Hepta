@@ -14,6 +14,8 @@ from tools.generate_hia_core_json_cli import source_program as helper_source
 MAGIC = int.from_bytes(b'HIARCLI1', 'little')
 EXTRACT_MAGIC = int.from_bytes(b'HIAPAT01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAPAR01', 'little')
+REFUSAL_MAGIC = int.from_bytes(b'HIAPRF01', 'little')
+REFUSAL_MODE = b'--agent-status'
 IMAGE_LIMIT = 1 << 20
 BUNDLE_LIMIT = 2 * IMAGE_LIMIT + 4096
 WIRE_LIMIT = 2 * (8 << 20) + 3
@@ -54,7 +56,8 @@ def template():
         if mode == 2:
             emit('4d 89 78 08')  # w[8] = declared schema, callee-saved r15
         call(name)
-        refuse(0xfffffffe, 'space'); refuse(0xfffffffd, 'io')
+        refuse(0xfffffffd, 'io')
+        emit('3d'); word(0xffffffe0); branch('0f 83', 'patch_refusal')
         emit('83 f8 20'); branch('0f 86', 'invalid')
         emit('3d'); word(JSON_LIMIT + 32 if mode == 0 else RESULT_LIMIT)
         branch('0f 87', 'invalid')
@@ -87,9 +90,15 @@ def template():
         refuse(0xfffffffe, 'space'); refuse(0xfffffffd, 'io')
         emit('85 c0'); branch('0f 85', 'invalid')
 
-    # Exactly one schema argument. Check characters in order, never inspect a
-    # byte beyond an already encountered NUL. No environment selection exists.
-    emit('48 83 3c 24 02'); branch('0f 85', 'usage')
+    # The ordinary command still accepts one schema argument. Only the exact
+    # second private argument enables an opaque rejection receipt for Worker.
+    emit('31 db 48 83 3c 24 02'); branch('0f 84', 'version')
+    emit('48 83 3c 24 03'); branch('0f 85', 'usage')
+    emit('48 8b 44 24 18')
+    for offset, value in enumerate(REFUSAL_MODE + b'\0'):
+        emit('80 78'); code.extend((offset, value)); branch('0f 85', 'usage')
+    emit('ff c3')
+    label('version')
     emit('48 8b 44 24 10 80 38 76'); branch('0f 85', 'usage')
     emit('44 0f b6 78 01 41 83 ff 31'); branch('0f 82', 'usage')
     emit('41 83 ff 32'); branch('0f 87', 'usage')
@@ -109,6 +118,16 @@ def template():
     patch(2, 'result'); admission('candidate_admission')
     emit('4d 89 ee')  # all four calls passed: write the whole original frame
     pointer('4d 8d bc 24', OUTPUT_OFFSET)
+    branch('e9', 'write')
+    label('patch_refusal')
+    emit('85 db'); branch('0f 84', 'public_refusal')
+    pointer('49 8d bc 24', OUTPUT_OFFSET)
+    emit('48 ba'); code.extend(struct.pack('<Q', REFUSAL_MAGIC))
+    emit('49 89 17 89 c0 49 89 47 08 41 be 10 00 00 00')
+    branch('e9', 'write')  # transport succeeded; the kernel refused the candidate
+    label('public_refusal')
+    refuse(0xfffffffe, 'space')
+    branch('e9', 'invalid')
     label('write'); emit('4d 85 f6'); branch('0f 84', 'success')
     emit('b8 01 00 00 00 bf 01 00 00 00 4c 89 fe 4c 89 f2'
          ' 0f 05 48 83 f8 fc'); branch('0f 84', 'write')
