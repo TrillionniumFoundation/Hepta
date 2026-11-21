@@ -11,6 +11,7 @@ from hepta.hia_cnf_native import (
     CIRCUIT_NODES, CIRCUIT_REQUEST, GRAPH_PROJECTION_REQUEST, PROJECT_CHECKED_CAST, PROJECTION_INPUT_LIMIT,
     LEARNING_REQUEST, RESTART_REQUEST, SAT, SEARCH_PLAN_REQUEST, SPARSE_CLAUSES,
     SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES, STEP_LIMIT, WORD_WITNESS_REQUEST,
+    WORD_PRODUCT_EXCEEDS, WORD_TABLE_INPUT_BITS, WORD_TABLE_REQUEST, WORD_TABLE_WORK_LIMIT,
     _CORE_TRAP_TAGS, _GRAPH_OPERATIONS, _word_type,
 )
 from hepta.hia_core_proof_wire_native import OBLIGATION_REQUEST, OBLIGATION_SOLVER_REQUEST, OBLIGATION_WITNESS_REQUEST
@@ -460,6 +461,8 @@ def obligation_solver_wire(s:readbuf, o:mutbuf) -> u64:
         return {REFUSED}
     if phase == 0:
         return solver_plan_frame(s, o, ordinal, parameter)
+    if phase == 4 and ordinal >= 3:
+        return solver_word_table(s, o, parameter)
     if parameter != 0 or length(s) < 96:
         return {REFUSED}
     if obligation_word(s, 32) != {SEARCH_PLAN_REQUEST}:
@@ -473,6 +476,8 @@ def obligation_solver_wire(s:readbuf, o:mutbuf) -> u64:
         return solver_attach_lease(s, o, steps)
     if phase == 2:
         return solver_search_frame(s, o, steps, learn, restart)
+    if phase == 3:
+        return solver_reduce_signed_products(s, o, steps)
     return {REFUSED}
 
 def solver_circuit_ok(s:readbuf, at:u64) -> bool:
@@ -528,6 +533,285 @@ def solver_search_frame(s:readbuf, o:mutbuf, steps:u64, learn:u64, restart:u64) 
         store(o, offset, byte(s, 64 + offset))
         offset = offset + 1
     return length(s) - 64
+
+def solver_reduce_signed_products(s:readbuf, o:mutbuf, steps:u64) -> u64:
+    # A signed m-bit by signed n-bit product fits in m+n signed bits.
+    # This retry changes only encoding size, never the input domain or lease.
+    mapping = 64 + 40 * {CIRCUIT_NODES}
+    if solver_circuit_ok(s, 64) == False or length(o) < mapping + 8 * {CIRCUIT_NODES}:
+        return {REFUSED}
+    input_count = obligation_word(s, 72)
+    pairs = obligation_word(s, 80)
+    put(o, 0, {CIRCUIT_REQUEST})
+    put(o, 16, pairs)
+    put(o, 24, steps)
+    index = 0
+    count = 0
+    changed = False
+    while index < input_count:
+        row = 96 + index * 40
+        operation = obligation_word(s, row)
+        if count >= {CIRCUIT_NODES} or (operation == 1 and count != index):
+            return {REFUSED}
+        bound = bounded_signed_product(s, row, index)
+        if bound != 0:
+            if count + 3 >= {CIRCUIT_NODES}:
+                return {REFUSED}
+            write_bounded_signed_product(s, o, row, count, bound, mapping)
+            count = count + 3
+            changed = True
+        elif bounded_signed_product_exceeds(s, row, index):
+            write_solver_node(o, 32 + count * 40, 2, 1, 0, 0)
+            changed = True
+        else:
+            if copy_solver_node(s, o, row, count, index, mapping) == 0:
+                return {REFUSED}
+        put(o, mapping + index * 8, count)
+        count = count + 1
+        index = index + 1
+    if changed == False:
+        return {REFUSED}
+    put(o, 8, count)
+    index = 0
+    while index < 2 * pairs:
+        previous = obligation_word(s, 96 + input_count * 40 + index * 8)
+        if previous >= input_count:
+            return {REFUSED}
+        put(o, 32 + count * 40 + index * 8, get(o, mapping + previous * 8))
+        index = index + 1
+    return 32 + count * 40 + pairs * 16
+
+def bounded_signed_product(s:readbuf, row:u64, ordinal:u64) -> u64:
+    if obligation_word(s, row) != 32:
+        return 0
+    width = obligation_word(s, row + 8)
+    a = obligation_word(s, row + 16)
+    b = obligation_word(s, row + 24)
+    if width > 64 or a >= ordinal or b >= ordinal:
+        return 0
+    left = 96 + a * 40
+    right = 96 + b * 40
+    if obligation_word(s, left) != 31 or obligation_word(s, right) != 31:
+        return 0
+    if obligation_word(s, left + 8) != width or obligation_word(s, right + 8) != width:
+        return 0
+    first = obligation_word(s, left + 16)
+    second = obligation_word(s, right + 16)
+    if first >= a or second >= b:
+        return 0
+    m = obligation_word(s, 104 + first * 40)
+    n = obligation_word(s, 104 + second * 40)
+    if m == 0 or n == 0 or m >= width or n >= width or m + n >= width:
+        return 0
+    return m + n
+
+def bounded_signed_product_exceeds(s:readbuf, row:u64, ordinal:u64) -> bool:
+    # The independent x86 model computes signed overflow using unsigned
+    # magnitudes. A reviewed bound may make the overflow predicate false
+    # without bit blasting a product that cannot reach either threshold.
+    if obligation_word(s, row) != {WORD_PRODUCT_EXCEEDS}:
+        return False
+    a = obligation_word(s, row + 16)
+    b = obligation_word(s, row + 24)
+    threshold = obligation_word(s, row + 32)
+    if a >= ordinal or b >= ordinal or threshold >= ordinal:
+        return False
+    m = signed_magnitude_bits(s, a)
+    n = signed_magnitude_bits(s, b)
+    if m == 0 or n == 0 or m + n > 65:
+        return False
+    maximum = 1 << (m + n - 2)
+    return threshold_at_least(s, threshold, maximum)
+
+def signed_magnitude_bits(s:readbuf, index:u64) -> u64:
+    row = 96 + index * 40
+    if obligation_word(s, row) != 11:
+        return 0
+    width = obligation_word(s, row + 8)
+    sign = obligation_word(s, row + 16)
+    negation = obligation_word(s, row + 24)
+    input_node = obligation_word(s, row + 32)
+    if width == 0 or width > 64 or sign >= index or negation >= index or input_node >= index:
+        return 0
+    sign_row = 96 + sign * 40
+    if obligation_word(s, sign_row) != 26 or obligation_word(s, sign_row + 8) != 1:
+        return 0
+    if obligation_word(s, sign_row + 16) != input_node or obligation_word(s, sign_row + 32) != width - 1:
+        return 0
+    negation_row = 96 + negation * 40
+    if obligation_word(s, negation_row) != 10 or obligation_word(s, negation_row + 24) != input_node:
+        return 0
+    zero = obligation_word(s, negation_row + 16)
+    if zero >= negation:
+        return 0
+    zero_row = 96 + zero * 40
+    if obligation_word(s, zero_row) != 2 or obligation_word(s, zero_row + 32) != 0:
+        return 0
+    input_row = 96 + input_node * 40
+    if obligation_word(s, input_row) != 31 or obligation_word(s, input_row + 8) != width:
+        return 0
+    narrower = obligation_word(s, input_row + 16)
+    if narrower >= input_node:
+        return 0
+    bits = obligation_word(s, 104 + narrower * 40)
+    return choose(bits > 0 and bits < width, bits, 0)
+
+def exact_constant_at_least(s:readbuf, index:u64, value:u64) -> u64:
+    row = 96 + index * 40
+    return choose(obligation_word(s, row) == 2 and obligation_word(s, row + 32) >= value, 1, 0)
+
+def threshold_at_least(s:readbuf, index:u64, value:u64) -> bool:
+    row = 96 + index * 40
+    if obligation_word(s, row) == 2:
+        return exact_constant_at_least(s, index, value) != 0
+    if obligation_word(s, row) != 11:
+        return False
+    a = obligation_word(s, row + 24)
+    b = obligation_word(s, row + 32)
+    if a >= index or b >= index:
+        return False
+    return exact_constant_at_least(s, a, value) != 0 and exact_constant_at_least(s, b, value) != 0
+
+def write_bounded_signed_product(s:readbuf, o:mutbuf, row:u64, count:u64, bound:u64, mapping:u64) -> u64:
+    a = obligation_word(s, row + 16)
+    b = obligation_word(s, row + 24)
+    a = get(o, mapping + obligation_word(s, 112 + a * 40) * 8)
+    b = get(o, mapping + obligation_word(s, 112 + b * 40) * 8)
+    destination = 32 + count * 40
+    write_solver_node(o, destination, 31, bound, a, 0)
+    write_solver_node(o, destination + 40, 31, bound, b, 0)
+    write_solver_node(o, destination + 80, 32, bound, count, count + 1)
+    write_solver_node(o, destination + 120, 31, obligation_word(s, row + 8), count + 2, 0)
+    return 0
+
+def write_solver_node(o:mutbuf, row:u64, operation:u64, width:u64, a:u64, b:u64) -> u64:
+    put(o, row, operation)
+    put(o, row + 8, width)
+    put(o, row + 16, a)
+    put(o, row + 24, b)
+    put(o, row + 32, 0)
+    return 0
+
+def copy_solver_node(s:readbuf, o:mutbuf, old:u64, count:u64, ordinal:u64, mapping:u64) -> u64:
+    target = 32 + count * 40
+    obligation_copy(s, o, old, target, 40)
+    operands = solver_node_operands(obligation_word(s, old))
+    index = 0
+    while index < operands:
+        offset = 16 + index * 8
+        previous = obligation_word(s, old + offset)
+        if previous >= ordinal:
+            return 0
+        put(o, target + offset, get(o, mapping + previous * 8))
+        index = index + 1
+    return 1
+
+def solver_node_operands(operation:u64) -> u64:
+    if operation <= 2:
+        return 0
+    if operation == 6 or operation == 20 or operation == 21 or operation == 26 or (operation >= 28 and operation <= 31):
+        return 1
+    if operation == 11 or operation == {WORD_PRODUCT_EXCEEDS}:
+        return 3
+    return 2
+
+def solver_word_table(s:readbuf, o:mutbuf, remaining:u64) -> u64:
+    if remaining == 0 or solver_circuit_ok(s, 32) == False:
+        return {REFUSED}
+    nodes = obligation_word(s, 40)
+    pairs = obligation_word(s, 48)
+    mapping = 72 + 40 * {CIRCUIT_NODES}
+    live = mapping + 8 * {CIRCUIT_NODES}
+    bounds = live + 8 * {CIRCUIT_NODES}
+    if length(o) < bounds + 8 * {CIRCUIT_NODES}:
+        return {REFUSED}
+    index = 0
+    while index < nodes:
+        put(o, live + index * 8, 0)
+        put(o, bounds + index * 8, 0)
+        index = index + 1
+    if mark_word_table(s, o, nodes, pairs, live, bounds) == 0:
+        return {REFUSED}
+    return emit_word_table(s, o, nodes, pairs, mapping, remaining)
+
+def mark_word_table(s:readbuf, o:mutbuf, nodes:u64, pairs:u64, live:u64, bounds:u64) -> u64:
+    index = 0
+    while index < pairs * 2:
+        observed = obligation_word(s, 64 + nodes * 40 + index * 8)
+        if observed >= nodes:
+            return 0
+        put(o, live + observed * 8, 1)
+        put(o, bounds + observed * 8, obligation_word(s, 72 + observed * 40))
+        index = index + 1
+    index = nodes
+    while index > 0:
+        index = index - 1
+        if get(o, live + index * 8) != 0:
+            if follow_word_table(s, o, index, live, bounds) == 0:
+                return 0
+    return 1
+
+def follow_word_table(s:readbuf, o:mutbuf, node:u64, live:u64, bounds:u64) -> u64:
+    row = 64 + node * 40
+    operation = obligation_word(s, row)
+    operands = solver_node_operands(operation)
+    index = 0
+    while index < operands:
+        argument = obligation_word(s, row + 16 + index * 8)
+        if argument >= node:
+            return 0
+        put(o, live + argument * 8, 1)
+        operand_row = 64 + argument * 40
+        if obligation_word(s, operand_row) == 1:
+            width = obligation_word(s, operand_row + 8)
+            if operation == 26:
+                low = obligation_word(s, row + 32)
+                span = obligation_word(s, row + 8)
+                if low > width or span > width - low:
+                    return 0
+                width = low + span
+            old = get(o, bounds + argument * 8)
+            put(o, bounds + argument * 8, choose(width > old, width, old))
+        index = index + 1
+    return 1
+
+def emit_word_table(s:readbuf, o:mutbuf, nodes:u64, pairs:u64, mapping:u64, remaining:u64) -> u64:
+    live = mapping + 8 * {CIRCUIT_NODES}
+    bounds = live + 8 * {CIRCUIT_NODES}
+    count = 0
+    bits = 0
+    index = 0
+    while index < nodes:
+        row = 64 + index * 40
+        operation = obligation_word(s, row)
+        if operation == 1 or get(o, live + index * 8) != 0:
+            if operation == 1:
+                width = get(o, bounds + index * 8)
+                width = choose(width == 0, 1, width)
+                if width > {WORD_TABLE_INPUT_BITS} - bits:
+                    return {REFUSED}
+                bits = bits + width
+                write_solver_node(o, 32 + count * 40, 1, width, 0, 0)
+            elif copy_solver_node(s, o, row, count, index, mapping) == 0:
+                return {REFUSED}
+            put(o, mapping + index * 8, count)
+            count = count + 1
+        index = index + 1
+    put(o, 0, {WORD_TABLE_REQUEST})
+    put(o, 8, count)
+    put(o, 16, pairs)
+    put(o, 24, 0)
+    index = 0
+    while index < 2 * pairs:
+        previous = obligation_word(s, 64 + nodes * 40 + index * 8)
+        put(o, 32 + count * 40 + index * 8, get(o, mapping + previous * 8))
+        index = index + 1
+    at = 32 + count * 40 + pairs * 16
+    # Only bits that reach reviewed extract operations are enumerated.
+    # No assumption restricts the omitted high ABI bits.
+    work = choose(remaining < ({WORD_TABLE_WORK_LIMIT} >> 14), remaining << 14, {WORD_TABLE_WORK_LIMIT})
+    put(o, at, work)
+    return at + 8
 '''
 
 

@@ -88,12 +88,14 @@ def _native_circuit_decision(cnf, circuit, deadline, *, restart_search=False):
 def _native_circuit_result(cnf, result):
     if result is None or result[0] not in (SAT, UNSAT):
         return None
-    verdict, model, steps, variables, clauses, frame = result
+    verdict, model, steps, variables, clauses, frame = result[:6]
     # Solver choice and execution budget are not part of the formula identity.
     formula = SPARSE_REQUEST.to_bytes(8, "little") + frame[8:24] + bytes(8) + frame[32:]
     discharge = {"method": "native_hia_core_circuit", "image_sha256": cnf.image_sha256,
                  "formula_sha256": sha256(formula).hexdigest(), "variables": variables,
                  "clauses": clauses, "steps": steps}
+    if len(result) == 7:
+        discharge.update(result[6], method="native_hia_exhaustive_word_table")
     return verdict, model, discharge, formula
 
 

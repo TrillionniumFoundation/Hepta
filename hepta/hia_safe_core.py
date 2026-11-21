@@ -1136,7 +1136,8 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
             return None
         verdict, model, discharge, frame = decision
         result = "sat" if verdict == SAT else "unsat"
-        discharge["method"] = "native_hia_circuit_cnf"
+        if "assignments_checked" not in discharge:
+            discharge["method"] = "native_hia_circuit_cnf"
         if index == 2 or (index == 1 and loan_index is None):
             discharge["structural_reduction"] = "native_hia_bounded_machine_projection"
         if result != expected:

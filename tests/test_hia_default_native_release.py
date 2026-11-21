@@ -418,6 +418,10 @@ with (patch('hepta.hia_cnf_native._graph_packet', side_effect=AssertionError('ho
 assert report['complete'] and report['ok']
 assert [row['result'] for row in report['obligations']] == ['sat'] + ['unsat'] * 4
 assert all('native_cnf' in row for row in report['obligations'])
+semantics = report['obligations'][-1]['native_cnf']
+assert semantics['method'] == 'native_hia_exhaustive_word_table'
+assert semantics['assignments_checked'] == 65_536
+assert len(semantics['word_table_sha256']) == 64
 checker = report['checker']
 identity = checker['source_identity']
 mapped = {row['mapped_image_sha256'] for row in checker['input_execution']['native_helpers']}

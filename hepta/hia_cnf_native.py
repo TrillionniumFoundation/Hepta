@@ -4,10 +4,12 @@ from __future__ import annotations
 import ctypes
 from array import array
 from dataclasses import dataclass
+from hashlib import sha256
 from itertools import groupby
 import os
 import struct
 from sys import byteorder
+from time import monotonic_ns
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 from .hia_opcodes import TRAP_CODES, WIDTHS
@@ -215,6 +217,7 @@ class NativeCnf(NativeHiaJsonImage):
 
     def solve_artifact_wire(self, circuit, projector, role, remaining_ms):
         """Let HIA frame, budget, solve and independently replay one artifact query."""
+        started = monotonic_ns()
         plan_input = projector.solver_frame(0, role, circuit, remaining=remaining_ms)
         if plan_input is None:
             return None
@@ -223,8 +226,14 @@ class NativeCnf(NativeHiaJsonImage):
         if leased is None:
             return None
         encoded = self._encode_circuit_frame(leased, steps)
+        reduced = None
         if encoded is None:
-            return None
+            reduced = projector.solver_frame(3, role, plan + circuit)
+            if reduced is None:
+                return None
+            encoded = self._encode_circuit_frame(reduced, steps)
+            if encoded is None:
+                return None
         formula, variables, clauses, scratch = encoded
         search = projector.solver_frame(2, role, plan + formula)
         if search is None:
@@ -235,6 +244,13 @@ class NativeCnf(NativeHiaJsonImage):
             witness = projector.witness_frame(circuit, reply, scratch.raw[:32 + 128 * nodes])
             if witness is None or not self._check_word_witness_frame(witness, nodes):
                 raise RuntimeError('native HIA SAT model did not satisfy the original word circuit')
+        if verdict == UNKNOWN and reduced is not None:
+            remaining_ms -= (monotonic_ns() - started + 999_999) // 1_000_000
+            if remaining_ms > 0:
+                table = projector.solver_frame(4, role, circuit, remaining=remaining_ms)
+                proof = self._prove_artifact_word_range(table)
+                if proof is not None:
+                    return UNSAT, 0, cost, variables, clauses, search, proof
         return verdict, model, cost, variables, clauses, search
 
     def _encode_circuit_frame(self, frame, steps):
@@ -287,9 +303,29 @@ class NativeCnf(NativeHiaJsonImage):
         if traps is not None:
             frame += struct.pack('<2Q', *traps)
         frame += struct.pack('<Q', min(work, WORD_TABLE_WORK_LIMIT))
+        return self._search_word_table_frame(frame, len(nodes), bits)
+
+    def _prove_artifact_word_range(self, frame):
+        if frame is None:
+            return None
+        magic, nodes, pairs, guards = struct.unpack_from('<4Q', frame)
+        end = 32 + 40 * nodes
+        if (magic != WORD_TABLE_REQUEST or nodes > CIRCUIT_NODES or pairs > 2 or guards
+                or len(frame) != end + pairs * 16 + 8):
+            raise RuntimeError('invalid native HIA artifact word table')
+        bits = sum(width for operation, width, *_ in struct.iter_unpack('<5Q', frame[32:end])
+                   if operation == 1)
+        if bits > WORD_TABLE_INPUT_BITS:
+            raise RuntimeError('native HIA artifact word table exceeds its input budget')
+        answer = self._search_word_table_frame(frame, nodes, bits)
+        if answer is None or answer[0] != UNSAT:
+            return None
+        return {'assignments_checked': answer[2], 'word_table_sha256': sha256(answer[3]).hexdigest()}
+
+    def _search_word_table_frame(self, frame, nodes, bits):
         source = ctypes.create_string_buffer(frame, len(frame))
         output = ctypes.create_string_buffer(32)
-        scratch = ctypes.create_string_buffer(max(8, len(nodes) * 8))
+        scratch = ctypes.create_string_buffer(max(8, nodes * 8))
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
         if size == 0xfffffffc:
             return None
