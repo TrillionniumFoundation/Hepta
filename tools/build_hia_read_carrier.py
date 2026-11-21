@@ -66,6 +66,12 @@ CARRIERS = {
         (('entry_and_descriptor_custody', 0, 720), ('directory_and_bounded_io', 720, 2704),
          ('pinned_child_and_assembly_transport', 2704, 5040), ('document_custody', 5040, 6560),
          ('bootstrap_loop_and_closeout', 6560, 13464))),
+    'artifact-worker': CarrierImage(
+        'examples/hia_bootstrap/agent_artifact_worker_carrier_packer.hepta', b'HIAAWK01',
+        '1c126bdcdb58d798294f759a60a906c8d038378b092b677066b7076cf0376563', 18592,
+        (('descriptor_io_and_child_ownership', 0, 3762),
+         ('store_and_journal_frames', 3762, 6669),
+         ('immutable_input_and_worker_relay', 6669, 18592))),
     'describe-worker': CarrierImage(
         'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
         'd3b3b68645a247e27e7081e475e38e0333186bd0983199bbe2a123fa3454fec1', 11258,

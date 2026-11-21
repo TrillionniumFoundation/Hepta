@@ -8,6 +8,9 @@ from tools.generate_hia_read_capsule import DOSSIER_MAGIC, MAX_ROLE_BYTES, ROLES
 from tools.generate_hia_sha256 import source_program as sha256_program
 
 SOURCE = 'examples/hia_bootstrap/worker_readonly_capsule.hepta'
+NATIVE_SOURCE = 'examples/hia_bootstrap/worker_native_capsule.hepta'
+NATIVE_MANIFEST = b'HIANCP01'
+ARTIFACT_CONFIG = b'HIARAC01'
 MANIFEST_MAGIC = b'HIADCP01'
 BOOTSTRAP_MAGIC = b'HIADBQ01'
 RESOURCES_MAGIC = b'HIADBF01'
@@ -30,6 +33,18 @@ BOOTSTRAP_ROLES = (
 DESCRIBE_OWNER = 'hia-agent-describe-worker-carrier'
 BOOTSTRAP_OWNER = 'hia-agent-discovery-bootstrap-carrier'
 ROLES = tuple(dict.fromkeys((*READ_ROLES, *DESCRIBE_ROLES, *BOOTSTRAP_ROLES, DESCRIBE_OWNER, BOOTSTRAP_OWNER)))
+ARTIFACT_OWNER = 'hia-agent-artifact-worker-carrier'
+ARTIFACT_ROLES = (
+    'hia-worker-admit', 'hia-worker-journal-call', 'hia-agent-worker-arguments',
+    'hia-agent-mcp-input-schema', 'hia-agent-artifact-journal', 'hia-agent-journal',
+    'hia-agent-store', 'hia-agent-store-ready', 'hia-agent-store-unique',
+    'hia-agent-journal-records', 'hia-agent-journal-observation', 'hia-agent-artifact-capture',
+    'hia-agent-artifact-authority', 'hia-artifact', 'hia-agent-artifact-request',
+    'hia-agent-input-carrier', 'hia-agent-discovery-artifact', 'hia-agent-discovery-effect',
+    'hia-worker-response', 'hia-agent-mcp-response-schema', 'hia-agent-journal-cost',
+    'hia-worker-terminal', 'hia-agent-artifact-diagnostic',
+)
+NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -153,12 +168,14 @@ def widen(value:u32) -> u64:
 '''
 
 
-def routing():
+def routing(*, artifact=False):
     # Only the response of the pinned admit process enters this mode. Its
     # canonical serialization guarantees sorted keys and an unescaped tool.
     source = '\ndef route(s:readbuf) -> u32:\n    if byte(s, 0) != 123:\n        return 0\n'
     schema = b',"schema":"hia-agent-worker-request-v1","tool":"'
     methods = ((1, b'hia_read'), (2, b'hia_describe'))
+    if artifact:
+        methods += ((3, b'hia_artifact'),)
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
@@ -172,19 +189,93 @@ def routing():
     return source
 
 
-def source_program():
-    tags = {'MANIFEST': MANIFEST_MAGIC, 'DOSSIER': DOSSIER_MAGIC,
+ARTIFACT_POLICY = r'''
+def artifact_shape(s:readbuf, at:u64, extent:u64, bootstrap:u64) -> bool:
+    if extent < 88 + PROFILE_BYTES or extent > 132000 or capsule_word(s, at) != ARTIFACT or capsule_word(s, at + 72) != PROFILE_BYTES:
+        return False
+    profile = at + 88
+    if profile_prefix(s, profile) == False or byte(s, profile + PROFILE_BYTES - 2) != 34 or byte(s, profile + PROFILE_BYTES - 1) != 125:
+        return False
+    digest = profile + PROFILE_PREFIX_BYTES
+    if same_range(s, digest, at + 8, 64) == False:
+        return False
+    index = 0
+    while index < 64:
+        unit = byte(s, digest + index)
+        if (unit < 48 or unit > 57) and (unit < 97 or unit > 102):
+            return False
+        index = index + 1
+    roots = capsule_word(s, at + 80)
+    digits = capsule_word(s, bootstrap + 24)
+    observed = bootstrap + 176 + capsule_word(s, bootstrap + 16)
+    if roots > 32 or roots != root_count(s, observed, digits):
+        return False
+    offset = profile + PROFILE_BYTES
+    limit = at + extent
+    index = 0
+    while index < roots:
+        if offset > limit or limit - offset < 9:
+            return False
+        size = capsule_word(s, offset)
+        offset = offset + 8
+        if size == 0 or size > 4095 or size > limit - offset or byte(s, offset) != 47:
+            return False
+        stop = offset + size
+        while offset < stop:
+            if byte(s, offset) == 0:
+                return False
+            offset = offset + 1
+        index = index + 1
+    return offset == limit
+
+def root_count(s:readbuf, at:u64, digits:u64) -> u64:
+    count = 0
+    index = 0
+    while index < digits:
+        n = byte(s, at + index)
+        if n < 48 or n > 57:
+            return 33
+        count = count * 10 + n - 48
+        index = index + 1
+    return count
+'''
+
+
+def native_policy():
+    inventory = POLICY.replace(' or capsule_word(s, 48) != 0', '')
+    inventory = inventory.replace(
+        '    if documents < 16 or documents != length(s) - after - config:',
+        '    artifact = capsule_word(s, 48)\n'
+        '    if artifact > length(s) - after - config or documents < 16 or documents != length(s) - after - config - artifact:')
+    inventory = inventory.replace(
+        '    if dossier_shape(s, dossier, after, config) == False:',
+        '    if dossier_shape(s, dossier, after, config) == False or artifact_shape(s, pack + documents, artifact, after) == False:')
+    prefix = b'{"id":"hia-artifact-v1","sha256":"'
+    profile = ARTIFACT_POLICY.replace('PROFILE_PREFIX_BYTES', str(len(prefix)))
+    profile = profile.replace('PROFILE_BYTES', str(len(prefix) + 66))
+    profile += '\ndef profile_prefix(s:readbuf, at:u64) -> bool:\n    return '
+    profile += ' and '.join(f'byte(s, at + {index}) == {value}' for index, value in enumerate(prefix))
+    return inventory + profile + '\n'
+
+
+def source_program(*, artifact=False):
+    tags = {'MANIFEST': NATIVE_MANIFEST if artifact else MANIFEST_MAGIC, 'DOSSIER': DOSSIER_MAGIC,
             'BOOTSTRAP': BOOTSTRAP_MAGIC, 'RESOURCES': RESOURCES_MAGIC}
+    if artifact:
+        tags['ARTIFACT'] = ARTIFACT_CONFIG
     constants = {name: int.from_bytes(raw, 'little') for name, raw in tags.items()}
+    roles = NATIVE_ROLES if artifact else ROLES
     constants.update(CAPSULE_MAX=CAPSULE_MAX, HEADER_BYTES=HEADER_BYTES, ROW_BYTES=ROW_BYTES,
-                     DOSSIER_HEADER=DOSSIER_HEADER, DOSSIER_OFFSET=DOSSIER_OFFSET,
-                     ROLE_COUNT=len(ROLES), ROLE_LIMIT=MAX_ROLE_BYTES)
-    source = POLICY
+                     DOSSIER_HEADER=DOSSIER_HEADER, DOSSIER_OFFSET=HEADER_BYTES + len(roles) * ROW_BYTES,
+                     ROLE_COUNT=len(roles), ROLE_LIMIT=MAX_ROLE_BYTES)
+    source = native_policy() if artifact else POLICY
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
-    return source + routing() + '\n' + sha256_program()
+    return source + routing(artifact=artifact) + '\n' + sha256_program()
 
 
 if __name__ == '__main__':
     Path(SOURCE).write_text(render_assembly(document(source_program(), 'worker_readonly_capsule')),
                             encoding='utf-8')
+    Path(NATIVE_SOURCE).write_text(render_assembly(document(source_program(artifact=True), 'worker_native_capsule')),
+                                   encoding='utf-8')
