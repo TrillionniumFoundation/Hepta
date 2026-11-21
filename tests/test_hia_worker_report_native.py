@@ -980,12 +980,15 @@ class WorkerReportNativeTests(unittest.TestCase):
         self.assertEqual([row[3:5] for row in rows if row[0] == key], [('running', None)])
 
     def test_installed_wheel_ordinary_entry_and_both_source_resources(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, BACKEND_BUILD_FILES, EMITTER_BUILD_FILES, BYTE_WRAPPER_BUILD_FILES, MACHINE_OBJECT_BUILD_FILES, EXECUTION_OBSERVATION_BUILD_FILES, CONTINUATION_BUILD_FILES
         directory = self.folder / 'wheel-case'; directory.mkdir()
         source = directory / 'source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
-        names = [*('docs/' + name for name in DISCOVERY_FILES), *NATIVE_SOURCE_FILES,
-                 *PUBLICATION_BUILD_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, 'setup.py', 'pyproject.toml', 'MANIFEST.in', 'README.md', *BACKEND_BUILD_FILES, *EMITTER_BUILD_FILES, *BYTE_WRAPPER_BUILD_FILES, *MACHINE_OBJECT_BUILD_FILES, *EXECUTION_OBSERVATION_BUILD_FILES, *CONTINUATION_BUILD_FILES]
+        # Use the actual source distribution inputs, including wheel resources
+        # that are independent of the Agent discovery contract.
+        manifest = ROOT / 'MANIFEST.in'
+        names = {'setup.py', 'pyproject.toml', 'MANIFEST.in'}
+        names.update(line.removeprefix('include ') for line in manifest.read_text().splitlines()
+                     if line.startswith('include '))
         for name in names:
             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)

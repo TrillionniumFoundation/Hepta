@@ -617,57 +617,12 @@ class AgentStore:
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 1,
                                               self, (data, kind, metadata)).finish()
         with _store_resource_scope(self):
-            if expected_sha256 is not None or _store_uses_native_artifact_identity(self):
-                return self._put_owned(data, kind, metadata, expected_sha256=expected_sha256)
+            if expected_sha256 is not None:
+                return _STORE_ARTIFACT_PROFILE_REFERENCES['put'](
+                    self, data, kind, metadata, expected_sha256=expected_sha256)
             return _STORE_ARTIFACT_PROFILE_REFERENCES['put'](self, data, kind, metadata)
 
-    def _put_reference(self, data, kind, metadata=None):
-        if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
-            reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
-        metadata = {} if metadata is None else metadata
-        admission = _native_artifact_admission()
-        native_hash = (_native_artifact_file('store-hash',self.artifacts,data=data,_admission=admission)
-                       if admission is not None else None)
-        content_hash = native_hash['sha256'] if native_hash is not None else sha256(data).hexdigest()
-        content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
-        previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
-        if previous is not None:
-            ref = self._ref(previous)
-            self.get(ref, kind=kind)
-            return ref
-        if native_hash is not None:
-            stored = _native_artifact_file('store-put',self.artifacts,data=data,_admission=admission)
-            if stored != native_hash:
-                reject('E_HIA_ARTIFACT_CORRUPT','native artifact hash and durable file receipt differ')
-        else:
-            destination = self.artifacts / content_hash
-            temporary = self.artifacts / (".write-" + uuid.uuid4().hex)
-            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o400)
-            try:
-                with os.fdopen(descriptor, "wb") as stream:
-                    stream.write(data)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-                try:
-                    os.link(temporary, destination, follow_symlinks=False)
-                except FileExistsError:
-                    if stable_read(destination, MAX_ARTIFACT_BYTES) != data:
-                        reject("E_HIA_ARTIFACT_CORRUPT", "stored content does not match its immutable identity")
-                directory_fd = os.open(self.artifacts, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
-                try:
-                    os.fsync(directory_fd)
-                finally:
-                    os.close(directory_fd)
-            finally:
-                temporary.unlink(missing_ok=True)
-        ref = {"id": "a-" + uuid.uuid4().hex, "sha256": content_hash,
-               "uri": "hia://artifacts/" + uuid.uuid4().hex}
-        self.db.execute("INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
-                        (ref["id"], content_hash, ref["uri"], kind, wire(metadata).decode(), content_key))
-        row = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
-        return self._ref(row)
-
-    def _put_owned(self, data, kind, metadata=None, *, expected_sha256=None):
+    def _put_reference(self, data, kind, metadata=None, *, expected_sha256=None):
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
             reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
         metadata = {} if metadata is None else metadata
@@ -759,8 +714,6 @@ class AgentStore:
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 4,
                                               self, (ref, kind)).finish()
         with _store_resource_scope(self):
-            if _store_uses_native_artifact_identity(self):
-                return self._get_owned(ref, kind=kind)
             return _STORE_ARTIFACT_PROFILE_REFERENCES['get'](self, ref, kind=kind)
 
     def _artifact_record(self, ref, kind=None):
@@ -778,20 +731,6 @@ class AgentStore:
         return row
 
     def _get_reference(self, ref, *, kind=None):
-        keys(ref, ("id", "sha256", "uri"), label="artifact reference")
-        row = self.db.execute("SELECT * FROM artifacts WHERE id=?", (ref["id"],)).fetchone()
-        if row is None or self._ref(row) != ref:
-            reject("E_HIA_ARTIFACT_IDENTITY", "artifact reference was not issued in this runtime namespace")
-        if kind is not None and row["kind"] != kind:
-            reject("E_HIA_ARTIFACT_AUTHORITY", "input bytes cannot impersonate a retained " + kind)
-        data = _native_artifact_file('store-get',self.artifacts,content_hash=row['sha256'])
-        if data is None:
-            data = stable_read(self.artifacts / row["sha256"], MAX_ARTIFACT_BYTES)
-            if sha256(data).hexdigest() != row["sha256"]:
-                reject("E_HIA_ARTIFACT_CORRUPT", "artifact bytes no longer match their recorded digest")
-        return data, decode_data(row["metadata"])
-
-    def _get_owned(self, ref, *, kind=None):
         row = self._artifact_record(ref, kind)
         data = self._artifact_file('store-get', content_hash=row['sha256'])
         if data is None:
@@ -826,8 +765,8 @@ class AgentStore:
             return _STORE_ARTIFACT_PROFILE_REFERENCES['get_json'](self, ref, kind=kind)
 
     def _get_json_reference(self, ref, *, kind=None):
-        data, metadata = self.get(ref, kind=kind)
-        return decode_data(data), metadata
+        value, metadata, _ = self.get_json_with_wire(ref, kind=kind)
+        return value, metadata
 
     def get_json_with_wire(self, ref, *, kind=None):
         data, metadata = self.get(ref, kind=kind)
@@ -840,19 +779,9 @@ class AgentStore:
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 6,
                                               self, (uri,)).finish()
         with _store_resource_scope(self):
-            if uses_native_store(self):
-                return self._resolve_uri_owned(uri)
             return _STORE_ARTIFACT_PROFILE_REFERENCES['resolve_uri'](self, uri)
 
     def _resolve_uri_reference(self, uri):
-        row = self.db.execute("SELECT * FROM artifacts WHERE uri=?", (uri,)).fetchone()
-        if row is None:
-            reject("E_HIA_ARTIFACT_IDENTITY", "resource URI was not issued in this runtime namespace")
-        ref = self._ref(row)
-        self.get(ref)
-        return ref
-
-    def _resolve_uri_owned(self, uri):
         if type(uri) is str and uses_native_store(self):
             from .hia_native_helpers import pinned_agent_read_page_executable
 
@@ -886,16 +815,10 @@ class AgentStore:
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 7,
                                               self, (identifier, value)).finish()
         with _store_resource_scope(self):
-            if uses_native_store(self):
-                return self.profile_bytes(identifier, wire(value))
             return _STORE_ARTIFACT_PROFILE_REFERENCES['profile'](self, identifier, value)
 
     def _profile_reference(self, identifier, value):
-        ref = self.json(value, "profile")
-        profile = {"id": identifier, "sha256": ref["sha256"]}
-        self.db.execute("INSERT OR IGNORE INTO profiles VALUES (?,?,?)",
-                        (identifier, ref["sha256"], wire(ref).decode()))
-        return profile, ref
+        return self.profile_bytes(identifier, wire(value))
 
     def profile_bytes(self, identifier, canonical):
         ref = self.put(canonical, "profile")
@@ -912,20 +835,9 @@ class AgentStore:
             return StoreArtifactProfileFrame(installed_store_artifact_profile(selected), 8,
                                               self, (ref, expected)).finish()
         with _store_resource_scope(self):
-            if uses_native_store(self) or _store_artifact_selection_os.environ.get('HEPTA_HIA_WORKER_REPORT_MANIFEST'):
-                return self._check_profile_owned(ref, expected)
             return _STORE_ARTIFACT_PROFILE_REFERENCES['check_profile'](self, ref, expected)
 
     def _check_profile_reference(self, ref, expected):
-        if ref != expected:
-            reject("E_HIA_PROFILE_STALE", "profile is unavailable or differs from the installed implementation")
-        row = self.db.execute("SELECT artifact FROM profiles WHERE id=? AND sha256=?",
-                              (ref["id"], ref["sha256"])).fetchone()
-        if row is None:
-            reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
-        return self.get_json(decode_data(row["artifact"]), kind="profile")[0]
-
-    def _check_profile_owned(self, ref, expected):
         from .hia_worker_report_native import SELECTOR, installed_worker_report
 
         selected = os.environ.get(SELECTOR)
@@ -937,11 +849,6 @@ class AgentStore:
         if row is None:
             reject("E_HIA_PROFILE_AUTHORITY", "profile does not resolve to a retained server record")
         return self.get_json(decode_data(row["artifact"]), kind="profile")[0]
-
-
-def _store_uses_native_artifact_identity(store):
-    return (uses_native_store(store)
-            or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in _store_artifact_selection_os.environ)
 
 
 def uses_native_store(store):
