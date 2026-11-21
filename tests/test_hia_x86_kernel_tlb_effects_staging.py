@@ -106,6 +106,7 @@ class SingleCpuKernelTlbStaging(unittest.TestCase):
         # Even a forged fresh old value must not relabel the slot.
         same_va_other_slot[-3]["expected_old"] = 0x21
         same_va_other_slot[-3]["observed_old"] = 0x21
+        same_va_other_slot[-3]["candidate"] = 0x11
         with self.assertRaisesRegex(KernelEffectRejected, "alias"):
             admit(same_va_other_slot)
         # Chaining on the *same* slot and virtual page is still allowed.
