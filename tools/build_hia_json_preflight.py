@@ -82,6 +82,7 @@ CANDIDATES = {
     'retirement-state': ('retirement_state', 'retirement-state'),
     'worker-prepare': ('worker_prepare', 'worker-prepare'),
     'worker-request': ('worker_request', 'worker-request'),
+    'worker-read-capsule': ('worker_read_capsule', 'worker-read-capsule'),
     'worker-request-filter': ('worker_request_filter_packer', 'worker-request-filter'),
     'core-admission': ('core_admission', 'core-admission'),
     'composite-types': ('composite_types', 'composite-types'),
