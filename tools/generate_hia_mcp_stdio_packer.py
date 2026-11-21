@@ -30,9 +30,13 @@ READ_REACTOR_MODE = 23
 STORE_READY_MODE = 24
 JOURNAL_READ_WORKFLOW_MODE = 25
 WORKER_ARGUMENTS_MODE = 26
+DESCRIBE_REQUEST_MODE = 27
+DISCOVERY_MODE = 28
+DESCRIBE_ANSWER_MODE = 29
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
-              READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE)
+              READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
+              DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -48,7 +52,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE,
          'journal-cost': JOURNAL_COST_MODE, 'read-effect': READ_REACTOR_MODE,
          'store-ready': STORE_READY_MODE, 'journal-read-workflow': JOURNAL_READ_WORKFLOW_MODE,
-         'worker-arguments': WORKER_ARGUMENTS_MODE}
+         'worker-arguments': WORKER_ARGUMENTS_MODE, 'describe-request': DESCRIBE_REQUEST_MODE,
+         'discovery': DISCOVERY_MODE, 'describe-answer': DESCRIBE_ANSWER_MODE}
 
 
 def elf_prefix(code):
@@ -80,13 +85,17 @@ def template(mode):
     worker_response = mode == WORKER_RESPONSE_MODE
     worker_journal = mode == WORKER_JOURNAL_MODE
     worker_arguments = mode == WORKER_ARGUMENTS_MODE
+    describe_request = mode == DESCRIBE_REQUEST_MODE
+    discovery = mode == DISCOVERY_MODE
+    describe_answer = mode == DESCRIBE_ANSWER_MODE
     journal_cost = mode == JOURNAL_COST_MODE
     store_ready = mode == STORE_READY_MODE
     journal_read = mode == JOURNAL_READ_WORKFLOW_MODE
-    worker = worker_data or worker_response or worker_journal or worker_arguments
+    worker = worker_data or worker_response or worker_journal or worker_arguments or describe_request
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
     direct = page or read_request or store_ready or journal_read
-    descriptor = None if direct or schema or worker else (0 if journal_cost else DESCRIPTORS[mode])
+    descriptor = None if direct or schema or worker or discovery or describe_answer else (
+        0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
     workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
@@ -107,6 +116,10 @@ def template(mode):
         scratch, workspace, minimum, maximum = 16, 8, 80, 80
     if journal_read:
         scratch, workspace, minimum, maximum = INPUT_MAX + 576, 24, 40, 2 * INPUT_MAX + 1112
+    if discovery:
+        scratch, workspace, minimum, maximum = 65536 + 32, 72 << 10, 8, 1 << 20
+    if describe_answer:
+        scratch, workspace, minimum, maximum = 65536, 8, 16, 1 << 20
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -172,7 +185,8 @@ def template(mode):
         # interpreting them. Only the HIA application admits the data.
         emit('49 8d be')
         word(prefix_bytes + scratch)
-        policy = {WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6, WORKER_JOURNAL_MODE: 7, WORKER_ARGUMENTS_MODE: 8}
+        policy = {WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6, WORKER_JOURNAL_MODE: 7,
+                  WORKER_ARGUMENTS_MODE: 8, DESCRIBE_REQUEST_MODE: 9}
         emit(f'48 c7 07 {policy[mode]:02x} 00 00 00 48 83 c7 08')
         emit('4c 89 e6 b9')
         word(worker_header // 8)

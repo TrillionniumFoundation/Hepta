@@ -24,6 +24,7 @@ DATA_VALIDATION_MAGIC = int.from_bytes(b'HIAWDV01', 'little')
 RESPONSE_MAGIC = int.from_bytes(b'HIAWRC01', 'little')
 JOURNAL_PROJECTION_MAGIC = int.from_bytes(b'HIAWJP01', 'little')
 ARGUMENTS_PROJECTION_MAGIC = int.from_bytes(b'HIAWAP01', 'little')
+DESCRIBE_PROJECTION_MAGIC = int.from_bytes(b'HIAWDP01', 'little')
 SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hepta'
 
 ENTRY = r'''
@@ -44,7 +45,7 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 64 + bound * 56 + length(s) + 16384:
         return 4294967293
     digits = get(w, 8)
-    if mode > 8 or (mode >= 5 and valid_digits(digits) == 0):
+    if mode > 9 or (mode >= 5 and valid_digits(digits) == 0):
         return 4294967293
     private = length(w) - 16384
     if mode == 5 and get(w, 16) != DATA_VALIDATION_MAGIC:
@@ -54,6 +55,8 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if mode == 7 and get(w, 16) != JOURNAL_PROJECTION_MAGIC:
         return 4294967293
     if mode == 8 and get(w, 16) != ARGUMENTS_PROJECTION_MAGIC:
+        return 4294967293
+    if mode == 9 and get(w, 16) != DESCRIBE_PROJECTION_MAGIC:
         return 4294967293
     put(w, private + 512, 0)
     put(w, private, digits)
@@ -85,6 +88,8 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return render_response(s, o, w, private + 1024)
     if mode == 7 or mode == 8:
         return admitted_call_projection(s, o, w, private, mode)
+    if mode == 9:
+        return describe_projection(o, w, private)
     status = finish_request(s, o, w, mode)
     restore_order(w)
     put(w, 56, 0)
@@ -464,6 +469,9 @@ def key_program():
             ('contract_version', 'request_id', 'status', 'result', 'error'), 1)),
         'terminal_contract': ((1, VERSION),),
         'terminal_outcome': ((30, 'completed'), (46, 'rejected')),
+        'describe_tool': ((1, 'hia_describe'),),
+        'describe_field': tuple(enumerate((
+            'section', 'backend_profile', 'language_schema', 'cursor', 'max_bytes'), 1)),
     }
     functions = []
     for function, entries in tables.items():
@@ -718,6 +726,80 @@ def admitted_call_projection(s:readbuf, o:mutbuf, w:mutbuf, private:u64, mode:u6
 '''
 
 
+def describe_program():
+    backend = 'hia-backend-v1'
+    return f'''
+# Project only the schema-admitted discovery arguments. The pinned discovery
+# evaluator still owns cursor/profile/language refusals and resource routing.
+def describe_projection(o:mutbuf, w:mutbuf, private:u64) -> u64:
+    status = worker_fields(w, 5, 110)
+    if status != 0:
+        return status
+    tool = 64 + get(w, private + 272) * 56
+    if get(w, tool) != 4 or describe_tool(w, get(w, tool + 24), get(w, tool + 32)) != 1:
+        return 4294967275
+    arguments = 64 + get(w, private + 280) * 56
+    count = get(w, arguments + 32)
+    if get(w, arguments) != 6 or count < 1 or count > 5:
+        return 4294967279
+    node = get(w, arguments + 24)
+    mask = 0
+    index = 0
+    while index < count:
+        record = 64 + node * 56
+        field = describe_field(w, get(w, record + 40), get(w, record + 48))
+        if field == 0:
+            return 4294967279
+        mask = mask | (1 << field)
+        kind = get(w, record)
+        if field == 5:
+            if kind != 3:
+                return 4294967279
+        else:
+            extent = get(w, record + 32)
+            limit = choose(field == 1, 11, choose(field == 2, 768, choose(field == 3, 512, 2048)))
+            if kind != 4 or extent == 0 or extent > limit:
+                return 4294967279
+            put(w, private + 768 + field * 16, get(w, record + 24))
+            put(w, private + 776 + field * 16, extent)
+        node = get(w, record + 16)
+        index = index + 1
+    if mask & 2 == 0:
+        return 4294967279
+    section = get(w, private + 792)
+    requested = 0
+    language = 0
+    if mask & 4 != 0:
+        requested = get(w, private + 808)
+    if mask & 8 != 0:
+        language = get(w, private + 824)
+    total = 48 + section + requested + {len(backend)} + language
+    if total > length(o):
+        return 4294967294
+    put(o, 0, {int.from_bytes(b'HIADIS01', 'little')})
+    put(o, 8, ((mask & 16) >> 4) | ((mask & 12) >> 1))
+    put(o, 16, section)
+    put(o, 24, requested)
+    put(o, 32, {len(backend)})
+    put(o, 40, language)
+    put(w, 56, 48)
+    describe_bytes(o, w, get(w, private + 784), section)
+    if requested != 0:
+        describe_bytes(o, w, get(w, private + 800), requested)
+    text(o, w, '{backend}')
+    if language != 0:
+        describe_bytes(o, w, get(w, private + 816), language)
+    return get(w, 56)
+
+def describe_bytes(o:mutbuf, w:mutbuf, start:u64, extent:u64) -> u64:
+    index = 0
+    while index < extent:
+        append_byte(o, w, byte(w, start + index))
+        index = index + 1
+    return 0
+'''
+
+
 def worker_serializer_program():
     return replace_once(
         canonical_program(),
@@ -733,10 +815,11 @@ def serialize_root(s:readbuf, o:mutbuf, w:mutbuf, node:u64) -> u64:""",
 def source_program():
     entry = (ENTRY.replace('DATA_VALIDATION_MAGIC', str(DATA_VALIDATION_MAGIC))
                   .replace('JOURNAL_PROJECTION_MAGIC', str(JOURNAL_PROJECTION_MAGIC))
-                  .replace('ARGUMENTS_PROJECTION_MAGIC', str(ARGUMENTS_PROJECTION_MAGIC)))
+                  .replace('ARGUMENTS_PROJECTION_MAGIC', str(ARGUMENTS_PROJECTION_MAGIC))
+                  .replace('DESCRIBE_PROJECTION_MAGIC', str(DESCRIBE_PROJECTION_MAGIC)))
     return '\n'.join((entry, worker_serializer_program(), key_program(), data_source(),
                        decimal_program(), format_program(), worker_hash_program(), terminal_frame_program(),
-                       response_program(), JOURNAL_PROJECTION))
+                       response_program(), JOURNAL_PROJECTION, describe_program()))
 
 
 class WorkerRequestBuilder(Builder):
