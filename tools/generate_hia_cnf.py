@@ -1769,9 +1769,6 @@ def p_artifact_graph(s:readbuf, o:mutbuf, w:mutbuf, base:u64, count:u64, inputs:
         write64(w, 40, p_node(o, w, 2, 1, 0, 0, 0))
     while index < count:
         row = base + 40 * index
-        word_width = read64(s, row + 8)
-        if machine and word_width != 64:
-            return 0
         # All source rows were validated with their own ABI and node base.
         node = p_clone_bound_word(s, o, w, row, index, True)
         if node >= CIRCUIT_NODES:

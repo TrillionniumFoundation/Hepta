@@ -71,7 +71,7 @@ def checker_identity():
     return digest.hexdigest()
 
 
-def _native_circuit_decision(cnf, circuit, deadline):
+def _native_circuit_decision(cnf, circuit, deadline, *, restart_search=False):
     if circuit is None:
         return None
     remaining = (deadline - time.monotonic_ns()) // 1_000_000
@@ -89,7 +89,7 @@ def _native_circuit_decision(cnf, circuit, deadline):
     # constraints in wide addition/subtraction. It uses the same hard budget.
     wide_carries = any(operation in (9, 10) and width > 8 for operation, width, *_ in nodes)
     result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps,
-                               learning=nonlinear, restarts=wide_carries)
+                               learning=nonlinear, restarts=restart_search or wide_carries)
     if result is None or result[0] not in (SAT, UNSAT):
         return None
     verdict, model, steps, variables, clauses, frame = result

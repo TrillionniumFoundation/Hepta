@@ -42,6 +42,7 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_STACK=192, MV_STACK_BASE=20000, MV_STACK_TOP=20000 + MACHINE_VALUES_STACK_BYTES,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
+              MV_FLAGS=160, MV_LEFT=168, MV_RIGHT=176,
               MV_PRODUCT=WRAPPING_PRODUCT, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
               MV_SHIFT_RIGHT=WORD_VARIABLE_SHR, MV_SHIFT_ARITHMETIC=WORD_ARITHMETIC_SHR)
 FIELDS.update(QUERY_WORKSPACE=QUERY_FORMAT_WORKSPACE, QUERY_REQUEST=SPARSE_REQUEST,
@@ -1274,12 +1275,15 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     return 0
 
 def mv_node(o:mutbuf, w:mutbuf, op:u64, left:u64, right:u64, immediate:u64) -> u64:
+    return mv_word(o, w, op, 64, left, right, immediate)
+
+def mv_word(o:mutbuf, w:mutbuf, op:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
     index = get(w, MV_NODES)
     if index == MV_COUNT:
         return 0
     row = 40 + index * 40
     put(o, row, op)
-    put(o, row + 8, 64)
+    put(o, row + 8, width)
     put(o, row + 16, left)
     put(o, row + 24, right)
     put(o, row + 32, immediate)
@@ -1316,9 +1320,17 @@ def mv_step(s:readbuf, o:mutbuf, w:mutbuf, row:u64, sp:u64) -> u64:
         return 1
     if op == OP_PUSH or op == OP_POP or op == OP_LEAVE or op == OP_CALL or op == OP_RET:
         return mv_control(w, op, a, sp)
-    if op == OP_NOP or op == OP_CMP or op == OP_TEST:
-        # No instruction in this subset reads arithmetic flags.
+    if op == OP_NOP:
         return 1
+    if op == OP_CMP or op == OP_TEST:
+        if a >= 16 or b >= 16:
+            return 0
+        mv_remember_flags(w, op, get(w, a * 8), get(w, b * 8))
+        return 1
+    if op == OP_SETCC:
+        return mv_setcc(o, w, a, b)
+    if op == OP_CMOVNE:
+        return mv_cmovne(o, w, a, b)
     if a >= 16:
         return 0
     if op == OP_IMM:
@@ -1405,7 +1417,12 @@ def mv_immediate(o:mutbuf, w:mutbuf, group:u64, register:u64, immediate:u64) -> 
     if register >= 16:
         return 0
     if group == 7:
+        value = mv_node(o, w, 2, 0, 0, immediate)
+        if value == 0:
+            return 0
+        mv_remember_flags(w, OP_CMP, get(w, register * 8), value)
         return 1
+    put(w, MV_FLAGS, 0)
     op = choose(group == 0, OP_ADD, choose(group == 1, OP_OR, choose(group == 4, OP_AND,
                 choose(group == 5, OP_SUB, choose(group == 6, OP_XOR, 0)))))
     left = get(w, register * 8)
@@ -1421,6 +1438,7 @@ def mv_immediate(o:mutbuf, w:mutbuf, group:u64, register:u64, immediate:u64) -> 
     return mv_arithmetic(o, w, op, register, right)
 
 def mv_arithmetic(o:mutbuf, w:mutbuf, op:u64, register:u64, right:u64) -> u64:
+    put(w, MV_FLAGS, 0)
     left = get(w, register * 8)
     nodes = get(w, MV_NODES)
     if left == 0 or left > nodes or right == 0 or right > nodes:
@@ -1442,11 +1460,93 @@ def mv_unary(o:mutbuf, w:mutbuf, op:u64, register:u64, count:u64) -> u64:
     if op == OP_NOT:
         value = mv_node(o, w, 6, left - 1, 0, 0)
     else:
+        put(w, MV_FLAGS, 0)
         right = mv_node(o, w, 2, 0, 0, count & 63)
         if right == 0:
             return 0
         word = choose(op == OP_SHL, MV_SHIFT_LEFT, choose(op == OP_SHR, MV_SHIFT_RIGHT, MV_SHIFT_ARITHMETIC))
         value = mv_node(o, w, word, left - 1, right - 1, 0)
+    if value == 0:
+        return 0
+    put(w, register * 8, value)
+    return 1
+
+def mv_remember_flags(w:mutbuf, operation:u64, left:u64, right:u64) -> u64:
+    nodes = get(w, MV_NODES)
+    if left == 0 or right == 0 or left > nodes or right > nodes:
+        operation = 0
+    put(w, MV_FLAGS, operation)
+    put(w, MV_LEFT, left)
+    put(w, MV_RIGHT, right)
+    return 0
+
+def mv_condition(o:mutbuf, w:mutbuf, condition:u64) -> u64:
+    operation = get(w, MV_FLAGS)
+    if operation == 0:
+        return 0
+    left = get(w, MV_LEFT) - 1
+    right = get(w, MV_RIGHT) - 1
+    if operation == OP_TEST:
+        if condition != 4 and condition != 5:
+            return 0
+        if left != right:
+            both = mv_node(o, w, 3, left, right, 0)
+            if both == 0:
+                return 0
+            left = both - 1
+        zero = mv_node(o, w, 2, 0, 0, 0)
+        if zero == 0:
+            return 0
+        return mv_word(o, w, choose(condition == 4, 7, 8), 1, left, zero - 1, 0)
+    predicate = choose(condition == 2, 12, choose(condition == 3, 15,
+                choose(condition == 4, 7, choose(condition == 5, 8,
+                choose(condition == 6, 13, choose(condition == 7, 14,
+                choose(condition == 12, 16, choose(condition == 13, 19,
+                choose(condition == 14, 17, choose(condition == 15, 18, 0))))))))))
+    if predicate == 0:
+        return 0
+    return mv_word(o, w, predicate, 1, left, right, 0)
+
+def mv_setcc(o:mutbuf, w:mutbuf, condition:u64, register:u64) -> u64:
+    if register >= 16 or register == 4:
+        return 0
+    previous = get(w, register * 8)
+    if previous == 0 or previous > get(w, MV_NODES):
+        return 0
+    bit = mv_condition(o, w, condition)
+    if bit == 0:
+        return 0
+    # SETcc writes one byte and preserves the upper 56 bits and flags.
+    start = 40 + 40 * (previous - 1)
+    upper_zero = get(o, start) == 2 and get(o, start + 32) < 256
+    value = mv_node(o, w, 30, bit - 1, 0, 0)
+    if value == 0:
+        return 0
+    if upper_zero == False:
+        mask = mv_node(o, w, 2, 0, 0, 18446744073709551360)
+        if mask == 0:
+            return 0
+        upper = mv_node(o, w, 3, previous - 1, mask - 1, 0)
+        if upper == 0:
+            return 0
+        value = mv_node(o, w, 4, upper - 1, value - 1, 0)
+        if value == 0:
+            return 0
+    put(w, register * 8, value)
+    return 1
+
+def mv_cmovne(o:mutbuf, w:mutbuf, register:u64, source:u64) -> u64:
+    if register >= 16 or source >= 16 or register == 4:
+        return 0
+    old = get(w, register * 8)
+    new = get(w, source * 8)
+    nodes = get(w, MV_NODES)
+    if old == 0 or new == 0 or old > nodes or new > nodes:
+        return 0
+    condition = mv_condition(o, w, 5)
+    if condition == 0:
+        return 0
+    value = mv_node(o, w, 11, condition - 1, new - 1, old - 1)
     if value == 0:
         return 0
     put(w, register * 8, value)

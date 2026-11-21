@@ -24,7 +24,7 @@ from hepta.hia_safe_core_x64 import decode, SafeCoreMachineRejected
 from hepta.hia_machine_x64 import Code
 from hepta.hia_machine_elf import write_elf_object
 from tools.check_hia_safe_core import check
-from tests.test_hia_program import arithmetic, b, c, f, ret
+from tests.test_hia_program import arithmetic, b, c, f, i, m, ret
 
 ROOT = Path(__file__).resolve().parents[1]
 AVAILABLE = (platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"}
@@ -152,6 +152,52 @@ class SafeCoreArtifactTests(unittest.TestCase):
         at = offsets[0]
         self.assertEqual(self.image.text_bytes[at:at + 3], b"\x48\x01\xc8")
         return self.mutate_pair(self.image.object_bytes, self.data, at, b"\x48\x29\xc8")
+
+    def test_native_word_model_proves_signed_unsigned_comparisons_and_conditional_moves(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+        from tools.qualify_hia_machine_registers import explicit_plan
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the admitted flag semantics reached the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        directory = self.newdir()
+        cases = (("u32", "lt", 1), ("i32", "ge", 6), ("u64", "eq", 1))
+        for typ, predicate, version in cases:
+            for select in (False, True):
+                with self.subTest(typ=typ, predicate=predicate, select=select):
+                    params = [("left", typ), ("right", typ)]
+                    compare = i("compare." + predicate, ("left", "right"), (("choice", "bool"),))
+                    ops, returns, result = [compare], ["bool"], "choice"
+                    if select:
+                        ops.append(i("select", ("choice", "left", "right"), (("selected", typ),)))
+                        returns, result = [typ], "selected"
+                    core = verify_program(m(f("compare_words", params, returns, [],
+                                              [b("entry", params, ops, ret(result))])))
+                    plan = explicit_plan(core, select="cmov_scalar") if select else None
+                    image = emit_program_machine(core, machine_plan=plan)
+                    final = directory / (f"{typ}-{int(select)}.so")
+                    compile_program_machine(image, program=core, output=final, linker="ld", machine_plan=plan)
+                    text = decode(image.text_bytes, allow_signed=version == 6)
+                    flag_op = next((at, op) for at, op in text.items() if op.op == "setcc")
+                    self.assertEqual(any(op.op == "cmovne" for op in text.values()), select)
+                    with patch("importlib.import_module", side_effect=no_host_solver):
+                        report = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes(),
+                                                             profile_version=version)
+                        self.assertTrue(report["complete"])
+                        self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+                        at, instruction = flag_op
+                        original = image.text_bytes[at:at + instruction.size]
+                        changed = original[:2] + bytes([original[2] ^ 1]) + original[3:]
+                        obj, supplied = self.mutate_pair(image.object_bytes, final.read_bytes(), at, changed)
+                        with self.assertRaises(SafeCoreRejected) as caught:
+                            validate_safe_core_artifact(core, obj, supplied, profile_version=version)
+                        self.assertEqual(caught.exception.validation["status"], "refuted")
 
     def test_selected_scalar_elf_proof_checks_actual_bytes_without_host_solver(self):
         import z3

@@ -5921,7 +5921,7 @@ block b2(v17:readbuf,v18:mutbuf,v19:mutbuf,v20:u64,v21:u64,v22:u64,v23:bool,v24:
   v41:bool = compare.ne(v39,v40)
   branch v41 b4(v17,v18,v19) b5(v17,v18,v19,v20,v21,v22,v23,v24,v38)
 block b3(v25:readbuf,v26:mutbuf,v27:mutbuf,v28:u64,v29:u64,v31:bool,v32:u64)
-  branch v31 b14(v25,v26,v27,v28,v29,v31,v32) b17(v25,v26,v27,v28,v29,v31,v32)
+  branch v31 b14(v25,v26,v27,v28,v29,v32) b17(v25,v26,v27,v28,v29,v32)
 block b4(v42:readbuf,v43:mutbuf,v44:mutbuf)
   v62:u64 = const() {"value":0}
   ret(v62)
@@ -5957,7 +5957,7 @@ block b13(v151:readbuf,v152:mutbuf,v153:mutbuf,v154:u64,v155:u64,v156:u64,v157:b
   v167:u64 = const() {"value":1}
   v168:u64 = int.add.wrap(v158,v167)
   jump b1(v151,v152,v153,v154,v155,v156,v157,v168)
-block b14(v169:readbuf,v170:mutbuf,v171:mutbuf,v172:u64,v173:u64,v175:bool,v176:u64)
+block b14(v169:readbuf,v170:mutbuf,v171:mutbuf,v172:u64,v173:u64,v176:u64)
   v185:u64 = const() {"value":32}
   v186:u64 = const() {"value":2}
   v187:u64 = const() {"value":1}
@@ -5967,45 +5967,34 @@ block b14(v169:readbuf,v170:mutbuf,v171:mutbuf,v172:u64,v173:u64,v175:bool,v176:
   v191:u64 = const() {"value":40}
   v192:u64 = call(v170,v171,v186,v187,v188,v188,v188) {"function":"f88"}
   v193:u64 = call(v171,v191,v192) {"function":"f5"}
-  jump b17(v169,v170,v171,v172,v173,v175,v176)
-block b17(v202:readbuf,v203:mutbuf,v204:mutbuf,v205:u64,v206:u64,v208:bool,v209:u64)
+  jump b17(v169,v170,v171,v172,v173,v176)
+block b17(v202:readbuf,v203:mutbuf,v204:mutbuf,v205:u64,v206:u64,v209:u64)
   v210:bool = compare.lt(v209,v206)
-  branch v210 b18(v202,v203,v204,v205,v206,v208,v209) b19(v202,v203,v204)
-block b18(v211:readbuf,v212:mutbuf,v213:mutbuf,v214:u64,v215:u64,v217:bool,v218:u64)
+  branch v210 b18(v202,v203,v204,v205,v206,v209) b19(v202,v203,v204)
+block b18(v211:readbuf,v212:mutbuf,v213:mutbuf,v214:u64,v215:u64,v218:u64)
   v227:u64 = const() {"value":40}
   v228:u64 = int.mul.wrap(v227,v218)
   v229:u64 = int.add.wrap(v214,v228)
-  v230:u64 = const() {"value":8}
-  v231:u64 = int.add.wrap(v229,v230)
-  v232:u64 = call(v211,v231) {"function":"f3"}
-  v233:u64 = const() {"value":64}
-  v234:bool = compare.ne(v232,v233)
-  v235:bool = bool.and(v217,v234)
-  branch v235 b20(v211,v212,v213) b21(v211,v212,v213,v214,v215,v217,v218,v229)
+  v230:bool = const() {"value":true}
+  v231:u64 = call(v211,v212,v213,v229,v218,v230) {"function":"f103"}
+  v232:u64 = const() {"value":256}
+  v233:bool = compare.ge(v231,v232)
+  branch v233 b20(v211,v212,v213) b21(v211,v212,v213,v214,v215,v218,v231)
 block b19(v219:readbuf,v220:mutbuf,v221:mutbuf)
-  v291:u64 = const() {"value":1}
-  ret(v291)
-block b20(v236:readbuf,v237:mutbuf,v238:mutbuf)
-  v256:u64 = const() {"value":0}
-  ret(v256)
-block b21(v246:readbuf,v247:mutbuf,v248:mutbuf,v249:u64,v250:u64,v252:bool,v253:u64,v254:u64)
-  v257:bool = const() {"value":true}
-  v258:u64 = call(v246,v247,v248,v254,v253,v257) {"function":"f103"}
-  v259:u64 = const() {"value":256}
-  v260:bool = compare.ge(v258,v259)
-  branch v260 b22(v246,v247,v248) b23(v246,v247,v248,v249,v250,v252,v253,v258)
-block b22(v261:readbuf,v262:mutbuf,v263:mutbuf)
-  v283:u64 = const() {"value":0}
-  ret(v283)
-block b23(v272:readbuf,v273:mutbuf,v274:mutbuf,v275:u64,v276:u64,v278:bool,v279:u64,v282:u64)
-  v284:u64 = const() {"value":270336}
-  v285:u64 = const() {"value":8}
-  v286:u64 = int.mul.wrap(v285,v279)
-  v287:u64 = int.add.wrap(v284,v286)
-  v288:u64 = call(v274,v287,v282) {"function":"f5"}
-  v289:u64 = const() {"value":1}
-  v290:u64 = int.add.wrap(v279,v289)
-  jump b17(v272,v273,v274,v275,v276,v278,v290)
+  v262:u64 = const() {"value":1}
+  ret(v262)
+block b20(v234:readbuf,v235:mutbuf,v236:mutbuf)
+  v254:u64 = const() {"value":0}
+  ret(v254)
+block b21(v244:readbuf,v245:mutbuf,v246:mutbuf,v247:u64,v248:u64,v251:u64,v253:u64)
+  v255:u64 = const() {"value":270336}
+  v256:u64 = const() {"value":8}
+  v257:u64 = int.mul.wrap(v256,v251)
+  v258:u64 = int.add.wrap(v255,v257)
+  v259:u64 = call(v246,v258,v253) {"function":"f5"}
+  v260:u64 = const() {"value":1}
+  v261:u64 = int.add.wrap(v251,v260)
+  jump b17(v244,v245,v246,v247,v248,v261)
 end
 fn f80(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64,v5:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64,v5:u64)
