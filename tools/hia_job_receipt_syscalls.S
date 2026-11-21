@@ -8,12 +8,12 @@
 _start:
  xor ebp,ebp
  and rsp,-16
- sub rsp,1056
+ sub rsp,5152
  mov rbp,rsp
  /* Put the descriptor observation and HIA state after the stat buffer. */
  lea rdi,[rbp+144]
  xor eax,eax
- mov ecx,114
+ mov ecx,626
  rep stosq
  mov edi,1
  mov esi,9
@@ -62,7 +62,7 @@ next:
  mov rdi,r12
  mov rsi,r13
  lea rdx,[rbp+192]
- mov ecx,864
+ mov ecx,4960
  lea r8,[rbp+144]
  mov r9d,48
  .byte 0xe8
@@ -88,6 +88,12 @@ policy_call_hole:
  je write_cancel_record
  cmp eax,10
  je signal_frozen_supervisor
+ cmp eax,11
+ je open_group_status
+ cmp eax,12
+ je read_group_status
+ cmp eax,13
+ je signal_original_group
  jmp refusal
 
 stage:
@@ -177,6 +183,55 @@ signal_frozen_supervisor:
  xor edx,edx
  xor r10d,r10d
  mov eax,424                /* pidfd_send_signal */
+ syscall
+ jmp observed
+
+open_group_status:
+ mov edi,-100
+ lea rsi,[rbp+224]
+ mov edx,0xa0000             /* O_CLOEXEC | O_NOFOLLOW */
+ xor r10d,r10d
+ mov eax,257
+ syscall
+ test rax,rax
+ js observed
+ mov r14,rax
+ mov rdi,r14
+ mov rsi,rbp
+ mov eax,138                 /* fstatfs on the pinned proc descriptor */
+ syscall
+ test rax,rax
+ js close_group_status
+ cmp qword ptr [rbp],0x9fa0  /* PROC_SUPER_MAGIC */
+ je observed
+ mov rax,-74
+ jmp close_group_status
+
+read_group_status:
+ mov rdi,r14
+ lea rsi,[rbp+1056]
+ mov edx,4096
+ xor eax,eax
+ syscall
+ cmp rax,-4
+ je read_group_status
+close_group_status:
+ mov r15,rax
+ mov rdi,r14
+ mov eax,3
+ syscall
+ test rax,rax
+ js observed
+ mov rax,r15
+ jmp observed
+
+signal_original_group:
+ /* HIA accepted the live original child and chose TERM or KILL.
+  * The calling supervisor still holds its unreaped group leader. */
+ mov rdi,[rbp+168]
+ neg edi
+ mov esi,[rbp+176]
+ mov eax,62
  syscall
 
 observed:

@@ -6,6 +6,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import signal
 import stat
 import struct
 import subprocess
@@ -47,6 +48,41 @@ class JobReceiptExecutableTests(unittest.TestCase):
     def check_receipt(self, result, phase, status):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(struct.unpack('<8sQq', result.stderr), (b'HIAJRW01', phase, status))
+
+    def group_signal(self, leader, action, *, parent=None):
+        caller = os.getpid() if parent is None else parent
+        return self.invoke(struct.pack('<8s4Q', b'HIASGQ01', caller, leader, action, 0))
+
+    def test_signal_is_issued_only_to_an_original_child_in_its_own_group(self):
+        marker = ("import ctypes, time; "
+                  "assert ctypes.CDLL(None).prctl(15, b'odd) name\\n)', 0, 0, 0) == 0; "
+                  "print('ready', flush=True); time.sleep(20)")
+        self.check_receipt(self.group_signal(0, 0), 0, 0)
+        for operation, number in ((1, signal.SIGTERM), (2, signal.SIGKILL)):
+            with self.subTest(number=number), subprocess.Popen(
+                    [sys.executable, '-c', marker], start_new_session=True,
+                    stdout=subprocess.PIPE, text=True) as child:
+                try:
+                    self.assertEqual(child.stdout.readline(), 'ready\n')
+                    invalid = self.group_signal(child.pid, operation, parent=os.getppid())
+                    self.assertEqual((invalid.returncode, invalid.stderr), (65, b''))
+                    arbitrary = self.group_signal(child.pid, 15)
+                    self.assertEqual((arbitrary.returncode, arbitrary.stderr), (65, b''))
+                    self.assertIsNone(child.poll())
+                    self.check_receipt(self.group_signal(child.pid, operation), 3, 0)
+                    self.assertEqual(child.wait(timeout=5), -number)
+                finally:
+                    if child.poll() is None:
+                        child.kill()
+
+        with subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(20)']) as child:
+            try:
+                self.assertNotEqual(os.getpgid(child.pid), child.pid)
+                self.check_receipt(self.group_signal(child.pid, 1), 2, -errno.EBADMSG)
+                self.assertIsNone(child.poll())
+            finally:
+                child.terminate()
+        self.assertEqual(list(self.root.iterdir()), [])
 
     def test_both_durable_publications_preserve_bytes_and_mode(self):
         destination = self.root / 'job_1.2@local.json'

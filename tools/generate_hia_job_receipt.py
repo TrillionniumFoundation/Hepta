@@ -21,10 +21,13 @@ REQUEST_MAGIC = int.from_bytes(b'HIAJRQ01', 'little')
 TERMINAL_MAGIC = int.from_bytes(b'HIAJRQ02', 'little')
 OWNER_MAGIC = int.from_bytes(b'HIAJRO01', 'little')
 CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
+GROUP_SIGNAL_MAGIC = int.from_bytes(b'HIASGQ01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
 SOURCE = f'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) == 40 and uint(s, 0, 8) == {GROUP_SIGNAL_MAGIC}:
+        return advance_group_signal(s, o, w)
     if length(s) >= 35 and uint(s, 0, 8) == {OWNER_MAGIC}:
         return advance_owner(s, o, w)
     if length(s) >= 35 and uint(s, 0, 8) == {CANCEL_MAGIC}:
@@ -102,6 +105,84 @@ def advance_cancel(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         # a recyclable PID or send a stronger signal from this operation.
         return 10
     return phase + 1
+
+def advance_group_signal(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    phase = observed(w, 0)
+    result = observed(w, 8)
+    if phase == 0:
+        parent = uint(s, 8, 8)
+        leader = uint(s, 16, 8)
+        action = uint(s, 24, 8)
+        if parent < 2 or parent > 2147483647 or parent != observed(w, 16) or uint(s, 32, 8) != 0:
+            return 0
+        if leader == 0 and action == 0:
+            return acknowledge(o, 0, 0)
+        if leader <= 1 or leader > 2147483647 or leader == parent or (action != 1 and action != 2):
+            return 0
+        if length(o) < 4960:
+            return 0
+        put(w, 24, leader, 8)
+        number = 9
+        if action == 1:
+            number = 15
+        put(w, 32, number, 8)
+        put(o, 32, {int.from_bytes(b'/proc/', 'little')}, 6)
+        at = append_decimal(o, 38, leader)
+        put(o, at, {int.from_bytes(b'/stat', 'little')}, 5)
+        put(w, 0, 1, 8)
+        return 11
+    if result >> 63 != 0 or phase == 3:
+        return acknowledge(o, phase, result)
+    if phase == 1:
+        put(w, 0, 2, 8)
+        return 12
+    if phase != 2:
+        return 0
+    if result == 0 or result >= 4096 or valid_group_snapshot(o, w, 864 + result) == 0:
+        return acknowledge(o, phase, 18446744073709551542)
+    put(w, 0, 3, 8)
+    return 13
+
+def valid_group_snapshot(o:mutbuf, w:mutbuf, end:u64) -> u64:
+    first = stat_word(o, w, 864, end)
+    if first == 0 or byte(o, first + 1) != 40 or observed(w, 40) != observed(w, 24):
+        return 0
+    # comm may contain spaces, parentheses and newlines. The last right
+    # parenthesis is the actual kernel delimiter before the state byte.
+    marker = last_stat_delimiter(o, first + 2, end)
+    if marker <= first + 2 or marker + 4 >= end or byte(o, marker + 1) != 32 or byte(o, marker + 3) != 32:
+        return 0
+    next = stat_word(o, w, marker + 4, end)
+    if next == 0 or observed(w, 40) != observed(w, 16):
+        return 0
+    group = stat_word(o, w, next + 1, end)
+    if group == 0 or observed(w, 40) != observed(w, 24):
+        return 0
+    return 1
+
+def last_stat_delimiter(o:mutbuf, floor:u64, end:u64) -> u64:
+    marker = end
+    while marker > floor:
+        marker = marker - 1
+        if byte(o, marker) == 41:
+            return marker
+    return 0
+
+def stat_word(o:mutbuf, w:mutbuf, at:u64, end:u64) -> u64:
+    if at >= end:
+        return 0
+    value = 0
+    start = at
+    while at < end:
+        digit = byte(o, at)
+        if digit == 32 and at > start:
+            put(w, 40, value, 8)
+            return at
+        if digit < 48 or digit > 57 or at - start >= 10:
+            return 0
+        value = value * 10 + (digit - 48)
+        at = at + 1
+    return 0
 
 def prepare_cancellation(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     size = length(s)

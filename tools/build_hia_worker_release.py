@@ -225,6 +225,20 @@ def _job_writer_has_cancellation(writer, scratch):
         return True
 
 
+def _job_writer_has_group_authority(writer, scratch):
+    frame = struct.pack('<8s4Q', b'HIASGQ01', os.getpid(), 0, 0, 0)
+    with TemporaryDirectory(prefix='group-signal-writer-', dir=scratch) as directory:
+        result = _run_job_writer(writer, frame, directory)
+        observed = result.returncode, result.stderr
+        if list(Path(directory).iterdir()):
+            raise ValueError('HIA group authority probe created unexpected durable state')
+        if observed == (65, b''):
+            return False
+        if observed != (0, struct.pack('<8sQq', b'HIAJRW01', 0, 0)):
+            raise ValueError('installed HIA job writer has an invalid group authority protocol')
+        return True
+
+
 def _worker_prepare_has_supervisor_outcome(prepare):
     frame = struct.pack('<8s6Q', b'HIAJSQ01', 15, 3, 3, 0, 0, 3)
     expected = struct.pack('<8s2q3Q', b'HIAJSO01', -15, 125, 125, 0, 0)
@@ -349,6 +363,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v12'
     if schema == 'hepta.hia.mcp.controller.v12' and _request_classifier_has_resource_uri(release / 'hia-agent-mcp-request'):
         schema = 'hepta.hia.mcp.controller.v13'
+    if schema == 'hepta.hia.mcp.controller.v13' and _job_writer_has_group_authority(receipt_writer, scratch):
+        schema = 'hepta.hia.mcp.controller.v14'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}
