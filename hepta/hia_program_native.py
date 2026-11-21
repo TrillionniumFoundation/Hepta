@@ -984,7 +984,10 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
                     if verified_shared:
                         verified_linker.link(image.object_bytes, artifact)
                         used_verified_linker = True
-                    elif len(image.exports) == 1 and not image.foreign_buffer_exports:
+                    elif len(image.exports) == 1:
+                        # A loan wrapper may import abort. The verified linker
+                        # can place that import without an anonymous zero-fill
+                        # load tail the independent Safe Core check rejects.
                         used_verified_linker = verified_linker.try_link(image.object_bytes, artifact)
                 except ValueError as error:
                     _reject(str(error))
