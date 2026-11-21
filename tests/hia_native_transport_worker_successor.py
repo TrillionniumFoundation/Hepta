@@ -1080,7 +1080,8 @@ def _admit_terminal_sources_before_ordinary_callers(original_value, *, original_
     prior = _admit_terminal_sources_before_journal(original_value, original_kind=original_kind)
     if frozen is not None:
         prior = _admit_journal_preparation_sources(original_value, original_kind, prior, frozen)
-    return _admit_component_successors(original_value, prior)
+    prior = _admit_component_successors(original_value, prior)
+    return _admit_machine_receipt_caller(original_value, prior)
 
 
 COMPONENT_FIXTURE = 'tests/fixtures/delivery_component_successor.json'
@@ -1310,6 +1311,48 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
         'original_test_methods_budgets_and_order_unchanged': True, 'whole_native': False,
     }
     return result
+
+
+MACHINE_RECEIPT_CALLER = 'tests/test_hia_agent_native_machine_validation.py'
+MACHINE_RECEIPT_FIXTURE = 'tests/fixtures/delivery_machine_receipt_test_successor.json'
+MACHINE_RECEIPT_FIXTURE_PIN = {
+    'bytes': 5035, 'sha256': 'bcee96e24cec5bfe8e8b8a471fa9f9c72d4232396a1c9bd3686facb86a056acb',
+}
+
+
+def restore_machine_receipt_caller(root, raw, expected):
+    from tests.hia_store_delivery_successor import reverse_exact
+
+    if _pin(raw) == expected:
+        return raw
+    authority = (root / MACHINE_RECEIPT_FIXTURE).read_bytes()
+    if _pin(authority) != MACHINE_RECEIPT_FIXTURE_PIN:
+        raise ValueError('machine receipt caller authority differs')
+    record = json.loads(authority)
+    if (set(record) != {'schema', 'path', 'record'}
+            or record['schema'] != 'hepta.hia.delivered-machine-receipt-test-source.v1'
+            or record['path'] != MACHINE_RECEIPT_CALLER):
+        raise ValueError('machine receipt caller successor scope differs')
+    restored = reverse_exact(raw, record['record'], expected)
+    if ((root / MACHINE_RECEIPT_CALLER).read_bytes() != raw
+            or (root / MACHINE_RECEIPT_FIXTURE).read_bytes() != authority):
+        raise ValueError('machine receipt caller bytes changed during admission')
+    return restored
+
+
+def _admit_machine_receipt_caller(original, prior):
+    expected = original['unchanged_files'][MACHINE_RECEIPT_CALLER]
+    raw = (ROOT / MACHINE_RECEIPT_CALLER).read_bytes()
+    if restore_machine_receipt_caller(ROOT, raw, expected) == raw:
+        return prior
+    if MACHINE_RECEIPT_CALLER in prior['source_adjustments']:
+        raise ValueError('machine receipt caller successor overlapped an earlier review')
+    reviewed = {'path': MACHINE_RECEIPT_CALLER, 'original_bytes': expected['bytes'],
+                'original_sha256': expected['sha256'], 'current_bytes': len(raw),
+                'current_sha256': sha256(raw).hexdigest(),
+                'scope': 'retained native solver binding and negative receipt verification',
+                'reversible_patch_fixture_sha256': MACHINE_RECEIPT_FIXTURE_PIN['sha256']}
+    return {**prior, 'source_adjustments': {**prior['source_adjustments'], MACHINE_RECEIPT_CALLER: reviewed}}
 
 
 def admit_terminal_sources(original_value, *, original_kind):
