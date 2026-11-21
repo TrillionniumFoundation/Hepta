@@ -16,6 +16,7 @@ SCHEMA = 'hepta.hia.core-proof-wire-native.v1'
 OBLIGATION_REQUEST = int.from_bytes(b'HIAOBL01', 'little')
 OBLIGATION_SOLVER_REQUEST = int.from_bytes(b'HIAOBP01', 'little')
 OBLIGATION_WITNESS_REQUEST = int.from_bytes(b'HIAOBW01', 'little')
+MACHINE_RELOCATION_REQUEST = int.from_bytes(b'HIAELFX1', 'little')
 
 
 class NativeCoreProofWire(NativeHiaJsonImage):
@@ -41,6 +42,10 @@ class NativeCoreProofWire(NativeHiaJsonImage):
     def witness_frame(self, circuit, decision, mapping):
         request = struct.pack('<4Q', OBLIGATION_WITNESS_REQUEST, len(circuit), len(decision), len(mapping))
         return self._proof_wire_exchange(request + circuit + decision + mapping, CIRCUIT_CAPACITY)
+
+    def machine_relocation_frame(self, text_size, address, entry, arguments, profile, relocations):
+        packet = struct.pack('<6Q', MACHINE_RELOCATION_REQUEST, text_size, address, entry, arguments, profile)
+        return self._proof_wire_exchange(packet + relocations, CIRCUIT_CAPACITY)
 
     def _proof_wire_exchange(self, source, capacity):
         output = ctypes.create_string_buffer(capacity)

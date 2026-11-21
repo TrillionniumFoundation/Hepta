@@ -1073,7 +1073,9 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     caller_byte = None
     if wire is not None:
         core_frame, projector = wire
-        observation = decoder.project_scalar_observation(binding, arguments, **instruction_profile)
+        observation = decoder.project_scalar_observation(
+            binding, arguments, projector=projector, **instruction_profile,
+        )
         if observation is None:
             return None
         native_machine, machine_counts = observation
@@ -1214,7 +1216,8 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     pair = _selected_machine_proof(observe=True)
     decoder, cnf = pair
     identity = _checker_source_identity(pair)
-    binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
+    binding = bind_final_artifact(object_bytes, final_bytes, fn["name"],
+                                  native_wire=decoder is not None and cnf is not None and not foreign_buffer_exports)
     loan_shape = None
     if foreign_buffer_exports:
         loan_shape = _native_borrowed_shape(fn, blocks, foreign_buffer_exports[0][1])

@@ -14,8 +14,13 @@ from hepta.hia_cnf_native import (
     WORD_PRODUCT_EXCEEDS, WORD_TABLE_INPUT_BITS, WORD_TABLE_REQUEST, WORD_TABLE_WORK_LIMIT,
     _CORE_TRAP_TAGS, _GRAPH_OPERATIONS, _word_type,
 )
-from hepta.hia_core_proof_wire_native import OBLIGATION_REQUEST, OBLIGATION_SOLVER_REQUEST, OBLIGATION_WITNESS_REQUEST
+from hepta.hia_core_proof_wire_native import (
+    MACHINE_RELOCATION_REQUEST, OBLIGATION_REQUEST, OBLIGATION_SOLVER_REQUEST, OBLIGATION_WITNESS_REQUEST,
+)
 from hepta.hia_safe_core import LIMITS, WIDTHS_V6, _scalar_caller_contract
+from hepta.hia_safe_core_x64_decode_native import (
+    DECODE_FRAME_OFFSET, MACHINE_VALUES_REQUEST, MAX_TEXT, PROFILE_OFFSET, WORKSPACE,
+)
 from hepta.hia_schema import PRIMITIVE_PROFILES
 from tools.generate_hia_core_inspect_json import document, source_program
 from tools.generate_hia_core_json_frontend import packed
@@ -31,6 +36,8 @@ def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return obligation_solver_wire(s, o)
     if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_WITNESS_REQUEST:
         return obligation_witness_wire(s, o)
+    if length(s) >= 48 and obligation_word(s, 0) == MACHINE_RELOCATION_REQUEST:
+        return machine_relocation_wire(s, o)
     if length(o) < 32768 or length(o) < length(s) or length(w) < 4096:
         return REFUSED
     put(o, 48, 262144)
@@ -899,6 +906,65 @@ def witness_word(s:readbuf, at:u64, model:u64, width:u64) -> u64:
     return result
 '''
 
+RELOCATION_WIRE = f'''
+def machine_relocation_wire(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 104 or obligation_word(s, 48) != 0 or obligation_word(s, 64) != 0:
+        return {REFUSED}
+    count = obligation_word(s, 56)
+    if count < 1 or count > 2 or length(s) != 72 + 32 * count:
+        return {REFUSED}
+    span = obligation_word(s, 8)
+    entry = obligation_word(s, 24)
+    profile = obligation_word(s, 40)
+    arguments = obligation_word(s, 32)
+    if span < 5 or span > {MAX_TEXT} or entry >= span or profile > 15 or arguments > 6:
+        return {REFUSED}
+    extent = {WORKSPACE} + 8 + 24 * count
+    if length(o) < extent or relocation_rows(s, count, span) == 0:
+        return {REFUSED}
+    offset = 0
+    while offset < extent:
+        put(o, offset, 0)
+        offset = offset + 8
+    put(o, {PROFILE_OFFSET}, profile)
+    put(o, {DECODE_FRAME_OFFSET}, {MACHINE_VALUES_REQUEST})
+    put(o, {DECODE_FRAME_OFFSET + 8}, entry)
+    put(o, {DECODE_FRAME_OFFSET + 16}, arguments)
+    put(o, {WORKSPACE}, count)
+    first = 72
+    second = 104
+    if count == 2 and obligation_word(s, 72) > obligation_word(s, 104):
+        first = 104
+        second = 72
+    address = obligation_word(s, 16)
+    write_machine_call(s, o, first, {WORKSPACE + 8}, address)
+    if count == 2:
+        write_machine_call(s, o, second, {WORKSPACE + 32}, address)
+    return extent
+
+def relocation_rows(s:readbuf, count:u64, span:u64) -> u64:
+    a = obligation_word(s, 72)
+    kind = obligation_word(s, 80)
+    if a == 0 or a > span - 4 or kind == 0 or kind > count:
+        return 0
+    if count == 1:
+        return 1
+    b = obligation_word(s, 104)
+    other = obligation_word(s, 112)
+    if b == 0 or b > span - 4 or a == b or other != 3 - kind:
+        return 0
+    helper = obligation_word(s, choose(kind == 2, 88, 120))
+    address = obligation_word(s, 16)
+    return choose(helper >= address and helper - address < span, 1, 0)
+
+def write_machine_call(s:readbuf, o:mutbuf, start:u64, at:u64, address:u64) -> u64:
+    external = obligation_word(s, start + 8) == 1
+    put(o, at, obligation_word(s, start) - 1)
+    put(o, at + 8, choose(external, 1, 0))
+    put(o, at + 16, choose(external, 0, obligation_word(s, start + 16) - address))
+    return 0
+'''
+
 
 def match(name, domain):
     result = [f'def proof_{name}(w:mutbuf, node:u64) -> u64:',
@@ -916,6 +982,7 @@ def program():
                      OBLIGATION_REQUEST=OBLIGATION_REQUEST,
                      OBLIGATION_SOLVER_REQUEST=OBLIGATION_SOLVER_REQUEST,
                      OBLIGATION_WITNESS_REQUEST=OBLIGATION_WITNESS_REQUEST,
+                     MACHINE_RELOCATION_REQUEST=MACHINE_RELOCATION_REQUEST,
                      BLOCKS=LIMITS['blocks'], PATHS=LIMITS['core_paths'], OP_BUDGET=LIMITS['operations'],
                      ABI_WORDS=LIMITS['abi_argument_words'], NODE_BUDGET=CIRCUIT_NODES,
                      WIRE_LIMIT=PROJECTION_INPUT_LIMIT, CHECKED_CAST=PROJECT_CHECKED_CAST)
@@ -929,7 +996,7 @@ def program():
             ('op', _GRAPH_OPERATIONS), ('trap', _CORE_TRAP_TAGS),
             ('term', {'ret': 1, 'trap': 2, 'jump': 3, 'branch': 4}), ('checked', {'checked': 1})):
         entry += '\n' + match(name, domain)
-    entry += OBLIGATIONS + caller_contract_source() + SOLVER_WIRE + WITNESS_WIRE
+    entry += OBLIGATIONS + caller_contract_source() + SOLVER_WIRE + WITNESS_WIRE + RELOCATION_WIRE
     nodes = ast.parse(source_program(entry=entry)).body
     retained = {'proof_wire'}
     while True:

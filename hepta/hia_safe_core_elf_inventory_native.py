@@ -519,11 +519,12 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         self._require_empty_response(data, arguments)
 
     def object_relocations(self, data, relocations, source, linked, plt, helper):
-        return self.object_relocations_owned(
+        calls, records, _ = self.object_relocations_owned(
             data, relocations, source, linked['data'], linked['addr'], plt['addr'] + 16, helper,
         )
+        return calls, records
 
-    def object_relocations_owned(self, data, relocations, source, final_text, address, abort, helper):
+    def object_relocations_owned(self, data, relocations, source, final_text, address, abort, helper, *, wire=False):
         arguments = (2, relocations['offset'], source['offset'], source['size'],
                      address, abort, helper, relocations['link'])
         output, size, count, reserved = self._exchange(data, arguments, final_text)
@@ -539,7 +540,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             calls[offset - 1] = 'abort' if symbol == 1 else target - address
             records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
                                 linked_target=target, displacement=displacement))
-        return calls, records
+        return calls, records, output.raw[:size] if wire else None
 
     def _require_empty_response(self, data, arguments):
         _, size, first, second = self._exchange(data, arguments)

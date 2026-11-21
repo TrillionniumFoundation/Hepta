@@ -413,6 +413,8 @@ with (patch('hepta.hia_cnf_native._graph_packet', side_effect=AssertionError('ho
       patch('hepta.hia_safe_core._scalar_caller_contract', side_effect=AssertionError('host obligations entered')),
       patch('hepta.hia_cnf_native.NativeCnf.bind_artifact_circuits',
             side_effect=AssertionError('host machine and Core binding entered')),
+      patch('hepta.hia_safe_core_x64_decode_native.NativeSafeCoreX64Decode._legacy_decode_workspace',
+            side_effect=AssertionError('host relocation projection entered')),
       patch('hepta.hia_cnf_native.NativeCnf.solve_circuit', side_effect=AssertionError('host circuit added'))):
     report = build_safe_core(document, destination, profile_version=6)['validation']
 assert report['complete'] and report['ok']

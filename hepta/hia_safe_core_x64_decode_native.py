@@ -322,7 +322,8 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         return result
 
     def machine_scalar_frame(self, binding, argument_words, *, allow_variable_shifts=False,
-                             allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
+                             allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False,
+                             projector=None):
         """Decode bound final text directly into the native machine projector's wire."""
         data = binding['text']
         entry = binding['entry']
@@ -330,18 +331,31 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                 or type(entry) is not int or not 0 <= entry < len(data)):
             raise ValueError('invalid scalar machine ABI entry')
         admission = allow_variable_shifts, allow_unsigned_multiply, allow_unsigned_divide, allow_signed
-        output, size, count = self._decode_exchange(data, binding['calls'], admission, (entry, argument_words))
+        raw_relocation = binding.get('_native_relocation_wire')
+        prepared = None
+        if projector is not None and raw_relocation is not None:
+            profile = self._decoder_profile(admission)
+            prepared = projector.machine_relocation_frame(
+                len(data), binding['text_vaddr'], entry, argument_words, profile, raw_relocation,
+            )
+            if prepared is None or len(prepared) not in (WORKSPACE + 32, WORKSPACE + 56):
+                raise RuntimeError('invalid native Safe Core bound relocation workspace')
+        output, size, count = self._decode_exchange(
+            data, binding['calls'], admission, (entry, argument_words), prepared=prepared,
+        )
         return output.raw[:size], count
 
-    def _decode_exchange(self, data, calls, admission, frame=None):
+    @staticmethod
+    def _decoder_profile(admission):
         from .hia_safe_core_x64 import require
 
-        require(type(data) is bytes and 0 < len(data) <= MAX_TEXT, REFUSALS[0][1])
         require(all(type(flag) is bool for flag in admission), 'machine profile admission must be explicit boolean')
-        header_size = HEADER.size + (8 if frame is not None else 0)
-        source = ctypes.create_string_buffer(data, len(data))
-        capacity = header_size + min(len(data), MAX_INSTRUCTIONS) * ROW.size
-        output = ctypes.create_string_buffer(capacity)
+        return sum(flag << bit for bit, flag in enumerate(admission))
+
+    @staticmethod
+    def _legacy_decode_workspace(calls, profile, frame):
+        from .hia_safe_core_x64 import require
+
         if calls is None:
             scratch = ctypes.create_string_buffer(WORKSPACE)
         else:
@@ -354,9 +368,24 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                 encoded_target = 0 if external else target if 0 <= target < 1 << 64 else (1 << 64) - 1
                 CALL_BINDING.pack_into(scratch, WORKSPACE + CALL_COUNT.size + index * CALL_BINDING.size,
                                        encoded_pc, int(external), encoded_target)
-        struct.pack_into('<Q', scratch, PROFILE_OFFSET, sum(flag << bit for bit, flag in enumerate(admission)))
+        struct.pack_into('<Q', scratch, PROFILE_OFFSET, profile)
         if frame is not None:
             struct.pack_into('<3Q', scratch, DECODE_FRAME_OFFSET, MACHINE_VALUES_REQUEST, *frame)
+        return scratch
+
+    def _decode_exchange(self, data, calls, admission, frame=None, *, prepared=None):
+        from .hia_safe_core_x64 import require
+
+        require(type(data) is bytes and 0 < len(data) <= MAX_TEXT, REFUSALS[0][1])
+        profile = self._decoder_profile(admission)
+        header_size = HEADER.size + (8 if frame is not None else 0)
+        source = ctypes.create_string_buffer(data, len(data))
+        capacity = header_size + min(len(data), MAX_INSTRUCTIONS) * ROW.size
+        output = ctypes.create_string_buffer(capacity)
+        if prepared is None:
+            scratch = self._legacy_decode_workspace(calls, profile, frame)
+        else:
+            scratch = ctypes.create_string_buffer(prepared, len(prepared))
         size = self._entry(source, len(data), output, capacity, scratch, len(scratch))
         if not HEADER.size <= size <= capacity:
             raise RuntimeError('invalid native Safe Core decoder response size')

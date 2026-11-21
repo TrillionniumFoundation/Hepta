@@ -384,11 +384,11 @@ def _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
     return calls, records
 
 
-def bind_final_artifact(object_bytes, final_bytes, export):
+def bind_final_artifact(object_bytes, final_bytes, export, *, native_wire=False):
     """Bind untrusted supplied ELF bytes without a producer's text or symbol map."""
     obj = _ELF(object_bytes, 1)
     text = obj.section(".text", 1)["data"]
-    return bind_final_image(object_bytes, text, final_bytes, export)
+    return bind_final_image(object_bytes, text, final_bytes, export, native_wire=native_wire)
 
 def _reference_dynamic_symbols(final, text, export):
     exports = _functions(final, text, ".dynsym")
@@ -455,7 +455,7 @@ def _reference_text_geometry(source, linked, text_bytes):
     require(linked["size"] <= 64 * 1024, "Safe Core text budget exceeded")
 
 
-def bind_final_image(object_bytes, text_bytes, final_bytes, export):
+def bind_final_image(object_bytes, text_bytes, final_bytes, export, *, native_wire=False):
     """Check every relocated byte and return exact machine-entry coordinates.
 
     This consumes bytes, never objdump output or a producer-supplied symbol map.
@@ -475,6 +475,7 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         _reference_text_geometry(source, linked, text_bytes)
     else:
         obj._native_inventory.verify_text_geometry(obj.data, source, linked, text_bytes)
+    relocation_wire = None
     if obj._native_inventory is None:
         srcfunc = _owned_functions(obj, source, 1)
         dstfunc = _owned_functions(final, linked, 3)
@@ -515,8 +516,8 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         # Check all names in table order (including unreferenced entries)
         # before interpreting relocations, as in the retained checker.
         obj.symbols(".symtab")
-        calls, records = obj._native_inventory.object_relocations_owned(
-            obj.data, relsec, source, mapped_text, address, abort, helper,
+        calls, records, relocation_wire = obj._native_inventory.object_relocations_owned(
+            obj.data, relsec, source, mapped_text, address, abort, helper, wire=native_wire,
         )
     from .hia_sha256_stream_native import selected_stream_hasher
 
@@ -525,7 +526,7 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     object_digest, image_digest, text_digest = (
         digest(data).hexdigest() for data in (object_bytes, final_bytes, mapped_text)
     )
-    return {"text": mapped_text, "text_vaddr": address,
+    result = {"text": mapped_text, "text_vaddr": address,
             "entry": entry, "calls": calls,
             "binding": {"object_sha256": object_digest, "final_image_sha256": image_digest,
                         "linked_text_sha256": text_digest,
@@ -535,6 +536,9 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
                         "function_shape": "direct_entry" if direct else "internal_with_wrapper",
                         "entry_symbol": export, "dynamic_binding": "NOW",
                         "external_semantics": "libc abort is nonreturning"}}
+    if relocation_wire is not None:
+        result["_native_relocation_wire"] = relocation_wire
+    return result
 
 # Bind this executing module, including its top-level constants, to retained source.
 from .hia_loaded_source import register_loaded_module as _register_loaded_source
