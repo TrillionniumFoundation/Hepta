@@ -121,7 +121,7 @@ def template():
     branch('e9', 'write')
     label('patch_refusal')
     emit('85 db'); branch('0f 84', 'public_refusal')
-    pointer('49 8d bc 24', OUTPUT_OFFSET)
+    pointer('4d 8d bc 24', OUTPUT_OFFSET)
     emit('48 ba'); code.extend(struct.pack('<Q', REFUSAL_MAGIC))
     emit('49 89 17 89 c0 49 89 47 08 41 be 10 00 00 00')
     branch('e9', 'write')  # transport succeeded; the kernel refused the candidate
