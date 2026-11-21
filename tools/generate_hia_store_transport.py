@@ -18,6 +18,9 @@ WIRE = {
     'UNIQUE_START': b'HIASTUR1',
     'UNIQUE_REQUEST': b'HIASTUP1',
     'COMMIT_INTENT': b'HIASTCP1',
+    'ARTIFACT_JOURNAL_ACK': b'HIAJMO01',
+    'ARTIFACT_PROFILE_HEAD': b'hia-arti',
+    'ARTIFACT_PROFILE_END': b'fact-v1',
     'UNIQUE_CONSUME': b'HIASTUC1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
@@ -124,7 +127,13 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     size = read_word(s, 40)
     if request > 18446744073709551612 or mode > 2 or size != length(s) - 48:
         return 0
-    if plan == 10:
+    if plan == 23:
+        if mode != 0 or valid_reservation_ack(s, size) == False:
+            return 0
+    elif plan == 12:
+        if valid_artifact_profile_lookup(s, size) == False:
+            return 0
+    elif plan == 10:
         if valid_cursor_retain(s, size) == False:
             return 0
     elif plan == 18:
@@ -159,11 +168,37 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     write_word(w, 120, generation)
     write_word(w, 128, size)
     write_word(w, 136, 1)
+    if plan == 23:
+        write_word(w, 152, 1)
+        return begin_unique_commit(o, w)
     if plan != 18 and plan != 22:
         copy_fields(s, w, 48, 192, size)
     if mode == 1:
         return send_unique(o, w, 21, 0, 0, 6)
     return issue_unique_query(o, w)
+
+# The borrowed reservation may commit only after the Journal image has
+# acknowledged its stage-2 state. This command sends no arbitrary Store bytes.
+def valid_reservation_ack(s:readbuf, size:u64) -> bool:
+    if size != 64 or read_word(s, 48) != ARTIFACT_JOURNAL_ACK:
+        return False
+    if read_word(s, 56) != 2 or read_word(s, 64) != 11 or read_word(s, 72) != 0:
+        return False
+    if read_word(s, 80) != 48 or read_word(s, 88) != 0 or read_word(s, 96) != 48:
+        return False
+    return read_word(s, 104) == 512
+
+# Query ordinal 12 projects the one retained profile document reference.
+def valid_artifact_profile_lookup(s:readbuf, size:u64) -> bool:
+    if size != 159 or read_word(s, 48) != QUERY_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != size:
+        return False
+    if valid_cell(s, 80, 3, 80, 15) == False or valid_cell(s, 104, 3, 95, 64) == False:
+        return False
+    if read_word(s, 128) != ARTIFACT_PROFILE_HEAD or (read_word(s, 136) & 72057594037927935) != ARTIFACT_PROFILE_END:
+        return False
+    return valid_hex(s, 143, 64)
 
 # One previously issued page cursor, with its exact artifact digest and offset.
 def valid_cursor_retain(s:readbuf, size:u64) -> bool:
@@ -371,14 +406,14 @@ def valid_cell(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> bool:
     return read_word(s, at) == kind and read_word(s, at + 8) == offset and read_word(s, at + 16) == size
 
 def durable_write(plan:u64) -> bool:
-    return plan == 10 or (plan >= 18 and plan <= 22)
+    return plan == 10 or (plan >= 18 and plan <= 23)
 
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
-    write_word(w, 24, choose(plan == 6, 6, choose(plan == 9, 4, 1)))
-    write_word(w, 32, choose(plan == 6, 15, 63))
-    return write_word(w, 40, choose(plan == 6, 512, choose(plan == 9, 8389120, 1000000032)))
+    write_word(w, 24, choose(plan == 6, 6, choose(plan == 9, 4, choose(plan == 12, 2, 1))))
+    write_word(w, 32, choose(plan == 6, 15, choose(plan == 12, 4, 63)))
+    return write_word(w, 40, choose(plan == 6 or plan == 12, 512, choose(plan == 9, 8389120, 1000000032)))
 
 def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
     plan = read_state(w, 16)
@@ -467,7 +502,10 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         return durable_insert_ack(s, o, w)
     if phase != 15 or read_word(s, 24) != 2 or read_word(s, 32) != 0:
         return 0
-    advanced = choose(read_word(s, 40) == 0, 0, 1)
+    count = read_word(s, 40)
+    if plan == 23 and count != 1:
+        return 0
+    advanced = choose(count == 0, 0, 1)
     prior = read_state(w, 120)
     if advanced != read_state(w, 160) or advanced > 18446744073709551615 - prior:
         return 0
@@ -492,6 +530,9 @@ def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     write_word(w, 152, 1 - skipped)
     if mode == 0:
         return finish_unique(o, w)
+    return begin_unique_commit(o, w)
+
+def begin_unique_commit(o:mutbuf, w:mutbuf) -> u64:
     send_unique(o, w, 2, 0, 0, 12)
     # Publish intent into the private, unsealed sink before sending COMMIT.
     # Losing the final receipt after that point cannot become a clean refusal.
