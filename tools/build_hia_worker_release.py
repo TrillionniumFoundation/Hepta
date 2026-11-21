@@ -128,6 +128,19 @@ def _worker_prepare_has_terminal_witness(prepare):
     return True
 
 
+def _worker_prepare_has_live_owner_binding(prepare):
+    job = b'controller-owner-probe'
+    fields = (job,) + (b'',) * 12
+    frame = struct.pack('<8s17Q', b'HIAJOQ01', 0, 1, 0, 1, *map(len, fields)) + job
+    result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+    observed = result.returncode, result.stdout, result.stderr
+    if observed == (2, b'', b''):
+        return False
+    if observed != (0, struct.pack('<8s3Q', b'HIAJOR01', 0, 0, 2), b''):
+        raise ValueError('installed HIA worker preparation has an invalid live owner binding protocol')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -149,6 +162,8 @@ def _install_controller(output, scratch, release, installer):
             raise ValueError('native terminal receipt requires the pinned witness controller')
         files.append(terminal_receipt)
         schema = 'hepta.hia.mcp.controller.v4'
+        if _worker_prepare_has_live_owner_binding(release / 'hia-worker-prepare'):
+            schema = 'hepta.hia.mcp.controller.v5'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

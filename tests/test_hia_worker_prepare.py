@@ -90,6 +90,37 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
                 self.encode((original, PROFILE, original, token, b''))
                 self.encode((original, PROFILE, original, token, '"雪\\tkey"'.encode()))
 
+    def test_live_owner_binding_admits_only_matching_raw_observations(self):
+        job = b'original-job'
+        nonce = b'0123456789abcdef' * 2
+        invocation = b'abc0' * 8
+        fields = (job, job, job, nonce, nonce, b'proc_start_ticks', b'proc_start_ticks',
+                  b'boot:123', b'proc_start_ticks', b'boot:123', invocation, invocation,
+                  b'Hepta Runtime job ' + job + b' ' + nonce)
+        numbers = (1000, 1000, 2000, 1000)
+
+        def packet(strings, integers=numbers):
+            return struct.pack('<8s17Q', b'HIAJOQ01', *integers, *map(len, strings)) + b''.join(strings)
+
+        def verify(strings, expected, integers=numbers):
+            run = self.invoke(packet(strings, integers))
+            self.assertEqual((run.returncode, run.stderr), (0, b''))
+            self.assertEqual(struct.unpack('<8s3Q', run.stdout), (b'HIAJOR01', *expected))
+
+        verify(fields, (1, 1, 1))
+        for index, replacement, decisions in (
+                (2, b'other-job', (0, 1, 1)), (4, nonce.upper(), (0, 1, 1)),
+                (7, b'', (0, 1, 2)), (9, b'boot:124', (1, 1, 2)),
+                (11, b'0' * 32, (1, 0, 1)), (12, fields[12] + b' ', (1, 0, 1))):
+            with self.subTest(index=index):
+                changed = list(fields)
+                changed[index] = replacement
+                verify(changed, decisions)
+        verify(fields, (0, 1, 2), (1001, 1000, 2000, 1000))
+        verify(fields, (0, 1, 1), (1000, 1000, 1, 1000))
+        invalid = self.invoke(packet(fields) + b'\0')
+        self.assertEqual((invalid.returncode, invalid.stdout, invalid.stderr), (2, b'', b''))
+
     def test_identity_separates_original_spelling_from_worker_normalization(self):
         canonical = b'{"source":{"path":"/root/source"}}'
         uri = b'{"source":{"path":"ssh://worker/root/source"}}'

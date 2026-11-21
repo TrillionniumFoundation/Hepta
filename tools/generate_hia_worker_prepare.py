@@ -40,6 +40,8 @@ CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
 JOB_LIFECYCLE_OUTPUT = b'HIAJSV01'
+JOB_OWNER_INPUT = b'HIAJOQ01'
+JOB_OWNER_OUTPUT = b'HIAJOR01'
 JOB_OPERATION_INPUT = b'HIAJOP01'
 JOB_PENDING_INPUT = b'HIAJPN01'
 
@@ -71,6 +73,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return capture_policy(s, o)
     if magic == JOB_LIFECYCLE_INPUT:
         return job_lifecycle(s, o)
+    if magic == JOB_OWNER_INPUT:
+        return job_lifecycle_owner(s, o, w)
     if magic == JOB_OPERATION_INPUT:
         return job_operation(s, o)
     if magic == JOB_PENDING_INPUT:
@@ -200,6 +204,90 @@ def lifecycle_text(s:readbuf, at:u64, size:u64, word:u64) -> bool:
             return False
         index = index + 1
     return True
+
+def job_lifecycle_owner(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    # Four observed integers followed by the lengths of the thirteen
+    # immutable strings in lifecycle-owner order. No supplied verdicts.
+    size = length(s)
+    if size < 144 or length(o) < 32:
+        return 4294967293
+    at = 144
+    field = 0
+    while field < 13:
+        count = word_load(s, 40 + field * 8)
+        if count > 256 or count > size - at:
+            return 4294967293
+        word_store(w, field * 16, at)
+        word_store(w, field * 16 + 8, count)
+        at = at + count
+        field = field + 1
+    if at != size or owner_size(w, 0) == 0:
+        return 4294967293
+    owner = valid_lifecycle_owner(s, w)
+    incarnation = owner_equal(s, w, 10, 11) and lifecycle_description(s, w)
+    process = owner_equal(s, w, 6, 8) and owner_equal(s, w, 7, 9) and word_load(s, 8) == word_load(s, 32)
+    word_store(o, 0, JOB_OWNER_OUTPUT)
+    word_store(o, 8, choose(owner, 1, 0))
+    word_store(o, 16, choose(incarnation, 1, 0))
+    word_store(o, 24, choose(process, 1, 2))
+    return 32
+
+def valid_lifecycle_owner(s:readbuf, w:mutbuf) -> bool:
+    uid = word_load(s, 8)
+    pid = word_load(s, 24)
+    if uid > 4294967295 or uid != word_load(s, 16) or pid < 2 or pid > 2147483647:
+        return False
+    if owner_equal(s, w, 0, 1) == False or owner_equal(s, w, 1, 2) == False:
+        return False
+    if owner_hex(s, w, 3) == False or owner_equal(s, w, 3, 4) == False:
+        return False
+    if owner_size(w, 5) == 0 or owner_size(w, 7) == 0:
+        return False
+    return owner_equal(s, w, 5, 6) and owner_hex(s, w, 10)
+
+def owner_hex(s:readbuf, w:mutbuf, field:u64) -> bool:
+    if owner_size(w, field) != 32:
+        return False
+    at = owner_at(w, field)
+    end = at + 32
+    while at < end:
+        value = byte(s, at)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return False
+        at = at + 1
+    return True
+
+def owner_at(w:mutbuf, field:u64) -> u64:
+    return word_load(w, field * 16)
+
+def owner_size(w:mutbuf, field:u64) -> u64:
+    return word_load(w, field * 16 + 8)
+
+def owner_equal(s:readbuf, w:mutbuf, first:u64, second:u64) -> bool:
+    size = owner_size(w, first)
+    if size != owner_size(w, second):
+        return False
+    return owner_range(s, owner_at(w, first), owner_at(w, second), size)
+
+def owner_range(s:readbuf, left:u64, right:u64, size:u64) -> bool:
+    index = 0
+    while index < size:
+        if byte(s, left + index) != byte(s, right + index):
+            return False
+        index = index + 1
+    return True
+
+def lifecycle_description(s:readbuf, w:mutbuf) -> bool:
+    at = owner_at(w, 12)
+    job = owner_size(w, 0)
+    nonce = owner_size(w, 3)
+    if owner_size(w, 12) != 19 + job + nonce:
+        return False
+    if word_load(s, at) != DESCRIPTION_HEAD or word_load(s, at + 8) != DESCRIPTION_MIDDLE:
+        return False
+    if lifecycle_text(s, at + 16, 2, DESCRIPTION_TAIL) == False or byte(s, at + 18 + job) != 32:
+        return False
+    return owner_range(s, at + 18, owner_at(w, 0), job) and owner_range(s, at + 19 + job, owner_at(w, 3), nonce)
 
 def capture_policy(s:readbuf, o:mutbuf) -> u64:
     n = length(s)
@@ -868,6 +956,11 @@ def source_program():
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
               .replace('JOB_LIFECYCLE_OUTPUT', str(int.from_bytes(JOB_LIFECYCLE_OUTPUT, 'little')))
+              .replace('JOB_OWNER_INPUT', str(int.from_bytes(JOB_OWNER_INPUT, 'little')))
+              .replace('JOB_OWNER_OUTPUT', str(int.from_bytes(JOB_OWNER_OUTPUT, 'little')))
+              .replace('DESCRIPTION_HEAD', str(int.from_bytes(b'Hepta Ru', 'little')))
+              .replace('DESCRIPTION_MIDDLE', str(int.from_bytes(b'ntime jo', 'little')))
+              .replace('DESCRIPTION_TAIL', str(int.from_bytes(b'b ', 'little')))
               .replace('JOB_OPERATION_INPUT', str(int.from_bytes(JOB_OPERATION_INPUT, 'little')))
               .replace('JOB_PENDING_INPUT', str(int.from_bytes(JOB_PENDING_INPUT, 'little')))
               .replace('NOT_FOUND_HEAD', str(int.from_bytes(b'not-foun', 'little')))
