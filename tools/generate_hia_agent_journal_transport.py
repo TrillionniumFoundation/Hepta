@@ -5,6 +5,8 @@ the bounded journal transition compiler's function and block limits intact.
 """
 from __future__ import annotations
 
+import json
+
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_agent_stdio import ROOT, document
 
@@ -14,9 +16,7 @@ def transport_program():
     source = '''
 def transfer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) == 24 and get(w, 0) == 17:
-        if length(s) >= 40 and input_word(s, 0) == READ_WORKFLOW_MAGIC:
-            return read_workflow_request(s, o)
-        return 0
+        return read_workflow(s, o)
     if length(s) >= 56 and input_word(s, 0) == COST_MAGIC:
         return cost_store_frame(s, o)
     if length(w) != 24:
@@ -27,6 +27,72 @@ def transfer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if mode == 16:
         return transport_reply(s, o, get(w, 8), get(w, 16))
     return 4294967293
+
+def read_workflow(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 40:
+        return 0
+    mode = input_word(s, 0)
+    if mode == READ_WORKFLOW_MAGIC:
+        return read_workflow_request(s, o)
+    if mode == READ_ERROR_MAGIC:
+        return read_effect_error(s, o)
+    if mode == READ_COST_MAGIC:
+        return read_closeout_cost(s, o)
+    return 0
+
+def read_effect_error(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 56 or length(o) < 256:
+        return 0
+    if input_word(s, 8) != EFFECT_CLOSEOUT or input_word(s, 24) < 2 or input_word(s, 48) != 0:
+        return 0
+    reason = input_word(s, 16)
+    actions = input_word(s, 40)
+    if reason == 1 and actions == 3:
+        return read_artifact_error(o)
+    if reason == 2 and actions == 8:
+        return read_cursor_error(o)
+    return 0
+
+# The complete result came from stage 8 of the admitted Journal. Its ordinary
+# no-context cost is derived from that sealed result, not from a caller's tool,
+# request ID, status, or diagnostic string. The native typed INSERT selector
+# independently admits the projected HIAJCF01 record.
+def read_closeout_cost(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 584 or input_word(s, 16) != length(s) - 24:
+        return 0
+    if input_word(s, 24) != REPLY_MAGIC or input_word(s, 32) != 10:
+        return 0
+    if input_word(s, 56) != 512 or input_word(s, 64) != 0:
+        return 0
+    response = input_word(s, 40)
+    cost = input_word(s, 48)
+    if response < 2 or response > 8388608 or cost < MIN_DETAILS or cost > 8388608:
+        return 0
+    state = 72 + response + cost
+    if length(s) != state + 512 or length(o) < 130 + cost:
+        return 0
+    if input_word(s, state) != STATE_MAGIC or input_word(s, state + 8) != 11:
+        return 0
+    if input_word(s, state + 16) != 3 or input_word(s, state + 48) != 10:
+        return 0
+    if input_word(s, state + 24) != 0 or input_word(s, state + 32) != 0 or input_word(s, state + 40) != 0:
+        return 0
+    if input_word(s, state + 272) != response or input_word(s, state + 280) != cost or input_word(s, state + 288) != 1:
+        return 0
+    status = input_word(s, state + 264)
+    if status < 1 or status > 2 or admitted_read_identity(s, state) == False:
+        return 0
+    put(o, 0, COST_MAGIC)
+    put(o, 8, input_word(s, 8))
+    put(o, 16, status)
+    put(o, 24, 0)
+    put(o, 32, 8)
+    put(o, 40, 66)
+    put(o, 48, cost)
+    put(o, 56, READ_TOOL)
+    copy_cost_bytes(s, o, state + 192, 66, 64)
+    copy_cost_bytes(s, o, 72 + response, cost, 130)
+    return 130 + cost
 
 def read_workflow_request(s:readbuf, o:mutbuf) -> u64:
     stage = input_word(s, 8)
@@ -75,7 +141,7 @@ def read_workflow_transition(s:readbuf, stage:u64, observed:u64) -> bool:
         return False
     if input_word(s, 360) != 0 or input_word(s, 376) != 0 or input_word(s, 384) != 0:
         return False
-    if admitted_read_identity(s) == False:
+    if admitted_read_identity(s, 40) == False:
         return False
     if stage == 11 or stage == 12:
         if phase != 4 or prior != 1 or reason != 0 or observed < 26:
@@ -93,15 +159,15 @@ def read_workflow_transition(s:readbuf, stage:u64, observed:u64) -> bool:
         return (phase == 10 or phase == 4) and (prior == 1 or prior == 11) and observed != 0
     return False
 
-def admitted_read_identity(s:readbuf) -> bool:
-    if byte(s, 232) != 114 or byte(s, 233) != 45:
+def admitted_read_identity(s:readbuf, at:u64) -> bool:
+    if byte(s, at + 192) != 114 or byte(s, at + 193) != 45:
         return False
     index = 0
     while index < 64:
-        digit = byte(s, 104 + index)
+        digit = byte(s, at + 64 + index)
         if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
             return False
-        if byte(s, 234 + index) != digit:
+        if byte(s, at + 194 + index) != digit:
             return False
         index = index + 1
     return True
@@ -334,6 +400,8 @@ def put(o:mutbuf, at:u64, value:u64) -> u64:
     literals = {
         'SINGLE_MAGIC': b'HIAJIN01', 'SESSION_MAGIC': b'HIAJIN02', 'REPLY_MAGIC': b'HIAJOU01',
         'READ_WORKFLOW_MAGIC': b'HIAJWP01', 'STATE_MAGIC': b'HIAJRN02',
+        'READ_ERROR_MAGIC': b'HIAJWE01', 'READ_COST_MAGIC': b'HIAJWC01',
+        'EFFECT_CLOSEOUT': b'HIAFDO01', 'READ_TOOL': b'hia_read',
         'COST_MAGIC': b'HIAJCF01', 'INSERT_MAGIC': b'HIAINS01', 'DETAILS_PREFIX': b'{"error"',
         'DETAILS_SUFFIX_FIRST': suffix[:8], 'DETAILS_SUFFIX_SECOND': suffix[8:16],
         'UNADMITTED_INITIAL': b'unadmitt', 'COMPLETED_INITIAL': b'complete',
@@ -345,6 +413,29 @@ def put(o:mutbuf, at:u64, value:u64) -> u64:
     source = source.replace('MIN_DETAILS', str(9 + 4 + len(suffix)))
     places = '\n'.join(f'    if position == {i}:\n        return {10 ** i}' for i in range(1, 20))
     source = source.replace('PLACE_TABLE', places)
+    return source + read_error_program()
+
+
+def read_error_program():
+    # Existing public error objects (before the Journal adds the request ID).
+    errors = (
+        ('read_artifact_error', 'E_HIA_ARTIFACT_IDENTITY',
+         'artifact reference was not issued in this runtime namespace'),
+        ('read_cursor_error', 'E_HIA_CURSOR', 'cursor is not bound to this exact artifact'),
+    )
+    source = ''
+    for name, code, message in errors:
+        raw = json.dumps(dict(code=code, details_artifact=None, message=message,
+                              phase='admission', retry_action='correct_input'),
+                         sort_keys=True, separators=(',', ':')).encode('ascii')
+        source += f'\ndef {name}(o:mutbuf) -> u64:\n'
+        for at in range(0, len(raw), 8):
+            field = raw[at:at + 8]
+            if len(field) == 8:
+                source += f'    put(o, {at}, {int.from_bytes(field, "little")})\n'
+            else:
+                source += ''.join(f'    store(o, {at + i}, {byte})\n' for i, byte in enumerate(field))
+        source += f'    return {len(raw)}\n'
     return source
 
 

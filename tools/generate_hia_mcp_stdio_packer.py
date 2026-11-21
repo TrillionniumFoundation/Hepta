@@ -103,7 +103,7 @@ def template(mode):
     if store_ready:
         scratch, workspace, minimum, maximum = 16, 8, 80, 80
     if journal_read:
-        scratch, workspace, minimum, maximum = INPUT_MAX + 576, 24, 40, INPUT_MAX + 552
+        scratch, workspace, minimum, maximum = INPUT_MAX + 576, 24, 40, 2 * INPUT_MAX + 584
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -194,7 +194,7 @@ def template(mode):
             emit('48 83 f8 10')                  # readiness decision plus generation
         elif journal_read:
             emit('48 3d')
-            word(576)                           # one-shot Journal frame and private state
+            word(40)                            # nonempty admitted workflow result
         elif read_request:
             emit('48 3d')
             word(128)                           # complete read-plan header
