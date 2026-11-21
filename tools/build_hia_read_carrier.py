@@ -1,4 +1,4 @@
-"""Pack the HIA read reactor's Linux/x86-64 descriptor carrier.
+"""Pack the HIA retained-read Worker's Linux/x86-64 descriptor carrier.
 
 The carrier is fixed platform code, not a compiler or an alternate read policy.
 The normal build compiles the checked-in HIA packer and needs no C toolchain,
@@ -23,20 +23,18 @@ from tools.qualify_hia_selfhost_cli import inspect_executable
 
 SOURCE = 'examples/hia_bootstrap/agent_read_carrier_packer.hepta'
 MAGIC = b'HIARCK01'
-CODE_DIGEST = 'be9ab7d04b011004ff47c2b39a805d28b70278a7887e76342b02ac06c151096f'
-CODE_SIZE = 9048
+CODE_DIGEST = 'ae0d86e08bf8a687b85e6532cd9bb4e9fa65ac68a6e61e1c3fe5e8aaefa9ee34'
+CODE_SIZE = 15800
 HEADER_SIZE = 176
 # Offsets in the audited ISA profile. Each group owns only delivery mechanics.
 CARRIER_SECTIONS = (
-    ('entry_and_abi', 0, 550),
-    ('read_lease', 550, 917),
-    ('extent_and_io', 917, 1249),
-    ('child_closeout', 1249, 1702),
-    ('immutable_buffers', 1702, 2256),
-    ('child_execution', 2256, 3159),
-    ('store_startup', 3159, 3661),
-    ('store_transport_and_feedback', 3661, 4513),
-    ('descriptor_relay_and_store_custody', 4513, CODE_SIZE),
+    ('entry_and_abi', 0, 468),
+    ('bounded_io', 468, 1426),
+    ('closeout_and_buffers', 1426, 2595),
+    ('sealed_launch', 2595, 3704),
+    ('store_startup_and_transport', 3704, 5015),
+    ('journal_receipt_routing', 5015, 6065),
+    ('sealed_worker_and_read_relay', 6065, CODE_SIZE),
 )
 
 
