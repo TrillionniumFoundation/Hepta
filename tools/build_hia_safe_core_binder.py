@@ -11,9 +11,10 @@ from tools.build_hia_agent_batch_commit import verify_placement
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.generate_hia_native_filter import read_adapter_binding
 from tools.generate_hia_safe_core_binder import SOURCE_PATH
-from tools.generate_hia_safe_core_binder_packer import ADAPTER, CALLS, MAGIC, PACKER
+from tools.generate_hia_safe_core_binder_packer import ADAPTER, CALLS, MAGIC, PACKER, PROOF_PACKER, adapter_source
 from tools.generate_hia_safe_core_machine_observe import SOURCE_PATH as MACHINE_SOURCE
 from tools.generate_hia_safe_core_observations import SOURCE_PATH as OBSERVATION_SOURCE
+from tools.generate_hia_safe_core_obligation import SOURCE_PATH as OBLIGATION_SOURCE
 from tools.generate_hia_safe_core_x64_decode import ARTIFACT_SOURCE_PATH
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -34,8 +35,12 @@ OBSERVATION_PARTS = {'binder': OBSERVATION_SOURCE, 'elf': 'examples/hia_bootstra
                      'wire': ARTIFACT_SOURCE_PATH}
 
 
-def build(output, compiler, cold_report, *, observe_machine=False, join_observations=False):
-    if observe_machine and join_observations:
+OBLIGATION_PARTS = {'binder': OBLIGATION_SOURCE, 'elf': 'examples/hia_bootstrap/cnf.hepta',
+                    'wire': 'examples/hia_bootstrap/core_obligation_wire.hepta'}
+
+
+def build(output, compiler, cold_report, *, observe_machine=False, join_observations=False, prove_obligation=False):
+    if sum((observe_machine, join_observations, prove_obligation)) > 1:
         raise ValueError('choose one specific Safe Core execution stage')
     if observe_machine:
         parts = MACHINE_PARTS
@@ -43,23 +48,28 @@ def build(output, compiler, cold_report, *, observe_machine=False, join_observat
     elif join_observations:
         parts = OBSERVATION_PARTS
         product, stage = 'hia-safe-core-observations', 'safe-core-observations'
+    elif prove_obligation:
+        parts = OBLIGATION_PARTS
+        product, stage = 'hia-safe-core-obligation', 'safe-core-obligation'
     else:
         parts = PARTS
         product, stage = 'hia-safe-core-bind', 'safe-core-binder'
+    packer = PROOF_PACKER if prove_obligation else PACKER
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admission = admit_cold_build(compiler_raw, report_raw)
-    source_paths = (*parts.values(), ADAPTER, PACKER, 'tools/build_hia_safe_core_binder.py',
+    source_paths = (*parts.values(), ADAPTER, packer, 'tools/build_hia_safe_core_binder.py',
                     'tools/generate_hia_safe_core_binder.py', 'tools/generate_hia_safe_core_binder_packer.py',
                     'tools/generate_hia_safe_core_machine_observe.py', 'tools/generate_hia_safe_core_observations.py',
-                    'tools/generate_hia_safe_core_x64_decode.py')
+                    'tools/generate_hia_safe_core_x64_decode.py', 'tools/generate_hia_safe_core_obligation.py')
     sources = {name: (ROOT / name).read_bytes() for name in source_paths}
     if any(admission.get(name) != sha256(raw).hexdigest() for name, raw in sources.items()):
         raise ValueError('Safe Core binder input differs from admitted cold source')
-    binding = read_adapter_binding(sources[PACKER], sources[ADAPTER], calls=len(CALLS))
+    binding = read_adapter_binding(sources[packer], adapter_source(sources[ADAPTER], proof=prove_obligation),
+                                   calls=len(CALLS))
     output.mkdir(mode=0o700)
     images = {}
     receipts = {}
-    for label, source in {**parts, 'packer': PACKER}.items():
+    for label, source in {**parts, 'packer': packer}.items():
         path, receipt = compile_stage(output, label, compiler, sources[source])
         data = path.read_bytes()
         if sha256(data).hexdigest() != receipt['produced_sha256']:
@@ -105,6 +115,9 @@ if __name__ == '__main__':
                         help='build the independent scalar machine-observation stage')
     action.add_argument('--join-observations', action='store_true',
                         help='build the independent join of native machine and Core observations')
+    action.add_argument('--prove-obligation', action='store_true',
+                        help='build the standalone native Safe Core obligation solver')
     args = parser.parse_args()
     print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
-                observe_machine=args.observe_machine, join_observations=args.join_observations))
+                observe_machine=args.observe_machine, join_observations=args.join_observations,
+                prove_obligation=args.prove_obligation))

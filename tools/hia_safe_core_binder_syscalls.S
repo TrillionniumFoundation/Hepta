@@ -5,11 +5,17 @@
 .text
 .global _start
 .set input_limit, 16777504
-.set output_limit, 65704
 .set output_offset, 16781312
+.set work_payload, 4096
+.ifdef proof_transport
+.set output_limit, 221184
+.set work_offset, 17002496
+.set work_limit, 8388608
+.else
+.set output_limit, 65704
 .set work_offset, 16850944
 .set work_limit, 5242880
-.set work_payload, 4096
+.endif
 
 _start:
     cmp qword ptr [rsp], 1
@@ -47,6 +53,14 @@ _start:
     jmp .read
 
 .plan:
+.ifdef proof_transport
+    mov eax, 228                    /* clock_gettime(CLOCK_MONOTONIC, ...) */
+    mov edi, 1
+    lea rsi, [r14 + 112]
+    syscall
+    test rax, rax
+    jnz .io
+.endif
     mov rdi, r12
     mov rsi, r13
     lea rdx, [r12 + output_offset]
@@ -134,10 +148,12 @@ wire_call_hole:
 elf_call_hole:
     .long 0
 .record:
+.ifndef proof_transport
     cmp rax, [r14 + 40]
     jbe .record_size
     mov rax, -1
 .record_size:
+.endif
     mov [r14 + 64], rax
     jmp .plan
 

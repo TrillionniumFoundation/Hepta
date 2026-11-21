@@ -1105,8 +1105,22 @@ def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 """
 
 
-def program(*, elf_only=False):
-    entry = ELF_POLICY if elf_only else POLICY
+SOLVER_POLICY = """
+def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_REQUEST:
+        return obligations(s, o, w)
+    if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_SOLVER_REQUEST:
+        return obligation_solver_wire(s, o)
+    if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_WITNESS_REQUEST:
+        return obligation_witness_wire(s, o)
+    return REFUSED
+"""
+
+
+def program(*, elf_only=False, solver_only=False):
+    if elf_only and solver_only:
+        raise ValueError('choose one proof-wire specialization')
+    entry = ELF_POLICY if elf_only else SOLVER_POLICY if solver_only else POLICY
     constants = dict(REFUSED=REFUSED, REQUEST=GRAPH_PROJECTION_REQUEST,
                      OBLIGATION_REQUEST=OBLIGATION_REQUEST,
                      OBLIGATION_SOLVER_REQUEST=OBLIGATION_SOLVER_REQUEST,
@@ -1137,9 +1151,11 @@ def program(*, elf_only=False):
             break
         retained.update(called)
     source = ast.unparse(ast.Module(body=[node for node in nodes if node.name in retained], type_ignores=[]))
-    return document(source, 'core_elf_binding_wire' if elf_only else 'core_proof_wire')
+    module = 'core_elf_binding_wire' if elf_only else 'core_obligation_wire' if solver_only else 'core_proof_wire'
+    return document(source, module)
 
 
 if __name__ == '__main__':
     SOURCE.write_text(render_assembly(program()))
     SOURCE.with_name('core_elf_binding_wire.hepta').write_text(render_assembly(program(elf_only=True)))
+    SOURCE.with_name('core_obligation_wire.hepta').write_text(render_assembly(program(solver_only=True)))

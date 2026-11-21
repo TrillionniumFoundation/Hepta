@@ -57,8 +57,15 @@ def clear(o:mutbuf, start:u64, end:u64) -> u64:
 '''
 
 
-def document():
-    adapter = (ROOT / ADAPTER).read_bytes()
+PROOF_PACKER = 'examples/hia_bootstrap/safe_core_obligation_packer.hepta'
+
+
+def adapter_source(raw, *, proof=False):
+    return b'.set proof_transport, 1\n' + raw if proof else raw
+
+
+def document(*, proof=False):
+    adapter = adapter_source((ROOT / ADAPTER).read_bytes(), proof=proof)
     with TemporaryDirectory(prefix='hia-elf-binder-transport-') as temporary:
         stub, holes, _ = adapter_layout(Path(temporary), ADAPTER, adapter, CALLS)
     header = elf_header()
@@ -87,10 +94,11 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    packer = compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'safe_core_binder_packer',
+    packer = compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': ('safe_core_obligation_packer' if proof else 'safe_core_binder_packer'),
                                    'functions': functions})
     return bind_adapter(packer, adapter, stub, ordered)
 
 
 if __name__ == '__main__':
     (ROOT / PACKER).write_text(render_assembly(document()))
+    (ROOT / PROOF_PACKER).write_text(render_assembly(document(proof=True)))
