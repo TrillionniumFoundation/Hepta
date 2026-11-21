@@ -80,7 +80,7 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return store_parameters(s, o)
     return 0
 
-# All three indexed read methods share this immutable transaction envelope.
+# Indexed reads and typed durable inserts share this immutable transaction envelope.
 # Mode 0 borrows an already-open transaction. Mode 1 owns BEGIN and ROLLBACK.
 # Mode 2 owns ROLLBACK after readiness of a freshly connected Store.
 def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -95,6 +95,9 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return 0
     if plan == 10:
         if valid_cursor_retain(s, size) == False:
+            return 0
+    elif plan == 18:
+        if valid_cost_insert(s, size) == False:
             return 0
     else:
         if plan != 2 and plan != 3 and plan != 6:
@@ -111,7 +114,8 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     write_word(w, 120, generation)
     write_word(w, 128, size)
     write_word(w, 136, 1)
-    copy_fields(s, w, 48, 192, size)
+    if plan != 18:
+        copy_fields(s, w, 48, 192, size)
     if mode == 1:
         return send_unique(o, w, 21, 0, 0, 6)
     return issue_unique_query(o, w)
@@ -144,6 +148,39 @@ def valid_cursor_retain(s:readbuf, size:u64) -> bool:
         field = field + 1
     return offset == size
 
+
+# A cost record is the existing Store INSERT ordinal 2, not query ordinal 2.
+# Keep the large body in the same sealed control mapping; only the mechanical
+# split command extent is handed back to the adapter after full validation.
+def valid_cost_insert(s:readbuf, size:u64) -> bool:
+    if size < 184 or size > 8390608 or read_word(s, 48) != INSERT_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
+        return False
+    offset = 184
+    field = 0
+    while field < 6:
+        at = 88 + 24 * field
+        extent = read_word(s, at + 16)
+        kind = read_word(s, at)
+        if read_word(s, at + 8) != offset or extent > size - offset:
+            return False
+        if kind != choose(field == 0 and extent == 0, 0, 3):
+            return False
+        if field < 2 and extent > 512:
+            return False
+        if field == 2 and extent != 66 and extent != 43:
+            return False
+        if field == 3 and (extent == 0 or extent > 20):
+            return False
+        if field == 4 and extent != 8 and extent != 9:
+            return False
+        if field == 5 and (extent < 31 or extent > 8388608):
+            return False
+        offset = offset + extent
+        field = field + 1
+    return offset == size
+
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
@@ -155,6 +192,16 @@ def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
     plan = read_state(w, 16)
     if plan == 10:
         return send_unique(o, w, 27, 1, read_state(w, 128), 10)
+    if plan == 18:
+        # The Store sees regular command 27 with ordinary insert target 1.
+        # Only the adapter's action carries the immutable remainder separately.
+        send_unique(o, w, 27, 1, 0, 10)
+        extent = read_state(w, 128)
+        write_word(o, 0, 7)
+        write_word(o, 8, extent)
+        write_word(o, 16, 48)
+        write_word(o, 72, extent)
+        return 80
     return send_unique(o, w, 27, plan + 3, read_state(w, 128), 1)
 
 def send_unique(o:mutbuf, w:mutbuf, kind:u64, target:u64, extent:u64, phase:u64) -> u64:
@@ -180,7 +227,7 @@ def unique_transaction(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if length(w) != 2304:
         return 0
     if phase >= 10:
-        return cursor_write_result(s, o, w, phase)
+        return durable_insert_result(s, o, w, phase)
     if phase == 6 or phase == 8:
         if length(s) != 16 or read_word(s, 8) != ACK:
             return 0
@@ -200,9 +247,10 @@ def unique_transaction(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     return finish_unique(o, w)
 
 # Write acknowledgements, WAL transition receipts and source correlation are
-# authenticated before a cursor transaction may return a usable receipt.
-def cursor_write_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
-    if read_state(w, 16) != 10:
+# validated before a typed insert transaction may return a usable receipt.
+def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
+    plan = read_state(w, 16)
+    if plan != 10 and plan != 18:
         return 0
     if phase == 10 or phase == 12 or phase == 14:
         if length(s) != 16:
@@ -224,7 +272,7 @@ def cursor_write_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if length(s) != 80 or read_word(s, 8) != 1 or read_word(s, 16) != read_state(w, 8):
         return 0
     if phase == 11:
-        return cursor_insert_ack(s, o, w)
+        return durable_insert_ack(s, o, w)
     if phase != 15 or read_word(s, 24) != 2 or read_word(s, 32) != 0:
         return 0
     advanced = choose(read_word(s, 40) == 0, 0, 1)
@@ -236,7 +284,7 @@ def cursor_write_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     write_word(w, 120, prior + advanced)
     return finish_unique(o, w)
 
-def cursor_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if read_word(s, 24) != 27:
         return 0
     status = read_word(s, 32)
@@ -247,7 +295,7 @@ def cursor_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if mode == 0:
             return finish_unique(o, w)
         return send_unique(o, w, 3, 0, 0, 8)
-    if status != 0 or skipped > 1:
+    if status != 0 or skipped > 1 or (read_state(w, 16) == 18 and skipped != 0):
         return 0
     write_word(w, 152, 1 - skipped)
     if mode == 0:
@@ -263,7 +311,8 @@ def cursor_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 def finish_unique(o:mutbuf, w:mutbuf) -> u64:
     write_word(w, 0, 5)
     write_word(o, 0, 5)
-    if read_state(w, 16) == 10:
+    plan = read_state(w, 16)
+    if plan == 10 or plan == 18:
         write_word(o, 8, read_state(w, 168) * 8)
         write_word(o, 16, read_state(w, 152))
         write_word(o, 24, read_state(w, 144))
