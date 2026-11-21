@@ -45,6 +45,7 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
               MV_FLAGS=160, MV_LEFT=168, MV_RIGHT=176,
+              MV_FLAG_RESULT=MACHINE_VALUES_BRANCHES - 32,
               MV_ABORT=MACHINE_VALUES_BRANCHES - 24, MV_BRANCH_SEEN=MACHINE_VALUES_BRANCHES - 16,
               MV_PREFIX=MACHINE_VALUES_BRANCHES - 8, MV_BRANCHES=MACHINE_VALUES_BRANCHES,
               MV_BRANCH_DEPTH=MACHINE_VALUES_BRANCH_DEPTH, MV_TERMINALS=1 << MACHINE_VALUES_BRANCH_DEPTH,
@@ -1306,13 +1307,29 @@ def mv_fold_path(o:mutbuf, w:mutbuf, terminal:u64) -> u64:
         value = mv_node(o, w, 11, predicate - 1, value - 1, not_taken - 1)
         if value == 0:
             return 0
-        stopped = mv_word(o, w, 11, 1, predicate - 1, get(w, MV_ABORT) - 1, get(w, frame + 24) - 1)
+        stopped = mv_join_abort(o, w, predicate - 1, get(w, MV_ABORT) - 1, get(w, frame + 24) - 1)
         if stopped == 0:
             return 0
         put(w, MV_ABORT, stopped)
         depth = depth - 1
     put(w, MV_PREFIX, 0)
     return value
+
+def mv_join_abort(o:mutbuf, w:mutbuf, condition:u64, yes:u64, no:u64) -> u64:
+    first = MV_HEADER + yes * 40
+    second = MV_HEADER + no * 40
+    if get(o, first) == 2 and get(o, second) == 2:
+        left = get(o, first + 32)
+        right = get(o, second + 32)
+        if left == right:
+            return yes + 1
+        if left == 1:
+            return condition + 1
+        predicate = MV_HEADER + condition * 40
+        if get(o, predicate) == 6:
+            return get(o, predicate + 16) + 1
+        return mv_word(o, w, 6, 1, condition, 0, 0)
+    return mv_word(o, w, 11, 1, condition, yes, no)
 
 def mv_finish_tree(o:mutbuf, w:mutbuf, value:u64, steps:u64, depth:u64, paths:u64) -> u64:
     nodes = get(w, MV_NODES)
@@ -1583,6 +1600,9 @@ def mv_arithmetic(o:mutbuf, w:mutbuf, op:u64, register:u64, right:u64) -> u64:
     if value == 0:
         return 0
     put(w, register * 8, value)
+    if op != OP_IMUL:
+        mv_remember_flags(w, op, left, right)
+        put(w, MV_FLAG_RESULT, value)
     return 1
 
 def mv_unary(o:mutbuf, w:mutbuf, op:u64, register:u64, count:u64) -> u64:
@@ -1619,25 +1639,83 @@ def mv_condition(o:mutbuf, w:mutbuf, condition:u64) -> u64:
     left = get(w, MV_LEFT) - 1
     right = get(w, MV_RIGHT) - 1
     if operation == OP_TEST:
-        if condition != 4 and condition != 5:
-            return 0
+        both = left + 1
         if left != right:
             both = mv_node(o, w, 3, left, right, 0)
-            if both == 0:
-                return 0
-            left = both - 1
-        zero = mv_node(o, w, 2, 0, 0, 0)
-        if zero == 0:
+        if both == 0:
             return 0
-        return mv_word(o, w, choose(condition == 4, 7, 8), 1, left, zero - 1, 0)
+        return mv_result_condition(o, w, operation, condition, left, right, both - 1)
+    if operation != OP_CMP and operation != OP_SUB:
+        result = get(w, MV_FLAG_RESULT)
+        if result == 0:
+            return 0
+        return mv_result_condition(o, w, operation, condition, left, right, result - 1)
+    if operation == OP_SUB and (condition == 2 or condition == 3):
+        borrow = mv_word(o, w, 23, 1, left, right, 0)
+        if borrow == 0 or condition == 2:
+            return borrow
+        return mv_word(o, w, 6, 1, borrow - 1, 0, 0)
     predicate = choose(condition == 2, 12, choose(condition == 3, 15,
                 choose(condition == 4, 7, choose(condition == 5, 8,
                 choose(condition == 6, 13, choose(condition == 7, 14,
                 choose(condition == 12, 16, choose(condition == 13, 19,
                 choose(condition == 14, 17, choose(condition == 15, 18, 0))))))))))
-    if predicate == 0:
+    if predicate != 0:
+        return mv_word(o, w, predicate, 1, left, right, 0)
+    result = get(w, MV_FLAG_RESULT)
+    if operation == OP_CMP:
+        result = mv_node(o, w, 10, left, right, 0)
+    if result == 0:
         return 0
-    return mv_word(o, w, predicate, 1, left, right, 0)
+    return mv_result_condition(o, w, OP_SUB, condition, left, right, result - 1)
+
+def mv_result_condition(o:mutbuf, w:mutbuf, operation:u64, condition:u64, left:u64, right:u64, result:u64) -> u64:
+    zero = mv_node(o, w, 2, 0, 0, 0)
+    if zero == 0:
+        return 0
+    family = condition & 14
+    if family == 4:
+        return mv_word(o, w, choose(condition == 4, 7, 8), 1, result, zero - 1, 0)
+    bit = mv_flag_family(o, w, operation, family, left, right, result, zero - 1)
+    if bit == 0 or (condition & 1) == 0:
+        return bit
+    return mv_word(o, w, 6, 1, bit - 1, 0, 0)
+
+def mv_flag_family(o:mutbuf, w:mutbuf, op:u64, family:u64, left:u64, right:u64, result:u64, zero:u64) -> u64:
+    if family == 8:
+        return mv_word(o, w, 16, 1, result, zero, 0)
+    if family == 0 or family == 12 or family == 14:
+        predicate = mv_sign_flag(o, w, op, family, left, right, result, zero)
+    elif family == 2 or family == 6:
+        if op == OP_ADD:
+            predicate = mv_word(o, w, 22, 1, left, right, 0)
+        else:
+            # SUB was reduced to ordered operands before this helper.
+            predicate = mv_word(o, w, 2, 1, 0, 0, 0)
+    else:
+        # Parity branches are not admitted by the decoder.
+        return 0
+    if predicate == 0 or (family != 6 and family != 14):
+        return predicate
+    equal = mv_word(o, w, 7, 1, result, zero, 0)
+    if equal == 0:
+        return 0
+    return mv_word(o, w, 4, 1, predicate - 1, equal - 1, 0)
+
+def mv_sign_flag(o:mutbuf, w:mutbuf, op:u64, family:u64, left:u64, right:u64, result:u64, zero:u64) -> u64:
+    if op != OP_ADD and op != OP_SUB:
+        if family != 0:
+            return mv_word(o, w, 16, 1, result, zero, 0)
+        return mv_word(o, w, 2, 1, 0, 0, 0)
+    # These are the existing exact, width-parametric overflow predicates.
+    # The x86 operand width here is 64, irrespective of the Core source type.
+    overflow = mv_word(o, w, choose(op == OP_ADD, 24, 25), 1, left, right, 0)
+    if overflow == 0 or family == 0:
+        return overflow
+    sign = mv_word(o, w, 16, 1, result, zero, 0)
+    if sign == 0:
+        return 0
+    return mv_word(o, w, 5, 1, overflow - 1, sign - 1, 0)
 
 def mv_setcc(o:mutbuf, w:mutbuf, condition:u64, register:u64) -> u64:
     if register >= 16 or register == 4:

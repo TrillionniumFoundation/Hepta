@@ -163,12 +163,11 @@ def solve_sparse(source:readbuf, result:mutbuf, stack:mutbuf, magic:u64) -> u32:
         return INVALID
     if entries > SPARSE_ENTRIES or budget > STEP_LIMIT or length(source) != 40 + 2 * entries:
         return INVALID
-    if magic == WATCHED_REQUEST and length(stack) < WATCH_ROWS + 2 * clauses * WATCH_ROW_BYTES:
-        return INVALID
     learning = magic == LEARNING_REQUEST or magic == RESTART_REQUEST
-    if learning and length(stack) < WATCH_ROWS + 2 * (clauses + LEARNED_CLAUSES) * WATCH_ROW_BYTES + LEARNING_BYTES:
-        return INVALID
-    if magic == BATCH_REQUEST and length(stack) < SPARSE_WORKSPACE + 8:
+    required = choose(magic == BATCH_REQUEST, SPARSE_WORKSPACE + 8, SPARSE_WORKSPACE)
+    required = choose(magic == WATCHED_REQUEST, WATCH_ROWS + 2 * clauses * WATCH_ROW_BYTES, required)
+    required = choose(learning, WATCH_ROWS + 2 * (clauses + LEARNED_CLAUSES) * WATCH_ROW_BYTES + LEARNING_BYTES, required)
+    if length(stack) < required:
         return INVALID
     if length(result) < 32 + ((variables + 7) >> 3):
         return INVALID
@@ -1799,12 +1798,10 @@ def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, a
     no_trap = p_node(o, w, 2, 8, 0, 0, 0)
     if machine_abort != read_stack(w, 40):
         # Core retains its detailed trap code in its own proof. An ELF call
-        # to abort observes only whether there was a normal return.
-        trap = p_node(o, w, 8, 1, trap, no_trap, 0)
+        # to abort observes only whether there was a normal return. Both
+        # projections set the return word to zero on their abort terminals.
+        trap = p_artifact_abort(o, w, trap, no_trap)
         no_trap = machine_abort
-        zero = p_node(o, w, 2, 64, 0, 0, 0)
-        value = p_node(o, w, 11, 64, trap, zero, value)
-        actual = p_node(o, w, 11, 64, machine_abort, zero, actual)
     nodes = read_stack(w, 0)
     if nodes > CIRCUIT_NODES:
         return TOO_LARGE
@@ -1820,6 +1817,14 @@ def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, a
     write64(o, at + 32, value)
     write64(o, at + 40, actual)
     return at + 48
+
+def p_artifact_abort(o:mutbuf, w:mutbuf, tag:u64, zero:u64) -> u64:
+    row = 32 + 40 * tag
+    if read_stack(o, row) == 11 and read_stack(o, row + 32) == zero:
+        first = read_stack(o, row + 24)
+        if read_stack(o, 32 + 40 * first) == 2 and first != zero:
+            return read_stack(o, row + 16)
+    return p_node(o, w, 8, 1, tag, zero, 0)
 
 def p_machine_low_word(o:mutbuf, w:mutbuf, node:u64, width:u64) -> u64:
     # Each word operand points backward. Project the fixed prefix in order
@@ -1858,6 +1863,10 @@ def p_machine_low_node(o:mutbuf, w:mutbuf, node:u64, width:u64) -> u64:
     return p_node(o, w, 26, width, node, 0, 0)
 
 def p_artifact_word(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
+    if op == 11:
+        predicate = 32 + 40 * a
+        if read_stack(o, predicate) == 6:
+            return p_node(o, w, 11, width, read_stack(o, predicate + 16), c, b)
     if (op == 3 or op == 4 or op == 5 or op == 9 or op == 32) and a > b:
         swap = a
         a = b
