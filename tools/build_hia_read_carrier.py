@@ -48,6 +48,7 @@ class CarrierImage:
     size: int
     sections: tuple
     compressed: bool = False
+    tail_source: str = ''
 
 
 CARRIERS = {
@@ -83,7 +84,8 @@ CARRIERS = {
     'inspection-worker': CarrierImage(
         'examples/hia_bootstrap/agent_inspection_worker_carrier_packer.hepta', b'HIAIWK01',
         'd34626651c0c85cee0c2cc7ee0903424f73213e0524e3b8cb0e026fdca9fddb4', 42728,
-        (('inspection_descriptor_effect_relay', 0, 42728),), compressed=True),
+        (('inspection_descriptor_effect_relay', 0, 42728),), compressed=True,
+        tail_source='examples/hia_bootstrap/agent_inspection_worker_carrier_tail.hepta'),
     'describe-worker': CarrierImage(
         'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
         'd3b3b68645a247e27e7081e475e38e0333186bd0983199bbe2a123fa3454fec1', 11258,
@@ -100,6 +102,9 @@ def author(platform_code, *, kind='read'):
         raise ValueError('unrecognized Agent carrier ISA profile')
     prefix = elf_prefix(platform_code)
     size = len(prefix)
+    if carrier.tail_source:
+        return compressed_carrier(prefix[:carrier_split(carrier)], carrier,
+                                  tail_size=len(prefix) - carrier_split(carrier))
     if carrier.compressed:
         return compressed_carrier(prefix, carrier)
     source = f"""def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -128,14 +133,32 @@ def author(platform_code, *, kind='read'):
     return render_assembly(document(source, Path(carrier.source).stem))
 
 
-def compressed_carrier(prefix, carrier):
-    packed = pack_seed(prefix, history=128)
-    extent = len(prefix)
+def carrier_split(carrier):
+    return (carrier.size + HEADER_SIZE) // 2
+
+
+def author_tail(platform_code, carrier):
+    return compressed_carrier(elf_prefix(platform_code)[carrier_split(carrier):],
+                              carrier, component=True)
+
+
+def compressed_carrier(payload, carrier, *, tail_size=0, component=False):
+    packed = pack_seed(payload, history=128)
+    extent = len(payload)
+    total = extent + tail_size
     workspace = extent + len(packed)
+    finish = ''
+    if not component:
+        if tail_size:
+            finish = f"""    while index < {total}:
+        store(o, index, byte(s, 8 + index - {extent}))
+        index = index + 1
+"""
+        finish += f'    put_word(o, 96, {total})\n    put_word(o, 104, {total})\n'
     source = f"""def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) != 8 or read_word(s, 0) != {int.from_bytes(carrier.magic, 'little')}:
+    if length(s) != {8 + tail_size} or read_word(s, 0) != {int.from_bytes(carrier.magic, 'little')}:
         return 4294967295
-    if length(o) < {extent} or length(w) < {workspace}:
+    if length(o) < {total} or length(w) < {workspace}:
         return 4294967294
     seed(w)
     if unpack_table(w) == 0:
@@ -144,9 +167,7 @@ def compressed_carrier(prefix, carrier):
     while index < {extent}:
         store(o, index, byte(w, index))
         index = index + 1
-    put_word(o, 96, {extent})
-    put_word(o, 104, {extent})
-    return {extent}
+{finish}    return {total}
 """
     unpack = DISCOVERY_POLICY[DISCOVERY_POLICY.index('\ndef unpack_table('):
                               DISCOVERY_POLICY.index('\ndef same_backend(')]
@@ -154,7 +175,8 @@ def compressed_carrier(prefix, carrier):
     source += seed_source(packed, offset=extent)
     words = source_program()
     source += words[words.index('\ndef read_word('):words.index('\ndef put_four(')]
-    return render_assembly(document(source, Path(carrier.source).stem))
+    name = carrier.tail_source if component else carrier.source
+    return render_assembly(document(source, Path(name).stem))
 
 
 def build(output, compiler, cold_report, *, kind='read'):
@@ -170,13 +192,32 @@ def build(output, compiler, cold_report, *, kind='read'):
     packed_program = packer.read_bytes()
     program = NativeHiaJsonImage(packed_program, receipt['produced_sha256'])
     size = HEADER_SIZE + carrier.size
-    request = ctypes.create_string_buffer(carrier.magic)
+    frame = carrier.magic
+    component_receipt = {}
+    if carrier.tail_source:
+        tail_path = ROOT / carrier.tail_source
+        tail_source = tail_path.read_bytes()
+        if admitted[carrier.tail_source] != sha256(tail_source).hexdigest():
+            raise ValueError('Agent carrier tail must use the cold-admitted HIA source')
+        tail_packer, tail_receipt = compile_stage(output, kind + '-carrier-tail', compiler, tail_source)
+        tail_image = tail_packer.read_bytes()
+        tail = NativeHiaJsonImage(tail_image, tail_receipt['produced_sha256'])
+        tail_request = ctypes.create_string_buffer(carrier.magic)
+        tail_result = ctypes.create_string_buffer(size - carrier_split(carrier))
+        tail_workspace = ctypes.create_string_buffer(2 * len(tail_result))
+        tail_count = tail._entry(tail_request, len(carrier.magic), tail_result, len(tail_result),
+                                 tail_workspace, len(tail_workspace))
+        if tail_count != len(tail_result) or tail_request.raw != carrier.magic + b'\0':
+            raise ValueError('Agent carrier tail packer refused its exact component extent')
+        frame += tail_result.raw
+        component_receipt['tail_compilation'] = tail_receipt
+    request = ctypes.create_string_buffer(frame)
     result = ctypes.create_string_buffer(size)
     workspace = ctypes.create_string_buffer(2 * size) if carrier.compressed else None
-    count = program._entry(request, len(carrier.magic), result, size, workspace,
+    count = program._entry(request, len(frame), result, size, workspace,
                            len(workspace) if workspace is not None else 0)
     executable = result.raw
-    if (count != size or request.raw != carrier.magic + b'\0'
+    if (count != size or request.raw != frame + b'\0'
             or sha256(executable[HEADER_SIZE:]).hexdigest() != carrier.digest):
         raise ValueError('Agent carrier packer did not produce the admitted platform image')
     expected_header = bytearray(elf_prefix(b''))
@@ -185,6 +226,10 @@ def build(output, compiler, cold_report, *, kind='read'):
     if (executable[:HEADER_SIZE] != expected_header
             or author(executable[HEADER_SIZE:], kind=kind).encode() != source):
         raise ValueError('Agent carrier platform header or source is noncanonical')
+    if carrier.tail_source and (
+            author_tail(executable[HEADER_SIZE:], carrier).encode() != tail_source
+            or tail_path.read_bytes() != tail_source or tail_packer.read_bytes() != tail_image):
+        raise ValueError('Agent carrier tail source or image changed before publication')
     elf = inspect_executable(executable)
     if (current_sources() != admitted or source_path.read_bytes() != source
             or compiler.read_bytes() != seed or cold_report.read_bytes() != report
@@ -199,7 +244,7 @@ def build(output, compiler, cold_report, *, kind='read'):
             'schema': 'hepta.hia.agent-' + kind + '-carrier-stdio-build.v1',
             'source_sha256': admitted[carrier.source], 'platform_sha256': carrier.digest,
             'executable_sha256': sha256(executable).hexdigest(),
-            'packer_compilation': receipt, 'elf': elf,
+            'packer_compilation': receipt, 'elf': elf, **component_receipt,
         }, stream, indent=2)
         stream.write('\n')
     return target
