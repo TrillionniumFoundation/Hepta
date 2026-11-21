@@ -18,6 +18,8 @@ def context_store(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return context_lookup(s, o)
     if mode == OBSERVE:
         return context_observe(s, o)
+    if mode == PUBLIC_REFERENCE:
+        return context_public_reference(s, o)
     if mode != CREATE or length(s) != 208:
         return 4294967293
     if artifact_reference(s, 32) == False:
@@ -45,6 +47,32 @@ def context_store(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     field(o, end + 40, 64, 36)
     context_name(s, o, end + 64)
     return end + 100
+
+# Render the public reference only after the Store issued its exact two-row
+# commit marker while the matching continuation still owns the create port.
+def context_public_reference(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 356:
+        return 4294967293
+    if input_word(s, 8) != CLAIMED or input_word(s, 16) != 0 or input_word(s, 24) != 45:
+        return 4294967293
+    if input_word(s, 32) == 0 or input_word(s, 40) != 2 or input_word(s, 48) != 1 or input_word(s, 64) != 0:
+        return 4294967293
+    if (input_word(s, 72) | input_word(s, 80)) == 0:
+        return 4294967293
+    if is_context_name(s, 88) == False or artifact_reference(s, 124) == False:
+        return 4294967293
+    if input_word(s, 300) != COMMITTED or input_word(s, 308) != 5 or input_word(s, 316) != 8:
+        return 4294967293
+    if input_word(s, 324) != 2 or input_word(s, 332) != 0 or input_word(s, 340) == 0 or input_word(s, 348) == 0:
+        return 4294967293
+    put(o, 0, REFERENCE_HEAD)
+    copy_input(s, o, 88, 7, 36)
+    put(o, 43, REFERENCE_FIELD)
+    put(o, 51, REFERENCE_FIELD_END)
+    copy_input(s, o, 177, 55, 64)
+    store(o, 119, 34)
+    store(o, 120, 125)
+    return 121
 
 # Query the original five-column context row by server-generated ID.
 def context_lookup(s:readbuf, o:mutbuf) -> u64:
@@ -142,8 +170,11 @@ def nibble(value:u64) -> u64:
 
 
 def program():
-    constants = {'CREATE': b'HIACTS01', 'BINDINGS': b'HIACTB01', 'INSERT': b'HIAINS01', 'LOOKUP': b'HIACTL01', 'OBSERVE': b'HIACTO01',
-                 'RESOLVED': b'HIACTO02'}
+    constants = {'CREATE': b'HIACTS01', 'BINDINGS': b'HIACTB01', 'INSERT': b'HIAINS01',
+                 'LOOKUP': b'HIACTL01', 'OBSERVE': b'HIACTO01', 'RESOLVED': b'HIACTO02',
+                 'PUBLIC_REFERENCE': b'HIACRI01', 'CLAIMED': b'HCTXRSP1', 'COMMITTED': b'HIASTCP1',
+                 'REFERENCE_HEAD': b'{"id":"', 'REFERENCE_FIELD': b'","sha25',
+                 'REFERENCE_FIELD_END': b'6":"'}
     code = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                   lambda match: str(int.from_bytes(constants[match.group()], 'little')), POLICY)
     shared = artifact_policy()

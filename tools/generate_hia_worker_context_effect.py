@@ -220,7 +220,8 @@ def online_cpus(s:readbuf, o:mutbuf) -> u64:
     divisor = 1
     while total >= divisor * 10:
         divisor = divisor * 10
-    return digits(o, 0, total, divisor)
+    put(o, 0, CPU_RESULT)
+    return digits(o, 8, total, divisor)
 
 def cpu_index(s:readbuf, at:u64, limit:u64) -> u64:
     first = at
@@ -239,7 +240,7 @@ def cpu_index(s:readbuf, at:u64, limit:u64) -> u64:
 def program():
     tags = {'REQUEST': b'HIACTE01', 'CLAIM': b'HCTXRSP1', 'PLAN': b'HIACTP01',
             'WORKLOAD': b'HIACTF01', 'COST': b'HIACTC01', 'AMOUNT': b'HIACTM01',
-            'TIME_SAMPLE': b'HIACTT01', 'CPU_SAMPLE': b'HIACTN01',
+            'TIME_SAMPLE': b'HIACTT01', 'CPU_SAMPLE': b'HIACTN01', 'CPU_RESULT': b'HIACTN02',
             'UTC_SUFFIX': b'+00:00"', 'EFFECT': b'HIACTE02'}
     source = re.sub(r'\b(' + '|'.join(tags) + r')\b',
                     lambda match: str(int.from_bytes(tags[match.group()], 'little')), POLICY)
