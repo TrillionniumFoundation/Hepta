@@ -208,6 +208,16 @@ class CorePatchResultCliAdapterTests(unittest.TestCase):
             actual = self.invoke(result, result_code=value)
             self.assertEqual((actual.returncode, actual.stdout, actual.stderr), (expected, b'', b''))
 
+    def test_private_worker_preserves_a_kernel_refusal_without_candidate_bytes(self):
+        result = struct.pack('<4Q', RESULT_MAGIC, 2, 2, 0) + b'C0{}'
+        for status in (0xfffffff1, 0xfffffff9, 0xfffffffe):
+            with self.subTest(status=status):
+                private = self.invoke(result, argv=('v1', '--agent-status'), result_code=status)
+                receipt = struct.pack('<8sQ', b'HIAPRF01', status)
+                self.assertEqual((private.returncode, private.stdout, private.stderr), (0, receipt, b''))
+        success = self.invoke(result, argv=('v1', '--agent-status'))
+        self.assertEqual((success.returncode, success.stdout, success.stderr), (0, result, b''))
+
     def test_argument_guard_requires_one_exact_declared_schema(self):
         result = struct.pack('<4Q', RESULT_MAGIC, 2, 2, 0) + b'C0{}'
         for argv in ((), ('',), ('v',), ('v0',), ('v3',), ('1',), ('v1x',),
