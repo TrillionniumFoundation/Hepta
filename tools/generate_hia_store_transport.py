@@ -34,6 +34,10 @@ WIRE = {
     'PROFILE_URI_PREFIX': b'","uri":',
     'PROFILE_URI_MIDDLE': b'"hia://a',
     'PROFILE_URI_TAIL': b'rtifacts',
+    'ARTIFACT_URI_HEAD': b'hia://ar',
+    'ARTIFACT_URI_TAIL': b'tifacts/',
+    'ARTIFACT_PROFILE': b'profile',
+    'ARTIFACT_DISCOVERY_HEAD': b'discover',
 }
 
 POLICY = '''
@@ -125,8 +129,11 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 19:
         if valid_profile_insert(s, size) == False:
             return 0
+    elif plan == 20:
+        if valid_discovery_insert(s, size) == False:
+            return 0
     else:
-        if plan != 2 and plan != 3 and plan != 6:
+        if plan != 1 and plan != 2 and plan != 3 and plan != 6:
             return 0
         cap = choose(plan == 2, 192, choose(plan == 3, 208, 2048))
         if size > 56 + cap or read_word(s, 48) != QUERY_PARAMETERS:
@@ -134,6 +141,8 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != size:
             return 0
         if read_word(s, 80) != 3 or read_word(s, 88) != 56 or read_word(s, 96) != size - 56:
+            return 0
+        if plan == 1 and (size != 120 or valid_hex(s, 104, 64) == False):
             return 0
     configure_unique(w, request, plan)
     write_word(w, 112, mode)
@@ -259,6 +268,44 @@ def profile_reference(s:readbuf, digest:u64, reference:u64) -> bool:
 def lower_hex(ch:u64) -> bool:
     return (ch >= 48 and ch <= 57) or (ch >= 97 and ch <= 102)
 
+def valid_hex(s:readbuf, at:u64, count:u64) -> bool:
+    end = at + count
+    while at < end:
+        if lower_hex(byte(s, at)) == False:
+            return False
+        at = at + 1
+    return True
+
+# Narrow immutable discovery/document insert. Metadata is the original empty
+# object; data custody and content verification occur before request delivery.
+def valid_discovery_insert(s:readbuf, size:u64) -> bool:
+    if (size != 403 and size != 405) or read_word(s, 48) != INSERT_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 9 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
+        return False
+    kind = choose(size == 403, 7, 9)
+    offset = 184
+    field = 0
+    while field < 6:
+        extent = choose(field == 0, 34, choose(field == 2, 48, choose(field == 3, kind, choose(field == 4, 2, 64))))
+        at = 88 + field * 24
+        if read_word(s, at) != 3 or read_word(s, at + 8) != offset or read_word(s, at + 16) != extent:
+            return False
+        offset = offset + extent
+        field = field + 1
+    if byte(s, 232) != 97 or byte(s, 233) != 45:
+        return False
+    if read_word(s, 330) != ARTIFACT_URI_HEAD or read_word(s, 338) != ARTIFACT_URI_TAIL:
+        return False
+    if kind == 7:
+        if read_word(s, 378) & 72057594037927935 != ARTIFACT_PROFILE:
+            return False
+    elif read_word(s, 378) != ARTIFACT_DISCOVERY_HEAD or byte(s, 386) != 121:
+        return False
+    if byte(s, 378 + kind) != 123 or byte(s, 379 + kind) != 125:
+        return False
+    return valid_hex(s, 234, 32) and valid_hex(s, 266, 64) and valid_hex(s, 346, 32) and valid_hex(s, 380 + kind, 64)
+
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
@@ -268,7 +315,7 @@ def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
 
 def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
     plan = read_state(w, 16)
-    if plan == 10 or plan == 19:
+    if plan == 10 or plan == 19 or plan == 20:
         return send_unique(o, w, 27, 1, read_state(w, 128), 10)
     if plan == 18:
         # The Store sees regular command 27 with ordinary insert target 1.
@@ -328,7 +375,7 @@ def unique_transaction(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
 # validated before a typed insert transaction may return a usable receipt.
 def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     plan = read_state(w, 16)
-    if plan != 10 and plan != 18 and plan != 19:
+    if plan != 10 and plan != 18 and plan != 19 and plan != 20:
         return 0
     if phase == 10 or phase == 12 or phase == 14:
         if length(s) != 16:
@@ -389,7 +436,7 @@ def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 def finish_unique(o:mutbuf, w:mutbuf) -> u64:
     write_word(o, 0, 5)
     plan = read_state(w, 16)
-    if plan == 10 or plan == 18 or plan == 19:
+    if plan == 10 or plan == 18 or plan == 19 or plan == 20:
         write_word(o, 8, read_state(w, 168) * 8)
         write_word(o, 16, read_state(w, 152))
         write_word(o, 24, read_state(w, 144))
@@ -415,7 +462,7 @@ def unique_stream(s:readbuf, o:mutbuf, w:mutbuf, role:u64) -> u64:
             return 0
         request = read_word(s, 8)
         plan = read_word(s, 16)
-        if request == 0 or (plan != 2 and plan != 3 and plan != 6):
+        if request == 0 or (plan != 1 and plan != 2 and plan != 3 and plan != 6):
             return 0
         configure_unique(w, request, plan)
         return stream_read(o, w, 1, 8)
