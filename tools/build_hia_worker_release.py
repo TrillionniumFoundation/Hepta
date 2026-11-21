@@ -7,6 +7,7 @@ Only the program images and policy manifests are deployed by this command.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import errno
 from functools import partial
 from hashlib import sha256
@@ -158,17 +159,23 @@ def _worker_prepare_has_witness_publisher(prepare):
     return True
 
 
-def _run_job_writer(writer, frame, directory):
+@contextmanager
+def _sealed_frame(frame):
     import fcntl
 
+    with os.fdopen(os.memfd_create('hia-worker-probe', os.MFD_ALLOW_SEALING), 'w+b') as source:
+        source.write(frame)
+        source.flush()
+        fcntl.fcntl(source, fcntl.F_ADD_SEALS, fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK |
+                    fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE)
+        source.seek(0)
+        yield source
+
+
+def _run_job_writer(writer, frame, directory):
     output = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
     try:
-        with os.fdopen(os.memfd_create('job-writer-frame', os.MFD_ALLOW_SEALING), 'w+b') as source:
-            source.write(frame)
-            source.flush()
-            fcntl.fcntl(source, fcntl.F_ADD_SEALS, fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK |
-                        fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE)
-            source.seek(0)
+        with _sealed_frame(frame) as source:
             return subprocess.run([writer], stdin=source, stdout=output, stderr=subprocess.PIPE,
                                   env={'PATH': ''}, timeout=5)
     finally:
@@ -278,6 +285,28 @@ def _worker_prepare_has_supervision_loop(prepare):
     return True
 
 
+def _request_classifier_has_resource_uri(classifier):
+    uri = rb'"hia:\/\/artifact\/controller-\u0072ead"'
+    request_id = rb'"session\u0031"'
+    params = b'{"uri":' + uri + b'}'
+    frame = b'{"jsonrpc":"2.0","method":"resources/read","id":' + request_id + b',"params":' + params + b'}'
+    with _sealed_frame(frame) as source:
+        run = subprocess.run([classifier], stdin=source, capture_output=True, timeout=5, env={'PATH': ''})
+    if run.returncode or run.stderr or len(run.stdout) != 96:
+        raise ValueError('invalid installed HIA MCP resource request probe')
+    fields = struct.unpack('<Q8s10Q', run.stdout)
+    if fields[:4] != (88, b'HIAMCP01', 8, 4) or fields[8] or fields[11]:
+        raise ValueError('installed HIA MCP request classifier cannot identify the resource route')
+    for start, size, expected in ((fields[4], fields[5], request_id), (fields[6], fields[7], params)):
+        if frame[start:start + size] != expected:
+            raise ValueError('installed HIA MCP request classifier changed the request identity')
+    if fields[9:11] == (0, 0):
+        return False
+    if frame[fields[9]:fields[9] + fields[10]] != uri:
+        raise ValueError('installed HIA MCP request classifier changed the resource URI')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -318,6 +347,8 @@ def _install_controller(output, scratch, release, installer):
             schema = 'hepta.hia.mcp.controller.v11'
     if schema == 'hepta.hia.mcp.controller.v11' and _job_writer_has_cancellation(receipt_writer, scratch):
         schema = 'hepta.hia.mcp.controller.v12'
+    if schema == 'hepta.hia.mcp.controller.v12' and _request_classifier_has_resource_uri(release / 'hia-agent-mcp-request'):
+        schema = 'hepta.hia.mcp.controller.v13'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

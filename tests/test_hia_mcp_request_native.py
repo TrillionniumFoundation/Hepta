@@ -65,6 +65,15 @@ class RoutingCases:
                          'ping', b'9223372036854775807')
         self.check_route(b'{"jsonrpc":"2.0","method":"tools/call"}', None, None)
 
+    def test_resource_read_preserves_the_exact_uri_string_from_the_explicit_route(self):
+        raw_uri = rb'"hia:\/\/artifact\/test\u002didentity"'
+        params = rb'{"ignored":{"uri":"wrong"},"ur\u0069":' + raw_uri + b'}'
+        request_id = rb'"id\u0031"'
+        original = rb'{"jsonrpc":"2.0","method":"resources\/read","id":' + request_id + b',"params":'
+        self.check_route(original + params + b'}', 'resources/read', request_id,
+                         params=params, arguments=raw_uri)
+        self.assertEqual(json.loads(raw_uri), 'hia://artifact/test-identity')
+
     def test_refusals_keep_valid_ids_but_never_return_a_dispatch_for_bad_wire(self):
         for params, code in ((b'{}', INVALID_PARAMS), (b'{"name":"unknown"}', METHOD_NOT_FOUND),
                              (b'[]', INVALID_PARAMS), (b'null', INVALID_PARAMS)):

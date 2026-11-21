@@ -1,7 +1,8 @@
 """Author the lossless, side-effect-free HIA MCP request classifier.
 
 The 88-byte little-endian result contains a magic, request role, ID type,
-three raw spans (ID, params, arguments), tool ordinal and route decision.
+three raw spans (ID, params, tool arguments or resource URI), tool ordinal
+and route decision.
 Span offsets always refer to the unchanged input. No span confers authority.
 """
 from __future__ import annotations
@@ -158,6 +159,15 @@ def signed_id(s:readbuf, at:u64, extent:u64) -> u64:
     return 1
 '''
 
+RESOURCE_SPAN = r'''
+    elif role == 8 and decision == 0:
+        if params != NONE and get(w, params) == 6:
+            uri = lookup(w, params, URI_FIELD)
+            if uri != NONE and get(w, uri) == 4:
+                argument_at = get(w, uri + 56)
+                argument_bytes = get(w, uri + 64)
+'''
+
 def tool_names():
     tools = json.loads(CATALOG.read_bytes())['tools']
     names = tuple(tool['name'] for tool in tools)
@@ -181,8 +191,13 @@ def comparison_table(name, values):
     return '\n'.join(lines)
 
 
-def source_program(*, methods=METHODS, keys=KEYS):
-    policy = (POLICY.replace('ROUTE_MAGIC', str(int.from_bytes(MAGIC, 'little')))
+def source_program(*, methods=METHODS, keys=KEYS, capture_resource_uri=False):
+    policy = POLICY
+    if capture_resource_uri:
+        keys = (*keys, 'uri')
+        tool_route = '    elif role == 5 and decision == 0:'
+        policy = policy.replace(tool_route, RESOURCE_SPAN.replace('URI_FIELD', str(len(keys))) + tool_route)
+    policy = (policy.replace('ROUTE_MAGIC', str(int.from_bytes(MAGIC, 'little')))
               .replace('NONE', '18446744073709551615')
               .replace('WIRE_LIMIT', str(LIMIT))
               .replace('OUTPUT_LIMIT', str(OUTPUT_BYTES))
@@ -195,7 +210,7 @@ def source_program(*, methods=METHODS, keys=KEYS):
 
 
 def render():
-    return render_assembly(document(source_program(), 'mcp_request_route'))
+    return render_assembly(document(source_program(capture_resource_uri=True), 'mcp_request_route'))
 
 
 def main():
