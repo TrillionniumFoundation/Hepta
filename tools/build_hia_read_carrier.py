@@ -23,19 +23,20 @@ from tools.qualify_hia_selfhost_cli import inspect_executable
 
 SOURCE = 'examples/hia_bootstrap/agent_read_carrier_packer.hepta'
 MAGIC = b'HIARCK01'
-CODE_DIGEST = '57bc185aac3ea603efd608c825e0cc7f631aa96bb104e233bbeaf7d6a40a48d5'
-CODE_SIZE = 8496
+CODE_DIGEST = 'be9ab7d04b011004ff47c2b39a805d28b70278a7887e76342b02ac06c151096f'
+CODE_SIZE = 9048
 HEADER_SIZE = 176
 # Offsets in the audited ISA profile. Each group owns only delivery mechanics.
 CARRIER_SECTIONS = (
     ('entry_and_abi', 0, 550),
     ('read_lease', 550, 917),
-    ('extent_and_io', 917, 1140),
-    ('child_closeout', 1140, 1513),
-    ('immutable_buffers', 1513, 2067),
-    ('child_execution', 2067, 2995),
-    ('store_and_feedback', 2995, 3847),
-    ('descriptor_relay_and_store_custody', 3847, CODE_SIZE),
+    ('extent_and_io', 917, 1249),
+    ('child_closeout', 1249, 1702),
+    ('immutable_buffers', 1702, 2256),
+    ('child_execution', 2256, 3159),
+    ('store_startup', 3159, 3661),
+    ('store_transport_and_feedback', 3661, 4513),
+    ('descriptor_relay_and_store_custody', 4513, CODE_SIZE),
 )
 
 
