@@ -15,6 +15,10 @@ TAIL = HEADER + 2 * SELECTOR_BYTES + 8
 VIEW_MODE = int.from_bytes(b'HIAVIEW1', 'little')
 IMPORT_MODE = int.from_bytes(b'HIAADG01', 'little')
 LOWERING_MODE = int.from_bytes(b'HIAVLOW1', 'little')
+DEPENDENCY_MODE = int.from_bytes(b'HIAVDEP1', 'little')
+DEPENDENCY_CONTROL = 9472
+DEPENDENCY_EXTENTS = 7904
+DEPENDENCY_SELECTORS = 7928
 NONE = (1 << 64) - 1
 
 POLICY = '''
@@ -26,6 +30,8 @@ def inspect_agent(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967293
     if mode == VIEW_MODE:
         return inspect_part(s, o, w)
+    if mode == DEPENDENCY_MODE:
+        return dependency_selection(s, o, w)
     if mode == IMPORT_MODE:
         return import_diagnostics(s, o, w)
     if mode == LOWERING_MODE:
@@ -162,6 +168,53 @@ def inspect_part(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967294
     return size
 
+# The descriptor relay copies only the three already-projected string selectors
+# into the last control page. Report domain failures without running edit lowering.
+def dependency_selection(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) < DEPENDENCY_CONTROL + 64 or length(o) < 64:
+        return 4294967293
+    frame = length(w) - DEPENDENCY_CONTROL
+    extents = frame + DEPENDENCY_EXTENTS
+    function_size = get(w, extents)
+    block_size = get(w, extents + 8)
+    output_size = get(w, extents + 16)
+    if function_size == 0 or function_size > SELECTOR_BYTES or block_size == 0 or block_size > SELECTOR_BYTES or output_size == 0 or output_size > SELECTOR_BYTES:
+        return 4294967293
+    put(o, 48, 262144)
+    put(o, 56, 64)
+    decoded = widen(decode_json(s, w, o))
+    if decoded >= 4294967292:
+        return decoded
+    if decoded > frame:
+        return 4294967293
+    status = dependency_status(w, frame + DEPENDENCY_SELECTORS, function_size, block_size, output_size)
+    put(o, 0, status)
+    return 8
+
+def dependency_status(w:mutbuf, selectors:u64, function_size:u64, block_size:u64, output_size:u64) -> u64:
+    functions = field(w, 0, K_functions)
+    fn = named_element(w, functions, K_name, selectors, function_size)
+    if fn == NONE:
+        return 1
+    blocks = field(w, fn, K_blocks)
+    block = named_element(w, blocks, K_id, selectors + SELECTOR_BYTES, block_size)
+    if block == NONE:
+        return 2
+    ops = field(w, block, K_ops)
+    if ops == NONE or get(w, 64 + ops * 56) != 5:
+        return 3
+    op = get(w, 64 + ops * 56 + 24)
+    sites = 0
+    while op != NONE:
+        outputs = field(w, op, K_out)
+        producer = named_element(w, outputs, K_name, selectors + 2 * SELECTOR_BYTES, output_size)
+        if producer != NONE:
+            sites = sites + 1
+        op = get(w, 64 + op * 56 + 16)
+    if sites != 1:
+        return 3
+    return 0
+
 def named_element(w:mutbuf, array:u64, name:u64, at:u64, size:u64) -> u64:
     if array == NONE or size == 0 or get(w, 64 + array * 56) != 5:
         return NONE
@@ -206,7 +259,9 @@ def reachable_source(source):
 def source_program():
     words = {'K_' + name: 1 << index for index, name in enumerate(KEYS)}
     words.update(NONE=NONE, SELECTOR_BYTES=SELECTOR_BYTES, TAIL=TAIL,
-                 VIEW_MODE=VIEW_MODE, IMPORT_MODE=IMPORT_MODE, LOWERING_MODE=LOWERING_MODE)
+                 VIEW_MODE=VIEW_MODE, IMPORT_MODE=IMPORT_MODE, LOWERING_MODE=LOWERING_MODE,
+                 DEPENDENCY_MODE=DEPENDENCY_MODE, DEPENDENCY_CONTROL=DEPENDENCY_CONTROL,
+                 DEPENDENCY_EXTENTS=DEPENDENCY_EXTENTS, DEPENDENCY_SELECTORS=DEPENDENCY_SELECTORS)
     lens = re.sub(r'\b(' + '|'.join(words) + r')\b', lambda match: str(words[match[0]]), POLICY)
     return reachable_source(report_source(nominal=True, compact=True, entry=lens + '\n'))
 

@@ -45,6 +45,8 @@ WIRE = {
     'CONTEXT_TOOL_TAIL': b'ext',
     'CANDIDATE_TOOL_HEAD': b'hia_cand',
     'CANDIDATE_TOOL_TAIL': b'idate',
+    'INSPECTION_TOOL_HEAD': b'hia_insp',
+    'INSPECTION_TOOL_TAIL': b'ect',
     'RUNNING_STATE': b'running',
 }
 
@@ -458,6 +460,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
         width = 11
     elif tool == CANDIDATE_TOOL_HEAD and read_word(s, 368) & 1099511627775 == CANDIDATE_TOOL_TAIL:
         width = 13
+    elif tool == INSPECTION_TOOL_HEAD and read_word(s, 368) & 16777215 == INSPECTION_TOOL_TAIL:
+        width = 11
     if width == 0 or size <= 319 + width or size > 339 + width:
         return False
     if valid_cell(s, 136, 3, 312, width) == False or valid_cell(s, 160, 3, 312 + width, 7) == False:
