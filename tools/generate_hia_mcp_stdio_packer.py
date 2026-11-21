@@ -596,23 +596,24 @@ def store_unique_template():
     # Fixed Linux x86-64 descriptor operations; no Store fields are parsed here.
     code = bytes.fromhex(
         # Require one decimal inherited Store descriptor; FD 0 and 1 are private transport.
-        '48 83 3c 24 02 0f 85 9d 02 00 00 48 8b 74 24 10 45 31 ed 31 c9 '
+        '48 83 3c 24 02 0f 85 b2 02 00 00 48 8b 74 24 10 45 31 ed 31 c9 '
         # Parse an ASCII descriptor bounded to the signed Linux fd range.
-        '0f b6 06 85 c0 74 30 83 f9 0a 0f 83 83 02 00 00 83 e8 30 83 f8 09 '
-        '0f 87 77 02 00 00 4d 6b ed 0a 49 01 c5 49 81 fd ff ff ff 7f 0f 87 '
-        '63 02 00 00 48 ff c6 ff c1 eb c9 '
+        '0f b6 06 85 c0 74 30 83 f9 0a 0f 83 98 02 00 00 83 e8 30 83 f8 09 '
+        '0f 87 8c 02 00 00 4d 6b ed 0a 49 01 c5 49 81 fd ff ff ff 7f 0f 87 '
+        '78 02 00 00 48 ff c6 ff c1 eb c9 '
         # Reserve aligned input, output, state and poll storage.
-        '41 83 fd 03 0f 82 52 02 00 00 48 81 ec c0 40 00 00 49 89 e4 fc '
+        '41 83 fd 03 0f 82 67 02 00 00 48 81 ec c0 40 00 00 49 89 e4 fc '
         # Require an exact sealed 24-byte prelude and a fresh sealable sink.
-        '31 ff be 0a 04 00 00 b8 48 00 00 00 0f 05 48 85 c0 0f 88 30 02 00 '
-        '00 83 e0 0f 83 f8 0f 0f 85 24 02 00 00 31 ff 49 8d b4 24 00 20 00 '
-        '00 b8 05 00 00 00 0f 05 48 85 c0 0f 85 11 02 00 00 49 83 bc 24 30 '
-        '20 00 00 18 0f 85 fb 01 00 00 bf 01 00 00 00 be 0a 04 00 00 b8 48 '
-        '00 00 00 0f 05 48 85 c0 0f 85 e1 01 00 00 bf 01 00 00 00 31 f6 ba '
-        '02 00 00 00 b8 08 00 00 00 0f 05 48 85 c0 0f 85 c5 01 00 00 '
-        # Read the prelude into scratch; initial HIA state is zero.
+        '31 ff be 0a 04 00 00 b8 48 00 00 00 0f 05 48 85 c0 0f 88 45 02 00 '
+        '00 83 e0 0f 83 f8 0f 0f 85 39 02 00 00 31 ff 49 8d b4 24 00 20 00 '
+        '00 b8 05 00 00 00 0f 05 48 85 c0 0f 85 26 02 00 00 49 83 bc 24 30 '
+        '20 00 00 18 0f 85 10 02 00 00 bf 01 00 00 00 be 0a 04 00 00 b8 48 '
+        '00 00 00 0f 05 48 85 c0 0f 85 f6 01 00 00 bf 01 00 00 00 31 f6 ba '
+        '02 00 00 00 b8 08 00 00 00 0f 05 48 85 c0 0f 85 da 01 00 00 '
+        # Read the sealed prelude from offset zero; initial HIA state is zero.
         '49 8d bc 24 00 40 00 00 31 c0 b9 10 00 00 00 f3 48 ab 31 ff 4c 89 '
-        'e6 ba 18 00 00 00 e8 1c 01 00 00 41 be 18 00 00 00 '
+        'e6 ba 18 00 00 00 45 31 d2 b8 11 00 00 00 0f 05 48 83 f8 fc 74 e6 '
+        '48 83 f8 18 0f 85 ab 01 00 00 41 be 18 00 00 00 '
         # Invoke the one embedded HIA continuation and bound its reply extent.
         '4c 89 e7 4c 89 f6 49 8d 94 24 00 20 00 00 b9 e0 1f 00 00 4d 8d 84 '
         '24 00 40 00 00 41 b9 80 00 00 00 e8 00 00 00 00 83 f8 20 0f 82 6f '
@@ -651,7 +652,8 @@ def store_unique_template():
         # Exit without a dynamic loader.
         'b8 3c 00 00 00 0f 05 0f 0b '
     )
-    return elf_prefix(code), len(elf_prefix(b'')) + 300
+    return elf_prefix(code), len(elf_prefix(b'')) + 321
+
 
 def render():
     source = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
