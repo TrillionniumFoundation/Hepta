@@ -47,13 +47,14 @@ LOWERING_ELF_MODE = 37
 LOWERING_FRAMES_MODE = 38
 BORROWED_EXPORT_MODE = 39
 CANDIDATE_JSON_MODE = 40
+NATIVE_ARTIFACT_MODE = 41
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
               DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE,
               ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
               CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE, LOWERING_ELF_MODE, LOWERING_FRAMES_MODE,
-              BORROWED_EXPORT_MODE, CANDIDATE_JSON_MODE)
+              BORROWED_EXPORT_MODE, CANDIDATE_JSON_MODE, NATIVE_ARTIFACT_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -85,6 +86,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'inspection-request': ARTIFACT_REQUEST_MODE,
          'candidate-request': ARTIFACT_REQUEST_MODE,
          'worker-rollback': ARTIFACT_DIAGNOSTIC_MODE,
+         'native-artifact-metadata': NATIVE_ARTIFACT_MODE,
          'candidate-effect': READ_REACTOR_MODE,
          'candidate-json-ingress': CANDIDATE_JSON_MODE,
          'candidate-admission-diagnostic': ARTIFACT_DIAGNOSTIC_MODE,
@@ -141,7 +143,7 @@ def template(mode):
         return terminal_template()
     page = mode == PAGE_MODE
     schema = mode == SCHEMA_MODE
-    diagnostic = mode == ARTIFACT_DIAGNOSTIC_MODE
+    diagnostic = mode in (ARTIFACT_DIAGNOSTIC_MODE, NATIVE_ARTIFACT_MODE)
     context_workload = mode == CONTEXT_WORKLOAD_MODE
     inspection = mode in (INSPECTION_MODE, LOWERING_FRAMES_MODE)
     lowering_elf = mode == LOWERING_ELF_MODE
@@ -177,6 +179,8 @@ def template(mode):
     maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     if diagnostic:
         scratch, workspace, minimum = 4 << 20, SCHEMA_ARENA_BYTES, 1
+    if mode == NATIVE_ARTIFACT_MODE:
+        workspace, maximum = ARENA_BYTES, INPUT_MAX + 1024
     if context_workload:
         # The decoder also uses this mapping for its original duplicate-key table.
         scratch, workspace = 4 << 20, ARENA_BYTES + 8192

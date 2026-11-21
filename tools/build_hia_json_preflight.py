@@ -119,6 +119,7 @@ CANDIDATES = {
     'inspection-request': ('worker_inspection_request', 'inspection-request'),
     'candidate-request': ('worker_candidate_request', 'candidate-request'),
     'worker-rollback': ('worker_rollback', 'worker-rollback'),
+    'native-artifact-metadata': ('worker_native_artifact', 'native-artifact-metadata'),
     'candidate-effect': ('worker_candidate_effect', 'candidate-effect'),
     'candidate-json-ingress': ('worker_candidate_json_ingress', 'candidate-json-ingress'),
     'candidate-admission-diagnostic': ('worker_candidate_admission_diagnostic', 'candidate-admission-diagnostic'),
