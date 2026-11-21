@@ -1416,7 +1416,6 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/agent_store_transport.hepta',
     'tools/generate_hia_store_transport.py',
     'tests/test_hia_agent_store_transport_native.py',
-    'hepta/hia_agent_store_transport_native.py',
     'tools/build_hia_agent_read_page.py',
     'tools/generate_hia_agent_read_page.py',
     'tools/hia_agent_read_page_stdio.S',
