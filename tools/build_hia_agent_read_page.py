@@ -35,6 +35,7 @@ VARIANTS = {
     'describe-request': ('worker_describe_request', 'hepta.hia.worker-describe-request-native.v1'),
     'artifact-request': ('worker_artifact_request', 'hepta.hia.worker-artifact-request-native.v1'),
     'journal-records': ('worker_journal_records', 'hepta.hia.journal-records-native.v1'),
+    'journal-observation': ('worker_journal_observation', 'hepta.hia.journal-observation-native.v1'),
     'discovery': ('agent_discovery', 'hepta.hia.agent-discovery-native.v1'),
     'describe-answer': ('agent_describe_answer', 'hepta.hia.agent-describe-answer-native.v1'),
     'discovery-artifact': ('discovery_artifact', 'hepta.hia.discovery-artifact-native.v1'),

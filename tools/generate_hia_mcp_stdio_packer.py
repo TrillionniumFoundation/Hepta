@@ -60,7 +60,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'discovery-artifact': DISCOVERY_ARTIFACT_MODE, 'discovery-effect': READ_REACTOR_MODE,
          'describe-bind': DISCOVERY_MODE, 'discovery-bootstrap-plan': DISCOVERY_MODE,
          'discovery-bootstrap-assemble': DISCOVERY_MODE, 'artifact-request': ARTIFACT_REQUEST_MODE,
-         'journal-records': JOURNAL_RECORD_MODE}
+         'journal-records': JOURNAL_RECORD_MODE,
+         'journal-observation': JOURNAL_RECORD_MODE}
 
 
 def elf_prefix(code):
@@ -134,7 +135,7 @@ def template(mode):
     if artifact_request:
         scratch, workspace, minimum, maximum = (4 << 16) + 512, (1 << 20) + 4096, 2, 1 << 20
     if journal_records:
-        scratch, workspace, minimum, maximum = INPUT_MAX + 512, 8, 72, INPUT_MAX + 72
+        scratch, workspace, minimum, maximum = INPUT_MAX + 1024, 8, 72, INPUT_MAX + 1024
     if describe_answer:
         scratch, workspace, minimum, maximum = 65536, 8, 16, 1 << 20
     if discovery_artifact:
