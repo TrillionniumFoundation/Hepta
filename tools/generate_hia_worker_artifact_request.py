@@ -5,7 +5,7 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_core_json_frontend import FRONTEND, packed
-from tools.generate_hia_json_decode import source_program as json_decoder
+from tools.generate_hia_agent_data_json import source_program as json_decoder
 
 SOURCE = 'examples/hia_bootstrap/worker_artifact_request.hepta'
 KEYS = ('artifact_profile', 'id', 'sha256', 'source', 'catalog_sha256', 'request_key',
@@ -28,8 +28,6 @@ def artifact_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if kind(w, args) != 6 or count(w, args) != 4:
         return 4294967293
     if matches_digest(w, field(w, args, KEY_catalog_sha256)) == False:
-        return 4294967293
-    if valid_text(w, field(w, args, KEY_request_key), 192) == False:
         return 4294967293
     if valid_profile(w, installed) == False:
         return 4294967293
@@ -133,14 +131,20 @@ def matches_digest(w:mutbuf, node:u64) -> bool:
         at = at + 1
     return True
 
-def valid_text(w:mutbuf, node:u64, maximum:u64) -> bool:
-    return kind(w, node) == 4 and count(w, node) > 0 and count(w, node) <= maximum
-
 def capture_limit(s:readbuf, w:mutbuf, node:u64) -> u64:
-    if kind(w, node) != 3 or count(w, node) < 1 or count(w, node) > 7:
-        return 0
+    tag = kind(w, node)
+    size = count(w, node)
     at = node_start(w, node)
-    end = at + count(w, node)
+    end = at + size
+    if tag == 7:
+        # Admitted binary64 integers in [1, 8388608] have the canonical .0 wire form.
+        if size < 3 or byte(s, end - 2) != 46 or byte(s, end - 1) != 48:
+            return 0
+        end = end - 2
+    elif tag != 3:
+        return 0
+    if end <= at or end - at > 7:
+        return 0
     number = 0
     while at < end:
         ch = byte(s, at)

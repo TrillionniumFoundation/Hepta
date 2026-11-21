@@ -42,18 +42,22 @@ def profile_observation(s:readbuf, o:mutbuf) -> u64:
         return 4294967293
     if size == 0:
         return 4294967289
-    if size != 232 or row_header(s, 96, 2, 1) == False:
+    if size != 359 or row_header(s, 96, 2, 3) == False:
         return 4294967293
-    if row_text(s, 128, 56, 176) == False or artifact_reference(s, 152) == False:
+    if row_text(s, 128, 104, 15) == False or row_text(s, 152, 119, 64) == False:
         return 4294967293
-    if matches(s, 205, 32, 64) == False:
+    if row_text(s, 176, 183, 176) == False or artifact_reference(s, 279) == False:
+        return 4294967293
+    if input_word(s, 200) != PROFILE_HEAD or (input_word(s, 208) & 72057594037927935) != PROFILE_END:
+        return 4294967293
+    if matches(s, 215, 32, 64) == False or matches(s, 332, 32, 64) == False:
         return 4294967293
     put(o, 0, PROFILE_REF)
     put(o, 8, 176)
-    copy_input(s, o, 152, 16, 176)
+    copy_input(s, o, 279, 16, 176)
     query_header(o, 192, 1, 90)
     query_field(o, 224, 56, 34)
-    return copy_input(s, o, 159, 248, 34)
+    return copy_input(s, o, 286, 248, 34)
 
 def artifact_observation(s:readbuf, o:mutbuf) -> u64:
     if length(s) < 256 or artifact_reference(s, 32) == False:
