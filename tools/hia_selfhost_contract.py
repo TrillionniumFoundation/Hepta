@@ -302,6 +302,8 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_verify_core_json.S',
 )
 MCP_WIRE_SDIST_FILES = (
+    'examples/hia_bootstrap/discovery_effect.hepta',
+    'tools/generate_hia_discovery_effect.py',
     'examples/hia_bootstrap/discovery_artifact.hepta',
     'tools/generate_hia_discovery_artifact.py',
     'examples/hia_bootstrap/worker_describe_request.hepta',
