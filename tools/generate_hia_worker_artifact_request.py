@@ -27,6 +27,8 @@ def artifact_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     args = next_node(w, installed)
     if kind(w, args) != 6 or count(w, args) != 4:
         return 4294967293
+    if kind(w, installed) == 4:
+        return catalog_observation(w, o, installed, field(w, args, KEY_catalog_sha256))
     if matches_digest(w, field(w, args, KEY_catalog_sha256)) == False:
         return 4294967293
     if valid_profile(w, installed) == False:
@@ -55,6 +57,35 @@ def artifact_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967293
         return file_data(s, o, w, data)
     return 4294967293
+
+def catalog_observation(w:mutbuf, o:mutbuf, pinned:u64, actual:u64) -> u64:
+    if matches_digest(w, pinned) == False or kind(w, actual) != 4:
+        return 4294967293
+    size = count(w, actual)
+    start = node_start(w, actual)
+    if size != 64 and (size != 65 or byte(w, start + 64) != 10):
+        return 4294967293
+    index = 0
+    while index < 64:
+        unit = byte(w, start + index)
+        if (unit < 48 or unit > 57) and (unit < 97 or unit > 102):
+            return 4294967293
+        store(o, 25 + index, unit)
+        index = index + 1
+    out = 89
+    if size == 65:
+        store(o, out, 92)
+        store(o, out + 1, 110)
+        out = out + 2
+    put(o, 0, out - 23)
+    put(o, 8, 66)
+    put(o, 16, 0)
+    store(o, 24, 34)
+    store(o, out, 34)
+    store(o, out + 1, 34)
+    out = copy_node(w, o, pinned, out + 2)
+    store(o, out, 34)
+    return out + 1
 
 def inline_data(o:mutbuf, w:mutbuf, text:u64) -> u64:
     if kind(w, text) != 4 or count(w, text) > 262144:
@@ -133,6 +164,8 @@ def matches_digest(w:mutbuf, node:u64) -> bool:
 
 def capture_limit(s:readbuf, w:mutbuf, node:u64) -> u64:
     tag = kind(w, node)
+    if tag != 3 and tag != 7:
+        return 0
     size = count(w, node)
     at = node_start(w, node)
     end = at + size
@@ -141,8 +174,6 @@ def capture_limit(s:readbuf, w:mutbuf, node:u64) -> u64:
         if size < 3 or byte(s, end - 2) != 46 or byte(s, end - 1) != 48:
             return 0
         end = end - 2
-    elif tag != 3:
-        return 0
     if end <= at or end - at > 7:
         return 0
     number = 0

@@ -7,6 +7,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_agent_journal import response_recipe
 from tools.generate_hia_agent_journal_transport import transport_program
+from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE_POLICY
 
 SOURCE = 'examples/hia_bootstrap/worker_artifact_journal.hepta'
 
@@ -21,6 +22,8 @@ def artifact_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return artifact_reply(s, o)
     if mode == COST:
         return artifact_cost(s, o)
+    if mode == REQUEST_KEYS:
+        return artifact_keys(s, o)
     if mode == ERROR:
         return artifact_error(s, o)
     return 0
@@ -157,7 +160,7 @@ def artifact_reply(s:readbuf, o:mutbuf) -> u64:
             status = artifact_terminal(s, state, response, cost)
             if status == 0 or arena != 0:
                 return 0
-            next = 18
+            next = choose(input_word(s, state + 288) == 3, 20, 18)
         else:
             if response != 0 or cost != 0:
                 return 0
@@ -222,6 +225,36 @@ def artifact_terminal(s:readbuf, at:u64, response:u64, cost:u64) -> u64:
         return 0
     status = input_word(s, at + 264)
     return choose(status >= 1 and status <= 2, status, 0)
+
+def artifact_keys(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 552 or input_word(s, 32) != 0 or valid_state(s, 40) == False:
+        return 0
+    if input_word(s, 64) != 1:
+        return 0
+    mode = input_word(s, 8)
+    time = input_word(s, 16)
+    response = input_word(s, 24)
+    phase = input_word(s, 48)
+    action = input_word(s, 88)
+    if response > 8388608 or length(s) != 552 + response:
+        return 0
+    if mode == 1 and phase == 1 and action == 2 and time == 0 and response == 0:
+        put(o, 0, LOOKUP_REQUEST)
+        return copy_cost_bytes(s, o, 168, 64, 8)
+    if mode == 2 and phase == 2 and action == 3 and response == 0:
+        if length(o) < 156:
+            return 0
+        put(o, 0, RESERVE_REQUEST)
+        copy_cost_bytes(s, o, 168, 64, 8)
+        copy_cost_bytes(s, o, 104, 64, 72)
+        return decimal(o, 136, time)
+    if mode == 3 and phase == 11 and action == 10 and time == 0 and input_word(s, 328) == 3:
+        if response < 2 or input_word(s, 312) != response or length(o) < 72 + response:
+            return 0
+        put(o, 0, COMPLETE_REQUEST)
+        copy_cost_bytes(s, o, 168, 64, 8)
+        return copy_cost_bytes(s, o, 552, response, 72)
+    return 0
 
 def artifact_cost(s:readbuf, o:mutbuf) -> u64:
     if length(s) < 584 or input_word(s, 16) != length(s) - 24:
@@ -298,6 +331,8 @@ def artifact_error(s:readbuf, o:mutbuf) -> u64:
 
 def source_program():
     tags = {'REQUEST': b'HIAJMP01', 'REPLY': b'HIAJMV01', 'VERIFIED': b'HIAJMO01', 'COST': b'HIAJMC01',
+            'REQUEST_KEYS': b'HIAJMK01', 'LOOKUP_REQUEST': b'HIARJL01',
+            'RESERVE_REQUEST': b'HIARJR01', 'COMPLETE_REQUEST': b'HIARJC01',
             'ERROR': b'HIAJME01', 'SINGLE': b'HIAJIN01', 'STATE': b'HIAJRN02', 'JOURNAL_REPLY': b'HIAJOU01',
             'COST_WIRE': b'HIAJCF01', 'TOOL_FIRST': b'hia_arti', 'TOOL_LAST': b'fact'}
     constants = {name: int.from_bytes(raw, 'little') for name, raw in tags.items()}
@@ -305,6 +340,7 @@ def source_program():
     source = POLICY + errors()
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
+    source += RELEASE_POLICY[RELEASE_POLICY.index('\ndef decimal('):RELEASE_POLICY.index('\ndef hex(')]
     shared = transport_program()
     for name in ('admitted_read_identity', 'read_workflow_scratch', 'same_fields',
                  'copy_cost_bytes', 'input_word', 'put'):
