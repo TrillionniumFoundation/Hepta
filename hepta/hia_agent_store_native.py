@@ -139,6 +139,7 @@ _TABLE_IDS = ('artifacts', 'profiles', 'contexts', 'requests', 'costs',
 _MAX_FRAME = 8128
 _MAX_VALUE = 1000000032
 _TIMEOUT = 10.0
+_CURSOR_COMMIT_INTENT = b'HIASTCP1'
 
 
 class StoreProtocolError(OSError):
@@ -521,6 +522,7 @@ class NativeStoreConnection:
             else:
                 mode = 1
         expected_commands = (1, 3, 2)[mode]
+        writes_cursor = plan == 10
         frame = struct.pack('<8s5Q', b'HIASTUP1', self.request, plan, mode,
                             self.generation, len(payload)) + payload
         replies = self.process.stdout.fileno()
@@ -543,16 +545,36 @@ class NativeStoreConnection:
             footer = os.pread(sink, 48, size)
             if len(footer) != 48:
                 raise StoreProtocolError('native Store descriptor returned an incomplete transaction footer')
-            action, extent, found, reserved, request, generation = struct.unpack('<6Q', footer)
-            if (action != 5 or extent != size or found not in (0, 1) or reserved or (not found and size)
-                    or request != self.request + expected_commands or generation < self.generation
-                    or (mode != 1 and generation != self.generation)):
+            action, extent, found, refusal, request, generation = struct.unpack('<6Q', footer)
+            if (action != 5 or extent != size or found not in (0, 1)
+                    or request != self.request + expected_commands):
                 raise StoreProtocolError('native Store descriptor returned an invalid transaction footer')
-            row = os.pread(sink, size, 0) if found else None
-            if row is not None and len(row) != size:
-                raise StoreProtocolError('native Store descriptor returned a short sealed row')
+            if writes_cursor:
+                committed = mode != 0 and refusal == 0
+                marker = os.pread(sink, len(_CURSOR_COMMIT_INTENT), 0) == _CURSOR_COMMIT_INTENT
+                if (refusal not in (0, 1) or (refusal and found)
+                        or size != (len(_CURSOR_COMMIT_INTENT) if committed else 0) or marker != committed):
+                    raise StoreProtocolError('native Store descriptor returned an invalid cursor settlement')
+                advance = found if committed else 0
+                row = None
+            else:
+                if refusal or (not found and size):
+                    raise StoreProtocolError('native Store descriptor returned an invalid query settlement')
+                advance = 0
+                row = os.pread(sink, size, 0) if found else None
+                if row is not None and len(row) != size:
+                    raise StoreProtocolError('native Store descriptor returned a short sealed row')
+            minimum = self.generation + advance
+            if generation < minimum or (mode != 1 and generation != minimum):
+                raise StoreProtocolError('native Store descriptor returned an invalid store generation')
             self.request, self.generation = request, generation
+            if refusal:
+                raise StoreRefusal('native Agent Store constraint failed')
             return row
+        except OSError as error:
+            if writes_cursor and os.pread(sink, len(_CURSOR_COMMIT_INTENT), 0) == _CURSOR_COMMIT_INTENT:
+                raise StoreCommitUnknown('native Store commit result is unknown; reopen before observing it') from error
+            raise
         finally:
             os.close(sink)
 
@@ -775,6 +797,13 @@ class NativeStoreConnection:
             raise StoreProtocolError('invalid HIA Agent cursor retain frame')
         with self.lock:
             self._check_live()
+            if self.unique_code is not None:
+                try:
+                    self._descriptor_unique_transaction(_CURSOR_RETAIN[1], payload, len(_CURSOR_COMMIT_INTENT))
+                except OSError:
+                    self._abort()
+                    raise
+                return
             self._perform(_CURSOR_RETAIN, (), payload=payload)
 
     def cursor_retain(self, identity, artifact, digest, offset):
