@@ -23,8 +23,9 @@ READ_REQUEST_MODE = 16
 STORE_UNIQUE_MODE = 17
 WORKER_DATA_MODE = 18
 WORKER_RESPONSE_MODE = 19
+WORKER_JOURNAL_MODE = 20
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
-              WORKER_DATA_MODE, WORKER_RESPONSE_MODE)
+              WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -65,9 +66,11 @@ def template(mode):
     read_request = mode == READ_REQUEST_MODE
     worker_data = mode == WORKER_DATA_MODE
     worker_response = mode == WORKER_RESPONSE_MODE
+    worker_journal = mode == WORKER_JOURNAL_MODE
+    worker = worker_data or worker_response or worker_journal
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
     direct = page or read_request
-    descriptor = None if direct or schema or worker_data or worker_response else DESCRIPTORS[mode]
+    descriptor = None if direct or schema or worker else DESCRIPTORS[mode]
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
     workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
@@ -75,7 +78,7 @@ def template(mode):
     maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
-    if worker_data or worker_response:
+    if worker:
         # The common JSON engine uses this mapping as structural preflight
         # scratch even when the public role returns only a status.
         scratch = INPUT_MAX
@@ -137,12 +140,13 @@ def template(mode):
         word(prefix_bytes + scratch)
         emit('4c 89 e6 b9 09 00 00 00 f3 48 a5')
         emit('49 8d 7c 24 48 49 8d 75 b8')      # input pointer +72, bytes -72
-    elif worker_data or worker_response:
+    elif worker:
         # Forward the digit policy and any closed Journal recipe without
         # interpreting them. Only the HIA application admits the data.
         emit('49 8d be')
         word(prefix_bytes + scratch)
-        emit(f'48 c7 07 {6 if worker_response else 5:02x} 00 00 00 48 83 c7 08')
+        policy = {WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6, WORKER_JOURNAL_MODE: 7}
+        emit(f'48 c7 07 {policy[mode]:02x} 00 00 00 48 83 c7 08')
         emit('4c 89 e6 b9')
         word(worker_header // 8)
         emit('f3 48 a5 49 8d bc 24')

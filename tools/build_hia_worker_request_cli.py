@@ -11,7 +11,7 @@ import struct
 from tools.build_hia_agent_read_page import pack_stdio
 from tools.build_hia_json_preflight import admit_cold_build, build as build_image, current_sources
 from tools.generate_hia_mcp_stdio_packer import (
-    SOURCE as STDIO_PACKER, TERMINAL_MODE, WORKER_DATA_MODE, WORKER_RESPONSE_MODE,
+    SOURCE as STDIO_PACKER, TERMINAL_MODE, WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE,
 )
 from tools.generate_hia_native_filter import WORKER_FILTER_MAGIC
 from tools.qualify_hia_selfhost import invoke
@@ -65,6 +65,10 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     response_build.mkdir(mode=0o700)
     response_raw, response_pack = pack_stdio(
         response_build, compiler, {STDIO_PACKER: pins[ROOT / STDIO_PACKER]}, WORKER_RESPONSE_MODE, raw, pins)
+    journal_build = output / 'journal'
+    journal_build.mkdir(mode=0o700)
+    journal_raw, journal_pack = pack_stdio(
+        journal_build, compiler, {STDIO_PACKER: pins[ROOT / STDIO_PACKER]}, WORKER_JOURNAL_MODE, raw, pins)
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:
         raise ValueError('worker request build input changed')
 
@@ -72,8 +76,9 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     terminal = output / 'hia-worker-terminal'
     data_validator = output / 'hia-worker-data'
     response = output / 'hia-worker-response'
+    journal = output / 'hia-worker-journal-call'
     for target, data in ((executable, executable_raw), (terminal, terminal_raw),
-                         (data_validator, data_raw), (response, response_raw)):
+                         (data_validator, data_raw), (response, response_raw), (journal, journal_raw)):
         with target.open('xb') as stream:
             stream.write(data)
         target.chmod(0o700)
@@ -84,6 +89,12 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
         'executable': inspection,
         'images': receipts,
         'packing': receipt,
+        'journal_projection': {
+            'schema': 'hepta.hia.worker-journal-call.v1',
+            'executable_sha256': sha256(journal_raw).hexdigest(),
+            'executable_bytes': len(journal_raw),
+            'native_packing': journal_pack,
+        },
         'response': {
             'schema': 'hepta.hia.worker-response-stdio.v1',
             'executable_sha256': sha256(response_raw).hexdigest(),
