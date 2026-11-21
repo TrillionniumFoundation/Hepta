@@ -202,7 +202,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                              '_reference_symbol_versions', '_reference_relro', '_reference_functions',
                              '_reference_function_link', '_reference_dynamic_symbols',
                              '_reference_loader_sections', '_reference_executable_layout',
-                             '_reference_dynamic_relocations')
+                             '_reference_dynamic_relocations', '_reference_dynamic_order',
+                             '_reference_object_inventory')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
@@ -338,6 +339,45 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                     if data is not self.final_bytes:
                         self.assertIsInstance(expected, str)
                         self.assertTrue(expected.startswith('E_HIA_SAFE_CORE_ELF: '))
+
+    def test_final_dynamic_order_and_object_inventory_match_original(self):
+        def original(data, kind):
+            elf = _ELF.__new__(_ELF)
+            elf._reference_inventory(data, kind)
+            return elf
+
+        def observe(call):
+            try:
+                return call()
+            except SafeCoreELFRejected as error:
+                return str(error)
+
+        final = original(self.final_bytes, 3)
+        dynsym = final.section('.dynsym')
+        export = final.symbols('.dynsym')[2]['name']
+        changed = bytearray(self.final_bytes)
+        changed[dynsym['offset'] + 24 + 4] = 2
+        for image in (self.final_bytes, bytes(changed)):
+            for name in (export, 'another_entry'):
+                expected = observe(lambda: elf_reader._reference_dynamic_order(
+                    original(image, 3).symbols('.dynsym'), name,
+                ))
+                self.assertEqual(observe(lambda: self.native.verify_dynamic_order(image, dynsym, name)), expected)
+
+        obj = original(self.object_bytes, 1)
+        rela, text, symbols = (obj.section(name) for name in ('.rela.text', '.text', '.symtab'))
+        shoff = struct.unpack_from('<Q', self.object_bytes, 40)[0]
+        changed = bytearray(self.object_bytes)
+        struct.pack_into('<I', changed, shoff + 64 * rela['index'] + 44, symbols['index'])
+        for image in (self.object_bytes, bytes(changed)):
+            for direct in (False, True):
+                elf = original(image, 1)
+                expected = observe(lambda: elf_reader._reference_object_inventory(
+                    elf, elf.section('.rela.text'), elf.section('.text'), direct,
+                ))
+                self.assertEqual(observe(lambda: self.native.verify_object_inventory(
+                    image, rela, text, symbols, direct=direct,
+                )), expected)
 
     def test_dynamic_and_lookup_bytes_match_retained_checker(self):
         def result(check, *args, **kwargs):

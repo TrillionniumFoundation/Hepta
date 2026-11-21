@@ -37,6 +37,8 @@ DYNAMIC_SYMBOL_NAME_OFFSET = 104
 LOADER_SECTION_MAGIC = int.from_bytes(b'HIAELFS1', 'little')
 EXECUTABLE_LAYOUT_MAGIC = int.from_bytes(b'HIAELFE1', 'little')
 DYNAMIC_RELOCATION_MAGIC = int.from_bytes(b'HIAELFR1', 'little')
+DYNAMIC_ORDER_MAGIC = int.from_bytes(b'HIAELFY1', 'little')
+OBJECT_INVENTORY_MAGIC = int.from_bytes(b'HIAELFO1', 'little')
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -98,6 +100,8 @@ REFUSALS = (
     ('executable_segment', 'additional executable load segment'),
     ('executable_partition', 'executable segment contains unbound bytes'),
     ('dynamic_relocation', 'unreviewed dynamic relocation inventory'),
+    ('dynamic_order', 'closed dynamic symbol order differs'),
+    ('object_inventory', 'object relocation inventory is outside the one-function profile'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -334,8 +338,16 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
     def verify_dynamic_relocations(self, data, rela, dynamic_table, got):
         self._verify_terminal(data, (DYNAMIC_RELOCATION_MAGIC, rela['index'], dynamic_table['index'], got['index'], 0, 0, 0, 0, 0))
 
-    def _verify_terminal(self, data, fields):
-        _, size, first, second = self._exchange(data, fields)
+    def verify_dynamic_order(self, data, dynamic_table, export):
+        name = export.encode('utf-8')
+        self._verify_terminal(data, (DYNAMIC_ORDER_MAGIC, dynamic_table['index'], len(name), 0, 0, 0, 0, 0), name)
+
+    def verify_object_inventory(self, data, rela, text, symbols, *, direct):
+        fields = (OBJECT_INVENTORY_MAGIC, rela['index'], text['index'], symbols['index'], int(direct), 0, 0, 0, 0)
+        self._verify_terminal(data, fields)
+
+    def _verify_terminal(self, data, fields, suffix=b''):
+        _, size, first, second = self._exchange(data, fields, suffix)
         if size != HEADER.size or first or second:
             raise RuntimeError('invalid native Safe Core layout response')
 

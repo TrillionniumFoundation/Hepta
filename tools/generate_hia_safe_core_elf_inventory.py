@@ -6,8 +6,8 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
-    CAPACITY, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
-    EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC,
+    CAPACITY, DYNAMIC_ORDER_MAGIC, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
+    EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC, OBJECT_INVENTORY_MAGIC,
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
     FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
@@ -26,6 +26,7 @@ FIELDS.update(DYNAMIC_SYMBOL_MAGIC=DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFF
               ABORT_BYTES=int.from_bytes(b'abort', 'little'))
 FIELDS.update(LOADER_SECTION_MAGIC=LOADER_SECTION_MAGIC, EXECUTABLE_LAYOUT_MAGIC=EXECUTABLE_LAYOUT_MAGIC,
               DYNAMIC_RELOCATION_MAGIC=DYNAMIC_RELOCATION_MAGIC)
+FIELDS.update(DYNAMIC_ORDER_MAGIC=DYNAMIC_ORDER_MAGIC, OBJECT_INVENTORY_MAGIC=OBJECT_INVENTORY_MAGIC)
 LOADER_SECTION_NAMES = (
     b'.hash', b'.gnu.hash', b'.dynsym', b'.dynstr', b'.gnu.version', b'.gnu.version_r',
     b'.rela.plt', b'.plt', b'.text', b'.eh_frame', b'.dynamic', b'.got',
@@ -81,6 +82,8 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return exact_functions(s, o, w)
     if length(w) >= 64:
         operation = get(w, 0)
+        if operation == DYNAMIC_ORDER_MAGIC:
+            return verify_dynamic_order(s, o, w)
         if operation == DYNAMIC_SYMBOL_MAGIC and length(w) >= DYNAMIC_SYMBOL_NAME_OFFSET:
             return verify_dynamic_symbols(s, o, w)
         if operation == 2:
@@ -91,7 +94,7 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return review_version_import(s, o, w)
         if operation == 5 and length(w) == 64:
             return verify_relro(s, o, w)
-        if length(w) == 72 and (operation == EXECUTABLE_LAYOUT_MAGIC or operation == DYNAMIC_RELOCATION_MAGIC):
+        if length(w) == 72 and (operation == EXECUTABLE_LAYOUT_MAGIC or operation == DYNAMIC_RELOCATION_MAGIC or operation == OBJECT_INVENTORY_MAGIC):
             return review_section_roles(s, o, w)
         return loader_hash(s, o, w)
     if length(w) != 8:
@@ -443,6 +446,32 @@ def exact_abort_import(s:readbuf, o:mutbuf, response:u64) -> u64:
         return terminal(o, E_DYNAMIC_IMPORT, 0, 0)
     return reply(o, 0, count, mask, response)
 
+def verify_dynamic_order(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    count = get(w, 16)
+    if count != length(w) - 64 or count > 256:
+        return terminal(o, E_DYNAMIC_ORDER, 0, 0)
+    result = symbol_table(s, o, get(w, 8))
+    if get(o, 0) != 0:
+        return result
+    if get(o, 8) != 3 or get(o, 32) != 0 or empty_symbol_attributes(o, 24, 0) == 0:
+        return terminal(o, E_DYNAMIC_ORDER, 0, 0)
+    if get(o, 88) != 5 or word(s, get(o, 80), 5) != ABORT_BYTES or empty_symbol_attributes(o, 80, 18) == 0:
+        return terminal(o, E_DYNAMIC_ORDER, 0, 0)
+    if get(o, 144) != count:
+        return terminal(o, E_DYNAMIC_ORDER, 0, 0)
+    name = get(o, 136)
+    index = 0
+    while index < count:
+        if byte(s, name + index) != byte(w, 64 + index):
+            return terminal(o, E_DYNAMIC_ORDER, 0, 0)
+        index = index + 1
+    return reply(o, 0, 0, 0, 24)
+
+def empty_symbol_attributes(o:mutbuf, row:u64, info:u64) -> u64:
+    if get(o, row + 16) != info or get(o, row + 24) != 0 or get(o, row + 32) != 0:
+        return 0
+    return choose(get(o, row + 40) == 0 and get(o, row + 48) == 0, 1, 0)
+
 def unique_function(s:readbuf, o:mutbuf, row:u64, selected:u64) -> u64:
     offset = get(o, row)
     size = get(o, row + 8)
@@ -610,7 +639,7 @@ def verify_loader_section(s:readbuf, o:mutbuf, row:u64, name:u64, extent:u64) ->
     return choose(get(o, 0) == 0, 0, result)
 
 def review_section_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    if get(w, 32) != 0 or get(w, 40) != 0 or get(w, 48) != 0 or get(w, 56) != 0 or get(w, 64) != 0:
+    if get(w, 40) != 0 or get(w, 48) != 0 or get(w, 56) != 0 or get(w, 64) != 0:
         return 4294967293
     start = word(s, 40, 8)
     count = word(s, 60, 2)
@@ -618,9 +647,26 @@ def review_section_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return terminal(o, E_SECTIONS, 0, 0)
     if in_file(length(s), start, count * 64) == 0:
         return terminal(o, E_RANGE, 0, 0)
-    if get(w, 0) == EXECUTABLE_LAYOUT_MAGIC:
+    operation = get(w, 0)
+    direct = get(w, 32)
+    if operation == OBJECT_INVENTORY_MAGIC:
+        if direct > 1:
+            return 4294967293
+        return object_relocation_inventory(s, o, w, start + get(w, 8) * 64, direct)
+    if direct != 0:
+        return 4294967293
+    if operation == EXECUTABLE_LAYOUT_MAGIC:
         return executable_section_layout(s, o, w, start, count)
     return dynamic_relocation_inventory(s, o, w, start, count)
+
+def object_relocation_inventory(s:readbuf, o:mutbuf, w:mutbuf, row:u64, direct:u64) -> u64:
+    if word(s, row + 4, 4) != 4 or word(s, row + 56, 8) != 24:
+        return terminal(o, E_OBJECT_INVENTORY, 0, 0)
+    if word(s, row + 32, 8) != choose(direct != 0, 24, 48):
+        return terminal(o, E_OBJECT_INVENTORY, 0, 0)
+    if word(s, row + 44, 4) != get(w, 16) or word(s, row + 40, 4) != get(w, 24):
+        return terminal(o, E_OBJECT_INVENTORY, 0, 0)
+    return reply(o, 0, 0, 0, 24)
 
 def executable_section_layout(s:readbuf, o:mutbuf, w:mutbuf, start:u64, count:u64) -> u64:
     plt = start + get(w, 16) * 64

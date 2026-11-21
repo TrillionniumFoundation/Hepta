@@ -220,12 +220,19 @@ def _gnu_hash(name):
     return value
 
 
-def _lookup_tables(final, tags, dynsymbols, export):
-    """Bind loader name/version lookup, not merely symbol-table spellings."""
+def _reference_dynamic_order(dynsymbols, export):
     require(len(dynsymbols) == 3 and dynsymbols[0] ==
             {"name": "", "info": 0, "other": 0, "shndx": 0, "value": 0, "size": 0} and
             dynsymbols[1] == {"name": "abort", "info": 18, "other": 0, "shndx": 0, "value": 0, "size": 0} and
             dynsymbols[2]["name"] == export, "closed dynamic symbol order differs")
+
+
+def _lookup_tables(final, tags, dynsymbols, export):
+    """Bind loader name/version lookup, not merely symbol-table spellings."""
+    if final._native_inventory is None:
+        _reference_dynamic_order(dynsymbols, export)
+    else:
+        final._native_inventory.verify_dynamic_order(final.data, final.section(".dynsym"), export)
     table = final.section(".hash", 5)
     if final._native_inventory is None:
         _reference_sysv_lookup(table, tags.get(4), dynsymbols)
@@ -445,6 +452,12 @@ def _reference_dynamic_relocations(final, rela, got):
             "unreviewed dynamic relocation inventory")
 
 
+def _reference_object_inventory(obj, rela, text, direct):
+    require(rela["entsize"] == 24 and rela["size"] == (24 if direct else 48) and
+            rela["info"] == text["index"] and rela["link"] == obj.section(".symtab")["index"],
+            "object relocation inventory is outside the one-function profile")
+
+
 def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     """Check every relocated byte and return exact machine-entry coordinates.
 
@@ -504,24 +517,28 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     _lookup_tables(final, tags, dynsymbols, export)
 
     relsec = obj.section(".rela.text", 4)
-    expected_calls = {"abort"} if direct else {"abort", "__hia_native_fn_0"}
-    require(relsec["entsize"] == 24 and relsec["size"] == 24 * len(expected_calls) and
-            relsec["info"] == source["index"] and relsec["link"] == obj.section(".symtab")["index"],
-            "object relocation inventory is outside the one-function profile")
     if obj._native_inventory is None:
+        _reference_object_inventory(obj, relsec, source, direct)
         calls, records = _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
     else:
+        obj._native_inventory.verify_object_inventory(obj.data, relsec, source, obj.section(".symtab"), direct=direct)
         # Check all names in table order (including unreferenced entries)
         # before interpreting relocations, as in the retained checker.
         obj.symbols(".symtab")
         calls, records = obj._native_inventory.object_relocations(
             obj.data, relsec, source, linked, plt, 0 if direct else dstfunc["__hia_native_fn_0"]["value"],
         )
+    from .hia_sha256_stream_native import selected_stream_hasher
+
+    hasher = selected_stream_hasher()
+    digest = sha256 if hasher is None else hasher.new
+    object_digest, image_digest, text_digest = (
+        digest(data).hexdigest() for data in (object_bytes, final_bytes, linked["data"])
+    )
     return {"text": linked["data"], "text_vaddr": linked["addr"],
             "entry": srcfunc[export]["value"], "calls": calls,
-            "binding": {"object_sha256": sha256(object_bytes).hexdigest(),
-                        "final_image_sha256": sha256(final_bytes).hexdigest(),
-                        "linked_text_sha256": sha256(linked["data"]).hexdigest(),
+            "binding": {"object_sha256": object_digest, "final_image_sha256": image_digest,
+                        "linked_text_sha256": text_digest,
                         "linked_text_file_offset": linked["offset"],
                         "linked_text_vaddr": linked["addr"], "relocations": records,
                         "entry_offset": srcfunc[export]["value"],
