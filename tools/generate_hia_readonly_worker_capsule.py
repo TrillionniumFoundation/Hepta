@@ -76,9 +76,16 @@ INSPECTION_ROLES = (
     'hia-prepare-edit-query', 'hia-emit-object', 'hia-agent-inspection-lowering-elf',
     'hia-agent-inspection-lowering-frames',
 )
+CANDIDATE_ROLES = (
+    *(name.replace("inspection-", "candidate-") if name.startswith("hia-agent-inspection-") else name
+      for name in INSPECTION_ROLES[:31]),
+    'hia-agent-candidate-request', 'hia-agent-candidate-effect', 'hia-agent-context-request',
+    'hia-import-assembly', 'hia-patch-result', 'hia-agent-candidate-json-ingress',
+    'hia-agent-candidate-admission-diagnostic',
+)
 NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
-                                  *INSPECTION_ROLES, INSPECTION_OWNER)))
+                                  *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -209,7 +216,7 @@ def routing(*, artifact=False):
     schema = b',"schema":"hia-agent-worker-request-v1","tool":"'
     methods = ((1, b'hia_read'), (2, b'hia_describe'))
     if artifact:
-        methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'))
+        methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'), (6, b'hia_candidate'))
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
