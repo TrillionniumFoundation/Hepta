@@ -24,11 +24,11 @@ CALL_BINDING = struct.Struct('<3Q')
 PROFILE_OFFSET = 96
 QUERY_FORMAT_WORKSPACE = 1
 MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
-MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR01', 'little')
+MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR02', 'little')
 MACHINE_VALUES_STACK_BYTES = 16384
-MACHINE_VALUES_INDEX = 192 + MACHINE_VALUES_STACK_BYTES + 8
+MACHINE_VALUES_INDEX = 192 + MACHINE_VALUES_STACK_BYTES + 64
 MACHINE_VALUES_WORKSPACE = MACHINE_VALUES_INDEX + MAX_TEXT * 8
-MACHINE_VALUES_HEADER = struct.Struct('<5Q')
+MACHINE_VALUES_HEADER = struct.Struct('<6Q')
 MACHINE_VALUES_NODE = struct.Struct('<5Q')
 MEMORY_REQUEST = struct.Struct('<5Q')
 SCHEDULER_REQUEST = struct.Struct('<4Q')
@@ -334,14 +334,15 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             return None
         if not MACHINE_VALUES_HEADER.size <= size <= len(output):
             raise RuntimeError('invalid HIA machine scalar projection extent')
-        magic, count, value, steps, depth = MACHINE_VALUES_HEADER.unpack_from(output)
+        magic, count, value, steps, depth, paths = MACHINE_VALUES_HEADER.unpack_from(output)
         if (magic != MACHINE_VALUES_REPLY or not 0 <= value < count <= CIRCUIT_NODES
-                or not 0 < steps <= MAX_INSTRUCTIONS or depth > MACHINE_VALUES_STACK_BYTES
+                or paths not in (1, 2) or not 0 < steps <= paths * MAX_INSTRUCTIONS
+                or depth > MACHINE_VALUES_STACK_BYTES
                 or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count):
             raise RuntimeError('invalid HIA machine scalar projection')
         nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size]))
         return nodes, value, {'decoded_instructions': len(code), 'symbolic_machine_steps': steps,
-                              'machine_terminal_paths': 1, 'maximum_observed_stack_bytes': depth}
+                              'machine_terminal_paths': paths, 'maximum_observed_stack_bytes': depth}
 
     def scheduler(self):
         return NativeMachineScheduler(self._entry)

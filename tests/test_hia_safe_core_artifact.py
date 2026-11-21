@@ -169,28 +169,31 @@ class SafeCoreArtifactTests(unittest.TestCase):
         directory = self.newdir()
         cases = (("u32", "lt", 1), ("i32", "ge", 6), ("u64", "eq", 1))
         for typ, predicate, version in cases:
-            for select in (False, True):
-                with self.subTest(typ=typ, predicate=predicate, select=select):
+            for selection in ("none", "cmov", "branch"):
+                with self.subTest(typ=typ, predicate=predicate, selection=selection):
                     params = [("left", typ), ("right", typ)]
                     compare = i("compare." + predicate, ("left", "right"), (("choice", "bool"),))
                     ops, returns, result = [compare], ["bool"], "choice"
-                    if select:
+                    if selection != "none":
                         ops.append(i("select", ("choice", "left", "right"), (("selected", typ),)))
                         returns, result = [typ], "selected"
                     core = verify_program(m(f("compare_words", params, returns, [],
                                               [b("entry", params, ops, ret(result))])))
-                    plan = explicit_plan(core, select="cmov_scalar") if select else None
+                    plan = explicit_plan(core, select="cmov_scalar") if selection == "cmov" else None
                     image = emit_program_machine(core, machine_plan=plan)
-                    final = directory / (f"{typ}-{int(select)}.so")
+                    final = directory / (f"{typ}-{selection}.so")
                     compile_program_machine(image, program=core, output=final, linker="ld", machine_plan=plan)
                     text = decode(image.text_bytes, allow_signed=version == 6)
                     flag_op = next((at, op) for at, op in text.items() if op.op == "setcc")
-                    self.assertEqual(any(op.op == "cmovne" for op in text.values()), select)
+                    self.assertEqual(any(op.op == "cmovne" for op in text.values()), selection == "cmov")
+                    self.assertEqual(any(op.op == "jcc" for op in text.values()), selection == "branch")
                     with patch("importlib.import_module", side_effect=no_host_solver):
                         report = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes(),
                                                              profile_version=version)
                         self.assertTrue(report["complete"])
                         self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+                        self.assertEqual(report["model_counts"]["machine_terminal_paths"],
+                                         2 if selection == "branch" else 1)
                         at, instruction = flag_op
                         original = image.text_bytes[at:at + instruction.size]
                         changed = original[:2] + bytes([original[2] ^ 1]) + original[3:]

@@ -13,7 +13,7 @@ from hepta.hia_safe_core_x64_decode_native import (
     MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE, MACHINE_VALUES_INDEX, MACHINE_VALUES_REPLY,
-    MACHINE_VALUES_REQUEST, MACHINE_VALUES_STACK_BYTES, MACHINE_VALUES_WORKSPACE,
+    MACHINE_VALUES_HEADER, MACHINE_VALUES_REQUEST, MACHINE_VALUES_STACK_BYTES, MACHINE_VALUES_WORKSPACE,
     QUERY_FORMAT_WORKSPACE,
 )
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
@@ -39,10 +39,13 @@ FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHE
               SCHED_WORKSPACE=SCHEDULER_WORKSPACE)
 FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_WORKSPACE=MACHINE_VALUES_WORKSPACE, MV_INDEX=MACHINE_VALUES_INDEX,
+              MV_HEADER=MACHINE_VALUES_HEADER.size,
               MV_STACK=192, MV_STACK_BASE=20000, MV_STACK_TOP=20000 + MACHINE_VALUES_STACK_BYTES,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
               MV_FLAGS=160, MV_LEFT=168, MV_RIGHT=176,
+              MV_PATH_MODE=MACHINE_VALUES_INDEX - 56, MV_BRANCH_PC=MACHINE_VALUES_INDEX - 48,
+              MV_BRANCH_PRED=MACHINE_VALUES_INDEX - 40, MV_BRANCH_SEEN=MACHINE_VALUES_INDEX - 32,
               MV_PRODUCT=WRAPPING_PRODUCT, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
               MV_SHIFT_RIGHT=WORD_VARIABLE_SHR, MV_SHIFT_ARITHMETIC=WORD_ARITHMETIC_SHR)
 FIELDS.update(QUERY_WORKSPACE=QUERY_FORMAT_WORKSPACE, QUERY_REQUEST=SPARSE_REQUEST,
@@ -1212,16 +1215,60 @@ def caller_disjoint_formula(o:mutbuf) -> u64:
 # opaque caller registers or return sites. An unknown value is never a circuit
 # input and cannot determine memory, control flow or the observed return.
 def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    if length(s) < 32 or length(o) < 40 + MV_COUNT * 40 or schedule_request(s, 0) != MV_REQUEST:
+    if length(s) < 32 or length(o) < MV_HEADER + MV_COUNT * 40 or schedule_request(s, 0) != MV_REQUEST:
         return 4294967293
     words = schedule_request(s, 16)
     count = schedule_request(s, 24)
     if words > 6 or count == 0 or count > MAX_CODE or length(s) != 32 + count * 48:
         return 4294967293
+    put(w, MV_NODES, 0)
+    index = 0
+    while index < words:
+        mv_node(o, w, 1, 0, 0, 0)
+        index = index + 1
+    put(w, MV_PATH_MODE, 0)
+    put(w, MV_BRANCH_PRED, 0)
+    if mv_prime_path(s, w, words, count) == 0:
+        return 4294967293
+    value = mv_run_path(s, o, w)
+    if value == 0:
+        return 0
+    steps = get(w, MV_STEPS)
+    depth = MV_STACK_TOP - get(w, MV_LOW)
+    paths = 1
+    predicate = get(w, MV_BRANCH_PRED)
+    if predicate != 0:
+        # Re-execute the same verified prefix with the same raw ABI words.
+        # The first path took the fall-through; this path must observe the
+        # same single branch and then take its checked destination.
+        put(w, MV_PATH_MODE, 1)
+        if mv_prime_path(s, w, words, count) == 0:
+            return 0
+        taken = mv_run_path(s, o, w)
+        if taken == 0 or get(w, MV_BRANCH_SEEN) != 1:
+            return 0
+        value = mv_node(o, w, 11, predicate - 1, taken - 1, value - 1)
+        if value == 0:
+            return 0
+        steps = steps + get(w, MV_STEPS)
+        other_depth = MV_STACK_TOP - get(w, MV_LOW)
+        depth = choose(other_depth > depth, other_depth, depth)
+        paths = 2
+    nodes = get(w, MV_NODES)
+    put(o, 0, MV_REPLY)
+    put(o, 8, nodes)
+    put(o, 16, value - 1)
+    put(o, 24, steps)
+    put(o, 32, depth)
+    put(o, 40, paths)
+    return MV_HEADER + nodes * 40
+
+def mv_prime_path(s:readbuf, w:mutbuf, words:u64, count:u64) -> u64:
     position = 0
     while position < 128:
         put(w, position, MV_SAVED + (position >> 3))
         position = position + 8
+    fill_range(w, MV_STACK, MV_STACK_TOP - MV_STACK_BASE + 8, 0)
     # The input's instruction offsets have already been decoded and checked
     # against the final ELF and its call relocations. Build a bounded PC index.
     index = 0
@@ -1230,7 +1277,7 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         row = 32 + index * 48
         size = schedule_request(s, row + 16)
         if schedule_request(s, row) != pc or size == 0 or size > MAX_TEXT - pc:
-            return 4294967293
+            return 0
         put(w, MV_INDEX + pc * 8, row)
         pc = pc + size
         index = index + 1
@@ -1238,18 +1285,26 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(w, MV_STACK + MV_STACK_TOP - MV_STACK_BASE, MV_CALLER)
     put(w, MV_LOW, MV_STACK_TOP)
     put(w, MV_PC, schedule_request(s, 8))
+    put(w, MV_STEPS, 0)
+    put(w, MV_FLAGS, 0)
+    put(w, MV_BRANCH_SEEN, 0)
     index = 0
     while index < words:
         register = (caller_abi_rule(2) >> (4 * index)) & 15
-        put(w, register * 8, mv_node(o, w, 1, 0, 0, 0))
+        put(w, register * 8, index + 1)
         index = index + 1
+    return 1
+
+def mv_run_path(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     while get(w, MV_STEPS) < MAX_CODE:
         pc = get(w, MV_PC)
         if pc >= MAX_TEXT:
             return 0
         row = get(w, MV_INDEX + pc * 8)
         sp = get(w, 32)
-        if row == 0 or mv_stack_position(sp) == False:
+        if row < 32 or row > length(s) - 48 or mv_stack_position(sp) == False:
+            return 0
+        if schedule_request(s, row) != pc:
             return 0
         # The Safe Core profile does not admit cycles or repeated calls to
         # an already visited machine instruction on this path.
@@ -1266,12 +1321,7 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             value = get(w, 0)
             if value == 0 or value > nodes or mv_caller_preserved(w) == False:
                 return 0
-            put(o, 0, MV_REPLY)
-            put(o, 8, nodes)
-            put(o, 16, value - 1)
-            put(o, 24, get(w, MV_STEPS))
-            put(o, 32, MV_STACK_TOP - get(w, MV_LOW))
-            return 40 + nodes * 40
+            return value
     return 0
 
 def mv_node(o:mutbuf, w:mutbuf, op:u64, left:u64, right:u64, immediate:u64) -> u64:
@@ -1281,7 +1331,7 @@ def mv_word(o:mutbuf, w:mutbuf, op:u64, width:u64, left:u64, right:u64, immediat
     index = get(w, MV_NODES)
     if index == MV_COUNT:
         return 0
-    row = 40 + index * 40
+    row = MV_HEADER + index * 40
     put(o, row, op)
     put(o, row + 8, width)
     put(o, row + 16, left)
@@ -1318,6 +1368,8 @@ def mv_step(s:readbuf, o:mutbuf, w:mutbuf, row:u64, sp:u64) -> u64:
     if op == OP_JMP:
         put(w, MV_PC, a)
         return 1
+    if op == OP_JCC:
+        return mv_branch(o, w, schedule_request(s, row), a, b)
     if op == OP_PUSH or op == OP_POP or op == OP_LEAVE or op == OP_CALL or op == OP_RET:
         return mv_control(w, op, a, sp)
     if op == OP_NOP:
@@ -1517,7 +1569,7 @@ def mv_setcc(o:mutbuf, w:mutbuf, condition:u64, register:u64) -> u64:
     if bit == 0:
         return 0
     # SETcc writes one byte and preserves the upper 56 bits and flags.
-    start = 40 + 40 * (previous - 1)
+    start = MV_HEADER + 40 * (previous - 1)
     upper_zero = get(o, start) == 2 and get(o, start + 32) < 256
     value = mv_node(o, w, 30, bit - 1, 0, 0)
     if value == 0:
@@ -1550,6 +1602,22 @@ def mv_cmovne(o:mutbuf, w:mutbuf, register:u64, source:u64) -> u64:
     if value == 0:
         return 0
     put(w, register * 8, value)
+    return 1
+
+def mv_branch(o:mutbuf, w:mutbuf, pc:u64, condition:u64, target:u64) -> u64:
+    if get(w, MV_BRANCH_SEEN) != 0 or target >= MAX_TEXT:
+        return 0
+    put(w, MV_BRANCH_SEEN, 1)
+    if get(w, MV_PATH_MODE) == 1:
+        if pc != get(w, MV_BRANCH_PC):
+            return 0
+        put(w, MV_PC, target)
+        return 1
+    predicate = mv_condition(o, w, condition)
+    if predicate == 0:
+        return 0
+    put(w, MV_BRANCH_PRED, predicate)
+    put(w, MV_BRANCH_PC, pc)
     return 1
 
 '''
