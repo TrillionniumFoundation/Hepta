@@ -4,7 +4,7 @@
 .text
 .global _start
 .equ CHUNK_N,524288
-.equ IMAGE_LIMIT,13<<19
+.equ IMAGE_LIMIT,7<<20
 
 _start:
  mov r15,rsp

@@ -80,6 +80,10 @@ CARRIERS = {
         (('platform_io_and_custody', 0, 3572), ('sealed_children_and_store', 3572, 6564),
          ('receipt_and_artifact_transfer', 6564, 9590), ('context_effect_delivery', 9590, 27928)),
         compressed=True),
+    'inspection-worker': CarrierImage(
+        'examples/hia_bootstrap/agent_inspection_worker_carrier_packer.hepta', b'HIAIWK01',
+        'd34626651c0c85cee0c2cc7ee0903424f73213e0524e3b8cb0e026fdca9fddb4', 42728,
+        (('inspection_descriptor_effect_relay', 0, 42728),), compressed=True),
     'describe-worker': CarrierImage(
         'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
         'd3b3b68645a247e27e7081e475e38e0333186bd0983199bbe2a123fa3454fec1', 11258,

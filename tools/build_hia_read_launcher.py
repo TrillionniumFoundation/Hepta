@@ -69,11 +69,11 @@ LAUNCHERS = {
     ),
     'native': Launcher(
         'examples/hia_bootstrap/agent_native_launcher_packer.hepta', NATIVE_SOURCE,
-        b'HIANLK01', 9568,
-        'fb6c4a9e0cd6166c8bf4ceb5f2cdd905328b86ebaf22fc1e99ed605fb92142ec',
-        (('bounded_descriptor_io_and_capture', 0, 3639),
-         ('native_authority_and_selector', 3639, 3980),
-         ('sealed_launcher', 3980, 9136), ('fixed_role_tables', 9136, 9568)),
+        b'HIANLK01', 10384,
+        'b681d214d60cf66568e99eb412c2ee58a3e83be6affcfa2ef13065d7b4d14add',
+        (('bounded_descriptor_io_and_capture', 0, 3556),
+         ('native_authority_and_selector', 3556, 4019),
+         ('sealed_launcher', 4019, 9200), ('fixed_role_tables', 9200, 10384)),
     ),
     'readonly': Launcher(
         'examples/hia_bootstrap/agent_readonly_launcher_packer.hepta', READONLY_AUTHORITY,

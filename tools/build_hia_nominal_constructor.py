@@ -26,9 +26,9 @@ TRANSPORT_TEMPLATES = {
 TRANSPORT_ROLES = (ADAPTER, PUBLICATION_ADAPTER, ASSEMBLY_ADAPTER)
 NOMINAL_IMAGE_LABELS = {'owner': 'core_nominal_owner', 'render': 'core_nominal_render',
                         'nominal-json': 'core_nominal_codec'}
-# The ordinary CLI keeps its selected image at 1 MiB and starts its
-# independent input/output scratch at 7.5 MiB.
-ORDINARY_CLI_IMAGE_CAPACITY = 13 << 19
+# Keep the private implementation ELF below the static linker's 8 MiB output bound.
+# The packed launcher inflates it in independent 512 KiB blocks.
+ORDINARY_CLI_IMAGE_CAPACITY = 7 << 20
 COMPONENTS = {
     'nominal-json': 'examples/hia_bootstrap/nominal_json.hepta',
     'owner': 'examples/hia_bootstrap/composite_constructor_owner.hepta',
