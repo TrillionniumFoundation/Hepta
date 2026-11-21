@@ -50,7 +50,8 @@ def unexpected_field(w:mutbuf, o:mutbuf, record:u64, at:u64, count:u64) -> u64:
 
 
 class Author:
-    def __init__(self):
+    def __init__(self, *, common_literals=False):
+        self.common_literals = common_literals
         self.rules = []
         self.literals = {}
         self.keys = {}
@@ -65,8 +66,19 @@ class Author:
     def literal(self, raw):
         return self.literals.setdefault(raw, 'literal_' + str(len(self.literals)))
 
+    def emit(self, text, at):
+        name = self.literal(text)
+        if self.common_literals:
+            return f"literal_table(o, {at}, {name.removeprefix('literal_')})"
+        return f'{name}(o, {at})'
+
+    def prefix(self, label, message):
+        if self.common_literals:
+            return self.emit(message, self.emit(label + ': ', 'diagnostic_open(o, 0)'))
+        return self.emit(label + ': ' + message, 'diagnostic_open(o, 0)')
+
     def explain(self, label, message):
-        return 'diagnostic_close(o, ' + self.literal(label + ': ' + message) + '(o, diagnostic_open(o, 0)))'
+        return f'diagnostic_close(o, {self.prefix(label, message)})'
 
     def add(self, schema, label):
         index = len(self.rules)
@@ -153,15 +165,14 @@ class Author:
         lines += ['    if missing != 0:',
                   f'        return missing_{len(self.rules)}(o, missing)']
         helpers = [f'def missing_{len(self.rules)}(o:mutbuf, missing:u64) -> u64:',
-                   '    at = diagnostic_open(o, 0)',
-                   f'    at = {self.literal(label + ": missing fields ")}(o, at)',
+                   f'    at = {self.prefix(label, "missing fields ")}',
                    '    count = 0']
         for index, field in enumerate(required):
-            separator = self.literal(', ')
-            emit = self.literal(field)
+            separator = self.emit(', ', 'at')
+            emit = self.emit(field, 'at')
             helpers += [f'    if (missing & {1 << index}) != 0:',
-                        '        if count != 0:', f'            at = {separator}(o, at)',
-                        f'        at = {emit}(o, at)', '        count = count + 1']
+                        '        if count != 0:', f'            at = {separator}',
+                        f'        at = {emit}', '        count = count + 1']
         helpers.append('    return diagnostic_close(o, at)')
         self.rules.append('\n'.join(helpers))
         lines += ['    child = get(w, node + 24)', f'    while child != {END}:',
@@ -174,10 +185,22 @@ class Author:
             branch = 'if' if index == 0 else 'elif'
             lines += [f'        {branch} key == {self.keyed(field)}:',
                       f'            problem = {child}(s, o, w, record)']
-        lines += ['        else:', f'            at = {self.literal(start)}(o, diagnostic_open(o, 0))',
+        lines += ['        else:', f'            at = {self.prefix(label, "unknown field ")}',
                   f'            return unexpected_field(w, o, record, at, {len(start)})',
                   '        if problem != 0:', '            return problem',
                   '        child = get(w, record + 16)']
+
+    @staticmethod
+    def write_body(text, indent):
+        raw = text.encode()
+        lines = []
+        whole = len(raw) - len(raw) % 8
+        for offset in range(0, whole, 8):
+            word = int.from_bytes(raw[offset:offset + 8], 'little')
+            lines.append(f'{indent}put(o, at + {offset}, {word})')
+        for offset in range(whole, len(raw)):
+            lines.append(f'{indent}store(o, at + {offset}, {raw[offset]})')
+        return lines + [f'{indent}return at + {len(raw)}']
 
     def source(self, schema):
         main = self.add(schema, 'arguments')
@@ -185,17 +208,18 @@ class Author:
             'diagnostic_open': '{"code":"E_HIA_SCHEMA","details_artifact":null,"message":"',
             'diagnostic_close': '","phase":"admission","retry_action":"correct_input"}',
         }
-        writer.update((name, raw) for raw, name in self.literals.items())
+        if not self.common_literals:
+            writer.update((name, raw) for raw, name in self.literals.items())
         pieces = []
         for name, text in writer.items():
-            raw = text.encode()
             lines = [f'def {name}(o:mutbuf, at:u64) -> u64:']
-            whole = len(raw) - len(raw) % 8
-            for offset in range(0, whole, 8):
-                lines.append(f'    put(o, at + {offset}, {int.from_bytes(raw[offset:offset+8], "little")})')
-            for offset in range(whole, len(raw)):
-                lines.append(f'    store(o, at + {offset}, {raw[offset]})')
-            pieces.append('\n'.join(lines + [f'    return at + {len(raw)}']))
+            pieces.append('\n'.join(lines + self.write_body(text, '    ')))
+        if self.common_literals:
+            lines = ['def literal_table(o:mutbuf, at:u64, tag:u64) -> u64:']
+            for index, text in enumerate(self.literals):
+                lines.append(f'    if tag == {index}:')
+                lines.extend(self.write_body(text, '        '))
+            pieces.append('\n'.join(lines + ['    return at']))
         helpers = HELPERS[:HELPERS.index('\ndef integer_between(')]
         number = HELPERS[HELPERS.index('\ndef integer_between('):]
         numeric_type = PAYLOAD_HELPERS[PAYLOAD_HELPERS.index('\ndef unrestricted_integer('):PAYLOAD_HELPERS.index('\ndef unit_number(')]
@@ -216,7 +240,7 @@ class Author:
 def document(tool='hia_artifact', *, module=SOURCE.stem):
     catalog = json.loads(CATALOG.read_bytes())
     schema, = (row['inputSchema'] for row in catalog['tools'] if row['name'] == tool)
-    nodes = ast.parse(Author().source(schema)).body
+    nodes = ast.parse(Author(common_literals=tool != 'hia_artifact').source(schema)).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}
