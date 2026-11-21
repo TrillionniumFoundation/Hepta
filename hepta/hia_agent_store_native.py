@@ -339,6 +339,8 @@ class NativeStoreConnection:
         self.request = 0
         self.in_transaction = False
         self.generation = None
+        from .hia_agent_store_transport_native import selected_store_transport
+        self.codec = selected_store_transport()
         self.failed = False
         self.closed = False
 
@@ -394,7 +396,12 @@ class NativeStoreConnection:
     def _send(self, kind, deadline, target=0, body=b''):
         self.request += 1
         fd = self.process.stdin.fileno()
-        header = struct.pack('<8s5Q', b'HIATCM01', 1, self.request, kind, target, len(body))
+        if self.codec is None:
+            header = struct.pack('<8s5Q', b'HIATCM01', 1, self.request, kind, target, len(body))
+        else:
+            header = self.codec.command(self.request, kind, target, len(body))
+            if header is None:
+                raise StoreProtocolError('native HIA Store command header refused')
         for chunk in (header, body):
             view = memoryview(chunk)
             while view:
@@ -426,10 +433,16 @@ class NativeStoreConnection:
             magic = self._exact(8, deadline)
         if magic != b'HIATXR01':
             raise StoreProtocolError('native Store reply was not an acknowledgement')
-        version, actual_request, actual_kind, *result = struct.unpack('<9Q', self._exact(72, deadline))
-        if (version, actual_request, actual_kind) != (1, request, kind):
-            raise StoreProtocolError('misordered native Store acknowledgement')
-        return result
+        header = self._exact(72, deadline)
+        if self.codec is not None:
+            result = self.codec.acknowledgement(request, kind, magic + header)
+            if result is not None:
+                return list(result)
+        else:
+            version, actual_request, actual_kind, *result = struct.unpack('<9Q', header)
+            if (version, actual_request, actual_kind) == (1, request, kind):
+                return result
+        raise StoreProtocolError('misordered native Store acknowledgement')
 
     def _results(self, plan, table, mask, deadline, *, raw_row_limit=None):
         table_id = _TABLE_IDS.index(table) + 1
@@ -445,9 +458,16 @@ class NativeStoreConnection:
                 return rows
             if magic != b'HIAQRF01' or summary is not None:
                 raise StoreProtocolError('unexpected native Store query frame')
-            kind, observed_table, rowid, offset, size, _, reserved = struct.unpack('<7Q', self._exact(56, deadline))
-            if observed_table != table_id or reserved != 0 or size > _MAX_FRAME:
-                raise StoreProtocolError('invalid native Store query frame header')
+            header = self._exact(56, deadline)
+            if self.codec is None:
+                fields = struct.unpack('<7Q', header)
+                if fields[1] != table_id or fields[4] > _MAX_FRAME or fields[6] != 0:
+                    raise StoreProtocolError('invalid native Store query frame header')
+            else:
+                fields = self.codec.query_header(table_id, _MAX_FRAME, magic + header)
+                if fields is None:
+                    raise StoreProtocolError('invalid native Store query frame header')
+            kind, _, rowid, offset, size, _, _ = fields
             data = self._exact(size, deadline)
             if kind == 1 and pending is None and size == 128 and offset == 0:
                 pending, pending_id = bytearray(), rowid

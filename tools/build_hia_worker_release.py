@@ -53,7 +53,7 @@ ADDITIONAL_HELPERS = (
     'agent-data-json', 'agent-binary64', 'agent-binary64-format',
     'agent-describe-answer', 'agent-payload-schema', 'agent-plan-schema', 'machine-plan',
     'safe-core-x64-decode', 'safe-core-elf-inventory', 'elf-verified-linker', 'service-context', 'cost-ledger', 'evaluation',
-    'native-build-admission',
+    'native-build-admission', 'agent-store-transport',
 )
 HELPER_BUILDERS = {
     'slot-ledger': build_slot_ledger,
