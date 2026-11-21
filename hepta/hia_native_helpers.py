@@ -68,6 +68,7 @@ HELPERS = {
     "HEPTA_HIA_AGENT_DESCRIBE_ANSWER_MANIFEST": (
         "hia_agent_describe_answer_native", "NativeAgentDescribeAnswer"),
     "HEPTA_HIA_AGENT_READ_PAGE_MANIFEST": ("hia_agent_read_page_native", "NativeAgentReadPage"),
+    "HEPTA_HIA_AGENT_READ_REQUEST_MANIFEST": ("hia_agent_read_request_native", "NativeAgentReadRequest"),
     "HEPTA_HIA_AGENT_SCHEMA_MANIFEST": ("hia_agent_schema_native", "NativeAgentSchema"),
     "HEPTA_HIA_AGENT_PAYLOAD_SCHEMA_MANIFEST": ("hia_agent_payload_schema_native", "NativeAgentSchema"),
     "HEPTA_HIA_AGENT_PLAN_SCHEMA_MANIFEST": ("hia_agent_plan_schema_native", "NativeAgentPlanSchema"),

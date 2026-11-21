@@ -746,10 +746,22 @@ class HIAAgentService:
         executable = pinned_agent_read_page_executable()
         if executable is not None and uses_native_store(self.store):
             pager = installed_agent_read_page(os.environ[SELECTOR])
-            admit_record = partial(pager.admit_retained_artifact, executable=executable)
-            with capture_retained_page(self.store, ref, native_record=admit_record) as captured:
-                cursor, row = pager.lookup_captured_cursor(
-                    self.store.db, args.get("cursor"), executable)
+            from .hia_agent_read_request_native import SELECTOR as PLAN_SELECTOR, installed_agent_read_request
+            selected_plan = os.environ.get(PLAN_SELECTOR)
+            plan = (installed_agent_read_request(selected_plan).prepare(args, self.catalog_sha256)
+                    if selected_plan is not None else None)
+            if plan is None:
+                admit_record = partial(pager.admit_retained_artifact, executable=executable)
+            else:
+                admit_record = partial(pager.admit_planned_artifact, executable=executable, plan=plan)
+            with capture_retained_page(self.store, ref, native_record=admit_record,
+                                       encoded=plan.reference if plan is not None else None) as captured:
+                if plan is None:
+                    cursor, row = pager.lookup_captured_cursor(
+                        self.store.db, args.get("cursor"), executable)
+                else:
+                    cursor = plan.cursor
+                    row = self.store.db.cursor_lookup_frame(plan.cursor_query) if cursor is not None else None
                 result, retained = pager.read_captured_bound_page(
                     captured, ref, cursor, row, args.get("max_bytes"), executable)
             if retained:
