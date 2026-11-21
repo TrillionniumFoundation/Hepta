@@ -119,7 +119,7 @@ def template(mode):
     minimum = 24 if page else (SCHEMA_HEADER + 2 if schema else 2)
     maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     if diagnostic:
-        scratch, workspace = 4 << 20, SCHEMA_ARENA_BYTES
+        scratch, workspace, minimum = 4 << 20, SCHEMA_ARENA_BYTES, 1
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if describe_request:

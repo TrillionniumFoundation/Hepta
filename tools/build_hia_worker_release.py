@@ -566,6 +566,7 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
         binders = {
             'read': bind_read_release,
             'readonly': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots),
+            'native': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots, kind='native'),
         }
         for kind in binders:
             launcher = release / ('hia-agent-' + kind + '-launcher')
@@ -597,13 +598,13 @@ def main():
     for name in ('output', 'compiler', 'cold-report', 'package'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--package-sha256', required=True)
-    parser.add_argument('--readonly-artifact-root', action='append', type=Path, default=[])
+    parser.add_argument('--readonly-artifact-root', '--artifact-root', action='append', type=Path, default=[])
     args = parser.parse_args()
     profile, pin = build(args.output, args.compiler, args.cold_report, args.package, args.package_sha256,
                          readonly_artifact_roots=args.readonly_artifact_root)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
               'package_sha256': args.package_sha256, 'production_activated': False}
-    for kind in ('read', 'readonly'):
+    for kind in ('read', 'readonly', 'native'):
         manifest = profile.parent / (kind + '-worker.json')
         if manifest.is_file():
             result[f'native_{kind}_worker_manifest'] = str(manifest)

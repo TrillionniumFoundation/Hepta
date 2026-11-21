@@ -14,7 +14,7 @@ from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_func
 SOURCE = Path('examples/hia_bootstrap/worker_artifact_diagnostic.hepta')
 PROLOGUE = r'''
 def diagnose(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 2 or length(o) < 25088 or length(w) < 8320:
+    if length(s) < 1 or length(o) < 25088 or length(w) < 8320:
         return 4294967293
     put(o, 48, 262144)
     put(o, 56, 128)

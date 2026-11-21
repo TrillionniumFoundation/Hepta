@@ -6,6 +6,7 @@ import ctypes
 from dataclasses import dataclass
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import struct
 import sys
@@ -25,7 +26,8 @@ from tools.generate_hia_read_capsule import (
     DOSSIER_MAGIC, MANIFEST_MAGIC, MAX_ROLE_BYTES, ROLES, SOURCE as AUTHORITY,
 )
 from tools.generate_hia_readonly_worker_capsule import (
-    BOOTSTRAP_MAGIC, CAPSULE_MAX, MANIFEST_MAGIC as READONLY_MANIFEST, RESOURCES_MAGIC,
+    ARTIFACT_CONFIG, BOOTSTRAP_MAGIC, CAPSULE_MAX, MANIFEST_MAGIC as READONLY_MANIFEST,
+    NATIVE_MANIFEST, NATIVE_ROLES, NATIVE_SOURCE, RESOURCES_MAGIC,
     ROLES as READONLY_ROLES, SOURCE as READONLY_AUTHORITY,
 )
 from tools.qualify_hia_selfhost import compile_stage
@@ -58,6 +60,13 @@ class Launcher:
 
 LAUNCHERS = {
     'read': Launcher(SOURCE, AUTHORITY, MAGIC, PLATFORM_SIZE, PLATFORM_SHA256, SEGMENTS),
+    'native': Launcher(
+        'examples/hia_bootstrap/agent_native_launcher_packer.hepta', NATIVE_SOURCE,
+        b'HIANLK01', 8496,
+        '55e85d7116e597359dff0eab561f3ab13b9774a9d74947c2264c38a4398ff17d',
+        (('bounded_descriptor_io', 0, 2018), ('sealed_execution_and_role_capture', 2018, 3814),
+         ('native_authority_and_selector', 3814, 7936), ('fixed_role_tables', 7936, 8496)),
+    ),
     'readonly': Launcher(
         'examples/hia_bootstrap/agent_readonly_launcher_packer.hepta', READONLY_AUTHORITY,
         b'HIADLK01', 10624,
@@ -213,15 +222,17 @@ def _installed_authority(release, expected_launcher, profile_pin, kind):
     return verify, dossier, observed, identities['catalog_sha256'].encode('ascii')
 
 
-def bind_readonly_release(target, release, expected_launcher, profile_pin, *, artifact_roots=()):
-    """Bind immutable launch, discovery and retained-read data in one HIA capsule."""
+def bind_readonly_release(target, release, expected_launcher, profile_pin, *, artifact_roots=(), kind='readonly'):
+    """Bind installed startup, discovery and Worker role capabilities."""
+    if kind not in ('readonly', 'native'):
+        raise ValueError('unknown Worker capability inventory')
     if len(artifact_roots) > 32:
         raise ValueError('read-only Worker exceeds the configured provider root limit')
     roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
     if any(not root.is_dir() for root in roots):
         raise ValueError('read-only Worker artifact roots must be directories')
     verify, dossier, observed, catalog_pin = _installed_authority(
-        release, expected_launcher, profile_pin, 'readonly')
+        release, expected_launcher, profile_pin, kind)
     digits = wire(len(roots))
     roots_pin = sha256(wire([str(root) for root in roots])).hexdigest().encode('ascii')
     config = struct.pack('<8s5Q', BOOTSTRAP_MAGIC, 0, len(observed), len(digits), 0, 0)
@@ -233,11 +244,28 @@ def bind_readonly_release(target, release, expected_launcher, profile_pin, *, ar
     documents += b''.join(struct.pack('<2Q', len(name), len(file.raw)) + name + file.raw
                           for name, file in resources)
 
-    roles = [_read(release / name, MAX_ROLE_BYTES) for name in READONLY_ROLES]
+    artifact = b''
+    manifest_magic, names = READONLY_MANIFEST, READONLY_ROLES
+    if kind == 'native':
+        from hepta.hia_agent_service import _profile_documents
+
+        document = _profile_documents(json.loads(observed), catalog_pin.decode('ascii'),
+                                      len(roots), roots_pin.decode('ascii'))['artifact']
+        digest = sha256(wire(document)).hexdigest()
+        profile = wire({'id': 'hia-artifact-v1', 'sha256': digest})
+        artifact = struct.pack('<8s64s2Q', ARTIFACT_CONFIG, digest.encode('ascii'), len(profile), len(roots))
+        artifact += profile
+        for root in roots:
+            raw = os.fsencode(root)
+            if len(raw) > 4095:
+                raise ValueError('configured root exceeds native Worker path bound')
+            artifact += struct.pack('<Q', len(raw)) + raw
+        manifest_magic, names = NATIVE_MANIFEST, NATIVE_ROLES
+    roles = [_read(release / name, MAX_ROLE_BYTES) for name in names]
     rows = b''.join(struct.pack('<2Q32s', ordinal, len(role.raw), verify(role.raw, 2, ordinal))
                     for ordinal, role in enumerate(roles, 1))
-    manifest = struct.pack('<8s6Q', READONLY_MANIFEST, 1, len(roles), len(dossier), len(config),
-                           len(documents), 0) + rows + dossier + config + documents
+    manifest = struct.pack('<8s6Q', manifest_magic, 1, len(roles), len(dossier), len(config),
+                           len(documents), len(artifact)) + rows + dossier + config + documents + artifact
     if len(manifest) > CAPSULE_MAX:
         raise ValueError('read-only Worker capsule exceeds its admitted size')
     capsule_pin = verify(manifest, 1, 0).hex()
