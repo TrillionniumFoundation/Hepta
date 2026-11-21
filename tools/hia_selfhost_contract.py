@@ -333,6 +333,8 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_worker_inspection_effect.py',
     'examples/hia_bootstrap/inspection_lowering_elf.hepta',
     'tools/generate_hia_inspection_lowering_elf.py',
+    'examples/hia_bootstrap/inspection_lowering_frames.hepta',
+    'tools/generate_hia_inspection_lowering_frames.py',
     'examples/hia_bootstrap/worker_context_workload.hepta',
     'examples/hia_bootstrap/worker_context_cost.hepta',
     'examples/hia_bootstrap/worker_context_cost_diagnostic.hepta',

@@ -45,6 +45,7 @@ VARIANTS = {
     'inspection-request': ('worker_inspection_request', 'hepta.hia.inspection-request-native.v1'),
     'inspection-effect': ('worker_inspection_effect', 'hepta.hia.inspection-effect-native.v1'),
     'inspection-lowering-elf': ('inspection_lowering_elf', 'hepta.hia.inspection-lowering-elf-native.v1'),
+    'inspection-lowering-frames': ('inspection_lowering_frames', 'hepta.hia.inspection-lowering-frames-native.v1'),
     'context-workload': ('worker_context_workload', 'hepta.hia.context-workload-native.v1'),
     'context-cost': ('worker_context_cost', 'hepta.hia.context-cost-native.v1'),
     'context-cost-diagnostic': ('worker_context_cost_diagnostic', 'hepta.hia.context-cost-diagnostic-native.v1'),
