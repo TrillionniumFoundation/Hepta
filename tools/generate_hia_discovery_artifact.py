@@ -214,15 +214,18 @@ def source_program():
         source += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'
         source += '    return ' + ' and '.join(
             f'byte(s, at + {index}) == {value}' for index, value in enumerate(raw)) + '\n'
+    return source + '\n' + sha256_in_place_program()
+
+
+def sha256_in_place_program():
     # All message bytes are consumed before digest serialization, so hashing
-    # the private key material in place needs no aliased buffer capabilities.
-    hash_source = (sha256_program()
+    # private canonical bytes needs no aliased buffer capabilities.
+    return (sha256_program()
                    .replace('sha256(s:readbuf, o:mutbuf, w:mutbuf)', 'sha256_in_place(s:mutbuf, extent:u64, w:mutbuf)')
                    .replace('padded_byte(s:readbuf,', 'padded_byte(s:mutbuf, extent:u64,')
                    .replace('padded_byte(s,', 'padded_byte(s, extent,')
                    .replace('length(s)', 'extent').replace('length(o)', 'length(s)')
                    .replace('store(o, i * 4 + j,', 'store(s, i * 4 + j,'))
-    return source + '\n' + hash_source
 
 
 if __name__ == '__main__':

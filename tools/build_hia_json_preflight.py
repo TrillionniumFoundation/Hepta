@@ -110,6 +110,7 @@ CANDIDATES = {
     'worker-describe-request': ('worker_describe_request', 'worker-describe-request'),
     'discovery-artifact': ('discovery_artifact', 'discovery-artifact'),
     'discovery-effect': ('discovery_effect', 'discovery-effect'),
+    'describe-bind': ('describe_bind', 'describe-bind'),
     'agent-read-page': ('agent_read_page', 'agent-read-page'),
     'agent-read-request': ('agent_read_request', 'agent-read-request'),
     'agent-store-transport': ('agent_store_transport', 'agent-store-transport'),

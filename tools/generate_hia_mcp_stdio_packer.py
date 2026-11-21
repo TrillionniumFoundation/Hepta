@@ -55,7 +55,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'store-ready': STORE_READY_MODE, 'journal-read-workflow': JOURNAL_READ_WORKFLOW_MODE,
          'worker-arguments': WORKER_ARGUMENTS_MODE, 'describe-request': DESCRIBE_REQUEST_MODE,
          'discovery': DISCOVERY_MODE, 'describe-answer': DESCRIBE_ANSWER_MODE,
-         'discovery-artifact': DISCOVERY_ARTIFACT_MODE, 'discovery-effect': READ_REACTOR_MODE}
+         'discovery-artifact': DISCOVERY_ARTIFACT_MODE, 'discovery-effect': READ_REACTOR_MODE,
+         'describe-bind': DISCOVERY_MODE}
 
 
 def elf_prefix(code):
