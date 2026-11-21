@@ -110,6 +110,29 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
                 changed[field] = b''
                 self.assertEqual(observe(changed), 2 if field >= 8 else 0)
 
+    def test_supervision_drains_or_signals_before_reaping_the_original_leader(self):
+        def observe(stage, *facts):
+            value = sum(1 << index for index, fact in enumerate(facts) if fact)
+            result = self.invoke(struct.pack('<8s2Q', b'HIAJLQ01', stage, value))
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            magic, decision = struct.unpack('<8sQ', result.stdout)
+            self.assertEqual(magic, b'HIAJLO01')
+            return decision
+
+        # An already observed exit wins over the concurrent process timeout.
+        self.assertEqual(observe(0, True, False, False, True), 6)
+        self.assertEqual(observe(0, False, False, False, True), 9)
+        # Cancelling an existing drain must not arm another grace period.
+        self.assertEqual(observe(0, True, False, True, True, True), 2)
+        self.assertEqual(observe(0, False, True, False, True, False, True, True), 17)
+        self.assertEqual(observe(0, True, True, False, True, False, True, True, True), 33)
+        # A late EOF cannot turn an expired join into natural completion.
+        self.assertEqual(observe(1, True, True, False, True), 2)
+        self.assertEqual(observe(1, True, True, True, True), 1)
+        self.assertEqual(observe(2, True, False, False, True, False, True, True), 4)
+        self.assertEqual(observe(2, False, False, False, True, False, True, True), 7)
+        self.assertEqual(observe(2, False, True, True, True, False, True, True), 4)
+
     def test_every_tool_preserves_serde_fragments(self):
         original = ('{"escaped":"\\t\\n\\u0000🌍","number":1e+20,'
                     '"subnormal":5e-324,"zero":-0.0}').encode()

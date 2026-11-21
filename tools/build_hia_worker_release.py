@@ -244,6 +244,21 @@ def _worker_prepare_has_cancel_authority(prepare):
     return True
 
 
+def _worker_prepare_has_supervision_loop(prepare):
+    # Timeout arms TERM, an existing drain keeps its budget, and the last
+    # reader's expiry permits one group KILL before final completion.
+    for index, (stage, facts, decision) in enumerate(((0, 8, 9), (0, 21, 2),
+                                                      (1, 11, 2), (2, 104, 7), (2, 5, 4))):
+        frame = struct.pack('<8s2Q', b'HIAJLQ01', stage, facts)
+        result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+        observed = result.returncode, result.stdout, result.stderr
+        if index == 0 and observed == (2, b'', b''):
+            return False
+        if observed != (0, struct.pack('<8sQ', b'HIAJLO01', decision), b''):
+            raise ValueError('installed HIA supervision loop changed the original timeout or drain boundary')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -279,6 +294,9 @@ def _install_controller(output, scratch, release, installer):
     if schema == 'hepta.hia.mcp.controller.v9':
         if _worker_prepare_has_cancel_authority(release / 'hia-worker-prepare'):
             schema = 'hepta.hia.mcp.controller.v10'
+    if schema == 'hepta.hia.mcp.controller.v10':
+        if _worker_prepare_has_supervision_loop(release / 'hia-worker-prepare'):
+            schema = 'hepta.hia.mcp.controller.v11'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

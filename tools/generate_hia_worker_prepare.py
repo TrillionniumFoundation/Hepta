@@ -45,6 +45,8 @@ WORKDIR_INPUT = b'HIAJCQ01'
 WORKDIR_OUTPUT = b'HIAJCO01'
 CANCEL_INPUT = b'HIAJCX01'
 CANCEL_OUTPUT = b'HIAJCY01'
+SUPERVISION_LOOP_INPUT = b'HIAJLQ01'
+SUPERVISION_LOOP_OUTPUT = b'HIAJLO01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
 JOB_LIFECYCLE_OUTPUT = b'HIAJSV01'
 JOB_OWNER_INPUT = b'HIAJOQ01'
@@ -86,6 +88,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return workdir_policy(s, o)
     if magic == CANCEL_INPUT:
         return cancel_authority(s, o, w)
+    if magic == SUPERVISION_LOOP_INPUT:
+        return supervision_loop(s, o)
     if magic == JOB_LIFECYCLE_INPUT:
         return job_lifecycle(s, o)
     if magic == JOB_OWNER_INPUT:
@@ -1048,6 +1052,63 @@ def valid_cancel_kind(s:readbuf, w:mutbuf) -> bool:
         return False
     at = owner_at(w, 5)
     return word_load(s, at) == PROC_ID_HEAD and word_load(s, at + 8) == PROC_ID_TAIL
+
+def supervision_loop(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 24 or length(o) < 16:
+        return 4294967293
+    stage = word_load(s, 8)
+    facts = word_load(s, 16)
+    decision = 0
+    if stage == 0 and facts < 512:
+        decision = supervision_wait(facts)
+    elif stage == 1 and facts < 16:
+        # EOF, thread ended and completion at or before its frozen deadline.
+        if facts & 7 == 7:
+            decision = 1
+        elif facts & 8 != 0:
+            decision = 2
+    elif stage == 2 and facts < 128:
+        decision = supervision_drain(facts)
+    else:
+        return 4294967293
+    word_store(o, 0, SUPERVISION_LOOP_OUTPUT)
+    word_store(o, 8, decision)
+    return 16
+
+def supervision_wait(facts:u64) -> u64:
+    exited = facts & 1 != 0
+    timed_out = facts & 2 != 0 or (facts & 8 != 0 and exited == False)
+    stopping = timed_out or facts & 4 != 0
+    result = choose(timed_out, 1, 0)
+    if facts & 16 != 0:
+        return result | 2
+    if exited and stopping == False:
+        return result | 6
+    if stopping == False:
+        return result
+    armed = facts & 32 != 0
+    due = armed and facts & 64 != 0
+    if armed == False:
+        result = result | 8
+    elif due and facts & 128 == 0:
+        result = result | 16
+    if exited and (due or facts & 256 != 0):
+        result = result | 32
+    return result
+
+def supervision_drain(facts:u64) -> u64:
+    # Completion is observed before signals. A cancellation in the existing
+    # drain never creates another grace period or signals a reaped leader.
+    killed = facts & 4 != 0
+    if facts & 1 != 0 or (killed and facts & 2 != 0):
+        return 4
+    result = choose(facts & 64 != 0, 4, 0)
+    if killed == False:
+        if facts & 8 != 0 and facts & 16 == 0:
+            result = result | 1
+        if facts & 32 != 0:
+            result = result | 2
+    return result
 '''
 
 LITERALS = {
@@ -1128,6 +1189,8 @@ def source_program():
               .replace('WORKDIR_OUTPUT', str(int.from_bytes(WORKDIR_OUTPUT, 'little')))
               .replace('CANCEL_INPUT', str(int.from_bytes(CANCEL_INPUT, 'little')))
               .replace('CANCEL_OUTPUT', str(int.from_bytes(CANCEL_OUTPUT, 'little')))
+              .replace('SUPERVISION_LOOP_INPUT', str(int.from_bytes(SUPERVISION_LOOP_INPUT, 'little')))
+              .replace('SUPERVISION_LOOP_OUTPUT', str(int.from_bytes(SUPERVISION_LOOP_OUTPUT, 'little')))
               .replace('PROC_ID_HEAD', str(int.from_bytes(b'proc_sta', 'little')))
               .replace('PROC_ID_TAIL', str(int.from_bytes(b'rt_ticks', 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
