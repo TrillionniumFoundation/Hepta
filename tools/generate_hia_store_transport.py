@@ -43,6 +43,8 @@ WIRE = {
     'ARTIFACT_TOOL_TAIL': b'fact',
     'CONTEXT_TOOL_HEAD': b'hia_cont',
     'CONTEXT_TOOL_TAIL': b'ext',
+    'INSPECTION_TOOL_HEAD': b'hia_insp',
+    'INSPECTION_TOOL_TAIL': b'ect',
     'RUNNING_STATE': b'running',
 }
 
@@ -428,6 +430,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
     if tool == ARTIFACT_TOOL_HEAD and read_word(s, 368) & 4294967295 == ARTIFACT_TOOL_TAIL:
         width = 12
     elif tool == CONTEXT_TOOL_HEAD and read_word(s, 368) & 16777215 == CONTEXT_TOOL_TAIL:
+        width = 11
+    elif tool == INSPECTION_TOOL_HEAD and read_word(s, 368) & 16777215 == INSPECTION_TOOL_TAIL:
         width = 11
     if width == 0 or size <= 319 + width or size > 339 + width:
         return False
