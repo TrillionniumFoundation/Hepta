@@ -148,13 +148,16 @@ class _InputScope:
 
 @contextmanager
 def input_execution_scope():
-    from .hia_json_preflight_native import _INPUT_IMAGE_OBSERVERS
+    from .hia_json_preflight_native import _INPUT_IMAGE_OBSERVERS, _INPUT_IMAGE_SELECTIONS
     scope = _InputScope()
-    token = _INPUT_IMAGE_OBSERVERS.set((*_INPUT_IMAGE_OBSERVERS.get(), scope.observe))
+    selections = _INPUT_IMAGE_SELECTIONS.get()
+    selection_token = _INPUT_IMAGE_SELECTIONS.set({} if selections is None else selections)
+    observer_token = _INPUT_IMAGE_OBSERVERS.set((*_INPUT_IMAGE_OBSERVERS.get(), scope.observe))
     try:
         yield scope
     finally:
-        _INPUT_IMAGE_OBSERVERS.reset(token)
+        _INPUT_IMAGE_OBSERVERS.reset(observer_token)
+        _INPUT_IMAGE_SELECTIONS.reset(selection_token)
 
 
 def bind_input_execution(function):

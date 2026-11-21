@@ -26,6 +26,7 @@ SCHEMA = 'hepta.hia.json-preflight-native.v1'
 # Inactive ordinary/native compilation imports no proof implementation. A
 # consumer installs scoped observers only while validating its actual inputs.
 _INPUT_IMAGE_OBSERVERS = ContextVar('hia_native_input_image_observers', default=())
+_INPUT_IMAGE_SELECTIONS = ContextVar('hia_native_input_image_selections', default=None)
 
 # Text rendering only: the HIA scanner chooses a reason at the original
 # refusal point and returns it in private state offset 32. The last reason
@@ -271,7 +272,18 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
         raw = handle.read(16385)
     if len(raw) > 16384:
         raise ValueError('native HIA JSON manifest exceeds size limit')
-    selected = _load_manifest(str(path), raw, sha256(source.read_bytes()).hexdigest(), schema, factory)
+    key = (str(path), raw, sha256(source.read_bytes()).hexdigest(), schema, factory)
+    selections = _INPUT_IMAGE_SELECTIONS.get()
+    if selections is None:
+        selected = _load_manifest(*key)
+    else:
+        # A proof can use more helpers than the shared loader cache retains.
+        # Keep its admitted mapping stable, but only for the same manifest
+        # and source bytes, both of which are reread on every selection.
+        selected = selections.get(key)
+        if selected is None:
+            selected = _load_manifest(*key)
+            selections[key] = selected
     for observe in _INPUT_IMAGE_OBSERVERS.get():
         observe(manifest_path, source, schema, factory, selected)
     return selected

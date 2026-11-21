@@ -91,6 +91,20 @@ class NativeInputIdentityTests(unittest.TestCase):
             with self.assertRaisesRegex(VerifiedInputRejected, "changed its actual mapping"):
                 payload_sha256(PAYLOAD)
 
+    def test_proof_keeps_one_mapping_after_shared_loader_eviction(self):
+        self.select()
+        manifest_bytes = self.manifest.read_bytes()
+        with input_execution_scope() as scope:
+            original = installed_hasher(str(self.manifest))
+            with input_execution_scope():
+                for index in range(4):
+                    manifest = self.root / f"other-{index}.json"
+                    manifest.write_bytes(manifest_bytes)
+                    self.assertIsNot(installed_hasher(str(manifest)), original)
+                self.assertIs(installed_hasher(str(self.manifest)), original)
+            self.assertEqual(payload_sha256(PAYLOAD), DIGEST)
+            self.assertEqual(len(scope.finish()["native_helpers"]), 5)
+
     def test_selection_changes_are_rejected_before_new_native_invocation(self):
         self.select()
         other = self.root / "other.json"
