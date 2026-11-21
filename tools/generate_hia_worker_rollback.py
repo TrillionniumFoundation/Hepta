@@ -1,4 +1,5 @@
 """Author HIA projection, ordered slot decisions and canonical Rollback receipts."""
+import json
 from pathlib import Path
 import re
 
@@ -7,10 +8,12 @@ from tools.generate_hia_agent_identity import (
     ROLLBACK_RECORD, ROLLBACK_RESULT, receipt_template, source_program as identity_source,
 )
 from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 from tools.generate_hia_store_transport import POLICY as STORE
-from tools.generate_hia_worker_context_request import POLICY as CONTEXT
+from tools.generate_hia_worker_artifact_authority import source_program as authority
+from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal
 from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_worker_inspection_request import POLICY as INSPECTION
 
@@ -18,7 +21,13 @@ SOURCE = Path('examples/hia_bootstrap/worker_rollback.hepta')
 KEYS = ('catalog_sha256', 'context', 'target_slot', 'expected_current',
         'generation', 'epoch', 'retained_generation', 'reason')
 TAGS = {'REQUEST': b'HIARLQ01', 'DECISION': b'HIARLD01',
-        'ANSWER': b'HIARLA01', 'RECEIPT': b'HIARLR01'}
+        'ANSWER': b'HIARLA01', 'RECEIPT': b'HIARLR01', 'STORE_QUERY': b'HIARLS01',
+        'STORE_OBSERVE': b'HIARLO01', 'STORE_ROW': b'HIARLB01', 'COUNT': b'HIASTLC1',
+        'QUERY': b'HIAQPA01', 'UPDATE': b'HIAUPB01', 'GENERATION': b'HIARLF01',
+        'PUBLIC_ERROR': b'HIARLE01'}
+SNAPSHOT = ('{"active_artifact":{},"context":{},"current":{},"in_flight_leases":{},'
+            '"snapshot_is_adoption_authority":false,"target_slot":{}}')
+STALE = 'slot changed; read the retained current snapshot and choose a fresh conditional request'
 POLICY = r'''
 def rollback_worker(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 2 or length(s) > 32768 or length(o) < 32768 or length(w) < 262144:
@@ -29,6 +38,14 @@ def rollback_worker(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return rollback_decision(s, o)
         if tag == RECEIPT:
             return rollback_receipt(s, o)
+        if tag == STORE_QUERY:
+            return slot_parameters(s, o)
+        if tag == STORE_OBSERVE:
+            return slot_observation(s, o)
+        if tag == GENERATION:
+            return generation_json(s, o)
+        if tag == PUBLIC_ERROR:
+            return rollback_error(s, o)
     return rollback_project(s, o, w)
 
 def rollback_project(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -181,17 +198,199 @@ def rollback_receipt(s:readbuf, o:mutbuf) -> u64:
         if size <= length(o):
             return rollback_result(s, o, 1)
         return size
+    if kind == 3:
+        size = rollback_snapshot_json(s, o, 0)
+        if size <= length(o):
+            return rollback_snapshot_json(s, o, 1)
+        return size
     return INVALID
 '''
+
+
+SLOT_POLICY = r'''
+# Fixed observations are carried in the same Store transaction as the eventual
+# publication. The transport has no SQL-shaped fallback for Rollback.
+def slot_parameters(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 41 or length(s) > 268:
+        return INVALID
+    mode = input_word(s, 8)
+    generation = input_word(s, 16)
+    epoch = input_word(s, 24)
+    size = input_word(s, 32)
+    if size < 1 or size > 192 or mode < 1 or mode > 3:
+        return INVALID
+    start = choose(mode == 3, 76, 40)
+    if length(s) != start + size or slot_name(s, start, size) == False:
+        return INVALID
+    if mode == 3:
+        if context_id(s, 40) == False:
+            return INVALID
+        return move_parameters(s, o, generation, epoch, size)
+    if epoch != 0 or (mode == 1 and generation != 0):
+        return INVALID
+    payload = choose(mode == 1, 56, 80)
+    end = copy_input(s, o, 40, payload, size)
+    put(o, 0, QUERY)
+    put(o, 8, 1)
+    put(o, 16, mode)
+    slot_cell(o, 32, payload, size)
+    if mode == 2:
+        last = decimal(o, end, generation)
+        slot_cell(o, 56, end, last - end)
+        end = last
+    put(o, 24, end)
+    return end
+
+def move_parameters(s:readbuf, o:mutbuf, generation:u64, epoch:u64, size:u64) -> u64:
+    after_generation = decimal(o, 136, generation)
+    after_epoch = decimal(o, after_generation, epoch)
+    after_context = copy_input(s, o, 40, after_epoch, 36)
+    end = copy_input(s, o, 76, after_context, size)
+    put(o, 0, UPDATE)
+    put(o, 8, 1)
+    put(o, 16, 2)
+    put(o, 24, 0)
+    put(o, 32, 4)
+    slot_cell(o, 40, 136, after_generation - 136)
+    slot_cell(o, 64, after_generation, after_epoch - after_generation)
+    slot_cell(o, 88, after_epoch, 36)
+    slot_cell(o, 112, after_context, size)
+    return end
+
+def slot_cell(o:mutbuf, at:u64, offset:u64, size:u64) -> u64:
+    put(o, at, 3)
+    put(o, at + 8, offset)
+    put(o, at + 16, size)
+    return at + 24
+
+# [tag, raw row extent, correlated request id, store epoch, role, slot
+# extent] plus the exact slot bytes (role 1 only), row and 48-byte settlement.
+def slot_observation(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 96 or length(s) > 800:
+        return INVALID
+    extent = input_word(s, 8)
+    kind = input_word(s, 32)
+    slot = input_word(s, 40)
+    if kind < 1 or kind > 3 or extent > 512 or slot > 192:
+        return INVALID
+    if length(s) != 96 + slot + extent:
+        return INVALID
+    if unique_summary(s, 48 + slot + extent, extent) == False:
+        return INVALID
+    if kind == 1:
+        if slot_name(s, 48, slot) == False:
+            return INVALID
+        return projected_slot(s, o, 48 + slot, extent, slot)
+    if slot != 0:
+        return INVALID
+    if kind == 2:
+        return projected_version(s, o, 48, extent)
+    if extent != 16 or input_word(s, 48) != COUNT:
+        return INVALID
+    return copy_input(s, o, 48, 0, 16)
+
+def projected_slot(s:readbuf, o:mutbuf, row:u64, extent:u64, slot:u64) -> u64:
+    put(o, 0, STORE_ROW)
+    put(o, 8, choose(extent == 0, 0, 1))
+    if extent == 0:
+        return 16
+    if extent < 254 + slot or row_header(s, row, 7, 5) == False:
+        return INVALID
+    if row_text(s, row + 32, 152, slot) == False or matches(s, row + 152, 48, slot) == False:
+        return INVALID
+    context = 152 + slot
+    if row_text(s, row + 56, context, 36) == False or context_id(s, row + context) == False:
+        return INVALID
+    start = context + 36
+    gen = input_word(s, row + 96)
+    epoch = input_word(s, row + 120)
+    if gen < 1 or gen > 20 or epoch < 1 or epoch > 20 or extent != start + gen + epoch + 64:
+        return INVALID
+    if row_text(s, row + 80, start, gen) == False or row_text(s, row + 104, start + gen, epoch) == False:
+        return INVALID
+    if row_text(s, row + 128, start + gen + epoch, 64) == False:
+        return INVALID
+    if canonical_timestamp(s, row + start, gen) == False or canonical_timestamp(s, row + start + gen, epoch) == False:
+        return INVALID
+    if valid_hex(s, row + start + gen + epoch, 64) == False:
+        return INVALID
+    put(o, 16, number(s, row + start, gen))
+    put(o, 24, number(s, row + start + gen, epoch))
+    copy_input(s, o, row + context, 32, 36)
+    return copy_input(s, o, row + start + gen + epoch, 68, 64)
+
+def projected_version(s:readbuf, o:mutbuf, row:u64, extent:u64) -> u64:
+    put(o, 0, STORE_ROW)
+    put(o, 8, choose(extent == 0, 0, 1))
+    if extent == 0:
+        return 16
+    if extent != 280 or row_header(s, row, 8, 3) == False:
+        return INVALID
+    if input_word(s, row + 32) != 0 or input_word(s, row + 40) != 104 or input_word(s, row + 48) != 0:
+        return INVALID
+    if input_word(s, row + 56) != 0 or input_word(s, row + 64) != 104 or input_word(s, row + 72) != 0:
+        return INVALID
+    if row_text(s, row + 80, 104, 176) == False or artifact_reference(s, row + 104) == False:
+        return INVALID
+    return copy_input(s, o, row + 104, 16, 176)
+
+def generation_json(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 24:
+        return INVALID
+    at = epoch_open(o, 0)
+    at = decimal(o, at, input_word(s, 16))
+    at = generation_open(o, at)
+    at = decimal(o, at, input_word(s, 8))
+    return generation_close(o, at)
+
+def rollback_error(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 16:
+        return INVALID
+    code = input_word(s, 8)
+    if code == 4:
+        if length(s) != 192 or artifact_reference(s, 16) == False:
+            return INVALID
+        stale_open(o, 0)
+        at = copy_input(s, o, 16, STALE_OPEN_SIZE, 176)
+        return stale_close(o, at)
+    if length(s) != 16:
+        return INVALID
+    return static_error(o, code)
+'''
+
+
+def errors():
+    cases = {
+        1: ('E_HIA_RANGE', 'retained_generation must be a canonical u64 decimal string', 'admission'),
+        2: ('E_HIA_RANGE', 'generation must be a canonical u64 decimal string', 'admission'),
+        3: ('E_HIA_RANGE', 'epoch must be a canonical u64 decimal string', 'admission'),
+        5: ('E_HIA_SLOT', 'slot has no retained generation', 'adoption'),
+        6: ('E_HIA_GENERATION', 'requested generation is not retained', 'adoption'),
+        7: ('E_HIA_ABI', 'retained generation is not ABI compatible', 'adoption'),
+        8: ('E_HIA_GENERATION_EXHAUSTED', 'u64 epoch space is exhausted', 'adoption'),
+        9: ('E_HIA_RECEIPT_BINDING', 'native artifact belongs to a different context or implementation', 'admission'),
+        10: ('E_HIA_RECEIPT_BINDING', "native artifact's admitted Core identity differs", 'admission'),
+    }
+    dispatch = ['def static_error(o:mutbuf, code:u64) -> u64:']
+    code = []
+    for status,(name,message,phase) in cases.items():
+        body = json.dumps({'code':name,'message':message,'phase':phase,'details_artifact':None,
+                           'retry_action':'correct_input'}, sort_keys=True, separators=(',', ':'))
+        dispatch.extend((f'    if code == {status}:', f'        return error_{status}(o, 0)'))
+        code.append(literal(f'error_{status}', body))
+    dispatch.append('    return 4294967293')
+    return '\n'.join((*code, '\n'.join(dispatch)))
 
 
 def program():
     keys = {f'K_{key}': index for index, key in enumerate(KEYS, 1)}
     constants = {name: int.from_bytes(value, 'little') for name, value in TAGS.items()}
-    constants.update(keys, INVALID=4294967293, CATALOG_MISMATCH=4294967286, NONE=(1 << 64) - 1)
+    stale_open = '{"code":"E_HIA_GENERATION_STALE","details_artifact":'
+    constants.update(keys, STALE_OPEN_SIZE=len(stale_open), INVALID=4294967293, CATALOG_MISMATCH=4294967286, NONE=(1 << 64) - 1)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
-                    lambda match: str(constants[match[0]]), POLICY)
+                    lambda match: str(constants[match[0]]), POLICY + SLOT_POLICY)
     identity = identity_source()
+    artifact = authority()
     return '\n'.join((
         policy, function(INSPECTION, 'input_word'),
         *(function(CONTEXT, name) for name in ('equal_span', 'fragment', 'copy_value')),
@@ -205,7 +404,16 @@ def program():
         receipt_template('rollback_result', ROLLBACK_RESULT),
         *(function(identity, name).replace('read_word(', 'input_word(')
           for name in ('receipt_fragment_size', 'receipt_literal', 'receipt_fragment')),
-        json_decoder(wire_spans=True),
+        receipt_template('rollback_snapshot_json', SNAPSHOT),
+        *(function(STORE, name).replace('read_word(', 'input_word(') for name in ('slot_name', 'context_id')),
+        *(function(artifact, name) for name in ('copy_input', 'unique_summary', 'row_header', 'row_text',
+                'artifact_reference', 'artifact_start', 'artifact_digest', 'artifact_uri', 'matches')),
+        function(RELEASE, 'decimal'), function(RELEASE, 'divide10'),
+        literal('epoch_open', '{"epoch":"'), literal('generation_open', '","generation":"'),
+        literal('generation_close', '"}'), literal('stale_open', stale_open),
+        literal('stale_close', ',"message":"' + STALE +
+            '","phase":"adoption","retry_action":"refresh_context"}'),
+        errors(), json_decoder(wire_spans=True),
     ))
 
 
