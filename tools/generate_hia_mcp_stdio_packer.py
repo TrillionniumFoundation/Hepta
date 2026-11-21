@@ -39,12 +39,13 @@ JOURNAL_RECORD_MODE = 32
 ARTIFACT_DIAGNOSTIC_MODE = 33
 CONTEXT_WORKLOAD_MODE = 34
 INSPECTION_MODE = 35
+WORKER_CANONICAL_MODE = 36
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
               DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE,
               ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
-              CONTEXT_WORKLOAD_MODE, INSPECTION_MODE)
+              CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -82,6 +83,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'context-journal-records': JOURNAL_RECORD_MODE,
          'context-journal-observation': JOURNAL_RECORD_MODE,
          'inspection-wire': INSPECTION_MODE,
+         'worker-canonical': WORKER_CANONICAL_MODE,
          'artifact-authority': DISCOVERY_MODE,
          'artifact-diagnostic': ARTIFACT_DIAGNOSTIC_MODE,
          'artifact-journal': JOURNAL_READ_WORKFLOW_MODE}
@@ -119,6 +121,7 @@ def template(mode):
     worker_response = mode == WORKER_RESPONSE_MODE
     worker_journal = mode == WORKER_JOURNAL_MODE
     worker_arguments = mode == WORKER_ARGUMENTS_MODE
+    worker_canonical = mode == WORKER_CANONICAL_MODE
     describe_request = mode == DESCRIBE_REQUEST_MODE
     discovery = mode in (DISCOVERY_MODE, ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE)
     artifact_request = mode == ARTIFACT_REQUEST_MODE
@@ -128,8 +131,9 @@ def template(mode):
     journal_cost = mode == JOURNAL_COST_MODE
     store_ready = mode == STORE_READY_MODE
     journal_read = mode == JOURNAL_READ_WORKFLOW_MODE
-    worker = worker_data or worker_response or worker_journal or worker_arguments
-    worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
+    worker = worker_data or worker_response or worker_journal or worker_arguments or worker_canonical
+    worker_header = (8 if worker_canonical else WORKER_RESPONSE_HEADER if worker_response
+                     else WORKER_DATA_HEADER)
     direct = page or read_request or store_ready or journal_read
     descriptor = None if (direct or schema or diagnostic or worker or describe_request or discovery
                           or describe_answer or discovery_artifact or context_workload or inspection) else (
@@ -250,8 +254,8 @@ def template(mode):
         # interpreting them. Only the HIA application admits the data.
         emit('49 8d be')
         word(prefix_bytes + scratch)
-        policy = {WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6, WORKER_JOURNAL_MODE: 7,
-                  WORKER_ARGUMENTS_MODE: 8}
+        policy = {WORKER_CANONICAL_MODE: 0, WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6,
+                  WORKER_JOURNAL_MODE: 7, WORKER_ARGUMENTS_MODE: 8}
         emit(f'48 c7 07 {policy[mode]:02x} 00 00 00 48 83 c7 08')
         emit('4c 89 e6 b9')
         word(worker_header // 8)
@@ -294,7 +298,7 @@ def template(mode):
             branch('0f 85', 'write_result')
             emit(f'83 c2 {descriptor:02x}')
         elif not (schema or worker_data):     # policy-only calls have no result body
-            emit('83 f8 02')
+            emit('83 f8 01' if worker_canonical else '83 f8 02')
             branch('0f 82', 'write_result')
             emit('3d')
             word(scratch)
