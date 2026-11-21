@@ -447,6 +447,7 @@ SOURCE_FILES = (
     'tests/fixtures/worker_report_stream_successor.json',
     'tests/fixtures/store_legacy_provider_successor.json',
     'tests/fixtures/store_caller_worker_helpers_successor.json',
+    'tests/fixtures/caller_terminal_store_composition_v1.json',
     'tests/fixtures/delivery_component_successor.json',
     'docs/HIA_ARTIFACT_DELIVERY.md',
     'examples/hia_bootstrap/store_transaction.hepta',
