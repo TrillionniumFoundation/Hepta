@@ -5,6 +5,7 @@ import struct
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_agent_stdio import ROOT, document, writes
+from tools.generate_hia_borrowed_export_wire import ARENA_BYTES as EXPORT_ARENA, CORE_WITH_EXPORTS_BYTES
 from tools.generate_hia_core_json_cli import LIMIT, source_program as core_packer_source
 from tools.generate_hia_mcp_connection import RESPONSE_BYTES, WORKSPACE_BYTES as CONNECTION_WORKSPACE
 from tools.generate_hia_native_filter import WORKER_PRIVATE_BYTES, WORKER_WORKSPACE_BYTES
@@ -42,12 +43,13 @@ INSPECTION_MODE = 35
 WORKER_CANONICAL_MODE = 36
 LOWERING_ELF_MODE = 37
 LOWERING_FRAMES_MODE = 38
+BORROWED_EXPORT_MODE = 39
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
               DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE,
               ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
-              CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE, LOWERING_ELF_MODE, LOWERING_FRAMES_MODE)
+              CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE, LOWERING_ELF_MODE, LOWERING_FRAMES_MODE, BORROWED_EXPORT_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -92,7 +94,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'context-journal-records': JOURNAL_RECORD_MODE,
          'context-journal-observation': JOURNAL_RECORD_MODE,
          'inspection-wire': INSPECTION_MODE,
-         'borrowed-export-wire': LOWERING_FRAMES_MODE,
+         'borrowed-export-wire': BORROWED_EXPORT_MODE,
          'inspection-lowering-elf': LOWERING_ELF_MODE,
          'inspection-lowering-frames': LOWERING_FRAMES_MODE,
          'worker-canonical': WORKER_CANONICAL_MODE,
@@ -129,6 +131,7 @@ def template(mode):
     context_workload = mode == CONTEXT_WORKLOAD_MODE
     inspection = mode in (INSPECTION_MODE, LOWERING_FRAMES_MODE)
     lowering_elf = mode == LOWERING_ELF_MODE
+    borrowed_export = mode == BORROWED_EXPORT_MODE
     read_request = mode == READ_REQUEST_MODE
     worker_data = mode == WORKER_DATA_MODE
     worker_response = mode == WORKER_RESPONSE_MODE
@@ -149,7 +152,7 @@ def template(mode):
                      else WORKER_DATA_HEADER)
     direct = page or read_request or store_ready or journal_read
     descriptor = None if (direct or schema or diagnostic or worker or describe_request or discovery
-                          or describe_answer or discovery_artifact or context_workload or inspection or lowering_elf) else (
+                          or describe_answer or discovery_artifact or context_workload or inspection or lowering_elf or borrowed_export) else (
         0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
@@ -166,6 +169,8 @@ def template(mode):
         minimum, maximum = INSPECTION_HEADER + 1, INSPECTION_HEADER + INSPECTION_MAX
         if mode == LOWERING_FRAMES_MODE:
             workspace, maximum = ARENA_BYTES + INSPECTION_HEADER, INSPECTION_HEADER + INPUT_MAX
+    if borrowed_export:
+        scratch, workspace, maximum = 4 << 20, EXPORT_ARENA, CORE_WITH_EXPORTS_BYTES
     if lowering_elf:
         scratch, workspace, minimum, maximum = 32 + 8 * 1024, 16 * 1024, 512, 64 << 20
     if read_request:

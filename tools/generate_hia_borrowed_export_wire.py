@@ -1,5 +1,6 @@
 """Author the exact native borrowed-buffer export choices for Core emission."""
 from pathlib import Path
+import re
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_native_byte_abi import MAX_EXTENT, MAX_RANGES
@@ -15,15 +16,18 @@ FIELDS = ('functions', 'name', 'params', 'returns', 'type', 'exports')
 KINDS = ('readbuf', 'mutbuf', 'u32', *sorted(SCALARS - {'u32', 'unit'}))
 BLOCKED = tuple(sorted(IMPORTS | _LOADER_HOOKS))
 TAG = int.from_bytes(b'HIABEX01', 'little')
+CORE_WITH_EXPORTS_BYTES = (8 << 20) + 65536
+CORE_WITH_EXPORTS_NODES = 262144 + 512
+ARENA_BYTES = 64 + CORE_WITH_EXPORTS_NODES * 72 + CORE_WITH_EXPORTS_BYTES
 
 POLICY = r'''
 # Input [admitted canonical Core, exact retained [[name,extent],...],
 # admitted nominal profile number]. Output original function ordinals and
 # extents in the legacy name order. The program is verified before this role.
 def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 8 or length(s) > 8388608 or length(o) < 4194304 or length(w) < 27262976:
+    if length(s) < 8 or length(s) > MAX_PACKET or length(o) < 4194304 or length(w) < ARENA_MIN:
         return INVALID
-    put(o, 48, 262144)
+    put(o, 48, MAX_NODES)
     put(o, 56, 128)
     if widen(decode_json(s, w, o)) >= 4294967292:
         return INVALID
@@ -187,15 +191,19 @@ def source_program():
     constants = {
         'TAG': TAG, 'RESERVED_HEAD': int.from_bytes(b'__hia_', 'little'),
         'FN_LIMIT': MAX_FUNCTIONS, 'LOAN_LIMIT': MAX_RANGES, 'EXTENT_LIMIT': MAX_EXTENT,
+        'MAX_PACKET': CORE_WITH_EXPORTS_BYTES, 'MAX_NODES': CORE_WITH_EXPORTS_NODES, 'ARENA_MIN': ARENA_BYTES,
         'NONE': NONE, 'INVALID': 4294967293, 'BAD_TUPLE': 4294967280, 'NOMINAL_CONFLICT': 4294967281,
         'BAD_ENTRY': 4294967282, 'RESERVED': 4294967283, 'MISSING': 4294967284, 'SIGNATURE': 4294967285,
     }
-    import re
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda token: str(constants[token[0]]), POLICY)
+    decoder = json_decoder(wire_spans=True)
+    guard = 'if length(s) > 8388608 or length(w) < 128 or length(o) < 128:'
+    assert decoder.count(guard) == 1
+    decoder = decoder.replace(guard, guard.replace('8388608', str(CORE_WITH_EXPORTS_BYTES)))
     return '\n'.join((policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),
                       comparison_table('key_id', FIELDS), comparison_table('blocked', BLOCKED),
-                      comparison_table('type_kind', KINDS), json_decoder(wire_spans=True)))
+                      comparison_table('type_kind', KINDS), decoder))
 
 
 if __name__ == '__main__':
