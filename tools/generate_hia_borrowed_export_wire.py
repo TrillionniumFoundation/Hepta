@@ -416,7 +416,7 @@ def source_program():
                       comparison_table('key_id', FIELDS), comparison_table('blocked', BLOCKED),
                       comparison_table('type_kind', KINDS),
                       function(CONTEXT, 'copy_value'), literal_match('unit_type', 'unit'),
-                      literal('buffer_abi', '{"abi":"' + AGENT_BUFFER_ABI + '","max_buffer_bytes":'),
+                      literal('buffer_abi', '"abi":"' + AGENT_BUFFER_ABI + '","max_buffer_bytes":'),
                       literal('params_open', '"params":['), literal('returns_open', '],"returns":'),
                       function(RELEASE, 'decimal'), function(RELEASE, 'divide10'), decoder))
 
