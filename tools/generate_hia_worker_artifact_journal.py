@@ -86,7 +86,8 @@ def artifact_transition(s:readbuf, stage:u64, observed:u64) -> bool:
     if stage == 13:
         return phase == 10 and action == 1 and reason == 0 and input_word(s, 368) == 2 and observed == 0
     if stage == 14 or stage == 8:
-        valid = (phase == 10 and action == 1) or (action == 11 and reason != 0)
+        # Schema diagnostics run after the durable reservation, before catalog admission.
+        valid = ((phase == 3 or phase == 4 or phase == 10) and action == 1 and reason == 0) or (action == 11 and reason != 0)
         return valid and ((stage == 14 and observed == 0) or (stage == 8 and observed != 0))
     return False
 
@@ -273,7 +274,7 @@ ERROR_MESSAGES = (
 def errors():
     source = r'''
 def artifact_error(s:readbuf, o:mutbuf) -> u64:
-    if length(s) != 24 or length(o) < 512:
+    if length(s) != 40 or input_word(s, 24) != 0 or input_word(s, 32) != 0 or length(o) < 512:
         return 0
     group = input_word(s, 8)
     reason = input_word(s, 16)
