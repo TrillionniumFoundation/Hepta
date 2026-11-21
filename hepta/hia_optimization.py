@@ -82,6 +82,10 @@ def _native_circuit_decision(cnf, circuit, deadline, *, restart_search=False):
                                                 restart_requested=restart_search)
     result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps,
                                learning=learning, restarts=restarts)
+    return _native_circuit_result(cnf, result)
+
+
+def _native_circuit_result(cnf, result):
     if result is None or result[0] not in (SAT, UNSAT):
         return None
     verdict, model, steps, variables, clauses, frame = result

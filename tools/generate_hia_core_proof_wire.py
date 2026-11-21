@@ -9,9 +9,11 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (
     CIRCUIT_NODES, CIRCUIT_REQUEST, GRAPH_PROJECTION_REQUEST, PROJECT_CHECKED_CAST, PROJECTION_INPUT_LIMIT,
+    LEARNING_REQUEST, RESTART_REQUEST, SAT, SEARCH_PLAN_REQUEST, SPARSE_CLAUSES,
+    SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES, STEP_LIMIT, WORD_WITNESS_REQUEST,
     _CORE_TRAP_TAGS, _GRAPH_OPERATIONS, _word_type,
 )
-from hepta.hia_core_proof_wire_native import OBLIGATION_REQUEST
+from hepta.hia_core_proof_wire_native import OBLIGATION_REQUEST, OBLIGATION_SOLVER_REQUEST, OBLIGATION_WITNESS_REQUEST
 from hepta.hia_safe_core import LIMITS, WIDTHS_V6, _scalar_caller_contract
 from hepta.hia_schema import PRIMITIVE_PROFILES
 from tools.generate_hia_core_inspect_json import document, source_program
@@ -24,6 +26,10 @@ POLICY = r'''
 def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_REQUEST:
         return obligations(s, o, w)
+    if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_SOLVER_REQUEST:
+        return obligation_solver_wire(s, o)
+    if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_WITNESS_REQUEST:
+        return obligation_witness_wire(s, o)
     if length(o) < 32768 or length(o) < length(s) or length(w) < 4096:
         return REFUSED
     put(o, 48, 262144)
@@ -445,6 +451,171 @@ def caller_contract_source():
     return '\n' + '\n'.join(lines) + '\n'
 
 
+SOLVER_WIRE = f'''
+def obligation_solver_wire(s:readbuf, o:mutbuf) -> u64:
+    phase = obligation_word(s, 8)
+    ordinal = obligation_word(s, 16)
+    parameter = obligation_word(s, 24)
+    if ordinal > 4:
+        return {REFUSED}
+    if phase == 0:
+        return solver_plan_frame(s, o, ordinal, parameter)
+    if parameter != 0 or length(s) < 96:
+        return {REFUSED}
+    if obligation_word(s, 32) != {SEARCH_PLAN_REQUEST}:
+        return {REFUSED}
+    steps = obligation_word(s, 40)
+    learn = obligation_word(s, 48)
+    restart = obligation_word(s, 56)
+    if steps == 0 or steps > {STEP_LIMIT} or learn > 1 or restart > 1:
+        return {REFUSED}
+    if phase == 1:
+        return solver_attach_lease(s, o, steps)
+    if phase == 2:
+        return solver_search_frame(s, o, steps, learn, restart)
+    return {REFUSED}
+
+def solver_circuit_ok(s:readbuf, at:u64) -> bool:
+    if length(s) < at + 32 or obligation_word(s, at) != {CIRCUIT_REQUEST}:
+        return False
+    nodes = obligation_word(s, at + 8)
+    pairs = obligation_word(s, at + 16)
+    if nodes > {CIRCUIT_NODES} or pairs > 2 or obligation_word(s, at + 24) != 0:
+        return False
+    return length(s) == at + 32 + nodes * 40 + pairs * 16
+
+def solver_plan_frame(s:readbuf, o:mutbuf, ordinal:u64, remaining:u64) -> u64:
+    if remaining == 0 or solver_circuit_ok(s, 32) == False:
+        return {REFUSED}
+    count = obligation_word(s, 40)
+    extent = 32 + count * 16
+    if length(o) < extent:
+        return {REFUSED}
+    put(o, 0, {SEARCH_PLAN_REQUEST})
+    put(o, 8, remaining)
+    put(o, 16, 0)
+    put(o, 24, choose(ordinal >= 3, 1, 0))
+    ordinal_node = 0
+    while ordinal_node < count:
+        start = 64 + ordinal_node * 40
+        destination = 32 + ordinal_node * 16
+        put(o, destination, obligation_word(s, start))
+        put(o, destination + 8, obligation_word(s, start + 8))
+        ordinal_node = ordinal_node + 1
+    return extent
+
+def solver_attach_lease(s:readbuf, o:mutbuf, steps:u64) -> u64:
+    if solver_circuit_ok(s, 64) == False or length(o) < length(s) - 64:
+        return {REFUSED}
+    obligation_copy(s, o, 64, 0, length(s) - 64)
+    put(o, 24, steps)
+    return length(s) - 64
+
+def solver_search_frame(s:readbuf, o:mutbuf, steps:u64, learn:u64, restart:u64) -> u64:
+    if length(s) < 104 or obligation_word(s, 64) != {SPARSE_REQUEST}:
+        return {REFUSED}
+    variables = obligation_word(s, 72)
+    clauses = obligation_word(s, 80)
+    entries = obligation_word(s, 96)
+    if variables > {SPARSE_VARIABLES} or clauses > {SPARSE_CLAUSES} or entries > {SPARSE_ENTRIES}:
+        return {REFUSED}
+    if length(s) != 104 + entries * 2 or obligation_word(s, 88) != steps or length(o) < length(s) - 64:
+        return {REFUSED}
+    mode = choose(restart == 1, {RESTART_REQUEST}, choose(learn == 1, {LEARNING_REQUEST}, {SPARSE_REQUEST}))
+    put(o, 0, mode)
+    offset = 8
+    while offset < length(s) - 64:
+        store(o, offset, byte(s, 64 + offset))
+        offset = offset + 1
+    return length(s) - 64
+'''
+
+
+WITNESS_WIRE = f'''
+def obligation_witness_wire(s:readbuf, o:mutbuf) -> u64:
+    circuit = obligation_word(s, 8)
+    decision = obligation_word(s, 16)
+    mapping = obligation_word(s, 24)
+    if circuit < 32 or circuit > 64 + 40 * {CIRCUIT_NODES} or decision < 32 or decision > 32 + ({SPARSE_VARIABLES} >> 3):
+        return {REFUSED}
+    if mapping < 32 or mapping > 32 + 128 * {CIRCUIT_NODES}:
+        return {REFUSED}
+    if length(s) != 32 + circuit + decision + mapping or obligation_word(s, 32) != {CIRCUIT_REQUEST}:
+        return {REFUSED}
+    nodes = obligation_word(s, 40)
+    pairs = obligation_word(s, 48)
+    if nodes > {CIRCUIT_NODES} or pairs > 2 or circuit != 32 + 40 * nodes + 16 * pairs:
+        return {REFUSED}
+    if obligation_word(s, 56) != 0 or mapping != 32 + 128 * nodes:
+        return {REFUSED}
+    reply = 32 + circuit
+    variables = witness_reply_shape(s, reply, decision)
+    if variables == 0:
+        return {REFUSED}
+    return witness_inputs(s, o, reply, reply + decision, variables, nodes)
+
+def witness_reply_shape(s:readbuf, reply:u64, extent:u64) -> u64:
+    variables = obligation_word(s, reply + 16)
+    if obligation_word(s, reply) != {SPARSE_REPLY} or obligation_word(s, reply + 8) != {SAT}:
+        return 0
+    if variables == 0 or variables > {SPARSE_VARIABLES} or extent != 32 + ((variables + 7) >> 3):
+        return 0
+    tail = variables & 7
+    if tail != 0 and (byte(s, reply + extent - 1) >> tail) != 0:
+        return 0
+    return variables
+
+def witness_inputs(s:readbuf, o:mutbuf, reply:u64, mapping:u64, variables:u64, nodes:u64) -> u64:
+    inputs = 0
+    index = 0
+    while index < nodes:
+        row = 64 + index * 40
+        if obligation_word(s, row) == 1:
+            width = obligation_word(s, row + 8)
+            if width == 0 or width > 64 or witness_tokens(s, mapping + 32 + 128 * index, width, variables) == 0:
+                return {REFUSED}
+            inputs = inputs + 1
+        index = index + 1
+    circuit = reply - 32
+    if length(o) < circuit + 8 * inputs:
+        return {REFUSED}
+    put(o, 0, {WORD_WITNESS_REQUEST})
+    obligation_copy(s, o, 40, 8, circuit - 8)
+    index = 0
+    at = circuit
+    while index < nodes:
+        row = 64 + index * 40
+        if obligation_word(s, row) == 1:
+            value = witness_word(s, mapping + 32 + 128 * index, reply + 32, obligation_word(s, row + 8))
+            put(o, at, value)
+            at = at + 8
+        index = index + 1
+    return at
+
+def witness_tokens(s:readbuf, at:u64, width:u64, variables:u64) -> u64:
+    bit = 0
+    while bit < width:
+        position = at + 2 * bit
+        token = byte(s, position) | (byte(s, position + 1) << 8)
+        if token < 4 or (token & 1) != 0 or (token >> 1) > variables:
+            return 0
+        bit = bit + 1
+    return 1
+
+def witness_word(s:readbuf, at:u64, model:u64, width:u64) -> u64:
+    result = 0
+    bit = 0
+    while bit < width:
+        position = at + 2 * bit
+        token = byte(s, position) | (byte(s, position + 1) << 8)
+        variable = (token >> 1) - 1
+        value = (byte(s, model + (variable >> 3)) >> (variable & 7)) & 1
+        result = result | (value << bit)
+        bit = bit + 1
+    return result
+'''
+
+
 def match(name, domain):
     result = [f'def proof_{name}(w:mutbuf, node:u64) -> u64:',
               '    if kind(w, node) != 4:', '        return 0',
@@ -459,6 +630,8 @@ def program():
     entry = POLICY
     constants = dict(REFUSED=REFUSED, REQUEST=GRAPH_PROJECTION_REQUEST,
                      OBLIGATION_REQUEST=OBLIGATION_REQUEST,
+                     OBLIGATION_SOLVER_REQUEST=OBLIGATION_SOLVER_REQUEST,
+                     OBLIGATION_WITNESS_REQUEST=OBLIGATION_WITNESS_REQUEST,
                      BLOCKS=LIMITS['blocks'], PATHS=LIMITS['core_paths'], OP_BUDGET=LIMITS['operations'],
                      ABI_WORDS=LIMITS['abi_argument_words'], NODE_BUDGET=CIRCUIT_NODES,
                      WIRE_LIMIT=PROJECTION_INPUT_LIMIT, CHECKED_CAST=PROJECT_CHECKED_CAST)
@@ -472,7 +645,7 @@ def program():
             ('op', _GRAPH_OPERATIONS), ('trap', _CORE_TRAP_TAGS),
             ('term', {'ret': 1, 'trap': 2, 'jump': 3, 'branch': 4}), ('checked', {'checked': 1})):
         entry += '\n' + match(name, domain)
-    entry += OBLIGATIONS + caller_contract_source()
+    entry += OBLIGATIONS + caller_contract_source() + SOLVER_WIRE + WITNESS_WIRE
     nodes = ast.parse(source_program(entry=entry)).body
     retained = {'proof_wire'}
     while True:

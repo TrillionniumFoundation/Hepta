@@ -108,6 +108,10 @@ class NativeCnf(NativeHiaJsonImage):
                             int(guarded), int(restart_requested))
         frame += b''.join(struct.pack('<2Q', operation, width)
                          for operation, width, *_ in nodes)
+        steps, learning, restarts, _ = self._run_search_plan_frame(frame)
+        return steps, learning, restarts
+
+    def _run_search_plan_frame(self, frame):
         output = ctypes.create_string_buffer(32)
         used = self._entry(frame, len(frame), output, len(output), None, 0)
         if used != len(output):
@@ -116,7 +120,7 @@ class NativeCnf(NativeHiaJsonImage):
         if (magic != SEARCH_PLAN_REQUEST or not 0 < steps <= STEP_LIMIT
                 or learning not in (0, 1) or restarts not in (0, 1)):
             raise RuntimeError('invalid HIA circuit search plan')
-        return steps, bool(learning), bool(restarts)
+        return steps, bool(learning), bool(restarts), output.raw
 
     def solve(self, variables, clauses, *, steps):
         if (type(variables) is not int or not 0 <= variables <= 64
@@ -154,7 +158,7 @@ class NativeCnf(NativeHiaJsonImage):
         frame = struct.pack('<5Q', magic, variables, len(clauses), steps, len(tokens)) + tokens.tobytes()
         return self._solve_sparse_frame(frame, variables, steps)
 
-    def _solve_sparse_frame(self, frame, variables, steps):
+    def _solve_sparse_frame(self, frame, variables, steps, *, with_wire=False):
         magic, _, clauses = struct.unpack_from('<3Q', frame)
         if magic in (LEARNING_REQUEST, RESTART_REQUEST):
             extent = WATCH_ROWS + 2 * (clauses + LEARNED_CLAUSES) * WATCH_ROW_BYTES + LEARNING_BYTES
@@ -174,6 +178,8 @@ class NativeCnf(NativeHiaJsonImage):
         model = int.from_bytes(reply.raw[32:size], 'little')
         if model >= 1 << variables:
             raise RuntimeError('invalid sparse HIA Boolean solver model')
+        if with_wire:
+            return verdict, model, cost, reply.raw[:size]
         return verdict, model, cost
 
     def solve_circuit(self, nodes, returns, *, steps, traps=None, batch=False, watched=False, learning=False,
@@ -186,19 +192,10 @@ class NativeCnf(NativeHiaJsonImage):
         frame += b''.join(struct.pack('<2Q', *pair) for pair in returns)
         if traps is not None:
             frame += struct.pack('<2Q', *traps)
-        source = ctypes.create_string_buffer(frame, len(frame))
-        output = ctypes.create_string_buffer(CIRCUIT_CAPACITY)
-        scratch = ctypes.create_string_buffer(CIRCUIT_WORKSPACE)
-        size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
-        if size == 0xfffffffc:
-            return None  # No claim with a circuit that exceeds its admitted gate budget.
-        if not 40 <= size <= len(output):
-            raise ValueError('HIA rejected the circuit representation')
-        formula = output.raw[:size]
-        magic, variables, clauses, budget, entries = struct.unpack_from('<5Q', formula)
-        if (magic != SPARSE_REQUEST or variables > SPARSE_VARIABLES or clauses > SPARSE_CLAUSES
-                or steps != budget or entries > SPARSE_ENTRIES or size != 40 + 2 * entries):
-            raise RuntimeError('invalid HIA circuit encoding result')
+        encoded = self._encode_circuit_frame(frame, steps)
+        if encoded is None:
+            return None
+        formula, variables, clauses, scratch = encoded
         mode = _search_mode(batch=batch, watched=watched, learning=learning, restarts=restarts)
         if mode != SPARSE_REQUEST:
             formula = struct.pack('<Q', mode) + formula[8:]
@@ -216,6 +213,46 @@ class NativeCnf(NativeHiaJsonImage):
                 raise RuntimeError('native HIA SAT model did not satisfy the original word circuit')
         return verdict, model, cost, variables, clauses, formula
 
+    def solve_artifact_wire(self, circuit, projector, role, remaining_ms):
+        """Let HIA frame, budget, solve and independently replay one artifact query."""
+        plan_input = projector.solver_frame(0, role, circuit, remaining=remaining_ms)
+        if plan_input is None:
+            return None
+        steps, _, _, plan = self._run_search_plan_frame(plan_input)
+        leased = projector.solver_frame(1, role, plan + circuit)
+        if leased is None:
+            return None
+        encoded = self._encode_circuit_frame(leased, steps)
+        if encoded is None:
+            return None
+        formula, variables, clauses, scratch = encoded
+        search = projector.solver_frame(2, role, plan + formula)
+        if search is None:
+            return None
+        verdict, model, cost, reply = self._solve_sparse_frame(search, variables, steps, with_wire=True)
+        if verdict == SAT:
+            nodes, = struct.unpack_from('<Q', circuit, 8)
+            witness = projector.witness_frame(circuit, reply, scratch.raw[:32 + 128 * nodes])
+            if witness is None or not self._check_word_witness_frame(witness, nodes):
+                raise RuntimeError('native HIA SAT model did not satisfy the original word circuit')
+        return verdict, model, cost, variables, clauses, search
+
+    def _encode_circuit_frame(self, frame, steps):
+        source = ctypes.create_string_buffer(frame, len(frame))
+        output = ctypes.create_string_buffer(CIRCUIT_CAPACITY)
+        scratch = ctypes.create_string_buffer(CIRCUIT_WORKSPACE)
+        size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
+        if size == 0xfffffffc:
+            return None  # No claim with a circuit that exceeds its admitted gate budget.
+        if not 40 <= size <= len(output):
+            raise ValueError('HIA rejected the circuit representation')
+        formula = output.raw[:size]
+        magic, variables, clauses, budget, entries = struct.unpack_from('<5Q', formula)
+        if (magic != SPARSE_REQUEST or variables > SPARSE_VARIABLES or clauses > SPARSE_CLAUSES
+                or steps != budget or entries > SPARSE_ENTRIES or size != 40 + 2 * entries):
+            raise RuntimeError('invalid HIA circuit encoding result')
+        return formula, variables, clauses, scratch
+
     def check_word_witness(self, nodes, returns, words, *, traps=None):
         """Check a candidate mismatch directly on words, without encoding CNF."""
         if len(nodes) > CIRCUIT_NODES or len(returns) > CIRCUIT_RETURNS or len(words) > len(nodes):
@@ -228,8 +265,11 @@ class NativeCnf(NativeHiaJsonImage):
         if traps is not None:
             raw.extend(struct.pack('<2Q', *traps))
         raw.extend(struct.pack(f'<{len(words)}Q', *words))
-        source = ctypes.create_string_buffer(bytes(raw), len(raw))
-        scratch = ctypes.create_string_buffer(max(8, len(nodes) * 8))
+        return self._check_word_witness_frame(bytes(raw), len(nodes))
+
+    def _check_word_witness_frame(self, raw, nodes):
+        source = ctypes.create_string_buffer(raw, len(raw))
+        scratch = ctypes.create_string_buffer(max(8, nodes * 8))
         output = ctypes.create_string_buffer(32)
         status = self._entry(source, len(raw), output, len(output), scratch, len(scratch))
         if status not in (0, 1):

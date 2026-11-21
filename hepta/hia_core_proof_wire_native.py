@@ -5,35 +5,52 @@ import ctypes
 import os
 import struct
 
-from .hia_cnf_native import CIRCUIT_NODES, CIRCUIT_REQUEST, GRAPH_PROJECTION_REQUEST, PROJECTION_INPUT_LIMIT
+from .hia_cnf_native import (
+    CIRCUIT_CAPACITY, CIRCUIT_NODES, CIRCUIT_REQUEST, GRAPH_PROJECTION_REQUEST, PROJECTION_INPUT_LIMIT,
+)
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 
 SELECTOR = 'HEPTA_HIA_CORE_PROOF_WIRE_MANIFEST'
 SOURCE = _source_resource_path('examples/hia_bootstrap/core_proof_wire.hepta')
 SCHEMA = 'hepta.hia.core-proof-wire-native.v1'
 OBLIGATION_REQUEST = int.from_bytes(b'HIAOBL01', 'little')
+OBLIGATION_SOLVER_REQUEST = int.from_bytes(b'HIAOBP01', 'little')
+OBLIGATION_WITNESS_REQUEST = int.from_bytes(b'HIAOBW01', 'little')
 
 
 class NativeCoreProofWire(NativeHiaJsonImage):
-    def obligation_circuit(self, role, observations=b''):
+    def obligation_wire(self, role, observations=b''):
         """Read one scalar proof obligation assembled by HIA from native observations."""
         if not 0 <= role < 5 or len(observations) > 80 + 40 * CIRCUIT_NODES:
             raise ValueError('outside the scalar artifact obligation profile')
         source = struct.pack('<4Q', OBLIGATION_REQUEST, role, len(observations), 0) + observations
-        output = ctypes.create_string_buffer(64 + 40 * CIRCUIT_NODES)
+        frame = self._proof_wire_exchange(source, 64 + 40 * CIRCUIT_NODES)
+        if frame is None:
+            return None
+        magic, nodes, pairs, reserved = struct.unpack_from('<4Q', frame)
+        split = 32 + 40 * nodes
+        if (magic != CIRCUIT_REQUEST or nodes > CIRCUIT_NODES or pairs > 2 or reserved
+                or len(frame) != split + 16 * pairs):
+            raise RuntimeError('invalid native scalar artifact obligation identity')
+        return frame
+
+    def solver_frame(self, phase, role, payload, *, remaining=0):
+        request = struct.pack('<4Q', OBLIGATION_SOLVER_REQUEST, phase, role, remaining)
+        return self._proof_wire_exchange(request + payload, CIRCUIT_CAPACITY)
+
+    def witness_frame(self, circuit, decision, mapping):
+        request = struct.pack('<4Q', OBLIGATION_WITNESS_REQUEST, len(circuit), len(decision), len(mapping))
+        return self._proof_wire_exchange(request + circuit + decision + mapping, CIRCUIT_CAPACITY)
+
+    def _proof_wire_exchange(self, source, capacity):
+        output = ctypes.create_string_buffer(capacity)
         scratch = ctypes.create_string_buffer(1)
         size = self._checked_default_entry(source, len(source), output, len(output), scratch, len(scratch))
         if size == 0xfffffffc:
             return None
         if not 32 <= size <= len(output):
-            raise RuntimeError('invalid native scalar artifact obligation extent')
-        magic, nodes, pairs, reserved = struct.unpack_from('<4Q', output)
-        split = 32 + 40 * nodes
-        if (magic != CIRCUIT_REQUEST or nodes > CIRCUIT_NODES or pairs > 2 or reserved
-                or size != split + 16 * pairs):
-            raise RuntimeError('invalid native scalar artifact obligation identity')
-        return (tuple(struct.iter_unpack('<5Q', output.raw[32:split])),
-                tuple(struct.iter_unpack('<2Q', output.raw[split:size])), None)
+            raise RuntimeError('invalid native scalar proof response extent')
+        return output.raw[:size]
 
     def project(self, source):
         # The caller has independently verified these exact immutable bytes.

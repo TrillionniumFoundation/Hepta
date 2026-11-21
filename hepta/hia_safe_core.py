@@ -1054,7 +1054,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
                                 foreign_buffer_exports=(), loan_index=None, *, write_result=None,
                                 pair_operation=None):
     from .hia_cnf_native import SAT
-    from .hia_optimization import _native_circuit_decision
+    from .hia_optimization import _native_circuit_decision, _native_circuit_result
     from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT
 
     decoder, cnf = pair
@@ -1081,7 +1081,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
         observations = cnf.project_artifact_observation(artifact_frame)
         if observations is None:
             return None
-        queries_to_solve = tuple(projector.obligation_circuit(index, observations if index >= 3 else b'')
+        queries_to_solve = tuple(projector.obligation_wire(index, observations if index >= 3 else b'')
                                  for index in range(len(ARTIFACT_OBLIGATIONS)))
         if any(circuit is None for circuit in queries_to_solve):
             return None
@@ -1125,7 +1125,13 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
         # Terminal coverage and the cross-model comparison both contain
         # reconverging flag predicates. Keep the exact formulas and the same
         # work lease, using learned restarts for these two obligations.
-        decision = _native_circuit_decision(cnf, circuit, deadline, restart_search=index >= 3)
+        if wire is None:
+            decision = _native_circuit_decision(cnf, circuit, deadline, restart_search=index >= 3)
+        else:
+            remaining = (deadline - time.monotonic_ns()) // 1_000_000
+            if remaining <= 0:
+                return None
+            decision = _native_circuit_result(cnf, cnf.solve_artifact_wire(circuit, projector, index, remaining))
         if decision is None:
             return None
         verdict, model, discharge, frame = decision
