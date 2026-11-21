@@ -201,7 +201,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                              '_reference_plt_slot', '_reference_object_relocations',
                              '_reference_symbol_versions', '_reference_relro', '_reference_functions',
                              '_reference_function_link', '_reference_dynamic_symbols',
-                             '_reference_loader_sections', '_reference_executable_layout',
+                             '_reference_loader_sections', '_reference_unwinding', '_reference_text_geometry',
+                             '_reference_executable_layout',
                              '_reference_dynamic_relocations', '_reference_dynamic_order',
                              '_reference_object_inventory')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
@@ -378,6 +379,45 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 self.assertEqual(observe(lambda: self.native.verify_object_inventory(
                     image, rela, text, symbols, direct=direct,
                 )), expected)
+
+    def test_unwinding_and_exact_text_geometry_match_the_reference(self):
+        obj, final = _ELF(self.object_bytes, 1), _ELF(self.final_bytes, 3)
+        source, linked = obj.section('.text'), final.section('.text')
+        frame = final.section('.eh_frame')
+
+        def changed(data, section, fields, suffix=b''):
+            shoff = struct.unpack_from('<Q', data, 40)[0]
+            raw = bytearray(data)
+            for field, value in fields.items():
+                struct.pack_into('<Q', raw, shoff + section['index'] * 64 + field, value)
+            return bytes(raw) + suffix
+
+        self.native.verify_unwinding(self.final_bytes, frame)
+        nonempty = changed(self.final_bytes, frame, {32: 1})
+        with self.assertRaisesRegex(SafeCoreELFRejected, 'unreviewed nonempty unwinding metadata'):
+            self.native.verify_unwinding(nonempty, frame)
+
+        self.native.verify_text_geometry(self.object_bytes, source, linked, source['data'])
+        cases = (
+            (self.object_bytes, linked, source['data'][:-1]),
+            (self.object_bytes, linked, bytes([source['data'][0] ^ 1]) + source['data'][1:]),
+            (self.object_bytes, dict(linked, flags=2), source['data']),
+            (changed(self.object_bytes, source, {16: 1}), linked, source['data']),
+        )
+        for data, target, supplied in cases:
+            with self.assertRaisesRegex(SafeCoreELFRejected, 'source and final text shapes differ'):
+                self.native.verify_text_geometry(data, source, target, supplied)
+        for size in (65536, 65537):
+            supplied = bytes([63]) * size
+            data = changed(self.object_bytes, source, {24: len(self.object_bytes), 32: size}, supplied)
+            target = dict(linked, size=size)
+            if size == 65536:
+                self.native.verify_text_geometry(data, source, target, supplied)
+            else:
+                with self.assertRaisesRegex(SafeCoreELFRejected, 'Safe Core text budget exceeded'):
+                    self.native.verify_text_geometry(data, source, target, supplied)
+                with self.assertRaisesRegex(SafeCoreELFRejected, 'source and final text shapes differ'):
+                    self.native.verify_text_geometry(data, source, target, bytes(size))
 
     def test_dynamic_and_lookup_bytes_match_retained_checker(self):
         def result(check, *args, **kwargs):

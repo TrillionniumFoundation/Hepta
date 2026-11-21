@@ -458,6 +458,17 @@ def _reference_object_inventory(obj, rela, text, direct):
             "object relocation inventory is outside the one-function profile")
 
 
+def _reference_unwinding(section):
+    require(section["size"] == 0, "unreviewed nonempty unwinding metadata")
+
+
+def _reference_text_geometry(source, linked, text_bytes):
+    require(source["flags"] == linked["flags"] == 6 and source["addr"] == 0 and
+            source["data"] == text_bytes and source["size"] == linked["size"],
+            "source and final text shapes differ")
+    require(linked["size"] <= 64 * 1024, "Safe Core text budget exceeded")
+
+
 def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     """Check every relocated byte and return exact machine-entry coordinates.
 
@@ -469,15 +480,15 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     inspect_owned_shared_elf(final_bytes, (export,))
     if final._native_inventory is None:
         _reference_loader_sections(final)
+        _reference_unwinding(final.section(".eh_frame"))
     else:
         final._native_inventory.verify_loader_sections(final.data)
-    require(final.section(".eh_frame")["size"] == 0,
-            "unreviewed nonempty unwinding metadata")
+        final._native_inventory.verify_unwinding(final.data, final.section(".eh_frame"))
     source, linked = obj.section(".text", 1), final.section(".text", 1)
-    require(source["flags"] == linked["flags"] == 6 and source["addr"] == 0 and
-            source["data"] == text_bytes and source["size"] == linked["size"],
-            "source and final text shapes differ")
-    require(linked["size"] <= 64 * 1024, "Safe Core text budget exceeded")
+    if obj._native_inventory is None or type(text_bytes) is not bytes:
+        _reference_text_geometry(source, linked, text_bytes)
+    else:
+        obj._native_inventory.verify_text_geometry(obj.data, source, linked, text_bytes)
     srcfunc = _functions(obj, source, ".symtab")
     dstfunc = _functions(final, linked, ".symtab")
     if obj._native_inventory is None:

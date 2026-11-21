@@ -39,6 +39,8 @@ EXECUTABLE_LAYOUT_MAGIC = int.from_bytes(b'HIAELFE1', 'little')
 DYNAMIC_RELOCATION_MAGIC = int.from_bytes(b'HIAELFR1', 'little')
 DYNAMIC_ORDER_MAGIC = int.from_bytes(b'HIAELFY1', 'little')
 OBJECT_INVENTORY_MAGIC = int.from_bytes(b'HIAELFO1', 'little')
+UNWINDING_MAGIC = int.from_bytes(b'HIAELFU1', 'little')
+TEXT_GEOMETRY_MAGIC = int.from_bytes(b'HIAELFJ1', 'little')
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -102,6 +104,9 @@ REFUSALS = (
     ('dynamic_relocation', 'unreviewed dynamic relocation inventory'),
     ('dynamic_order', 'closed dynamic symbol order differs'),
     ('object_inventory', 'object relocation inventory is outside the one-function profile'),
+    ('unwinding', 'unreviewed nonempty unwinding metadata'),
+    ('text_shape', 'source and final text shapes differ'),
+    ('text_budget', 'Safe Core text budget exceeded'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -345,6 +350,13 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
     def verify_object_inventory(self, data, rela, text, symbols, *, direct):
         fields = (OBJECT_INVENTORY_MAGIC, rela['index'], text['index'], symbols['index'], int(direct), 0, 0, 0, 0)
         self._verify_terminal(data, fields)
+
+    def verify_unwinding(self, data, section):
+        self._verify_terminal(data, (UNWINDING_MAGIC, section['index'], 0, 0, 0, 0, 0, 0))
+
+    def verify_text_geometry(self, data, source, linked, text):
+        fields = (TEXT_GEOMETRY_MAGIC, source['index'], linked['flags'], linked['size'], 0, 0, 0, 0)
+        self._verify_terminal(data, fields, text)
 
     def _verify_terminal(self, data, fields, suffix=b''):
         _, size, first, second = self._exchange(data, fields, suffix)

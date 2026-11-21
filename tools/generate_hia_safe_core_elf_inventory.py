@@ -9,6 +9,7 @@ from hepta.hia_safe_core_elf_inventory_native import (
     CAPACITY, DYNAMIC_ORDER_MAGIC, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
     EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC, OBJECT_INVENTORY_MAGIC,
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
+    TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC,
     FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
     FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
@@ -27,6 +28,7 @@ FIELDS.update(DYNAMIC_SYMBOL_MAGIC=DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFF
 FIELDS.update(LOADER_SECTION_MAGIC=LOADER_SECTION_MAGIC, EXECUTABLE_LAYOUT_MAGIC=EXECUTABLE_LAYOUT_MAGIC,
               DYNAMIC_RELOCATION_MAGIC=DYNAMIC_RELOCATION_MAGIC)
 FIELDS.update(DYNAMIC_ORDER_MAGIC=DYNAMIC_ORDER_MAGIC, OBJECT_INVENTORY_MAGIC=OBJECT_INVENTORY_MAGIC)
+FIELDS.update(TEXT_GEOMETRY_MAGIC=TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC=UNWINDING_MAGIC)
 LOADER_SECTION_NAMES = (
     b'.hash', b'.gnu.hash', b'.dynsym', b'.dynstr', b'.gnu.version', b'.gnu.version_r',
     b'.rela.plt', b'.plt', b'.text', b'.eh_frame', b'.dynamic', b'.got',
@@ -82,6 +84,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return exact_functions(s, o, w)
     if length(w) >= 64:
         operation = get(w, 0)
+        if operation == UNWINDING_MAGIC and length(w) == 64:
+            return verify_bound_text(s, o, w, operation)
+        if operation == TEXT_GEOMETRY_MAGIC:
+            return verify_bound_text(s, o, w, operation)
         if operation == DYNAMIC_ORDER_MAGIC:
             return verify_dynamic_order(s, o, w)
         if operation == DYNAMIC_SYMBOL_MAGIC and length(w) >= DYNAMIC_SYMBOL_NAME_OFFSET:
@@ -666,6 +672,39 @@ def object_relocation_inventory(s:readbuf, o:mutbuf, w:mutbuf, row:u64, direct:u
         return terminal(o, E_OBJECT_INVENTORY, 0, 0)
     if word(s, row + 44, 4) != get(w, 16) or word(s, row + 40, 4) != get(w, 24):
         return terminal(o, E_OBJECT_INVENTORY, 0, 0)
+    return reply(o, 0, 0, 0, 24)
+
+def verify_bound_text(s:readbuf, o:mutbuf, w:mutbuf, operation:u64) -> u64:
+    start = word(s, 40, 8)
+    count = word(s, 60, 2)
+    index = get(w, 8)
+    if count == 0 or count > MAX_SECTIONS or index >= count:
+        return terminal(o, E_SECTIONS, 0, 0)
+    if in_file(length(s), start, count * 64) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    row = start + index * 64
+    span = word(s, row + 32, 8)
+    if operation == UNWINDING_MAGIC:
+        if span != 0:
+            return terminal(o, E_UNWINDING, 0, 0)
+        return reply(o, 0, 0, 0, 24)
+    return verify_object_text(s, o, w, row, span)
+
+def verify_object_text(s:readbuf, o:mutbuf, w:mutbuf, row:u64, span:u64) -> u64:
+    if word(s, row + 4, 4) != 1 or word(s, row + 8, 8) != 6 or word(s, row + 16, 8) != 0:
+        return terminal(o, E_TEXT_SHAPE, 0, 0)
+    if get(w, 16) != 6 or get(w, 24) != span or length(w) - 64 != span:
+        return terminal(o, E_TEXT_SHAPE, 0, 0)
+    start = word(s, row + 24, 8)
+    if in_file(length(s), start, span) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    index = 0
+    while index < span:
+        if byte(s, start + index) != byte(w, 64 + index):
+            return terminal(o, E_TEXT_SHAPE, 0, 0)
+        index = index + 1
+    if span > 65536:
+        return terminal(o, E_TEXT_BUDGET, 0, 0)
     return reply(o, 0, 0, 0, 24)
 
 def executable_section_layout(s:readbuf, o:mutbuf, w:mutbuf, start:u64, count:u64) -> u64:
