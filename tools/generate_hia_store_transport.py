@@ -37,6 +37,7 @@ WIRE = {
     'ARTIFACT_URI_HEAD': b'hia://ar',
     'ARTIFACT_URI_TAIL': b'tifacts/',
     'ARTIFACT_PROFILE': b'profile',
+    'ARTIFACT_INPUT': b'input',
     'ARTIFACT_DISCOVERY_HEAD': b'discover',
 }
 
@@ -276,14 +277,14 @@ def valid_hex(s:readbuf, at:u64, count:u64) -> bool:
         at = at + 1
     return True
 
-# Narrow immutable discovery/document insert. Metadata is the original empty
+# Narrow immutable Agent artifact insert. Metadata is the original empty
 # object; data custody and content verification occur before request delivery.
 def valid_discovery_insert(s:readbuf, size:u64) -> bool:
-    if (size != 403 and size != 405) or read_word(s, 48) != INSERT_PARAMETERS:
+    if (size != 401 and size != 403 and size != 405) or read_word(s, 48) != INSERT_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 9 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
         return False
-    kind = choose(size == 403, 7, 9)
+    kind = size - 396
     offset = 184
     field = 0
     while field < 6:
@@ -300,7 +301,10 @@ def valid_discovery_insert(s:readbuf, size:u64) -> bool:
     if kind == 7:
         if read_word(s, 378) & 72057594037927935 != ARTIFACT_PROFILE:
             return False
-    elif read_word(s, 378) != ARTIFACT_DISCOVERY_HEAD or byte(s, 386) != 121:
+    elif kind == 9:
+        if read_word(s, 378) != ARTIFACT_DISCOVERY_HEAD or byte(s, 386) != 121:
+            return False
+    elif read_word(s, 378) & 1099511627775 != ARTIFACT_INPUT:
         return False
     if byte(s, 378 + kind) != 123 or byte(s, 379 + kind) != 125:
         return False
