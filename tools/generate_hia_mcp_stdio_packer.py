@@ -593,67 +593,73 @@ def connection_template():
 
 
 def store_unique_template():
-    """Carry a HIA-owned Store query through an inherited reply descriptor."""
-    # Fixed Linux x86-64 descriptor operations; no Store fields are parsed here.
+    """Run HIA-owned Store transactions over the inherited descriptor pair."""
+    # The fixed Linux adapter carries bytes; it never parses the Store protocol.
     code = bytes.fromhex(
-        # Require one decimal inherited Store descriptor; FD 0 and 1 are private transport.
-        '48 83 3c 24 02 0f 85 b2 02 00 00 48 8b 74 24 10 45 31 ed 31 c9 '
-        # Parse an ASCII descriptor bounded to the signed Linux fd range.
-        '0f b6 06 85 c0 74 30 83 f9 0a 0f 83 98 02 00 00 83 e8 30 83 f8 09 '
-        '0f 87 8c 02 00 00 4d 6b ed 0a 49 01 c5 49 81 fd ff ff ff 7f 0f 87 '
-        '78 02 00 00 48 ff c6 ff c1 eb c9 '
-        # Reserve aligned input, output, state and poll storage.
-        '41 83 fd 03 0f 82 67 02 00 00 48 81 ec c0 40 00 00 49 89 e4 fc '
-        # Require an exact sealed 24-byte prelude and a fresh sealable sink.
-        '31 ff be 0a 04 00 00 b8 48 00 00 00 0f 05 48 85 c0 0f 88 45 02 00 '
-        '00 83 e0 0f 83 f8 0f 0f 85 39 02 00 00 31 ff 49 8d b4 24 00 20 00 '
-        '00 b8 05 00 00 00 0f 05 48 85 c0 0f 85 26 02 00 00 49 83 bc 24 30 '
-        '20 00 00 18 0f 85 10 02 00 00 bf 01 00 00 00 be 0a 04 00 00 b8 48 '
-        '00 00 00 0f 05 48 85 c0 0f 85 f6 01 00 00 bf 01 00 00 00 31 f6 ba '
-        '02 00 00 00 b8 08 00 00 00 0f 05 48 85 c0 0f 85 da 01 00 00 '
-        # Read the sealed prelude from offset zero; initial HIA state is zero.
-        '49 8d bc 24 00 40 00 00 31 c0 b9 10 00 00 00 f3 48 ab 31 ff 4c 89 '
-        'e6 ba 18 00 00 00 45 31 d2 b8 11 00 00 00 0f 05 48 83 f8 fc 74 e6 '
-        '48 83 f8 18 0f 85 ab 01 00 00 41 be 18 00 00 00 '
-        # Invoke the one embedded HIA continuation and bound its reply extent.
+        # Validate argument count, parse inherited Store channels, and reserve aligned memory.
+        '48 8b 1c 24 48 83 fb 02 0f 82 b6 03 00 00 48 83 fb 03 0f 87 ac 03 '
+        '00 00 48 8b 74 24 10 e8 3a 00 00 00 41 89 c5 41 be ff ff ff ff 48 '
+        '83 fb 03 75 16 48 8b 74 24 18 e8 21 00 00 00 44 39 e8 0f 84 80 03 '
+        '00 00 41 89 c6 48 81 ec 80 49 00 00 49 89 e4 45 89 b4 24 10 49 00 '
+        '00 fc eb 47 '
+        # Accept one decimal Linux descriptor number, excluding the private stdio descriptors.
+        '31 d2 31 c9 0f b6 06 85 c0 74 30 83 f9 0a 0f 83 54 03 00 00 83 e8 '
+        '30 83 f8 09 0f 87 48 03 00 00 48 6b d2 0a 48 01 c2 48 81 fa ff ff '
+        'ff 7f 0f 87 34 03 00 00 48 ff c6 ff c1 eb c9 83 fa 03 0f 82 24 03 '
+        '00 00 89 d0 c3 '
+        # Admit only the exact sealed prelude and a new sealable output fd.
+        '31 ff be 0a 04 00 00 b8 48 00 00 00 0f 05 48 85 c0 0f 88 0a 03 00 '
+        '00 83 e0 0f 83 f8 0f 0f 85 fe 02 00 00 31 ff 49 8d b4 24 00 20 00 '
+        '00 b8 05 00 00 00 0f 05 48 85 c0 0f 85 eb 02 00 00 4d 8b b4 24 30 '
+        '20 00 00 49 83 fe 18 74 17 49 83 fe 69 0f 82 cc 02 00 00 49 81 fe '
+        '68 08 00 00 0f 87 bf 02 00 00 bf 01 00 00 00 be 0a 04 00 00 b8 48 '
+        '00 00 00 0f 05 48 85 c0 0f 85 a5 02 00 00 bf 01 00 00 00 31 f6 ba '
+        '02 00 00 00 b8 08 00 00 00 0f 05 48 85 c0 0f 85 89 02 00 00 '
+        # Clear HIA state and read the immutable prelude from offset zero.
+        '49 8d bc 24 00 40 00 00 31 c0 b9 20 01 00 00 f3 48 ab 31 ff 4c 89 '
+        'e6 44 89 f2 45 31 d2 b8 11 00 00 00 0f 05 48 83 f8 fc 74 e8 4c 39 '
+        'f0 0f 85 5d 02 00 00 '
+        # Invoke the HIA state machine and enforce its output extent.
         '4c 89 e7 4c 89 f6 49 8d 94 24 00 20 00 00 b9 e0 1f 00 00 4d 8d 84 '
-        '24 00 40 00 00 41 b9 80 00 00 00 e8 00 00 00 00 83 f8 20 0f 82 6f '
-        '01 00 00 3d e0 1f 00 00 0f 87 64 01 00 00 41 89 c7 49 8d 9c 24 00 '
-        '20 00 00 48 8b 03 48 8b 53 08 48 83 f8 01 74 4d 48 83 f8 02 74 53 '
-        '48 83 f8 03 0f 85 3c 01 00 00 '
-        # Append the terminal footer, seal the complete sink, and return success.
-        '41 83 ff 20 0f 85 32 01 00 00 48 89 de ba 20 00 00 00 e8 05 01 00 '
-        '00 bf 01 00 00 00 be 09 04 00 00 ba 0f 00 00 00 b8 48 00 00 00 0f '
-        '05 48 85 c0 0f 85 0d 01 00 00 31 ff e9 0b 01 00 00 '
-        # An exact read descriptor is one 32-byte response.
-        '41 83 ff 20 0f 85 f5 00 00 00 eb 31 '
-        # Copy only accepted bytes to the private sink, then read the next tag.
-        '48 85 d2 0f 84 ea 00 00 00 48 81 fa c0 1f 00 00 0f 87 dd 00 00 00 '
-        '48 8d 42 20 4c 39 f8 0f 85 d0 00 00 00 48 8d 73 20 e8 a7 00 00 00 '
-        'ba 08 00 00 00 '
-        # Prefix the exact next Store bytes with the HIA continuation tag.
-        '48 85 d2 0f 84 b9 00 00 00 48 81 fa c0 1f 00 00 0f 87 ac 00 00 00 '
+        '24 00 40 00 00 41 b9 00 09 00 00 e8 00 00 00 00 83 f8 20 0f 82 27 '
+        '02 00 00 3d e0 1f 00 00 0f 87 1c 02 00 00 41 89 c7 49 8d 9c 24 00 '
+        '20 00 00 48 8b 03 48 8b 53 08 48 83 f8 01 74 6c 48 83 f8 02 74 72 '
+        '48 83 f8 03 74 20 48 83 f8 04 0f 84 9a 00 00 00 48 83 f8 05 0f 85 '
+        'e4 01 00 00 41 83 ff 30 0f 85 da 01 00 00 eb 0a '
+        # Write the native receipt and seal the private response before returning success.
+        '41 83 ff 20 0f 85 ce 01 00 00 bf 01 00 00 00 48 89 de 44 89 fa e8 '
+        '53 01 00 00 bf 01 00 00 00 be 09 04 00 00 ba 0f 00 00 00 b8 48 00 '
+        '00 00 0f 05 48 85 c0 0f 85 a6 01 00 00 31 ff e9 a4 01 00 00 '
+        # Honor an exact HIA read request; forward data fragments only to the private sink.
+        '41 83 ff 20 0f 85 8e 01 00 00 eb 7b 48 85 d2 0f 84 83 01 00 00 48 '
+        '81 fa c0 1f 00 00 0f 87 76 01 00 00 48 8d 42 20 4c 39 f8 0f 85 69 '
+        '01 00 00 bf 01 00 00 00 48 8d 73 20 e8 f0 00 00 00 ba 08 00 00 00 '
+        'eb 43 '
+        # Convey the immutable HIA Store command on the inherited write channel.
+        '48 83 fa 30 0f 82 4a 01 00 00 48 81 fa 68 08 00 00 0f 87 3d 01 00 '
+        '00 48 8d 42 20 4c 39 f8 0f 85 30 01 00 00 41 8b bc 24 10 49 00 00 '
+        '83 ff 03 0f 82 1f 01 00 00 48 8d 73 20 e8 ab 00 00 00 ba 08 00 00 '
+        '00 '
+        # Read only the HIA-requested extent from the inherited Store reply channel.
+        '48 85 d2 0f 84 08 01 00 00 48 81 fa c0 1f 00 00 0f 87 fb 00 00 00 '
         '4c 8d 72 08 48 b8 48 49 41 53 54 55 43 31 49 89 04 24 44 89 ef 49 '
-        '8d 74 24 08 e8 05 00 00 00 e9 ea fe ff ff '
-        # Preserve the fd, pointer, and remaining length across Linux syscalls.
-        '41 89 f8 49 89 f1 41 89 d2 '
-        # Poll the already owned Store fd; retry EINTR/EAGAIN without consuming twice.
-        '45 89 84 24 80 40 00 00 41 c7 84 24 84 40 00 00 01 00 00 00 49 8d '
-        'bc 24 80 40 00 00 be 01 00 00 00 ba 10 27 00 00 b8 07 00 00 00 0f '
-        '05 48 83 f8 fc 74 cd 48 85 c0 7e 4e 44 89 c7 4c 89 ce 44 89 d2 31 '
-        'c0 0f 05 48 83 f8 fc 74 b5 48 83 f8 f5 74 af 48 85 c0 7e 30 49 01 '
-        'c1 49 29 c2 75 a2 c3 '
-        # Carry all accepted bytes to the private result fd.
-        'bf 01 00 00 00 b8 01 00 00 00 0f 05 48 83 f8 fc 74 ee 48 85 c0 7e '
-        '10 48 01 c6 48 29 c2 75 e1 c3 '
-        # HIA or input custody refused.
-        'bf 02 00 00 00 eb 05 '
-        # Incomplete descriptor transfer.
-        'bf 04 00 00 00 '
-        # Exit without a dynamic loader.
-        'b8 3c 00 00 00 0f 05 0f 0b '
+        '8d 74 24 08 e8 05 00 00 00 e9 81 fe ff ff '
+        # Poll the inherited input, preserving the cursor across short reads and interruptions.
+        '41 89 f8 49 89 f1 41 89 d2 45 89 84 24 00 49 00 00 41 c7 84 24 04 '
+        '49 00 00 01 00 00 00 49 8d bc 24 00 49 00 00 be 01 00 00 00 ba 10 '
+        '27 00 00 b8 07 00 00 00 0f 05 48 83 f8 fc 74 cd 48 85 c0 0f 8e 99 '
+        '00 00 00 44 89 c7 4c 89 ce 44 89 d2 31 c0 0f 05 48 83 f8 fc 74 b1 '
+        '48 83 f8 f5 74 ab 48 85 c0 7e 7b 49 01 c1 49 29 c2 75 9e c3 '
+        # Poll and write the exact extent; never discard short writes or duplicate bytes.
+        '41 89 f8 49 89 f1 41 89 d2 45 89 84 24 00 49 00 00 41 c7 84 24 04 '
+        '49 00 00 04 00 00 00 49 8d bc 24 00 49 00 00 be 01 00 00 00 ba 10 '
+        '27 00 00 b8 07 00 00 00 0f 05 48 83 f8 fc 74 cd 48 85 c0 7e 31 44 '
+        '89 c7 4c 89 ce 44 89 d2 b8 01 00 00 00 0f 05 48 83 f8 fc 74 b2 48 '
+        '83 f8 f5 74 ac 48 85 c0 7e 10 49 01 c1 49 29 c2 75 9f c3 '
+        # Reject malformed inputs, descriptor custody and incomplete I/O distinctly.
+        'bf 02 00 00 00 eb 05 bf 04 00 00 00 b8 3c 00 00 00 0f 05 0f 0b '
     )
-    return elf_prefix(code), len(elf_prefix(b'')) + 321
+    return elf_prefix(code), len(elf_prefix(b'')) + 400
 
 
 def render():
