@@ -67,7 +67,7 @@ def order_exports(s:readbuf, w:mutbuf, item:u64, order:u64) -> u64:
         row = 64 + item * 72
         name = lookup(w, row, 3)
         value = lookup(w, row, 4)
-        if name == NONE or get(w, name) != 4 or get(w, name + 32) == 0 or get(w, name + 32) > 512:
+        if name == NONE or get(w, name) != 4 or valid_name(w, name) == False:
             return 3
         extent = uint(s, w, value, 1048576)
         if extent == NONE or extent == 0:
@@ -90,6 +90,24 @@ def order_exports(s:readbuf, w:mutbuf, item:u64, order:u64) -> u64:
         count = count + 1
         item = get(w, row + 16)
     return choose(duplicate, 2, choose(invalid, 3, 0))
+
+def valid_name(w:mutbuf, name:u64) -> bool:
+    size = get(w, name + 32)
+    if size == 0 or size > 512:
+        return False
+    at = get(w, name + 24)
+    end = at + size
+    count = 0
+    while at < end:
+        ch = byte(w, at)
+        if (ch & 192) != 128:
+            count = count + 1
+            if count > 128:
+                return False
+        if ch == 237 and at + 1 < end and byte(w, at + 1) >= 160:
+            return False
+        at = at + 1
+    return True
 
 def name_order(w:mutbuf, left:u64, right:u64) -> u64:
     a = get(w, left + 24)

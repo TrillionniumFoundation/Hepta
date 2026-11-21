@@ -128,7 +128,8 @@ def template(mode):
     if diagnostic:
         scratch, workspace, minimum = 4 << 20, SCHEMA_ARENA_BYTES, 1
     if context_workload:
-        scratch, workspace = 131072, ARENA_BYTES + 1024
+        # The decoder also uses this mapping for its original duplicate-key table.
+        scratch, workspace = 4 << 20, ARENA_BYTES + 1024
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if describe_request:
