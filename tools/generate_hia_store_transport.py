@@ -38,6 +38,9 @@ WIRE = {
     'ARTIFACT_URI_TAIL': b'tifacts/',
     'ARTIFACT_PROFILE': b'profile',
     'ARTIFACT_INPUT': b'input',
+    'ARTIFACT_TOOL_HEAD': b'hia_arti',
+    'ARTIFACT_TOOL_TAIL': b'fact',
+    'RUNNING_STATE': b'running',
     'ARTIFACT_DISCOVERY_HEAD': b'discover',
 }
 
@@ -133,8 +136,14 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 20:
         if valid_discovery_insert(s, size) == False:
             return 0
+    elif plan == 21:
+        if valid_request_reserve(s, size) == False:
+            return 0
+    elif plan == 22:
+        if valid_request_complete(s, size) == False:
+            return 0
     else:
-        if plan != 1 and plan != 2 and plan != 3 and plan != 6:
+        if plan != 1 and plan != 2 and plan != 3 and plan != 6 and plan != 9:
             return 0
         cap = choose(plan == 2, 192, choose(plan == 3, 208, 2048))
         if size > 56 + cap or read_word(s, 48) != QUERY_PARAMETERS:
@@ -143,14 +152,14 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return 0
         if read_word(s, 80) != 3 or read_word(s, 88) != 56 or read_word(s, 96) != size - 56:
             return 0
-        if plan == 1 and (size != 120 or valid_hex(s, 104, 64) == False):
+        if (plan == 1 or plan == 9) and (size != 120 or valid_hex(s, 104, 64) == False):
             return 0
     configure_unique(w, request, plan)
     write_word(w, 112, mode)
     write_word(w, 120, generation)
     write_word(w, 128, size)
     write_word(w, 136, 1)
-    if plan != 18:
+    if plan != 18 and plan != 22:
         copy_fields(s, w, 48, 192, size)
     if mode == 1:
         return send_unique(o, w, 21, 0, 0, 6)
@@ -310,20 +319,72 @@ def valid_discovery_insert(s:readbuf, size:u64) -> bool:
         return False
     return valid_hex(s, 234, 32) and valid_hex(s, 266, 64) and valid_hex(s, 346, 32) and valid_hex(s, 380 + kind, 64)
 
+# Reserve binds the original request and compatibility tool identity, not
+# a setter for arbitrary request-state rows.
+def valid_request_reserve(s:readbuf, size:u64) -> bool:
+    if size < 332 or size > 351 or read_word(s, 48) != INSERT_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 6 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
+        return False
+    if valid_cell(s, 88, 3, 184, 64) == False or valid_cell(s, 112, 3, 248, 64) == False:
+        return False
+    if valid_cell(s, 136, 3, 312, 12) == False or valid_cell(s, 160, 3, 324, 7) == False:
+        return False
+    if valid_cell(s, 184, 0, 331, 0) == False or valid_cell(s, 208, 3, 331, size - 331) == False:
+        return False
+    if valid_hex(s, 232, 64) == False or valid_hex(s, 296, 64) == False:
+        return False
+    if read_word(s, 360) != ARTIFACT_TOOL_HEAD or read_word(s, 368) & 4294967295 != ARTIFACT_TOOL_TAIL:
+        return False
+    return read_word(s, 372) & 72057594037927935 == RUNNING_STATE and canonical_timestamp(s, 379, size - 331)
+
+def canonical_timestamp(s:readbuf, at:u64, extent:u64) -> bool:
+    if extent > 1 and byte(s, at) == 48:
+        return False
+    out = 0
+    stop = at + extent
+    while at < stop:
+        ch = byte(s, at)
+        if ch < 48 or ch > 57:
+            return False
+        digit = ch - 48
+        if out > 1844674407370955161 or (out == 1844674407370955161 and digit > 5):
+            return False
+        out = out * 10 + digit
+        at = at + 1
+    return True
+
+# The sealed tail is the already rendered terminal plus its exact journal key.
+def valid_request_complete(s:readbuf, size:u64) -> bool:
+    if size < 154 or size > 8388760 or read_word(s, 48) != UPDATE_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != 0 or read_word(s, 80) != 2:
+        return False
+    width = size - 152
+    if valid_cell(s, 88, 3, 88, width) == False or valid_cell(s, 112, 3, 88 + width, 64) == False:
+        return False
+    if byte(s, 136) != 123 or byte(s, 135 + width) != 125:
+        return False
+    return valid_hex(s, 136 + width, 64)
+
+def valid_cell(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> bool:
+    return read_word(s, at) == kind and read_word(s, at + 8) == offset and read_word(s, at + 16) == size
+
+def durable_write(plan:u64) -> bool:
+    return plan == 10 or (plan >= 18 and plan <= 22)
+
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
-    write_word(w, 24, choose(plan == 6, 6, 1))
+    write_word(w, 24, choose(plan == 6, 6, choose(plan == 9, 4, 1)))
     write_word(w, 32, choose(plan == 6, 15, 63))
-    return write_word(w, 40, choose(plan == 6, 512, 1000000032))
+    return write_word(w, 40, choose(plan == 6, 512, choose(plan == 9, 8389120, 1000000032)))
 
 def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
     plan = read_state(w, 16)
-    if plan == 10 or plan == 19 or plan == 20:
-        return send_unique(o, w, 27, 1, read_state(w, 128), 10)
-    if plan == 18:
-        # The Store sees regular command 27 with ordinary insert target 1.
-        # Only the adapter's action carries the immutable remainder separately.
+    if plan == 18 or plan == 22:
+        # The Store sees command 27 and normal write target 1. The adapter
+        # transmits the already validated, immutable payload without recopying it.
         send_unique(o, w, 27, 1, 0, 10)
         extent = read_state(w, 128)
         write_word(o, 0, 7)
@@ -331,6 +392,8 @@ def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
         write_word(o, 16, 48)
         write_word(o, 72, extent)
         return 80
+    if durable_write(plan):
+        return send_unique(o, w, 27, 1, read_state(w, 128), 10)
     return send_unique(o, w, 27, plan + 3, read_state(w, 128), 1)
 
 def send_unique(o:mutbuf, w:mutbuf, kind:u64, target:u64, extent:u64, phase:u64) -> u64:
@@ -379,7 +442,7 @@ def unique_transaction(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
 # validated before a typed insert transaction may return a usable receipt.
 def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     plan = read_state(w, 16)
-    if plan != 10 and plan != 18 and plan != 19 and plan != 20:
+    if durable_write(plan) == False:
         return 0
     if phase == 10 or phase == 12 or phase == 14:
         if length(s) != 16:
@@ -440,7 +503,7 @@ def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 def finish_unique(o:mutbuf, w:mutbuf) -> u64:
     write_word(o, 0, 5)
     plan = read_state(w, 16)
-    if plan == 10 or plan == 18 or plan == 19 or plan == 20:
+    if durable_write(plan):
         write_word(o, 8, read_state(w, 168) * 8)
         write_word(o, 16, read_state(w, 152))
         write_word(o, 24, read_state(w, 144))
@@ -466,7 +529,7 @@ def unique_stream(s:readbuf, o:mutbuf, w:mutbuf, role:u64) -> u64:
             return 0
         request = read_word(s, 8)
         plan = read_word(s, 16)
-        if request == 0 or (plan != 1 and plan != 2 and plan != 3 and plan != 6):
+        if request == 0 or (plan != 1 and plan != 2 and plan != 3 and plan != 6 and plan != 9):
             return 0
         configure_unique(w, request, plan)
         return stream_read(o, w, 1, 8)
