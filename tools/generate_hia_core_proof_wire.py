@@ -1093,6 +1093,119 @@ def match(name, domain):
     return '\n'.join([*result, '    return 0', ''])
 
 
+# The bounded decoder emits this paired normalized graph for checked i16/i32
+# subtraction. Check *every* word before replacing either machine root; no
+# syntactic shortcut covers other graphs or either input's discarded high bits.
+# signext(a)-signext(b) always fits i64 here. The two inclusive iN bounds
+# therefore detect exactly the narrow signed overflow. On return both paths
+# sign-extend sub modulo 2**N; on overflow both report a trap and a zero word.
+WIDE_SUBTRACT_NODES = (
+    (1, 64, 0, 0, 0), (1, 64, 0, 0, 0),
+    (2, 1, 0, 0, 1), (2, 1, 0, 0, 0),
+    (2, 64, 0, 0, 'distance'), (36, 64, 0, 4, 0),
+    (26, 'width', 0, 0, 0), (31, 64, 6, 0, 0),
+    (36, 64, 1, 4, 0), (26, 'width', 1, 0, 0),
+    (31, 64, 9, 0, 0), (10, 64, 7, 10, 0),
+    (2, 64, 0, 0, 0), (25, 1, 7, 10, 0),
+    (2, 64, 0, 0, 'minimum'), (16, 1, 11, 14, 0),
+    (2, 64, 0, 0, 'maximum'), (18, 1, 11, 16, 0),
+    (36, 64, 11, 4, 0), (2, 'width', 0, 0, 'distance'),
+    (26, 'width', 5, 0, 0), (26, 'width', 8, 0, 0),
+    (10, 'width', 6, 9, 0), (31, 64, 22, 0, 0),
+    (36, 64, 23, 4, 0), (2, 'width', 0, 0, 0),
+    (2, 'width', 0, 0, 'sign'), (2, 'width', 0, 0, 'maximum'),
+    (26, 'width', 18, 0, 0), (11, 64, 17, 12, 23),
+    (11, 64, 15, 12, 29), (11, 1, 15, 2, 17),
+    (11, 64, 13, 12, 30), (11, 1, 13, 2, 31),
+    (2, 8, 0, 0, 0), (25, 1, 6, 9, 0),
+    (2, 8, 0, 0, 4), (11, 8, 35, 36, 34),
+    (6, 1, 35, 0, 0), (11, 'width', 35, 25, 22),
+    (31, 64, 39, 0, 0),
+)
+WIDE_SUBTRACT_ROOTS = (35, 33, 40, 32)
+
+
+# A signed n-bit product fits in 2n bits for n <= 32. Its magnitude
+# exceeds the signed result range iff it exceeds the exact unsigned
+# magnitude limit chosen by the sign xor (2**(n-1) or 2**(n-1)-1).
+# This is the same condition as the machine's wide signed range test,
+# including the negative endpoint and zero. Both normal roots use mul
+# modulo 2**n and the same n-to-64 sign extension.
+WIDE_PRODUCT_NODES = (*WIDE_SUBTRACT_NODES[:11],
+    (32, 64, 7, 10, 0), (2, 64, 0, 0, 0),
+    (26, 1, 7, 0, 63), (26, 1, 10, 0, 63),
+    (10, 64, 12, 7, 0), (10, 64, 12, 10, 0),
+    (11, 64, 13, 15, 7), (11, 64, 14, 16, 10),
+    (2, 64, 0, 0, 9223372036854775808), (2, 64, 0, 0, 9223372036854775807),
+    (5, 1, 13, 14, 0), (11, 64, 21, 19, 20), (35, 1, 17, 18, 22),
+    (2, 64, 0, 0, 'minimum'), (16, 1, 11, 24, 0),
+    (2, 64, 0, 0, 'maximum'), (18, 1, 11, 26, 0),
+    (36, 64, 11, 4, 0), (2, 'width', 0, 0, 'distance'),
+    (26, 'width', 5, 0, 0), (26, 'width', 8, 0, 0),
+    (32, 'width', 6, 9, 0), (31, 64, 32, 0, 0), (36, 64, 33, 4, 0),
+    (2, 'width', 0, 0, 0), (10, 'width', 35, 6, 0), (10, 'width', 35, 9, 0),
+    (26, 'width', 17, 0, 0), (26, 'width', 18, 0, 0),
+    (2, 'width', 0, 0, 'mask'), (26, 'width', 22, 0, 0),
+    (2, 'width', 0, 0, 'sign'), (2, 'width', 0, 0, 'maximum'),
+    (26, 'width', 28, 0, 0), (11, 64, 27, 12, 33), (11, 64, 25, 12, 45),
+    (11, 1, 25, 2, 27), (11, 64, 23, 12, 46), (11, 1, 23, 2, 47), (2, 8, 0, 0, 0),
+    (26, 1, 6, 0, 'high'), (26, 1, 9, 0, 'high'),
+    (11, 'width', 51, 36, 6), (11, 'width', 52, 37, 9), (5, 1, 51, 52, 0),
+    (11, 'width', 55, 42, 43), (35, 1, 53, 54, 56), (2, 8, 0, 0, 4),
+    (11, 8, 57, 58, 50), (6, 1, 57, 0, 0), (11, 'width', 57, 35, 32),
+    (31, 64, 61, 0, 0),
+)
+WIDE_PRODUCT_ROOTS = (57, 49, 62, 48)
+
+
+EXACT_SOLVER_ROW = """
+def exact_solver_row(s:readbuf, at:u64, op:u64, width:u64, a:u64, b:u64, c:u64) -> bool:
+    return obligation_word(s, at) == op and obligation_word(s, at + 8) == width and obligation_word(s, at + 16) == a and obligation_word(s, at + 24) == b and obligation_word(s, at + 32) == c
+"""
+
+
+def checked_arithmetic_source(name, nodes, original_roots, reduced_roots):
+    base = 96
+    roots = base + len(nodes) * 40
+    total = roots + len(original_roots) * 8
+    width_at = base + 6 * 40 + 8
+    lines = [
+        f'def {name}(s:readbuf, o:mutbuf, steps:u64) -> u64:',
+        f'    if length(s) != {total} or length(o) < {total - 64}:',
+        '        return 0',
+        f'    if obligation_word(s, 72) != {len(nodes)} or obligation_word(s, 80) != 2:',
+        '        return 0',
+        '    if solver_circuit_ok(s, 64) == False:',
+        '        return 0',
+        f'    width = obligation_word(s, {width_at})',
+        '    if width != 16 and width != 32:',
+        '        return 0',
+        '    distance = 64 - width',
+        '    sign = 1 << (width - 1)',
+        '    minimum = 0 - sign',
+        '    maximum = sign - 1',
+    ]
+    if nodes is WIDE_PRODUCT_NODES:
+        lines.extend(('    mask = (1 << width) - 1', '    high = width - 1'))
+    for index, row in enumerate(nodes):
+        start = base + index * 40
+        words = ', '.join(str(word) for word in row)
+        lines.extend((f'    if exact_solver_row(s, {start}, {words}) == False:',
+                      '        return 0'))
+    for index, root in enumerate(original_roots):
+        lines.extend((f'    if obligation_word(s, {roots + index * 8}) != {root}:',
+                      '        return 0'))
+    lines.extend((
+        '    obligation_copy(s, o, 64, 0, length(s) - 64)',
+        '    put(o, 24, steps)',
+    ))
+    for index, (original, reduced) in enumerate(zip(original_roots, reduced_roots, strict=True)):
+        if original != reduced:
+            lines.append(f'    put(o, {roots - 64 + index * 8}, {reduced})')
+    lines.extend(('    return length(s) - 64', ''))
+    return '\n' + '\n'.join(lines)
+
+
 ELF_POLICY = """
 def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 48 and obligation_word(s, 0) == MACHINE_RELOCATION_REQUEST:
@@ -1273,7 +1386,24 @@ def program(*, elf_only=False, solver_only=False, subject=False):
             ('op', _GRAPH_OPERATIONS), ('trap', _CORE_TRAP_TAGS),
             ('term', {'ret': 1, 'trap': 2, 'jump': 3, 'branch': 4}), ('checked', {'checked': 1})):
         entry += '\n' + match(name, domain)
-    entry += OBLIGATIONS + caller_contract_source() + SOLVER_WIRE + WITNESS_WIRE + RELOCATION_WIRE
+    solver = SOLVER_WIRE
+    if solver_only:
+        match_lease = '        return solver_attach_lease(s, o, steps)'
+        solver = solver.replace(match_lease, """        if ordinal == 4:
+            reduced = checked_wide_subtract(s, o, steps)
+            if reduced == 0:
+                reduced = checked_wide_product(s, o, steps)
+            if reduced != 0:
+                return reduced
+""" + match_lease)
+        solver += checked_arithmetic_source('checked_wide_subtract', WIDE_SUBTRACT_NODES,
+                                            WIDE_SUBTRACT_ROOTS, (35, 35, 40, 40))
+        # The exact graph check discharges both differences. Comparing
+        # equal zero roots avoids materializing an irrelevant multiplier.
+        solver += checked_arithmetic_source('checked_wide_product', WIDE_PRODUCT_NODES,
+                                            WIDE_PRODUCT_ROOTS, (3, 3, 12, 12))
+        solver += EXACT_SOLVER_ROW
+    entry += OBLIGATIONS + caller_contract_source() + solver + WITNESS_WIRE + RELOCATION_WIRE
     nodes = ast.parse(source_program(entry=entry)).body
     retained = {'proof_wire'}
     while True:
