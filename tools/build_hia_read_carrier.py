@@ -1,4 +1,4 @@
-"""Pack the HIA retained-read Worker's Linux/x86-64 descriptor carrier.
+"""Pack a HIA Agent Linux/x86-64 descriptor carrier.
 
 The carrier is fixed platform code, not a compiler or an alternate read policy.
 The normal build compiles the checked-in HIA packer and needs no C toolchain,
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+from dataclasses import dataclass
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -38,21 +39,41 @@ CARRIER_SECTIONS = (
 )
 
 
-def author(platform_code):
+@dataclass(frozen=True)
+class CarrierImage:
+    source: str
+    magic: bytes
+    digest: str
+    size: int
+    sections: tuple
+
+
+CARRIERS = {
+    'read': CarrierImage(SOURCE, MAGIC, CODE_DIGEST, CODE_SIZE, CARRIER_SECTIONS),
+    'discovery': CarrierImage(
+        'examples/hia_bootstrap/agent_discovery_carrier_packer.hepta', b'HIADCK01',
+        '7bf8536a748da8c6b30c443948d43504979fdb2e6787950e35a54528e27ac3f0', 8384,
+        (('process_descriptors', 0, 1119), ('sealed_child_delivery', 1119, 2751),
+         ('publication_and_store_transport', 2751, 4074), ('discovery_relay', 4074, 8384))),
+}
+
+
+def author(platform_code, *, kind='read'):
     """Render the canonical HIA source from separately reviewed ISA bytes."""
-    if len(platform_code) != CODE_SIZE or sha256(platform_code).hexdigest() != CODE_DIGEST:
-        raise ValueError('unrecognized read carrier ISA profile')
+    carrier = CARRIERS[kind]
+    if len(platform_code) != carrier.size or sha256(platform_code).hexdigest() != carrier.digest:
+        raise ValueError('unrecognized Agent carrier ISA profile')
     prefix = elf_prefix(platform_code)
     size = len(prefix)
     source = f"""def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) != 8 or read_word(s, 0) != {int.from_bytes(MAGIC, 'little')}:
+    if length(s) != 8 or read_word(s, 0) != {int.from_bytes(carrier.magic, 'little')}:
         return 4294967295
     if length(o) < {size}:
         return 4294967294
     elf_header(o)
 """
     sections = {'elf_header': (0, HEADER_SIZE)}
-    for name, start, end in CARRIER_SECTIONS:
+    for name, start, end in carrier.sections:
         for begin in range(start, end, 512):
             chunk = f'{name}_{begin}'
             sections[chunk] = (HEADER_SIZE + begin, HEADER_SIZE + min(end, begin + 512))
@@ -67,45 +88,48 @@ def author(platform_code):
         source += '    return 0\n'
     helpers = source_program()
     source += helpers[helpers.index('\ndef read_word('):helpers.index('\ndef put_four(')]
-    return render_assembly(document(source, 'agent_read_carrier_packer'))
+    return render_assembly(document(source, Path(carrier.source).stem))
 
 
-def build(output, compiler, cold_report):
+def build(output, compiler, cold_report, *, kind='read'):
     """Use the cold compiler to pack the exact admitted native carrier ELF."""
-    report, seed, source = cold_report.read_bytes(), compiler.read_bytes(), (ROOT / SOURCE).read_bytes()
+    carrier = CARRIERS[kind]
+    source_path = ROOT / carrier.source
+    report, seed, source = cold_report.read_bytes(), compiler.read_bytes(), source_path.read_bytes()
     admitted = admit_cold_build(seed, report)
-    if admitted[SOURCE] != sha256(source).hexdigest():
-        raise ValueError('read carrier must use the cold-admitted HIA source')
+    if admitted[carrier.source] != sha256(source).hexdigest():
+        raise ValueError('Agent carrier must use the cold-admitted HIA source')
     output.mkdir(mode=0o700)
-    packer, receipt = compile_stage(output, 'read-carrier-packer', compiler, source)
+    packer, receipt = compile_stage(output, kind + '-carrier-packer', compiler, source)
     packed_program = packer.read_bytes()
     program = NativeHiaJsonImage(packed_program, receipt['produced_sha256'])
-    size = HEADER_SIZE + CODE_SIZE
-    request = ctypes.create_string_buffer(MAGIC)
+    size = HEADER_SIZE + carrier.size
+    request = ctypes.create_string_buffer(carrier.magic)
     result = ctypes.create_string_buffer(size)
-    count = program._entry(request, len(MAGIC), result, size, None, 0)
+    count = program._entry(request, len(carrier.magic), result, size, None, 0)
     executable = result.raw
-    if (count != size or request.raw != MAGIC + b'\0'
-            or sha256(executable[HEADER_SIZE:]).hexdigest() != CODE_DIGEST):
-        raise ValueError('read carrier packer did not produce the admitted platform image')
+    if (count != size or request.raw != carrier.magic + b'\0'
+            or sha256(executable[HEADER_SIZE:]).hexdigest() != carrier.digest):
+        raise ValueError('Agent carrier packer did not produce the admitted platform image')
     expected_header = bytearray(elf_prefix(b''))
     for offset in (96, 104):
         expected_header[offset:offset + 8] = size.to_bytes(8, 'little')
-    if executable[:HEADER_SIZE] != expected_header or author(executable[HEADER_SIZE:]).encode() != source:
-        raise ValueError('read carrier platform header or source is noncanonical')
+    if (executable[:HEADER_SIZE] != expected_header
+            or author(executable[HEADER_SIZE:], kind=kind).encode() != source):
+        raise ValueError('Agent carrier platform header or source is noncanonical')
     elf = inspect_executable(executable)
-    if (current_sources() != admitted or (ROOT / SOURCE).read_bytes() != source
+    if (current_sources() != admitted or source_path.read_bytes() != source
             or compiler.read_bytes() != seed or cold_report.read_bytes() != report
             or packer.read_bytes() != packed_program):
-        raise ValueError('read carrier inputs changed before publication')
-    target = output / 'hia-agent-read-carrier'
+        raise ValueError('Agent carrier inputs changed before publication')
+    target = output / ('hia-agent-' + kind + '-carrier')
     with target.open('xb') as stream:
         stream.write(executable)
     target.chmod(0o500)
     with (output / 'build.json').open('x') as stream:
         json.dump({
-            'schema': 'hepta.hia.agent-read-carrier-stdio-build.v1',
-            'source_sha256': admitted[SOURCE], 'platform_sha256': CODE_DIGEST,
+            'schema': 'hepta.hia.agent-' + kind + '-carrier-stdio-build.v1',
+            'source_sha256': admitted[carrier.source], 'platform_sha256': carrier.digest,
             'executable_sha256': sha256(executable).hexdigest(),
             'packer_compilation': receipt, 'elf': elf,
         }, stream, indent=2)
@@ -117,5 +141,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--kind', choices=CARRIERS, default='read')
     args = parser.parse_args()
-    print(build(args.output, args.compiler, args.cold_report))
+    print(build(args.output, args.compiler, args.cold_report, kind=args.kind))
