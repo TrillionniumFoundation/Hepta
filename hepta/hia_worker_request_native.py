@@ -199,6 +199,27 @@ def _materialize_request(status, arena, raw):
     return request
 
 
+def validate_retained_worker_data(executable, payload):
+    """Use the pinned status-only HIA data profile without building Python objects."""
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    raw = payload if type(payload) is bytes else payload.encode('utf-8')
+    if not 0 < len(raw) <= MAX_BYTES:
+        return False
+    header = struct.pack('<Q8s', sys.get_int_max_str_digits(), b'HIAWDV01')
+    with sealed_reference_bytes(executable) as program, sealed_reference_bytes(header, raw) as source:
+        result = subprocess.run((f'/proc/self/fd/{program}',), pass_fds=(program,),
+                                stdin=source, capture_output=True, env={'PATH': ''}, timeout=10)
+    if result.returncode or result.stderr or len(result.stdout) != 8:
+        raise RuntimeError('native Worker metadata transport failed')
+    status, = struct.unpack('<Q', result.stdout)
+    if status == 1:
+        return True
+    if status in (0xffffffff, 0xfffffffe, 0xfffffffc, 0xfffffff0):
+        return False
+    raise RuntimeError('invalid native Worker metadata status')
+
+
 def _standalone_admit(executable, request, catalog, max_digits):
     header = ADMISSION_FRAME.pack(ADMISSION_INPUT_MAGIC, len(request), max_digits, catalog.encode('ascii'))
     child = _run_sealed(executable, header, request)

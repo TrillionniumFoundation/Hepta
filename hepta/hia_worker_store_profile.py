@@ -22,7 +22,9 @@ JOURNAL_SCHEMA = 'hepta.hia.native-helpers.v16'
 DIRECT_OWNER_SCHEMA = 'hepta.hia.native-helpers.v17'
 REFERENCE_OWNER_SCHEMA = 'hepta.hia.native-helpers.v18'
 STORE_UNIQUE_SCHEMA = 'hepta.hia.native-helpers.v19'
-JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA, STORE_UNIQUE_SCHEMA)
+WORKER_DATA_SCHEMA = 'hepta.hia.native-helpers.v20'
+STORE_UNIQUE_SCHEMAS = (STORE_UNIQUE_SCHEMA, WORKER_DATA_SCHEMA)
+JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA, *STORE_UNIQUE_SCHEMAS)
 STARTUP_SCHEMAS = (STARTUP_SCHEMA, *JOURNAL_SCHEMAS)
 ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, *STARTUP_SCHEMAS)
 TERMINAL_SCHEMAS = (TERMINAL_SCHEMA, *ADMISSION_SCHEMAS)
@@ -46,6 +48,8 @@ def profile_images(schema):
         result.update(IMPORT_EXECUTABLES)
     if schema in TERMINAL_SCHEMAS:
         result['terminal_sha256'] = ('hia-worker-terminal', authority.MAX_IMAGE_BYTES)
+    if schema == WORKER_DATA_SCHEMA:
+        result['worker_data_sha256'] = ('hia-worker-data', authority.MAX_IMAGE_BYTES)
     if schema in STARTUP_SCHEMAS:
         result['initializer_sha256'] = ('hia-agent-store-init', authority.MAX_IMAGE_BYTES)
     return result
@@ -64,7 +68,7 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'read_page_path', 'read_page_sha256'})
         if schema in JOURNAL_SCHEMAS:
             reference_fields.update({'journal_path', 'journal_sha256'})
-        if schema == STORE_UNIQUE_SCHEMA:
+        if schema in STORE_UNIQUE_SCHEMAS:
             reference_fields.update({'store_unique_path', 'store_unique_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
@@ -136,7 +140,7 @@ class NativeWorkerStoreBinding:
         self.native_direct_call_protocol = {
             DIRECT_REPEAT_SCHEMA: 2, **dict.fromkeys((DIRECT_BATCH_SCHEMA, *PAGE_SCHEMAS), 3),
             DIRECT_OWNER_SCHEMA: 4,
-            REFERENCE_OWNER_SCHEMA: 5, STORE_UNIQUE_SCHEMA: 5,
+            REFERENCE_OWNER_SCHEMA: 5, **dict.fromkeys(STORE_UNIQUE_SCHEMAS, 5),
         }.get(schema, 1)
         if schema in DIRECT_CALL_SCHEMAS:
             from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR
@@ -165,7 +169,7 @@ class NativeWorkerStoreBinding:
             self.snapshots.append((page, MAX_IMAGE_BYTES))
             self.native_agent_read_page_executable = page.raw
         self.native_agent_store_unique_executable = None
-        if schema == STORE_UNIQUE_SCHEMA:
+        if schema in STORE_UNIQUE_SCHEMAS:
             from .hia_agent_store_transport_native import NativeAgentStoreTransport, SELECTOR
 
             pin = record['store_unique_sha256']
@@ -197,6 +201,7 @@ class NativeWorkerStoreBinding:
             self.native_agent_journal_executable = journal.raw
         self.native_worker_terminal_executable = None
         self.native_worker_admission_executable = None
+        self.native_worker_data_executable = None
         if schema in TERMINAL_SCHEMAS:
             from .hia_worker_request_native import (
                 ADMISSION_INPUT_MAGIC, ADMISSION_OUTPUT_MAGIC, NativeWorkerRequest, SELECTOR,
@@ -210,6 +215,11 @@ class NativeWorkerStoreBinding:
             if len(owners) != 1 or not owners[0].matches_standalone(terminal.raw):
                 raise ValueError('standalone terminal omits its exact pinned HIA worker request image')
             self.native_worker_terminal_executable = terminal.raw
+            if schema == WORKER_DATA_SCHEMA:
+                data = captures['worker_data_sha256']
+                if data.raw == terminal.raw or not owners[0].matches_standalone(data.raw):
+                    raise ValueError('standalone data validation omits its exact pinned HIA worker request image')
+                self.native_worker_data_executable = data.raw
             if schema in ADMISSION_SCHEMAS:
                 if ADMISSION_INPUT_MAGIC not in terminal.raw or ADMISSION_OUTPUT_MAGIC not in terminal.raw:
                     raise ValueError('standalone worker omits the required admission arena transport')

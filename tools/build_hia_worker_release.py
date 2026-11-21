@@ -553,7 +553,8 @@ def build(output, compiler, cold_report, package, package_sha256):
                                 reference_executable=reference, owned_reference_executable=owned_reference,
                                 direct_call_executable=direct_call, direct_call_protocol=5,
                                 read_page_executable=read_page, initialize_fresh=True,
-                                journal_executable=journal, store_unique_executable=store_unique)
+                                journal_executable=journal, store_unique_executable=store_unique,
+                                standalone_worker_data=(release / 'hia-worker-data').is_file())
     profile.chmod(0o400)
     with authority.native_helpers_scope(str(profile), pin) as binding:
         binding.check()

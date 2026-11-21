@@ -477,6 +477,7 @@ SOURCE_FILES = (
     'tests/fixtures/store_delivery_composition_successor.json',
     'tests/fixtures/worker_report_stream_successor.json',
     'tests/fixtures/store_legacy_provider_successor.json',
+    'tests/fixtures/store_worker_metadata_successor.json',
     'tests/fixtures/store_retained_read_successor.json',
     'tests/fixtures/store_caller_worker_helpers_successor.json',
     'tests/hia_historical_diagnostic_controls.py',

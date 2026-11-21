@@ -814,7 +814,17 @@ class AgentStore:
         except PublicationRejected as exc:
             _native_artifact_rejection(exc)
         # Preserve rejection order for a corrupt retained metadata record.
-        decode_data(metadata)
+        from .hia_native_helpers import pinned_worker_data_executable
+        from .hia_worker_request_native import validate_retained_worker_data
+
+        executable = pinned_worker_data_executable() if native_record is not None else None
+        if executable is None:
+            decode_data(metadata)
+        elif not validate_retained_worker_data(executable, metadata):
+            # Recover the existing public diagnostic only after HIA refused.
+            # This branch can never turn a native refusal into admission.
+            decode_data(metadata)
+            raise ValueError('native Worker refused retained artifact metadata')
 
     def get_json(self, ref, *, kind=None):
         selected = _store_artifact_selection_os.environ.get('HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST')

@@ -448,6 +448,11 @@ def pinned_worker_admission_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_worker_admission_executable', None)
 
+def pinned_worker_data_executable():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_worker_data_executable', None)
+
+
 def pinned_store_initializer(selection):
     _check_scope_owner()
     initializer = getattr(_ACTIVE, 'native_store_initializer', None)
