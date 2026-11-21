@@ -116,6 +116,7 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             'tests/hia_store_delivery_successor.py',
             'tests/test_hia_delivery_diagnostic_sources.py', 'tests/__init__.py',
             subject.FIXTURE, subject.EVALUATION_FIXTURE, subject.QUALIFIER_FIXTURE,
+            subject.SQLITE_BOUNDARY_FIXTURE,
             subject.QUALIFIER_DEPENDENCY_FIXTURE,
             str(composition.FIXTURE.relative_to(ROOT)),
             *subject.PATHS, subject.EVALUATION,
@@ -140,11 +141,16 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             raise AssertionError('fixed Delivery diagnostic source authority changed')
         cls.authority = json.loads(cls.source_raw[AUTHORITY])
         cls.old_sources = {}
+        cls.reviewed_sources = {}
         for name in TARGETS:
             record = cls.authority['files'][name]
-            if pin(cls.source_raw[name]) != record['new']:
-                raise AssertionError('control needs each exact actually applied current source')
-            cls.old_sources[name] = independent_inverse(cls.source_raw[name], record)
+            current = cls.source_raw[name]
+            if pin(current) != record['new']:
+                boundary = cls.source_raw[subject.SQLITE_BOUNDARY_FIXTURE]
+                current = subject._reverse_sqlite_boundary(
+                    name, current, boundary, AUTHORITY, cls.source_raw[AUTHORITY], record['new'])
+            cls.reviewed_sources[name] = current
+            cls.old_sources[name] = independent_inverse(current, record)
             for kind in OUTERS:
                 if name in ALLOWED[kind]:
                     if pin(cls.old_sources[name]) != cls.values[kind]['unchanged_files'][name]:
@@ -242,7 +248,18 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
         propagated = value['transport_terminal_successor']['source_adjustments']
         for name in expected:
             self.assertEqual(propagated[name], proof['source_adjustments'][name])
-            self.assertEqual(propagated[name]['current_sha256'], self.authority['files'][name]['new']['sha256'])
+            reviewed = self.authority['files'][name]['new']
+            active = pin(self.source_raw[name])
+            if active != reviewed:
+                self.assertEqual(active, subject.SQLITE_BOUNDARY_SOURCES[name])
+                self.assertEqual(propagated[name]['sqlite_boundary_successor'], {
+                    'authority': {'path': subject.SQLITE_BOUNDARY_FIXTURE, **subject.SQLITE_BOUNDARY_FIXTURE_PIN},
+                    'restores_reviewed_diagnostic_source_exactly': True,
+                })
+            else:
+                self.assertNotIn('sqlite_boundary_successor', propagated[name])
+            self.assertEqual(propagated[name]['current_sha256'], active['sha256'])
+            self.assertEqual(propagated[name]['current_bytes'], active['bytes'])
         if kind == 'native':
             self.assertNotIn(TARGETS[2], propagated)
         else:
@@ -381,7 +398,7 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             for variant in REVERSE_BAD:
                 identity = 'DDS-REVERSE-' + name + '-' + variant
                 with self.subTest(id=identity), self.observe(identity):
-                    record, raw = deepcopy(self.authority['files'][name]), self.source_raw[name]
+                    record, raw = deepcopy(self.authority['files'][name]), self.reviewed_sources[name]
                     if variant == 'scope':
                         record['scope'] = 'unlisted'
                     elif variant == 'old-pin':

@@ -9,11 +9,27 @@ from unittest.mock import patch
 
 from hepta.hia_native_helpers import HELPERS
 from tests import hia_caller_diagnostics_admission as diagnostics
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor
+from tests.hia_native_transport_worker_successor import DIAGNOSTIC_FIXTURE, SQLITE_BOUNDARY_FIXTURE
+from tests.hia_store_delivery_successor import reverse_exact
 from tools import qualify_hia_evaluation_callers as qualifier
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = 'tests/hia_caller_diagnostics_admission.py'
 REGISTRY_TEST = 'tests/test_hia_worker_native_helpers.py'
+HISTORICAL = 'tests/fixtures/evaluation_historical_controls_v1.json'
+HISTORICAL_SHA256 = 'a239054b8a1bc4c3e8b473cd1278cd40c94e25c6030637c6bccdde9025e1d232'
+HISTORICAL_PATHS = {
+    'tests/test_hia_agent_native_machine_validation.py',
+    'tests/test_hia_cost_ledger_native.py',
+    REGISTRY_TEST,
+}
+ADDITIONAL_TEST_IDS = {
+    'tests.test_hia_worker_native_helpers': (
+        'tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.'
+        'test_small_helper_reads_inside_the_minimum_agent_address_space',
+    ),
+}
 
 
 class EvaluationCallerAdmissionSourceTests(unittest.TestCase):
@@ -25,7 +41,21 @@ class EvaluationCallerAdmissionSourceTests(unittest.TestCase):
         cls.inventory = json.loads(cls.frozen)
         cls.records = {row['path']: row['sha256'] for row in cls.inventory['modules'].values()}
         names = (*cls.records, qualifier.FIXTURE_NAME, HELPER, diagnostics.FIXTURE)
-        cls.raws = {name: (ROOT / name).read_bytes() for name in names}
+        cls.actual_raws = {name: (ROOT / name).read_bytes()
+                           for name in (*names, HISTORICAL, DIAGNOSTIC_FIXTURE, SQLITE_BOUNDARY_FIXTURE)}
+        cls.raws = {name: cls.actual_raws[name] for name in names}
+        historical = cls.actual_raws[HISTORICAL]
+        if sha256(historical).hexdigest() != HISTORICAL_SHA256:
+            raise AssertionError('historical evaluation caller authority differs')
+        authority = json.loads(historical)
+        if (set(authority) != {'schema', 'records'}
+                or authority['schema'] != 'hepta.hia.historical-evaluation-callers.v1'
+                or set(authority['records']) != HISTORICAL_PATHS):
+            raise AssertionError('historical evaluation caller scope differs')
+        for name, record in authority['records'].items():
+            cls.raws[name] = reverse_exact(cls.raws[name], record,
+                {'bytes': record['old_bytes'], 'sha256': cls.records[name]})
+        cls.raws[diagnostics.PATH] = diagnostic_predecessor(ROOT, cls.raws[diagnostics.PATH])
         # Reconstruct the reference as data independently of the admission helper.
         original = cls.raws[diagnostics.PATH]
         for row in reversed(json.loads(cls.raws[diagnostics.FIXTURE])['splices']):
@@ -40,17 +70,14 @@ class EvaluationCallerAdmissionSourceTests(unittest.TestCase):
         current = ('        self.assertEqual(len(HELPERS), ' + str(len(HELPERS)) + ')\n').encode()
         old = b'        self.assertEqual(len(HELPERS), 35)\n'
         registry = cls.raws[REGISTRY_TEST]
-        if sha256(registry).hexdigest() != cls.records[REGISTRY_TEST]:
-            if registry.count(current) != 1:
-                raise AssertionError('actual registry count source differs')
-            registry = registry.replace(current, old, 1)
-        if sha256(registry).hexdigest() != cls.records[REGISTRY_TEST]:
+        if registry.count(old) != 1 or sha256(registry).hexdigest() != cls.records[REGISTRY_TEST]:
             raise AssertionError('complete original registry caller differs')
         cls.original_registry = registry
+        cls.raws[REGISTRY_TEST] = registry.replace(old, current, 1)
 
     @classmethod
     def tearDownClass(cls):
-        for name, raw in cls.raws.items():
+        for name, raw in cls.actual_raws.items():
             if (ROOT / name).read_bytes() != raw:
                 raise AssertionError('actual input changed during source controls: ' + name)
 
@@ -75,8 +102,11 @@ class EvaluationCallerAdmissionSourceTests(unittest.TestCase):
         observed = 0
         for name, row in self.inventory['modules'].items():
             suite, ids = load_declared_suite((name,))
-            self.assertEqual(list(ids), row['ordered_ids'])
-            observed += suite.countTestCases()
+            added = ADDITIONAL_TEST_IDS.get(name, ())
+            self.assertEqual(tuple(identity for identity in ids if identity not in row['ordered_ids']), added)
+            self.assertEqual([identity for identity in ids if identity not in added], row['ordered_ids'])
+            self.assertEqual(suite.countTestCases(), len(row['ordered_ids']) + len(added))
+            observed += suite.countTestCases() - len(added)
         self.assertEqual(observed, 183)
         for current_diagnostics in (False, True):
             for current_registry in (False, True):

@@ -559,6 +559,7 @@ SOURCE_FILES = (
     'tests/fixtures/hia_evaluate_19065.py.txt',
     'tests/fixtures/hia_evaluation_value_19065.py.txt',
     'tests/fixtures/evaluation_callers_19065.json',
+    'tests/fixtures/evaluation_historical_controls_v1.json',
     'docs/HIA_EVALUATION_NATIVE.md',
     'examples/hia_bootstrap/static_budget.hepta',
     'tools/generate_hia_static_budget.py',
