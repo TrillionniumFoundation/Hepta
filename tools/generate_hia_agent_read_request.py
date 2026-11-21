@@ -20,13 +20,18 @@ def read_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = widen(decode_json(s, w, o))
     if size >= 4294967292:
         return size
-    fields = count(w, 0)
-    if kind(w, 0) != 6 or fields < 2 or fields > 4:
+    root = 0
+    if kind(w, 0) == 6 and count(w, 0) == 5:
+        root = admitted_worker_arguments(w)
+        if root == NONE:
+            return 4294967295
+    fields = count(w, root)
+    if kind(w, root) != 6 or fields < 2 or fields > 4:
         return 4294967295
-    catalog = field(w, 0, KEY_catalog_sha256)
-    artifact = field(w, 0, KEY_artifact)
-    cursor = field(w, 0, KEY_cursor)
-    maximum = field(w, 0, KEY_max_bytes)
+    catalog = field(w, root, KEY_catalog_sha256)
+    artifact = field(w, root, KEY_artifact)
+    cursor = field(w, root, KEY_cursor)
+    maximum = field(w, root, KEY_max_bytes)
     if read_digest(w, catalog) == False or kind(w, artifact) != 6 or count(w, artifact) != 3:
         return 4294967295
     identity = field(w, artifact, KEY_id)
@@ -59,6 +64,42 @@ def read_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 16, limit)
     copy_text(w, o, catalog, 64)
     return encode_read_plan(w, o, identity, digest, uri, cursor)
+
+# The standalone Worker admission executable has already verified the
+# original six-field envelope and its hash. Its canonical, five-field output
+# omits request_sha256. This worker-only shape is a routing input, never an
+# authentication credential or authority to open the Store.
+def admitted_worker_arguments(w:mutbuf) -> u64:
+    tool = field(w, 0, KEY_tool)
+    schema = field(w, 0, KEY_schema)
+    catalog = field(w, 0, KEY_catalog_sha256)
+    profile = field(w, 0, KEY_profile_sha256)
+    arguments = field(w, 0, KEY_arguments)
+    if kind(w, tool) != 4 or kind(w, schema) != 4 or kind(w, arguments) != 6:
+        return NONE
+    if read_digest(w, catalog) == False or read_digest(w, profile) == False:
+        return NONE
+    tool_text = get(w, 64 + tool * 56 + 24)
+    if same(w, tool_text, count(w, tool), TOOL_READ_VIEW) == 0:
+        return NONE
+    schema_text = get(w, 64 + schema * 56 + 24)
+    if count(w, schema) != WORKER_SCHEMA_BYTES:
+        return NONE
+    if same(w, schema_text, 24, WORKER_SCHEMA_INITIAL) == 0:
+        return NONE
+    if same(w, schema_text + 24, WORKER_SCHEMA_BYTES - 24, WORKER_SCHEMA_REMAINING) == 0:
+        return NONE
+    argument_catalog = field(w, arguments, KEY_catalog_sha256)
+    if read_digest(w, argument_catalog) == False:
+        return NONE
+    outer = get(w, 64 + catalog * 56 + 24)
+    inner = get(w, 64 + argument_catalog * 56 + 24)
+    at = 0
+    while at < 64:
+        if byte(w, outer + at) != byte(w, inner + at):
+            return NONE
+        at = at + 1
+    return arguments
 
 # A Store result may only supply the cursor row. Keep the limit, identity,
 # canonical reference and cursor key in the plan that admitted the request.
@@ -305,7 +346,15 @@ VALUES = {
     'REF_URI_LAST': b'"',
     'REF_END': b'"}',
 }
-KEYS = ('artifact', 'catalog_sha256', 'cursor', 'max_bytes', 'id', 'sha256', 'uri')
+KEYS = ('artifact', 'catalog_sha256', 'cursor', 'max_bytes', 'id', 'sha256', 'uri',
+        'arguments', 'profile_sha256', 'schema', 'tool')
+WORKER_SCHEMA = 'hia-agent-worker-request-v1'
+WORKER_LITERALS = {
+    'TOOL_READ_VIEW': packed('hia_read'),
+    'WORKER_SCHEMA_BYTES': [len(WORKER_SCHEMA)],
+    'WORKER_SCHEMA_INITIAL': packed(WORKER_SCHEMA[:24]),
+    'WORKER_SCHEMA_REMAINING': packed(WORKER_SCHEMA[24:]),
+}
 
 
 def source_program():
@@ -316,6 +365,8 @@ def source_program():
         if isinstance(value, bytes):
             value = int.from_bytes(value, 'little')
         source = re.sub(rf'\b{name}\b', str(value), source)
+    for name, value in WORKER_LITERALS.items():
+        source = re.sub(rf'\b{name}\b', ', '.join(map(str, value)), source)
     source += FRONTEND[FRONTEND.index('def kind('):FRONTEND.index('def shape(')]
     matcher = FRONTEND[FRONTEND.index('def same('):]
     source += matcher.split('\ndef ', 1)[0] + '\n'
