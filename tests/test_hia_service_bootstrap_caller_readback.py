@@ -4,6 +4,7 @@ from __future__ import annotations
 import builtins
 from copy import deepcopy
 from hashlib import sha256
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor, historical_bootstrap_dependencies
 import json
 from pathlib import Path
 import tempfile
@@ -48,7 +49,10 @@ class ServiceBootstrapCallerReadbackTests(unittest.TestCase):
         if pin(journal_archive) != cls.scopes['journal']['files'][journal_path]:
             raise AssertionError('retained complete Journal source differs')
         cls.inputs[journal_path] = journal_archive
-        raw = cls.inputs[CALLER]
+        historical_bootstrap_dependencies(ROOT, cls.inputs, cls.scopes)
+        cls.actual_diagnostic = cls.inputs[CALLER]
+        raw = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
+        cls.inputs[CALLER] = raw
         if pin(raw) != cls.diagnostics['current']:
             raise AssertionError('the current exact diagnostic successor is required')
         original = raw

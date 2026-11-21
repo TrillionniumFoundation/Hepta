@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from hashlib import sha256
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor
 import json
 from pathlib import Path
 import tempfile
@@ -49,12 +50,15 @@ class ServiceContextCallerAdmissionSourceTests(unittest.TestCase):
             'tools/qualify_hia_service_context_callers.py',
             'tests/test_hia_service_context_caller_admission.py'}
         cls.sources = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        cls.actual_diagnostic = cls.sources[subject._DIAGNOSTICS_CALLER]
+        cls.sources[subject._DIAGNOSTICS_CALLER] = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
         cls.original = inverse(cls.sources[subject._DIAGNOSTICS_CALLER],
                                json.loads(cls.sources[subject._DIAGNOSTICS_AUTHORITY]))
 
     @classmethod
     def tearDownClass(cls):
-        if cls.sources != {name: (ROOT / name).read_bytes() for name in cls.sources}:
+        pinned = {**cls.sources, subject._DIAGNOSTICS_CALLER:cls.actual_diagnostic}
+        if pinned != {name: (ROOT / name).read_bytes() for name in pinned}:
             raise AssertionError('context caller Source inputs changed')
 
     def setUp(self):

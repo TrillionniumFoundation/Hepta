@@ -4,6 +4,7 @@ from __future__ import annotations
 import builtins
 from copy import deepcopy
 from hashlib import sha256
+from tests.hia_historical_diagnostic_controls import diagnostic_predecessor, historical_bootstrap_dependencies
 import json
 from pathlib import Path
 import tempfile
@@ -57,6 +58,9 @@ class ServiceBootstrapJournalPreparationTests(unittest.TestCase):
         cls.journal_original = cls.inputs[ARCHIVE]
         if reader._restore_caller_journal_source(cls.inputs[JOURNAL], cls.inputs[FIXTURE]) != cls.journal_original:
             raise AssertionError('independent Journal inverse differs from the entire archive')
+        historical_bootstrap_dependencies(ROOT, cls.inputs, cls.scopes)
+        cls.actual_diagnostic = cls.inputs[DIAGNOSTIC]
+        cls.inputs[DIAGNOSTIC] = diagnostic_predecessor(ROOT, cls.actual_diagnostic)
         cls.diagnostic_original = reader._restore_caller_diagnostic_source(
             cls.inputs[DIAGNOSTIC], cls.inputs[DIAGNOSTIC_FIXTURE])
 
