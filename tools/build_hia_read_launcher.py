@@ -1,4 +1,4 @@
-"""Cold-pack an installed Worker launcher and its native HIA authority."""
+"""Cold-pack a descriptor carrier and its native HIA authority."""
 from __future__ import annotations
 
 import argparse
@@ -60,6 +60,13 @@ class Launcher:
 
 LAUNCHERS = {
     'read': Launcher(SOURCE, AUTHORITY, MAGIC, PLATFORM_SIZE, PLATFORM_SHA256, SEGMENTS),
+    'context-control': Launcher(
+        'examples/hia_bootstrap/service_context_control_packer.hepta',
+        'examples/hia_bootstrap/service_context.hepta',
+        b'HIACTL01', 272,
+        '9b0abde5eefcd699db58f7cd21144aaa1344e12a68631903bd92393565c1c637',
+        (('linux_entry_and_checked_io', 0, 272),),
+    ),
     'native': Launcher(
         'examples/hia_bootstrap/agent_native_launcher_packer.hepta', NATIVE_SOURCE,
         b'HIANLK01', 8496,
