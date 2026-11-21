@@ -47,6 +47,8 @@ WIRE = {
     'CANDIDATE_TOOL_TAIL': b'idate',
     'INSPECTION_TOOL_HEAD': b'hia_insp',
     'INSPECTION_TOOL_TAIL': b'ect',
+    'ROLLBACK_TOOL_HEAD': b'hia_roll',
+    'ROLLBACK_TOOL_TAIL': b'back',
     'RUNNING_STATE': b'running',
 }
 
@@ -144,6 +146,15 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return 0
     elif plan == 27:
         if mode == 0 or valid_candidate_attempt(s, size) == False:
+            return 0
+    elif plan == 28 or plan == 30:
+        if valid_slot_query(s, size) == False:
+            return 0
+    elif plan == 29:
+        if valid_version_query(s, size) == False:
+            return 0
+    elif plan == 31:
+        if mode != 0 or valid_slot_move(s, size) == False:
             return 0
     elif plan == 4:
         if size != 92 or valid_context_lookup(s) == False:
@@ -246,6 +257,63 @@ def valid_candidate_attempt(s:readbuf, size:u64) -> bool:
         return False
     previous = read_word(s, 204)
     return previous < 4096 and read_word(s, 160) == previous + 1
+
+# Slot observations use the original Store tables. The same canonical request
+# can be issued repeatedly inside the caller's exclusive transaction.
+def valid_slot_query(s:readbuf, size:u64) -> bool:
+    if size < 57 or size > 248 or read_word(s, 48) != QUERY_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != size:
+        return False
+    return valid_cell(s, 80, 3, 56, size - 56) and slot_name(s, 104, size - 56)
+
+def valid_version_query(s:readbuf, size:u64) -> bool:
+    if size < 82 or size > 292 or read_word(s, 48) != QUERY_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != size:
+        return False
+    name = read_word(s, 96)
+    if name < 1 or name > 192 or name >= size - 80:
+        return False
+    generation = size - 80 - name
+    if generation > 20 or valid_cell(s, 80, 3, 80, name) == False:
+        return False
+    if valid_cell(s, 104, 3, 80 + name, generation) == False:
+        return False
+    return slot_name(s, 128, name) and canonical_timestamp(s, 128 + name, generation)
+
+# This operation is legal only in a caller-owned Store transaction, so the
+# Slot publication and the terminal Journal record can commit together.
+def valid_slot_move(s:readbuf, size:u64) -> bool:
+    if size < 175 or size > 404 or read_word(s, 48) != UPDATE_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != 0 or read_word(s, 80) != 4:
+        return False
+    generation = read_word(s, 104)
+    epoch = read_word(s, 128)
+    if generation < 1 or generation > 20 or epoch < 1 or epoch > 20:
+        return False
+    context = 136 + generation + epoch
+    if size <= context + 36 or size - context - 36 > 192:
+        return False
+    if valid_cell(s, 88, 3, 136, generation) == False or valid_cell(s, 112, 3, 136 + generation, epoch) == False:
+        return False
+    if valid_cell(s, 136, 3, context, 36) == False or valid_cell(s, 160, 3, context + 36, size - context - 36) == False:
+        return False
+    if canonical_timestamp(s, 184, generation) == False or canonical_timestamp(s, 184 + generation, epoch) == False:
+        return False
+    return context_id(s, 48 + context) and slot_name(s, 84 + context, size - context - 36)
+
+def slot_name(s:readbuf, start:u64, size:u64) -> bool:
+    index = 0
+    while index < size:
+        ch = byte(s, start + index)
+        alphanumeric = (ch >= 48 and ch <= 57) or (ch >= 65 and ch <= 90) or (ch >= 97 and ch <= 122)
+        if alphanumeric == False:
+            if index == 0 or (ch != 45 and ch != 46 and ch != 47 and ch != 58 and ch != 95):
+                return False
+        index = index + 1
+    return size > 0
 
 def context_id(s:readbuf, at:u64) -> bool:
     return byte(s, at) == 99 and byte(s, at + 1) == 116 and byte(s, at + 2) == 120 and byte(s, at + 3) == 45 and valid_hex(s, at + 4, 32)
@@ -462,6 +530,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
         width = 13
     elif tool == INSPECTION_TOOL_HEAD and read_word(s, 368) & 16777215 == INSPECTION_TOOL_TAIL:
         width = 11
+    elif tool == ROLLBACK_TOOL_HEAD and read_word(s, 368) & 4294967295 == ROLLBACK_TOOL_TAIL:
+        width = 12
     if width == 0 or size <= 319 + width or size > 339 + width:
         return False
     if valid_cell(s, 136, 3, 312, width) == False or valid_cell(s, 160, 3, 312 + width, 7) == False:
@@ -505,11 +575,24 @@ def valid_cell(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> bool:
     return read_word(s, at) == kind and read_word(s, at + 8) == offset and read_word(s, at + 16) == size
 
 def durable_write(plan:u64) -> bool:
-    return plan == 10 or (plan >= 18 and plan <= 27)
+    return plan == 10 or plan == 31 or (plan >= 18 and plan <= 27)
+
+def unique_query_plan(plan:u64) -> u64:
+    if plan == 28:
+        return 10
+    if plan == 29:
+        return 13
+    if plan == 30:
+        return 11
+    return plan
 
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
+    if plan >= 28 and plan <= 30:
+        write_word(w, 24, plan - 21)
+        write_word(w, 32, choose(plan == 28, 31, choose(plan == 29, 4, 0)))
+        return write_word(w, 40, 512)
     write_word(w, 24, choose(plan == 4, 3, choose(plan == 6, 6, choose(plan == 9, 4, choose(plan == 12, 2, 1)))))
     write_word(w, 32, choose(plan == 4, 31, choose(plan == 6, 15, choose(plan == 12, 4, 63))))
     return write_word(w, 40, choose(plan == 4 or plan == 6 or plan == 12, 512, choose(plan == 9, 8389120, 1000000032)))
@@ -528,7 +611,7 @@ def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
         return 80
     if durable_write(plan):
         return send_unique(o, w, 27, 1, read_state(w, 128), 10)
-    return send_unique(o, w, 27, plan + 3, read_state(w, 128), 1)
+    return send_unique(o, w, 27, unique_query_plan(plan) + 3, read_state(w, 128), 1)
 
 def send_unique(o:mutbuf, w:mutbuf, kind:u64, target:u64, extent:u64, phase:u64) -> u64:
     request = read_state(w, 8) + 1
@@ -616,7 +699,7 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     return finish_unique(o, w)
 
 def must_write(plan:u64) -> bool:
-    return plan == 18 or plan == 24 or plan == 25
+    return plan == 18 or plan == 24 or plan == 25 or plan == 31
 
 def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if read_word(s, 24) != 27:
@@ -755,7 +838,7 @@ def stream_payload(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         copy_fields(s, o, 8, 32, extent)
         return 32 + extent
     elif kind == 4:
-        if read_word(s, 392) != read_state(w, 16) or read_word(s, 400) != read_state(w, 32):
+        if read_word(s, 392) != unique_query_plan(read_state(w, 16)) or read_word(s, 400) != read_state(w, 32):
             return 0
         if read_word(s, 416) != read_state(w, 80):
             return 0
