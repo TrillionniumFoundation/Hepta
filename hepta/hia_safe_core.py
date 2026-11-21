@@ -19,7 +19,6 @@ from itertools import combinations
 import json
 import os
 from pathlib import Path
-import struct
 import tempfile
 import time
 
@@ -888,35 +887,6 @@ def _scalar_caller_contract():
     return nodes, [(10, 11)], None
 
 
-def _artifact_sparse_smt2(frame):
-    """Print the exact HIA-generated CNF as a replayable SMT-LIB query."""
-    from .hia_cnf_native import SPARSE_REQUEST
-
-    magic, variables, clauses, budget, entries = struct.unpack_from('<5Q', frame)
-    if magic != SPARSE_REQUEST or budget or len(frame) != 40 + entries * 2:
-        raise RuntimeError("invalid canonical HIA artifact formula")
-    lines = ['(set-logic QF_UF)']
-    lines.extend(f'(declare-fun v{index} () Bool)' for index in range(1, variables + 1))
-    literals = []
-    count = 0
-    for token, in struct.iter_unpack('<H', frame[40:]):
-        if token:
-            variable = token >> 1
-            if not 1 <= variable <= variables:
-                raise RuntimeError("invalid HIA artifact formula literal")
-            literals.append(f'(not v{variable})' if token & 1 else f'v{variable}')
-        else:
-            expression = literals[0] if len(literals) == 1 else (
-                '(or ' + ' '.join(literals) + ')' if literals else 'false')
-            lines.append('(assert ' + expression + ')')
-            literals.clear()
-            count += 1
-    if literals or count != clauses:
-        raise RuntimeError("invalid HIA artifact formula clauses")
-    lines.append('(check-sat)')
-    return ('\n'.join(lines) + '\n').encode()
-
-
 def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
                                 pair, identity, started, deadline, query_directory):
     from .hia_cnf_native import SAT
@@ -968,7 +938,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
             words = [(model >> (1 + 64 * word)) & ((1 << 64) - 1)
                      for word in range(len(fn["params"]))]
             counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
-        query = _artifact_sparse_smt2(frame)
+        query = decoder.format_proof_query(frame)
         reports.append({"name": name, "result": result, "expected": expected,
                         "query_sha256": sha256(query).hexdigest(),
                         "elapsed_seconds": time.monotonic() - before, "native_cnf": discharge})

@@ -17,7 +17,7 @@ from hepta.hia_agent_service import _signatures
 from hepta.hia_agent_store import wire
 from hepta.hia_elf_shared_linker_native import SELECTOR
 from hepta.hia_program import execute_program, verify_program
-from hepta.hia_program_native import build_program_machine
+from hepta.hia_program_native import build_program_machine, compile_program_machine, emit_program_machine
 from tests.test_hia_agent_buffer_lifecycle import byte_program, trap_program
 from tests.test_hia_program_native import minimal_document, scalar_document
 from tools.generate_hia_direct_load_plan import (
@@ -230,6 +230,28 @@ class DirectCallRuntimeTests(unittest.TestCase):
                 self.assertEqual(result['status'], 'faulted')
                 self.assertEqual(result['returncode'], 2)
                 self.assertEqual(result['captured_buffers'][0]['data'].hex(), '010203')
+
+    @unittest.skipUnless(os.environ.get('HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST'),
+                         'a cold one-abort HIA linker is required')
+    def test_verified_layout_runs_in_native_loader_and_rejects_drift(self):
+        program = verify_program(minimal_document())
+        image = emit_program_machine(program)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'verified.so'
+            compile_program_machine(image, program=program, output=output, kind='shared',
+                                    linker='ld', verified_shared=True)
+            raw = output.read_bytes()
+        result = self.run_case('simple', 'answer', [35], raw=raw, protocol=3,
+                               expected={'status': 'returned', 'values': [42]})
+        self.assertEqual(result['status'], 'returned', result)
+        self.assertEqual(result['report']['observations'][0]['values'], [42])
+        got_page = struct.unpack_from('<Q', raw, 192)[0]
+        for offset in (176, 4114, got_page + 160, got_page + 312):
+            changed = bytearray(raw)
+            changed[offset] ^= 1
+            with self.subTest(offset=offset):
+                refused = self.run_case('simple', 'answer', [35], raw=bytes(changed), protocol=3)
+                self.assertEqual((refused['status'], refused['returncode']), ('faulted', 2))
 
 
 if __name__ == '__main__':

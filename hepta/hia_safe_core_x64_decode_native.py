@@ -6,7 +6,8 @@ from functools import lru_cache
 import os
 import struct
 
-from .hia_cnf_native import CIRCUIT_NODES
+from .hia_cnf_native import (CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSES,
+                             SPARSE_ENTRIES, SPARSE_REQUEST, SPARSE_VARIABLES)
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 from .hia_safe_core_x64 import Instruction, SafeCoreMachineRejected
 
@@ -21,6 +22,7 @@ ROW = struct.Struct('<6Q')
 CALL_COUNT = struct.Struct('<Q')
 CALL_BINDING = struct.Struct('<3Q')
 PROFILE_OFFSET = 96
+QUERY_FORMAT_WORKSPACE = 1
 MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
 MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR01', 'little')
 MACHINE_VALUES_STACK_BYTES = 16384
@@ -234,6 +236,25 @@ class NativeMachineScheduler:
 
 
 class NativeSafeCoreX64Decode(NativeHiaJsonImage):
+    def format_proof_query(self, frame):
+        """Render a canonical unspecialized HIA formula for independent replay."""
+        if type(frame) is not bytes or not 40 <= len(frame) <= CIRCUIT_CAPACITY:
+            raise ValueError('expected one bounded HIA proof formula')
+        magic, variables, clauses, work, entries = struct.unpack_from('<5Q', frame)
+        if (magic != SPARSE_REQUEST or work or variables > SPARSE_VARIABLES
+                or clauses > SPARSE_CLAUSES or entries > SPARSE_ENTRIES
+                or len(frame) != 40 + entries * 2):
+            raise ValueError('invalid canonical HIA proof formula')
+        source = ctypes.create_string_buffer(frame, len(frame))
+        output = ctypes.create_string_buffer(64 + variables * 40 + entries * 24)
+        state = ctypes.create_string_buffer(QUERY_FORMAT_WORKSPACE)
+        size = self._checked_default_entry(source, len(source), output, len(output), state, len(state))
+        if size == 0xffffffff:
+            raise ValueError('HIA refused malformed formula clauses')
+        if not 0 < size <= len(output) or source.raw != frame or any(output.raw[size:]):
+            raise RuntimeError('HIA proof query violated its bounded byte transport')
+        return output.raw[:size]
+
     def decode(self, data, calls=None, *, allow_variable_shifts=False,
                allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
         from .hia_safe_core_x64 import require

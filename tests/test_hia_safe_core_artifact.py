@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import platform
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -31,6 +32,31 @@ AVAILABLE = (platform.system() == "Linux" and platform.machine().lower() in {"x8
 
 
 class SafeCoreImmutableInputTests(unittest.TestCase):
+    def test_native_cnf_proof_wire_preserves_exact_independent_replay(self):
+        from hepta.hia_cnf_native import SPARSE_REQUEST
+        from hepta.hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
+        decoder = selected_safe_core_x64_decode()
+        if decoder is None:
+            self.skipTest("the cold HIA decoder is required")
+
+        def packet(variables, clauses, tokens, budget=0):
+            return struct.pack(f"<5Q{len(tokens)}H", SPARSE_REQUEST, variables,
+                               clauses, budget, len(tokens), *tokens)
+
+        expected = (
+            b"(set-logic QF_UF)\n"
+            b"(declare-fun v1 () Bool)\n(declare-fun v2 () Bool)\n(declare-fun v3 () Bool)\n"
+            b"(assert false)\n(assert v1)\n(assert (not v2))\n(assert (or (not v1) v3))\n(check-sat)\n"
+        )
+        self.assertEqual(decoder.format_proof_query(packet(3, 4, (0, 2, 0, 5, 0, 3, 6, 0))), expected)
+        top = decoder.format_proof_query(packet(4096, 1, (8193, 0)))
+        self.assertTrue(top.endswith(b"(declare-fun v4096 () Bool)\n(assert (not v4096))\n(check-sat)\n"))
+        for malformed in (packet(1, 1, (1, 0)), packet(1, 1, (4, 0)), packet(1, 1, (2,)),
+                          packet(1, 2, (2, 0)), packet(1, 1, (2, 0), budget=1)):
+            with self.subTest(malformed=malformed), self.assertRaises(ValueError):
+                decoder.format_proof_query(malformed)
+
     def test_imul_register_fields_and_unreviewed_encodings(self):
         for destination in range(16):
             for source in range(16):

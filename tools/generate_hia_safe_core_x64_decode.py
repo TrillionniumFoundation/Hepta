@@ -5,14 +5,16 @@ import ast
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_cnf_native import (CIRCUIT_NODES, WORD_ARITHMETIC_SHR, WORD_VARIABLE_SHL,
-                                 WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
+from hepta.hia_cnf_native import (CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSES,
+                                 SPARSE_REQUEST, SPARSE_VARIABLES, WORD_ARITHMETIC_SHR,
+                                 WORD_VARIABLE_SHL, WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
 from hepta.hia_safe_core_x64_decode_native import (
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE, MACHINE_VALUES_INDEX, MACHINE_VALUES_REPLY,
     MACHINE_VALUES_REQUEST, MACHINE_VALUES_STACK_BYTES, MACHINE_VALUES_WORKSPACE,
+    QUERY_FORMAT_WORKSPACE,
 )
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
@@ -42,10 +44,27 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
               MV_PRODUCT=WRAPPING_PRODUCT, MV_SHIFT_LEFT=WORD_VARIABLE_SHL,
               MV_SHIFT_RIGHT=WORD_VARIABLE_SHR, MV_SHIFT_ARITHMETIC=WORD_ARITHMETIC_SHR)
+FIELDS.update(QUERY_WORKSPACE=QUERY_FORMAT_WORKSPACE, QUERY_REQUEST=SPARSE_REQUEST,
+              QUERY_BYTES=CIRCUIT_CAPACITY, QUERY_VARIABLES=SPARSE_VARIABLES,
+              QUERY_CLAUSES=SPARSE_CLAUSES)
+
+QUERY_FRAGMENTS = {
+    'prefix': b'(set-logic QF_UF)\n',
+    'declare': b'(declare-fun v',
+    'sort': b' () Bool)\n',
+    'assert': b'(assert ',
+    'empty': b'false',
+    'group': b'(or ',
+    'negative': b'(not ',
+    'end_clause': b')\n',
+    'check': b'(check-sat)\n',
+}
 
 SOURCE = r'''
 def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
+    if length(w) == QUERY_WORKSPACE:
+        return format_proof_query(s, o)
     if length(w) == MV_WORKSPACE:
         return project_machine_values(s, o, w)
     if size == 32 and length(w) == SCHED_WORKSPACE:
@@ -1435,13 +1454,129 @@ def mv_unary(o:mutbuf, w:mutbuf, op:u64, register:u64, count:u64) -> u64:
 
 '''
 
+QUERY_SOURCE = r'''
+def format_proof_query(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 40 or length(s) > QUERY_BYTES:
+        return 4294967295
+    if query_uint(s, 0, 8) != QUERY_REQUEST or query_uint(s, 24, 8) != 0:
+        return 4294967295
+    variables = query_uint(s, 8, 8)
+    clauses = query_uint(s, 16, 8)
+    entries = query_uint(s, 32, 8)
+    if variables > QUERY_VARIABLES or clauses > QUERY_CLAUSES or entries > ((QUERY_BYTES - 40) >> 1):
+        return 4294967295
+    if length(s) != 40 + entries * 2 or length(o) < 64 + variables * 40 + entries * 24:
+        return 4294967295
+    at = query_prefix(o, 0)
+    variable = 1
+    while variable <= variables:
+        at = query_declare(o, at)
+        at = query_decimal(o, at, variable)
+        at = query_sort(o, at)
+        variable = variable + 1
+    cursor = 0
+    count = 0
+    while cursor < entries:
+        size = query_clause_size(s, cursor, entries, variables)
+        if size == 18446744073709551615:
+            return 4294967295
+        at = query_assert(o, at)
+        if size == 0:
+            at = query_empty(o, at)
+        elif size > 1:
+            at = query_group(o, at)
+        index = 0
+        while index < size:
+            token = query_uint(s, 40 + (cursor + index) * 2, 2)
+            if index != 0:
+                store(o, at, 32)
+                at = at + 1
+            at = query_literal(o, at, token)
+            index = index + 1
+        if size > 1:
+            store(o, at, 41)
+            at = at + 1
+        at = query_end_clause(o, at)
+        cursor = cursor + size + 1
+        count = count + 1
+    if count != clauses:
+        return 4294967295
+    return query_check(o, at)
+
+def query_uint(s:readbuf, at:u64, count:u64) -> u64:
+    result = 0
+    i = 0
+    while i < count:
+        result = result | (byte(s, at + i) << (i * 8))
+        i = i + 1
+    return result
+
+def query_clause_size(s:readbuf, first:u64, entries:u64, variables:u64) -> u64:
+    cursor = first
+    while cursor < entries:
+        token = query_uint(s, 40 + cursor * 2, 2)
+        if token == 0:
+            return cursor - first
+        variable = token >> 1
+        if variable == 0 or variable > variables:
+            return 18446744073709551615
+        cursor = cursor + 1
+    return 18446744073709551615
+
+def query_literal(o:mutbuf, at:u64, token:u64) -> u64:
+    start = at
+    negative = token & 1
+    if negative != 0:
+        start = query_negative(o, start)
+    store(o, start, 118)
+    end = query_decimal(o, start + 1, token >> 1)
+    if negative != 0:
+        store(o, end, 41)
+        end = end + 1
+    return end
+
+def query_decimal(o:mutbuf, at:u64, value:u64) -> u64:
+    place = 1000
+    end = at
+    remaining = value
+    while place != 0:
+        digit = 0
+        while remaining >= place:
+            remaining = remaining - place
+            digit = digit + 1
+        if digit != 0 or end != at or place == 1:
+            store(o, end, 48 + digit)
+            end = end + 1
+        place = choose(place == 1000, 100, choose(place == 100, 10, choose(place == 10, 1, 0)))
+    return end
+
+def query_write(o:mutbuf, at:u64, value:u64, count:u64) -> u64:
+    index = 0
+    while index < count:
+        store(o, at + index, (value >> (index * 8)) & 255)
+        index = index + 1
+    return at + count
+'''
+
+
+def query_fragments():
+    functions = []
+    for name, raw in QUERY_FRAGMENTS.items():
+        lines = [f'def query_{name}(o:mutbuf, at:u64) -> u64:']
+        for offset in range(0, len(raw), 8):
+            piece = raw[offset:offset + 8]
+            lines.append(f'    at = query_write(o, at, {int.from_bytes(piece, "little")}, {len(piece)})')
+        functions.append('\n'.join(lines + ['    return at', '']))
+    return '\n'.join(functions)
+
 
 def document():
     class Constants(ast.NodeTransformer):
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
-    nodes = ast.fix_missing_locations(Constants().visit(ast.parse(SOURCE))).body
+    nodes = ast.fix_missing_locations(Constants().visit(ast.parse(
+        SOURCE + QUERY_SOURCE + '\n' + query_fragments()))).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}
