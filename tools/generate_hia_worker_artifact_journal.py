@@ -313,6 +313,12 @@ CONTEXT_ERRORS = (
     *((5, index, 'E_HIA_RANGE', field + ' must be a canonical u64 decimal string',
        'correct_input', 'admission') for index, field in enumerate(
            ('expected_invocations', 'max_memory_bytes', 'model_wall_ns', 'discovery_wall_ns'), 1)),
+    (6, 1, 'E_HIA_WORKLOAD', 'unknown invocation workload profile', 'correct_input', 'admission'),
+    (6, 2, 'E_HIA_BYTE_ABI', 'duplicate borrowed-buffer export name', 'correct_input', 'admission'),
+    (6, 3, 'E_HIA_BYTE_ABI', 'invalid frozen borrowed-buffer export', 'correct_input', 'admission'),
+    (6, 4, 'E_HIA_ARGUMENTS', 'buffer bytes must be bounded canonical lowercase hex', 'correct_input', 'admission'),
+    (6, 5, 'E_HIA_ARGUMENTS', 'buffer fill requires exact bounded integer length and byte', 'correct_input', 'admission'),
+    (6, 6, 'E_HIA_ARGUMENTS', 'buffer snapshot has missing or unknown fields', 'correct_input', 'admission'),
 )
 
 

@@ -138,7 +138,7 @@ class Author:
                     raise ValueError('unsupported non-string Worker enum')
                 lines.append('    selected = symbol_kind(w, get(w, node + 24), get(w, node + 32))')
                 options = ' and '.join(f'selected != {self.symbol(value)}' for value in schema['enum'])
-                fail(f'get(w, node) != 4 or ({options})', 'value is not in the enum')
+                fail(f'get(w, node) != 4 or ({options})', 'not in the declared choices')
             lines.append('    return 0')
         self.rules[index] = '\n'.join(lines)
         return name
