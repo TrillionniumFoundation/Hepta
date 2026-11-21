@@ -35,10 +35,11 @@ DISCOVERY_MODE = 28
 DESCRIBE_ANSWER_MODE = 29
 DISCOVERY_ARTIFACT_MODE = 30
 ARTIFACT_REQUEST_MODE = 31
+JOURNAL_RECORD_MODE = 32
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
-              DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE, ARTIFACT_REQUEST_MODE)
+              DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE, ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -58,7 +59,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'discovery': DISCOVERY_MODE, 'describe-answer': DESCRIBE_ANSWER_MODE,
          'discovery-artifact': DISCOVERY_ARTIFACT_MODE, 'discovery-effect': READ_REACTOR_MODE,
          'describe-bind': DISCOVERY_MODE, 'discovery-bootstrap-plan': DISCOVERY_MODE,
-         'discovery-bootstrap-assemble': DISCOVERY_MODE, 'artifact-request': ARTIFACT_REQUEST_MODE}
+         'discovery-bootstrap-assemble': DISCOVERY_MODE, 'artifact-request': ARTIFACT_REQUEST_MODE,
+         'journal-records': JOURNAL_RECORD_MODE}
 
 
 def elf_prefix(code):
@@ -91,8 +93,9 @@ def template(mode):
     worker_journal = mode == WORKER_JOURNAL_MODE
     worker_arguments = mode == WORKER_ARGUMENTS_MODE
     describe_request = mode == DESCRIBE_REQUEST_MODE
-    discovery = mode in (DISCOVERY_MODE, ARTIFACT_REQUEST_MODE)
+    discovery = mode in (DISCOVERY_MODE, ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE)
     artifact_request = mode == ARTIFACT_REQUEST_MODE
+    journal_records = mode == JOURNAL_RECORD_MODE
     describe_answer = mode == DESCRIBE_ANSWER_MODE
     discovery_artifact = mode == DISCOVERY_ARTIFACT_MODE
     journal_cost = mode == JOURNAL_COST_MODE
@@ -130,6 +133,8 @@ def template(mode):
         scratch, workspace, minimum, maximum = 65536 + 32, 72 << 10, 8, 1 << 20
     if artifact_request:
         scratch, workspace, minimum, maximum = (4 << 16) + 512, (1 << 20) + 4096, 2, 1 << 20
+    if journal_records:
+        scratch, workspace, minimum, maximum = INPUT_MAX + 512, 8, 72, INPUT_MAX + 72
     if describe_answer:
         scratch, workspace, minimum, maximum = 65536, 8, 16, 1 << 20
     if discovery_artifact:
