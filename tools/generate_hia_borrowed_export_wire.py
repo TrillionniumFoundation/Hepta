@@ -3,13 +3,16 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_buffers import PROFILE as AGENT_BUFFER_ABI
 from hepta.hia_native_byte_abi import MAX_EXTENT, MAX_RANGES
 from hepta.hia_program import SCALARS, MAX_FUNCTIONS
 from hepta.hia_program_native import IMPORTS, MAX_FRAME_BYTES, _LOADER_HOOKS
 from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
-from tools.generate_hia_worker_context_request import NONE
+from tools.generate_hia_worker_context_request import NONE, POLICY as CONTEXT, literal, literal_match
+from tools.generate_hia_worker_inspection_effect import function
 
 SOURCE = Path('examples/hia_bootstrap/borrowed_export_wire.hepta')
 FIELDS = ('functions', 'name', 'params', 'returns', 'type', 'exports')
@@ -25,6 +28,7 @@ ARENA_BYTES = 64 + CORE_WITH_EXPORTS_NODES * 72 + CORE_WITH_EXPORTS_BYTES
 # maximum key count. Crossing the original node cap doubles that table.
 PREFLIGHT_BYTES = 8 << (CORE_WITH_EXPORTS_NODES * 2 - 1).bit_length()
 ORDERED_AT = PREFLIGHT_BYTES - 4096
+SIGNATURE_AT = ORDERED_AT - MAX_FUNCTIONS * 24
 
 POLICY = r'''
 # Input [admitted canonical Core, exact retained [[name,extent],...],
@@ -55,7 +59,7 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if get(w, mode) != 3 or get(w, mode + 32) != 1:
             return INVALID
         binding = byte(s, get(w, mode + 24)) - 48
-        if binding != 1 and binding != 2:
+        if binding < 1 or binding > 3:
             return INVALID
     if get(w, manifest) != 5 or get(w, manifest + 32) > 128:
         return BAD_TUPLE
@@ -75,6 +79,8 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(o, 24, extent)
         at = 32
     if count == 0:
+        if binding == 3:
+            return signature_document(s, w, o, core, 0)
         return 16
     if level != 48 or lookup(w, core, 6) != NONE:
         return NOMINAL_CONFLICT
@@ -106,10 +112,12 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             ordinal = ordinal + 1
         if valid_signature(w, 64 + fn * 72) == False:
             return SIGNATURE
-        if insert_ordered(o, w, name, position, amount, index) == False:
+        if insert_ordered(o, w, name, position, amount, index, ORDERED_AT) == False:
             return BAD_ENTRY
         index = index + 1
         child = get(w, pair + 16)
+    if binding == 3:
+        return signature_document(s, w, o, core, count)
     if binding != 0:
         return wrapper_requests(w, o, fns, count, at)
     index = 0
@@ -204,9 +212,9 @@ def name_order(w:mutbuf, left:u64, right:u64) -> u64:
         return 0
     return choose(na < nb, 1, 2)
 
-def insert_ordered(o:mutbuf, w:mutbuf, name:u64, ordinal:u64, amount:u64, count:u64) -> bool:
-    at = ORDERED_AT + count * 24
-    while at > ORDERED_AT:
+def insert_ordered(o:mutbuf, w:mutbuf, name:u64, ordinal:u64, amount:u64, count:u64, base:u64) -> bool:
+    at = base + count * 24
+    while at > base:
         previous = get(o, at - 24)
         order = name_order(w, previous, name)
         if order == 0:
@@ -254,6 +262,135 @@ def type_id(w:mutbuf, node:u64) -> u64:
 '''
 
 
+SIGNATURES = r'''
+# Render signatures from the same admitted Core and the normalized export
+# rows. The transport never reconstructs function names, types or extents.
+def signature_document(s:readbuf, w:mutbuf, o:mutbuf, core:u64, borrowed:u64) -> u64:
+    functions = lookup(w, core, 1)
+    declared = lookup(w, core, 6)
+    if functions == NONE or get(w, functions) != 5 or get(w, functions + 32) > FN_LIMIT:
+        return INVALID
+    if declared != NONE and get(w, declared) != 5:
+        return INVALID
+    child = get(w, functions + 24)
+    count = 0
+    ordinal = 0
+    while child != NONE:
+        fn = 64 + child * 72
+        name = lookup(w, fn, 2)
+        if name == NONE or get(w, name) != 4:
+            return INVALID
+        amount = borrowed_amount(o, borrowed, ordinal)
+        if amount > 0 or scalar_export(w, fn, name, declared):
+            if insert_ordered(o, w, name, fn, amount, count, SIGNATURE_AT) == False:
+                return INVALID
+            count = count + 1
+        ordinal = ordinal + 1
+        child = get(w, fn + 16)
+    return render_signatures(s, w, o, count)
+
+def borrowed_amount(o:mutbuf, count:u64, ordinal:u64) -> u64:
+    index = 0
+    while index < count:
+        row = ORDERED_AT + index * 24
+        if get(o, row + 8) == ordinal:
+            return get(o, row + 16)
+        index = index + 1
+    return 0
+
+def scalar_export(w:mutbuf, fn:u64, name:u64, declared:u64) -> bool:
+    if declared != NONE and declared_export(w, declared, name) == False:
+        return False
+    params = lookup(w, fn, 3)
+    returns = lookup(w, fn, 4)
+    if params == NONE or get(w, params) != 5 or returns == NONE or get(w, returns) != 5:
+        return False
+    child = get(w, params + 24)
+    while child != NONE:
+        node = 64 + child * 72
+        if type_id(w, lookup(w, node, 5)) < 3:
+            return False
+        child = get(w, node + 16)
+    count = get(w, returns + 32)
+    if count == 0:
+        return True
+    if count != 1:
+        return False
+    result = 64 + get(w, returns + 24) * 72
+    return type_id(w, result) >= 3 or unit_type(w, result)
+
+def declared_export(w:mutbuf, declared:u64, name:u64) -> bool:
+    child = get(w, declared + 24)
+    while child != NONE:
+        node = 64 + child * 72
+        if get(w, node) != 4:
+            return False
+        if name_order(w, node, name) == 0:
+            return True
+        child = get(w, node + 16)
+    return False
+
+def render_signatures(s:readbuf, w:mutbuf, o:mutbuf, count:u64) -> u64:
+    store(o, 0, 123)
+    at = 1
+    index = 0
+    while index < count:
+        row = SIGNATURE_AT + index * 24
+        if at >= SIGNATURE_AT - 192:
+            return BAD_FRAME
+        if index != 0:
+            store(o, at, 44)
+            at = at + 1
+        at = signature_member(s, w, o, get(o, row), get(o, row + 8), get(o, row + 16), at)
+        if at >= SIGNATURE_AT:
+            return BAD_FRAME
+        index = index + 1
+    store(o, at, 125)
+    return at + 1
+
+def signature_member(s:readbuf, w:mutbuf, o:mutbuf, name:u64, fn:u64, amount:u64, at:u64) -> u64:
+    if get(w, name + 64) > SIGNATURE_AT - 128 - at:
+        return SIGNATURE_AT
+    at = copy_value(s, w, o, name, at)
+    store(o, at, 58)
+    store(o, at + 1, 123)
+    at = at + 2
+    if amount != 0:
+        at = buffer_abi(o, at)
+        at = decimal(o, at, amount)
+        store(o, at, 44)
+        at = at + 1
+    at = params_open(o, at)
+    at = emit_parameters(s, w, o, lookup(w, fn, 3), at)
+    if at >= SIGNATURE_AT - 32:
+        return SIGNATURE_AT
+    at = returns_open(o, at)
+    returns = lookup(w, fn, 4)
+    if get(w, returns + 64) > SIGNATURE_AT - at - 1:
+        return SIGNATURE_AT
+    at = copy_value(s, w, o, returns, at)
+    store(o, at, 125)
+    return at + 1
+
+def emit_parameters(s:readbuf, w:mutbuf, o:mutbuf, params:u64, at:u64) -> u64:
+    child = get(w, params + 24)
+    first = True
+    while child != NONE:
+        node = 64 + child * 72
+        typ = lookup(w, node, 5)
+        if at >= SIGNATURE_AT - 32 or get(w, typ + 64) >= SIGNATURE_AT - at - 1:
+            return SIGNATURE_AT
+        if first == False:
+            store(o, at, 44)
+            at = at + 1
+        at = copy_value(s, w, o, typ, at)
+        first = False
+        child = get(w, node + 16)
+    return at
+
+'''
+
+
 def source_program():
     constants = {
         'TAG': TAG, 'BOUND': int.from_bytes(b'HIABEX02', 'little'),
@@ -262,13 +399,13 @@ def source_program():
         'FN_LIMIT': MAX_FUNCTIONS, 'LOAN_LIMIT': MAX_RANGES, 'EXTENT_LIMIT': MAX_EXTENT,
         'MAX_PACKET': CORE_WITH_EXPORTS_BYTES, 'MAX_NODES': CORE_WITH_EXPORTS_NODES, 'ARENA_MIN': ARENA_BYTES,
         'OUTPUT_MIN': PREFLIGHT_BYTES, 'ORDERED_AT': ORDERED_AT, 'FRAME_CAP': MAX_FRAME_BYTES,
-        'CORE_LIMIT': CORE_BYTES,
+        'CORE_LIMIT': CORE_BYTES, 'SIGNATURE_AT': SIGNATURE_AT,
         'BAD_FRAME': 4294967286,
         'NONE': NONE, 'INVALID': 4294967293, 'BAD_TUPLE': 4294967280, 'NOMINAL_CONFLICT': 4294967281,
         'BAD_ENTRY': 4294967282, 'RESERVED': 4294967283, 'MISSING': 4294967284, 'SIGNATURE': 4294967285,
     }
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
-                    lambda token: str(constants[token[0]]), POLICY)
+                    lambda token: str(constants[token[0]]), POLICY + SIGNATURES)
     decoder = json_decoder(wire_spans=True)
     # Both arena decode and its structural preflight see the outer envelope,
     # not just the bounded Core bytes carried inside it.
@@ -277,7 +414,11 @@ def source_program():
     decoder = decoder.replace(guard, guard.replace('8388608', str(CORE_WITH_EXPORTS_BYTES)))
     return '\n'.join((policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),
                       comparison_table('key_id', FIELDS), comparison_table('blocked', BLOCKED),
-                      comparison_table('type_kind', KINDS), decoder))
+                      comparison_table('type_kind', KINDS),
+                      function(CONTEXT, 'copy_value'), literal_match('unit_type', 'unit'),
+                      literal('buffer_abi', '{"abi":"' + AGENT_BUFFER_ABI + '","max_buffer_bytes":'),
+                      literal('params_open', '"params":['), literal('returns_open', '],"returns":'),
+                      function(RELEASE, 'decimal'), function(RELEASE, 'divide10'), decoder))
 
 
 if __name__ == '__main__':
