@@ -61,7 +61,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'describe-bind': DISCOVERY_MODE, 'discovery-bootstrap-plan': DISCOVERY_MODE,
          'discovery-bootstrap-assemble': DISCOVERY_MODE, 'artifact-request': ARTIFACT_REQUEST_MODE,
          'journal-records': JOURNAL_RECORD_MODE,
-         'journal-observation': JOURNAL_RECORD_MODE}
+         'journal-observation': JOURNAL_RECORD_MODE,
+         'artifact-journal': JOURNAL_READ_WORKFLOW_MODE}
 
 
 def elf_prefix(code):

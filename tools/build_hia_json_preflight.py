@@ -111,6 +111,7 @@ CANDIDATES = {
     'worker-artifact-request': ('worker_artifact_request', 'worker-artifact-request'),
     'journal-records': ('worker_journal_records', 'journal-records'),
     'journal-observation': ('worker_journal_observation', 'journal-observation'),
+    'artifact-journal': ('worker_artifact_journal', 'artifact-journal'),
     'discovery-artifact': ('discovery_artifact', 'discovery-artifact'),
     'discovery-effect': ('discovery_effect', 'discovery-effect'),
     'describe-bind': ('describe_bind', 'describe-bind'),
