@@ -11,6 +11,8 @@ POLICY = r'''
 # The pinned phases have separate owner receipts. The platform can transport
 # only the HIA decision for a claimed port, not substitute a budget predicate.
 def context_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) == 24 and length(o) >= 48 and input_word(s, 0) == TIME_SAMPLE:
+        return sampled_time(s, o)
     if length(s) < 260 or length(s) > 1024 or length(o) < 48:
         return 4294967293
     extent = input_word(s, 8)
@@ -33,7 +35,7 @@ def context_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967293
         return budget_effect(s, o, port, index)
     if port == 38:
-        if extent == 4 and input_word(s, 256) & 4294967295 == NULL_LITERAL:
+        if extent == 4 and byte(s, 256) == 110 and byte(s, 257) == 117 and byte(s, 258) == 108 and byte(s, 259) == 108:
             return respond(o, 0)
         if byte(s, 256) != 123 or byte(s, length(s) - 1) != 125:
             return 4294967293
@@ -114,13 +116,78 @@ def result(o:mutbuf, action:u64, first:u64, second:u64) -> u64:
     put(o, 16, first)
     put(o, 24, second)
     return 32
+
+# Linux CLOCK_REALTIME seconds and nanoseconds to the canonical quoted
+# datetime at microsecond precision. Shift the signed Unix time to year 1.
+def sampled_time(s:readbuf, o:mutbuf) -> u64:
+    seconds = input_word(s, 8) + 62135596800
+    nanos = input_word(s, 16)
+    if seconds > 315537897599 or nanos >= 1000000000:
+        return 4294967293
+    day = quotient(seconds, 86400)
+    clock = seconds - day * 86400
+    march = day + 306
+    era = quotient(march, 146097)
+    within = march - era * 146097
+    years = quotient(within - quotient(within, 1460) + quotient(within, 36524) - quotient(within, 146096), 365)
+    year = era * 400 + years
+    day_of_year = within - (365 * years + quotient(years, 4) - quotient(years, 100))
+    month_index = quotient(5 * day_of_year + 2, 153)
+    day_of_month = day_of_year - quotient(153 * month_index + 2, 5) + 1
+    month = month_index + 3
+    if month > 12:
+        month = month - 12
+        year = year + 1
+    hours = quotient(clock, 3600)
+    minutes = quotient(clock - hours * 3600, 60)
+    remaining = clock - hours * 3600 - minutes * 60
+    store(o, 0, 34)
+    digits(o, 1, year, 1000)
+    store(o, 5, 45)
+    digits(o, 6, month, 10)
+    store(o, 8, 45)
+    digits(o, 9, day_of_month, 10)
+    store(o, 11, 84)
+    digits(o, 12, hours, 10)
+    store(o, 14, 58)
+    digits(o, 15, minutes, 10)
+    store(o, 17, 58)
+    digits(o, 18, remaining, 10)
+    micros = quotient(nanos, 1000)
+    past = 20
+    if micros != 0:
+        store(o, past, 46)
+        past = digits(o, past + 1, micros, 100000)
+    put(o, past, UTC_SUFFIX)
+    return past + 7
+
+def digits(o:mutbuf, at:u64, value:u64, divisor:u64) -> u64:
+    while divisor != 0:
+        unit = quotient(value, divisor)
+        store(o, at, 48 + unit)
+        value = value - unit * divisor
+        divisor = quotient(divisor, 10)
+        at = at + 1
+    return at
+
+def quotient(number:u64, divisor:u64) -> u64:
+    result = 0
+    remainder = 0
+    bit = 64
+    while bit > 0:
+        bit = bit - 1
+        remainder = (remainder << 1) | ((number >> bit) & 1)
+        if remainder >= divisor:
+            remainder = remainder - divisor
+            result = result | (1 << bit)
+    return result
 '''
 
 
 def program():
     tags = {'REQUEST': b'HIACTE01', 'CLAIM': b'HCTXRSP1', 'PLAN': b'HIACTP01',
             'WORKLOAD': b'HIACTF01', 'COST': b'HIACTC01', 'AMOUNT': b'HIACTM01',
-            'NULL_LITERAL': b'null', 'EFFECT': b'HIACTE02'}
+            'TIME_SAMPLE': b'HIACTT01', 'UTC_SUFFIX': b'+00:00"', 'EFFECT': b'HIACTE02'}
     source = re.sub(r'\b(' + '|'.join(tags) + r')\b',
                     lambda match: str(int.from_bytes(tags[match.group()], 'little')), POLICY)
     shared = primitives()
