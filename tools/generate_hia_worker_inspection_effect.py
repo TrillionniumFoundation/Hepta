@@ -74,6 +74,8 @@ def begin(s:readbuf, o:mutbuf, w:mutbuf, body:u64) -> u64:
     state_put(w, 24, reason)
     state_put(w, 32, program_bytes)
     state_put(w, 40, selector_bytes)
+    state_put(w, 304, context_bytes)
+    copy_input(s, w, 72, 3072, context_bytes)
     copy_input(s, w, program_size_at + 8, 512, program_bytes)
     copy_input(s, w, selectors_at, 1024, selector_bytes)
     action(o, w, 1, 2, 0, context_bytes)
@@ -96,6 +98,17 @@ def after_context(o:mutbuf, w:mutbuf, status:u64, size:u64) -> u64:
         return INVALID
     if status != 0:
         return refuse(o, w, status)
+    # The lookup port admitted this exact canonical reference. A successful
+    # Context observation is the only authority for its cost ledger column.
+    if state_word(w, 304) != 121 or state_word(w, 3072 + 7) & 4294967295 != CONTEXT_PREFIX:
+        return INVALID
+    index = 4
+    while index < 36:
+        digit = byte(w, 3072 + 7 + index)
+        if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
+            return INVALID
+        index = index + 1
+    state_put(w, 312, 36)
     width = state_word(w, 32)
     action(o, w, 2, 3, 0, width)
     return copy_state(w, o, 512, 48, width)
@@ -166,7 +179,7 @@ def result(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     program_bytes = state_word(w, 32)
     if program_bytes != 176:
         return INVALID
-    at = result_open(o, 48)
+    at = result_open(o, 116)
     at = copy_state(w, o, 512, at, program_bytes)
     at = result_query(o, at)
     if state_word(w, 16) == 4:
@@ -176,14 +189,30 @@ def result(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     at = result_view(o, at)
     at = copy_input(s, o, 64, at, 176)
     store(o, at, 125)
-    action(o, w, 6, 8, 0, at + 1 - 48)
-    return at + 1
+    return outcome(o, w, 6, 0, at + 1)
 
 def refuse(o:mutbuf, w:mutbuf, code:u64) -> u64:
     end = rejection(o, code)
     if end == 0:
         return INVALID
-    action(o, w, 7, 8, code, end - 48)
+    return outcome(o, w, 7, code, end)
+
+# The body supplied to the existing response projector begins at byte 116.
+# The preceding private bytes are a receipt for the cost projection only.
+def outcome(o:mutbuf, w:mutbuf, role:u64, kind:u64, end:u64) -> u64:
+    context = state_word(w, 312)
+    state_put(o, 48, OUTCOME)
+    state_put(o, 56, role - 5)
+    state_put(o, 64, context)
+    state_put(o, 72, end - 116)
+    index = 0
+    while index < 36:
+        unit = 0
+        if context == 36:
+            unit = byte(w, 3072 + 7 + index)
+        store(o, 80 + index, unit)
+        index = index + 1
+    action(o, w, role, 8, kind, end - 48)
     return end
 
 def action(o:mutbuf, w:mutbuf, role:u64, phase:u64, kind:u64, size:u64) -> u64:
@@ -241,7 +270,8 @@ def function(source, name):
 
 
 def source_program():
-    tags = {'EVENT': b'HIAFDE01', 'ACTION': b'HIAINA01', 'REQUEST': b'HIAINR01', 'DOCUMENT': b'HIADOC01'}
+    tags = {'EVENT': b'HIAFDE01', 'ACTION': b'HIAINA01', 'REQUEST': b'HIAINR01', 'DOCUMENT': b'HIADOC01',
+            'OUTCOME': b'HIAIND01', 'CONTEXT_PREFIX': b'ctx-'}
     constants = {name: int.from_bytes(value, 'little') for name, value in tags.items()}
     constants['INVALID'] = 4294967295
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
@@ -254,7 +284,7 @@ def source_program():
         dispatch.extend((f'    if code == {index}:', f'        return error_{index}(o)'))
         raw = json.dumps({'code': code, 'details_artifact': None, 'message': message, 'phase': phase,
                           'retry_action': 'correct_input'}, sort_keys=True, separators=(',', ':')).encode('ascii')
-        diagnostics.append(literal(f'error_{index}', raw, fixed=48))
+        diagnostics.append(literal(f'error_{index}', raw, fixed=116))
     dispatch.append('    return 0')
     parts = {'result_open': b'{"next_cursor":null,"program":', 'result_query': b',"query_artifact":',
              'result_null': b'null', 'result_view': b',"view_artifact":'}
