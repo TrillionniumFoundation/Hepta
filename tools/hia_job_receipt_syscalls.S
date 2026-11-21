@@ -8,12 +8,12 @@
 _start:
  xor ebp,ebp
  and rsp,-16
- sub rsp,544
+ sub rsp,1056
  mov rbp,rsp
  /* Put the descriptor observation and HIA state after the stat buffer. */
  lea rdi,[rbp+144]
  xor eax,eax
- mov ecx,50
+ mov ecx,114
  rep stosq
  mov edi,1
  mov esi,9
@@ -62,7 +62,7 @@ next:
  mov rdi,r12
  mov rsi,r13
  lea rdx,[rbp+192]
- mov ecx,352
+ mov ecx,864
  lea r8,[rbp+144]
  mov r9d,48
  .byte 0xe8
@@ -84,6 +84,10 @@ policy_call_hole:
  je emit
  cmp eax,8
  je close_checked
+ cmp eax,9
+ je write_cancel_record
+ cmp eax,10
+ je signal_frozen_supervisor
  jmp refusal
 
 stage:
@@ -98,12 +102,19 @@ stage:
 
 write_record:
  mov rbx,[rbp+216]
+ lea r15,[r12+rbx]
+ mov r10,r13
+ sub r10,rbx
+ jmp write_next
+write_cancel_record:
+ lea r15,[rbp+544]
+ mov r10,[rbp+216]
 write_next:
- mov rdx,r13
- sub rdx,rbx
+ mov rdx,r10
+ test rdx,rdx
  jz write_complete
  mov rdi,r14
- lea rsi,[r12+rbx]
+ mov rsi,r15
  mov eax,1
  syscall
  cmp rax,-4
@@ -111,7 +122,8 @@ write_next:
  test rax,rax
  js observed
  jz short_write
- add rbx,rax
+ add r15,rax
+ sub r10,rax
  jmp write_next
 write_complete:
  xor eax,eax
@@ -157,6 +169,15 @@ sync_directory:
  syscall
  cmp rax,-4
  je sync_directory
+ jmp observed
+
+signal_frozen_supervisor:
+ mov rdi,[rbp+168]
+ mov esi,15                 /* SIGTERM to the original inherited pidfd only */
+ xor edx,edx
+ xor r10d,r10d
+ mov eax,424                /* pidfd_send_signal */
+ syscall
 
 observed:
  mov [rbp+152],rax

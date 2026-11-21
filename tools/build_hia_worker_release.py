@@ -7,6 +7,7 @@ Only the program images and policy manifests are deployed by this command.
 from __future__ import annotations
 
 import argparse
+import errno
 from functools import partial
 from hashlib import sha256
 import json
@@ -199,6 +200,24 @@ def _job_writer_has_owner_publication(writer, scratch):
         return True
 
 
+def _job_writer_has_cancellation(writer, scratch):
+    name, nonce, now = b'controller-cancel-probe', b'0' * 32, 17
+    absent_fd = 2147483647
+    frame = struct.pack('<8s5Q32s', b'HIAJRC01', os.getpid(), absent_fd, now, len(name), 0, nonce) + name
+    with TemporaryDirectory(prefix='cancel-writer-', dir=scratch) as directory:
+        result = _run_job_writer(writer, frame, directory)
+        observed = result.returncode, result.stderr
+        records = {path.name: path.read_bytes() for path in Path(directory).iterdir()}
+        if observed == (65, b'') and not records:
+            return False
+        expected = (json.dumps({'at_unix_ms': now, 'job_id': name.decode('ascii'),
+                                'launch_nonce': nonce.decode('ascii')}, sort_keys=True) + '\n').encode('ascii')
+        if (observed != (0, struct.pack('<8sQq', b'HIAJRW01', 7, -errno.EBADF))
+                or records != {'cancel-request.json': expected}):
+            raise ValueError('installed HIA cancellation writer did not preserve the durable intent and signal boundary')
+        return True
+
+
 def _worker_prepare_has_supervisor_outcome(prepare):
     frame = struct.pack('<8s6Q', b'HIAJSQ01', 15, 3, 3, 0, 0, 3)
     expected = struct.pack('<8s2q3Q', b'HIAJSO01', -15, 125, 125, 0, 0)
@@ -297,6 +316,8 @@ def _install_controller(output, scratch, release, installer):
     if schema == 'hepta.hia.mcp.controller.v10':
         if _worker_prepare_has_supervision_loop(release / 'hia-worker-prepare'):
             schema = 'hepta.hia.mcp.controller.v11'
+    if schema == 'hepta.hia.mcp.controller.v11' and _job_writer_has_cancellation(receipt_writer, scratch):
+        schema = 'hepta.hia.mcp.controller.v12'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

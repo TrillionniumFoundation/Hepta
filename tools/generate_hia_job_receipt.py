@@ -20,12 +20,15 @@ PACKER_MAGIC = int.from_bytes(b'HIAJPK01', 'little')
 REQUEST_MAGIC = int.from_bytes(b'HIAJRQ01', 'little')
 TERMINAL_MAGIC = int.from_bytes(b'HIAJRQ02', 'little')
 OWNER_MAGIC = int.from_bytes(b'HIAJRO01', 'little')
+CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
 SOURCE = f'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 35 and uint(s, 0, 8) == {OWNER_MAGIC}:
         return advance_owner(s, o, w)
+    if length(s) >= 35 and uint(s, 0, 8) == {CANCEL_MAGIC}:
+        return advance_cancel(s, o, w)
     phase = observed(w, 0)
     result = observed(w, 8)
     if phase == 0:
@@ -78,6 +81,88 @@ def advance_owner(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if phase < 7:
         return phase - 3
     return 6
+
+def advance_cancel(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    phase = observed(w, 0)
+    result = observed(w, 8)
+    if phase == 0:
+        if prepare_cancellation(s, o, w) == 0:
+            return 0
+    elif phase > 7:
+        return 0
+    elif result >> 63 != 0 or phase == 7:
+        return acknowledge(o, phase, result)
+    put(w, 0, phase + 1, 8)
+    if phase == 1:
+        return 9
+    if phase == 3:
+        return 8
+    if phase == 6:
+        # Only the inherited pidfd, after durable publication. Never address
+        # a recyclable PID or send a stronger signal from this operation.
+        return 10
+    return phase + 1
+
+def prepare_cancellation(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    size = length(s)
+    if size < 81 or size > 208 or length(o) < 864:
+        return 0
+    parent = uint(s, 8, 8)
+    target = uint(s, 16, 8)
+    count = uint(s, 32, 8)
+    if parent < 2 or parent > 2147483647 or parent != observed(w, 16):
+        return 0
+    if target < 3 or target > 2147483647 or count != size - 80 or uint(s, 40, 8) != 0:
+        return 0
+    at = 48
+    while at < 80:
+        value = byte(s, at)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return 0
+        at = at + 1
+    at = 80
+    while at < size:
+        if allowed(byte(s, at)) == 0:
+            return 0
+        at = at + 1
+    put(w, 24, target, 8)
+    cancel_names(o, 32, False)
+    cancel_names(o, 192, True)
+    count = cancel_payload(s, o, size)
+    put(o, 24, count, 8)
+    return 1
+
+def cancel_names(o:mutbuf, at:u64, staging:bool) -> u64:
+    put(o, at, {int.from_bytes(b'cancel-r', 'little')}, 8)
+    put(o, at + 8, {int.from_bytes(b'equest.j', 'little')}, 8)
+    put(o, at + 16, {int.from_bytes(b'son', 'little')}, 3)
+    if staging:
+        put(o, at + 19, {int.from_bytes(b'.tmp', 'little')}, 4)
+    return 0
+
+def cancel_payload(s:readbuf, o:mutbuf, size:u64) -> u64:
+    put(o, 352, {int.from_bytes(bytes((123,)) + b'"at_uni', 'little')}, 8)
+    put(o, 360, {int.from_bytes(b'x_ms": ', 'little')}, 7)
+    at = append_decimal(o, 367, uint(s, 24, 8))
+    put(o, at, {int.from_bytes(b', "job_i', 'little')}, 8)
+    put(o, at + 8, {int.from_bytes(b'd": "', 'little')}, 5)
+    at = at + 13
+    index = 80
+    while index < size:
+        store(o, at, byte(s, index))
+        at = at + 1
+        index = index + 1
+    put(o, at, {int.from_bytes(b'", "laun', 'little')}, 8)
+    put(o, at + 8, {int.from_bytes(b'ch_nonce', 'little')}, 8)
+    put(o, at + 16, {int.from_bytes(b'": "', 'little')}, 4)
+    at = at + 20
+    index = 48
+    while index < 80:
+        store(o, at, byte(s, index))
+        at = at + 1
+        index = index + 1
+    put(o, at, {int.from_bytes(bytes((34, 125, 10)), 'little')}, 3)
+    return at + 3 - 352
 
 def prepare(s:readbuf, o:mutbuf, parent:u64) -> u64:
     size = length(s)
@@ -144,7 +229,7 @@ def append_decimal(o:mutbuf, at:u64, value:u64) -> u64:
         divisor = divisor // 10
         at = at + 1
     store(o, at, 0)
-    return 0
+    return at
 
 def uint(s:readbuf, start:u64, size:u64) -> u64:
     index = 0

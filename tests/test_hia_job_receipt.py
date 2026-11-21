@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import errno
 import fcntl
+import json
 import os
 from pathlib import Path
 import stat
 import struct
 import subprocess
+import sys
 from tempfile import TemporaryDirectory
 import unittest
 
@@ -28,6 +30,9 @@ class JobReceiptExecutableTests(unittest.TestCase):
                 *, parent=None, sealed=True, suffix=b'', magic=b'HIAJRQ01'):
         pid = os.getpid() if parent is None else parent
         frame = struct.pack('<8s3Q', magic, len(payload), pid, len(name)) + name + payload + suffix
+        return self.invoke(frame, sealed=sealed)
+
+    def invoke(self, frame, *, sealed=True, pass_fds=()):
         with os.fdopen(os.memfd_create('test-job-receipt', os.MFD_ALLOW_SEALING), 'wb', buffering=0) as source:
             self.assertEqual(len(frame), source.write(frame))
             if sealed:
@@ -35,7 +40,7 @@ class JobReceiptExecutableTests(unittest.TestCase):
             directory = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY)
             try:
                 return subprocess.run([self.executable], stdin=source, stdout=directory,
-                                      stderr=subprocess.PIPE, env={'PATH': ''}, timeout=5)
+                                      stderr=subprocess.PIPE, env={'PATH': ''}, timeout=5, pass_fds=pass_fds)
             finally:
                 os.close(directory)
 
@@ -136,3 +141,42 @@ class JobReceiptExecutableTests(unittest.TestCase):
             refused = self.request(**(request | patch))
             self.assertEqual((refused.returncode, refused.stderr), (65, b''))
             self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_cancellation_publishes_before_signalling_only_the_original_pidfd(self):
+        nonce = b'0123456789abcdef' * 2
+        job = b'original-cancel'
+        timestamp = 18446744073709551615
+        record = self.root / 'cancel-request.json'
+        staged = self.root / 'cancel-request.json.tmp'
+        child = subprocess.Popen([sys.executable, '-I', '-S', '-c', 'import time; time.sleep(10)'])
+        try:
+            owner = os.pidfd_open(child.pid)
+            try:
+                def request(target=owner, name=job, token=nonce):
+                    return struct.pack('<8s5Q32s', b'HIAJRC01', os.getpid(), target,
+                                       timestamp, len(name), 0, token) + name
+
+                for wrong in (request(target=1), request(name=b'not/a/name'), request(token=b'z' * 32)):
+                    refused = self.invoke(wrong, pass_fds=(owner,))
+                    self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+                    self.assertIsNone(child.poll())
+                    self.assertEqual(list(self.root.iterdir()), [])
+                staged.write_bytes(b'original incomplete cancellation')
+                staged_inode = staged.stat().st_ino
+                self.check_receipt(self.invoke(request(), pass_fds=(owner,)), 1, -errno.EEXIST)
+                self.assertEqual(staged.stat().st_ino, staged_inode)
+                self.assertFalse(record.exists())
+                self.assertIsNone(child.poll())
+                staged.unlink()
+                self.check_receipt(self.invoke(request(), pass_fds=(owner,)), 7, 0)
+                self.assertEqual(child.wait(timeout=4), -15)
+                expected = {'at_unix_ms': timestamp, 'job_id': job.decode(), 'launch_nonce': nonce.decode()}
+                self.assertEqual(record.read_bytes(), (json.dumps(expected, sort_keys=True) + '\n').encode())
+                self.assertEqual(stat.S_IMODE(record.stat().st_mode), 0o600)
+                self.assertFalse(staged.exists())
+            finally:
+                os.close(owner)
+        finally:
+            if child.poll() is None:
+                child.terminate()
+            child.wait(timeout=4)
