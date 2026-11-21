@@ -40,12 +40,13 @@ ARTIFACT_DIAGNOSTIC_MODE = 33
 CONTEXT_WORKLOAD_MODE = 34
 INSPECTION_MODE = 35
 WORKER_CANONICAL_MODE = 36
+LOWERING_ELF_MODE = 37
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
               DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE,
               ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
-              CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE)
+              CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE, LOWERING_ELF_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -86,6 +87,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'context-journal-records': JOURNAL_RECORD_MODE,
          'context-journal-observation': JOURNAL_RECORD_MODE,
          'inspection-wire': INSPECTION_MODE,
+         'inspection-lowering-elf': LOWERING_ELF_MODE,
          'worker-canonical': WORKER_CANONICAL_MODE,
          'artifact-authority': DISCOVERY_MODE,
          'artifact-diagnostic': ARTIFACT_DIAGNOSTIC_MODE,
@@ -119,6 +121,7 @@ def template(mode):
     diagnostic = mode == ARTIFACT_DIAGNOSTIC_MODE
     context_workload = mode == CONTEXT_WORKLOAD_MODE
     inspection = mode == INSPECTION_MODE
+    lowering_elf = mode == LOWERING_ELF_MODE
     read_request = mode == READ_REQUEST_MODE
     worker_data = mode == WORKER_DATA_MODE
     worker_response = mode == WORKER_RESPONSE_MODE
@@ -139,7 +142,7 @@ def template(mode):
                      else WORKER_DATA_HEADER)
     direct = page or read_request or store_ready or journal_read
     descriptor = None if (direct or schema or diagnostic or worker or describe_request or discovery
-                          or describe_answer or discovery_artifact or context_workload or inspection) else (
+                          or describe_answer or discovery_artifact or context_workload or inspection or lowering_elf) else (
         0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
@@ -154,6 +157,8 @@ def template(mode):
     if inspection:
         scratch, workspace = 16 << 20, INSPECTION_ARENA_BYTES
         minimum, maximum = INSPECTION_HEADER + 1, INSPECTION_HEADER + INSPECTION_MAX
+    if lowering_elf:
+        scratch, workspace, minimum, maximum = 32 + 8 * 1024, 16 * 1024, 512, 64 << 20
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if describe_request:

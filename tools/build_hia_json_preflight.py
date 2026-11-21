@@ -118,6 +118,7 @@ CANDIDATES = {
     'context-request': ('worker_context_request', 'context-request'),
     'inspection-request': ('worker_inspection_request', 'inspection-request'),
     'inspection-effect': ('worker_inspection_effect', 'inspection-effect'),
+    'inspection-lowering-elf': ('inspection_lowering_elf', 'inspection-lowering-elf'),
     'context-workload': ('worker_context_workload', 'context-workload'),
     'context-cost': ('worker_context_cost', 'context-cost'),
     'context-cost-diagnostic': ('worker_context_cost_diagnostic', 'context-cost-diagnostic'),
