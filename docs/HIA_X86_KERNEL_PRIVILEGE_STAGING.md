@@ -204,3 +204,25 @@ RCX, sanitized R11/RFLAGS, segment selectors, user RSP, balanced SMAP AC
 state, exception unwind/interrupt windows and context ownership.
 `HLT` additionally requires CPL0 and a defined wakeup policy. Keep the
 HeptaKernel compiler lock unchanged and all 17 Linux gates HOLD.
+
+
+## Physical PTE slot identity in the static effect-order experiment
+
+The isolated single-CPU TLB sequence checker now requires an exact nonzero,
+8-byte-aligned, below-52-bit physical PTE slot address (slot_pa) on each
+pte.write operation. Within one planned sequence it binds each virtual page
+to one declared physical slot and each physical slot to one virtual page.
+After INVLPG and interrupt re-enablement, that identity must still agree,
+and a repeat write must use the prior candidate as its expected old word.
+A plan may update multiple independent slots, but it cannot conceal a stale
+PTE write by relabeling a physical slot as another VA. Negative tests cover
+aliases, changes of slot identity, forged stale readback, missing/malformed
+slot fields and repeated valid writes.
+
+This is deliberately *not* physical slot authentication, a page-table walk,
+authority proof, true hardware old-value readback, or a native HIA compiler
+intrinsic. The declared slot and root remain caller-supplied; the checker
+does not establish that RAM owns the slot, that interrupts/preemption/NMIs
+are safe, or that one-CPU TLB effects generalize to PCID, global pages and
+SMP. All staged privilege byte encoders remain isolated from HIA Core v8,
+the freestanding selfhost_elf compiler, and HeptaKernel's pinned toolchain.
