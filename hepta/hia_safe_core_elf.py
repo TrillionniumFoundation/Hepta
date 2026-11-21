@@ -487,12 +487,6 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         dstfunc, _ = final_receipt
     if final._native_inventory is None:
         dynsymbols = _reference_dynamic_symbols(final, linked, dstfunc[export])
-    else:
-        dynsymbols, abort_symbols = final._native_inventory.verify_dynamic_symbols(
-            final.data, final.section(".dynsym")["index"], linked, dstfunc[export],
-        )
-
-    if final._native_inventory is None:
         plt, got, rela = (final.section(".plt", 1), final.section(".got", 1),
                           final.section(".rela.plt", 4))
         _reference_executable_layout(final, linked, plt, got)
@@ -500,17 +494,13 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
         _reference_relro(final, writable, got)
         _reference_dynamic_relocations(final, rela, got)
         _reference_plt_slot(plt, got, rela, dynsymbols)
-    else:
-        final._native_inventory.verify_loader_executable(final.data, abort_symbols)
-        plt = final.section(".plt", 1)
-
-    dynamic = final.section(".dynamic", 6)
-    final.load_binding(dynamic, 6)
-    if final._native_inventory is None:
+        dynamic = final.section(".dynamic", 6)
+        final.load_binding(dynamic, 6)
         tags = _reference_dynamic_tags(final, dynamic, got, rela)
         _lookup_tables(final, tags, dynsymbols, export)
     else:
-        final._native_inventory.verify_loader_lookup(final.data, export)
+        final._native_inventory.verify_final_loader(final.data, export)
+        plt = final.section(".plt", 1)
 
     relsec = obj.section(".rela.text", 4)
     if obj._native_inventory is None:

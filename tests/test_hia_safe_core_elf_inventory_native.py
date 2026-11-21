@@ -223,7 +223,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         bridge_boundaries = ('verify_function_link', 'verify_executable_layout',
-                             'verify_relro', 'verify_dynamic_relocations', 'verify_plt_slot')
+                             'verify_relro', 'verify_dynamic_relocations', 'verify_plt_slot',
+                             'verify_dynamic_symbols', 'verify_loader_executable', 'verify_loader_lookup')
         bridge_blocked = {name: Mock(side_effect=AssertionError('host encoded ELF authority: ' + name))
                           for name in bridge_boundaries}
         with (
@@ -492,10 +493,28 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
             authority = elf_reader._reference_dynamic_tags(reference, table, slots, relocations)
             return elf_reader._lookup_tables(reference, authority, reference.symbols('.dynsym'), name)
 
+        def reference_final(data, name):
+            reference = _ELF.__new__(_ELF)
+            reference._reference_inventory(data, 3)
+            text, plt, got, rela = (reference.section(section_name, kind) for section_name, kind in
+                                    (('.text', 1), ('.plt', 1), ('.got', 1), ('.rela.plt', 4)))
+            functions = elf_reader._reference_functions(reference, text, '.symtab')
+            elf_reader.require(name in functions, 'loader export identity differs')
+            symbols = elf_reader._reference_dynamic_symbols(reference, text, functions[name])
+            elf_reader._reference_executable_layout(reference, text, plt, got)
+            elf_reader._reference_relro(reference, reference.load_binding(got, 6), got)
+            elf_reader._reference_dynamic_relocations(reference, rela, got)
+            elf_reader._reference_plt_slot(plt, got, rela, symbols)
+            reference.load_binding(reference.section('.dynamic', 6), 6)
+            return reference_lookup(data, name)
+
         self.native.verify_loader_lookup(self.final_bytes, export)
+        self.native.verify_final_loader(self.final_bytes, export)
         for name in (export + 'x', '', export[:-1], 'abort'):
             self.assertEqual(result(self.native.verify_loader_lookup, self.final_bytes, name),
                              result(reference_lookup, self.final_bytes, name))
+            self.assertEqual(result(self.native.verify_final_loader, self.final_bytes, name),
+                             result(reference_final, self.final_bytes, name))
 
         for name, key, gnu in (('.dynamic', None, False), ('.hash', 4, False),
                                ('.gnu.hash', 0x6ffffef5, True)):
@@ -519,6 +538,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                     self.assertEqual(actual, expected, (name, at, value))
                     self.assertEqual(result(self.native.verify_loader_lookup, data, export),
                                      result(reference_lookup, data, export), (name, at, value))
+                    self.assertEqual(result(self.native.verify_final_loader, data, export),
+                                     result(reference_final, data, export), (name, at, value))
 
         for name in ('.dynsym', '.dynstr', '.gnu.version', '.gnu.version_r'):
             section = final.section(name)
@@ -528,6 +549,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 data = bytes(changed)
                 self.assertEqual(result(self.native.verify_loader_lookup, data, export),
                                  result(reference_lookup, data, export), (name, offset))
+                self.assertEqual(result(self.native.verify_final_loader, data, export),
+                                 result(reference_final, data, export), (name, offset))
 
     def test_native_relocations_match_real_link_and_retained_rejections(self):
         def result(check, *args):

@@ -9,6 +9,7 @@ from hepta.hia_safe_core_elf_inventory_native import (
     AUTHORITY_BYTES, AUTHORITY_MAGIC, CAPACITY, LOADER_AUTHORITIES, SECTION_AUTHORITIES,
     LOOKUP_MAGIC, LOOKUP_REQUIRED, LOOKUP_ROLES, LOOKUP_TYPED, LOOKUP_WORK,
     LOADER_EXECUTABLE_MAGIC, LOADER_EXECUTABLE_WORK,
+    FINAL_LOADER_MAGIC, FINAL_LOADER_NAME, FINAL_LOADER_WORK,
     DYNAMIC_ORDER_MAGIC, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
     EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC, OBJECT_INVENTORY_MAGIC,
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
@@ -42,6 +43,8 @@ FIELDS.update(AUTHORITY_BYTES=AUTHORITY_BYTES, AUTHORITY_MAGIC=AUTHORITY_MAGIC,
 FIELDS.update(LOOKUP_MAGIC=LOOKUP_MAGIC, LOOKUP_ROLES=LOOKUP_ROLES, LOOKUP_WORK=LOOKUP_WORK)
 FIELDS.update(LOADER_EXECUTABLE_MAGIC=LOADER_EXECUTABLE_MAGIC, LOADER_EXECUTABLE_WORK=LOADER_EXECUTABLE_WORK,
               ROLE_PLT=SECTION_AUTHORITIES.index('.plt'))
+FIELDS.update(FINAL_LOADER_MAGIC=FINAL_LOADER_MAGIC, FINAL_LOADER_NAME=FINAL_LOADER_NAME,
+              FINAL_LOADER_WORK=FINAL_LOADER_WORK)
 for section in LOOKUP_REQUIRED:
     label = section.strip('.').replace('.', '_').upper()
     FIELDS['ROLE_' + label] = SECTION_AUTHORITIES.index(section)
@@ -102,6 +105,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if length(o) < CAPACITY + AUTHORITY_BYTES:
             return 4294967294
         return loader_executable(s, o, w)
+    if length(w) == FINAL_LOADER_WORK and get(w, 0) == FINAL_LOADER_MAGIC:
+        if length(o) < CAPACITY + AUTHORITY_BYTES:
+            return 4294967294
+        return final_loader(s, o, w)
     if length(w) == 16 and get(w, 8) == 0:
         return symbol_table(s, o, get(w, 0))
     if length(w) == 24:
@@ -512,17 +519,20 @@ def verify_dynamic_symbols(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     name_size = get(w, 56)
     if name_size > 256 or name_size != length(w) - DYNAMIC_SYMBOL_NAME_OFFSET:
         return 4294967293
+    return dynamic_symbols_with_name(s, o, w, DYNAMIC_SYMBOL_NAME_OFFSET, name_size)
+
+def dynamic_symbols_with_name(s:readbuf, o:mutbuf, w:mutbuf, name_at:u64, name_size:u64) -> u64:
     response = exact_functions(s, o, w)
     if get(o, 0) != 0:
         return response
-    if get(o, 8) != 1 or exact_dynamic_export(s, o, w, name_size) == 0:
+    if get(o, 8) != 1 or exact_dynamic_export(s, o, w, name_at, name_size) == 0:
         return terminal(o, E_DYNAMIC_EXPORT, 0, 0)
     response = symbol_table(s, o, get(w, 8))
     if get(o, 0) != 0:
         return response
     return exact_abort_import(s, o, response)
 
-def exact_dynamic_export(s:readbuf, o:mutbuf, w:mutbuf, name_size:u64) -> u64:
+def exact_dynamic_export(s:readbuf, o:mutbuf, w:mutbuf, name_at:u64, name_size:u64) -> u64:
     if get(o, 32) != name_size:
         return 0
     field = 0
@@ -530,10 +540,12 @@ def exact_dynamic_export(s:readbuf, o:mutbuf, w:mutbuf, name_size:u64) -> u64:
         if get(o, 40 + field) != get(w, 64 + field):
             return 0
         field = field + 8
-    name_at = get(o, 24)
+    return scratch_name_matches(s, w, get(o, 24), name_at, name_size)
+
+def scratch_name_matches(s:readbuf, w:mutbuf, offset_in_elf:u64, offset_in_work:u64, size:u64) -> u64:
     offset = 0
-    while offset < name_size:
-        if byte(s, name_at + offset) != byte(w, DYNAMIC_SYMBOL_NAME_OFFSET + offset):
+    while offset < size:
+        if byte(s, offset_in_elf + offset) != byte(w, offset_in_work + offset):
             return 0
         offset = offset + 1
     return 1
@@ -990,6 +1002,9 @@ def loader_executable(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if get(o, 0) != 0:
         return extent
     write_lookup_roles(s, o, w, extent)
+    return checked_executable_roles(s, o, w)
+
+def checked_executable_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     shape = executable_role_error(s, w)
     if shape != 0:
         return terminal(o, shape, 0, 0)
@@ -997,6 +1012,79 @@ def loader_executable(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if get(o, 0) != 0:
         return result
     return relocations_from_roles(s, o, w)
+
+def final_loader(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    name_size = get(w, 8)
+    if name_size > 256:
+        return 4294967293
+    extent = inventory_authorities(s, o, 3)
+    if get(o, 0) != 0:
+        return extent
+    write_lookup_roles(s, o, w, extent)
+    result = loader_export_from_symbol_table(s, o, w, name_size)
+    if get(o, 0) != 0:
+        return result
+    put(w, LOOKUP_WORK, get(o, 16))
+    result = checked_executable_roles(s, o, w)
+    if get(o, 0) != 0:
+        return result
+    return checked_final_lookup(s, o, w, name_size)
+
+def loader_export_from_symbol_table(s:readbuf, o:mutbuf, w:mutbuf, name_size:u64) -> u64:
+    dynsym = lookup_row(w, ROLE_DYNSYM)
+    if dynsym == 0:
+        return terminal(o, MISSING_DYNSYM, 0, 0)
+    text = lookup_row(w, OWNED_TEXT_ROLE)
+    table = lookup_row(w, OWNED_SYMBOLS_ROLE)
+    if text == 0:
+        return terminal(o, E_OWNED_MISSING_TEXT, 0, 0)
+    if word(s, text + 4, 4) != 1:
+        return terminal(o, E_OWNED_TEXT_KIND, 0, 0)
+    if table == 0:
+        return terminal(o, E_OWNED_MISSING_SYMBOLS, 0, 0)
+    start = word(s, 40, 8)
+    section = (text - start) >> 6
+    address = word(s, text + 16, 8)
+    size = word(s, text + 32, 8)
+    result = function_extents(s, o, (table - start) >> 6, section, address, size)
+    if get(o, 0) != 0:
+        return result
+    put(w, 8, (dynsym - start) >> 6)
+    put(w, 16, section)
+    put(w, 24, address)
+    put(w, 32, size)
+    put(w, 40, 0)
+    put(w, 48, 0)
+    return loader_match_static_export(s, o, w, name_size)
+
+def loader_match_static_export(s:readbuf, o:mutbuf, w:mutbuf, name_size:u64) -> u64:
+    index = 0
+    while index < get(o, 8):
+        row = 24 + index * 56
+        if get(o, row + 8) == name_size and scratch_name_matches(s, w, get(o, row), FINAL_LOADER_NAME, name_size) != 0:
+            field = 0
+            while field < 40:
+                put(w, 64 + field, get(o, row + 16 + field))
+                field = field + 8
+            return dynamic_symbols_with_name(s, o, w, FINAL_LOADER_NAME, name_size)
+        index = index + 1
+    return terminal(o, E_DYNAMIC_EXPORT, 0, 0)
+
+def checked_final_lookup(s:readbuf, o:mutbuf, w:mutbuf, name_size:u64) -> u64:
+    dynamic = lookup_row(w, ROLE_DYNAMIC)
+    if dynamic == 0:
+        return terminal(o, MISSING_DYNAMIC, 0, 0)
+    if word(s, dynamic + 4, 4) != 6:
+        return terminal(o, KIND_DYNAMIC, 0, 0)
+    result = load_binding(s, o, word(s, dynamic + 16, 8), word(s, dynamic + 32, 8), word(s, dynamic + 24, 8), 6)
+    if get(o, 0) != 0:
+        return result
+    put(w, 8, name_size)
+    index = 0
+    while index < name_size:
+        store(w, 64 + index, byte(w, FINAL_LOADER_NAME + index))
+        index = index + 1
+    return lookup_dynamic(s, o, w)
 
 def executable_role_error(s:readbuf, w:mutbuf) -> u64:
     text = lookup_row(w, OWNED_TEXT_ROLE)
