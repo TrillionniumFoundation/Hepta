@@ -32,7 +32,7 @@ VARIANTS = {
     'journal-cost': ('agent_journal_transport', 'hepta.hia.journal-cost-native.v1'),
     'journal-read-workflow': ('agent_journal_transport', 'hepta.hia.journal-cost-native.v1'),
     'worker-arguments': ('worker_request', 'hepta.hia.worker-request-native.v1'),
-    'describe-request': ('worker_request', 'hepta.hia.worker-request-native.v1'),
+    'describe-request': ('worker_describe_request', 'hepta.hia.worker-describe-request-native.v1'),
     'discovery': ('agent_discovery', 'hepta.hia.agent-discovery-native.v1'),
     'describe-answer': ('agent_describe_answer', 'hepta.hia.agent-describe-answer-native.v1'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),

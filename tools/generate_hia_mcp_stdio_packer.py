@@ -91,10 +91,10 @@ def template(mode):
     journal_cost = mode == JOURNAL_COST_MODE
     store_ready = mode == STORE_READY_MODE
     journal_read = mode == JOURNAL_READ_WORKFLOW_MODE
-    worker = worker_data or worker_response or worker_journal or worker_arguments or describe_request
+    worker = worker_data or worker_response or worker_journal or worker_arguments
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
     direct = page or read_request or store_ready or journal_read
-    descriptor = None if direct or schema or worker or discovery or describe_answer else (
+    descriptor = None if direct or schema or worker or describe_request or discovery or describe_answer else (
         0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
@@ -102,6 +102,8 @@ def template(mode):
     minimum = 24 if page else (SCHEMA_HEADER + 2 if schema else 2)
     maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     if read_request:
+        scratch, workspace, maximum = 8192, 32768, 16384
+    if describe_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if worker:
         # The common JSON engine uses this mapping as structural preflight
@@ -186,7 +188,7 @@ def template(mode):
         emit('49 8d be')
         word(prefix_bytes + scratch)
         policy = {WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6, WORKER_JOURNAL_MODE: 7,
-                  WORKER_ARGUMENTS_MODE: 8, DESCRIBE_REQUEST_MODE: 9}
+                  WORKER_ARGUMENTS_MODE: 8}
         emit(f'48 c7 07 {policy[mode]:02x} 00 00 00 48 83 c7 08')
         emit('4c 89 e6 b9')
         word(worker_header // 8)
