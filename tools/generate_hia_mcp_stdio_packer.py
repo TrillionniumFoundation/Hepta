@@ -5,7 +5,9 @@ import struct
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_agent_stdio import ROOT, document, writes
-from tools.generate_hia_borrowed_export_wire import ARENA_BYTES as EXPORT_ARENA, CORE_WITH_EXPORTS_BYTES
+from tools.generate_hia_borrowed_export_wire import (
+    ARENA_BYTES as EXPORT_ARENA, CORE_WITH_EXPORTS_BYTES, PREFLIGHT_BYTES as EXPORT_PREFLIGHT,
+)
 from tools.generate_hia_core_json_cli import LIMIT, source_program as core_packer_source
 from tools.generate_hia_mcp_connection import RESPONSE_BYTES, WORKSPACE_BYTES as CONNECTION_WORKSPACE
 from tools.generate_hia_native_filter import WORKER_PRIVATE_BYTES, WORKER_WORKSPACE_BYTES
@@ -171,7 +173,7 @@ def template(mode):
         if mode == LOWERING_FRAMES_MODE:
             workspace, maximum = ARENA_BYTES + INSPECTION_HEADER, INSPECTION_HEADER + INPUT_MAX
     if borrowed_export:
-        scratch, workspace, maximum = 4 << 20, EXPORT_ARENA, CORE_WITH_EXPORTS_BYTES
+        scratch, workspace, maximum = EXPORT_PREFLIGHT, EXPORT_ARENA, CORE_WITH_EXPORTS_BYTES
     if lowering_elf:
         scratch, workspace, minimum, maximum = 32 + 8 * 1024, 16 * 1024, 512, 64 << 20
     if read_request:

@@ -19,13 +19,16 @@ TAG = int.from_bytes(b'HIABEX01', 'little')
 CORE_WITH_EXPORTS_BYTES = (8 << 20) + 65536
 CORE_WITH_EXPORTS_NODES = 262144 + 512
 ARENA_BYTES = 64 + CORE_WITH_EXPORTS_NODES * 72 + CORE_WITH_EXPORTS_BYTES
+# Preflight reserves a power-of-two table of 64-bit cells for twice the
+# maximum key count. Crossing the original node cap doubles that table.
+PREFLIGHT_BYTES = 8 << (CORE_WITH_EXPORTS_NODES * 2 - 1).bit_length()
 
 POLICY = r'''
 # Input [admitted canonical Core, exact retained [[name,extent],...],
 # admitted nominal profile number]. Output original function ordinals and
 # extents in the legacy name order. The program is verified before this role.
 def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 8 or length(s) > MAX_PACKET or length(o) < 4194304 or length(w) < ARENA_MIN:
+    if length(s) < 8 or length(s) > MAX_PACKET or length(o) < OUTPUT_MIN or length(w) < ARENA_MIN:
         return INVALID
     put(o, 48, MAX_NODES)
     put(o, 56, 128)
@@ -192,6 +195,7 @@ def source_program():
         'TAG': TAG, 'RESERVED_HEAD': int.from_bytes(b'__hia_', 'little'),
         'FN_LIMIT': MAX_FUNCTIONS, 'LOAN_LIMIT': MAX_RANGES, 'EXTENT_LIMIT': MAX_EXTENT,
         'MAX_PACKET': CORE_WITH_EXPORTS_BYTES, 'MAX_NODES': CORE_WITH_EXPORTS_NODES, 'ARENA_MIN': ARENA_BYTES,
+        'OUTPUT_MIN': PREFLIGHT_BYTES,
         'NONE': NONE, 'INVALID': 4294967293, 'BAD_TUPLE': 4294967280, 'NOMINAL_CONFLICT': 4294967281,
         'BAD_ENTRY': 4294967282, 'RESERVED': 4294967283, 'MISSING': 4294967284, 'SIGNATURE': 4294967285,
     }
