@@ -18,7 +18,7 @@ from hepta.hia_safe_core_x64_decode_native import (
     BORROWED_WRITE_REPLY, BORROWED_WRITE_REQUEST,
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_PLAN_REQUEST, CORE_GRAPH_REQUEST,
     CORE_PROFILE_HEADER, CORE_PROFILE_OPCODE_IDS, CORE_PROFILE_TYPE_IDS, CORE_PROFILE_WORKSPACE,
-    MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
+    DECODE_FRAME_OFFSET, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MACHINE_BORROW_BRANCH_DEPTH, MACHINE_BORROW_REPLY, MACHINE_BORROW_REQUEST, MACHINE_BORROW_WORKSPACE,
     MACHINE_PAIR_BRANCH_DEPTH,
     MACHINE_WRITE_READ_WORKSPACE, MACHINE_WRITE_REPLY, MACHINE_WRITE_REQUEST, MACHINE_WRITE_WORKSPACE,
@@ -36,6 +36,7 @@ FIELDS = {
     'CURSOR': 0, 'ERROR': 8, 'MODE': 16, 'GROUP': 24, 'REG': 32, 'RM': 40, 'DISP': 48,
     'OP': 64, 'A': 72, 'B': 80, 'C': 88,
     'PROFILE': PROFILE_OFFSET,
+    'FRAME': DECODE_FRAME_OFFSET, 'FRAME_ENTRY': DECODE_FRAME_OFFSET + 8, 'FRAME_WORDS': DECODE_FRAME_OFFSET + 16,
     'BOUNDARIES': 128, 'MAX_TEXT': MAX_TEXT, 'MAX_CODE': MAX_INSTRUCTIONS, 'WORKSPACE': WORKSPACE,
 }
 FIELDS.update({'OP_' + name.upper(): index for name, index in MACHINE_FORMULA_IDS.items()})
@@ -152,7 +153,11 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return terminal(o, E_TEXT_BUDGET, 0, 0)
     if get(w, PROFILE) > 15:
         return 4294967293
-    if length(o) < 24 + choose(size < MAX_CODE, size, MAX_CODE) * 48:
+    framed = get(w, FRAME) == MV_REQUEST
+    if framed and (length(w) == WORKSPACE or get(w, FRAME_WORDS) > 6 or get(w, FRAME_ENTRY) >= size):
+        return 4294967293
+    header = choose(framed, 32, 24)
+    if length(o) < header + choose(size < MAX_CODE, size, MAX_CODE) * 48:
         return 4294967294
     put(w, CURSOR, 0)
     put(w, ERROR, 0)
@@ -169,7 +174,7 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return terminal(o, error, begin, 0)
         if count == MAX_CODE:
             return terminal(o, E_INSTRUCTION_BUDGET, begin, 0)
-        row = 24 + count * 48
+        row = header + count * 48
         store(w, BOUNDARIES + begin, 1)
         put(o, row, begin)
         put(o, row + 8, get(w, OP))
@@ -178,12 +183,12 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(o, row + 32, get(w, B))
         put(o, row + 40, get(w, C))
         count = count + 1
-    return review_targets(o, w, size, count)
+    return review_targets(o, w, size, count, header)
 
-def review_targets(o:mutbuf, w:mutbuf, size:u64, count:u64) -> u64:
+def review_targets(o:mutbuf, w:mutbuf, size:u64, count:u64, header:u64) -> u64:
     index = 0
     while index < count:
-        row = 24 + index * 48
+        row = header + index * 48
         op = get(o, row + 8)
         if op == OP_JMP or op == OP_JCC:
             target = get(o, row + choose(op == OP_JMP, 24, 32))
@@ -200,10 +205,10 @@ def review_targets(o:mutbuf, w:mutbuf, size:u64, count:u64) -> u64:
     if length(w) != WORKSPACE:
         if length(w) < WORKSPACE + 8:
             return terminal(o, E_CALL_INVENTORY, 0, 0)
-        return review_call_bindings(o, w, count, size)
+        return review_call_bindings(o, w, count, size, header)
     return terminal(o, 0, 0, count)
 
-def review_call_bindings(o:mutbuf, w:mutbuf, count:u64, size:u64) -> u64:
+def review_call_bindings(o:mutbuf, w:mutbuf, count:u64, size:u64, header:u64) -> u64:
     expected = get(w, WORKSPACE)
     if expected > MAX_CODE or length(w) != WORKSPACE + 8 + expected * 24:
         return terminal(o, E_CALL_INVENTORY, 0, 0)
@@ -211,7 +216,7 @@ def review_call_bindings(o:mutbuf, w:mutbuf, count:u64, size:u64) -> u64:
     first_wrong = size
     index = 0
     while index < count:
-        row = 24 + index * 48
+        row = header + index * 48
         if get(o, row + 8) == OP_CALL:
             pc = get(o, row)
             if matched >= expected:
@@ -227,12 +232,22 @@ def review_call_bindings(o:mutbuf, w:mutbuf, count:u64, size:u64) -> u64:
                 else:
                     if byte(w, BOUNDARIES + target) != 1:
                         first_wrong = pc
+            if external != 0 and header == 32:
+                if external != 1 or target != 0:
+                    return terminal(o, E_CALL_INVENTORY, pc, 0)
+                put(o, row + 24, 18446744073709551615)
             matched = matched + 1
         index = index + 1
     if matched != expected:
         return terminal(o, E_CALL_INVENTORY, 0, 0)
     if first_wrong != size:
         return terminal(o, E_CALL_TARGET, first_wrong, 0)
+    if header == 32:
+        put(o, 0, MV_REQUEST)
+        put(o, 8, get(w, FRAME_ENTRY))
+        put(o, 16, get(w, FRAME_WORDS))
+        put(o, 24, count)
+        return 32 + count * 48
     return terminal(o, 0, 0, count)
 
 def memory_write_inventory(o:mutbuf, w:mutbuf) -> u64:

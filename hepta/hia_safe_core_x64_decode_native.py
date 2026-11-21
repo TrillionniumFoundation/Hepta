@@ -23,6 +23,7 @@ ROW = struct.Struct('<6Q')
 CALL_COUNT = struct.Struct('<Q')
 CALL_BINDING = struct.Struct('<3Q')
 PROFILE_OFFSET = 96
+DECODE_FRAME_OFFSET = 104
 QUERY_FORMAT_WORKSPACE = 1
 BORROWED_LENGTH_REQUEST = int.from_bytes(b'HIALBQ01', 'little')
 BORROWED_LENGTH_REPLY = int.from_bytes(b'HIALBG01', 'little')
@@ -283,13 +284,41 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
 
     def decode(self, data, calls=None, *, allow_variable_shifts=False,
                allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
+        admission = allow_variable_shifts, allow_unsigned_multiply, allow_unsigned_divide, allow_signed
+        output, size, count = self._decode_exchange(data, calls, admission)
+        result, pc = {}, 0
+        for offset in range(HEADER.size, size, ROW.size):
+            at, code, width, *words = ROW.unpack_from(output, offset)
+            if at != pc or not 1 <= code <= len(OPERATIONS) or not 1 <= width <= len(data) - pc:
+                raise RuntimeError('invalid native Safe Core instruction row')
+            name, roles = OPERATIONS[code - 1]
+            args = tuple(_operand(role, word) for role, word in zip(roles, words))
+            result[pc] = Instruction(name, args, width)
+            pc += width
+        if pc != len(data):
+            raise RuntimeError('native Safe Core decoder left unconsumed machine bytes')
+        return result
+
+    def machine_scalar_frame(self, binding, argument_words, *, allow_variable_shifts=False,
+                             allow_unsigned_multiply=False, allow_unsigned_divide=False, allow_signed=False):
+        """Decode bound final text directly into the native machine projector's wire."""
+        data = binding['text']
+        entry = binding['entry']
+        if (type(argument_words) is not int or not 0 <= argument_words <= 6
+                or type(entry) is not int or not 0 <= entry < len(data)):
+            raise ValueError('invalid scalar machine ABI entry')
+        admission = allow_variable_shifts, allow_unsigned_multiply, allow_unsigned_divide, allow_signed
+        output, size, count = self._decode_exchange(data, binding['calls'], admission, (entry, argument_words))
+        return output.raw[:size], count
+
+    def _decode_exchange(self, data, calls, admission, frame=None):
         from .hia_safe_core_x64 import require
 
         require(type(data) is bytes and 0 < len(data) <= MAX_TEXT, REFUSALS[0][1])
-        admission = allow_variable_shifts, allow_unsigned_multiply, allow_unsigned_divide, allow_signed
         require(all(type(flag) is bool for flag in admission), 'machine profile admission must be explicit boolean')
+        header_size = HEADER.size + (8 if frame is not None else 0)
         source = ctypes.create_string_buffer(data, len(data))
-        capacity = HEADER.size + min(len(data), MAX_INSTRUCTIONS) * ROW.size
+        capacity = header_size + min(len(data), MAX_INSTRUCTIONS) * ROW.size
         output = ctypes.create_string_buffer(capacity)
         if calls is None:
             scratch = ctypes.create_string_buffer(WORKSPACE)
@@ -304,34 +333,32 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                 CALL_BINDING.pack_into(scratch, WORKSPACE + CALL_COUNT.size + index * CALL_BINDING.size,
                                        encoded_pc, int(external), encoded_target)
         struct.pack_into('<Q', scratch, PROFILE_OFFSET, sum(flag << bit for bit, flag in enumerate(admission)))
+        if frame is not None:
+            struct.pack_into('<3Q', scratch, DECODE_FRAME_OFFSET, MACHINE_VALUES_REQUEST, *frame)
         size = self._entry(source, len(data), output, capacity, scratch, len(scratch))
         if not HEADER.size <= size <= capacity:
             raise RuntimeError('invalid native Safe Core decoder response size')
         status, detail, count = HEADER.unpack_from(output)
-        if status:
+        if frame is not None and status == MACHINE_VALUES_REQUEST:
+            if (detail, count) != frame or size < header_size:
+                raise RuntimeError('invalid native Safe Core machine frame identity')
+            count, = struct.unpack_from('<Q', output, HEADER.size)
+            detail = 0
+        elif status:
             if status > len(REFUSALS) or size != HEADER.size or count or detail >= len(data):
                 raise RuntimeError('invalid native Safe Core decoder refusal')
             name, message = REFUSALS[status - 1]
             if name in ('opcode', 'opcode_0f'):
                 raise SafeCoreMachineRejected(message.format(detail))
-            if name == 'condition' and allow_signed:
+            if name == 'condition' and admission[-1]:
                 message = 'condition lies outside the selected machine profile'
             require(False, message)
+        elif frame is not None:
+            raise RuntimeError('native Safe Core decoder did not produce the requested machine frame')
         if (detail or not 0 < count <= min(len(data), MAX_INSTRUCTIONS)
-                or size != HEADER.size + count * ROW.size):
+                or size != header_size + count * ROW.size):
             raise RuntimeError('invalid native Safe Core instruction inventory')
-        result, pc = {}, 0
-        for offset in range(HEADER.size, size, ROW.size):
-            at, code, width, *words = ROW.unpack_from(output, offset)
-            if at != pc or not 1 <= code <= len(OPERATIONS) or not 1 <= width <= len(data) - pc:
-                raise RuntimeError('invalid native Safe Core instruction row')
-            name, roles = OPERATIONS[code - 1]
-            args = tuple(_operand(role, word) for role, word in zip(roles, words))
-            result[pc] = Instruction(name, args, width)
-            pc += width
-        if pc != len(data):
-            raise RuntimeError('native Safe Core decoder left unconsumed machine bytes')
-        return result
+        return output, size, count
 
     def project_scalar_values(self, binding, argument_words, **profile):
         """Project a final bound image, not the producer's instruction plan."""
@@ -353,23 +380,25 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
     def _project_machine_values(self, binding, argument_words, loan, *, write=False, read_back=False, **profile):
         if type(argument_words) is not int or not 0 <= argument_words <= 6:
             raise ValueError('invalid scalar machine argument count')
-        calls = binding['calls']
-        code = self.decode(binding['text'], calls, **profile)
-        magic = MACHINE_WRITE_REQUEST if write else MACHINE_VALUES_REQUEST if loan is None else MACHINE_BORROW_REQUEST
-        frame = bytearray(struct.pack('<4Q', magic, binding['entry'],
-                                      argument_words, len(code)))
-        for pc, instruction in code.items():
-            if instruction.op == 'immediate_alu':
-                op, *rest = instruction.args
-                args = (next(group for group, name in ALU_GROUPS.items() if name == op), *rest)
-            elif instruction.op == 'call' and calls[pc] == 'abort':
-                args = (-1,)
-            else:
-                args = instruction.args
-            words = [word & ((1 << 64) - 1) for word in args]
-            words.extend([0] * (3 - len(words)))
-            frame.extend(ROW.pack(pc, OPERATION_IDS[instruction.op], instruction.size, *words))
-        if loan is not None:
+        if loan is None:
+            frame, decoded = self.machine_scalar_frame(binding, argument_words, **profile)
+        else:
+            calls = binding['calls']
+            code = self.decode(binding['text'], calls, **profile)
+            decoded = len(code)
+            magic = MACHINE_WRITE_REQUEST if write else MACHINE_BORROW_REQUEST
+            frame = bytearray(struct.pack('<4Q', magic, binding['entry'], argument_words, decoded))
+            for pc, instruction in code.items():
+                if instruction.op == 'immediate_alu':
+                    op, *rest = instruction.args
+                    args = (next(group for group, name in ALU_GROUPS.items() if name == op), *rest)
+                elif instruction.op == 'call' and calls[pc] == 'abort':
+                    args = (-1,)
+                else:
+                    args = instruction.args
+                words = [word & ((1 << 64) - 1) for word in args]
+                words.extend([0] * (3 - len(words)))
+                frame.extend(ROW.pack(pc, OPERATION_IDS[instruction.op], instruction.size, *words))
             frame.extend(struct.pack('<' + 'Q' * len(loan), *loan))
         source = ctypes.create_string_buffer(bytes(frame), len(frame))
         trailer = 24 if write else 16 if loan is not None else 0
@@ -397,7 +426,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
                 or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count + trailer):
             raise RuntimeError('invalid HIA machine scalar projection')
         nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size-trailer]))
-        machine = nodes, value, abort, {'decoded_instructions': len(code), 'symbolic_machine_steps': steps,
+        machine = nodes, value, abort, {'decoded_instructions': decoded, 'symbolic_machine_steps': steps,
                               'machine_terminal_paths': paths, 'maximum_observed_stack_bytes': depth}
         if loan is None:
             return machine, None

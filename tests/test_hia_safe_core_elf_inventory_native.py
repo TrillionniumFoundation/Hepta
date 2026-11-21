@@ -149,10 +149,22 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 elf_shared_abi.inspect_owned_shared_elf(raw, exports[:-1])
 
     def test_native_symbols_names_and_load_mappings_match_owned_elf(self):
+        from hepta.hia_safe_core_elf_inventory_native import SECTION_AUTHORITIES
+
         for kind, data in ((1, self.object_bytes), (3, self.final_bytes)):
             reference = _ELF.__new__(_ELF)
             reference._reference_inventory(data, kind)
             selected = _ELF(data, kind)
+            self.assertEqual(selected.authorities, {
+                name: reference.by_name.get(name) for name in SECTION_AUTHORITIES
+            })
+            selected.by_name.update({name: {'unexpected': True} for name in SECTION_AUTHORITIES})
+            for name in SECTION_AUTHORITIES:
+                if name in reference.by_name:
+                    self.assertEqual(selected.section(name), reference.section(name))
+                else:
+                    with self.assertRaisesRegex(SafeCoreELFRejected, 'missing section'):
+                        selected.section(name)
             text = reference.section('.text')
             for name in ('.symtab', '.dynsym') if kind == 3 else ('.symtab',):
                 rows = reference.symbols(name)
@@ -197,7 +209,8 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         boundaries = ('_reference_inventory', '_reference_symbols', '_reference_string', '_reference_load_binding')
         blocked = {name: Mock(side_effect=AssertionError('host ELF boundary entered: ' + name))
                    for name in boundaries}
-        loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup',
+        loader_boundaries = ('_lookup_tables', '_reference_dynamic_tags',
+                             '_reference_sysv_lookup', '_reference_gnu_lookup',
                              '_reference_plt_slot', '_reference_object_relocations',
                              '_reference_symbol_versions', '_reference_relro', '_reference_functions',
                              '_reference_function_link', '_reference_dynamic_symbols',
@@ -433,6 +446,19 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         dynsymbols = final.symbols('.dynsym')
         export = dynsymbols[2]['name']
 
+        def reference_lookup(data, name):
+            reference = _ELF.__new__(_ELF)
+            reference._reference_inventory(data, 3)
+            table, slots, relocations = (reference.section(section, kind) for section, kind in
+                                         (('.dynamic', 6), ('.got', 1), ('.rela.plt', 4)))
+            authority = elf_reader._reference_dynamic_tags(reference, table, slots, relocations)
+            return elf_reader._lookup_tables(reference, authority, reference.symbols('.dynsym'), name)
+
+        self.native.verify_loader_lookup(self.final_bytes, export)
+        for name in (export + 'x', '', export[:-1], 'abort'):
+            self.assertEqual(result(self.native.verify_loader_lookup, self.final_bytes, name),
+                             result(reference_lookup, self.final_bytes, name))
+
         for name, key, gnu in (('.dynamic', None, False), ('.hash', 4, False),
                                ('.gnu.hash', 0x6ffffef5, True)):
             table = final.section(name)
@@ -453,6 +479,17 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                         expected = result(check, section, tags[key], symbol_arg)
                         actual = result(self.native.verify_hash, data, section, tags[key], export, gnu=gnu)
                     self.assertEqual(actual, expected, (name, at, value))
+                    self.assertEqual(result(self.native.verify_loader_lookup, data, export),
+                                     result(reference_lookup, data, export), (name, at, value))
+
+        for name in ('.dynsym', '.dynstr', '.gnu.version', '.gnu.version_r'):
+            section = final.section(name)
+            for offset in range(section['offset'], section['offset'] + section['size']):
+                changed = bytearray(self.final_bytes)
+                changed[offset] ^= 1
+                data = bytes(changed)
+                self.assertEqual(result(self.native.verify_loader_lookup, data, export),
+                                 result(reference_lookup, data, export), (name, offset))
 
     def test_native_relocations_match_real_link_and_retained_rejections(self):
         def result(check, *args):

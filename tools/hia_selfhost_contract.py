@@ -123,7 +123,6 @@ CORE_NORMALIZE_SDIST_FILES = (
     'examples/hia_bootstrap/core_inspect_cli_packer.hepta',
     'tools/generate_hia_core_inspect_json.py',
     'examples/hia_bootstrap/core_structural_totality.hepta',
-    'examples/hia_bootstrap/core_proof_wire.hepta',
     'examples/hia_bootstrap/core_totality_cli_packer.hepta',
     'examples/hia_bootstrap/core_proof_wire_cli_packer.hepta',
     'tools/generate_hia_core_totality.py',
@@ -307,6 +306,7 @@ SOURCE_FILES = (
     *WORKER_REQUEST_SDIST_FILES,
     *CORE_EDIT_SDIST_FILES,
     *EXECUTION_LEDGER_SDIST_FILES,
+    'examples/hia_bootstrap/core_proof_wire.hepta',
     'tests/test_hia_core_edit_runtime.py',
     'tests/test_hia_core_publication_runtime.py',
     # Independent fixtures imported by the installed Core publication checks.

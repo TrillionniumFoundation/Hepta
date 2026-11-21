@@ -31,12 +31,13 @@ class _ELF:
         if selected is None:
             self._reference_inventory(data, kind)
             return
-        self.sections, self.segments = selected.inventory(data, kind)
+        self.sections, self.segments, self.authorities = selected.inventory(data, kind, authorities=True)
         self.data = data
         self.by_name = {section['name']: section for section in self.sections}
 
     def _reference_inventory(self, data, kind):
         self._native_inventory = None
+        self.authorities = {}
         require(type(data) is bytes and 64 <= len(data) <= 8 * 1024 * 1024,
                 "expected bounded immutable ELF bytes")
         self.data = data
@@ -121,8 +122,8 @@ class _ELF:
             raise SafeCoreELFRejected("non-ASCII ELF name") from exc
 
     def section(self, name, typ=None):
-        require(name in self.by_name, "missing section " + name)
-        result = self.by_name[name]
+        result = self.authorities[name] if name in self.authorities else self.by_name.get(name)
+        require(result is not None, "missing section " + name)
         require(typ is None or result["type"] == typ, "section kind differs: " + name)
         return result
 
@@ -229,23 +230,12 @@ def _reference_dynamic_order(dynsymbols, export):
 
 def _lookup_tables(final, tags, dynsymbols, export):
     """Bind loader name/version lookup, not merely symbol-table spellings."""
-    if final._native_inventory is None:
-        _reference_dynamic_order(dynsymbols, export)
-    else:
-        final._native_inventory.verify_dynamic_order(final.data, final.section(".dynsym"), export)
-    table = final.section(".hash", 5)
-    if final._native_inventory is None:
-        _reference_sysv_lookup(table, tags.get(4), dynsymbols)
-    else:
-        final._native_inventory.verify_hash(final.data, table, tags.get(4), export, gnu=False)
-
-    table = final.section(".gnu.hash", 0x6ffffff6)
-    if final._native_inventory is None:
-        _reference_gnu_lookup(table, tags.get(0x6ffffef5), export)
-    else:
-        final._native_inventory.verify_hash(final.data, table, tags.get(0x6ffffef5), export, gnu=True)
-
-    _verify_symbol_versions(final, tags)
+    _reference_dynamic_order(dynsymbols, export)
+    _reference_sysv_lookup(final.section(".hash", 5), tags.get(4), dynsymbols)
+    _reference_gnu_lookup(final.section(".gnu.hash", 0x6ffffff6), tags.get(0x6ffffef5), export)
+    versions = final.section(".gnu.version", 0x6fffffff)
+    needed = final.section(".gnu.version_r", 0x6ffffffe)
+    _reference_symbol_versions(final, tags, versions, needed)
 
 
 def _reference_sysv_lookup(table, authority, dynsymbols):
@@ -283,16 +273,6 @@ def _reference_gnu_lookup(table, authority, export):
     expected_buckets[value % count] = 2
     require(bloom == expected_bloom and bucket_words == expected_buckets and chain == value | 1,
             "GNU lookup does not exactly resolve the checked export")
-
-
-def _verify_symbol_versions(final, tags):
-    versions, needed = final.section(".gnu.version", 0x6fffffff), final.section(".gnu.version_r", 0x6ffffffe)
-    if final._native_inventory is None:
-        _reference_symbol_versions(final, tags, versions, needed)
-        return
-    final._native_inventory.verify_version_tables(final.data, versions, needed, tags)
-    strings = final.section(".dynstr", 3)
-    final._native_inventory.verify_version_names(final.data, needed, strings)
 
 
 def _reference_symbol_versions(final, tags, versions, needed):
@@ -523,9 +503,9 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     final.load_binding(dynamic, 6)
     if final._native_inventory is None:
         tags = _reference_dynamic_tags(final, dynamic, got, rela)
+        _lookup_tables(final, tags, dynsymbols, export)
     else:
-        tags = final._native_inventory.dynamic_tags(final.data, dynamic, got, rela)
-    _lookup_tables(final, tags, dynsymbols, export)
+        final._native_inventory.verify_loader_lookup(final.data, export)
 
     relsec = obj.section(".rela.text", 4)
     if obj._native_inventory is None:

@@ -41,6 +41,20 @@ DYNAMIC_ORDER_MAGIC = int.from_bytes(b'HIAELFY1', 'little')
 OBJECT_INVENTORY_MAGIC = int.from_bytes(b'HIAELFO1', 'little')
 UNWINDING_MAGIC = int.from_bytes(b'HIAELFU1', 'little')
 TEXT_GEOMETRY_MAGIC = int.from_bytes(b'HIAELFJ1', 'little')
+AUTHORITY_MAGIC = int.from_bytes(b'HIAELFM1', 'little')
+LOADER_AUTHORITIES = (
+    '.hash', '.gnu.hash', '.dynsym', '.dynstr', '.gnu.version', '.gnu.version_r',
+    '.rela.plt', '.plt', '.text', '.eh_frame', '.dynamic', '.got',
+)
+SECTION_AUTHORITIES = (*LOADER_AUTHORITIES, '.rela.text', '.symtab', '.strtab')
+AUTHORITY_BYTES = 8 * len(SECTION_AUTHORITIES)
+LOOKUP_MAGIC = int.from_bytes(b'HIAELFK1', 'little')
+LOOKUP_NAME = 64
+LOOKUP_ROLES = LOOKUP_NAME + 256
+LOOKUP_WORK = LOOKUP_ROLES + AUTHORITY_BYTES
+LOOKUP_TYPED = ('.dynamic', '.got', '.rela.plt', '.hash', '.gnu.hash',
+                '.gnu.version', '.gnu.version_r', '.dynstr')
+LOOKUP_REQUIRED = ('.dynsym', *LOOKUP_TYPED)
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -107,6 +121,8 @@ REFUSALS = (
     ('unwinding', 'unreviewed nonempty unwinding metadata'),
     ('text_shape', 'source and final text shapes differ'),
     ('text_budget', 'Safe Core text budget exceeded'),
+    *((f'lookup_missing_{name}', 'missing section ' + name) for name in LOOKUP_REQUIRED),
+    *((f'lookup_kind_{name}', 'section kind differs: ' + name) for name in LOOKUP_TYPED),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -234,14 +250,14 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
                       OWNED_SHARED_SEGMENT.iter_unpack(output.raw[header:size])]
         return shoff, shnum, executable, symoff, symsize, stroff, strsize
 
-    def _exchange(self, data, arguments, suffix=b''):
+    def _exchange(self, data, arguments, suffix=b'', *, capacity=CAPACITY):
         require(type(data) is bytes and 64 <= len(data) <= MAX_ELF, REFUSALS[0][1])
         source = ctypes.create_string_buffer(data, len(data))
-        output = ctypes.create_string_buffer(CAPACITY)
+        output = ctypes.create_string_buffer(capacity)
         packet = struct.pack(f'<{len(arguments)}Q', *arguments) + suffix
         scratch = ctypes.create_string_buffer(packet, len(packet))
-        size = self._checked_default_entry(source, len(data), output, CAPACITY, scratch, len(scratch))
-        if not HEADER.size <= size <= CAPACITY:
+        size = self._checked_default_entry(source, len(data), output, capacity, scratch, len(scratch))
+        if not HEADER.size <= size <= capacity:
             raise RuntimeError('invalid native Safe Core ELF response extent')
         status, first, second = HEADER.unpack_from(output)
         if status:
@@ -263,12 +279,14 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             raise RuntimeError('invalid native Safe Core ELF name extent')
         return data[offset:offset + count].decode('ascii')
 
-    def inventory(self, data, kind):
+    def inventory(self, data, kind, *, authorities=False):
         if type(kind) is not int or not 0 <= kind <= 65535:
             require(False, REFUSALS[1][1])
-        output, size, section_count, segment_count = self._exchange(data, (kind,))
+        arguments = (AUTHORITY_MAGIC, kind) if authorities else (kind,)
+        extra = AUTHORITY_BYTES if authorities else 0
+        output, size, section_count, segment_count = self._exchange(data, arguments, capacity=CAPACITY + extra)
         if (not 1 <= section_count <= MAX_SECTIONS or segment_count > MAX_SEGMENTS
-                or size != HEADER.size + section_count * SECTION.size + segment_count * SEGMENT.size):
+                or size != HEADER.size + section_count * SECTION.size + segment_count * SEGMENT.size + extra):
             raise RuntimeError('invalid native Safe Core ELF inventory counts')
         cursor = HEADER.size
         sections = []
@@ -288,8 +306,13 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         for _ in range(segment_count):
             segments.append(dict(zip(SEGMENT_FIELDS, SEGMENT.unpack_from(output, cursor), strict=True)))
             cursor += SEGMENT.size
-        return sections, segments
-
+        if not authorities:
+            return sections, segments
+        roles = struct.unpack_from(f'<{len(SECTION_AUTHORITIES)}Q', output, cursor)
+        if any(index > section_count for index in roles):
+            raise RuntimeError('invalid native Safe Core ELF authority index')
+        return sections, segments, {name: sections[index - 1] if index else None
+                                    for name, index in zip(SECTION_AUTHORITIES, roles, strict=True)}
 
     def symbols(self, data, index):
         return self._symbol_rows(data, (index, 0))
@@ -347,6 +370,13 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         name = export.encode('utf-8')
         self._verify_terminal(data, (DYNAMIC_ORDER_MAGIC, dynamic_table['index'], len(name), 0, 0, 0, 0, 0), name)
 
+    def verify_loader_lookup(self, data, export):
+        name = export.encode('utf-8')
+        require(len(name) <= 256, REFUSALS[REFUSAL_IDS['dynamic_order'] - 1][1])
+        fields = (LOOKUP_MAGIC, len(name), 0, 0, 0, 0, 0, 0)
+        self._verify_terminal(data, fields, name.ljust(LOOKUP_WORK - LOOKUP_NAME, b'\0'),
+                              capacity=CAPACITY + AUTHORITY_BYTES)
+
     def verify_object_inventory(self, data, rela, text, symbols, *, direct):
         fields = (OBJECT_INVENTORY_MAGIC, rela['index'], text['index'], symbols['index'], int(direct), 0, 0, 0, 0)
         self._verify_terminal(data, fields)
@@ -358,8 +388,8 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         fields = (TEXT_GEOMETRY_MAGIC, source['index'], linked['flags'], linked['size'], 0, 0, 0, 0)
         self._verify_terminal(data, fields, text)
 
-    def _verify_terminal(self, data, fields, suffix=b''):
-        _, size, first, second = self._exchange(data, fields, suffix)
+    def _verify_terminal(self, data, fields, suffix=b'', *, capacity=CAPACITY):
+        _, size, first, second = self._exchange(data, fields, suffix, capacity=capacity)
         if size != HEADER.size or first or second:
             raise RuntimeError('invalid native Safe Core layout response')
 

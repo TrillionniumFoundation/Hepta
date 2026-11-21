@@ -6,7 +6,9 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
-    CAPACITY, DYNAMIC_ORDER_MAGIC, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
+    AUTHORITY_BYTES, AUTHORITY_MAGIC, CAPACITY, LOADER_AUTHORITIES, SECTION_AUTHORITIES,
+    LOOKUP_MAGIC, LOOKUP_REQUIRED, LOOKUP_ROLES, LOOKUP_TYPED, LOOKUP_WORK,
+    DYNAMIC_ORDER_MAGIC, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
     EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC, OBJECT_INVENTORY_MAGIC,
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC,
@@ -29,15 +31,21 @@ FIELDS.update(LOADER_SECTION_MAGIC=LOADER_SECTION_MAGIC, EXECUTABLE_LAYOUT_MAGIC
               DYNAMIC_RELOCATION_MAGIC=DYNAMIC_RELOCATION_MAGIC)
 FIELDS.update(DYNAMIC_ORDER_MAGIC=DYNAMIC_ORDER_MAGIC, OBJECT_INVENTORY_MAGIC=OBJECT_INVENTORY_MAGIC)
 FIELDS.update(TEXT_GEOMETRY_MAGIC=TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC=UNWINDING_MAGIC)
-LOADER_SECTION_NAMES = (
-    b'.hash', b'.gnu.hash', b'.dynsym', b'.dynstr', b'.gnu.version', b'.gnu.version_r',
-    b'.rela.plt', b'.plt', b'.text', b'.eh_frame', b'.dynamic', b'.got',
-)
+FIELDS.update(AUTHORITY_BYTES=AUTHORITY_BYTES, AUTHORITY_MAGIC=AUTHORITY_MAGIC,
+              LOADER_AUTHORITY_COUNT=len(LOADER_AUTHORITIES))
+FIELDS.update(LOOKUP_MAGIC=LOOKUP_MAGIC, LOOKUP_ROLES=LOOKUP_ROLES, LOOKUP_WORK=LOOKUP_WORK)
+for section in LOOKUP_REQUIRED:
+    label = section.strip('.').replace('.', '_').upper()
+    FIELDS['ROLE_' + label] = SECTION_AUTHORITIES.index(section)
+    FIELDS['MISSING_' + label] = REFUSAL_IDS['lookup_missing_' + section]
+    if section in LOOKUP_TYPED:
+        FIELDS['KIND_' + label] = REFUSAL_IDS['lookup_kind_' + section]
 FIELDS.update(FUNCTION_LINK_MAGIC=FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES=FUNCTION_LINK_BYTES,
               FUNCTION_LINK_NAME_BYTES=FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES=FUNCTION_LINK_ROW_BYTES,
               FUNCTION_LINK_SOURCE_OFFSET=FUNCTION_LINK_SOURCE_OFFSET,
               FUNCTION_LINK_TARGET_OFFSET=FUNCTION_LINK_TARGET_OFFSET)
-FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
+FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()
+               if not name.startswith('lookup_')})
 FIELDS.update({'ABI_' + name.upper(): number for number, (name, _) in enumerate(OWNED_SHARED_REFUSALS, 1)})
 FIELDS.update(OWNED_SHARED_MAGIC=OWNED_SHARED_MAGIC, OWNED_SHARED_MAX=OWNED_SHARED_MAX)
 FIELDS.update(OWNED_SHARED_SYMBOL_MAGIC=OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD=OWNED_SHARED_SYMBOL_HEAD,
@@ -70,6 +78,12 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return terminal(o, E_EXTENT, 0, 0)
     if length(w) == 8 and get(w, 0) == LOADER_SECTION_MAGIC:
         return verify_loader_sections(s, o)
+    if length(w) == 16 and get(w, 0) == AUTHORITY_MAGIC:
+        return inventory_authorities(s, o, get(w, 8))
+    if length(w) == LOOKUP_WORK and get(w, 0) == LOOKUP_MAGIC:
+        if length(o) < CAPACITY + AUTHORITY_BYTES:
+            return 4294967294
+        return loader_lookup(s, o, w)
     if length(w) == 16 and get(w, 8) == 0:
         return symbol_table(s, o, get(w, 0))
     if length(w) == 24:
@@ -105,7 +119,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return loader_hash(s, o, w)
     if length(w) != 8:
         return 4294967293
-    kind = get(w, 0)
+    return base_inventory(s, o, get(w, 0))
+
+def base_inventory(s:readbuf, o:mutbuf, kind:u64) -> u64:
+    size = length(s)
     if word(s, 0, 8) != ELF_IDENT or word(s, 8, 8) != 0 or word(s, 16, 2) != kind:
         return terminal(o, E_IDENTITY, 0, 0)
     if word(s, 18, 2) != 62 or word(s, 20, 4) != 1 or word(s, 24, 8) != 0 or word(s, 48, 4) != 0:
@@ -142,6 +159,26 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if error != 0:
         return terminal(o, error, 0, 0)
     return terminal(o, 0, count, phnum)
+
+def inventory_authorities(s:readbuf, o:mutbuf, kind:u64) -> u64:
+    extent = base_inventory(s, o, kind)
+    if get(o, 0) != 0:
+        return extent
+    if length(o) - extent < AUTHORITY_BYTES:
+        return 4294967294
+    i = 0
+    while i < AUTHORITY_BYTES:
+        put(o, extent + i, 0)
+        i = i + 8
+    index = 0
+    count = get(o, 8)
+    while index < count:
+        row = 24 + index * 96
+        role = section_authority(s, get(o, row + 8), get(o, row + 16))
+        if role != 0:
+            put(o, extent + 8 * (role - 1), index + 1)
+        index = index + 1
+    return extent + AUTHORITY_BYTES
 
 def terminal(o:mutbuf, error:u64, sections:u64, segments:u64) -> u64:
     return reply(o, error, sections, segments, 24 + sections * 96 + segments * 56)
@@ -454,9 +491,14 @@ def exact_abort_import(s:readbuf, o:mutbuf, response:u64) -> u64:
 
 def verify_dynamic_order(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     count = get(w, 16)
-    if count != length(w) - 64 or count > 256:
+    if count != length(w) - 64:
         return terminal(o, E_DYNAMIC_ORDER, 0, 0)
-    result = symbol_table(s, o, get(w, 8))
+    return exact_dynamic_order(s, o, w, get(w, 8), count)
+
+def exact_dynamic_order(s:readbuf, o:mutbuf, w:mutbuf, table:u64, count:u64) -> u64:
+    if count > 256:
+        return terminal(o, E_DYNAMIC_ORDER, 0, 0)
+    result = symbol_table(s, o, table)
     if get(o, 0) != 0:
         return result
     if get(o, 8) != 3 or get(o, 32) != 0 or empty_symbol_attributes(o, 24, 0) == 0:
@@ -629,13 +671,14 @@ def verify_loader_section(s:readbuf, o:mutbuf, row:u64, name:u64, extent:u64) ->
         return terminal(o, E_NAME_LENGTH, 0, 0)
     if ascii_name(s, name, size) == 0:
         return terminal(o, E_NAME_ASCII, 0, 0)
-    reviewed = loader_section_name(s, name, size)
+    role = section_authority(s, name, size)
+    reviewed = role != 0 and role <= LOADER_AUTHORITY_COUNT
     flags = word(s, row + 8, 8)
     if (flags & 2) == 0:
-        if reviewed != 0:
+        if reviewed:
             return reply(o, E_LOADER_SECTION_UNALLOCATED, name, size, 24)
         return 0
-    if reviewed == 0 or (flags != 2 and flags != 3 and flags != 6 and flags != 66):
+    if reviewed == False or (flags != 2 and flags != 3 and flags != 6 and flags != 66):
         return terminal(o, E_LOADER_SECTION_UNREVIEWED, 0, 0)
     span = word(s, row + 32, 8)
     if span == 0:
@@ -776,9 +819,9 @@ def dynamic_relocation_inventory(s:readbuf, o:mutbuf, w:mutbuf, start:u64, count
     return reply(o, 0, 0, 0, 24)
 
 def dynamic_tags(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    start = get(w, 0)
-    size = get(w, 8)
-    addr = get(w, 16)
+    return exact_dynamic_tags(s, o, get(w, 0), get(w, 8), get(w, 16), get(w, 24), get(w, 32))
+
+def exact_dynamic_tags(s:readbuf, o:mutbuf, start:u64, size:u64, addr:u64, got:u64, rela:u64) -> u64:
     phoff = word(s, 32, 8)
     phnum = word(s, 56, 2)
     if phnum > MAX_SEGMENTS or in_file(length(s), phoff, phnum * 56) == 0:
@@ -820,9 +863,9 @@ def dynamic_tags(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             put(o, 32 + rows * 16, value)
             rows = rows + 1
             at = at + 16
-    if tag_equals(o, rows, 3, get(w, 24)) == 0 or tag_equals(o, rows, 2, 24) == 0:
+    if tag_equals(o, rows, 3, got) == 0 or tag_equals(o, rows, 2, 24) == 0:
         return terminal(o, E_DYNAMIC_PLT, 0, 0)
-    if tag_equals(o, rows, 20, 7) == 0 or tag_equals(o, rows, 23, get(w, 32)) == 0:
+    if tag_equals(o, rows, 20, 7) == 0 or tag_equals(o, rows, 23, rela) == 0:
         return terminal(o, E_DYNAMIC_PLT, 0, 0)
     if tag_equals(o, rows, 30, 8) == 0 or tag_equals(o, rows, 0x6ffffffb, 1) == 0:
         return terminal(o, E_DYNAMIC_PLT, 0, 0)
@@ -845,6 +888,109 @@ def tag_equals(o:mutbuf, rows:u64, tag:u64, value:u64) -> u64:
             return choose(get(o, at + 8) == value, 1, 0)
         index = index + 1
     return 0
+
+def loader_lookup(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if get(w, 8) > 256 or get(w, 16) != 0 or get(w, 24) != 0 or get(w, 32) != 0 or get(w, 40) != 0 or get(w, 48) != 0 or get(w, 56) != 0:
+        return 4294967293
+    extent = inventory_authorities(s, o, 3)
+    if get(o, 0) != 0:
+        return extent
+    first = extent - AUTHORITY_BYTES
+    shoff = word(s, 40, 8)
+    index = 0
+    while index < AUTHORITY_BYTES:
+        row = get(o, first + index)
+        if row != 0:
+            row = shoff + (row - 1) * 64
+        put(w, LOOKUP_ROLES + index, row)
+        index = index + 8
+    return lookup_dynamic(s, o, w)
+
+def lookup_row(w:mutbuf, role:u64) -> u64:
+    return get(w, LOOKUP_ROLES + role * 8)
+
+def lookup_dynamic(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    dynamic = lookup_row(w, ROLE_DYNAMIC)
+    if dynamic == 0:
+        return terminal(o, MISSING_DYNAMIC, 0, 0)
+    if word(s, dynamic + 4, 4) != 6:
+        return terminal(o, KIND_DYNAMIC, 0, 0)
+    got = lookup_row(w, ROLE_GOT)
+    if got == 0:
+        return terminal(o, MISSING_GOT, 0, 0)
+    if word(s, got + 4, 4) != 1:
+        return terminal(o, KIND_GOT, 0, 0)
+    rela = lookup_row(w, ROLE_RELA_PLT)
+    if rela == 0:
+        return terminal(o, MISSING_RELA_PLT, 0, 0)
+    if word(s, rela + 4, 4) != 4:
+        return terminal(o, KIND_RELA_PLT, 0, 0)
+    result = exact_dynamic_tags(s, o, word(s, dynamic + 24, 8), word(s, dynamic + 32, 8),
+                                word(s, dynamic + 16, 8), word(s, got + 16, 8), word(s, rela + 16, 8))
+    if get(o, 0) != 0:
+        return result
+    rows = get(o, 8)
+    put(w, 16, tag_equals(o, rows, 4, word(s, lookup_row(w, ROLE_HASH) + 16, 8)))
+    put(w, 24, tag_equals(o, rows, 0x6ffffef5, word(s, lookup_row(w, ROLE_GNU_HASH) + 16, 8)))
+    put(w, 32, tag_equals(o, rows, 0x6ffffff0, word(s, lookup_row(w, ROLE_GNU_VERSION) + 16, 8)))
+    put(w, 40, tag_equals(o, rows, 0x6ffffffe, word(s, lookup_row(w, ROLE_GNU_VERSION_R) + 16, 8)))
+    put(w, 48, tag_equals(o, rows, 0x6fffffff, 1))
+    dynsym = lookup_row(w, ROLE_DYNSYM)
+    if dynsym == 0:
+        return terminal(o, MISSING_DYNSYM, 0, 0)
+    result = exact_dynamic_order(s, o, w, (dynsym - word(s, 40, 8)) >> 6, get(w, 8))
+    if get(o, 0) != 0:
+        return result
+    return lookup_hashes(s, o, w)
+
+def lookup_hashes(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    row = lookup_row(w, ROLE_HASH)
+    if row == 0:
+        return terminal(o, MISSING_HASH, 0, 0)
+    if word(s, row + 4, 4) != 5:
+        return terminal(o, KIND_HASH, 0, 0)
+    size = word(s, row + 32, 8)
+    if get(w, 16) == 0 or size < 8:
+        return terminal(o, E_SYSV_AUTHORITY, 0, 0)
+    error = review_sysv(s, word(s, row + 24, 8), size, sysv_export(w, get(w, 8)))
+    if error != 0:
+        return terminal(o, error, 0, 0)
+    row = lookup_row(w, ROLE_GNU_HASH)
+    if row == 0:
+        return terminal(o, MISSING_GNU_HASH, 0, 0)
+    if word(s, row + 4, 4) != 0x6ffffff6:
+        return terminal(o, KIND_GNU_HASH, 0, 0)
+    size = word(s, row + 32, 8)
+    if get(w, 24) == 0 or size < 16:
+        return terminal(o, E_GNU_AUTHORITY, 0, 0)
+    error = review_gnu(s, word(s, row + 24, 8), size, gnu_export(w, get(w, 8)))
+    if error != 0:
+        return terminal(o, error, 0, 0)
+    return lookup_versions(s, o, w)
+
+def lookup_versions(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    versions = lookup_row(w, ROLE_GNU_VERSION)
+    if versions == 0:
+        return terminal(o, MISSING_GNU_VERSION, 0, 0)
+    if word(s, versions + 4, 4) != 0x6fffffff:
+        return terminal(o, KIND_GNU_VERSION, 0, 0)
+    needed = lookup_row(w, ROLE_GNU_VERSION_R)
+    if needed == 0:
+        return terminal(o, MISSING_GNU_VERSION_R, 0, 0)
+    if word(s, needed + 4, 4) != 0x6ffffffe:
+        return terminal(o, KIND_GNU_VERSION_R, 0, 0)
+    if (get(w, 32) & get(w, 40) & get(w, 48)) == 0 or word(s, versions + 32, 8) != 6 or word(s, needed + 32, 8) != 32:
+        return terminal(o, E_VERSION_AUTHORITY, 0, 0)
+    need_at = word(s, needed + 24, 8)
+    result = exact_version_tables(s, o, word(s, versions + 24, 8), need_at)
+    if get(o, 0) != 0:
+        return result
+    strings = lookup_row(w, ROLE_DYNSTR)
+    if strings == 0:
+        return terminal(o, MISSING_DYNSTR, 0, 0)
+    if word(s, strings + 4, 4) != 3:
+        return terminal(o, KIND_DYNSTR, 0, 0)
+    return exact_version_import(s, o, need_at, word(s, strings + 24, 8), word(s, strings + 32, 8))
 
 def loader_hash(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     name_size = get(w, 48)
@@ -1078,20 +1224,21 @@ def linked_text_matches(s:readbuf, o:mutbuf, w:mutbuf, text:u64, size:u64, count
     return 1
 
 def review_version_tables(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    versions = get(w, 8)
-    needed = get(w, 32)
     if get(w, 16) != 6 or get(w, 40) != 32 or get(w, 56) != 7:
         return terminal(o, E_VERSION_AUTHORITY, 0, 0)
     if get(w, 64) != get(w, 24) or get(w, 72) != get(w, 48) or get(w, 80) != 1:
         return terminal(o, E_VERSION_AUTHORITY, 0, 0)
+    return exact_version_tables(s, o, get(w, 8), get(w, 32))
+
+def exact_version_tables(s:readbuf, o:mutbuf, versions:u64, needed:u64) -> u64:
     if in_file(length(s), versions, 6) == 0 or in_file(length(s), needed, 32) == 0:
         return terminal(o, E_RANGE, 0, 0)
     return terminal(o, choose(word(s, versions, 6) == 0x000100020000, 0, E_VERSION_AUTHORITY), 0, 0)
 
 def review_version_import(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    needed = get(w, 8)
-    start = get(w, 16)
-    size = get(w, 24)
+    return exact_version_import(s, o, get(w, 8), get(w, 16), get(w, 24))
+
+def exact_version_import(s:readbuf, o:mutbuf, needed:u64, start:u64, size:u64) -> u64:
     if in_file(length(s), needed, 32) == 0:
         return terminal(o, E_RANGE, 0, 0)
     if word(s, needed, 4) != 0x00010001 or word(s, needed + 8, 8) != 16:
@@ -1580,11 +1727,12 @@ def owned_import_authoring():
     return '\n'.join(lines)
 
 
-def loader_section_classifier():
-    lines = ['def loader_section_name(s:readbuf, name:u64, size:u64) -> u64:']
-    for width in sorted({len(name) for name in LOADER_SECTION_NAMES}):
+def section_authority_classifier():
+    lines = ['def section_authority(s:readbuf, name:u64, size:u64) -> u64:']
+    roles = [(index, name.encode('ascii')) for index, name in enumerate(SECTION_AUTHORITIES, 1)]
+    for width in sorted({len(name) for _, name in roles}):
         lines.append(f'    if size == {width}:')
-        for name in LOADER_SECTION_NAMES:
+        for index, name in roles:
             if len(name) != width:
                 continue
             first = int.from_bytes(name[:8], 'little')
@@ -1592,7 +1740,7 @@ def loader_section_classifier():
             if width > 8:
                 suffix = int.from_bytes(name[8:], 'little')
                 test += f' and word(s, name + 8, {width - 8}) == {suffix}'
-            lines.extend((f'        if {test}:', '            return 1'))
+            lines.extend((f'        if {test}:', f'            return {index}'))
     return '\n'.join((*lines, '    return 0', ''))
 
 
@@ -1601,7 +1749,7 @@ def document():
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
-    source = '\n'.join((SOURCE, owned_import_authoring(), loader_section_classifier()))
+    source = '\n'.join((SOURCE, owned_import_authoring(), section_authority_classifier()))
     nodes = ast.fix_missing_locations(Constants().visit(ast.parse(source))).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)

@@ -70,11 +70,30 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
 
     def test_word_projection_uses_the_bound_elf_and_checks_stack_and_sysv(self):
         from pathlib import Path
+        import struct
         import tempfile
         from hepta.hia_program import verify_program
         from hepta.hia_program_native import compile_program_machine, emit_program_machine
         from hepta.hia_safe_core_elf import bind_final_artifact
+        from hepta.hia_safe_core_x64_decode_native import ALU_GROUPS, MACHINE_VALUES_REQUEST, OPERATION_IDS, ROW
         from tests.test_hia_program import arithmetic
+
+        def reference_frame(binding, words):
+            text, calls = binding['text'], binding['calls']
+            rows = _reference_decode(text)
+            _reference_validate_calls(rows, calls)
+            groups = {name: code for code, name in ALU_GROUPS.items()}
+            output = bytearray(struct.pack('<4Q', MACHINE_VALUES_REQUEST, binding['entry'], words, len(rows)))
+            for pc, instruction in rows.items():
+                args = instruction.args
+                if instruction.op == 'immediate_alu':
+                    args = (groups[args[0]], *args[1:])
+                elif instruction.op == 'call' and calls[pc] == 'abort':
+                    args = (-1,)
+                operands = [value % (1 << 64) for value in args]
+                operands.extend([0] * (3 - len(operands)))
+                output.extend(ROW.pack(pc, OPERATION_IDS[instruction.op], instruction.size, *operands))
+            return bytes(output), len(rows)
 
         for name, operation in (('int.add.wrap', 9), ('int.sub.wrap', 10), ('int.mul.wrap', 32)):
             with self.subTest(operation=name), tempfile.TemporaryDirectory() as directory:
@@ -84,7 +103,9 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                 compile_program_machine(emitted, program=core, output=final, linker='ld')
                 function, = core.as_dict()['functions']
                 binding = bind_final_artifact(emitted.object_bytes, final.read_bytes(), function['name'])
-                nodes, value, abort, counts = self.native.project_scalar_values(binding, 2)
+                self.assertEqual(self.native.machine_scalar_frame(binding, 2), reference_frame(binding, 2))
+                with patch.object(type(self.native), 'decode', side_effect=AssertionError('host frame rebuilt')):
+                    nodes, value, abort, counts = self.native.project_scalar_values(binding, 2)
                 self.assertEqual(abort, 3)
                 self.assertEqual(nodes, ((1, 64, 0, 0, 0), (1, 64, 0, 0, 0),
                                          (operation, 64, 0, 1, 0), (2, 1, 0, 0, 0)))
@@ -719,8 +740,15 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                                              {0: 'abort', 5: 11}, {0: 'abort', 6: 11})]
         cases.append((text[:-3], {0: 6}))
         for data, calls in cases:
-            self.assertEqual(observe(self.native.decode, data, calls),
-                             observe(retained, data, calls), calls)
+            expected = observe(retained, data, calls)
+            self.assertEqual(observe(self.native.decode, data, calls), expected, calls)
+
+            def framed(text, inventory):
+                _, count = self.native.machine_scalar_frame({'text': text, 'entry': 0, 'calls': inventory}, 1)
+                return count
+
+            self.assertEqual(observe(framed, data, calls),
+                             len(expected) if isinstance(expected, dict) else expected, calls)
 
     def test_memory_admission_matches_reference_at_signed_boundaries(self):
         offsets = (-(1 << 63), -16385, -16384, -8, -7, -1, 0, 1, 7, 8, 9, (1 << 63) - 1)
