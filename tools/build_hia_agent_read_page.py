@@ -38,6 +38,7 @@ VARIANTS = {
     'discovery-artifact': ('discovery_artifact', 'hepta.hia.discovery-artifact-native.v1'),
     'discovery-effect': ('discovery_effect', 'hepta.hia.discovery-effect-native.v1'),
     'describe-bind': ('describe_bind', 'hepta.hia.describe-bind-native.v1'),
+    'discovery-bootstrap-plan': ('discovery_bootstrap_plan', 'hepta.hia.discovery-bootstrap-plan-native.v1'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),
     'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
     'job-terminal-receipt': ('job_terminal_receipt', 'hepta.hia.job-terminal-receipt-native.v1'),
