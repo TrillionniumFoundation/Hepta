@@ -153,8 +153,29 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
             reference = _ELF.__new__(_ELF)
             reference._reference_inventory(data, kind)
             selected = _ELF(data, kind)
+            text = reference.section('.text')
             for name in ('.symtab', '.dynsym') if kind == 3 else ('.symtab',):
-                self.assertEqual(selected.symbols(name), reference.symbols(name))
+                rows = reference.symbols(name)
+                self.assertEqual(selected.symbols(name), rows)
+                self.assertEqual(elf_reader._functions(selected, text, name),
+                                 elf_reader._reference_functions(reference, text, name))
+                table = reference.section(name)
+                function = next(index for index, row in enumerate(rows)
+                                if row['info'] & 15 == 2 and row['shndx'] == text['index'])
+                offset = table['offset'] + 24 * function
+                corrupted = (data[:offset + 16] + bytes(8) + data[offset + 24:],
+                             data[:offset + 8] + struct.pack('<Q', text['addr'] + text['size'])
+                             + data[offset + 16:],
+                             data[:table['offset']] + data[offset:offset + 24]
+                             + data[table['offset'] + 24:])
+                for mutation in corrupted:
+                    historical = _ELF.__new__(_ELF)
+                    historical._reference_inventory(mutation, kind)
+                    with self.assertRaises(SafeCoreELFRejected) as old:
+                        elf_reader._reference_functions(historical, text, name)
+                    with self.assertRaises(SafeCoreELFRejected) as native:
+                        elf_reader._functions(_ELF(mutation, kind), text, name)
+                    self.assertEqual(str(native.exception), str(old.exception))
             for section in reference.sections:
                 if kind == 3 and section['flags'] & 2 and section['size']:
                     permissions = 6 if section['flags'] & 1 else 5 if section['flags'] & 4 else 4
@@ -178,7 +199,7 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                    for name in boundaries}
         loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup',
                              '_reference_plt_slot', '_reference_object_relocations',
-                             '_reference_symbol_versions', '_reference_relro')
+                             '_reference_symbol_versions', '_reference_relro', '_reference_functions')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):

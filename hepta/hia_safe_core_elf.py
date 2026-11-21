@@ -164,6 +164,13 @@ class _ELF:
 
 
 def _functions(elf, section, table):
+    if elf._native_inventory is not None:
+        index = elf.section(table)['index']
+        return elf._native_inventory.functions(elf.data, index, section)
+    return _reference_functions(elf, section, table)
+
+
+def _reference_functions(elf, section, table):
     rows = elf.symbols(table)
     result = {}
     for row in rows:

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
-    CAPACITY, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
+    CAPACITY, FUNCTION_SYMBOL_MAGIC, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
     OWNED_SHARED_SYMBOL_MAGIC, OWNED_SHARED_SYMBOL_HEAD, OWNED_SHARED_SYMBOL_CAPACITY,
     OWNED_SHARED_SYMBOL_WORK, OWNED_SHARED_EXPECTED_COUNT, OWNED_SHARED_EXPECTED_RECORD, OWNED_SHARED_EXPECTED_WORK,
@@ -17,6 +17,7 @@ from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_func
 SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
 FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
           'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
+FIELDS['FUNCTION_SYMBOL_MAGIC'] = FUNCTION_SYMBOL_MAGIC
 FIELDS.update({'E_' + name.upper(): number for name, number in REFUSAL_IDS.items()})
 FIELDS.update({'ABI_' + name.upper(): number for number, (name, _) in enumerate(OWNED_SHARED_REFUSALS, 1)})
 FIELDS.update(OWNED_SHARED_MAGIC=OWNED_SHARED_MAGIC, OWNED_SHARED_MAX=OWNED_SHARED_MAX)
@@ -56,6 +57,8 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return dynamic_tags(s, o, w)
     if length(w) == 48 and get(w, 40) == 0:
         return verify_plt_slot(s, o, w)
+    if length(w) == 56 and get(w, 0) == FUNCTION_SYMBOL_MAGIC:
+        return exact_functions(s, o, w)
     if length(w) >= 64:
         operation = get(w, 0)
         if operation == 2:
@@ -333,6 +336,54 @@ def symbol_rows(s:readbuf, o:mutbuf, start:u64, count:u64, names_at:u64, names_s
         put(o, result + 48, word(s, row + 16, 8))
         index = index + 1
     return reply(o, 0, count, 0, 24 + count * 56)
+
+def exact_functions(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if get(w, 40) != 0 or get(w, 48) != 0:
+        return 4294967293
+    extent = symbol_table(s, o, get(w, 8))
+    if get(o, 0) != 0:
+        return extent
+    count = get(o, 8)
+    selected = 0
+    index = 0
+    while index < count:
+        row = 24 + index * 56
+        if (get(o, row + 16) & 15) == 2 and get(o, row + 32) != 0:
+            if exact_function_extent(o, w, row) == 0 or unique_function(s, o, row, selected) == 0:
+                return terminal(o, E_FUNCTION_EXTENT, 0, 0)
+            target = 24 + selected * 56
+            if target != row:
+                copy_symbol_row(o, target, row)
+            selected = selected + 1
+        index = index + 1
+    return reply(o, 0, selected, 0, 24 + selected * 56)
+
+def exact_function_extent(o:mutbuf, w:mutbuf, row:u64) -> u64:
+    first = get(w, 24)
+    extent = get(w, 32)
+    value = get(o, row + 40)
+    size = get(o, row + 48)
+    if get(o, row + 32) != get(w, 16) or size == 0 or size > extent or value < first:
+        return 0
+    return choose(value - first <= extent - size, 1, 0)
+
+def unique_function(s:readbuf, o:mutbuf, row:u64, selected:u64) -> u64:
+    offset = get(o, row)
+    size = get(o, row + 8)
+    ordinal = 0
+    while ordinal < selected:
+        prior = 24 + ordinal * 56
+        if get(o, prior + 8) == size and same_name(s, get(o, prior), offset, size) != 0:
+            return 0
+        ordinal = ordinal + 1
+    return 1
+
+def copy_symbol_row(o:mutbuf, target:u64, source:u64) -> u64:
+    byte_index = 0
+    while byte_index < 56:
+        store(o, target + byte_index, byte(o, source + byte_index))
+        byte_index = byte_index + 1
+    return 0
 
 def load_binding(s:readbuf, o:mutbuf, section_addr:u64, section_size:u64, section_offset:u64, permissions:u64) -> u64:
     phoff = word(s, 32, 8)

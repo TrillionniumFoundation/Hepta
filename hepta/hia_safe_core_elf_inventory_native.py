@@ -25,6 +25,7 @@ SECTION_FIELDS = ('type', 'flags', 'addr', 'offset', 'size', 'link', 'info', 'al
 SEGMENT_FIELDS = ('type', 'flags', 'offset', 'addr', 'filesz', 'memsz', 'align')
 SYMBOL_FIELDS = ('info', 'other', 'shndx', 'value', 'size')
 MAX_SYMBOLS = 32
+FUNCTION_SYMBOL_MAGIC = int.from_bytes(b'HIAELFF1', 'little')
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -73,6 +74,7 @@ REFUSALS = (
     ('relro_count', 'expected exactly one RELRO authority'),
     ('relro_mapping', 'RELRO differs from the reviewed writable load mapping'),
     ('relro_got', 'GOT is outside the effective RELRO page protection'),
+    ('function_extent', 'function is repeated or lies outside exact text'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -254,13 +256,20 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
 
 
     def symbols(self, data, index):
-        output, size, count, reserved = self._exchange(data, (index, 0))
+        return self._symbol_rows(data, (index, 0))
+
+    def functions(self, data, table, section):
+        fields = (FUNCTION_SYMBOL_MAGIC, table, section['index'], section['addr'], section['size'], 0, 0)
+        return {row['name']: row for row in self._symbol_rows(data, fields)}
+
+    def _symbol_rows(self, data, fields):
+        output, size, count, reserved = self._exchange(data, fields)
         if reserved or count > MAX_SYMBOLS or size != HEADER.size + count * SYMBOL.size:
             raise RuntimeError('invalid native Safe Core ELF symbol inventory')
         symbols = []
         for at in range(HEADER.size, size, SYMBOL.size):
-            offset, extent, *fields = SYMBOL.unpack_from(output, at)
-            symbols.append(dict(zip(SYMBOL_FIELDS, fields, strict=True),
+            offset, extent, *attributes = SYMBOL.unpack_from(output, at)
+            symbols.append(dict(zip(SYMBOL_FIELDS, attributes, strict=True),
                                 name=self._name(data, offset, extent)))
         return symbols
 
