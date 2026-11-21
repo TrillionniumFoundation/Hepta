@@ -215,8 +215,9 @@ block b35(v326:readbuf,v327:mutbuf,v328:mutbuf,v331:u64,v332:u64,v333:u64,v334:u
   v436:u64 = int.add.wrap(v430,v435)
   v437:u64 = int.sub.wrap(v436,v418)
   v438:u64 = call(v327,v434,v437) {"function":"f31"}
-  v439:u32 = int.cast(v436) {"mode":"wrap"}
-  ret(v439)
+  v439:u64 = call(v326,v328,v327,v332,v436) {"function":"f4"}
+  v440:u32 = int.cast(v439) {"mode":"wrap"}
+  ret(v440)
 block b36(v342:readbuf,v343:mutbuf,v344:mutbuf)
   v370:u64 = const() {"value":4294967293}
   v371:u32 = int.cast(v370) {"mode":"wrap"}

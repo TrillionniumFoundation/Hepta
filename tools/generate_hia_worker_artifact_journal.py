@@ -319,6 +319,8 @@ CONTEXT_ERRORS = (
     (6, 4, 'E_HIA_ARGUMENTS', 'buffer bytes must be bounded canonical lowercase hex', 'correct_input', 'admission'),
     (6, 5, 'E_HIA_ARGUMENTS', 'buffer fill requires exact bounded integer length and byte', 'correct_input', 'admission'),
     (6, 6, 'E_HIA_ARGUMENTS', 'buffer snapshot has missing or unknown fields', 'correct_input', 'admission'),
+    (7, 1, 'E_HIA_ARTIFACT_IDENTITY', 'artifact reference was not issued in this runtime namespace',
+     'correct_input', 'admission'),
 )
 
 

@@ -14,7 +14,7 @@ FIELDS = ('compiler_profile', 'target_profile', 'baseline_program', 'workload', 
 NONE = '18446744073709551615'
 
 POLICY = r'''
-# Output: four exact bounded budget integers followed by the seven sealed
+# Output: four exact bounded budget integers followed by eight sealed
 # length-prefixed JSON fragments used by the actual Context ports.
 def context_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 2 or length(s) > 16384 or length(o) < 16384 or length(w) < 65536:
@@ -73,7 +73,7 @@ def context_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     cursor = decimal(o, cursor, total_wall)
     store(o, cursor, 125)
     put(o, start - 8, cursor + 1 - start)
-    return cursor + 1
+    return fragment(s, w, o, memory, cursor + 1)
 
 # The envelope carries the installed digest and the same request already
 # admitted by the public schema. Compare its exact canonical string bytes.

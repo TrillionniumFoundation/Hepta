@@ -11,8 +11,12 @@ POLICY = r'''
 # The pinned phases have separate owner receipts. The platform can transport
 # only the HIA decision for a claimed port, not substitute a budget predicate.
 def context_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) == 24 and length(o) >= 48 and input_word(s, 0) == TIME_SAMPLE:
-        return sampled_time(s, o)
+    if length(s) >= 8 and length(o) >= 48:
+        mode = input_word(s, 0)
+        if mode == TIME_SAMPLE and length(s) == 24:
+            return sampled_time(s, o)
+        if mode == CPU_SAMPLE:
+            return online_cpus(s, o)
     if length(s) < 260 or length(s) > 1024 or length(o) < 48:
         return 4294967293
     extent = input_word(s, 8)
@@ -181,13 +185,62 @@ def quotient(number:u64, divisor:u64) -> u64:
             remainder = remainder - divisor
             result = result | (1 << bit)
     return result
+
+# A Linux online-CPU descriptor reports sorted, disjoint decimal ranges.
+# Decode the complete observation rather than trusting an ambient CPU count.
+def online_cpus(s:readbuf, o:mutbuf) -> u64:
+    end = length(s)
+    if end < 10 or end > 4104 or byte(s, end - 1) != 10:
+        return 4294967293
+    at = 8
+    limit = end - 1
+    previous = 0
+    total = 0
+    while at < limit:
+        first_pair = cpu_index(s, at, limit)
+        if first_pair == 0:
+            return 4294967293
+        first = first_pair >> 32
+        at = first_pair & 4294967295
+        last = first
+        if at < limit and byte(s, at) == 45:
+            last_pair = cpu_index(s, at + 1, limit)
+            if last_pair == 0:
+                return 4294967293
+            last = last_pair >> 32
+            at = last_pair & 4294967295
+        if last < first or (total != 0 and first <= previous):
+            return 4294967293
+        previous = last
+        total = total + last - first + 1
+        if at < limit:
+            if byte(s, at) != 44 or at + 1 == limit:
+                return 4294967293
+            at = at + 1
+    divisor = 1
+    while total >= divisor * 10:
+        divisor = divisor * 10
+    return digits(o, 0, total, divisor)
+
+def cpu_index(s:readbuf, at:u64, limit:u64) -> u64:
+    first = at
+    value = 0
+    while at < limit and byte(s, at) >= 48 and byte(s, at) <= 57:
+        value = value * 10 + byte(s, at) - 48
+        if value > 1048575:
+            return 0
+        at = at + 1
+    if at == first or (at > first + 1 and byte(s, first) == 48):
+        return 0
+    return (value << 32) | at
 '''
 
 
 def program():
     tags = {'REQUEST': b'HIACTE01', 'CLAIM': b'HCTXRSP1', 'PLAN': b'HIACTP01',
             'WORKLOAD': b'HIACTF01', 'COST': b'HIACTC01', 'AMOUNT': b'HIACTM01',
-            'TIME_SAMPLE': b'HIACTT01', 'UTC_SUFFIX': b'+00:00"', 'EFFECT': b'HIACTE02'}
+            'TIME_SAMPLE': b'HIACTT01', 'CPU_SAMPLE': b'HIACTN01',
+            'UTC_SUFFIX': b'+00:00"', 'EFFECT': b'HIACTE02'}
     source = re.sub(r'\b(' + '|'.join(tags) + r')\b',
                     lambda match: str(int.from_bytes(tags[match.group()], 'little')), POLICY)
     shared = primitives()
