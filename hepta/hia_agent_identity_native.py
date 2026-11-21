@@ -219,6 +219,23 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('invalid native direct capture decision')
         return decision
 
+    def direct_call_request(self, protocol, function, arguments, *, parent, memory, cpu,
+                            artifact, artifact_bytes, borrowed, returns, expected, warmup, repetitions):
+        version = 2 if protocol >= 2 else 1
+        role = 256 if borrowed else ABI_SCALAR_IDS[returns[0]] if returns else 0
+        wire = struct.pack('<14Q', MAGIC, 49, version, parent, memory, cpu, artifact,
+                           artifact_bytes, len(arguments), warmup, repetitions, int(expected),
+                           role, len(function))
+        wire += b''.join(struct.pack('<3Q', *argument) for argument in arguments) + function
+        capacity = 104 + len(arguments) * 8 + min(len(arguments), 8) * 40 + len(function)
+        source = ctypes.create_string_buffer(wire, len(wire))
+        output = ctypes.create_string_buffer(capacity)
+        size = self._checked_default_entry(source, len(source), output, capacity, None, 0)
+        magic = b'HIADRX02' if version == 2 else b'HIADRX01'
+        if not 72 <= size <= capacity or output.raw[:8] != magic or source.raw != wire:
+            raise RuntimeError('HIA refused native direct-call request')
+        return output.raw[:size]
+
     def _request(self, wire):
         return self._response(wire, 24, '<3Q')
 

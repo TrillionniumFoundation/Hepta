@@ -140,37 +140,48 @@ def _write_child_report(report, stream):
 
 
 def _direct_call_transport(signature, case, files, artifact, artifact_size, runner, custody,
-                           memory_bytes, cpu_seconds, protocol, warmup, repetitions):
+                           memory_bytes, cpu_seconds, protocol, warmup, repetitions, prepare):
     """Give the pinned HIA runner sealed code and only its per-call backing files."""
-    from .hia_opcodes import WIDTHS
-
     descriptors = [artifact, runner]
     records = {row['argument']: row for row in files}
-    words, loans = [], []
+    arguments = []
     for index, (typ, value) in enumerate(zip(signature['params'], case['arguments'])):
         if typ not in LOANS:
-            words.append(int(value) % (1 << 64))
+            arguments.append((0, int(value) % (1 << 64), 0))
             continue
         record = records[index]
         fd = os.open(record['path'], os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW)
         custody.callback(os.close, fd)
         descriptors.append(fd)
-        size = record['byte_length']
-        loans.extend((len(words), fd, size))
-        if protocol >= 2:
-            loans.append(int(typ == 'readbuf'))
-        words.extend((0, size))
+        arguments.append((1 if typ == 'readbuf' else 2, fd, record['byte_length']))
     function = case['function'].encode('ascii')
-    magic = b'HIADRX02' if protocol >= 2 else b'HIADRX01'
-    payload = struct.pack('<8s8Q', magic, os.getpid(), memory_bytes, cpu_seconds,
-                          artifact, artifact_size, len(words), len(files), len(function))
-    if protocol >= 2:
-        returns = signature['returns']
-        bits = (64 if signature.get('abi') == BUFFER_PROFILE else
-                WIDTHS.get(returns[0], 8 if returns == ['bool'] else 0) if returns else 0)
-        payload += struct.pack('<4Q', warmup, repetitions, int('expected' in case), (1 << bits) - 1)
-    payload += struct.pack(f'<{len(words) + len(loans)}Q', *words, *loans) + function
+    payload = prepare(protocol, function, arguments, parent=os.getpid(), memory=memory_bytes, cpu=cpu_seconds,
+                      artifact=artifact, artifact_bytes=artifact_size, borrowed=signature.get('abi') == BUFFER_PROFILE,
+                      returns=signature['returns'], expected='expected' in case, warmup=warmup, repetitions=repetitions)
     return ['/proc/self/fd/' + str(runner)], payload, {'pass_fds': tuple(descriptors), 'env': {'PATH': ''}}
+
+
+def _reference_direct_call_request(protocol, function, arguments, *, parent, memory, cpu,
+                                   artifact, artifact_bytes, borrowed, returns, expected, warmup, repetitions):
+    from .hia_opcodes import WIDTHS
+
+    words, loans = [], []
+    for role, value, size in arguments:
+        if role == 0:
+            words.append(value)
+        else:
+            loans.extend((len(words), value, size))
+            if protocol >= 2:
+                loans.append(int(role == 1))
+            words.extend((0, size))
+    magic = b'HIADRX02' if protocol >= 2 else b'HIADRX01'
+    payload = struct.pack('<8s8Q', magic, parent, memory, cpu, artifact, artifact_bytes,
+                          len(words), len(loans) // (4 if protocol >= 2 else 3), len(function))
+    if protocol >= 2:
+        bits = (64 if borrowed else
+                WIDTHS.get(returns[0], 8 if returns == ['bool'] else 0) if returns else 0)
+        payload += struct.pack('<4Q', warmup, repetitions, int(expected), (1 << bits) - 1)
+    return payload + struct.pack(f'<{len(words) + len(loans)}Q', *words, *loans) + function
 
 
 def _run_owned_process(command, payload, *, cwd, timeout, has_reference_child=False, **options):
@@ -328,6 +339,7 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
 
     native = _native_agent_identity()
     check_capture = _reference_direct_capture if native is None else native.direct_call_capture
+    prepare = _reference_direct_call_request if native is None else native.direct_call_request
     receipts, stdout, stderr = [], bytearray(), bytearray()
     returncode, timed_out = None, False
     with (sealed_reference_bytes(artifact_bytes) as artifact, sealed_reference_bytes(executable) as runner):
@@ -340,7 +352,7 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
             with ExitStack() as descriptors:
                 command, payload, options = _direct_call_transport(signatures[case['function']], case, files,
                     artifact, len(artifact_bytes), runner, descriptors, memory_bytes, cpu_seconds,
-                    protocol, warmup, repetitions)
+                    protocol, warmup, repetitions, prepare)
                 returncode, out, err, timed_out = _run_owned_process(command, payload, cwd=cwd,
                     timeout=max(0, (deadline - time.monotonic_ns()) / 1_000_000_000), **options)
             stdout.extend(out)

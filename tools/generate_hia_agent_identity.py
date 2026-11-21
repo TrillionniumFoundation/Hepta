@@ -161,6 +161,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return read_window(s, o)
     if kind == 48:
         return required_claims(s, o)
+    if kind == 49:
+        return direct_call_request(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1175,6 +1177,92 @@ def direct_call_capture(s:readbuf, o:mutbuf) -> u32:
         return finite_function_reply(o, 2)
     return finite_function_reply(o, 1)
 
+def direct_call_request(s:readbuf, o:mutbuf) -> u32:
+    if length(s) < 112:
+        return 4294967293
+    version = read_word(s, 16)
+    count = read_word(s, 64)
+    name_size = read_word(s, 104)
+    if (version != 1 and version != 2) or count > 8192 or name_size == 0 or name_size > 512:
+        return 4294967293
+    name = 112 + count * 24
+    if length(s) != name + name_size:
+        return 4294967293
+    loans = direct_loan_count(s, count)
+    if loans > 8 or count + loans > 8192:
+        return 4294967293
+    header = choose(version == 1, 72, 104)
+    stride = choose(version == 1, 24, 32)
+    useful = header + (count + loans) * 8 + stride * loans
+    if length(o) < useful + name_size:
+        return 4294967294
+    put(o, 0, choose(version == 1, @DIRECT_REQUEST_V1@, @DIRECT_REQUEST_V2@))
+    index = 8
+    while index <= 40:
+        put(o, index, read_word(s, index + 16))
+        index = index + 8
+    put(o, 48, count + loans)
+    put(o, 56, loans)
+    put(o, 64, name_size)
+    if version == 2:
+        put(o, 72, read_word(s, 72))
+        put(o, 80, read_word(s, 80))
+        put(o, 88, read_word(s, 88))
+        put(o, 96, direct_return_mask(read_word(s, 96)))
+    direct_call_argument_words(s, o, count, header, header + (count + loans) * 8, stride)
+    index = 0
+    while index < name_size:
+        store(o, useful + index, byte(s, name + index))
+        index = index + 1
+    return useful + name_size
+
+def direct_loan_count(s:readbuf, count:u64) -> u64:
+    loans = 0
+    index = 0
+    while index < count:
+        role = read_word(s, 112 + index * 24)
+        if role > 2:
+            return 9
+        if role != 0:
+            loans = loans + 1
+        index = index + 1
+    return loans
+
+def direct_return_mask(role:u64) -> u64:
+    if role == 256:
+        return 18446744073709551615
+    if role == @BOOL_ABI_ROLE@:
+        return 255
+    width = scalar_abi_type(role) & 127
+    if width == 64:
+        return 18446744073709551615
+    return (1 << width) - 1
+
+def direct_call_argument_words(s:readbuf, o:mutbuf, count:u64, header:u64, loans:u64, stride:u64) -> u64:
+    index = 0
+    word = 0
+    slot = loans
+    while index < count:
+        row = 112 + index * 24
+        role = read_word(s, row)
+        value = read_word(s, row + 8)
+        if role == 0:
+            put(o, header + word * 8, value)
+            word = word + 1
+        else:
+            size = read_word(s, row + 16)
+            put(o, header + word * 8, 0)
+            put(o, header + (word + 1) * 8, size)
+            put(o, slot, word)
+            put(o, slot + 8, value)
+            put(o, slot + 16, size)
+            if stride == 32:
+                put(o, slot + 24, choose(role == 1, 1, 0))
+            word = word + 2
+            slot = slot + stride
+        index = index + 1
+    return 0
+
 def exact_comparison(s:readbuf, o:mutbuf) -> u32:
     if length(s) < 32:
         return 4294967293
@@ -1772,6 +1860,8 @@ def source_program():
             .replace('@MAX_WORKLOAD_BUFFER_BYTES@', str(MAX_WORKLOAD_BUFFER_BYTES))
             .replace('@DIRECT_REPLY_V1@', str(int.from_bytes(b'HIADRR01', 'little')))
             .replace('@DIRECT_REPLY_V2@', str(int.from_bytes(b'HIADRR02', 'little')))
+            .replace('@DIRECT_REQUEST_V1@', str(int.from_bytes(b'HIADRX01', 'little')))
+            .replace('@DIRECT_REQUEST_V2@', str(int.from_bytes(b'HIADRX02', 'little')))
             .replace('@UNIT_ABI_ROLE@', str(ABI_SCALAR_IDS['unit'])) + '\n' + '\n'.join(types) + '\n'
             + cost_receipt_source() + artifact_receipt_source()
             + receipt_template('context_manifest', CONTEXT_MANIFEST)

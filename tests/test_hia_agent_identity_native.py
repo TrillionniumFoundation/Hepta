@@ -938,6 +938,25 @@ class AgentIdentityNativeTests(unittest.TestCase):
             for unchanged in (False, True):
                 compare(raw, signature, case, [(snapshot, unchanged)], 3)
 
+    def test_direct_call_request_matches_both_existing_protocols(self):
+        from hepta.hia_agent_runner import _reference_direct_call_request
+        from hepta.hia_opcodes import WIDTHS
+
+        scalar = (0, (1 << 64) - 1, 0)
+        arguments = (scalar, (1, 12, 0), (0, 42, 0), (2, 13, 4096), scalar)
+        for protocol in (1, 2, 3):
+            for returns in ([], *([typ] for typ in (*WIDTHS, 'bool', 'unit'))):
+                for borrowed in (False, True):
+                    options = dict(parent=7, memory=64 << 20, cpu=3, artifact=11,
+                                   artifact_bytes=13600, borrowed=borrowed, returns=returns,
+                                   expected=True, warmup=7, repetitions=13)
+                    with self.subTest(protocol=protocol, returns=returns, borrowed=borrowed):
+                        expected = _reference_direct_call_request(protocol, b'entry', arguments, **options)
+                        self.assertEqual(self.native.direct_call_request(protocol, b'entry', arguments, **options),
+                                         expected)
+        with self.assertRaisesRegex(RuntimeError, 'refused native direct-call request'):
+            self.native.direct_call_request(3, b'entry', ((3, 12, 1),), **options)
+
     def test_direct_batch_capture_uses_exact_reference_precedence(self):
         from hepta.hia_agent_runner import _reference_direct_capture
 
