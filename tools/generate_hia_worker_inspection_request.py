@@ -31,7 +31,10 @@ def inspect_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292:
         return 4294967293
     root = 64
-    if get(w, root) != 5 or get(w, root + 32) != 2:
+    if get(w, root) != 5:
+        return 4294967293
+    arity = get(w, root + 32)
+    if arity != 2 and arity != 3:
         return 4294967293
     pinned = 64 + get(w, root + 24) * 72
     args = 64 + get(w, pinned + 16) * 72
@@ -40,6 +43,18 @@ def inspect_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     catalog = lookup(w, args, 1)
     if digest_text(w, catalog, True) == False:
         return 4294967293
+    if arity == 3:
+        # Private Journal mode uses a null marker and returns the two exact
+        # original digest wires. The existing Journal admits or refuses them.
+        marker = 64 + get(w, args + 16) * 72
+        if get(w, marker) != 0:
+            return 4294967293
+        actual = copy_value(s, w, o, catalog, 24)
+        end = copy_value(s, w, o, pinned, actual)
+        put(o, 0, actual - 24)
+        put(o, 8, end - actual)
+        put(o, 16, 0)
+        return end
     if equal_span(s, w, pinned, catalog) == False:
         return 4294967286
     context = lookup(w, args, 2)
