@@ -204,23 +204,34 @@ def check_agent_diagnostics(executable):
 def packed_implementation_sha256(path):
     launcher = path.read_bytes()
     marker = b'HIAECP01'
-    assert launcher.count(marker) == 1
-    offset = launcher.index(marker) + len(marker)
-    expanded_size, = struct.unpack_from('<Q', launcher, offset)
-    offset += 8
-    expanded = bytearray()
-    while offset < len(launcher):
-        stored_size, decoded_size = struct.unpack_from('<2Q', launcher, offset)
-        offset += 16
-        assert 0 < decoded_size <= 512 * 1024
-        assert 0 < stored_size <= len(launcher) - offset
-        decoder = zlib.decompressobj(wbits=-15)
-        decoded = decoder.decompress(launcher[offset:offset + stored_size], decoded_size + 1)
-        assert len(decoded) == decoded_size and decoder.eof and not decoder.unused_data
-        expanded.extend(decoded)
-        offset += stored_size
-    assert len(expanded) == expanded_size and expanded.startswith(b'\x7fELF')
-    return sha256(expanded).hexdigest()
+
+    def expand(offset):
+        assert launcher[offset:offset + len(marker)] == marker
+        offset += len(marker)
+        expanded_size, = struct.unpack_from('<Q', launcher, offset)
+        offset += 8
+        expanded = bytearray()
+        while len(expanded) < expanded_size:
+            stored_size, decoded_size = struct.unpack_from('<2Q', launcher, offset)
+            offset += 16
+            assert 0 < decoded_size <= 512 * 1024
+            assert 0 < stored_size <= len(launcher) - offset
+            decoder = zlib.decompressobj(wbits=-15)
+            decoded = decoder.decompress(launcher[offset:offset + stored_size], decoded_size + 1)
+            assert len(decoded) == decoded_size and decoder.eof and not decoder.unused_data
+            expanded.extend(decoded)
+            offset += stored_size
+        assert len(expanded) == expanded_size and expanded.startswith(b'\x7fELF')
+        return expanded, offset
+
+    implementation, end = expand(launcher.index(marker))
+    if end != len(launcher):
+        assert path.name == 'hia-build-object'
+        aligned = (end + 7) & ~7
+        assert not any(launcher[end:aligned])
+        _, end = expand(aligned)
+    assert end == len(launcher)
+    return sha256(implementation).hexdigest()
 
 
 def check_object_builds(release):

@@ -422,13 +422,13 @@ def executable_archive(executable, compressor):
 
 
 def pack_executable(packer, launcher, inflater, executable, compressor, *, prover=None):
-    archive = executable_archive(executable, compressor)
+    sections = [inflater, executable_archive(executable, compressor)]
     details = {'implementation_sha256': digest(executable), 'implementation_bytes': len(executable)}
     if prover is not None:
-        archive += executable_archive(prover, compressor)
+        sections.append(executable_archive(prover, compressor))
         details['attached_prover_sha256'] = digest(prover)
     stub, holes, adapter_hash = launcher
-    binary, inspection = pack(packer, stub, holes, [inflater, archive])
+    binary, inspection = pack(packer, stub, holes, sections)
     if binary.count(EXEC_ARCHIVE_MAGIC) != (1 if prover is None else 2):
         raise ValueError('packed CLI executable has ambiguous framing')
     return binary, {'elf': inspection, 'launcher_object_sha256': adapter_hash, **details}

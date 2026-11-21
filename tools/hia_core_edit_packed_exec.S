@@ -20,6 +20,17 @@ archive_hole: .long 0
  mov [rsp],rax
  cmp rbx,r13
  je begin_exec
+ # The packer aligns each independently bounded archive to eight bytes.
+archive_padding:
+ test bl,7
+ jz attached_image
+ cmp rbx,r13
+ jae failure
+ cmp BYTE PTR [rbx],0
+ jne failure
+ inc rbx
+ jmp archive_padding
+attached_image:
  # An attached verifier is expanded only for the HIA-dispatched proof role.
  mov rsi,[r15+8]
  lea rdi,[rip+verified_role]
