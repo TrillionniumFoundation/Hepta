@@ -76,7 +76,9 @@ def template(mode):
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if worker_data or worker_response:
-        scratch = INPUT_MAX if worker_response else 128
+        # The common JSON engine uses this mapping as structural preflight
+        # scratch even when the public role returns only a status.
+        scratch = INPUT_MAX
         workspace = WORKER_WORKSPACE_BYTES
         minimum, maximum = worker_header + 1, worker_header + INPUT_MAX
     code, labels, branches = bytearray(), {}, []
