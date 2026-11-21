@@ -10,7 +10,7 @@ from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 SOURCE = Path('examples/hia_bootstrap/worker_context_request.hepta')
 FIELDS = ('compiler_profile', 'target_profile', 'baseline_program', 'workload', 'objective',
           'budget', 'cost_policy', 'max_candidates', 'max_model_tokens', 'max_total_wall_ms',
-          'max_native_wall_ms', 'max_memory_bytes')
+          'max_native_wall_ms', 'max_memory_bytes', 'catalog_sha256')
 NONE = '18446744073709551615'
 
 POLICY = r'''
@@ -24,6 +24,8 @@ def context_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292:
         return 4294967293
     root = 64
+    if get(w, root) == 5:
+        return catalog_observation(s, w, o, root)
     if get(w, root) != 6 or get(w, root + 32) != 8:
         return 4294967293
     budget = lookup(w, root, 6)
@@ -72,6 +74,42 @@ def context_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     store(o, cursor, 125)
     put(o, start - 8, cursor + 1 - start)
     return cursor + 1
+
+# The envelope carries the installed digest and the same request already
+# admitted by the public schema. Compare its exact canonical string bytes.
+def catalog_observation(s:readbuf, w:mutbuf, o:mutbuf, root:u64) -> u64:
+    if get(w, root + 32) != 2:
+        return 4294967293
+    pinned = 64 + get(w, root + 24) * 72
+    if digest_text(w, pinned, False) == False:
+        return 4294967293
+    args = 64 + get(w, pinned + 16) * 72
+    if get(w, args) != 6 or get(w, args + 32) != 8:
+        return 4294967293
+    supplied = lookup(w, args, 13)
+    if digest_text(w, supplied, True) == False:
+        return 4294967293
+    end = copy_value(s, w, o, supplied, 24)
+    total = copy_value(s, w, o, pinned, end)
+    put(o, 0, end - 24)
+    put(o, 8, total - end)
+    put(o, 16, 0)
+    return total
+
+def digest_text(w:mutbuf, node:u64, allow_line_feed:bool) -> bool:
+    if node == NONE or get(w, node) != 4:
+        return False
+    width = get(w, node + 32)
+    start = get(w, node + 24)
+    if width != 64 and (allow_line_feed == False or width != 65 or byte(w, start + 64) != 10):
+        return False
+    index = 0
+    while index < 64:
+        unit = byte(w, start + index)
+        if (unit < 48 or unit > 57) and (unit < 97 or unit > 102):
+            return False
+        index = index + 1
+    return True
 
 def budget_integer(s:readbuf, w:mutbuf, node:u64, minimum:u64, maximum:u64) -> u64:
     if node == NONE or get(w, node) != 3:
