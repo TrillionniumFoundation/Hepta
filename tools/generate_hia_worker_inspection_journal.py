@@ -56,17 +56,16 @@ INSPECTION_RESPONSE_MATCH = r"""
             return 0
 """
 
-def inspection_flow():
-    program = flow(TOOL, 5)
+def context_bound_flow(tool, ordinal, context_plan, outcome):
+    program = flow(tool, ordinal)
     start = program.index('def artifact_cost(')
     before, cost = program[:start], program[start:]
-    # Unlike Context creation, this tool admits a retained Context and selects
-    # the existing lookup-only route, which must not select a budget effect.
+    # Bind the exact retained Context plan selected by the native Journal.
     route = {
         'input_word(s, 568) == 0 and actual != 0':
             'input_word(s, 568) == choose(stage == 12, 1, 0) and actual != 0',
         'phase == 4) and input_word(s, state + 320) == 0':
-            'phase == 4) and input_word(s, state + 320) == 1',
+            f'phase == 4) and input_word(s, state + 320) == {context_plan}',
     }
     for old, new in route.items():
         assert before.count(old) == 1, old
@@ -74,17 +73,18 @@ def inspection_flow():
     opening = """    if length(s) < 584 or input_word(s, 16) != length(s) - 24:
         return 0"""
     assert cost.count(opening) == 1
+    width = len(tool)
     once = {
         opening: INSPECTION_COST.rstrip(),
-        'if length(s) != state + 512 or length(o) < 122 + 11 + cost:':
-            'if end != state + 512 or length(o) < 122 + 11 + cost + context:',
+        f'if length(s) != state + 512 or length(o) < 122 + {width} + cost:':
+            f'if end != state + 512 or length(o) < 122 + {width} + cost + context:',
         '    put(o, 0, ': INSPECTION_RESPONSE_MATCH.rstrip() + '\n    put(o, 0, ',
         '    put(o, 24, 0)': '    put(o, 24, context)',
         '    put(o, 56, ': '    copy_cost_bytes(s, o, end + 32, context, 56)\n    put(o, 56 + context, ',
         '    put(o, 64, ': '    put(o, 64 + context, ',
-        '56 + 11)': '56 + context + 11)',
-        '122 + 11)': '122 + context + 11)',
-        '    return 122 + 11 + cost': '    return 122 + context + 11 + cost',
+        f'56 + {width})': f'56 + context + {width})',
+        f'122 + {width})': f'122 + context + {width})',
+        f'    return 122 + {width} + cost': f'    return 122 + context + {width} + cost',
     }
     # Constants in the existing generic role have already been specialized.
     # Limit string edits to the cost function and check each one exactly.
@@ -94,7 +94,7 @@ def inspection_flow():
         assert body.count(old) == 1, old
         body = body.replace(old, new)
     constants = {
-        'OUTCOME': int.from_bytes(b'HIAIND01', 'little'),
+        'OUTCOME': int.from_bytes(outcome, 'little'),
         'CONTEXT_PREFIX': int.from_bytes(b'ctx-', 'little'),
         'COMPLETED_BODY_AT': len(b'{"contract_version":"hepta.hia.agent-native.v1","request_id":"' + b'r-' + b'0'*64 + b'","result":'),
         'REFUSED_BODY_AT': len(b'{"contract_version":"hepta.hia.agent-native.v1","error":'),
@@ -104,6 +104,10 @@ def inspection_flow():
     for name, value in constants.items():
         body = body.replace(name, str(value))
     return before + body + rest + early_refusal_program(constants['REFUSED_BODY_AT'])
+
+
+def inspection_flow():
+    return context_bound_flow(TOOL, 5, 1, b'HIAIND01')
 
 
 def early_refusal_program(body_offset):
