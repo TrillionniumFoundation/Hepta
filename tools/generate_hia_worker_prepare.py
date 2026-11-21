@@ -43,6 +43,8 @@ CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 WORKDIR_INPUT = b'HIAJCQ01'
 WORKDIR_OUTPUT = b'HIAJCO01'
+CANCEL_INPUT = b'HIAJCX01'
+CANCEL_OUTPUT = b'HIAJCY01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
 JOB_LIFECYCLE_OUTPUT = b'HIAJSV01'
 JOB_OWNER_INPUT = b'HIAJOQ01'
@@ -82,6 +84,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return capture_policy(s, o)
     if magic == WORKDIR_INPUT:
         return workdir_policy(s, o)
+    if magic == CANCEL_INPUT:
+        return cancel_authority(s, o, w)
     if magic == JOB_LIFECYCLE_INPUT:
         return job_lifecycle(s, o)
     if magic == JOB_OWNER_INPUT:
@@ -992,6 +996,58 @@ def durable_transition(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 0, TRANSITION_OUTPUT_MAGIC)
     word_store(o, 8, decision)
     return 16
+
+# Phase 0 admits only the original recorded supervisor before opening a pidfd.
+# Phase 1 requires the same kernel UID and identity before approving SIGTERM.
+def cancel_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    size = length(s)
+    if size < 136 or length(o) < 16:
+        return 4294967293
+    phase = word_load(s, 8)
+    systemd = word_load(s, 48)
+    if phase > 1 or systemd > 1:
+        return 4294967293
+    at = 136
+    field = 0
+    while field < 10:
+        count = word_load(s, 56 + field * 8)
+        if count > 4096 or count > size - at:
+            return 4294967293
+        word_store(w, field * 16, at)
+        word_store(w, field * 16 + 8, count)
+        at = at + count
+        field = field + 1
+    if at != size:
+        return 4294967293
+    decision = cancel_decision(s, w, phase, systemd)
+    word_store(o, 0, CANCEL_OUTPUT)
+    word_store(o, 8, decision)
+    return 16
+
+def cancel_decision(s:readbuf, w:mutbuf, phase:u64, systemd:u64) -> u64:
+    uid = word_load(s, 16)
+    pid = word_load(s, 32)
+    if uid > 4294967295 or uid != word_load(s, 24) or pid < 2 or pid > 2147483647:
+        return 0
+    if owner_size(w, 0) == 0 or owner_equal(s, w, 0, 1) == False or owner_equal(s, w, 1, 2) == False:
+        return 0
+    if owner_hex(s, w, 3) == False or owner_equal(s, w, 3, 4) == False:
+        return 0
+    if valid_cancel_kind(s, w) == False or owner_size(w, 6) == 0:
+        return 0
+    if systemd == 1 and owner_hex(s, w, 7) == False:
+        return 0
+    if phase == 0:
+        return 1
+    if uid != word_load(s, 40) or owner_equal(s, w, 5, 8) == False or owner_equal(s, w, 6, 9) == False:
+        return 2
+    return 3 + systemd
+
+def valid_cancel_kind(s:readbuf, w:mutbuf) -> bool:
+    if owner_size(w, 5) != 16:
+        return False
+    at = owner_at(w, 5)
+    return word_load(s, at) == PROC_ID_HEAD and word_load(s, at + 8) == PROC_ID_TAIL
 '''
 
 LITERALS = {
@@ -1070,6 +1126,10 @@ def source_program():
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
               .replace('WORKDIR_INPUT', str(int.from_bytes(WORKDIR_INPUT, 'little')))
               .replace('WORKDIR_OUTPUT', str(int.from_bytes(WORKDIR_OUTPUT, 'little')))
+              .replace('CANCEL_INPUT', str(int.from_bytes(CANCEL_INPUT, 'little')))
+              .replace('CANCEL_OUTPUT', str(int.from_bytes(CANCEL_OUTPUT, 'little')))
+              .replace('PROC_ID_HEAD', str(int.from_bytes(b'proc_sta', 'little')))
+              .replace('PROC_ID_TAIL', str(int.from_bytes(b'rt_ticks', 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
               .replace('JOB_LIFECYCLE_OUTPUT', str(int.from_bytes(JOB_LIFECYCLE_OUTPUT, 'little')))
               .replace('JOB_OWNER_INPUT', str(int.from_bytes(JOB_OWNER_INPUT, 'little')))

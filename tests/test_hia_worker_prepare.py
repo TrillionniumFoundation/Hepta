@@ -81,6 +81,35 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
                 changed[index] = b'X' + changed[index][1:]
                 self.assertEqual(observe(changed), (b'HIAJWR01', 2 if index in (1, 3, 4) else 3))
 
+    def test_cancel_requires_frozen_owner_then_same_kernel_process(self):
+        job = b'original-job'
+        nonce = b'0123456789abcdef' * 2
+        kind = b'proc_start_ticks'
+        identity = b'boot:1234'
+        fields = (job, job, job, nonce, nonce, kind, identity, nonce, kind, identity)
+
+        def observe(values=fields, *, phase=1, frozen_uid=123, observed_uid=123,
+                    pid=42, systemd=1):
+            data = (struct.pack('<8s16Q', b'HIAJCX01', phase, 123, frozen_uid, pid,
+                                observed_uid, systemd, *map(len, values)) + b''.join(values))
+            result = self.invoke(data)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            magic, decision = struct.unpack('<8sQ', result.stdout)
+            self.assertEqual(magic, b'HIAJCY01')
+            return decision
+
+        self.assertEqual(observe(fields[:-2] + (b'', b''), phase=0), 1)
+        self.assertEqual(observe(), 4)
+        self.assertEqual(observe(systemd=0), 3)
+        self.assertEqual(observe(observed_uid=124), 2)
+        self.assertEqual(observe(frozen_uid=124), 0)
+        self.assertEqual(observe(pid=1), 0)
+        for field in range(1, 10):
+            with self.subTest(field=field):
+                changed = list(fields)
+                changed[field] = b''
+                self.assertEqual(observe(changed), 2 if field >= 8 else 0)
+
     def test_every_tool_preserves_serde_fragments(self):
         original = ('{"escaped":"\\t\\n\\u0000🌍","number":1e+20,'
                     '"subnormal":5e-324,"zero":-0.0}').encode()

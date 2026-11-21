@@ -225,6 +225,25 @@ def _worker_prepare_has_workdir_authority(prepare):
     return True
 
 
+def _worker_prepare_has_cancel_authority(prepare):
+    job = b'cancel-probe'
+    nonce = b'0123456789abcdef' * 2
+    kind = b'proc_start_ticks'
+    identity = b'boot:123'
+    for phase, uid, sample, decision in ((0, 0, b'', 1), (1, 1000, identity, 4),
+                                         (1, 1001, identity, 2), (1, 1000, b'boot:124', 2)):
+        fields = (job, job, job, nonce, nonce, kind, identity, nonce, kind if phase else b'', sample)
+        frame = (struct.pack('<8s16Q', b'HIAJCX01', phase, 1000, 1000, 42, uid, 1,
+                             *map(len, fields)) + b''.join(fields))
+        result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+        observed = result.returncode, result.stdout, result.stderr
+        if phase == 0 and observed == (2, b'', b''):
+            return False
+        if observed != (0, struct.pack('<8sQ', b'HIAJCY01', decision), b''):
+            raise ValueError('installed HIA cancellation authority does not preserve frozen process identity')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -257,6 +276,9 @@ def _install_controller(output, scratch, release, installer):
                         schema = 'hepta.hia.mcp.controller.v8'
                         if _worker_prepare_has_workdir_authority(release / 'hia-worker-prepare'):
                             schema = 'hepta.hia.mcp.controller.v9'
+    if schema == 'hepta.hia.mcp.controller.v9':
+        if _worker_prepare_has_cancel_authority(release / 'hia-worker-prepare'):
+            schema = 'hepta.hia.mcp.controller.v10'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}
