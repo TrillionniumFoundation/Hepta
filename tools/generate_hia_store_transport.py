@@ -35,6 +35,8 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8:
         return 0
     role = read_word(s, 0)
+    if role == ACK:
+        return store_ready(s, o)
     if role == UNIQUE_START or role == UNIQUE_REQUEST or role == UNIQUE_CONSUME:
         return unique_stream(s, o, w, role)
     if role == BUILD_COMMAND:
@@ -79,6 +81,17 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         return store_parameters(s, o)
     return 0
+
+# Only the first unsolicited acknowledgement of an actually started Store is
+# valid here. The executable and private pipe custody belong to its caller.
+def store_ready(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 80 or length(o) != 16:
+        return 0
+    if read_word(s, 8) != 1 or read_word(s, 16) != 0 or read_word(s, 24) != 0:
+        return 0
+    if read_word(s, 32) != 0:
+        return 0
+    return event_result(o, 1, read_word(s, 48))
 
 # Indexed reads and typed durable inserts share this immutable transaction envelope.
 # Mode 0 borrows an already-open transaction. Mode 1 owns BEGIN and ROLLBACK.

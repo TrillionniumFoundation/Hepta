@@ -27,9 +27,10 @@ WORKER_JOURNAL_MODE = 20
 JOURNAL_COST_MODE = 21
 WORKER_PORT_MODE = 22
 READ_REACTOR_MODE = 23
+STORE_READY_MODE = 24
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
-              READ_REACTOR_MODE)
+              READ_REACTOR_MODE, STORE_READY_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -43,7 +44,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
          'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE,
          'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE,
-         'journal-cost': JOURNAL_COST_MODE, 'read-effect': READ_REACTOR_MODE}
+         'journal-cost': JOURNAL_COST_MODE, 'read-effect': READ_REACTOR_MODE,
+         'store-ready': STORE_READY_MODE}
 
 
 def elf_prefix(code):
@@ -75,9 +77,10 @@ def template(mode):
     worker_response = mode == WORKER_RESPONSE_MODE
     worker_journal = mode == WORKER_JOURNAL_MODE
     journal_cost = mode == JOURNAL_COST_MODE
+    store_ready = mode == STORE_READY_MODE
     worker = worker_data or worker_response or worker_journal
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
-    direct = page or read_request
+    direct = page or read_request or store_ready
     descriptor = None if direct or schema or worker else (0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
@@ -95,6 +98,8 @@ def template(mode):
     if journal_cost:
         scratch, workspace = INPUT_MAX + 2048, 24
         minimum, maximum = 56, INPUT_MAX + 2048
+    if store_ready:
+        scratch, workspace, minimum, maximum = 16, 8, 80, 80
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -177,7 +182,9 @@ def template(mode):
     branch_address = len(code)
     word(0)                                     # packer binds the actual HIA kernel
     if direct:
-        if read_request:
+        if store_ready:
+            emit('48 83 f8 10')                  # readiness decision plus generation
+        elif read_request:
             emit('48 3d')
             word(128)                           # complete read-plan header
         else:
