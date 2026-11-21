@@ -407,15 +407,7 @@ def _reference_dynamic_symbols(final, text, export):
     return symbols
 
 
-def bind_final_image(object_bytes, text_bytes, final_bytes, export):
-    """Check every relocated byte and return exact machine-entry coordinates.
-
-    This consumes bytes, never objdump output or a producer-supplied symbol map.
-    The returned abort call sites have been checked through E8, PLT, GOT,
-    R_X86_64_JUMP_SLOT and the loader's actual dynamic table.
-    """
-    obj, final = _ELF(object_bytes, 1), _ELF(final_bytes, 3)
-    inspect_owned_shared_elf(final_bytes, (export,))
+def _reference_loader_sections(final):
     allocated = {".hash", ".gnu.hash", ".dynsym", ".dynstr", ".gnu.version", ".gnu.version_r",
                  ".rela.plt", ".plt", ".text", ".eh_frame", ".dynamic", ".got"}
     for section in final.sections:
@@ -431,6 +423,41 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
             if section["size"]:
                 permissions = 6 if section["flags"] & 1 else 5 if section["flags"] & 4 else 4
                 final.load_binding(section, permissions)
+
+def _reference_executable_layout(final, linked, plt, got):
+    require(plt["flags"] == 6 and plt["size"] == 32 and got["flags"] == 3 and got["size"] == 32,
+            "PLT/GOT shape is outside the immediate-binding profile")
+    require({s["name"] for s in final.sections if s["flags"] & 4} == {".text", ".plt"},
+            "unexpected executable section")
+    textload = final.load_binding(linked, 5)
+    require([s for s in final.segments if s["type"] == 1 and s["flags"] & 1] == [textload],
+            "additional executable load segment")
+    require(final.load_binding(plt, 5) == textload and plt["addr"] == textload["addr"] and
+            linked["addr"] == plt["addr"] + plt["size"] and
+            linked["addr"] + linked["size"] == textload["addr"] + textload["filesz"],
+            "executable segment contains unbound bytes")
+
+
+def _reference_dynamic_relocations(final, rela, got):
+    require([s["name"] for s in final.sections if s["type"] in (4, 9)] == [".rela.plt"] and
+            rela["entsize"] == 24 and rela["size"] == 24 and
+            rela["link"] == final.section(".dynsym")["index"] and rela["info"] == got["index"],
+            "unreviewed dynamic relocation inventory")
+
+
+def bind_final_image(object_bytes, text_bytes, final_bytes, export):
+    """Check every relocated byte and return exact machine-entry coordinates.
+
+    This consumes bytes, never objdump output or a producer-supplied symbol map.
+    The returned abort call sites have been checked through E8, PLT, GOT,
+    R_X86_64_JUMP_SLOT and the loader's actual dynamic table.
+    """
+    obj, final = _ELF(object_bytes, 1), _ELF(final_bytes, 3)
+    inspect_owned_shared_elf(final_bytes, (export,))
+    if final._native_inventory is None:
+        _reference_loader_sections(final)
+    else:
+        final._native_inventory.verify_loader_sections(final.data)
     require(final.section(".eh_frame")["size"] == 0,
             "unreviewed nonempty unwinding metadata")
     source, linked = obj.section(".text", 1), final.section(".text", 1)
@@ -454,29 +481,18 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
 
     plt, got, rela = (final.section(".plt", 1), final.section(".got", 1),
                       final.section(".rela.plt", 4))
-    require(plt["flags"] == 6 and plt["size"] == 32 and got["flags"] == 3 and got["size"] == 32,
-            "PLT/GOT shape is outside the immediate-binding profile")
-    require({s["name"] for s in final.sections if s["flags"] & 4} == {".text", ".plt"},
-            "unexpected executable section")
-    textload = final.load_binding(linked, 5)
-    require([s for s in final.segments if s["type"] == 1 and s["flags"] & 1] == [textload],
-            "additional executable load segment")
-    require(final.load_binding(plt, 5) == textload and plt["addr"] == textload["addr"] and
-            linked["addr"] == plt["addr"] + plt["size"] and
-            linked["addr"] + linked["size"] == textload["addr"] + textload["filesz"],
-            "executable segment contains unbound bytes")
+    if final._native_inventory is None:
+        _reference_executable_layout(final, linked, plt, got)
+    else:
+        final._native_inventory.verify_executable_layout(final.data, linked, plt, got)
     writable = final.load_binding(got, 6)
     if final._native_inventory is None:
         _reference_relro(final, writable, got)
-    else:
-        final._native_inventory.verify_relro(final.data, writable, got)
-    require([s["name"] for s in final.sections if s["type"] in (4, 9)] == [".rela.plt"] and
-            rela["entsize"] == 24 and rela["size"] == 24 and
-            rela["link"] == final.section(".dynsym")["index"] and rela["info"] == got["index"],
-            "unreviewed dynamic relocation inventory")
-    if final._native_inventory is None:
+        _reference_dynamic_relocations(final, rela, got)
         _reference_plt_slot(plt, got, rela, dynsymbols)
     else:
+        final._native_inventory.verify_relro(final.data, writable, got)
+        final._native_inventory.verify_dynamic_relocations(final.data, rela, final.section(".dynsym"), got)
         final._native_inventory.verify_plt_slot(final.data, plt, got, rela, abort_symbols)
 
     dynamic = final.section(".dynamic", 6)

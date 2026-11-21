@@ -200,7 +200,9 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup',
                              '_reference_plt_slot', '_reference_object_relocations',
                              '_reference_symbol_versions', '_reference_relro', '_reference_functions',
-                             '_reference_function_link', '_reference_dynamic_symbols')
+                             '_reference_function_link', '_reference_dynamic_symbols',
+                             '_reference_loader_sections', '_reference_executable_layout',
+                             '_reference_dynamic_relocations')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
@@ -278,6 +280,64 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
             with self.subTest(digest=sha256(data).hexdigest()):
                 actual = result(lambda raw: self.native.verify_dynamic_symbols(raw, dynamic['index'], text, export), data)
                 self.assertEqual(actual, result(expected, data))
+
+    def test_native_loader_layout_matches_original_order_and_named_rejections(self):
+        def original(data):
+            final = _ELF.__new__(_ELF)
+            final._reference_inventory(data, 3)
+            return final
+
+        def observed(check, data):
+            try:
+                return check(data)
+            except SafeCoreELFRejected as error:
+                return str(error)
+
+        final = original(self.final_bytes)
+        phoff, shoff = struct.unpack_from('<2Q', self.final_bytes, 32)
+        text, plt, got = (final.section(name) for name in ('.text', '.plt', '.got'))
+        rela, dynsym, strtab = (final.section(name) for name in ('.rela.plt', '.dynsym', '.strtab'))
+
+        def changed(section, field, replacement, variant='<Q'):
+            data = bytearray(self.final_bytes)
+            struct.pack_into(variant, data, shoff + 64 * section['index'] + field, replacement)
+            return bytes(data)
+
+        def reference_exec(data):
+            elf = original(data)
+            return elf_reader._reference_executable_layout(
+                elf, elf.section('.text'), elf.section('.plt'), elf.section('.got'),
+            )
+
+        def reference_reloc(data):
+            elf = original(data)
+            return elf_reader._reference_dynamic_relocations(elf, elf.section('.rela.plt'), elf.section('.got'))
+
+        extra_exec = bytearray(self.final_bytes)
+        for index, segment in enumerate(final.segments):
+            if segment['type'] == 1 and segment['flags'] == 4:
+                struct.pack_into('<I', extra_exec, phoff + index * 56 + 4, 5)
+                break
+        else:
+            self.fail('original expected readable load missing from actual fixture')
+        cases = (
+            (lambda raw: elf_reader._reference_loader_sections(original(raw)),
+             self.native.verify_loader_sections,
+             (changed(dynsym, 8, dynsym['flags'] & ~2), changed(strtab, 8, 2),
+              changed(dynsym, 24, dynsym['offset'] + 1))),
+            (reference_exec, lambda raw: self.native.verify_executable_layout(raw, text, plt, got),
+             (changed(plt, 8, 2), changed(strtab, 8, 4), changed(text, 32, text['size'] - 1), bytes(extra_exec))),
+            (reference_reloc, lambda raw: self.native.verify_dynamic_relocations(raw, rela, dynsym, got),
+             (changed(rela, 40, got['index'], '<I'), changed(strtab, 4, 4, '<I'), changed(rela, 56, 16))),
+        )
+        for reference, native, supplied in cases:
+            for data in (self.final_bytes, *supplied):
+                with self.subTest(digest=sha256(data).hexdigest()):
+                    expected = observed(reference, data)
+                    self.assertEqual(observed(native, data), expected)
+                    if data is not self.final_bytes:
+                        self.assertIsInstance(expected, str)
+                        self.assertTrue(expected.startswith('E_HIA_SAFE_CORE_ELF: '))
 
     def test_dynamic_and_lookup_bytes_match_retained_checker(self):
         def result(check, *args, **kwargs):

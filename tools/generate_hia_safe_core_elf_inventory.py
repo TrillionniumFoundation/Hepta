@@ -6,7 +6,8 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
-    CAPACITY, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET, FUNCTION_SYMBOL_MAGIC,
+    CAPACITY, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
+    EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC,
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
     FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
@@ -23,6 +24,12 @@ FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS
 FIELDS['FUNCTION_SYMBOL_MAGIC'] = FUNCTION_SYMBOL_MAGIC
 FIELDS.update(DYNAMIC_SYMBOL_MAGIC=DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET=DYNAMIC_SYMBOL_NAME_OFFSET,
               ABORT_BYTES=int.from_bytes(b'abort', 'little'))
+FIELDS.update(LOADER_SECTION_MAGIC=LOADER_SECTION_MAGIC, EXECUTABLE_LAYOUT_MAGIC=EXECUTABLE_LAYOUT_MAGIC,
+              DYNAMIC_RELOCATION_MAGIC=DYNAMIC_RELOCATION_MAGIC)
+LOADER_SECTION_NAMES = (
+    b'.hash', b'.gnu.hash', b'.dynsym', b'.dynstr', b'.gnu.version', b'.gnu.version_r',
+    b'.rela.plt', b'.plt', b'.text', b'.eh_frame', b'.dynamic', b'.got',
+)
 FIELDS.update(FUNCTION_LINK_MAGIC=FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES=FUNCTION_LINK_BYTES,
               FUNCTION_LINK_NAME_BYTES=FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES=FUNCTION_LINK_ROW_BYTES,
               FUNCTION_LINK_SOURCE_OFFSET=FUNCTION_LINK_SOURCE_OFFSET,
@@ -58,6 +65,8 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = length(s)
     if size < 64 or size > MAX_ELF:
         return terminal(o, E_EXTENT, 0, 0)
+    if length(w) == 8 and get(w, 0) == LOADER_SECTION_MAGIC:
+        return verify_loader_sections(s, o)
     if length(w) == 16 and get(w, 8) == 0:
         return symbol_table(s, o, get(w, 0))
     if length(w) == 24:
@@ -82,6 +91,8 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return review_version_import(s, o, w)
         if operation == 5 and length(w) == 64:
             return verify_relro(s, o, w)
+        if length(w) == 72 and (operation == EXECUTABLE_LAYOUT_MAGIC or operation == DYNAMIC_RELOCATION_MAGIC):
+            return review_section_roles(s, o, w)
         return loader_hash(s, o, w)
     if length(w) != 8:
         return 4294967293
@@ -549,6 +560,135 @@ def load_binding(s:readbuf, o:mutbuf, section_addr:u64, section_size:u64, sectio
     put(o, 64, word(s, selected + 40, 8))
     put(o, 72, word(s, selected + 48, 8))
     return reply(o, 0, 0, 0, 80)
+
+def verify_loader_sections(s:readbuf, o:mutbuf) -> u64:
+    start = word(s, 40, 8)
+    count = word(s, 60, 2)
+    names_index = word(s, 62, 2)
+    if count == 0 or count > MAX_SECTIONS or names_index == 0 or names_index >= count:
+        return terminal(o, E_SECTIONS, 0, 0)
+    if in_file(length(s), start, count * 64) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    strings = start + names_index * 64
+    if word(s, strings + 4, 4) != 3:
+        return terminal(o, E_MISSING_NAMES, 0, 0)
+    names = word(s, strings + 24, 8)
+    extent = word(s, strings + 32, 8)
+    if in_file(length(s), names, extent) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    index = 0
+    while index < count:
+        row = start + index * 64
+        offset = word(s, row, 4)
+        if offset >= extent:
+            return terminal(o, E_NAME_INDEX, 0, 0)
+        result = verify_loader_section(s, o, row, names + offset, extent - offset)
+        if result != 0:
+            return result
+        index = index + 1
+    return reply(o, 0, 0, 0, 24)
+
+def verify_loader_section(s:readbuf, o:mutbuf, row:u64, name:u64, extent:u64) -> u64:
+    size = name_length(s, name, extent)
+    if size > 256:
+        return terminal(o, E_NAME_LENGTH, 0, 0)
+    if ascii_name(s, name, size) == 0:
+        return terminal(o, E_NAME_ASCII, 0, 0)
+    reviewed = loader_section_name(s, name, size)
+    flags = word(s, row + 8, 8)
+    if (flags & 2) == 0:
+        if reviewed != 0:
+            return reply(o, E_LOADER_SECTION_UNALLOCATED, name, size, 24)
+        return 0
+    if reviewed == 0 or (flags != 2 and flags != 3 and flags != 6 and flags != 66):
+        return terminal(o, E_LOADER_SECTION_UNREVIEWED, 0, 0)
+    span = word(s, row + 32, 8)
+    if span == 0:
+        return 0
+    permissions = choose((flags & 1) != 0, 6, choose((flags & 4) != 0, 5, 4))
+    result = load_binding(s, o, word(s, row + 16, 8), span, word(s, row + 24, 8), permissions)
+    return choose(get(o, 0) == 0, 0, result)
+
+def review_section_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if get(w, 32) != 0 or get(w, 40) != 0 or get(w, 48) != 0 or get(w, 56) != 0 or get(w, 64) != 0:
+        return 4294967293
+    start = word(s, 40, 8)
+    count = word(s, 60, 2)
+    if count == 0 or count > MAX_SECTIONS or get(w, 8) >= count or get(w, 16) >= count or get(w, 24) >= count:
+        return terminal(o, E_SECTIONS, 0, 0)
+    if in_file(length(s), start, count * 64) == 0:
+        return terminal(o, E_RANGE, 0, 0)
+    if get(w, 0) == EXECUTABLE_LAYOUT_MAGIC:
+        return executable_section_layout(s, o, w, start, count)
+    return dynamic_relocation_inventory(s, o, w, start, count)
+
+def executable_section_layout(s:readbuf, o:mutbuf, w:mutbuf, start:u64, count:u64) -> u64:
+    plt = start + get(w, 16) * 64
+    got = start + get(w, 24) * 64
+    if word(s, plt + 8, 8) != 6 or word(s, plt + 32, 8) != 32 or word(s, got + 8, 8) != 3 or word(s, got + 32, 8) != 32:
+        return terminal(o, E_PLT_GOT_SHAPE, 0, 0)
+    index = 0
+    matched = 0
+    while index < count:
+        if (word(s, start + index * 64 + 8, 8) & 4) != 0:
+            if index != get(w, 8) and index != get(w, 16):
+                return terminal(o, E_EXECUTABLE_SECTION, 0, 0)
+            matched = matched + 1
+        index = index + 1
+    if matched != 2:
+        return terminal(o, E_EXECUTABLE_SECTION, 0, 0)
+    return executable_load_layout(s, o, start + get(w, 8) * 64, plt)
+
+def executable_load_layout(s:readbuf, o:mutbuf, text:u64, plt:u64) -> u64:
+    addr = word(s, text + 16, 8)
+    extent = word(s, text + 32, 8)
+    result = load_binding(s, o, addr, extent, word(s, text + 24, 8), 5)
+    if get(o, 0) != 0:
+        return result
+    if executable_load_count(s) != 1:
+        return terminal(o, E_EXECUTABLE_SEGMENT, 0, 0)
+    base = get(o, 48)
+    span = get(o, 56)
+    plt_addr = word(s, plt + 16, 8)
+    result = load_binding(s, o, plt_addr, 32, word(s, plt + 24, 8), 5)
+    if get(o, 0) != 0:
+        return result
+    if get(o, 48) != base or plt_addr != base or addr < base or span < 32:
+        return terminal(o, E_EXECUTABLE_PARTITION, 0, 0)
+    if addr - base != 32 or extent != span - 32:
+        return terminal(o, E_EXECUTABLE_PARTITION, 0, 0)
+    return reply(o, 0, 0, 0, 24)
+
+def executable_load_count(s:readbuf) -> u64:
+    start = word(s, 32, 8)
+    extent = word(s, 56, 2)
+    index = 0
+    count = 0
+    while index < extent:
+        row = start + index * 56
+        if word(s, row, 4) == 1 and (word(s, row + 4, 4) & 1) != 0:
+            count = count + 1
+        index = index + 1
+    return count
+
+def dynamic_relocation_inventory(s:readbuf, o:mutbuf, w:mutbuf, start:u64, count:u64) -> u64:
+    index = 0
+    wanted = get(w, 8)
+    found = 0
+    while index < count:
+        row = start + index * 64
+        kind = word(s, row + 4, 4)
+        if kind == 4 or kind == 9:
+            if index != wanted or kind != 4:
+                return terminal(o, E_DYNAMIC_RELOCATION, 0, 0)
+            found = 1
+        index = index + 1
+    rela = start + wanted * 64
+    if found == 0 or word(s, rela + 56, 8) != 24 or word(s, rela + 32, 8) != 24:
+        return terminal(o, E_DYNAMIC_RELOCATION, 0, 0)
+    if word(s, rela + 40, 4) != get(w, 16) or word(s, rela + 44, 4) != get(w, 24):
+        return terminal(o, E_DYNAMIC_RELOCATION, 0, 0)
+    return reply(o, 0, 0, 0, 24)
 
 def dynamic_tags(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     start = get(w, 0)
@@ -1355,12 +1495,29 @@ def owned_import_authoring():
     return '\n'.join(lines)
 
 
+def loader_section_classifier():
+    lines = ['def loader_section_name(s:readbuf, name:u64, size:u64) -> u64:']
+    for width in sorted({len(name) for name in LOADER_SECTION_NAMES}):
+        lines.append(f'    if size == {width}:')
+        for name in LOADER_SECTION_NAMES:
+            if len(name) != width:
+                continue
+            first = int.from_bytes(name[:8], 'little')
+            test = f'word(s, name, {min(width, 8)}) == {first}'
+            if width > 8:
+                suffix = int.from_bytes(name[8:], 'little')
+                test += f' and word(s, name + 8, {width - 8}) == {suffix}'
+            lines.extend((f'        if {test}:', '            return 1'))
+    return '\n'.join((*lines, '    return 0', ''))
+
+
 def document():
     class Constants(ast.NodeTransformer):
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
-    nodes = ast.fix_missing_locations(Constants().visit(ast.parse(SOURCE + '\n' + owned_import_authoring()))).body
+    source = '\n'.join((SOURCE, owned_import_authoring(), loader_section_classifier()))
+    nodes = ast.fix_missing_locations(Constants().visit(ast.parse(source))).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}

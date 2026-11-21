@@ -34,6 +34,9 @@ FUNCTION_LINK_TARGET_OFFSET = FUNCTION_LINK_SOURCE_OFFSET + 2 * FUNCTION_LINK_RO
 FUNCTION_LINK_BYTES = FUNCTION_LINK_TARGET_OFFSET + 2 * FUNCTION_LINK_ROW_BYTES
 DYNAMIC_SYMBOL_MAGIC = int.from_bytes(b'HIAELFD1', 'little')
 DYNAMIC_SYMBOL_NAME_OFFSET = 104
+LOADER_SECTION_MAGIC = int.from_bytes(b'HIAELFS1', 'little')
+EXECUTABLE_LAYOUT_MAGIC = int.from_bytes(b'HIAELFE1', 'little')
+DYNAMIC_RELOCATION_MAGIC = int.from_bytes(b'HIAELFR1', 'little')
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -88,6 +91,13 @@ REFUSALS = (
     ('function_link', 'linker changed a function identity or extent'),
     ('dynamic_export', 'loader export identity differs'),
     ('dynamic_import', 'Safe Core admits only the nonreturning abort import'),
+    ('loader_section_unallocated', 'loader section lacks required allocation flag: '),
+    ('loader_section_unreviewed', 'unreviewed allocated loader section'),
+    ('plt_got_shape', 'PLT/GOT shape is outside the immediate-binding profile'),
+    ('executable_section', 'unexpected executable section'),
+    ('executable_segment', 'additional executable load segment'),
+    ('executable_partition', 'executable segment contains unbound bytes'),
+    ('dynamic_relocation', 'unreviewed dynamic relocation inventory'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -226,9 +236,13 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
             raise RuntimeError('invalid native Safe Core ELF response extent')
         status, first, second = HEADER.unpack_from(output)
         if status:
-            if status > len(REFUSALS) or size != HEADER.size or first or second:
+            if status > len(REFUSALS) or size != HEADER.size:
                 raise RuntimeError('invalid native Safe Core ELF refusal')
             name, reason = REFUSALS[status - 1]
+            if name == 'loader_section_unallocated':
+                require(False, reason + self._name(data, first, second))
+            if first or second:
+                raise RuntimeError('unexpected native Safe Core ELF refusal detail')
             if name == 'name_ascii':
                 raise SafeCoreELFRejected(reason)
             require(False, reason)
@@ -310,6 +324,20 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         if abort_symbols == 0 or abort_symbols >> count:
             raise RuntimeError('invalid native Safe Core abort symbol mask')
         return self._read_symbol_rows(data, output, size, count), abort_symbols
+
+    def verify_loader_sections(self, data):
+        self._verify_terminal(data, (LOADER_SECTION_MAGIC,))
+
+    def verify_executable_layout(self, data, text, plt, got):
+        self._verify_terminal(data, (EXECUTABLE_LAYOUT_MAGIC, text['index'], plt['index'], got['index'], 0, 0, 0, 0, 0))
+
+    def verify_dynamic_relocations(self, data, rela, dynamic_table, got):
+        self._verify_terminal(data, (DYNAMIC_RELOCATION_MAGIC, rela['index'], dynamic_table['index'], got['index'], 0, 0, 0, 0, 0))
+
+    def _verify_terminal(self, data, fields):
+        _, size, first, second = self._exchange(data, fields)
+        if size != HEADER.size or first or second:
+            raise RuntimeError('invalid native Safe Core layout response')
 
     def _read_symbol_rows(self, data, output, size, count):
         if count > MAX_SYMBOLS or size != HEADER.size + count * SYMBOL.size:
