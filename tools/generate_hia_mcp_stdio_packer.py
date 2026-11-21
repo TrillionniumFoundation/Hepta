@@ -21,7 +21,9 @@ SCHEMA_MODE = TERMINAL_MODE + 1
 CONNECTION_MODE = SCHEMA_MODE + 1
 READ_REQUEST_MODE = 16
 STORE_UNIQUE_MODE = 17
-PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE)
+WORKER_DATA_MODE = 18
+PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE, WORKER_DATA_MODE)
+WORKER_DATA_HEADER = 16
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 # The installed pager returns its canonical JSON alongside the cursor insertion.
@@ -58,8 +60,9 @@ def template(mode):
     page = mode == PAGE_MODE
     schema = mode == SCHEMA_MODE
     read_request = mode == READ_REQUEST_MODE
+    worker_data = mode == WORKER_DATA_MODE
     direct = page or read_request
-    descriptor = None if direct or schema else DESCRIPTORS[mode]
+    descriptor = None if direct or schema or worker_data else DESCRIPTORS[mode]
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
     workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
@@ -67,6 +70,9 @@ def template(mode):
     maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
+    if worker_data:
+        scratch, workspace = 128, WORKER_WORKSPACE_BYTES
+        minimum, maximum = WORKER_DATA_HEADER + 1, WORKER_DATA_HEADER + INPUT_MAX
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -118,6 +124,14 @@ def template(mode):
         word(prefix_bytes + scratch)
         emit('4c 89 e6 b9 09 00 00 00 f3 48 a5')
         emit('49 8d 7c 24 48 49 8d 75 b8')      # input pointer +72, bytes -72
+    elif worker_data:
+        # Forward the two little-endian header words (digit policy, magic)
+        # without interpreting them. Only the HIA application admits the data.
+        emit('49 8d be')
+        word(prefix_bytes + scratch)
+        emit('48 c7 07 05 00 00 00 48 83 c7 08')
+        emit('4c 89 e6 b9 02 00 00 00 f3 48 a5')
+        emit('49 8d 7c 24 10 49 8d 75 f0')
     else:
         emit('4c 89 e7 4c 89 ee')
     emit('4c 89 f2' if direct else '49 8d 56 08')   # payload or status-prefixed result
@@ -147,7 +161,7 @@ def template(mode):
             emit(f'83 f8 {descriptor:02x}')
             branch('0f 85', 'write_result')
             emit(f'83 c2 {descriptor:02x}')
-        elif not schema:                        # schema exports only the policy status
+        elif not (schema or worker_data):     # policy-only calls have no result body
             emit('83 f8 02')
             branch('0f 82', 'write_result')
             emit('3d')

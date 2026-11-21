@@ -1,4 +1,4 @@
-"""Build the native HIA worker admission and terminal transport executables."""
+"""Build the native HIA worker admission, transport and data executables."""
 
 from __future__ import annotations
 
@@ -10,7 +10,9 @@ import struct
 
 from tools.build_hia_agent_read_page import pack_stdio
 from tools.build_hia_json_preflight import admit_cold_build, build as build_image, current_sources
-from tools.generate_hia_mcp_stdio_packer import SOURCE as STDIO_PACKER, TERMINAL_MODE
+from tools.generate_hia_mcp_stdio_packer import (
+    SOURCE as STDIO_PACKER, TERMINAL_MODE, WORKER_DATA_MODE,
+)
 from tools.generate_hia_native_filter import WORKER_FILTER_MAGIC
 from tools.qualify_hia_selfhost import invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -55,12 +57,17 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     terminal_build.mkdir(mode=0o700)
     terminal_raw, terminal_pack = pack_stdio(
         terminal_build, compiler, {STDIO_PACKER: pins[ROOT / STDIO_PACKER]}, TERMINAL_MODE, raw, pins)
+    data_build = output / 'data-validation'
+    data_build.mkdir(mode=0o700)
+    data_raw, data_pack = pack_stdio(
+        data_build, compiler, {STDIO_PACKER: pins[ROOT / STDIO_PACKER]}, WORKER_DATA_MODE, raw, pins)
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:
         raise ValueError('worker request build input changed')
 
     executable = output / 'hia-worker-admit'
     terminal = output / 'hia-worker-terminal'
-    for target, data in ((executable, executable_raw), (terminal, terminal_raw)):
+    data_validator = output / 'hia-worker-data'
+    for target, data in ((executable, executable_raw), (terminal, terminal_raw), (data_validator, data_raw)):
         with target.open('xb') as stream:
             stream.write(data)
         target.chmod(0o700)
@@ -71,6 +78,12 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
         'executable': inspection,
         'images': receipts,
         'packing': receipt,
+        'data_validation': {
+            'schema': 'hepta.hia.worker-data-stdio.v1',
+            'executable_sha256': sha256(data_raw).hexdigest(),
+            'executable_bytes': len(data_raw),
+            'native_packing': data_pack,
+        },
         'terminal': {
             'schema': 'hepta.hia.worker-terminal-stdio.v1',
             'executable_sha256': sha256(terminal_raw).hexdigest(),

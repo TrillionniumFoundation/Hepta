@@ -20,6 +20,7 @@ from tools.generate_hia_sha256 import source_program as hash_source
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 PRIVATE_BYTES = 16384
+DATA_VALIDATION_MAGIC = int.from_bytes(b'HIAWDV01', 'little')
 SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hepta'
 
 ENTRY = r'''
@@ -40,7 +41,7 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 64 + bound * 56 + length(s) + 16384:
         return 4294967293
     digits = get(w, 8)
-    if mode > 3:
+    if mode > 5 or (mode == 5 and get(w, 16) != DATA_VALIDATION_MAGIC):
         return 4294967293
     private = length(w) - 16384
     put(w, private + 512, 0)
@@ -67,6 +68,8 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             if widen(decimal_convert(s, w, start, size)) != 8:
                 return 4294967280
         index = index + 1
+    if mode == 5:
+        return 1
     status = finish_request(s, o, w, mode)
     restore_order(w)
     put(w, 56, 0)
@@ -510,7 +513,8 @@ def frame_word(s:readbuf, at:u64) -> u64:
 
 
 def source_program():
-    return '\n'.join((ENTRY, canonical_program(), key_program(), data_source(),
+    entry = ENTRY.replace('DATA_VALIDATION_MAGIC', str(DATA_VALIDATION_MAGIC))
+    return '\n'.join((entry, canonical_program(), key_program(), data_source(),
                        decimal_program(), format_program(), worker_hash_program(), terminal_frame_program()))
 
 
