@@ -598,6 +598,55 @@ class SafeCoreArtifactTests(unittest.TestCase):
                 self.assertEqual(witness["caller_byte"]["offset"], words[2] if indexed else 7)
                 self.assertNotEqual(witness["caller_byte"]["value"], words[-1] & 255)
 
+    def test_native_write_and_return_length_check_both_observations(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the mutable loan length entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        directory = self.newdir()
+        exports = (("loan_write_length", 64),)
+
+        def build(indexed, return_length):
+            params = [("loan", "mutbuf")]
+            position = [] if indexed else [c("index", "usize", 7)]
+            if indexed:
+                params.append(("index", "usize"))
+            params.append(("value", "u8"))
+            store = i("buffer.store", ("loan", "index", "value"))
+            result = [c("result", "u32", 0)]
+            if return_length:
+                result = [i("buffer.len", ("loan",), (("length", "usize"),)),
+                          i("int.cast", ("length",), (("result", "u32"),), mode="wrap")]
+            core = verify_program(m(f("loan_write_length", params, ["u32"], ["read", "write", "trap"],
+                                      [b("entry", params, [*position, store, *result], ret("result"))])))
+            image = emit_program_machine(core, foreign_buffer_exports=exports)
+            final = directory / f"write-length-{indexed}-{return_length}.so"
+            compile_program_machine(image, program=core, output=final, linker="ld")
+            return core, image.object_bytes, final.read_bytes()
+
+        for indexed in (False, True):
+            with self.subTest(indexed=indexed):
+                core, obj, valid = build(indexed, True)
+                _, wrong_obj, wrong = build(indexed, False)
+                with patch("importlib.import_module", side_effect=no_host_solver):
+                    report = validate_safe_core_artifact(core, obj, valid, foreign_buffer_exports=exports)
+                    with self.assertRaises(SafeCoreRejected) as mismatch:
+                        validate_safe_core_artifact(core, wrong_obj, wrong, foreign_buffer_exports=exports)
+                self.assertTrue(report["complete"])
+                self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+                counterexample = mismatch.exception.counterexample
+                self.assertEqual(counterexample["obligation"], "core_to_final_image_return_abort_and_caller_bytes")
+                words = counterexample["abi_words"]
+                self.assertEqual(counterexample["caller_byte"]["offset"], words[2] if indexed else 7)
+                self.assertGreater(words[1], counterexample["caller_byte"]["offset"])
+
     def test_native_machine_proves_checked_product_overflow_at_full_width(self):
         from hepta.hia_safe_core import _selected_machine_proof
 

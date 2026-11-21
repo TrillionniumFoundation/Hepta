@@ -403,23 +403,25 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             return machine, bounds, after
         return machine, bounds
 
-    def project_borrowed_reference(self, extent, index, *, write=False, read_back=False):
+    def project_borrowed_reference(self, extent, index, *, write_result=None):
         """Project the ordered packed-loan guards and one observable Core result."""
+        write = write_result is not None
         magic = BORROWED_WRITE_REQUEST if write else BORROWED_LENGTH_REQUEST
         frame = struct.pack('<2Q', magic, extent)
         if index is not None:
             offsets = index if type(index) is tuple else (index,)
             frame += struct.pack('<' + 'Q' * len(offsets), *offsets)
-        if read_back:
-            if not write or type(index) is not int:
-                raise ValueError('readback requires exactly one writable loan byte')
-            frame += struct.pack('<Q', 1)
+        if write:
+            if type(index) is not int or type(write_result) is not int or write_result not in (0, 1, 2):
+                raise ValueError('invalid mutable-loan result protocol')
+            if write_result:
+                frame += struct.pack('<Q', write_result)
         source = ctypes.create_string_buffer(frame, len(frame))
         capacity = MACHINE_VALUES_HEADER.size + 48 * MACHINE_VALUES_NODE.size
         output = ctypes.create_string_buffer(capacity)
         scratch = ctypes.create_string_buffer(BORROWED_LENGTH_WORKSPACE)
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
-        if size == 0 or (read_back and size == 0xfffffffd):
+        if size == 0 or (write_result in (1, 2) and size == 0xfffffffd):
             return None
         if not MACHINE_VALUES_HEADER.size <= size <= capacity:
             raise RuntimeError('invalid HIA borrowed reference projection extent')

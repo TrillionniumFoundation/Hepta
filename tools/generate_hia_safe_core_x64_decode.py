@@ -1274,9 +1274,11 @@ def caller_disjoint_formula(o:mutbuf) -> u64:
 def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if schedule_request(s, 0) == LOAN_WRITE_REQUEST:
         if length(s) == 24:
-            return project_borrowed_write_reference(s, o, w, False)
-        if length(s) == 32 and schedule_request(s, 24) == 1:
-            return project_borrowed_write_reference(s, o, w, True)
+            return project_borrowed_write_reference(s, o, w, 0)
+        if length(s) == 32:
+            result_mode = schedule_request(s, 24)
+            if result_mode == 1 or result_mode == 2:
+                return project_borrowed_write_reference(s, o, w, result_mode)
         return 4294967293
     paired = length(s) == 32
     reading = length(s) == 24 or paired
@@ -1345,7 +1347,7 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(o, 48, 0)
     return MV_HEADER + 40 * nodes
 
-def project_borrowed_write_reference(s:readbuf, o:mutbuf, w:mutbuf, read_back:bool) -> u64:
+def project_borrowed_write_reference(s:readbuf, o:mutbuf, w:mutbuf, result_mode:u64) -> u64:
     extent = schedule_request(s, 8)
     index = schedule_request(s, 16)
     capacity = length(o)
@@ -1374,8 +1376,12 @@ def project_borrowed_write_reference(s:readbuf, o:mutbuf, w:mutbuf, read_back:bo
     before = mv_word(o, w, 26, 8, payload + 1, 0, 0) - 1
     after = mv_core_written_byte(o, w, too_large, null, wrapping, out_of_bounds, value, before)
     normal = zero
-    if read_back:
+    if result_mode == 1:
         widened = mv_node(o, w, 30, value, 0, 0) - 1
+        normal = mv_node(o, w, 11, out_of_bounds, zero, widened) - 1
+    if result_mode == 2:
+        narrow = mv_word(o, w, 26, 32, 1, 0, 0) - 1
+        widened = mv_node(o, w, 30, narrow, 0, 0) - 1
         normal = mv_node(o, w, 11, out_of_bounds, zero, widened) - 1
     packed = mv_core_write_result(o, w, too_large, null, wrapping, empty, normal)
     known = mv_word(o, w, 2, 1, 0, 0, 1) - 1

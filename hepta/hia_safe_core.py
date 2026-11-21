@@ -929,11 +929,17 @@ def _native_borrowed_shape(fn, blocks, extent):
             return None
         if len(outputs) == 1:
             return ("write", index) if result["op"] == "const" and result["attrs"]["value"] == 0 else None
-        load = outputs[0]
-        if (result["op"] == "int.cast" and result["attrs"] == {"mode": "wrap"}
-                and load["op"] == "buffer.load" and load["args"] == address
-                and load["out"][0]["type"] == "u8" and result["args"] == [load["out"][0]["name"]]):
+        observation = outputs[0]
+        if (observation["op"] not in ("buffer.load", "buffer.len")
+                or result["op"] != "int.cast" or result["attrs"] != {"mode": "wrap"}
+                or result["args"] != [observation["out"][0]["name"]]):
+            return None
+        if (observation["op"] == "buffer.load" and observation["args"] == address
+                and observation["out"][0]["type"] == "u8"):
             return "write_read", index
+        if (observation["op"] == "buffer.len" and observation["args"] == address[:1]
+                and observation["out"][0]["type"] == "usize"):
+            return "write_length", index
         return None
     if len(ops) not in (2, 3, 6) or types not in (["readbuf"], ["readbuf", "usize"]):
         return None
@@ -975,11 +981,11 @@ def _native_borrowed_shape(fn, blocks, extent):
     return ("read", index) if 0 <= index < extent else None
 
 
-def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, write, read_back):
+def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, write_result):
     if borrowed:
         paths = 4 if loan_index is None else 6 if type(loan_index) is tuple else 5
-        return decoder.project_borrowed_reference(borrowed[0][1], loan_index, write=write,
-                                                  read_back=read_back), paths
+        return decoder.project_borrowed_reference(borrowed[0][1], loan_index,
+                                                  write_result=write_result), paths
     names = tuple(blocks)
     paths = 1
     if len(names) > 1:
@@ -1005,14 +1011,14 @@ def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, w
 
 def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
                                 pair, identity, started, deadline, query_directory,
-                                foreign_buffer_exports=(), loan_index=None, *, write=False, read_back=False):
+                                foreign_buffer_exports=(), loan_index=None, *, write_result=None):
     from .hia_cnf_native import SAT
     from .hia_optimization import _native_circuit_decision
     from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT
 
     decoder, cnf = pair
     projection = _native_core_projection(decoder, cnf, fn, blocks, foreign_buffer_exports, loan_index,
-                                         write=write, read_back=read_back)
+                                         write_result=write_result)
     if projection is None or projection[0] is None:
         return None
     core, paths = projection
@@ -1024,10 +1030,10 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     no_violation = ((), (), None)
     memory_check = no_violation
     caller_byte = None
-    if write:
+    if write_result is not None:
         core, expected_byte = core
         projection = decoder.project_borrowed_write(binding, foreign_buffer_exports[0][1], loan_index,
-                                                    read_back=read_back, **instruction_profile)
+                                                    read_back=write_result == 1, **instruction_profile)
         if projection is None:
             return None
         machine, memory_check, actual_byte = projection
@@ -1150,14 +1156,14 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     if foreign_buffer_exports:
         loan_shape = _native_borrowed_shape(fn, blocks, foreign_buffer_exports[0][1])
     if decoder is not None and cnf is not None and (not foreign_buffer_exports or loan_shape is not None):
-        loan_index = None if loan_shape is None else loan_shape[1]
+        loan_kind, loan_index = (None, None) if loan_shape is None else loan_shape
+        write_result = {"write": 0, "write_read": 1, "write_length": 2}.get(loan_kind)
         started = time.monotonic_ns()
         deadline = started + timeout_ms * 1_000_000
         native = _try_native_scalar_artifact(checked, fn, blocks, binding, artifact_profile,
                                              profile_version, pair, identity, started, deadline, query_directory,
                                              foreign_buffer_exports, loan_index,
-                                             write=loan_shape is not None and loan_shape[0] in ("write", "write_read"),
-                                             read_back=loan_shape is not None and loan_shape[0] == "write_read")
+                                             write_result=write_result)
         if native is not None:
             return native
         timeout_ms = (deadline - time.monotonic_ns()) // 1_000_000
