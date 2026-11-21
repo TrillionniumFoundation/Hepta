@@ -312,6 +312,7 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/agent_discovery_carrier_packer.hepta',
     'examples/hia_bootstrap/agent_input_carrier_packer.hepta',
     'examples/hia_bootstrap/agent_artifact_worker_carrier_packer.hepta',
+    'examples/hia_bootstrap/agent_context_worker_carrier_packer.hepta',
     'examples/hia_bootstrap/agent_discovery_bootstrap_carrier_packer.hepta',
     'examples/hia_bootstrap/discovery_effect.hepta',
     'tools/generate_hia_discovery_effect.py',

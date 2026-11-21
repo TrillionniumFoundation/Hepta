@@ -72,6 +72,11 @@ CARRIERS = {
         (('descriptor_io_and_child_ownership', 0, 3762),
          ('store_and_journal_frames', 3762, 6669),
          ('immutable_input_and_worker_relay', 6669, 18592))),
+    'context-worker': CarrierImage(
+        'examples/hia_bootstrap/agent_context_worker_carrier_packer.hepta', b'HIACTK01',
+        '4462cca8fdaf7ccfeece9179e3991929960792bfd78100aedefc5ad82cebed41', 27928,
+        (('platform_io_and_custody', 0, 3572), ('sealed_children_and_store', 3572, 6564),
+         ('receipt_and_artifact_transfer', 6564, 9590), ('context_effect_delivery', 9590, 27928))),
     'describe-worker': CarrierImage(
         'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
         'd3b3b68645a247e27e7081e475e38e0333186bd0983199bbe2a123fa3454fec1', 11258,

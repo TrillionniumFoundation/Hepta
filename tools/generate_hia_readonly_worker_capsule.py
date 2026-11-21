@@ -44,7 +44,22 @@ ARTIFACT_ROLES = (
     'hia-worker-response', 'hia-agent-mcp-response-schema', 'hia-agent-journal-cost',
     'hia-worker-terminal', 'hia-agent-artifact-diagnostic',
 )
-NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER)))
+CONTEXT_OWNER = 'hia-agent-context-worker-carrier'
+CONTEXT_ROLES = (
+    'hia-worker-admit', 'hia-worker-journal-call', 'hia-agent-worker-arguments',
+    'hia-agent-mcp-input-schema', 'hia-agent-context-journal', 'hia-agent-journal',
+    'hia-agent-store', 'hia-agent-store-ready', 'hia-agent-store-unique',
+    'hia-agent-context-journal-records', 'hia-agent-context-journal-observation',
+    'hia-agent-artifact-capture', 'hia-agent-artifact-authority', 'hia-artifact',
+    'hia-agent-context-request', 'hia-agent-discovery-carrier', 'hia-agent-discovery-artifact',
+    'hia-agent-discovery-effect', 'hia-worker-response', 'hia-agent-mcp-response-schema',
+    'hia-agent-journal-cost', 'hia-worker-terminal', 'hia-agent-context-diagnostic',
+    'hia-agent-context-control-launcher', 'hia-agent-context-effect', 'hia-agent-context-store',
+    'hia-agent-context-record', 'hia-agent-context-payload', 'hia-agent-context-workload',
+    'hia-agent-context-cost', 'hia-nominal-constructor',
+)
+NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
+                                  *CONTEXT_ROLES, CONTEXT_OWNER)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -175,7 +190,7 @@ def routing(*, artifact=False):
     schema = b',"schema":"hia-agent-worker-request-v1","tool":"'
     methods = ((1, b'hia_read'), (2, b'hia_describe'))
     if artifact:
-        methods += ((3, b'hia_artifact'),)
+        methods += ((3, b'hia_artifact'), (4, b'hia_context'))
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
