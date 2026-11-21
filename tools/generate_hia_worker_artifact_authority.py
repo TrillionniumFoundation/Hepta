@@ -22,6 +22,10 @@ def artifact_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return profile_observation(s, o)
     if mode == ARTIFACT_OBSERVE:
         return artifact_observation(s, o)
+    if mode == RETAINED_QUERY:
+        return retained_query(s, o)
+    if mode == RETAINED_OBSERVE:
+        return retained_observation(s, o)
     if mode == INPUT_RESULT:
         return receipt(s, o)
     return 4294967293
@@ -59,29 +63,69 @@ def profile_observation(s:readbuf, o:mutbuf) -> u64:
     query_field(o, 224, 56, 34)
     return copy_input(s, o, 286, 248, 34)
 
+def retained_query(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 192 or input_word(s, 8) > 4 or artifact_reference(s, 16) == False:
+        return 4294967293
+    query_header(o, 0, 1, 90)
+    query_field(o, 32, 56, 34)
+    return copy_input(s, o, 23, 56, 34)
+
 def artifact_observation(s:readbuf, o:mutbuf) -> u64:
-    if length(s) < 256 or artifact_reference(s, 32) == False:
+    # The artifact profile route keeps its original seal and reply shape.
+    if length(s) < 256:
         return 4294967293
     size = input_word(s, 8)
     if size != length(s) - 256 or unique_summary(s, 208 + size, size) == False:
         return 4294967293
+    return retain_binding(s, o, 32, size, 2, PROFILE_READ)
+
+def retained_observation(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 264 or input_word(s, 32) > 4:
+        return 4294967293
+    size = input_word(s, 8)
+    if size != length(s) - 264 or unique_summary(s, 216 + size, size) == False:
+        return 4294967293
+    return retain_binding(s, o, 40, size, input_word(s, 32), RETAINED_READ)
+
+def retain_binding(s:readbuf, o:mutbuf, ref:u64, size:u64, kind:u64, outcome:u64) -> u64:
+    if artifact_reference(s, ref) == False:
+        return 4294967293
     if size == 0:
         return 4294967288
-    if size < 393 or size > 16777216 or row_header(s, 208, 1, 6) == False:
+    row = ref + 176
+    if size < 389 or row_header(s, row, 1, 6) == False:
         return 4294967293
-    if row_text(s, 240, 176, 34) == False or row_text(s, 264, 210, 64) == False:
+    if row_text(s, row + 32, 176, 34) == False or row_text(s, row + 56, 210, 64) == False:
         return 4294967293
-    if row_text(s, 288, 274, 48) == False or row_text(s, 312, 322, 7) == False:
+    if row_text(s, row + 80, 274, 48) == False:
         return 4294967293
-    metadata = size - 393
-    if row_text(s, 336, 329, metadata) == False or row_text(s, 360, 329 + metadata, 64) == False:
+    width = input_word(s, row + 120)
+    if width == 0 or width > 128 or size < 388 + width or row_text(s, row + 104, 322, width) == False:
         return 4294967293
-    if profile_text(s, 530) == False or valid_hex(s, 208 + size - 64, 64) == False:
+    metadata = size - 386 - width
+    if row_text(s, row + 128, 322 + width, metadata) == False:
         return 4294967293
-    if matches(s, 384, 39, 34) == False or matches(s, 418, 85, 64) == False or matches(s, 482, 158, 48) == False:
+    if row_text(s, row + 152, 322 + width + metadata, 64) == False:
+        return 4294967293
+    if valid_hex(s, row + size - 64, 64) == False:
+        return 4294967293
+    if requested_kind(s, row + 322, width, kind) == False:
+        return 4294967287
+    if matches(s, row + 176, ref + 7, 34) == False or matches(s, row + 210, ref + 53, 64) == False or matches(s, row + 274, ref + 126, 48) == False:
         return 4294967288
-    put(o, 0, PROFILE_READ)
-    return copy_input(s, o, 85, 8, 64)
+    put(o, 0, outcome)
+    return copy_input(s, o, ref + 53, 8, 64)
+
+def requested_kind(s:readbuf, at:u64, size:u64, kind:u64) -> bool:
+    if kind == 0:
+        return True
+    if kind == 1:
+        return size == 5 and input_text(s, at)
+    if kind == 2:
+        return size == 7 and profile_text(s, at)
+    if kind == 3:
+        return size == 7 and context_text(s, at)
+    return size == 7 and program_text(s, at)
 
 def unique_summary(s:readbuf, at:u64, size:u64) -> bool:
     if input_word(s, at) != 5 or input_word(s, at + 8) != size or input_word(s, at + 24) != 0:
@@ -141,13 +185,15 @@ def source_program():
         'PROFILE_QUERY': b'HIARPF01', 'PROFILE_OBSERVE': b'HIARPF02',
         'ARTIFACT_OBSERVE': b'HIARPF03', 'INPUT_RESULT': b'HIARPF04',
         'PROFILE_REF': b'HIARPO01', 'PROFILE_READ': b'HIARPO02',
+        'RETAINED_QUERY': b'HIARFG01', 'RETAINED_OBSERVE': b'HIARFG02',
+        'RETAINED_READ': b'HIARFO02',
         'QUERY': b'HIAQPA01', 'ROW': b'HIAROW01', 'DOCUMENT': b'HIADOC01',
         'PROFILE_HEAD': b'hia-arti', 'PROFILE_END': b'fact-v1',
     }
     program = re.sub(r'\b(' + '|'.join(tags) + r')\b',
                      lambda match: str(int.from_bytes(tags[match.group()], 'little')), POLICY)
     shared = document_effect()
-    for name in ('copy_input', 'valid_hex', 'input_word', 'state_put', 'profile_text'):
+    for name in ('copy_input', 'valid_hex', 'input_word', 'state_put', 'profile_text', 'input_text'):
         definition = '\ndef ' + name + '('
         start = shared.index(definition)
         end = shared.find('\ndef ', start + len(definition))
@@ -157,6 +203,7 @@ def source_program():
     for name, raw in (
         ('artifact_start', b'{"id":"a-'), ('artifact_digest', b'","sha256":"'),
         ('artifact_uri', b'","uri":"hia://artifacts/'),
+        ('context_text', b'context'), ('program_text', b'program'),
     ):
         program += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'
         program += '    return ' + ' and '.join(
