@@ -1,0 +1,119 @@
+{
+  "files": {
+    "hepta/cli.py": {
+      "current_sha256": "850125f82e0e2a2894f5bbbe65a9c9704f7f4f990c5a0d340fb361a21aa8762a",
+      "deltas": [
+        {
+          "current": "    from .hia_default_native import default_cli\n    owner = default_cli()\n    if owner is not None:\n        return owner.run(argv, sys.modules[__name__])\n",
+          "first": 244,
+          "previous": ""
+        }
+      ],
+      "previous_sha256": "6b1662899a19b9099749bc9192abcebc08c33d4fa0efec121ed4fc75cae6964c"
+    },
+    "hepta/hia_cli_native.py": {
+      "current_sha256": "d2fc5262e1475ea41fa492ed0d43934ed1ed054747fce23ef29c777949b55a2e",
+      "deltas": [
+        {
+          "current": "DISCOVERY_BUNDLE_SCHEMA = \"hepta.hia.cli-native-bundle.v2\"\n",
+          "first": 31,
+          "previous": ""
+        },
+        {
+          "current": "RUNTIME_PROFILES = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}\n",
+          "first": 34,
+          "previous": ""
+        },
+        {
+          "current": "def native_cli_profile():\n    return RUNTIME_PROFILES.get(tuple(sys.version_info[:3])) if sys.implementation.name == \"cpython\" else None\n\n\n",
+          "first": 96,
+          "previous": ""
+        },
+        {
+          "current": "    profile = native_cli_profile()\n    if profile is None:\n",
+          "first": 101,
+          "previous": "    observed = tuple(sys.version_info[:3])\n    profiles = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}\n    if sys.implementation.name != \"cpython\" or observed not in profiles:\n"
+        },
+        {
+          "current": "    return profile\n",
+          "first": 104,
+          "previous": "    return profiles[observed]\n"
+        },
+        {
+          "current": "    def __init__(self, control, formatter, discovery=None):\n",
+          "first": 161,
+          "previous": "    def __init__(self, control, formatter):\n"
+        },
+        {
+          "current": "        self.discovery = discovery\n",
+          "first": 164,
+          "previous": ""
+        },
+        {
+          "current": "            selected = selected_json(1, package_owner=self.owner.discovery)\n",
+          "first": 375,
+          "previous": "            selected = selected_json(1)\n"
+        },
+        {
+          "current": "            selected = selected_json(2, schema, package_owner=self.owner.discovery)\n",
+          "first": 381,
+          "previous": "            selected = selected_json(2, schema)\n"
+        },
+        {
+          "current": "def installed_cli(manifest_path, *, expected_sha256=None):\n",
+          "first": 565,
+          "previous": "def installed_cli(manifest_path):\n"
+        },
+        {
+          "current": "    if expected_sha256 is not None and sha256(raw).hexdigest() != expected_sha256:\n        raise ValueError(\"package native CLI bundle identity mismatch\")\n",
+          "first": 577,
+          "previous": ""
+        },
+        {
+          "current": "    if type(bundle) is not dict or bundle.get(\"schema\") not in (SCHEMA, DISCOVERY_BUNDLE_SCHEMA):\n        raise ValueError(\"invalid native CLI bundle\")\n    roles = (\"control\", \"format\")\n    if bundle[\"schema\"] == DISCOVERY_BUNDLE_SCHEMA:\n        keys.update((\"discovery_manifest\", \"discovery_manifest_sha256\"))\n        roles = (*roles, \"discovery\")\n    if set(bundle) != keys:\n",
+          "first": 582,
+          "previous": "    if type(bundle) is not dict or set(bundle) != keys or bundle[\"schema\"] != SCHEMA:\n"
+        },
+        {
+          "current": "    for name in roles:\n",
+          "first": 592,
+          "previous": "    for name in (\"control\", \"format\"):\n"
+        },
+        {
+          "current": "    if any(identity != compilers[0] for identity in compilers[1:]):\n",
+          "first": 609,
+          "previous": "    if compilers[0] != compilers[1]:\n"
+        },
+        {
+          "current": "    discovery = None\n    if \"discovery\" in children:\n        from .hia_cli_discovery_json_native import installed_cli_discovery_json\n        discovery = installed_cli_discovery_json(str(children[\"discovery\"][0]),\n                                                  expected_sha256=bundle[\"discovery_manifest_sha256\"])\n",
+          "first": 616,
+          "previous": ""
+        },
+        {
+          "current": "    return NativeCli(control, formatter, discovery)\n",
+          "first": 626,
+          "previous": "    return NativeCli(control, formatter)\n"
+        }
+      ],
+      "previous_sha256": "d78f27f0c6bcf4b338d9f72270e9d00449108c7794897d71a1090709370a3f8b"
+    },
+    "tests/test_hia_cli_native.py": {
+      "current_sha256": "bc028104fb15c5a0a2cdf99f429876ab42af8c3f56b6eb2a598e4fc9c64d7e41",
+      "deltas": [
+        {
+          "current": "        from tests.test_hia_agent_installed_resources import (\n            EXECUTABLE_CAPTURE_RESOURCES, VM_INTEGER_DIVREM_RESOURCES,\n            VM_INTEGER_ARITHMETIC_RESOURCES, VM_INTEGER_SCALAR_RESOURCES,\n        )\n",
+          "first": 830,
+          "previous": ""
+        },
+        {
+          "current": "        resources += (*EXECUTABLE_CAPTURE_RESOURCES, *VM_INTEGER_DIVREM_RESOURCES,\n                      *VM_INTEGER_ARITHMETIC_RESOURCES, *VM_INTEGER_SCALAR_RESOURCES)\n",
+          "first": 840,
+          "previous": ""
+        }
+      ],
+      "previous_sha256": "2d364df0c73897a30d03ba2f8a7ebe4fec44c5a4f364588edc90ef63281b9f1b"
+    }
+  },
+  "previous_commit": "f0f37454f4dc03fdddbe8907a2499cf55cb08554",
+  "schema": "hepta.hia.cli-default-successor.v1"
+}

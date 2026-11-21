@@ -586,6 +586,7 @@ SOURCE_FILES = (
     'tests/fixtures/hia_cli_discovery_0daf_baseline.json',
     'tests/fixtures/hia_cli_discovery_verified_build.json',
     'tests/fixtures/hia_cli_discovery_word_memory.json',
+    'tests/fixtures/hia_cli_discovery_default_successor.json',
     'tools/hia_cli_discovery_compat.py',
     'tests/fixtures/hia_cli_discovery_r20_import.json',
     'tools/generate_hia_cli_discovery_json.py',

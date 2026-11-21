@@ -151,8 +151,8 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
 
     def test_original_cli_parser_outputs_and_both_old_assets_are_unchanged(self):
         # Keep the original fixture and all seven original file identities.
-        # Exact feature deltas admit #914, v9, and their reviewed successor
-        # after removing the same five R29 opt-in hooks.
+        # Apply the exact default-release inverse before the existing R29
+        # opt-in and reviewed #914/v9 inverses. No historical pins change.
         path = ROOT / 'tests/fixtures/hia_cli_discovery_0daf_baseline.json'
         self.assertEqual(sha256(path.read_bytes()).hexdigest(),
                          '2d6e4aed65731fd39b200f1ac94ae0e60e0e557e842699a9ce6db43186882d43')
@@ -161,6 +161,10 @@ class CliDiscoveryJsonSourceTests(unittest.TestCase):
         for name, record in baseline['files'].items():
             with self.subTest(path=name):
                 actual = (ROOT / name).read_text()
+                if name in ('hepta/cli.py', 'hepta/hia_cli_native.py', 'tests/test_hia_cli_native.py'):
+                    with self.assertRaisesRegex(ValueError, 'pinned default CLI successor'):
+                        compat.before_default_cli(name, actual + '\n')
+                actual = compat.before_default_cli(name, actual)
                 for edit in reversed(record['edits']):
                     self.assertEqual(actual.count(edit['new']), 1)
                     actual = actual.replace(edit['new'], edit['old'])

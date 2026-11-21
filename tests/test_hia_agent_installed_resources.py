@@ -177,6 +177,7 @@ SDIST_SUPPORT_FILES=(
     "tools/read_hia_slot_worker_terminal.py",
     "tests/fixtures/hia_cli_discovery_verified_build.json",
     "tests/fixtures/hia_cli_discovery_word_memory.json",
+    "tests/fixtures/hia_cli_discovery_default_successor.json",
     "tests/fixtures/static_budget_word_memory_d998.py.txt",
     "tests/test_hia_slot_word_memory.py",
     "tests/fixtures/slot_operations_word_memory_v8.json",

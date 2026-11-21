@@ -22,6 +22,9 @@ R5_SOURCE_SHA256 = '8e14590337e501c2315befe8dea1df9f6e7b02dbda28ca82d54b2f20959e
 WORD_FIXTURE = ROOT / 'tests/fixtures/hia_cli_discovery_word_memory.json'
 WORD_FIXTURE_SHA256 = '278d8b2ae36291a849f195fa6a5627a0e5482d23d91135786eb93fd930ebca3e'
 
+DEFAULT_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_discovery_default_successor.json'
+DEFAULT_SUCCESSOR_SHA256 = 'e033a6674560cbdf044082e06f1f85163f425d5afd3ad51c21fdb580015ff39f'
+
 
 def fixture():
     raw = FIXTURE.read_bytes()
@@ -145,6 +148,34 @@ def legacy_catalog_owner():
             or len(catalog.OPCODES) != 50 or catalog.LATEST_CORE_SCHEMA != 'hepta.hia.program.v8'):
         raise ValueError('independent original catalog oracle domain differs')
     return catalog
+
+
+def before_default_cli(name, current):
+    """Undo only the pinned installed-owner and wheel fixture changes."""
+    raw = DEFAULT_SUCCESSOR.read_bytes()
+    if sha256(raw).hexdigest() != DEFAULT_SUCCESSOR_SHA256:
+        raise ValueError('default CLI successor fixture changed')
+    fixture = json.loads(raw)
+    if (fixture['schema'] != 'hepta.hia.cli-default-successor.v1'
+            or fixture['previous_commit'] != 'f0f37454f4dc03fdddbe8907a2499cf55cb08554'):
+        raise ValueError('default CLI successor identity differs')
+    row = fixture['files'].get(name)
+    if row is None:
+        return current
+    if sha256(current.encode()).hexdigest() != row['current_sha256']:
+        raise ValueError('source differs from the pinned default CLI successor: ' + name)
+    lines = current.splitlines(keepends=True)
+    for delta in reversed(row['deltas']):
+        first = delta['first']
+        expected = delta['current'].splitlines(keepends=True)
+        last = first + len(expected)
+        if lines[first:last] != expected:
+            raise ValueError('invalid default CLI inverse delta: ' + name)
+        lines[first:last] = delta['previous'].splitlines(keepends=True)
+    previous = ''.join(lines)
+    if sha256(previous.encode()).hexdigest() != row['previous_sha256']:
+        raise ValueError('default CLI predecessor source differs: ' + name)
+    return previous
 
 
 def original_cli_source(name, normalized_current):
