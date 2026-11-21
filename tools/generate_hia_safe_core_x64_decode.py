@@ -2596,13 +2596,30 @@ def query_fragments():
     return '\n'.join(functions)
 
 
-def document():
+ARTIFACT_SOURCE_PATH = 'examples/hia_bootstrap/safe_core_artifact_wire.hepta'
+
+
+def document(*, artifact_wire=False):
     class Constants(ast.NodeTransformer):
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
     nodes = ast.fix_missing_locations(Constants().visit(ast.parse(
         SOURCE + QUERY_SOURCE + '\n' + query_fragments()))).body
+    if artifact_wire:
+        root, = ast.parse('''
+def artifact_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    return artifact_projection_wire(s, o)
+''').body
+        nodes.insert(0, root)
+        retained = {root.name}
+        while True:
+            called = {call.func.id for node in nodes if node.name in retained for call in ast.walk(node)
+                      if isinstance(call, ast.Call) and isinstance(call.func, ast.Name)}
+            if called <= retained:
+                break
+            retained.update(called)
+        nodes = [node for node in nodes if node.name in retained]
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}
@@ -2614,10 +2631,12 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'safe_core_x64_decode',
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': ('safe_core_artifact_wire' if artifact_wire else 'safe_core_x64_decode'),
                                   'functions': functions})
 
 
 if __name__ == '__main__':
     target = Path(__file__).resolve().parents[1] / SOURCE_PATH
     target.write_text(render_assembly(document()))
+    artifact = Path(__file__).resolve().parents[1] / ARTIFACT_SOURCE_PATH
+    artifact.write_text(render_assembly(document(artifact_wire=True)))

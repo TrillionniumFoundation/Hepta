@@ -13,6 +13,8 @@ from tools.generate_hia_native_filter import read_adapter_binding
 from tools.generate_hia_safe_core_binder import SOURCE_PATH
 from tools.generate_hia_safe_core_binder_packer import ADAPTER, CALLS, MAGIC, PACKER
 from tools.generate_hia_safe_core_machine_observe import SOURCE_PATH as MACHINE_SOURCE
+from tools.generate_hia_safe_core_observations import SOURCE_PATH as OBSERVATION_SOURCE
+from tools.generate_hia_safe_core_x64_decode import ARTIFACT_SOURCE_PATH
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -28,14 +30,28 @@ MACHINE_PARTS = {**PARTS, 'binder': MACHINE_SOURCE,
                  'elf': 'examples/hia_bootstrap/safe_core_x64_decode.hepta'}
 
 
-def build(output, compiler, cold_report, *, observe_machine=False):
-    parts = MACHINE_PARTS if observe_machine else PARTS
-    product = 'hia-safe-core-machine-observe' if observe_machine else 'hia-safe-core-bind'
+OBSERVATION_PARTS = {'binder': OBSERVATION_SOURCE, 'elf': 'examples/hia_bootstrap/cnf.hepta',
+                     'wire': ARTIFACT_SOURCE_PATH}
+
+
+def build(output, compiler, cold_report, *, observe_machine=False, join_observations=False):
+    if observe_machine and join_observations:
+        raise ValueError('choose one specific Safe Core execution stage')
+    if observe_machine:
+        parts = MACHINE_PARTS
+        product, stage = 'hia-safe-core-machine-observe', 'safe-core-machine-observe'
+    elif join_observations:
+        parts = OBSERVATION_PARTS
+        product, stage = 'hia-safe-core-observations', 'safe-core-observations'
+    else:
+        parts = PARTS
+        product, stage = 'hia-safe-core-bind', 'safe-core-binder'
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admission = admit_cold_build(compiler_raw, report_raw)
     source_paths = (*parts.values(), ADAPTER, PACKER, 'tools/build_hia_safe_core_binder.py',
                     'tools/generate_hia_safe_core_binder.py', 'tools/generate_hia_safe_core_binder_packer.py',
-                    'tools/generate_hia_safe_core_machine_observe.py')
+                    'tools/generate_hia_safe_core_machine_observe.py', 'tools/generate_hia_safe_core_observations.py',
+                    'tools/generate_hia_safe_core_x64_decode.py')
     sources = {name: (ROOT / name).read_bytes() for name in source_paths}
     if any(admission.get(name) != sha256(raw).hexdigest() for name, raw in sources.items()):
         raise ValueError('Safe Core binder input differs from admitted cold source')
@@ -69,8 +85,7 @@ def build(output, compiler, cold_report, *, observe_machine=False):
         stream.write(binary)
     executable.chmod(0o500)
     (output / 'build.json').write_text(json.dumps({
-        'schema': ('hepta.hia.safe-core-machine-observe-build.v1' if observe_machine
-                   else 'hepta.hia.safe-core-binder-build.v1'),
+        'schema': f'hepta.hia.{stage}-build.v1',
         'compiler_sha256': sha256(compiler_raw).hexdigest(),
         'cold_report_sha256': sha256(report_raw).hexdigest(),
         'native_executable_sha256': sha256(binary).hexdigest(),
@@ -85,8 +100,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--observe-machine', action='store_true',
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument('--observe-machine', action='store_true',
                         help='build the independent scalar machine-observation stage')
+    action.add_argument('--join-observations', action='store_true',
+                        help='build the independent join of native machine and Core observations')
     args = parser.parse_args()
     print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
-                observe_machine=args.observe_machine))
+                observe_machine=args.observe_machine, join_observations=args.join_observations))

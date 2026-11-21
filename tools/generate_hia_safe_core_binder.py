@@ -325,6 +325,10 @@ def next(w:mutbuf, phase:u64, role:u64, source:u64, size:u64, answer:u64,
 '''
 
 
+def shared_transport():
+    return SOURCE[SOURCE.index('\ndef copy_input('):]
+
+
 def document(source=SOURCE, *, module='safe_core_binder', extra=None):
     constants = {name: value for name, value in globals().items() if name.isupper() and type(value) is int}
     constants.update(RELOCATION_HEAD=OBJECT_INVENTORY_CONTROL_BYTES + OBJECT_RELOCATION_CONTROL_BYTES,

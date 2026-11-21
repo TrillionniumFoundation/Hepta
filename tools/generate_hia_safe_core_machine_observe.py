@@ -11,7 +11,7 @@ from hepta.hia_safe_core_x64_decode_native import (
     MACHINE_VALUES_REQUEST, MACHINE_VALUES_STACK_BYTES, MACHINE_VALUES_WORKSPACE,
     MAX_INSTRUCTIONS, ROW, WORKSPACE,
 )
-from tools.generate_hia_safe_core_binder import SOURCE as BINDER_SOURCE, document as transport_document
+from tools.generate_hia_safe_core_binder import document as transport_document, shared_transport
 
 SOURCE_PATH = 'examples/hia_bootstrap/safe_core_machine_observe.hepta'
 REQUEST_MAGIC = int.from_bytes(b'HIAMOP01', 'little')
@@ -124,13 +124,13 @@ def emit(o:mutbuf, w:mutbuf) -> u64:
 
 
 def document():
-    copy_input = BINDER_SOURCE[BINDER_SOURCE.index('\ndef copy_input('):BINDER_SOURCE.index('\ndef copy_work(')]
-    dispatch = BINDER_SOURCE[BINDER_SOURCE.index('\ndef next('):]
     constants = {name: value for name, value in globals().items() if name.isupper() and type(value) is int}
     constants.update(DECODER_WORK=WORKSPACE, ROW_BYTES=ROW.size,
                      OBSERVATION_HEAD=MACHINE_VALUES_HEADER.size, OBSERVATION_NODE=MACHINE_VALUES_NODE.size,
                      PATHS=1 << MACHINE_VALUES_BRANCH_DEPTH)
-    return transport_document(SOURCE + copy_input + dispatch, module='safe_core_machine_observe', extra=constants)
+    helpers = shared_transport()
+    helpers = helpers[:helpers.index('\ndef copy_work(')] + helpers[helpers.index('\ndef next('):]
+    return transport_document(SOURCE + helpers, module='safe_core_machine_observe', extra=constants)
 
 
 if __name__ == '__main__':
