@@ -6,6 +6,8 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 from tools.generate_hia_worker_context_request import NONE, POLICY as CONTEXT_POLICY, literal, literal_match
+from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_inspection_request import POLICY as INSPECTION_POLICY
 
 SOURCE = Path('examples/hia_bootstrap/worker_candidate_request.hepta')
 FIELDS = ('catalog_sha256', 'context', 'change', 'kind', 'format', 'source',
@@ -33,6 +35,8 @@ POLICY = r'''
 def candidate_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 2 or length(s) > 16384 or length(o) < 16384 or length(w) < 65536:
         return 4294967293
+    if length(s) >= 8 and input_word(s, 0) == ATTEMPT_TAG:
+        return decide_attempt(s, o)
     put(o, 48, 4096)
     put(o, 56, 32)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -133,6 +137,57 @@ def candidate_result(s:readbuf, w:mutbuf, o:mutbuf, base:u64, candidate:u64, dia
     at = copy_value(s, w, o, diagnostics, result_diagnostic(o, at))
     store(o, at, 125)
     return at + 1
+
+# The caller delivers the previously admitted Context row and an observed
+# CLOCK_REALTIME value. Keep exact boundary and future-clock semantics.
+# Refused plans are distinct from the Store's zero-change CAS observation.
+def decide_attempt(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 84:
+        return 4294967293
+    maximum = input_word(s, 8)
+    current = input_word(s, 16)
+    created = input_word(s, 24)
+    now = input_word(s, 32)
+    total = input_word(s, 40)
+    if maximum == 0 or maximum > 4096 or total == 0 or total > 86400000:
+        return 4294967293
+    if current > 9223372036854775807 or valid_context_id(s) == False:
+        return 4294967293
+    if now >= created and now - created > total * 1000000:
+        return 4294967288
+    if current >= maximum:
+        return 4294967287
+    put(o, 0, UPDATE_TAG)
+    put(o, 8, 1)
+    put(o, 16, 8)
+    put(o, 24, 0)
+    put(o, 32, 3)
+    cell(o, 40, 1, 112, 8)
+    cell(o, 64, 3, 120, 36)
+    cell(o, 88, 1, 156, 8)
+    put(o, 112, current + 1)
+    index = 0
+    while index < 36:
+        store(o, 120 + index, byte(s, 48 + index))
+        index = index + 1
+    put(o, 156, current)
+    return 164
+
+def cell(o:mutbuf, at:u64, kind:u64, offset:u64, size:u64) -> u64:
+    put(o, at, kind)
+    put(o, at + 8, offset)
+    return put(o, at + 16, size)
+
+def valid_context_id(s:readbuf) -> bool:
+    if input_word(s, 48) & 4294967295 != CONTEXT_PREFIX:
+        return False
+    index = 52
+    while index < 84:
+        ch = byte(s, index)
+        if (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
+            return False
+        index = index + 1
+    return True
 '''
 
 
@@ -141,13 +196,17 @@ def program():
         'NONE': NONE,
         'REQUEST_TAG': int.from_bytes(b'HIACAN01', 'little'),
         'BUDGET_TAG': int.from_bytes(b'HIACAB01', 'little'),
+        'ATTEMPT_TAG': int.from_bytes(b'HIACAP01', 'little'),
+        'UPDATE_TAG': int.from_bytes(b'HIAUPB01', 'little'),
+        'CONTEXT_PREFIX': int.from_bytes(b'ctx-', 'little'),
         **{f'K_{key}': index for index, key in enumerate(FIELDS, 1)},
     }
     span = CONTEXT_POLICY[CONTEXT_POLICY.index('\ndef equal_span('):
                           CONTEXT_POLICY.index('\ndef profile_pin(')]
     digest = CONTEXT_POLICY[CONTEXT_POLICY.index('\ndef digest_text('):]
     helpers = WIRE_HELPERS.split('\ndef signed_id', 1)[0]
-    source = '\n'.join((POLICY, span, digest, helpers, comparison_table('key_id', FIELDS),
+    source = '\n'.join((POLICY, span, digest, helpers, function(INSPECTION_POLICY, 'input_word'),
+                       comparison_table('key_id', FIELDS),
                        *(literal_match(name, value) for name, value in CHOICES.items()),
                        *(literal(name, value) for name, value in RESULT.items()),
                        json_decoder(wire_spans=True)))

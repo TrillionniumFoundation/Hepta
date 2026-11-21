@@ -43,6 +43,8 @@ WIRE = {
     'ARTIFACT_TOOL_TAIL': b'fact',
     'CONTEXT_TOOL_HEAD': b'hia_cont',
     'CONTEXT_TOOL_TAIL': b'ext',
+    'CANDIDATE_TOOL_HEAD': b'hia_cand',
+    'CANDIDATE_TOOL_TAIL': b'idate',
     'RUNNING_STATE': b'running',
 }
 
@@ -138,6 +140,9 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 26:
         if mode != 0 or valid_context_claim(s, size) == False:
             return 0
+    elif plan == 27:
+        if mode == 0 or valid_candidate_attempt(s, size) == False:
+            return 0
     elif plan == 4:
         if size != 92 or valid_context_lookup(s) == False:
             return 0
@@ -227,6 +232,18 @@ def valid_context_claim(s:readbuf, size:u64) -> bool:
     if read_word(s, 96) != 0 or read_word(s, 104) != 0:
         return False
     return (read_word(s, 112) | read_word(s, 120)) != 0
+
+def valid_candidate_attempt(s:readbuf, size:u64) -> bool:
+    if size != 164 or read_word(s, 48) != UPDATE_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 8 or read_word(s, 72) != 0 or read_word(s, 80) != 3:
+        return False
+    if valid_cell(s, 88, 1, 112, 8) == False or valid_cell(s, 112, 3, 120, 36) == False:
+        return False
+    if valid_cell(s, 136, 1, 156, 8) == False or context_id(s, 168) == False:
+        return False
+    previous = read_word(s, 204)
+    return previous < 4096 and read_word(s, 160) == previous + 1
 
 def context_id(s:readbuf, at:u64) -> bool:
     return byte(s, at) == 99 and byte(s, at + 1) == 116 and byte(s, at + 2) == 120 and byte(s, at + 3) == 45 and valid_hex(s, at + 4, 32)
@@ -417,7 +434,7 @@ def valid_discovery_insert(s:readbuf, size:u64) -> bool:
 # Reserve binds the original request and compatibility tool identity, not
 # a setter for arbitrary request-state rows.
 def valid_request_reserve(s:readbuf, size:u64) -> bool:
-    if size < 331 or size > 351 or read_word(s, 48) != INSERT_PARAMETERS:
+    if size < 331 or size > 352 or read_word(s, 48) != INSERT_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 6 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
         return False
@@ -429,6 +446,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
         width = 12
     elif tool == CONTEXT_TOOL_HEAD and read_word(s, 368) & 16777215 == CONTEXT_TOOL_TAIL:
         width = 11
+    elif tool == CANDIDATE_TOOL_HEAD and read_word(s, 368) & 1099511627775 == CANDIDATE_TOOL_TAIL:
+        width = 13
     if width == 0 or size <= 319 + width or size > 339 + width:
         return False
     if valid_cell(s, 136, 3, 312, width) == False or valid_cell(s, 160, 3, 312 + width, 7) == False:
@@ -472,7 +491,7 @@ def valid_cell(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> bool:
     return read_word(s, at) == kind and read_word(s, at + 8) == offset and read_word(s, at + 16) == size
 
 def durable_write(plan:u64) -> bool:
-    return plan == 10 or (plan >= 18 and plan <= 26)
+    return plan == 10 or (plan >= 18 and plan <= 27)
 
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
@@ -570,6 +589,8 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         return 0
     count = read_word(s, 40)
     if (plan == 23 and count != 1) or (plan == 26 and count != 2):
+        return 0
+    if plan == 27 and count != read_state(w, 152):
         return 0
     advanced = choose(count == 0, 0, 1)
     prior = read_state(w, 120)
