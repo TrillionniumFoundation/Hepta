@@ -11,6 +11,7 @@ from hepta.hia_cnf_native import (
                                  WORD_VARIABLE_SHL, WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
 from hepta.hia_safe_core_x64_decode_native import (
     BORROWED_INDEX_ARGUMENT, BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
+    BORROWED_PAIR_REVERSE_SUB,
     BORROWED_WRITE_REPLY, BORROWED_WRITE_REQUEST,
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MACHINE_BORROW_BRANCH_DEPTH, MACHINE_BORROW_REPLY, MACHINE_BORROW_REQUEST, MACHINE_BORROW_WORKSPACE,
@@ -47,7 +48,7 @@ FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHE
 FIELDS.update(LOAN_LENGTH_REQUEST=BORROWED_LENGTH_REQUEST, LOAN_LENGTH_REPLY=BORROWED_LENGTH_REPLY,
               LOAN_WRITE_REQUEST=BORROWED_WRITE_REQUEST, LOAN_WRITE_REPLY=BORROWED_WRITE_REPLY,
               LOAN_LENGTH_WORKSPACE=BORROWED_LENGTH_WORKSPACE, LOAN_BOUNDS_TAG=_CORE_TRAP_TAGS['bounds'],
-              LOAN_ARGUMENT_INDEX=BORROWED_INDEX_ARGUMENT)
+              LOAN_ARGUMENT_INDEX=BORROWED_INDEX_ARGUMENT, LOAN_REVERSE_SUB=BORROWED_PAIR_REVERSE_SUB)
 FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_WORKSPACE=MACHINE_VALUES_WORKSPACE, MV_INDEX=MACHINE_VALUES_INDEX,
               MV_HEADER=MACHINE_VALUES_HEADER.size,
@@ -1280,7 +1281,7 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if 1 <= result_mode and result_mode <= 3:
                 return project_borrowed_write_reference(s, o, w, result_mode)
         return 4294967293
-    paired = length(s) == 32
+    paired = length(s) == 32 or length(s) == 40
     reading = length(s) == 24 or paired
     if (length(s) != 16 and reading == False) or length(o) < MV_HEADER + 48 * 40 or schedule_request(s, 0) != LOAN_LENGTH_REQUEST:
         return 4294967293
@@ -1289,6 +1290,7 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return 0
     index = 0
     second = LOAN_ARGUMENT_INDEX
+    put(w, MV_FLAGS, 5)
     if reading:
         index = schedule_request(s, 16)
         if index >= extent and index != LOAN_ARGUMENT_INDEX:
@@ -1297,6 +1299,12 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         second = schedule_request(s, 24)
         if index >= second or second >= extent:
             return 0
+        if length(s) == 40:
+            operation = schedule_request(s, 32)
+            if (operation != 3 and operation != 4 and operation != 5 and operation != 9
+                    and operation != 10 and operation != LOAN_REVERSE_SUB):
+                return 0
+            put(w, MV_FLAGS, operation)
     dynamic = index == LOAN_ARGUMENT_INDEX
     put(w, MV_NODES, 0)
     mv_node(o, w, 1, 0, 0, 0)  # Raw pointer word.
@@ -1325,7 +1333,7 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         byte = mv_word(o, w, 26, 8, choose(dynamic, 3, 2), 0, 0) - 1
         if paired:
             other = mv_word(o, w, 26, 8, 3, 0, 0) - 1
-            byte = mv_word(o, w, 5, 8, byte, other, 0) - 1
+            byte = mv_borrowed_pair_word(o, w, byte, other) - 1
         value = mv_node(o, w, 30, byte, 0, 0) - 1
         normal = mv_node(o, w, 11, out_of_bounds, zero, value) - 1
         trap = mv_borrow_reference_trap(o, w, too_large, empty, null, wrapping, out_of_bounds, no_trap)
@@ -1346,6 +1354,12 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(o, 40, 0)
     put(o, 48, 0)
     return MV_HEADER + 40 * nodes
+
+def mv_borrowed_pair_word(o:mutbuf, w:mutbuf, left:u64, right:u64) -> u64:
+    operation = get(w, MV_FLAGS)
+    if operation == LOAN_REVERSE_SUB:
+        return mv_word(o, w, 10, 8, right, left, 0)
+    return mv_word(o, w, operation, 8, left, right, 0)
 
 def project_borrowed_write_reference(s:readbuf, o:mutbuf, w:mutbuf, result_mode:u64) -> u64:
     extent = schedule_request(s, 8)

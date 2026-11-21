@@ -27,6 +27,9 @@ BORROWED_LENGTH_REQUEST = int.from_bytes(b'HIALBQ01', 'little')
 BORROWED_LENGTH_REPLY = int.from_bytes(b'HIALBG01', 'little')
 BORROWED_LENGTH_WORKSPACE = 192
 BORROWED_INDEX_ARGUMENT = (1 << 64) - 1
+BORROWED_PAIR_OPERATIONS = {'bit.and': 3, 'bit.or': 4, 'bit.xor': 5,
+                            'int.add.wrap': 9, 'int.sub.wrap': 10}
+BORROWED_PAIR_REVERSE_SUB = 11
 BORROWED_WRITE_REQUEST = int.from_bytes(b'HIABWQ01', 'little')
 BORROWED_WRITE_REPLY = int.from_bytes(b'HIABWR01', 'little')
 MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
@@ -403,7 +406,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             return machine, bounds, after
         return machine, bounds
 
-    def project_borrowed_reference(self, extent, index, *, write_result=None):
+    def project_borrowed_reference(self, extent, index, *, write_result=None, pair_operation=None):
         """Project the ordered packed-loan guards and one observable Core result."""
         write = write_result is not None
         magic = BORROWED_WRITE_REQUEST if write else BORROWED_LENGTH_REQUEST
@@ -411,6 +414,11 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if index is not None:
             offsets = index if type(index) is tuple else (index,)
             frame += struct.pack('<' + 'Q' * len(offsets), *offsets)
+        if pair_operation is not None:
+            if write or type(index) is not tuple or len(index) != 2:
+                raise ValueError('pair operation requires exactly two read-only loan offsets')
+            if pair_operation != BORROWED_PAIR_OPERATIONS['bit.xor']:
+                frame += struct.pack('<Q', pair_operation)
         if write:
             if type(index) is not int or type(write_result) is not int or write_result not in (0, 1, 2, 3):
                 raise ValueError('invalid mutable-loan result protocol')
@@ -421,7 +429,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         output = ctypes.create_string_buffer(capacity)
         scratch = ctypes.create_string_buffer(BORROWED_LENGTH_WORKSPACE)
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
-        if size == 0 or (write_result in (1, 2, 3) and size == 0xfffffffd):
+        if size == 0 or ((write_result in (1, 2, 3) or pair_operation is not None) and size == 0xfffffffd):
             return None
         if not MACHINE_VALUES_HEADER.size <= size <= capacity:
             raise RuntimeError('invalid HIA borrowed reference projection extent')

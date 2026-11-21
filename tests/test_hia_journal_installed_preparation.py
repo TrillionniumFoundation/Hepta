@@ -24,6 +24,11 @@ POLICIES = ('setup.py', 'hepta/hia_agent_contract.py', 'hepta/hia_executable_cap
 CONTRACT_POLICY = 'hepta/hia_agent_contract.py'
 POLICY_SUCCESSOR = 'tests/fixtures/journal_package_policy_successor.json'
 POLICY_SUCCESSOR_SHA256 = '194f45b213421d3592256cf5d9b752fe425ce9ba8add4bf3c43836c09e6f6c36'
+STORE_TRANSPORT_RESOURCE = (
+    b"    'examples/hia_bootstrap/agent_read_page.hepta',\n",
+    b"    'examples/hia_bootstrap/agent_store_transport.hepta',\n",
+    b"    'examples/hia_bootstrap/agent_inspection.hepta',\n",
+)
 INPUTS = (*subject.SOURCE_PATHS, *POLICIES, POLICY_SUCCESSOR, 'tests/test_hia_journal_installed_preparation.py')
 
 
@@ -50,7 +55,17 @@ class JournalInstalledPreparationSourceTests(unittest.TestCase):
         # The preparation controls test the frozen 196-resource package. The
         # current installed release is independently qualified at its normal
         # packaging entry point and must not become this test's historical pin.
-        cls.policy = raw if pin(raw) == expected else reverse_exact(raw, json.loads(reviewed), expected)
+        if pin(raw) == expected:
+            cls.policy = raw
+        else:
+            record = json.loads(reviewed)
+            if sha256(raw).hexdigest() != record['new_sha256']:
+                before, addition, after = STORE_TRANSPORT_RESOURCE
+                group = before + addition + after
+                if raw.count(group) != 1:
+                    raise AssertionError('exact native Store transport package composition differs')
+                raw = raw.replace(group, before + after, 1)
+            cls.policy = reverse_exact(raw, record, expected)
         cls.agent = tuple(cls.authority['original_agent_resources'])
         cls.extra = tuple(cls.authority['current_executable_capture_resources']
                           + cls.authority['current_integer_resources'])

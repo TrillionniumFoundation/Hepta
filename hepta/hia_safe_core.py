@@ -896,7 +896,7 @@ def _scalar_caller_contract():
 
 
 def _native_borrowed_shape(fn, blocks, extent):
-    from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT
+    from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT, BORROWED_PAIR_OPERATIONS
 
     params = fn["params"]
     types = [param["type"] for param in params]
@@ -956,7 +956,8 @@ def _native_borrowed_shape(fn, blocks, extent):
         return None
     loan = params[0]["name"]
     if len(ops) == 6:
-        if len(params) != 1 or value["op"] != "bit.xor" or value["out"][0]["type"] != "u8":
+        if (len(params) != 1 or value["op"] not in BORROWED_PAIR_OPERATIONS
+                or value["out"][0]["type"] != "u8"):
             return None
         loads = ((ops[0], ops[1]), (ops[2], ops[3]))
         offsets, values = [], []
@@ -969,7 +970,10 @@ def _native_borrowed_shape(fn, blocks, extent):
             values.append(load["out"][0]["name"])
         first, second = sorted(offsets)
         if 0 <= first < second < extent and sorted(value["args"]) == sorted(values):
-            return "paired_read", (first, second)
+            operation = value["op"]
+            if operation == "int.sub.wrap" and offsets[values.index(value["args"][0])] != first:
+                operation = "int.rsub.wrap"
+            return operation, (first, second)
         return None
     if len(ops) == 2:
         if len(params) == 1 and value["op"] == "buffer.len" and value["args"] == [loan]:
@@ -987,11 +991,12 @@ def _native_borrowed_shape(fn, blocks, extent):
     return ("read", index) if 0 <= index < extent else None
 
 
-def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, write_result):
+def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, write_result, pair_operation):
     if borrowed:
         paths = 4 if loan_index is None else 6 if type(loan_index) is tuple else 5
         return decoder.project_borrowed_reference(borrowed[0][1], loan_index,
-                                                  write_result=write_result), paths
+                                                  write_result=write_result,
+                                                  pair_operation=pair_operation), paths
     names = tuple(blocks)
     paths = 1
     if len(names) > 1:
@@ -1017,14 +1022,15 @@ def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, w
 
 def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
                                 pair, identity, started, deadline, query_directory,
-                                foreign_buffer_exports=(), loan_index=None, *, write_result=None):
+                                foreign_buffer_exports=(), loan_index=None, *, write_result=None,
+                                pair_operation=None):
     from .hia_cnf_native import SAT
     from .hia_optimization import _native_circuit_decision
     from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT
 
     decoder, cnf = pair
     projection = _native_core_projection(decoder, cnf, fn, blocks, foreign_buffer_exports, loan_index,
-                                         write_result=write_result)
+                                         write_result=write_result, pair_operation=pair_operation)
     if projection is None or projection[0] is None:
         return None
     core, paths = projection
@@ -1162,14 +1168,18 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     if foreign_buffer_exports:
         loan_shape = _native_borrowed_shape(fn, blocks, foreign_buffer_exports[0][1])
     if decoder is not None and cnf is not None and (not foreign_buffer_exports or loan_shape is not None):
+        from .hia_safe_core_x64_decode_native import BORROWED_PAIR_OPERATIONS, BORROWED_PAIR_REVERSE_SUB
+
         loan_kind, loan_index = (None, None) if loan_shape is None else loan_shape
         write_result = {"write": 0, "write_read": 1, "write_length": 2, "write_exchange": 3}.get(loan_kind)
+        pair_operation = (BORROWED_PAIR_REVERSE_SUB if loan_kind == "int.rsub.wrap"
+                          else BORROWED_PAIR_OPERATIONS.get(loan_kind))
         started = time.monotonic_ns()
         deadline = started + timeout_ms * 1_000_000
         native = _try_native_scalar_artifact(checked, fn, blocks, binding, artifact_profile,
                                              profile_version, pair, identity, started, deadline, query_directory,
                                              foreign_buffer_exports, loan_index,
-                                             write_result=write_result)
+                                             write_result=write_result, pair_operation=pair_operation)
         if native is not None:
             return native
         timeout_ms = (deadline - time.monotonic_ns()) // 1_000_000

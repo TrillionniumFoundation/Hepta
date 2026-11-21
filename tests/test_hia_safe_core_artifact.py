@@ -468,22 +468,23 @@ class SafeCoreArtifactTests(unittest.TestCase):
         exports = (("loan_pair", 64),)
         directory = self.newdir()
 
-        def build(operation):
+        def build(operation, *, reverse=False):
+            inputs = ("rhs", "lhs") if reverse else ("lhs", "rhs")
             ops = [c("right", "usize", 7),
                    i("buffer.load", ("loan", "right"), (("rhs", "u8"),)),
                    c("left", "usize", 0),
                    i("buffer.load", ("loan", "left"), (("lhs", "u8"),)),
-                   i(operation, ("lhs", "rhs"), (("value", "u8"),)),
+                   i(operation, inputs, (("value", "u8"),)),
                    i("int.cast", ("value",), (("answer", "u32"),), mode="wrap")]
             core = verify_program(m(f("loan_pair", params, ["u32"], ["read", "trap"],
                                       [b("entry", params, ops, ret("answer"))])))
             image = emit_program_machine(core, foreign_buffer_exports=exports)
-            final = directory / (operation + ".so")
+            final = directory / (operation + ("-reverse" if reverse else "") + ".so")
             compile_program_machine(image, program=core, output=final, linker="ld")
             return core, image.object_bytes, final.read_bytes()
 
         core, obj, supplied = build("bit.xor")
-        _, wrong_obj, wrong = build("bit.and")
+        and_program, wrong_obj, wrong = build("bit.and")
         with patch("importlib.import_module", side_effect=no_host_solver):
             report = validate_safe_core_artifact(core, obj, supplied, foreign_buffer_exports=exports)
             with self.assertRaises(SafeCoreRejected) as too_wide:
@@ -497,6 +498,29 @@ class SafeCoreArtifactTests(unittest.TestCase):
         self.assertEqual([byte["offset"] for byte in caller_bytes], [0, 7])
         left, right = (byte["value"] for byte in caller_bytes)
         self.assertNotEqual(left ^ right, left & right)
+
+        programs = {"bit.and": (and_program, wrong_obj, wrong)}
+        for operation in ("bit.and", "bit.or", "int.add.wrap", "int.sub.wrap"):
+            with self.subTest(operation=operation):
+                if operation not in programs:
+                    programs[operation] = build(operation)
+                program, primary_object, primary = programs[operation]
+                with patch("importlib.import_module", side_effect=no_host_solver):
+                    qualified = validate_safe_core_artifact(
+                        program, primary_object, primary, foreign_buffer_exports=exports)
+                self.assertTrue(qualified["complete"])
+                self.assertEqual(qualified["solver"]["version"], "machine-word-circuit-cnf.v1")
+        forward_program, _, _ = programs["int.sub.wrap"]
+        reverse_program, reverse_object, reverse = build("int.sub.wrap", reverse=True)
+        with patch("importlib.import_module", side_effect=no_host_solver):
+            result = validate_safe_core_artifact(reverse_program, reverse_object, reverse,
+                                                 foreign_buffer_exports=exports)
+            with self.assertRaises(SafeCoreRejected) as backwards:
+                validate_safe_core_artifact(forward_program, reverse_object, reverse,
+                                            foreign_buffer_exports=exports)
+        self.assertTrue(result["complete"])
+        lhs, rhs = (byte["value"] for byte in backwards.exception.counterexample["caller_bytes"])
+        self.assertNotEqual((lhs - rhs) & 255, (rhs - lhs) & 255)
 
     def test_native_borrowed_write_proves_effects_on_all_terminal_paths(self):
         from hepta.hia_safe_core import _selected_machine_proof
