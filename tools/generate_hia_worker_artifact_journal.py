@@ -87,7 +87,7 @@ def artifact_transition(s:readbuf, stage:u64, observed:u64) -> bool:
     if stage == 5:
         return (phase == 3 or phase == 4) and action == 1 and reason == 0 and observed == 0
     if stage == 13:
-        return phase == 10 and action == 1 and reason == 0 and input_word(s, 368) == 2 and observed == 0
+        return phase == 10 and action == 1 and reason == 0 and input_word(s, 368) == TOOL_ORDINAL and observed == 0
     if stage == 14 or stage == 8:
         # Schema diagnostics run after the durable reservation, before catalog admission.
         valid = ((phase == 3 or phase == 4 or phase == 10) and action == 1 and reason == 0) or (action == 11 and reason != 0)
@@ -95,7 +95,7 @@ def artifact_transition(s:readbuf, stage:u64, observed:u64) -> bool:
     return False
 
 def valid_state(s:readbuf, at:u64) -> bool:
-    if input_word(s, at) != STATE or input_word(s, at + 16) != 2 or input_word(s, at + 32) != 0:
+    if input_word(s, at) != STATE or input_word(s, at + 16) != TOOL_ORDINAL or input_word(s, at + 32) != 0:
         return False
     if input_word(s, at + 24) > 1 or input_word(s, at + 40) > input_word(s, at + 24):
         return False
@@ -210,7 +210,7 @@ def artifact_follow(s:readbuf, stage:u64, state:u64, action:u64, arena:u64) -> u
         return 12
     if stage == 12 and action == 1 and (phase == 3 or phase == 4) and input_word(s, state + 320) == 0:
         return 5
-    if stage == 5 and action == 1 and phase == 10 and input_word(s, state + 328) == 2:
+    if stage == 5 and action == 1 and phase == 10 and input_word(s, state + 328) == TOOL_ORDINAL:
         return 16
     return 255
 
@@ -266,7 +266,7 @@ def artifact_cost(s:readbuf, o:mutbuf) -> u64:
     if response > 8388608 or cost > 8388608:
         return 0
     state = 72 + response + cost
-    if length(s) != state + 512 or length(o) < 134 + cost:
+    if length(s) != state + 512 or length(o) < 122 + TOOL_BYTES + cost:
         return 0
     status = artifact_terminal(s, state, response, cost)
     if status == 0:
@@ -275,14 +275,14 @@ def artifact_cost(s:readbuf, o:mutbuf) -> u64:
     put(o, 8, input_word(s, 8))
     put(o, 16, status)
     put(o, 24, 0)
-    put(o, 32, 12)
+    put(o, 32, TOOL_BYTES)
     put(o, 40, 66)
     put(o, 48, cost)
     put(o, 56, TOOL_FIRST)
     put(o, 64, TOOL_LAST)
-    copy_cost_bytes(s, o, state + 192, 66, 68)
-    copy_cost_bytes(s, o, 72 + response, cost, 134)
-    return 134 + cost
+    copy_cost_bytes(s, o, state + 192, 66, 56 + TOOL_BYTES)
+    copy_cost_bytes(s, o, 72 + response, cost, 122 + TOOL_BYTES)
+    return 122 + TOOL_BYTES + cost
 '''
 
 
@@ -304,7 +304,19 @@ ERROR_MESSAGES = (
 )
 
 
-def errors():
+CONTEXT_ERRORS = (
+    (4, 1, 'E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots', 'correct_input', 'context'),
+    (4, 2, 'E_HIA_BUDGET', 'execution profile admits 64 MiB..4 GiB address-space budgets', 'correct_input', 'context'),
+    (4, 3, 'E_HIA_BUDGET', 'native wall budget exceeds total wall budget', 'correct_input', 'context'),
+    (4, 4, 'E_HIA_BUDGET', 'reported model tokens exceed the frozen budget', 'correct_input', 'context'),
+    (4, 5, 'E_HIA_COST', 'complete external cost report cannot contain unknown fields', 'correct_input', 'context'),
+    *((5, index, 'E_HIA_RANGE', field + ' must be a canonical u64 decimal string',
+       'correct_input', 'admission') for index, field in enumerate(
+           ('expected_invocations', 'max_memory_bytes', 'model_wall_ns', 'discovery_wall_ns'), 1)),
+)
+
+
+def errors(extra):
     source = r'''
 def artifact_error(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 40 or input_word(s, 24) != 0 or input_word(s, 32) != 0 or length(o) < 512:
@@ -312,11 +324,12 @@ def artifact_error(s:readbuf, o:mutbuf) -> u64:
     group = input_word(s, 8)
     reason = input_word(s, 16)
 '''
-    for index, (group, reason, _, _, _) in enumerate(ERROR_MESSAGES):
+    messages = tuple((*item, 'admission') for item in ERROR_MESSAGES) + extra
+    for index, (group, reason, _, _, _, _) in enumerate(messages):
         source += f'    if group == {group} and reason == {reason}:\n        return error_{index}(o)\n'
     source += '    return 0\n'
-    for index, (_, _, code, message, retry) in enumerate(ERROR_MESSAGES):
-        raw = json.dumps(dict(code=code, details_artifact=None, message=message, phase='admission', retry_action=retry),
+    for index, (_, _, code, message, retry, phase) in enumerate(messages):
+        raw = json.dumps(dict(code=code, details_artifact=None, message=message, phase=phase, retry_action=retry),
                          sort_keys=True, separators=(',', ':')).encode('ascii')
         source += f'\ndef error_{index}(o:mutbuf) -> u64:\n'
         for at in range(0, len(raw), 8):
@@ -329,15 +342,15 @@ def artifact_error(s:readbuf, o:mutbuf) -> u64:
     return source
 
 
-def source_program():
+def source_program(tool=b'hia_artifact', ordinal=2, extra_errors=()):
     tags = {'REQUEST': b'HIAJMP01', 'REPLY': b'HIAJMV01', 'VERIFIED': b'HIAJMO01', 'COST': b'HIAJMC01',
             'REQUEST_KEYS': b'HIAJMK01', 'LOOKUP_REQUEST': b'HIARJL01',
             'RESERVE_REQUEST': b'HIARJR01', 'COMPLETE_REQUEST': b'HIARJC01',
             'ERROR': b'HIAJME01', 'SINGLE': b'HIAJIN01', 'STATE': b'HIAJRN02', 'JOURNAL_REPLY': b'HIAJOU01',
-            'COST_WIRE': b'HIAJCF01', 'TOOL_FIRST': b'hia_arti', 'TOOL_LAST': b'fact'}
+            'COST_WIRE': b'HIAJCF01', 'TOOL_FIRST': tool[:8], 'TOOL_LAST': tool[8:]}
     constants = {name: int.from_bytes(raw, 'little') for name, raw in tags.items()}
-    constants['RECIPE_OFFSET'] = response_recipe()[0]
-    source = POLICY + errors()
+    constants.update(RECIPE_OFFSET=response_recipe()[0], TOOL_BYTES=len(tool), TOOL_ORDINAL=ordinal)
+    source = POLICY + errors(extra_errors)
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
     source += RELEASE_POLICY[RELEASE_POLICY.index('\ndef decimal('):RELEASE_POLICY.index('\ndef hex(')]

@@ -124,10 +124,9 @@ def put(o:mutbuf, at:u64, value:u64) -> u64:
 '''
 
 
-def source_program():
+def source_program(tool=b'hia_artifact'):
     tags = {'LOOKUP': b'HIARJL01', 'RESERVE': b'HIARJR01', 'COMPLETE': b'HIARJC01',
             'QUERY': b'HIAQPA01', 'INSERT': b'HIAINS01', 'UPDATE': b'HIAUPB01'}
-    tool = b'hia_artifact'
     constants = {name: int.from_bytes(raw, 'little') for name, raw in tags.items()}
     constants.update(RESPONSE_LIMIT=RESPONSE_LIMIT, TOOL_BYTES=len(tool))
     source = POLICY

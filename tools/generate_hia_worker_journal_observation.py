@@ -26,35 +26,35 @@ def journal_observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967293
         result_header(o, 0, 4, 0)
         return no_row(o, 32)
-    if count != 1 or row < 324 or word(s, 96) != ROW:
+    if count != 1 or row < 312 + TOOL_BYTES or word(s, 96) != ROW:
         return 4294967293
     if word(s, 104) != 1 or word(s, 112) != 4 or word(s, 120) != 6:
         return 4294967293
     if cell_matches(s, 128, 3, 176, 64) == False or cell_matches(s, 152, 3, 240, 64) == False:
         return 4294967293
-    if cell_matches(s, 176, 3, 304, 12) == False:
+    if cell_matches(s, 176, 3, 304, TOOL_BYTES) == False:
         return 4294967293
     if same_key(s) == False or valid_hex(s, 336) == False or has_tool(s, 400) == False:
         return 4294967293
     state_width = word(s, 216)
-    if cell_matches(s, 200, 3, 316, state_width) == False:
+    if cell_matches(s, 200, 3, 304 + TOOL_BYTES, state_width) == False:
         return 4294967293
     stored = 0
     state = 0
-    if state_width == 7 and has_running(s, 412):
-        if cell_matches(s, 224, 0, 323, 0) == False:
+    if state_width == 7 and has_running(s, 400 + TOOL_BYTES):
+        if cell_matches(s, 224, 0, 311 + TOOL_BYTES, 0) == False:
             return 4294967293
         state = 1
-    elif state_width == 9 and has_completed(s, 412):
+    elif state_width == 9 and has_completed(s, 400 + TOOL_BYTES):
         stored = word(s, 240)
-        if stored == 0 or stored > RESPONSE_LIMIT or stored > row - 325:
+        if stored == 0 or stored > RESPONSE_LIMIT or row < 313 + TOOL_BYTES or stored > row - 313 - TOOL_BYTES:
             return 4294967293
-        if cell_matches(s, 224, 3, 325, stored) == False:
+        if cell_matches(s, 224, 3, 313 + TOOL_BYTES, stored) == False:
             return 4294967293
         state = 2
     else:
         return 4294967293
-    started = 316 + state_width + stored
+    started = 304 + TOOL_BYTES + state_width + stored
     if started >= row or row - started > 20:
         return 4294967293
     if cell_matches(s, 248, 3, started, row - started) == False:
@@ -68,9 +68,9 @@ def journal_observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     at = digest_prefix(o, 32)
     at = copy(s, o, 336, at, 64)
     at = state_prefix(o, at)
-    at = copy(s, o, 412, at, state_width)
+    at = copy(s, o, 400 + TOOL_BYTES, at, state_width)
     at = json_finish(o, at)
-    return copy(s, o, 412 + state_width, at, stored)
+    return copy(s, o, 400 + TOOL_BYTES + state_width, at, stored)
 
 def same_key(s:readbuf) -> bool:
     index = 0
@@ -92,15 +92,15 @@ def result_header(o:mutbuf, state:u64, observation:u64, cached:u64) -> u64:
 '''
 
 
-def source_program():
+def source_program(tool=b'hia_artifact'):
     tags = {'INPUT': b'HIARJO01', 'OUTPUT': b'HIARJO02', 'ROW': b'HIAROW01'}
     constants = {name: int.from_bytes(value, 'little') for name, value in tags.items()}
-    constants.update(RESPONSE_LIMIT=RESPONSE_LIMIT)
+    constants.update(RESPONSE_LIMIT=RESPONSE_LIMIT, TOOL_BYTES=len(tool))
     source = POLICY
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
     source += RECORD_WRITER[RECORD_WRITER.index('\ndef canonical_time('):]
-    for name, raw in (('has_tool', b'hia_artifact'), ('has_running', b'running'), ('has_completed', b'completed')):
+    for name, raw in (('has_tool', tool), ('has_running', b'running'), ('has_completed', b'completed')):
         source += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n    return '
         source += ' and '.join(f'byte(s, at + {i}) == {value}' for i, value in enumerate(raw)) + '\n'
     for name, raw in (('no_row', b'null'), ('digest_prefix', b'{"digest":"'),

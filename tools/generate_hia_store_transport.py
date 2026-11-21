@@ -43,6 +43,8 @@ WIRE = {
     'ARTIFACT_INPUT': b'input',
     'ARTIFACT_TOOL_HEAD': b'hia_arti',
     'ARTIFACT_TOOL_TAIL': b'fact',
+    'CONTEXT_TOOL_HEAD': b'hia_cont',
+    'CONTEXT_TOOL_TAIL': b'ext',
     'RUNNING_STATE': b'running',
     'ARTIFACT_DISCOVERY_HEAD': b'discover',
 }
@@ -425,21 +427,27 @@ def valid_discovery_insert(s:readbuf, size:u64) -> bool:
 # Reserve binds the original request and compatibility tool identity, not
 # a setter for arbitrary request-state rows.
 def valid_request_reserve(s:readbuf, size:u64) -> bool:
-    if size < 332 or size > 351 or read_word(s, 48) != INSERT_PARAMETERS:
+    if size < 331 or size > 351 or read_word(s, 48) != INSERT_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 6 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
         return False
     if valid_cell(s, 88, 3, 184, 64) == False or valid_cell(s, 112, 3, 248, 64) == False:
         return False
-    if valid_cell(s, 136, 3, 312, 12) == False or valid_cell(s, 160, 3, 324, 7) == False:
+    tool = read_word(s, 360)
+    width = 0
+    if tool == ARTIFACT_TOOL_HEAD and read_word(s, 368) & 4294967295 == ARTIFACT_TOOL_TAIL:
+        width = 12
+    elif tool == CONTEXT_TOOL_HEAD and read_word(s, 368) & 16777215 == CONTEXT_TOOL_TAIL:
+        width = 11
+    if width == 0 or size <= 319 + width or size > 339 + width:
         return False
-    if valid_cell(s, 184, 0, 331, 0) == False or valid_cell(s, 208, 3, 331, size - 331) == False:
+    if valid_cell(s, 136, 3, 312, width) == False or valid_cell(s, 160, 3, 312 + width, 7) == False:
+        return False
+    if valid_cell(s, 184, 0, 319 + width, 0) == False or valid_cell(s, 208, 3, 319 + width, size - 319 - width) == False:
         return False
     if valid_hex(s, 232, 64) == False or valid_hex(s, 296, 64) == False:
         return False
-    if read_word(s, 360) != ARTIFACT_TOOL_HEAD or read_word(s, 368) & 4294967295 != ARTIFACT_TOOL_TAIL:
-        return False
-    return read_word(s, 372) & 72057594037927935 == RUNNING_STATE and canonical_timestamp(s, 379, size - 331)
+    return read_word(s, 360 + width) & 72057594037927935 == RUNNING_STATE and canonical_timestamp(s, 367 + width, size - 319 - width)
 
 def canonical_timestamp(s:readbuf, at:u64, extent:u64) -> bool:
     if extent > 1 and byte(s, at) == 48:
