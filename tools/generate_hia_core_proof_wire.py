@@ -1093,8 +1093,18 @@ def match(name, domain):
     return '\n'.join([*result, '    return 0', ''])
 
 
-def program():
-    entry = POLICY
+ELF_POLICY = """
+def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 32 and obligation_word(s, 0) == ELF_FUNCTION_LINK_REQUEST:
+        return elf_function_link_wire(s, o)
+    if length(s) >= 40 and obligation_word(s, 0) == ELF_OBJECT_RELOCATION_REQUEST:
+        return elf_object_relocation_wire(s, o)
+    return REFUSED
+"""
+
+
+def program(*, elf_only=False):
+    entry = ELF_POLICY if elf_only else POLICY
     constants = dict(REFUSED=REFUSED, REQUEST=GRAPH_PROJECTION_REQUEST,
                      OBLIGATION_REQUEST=OBLIGATION_REQUEST,
                      OBLIGATION_SOLVER_REQUEST=OBLIGATION_SOLVER_REQUEST,
@@ -1125,8 +1135,9 @@ def program():
             break
         retained.update(called)
     source = ast.unparse(ast.Module(body=[node for node in nodes if node.name in retained], type_ignores=[]))
-    return document(source, 'core_proof_wire')
+    return document(source, 'core_elf_binding_wire' if elf_only else 'core_proof_wire')
 
 
 if __name__ == '__main__':
     SOURCE.write_text(render_assembly(program()))
+    SOURCE.with_name('core_elf_binding_wire.hepta').write_text(render_assembly(program(elf_only=True)))

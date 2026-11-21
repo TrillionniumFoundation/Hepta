@@ -590,6 +590,43 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                         wrong_name + self.final_bytes, oversized + self.final_bytes):
             self.assertEqual(execute(invalid), (2, b'', b''))
 
+    def test_standalone_binder_binds_both_raw_images_and_exact_relocations(self):
+        selected = os.environ.get('HEPTA_HIA_SAFE_CORE_BIND_EXECUTABLE')
+        if not selected:
+            self.skipTest('requires a matching cold-built hia-safe-core-bind executable')
+        from tools.generate_hia_safe_core_binder import FRAME_MAGIC, REPLY_MAGIC
+
+        executable = Path(selected).resolve(strict=True)
+        export, = self.core.scalar_entrypoints
+        name = export.encode('ascii')
+        header = struct.pack('<4Q256s', FRAME_MAGIC, len(self.object_bytes),
+                             len(self.final_bytes), len(name), name)
+        expected = elf_reader.bind_final_artifact(self.object_bytes, self.final_bytes, export, native_wire=True)
+        linked = _ELF(self.final_bytes, 3)
+        text, plt = linked.section('.text'), linked.section('.plt')
+        row, = [rel for rel in expected['binding']['relocations'] if rel['symbol'] != 'abort']
+        relocations = expected['_native_relocation_wire']
+        coordinates = struct.pack('<10Q', REPLY_MAGIC, text['offset'], text['addr'], text['size'],
+                                  expected['entry'], row['linked_target'], plt['addr'] + 16,
+                                  0, len(relocations), 0)
+
+        def execute(raw):
+            result = subprocess.run((executable,), input=raw, capture_output=True,
+                                    env={'PATH': ''}, timeout=10)
+            return result.returncode, result.stdout, result.stderr
+
+        good = header + self.object_bytes + self.final_bytes
+        self.assertEqual(execute(good), (0, coordinates + expected['text'] + relocations, b''))
+        obj = _ELF(self.object_bytes, 1)
+        for at in (0, len(header) - 1, len(header) + obj.section('.rela.text')['offset'] + 16,
+                   len(header) + len(self.object_bytes) + text['offset'],
+                   len(header) + len(self.object_bytes) + plt['offset']):
+            changed = bytearray(good)
+            changed[at] ^= 1
+            with self.subTest(offset=at):
+                self.assertEqual(execute(changed), (2, b'', b''))
+        self.assertEqual(execute(good[:-1]), (2, b'', b''))
+
     def test_native_relocations_match_real_link_and_retained_rejections(self):
         def result(check, *args):
             try:
