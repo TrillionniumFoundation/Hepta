@@ -219,7 +219,7 @@ def read_closeout_cost(s:readbuf, o:mutbuf) -> u64:
         put(o, 64, DESCRIBE_TOOL_REST)
     else:
         put(o, 56, READ_TOOL)
-    copy_cost_bytes(s, o, state + 192, 66, 58 + width)
+    copy_cost_bytes(s, o, state + 192, 66, 56 + width)
     copy_cost_bytes(s, o, 72 + response, cost, 122 + width)
     return 122 + width + cost
 
