@@ -200,7 +200,7 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
         loader_boundaries = ('_reference_dynamic_tags', '_reference_sysv_lookup', '_reference_gnu_lookup',
                              '_reference_plt_slot', '_reference_object_relocations',
                              '_reference_symbol_versions', '_reference_relro', '_reference_functions',
-                             '_reference_function_link')
+                             '_reference_function_link', '_reference_dynamic_symbols')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
         with patch.multiple(_ELF, **blocked), patch.multiple(elf_reader, **loader_blocked):
@@ -239,6 +239,45 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
             with self.subTest(source=args[0], target=args[1], export=args[2]):
                 self.assertEqual(observed(self.native.verify_function_link, args),
                                  observed(elf_reader._reference_function_link, args))
+
+    def test_dynamic_symbol_authority_matches_original_checks(self):
+        original = _ELF.__new__(_ELF)
+        original._reference_inventory(self.final_bytes, 3)
+        text = original.section('.text')
+        dynamic = original.section('.dynsym')
+        strings = original.sections[dynamic['link']]
+        rows = original.symbols('.dynsym')
+        export = next(row for row in rows if row['shndx'] == text['index'])
+        abort_index = next(index for index, row in enumerate(rows) if row['name'] == 'abort')
+        export_index = rows.index(export)
+        abort_row = dynamic['offset'] + 24 * abort_index
+        export_row = dynamic['offset'] + 24 * export_index
+        abort_name = strings['offset'] + struct.unpack_from('<I', self.final_bytes, abort_row)[0]
+
+        def expected(data):
+            elf = _ELF.__new__(_ELF)
+            elf._reference_inventory(data, 3)
+            symbols = elf_reader._reference_dynamic_symbols(elf, text, export)
+            mask = sum(1 << index for index, row in enumerate(symbols) if row['name'] == 'abort')
+            return symbols, mask
+
+        def result(check, data):
+            try:
+                return check(data)
+            except SafeCoreELFRejected as error:
+                return str(error)
+
+        samples = [self.final_bytes]
+        for offset, value in ((abort_name, ord('x')), (abort_row, 0),
+                              (export_row + 4, 2), (export_row + 5, 1),
+                              (export_row + 6, 0), (export_row + 16, 0)):
+            changed = bytearray(self.final_bytes)
+            changed[offset] = value
+            samples.append(bytes(changed))
+        for data in samples:
+            with self.subTest(digest=sha256(data).hexdigest()):
+                actual = result(lambda raw: self.native.verify_dynamic_symbols(raw, dynamic['index'], text, export), data)
+                self.assertEqual(actual, result(expected, data))
 
     def test_dynamic_and_lookup_bytes_match_retained_checker(self):
         def result(check, *args, **kwargs):

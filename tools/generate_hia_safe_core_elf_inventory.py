@@ -6,7 +6,8 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
-    CAPACITY, FUNCTION_SYMBOL_MAGIC, MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
+    CAPACITY, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET, FUNCTION_SYMBOL_MAGIC,
+    MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
     FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES,
     FUNCTION_LINK_SOURCE_OFFSET, FUNCTION_LINK_TARGET_OFFSET,
     OWNED_SHARED_MAGIC, OWNED_SHARED_MAX, OWNED_SHARED_REFUSALS,
@@ -20,6 +21,8 @@ SOURCE_PATH = 'examples/hia_bootstrap/safe_core_elf_inventory.hepta'
 FIELDS = {'CAPACITY': CAPACITY, 'MAX_ELF': MAX_ELF, 'MAX_SECTIONS': MAX_SECTIONS,
           'MAX_SEGMENTS': MAX_SEGMENTS, 'MAX_SYMBOLS': MAX_SYMBOLS, 'ELF_IDENT': int.from_bytes(b'\x7fELF\x02\x01\x01\0', 'little')}
 FIELDS['FUNCTION_SYMBOL_MAGIC'] = FUNCTION_SYMBOL_MAGIC
+FIELDS.update(DYNAMIC_SYMBOL_MAGIC=DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET=DYNAMIC_SYMBOL_NAME_OFFSET,
+              ABORT_BYTES=int.from_bytes(b'abort', 'little'))
 FIELDS.update(FUNCTION_LINK_MAGIC=FUNCTION_LINK_MAGIC, FUNCTION_LINK_BYTES=FUNCTION_LINK_BYTES,
               FUNCTION_LINK_NAME_BYTES=FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_ROW_BYTES=FUNCTION_LINK_ROW_BYTES,
               FUNCTION_LINK_SOURCE_OFFSET=FUNCTION_LINK_SOURCE_OFFSET,
@@ -69,6 +72,8 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return exact_functions(s, o, w)
     if length(w) >= 64:
         operation = get(w, 0)
+        if operation == DYNAMIC_SYMBOL_MAGIC and length(w) >= DYNAMIC_SYMBOL_NAME_OFFSET:
+            return verify_dynamic_symbols(s, o, w)
         if operation == 2:
             return object_relocations(s, o, w)
         if operation == 3 and length(w) == 88:
@@ -374,6 +379,58 @@ def exact_function_extent(o:mutbuf, w:mutbuf, row:u64) -> u64:
     if get(o, row + 32) != get(w, 16) or size == 0 or size > extent or value < first:
         return 0
     return choose(value - first <= extent - size, 1, 0)
+
+def verify_dynamic_symbols(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    name_size = get(w, 56)
+    if name_size > 256 or name_size != length(w) - DYNAMIC_SYMBOL_NAME_OFFSET:
+        return 4294967293
+    response = exact_functions(s, o, w)
+    if get(o, 0) != 0:
+        return response
+    if get(o, 8) != 1 or exact_dynamic_export(s, o, w, name_size) == 0:
+        return terminal(o, E_DYNAMIC_EXPORT, 0, 0)
+    response = symbol_table(s, o, get(w, 8))
+    if get(o, 0) != 0:
+        return response
+    return exact_abort_import(s, o, response)
+
+def exact_dynamic_export(s:readbuf, o:mutbuf, w:mutbuf, name_size:u64) -> u64:
+    if get(o, 32) != name_size:
+        return 0
+    field = 0
+    while field < 40:
+        if get(o, 40 + field) != get(w, 64 + field):
+            return 0
+        field = field + 8
+    name_at = get(o, 24)
+    offset = 0
+    while offset < name_size:
+        if byte(s, name_at + offset) != byte(w, DYNAMIC_SYMBOL_NAME_OFFSET + offset):
+            return 0
+        offset = offset + 1
+    return 1
+
+def exact_abort_import(s:readbuf, o:mutbuf, response:u64) -> u64:
+    count = get(o, 8)
+    found = 0
+    mask = 0
+    index = 0
+    while index < count:
+        row = 24 + index * 56
+        name_size = get(o, row + 8)
+        is_abort = 0
+        if name_size == 5:
+            is_abort = choose(word(s, get(o, row), 5) == ABORT_BYTES, 1, 0)
+        if is_abort != 0:
+            mask = mask | (1 << index)
+        if name_size != 0 and get(o, row + 32) == 0:
+            if is_abort == 0 or found != 0:
+                return terminal(o, E_DYNAMIC_IMPORT, 0, 0)
+            found = 1
+        index = index + 1
+    if found == 0:
+        return terminal(o, E_DYNAMIC_IMPORT, 0, 0)
+    return reply(o, 0, count, mask, response)
 
 def unique_function(s:readbuf, o:mutbuf, row:u64, selected:u64) -> u64:
     offset = get(o, row)

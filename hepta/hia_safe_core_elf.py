@@ -397,6 +397,16 @@ def bind_final_artifact(object_bytes, final_bytes, export):
     text = obj.section(".text", 1)["data"]
     return bind_final_image(object_bytes, text, final_bytes, export)
 
+def _reference_dynamic_symbols(final, text, export):
+    exports = _functions(final, text, ".dynsym")
+    name = export["name"]
+    require(set(exports) == {name} and exports[name] == export, "loader export identity differs")
+    symbols = final.symbols(".dynsym")
+    undefined = [row["name"] for row in symbols if row["name"] and row["shndx"] == 0]
+    require(undefined == ["abort"], "Safe Core admits only the nonreturning abort import")
+    return symbols
+
+
 def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     """Check every relocated byte and return exact machine-entry coordinates.
 
@@ -435,12 +445,12 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     else:
         direct = obj._native_inventory.verify_function_link(srcfunc, dstfunc, export,
                                                             source["size"], linked["addr"])
-    dynamic_exports = _functions(final, linked, ".dynsym")
-    require(set(dynamic_exports) == {export} and
-            dynamic_exports[export] == dstfunc[export], "loader export identity differs")
-    dynsymbols = final.symbols(".dynsym")
-    undefined = [row["name"] for row in dynsymbols if row["name"] and row["shndx"] == 0]
-    require(undefined == ["abort"], "Safe Core admits only the nonreturning abort import")
+    if final._native_inventory is None:
+        dynsymbols = _reference_dynamic_symbols(final, linked, dstfunc[export])
+    else:
+        dynsymbols, abort_symbols = final._native_inventory.verify_dynamic_symbols(
+            final.data, final.section(".dynsym")["index"], linked, dstfunc[export],
+        )
 
     plt, got, rela = (final.section(".plt", 1), final.section(".got", 1),
                       final.section(".rela.plt", 4))
@@ -467,7 +477,6 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     if final._native_inventory is None:
         _reference_plt_slot(plt, got, rela, dynsymbols)
     else:
-        abort_symbols = sum(1 << index for index, row in enumerate(dynsymbols) if row["name"] == "abort")
         final._native_inventory.verify_plt_slot(final.data, plt, got, rela, abort_symbols)
 
     dynamic = final.section(".dynamic", 6)

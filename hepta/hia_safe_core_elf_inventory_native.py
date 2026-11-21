@@ -32,6 +32,8 @@ FUNCTION_LINK_ROW_BYTES = 5 * 8 + FUNCTION_LINK_NAME_BYTES
 FUNCTION_LINK_SOURCE_OFFSET = 64 + FUNCTION_LINK_NAME_BYTES
 FUNCTION_LINK_TARGET_OFFSET = FUNCTION_LINK_SOURCE_OFFSET + 2 * FUNCTION_LINK_ROW_BYTES
 FUNCTION_LINK_BYTES = FUNCTION_LINK_TARGET_OFFSET + 2 * FUNCTION_LINK_ROW_BYTES
+DYNAMIC_SYMBOL_MAGIC = int.from_bytes(b'HIAELFD1', 'little')
+DYNAMIC_SYMBOL_NAME_OFFSET = 104
 REFUSALS = (
     ('extent', 'expected bounded immutable ELF bytes'),
     ('identity', 'ELF identity is outside the profile'),
@@ -84,6 +86,8 @@ REFUSALS = (
     ('function_inventory', 'closed function inventory differs'),
     ('function_partition', 'function ranges do not exactly partition text'),
     ('function_link', 'linker changed a function identity or extent'),
+    ('dynamic_export', 'loader export identity differs'),
+    ('dynamic_import', 'Safe Core admits only the nonreturning abort import'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -294,7 +298,21 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
 
     def _symbol_rows(self, data, fields):
         output, size, count, reserved = self._exchange(data, fields)
-        if reserved or count > MAX_SYMBOLS or size != HEADER.size + count * SYMBOL.size:
+        if reserved:
+            raise RuntimeError('invalid native Safe Core ELF symbol inventory')
+        return self._read_symbol_rows(data, output, size, count)
+
+    def verify_dynamic_symbols(self, data, table, text, export):
+        name = export['name'].encode('ascii')
+        fields = (DYNAMIC_SYMBOL_MAGIC, table, text['index'], text['addr'], text['size'], 0, 0,
+                  len(name), *(export[field] for field in SYMBOL_FIELDS))
+        output, size, count, abort_symbols = self._exchange(data, fields, name)
+        if abort_symbols == 0 or abort_symbols >> count:
+            raise RuntimeError('invalid native Safe Core abort symbol mask')
+        return self._read_symbol_rows(data, output, size, count), abort_symbols
+
+    def _read_symbol_rows(self, data, output, size, count):
+        if count > MAX_SYMBOLS or size != HEADER.size + count * SYMBOL.size:
             raise RuntimeError('invalid native Safe Core ELF symbol inventory')
         symbols = []
         for at in range(HEADER.size, size, SYMBOL.size):
