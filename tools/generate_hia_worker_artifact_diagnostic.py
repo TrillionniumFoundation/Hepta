@@ -1,4 +1,4 @@
-"""Render the published artifact schema's first rejection entirely in HIA."""
+"""Render the first rejection from a published Worker schema in HIA."""
 from pathlib import Path
 import ast
 import json
@@ -91,8 +91,9 @@ class Author:
                           f'                return {branch}(s, o, w, node)']
             lines.append('    return ' + self.explain(label, 'does not match oneOf'))
         elif 'anyOf' in schema:
-            if set(schema) != {'anyOf'} or sorted(x['type'] for x in schema['anyOf']) != ['null', 'string']:
-                raise ValueError('unexpected artifact nullable schema')
+            if (set(schema) != {'anyOf'} or sorted(x['type'] for x in schema['anyOf'])
+                    not in (['null', 'string'], ['null', 'object'])):
+                raise ValueError('unexpected nullable Worker schema')
             for alternative in schema['anyOf']:
                 branch = self.add(alternative, label)
                 lines += [f'    if {branch}(s, o, w, node) == 0:', '        return 0']
@@ -102,7 +103,7 @@ class Author:
             fields = {
                 'object': {'properties', 'required', 'additionalProperties'},
                 'string': {'minLength', 'maxLength', 'pattern'},
-                'integer': {'minimum', 'maximum'}, 'null': set(), None: {'const'},
+                'integer': {'minimum', 'maximum'}, 'null': set(), None: {'const', 'enum'},
             }
             if typ not in fields or set(schema) - fields[typ] - {'type', 'description', '$schema'}:
                 raise ValueError('unrecognized published artifact schema constraint')
@@ -132,6 +133,12 @@ class Author:
                 symbol = self.symbol(schema['const'])
                 fail('get(w, node) != 4 or symbol_kind(w, get(w, node + 24), get(w, node + 32)) != '
                      + str(symbol), 'constant differs')
+            if 'enum' in schema:
+                if any(type(value) is not str for value in schema['enum']):
+                    raise ValueError('unsupported non-string Worker enum')
+                lines.append('    selected = symbol_kind(w, get(w, node + 24), get(w, node + 32))')
+                options = ' and '.join(f'selected != {self.symbol(value)}' for value in schema['enum'])
+                fail(f'get(w, node) != 4 or ({options})', 'value is not in the enum')
             lines.append('    return 0')
         self.rules[index] = '\n'.join(lines)
         return name
@@ -202,13 +209,13 @@ class Author:
         return '\n'.join((PROLOGUE.replace('MAIN', main).replace('TERMINAL', str(END)),
                           *self.rules, *pieces,
                           table('key_kind', [(value, name) for name, value in self.keys.items()]),
-                          table('symbol_kind', [(value, name) for name, value in self.values.items()]),
+                          table('symbol_kind', [(value, name) for name, value in self.values.items()]) if self.values else '',
                           helpers, number, numeric_type, quoting, data_source(), decimal_program()))
 
 
-def document():
+def document(tool='hia_artifact', *, module=SOURCE.stem):
     catalog = json.loads(CATALOG.read_bytes())
-    schema, = (tool['inputSchema'] for tool in catalog['tools'] if tool['name'] == 'hia_artifact')
+    schema, = (row['inputSchema'] for row in catalog['tools'] if row['name'] == tool)
     nodes = ast.parse(Author().source(schema)).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
@@ -221,7 +228,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(p) for p in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': SOURCE.stem,
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
                                   'functions': functions})
 
 

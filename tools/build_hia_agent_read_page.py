@@ -43,6 +43,7 @@ VARIANTS = {
     'context-request': ('worker_context_request', 'hepta.hia.context-request-native.v1'),
     'context-workload': ('worker_context_workload', 'hepta.hia.context-workload-native.v1'),
     'context-cost': ('worker_context_cost', 'hepta.hia.context-cost-native.v1'),
+    'context-diagnostic': ('worker_context_diagnostic', 'hepta.hia.context-diagnostic-native.v1'),
     'context-journal': ('worker_context_journal', 'hepta.hia.context-journal-native.v1'),
     'context-journal-records': ('worker_context_journal_records', 'hepta.hia.context-journal-records-native.v1'),
     'context-journal-observation': ('worker_context_journal_observation', 'hepta.hia.context-journal-observation-native.v1'),
