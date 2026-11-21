@@ -19,7 +19,7 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     extent = input_word(s, 24)
     phase = state_word(w, 0)
     if phase == 0:
-        if event != 1 or body != 16:
+        if event != 1 or (body != 16 and body != 80):
             return 4294967295
         return start_document(s, o, w, extent)
     if phase != event:
@@ -28,6 +28,8 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if extent != 0 or valid_hash_receipt(s, state_word(w, 24)) == False:
             return 4294967295
         if event == 2:
+            if state_word(w, 304) != 0 and matches_expected_digest(s, w, 51) == False:
+                return next_action(o, w, 8, 255, 0, 0)
             copy_input(s, w, 51, 64, 64)
             return artifact_operation(o, w, 2, 3, LOOKUP)
         if equal_saved_digest(s, w, 51) == False:
@@ -66,6 +68,13 @@ def start_document(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
             return 4294967295
     elif version != 0:
         return 4294967295
+    # An input pin is applied to the authenticated hash before any Store lookup,
+    # publication, or issuance. Existing discovery/profile frames remain unchanged.
+    if length(s) == 120:
+        if kind != 3 or valid_hex(s, 56, 64) == False:
+            return 4294967295
+        state_put(w, 304, 1)
+        copy_input(s, w, 56, 312, 64)
     state_put(w, 16, kind)
     state_put(w, 24, extent)
     state_put(w, 32, version)
@@ -196,6 +205,14 @@ def equal_saved_digest(s:readbuf, w:mutbuf, at:u64) -> bool:
     index = 0
     while index < 64:
         if byte(s, at + index) != byte(w, 64 + index):
+            return False
+        index = index + 1
+    return True
+
+def matches_expected_digest(s:readbuf, w:mutbuf, at:u64) -> bool:
+    index = 0
+    while index < 64:
+        if byte(s, at + index) != byte(w, 312 + index):
             return False
         index = index + 1
     return True
