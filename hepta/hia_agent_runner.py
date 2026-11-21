@@ -533,6 +533,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                     files.append({"argument": argument, "kind": typ, "byte_length": len(data), "path": str(path)})
             snapshot_files.append(files)
         request = {"artifact": str(artifact), "artifact_sha256": artifact_hash,
+                   "artifact_bytes": len(artifact_bytes),
                    "signatures": signatures, "cases": cases,
                    "warmup": warmup, "repetitions": repetitions, "mode": _mode,
                    "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
@@ -655,7 +656,15 @@ def main():
         return 2
     request = json.loads(raw)
     artifact = request["artifact"]
-    data = stable_read(artifact, 64 * 1024 * 1024)
+    extent = request.get("artifact_bytes")
+    limit = 64 * 1024 * 1024
+    if extent is not None:
+        if type(extent) is not int or not 0 <= extent <= limit:
+            return 2
+        limit = extent
+    data = stable_read(artifact, limit)
+    if extent is not None and len(data) != extent:
+        return 3
     if sha256(data).hexdigest() != request["artifact_sha256"]:
         return 3
     if request.get("mode") == "reference":
