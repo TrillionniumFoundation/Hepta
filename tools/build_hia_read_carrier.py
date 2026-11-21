@@ -62,10 +62,10 @@ CARRIERS = {
          ('typed_store_transport', 3027, 3758), ('input_relay', 3758, 7984))),
     'discovery-bootstrap': CarrierImage(
         'examples/hia_bootstrap/agent_discovery_bootstrap_carrier_packer.hepta', b'HIADBK01',
-        'de19d09053a2d21cdd5b7c48da93393b1ec3ecbcb0eb6570a074bde5f9507f6c', 13464,
-        (('entry_and_descriptor_custody', 0, 720), ('directory_and_bounded_io', 720, 2704),
-         ('pinned_child_and_assembly_transport', 2704, 5040), ('document_custody', 5040, 6560),
-         ('bootstrap_loop_and_closeout', 6560, 13464))),
+        '2d64152b9ea70a8fe0927567f76c96659cae027455cca7c3741e13412b33e7ea', 9590,
+        (('entry_and_directory_custody', 0, 1657), ('bounded_children_and_io', 1657, 3643),
+         ('document_render_and_retention', 3643, 4595),
+         ('bootstrap_loop_and_closeout', 4595, 9590))),
     'artifact-worker': CarrierImage(
         'examples/hia_bootstrap/agent_artifact_worker_carrier_packer.hepta', b'HIAAWK01',
         '1c126bdcdb58d798294f759a60a906c8d038378b092b677066b7076cf0376563', 18592,
