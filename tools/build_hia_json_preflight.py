@@ -118,6 +118,7 @@ CANDIDATES = {
     'context-request': ('worker_context_request', 'context-request'),
     'inspection-request': ('worker_inspection_request', 'inspection-request'),
     'inspection-effect': ('worker_inspection_effect', 'inspection-effect'),
+    'borrowed-export-wire': ('borrowed_export_wire', 'borrowed-export-wire'),
     'inspection-journal': ('worker_inspection_journal', 'inspection-journal'),
     'inspection-journal-observation': ('worker_inspection_journal_observation', 'inspection-journal-observation'),
     'inspection-journal-records': ('worker_inspection_journal_records', 'inspection-journal-records'),

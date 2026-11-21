@@ -1,0 +1,202 @@
+"""Author the exact native borrowed-buffer export choices for Core emission."""
+from pathlib import Path
+
+from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_native_byte_abi import MAX_EXTENT, MAX_RANGES
+from hepta.hia_program import SCALARS, MAX_FUNCTIONS
+from hepta.hia_program_native import IMPORTS, _LOADER_HOOKS
+from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_json_decode import source_program as json_decoder
+from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
+from tools.generate_hia_worker_context_request import NONE
+
+SOURCE = Path('examples/hia_bootstrap/borrowed_export_wire.hepta')
+FIELDS = ('functions', 'name', 'params', 'returns', 'type', 'exports')
+KINDS = ('readbuf', 'mutbuf', 'u32', *sorted(SCALARS - {'u32', 'unit'}))
+BLOCKED = tuple(sorted(IMPORTS | _LOADER_HOOKS))
+TAG = int.from_bytes(b'HIABEX01', 'little')
+
+POLICY = r'''
+# Input [admitted canonical Core, exact retained [[name,extent],...],
+# admitted nominal profile number]. Output original function ordinals and
+# extents in the legacy name order. The program is verified before this role.
+def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 8 or length(s) > 8388608 or length(o) < 4194304 or length(w) < 27262976:
+        return INVALID
+    put(o, 48, 262144)
+    put(o, 56, 128)
+    if widen(decode_json(s, w, o)) >= 4294967292:
+        return INVALID
+    root = 64
+    if get(w, root) != 5 or get(w, root + 32) != 3:
+        return INVALID
+    core = 64 + get(w, root + 24) * 72
+    manifest = 64 + get(w, core + 16) * 72
+    nominal = 64 + get(w, manifest + 16) * 72
+    if get(w, core) != 6 or get(w, nominal) != 3 or get(w, nominal + 32) != 1:
+        return INVALID
+    level = byte(s, get(w, nominal + 24))
+    if level < 48 or level > 52:
+        return INVALID
+    if get(w, manifest) != 5 or get(w, manifest + 32) > 128:
+        return BAD_TUPLE
+    count = get(w, manifest + 32)
+    put(o, 0, TAG)
+    put(o, 8, count)
+    if count == 0:
+        return 16
+    if level != 48 or lookup(w, core, 6) != NONE:
+        return NOMINAL_CONFLICT
+    fns = lookup(w, core, 1)
+    if fns == NONE or get(w, fns) != 5 or get(w, fns + 32) == 0 or get(w, fns + 32) > FN_LIMIT:
+        return INVALID
+    child = get(w, manifest + 24)
+    index = 0
+    while index < count:
+        pair = 64 + child * 72
+        if get(w, pair) != 5 or get(w, pair + 32) != 2:
+            return BAD_ENTRY
+        name = 64 + get(w, pair + 24) * 72
+        extent = 64 + get(w, name + 16) * 72
+        amount = bounded_extent(s, w, extent)
+        if get(w, name) != 4 or amount == 0:
+            return BAD_ENTRY
+        start = get(w, name + 24)
+        width = get(w, name + 32)
+        if blocked(w, start, width) != 0 or (width >= 6 and match_word(w, start, 6) == RESERVED_HEAD):
+            return RESERVED
+        position = find_function(w, fns, name)
+        if position == NONE:
+            return MISSING
+        fn = get(w, fns + 24)
+        ordinal = 0
+        while ordinal < position:
+            fn = get(w, 64 + fn * 72 + 16)
+            ordinal = ordinal + 1
+        if valid_signature(w, 64 + fn * 72) == False:
+            return SIGNATURE
+        if insert_ordered(o, w, name, position, amount, index) == False:
+            return BAD_ENTRY
+        index = index + 1
+        child = get(w, pair + 16)
+    index = 0
+    while index < count:
+        at = 4096 + index * 24
+        put(o, 16 + index * 16, get(o, at + 8))
+        put(o, 24 + index * 16, get(o, at + 16))
+        index = index + 1
+    return 16 + count * 16
+
+def bounded_extent(s:readbuf, w:mutbuf, node:u64) -> u64:
+    if get(w, node) != 3:
+        return 0
+    at = get(w, node + 24)
+    width = get(w, node + 32)
+    if width < 1 or width > 7:
+        return 0
+    end = at + width
+    value = 0
+    while at < end:
+        unit = byte(s, at)
+        if unit < 48 or unit > 57:
+            return 0
+        value = value * 10 + unit - 48
+        at = at + 1
+    return choose(value <= EXTENT_LIMIT, value, 0)
+
+def find_function(w:mutbuf, fns:u64, target:u64) -> u64:
+    index = 0
+    child = get(w, fns + 24)
+    while child != NONE:
+        fn = 64 + child * 72
+        name = lookup(w, fn, 2)
+        if name != NONE and name_order(w, name, target) == 0:
+            return index
+        index = index + 1
+        child = get(w, fn + 16)
+    return NONE
+
+def name_order(w:mutbuf, left:u64, right:u64) -> u64:
+    a = get(w, left + 24)
+    b = get(w, right + 24)
+    na = get(w, left + 32)
+    nb = get(w, right + 32)
+    limit = choose(na < nb, na, nb)
+    index = 0
+    while index < limit:
+        one = byte(w, a + index)
+        two = byte(w, b + index)
+        if one != two:
+            return choose(one < two, 1, 2)
+        index = index + 1
+    if na == nb:
+        return 0
+    return choose(na < nb, 1, 2)
+
+def insert_ordered(o:mutbuf, w:mutbuf, name:u64, ordinal:u64, amount:u64, count:u64) -> bool:
+    at = 4096 + count * 24
+    while at > 4096:
+        previous = get(o, at - 24)
+        order = name_order(w, previous, name)
+        if order == 0:
+            return False
+        if order == 1:
+            put(o, at, name)
+            put(o, at + 8, ordinal)
+            put(o, at + 16, amount)
+            return True
+        put(o, at, previous)
+        put(o, at + 8, get(o, at - 16))
+        put(o, at + 16, get(o, at - 8))
+        at = at - 24
+    put(o, at, name)
+    put(o, at + 8, ordinal)
+    put(o, at + 16, amount)
+    return True
+
+def valid_signature(w:mutbuf, fn:u64) -> bool:
+    returns = lookup(w, fn, 4)
+    if returns == NONE or get(w, returns) != 5 or get(w, returns + 32) != 1:
+        return False
+    result = 64 + get(w, returns + 24) * 72
+    if type_id(w, result) != 3:
+        return False
+    params = lookup(w, fn, 3)
+    if params == NONE or get(w, params) != 5:
+        return False
+    loans = 0
+    child = get(w, params + 24)
+    while child != NONE:
+        param = 64 + child * 72
+        kind = type_id(w, lookup(w, param, 5))
+        if kind == 0:
+            return False
+        if kind <= 2:
+            loans = loans + 1
+        child = get(w, param + 16)
+    return loans != 0 and loans <= LOAN_LIMIT
+
+def type_id(w:mutbuf, node:u64) -> u64:
+    if node == NONE or get(w, node) != 4:
+        return 0
+    return type_kind(w, get(w, node + 24), get(w, node + 32))
+'''
+
+
+def source_program():
+    constants = {
+        'TAG': TAG, 'RESERVED_HEAD': int.from_bytes(b'__hia_', 'little'),
+        'FN_LIMIT': MAX_FUNCTIONS, 'LOAN_LIMIT': MAX_RANGES, 'EXTENT_LIMIT': MAX_EXTENT,
+        'NONE': NONE, 'INVALID': 4294967293, 'BAD_TUPLE': 4294967280, 'NOMINAL_CONFLICT': 4294967281,
+        'BAD_ENTRY': 4294967282, 'RESERVED': 4294967283, 'MISSING': 4294967284, 'SIGNATURE': 4294967285,
+    }
+    import re
+    policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
+                    lambda token: str(constants[token[0]]), POLICY)
+    return '\n'.join((policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),
+                      comparison_table('key_id', FIELDS), comparison_table('blocked', BLOCKED),
+                      comparison_table('type_kind', KINDS), json_decoder(wire_spans=True)))
+
+
+if __name__ == '__main__':
+    SOURCE.write_text(render_assembly(document(source_program(), SOURCE.stem)), encoding='utf-8')
