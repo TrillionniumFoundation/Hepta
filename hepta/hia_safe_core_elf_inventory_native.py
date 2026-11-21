@@ -343,7 +343,7 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         rows = self._symbol_rows(data, (OWNED_FUNCTION_MAGIC, kind), capacity=CAPACITY + AUTHORITY_BYTES)
         return {row['name']: row for row in rows}
 
-    def owned_function_receipt(self, data, kind):
+    def owned_function_receipt(self, data, kind, *, raw=False):
         output, size, count, reserved = self._exchange(
             data, (FUNCTION_RECEIPT_MAGIC, kind),
             capacity=CAPACITY + AUTHORITY_BYTES + FUNCTION_RECEIPT_BYTES,
@@ -351,8 +351,17 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         begin = HEADER.size + count * SYMBOL.size
         if reserved or count > MAX_SYMBOLS or size != begin + FUNCTION_RECEIPT_BYTES:
             raise RuntimeError('invalid native Safe Core function receipt')
+        if raw:
+            return output.raw[:size]
         rows = self._read_symbol_rows(data, output, begin, count)
         return {row['name']: row for row in rows}, output.raw[begin:size]
+
+    def verify_raw_function_link(self, source, target, export, projector):
+        packet = projector.elf_function_link_frame(source, target, export)
+        require(packet is not None, REFUSALS[REFUSAL_IDS['function_inventory'] - 1][1])
+        if len(packet) != FUNCTION_LINK_BYTES:
+            raise RuntimeError('invalid native Safe Core function link frame')
+        return self._function_link_result(packet, receipt=True)
 
     def verify_owned_function_link(self, source, target, export, *, receipt=False):
         source_symbols, source_receipt = source

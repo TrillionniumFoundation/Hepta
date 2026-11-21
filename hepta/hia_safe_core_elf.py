@@ -384,11 +384,11 @@ def _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
     return calls, records
 
 
-def bind_final_artifact(object_bytes, final_bytes, export, *, native_wire=False):
+def bind_final_artifact(object_bytes, final_bytes, export, *, native_wire=False, projector=None):
     """Bind untrusted supplied ELF bytes without a producer's text or symbol map."""
     obj = _ELF(object_bytes, 1)
     text = obj.section(".text", 1)["data"]
-    return bind_final_image(object_bytes, text, final_bytes, export, native_wire=native_wire)
+    return bind_final_image(object_bytes, text, final_bytes, export, native_wire=native_wire, projector=projector)
 
 def _reference_dynamic_symbols(final, text, export):
     exports = _functions(final, text, ".dynsym")
@@ -455,7 +455,7 @@ def _reference_text_geometry(source, linked, text_bytes):
     require(linked["size"] <= 64 * 1024, "Safe Core text budget exceeded")
 
 
-def bind_final_image(object_bytes, text_bytes, final_bytes, export, *, native_wire=False):
+def bind_final_image(object_bytes, text_bytes, final_bytes, export, *, native_wire=False, projector=None):
     """Check every relocated byte and return exact machine-entry coordinates.
 
     This consumes bytes, never objdump output or a producer-supplied symbol map.
@@ -481,6 +481,12 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export, *, native_wi
         dstfunc = _owned_functions(final, linked, 3)
         direct = _reference_function_link(srcfunc, dstfunc, export, source["size"], linked["addr"])
         entry = srcfunc[export]["value"]
+    elif projector is not None:
+        obj_receipt = obj._native_inventory.owned_function_receipt(obj.data, 1, raw=True)
+        final_receipt = final._native_inventory.owned_function_receipt(final.data, 3, raw=True)
+        direct, entry, _, helper = obj._native_inventory.verify_raw_function_link(
+            obj_receipt, final_receipt, export, projector,
+        )
     else:
         obj_receipt = obj._native_inventory.owned_function_receipt(obj.data, 1)
         final_receipt = final._native_inventory.owned_function_receipt(final.data, 3)

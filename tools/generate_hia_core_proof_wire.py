@@ -15,9 +15,15 @@ from hepta.hia_cnf_native import (
     _CORE_TRAP_TAGS, _GRAPH_OPERATIONS, _word_type,
 )
 from hepta.hia_core_proof_wire_native import (
-    MACHINE_RELOCATION_REQUEST, OBLIGATION_REQUEST, OBLIGATION_SOLVER_REQUEST, OBLIGATION_WITNESS_REQUEST,
+    ELF_FUNCTION_LINK_REQUEST, MACHINE_RELOCATION_REQUEST, OBLIGATION_REQUEST,
+    OBLIGATION_SOLVER_REQUEST, OBLIGATION_WITNESS_REQUEST,
 )
 from hepta.hia_safe_core import LIMITS, WIDTHS_V6, _scalar_caller_contract
+from hepta.hia_safe_core_elf_inventory_native import (
+    FUNCTION_LINK_BYTES, FUNCTION_LINK_NAME_BYTES, FUNCTION_LINK_SOURCE_OFFSET,
+    FUNCTION_LINK_TARGET_OFFSET, FUNCTION_RECEIPT_BYTES, FUNCTION_RECEIPT_GEOMETRY,
+    HEADER as ELF_RECEIPT_HEADER, SYMBOL as ELF_SYMBOL,
+)
 from hepta.hia_safe_core_x64_decode_native import (
     DECODE_FRAME_OFFSET, MACHINE_VALUES_REQUEST, MAX_TEXT, PROFILE_OFFSET, WORKSPACE,
 )
@@ -38,6 +44,8 @@ def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return obligation_witness_wire(s, o)
     if length(s) >= 48 and obligation_word(s, 0) == MACHINE_RELOCATION_REQUEST:
         return machine_relocation_wire(s, o)
+    if length(s) >= 32 and obligation_word(s, 0) == ELF_FUNCTION_LINK_REQUEST:
+        return elf_function_link_wire(s, o)
     if length(o) < 32768 or length(o) < length(s) or length(w) < 4096:
         return REFUSED
     put(o, 48, 262144)
@@ -963,6 +971,52 @@ def write_machine_call(s:readbuf, o:mutbuf, start:u64, at:u64, address:u64) -> u
     put(o, at + 8, choose(external, 1, 0))
     put(o, at + 16, choose(external, 0, obligation_word(s, start + 16) - address))
     return 0
+
+def elf_function_link_wire(s:readbuf, o:mutbuf) -> u64:
+    first = {32 + FUNCTION_LINK_NAME_BYTES}
+    if length(s) < first or length(o) < {FUNCTION_LINK_BYTES}:
+        return {REFUSED}
+    object_bytes = obligation_word(s, 8)
+    linked_bytes = obligation_word(s, 16)
+    name_size = obligation_word(s, 24)
+    if object_bytes > length(s) - first or linked_bytes != length(s) - first - object_bytes:
+        return {REFUSED}
+    if name_size > {FUNCTION_LINK_NAME_BYTES}:
+        return {REFUSED}
+    second = first + object_bytes
+    source_count = function_receipt_count(s, first, object_bytes)
+    target_count = function_receipt_count(s, second, linked_bytes)
+    if source_count == 0 or target_count != source_count:
+        return {REFUSED}
+    source = first + {ELF_RECEIPT_HEADER.size} + {ELF_SYMBOL.size} * source_count
+    target = second + {ELF_RECEIPT_HEADER.size} + {ELF_SYMBOL.size} * target_count
+    span = obligation_word(s, source + 8)
+    if obligation_word(s, source) != 0 or obligation_word(s, target + 8) != span:
+        return {REFUSED}
+    put(o, 0, obligation_word(s, target))
+    put(o, 8, span)
+    put(o, 16, source_count)
+    put(o, 24, target_count)
+    put(o, 32, name_size)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    obligation_copy(s, o, 32, 64, {FUNCTION_LINK_NAME_BYTES})
+    obligation_copy(s, o, source + {FUNCTION_RECEIPT_GEOMETRY.size}, {FUNCTION_LINK_SOURCE_OFFSET},
+                    {FUNCTION_RECEIPT_BYTES - FUNCTION_RECEIPT_GEOMETRY.size})
+    obligation_copy(s, o, target + {FUNCTION_RECEIPT_GEOMETRY.size}, {FUNCTION_LINK_TARGET_OFFSET},
+                    {FUNCTION_RECEIPT_BYTES - FUNCTION_RECEIPT_GEOMETRY.size})
+    return {FUNCTION_LINK_BYTES}
+
+def function_receipt_count(s:readbuf, at:u64, size:u64) -> u64:
+    if size < {ELF_RECEIPT_HEADER.size + FUNCTION_RECEIPT_BYTES}:
+        return 0
+    if obligation_word(s, at) != 0 or obligation_word(s, at + 16) != 0:
+        return 0
+    n = obligation_word(s, at + 8)
+    if n > 2 or size != {ELF_RECEIPT_HEADER.size + FUNCTION_RECEIPT_BYTES} + {ELF_SYMBOL.size} * n:
+        return 0
+    return n
 '''
 
 
@@ -983,6 +1037,7 @@ def program():
                      OBLIGATION_SOLVER_REQUEST=OBLIGATION_SOLVER_REQUEST,
                      OBLIGATION_WITNESS_REQUEST=OBLIGATION_WITNESS_REQUEST,
                      MACHINE_RELOCATION_REQUEST=MACHINE_RELOCATION_REQUEST,
+                     ELF_FUNCTION_LINK_REQUEST=ELF_FUNCTION_LINK_REQUEST,
                      BLOCKS=LIMITS['blocks'], PATHS=LIMITS['core_paths'], OP_BUDGET=LIMITS['operations'],
                      ABI_WORDS=LIMITS['abi_argument_words'], NODE_BUDGET=CIRCUIT_NODES,
                      WIRE_LIMIT=PROJECTION_INPUT_LIMIT, CHECKED_CAST=PROJECT_CHECKED_CAST)

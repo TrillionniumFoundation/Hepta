@@ -1216,8 +1216,10 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     pair = _selected_machine_proof(observe=True)
     decoder, cnf = pair
     identity = _checker_source_identity(pair)
+    native_scalar = decoder is not None and cnf is not None and not foreign_buffer_exports
+    projector = _core_proof_wire(cnf) if native_scalar else None
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"],
-                                  native_wire=decoder is not None and cnf is not None and not foreign_buffer_exports)
+                                  native_wire=native_scalar, projector=projector)
     loan_shape = None
     if foreign_buffer_exports:
         loan_shape = _native_borrowed_shape(fn, blocks, foreign_buffer_exports[0][1])
