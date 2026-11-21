@@ -55,6 +55,12 @@ CARRIERS = {
         '7bf8536a748da8c6b30c443948d43504979fdb2e6787950e35a54528e27ac3f0', 8384,
         (('process_descriptors', 0, 1119), ('sealed_child_delivery', 1119, 2751),
          ('publication_and_store_transport', 2751, 4074), ('discovery_relay', 4074, 8384))),
+    'describe-worker': CarrierImage(
+        'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
+        'd3b3b68645a247e27e7081e475e38e0333186bd0983199bbe2a123fa3454fec1', 11258,
+        (('worker_entry_and_custody', 0, 1200), ('worker_descriptor_transfer', 1200, 3333),
+         ('worker_journal_relay', 3333, 4217), ('describe_effect_relay', 4217, 9513),
+         ('isolated_worker_main', 9513, 11258))),
 }
 
 

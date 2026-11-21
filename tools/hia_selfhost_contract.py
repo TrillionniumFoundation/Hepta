@@ -302,6 +302,7 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_verify_core_json.S',
 )
 MCP_WIRE_SDIST_FILES = (
+    'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta',
     'examples/hia_bootstrap/describe_bind.hepta',
     'tools/generate_hia_describe_bind.py',
     'examples/hia_bootstrap/agent_discovery_carrier_packer.hepta',
