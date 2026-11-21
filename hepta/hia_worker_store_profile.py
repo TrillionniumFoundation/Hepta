@@ -23,7 +23,9 @@ DIRECT_OWNER_SCHEMA = 'hepta.hia.native-helpers.v17'
 REFERENCE_OWNER_SCHEMA = 'hepta.hia.native-helpers.v18'
 STORE_UNIQUE_SCHEMA = 'hepta.hia.native-helpers.v19'
 WORKER_DATA_SCHEMA = 'hepta.hia.native-helpers.v20'
-STORE_UNIQUE_SCHEMAS = (STORE_UNIQUE_SCHEMA, WORKER_DATA_SCHEMA)
+WORKER_COST_SCHEMA = 'hepta.hia.native-helpers.v21'
+WORKER_DATA_SCHEMAS = (WORKER_DATA_SCHEMA, WORKER_COST_SCHEMA)
+STORE_UNIQUE_SCHEMAS = (STORE_UNIQUE_SCHEMA, *WORKER_DATA_SCHEMAS)
 JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA, *STORE_UNIQUE_SCHEMAS)
 STARTUP_SCHEMAS = (STARTUP_SCHEMA, *JOURNAL_SCHEMAS)
 ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, *STARTUP_SCHEMAS)
@@ -48,7 +50,7 @@ def profile_images(schema):
         result.update(IMPORT_EXECUTABLES)
     if schema in TERMINAL_SCHEMAS:
         result['terminal_sha256'] = ('hia-worker-terminal', authority.MAX_IMAGE_BYTES)
-    if schema == WORKER_DATA_SCHEMA:
+    if schema in WORKER_DATA_SCHEMAS:
         result['worker_data_sha256'] = ('hia-worker-data', authority.MAX_IMAGE_BYTES)
     if schema in STARTUP_SCHEMAS:
         result['initializer_sha256'] = ('hia-agent-store-init', authority.MAX_IMAGE_BYTES)
@@ -70,6 +72,8 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'journal_path', 'journal_sha256'})
         if schema in STORE_UNIQUE_SCHEMAS:
             reference_fields.update({'store_unique_path', 'store_unique_sha256'})
+        if schema == WORKER_COST_SCHEMA:
+            reference_fields.update({'journal_cost_path', 'journal_cost_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
                 or record['target'] != authority.TARGET
@@ -185,6 +189,7 @@ class NativeWorkerStoreBinding:
             self.snapshots.append((descriptor, MAX_IMAGE_BYTES))
             self.native_agent_store_unique_executable = descriptor.raw
         self.native_agent_journal_executable = None
+        self.native_worker_journal_cost_executable = None
         if schema in JOURNAL_SCHEMAS:
             from .hia_agent_journal_native import NativeAgentJournal, SELECTOR
 
@@ -199,6 +204,14 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone journal omits its exact pinned HIA image')
             self.snapshots.append((journal, MAX_IMAGE_BYTES))
             self.native_agent_journal_executable = journal.raw
+            if schema == WORKER_COST_SCHEMA:
+                pin = record['journal_cost_sha256']
+                selected = authority._path(record['journal_cost_path'], snapshot.path.parent)
+                cost = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, pin)
+                if not owners[0].matches_standalone_transport(journal.raw, cost.raw):
+                    raise ValueError('standalone cost writer omits its exact pinned HIA journal transport')
+                self.snapshots.append((cost, MAX_IMAGE_BYTES))
+                self.native_worker_journal_cost_executable = cost.raw
         self.native_worker_terminal_executable = None
         self.native_worker_admission_executable = None
         self.native_worker_data_executable = None
@@ -215,7 +228,7 @@ class NativeWorkerStoreBinding:
             if len(owners) != 1 or not owners[0].matches_standalone(terminal.raw):
                 raise ValueError('standalone terminal omits its exact pinned HIA worker request image')
             self.native_worker_terminal_executable = terminal.raw
-            if schema == WORKER_DATA_SCHEMA:
+            if schema in WORKER_DATA_SCHEMAS:
                 data = captures['worker_data_sha256']
                 if data.raw == terminal.raw or not owners[0].matches_standalone(data.raw):
                     raise ValueError('standalone data validation omits its exact pinned HIA worker request image')

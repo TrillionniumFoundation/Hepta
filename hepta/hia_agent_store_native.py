@@ -17,7 +17,9 @@ import time
 from threading import RLock
 
 from .hia_execution_budget import INSERT_CONTEXT
-from .hia_native_helpers import _read, pinned_agent_store_unique_executable
+from .hia_native_helpers import (
+    _read, pinned_agent_store_unique_executable, pinned_worker_journal_cost_executable,
+)
 
 RELEASE_IMAGES = (
     ('hia-agent-store', 16 << 20),
@@ -385,6 +387,7 @@ class NativeStoreConnection:
         from .hia_agent_store_transport_native import selected_store_transport
         self.codec = selected_store_transport()
         self.unique_code = pinned_agent_store_unique_executable((self.release, *pins))
+        self.journal_cost_code = pinned_worker_journal_cost_executable((self.release, *pins))
         self.failed = False
         self.closed = False
 
@@ -522,7 +525,7 @@ class NativeStoreConnection:
             else:
                 mode = 1
         expected_commands = (1, 3, 2)[mode]
-        writes_cursor = plan == 10
+        writes_insert = plan in (10, 18)
         frame = struct.pack('<8s5Q', b'HIASTUP1', self.request, plan, mode,
                             self.generation, len(payload)) + payload
         replies = self.process.stdout.fileno()
@@ -549,12 +552,12 @@ class NativeStoreConnection:
             if (action != 5 or extent != size or found not in (0, 1)
                     or request != self.request + expected_commands):
                 raise StoreProtocolError('native Store descriptor returned an invalid transaction footer')
-            if writes_cursor:
+            if writes_insert:
                 committed = mode != 0 and refusal == 0
                 marker = os.pread(sink, len(_CURSOR_COMMIT_INTENT), 0) == _CURSOR_COMMIT_INTENT
                 if (refusal not in (0, 1) or (refusal and found)
                         or size != (len(_CURSOR_COMMIT_INTENT) if committed else 0) or marker != committed):
-                    raise StoreProtocolError('native Store descriptor returned an invalid cursor settlement')
+                    raise StoreProtocolError('native Store descriptor returned an invalid durable insert settlement')
                 advance = found if committed else 0
                 row = None
             else:
@@ -572,7 +575,7 @@ class NativeStoreConnection:
                 raise StoreRefusal('native Agent Store constraint failed')
             return row
         except OSError as error:
-            if writes_cursor and os.pread(sink, len(_CURSOR_COMMIT_INTENT), 0) == _CURSOR_COMMIT_INTENT:
+            if writes_insert and os.pread(sink, len(_CURSOR_COMMIT_INTENT), 0) == _CURSOR_COMMIT_INTENT:
                 raise StoreCommitUnknown('native Store commit result is unknown; reopen before observing it') from error
             raise
         finally:
@@ -714,6 +717,32 @@ class NativeStoreConnection:
 
     def journal_cost(self, context, tool, request_id, wall_ns, status, details):
         self._typed_operation(_JOURNAL_COST, (context, tool, request_id, wall_ns, status, details))
+
+    def journal_cost_observed(self, context, tool, request_id, elapsed_ns, status, details):
+        from .hia_scalar_reference_native import sealed_reference_bytes
+
+        fields = (b'' if context is None else context.encode('utf-8'),
+                  tool.encode('utf-8'), request_id.encode('ascii'), details)
+        status_code = {'completed': 1, 'rejected': 2}[status]
+        header = struct.pack('<8s6Q', b'HIAJCF01', elapsed_ns, status_code, *map(len, fields))
+        with self.lock:
+            self._check_live()
+            with _sealed_image(self.journal_cost_code) as program, sealed_reference_bytes(header, *fields) as source:
+                try:
+                    result = subprocess.run((f'/proc/self/fd/{program}',), pass_fds=(program,),
+                                            stdin=source, capture_output=True, env={'PATH': ''}, timeout=_TIMEOUT)
+                except subprocess.TimeoutExpired as error:
+                    raise StoreProtocolError('native Journal cost frame deadline exceeded') from error
+            if result.returncode or result.stderr or len(result.stdout) < 192:
+                raise StoreProtocolError('native Journal cost frame was refused')
+            size, magic = struct.unpack_from('<Q8s', result.stdout)
+            if size != len(result.stdout) - 8 or magic != b'HIAINS01':
+                raise StoreProtocolError('native Journal cost frame does not match its extent')
+            try:
+                self._descriptor_unique_transaction(18, result.stdout[8:], len(_CURSOR_COMMIT_INTENT))
+            except OSError:
+                self._abort()
+                raise
 
     def context_lookup(self, context):
         return self._typed_operation(_CONTEXT_LOOKUP, (context,)).fetchone()

@@ -448,6 +448,14 @@ def pinned_worker_admission_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_worker_admission_executable', None)
 
+def pinned_worker_journal_cost_executable(selection):
+    _check_scope_owner()
+    executable = getattr(_ACTIVE, 'native_worker_journal_cost_executable', None)
+    if executable is not None and selection != _ACTIVE.native_store:
+        raise ValueError('native Journal cost writer must use its own pinned Store release')
+    return executable
+
+
 def pinned_worker_data_executable():
     _check_scope_owner()
     return getattr(_ACTIVE, 'native_worker_data_executable', None)

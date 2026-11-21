@@ -17,17 +17,20 @@ COMPOSITION_SUCCESSOR_SHA256 = '4d52c953af4df5f115580871700265297f5b8069d31ee8fa
 WORKER_TRANSPORT_SUCCESSOR = ROOT / 'tests/fixtures/worker_report_stream_successor.json'
 WORKER_TRANSPORT_SHA256 = '49602d227e86a74d0de3b68e07e54b09de1c87feb607d4f9c2de5896daeb20d7'
 WORKER_REPORT_PATH = 'hepta/hia_worker_report_native.py'
-STORE_METADATA = ROOT / 'tests/fixtures/store_worker_metadata_successor.json'
-STORE_METADATA_SHA256 = 'cbd7f801cd7beff2a0cd19d8294d132aa010246bda38644699fc26514605f559'
+STORE_COST = ROOT / 'tests/fixtures/store_worker_cost_successor.json'
+STORE_COST_SHA256 = '80c94ce363b84aedc57a60d29c1b175cab298901d5cf1c6e72adb74eafa16a57'
 STORE_PATH = 'hepta/hia_agent_store.py'
 RETAINED_READ = ROOT / 'tests/fixtures/store_retained_read_successor.json'
 RETAINED_READ_SHA256 = '55067c36abaae147d7eebf4932df4df99d8ebf0cb4e9a851c79ab4e4f1dbab9e'
 SERVICE_PATH = 'hepta/hia_agent_service.py'
+JOURNAL_COST = ROOT / 'tests/fixtures/worker_journal_cost_successor.json'
+JOURNAL_COST_SHA256 = '97f1c36e9f12af0ffe96b3c789603365e74a3df0b8b5b52fa2be9dca9b7c3cd1'
 COMPOSITION_EXTENSIONS = {
+    'hepta/hia_agent_journal_native.py': (JOURNAL_COST, JOURNAL_COST_SHA256, 'hepta.hia.worker-journal-cost-successor.v1'),
     SERVICE_PATH: (RETAINED_READ, RETAINED_READ_SHA256, 'hepta.hia.store-retained-read-successor.v1'),
     WORKER_REPORT_PATH: (WORKER_TRANSPORT_SUCCESSOR, WORKER_TRANSPORT_SHA256,
                          'hepta.hia.worker-report-stream-successor.v1'),
-    STORE_PATH: (STORE_METADATA, STORE_METADATA_SHA256, 'hepta.hia.store-worker-metadata-successor.v1'),
+    STORE_PATH: (STORE_COST, STORE_COST_SHA256, 'hepta.hia.store-worker-cost-successor.v1'),
 }
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'

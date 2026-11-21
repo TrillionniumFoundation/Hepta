@@ -610,6 +610,13 @@ class NativeAgentJournal(NativeHiaJsonImage):
     def matches_standalone(self, executable):
         return executable.startswith(b'\x7fELF') and executable.count(self._bytes) == 1
 
+    def matches_standalone_transport(self, journal, companion):
+        if not self.matches_standalone(journal) or not companion.startswith(b'\x7fELF'):
+            return False
+        main_end = journal.index(self._bytes) + len(self._bytes)
+        transport = journal[main_end:]
+        return bool(transport) and companion != journal and companion.endswith(transport)
+
     @cached_property
     def _in_process_image(self):
         return NativeHiaJsonImage(self._bytes, self.image_sha256)
@@ -851,9 +858,9 @@ def _run_native_journal(hosted, service, session, tool, arguments, started, requ
         if not native_failed and not _delivery_lost():
             instruction = session.finish(response)
             if instruction.flags & COST_WRITE:
-                service.store.journal_cost(*_delivery_guard((context_id, str(tool), request_id,
-                                           str(hosted.time.monotonic_ns() - started), instruction.status,
-                                           instruction.cost_details.decode('utf-8'))))
+                service.store.journal_cost_observed(*_delivery_guard((context_id, str(tool), request_id,
+                                           hosted.time.monotonic_ns() - started, instruction.status,
+                                           instruction.cost_details)))
             if instruction.flags & JOURNAL_WRITE:
                 service.store.journal_complete(*_delivery_guard((session.key, instruction.response.decode('utf-8'))))
     return response

@@ -11,7 +11,7 @@ from hepta.hia_worker_store_profile import (
     ADMISSION_SCHEMA, DIRECT_BATCH_SCHEMA, DIRECT_CALL_SCHEMA, DIRECT_OWNER_SCHEMA, DIRECT_REPEAT_SCHEMA,
     EDIT_QUERY_SCHEMA, IMPORT_SCHEMA,
     JOURNAL_SCHEMA, OWNED_REFERENCE_SCHEMA, REFERENCE_OWNER_SCHEMA, REFERENCE_SCHEMA, SCHEMA,
-    SEALED_PAGE_SCHEMA, STARTUP_SCHEMA, STORE_UNIQUE_SCHEMA, TERMINAL_SCHEMA, WORKER_DATA_SCHEMA,
+    SEALED_PAGE_SCHEMA, STARTUP_SCHEMA, STORE_UNIQUE_SCHEMA, TERMINAL_SCHEMA, WORKER_COST_SCHEMA, WORKER_DATA_SCHEMA,
     profile_images,
 )
 from tools.build_hia_worker_report import custody_path
@@ -21,7 +21,8 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
                       portable=False, reference_executable=None, owned_reference_executable=None,
                       direct_call_executable=None, direct_call_protocol=1, read_page_executable=None,
                       standalone_terminal=False, standalone_admission=False, initialize_fresh=False,
-                      journal_executable=None, store_unique_executable=None, standalone_worker_data=False):
+                      journal_executable=None, store_unique_executable=None, standalone_worker_data=False,
+                      journal_cost_executable=None):
     base = authority._read(authority._path(str(Path(base_bundle).absolute())), authority.MAX_BUNDLE_BYTES)
     record = authority._decode(base.raw)
     if type(record) is not dict or record.get('schema') not in (
@@ -56,7 +57,8 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
                                       ('direct_call', direct_call_executable, direct_schema),
                                       ('read_page', read_page_executable, SEALED_PAGE_SCHEMA),
                                       ('journal', journal_executable, JOURNAL_SCHEMA),
-                                      ('store_unique', store_unique_executable, STORE_UNIQUE_SCHEMA)):
+                                      ('store_unique', store_unique_executable, STORE_UNIQUE_SCHEMA),
+                                      ('journal_cost', journal_cost_executable, WORKER_COST_SCHEMA)):
         if executable is None:
             continue
         if not candidate_import:
@@ -70,7 +72,11 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
         schema = profile
     if standalone_worker_data and store_unique_executable is None:
         raise ValueError('standalone Worker data requires the complete Store transaction profile')
-    if store_unique_executable is not None:
+    if journal_cost_executable is not None:
+        if not standalone_worker_data:
+            raise ValueError('standalone Journal costs require the complete Worker data profile')
+        schema = WORKER_COST_SCHEMA
+    elif store_unique_executable is not None:
         schema = WORKER_DATA_SCHEMA if standalone_worker_data else STORE_UNIQUE_SCHEMA
     elif journal_executable is not None:
         schema = direct_schema if direct_call_protocol >= 4 else JOURNAL_SCHEMA
@@ -118,6 +124,7 @@ def main():
     parser.add_argument('--journal-executable', type=Path)
     parser.add_argument('--store-unique-executable', type=Path)
     parser.add_argument('--standalone-worker-data', action='store_true')
+    parser.add_argument('--journal-cost-executable', type=Path)
     parser.add_argument('--portable', action='store_true',
                         help='require relative base/installation paths within the output directory')
     args = parser.parse_args()
@@ -131,7 +138,8 @@ def main():
                             standalone_admission=args.standalone_admission, initialize_fresh=args.initialize_fresh,
                             journal_executable=args.journal_executable,
                             store_unique_executable=args.store_unique_executable,
-                            standalone_worker_data=args.standalone_worker_data)
+                            standalone_worker_data=args.standalone_worker_data,
+                            journal_cost_executable=args.journal_cost_executable)
     print(json.dumps({'manifest': str(args.output.absolute()), 'sha256': pin}))
 
 

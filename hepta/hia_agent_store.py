@@ -502,6 +502,12 @@ class AgentStore:
                 'INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
                 (context, tool, request_id, wall_ns, status, details))
 
+    def journal_cost_observed(self, context, tool, request_id, elapsed_ns, status, details):
+        if self._native_backend and self.db.journal_cost_code is not None:
+            self.db.journal_cost_observed(context, tool, request_id, elapsed_ns, status, details)
+            return
+        self.journal_cost(context, tool, request_id, str(elapsed_ns), status, details.decode('utf-8'))
+
     def context_lookup(self, context):
         if self._native_backend:
             return self.db.context_lookup(context)
