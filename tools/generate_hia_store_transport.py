@@ -19,8 +19,6 @@ WIRE = {
     'UNIQUE_REQUEST': b'HIASTUP1',
     'COMMIT_INTENT': b'HIASTCP1',
     'ARTIFACT_JOURNAL_ACK': b'HIAJMO01',
-    'ARTIFACT_PROFILE_HEAD': b'hia-arti',
-    'ARTIFACT_PROFILE_END': b'fact-v1',
     'UNIQUE_CONSUME': b'HIASTUC1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
@@ -131,7 +129,7 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if mode != 0 or valid_reservation_ack(s, size) == False:
             return 0
     elif plan == 12:
-        if valid_artifact_profile_lookup(s, size) == False:
+        if valid_worker_profile_lookup(s, size) == False:
             return 0
     elif plan == 10:
         if valid_cursor_retain(s, size) == False:
@@ -189,16 +187,17 @@ def valid_reservation_ack(s:readbuf, size:u64) -> bool:
     return read_word(s, 104) == 512
 
 # Query ordinal 12 projects the one retained profile document reference.
-def valid_artifact_profile_lookup(s:readbuf, size:u64) -> bool:
-    if size != 159 or read_word(s, 48) != QUERY_PARAMETERS:
+def valid_worker_profile_lookup(s:readbuf, size:u64) -> bool:
+    if size < 157 or size > 159 or read_word(s, 48) != QUERY_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != size:
         return False
-    if valid_cell(s, 80, 3, 80, 15) == False or valid_cell(s, 104, 3, 95, 64) == False:
+    width = size - 144
+    if valid_cell(s, 80, 3, 80, width) == False or valid_cell(s, 104, 3, 80 + width, 64) == False:
         return False
-    if read_word(s, 128) != ARTIFACT_PROFILE_HEAD or (read_word(s, 136) & 72057594037927935) != ARTIFACT_PROFILE_END:
+    if worker_profile_id(s, 128, width) == False:
         return False
-    return valid_hex(s, 143, 64)
+    return valid_hex(s, 128 + width, 64)
 
 # One previously issued page cursor, with its exact artifact digest and offset.
 def valid_cursor_retain(s:readbuf, size:u64) -> bool:
@@ -835,8 +834,15 @@ def copy_fields(s:readbuf, o:mutbuf, start:u64, end:u64, extent:u64) -> u64:
 def source_program():
     import re
 
+    profiles = []
+    for kind in ('artifact', 'compiler', 'target'):
+        name = ('hia-' + kind + '-v1').encode()
+        predicate = ' and '.join(f'byte(s, at + {i}) == {byte}' for i, byte in enumerate(name))
+        profiles.append(f'    if length == {len(name)} and {predicate}:\n        return True')
+    profile_gate = '\ndef worker_profile_id(s:readbuf, at:u64, length:u64) -> bool:\n'
+    profile_gate += '\n'.join(profiles) + '\n    return False\n'
     return re.sub(r'\b(' + '|'.join(WIRE) + r')\b',
-        lambda name: str(int.from_bytes(WIRE[name.group()], 'little')), POLICY)
+        lambda name: str(int.from_bytes(WIRE[name.group()], 'little')), POLICY + profile_gate)
 
 
 if __name__ == '__main__':

@@ -22,6 +22,12 @@ def artifact_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return profile_observation(s, o)
     if mode == ARTIFACT_OBSERVE:
         return artifact_observation(s, o)
+    if mode == CONTEXT_PROFILE_QUERY:
+        if length(s) != 80 or valid_hex(s, 16, 64) == False or context_profile_width(input_word(s, 8)) == 0:
+            return 4294967293
+        return contextual_profile_query(s, o)
+    if mode == CONTEXT_PROFILE_OBSERVE:
+        return contextual_profile_observation(s, o)
     if mode == RETAINED_QUERY:
         return retained_query(s, o)
     if mode == RETAINED_OBSERVE:
@@ -44,24 +50,61 @@ def profile_observation(s:readbuf, o:mutbuf) -> u64:
     size = input_word(s, 8)
     if size != length(s) - 144 or unique_summary(s, 96 + size, size) == False:
         return 4294967293
+    return profile_lookup_binding(s, o, 3, 32, size)
+
+def contextual_profile_observation(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 152 or valid_hex(s, 40, 64) == False:
+        return 4294967293
+    kind = input_word(s, 32)
+    size = input_word(s, 8)
+    if context_profile_width(kind) == 0 or size != length(s) - 152 or unique_summary(s, 104 + size, size) == False:
+        return 4294967293
+    return profile_lookup_binding(s, o, kind, 40, size)
+
+def contextual_profile_query(s:readbuf, o:mutbuf) -> u64:
+    kind = input_word(s, 8)
+    width = context_profile_width(kind)
+    query_header(o, 0, 2, 144 + width)
+    query_field(o, 32, 80, width)
+    query_field(o, 56, 80 + width, 64)
+    if kind == 1:
+        compiler_name(o, 80)
+    else:
+        target_name(o, 80)
+    return copy_input(s, o, 16, 80 + width, 64)
+
+def context_profile_width(role:u64) -> u64:
+    return choose(role == 1, 15, choose(role == 2, 13, 0))
+
+def profile_lookup_binding(s:readbuf, o:mutbuf, kind:u64, pin:u64, size:u64) -> u64:
     if size == 0:
         return 4294967289
-    if size != 359 or row_header(s, 96, 2, 3) == False:
+    width = choose(kind == 3, 15, context_profile_width(kind))
+    row = pin + 64
+    if size != 344 + width or row_header(s, row, 2, 3) == False:
         return 4294967293
-    if row_text(s, 128, 104, 15) == False or row_text(s, 152, 119, 64) == False:
+    if row_text(s, row + 32, 104, width) == False or row_text(s, row + 56, 104 + width, 64) == False:
         return 4294967293
-    if row_text(s, 176, 183, 176) == False or artifact_reference(s, 279) == False:
+    start = row + 168 + width
+    if row_text(s, row + 80, 168 + width, 176) == False or artifact_reference(s, start) == False:
         return 4294967293
-    if input_word(s, 200) != PROFILE_HEAD or (input_word(s, 208) & 72057594037927935) != PROFILE_END:
+    if matches(s, row + 104 + width, pin, 64) == False or matches(s, start + 53, pin, 64) == False:
         return 4294967293
-    if matches(s, 215, 32, 64) == False or matches(s, 332, 32, 64) == False:
+    if selected_profile(s, row + 104, kind) == False:
         return 4294967293
     put(o, 0, PROFILE_REF)
     put(o, 8, 176)
-    copy_input(s, o, 279, 16, 176)
+    copy_input(s, o, start, 16, 176)
     query_header(o, 192, 1, 90)
     query_field(o, 224, 56, 34)
-    return copy_input(s, o, 286, 248, 34)
+    return copy_input(s, o, start + 7, 248, 34)
+
+def selected_profile(s:readbuf, at:u64, kind:u64) -> bool:
+    if kind == 1:
+        return compiler_profile(s, at)
+    if kind == 2:
+        return target_profile(s, at)
+    return artifact_profile(s, at)
 
 def retained_query(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 192 or input_word(s, 8) > 4 or artifact_reference(s, 16) == False:
@@ -125,7 +168,7 @@ def requested_kind(s:readbuf, at:u64, size:u64, kind:u64) -> bool:
         return size == 7 and profile_text(s, at)
     if kind == 3:
         return size == 7 and context_text(s, at)
-    return size == 7 and program_text(s, at)
+    return size == 4 and program_text(s, at)
 
 def unique_summary(s:readbuf, at:u64, size:u64) -> bool:
     if input_word(s, at) != 5 or input_word(s, at + 8) != size or input_word(s, at + 24) != 0:
@@ -186,7 +229,8 @@ def source_program():
         'ARTIFACT_OBSERVE': b'HIARPF03', 'INPUT_RESULT': b'HIARPF04',
         'PROFILE_REF': b'HIARPO01', 'PROFILE_READ': b'HIARPO02',
         'RETAINED_QUERY': b'HIARFG01', 'RETAINED_OBSERVE': b'HIARFG02',
-        'RETAINED_READ': b'HIARFO02',
+        'RETAINED_READ': b'HIARFO02', 'CONTEXT_PROFILE_QUERY': b'HIARFP01',
+        'CONTEXT_PROFILE_OBSERVE': b'HIARFP02',
         'QUERY': b'HIAQPA01', 'ROW': b'HIAROW01', 'DOCUMENT': b'HIADOC01',
         'PROFILE_HEAD': b'hia-arti', 'PROFILE_END': b'fact-v1',
     }
@@ -203,12 +247,15 @@ def source_program():
     for name, raw in (
         ('artifact_start', b'{"id":"a-'), ('artifact_digest', b'","sha256":"'),
         ('artifact_uri', b'","uri":"hia://artifacts/'),
-        ('context_text', b'context'), ('program_text', b'program'),
+        ('context_text', b'context'), ('program_text', b'core'),
+        ('compiler_profile', b'hia-compiler-v1'), ('target_profile', b'hia-target-v1'),
+        ('artifact_profile', b'hia-artifact-v1'),
     ):
         program += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'
         program += '    return ' + ' and '.join(
             f'byte(s, at + {offset}) == {byte}' for offset, byte in enumerate(raw)) + '\n'
     for name, raw in (
+        ('compiler_name', b'hia-compiler-v1'), ('target_name', b'hia-target-v1'),
         ('result_open', b'{"artifact":'), ('result_size', b',"byte_length":"'),
         ('result_end', b'","content_admitted_as_program":false,"execution_authority_granted":false}'),
     ):
