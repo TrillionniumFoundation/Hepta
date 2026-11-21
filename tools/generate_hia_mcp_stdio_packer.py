@@ -69,6 +69,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'context-request': ARTIFACT_REQUEST_MODE,
          'context-workload': CONTEXT_WORKLOAD_MODE,
          'context-payload': SCHEMA_MODE,
+         'context-cost': CONTEXT_WORKLOAD_MODE,
          'artifact-authority': DISCOVERY_MODE,
          'artifact-diagnostic': ARTIFACT_DIAGNOSTIC_MODE,
          'artifact-journal': JOURNAL_READ_WORKFLOW_MODE}
@@ -129,7 +130,7 @@ def template(mode):
         scratch, workspace, minimum = 4 << 20, SCHEMA_ARENA_BYTES, 1
     if context_workload:
         # The decoder also uses this mapping for its original duplicate-key table.
-        scratch, workspace = 4 << 20, ARENA_BYTES + 1024
+        scratch, workspace = 4 << 20, ARENA_BYTES + 8192
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if describe_request:
