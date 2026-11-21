@@ -463,6 +463,23 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
                     expected = False
                 self.assertEqual(self.native.acyclic_core_graph(adjacency), expected, adjacency)
 
+    def test_native_graph_plan_preserves_branch_multiplicity_and_entry_budget(self):
+        graph = ((), (0, 2), (0,), (1, 1), (0, 0))
+        adjacency = (0, 5, 1, 2, 1)
+        original_order = self.native.core_graph_order(adjacency)
+        for entry, paths in enumerate((1, 2, 1, 4, 2)):
+            with self.subTest(entry=entry):
+                self.assertEqual(self.native.core_graph_plan(graph, entry, paths),
+                                 (original_order, paths))
+                if paths > 1:
+                    self.assertIsNone(self.native.core_graph_plan(graph, entry, paths - 1))
+        cascade = tuple((index + 1, index + 1) for index in range(15)) + ((),)
+        self.assertIsNone(self.native.core_graph_plan(cascade, 0, 1024))
+        self.assertEqual(self.native.core_graph_plan(cascade, 5, 1024), (tuple(range(16)), 1024))
+        self.assertEqual(self.native.core_graph_plan(cascade, 15, 1), (tuple(range(16)), 1))
+        self.assertIsNone(self.native.core_graph_plan(((1,), (0,)), 0, 1024))
+        self.assertIsNone(self.native.core_graph_plan(((2,), ()), 2, 1024))
+
     def test_actual_borrowed_abi_uses_native_guards_and_byte_addresses(self):
         from pathlib import Path
         import tempfile

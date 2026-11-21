@@ -998,24 +998,12 @@ def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, w
                                                   write_result=write_result,
                                                   pair_operation=pair_operation), paths
     names = tuple(blocks)
-    paths = 1
-    if len(names) > 1:
-        edges, adjacency = _core_graph_edges(blocks)
-        order = decoder.core_graph_order(adjacency)
-        if order is None:
-            return None
-        incoming = [0] * len(names)
-        incoming[names.index(fn['entry'])] = 1
-        paths = 0
-        for index in order:
-            if edges[index]:
-                for target in edges[index]:
-                    incoming[target] += incoming[index]
-            else:
-                paths += incoming[index]
-        if not 0 < paths <= LIMITS['core_paths']:
-            return None
-        names = tuple(names[index] for index in order)
+    edges, _ = _core_graph_edges(blocks)
+    plan = decoder.core_graph_plan(edges, names.index(fn['entry']), LIMITS['core_paths'])
+    if plan is None:
+        return None
+    order, paths = plan
+    names = tuple(names[index] for index in order)
     graph = (blocks, names)
     return cnf.project_scalar_graphs((fn, fn), (graph, graph), totality=False), paths
 

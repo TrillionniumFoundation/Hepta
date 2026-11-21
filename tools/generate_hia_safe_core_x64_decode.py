@@ -13,7 +13,8 @@ from hepta.hia_safe_core_x64_decode_native import (
     BORROWED_INDEX_ARGUMENT, BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
     BORROWED_PAIR_REVERSE_SUB,
     BORROWED_WRITE_REPLY, BORROWED_WRITE_REQUEST,
-    CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
+    CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_PLAN_REQUEST, CORE_GRAPH_REQUEST,
+    MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MACHINE_BORROW_BRANCH_DEPTH, MACHINE_BORROW_REPLY, MACHINE_BORROW_REQUEST, MACHINE_BORROW_WORKSPACE,
     MACHINE_PAIR_BRANCH_DEPTH,
     MACHINE_WRITE_READ_WORKSPACE, MACHINE_WRITE_REPLY, MACHINE_WRITE_REQUEST, MACHINE_WRITE_WORKSPACE,
@@ -38,6 +39,7 @@ FIELDS.update({'E_' + name.upper(): index for name, index in REFUSAL_IDS.items()
 FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()})
 FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in CORE_FORMULA_IDS.items()})
 FIELDS.update(CORE_GRAPH_LIMIT=CORE_GRAPH_LIMIT, CORE_GRAPH_SIZE=CORE_GRAPH_REQUEST.size)
+FIELDS.update(CORE_PLAN_SIZE=CORE_GRAPH_PLAN_REQUEST.size, CORE_PLAN_EDGES=CORE_GRAPH_REQUEST.size + 16)
 FIELDS.update(MEMORY_GRAPH_ROWS=MEMORY_GRAPH_ROWS, MEMORY_GRAPH_SIZE=MEMORY_GRAPH_REQUEST.size)
 FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
               LEFT=1, RIGHT=2, THIRD=3, FOURTH=4, FIFTH=5, ZF=3, CF=4, ARBITRARY=5)
@@ -114,8 +116,12 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return memory_admission(w)
     if size == 0 and length(w) == CORE_GRAPH_SIZE:
         if length(o) != 0:
+            if length(o) != get(w, 0) * 8:
+                return 0
             return ordered_core_graph(w, o)
         return review_core_graph(w)
+    if size == 0 and length(w) == CORE_PLAN_SIZE:
+        return plan_core_graph(w, o)
     if size == 0 and length(w) == MEMORY_GRAPH_SIZE:
         return memory_write_inventory(o, w)
     if length(o) < 24 or length(w) < WORKSPACE:
@@ -1112,7 +1118,7 @@ def review_core_graph(w:mutbuf) -> u64:
 
 def ordered_core_graph(w:mutbuf, o:mutbuf) -> u64:
     count = get(w, 0)
-    if count == 0 or count > CORE_GRAPH_LIMIT or length(o) != count * 8:
+    if count == 0 or count > CORE_GRAPH_LIMIT or length(o) < count * 8:
         return 0
     if review_core_graph(w) == 0:
         return 0
@@ -1138,6 +1144,52 @@ def ordered_core_graph(w:mutbuf, o:mutbuf) -> u64:
         pending = pending ^ (1 << node)
         index = index + 1
     return index * 8
+
+def plan_core_graph(w:mutbuf, o:mutbuf) -> u64:
+    count = get(w, 0)
+    entry = get(w, CORE_GRAPH_SIZE)
+    budget = get(w, CORE_GRAPH_SIZE + 8)
+    if count == 0 or count > CORE_GRAPH_LIMIT or entry >= count or length(o) != (count + 1) * 8:
+        return 0
+    if budget == 0 or budget > 32768:
+        return 0
+    index = 0
+    while index < count:
+        first = get(w, CORE_PLAN_EDGES + index * 16)
+        second = get(w, CORE_PLAN_EDGES + index * 16 + 8)
+        if first > count or second > count or (first == count and second != count):
+            return 0
+        row = 0
+        if first != count:
+            row = 1 << first
+        if second != count:
+            row = row | (1 << second)
+        put(w, 8 + index * 8, row)
+        index = index + 1
+    if ordered_core_graph(w, o) != count * 8:
+        return 0
+    return count_core_paths(w, o, count, entry, budget)
+
+def count_core_paths(w:mutbuf, o:mutbuf, count:u64, entry:u64, budget:u64) -> u64:
+    pending = count
+    while pending != 0:
+        pending = pending - 1
+        node = get(o, pending * 8)
+        first = get(w, CORE_PLAN_EDGES + node * 16)
+        second = get(w, CORE_PLAN_EDGES + node * 16 + 8)
+        paths = 1
+        if first != count:
+            paths = get(w, 8 + first * 8)
+        if second != count:
+            paths = paths + get(w, 8 + second * 8)
+        # Two outgoing arms to the same block still represent two paths.
+        # Clamp before propagating to avoid any arithmetic growth.
+        put(w, 8 + node * 8, choose(paths <= budget, paths, budget + 1))
+    paths = get(w, 8 + entry * 8)
+    if paths == 0 or paths > budget:
+        return 0
+    put(o, count * 8, paths)
+    return (count + 1) * 8
 
 def schedule_request(s:readbuf, offset:u64) -> u64:
     value = 0

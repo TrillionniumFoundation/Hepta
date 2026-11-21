@@ -97,6 +97,7 @@ RECIPE_REQUEST = struct.Struct('<2Q')
 CORE_FORMULA_REQUEST = struct.Struct('<3Q')
 CORE_GRAPH_LIMIT = 16
 CORE_GRAPH_REQUEST = struct.Struct('<17Q')
+CORE_GRAPH_PLAN_REQUEST = struct.Struct('<51Q')
 MEMORY_GRAPH_ROWS = 63
 MEMORY_GRAPH_REQUEST = struct.Struct('<' + str(3 + 3 * MEMORY_GRAPH_ROWS) + 'Q')
 RECIPE_HEADER = struct.Struct('<5Q')
@@ -498,6 +499,26 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if size != len(output) or set(order) != set(range(len(successors))):
             raise RuntimeError('invalid native Safe Core graph ordering')
         return order
+
+    def core_graph_plan(self, successors, entry, path_budget):
+        count = len(successors)
+        if not 1 <= count <= CORE_GRAPH_LIMIT or any(len(row) > 2 for row in successors):
+            raise ValueError('outside the Safe Core graph budget')
+        edges = []
+        for row in successors:
+            edges.extend(row)
+            edges.extend([count] * (2 - len(row)))
+        packet = CORE_GRAPH_PLAN_REQUEST.pack(count, *([0] * CORE_GRAPH_LIMIT), entry, path_budget,
+                                              *edges, *([count] * (2 * (CORE_GRAPH_LIMIT - count))))
+        request = ctypes.create_string_buffer(packet, len(packet))
+        output = ctypes.create_string_buffer(8 * (count + 1))
+        size = self._checked_default_entry(None, 0, output, len(output), request, len(request))
+        if size == 0:
+            return None
+        *order, paths = struct.unpack(f'<{count + 1}Q', output)
+        if size != len(output) or set(order) != set(range(count)) or not 1 <= paths <= path_budget:
+            raise RuntimeError('invalid native Safe Core graph plan')
+        return tuple(order), paths
 
     def possible_memory_writes(self, rows, first, second):
         count = len(rows)
