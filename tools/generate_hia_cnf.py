@@ -20,6 +20,7 @@ from hepta.hia_cnf_native import (
     FEEDBACK_BLOCK_LIMIT, FEEDBACK_LAYER_LIMIT, FEEDBACK_OP_LIMIT, FEEDBACK_REPLY,
     FEEDBACK_REQUEST, FEEDBACK_WORKSPACE,
     ARTIFACT_PROJECTION_REQUEST, GRAPH_PROJECTION_REQUEST, CALL_PROJECTION_REQUEST, SCALAR_SUMMARY,
+    SEARCH_PLAN_REQUEST,
     PROJECTION_INPUT_LIMIT, PROJECTION_OUTPUT,
     PROJECT_CALL_RESULT, PROJECT_UNIT_TYPE, PROJECTION_WORKSPACE, SUMMARIZED_CALL_INPUTS, TUPLE_SUMMARY, _CORE_TRAP_TAGS,
 )
@@ -42,6 +43,8 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
         return project_graphs(source, result, stack, magic == CALL_PROJECTION_REQUEST)
     if magic == ARTIFACT_PROJECTION_REQUEST:
         return project_artifact_circuit(source, result, stack)
+    if magic == SEARCH_PLAN_REQUEST:
+        return circuit_search_plan(source, result)
     if magic == WORD_WITNESS_REQUEST:
         return check_word_witness(source, stack)
     if magic == WORD_TABLE_REQUEST:
@@ -68,6 +71,33 @@ def solve(source:readbuf, result:mutbuf, stack:mutbuf) -> u32:
             return INVALID
         clause = clause + 1
     return search(source, result, stack, clauses, budget)
+
+def circuit_search_plan(source:readbuf, result:mutbuf) -> u32:
+    size = length(source)
+    # solve has already checked that the header is present.
+    count = (size - 32) >> 4
+    remaining = read64(source, 8)
+    guarded = read64(source, 16)
+    restarts = read64(source, 24)
+    if count > CIRCUIT_NODES or size != 32 + 16 * count or remaining == 0 or guarded > 1 or restarts > 1:
+        return INVALID
+    rate = 100 + guarded * 900
+    steps = choose(remaining < 2000, remaining, 2000) * rate
+    learning = 0
+    node = 0
+    while node < count:
+        operation = read64(source, 32 + 16 * node)
+        width = read64(source, 40 + 16 * node)
+        # Carry clauses need learned restarts; nonlinear clauses benefit
+        # from conflict learning even if only a fault predicate survives.
+        learning = choose(operation >= WORD_UNSIGNED_DIV and operation <= WORD_PRODUCT_EXCEEDS, 1, learning)
+        restarts = choose(operation >= 9 and operation <= 10 and width > 8, 1, restarts)
+        node = node + 1
+    write64(result, 0, SEARCH_PLAN_REQUEST)
+    write64(result, 8, steps)
+    write64(result, 16, learning)
+    write64(result, 24, restarts)
+    return 32
 
 def search(source:readbuf, result:mutbuf, stack:mutbuf, clauses:u64, budget:u64) -> u32:
     steps = 0
@@ -2808,6 +2838,7 @@ def source_program():
                      WORD_TABLE_WORK_LIMIT=WORD_TABLE_WORK_LIMIT,
                      GRAPH_PROJECTION_REQUEST=GRAPH_PROJECTION_REQUEST,
                      ARTIFACT_PROJECTION_REQUEST=ARTIFACT_PROJECTION_REQUEST,
+                     SEARCH_PLAN_REQUEST=SEARCH_PLAN_REQUEST,
                      CALL_PROJECTION_REQUEST=CALL_PROJECTION_REQUEST, SCALAR_SUMMARY=SCALAR_SUMMARY,
                      TUPLE_SUMMARY=TUPLE_SUMMARY, SUMMARIZED_CALL_INPUTS=SUMMARIZED_CALL_INPUTS,
                      FEEDBACK_REQUEST=FEEDBACK_REQUEST, FEEDBACK_REPLY=FEEDBACK_REPLY,

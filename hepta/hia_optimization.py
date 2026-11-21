@@ -19,7 +19,7 @@ import time
 
 from .hia_program import SCALARS, WIDTHS, HIAProgramRejected, verify_program
 from .hia_cnf_native import (
-    SAT, SPARSE_REQUEST, UNSAT, WORD_PRODUCT_EXCEEDS, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
+    SAT, SPARSE_REQUEST, UNSAT,
     bitblast_clauses, core_circuit, selected_cnf,
 )
 from .hia_opcodes import RESOURCES, TRAP_CODES
@@ -78,18 +78,10 @@ def _native_circuit_decision(cnf, circuit, deadline, *, restart_search=False):
     if remaining <= 0:
         return None
     nodes, returns, traps = circuit
-    # Carry clauses for checked 64-bit arithmetic require substantially
-    # more unit propagation than pure bitwise obligations.
-    steps = min(2_000_000, remaining * 1000) if traps is not None else min(200_000, remaining * 100)
-    # Nonlinear words benefit from conflict learning, even when only their
-    # ordered fault conditions survive projection into the observed circuit.
-    nonlinear = any(operation in (WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM, WORD_PRODUCT_EXCEEDS)
-                    for operation, *_ in nodes)
-    # Restarting learned search avoids repeatedly traversing the same carry
-    # constraints in wide addition/subtraction. It uses the same hard budget.
-    wide_carries = any(operation in (9, 10) and width > 8 for operation, width, *_ in nodes)
+    steps, learning, restarts = cnf.search_plan(nodes, remaining, guarded=traps is not None,
+                                                restart_requested=restart_search)
     result = cnf.solve_circuit(nodes, returns, steps=steps, traps=traps,
-                               learning=nonlinear, restarts=restart_search or wide_carries)
+                               learning=learning, restarts=restarts)
     if result is None or result[0] not in (SAT, UNSAT):
         return None
     verdict, model, steps, variables, clauses, frame = result

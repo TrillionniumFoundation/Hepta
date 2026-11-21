@@ -125,6 +125,27 @@ class CnfStandaloneTests(unittest.TestCase):
         self.assertEqual((unsatisfiable.returncode, unsatisfiable.stderr), (0, b''))
         self.assertEqual(struct.unpack_from('<2Q', unsatisfiable.stdout), (SPARSE_REPLY, UNSAT))
 
+    def test_standalone_search_plan_keeps_the_original_lease_and_strategy(self):
+        from hepta.hia_cnf_native import SEARCH_PLAN_REQUEST, WORD_UNSIGNED_DIV
+
+        for remaining, guarded, restart, words, expected in (
+                (1, 0, 0, (), (100, 0, 0)),
+                (1999, 1, 0, (9, 8), (1_999_000, 0, 0)),
+                (2000, 0, 0, (10, 32), (200_000, 0, 1)),
+                ((1 << 64) - 1, 1, 0, (WORD_UNSIGNED_DIV, 64), (2_000_000, 1, 0)),
+                (31, 0, 1, (), (3_100, 0, 1))):
+            wire = struct.pack(f'<{4 + len(words)}Q', SEARCH_PLAN_REQUEST, remaining, guarded, restart, *words)
+            completed = self.invoke(wire)
+            self.assertEqual((completed.returncode, completed.stdout, completed.stderr),
+                             (0, struct.pack('<4Q', SEARCH_PLAN_REQUEST, *expected), b''))
+        header = struct.pack('<4Q', SEARCH_PLAN_REQUEST, 1, 0, 0)
+        malformed = [header[:-1], header + bytes(8)]
+        malformed.extend(struct.pack('<4Q', SEARCH_PLAN_REQUEST, *fields)
+                         for fields in ((0, 0, 0), (1, 2, 0), (1, 0, 2)))
+        for wire in malformed:
+            completed = self.invoke(wire)
+            self.assertEqual((completed.returncode, completed.stdout, completed.stderr), (2, b'', b''))
+
     def test_malformed_frames_and_options_never_return_proof_bytes(self):
         normal = packet(1, [(1, 0)], 10)
         for wire in (b'', normal[:-1], normal + b'\0', packet(65, [], 1)):

@@ -54,6 +54,7 @@ WORD_TABLE_WORK_LIMIT = 32 * 1024 * 1024
 GRAPH_PROJECTION_REQUEST = int.from_bytes(b'HIABVP01', 'little')
 CALL_PROJECTION_REQUEST = int.from_bytes(b'HIABVP02', 'little')
 ARTIFACT_PROJECTION_REQUEST = int.from_bytes(b'HIABVP04', 'little')
+SEARCH_PLAN_REQUEST = int.from_bytes(b'HIABVS03', 'little')
 SCALAR_SUMMARY = int.from_bytes(b'HIABVS01', 'little')
 TUPLE_SUMMARY = int.from_bytes(b'HIABVS02', 'little')
 FEEDBACK_REQUEST = int.from_bytes(b'HIABVF01', 'little')
@@ -102,6 +103,21 @@ _GRAPH_OPERATIONS = {**_CORE_OPERATIONS, 'int.neg.checked': 33,
 
 
 class NativeCnf(NativeHiaJsonImage):
+    def search_plan(self, nodes, remaining_ms, *, guarded, restart_requested):
+        frame = struct.pack('<4Q', SEARCH_PLAN_REQUEST, remaining_ms,
+                            int(guarded), int(restart_requested))
+        frame += b''.join(struct.pack('<2Q', operation, width)
+                         for operation, width, *_ in nodes)
+        output = ctypes.create_string_buffer(32)
+        used = self._entry(frame, len(frame), output, len(output), None, 0)
+        if used != len(output):
+            raise ValueError('HIA rejected the circuit search plan')
+        magic, steps, learning, restarts = struct.unpack('<4Q', output)
+        if (magic != SEARCH_PLAN_REQUEST or not 0 < steps <= STEP_LIMIT
+                or learning not in (0, 1) or restarts not in (0, 1)):
+            raise RuntimeError('invalid HIA circuit search plan')
+        return steps, bool(learning), bool(restarts)
+
     def solve(self, variables, clauses, *, steps):
         if (type(variables) is not int or not 0 <= variables <= 64
                 or len(clauses) > CLAUSE_LIMIT or type(steps) is not int or not 0 <= steps <= STEP_LIMIT):
