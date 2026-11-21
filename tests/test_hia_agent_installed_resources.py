@@ -356,6 +356,7 @@ SDIST_SUPPORT_FILES=(
 )
 SDIST_SUPPORT_FILES=tuple(dict.fromkeys(SDIST_SUPPORT_FILES))
 WHEEL_PACKAGE_FILES=(
+    'hepta/hia_agent_store_transport_native.py',
     'hepta/native/slot_mechanical.c',
     'hepta/native/slot_mechanical_build.py',
 )
