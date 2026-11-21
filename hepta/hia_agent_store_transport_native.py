@@ -8,6 +8,9 @@ from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 SOURCE = _source_resource_path('examples/hia_bootstrap/agent_store_transport.hepta')
 SCHEMA = 'hepta.hia.agent-store-transport-native.v1'
 SELECTOR = 'HEPTA_HIA_AGENT_STORE_TRANSPORT_MANIFEST'
+UNIQUE_ACTION = struct.Struct('<4Q')
+UNIQUE_OUTPUT = UNIQUE_ACTION.size + 8128
+UNIQUE_WORKSPACE = 128
 
 
 class NativeAgentStoreTransport(NativeHiaJsonImage):
@@ -41,6 +44,36 @@ class NativeAgentStoreTransport(NativeHiaJsonImage):
             frame += data
         raw = self._project(frame, 16)
         return None if raw is None else struct.unpack('<2Q', raw)
+
+    def unique_row(self, request, plan, read):
+        """Carry the Store byte stream; HIA controls every read and fragment."""
+        state = ctypes.create_string_buffer(UNIQUE_WORKSPACE)
+        output = ctypes.create_string_buffer(UNIQUE_OUTPUT)
+        packet = struct.pack('<8s2Q', b'HIASTUR1', request, plan)
+        row = bytearray()
+        while True:
+            source = ctypes.create_string_buffer(packet, len(packet))
+            count = self._entry(source, len(packet), output, len(output), state, len(state))
+            if not UNIQUE_ACTION.size <= count <= len(output):
+                return None
+            action, extent, coordinate, reserved = UNIQUE_ACTION.unpack_from(output)
+            if reserved != 0:
+                return None
+            if action == 2:
+                if not 0 < extent <= 8128 or count != UNIQUE_ACTION.size + extent or coordinate != len(row):
+                    return None
+                row.extend(output.raw[UNIQUE_ACTION.size:count])
+                extent = 8
+            elif action == 3:
+                if (count != UNIQUE_ACTION.size or extent != len(row) or coordinate > 1
+                        or (coordinate == 0 and row)):
+                    return None
+                return [bytes(row)] if coordinate == 1 else []
+            elif action != 1 or count != UNIQUE_ACTION.size:
+                return None
+            if extent == 0 or extent > 8128:
+                return None
+            packet = b'HIASTUC1' + read(extent)
 
     def row_values(self, table, columns, data):
         header = struct.pack('<8s3Q', b'HIASTVL1', columns, table, len(data))

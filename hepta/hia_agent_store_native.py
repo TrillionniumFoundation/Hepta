@@ -509,6 +509,11 @@ class NativeStoreConnection:
         return 104, 0
 
     def _results(self, plan, table, mask, deadline, *, raw_row_limit=None):
+        if raw_row_limit is not None and self.codec is not None:
+            rows = self.codec.unique_row(self.request, plan, lambda extent: self._exact(extent, deadline))
+            if rows is None:
+                raise StoreProtocolError('native Store unique query did not finish')
+            return rows
         table_id = _TABLE_IDS.index(table) + 1
         columns = _COLUMNS[table]
         names = tuple(name for i, name in enumerate(columns) if mask & (1 << i))

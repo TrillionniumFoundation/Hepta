@@ -15,6 +15,8 @@ WIRE = {
     'READ_VALUES': b'HIASTVL1',
     'READ_TRANSACTION': b'HIASTTX1',
     'BUILD_PARAMETERS': b'HIASTPA1',
+    'UNIQUE_START': b'HIASTUR1',
+    'UNIQUE_CONSUME': b'HIASTUC1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
     'ROW': b'HIAQRF01',
@@ -31,6 +33,8 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8:
         return 0
     role = read_word(s, 0)
+    if role == UNIQUE_START or role == UNIQUE_CONSUME:
+        return unique_stream(s, o, w, role)
     if role == BUILD_COMMAND:
         if length(s) != 40 or length(o) != 48 or read_word(s, 8) == 0:
             return 0
@@ -73,6 +77,121 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         return store_parameters(s, o)
     return 0
+
+# A durable indexed read is exactly one authenticated summary and final
+# acknowledgement around at most one row. The transport only delivers the
+# requested byte extents and copies accepted fragments to its private sink.
+def unique_stream(s:readbuf, o:mutbuf, w:mutbuf, role:u64) -> u64:
+    if length(w) != 128 or length(o) < 8160:
+        return 0
+    write_word(o, 16, 0)
+    write_word(o, 24, 0)
+    if role == UNIQUE_START:
+        if length(s) != 24 or read_state(w, 0) != 0:
+            return 0
+        request = read_word(s, 8)
+        plan = read_word(s, 16)
+        if request == 0 or (plan != 2 and plan != 3 and plan != 6):
+            return 0
+        write_word(w, 8, request)
+        write_word(w, 16, plan)
+        write_word(w, 24, choose(plan == 6, 6, 1))
+        write_word(w, 32, choose(plan == 6, 15, 63))
+        write_word(w, 40, choose(plan == 6, 512, 1000000032))
+        return stream_read(o, w, 1, 8)
+    phase = read_state(w, 0)
+    if phase == 1 and length(s) == 16:
+        magic = read_word(s, 8)
+        if magic == ACK and read_state(w, 56) == 1:
+            return stream_read(o, w, 4, 72)
+        if magic == ROW and read_state(w, 56) == 0:
+            return stream_read(o, w, 2, 56)
+    elif phase == 2 and length(s) == 64:
+        return stream_header(s, o, w)
+    elif phase == 3:
+        return stream_payload(s, o, w)
+    elif phase == 4 and length(s) == 80:
+        if read_word(s, 8) != 1 or read_word(s, 16) != read_state(w, 8):
+            return 0
+        if read_word(s, 24) != 27 or read_word(s, 32) != 0:
+            return 0
+        write_word(w, 0, 5)
+        write_word(o, 0, 3)
+        write_word(o, 8, read_state(w, 48))
+        write_word(o, 16, read_state(w, 80))
+        return 32
+    return 0
+
+def stream_header(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    kind = read_word(s, 8)
+    table = read_word(s, 16)
+    identity = read_word(s, 24)
+    offset = read_word(s, 32)
+    extent = read_word(s, 40)
+    active = read_state(w, 64)
+    used = read_state(w, 48)
+    if table != read_state(w, 24) or extent > 8128 or read_word(s, 56) != 0:
+        return 0
+    if kind == 1 and active == 0 and extent == 128 and offset == 0:
+        write_word(w, 96, identity)
+    elif kind == 4:
+        if active != 0 or extent != 416:
+            return 0
+    else:
+        if active != 1 or identity != read_state(w, 72) or offset != used:
+            return 0
+        if kind == 3 and extent == 0 and read_state(w, 80) == 0:
+            write_word(w, 64, 0)
+            write_word(w, 80, 1)
+            return stream_read(o, w, 1, 8)
+        if kind != 2 or extent == 0 or extent > read_state(w, 40) - used:
+            return 0
+    write_word(w, 88, kind)
+    write_word(w, 104, extent)
+    return stream_read(o, w, 3, extent)
+
+def stream_payload(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    extent = read_state(w, 104)
+    if length(s) != 8 + extent:
+        return 0
+    kind = read_state(w, 88)
+    if kind == 1:
+        if read_state(w, 80) != 0:
+            return 0
+        write_word(w, 64, 1)
+        write_word(w, 72, read_state(w, 96))
+    elif kind == 2:
+        used = read_state(w, 48)
+        write_word(w, 0, 1)
+        write_word(w, 48, used + extent)
+        write_word(o, 0, 2)
+        write_word(o, 8, extent)
+        write_word(o, 16, used)
+        copy_fields(s, o, 8, 32, extent)
+        return 32 + extent
+    elif kind == 4:
+        if read_word(s, 392) != read_state(w, 16) or read_word(s, 400) != read_state(w, 32):
+            return 0
+        if read_word(s, 416) != read_state(w, 80):
+            return 0
+        write_word(w, 56, 1)
+    else:
+        return 0
+    return stream_read(o, w, 1, 8)
+
+def stream_read(o:mutbuf, w:mutbuf, phase:u64, extent:u64) -> u64:
+    write_word(w, 0, phase)
+    write_word(o, 0, 1)
+    write_word(o, 8, extent)
+    return 32
+
+def read_state(w:mutbuf, at:u64) -> u64:
+    count = 0
+    value = 0
+    while count < 8:
+        value = value | (byte(w, at + count) << (count * 8))
+        count = count + 1
+    return value
 
 def store_query_event(s:readbuf, o:mutbuf) -> u64:
     kind = read_word(s, 8)
