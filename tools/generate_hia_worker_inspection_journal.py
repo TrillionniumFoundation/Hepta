@@ -41,10 +41,12 @@ INSPECTION_COST = r"""
 INSPECTION_RESPONSE_MATCH = r"""
     # Both the typed Journal owner and the private inspection continuation
     # must have reached the same outcome for this exact response payload.
-    dispatched = input_word(s, state + 328) == 5
-    if dispatched != (end != length(s)):
-        return 0
-    if dispatched:
+    if end == length(s):
+        # The Journal's terminal stage clears scratch route words. A missing
+        # effect receipt is allowed only for exact pre-dispatch diagnostics.
+        if status == 1 or admission_refusal(s, 72 + REFUSED_BODY_AT, response) == False:
+            return 0
+    else:
         if input_word(s, end + 8) != status:
             return 0
         payload = input_word(s, end + 24)
@@ -101,7 +103,24 @@ def inspection_flow():
     }
     for name, value in constants.items():
         body = body.replace(name, str(value))
-    return before + body + rest
+    return before + body + rest + early_refusal_program(constants['REFUSED_BODY_AT'])
+
+
+def early_refusal_program(body_offset):
+    codes = ('E_HIA_SCHEMA', 'E_HIA_CATALOG_STALE', 'E_HIA_IMPLEMENTATION_STALE',
+             'E_HIA_REQUEST_CONFLICT', 'E_HIA_REQUEST_UNKNOWN')
+    lines = ['def admission_refusal(s:readbuf, at:u64, response:u64) -> bool:']
+    for code in codes:
+        tag = f'{{"code":"{code}","'.encode('ascii')
+        clauses = [f'response >= {body_offset + len(tag)}']
+        for index in range(0, len(tag), 8):
+            chunk = tag[index:index+8]
+            if len(chunk) == 8:
+                clauses.append(f'input_word(s, at + {index}) == {int.from_bytes(chunk, "little")}')
+            else:
+                clauses.extend(f'byte(s, at + {index + i}) == {unit}' for i, unit in enumerate(chunk))
+        lines.extend(('    if ' + ' and '.join(clauses) + ':', '        return True'))
+    return '\n' + '\n'.join((*lines, '    return False', ''))
 SOURCES = {
     'worker_inspection_journal': inspection_flow,
     'worker_inspection_journal_observation': lambda: observation(TOOL),

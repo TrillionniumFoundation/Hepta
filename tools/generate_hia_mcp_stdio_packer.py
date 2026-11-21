@@ -930,6 +930,8 @@ def worker_port_prefix():
 
 
 def render():
+    common_header = elf_prefix(b'')
+    header_bytes = len(common_header)
     source = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     count = length(s)
     if count < 16 or count > {16 + LIMIT} or read_word(s, 0) != {MAGIC}:
@@ -953,7 +955,9 @@ def pack_{mode}(s:readbuf, o:mutbuf) -> u32:
     if length(o) < size:
         return 4294967294
 '''
-        source += writes(prefix)
+        if prefix[:header_bytes] != common_header:
+            raise ValueError('stdio adapter has a different ELF header')
+        source += '    pack_elf_header(o)\n' + writes(prefix[header_bytes:], offset=header_bytes)
         source += f'''    put_word(o, 96, size)
     put_word(o, 104, size)
     put_four(o, {call}, {len(prefix) - call - 4})
@@ -970,11 +974,14 @@ def pack_worker_port(o:mutbuf) -> u32:
     if length(o) < size:
         return 4294967294
 '''
-    source += writes(prefix)
+    if prefix[:header_bytes] != common_header:
+        raise ValueError('worker port has a different ELF header')
+    source += '    pack_elf_header(o)\n' + writes(prefix[header_bytes:], offset=header_bytes)
     source += '''    put_word(o, 96, size)
     put_word(o, 104, size)
     return size
 '''
+    source += '\ndef pack_elf_header(o:mutbuf) -> u64:\n' + writes(common_header) + '    return 0\n'
     helpers = core_packer_source()
     source += helpers[helpers.index('\ndef read_word('):]
     return render_assembly(document(source, 'mcp_stdio_packer'))
