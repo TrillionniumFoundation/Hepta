@@ -68,6 +68,7 @@ CANDIDATES = {
     'machine-encoding': ('machine_encoding', 'machine-encoding'),
     'candidate-budget': ('candidate_budget', 'candidate-budget'),
     'agent-journal': ('agent_journal', 'agent-journal'),
+    'journal-cost': ('agent_journal_transport', 'journal-cost'),
     'mcp-request': ('mcp_request_route', 'mcp-request'),
     'mcp-reply': ('mcp_reply_wire', 'mcp-reply'),
     'job-terminal-receipt': ('job_terminal_receipt', 'job-terminal-receipt'),

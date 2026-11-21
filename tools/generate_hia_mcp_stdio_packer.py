@@ -24,8 +24,9 @@ STORE_UNIQUE_MODE = 17
 WORKER_DATA_MODE = 18
 WORKER_RESPONSE_MODE = 19
 WORKER_JOURNAL_MODE = 20
+JOURNAL_COST_MODE = 21
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
-              WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE)
+              WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -38,7 +39,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,
          'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
          'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE,
-         'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE}
+         'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE,
+         'journal-cost': JOURNAL_COST_MODE}
 
 
 def elf_prefix(code):
@@ -67,10 +69,11 @@ def template(mode):
     worker_data = mode == WORKER_DATA_MODE
     worker_response = mode == WORKER_RESPONSE_MODE
     worker_journal = mode == WORKER_JOURNAL_MODE
+    journal_cost = mode == JOURNAL_COST_MODE
     worker = worker_data or worker_response or worker_journal
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
     direct = page or read_request
-    descriptor = None if direct or schema or worker else DESCRIPTORS[mode]
+    descriptor = None if direct or schema or worker else (0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
     workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
@@ -84,6 +87,9 @@ def template(mode):
         scratch = INPUT_MAX
         workspace = WORKER_WORKSPACE_BYTES
         minimum, maximum = worker_header + 1, worker_header + INPUT_MAX
+    if journal_cost:
+        scratch, workspace = INPUT_MAX + 2048, 24
+        minimum, maximum = 56, INPUT_MAX + 2048
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
