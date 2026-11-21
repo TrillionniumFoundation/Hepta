@@ -18,6 +18,7 @@ PACKER_PATH = 'examples/hia_bootstrap/job_receipt_packer.hepta'
 ADAPTER_PATH = 'tools/hia_job_receipt_syscalls.S'
 PACKER_MAGIC = int.from_bytes(b'HIAJPK01', 'little')
 REQUEST_MAGIC = int.from_bytes(b'HIAJRQ01', 'little')
+TERMINAL_MAGIC = int.from_bytes(b'HIAJRQ02', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
 SOURCE = f'''
@@ -40,7 +41,8 @@ def prepare(s:readbuf, o:mutbuf, parent:u64) -> u64:
     size = length(s)
     if size < 35 or size > 4194464 or length(o) < 352:
         return 0
-    if uint(s, 0, 8) != {REQUEST_MAGIC}:
+    magic = uint(s, 0, 8)
+    if magic != {REQUEST_MAGIC} and magic != {TERMINAL_MAGIC}:
         return 0
     extent = uint(s, 8, 8)
     pid = uint(s, 16, 8)
@@ -52,7 +54,18 @@ def prepare(s:readbuf, o:mutbuf, parent:u64) -> u64:
     start = 32 + name_bytes
     if size != start + extent:
         return 0
-    if byte(s, start) != 123 or byte(s, size - 1) != 125:
+    if byte(s, start) != 123:
+        return 0
+    if magic == {TERMINAL_MAGIC}:
+        if extent < 3 or extent > 1048576 or byte(s, size - 2) != 125 or byte(s, size - 1) != 10:
+            return 0
+        if name_bytes != 4 and name_bytes != 12:
+            return 0
+        if uint(s, 32, 4) != {int.from_bytes(b'exit', 'little')}:
+            return 0
+        if name_bytes == 12 and uint(s, 36, 8) != {int.from_bytes(b'.witness', 'little')}:
+            return 0
+    elif byte(s, size - 1) != 125:
         return 0
     at = 0
     while at < name_bytes:

@@ -25,9 +25,9 @@ class JobReceiptExecutableTests(unittest.TestCase):
         self.root = Path(root.name)
 
     def request(self, name=b'job_1.2@local', payload=b'{\n  "launch_state": "pending"\n}',
-                *, parent=None, sealed=True, suffix=b''):
+                *, parent=None, sealed=True, suffix=b'', magic=b'HIAJRQ01'):
         pid = os.getpid() if parent is None else parent
-        frame = struct.pack('<8s3Q', b'HIAJRQ01', len(payload), pid, len(name)) + name + payload + suffix
+        frame = struct.pack('<8s3Q', magic, len(payload), pid, len(name)) + name + payload + suffix
         with os.fdopen(os.memfd_create('test-job-receipt', os.MFD_ALLOW_SEALING), 'wb', buffering=0) as source:
             self.assertEqual(len(frame), source.write(frame))
             if sealed:
@@ -85,3 +85,19 @@ class JobReceiptExecutableTests(unittest.TestCase):
         self.assertEqual(len(payload), CAPACITY)
         self.check_receipt(self.request(name=b'id', payload=payload), 6, 0)
         self.assertEqual((self.root / 'id.json').read_bytes(), payload)
+
+    def test_terminal_wire_publishes_the_existing_newline_terminated_files(self):
+        payload = b'{"terminal_publication_protocol": 1}\n'
+        for name, raw, magic in ((b'exit', b'{}', b'HIAJRQ02'),
+                                 (b'exit', b'{}\n\n', b'HIAJRQ02'),
+                                 (b'exit.witnezz', payload, b'HIAJRQ02'),
+                                 (b'job', payload, b'HIAJRQ02'),
+                                 (b'exit', payload, b'HIAJRQ01')):
+            refused = self.request(name=name, payload=raw, magic=magic)
+            self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+            self.assertEqual(list(self.root.iterdir()), [])
+        for name in (b'exit', b'exit.witness'):
+            self.check_receipt(self.request(name=name, payload=payload, magic=b'HIAJRQ02'), 6, 0)
+            destination = self.root / (name.decode('ascii') + '.json')
+            self.assertEqual(destination.read_bytes(), payload)
+            self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)

@@ -10,6 +10,7 @@ import argparse
 from functools import partial
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import subprocess
 import struct
@@ -156,6 +157,29 @@ def _worker_prepare_has_witness_publisher(prepare):
     return True
 
 
+def _verify_terminal_publisher(writer, scratch):
+    import fcntl
+
+    name, raw = b'exit.witness', b'{}\n'
+    frame = struct.pack('<8s3Q', b'HIAJRQ02', len(raw), os.getpid(), len(name)) + name + raw
+    with TemporaryDirectory(prefix='terminal-writer-', dir=scratch) as directory:
+        output = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            with os.fdopen(os.memfd_create('terminal-writer-frame', os.MFD_ALLOW_SEALING), 'w+b') as source:
+                source.write(frame)
+                source.flush()
+                fcntl.fcntl(source, fcntl.F_ADD_SEALS, fcntl.F_SEAL_SEAL | fcntl.F_SEAL_SHRINK |
+                            fcntl.F_SEAL_GROW | fcntl.F_SEAL_WRITE)
+                source.seek(0)
+                result = subprocess.run([writer], stdin=source, stdout=output, stderr=subprocess.PIPE,
+                                        env={'PATH': ''}, timeout=5)
+        finally:
+            os.close(output)
+        if (result.returncode != 0 or result.stderr != struct.pack('<8sQq', b'HIAJRW01', 6, 0)
+                or (Path(directory) / 'exit.witness.json').read_bytes() != raw):
+            raise ValueError('installed HIA terminal publisher did not preserve the complete witness bytes')
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -180,6 +204,7 @@ def _install_controller(output, scratch, release, installer):
         if _worker_prepare_has_live_owner_binding(release / 'hia-worker-prepare'):
             schema = 'hepta.hia.mcp.controller.v5'
             if _worker_prepare_has_witness_publisher(release / 'hia-worker-prepare'):
+                _verify_terminal_publisher(receipt_writer, scratch)
                 schema = 'hepta.hia.mcp.controller.v6'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
