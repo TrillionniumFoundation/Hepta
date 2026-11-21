@@ -14,6 +14,9 @@ FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
 FIXTURE_SHA256 = '29e30b81ef5f38646ed4bbec5df18db5043f989575bec00cab6a200e56874e42'
 COMPOSITION_SUCCESSOR = ROOT / 'tests/fixtures/store_delivery_composition_successor.json'
 COMPOSITION_SUCCESSOR_SHA256 = '4d52c953af4df5f115580871700265297f5b8069d31ee8fa2f22c718f4311090'
+WORKER_TRANSPORT_SUCCESSOR = ROOT / 'tests/fixtures/worker_report_stream_successor.json'
+WORKER_TRANSPORT_SHA256 = '49602d227e86a74d0de3b68e07e54b09de1c87feb607d4f9c2de5896daeb20d7'
+WORKER_REPORT_PATH = 'hepta/hia_worker_report_native.py'
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
 ORIGINAL_SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
@@ -31,7 +34,7 @@ ADAPTER_ORIGINAL = {'bytes': 32417,
     'sha256': 'fccf236d69462b833b7c8e466bcde716738c13be7095aa675c9427022839b7fc'}
 # This companion was not in c019's 89 originals or its 22 shared sources.
 # Its independent original is the exact frozen R17b source, not a c019 claim.
-COMPANION_ORIGINALS = {'hepta/hia_worker_report_native.py': {
+COMPANION_ORIGINALS = {WORKER_REPORT_PATH: {
     'bytes': 20176, 'sha256': 'c8539747922892195722f72f9b763eb1d9503b4fe80318eee33ee88a812ed597'}}
 # Preserve the original eleven-bit order; append the worker and report bits.
 PATHS = ORIGINAL_SOURCE_PATHS + SHARED_PATHS + (ADAPTER_PATH, WORKER_PATH) + tuple(COMPANION_ORIGINALS)
@@ -137,18 +140,37 @@ def _restore_composition_successor(captured, approved, shared):
         raise ValueError('later Store composition changes its reviewed scope')
     restored = dict(captured)
     current = dict(approved)
+    worker_fixture = None
     for name in changed:
         record = value['files'][name]
         previous = approved[name]
-        restored[name] = reverse_exact(captured[name], record,
-                                       {'sha256': previous['new_sha256'], 'bytes': previous['new_bytes']})
+        raw = captured[name]
         current[name] = record
+        if name == WORKER_REPORT_PATH and sha256(raw).hexdigest() != record['new_sha256']:
+            raw, current[name], worker_fixture = _restore_worker_transport(raw, record)
+        restored[name] = reverse_exact(raw, record,
+                                       {'sha256': previous['new_sha256'], 'bytes': previous['new_bytes']})
     for name in LATER_SHARED_PATHS:
         captured[name] = (ROOT / name).read_bytes()
         record = value['shared_dependencies'][name]
         reverse_exact(captured[name], record, shared[name])
         current[name] = record
-    return restored, current, fixture
+    return restored, current, fixture, worker_fixture
+
+
+def _restore_worker_transport(raw, predecessor):
+    fixture = WORKER_TRANSPORT_SUCCESSOR.read_bytes()
+    if sha256(fixture).hexdigest() != WORKER_TRANSPORT_SHA256:
+        raise ValueError('worker transport successor fixture changed')
+    value = json.loads(fixture)
+    if (type(value) is not dict or set(value) != {'schema', 'prior_fixture_sha256', 'path', 'patch'}
+            or value['schema'] != 'hepta.hia.worker-report-stream-successor.v1'
+            or value['prior_fixture_sha256'] != COMPOSITION_SUCCESSOR_SHA256
+            or value['path'] != WORKER_REPORT_PATH):
+        raise ValueError('worker transport successor changes its reviewed scope')
+    record = value['patch']
+    previous = {'bytes': predecessor['new_bytes'], 'sha256': predecessor['new_sha256']}
+    return reverse_exact(raw, record, previous), record, fixture
 
 
 def admit_composition(original_value):
@@ -199,9 +221,10 @@ def admit_composition(original_value):
     approved = current = value['files']
     predecessor = captured
     later_fixture = None
+    worker_fixture = None
     if any((len(captured[path]), sha256(captured[path]).hexdigest()) !=
            (approved[path]['new_bytes'], approved[path]['new_sha256']) for path in PATHS):
-        predecessor, current, later_fixture = _restore_composition_successor(
+        predecessor, current, later_fixture, worker_fixture = _restore_composition_successor(
             captured, approved, inventory['shared_dependency_review'])
     restored = {path: reverse_exact(predecessor[path], approved[path], originals[path])
                 for path in PATHS}
@@ -209,14 +232,16 @@ def admit_composition(original_value):
         captured[ADAPTER_PATH], value.get('adapter_definition_successors'))
     if (FIXTURE.read_bytes() != frozen or ORIGINAL.read_bytes() != original_bytes
             or (later_fixture is not None and COMPOSITION_SUCCESSOR.read_bytes() != later_fixture)
+            or (worker_fixture is not None and WORKER_TRANSPORT_SUCCESSOR.read_bytes() != worker_fixture)
             or any((ROOT / path).read_bytes() != raw for path, raw in captured.items())):
         raise ValueError('successor composition changed during admission')
     composition = {path: current[path]['new_sha256'] for path in PATHS}
+    fixture_sha256 = COMPOSITION_SUCCESSOR_SHA256 if later_fixture is not None else FIXTURE_SHA256
     adjustments = {path: {'path': path, 'original_sha256': sha256(restored[path]).hexdigest(),
         'current_sha256': current[path]['new_sha256'],
         'current_bytes': current[path]['new_bytes'],
-        'reversible_patch_fixture_sha256': (COMPOSITION_SUCCESSOR_SHA256
-                                           if later_fixture is not None else FIXTURE_SHA256),
+        'reversible_patch_fixture_sha256': (WORKER_TRANSPORT_SHA256
+            if path == WORKER_REPORT_PATH and worker_fixture is not None else fixture_sha256),
         'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL, context protocol, Bootstrap, Budget resource and worker unknown-terminal successor',
         'composition_sha256': composition} for path in PATHS}
     shared = dict(inventory['shared_dependency_review'])
