@@ -277,9 +277,11 @@ class NativeCnf(NativeHiaJsonImage):
         return reply.raw[:size]
 
     def project_scalar_graphs(self, functions, graphs, *, totality, summaries=None, bound_marker=False):
-        reply = self._run_projection(_graph_packet(functions, graphs, totality=totality, summaries=summaries,
-                                                   bound_marker=bound_marker))
-        return self._decode_projection(reply)
+        return self.project_scalar_wire(_graph_packet(functions, graphs, totality=totality, summaries=summaries,
+                                                       bound_marker=bound_marker))
+
+    def project_scalar_wire(self, frame):
+        return self._decode_projection(self._run_projection(frame))
 
     @staticmethod
     def _decode_projection(reply):

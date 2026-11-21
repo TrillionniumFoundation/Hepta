@@ -51,6 +51,7 @@ HELPERS = {
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
     "HEPTA_HIA_MACHINE_PLAN_MANIFEST": ("hia_machine_plan_native", "NativeMachinePlan"),
     "HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST": ("hia_safe_core_x64_decode_native", "NativeSafeCoreX64Decode"),
+    "HEPTA_HIA_CORE_PROOF_WIRE_MANIFEST": ("hia_core_proof_wire_native", "NativeCoreProofWire"),
     "HEPTA_HIA_SAFE_CORE_ELF_INVENTORY_MANIFEST": ("hia_safe_core_elf_inventory_native", "NativeSafeCoreElfInventory"),
     "HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST": ("hia_elf_shared_linker_native", "NativeSharedLinker"),
     "HEPTA_HIA_ELF_VERIFIED_LINKER_MANIFEST": ("hia_elf_verified_linker_native", "NativeVerifiedLinker"),

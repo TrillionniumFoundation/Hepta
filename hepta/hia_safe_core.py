@@ -121,6 +121,15 @@ def _selected_machine_proof(*, observe=False):
     return decoder, cnf
 
 
+def _core_proof_wire(cnf):
+    from .hia_core_proof_wire_native import selected_core_proof_wire
+
+    binding = getattr(cnf, '_default_package_binding', None)
+    if binding is not None:
+        return getattr(cnf, '_default_core_proof_wire', None)
+    return selected_core_proof_wire()
+
+
 def _checker_source_identity(pair=None):
     """Identify the consumer models separately from producer provenance."""
     from .hia_safe_core_elf_inventory_native import selected_safe_core_elf_inventory
@@ -130,6 +139,8 @@ def _checker_source_identity(pair=None):
         ('x64_decoder', 'hia_safe_core_x64_decode_native.py', decoder),
         ('elf_inventory', 'hia_safe_core_elf_inventory_native.py', selected_safe_core_elf_inventory()),
         ('cnf', 'hia_cnf_native.py', cnf),
+        ('core_proof_wire', 'hia_core_proof_wire_native.py', _core_proof_wire(cnf)
+         if decoder is not None and cnf is not None else None),
     )
     sources = CHECKER_SOURCE_FILES
     if decoder is not None and cnf is not None:
@@ -1014,12 +1025,19 @@ def _native_borrowed_shape(fn, blocks, extent):
     return ("read", index) if 0 <= index < extent else None
 
 
-def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index, *, write_result, pair_operation):
+def _native_core_projection(decoder, cnf, checked, fn, blocks, borrowed, loan_index, *, write_result, pair_operation):
     if borrowed:
         paths = 4 if loan_index is None else 6 if type(loan_index) is tuple else 5
         return decoder.project_borrowed_reference(borrowed[0][1], loan_index,
                                                   write_result=write_result,
                                                   pair_operation=pair_operation), paths
+    projector = _core_proof_wire(cnf)
+    if projector is not None:
+        projection = projector.project(checked.canonical_bytes)
+        if projection is None:
+            return None
+        frame, paths = projection
+        return cnf.project_scalar_wire(frame), paths
     names = tuple(blocks)
     edges, _ = _core_graph_edges(blocks)
     plan = decoder.core_graph_plan(edges, names.index(fn['entry']), LIMITS['core_paths'])
@@ -1040,7 +1058,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT
 
     decoder, cnf = pair
-    projection = _native_core_projection(decoder, cnf, fn, blocks, foreign_buffer_exports, loan_index,
+    projection = _native_core_projection(decoder, cnf, checked, fn, blocks, foreign_buffer_exports, loan_index,
                                          write_result=write_result, pair_operation=pair_operation)
     if projection is None or projection[0] is None:
         return None

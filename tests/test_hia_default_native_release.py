@@ -400,6 +400,7 @@ print('PACKAGED_HIA_LINKAGE_STILL_REQUIRES_FINAL_PROOF')
         source.write_text(json.dumps(core_operation('int.mul.checked', 'i8')))
         output = self.root / 'signed-checked-multiply.so'
         body = r'''
+from unittest.mock import patch
 from hepta.hia_cnf_native import selected_cnf
 from hepta.hia_default_native import PROOF_BUNDLE_RESOURCE, default_safe_core_pair
 from hepta.hia_safe_core import build_safe_core
@@ -408,7 +409,8 @@ assert selected_cnf() is None
 os.environ['PATH'] = ''
 document = json.loads(Path(sys.argv[3]).read_bytes())
 destination = Path(sys.argv[4])
-report = build_safe_core(document, destination, profile_version=6)['validation']
+with patch('hepta.hia_cnf_native._graph_packet', side_effect=AssertionError('host Core proof packing entered')):
+    report = build_safe_core(document, destination, profile_version=6)['validation']
 assert report['complete'] and report['ok']
 assert [row['result'] for row in report['obligations']] == ['sat'] + ['unsat'] * 4
 assert all('native_cnf' in row for row in report['obligations'])
@@ -417,6 +419,7 @@ identity = checker['source_identity']
 mapped = {row['mapped_image_sha256'] for row in checker['input_execution']['native_helpers']}
 assert identity['native_x64_decoder_image_sha256'] in mapped
 assert identity['native_cnf_image_sha256'] in mapped
+assert identity['native_core_proof_wire_image_sha256'] in mapped
 assert selected_cnf() is None
 
 bundle = installed / 'hepta' / PROOF_BUNDLE_RESOURCE

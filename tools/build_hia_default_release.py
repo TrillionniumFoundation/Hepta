@@ -24,6 +24,7 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 from hepta.hia_default_native import (BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+                                     CORE_WIRE_OWNER,
                                      PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
                                      TARGET, render_pin)
 from tools.build_hia_json_preflight import admit_cold_build, build_batch, current_sources
@@ -227,9 +228,10 @@ def build(output, compiler, cold_report=None, *, development=False):
     from tools.build_hia_full_cost import build as build_owner
     manifest_path = build_owner(output / 'component', compiler, cold_report, development=development)
     owners = [(SELECTOR, '', manifest_path)]
-    proof_selectors = {selector for selector, _ in CORE_PROOF_OWNERS}
+    proof_owners = (*CORE_PROOF_OWNERS, CORE_WIRE_OWNER)
+    proof_selectors = {selector for selector, _ in proof_owners}
     if not development:
-        cold_owners = CORE_ELF_OWNERS + CORE_PROOF_OWNERS
+        cold_owners = CORE_ELF_OWNERS + proof_owners
         native_manifests = build_batch(output / 'core-elf', compiler, cold_report,
                                        candidates=[candidate for _, candidate in cold_owners])
         owners.extend((selector, candidate + '/', native_manifests[candidate])

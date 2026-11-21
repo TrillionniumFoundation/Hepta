@@ -26,6 +26,7 @@ CORE_PROOF_OWNERS = (
     ('HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST', 'safe-core-x64-decode'),
     ('HEPTA_HIA_CNF_MANIFEST', 'cnf'),
 )
+CORE_WIRE_OWNER = ('HEPTA_HIA_CORE_PROOF_WIRE_MANIFEST', 'core-proof-wire')
 DEFAULT_OWNERS = frozenset((SELECTOR, *(selector for selector, _ in CORE_ELF_OWNERS)))
 SCOPES = ('MATCHING_SOURCE_COLD_COMPONENT', 'DEVELOPMENT_COMPONENT')
 MAX_PIN_BYTES = 4096
@@ -186,8 +187,10 @@ def default_safe_core_pair(*, observe=False):
     from .hia_json_preflight_native import _INPUT_IMAGE_OBSERVERS
 
     helpers._check_scope_owner()
-    selectors = [selector for selector, _ in CORE_PROOF_OWNERS]
-    if helpers._SCOPE_OWNER is not None or any(selector in os.environ for selector in selectors):
+    required = [selector for selector, _ in CORE_PROOF_OWNERS]
+    wire_selector, _ = CORE_WIRE_OWNER
+    supported = [*required, wire_selector]
+    if helpers._SCOPE_OWNER is not None or any(selector in os.environ for selector in supported):
         return None, None
     captured = _capture_package()
     if captured is None:
@@ -197,11 +200,13 @@ def default_safe_core_pair(*, observe=False):
         return None, None
     binding = helpers.NativeHelpersBinding(str(directory / PROOF_BUNDLE_RESOURCE), value[7])
     binding.snapshots.extend(pins)
-    if set(binding.selections) != set(selectors):
+    if set(binding.selections) not in (set(required), set(supported)):
         raise ValueError('package Safe Core proof bundle has the wrong owners')
     binding.check_files()
     images = []
-    for selector in selectors:
+    for selector in supported:
+        if selector not in binding.selections:
+            continue
         selected = str(Path(binding.selections[selector]).resolve(strict=True))
         ((manifest, source, schema, factory), image), = (
             (key, image) for key, image in binding.images.items() if key[0] == selected)
@@ -209,7 +214,10 @@ def default_safe_core_pair(*, observe=False):
             for observer in _INPUT_IMAGE_OBSERVERS.get():
                 observer(manifest, Path(source), schema, factory, image)
         image._default_package_binding = binding
-        images.append(image)
+        if selector == wire_selector:
+            images[1]._default_core_proof_wire = image
+        else:
+            images.append(image)
     binding.images.clear()
     return tuple(images)
 

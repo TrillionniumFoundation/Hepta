@@ -35,6 +35,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/machine_plan.hepta',
     'examples/hia_bootstrap/machine_encoding.hepta',
     'examples/hia_bootstrap/safe_core_x64_decode.hepta',
+    'examples/hia_bootstrap/core_proof_wire.hepta',
     'examples/hia_bootstrap/safe_core_elf_inventory.hepta',
     'examples/hia_bootstrap/machine_state.hepta',
     'examples/hia_bootstrap/machine_instructions.hepta',

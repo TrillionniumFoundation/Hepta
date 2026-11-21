@@ -62,6 +62,7 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 CANDIDATES = {
     'machine-plan': ('machine_plan', 'machine-plan'),
     'safe-core-x64-decode': ('safe_core_x64_decode', 'safe-core-x64-decode'),
+    'core-proof-wire': ('core_proof_wire', 'core-proof-wire'),
     'safe-core-elf-inventory': ('safe_core_elf_inventory', 'safe-core-elf-inventory'),
     'machine-encoding': ('machine_encoding', 'machine-encoding'),
     'candidate-budget': ('candidate_budget', 'candidate-budget'),
@@ -255,7 +256,7 @@ def main():
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
                                  'scalar-reference', 'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
-                                 'safe-core-elf-inventory', 'worker-prepare'))
+                                 'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                  candidate=args.candidate)

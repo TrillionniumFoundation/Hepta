@@ -18,7 +18,7 @@ if __package__ in {None, ''}:
 from tools.build_hia_core_admission import build as build_kernel
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_source_build import _check_pack_output
-from tools.generate_hia_core_admission_cli import INSPECT_MAGIC, MAGIC, NORMALIZE_MAGIC
+from tools.generate_hia_core_admission_cli import INSPECT_MAGIC, MAGIC, NORMALIZE_MAGIC, PROOF_WIRE_MAGIC
 from tools.generate_hia_core_suite import SUITE_MAGIC
 from tools.generate_hia_core_totality import MAGIC as TOTALITY_MAGIC
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
@@ -34,14 +34,15 @@ MODES = {
     'normalize': (NORMALIZE_MAGIC, 'core_normalize_cli_packer.hepta', ('core_pretty_json.hepta',)),
     'inspect': (INSPECT_MAGIC, 'core_inspect_cli_packer.hepta', ('core_inspect_json.hepta',)),
     'totality': (TOTALITY_MAGIC, 'core_totality_cli_packer.hepta', ('core_structural_totality.hepta',)),
+    'proof-wire': (PROOF_WIRE_MAGIC, 'core_proof_wire_cli_packer.hepta', ('core_proof_wire.hepta',)),
     'suite': (SUITE_MAGIC, 'core_suite_packer.hepta',
               ('core_suite_dispatch.hepta', 'core_pretty_json.hepta', 'core_inspect_json.hepta')),
 }
 
 
-def build(output, compiler, cold_report, *, normalize=False, inspect=False, suite=False, totality=False):
+def build(output, compiler, cold_report, *, normalize=False, inspect=False, suite=False, totality=False, proof_wire=False):
     selected = [name for name, enabled in (('normalize', normalize), ('inspect', inspect),
-        ('suite', suite), ('totality', totality)) if enabled]
+        ('suite', suite), ('totality', totality), ('proof-wire', proof_wire)) if enabled]
     if len(selected) > 1:
         raise ValueError('select only one Core CLI output mode')
     action = selected[0] if selected else 'verify'
@@ -99,7 +100,8 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False, suit
             or packer.read_bytes() != packer_raw or manifest.read_bytes() != manifest_raw
             or current_sources() != admitted_sources):
         raise ValueError('complete Core CLI build inputs changed')
-    target = output / ('hia-core' if suite else f'hia-{action}-core')
+    filename = 'hia-core' if suite else 'hia-core-proof-wire' if proof_wire else f'hia-{action}-core'
+    target = output / filename
     target.write_bytes(executable)
     target.chmod(0o700)
     receipt = {
@@ -124,8 +126,9 @@ def build(output, compiler, cold_report, *, normalize=False, inspect=False, suit
         formatter_receipt, = component_receipts.values()
         description = {'inspect': 'primitive Core inspection and canonical identity as UTF-8 JSON',
                        'normalize': 'admitted primitive Core as sorted indented UTF-8 JSON',
-                       'totality': 'exact-input structural totality or unknown, without execution authority'}[action]
-        receipt.update(status=f'NATIVE_CORE_{action.upper()}_CLI_BUILT',
+                       'totality': 'exact-input structural totality or unknown, without execution authority',
+                       'proof-wire': 'admitted scalar Core graph for the native CNF solver; not a proof'}[action]
+        receipt.update(status=f"NATIVE_CORE_{action.upper().replace('-', '_')}_CLI_BUILT",
                        formatter_image_sha256=formatter_receipt['produced_sha256'],
                        native_formatter_compile_receipt=formatter_receipt,
                        output=description)
@@ -143,6 +146,7 @@ if __name__ == '__main__':
     mode.add_argument('--inspect', action='store_true', help='build hia-inspect-core instead of hia-verify-core')
     mode.add_argument('--suite', action='store_true', help='build hia-core with the verification and view commands')
     mode.add_argument('--totality', action='store_true', help='build the standalone structural totality checker')
+    mode.add_argument('--proof-wire', action='store_true', help='build the admitted scalar proof input encoder')
     a = p.parse_args()
     print(build(a.output.resolve(), a.compiler.resolve(), a.cold_report.resolve(),
-                normalize=a.normalize, inspect=a.inspect, suite=a.suite, totality=a.totality))
+                normalize=a.normalize, inspect=a.inspect, suite=a.suite, totality=a.totality, proof_wire=a.proof_wire))
