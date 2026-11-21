@@ -37,6 +37,8 @@ def read_workflow(s:readbuf, o:mutbuf) -> u64:
         return read_workflow_request(s, o)
     if mode == READ_ERROR_MAGIC:
         return read_effect_error(s, o)
+    if mode == DESCRIBE_ERROR_MAGIC:
+        return describe_effect_error(s, o)
     if mode == READ_COST_MAGIC:
         return read_closeout_cost(s, o)
     if mode == READ_REPLY_MAGIC:
@@ -97,10 +99,12 @@ def read_workflow_reply(s:readbuf, o:mutbuf) -> u64:
         else:
             if previous != 512 or input_word(s, 40) != STATE_MAGIC:
                 return 0
-            if input_word(s, state + 16) != 3 or admitted_read_identity(s, state) == False:
+            tool = input_word(s, state + 16)
+            if readonly_tool(tool) == False or admitted_read_identity(s, state) == False:
                 return 0
-            if stage != 0 and same_fields(s, 40 + 64, state + 64, 194) == False:
-                return 0
+            if stage != 0:
+                if input_word(s, 56) != tool or same_fields(s, 40 + 64, state + 64, 194) == False:
+                    return 0
         if stage == 8:
             status = read_terminal_status(s, state, response, cost)
             if status == 0:
@@ -131,7 +135,7 @@ def read_follow_journal(s:readbuf, stage:u64, state:u64, action:u64) -> u64:
         return 255
     phase = input_word(s, state + 8)
     role = input_word(s, state + 328)
-    if stage == 5 and phase == 10 and role == 3:
+    if stage == 5 and phase == 10 and role == input_word(s, state + 16):
         return 16
     if phase != 4 or role != 0:
         return 255
@@ -164,6 +168,20 @@ def read_effect_error(s:readbuf, o:mutbuf) -> u64:
         return read_cursor_error(o)
     return 0
 
+def describe_effect_error(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 40 or length(o) < 256:
+        return 0
+    if input_word(s, 16) != 0 or input_word(s, 24) != 0 or input_word(s, 32) != 0:
+        return 0
+    reason = input_word(s, 8)
+    if reason == 4294967288:
+        return describe_cursor_error(o)
+    if reason == 4294967289:
+        return describe_profile_error(o)
+    if reason == 4294967290:
+        return describe_opcode_error(o)
+    return 0
+
 # The complete result came from stage 8 of the admitted Journal. Its ordinary
 # no-context cost is derived from that sealed result, not from a caller's tool,
 # request ID, status, or diagnostic string. The native typed INSERT selector
@@ -180,29 +198,37 @@ def read_closeout_cost(s:readbuf, o:mutbuf) -> u64:
     if response < 2 or response > 8388608 or cost < MIN_DETAILS or cost > 8388608:
         return 0
     state = 72 + response + cost
-    if length(s) != state + 512 or length(o) < 130 + cost:
+    if length(s) != state + 512:
         return 0
     status = read_terminal_status(s, state, response, cost)
     if status == 0:
+        return 0
+    tool = input_word(s, state + 16)
+    width = choose(tool == 1, 12, 8)
+    if length(o) < 122 + width + cost:
         return 0
     put(o, 0, COST_MAGIC)
     put(o, 8, input_word(s, 8))
     put(o, 16, status)
     put(o, 24, 0)
-    put(o, 32, 8)
+    put(o, 32, width)
     put(o, 40, 66)
     put(o, 48, cost)
-    put(o, 56, READ_TOOL)
-    copy_cost_bytes(s, o, state + 192, 66, 64)
-    copy_cost_bytes(s, o, 72 + response, cost, 130)
-    return 130 + cost
+    if tool == 1:
+        put(o, 56, DESCRIBE_TOOL_FIRST)
+        put(o, 64, DESCRIBE_TOOL_REST)
+    else:
+        put(o, 56, READ_TOOL)
+    copy_cost_bytes(s, o, state + 192, 66, 58 + width)
+    copy_cost_bytes(s, o, 72 + response, cost, 122 + width)
+    return 122 + width + cost
 
 def read_terminal_status(s:readbuf, state:u64, response:u64, cost:u64) -> u64:
     if response < 2 or cost < MIN_DETAILS:
         return 0
     if input_word(s, state) != STATE_MAGIC or input_word(s, state + 8) != 11:
         return 0
-    if input_word(s, state + 16) != 3 or input_word(s, state + 48) != 10:
+    if readonly_tool(input_word(s, state + 16)) == False or input_word(s, state + 48) != 10:
         return 0
     if input_word(s, state + 24) != 0 or input_word(s, state + 32) != 0 or input_word(s, state + 40) != 0:
         return 0
@@ -245,8 +271,11 @@ def read_workflow_request(s:readbuf, o:mutbuf) -> u64:
     copy_cost_bytes(s, o, 40 + previous, observed, 576)
     return 576 + observed
 
-# The installed read path has no durable request key or Context. A projection
-# that enters either lane cannot be used for these private read continuations.
+# Describe and retained-read have no request key or Context. A projection that
+# enters either lane cannot be used for these private read-only continuations.
+def readonly_tool(tool:u64) -> bool:
+    return tool == 1 or tool == 3
+
 def read_workflow_transition(s:readbuf, stage:u64, observed:u64) -> bool:
     if input_word(s, 40) != STATE_MAGIC:
         return False
@@ -256,7 +285,7 @@ def read_workflow_transition(s:readbuf, stage:u64, observed:u64) -> bool:
     reason = input_word(s, 96)
     if stage == 0:
         return phase == 0 and tool == 0 and prior == 12 and reason == 0 and observed != 0
-    if tool != 3 or input_word(s, 64) != 0 or input_word(s, 72) != 0 or input_word(s, 80) != 0:
+    if readonly_tool(tool) == False or input_word(s, 64) != 0 or input_word(s, 72) != 0 or input_word(s, 80) != 0:
         return False
     if input_word(s, 360) != 0 or input_word(s, 376) != 0 or input_word(s, 384) != 0:
         return False
@@ -271,7 +300,7 @@ def read_workflow_transition(s:readbuf, stage:u64, observed:u64) -> bool:
     if stage == 5:
         return phase == 4 and prior == 1 and reason == 0 and observed == 0
     if stage == 13:
-        return phase == 10 and prior == 1 and reason == 0 and input_word(s, 368) == 3 and observed == 0
+        return phase == 10 and prior == 1 and reason == 0 and input_word(s, 368) == tool and observed == 0
     if stage == 14:
         return (phase == 10 or phase == 4) and (prior == 1 or prior == 11) and observed == 0
     if stage == 8:
@@ -520,10 +549,12 @@ def put(o:mutbuf, at:u64, value:u64) -> u64:
         'SINGLE_MAGIC': b'HIAJIN01', 'SESSION_MAGIC': b'HIAJIN02', 'REPLY_MAGIC': b'HIAJOU01',
         'READ_WORKFLOW_MAGIC': b'HIAJWP01', 'STATE_MAGIC': b'HIAJRN02',
         'READ_ERROR_MAGIC': b'HIAJWE01', 'READ_COST_MAGIC': b'HIAJWC01',
+        'DESCRIBE_ERROR_MAGIC': b'HIAJDE01',
         'READ_REPLY_MAGIC': b'HIAJWV01', 'READ_VERIFIED_MAGIC': b'HIAJWO01',
         'COST_COMMIT_MAGIC': b'HIAJWZ01', 'COST_COMMITTED_MAGIC': b'HIAJWG01',
         'COST_INTENT_MAGIC': b'HIASTCP1',
         'EFFECT_CLOSEOUT': b'HIAFDO01', 'READ_TOOL': b'hia_read',
+        'DESCRIBE_TOOL_FIRST': b'hia_desc', 'DESCRIBE_TOOL_REST': b'ribe',
         'COST_MAGIC': b'HIAJCF01', 'INSERT_MAGIC': b'HIAINS01', 'DETAILS_PREFIX': b'{"error"',
         'DETAILS_SUFFIX_FIRST': suffix[:8], 'DETAILS_SUFFIX_SECOND': suffix[8:16],
         'UNADMITTED_INITIAL': b'unadmitt', 'COMPLETED_INITIAL': b'complete',
@@ -546,6 +577,9 @@ def read_error_program():
         ('read_artifact_error', 'E_HIA_ARTIFACT_IDENTITY',
          'artifact reference was not issued in this runtime namespace'),
         ('read_cursor_error', 'E_HIA_CURSOR', 'cursor is not bound to this exact artifact'),
+        ('describe_cursor_error', 'E_HIA_CURSOR', 'discovery has no further page for this bounded manifest'),
+        ('describe_profile_error', 'E_HIA_PROFILE', 'requested backend profile is unavailable'),
+        ('describe_opcode_error', 'E_HIA_OPCODE', 'catalog requires an exact primitive schema'),
     )
     source = ''
     for name, code, message in errors:
