@@ -44,6 +44,7 @@ MACHINE_BORROW_BRANCH_DEPTH = MACHINE_VALUES_BRANCH_DEPTH + 1
 MACHINE_PAIR_BRANCH_DEPTH = MACHINE_BORROW_BRANCH_DEPTH + 1
 MACHINE_BORROW_WORKSPACE = MACHINE_VALUES_WORKSPACE + 104
 MACHINE_WRITE_WORKSPACE = MACHINE_BORROW_WORKSPACE + 16 + 8 * MACHINE_BORROW_BRANCH_DEPTH
+MACHINE_WRITE_READ_WORKSPACE = MACHINE_BORROW_WORKSPACE + 24 + 8 * MACHINE_PAIR_BRANCH_DEPTH
 MACHINE_VALUES_HEADER = struct.Struct('<7Q')
 MACHINE_VALUES_NODE = struct.Struct('<5Q')
 MEMORY_REQUEST = struct.Struct('<5Q')
@@ -334,12 +335,13 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         offsets = index if type(index) is tuple else (index,)
         return self._project_machine_values(binding, words, (extent, *offsets), **profile)
 
-    def project_borrowed_write(self, binding, extent, index, **profile):
+    def project_borrowed_write(self, binding, extent, index, *, read_back=False, **profile):
         """Project the one mutable byte on normal, refusal and abort paths."""
         words = 4 if index == BORROWED_INDEX_ARGUMENT else 3
-        return self._project_machine_values(binding, words, (extent, index), write=True, **profile)
+        return self._project_machine_values(binding, words, (extent, index), write=True,
+                                            read_back=read_back, **profile)
 
-    def _project_machine_values(self, binding, argument_words, loan, *, write=False, **profile):
+    def _project_machine_values(self, binding, argument_words, loan, *, write=False, read_back=False, **profile):
         if type(argument_words) is not int or not 0 <= argument_words <= 6:
             raise ValueError('invalid scalar machine argument count')
         calls = binding['calls']
@@ -363,8 +365,10 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         source = ctypes.create_string_buffer(bytes(frame), len(frame))
         trailer = 24 if write else 16 if loan is not None else 0
         output = ctypes.create_string_buffer(MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * CIRCUIT_NODES + trailer)
-        workspace = MACHINE_WRITE_WORKSPACE if write else (
-            MACHINE_VALUES_WORKSPACE if loan is None else MACHINE_BORROW_WORKSPACE)
+        if write:
+            workspace = MACHINE_WRITE_READ_WORKSPACE if read_back else MACHINE_WRITE_WORKSPACE
+        else:
+            workspace = MACHINE_VALUES_WORKSPACE if loan is None else MACHINE_BORROW_WORKSPACE
         scratch = ctypes.create_string_buffer(workspace)
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
         if size == 0:
@@ -375,7 +379,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         expected_magic = MACHINE_WRITE_REPLY if write else (
             MACHINE_VALUES_REPLY if loan is None else MACHINE_BORROW_REPLY)
         branch_depth = MACHINE_VALUES_BRANCH_DEPTH if loan is None else (
-            MACHINE_PAIR_BRANCH_DEPTH if len(loan) == 3 else MACHINE_BORROW_BRANCH_DEPTH)
+            MACHINE_PAIR_BRANCH_DEPTH if len(loan) == 3 or read_back else MACHINE_BORROW_BRANCH_DEPTH)
         if (magic != expected_magic or not 0 <= value < count <= CIRCUIT_NODES
                 or not 0 <= abort < count
                 or not 1 <= paths <= 1 << branch_depth
@@ -399,19 +403,23 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             return machine, bounds, after
         return machine, bounds
 
-    def project_borrowed_reference(self, extent, index, *, write=False):
+    def project_borrowed_reference(self, extent, index, *, write=False, read_back=False):
         """Project the ordered packed-loan guards and one observable Core result."""
         magic = BORROWED_WRITE_REQUEST if write else BORROWED_LENGTH_REQUEST
         frame = struct.pack('<2Q', magic, extent)
         if index is not None:
             offsets = index if type(index) is tuple else (index,)
             frame += struct.pack('<' + 'Q' * len(offsets), *offsets)
+        if read_back:
+            if not write or type(index) is not int:
+                raise ValueError('readback requires exactly one writable loan byte')
+            frame += struct.pack('<Q', 1)
         source = ctypes.create_string_buffer(frame, len(frame))
         capacity = MACHINE_VALUES_HEADER.size + 48 * MACHINE_VALUES_NODE.size
         output = ctypes.create_string_buffer(capacity)
         scratch = ctypes.create_string_buffer(BORROWED_LENGTH_WORKSPACE)
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
-        if size == 0:
+        if size == 0 or (read_back and size == 0xfffffffd):
             return None
         if not MACHINE_VALUES_HEADER.size <= size <= capacity:
             raise RuntimeError('invalid HIA borrowed reference projection extent')
