@@ -255,6 +255,7 @@ import contextlib
 import io
 from hepta import cli
 from hepta.hia_default_native import CLI_BUNDLE_RESOURCE
+from hepta.hia_schema import PRIMITIVE_PROFILES
 
 def observe(owner, arguments):
     out, err = io.StringIO(), io.StringIO()
@@ -265,12 +266,18 @@ def observe(owner, arguments):
             status = error.code
     return status, out.getvalue(), err.getvalue()
 
-cases = (['--help'], ['--version'], ['capabilities'], ['build', 'missing.hepta'])
+cases = (['--help'], ['--version'], ['capabilities'], ['build', 'missing.hepta'],
+         *(['catalog', '--schema', schema] for schema in PRIMITIVE_PROFILES))
 expected = [observe(cli._reference_hia_main, arguments) for arguments in cases]
-assert not [key for key in os.environ if key == 'HEPTA_HIA_CLI_MANIFEST']
+assert 'HEPTA_HIA_CLI_MANIFEST' not in os.environ
 with patch.object(cli, '_reference_hia_main', forbidden), \
-     patch.object(argparse, 'ArgumentParser', forbidden):
+     patch.object(argparse, 'ArgumentParser', forbidden), \
+     patch.object(cli, 'agent_capabilities', forbidden), \
+     patch('hepta.hia_opcodes.opcode_catalog', forbidden):
     assert [observe(cli.hia_main, arguments) for arguments in cases] == expected
+    with patch.dict(os.environ, {'HEPTA_HIA_CLI_DISCOVERY_JSON_MANIFEST': ''}):
+        status, output, _ = observe(cli.hia_main, ['capabilities'])
+        assert status == 2 and 'selected CLI discovery JSON manifest must not be empty' in output
     bundle = installed / 'hepta' / CLI_BUNDLE_RESOURCE
     original = bundle.read_bytes()
     try:

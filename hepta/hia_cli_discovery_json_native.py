@@ -124,7 +124,7 @@ def _captured(image, source_sha, image_sha):
     return owner
 
 
-def installed_cli_discovery_json(manifest_path):
+def installed_cli_discovery_json(manifest_path, *, expected_sha256=None):
     """Fresh source, manifest, and image readback precede every selection.
 
     Source comes from this checkout or this package's own _data. A selected
@@ -132,10 +132,11 @@ def installed_cli_discovery_json(manifest_path):
     Held owners retain their captured immutable image independently of disk.
     """
     from . import hia_native_helpers
-    selected = hia_native_helpers.pinned_image(
-        manifest_path, SOURCE, SCHEMA, NativeCliDiscoveryJson)
-    if selected is not None:
-        return selected
+    if expected_sha256 is None:
+        selected = hia_native_helpers.pinned_image(
+            manifest_path, SOURCE, SCHEMA, NativeCliDiscoveryJson)
+        if selected is not None:
+            return selected
     path = Path(manifest_path).resolve(strict=True)
     source = SOURCE.read_bytes()
     source_sha = sha256(source).hexdigest()
@@ -143,6 +144,8 @@ def installed_cli_discovery_json(manifest_path):
         raw = stream.read(16385)
     if len(raw) > 16384:
         raise ValueError('discovery manifest exceeds its fixed bound')
+    if expected_sha256 is not None and sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError('package discovery manifest identity mismatch')
     value = _manifest(raw, source_sha)
     image_path = path.parent / value['image_path']
     with image_path.open('rb') as stream:

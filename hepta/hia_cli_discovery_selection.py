@@ -23,21 +23,21 @@ class DiscoveryJsonBytes:
             raise ValueError('native discovery must return newline-terminated UTF-8 JSON bytes')
 
 
-def selected_json(operation, schema=None):
-    """Absent means retained API; every present selection is fail closed.
+def selected_json(operation, schema=None, *, package_owner=None):
+    """Prefer explicit admission, then a package owner, then the retained API.
 
     The explicit profile uses the immutable metadata in the selected source.
     Mutable replacement Python providers are not consulted in that profile.
     Parser admission, errors and stdout encoding remain with the current CLI.
     """
-    if SELECTOR not in os.environ:
+    selected = os.environ.get(SELECTOR)
+    if selected is None and package_owner is None:
         return None
-    selected = os.environ[SELECTOR]
-    if not selected:
+    if selected == '':
         raise ValueError('selected CLI discovery JSON manifest must not be empty')
     if schema is not None and type(schema) is not str:
         raise TypeError('CLI discovery schema must be an exact parser string')
     from .hia_cli_discovery_json_native import installed_cli_discovery_json, request
-    owner = installed_cli_discovery_json(selected)
+    owner = package_owner if selected is None else installed_cli_discovery_json(selected)
     wire = request(operation, None if schema is None else schema.encode('ascii'))
     return DiscoveryJsonBytes(owner.render(wire))

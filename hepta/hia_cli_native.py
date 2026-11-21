@@ -29,6 +29,7 @@ from .hia_json_preflight_native import (
 
 SELECTOR = "HEPTA_HIA_CLI_MANIFEST"
 SCHEMA = "hepta.hia.cli-native-bundle.v1"
+DISCOVERY_BUNDLE_SCHEMA = "hepta.hia.cli-native-bundle.v2"
 CONTROL_SCHEMA = "hepta.hia.cli-control-native.v1"
 FORMAT_SCHEMA = "hepta.hia.cli-format-native.v1"
 RUNTIME_PROFILES = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}
@@ -158,9 +159,10 @@ def _publish_assembly(program, text, destination):
 
 
 class NativeCli:
-    def __init__(self, control, formatter):
+    def __init__(self, control, formatter, discovery=None):
         self.control = control
         self.formatter = formatter
+        self.discovery = discovery
 
     def _format_call(self, raw, workspace):
         # This allocation scales with complete input and worst-case escapes;
@@ -371,13 +373,13 @@ class CliSession:
         zero = (0, 0, 0)
         if operation == 1:
             from .hia_cli_discovery_selection import selected_json
-            selected = selected_json(1)
+            selected = selected_json(1, package_owner=self.owner.discovery)
             result = self.cli.agent_capabilities() if selected is None else selected
         elif operation == 2:
             from .hia_opcodes import opcode_catalog
             from .hia_cli_discovery_selection import selected_json
             schema = field(a, b)
-            selected = selected_json(2, schema)
+            selected = selected_json(2, schema, package_owner=self.owner.discovery)
             result = opcode_catalog(schema) if selected is None else selected
         elif operation == 3:
             result = self.common["read_bounded"](field(a, b), limit=c)
@@ -578,11 +580,17 @@ def installed_cli(manifest_path, *, expected_sha256=None):
     bundle = json.JSONDecoder(object_pairs_hook=_unique_manifest_pairs).decode(raw.decode("utf-8"))
     keys = {"schema", "control_manifest", "control_manifest_sha256",
             "format_manifest", "format_manifest_sha256"}
-    if type(bundle) is not dict or set(bundle) != keys or bundle["schema"] != SCHEMA:
+    if type(bundle) is not dict or bundle.get("schema") not in (SCHEMA, DISCOVERY_BUNDLE_SCHEMA):
+        raise ValueError("invalid native CLI bundle")
+    roles = ("control", "format")
+    if bundle["schema"] == DISCOVERY_BUNDLE_SCHEMA:
+        keys.update(("discovery_manifest", "discovery_manifest_sha256"))
+        roles = (*roles, "discovery")
+    if set(bundle) != keys:
         raise ValueError("invalid native CLI bundle")
     children = {}
     compilers = []
-    for name in ("control", "format"):
+    for name in roles:
         relative, expected = bundle[name + "_manifest"], bundle[name + "_manifest_sha256"]
         if (not _relative_path(relative) or type(expected) is not str or len(expected) != 64
                 or any(char not in "0123456789abcdef" for char in expected)):
@@ -599,16 +607,21 @@ def installed_cli(manifest_path, *, expected_sha256=None):
             raise ValueError("invalid native CLI child image path")
         compilers.append(metadata.get("compiler_sha256"))
         children[name] = (child, child_raw)
-    if compilers[0] != compilers[1]:
+    if any(identity != compilers[0] for identity in compilers[1:]):
         raise ValueError("native CLI companion compilers differ")
     source_hashes = {name: sha256(source.read_bytes()).hexdigest() for name, source in SOURCES.items()}
     control = _load_manifest(str(children["control"][0]), children["control"][1],
                              source_hashes["control"], CONTROL_SCHEMA, NativeHiaJsonImage)
     formatter = _load_manifest(str(children["format"][0]), children["format"][1],
                                source_hashes["format"], FORMAT_SCHEMA, NativeHiaJsonImage)
+    discovery = None
+    if "discovery" in children:
+        from .hia_cli_discovery_json_native import installed_cli_discovery_json
+        discovery = installed_cli_discovery_json(str(children["discovery"][0]),
+                                                  expected_sha256=bundle["discovery_manifest_sha256"])
     if (path.read_bytes() != raw
             or any(child.read_bytes() != child_raw for child, child_raw in children.values())
             or any(sha256(source.read_bytes()).hexdigest() != source_hashes[name]
                    for name, source in SOURCES.items())):
         raise ValueError("native CLI selection changed while loading")
-    return NativeCli(control, formatter)
+    return NativeCli(control, formatter, discovery)

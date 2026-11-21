@@ -108,7 +108,8 @@ class CliDiscoverySelectionSourceTests(unittest.TestCase):
         def register(value):
             registered.append(value)
             return len(registered)
-        fake = SimpleNamespace(value=None, register=register, field=field, cli=cli)
+        fake = SimpleNamespace(value=None, register=register, field=field, cli=cli,
+                               owner=SimpleNamespace(discovery=None))
         env = {key: value for key, value in os.environ.items() if key != selection.SELECTOR}
         sentinel = {'custom': True}
         with patch.dict(os.environ, env, clear=True), patch.object(hia_opcodes, 'opcode_catalog', return_value=sentinel):

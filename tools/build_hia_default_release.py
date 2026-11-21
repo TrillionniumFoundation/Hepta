@@ -177,13 +177,20 @@ def _write_wheel(path, files, distribution):
 
 
 def _cli_package_members(output, compiler, cold_report):
+    from hepta.hia_cli_native import DISCOVERY_BUNDLE_SCHEMA
+    from tools.build_hia_cli_discovery_json import build as build_discovery
     from tools.build_hia_cli_native import build as build_cli
 
     manifest = build_cli(output, compiler, cold_report)
-    raw = manifest.read_bytes()
-    bundle = json.loads(raw)
-    inputs = {manifest: raw, output / 'build.json': (output / 'build.json').read_bytes()}
-    for role in ('control', 'format'):
+    original = manifest.read_bytes()
+    bundle = json.loads(original)
+    discovery = build_discovery(output / 'discovery', compiler, cold_report)
+    bundle.update(schema=DISCOVERY_BUNDLE_SCHEMA,
+                  discovery_manifest=discovery.relative_to(output).as_posix(),
+                  discovery_manifest_sha256=sha256(discovery.read_bytes()).hexdigest())
+    raw = encoded(bundle)
+    inputs = {manifest: original, output / 'build.json': (output / 'build.json').read_bytes()}
+    for role in ('control', 'format', 'discovery'):
         child = output / bundle[role + '_manifest']
         child_raw = child.read_bytes()
         if sha256(child_raw).hexdigest() != bundle[role + '_manifest_sha256']:
@@ -196,7 +203,8 @@ def _cli_package_members(output, compiler, cold_report):
         inputs.update({child: child_raw, image: image_raw})
     directory = Path('hepta') / Path(CLI_BUNDLE_RESOURCE).parent
     members = {(directory / path.relative_to(output)).as_posix(): contents
-               for path, contents in inputs.items() if path.name != 'build.json'}
+               for path, contents in inputs.items() if path not in (manifest, output / 'build.json')}
+    members['hepta/' + CLI_BUNDLE_RESOURCE] = raw
     return members, inputs, sha256(raw).hexdigest()
 
 

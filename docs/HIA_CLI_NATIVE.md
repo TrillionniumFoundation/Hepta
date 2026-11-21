@@ -29,9 +29,10 @@ order and file results are preserved.
 ## All 15 ordinary actions
 
 Every row uses the native argv, formatting, phase and exit owners above.
-The separate `HEPTA_HIA_CLI_DISCOVERY_JSON_MANIFEST` selector enables complete
-HIA-generated capabilities/catalog JSON through both CLI routes. Other
-successful JSON remains at the existing output boundary. This table names the remaining action semantics explicitly.
+The installed strict wheel also uses its HIA discovery companion for complete
+capabilities/catalog JSON. The separate `HEPTA_HIA_CLI_DISCOVERY_JSON_MANIFEST`
+selector can explicitly select that role through either CLI route. Other
+successful JSON remains at the existing output boundary.
 
 | Action | HIA stage decisions | Remaining Python semantic/effect owners |
 |---|---|---|
@@ -56,8 +57,8 @@ dict/list operations, actual module imports, file/console calls, resource
 allocation, exception capture and immutable machine-image mappings. The HIA
 controller chooses when to request those observations/effects. The assembly
 publication helper retains its original filesystem and verification policy.
-Only the explicitly selected discovery owner replaces capabilities/catalog
-JSON construction. Other action semantics and successful JSON remain as listed. Independently selected
+Only the discovery owner replaces capabilities/catalog JSON construction.
+Other action semantics and successful JSON remain as listed. Independently selected
 owners inside those functions retain their own source and qualification scope.
 
 ## Current selection and qualification
