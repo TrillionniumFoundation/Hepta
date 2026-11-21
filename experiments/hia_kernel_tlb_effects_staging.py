@@ -21,6 +21,7 @@ class PageTableEffectSummary:
     invalidations: int
     irq_mask_pairs: int
     touched_pages: tuple[int, ...]
+    touched_slots: tuple[int, ...]
 
 
 def _u64(value: object, field: str) -> int:
@@ -38,6 +39,15 @@ def _canonical_page(value: object) -> int:
     return va
 
 
+def _physical_pte_slot(value: object) -> int:
+    slot = _u64(value, "physical PTE slot")
+    # Restrict this experiment to nonzero, 8-byte-aligned RAM-range
+    # physical PTE addresses. No actual ownership or RAM provenance is proved.
+    if slot == 0 or slot >= (1 << 52) or slot & 7:
+        raise KernelEffectRejected("physical PTE slot must be aligned and within 52 bits")
+    return slot
+
+
 def admit_single_cpu_tlb_sequence(
     steps: object, *, active_cr3: object, owned_root: object,
     cpl: object, cpu_count: object, pcid_enabled: object = False,
@@ -45,6 +55,10 @@ def admit_single_cpu_tlb_sequence(
 ) -> PageTableEffectSummary:
     """Check explicit page-table write/INVLPG/interrupt sequencing.
 
+    Each planned PTE write includes a caller-declared physical slot. A slot
+    may not be relabeled as another virtual page (nor may a virtual page
+    change its slot) within the plan, even after an INVLPG. No page-table
+    walk or ownership authentication is performed.
     A planned PTE write's expected_old and observed_old must agree, but the
     latter is caller-supplied; no memory or runtime readback is performed.
     Rewriting one VA later in this same plan requires the previous candidate
@@ -77,6 +91,9 @@ def admit_single_cpu_tlb_sequence(
     # INVLPG orders the TLB, but does not reset the PTE's dataflow.
     # Hardware A/D updates and external writers are outside this model.
     last_candidate: dict[int, int] = {}
+    slot_to_va: dict[int, int] = {}
+    va_to_slot: dict[int, int] = {}
+    touched_slots: set[int] = set()
     writes = invalidations = pairs = 0
     for index, step in enumerate(steps):
         if type(step) is not dict or type(step.get("op")) is not str:
@@ -92,19 +109,26 @@ def admit_single_cpu_tlb_sequence(
             masked = False
             pairs += 1
         elif op == "pte.write":
-            if set(step) != {"op", "va", "expected_old", "observed_old", "candidate"}:
+            if set(step) != {"op", "va", "slot_pa", "expected_old", "observed_old", "candidate"}:
                 raise KernelEffectRejected("PTE write requires exact fields")
             va = _canonical_page(step["va"])
+            slot = _physical_pte_slot(step["slot_pa"])
             old = _u64(step["expected_old"], "expected_old")
             seen = _u64(step["observed_old"], "observed_old")
             candidate = _u64(step["candidate"], "candidate")
             if not masked or va in pending or seen != old or candidate == old:
                 raise KernelEffectRejected("PTE write not exclusively admitted or stale")
-            if va in last_candidate and old != last_candidate[va]:
+            if (slot in slot_to_va and slot_to_va[slot] != va) or (
+                    va in va_to_slot and va_to_slot[va] != slot):
+                raise KernelEffectRejected("physical PTE slot / virtual page alias changed")
+            if slot in last_candidate and old != last_candidate[slot]:
                 raise KernelEffectRejected("PTE write reuses a stale prior plan state")
-            last_candidate[va] = candidate
+            last_candidate[slot] = candidate
+            slot_to_va[slot] = va
+            va_to_slot[va] = slot
             pending.add(va)
             touched.add(va)
+            touched_slots.add(slot)
             writes += 1
         elif op == "tlb.invlpg":
             if set(step) != {"op", "va"}:
@@ -119,4 +143,5 @@ def admit_single_cpu_tlb_sequence(
 
     if masked or pending or writes == 0 or writes != invalidations or pairs == 0:
         raise KernelEffectRejected("unbalanced IRQ/TLB effects at return")
-    return PageTableEffectSummary(writes, invalidations, pairs, tuple(sorted(touched)))
+    return PageTableEffectSummary(writes, invalidations, pairs,
+                                  tuple(sorted(touched)), tuple(sorted(touched_slots)))
