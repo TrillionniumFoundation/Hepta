@@ -36,9 +36,12 @@ parser, custody entry and terminal error handler remain unchanged.
 The HIA policy drives mode checks, administrator pins, service construction and
 call/close sequencing, complete post-call manifest comparison, exception
 correlation, UNKNOWN routing, callback order, Unicode message slicing, report
-field access, virtual report construction and final output. The generic HIA wire
-owner sees the entire report, including all parent dictionaries, in one graph.
-The host never builds a report dictionary or encodes the response separately.
+field access, virtual report construction and final output. Older scopes render
+the full report as one HIA wire graph. When the bound release supplies both
+standalone admission and terminal modes, the HIA wire owner renders only the
+service response. The pinned executable admits the original request and binds
+that exact snapshot to the one terminal frame. It does not call the old report
+renderer after a standalone refusal. The host never builds a report dictionary.
 
 The Python boundary supplies exact builtin type, length, identity, child,
 codepoint, integer magnitude and IEEE observations. It also performs explicitly
@@ -71,8 +74,9 @@ query and request execution retains its earlier mode error. This is an explicit
 source successor: historical controls and failure records are retained, and
 newly generated policy images require fresh source-bound build receipts.
 
-The policy entry uses `HIAWKR02`, a 112-byte initialization packet and sequenced
-continuation replies. Replies have eight unsigned 64-bit header slots, followed
+The policy entry uses `HIAWKR02` for older scopes and `HIAWKR03` when the
+administrator's bound release supplies both standalone transport modes. Both
+use a 112-byte initialization packet and sequenced continuation replies. Replies have eight unsigned 64-bit header slots, followed
 only by the requested codepoint/magnitude chunk or stored dictionary hash. The
 program checks opcode, sequence, error tag and exact packet extent before
 consumption. Each string/magnitude observation is at most 1024 words. The

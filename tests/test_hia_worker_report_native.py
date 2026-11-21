@@ -290,6 +290,7 @@ class WorkerReportNativeTests(unittest.TestCase):
                 'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
                 'compiler_sha256': sha256(cls.compiler.read_bytes()).hexdigest()}))
         request_manifest.chmod(0o600)
+        cls.request_manifest = request_manifest
         base = cls.folder / 'helpers-v1.json'
         base.write_text(json.dumps({'schema': authority.SCHEMA, 'target': authority.TARGET,
             'abi': authority.ABI, 'helpers': [{'selector': 'HEPTA_HIA_WORKER_REQUEST_MANIFEST',
@@ -437,6 +438,67 @@ class WorkerReportNativeTests(unittest.TestCase):
             value = envelope(); value['schema'] = 'wrong'; f.raw = wire(value)
         actual, _ = self.same(correlated)
         self.assertEqual(json.loads(actual[1])['response']['error']['code'], 'E_HIA_WORKER_SCHEMA')
+
+    def test_pinned_worker_admits_and_publishes_only_through_the_sealed_terminal(self):
+        from hepta import hia_worker_request_native as request_owner
+
+        executable_path = os.environ.get('HEPTA_HIA_WORKER_TERMINAL_EXECUTABLE')
+        if not executable_path:
+            self.skipTest('requires the installed standalone worker terminal')
+        executable = Path(executable_path).read_bytes()
+        request = request_owner.installed_worker_request(str(self.request_manifest))
+        self.assertTrue(request.matches_standalone(executable))
+
+        def configure(fixture):
+            fixture.response.update(contract_version=worker.VERSION, request_id='r-terminal')
+            fixture.identities['native_helpers_sha256'] = 'e' * 64
+            fixture.after = dict(fixture.identities)
+
+        def selected(fixture):
+            fixture.environment[request_owner.SELECTOR] = str(self.request_manifest)
+            fixture.extra_patches.extend((
+                patch('hepta.hia_native_helpers.pinned_worker_admission_executable', return_value=executable),
+                patch('hepta.hia_native_helpers.pinned_worker_terminal_executable', return_value=executable),
+                patch.object(request_owner.NativeWorkerRequest, 'admit',
+                             side_effect=AssertionError('in-process request path entered')),
+            ))
+            with patch.object(request_owner, '_run_sealed', wraps=request_owner._run_sealed) as sealed:
+                observed = fixture.run(self.manifest)
+            return observed, [call.args[1][:8] for call in sealed.call_args_list]
+
+        reference, native = Fixture(), Fixture()
+        configure(reference)
+        configure(native)
+        actual, frames = selected(native)
+        self.assertEqual(actual, reference.run())
+        self.assertEqual(frames, [b'HIAWRA02', b'HIATRP01'])
+
+        reference, native = Fixture(), Fixture()
+        for fixture in (reference, native):
+            configure(fixture)
+            fixture.after['catalog_sha256'] = 'f' * 64
+        actual, frames = selected(native)
+        self.assertEqual(actual, reference.run())
+        self.assertEqual(frames, [b'HIAWRA02', b'HIATRP01'])
+
+        invalid = Fixture()
+        configure(invalid)
+        invalid.response.pop('contract_version')
+        actual, frames = selected(invalid)
+        self.assertEqual(actual[:3], (('raise', 'ValueError',
+                                      'native worker terminal report was not admitted'), b'', ''))
+        self.assertIn(('close',), invalid.events)
+        self.assertEqual(frames, [b'HIAWRA02', b'HIATRP01'])
+
+        malformed = Fixture()
+        configure(malformed)
+        malformed.request['request_sha256'] = '0' * 64
+        malformed.raw = wire(malformed.request)
+        actual, frames = selected(malformed)
+        self.assertEqual(actual[0], ('return', 0))
+        self.assertEqual(json.loads(actual[1])['response']['error']['code'], 'E_HIA_WORKER_IDENTITY')
+        self.assertFalse(any(event[0] == 'construct' for event in malformed.events))
+        self.assertEqual(frames, [b'HIAWRA02'])
 
     def test_entire_manifest_equality_and_latest_identity_adoption(self):
         pairs = [({'extra': 1}, {}), ({'extra': [1, {'z': '雪', 'a': True}]}, {'extra': [1.0, {'a': 1, 'z': '雪'}]}),

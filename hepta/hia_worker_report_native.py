@@ -31,6 +31,7 @@ POLICY_SCHEMA = 'hepta.hia.worker-report-native.v1'
 SCHEMA = 'hepta.hia.worker-report-bundle.v1'
 SELECTOR = 'HEPTA_HIA_WORKER_REPORT_MANIFEST'
 MAGIC = int.from_bytes(b'HIAWKR02', 'little')
+STANDALONE_MAGIC = int.from_bytes(b'HIAWKR03', 'little')
 ARGV_REQUEST, ARGV_REPLY = b'HIAWAV01', b'HIAWVO01'
 HIGH = 1 << 63
 NODE_BASE = 32768
@@ -222,8 +223,15 @@ class WorkerSession:
         self.observer = WorkerGraphObserver(self)
         self.packet = None
         if args is not None:
+            from .hia_native_helpers import (
+                pinned_worker_admission_executable, pinned_worker_terminal_executable,
+            )
+
+            standalone = (pinned_worker_admission_executable() is not None
+                          and pinned_worker_terminal_executable() is not None)
+            start_magic = STANDALONE_MAGIC if standalone else MAGIC
             reg = self.observer.register
-            self.packet = struct.pack('<14Q', MAGIC, 0, 0, int(args.installation_manifest),
+            self.packet = struct.pack('<14Q', start_magic, 0, 0, int(args.installation_manifest),
                 int(args.request_json_stdin), reg(args.state_root), reg(args.artifact_root),
                 reg(args.expected_worker_sha256), reg(args.expected_backend_sha256),
                 reg(args.expected_catalog_sha256), reg(identities), reg(worker.VERSION), reg(None), 0)
@@ -335,7 +343,12 @@ class WorkerSession:
             elif opcode == 30:
                 from .hia_worker_request_native import NativeRequestRejected
                 try:
-                    x = reg(value(a)(value(b), value(c)))
+                    admitted = value(a)(value(b), value(c))
+                    if d:
+                        request, terminal = admitted
+                        x, y = reg(request), reg(terminal)
+                    else:
+                        x = reg(admitted)
                 except NativeRequestRejected as exc:
                     recovered = reg(exc.request)
                     raise
@@ -370,6 +383,11 @@ class WorkerSession:
                 self.workspace = grown
             elif opcode == 37:
                 raise RecursionError('maximum recursion depth exceeded in comparison')
+            elif opcode == 38:
+                guard_request_output(None)
+                # The one-shot callback holds the same request snapshot,
+                # catalog and numeric admission limit used by the owner.
+                x = reg(value(b)(value(c), value(a)))
             else:
                 raise RuntimeError('unknown native worker foreign instruction')
         except BaseException as exc:

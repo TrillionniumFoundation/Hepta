@@ -13,6 +13,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 
 SOURCE_PATH = 'examples/hia_bootstrap/worker_report.hepta'
 MAGIC = int.from_bytes(b'HIAWKR02', 'little')
+STANDALONE_MAGIC = int.from_bytes(b'HIAWKR03', 'little')
 HIGH = 1 << 63
 LITERALS = {
     'SCHEMA_KEY': 'schema', 'REPORT_SCHEMA': 'hia-agent-worker-report-v1',
@@ -34,10 +35,11 @@ LITERALS = {
     'MODE_ERROR': 'manifest read and request execution are distinct modes',
     'ARG_ERROR': 'request execution requires --state-root and --request-json-stdin',
     'NATIVE_HELPERS_SHA': 'native_helpers_sha256',
+    'ADMIT_TERMINAL': 'admit_for_terminal',
 }
 CONSTANTS = {name: HIGH + i for i, name in enumerate(LITERALS, 1)}
 FIELDS = {
-    'MAGIC': MAGIC, 'HIGH': HIGH,
+    'MAGIC': MAGIC, 'STANDALONE_MAGIC': STANDALONE_MAGIC, 'HIGH': HIGH,
     'ARGV_REQUEST': int.from_bytes(b'HIAWAV01', 'little'),
     'ARGV_REPLY': int.from_bytes(b'HIAWVO01', 'little'),
     'AWAIT': 8, 'SEQ': 16, 'PHASE': 24, 'EXC': 32, 'EXC_DOMAIN': 40,
@@ -54,6 +56,7 @@ FIELDS = {
     'TEMP': 376, 'REPORT': 384, 'REPORT_INDEX': 392, 'WIRE_ROOT': 400,
     'FORMAT_IMAGE': 408,
     'HANDLED_EXC': 416, 'REQ_CONTEXT': 424,
+    'STANDALONE': 432, 'TERMINAL_CALLBACK': 440,
     'EQ_LEFT': 512, 'EQ_RIGHT': 520, 'EQ_NEXT': 528, 'EQ_RESULT': 536,
     'EQ_DEPTH': 544, 'EQ_LIMIT': 552, 'EQ_CHILD': 560,
     'EL_KIND': 568, 'EL_SIZE': 576, 'EL_A': 584, 'EL_B': 592,
@@ -84,8 +87,12 @@ def worker_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             put(w, 0, MAGIC)
             put(w, EQ_JSON_ONLY, 1)
             return equal_begin(w, left, right, 239)
-        if length(s) != 112 or read64(s, 0) != MAGIC or read64(s, 8) != 0 or read64(s, 16) != 0:
+        if length(s) != 112 or read64(s, 8) != 0 or read64(s, 16) != 0:
             return 199
+        profile = read64(s, 0)
+        if profile != MAGIC and profile != STANDALONE_MAGIC:
+            return 199
+        put(w, STANDALONE, choose(profile == STANDALONE_MAGIC, 1, 0))
         if read64(s, 24) > 1 or read64(s, 32) > 1 or read64(s, 104) != 0:
             return 199
         put(w, 0, MAGIC)
@@ -234,13 +241,16 @@ def control(s:readbuf, w:mutbuf, phase:u64) -> u64:
             return ask(w, 15, get(w, RAW), get(w, IDENTITIES), 0, 0, 17)
         return ask(w, 14, get(w, SELECTED), 0, 0, 0, 13)
     if phase == 13:
-        return ask(w, 7, read64(s, 32), L_ADMIT, 0, 0, 14)
+        method = choose(get(w, STANDALONE) != 0, L_ADMIT_TERMINAL, L_ADMIT)
+        return ask(w, 7, read64(s, 32), method, 0, 0, 14)
     if phase == 14:
         put(w, CALLABLE, read64(s, 32))
         return ask(w, 5, get(w, IDENTITIES), L_CATALOG_SHA, 0, 0, 15)
     if phase == 15:
-        return ask(w, 30, get(w, CALLABLE), get(w, RAW), read64(s, 32), 0, 16)
+        return ask(w, 30, get(w, CALLABLE), get(w, RAW), read64(s, 32), get(w, STANDALONE), 16)
     if phase == 16 or phase == 17:
+        if phase == 16:
+            put(w, TERMINAL_CALLBACK, read64(s, 40))
         put(w, REQUEST, read64(s, 32))
         return ask(w, 10, get(w, STATE_ROOT), get(w, ARTIFACT_ROOTS), 0, 0, 18)
     if phase == 18:
@@ -397,6 +407,12 @@ def reporting(s:readbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 80:
         put(w, CATCH, 0)
         put(w, HANDLED_EXC, 0)
+        if get(w, TERMINAL_CALLBACK) != 0:
+            # Only the service body is serialized here. The separately
+            # pinned executable binds the unchanged original request.
+            put(w, WIRE_ROOT, get(w, REPLY))
+            put(w, PHASE, 90)
+            return 0
         report = object(w, 10)
         put(w, NODE_BASE + (report - HIGH) * 48 + 8, 9)
         put(w, REPORT, report)
@@ -442,6 +458,10 @@ def reporting(s:readbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 93:
         return ask(w, 24, get(w, WIRE_ROOT), read64(s, 32), 0, 0, 94)
     if phase == 94:
+        if get(w, TERMINAL_CALLBACK) != 0:
+            return ask(w, 38, read64(s, 32), get(w, TERMINAL_CALLBACK), get(w, IDENTITIES), 0, 96)
+        return ask(w, 25, read64(s, 32), L_NEWLINE, 0, 0, 95)
+    if phase == 96:
         return ask(w, 25, read64(s, 32), L_NEWLINE, 0, 0, 95)
     if phase == 95:
         put(w, RETURN_CODE, 0)
