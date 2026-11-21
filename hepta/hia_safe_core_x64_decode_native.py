@@ -9,6 +9,7 @@ import struct
 from .hia_cnf_native import (CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSES,
                              SPARSE_ENTRIES, SPARSE_REQUEST, SPARSE_VARIABLES)
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
+from .hia_opcodes import OPCODES, TYPES
 from .hia_safe_core_x64 import Instruction, SafeCoreMachineRejected
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/safe_core_x64_decode.hepta')
@@ -98,6 +99,10 @@ CORE_FORMULA_REQUEST = struct.Struct('<3Q')
 CORE_GRAPH_LIMIT = 16
 CORE_GRAPH_REQUEST = struct.Struct('<17Q')
 CORE_GRAPH_PLAN_REQUEST = struct.Struct('<51Q')
+CORE_PROFILE_HEADER = struct.Struct('<3Q')
+CORE_PROFILE_WORKSPACE = 56
+CORE_PROFILE_OPCODE_IDS = {name: index for index, name in enumerate(sorted(OPCODES))}
+CORE_PROFILE_TYPE_IDS = {name: index for index, name in enumerate(sorted(TYPES))}
 MEMORY_GRAPH_ROWS = 63
 MEMORY_GRAPH_REQUEST = struct.Struct('<' + str(3 + 3 * MEMORY_GRAPH_ROWS) + 'Q')
 RECIPE_HEADER = struct.Struct('<5Q')
@@ -519,6 +524,21 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         if size != len(output) or set(order) != set(range(count)) or not 1 <= paths <= path_budget:
             raise RuntimeError('invalid native Safe Core graph plan')
         return tuple(order), paths
+
+    def core_profile(self, version, operations, types):
+        packet = (CORE_PROFILE_HEADER.pack(version, len(operations), len(types))
+                  + bytes(CORE_PROFILE_OPCODE_IDS.get(name, 127) | (int(checked_cast) << 7)
+                          for name, checked_cast in operations)
+                  + bytes(CORE_PROFILE_TYPE_IDS.get(name, 255) for name in types))
+        workspace = ctypes.create_string_buffer(CORE_PROFILE_WORKSPACE)
+        result = self._checked_default_entry(packet, len(packet), None, 0, workspace, len(workspace))
+        if (version == 0 and 2 <= result <= 6) or (version != 0 and result == version):
+            return result, None
+        kind, position = divmod(result, 256)
+        if version != 0 and ((kind in (1, 2) and position < len(operations))
+                             or (kind == 3 and position < len(types))):
+            return version, (kind, position)
+        raise RuntimeError('invalid native Safe Core profile decision')
 
     def possible_memory_writes(self, rows, first, second):
         count = len(rows)

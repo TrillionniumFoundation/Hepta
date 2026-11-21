@@ -429,6 +429,20 @@ def _profile_configuration(profile_version):
             else (PROFILE_V6, ARTIFACT_PROFILE_V6, WIDTHS_V6))
 
 
+def _core_profile_rows(functions):
+    operations, types = [], []
+    for function in functions:
+        types.extend(p["type"] for p in function["params"])
+        types.extend(function["returns"])
+        for block in function["blocks"]:
+            types.extend(p["type"] for p in block["params"])
+            for op in block["ops"]:
+                name = op["op"]
+                operations.append((name, name == "int.cast" and op["attrs"]["mode"] != "wrap"))
+                types.extend(p["type"] for p in op["out"])
+    return operations, types
+
+
 def _unsigned_profile_version(checked):
     """Select v2 through v6 from a checked snapshot; this grants no admission.
 
@@ -436,18 +450,16 @@ def _unsigned_profile_version(checked):
     and independently validate the final bytes. Existing unsigned Core keeps
     its old profile; the historical helper name remains API-compatible.
     """
-    document = checked.as_dict()
-    types = set()
-    for function in document["functions"]:
-        types.update(function["returns"])
-        types.update(parameter["type"] for parameter in function["params"])
-        for block in function["blocks"]:
-            types.update(parameter["type"] for parameter in block["params"])
-            types.update(output["type"] for operation in block["ops"] for output in operation["out"])
-    if types & {"i8", "i16", "i32", "i64", "isize"}:
+    from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
+    rows, types = _core_profile_rows(checked.as_dict()["functions"])
+    native = selected_safe_core_x64_decode()
+    if native is not None:
+        version, _ = native.core_profile(0, rows, types)
+        return version
+    if set(types) & (WIDTHS_V6.keys() - WIDTHS_V2.keys()):
         return 6
-    operations = {operation["op"] for function in document["functions"]
-                  for block in function["blocks"] for operation in block["ops"]}
+    operations = {name for name, _ in rows}
     if operations & (OPERATIONS_V5 - OPERATIONS_V4):
         return 5
     if operations & (OPERATIONS_V4 - OPERATIONS_V3):
@@ -456,11 +468,9 @@ def _unsigned_profile_version(checked):
 
 
 def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=1):
+    from .hia_safe_core_x64_decode_native import selected_safe_core_x64_decode
+
     _, _, widths = _profile_configuration(profile_version)
-    operations = (OPERATIONS_V6 if profile_version == 6 else OPERATIONS_V5
-                  if profile_version == 5 else OPERATIONS_V4
-                  if profile_version == 4 else OPERATIONS_V3
-                  if profile_version == 3 else OPERATIONS)
     require(checked.structured_bytes is None, "an explicit primitive Core is required")
     document = checked.as_dict()
     require(document["schema"] in {"hepta.hia.program.v" + str(i) for i in range(1, 9)} and
@@ -487,17 +497,30 @@ def _profile(checked, image=None, *, foreign_buffer_exports=(), profile_version=
     blocks = {block["id"]: block for block in fn["blocks"]}
     require(len(blocks) <= 16 and sum(len(b["ops"]) for b in blocks.values()) <= 64,
             "Safe Core block/operation budget exceeded")
-    types = [p["type"] for p in fn["params"]] + fn["returns"]
-    for block in blocks.values():
-        types.extend(p["type"] for p in block["params"])
-        for op in block["ops"]:
-            require(op["op"] in operations, "operation lies outside Safe Core: " + op["op"])
-            require(op["op"] != "int.cast" or op["attrs"]["mode"] == "wrap" or profile_version >= 2,
-                    "checked casts are outside Safe Core v1")
-            types.extend(p["type"] for p in op["out"])
-    require(all(t in widths or t in LOANS for t in types), "type lies outside Safe Core")
+    rows, types = _core_profile_rows((fn,))
+    native = selected_safe_core_x64_decode()
+    if native is None:
+        _reference_profile_rows(rows, types, widths, profile_version)
+    else:
+        _, refusal = native.core_profile(profile_version, rows, types)
+        if refusal is not None:
+            kind, position = refusal
+            if kind == 1:
+                require(False, "operation lies outside Safe Core: " + rows[position][0])
+            require(kind != 2, "checked casts are outside Safe Core v1")
+            require(False, "type lies outside Safe Core")
     _review_core_graph(blocks)
     return fn, blocks
+
+
+def _reference_profile_rows(rows, types, widths, version):
+    operations = (OPERATIONS_V6 if version == 6 else OPERATIONS_V5 if version == 5
+                  else OPERATIONS_V4 if version == 4 else OPERATIONS_V3 if version == 3
+                  else OPERATIONS)
+    for name, checked in rows:
+        require(name in operations, "operation lies outside Safe Core: " + name)
+        require(not checked or version >= 2, "checked casts are outside Safe Core v1")
+    require(all(t in widths or t in LOANS for t in types), "type lies outside Safe Core")
 
 
 def _review_core_graph(blocks):

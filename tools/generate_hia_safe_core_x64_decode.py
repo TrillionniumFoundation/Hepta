@@ -9,11 +9,15 @@ from hepta.hia_cnf_native import (
     CIRCUIT_CAPACITY, CIRCUIT_NODES, SPARSE_CLAUSES, _CORE_TRAP_TAGS,
                                  SPARSE_REQUEST, SPARSE_VARIABLES, WORD_ARITHMETIC_SHR, WORD_PRODUCT_EXCEEDS,
                                  WORD_VARIABLE_SHL, WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
+from hepta.hia_safe_core import (
+    LOANS, OPERATIONS, OPERATIONS_V3, OPERATIONS_V4, OPERATIONS_V5, WIDTHS, WIDTHS_V2, WIDTHS_V6,
+)
 from hepta.hia_safe_core_x64_decode_native import (
     BORROWED_INDEX_ARGUMENT, BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
     BORROWED_PAIR_REVERSE_SUB,
     BORROWED_WRITE_REPLY, BORROWED_WRITE_REQUEST,
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_PLAN_REQUEST, CORE_GRAPH_REQUEST,
+    CORE_PROFILE_HEADER, CORE_PROFILE_OPCODE_IDS, CORE_PROFILE_TYPE_IDS, CORE_PROFILE_WORKSPACE,
     MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MACHINE_BORROW_BRANCH_DEPTH, MACHINE_BORROW_REPLY, MACHINE_BORROW_REQUEST, MACHINE_BORROW_WORKSPACE,
     MACHINE_PAIR_BRANCH_DEPTH,
@@ -40,6 +44,22 @@ FIELDS.update({'R_' + name.upper(): index for name, index in RECIPE_IDS.items()}
 FIELDS.update({'C_' + name.upper().replace('.', '_'): index for name, index in CORE_FORMULA_IDS.items()})
 FIELDS.update(CORE_GRAPH_LIMIT=CORE_GRAPH_LIMIT, CORE_GRAPH_SIZE=CORE_GRAPH_REQUEST.size)
 FIELDS.update(CORE_PLAN_SIZE=CORE_GRAPH_PLAN_REQUEST.size, CORE_PLAN_EDGES=CORE_GRAPH_REQUEST.size + 16)
+def profile_mask(identifiers, names):
+    if len(identifiers) > 64:
+        raise ValueError('Safe Core profile identifiers no longer fit one word')
+    return sum(1 << identifiers[name] for name in names)
+
+
+FIELDS.update(CORE_PROFILE_SIZE=CORE_PROFILE_HEADER.size, CORE_PROFILE_WORKSPACE=CORE_PROFILE_WORKSPACE,
+              CORE_PROFILE_OPS=len(CORE_PROFILE_OPCODE_IDS), CORE_PROFILE_TYPES=len(CORE_PROFILE_TYPE_IDS),
+              CORE_OPS_V1=profile_mask(CORE_PROFILE_OPCODE_IDS, OPERATIONS),
+              CORE_OPS_V3=profile_mask(CORE_PROFILE_OPCODE_IDS, OPERATIONS_V3),
+              CORE_OPS_V4=profile_mask(CORE_PROFILE_OPCODE_IDS, OPERATIONS_V4),
+              CORE_OPS_V5=profile_mask(CORE_PROFILE_OPCODE_IDS, OPERATIONS_V5),
+              CORE_TYPES_V1=profile_mask(CORE_PROFILE_TYPE_IDS, WIDTHS.keys() | LOANS),
+              CORE_TYPES_V2=profile_mask(CORE_PROFILE_TYPE_IDS, WIDTHS_V2.keys() | LOANS),
+              CORE_TYPES_V6=profile_mask(CORE_PROFILE_TYPE_IDS, WIDTHS_V6.keys() | LOANS),
+              CORE_SIGNED_TYPES=profile_mask(CORE_PROFILE_TYPE_IDS, WIDTHS_V6.keys() - WIDTHS_V2.keys()))
 FIELDS.update(MEMORY_GRAPH_ROWS=MEMORY_GRAPH_ROWS, MEMORY_GRAPH_SIZE=MEMORY_GRAPH_REQUEST.size)
 FIELDS.update(MAX_RECIPE_NODES=MAX_RECIPE_NODES, RECIPE_INPUTS=RECIPE_INPUTS,
               LEFT=1, RIGHT=2, THIRD=3, FOURTH=4, FIFTH=5, ZF=3, CF=4, ARBITRARY=5)
@@ -114,6 +134,8 @@ def decode_text(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return core_scalar_formula(o, get(w, 0), get(w, 8), get(w, 16))
     if size == 0 and length(w) == 40:
         return memory_admission(w)
+    if length(w) == CORE_PROFILE_WORKSPACE and length(o) == 0:
+        return core_profile(s)
     if size == 0 and length(w) == CORE_GRAPH_SIZE:
         if length(o) != 0:
             if length(o) != get(w, 0) * 8:
@@ -1086,6 +1108,54 @@ def core_borrow_formula(o:mutbuf, op:u64, literal:u64) -> u64:
     outside = node(o, R_BOOL_AND, nonempty, wraps, 0)
     packed = node(o, R_LITERAL64, 12884901888, 0, 0)
     return formula_done(o, packed, 0, 0, outside)
+
+def core_profile(s:readbuf) -> u64:
+    size = length(s)
+    if size < CORE_PROFILE_SIZE:
+        return 0
+    version = schedule_request(s, 0)
+    operations = schedule_request(s, 8)
+    types = schedule_request(s, 16)
+    payload = size - CORE_PROFILE_SIZE
+    if version > 6 or operations > payload:
+        return 0
+    if types != payload - operations or (version != 0 and operations > 64):
+        return 0
+    allowed_ops = choose(version >= 5, CORE_OPS_V5,
+                         choose(version == 4, CORE_OPS_V4, choose(version == 3, CORE_OPS_V3, CORE_OPS_V1)))
+    allowed_types = choose(version == 6, CORE_TYPES_V6, choose(version >= 2, CORE_TYPES_V2, CORE_TYPES_V1))
+    selected = 2
+    index = 0
+    while index < operations:
+        row = byte(s, CORE_PROFILE_SIZE + index)
+        opcode = row & 127
+        bit = 0
+        if opcode < CORE_PROFILE_OPS:
+            bit = 1 << opcode
+        if version != 0:
+            if (bit & allowed_ops) == 0:
+                return 256 + index
+            if version == 1 and (row & 128) != 0:
+                return 512 + index
+        else:
+            level = choose((bit & (CORE_OPS_V5 ^ CORE_OPS_V4)) != 0, 5,
+                           choose((bit & (CORE_OPS_V4 ^ CORE_OPS_V3)) != 0, 4,
+                                  choose((bit & (CORE_OPS_V3 ^ CORE_OPS_V1)) != 0, 3, 2)))
+            selected = choose(level > selected, level, selected)
+        index = index + 1
+    index = 0
+    while index < types:
+        kind = byte(s, CORE_PROFILE_SIZE + operations + index)
+        bit = 0
+        if kind < CORE_PROFILE_TYPES:
+            bit = 1 << kind
+        if version != 0:
+            if (bit & allowed_types) == 0:
+                return 768
+        else:
+            selected = choose((bit & CORE_SIGNED_TYPES) != 0, 6, selected)
+        index = index + 1
+    return choose(version == 0, selected, version)
 
 def review_core_graph(w:mutbuf) -> u64:
     count = get(w, 0)

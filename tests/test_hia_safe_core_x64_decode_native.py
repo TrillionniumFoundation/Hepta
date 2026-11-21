@@ -29,6 +29,45 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             self.skipTest('requires a bound HIA Safe Core x86 decoder')
         self.native = installed_safe_core_x64_decode(selected)
 
+    def test_native_core_profile_keeps_operation_order_and_type_boundaries(self):
+        from hepta.hia_opcodes import OPCODES, TYPES
+        from hepta.hia_safe_core import (
+            SafeCoreRejected, _profile, _profile_configuration, _reference_profile_rows,
+            _unsigned_profile_version,
+        )
+        from hepta.hia_program import verify_program
+        from tests.test_hia_program import arithmetic
+
+        for version in range(1, 7):
+            _, _, widths = _profile_configuration(version)
+            cases = [([(name, False)], []) for name in OPCODES]
+            cases += [([], [name]) for name in TYPES]
+            cases += [([('int.cast', True), ('call', False)], []),
+                      ([('const', False), ('call', False), ('int.cast', True)], ['unit'])]
+            for operations, types in cases:
+                with self.subTest(version=version, operations=operations, types=types):
+                    try:
+                        _reference_profile_rows(operations, types, widths, version)
+                    except SafeCoreRejected:
+                        allowed = False
+                    else:
+                        allowed = True
+                    decided, refusal = self.native.core_profile(version, operations, types)
+                    self.assertEqual((decided, refusal is None), (version, allowed))
+        self.assertEqual(self.native.core_profile(1, [('int.cast', True), ('call', False)], ['unit']),
+                         (1, (2, 0)))
+        self.assertEqual(self.native.core_profile(1, [('const', False), ('call', False)], ['unit']),
+                         (1, (1, 1)))
+        self.assertEqual(self.native.core_profile(6, [], ['u64'] * 260 + ['unit']), (6, (3, 0)))
+
+        with patch('hepta.hia_safe_core._reference_profile_rows', side_effect=AssertionError('host profile entered')):
+            for operation, typ, version in (('int.add.wrap', 'u64', 2), ('int.shl.checked', 'u64', 3),
+                                            ('int.mul.checked', 'u64', 4), ('int.div.checked', 'u64', 5),
+                                            ('int.add.wrap', 'i64', 6)):
+                core = verify_program(arithmetic(operation, typ))
+                self.assertEqual(_unsigned_profile_version(core), version)
+                self.assertEqual(_profile(core, profile_version=version)[0]['returns'], [typ])
+
     def test_word_projection_uses_the_bound_elf_and_checks_stack_and_sysv(self):
         from pathlib import Path
         import tempfile
