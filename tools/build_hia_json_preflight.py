@@ -118,6 +118,7 @@ CANDIDATES = {
     'context-request': ('worker_context_request', 'context-request'),
     'context-workload': ('worker_context_workload', 'context-workload'),
     'context-cost': ('worker_context_cost', 'context-cost'),
+    'context-cost-diagnostic': ('worker_context_cost_diagnostic', 'context-cost-diagnostic'),
     'context-effect': ('worker_context_effect', 'context-effect'),
     'context-diagnostic': ('worker_context_diagnostic', 'context-diagnostic'),
     'context-journal': ('worker_context_journal', 'context-journal'),

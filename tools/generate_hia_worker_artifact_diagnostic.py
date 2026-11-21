@@ -104,7 +104,7 @@ class Author:
             lines.append('    return ' + self.explain(label, 'does not match oneOf'))
         elif 'anyOf' in schema:
             if (set(schema) != {'anyOf'} or sorted(x['type'] for x in schema['anyOf'])
-                    not in (['null', 'string'], ['null', 'object'])):
+                    not in (['null', 'string'], ['null', 'object'], ['integer', 'null'])):
                 raise ValueError('unexpected nullable Worker schema')
             for alternative in schema['anyOf']:
                 branch = self.add(alternative, label)
@@ -115,7 +115,8 @@ class Author:
             fields = {
                 'object': {'properties', 'required', 'additionalProperties'},
                 'string': {'minLength', 'maxLength', 'pattern'},
-                'integer': {'minimum', 'maximum'}, 'null': set(), None: {'const', 'enum'},
+                'integer': {'minimum', 'maximum'}, 'boolean': set(), 'null': set(),
+                None: {'const', 'enum'},
             }
             if typ not in fields or set(schema) - fields[typ] - {'type', 'description', '$schema'}:
                 raise ValueError('unrecognized published artifact schema constraint')
@@ -139,6 +140,8 @@ class Author:
                      'number is outside limits')
             elif typ == 'null':
                 fail('get(w, node) != 0', 'expected null')
+            elif typ == 'boolean':
+                fail('get(w, node) != 1 and get(w, node) != 2', 'expected boolean')
             elif typ is not None:
                 raise ValueError(f'unrecognized artifact schema type: {typ}')
             if 'const' in schema:
@@ -202,8 +205,8 @@ class Author:
             lines.append(f'{indent}store(o, at + {offset}, {raw[offset]})')
         return lines + [f'{indent}return at + {len(raw)}']
 
-    def source(self, schema):
-        main = self.add(schema, 'arguments')
+    def source(self, schema, *, label='arguments'):
+        main = self.add(schema, label)
         writer = {
             'diagnostic_open': '{"code":"E_HIA_SCHEMA","details_artifact":null,"message":"',
             'diagnostic_close': '","phase":"admission","retry_action":"correct_input"}',
@@ -240,7 +243,11 @@ class Author:
 def document(tool='hia_artifact', *, module=SOURCE.stem):
     catalog = json.loads(CATALOG.read_bytes())
     schema, = (row['inputSchema'] for row in catalog['tools'] if row['name'] == tool)
-    nodes = ast.parse(Author(common_literals=tool != 'hia_artifact').source(schema)).body
+    return diagnostic_document(schema, module=module, compact=tool != 'hia_artifact')
+
+
+def diagnostic_document(schema, *, module, label='arguments', compact=True):
+    nodes = ast.parse(Author(common_literals=compact).source(schema, label=label)).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
     signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
                   for node in nodes}
