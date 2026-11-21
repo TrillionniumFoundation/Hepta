@@ -28,6 +28,12 @@ WIRE = {
     'QUERY_PARAMETERS': b'HIAQPA01',
     'INSERT_PARAMETERS': b'HIAINS01',
     'UPDATE_PARAMETERS': b'HIAUPB01',
+    'PROFILE_ID_PREFIX': b'{"id":"a',
+    'PROFILE_DIGEST_PREFIX': b'","sha25',
+    'PROFILE_DIGEST_TAIL': b'6":"',
+    'PROFILE_URI_PREFIX': b'","uri":',
+    'PROFILE_URI_MIDDLE': b'"hia://a',
+    'PROFILE_URI_TAIL': b'rtifacts',
 }
 
 POLICY = '''
@@ -116,6 +122,9 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 18:
         if valid_cost_insert(s, size) == False:
             return 0
+    elif plan == 19:
+        if valid_profile_insert(s, size) == False:
+            return 0
     else:
         if plan != 2 and plan != 3 and plan != 6:
             return 0
@@ -198,6 +207,58 @@ def valid_cost_insert(s:readbuf, size:u64) -> bool:
         field = field + 1
     return offset == size
 
+# Profile records bind a public profile name and content digest to an issued
+# artifact. The existing Store INSERT ordinal is 11; its uniqueness semantics
+# and WAL format do not change.
+def valid_profile_insert(s:readbuf, size:u64) -> bool:
+    if size < 353 or size > 544 or read_word(s, 48) != INSERT_PARAMETERS:
+        return False
+    if read_word(s, 56) != 1 or read_word(s, 64) != 11 or read_word(s, 72) != 0 or read_word(s, 80) != 3:
+        return False
+    name = read_word(s, 104)
+    if name == 0 or name > 192 or size != 352 + name:
+        return False
+    if read_word(s, 88) != 3 or read_word(s, 96) != 112:
+        return False
+    if read_word(s, 112) != 3 or read_word(s, 120) != 112 + name or read_word(s, 128) != 64:
+        return False
+    if read_word(s, 136) != 3 or read_word(s, 144) != 176 + name or read_word(s, 152) != 176:
+        return False
+    at = 160
+    while at < 160 + name:
+        ch = byte(s, at)
+        if (ch < 48 or ch > 57) and (ch < 97 or ch > 122) and ch != 45 and ch != 46 and ch != 95:
+            return False
+        at = at + 1
+    return profile_reference(s, at, at + 64)
+
+def profile_reference(s:readbuf, digest:u64, reference:u64) -> bool:
+    if read_word(s, reference) != PROFILE_ID_PREFIX or byte(s, reference + 8) != 45:
+        return False
+    if read_word(s, reference + 41) != PROFILE_DIGEST_PREFIX:
+        return False
+    if read_word(s, reference + 49) & 4294967295 != PROFILE_DIGEST_TAIL:
+        return False
+    if read_word(s, reference + 117) != PROFILE_URI_PREFIX:
+        return False
+    if read_word(s, reference + 125) != PROFILE_URI_MIDDLE or read_word(s, reference + 133) != PROFILE_URI_TAIL:
+        return False
+    if byte(s, reference + 141) != 47 or byte(s, reference + 174) != 34 or byte(s, reference + 175) != 125:
+        return False
+    index = 0
+    while index < 64:
+        ch = byte(s, digest + index)
+        if lower_hex(ch) == False or byte(s, reference + 53 + index) != ch:
+            return False
+        if index < 32:
+            if lower_hex(byte(s, reference + 9 + index)) == False or lower_hex(byte(s, reference + 142 + index)) == False:
+                return False
+        index = index + 1
+    return True
+
+def lower_hex(ch:u64) -> bool:
+    return (ch >= 48 and ch <= 57) or (ch >= 97 and ch <= 102)
+
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
@@ -207,7 +268,7 @@ def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
 
 def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
     plan = read_state(w, 16)
-    if plan == 10:
+    if plan == 10 or plan == 19:
         return send_unique(o, w, 27, 1, read_state(w, 128), 10)
     if plan == 18:
         # The Store sees regular command 27 with ordinary insert target 1.
@@ -267,7 +328,7 @@ def unique_transaction(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
 # validated before a typed insert transaction may return a usable receipt.
 def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     plan = read_state(w, 16)
-    if plan != 10 and plan != 18:
+    if plan != 10 and plan != 18 and plan != 19:
         return 0
     if phase == 10 or phase == 12 or phase == 14:
         if length(s) != 16:
@@ -326,10 +387,9 @@ def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     return 88
 
 def finish_unique(o:mutbuf, w:mutbuf) -> u64:
-    write_word(w, 0, 5)
     write_word(o, 0, 5)
     plan = read_state(w, 16)
-    if plan == 10 or plan == 18:
+    if plan == 10 or plan == 18 or plan == 19:
         write_word(o, 8, read_state(w, 168) * 8)
         write_word(o, 16, read_state(w, 152))
         write_word(o, 24, read_state(w, 144))
