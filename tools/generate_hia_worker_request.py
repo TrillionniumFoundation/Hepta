@@ -23,6 +23,7 @@ PRIVATE_BYTES = 16384
 DATA_VALIDATION_MAGIC = int.from_bytes(b'HIAWDV01', 'little')
 RESPONSE_MAGIC = int.from_bytes(b'HIAWRC01', 'little')
 JOURNAL_PROJECTION_MAGIC = int.from_bytes(b'HIAWJP01', 'little')
+ARGUMENTS_PROJECTION_MAGIC = int.from_bytes(b'HIAWAP01', 'little')
 SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hepta'
 
 ENTRY = r'''
@@ -43,7 +44,7 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 64 + bound * 56 + length(s) + 16384:
         return 4294967293
     digits = get(w, 8)
-    if mode > 7 or (mode >= 5 and valid_digits(digits) == 0):
+    if mode > 8 or (mode >= 5 and valid_digits(digits) == 0):
         return 4294967293
     private = length(w) - 16384
     if mode == 5 and get(w, 16) != DATA_VALIDATION_MAGIC:
@@ -51,6 +52,8 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if mode == 6 and admit_response_recipe(w, private + 1024) == 0:
         return 4294967293
     if mode == 7 and get(w, 16) != JOURNAL_PROJECTION_MAGIC:
+        return 4294967293
+    if mode == 8 and get(w, 16) != ARGUMENTS_PROJECTION_MAGIC:
         return 4294967293
     put(w, private + 512, 0)
     put(w, private, digits)
@@ -80,8 +83,8 @@ def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 1
     if mode == 6:
         return render_response(s, o, w, private + 1024)
-    if mode == 7:
-        return journal_projection(s, o, w, private)
+    if mode == 7 or mode == 8:
+        return admitted_call_projection(s, o, w, private, mode)
     status = finish_request(s, o, w, mode)
     restore_order(w)
     put(w, 56, 0)
@@ -685,7 +688,7 @@ JOURNAL_PROJECTION = r'''
 # This adapter projects input admitted by the pinned Worker request owner
 # into the original Journal call shape. It never admits an original request
 # or changes the request digest, catalog, installed profile or tool authority.
-def journal_projection(s:readbuf, o:mutbuf, w:mutbuf, private:u64) -> u64:
+def admitted_call_projection(s:readbuf, o:mutbuf, w:mutbuf, private:u64, mode:u64) -> u64:
     status = worker_fields(w, 5, 110)
     if status != 0:
         return status
@@ -699,13 +702,15 @@ def journal_projection(s:readbuf, o:mutbuf, w:mutbuf, private:u64) -> u64:
     put(w, record + 8, 18446744073709551615)
     put(w, record + 16, 18446744073709551615)
     put(w, 56, 0)
-    text(o, w, '{"arguments":')
+    if mode == 7:
+        text(o, w, '{"arguments":')
     count = serialize_root(s, o, w, arguments)
     if count >= 4294967000:
         return count
-    text(o, w, ',"tool":')
-    append_string(o, w, get(w, tool + 24), get(w, tool + 32))
-    append_byte(o, w, 125)
+    if mode == 7:
+        text(o, w, ',"tool":')
+        append_string(o, w, get(w, tool + 24), get(w, tool + 32))
+        append_byte(o, w, 125)
     count = get(w, 56)
     if count > 8388608:
         return 4294967274
@@ -727,7 +732,8 @@ def serialize_root(s:readbuf, o:mutbuf, w:mutbuf, node:u64) -> u64:""",
 
 def source_program():
     entry = (ENTRY.replace('DATA_VALIDATION_MAGIC', str(DATA_VALIDATION_MAGIC))
-                  .replace('JOURNAL_PROJECTION_MAGIC', str(JOURNAL_PROJECTION_MAGIC)))
+                  .replace('JOURNAL_PROJECTION_MAGIC', str(JOURNAL_PROJECTION_MAGIC))
+                  .replace('ARGUMENTS_PROJECTION_MAGIC', str(ARGUMENTS_PROJECTION_MAGIC)))
     return '\n'.join((entry, worker_serializer_program(), key_program(), data_source(),
                        decimal_program(), format_program(), worker_hash_program(), terminal_frame_program(),
                        response_program(), JOURNAL_PROJECTION))

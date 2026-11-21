@@ -29,9 +29,10 @@ WORKER_PORT_MODE = 22
 READ_REACTOR_MODE = 23
 STORE_READY_MODE = 24
 JOURNAL_READ_WORKFLOW_MODE = 25
+WORKER_ARGUMENTS_MODE = 26
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
-              READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE)
+              READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -46,7 +47,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE,
          'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE,
          'journal-cost': JOURNAL_COST_MODE, 'read-effect': READ_REACTOR_MODE,
-         'store-ready': STORE_READY_MODE, 'journal-read-workflow': JOURNAL_READ_WORKFLOW_MODE}
+         'store-ready': STORE_READY_MODE, 'journal-read-workflow': JOURNAL_READ_WORKFLOW_MODE,
+         'worker-arguments': WORKER_ARGUMENTS_MODE}
 
 
 def elf_prefix(code):
@@ -77,10 +79,11 @@ def template(mode):
     worker_data = mode == WORKER_DATA_MODE
     worker_response = mode == WORKER_RESPONSE_MODE
     worker_journal = mode == WORKER_JOURNAL_MODE
+    worker_arguments = mode == WORKER_ARGUMENTS_MODE
     journal_cost = mode == JOURNAL_COST_MODE
     store_ready = mode == STORE_READY_MODE
     journal_read = mode == JOURNAL_READ_WORKFLOW_MODE
-    worker = worker_data or worker_response or worker_journal
+    worker = worker_data or worker_response or worker_journal or worker_arguments
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
     direct = page or read_request or store_ready or journal_read
     descriptor = None if direct or schema or worker else (0 if journal_cost else DESCRIPTORS[mode])
@@ -169,7 +172,7 @@ def template(mode):
         # interpreting them. Only the HIA application admits the data.
         emit('49 8d be')
         word(prefix_bytes + scratch)
-        policy = {WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6, WORKER_JOURNAL_MODE: 7}
+        policy = {WORKER_DATA_MODE: 5, WORKER_RESPONSE_MODE: 6, WORKER_JOURNAL_MODE: 7, WORKER_ARGUMENTS_MODE: 8}
         emit(f'48 c7 07 {policy[mode]:02x} 00 00 00 48 83 c7 08')
         emit('4c 89 e6 b9')
         word(worker_header // 8)
