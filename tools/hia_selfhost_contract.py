@@ -320,6 +320,7 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_agent_read_request.py',
     'tools/build_hia_read_carrier.py',
     'examples/hia_bootstrap/agent_read_launcher_packer.hepta',
+    'examples/hia_bootstrap/agent_readonly_launcher_packer.hepta',
     'tools/build_hia_read_launcher.py',
     'examples/hia_bootstrap/worker_read_capsule.hepta',
     'examples/hia_bootstrap/worker_readonly_capsule.hepta',

@@ -1,7 +1,7 @@
 """Assemble a relocatable, explicitly selected HIA worker release.
 
 The existing Worker profile uses the Python service bridge. Releases with the
-standalone read launcher also receive a pinned, relocatable read capsule.
+standalone launchers also receive independent pinned read or read-only capsules.
 """
 
 from __future__ import annotations
@@ -35,7 +35,9 @@ from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
-from tools.build_hia_read_launcher import build as build_read_launcher, bind_release as bind_read_release
+from tools.build_hia_read_launcher import (
+    bind_readonly_release, bind_release as bind_read_release, build as build_read_launcher,
+)
 from tools.build_hia_sha256 import build as build_sha256
 from tools.build_hia_service_context import build as build_service_context
 from tools.build_hia_slot_ledger import build as build_slot_ledger
@@ -477,7 +479,7 @@ def _install_controller(output, scratch, release, installer):
         raise ValueError('installed HIA controller manifest differs from its verified role pins')
 
 
-def build(output, compiler, cold_report, package, package_sha256):
+def build(output, compiler, cold_report, package, package_sha256, *, readonly_artifact_roots=()):
     if not authority._digest(package_sha256):
         raise ValueError('an exact Store release SHA-256 is required')
     output = Path(output).absolute()
@@ -560,26 +562,33 @@ def build(output, compiler, cold_report, package, package_sha256):
                                 journal_executable=journal, store_unique_executable=store_unique,
                                 standalone_worker_data=worker_data, journal_cost_executable=journal_cost)
         profile.chmod(0o400)
-        launcher = release / 'hia-agent-read-launcher'
-        expected_launcher = (build_read_launcher(scratch / 'read-launcher', compiler, cold_report)
-                             if launcher.exists() else None)
+        release_launchers = {}
+        binders = {
+            'read': bind_read_release,
+            'readonly': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots),
+        }
+        for kind in binders:
+            launcher = release / ('hia-agent-' + kind + '-launcher')
+            if launcher.is_file():
+                expected = build_read_launcher(scratch / (kind + '-launcher'), compiler, cold_report, kind=kind)
+                release_launchers[kind] = (launcher, expected)
         with authority.native_helpers_scope(str(profile), pin) as binding:
-            if expected_launcher is not None:
-                capsule = output / 'read-worker-capsule.bin'
-                capsule_pin = bind_read_release(capsule, release, expected_launcher, pin)
+            for kind, (launcher, expected) in release_launchers.items():
+                capsule = output / (kind + '-worker-capsule.bin')
+                capsule_pin = binders[kind](capsule, release, expected, pin)
+                manifest = output / (kind + '-worker.json')
+                with manifest.open('x') as stream:
+                    manifest.chmod(0o400)
+                    json.dump({
+                        'schema': 'hepta.hia.' + kind + '-worker.v1',
+                        'launcher': launcher.relative_to(output).as_posix(),
+                        'launcher_sha256': sha256(expected.read_bytes()).hexdigest(),
+                        'release': release.relative_to(output).as_posix(),
+                        'capsule': capsule.name,
+                        'capsule_sha256': capsule_pin,
+                    }, stream, sort_keys=True, separators=(',', ':'))
+                    stream.write('\n')
             binding.check()
-        if expected_launcher is not None:
-            with (output / 'read-worker.json').open('x') as stream:
-                (output / 'read-worker.json').chmod(0o400)
-                json.dump({
-                    'schema': 'hepta.hia.read-worker.v1',
-                    'launcher': launcher.relative_to(output).as_posix(),
-                    'launcher_sha256': sha256(expected_launcher.read_bytes()).hexdigest(),
-                    'release': release.relative_to(output).as_posix(),
-                    'capsule': capsule.name,
-                    'capsule_sha256': capsule_pin,
-                }, stream, sort_keys=True, separators=(',', ':'))
-                stream.write('\n')
     return profile, pin
 
 
@@ -588,14 +597,17 @@ def main():
     for name in ('output', 'compiler', 'cold-report', 'package'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--package-sha256', required=True)
+    parser.add_argument('--readonly-artifact-root', action='append', type=Path, default=[])
     args = parser.parse_args()
-    profile, pin = build(args.output, args.compiler, args.cold_report, args.package, args.package_sha256)
+    profile, pin = build(args.output, args.compiler, args.cold_report, args.package, args.package_sha256,
+                         readonly_artifact_roots=args.readonly_artifact_root)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
               'package_sha256': args.package_sha256, 'production_activated': False}
-    read_worker = profile.parent / 'read-worker.json'
-    if read_worker.is_file():
-        result.update(native_read_worker_manifest=str(read_worker),
-                      native_read_worker_sha256=sha256(read_worker.read_bytes()).hexdigest())
+    for kind in ('read', 'readonly'):
+        manifest = profile.parent / (kind + '-worker.json')
+        if manifest.is_file():
+            result[f'native_{kind}_worker_manifest'] = str(manifest)
+            result[f'native_{kind}_worker_sha256'] = sha256(manifest.read_bytes()).hexdigest()
     controller = list(profile.parent.glob('controller/*/' + CONTROLLER_MANIFEST))
     if controller:
         manifest, = controller
