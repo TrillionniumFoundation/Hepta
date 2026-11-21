@@ -509,8 +509,27 @@ def reverse_qualifier_dependency(raw, record):
     return restored
 
 
+QUALIFIER_STORE_DEPENDENCY = 'tests/fixtures/caller_terminal_store_composition_v1.json'
+QUALIFIER_STORE_DEPENDENCY_PIN = {'bytes': 13980, 'sha256': '99d25f2f21b71babf31573a27878a5c616f5bf2a60d245d293984cf74a5bedda'}
+QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3632b0d6a9a078a1ae7762c4f491254d46ddb65'}
+
+
 def _admit_qualifier_dependency(raw, capture):
-    if _pin(raw) != QUALIFIER_DEPENDENCY_CURRENT:
+    actual = _pin(raw)
+    if actual == QUALIFIER_STORE_CURRENT:
+        from tests.hia_store_delivery_successor import reverse_exact
+
+        extension = capture(QUALIFIER_STORE_DEPENDENCY)
+        if _pin(extension) != QUALIFIER_STORE_DEPENDENCY_PIN:
+            raise ValueError('qualifier exact Store dependency successor changed')
+        reviewed = json.loads(extension)
+        if (set(reviewed) != {'schema', 'path', 'prior_sha256', 'record'}
+                or reviewed['schema'] != 'hepta.hia.caller-terminal-store-composition.v1'
+                or reviewed['path'] != QUALIFIER_DEPENDENCY_PATH
+                or reviewed['prior_sha256'] != QUALIFIER_DEPENDENCY_CURRENT['sha256']):
+            raise ValueError('qualifier exact Store dependency scope differs')
+        raw = reverse_exact(raw, reviewed['record'], QUALIFIER_DEPENDENCY_CURRENT)
+    elif actual != QUALIFIER_DEPENDENCY_CURRENT:
         raise ValueError('qualifier runtime dependency is neither fixed original nor exact successor')
     frozen = capture(QUALIFIER_DEPENDENCY_FIXTURE)
     if _pin(frozen) != QUALIFIER_DEPENDENCY_FIXTURE_PIN:
@@ -533,13 +552,17 @@ def _admit_qualifier_dependency(raw, capture):
     for path, expected in QUALIFIER_DIAGNOSTIC_DEPENDENCIES.items():
         if _pin(capture(path)) != expected:
             raise ValueError('qualifier diagnostic dependency changed: ' + path)
-    return {'path': QUALIFIER_DEPENDENCY_PATH, 'original': _pin(restored),
-            'current': _pin(raw),
+    proof = {'path': QUALIFIER_DEPENDENCY_PATH, 'original': _pin(restored),
+            'current': actual,
             'authority': {'path': QUALIFIER_DEPENDENCY_FIXTURE, **QUALIFIER_DEPENDENCY_FIXTURE_PIN},
             'captured_dependencies': dict(QUALIFIER_DIAGNOSTIC_DEPENDENCIES),
             'exact_splice_count': 6, 'complete_original_inverse_verified': True,
             'complete_current_forward_replay_verified': True,
             'original_qualifier_authority_unchanged': True, 'production_source_exception': False}
+    if actual == QUALIFIER_STORE_CURRENT:
+        proof['exact_store_successor'] = {'path': QUALIFIER_STORE_DEPENDENCY,
+                                          **QUALIFIER_STORE_DEPENDENCY_PIN}
+    return proof
 
 
 def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
