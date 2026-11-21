@@ -3,22 +3,27 @@ from __future__ import annotations
 
 import ast
 import re
+import struct
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (
-    CIRCUIT_NODES, GRAPH_PROJECTION_REQUEST, PROJECT_CHECKED_CAST, PROJECTION_INPUT_LIMIT,
+    CIRCUIT_NODES, CIRCUIT_REQUEST, GRAPH_PROJECTION_REQUEST, PROJECT_CHECKED_CAST, PROJECTION_INPUT_LIMIT,
     _CORE_TRAP_TAGS, _GRAPH_OPERATIONS, _word_type,
 )
-from hepta.hia_safe_core import LIMITS, WIDTHS_V6
+from hepta.hia_core_proof_wire_native import OBLIGATION_REQUEST
+from hepta.hia_safe_core import LIMITS, WIDTHS_V6, _scalar_caller_contract
 from hepta.hia_schema import PRIMITIVE_PROFILES
 from tools.generate_hia_core_inspect_json import document, source_program
 from tools.generate_hia_core_json_frontend import packed
 
 
 SOURCE = Path('examples/hia_bootstrap/core_proof_wire.hepta')
+REFUSED = 0xfffffffc
 POLICY = r'''
 def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 32 and obligation_word(s, 0) == OBLIGATION_REQUEST:
+        return obligations(s, o, w)
     if length(o) < 32768 or length(o) < length(s) or length(w) < 4096:
         return REFUSED
     put(o, 48, 262144)
@@ -348,6 +353,98 @@ def finish_block(o:mutbuf, w:mutbuf, cursor:u64, role:u64, at:u64, slots:u64, te
 '''
 
 
+OBLIGATIONS = f'''
+def obligations(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 32 or obligation_word(s, 0) != {OBLIGATION_REQUEST}:
+        return {REFUSED}
+    role = obligation_word(s, 8)
+    extent = obligation_word(s, 16)
+    if role > 4 or obligation_word(s, 24) != 0 or extent != length(s) - 32:
+        return {REFUSED}
+    if role < 3:
+        if extent != 0 or length(o) < 32:
+            return {REFUSED}
+        if role == 0:
+            return caller_contract(o)
+        return circuit_header(o, 0, 0)
+    return observed_obligation(s, o, role)
+
+def observed_obligation(s:readbuf, o:mutbuf, role:u64) -> u64:
+    if length(s) < 112 or obligation_word(s, 32) != {CIRCUIT_REQUEST}:
+        return {REFUSED}
+    nodes = obligation_word(s, 40)
+    if nodes == 0 or nodes > {CIRCUIT_NODES} or obligation_word(s, 48) != 3 or obligation_word(s, 56) != 0:
+        return {REFUSED}
+    node_bytes = 40 * nodes
+    if length(s) != 112 + node_bytes:
+        return {REFUSED}
+    if length(o) < 64 + node_bytes:
+        return {REFUSED}
+    if valid_pairs(s, nodes, node_bytes) == 0:
+        return {REFUSED}
+    obligation_copy(s, o, 64, 32, node_bytes)
+    start = choose(role == 3, 0, 1)
+    end = choose(role == 3, 1, 3)
+    index = start
+    written = 0
+    while index < end:
+        row = 64 + node_bytes + 16 * index
+        left = obligation_word(s, row)
+        right = obligation_word(s, row + 8)
+        if left != right:
+            at = 32 + node_bytes + 16 * written
+            put(o, at, left)
+            put(o, at + 8, right)
+            written = written + 1
+        index = index + 1
+    return circuit_header(o, nodes, written)
+
+def valid_pairs(s:readbuf, nodes:u64, node_bytes:u64) -> u64:
+    offset = 0
+    while offset < 48:
+        if obligation_word(s, 64 + node_bytes + offset) >= nodes:
+            return 0
+        offset = offset + 8
+    return 1
+
+def circuit_header(o:mutbuf, nodes:u64, pairs:u64) -> u64:
+    put(o, 0, {CIRCUIT_REQUEST})
+    put(o, 8, nodes)
+    put(o, 16, pairs)
+    put(o, 24, 0)
+    return 32 + 40 * nodes + 16 * pairs
+
+def obligation_word(s:readbuf, offset:u64) -> u64:
+    result = 0
+    index = 0
+    while index < 8:
+        result = result | (byte(s, offset + index) << (index * 8))
+        index = index + 1
+    return result
+
+def obligation_copy(s:readbuf, o:mutbuf, start:u64, target:u64, extent:u64) -> u64:
+    offset = 0
+    while offset < extent:
+        put(o, target + offset, obligation_word(s, start + offset))
+        offset = offset + 8
+    return extent
+'''
+
+
+def caller_contract_source():
+    nodes, pairs, guards = _scalar_caller_contract()
+    assert guards is None
+    frame = struct.pack('<4Q', CIRCUIT_REQUEST, len(nodes), len(pairs), 0)
+    frame += b''.join(struct.pack('<5Q', *node) for node in nodes)
+    frame += b''.join(struct.pack('<2Q', *pair) for pair in pairs)
+    lines = ['def caller_contract(o:mutbuf) -> u64:',
+             f'    if length(o) < {len(frame)}:', f'        return {REFUSED}']
+    for offset, (word,) in enumerate(struct.iter_unpack('<Q', frame)):
+        lines.append(f'    put(o, {8 * offset}, {word})')
+    lines.append(f'    return {len(frame)}')
+    return '\n' + '\n'.join(lines) + '\n'
+
+
 def match(name, domain):
     result = [f'def proof_{name}(w:mutbuf, node:u64) -> u64:',
               '    if kind(w, node) != 4:', '        return 0',
@@ -360,7 +457,8 @@ def match(name, domain):
 
 def program():
     entry = POLICY
-    constants = dict(REFUSED=0xfffffffc, REQUEST=GRAPH_PROJECTION_REQUEST,
+    constants = dict(REFUSED=REFUSED, REQUEST=GRAPH_PROJECTION_REQUEST,
+                     OBLIGATION_REQUEST=OBLIGATION_REQUEST,
                      BLOCKS=LIMITS['blocks'], PATHS=LIMITS['core_paths'], OP_BUDGET=LIMITS['operations'],
                      ABI_WORDS=LIMITS['abi_argument_words'], NODE_BUDGET=CIRCUIT_NODES,
                      WIRE_LIMIT=PROJECTION_INPUT_LIMIT, CHECKED_CAST=PROJECT_CHECKED_CAST)
@@ -374,6 +472,7 @@ def program():
             ('op', _GRAPH_OPERATIONS), ('trap', _CORE_TRAP_TAGS),
             ('term', {'ret': 1, 'trap': 2, 'jump': 3, 'branch': 4}), ('checked', {'checked': 1})):
         entry += '\n' + match(name, domain)
+    entry += OBLIGATIONS + caller_contract_source()
     nodes = ast.parse(source_program(entry=entry)).body
     retained = {'proof_wire'}
     while True:

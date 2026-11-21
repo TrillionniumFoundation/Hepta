@@ -290,6 +290,9 @@ class NativeCnf(NativeHiaJsonImage):
     def bind_scalar_artifact_wire(self, frame):
         return self._bind_artifact_projection(frame, caller_byte=False)
 
+    def project_artifact_observation(self, frame):
+        return self._run_projection(frame)
+
     @staticmethod
     def _decode_projection(reply):
         if reply is None:
@@ -315,7 +318,7 @@ class NativeCnf(NativeHiaJsonImage):
         return self._bind_artifact_projection(frame, caller_byte=caller_byte is not None)
 
     def _bind_artifact_projection(self, frame, *, caller_byte):
-        projected = self._decode_projection(self._run_projection(frame))
+        projected = self._decode_projection(self.project_artifact_observation(frame))
         if projected is None:
             return None
         nodes, observations, _ = projected
