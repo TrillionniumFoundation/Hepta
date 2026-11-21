@@ -28,8 +28,12 @@ def artifact_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return contextual_profile_query(s, o)
     if mode == CONTEXT_PROFILE_OBSERVE:
         return contextual_profile_observation(s, o)
+    if mode == CONTEXT_PROFILE_ADMIT:
+        return contextual_profile_admission(s, o)
     if mode == RETAINED_QUERY:
         return retained_query(s, o)
+    if mode == CONTEXT_RETAINED_QUERY:
+        return contextual_retained_query(s, o)
     if mode == RETAINED_OBSERVE:
         return retained_observation(s, o)
     if mode == INPUT_RESULT:
@@ -73,6 +77,27 @@ def contextual_profile_query(s:readbuf, o:mutbuf) -> u64:
         target_name(o, 80)
     return copy_input(s, o, 16, 80 + width, 64)
 
+# Pinned profile identities are generated from the installation, not from the
+# request or a potentially stale retained Store row. The public schema has
+# already admitted the canonical reference before this equality check.
+def contextual_profile_admission(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 82 or valid_hex(s, 16, 64) == False:
+        return 4294967293
+    role = input_word(s, 8)
+    width = context_profile_width(role)
+    if width == 0:
+        return 4294967293
+    if length(s) != 165 + width:
+        return 4294967286
+    if reference_begin(s, 80) == False or selected_profile(s, 87, role) == False:
+        return 4294967286
+    digest = 87 + width
+    if artifact_digest(s, digest) == False or matches(s, digest + 12, 16, 64) == False:
+        return 4294967286
+    if byte(s, digest + 76) != 34 or byte(s, digest + 77) != 125:
+        return 4294967286
+    return contextual_profile_query(s, o)
+
 def context_profile_width(role:u64) -> u64:
     return choose(role == 1, 15, choose(role == 2, 13, 0))
 
@@ -109,6 +134,16 @@ def selected_profile(s:readbuf, at:u64, kind:u64) -> bool:
 def retained_query(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 192 or input_word(s, 8) > 4 or artifact_reference(s, 16) == False:
         return 4294967293
+    return retained_parameters(s, o)
+
+def contextual_retained_query(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 18 or input_word(s, 8) != 0:
+        return 4294967293
+    if length(s) != 192 or artifact_reference(s, 16) == False:
+        return 4294967288
+    return retained_parameters(s, o)
+
+def retained_parameters(s:readbuf, o:mutbuf) -> u64:
     query_header(o, 0, 1, 90)
     query_field(o, 32, 56, 34)
     return copy_input(s, o, 23, 56, 34)
@@ -230,7 +265,8 @@ def source_program():
         'PROFILE_REF': b'HIARPO01', 'PROFILE_READ': b'HIARPO02',
         'RETAINED_QUERY': b'HIARFG01', 'RETAINED_OBSERVE': b'HIARFG02',
         'RETAINED_READ': b'HIARFO02', 'CONTEXT_PROFILE_QUERY': b'HIARFP01',
-        'CONTEXT_PROFILE_OBSERVE': b'HIARFP02',
+        'CONTEXT_PROFILE_OBSERVE': b'HIARFP02', 'CONTEXT_PROFILE_ADMIT': b'HIARFP03',
+        'CONTEXT_RETAINED_QUERY': b'HIARFG03',
         'QUERY': b'HIAQPA01', 'ROW': b'HIAROW01', 'DOCUMENT': b'HIADOC01',
         'PROFILE_HEAD': b'hia-arti', 'PROFILE_END': b'fact-v1',
     }
@@ -245,7 +281,8 @@ def source_program():
     program += RELEASE_POLICY[RELEASE_POLICY.index('\ndef decimal('):RELEASE_POLICY.index('\ndef hex(')]
     program = program.replace('state_put(', 'put(')
     for name, raw in (
-        ('artifact_start', b'{"id":"a-'), ('artifact_digest', b'","sha256":"'),
+        ('artifact_start', b'{"id":"a-'), ('reference_begin', b'{"id":"'),
+        ('artifact_digest', b'","sha256":"'),
         ('artifact_uri', b'","uri":"hia://artifacts/'),
         ('context_text', b'context'), ('program_text', b'core'),
         ('compiler_profile', b'hia-compiler-v1'), ('target_profile', b'hia-target-v1'),
