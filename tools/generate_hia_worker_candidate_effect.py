@@ -132,6 +132,13 @@ def after_input(o:mutbuf, w:mutbuf, event:u64, status:u64, body:u64) -> u64:
 def after_transform(s:readbuf, o:mutbuf, w:mutbuf, status:u64, body:u64) -> u64:
     if status == 1 and body == 0 and state_word(w, 16) >= 3:
         return refuse(o, w, 10)
+    if status == 2:
+        if body < 18 or body > length(o) - 116 or input_word(s, 40) != DIAGNOSTIC:
+            return INVALID
+        if input_word(s, 48) != body - 16 or byte(s, 56) != 123 or byte(s, length(s) - 1) != 125:
+            return INVALID
+        end = copy_input(s, o, 56, 116, body - 16)
+        return outcome(o, w, 7, 0, end)
     if status != 0 or body != 128 or valid_hex(s, 40, 128) == False:
         return INVALID
     copy_input(s, w, 40, 48, 128)
@@ -193,6 +200,7 @@ def source_program():
     tags = {
         "EVENT": b"HIAFDE01", "ACTION": b"HIACNA01", "REQUEST": b"HIACAN01",
         "DOCUMENT": b"HIADOC01", "OUTCOME": b"HIACND01", "CONTEXT_PREFIX": b"ctx-",
+        "DIAGNOSTIC": b"HIACDJ01",
     }
     constants = {name: int.from_bytes(value, "little") for name, value in tags.items()}
     constants["INVALID"] = 4294967295

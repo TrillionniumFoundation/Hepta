@@ -120,6 +120,7 @@ CANDIDATES = {
     'candidate-request': ('worker_candidate_request', 'candidate-request'),
     'candidate-effect': ('worker_candidate_effect', 'candidate-effect'),
     'candidate-json-ingress': ('worker_candidate_json_ingress', 'candidate-json-ingress'),
+    'candidate-admission-diagnostic': ('worker_candidate_admission_diagnostic', 'candidate-admission-diagnostic'),
     'inspection-effect': ('worker_inspection_effect', 'inspection-effect'),
     'borrowed-export-wire': ('borrowed_export_wire', 'borrowed-export-wire'),
     'borrowed-wrapper': ('borrowed_wrapper', 'borrowed-wrapper'),
