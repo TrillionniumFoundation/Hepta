@@ -26,6 +26,7 @@ VARIANTS = {
     'read-page': ('agent_read_page', 'hepta.hia.agent-read-page-native.v1'),
     'store-unique': ('agent_store_transport', 'hepta.hia.agent-store-transport-native.v1'),
     'read-request': ('agent_read_request', 'hepta.hia.agent-read-request-native.v1'),
+    'read-effect': ('agent_read_request', 'hepta.hia.agent-read-request-native.v1'),
     'journal': ('agent_journal', 'hepta.hia.agent-journal-native.v2'),
     'journal-cost': ('agent_journal_transport', 'hepta.hia.journal-cost-native.v1'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),

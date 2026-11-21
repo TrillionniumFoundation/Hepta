@@ -26,8 +26,10 @@ WORKER_RESPONSE_MODE = 19
 WORKER_JOURNAL_MODE = 20
 JOURNAL_COST_MODE = 21
 WORKER_PORT_MODE = 22
+READ_REACTOR_MODE = 23
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
-              WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE)
+              WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
+              READ_REACTOR_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -41,7 +43,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
          'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE,
          'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE,
-         'journal-cost': JOURNAL_COST_MODE}
+         'journal-cost': JOURNAL_COST_MODE, 'read-effect': READ_REACTOR_MODE}
 
 
 def elf_prefix(code):
@@ -58,6 +60,8 @@ def resolve(code, labels, branches):
 
 
 def template(mode):
+    if mode == READ_REACTOR_MODE:
+        return read_reactor_template()
     if mode == STORE_UNIQUE_MODE:
         return store_unique_template()
     if mode == CONNECTION_MODE:
@@ -711,6 +715,33 @@ def store_unique_template():
         'bf 02 00 00 00 eb 05 bf 04 00 00 00 b8 3c 00 00 00 0f 05 0f 0b '
     )
     return elf_prefix(code), len(elf_prefix(b"")) + 439
+
+
+def read_reactor_template():
+    """Retain the HIA read effect's private state across observations."""
+    code = bytes.fromhex(
+        # Allocate one private HIA arena for the retained read session.
+        '48 83 3c 24 01 0f 85 3e 01 00 00 31 ff be 08 e0 00 00 ba 03 00 00 00 41 '
+        'ba 22 00 00 00 41 b8 ff ff ff ff 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 '
+        'f0 ff ff 0f 83 17 01 00 00 49 89 c4 '
+        # Read only the fixed observation frame and its bounded tail.
+        '4c 89 e6 ba 28 00 00 00 e8 c8 00 00 00 83 f8 00 0f 84 f3 00 00 00 83 f8 '
+        '01 0f 85 f5 00 00 00 48 b8 48 49 41 46 44 45 30 31 49 39 04 24 0f 85 da '
+        '00 00 00 4d 8b 6c 24 20 49 81 fd d8 3f 00 00 0f 87 c8 00 00 00 4d 85 ed '
+        '74 16 49 8d 74 24 28 4c 89 ea e8 7e 00 00 00 83 f8 01 0f 85 b4 00 00 00 '
+        # Call HIA in the same arena; write the bounded raw action.
+        '4c 89 e7 49 8d 75 28 49 8d 94 24 08 40 00 00 b9 00 20 00 00 4d 8d 84 24 '
+        '08 60 00 00 41 b9 00 80 00 00 e8 00 00 00 00 89 c0 49 89 84 24 00 40 00 '
+        '00 ba 08 00 00 00 83 f8 ff 74 0e 83 f8 30 72 74 3d 00 20 00 00 77 6d 01 '
+        'c2 49 8d b4 24 00 40 00 00 bf 01 00 00 00 b8 01 00 00 00 0f 05 48 83 f8 '
+        'fc 74 ee 48 85 c0 7e 4c 48 01 c6 48 29 c2 75 e1 e9 2b ff ff ff '
+        # Preserve extent across short reads and distinguish truncated input.
+        '45 31 c0 31 ff 31 c0 0f 05 48 83 f8 fc 74 f4 48 85 c0 78 2b 74 11 49 01 '
+        'c0 48 01 c6 48 29 c2 75 e2 b8 01 00 00 00 c3 31 c0 4d 85 c0 74 05 b8 02 '
+        '00 00 00 c3 31 ff eb 0c bf 02 00 00 00 eb 05 bf 04 00 00 00 b8 3c 00 00 '
+        '00 0f 05 0f 0b '
+    )
+    return elf_prefix(code), len(elf_prefix(b'')) + 191
 
 
 def worker_port_prefix():
