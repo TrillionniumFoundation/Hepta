@@ -52,9 +52,19 @@ def kind_width_source():
 def kind_match_source():
     source = '\ndef document_kind_matches(s:readbuf, at:u64, kind:u64) -> bool:\n'
     for index, name in enumerate(DOCUMENT_KINDS, 1):
-        match = ' and '.join(f'byte(s, at + {i}) == {unit}' for i, unit in enumerate(name))
-        source += f'    if kind == {index}:\n        return {match}\n'
-    return source + '    return False\n'
+        fields = ('kind_word(s, at + %d, %d) == %d' % (at, len(chunk), int.from_bytes(chunk, 'little'))
+                  for at in range(0, len(name), 8) if (chunk := name[at:at + 8]))
+        source += f'    if kind == {index}:\n        return ' + ' and '.join(fields) + '\n'
+    return source + '''    return False
+
+def kind_word(s:readbuf, at:u64, width:u64) -> u64:
+    value = 0
+    index = 0
+    while index < width:
+        value = value | (byte(s, at + index) << (8 * index))
+        index = index + 1
+    return value
+'''
 
 
 POLICY = r'''

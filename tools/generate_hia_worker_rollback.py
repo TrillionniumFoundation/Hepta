@@ -14,8 +14,8 @@ from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 from tools.generate_hia_store_transport import POLICY as STORE
 from tools.generate_hia_worker_artifact_authority import source_program as authority
-from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal
-from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_context_request import POLICY as CONTEXT
+from tools.generate_hia_worker_inspection_effect import function, literal as packed_literal
 from tools.generate_hia_worker_inspection_request import POLICY as INSPECTION
 
 SOURCE = Path('examples/hia_bootstrap/worker_rollback.hepta')
@@ -433,6 +433,10 @@ def rollback_outcome(s:readbuf, o:mutbuf) -> u64:
     copy_input(s, o, 32, 32, context)
     return copy_input(s, o, 32 + context, 68, extent)
 '''
+
+
+def literal(name, text):
+    return packed_literal(name, text.encode('ascii')).replace('state_put(', 'put(')
 
 
 def errors():
