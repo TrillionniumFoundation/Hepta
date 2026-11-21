@@ -1,4 +1,4 @@
-"""Author atomic context and execution-budget Store bindings."""
+"""Author native retained-context queries and atomic creation bindings."""
 from pathlib import Path
 import re
 
@@ -11,7 +11,14 @@ SOURCE = Path('examples/hia_bootstrap/worker_context_store.hepta')
 
 POLICY = r'''
 def context_store(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) != 208 or length(o) < 640 or input_word(s, 0) != CREATE:
+    if length(s) < 8 or length(o) < 640:
+        return 4294967293
+    mode = input_word(s, 0)
+    if mode == LOOKUP:
+        return context_lookup(s, o)
+    if mode == OBSERVE:
+        return context_observe(s, o)
+    if mode != CREATE or length(s) != 208:
         return 4294967293
     if artifact_reference(s, 32) == False:
         return 4294967293
@@ -38,6 +45,71 @@ def context_store(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     field(o, end + 40, 64, 36)
     context_name(s, o, end + 64)
     return end + 100
+
+# Query the original five-column context row by server-generated ID.
+def context_lookup(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 44 or is_context_name(s, 8) == False:
+        return 4294967293
+    query_header(o, 0, 1, 92)
+    query_field(o, 32, 56, 36)
+    return copy_input(s, o, 8, 56, 36)
+
+# Compare the requested reference to a correlated sealed Store observation.
+# Distinguish an unknown ID from a mismatched digest as the controller does,
+# without yielding a usable artifact reference on either path.
+def context_observe(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 184 or input_word(s, 32) & 4294967295 != 0 or is_context_name(s, 36) == False or valid_hex(s, 72, 64) == False:
+        return 4294967293
+    size = input_word(s, 8)
+    if size != length(s) - 184 or unique_summary(s, 136 + size, size) == False:
+        return 4294967293
+    put(o, 0, RESOLVED)
+    if size == 0:
+        put(o, 8, 1)
+        return 16
+    row = 136
+    if size < 437 or size > 456 or row_header(s, row, 3, 5) == False:
+        return 4294967293
+    if row_text(s, row + 32, 152, 36) == False or row_text(s, row + 56, 188, 64) == False:
+        return 4294967293
+    if row_text(s, row + 80, 252, 176) == False or row_text(s, row + 104, 428, size - 436) == False:
+        return 4294967293
+    if input_word(s, row + 128) != 1 or input_word(s, row + 136) != size - 8 or input_word(s, row + 144) != 8:
+        return 4294967293
+    if matches(s, row + 152, 36, 36) == False or valid_hex(s, row + 188, 64) == False:
+        return 4294967293
+    if matches(s, row + 188, 72, 64) == False:
+        put(o, 8, 2)
+        return 16
+    if artifact_reference(s, row + 252) == False or matches(s, row + 305, 72, 64) == False:
+        return 4294967293
+    attempts = input_word(s, row + size - 8)
+    if attempts > 9223372036854775807 or decimal_time(s, row + 428, size - 436) == False:
+        return 4294967293
+    put(o, 8, 0)
+    put(o, 16, attempts)
+    put(o, 24, size - 436)
+    copy_input(s, o, row + 252, 32, 176)
+    return copy_input(s, o, row + 428, 208, size - 436)
+
+def decimal_time(s:readbuf, at:u64, width:u64) -> bool:
+    if width > 1 and byte(s, at) == 48:
+        return False
+    value = 0
+    index = 0
+    while index < width:
+        digit = byte(s, at + index)
+        if digit < 48 or digit > 57:
+            return False
+        digit = digit - 48
+        if value > 1844674407370955161 or (value == 1844674407370955161 and digit > 5):
+            return False
+        value = value * 10 + digit
+        index = index + 1
+    return True
+
+def is_context_name(s:readbuf, at:u64) -> bool:
+    return byte(s, at) == 99 and byte(s, at + 1) == 116 and byte(s, at + 2) == 120 and byte(s, at + 3) == 45 and valid_hex(s, at + 4, 32)
 
 def insert(o:mutbuf, at:u64, ordinal:u64, count:u64) -> u64:
     put(o, at, INSERT)
@@ -70,12 +142,14 @@ def nibble(value:u64) -> u64:
 
 
 def program():
-    constants = {'CREATE': b'HIACTS01', 'BINDINGS': b'HIACTB01', 'INSERT': b'HIAINS01'}
+    constants = {'CREATE': b'HIACTS01', 'BINDINGS': b'HIACTB01', 'INSERT': b'HIAINS01', 'LOOKUP': b'HIACTL01', 'OBSERVE': b'HIACTO01',
+                 'RESOLVED': b'HIACTO02'}
     code = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                   lambda match: str(int.from_bytes(constants[match.group()], 'little')), POLICY)
     shared = artifact_policy()
     for name in ('artifact_reference', 'artifact_start', 'artifact_digest', 'artifact_uri',
-                 'input_word', 'valid_hex', 'put', 'copy_input'):
+                 'input_word', 'valid_hex', 'put', 'copy_input', 'query_header', 'query_field',
+                 'unique_summary', 'row_header', 'row_text', 'matches'):
         signature = '\ndef ' + name + '('
         start = shared.index(signature)
         end = shared.find('\ndef ', start + len(signature))

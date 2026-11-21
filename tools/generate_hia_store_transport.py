@@ -138,6 +138,9 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 26:
         if mode != 0 or valid_context_claim(s, size) == False:
             return 0
+    elif plan == 4:
+        if size != 92 or valid_context_lookup(s) == False:
+            return 0
     elif plan == 12:
         if valid_worker_profile_lookup(s, size) == False:
             return 0
@@ -208,6 +211,13 @@ def valid_worker_profile_lookup(s:readbuf, size:u64) -> bool:
     if worker_profile_id(s, 128, width) == False:
         return False
     return valid_hex(s, 128 + width, 64)
+
+def valid_context_lookup(s:readbuf) -> bool:
+    if read_word(s, 48) != QUERY_PARAMETERS or read_word(s, 56) != 1:
+        return False
+    if read_word(s, 64) != 1 or read_word(s, 72) != 92:
+        return False
+    return valid_cell(s, 80, 3, 56, 36) and context_id(s, 104)
 
 def valid_context_claim(s:readbuf, size:u64) -> bool:
     if size != 80 or read_word(s, 48) != CONTEXT_CLAIM or read_word(s, 56) != 0:
@@ -467,9 +477,9 @@ def durable_write(plan:u64) -> bool:
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 8, request)
     write_word(w, 16, plan)
-    write_word(w, 24, choose(plan == 6, 6, choose(plan == 9, 4, choose(plan == 12, 2, 1))))
-    write_word(w, 32, choose(plan == 6, 15, choose(plan == 12, 4, 63)))
-    return write_word(w, 40, choose(plan == 6 or plan == 12, 512, choose(plan == 9, 8389120, 1000000032)))
+    write_word(w, 24, choose(plan == 4, 3, choose(plan == 6, 6, choose(plan == 9, 4, choose(plan == 12, 2, 1)))))
+    write_word(w, 32, choose(plan == 4, 31, choose(plan == 6, 15, choose(plan == 12, 4, 63))))
+    return write_word(w, 40, choose(plan == 4 or plan == 6 or plan == 12, 512, choose(plan == 9, 8389120, 1000000032)))
 
 def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
     plan = read_state(w, 16)
