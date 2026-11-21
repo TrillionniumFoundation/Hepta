@@ -546,6 +546,30 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
             result = self.invoke(invalid)
             self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
 
+    def test_native_supervisor_reduces_raw_wait_status_and_output_lifecycle(self):
+        for status, flags, output, expected in (
+            (0, 0, (3, 0, 0, 3), (0, 0, 0, 1, 1)),
+            (0, 0, (3, 0, 0, 1), (0, 0, 74, 1, 0)),
+            (0, 0, (1, 0, 0, 3), (0, 0, 74, 0, 0)),
+            (0, 0, (3, 2, 0, 3), (0, 0, 74, 0, 0)),
+            (0, 0, (3, 0, 1, 3), (0, 0, 74, 0, 0)),
+            (7 << 8, 0, (3, 1, 0, 3), (7, 7, 7, 0, 0)),
+            (255 << 8, 0, (3, 0, 0, 3), (255, 255, 255, 1, 1)),
+            (15, 0, (3, 0, 0, 3), (-15, -15, 1, 1, 1)),
+            (128 | 11, 0, (3, 0, 0, 3), (-11, -11, 1, 1, 1)),
+            (9, 1, (3, 0, 0, 3), (-9, 124, 124, 1, 1)),
+            (0, 3, (3, 0, 0, 3), (0, 125, 125, 0, 0)),
+        ):
+            with self.subTest(status=status, flags=flags, output=output):
+                request = struct.pack('<8s6Q', b'HIAJSQ01', status, flags, *output)
+                result = self.invoke(request)
+                response = struct.pack('<8s2q3Q', b'HIAJSO01', *expected)
+                self.assertEqual((result.returncode, result.stdout, result.stderr), (0, response, b''))
+        for status, flags, eof in ((0x137f, 0, 3), (128, 0, 3), (0xffff, 0, 3),
+                                   (256 | 9, 0, 3), (1 << 16, 0, 3), (0, 4, 3), (0, 0, 4)):
+            result = self.invoke(struct.pack('<8s6Q', b'HIAJSQ01', status, flags, eof, 0, 0, 3))
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
     def test_invalid_frames_leave_stdout_empty(self):
         normal = frame((b'{}', PROFILE, b'{}', b'"hia_describe"', b''))
         for invalid in (b'', normal[:111], normal[:-1], normal + b'z',

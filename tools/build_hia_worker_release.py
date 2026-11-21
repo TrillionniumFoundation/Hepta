@@ -180,6 +180,18 @@ def _verify_terminal_publisher(writer, scratch):
             raise ValueError('installed HIA terminal publisher did not preserve the complete witness bytes')
 
 
+def _worker_prepare_has_supervisor_outcome(prepare):
+    frame = struct.pack('<8s6Q', b'HIAJSQ01', 15, 3, 3, 0, 0, 3)
+    expected = struct.pack('<8s2q3Q', b'HIAJSO01', -15, 125, 125, 0, 0)
+    result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+    observed = result.returncode, result.stdout, result.stderr
+    if observed == (2, b'', b''):
+        return False
+    if observed != (0, expected, b''):
+        raise ValueError('installed HIA worker preparation has an invalid raw supervisor outcome protocol')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -206,6 +218,8 @@ def _install_controller(output, scratch, release, installer):
             if _worker_prepare_has_witness_publisher(release / 'hia-worker-prepare'):
                 _verify_terminal_publisher(receipt_writer, scratch)
                 schema = 'hepta.hia.mcp.controller.v6'
+                if _worker_prepare_has_supervisor_outcome(release / 'hia-worker-prepare'):
+                    schema = 'hepta.hia.mcp.controller.v7'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

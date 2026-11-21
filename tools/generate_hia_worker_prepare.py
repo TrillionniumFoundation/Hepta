@@ -37,6 +37,8 @@ JOB_TERMINAL_OUTPUT = b'HIAJTV01'
 JOB_WITNESS_INPUT = b'HIAJWC01'
 JOB_WITNESS_OUTPUT = b'HIAJWR01'
 JOB_WITNESS_ENCODE = b'HIAJWE01'
+SUPERVISOR_INPUT = b'HIAJSQ01'
+SUPERVISOR_OUTPUT = b'HIAJSO01'
 CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
@@ -72,6 +74,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_witness(s, o, w)
     if magic == JOB_WITNESS_ENCODE:
         return encode_exit_witness(s, o, w)
+    if magic == SUPERVISOR_INPUT:
+        return supervisor_outcome(s, o)
     if magic == CAPTURE_POLICY_INPUT:
         return capture_policy(s, o)
     if magic == JOB_LIFECYCLE_INPUT:
@@ -388,6 +392,45 @@ def job_terminal_state(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 0, JOB_TERMINAL_OUTPUT)
     word_store(o, 8, state)
     return 16
+
+def supervisor_outcome(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 56 or length(o) < 48:
+        return 4294967293
+    status = word_load(s, 8)
+    flags = word_load(s, 16)
+    eof = word_load(s, 24)
+    errors = word_load(s, 32)
+    truncated = word_load(s, 40)
+    synced = word_load(s, 48)
+    if status > 65535 or flags > 3 or eof > 3 or errors > 3 or truncated > 3 or synced > 3:
+        return 4294967293
+    signum = status & 127
+    child = status >> 8
+    if signum == 0:
+        if (status & 128) != 0:
+            return 4294967293
+    else:
+        if signum > 64 or child != 0:
+            return 4294967293
+        child = 0 - signum
+    unknown = (flags & 2) != 0
+    complete = choose(unknown == False and eof == 3 and errors == 0 and truncated == 0, 1, 0)
+    durable = choose(complete == 1 and synced == 3, 1, 0)
+    terminal = choose((flags & 1) != 0, 124, child)
+    if unknown:
+        terminal = 125
+    process_status = terminal
+    if process_status == 0 and durable == 0:
+        process_status = 74
+    if process_status > 255:
+        process_status = 1
+    word_store(o, 0, SUPERVISOR_OUTPUT)
+    word_store(o, 8, child)
+    word_store(o, 16, terminal)
+    word_store(o, 24, process_status)
+    word_store(o, 32, complete)
+    word_store(o, 40, durable)
+    return 48
 
 def job_witness(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if length(s) < 96 or length(o) < 16:
@@ -984,6 +1027,8 @@ def source_program():
               .replace('JOB_WITNESS_INPUT', str(int.from_bytes(JOB_WITNESS_INPUT, 'little')))
               .replace('JOB_WITNESS_OUTPUT', str(int.from_bytes(JOB_WITNESS_OUTPUT, 'little')))
               .replace('JOB_WITNESS_ENCODE', str(int.from_bytes(JOB_WITNESS_ENCODE, 'little')))
+              .replace('SUPERVISOR_INPUT', str(int.from_bytes(SUPERVISOR_INPUT, 'little')))
+              .replace('SUPERVISOR_OUTPUT', str(int.from_bytes(SUPERVISOR_OUTPUT, 'little')))
               .replace('CAPTURE_POLICY_INPUT', str(int.from_bytes(CAPTURE_POLICY_INPUT, 'little')))
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
