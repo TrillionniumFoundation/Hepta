@@ -20,6 +20,7 @@ TERMINAL_MODE = PAGE_MODE + 1
 SCHEMA_MODE = TERMINAL_MODE + 1
 CONNECTION_MODE = SCHEMA_MODE + 1
 READ_REQUEST_MODE = CONNECTION_MODE + 1
+STORE_UNIQUE_MODE = READ_REQUEST_MODE + 1
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 # The installed pager returns its canonical JSON alongside the cursor insertion.
@@ -30,7 +31,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,
          'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
          'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE,
-         'read-request': READ_REQUEST_MODE}
+         'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE}
 
 
 def elf_prefix(code):
@@ -47,6 +48,8 @@ def resolve(code, labels, branches):
 
 
 def template(mode):
+    if mode == STORE_UNIQUE_MODE:
+        return store_unique_template()
     if mode == CONNECTION_MODE:
         return connection_template()
     if mode == TERMINAL_MODE:
@@ -588,6 +591,68 @@ def connection_template():
     return prefix, len(prefix) - len(code) + displacement
 
 
+def store_unique_template():
+    """Carry a HIA-owned Store query through an inherited reply descriptor."""
+    # Fixed Linux x86-64 descriptor operations; no Store fields are parsed here.
+    code = bytes.fromhex(
+        # Require one decimal inherited Store descriptor; FD 0 and 1 are private transport.
+        '48 83 3c 24 02 0f 85 9d 02 00 00 48 8b 74 24 10 45 31 ed 31 c9 '
+        # Parse an ASCII descriptor bounded to the signed Linux fd range.
+        '0f b6 06 85 c0 74 30 83 f9 0a 0f 83 83 02 00 00 83 e8 30 83 f8 09 '
+        '0f 87 77 02 00 00 4d 6b ed 0a 49 01 c5 49 81 fd ff ff ff 7f 0f 87 '
+        '63 02 00 00 48 ff c6 ff c1 eb c9 '
+        # Reserve aligned input, output, state and poll storage.
+        '41 83 fd 03 0f 82 52 02 00 00 48 81 ec c0 40 00 00 49 89 e4 fc '
+        # Require an exact sealed 24-byte prelude and a fresh sealable sink.
+        '31 ff be 0a 04 00 00 b8 48 00 00 00 0f 05 48 85 c0 0f 88 30 02 00 '
+        '00 83 e0 0f 83 f8 0f 0f 85 24 02 00 00 31 ff 49 8d b4 24 00 20 00 '
+        '00 b8 05 00 00 00 0f 05 48 85 c0 0f 85 11 02 00 00 49 83 bc 24 30 '
+        '20 00 00 18 0f 85 fb 01 00 00 bf 01 00 00 00 be 0a 04 00 00 b8 48 '
+        '00 00 00 0f 05 48 85 c0 0f 85 e1 01 00 00 bf 01 00 00 00 31 f6 ba '
+        '02 00 00 00 b8 08 00 00 00 0f 05 48 85 c0 0f 85 c5 01 00 00 '
+        # Read the prelude into scratch; initial HIA state is zero.
+        '49 8d bc 24 00 40 00 00 31 c0 b9 10 00 00 00 f3 48 ab 31 ff 4c 89 '
+        'e6 ba 18 00 00 00 e8 1c 01 00 00 41 be 18 00 00 00 '
+        # Invoke the one embedded HIA continuation and bound its reply extent.
+        '4c 89 e7 4c 89 f6 49 8d 94 24 00 20 00 00 b9 e0 1f 00 00 4d 8d 84 '
+        '24 00 40 00 00 41 b9 80 00 00 00 e8 00 00 00 00 83 f8 20 0f 82 6f '
+        '01 00 00 3d e0 1f 00 00 0f 87 64 01 00 00 41 89 c7 49 8d 9c 24 00 '
+        '20 00 00 48 8b 03 48 8b 53 08 48 83 f8 01 74 4d 48 83 f8 02 74 53 '
+        '48 83 f8 03 0f 85 3c 01 00 00 '
+        # Append the terminal footer, seal the complete sink, and return success.
+        '41 83 ff 20 0f 85 32 01 00 00 48 89 de ba 20 00 00 00 e8 05 01 00 '
+        '00 bf 01 00 00 00 be 09 04 00 00 ba 0f 00 00 00 b8 48 00 00 00 0f '
+        '05 48 85 c0 0f 85 0d 01 00 00 31 ff e9 0b 01 00 00 '
+        # An exact read descriptor is one 32-byte response.
+        '41 83 ff 20 0f 85 f5 00 00 00 eb 31 '
+        # Copy only accepted bytes to the private sink, then read the next tag.
+        '48 85 d2 0f 84 ea 00 00 00 48 81 fa c0 1f 00 00 0f 87 dd 00 00 00 '
+        '48 8d 42 20 4c 39 f8 0f 85 d0 00 00 00 48 8d 73 20 e8 a7 00 00 00 '
+        'ba 08 00 00 00 '
+        # Prefix the exact next Store bytes with the HIA continuation tag.
+        '48 85 d2 0f 84 b9 00 00 00 48 81 fa c0 1f 00 00 0f 87 ac 00 00 00 '
+        '4c 8d 72 08 48 b8 48 49 41 53 54 55 43 31 49 89 04 24 44 89 ef 49 '
+        '8d 74 24 08 e8 05 00 00 00 e9 ea fe ff ff '
+        # Preserve the fd, pointer, and remaining length across Linux syscalls.
+        '41 89 f8 49 89 f1 41 89 d2 '
+        # Poll the already owned Store fd; retry EINTR/EAGAIN without consuming twice.
+        '45 89 84 24 80 40 00 00 41 c7 84 24 84 40 00 00 01 00 00 00 49 8d '
+        'bc 24 80 40 00 00 be 01 00 00 00 ba 10 27 00 00 b8 07 00 00 00 0f '
+        '05 48 83 f8 fc 74 cd 48 85 c0 7e 4e 44 89 c7 4c 89 ce 44 89 d2 31 '
+        'c0 0f 05 48 83 f8 fc 74 b5 48 83 f8 f5 74 af 48 85 c0 7e 30 49 01 '
+        'c1 49 29 c2 75 a2 c3 '
+        # Carry all accepted bytes to the private result fd.
+        'bf 01 00 00 00 b8 01 00 00 00 0f 05 48 83 f8 fc 74 ee 48 85 c0 7e '
+        '10 48 01 c6 48 29 c2 75 e1 c3 '
+        # HIA or input custody refused.
+        'bf 02 00 00 00 eb 05 '
+        # Incomplete descriptor transfer.
+        'bf 04 00 00 00 '
+        # Exit without a dynamic loader.
+        'b8 3c 00 00 00 0f 05 0f 0b '
+    )
+    return elf_prefix(code), len(elf_prefix(b'')) + 300
+
 def render():
     source = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     count = length(s)
@@ -595,10 +660,10 @@ def render():
         return 4294967295
     mode = read_word(s, 8)
 '''
-    for mode in range(READ_REQUEST_MODE + 1):
+    for mode in range(STORE_UNIQUE_MODE + 1):
         source += f'    if mode == {mode}:\n        return pack_{mode}(s, o)\n'
     source += '    return 4294967295\n'
-    for mode in range(READ_REQUEST_MODE + 1):
+    for mode in range(STORE_UNIQUE_MODE + 1):
         prefix, call = template(mode)
         source += f'''
 def pack_{mode}(s:readbuf, o:mutbuf) -> u32:
