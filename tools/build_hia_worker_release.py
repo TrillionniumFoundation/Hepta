@@ -1,7 +1,7 @@
 """Assemble a relocatable, explicitly selected HIA worker release.
 
-The selected process still uses the installed Python custody/service bridge.
-Only the program images and policy manifests are deployed by this command.
+The existing Worker profile uses the Python service bridge. Releases with the
+standalone read launcher also receive a pinned, relocatable read capsule.
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
+from tools.build_hia_read_launcher import build as build_read_launcher, bind_release as bind_read_release
 from tools.build_hia_sha256 import build as build_sha256
 from tools.build_hia_service_context import build as build_service_context
 from tools.build_hia_slot_ledger import build as build_slot_ledger
@@ -558,9 +559,27 @@ def build(output, compiler, cold_report, package, package_sha256):
                                 read_page_executable=read_page, initialize_fresh=True,
                                 journal_executable=journal, store_unique_executable=store_unique,
                                 standalone_worker_data=worker_data, journal_cost_executable=journal_cost)
-    profile.chmod(0o400)
-    with authority.native_helpers_scope(str(profile), pin) as binding:
-        binding.check()
+        profile.chmod(0o400)
+        launcher = release / 'hia-agent-read-launcher'
+        expected_launcher = (build_read_launcher(scratch / 'read-launcher', compiler, cold_report)
+                             if launcher.exists() else None)
+        with authority.native_helpers_scope(str(profile), pin) as binding:
+            if expected_launcher is not None:
+                capsule = output / 'read-worker-capsule.bin'
+                capsule_pin = bind_read_release(capsule, release, expected_launcher, pin)
+            binding.check()
+        if expected_launcher is not None:
+            with (output / 'read-worker.json').open('x') as stream:
+                (output / 'read-worker.json').chmod(0o400)
+                json.dump({
+                    'schema': 'hepta.hia.read-worker.v1',
+                    'launcher': launcher.relative_to(output).as_posix(),
+                    'launcher_sha256': sha256(expected_launcher.read_bytes()).hexdigest(),
+                    'release': release.relative_to(output).as_posix(),
+                    'capsule': capsule.name,
+                    'capsule_sha256': capsule_pin,
+                }, stream, sort_keys=True, separators=(',', ':'))
+                stream.write('\n')
     return profile, pin
 
 
@@ -573,6 +592,10 @@ def main():
     profile, pin = build(args.output, args.compiler, args.cold_report, args.package, args.package_sha256)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
               'package_sha256': args.package_sha256, 'production_activated': False}
+    read_worker = profile.parent / 'read-worker.json'
+    if read_worker.is_file():
+        result.update(native_read_worker_manifest=str(read_worker),
+                      native_read_worker_sha256=sha256(read_worker.read_bytes()).hexdigest())
     controller = list(profile.parent.glob('controller/*/' + CONTROLLER_MANIFEST))
     if controller:
         manifest, = controller

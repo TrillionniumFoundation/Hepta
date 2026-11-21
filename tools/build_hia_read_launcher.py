@@ -7,14 +7,21 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import struct
+import sys
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_contract import installation_manifest
+from hepta.hia_agent_journal_native import _catalog_bytes
+from hepta.hia_agent_store import wire
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
+from hepta.hia_native_helpers import _read
 from tools.build_hia_json_preflight import ROOT, admit_cold_build, current_sources
 from tools.generate_hia_agent_stdio import document, writes
 from tools.generate_hia_core_json_cli import source_program
 from tools.generate_hia_mcp_stdio_packer import elf_prefix
-from tools.generate_hia_read_capsule import SOURCE as AUTHORITY
+from tools.generate_hia_read_capsule import (
+    DOSSIER_MAGIC, MANIFEST_MAGIC, MAX_ROLE_BYTES, ROLES, SOURCE as AUTHORITY,
+)
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -115,6 +122,57 @@ def build(output, compiler, cold_report):
         }, stream, indent=2)
         stream.write('\n')
     return target
+
+
+def bind_release(target, release, expected_launcher, profile_pin):
+    """Write the capability capsule after the installed Worker pins exist.
+
+    The caller owns the selected Worker scope. Keeping the capsule outside
+    the Store package avoids a cycle through the package and Worker digests.
+    """
+    launcher = release / 'hia-agent-read-launcher'
+    expected = expected_launcher.read_bytes()
+    if _read(launcher, HEADER_SIZE + PLATFORM_SIZE + IMAGE_LIMIT).raw != expected:
+        raise ValueError('installed read launcher differs from the cold build')
+    raw_authority = expected[HEADER_SIZE + PLATFORM_SIZE:]
+    authority = NativeHiaJsonImage(raw_authority, sha256(raw_authority).hexdigest())
+    roles = [_read(release / name, MAX_ROLE_BYTES) for name in ROLES]
+    identities = installation_manifest()
+    catalog = _catalog_bytes()
+    if (identities.get('native_helpers_sha256') != profile_pin
+            or identities['catalog_sha256'] != sha256(catalog).hexdigest()):
+        raise ValueError('read capsule does not match the installed Worker scope')
+    pins = (identities[key].encode('ascii') for key in (
+        'catalog_sha256', 'backend_sha256', 'worker_sha256', 'native_helpers_sha256'))
+    observed = wire(identities)
+    dossier = struct.pack('<8s6Q64s64s64s64s', DOSSIER_MAGIC, sys.get_int_max_str_digits(),
+                          1, len(catalog), len(observed), len(observed), 0, *pins)
+    dossier += catalog + observed + observed
+
+    def verify(raw, mode, ordinal):
+        digest = sha256(raw).digest()
+        flags = struct.pack('<32s3Q', digest, mode, ordinal, len(raw))
+        source = ctypes.create_string_buffer(raw, len(raw))
+        checked = ctypes.create_string_buffer(bytes(32) + flags, 88)
+        scratch = ctypes.create_string_buffer(1088)
+        status = authority._entry(source, len(raw), checked, 88, scratch, 1088)
+        if status != 1 or checked.raw != digest + flags or source.raw != raw:
+            raise ValueError('installed read capability failed native capsule admission')
+        return digest
+
+    manifest = struct.pack('<8s4Q', MANIFEST_MAGIC, 1, len(roles), len(dossier), 0)
+    manifest += b''.join(struct.pack('<2Q32s', ordinal, len(role.raw),
+                                    verify(role.raw, 2, ordinal))
+                         for ordinal, role in enumerate(roles, 1))
+    manifest += dossier
+    capsule_pin = verify(manifest, 1, 0).hex()
+    for role in roles:
+        if _read(role.path, MAX_ROLE_BYTES) != role:
+            raise ValueError('installed read capability changed before capsule publication')
+    with target.open('xb') as stream:
+        target.chmod(0o400)
+        stream.write(manifest)
+    return capsule_pin
 
 
 if __name__ == '__main__':
