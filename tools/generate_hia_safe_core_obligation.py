@@ -104,7 +104,6 @@ def find_model(w:mutbuf, phase:u64) -> u64:
     size = get(w, 64)
     if phase == 5 or phase == 7:
         if phase == 5 and size == TOO_LARGE:
-            put(w, 144, 1)
             return control(w, 6, 3, 0, CIRCUIT, get(w, 136), 32, PACKED, CIRCUIT_CAPACITY)
         if formula_ok(w, size) == 0:
             return 0
@@ -154,7 +153,9 @@ def decision(o:mutbuf, w:mutbuf, size:u64) -> u64:
         return check_model(w, size)
     if model == UNSAT and size == 32:
         return emit(o, w, UNSAT)
-    if model == UNKNOWN and size == 32 and cost == lease and get(w, 144) == 1:
+    if model == UNKNOWN and size == 32 and cost == lease:
+        # Exact finite replay is safe even when bit-blasting fit and search
+        # ran out of steps. The word-table owner still enforces live width.
         return control(w, 13, 4, remaining(w), CIRCUIT, get(w, 136), 0, PACKED, CIRCUIT_CAPACITY)
     return 0
 
