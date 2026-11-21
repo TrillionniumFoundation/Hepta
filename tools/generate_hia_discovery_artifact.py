@@ -11,7 +11,7 @@ from tools.generate_hia_sha256 import source_program as sha256_program
 SOURCE = 'examples/hia_bootstrap/discovery_artifact.hepta'
 DOCUMENT_KINDS = (b'profile', b'discovery', b'input', b'context',
                   b'inspection', b'edit-query', b'lowering-object',
-                  b'core', b'candidate-diagnostics')
+                  b'core', b'candidate-diagnostics', b'rollback-receipt', b'slot-snapshot')
 
 CANDIDATE_CONTEXT = '''
 def candidate_context(s:readbuf, at:u64) -> bool:

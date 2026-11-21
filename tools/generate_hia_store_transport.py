@@ -50,6 +50,7 @@ WIRE = {
     'ROLLBACK_TOOL_HEAD': b'hia_roll',
     'ROLLBACK_TOOL_TAIL': b'back',
     'SLOT_LEASE_COUNT': b'HIASTLC1',
+    'ROLLBACK_COMMIT': b'HIARLC01',
     'RUNNING_STATE': b'running',
 }
 
@@ -148,6 +149,9 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 27:
         if mode == 0 or valid_candidate_attempt(s, size) == False:
             return 0
+    elif plan == 32:
+        if mode != 0 or valid_rollback_commit(s, size, request, generation) == False:
+            return 0
     elif plan == 28 or plan == 30:
         if valid_slot_query(s, size) == False:
             return 0
@@ -200,6 +204,9 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     write_word(w, 136, 1)
     if plan == 23 or plan == 26:
         write_word(w, 152, choose(plan == 23, 1, 2))
+        return begin_unique_commit(o, w)
+    if plan == 32:
+        write_word(w, 152, read_word(s, 56))
         return begin_unique_commit(o, w)
     if plan != 18 and plan != 22:
         copy_fields(s, w, 48, 192, size)
@@ -261,6 +268,29 @@ def valid_candidate_attempt(s:readbuf, size:u64) -> bool:
 
 # Slot observations use the original Store tables. The same canonical request
 # can be issued repeatedly inside the caller's exclusive transaction.
+def valid_rollback_commit(s:readbuf, size:u64, request:u64, generation:u64) -> bool:
+    if (size != 112 and size != 160) or read_word(s, 48) != ROLLBACK_COMMIT:
+        return False
+    count = read_word(s, 56)
+    if count != choose(size == 112, 2, 3):
+        return False
+    # Slot write, optional immutable receipt insertion, and terminal Journal
+    # write all belong to the same exclusive Store generation. Queries can
+    # intervene, but the last authorization names its exact request id.
+    at = 64
+    last = 0
+    while at < 48 + size:
+        sequence = read_word(s, at + 32)
+        if read_word(s, at) != 5 or read_word(s, at + 8) != 0 or read_word(s, at + 16) != 1:
+            return False
+        if read_word(s, at + 24) != 0 or read_word(s, at + 40) != generation:
+            return False
+        if sequence <= last or sequence > request:
+            return False
+        last = sequence
+        at = at + 48
+    return last == request
+
 def valid_slot_query(s:readbuf, size:u64) -> bool:
     if size < 57 or size > 248 or read_word(s, 48) != QUERY_PARAMETERS:
         return False
@@ -576,7 +606,7 @@ def valid_cell(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> bool:
     return read_word(s, at) == kind and read_word(s, at + 8) == offset and read_word(s, at + 16) == size
 
 def durable_write(plan:u64) -> bool:
-    return plan == 10 or plan == 31 or (plan >= 18 and plan <= 27)
+    return plan == 10 or plan == 31 or plan == 32 or (plan >= 18 and plan <= 27)
 
 def unique_query_plan(plan:u64) -> u64:
     if plan == 28:
@@ -688,7 +718,7 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     count = read_word(s, 40)
     if (plan == 23 and count != 1) or (plan == 26 and count != 2):
         return 0
-    if plan == 27 and count != read_state(w, 152):
+    if (plan == 27 or plan == 32) and count != read_state(w, 152):
         return 0
     advanced = choose(count == 0, 0, 1)
     prior = read_state(w, 120)

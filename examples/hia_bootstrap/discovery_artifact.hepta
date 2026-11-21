@@ -762,10 +762,24 @@ block b15()
 block b16(v39:u64)
   v41:u64 = const() {"value":9}
   v42:bool = compare.eq(v39,v41)
-  v43:u64 = const() {"value":21}
-  v44:u64 = const() {"value":0}
-  v45:u64 = select(v42,v43,v44)
+  branch v42 b17() b18(v39)
+block b17()
+  v45:u64 = const() {"value":21}
   ret(v45)
+block b18(v44:u64)
+  v46:u64 = const() {"value":10}
+  v47:bool = compare.eq(v44,v46)
+  branch v47 b19() b20(v44)
+block b19()
+  v50:u64 = const() {"value":16}
+  ret(v50)
+block b20(v49:u64)
+  v51:u64 = const() {"value":11}
+  v52:bool = compare.eq(v49,v51)
+  v53:u64 = const() {"value":13}
+  v54:u64 = const() {"value":0}
+  v55:u64 = select(v52,v53,v54)
+  ret(v55)
 end
 fn f13(v0:readbuf,v1:u64) -> (bool) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64)
