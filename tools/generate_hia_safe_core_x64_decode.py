@@ -10,7 +10,7 @@ from hepta.hia_cnf_native import (
                                  SPARSE_REQUEST, SPARSE_VARIABLES, WORD_ARITHMETIC_SHR, WORD_PRODUCT_EXCEEDS,
                                  WORD_VARIABLE_SHL, WORD_VARIABLE_SHR, WRAPPING_PRODUCT)
 from hepta.hia_safe_core_x64_decode_native import (
-    BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
+    BORROWED_INDEX_ARGUMENT, BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MACHINE_BORROW_BRANCH_DEPTH, MACHINE_BORROW_REPLY, MACHINE_BORROW_REQUEST, MACHINE_BORROW_WORKSPACE,
     MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
@@ -42,7 +42,8 @@ FIELDS.update(SCHED_STEPS=0, SCHED_PATHS=8, SCHED_DEPTH=16, SCHED_PHASE=24, SCHE
               SCHED_BITMAP=SCHEDULER_BITMAP, SCHED_FRAMES=SCHEDULER_FRAMES,
               SCHED_WORKSPACE=SCHEDULER_WORKSPACE)
 FIELDS.update(LOAN_LENGTH_REQUEST=BORROWED_LENGTH_REQUEST, LOAN_LENGTH_REPLY=BORROWED_LENGTH_REPLY,
-              LOAN_LENGTH_WORKSPACE=BORROWED_LENGTH_WORKSPACE, LOAN_BOUNDS_TAG=_CORE_TRAP_TAGS['bounds'])
+              LOAN_LENGTH_WORKSPACE=BORROWED_LENGTH_WORKSPACE, LOAN_BOUNDS_TAG=_CORE_TRAP_TAGS['bounds'],
+              LOAN_ARGUMENT_INDEX=BORROWED_INDEX_ARGUMENT)
 FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_WORKSPACE=MACHINE_VALUES_WORKSPACE, MV_INDEX=MACHINE_VALUES_INDEX,
               MV_HEADER=MACHINE_VALUES_HEADER.size,
@@ -1268,11 +1269,14 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     index = 0
     if reading:
         index = schedule_request(s, 16)
-        if index >= extent:
+        if index >= extent and index != LOAN_ARGUMENT_INDEX:
             return 0
+    dynamic = index == LOAN_ARGUMENT_INDEX
     put(w, MV_NODES, 0)
     mv_node(o, w, 1, 0, 0, 0)  # Raw pointer word.
     mv_node(o, w, 1, 0, 0, 0)  # Raw length word.
+    if dynamic:
+        mv_node(o, w, 1, 0, 0, 0)  # Raw index word.
     if reading:
         mv_node(o, w, 1, 0, 0, 0)  # The independent byte in the caller's allocation.
     zero = mv_node(o, w, 2, 0, 0, 0) - 1
@@ -1288,9 +1292,9 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     trap = no_trap
     normal = 0
     if reading:
-        offset = mv_node(o, w, 2, 0, 0, index) - 1
+        offset = mv_borrow_offset(o, w, index) - 1
         out_of_bounds = mv_word(o, w, 13, 1, 1, offset, 0) - 1
-        byte = mv_word(o, w, 26, 8, 2, 0, 0) - 1
+        byte = mv_word(o, w, 26, 8, choose(dynamic, 3, 2), 0, 0) - 1
         value = mv_node(o, w, 30, byte, 0, 0) - 1
         normal = mv_node(o, w, 11, out_of_bounds, zero, value) - 1
         trap = mv_borrow_reference_trap(o, w, too_large, empty, null, wrapping, out_of_bounds, no_trap)
@@ -1344,15 +1348,18 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         mv_node(o, w, 1, 0, 0, 0)
         index = index + 1
     if borrowed:
-        if words != 2 or mv_start_borrow(s, o, w, 32 + count * 48) == 0:
+        if mv_start_borrow(s, o, w, 32 + count * 48, words) == 0:
             return 0
     put(w, MV_PREFIX, 0)
     return mv_tree(s, o, w, words, count)
 
-def mv_start_borrow(s:readbuf, o:mutbuf, w:mutbuf, tail:u64) -> u64:
+def mv_start_borrow(s:readbuf, o:mutbuf, w:mutbuf, tail:u64, words:u64) -> u64:
     extent = schedule_request(s, tail)
     index = schedule_request(s, tail + 8)
-    if extent == 0 or extent > 65536 or index >= extent:
+    dynamic = index == LOAN_ARGUMENT_INDEX
+    if extent == 0 or extent > 65536 or words != choose(dynamic, 3, 2):
+        return 0
+    if dynamic == False and index >= extent:
         return 0
     put(w, MV_LOAN_EXTENT, extent)
     put(w, MV_LOAN_INDEX, index)
@@ -1696,7 +1703,8 @@ def mv_borrowed_load(o:mutbuf, w:mutbuf, target:u64, base:u64, displacement:u64)
         return 0
     if mv_record_borrowed_read(o, w, index) == 0:
         return 0
-    byte = mv_word(o, w, 26, 8, 2, 0, 0)
+    byte_input = choose(index == LOAN_ARGUMENT_INDEX, 3, 2)
+    byte = mv_word(o, w, 26, 8, byte_input, 0, 0)
     if byte == 0:
         return 0
     value = mv_node(o, w, 30, byte - 1, 0, 0)
@@ -1709,7 +1717,7 @@ def mv_exact_loan_address(o:mutbuf, w:mutbuf, origin:u64, displacement:u64, inde
     if origin == 0 or origin > get(w, MV_NODES) or displacement > index:
         return 0
     if origin == 1:
-        return choose(displacement == index, 1, 0)
+        return choose(index != LOAN_ARGUMENT_INDEX and displacement == index, 1, 0)
     row = MV_HEADER + (origin - 1) * 40
     if get(o, row) != 9:
         return 0
@@ -1717,13 +1725,21 @@ def mv_exact_loan_address(o:mutbuf, w:mutbuf, origin:u64, displacement:u64, inde
     b = get(o, row + 24)
     if a != 0 and b != 0:
         return 0
-    literal = MV_HEADER + choose(a == 0, b, a) * 40
+    offset = choose(a == 0, b, a)
+    if index == LOAN_ARGUMENT_INDEX:
+        return choose(displacement == 0 and offset == 2, 1, 0)
+    literal = MV_HEADER + offset * 40
     return choose(get(o, literal) == 2 and get(o, literal + 32) == index - displacement, 1, 0)
+
+def mv_borrow_offset(o:mutbuf, w:mutbuf, index:u64) -> u64:
+    if index == LOAN_ARGUMENT_INDEX:
+        return 3  # One-based node for the raw index word.
+    return mv_node(o, w, 2, 0, 0, index)
 
 def mv_record_borrowed_read(o:mutbuf, w:mutbuf, index:u64) -> u64:
     zero = mv_node(o, w, 2, 0, 0, 0)
     limit = mv_node(o, w, 2, 0, 0, get(w, MV_LOAN_EXTENT))
-    offset = mv_node(o, w, 2, 0, 0, index)
+    offset = mv_borrow_offset(o, w, index)
     if zero == 0 or limit == 0 or offset == 0:
         return 0
     too_large = mv_word(o, w, 14, 1, 1, limit - 1, 0)

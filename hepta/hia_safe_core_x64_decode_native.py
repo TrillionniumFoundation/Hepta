@@ -26,6 +26,7 @@ QUERY_FORMAT_WORKSPACE = 1
 BORROWED_LENGTH_REQUEST = int.from_bytes(b'HIALBQ01', 'little')
 BORROWED_LENGTH_REPLY = int.from_bytes(b'HIALBG01', 'little')
 BORROWED_LENGTH_WORKSPACE = 192
+BORROWED_INDEX_ARGUMENT = (1 << 64) - 1
 MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
 MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR03', 'little')
 MACHINE_BORROW_REQUEST = int.from_bytes(b'HIAMBQ01', 'little')
@@ -322,8 +323,9 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         return None if result is None else result[0]
 
     def project_borrowed_read(self, binding, extent, index, **profile):
-        """Project one fixed read and its separate reachable memory violation."""
-        return self._project_machine_values(binding, 2, (extent, index), **profile)
+        """Project one exact loan read and its separate reachable memory violation."""
+        words = 3 if index == BORROWED_INDEX_ARGUMENT else 2
+        return self._project_machine_values(binding, words, (extent, index), **profile)
 
     def _project_machine_values(self, binding, argument_words, loan, **profile):
         if type(argument_words) is not int or not 0 <= argument_words <= 6:

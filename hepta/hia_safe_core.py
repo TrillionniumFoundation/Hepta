@@ -896,8 +896,11 @@ def _scalar_caller_contract():
 
 
 def _native_borrowed_shape(fn, blocks, extent):
+    from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT
+
     params = fn["params"]
-    if len(params) != 1 or params[0]["type"] != "readbuf" or len(blocks) != 1:
+    types = [param["type"] for param in params]
+    if types not in (["readbuf"], ["readbuf", "usize"]) or len(blocks) != 1:
         return None
     block = blocks[fn["entry"]]
     ops, term = block["ops"], block["term"]
@@ -910,11 +913,14 @@ def _native_borrowed_shape(fn, blocks, extent):
         return None
     loan = params[0]["name"]
     if len(ops) == 2:
-        if value["op"] == "buffer.len" and value["args"] == [loan]:
+        if len(params) == 1 and value["op"] == "buffer.len" and value["args"] == [loan]:
             return "length", None
+        if (len(params) == 2 and value["op"] == "buffer.load" and value["out"][0]["type"] == "u8"
+                and value["args"] == [loan, params[1]["name"]]):
+            return "read", BORROWED_INDEX_ARGUMENT
         return None
     offset = ops[0]
-    if (offset["op"] != "const" or offset["out"][0]["type"] != "usize"
+    if (len(params) != 1 or offset["op"] != "const" or offset["out"][0]["type"] != "usize"
             or value["op"] != "buffer.load" or value["out"][0]["type"] != "u8"
             or value["args"] != [loan, offset["out"][0]["name"]]):
         return None
@@ -954,6 +960,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
                                 foreign_buffer_exports=(), loan_index=None):
     from .hia_cnf_native import SAT
     from .hia_optimization import _native_circuit_decision
+    from .hia_safe_core_x64_decode_native import BORROWED_INDEX_ARGUMENT
 
     decoder, cnf = pair
     projection = _native_core_projection(decoder, cnf, fn, blocks, foreign_buffer_exports, loan_index)
@@ -989,7 +996,7 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     queries = []
     counterexample = None
     # Stack accesses and preserved registers are checked structurally.
-    # The fixed caller-byte read also needs a reachable path bounds proof.
+    # A caller-byte read also needs a reachable path bounds proof.
     queries_to_solve = (_scalar_caller_contract(), memory_check, no_violation, *circuits)
     for index, ((name, expected), circuit) in enumerate(zip(ARTIFACT_OBLIGATIONS, queries_to_solve, strict=True)):
         before = time.monotonic()
@@ -1013,7 +1020,8 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
                      for word in range(arguments)]
             counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
             if loan_index is not None:
-                counterexample["caller_byte"] = {"offset": loan_index, "value": (model >> (1 + 64 * arguments)) & 255}
+                offset = words[2] if loan_index == BORROWED_INDEX_ARGUMENT else loan_index
+                counterexample["caller_byte"] = {"offset": offset, "value": (model >> (1 + 64 * arguments)) & 255}
         query = decoder.format_proof_query(frame)
         reports.append({"name": name, "result": result, "expected": expected,
                         "query_sha256": sha256(query).hexdigest(),

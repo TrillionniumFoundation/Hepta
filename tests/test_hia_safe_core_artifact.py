@@ -414,6 +414,44 @@ class SafeCoreArtifactTests(unittest.TestCase):
                 self.assertEqual(witness["obligation"], "machine_memory_access_bounds")
                 self.assertEqual(witness["abi_words"][1], 64)
 
+    def test_native_borrowed_index_is_proved_for_all_abi_words(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the indexed loan proof entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        params = [("loan", "readbuf"), ("index", "usize")]
+        ops = [i("buffer.load", ("loan", "index"), (("byte", "u8"),)),
+               i("int.cast", ("byte",), (("answer", "u32"),), mode="wrap")]
+        core = verify_program(m(f("loan_at", params, ["u32"], ["read", "trap"],
+                                  [b("entry", params, ops, ret("answer"))])))
+        exports = (("loan_at", 64),)
+        image = emit_program_machine(core, foreign_buffer_exports=exports)
+        final = self.newdir() / "loan-at.so"
+        compile_program_machine(image, program=core, output=final, linker="ld")
+        supplied = final.read_bytes()
+        with patch("importlib.import_module", side_effect=no_host_solver):
+            report = validate_safe_core_artifact(core, image.object_bytes, supplied,
+                                                 foreign_buffer_exports=exports)
+            with self.assertRaises(SafeCoreRejected) as refused:
+                validate_safe_core_artifact(core, image.object_bytes, supplied,
+                                            foreign_buffer_exports=(("loan_at", 63),))
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+        self.assertEqual([row["result"] for row in report["obligations"]],
+                         ["sat", "unsat", "unsat", "unsat", "unsat"])
+        witness = refused.exception.counterexample
+        self.assertEqual(witness["obligation"], "machine_memory_access_bounds")
+        self.assertEqual(witness["abi_words"][1], 64)
+        self.assertLess(witness["abi_words"][2], 64)
+        self.assertEqual(witness["caller_byte"]["offset"], witness["abi_words"][2])
+
     def test_native_machine_proves_checked_product_overflow_at_full_width(self):
         from hepta.hia_safe_core import _selected_machine_proof
 
