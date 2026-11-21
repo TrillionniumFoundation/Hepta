@@ -35,8 +35,10 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8:
         return 0
     role = read_word(s, 0)
-    if role == ACK:
-        return store_ready(s, o)
+    if length(w) == 8:
+        if role == ACK:
+            return store_ready(s, o)
+        return 0
     if role == UNIQUE_START or role == UNIQUE_REQUEST or role == UNIQUE_CONSUME:
         return unique_stream(s, o, w, role)
     if role == BUILD_COMMAND:
@@ -89,7 +91,9 @@ def store_ready(s:readbuf, o:mutbuf) -> u64:
         return 0
     if read_word(s, 8) != 1 or read_word(s, 16) != 0 or read_word(s, 24) != 0:
         return 0
-    if read_word(s, 32) != 0:
+    if read_word(s, 32) != 0 or read_word(s, 40) != 0:
+        return 0
+    if read_word(s, 56) != 0 or read_word(s, 64) != 0 or read_word(s, 72) != 0:
         return 0
     return event_result(o, 1, read_word(s, 48))
 

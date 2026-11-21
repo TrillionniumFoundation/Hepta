@@ -28,9 +28,10 @@ JOURNAL_COST_MODE = 21
 WORKER_PORT_MODE = 22
 READ_REACTOR_MODE = 23
 STORE_READY_MODE = 24
+JOURNAL_READ_WORKFLOW_MODE = 25
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
-              READ_REACTOR_MODE, STORE_READY_MODE)
+              READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -45,7 +46,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE,
          'read-request': READ_REQUEST_MODE, 'store-unique': STORE_UNIQUE_MODE,
          'journal-cost': JOURNAL_COST_MODE, 'read-effect': READ_REACTOR_MODE,
-         'store-ready': STORE_READY_MODE}
+         'store-ready': STORE_READY_MODE, 'journal-read-workflow': JOURNAL_READ_WORKFLOW_MODE}
 
 
 def elf_prefix(code):
@@ -78,9 +79,10 @@ def template(mode):
     worker_journal = mode == WORKER_JOURNAL_MODE
     journal_cost = mode == JOURNAL_COST_MODE
     store_ready = mode == STORE_READY_MODE
+    journal_read = mode == JOURNAL_READ_WORKFLOW_MODE
     worker = worker_data or worker_response or worker_journal
     worker_header = WORKER_RESPONSE_HEADER if worker_response else WORKER_DATA_HEADER
-    direct = page or read_request or store_ready
+    direct = page or read_request or store_ready or journal_read
     descriptor = None if direct or schema or worker else (0 if journal_cost else DESCRIPTORS[mode])
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
     prefix_bytes = 0 if direct else 8
@@ -100,6 +102,8 @@ def template(mode):
         minimum, maximum = 56, INPUT_MAX + 2048
     if store_ready:
         scratch, workspace, minimum, maximum = 16, 8, 80, 80
+    if journal_read:
+        scratch, workspace, minimum, maximum = INPUT_MAX + 576, 24, 40, INPUT_MAX + 552
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -149,6 +153,10 @@ def template(mode):
     branch('0f 83', 'io_error')
 
     emit('49 89 c6')                            # r14 = private mapping base
+    if journal_read:
+        emit('49 c7 86')                        # select only the Journal workflow wire
+        word(scratch)
+        word(17)
     if schema:
         # Copy the sealed role and catalog digest into the schema arena.
         # The schema kernel, not the transport, validates those bytes.
@@ -184,6 +192,9 @@ def template(mode):
     if direct:
         if store_ready:
             emit('48 83 f8 10')                  # readiness decision plus generation
+        elif journal_read:
+            emit('48 3d')
+            word(576)                           # one-shot Journal frame and private state
         elif read_request:
             emit('48 3d')
             word(128)                           # complete read-plan header

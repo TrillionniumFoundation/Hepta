@@ -13,6 +13,10 @@ SOURCE = 'examples/hia_bootstrap/agent_journal_transport.hepta'
 def transport_program():
     source = '''
 def transfer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) == 24 and get(w, 0) == 17:
+        if length(s) >= 40 and input_word(s, 0) == READ_WORKFLOW_MAGIC:
+            return read_workflow_request(s, o)
+        return 0
     if length(s) >= 56 and input_word(s, 0) == COST_MAGIC:
         return cost_store_frame(s, o)
     if length(w) != 24:
@@ -23,6 +27,104 @@ def transfer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if mode == 16:
         return transport_reply(s, o, get(w, 8), get(w, 16))
     return 4294967293
+
+def read_workflow_request(s:readbuf, o:mutbuf) -> u64:
+    stage = input_word(s, 8)
+    digits = input_word(s, 16)
+    previous = input_word(s, 24)
+    observed = input_word(s, 32)
+    if digits > 2147483647 or observed > 8388608 or length(o) < 576 + observed:
+        return 0
+    if previous > 512 or length(s) != 40 + previous + observed:
+        return 0
+    if stage == 9:
+        if previous != 0 or observed == 0:
+            return 0
+    elif previous != 512 or read_workflow_transition(s, stage, observed) == False:
+        return 0
+    put(o, 0, SINGLE_MAGIC)
+    put(o, 8, observed)
+    put(o, 16, read_workflow_scratch(stage, observed))
+    put(o, 24, stage)
+    put(o, 32, digits)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    if previous == 0:
+        index = 0
+        while index < 512:
+            store(o, 64 + index, 0)
+            index = index + 1
+    else:
+        copy_cost_bytes(s, o, 40, previous, 64)
+    copy_cost_bytes(s, o, 40 + previous, observed, 576)
+    return 576 + observed
+
+# The installed read path has no durable request key or Context. A projection
+# that enters either lane cannot be used for these private read continuations.
+def read_workflow_transition(s:readbuf, stage:u64, observed:u64) -> bool:
+    if input_word(s, 40) != STATE_MAGIC:
+        return False
+    phase = input_word(s, 48)
+    tool = input_word(s, 56)
+    prior = input_word(s, 88)
+    reason = input_word(s, 96)
+    if stage == 0:
+        return phase == 0 and tool == 0 and prior == 12 and reason == 0 and observed != 0
+    if tool != 3 or input_word(s, 64) != 0 or input_word(s, 72) != 0 or input_word(s, 80) != 0:
+        return False
+    if input_word(s, 360) != 0 or input_word(s, 376) != 0 or input_word(s, 384) != 0:
+        return False
+    if admitted_read_identity(s) == False:
+        return False
+    if stage == 11 or stage == 12:
+        if phase != 4 or prior != 1 or reason != 0 or observed < 26:
+            return False
+        actual = input_word(s, 552)
+        expected = input_word(s, 560)
+        return input_word(s, 568) == 0 and actual != 0 and actual < observed - 24 and expected == observed - 24 - actual
+    if stage == 5:
+        return phase == 4 and prior == 1 and reason == 0 and observed == 0
+    if stage == 13:
+        return phase == 10 and prior == 1 and reason == 0 and input_word(s, 368) == 3 and observed == 0
+    if stage == 14:
+        return (phase == 10 or phase == 4) and (prior == 1 or prior == 11) and observed == 0
+    if stage == 8:
+        return (phase == 10 or phase == 4) and (prior == 1 or prior == 11) and observed != 0
+    return False
+
+def admitted_read_identity(s:readbuf) -> bool:
+    if byte(s, 232) != 114 or byte(s, 233) != 45:
+        return False
+    index = 0
+    while index < 64:
+        digit = byte(s, 104 + index)
+        if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
+            return False
+        if byte(s, 234 + index) != digit:
+            return False
+        index = index + 1
+    return True
+
+def read_workflow_scratch(stage:u64, size:u64) -> u64:
+    if stage == 13 or stage == 14:
+        return 520
+    nodes = ((size + 1) >> 1) + 1
+    if nodes > 262144:
+        nodes = 262144
+    fields = (size >> 2) + 1
+    if fields > 262144:
+        fields = 262144
+    slots = 2
+    while slots < 2 * fields:
+        slots = slots * 2
+    arena = 64 + nodes * 56 + size
+    keys = slots * 8
+    if keys < 6320:
+        keys = 6320
+    if arena < 4256 + keys:
+        arena = 4256 + keys
+    return arena + 32768
 
 def transport_admit(s:readbuf, expected:u64) -> u32:
     prefix = 64
@@ -231,6 +333,7 @@ def put(o:mutbuf, at:u64, value:u64) -> u64:
         raise ValueError('unexpected Journal cost suffix')
     literals = {
         'SINGLE_MAGIC': b'HIAJIN01', 'SESSION_MAGIC': b'HIAJIN02', 'REPLY_MAGIC': b'HIAJOU01',
+        'READ_WORKFLOW_MAGIC': b'HIAJWP01', 'STATE_MAGIC': b'HIAJRN02',
         'COST_MAGIC': b'HIAJCF01', 'INSERT_MAGIC': b'HIAINS01', 'DETAILS_PREFIX': b'{"error"',
         'DETAILS_SUFFIX_FIRST': suffix[:8], 'DETAILS_SUFFIX_SECOND': suffix[8:16],
         'UNADMITTED_INITIAL': b'unadmitt', 'COMPLETED_INITIAL': b'complete',

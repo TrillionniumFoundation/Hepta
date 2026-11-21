@@ -30,6 +30,7 @@ VARIANTS = {
     'read-effect': ('agent_read_request', 'hepta.hia.agent-read-request-native.v1'),
     'journal': ('agent_journal', 'hepta.hia.agent-journal-native.v2'),
     'journal-cost': ('agent_journal_transport', 'hepta.hia.journal-cost-native.v1'),
+    'journal-read-workflow': ('agent_journal_transport', 'hepta.hia.journal-cost-native.v1'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),
     'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
     'job-terminal-receipt': ('job_terminal_receipt', 'hepta.hia.job-terminal-receipt-native.v1'),
