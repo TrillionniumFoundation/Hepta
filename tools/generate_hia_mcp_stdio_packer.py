@@ -19,6 +19,7 @@ PAGE_MODE = len(DESCRIPTORS)
 TERMINAL_MODE = PAGE_MODE + 1
 SCHEMA_MODE = TERMINAL_MODE + 1
 CONNECTION_MODE = SCHEMA_MODE + 1
+READ_REQUEST_MODE = CONNECTION_MODE + 1
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
 SCHEMA_ARENA_BYTES = 64 + 262144 * 56 + INPUT_MAX + 8192
 # The installed pager returns its canonical JSON alongside the cursor insertion.
@@ -28,7 +29,8 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'job-terminal-receipt': 1,
          'mcp-negotiation': 2, 'mcp-uri': 3, 'read-page': PAGE_MODE,
          'mcp-input-schema': SCHEMA_MODE, 'mcp-response-schema': SCHEMA_MODE,
-         'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE}
+         'mcp-proof-schema': SCHEMA_MODE, 'mcp-connection': CONNECTION_MODE,
+         'read-request': READ_REQUEST_MODE}
 
 
 def elf_prefix(code):
@@ -51,12 +53,16 @@ def template(mode):
         return terminal_template()
     page = mode == PAGE_MODE
     schema = mode == SCHEMA_MODE
-    descriptor = None if page or schema else DESCRIPTORS[mode]
+    read_request = mode == READ_REQUEST_MODE
+    direct = page or read_request
+    descriptor = None if direct or schema else DESCRIPTORS[mode]
     scratch = PAGE_OUTPUT if page else ((4 << 20) if descriptor or schema else INPUT_MAX + 32)
-    prefix_bytes = 0 if page else 8
+    prefix_bytes = 0 if direct else 8
     workspace = PAGE_WORKSPACE if page else (SCHEMA_ARENA_BYTES if schema else ARENA_BYTES)
     minimum = 24 if page else (SCHEMA_HEADER + 2 if schema else 2)
     maximum = ((64 << 20) + 1024 + 512) if page else (INPUT_MAX + SCHEMA_HEADER if schema else INPUT_MAX)
+    if read_request:
+        scratch, workspace, maximum = 8192, 32768, 16384
     code, labels, branches = bytearray(), {}, []
 
     def emit(hexadecimal):
@@ -110,7 +116,7 @@ def template(mode):
         emit('49 8d 7c 24 48 49 8d 75 b8')      # input pointer +72, bytes -72
     else:
         emit('4c 89 e7 4c 89 ee')
-    emit('4c 89 f2' if page else '49 8d 56 08')   # payload or status-prefixed result
+    emit('4c 89 f2' if direct else '49 8d 56 08')   # payload or status-prefixed result
     emit('b9')
     word(scratch)
     emit('4d 8d 86')
@@ -120,8 +126,12 @@ def template(mode):
     emit('e8')
     branch_address = len(code)
     word(0)                                     # packer binds the actual HIA kernel
-    if page:
-        emit('48 83 f8 28')                      # complete 40-byte page header
+    if direct:
+        if read_request:
+            emit('48 3d')
+            word(128)                           # complete read-plan header
+        else:
+            emit('48 83 f8 28')                  # complete 40-byte page header
         branch('0f 82', 'bad_frame')
         emit('48 3d')
         word(scratch)
@@ -585,10 +595,10 @@ def render():
         return 4294967295
     mode = read_word(s, 8)
 '''
-    for mode in range(CONNECTION_MODE + 1):
+    for mode in range(READ_REQUEST_MODE + 1):
         source += f'    if mode == {mode}:\n        return pack_{mode}(s, o)\n'
     source += '    return 4294967295\n'
-    for mode in range(CONNECTION_MODE + 1):
+    for mode in range(READ_REQUEST_MODE + 1):
         prefix, call = template(mode)
         source += f'''
 def pack_{mode}(s:readbuf, o:mutbuf) -> u32:

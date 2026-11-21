@@ -302,6 +302,8 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_verify_core_json.S',
 )
 MCP_WIRE_SDIST_FILES = (
+    'examples/hia_bootstrap/agent_read_request.hepta',
+    'tools/generate_hia_agent_read_request.py',
     'tools/generate_hia_mcp_request.py',
     'examples/hia_bootstrap/mcp_request_route.hepta',
     'tools/hia_mcp_wire_stdio.S',

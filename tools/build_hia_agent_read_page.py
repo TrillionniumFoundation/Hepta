@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DRIVER = 'tools/build_hia_agent_read_page.py'
 VARIANTS = {
     'read-page': ('agent_read_page', 'hepta.hia.agent-read-page-native.v1'),
+    'read-request': ('agent_read_request', 'hepta.hia.agent-read-request-native.v1'),
     'journal': ('agent_journal', 'hepta.hia.agent-journal-native.v2'),
     'mcp-request': ('mcp_request_route', 'hepta.hia.mcp-request-native.v1'),
     'mcp-reply': ('mcp_reply_wire', 'hepta.hia.mcp-reply-native.v1'),
