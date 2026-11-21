@@ -45,6 +45,7 @@ VARIANTS = {
     'inspection-request': ('worker_inspection_request', 'hepta.hia.inspection-request-native.v1'),
     'candidate-request': ('worker_candidate_request', 'hepta.hia.candidate-request-native.v1'),
     'candidate-effect': ('worker_candidate_effect', 'hepta.hia.candidate-effect-native.v1'),
+    'candidate-json-ingress': ('worker_candidate_json_ingress', 'hepta.hia.candidate-json-ingress-native.v1'),
     'inspection-effect': ('worker_inspection_effect', 'hepta.hia.inspection-effect-native.v1'),
     'borrowed-export-wire': ('borrowed_export_wire', 'hepta.hia.borrowed-export-wire-native.v1'),
     'borrowed-wrapper': ('borrowed_wrapper', 'hepta.hia.borrowed-wrapper-native.v1'),
