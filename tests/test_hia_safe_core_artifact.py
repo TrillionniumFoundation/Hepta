@@ -370,6 +370,50 @@ class SafeCoreArtifactTests(unittest.TestCase):
         self.assertEqual(refused.exception.validation["status"], "refuted")
         self.assertEqual(refused.exception.counterexample["abi_words"][1], 64)
 
+    def test_native_borrowed_byte_proves_bounds_abort_and_the_exact_return(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the fixed borrowed read entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        params = [("loan", "readbuf")]
+        directory = self.newdir()
+        for index in (0, 7):
+            with self.subTest(index=index):
+                name = "loan_byte_" + str(index)
+                ops = [c("index", "usize", index),
+                       i("buffer.load", ("loan", "index"), (("byte", "u8"),)),
+                       i("int.cast", ("byte",), (("answer", "u32"),), mode="wrap")]
+                core = verify_program(m(f(name, params, ["u32"], ["read", "trap"],
+                                          [b("entry", params, ops, ret("answer"))])))
+                exports = ((name, 64),)
+                image = emit_program_machine(core, foreign_buffer_exports=exports)
+                final = directory / (name + ".so")
+                compile_program_machine(image, program=core, output=final, linker="ld")
+                supplied = final.read_bytes()
+                with patch("importlib.import_module", side_effect=no_host_solver):
+                    report = validate_safe_core_artifact(core, image.object_bytes, supplied,
+                                                         foreign_buffer_exports=exports)
+                    with self.assertRaises(SafeCoreRejected) as refused:
+                        validate_safe_core_artifact(core, image.object_bytes, supplied,
+                                                    foreign_buffer_exports=((name, 63),))
+                self.assertTrue(report["complete"])
+                self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+                outcomes = {row["name"]: row for row in report["obligations"]}
+                bounds = outcomes["machine_memory_access_bounds"]
+                self.assertEqual(bounds["result"], "unsat")
+                self.assertNotIn("structural_reduction", bounds["native_cnf"])
+                self.assertEqual(refused.exception.validation["status"], "refuted")
+                witness = refused.exception.counterexample
+                self.assertEqual(witness["obligation"], "machine_memory_access_bounds")
+                self.assertEqual(witness["abi_words"][1], 64)
+
     def test_native_machine_proves_checked_product_overflow_at_full_width(self):
         from hepta.hia_safe_core import _selected_machine_proof
 

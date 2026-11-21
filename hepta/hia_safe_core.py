@@ -895,28 +895,37 @@ def _scalar_caller_contract():
     return nodes, [(10, 11)], None
 
 
-def _borrowed_length_only(fn, blocks):
-    # Admit a verified Core body with no possible allocation read or write.
-    # The native projector, not the caller's emitter, supplies ABI semantics.
+def _native_borrowed_shape(fn, blocks, extent):
     params = fn["params"]
     if len(params) != 1 or params[0]["type"] != "readbuf" or len(blocks) != 1:
-        return False
+        return None
     block = blocks[fn["entry"]]
     ops, term = block["ops"], block["term"]
-    if len(ops) != 2 or term["op"] != "ret":
-        return False
-    length, result = ops
-    return (length["op"] == "buffer.len" and length["args"] == [params[0]["name"]]
-            and result["op"] == "int.cast" and result["attrs"] == {"mode": "wrap"}
-            and result["args"] == [length["out"][0]["name"]]
-            and term["values"] == [result["out"][0]["name"]])
+    if len(ops) not in (2, 3) or term["op"] != "ret":
+        return None
+    value, result = ops[-2:]
+    if (result["op"] != "int.cast" or result["attrs"] != {"mode": "wrap"}
+            or result["args"] != [value["out"][0]["name"]]
+            or term["values"] != [result["out"][0]["name"]]):
+        return None
+    loan = params[0]["name"]
+    if len(ops) == 2:
+        if value["op"] == "buffer.len" and value["args"] == [loan]:
+            return "length", None
+        return None
+    offset = ops[0]
+    if (offset["op"] != "const" or offset["out"][0]["type"] != "usize"
+            or value["op"] != "buffer.load" or value["out"][0]["type"] != "u8"
+            or value["args"] != [loan, offset["out"][0]["name"]]):
+        return None
+    index = offset["attrs"]["value"]
+    return ("read", index) if 0 <= index < extent else None
 
 
-def _native_core_projection(decoder, cnf, fn, blocks, borrowed):
+def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index):
     if borrowed:
-        if not _borrowed_length_only(fn, blocks):
-            return None
-        return decoder.project_borrowed_length(borrowed[0][1]), 4
+        paths = 4 if loan_index is None else 5
+        return decoder.project_borrowed_reference(borrowed[0][1], loan_index), paths
     names = tuple(blocks)
     paths = 1
     if len(names) > 1:
@@ -942,25 +951,35 @@ def _native_core_projection(decoder, cnf, fn, blocks, borrowed):
 
 def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_version,
                                 pair, identity, started, deadline, query_directory,
-                                foreign_buffer_exports=()):
+                                foreign_buffer_exports=(), loan_index=None):
     from .hia_cnf_native import SAT
     from .hia_optimization import _native_circuit_decision
 
     decoder, cnf = pair
-    # Reject unsupported Core loan bodies before interpreting the ELF.
-    # The accepted machine projection resolves only its own stack accesses.
-    projection = _native_core_projection(decoder, cnf, fn, blocks, foreign_buffer_exports)
+    projection = _native_core_projection(decoder, cnf, fn, blocks, foreign_buffer_exports, loan_index)
     if projection is None or projection[0] is None:
         return None
     core, paths = projection
     arguments = len(fn["params"]) + len(foreign_buffer_exports)
-    machine = decoder.project_scalar_values(
-        binding, arguments, allow_variable_shifts=profile_version >= 3,
-        allow_unsigned_multiply=profile_version >= 4, allow_unsigned_divide=profile_version >= 5,
-        allow_signed=profile_version >= 6)
-    if machine is None:
-        return None
-    circuits = cnf.bind_artifact_circuits(machine, core, arguments,
+    instruction_profile = dict(allow_variable_shifts=profile_version >= 3,
+                               allow_unsigned_multiply=profile_version >= 4,
+                               allow_unsigned_divide=profile_version >= 5,
+                               allow_signed=profile_version >= 6)
+    no_violation = ((), (), None)
+    memory_check = no_violation
+    if loan_index is None:
+        machine = decoder.project_scalar_values(binding, arguments, **instruction_profile)
+        if machine is None:
+            return None
+    else:
+        projection = decoder.project_borrowed_read(
+            binding, foreign_buffer_exports[0][1], loan_index, **instruction_profile)
+        if projection is None:
+            return None
+        machine, memory_check = projection
+    # The byte is one shared abstract input, not an extra physical ABI word.
+    circuit_inputs = arguments + int(loan_index is not None)
+    circuits = cnf.bind_artifact_circuits(machine, core, circuit_inputs,
                                          signed_return=fn["returns"][0].startswith("i"))
     if circuits is None:
         return None
@@ -969,10 +988,9 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
     reports = []
     queries = []
     counterexample = None
-    # A successful projection structurally excludes memory and ABI faults
-    # for every admitted stack and word. Their reduced violation is false.
-    no_violation = ((), (), None)
-    queries_to_solve = (_scalar_caller_contract(), no_violation, no_violation, *circuits)
+    # Stack accesses and preserved registers are checked structurally.
+    # The fixed caller-byte read also needs a reachable path bounds proof.
+    queries_to_solve = (_scalar_caller_contract(), memory_check, no_violation, *circuits)
     for index, ((name, expected), circuit) in enumerate(zip(ARTIFACT_OBLIGATIONS, queries_to_solve, strict=True)):
         before = time.monotonic()
         # Terminal coverage and the cross-model comparison both contain
@@ -984,16 +1002,18 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
         verdict, model, discharge, frame = decision
         result = "sat" if verdict == SAT else "unsat"
         discharge["method"] = "native_hia_circuit_cnf"
-        if index in (1, 2):
+        if index == 2 or (index == 1 and loan_index is None):
             discharge["structural_reduction"] = "native_hia_bounded_machine_projection"
         if result != expected:
-            if index < 3:
+            if index in (0, 2) or (index == 1 and loan_index is None):
                 raise SafeCoreRejected("inconsistent native scalar caller or machine bound")
             # The HIA solver has independently evaluated these ABI words
             # against the original, un-bit-blasted circuit.
             words = [(model >> (1 + 64 * word)) & ((1 << 64) - 1)
                      for word in range(arguments)]
             counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
+            if loan_index is not None:
+                counterexample["caller_byte"] = {"offset": loan_index, "value": (model >> (1 + 64 * arguments)) & 255}
         query = decoder.format_proof_query(frame)
         reports.append({"name": name, "result": result, "expected": expected,
                         "query_sha256": sha256(query).hexdigest(),
@@ -1051,13 +1071,16 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     decoder, cnf = pair
     identity = _checker_source_identity(pair)
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
-    if (decoder is not None and cnf is not None and
-            (not foreign_buffer_exports or _borrowed_length_only(fn, blocks))):
+    loan_shape = None
+    if foreign_buffer_exports:
+        loan_shape = _native_borrowed_shape(fn, blocks, foreign_buffer_exports[0][1])
+    if decoder is not None and cnf is not None and (not foreign_buffer_exports or loan_shape is not None):
+        loan_index = None if loan_shape is None else loan_shape[1]
         started = time.monotonic_ns()
         deadline = started + timeout_ms * 1_000_000
         native = _try_native_scalar_artifact(checked, fn, blocks, binding, artifact_profile,
                                              profile_version, pair, identity, started, deadline, query_directory,
-                                             foreign_buffer_exports)
+                                             foreign_buffer_exports, loan_index)
         if native is not None:
             return native
         timeout_ms = (deadline - time.monotonic_ns()) // 1_000_000

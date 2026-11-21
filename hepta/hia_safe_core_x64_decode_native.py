@@ -28,11 +28,15 @@ BORROWED_LENGTH_REPLY = int.from_bytes(b'HIALBG01', 'little')
 BORROWED_LENGTH_WORKSPACE = 192
 MACHINE_VALUES_REQUEST = int.from_bytes(b'HIAMVP01', 'little')
 MACHINE_VALUES_REPLY = int.from_bytes(b'HIAMVR03', 'little')
+MACHINE_BORROW_REQUEST = int.from_bytes(b'HIAMBQ01', 'little')
+MACHINE_BORROW_REPLY = int.from_bytes(b'HIAMBR01', 'little')
 MACHINE_VALUES_STACK_BYTES = 16384
 MACHINE_VALUES_BRANCH_DEPTH = 4
 MACHINE_VALUES_BRANCHES = 192 + MACHINE_VALUES_STACK_BYTES + 40
 MACHINE_VALUES_INDEX = MACHINE_VALUES_BRANCHES + MACHINE_VALUES_BRANCH_DEPTH * 32
 MACHINE_VALUES_WORKSPACE = MACHINE_VALUES_INDEX + MAX_TEXT * 8
+MACHINE_BORROW_BRANCH_DEPTH = MACHINE_VALUES_BRANCH_DEPTH + 1
+MACHINE_BORROW_WORKSPACE = MACHINE_VALUES_WORKSPACE + 64
 MACHINE_VALUES_HEADER = struct.Struct('<7Q')
 MACHINE_VALUES_NODE = struct.Struct('<5Q')
 MEMORY_REQUEST = struct.Struct('<5Q')
@@ -314,11 +318,20 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
 
     def project_scalar_values(self, binding, argument_words, **profile):
         """Project a final bound image, not the producer's instruction plan."""
+        result = self._project_machine_values(binding, argument_words, None, **profile)
+        return None if result is None else result[0]
+
+    def project_borrowed_read(self, binding, extent, index, **profile):
+        """Project one fixed read and its separate reachable memory violation."""
+        return self._project_machine_values(binding, 2, (extent, index), **profile)
+
+    def _project_machine_values(self, binding, argument_words, loan, **profile):
         if type(argument_words) is not int or not 0 <= argument_words <= 6:
             raise ValueError('invalid scalar machine argument count')
         calls = binding['calls']
         code = self.decode(binding['text'], calls, **profile)
-        frame = bytearray(struct.pack('<4Q', MACHINE_VALUES_REQUEST, binding['entry'],
+        magic = MACHINE_VALUES_REQUEST if loan is None else MACHINE_BORROW_REQUEST
+        frame = bytearray(struct.pack('<4Q', magic, binding['entry'],
                                       argument_words, len(code)))
         for pc, instruction in code.items():
             if instruction.op == 'immediate_alu':
@@ -331,43 +344,56 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             words = [word & ((1 << 64) - 1) for word in args]
             words.extend([0] * (3 - len(words)))
             frame.extend(ROW.pack(pc, OPERATION_IDS[instruction.op], instruction.size, *words))
+        if loan is not None:
+            frame.extend(struct.pack('<2Q', *loan))
         source = ctypes.create_string_buffer(bytes(frame), len(frame))
-        output = ctypes.create_string_buffer(MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * CIRCUIT_NODES)
-        scratch = ctypes.create_string_buffer(MACHINE_VALUES_WORKSPACE)
+        trailer = 16 if loan is not None else 0
+        output = ctypes.create_string_buffer(MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * CIRCUIT_NODES + trailer)
+        scratch = ctypes.create_string_buffer(MACHINE_VALUES_WORKSPACE if loan is None else MACHINE_BORROW_WORKSPACE)
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
         if size == 0:
             return None
         if not MACHINE_VALUES_HEADER.size <= size <= len(output):
             raise RuntimeError('invalid HIA machine scalar projection extent')
         magic, count, value, steps, depth, paths, abort = MACHINE_VALUES_HEADER.unpack_from(output)
-        if (magic != MACHINE_VALUES_REPLY or not 0 <= value < count <= CIRCUIT_NODES
+        expected_magic = MACHINE_VALUES_REPLY if loan is None else MACHINE_BORROW_REPLY
+        branch_depth = MACHINE_VALUES_BRANCH_DEPTH if loan is None else MACHINE_BORROW_BRANCH_DEPTH
+        if (magic != expected_magic or not 0 <= value < count <= CIRCUIT_NODES
                 or not 0 <= abort < count
-                or not 1 <= paths <= 1 << MACHINE_VALUES_BRANCH_DEPTH
+                or not 1 <= paths <= 1 << branch_depth
                 or not 0 < steps <= paths * MAX_INSTRUCTIONS
                 or depth > MACHINE_VALUES_STACK_BYTES
-                or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count):
+                or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count + trailer):
             raise RuntimeError('invalid HIA machine scalar projection')
-        nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size]))
-        return nodes, value, abort, {'decoded_instructions': len(code), 'symbolic_machine_steps': steps,
+        nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size-trailer]))
+        machine = nodes, value, abort, {'decoded_instructions': len(code), 'symbolic_machine_steps': steps,
                               'machine_terminal_paths': paths, 'maximum_observed_stack_bytes': depth}
+        if loan is None:
+            return machine, None
+        fault, never = struct.unpack_from('<2Q', output, size - trailer)
+        if max(fault, never) >= count or nodes[fault][1] != 1 or nodes[never] != (2, 1, 0, 0, 0):
+            raise RuntimeError('invalid HIA borrowed memory proof observation')
+        return machine, (nodes, [(fault, never)] if fault != never else [], None)
 
-    def project_borrowed_length(self, extent):
-        """Project ordered packed loan guards and a u32 length-only return."""
+    def project_borrowed_reference(self, extent, index):
+        """Project the ordered packed-loan guards and one observable Core result."""
         frame = struct.pack('<2Q', BORROWED_LENGTH_REQUEST, extent)
+        if index is not None:
+            frame += struct.pack('<Q', index)
         source = ctypes.create_string_buffer(frame, len(frame))
-        capacity = MACHINE_VALUES_HEADER.size + 26 * MACHINE_VALUES_NODE.size
+        capacity = MACHINE_VALUES_HEADER.size + 48 * MACHINE_VALUES_NODE.size
         output = ctypes.create_string_buffer(capacity)
         scratch = ctypes.create_string_buffer(BORROWED_LENGTH_WORKSPACE)
         size = self._entry(source, len(frame), output, len(output), scratch, len(scratch))
         if size == 0:
             return None
         if not MACHINE_VALUES_HEADER.size <= size <= capacity:
-            raise RuntimeError('invalid HIA borrowed length projection extent')
+            raise RuntimeError('invalid HIA borrowed reference projection extent')
         magic, count, value, known, trap, reserved, tail = MACHINE_VALUES_HEADER.unpack_from(output)
-        if (magic != BORROWED_LENGTH_REPLY or reserved or tail or not 2 <= count <= 26
+        if (magic != BORROWED_LENGTH_REPLY or reserved or tail or not 2 <= count <= 48
                 or max(value, known, trap) >= count
                 or size != MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * count):
-            raise RuntimeError('invalid HIA borrowed length projection')
+            raise RuntimeError('invalid HIA borrowed reference projection')
         nodes = tuple(MACHINE_VALUES_NODE.iter_unpack(output.raw[MACHINE_VALUES_HEADER.size:size]))
         return nodes, ((known, known), (trap, trap), (value, value)), None
 
