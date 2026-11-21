@@ -1013,6 +1013,7 @@ SOURCE_FILES = (
     'tools/generate_hia_worker_request.py',
     'examples/hia_bootstrap/worker_request.hepta',
     'tests/test_hia_worker_request_native.py',
+    'tests/test_hia_worker_stream.py',
     'tests/test_hia_worker_terminal_runtime.py',
     'tests/test_hia_worker_request_review.py',
     'tests/test_hia_worker_native_helpers.py',
