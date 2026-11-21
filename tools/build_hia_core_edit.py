@@ -17,6 +17,7 @@ from tools.build_hia_nominal_constructor import (
     build as build_nominal_constructor,
 )
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, load_static_object, verify_executable
+from tools.build_hia_supplied_safe_core_proof import build as build_supplied_proof
 from tools.generate_hia_core_edit_packer import MAGIC
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -90,6 +91,7 @@ OBJECT_BUILD_IMAGES = {
     CLI + 'build_codegen.hepta': 'build_codegen',
     CLI + 'build_backend.hepta': 'build_backend',
     BOOTSTRAP + 'elf_shared_linker.hepta': 'build_shared_linker',
+    BOOTSTRAP + 'elf_verified_linker.hepta': 'build_verified_linker',
     BOOTSTRAP + 'safe_core_elf_inventory.hepta': 'build_shared_inventory',
     BOOTSTRAP + 'sha256_stream.hepta': 'build_shared_hash',
     CLI + 'shared_build_report.hepta': 'build_shared_report',
@@ -359,7 +361,7 @@ def pack(packer, stub, holes, images):
 
 
 def link_nominal_cli(folder, adapter, images, roles, embedder, adapters, *, edit_envelope=False,
-                     edit_response=False, batch_capture=False):
+                     edit_response=False, batch_capture=False, prover=None):
     objects = [adapters[adapter], adapters[NOMINAL_ADAPTER]]
     if edit_envelope:
         objects.append(adapters[EDIT_ENVELOPE])
@@ -371,7 +373,9 @@ def link_nominal_cli(folder, adapter, images, roles, embedder, adapters, *, edit
                 for key, label in {**NOMINAL_IMAGE_LABELS, **NOMINAL_BUILD_IMAGES}.items()}
     payloads.update({label: images[path] for path, label in roles.items()})
     if 'build_shared_linker' in payloads:
-        payloads['build_shared_linker_identity'] = bytes.fromhex(digest(payloads['build_shared_linker']))
+        for role in ('build_shared_linker', 'build_verified_linker'):
+            payloads[role + '_identity'] = sha256(payloads[role]).digest()
+        payloads['build_prover_identity'] = struct.pack('<Q', len(prover)) + sha256(prover).digest()
     objects.extend(embed(folder, label, label, raw, embedder) for label, raw in payloads.items())
     reference = next(iter(roles))
     binary, receipt = link(folder, images[NOMINAL_BUILD_SOURCES['linker']], images[reference], objects,
@@ -406,7 +410,7 @@ def load_static_adapter(templates, name, source):
     return stub, holes, object_sha.hex()
 
 
-def pack_executable(packer, launcher, inflater, executable, compressor):
+def executable_archive(executable, compressor):
     if not 0 < len(executable) <= ORDINARY_CLI_IMAGE_CAPACITY:
         raise ValueError('packed CLI executable exceeds the admitted extent')
     parts = [struct.pack('<8sQ', EXEC_ARCHIVE_MAGIC, len(executable))]
@@ -414,12 +418,20 @@ def pack_executable(packer, launcher, inflater, executable, compressor):
         block = executable[start:start + EXEC_CHUNK]
         encoded = compressor.compress(block, 1 << 20)
         parts.extend((struct.pack('<2Q', len(encoded), len(block)), encoded))
+    return b''.join(parts)
+
+
+def pack_executable(packer, launcher, inflater, executable, compressor, *, prover=None):
+    archive = executable_archive(executable, compressor)
+    details = {'implementation_sha256': digest(executable), 'implementation_bytes': len(executable)}
+    if prover is not None:
+        archive += executable_archive(prover, compressor)
+        details['attached_prover_sha256'] = digest(prover)
     stub, holes, adapter_hash = launcher
-    binary, details = pack(packer, stub, holes, [inflater, b''.join(parts)])
-    if binary.count(EXEC_ARCHIVE_MAGIC) != 1:
+    binary, inspection = pack(packer, stub, holes, [inflater, archive])
+    if binary.count(EXEC_ARCHIVE_MAGIC) != (1 if prover is None else 2):
         raise ValueError('packed CLI executable has ambiguous framing')
-    return binary, {'elf': details, 'launcher_object_sha256': adapter_hash,
-                    'implementation_sha256': digest(executable), 'implementation_bytes': len(executable)}
+    return binary, {'elf': inspection, 'launcher_object_sha256': adapter_hash, **details}
 
 
 def bind_identity_words(block, slots, executable):
@@ -524,6 +536,11 @@ def build(output, compiler, cold_report, *, release_only=False):
     nominal_objects = {name: load_static_object(templates[group], role, sources[name])
                        for name, (group, role) in NOMINAL_ADAPTER_ROLES.items()}
     launcher = load_static_adapter(templates, EXEC_LAUNCHER, sources[EXEC_LAUNCHER])
+    supplied_proof = build_supplied_proof(output / 'supplied-proof', compiler, cold_report)
+    prover_bytes = supplied_proof.read_bytes()
+    proof_receipt = json.loads((supplied_proof.parent / 'build.json').read_bytes())
+    if digest(prover_bytes) != proof_receipt['executable_sha256']:
+        raise ValueError('public Core build verifier differs from the native proof build')
     products = {}
     for kind, (name, roles) in programs.items():
         if kind == 'dispatch':
@@ -532,12 +549,14 @@ def build(output, compiler, cold_report, *, release_only=False):
         folder = output / kind
         folder.mkdir(mode=0o700)
         if kind in NOMINAL_CLI_IMAGES:
+            prover = prover_bytes if kind == 'build_object' else None
             executable, details = link_nominal_cli(
                 folder, adapter, images, NOMINAL_CLI_IMAGES[kind], embedder, nominal_objects,
                 edit_envelope=kind in EDIT_ENVELOPE_ROLES,
-                edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'))
-            binary, packed = pack_executable(packer, launcher,
-                                             images[ARGUMENT_PAYLOAD], executable, compressor)
+                edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'),
+                prover=prover)
+            binary, packed = pack_executable(packer, launcher, images[ARGUMENT_PAYLOAD], executable,
+                                             compressor, prover=prover)
             products[name] = (binary, {**details, **packed})
             continue
         stub, holes, adapter_hash = load_static_adapter(templates, adapter, sources[adapter])
@@ -569,6 +588,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     if (current_sources() != admitted or compiler.read_bytes() != compiler_raw
             or cold_report.read_bytes() != report_raw
             or constructor.read_bytes() != bound_roles[constructor.name]
+            or supplied_proof.read_bytes() != prover_bytes
             or any((ROOT / path).read_bytes() != raw for path, raw in sources.items())
             or any(digest(images[path]) != receipt['produced_sha256']
                    or Path(receipt['produced_image']).read_bytes() != images[path]

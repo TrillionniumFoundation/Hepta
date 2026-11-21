@@ -182,6 +182,49 @@ def check_direct_shared_build(release, directory):
     return checked + 1
 
 
+def check_verified_shared_build(release, directory):
+    directory.mkdir()
+    primitive = scalar_program()
+    primitive['schema'] = 'hepta.hia.program.v8'
+    function = primitive['functions'][0]
+    arguments = [{'name': word, 'type': 'u32'} for word in ('x', 'y')]
+    function.update(params=arguments, effects=[])
+    function['blocks'][0].update(params=arguments, ops=[
+        {'op': 'int.add.wrap', 'args': ['x', 'y'],
+         'out': [{'name': 'answer', 'type': 'u32'}], 'attrs': {}},
+    ])
+    source = directory / 'scalar.hepta'
+    source.write_bytes(wire(primitive))
+    accepted = []
+    for backend in ([], ['--backend', 'auto']):
+        shared = directory / f'verified-{len(accepted)}.so'
+        command = [release / 'hia', 'build', source, *backend, '--kind', 'shared',
+                   '--output', shared]
+        result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+        assert result.returncode == 0 and not result.stderr, result
+        receipt = json.loads(result.stdout)
+        proof = receipt['machine_proof']
+        assert proof['obligations_proven'] == 5 and proof['profile'] > 0
+        assert len(bytes.fromhex(proof['receipt_sha256'])) == 32
+        assert receipt['binary_inventory']['claims']['backend_refinement_proven'] is True
+        artifact = shared.read_bytes()
+        assert receipt['artifact_sha256'] == sha256(artifact).hexdigest()
+        library = ctypes.CDLL(str(shared))
+        library.increment.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+        library.increment.restype = ctypes.c_uint32
+        assert library.increment(0xffffffff, 2) == 1
+        accepted.append((artifact, proof))
+    assert accepted[0] == accepted[1]
+    function['blocks'][0]['ops'][0]['op'] = 'int.mul.checked'
+    function['effects'] = ['trap']
+    source.write_bytes(wire(primitive))
+    unproved = directory / 'unproved.so'
+    result = subprocess.run([release / 'hia', 'build', source, '--kind', 'shared', '-o', unproved],
+                            capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+    assert result.returncode > 0 and not result.stdout and not result.stderr and not unproved.exists()
+    return 3
+
+
 def check_v9_edits(release, directory):
     directory.mkdir()
     program = acyclic_program()
@@ -707,12 +750,17 @@ def check_release(release, directory):
             expected = wire(receipt, pretty=True)
             arguments += ['--output', str(build_target)]
         elif action == 'capabilities':
-            # The static release has direct HIA linkage, not the hosted solver.
+            # The independent release has a bounded scalar prover, not the
+            # general hosted Safe Core solver.
             capabilities = json.loads(reference_cli([action]))
             build = capabilities['build']
-            build.update(backend='native', available_backends=['native', 'selfhost'])
-            for hosted_only in ('auto_object', 'auto_shared'):
-                del build[hosted_only]
+            build['backend'] = 'native'
+            del build['auto_object']
+            build['auto_shared'] = {
+                'selection': 'supported scalar Core only',
+                'final_image_validation_required': True,
+                'outside_profile': 'reject before publication',
+            }
             build['native_shared'] = 'ordinary linked native ABI; ABI inventory checked, no machine verification claim'
             expected = wire(capabilities, pretty=True)
         else:
@@ -742,13 +790,7 @@ def check_release(release, directory):
     assert (result.returncode, explicit_receipt, result.stderr) == (0, receipt, b'')
     assert explicit_object.read_bytes() == original.read_bytes()
     checked_actions += 1
-    for backend in ([], ['--backend', 'auto']):
-        shared = directory / 'standalone-verified.so'
-        command = [release / 'hia', 'build', source, *backend, '--kind', 'shared',
-                   '--output', shared]
-        result = subprocess.run(command, capture_output=True, env={'PATH': ''}, timeout=20, check=False)
-        assert (result.returncode, result.stdout, result.stderr) == (64, b'', b'') and not shared.exists()
-        checked_actions += 1
+    checked_actions += check_verified_shared_build(release, directory / 'verified-shared')
     for action in ('patch', 'impact'):
         arguments = [action, source, '--request', request_v2_file]
         result = subprocess.run([release / 'hia', *arguments], input=b'ignored',

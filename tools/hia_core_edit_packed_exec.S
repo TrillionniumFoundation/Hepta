@@ -8,11 +8,77 @@
 
 _start:
  mov r15,rsp
- sub rsp,48
+ sub rsp,96
  .byte 0x48,0x8d,0x1d
 archive_hole: .long 0
  mov r13,QWORD PTR ds:0x400060
  add r13,0x400000
+ mov esi,CHUNK_N+4096
+ call allocate
+ mov r14,rax
+ call decode_image
+ mov [rsp],rax
+ cmp rbx,r13
+ je begin_exec
+ # An attached verifier is expanded only for the HIA-dispatched proof role.
+ mov rsi,[r15+8]
+ lea rdi,[rip+verified_role]
+ mov ecx,19
+ cld
+ repe cmpsb
+ jne begin_exec
+ mov rax,[r15]
+ sub rax,2
+ cmp rax,1
+ ja failure
+ call decode_image
+ cmp rbx,r13
+ jne failure
+ mov rdi,rax
+ xor edx,edx
+ mov esi,2                       # F_SETFD: allow the proof fd across this exec
+ mov eax,72
+ syscall
+ test rax,rax
+ jnz failure
+ mov eax,edi
+ lea rdi,[rsp+39]
+ mov ecx,8
+ lea rsi,[rip+hex_digits]
+encode_fd:
+ mov edx,eax
+ and edx,15
+ mov dl,[rsi+rdx]
+ mov [rdi],dl
+ dec rdi
+ shr eax,4
+ loop encode_fd
+ mov BYTE PTR [rsp+40],0
+ mov rcx,[r15]
+ lea rsi,[r15+8]
+ lea rdi,[rsp+48]
+ rep movsq
+ lea rax,[rsp+32]
+ stosq
+ xor eax,eax
+ stosq
+ lea rdx,[rsp+48]
+ jmp execute_image
+
+begin_exec:
+ lea rdx,[r15+8]
+execute_image:
+ mov rdi,[rsp]
+ lea rsi,[rip+empty_path]
+ mov rax,[r15]
+ lea r10,[r15+rax*8+16]
+ mov r8d,4096
+ mov eax,322
+ syscall
+ jmp failure
+
+decode_image:
+ # Both images have independently bounded envelopes and are sealed before use.
  lea rax,[rbx+16]
  cmp rax,r13
  ja failure
@@ -26,16 +92,29 @@ archive_hole: .long 0
  cmp r12,IMAGE_LIMIT
  ja failure
  add rbx,16
- mov esi,CHUNK_N+4096
- call allocate
- mov r14,rax
  lea rdi,[rip+image_name]
  mov esi,3
  mov eax,319
  syscall
  test rax,rax
  js failure
- mov [rsp],rax
+ cmp eax,2
+ ja image_fd
+ mov rdi,rax
+ mov esi,1030
+ mov edx,3
+ mov eax,72
+ syscall
+ test rax,rax
+ js failure
+ mov [rsp+24],rax
+ mov eax,3
+ syscall
+ test rax,rax
+ js failure
+ mov rax,[rsp+24]
+image_fd:
+ mov [rsp+16],rax
 
 next_block:
  lea rdi,[r14+CHUNK_N]
@@ -61,7 +140,7 @@ next_block:
  cmovb rax,r12
  cmp rcx,rax
  jne failure
- mov [rsp+8],rcx
+ mov [rsp+24],rcx
  lea rdi,[rbx+16]
  lea rbx,[rdi+rsi]
  mov rdx,r14
@@ -69,11 +148,11 @@ next_block:
  mov r9d,4096
  .byte 0xe8
 decompress_hole: .long 0
- cmp rax,[rsp+8]
+ cmp rax,[rsp+24]
  jne failure
  mov rsi,r14
  mov rdx,rax
- mov rdi,[rsp]
+ mov rdi,[rsp+16]
 write_block:
  mov eax,1
  syscall
@@ -86,33 +165,28 @@ write_block:
  add rsi,rax
  sub rdx,rax
  jnz write_block
- sub r12,[rsp+8]
+ sub r12,[rsp+24]
  jnz next_block
- cmp rbx,r13
- jne failure
-
- mov rdi,[rsp]
+ mov rdi,[rsp+16]
  mov esi,0500
  mov eax,91
  syscall
  test rax,rax
  jnz failure
- mov rdi,[rsp]
+ mov rdi,[rsp+16]
  mov esi,1033
  mov edx,15
  mov eax,72
  syscall
  test rax,rax
  jnz failure
- mov rdi,[rsp]
- lea rsi,[rip+empty_path]
- lea rdx,[r15+8]
- mov rax,[r15]
- lea r10,[r15+rax*8+16]
- mov r8d,4096
- mov eax,322
+ mov eax,72
+ mov esi,1034
  syscall
- jmp failure
+ cmp eax,15
+ jne failure
+ mov rax,[rsp+16]
+ ret
 
 allocate:
  xor edi,edi
@@ -133,4 +207,6 @@ failure:
  ud2
 
 image_name: .asciz "hia-packed-object-builder"
+verified_role: .asciz "hia-build-verified"
+hex_digits: .ascii "0123456789abcdef"
 empty_path: .byte 0

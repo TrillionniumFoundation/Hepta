@@ -39,31 +39,62 @@
 .equ HASH_STATE,2048
 .equ REPORT_SCRATCH,3328
 .equ IMAGE_LIMIT,13<<19
+.equ PROVER_FD,3440
+.equ PROOF_INPUT,3448
+.equ PROOF_OUTPUT,3456
+.equ PROOF_STATUS,3464
+.equ PROOF_PARENT,3472
+.equ PROOF_REPORT,3480
+.equ PROOF_SIZE,3488
+.equ SHARED_LINK_ID,3496
+.equ PROOF_REQUEST,3504
+.equ PROOF_LIMIT,2097152
+.equ VERIFIED_LINK_LIMIT,90112
+.equ VERIFIED_OBJECT_LIMIT,73728
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
- mov rax,[rsp]
- sub rax,2
- cmp rax,1
- ja usage
- mov r15,[rsp+16]
- cmp QWORD PTR [rsp],2
- je output_arg_ready
- mov r15,[rsp+24]
-output_arg_ready:
  lea r14,[rip+build_backend_start]
  mov esi,4096
  call allocate
  mov rbp,rax
  mov QWORD PTR [rbp+REPORT_CAPACITY],262144
+ cmp QWORD PTR [rsp],2
+ jb usage
+ mov rsi,[rsp+8]
+ lea rdi,[rip+verified_build_mode]
+ mov ecx,19
+ cld
+ repe cmpsb
+ jne ordinary_build_mode
+ mov rax,[rsp]
+ sub rax,3
+ cmp rax,1
+ ja usage
+ mov rsi,[rsp+rax*8+24]
+ call read_proof_descriptor
+ mov [rbp+PROVER_FD],rax
+ dec QWORD PTR [rsp]
+ mov QWORD PTR [rbp+SHARED_MODE],2
+ jmp build_args
+ordinary_build_mode:
  mov rsi,[rsp+8]
  lea rdi,[rip+shared_build_mode]
  mov ecx,17
  cld
  repe cmpsb
- jne build_mode_captured
+ jne build_args
  mov QWORD PTR [rbp+SHARED_MODE],1
-build_mode_captured:
+build_args:
+ mov rax,[rsp]
+ sub rax,2
+ cmp rax,1
+ ja usage
+ mov r15,[rsp+16]
+ test rax,rax
+ jz output_arg_ready
+ mov r15,[rsp+24]
+output_arg_ready:
  cmp QWORD PTR [rsp],3
  jne input_arg_saved
  mov rax,[rsp+16]
@@ -513,9 +544,12 @@ codegen_complete:
  mov rdi,[r15-40]
  mov esi,33554432
  call release
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ je release_core_work
  mov rdi,r12
  mov esi,SOURCE_N
  call release
+release_core_work:
  mov rdi,r13
  mov esi,CORE_N
  call release
@@ -948,7 +982,46 @@ link_shared_artifact:
  mov r8,rax
  mov r9d,SHARED_LINK_WORK_BYTES
  mov [rbp+SHARED_EXPORT_WORK],rax
+ lea rax,[rip+build_shared_linker_identity_start]
+ mov [rbp+SHARED_LINK_ID],rax
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ jne ordinary_link
+ cmp rsi,VERIFIED_OBJECT_LIMIT
+ ja invalid
+ mov ecx,VERIFIED_LINK_LIMIT
+ mov r9d,512
+ call build_verified_linker_start
+ mov edx,0xffffffff
+ cmp rax,rdx
+ je try_ordinary_link
+ cmp rax,VERIFIED_LINK_LIMIT
+ ja native_status
+ lea rdx,[rip+build_verified_linker_identity_start]
+ mov [rbp+SHARED_LINK_ID],rdx
+ jmp shared_linked
+try_ordinary_link:
+ # The ordinary emitter receives the same zeroed buffers as the direct path.
+ mov rdi,[rbp+SHARED_ARTIFACT]
+ mov esi,ART_N
+ call release
+ mov rdi,[rbp+SHARED_EXPORT_WORK]
+ mov esi,SHARED_LINK_WORK_BYTES
+ call release
+ mov esi,ART_N
+ call allocate
+ mov [rbp+SHARED_ARTIFACT],rax
+ mov esi,SHARED_LINK_WORK_BYTES
+ call allocate
+ mov [rbp+SHARED_EXPORT_WORK],rax
+ mov rdi,[rbp+48]
+ mov rsi,[rbp+56]
+ mov rdx,[rbp+SHARED_ARTIFACT]
+ mov ecx,ART_N
+ mov r8,[rbp+SHARED_EXPORT_WORK]
+ mov r9d,SHARED_LINK_WORK_BYTES
+ordinary_link:
  call build_shared_linker_start
+shared_linked:
  cmp rax,64
  jb io_failure
  cmp rax,ART_N
@@ -1031,16 +1104,22 @@ link_shared_artifact:
  mov rax,[rbp+SHARED_EXTENT]
  mov [rbx+8],rax
  mov [rbx+16],r12
- call hash_shared_artifact
+ mov r12,[rbp+SHARED_ARTIFACT]
+ mov r13,[rbp+SHARED_EXTENT]
+ call hash_bytes
  lea rsi,[rbp+SHARED_DIGEST]
  lea rdi,[rbx+24]
  mov ecx,4
  cld
  rep movsq
- lea rsi,[rip+build_shared_linker_identity_start]
+ mov rsi,[rbp+SHARED_LINK_ID]
  mov ecx,4
  rep movsq
- mov rdi,rbx
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ jne shared_report_ready
+ call prove_shared_artifact
+shared_report_ready:
+ mov rdi,[rbp+SHARED_FRAME]
  mov esi,SHARED_FRAME_BYTES
  call protect_readonly
  mov rdi,[r15+24]
@@ -1078,7 +1157,7 @@ link_shared_artifact:
  add rsp,8
  ret
 
-hash_shared_artifact:
+hash_bytes:
  # This adapter moves bounded chunks only. The HIA stream image owns SHA-256.
  sub rsp,8
  mov esi,HASH_INPUT_BYTES
@@ -1087,8 +1166,6 @@ hash_shared_artifact:
  mov esi,1
  call shared_hash_transition
  call require_native_zero
- mov r12,[rbp+SHARED_ARTIFACT]
- mov r13,[rbp+SHARED_EXTENT]
 shared_hash_chunk:
  mov rdi,[rbp+SHARED_HASH_INPUT]
  mov BYTE PTR [rdi],1
@@ -1127,6 +1204,303 @@ shared_hash_transition:
  lea r8,[rbp+HASH_STATE]
  mov r9d,HASH_STATE_BYTES
  jmp build_shared_hash_start
+
+read_proof_descriptor:
+ # The launcher passes the descriptor as eight lowercase hexadecimal digits.
+ xor eax,eax
+ push 8
+ pop rcx
+proof_fd_digit:
+ movzx edx,BYTE PTR [rsi]
+ inc rsi
+ sub edx,48
+ cmp edx,9
+ jbe proof_fd_append
+ sub edx,39
+ cmp edx,10
+ jb usage
+ cmp edx,15
+ ja usage
+proof_fd_append:
+ shl eax,4
+ or eax,edx
+ loop proof_fd_digit
+ cmp BYTE PTR [rsi],0
+ jne usage
+ cmp eax,3
+ jl usage
+ ret
+
+prove_shared_artifact:
+ # No caller-supplied executable may authorize publication. HIA hashes the
+ # exact, sealed descriptor and compares it with this build's attached image.
+ sub rsp,8
+ mov edi,[rbp+PROVER_FD]
+ call require_sealed
+ mov eax,8
+ xor esi,esi
+ mov edx,2
+ syscall
+ cmp rax,[rip+build_prover_identity_start]
+ jne io_failure
+ mov rsi,rax
+ xor edi,edi
+ mov edx,1
+ mov r10d,2
+ mov r8d,[rbp+PROVER_FD]
+ xor r9d,r9d
+ mov eax,9
+ syscall
+ cmp rax,-4095
+ jae io_failure
+ mov rbx,rax
+ mov r12,rax
+ mov r13,rsi
+ call hash_bytes
+ mov rdi,rbx
+ mov rsi,[rip+build_prover_identity_start]
+ call release
+ lea rsi,[rbp+SHARED_DIGEST]
+ lea rdi,[rip+build_prover_identity_start+8]
+ mov ecx,4
+ cld
+ repe cmpsq
+ jne io_failure
+
+ call new_proof_file
+ mov [rbp+PROOF_INPUT],rax
+ lea rsi,[rbp+PROOF_REQUEST]
+ movabs rax,0x3130465250414948    # HIAPRF01
+ mov [rsi],rax
+ mov QWORD PTR [rsi+16],10000
+ mov rax,[rbp+88]
+ mov [rsi+24],rax
+ mov rax,[rbp+56]
+ mov [rsi+32],rax
+ mov rax,[rbp+SHARED_EXTENT]
+ mov [rsi+40],rax
+ mov edi,[rbp+PROOF_INPUT]
+ mov edx,48
+ call write_proof_bytes
+ mov rsi,[rbp]
+ mov rdx,[rbp+88]
+ call write_proof_bytes
+ mov rsi,[rbp+48]
+ mov rdx,[rbp+56]
+ call write_proof_bytes
+ mov rsi,[rbp+SHARED_ARTIFACT]
+ mov rdx,[rbp+SHARED_EXTENT]
+ call write_proof_bytes
+ call seal_proof_file
+ mov eax,8
+ xor esi,esi
+ xor edx,edx
+ syscall
+ test rax,rax
+ jnz io_failure
+
+ call new_proof_file
+ mov [rbp+PROOF_OUTPUT],rax
+ mov eax,39
+ syscall
+ mov [rbp+PROOF_PARENT],rax
+ mov eax,57
+ syscall
+ test rax,rax
+ js io_failure
+ jz proof_child
+ mov ebx,eax
+wait_proof:
+ mov edi,ebx
+ lea rsi,[rbp+PROOF_STATUS]
+ xor edx,edx
+ xor r10d,r10d
+ mov eax,61
+ syscall
+ cmp rax,-4
+ je wait_proof
+ cmp eax,ebx
+ jne io_failure
+ cmp DWORD PTR [rbp+PROOF_STATUS],0
+ jne invalid
+ mov edi,[rbp+PROVER_FD]
+ call close_proof_file
+ mov edi,[rbp+PROOF_INPUT]
+ call close_proof_file
+ mov edi,[rbp+PROOF_OUTPUT]
+ call seal_proof_file
+ mov eax,8
+ xor esi,esi
+ mov edx,2
+ syscall
+ cmp rax,464
+ jb invalid
+ cmp rax,PROOF_LIMIT
+ ja capacity
+ mov [rbp+PROOF_SIZE],rax
+ mov rsi,rax
+ xor edi,edi
+ mov edx,1
+ mov r10d,2
+ mov r8d,[rbp+PROOF_OUTPUT]
+ xor r9d,r9d
+ mov eax,9
+ syscall
+ cmp rax,-4095
+ jae io_failure
+ mov [rbp+PROOF_REPORT],rax
+ mov edi,[rbp+PROOF_OUTPUT]
+ call close_proof_file
+
+ # HIA admits only a positive receipt for these exact immutable final bytes.
+ mov rdi,[rbp+PROOF_REPORT]
+ mov rsi,[rbp+PROOF_SIZE]
+ mov rbx,[rbp+SHARED_FRAME]
+ lea r8,[rbx+24]
+ mov r9d,32
+ lea rdx,[rbp+REPORT_SCRATCH]
+ xor ecx,ecx
+ call build_shared_report_start
+ cmp rax,1
+ jb invalid
+ cmp rax,6
+ ja invalid
+ mov rbx,[rbp+SHARED_FRAME]
+ add rbx,[rbp+SHARED_FRAME_EXTENT]
+ mov [rbx+32],rax
+ mov r12,[rbp+PROOF_REPORT]
+ mov r13,[rbp+PROOF_SIZE]
+ call hash_bytes
+ lea rsi,[rbp+SHARED_DIGEST]
+ mov rdi,rbx
+ mov ecx,4
+ cld
+ rep movsq
+ mov rax,[rbp+SHARED_FRAME]
+ movabs rdx,0x3230524253414948    # HIASBR02
+ mov [rax],rdx
+ add QWORD PTR [rbp+SHARED_FRAME_EXTENT],40
+ mov rdi,[rbp+PROOF_REPORT]
+ mov rsi,[rbp+PROOF_SIZE]
+ call release
+ mov rdi,[rbp]
+ mov esi,SOURCE_N
+ call release
+ add rsp,8
+ ret
+
+proof_child:
+ mov eax,157
+ mov edi,1                       # PR_SET_PDEATHSIG
+ mov esi,9
+ xor edx,edx
+ xor r10d,r10d
+ xor r8d,r8d
+ syscall
+ test rax,rax
+ js io_failure
+ mov eax,110
+ syscall
+ cmp rax,[rbp+PROOF_PARENT]
+ jne io_failure
+ mov edi,[rbp+PROOF_INPUT]
+ xor esi,esi
+ call dup_proof_file
+ mov edi,[rbp+PROOF_OUTPUT]
+ mov esi,1
+ call dup_proof_file
+ mov eax,436
+ mov edi,3
+ mov esi,-1
+ mov edx,4                       # CLOSE_RANGE_CLOEXEC
+ syscall
+ test rax,rax
+ js io_failure
+ sub rsp,32
+ lea rax,[rip+prover_name]
+ mov [rsp],rax
+ mov QWORD PTR [rsp+8],0
+ mov QWORD PTR [rsp+16],0
+ mov edi,[rbp+PROVER_FD]
+ lea rsi,[rip+proof_empty]
+ mov rdx,rsp
+ lea r10,[rsp+16]
+ mov r8d,4096
+ mov eax,322
+ syscall
+ jmp io_failure
+
+new_proof_file:
+ lea rdi,[rip+prover_name]
+ mov esi,3
+ mov eax,319
+ syscall
+ test rax,rax
+ js io_failure
+ cmp eax,2
+ ja proof_file_ready
+ mov edi,eax
+ mov esi,1030
+ mov edx,3
+ mov eax,72
+ syscall
+ test rax,rax
+ js io_failure
+ push rax
+ call close_proof_file
+ pop rax
+proof_file_ready:
+ ret
+
+seal_proof_file:
+ mov eax,72
+ mov esi,1033
+ mov edx,15
+ syscall
+ test rax,rax
+ js io_failure
+require_sealed:
+ mov eax,72
+ mov esi,1034
+ syscall
+ cmp eax,15
+ jne io_failure
+ ret
+
+dup_proof_file:
+ xor edx,edx
+ mov eax,292
+ syscall
+ test rax,rax
+ js io_failure
+ ret
+
+close_proof_file:
+ mov eax,3
+ syscall
+ test rax,rax
+ js io_failure
+ ret
+
+write_proof_bytes:
+ test rdx,rdx
+ jz proof_bytes_ready
+ mov eax,1
+ syscall
+ cmp rax,-4
+ je write_proof_bytes
+ test rax,rax
+ jle io_failure
+ cmp rax,rdx
+ ja io_failure
+ sub rdx,rax
+ add rsi,rax
+ jmp write_proof_bytes
+proof_bytes_ready:
+ ret
+prover_name: .asciz "hia-safe-core-prove"
+proof_empty: .byte 0
+verified_build_mode: .asciz "hia-build-verified"
 
 write_owned:
  mov r12,rsi

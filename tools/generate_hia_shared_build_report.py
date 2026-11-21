@@ -15,6 +15,8 @@ from tools.generate_hia_worker_request import WorkerRequestBuilder
 
 SOURCE_PATH = 'examples/hia_bootstrap/core_cli/shared_build_report.hepta'
 MAGIC = b'HIASBR01'
+VERIFIED_MAGIC = b'HIASBR02'
+PROOF_MAGIC = b'HIAPRR01'
 EXPORT_MAGIC = b'HIASEX01'
 SYMBOL_MAGIC = b'HIAELFA2'
 ELF_MAGIC = b'\x7fELF\x02\x01\x01\x00'
@@ -35,11 +37,22 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     magic = word_load(s, 0)
     if magic == ELF_INPUT_MAGIC:
         return linked_import_mask(s, w)
-    if n < 92 or n > 262232 or length(w) < 96 or (magic != REPORT_MAGIC and magic != EXPORT_INPUT_MAGIC):
+    if magic == PROOF_INPUT_MAGIC:
+        return admit_proof(s, w)
+    proven = magic == VERIFIED_INPUT_MAGIC
+    if proven:
+        if n < 132:
+            return 4294967293
+        n = n - 40
+        if word_load(s, n + 32) < 1 or word_load(s, n + 32) > 6:
+            return 4294967293
+    if n < 92 or n > 262232 or length(w) < 96:
+        return 4294967293
+    if not proven and magic != REPORT_MAGIC and magic != EXPORT_INPUT_MAGIC:
         return 4294967293
     if byte(s, 88) != 123 or byte(s, 89) != 10 or byte(s, n - 2) != 125 or byte(s, n - 1) != 10:
         return 4294967293
-    if magic == REPORT_MAGIC and (word_load(s, 8) < 64 or word_load(s, 8) > 67108864 or word_load(s, 16) > 2047):
+    if magic != EXPORT_INPUT_MAGIC and (word_load(s, 8) < 64 or word_load(s, 8) > 67108864 or word_load(s, 16) > 2047):
         return 4294967293
     # Each exact member must occur once. Record its original span before
     # emitting any bytes so a malformed receipt cannot produce partial JSON.
@@ -96,17 +109,39 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             at = digest(s, o, at, 24)
             at = quoted_comma_line(o, at)
         elif field == 3:
-            at = inventory(s, o, w, at)
+            at = inventory(s, o, w, at, proven)
         elif field == 5:
             at = shared_kind(o, at)
         elif field == 6:
+            if proven:
+                at = proof_prefix(o, at)
+                at = decimal(o, at, word_load(s, n + 32))
+                at = proof_hash_prefix(o, at)
+                at = digest(s, o, at, n)
+                at = proof_suffix(o, at)
             at = linker_prefix(o, at)
             at = digest(s, o, at, 56)
-            at = linker_suffix(o, at)
+            if proven:
+                at = verified_linker_suffix(o, at)
+            else:
+                at = linker_suffix(o, at)
         else:
             at = copy(s, o, cursor, end, at)
         cursor = end
     return copy(s, o, n - 2, n, at)
+
+def admit_proof(s:readbuf, w:mutbuf) -> u64:
+    if length(s) < 464 or length(s) > 2097152 or length(w) != 32:
+        return 0
+    profile = word_load(s, 16)
+    if word_load(s, 8) != 1 or profile < 1 or profile > 6 or word_load(s, 40) != 5:
+        return 0
+    offset = 0
+    while offset < 32:
+        if word_load(s, 144 + offset) != word_load(w, offset):
+            return 0
+        offset = offset + 8
+    return profile
 
 def expected_exports(s:readbuf, o:mutbuf, start:u64, end:u64) -> u64:
     # Output is the independently defined ELF inventory work request.
@@ -191,8 +226,13 @@ def member_end(s:readbuf, start:u64, n:u64) -> u64:
         cursor = cursor + 1
     return 0
 
-def inventory(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
+def inventory(s:readbuf, o:mutbuf, w:mutbuf, at:u64, proven:bool) -> u64:
     at = inventory_prefix(o, at)
+    if proven:
+        at = claim_true(o, at)
+    else:
+        at = claim_false(o, at)
+    at = inventory_claims_suffix(o, at)
     start = word_load(w, 48) + EXPORT_PREFIX_SIZE
     end = word_load(w, 56) - 2
     while start < end:
@@ -259,9 +299,16 @@ LITERALS = {
                       '    "mode": "hia",\n    "path": null,\n'
                       '    "role": "link_generated_object_only",\n    "sha256": "'),
     'linker_suffix': '",\n    "version": "hia-elf-shared-linker.v1"\n  }\n',
+    'verified_linker_suffix': '",\n    "version": "hia-direct-scalar-linkage.v1"\n  }\n',
+    'proof_prefix': ('  "machine_proof": {\n    "obligations_proven": 5,\n'
+                     '    "profile": '),
+    'proof_hash_prefix': ',\n    "receipt_sha256": "',
+    'proof_suffix': ('",\n    "schema": "hepta.hia.supplied-safe-core-proof.v1"\n  },\n'),
     'inventory_prefix': ('  "binary_inventory": {\n'
-                         '    "claims": {\n      "backend_refinement_proven": false,\n'
-                         '      "binary_abi_observed": true,\n      "native_execution_proven": false,\n'
+                         '    "claims": {\n      "backend_refinement_proven": '),
+    'claim_false': 'false,\n',
+    'claim_true': 'true,\n',
+    'inventory_claims_suffix': ('      "binary_abi_observed": true,\n      "native_execution_proven": false,\n'
                          '      "whole_language_memory_safety_proven": false\n    },\n'
                          '    "dynamic_exports": '),
     'inventory_middle': (',\n    "format": "ELF64",\n    "kind": "ET_DYN",\n'
@@ -297,6 +344,8 @@ def match_function(name, literal):
 
 def source_program():
     source = (SOURCE.replace('REPORT_MAGIC', str(int.from_bytes(MAGIC, 'little')))
+              .replace('VERIFIED_INPUT_MAGIC', str(int.from_bytes(VERIFIED_MAGIC, 'little')))
+              .replace('PROOF_INPUT_MAGIC', str(int.from_bytes(PROOF_MAGIC, 'little')))
               .replace('EXPORT_INPUT_MAGIC', str(int.from_bytes(EXPORT_MAGIC, 'little')))
               .replace('ELF_INPUT_MAGIC', str(int.from_bytes(ELF_MAGIC, 'little')))
               .replace('SYMBOL_MODE_MAGIC', str(int.from_bytes(SYMBOL_MAGIC, 'little')))
