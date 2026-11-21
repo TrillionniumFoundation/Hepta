@@ -108,6 +108,7 @@ CANDIDATES = {
     'agent-discovery': ('agent_discovery', 'agent-discovery'),
     'agent-describe-answer': ('agent_describe_answer', 'agent-describe-answer'),
     'worker-describe-request': ('worker_describe_request', 'worker-describe-request'),
+    'worker-artifact-request': ('worker_artifact_request', 'worker-artifact-request'),
     'discovery-artifact': ('discovery_artifact', 'discovery-artifact'),
     'discovery-effect': ('discovery_effect', 'discovery-effect'),
     'describe-bind': ('describe_bind', 'describe-bind'),
