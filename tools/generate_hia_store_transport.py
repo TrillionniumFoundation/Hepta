@@ -1,4 +1,4 @@
-"""Author HIA's native Store command and response-header protocol."""
+"""Author HIA's native Store command and response protocol."""
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
@@ -12,9 +12,11 @@ WIRE = {
     'READ_ACK': b'HIASTAK1',
     'READ_ROW': b'HIASTRW1',
     'READ_EVENT': b'HIASTEV1',
+    'READ_VALUES': b'HIASTVL1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
     'ROW': b'HIAQRF01',
+    'VALUES': b'HIAROW01',
 }
 
 POLICY = '''
@@ -51,6 +53,10 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if length(o) != 16 or length(s) < 104:
             return 0
         return store_query_event(s, o)
+    if role == READ_VALUES:
+        if length(o) != 16 or length(s) < 32:
+            return 0
+        return store_values(s, o)
     return 0
 
 def store_query_event(s:readbuf, o:mutbuf) -> u64:
@@ -82,6 +88,36 @@ def query_summary(s:readbuf, o:mutbuf) -> u64:
     if read_word(s, 488) != read_word(s, 88) or read_word(s, 496) != read_word(s, 96) or read_word(s, 512) != read_word(s, 72):
         return event_result(o, 103, 0)
     return event_result(o, 4, read_word(s, 504))
+
+def store_values(s:readbuf, o:mutbuf) -> u64:
+    extent = read_word(s, 24)
+    if extent < 32:
+        return event_result(o, 2, 0)
+    if length(s) < 64 or read_word(s, 32) != VALUES or read_word(s, 40) != 1:
+        return event_result(o, 3, 0)
+    if read_word(s, 16) != read_word(s, 48):
+        return event_result(o, 3, 0)
+    count = read_word(s, 56)
+    directory = length(s) - 64
+    if count != read_word(s, 8) or count > directory:
+        return event_result(o, 3, 0)
+    if directory != count * 24 or extent < directory + 32:
+        return event_result(o, 3, 0)
+    offset = directory + 32
+    index = 0
+    while index < count:
+        cell = 64 + index * 24
+        kind = read_word(s, cell)
+        size = read_word(s, cell + 16)
+        if read_word(s, cell + 8) != offset or size > extent - offset:
+            return event_result(o, 4, index)
+        if kind > 4 or (kind == 0 and size != 0) or ((kind == 1 or kind == 2) and size != 8):
+            return event_result(o, 5, index)
+        offset = offset + size
+        index = index + 1
+    if offset != extent:
+        return event_result(o, 6, count)
+    return event_result(o, 1, count)
 
 def event_result(o:mutbuf, decision:u64, total:u64) -> u64:
     write_word(o, 0, decision)

@@ -3,6 +3,7 @@ import os
 import struct
 import unittest
 
+from hepta.hia_agent_store_native import _native_row, _row, StoreProtocolError
 from hepta.hia_agent_store_transport_native import selected_store_transport, SELECTOR
 
 
@@ -62,3 +63,33 @@ class StoreTransportTests(unittest.TestCase):
         self.assertEqual(event(4, payload=summary, rows=1, plan=11), (103, 0))
         self.assertEqual(event(4, payload=summary, rows=1, mask=31), (103, 0))
         self.assertEqual(event(4, payload=summary, rows=1, **retained), (104, 0))
+
+    def test_native_values_preserve_typed_cells_and_wire_error_order(self):
+        cells = [(0, b''), (1, struct.pack('<q', -27)), (2, struct.pack('<d', -1.25)),
+                 (3, '中文'.encode()), (4, b'\0\xff')]
+        header = struct.pack('<8s3Q', b'HIAROW01', 1, 4, len(cells))
+        prefix = len(header) + len(cells) * 24
+        directory = bytearray()
+        payload = bytearray()
+        for kind, value in cells:
+            directory.extend(struct.pack('<3Q', kind, prefix + len(payload), len(value)))
+            payload.extend(value)
+        record = bytearray(header + directory + payload)
+        expected = [None, -27, -1.25, '中文', b'\0\xff']
+        self.assertEqual(_row(record, 4, 5), expected)
+        self.assertEqual(_native_row(self.codec, record, 4, 5), expected)
+
+        wrong_type = bytearray(record)
+        struct.pack_into('<Q', wrong_type, 32 + 24 * 4, 11)
+        invalid_utf8 = bytearray(wrong_type)
+        invalid_utf8[prefix + 16] = 255
+        for data, table, columns in [(record[:31], 4, 5), (record[:36], 4, 5),
+                                     (record, 5, 5), (record, 4, 4), (record[:-1], 4, 5),
+                                     (record + b'x', 4, 5), (wrong_type, 4, 5),
+                                     (invalid_utf8, 4, 5)]:
+            with self.subTest(table=table, columns=columns, length=len(data)):
+                with self.assertRaises((StoreProtocolError, UnicodeDecodeError)) as reference:
+                    _row(data, table, columns)
+                with self.assertRaises(type(reference.exception)) as native:
+                    _native_row(self.codec, data, table, columns)
+                self.assertEqual(str(native.exception), str(reference.exception))

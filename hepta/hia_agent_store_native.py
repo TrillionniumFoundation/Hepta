@@ -249,6 +249,43 @@ def _row(data, table_id, columns):
     return values
 
 
+_NATIVE_ROW_ERRORS = {
+    2: 'truncated native row header',
+    3: 'unexpected native row header',
+    4: 'native row cell outside its extent',
+    5: 'unexpected native row cell type',
+    6: 'trailing bytes after native row',
+}
+
+
+def _native_row(codec, data, table_id, columns):
+    decision = codec.row_values(table_id, columns, data)
+    if decision is None:
+        raise StoreProtocolError('invalid HIA Store row response')
+    status, admitted = decision
+    if admitted > columns or (status == 1 and admitted != columns):
+        raise StoreProtocolError('invalid HIA Store row response')
+    values = []
+    # Decode admitted cells before reporting later wire faults, as the older
+    # reader did when invalid UTF-8 preceded any later malformed cell.
+    for index in range(admitted):
+        kind, at, size = struct.unpack_from('<3Q', data, 32 + index * 24)
+        if kind == 0:
+            value = None
+        elif kind == 1:
+            value, = struct.unpack_from('<q', data, at)
+        elif kind == 2:
+            value, = struct.unpack_from('<d', data, at)
+        elif kind == 3:
+            value = data[at:at + size].decode('utf-8')
+        else:
+            value = bytes(data[at:at + size])
+        values.append(value)
+    if status != 1:
+        raise StoreProtocolError(_NATIVE_ROW_ERRORS.get(status, 'invalid HIA Store row response'))
+    return values
+
+
 @contextmanager
 def _sealed_image(code):
     fd = os.memfd_create('hia-agent-store', os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
@@ -502,7 +539,10 @@ class NativeStoreConnection:
                 pending.extend(data)
             elif event == 3:
                 if raw_row_limit is None:
-                    values = _row(pending, table_id, len(columns))
+                    if self.codec is None:
+                        values = _row(pending, table_id, len(columns))
+                    else:
+                        values = _native_row(self.codec, pending, table_id, len(columns))
                     rows.append(_Row((value for i, value in enumerate(values) if mask & (1 << i)), names))
                 else:
                     rows.append(bytes(pending))

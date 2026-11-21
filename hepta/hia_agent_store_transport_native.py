@@ -42,6 +42,12 @@ class NativeAgentStoreTransport(NativeHiaJsonImage):
         raw = self._project(frame, 16)
         return None if raw is None else struct.unpack('<2Q', raw)
 
+    def row_values(self, table, columns, data):
+        header = struct.pack('<8s3Q', b'HIASTVL1', columns, table, len(data))
+        directory = data[:32 + 24 * columns]
+        raw = self._project(header + directory, 16)
+        return None if raw is None else struct.unpack('<2Q', raw)
+
 
 def selected_store_transport():
     selected = os.environ.get(SELECTOR)
