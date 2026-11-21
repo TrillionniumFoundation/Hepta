@@ -916,6 +916,8 @@ SOURCE_FILES = (
     'tools/generate_hia_safe_core_binder.py',
     'tools/generate_hia_safe_core_binder_packer.py',
     'tools/hia_safe_core_binder_syscalls.S',
+    'examples/hia_bootstrap/safe_core_machine_observe.hepta',
+    'tools/generate_hia_safe_core_machine_observe.py',
     'tools/generate_hia_safe_core_elf_inventory.py',
     'tests/test_hia_safe_core_elf_inventory_native.py',
     'tests/test_hia_elf_verified_linker_native.py',

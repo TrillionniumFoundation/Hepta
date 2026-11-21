@@ -325,14 +325,16 @@ def next(w:mutbuf, phase:u64, role:u64, source:u64, size:u64, answer:u64,
 '''
 
 
-def document():
+def document(source=SOURCE, *, module='safe_core_binder', extra=None):
     constants = {name: value for name, value in globals().items() if name.isupper() and type(value) is int}
     constants.update(RELOCATION_HEAD=OBJECT_INVENTORY_CONTROL_BYTES + OBJECT_RELOCATION_CONTROL_BYTES,
                      OWNED_WORK=OWNED_SHARED_EXPECTED_WORK,
                      UNWINDING_ROLE=8 * SECTION_AUTHORITIES.index('.eh_frame'),
                      SECTION_SIZE=SECTION.size, SEGMENT_SIZE=SEGMENT.size,
                      SYMBOL_SIZE=SYMBOL.size, RELOCATION_SIZE=RELOCATION.size)
-    source = re.sub(r'\b[A-Z][A-Z_0-9]+\b', lambda match: str(constants[match[0]]), SOURCE)
+    if extra is not None:
+        constants.update(extra)
+    source = re.sub(r'\b[A-Z][A-Z_0-9]+\b', lambda match: str(constants[match[0]]), source)
     helpers = LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):LINK_SOURCE.index('\ndef copy_bytes(')]
     nodes = ast.parse(source + helpers).body
     names = {node.name: f'f{index}' for index, node in enumerate(nodes)}
@@ -346,7 +348,7 @@ def document():
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'safe_core_binder',
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
                                   'functions': functions})
 
 

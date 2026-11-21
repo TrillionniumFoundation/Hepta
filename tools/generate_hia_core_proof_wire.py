@@ -1095,6 +1095,8 @@ def match(name, domain):
 
 ELF_POLICY = """
 def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 48 and obligation_word(s, 0) == MACHINE_RELOCATION_REQUEST:
+        return machine_relocation_wire(s, o)
     if length(s) >= 32 and obligation_word(s, 0) == ELF_FUNCTION_LINK_REQUEST:
         return elf_function_link_wire(s, o)
     if length(s) >= 40 and obligation_word(s, 0) == ELF_OBJECT_RELOCATION_REQUEST:
