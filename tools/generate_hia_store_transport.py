@@ -11,6 +11,7 @@ WIRE = {
     'BUILD_COMMAND': b'HIASTCM1',
     'READ_ACK': b'HIASTAK1',
     'READ_ROW': b'HIASTRW1',
+    'READ_EVENT': b'HIASTEV1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
     'ROW': b'HIAQRF01',
@@ -46,7 +47,46 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         copy_fields(s, o, 32, 0, 56)
         return 56
+    if role == READ_EVENT:
+        if length(o) != 16 or length(s) < 104:
+            return 0
+        return store_query_event(s, o)
     return 0
+
+def store_query_event(s:readbuf, o:mutbuf) -> u64:
+    kind = read_word(s, 8)
+    size = read_word(s, 32)
+    active = read_word(s, 40)
+    if active > 1 or read_word(s, 80) > 1:
+        return 0
+    if kind == 4 and active == 0 and size == 416 and length(s) == 520:
+        return query_summary(s, o)
+    if length(s) != 104:
+        return 0
+    if kind == 1 and active == 0 and size == 128 and read_word(s, 24) == 0:
+        return event_result(o, 1, 0)
+    if active == 1 and read_word(s, 16) == read_word(s, 48) and read_word(s, 24) == read_word(s, 56):
+        if kind == 2:
+            used = read_word(s, 56)
+            limit = read_word(s, 64)
+            if size == 0 or used > limit or size > limit - used:
+                return event_result(o, 101, 0)
+            return event_result(o, 2, 0)
+        if kind == 3 and size == 0:
+            if read_word(s, 80) != 0 and read_word(s, 72) != 0:
+                return event_result(o, 102, 0)
+            return event_result(o, 3, 0)
+    return event_result(o, 104, 0)
+
+def query_summary(s:readbuf, o:mutbuf) -> u64:
+    if read_word(s, 488) != read_word(s, 88) or read_word(s, 496) != read_word(s, 96) or read_word(s, 512) != read_word(s, 72):
+        return event_result(o, 103, 0)
+    return event_result(o, 4, read_word(s, 504))
+
+def event_result(o:mutbuf, decision:u64, total:u64) -> u64:
+    write_word(o, 0, decision)
+    write_word(o, 8, total)
+    return 16
 
 def read_word(s:readbuf, at:u64) -> u64:
     count = 0

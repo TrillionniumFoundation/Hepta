@@ -39,3 +39,26 @@ class StoreTransportTests(unittest.TestCase):
         self.assertIsNone(self.codec.query_header(3, 127, frame))
         dirty = frame[:-8]+struct.pack('<Q', 1)
         self.assertIsNone(self.codec.query_header(3, 128, dirty))
+
+    def test_query_continuation_orders_rows_and_terminal_summary(self):
+        def event(kind, row=9, offset=0, payload=b'', **changes):
+            state = dict(pending_id=None, pending_size=None, limit=1024,
+                         rows=0, unique=False, plan=12, mask=63)
+            return self.codec.query_event(kind, row, offset, payload, **{**state, **changes})
+
+        self.assertEqual(event(1, payload=bytes(128)), (1, 0))
+        retained = dict(pending_size=20, pending_id=9)
+        self.assertEqual(event(2, offset=20, payload=b'abc', **retained), (2, 0))
+        self.assertEqual(event(2, row=10, offset=20, payload=b'abc', **retained), (104, 0))
+        self.assertEqual(event(2, offset=19, payload=b'abc', **retained), (104, 0))
+        self.assertEqual(event(2, offset=20, **retained), (101, 0))
+        self.assertEqual(event(2, offset=20, payload=b'abc', limit=22, **retained), (101, 0))
+        self.assertEqual(event(3, offset=20, **retained), (3, 0))
+        self.assertEqual(event(3, offset=20, unique=True, rows=1, **retained), (102, 0))
+
+        summary = bytes(384) + struct.pack('<4Q', 12, 63, 1 << 37, 1)
+        self.assertEqual(event(4, payload=summary, rows=1), (4, 1 << 37))
+        self.assertEqual(event(4, payload=summary, rows=2), (103, 0))
+        self.assertEqual(event(4, payload=summary, rows=1, plan=11), (103, 0))
+        self.assertEqual(event(4, payload=summary, rows=1, mask=31), (103, 0))
+        self.assertEqual(event(4, payload=summary, rows=1, **retained), (104, 0))

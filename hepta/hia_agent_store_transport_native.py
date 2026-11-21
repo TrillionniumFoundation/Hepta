@@ -32,6 +32,16 @@ class NativeAgentStoreTransport(NativeHiaJsonImage):
         raw = self._project(struct.pack('<8s2Q', b'HIASTRW1', table, limit) + frame, 56)
         return None if raw is None else struct.unpack('<7Q', raw)
 
+    def query_event(self, kind, rowid, offset, data, *, pending_id, pending_size,
+                    limit, rows, unique, plan, mask):
+        frame = struct.pack('<8s12Q', b'HIASTEV1', kind, rowid, offset, len(data),
+                            int(pending_size is not None), pending_id or 0, pending_size or 0,
+                            limit, rows, int(unique), plan, mask)
+        if kind == 4 and pending_size is None and len(data) == 416:
+            frame += data
+        raw = self._project(frame, 16)
+        return None if raw is None else struct.unpack('<2Q', raw)
+
 
 def selected_store_transport():
     selected = os.environ.get(SELECTOR)

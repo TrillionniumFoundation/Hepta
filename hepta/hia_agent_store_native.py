@@ -444,11 +444,31 @@ class NativeStoreConnection:
                 return result
         raise StoreProtocolError('misordered native Store acknowledgement')
 
+    @staticmethod
+    def _reference_query_event(kind, rowid, offset, data, *, pending_id, pending_size,
+                               limit, rows, unique, plan, mask):
+        size = len(data)
+        if kind == 1 and pending_size is None and size == 128 and offset == 0:
+            return 1, 0
+        if pending_size is not None and rowid == pending_id and offset == pending_size:
+            if kind == 2:
+                return (101 if size == 0 or size > limit - pending_size else 2), 0
+            if kind == 3 and size == 0:
+                return (102 if unique and rows else 3), 0
+        if kind == 4 and pending_size is None and size == 416:
+            observed_plan, observed_mask, total, delivered = struct.unpack_from('<4Q', data, 384)
+            if (observed_plan, observed_mask, delivered) != (plan, mask, rows):
+                return 103, 0
+            return 4, total
+        return 104, 0
+
     def _results(self, plan, table, mask, deadline, *, raw_row_limit=None):
         table_id = _TABLE_IDS.index(table) + 1
         columns = _COLUMNS[table]
         names = tuple(name for i, name in enumerate(columns) if mask & (1 << i))
-        rows, pending, summary = [], None, None
+        rows, pending, pending_id, summary = [], None, None, None
+        limit = _MAX_VALUE if raw_row_limit is None else raw_row_limit
+        route = self._reference_query_event if self.codec is None else self.codec.query_event
         while True:
             magic = self._exact(8, deadline)
             if magic == b'HIATXR01':
@@ -469,29 +489,34 @@ class NativeStoreConnection:
                     raise StoreProtocolError('invalid native Store query frame header')
             kind, _, rowid, offset, size, _, _ = fields
             data = self._exact(size, deadline)
-            if kind == 1 and pending is None and size == 128 and offset == 0:
+            result = route(kind, rowid, offset, data, pending_id=pending_id,
+                           pending_size=None if pending is None else len(pending),
+                           limit=limit, rows=len(rows), unique=raw_row_limit is not None,
+                           plan=plan, mask=mask)
+            if result is None:
+                raise StoreProtocolError('invalid HIA Store continuation response')
+            event, total = result
+            if event == 1:
                 pending, pending_id = bytearray(), rowid
-            elif kind == 2 and pending is not None and rowid == pending_id and offset == len(pending):
-                limit = _MAX_VALUE if raw_row_limit is None else raw_row_limit
-                if size == 0 or size > limit - len(pending):
-                    raise StoreProtocolError('native Store row exceeds its extent')
+            elif event == 2:
                 pending.extend(data)
-            elif kind == 3 and pending is not None and rowid == pending_id and offset == len(pending) and size == 0:
+            elif event == 3:
                 if raw_row_limit is None:
                     values = _row(pending, table_id, len(columns))
                     rows.append(_Row((value for i, value in enumerate(values) if mask & (1 << i)), names))
-                elif rows:
-                    raise StoreProtocolError('native Store returned two records for one key')
                 else:
                     rows.append(bytes(pending))
-                pending = None
-            elif kind == 4 and pending is None and len(data) == 416:
-                observed_plan, observed_mask, total, delivered = struct.unpack_from('<4Q', data, 384)
-                if (observed_plan, observed_mask, delivered) != (plan, mask, len(rows)):
-                    raise StoreProtocolError('native Store query projection differs')
+                pending, pending_id = None, None
+            elif event == 4:
                 if plan == 11:
                     rows.append(_Row((total,), ('COUNT(*)',)))
                 summary = total
+            elif event == 101:
+                raise StoreProtocolError('native Store row exceeds its extent')
+            elif event == 102:
+                raise StoreProtocolError('native Store returned two records for one key')
+            elif event == 103:
+                raise StoreProtocolError('native Store query projection differs')
             else:
                 raise StoreProtocolError('misordered native Store query frames')
 
