@@ -8,6 +8,7 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_safe_core_elf_inventory_native import (
     AUTHORITY_BYTES, AUTHORITY_MAGIC, CAPACITY, LOADER_AUTHORITIES, SECTION_AUTHORITIES,
     LOOKUP_MAGIC, LOOKUP_REQUIRED, LOOKUP_ROLES, LOOKUP_TYPED, LOOKUP_WORK,
+    LOADER_EXECUTABLE_MAGIC, LOADER_EXECUTABLE_WORK,
     DYNAMIC_ORDER_MAGIC, DYNAMIC_RELOCATION_MAGIC, DYNAMIC_SYMBOL_MAGIC, DYNAMIC_SYMBOL_NAME_OFFSET,
     EXECUTABLE_LAYOUT_MAGIC, FUNCTION_SYMBOL_MAGIC, LOADER_SECTION_MAGIC, OBJECT_INVENTORY_MAGIC,
     MAX_ELF, MAX_SECTIONS, MAX_SEGMENTS, MAX_SYMBOLS, REFUSAL_IDS,
@@ -39,6 +40,8 @@ FIELDS.update(TEXT_GEOMETRY_MAGIC=TEXT_GEOMETRY_MAGIC, UNWINDING_MAGIC=UNWINDING
 FIELDS.update(AUTHORITY_BYTES=AUTHORITY_BYTES, AUTHORITY_MAGIC=AUTHORITY_MAGIC,
               LOADER_AUTHORITY_COUNT=len(LOADER_AUTHORITIES))
 FIELDS.update(LOOKUP_MAGIC=LOOKUP_MAGIC, LOOKUP_ROLES=LOOKUP_ROLES, LOOKUP_WORK=LOOKUP_WORK)
+FIELDS.update(LOADER_EXECUTABLE_MAGIC=LOADER_EXECUTABLE_MAGIC, LOADER_EXECUTABLE_WORK=LOADER_EXECUTABLE_WORK,
+              ROLE_PLT=SECTION_AUTHORITIES.index('.plt'))
 for section in LOOKUP_REQUIRED:
     label = section.strip('.').replace('.', '_').upper()
     FIELDS['ROLE_' + label] = SECTION_AUTHORITIES.index(section)
@@ -95,6 +98,10 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if length(o) < CAPACITY + AUTHORITY_BYTES:
             return 4294967294
         return loader_lookup(s, o, w)
+    if length(w) == LOADER_EXECUTABLE_WORK and get(w, 0) == LOADER_EXECUTABLE_MAGIC:
+        if length(o) < CAPACITY + AUTHORITY_BYTES:
+            return 4294967294
+        return loader_executable(s, o, w)
     if length(w) == 16 and get(w, 8) == 0:
         return symbol_table(s, o, get(w, 0))
     if length(w) == 24:
@@ -959,6 +966,10 @@ def loader_lookup(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     extent = inventory_authorities(s, o, 3)
     if get(o, 0) != 0:
         return extent
+    write_lookup_roles(s, o, w, extent)
+    return lookup_dynamic(s, o, w)
+
+def write_lookup_roles(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
     first = extent - AUTHORITY_BYTES
     shoff = word(s, 40, 8)
     index = 0
@@ -968,10 +979,93 @@ def loader_lookup(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             row = shoff + (row - 1) * 64
         put(w, LOOKUP_ROLES + index, row)
         index = index + 8
-    return lookup_dynamic(s, o, w)
+    return 0
 
 def lookup_row(w:mutbuf, role:u64) -> u64:
     return get(w, LOOKUP_ROLES + role * 8)
+
+def loader_executable(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    put(w, LOOKUP_WORK, get(w, 8))
+    extent = inventory_authorities(s, o, 3)
+    if get(o, 0) != 0:
+        return extent
+    write_lookup_roles(s, o, w, extent)
+    shape = executable_role_error(s, w)
+    if shape != 0:
+        return terminal(o, shape, 0, 0)
+    result = executable_from_roles(s, o, w)
+    if get(o, 0) != 0:
+        return result
+    return relocations_from_roles(s, o, w)
+
+def executable_role_error(s:readbuf, w:mutbuf) -> u64:
+    text = lookup_row(w, OWNED_TEXT_ROLE)
+    if text == 0:
+        return E_OWNED_MISSING_TEXT
+    if word(s, text + 4, 4) != 1:
+        return E_OWNED_TEXT_KIND
+    plt = lookup_row(w, ROLE_PLT)
+    if plt == 0:
+        return E_LOADER_MISSING_PLT
+    if word(s, plt + 4, 4) != 1:
+        return E_LOADER_PLT_KIND
+    got = lookup_row(w, ROLE_GOT)
+    if got == 0:
+        return MISSING_GOT
+    if word(s, got + 4, 4) != 1:
+        return KIND_GOT
+    rela = lookup_row(w, ROLE_RELA_PLT)
+    if rela == 0:
+        return MISSING_RELA_PLT
+    if word(s, rela + 4, 4) != 4:
+        return KIND_RELA_PLT
+    return 0
+
+def executable_from_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    start = word(s, 40, 8)
+    put(w, 8, (lookup_row(w, OWNED_TEXT_ROLE) - start) >> 6)
+    put(w, 16, (lookup_row(w, ROLE_PLT) - start) >> 6)
+    put(w, 24, (lookup_row(w, ROLE_GOT) - start) >> 6)
+    result = executable_section_layout(s, o, w, start, word(s, 60, 2))
+    if get(o, 0) != 0:
+        return result
+    return relro_from_roles(s, o, w)
+
+def relro_from_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    row = lookup_row(w, ROLE_GOT)
+    address = word(s, row + 16, 8)
+    extent = word(s, row + 32, 8)
+    result = load_binding(s, o, address, extent, word(s, row + 24, 8), 6)
+    if get(o, 0) != 0:
+        return result
+    put(w, 8, get(o, 48))
+    put(w, 16, get(o, 40))
+    put(w, 24, get(o, 56))
+    put(w, 32, get(o, 64))
+    put(w, 40, address)
+    put(w, 48, extent)
+    return verify_relro(s, o, w)
+
+def relocations_from_roles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    dynsym = lookup_row(w, ROLE_DYNSYM)
+    if dynsym == 0:
+        return terminal(o, MISSING_DYNSYM, 0, 0)
+    start = word(s, 40, 8)
+    rela = lookup_row(w, ROLE_RELA_PLT)
+    got = lookup_row(w, ROLE_GOT)
+    put(w, 8, (rela - start) >> 6)
+    put(w, 16, (dynsym - start) >> 6)
+    put(w, 24, (got - start) >> 6)
+    result = dynamic_relocation_inventory(s, o, w, start, word(s, 60, 2))
+    if get(o, 0) != 0:
+        return result
+    plt = lookup_row(w, ROLE_PLT)
+    put(w, 0, word(s, plt + 24, 8))
+    put(w, 8, word(s, plt + 16, 8))
+    put(w, 16, word(s, got + 16, 8))
+    put(w, 24, word(s, rela + 24, 8))
+    put(w, 32, get(w, LOOKUP_WORK))
+    return verify_plt_slot(s, o, w)
 
 def lookup_dynamic(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     dynamic = lookup_row(w, ROLE_DYNAMIC)

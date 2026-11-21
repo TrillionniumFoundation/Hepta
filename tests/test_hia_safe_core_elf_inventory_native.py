@@ -222,11 +222,14 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                              '_reference_object_inventory')
         loader_blocked = {name: Mock(side_effect=AssertionError('host loader check entered: ' + name))
                           for name in loader_boundaries}
+        bridge_boundaries = ('verify_function_link', 'verify_executable_layout',
+                             'verify_relro', 'verify_dynamic_relocations', 'verify_plt_slot')
+        bridge_blocked = {name: Mock(side_effect=AssertionError('host encoded ELF authority: ' + name))
+                          for name in bridge_boundaries}
         with (
             patch.multiple(_ELF, **blocked),
             patch.multiple(elf_reader, **loader_blocked),
-            patch.object(type(self.native), 'verify_function_link',
-                         side_effect=AssertionError('host encoded the function link')),
+            patch.multiple(type(self.native), **bridge_blocked),
         ):
             result = validate_safe_core_artifact(self.core, self.object_bytes, self.final_bytes)
         self.assertTrue(result['ok'], result)
@@ -347,6 +350,15 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
             elf = original(data)
             return elf_reader._reference_dynamic_relocations(elf, elf.section('.rela.plt'), elf.section('.got'))
 
+        def reference_executable(data):
+            elf = original(data)
+            text, plt, got, rela = (elf.section(name, kind) for name, kind in
+                                    (('.text', 1), ('.plt', 1), ('.got', 1), ('.rela.plt', 4)))
+            elf_reader._reference_executable_layout(elf, text, plt, got)
+            elf_reader._reference_relro(elf, elf.load_binding(got, 6), got)
+            elf_reader._reference_dynamic_relocations(elf, rela, got)
+            elf_reader._reference_plt_slot(plt, got, rela, elf.symbols('.dynsym'))
+
         extra_exec = bytearray(self.final_bytes)
         for index, segment in enumerate(final.segments):
             if segment['type'] == 1 and segment['flags'] == 4:
@@ -354,6 +366,10 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 break
         else:
             self.fail('original expected readable load missing from actual fixture')
+        wrong_plt = bytearray(self.final_bytes)
+        wrong_plt[plt['offset']] ^= 1
+        abort_mask = sum(1 << index for index, row in enumerate(final.symbols('.dynsym'))
+                         if row['name'] == 'abort')
         cases = (
             (lambda raw: elf_reader._reference_loader_sections(original(raw)),
              self.native.verify_loader_sections,
@@ -363,6 +379,9 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
              (changed(plt, 8, 2), changed(strtab, 8, 4), changed(text, 32, text['size'] - 1), bytes(extra_exec))),
             (reference_reloc, lambda raw: self.native.verify_dynamic_relocations(raw, rela, dynsym, got),
              (changed(rela, 40, got['index'], '<I'), changed(strtab, 4, 4, '<I'), changed(rela, 56, 16))),
+            (reference_executable, lambda raw: self.native.verify_loader_executable(raw, abort_mask),
+             (changed(plt, 8, 2), bytes(extra_exec), changed(got, 24, got['offset'] + 1),
+              changed(rela, 40, got['index'], '<I'), bytes(wrong_plt))),
         )
         for reference, native, supplied in cases:
             for data in (self.final_bytes, *supplied):

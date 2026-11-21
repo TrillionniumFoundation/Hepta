@@ -56,6 +56,8 @@ LOOKUP_MAGIC = int.from_bytes(b'HIAELFK1', 'little')
 LOOKUP_NAME = 64
 LOOKUP_ROLES = LOOKUP_NAME + 256
 LOOKUP_WORK = LOOKUP_ROLES + AUTHORITY_BYTES
+LOADER_EXECUTABLE_MAGIC = int.from_bytes(b'HIAELFP1', 'little')
+LOADER_EXECUTABLE_WORK = LOOKUP_WORK + 8
 LOOKUP_TYPED = ('.dynamic', '.got', '.rela.plt', '.hash', '.gnu.hash',
                 '.gnu.version', '.gnu.version_r', '.dynstr')
 LOOKUP_REQUIRED = ('.dynsym', *LOOKUP_TYPED)
@@ -130,6 +132,8 @@ REFUSALS = (
     ('owned_missing_text', 'missing section .text'),
     ('owned_missing_symbols', 'missing section .symtab'),
     ('owned_text_kind', 'section kind differs: .text'),
+    ('loader_missing_plt', 'missing section .plt'),
+    ('loader_plt_kind', 'section kind differs: .plt'),
 )
 REFUSAL_IDS = {name: number for number, (name, _) in enumerate(REFUSALS, 1)}
 
@@ -416,6 +420,11 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
         require(len(name) <= 256, REFUSALS[REFUSAL_IDS['dynamic_order'] - 1][1])
         fields = (LOOKUP_MAGIC, len(name), 0, 0, 0, 0, 0, 0)
         self._verify_terminal(data, fields, name.ljust(LOOKUP_WORK - LOOKUP_NAME, b'\0'),
+                              capacity=CAPACITY + AUTHORITY_BYTES)
+
+    def verify_loader_executable(self, data, abort_symbols):
+        arguments = (LOADER_EXECUTABLE_MAGIC, abort_symbols)
+        self._verify_terminal(data, arguments, bytes(LOADER_EXECUTABLE_WORK - 16),
                               capacity=CAPACITY + AUTHORITY_BYTES)
 
     def verify_object_inventory(self, data, rela, text, symbols, *, direct):

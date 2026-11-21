@@ -492,21 +492,17 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
             final.data, final.section(".dynsym")["index"], linked, dstfunc[export],
         )
 
-    plt, got, rela = (final.section(".plt", 1), final.section(".got", 1),
-                      final.section(".rela.plt", 4))
     if final._native_inventory is None:
+        plt, got, rela = (final.section(".plt", 1), final.section(".got", 1),
+                          final.section(".rela.plt", 4))
         _reference_executable_layout(final, linked, plt, got)
-    else:
-        final._native_inventory.verify_executable_layout(final.data, linked, plt, got)
-    writable = final.load_binding(got, 6)
-    if final._native_inventory is None:
+        writable = final.load_binding(got, 6)
         _reference_relro(final, writable, got)
         _reference_dynamic_relocations(final, rela, got)
         _reference_plt_slot(plt, got, rela, dynsymbols)
     else:
-        final._native_inventory.verify_relro(final.data, writable, got)
-        final._native_inventory.verify_dynamic_relocations(final.data, rela, final.section(".dynsym"), got)
-        final._native_inventory.verify_plt_slot(final.data, plt, got, rela, abort_symbols)
+        final._native_inventory.verify_loader_executable(final.data, abort_symbols)
+        plt = final.section(".plt", 1)
 
     dynamic = final.section(".dynamic", 6)
     final.load_binding(dynamic, 6)
