@@ -40,7 +40,10 @@
 .equ OWNER_TIMER, 70504
 .equ OWNER_POLL, 70536
 .equ OWNER_OBSERVATION, 70560
-.equ FRAME_BYTES, 70624
+.equ OWNER_TEXT, 70624
+.equ OWNER_ARGV, 70712
+.equ OWNER_ENV, 70760
+.equ FRAME_BYTES, 70784
 .equ MAGIC, 0x3130585244414948     /* HIADRX01 */
 .equ RESULT, 0x3130525244414948    /* HIADRR01 */
 .equ REPEAT_MAGIC, 0x3230585244414948
@@ -50,6 +53,8 @@ _start:
     xor r10d,r10d
     cmp QWORD PTR [rsp],1
     je mode_ready
+    cmp QWORD PTR [rsp],3
+    je sealed_reference_mode
     cmp QWORD PTR [rsp],2
     jne usage
     mov rsi,[rsp+16]
@@ -59,6 +64,36 @@ _start:
     repe cmpsb
     jne usage
     mov r10d,1
+    jmp mode_ready
+sealed_reference_mode:
+    mov rsi,[rsp+16]
+    lea rdi,[rip+exec_owner_option]
+    mov ecx,15
+    cld
+    repe cmpsb
+    jne usage
+    mov rsi,[rsp+24]
+    xor r14d,r14d
+    xor ecx,ecx
+reference_descriptor:
+    movzx eax,BYTE PTR [rsi+rcx]
+    test eax,eax
+    jz reference_descriptor_ready
+    sub eax,48
+    cmp eax,9
+    ja usage
+    cmp ecx,10
+    jae usage
+    imul r14,r14,10
+    add r14,rax
+    inc ecx
+    jmp reference_descriptor
+reference_descriptor_ready:
+    cmp r14,3
+    jb usage
+    cmp r14,0x7fffffff
+    ja usage
+    mov r10d,2
 mode_ready:
     sub rsp,FRAME_BYTES
     mov rbp,rsp
@@ -97,6 +132,8 @@ set_parent_death:
     test rax,rax
     jne io
 
+    cmp QWORD PTR [rbp+OWNER],2
+    je supervise_reference
     xor ebx,ebx
 read_input:
     xor eax,eax
@@ -588,6 +625,22 @@ direct_plan_call_hole: .long 0
 supervise_input:
     cmp rbx,104
     jb invalid
+    jmp owner_admit
+supervise_reference:
+    mov edi,r14d
+    call owner_require_sealed
+    lea rsi,[rbp+INPUT]
+    mov edx,65
+    xor r10d,r10d
+    mov eax,17                /* pread64; never consume the child's stdin */
+    syscall
+    cmp rax,-4
+    je supervise_reference
+    cmp rax,64
+    jne invalid
+    mov edi,r14d
+    call owner_close
+owner_admit:
     mov QWORD PTR [rbp+OWNER_OBSERVATION],0
     mov eax,110
     syscall
@@ -647,6 +700,10 @@ supervise_input:
     mov eax,39
     syscall
     mov [rbp+OWNER_PID],rax
+    cmp QWORD PTR [rbp+OWNER],2
+    jne owner_fork
+    call reference_arguments
+owner_fork:
     mov eax,57                /* fork exactly this immutable image */
     syscall
     test rax,rax
@@ -774,6 +831,8 @@ supervised_child:
     call owner_close
     mov edi,DWORD PTR [rbp+OWNER_POLL+16]
     call owner_close
+    cmp QWORD PTR [rbp+OWNER],2
+    je execute_reference
     sub rbx,32
     lea rsi,[rbp+INPUT+32]
     lea rdi,[rbp+INPUT]
@@ -783,6 +842,73 @@ supervised_child:
     mov rax,[rbp+OWNER_PID]
     mov [rbp+INPUT+8],rax
     jmp validate
+reference_arguments:
+    mov QWORD PTR [rbp+OWNER_OBSERVATION],3
+    mov rax,[rbp+OWNER_PID]
+    mov [rbp+OWNER_OBSERVATION+8],rax
+    lea rsi,[rbp+INPUT+32]
+    lea rdi,[rbp+OWNER_OBSERVATION+16]
+    mov ecx,4
+    cld
+    rep movsq
+    mov rax,[rbp+OWNER_STATUS_FD]
+    mov [rbp+OWNER_OBSERVATION+48],rax
+    lea rdi,[rbp+OWNER_OBSERVATION]
+    mov esi,56
+    lea rdx,[rbp+OWNER_TEXT]
+    mov ecx,84
+    lea r8,[rbp+OWNER_OBSERVATION]
+    xor r9d,r9d
+    sub rsp,8
+    call direct_policy
+    add rsp,8
+    cmp eax,84
+    jne invalid
+    mov edi,DWORD PTR [rbp+INPUT+32]
+    call owner_require_sealed
+    mov edi,DWORD PTR [rbp+INPUT+56]
+    test edi,edi
+    jz reference_seals_ready
+    call owner_require_sealed
+reference_seals_ready:
+    lea rax,[rip+reference_name]
+    mov [rbp+OWNER_ARGV],rax
+    lea rax,[rbp+OWNER_TEXT]
+    mov [rbp+OWNER_ARGV+8],rax
+    lea rax,[rbp+OWNER_TEXT+21]
+    mov [rbp+OWNER_ARGV+16],rax
+    lea rax,[rbp+OWNER_TEXT+42]
+    mov [rbp+OWNER_ARGV+24],rax
+    xor eax,eax
+    cmp QWORD PTR [rbp+INPUT+56],0
+    je reference_argv_ready
+    lea rax,[rbp+OWNER_TEXT+63]
+reference_argv_ready:
+    mov [rbp+OWNER_ARGV+32],rax
+    mov QWORD PTR [rbp+OWNER_ARGV+40],0
+    lea rax,[rip+reference_env]
+    mov [rbp+OWNER_ENV],rax
+    mov QWORD PTR [rbp+OWNER_ENV+8],0
+    ret
+execute_reference:
+    mov edi,DWORD PTR [rbp+INPUT+32]
+    lea rsi,[rip+empty_name]
+    lea rdx,[rbp+OWNER_ARGV]
+    lea r10,[rbp+OWNER_ENV]
+    mov r8d,4096              /* AT_EMPTY_PATH */
+    mov eax,322               /* execveat on the sealed reference descriptor */
+    syscall
+    jmp io
+owner_require_sealed:
+    mov esi,1034              /* F_GET_SEALS */
+    mov eax,72
+    syscall
+    cmp rax,-4095
+    jae invalid
+    and eax,15                /* SEAL, SHRINK, GROW, WRITE */
+    cmp eax,15
+    jne invalid
+    ret
 owner_close:
     mov eax,3
     syscall
@@ -791,6 +917,14 @@ owner_close:
     ret
 owner_option:
     .asciz "--supervise"
+exec_owner_option:
+    .asciz "--supervise-at"
+reference_name:
+    .asciz "hia-reference-wire"
+reference_env:
+    .asciz "PATH="
+empty_name:
+    .byte 0
 
 runtime_offsets:
     .long core_abort-runtime_offsets, core_calloc-runtime_offsets

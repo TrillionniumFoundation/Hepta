@@ -216,6 +216,11 @@ wait receipt only after the owner returns; a lost receipt is not grounds to
 re-execute the call. Native batch order and writes before a trap are unchanged.
 This does not replace the worker's other process and service routes.
 
+The v18 profile uses the same native owner for sealed scalar and owned
+reference evaluators. The reference receives its original stdin packet
+unchanged. HIA binds the process identity and limits to its executable
+arguments, and the transport executes the exact sealed descriptor.
+
 ## Build the isolated MCP wire executables
 
 The five sealed MCP filters (request, reply, negotiation, catalog, and artifact

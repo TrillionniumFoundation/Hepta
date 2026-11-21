@@ -218,9 +218,10 @@ class _IsolatedReference:
     """An already selected HIA image, one isolated native process per invocation."""
     direct_only = True
 
-    def __init__(self, fd, memory_bytes, cpu_seconds, deadline, target=None):
+    def __init__(self, fd, memory_bytes, cpu_seconds, deadline, target=None, supervisor=None):
         self.fd = fd
         self.target = target
+        self.supervisor = supervisor
         self.memory_bytes = memory_bytes
         self.cpu_seconds = cpu_seconds
         self.deadline = deadline
@@ -233,15 +234,20 @@ class _IsolatedReference:
         timeout = self.remaining()
         if timeout <= 0:
             raise _ReferenceStopped(0 if self.calls else None, b'', True)
-        command = ['/proc/self/fd/' + str(self.fd), str(os.getpid()),
-                   str(self.memory_bytes), str(self.cpu_seconds)]
-        descriptors = (self.fd,)
-        if self.target is not None:
-            command.append(str(self.target))
-            descriptors += (self.target,)
-        returncode, stdout, stderr, timed_out = _run_owned_process(
-            command, payload, cwd=Path(__file__).resolve().parent.parent,
-            timeout=timeout, pass_fds=descriptors, env={'PATH': ''})
+        descriptors = (self.fd,) if self.target is None else (self.fd, self.target)
+        root = Path(__file__).resolve().parent.parent
+        if self.supervisor is None:
+            command = ['/proc/self/fd/' + str(self.fd), str(os.getpid()),
+                       str(self.memory_bytes), str(self.cpu_seconds)]
+            if self.target is not None:
+                command.append(str(self.target))
+            returncode, stdout, stderr, timed_out = _run_owned_process(
+                command, payload, cwd=root, timeout=timeout, pass_fds=descriptors, env={'PATH': ''})
+        else:
+            returncode, stdout, stderr, timed_out = _observe_native_direct_owner(
+                ['/proc/self/fd/' + str(self.supervisor)], payload, cwd=root, deadline=self.deadline,
+                pass_fds=(self.supervisor, *descriptors), env={'PATH': ''},
+                reference=(self.fd, self.memory_bytes, self.cpu_seconds, self.target or 0))
         if self.target is not None and returncode == 3 and not timed_out and not stdout and not stderr:
             self.calls += 1
             return None
@@ -300,19 +306,28 @@ def _direct_reference_program(artifact_bytes, cases, exports, *, owned=False):
 def _run_reference_direct(admitted, artifact_hash, executable, owned, evaluator,
                           memory_bytes, timeout_ms, warmup, repetitions, owned_capable):
     from .hia_agent_service import _vm_observation
+    from .hia_native_helpers import pinned_direct_call_executable, pinned_direct_call_protocol
     from .hia_scalar_reference_native import sealed_reference_bytes, use_direct_reference
 
     program, cases, exports = admitted
     observations = []
     with ExitStack() as custody:
         fd = custody.enter_context(sealed_reference_bytes(executable[0]))
+        supervisor = None
+        if pinned_direct_call_protocol() >= 5:
+            owner = pinned_direct_call_executable()
+            if owner is None:
+                reject("E_HIA_TERMINATION_UNKNOWN", "native reference owner is missing", "execution",
+                       retry_action="observe_original")
+            supervisor = custody.enter_context(sealed_reference_bytes(owner[0]))
         cpu_seconds = max(1, math.ceil(timeout_ms / 1000))
         deadline = time.monotonic_ns() + math.ceil(timeout_ms * 1_000_000)
-        runner = _IsolatedReference(fd, memory_bytes, cpu_seconds, deadline)
+        runner = _IsolatedReference(fd, memory_bytes, cpu_seconds, deadline, supervisor=supervisor)
         owned_runner = None
         if owned_capable:
             target = custody.enter_context(sealed_reference_bytes(owned[0]))
-            owned_runner = _IsolatedReference(fd, memory_bytes, cpu_seconds, deadline, target=target)
+            owned_runner = _IsolatedReference(fd, memory_bytes, cpu_seconds, deadline,
+                                              target=target, supervisor=supervisor)
         try:
             with use_direct_reference(evaluator, runner, owned_runner):
                 for case in cases:
@@ -372,19 +387,27 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
     return returncode, stdout, stderr, timed_out, receipts
 
 
-def _observe_native_direct_owner(command, payload, *, cwd, deadline, pass_fds, env):
+def _observe_native_direct_owner(command, payload, *, cwd, deadline, pass_fds, env, reference=None):
     read_status, write_status = os.pipe2(os.O_CLOEXEC)
     try:
-        try:
+        with ExitStack() as custody:
+            custody.callback(os.close, write_status)
             request = struct.pack('<8s3Q', b'HIADRS01', os.getpid(), deadline, write_status)
+            if reference is None:
+                arguments = [*command, '--supervise']
+                payload = request + payload
+            else:
+                from .hia_scalar_reference_native import sealed_reference_bytes
+
+                control = custody.enter_context(sealed_reference_bytes(request + struct.pack('<4Q', *reference)))
+                arguments = [*command, '--supervise-at', str(control)]
+                pass_fds = (*pass_fds, control)
             # The native owner enforces the exact absolute deadline. The
             # transport grace is only for delivering its already reaped status.
             timeout = max(0, (deadline - time.monotonic_ns()) / 1_000_000_000) + 1
             owner_code, stdout, stderr, timed_out = _run_owned_process(
-                [*command, '--supervise'], request + payload, cwd=cwd, timeout=timeout,
+                arguments, payload, cwd=cwd, timeout=timeout,
                 pass_fds=(*pass_fds, write_status), env=env, has_reference_child=True)
-        finally:
-            os.close(write_status)
         receipt = os.read(read_status, 25)
     finally:
         os.close(read_status)

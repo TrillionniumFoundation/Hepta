@@ -20,7 +20,8 @@ ADMISSION_SCHEMA = 'hepta.hia.native-helpers.v14'
 STARTUP_SCHEMA = 'hepta.hia.native-helpers.v15'
 JOURNAL_SCHEMA = 'hepta.hia.native-helpers.v16'
 DIRECT_OWNER_SCHEMA = 'hepta.hia.native-helpers.v17'
-JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA)
+REFERENCE_OWNER_SCHEMA = 'hepta.hia.native-helpers.v18'
+JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA)
 STARTUP_SCHEMAS = (STARTUP_SCHEMA, *JOURNAL_SCHEMAS)
 ADMISSION_SCHEMAS = (ADMISSION_SCHEMA, *STARTUP_SCHEMAS)
 TERMINAL_SCHEMAS = (TERMINAL_SCHEMA, *ADMISSION_SCHEMAS)
@@ -132,6 +133,7 @@ class NativeWorkerStoreBinding:
         self.native_direct_call_protocol = {
             DIRECT_REPEAT_SCHEMA: 2, **dict.fromkeys((DIRECT_BATCH_SCHEMA, *PAGE_SCHEMAS), 3),
             DIRECT_OWNER_SCHEMA: 4,
+            REFERENCE_OWNER_SCHEMA: 5,
         }.get(schema, 1)
         if schema in DIRECT_CALL_SCHEMAS:
             from .hia_elf_shared_linker_native import SELECTOR as LINKER_SELECTOR

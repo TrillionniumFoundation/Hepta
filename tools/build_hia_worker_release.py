@@ -216,7 +216,7 @@ def build(output, compiler, cold_report, package, package_sha256):
         profile = output / 'worker.json'
         pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True,
                                 reference_executable=reference, owned_reference_executable=owned_reference,
-                                direct_call_executable=direct_call, direct_call_protocol=4,
+                                direct_call_executable=direct_call, direct_call_protocol=5,
                                 read_page_executable=read_page, initialize_fresh=True,
                                 journal_executable=journal)
     profile.chmod(0o400)

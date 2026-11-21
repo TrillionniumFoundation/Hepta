@@ -212,6 +212,38 @@ class DirectCallRuntimeTests(unittest.TestCase):
         self.assertGreaterEqual(time.monotonic_ns(), expires)
         self.assertEqual(result, (-signal.SIGKILL, b'', b'', True))
 
+    @unittest.skipUnless(all(os.environ.get(key) for key in (
+        'HIA_TEST_REFERENCE', 'HIA_TEST_OWNED_REFERENCE', 'HIA_TEST_SCALAR_REFERENCE',
+    )), 'cold-built reference executables are required')
+    def test_native_owner_runs_both_sealed_reference_evaluators(self):
+        from hepta import hia_agent_runner
+        from hepta.hia_scalar_reference_native import SELECTOR as SCALAR_SELECTOR
+        from tests.test_hia_program import resource_program
+
+        outputs = []
+        for name in ('HIA_TEST_REFERENCE', 'HIA_TEST_OWNED_REFERENCE'):
+            raw = Path(os.environ[name]).read_bytes()
+            outputs.append((raw, sha256(raw).hexdigest()))
+        with (patch.dict(os.environ, {SCALAR_SELECTOR: os.environ['HIA_TEST_SCALAR_REFERENCE']}),
+              patch('hepta.hia_native_helpers.pinned_direct_call_protocol', return_value=5),
+              patch('hepta.hia_native_helpers.pinned_direct_call_executable', return_value=(self.raw, self.sha)),
+              patch('hepta.hia_native_helpers.pinned_reference_executable', return_value=outputs[0]),
+              patch('hepta.hia_native_helpers.pinned_owned_reference_executable', return_value=outputs[1]),
+              patch.object(hia_agent_runner, '_observe_native_direct_owner',
+                           wraps=hia_agent_runner._observe_native_direct_owner) as owner):
+            for document, name, arguments, expected, key in (
+                (minimal_document(), 'answer', [35], 42, 'reference_standalone_calls'),
+                (resource_program(), 'owned', [4, 9], 9, 'owned_reference_standalone_calls'),
+            ):
+                with self.subTest(name=name):
+                    result = run_reference_batch(verify_program(document),
+                        [{'function': name, 'arguments': arguments}], timeout_ms=3000, memory_bytes=64 << 20)
+                    self.assertEqual(result['status'], 'returned', result)
+                    self.assertEqual(result['report']['observations'][0]['values'], [expected])
+                    self.assertEqual(result['report'][key], 1)
+        self.assertEqual(owner.call_count, 2)
+        self.assertEqual([call.kwargs['reference'][3] > 0 for call in owner.call_args_list], [False, True])
+
     def test_all_512_cases_are_observed_under_one_batch_budget(self):
         image, signatures = self.inputs['simple']
         cases = [{'function': 'answer', 'arguments': [i],

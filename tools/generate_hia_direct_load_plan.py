@@ -72,9 +72,13 @@ def plan(s:readbuf, o:mutbuf, request:mutbuf) -> u32:
 
 def supervise(s:readbuf, o:mutbuf) -> u32:
     # These four observations come only from the fixed Linux adapter.
-    if length(s) < 8 or length(o) != 24:
+    if length(s) < 8:
         return 0
     phase = read(s, 0, 8)
+    if phase == 3:
+        return supervise_reference(s, o)
+    if length(o) != 24:
+        return 0
     if phase == 0 and length(s) == 56:
         if read(s, 16, 8) != @SUPERVISE@ or read(s, 8, 8) != read(s, 24, 8):
             return 0
@@ -97,6 +101,38 @@ def supervise(s:readbuf, o:mutbuf) -> u32:
     if phase == 2 and length(s) == 24:
         return supervise_status(o, read(s, 8, 8), read(s, 16, 8))
     return 0
+
+def supervise_reference(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 56 or length(o) != 84:
+        return 0
+    process = read(s, 8, 8)
+    reference = read(s, 16, 8)
+    memory = read(s, 24, 8)
+    cpu = read(s, 32, 8)
+    owned = read(s, 40, 8)
+    status = read(s, 48, 8)
+    if process == 0 or process > 2147483647 or reference < 3 or reference > 2147483647:
+        return 0
+    if memory < 67108864 or memory > 4294967296 or cpu == 0 or cpu > 86400:
+        return 0
+    if reference == status or owned == status or owned == reference or (owned != 0 and owned < 3) or owned > 2147483647:
+        return 0
+    decimal_argument(o, 0, process)
+    decimal_argument(o, 21, memory)
+    decimal_argument(o, 42, cpu)
+    decimal_argument(o, 63, owned)
+    return 84
+
+def decimal_argument(o:mutbuf, at:u64, value:u64) -> u64:
+    divisor = 1
+    while value // divisor >= 10:
+        divisor = divisor * 10
+    while divisor != 0:
+        store(o, at, (value // divisor) % 10 + 48)
+        at = at + 1
+        divisor = divisor // 10
+    store(o, at, 0)
+    return at
 
 def supervise_status(o:mutbuf, status:u64, stopped:u64) -> u32:
     if status > 65535 or stopped > 2 or (stopped == 2 and status != 0):
