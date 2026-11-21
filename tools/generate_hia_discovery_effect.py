@@ -61,7 +61,7 @@ def discovery_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def start_document(s:readbuf, o:mutbuf, w:mutbuf, extent:u64) -> u64:
     kind = input_word(s, 40)
     version = input_word(s, 48)
-    if kind < 1 or kind > 3 or extent > choose(kind == 3, 8388608, 1048576):
+    if kind < 1 or kind > 4 or extent > choose(kind >= 3, 8388608, 1048576):
         return 4294967295
     if kind == 1:
         if version == 0 or version > MAX_PROFILE:
@@ -131,7 +131,7 @@ def observe_lookup(s:readbuf, o:mutbuf, w:mutbuf, body:u64) -> u64:
     return 112
 
 def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
-    name = choose(kind == 1, 7, choose(kind == 2, 9, 5))
+    name = choose(kind == 2, 9, choose(kind == 3, 5, 7))
     if size != 388 + name or input_word(s, 40) != ROW:
         return False
     if input_word(s, 48) != 1 or input_word(s, 56) != 1 or input_word(s, 64) != 6:
@@ -157,7 +157,10 @@ def valid_row(s:readbuf, w:mutbuf, size:u64, kind:u64) -> bool:
     elif kind == 2:
         if discovery_text(s, 362) == False:
             return False
-    elif input_text(s, 362) == False:
+    elif kind == 3:
+        if input_text(s, 362) == False:
+            return False
+    elif context_text(s, 362) == False:
         return False
     if byte(s, 362 + name) != 123 or byte(s, 363 + name) != 125:
         return False
@@ -267,7 +270,7 @@ def source_program():
     for name, raw in (
             ('hash_prefix', b'{"sha256":"'), ('hash_count', b'","bytes":'),
             ('uri_prefix', b'hia://artifacts/'), ('profile_text', b'profile'),
-            ('discovery_text', b'discovery'), ('input_text', b'input')):
+            ('discovery_text', b'discovery'), ('input_text', b'input'), ('context_text', b'context')):
         source += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'
         source += '    return ' + ' and '.join(
             f'byte(s, at + {index}) == {value}' for index, value in enumerate(raw)) + '\n'

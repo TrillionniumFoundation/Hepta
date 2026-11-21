@@ -39,6 +39,7 @@ WIRE = {
     'ARTIFACT_URI_HEAD': b'hia://ar',
     'ARTIFACT_URI_TAIL': b'tifacts/',
     'ARTIFACT_PROFILE': b'profile',
+    'ARTIFACT_CONTEXT': b'context',
     'ARTIFACT_INPUT': b'input',
     'ARTIFACT_TOOL_HEAD': b'hia_arti',
     'ARTIFACT_TOOL_TAIL': b'fact',
@@ -409,7 +410,8 @@ def valid_discovery_insert(s:readbuf, size:u64) -> bool:
     if read_word(s, 330) != ARTIFACT_URI_HEAD or read_word(s, 338) != ARTIFACT_URI_TAIL:
         return False
     if kind == 7:
-        if read_word(s, 378) & 72057594037927935 != ARTIFACT_PROFILE:
+        artifact_kind = read_word(s, 378) & 72057594037927935
+        if artifact_kind != ARTIFACT_PROFILE and artifact_kind != ARTIFACT_CONTEXT:
             return False
     elif kind == 9:
         if read_word(s, 378) != ARTIFACT_DISCOVERY_HEAD or byte(s, 386) != 121:
