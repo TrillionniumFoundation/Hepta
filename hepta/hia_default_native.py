@@ -15,6 +15,7 @@ PIN_SCHEMA = 'hepta.hia.default-native-package.v1'
 TARGET = 'linux-x86_64-lp64'
 BUNDLE_RESOURCE = '_data/native/default/full_cost/bundle.json'
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
+CLI_BUNDLE_RESOURCE = '_data/native/default/cli/manifest.json'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
 CORE_ELF_OWNERS = (
     ('HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST', 'elf-shared-linker'),
@@ -93,13 +94,13 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
             or any(len(value[index]) != 64 or any(c not in '0123456789abcdef' for c in value[index])
-                   for index in ((3, 6, 7) if len(value) == 8 else (3, 6)))
-            or (len(value) == 8 and value[4] != SCOPES[0])
+                   for index in (3, *range(6, len(value))))
+            or (len(value) >= 8 and value[4] != SCOPES[0])
             or (value[4] == SCOPES[0] and (len(value[5]) != 64
                 or any(c not in '0123456789abcdef' for c in value[5])))
             or (value[4] == SCOPES[1] and value[5] != '-')
@@ -128,6 +129,24 @@ def capture_default_bundle():
         return None
     directory, value, pins = captured
     return directory / BUNDLE_RESOURCE, value[3], pins
+
+
+def default_cli():
+    from .hia_cli_native import installed_cli, native_cli_profile
+
+    if native_cli_profile() is None:
+        return None
+    captured = _capture_package()
+    if captured is None:
+        return None
+    directory, value, pins = captured
+    if len(value) < 9:
+        return None
+    from .hia_native_helpers import _read
+    selected = installed_cli(directory / CLI_BUNDLE_RESOURCE, expected_sha256=value[8])
+    if any(_read(snapshot.path, limit) != snapshot for snapshot, limit in pins):
+        raise ValueError('installed native CLI default changed during admission')
+    return selected
 
 
 def default_image(selector):
@@ -174,7 +193,7 @@ def default_safe_core_pair(*, observe=False):
     if captured is None:
         return None, None
     directory, value, pins = captured
-    if len(value) != 8:
+    if len(value) < 8:
         return None, None
     binding = helpers.NativeHelpersBinding(str(directory / PROOF_BUNDLE_RESOURCE), value[7])
     binding.snapshots.extend(pins)

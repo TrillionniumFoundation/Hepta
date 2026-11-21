@@ -242,6 +242,10 @@ def hia_main(argv=None):
     if selected is not None:
         from .hia_cli_native import installed_cli
         return installed_cli(selected).run(argv, sys.modules[__name__])
+    from .hia_default_native import default_cli
+    owner = default_cli()
+    if owner is not None:
+        return owner.run(argv, sys.modules[__name__])
     return _reference_hia_main(argv)
 
 main = hia_main

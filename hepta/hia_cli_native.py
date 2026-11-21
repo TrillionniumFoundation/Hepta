@@ -31,6 +31,7 @@ SELECTOR = "HEPTA_HIA_CLI_MANIFEST"
 SCHEMA = "hepta.hia.cli-native-bundle.v1"
 CONTROL_SCHEMA = "hepta.hia.cli-control-native.v1"
 FORMAT_SCHEMA = "hepta.hia.cli-format-native.v1"
+RUNTIME_PROFILES = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}
 SOURCES = {
     "control": _source_resource_path("examples/hia_bootstrap/cli_control.hepta"),
     "format": _source_resource_path("examples/hia_bootstrap/cli_format.hepta"),
@@ -92,12 +93,15 @@ def _frame(arguments, version, environment, profile, columns, color_terminal, ig
     return bytes(raw)
 
 
+def native_cli_profile():
+    return RUNTIME_PROFILES.get(tuple(sys.version_info[:3])) if sys.implementation.name == "cpython" else None
+
+
 def _runtime_profile():
-    observed = tuple(sys.version_info[:3])
-    profiles = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}
-    if sys.implementation.name != "cpython" or observed not in profiles:
+    profile = native_cli_profile()
+    if profile is None:
         raise RuntimeError("selected native CLI requires its pinned CPython 3.12.14, 3.14.4 or 3.14.10 profile")
-    return profiles[observed]
+    return profile
 
 
 def _terminal_columns():
@@ -557,7 +561,7 @@ def _relative_path(value):
             and all(part not in ("", ".", "..") for part in value.split("/")))
 
 
-def installed_cli(manifest_path):
+def installed_cli(manifest_path, *, expected_sha256=None):
     """Bind both sources and exact child manifests; selected failures never fall back.
 
     Warm cache entries retain their original immutable image mapping. They
@@ -569,6 +573,8 @@ def installed_cli(manifest_path):
         raw = stream.read(8193)
     if len(raw) > 8192:
         raise ValueError("native CLI bundle exceeds manifest extent")
+    if expected_sha256 is not None and sha256(raw).hexdigest() != expected_sha256:
+        raise ValueError("package native CLI bundle identity mismatch")
     bundle = json.JSONDecoder(object_pairs_hook=_unique_manifest_pairs).decode(raw.decode("utf-8"))
     keys = {"schema", "control_manifest", "control_manifest_sha256",
             "format_manifest", "format_manifest_sha256"}

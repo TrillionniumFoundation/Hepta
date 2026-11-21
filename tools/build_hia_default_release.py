@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+from hepta.hia_default_native import (BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
                                      TARGET, render_pin)
 from tools.build_hia_json_preflight import admit_cold_build, build_batch, current_sources
@@ -176,6 +176,31 @@ def _write_wheel(path, files, distribution):
     return {name: sha256(raw).hexdigest() for name, raw in sorted(files.items())}
 
 
+def _cli_package_members(output, compiler, cold_report):
+    from tools.build_hia_cli_native import build as build_cli
+
+    manifest = build_cli(output, compiler, cold_report)
+    raw = manifest.read_bytes()
+    bundle = json.loads(raw)
+    inputs = {manifest: raw, output / 'build.json': (output / 'build.json').read_bytes()}
+    for role in ('control', 'format'):
+        child = output / bundle[role + '_manifest']
+        child_raw = child.read_bytes()
+        if sha256(child_raw).hexdigest() != bundle[role + '_manifest_sha256']:
+            raise ValueError('packaged CLI companion manifest changed')
+        metadata = json.loads(child_raw)
+        image = child.parent / metadata['image_path']
+        image_raw = image.read_bytes()
+        if sha256(image_raw).hexdigest() != metadata['image_sha256']:
+            raise ValueError('packaged CLI companion image changed')
+        inputs.update({child: child_raw, image: image_raw})
+    directory = Path('hepta') / Path(CLI_BUNDLE_RESOURCE).parent
+    members = {(directory / path.relative_to(output)).as_posix(): contents
+               for path, contents in inputs.items() if path.name != 'build.json'}
+    return members, inputs, sha256(raw).hexdigest()
+
+
+
 def build(output, compiler, cold_report=None, *, development=False):
     if type(development) is not bool or development == (cold_report is not None):
         raise ValueError('choose one matching cold report or explicit development construction')
@@ -229,6 +254,11 @@ def build(output, compiler, cold_report=None, *, development=False):
         proof_bundle = encoded({**bundle_header, 'helpers': proof_manifests})
         owner_members['hepta/' + PROOF_BUNDLE_RESOURCE] = proof_bundle
         pin += (sha256(proof_bundle).hexdigest(),)
+    if not development:
+        cli_members, cli_inputs, cli_pin = _cli_package_members(output / 'cli-owner', compiler, cold_report)
+        owner_members.update(cli_members)
+        owner_inputs.update(cli_inputs)
+        pin += (cli_pin,)
     pin_raw = render_pin(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)
@@ -274,6 +304,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         'default_bundle_sha256': pin[3], 'pin': pin, 'members': members,
         'default_selectors': [entry['selector'] for entry in manifests],
         'safe_core_proof_selectors': [entry['selector'] for entry in proof_manifests],
+        'default_native_cli_control': not development,
         'derived_package_members': sorted(derived),
         'ordinary_source_default_changed': False, 'retained_reference_bodies_removed': False,
         'matching_source_cold_component': not development,

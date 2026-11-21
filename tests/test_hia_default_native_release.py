@@ -244,6 +244,49 @@ print(json.dumps(answer, sort_keys=True))
 '''
         self.assertEqual(json.loads(self.child(body).stdout), self.expected)
 
+    def test_installed_cli_uses_package_control_without_argparse_or_selectors(self):
+        from hepta.hia_cli_native import native_cli_profile
+
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT' or native_cli_profile() is None:
+            self.skipTest('requires a matching-cold wheel on an admitted CLI presentation profile')
+        body = r'''
+import argparse
+import contextlib
+import io
+from hepta import cli
+from hepta.hia_default_native import CLI_BUNDLE_RESOURCE
+
+def observe(owner, arguments):
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        try:
+            status = owner(arguments)
+        except SystemExit as error:
+            status = error.code
+    return status, out.getvalue(), err.getvalue()
+
+cases = (['--help'], ['--version'], ['capabilities'], ['build', 'missing.hepta'])
+expected = [observe(cli._reference_hia_main, arguments) for arguments in cases]
+assert not [key for key in os.environ if key == 'HEPTA_HIA_CLI_MANIFEST']
+with patch.object(cli, '_reference_hia_main', forbidden), \
+     patch.object(argparse, 'ArgumentParser', forbidden):
+    assert [observe(cli.hia_main, arguments) for arguments in cases] == expected
+    bundle = installed / 'hepta' / CLI_BUNDLE_RESOURCE
+    original = bundle.read_bytes()
+    try:
+        bundle.write_bytes(original + b' ')
+        try:
+            cli.hia_main(['capabilities'])
+        except ValueError as error:
+            assert 'native CLI bundle identity mismatch' in str(error)
+        else:
+            raise AssertionError('changed package CLI bundle reached the command')
+    finally:
+        bundle.write_bytes(original)
+print('PACKAGE_HIA_CLI_CONTROL')
+'''
+        self.assertEqual(self.child(body).stdout.strip(), 'PACKAGE_HIA_CLI_CONTROL')
+
     def test_matching_cold_wheel_builds_direct_shared_without_manual_selectors(self):
         from tests.test_hia_program_tools import scalar_program
 

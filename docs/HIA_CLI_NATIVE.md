@@ -1,11 +1,13 @@
 # Ordinary HIA CLI: current native ownership
 
-This is an explicit native control and presentation owner, not a complete native
-CLI release. Its ordinary entry is the existing `hia_main` through
-`HEPTA_HIA_CLI_MANIFEST`. With that selector, the retained CLI function and
-`argparse.ArgumentParser` are not used. With no selector, the original entry
-remains available. A selected but missing, malformed or source-mismatched bundle
-fails closed; it does not retry through the retained parser.
+This is a native control and presentation owner, not a complete native CLI
+release. The existing `hia_main` uses it by default in a strict matching-cold
+wheel on the admitted CPython presentation profiles. On those installations
+the retained CLI function and `argparse.ArgumentParser` are not used.
+`HEPTA_HIA_CLI_MANIFEST` still explicitly selects an administrator bundle.
+Unqualified packages and other presentation profiles retain the original entry.
+A selected but missing, malformed or source-mismatched bundle fails closed;
+it does not retry through the retained parser.
 
 ## What HIA owns
 
@@ -63,7 +65,8 @@ owners inside those functions retain their own source and qualification scope.
 Canonical HIA sources use `.hepta`. The selected `--backend selfhost` route
 preserves both operator pins, root-level parser constraints and refusal to
 enter the direct Python emitter. Its build effect still forwards the existing
-public compilation boundary. No semantic owner is activated by default.
+public compilation boundary. Selecting the package CLI control does not
+replace its remaining semantic providers.
 
 See [discovery JSON](HIA_CLI_DISCOVERY_JSON.md) and
 [patch impact](HIA_PATCH_IMPACT_NATIVE.md) for the new selected semantic owners,
