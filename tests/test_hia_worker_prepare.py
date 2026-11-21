@@ -121,6 +121,26 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
         invalid = self.invoke(packet(fields) + b'\0')
         self.assertEqual((invalid.returncode, invalid.stdout, invalid.stderr), (2, b'', b''))
 
+    def test_witness_publisher_keeps_the_exact_terminal_snapshot_hash_and_wire(self):
+        nonce = b'0123456789abcdef' * 2
+        job = b'job-1@actual.worker'
+        receipt = b'{"exit_code": 0, "note": "escaped \\n or  spaced " }\n'
+
+        def packet(identity, binding, raw):
+            return struct.pack('<8sQ32s', b'HIAJWE01', len(identity), binding) + identity + raw
+
+        for raw in (receipt, b'{}\n', b'{"x":"' + b'x' * ((1 << 20) - 9) + b'"}\n'):
+            with self.subTest(size=len(raw)):
+                run = self.invoke(packet(job, nonce, raw))
+                expected = {'exit_sha256': text_digest(raw).decode(), 'job_id': job.decode(),
+                            'launch_nonce': nonce.decode(), 'terminal_publication_protocol': 1}
+                self.assertEqual((run.returncode, run.stdout, run.stderr),
+                                 (0, (json.dumps(expected, sort_keys=True) + '\n').encode(), b''))
+        for raw in (packet(b'bad"name', nonce, receipt), packet(job, nonce.upper(), receipt),
+                    packet(job, nonce, receipt[:-1]), packet(job, nonce, receipt + b'x')):
+            run = self.invoke(raw)
+            self.assertEqual((run.returncode, run.stdout, run.stderr), (2, b'', b''))
+
     def test_identity_separates_original_spelling_from_worker_normalization(self):
         canonical = b'{"source":{"path":"/root/source"}}'
         uri = b'{"source":{"path":"ssh://worker/root/source"}}'

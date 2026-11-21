@@ -141,6 +141,21 @@ def _worker_prepare_has_live_owner_binding(prepare):
     return True
 
 
+def _worker_prepare_has_witness_publisher(prepare):
+    job, nonce, raw = b'controller-publisher-probe', b'0' * 32, b'{}\n'
+    frame = struct.pack('<8sQ32s', b'HIAJWE01', len(job), nonce) + job + raw
+    result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+    observed = result.returncode, result.stdout, result.stderr
+    if observed == (2, b'', b''):
+        return False
+    body = {'exit_sha256': sha256(raw).hexdigest(), 'job_id': job.decode('ascii'),
+            'launch_nonce': nonce.decode('ascii'), 'terminal_publication_protocol': 1}
+    expected = (json.dumps(body, sort_keys=True) + '\n').encode('ascii')
+    if observed != (0, expected, b''):
+        raise ValueError('installed HIA worker preparation has an invalid terminal witness writer')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -164,6 +179,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v4'
         if _worker_prepare_has_live_owner_binding(release / 'hia-worker-prepare'):
             schema = 'hepta.hia.mcp.controller.v5'
+            if _worker_prepare_has_witness_publisher(release / 'hia-worker-prepare'):
+                schema = 'hepta.hia.mcp.controller.v6'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

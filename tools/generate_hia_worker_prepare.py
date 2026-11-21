@@ -36,6 +36,7 @@ JOB_TERMINAL_INPUT = b'HIAJTS01'
 JOB_TERMINAL_OUTPUT = b'HIAJTV01'
 JOB_WITNESS_INPUT = b'HIAJWC01'
 JOB_WITNESS_OUTPUT = b'HIAJWR01'
+JOB_WITNESS_ENCODE = b'HIAJWE01'
 CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
@@ -69,6 +70,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_terminal_state(s, o)
     if magic == JOB_WITNESS_INPUT:
         return job_witness(s, o, w)
+    if magic == JOB_WITNESS_ENCODE:
+        return encode_exit_witness(s, o, w)
     if magic == CAPTURE_POLICY_INPUT:
         return capture_policy(s, o)
     if magic == JOB_LIFECYCLE_INPUT:
@@ -248,14 +251,7 @@ def valid_lifecycle_owner(s:readbuf, w:mutbuf) -> bool:
 def owner_hex(s:readbuf, w:mutbuf, field:u64) -> bool:
     if owner_size(w, field) != 32:
         return False
-    at = owner_at(w, field)
-    end = at + 32
-    while at < end:
-        value = byte(s, at)
-        if (value < 48 or value > 57) and (value < 97 or value > 102):
-            return False
-        at = at + 1
-    return True
+    return witness_nonce(s, owner_at(w, field))
 
 def owner_at(w:mutbuf, field:u64) -> u64:
     return word_load(w, field * 16)
@@ -420,15 +416,8 @@ def job_witness_binding(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return 1
     if witness_equal(s, w, 0, 1) == False or witness_equal(s, w, 3, 4) == False:
         return 2
-    nonce = word_load(w, 88)
-    if word_load(s, 56) != 32:
+    if word_load(s, 56) != 32 or witness_nonce(s, word_load(w, 88)) == False:
         return 2
-    i = 0
-    while i < 32:
-        value = byte(s, nonce + i)
-        if (value < 48 or value > 57) and (value < 97 or value > 102):
-            return 2
-        i = i + 1
     if word_load(s, 24) == 3:
         return 4
     if word_load(s, 24) != 1 or witness_equal(s, w, 0, 2) == False or witness_equal(s, w, 3, 5) == False:
@@ -463,6 +452,44 @@ def witness_equal(s:readbuf, w:mutbuf, first:u64, second:u64) -> bool:
             return False
         i = i + 1
     return True
+
+def encode_exit_witness(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    size = length(s)
+    if size < 52 or length(o) < 384:
+        return 4294967293
+    job_size = word_load(s, 8)
+    if job_size == 0 or job_size > 128 or size < 51 + job_size:
+        return 4294967293
+    raw_start = 48 + job_size
+    raw_size = size - raw_start
+    if raw_size > 1048576 or raw_size > length(o):
+        return 4294967294
+    if byte(s, raw_start) != 123 or byte(s, size - 2) != 125 or byte(s, size - 1) != 10:
+        return 4294967293
+    if operation_name(s, 48, job_size) == 0 or witness_nonce(s, 16) == False:
+        return 4294967293
+    external(s, o, 0, raw_start, raw_size)
+    if digest(o, w, raw_size, 0) == 0:
+        return 4294967293
+    return render_exit_witness(s, o, w, job_size)
+
+def witness_nonce(s:readbuf, at:u64) -> bool:
+    end = at + 32
+    while at < end:
+        value = byte(s, at)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return False
+        at = at + 1
+    return True
+
+def render_exit_witness(s:readbuf, o:mutbuf, w:mutbuf, job_size:u64) -> u64:
+    at = witness_receipt_start(o, 0)
+    at = saved(w, o, at, 0, 64)
+    at = witness_receipt_job(o, at)
+    at = external(s, o, at, 48, job_size)
+    at = witness_receipt_nonce(o, at)
+    at = external(s, o, at, 16, 32)
+    return witness_receipt_end(o, at)
 
 def job_poll(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 72 or length(o) < 24:
@@ -927,6 +954,10 @@ LITERALS = {
                             'Complete terminal output could not be authenticated. '),
     'pending_observation_tail': ('. Observe this exact original request; a disconnected observation '
                                  'does not establish termination.'),
+    'witness_receipt_start': '{"exit_sha256": "',
+    'witness_receipt_job': '", "job_id": "',
+    'witness_receipt_nonce': '", "launch_nonce": "',
+    'witness_receipt_end': '", "terminal_publication_protocol": 1}\n',
 }
 
 
@@ -952,6 +983,7 @@ def source_program():
               .replace('JOB_TERMINAL_OUTPUT', str(int.from_bytes(JOB_TERMINAL_OUTPUT, 'little')))
               .replace('JOB_WITNESS_INPUT', str(int.from_bytes(JOB_WITNESS_INPUT, 'little')))
               .replace('JOB_WITNESS_OUTPUT', str(int.from_bytes(JOB_WITNESS_OUTPUT, 'little')))
+              .replace('JOB_WITNESS_ENCODE', str(int.from_bytes(JOB_WITNESS_ENCODE, 'little')))
               .replace('CAPTURE_POLICY_INPUT', str(int.from_bytes(CAPTURE_POLICY_INPUT, 'little')))
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
