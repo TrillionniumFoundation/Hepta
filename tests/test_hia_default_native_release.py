@@ -402,7 +402,7 @@ print('PACKAGED_HIA_LINKAGE_STILL_REQUIRES_FINAL_PROOF')
         body = r'''
 from unittest.mock import patch
 from hepta.hia_cnf_native import selected_cnf
-from hepta.hia_default_native import PROOF_BUNDLE_RESOURCE, default_safe_core_pair
+from hepta.hia_default_native import BINDER_RESOURCE, PROOF_BUNDLE_RESOURCE, default_safe_core_pair
 from hepta.hia_safe_core import build_safe_core
 
 assert selected_cnf() is None
@@ -415,6 +415,8 @@ with (patch('hepta.hia_cnf_native._graph_packet', side_effect=AssertionError('ho
             side_effect=AssertionError('host machine and Core binding entered')),
       patch('hepta.hia_safe_core_x64_decode_native.NativeSafeCoreX64Decode._legacy_decode_workspace',
             side_effect=AssertionError('host relocation projection entered')),
+      patch('hepta.hia_safe_core_elf.bind_final_image',
+            side_effect=AssertionError('host ELF program orchestration entered')),
       patch('hepta.hia_safe_core_elf_inventory_native.NativeSafeCoreElfInventory._function_link_header',
             side_effect=AssertionError('host function link framing entered')),
       patch('hepta.hia_safe_core_elf_inventory_native.NativeSafeCoreElfInventory.verify_object_inventory',
@@ -435,6 +437,21 @@ assert identity['native_x64_decoder_image_sha256'] in mapped
 assert identity['native_cnf_image_sha256'] in mapped
 assert identity['native_core_proof_wire_image_sha256'] in mapped
 assert selected_cnf() is None
+
+from hashlib import sha256
+executable = installed / 'hepta' / BINDER_RESOURCE
+native_code = executable.read_bytes()
+assert sha256(native_code).hexdigest() == identity['native_elf_binder_image_sha256']
+try:
+    executable.write_bytes(native_code[:-1] + bytes([native_code[-1] ^ 1]))
+    try:
+        default_safe_core_pair()
+    except ValueError as error:
+        assert 'binder identity mismatch' in str(error)
+    else:
+        raise AssertionError('the scoped proof accepted a changed binder')
+finally:
+    executable.write_bytes(native_code)
 
 bundle = installed / 'hepta' / PROOF_BUNDLE_RESOURCE
 original = bundle.read_bytes()

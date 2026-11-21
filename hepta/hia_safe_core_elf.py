@@ -384,8 +384,10 @@ def _reference_object_relocations(obj, relsec, text_bytes, linked, plt, dstfunc)
     return calls, records
 
 
-def bind_final_artifact(object_bytes, final_bytes, export, *, native_wire=False, projector=None):
+def bind_final_artifact(object_bytes, final_bytes, export, *, native_wire=False, projector=None, binder=None):
     """Bind untrusted supplied ELF bytes without a producer's text or symbol map."""
+    if binder is not None:
+        return binder.bind(object_bytes, final_bytes, export, native_wire=native_wire)
     obj = _ELF(object_bytes, 1)
     text = obj.section(".text", 1)["data"]
     return bind_final_image(object_bytes, text, final_bytes, export, native_wire=native_wire, projector=projector)
@@ -529,6 +531,12 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export, *, native_wi
         calls, records, relocation_wire = obj._native_inventory.object_relocations_owned(
             obj.data, relsec, source, mapped_text, address, abort, helper, wire=native_wire,
         )
+    return _binding_result(object_bytes, final_bytes, export, offset, address, mapped_text, entry,
+                           direct, calls, records, relocation_wire)
+
+
+def _binding_result(object_bytes, final_bytes, export, offset, address, mapped_text, entry,
+                    direct, calls, records, relocation_wire):
     from .hia_sha256_stream_native import selected_stream_hasher
 
     hasher = selected_stream_hasher()

@@ -15,6 +15,7 @@ PIN_SCHEMA = 'hepta.hia.default-native-package.v1'
 TARGET = 'linux-x86_64-lp64'
 BUNDLE_RESOURCE = '_data/native/default/full_cost/bundle.json'
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
+BINDER_RESOURCE = '_data/native/default/full_cost/hia-safe-core-bind'
 CLI_BUNDLE_RESOURCE = '_data/native/default/cli/manifest.json'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
 CORE_ELF_OWNERS = (
@@ -95,7 +96,7 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8, 9)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
@@ -218,6 +219,12 @@ def default_safe_core_pair(*, observe=False):
             images[1]._default_core_proof_wire = image
         else:
             images.append(image)
+    if len(value) >= 10 and not any(selector in os.environ for selector, _ in CORE_ELF_OWNERS):
+        from .hia_safe_core_binder_native import MAX_EXECUTABLE, NativeSafeCoreBinder
+        artifact = helpers._read(directory / BINDER_RESOURCE, MAX_EXECUTABLE)
+        images[1]._default_elf_binder = NativeSafeCoreBinder(artifact.raw, value[9], value[6])
+        binding.snapshots.append((artifact, MAX_EXECUTABLE))
+        binding.check_files()
     binding.images.clear()
     return tuple(images)
 

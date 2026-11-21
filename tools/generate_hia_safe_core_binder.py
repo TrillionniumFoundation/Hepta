@@ -20,6 +20,8 @@ from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_func
 
 SOURCE_PATH = 'examples/hia_bootstrap/safe_core_binder.hepta'
 FRAME_MAGIC = int.from_bytes(b'HIAEBND1', 'little')
+DIAGNOSTIC_REQUEST = int.from_bytes(b'HIAEBND2', 'little')
+DIAGNOSTIC_REPLY = int.from_bytes(b'HIAEBNX1', 'little')
 REPLY_MAGIC = int.from_bytes(b'HIAEBNR1', 'little')
 FRAME_HEAD = 32 + 256
 REPLY_HEAD = 80
@@ -50,6 +52,12 @@ def bind(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) != WORK_LIMIT or length(o) != OUTPUT_LIMIT:
         return 0
     phase = get(w, 0)
+    result = stage(s, o, w, phase)
+    if result != 0 or length(s) < FRAME_HEAD or uint(s, 0, 8) != DIAGNOSTIC_REQUEST:
+        return result
+    return refusal(o, w, phase)
+
+def stage(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 0:
         return start(s, w)
     if phase <= 4:
@@ -62,8 +70,37 @@ def bind(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return emit(s, o, w)
     return 0
 
+def refusal(o:mutbuf, w:mutbuf, phase:u64) -> u64:
+    at = 0
+    if phase == 1:
+        at = BIG_REPLY
+    if phase == 2 or phase == 3 or phase == 4 or phase == 10:
+        at = DETAIL
+    if phase == 5:
+        at = SOURCE_LAYOUT
+    if phase == 6 or phase == 12:
+        at = SOURCE_FUNCTIONS
+    if phase == 7 or phase == 13 or phase == 14:
+        at = FINAL_FUNCTIONS
+    if phase == 9:
+        at = COORDINATES
+    put(o, 0, DIAGNOSTIC_REPLY)
+    put(o, 8, phase)
+    put(o, 16, 0)
+    put(o, 24, 0)
+    put(o, 32, 0)
+    size = get(w, 64)
+    if at != 0 and (size == 24 or phase == 1 and size == 64):
+        put(o, 16, get(w, at))
+        put(o, 24, get(w, at + 8))
+        put(o, 32, get(w, at + 16))
+    return 40
+
 def start(s:readbuf, w:mutbuf) -> u64:
-    if length(s) < FRAME_HEAD or uint(s, 0, 8) != FRAME_MAGIC:
+    if length(s) < FRAME_HEAD:
+        return 0
+    magic = uint(s, 0, 8)
+    if magic != FRAME_MAGIC and magic != DIAGNOSTIC_REQUEST:
         return 0
     obj = uint(s, 8, 8)
     final = uint(s, 16, 8)

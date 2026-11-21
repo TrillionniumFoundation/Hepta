@@ -135,7 +135,9 @@ elf_call_hole:
     .long 0
 .record:
     cmp rax, [r14 + 40]
-    ja .invalid
+    jbe .record_size
+    mov rax, -1
+.record_size:
     mov [r14 + 64], rax
     jmp .plan
 

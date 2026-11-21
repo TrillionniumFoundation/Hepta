@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+from hepta.hia_default_native import (BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER,
                                      PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
                                      TARGET, render_pin)
@@ -269,6 +269,12 @@ def build(output, compiler, cold_report=None, *, development=False):
         owner_members.update(cli_members)
         owner_inputs.update(cli_inputs)
         pin += (cli_pin,)
+        from tools.build_hia_safe_core_binder import build as build_binder
+        executable = build_binder(output / 'elf-binder', compiler, cold_report)
+        native_binder = executable.read_bytes()
+        owner_inputs[executable] = native_binder
+        owner_members['hepta/' + BINDER_RESOURCE] = native_binder
+        pin += (sha256(native_binder).hexdigest(),)
     pin_raw = render_pin(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)

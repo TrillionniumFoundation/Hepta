@@ -141,6 +141,7 @@ def _checker_source_identity(pair=None):
         ('cnf', 'hia_cnf_native.py', cnf),
         ('core_proof_wire', 'hia_core_proof_wire_native.py', _core_proof_wire(cnf)
          if decoder is not None and cnf is not None else None),
+        ('elf_binder', 'hia_safe_core_binder_native.py', getattr(cnf, '_default_elf_binder', None)),
     )
     sources = CHECKER_SOURCE_FILES
     if decoder is not None and cnf is not None:
@@ -1218,8 +1219,9 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     identity = _checker_source_identity(pair)
     native_scalar = decoder is not None and cnf is not None and not foreign_buffer_exports
     projector = _core_proof_wire(cnf) if native_scalar else None
+    binder = getattr(cnf, '_default_elf_binder', None) if native_scalar else None
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"],
-                                  native_wire=native_scalar, projector=projector)
+                                  native_wire=native_scalar, projector=projector, binder=binder)
     loan_shape = None
     if foreign_buffer_exports:
         loan_shape = _native_borrowed_shape(fn, blocks, foreign_buffer_exports[0][1])

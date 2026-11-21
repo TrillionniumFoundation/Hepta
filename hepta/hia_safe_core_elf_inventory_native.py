@@ -567,20 +567,29 @@ class NativeSafeCoreElfInventory(NativeHiaJsonImage):
 
     @staticmethod
     def _decode_object_relocations(result, text_size, address, helper, wire):
-        output, size, count, reserved = result
+        output, size, _, _ = result
+        raw = output.raw[:size]
+        calls, records = NativeSafeCoreElfInventory.read_relocation_wire(raw, text_size, address, helper)
+        return calls, records, raw if wire else None
+
+    @staticmethod
+    def read_relocation_wire(raw, text_size, address, helper):
+        if len(raw) < HEADER.size:
+            raise RuntimeError('invalid native Safe Core call relocation response')
+        status, count, reserved = HEADER.unpack_from(raw)
         expected = 2 if helper else 1
-        if reserved or count != expected or size != HEADER.size + count * RELOCATION.size:
+        if status or reserved or count != expected or len(raw) != HEADER.size + count * RELOCATION.size:
             raise RuntimeError('invalid native Safe Core call relocation response')
         calls, records = {}, []
-        for at in range(HEADER.size, size, RELOCATION.size):
-            offset, symbol, target, displacement = RELOCATION.unpack_from(output, at)
+        for at in range(HEADER.size, len(raw), RELOCATION.size):
+            offset, symbol, target, displacement = RELOCATION.unpack_from(raw, at)
             if not 1 <= symbol <= expected or not 0 < offset <= text_size - 4 or offset - 1 in calls:
                 raise RuntimeError('invalid native Safe Core call relocation')
             name = 'abort' if symbol == 1 else '__hia_native_fn_0'
             calls[offset - 1] = 'abort' if symbol == 1 else target - address
             records.append(dict(offset=offset, symbol=name, type=4, addend=-4,
                                 linked_target=target, displacement=displacement))
-        return calls, records, output.raw[:size] if wire else None
+        return calls, records
 
     def _require_empty_response(self, data, arguments):
         _, size, first, second = self._exchange(data, arguments)
