@@ -171,6 +171,9 @@ class _CapturedAdmission:
             self._capture(name)
         self._admit_pair_and_evaluation()
         self._admit_deadline_diagnostics()
+        self._admit_machine_receipt()
+        self._admit_reviewed_components()
+        self._admit_store_admin_helpers()
 
     def _capture(self, name):
         if name not in self._captured:
@@ -178,6 +181,8 @@ class _CapturedAdmission:
         return self._captured[name]
 
     def _admit_pair_and_evaluation(self):
+        from tests import hia_native_transport_worker_successor as delivery
+
         authorities = {}
         for kind, (path, expected) in ORIGINALS.items():
             raw = self._capture(path)
@@ -210,11 +215,19 @@ class _CapturedAdmission:
                     or pair['files'][DELIVERY]['definition'] != 'admit_originals'):
                 raise ValueError('caller terminal pair provenance scope differs')
             for name in PATHS:
-                reverse_one(captured[name], pair['files'][name], OLD[name])
+                raw = captured[name]
+                if name == TRANSPORT and _pin(raw) == delivery.SQLITE_BOUNDARY_SOURCES[name]:
+                    raw = delivery._reverse_sqlite_boundary(name, raw,
+                        self._capture(delivery.SQLITE_BOUNDARY_FIXTURE), FIXTURE, frozen,
+                        pair['files'][name]['new'])
+                reverse_one(raw, pair['files'][name], OLD[name])
             self._state = 'EXACT_TERMINAL_V2_PAIR'
             self._allowed[TRANSPORT] = self._adjustment(
-                TRANSPORT, OLD[TRANSPORT], pair['files'][TRANSPORT]['new'],
+                TRANSPORT, OLD[TRANSPORT], _pin(captured[TRANSPORT]),
                 FIXTURE, FIXTURE_SHA256, '_child_store_worker')
+            if _pin(captured[TRANSPORT]) != pair['files'][TRANSPORT]['new']:
+                self._allowed[TRANSPORT]['sqlite_boundary_provenance'] = {
+                    'path': delivery.SQLITE_BOUNDARY_FIXTURE, **delivery.SQLITE_BOUNDARY_FIXTURE_PIN}
         evaluation = self._capture(EVALUATION)
         if _pin(evaluation) != EVALUATION_OLD:
             if legacy:
@@ -240,24 +253,106 @@ class _CapturedAdmission:
                     or _canonical(value['required_pair']) != _canonical({
                         name: pair['files'][name]['new'] for name in PATHS})):
                 raise ValueError('caller evaluation provenance scope differs')
-            reverse_evaluation(evaluation, value['record'])
+            approved = evaluation
+            if _pin(evaluation) != EVALUATION_NEW:
+                approved = delivery.restore_evaluation_store(evaluation, self._capture(delivery.EVALUATION_STORE_FIXTURE))
+            reverse_evaluation(approved, value['record'])
             self._state = 'EXACT_TERMINAL_V2_PAIR_WITH_EVALUATION_V2'
             self._allowed[EVALUATION] = self._adjustment(
-                EVALUATION, EVALUATION_OLD, EVALUATION_NEW,
+                EVALUATION, EVALUATION_OLD, _pin(evaluation),
                 EVALUATION_FIXTURE, EVALUATION_FIXTURE_SHA256, EVALUATION_DEFINITION)
+            if evaluation != approved:
+                self._allowed[EVALUATION]['typed_store_provenance'] = {
+                    'path': delivery.EVALUATION_STORE_FIXTURE,
+                    'sha256': delivery.EVALUATION_STORE_FIXTURE_SHA256}
         if set(self._allowed) - {TRANSPORT, EVALUATION}:
             raise ValueError('caller terminal source exception exceeds the reviewed two test paths')
 
     def _admit_deadline_diagnostics(self):
         from tests import hia_caller_diagnostics_admission as diagnostics
+        from tests import hia_native_transport_worker_successor as delivery
         name = diagnostics.PATH
         if name not in self._records:
             return
         raw = self._capture(name)
         if _pin(raw) == diagnostics.ORIGINAL:
             return
-        self._diagnostics[name] = diagnostics.admit(
-            name, raw, self._records[name], self._capture(diagnostics.FIXTURE))
+        approved = raw
+        if _pin(raw) == delivery.SQLITE_BOUNDARY_SOURCES[name]:
+            approved = delivery._reverse_sqlite_boundary(name, raw,
+                self._capture(delivery.SQLITE_BOUNDARY_FIXTURE), delivery.DIAGNOSTIC_FIXTURE,
+                self._capture(delivery.DIAGNOSTIC_FIXTURE), diagnostics.CURRENT)
+        proof = diagnostics.admit(name, approved, self._records[name], self._capture(diagnostics.FIXTURE))
+        if raw != approved:
+            proof.update(current=_pin(raw), sqlite_boundary_provenance={
+                'path': delivery.SQLITE_BOUNDARY_FIXTURE, **delivery.SQLITE_BOUNDARY_FIXTURE_PIN})
+        self._diagnostics[name] = proof
+
+    def _admit_machine_receipt(self):
+        from tests import hia_native_transport_worker_successor as delivery
+        name = delivery.MACHINE_RECEIPT_CALLER
+        if name not in self._records:
+            return
+        raw = self._capture(name)
+        if _pin(raw)['sha256'] == self._records[name]:
+            return
+        original = json.loads(self._capture(ORIGINALS['store'][0]))['unchanged_files'][name]
+        if original['sha256'] != self._records[name]:
+            raise ValueError('machine receipt cannot change this original caller authority')
+        fixture = delivery.MACHINE_RECEIPT_FIXTURE
+        self._capture(fixture)
+        delivery.restore_machine_receipt_caller(self._root, raw, original)
+        self._allowed[name] = self._adjustment(name, original, _pin(raw), fixture,
+            delivery.MACHINE_RECEIPT_FIXTURE_PIN['sha256'], 'retained native machine proof receipt')
+
+    def _admit_reviewed_components(self):
+        from tests import hia_native_transport_worker_successor as delivery
+        from tests.hia_store_delivery_successor import reverse_exact
+
+        for name in delivery.COMPONENT_PATHS:
+            expected = self._records.get(name)
+            if expected is None:
+                continue
+            raw = self._capture(name)
+            if _pin(raw)['sha256'] == expected:
+                continue
+            fixture = delivery.COMPONENT_FIXTURE
+            frozen = self._capture(fixture)
+            if sha256(frozen).hexdigest() != delivery.COMPONENT_FIXTURE_SHA256:
+                raise ValueError('caller component authority differs')
+            record = json.loads(frozen)['files'][name].get(expected)
+            if record is None:
+                continue
+            original = {'bytes': record['old_bytes'], 'sha256': expected}
+            reverse_exact(raw, record, original)
+            self._allowed[name] = self._adjustment(name, original, _pin(raw), fixture,
+                delivery.COMPONENT_FIXTURE_SHA256, 'retained native component caller')
+
+    def _admit_store_admin_helpers(self):
+        from tests.hia_store_delivery_successor import reverse_exact
+
+        name = 'tests/test_hia_worker_native_helpers.py'
+        if CALLER_AUTHORITIES[self._authority]['kind'] != 'store' or name not in self._records:
+            return
+        expected = self._records[name]
+        raw = self._capture(name)
+        if _pin(raw)['sha256'] == expected:
+            return
+        fixture = 'tests/fixtures/store_caller_worker_helpers_successor.json'
+        digest = '168ef69fadf672e41f3dd717d3d79e54fcd1af70105d2e3552687b72af824904'
+        frozen = self._capture(fixture)
+        if sha256(frozen).hexdigest() != digest:
+            raise ValueError('Store administrator-helper caller provenance differs')
+        value = json.loads(frozen)
+        if (set(value) != {'schema', 'path', 'original_commit', 'record'}
+                or value['schema'] != 'hepta.hia.store-caller-worker-helpers-successor.v1'
+                or value['path'] != name or value['original_commit'] != '73f16346'):
+            raise ValueError('Store administrator-helper caller provenance scope differs')
+        record = value['record']
+        original = {'bytes': record['old_bytes'], 'sha256': expected}
+        reverse_exact(raw, record, original)
+        self._allowed[name] = self._adjustment(name, original, _pin(raw), fixture, digest,
+            'address-space regression, expanded exact helper inventory and pinned journal fixture')
 
     @staticmethod
     def _adjustment(name, before, after, fixture, digest, definition):

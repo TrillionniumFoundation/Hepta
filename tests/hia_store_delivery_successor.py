@@ -17,6 +17,14 @@ COMPOSITION_SUCCESSOR_SHA256 = '4d52c953af4df5f115580871700265297f5b8069d31ee8fa
 WORKER_TRANSPORT_SUCCESSOR = ROOT / 'tests/fixtures/worker_report_stream_successor.json'
 WORKER_TRANSPORT_SHA256 = '49602d227e86a74d0de3b68e07e54b09de1c87feb607d4f9c2de5896daeb20d7'
 WORKER_REPORT_PATH = 'hepta/hia_worker_report_native.py'
+LEGACY_PROVIDER = ROOT / 'tests/fixtures/store_legacy_provider_successor.json'
+LEGACY_PROVIDER_SHA256 = 'b2cfbaab09cc1204cd1aa97973e30b57c793f13843e1532b5a6469905887044c'
+STORE_PATH = 'hepta/hia_agent_store.py'
+COMPOSITION_EXTENSIONS = {
+    WORKER_REPORT_PATH: (WORKER_TRANSPORT_SUCCESSOR, WORKER_TRANSPORT_SHA256,
+                         'hepta.hia.worker-report-stream-successor.v1'),
+    STORE_PATH: (LEGACY_PROVIDER, LEGACY_PROVIDER_SHA256, 'hepta.hia.store-legacy-provider-successor.v1'),
+}
 ORIGINAL = ROOT / 'tests/fixtures/store_native_delivery_original_c019.json'
 ORIGINAL_SHA256 = '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'
 ORIGINAL_SOURCE_PATHS = ('hepta/artifact_publication_native.py', 'hepta/hia_agent_store.py',
@@ -140,14 +148,14 @@ def _restore_composition_successor(captured, approved, shared):
         raise ValueError('later Store composition changes its reviewed scope')
     restored = dict(captured)
     current = dict(approved)
-    worker_fixture = None
+    extensions = {}
     for name in changed:
         record = value['files'][name]
         previous = approved[name]
         raw = captured[name]
         current[name] = record
-        if name == WORKER_REPORT_PATH and sha256(raw).hexdigest() != record['new_sha256']:
-            raw, current[name], worker_fixture = _restore_worker_transport(raw, record)
+        if name in COMPOSITION_EXTENSIONS and sha256(raw).hexdigest() != record['new_sha256']:
+            raw, current[name], extensions[name] = _restore_extension(name, raw, record)
         restored[name] = reverse_exact(raw, record,
                                        {'sha256': previous['new_sha256'], 'bytes': previous['new_bytes']})
     for name in LATER_SHARED_PATHS:
@@ -155,19 +163,20 @@ def _restore_composition_successor(captured, approved, shared):
         record = value['shared_dependencies'][name]
         reverse_exact(captured[name], record, shared[name])
         current[name] = record
-    return restored, current, fixture, worker_fixture
+    return restored, current, fixture, extensions
 
 
-def _restore_worker_transport(raw, predecessor):
-    fixture = WORKER_TRANSPORT_SUCCESSOR.read_bytes()
-    if sha256(fixture).hexdigest() != WORKER_TRANSPORT_SHA256:
-        raise ValueError('worker transport successor fixture changed')
+def _restore_extension(path, raw, predecessor):
+    source, expected, schema = COMPOSITION_EXTENSIONS[path]
+    fixture = source.read_bytes()
+    if sha256(fixture).hexdigest() != expected:
+        raise ValueError('Store composition extension fixture changed: ' + path)
     value = json.loads(fixture)
     if (type(value) is not dict or set(value) != {'schema', 'prior_fixture_sha256', 'path', 'patch'}
-            or value['schema'] != 'hepta.hia.worker-report-stream-successor.v1'
+            or value['schema'] != schema
             or value['prior_fixture_sha256'] != COMPOSITION_SUCCESSOR_SHA256
-            or value['path'] != WORKER_REPORT_PATH):
-        raise ValueError('worker transport successor changes its reviewed scope')
+            or value['path'] != path):
+        raise ValueError('Store composition extension changes its reviewed scope: ' + path)
     record = value['patch']
     previous = {'bytes': predecessor['new_bytes'], 'sha256': predecessor['new_sha256']}
     return reverse_exact(raw, record, previous), record, fixture
@@ -221,10 +230,10 @@ def admit_composition(original_value):
     approved = current = value['files']
     predecessor = captured
     later_fixture = None
-    worker_fixture = None
+    extensions = {}
     if any((len(captured[path]), sha256(captured[path]).hexdigest()) !=
            (approved[path]['new_bytes'], approved[path]['new_sha256']) for path in PATHS):
-        predecessor, current, later_fixture, worker_fixture = _restore_composition_successor(
+        predecessor, current, later_fixture, extensions = _restore_composition_successor(
             captured, approved, inventory['shared_dependency_review'])
     restored = {path: reverse_exact(predecessor[path], approved[path], originals[path])
                 for path in PATHS}
@@ -232,7 +241,7 @@ def admit_composition(original_value):
         captured[ADAPTER_PATH], value.get('adapter_definition_successors'))
     if (FIXTURE.read_bytes() != frozen or ORIGINAL.read_bytes() != original_bytes
             or (later_fixture is not None and COMPOSITION_SUCCESSOR.read_bytes() != later_fixture)
-            or (worker_fixture is not None and WORKER_TRANSPORT_SUCCESSOR.read_bytes() != worker_fixture)
+            or any(COMPOSITION_EXTENSIONS[path][0].read_bytes() != raw for path, raw in extensions.items())
             or any((ROOT / path).read_bytes() != raw for path, raw in captured.items())):
         raise ValueError('successor composition changed during admission')
     composition = {path: current[path]['new_sha256'] for path in PATHS}
@@ -240,8 +249,8 @@ def admit_composition(original_value):
     adjustments = {path: {'path': path, 'original_sha256': sha256(restored[path]).hexdigest(),
         'current_sha256': current[path]['new_sha256'],
         'current_bytes': current[path]['new_bytes'],
-        'reversible_patch_fixture_sha256': (WORKER_TRANSPORT_SHA256
-            if path == WORKER_REPORT_PATH and worker_fixture is not None else fixture_sha256),
+        'reversible_patch_fixture_sha256': (COMPOSITION_EXTENSIONS[path][1]
+            if path in extensions else fixture_sha256),
         'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL, context protocol, Bootstrap, Budget resource and worker unknown-terminal successor',
         'composition_sha256': composition} for path in PATHS}
     shared = dict(inventory['shared_dependency_review'])
