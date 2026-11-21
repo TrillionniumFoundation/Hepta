@@ -1,6 +1,7 @@
 """Pack a cold-built HIA borrowed-buffer application as an independent ELF."""
 from __future__ import annotations
 
+import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -8,7 +9,7 @@ import struct
 
 from tools.build_hia_json_preflight import CANDIDATES, admit_cold_build, build as build_image, current_sources
 from tools.build_hia_source_build import _check_pack_output
-from tools.generate_hia_native_filter import MAGIC
+from tools.generate_hia_native_filter import MAGIC, SAFE_CORE_LOADER_FILTER_MAGIC
 from tools.qualify_hia_selfhost import invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -18,8 +19,9 @@ PACKER = 'native-filter'
 
 
 def build_filter(output: Path, compiler: Path, cold_report: Path, *,
-                 application: str, filename: str, schema: str) -> Path:
-    roles = application, PACKER
+                 application: str, filename: str, schema: str,
+                 packer=PACKER, magic=MAGIC) -> Path:
+    roles = application, packer
     sources = tuple(ROOT / 'examples/hia_bootstrap' / (CANDIDATES[role][0] + '.hepta') for role in roles)
     pins = {path: path.read_bytes() for path in (compiler, cold_report, *sources)}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
@@ -40,10 +42,10 @@ def build_filter(output: Path, compiler: Path, cold_report: Path, *,
         applications[role] = image, metadata
 
     application_bytes = pins[applications[application][0]]
-    packer = applications[PACKER][0]
-    frame = struct.pack('<2Q', MAGIC, len(application_bytes)) + application_bytes
-    receipt, packed = invoke(output, 'native-pack', packer, frame)
-    executable_bytes = _check_pack_output(receipt, packed, artifact=pins[packer], source=frame)
+    packer_image = applications[packer][0]
+    frame = struct.pack('<2Q', magic, len(application_bytes)) + application_bytes
+    receipt, packed = invoke(output, 'native-pack', packer_image, frame)
+    executable_bytes = _check_pack_output(receipt, packed, artifact=pins[packer_image], source=frame)
     inspection = inspect_executable(executable_bytes)
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:
         raise ValueError(f'{application} filter build input changed')
@@ -61,3 +63,14 @@ def build_filter(output: Path, compiler: Path, cold_report: Path, *,
         'native_pack_receipt': receipt,
     }, indent=2, sort_keys=True) + '\n')
     return executable
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Build the standalone HIA Safe Core ELF loader check.')
+    for flag in ('output', 'compiler', 'cold-report'):
+        parser.add_argument('--' + flag, type=Path, required=True)
+    args = parser.parse_args()
+    print(build_filter(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
+                       application='safe-core-elf-inventory', packer='safe-core-loader-filter',
+                       magic=SAFE_CORE_LOADER_FILTER_MAGIC, filename='hia-safe-core-loader',
+                       schema='hepta.hia.safe-core-loader-filter-build.v1'))

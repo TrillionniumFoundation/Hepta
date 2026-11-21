@@ -11,12 +11,18 @@ import struct
 from tempfile import TemporaryDirectory
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_elf_shared_linker_native import MAX_ELF_BYTES, WORKSPACE_BYTES as DIRECT_LINK_WORKSPACE
+from hepta.hia_safe_core_elf_inventory_native import (
+    AUTHORITY_BYTES, CAPACITY as ELF_REPLY_BYTES, FINAL_LOADER_MAGIC, FINAL_LOADER_NAME,
+    FINAL_LOADER_WORK, MAX_ELF,
+)
 from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scalar_functions
 from tools.generate_hia_elf_linker import MAGIC as LINK_WIRE_MAGIC, SOURCE as LINK_SOURCE
 MAGIC=int.from_bytes(b'HIAFLT01','little')
 DIRECT_LINK_FILTER_MAGIC = int.from_bytes(b'HIADSL01', 'little')
 LINK_FILTER_MAGIC = int.from_bytes(b'HIAELF01', 'little')
 WORKER_FILTER_MAGIC = int.from_bytes(b'HIAWRF01', 'little')
+SAFE_CORE_LOADER_FILTER_MAGIC = int.from_bytes(b'HIAELW01', 'little')
+SAFE_CORE_LOADER_INPUT_HEADER = 8 + 256
 WORKER_REQUEST_MAGIC = int.from_bytes(b'HIAWRA01', 'little')
 WORKER_HEADER_BYTES = 80
 WORKER_PRIVATE_BYTES = 16384
@@ -31,7 +37,7 @@ CORE_REPORT_MODE = int.from_bytes(b'HIACRPT1', 'little')
 
 
 def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
-             formatter=False, suite=False, object_files=False, worker_request=False):
+             formatter=False, suite=False, object_files=False, worker_request=False, final_loader=False):
     output_offset = wire_bytes + 4096
     workspace_offset=output_offset+output_bytes
     mapping_bytes=workspace_offset+workspace_bytes
@@ -46,6 +52,9 @@ def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_byte
             emit('48 8b 7c 24 10 48 89 de')  # argv[1] and its observed extent
         elif worker_request:
             emit('49 8d 7c 24 50 49 8d 75 b0')  # Skip the trusted 80-byte input header.
+        elif final_loader:
+            emit('49 8d bc 24');word(SAFE_CORE_LOADER_INPUT_HEADER)
+            emit('49 8d b5');word(-SAFE_CORE_LOADER_INPUT_HEADER & 0xffffffff)
         else:
             emit('4c 89 e7 4c 89 ee')
         emit('49 8d 94 24');word(output_offset)
@@ -163,6 +172,15 @@ def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_byte
         emit('49 8d 74 24 10 49 8d bc 24')
         word(mapping_bytes - WORKER_PRIVATE_BYTES + 64)
         emit('b9 40 00 00 00 fc f3 a4')  # Exact catalog pin, not request data.
+    if final_loader:
+        # Transport only: separate a bounded name field from immutable ELF
+        # bytes. The HIA application checks the name, tables and loader mapping.
+        emit('49 81 fd');word(SAFE_CORE_LOADER_INPUT_HEADER);branch('0f 82','invalid')
+        emit('48 b8');code.extend(struct.pack('<Q', FINAL_LOADER_MAGIC))
+        emit('49 89 84 24');word(workspace_offset)
+        emit('49 8b 04 24 49 89 84 24');word(workspace_offset + 8)
+        emit('49 8d 74 24 08 49 8d bc 24');word(workspace_offset + FINAL_LOADER_NAME)
+        emit('b9');word(256);emit('fc f3 a4')
     calls.append(call_image())
     if worker_request:
         emit('83 f8 fd');branch('0f 84','io')
@@ -183,6 +201,9 @@ def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_byte
             calls.append(call_image())
     label('check_output')
     emit('83 f8 fe');branch('0f 84','space')
+    if final_loader:
+        emit('83 f8 18');branch('0f 85','invalid')
+        emit('49 83 bc 24');word(output_offset);emit('00');branch('0f 85','invalid')
     emit('3d');word(output_bytes);branch('0f 87','invalid')
     emit('41 89 c6 4d 8d bc 24');word(output_offset)
     label('write');emit('4d 85 f6');branch('0f 84','success')
@@ -359,12 +380,20 @@ def direct_shared_linker_document():
                     workspace_bytes=DIRECT_LINK_WORKSPACE, magic=DIRECT_LINK_FILTER_MAGIC,
                     module='direct_shared_linker_filter_packer')
 
+def safe_core_loader_document():
+    adapter = template(wire_bytes=MAX_ELF + SAFE_CORE_LOADER_INPUT_HEADER,
+                       output_bytes=ELF_REPLY_BYTES + AUTHORITY_BYTES,
+                       workspace_bytes=FINAL_LOADER_WORK, final_loader=True)
+    return document(magic=SAFE_CORE_LOADER_FILTER_MAGIC, module='safe_core_loader_filter_packer',
+                    image_template=adapter)
+
 
 def main():
     root=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap'
     for name, source in (
         ('native_filter_packer', document()),
         ('direct_shared_linker_filter_packer', direct_shared_linker_document()),
+        ('safe_core_loader_filter_packer', safe_core_loader_document()),
         ('scalar_reference_cli_packer', reference_cli_document()),
         ('elf_linker_filter_packer', document(magic=LINK_FILTER_MAGIC,
                                              module='elf_linker_filter_packer', object_files=True)),

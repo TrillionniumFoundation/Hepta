@@ -908,6 +908,7 @@ SOURCE_FILES = (
     'tools/generate_hia_safe_core_x64_decode.py',
     'tests/test_hia_safe_core_x64_decode_native.py',
     'examples/hia_bootstrap/safe_core_elf_inventory.hepta',
+    'examples/hia_bootstrap/safe_core_loader_filter_packer.hepta',
     'tools/generate_hia_safe_core_elf_inventory.py',
     'tests/test_hia_safe_core_elf_inventory_native.py',
     'tests/test_hia_elf_verified_linker_native.py',

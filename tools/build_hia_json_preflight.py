@@ -64,6 +64,7 @@ CANDIDATES = {
     'safe-core-x64-decode': ('safe_core_x64_decode', 'safe-core-x64-decode'),
     'core-proof-wire': ('core_proof_wire', 'core-proof-wire'),
     'safe-core-elf-inventory': ('safe_core_elf_inventory', 'safe-core-elf-inventory'),
+    'safe-core-loader-filter': ('safe_core_loader_filter_packer', 'safe-core-loader-filter'),
     'machine-encoding': ('machine_encoding', 'machine-encoding'),
     'candidate-budget': ('candidate_budget', 'candidate-budget'),
     'agent-journal': ('agent_journal', 'agent-journal'),

@@ -552,6 +552,36 @@ class SafeCoreElfInventoryNativeTests(unittest.TestCase):
                 self.assertEqual(result(self.native.verify_final_loader, data, export),
                                  result(reference_final, data, export), (name, offset))
 
+    def test_standalone_final_loader_receipt_uses_raw_elf_with_empty_path(self):
+        selected = os.environ.get('HEPTA_HIA_SAFE_CORE_LOADER_EXECUTABLE')
+        if not selected:
+            self.skipTest('requires a matching cold-built hia-safe-core-loader executable')
+        executable = Path(selected).resolve(strict=True)
+        export, = self.core.scalar_entrypoints
+        encoded = export.encode('ascii')
+        header = struct.pack('<Q256s', len(encoded), encoded)
+        good = header + self.final_bytes
+
+        def execute(raw, *arguments):
+            result = subprocess.run((executable, *arguments), input=raw, capture_output=True,
+                                    env={'PATH': ''}, timeout=10)
+            return result.returncode, result.stdout, result.stderr
+
+        self.assertEqual(execute(good), (0, bytes(24), b''))
+        self.assertEqual(execute(good, 'unexpected'), (64, b'', b''))
+        wrong_name = struct.pack('<Q256s', len(encoded) + 1, encoded + b'x')
+        oversized = struct.pack('<Q256s', 257, encoded)
+        final = _ELF(self.final_bytes, 3)
+        for name in ('.plt', '.hash', '.gnu.hash', '.gnu.version_r'):
+            at = final.section(name)['offset']
+            changed = bytearray(self.final_bytes)
+            changed[at] ^= 1
+            with self.subTest(section=name):
+                self.assertEqual(execute(header + changed), (2, b'', b''))
+        for invalid in (header[:-1], good[:-1], header + self.object_bytes,
+                        wrong_name + self.final_bytes, oversized + self.final_bytes):
+            self.assertEqual(execute(invalid), (2, b'', b''))
+
     def test_native_relocations_match_real_link_and_retained_rejections(self):
         def result(check, *args):
             try:
