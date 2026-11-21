@@ -1727,25 +1727,39 @@ def project_artifact_circuit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     inputs = read64(s, 8)
     machine = read64(s, 16)
     core = read64(s, 24)
-    if inputs > 6 or machine < inputs or core < inputs or machine > CIRCUIT_NODES or core > CIRCUIT_NODES:
+    invalid_counts = choose(machine < inputs, True, machine > CIRCUIT_NODES)
+    invalid_counts = choose(core < inputs, True, choose(core > CIRCUIT_NODES, True, invalid_counts))
+    if choose(inputs > 6, True, invalid_counts):
         return TOO_LARGE
     base = 88 + 40 * machine
     signed = read64(s, 72)
-    if signed > 1 or size != base + 40 * core:
+    end = base + 40 * core
+    has_memory = size == end + 16
+    if choose(signed > 1, True, choose(size == end, False, size != end + 16)):
         return TOO_LARGE
     machine_valid = valid_word_graph(s, 88, machine)
     core_valid = valid_word_graph(s, base, core)
-    if machine_valid == 0 or core_valid == 0:
+    if choose(machine_valid == 0, True, core_valid == 0):
         return TOO_LARGE
     if p_artifact_graph(s, o, w, 88, machine, inputs, True) == 0:
         return TOO_LARGE
     actual = p_artifact_observation(s, w, 88, machine, 32, 64)
     machine_abort = p_artifact_observation(s, w, 88, machine, 80, 1)
-    if actual == 65535 or machine_abort == 65535:
+    if choose(actual == 65535, True, machine_abort == 65535):
         return TOO_LARGE
+    actual_byte = 65535
+    if has_memory:
+        actual_byte = p_artifact_observation(s, w, 88, machine, end, 8)
+        if actual_byte == 65535:
+            return TOO_LARGE
     if p_artifact_graph(s, o, w, base, core, inputs, False) == 0:
         return TOO_LARGE
-    return p_artifact_observations(s, o, w, base, core, actual, signed == 1, machine_abort)
+    expected_byte = 65535
+    if has_memory:
+        expected_byte = p_artifact_observation(s, w, base, core, end + 8, 8)
+        if expected_byte == 65535:
+            return TOO_LARGE
+    return p_artifact_observations(s, o, w, base, core, actual, signed == 1, machine_abort, actual_byte, expected_byte)
 
 def p_artifact_graph(s:readbuf, o:mutbuf, w:mutbuf, base:u64, count:u64, inputs:u64, machine:bool) -> u64:
     index = 0
@@ -1786,7 +1800,7 @@ def p_artifact_observation(s:readbuf, w:mutbuf, base:u64, count:u64, field:u64, 
         return 65535
     return read_stack(w, 270336 + 8 * node)
 
-def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, actual:u64, signed:bool, machine_abort:u64) -> u32:
+def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, actual:u64, signed:bool, machine_abort:u64, actual_byte:u64, expected_byte:u64) -> u32:
     known = p_artifact_observation(s, w, base, core, 40, 1)
     expected = p_artifact_observation(s, w, base, core, 48, 1)
     trap = p_artifact_observation(s, w, base, core, 56, 8)
@@ -1816,6 +1830,11 @@ def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, a
     write64(o, at + 24, no_trap)
     write64(o, at + 32, value)
     write64(o, at + 40, actual)
+    if actual_byte != 65535:
+        write64(o, 16, 4)
+        write64(o, at + 48, expected_byte)
+        write64(o, at + 56, actual_byte)
+        return at + 64
     return at + 48
 
 def p_artifact_abort(o:mutbuf, w:mutbuf, tag:u64, zero:u64) -> u64:
@@ -1889,7 +1908,10 @@ def p_artifact_word(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) 
     return p_node(o, w, op, width, a, b, c)
 
 def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
-    if length(s) > PROJECTION_INPUT_LIMIT or length(o) < PROJECTION_OUTPUT or length(w) < PROJECTION_WORKSPACE:
+    size = length(s)
+    capacity = length(o)
+    scratch = length(w)
+    if size > PROJECTION_INPUT_LIMIT or capacity < PROJECTION_OUTPUT or scratch < PROJECTION_WORKSPACE:
         return TOO_LARGE
     mode = read64(s, 8)
     inputs = read64(s, 16)
@@ -1897,7 +1919,7 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
     origin = 32
     if calls:
         origin = 40
-    if mode < 1 or mode > 4 or inputs > SUMMARIZED_CALL_INPUTS or outputs > CIRCUIT_RETURNS or length(s) < origin + 8 * (inputs + outputs):
+    if mode < 1 or mode > 4 or inputs > SUMMARIZED_CALL_INPUTS or outputs > CIRCUIT_RETURNS or size < origin + 8 * (inputs + outputs):
         return TOO_LARGE
     if mode == 2 and outputs + 2 > CIRCUIT_RETURNS:
         return TOO_LARGE
@@ -1905,10 +1927,10 @@ def project_graphs(s:readbuf, o:mutbuf, w:mutbuf, calls:bool) -> u32:
         return TOO_LARGE
     if mode == 4 and (calls or outputs != 1 or read64(s, origin + 8 * inputs) != 1):
         return TOO_LARGE
-    tail = length(s)
+    tail = size
     if calls:
         tail = read64(s, 32)
-        if tail < origin + 8 * (inputs + outputs) or tail > length(s):
+        if tail < origin + 8 * (inputs + outputs) or tail > size:
             return TOO_LARGE
     write64(w, 72, origin)
     write64(w, 120, tail)

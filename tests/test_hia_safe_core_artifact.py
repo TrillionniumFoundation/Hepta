@@ -498,6 +498,58 @@ class SafeCoreArtifactTests(unittest.TestCase):
         left, right = (byte["value"] for byte in caller_bytes)
         self.assertNotEqual(left ^ right, left & right)
 
+    def test_native_borrowed_write_proves_effects_on_all_terminal_paths(self):
+        from hepta.hia_safe_core import _selected_machine_proof
+
+        if any(component is None for component in _selected_machine_proof()):
+            self.skipTest("requires the native HIA x64 decoder and CNF solver")
+        real_import = importlib.import_module
+
+        def no_host_solver(name, *args, **kwargs):
+            if name == "z3":
+                raise AssertionError("the mutable loan proof entered the hosted checker")
+            return real_import(name, *args, **kwargs)
+
+        exports = (("loan_write", 64),)
+        directory = self.newdir()
+
+        def build(indexed, substitute=None):
+            params = [("loan", "mutbuf")]
+            if indexed:
+                params.append(("index", "usize"))
+            params.append(("value", "u8"))
+            ops = [] if indexed else [c("index", "usize", 7)]
+            value = "value"
+            if substitute is not None:
+                value = "substitute"
+                ops.append(c(value, "u8", substitute))
+            ops.extend([i("buffer.store", ("loan", "index", value)), c("zero", "u32", 0)])
+            core = verify_program(m(f("loan_write", params, ["u32"], ["write", "trap"],
+                                      [b("entry", params, ops, ret("zero"))])))
+            image = emit_program_machine(core, foreign_buffer_exports=exports)
+            final = directory / f"write-{indexed}-{substitute}.so"
+            compile_program_machine(image, program=core, output=final, linker="ld")
+            return core, image.object_bytes, final.read_bytes()
+
+        for indexed in (False, True):
+            with self.subTest(indexed=indexed):
+                core, obj, supplied = build(indexed)
+                _, wrong_obj, wrong = build(indexed, substitute=17)
+                with patch("importlib.import_module", side_effect=no_host_solver):
+                    report = validate_safe_core_artifact(core, obj, supplied, foreign_buffer_exports=exports)
+                    with self.assertRaises(SafeCoreRejected) as too_wide:
+                        validate_safe_core_artifact(core, obj, supplied, foreign_buffer_exports=(("loan_write", 63),))
+                    with self.assertRaises(SafeCoreRejected) as wrong_value:
+                        validate_safe_core_artifact(core, wrong_obj, wrong, foreign_buffer_exports=exports)
+                self.assertTrue(report["complete"])
+                self.assertEqual(report["solver"]["version"], "machine-word-circuit-cnf.v1")
+                self.assertEqual(too_wide.exception.counterexample["obligation"], "machine_memory_access_bounds")
+                witness = wrong_value.exception.counterexample
+                words = witness["abi_words"]
+                self.assertEqual(witness["obligation"], "core_to_final_image_return_abort_and_caller_bytes")
+                self.assertEqual(witness["caller_byte"]["offset"], words[2] if indexed else 7)
+                self.assertNotEqual(words[-1] & 255, 17)
+
     def test_native_machine_proves_checked_product_overflow_at_full_width(self):
         from hepta.hia_safe_core import _selected_machine_proof
 

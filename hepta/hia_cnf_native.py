@@ -278,19 +278,21 @@ class NativeCnf(NativeHiaJsonImage):
         observed = tuple(struct.iter_unpack('<2Q', reply[split:]))
         return instructions, observed, None
 
-    def bind_artifact_circuits(self, machine, core, arguments, *, signed_return):
+    def bind_artifact_circuits(self, machine, core, arguments, *, signed_return, caller_byte=None):
         machine_nodes, machine_value, machine_abort, _ = machine
         core_nodes, (coverage, traps, values), _ = core
         frame = struct.pack('<11Q', ARTIFACT_PROJECTION_REQUEST, arguments,
                             len(machine_nodes), len(core_nodes), machine_value,
                             *coverage, traps[0], values[0], int(signed_return), machine_abort)
         frame += b''.join(struct.pack('<5Q', *row) for row in (*machine_nodes, *core_nodes))
+        if caller_byte is not None:
+            frame += struct.pack('<2Q', *caller_byte)
         projected = self._decode_projection(self._run_projection(frame))
         if projected is None:
             return None
         nodes, observations, _ = projected
         coverage, *outcomes = observations
-        if len(outcomes) != 2:
+        if len(outcomes) != 2 + int(caller_byte is not None):
             raise RuntimeError('invalid HIA artifact observation inventory')
         # Reflexive comparisons need no gate. Keep every input word in the
         # projection so a real counterexample still has exact ABI positions.

@@ -221,19 +221,19 @@ class ReleaseInstallerSourceTests(unittest.TestCase):
             self.assertFalse((base/'must-stay-absent').exists())
 
 
-def packer_admission_witness(abi_status):
+def packer_admission_witness(abi_status, suffix=b''):
     """Literal native control, not a HIA compiler or cold-build witness.
 
-    The entry copies a canonical 185-byte exit(0) ELF to the byte-ABI output
+    The entry copies a canonical exit(0) ELF to the byte-ABI output
     and returns that exact length with the requested high-u32 ABI status.
     No assembler or generated HIA packer participates in this counterexample.
     """
     code = bytes.fromhex('b8 3c 00 00 00 31 ff 0f 05')
-    size = 176 + len(code)
+    size = 176 + len(code) + len(suffix)
     payload = (b'\x7fELF\x02\x01\x01' + bytes(9)
                + struct.pack('<HHIQQQIHHHHHH', 2, 62, 1, 0x4000b0, 64, 0, 0, 64, 56, 2, 0, 0, 0)
                + struct.pack('<IIQQQQQQ', 1, 5, 0, 0x400000, 0x400000, size, size, 4096)
-               + struct.pack('<IIQQQQQQ', 0x6474e551, 6, 0, 0, 0, 0, 0, 16) + code)
+               + struct.pack('<IIQQQQQQ', 0x6474e551, 6, 0, 0, 0, 0, 0, 16) + code + suffix)
     entry = (bytes.fromhex('48 89 d7 48 8d 35') + struct.pack('<i', 18)
              + bytes.fromhex('b9') + struct.pack('<I', size)
              + bytes.fromhex('f3 a4 48 b8')
@@ -250,8 +250,6 @@ class NativePackerAdmissionRegressionTests(unittest.TestCase):
         from tools.qualify_hia_selfhost_cli import inspect_executable
 
         for status in (1, 0):
-            witness, payload = packer_admission_witness(status)
-            inspect_executable(payload)
             for name, target, label in (
                     ('release_install', 'hia-release', 'release-pack'),
                     ('release_selection', 'hia-select', 'selection-pack'),
@@ -263,6 +261,9 @@ class NativePackerAdmissionRegressionTests(unittest.TestCase):
                     compiler.write_bytes(b'not executed: isolated setup fixture')
                     cold.write_text('isolated build setup; not cold qualification\n')
                     module = importlib.import_module('tools.build_hia_' + name)
+                    suffix = module.catalog_table() if name == 'agent_stdio' else b''
+                    witness, payload = packer_admission_witness(status, suffix)
+                    inspect_executable(payload)
                     names = getattr(module, 'SOURCES', None)
                     if names is None:
                         names = [p.relative_to(module.ROOT).as_posix() for p in (
