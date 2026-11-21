@@ -904,7 +904,7 @@ def _native_borrowed_shape(fn, blocks, extent):
         return None
     block = blocks[fn["entry"]]
     ops, term = block["ops"], block["term"]
-    if len(ops) not in (2, 3) or term["op"] != "ret":
+    if len(ops) not in (2, 3, 6) or term["op"] != "ret":
         return None
     value, result = ops[-2:]
     if (result["op"] != "int.cast" or result["attrs"] != {"mode": "wrap"}
@@ -912,6 +912,22 @@ def _native_borrowed_shape(fn, blocks, extent):
             or term["values"] != [result["out"][0]["name"]]):
         return None
     loan = params[0]["name"]
+    if len(ops) == 6:
+        if len(params) != 1 or value["op"] != "bit.xor" or value["out"][0]["type"] != "u8":
+            return None
+        loads = ((ops[0], ops[1]), (ops[2], ops[3]))
+        offsets, values = [], []
+        for position, load in loads:
+            if (position["op"] != "const" or position["out"][0]["type"] != "usize"
+                    or load["op"] != "buffer.load" or load["out"][0]["type"] != "u8"
+                    or load["args"] != [loan, position["out"][0]["name"]]):
+                return None
+            offsets.append(position["attrs"]["value"])
+            values.append(load["out"][0]["name"])
+        first, second = sorted(offsets)
+        if 0 <= first < second < extent and sorted(value["args"]) == sorted(values):
+            return "paired_read", (first, second)
+        return None
     if len(ops) == 2:
         if len(params) == 1 and value["op"] == "buffer.len" and value["args"] == [loan]:
             return "length", None
@@ -930,7 +946,7 @@ def _native_borrowed_shape(fn, blocks, extent):
 
 def _native_core_projection(decoder, cnf, fn, blocks, borrowed, loan_index):
     if borrowed:
-        paths = 4 if loan_index is None else 5
+        paths = 4 if loan_index is None else 6 if type(loan_index) is tuple else 5
         return decoder.project_borrowed_reference(borrowed[0][1], loan_index), paths
     names = tuple(blocks)
     paths = 1
@@ -984,8 +1000,9 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
         if projection is None:
             return None
         machine, memory_check = projection
-    # The byte is one shared abstract input, not an extra physical ABI word.
-    circuit_inputs = arguments + int(loan_index is not None)
+    # Distinct bytes are shared by both models, not additional ABI words.
+    offsets = loan_index if type(loan_index) is tuple else (() if loan_index is None else (loan_index,))
+    circuit_inputs = arguments + len(offsets)
     circuits = cnf.bind_artifact_circuits(machine, core, circuit_inputs,
                                          signed_return=fn["returns"][0].startswith("i"))
     if circuits is None:
@@ -1019,9 +1036,16 @@ def _try_native_scalar_artifact(checked, fn, blocks, binding, profile, profile_v
             words = [(model >> (1 + 64 * word)) & ((1 << 64) - 1)
                      for word in range(arguments)]
             counterexample = {"abi_words": words, "initial_rsp": 0x10008, "obligation": name}
-            if loan_index is not None:
-                offset = words[2] if loan_index == BORROWED_INDEX_ARGUMENT else loan_index
-                counterexample["caller_byte"] = {"offset": offset, "value": (model >> (1 + 64 * arguments)) & 255}
+            if offsets:
+                read = [
+                    {"offset": words[2] if offset == BORROWED_INDEX_ARGUMENT else offset,
+                     "value": (model >> (1 + 64 * (arguments + slot))) & 255}
+                    for slot, offset in enumerate(offsets)
+                ]
+                if len(read) == 1:
+                    counterexample["caller_byte"] = read[0]
+                else:
+                    counterexample["caller_bytes"] = read
         query = decoder.format_proof_query(frame)
         reports.append({"name": name, "result": result, "expected": expected,
                         "query_sha256": sha256(query).hexdigest(),

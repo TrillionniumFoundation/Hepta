@@ -16,6 +16,12 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 # The two declared native package files also belong in the actual wheel;
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
+    'examples/hia_bootstrap/job_terminal_receipt.hepta',
+    'tools/generate_hia_job_terminal_receipt.py',
+    'tests/test_hia_job_terminal_receipt.py',
+    'tests/test_hia_worker_stream.py',
+    'tests/fixtures/store_delivery_composition_successor.json',
+    'tests/fixtures/worker_report_stream_successor.json',
     'tests/fixtures/hia_compiler_rename_reference.json.gz',
     *ARTIFACT_CAPTURE_SDIST_FILES,
     *CORE_NORMALIZE_SDIST_FILES,

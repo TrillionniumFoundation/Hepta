@@ -3105,7 +3105,7 @@ def support_contract(root=ROOT):
             'fixed_syscall_adapter': 'tools/hia_release_install_syscalls.S',
             'target': 'Linux x86-64',
             'package_magic': 'HIAREL01',
-            'maximum_package_bytes': 67108864,
+            'maximum_package_bytes': 83886080,
             'maximum_files': 256,
             'maximum_name_bytes': 127,
             'file_modes': [256, 320],

@@ -13,6 +13,7 @@ from hepta.hia_safe_core_x64_decode_native import (
     BORROWED_INDEX_ARGUMENT, BORROWED_LENGTH_REPLY, BORROWED_LENGTH_REQUEST, BORROWED_LENGTH_WORKSPACE,
     CORE_FORMULA_IDS, CORE_GRAPH_LIMIT, CORE_GRAPH_REQUEST, MACHINE_FORMULA_IDS, MAX_INSTRUCTIONS,
     MACHINE_BORROW_BRANCH_DEPTH, MACHINE_BORROW_REPLY, MACHINE_BORROW_REQUEST, MACHINE_BORROW_WORKSPACE,
+    MACHINE_PAIR_BRANCH_DEPTH,
     MAX_RECIPE_NODES, MAX_TEXT, MEMORY_GRAPH_REQUEST, MEMORY_GRAPH_ROWS, PROFILE_OFFSET, RECIPE_IDS, RECIPE_INPUTS,
     REFUSAL_IDS, SCHEDULER_BITMAP, SCHEDULER_FRAMES, SCHEDULER_HEADER, SCHEDULER_VISITS,
     SCHEDULER_WORKSPACE, WORKSPACE, MACHINE_VALUES_BRANCH_DEPTH, MACHINE_VALUES_BRANCHES,
@@ -52,6 +53,8 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_LOAN_INDEX=MACHINE_VALUES_WORKSPACE + 8, MV_MEMORY_FAULT=MACHINE_VALUES_WORKSPACE + 16,
               MV_NO_MEMORY_FAULT=MACHINE_VALUES_WORKSPACE + 24,
               MV_BORROW_FRAME=MACHINE_VALUES_WORKSPACE + 32,
+              MV_LOAN_SECOND=MACHINE_VALUES_WORKSPACE + 64,
+              MV_PAIR_FRAME=MACHINE_VALUES_WORKSPACE + 72, MV_PAIR_BRANCH_DEPTH=MACHINE_PAIR_BRANCH_DEPTH,
               MV_BORROW_BRANCH_DEPTH=MACHINE_BORROW_BRANCH_DEPTH,
               MV_STACK=192, MV_STACK_BASE=20000, MV_STACK_TOP=20000 + MACHINE_VALUES_STACK_BYTES,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
@@ -1260,16 +1263,22 @@ def caller_disjoint_formula(o:mutbuf) -> u64:
     return node(o, R_IMPLIES, admitted, disjoint, 0)
 
 def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    reading = length(s) == 24
+    paired = length(s) == 32
+    reading = length(s) == 24 or paired
     if (length(s) != 16 and reading == False) or length(o) < MV_HEADER + 48 * 40 or schedule_request(s, 0) != LOAN_LENGTH_REQUEST:
         return 4294967293
     extent = schedule_request(s, 8)
     if extent == 0 or extent > 65536:
         return 0
     index = 0
+    second = LOAN_ARGUMENT_INDEX
     if reading:
         index = schedule_request(s, 16)
         if index >= extent and index != LOAN_ARGUMENT_INDEX:
+            return 0
+    if paired:
+        second = schedule_request(s, 24)
+        if index >= second or second >= extent:
             return 0
     dynamic = index == LOAN_ARGUMENT_INDEX
     put(w, MV_NODES, 0)
@@ -1279,6 +1288,8 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         mv_node(o, w, 1, 0, 0, 0)  # Raw index word.
     if reading:
         mv_node(o, w, 1, 0, 0, 0)  # The independent byte in the caller's allocation.
+        if paired:
+            mv_node(o, w, 1, 0, 0, 0)  # A distinct caller byte, not another ABI word.
     zero = mv_node(o, w, 2, 0, 0, 0) - 1
     limit = mv_node(o, w, 2, 0, 0, extent) - 1
     too_large = mv_word(o, w, 14, 1, 1, limit, 0) - 1
@@ -1292,9 +1303,12 @@ def project_borrowed_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     trap = no_trap
     normal = 0
     if reading:
-        offset = mv_borrow_offset(o, w, index) - 1
+        offset = mv_borrow_offset(o, w, choose(paired, second, index)) - 1
         out_of_bounds = mv_word(o, w, 13, 1, 1, offset, 0) - 1
         byte = mv_word(o, w, 26, 8, choose(dynamic, 3, 2), 0, 0) - 1
+        if paired:
+            other = mv_word(o, w, 26, 8, 3, 0, 0) - 1
+            byte = mv_word(o, w, 5, 8, byte, other, 0) - 1
         value = mv_node(o, w, 30, byte, 0, 0) - 1
         normal = mv_node(o, w, 11, out_of_bounds, zero, value) - 1
         trap = mv_borrow_reference_trap(o, w, too_large, empty, null, wrapping, out_of_bounds, no_trap)
@@ -1340,7 +1354,11 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return 4294967293
     words = schedule_request(s, 16)
     count = schedule_request(s, 24)
-    if words > 6 or count == 0 or count > MAX_CODE or length(s) != 32 + count * 48 + extra:
+    if words > 6 or count == 0 or count > MAX_CODE:
+        return 4294967293
+    size = 32 + count * 48 + extra
+    paired = borrowed and length(s) == size + 8
+    if length(s) != size and paired == False:
         return 4294967293
     put(w, MV_NODES, 0)
     index = 0
@@ -1348,12 +1366,12 @@ def project_machine_values(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         mv_node(o, w, 1, 0, 0, 0)
         index = index + 1
     if borrowed:
-        if mv_start_borrow(s, o, w, 32 + count * 48, words) == 0:
+        if mv_start_borrow(s, o, w, 32 + count * 48, words, paired) == 0:
             return 0
     put(w, MV_PREFIX, 0)
     return mv_tree(s, o, w, words, count)
 
-def mv_start_borrow(s:readbuf, o:mutbuf, w:mutbuf, tail:u64, words:u64) -> u64:
+def mv_start_borrow(s:readbuf, o:mutbuf, w:mutbuf, tail:u64, words:u64, paired:bool) -> u64:
     extent = schedule_request(s, tail)
     index = schedule_request(s, tail + 8)
     dynamic = index == LOAN_ARGUMENT_INDEX
@@ -1361,9 +1379,17 @@ def mv_start_borrow(s:readbuf, o:mutbuf, w:mutbuf, tail:u64, words:u64) -> u64:
         return 0
     if dynamic == False and index >= extent:
         return 0
+    second = LOAN_ARGUMENT_INDEX
+    if paired:
+        second = schedule_request(s, tail + 16)
+        if index >= second or second >= extent:
+            return 0
     put(w, MV_LOAN_EXTENT, extent)
     put(w, MV_LOAN_INDEX, index)
+    put(w, MV_LOAN_SECOND, second)
     mv_node(o, w, 1, 0, 0, 0)  # The low byte is independent of both ABI words.
+    if paired:
+        mv_node(o, w, 1, 0, 0, 0)
     never = mv_word(o, w, 2, 1, 0, 0, 0)
     put(w, MV_NO_MEMORY_FAULT, never)
     put(w, MV_MEMORY_FAULT, never)
@@ -1398,10 +1424,14 @@ def mv_next_terminal(s:readbuf, o:mutbuf, w:mutbuf, words:u64, count:u64) -> u64
     return value
 
 def mv_max_branch_depth(w:mutbuf) -> u64:
-    return choose(length(w) == MV_BORROW_WORKSPACE, MV_BORROW_BRANCH_DEPTH, MV_BRANCH_DEPTH)
+    if length(w) != MV_BORROW_WORKSPACE:
+        return MV_BRANCH_DEPTH
+    return choose(get(w, MV_LOAN_SECOND) == LOAN_ARGUMENT_INDEX, MV_BORROW_BRANCH_DEPTH, MV_PAIR_BRANCH_DEPTH)
 
 def mv_branch_frame(depth:u64) -> u64:
-    return choose(depth < MV_BRANCH_DEPTH, MV_BRANCHES + depth * 32, MV_BORROW_FRAME)
+    if depth < MV_BRANCH_DEPTH:
+        return MV_BRANCHES + depth * 32
+    return choose(depth == MV_BRANCH_DEPTH, MV_BORROW_FRAME, MV_PAIR_FRAME)
 
 def mv_fold_path(o:mutbuf, w:mutbuf, terminal:u64) -> u64:
     # Each frame describes an exact prefix. Save a completed fall-through
@@ -1699,11 +1729,14 @@ def mv_borrowed_load(o:mutbuf, w:mutbuf, target:u64, base:u64, displacement:u64)
         return 0
     index = get(w, MV_LOAN_INDEX)
     origin = get(w, base * 8)
+    byte_input = choose(index == LOAN_ARGUMENT_INDEX, 3, 2)
     if mv_exact_loan_address(o, w, origin, displacement, index) == 0:
-        return 0
+        index = get(w, MV_LOAN_SECOND)
+        if index == LOAN_ARGUMENT_INDEX or mv_exact_loan_address(o, w, origin, displacement, index) == 0:
+            return 0
+        byte_input = 3
     if mv_record_borrowed_read(o, w, index) == 0:
         return 0
-    byte_input = choose(index == LOAN_ARGUMENT_INDEX, 3, 2)
     byte = mv_word(o, w, 26, 8, byte_input, 0, 0)
     if byte == 0:
         return 0

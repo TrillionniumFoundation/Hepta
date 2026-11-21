@@ -37,7 +37,8 @@ MACHINE_VALUES_BRANCHES = 192 + MACHINE_VALUES_STACK_BYTES + 40
 MACHINE_VALUES_INDEX = MACHINE_VALUES_BRANCHES + MACHINE_VALUES_BRANCH_DEPTH * 32
 MACHINE_VALUES_WORKSPACE = MACHINE_VALUES_INDEX + MAX_TEXT * 8
 MACHINE_BORROW_BRANCH_DEPTH = MACHINE_VALUES_BRANCH_DEPTH + 1
-MACHINE_BORROW_WORKSPACE = MACHINE_VALUES_WORKSPACE + 64
+MACHINE_PAIR_BRANCH_DEPTH = MACHINE_BORROW_BRANCH_DEPTH + 1
+MACHINE_BORROW_WORKSPACE = MACHINE_VALUES_WORKSPACE + 104
 MACHINE_VALUES_HEADER = struct.Struct('<7Q')
 MACHINE_VALUES_NODE = struct.Struct('<5Q')
 MEMORY_REQUEST = struct.Struct('<5Q')
@@ -323,9 +324,10 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         return None if result is None else result[0]
 
     def project_borrowed_read(self, binding, extent, index, **profile):
-        """Project one exact loan read and its separate reachable memory violation."""
+        """Project exact bounded loan reads and their reachable memory violations."""
         words = 3 if index == BORROWED_INDEX_ARGUMENT else 2
-        return self._project_machine_values(binding, words, (extent, index), **profile)
+        offsets = index if type(index) is tuple else (index,)
+        return self._project_machine_values(binding, words, (extent, *offsets), **profile)
 
     def _project_machine_values(self, binding, argument_words, loan, **profile):
         if type(argument_words) is not int or not 0 <= argument_words <= 6:
@@ -347,7 +349,7 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             words.extend([0] * (3 - len(words)))
             frame.extend(ROW.pack(pc, OPERATION_IDS[instruction.op], instruction.size, *words))
         if loan is not None:
-            frame.extend(struct.pack('<2Q', *loan))
+            frame.extend(struct.pack('<' + 'Q' * len(loan), *loan))
         source = ctypes.create_string_buffer(bytes(frame), len(frame))
         trailer = 16 if loan is not None else 0
         output = ctypes.create_string_buffer(MACHINE_VALUES_HEADER.size + MACHINE_VALUES_NODE.size * CIRCUIT_NODES + trailer)
@@ -359,7 +361,8 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
             raise RuntimeError('invalid HIA machine scalar projection extent')
         magic, count, value, steps, depth, paths, abort = MACHINE_VALUES_HEADER.unpack_from(output)
         expected_magic = MACHINE_VALUES_REPLY if loan is None else MACHINE_BORROW_REPLY
-        branch_depth = MACHINE_VALUES_BRANCH_DEPTH if loan is None else MACHINE_BORROW_BRANCH_DEPTH
+        branch_depth = MACHINE_VALUES_BRANCH_DEPTH if loan is None else (
+            MACHINE_PAIR_BRANCH_DEPTH if len(loan) == 3 else MACHINE_BORROW_BRANCH_DEPTH)
         if (magic != expected_magic or not 0 <= value < count <= CIRCUIT_NODES
                 or not 0 <= abort < count
                 or not 1 <= paths <= 1 << branch_depth
@@ -381,7 +384,8 @@ class NativeSafeCoreX64Decode(NativeHiaJsonImage):
         """Project the ordered packed-loan guards and one observable Core result."""
         frame = struct.pack('<2Q', BORROWED_LENGTH_REQUEST, extent)
         if index is not None:
-            frame += struct.pack('<Q', index)
+            offsets = index if type(index) is tuple else (index,)
+            frame += struct.pack('<' + 'Q' * len(offsets), *offsets)
         source = ctypes.create_string_buffer(frame, len(frame))
         capacity = MACHINE_VALUES_HEADER.size + 48 * MACHINE_VALUES_NODE.size
         output = ctypes.create_string_buffer(capacity)

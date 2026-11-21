@@ -3,7 +3,7 @@
 .intel_syntax noprefix
 .text
 .global _start,policy_initial_hole,policy_hole,sha_hole
-.equ WIRE,67108864
+.equ WIRE,83886080
 .equ WORK,WIRE+4096
 .equ PATHBUF,WIRE+69632
 .equ SHAIN,WIRE+77824

@@ -15,7 +15,7 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import execute_program
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_release_install import BUNDLE_MAGIC, MAGIC, policy_source, packer_source, template
+from tools.generate_hia_release_install import BUNDLE_MAGIC, MAGIC, WIRE_LIMIT, policy_source, packer_source, template
 from tools.hia_selfhost_bulk import Body
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,7 +39,7 @@ def reference_unpack(raw):
     import io
     stream = io.BytesIO(raw)
     header = stream.read(24)
-    if len(raw) > 64 << 20 or len(header) != 24:
+    if len(raw) > WIRE_LIMIT or len(header) != 24:
         raise ValueError('size')
     magic, count, reserved = struct.unpack('<3Q', header)
     if magic != BUNDLE_MAGIC or reserved or not 1 <= count <= 256:
@@ -513,7 +513,8 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
         self.run_app(wire=bundle([(f'file-{i}',0o400,b'') for i in range(256)]))
         self.run_app(wire=bundle([(f'file-{i}',0o400,b'') for i in range(257)]),code=16)
         self.run_app(wire=bundle([('x'*127,0o400,b'')]))
-        self.run_app(wire=b'\x00'*((64<<20)+1),code=17)
+        self.run_app(wire=bundle([('native-bundle', 0o400, b'\x01' * (64 << 20))]))
+        self.run_app(wire=b'\x00'*(WIRE_LIMIT+1),code=17)
 
     def test_existing_destination_and_dangling_symlink_remain_unchanged(self):
         digest = sha256(self.wire).hexdigest()

@@ -16,7 +16,7 @@ from tools.generate_hia_artifact_publication import document
 ROOT = Path(__file__).resolve().parents[1]
 MAGIC = int.from_bytes(b'HIAINS01', 'little')
 BUNDLE_MAGIC = int.from_bytes(b'HIAREL01', 'little')
-WIRE_LIMIT = 64 << 20
+WIRE_LIMIT = 80 << 20
 WORK_BYTES = 65536
 
 POLICY_SOURCE = '''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -176,7 +176,7 @@ def component(s:readbuf, at:u64, size:u64) -> u64:
     return 1
 
 def package(s:readbuf, w:mutbuf) -> u32:
-    if length(s) < 24 or length(s) > 67108864:
+    if length(s) < 24 or length(s) > RELEASE_WIRE_LIMIT:
         return 16
     if uint(s, 0, 8) != 3544407730921556296 or uint(s, 16, 8) != 0:
         return 16
@@ -447,6 +447,7 @@ def write(o:mutbuf, at:u64, v:u64, size:u64) -> u64:
 
 def policy_source():
     source = POLICY_SOURCE.replace('30526565255720553', str(int.from_bytes(b'install', 'little')))
+    source = source.replace('RELEASE_WIRE_LIMIT', str(WIRE_LIMIT))
     source = source.replace('133476589827702', str(int.from_bytes(b'verify', 'little')))
     source = source.replace('3544407730921556296', str(BUNDLE_MAGIC))
     source = source.replace('7022071303105570862', str(int.from_bytes(b'.hia-sta', 'little')))
