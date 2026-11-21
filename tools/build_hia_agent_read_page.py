@@ -43,6 +43,7 @@ VARIANTS = {
     'context-record': ('worker_context_record', 'hepta.hia.context-record-native.v1'),
     'context-request': ('worker_context_request', 'hepta.hia.context-request-native.v1'),
     'inspection-request': ('worker_inspection_request', 'hepta.hia.inspection-request-native.v1'),
+    'candidate-request': ('worker_candidate_request', 'hepta.hia.candidate-request-native.v1'),
     'inspection-effect': ('worker_inspection_effect', 'hepta.hia.inspection-effect-native.v1'),
     'borrowed-export-wire': ('borrowed_export_wire', 'hepta.hia.borrowed-export-wire-native.v1'),
     'borrowed-wrapper': ('borrowed_wrapper', 'hepta.hia.borrowed-wrapper-native.v1'),

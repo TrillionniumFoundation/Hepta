@@ -117,6 +117,7 @@ CANDIDATES = {
     'context-record': ('worker_context_record', 'context-record'),
     'context-request': ('worker_context_request', 'context-request'),
     'inspection-request': ('worker_inspection_request', 'inspection-request'),
+    'candidate-request': ('worker_candidate_request', 'candidate-request'),
     'inspection-effect': ('worker_inspection_effect', 'inspection-effect'),
     'borrowed-export-wire': ('borrowed_export_wire', 'borrowed-export-wire'),
     'borrowed-wrapper': ('borrowed_wrapper', 'borrowed-wrapper'),
