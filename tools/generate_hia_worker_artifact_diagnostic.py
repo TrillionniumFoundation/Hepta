@@ -114,7 +114,7 @@ class Author:
             typ = schema.get('type')
             fields = {
                 'object': {'properties', 'required', 'additionalProperties'},
-                'string': {'minLength', 'maxLength', 'pattern'},
+                'string': {'minLength', 'maxLength', 'pattern', 'enum'},
                 'integer': {'minimum', 'maximum'}, 'boolean': set(), 'null': set(),
                 None: {'const', 'enum'},
             }
