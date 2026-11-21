@@ -59,6 +59,28 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
         self.assertEqual(result.stdout, reference(*fragments))
         return result.stdout
 
+    def test_terminal_witness_pins_the_exact_immutable_receipt(self):
+        nonce = b'0123456789abcdef' * 2
+        raw = b'{ "exit_code":0, "output_durable":true }'
+        identity = b'original-job'
+        fields = (identity, identity, identity, nonce, nonce, nonce, text_digest(raw), raw)
+
+        def observe(values, protocols=(1, 1, 1)):
+            request = struct.pack('<8s11Q', b'HIAJWC01', *protocols, *map(len, values)) + b''.join(values)
+            run = self.invoke(request)
+            self.assertEqual((run.returncode, run.stderr), (0, b''))
+            return struct.unpack('<8sQ', run.stdout)
+
+        self.assertEqual(observe(fields), (b'HIAJWR01', 0))
+        self.assertEqual(observe(fields, (0, 1, 1)), (b'HIAJWR01', 0))
+        self.assertEqual(observe(fields, (1, 0, 1)), (b'HIAJWR01', 1))
+        self.assertEqual(observe(fields, (1, 1, 3)), (b'HIAJWR01', 4))
+        for index in range(1, len(fields)):
+            with self.subTest(index=index):
+                changed = list(fields)
+                changed[index] = b'X' + changed[index][1:]
+                self.assertEqual(observe(changed), (b'HIAJWR01', 2 if index in (1, 3, 4) else 3))
+
     def test_every_tool_preserves_serde_fragments(self):
         original = ('{"escaped":"\\t\\n\\u0000🌍","number":1e+20,'
                     '"subnormal":5e-324,"zero":-0.0}').encode()

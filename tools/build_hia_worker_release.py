@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import subprocess
+import struct
 from tempfile import TemporaryDirectory
 
 from hepta import hia_native_helpers as authority
@@ -108,6 +109,25 @@ def _copy_scheduler(source, destination):
     return _copy_image_manifest(source, destination / 'inprocess-manifest.json')
 
 
+def _worker_prepare_has_terminal_witness(prepare):
+    # v1/v2 deployments are admitted only to their old roles. Recognize the
+    # complete v3 protocol by an exact acceptance and a tamper refusal.
+    identity = b'controller-package-probe'
+    nonce = b'0123456789abcdef' * 2
+    raw = b'{"exit_code":0}'
+    header = struct.Struct('<8s11Q')
+    for decision, digest in ((0, sha256(raw).hexdigest().encode('ascii')), (3, b'0' * 64)):
+        fields = (identity, identity, identity, nonce, nonce, nonce, digest, raw)
+        frame = header.pack(b'HIAJWC01', 1, 1, 1, *map(len, fields)) + b''.join(fields)
+        result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+        if decision == 0 and (result.returncode, result.stdout, result.stderr) == (2, b'', b''):
+            return False
+        expected = struct.pack('<8sQ', b'HIAJWR01', decision)
+        if (result.returncode, result.stdout, result.stderr) != (0, expected, b''):
+            raise ValueError('installed HIA worker preparation has an invalid terminal witness protocol')
+    return True
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -119,7 +139,10 @@ def _install_controller(output, scratch, release, installer):
     schema = 'hepta.hia.mcp.controller.v1'
     if receipt_writer.is_file():
         files.append(receipt_writer)
-        schema = 'hepta.hia.mcp.controller.v2'
+        if _worker_prepare_has_terminal_witness(release / 'hia-worker-prepare'):
+            schema = 'hepta.hia.mcp.controller.v3'
+        else:
+            schema = 'hepta.hia.mcp.controller.v2'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

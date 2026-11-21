@@ -34,6 +34,8 @@ JOB_POLL_INPUT = b'HIAJPL01'
 JOB_POLL_OUTPUT = b'HIAJPO01'
 JOB_TERMINAL_INPUT = b'HIAJTS01'
 JOB_TERMINAL_OUTPUT = b'HIAJTV01'
+JOB_WITNESS_INPUT = b'HIAJWC01'
+JOB_WITNESS_OUTPUT = b'HIAJWR01'
 CAPTURE_POLICY_INPUT = b'HIACPQ01'
 CAPTURE_POLICY_OUTPUT = b'HIACPV01'
 JOB_LIFECYCLE_INPUT = b'HIAJSS01'
@@ -63,6 +65,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_poll(s, o)
     if magic == JOB_TERMINAL_INPUT:
         return job_terminal_state(s, o)
+    if magic == JOB_WITNESS_INPUT:
+        return job_witness(s, o, w)
     if magic == CAPTURE_POLICY_INPUT:
         return capture_policy(s, o)
     if magic == JOB_LIFECYCLE_INPUT:
@@ -300,6 +304,77 @@ def job_terminal_state(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 0, JOB_TERMINAL_OUTPUT)
     word_store(o, 8, state)
     return 16
+
+def job_witness(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(s) < 96 or length(o) < 16:
+        return 4294967293
+    end = 96
+    i = 0
+    while i < 8:
+        extent = word_load(s, 32 + i * 8)
+        limit = choose(i == 7, 1048576, 128)
+        if extent > limit or extent > length(s) - end:
+            return 4294967293
+        word_store(w, 64 + i * 8, end)
+        end = end + extent
+        i = i + 1
+    if end != length(s):
+        return 4294967293
+    decision = job_witness_binding(s, o, w)
+    word_store(o, 0, JOB_WITNESS_OUTPUT)
+    word_store(o, 8, decision)
+    return 16
+
+def job_witness_binding(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    request = word_load(s, 8)
+    terminal = word_load(s, 16)
+    if request > 1 or terminal != 1:
+        return 1
+    if witness_equal(s, w, 0, 1) == False or witness_equal(s, w, 3, 4) == False:
+        return 2
+    nonce = word_load(w, 88)
+    if word_load(s, 56) != 32:
+        return 2
+    i = 0
+    while i < 32:
+        value = byte(s, nonce + i)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return 2
+        i = i + 1
+    if word_load(s, 24) == 3:
+        return 4
+    if word_load(s, 24) != 1 or witness_equal(s, w, 0, 2) == False or witness_equal(s, w, 3, 5) == False:
+        return 3
+    size = word_load(s, 88)
+    if word_load(s, 80) != 64 or size < 2 or size > length(o):
+        return 3
+    start = word_load(w, 120)
+    i = 0
+    while i < size:
+        store(o, i, byte(s, start + i))
+        i = i + 1
+    if digest(o, w, size, 0) == 0:
+        return 4
+    expected = word_load(w, 112)
+    i = 0
+    while i < 64:
+        if byte(s, expected + i) != byte(w, i):
+            return 3
+        i = i + 1
+    return 0
+
+def witness_equal(s:readbuf, w:mutbuf, first:u64, second:u64) -> bool:
+    size = word_load(s, 32 + first * 8)
+    if size == 0 or size != word_load(s, 32 + second * 8):
+        return False
+    a = word_load(w, 64 + first * 8)
+    b = word_load(w, 64 + second * 8)
+    i = 0
+    while i < size:
+        if byte(s, a + i) != byte(s, b + i):
+            return False
+        i = i + 1
+    return True
 
 def job_poll(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 72 or length(o) < 24:
@@ -787,6 +862,8 @@ def source_program():
               .replace('JOB_POLL_OUTPUT', str(int.from_bytes(JOB_POLL_OUTPUT, 'little')))
               .replace('JOB_TERMINAL_INPUT', str(int.from_bytes(JOB_TERMINAL_INPUT, 'little')))
               .replace('JOB_TERMINAL_OUTPUT', str(int.from_bytes(JOB_TERMINAL_OUTPUT, 'little')))
+              .replace('JOB_WITNESS_INPUT', str(int.from_bytes(JOB_WITNESS_INPUT, 'little')))
+              .replace('JOB_WITNESS_OUTPUT', str(int.from_bytes(JOB_WITNESS_OUTPUT, 'little')))
               .replace('CAPTURE_POLICY_INPUT', str(int.from_bytes(CAPTURE_POLICY_INPUT, 'little')))
               .replace('CAPTURE_POLICY_OUTPUT', str(int.from_bytes(CAPTURE_POLICY_OUTPUT, 'little')))
               .replace('JOB_LIFECYCLE_INPUT', str(int.from_bytes(JOB_LIFECYCLE_INPUT, 'little')))
