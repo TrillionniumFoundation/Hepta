@@ -35,8 +35,12 @@ POLICY = r'''
 def candidate_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 2 or length(s) > 16384 or length(o) < 16384 or length(w) < 65536:
         return 4294967293
-    if length(s) >= 8 and input_word(s, 0) == ATTEMPT_TAG:
-        return decide_attempt(s, o)
+    if length(s) >= 8:
+        tag = input_word(s, 0)
+        if tag == ATTEMPT_TAG:
+            return decide_attempt(s, o)
+        if tag == ADMISSION_TAG:
+            return admitted_extent(s, o)
     put(o, 48, 4096)
     put(o, 56, 32)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -188,6 +192,65 @@ def valid_context_id(s:readbuf) -> bool:
             return False
         index = index + 1
     return True
+
+# The descriptor courier passes a sealed role's exact extent and bounded first
+# bytes. The issued offsets are meaningful only in that same descriptor.
+def admitted_extent(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 32:
+        return 4294967293
+    mode = input_word(s, 8)
+    extent = input_word(s, 16)
+    if input_word(s, 24) != 0:
+        return 4294967293
+    if mode == 1:
+        return admitted_json(s, o, extent)
+    if mode == 2:
+        if length(s) != 32 or core_extent(extent) == False:
+            return 4294967293
+        return admission_plan(o, 0, 0, extent, 0, extent, 0, 0)
+    if mode == 3 or mode == 4:
+        return admitted_patch(s, o, extent)
+    return 4294967293
+
+def admitted_json(s:readbuf, o:mutbuf, extent:u64) -> u64:
+    if length(s) != 96 or input_word(s, 32) != JSON_TAG:
+        return 4294967293
+    if (input_word(s, 40) | input_word(s, 48) | input_word(s, 80) | input_word(s, 88)) != 0:
+        return 4294967293
+    profile = input_word(s, 56)
+    original = input_word(s, 64)
+    candidate = input_word(s, 72)
+    if profile > 4 or core_extent(original) == False or core_extent(candidate) == False:
+        return 4294967293
+    if extent != 64 + original + candidate or (profile == 0 and original != candidate):
+        return 4294967293
+    return admission_plan(o, profile, 64 + original, candidate, 64, original, 0, 0)
+
+def admitted_patch(s:readbuf, o:mutbuf, extent:u64) -> u64:
+    if length(s) != 64 or input_word(s, 32) != PATCH_TAG or input_word(s, 56) != 0:
+        return 4294967293
+    candidate = input_word(s, 40)
+    diagnostic = input_word(s, 48)
+    if core_extent(candidate) == False or core_extent(diagnostic) == False:
+        return 4294967293
+    if extent != 32 + candidate + diagnostic:
+        return 4294967293
+    return admission_plan(o, 0, 32, candidate, 0, 0, 32 + candidate, diagnostic)
+
+def core_extent(extent:u64) -> bool:
+    return extent >= 2 and extent <= 8388608
+
+def admission_plan(o:mutbuf, profile:u64, core_at:u64, core_size:u64,
+                   original_at:u64, original_size:u64, diagnosis_at:u64, diagnosis_size:u64) -> u64:
+    put(o, 0, ADMISSION_RESULT)
+    put(o, 8, profile)
+    put(o, 16, core_at)
+    put(o, 24, core_size)
+    put(o, 32, original_at)
+    put(o, 40, original_size)
+    put(o, 48, diagnosis_at)
+    put(o, 56, diagnosis_size)
+    return 64
 '''
 
 
@@ -199,6 +262,10 @@ def program():
         'ATTEMPT_TAG': int.from_bytes(b'HIACAP01', 'little'),
         'UPDATE_TAG': int.from_bytes(b'HIAUPB01', 'little'),
         'CONTEXT_PREFIX': int.from_bytes(b'ctx-', 'little'),
+        'ADMISSION_TAG': int.from_bytes(b'HIACAF01', 'little'),
+        'ADMISSION_RESULT': int.from_bytes(b'HIACAE01', 'little'),
+        'JSON_TAG': int.from_bytes(b'HIAVCF01', 'little'),
+        'PATCH_TAG': int.from_bytes(b'HIAPAR01', 'little'),
         **{f'K_{key}': index for index, key in enumerate(FIELDS, 1)},
     }
     span = CONTEXT_POLICY[CONTEXT_POLICY.index('\ndef equal_span('):
