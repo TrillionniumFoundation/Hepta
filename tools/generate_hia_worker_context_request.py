@@ -12,7 +12,7 @@ FIELDS = ('compiler_profile', 'target_profile', 'baseline_program', 'workload', 
           'budget', 'cost_policy', 'max_candidates', 'max_model_tokens', 'max_total_wall_ms',
           'max_native_wall_ms', 'max_memory_bytes', 'catalog_sha256', 'profiles',
           'compiler', 'target', 'id', 'sha256', 'schema', 'installation',
-          'foreign_buffer_exports', 'baseline_core_sha256')
+          'foreign_buffer_exports', 'baseline_core_sha256', 'lowering')
 NONE = '18446744073709551615'
 
 POLICY = r'''
@@ -108,25 +108,45 @@ def catalog_observation(s:readbuf, w:mutbuf, o:mutbuf, root:u64) -> u64:
     return total
 
 def installed_profiles(w:mutbuf, o:mutbuf, manifest:u64, profiles:u64, pinned:u64) -> u64:
-    if get(w, profiles) != 6 or get(w, profiles + 32) != 7:
+    if installed_manifest(w, manifest, profiles, pinned) == False:
         return 4294967293
-    if manifest_schema(w, lookup(w, manifest, 19)) == False:
-        return 4294967293
-    catalog = lookup(w, manifest, 13)
-    if digest_text(w, catalog, False) == False:
-        return 4294967293
-    left = get(w, catalog + 24)
-    right = get(w, pinned + 24)
-    index = 0
-    while index < 64:
-        if byte(w, left + index) != byte(w, right + index):
-            return 4294967293
-        index = index + 1
     if profile_pin(w, o, lookup(w, profiles, 15), 0) == False:
         return 4294967293
     if profile_pin(w, o, lookup(w, profiles, 16), 64) == False:
         return 4294967293
     return 128
+
+def installed_manifest(w:mutbuf, manifest:u64, profiles:u64, pinned:u64) -> bool:
+    if profiles == NONE:
+        return False
+    if get(w, profiles) != 6 or get(w, profiles + 32) != 7:
+        return False
+    if manifest_schema(w, lookup(w, manifest, 19)) == False:
+        return False
+    catalog = lookup(w, manifest, 13)
+    if digest_text(w, catalog, False) == False:
+        return False
+    left = get(w, catalog + 24)
+    right = get(w, pinned + 24)
+    index = 0
+    while index < 64:
+        if byte(w, left + index) != byte(w, right + index):
+            return False
+        index = index + 1
+    return True
+
+# Inspection binds its published profile to the admitted discovery manifest,
+# rather than accepting a distinct profile reference supplied by its host.
+def lowering_profile(s:readbuf, w:mutbuf, o:mutbuf, catalog:u64, manifest:u64) -> u64:
+    profiles = lookup(w, manifest, 14)
+    if installed_manifest(w, manifest, profiles, catalog) == False:
+        return 4294967293
+    ref = lookup(w, profiles, 23)
+    if ref == NONE or get(w, ref) != 6 or get(w, ref + 32) != 2:
+        return 4294967293
+    if lowering_id(w, lookup(w, ref, 17)) == False or digest_text(w, lookup(w, ref, 18), False) == False:
+        return 4294967293
+    return copy_value(s, w, o, ref, 0)
 
 def context_reference(w:mutbuf, o:mutbuf, root:u64) -> u64:
     id = lookup(w, root, 17)
@@ -154,7 +174,11 @@ def retained_context(s:readbuf, w:mutbuf, o:mutbuf, root:u64) -> u64:
     catalog = 64 + get(w, root + 24) * 72
     current = 64 + get(w, catalog + 16) * 72
     context = 64 + get(w, current + 16) * 72
-    if digest_text(w, catalog, False) == False or get(w, current) != 6 or get(w, context) != 6:
+    if digest_text(w, catalog, False) == False or get(w, current) != 6:
+        return 4294967293
+    if lowering_mode(w, context):
+        return lowering_profile(s, w, o, catalog, current)
+    if get(w, context) != 6:
         return 4294967293
     if context_schema(w, lookup(w, context, 19)) == False:
         return 4294967293
@@ -303,7 +327,8 @@ def program():
                 'budget_total_wall': ',"max_total_wall_ms":'}
     matches = {'manifest_schema': 'hepta.hia.agent.manifest.v1',
                'context_schema': 'hepta.hia.agent.context.v1',
-               'compiler_id': 'hia-compiler-v1', 'target_id': 'hia-target-v1'}
+               'compiler_id': 'hia-compiler-v1', 'target_id': 'hia-target-v1',
+               'lowering_mode': 'lowering', 'lowering_id': 'hia-lowering-v1'}
     return '\n'.join((policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),
                      comparison_table('key_id', FIELDS),
                      RELEASE_POLICY[RELEASE_POLICY.index('\ndef decimal('):RELEASE_POLICY.index('\ndef hex(')],

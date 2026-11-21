@@ -198,8 +198,10 @@ def source_program():
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda token: str(constants[token[0]]), POLICY)
     decoder = json_decoder(wire_spans=True)
-    guard = 'if length(s) > 8388608 or length(w) < 128 or length(o) < 128:'
-    assert decoder.count(guard) == 1
+    # Both arena decode and its structural preflight see the outer envelope,
+    # not just the bounded Core bytes carried inside it.
+    guard = 'if length(s) > 8388608 or length(w) < 128'
+    assert decoder.count(guard) == 2
     decoder = decoder.replace(guard, guard.replace('8388608', str(CORE_WITH_EXPORTS_BYTES)))
     return '\n'.join((policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),
                       comparison_table('key_id', FIELDS), comparison_table('blocked', BLOCKED),
