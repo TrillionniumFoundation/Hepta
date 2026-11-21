@@ -14,10 +14,12 @@ VA = 0x400000
 HI = 0xffff800000001000
 
 
-def sequence(va=VA):
+def sequence(va=VA, slot_pa=None):
+    if slot_pa is None:
+        slot_pa = 0x3000 if va == VA else 0x3008
     return [
         {"op": "irq.disable"},
-        {"op": "pte.write", "va": va, "expected_old": 0x23,
+        {"op": "pte.write", "va": va, "slot_pa": slot_pa, "expected_old": 0x23,
          "observed_old": 0x23, "candidate": 0x21},
         {"op": "tlb.invlpg", "va": va},
         {"op": "irq.enable"},
@@ -36,14 +38,14 @@ class SingleCpuKernelTlbStaging(unittest.TestCase):
         for va in (VA, HI):
             with self.subTest(va=hex(va)):
                 self.assertEqual(admit(sequence(va)),
-                                 PageTableEffectSummary(1, 1, 1, (va,)))
+                                 PageTableEffectSummary(1, 1, 1, (va,), (0x3000 if va == VA else 0x3008,)))
 
     def test_multiple_distinct_pages_and_multiple_mask_windows(self):
         steps = sequence(VA) + sequence(HI)
         self.assertEqual(admit(steps),
-                         PageTableEffectSummary(2, 2, 2, (VA, HI)))
+                         PageTableEffectSummary(2, 2, 2, (VA, HI), (0x3000, 0x3008)))
         mixed = [sequence(VA)[0], sequence(VA)[1],
-                 {"op": "pte.write", "va": HI, "expected_old": 1,
+                 {"op": "pte.write", "va": HI, "slot_pa": 0x3008, "expected_old": 1,
                   "observed_old": 1, "candidate": 0},
                  {"op": "tlb.invlpg", "va": HI}, sequence(VA)[2], sequence(VA)[3]]
         self.assertEqual(admit(mixed).invalidations, 2)
@@ -78,12 +80,12 @@ class SingleCpuKernelTlbStaging(unittest.TestCase):
         second[1]["candidate"] = 0x01
         chained = sequence(VA) + second
         self.assertEqual(admit(chained),
-                         PageTableEffectSummary(2, 2, 2, (VA,)))
+                         PageTableEffectSummary(2, 2, 2, (VA,), (0x3000,)))
 
         # A different page can still be edited between these two writes.
         separated = sequence(VA) + sequence(HI) + second
         self.assertEqual(admit(separated),
-                         PageTableEffectSummary(3, 3, 3, (VA, HI)))
+                         PageTableEffectSummary(3, 3, 3, (VA, HI), (0x3000, 0x3008)))
 
         # A repeated caller-supplied snapshot remains stale after INVLPG.
         for bad in (
@@ -93,6 +95,25 @@ class SingleCpuKernelTlbStaging(unittest.TestCase):
             with self.subTest(bad=bad):
                 with self.assertRaises(KernelEffectRejected):
                     admit(bad)
+
+    def test_alias_and_slot_relabeling_rejected_even_across_invalidation(self):
+        # A single physical entry must not be claimed under two virtual
+        # page identities in one plan. A TLB flush does not reset PTE data.
+        distinct_va_same_slot = sequence(VA) + sequence(HI, slot_pa=0x3000)
+        with self.assertRaisesRegex(KernelEffectRejected, "alias"):
+            admit(distinct_va_same_slot)
+        same_va_other_slot = sequence(VA) + sequence(VA, slot_pa=0x3008)
+        # Even a forged fresh old value must not relabel the slot.
+        same_va_other_slot[-3]["expected_old"] = 0x21
+        same_va_other_slot[-3]["observed_old"] = 0x21
+        with self.assertRaisesRegex(KernelEffectRejected, "alias"):
+            admit(same_va_other_slot)
+        # Chaining on the *same* slot and virtual page is still allowed.
+        fresh = sequence(VA)
+        fresh[1]["expected_old"] = 0x21
+        fresh[1]["observed_old"] = 0x21
+        fresh[1]["candidate"] = 0x11
+        self.assertEqual(admit(sequence(VA) + fresh).touched_slots, (0x3000,))
 
     def test_replayed_old_word_cannot_be_cured_by_forged_readback(self):
         second = sequence(VA)
@@ -115,6 +136,9 @@ class SingleCpuKernelTlbStaging(unittest.TestCase):
             ("candidate", 1 << 64), ("expected_old", True),
             ("va", VA + 1), ("va", 0x0000800000000000),
             ("va", "0x400000"), ("va", True),
+            ("slot_pa", 0), ("slot_pa", 0x3001),
+            ("slot_pa", (1 << 52)), ("slot_pa", True),
+            ("slot_pa", "0x3000"),
         ):
             with self.subTest(field=field, replacement=replacement):
                 bad = copy.deepcopy(sequence())
