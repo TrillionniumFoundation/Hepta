@@ -14,12 +14,16 @@ WIRE = {
     'READ_EVENT': b'HIASTEV1',
     'READ_VALUES': b'HIASTVL1',
     'READ_TRANSACTION': b'HIASTTX1',
+    'BUILD_PARAMETERS': b'HIASTPA1',
     'COMMAND': b'HIATCM01',
     'ACK': b'HIATXR01',
     'ROW': b'HIAQRF01',
     'VALUES': b'HIAROW01',
     'WAL_TRANSACTION': b'HIAWTA01',
     'WAL_ANCHOR': b'HIAWAK01',
+    'QUERY_PARAMETERS': b'HIAQPA01',
+    'INSERT_PARAMETERS': b'HIAINS01',
+    'UPDATE_PARAMETERS': b'HIAUPB01',
 }
 
 POLICY = '''
@@ -64,6 +68,10 @@ def store_transport(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if length(o) != 16 or (length(s) != 48 and length(s) != 304):
             return 0
         return store_transaction(s, o)
+    if role == BUILD_PARAMETERS:
+        if length(s) < 40:
+            return 0
+        return store_parameters(s, o)
     return 0
 
 def store_query_event(s:readbuf, o:mutbuf) -> u64:
@@ -152,6 +160,48 @@ def store_transaction(s:readbuf, o:mutbuf) -> u64:
     elif generation != previous:
         return event_result(o, 3, 0)
     return event_result(o, 1, generation)
+
+def store_parameters(s:readbuf, o:mutbuf) -> u64:
+    form = read_word(s, 8)
+    count = read_word(s, 24)
+    limit = read_word(s, 32)
+    fields = length(s) - 40
+    if count > fields or fields != count * 16:
+        return 0
+    header = 40
+    if form == QUERY_PARAMETERS:
+        header = 32
+    elif form != INSERT_PARAMETERS and form != UPDATE_PARAMETERS:
+        return 0
+    directory_end = header + count * 24
+    if length(o) != directory_end or directory_end > limit:
+        return 0
+    offset = directory_end
+    index = 0
+    while index < count:
+        cell = 40 + index * 16
+        target = header + index * 24
+        kind = read_word(s, cell)
+        size = read_word(s, cell + 8)
+        if size > limit - offset:
+            return 0
+        if kind > 4 or (kind == 0 and size != 0) or ((kind == 1 or kind == 2) and size != 8):
+            return 0
+        write_word(o, target, kind)
+        write_word(o, target + 8, offset)
+        write_word(o, target + 16, size)
+        offset = offset + size
+        index = index + 1
+    write_word(o, 0, form)
+    write_word(o, 8, 1)
+    if header == 32:
+        write_word(o, 16, count)
+        write_word(o, 24, offset)
+    else:
+        write_word(o, 16, read_word(s, 16))
+        write_word(o, 24, 0)
+        write_word(o, 32, count)
+    return directory_end
 
 def event_result(o:mutbuf, decision:u64, total:u64) -> u64:
     write_word(o, 0, decision)

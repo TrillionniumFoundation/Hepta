@@ -53,6 +53,16 @@ class NativeAgentStoreTransport(NativeHiaJsonImage):
         raw = self._project(frame + receipt, 16)
         return None if raw is None else struct.unpack('<2Q', raw)
 
+    def parameters(self, statement, form, cells, limit):
+        count = len(cells)
+        query = form is None
+        header = struct.pack('<8s8s3Q', b'HIASTPA1', b'HIAQPA01' if query else form, statement, count, limit)
+        fields = (struct.pack('<2Q', kind, len(payload)) for kind, payload in cells)
+        directory = self._project(b''.join((header, *fields)), (32 if query else 40) + 24 * count)
+        if directory is None:
+            return None
+        return b''.join((directory, *(payload for _, payload in cells)))
+
 
 def selected_store_transport():
     selected = os.environ.get(SELECTOR)

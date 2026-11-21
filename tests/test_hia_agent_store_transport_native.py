@@ -3,7 +3,7 @@ import os
 import struct
 import unittest
 
-from hepta.hia_agent_store_native import _native_row, _row, StoreProtocolError
+from hepta.hia_agent_store_native import _native_row, _parameter_cells, _parameters, _row, StoreProtocolError
 from hepta.hia_agent_store_transport_native import selected_store_transport, SELECTOR
 
 
@@ -117,3 +117,15 @@ class StoreTransportTests(unittest.TestCase):
         self.assertEqual(transaction(2, 9, 17, generation - 1, generation, receipt), (3, 0))
         invalid_anchor = receipt[:128] + b'badmagic' + receipt[136:]
         self.assertEqual(transaction(2, 0, 1, generation - 1, generation, invalid_anchor), (4, 0))
+
+    def test_parameters_match_query_insert_and_update_frames_exactly(self):
+        for values in ((), (None, -(1 << 63), 1.5, '汉字\0', b'\xff\0'), (b'', '')):
+            cells = tuple(_parameter_cells(values))
+            for form in (None, b'HIAINS01', b'HIAUPB01'):
+                with self.subTest(values=values, form=form):
+                    expected = _parameters(values, 17, form)
+                    self.assertEqual(self.codec.parameters(17, form, cells, len(expected)), expected)
+                    self.assertIsNone(self.codec.parameters(17, form, cells, len(expected) - 1))
+        self.assertIsNone(self.codec.parameters(1, b'badmagic', (), 128))
+        self.assertIsNone(self.codec.parameters(1, None, ((1, b'not eight'),), 128))
+        self.assertIsNone(self.codec.parameters(1, None, ((5, b''),), 128))

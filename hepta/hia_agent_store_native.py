@@ -186,12 +186,7 @@ class _Cursor:
         return self.rows
 
 
-def _parameters(values, statement, magic):
-    if magic is None:
-        offset = 32 + 24 * len(values)
-    else:
-        offset = 40 + 24 * len(values)
-    directory, contents = [], []
+def _parameter_cells(values):
     for value in values:
         if value is None:
             kind, payload = 0, b''
@@ -205,6 +200,16 @@ def _parameters(values, statement, magic):
             kind, payload = 4, value
         else:
             raise TypeError('unsupported Agent Store binding')
+        yield kind, payload
+
+
+def _parameters(values, statement, magic):
+    if magic is None:
+        offset = 32 + 24 * len(values)
+    else:
+        offset = 40 + 24 * len(values)
+    directory, contents = [], []
+    for kind, payload in _parameter_cells(values):
         directory.append(struct.pack('<3Q', kind, offset, len(payload)))
         contents.append(payload)
         offset += len(payload)
@@ -787,7 +792,13 @@ class NativeStoreConnection:
         if payload is None:
             if len(values) != arity:
                 raise StoreRefusal('incorrect Agent Store bindings')
-            payload = _parameters(values, plan, table if command == 1 else None)
+            form = table if command == 1 else None
+            if self.codec is None:
+                payload = _parameters(values, plan, form)
+            else:
+                payload = self.codec.parameters(plan, form, tuple(_parameter_cells(values)), _MAX_VALUE)
+                if payload is None:
+                    raise ValueError('Agent Store binding exceeds native extent')
         local = not self.in_transaction
         try:
             if local:
