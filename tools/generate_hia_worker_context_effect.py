@@ -17,6 +17,8 @@ def context_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return sampled_time(s, o)
         if mode == CPU_SAMPLE:
             return online_cpus(s, o)
+        if mode == WALL_SAMPLE and length(s) == 32:
+            return wall_window(s, o)
     if length(s) < 260 or length(s) > 1024 or length(o) < 48:
         return 4294967293
     extent = input_word(s, 8)
@@ -186,6 +188,28 @@ def quotient(number:u64, divisor:u64) -> u64:
             result = result | (1 << bit)
     return result
 
+def wall_window(s:readbuf, o:mutbuf) -> u64:
+    created = input_word(s, 8)
+    observed = input_word(s, 16)
+    limit = input_word(s, 24)
+    if limit < 1 or limit > 86400000:
+        return 4294967293
+    expired = 0
+    remaining = 0
+    if observed < created:
+        remaining = limit + quotient(created - observed, 1000000)
+    else:
+        elapsed = observed - created
+        allowed = limit * 1000000
+        if elapsed > allowed:
+            expired = 1
+        else:
+            remaining = quotient(allowed - elapsed, 1000000)
+    put(o, 0, WALL_RESULT)
+    put(o, 8, expired)
+    put(o, 16, remaining)
+    return 24
+
 # A Linux online-CPU descriptor reports sorted, disjoint decimal ranges.
 # Decode the complete observation rather than trusting an ambient CPU count.
 def online_cpus(s:readbuf, o:mutbuf) -> u64:
@@ -241,6 +265,7 @@ def program():
     tags = {'REQUEST': b'HIACTE01', 'CLAIM': b'HCTXRSP1', 'PLAN': b'HIACTP01',
             'WORKLOAD': b'HIACTF01', 'COST': b'HIACTC01', 'AMOUNT': b'HIACTM01',
             'TIME_SAMPLE': b'HIACTT01', 'CPU_SAMPLE': b'HIACTN01', 'CPU_RESULT': b'HIACTN02',
+            'WALL_SAMPLE': b'HIACWB01', 'WALL_RESULT': b'HIACWB02',
             'UTC_SUFFIX': b'+00:00"', 'EFFECT': b'HIACTE02'}
     source = re.sub(r'\b(' + '|'.join(tags) + r')\b',
                     lambda match: str(int.from_bytes(tags[match.group()], 'little')), POLICY)

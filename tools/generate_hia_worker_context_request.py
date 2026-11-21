@@ -11,7 +11,8 @@ SOURCE = Path('examples/hia_bootstrap/worker_context_request.hepta')
 FIELDS = ('compiler_profile', 'target_profile', 'baseline_program', 'workload', 'objective',
           'budget', 'cost_policy', 'max_candidates', 'max_model_tokens', 'max_total_wall_ms',
           'max_native_wall_ms', 'max_memory_bytes', 'catalog_sha256', 'profiles',
-          'compiler', 'target', 'id', 'sha256', 'schema')
+          'compiler', 'target', 'id', 'sha256', 'schema', 'installation',
+          'foreign_buffer_exports', 'baseline_core_sha256')
 NONE = '18446744073709551615'
 
 POLICY = r'''
@@ -26,7 +27,11 @@ def context_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967293
     root = 64
     if get(w, root) == 5:
+        if get(w, root + 32) == 3:
+            return retained_context(s, w, o, root)
         return catalog_observation(s, w, o, root)
+    if get(w, root) == 6 and get(w, root + 32) == 2:
+        return context_reference(w, o, root)
     if get(w, root) != 6 or get(w, root + 32) != 8:
         return 4294967293
     budget = lookup(w, root, 6)
@@ -123,6 +128,73 @@ def installed_profiles(w:mutbuf, o:mutbuf, manifest:u64, profiles:u64, pinned:u6
         return 4294967293
     return 128
 
+def context_reference(w:mutbuf, o:mutbuf, root:u64) -> u64:
+    id = lookup(w, root, 17)
+    digest = lookup(w, root, 18)
+    if id == NONE or get(w, id) != 4 or get(w, id + 32) != 36:
+        return 4294967288
+    if digest_text(w, digest, False) == False:
+        return 4294967288
+    start = get(w, id + 24)
+    if byte(w, start) != 99 or byte(w, start + 1) != 116 or byte(w, start + 2) != 120 or byte(w, start + 3) != 45:
+        return 4294967288
+    index = 4
+    while index < 36:
+        unit = byte(w, start + index)
+        if (unit < 48 or unit > 57) and (unit < 97 or unit > 102):
+            return 4294967288
+        index = index + 1
+    put(o, 0, REFERENCE)
+    copy_decoded(w, o, id, 8, 36)
+    return copy_decoded(w, o, digest, 44, 64)
+
+# The first two elements are the authenticated installation bindings, not
+# caller input. The third is the manifest just opened through native Store.
+def retained_context(s:readbuf, w:mutbuf, o:mutbuf, root:u64) -> u64:
+    catalog = 64 + get(w, root + 24) * 72
+    current = 64 + get(w, catalog + 16) * 72
+    context = 64 + get(w, current + 16) * 72
+    if digest_text(w, catalog, False) == False or get(w, current) != 6 or get(w, context) != 6:
+        return 4294967293
+    if context_schema(w, lookup(w, context, 19)) == False:
+        return 4294967293
+    installation = lookup(w, context, 20)
+    pinned = lookup(w, context, 13)
+    if installation == NONE or digest_text(w, pinned, False) == False:
+        return 4294967293
+    if equal_span(s, w, current, installation) == False or equal_span(s, w, catalog, pinned) == False:
+        return 4294967286
+    put(o, 0, RETAINED)
+    at = 8
+    index = 1
+    while index <= 6:
+        field = lookup(w, context, index)
+        if field == NONE:
+            return 4294967293
+        at = fragment(s, w, o, field, at)
+        index = index + 1
+    exports = lookup(w, context, 21)
+    baseline = lookup(w, context, 22)
+    if exports == NONE or get(w, exports) != 5 or baseline == NONE:
+        return 4294967293
+    if get(w, baseline) != 0 and digest_text(w, baseline, False) == False:
+        return 4294967293
+    at = fragment(s, w, o, exports, at)
+    return fragment(s, w, o, baseline, at)
+
+def equal_span(s:readbuf, w:mutbuf, left:u64, right:u64) -> bool:
+    width = get(w, left + 64)
+    if width != get(w, right + 64):
+        return False
+    first = get(w, left + 56)
+    second = get(w, right + 56)
+    index = 0
+    while index < width:
+        if byte(s, first + index) != byte(s, second + index):
+            return False
+        index = index + 1
+    return True
+
 def profile_pin(w:mutbuf, o:mutbuf, profile:u64, target:u64) -> bool:
     if profile == NONE or get(w, profile) != 6 or get(w, profile + 32) != 2:
         return False
@@ -132,12 +204,16 @@ def profile_pin(w:mutbuf, o:mutbuf, profile:u64, target:u64) -> bool:
     sha = lookup(w, profile, 18)
     if digest_text(w, sha, False) == False:
         return False
-    start = get(w, sha + 24)
+    copy_decoded(w, o, sha, target, 64)
+    return True
+
+def copy_decoded(w:mutbuf, o:mutbuf, node:u64, target:u64, count:u64) -> u64:
+    start = get(w, node + 24)
     index = 0
-    while index < 64:
+    while index < count:
         store(o, target + index, byte(w, start + index))
         index = index + 1
-    return True
+    return target + count
 
 def digest_text(w:mutbuf, node:u64, allow_line_feed:bool) -> bool:
     if node == NONE or get(w, node) != 4:
@@ -217,13 +293,16 @@ def literal_match(name, value):
 
 
 def program():
-    policy = (POLICY.replace('NONE', NONE)
-              .replace('PLAN', str(int.from_bytes(b'HIACTP01', 'little'))))
+    tags = {'PLAN': b'HIACTP01', 'REFERENCE': b'HIACTRL1', 'RETAINED': b'HIACTR02'}
+    policy = POLICY.replace('NONE', NONE)
+    for tag, magic in tags.items():
+        policy = policy.replace(tag, str(int.from_bytes(magic, 'little')))
     literals = {'budget_open': '{"cost_policy":', 'budget_candidates': ',"max_candidates":',
                 'budget_memory': ',"max_memory_bytes":', 'budget_tokens': ',"max_model_tokens":',
                 'budget_native_wall': ',"max_native_wall_ms":',
                 'budget_total_wall': ',"max_total_wall_ms":'}
     matches = {'manifest_schema': 'hepta.hia.agent.manifest.v1',
+               'context_schema': 'hepta.hia.agent.context.v1',
                'compiler_id': 'hia-compiler-v1', 'target_id': 'hia-target-v1'}
     return '\n'.join((policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),
                      comparison_table('key_id', FIELDS),
