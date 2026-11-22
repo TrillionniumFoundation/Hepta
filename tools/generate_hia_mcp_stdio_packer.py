@@ -15,6 +15,8 @@ from tools.generate_hia_worker_block_layout import (
     INPUT_BYTES as LAYOUT_INPUT, PREFLIGHT_BYTES as LAYOUT_SCRATCH, WORKSPACE_BYTES as LAYOUT_ARENA,
 )
 
+from tools.generate_hia_worker_register_layout import WORKSPACE_BYTES as REGISTER_LAYOUT_ARENA
+
 SOURCE = 'examples/hia_bootstrap/mcp_stdio_packer.hepta'
 MAGIC = int.from_bytes(b'HIAMCPK1', 'little')
 INPUT_MAX = 8 << 20
@@ -53,6 +55,7 @@ CANDIDATE_JSON_MODE = 40
 NATIVE_ARTIFACT_MODE = 41
 BLOCK_LAYOUT_MODE = 42
 OBJECT_INVENTORY_MODE = 43
+REGISTER_LAYOUT_MODE = 44
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
@@ -60,7 +63,7 @@ PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
               CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE, LOWERING_ELF_MODE, LOWERING_FRAMES_MODE,
               BORROWED_EXPORT_MODE, CANDIDATE_JSON_MODE, NATIVE_ARTIFACT_MODE, BLOCK_LAYOUT_MODE,
-              OBJECT_INVENTORY_MODE)
+              OBJECT_INVENTORY_MODE, REGISTER_LAYOUT_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -96,6 +99,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'emit-receipt': ARTIFACT_DIAGNOSTIC_MODE,
          'emit-verification': ARTIFACT_DIAGNOSTIC_MODE,
          'worker-block-layout': BLOCK_LAYOUT_MODE,
+         'worker-register-layout': REGISTER_LAYOUT_MODE,
          'emit-build-observation': ARTIFACT_DIAGNOSTIC_MODE,
          'emit-effect': READ_REACTOR_MODE,
          'worker-profile-bindings': ARTIFACT_DIAGNOSTIC_MODE,
@@ -175,7 +179,7 @@ def template(mode):
     inspection = mode in (INSPECTION_MODE, LOWERING_FRAMES_MODE)
     lowering_elf = mode in (LOWERING_ELF_MODE, OBJECT_INVENTORY_MODE)
     borrowed_export = mode == BORROWED_EXPORT_MODE
-    block_layout = mode == BLOCK_LAYOUT_MODE
+    block_layout = mode in (BLOCK_LAYOUT_MODE, REGISTER_LAYOUT_MODE)
     candidate_json = mode == CANDIDATE_JSON_MODE
     read_request = mode == READ_REQUEST_MODE
     worker_data = mode == WORKER_DATA_MODE
@@ -221,6 +225,8 @@ def template(mode):
         scratch, workspace, maximum = EXPORT_PREFLIGHT, EXPORT_ARENA, CORE_WITH_EXPORTS_BYTES
     if block_layout:
         scratch, workspace, maximum = LAYOUT_SCRATCH, LAYOUT_ARENA, LAYOUT_INPUT
+        if mode == REGISTER_LAYOUT_MODE:
+            workspace = REGISTER_LAYOUT_ARENA
     if candidate_json:
         scratch, workspace, minimum = 4 << 20, 8192, 1
     if lowering_elf:

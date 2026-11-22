@@ -14,6 +14,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 NONE = (1 << 64) - 1
 ABI = 0xfffffffd
 ERROR = 0x80000000
+REGISTER_PACKET = b'HIAREG01'
 REGISTERS = ('rbx', 'r12', 'r13', 'r14', 'r15', 'r8', 'r9')
 SCALAR_TYPES = ('i8', 'i16', 'i32', 'i64', 'u8', 'u16', 'u32', 'u64', 'isize', 'usize', 'bool')
 LEAF_OPS = tuple(sorted((
@@ -339,6 +340,10 @@ def machine_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if stage != 9 or validate(s, w) == 0 or tag(s, 0) != 5 or total(s, 0) != 2:
             return ABI
         return exact_assignment(s, o, w)
+    if command == 33:
+        if stage != 0 or validate(s, w) == 0 or tag(s, 0) != 5 or total(s, 0) != 3:
+            return ABI
+        return register_packet(s, o, w)
     return ABI
 
 def exact_assignment(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -349,19 +354,33 @@ def exact_assignment(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     fn = find_function(w, welement(w, at, 0))
     if fn == NONE:
         return ERROR + 17
-    mapping = welement(w, at, 1)
+    # Keep the mapping immutable until all assigned rows are built.
+    put(w, 104, align8(at + length(s)))
+    status = bind_assignment(w, o, fn, welement(w, at, 1))
+    if status != 0:
+        return status
+    sort_rows(w, 0)
+    leaf = get(w, 288)
+    put(o, 0, field(w, fn, 13))
+    put(o, 8, get(w, 224))
+    put(o, 16, leaf)
+    put(o, 24, choose(leaf != 0, get(w, 232), 0))
+    put(o, 32, get(w, 208))
+    put(w, 104, at)
+    put(w, 256, 0)
+    put(w, 64, 13)
+    return 13
+
+def bind_assignment(w:mutbuf, o:mutbuf, fn:u64, mapping:u64) -> u64:
     if wtag(w, mapping) != 6:
         return ERROR + 18
     permitted = choose(get(w, 128) != 0, 7, 5)
     masks = assignment_masks(w, mapping, permitted)
     if masks == NONE:
         return ERROR + 18
-    used = masks & 31
     leaf = masks & 96
-    # Rows share the exact usual Core inventory and inclusive lifetime rules.
-    # Put them after the immutable mapping so refreshes cannot overwrite it.
-    end = align8(at + length(s))
-    put(w, 104, end)
+    put(w, 224, masks & 31)
+    put(w, 288, leaf)
     put(w, 120, fn)
     put(w, 232, 0)
     put(w, 240, 1)
@@ -390,16 +409,126 @@ def exact_assignment(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     sort_rows(w, 1)
     if conflicts(w, o) != 0:
         return ERROR + 22
-    sort_rows(w, 0)
-    put(o, 0, field(w, fn, 13))
-    put(o, 8, used)
-    put(o, 16, leaf)
-    put(o, 24, choose(leaf != 0, get(w, 232), 0))
-    put(o, 32, get(w, 208))
-    put(w, 104, at)
-    put(w, 256, 0)
-    put(w, 64, 13)
-    return 13
+    return 0
+
+# This internal packet is consumed only after Core admission and independent
+# hashing. Ordinals are in immutable Core order, not the selected block order.
+def register_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(o) < 96 or length(s) > length(w) - 8192:
+        return ABI
+    copy_in(s, w, 8192)
+    return bound_register_packet(o, w, 8192, align8(8192 + length(s)))
+
+def bound_register_packet(o:mutbuf, w:mutbuf, packet:u64, workspace:u64) -> u64:
+    core = welement(w, packet, 0)
+    digest = welement(w, packet, 1)
+    plan = welement(w, packet, 2)
+    if wtag(w, core) != 6 or wtag(w, digest) != 4 or wsize(w, digest) != 64:
+        return ABI
+    if wtag(w, plan) != 6:
+        return ERROR + 1
+    version = schema_id(w, field(w, plan, 1))
+    if version < 3:
+        return ERROR + 3
+    if plan_fields(w, plan, version) == 0:
+        return ERROR + 4
+    if same(w, field(w, plan, 2), digest) == 0 or hex_digest(w, digest) == 0:
+        return ERROR + 5
+    functions = field(w, core, 12)
+    if wtag(w, functions) != 5 or wtotal(w, functions) == 0 or wtotal(w, functions) > 1024:
+        return ABI
+    put(w, 80, plan)
+    put(w, 96, version)
+    put(w, 104, workspace)
+    put(w, 112, functions)
+    put(w, 128, choose(version == 4, 1, 0))
+    choices = plan_choices(w)
+    if choices != 0:
+        return ERROR + choices
+    mappings = field(w, plan, 8)
+    if wtag(w, mappings) != 6:
+        return ERROR + 16
+    count = wtotal(w, mappings)
+    if count > wtotal(w, functions):
+        return ERROR + 17
+    cursor = 96
+    fn = functions + 24
+    ordinal = 0
+    found = 0
+    while ordinal < wtotal(w, functions):
+        mapping = find_mapping(w, mappings, field(w, fn, 13))
+        if mapping == ABI:
+            return ERROR + 17
+        if mapping != NONE:
+            status = bind_assignment(w, o, fn, mapping)
+            if status != 0:
+                return status
+            cursor = register_function(w, o, ordinal, cursor)
+            if cursor == ABI:
+                return ABI
+            found = found + 1
+        ordinal = ordinal + 1
+        fn = wend(w, fn)
+    if found != count:
+        return ERROR + 17
+    put(o, 0, REGISTER_TAG)
+    put(o, 8, version)
+    put(o, 16, found)
+    put(o, 24, cursor)
+    index = 0
+    while index < 64:
+        store(o, 32 + index, byte(w, digest + 16 + index))
+        index = index + 1
+    put(w, 64, 99)
+    return cursor
+
+def hex_digest(w:mutbuf, node:u64) -> u64:
+    index = 0
+    while index < 64:
+        value = byte(w, node + 16 + index)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return 0
+        index = index + 1
+    return 1
+
+def find_mapping(w:mutbuf, mappings:u64, name:u64) -> u64:
+    found = NONE
+    node = mappings + 24
+    index = 0
+    while index < wtotal(w, mappings):
+        value = wend(w, node)
+        if same(w, name, node) != 0:
+            if found != NONE:
+                return ABI
+            found = value
+        node = wend(w, value)
+        index = index + 1
+    return found
+
+def register_function(w:mutbuf, o:mutbuf, fn:u64, cursor:u64) -> u64:
+    count = get(w, 208)
+    extent = 32 + count * 40
+    if extent > length(o) - cursor:
+        return ABI
+    put(o, cursor, fn)
+    put(o, cursor + 8, count)
+    put(o, cursor + 16, get(w, 224))
+    put(o, cursor + 24, get(w, 288))
+    cursor = cursor + 32
+    definition = 0
+    rows = get(w, 160)
+    while definition < get(w, 168):
+        row = rows + definition * 64
+        register = get(w, row + 48)
+        if register != 0:
+            put(o, cursor, definition)
+            put(o, cursor + 8, register)
+            put(o, cursor + 16, get(w, row + 24))
+            put(o, cursor + 24, get(w, row + 32))
+            put(o, cursor + 32, get(w, row + 40))
+            cursor = cursor + 40
+        definition = definition + 1
+    return cursor
 
 def assignment_masks(w:mutbuf, mapping:u64, permitted:u64) -> u64:
     mask = 0
@@ -966,7 +1095,8 @@ def source_program():
         for i, word in enumerate(words, 1):
             source += '    if literal(w, node, ' + str(kind) + ', ' + packed(word) + ') != 0:\n        return ' + str(i) + '\n'
         source += '    return 0\n'
-    constants = {'NONE': NONE, 'ABI': ABI, 'ERROR': ERROR}
+    constants = {'NONE': NONE, 'ABI': ABI, 'ERROR': ERROR,
+                 'REGISTER_TAG': int.from_bytes(REGISTER_PACKET, 'little')}
     class Expand(ast.NodeTransformer):
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(constants[node.id]), node) if node.id in constants else node
