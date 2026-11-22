@@ -27,7 +27,7 @@ def block_layout(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8 or length(s) > INPUT_MAX or length(o) < PREFLIGHT or length(w) < WORKSPACE:
         return INVALID
     put(o, 48, NODES)
-    put(o, 56, 130)
+    put(o, 56, 128)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 3:
         return INVALID
     core = 64 + get(w, 88) * 72
