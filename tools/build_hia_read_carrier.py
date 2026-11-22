@@ -189,7 +189,7 @@ def build(output, compiler, cold_report, *, kind='read'):
     if kind == 'read':
         from tools.build_hia_worker_read_release import build as build_read_flow
         return build_read_flow(output, compiler, cold_report)
-    if kind in ('describe-worker', 'artifact-worker', 'input'):
+    if kind in ('describe-worker', 'artifact-worker', 'input', 'discovery'):
         from tools.build_hia_worker_flow import build as build_worker_flow
         return build_worker_flow(output, compiler, cold_report,
                                  kind=kind.removesuffix('-worker'))

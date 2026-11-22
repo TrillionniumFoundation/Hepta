@@ -389,6 +389,8 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/worker_artifact_flow.hepta',
     'examples/hia_bootstrap/worker_artifact_flow_packer.hepta',
     'tools/generate_hia_worker_input_flow.py',
+    'examples/hia_bootstrap/worker_discovery_flow.hepta',
+    'examples/hia_bootstrap/worker_discovery_flow_packer.hepta',
     'examples/hia_bootstrap/worker_input_flow.hepta',
     'examples/hia_bootstrap/worker_input_flow_packer.hepta',
     'examples/hia_bootstrap/worker_read_external_flow.hepta',

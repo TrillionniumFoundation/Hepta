@@ -90,10 +90,14 @@ _start:
  cld
  xor ebp, ebp
  mov r15, rsp
+ .ifdef WORKER_DISCOVERY
+ cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 2
+ .else
  .ifdef WORKER_INPUT
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 1
  .else
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS
+ .endif
  .endif
  jne .Lrefused
  .ifdef WORKER_INPUT
@@ -214,6 +218,14 @@ _start:
  mov [rbp+OBS+24], rax
  .endif
  .endif
+ .ifdef WORKER_DISCOVERY
+ mov rsi, [r15+80]
+ call .Lparse_unsigned_word
+ mov [rbp+OBS+32], rax
+ mov rsi, [r15+88]
+ call .Lparse_unsigned_word
+ mov [rbp+OBS+40], rax
+ .else
  .ifdef WORKER_INPUT
  mov rsi, [r15+80]
  lea rdi, [rbp+OBS+ROLE_RECORD_END]
@@ -229,6 +241,7 @@ _start:
  jmp .Lexpected_copy
 .Lexpected_done:
  mov [rbp+OBS+32], rax
+ .endif
  .endif
  lea rdi, [rip+.Lentry_magic]
  mov rax, [rdi]
@@ -956,21 +969,43 @@ worker_policy_hole: .long 0
 .endif
 
 .Lpublish:
+ .ifdef WORKER_DISCOVERY
+ mov rax, [rbp+COMMAND+40]
+ dec rax
+ cmp rax, 1
+ ja .Lrefused
+ .else
  cmp QWORD PTR [rbp+COMMAND+40], 1
  jne .Lrefused
+ .endif
  mov edi, 1
  lea rsi, [rbp+COMMAND+HEADER]
  mov rdx, [rbp+COMMAND+48]
  call .Lwrite_exact
+ .ifdef WORKER_DISCOVERY
+ xor r12d, r12d
+ lea r13, [rbp+COMMAND+64]
+.Lpublish_fragment:
+ mov edi, DWORD PTR [r13]
+ mov rsi, [r13+8]
+ mov rdx, [r13+16]
+ .else
  mov edi, DWORD PTR [rbp+COMMAND+64]
  mov rsi, [rbp+COMMAND+72]
  mov rdx, [rbp+COMMAND+80]
+ .endif
  mov ecx, 1
  lea r8, [rbp+SCRATCH]
  mov r9d, 16384
  call hia_worker_fragment_copy
  test rax, rax
  jnz .Lrefused
+ .ifdef WORKER_DISCOVERY
+ inc r12
+ add r13, 24
+ cmp r12, [rbp+COMMAND+40]
+ jb .Lpublish_fragment
+ .endif
  mov edi, 1
  call hia_worker_seal
  test rax, rax
@@ -978,6 +1013,12 @@ worker_policy_hole: .long 0
  jmp .Lnext
 
 .ifdef WORKER_EXTERNAL_READ
+.equ HAS_UNSIGNED_ARG, 1
+.endif
+.ifdef WORKER_DISCOVERY
+.equ HAS_UNSIGNED_ARG, 1
+.endif
+.ifdef HAS_UNSIGNED_ARG
 .Lparse_unsigned_word:
  cmp BYTE PTR [rsi], 0
  je .Lrefused
@@ -1112,10 +1153,14 @@ worker_policy_hole: .long 0
 .ifdef WORKER_ARTIFACT
 .Ldiagnostic: .ascii "native HIA Artifact Worker transport refused\n"
 .else
+.ifdef WORKER_DISCOVERY
+.Ldiagnostic: .ascii "native HIA Discovery materialization transport refused\n"
+.else
 .ifdef WORKER_INPUT
 .Ldiagnostic: .ascii "native HIA input materialization transport refused\n"
 .else
 .Ldiagnostic: .ascii "native HIA Read Store transport refused\n"
+.endif
 .endif
 .endif
 .else

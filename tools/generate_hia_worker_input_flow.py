@@ -12,6 +12,7 @@ from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_worker_read_store_flow import POLICY as READ_POLICY
 
 SOURCE = Path('examples/hia_bootstrap/worker_input_flow.hepta')
+DISCOVERY = Path('examples/hia_bootstrap/worker_discovery_flow.hepta')
 
 POLICY = r'''
 def input_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -280,7 +281,60 @@ def close_input(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
 '''
 
 
-def program():
+def discovery_policy():
+    # Discovery and Artifact input use the same scoped descriptor protocol.
+    # Discovery sends the two numeric operands and can retain a profile view.
+    policy = POLICY.replace('extent > 8388608', 'extent > 1048576', 1)
+    start = policy.index('    expected = input_word(s, 32)')
+    end = policy.index('    argv(o, 0, INPUT_ARG, 1)', start)
+    policy = policy[:start] + '''    if trusted_descriptors(s, 0, 0) == False:
+        return BAD
+    put(w, 120, extent)
+    put(w, 152, input_word(s, 32))
+    put(w, 160, input_word(s, 40))
+''' + policy[end:]
+    start = policy.index('    put(o, HEADER + 40, 3)')
+    end = policy.index('\ndef dispatch_input(', start)
+    policy = policy[:start] + '''    put(o, HEADER + 40, get(w, 152))
+    put(o, HEADER + 48, get(w, 160))
+    return input_observation(o, w, 1, get(w, 120), 16, 16, 0)
+
+''' + policy[end:]
+    start = policy.index('    if role == 8 and payload == 0')
+    end = policy.index('    return BAD', start)
+    policy = policy[:start] + '''    if role == 6 and payload == 192 and get(w, 184) == 0:
+        put(w, 112, role)
+        fragment(o, 0, fd, 48, 192)
+        return action(o, w, PLANNER_RETURNED, RUN, PLANNER_ROLE, 0, 1, 0)
+''' + policy[end:]
+    policy = policy.replace('    if length(s) < 96 or input_word(s, 72) != TYPED:',
+                            '''    profile = get(w, 112) == 6
+    if length(s) < 96 or input_word(s, 72) != choose(profile, TYPED_PROFILE, TYPED):''')
+    policy = policy.replace('    return store_input(o, w, 20, durable)', '''    if profile:
+        if view == 0:
+            return BAD
+        put(w, 168, fd)
+        put(w, 176, bytes - view)
+        put(w, 184, view)
+    return store_input(o, w, choose(profile, 19, 20), durable)''')
+    start = policy.index('    status = get(w, 136)\n')
+    end = policy.index('    return BAD', start)
+    return policy[:start] + '''    if state == STORE_FINISHED:
+        view = get(w, 184)
+        put(o, HEADER, RESULT)
+        put(o, HEADER + 8, 176)
+        put(o, HEADER + 16, view)
+        fragment(o, 0, get(w, 128), 48, 176)
+        if view != 0:
+            fragment(o, 1, get(w, 168), get(w, 176), view)
+        return action(o, w, RESULT_PUBLISHED, PUBLISH, 0, 0, choose(view == 0, 1, 2), 24)
+    if state == RESULT_PUBLISHED:
+        put(o, 144, 0)
+        return action(o, w, RESULT_PUBLISHED, FINISHED, 0, 0, 0, 0)
+''' + policy[end:]
+
+
+def program(*, discovery=False):
     constants = {name: int.from_bytes(value, 'little') for name, value in {
         'ENTRY': b'HIADRI01', 'OBSERVATION': b'HIADFO01', 'COMMAND': b'HIADFC01',
         'STORE_ARG': b'store', 'UNIQUE': b'HIASTUP1', 'EFFECT_EVENT': b'HIAFDE01',
@@ -309,8 +363,12 @@ def program():
                 *(function(READ_POLICY, name) for name in ('receive', 'read_span', 'start_effect')),
                 *(function(entry, name) for name in ('valid_fd', 'is_hex', 'copy_span', 'input_word', 'put', 'write')),
                 function(RELEASE_WRITER, 'get'))
-    return flow_source(POLICY, controls, constants)
+    if discovery:
+        constants['TYPED_PROFILE'] = int.from_bytes(b'HIADPS01', 'little')
+    return flow_source(discovery_policy() if discovery else POLICY, controls, constants)
 
 
 if __name__ == '__main__':
-    SOURCE.write_text(render_assembly(document(program(), SOURCE.stem)), encoding='utf-8')
+    for path, discovery in ((SOURCE, False), (DISCOVERY, True)):
+        policy = document(program(discovery=discovery), path.stem)
+        path.write_text(render_assembly(policy), encoding='utf-8')
