@@ -125,6 +125,7 @@ CANDIDATES = {
     'emit-build-observation': ('worker_emit_build_observation', 'emit-build-observation'),
     'emit-effect': ('worker_emit_effect', 'emit-effect'),
     'worker-profile-bindings': ('worker_profile_bindings', 'worker-profile-bindings'),
+    'worker-proof-scope': ('worker_proof_scope', 'worker-proof-scope'),
     'rollback-journal': ('worker_rollback_journal', 'rollback-journal'),
     'rollback-journal-observation': ('worker_rollback_journal_observation', 'rollback-journal-observation'),
     'rollback-journal-records': ('worker_rollback_journal_records', 'rollback-journal-records'),
