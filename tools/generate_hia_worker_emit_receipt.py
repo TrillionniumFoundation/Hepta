@@ -15,12 +15,16 @@ OBJECT_METADATA = ('{"core_sha256":{},"installation":{},"machine_plan_sha256":{}
 NATIVE_METADATA = ('{"candidate":{},"codegen":{},"context":{},"core_sha256":{},'
                    '"foreign_buffer_exports":{},"installation":{},"machine_plan":{},'
                    '"object_artifact":{},"object_sha256":{},"output_kind":{},"signatures":{}}')
+BUILD_FACTS = ('{"artifact_bytes":{},"artifact_sha256":{},"core_sha256":{},'
+               '"foreign_buffer_exports":{},"implementation_sha256":{},"input_sha256":{},'
+               '"kind":{},"machine_plan_sha256":{},"object_sha256":{}}')
 TEMPLATES = (
     ('object_metadata', OBJECT_METADATA),
     ('native_metadata', NATIVE_METADATA),
     ('retained_build', BUILD_RECORD),
     ('object_result', BUILD_RESULT.replace('"linker_used":{}', '"linker_used":false')),
     ('shared_result', BUILD_RESULT.replace('"linker_used":{}', '"linker_used":true')),
+    ('physical_facts', BUILD_FACTS),
 )
 
 POLICY = r'''
