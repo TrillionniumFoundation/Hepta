@@ -4,6 +4,7 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
+from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE_POLICY
 from tools.generate_hia_worker_adopt_proof import reachable_policy
 from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_emit_measurement import splice_list
@@ -68,7 +69,7 @@ def verify_observation_header(o:mutbuf, w:mutbuf) -> u64:
         return BAD
     slot = VERIFY_EVIDENCE_SPANS + index * 24
     size = get(w, slot + 16)
-    if size < 34 or size > 4088:
+    if size < 34 or size > VERIFY_PLAN_EVIDENCE_LIMIT:
         return BAD
     return read_span(o, w, VERIFY_EVIDENCE_HEADER, get(w, slot), get(w, slot + 8), 32)
 
@@ -77,31 +78,32 @@ def verify_finding_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     slot = VERIFY_EVIDENCE_SPANS + index * 24
     status = input_word(s, 72)
     mode = input_word(s, 80)
-    if (length(s) != 96 or input_word(s, 64) != VERIFY_FINITE_REPORT or mode < 1 or mode > 9
+    if (length(s) != 96 or input_word(s, 64) != VERIFY_FINITE_REPORT or mode < 1 or mode > 10
             or status < 1 or status > 4 or input_word(s, 88) != get(w, slot + 16) - 32):
         return BAD
     claim = get(w, VERIFY_CLAIM_ORDINALS + 8 * index)
-    if claim != choose(mode == 7, 1, choose(mode == 8, 3, 2)):
+    if claim != choose(mode == 7, 1, choose(mode == 8 or mode == 10, 3, 2)):
         return BAD
     hold(w, VERIFY_FACTS, get(w, slot), get(w, slot + 8) + 32, get(w, slot + 16) - 32)
     store(o, HEADER, 91)
-    store(o, HEADER + 1, mode + 48)
-    store(o, HEADER + 2, 44)
-    store(o, HEADER + 3, status + 48)
-    store(o, HEADER + 4, 44)
+    at = decimal(o, HEADER + 1, mode)
+    store(o, at, 44)
+    store(o, at + 1, status + 48)
+    store(o, at + 2, 44)
+    at = at + 3
     store(o, 384, 44)
     store(o, 392, 93)
-    vector_span(w, o, VERIFY_SCOPE, HEADER + 5)
-    vector_part(o, HEADER + 29, INLINE_FRAGMENT, 384, 1)
-    vector_span(w, o, VERIFY_VALIDATION, HEADER + 53)
-    vector_part(o, HEADER + 77, INLINE_FRAGMENT, 384, 1)
-    vector_span(w, o, EMIT_INSTALLATION, HEADER + 101)
-    vector_part(o, HEADER + 125, INLINE_FRAGMENT, 384, 1)
-    vector_span(w, o, EMIT_PROOF_TRUST_SELECTION, HEADER + 149)
-    vector_part(o, HEADER + 173, INLINE_FRAGMENT, 384, 1)
-    vector_span(w, o, choose(mode == 7, VERIFY_NOMINAL_PIN, VERIFY_OBSERVER_PIN), HEADER + 197)
-    vector_part(o, HEADER + 221, INLINE_FRAGMENT, 392, 1)
-    return wide_inspection(o, w, VERIFY_FINDING_BOUND, VERIFY_FINDING_ROLE, 0, 10, 5)
+    vector_span(w, o, VERIFY_SCOPE, at)
+    vector_part(o, at + 24, INLINE_FRAGMENT, 384, 1)
+    vector_span(w, o, VERIFY_VALIDATION, at + 48)
+    vector_part(o, at + 72, INLINE_FRAGMENT, 384, 1)
+    vector_span(w, o, EMIT_INSTALLATION, at + 96)
+    vector_part(o, at + 120, INLINE_FRAGMENT, 384, 1)
+    vector_span(w, o, EMIT_PROOF_TRUST_SELECTION, at + 144)
+    vector_part(o, at + 168, INLINE_FRAGMENT, 384, 1)
+    vector_span(w, o, choose(mode == 7, VERIFY_NOMINAL_PIN, VERIFY_OBSERVER_PIN), at + 192)
+    vector_part(o, at + 216, INLINE_FRAGMENT, 392, 1)
+    return wide_inspection(o, w, VERIFY_FINDING_BOUND, VERIFY_FINDING_ROLE, 0, 10, at - HEADER)
 
 def verify_publication_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     size = input_word(s, 40)
@@ -265,6 +267,7 @@ def recipe():
                                role='VERIFY_DOCUMENTS_ROLE')
     entry, functions = reachable_policy('\n'.join((
         ENTRY, DOCUMENTS, STORE, bound, control, publication, document_packet, check_packet,
+        *(function(RELEASE_POLICY, name) for name in ('decimal', 'divide10')),
         function(RECORD, 'emit_render_arguments'),
     )), 'verify_publication_flow')
     return constants, entry, functions

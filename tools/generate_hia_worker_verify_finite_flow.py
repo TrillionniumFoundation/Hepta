@@ -10,9 +10,12 @@ from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_describe_reactor import POLICY as ENTRY_POLICY
 from tools.generate_hia_worker_emit_flow import ADMISSION, PROFILES, native_recipe
 from tools.generate_hia_worker_emit_measurement import splice_list
+from tools.generate_hia_worker_emit_layout_replay import REPLAY as LAYOUT_REPLAY
 from tools.generate_hia_worker_emit_proof import proof_recipe
 from tools.generate_hia_worker_finite_domain import INELIGIBLE
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
+from tools.generate_hia_worker_register_layout import WITNESS_TAG
+from tools.generate_hia_worker_verify_evidence import PLAN_EVIDENCE_LIMIT
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_finite_flow.hepta')
 
@@ -26,6 +29,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     state = get(w, 0)
     if state == VERIFY_FINITE_START:
         return verify_finite_start(o, w)
+    if state == VERIFY_PLAN_CHECK:
+        return verify_plan_check(o, w)
     if (length(s) < 64 or input_word(s, 0) != OBSERVATION
             or input_word(s, 8) != get(w, 8) or input_word(s, 16) != get(w, 16)):
         return BAD
@@ -47,6 +52,12 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if state == RETAINED_BYTES or (state >= VERIFY_PLAN_CANONICAL and state <= VERIFY_PLAN_REGISTERS):
         return verify_plan_observation(s, o, w, state)
+    if state == VERIFY_PLAN_WITNESS:
+        return verify_plan_witness_observed(s, o, w)
+    if state == VERIFY_PLAN_EVIDENCE:
+        return verify_plan_evidence_observed(s, w)
+    if state >= EMIT_REPLAY_PLAN_INPUT and state <= EMIT_REPLAY_CANONICAL:
+        return emit_replay_layout_state(s, o, w, state)
     if state == INSPECTION_HASH_RETURNED:
         if size < 88 or size > 105:
             return BAD
@@ -77,7 +88,14 @@ def verify_plan_observation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         version = emit_schedule_version(s)
         if version == 0:
             return verify_plan_result(w, VERIFY_PLAN_INVALID)
-        if version == 4:
+        put(w, EMIT_REPLAY_VERSION, version)
+        fragment(o, 0, input_word(s, 32), 8, size - 8)
+        return action(o, w, VERIFY_PLAN_DESCRIPTOR, MAKE, 0, 0, 1, 0)
+    if state == VERIFY_PLAN_DESCRIPTOR:
+        if size < 40:
+            return BAD
+        sample_span(s, w, EMIT_REPLAY_DESCRIPTOR)
+        if get(w, EMIT_REPLAY_VERSION) == 4:
             return verify_plan_registers(o, w)
         return verify_plan_result(w, VERIFY_PLAN_ADMITTED)
     if state == VERIFY_PLAN_REGISTERS:
@@ -91,6 +109,44 @@ def verify_plan_observation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
 def verify_plan_result(w:mutbuf, next:u64) -> u64:
     put(w, 0, next)
     return VERIFY_FINITE_READY
+
+def verify_plan_check(o:mutbuf, w:mutbuf) -> u64:
+    version = get(w, EMIT_REPLAY_VERSION)
+    if version < 1 or version > 4 or get(w, EMIT_REPLAY_DESCRIPTOR + 16) < 40:
+        return BAD
+    move_fragment(w, EMIT_CANONICAL_PLAN, EMIT_PROOF_SUBJECT_PLAN)
+    put(w, EMIT_REPLAY_PLANNED, 0)
+    return emit_replay_object(o, w)
+
+def verify_plan_witness(o:mutbuf, w:mutbuf) -> u64:
+    store(o, HEADER, 91)
+    store(o, 384, 44)
+    put(o, 400, VERIFY_DERIVE_PREFIX)
+    put(o, 408, VERIFY_DERIVE_SUFFIX)
+    vector_span(w, o, INSPECTION_CORE, HEADER + 1)
+    vector_part(o, HEADER + 25, INLINE_FRAGMENT, 384, 1)
+    vector_span(w, o, VERIFY_CANDIDATE_SHA, HEADER + 49)
+    vector_part(o, HEADER + 73, INLINE_FRAGMENT, 384, 1)
+    vector_span(w, o, EMIT_CANONICAL_PLAN, HEADER + 97)
+    vector_part(o, HEADER + 121, INLINE_FRAGMENT, 400, 10)
+    return wide_inspection(o, w, VERIFY_PLAN_WITNESS, EMIT_REPLAY_WITNESS_ROLE, 0, 6, 1)
+
+def verify_plan_witness_observed(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    size = input_word(s, 40)
+    if (plan_ok(s) == False or size < 26 or size >= VERIFY_PLAN_EVIDENCE_LIMIT
+            or input_word(s, 72) != VERIFY_REGISTER_WITNESS or input_word(s, 80) != size - 24):
+        return BAD
+    hold(w, EMIT_REPLAY_WITNESS_SPAN, input_word(s, 32), 24, size - 24)
+    return verify_plan_register_evidence(o, w)
+
+def verify_plan_evidence_observed(s:readbuf, w:mutbuf) -> u64:
+    size = input_word(s, 40)
+    if (plan_ok(s) == False or size < 42 or size > VERIFY_PLAN_EVIDENCE_LIMIT + 8
+            or input_word(s, 72) != VERIFY_FINITE_REPORT or input_word(s, 80) != 1
+            or input_word(s, 88) != 10 or input_word(s, 96) != size - 40):
+        return BAD
+    body_span(s, w, VERIFY_FINITE_RESULT)
+    return verify_finite_deliver(w)
 '''
 
 FRESH = r'''
@@ -221,7 +277,10 @@ def verify_finite_row(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     return action(o, w, VERIFY_FINITE_EVIDENCE, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 2, at + 1 - HEADER)
 
 def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
-    if get(w, INSPECTION_HASH_RESUME) != EMIT_COMPLETE_HASH:
+    resume = get(w, INSPECTION_HASH_RESUME)
+    if resume == EMIT_REPLAY_OBJECT_HASH:
+        return emit_replay_object_hash(s, o, w, at)
+    if resume != EMIT_COMPLETE_HASH:
         return BAD
     put(w, VERIFY_FINITE_MODE, 2)
     put(o, HEADER, VERIFY_FINITE_REQUEST)
@@ -250,9 +309,13 @@ def finite_constants(constants):
                      VERIFY_FINITE_REPORT=int.from_bytes(b'HIAVER01', 'little'))
 
 def plan_constants(constants):
-    states = ('CANONICAL', 'SCHEDULE', 'REGISTERS', 'ADMITTED', 'INVALID')
+    states = ('CANONICAL', 'SCHEDULE', 'DESCRIPTOR', 'REGISTERS', 'ADMITTED', 'INVALID',
+              'CHECK', 'EVIDENCE', 'WITNESS')
     constants.update({f'VERIFY_PLAN_{name}': 1330 + i for i, name in enumerate(states)})
-    constants['VERIFY_CANDIDATE_SHA'] = 10608
+    constants.update(VERIFY_CANDIDATE_SHA=10608, VERIFY_PLAN_EVIDENCE_LIMIT=PLAN_EVIDENCE_LIMIT,
+                     VERIFY_REGISTER_WITNESS=WITNESS_TAG,
+                     VERIFY_DERIVE_PREFIX=int.from_bytes(b',"derive', 'little'),
+                     VERIFY_DERIVE_SUFFIX=int.from_bytes(b'"]', 'little'))
 
 
 def finite_recipe():
@@ -290,11 +353,29 @@ def finite_recipe():
                                                  '    put(o, 144, get(w, VERIFY_FINITE_END))\n    put(o, 184, 1)')
         policy = replace_function(policy, name, source)
     plan_inputs = ('INSPECTION_CORE', 'VERIFY_CANDIDATE_SHA', 'EMIT_CANONICAL_PLAN')
+    replay = function(LAYOUT_REPLAY, 'emit_replay_layout_state')
+    start = replay.index('    if state == EMIT_REPLAY_LAYOUT:')
+    end = replay.index('    if state == EMIT_REPLAY_PLAN_INPUT:')
+    replay = replay[:start] + replay[end:]
+    start = replay.index('        if get(w, EMIT_REPLAY_VERSION) == 4:')
+    replay = replay[:start] + (
+        '        if get(w, EMIT_REPLAY_VERSION) == 4:\n'
+        '            return verify_plan_witness(o, w)\n'
+        '        return verify_plan_evidence(o, w)\n'
+        '    return BAD\n'
+    )
+    policy = replace_function(policy, 'emit_replay_layout_state', replay)
+    evidence = ('VERIFY_CANDIDATE_SHA', 'EMIT_CANONICAL_PLAN', 'EMIT_REPLAY_BASE_HASH',
+                'EMIT_REPLAY_PLAN_HASH', 'EMIT_REPLAY_BASE_FRAMES', 'EMIT_REPLAY_PLAN_FRAMES')
     return reachable_policy('\n'.join((
         ENTRY, FRESH, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
         splice_list('verify_plan_schedule', 'VERIFY_PLAN_SCHEDULE', plan_inputs, role='EMIT_LAYOUT_ROLE'),
         splice_list('verify_plan_registers', 'VERIFY_PLAN_REGISTERS', plan_inputs,
                     role='EMIT_REPLAY_WITNESS_ROLE'),
+        splice_list('verify_plan_evidence', 'VERIFY_PLAN_EVIDENCE', evidence,
+                    prefix=b'["plan",', role='VERIFY_FINITE_EVIDENCE_ROLE'),
+        splice_list('verify_plan_register_evidence', 'VERIFY_PLAN_EVIDENCE', (*evidence, 'EMIT_REPLAY_WITNESS_SPAN'),
+                    prefix=b'["plan",', role='VERIFY_FINITE_EVIDENCE_ROLE'),
     )),
                             'verify_finite_flow')
 

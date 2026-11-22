@@ -1,21 +1,27 @@
 """Generate exact Verify evidence records from typed, observed HIA facts."""
 from pathlib import Path
+import json
 import re
 
+from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, MACHINE_V3, MACHINE_V4
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal
+from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
-from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table
+from tools.generate_hia_worker_emit_verification import (
+    LEAF_CHECK, LEAF_TRAP_RULE, LIFETIME_RULE, MACHINE_CHECKS, POLICY as VERIFICATION, SELECT_CHECKS,
+    key_table, literal_match,
+)
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_release_install import POLICY_SOURCE as RELEASE
 from tools.generate_hia_worker_artifact_authority import source_program as authority
 from tools.generate_hia_worker_finite_reference import EVIDENCE, NONE
-from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_inspection_effect import function, literal
 from tools.hia_retained_proof_method import NATIVE_CORE_CHECKER
 
-FIELDS = ('after', 'before', 'case', 'function', 'arguments')
+FIELDS = ('after', 'before', 'case', 'function', 'arguments', 'core_sha256', 'schema', 'value_registers')
 SOURCE = Path('examples/hia_bootstrap/worker_verify_evidence.hepta')
+PLAN_EVIDENCE_LIMIT = 65536
 
 POLICY = r'''
 # The caller owns the admitted Core and physically evaluated transcript
@@ -24,12 +30,15 @@ POLICY = r'''
 # 2: full finite domain, two admitted Core SHA-256s, coverage word record,
 #    and exact transcript hash returned by the installed hashing image.
 # 3..5: distinct observations of finite deadline/budget exhaustion.
-# JSON: checked count, required count, and exact first differing row.
+# JSON: checked count, required count, and exact first differing row; or
+# ["plan", Core digest, Plan, two measured digests, two measured frame maps].
 # 7: Core admission facts from the immutable, verified Core program.
 # 8: canonical lowering has no independent refinement proof.
 # 9: frozen Context deadline elapsed before evaluating behavior.
 def verify_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 128 and byte(s, 0) == 91:
+        if input_word(s, 0) == LAYOUT_PREFIX:
+            return layout_evidence(s, o, w)
         return counterexample(s, o, w)
     if length(s) < 16 or length(o) < 1024 or input_word(s, 0) != REQUEST:
         return BAD
@@ -179,6 +188,83 @@ def qualified_hash(s:readbuf, at:u64) -> bool:
         index = index + 1
     return True
 
+def layout_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(s) > PLAN_EVIDENCE_LIMIT - 4096 or length(o) < PLAN_EVIDENCE_LIMIT or length(w) < 65536:
+        return BAD
+    put(o, 48, 4096)
+    put(o, 56, 64)
+    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
+        return BAD
+    count = get(w, 96)
+    if count != 7 and count != 8:
+        return BAD
+    mode = 64 + get(w, 88) * 72
+    core = next(w, mode)
+    plan = next(w, core)
+    canonical = next(w, plan)
+    planned = next(w, canonical)
+    canonical_frames = next(w, planned)
+    planned_frames = next(w, canonical_frames)
+    if (layout_mode(w, mode) == False or is_object(w, plan) == False
+            or digest_text(w, core, False) == False or digest_text(w, canonical, False) == False
+            or digest_text(w, planned, False) == False or is_object(w, canonical_frames) == False
+            or is_object(w, planned_frames) == False or equal_span(s, w, core, lookup(w, plan, K_core_sha256)) == False):
+        return BAD
+    schema = lookup(w, plan, K_schema)
+    same_frames = equal_span(s, w, canonical_frames, planned_frames)
+    same_slots = True
+    witness = NONE
+    if count == 8:
+        witness = next(w, planned_frames)
+        if is_object(w, witness) == False or (layout_v3(w, schema) == False and layout_v4(w, schema) == False):
+            return BAD
+        same_slots = spill_only(w, lookup(w, plan, K_value_registers))
+    elif same_frames == False:
+        return BAD
+    at = layout_begin(o, 32)
+    at = copy_value(s, w, o, canonical_frames, at)
+    at = layout_canonical_digest(o, at)
+    at = copy_value(s, w, o, canonical, at)
+    at = layout_choices(o, at)
+    if layout_v1(w, schema):
+        at = layout_one(o, at)
+    elif layout_v2(w, schema):
+        at = layout_machine(o, at)
+    elif witness != NONE:
+        at = layout_witness(o, at)
+        at = copy_value(s, w, o, witness, at)
+        if layout_v4(w, schema):
+            at = layout_leaf_end(o, at)
+        else:
+            at = layout_select_end(o, at)
+    elif layout_v3(w, schema):
+        if empty_object(w, lookup(w, plan, K_value_registers)) == False:
+            return BAD
+        at = layout_select(o, at)
+    else:
+        return BAD
+    at = layout_core(o, at)
+    at = copy_value(s, w, o, core, at)
+    at = layout_plan(o, at)
+    at = copy_value(s, w, o, plan, at)
+    at = layout_planned_frames(o, at)
+    at = copy_value(s, w, o, planned_frames, at)
+    at = layout_planned_digest(o, at)
+    at = copy_value(s, w, o, planned, at)
+    at = layout_frame_equality(o, at)
+    at = equality(o, at, same_frames)
+    at = layout_slot_equality(o, at)
+    at = equality(o, at, same_slots)
+    store(o, at, 125)
+    return finish(o, at + 1, 1, 10)
+
+def equality(o:mutbuf, at:u64, value:bool) -> u64:
+    if value:
+        put(o, at, TRUE_WORD)
+        return at + 4
+    put(o, at, FALSE_WORD)
+    return at + 5
+
 def finish(o:mutbuf, end:u64, status:u64, domain:u64) -> u64:
     put(o, 0, RESPONSE)
     put(o, 8, status)
@@ -192,11 +278,25 @@ def source_program():
     tags = {
         'REQUEST': int.from_bytes(b'HIAVEV01', 'little'),
         'RESPONSE': int.from_bytes(b'HIAVER01', 'little'),
+        'LAYOUT_PREFIX': int.from_bytes(b'["plan",', 'little'),
         'DOMAIN_PLAN': int.from_bytes(b'HIAVFD01', 'little'),
+        'TRUE_WORD': int.from_bytes(b'true', 'little'),
+        'FALSE_WORD': int.from_bytes(b'false', 'little'),
         'TRANSCRIPT_ROW': int.from_bytes(b'HIAVFJ01', 'little'),
-        'BAD': 4294967293, 'NONE': NONE,
+        'BAD': 4294967293, 'NONE': NONE, 'PLAN_EVIDENCE_LIMIT': PLAN_EVIDENCE_LIMIT,
     }
     tags.update({f'K_{key}': index for index, key in enumerate(FIELDS, 1)})
+    select_checks = [{'choice': choice, 'checked': True, 'rule': rule}
+                     for choice, rule in SELECT_CHECKS]
+    def choices(items):
+        return json.dumps(items, sort_keys=True, separators=(',', ':'))
+
+    v3_checks = [*MACHINE_CHECKS, *select_checks]
+    select_checks[0]['witness'] = None
+    witness_prefix, select_suffix = choices(v3_checks).split('null', 1)
+    leaf = {'choice': LEAF_CHECK[0], 'rule': LEAF_CHECK[1], 'checked': True, 'trap_rule': LEAF_TRAP_RULE}
+    _, leaf_suffix = choices([*v3_checks, leaf]).split('null', 1)
+    select_checks[0]['witness'] = {'functions': {}, 'rule': LIFETIME_RULE}
     literals = {
         'mismatch_after': '{"after":',
         'core_start': '{"canonical_bytes":"',
@@ -221,14 +321,33 @@ def source_program():
         'unknown_complete': ',"complete":false',
         'unknown_late': ',"deadline_met":false',
         'unknown_required': ',"method":"finite_domain","required":',
+        'layout_begin': '{"canonical_frame_bytes":',
+        'layout_canonical_digest': ',"canonical_object_sha256":',
+        'layout_choices': ',"choice_checks":',
+        'layout_one': choices(MACHINE_CHECKS[:1]),
+        'layout_machine': choices(MACHINE_CHECKS),
+        'layout_select': choices(v3_checks),
+        'layout_witness': witness_prefix,
+        'layout_select_end': select_suffix,
+        'layout_leaf_end': leaf_suffix,
+        'layout_core': ',"core_sha256":',
+        'layout_plan': ',"implicit_optimizer_used":false,"method":"checked_explicit_machine_choices","plan":',
+        'layout_planned_frames': ',"planned_frame_bytes":',
+        'layout_planned_digest': ',"planned_object_sha256":',
+        'layout_frame_equality': ',"same_frame_sizes":',
+        'layout_slot_equality': ',"same_slots":',
     }
     source = '\n'.join((POLICY, function(EVIDENCE, 'complete_row'),
                         *(function(authority(), name) for name in ('input_word', 'copy_input')),
                         *(function(RELEASE, name) for name in ('decimal', 'divide10')),
-                        *(function(CONTEXT, name) for name in ('copy_value', 'equal_span', 'budget_integer')),
-                        *(function(VERIFICATION, name) for name in ('is_object', 'next')), key_table(FIELDS),
+                        *(function(CONTEXT, name) for name in ('copy_value', 'digest_text', 'equal_span', 'budget_integer')),
+                        *(function(VERIFICATION, name) for name in ('is_object', 'next', 'spill_only', 'empty_object')), key_table(FIELDS),
                         WIRE_HELPERS.split('\ndef signed_id', 1)[0],
-                        *(literal(name, value) for name, value in literals.items())))
+                        *(literal(name, value.encode('ascii')).replace('state_put(', 'put(')
+                          for name, value in literals.items()),
+                        *(literal_match(name, schema) for name, schema in (
+                            ('layout_mode', 'plan'), ('layout_v1', LAYOUT_V1),
+                            ('layout_v2', MACHINE_V2), ('layout_v3', MACHINE_V3), ('layout_v4', MACHINE_V4)))))
     return (re.sub(r'\b(' + '|'.join(tags) + r')\b', lambda match: str(tags[match[0]]), source)
             + '\n' + json_decoder(wire_spans=True))
 

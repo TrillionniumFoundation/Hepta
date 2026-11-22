@@ -240,6 +240,9 @@ def verify_checks(o:mutbuf, w:mutbuf) -> u64:
         return emit_wall_start(o, w)
     if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 2:
         return verify_direct_evidence(o, w, 8)
+    if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 3:
+        put(w, 0, VERIFY_PLAN_CHECK)
+        return VERIFY_NEEDS_FINITE
     return BAD
 
 def verify_direct_evidence(o:mutbuf, w:mutbuf, mode:u64) -> u64:

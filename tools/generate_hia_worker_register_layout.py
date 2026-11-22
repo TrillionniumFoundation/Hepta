@@ -7,13 +7,16 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
-from tools.generate_hia_machine_plan import packed, source_program as machine_plan
+from tools.generate_hia_machine_plan import LEAF_OPS, REGISTERS, packed, source_program as machine_plan
+from tools.generate_hia_release_install import POLICY_SOURCE as RELEASE
 from tools.generate_hia_worker_block_layout import INPUT_BYTES, MAX_NODES, PREFLIGHT_BYTES
+from tools.generate_hia_worker_inspection_effect import function, literal as render_literal
 
 SOURCE = Path('examples/hia_bootstrap/worker_register_layout.hepta')
 WORKSPACE_BYTES = 128 << 20
 INVALID = 0xfffffffd
 NONE = (1 << 64) - 1
+WITNESS_TAG = int.from_bytes(b'HIARWT01', 'little')
 WITNESS_RULE_TEXT = b'closed-block inclusive lifetimes; all edge sources staged before target writes'
 WITNESS_KEYS = ('rule', 'functions', 'callee_saved_registers', 'intervals',
                 'caller_clobbered_leaf_registers', 'leaf_opcode_inventory',
@@ -36,7 +39,10 @@ def register_layout(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     extent = bound_register_packet(o, w, packet, align8(end))
     if extent == INVALID or extent >= 2147483648 or count == 3:
         return extent
-    if check_witness(w, o, welement(w, packet, 3)) == 0:
+    witness = welement(w, packet, 3)
+    if literal(w, witness, 4, 6, DERIVE_WITNESS, 0, 0, 0, 0, 0) != 0:
+        return render_witness(w, o)
+    if check_witness(w, o, witness) == 0:
         return INVALID
     return extent
 
@@ -259,6 +265,123 @@ def typed_number(s:readbuf, w:mutbuf, at:u64, size:u64, cursor:u64) -> u64:
 '''
 
 
+RENDERER = r'''
+def render_witness(w:mutbuf, o:mutbuf) -> u64:
+    # The typed plan has already passed bound_register_packet. Emit from the
+    # same checked interval machinery, not a witness supplied by the caller.
+    mappings = field(w, get(w, 80), 8)
+    count = wtotal(w, mappings)
+    node = mappings + 24
+    cursor = witness_begin(o, 16)
+    index = 0
+    while index < count:
+        if cursor > length(o) - 4096:
+            return INVALID
+        if index != 0:
+            store(o, cursor, 44)
+            cursor = cursor + 1
+        fn = find_function(w, node)
+        if fn == NONE:
+            return INVALID
+        mapping = wend(w, node)
+        if bind_assignment(w, o, fn, mapping) != 0:
+            return INVALID
+        cursor = witness_name(w, o, field(w, fn, 13), cursor)
+        if cursor == INVALID:
+            return INVALID
+        cursor = witness_callee(o, cursor)
+        cursor = witness_array(o, cursor, get(w, 224), False)
+        if get(w, 128) != 0:
+            cursor = witness_leaf(o, cursor)
+            cursor = witness_array(o, cursor, get(w, 288), False)
+        cursor = witness_intervals(o, cursor)
+        cursor = witness_rows(w, o, cursor)
+        if cursor == INVALID:
+            return INVALID
+        if get(w, 128) != 0:
+            cursor = witness_opcode(o, cursor)
+            leaf = get(w, 288)
+            cursor = witness_array(o, cursor, choose(leaf == 0, 0, get(w, 232)), True)
+        store(o, cursor, 125)
+        cursor = cursor + 1
+        node = wend(w, mapping)
+        index = index + 1
+    cursor = witness_end(o, cursor)
+    put(o, 0, WITNESS_TAG)
+    put(o, 8, cursor - 16)
+    return cursor
+
+def witness_rows(w:mutbuf, o:mutbuf, at:u64) -> u64:
+    sort_rows(w, 0)
+    rows = get(w, 264)
+    count = get(w, 208)
+    i = 0
+    while i < count:
+        if at > length(o) - 4096:
+            return INVALID
+        if i != 0:
+            store(o, at, 44)
+            at = at + 1
+        row = get(w, rows + i * 8)
+        at = witness_block(o, at)
+        at = witness_name(w, o, get(w, row + 16), at)
+        if at == INVALID:
+            return INVALID
+        at = decimal(o, witness_first(o, at), get(w, row + 32))
+        at = decimal(o, witness_last(o, at), get(w, row + 40))
+        at = witness_register_name(o, witness_register(o, at), get(w, row + 48))
+        at = witness_name(w, o, get(w, row + 8), witness_type(o, at))
+        if at == INVALID:
+            return INVALID
+        at = witness_name(w, o, get(w, row), witness_value(o, at))
+        if at == INVALID:
+            return INVALID
+        store(o, at, 125)
+        at = at + 1
+        i = i + 1
+    store(o, at, 93)
+    return at + 1
+
+def witness_array(o:mutbuf, at:u64, mask:u64, opcodes:bool) -> u64:
+    first = True
+    ordinal = 1
+    while mask != 0:
+        if mask & 1 != 0:
+            if first == False:
+                store(o, at, 44)
+                at = at + 1
+            first = False
+            if opcodes:
+                at = witness_opcode_name(o, at, ordinal)
+            else:
+                at = witness_register_name(o, at, ordinal)
+        mask = mask >> 1
+        ordinal = ordinal + 1
+    store(o, at, 93)
+    return at + 1
+
+def witness_name(w:mutbuf, o:mutbuf, node:u64, cursor:u64) -> u64:
+    # Only the admitted Core identifier alphabet can be copied unescaped.
+    if wtag(w, node) != 4:
+        return INVALID
+    width = wsize(w, node)
+    if width < 1 or width > 128:
+        return INVALID
+    store(o, cursor, 34)
+    i = 0
+    while i < width:
+        unit = byte(w, node + 16 + i)
+        upper = unit >= 65 and unit <= 90
+        lower = unit >= 97 and unit <= 122
+        digit = i > 0 and unit >= 48 and unit <= 57
+        if upper == False and lower == False and digit == False and unit != 95:
+            return INVALID
+        store(o, cursor + 1 + i, unit)
+        i = i + 1
+    store(o, cursor + 1 + width, 34)
+    return cursor + 2 + width
+'''
+
 def witness_literals():
     source = ['def witness_key(w:mutbuf, node:u64) -> u64:']
     for index, key in enumerate(WITNESS_KEYS, 1):
@@ -277,9 +400,40 @@ def witness_literals():
     return '\n'.join(source)
 
 
+def witness_renderer():
+    templates = {
+        'begin': b'{"functions":{',
+        'callee': b':{"callee_saved_registers":[',
+        'leaf': b',"caller_clobbered_leaf_registers":[',
+        'intervals': b',"intervals":[',
+        'opcode': b',"leaf_opcode_inventory":[',
+        'block': b'{"block":',
+        'first': b',"first":',
+        'last': b',"last":',
+        'register': b',"register":',
+        'type': b',"type":',
+        'value': b',"value":',
+        'end': b'},"rule":"' + WITNESS_RULE_TEXT + b'"}',
+    }
+    renderers = [render_literal('witness_' + name, text).replace('state_put(', 'put(')
+                 for name, text in templates.items()]
+    for kind, names in (('register', REGISTERS), ('opcode', LEAF_OPS)):
+        destination = 'witness_' + kind + '_name'
+        unpacked = [f'def {destination}(o:mutbuf, at:u64, ordinal:u64) -> u64:']
+        for i, name in enumerate(names, 1):
+            encoded = ('"' + name + '"').encode('ascii')
+            body = render_literal(destination, encoded).replace('state_put(', 'put(').splitlines()[1:]
+            unpacked.append(f'    if ordinal == {i}:')
+            unpacked.extend('    ' + line for line in body)
+        unpacked.append('    return at')
+        renderers.append('\n'.join(unpacked))
+    return '\n'.join((RENDERER, *renderers, *(function(RELEASE, name) for name in ('decimal', 'divide10'))))
+
+
 def program():
     constants = dict(INPUT_MAX=INPUT_BYTES, NODES=MAX_NODES, PREFLIGHT=PREFLIGHT_BYTES,
-                     WORKSPACE=WORKSPACE_BYTES, INVALID=INVALID, NONE=NONE)
+                     WORKSPACE=WORKSPACE_BYTES, INVALID=INVALID, NONE=NONE,
+                     DERIVE_WITNESS=int.from_bytes(b'derive', 'little'), WITNESS_TAG=WITNESS_TAG)
 
     class Constants(ast.NodeTransformer):
         def visit_Name(self, node):
@@ -292,7 +446,7 @@ def program():
     if raw_decoder.count(guard) != 2:
         raise ValueError('JSON decoder admission sites differ')
     raw_decoder = raw_decoder.replace(guard, guard.replace('8388608', str(INPUT_BYTES)))
-    reader = Constants().visit(ast.parse(POLICY + witness_literals()))
+    reader = Constants().visit(ast.parse('\n'.join((POLICY, witness_literals(), witness_renderer()))))
     machinery = ast.parse(machine_plan()).body
     decoder = ast.parse(raw_decoder).body
     nodes = {node.name: node for node in (*decoder, *machinery, *reader.body)}

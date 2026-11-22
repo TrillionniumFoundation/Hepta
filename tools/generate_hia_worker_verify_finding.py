@@ -11,7 +11,7 @@ from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table, literal_match
-from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_inspection_effect import function, literal
 from tools.hia_retained_proof_method import (
     NATIVE_CORE_CHECKER, NATIVE_VERIFY_EVIDENCE as EVIDENCE_ROLE, NATIVE_VERIFY_PROFILE as CHECKER_PROFILE,
 )
@@ -36,6 +36,8 @@ OUTCOMES = (
      'Whole Core-to-x86 refinement of canonical lowering is not proved by this profile'),
     ('behavior_equivalence', 'unknown', 'context_budget_exhausted',
      'Verification cannot exceed the frozen context deadline'),
+    ('lowering_refinement', 'proved', 'checked_explicit_machine_choices',
+     'Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness'),
 )
 STATUS_IDS = {'proved': 1, 'refuted': 2, 'unknown': 3, 'unsupported': 4}
 FIELDS = ('candidate_core_sha256', 'base_core_sha256', 'kind', 'id', 'sha256',
@@ -51,6 +53,14 @@ BEHAVIOR_ASSUMPTION = (
 FINITE_ASSUMPTION = (
     'complete_finite_domain',
     'The input domain is the complete declared-width domain of the checked pure scalar acyclic functions, limited to 12 input bits and 4096 enumerated cases; the reference interpreter defines the observations.',
+)
+LAYOUT_ASSUMPTIONS = (
+    ('canonical_lowering_correctness', 'The canonical Core lowering implements Core semantics.'),
+    ('encoder_and_relocation_correctness', 'The x86 encoder and relocation machinery implement their declared instructions.'),
+)
+LAYOUT_OBLIGATION = (
+    'canonical_lowering_correctness',
+    'The canonical lowering and encoder assumptions are not discharged by checking explicit machine choices.',
 )
 COMMON_OBLIGATIONS = (
     ('checker_soundness', 'No machine-checked soundness proof of the HIA checker or its models is supplied.'),
@@ -77,7 +87,7 @@ def verify_finding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     mode_node = 64 + get(w, 88) * 72
     status_node = next(w, mode_node)
     status = budget_integer(s, w, status_node, 1, 4)
-    mode = budget_integer(s, w, mode_node, 1, 9)
+    mode = budget_integer(s, w, mode_node, 1, 10)
     if mode == NONE or status != observed_status(mode):
         return BAD
     scope = next(w, status_node)
@@ -99,7 +109,7 @@ def verify_finding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     at = copy_value(s, w, o, profile, at)
     at = finding_property(o, at, mode)
     at = copy_value(s, w, o, scope, at)
-    at = finding_obligations(o, at, status)
+    at = finding_remaining(o, finding_obligations(o, at), choose(mode == 10, 5, status))
     at = copy_value(s, w, o, profile, at)
     store(o, at, 125)
     put(o, 0, FINDING)
@@ -113,6 +123,8 @@ def scope_valid(s:readbuf, w:mutbuf, scope:u64, mode:u64) -> bool:
         return True
     if mode == 8:
         return canonical_subject(w, lookup(w, scope, K_kind))
+    if mode == 10:
+        return plan_subject(w, lookup(w, scope, K_kind))
     base = lookup(w, scope, K_base_core_sha256)
     if digest_text(w, base, False) == False:
         return False
@@ -178,6 +190,8 @@ def source_program():
             assumptions.append(BEHAVIOR_ASSUMPTION)
         if method == 'finite_domain':
             assumptions.append(FINITE_ASSUMPTION)
+        if method == 'checked_explicit_machine_choices':
+            assumptions.extend(LAYOUT_ASSUMPTIONS)
         begin[mode] = ('{"assumptions":' + proof_items(assumptions) +
                        ',"checker":{"auxiliary_checker_sha256":null,"installation":')
         methods[mode] = ',"method":' + json_wire(method) + ',"name":' + json_wire(
@@ -188,20 +202,24 @@ def source_program():
         properties[mode] = (',"property":' + json_wire({'id': claim, 'statement': _PROPERTIES[method]}) +
                             ',"schema":' + json_wire(PROOF_SCHEMA) + ',"status":' + json_wire(status) + ',"subject":')
     statuses.append('    return 0')
-    obligations = {}
+    obligations = {1: '],"validator":'}
     for status, ident in STATUS_IDS.items():
-        items = list(COMMON_OBLIGATIONS)
         if status != 'proved':
-            items.append(('requested_property', f'The requested property is not established; this result is {status} and cannot satisfy a required proof.'))
-        obligations[ident] = ',"unproved_obligations":' + proof_items(items) + ',"validator":'
+            item = ('requested_property', f'The requested property is not established; this result is {status} and cannot satisfy a required proof.')
+            obligations[ident] = ',' + proof_items((item,))[1:] + ',"validator":'
+    obligations[5] = ',' + proof_items((LAYOUT_OBLIGATION,))[1:] + ',"validator":'
     constants = {f'K_{key}': index for index, key in enumerate(FIELDS, 1)}
     constants.update(FINDING=int.from_bytes(b'HIAVFN01', 'little'), NONE=(1 << 64) - 1, BAD=4294967293)
     source = '\n'.join((POLICY, '\n'.join(statuses), key_table(FIELDS),
                         literal_match('canonical_subject', 'canonical_lowering'),
+                        literal_match('plan_subject', 'agent_machine_plan'),
                         *(branching_renderer(name, values) for name, values in (
                             ('finding_begin', begin), ('checker_method', methods), ('checker_native', names),
                             ('finding_domain', domains), ('finding_property', properties))),
-                        branching_renderer('finding_obligations', obligations, 'status'),
+                        literal('finding_obligations',
+                                (',"unproved_obligations":' + proof_items(COMMON_OBLIGATIONS)[:-1]).encode('ascii')
+                               ).replace('state_put(', 'put('),
+                        branching_renderer('finding_remaining', obligations, 'status'),
                         *(function(CONTEXT, name) for name in ('copy_value', 'digest_text', 'budget_integer', 'equal_span')),
                         *(function(VERIFICATION, name) for name in ('is_object', 'next')),
                         WIRE_HELPERS.split('\ndef signed_id', 1)[0]))
