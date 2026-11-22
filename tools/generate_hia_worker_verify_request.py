@@ -9,6 +9,7 @@ from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table, literal_match
 from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_inspection_request import POLICY as INSPECTION
 
 SUBJECT_FIELDS = ('kind', 'backend_profile', 'lowering_profile', 'plan_profile',
                   'plan', 'native_artifact', 'build_receipt')
@@ -27,6 +28,8 @@ POLICY = r'''
 # [same arguments, retained target, admitted Core SHA, admitted base SHA/null]
 # renders the exact scope against which results and receipt files will bind.
 def verify_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 8 and input_word(s, 0) == INDEX_REQUEST:
+        return request_index(s, o)
     if length(s) < 20 or length(s) > 65536 or length(o) < length(s) + 256 or length(w) < 65536:
         return INVALID
     put(o, 48, 65536)
@@ -77,6 +80,54 @@ def request(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64, args:u64) -> u64:
     at = fragment(s, w, o, lookup(w, args, K_candidate), at)
     at = fragment(s, w, o, base, at)
     return fragment(s, w, o, subject, at)
+
+# Consume only the earlier admitted sealed request. Offsets are relative to
+# that request, so a continuation can retain spans without copying values.
+def request_index(s:readbuf, o:mutbuf) -> u64:
+    extent = length(s)
+    if extent < 88 or extent > 65544 or length(o) < 136 or input_word(s, 8) != REQUEST:
+        return INVALID
+    kind = input_word(s, 16)
+    count = input_word(s, 24)
+    if kind < 1 or kind > 4 or count < 1 or count > 4:
+        return INVALID
+    put(o, 0, INDEX_RESULT)
+    put(o, 8, kind)
+    put(o, 16, count)
+    seen = 0
+    claim_index = 0
+    while claim_index < 4:
+        claim = 0
+        if claim_index < count:
+            claim = input_word(s, 32 + 8 * claim_index)
+            if claim < 1 or claim > 4 or (seen & (1 << claim)) != 0:
+                return INVALID
+            if (claim == 3 and kind == 1) or (claim == 4 and kind != 4):
+                return INVALID
+            seen = seen | (1 << claim)
+        put(o, 24 + 8 * claim_index, claim)
+        claim_index = claim_index + 1
+    at = 32 + 8 * count
+    field = 0
+    while field < 5:
+        if extent - at < 10:
+            return INVALID
+        size = input_word(s, at)
+        at = at + 8
+        if size < 2 or size > extent - at:
+            return INVALID
+        if field == 3 and size == 4 and byte(s, at) == 110:
+            if byte(s, at + 1) != 117 or byte(s, at + 2) != 108 or byte(s, at + 3) != 108 or (seen & 4) != 0:
+                return INVALID
+        elif byte(s, at) != 123 or byte(s, at + size - 1) != 125:
+            return INVALID
+        put(o, 56 + 16 * field, at - 8)
+        put(o, 64 + 16 * field, size)
+        at = at + size
+        field = field + 1
+    if at != extent:
+        return INVALID
+    return 136
 
 def arguments(w:mutbuf, args:u64) -> bool:
     if is_object(w, args) == False or get(w, args + 32) != 8:
@@ -192,6 +243,8 @@ def scope_renderers():
 def source_program():
     constants = {f'K_{name}': index for index, name in enumerate(KEYS + ('subject',), 1)}
     constants.update(REQUEST=int.from_bytes(b'HIAVRQ01', 'little'),
+                     INDEX_REQUEST=int.from_bytes(b'HIAVRI01', 'little'),
+                     INDEX_RESULT=int.from_bytes(b'HIAVRI02', 'little'),
                      SCOPE=int.from_bytes(b'HIAVSC01', 'little'), NONE=(1 << 64) - 1,
                      INVALID=4294967293, CATALOG_MISMATCH=4294967286,
                      SUBJECT_FIELD_COUNT=len(SUBJECT_FIELDS),
@@ -200,6 +253,7 @@ def source_program():
                         scope_renderers(), key_table(KEYS + ('subject',)),
                         *(function(CONTEXT, name) for name in ('copy_value', 'fragment', 'digest_text', 'equal_span')),
                         *(function(VERIFICATION, name) for name in ('next', 'is_object')),
+                        function(INSPECTION, 'input_word'),
                         WIRE_HELPERS.split('\ndef signed_id', 1)[0]))
     return re.sub(r'\b(' + '|'.join(constants) + r')\b',
                   lambda match: str(constants[match[0]]), source) + '\n' + json_decoder(wire_spans=True)
