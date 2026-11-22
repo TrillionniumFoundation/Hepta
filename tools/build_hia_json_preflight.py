@@ -127,6 +127,7 @@ CANDIDATES = {
     'worker-profile-bindings': ('worker_profile_bindings', 'worker-profile-bindings'),
     'worker-proof-scope': ('worker_proof_scope', 'worker-proof-scope'),
     'retained-build': ('worker_retained_build', 'retained-build'),
+    'worker-build-custody': ('worker_build_custody', 'worker-build-custody'),
     'emit-journal': ('worker_emit_journal', 'emit-journal'),
     'emit-journal-observation': ('worker_emit_journal_observation', 'emit-journal-observation'),
     'emit-journal-records': ('worker_emit_journal_records', 'emit-journal-records'),
