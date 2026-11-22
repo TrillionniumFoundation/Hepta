@@ -25,12 +25,15 @@ SOURCE = Path('examples/hia_bootstrap/worker_verify_request.hepta')
 POLICY = r'''
 # [trusted catalog, admitted arguments] returns only capabilities needed
 # for the ordered Store reads and ordered checks; it cannot establish a proof.
+# [trusted catalog, admitted arguments, null] returns both catalog spans for
+# the Journal's own exact comparison before dispatch.
+# [admitted subject] indexes references for the subject-specific Store reads.
 # [same arguments, retained target, admitted Core SHA, admitted base SHA/null]
 # renders the exact scope against which results and receipt files will bind.
 def verify_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 8 and input_word(s, 0) == INDEX_REQUEST:
         return request_index(s, o)
-    if length(s) < 20 or length(s) > 65536 or length(o) < length(s) + 256 or length(w) < 65536:
+    if length(s) < 17 or length(s) > 65536 or length(o) < length(s) + 256 or length(w) < 65536:
         return INVALID
     put(o, 48, 65536)
     put(o, 56, 64)
@@ -38,13 +41,62 @@ def verify_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     first = 64 + get(w, 88) * 72
     count = get(w, 96)
+    if count == 1:
+        return subject_index(w, o, first)
     if count == 2:
         return request(s, o, w, first, next(w, first))
+    if count == 3:
+        args = next(w, first)
+        marker = next(w, args)
+        if marker == NONE or get(w, marker) != 0:
+            return INVALID
+        return journal_catalog(s, o, w, first, args)
     if count == 4:
         target = next(w, first)
         core = next(w, target)
         return scope(s, o, w, first, target, core, next(w, core))
     return INVALID
+
+def journal_catalog(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64, args:u64) -> u64:
+    if is_object(w, args) == False or digest_text(w, pinned, False) == False:
+        return INVALID
+    supplied = lookup(w, args, K_catalog_sha256)
+    if digest_text(w, supplied, True) == False:
+        return INVALID
+    at = copy_value(s, w, o, supplied, 24)
+    end = copy_value(s, w, o, pinned, at)
+    put(o, 0, at - 24)
+    put(o, 8, end - at)
+    put(o, 16, 0)
+    return end
+
+def subject_index(w:mutbuf, o:mutbuf, subject:u64) -> u64:
+    kind = subject_shape(w, subject)
+    if kind == 0:
+        return INVALID
+    count = choose(kind == 1, 0, choose(kind == 2, 2, 3))
+    put(o, 0, SUBJECT_INDEX)
+    put(o, 8, kind)
+    put(o, 16, count)
+    if count == 0:
+        return 24
+    subject_ref(w, o, subject, K_backend_profile, 24)
+    if kind == 2:
+        subject_ref(w, o, subject, K_lowering_profile, 40)
+        return 56
+    if kind == 3:
+        subject_ref(w, o, subject, K_plan_profile, 40)
+        subject_ref(w, o, subject, K_plan, 56)
+    else:
+        subject_ref(w, o, subject, K_native_artifact, 40)
+        subject_ref(w, o, subject, K_build_receipt, 56)
+    return 72
+
+def subject_ref(w:mutbuf, o:mutbuf, subject:u64, key:u64, at:u64) -> u64:
+    node = lookup(w, subject, key)
+    put(o, at, get(w, node + 56))
+    put(o, at + 8, get(w, node + 64))
+    return 0
 
 def request(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64, args:u64) -> u64:
     if arguments(w, args) == False or digest_text(w, pinned, False) == False:
@@ -245,6 +297,7 @@ def source_program():
     constants.update(REQUEST=int.from_bytes(b'HIAVRQ01', 'little'),
                      INDEX_REQUEST=int.from_bytes(b'HIAVRI01', 'little'),
                      INDEX_RESULT=int.from_bytes(b'HIAVRI02', 'little'),
+                     SUBJECT_INDEX=int.from_bytes(b'HIAVSB01', 'little'),
                      SCOPE=int.from_bytes(b'HIAVSC01', 'little'), NONE=(1 << 64) - 1,
                      INVALID=4294967293, CATALOG_MISMATCH=4294967286,
                      SUBJECT_FIELD_COUNT=len(SUBJECT_FIELDS),
