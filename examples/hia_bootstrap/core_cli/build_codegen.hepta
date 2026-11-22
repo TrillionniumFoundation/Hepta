@@ -5348,7 +5348,7 @@ block b82(v733:readbuf,v734:mutbuf,v735:mutbuf)
   v755:u64 = const() {"value":88}
   v756:u64 = int.add.wrap(v741,v755)
   v757:u64 = call(v735,v756) {"function":"f103"}
-  v758:u64 = call(v733,v757) {"function":"f101"}
+  v758:u64 = call(v733,v735,v757) {"function":"layout_next_function"}
   v759:u64 = call(v735,v756,v758) {"function":"f104"}
   v760:u64 = const() {"value":80}
   v761:u64 = int.add.wrap(v741,v760)
@@ -5457,7 +5457,7 @@ block b98(v890:readbuf,v891:mutbuf,v892:mutbuf)
   v911:u64 = const() {"value":88}
   v912:u64 = int.add.wrap(v898,v911)
   v913:u64 = call(v892,v912) {"function":"f103"}
-  v914:u64 = call(v890,v913) {"function":"f101"}
+  v914:u64 = call(v890,v892,v913) {"function":"layout_next_function"}
   v915:u64 = call(v892,v912,v914) {"function":"f104"}
   v916:u64 = const() {"value":80}
   v917:u64 = int.add.wrap(v898,v916)
@@ -5570,13 +5570,19 @@ block b2(v16:readbuf,v17:mutbuf,v18:mutbuf,v19:u64,v20:u64)
   v41:u64 = call(v18,v40,v33) {"function":"f104"}
   v42:u64 = const() {"value":88}
   v43:u64 = int.add.wrap(v23,v42)
-  v44:u64 = call(v16,v19) {"function":"f95"}
-  v45:u64 = call(v18,v43,v44) {"function":"f104"}
+  supported:bool = call(v16,v18,v20) {"function":"layout_initialize"}
+  branch supported initialize_order(v16,v17,v18,v19,v20,v43) b1(v16,v17,v18)
+block initialize_order(init_source:readbuf,init_events:mutbuf,init_state:mutbuf,init_functions:u64,init_count:u64,init_current_at:u64)
+  initial:u64 = call(init_source,init_state,init_functions) {"function":"layout_first_function"}
+  v45:u64 = call(init_state,init_current_at,initial) {"function":"f104"}
+  init_base:u64 = const() {"value":67092480}
+  init_one:u64 = const() {"value":1}
+  init_zero:u64 = const() {"value":0}
   v46:u64 = const() {"value":240}
-  v47:u64 = int.add.wrap(v23,v46)
-  v48:u64 = call(v18,v47,v33) {"function":"f104"}
-  v49:u64 = call(v16,v19) {"function":"f95"}
-  jump b3(v16,v17,v18,v20,v25,v25,v25,v49,v25)
+  v47:u64 = int.add.wrap(init_base,v46)
+  v48:u64 = call(init_state,v47,init_one) {"function":"f104"}
+  v49:u64 = call(init_source,init_functions) {"function":"f95"}
+  jump b3(init_source,init_events,init_state,init_count,init_zero,init_zero,init_zero,v49,init_zero)
 block b3(v50:readbuf,v51:mutbuf,v52:mutbuf,v54:u64,v55:u64,v56:u64,v57:u64,v58:u64,v59:u64)
   v60:u64 = const() {"value":18446744073709551615}
   v61:bool = compare.ne(v58,v60)
@@ -5841,7 +5847,7 @@ block b1(v9:readbuf,v10:mutbuf,v11:mutbuf)
   v20:u64 = const() {"value":0}
   v21:u64 = const() {"value":4}
   v22:u64 = call(v9,v20,v21) {"function":"f96"}
-  v23:u64 = call(v9,v22) {"function":"f95"}
+  v23:u64 = call(v9,v11,v22) {"function":"layout_first_function"}
   v24:u64 = call(v11,v19,v23) {"function":"f104"}
   v25:u64 = const() {"value":80}
   v26:u64 = int.add.wrap(v17,v25)
@@ -6585,7 +6591,7 @@ block b3(v29:readbuf,v30:mutbuf,v31:mutbuf,v32:u64)
   v37:u64 = const() {"value":67092480}
   v38:u64 = const() {"value":88}
   v39:u64 = int.add.wrap(v37,v38)
-  v40:u64 = call(v29,v32) {"function":"f101"}
+  v40:u64 = call(v29,v31,v32) {"function":"layout_next_function"}
   v41:u64 = call(v31,v39,v40) {"function":"f104"}
   v42:u64 = const() {"value":0}
   ret(v42)
@@ -10399,6 +10405,172 @@ block b0(v0:readbuf,v1:u64)
   v8:u64 = call(v0,v7) {"function":"f91"}
   ret(v8)
 end
+fn layout_initialize(source:readbuf,state:mutbuf,count:u64) -> (bool) effects(read,write,trap) entry(entry)
+block entry(source:readbuf,state:mutbuf,count:u64)
+  plain:usize = const() {"value":41943040}
+  extent:usize = buffer.len(source)
+  canonical:bool = compare.eq(extent,plain)
+  branch canonical accept() tag(source,state,count)
+block tag(s_at_tag:readbuf,w_at_tag:mutbuf,n_at_tag:u64)
+  tag_at:u64 = const() {"value":41943040}
+  value_at_tag:u64 = call(s_at_tag,tag_at) {"function":"f102"}
+  v1:u64 = const() {"value":3544421195199891784}
+  old:bool = compare.eq(value_at_tag,v1)
+  branch old accept() machine(s_at_tag,w_at_tag,n_at_tag,value_at_tag)
+block machine(s_at_machine:readbuf,w_at_machine:mutbuf,n_at_machine:u64,value_at_machine:u64)
+  v2:u64 = const() {"value":3616478789237819720}
+  reviewed:bool = compare.eq(value_at_machine,v2)
+  branch reviewed header(s_at_machine,w_at_machine,n_at_machine) refuse()
+block header(s_at_header:readbuf,w_at_header:mutbuf,n_at_header:u64)
+  count_at:u64 = const() {"value":41943048}
+  bytes_at:u64 = const() {"value":41943056}
+  align_at:u64 = const() {"value":41943064}
+  scratch_at:u64 = const() {"value":41943072}
+  move_at:u64 = const() {"value":41943080}
+  alu_at:u64 = const() {"value":41943088}
+  actual_count:u64 = call(s_at_header,count_at) {"function":"f102"}
+  bytes:u64 = call(s_at_header,bytes_at) {"function":"f102"}
+  align:u64 = call(s_at_header,align_at) {"function":"f102"}
+  scratch:u64 = call(s_at_header,scratch_at) {"function":"f102"}
+  move:u64 = call(s_at_header,move_at) {"function":"f102"}
+  alu:u64 = call(s_at_header,alu_at) {"function":"f102"}
+  zero:u64 = const() {"value":0}
+  one:u64 = const() {"value":1}
+  a:u64 = bit.or(scratch,move)
+  options:u64 = bit.or(a,alu)
+  wide:bool = compare.eq(options,zero)
+  unit:bool = compare.eq(align,one)
+  encodable:bool = bool.and(wide,unit)
+  count_ok:bool = compare.eq(actual_count,n_at_header)
+  max:u64 = const() {"value":8388608}
+  header_size:u64 = const() {"value":56}
+  minimum_row:u64 = const() {"value":24}
+  rows:u64 = int.mul.wrap(n_at_header,minimum_row)
+  minimum:u64 = int.add.wrap(header_size,rows)
+  not_short:bool = compare.ge(bytes,minimum)
+  not_long:bool = compare.le(bytes,max)
+  extent_ok:bool = bool.and(not_short,not_long)
+  layout_ok:bool = bool.and(count_ok,extent_ok)
+  admitted:bool = bool.and(encodable,layout_ok)
+  branch admitted bind(w_at_header,n_at_header) refuse()
+block bind(w_at_bind:mutbuf,n_at_bind:u64)
+  function_order_at:u64 = const() {"value":41943096}
+  word:u64 = const() {"value":8}
+  per_function:u64 = int.mul.wrap(n_at_bind,word)
+  rows_at:u64 = int.add.wrap(function_order_at,per_function)
+  head_slot:u64 = const() {"value":67092752}
+  slot_saved_0:u64 = call(w_at_bind,head_slot,rows_at) {"function":"f104"}
+  jump accept()
+block accept()
+  yes:bool = const() {"value":true}
+  ret(yes)
+block refuse()
+  no:bool = const() {"value":false}
+  ret(no)
+end
+fn layout_first_function(source:readbuf,state:mutbuf,functions_at_entry:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(source:readbuf,state:mutbuf,functions_at_entry:u64)
+  head_slot:u64 = const() {"value":67092752}
+  head:u64 = call(state,head_slot) {"function":"f103"}
+  zero:u64 = const() {"value":0}
+  planned:bool = compare.ne(head,zero)
+  branch planned order(source,state,functions_at_entry,zero) plain(source,functions_at_entry)
+block plain(s_at_plain:readbuf,functions_at_plain:u64)
+  pointer_at_plain:u64 = call(s_at_plain,functions_at_plain) {"function":"f95"}
+  ret(pointer_at_plain)
+block order(s_at_order:readbuf,w:mutbuf,functions_at_order:u64,index:u64)
+  pointer_at_order:u64 = call(s_at_order,w,functions_at_order,index) {"function":"layout_pick_function"}
+  ret(pointer_at_order)
+end
+fn layout_next_function(source:readbuf,state:mutbuf,function_at_entry:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(source:readbuf,state:mutbuf,function_at_entry:u64)
+  head_slot:u64 = const() {"value":67092752}
+  head:u64 = call(state,head_slot) {"function":"f103"}
+  zero:u64 = const() {"value":0}
+  planned:bool = compare.ne(head,zero)
+  branch planned order(source,state) plain(source,function_at_entry)
+block plain(s_at_plain:readbuf,function_at_plain:u64)
+  pointer:u64 = call(s_at_plain,function_at_plain) {"function":"f101"}
+  ret(pointer)
+block order(s_at_order:readbuf,w:mutbuf)
+  cursor_slot:u64 = const() {"value":67092760}
+  previous:u64 = call(w,cursor_slot) {"function":"f103"}
+  one:u64 = const() {"value":1}
+  index:u64 = int.add.wrap(previous,one)
+  root:u64 = const() {"value":0}
+  key:u64 = const() {"value":4}
+  functions:u64 = call(s_at_order,root,key) {"function":"f96"}
+  chosen:u64 = call(s_at_order,w,functions,index) {"function":"layout_pick_function"}
+  ret(chosen)
+end
+fn layout_pick_function(source:readbuf,state:mutbuf,functions_at_entry:u64,index_at_entry:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(source:readbuf,state:mutbuf,functions_at_entry:u64,index_at_entry:u64)
+  count_at_entry:u64 = call(source,functions_at_entry) {"function":"f94"}
+  done:bool = compare.ge(index_at_entry,count_at_entry)
+  branch done finished() choose(source,state,functions_at_entry,index_at_entry,count_at_entry)
+block choose(s_at_choose:readbuf,w_at_choose:mutbuf,functions_at_choose:u64,index_at_choose:u64,count_at_choose:u64)
+  word_at_choose:u64 = const() {"value":8}
+  start:u64 = const() {"value":41943096}
+  relative:u64 = int.mul.wrap(index_at_choose,word_at_choose)
+  at_at_choose:u64 = int.add.wrap(start,relative)
+  ordinal_at_choose:u64 = call(s_at_choose,at_at_choose) {"function":"f102"}
+  bad:bool = compare.ge(ordinal_at_choose,count_at_choose)
+  branch bad refuse(w_at_choose) check_previous(s_at_choose,w_at_choose,functions_at_choose,index_at_choose,ordinal_at_choose,start,at_at_choose)
+block check_previous(s_at_check_previous:readbuf,w_at_check_previous:mutbuf,functions_at_check_previous:u64,index_at_check_previous:u64,ordinal_at_check_previous:u64,previous_at_check_previous:u64,at_at_check_previous:u64)
+  checked:bool = compare.eq(previous_at_check_previous,at_at_check_previous)
+  branch checked selected(s_at_check_previous,w_at_check_previous,functions_at_check_previous,index_at_check_previous,ordinal_at_check_previous) compare_previous(s_at_check_previous,w_at_check_previous,functions_at_check_previous,index_at_check_previous,ordinal_at_check_previous,previous_at_check_previous,at_at_check_previous)
+block compare_previous(s_at_compare_previous:readbuf,w_at_compare_previous:mutbuf,functions_at_compare_previous:u64,index_at_compare_previous:u64,ordinal_at_compare_previous:u64,previous_at_compare_previous:u64,at_at_compare_previous:u64)
+  seen:u64 = call(s_at_compare_previous,previous_at_compare_previous) {"function":"f102"}
+  repeated:bool = compare.eq(seen,ordinal_at_compare_previous)
+  word_at_compare_previous:u64 = const() {"value":8}
+  next:u64 = int.add.wrap(previous_at_compare_previous,word_at_compare_previous)
+  branch repeated refuse(w_at_compare_previous) check_previous(s_at_compare_previous,w_at_compare_previous,functions_at_compare_previous,index_at_compare_previous,ordinal_at_compare_previous,next,at_at_compare_previous)
+block selected(s_at_selected:readbuf,w_at_selected:mutbuf,functions_at_selected:u64,index_at_selected:u64,ordinal_at_selected:u64)
+  cursor_slot:u64 = const() {"value":67092760}
+  slot_saved_1:u64 = call(w_at_selected,cursor_slot,index_at_selected) {"function":"f104"}
+  pointer:u64 = call(s_at_selected,functions_at_selected,ordinal_at_selected) {"function":"f59"}
+  ret(pointer)
+block refuse(w_at_refuse:mutbuf)
+  failure_slot:u64 = const() {"value":67092544}
+  invalid:u64 = const() {"value":4294967293}
+  slot_saved_2:u64 = call(w_at_refuse,failure_slot,invalid) {"function":"f104"}
+  jump finished()
+block finished()
+  none:u64 = const() {"value":18446744073709551615}
+  ret(none)
+end
+fn layout_row_at(s_input:readbuf,start:u64,ordinal_input:u64,limit_input:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(s_input:readbuf,start:u64,ordinal_input:u64,limit_input:u64)
+  jump seek(s_input,start,ordinal_input,limit_input)
+block seek(source:readbuf,head_at_seek:u64,ordinal:u64,end:u64)
+  zero_at_seek:u64 = const() {"value":0}
+  found:bool = compare.eq(ordinal,zero_at_seek)
+  branch found done(head_at_seek) bounds(source,head_at_seek,ordinal,end)
+block bounds(s_at_bounds:readbuf,cursor_at_bounds:u64,left_at_bounds:u64,limit_at_bounds:u64)
+  word_at_bounds:u64 = const() {"value":8}
+  fields:u64 = int.add.wrap(cursor_at_bounds,word_at_bounds)
+  unbounded:bool = compare.ge(fields,limit_at_bounds)
+  branch unbounded refuse() skip(s_at_bounds,cursor_at_bounds,left_at_bounds,limit_at_bounds)
+block skip(s_at_skip:readbuf,cursor_at_skip:u64,left_at_skip:u64,limit_at_skip:u64)
+  limit_count:u64 = const() {"value":4096}
+  count:u64 = call(s_at_skip,cursor_at_skip) {"function":"f102"}
+  large:bool = compare.gt(count,limit_count)
+  zero_at_skip:u64 = const() {"value":0}
+  empty:bool = compare.eq(count,zero_at_skip)
+  invalid:bool = bool.or(large,empty)
+  word_at_skip:u64 = const() {"value":8}
+  one:u64 = const() {"value":1}
+  words:u64 = int.add.wrap(count,one)
+  span:u64 = int.mul.wrap(words,word_at_skip)
+  next:u64 = int.add.wrap(cursor_at_skip,span)
+  left_next:u64 = int.sub.wrap(left_at_skip,one)
+  branch invalid refuse() seek(s_at_skip,next,left_next,limit_at_skip)
+block done(head_at_done:u64)
+  ret(head_at_done)
+block refuse()
+  zero_at_refuse:u64 = const() {"value":0}
+  ret(zero_at_refuse)
+end
 fn layout_first_block(source:readbuf,state:mutbuf,blocks:u64) -> (u64) effects(read,write,trap) entry(entry)
 block entry(source:readbuf,state:mutbuf,blocks:u64)
   canonical_extent:u64 = const() {"value":41943040}
@@ -10410,11 +10582,7 @@ block plain(s_plain:readbuf,b_plain:u64)
   first_plain:u64 = call(s_plain,b_plain) {"function":"f95"}
   ret(first_plain)
 block planned(s_planned:readbuf,w_planned:mutbuf,b_planned:u64)
-  tag_at:u64 = const() {"value":41943040}
-  tag_expected:u64 = const() {"value":3544421195199891784}
-  tag:u64 = call(s_planned,tag_at) {"function":"f102"}
-  wrong_tag:bool = compare.ne(tag,tag_expected)
-  branch wrong_tag refuse(w_planned) header(s_planned,w_planned,b_planned)
+  jump header(s_planned,w_planned,b_planned)
 block header(s_header:readbuf,w_header:mutbuf,b_header:u64)
   count_at:u64 = const() {"value":41943048}
   bytes_at:u64 = const() {"value":41943056}
@@ -10438,20 +10606,30 @@ block header(s_header:readbuf,w_header:mutbuf,b_header:u64)
   branch invalid_header refuse(w_header) row(s_header,w_header,b_header,count_header,ordinal_header,bytes_header)
 block row(s_row:readbuf,w_row:mutbuf,b_row:u64,n_row:u64,ordinal_row:u64,bytes_row:u64)
   base:u64 = const() {"value":41943040}
-  head:u64 = const() {"value":41943064}
-  zero:u64 = const() {"value":0}
-  one_row:u64 = const() {"value":1}
-  word_row:u64 = const() {"value":8}
-  cursor_at_row:u64 = const() {"value":67092728}
-  saved:u64 = call(w_row,cursor_at_row) {"function":"f103"}
-  start:bool = compare.eq(ordinal_row,zero)
-  row_at_row:u64 = select(start,head,saved)
   limit_row:u64 = int.add.wrap(base,bytes_row)
-  fields_row:u64 = int.add.wrap(row_at_row,word_row)
-  before:bool = compare.lt(row_at_row,head)
-  after:bool = compare.ge(fields_row,limit_row)
+  head_at:u64 = const() {"value":67092752}
+  machine_head:u64 = call(w_row,head_at) {"function":"f103"}
+  zero:u64 = const() {"value":0}
+  machine:bool = compare.ne(machine_head,zero)
+  branch machine ordered_row(s_row,w_row,b_row,n_row,ordinal_row,limit_row,machine_head) legacy_row(s_row,w_row,b_row,n_row,ordinal_row,limit_row)
+block ordered_row(s_order:readbuf,w_order:mutbuf,b_order:u64,n_order:u64,ordinal_order:u64,limit_order:u64,head_order:u64)
+  ordered_at:u64 = call(s_order,head_order,ordinal_order,limit_order) {"function":"layout_row_at"}
+  jump row_bounds(s_order,w_order,b_order,n_order,ordinal_order,limit_order,head_order,ordered_at)
+block legacy_row(s_legacy:readbuf,w_legacy:mutbuf,b_legacy:u64,n_legacy:u64,ordinal_legacy:u64,limit_legacy:u64)
+  cursor_at_row:u64 = const() {"value":67092728}
+  saved:u64 = call(w_legacy,cursor_at_row) {"function":"f103"}
+  head:u64 = const() {"value":41943064}
+  zero_legacy:u64 = const() {"value":0}
+  start:bool = compare.eq(ordinal_legacy,zero_legacy)
+  legacy_at:u64 = select(start,head,saved)
+  jump row_bounds(s_legacy,w_legacy,b_legacy,n_legacy,ordinal_legacy,limit_legacy,head,legacy_at)
+block row_bounds(s_bounds:readbuf,w_bounds:mutbuf,b_bounds:u64,n_bounds:u64,ordinal_bounds:u64,limit_bounds:u64,head_bounds:u64,row_at_bounds:u64)
+  word_row:u64 = const() {"value":8}
+  fields_row:u64 = int.add.wrap(row_at_bounds,word_row)
+  before:bool = compare.lt(row_at_bounds,head_bounds)
+  after:bool = compare.ge(fields_row,limit_bounds)
   invalid_row:bool = bool.or(before,after)
-  branch invalid_row refuse(w_row) row_extent(s_row,w_row,b_row,n_row,ordinal_row,row_at_row,fields_row,limit_row)
+  branch invalid_row refuse(w_bounds) row_extent(s_bounds,w_bounds,b_bounds,n_bounds,ordinal_bounds,row_at_bounds,fields_row,limit_bounds)
 block row_extent(s_row_extent:readbuf,w_row_extent:mutbuf,b_row_extent:u64,n_row_extent:u64,ordinal_row_extent:u64,row_at_row_extent:u64,fields_row_extent:u64,limit_row_extent:u64)
   count_row_extent:u64 = call(s_row_extent,row_at_row_extent) {"function":"f102"}
   expected:u64 = call(s_row_extent,b_row_extent) {"function":"f94"}
