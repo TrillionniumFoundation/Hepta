@@ -6676,6 +6676,11 @@ block issue(v127:mutbuf,v128:mutbuf,v129:u64,v130:u64,v131:u64)
   v137:u64 = const() {"value":1}
   v138:u64 = int.sub.wrap(v130,v137)
   v139:u64 = call(v127,v136,v138) {"function":"f104"}
+  policy_slot:u64 = const() {"value":67092776}
+  encoding:u64 = call(v128,policy_slot) {"function":"f103"}
+  options_at:u64 = const() {"value":40}
+  options_field:u64 = int.add.wrap(v131,options_at)
+  encoding_written:u64 = call(v127,options_field,encoding) {"function":"f104"}
   v140:u64 = const() {"value":67092560}
   v141:u64 = const() {"value":23}
   v142:u64 = call(v128,v140,v141) {"function":"f104"}
@@ -7355,7 +7360,7 @@ end
 fn f51(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64,v5:u64,v6:u64,v7:u64,v8:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64,v5:u64,v6:u64,v7:u64,v8:u64)
   v9:u64 = const() {"value":1}
-  v10:u64 = const() {"value":3616447908792060232}
+  v10:u64 = const() {"value":3688505502829988168}
   v11:u64 = call(v0,v1,v9,v10,v2) {"function":"f50"}
   v12:u64 = const() {"value":0}
   v13:bool = compare.eq(v11,v12)
@@ -7382,6 +7387,11 @@ block b2(v24:mutbuf,v25:mutbuf,v27:u64,v28:u64,v29:u64,v30:u64,v31:u64,v32:u64,v
   v50:u64 = const() {"value":64}
   v51:u64 = int.add.wrap(v33,v50)
   v52:u64 = call(v24,v51,v32) {"function":"f104"}
+  policy_slot:u64 = const() {"value":67092776}
+  policy:u64 = call(v25,policy_slot) {"function":"f103"}
+  policy_offset:u64 = const() {"value":72}
+  frame_policy:u64 = int.add.wrap(v33,policy_offset)
+  frame_saved:u64 = call(v24,frame_policy,policy) {"function":"f104"}
   v53:u64 = const() {"value":0}
   ret(v53)
 end
@@ -10434,7 +10444,13 @@ block header(s_at_header:readbuf,w_at_header:mutbuf,n_at_header:u64)
   zero:u64 = const() {"value":0}
   a:u64 = bit.or(scratch,move)
   options:u64 = bit.or(a,alu)
-  wide:bool = compare.eq(options,zero)
+  max_flag:u64 = const() {"value":1}
+  reviewed_encoding:bool = compare.le(options,max_flag)
+  move_bit:u64 = int.shl.checked(move,max_flag)
+  alu_shift:u64 = const() {"value":2}
+  alu_bit:u64 = int.shl.checked(alu,alu_shift)
+  move_alu:u64 = bit.or(move_bit,alu_bit)
+  choices:u64 = bit.or(scratch,move_alu)
   alignment_mask:u64 = const() {"value":113}
   unavailable:u64 = bit.and(align,alignment_mask)
   known:bool = compare.eq(align,unavailable)
@@ -10445,7 +10461,7 @@ block header(s_at_header:readbuf,w_at_header:mutbuf,n_at_header:u64)
   nonzero:bool = compare.ne(align,zero)
   single:bool = bool.and(power,nonzero)
   valid_alignment:bool = bool.and(known,single)
-  encodable:bool = bool.and(wide,valid_alignment)
+  encodable:bool = bool.and(reviewed_encoding,valid_alignment)
   count_ok:bool = compare.eq(actual_count,n_at_header)
   max:u64 = const() {"value":8388608}
   header_size:u64 = const() {"value":56}
@@ -10457,8 +10473,8 @@ block header(s_at_header:readbuf,w_at_header:mutbuf,n_at_header:u64)
   extent_ok:bool = bool.and(not_short,not_long)
   layout_ok:bool = bool.and(count_ok,extent_ok)
   admitted:bool = bool.and(encodable,layout_ok)
-  branch admitted bind(w_at_header,n_at_header,align) refuse()
-block bind(w_at_bind:mutbuf,n_at_bind:u64,alignment:u64)
+  branch admitted bind(w_at_header,n_at_header,align,choices) refuse()
+block bind(w_at_bind:mutbuf,n_at_bind:u64,alignment:u64,encoding:u64)
   function_order_at:u64 = const() {"value":41943096}
   word:u64 = const() {"value":8}
   per_function:u64 = int.mul.wrap(n_at_bind,word)
@@ -10467,6 +10483,8 @@ block bind(w_at_bind:mutbuf,n_at_bind:u64,alignment:u64)
   slot_saved_0:u64 = call(w_at_bind,head_slot,rows_at) {"function":"f104"}
   align_slot:u64 = const() {"value":67092768}
   align_saved:u64 = call(w_at_bind,align_slot,alignment) {"function":"f104"}
+  encoding_slot:u64 = const() {"value":67092776}
+  encoding_saved:u64 = call(w_at_bind,encoding_slot,encoding) {"function":"f104"}
   jump accept()
 block accept()
   yes:bool = const() {"value":true}

@@ -2317,7 +2317,10 @@ block b5(v32:readbuf,v33:mutbuf,v34:mutbuf)
 block b6(v36:readbuf,v37:mutbuf,v38:mutbuf,v39:u64)
   v41:u64 = const() {"value":3616447908792060232}
   v42:bool = compare.eq(v39,v41)
-  branch v42 b7(v36,v37,v38) b8(v36,v37,v38)
+  planned_tag:u64 = const() {"value":3688505502829988168}
+  planned:bool = compare.eq(v39,planned_tag)
+  numeric:bool = bool.or(v42,planned)
+  branch numeric b7(v36,v37,v38) b8(v36,v37,v38)
 block b7(v43:readbuf,v44:mutbuf,v45:mutbuf)
   v51:u32 = call(v43,v44,v45) {"function":"f57"}
   ret(v51)
@@ -6854,7 +6857,10 @@ block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
   v3:usize = buffer.len(v0)
   v4:u64 = int.cast(v3) {"mode":"wrap"}
   v5:u64 = const() {"value":64}
-  v6:bool = compare.ne(v4,v5)
+  wrong_old:bool = compare.ne(v4,v5)
+  planned_extent:u64 = const() {"value":72}
+  wrong_new:bool = compare.ne(v4,planned_extent)
+  v6:bool = bool.and(wrong_old,wrong_new)
   branch v6 b2(v0,v1,v2,v6) b1(v0,v1,v2)
 block b1(v7:readbuf,v8:mutbuf,v9:mutbuf)
   v15:usize = buffer.len(v8)
@@ -6880,13 +6886,30 @@ block b6(v34:readbuf,v35:mutbuf,v36:mutbuf)
   v39:u64 = const() {"value":0}
   v40:u64 = call(v34,v39) {"function":"f68"}
   v41:u64 = const() {"value":3616447908792060232}
-  v42:bool = compare.ne(v40,v41)
-  branch v42 b7(v34,v35,v36) b8(v34,v35,v36)
+  old_magic:bool = compare.eq(v40,v41)
+  second_magic:u64 = const() {"value":3688505502829988168}
+  planned_magic:bool = compare.eq(v40,second_magic)
+  payload_size:usize = buffer.len(v34)
+  old_extent:usize = const() {"value":64}
+  old_size:bool = compare.eq(payload_size,old_extent)
+  new_size:bool = bool.not(old_size)
+  old_frame:bool = bool.and(old_magic,old_size)
+  planned_frame:bool = bool.and(planned_magic,new_size)
+  branch planned_frame options(v34,v35,v36) optional(v34,v35,v36,old_frame)
+block optional(plain:readbuf,out_plain:mutbuf,work_plain:mutbuf,eligible:bool)
+  no_options:u64 = const() {"value":0}
+  branch eligible b8(plain,out_plain,work_plain,no_options) b7(plain,out_plain,work_plain)
+block options(planned:readbuf,out_planned:mutbuf,work_planned:mutbuf)
+  choice_at:u64 = const() {"value":64}
+  policy:u64 = call(planned,choice_at) {"function":"f68"}
+  known_flags:u64 = const() {"value":7}
+  allowed:bool = compare.le(policy,known_flags)
+  branch allowed b8(planned,out_planned,work_planned,policy) b7(planned,out_planned,work_planned)
 block b7(v43:readbuf,v44:mutbuf,v45:mutbuf)
   v49:u64 = const() {"value":4294967293}
   v50:u32 = int.cast(v49) {"mode":"wrap"}
   ret(v50)
-block b8(v46:readbuf,v47:mutbuf,v48:mutbuf)
+block b8(v46:readbuf,v47:mutbuf,v48:mutbuf,encoding:u64)
   v51:u64 = const() {"value":8}
   v52:u64 = call(v46,v51) {"function":"f68"}
   v53:u64 = const() {"value":16}
@@ -6901,10 +6924,20 @@ block b8(v46:readbuf,v47:mutbuf,v48:mutbuf)
   v62:u64 = call(v46,v61) {"function":"f68"}
   v63:u64 = const() {"value":56}
   v64:u64 = call(v46,v63) {"function":"f68"}
-  v65:u64 = call(v52,v54,v56,v58,v60,v62,v64) {"function":"f58"}
+  first_register:u64 = call(v54,encoding) {"function":"f100"}
+  second_register:u64 = call(v56,encoding) {"function":"f100"}
+  alu_opcode:u64 = const() {"value":16}
+  is_alu:bool = compare.eq(v52,alu_opcode)
+  immediate:u64 = call(v52,v58,encoding,v62) {"function":"f101"}
+  alu_bit:u64 = const() {"value":4}
+  option_bit:u64 = bit.and(encoding,alu_bit)
+  option_present:bool = compare.eq(option_bit,alu_bit)
+  select_alu:bool = bool.and(is_alu,option_present)
+  compact_alu:u64 = select(select_alu,immediate,v64)
+  v65:u64 = call(v52,first_register,second_register,v58,v60,immediate,compact_alu) {"function":"f58"}
   v66:u64 = const() {"value":0}
   v67:bool = compare.eq(v65,v66)
-  branch v67 b9(v46,v47,v48) b10(v46,v47,v48,v52,v54,v56,v58,v60,v62,v64)
+  branch v67 b9(v46,v47,v48) b10(v46,v47,v48,v52,first_register,second_register,v58,v60,immediate,compact_alu)
 block b9(v68:readbuf,v69:mutbuf,v70:mutbuf)
   v88:u64 = const() {"value":4294967293}
   v89:u32 = int.cast(v88) {"mode":"wrap"}
@@ -6937,6 +6970,44 @@ block b16(v150:readbuf,v151:mutbuf,v152:mutbuf)
   v164:u64 = call(v151,v160,v163) {"function":"f67"}
   v165:u32 = int.cast(v160) {"mode":"wrap"}
   ret(v165)
+end
+fn f100(register:u64,policy:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(register:u64,policy:u64)
+  pair_mask:u64 = const() {"value":18446744073709551614}
+  first:u64 = const() {"value":10}
+  pair:u64 = bit.and(register,pair_mask)
+  scratch:bool = compare.eq(pair,first)
+  low_bit:u64 = const() {"value":1}
+  rename_bit:u64 = bit.and(policy,low_bit)
+  renamed:u64 = bit.xor(register,rename_bit)
+  chosen:u64 = select(scratch,renamed,register)
+  ret(chosen)
+end
+fn f101(opcode:u64,value:u64,policy:u64,original:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(opcode:u64,value:u64,policy:u64,original:u64)
+  move_code:u64 = const() {"value":3}
+  alu_code:u64 = const() {"value":16}
+  move_bit:u64 = const() {"value":2}
+  alu_bit:u64 = const() {"value":4}
+  move_flag:u64 = bit.and(policy,move_bit)
+  alu_flag:u64 = bit.and(policy,alu_bit)
+  short_move:bool = compare.eq(move_flag,move_bit)
+  short_alu:bool = compare.eq(alu_flag,alu_bit)
+  move:bool = compare.eq(opcode,move_code)
+  alu:bool = compare.eq(opcode,alu_code)
+  move_requested:bool = bool.and(short_move,move)
+  alu_requested:bool = bool.and(short_alu,alu)
+  one:u64 = const() {"value":1}
+  zero:u64 = const() {"value":0}
+  move_mode:u64 = select(move_requested,one,original)
+  high:u64 = const() {"value":127}
+  low:u64 = const() {"value":18446744073709551488}
+  positive:bool = compare.le(value,high)
+  negative:bool = compare.ge(value,low)
+  exact:bool = bool.or(positive,negative)
+  alu_mode:u64 = select(exact,one,zero)
+  result:u64 = select(alu_requested,alu_mode,move_mode)
+  ret(result)
 end
 fn f58(v0:u64,v1:u64,v2:u64,v3:u64,v4:u64,v5:u64,v6:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:u64,v1:u64,v2:u64,v3:u64,v4:u64,v5:u64,v6:u64)

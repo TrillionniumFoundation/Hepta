@@ -17,7 +17,8 @@ WORKSPACE_BYTES = 2048
 INVALID = 4294967293
 
 POLICY = r'''
-# Input: tag, extent, parameter count, then one admitted type id per parameter.
+# Input: tag, extent, parameter count, one type id per parameter, and
+# optionally one HIA-admitted v2 encoding choice word.
 # Output: tag, text bytes, unresolved internal call offset, frame bytes, text.
 # Every local jump is resolved here. Only the Core callee remains a relocation.
 # Private workspace: position and fixup count, at most 52 failure fixups
@@ -28,8 +29,17 @@ def borrow_wrapper(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     extent = word(s, 8)
     count = word(s, 16)
-    if count > (FRAME_LIMIT >> 3) or size != 24 + count * 8 or extent == 0 or extent > EXTENT_LIMIT:
+    canonical_size = 24 + count * 8
+    if count > (FRAME_LIMIT >> 3) or extent == 0 or extent > EXTENT_LIMIT:
         return INVALID
+    encoding = 0
+    if size != canonical_size:
+        if size != canonical_size + 8:
+            return INVALID
+        encoding = word(s, canonical_size)
+        if encoding > 7:
+            return INVALID
+    put(w, 1024, encoding)
     words = 0
     ranges = 0
     index = 0
@@ -80,8 +90,10 @@ def prologue(o:mutbuf, w:mutbuf, frame:u64) -> u64:
     remaining = frame
     while remaining != 0:
         amount = choose(remaining < 4096, remaining, 4096)
-        encode_arithmetic(o, w, 16, 4, 0, amount, 3, 0, 0)
-        memory(o, w, 4, 11, 4, 0)
+        encoding = get(w, 1024)
+        compact = choose((encoding & 4) != 0 and amount <= 127, 1, 0)
+        encode_arithmetic(o, w, 16, 4, 0, amount, 3, compact, compact)
+        memory(o, w, 4, 11 ^ (encoding & 1), 4, 0)
         remaining = remaining - amount
     return 0
 
@@ -123,7 +135,8 @@ def load_arg(o:mutbuf, w:mutbuf, frame:u64, slot:u64, register:u64) -> u64:
 
 def normalize(o:mutbuf, w:mutbuf, kind:u64) -> u64:
     if kind == BOOL_KIND:
-        return encode_arithmetic(o, w, 16, 0, 0, 1, 2, 0, 0)
+        compact = (get(w, 1024) >> 2) & 1
+        return encode_arithmetic(o, w, 16, 0, 0, 1, 2, compact, compact)
     code = shift_code(kind)
     if code != 0:
         bits = code & 63
@@ -136,7 +149,8 @@ def guard_extents(o:mutbuf, w:mutbuf, frame:u64, ranges:u64, extent:u64) -> u64:
     while index < ranges:
         slot = get(w, 896 + index * 16)
         load_arg(o, w, frame, slot + 1, 1)
-        encode_data(o, w, 3, 2, 0, extent, 0, 0, 0)
+        compact = (get(w, 1024) >> 1) & 1
+        encode_data(o, w, 3, 2, 0, extent, 0, compact, 0)
         rr(o, w, 57, 0, 2, 1)
         failure_branch(o, w, 7, 1)
         load_arg(o, w, frame, slot, 0)

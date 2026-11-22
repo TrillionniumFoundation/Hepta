@@ -282,7 +282,7 @@ numeric_event:
  cmp QWORD PTR [rbp+24],0
  je io_failure
  lea rdi,[rbx+8]
- mov esi,64
+ mov esi,72
  lea rdx,[rbp+512]
  mov ecx,80
  lea r8,[rbp+600]
@@ -795,12 +795,33 @@ borrowed_event:
  dec QWORD PTR [rbp+borrow_pending]
  mov rdi,[r15+8]
  mov rsi,[r15+16]
+ mov rax,[rbx+40]
+ test rax,rax
+ jz invoke_borrowed_wrapper
+ cmp rsi,BORROW_PACKET_N-8
+ ja io_failure
+ mov rcx,rsi
+ mov rsi,rdi
+ mov rdi,[rbp+borrow_packet]
+ rep movsb
+ mov [rdi],rax
+ mov rsi,rdi
+ mov rdi,[rbp+borrow_packet]
+ sub rsi,rdi
+ add rsi,8
+invoke_borrowed_wrapper:
  mov rdx,[rbp+borrow_text]
  mov ecx,BORROW_TEXT_N
  mov r8,[rbp+borrow_scratch]
  mov r9d,4096
  .byte 0xe8
 borrowed_wrapper_hole: .long 0
+ mov rdi,[rbp+borrow_packet]
+ mov rcx,8
+ mov rdx,rax
+ xor eax,eax
+ rep stosq
+ mov rax,rdx
  cmp rax,32
  jb io_failure
  cmp rax,BORROW_TEXT_N
