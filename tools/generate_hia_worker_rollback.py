@@ -26,7 +26,7 @@ TAGS = {'REQUEST': b'HIARLQ01', 'DECISION': b'HIARLD01',
         'STORE_OBSERVE': b'HIARLO01', 'STORE_ROW': b'HIARLB01', 'COUNT': b'HIASTLC1',
         'QUERY': b'HIAQPA01', 'UPDATE': b'HIAUPB01', 'GENERATION': b'HIARLF01',
         'PUBLIC_ERROR': b'HIARLE01', 'FORMAT_COUNT': b'HIARLN01', 'DOCUMENT_OBSERVE': b'HIARLP01',
-        'DOCUMENT_RESULT': b'HIARLP02', 'OUTCOME_REQUEST': b'HIARLT01', 'OUTCOME': b'HIAIND01'}
+        'DOCUMENT_RESULT': b'HIARLP02', 'DOCUMENT_RECEIPT': b'HIADOC01', 'OUTCOME_REQUEST': b'HIARLT01', 'OUTCOME': b'HIAIND01'}
 SNAPSHOT = ('{"active_artifact":{},"context":{},"current":{},"in_flight_leases":{},'
             '"snapshot_is_adoption_authority":false,"target_slot":{}}')
 STALE = 'slot changed; read the retained current snapshot and choose a fresh conditional request'
@@ -363,10 +363,12 @@ def rollback_error(s:readbuf, o:mutbuf) -> u64:
         return INVALID
     code = input_word(s, 8)
     if code == 4:
-        if length(s) != 192 or artifact_reference(s, 16) == False:
+        if length(s) != 216 or input_word(s, 16) != DOCUMENT_RECEIPT:
+            return INVALID
+        if input_word(s, 24) != 176 or input_word(s, 32) != 0 or artifact_reference(s, 40) == False:
             return INVALID
         stale_open(o, 0)
-        at = copy_input(s, o, 16, STALE_OPEN_SIZE, 176)
+        at = copy_input(s, o, 40, STALE_OPEN_SIZE, 176)
         return stale_close(o, at)
     if length(s) != 16:
         return INVALID
