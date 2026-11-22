@@ -54,7 +54,7 @@ block b10(v61:readbuf,v62:mutbuf,v63:mutbuf)
   v69:u64 = call(v61,v68) {"function":"f14"}
   v70:u64 = const() {"value":16}
   v71:bool = compare.ge(v67,v70)
-  v72:u64 = const() {"value":18}
+  v72:u64 = const() {"value":19}
   v73:bool = compare.le(v67,v72)
   v74:bool = bool.and(v71,v73)
   branch v74 b11(v61,v62,v63,v67,v69) b12(v61,v62,v63,v67,v69)
@@ -811,7 +811,7 @@ block b33(v320:readbuf,v321:u64)
 block b34(v323:readbuf,v324:u64,v325:u64)
   v345:u64 = const() {"value":18}
   v346:bool = compare.eq(v325,v345)
-  branch v346 b35(v323,v324) b36(v323)
+  branch v346 b35(v323,v324) b36(v323,v324,v325)
 block b35(v347:readbuf,v348:u64)
   v353:u64 = const() {"value":0}
   v354:u64 = int.add.wrap(v348,v353)
@@ -833,9 +833,40 @@ block b35(v347:readbuf,v348:u64)
   v370:u64 = bit.or(v363,v369)
   v371:bool = compare.eq(v370,v353)
   ret(v371)
-block b36(v350:readbuf)
-  v372:bool = const() {"value":false}
-  ret(v372)
+block b36(v350:readbuf,v351:u64,v352:u64)
+  v372:u64 = const() {"value":19}
+  v373:bool = compare.eq(v352,v372)
+  branch v373 b37(v350,v351) b38(v350)
+block b37(v374:readbuf,v375:u64)
+  v380:u64 = const() {"value":0}
+  v381:u64 = int.add.wrap(v375,v380)
+  v382:u64 = const() {"value":8}
+  v383:u64 = call(v374,v381,v382) {"function":"f7"}
+  v384:u64 = const() {"value":3271142103356498285}
+  v385:u64 = bit.xor(v383,v384)
+  v386:u64 = int.add.wrap(v375,v382)
+  v387:u64 = call(v374,v386,v382) {"function":"f7"}
+  v388:u64 = const() {"value":7598805555174203766}
+  v389:u64 = bit.xor(v387,v388)
+  v390:u64 = bit.or(v385,v389)
+  v391:u64 = const() {"value":16}
+  v392:u64 = int.add.wrap(v375,v391)
+  v393:u64 = call(v374,v392,v382) {"function":"f7"}
+  v394:u64 = const() {"value":7598824251062054511}
+  v395:u64 = bit.xor(v393,v394)
+  v396:u64 = bit.or(v390,v395)
+  v397:u64 = const() {"value":24}
+  v398:u64 = int.add.wrap(v375,v397)
+  v399:u64 = const() {"value":6}
+  v400:u64 = call(v374,v398,v399) {"function":"f7"}
+  v401:u64 = const() {"value":111550524516710}
+  v402:u64 = bit.xor(v400,v401)
+  v403:u64 = bit.or(v396,v402)
+  v404:bool = compare.eq(v403,v380)
+  ret(v404)
+block b38(v377:readbuf)
+  v405:bool = const() {"value":false}
+  ret(v405)
 end
 fn f7(v0:readbuf,v1:u64,v2:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64,v2:u64)
@@ -982,10 +1013,17 @@ block b33()
 block b34(v84:u64)
   v86:u64 = const() {"value":18}
   v87:bool = compare.eq(v84,v86)
-  v88:u64 = const() {"value":20}
-  v89:u64 = const() {"value":0}
-  v90:u64 = select(v87,v88,v89)
+  branch v87 b35() b36(v84)
+block b35()
+  v90:u64 = const() {"value":20}
   ret(v90)
+block b36(v89:u64)
+  v91:u64 = const() {"value":19}
+  v92:bool = compare.eq(v89,v91)
+  v93:u64 = const() {"value":30}
+  v94:u64 = const() {"value":0}
+  v95:u64 = select(v92,v93,v94)
+  ret(v95)
 end
 fn f9(v0:readbuf,v1:u64,v2:u64,v3:mutbuf,v4:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64,v2:u64,v3:mutbuf,v4:mutbuf)

@@ -82,6 +82,7 @@ VARIANTS = {
     'worker-verify-request': ('worker_verify_request', 'hepta.hia.worker-verify-request-native.v1'),
     'worker-verify-evidence': ('worker_verify_evidence', 'hepta.hia.worker-verify-evidence-native.v1'),
     'worker-verify-finding': ('worker_verify_finding', 'hepta.hia.worker-verify-finding-native.v1'),
+    'worker-verify-machine-finding': ('worker_verify_machine_finding', 'hepta.hia.worker-verify-machine-finding-native.v1'),
     'worker-verify-documents': ('worker_verify_documents', 'hepta.hia.worker-verify-documents-native.v1'),
     'worker-verify-receipt': ('worker_verify_receipt', 'hepta.hia.worker-verify-receipt-native.v1'),
     'worker-verify-replay': ('worker_verify_replay', 'hepta.hia.worker-verify-replay-native.v1'),

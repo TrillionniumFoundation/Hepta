@@ -16,8 +16,13 @@ from tools.generate_hia_worker_emit_proof import proof_recipe
 from tools.generate_hia_worker_emit_scalar import SCALAR
 from tools.generate_hia_worker_finite_domain import INELIGIBLE
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
+from tools.generate_hia_worker_machine_replay import FRESH_OBSERVATION, FRESH_REQUEST, TYPED_REQUEST
 from tools.generate_hia_worker_register_layout import WITNESS_TAG
 from tools.generate_hia_worker_verify_evidence import PLAN_EVIDENCE_LIMIT
+from tools.generate_hia_supplied_safe_core_proof import (
+    DEADLINE, FAILURE_MAGIC, FILE_LIMIT, INCOMPLETE, OUTSIDE_PROFILE, OUTPUT_LIMIT,
+    RECEIPT_HEAD, RECEIPT_MAGIC, TYPED_REQUEST_MAGIC,
+)
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_finite_flow.hepta')
 
@@ -37,6 +42,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return verify_encoding_start(o, w)
     if state == VERIFY_ENCODE_MEASURE_DONE:
         return verify_encoding_report(o, w)
+    if state == VERIFY_MACHINE_START:
+        return verify_machine_start(o, w)
     if (length(s) < 64 or input_word(s, 0) != OBSERVATION
             or input_word(s, 8) != get(w, 8) or input_word(s, 16) != get(w, 16)):
         return BAD
@@ -49,6 +56,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if operation == READ and (input_word(s, 32) != get(w, 80) or start != get(w, 88) or capture != get(w, 96)):
         return BAD
     status = input_word(s, 24)
+    if state >= VERIFY_MACHINE_CLOCK and state <= VERIFY_MACHINE_OBSERVED:
+        return verify_machine_state(s, o, w, state)
     if state >= EMIT_SCALAR_NONCE and state <= EMIT_SCALAR_SNAPSHOT:
         if status != 0 and (state != EMIT_SCALAR_REPORT_READY or status != EMIT_EXPIRED):
             return BAD
@@ -395,6 +404,103 @@ def verify_encoding_evidence(o:mutbuf, w:mutbuf, equal:bool) -> u64:
 '''
 
 
+MACHINE = r'''
+def verify_machine_start(o:mutbuf, w:mutbuf) -> u64:
+    mode = get(w, VERIFY_MACHINE_MODE)
+    if mode == 16 or mode == 17 or mode == 18:
+        return verify_machine_fact(o, w)
+    if mode != 0 or get(w, EMIT_OUTPUT_KIND) != 2 or get(w, INSPECTION_EXPORTS + 16) != 2:
+        return BAD
+    return clock_sample(o, w, VERIFY_MACHINE_CLOCK, 0)
+
+def verify_machine_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    size = input_word(s, 40)
+    if state == VERIFY_MACHINE_CLOCK:
+        if input_word(s, 24) != 0 or size != 8 or length(s) != 72:
+            return BAD
+        now = input_word(s, 64)
+        deadline = get(w, EMIT_ABSOLUTE_DEADLINE)
+        if deadline <= now or deadline - now < 100000000:
+            put(w, VERIFY_MACHINE_MODE, 17)
+            return verify_machine_fact(o, w)
+        budget = quotient(deadline - now, 1000000)
+        core = get(w, INSPECTION_CORE + 16)
+        obj = get(w, EMIT_CUSTODY_OBJECT + 16)
+        final = get(w, EMIT_CUSTODY_NATIVE + 16)
+        if core > MACHINE_FILE_LIMIT or obj > MACHINE_FILE_LIMIT or final > MACHINE_FILE_LIMIT:
+            put(w, VERIFY_MACHINE_MODE, 16)
+            return verify_machine_fact(o, w)
+        put(o, HEADER, VERIFY_MACHINE_REQUEST)
+        put(o, HEADER + 8, choose(budget > 60000, 60000, budget))
+        put(o, HEADER + 16, core)
+        put(o, HEADER + 24, obj)
+        put(o, HEADER + 32, final)
+        return action(o, w, VERIFY_MACHINE_HEADER, RUN, EMIT_MACHINE_REPLAY_ROLE, 0, 0, 40)
+    if state == VERIFY_MACHINE_PROVED and input_word(s, 24) == EMIT_EXPIRED and size == 0 and length(s) == 64:
+        put(w, VERIFY_MACHINE_MODE, 17)
+        return verify_machine_fact(o, w)
+    if input_word(s, 24) != 0 or valid_fd(input_word(s, 32)) == False:
+        return BAD
+    if state == VERIFY_MACHINE_HEADER:
+        if plan_ok(s) == False or size != 56 or input_word(s, 72) != VERIFY_MACHINE_PROVER_REQUEST:
+            return BAD
+        vector_part(o, HEADER, input_word(s, 32), 8, 48)
+        vector_span(w, o, INSPECTION_CORE, HEADER + 24)
+        vector_span(w, o, EMIT_CUSTODY_OBJECT, HEADER + 48)
+        vector_span(w, o, EMIT_CUSTODY_NATIVE, HEADER + 72)
+        count = wide_inspection(o, w, VERIFY_MACHINE_PROVED, EMIT_MACHINE_PROVER_ROLE, 0, 4, 0)
+        put(o, 144, get(w, EMIT_ABSOLUTE_DEADLINE))
+        return count
+    if state == VERIFY_MACHINE_PROVED:
+        return verify_machine_bind(s, o, w, size)
+    if state == VERIFY_MACHINE_OBSERVED:
+        return verify_machine_observed(s, o, w, size)
+    return BAD
+
+def verify_machine_bind(s:readbuf, o:mutbuf, w:mutbuf, size:u64) -> u64:
+    tag = input_word(s, 64)
+    if size < MACHINE_RECEIPT_HEAD or size > MACHINE_OUTPUT_LIMIT:
+        return BAD
+    if tag != VERIFY_MACHINE_PROVER_REPLY and tag != VERIFY_MACHINE_PROVER_FAILURE:
+        return BAD
+    if (get(w, VERIFY_FINITE_CANDIDATE_SHA + 16) != 64 or get(w, EMIT_CUSTODY_OBJECT_SHA + 16) != 66
+            or get(w, EMIT_CUSTODY_NATIVE_SHA + 16) != 66):
+        return BAD
+    sample_span(s, w, VERIFY_MACHINE_RAW)
+    put(o, HEADER, VERIFY_MACHINE_FRESH)
+    vector_span(w, o, VERIFY_FINITE_CANDIDATE_SHA, HEADER + 8)
+    vector_part(o, HEADER + 32, get(w, EMIT_CUSTODY_OBJECT_SHA), get(w, EMIT_CUSTODY_OBJECT_SHA + 8) + 1, 64)
+    vector_part(o, HEADER + 56, get(w, EMIT_CUSTODY_NATIVE_SHA), get(w, EMIT_CUSTODY_NATIVE_SHA + 8) + 1, 64)
+    vector_span(w, o, VERIFY_MACHINE_RAW, HEADER + 80)
+    return wide_inspection(o, w, VERIFY_MACHINE_OBSERVED, EMIT_MACHINE_REPLAY_ROLE, 0, 4, 8)
+
+def verify_machine_observed(s:readbuf, o:mutbuf, w:mutbuf, size:u64) -> u64:
+    if plan_ok(s) == False or size < 72 or size > 192 or input_word(s, 72) != VERIFY_MACHINE_OBSERVATION:
+        return BAD
+    verdict = input_word(s, 80)
+    count = input_word(s, 96)
+    if count > 5 or size != 72 + count * 24:
+        return BAD
+    if verdict == 1 or verdict == 2:
+        if count < 4:
+            return BAD
+        put(w, VERIFY_MACHINE_MODE, verdict + 12)
+        put(w, VERIFY_MACHINE_PROFILE, input_word(s, 88))
+        put(w, VERIFY_MACHINE_ROWS, count)
+        put(w, 0, VERIFY_MACHINE_PUBLISH)
+        return VERIFY_FINITE_READY
+    if count != 0 or verdict < MACHINE_DEADLINE or verdict > MACHINE_INCOMPLETE:
+        return BAD
+    mode = choose(verdict == MACHINE_OUTSIDE_PROFILE, 15, choose(verdict == MACHINE_DEADLINE, 17, 18))
+    put(w, VERIFY_MACHINE_MODE, mode)
+    return verify_machine_fact(o, w)
+
+def verify_machine_fact(o:mutbuf, w:mutbuf) -> u64:
+    put(w, 0, VERIFY_MACHINE_FACT)
+    return VERIFY_FINITE_READY
+'''
+
+
 FRESH = r'''
 def verify_finite_start(o:mutbuf, w:mutbuf) -> u64:
     if (get(w, EMIT_PROOF_BASE_CORE + 16) == 0 or get(w, INSPECTION_CORE + 16) == 0
@@ -581,6 +687,20 @@ def encoding_constants(constants):
                      VERIFY_ENCODE_AT=11536, VERIFY_ENCODE_PERMIT_SIZE=11544)
 
 
+def machine_constants(constants):
+    states = ('START', 'CLOCK', 'HEADER', 'PROVED', 'OBSERVED', 'PUBLISH', 'EMPTY', 'FACT', 'EVIDENCE')
+    constants.update({f'VERIFY_MACHINE_{name}': 1400 + index for index, name in enumerate(states)})
+    constants.update(VERIFY_MACHINE_RAW=12080, VERIFY_MACHINE_MODE=12104, VERIFY_MACHINE_PROFILE=12112,
+                     VERIFY_MACHINE_ROWS=12120, VERIFY_MACHINE_IMAGE=12128, VERIFY_MACHINE_PIN=12152,
+                     VERIFY_REPLAY_MACHINE_MODE=12176,
+                     VERIFY_MACHINE_REQUEST=TYPED_REQUEST, VERIFY_MACHINE_PROVER_REQUEST=TYPED_REQUEST_MAGIC,
+                     VERIFY_MACHINE_FRESH=FRESH_REQUEST, VERIFY_MACHINE_OBSERVATION=FRESH_OBSERVATION,
+                     VERIFY_MACHINE_PROVER_REPLY=RECEIPT_MAGIC, VERIFY_MACHINE_PROVER_FAILURE=FAILURE_MAGIC,
+                     MACHINE_RECEIPT_HEAD=RECEIPT_HEAD, MACHINE_OUTPUT_LIMIT=OUTPUT_LIMIT,
+                     MACHINE_FILE_LIMIT=FILE_LIMIT, MACHINE_DEADLINE=DEADLINE, MACHINE_INCOMPLETE=INCOMPLETE,
+                     MACHINE_OUTSIDE_PROFILE=OUTSIDE_PROFILE)
+
+
 def finite_recipe():
     _, parts = proof_recipe(function(ADMISSION, 'emit_admission_error'),
                             function(PROFILES, 'emit_open_profile'))
@@ -644,7 +764,7 @@ def finite_recipe():
                 'EMIT_REPLAY_PLAN_HASH', 'EMIT_REPLAY_BASE_FRAMES', 'EMIT_REPLAY_PLAN_FRAMES')
     encoding_plan = ('INSPECTION_CORE', 'VERIFY_CANDIDATE_SHA', 'EMIT_CUSTODY_CANONICAL_PLAN')
     return reachable_policy('\n'.join((
-        ENTRY, FRESH, NATIVE_CUSTODY, ENCODING, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
+        ENTRY, FRESH, NATIVE_CUSTODY, ENCODING, MACHINE, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
         SCALAR, function(PRODUCTION, 'emit_product_observed'),
         function(PRODUCTION, 'emit_borrowed_object'),
         splice_list('verify_encoding_schedule', 'VERIFY_ENCODE_SCHEDULE', encoding_plan, role='EMIT_LAYOUT_ROLE'),
@@ -668,6 +788,7 @@ def program():
     plan_constants(constants)
     custody_constants(constants)
     encoding_constants(constants)
+    machine_constants(constants)
     entry, controls = finite_recipe()
     return flow_source(entry, controls, constants)
 

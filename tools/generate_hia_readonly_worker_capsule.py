@@ -131,6 +131,7 @@ VERIFY_ROLES = (
     'hia-agent-worker-verify-request', 'hia-agent-worker-verify-evidence',
     'hia-agent-worker-verify-finding', 'hia-agent-worker-verify-documents',
     'hia-agent-worker-verify-receipt', 'hia-agent-worker-verify-replay',
+    'hia-agent-worker-verify-machine-finding',
 )
 NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,

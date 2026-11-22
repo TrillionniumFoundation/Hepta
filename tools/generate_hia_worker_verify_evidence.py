@@ -17,7 +17,9 @@ from tools.generate_hia_release_install import POLICY_SOURCE as RELEASE
 from tools.generate_hia_worker_artifact_authority import source_program as authority
 from tools.generate_hia_worker_finite_reference import EVIDENCE, NONE
 from tools.generate_hia_worker_inspection_effect import function, literal
-from tools.hia_retained_proof_method import NATIVE_CORE_CHECKER
+from tools.hia_retained_proof_method import (
+    MACHINE_EXPIRED, MACHINE_METHOD, MACHINE_UNKNOWN, MACHINE_UNSUPPORTED, NATIVE_CORE_CHECKER,
+)
 
 FIELDS = ('after', 'before', 'case', 'function', 'arguments', 'core_sha256', 'schema', 'value_registers')
 SOURCE = Path('examples/hia_bootstrap/worker_verify_evidence.hepta')
@@ -57,6 +59,8 @@ def verify_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return finish(o, expired(o, 32), 3, mode)
     if mode == 11 or mode == 12:
         return encoding_evidence(s, o, mode)
+    if mode >= 13 and mode <= 18:
+        return machine_evidence(s, o, mode)
     if mode < 3 or mode > 5:
         return BAD
     return unknown(s, o, mode)
@@ -288,6 +292,65 @@ def equality(o:mutbuf, at:u64, value:bool) -> u64:
     put(o, at, FALSE_WORD)
     return at + 5
 
+def machine_evidence(s:readbuf, o:mutbuf, mode:u64) -> u64:
+    proof = mode == 13 or mode == 14
+    if length(s) != choose(proof, 406, 230):
+        return BAD
+    profile = input_word(s, 16)
+    rows = input_word(s, 24)
+    if proof:
+        if profile < 1 or profile > 6 or rows < 4 or rows > 5 or (mode == 13 and rows != 5):
+            return BAD
+        if byte(s, 230) != 123 or byte(s, 405) != 125:
+            return BAD
+    elif profile != 0 or rows != 0:
+        return BAD
+    index = 32
+    while index < 230:
+        if byte(s, index) != 34 or byte(s, index + 65) != 34 or qualified_hash(s, index + 1) == False:
+            return BAD
+        index = index + 66
+    at = machine_begin(o, 32)
+    if proof:
+        at = copy_input(s, o, 230, at, 176)
+    else:
+        at = machine_null(o, at)
+    at = machine_core(o, at)
+    at = copy_input(s, o, 32, at, 66)
+    at = machine_final(o, at)
+    at = copy_input(s, o, 164, at, 66)
+    at = machine_method(o, at, mode)
+    at = machine_object(o, at)
+    at = copy_input(s, o, 98, at, 66)
+    at = machine_rows(o, at)
+    at = decimal(o, at, rows)
+    at = machine_profile(o, at)
+    at = decimal(o, at, profile)
+    at = machine_reason(o, at, mode)
+    store(o, at, 125)
+    status = choose(proof, mode - 12, choose(mode < 17, 4, 3))
+    return finish(o, at + 1, status, mode)
+
+def machine_method(o:mutbuf, at:u64, mode:u64) -> u64:
+    if mode <= 14:
+        return method_machine_proof(o, at)
+    if mode <= 16:
+        return method_machine_unsupported(o, at)
+    if mode == 17:
+        return method_machine_expired(o, at)
+    return method_machine_incomplete(o, at)
+
+def machine_reason(o:mutbuf, at:u64, mode:u64) -> u64:
+    if mode == 15:
+        return machine_layout_reason(o, at)
+    if mode == 16:
+        return machine_subject_reason(o, at)
+    if mode == 17:
+        return machine_budget_reason(o, at)
+    if mode == 18:
+        return machine_incomplete_reason(o, at)
+    return at
+
 def finish(o:mutbuf, end:u64, status:u64, domain:u64) -> u64:
     put(o, 0, RESPONSE)
     put(o, 8, status)
@@ -363,6 +426,18 @@ def source_program():
         'encoding_bytes': ',"bytes_equal":',
         'encoding_build': ',"method":"complete_native_rederivation","native_build":',
         'encoding_digest': ',"no_llvm_or_external_assembler":true,"object_identity_equal":true,"rederived_sha256":',
+        'machine_begin': '{"certificate":', 'machine_null': 'null',
+        'machine_core': ',"core_sha256":', 'machine_final': ',"final_sha256":',
+        'machine_object': ',"object_sha256":', 'machine_rows': ',"obligations_observed":',
+        'machine_profile': ',"profile":',
+        'method_machine_proof': ',"method":"' + MACHINE_METHOD + '"',
+        'method_machine_unsupported': ',"method":"' + MACHINE_UNSUPPORTED + '"',
+        'method_machine_expired': ',"method":"' + MACHINE_EXPIRED + '"',
+        'method_machine_incomplete': ',"method":"' + MACHINE_UNKNOWN + '"',
+        'machine_layout_reason': ',"reason":"The supplied ELF contains an allocated loader section outside the independent checker profile."',
+        'machine_subject_reason': ',"reason":"The supplied subject is not a bounded final shared ELF with scalar entries and no borrowed exports."',
+        'machine_budget_reason': ',"reason":"The admitted verification budget is exhausted or below the minimum checker interval."',
+        'machine_incomplete_reason': ',"reason":"The independent checker did not return a complete proof or a rechecked counterexample."',
     }
     source = '\n'.join((POLICY, function(EVIDENCE, 'complete_row'),
                         *(function(authority(), name) for name in ('input_word', 'copy_input')),

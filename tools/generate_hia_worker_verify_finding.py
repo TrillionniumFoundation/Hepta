@@ -5,7 +5,7 @@ import json
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_proof_contract import PROOF_SCHEMA, _PROPERTIES
+from hepta.hia_proof_contract import PROOF_SCHEMA, SAFE_CORE_DOMAIN, SAFE_CORE_METHOD, _PROPERTIES
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
@@ -13,10 +13,12 @@ from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table, literal_match
 from tools.generate_hia_worker_inspection_effect import function, literal
 from tools.hia_retained_proof_method import (
+    MACHINE_EXPIRED, MACHINE_METHOD, MACHINE_UNKNOWN, MACHINE_UNSUPPORTED,
     NATIVE_CORE_CHECKER, NATIVE_VERIFY_EVIDENCE as EVIDENCE_ROLE, NATIVE_VERIFY_PROFILE as CHECKER_PROFILE,
 )
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_finding.hepta')
+MACHINE_SOURCE = Path('examples/hia_bootstrap/worker_verify_machine_finding.hepta')
 ENCODING_DOMAIN = ('Exact actual artifact equals reverified Core/plan reemission and linkage by the same installed '
                    'implementation, with checked closed symbol/ABI inventory; no independent semantic refinement claim')
 OUTCOMES = (
@@ -42,6 +44,12 @@ OUTCOMES = (
      'Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness'),
     ('encoding_check', 'proved', 'complete_native_rederivation', ENCODING_DOMAIN),
     ('encoding_check', 'refuted', 'complete_native_rederivation', ENCODING_DOMAIN),
+    ('lowering_refinement', 'proved', MACHINE_METHOD, SAFE_CORE_DOMAIN),
+    ('lowering_refinement', 'refuted', MACHINE_METHOD, SAFE_CORE_DOMAIN),
+    ('lowering_refinement', 'unsupported', MACHINE_UNSUPPORTED, SAFE_CORE_DOMAIN),
+    ('lowering_refinement', 'unsupported', MACHINE_UNSUPPORTED, SAFE_CORE_DOMAIN),
+    ('lowering_refinement', 'unknown', MACHINE_EXPIRED, SAFE_CORE_DOMAIN),
+    ('lowering_refinement', 'unknown', MACHINE_UNKNOWN, SAFE_CORE_DOMAIN),
 )
 STATUS_IDS = {'proved': 1, 'refuted': 2, 'unknown': 3, 'unsupported': 4}
 FIELDS = ('candidate_core_sha256', 'base_core_sha256', 'kind', 'id', 'sha256',
@@ -75,6 +83,14 @@ ENCODING_OBLIGATION = (
     'independent_encoding_semantics',
     'Reemission equality is not an independent decoder/ISA semantics check or a verified backend.',
 )
+MACHINE_ASSUMPTION = (
+    'closed_supplied_machine_model',
+    'The scoped Core, x86 and ELF models and native obligation checker faithfully model the exact retained bytes, caller ABI and reviewed immediate-binding abort layout.',
+)
+MACHINE_OBLIGATION = (
+    'supplied_machine_scope',
+    'The machine check covers only the exact retained Core/object/final triple and the stated model, not arbitrary linkers, other exports or execution authorization.',
+)
 REFUTED_OBLIGATION = (
     'requested_property',
     'The requested property is not established; this result is refuted and cannot satisfy a required proof.',
@@ -104,7 +120,7 @@ def verify_finding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     mode_node = 64 + get(w, 88) * 72
     status_node = next(w, mode_node)
     status = budget_integer(s, w, status_node, 1, 4)
-    mode = budget_integer(s, w, mode_node, 1, 12)
+    mode = budget_integer(s, w, mode_node, FIRST_MODE, LAST_MODE)
     if mode == NONE or status != observed_status(mode):
         return BAD
     scope = next(w, status_node)
@@ -128,8 +144,13 @@ def verify_finding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     at = copy_value(s, w, o, profile, at)
     at = finding_property(o, at, mode)
     at = copy_value(s, w, o, scope, at)
-    obligations = choose(mode >= 11, mode - 5, choose(mode == 10, 5, status))
-    at = finding_remaining(o, finding_obligations(o, at), obligations)
+    obligations = choose(mode == 11 or mode == 12, mode - 5, choose(mode == 10, 5, status))
+    if mode == 13 or mode == 14:
+        obligations = mode - 5
+    at = finding_obligations(o, at)
+    if mode != 13 and mode != 14:
+        at = finding_no_refinement(o, at)
+    at = finding_remaining(o, finding_common_tail(o, at), obligations)
     at = copy_value(s, w, o, profile, at)
     store(o, at, 125)
     put(o, 0, FINDING)
@@ -183,7 +204,8 @@ def proof_items(items):
 
 
 def branching_renderer(name, values, argument='mode'):
-    distinct = {value: index for index, value in enumerate(dict.fromkeys(values.values()))}
+    unique = tuple(dict.fromkeys(values.values()))
+    distinct = {value: index for index, value in enumerate(unique)}
     lines = [f'def {name}(o:mutbuf, at:u64, {argument}:u64) -> u64:']
     modes = tuple(values)
     for value, index in tuple(distinct.items())[:-1]:
@@ -191,21 +213,27 @@ def branching_renderer(name, values, argument='mode'):
         lines.extend((f'    if {condition}:', f'        return {name}_{index}(o, at)'))
     lines.append(f'    return {name}_{len(distinct) - 1}(o, at)')
     for value, index in distinct.items():
-        raw = value.encode('ascii')
-        end = len(raw) - len(raw) % 8
-        lines.append(f'def {name}_{index}(o:mutbuf, at:u64) -> u64:')
-        for offset in range(0, end, 8):
-            lines.append(f'    put(o, at + {offset}, {int.from_bytes(raw[offset:offset + 8], "little")})')
-        for offset in range(end, len(raw)):
-            lines.append(f'    store(o, at + {offset}, {raw[offset]})')
-        lines.append(f'    return at + {len(raw)}')
+        lines.append(literal(f'{name}_{index}', value.encode('ascii')).replace('state_put(', 'put('))
     return '\n'.join(lines)
 
 
-def source_program():
+def source_program(*, machine=False):
+    first, last = (13, 18) if machine else (1, 12)
+    policy = POLICY
+    if not machine:
+        policy = policy.replace('choose(mode == 11 or mode == 12, mode - 5,',
+                                'choose(mode >= 11, mode - 5,')
+        policy = policy.replace(
+            '    if mode == 13 or mode == 14:\n        obligations = mode - 5\n'
+            '    at = finding_obligations(o, at)\n'
+            '    if mode != 13 and mode != 14:\n        at = finding_no_refinement(o, at)\n'
+            '    at = finding_remaining(o, finding_common_tail(o, at), obligations)',
+            '    at = finding_remaining(o, finding_obligations(o, at), obligations)',
+        )
     statuses = ['def observed_status(mode:u64) -> u64:']
     additions, methods, names, domains, properties = {}, {}, {}, {}, {}
-    for mode, (claim, status, method, domain) in enumerate(OUTCOMES, 1):
+    for mode in range(first, last + 1):
+        claim, status, method, domain = OUTCOMES[mode - 1]
         statuses.extend((f'    if mode == {mode}:', f'        return {STATUS_IDS[status]}'))
         assumptions = []
         if claim == 'behavior_equivalence':
@@ -216,13 +244,18 @@ def source_program():
             assumptions.extend(LAYOUT_ASSUMPTIONS)
         if method == 'complete_native_rederivation':
             assumptions.append(ENCODING_ASSUMPTION)
+        if method == MACHINE_METHOD:
+            assumptions.append(MACHINE_ASSUMPTION)
         additions[mode] = ',' + proof_items(assumptions)[1:-1] if assumptions else ''
-        methods[mode] = ',"method":' + json_wire(method) + ',"name":' + json_wire(
-            NATIVE_CORE_CHECKER if method == 'core_admission' else EVIDENCE_ROLE) + ',"native":{"image_sha256":'
+        checker = NATIVE_CORE_CHECKER if method == 'core_admission' else EVIDENCE_ROLE
+        if 13 <= mode <= 15:
+            checker = 'hia-safe-core-prove'
+        methods[mode] = ',"method":' + json_wire(method) + ',"name":' + json_wire(checker) + ',"native":{"image_sha256":'
         names[mode] = ',"profile":' + json_wire(CHECKER_PROFILE) + '},"native_selection_sha256":'
         domains[mode] = (',"solver":null},"claim":' + json_wire(claim) + ',"domain":' +
                          json_wire(domain) + ',"execution_authority_granted":false,"global_safety_proved":false,"profile":')
-        properties[mode] = (',"property":' + json_wire({'id': claim, 'statement': _PROPERTIES[method]}) +
+        property_key = SAFE_CORE_METHOD if mode >= 13 else method
+        properties[mode] = (',"property":' + json_wire({'id': claim, 'statement': _PROPERTIES[property_key]}) +
                             ',"schema":' + json_wire(PROOF_SCHEMA) + ',"status":' + json_wire(status) + ',"subject":')
     statuses.append('    return 0')
     obligations = {1: '],"validator":'}
@@ -233,9 +266,21 @@ def source_program():
     obligations[5] = ',' + proof_items((LAYOUT_OBLIGATION,))[1:] + ',"validator":'
     obligations[6] = ',' + proof_items((ENCODING_OBLIGATION,))[1:] + ',"validator":'
     obligations[7] = ',' + proof_items((ENCODING_OBLIGATION, REFUTED_OBLIGATION))[1:] + ',"validator":'
+    obligations[8] = ',' + proof_items((MACHINE_OBLIGATION,))[1:] + ',"validator":'
+    obligations[9] = ',' + proof_items((MACHINE_OBLIGATION, REFUTED_OBLIGATION))[1:] + ',"validator":'
+    obligations = {key: value for key, value in obligations.items()
+                   if key in ((3, 4, 8, 9) if machine else range(1, 8))}
+    common = COMMON_OBLIGATIONS[:2] if machine else COMMON_OBLIGATIONS
+    common_suffix = (
+        literal('finding_no_refinement', (',' + proof_items(COMMON_OBLIGATIONS[2:3])[1:-1]).encode('ascii'))
+        .replace('state_put(', 'put('),
+        literal('finding_common_tail', (',' + proof_items(COMMON_OBLIGATIONS[3:])[1:-1]).encode('ascii'))
+        .replace('state_put(', 'put('),
+    ) if machine else ()
     constants = {f'K_{key}': index for index, key in enumerate(FIELDS, 1)}
-    constants.update(FINDING=int.from_bytes(b'HIAVFN01', 'little'), NONE=(1 << 64) - 1, BAD=4294967293)
-    source = '\n'.join((POLICY, '\n'.join(statuses), key_table(FIELDS),
+    constants.update(FINDING=int.from_bytes(b'HIAVFN01', 'little'), NONE=(1 << 64) - 1, BAD=4294967293,
+                     FIRST_MODE=first, LAST_MODE=last)
+    source = '\n'.join((policy, '\n'.join(statuses), key_table(FIELDS),
                         literal_match('canonical_subject', 'canonical_lowering'),
                         literal_match('plan_subject', 'agent_machine_plan'),
                         literal_match('native_subject', 'native_artifact'),
@@ -247,8 +292,9 @@ def source_program():
                         literal('finding_checker_begin', b'],"checker":{"auxiliary_checker_sha256":null,"installation":'
                                ).replace('state_put(', 'put('),
                         literal('finding_obligations',
-                                (',"unproved_obligations":' + proof_items(COMMON_OBLIGATIONS)[:-1]).encode('ascii')
+                                (',"unproved_obligations":' + proof_items(common)[:-1]).encode('ascii')
                                ).replace('state_put(', 'put('),
+                        *common_suffix,
                         branching_renderer('finding_remaining', obligations, 'status'),
                         *(function(CONTEXT, name) for name in ('copy_value', 'digest_text', 'budget_integer', 'equal_span')),
                         *(function(VERIFICATION, name) for name in ('is_object', 'next')),
@@ -259,3 +305,4 @@ def source_program():
 
 if __name__ == '__main__':
     SOURCE.write_text(render_assembly(document(source_program(), SOURCE.stem)), encoding='utf-8')
+    MACHINE_SOURCE.write_text(render_assembly(document(source_program(machine=True), MACHINE_SOURCE.stem)), encoding='utf-8')

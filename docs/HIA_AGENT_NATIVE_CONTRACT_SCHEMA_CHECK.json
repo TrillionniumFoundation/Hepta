@@ -1,9 +1,9 @@
 {
   "schema": "hepta.hia.agent-native-contract-schema-check.v1",
   "scope": "Design-time JSON Schema and fixture validation only; no HIA/runtime implementation executed",
-  "catalog_sha256": "b3529f31ca32b16285c8746505522a9fca65dd11b0590fc9d21cf71591a96c94",
+  "catalog_sha256": "b6b8054ce46ae9ceac260e99a3d1beaf5d6c9343bc4c6e5d96281eedd3c3edfd",
   "document_sha256": "7ebe962763d36ff0a24880d40c89cff94e7afb5c3b473ee210a3d8abc8532fe8",
-  "generator_sha256": "43a337d469d2e0200b8293087314d1df5abc3102840d3c4f46413516e7c31a2f",
+  "generator_sha256": "409c6ff8893166adea8ca932b07acd9a94f0eec9ba4312113ca238ca5f5f4c14",
   "jsonschema_version": "4.26.0",
   "runtime_catalog_check": {
     "status": "passed",
@@ -14,7 +14,7 @@
   },
   "tool_count": 11,
   "schema_count": 22,
-  "check_count": 85,
+  "check_count": 93,
   "checks": [
     {
       "case": "hia_describe.inputSchema.well_formed",
@@ -327,6 +327,46 @@
       "case": "verify.native_checker_scope",
       "passed": true,
       "expected": "accept"
+    },
+    {
+      "case": "verify.native_method.checked_supplied_machine_bytes",
+      "passed": true,
+      "expected": "accept"
+    },
+    {
+      "case": "verify.reject_hosted_method.checked_supplied_machine_bytes",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.native_method.supplied_machine_outside_profile",
+      "passed": true,
+      "expected": "accept"
+    },
+    {
+      "case": "verify.reject_hosted_method.supplied_machine_outside_profile",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.native_method.supplied_machine_deadline",
+      "passed": true,
+      "expected": "accept"
+    },
+    {
+      "case": "verify.reject_hosted_method.supplied_machine_deadline",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.native_method.supplied_machine_incomplete",
+      "passed": true,
+      "expected": "accept"
+    },
+    {
+      "case": "verify.reject_hosted_method.supplied_machine_incomplete",
+      "passed": true,
+      "expected": "reject"
     },
     {
       "case": "verify.reject_mixed_checker_provenance",
