@@ -201,6 +201,9 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return 0
         if (plan == 1 or plan == 9) and (size != 120 or valid_hex(s, 104, 64) == False):
             return 0
+    mapped = mapped_insert(plan)
+    if mapped == False and size > length(w) - 192:
+        return 0
     configure_unique(w, request, plan)
     write_word(w, 112, mode)
     write_word(w, 120, generation)
@@ -212,7 +215,7 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if plan == 32:
         write_word(w, 152, read_word(s, 56))
         return begin_unique_commit(o, w)
-    if plan != 18 and plan != 22:
+    if mapped == False:
         copy_fields(s, w, 48, 192, size)
     if mode == 1:
         return send_unique(o, w, 21, 0, 0, 6)
@@ -647,9 +650,13 @@ def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
     write_word(w, 32, choose(plan == 4, 31, choose(plan == 6, 15, choose(plan == 12, 4, 63))))
     return write_word(w, 40, choose(plan == 4 or plan == 6 or plan == 12, 512, choose(plan == 9, 8389120, 1000000032)))
 
+def mapped_insert(plan:u64) -> bool:
+    # These admitted frames can exceed the private continuation arena.
+    return plan == 18 or plan == 20 or plan == 22
+
 def issue_unique_query(o:mutbuf, w:mutbuf) -> u64:
     plan = read_state(w, 16)
-    if plan == 18 or plan == 22:
+    if mapped_insert(plan):
         # The Store sees command 27 and normal write target 1. The adapter
         # transmits the already validated, immutable payload without recopying it.
         send_unique(o, w, 27, 1, 0, 10)
