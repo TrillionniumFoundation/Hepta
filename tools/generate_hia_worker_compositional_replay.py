@@ -5,20 +5,23 @@ import re
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (
-    CIRCUIT_CAPACITY, CIRCUIT_NODES, CIRCUIT_REQUEST, LEARNING_REQUEST,
+    CIRCUIT_CAPACITY, CIRCUIT_NODES, CIRCUIT_REQUEST, CIRCUIT_RETURNS, LEARNING_REQUEST,
+    PROJECTION_INPUT_LIMIT,
     RESTART_REQUEST, SEARCH_PLAN_REQUEST, SPARSE_CLAUSES, SPARSE_REPLY, SPARSE_REQUEST,
     SPARSE_VARIABLES, STEP_LIMIT, UNSAT,
 )
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_release_install import POLICY_SOURCE as RELEASE_WRITER
 from tools.generate_hia_worker_artifact_authority import source_program as authority
+from hepta.hia_optimization import DEFAULT_POLICY
+from tools.generate_hia_worker_compositional_barrier import OBLIGATION_BATCH
 from tools.generate_hia_worker_compositional_skeleton import DECISION
 from tools.generate_hia_worker_finite_reference import INVALID
 from tools.generate_hia_worker_inspection_effect import function
 from tools.hia_retained_proof_method import COMPOSITION_VERDICT
 
 SOURCE = Path('examples/hia_bootstrap/worker_compositional_replay.hepta')
-PHASES = ('HIACPL01', 'HIACPP01', 'HIACPS01', 'HIACPF01')
+PHASES = ('HIACPL01', 'HIACPP01', 'HIACPS01', 'HIACPF01', 'HIACPB01')
 
 POLICY = r'''
 # A physical Core projection, Boolean encoding, and solver result are
@@ -37,6 +40,8 @@ def compositional_replay(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return prepare_search(s, o)
     if phase == FINISH:
         return check_result(s, o)
+    if phase == BATCH:
+        return check_batch(s, o)
     return BAD
 
 def search_plan(s:readbuf, o:mutbuf) -> u64:
@@ -76,16 +81,54 @@ def prepare_search(s:readbuf, o:mutbuf) -> u64:
     return length(s) - 40
 
 def check_result(s:readbuf, o:mutbuf) -> u64:
-    if length(s) != 128 or input_word(s, 8) != SKELETON_TAG or input_word(s, 16) != 0 or input_word(s, 24) > 4096:
+    if length(s) != 128 or structure_matched(s) == False or discharged(s, 32) == False:
         return BAD
-    if valid_plan(s, 32) == False or sparse_header(s, 64) == False:
+    return proved(o)
+
+# The caller supplies only physical execution results from the pinned roles.
+# Accept one, and only one, result for every original projected obligation,
+# in the original order, before granting a single retained proof verdict.
+def check_batch(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 176 or structure_matched(s) == False:
         return BAD
-    if input_word(s, 64) != solver_mode(s, 32) or input_word(s, 88) != input_word(s, 40):
+    if input_word(s, 32) != OBLIGATION_TAG or input_word(s, 40) != 0:
         return BAD
-    if input_word(s, 96) != REPLY_TAG or input_word(s, 104) != UNSAT:
+    count = input_word(s, 48)
+    extent = input_word(s, 56)
+    if count == 0 or count > OBLIGATION_MAX or length(s) != 64 + 112 * count:
         return BAD
-    if input_word(s, 112) != input_word(s, 72) or input_word(s, 120) > input_word(s, 40):
+    at = 64
+    seen = 0
+    ordinal = 0
+    while ordinal < count:
+        size = input_word(s, at + 8)
+        if input_word(s, at) != ordinal or size < 208 or size > GRAPH_MAX:
+            return BAD
+        if discharged(s, at + 16) == False:
+            return BAD
+        seen = seen + 8 + size
+        at = at + 112
+        ordinal = ordinal + 1
+    if seen != extent:
         return BAD
+    return proved(o)
+
+def structure_matched(s:readbuf) -> bool:
+    return input_word(s, 8) == SKELETON_TAG and input_word(s, 16) == 0 and input_word(s, 24) <= SCALAR_MAX
+
+def discharged(s:readbuf, plan:u64) -> bool:
+    predicate = plan + 32
+    reply = plan + 64
+    if valid_plan(s, plan) == False or sparse_header(s, predicate) == False:
+        return False
+    steps = input_word(s, plan + 8)
+    if input_word(s, predicate) != solver_mode(s, plan) or input_word(s, predicate + 24) != steps:
+        return False
+    if input_word(s, reply) != REPLY_TAG or input_word(s, reply + 8) != UNSAT:
+        return False
+    return input_word(s, reply + 16) == input_word(s, predicate + 8) and input_word(s, reply + 24) <= steps
+
+def proved(o:mutbuf) -> u64:
     put(o, 0, COMPLETE_TAG)
     put(o, 8, 0)
     put(o, 16, 1)
@@ -96,7 +139,7 @@ def circuit(s:readbuf, at:u64) -> bool:
         return False
     nodes = input_word(s, at + 8)
     pairs = input_word(s, at + 16)
-    return nodes > 0 and nodes <= NODE_MAX and pairs == 3 and length(s) == at + 32 + 40 * nodes + 16 * pairs
+    return nodes > 0 and nodes <= NODE_MAX and pairs >= 2 and pairs <= PAIR_MAX and length(s) == at + 32 + 40 * nodes + 16 * pairs
 
 def valid_plan(s:readbuf, at:u64) -> bool:
     steps = input_word(s, at + 8)
@@ -123,11 +166,13 @@ def copy(s:readbuf, o:mutbuf, start:u64, stop:u64) -> u64:
 
 def program():
     values = {name: int.from_bytes(tag.encode('ascii'), 'little')
-              for name, tag in zip(('PLAN', 'PREPARE', 'SEARCH', 'FINISH'), PHASES, strict=True)}
+              for name, tag in zip(('PLAN', 'PREPARE', 'SEARCH', 'FINISH', 'BATCH'), PHASES, strict=True)}
     values.update(BAD=INVALID, PLAN_TAG=SEARCH_PLAN_REQUEST, CIRCUIT_TAG=CIRCUIT_REQUEST,
                   SPARSE_TAG=SPARSE_REQUEST, LEARN_TAG=LEARNING_REQUEST, RESTART_TAG=RESTART_REQUEST,
                   REPLY_TAG=SPARSE_REPLY, SKELETON_TAG=DECISION, COMPLETE_TAG=COMPOSITION_VERDICT,
-                  CIRCUIT_BYTES=CIRCUIT_CAPACITY, NODE_MAX=CIRCUIT_NODES, STEP_MAX=STEP_LIMIT,
+                  CIRCUIT_BYTES=CIRCUIT_CAPACITY, NODE_MAX=CIRCUIT_NODES, PAIR_MAX=CIRCUIT_RETURNS,
+                  STEP_MAX=STEP_LIMIT, GRAPH_MAX=PROJECTION_INPUT_LIMIT, OBLIGATION_TAG=OBLIGATION_BATCH,
+                  OBLIGATION_MAX=DEFAULT_POLICY['max_obligations'], SCALAR_MAX=DEFAULT_POLICY['max_scalar_operations'],
                   VARIABLE_MAX=SPARSE_VARIABLES, CLAUSE_MAX=SPARSE_CLAUSES, UNSAT=UNSAT)
     policy = re.sub(r'\b(' + '|'.join(values) + r')\b', lambda match: str(values[match[0]]), POLICY)
     return '\n'.join((policy, function(authority(), 'input_word'),
