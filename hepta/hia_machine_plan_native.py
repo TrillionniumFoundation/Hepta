@@ -178,7 +178,42 @@ class NativeMachinePlan(NativeHiaJsonImage):
                 session.expect(action, 99)
             return frozen
 
+    def _exact_witness(self, checked, assignments, allow_leaf_registers):
+        with _Session(self) as session:
+            session.expect(session.step(0, b'', 1, 6), 4)
+            session.expect(session.program(checked), 6)
+            for name in assignments:
+                wire, length = _text_fact(name)
+                session.expect(session.step(6, wire, length), 6)
+            session.expect(session.step(7), 8)
+            session.expect(session.step(8, b'', int(allow_leaf_registers)), 9)
+            functions = {}
+            core_workspace = len(session.state)
+            for name, mapping in assignments.items():
+                session.function_name = name
+                wire = transport([name, mapping])
+                session.grow(core_workspace + len(wire) + 8)
+                session.expect(session.step(32, wire), 13)
+                function, used, leaf_mask, opcodes, count = session.result_words(5)
+                session.text(function)
+                result = read_witness(session, (None, *REGISTERS), used, leaf_mask, opcodes, count)
+                session.expect(session.step(30), 12)
+                action = session.step(12, b'', int(allow_leaf_registers))
+                if action == 31:
+                    add_leaf_witness(result, leaf_mask, opcodes)
+                    action = session.step(31)
+                session.expect(action, 9)
+                functions[name] = result
+            session.expect(session.step(14), 99)
+            return {'rule': RULE, 'functions': functions}
+
     def witness(self, checked, assignments, *, allow_leaf_registers=False):
+        if (type(allow_leaf_registers) is bool and type(assignments) is dict
+                and all(type(name) is str and type(mapping) is dict
+                        and all(type(value) is str and type(register) is str
+                                for value, register in mapping.items())
+                        for name, mapping in assignments.items())):
+            return self._exact_witness(checked, assignments, allow_leaf_registers)
         with _Session(self) as session:
             session.expect(session.step(0, b'', 1, _kind(assignments)), 4)
             session.expect(session.program(checked), 6)
@@ -243,31 +278,38 @@ class NativeMachinePlan(NativeHiaJsonImage):
                 session.expect(action, 13)
                 function_pointer, used, leaf_mask, opcodes, count = session.result_words(5)
                 session.text(function_pointer)
-                if used >> 5 or leaf_mask & ~96 or opcodes >> len(LEAF_OPS):
-                    raise RuntimeError('native machine-plan witness masks differ')
-                result = {'callee_saved_registers': [reg for i, reg in enumerate(REGISTERS[:5]) if used & (1 << i)],
-                          'intervals': []}
-                for _ in range(count):
-                    session.expect(session.step(13), 14)
-                    block, value, typ, handle, first, last = session.result_words(6)
-                    if not 1 <= handle < len(foreign_registers):
-                        raise RuntimeError('native machine-plan witness register handle differs')
-                    result['intervals'].append({'block': session.text(block), 'value': session.text(value),
-                        'type': session.text(typ), 'register': foreign_registers[handle], 'first': first, 'last': last})
-                session.expect(session.step(13), 30)
-                functions[name] = result
+                functions[name] = read_witness(session, foreign_registers, used, leaf_mask, opcodes, count)
                 session.expect(session.step(30), 12)
                 action = session.step(12, b'', int(bool(allow_leaf_registers)))
                 if action == 31:
                     # This lookup deliberately occurs after the second truth
                     # conversion, exactly as the ordinary foreign API does.
-                    functions[name].update(
-                        caller_clobbered_leaf_registers=[reg for i, reg in enumerate(REGISTERS[5:], 5) if leaf_mask & (1 << i)],
-                        leaf_opcode_inventory=[op for i, op in enumerate(LEAF_OPS) if opcodes & (1 << i)])
+                    add_leaf_witness(functions[name], leaf_mask, opcodes)
                     action = session.step(31)
                 session.expect(action, 9)
             session.expect(session.step(14), 99)
             return {'rule': RULE, 'functions': functions}
+
+
+def read_witness(session, registers, used, leaf_mask, opcodes, count):
+    if used >> 5 or leaf_mask & ~96 or opcodes >> len(LEAF_OPS):
+        raise RuntimeError('native machine-plan witness masks differ')
+    result = {'callee_saved_registers': [reg for i, reg in enumerate(REGISTERS[:5]) if used & (1 << i)],
+              'intervals': []}
+    for _ in range(count):
+        session.expect(session.step(13), 14)
+        block, value, typ, handle, first, last = session.result_words(6)
+        if not 1 <= handle < len(registers):
+            raise RuntimeError('native machine-plan witness register handle differs')
+        result['intervals'].append({'block': session.text(block), 'value': session.text(value),
+            'type': session.text(typ), 'register': registers[handle], 'first': first, 'last': last})
+    session.expect(session.step(13), 30)
+    return result
+
+
+def add_leaf_witness(result, mask, opcodes):
+    result.update(caller_clobbered_leaf_registers=[reg for i, reg in enumerate(REGISTERS[5:], 5) if mask & (1 << i)],
+                  leaf_opcode_inventory=[op for i, op in enumerate(LEAF_OPS) if opcodes & (1 << i)])
 
 
 def installed_machine_plan(manifest_path):

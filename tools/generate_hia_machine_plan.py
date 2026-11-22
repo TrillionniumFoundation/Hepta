@@ -335,7 +335,85 @@ def machine_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return ABI
         put(w, 64, 99)
         return 99
+    if command == 32:
+        if stage != 9 or validate(s, w) == 0 or tag(s, 0) != 5 or total(s, 0) != 2:
+            return ABI
+        return exact_assignment(s, o, w)
     return ABI
+
+def exact_assignment(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    at = get(w, 104)
+    if length(s) > length(w) - at:
+        return ABI
+    copy_in(s, w, at)
+    fn = find_function(w, welement(w, at, 0))
+    if fn == NONE:
+        return ERROR + 17
+    mapping = welement(w, at, 1)
+    if wtag(w, mapping) != 6:
+        return ERROR + 18
+    permitted = choose(get(w, 128) != 0, 7, 5)
+    masks = assignment_masks(w, mapping, permitted)
+    if masks == NONE:
+        return ERROR + 18
+    used = masks & 31
+    leaf = masks & 96
+    # Rows share the exact usual Core inventory and inclusive lifetime rules.
+    # Put them after the immutable mapping so refreshes cannot overwrite it.
+    end = align8(at + length(s))
+    put(w, 104, end)
+    put(w, 120, fn)
+    put(w, 232, 0)
+    put(w, 240, 1)
+    if prepare_rows(w, fn) == 0:
+        return ABI
+    if leaf != 0:
+        if get(w, 240) == 0:
+            return ERROR + 19
+        if leaf_signature(w, fn) == 0:
+            return ERROR + 20
+    item = mapping + 24
+    i = 0
+    while i < wtotal(w, mapping):
+        row = lookup(w, item)
+        if row == NONE or scalar_type(w, get(w, row + 8)) == 0:
+            return ERROR + 21
+        if get(w, row + 48) != 0:
+            return ERROR + 18
+        register_at = wend(w, item)
+        register = register_id(w, register_at)
+        put(w, row + 48, register)
+        put(w, row + 56, register)
+        item = wend(w, register_at)
+        i = i + 1
+    collect_selected(w)
+    sort_rows(w, 1)
+    if conflicts(w, o) != 0:
+        return ERROR + 22
+    sort_rows(w, 0)
+    put(o, 0, field(w, fn, 13))
+    put(o, 8, used)
+    put(o, 16, leaf)
+    put(o, 24, choose(leaf != 0, get(w, 232), 0))
+    put(o, 32, get(w, 208))
+    put(w, 104, at)
+    put(w, 256, 0)
+    put(w, 64, 13)
+    return 13
+
+def assignment_masks(w:mutbuf, mapping:u64, permitted:u64) -> u64:
+    mask = 0
+    item = mapping + 24
+    index = 0
+    while index < wtotal(w, mapping):
+        register_at = wend(w, item)
+        register = register_id(w, register_at)
+        if wtag(w, item) != 4 or register == 0 or register > permitted:
+            return NONE
+        mask = mask | (1 << (register - 1))
+        item = wend(w, register_at)
+        index = index + 1
+    return mask
 
 def next_row(w:mutbuf, o:mutbuf) -> u64:
     index = get(w, 256)
