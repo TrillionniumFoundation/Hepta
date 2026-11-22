@@ -126,23 +126,24 @@ def schedule_claims(o:mutbuf, w:mutbuf, required:u64, receipts:u64, planned:bool
                 qualified = True
             receipt = receipt + 1
         if qualified == False:
-            return claim_reply(o, index, rechecks)
+            return claim_reply(o, index, rechecks, code)
         claim = next(w, claim)
         index = index + 1
-    return claim_reply(o, count, rechecks)
+    return claim_reply(o, count, rechecks, 4)
 
-def claim_reply(o:mutbuf, missing:u64, rechecks:u64) -> u64:
+def claim_reply(o:mutbuf, missing:u64, rechecks:u64, code:u64) -> u64:
     put(o, 0, CLAIM_RESULT)
     put(o, 8, missing)
     put(o, 16, rechecks)
-    return 24 + rechecks
+    store(o, 24 + rechecks, code)
+    return 25 + rechecks
 '''
 
 
 def source_program():
     constants = {f'K_{key}': index for index, key in enumerate(FIELDS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
-                     CLAIM_RESULT=int.from_bytes(b'HIAADK01', 'little'))
+                     CLAIM_RESULT=int.from_bytes(b'HIAADK02', 'little'))
     lookup = (
         'def claim_id(w:mutbuf, node:u64) -> u64:\n'
         + ''.join(f'    if claim_{name}(w, node):\n        return {index}\n'

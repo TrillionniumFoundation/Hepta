@@ -27,6 +27,13 @@ def adopt_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         move_fragment(w, ADOPT_CLAIM_FIELDS + 24, EMIT_CUSTODY_NATIVE_REF)
         move_fragment(w, ADOPT_EVAL_FIELDS + 24, INSPECTION_REFERENCE)
         return emit_proof_read(o, w, READ_EMIT_CUSTODY_BUILD, 5)
+    if state == ADOPT_CUSTODY_CLAIMS:
+        size = get(w, ADOPT_CLAIM_SCHEDULE + 16)
+        if size < 25 or size > 89:
+            return BAD
+        return read_span(o, w, ADOPT_CLAIM_FRAME, get(w, ADOPT_CLAIM_SCHEDULE), get(w, ADOPT_CLAIM_SCHEDULE + 8), size)
+    if state >= ADOPT_CLAIM_FRAME and state <= ADOPT_CLAIM_BUILD_BOUND:
+        return adopt_claim_build(s, o, w, state)
     if state == ADOPT_NATIVE_CORE_READY:
         return inspection_hash(o, w, ADOPT_NATIVE_CORE_HASH, INSPECTION_CORE)
     if state == RETAINED_DIGEST:
@@ -133,6 +140,9 @@ def adopt_build_verified(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return adopt_custody_error(w, choose(status == 1, 4, choose(status == 2, 5, choose(status == 4, 9, 8))))
     if size != 32 or status != 0 or input_word(s, 88) < 1 or input_word(s, 88) > 2:
         return BAD
+    if get(w, ADOPT_RECHECK_MODE) != 0:
+        put(w, ADOPT_RECHECK_CURSOR, get(w, ADOPT_RECHECK_CURSOR) + 1)
+        return adopt_recheck(o, w)
     put(w, ADOPT_CUSTODY_ACTIVE, 0)
     if get(w, EMIT_CUSTODY_PLAN_REF + 16) != 0:
         move_fragment(w, EMIT_CUSTODY_PLAN_REF, ADOPT_CLAIM_FIELDS + 72)
@@ -143,6 +153,61 @@ def adopt_build_verified(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return action(o, w, ADOPT_NO_PLAN, MAKE, 0, 0, 0, 4)
     put(w, 0, ADOPT_BUILD_READY)
     return ADOPT_DEFER_FRONT
+
+def adopt_claim_build(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if state == ADOPT_CLAIM_FRAME:
+        total = input_word(s, 80)
+        if input_word(s, 64) != ADOPT_CLAIM_TAG or input_word(s, 72) > 4 or total > 64 or length(s) != 89 + total:
+            return BAD
+        missing = byte(s, 88 + total)
+        if missing > 4:
+            return BAD
+        copy_span(s, w, 88, ADOPT_RECHECK_INDEXES, total)
+        put(w, ADOPT_RECHECK_MISSING, missing)
+        put(w, ADOPT_RECHECK_TOTAL, total)
+        put(w, ADOPT_RECHECK_CURSOR, 0)
+        put(w, ADOPT_RECHECK_MODE, 1)
+        put(w, ADOPT_CUSTODY_ACTIVE, 1)
+        return adopt_recheck(o, w)
+    if state == ADOPT_CLAIM_BUILD_PACKET:
+        if input_word(s, 40) <= 192:
+            return BAD
+        fragment(o, 0, input_word(s, 32), 0, input_word(s, 40))
+        return action(o, w, ADOPT_CLAIM_BUILD_BOUND, RUN, ADOPT_AUTHORITY_ROLE, 0, 1, 0)
+    if plan_ok(s) == False or input_word(s, 40) != 192 or input_word(s, 72) != ADOPT_PROOF_BUILD:
+        return BAD
+    hold(w, INSPECTION_REFERENCE, input_word(s, 32), 16, 176)
+    move_fragment(w, ADOPT_CLAIM_FIELDS + 24, EMIT_CUSTODY_NATIVE_REF)
+    return emit_proof_read(o, w, READ_EMIT_CUSTODY_BUILD, 5)
+
+def adopt_recheck(o:mutbuf, w:mutbuf) -> u64:
+    current = get(w, ADOPT_RECHECK_CURSOR)
+    total = get(w, ADOPT_RECHECK_TOTAL)
+    if current > total or total > 64:
+        return BAD
+    if current < total:
+        index = byte(w, ADOPT_RECHECK_INDEXES + current)
+        if index >= get(w, EMIT_RECEIPT_COUNT):
+            return BAD
+        move_fragment(w, ADOPT_RECEIPTS + index * 24, ADOPT_RECHECK_RECEIPT)
+        return adopt_claim_build_request(o, w)
+    put(w, ADOPT_RECHECK_MODE, 0)
+    put(w, ADOPT_CUSTODY_ACTIVE, 0)
+    missing = get(w, ADOPT_RECHECK_MISSING)
+    if missing < 4:
+        return adopt_custody_error(w, 10 + missing)
+    put(w, 0, ADOPT_CLAIMS_ACCEPTED)
+    return ADOPT_DEFER_FRONT
+
+def adopt_claim_build_request(o:mutbuf, w:mutbuf) -> u64:
+    store(o, HEADER, 91)
+    store(o, 480, 44)
+    put(o, 488, ADOPT_PROOF_BUILD_SUFFIX)
+    vector_span(w, o, ADOPT_RECHECK_RECEIPT, HEADER + 1)
+    vector_part(o, HEADER + 25, INLINE_FRAGMENT, 480, 1)
+    vector_span(w, o, ADOPT_CLAIM_FIELDS + 24, HEADER + 49)
+    vector_part(o, HEADER + 73, INLINE_FRAGMENT, 488, 6)
+    return emit_wide_make(o, w, ADOPT_CLAIM_BUILD_PACKET, 4, 1)
 
 def adopt_custody_error(w:mutbuf, reason:u64) -> u64:
     put(w, ADOPT_CUSTODY_ACTIVE, 0)
@@ -159,6 +224,7 @@ def custody_constants(constants):
         'ADOPT_NATIVE_EXPORT_MATCH', 'ADOPT_NATIVE_SIGNED', 'ADOPT_NATIVE_SIGNATURE_MATCH',
         'ADOPT_NATIVE_OPEN_CORE', 'ADOPT_NATIVE_CORE_READY', 'ADOPT_NATIVE_CORE_HASH',
         'ADOPT_BUILD_READY', 'ADOPT_NO_PLAN', 'ADOPT_CUSTODY_REFUSED',
+        'ADOPT_CLAIM_FRAME', 'ADOPT_CLAIM_BUILD_PACKET', 'ADOPT_CLAIM_BUILD_BOUND',
     )
     constants.update({name: 1170 + i for i, name in enumerate(names)})
     constants.update(
@@ -169,6 +235,10 @@ def custody_constants(constants):
         ADOPT_CUSTODY_ERROR=10128, ADOPT_NATIVE_META=10240, ADOPT_NATIVE_IMAGE=10264,
         ADOPT_NATIVE_SIGNATURES=10288, ADOPT_NATIVE_CORE_DIGEST=10312, ADOPT_BUILD_CORE=10336,
         RB_NATIVE_FIELDS=10360, RB_INSTALLATION=constants['EMIT_INSTALLATION'], RB_NATIVE_METADATA=10240,
+        ADOPT_RECHECK_INDEXES=10504, ADOPT_RECHECK_RECEIPT=10568, ADOPT_RECHECK_MODE=10136,
+        ADOPT_RECHECK_MISSING=10144, ADOPT_RECHECK_TOTAL=10152, ADOPT_RECHECK_CURSOR=10160,
+        ADOPT_PROOF_BUILD=int.from_bytes(b'HIAADBR1', 'little'),
+        ADOPT_PROOF_BUILD_SUFFIX=int.from_bytes(b',null]', 'little'),
     )
 
 

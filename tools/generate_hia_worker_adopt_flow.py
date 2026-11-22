@@ -10,6 +10,7 @@ from tools.generate_hia_worker_adopt_proof import WORKSPACE_BYTES, adopt_proof_c
 from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_emit_flow import ADMISSION, DISPATCH, REACTOR, REQUEST, native_recipe
+from tools.generate_hia_worker_emit_verification import CLAIMS
 from tools.generate_hia_worker_rollback import literal
 
 SOURCE = Path('examples/hia_bootstrap/worker_adopt_flow.hepta')
@@ -215,12 +216,14 @@ def outcome_errors():
         ('E_HIA_RECEIPT_BINDING', "native artifact's admitted Core identity differs"),
         ('E_HIA_RECEIPT_BINDING', 'build record differs from actual artifact bytes'),
         ('E_HIA_RECEIPT_BINDING', 'retained object differs from its exact build binding'),
+        *(('E_HIA_CLAIM_REQUIRED', 'missing exact proved acceptance claim: ' + claim) for claim in CLAIMS),
     )
     dispatch = ['\ndef adopt_error_body(o:mutbuf, status:u64) -> u64:']
     bodies = []
     for index, (code, message) in enumerate(cases, 1):
         name = f'adopt_error_{index}'
-        body = json.dumps(dict(code=code, message=message, phase='adoption' if index <= 3 else 'admission', details_artifact=None,
+        phase = 'adoption' if index <= 3 else ('admission' if index <= 9 else 'verification')
+        body = json.dumps(dict(code=code, message=message, phase=phase, details_artifact=None,
                                retry_action='correct_input'), sort_keys=True, separators=(',', ':'))
         dispatch.extend((f'    if status == {index}:', f'        return {name}(o, HEADER)'))
         bodies.append(literal(name, body))
@@ -274,6 +277,7 @@ def recipe():
         '    if (state >= ADOPT_CLAIMS_PREFIX_READY and state <= ADOPT_CLAIMS_BOUND) or (state >= ADOPT_EVAL_PACKET_READY and state <= ADOPT_EVAL_BOUND):\n'
         '        return EMIT_DEFER_PROOF\n'
         '    if ((state >= ADOPT_NATIVE_METADATA and state <= ADOPT_NATIVE_SIGNATURE_MATCH) or\n'
+        '            (state >= ADOPT_CLAIM_FRAME and state <= ADOPT_CLAIM_BUILD_BOUND) or\n'
         '            (get(w, ADOPT_CUSTODY_ACTIVE) != 0 and (state == INSPECTION_HASH_RETURNED or state == INSPECTION_HASH_FRAME or\n'
         '             (state >= EMIT_CUSTODY_PROJECTED and state <= EMIT_CUSTODY_VERIFIED)))):\n'
         '        return ADOPT_DEFER_CUSTODY\n'

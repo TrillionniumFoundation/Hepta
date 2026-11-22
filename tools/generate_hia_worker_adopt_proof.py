@@ -98,15 +98,15 @@ def adopt_claim_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         sample_span(s, w, ADOPT_CLAIM_PREFIX)
         return adopt_claim_input(o, w, True)
     if state == ADOPT_CLAIMS_OBSERVED:
-        if plan_ok(s) == False or size < 32 or size > 96:
+        if plan_ok(s) == False or size < 33 or size > 97:
             return BAD
         body_span(s, w, ADOPT_CLAIM_SCHEDULE)
         return read_span(o, w, ADOPT_CLAIMS_BOUND, fd, 8, size - 8)
-    if length(s) < 88 or input_word(s, 64) != ADOPT_CLAIM_TAG:
+    if length(s) < 89 or input_word(s, 64) != ADOPT_CLAIM_TAG:
         return BAD
     missing = input_word(s, 72)
     rechecks = input_word(s, 80)
-    if missing > 4 or rechecks > 64 or length(s) != 88 + rechecks:
+    if missing > 4 or rechecks > 64 or length(s) != 89 + rechecks or byte(s, 88 + rechecks) > 4:
         return BAD
     index = 0
     while index < rechecks:
@@ -184,7 +184,7 @@ def adopt_proof_constants(constants):
         ADOPT_CLAIMS_ROLE=constants['EMIT_TRUST_ROLE'] + 1,
         ADOPT_DEFER_FRONT=4294967278, ADOPT_CLAIM_FIELDS=9216, ADOPT_RECEIPTS=9312,
         ADOPT_PROOF_CURSOR=9696, ADOPT_CLAIM_PREFIX=9704, ADOPT_CLAIM_SCHEDULE=9728,
-        ADOPT_CLAIM_TAG=int.from_bytes(b'HIAADK01', 'little'),
+        ADOPT_CLAIM_TAG=int.from_bytes(b'HIAADK02', 'little'),
         READ_ADOPT_EVALUATION=17, READ_ADOPT_MEASUREMENTS=18, READ_ADOPT_COST=19,
         ADOPT_EVAL_START=1110, ADOPT_MEASURES_START=1111, ADOPT_EVAL_PACKET_READY=1112,
         ADOPT_EVAL_OBSERVED=1113, ADOPT_EVAL_BOUND=1114, ADOPT_EVAL_READY=1115,

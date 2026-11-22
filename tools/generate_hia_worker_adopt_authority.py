@@ -24,7 +24,7 @@ FIELDS = (
     'report_complete', 'planned_workload_complete', 'termination_confirmed',
     'outcome', 'allow_unchanged', 'require_net_benefit',
     'catalog_sha256', 'request_key', 'target_slot', 'expected_current', 'generation', 'epoch',
-    'evaluation_receipt', 'verification_receipts',
+    'evaluation_receipt', 'verification_receipts', 'subject', 'kind', 'native_artifact',
 )
 
 POLICY = r'''
@@ -54,6 +54,8 @@ def adopt_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if count == 4:
         return bind_evaluation(s, o, w, first)
     if count == 3:
+        if is_object(w, first):
+            return project_proof_build(s, o, w, first)
         return project_journal_catalog(s, o, w, first)
     if count == 2:
         if get(w, first) == 4:
@@ -76,6 +78,20 @@ def project_journal_catalog(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64) -> u64:
     put(o, 8, end - at)
     put(o, 16, 0)
     return end
+
+def project_proof_build(s:readbuf, o:mutbuf, w:mutbuf, receipt:u64) -> u64:
+    candidate = next(w, receipt)
+    if exact_reference(s, w, candidate) == False or get(w, next(w, candidate)) != 0:
+        return INVALID
+    subject = lookup(w, receipt, K_subject)
+    if (is_object(w, subject) == False or native_subject(w, lookup(w, subject, K_kind)) == False
+            or matches_field(s, w, subject, K_native_artifact, candidate) == False):
+        return INVALID
+    build = lookup(w, subject, K_build_receipt)
+    if exact_reference(s, w, build) == False:
+        return INVALID
+    put(o, 0, ADOPT_PROOF_BUILD)
+    return copy_value(s, w, o, build, 8)
 
 def request_projection(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64, args:u64) -> u64:
     if is_object(w, args) == False or get(w, args + 32) != 8:
@@ -338,10 +354,12 @@ def source_program():
         'SLOT_WRITE': b'HIAADW01', 'INSERT_TAG': b'HIAINS01',
         'SLOT_RECEIPT': b'HIAADP01', 'ADOPT_REQUEST': b'HIAADQ01',
         'ADOPT_INDEX_REQUEST': b'HIAADI01', 'ADOPT_INDEX_RESULT': b'HIAADI02',
+        'ADOPT_PROOF_BUILD': b'HIAADBR1',
     }.items()})
     source = '\n'.join((
         POLICY,
         *(function(VERIFICATION, name) for name in ('next', 'is_object', 'matches_field', 'span', 'refusal')),
+        literal_match('native_subject', 'native_artifact'),
         *(function(CONTEXT, name) for name in ('equal_span', 'digest_text', 'copy_value', 'fragment')),
         function(ROLLBACK, 'allowed_text'),
         function(ROLLBACK, 'number'),
