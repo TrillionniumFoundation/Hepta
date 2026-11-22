@@ -48,7 +48,7 @@ def build(output, compiler, cold_report, *, kind='describe'):
             or cold_report.read_bytes() != report_bytes
             or policy.read_bytes() != policy_bytes or packer.read_bytes() != packer_bytes):
         raise ValueError('Worker descriptor flow source or build image changed before publication')
-    suffix = '' if kind in ('input', 'discovery') else '-worker'
+    suffix = '' if kind in ('input', 'discovery', 'discovery-bootstrap') else '-worker'
     filename = f'hia-agent-{kind}{suffix}-carrier'
     target = output / filename
     with target.open('xb') as stream:

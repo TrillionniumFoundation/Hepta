@@ -30,6 +30,8 @@ DISCOVERY_PACKER = 'examples/hia_bootstrap/worker_discovery_flow_packer.hepta'
 DISCOVERY_POLICY = 'examples/hia_bootstrap/worker_discovery_flow.hepta'
 CONTEXT_PACKER = 'examples/hia_bootstrap/worker_context_flow_packer.hepta'
 CONTEXT_POLICY = 'examples/hia_bootstrap/worker_context_flow.hepta'
+BOOTSTRAP_PACKER = 'examples/hia_bootstrap/worker_bootstrap_flow_packer.hepta'
+BOOTSTRAP_POLICY = 'examples/hia_bootstrap/worker_bootstrap_flow.hepta'
 PROGRAMS = {
     'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER),
     'cost': (COST_POLICY, COST_PACKER), 'read-store': (READ_STORE_POLICY, READ_STORE_PACKER),
@@ -38,8 +40,10 @@ PROGRAMS = {
     'artifact': (ARTIFACT_POLICY, ARTIFACT_PACKER),
     'discovery': (DISCOVERY_POLICY, DISCOVERY_PACKER),
     'context': (CONTEXT_POLICY, CONTEXT_PACKER),
+    'discovery-bootstrap': (BOOTSTRAP_POLICY, BOOTSTRAP_PACKER),
 }
-PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context')
+PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
+              'discovery-bootstrap')
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -66,6 +70,8 @@ def adapter_source(flow, ports, *, kind='describe', peers=b''):
                       b'.equ WORKER_INPUT, 1\n.equ WORKER_DISCOVERY, 1\n'),
         'context': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                     b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_CONTEXT, 1\n'),
+        'discovery-bootstrap': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
+                                b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_BOOTSTRAP, 1\n'),
     }[kind]
     return variant + flow + b'\n' + ports
 
@@ -95,7 +101,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers):
     hole = locations['policy']
     header = elf_header()
     module = Path(packer_path).stem
-    if kind in ('input', 'artifact', 'discovery', 'context'):
+    if kind in ('input', 'artifact', 'discovery', 'context', 'discovery-bootstrap'):
         packer = partitioned_packer(module, header + stub, len(header) + hole)
     else:
         packer = document(magic=MAGIC, module=module,

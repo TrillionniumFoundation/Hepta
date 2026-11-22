@@ -28,7 +28,11 @@
 .equ MAP_BYTES, 327680
 .equ ARG_SPAN, 81920
 .equ ARG_SPAN_SIZE, 20480
+.ifdef WORKER_BOOTSTRAP
+.equ ROLE_OFFSET, 64
+.else
 .equ ROLE_OFFSET, 376
+.endif
 .else
 .equ MAP_BYTES, 81920
 .endif
@@ -39,12 +43,17 @@
 .equ PEER, 34400
 .ifdef WORKER_STORED_READ
 .ifdef WORKER_ARTIFACT
+.ifdef WORKER_BOOTSTRAP
+.equ ROLE_COUNT, 11
+.equ EXTRA_ARGS, 4
+.else
 .ifdef WORKER_CONTEXT
 .equ ROLE_COUNT, 31
 .else
 .equ ROLE_COUNT, 23
 .endif
 .equ EXTRA_ARGS, 6
+.endif
 .equ FIRST_ROLE, 0
 .else
 .ifdef WORKER_INPUT
@@ -94,6 +103,17 @@
 .endif
 .ifdef WORKER_CONTEXT
 .equ HAS_RANDOM_PORT, 1
+.equ HAS_MAKE_PORT, 1
+.endif
+.ifdef WORKER_INPUT
+.equ HAS_PATH_ENTRY, 1
+.endif
+.ifdef WORKER_BOOTSTRAP
+.equ HAS_PATH_ENTRY, 1
+.equ HAS_MAKE_PORT, 1
+.equ BOOT_ROOT, 34992
+.equ BOOT_STAT, 35000
+.equ BOOT_NAMED_STAT, 35144
 .endif
 
 _start:
@@ -110,7 +130,7 @@ _start:
  .endif
  .endif
  jne .Lrefused
- .ifdef WORKER_INPUT
+ .ifdef HAS_PATH_ENTRY
  mov rax, [r15+16]
  cmp BYTE PTR [rax], 47
  jne .Lrefused
@@ -209,7 +229,7 @@ _start:
  test rax, rax
  js .Lrefused
  .else
- .ifdef WORKER_INPUT
+ .ifdef HAS_PATH_ENTRY
  mov rsi, [r15+16]
  .else
  mov rsi, [r15+24]
@@ -274,6 +294,20 @@ _start:
  jne .Lrefused
  cmp QWORD PTR [rbp+FD_INFO+24], 0
  jne .Lrefused
+ .ifdef WORKER_BOOTSTRAP
+ mov rsi, [r15+32]
+ call .Lparse_fd
+ mov [rbp+OBS+24], rax
+ mov edi, eax
+ lea rsi, [rbp+FD_INFO]
+ call hia_worker_fd_observe
+ test rax, rax
+ js .Lrefused
+ mov rax, [rbp+FD_INFO+24]
+ mov [rbp+OBS+32], rax
+ mov rax, [rbp+FD_INFO+8]
+ mov [rbp+OBS+40], rax
+ .else
  .ifdef WORKER_ARTIFACT
  .equ HAS_ENTRY_DOSSIER, 1
  .else
@@ -312,6 +346,7 @@ _start:
  mov [rbp+OBS+56], rax
  mov rax, [rbp+FD_INFO+24]
  mov [rbp+OBS+24], rax
+ .endif
  .endif
  .endif
  xor r12d, r12d
@@ -427,13 +462,25 @@ worker_policy_hole: .long 0
  .endif
  .endif
  .endif
- .ifdef WORKER_CONTEXT
+ .ifdef HAS_MAKE_PORT
  cmp rax, 11
  je .Lstage
+ .endif
+ .ifdef WORKER_CONTEXT
  cmp rax, 12
  je .Luname
  cmp rax, 13
  je .Lcpu
+ .endif
+ .ifdef WORKER_BOOTSTRAP
+ cmp rax, 14
+ je .Lboot_bind
+ cmp rax, 15
+ je .Lboot_path
+ cmp rax, 16
+ je .Lboot_entries
+ cmp rax, 17
+ je .Lboot_check
  .endif
  cmp rax, 5
  jne .Lrefused
@@ -522,7 +569,7 @@ worker_policy_hole: .long 0
  .ifdef WORKER_STORED_READ
  cmp QWORD PTR [rbp+CURRENT], 9
  je .Lsend_peer
- .ifdef WORKER_CONTEXT
+ .ifdef HAS_MAKE_PORT
  cmp QWORD PTR [rbp+CURRENT], 11
  je .Lmade
  .endif
@@ -591,7 +638,7 @@ worker_policy_hole: .long 0
  cmp rdx, 1
  jne .Lrefused
  .else
- .ifdef WORKER_INPUT
+ .ifdef HAS_PATH_ENTRY
  cmp rdx, 1
  jb .Lrefused
  cmp rdx, 2
@@ -633,7 +680,7 @@ worker_policy_hole: .long 0
  cmp rdx, 512
  jae .Lrefused
  lea rdi, [rbp+JOINED]
- .ifdef WORKER_INPUT
+ .ifdef HAS_PATH_ENTRY
  mov rsi, [r15+16]
  .else
  mov rsi, [r15+24]
@@ -773,7 +820,7 @@ worker_policy_hole: .long 0
  call hia_worker_seal
  test rax, rax
  jnz .Lrefused
- .ifdef WORKER_CONTEXT
+ .ifdef HAS_MAKE_PORT
 .Lobserve_output:
  .endif
  mov edi, DWORD PTR [rbp+PROCESS+16]
@@ -1011,12 +1058,14 @@ worker_policy_hole: .long 0
  mov QWORD PTR [rbp+OBS_SIZE], 72
  jmp .Lnext
 
-.ifdef WORKER_CONTEXT
+.ifdef HAS_MAKE_PORT
 .Lmade:
  mov rax, [rbp+STAGED]
  mov [rbp+PROCESS+16], rax
  jmp .Lobserve_output
+.endif
 
+.ifdef WORKER_CONTEXT
 .Lclock_raw:
  xor edi, edi
  lea rsi, [rbp+OBS+64]
@@ -1111,6 +1160,171 @@ worker_policy_hole: .long 0
  mov [rbp+OBS+56], r12
  add r12, 64
  mov [rbp+OBS_SIZE], r12
+ jmp .Lnext
+.endif
+
+.ifdef WORKER_BOOTSTRAP
+/* Linux conveys only observations and held descriptors. HIA chooses every
+ * probe, decides whether the empty-state rules pass, and binds final custody. */
+.Lboot_bind:
+ mov edi, -100
+ mov rsi, [r15+16]
+ mov edx, 0xb0000
+ xor r10d, r10d
+.Lboot_open_root:
+ mov eax, 257
+ syscall
+ cmp rax, -4
+ je .Lboot_open_root
+ cmp rax, 3
+ jl .Lrefused
+ mov [rbp+BOOT_ROOT], rax
+ mov edi, eax
+ mov esi, 6
+.Lboot_flock:
+ mov eax, 73
+ syscall
+ cmp rax, -4
+ je .Lboot_flock
+ test rax, rax
+ jnz .Lrefused
+.Lboot_check:
+ mov edi, -100
+ mov rsi, [r15+16]
+ lea rdx, [rbp+BOOT_NAMED_STAT]
+ mov r10d, 256
+.Lboot_stat_root:
+ mov eax, 262
+ syscall
+ cmp rax, -4
+ je .Lboot_stat_root
+ test rax, rax
+ jnz .Lrefused
+ mov rax, [rbp+BOOT_ROOT]
+ jmp .Lboot_directory
+
+.Lboot_path:
+ mov rcx, [rbp+COMMAND+48]
+ cmp rcx, 2
+ jb .Lrefused
+ cmp rcx, 32
+ ja .Lrefused
+ lea rsi, [rbp+COMMAND+HEADER]
+ cmp BYTE PTR [rsi+rcx-1], 0
+ jne .Lrefused
+ xor edx, edx
+.Lboot_component:
+ inc rdx
+ cmp rdx, rcx
+ ja .Lrefused
+ mov al, [rsi+rdx-1]
+ cmp al, 47
+ je .Lrefused
+ test al, al
+ jnz .Lboot_component
+ /* The validated terminator is required at the declared extent. */
+ cmp rdx, rcx
+ jne .Lrefused
+.Lboot_path_operation:
+ mov edi, DWORD PTR [rbp+BOOT_ROOT]
+ mov rax, [rbp+COMMAND+144]
+ cmp rax, 1
+ je .Lboot_file_probe
+ cmp rax, 2
+ je .Lboot_open_child
+ cmp rax, 3
+ jne .Lrefused
+ mov edx, 448
+.Lboot_mkdir:
+ mov eax, 258
+ syscall
+ cmp rax, -4
+ je .Lboot_mkdir
+ jmp .Lboot_result
+.Lboot_file_probe:
+ lea rdx, [rbp+BOOT_STAT]
+ mov r10d, 256
+.Lboot_probe:
+ mov eax, 262
+ syscall
+ cmp rax, -4
+ je .Lboot_probe
+ jmp .Lboot_result
+.Lboot_open_child:
+ mov edx, 0xb0000
+ xor r10d, r10d
+.Lboot_open:
+ mov eax, 257
+ syscall
+ cmp rax, -4
+ je .Lboot_open
+ cmp rax, 3
+ jge .Lboot_directory
+ test rax, rax
+ jns .Lrefused
+.Lboot_result:
+ test rax, rax
+ jg .Lrefused
+ neg rax
+ mov [rbp+OBS+24], rax
+ jmp .Lnext
+
+.Lboot_directory:
+ mov [rbp+OBS+32], rax
+ mov edi, eax
+ lea rsi, [rbp+BOOT_STAT]
+.Lboot_stat:
+ mov eax, 5
+ syscall
+ cmp rax, -4
+ je .Lboot_stat
+ test rax, rax
+ jnz .Lrefused
+ cmp QWORD PTR [rbp+CURRENT], 15
+ je .Lboot_stat_bound
+ mov rax, [rbp+BOOT_NAMED_STAT]
+ cmp rax, [rbp+BOOT_STAT]
+ jne .Lrefused
+ mov rax, [rbp+BOOT_NAMED_STAT+8]
+ cmp rax, [rbp+BOOT_STAT+8]
+ jne .Lrefused
+.Lboot_stat_bound:
+ mov eax, 107
+ syscall
+ mov [rbp+OBS+64], rax
+ mov rax, [rbp+BOOT_STAT]
+ mov [rbp+OBS+72], rax
+ mov rax, [rbp+BOOT_STAT+8]
+ mov [rbp+OBS+80], rax
+ mov eax, DWORD PTR [rbp+BOOT_STAT+24]
+ mov [rbp+OBS+88], rax
+ mov eax, DWORD PTR [rbp+BOOT_STAT+28]
+ mov [rbp+OBS+96], rax
+ mov eax, 40
+ jmp .Lboot_payload
+
+.Lboot_entries:
+ mov rax, [rbp+COMMAND+72]
+ cmp rax, 3
+ jl .Lrefused
+ cmp rax, 2147483647
+ ja .Lrefused
+ mov [rbp+OBS+32], rax
+ mov edi, eax
+ lea rsi, [rbp+OBS+64]
+ mov edx, 1024
+.Lboot_getdents:
+ mov eax, 217
+ syscall
+ cmp rax, -4
+ je .Lboot_getdents
+ test rax, rax
+ js .Lrefused
+.Lboot_payload:
+ mov [rbp+OBS+40], rax
+ mov [rbp+OBS+56], rax
+ add rax, 64
+ mov [rbp+OBS_SIZE], rax
  jmp .Lnext
 .endif
 
@@ -1305,10 +1519,14 @@ worker_policy_hole: .long 0
 .ifdef WORKER_COST
 .ifdef WORKER_STORED_READ
 .ifdef WORKER_ARTIFACT
+.ifdef WORKER_BOOTSTRAP
+.Ldiagnostic: .ascii "native HIA Discovery startup transport refused\n"
+.else
 .ifdef WORKER_CONTEXT
 .Ldiagnostic: .ascii "native HIA Context Worker transport refused\n"
 .else
 .Ldiagnostic: .ascii "native HIA Artifact Worker transport refused\n"
+.endif
 .endif
 .else
 .ifdef WORKER_DISCOVERY
