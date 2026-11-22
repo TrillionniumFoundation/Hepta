@@ -21,35 +21,65 @@ LITERALS = {
     'NAME_TAIL': b'tive_fn_',
     'PROLOGUE': b'\x55\x48\x89\xe5',
     'PAGED_PROBE': b'\x4c\x8b\x9c\x24\0\0\0\0',
+    'SWAPPED_PROBE': b'\x4c\x8b\x94\x24\0\0\0\0',
     'SUB_IMM32': b'\x48\x81\xec',
     'SUB_IMM8': b'\x48\x83\xec',
+    'PLAN_GATE': b'HIAILP02',
+    'PLAN_LAYOUT': b'HIABLP02',
 }
 POLICY = r'''
-# Inspect the exact HIA ELF ET_REL carrying the canonical machine image.
+# Inspect the exact HIA ELF ET_REL, optionally framed by a projected v2 plan.
 # Output is text offset, extent and frame sizes in the admitted Core's order.
 # This projects evidence from the sealed bytes; it never executes object code.
 def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     n = length(s)
-    if n < 512 or n > ELF_LIMIT or length(o) < OUT_BYTES or length(w) < WORK_BYTES:
+    if n < 512 or length(o) < OUT_BYTES or length(w) < WORK_BYTES:
         return INVALID
-    if input_word(s, 0) != ELF64_TAG or input_word(s, 8) != 0 or input_word(s, 16) != ELF64_REL:
+    base = 0
+    alignment = 1
+    encoding = 8
+    plan_count = 0
+    if input_word(s, 0) == PLAN_GATE:
+        extent = input_word(s, 8)
+        if n < 608 or extent < 80 or extent > 8388608 or extent > n - 528:
+            return INVALID
+        if input_word(s, 16) != PLAN_LAYOUT or input_word(s, 32) != extent:
+            return INVALID
+        plan_count = input_word(s, 24)
+        if plan_count == 0 or plan_count > FN_LIMIT or 56 + plan_count * 24 > extent:
+            return INVALID
+        alignment = input_word(s, 40)
+        if alignment != 1 and alignment != 16 and alignment != 32 and alignment != 64:
+            return INVALID
+        scratch = input_word(s, 48)
+        narrow_move = input_word(s, 56)
+        narrow_alu = input_word(s, 64)
+        if scratch > 1 or narrow_move > 1 or narrow_alu > 1:
+            return INVALID
+        encoding = scratch | (narrow_alu << 1)
+        base = 16 + extent
+        n = n - base
+    if n > ELF_LIMIT:
         return INVALID
-    if input_word(s, 24) != 0 or input_word(s, 32) != 0 or small(s, 48, 4) != 0:
+    if input_word(s, base) != ELF64_TAG or input_word(s, base + 8) != 0 or input_word(s, base + 16) != ELF64_REL:
         return INVALID
-    if small(s, 52, 6) != 64 or small(s, 58, 6) != ELF64_SECTIONS:
+    if input_word(s, base + 24) != 0 or input_word(s, base + 32) != 0 or small(s, base + 48, 4) != 0:
         return INVALID
-    sections = input_word(s, 40)
-    if sections < 64 or sections != n - 448 or sections & 7 != 0:
+    if small(s, base + 52, 6) != 64 or small(s, base + 58, 6) != ELF64_SECTIONS:
         return INVALID
+    relative_sections = input_word(s, base + 40)
+    if relative_sections < 64 or relative_sections != n - 448 or relative_sections & 7 != 0:
+        return INVALID
+    sections = base + relative_sections
     text = sections + 64
     symbols = sections + 192
     names = sections + 256
     if small(s, text, 4) != 1 or small(s, text + 4, 4) != 1 or input_word(s, text + 8) != 6:
         return INVALID
-    if input_word(s, text + 24) != 64 or input_word(s, text + 48) != 16:
+    if input_word(s, text + 24) != 64 or input_word(s, text + 48) != choose(alignment >= 16, alignment, 16):
         return INVALID
     text_bytes = input_word(s, text + 32)
-    if text_bytes < 20 or text_bytes > TEXT_LIMIT or text_bytes > sections - 64:
+    if text_bytes < 20 or text_bytes > TEXT_LIMIT or text_bytes > relative_sections - 64:
         return INVALID
     if small(s, symbols, 4) != 18 or small(s, symbols + 4, 4) != 2 or small(s, symbols + 40, 4) != 4:
         return INVALID
@@ -62,9 +92,9 @@ def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     name_size = input_word(s, names + 32)
     if first_global < 3 or first_global > FN_LIMIT + 2 or sym_size > 1572864 or sym_size < (first_global + 1) * 24:
         return INVALID
-    if sym_start < 64 + text_bytes or sym_start > sections or sym_size > sections - sym_start:
+    if sym_start < 64 + text_bytes or sym_start > relative_sections or sym_size > relative_sections - sym_start:
         return INVALID
-    if name_start < sym_start + sym_size or name_start > sections or name_size > sections - name_start or name_size == 0:
+    if name_start < sym_start + sym_size or name_start > relative_sections or name_size > relative_sections - name_start or name_size == 0:
         return INVALID
     remaining = sym_size
     while remaining >= 24:
@@ -74,43 +104,67 @@ def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     # Clear only the actual row slots, so a reused private arena cannot imply
     # that an omitted internal function owned an old symbol's range.
     rows = first_global - 2
+    if base != 0 and plan_count != rows:
+        return INVALID
+    return frame_inventory(s, o, w, base, alignment, encoding, text_bytes,
+                           sym_start + base, name_start + base, name_start + base + name_size, rows)
+
+def frame_inventory(s:readbuf, o:mutbuf, w:mutbuf, base:u64, alignment:u64, encoding:u64, text_bytes:u64, symbols:u64, names:u64, names_end:u64, rows:u64) -> u64:
+    text_base = base + 64
     index = 0
     while index < rows:
         state_put(w, index * 16 + 8, 0)
         index = index + 1
-    index = 2
-    while index < first_global:
-        row = sym_start + index * 24
-        name = small(s, row, 4)
-        if small(s, row + 4, 4) != LOCAL_FUNCTION or name == 0 or name >= name_size:
+    row = symbols + 48
+    limit = row + rows * 24
+    while row < limit:
+        if frame_row(s, o, w, row, text_base, text_bytes, names, names_end, rows, encoding) == False:
             return INVALID
-        ordinal = function_ordinal(s, name_start + name, name_start + name_size, rows)
-        if ordinal >= rows or state_word(w, ordinal * 16 + 8) != 0:
-            return INVALID
-        start = input_word(s, row + 8)
-        size = input_word(s, row + 16)
-        if start >= text_bytes or size < 20 or size > text_bytes - start:
-            return INVALID
-        frame = stack_frame(s, 64 + start, 64 + start + size)
-        if frame == 0:
-            return INVALID
-        state_put(o, 32 + ordinal * 8, frame)
-        state_put(w, ordinal * 16, start)
-        state_put(w, ordinal * 16 + 8, size)
-        index = index + 1
+        row = row + 24
     index = 0
     cursor = 0
     while index < rows:
-        offset = state_word(w, index * 16)
-        if offset != cursor:
+        original = index
+        if base != 0:
+            original = input_word(s, 72 + index * 8)
+        if original >= rows:
             return INVALID
-        cursor = offset + state_word(w, index * 16 + 8)
+        offset = state_word(w, original * 16)
+        size = state_word(w, original * 16 + 8)
+        aligned = cursor + ((0 - cursor) & (alignment - 1))
+        if size == 0 or offset != aligned:
+            return INVALID
+        while cursor < aligned:
+            if byte(s, text_base + cursor) != 144:
+                return INVALID
+            cursor = cursor + 1
+        state_put(w, original * 16 + 8, 0)
+        cursor = offset + size
         index = index + 1
     state_put(o, 0, FACTS)
     state_put(o, 8, 64)
     state_put(o, 16, text_bytes)
     state_put(o, 24, rows)
     return 32 + rows * 8
+
+def frame_row(s:readbuf, o:mutbuf, w:mutbuf, row:u64, text_base:u64, text_bytes:u64, names:u64, names_end:u64, rows:u64, encoding:u64) -> bool:
+    name = small(s, row, 4)
+    if small(s, row + 4, 4) != LOCAL_FUNCTION or name == 0 or name >= names_end - names:
+        return False
+    ordinal = function_ordinal(s, names + name, names_end, rows)
+    if ordinal >= rows or state_word(w, ordinal * 16 + 8) != 0:
+        return False
+    start = input_word(s, row + 8)
+    size = input_word(s, row + 16)
+    if start >= text_bytes or size < 20 or size > text_bytes - start:
+        return False
+    frame = stack_frame(s, text_base + start, text_base + start + size, encoding)
+    if frame == 0:
+        return False
+    state_put(o, 32 + ordinal * 8, frame)
+    state_put(w, ordinal * 16, start)
+    state_put(w, ordinal * 16 + 8, size)
+    return True
 
 def function_ordinal(s:readbuf, at:u64, end:u64, count:u64) -> u64:
     if end - at < 18 or input_word(s, at) != NAME_HEAD or input_word(s, at + 8) != NAME_TAIL:
@@ -131,7 +185,7 @@ def function_ordinal(s:readbuf, at:u64, end:u64, count:u64) -> u64:
         at = at + 1
     return count
 
-def stack_frame(s:readbuf, at:u64, end:u64) -> u64:
+def stack_frame(s:readbuf, at:u64, end:u64, encoding:u64) -> u64:
     if small(s, at, 4) != PROLOGUE:
         return 0
     at = at + 4
@@ -147,7 +201,10 @@ def stack_frame(s:readbuf, at:u64, end:u64) -> u64:
         amount = small(s, at + 3, immediate)
         if amount == 0 or amount > 4096 or amount & 15 != 0 or amount > FRAME_LIMIT - total:
             return 0
-        if input_word(s, probe) != PAGED_PROBE:
+        if encoding < 8:
+            if (opcode == SUB_IMM8) != (encoding & 2 != 0 and amount <= 127):
+                return 0
+        if input_word(s, probe) != choose(encoding & 1 == 0, PAGED_PROBE, SWAPPED_PROBE):
             return 0
         total = total + amount
         at = probe + 8
