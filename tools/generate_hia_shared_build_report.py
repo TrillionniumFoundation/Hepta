@@ -18,6 +18,7 @@ MAGIC = b'HIASBR01'
 VERIFIED_MAGIC = b'HIASBR02'
 PROOF_MAGIC = b'HIAPRR01'
 EXPORT_MAGIC = b'HIASEX01'
+EXPORT_NAMES_MAGIC = b'HIASEN01'
 SYMBOL_MAGIC = b'HIAELFA2'
 ELF_MAGIC = b'\x7fELF\x02\x01\x01\x00'
 SYMBOL_WORK = 16 + 65536 * 24
@@ -39,6 +40,12 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return linked_import_mask(s, w)
     if magic == PROOF_INPUT_MAGIC:
         return admit_proof(s, w)
+    if magic == EXPORT_NAMES_INPUT_MAGIC:
+        # Use the same ELF inventory request for exports admitted directly
+        # from the verified Core when there is no object-build report.
+        if n < 10 or n > 65930 or byte(s, 8) != 91 or byte(s, n - 1) != 93:
+            return 4294967293
+        return expected_exports(s, o, 9, n - 1)
     proven = magic == VERIFIED_INPUT_MAGIC
     if proven:
         if n < 132:
@@ -347,6 +354,7 @@ def source_program():
               .replace('VERIFIED_INPUT_MAGIC', str(int.from_bytes(VERIFIED_MAGIC, 'little')))
               .replace('PROOF_INPUT_MAGIC', str(int.from_bytes(PROOF_MAGIC, 'little')))
               .replace('EXPORT_INPUT_MAGIC', str(int.from_bytes(EXPORT_MAGIC, 'little')))
+              .replace('EXPORT_NAMES_INPUT_MAGIC', str(int.from_bytes(EXPORT_NAMES_MAGIC, 'little')))
               .replace('ELF_INPUT_MAGIC', str(int.from_bytes(ELF_MAGIC, 'little')))
               .replace('SYMBOL_MODE_MAGIC', str(int.from_bytes(SYMBOL_MAGIC, 'little')))
               .replace('SYMBOL_WORK_BYTES', str(SYMBOL_WORK))
