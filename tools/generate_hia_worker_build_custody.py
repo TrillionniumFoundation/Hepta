@@ -16,7 +16,7 @@ METADATA = ('candidate', 'codegen', 'context', 'core_sha256', 'foreign_buffer_ex
             'installation', 'machine_plan', 'object_artifact', 'object_sha256', 'output_kind', 'signatures')
 KEYS = (*METADATA, 'artifact_bytes', 'artifact_sha256', 'backend_profile', 'backend_sha256',
         'implementation_sha256', 'input_sha256', 'kind', 'machine_plan_sha256', 'native_artifact',
-        'native_build', 'schema', 'sha256', 'target_profile')
+        'native_build', 'schema', 'sha256', 'target_profile', 'plan')
 
 POLICY = r'''
 # Protected input:
@@ -24,7 +24,8 @@ POLICY = r'''
 # active backend, active target, native ref, retained build receipt,
 # retained native metadata, retained object metadata,
 # [verified Core digest, checked input digest, candidate ABI, Context exports,
-#  exact object digest, exact image digest, image length, object_bytes == image_bytes]].
+#  exact object digest, exact image digest, image length, object_bytes == image_bytes,
+#  and for explicit plans: canonical Plan, raw Store SHA-256, canonical Plan SHA-256]].
 # No field in a retained receipt supplies an installation binding or physical fact.
 # For downstream readers, the six-field form binds the subject before issuing
 # the two exact retained references. It is not a physical custody receipt.
@@ -61,7 +62,10 @@ def build_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     metadata = next(w, record)
     object_info = next(w, metadata)
     facts = next(w, object_info)
-    if get(w, metadata) != 6 or get(w, object_info) != 6 or get(w, facts) != 5 or get(w, facts + 32) != 8:
+    if get(w, metadata) != 6 or get(w, object_info) != 6 or get(w, facts) != 5:
+        return INVALID
+    count = get(w, facts + 32)
+    if count != 8 and count != 11:
         return INVALID
     if same_subject == False:
         return answer(o, 1)
@@ -81,10 +85,19 @@ def build_references(s:readbuf, w:mutbuf, o:mutbuf, record:u64, same_subject:boo
     if exact_reference(s, w, candidate) == False or exact_reference(s, w, object_ref) == False:
         put(o, 8, 2)
         return 16
+    plan = retained_plan(s, w, record)
+    if plan == NONE:
+        put(o, 8, 2)
+        return 16
+    if plan != 0 and length(o) < 544:
+        return INVALID
     put(o, 8, 0)
     copy_reference(s, o, get(w, candidate + 56), 16)
     copy_reference(s, o, get(w, object_ref + 56), 192)
-    return 368
+    if plan == 0:
+        return 368
+    copy_reference(s, o, get(w, plan + 56), 368)
+    return 544
 
 def copy_reference(s:readbuf, o:mutbuf, at:u64, offset:u64) -> u64:
     index = 0
@@ -133,9 +146,43 @@ def bind_products(s:readbuf, w:mutbuf, o:mutbuf, install:u64, packed:u64, record
         return answer(o, 4)
     if object_binding(s, w, install, record, built, object_info, core, obj) == False:
         return answer(o, 4)
+    if observed_plan(s, w, record, built, facts, equal) == False:
+        return answer(o, 5)
     put(o, 16, producer)
     answer(o, 0)
     return 24
+
+# The legacy record's normalized Plan is not proof that its original input
+# artifact was present. Return a typed read reference before the caller
+# derives the independent normalized content and the two digest domains.
+def retained_plan(s:readbuf, w:mutbuf, record:u64) -> u64:
+    plan = lookup(w, record, K_machine_plan)
+    codegen = lookup(w, record, K_codegen)
+    if plan == NONE or codegen == NONE or get(w, codegen) != 6:
+        return NONE
+    kind = lookup(w, codegen, K_kind)
+    if get(w, plan) == 0 and canonical_kind(w, kind) and get(w, codegen + 32) == 2:
+        return 0
+    if get(w, plan) != 6 or explicit_kind(w, kind) == False or get(w, codegen + 32) != 4:
+        return NONE
+    ref = lookup(w, codegen, K_plan)
+    return choose(exact_reference(s, w, ref), ref, NONE)
+
+def observed_plan(s:readbuf, w:mutbuf, record:u64, built:u64, facts:u64, equal:u64) -> bool:
+    ref = retained_plan(s, w, record)
+    digest = lookup(w, built, K_machine_plan_sha256)
+    if ref == NONE or digest == NONE:
+        return False
+    if ref == 0:
+        return get(w, facts + 32) == 8 and get(w, digest) == 0
+    if get(w, facts + 32) != 11:
+        return False
+    physical = next(w, equal)
+    raw = next(w, physical)
+    normalized = next(w, raw)
+    if get(w, physical) != 6 or digest_text(w, raw, False) == False or digest_text(w, normalized, False) == False:
+        return False
+    return field_matches(s, w, record, K_machine_plan, physical) and field_matches(s, w, ref, K_sha256, raw) and equal_span(s, w, digest, normalized)
 
 def object_binding(s:readbuf, w:mutbuf, install:u64, record:u64, built:u64, object_info:u64, core:u64, obj:u64) -> bool:
     objref = lookup(w, record, K_object_artifact)
@@ -227,6 +274,8 @@ def program():
         literal_match('object_schema', 'hepta.hia.agent.build-object.v1'),
         literal_match('object_kind', 'object'),
         literal_match('shared_kind', 'shared'),
+        literal_match('canonical_kind', 'canonical'),
+        literal_match('explicit_kind', 'agent_plan'),
         *(function(CONTEXT, name).replace('NONE', str(tags['NONE']))
           for name in ('digest_text', 'equal_span')),
         *(function(custody, name) for name in ('artifact_reference', 'artifact_start', 'artifact_digest',
