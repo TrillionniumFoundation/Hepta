@@ -49,8 +49,11 @@
 .equ ARGV, 104448
 .equ CARRIED, 105216
 .equ NUMBERS, 105600
-.equ ARGV_LIMIT, 80
+.equ ARGV_LIMIT, 83
 .equ COMMAND_LIMIT, 4096
+.if ARGV + 8 * (ARGV_LIMIT + 2) > CARRIED || CARRIED + 4 * ARGV_LIMIT > NUMBERS
+.error "Launcher argument storage overlaps the next buffer"
+.endif
 .else
 .ifdef WORKER_EMIT
 .equ ARGV, 35584

@@ -69,6 +69,12 @@ HELPER_BUILDERS = {
     'evaluation': build_evaluation,
     'native-build-admission': build_build_admission,
 }
+CATALOG_SCHEMA_ROLES = {
+    'agent-schema': 'mcp-input-schema',
+    'agent-response-schema': 'mcp-response-schema',
+    'agent-verify-response-schema': 'mcp-proof-schema',
+    'agent-payload-schema': 'context-payload',
+}
 
 
 CONTROLLER_MANIFEST = 'hia-controller.json'
@@ -513,6 +519,13 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             selector = 'HEPTA_HIA_' + candidate.replace('-', '_').upper() + '_MANIFEST'
             helpers.append({'selector': selector, 'manifest_path': manifest.relative_to(output).as_posix(),
                             'manifest_sha256': sha256(manifest.read_bytes()).hexdigest()})
+            kind = CATALOG_SCHEMA_ROLES.get(candidate)
+            if kind is not None:
+                packaged = release / ('hia-agent-' + kind)
+                if packaged.is_file():
+                    expected = build_agent_stdio(scratch / kind, compiler, cold_report, manifest, kind=kind)
+                    if packaged.read_bytes() != expected.read_bytes():
+                        raise ValueError(f'Store release {kind} differs from the cold-built catalog-bound schema')
         base = output / 'helpers.json'
         base.write_bytes((json.dumps({'schema': authority.SCHEMA, 'target': authority.TARGET,
             'abi': authority.ABI, 'helpers': helpers}, indent=2, sort_keys=True) + '\n').encode())
