@@ -246,12 +246,12 @@ def wire_text(name, value):
     raw = value.encode('utf-8')
     lines = [f'def {name}(w:mutbuf, node:u64) -> bool:',
              f'    if node == {(1 << 64)-1} or get(w, node) != 4 or get(w, node + 32) != {len(raw)}:',
-             '        return False', '    start = get(w, node + 24)']
+             '        return False', '    start = get(w, node + 24)', '    difference = 0']
     for offset in range(0, len(raw), 8):
-        block = raw[offset:offset+8]
-        lines.extend((f'    if match_word(w, start + {offset}, {len(block)}) != {int.from_bytes(block, "little")}:',
-                      '        return False'))
-    lines.append('    return True')
+        block = raw[offset:offset + 8]
+        expected = int.from_bytes(block, 'little')
+        lines.append(f'    difference = difference | (match_word(w, start + {offset}, {len(block)}) ^ {expected})')
+    lines.append('    return difference == 0')
     return '\n'.join(lines)+'\n'
 
 
