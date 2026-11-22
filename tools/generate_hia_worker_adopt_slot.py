@@ -261,7 +261,9 @@ def adopt_slot_document(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         hold(w, RB_COUNT_TEXT, fd, 16, size - 16)
         return read_span(o, w, RB_STALE_CONTEXT_BYTES, get(w, ROLLBACK_SLOT_CONTEXT), get(w, ROLLBACK_SLOT_CONTEXT + 8), 36)
     if state == RB_STALE_CONTEXT_BYTES:
-        if size != 36:
+        # A READ observation carries the length of the whole typed slot row
+        # at word 40; the selected context ID itself is just a 36-byte slice.
+        if length(s) != 100 or input_word(s, 56) != 36:
             return BAD
         store(o, HEADER, 34)
         copy_span(s, o, 64, HEADER + 1, 36)
