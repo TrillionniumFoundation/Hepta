@@ -39,7 +39,11 @@
 .equ PEER, 34400
 .ifdef WORKER_STORED_READ
 .ifdef WORKER_ARTIFACT
+.ifdef WORKER_CONTEXT
+.equ ROLE_COUNT, 31
+.else
 .equ ROLE_COUNT, 23
+.endif
 .equ EXTRA_ARGS, 6
 .equ FIRST_ROLE, 0
 .else
@@ -85,6 +89,12 @@
 .equ ENTRY_SIZE, ROLE_RECORD_END
 .endif
 .equ HEADER, 512
+.ifdef WORKER_INPUT
+.equ HAS_RANDOM_PORT, 1
+.endif
+.ifdef WORKER_CONTEXT
+.equ HAS_RANDOM_PORT, 1
+.endif
 
 _start:
  cld
@@ -345,6 +355,10 @@ worker_policy_hole: .long 0
  cmp QWORD PTR [rbp+COMMAND+8], rax
  jne .Lrefused
  mov [rbp+SEQUENCE], rax
+ .ifdef WORKER_CONTEXT
+ cmp QWORD PTR [rbp+COMMAND+136], 0
+ jne .Lwide_command
+ .endif
  cmp QWORD PTR [rbp+COMMAND+40], 3
  ja .Lrefused
  cmp QWORD PTR [rbp+COMMAND+56], HEADER
@@ -353,6 +367,28 @@ worker_policy_hole: .long 0
  sub rax, HEADER
  cmp QWORD PTR [rbp+COMMAND+48], rax
  jne .Lrefused
+ .ifdef WORKER_CONTEXT
+ jmp .Lcommand_extent_ready
+.Lwide_command:
+ cmp QWORD PTR [rbp+COMMAND+136], 1
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+16], 1
+ jne .Lrefused
+ mov rax, [rbp+COMMAND+40]
+ cmp rax, 32
+ ja .Lrefused
+ imul rax, 24
+ add rax, HEADER
+ mov rdx, [rbp+COMMAND+48]
+ cmp rdx, 1536
+ ja .Lrefused
+ add rax, rdx
+ cmp rax, [rbp+OUTPUT_END]
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+56], HEADER
+ jne .Lrefused
+.Lcommand_extent_ready:
+ .endif
  mov rax, [rbp+COMMAND+16]
  mov [rbp+CURRENT], rax
  mov rax, [rip+.Lobservation_magic]
@@ -385,11 +421,19 @@ worker_policy_hole: .long 0
  .ifdef WORKER_STORED_READ
  cmp rax, 9
  je .Lstage
- .ifdef WORKER_INPUT
+ .ifdef HAS_RANDOM_PORT
  cmp rax, 10
  je .Lrandom
  .endif
  .endif
+ .endif
+ .ifdef WORKER_CONTEXT
+ cmp rax, 11
+ je .Lstage
+ cmp rax, 12
+ je .Luname
+ cmp rax, 13
+ je .Lcpu
  .endif
  cmp rax, 5
  jne .Lrefused
@@ -427,6 +471,12 @@ worker_policy_hole: .long 0
  call .Lwrite_exact
  xor r12d, r12d
  lea r13, [rbp+COMMAND+64]
+ .ifdef WORKER_CONTEXT
+ cmp QWORD PTR [rbp+COMMAND+136], 0
+ je .Lfragments
+ mov rax, [rbp+COMMAND+48]
+ lea r13, [rbp+COMMAND+HEADER+rax]
+ .endif
 .Lfragments:
  cmp r12, [rbp+COMMAND+40]
  jae .Lseal_input
@@ -472,6 +522,10 @@ worker_policy_hole: .long 0
  .ifdef WORKER_STORED_READ
  cmp QWORD PTR [rbp+CURRENT], 9
  je .Lsend_peer
+ .ifdef WORKER_CONTEXT
+ cmp QWORD PTR [rbp+CURRENT], 11
+ je .Lmade
+ .endif
  .endif
  call hia_worker_memfd
  test rax, rax
@@ -482,6 +536,15 @@ worker_policy_hole: .long 0
  js .Lrefused
  mov [rbp+PROCESS+24], rax
  lea rax, [rip+.Lchild_name]
+ .ifdef WORKER_CONTEXT
+ mov rcx, [rbp+COMMAND+168]
+ test rcx, rcx
+ jz .Lchild_name_ready
+ cmp rcx, 1
+ jne .Lrefused
+ lea rax, [rip+.Lnominal_child_name]
+.Lchild_name_ready:
+ .endif
  mov [rbp+ARGV], rax
  mov rax, [rbp+COMMAND+32]
  cmp rax, 12
@@ -710,6 +773,9 @@ worker_policy_hole: .long 0
  call hia_worker_seal
  test rax, rax
  jnz .Lrefused
+ .ifdef WORKER_CONTEXT
+.Lobserve_output:
+ .endif
  mov edi, DWORD PTR [rbp+PROCESS+16]
  lea rsi, [rbp+FD_INFO]
  call hia_worker_fd_observe
@@ -909,6 +975,10 @@ worker_policy_hole: .long 0
  .ifdef WORKER_ARTIFACT
  cmp QWORD PTR [rbp+COMMAND+144], 0
  je .Lclock_monotonic
+ .ifdef WORKER_CONTEXT
+ cmp QWORD PTR [rbp+COMMAND+144], 2
+ je .Lclock_raw
+ .endif
  cmp QWORD PTR [rbp+COMMAND+144], 1
  jne .Lrefused
  xor edi, edi
@@ -941,7 +1011,83 @@ worker_policy_hole: .long 0
  mov QWORD PTR [rbp+OBS_SIZE], 72
  jmp .Lnext
 
-.ifdef WORKER_INPUT
+.ifdef WORKER_CONTEXT
+.Lmade:
+ mov rax, [rbp+STAGED]
+ mov [rbp+PROCESS+16], rax
+ jmp .Lobserve_output
+
+.Lclock_raw:
+ xor edi, edi
+ lea rsi, [rbp+OBS+64]
+ mov eax, 228
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov edx, 16
+ jmp .Lfixed_observation
+
+.Luname:
+ lea rdi, [rbp+SCRATCH]
+ mov eax, 63
+ syscall
+ test rax, rax
+ js .Lrefused
+ lea rsi, [rbp+SCRATCH]
+ lea rdi, [rbp+OBS+64]
+ mov ecx, 65
+ rep movsb
+ lea rsi, [rbp+SCRATCH+260]
+ mov ecx, 65
+ rep movsb
+ mov edx, 130
+.Lfixed_observation:
+ mov [rbp+OBS+40], rdx
+ mov [rbp+OBS+56], rdx
+ add rdx, 64
+ mov [rbp+OBS_SIZE], rdx
+ jmp .Lnext
+
+.Lcpu:
+ mov edi, -100
+ lea rsi, [rip+.Lcpu_online]
+ mov edx, 0xa0000
+ xor r10d, r10d
+ mov eax, 257
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov edi, eax
+ lea rsi, [rbp+SCRATCH]
+ mov edx, 4096
+.Lcpu_read:
+ xor eax, eax
+ syscall
+ cmp rax, -4
+ je .Lcpu_read
+ mov r12, rax
+ mov eax, 3
+ syscall
+ cmp r12, 2
+ jl .Lrefused
+ cmp r12, 4096
+ jae .Lrefused
+ call hia_worker_memfd
+ test rax, rax
+ js .Lrefused
+ mov [rbp+PROCESS+16], rax
+ mov edi, eax
+ lea rsi, [rbp+SCRATCH]
+ mov rdx, r12
+ call .Lwrite_exact
+ mov edi, DWORD PTR [rbp+PROCESS+16]
+ call hia_worker_seal
+ test rax, rax
+ jnz .Lrefused
+ jmp .Lobserve_output
+.endif
+
+.ifdef HAS_RANDOM_PORT
 .Lrandom:
  mov r12, [rbp+COMMAND+144]
  test r12, r12
@@ -1133,7 +1279,12 @@ worker_policy_hole: .long 0
 .ifdef WORKER_COST
 .ifdef WORKER_STORED_READ
 .ifdef WORKER_ARTIFACT
+.ifdef WORKER_CONTEXT
+.Lmode: .asciz "--worker-context"
+.Lcpu_online: .asciz "/sys/devices/system/cpu/online"
+.else
 .Lmode: .asciz "--worker-artifact"
+.endif
 .else
 .Lmode: .asciz "--own-store"
 .endif
@@ -1148,10 +1299,17 @@ worker_policy_hole: .long 0
 .endif
 .endif
 .Lchild_name: .asciz "hia-worker-effect"
+.ifdef WORKER_CONTEXT
+.Lnominal_child_name: .asciz "hia-admit-agent-json"
+.endif
 .ifdef WORKER_COST
 .ifdef WORKER_STORED_READ
 .ifdef WORKER_ARTIFACT
+.ifdef WORKER_CONTEXT
+.Ldiagnostic: .ascii "native HIA Context Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Artifact Worker transport refused\n"
+.endif
 .else
 .ifdef WORKER_DISCOVERY
 .Ldiagnostic: .ascii "native HIA Discovery materialization transport refused\n"

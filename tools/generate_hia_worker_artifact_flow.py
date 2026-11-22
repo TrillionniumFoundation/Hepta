@@ -194,7 +194,7 @@ def project_artifact(o:mutbuf, w:mutbuf, state:u64, tag:u64, role:u64) -> u64:
     return action(o, w, state, RUN, role, 0, 1, 16)
 
 def schema_receipt(o:mutbuf, w:mutbuf, state:u64, role:u64, slot:u64) -> u64:
-    put(o, HEADER, 2)
+    put(o, HEADER, SCHEMA_TOOL)
     copy_private(w, o, TRUST, HEADER + 8, 64)
     after_prefix(w, o, slot, 0)
     return action(o, w, state, RUN, role, 0, 1, 72)
@@ -837,7 +837,7 @@ def send_report(o:mutbuf, w:mutbuf, replay:bool) -> u64:
 '''
 
 
-def program():
+def policy_constants():
     words = {
         'ENTRY': b'HIADRI01', 'OBSERVATION': b'HIADFO01', 'COMMAND': b'HIADFC01',
         'DOSSIER': b'HIARWD01', 'ADMITTED': b'HIADRA01', 'CONFIG': b'HIARAC01',
@@ -856,6 +856,7 @@ def program():
     }
     constants = {label: int.from_bytes(value, 'little') for label, value in words.items()}
     constants.update(BAD=0xfffffffd, HEADER=512, ENTRY_HEAD=64, DOSSIER_HEAD=312,
+                     SCHEMA_TOOL=2,
                      DESCRIPTOR_BYTES=40, ROLE_COUNT=23, ENTRY_BYTES=64 + 312 + 23 * 40,
                      ELF_MAGIC=0x464c457f, MAX_INPUT=8388608, ARGUMENTS=192,
                      INLINE_FRAGMENT=(1 << 64) - 1, PROFILE_REFUSAL=4294967289,
@@ -899,6 +900,11 @@ def program():
               'STORE_STEP', 'STORE_REPLY_FD', 'STORE_COMMAND_FD', 'STORE_REQUEST', 'STORE_EPOCH',
               'INPUT_EXTENT', 'INPUT_AT', 'REQUIRE_DIGEST', 'FILE_LIMIT', 'FILE_LENGTH', 'FILE_OFFSET')
     constants.update({name: 128 + 8 * index for index, name in enumerate(fields)})
+    return constants
+
+
+def program():
+    constants = policy_constants()
     entry = entry_program()
     controls = (
         function(COST_POLICY, 'action'),
