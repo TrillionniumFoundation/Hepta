@@ -48,6 +48,7 @@ VARIANTS = {
     'emit-request': ('worker_emit_request', 'hepta.hia.emit-request-native.v1'),
     'emit-receipt': ('worker_emit_receipt', 'hepta.hia.emit-receipt-native.v1'),
     'emit-verification': ('worker_emit_verification', 'hepta.hia.emit-verification-native.v1'),
+    'worker-block-layout': ('worker_block_layout', 'hepta.hia.worker-block-layout-native.v1'),
     'emit-build-observation': ('worker_emit_build_observation', 'hepta.hia.emit-build-observation-native.v1'),
     'emit-effect': ('worker_emit_effect', 'hepta.hia.emit-effect-native.v1'),
     'worker-profile-bindings': ('worker_profile_bindings', 'hepta.hia.worker-profile-bindings-native.v1'),

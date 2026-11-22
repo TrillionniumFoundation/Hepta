@@ -122,6 +122,7 @@ CANDIDATES = {
     'emit-request': ('worker_emit_request', 'emit-request'),
     'emit-receipt': ('worker_emit_receipt', 'emit-receipt'),
     'emit-verification': ('worker_emit_verification', 'emit-verification'),
+    'worker-block-layout': ('worker_block_layout', 'worker-block-layout'),
     'emit-build-observation': ('worker_emit_build_observation', 'emit-build-observation'),
     'emit-effect': ('worker_emit_effect', 'emit-effect'),
     'worker-profile-bindings': ('worker_profile_bindings', 'worker-profile-bindings'),
