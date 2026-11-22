@@ -503,9 +503,9 @@ def refusal(o:mutbuf, reason:u64) -> u64:
 '''
 
 
-def key_table():
+def key_table(names=NAMES):
     groups = {}
-    for ordinal, name in enumerate(NAMES, 1):
+    for ordinal, name in enumerate(names, 1):
         encoded = name.encode('ascii')
         groups.setdefault(len(encoded), []).append((ordinal, encoded))
     lines = ['def key_id(w:mutbuf, at:u64, extent:u64) -> u64:']

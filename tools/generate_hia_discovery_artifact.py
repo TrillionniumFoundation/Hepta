@@ -13,7 +13,7 @@ SOURCE = 'examples/hia_bootstrap/discovery_artifact.hepta'
 DOCUMENT_KINDS = (b'profile', b'discovery', b'input', b'context',
                   b'inspection', b'edit-query', b'lowering-object',
                   b'core', b'candidate-diagnostics', b'rollback-receipt', b'slot-snapshot',
-                  *EMIT_DOCUMENT_KINDS)
+                  *EMIT_DOCUMENT_KINDS, b'adoption-receipt')
 
 CANDIDATE_CONTEXT = '''
 def candidate_context(s:readbuf, at:u64) -> bool:

@@ -359,6 +359,8 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/worker_emit_receipt.hepta',
     'tools/generate_hia_worker_emit_verification.py',
     'examples/hia_bootstrap/worker_emit_verification.hepta',
+    'tools/generate_hia_worker_adopt_authority.py',
+    'examples/hia_bootstrap/worker_adopt_authority.hepta',
     'tools/generate_hia_worker_block_layout.py',
     'examples/hia_bootstrap/worker_block_layout.hepta',
     'tools/generate_hia_worker_register_layout.py',

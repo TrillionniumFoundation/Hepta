@@ -51,10 +51,13 @@ WIRE = {
     'INSPECTION_TOOL_HEAD': b'hia_insp',
     'INSPECTION_TOOL_TAIL': b'ect',
     'EMIT_TOOL': b'hia_emit',
+    'ADOPT_TOOL_HEAD': b'hia_adop',
     'ROLLBACK_TOOL_HEAD': b'hia_roll',
     'ROLLBACK_TOOL_TAIL': b'back',
     'SLOT_LEASE_COUNT': b'HIASTLC1',
+    'SLOT_GENERATION_MAX': b'HIASTGM1',
     'ROLLBACK_COMMIT': b'HIARLC01',
+    'ADOPTION_COMMIT': b'HIAADC01',
     'RUNNING_STATE': b'running',
 }
 
@@ -156,7 +159,10 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 32:
         if mode != 0 or valid_rollback_commit(s, size, request, generation) == False:
             return 0
-    elif plan == 28 or plan == 30:
+    elif plan == 36:
+        if mode != 0 or valid_adoption_commit(s, size, request, generation) == False:
+            return 0
+    elif plan == 28 or plan == 30 or plan == 33:
         if valid_slot_query(s, size) == False:
             return 0
     elif plan == 29:
@@ -164,6 +170,12 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return 0
     elif plan == 31:
         if mode != 0 or valid_slot_move(s, size) == False:
+            return 0
+    elif plan == 34:
+        if mode != 0 or valid_slot_create(s, size) == False:
+            return 0
+    elif plan == 35:
+        if mode != 0 or valid_version_retain(s, size) == False:
             return 0
     elif plan == 4:
         if size != 92 or valid_context_lookup(s) == False:
@@ -212,7 +224,7 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if plan == 23 or plan == 26:
         write_word(w, 152, choose(plan == 23, 1, 2))
         return begin_unique_commit(o, w)
-    if plan == 32:
+    if plan == 32 or plan == 36:
         write_word(w, 152, read_word(s, 56))
         return begin_unique_commit(o, w)
     if mapped == False:
@@ -262,9 +274,7 @@ def valid_context_claim(s:readbuf, size:u64) -> bool:
     return (read_word(s, 112) | read_word(s, 120)) != 0
 
 def valid_candidate_attempt(s:readbuf, size:u64) -> bool:
-    if size != 164 or read_word(s, 48) != UPDATE_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 8 or read_word(s, 72) != 0 or read_word(s, 80) != 3:
+    if size != 164 or write_binding(s, UPDATE_PARAMETERS, 8, 3) == False:
         return False
     if valid_cell(s, 88, 1, 112, 8) == False or valid_cell(s, 112, 3, 120, 36) == False:
         return False
@@ -273,17 +283,27 @@ def valid_candidate_attempt(s:readbuf, size:u64) -> bool:
     previous = read_word(s, 204)
     return previous < 4096 and read_word(s, 160) == previous + 1
 
-# Slot observations use the original Store tables. The same canonical request
-# can be issued repeatedly inside the caller's exclusive transaction.
 def valid_rollback_commit(s:readbuf, size:u64, request:u64, generation:u64) -> bool:
     if (size != 112 and size != 160) or read_word(s, 48) != ROLLBACK_COMMIT:
         return False
     count = read_word(s, 56)
     if count != choose(size == 112, 2, 3):
         return False
-    # Slot write, optional immutable receipt insertion, and terminal Journal
-    # write all belong to the same exclusive Store generation. Queries can
-    # intervene, but the last authorization names its exact request id.
+    return ordered_write_receipts(s, size, request, generation)
+
+def valid_adoption_commit(s:readbuf, size:u64, request:u64, generation:u64) -> bool:
+    if size < 160 or size > 304 or read_word(s, 48) != ADOPTION_COMMIT:
+        return False
+    # Retain candidate, move, optional immutable receipt, terminal Journal.
+    # A new slot also creates its slot row and retains generation zero.
+    count = read_word(s, 56)
+    if count < 3 or count > 6 or size != 16 + 48 * count:
+        return False
+    return ordered_write_receipts(s, size, request, generation)
+
+def ordered_write_receipts(s:readbuf, size:u64, request:u64, generation:u64) -> bool:
+    # Queries may intervene, but every write must be acknowledged in the same
+    # exclusive Store generation; the terminal write names this exact request.
     at = 64
     last = 0
     while at < 48 + size:
@@ -323,9 +343,7 @@ def valid_version_query(s:readbuf, size:u64) -> bool:
 # This operation is legal only in a caller-owned Store transaction, so the
 # Slot publication and the terminal Journal record can commit together.
 def valid_slot_move(s:readbuf, size:u64) -> bool:
-    if size < 175 or size > 404 or read_word(s, 48) != UPDATE_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != 0 or read_word(s, 80) != 4:
+    if size < 175 or size > 404 or write_binding(s, UPDATE_PARAMETERS, 2, 4) == False:
         return False
     generation = read_word(s, 104)
     epoch = read_word(s, 128)
@@ -342,6 +360,35 @@ def valid_slot_move(s:readbuf, size:u64) -> bool:
         return False
     return context_id(s, 48 + context) and slot_name(s, 84 + context, size - context - 36)
 
+def write_binding(s:readbuf, magic:u64, ordinal:u64, fields:u64) -> bool:
+    mismatch = (read_word(s, 48) ^ magic) | (read_word(s, 56) ^ 1)
+    mismatch = mismatch | (read_word(s, 64) ^ ordinal) | read_word(s, 72)
+    return (mismatch | (read_word(s, 80) ^ fields)) == 0
+
+def valid_slot_create(s:readbuf, size:u64) -> bool:
+    if size < 263 or size > 454 or write_binding(s, INSERT_PARAMETERS, 7, 5) == False:
+        return False
+    name = size - 262
+    context = 160 + name
+    cells = cell_difference(s, 88, 3, 160, name) | cell_difference(s, 112, 3, context, 36)
+    cells = cells | cell_difference(s, 136, 3, context + 36, 1) | cell_difference(s, 160, 3, context + 37, 1)
+    if (cells | cell_difference(s, 184, 3, context + 38, 64)) != 0:
+        return False
+    return slot_name(s, 208, name) and context_id(s, 48 + context) and byte(s, 84 + context) == 48 and byte(s, 85 + context) == 48 and valid_hex(s, 86 + context, 64)
+
+def valid_version_retain(s:readbuf, size:u64) -> bool:
+    if size < 290 or size > 500 or write_binding(s, INSERT_PARAMETERS, 8, 3) == False:
+        return False
+    name = read_word(s, 104)
+    width = read_word(s, 128)
+    if name < 1 or name > 192 or width < 1 or width > 20 or size != 288 + name + width:
+        return False
+    artifact = 112 + name + width
+    cells = cell_difference(s, 88, 3, 112, name) | cell_difference(s, 112, 3, 112 + name, width)
+    if (cells | cell_difference(s, 136, 3, artifact, 176)) != 0:
+        return False
+    return slot_name(s, 160, name) and canonical_timestamp(s, 160 + name, width) and profile_reference(s, 101 + artifact, 48 + artifact)
+
 def slot_name(s:readbuf, start:u64, size:u64) -> bool:
     index = 0
     while index < size:
@@ -357,9 +404,7 @@ def context_id(s:readbuf, at:u64) -> bool:
     return byte(s, at) == 99 and byte(s, at + 1) == 116 and byte(s, at + 2) == 120 and byte(s, at + 3) == 45 and valid_hex(s, at + 4, 32)
 
 def valid_context_record(s:readbuf, size:u64) -> bool:
-    if size <= 412 or size > 432 or read_word(s, 48) != INSERT_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != 0 or read_word(s, 80) != 4:
+    if size <= 412 or size > 432 or write_binding(s, INSERT_PARAMETERS, 1, 4) == False:
         return False
     if valid_cell(s, 88, 3, 136, 36) == False or valid_cell(s, 112, 3, 172, 64) == False:
         return False
@@ -393,9 +438,7 @@ def valid_context_budget(s:readbuf, size:u64) -> bool:
 
 # One previously issued page cursor, with its exact artifact digest and offset.
 def valid_cursor_retain(s:readbuf, size:u64) -> bool:
-    if size < 278 or size > 533 or read_word(s, 48) != INSERT_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 10 or read_word(s, 72) != 0 or read_word(s, 80) != 4:
+    if size < 278 or size > 533 or write_binding(s, INSERT_PARAMETERS, 10, 4) == False:
         return False
     offset = 136
     field = 0
@@ -424,9 +467,7 @@ def valid_cursor_retain(s:readbuf, size:u64) -> bool:
 # Keep the large body in the same sealed control mapping; only the mechanical
 # split command extent is handed back to the adapter after full validation.
 def valid_cost_insert(s:readbuf, size:u64) -> bool:
-    if size < 184 or size > 8390608 or read_word(s, 48) != INSERT_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
+    if size < 184 or size > 8390608 or write_binding(s, INSERT_PARAMETERS, 2, 6) == False:
         return False
     offset = 184
     field = 0
@@ -456,9 +497,7 @@ def valid_cost_insert(s:readbuf, size:u64) -> bool:
 # artifact. The existing Store INSERT ordinal is 11; its uniqueness semantics
 # and WAL format do not change.
 def valid_profile_insert(s:readbuf, size:u64) -> bool:
-    if size < 353 or size > 544 or read_word(s, 48) != INSERT_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 11 or read_word(s, 72) != 0 or read_word(s, 80) != 3:
+    if size < 353 or size > 544 or write_binding(s, INSERT_PARAMETERS, 11, 3) == False:
         return False
     name = read_word(s, 104)
     if name == 0 or name > 192 or size != 352 + name:
@@ -515,9 +554,7 @@ def valid_hex(s:readbuf, at:u64, count:u64) -> bool:
 # Narrow immutable Agent artifact insert. Typed uncooked metadata is
 # allowed only for the fixed Emit roles or an exact retained Core Context.
 def valid_discovery_insert(s:readbuf, size:u64) -> bool:
-    if size < 400 or size > @META_LIMIT@ + 415 or read_word(s, 48) != INSERT_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 9 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
+    if size < 400 or size > @META_LIMIT@ + 415 or write_binding(s, INSERT_PARAMETERS, 9, 6) == False:
         return False
     kind = read_word(s, 176)
     if kind < 4 or kind > 21:
@@ -565,9 +602,7 @@ def emit_kind_size(role:u64) -> u64:
 # Reserve binds the original request and compatibility tool identity, not
 # a setter for arbitrary request-state rows.
 def valid_request_reserve(s:readbuf, size:u64) -> bool:
-    if size < 328 or size > 352 or read_word(s, 48) != INSERT_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 6 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
+    if size < 328 or size > 352 or write_binding(s, INSERT_PARAMETERS, 6, 6) == False:
         return False
     if valid_cell(s, 88, 3, 184, 64) == False or valid_cell(s, 112, 3, 248, 64) == False:
         return False
@@ -585,6 +620,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
         width = 12
     elif tool == EMIT_TOOL:
         width = 8
+    elif tool == ADOPT_TOOL_HEAD and byte(s, 368) == 116:
+        width = 9
     if width == 0 or size <= 319 + width or size > 339 + width:
         return False
     if valid_cell(s, 136, 3, 312, width) == False or valid_cell(s, 160, 3, 312 + width, 7) == False:
@@ -613,9 +650,7 @@ def canonical_timestamp(s:readbuf, at:u64, extent:u64) -> bool:
 
 # The sealed tail is the already rendered terminal plus its exact journal key.
 def valid_request_complete(s:readbuf, size:u64) -> bool:
-    if size < 154 or size > 8388760 or read_word(s, 48) != UPDATE_PARAMETERS:
-        return False
-    if read_word(s, 56) != 1 or read_word(s, 64) != 1 or read_word(s, 72) != 0 or read_word(s, 80) != 2:
+    if size < 154 or size > 8388760 or write_binding(s, UPDATE_PARAMETERS, 1, 2) == False:
         return False
     width = size - 152
     if valid_cell(s, 88, 3, 88, width) == False or valid_cell(s, 112, 3, 88 + width, 64) == False:
@@ -625,10 +660,13 @@ def valid_request_complete(s:readbuf, size:u64) -> bool:
     return valid_hex(s, 136 + width, 64)
 
 def valid_cell(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> bool:
-    return read_word(s, at) == kind and read_word(s, at + 8) == offset and read_word(s, at + 16) == size
+    return cell_difference(s, at, kind, offset, size) == 0
+
+def cell_difference(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> u64:
+    return (read_word(s, at) ^ kind) | (read_word(s, at + 8) ^ offset) | (read_word(s, at + 16) ^ size)
 
 def durable_write(plan:u64) -> bool:
-    return plan == 10 or plan == 31 or plan == 32 or (plan >= 18 and plan <= 27)
+    return plan == 10 or plan == 31 or plan == 32 or (plan >= 34 and plan <= 36) or (plan >= 18 and plan <= 27)
 
 def unique_query_plan(plan:u64) -> u64:
     if plan == 28:
@@ -637,6 +675,8 @@ def unique_query_plan(plan:u64) -> u64:
         return 13
     if plan == 30:
         return 11
+    if plan == 33:
+        return 16
     return plan
 
 def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
@@ -646,6 +686,10 @@ def configure_unique(w:mutbuf, request:u64, plan:u64) -> u64:
         write_word(w, 24, plan - 21)
         write_word(w, 32, choose(plan == 28, 31, choose(plan == 29, 4, 0)))
         return write_word(w, 40, 512)
+    if plan == 33:
+        write_word(w, 24, 8)
+        write_word(w, 32, 2)
+        return write_word(w, 40, 1000000032)
     write_word(w, 24, choose(plan == 4, 3, choose(plan == 6, 6, choose(plan == 9, 4, choose(plan == 12, 2, 1)))))
     write_word(w, 32, choose(plan == 4, 31, choose(plan == 6, 15, choose(plan == 12, 4, 63))))
     return write_word(w, 40, choose(plan == 4 or plan == 6 or plan == 12, 512, choose(plan == 9, 8389120, 1000000032)))
@@ -744,7 +788,7 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     count = read_word(s, 40)
     if (plan == 23 and count != 1) or (plan == 26 and count != 2):
         return 0
-    if (plan == 27 or plan == 32) and count != read_state(w, 152):
+    if (plan == 27 or plan == 32 or plan == 36) and count != read_state(w, 152):
         return 0
     advanced = choose(count == 0, 0, 1)
     prior = read_state(w, 120)
@@ -756,7 +800,7 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     return finish_unique(o, w)
 
 def must_write(plan:u64) -> bool:
-    return plan == 18 or plan == 24 or plan == 25 or plan == 31
+    return plan == 18 or plan == 24 or plan == 25 or plan == 31 or plan == 34 or plan == 35
 
 def durable_insert_ack(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if read_word(s, 24) != 27:
@@ -799,9 +843,8 @@ def finish_unique(o:mutbuf, w:mutbuf) -> u64:
     write_word(o, 40, read_state(w, 120))
     return 48
 
-# A durable indexed read is exactly one authenticated summary and final
-# acknowledgement around at most one row. The transport only delivers the
-# requested byte extents and copies accepted fragments to its private sink.
+# Indexed reads (or the versions fold) have exactly one authenticated summary
+# and final acknowledgement. The adapter only moves HIA-admitted fragments.
 def unique_stream(s:readbuf, o:mutbuf, w:mutbuf, role:u64) -> u64:
     if (length(w) != 128 and length(w) != 2304) or length(o) < 8160:
         return 0
@@ -865,7 +908,11 @@ def stream_header(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     else:
         if active != 1 or identity != read_state(w, 72) or offset != used:
             return 0
-        if kind == 3 and extent == 0 and read_state(w, 80) == 0:
+        if kind == 3 and extent == 0:
+            if read_state(w, 16) == 33:
+                return finish_generation_row(o, w, used)
+            if read_state(w, 80) != 0:
+                return 0
             write_word(w, 64, 0)
             write_word(w, 80, 1)
             return stream_read(o, w, 1, 8)
@@ -880,13 +927,22 @@ def stream_payload(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if length(s) != 8 + extent:
         return 0
     kind = read_state(w, 88)
+    plan = read_state(w, 16)
     if kind == 1:
-        if read_state(w, 80) != 0:
+        if plan != 33 and read_state(w, 80) != 0:
             return 0
         write_word(w, 64, 1)
         write_word(w, 72, read_state(w, 96))
     elif kind == 2:
         used = read_state(w, 48)
+        if plan == 33:
+            # Retain only the fixed directory, slot and generation. The
+            # artifact column is not part of the generation projection.
+            if used < 316:
+                remaining = 316 - used
+                copy_fields(s, w, 8, 448 + used, choose(extent < remaining, extent, remaining))
+            write_word(w, 48, used + extent)
+            return stream_read(o, w, 1, 8)
         write_word(w, 0, 1)
         write_word(w, 48, used + extent)
         write_word(o, 0, 2)
@@ -895,12 +951,25 @@ def stream_payload(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         copy_fields(s, o, 8, 32, extent)
         return 32 + extent
     elif kind == 4:
-        if read_word(s, 392) != unique_query_plan(read_state(w, 16)) or read_word(s, 400) != read_state(w, 32):
+        if read_word(s, 392) != unique_query_plan(plan) or read_word(s, 400) != read_state(w, 32):
             return 0
         if read_word(s, 416) != read_state(w, 80):
             return 0
         write_word(w, 56, 1)
-        if read_state(w, 16) == 30:
+        if plan == 33:
+            count = read_state(w, 80)
+            if read_word(s, 408) != count or read_state(w, 48) != 0:
+                return 0
+            write_word(w, 0, 1)
+            write_word(w, 48, 24)
+            write_word(w, 80, 1)
+            write_word(o, 0, 2)
+            write_word(o, 8, 24)
+            write_word(o, 32, SLOT_GENERATION_MAX)
+            write_word(o, 40, read_state(w, 176))
+            write_word(o, 48, count)
+            return 56
+        if plan == 30:
             if read_state(w, 80) != 0 or read_state(w, 48) != 0:
                 return 0
             # COUNT has no physical row; carry only the authenticated
@@ -916,6 +985,52 @@ def stream_payload(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return 48
     else:
         return 0
+    return stream_read(o, w, 1, 8)
+
+def finish_generation_row(o:mutbuf, w:mutbuf, used:u64) -> u64:
+    row = 448
+    count = read_state(w, 80)
+    name = read_state(w, 128) - 56
+    if used < 105 + name or count == 18446744073709551615:
+        return 0
+    header = (read_state(w, row) ^ VALUES) | (read_state(w, row + 8) ^ 1)
+    header = header | (read_state(w, row + 16) ^ 8) | (read_state(w, row + 24) ^ 3)
+    first = (read_state(w, row + 32) ^ 3) | (read_state(w, row + 40) ^ 104) | (read_state(w, row + 48) ^ name)
+    if (header | first) != 0:
+        return 0
+    value = 104 + name
+    width = read_state(w, row + 72)
+    if width == 0 or width > 20 or width > used - value:
+        return 0
+    artifact = value + width
+    second = (read_state(w, row + 56) ^ 3) | (read_state(w, row + 64) ^ value)
+    third = (read_state(w, row + 80) ^ 3) | (read_state(w, row + 88) ^ artifact) | (read_state(w, row + 96) ^ (used - artifact))
+    if (second | third) != 0:
+        return 0
+    at = 0
+    while at < name:
+        if byte(w, row + 104 + at) != byte(w, 248 + at):
+            return 0
+        at = at + 1
+    at = row + value
+    if width > 1 and byte(w, at) == 48:
+        return 0
+    end = at + width
+    maximum = 0
+    while at < end:
+        ch = byte(w, at)
+        if ch < 48 or ch > 57:
+            return 0
+        digit = ch - 48
+        if maximum > 1844674407370955161 or (maximum == 1844674407370955161 and digit > 5):
+            return 0
+        maximum = maximum * 10 + digit
+        at = at + 1
+    previous = read_state(w, 176)
+    write_word(w, 176, choose(maximum > previous, maximum, previous))
+    write_word(w, 48, 0)
+    write_word(w, 64, 0)
+    write_word(w, 80, count + 1)
     return stream_read(o, w, 1, 8)
 
 def stream_read(o:mutbuf, w:mutbuf, phase:u64, extent:u64) -> u64:
