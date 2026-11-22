@@ -6,6 +6,7 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_optimization import PURE
 from hepta.hia_program import MAX_FUNCTIONS
+from hepta.hia_schema import PRIMITIVE_PROFILES, supports_feature
 from hepta.hia_scalar_reference_native import OPCODES
 from hepta.hia_scalar_reference_wire import CONSTANT, RETURN, TRAP, JUMP, BRANCH, TYPES
 from tools.generate_hia_artifact_publication import document
@@ -20,11 +21,11 @@ from tools.generate_hia_worker_inspection_effect import function
 SOURCE = Path('examples/hia_bootstrap/worker_finite_domain.hepta')
 MAGIC = int.from_bytes(b'HIAVFD01', 'little')
 KEYS = ('functions', 'exports', 'name', 'blocks', 'params', 'returns', 'effects',
-        'entry', 'id', 'ops', 'term', 'op', 'args', 'target', 'then', 'else', 'type')
+        'entry', 'id', 'ops', 'term', 'op', 'args', 'target', 'then', 'else', 'type', 'schema')
 
 POLICY = r'''
 # [independently admitted base Core, independently admitted candidate Core].
-# Header: tag, reserved, number of public functions, total argument tuples.
+# Header: tag, base/candidate ledger bits, public functions, argument tuples.
 # Each 56-byte row is [base name span, arity, tuples, result type, 12 kinds].
 # A plan is not an equivalence verdict: it authorizes exact enumeration order.
 def domain_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -42,9 +43,13 @@ def domain_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     candidate = next(w, base)
     if object(w, base) == False or object(w, candidate) == False:
         return BAD
-    return plan_functions(o, w, arena, base, candidate)
+    before = chain_ledger(w, lookup(w, base, K_schema))
+    after = chain_ledger(w, lookup(w, candidate, K_schema))
+    if before > 1 or after > 1:
+        return BAD
+    return plan_functions(o, w, arena, base, candidate, before | (after << 1))
 
-def plan_functions(o:mutbuf, w:mutbuf, a:u64, base:u64, candidate:u64) -> u64:
+def plan_functions(o:mutbuf, w:mutbuf, a:u64, base:u64, candidate:u64, ledgers:u64) -> u64:
     left = lookup(w, base, K_functions)
     right = lookup(w, candidate, K_functions)
     if kind(w, left) != 5 or kind(w, right) != 5:
@@ -80,7 +85,7 @@ def plan_functions(o:mutbuf, w:mutbuf, a:u64, base:u64, candidate:u64) -> u64:
     if total == 0:
         return BAD
     put(o, 0, PLAN)
-    put(o, 8, 0)
+    put(o, 8, ledgers)
     put(o, 16, selected)
     put(o, 24, total)
     return cursor
@@ -217,6 +222,8 @@ def program():
         enum_reader('type_code', [(name, index) for index, name in enumerate(TYPES)]),
         enum_reader('opcode', ops),
         enum_reader('term_code', (('ret', RETURN), ('trap', TRAP), ('jump', JUMP), ('branch', BRANCH))),
+        enum_reader('chain_ledger', [(schema, int(supports_feature(schema, 'recursive_chain')))
+                                     for schema in PRIMITIVE_PROFILES]),
         literal_match('trap_name', 'trap'), literal_match('cast_name', 'int.cast'),
         json_decoder(wire_spans=True),
     ))

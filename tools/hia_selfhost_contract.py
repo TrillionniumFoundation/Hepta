@@ -370,6 +370,8 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/worker_finite_domain.hepta',
     'tools/generate_hia_worker_finite_batch.py',
     'examples/hia_bootstrap/worker_finite_batch.hepta',
+    'tools/generate_hia_worker_finite_transcript.py',
+    'examples/hia_bootstrap/worker_finite_transcript.hepta',
     'examples/hia_bootstrap/worker_register_schedule.hepta',
     'tools/generate_hia_worker_emit_build.py',
     'examples/hia_bootstrap/worker_emit_build_observation.hepta',
